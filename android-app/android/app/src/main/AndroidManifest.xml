@@ -26,6 +26,20 @@
 
         </activity>
 
+        <!-- Pełnoekranowy alarm: zapala ekran i pokazuje się nad blokadą, jak
+             połączenie przychodzące. Poza listą ostatnich, bo to nie jest ekran,
+             do którego się wraca. -->
+        <activity
+            android:name=".AlarmActivity"
+            android:exported="false"
+            android:launchMode="singleInstance"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:showOnLockScreen="true"
+            android:theme="@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen" />
+
         <service
             android:name=".MonitorService"
             android:exported="false"

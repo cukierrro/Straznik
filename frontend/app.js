@@ -1254,6 +1254,11 @@ async function refreshBgStatus() {
       warn.push("⚠ Oszczędzanie baterii może ubić nasłuch — wyłącz je poniżej.");
     if (!s.notificationsAllowed)
       warn.push("⚠ Powiadomienia są zablokowane w ustawieniach systemu.");
+    if (s.fullScreenAllowed === false)
+      warn.push("⚠ Brak zgody na alarm pełnoekranowy — czerwony alarm nie zapali "
+        + "wygaszonego ekranu. Włącz przyciskiem 🚨 poniżej.");
+    const fsBtn = document.getElementById("btn-fullscreen");
+    if (fsBtn) fsBtn.style.display = s.fullScreenAllowed === false ? "" : "none";
     info.innerHTML = (warn.join("<br>") || (s.enabled
       ? "Nasłuch działa. W powiadomieniach widnieje stała informacja."
       : "Nasłuch wyłączony — alarmy tylko przy otwartej aplikacji."))
@@ -1280,6 +1285,9 @@ document.getElementById("btn-battery")?.addEventListener("click", async () => {
 });
 document.getElementById("btn-notif-settings")?.addEventListener("click", () =>
   BG()?.openNotificationSettings());
+document.getElementById("btn-fullscreen")?.addEventListener("click", async () => {
+  await BG()?.requestFullScreenPermission(); setTimeout(refreshBgStatus, 800);
+});
 
 const aboutDlg = document.getElementById("about");
 document.getElementById("btn-about").onclick = () => aboutDlg.showModal();

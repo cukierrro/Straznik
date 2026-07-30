@@ -63,9 +63,41 @@ public class BackgroundPlugin extends Plugin {
         ret.put("enabled", isEnabled(c));
         ret.put("batteryUnrestricted", isIgnoringBattery(c));
         ret.put("notificationsAllowed", notificationsAllowed(c));
+        ret.put("fullScreenAllowed", fullScreenAllowed(c));
         ret.put("sdk", Build.VERSION.SDK_INT);
         ret.put("manufacturer", Build.MANUFACTURER);
         call.resolve(ret);
+    }
+
+    /**
+     * Android 14 przestał przyznawać pełnoekranowe powiadomienia z automatu —
+     * bez tej zgody czerwony alarm przy wygaszonym ekranie nie zapali ekranu,
+     * a zostanie zwykłym powiadomieniem.
+     */
+    private boolean fullScreenAllowed(Context c) {
+        if (Build.VERSION.SDK_INT < 34) return true;
+        NotificationManager nm = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
+        return nm != null && nm.canUseFullScreenIntent();
+    }
+
+    @PluginMethod
+    public void requestFullScreenPermission(PluginCall call) {
+        Context c = getContext();
+        if (fullScreenAllowed(c)) { call.resolve(); return; }
+        try {
+            Intent i = new Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT,
+                Uri.parse("package:" + c.getPackageName()));
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            c.startActivity(i);
+        } catch (Exception e) {
+            try {
+                Intent i = new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                    .putExtra(Settings.EXTRA_APP_PACKAGE, c.getPackageName());
+                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                c.startActivity(i);
+            } catch (Exception ignored) {}
+        }
+        call.resolve();
     }
 
     private boolean isIgnoringBattery(Context c) {

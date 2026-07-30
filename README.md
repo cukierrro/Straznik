@@ -134,8 +134,12 @@ Wynik: `android-app/android/app/build/outputs/apk/debug/app-debug.apk`
 - `frontend/` — mapa 3D MapLibre GL, panel sygnałów, legenda, ekran „O aplikacji"
 - `frontend/engine.js` — wbudowany silnik dla APK (lustrzana kopia logiki backendu)
 - `android-app/` — opakowanie Capacitor (WebView) + projekt Gradle
+- `android-app/android/app/src/main/java/pl/straznik/app/` — warstwa natywna:
+  `MonitorService` (nasłuch w tle), `AlarmActivity` (alarm pełnoekranowy),
+  `Fusion` + `Sources` (fuzja i kolektory w tle), `BackgroundPlugin` (most do JS)
 - `docs/` — instrukcja użytkownika (GitHub Pages) i zrzuty ekranu
 - `scripts/build_cams.py` — odświeżanie listy kamer
+- `scripts/build_sounds.py` — generowanie dźwięków alarmów do `res/raw/`
 
 ## Zgodność z urządzeniami
 
@@ -150,8 +154,34 @@ ikon. Testowane na emulatorze Pixel 7 (Android 14).
 która sama odpytuje źródła i wystawia powiadomienia także przy wygaszonym
 ekranie. Android wymaga przy tym stałego powiadomienia „nasłuch aktywny"
 (pokazuje stan źródeł, np. `Neptun✓ Media✓ RCB✓`) — to warunek systemu.
-Usługa wraca po restarcie telefonu i prosi o wyłączenie optymalizacji baterii,
-bo Xiaomi/Samsung/Huawei potrafią ubijać usługi w tle.
+Usługa wraca po restarcie telefonu oraz przy otwarciu aplikacji (jeśli nasłuch
+jest włączony, a usługi nie ma — np. po wymuszonym zatrzymaniu), i prosi
+o wyłączenie optymalizacji baterii, bo Xiaomi/Samsung/Huawei potrafią ubijać
+usługi w tle.
+
+**Alarm pełnoekranowy** (`AlarmActivity.java`) przy poziomie czerwonym działa
+jak połączenie przychodzące: zapala ekran, pokazuje się nad blokadą, miga
+(te same barwy i tempo co `#alarm-overlay` w CSS), gra syrenę w pętli i wibruje
+do czasu potwierdzenia. Jest natywny, nie w WebView — musi pojawić się
+natychmiast także wtedy, gdy proces aplikacji nie żyje.
+
+Od Androida 14 uprawnienie `USE_FULL_SCREEN_INTENT` nie jest przyznawane
+automatycznie aplikacjom innym niż budzik i telefon. Bez niego start aktywności
+z tła jest blokowany (`BAL_BLOCK`), więc aplikacja prosi o zgodę w ustawieniach
+(`⚙ → 🚨 Zgoda na alarm pełnoekranowy`), a w razie jej braku ratuje się
+wake lockiem: zapala ekran, żeby powiadomienie z syreną było widoczne.
+
+**Dźwięki** generuje `scripts/build_sounds.py` do `res/raw/` — te same przebiegi,
+które otwarta aplikacja syntetyzuje w Web Audio (żółty: dwutonowy sygnał
+740↔988 Hz, czerwony: modulowana syrena 380↔860 Hz przez filtr dolnoprzepustowy).
+Dzięki temu tło brzmi identycznie jak pierwszy plan. Po zmianie brzmienia
+w `app.js` uruchom skrypt ponownie. Kanały powiadomień mają sufiks wersji
+(`-v2`), bo raz utworzony kanał ignoruje późniejsze zmiany dźwięku.
+
+Zweryfikowane na emulatorze Pixel 7 (Android 14) przy ubitym procesie aplikacji
+i wygaszonym ekranie: żółty poziom wystawia powiadomienie i **nie** budzi ekranu,
+czerwony budzi ekran (`Asleep → Awake`) i wypycha `AlarmActivity` na wierzch
+(`BAL_ALLOW_PENDING_INTENT`), a potwierdzenie zatrzymuje dźwięk i wibrację.
 
 ## Ograniczenia (świadome)
 
@@ -177,6 +207,12 @@ bo Xiaomi/Samsung/Huawei potrafią ubijać usługi w tle.
 - Baseline ADS-B potrzebuje ~tygodnia zbierania próbek, wcześniej warstwa nie punktuje.
 - RSS/scraping może się zepsuć, gdy serwisy zmienią strukturę — status w LED-ach
   i `/api/health`.
+
+## Licencja
+
+[MIT](LICENSE) — możesz używać, zmieniać i rozpowszechniać kod, zachowując
+informację o autorstwie. Oprogramowanie jest udostępniane „tak jak jest",
+bez gwarancji: to nieoficjalne źródło dodatkowe, nie system ratunkowy.
 
 ## Dane i atrybucja
 

@@ -639,8 +639,15 @@ footer a{color:var(--tx2)}
   pełny ekran, modulowana syrena alarmu powietrznego i wibracja.</p>
 
   <div class="split">
-    <img src="screens/10_alarm.jpg" alt="Pełnoekranowy alarm: WYSOKI PRIORYTET, Woj. Lubelskie, rozbicie punktów, przycisk POTWIERDZAM">
+    <img src="screens/32_alarm_pelnoekranowy.jpg" alt="Pełnoekranowy alarm na wybudzonym ekranie: WYSOKI PRIORYTET, woj. lubelskie, 5.0 pkt, rozbicie sygnałów, przycisk POTWIERDZAM">
     <div class="txt">
+      <h3>Przy wygaszonym ekranie zachowuje się jak połączenie przychodzące</h3>
+      <p>Czerwony alarm <b>zapala ekran, pokazuje się nad blokadą i miga</b> —
+      nie musisz odblokowywać telefonu ani mieć otwartej aplikacji. Syrena gra
+      w pętli, telefon wibruje, alarm nie zniknie sam.</p>
+      <p>Działa też wtedy, gdy system zdążył wcześniej zamknąć aplikację —
+      alarm wystawia usługa nasłuchu, a ekran alarmu jest natywny, więc nie
+      czeka na załadowanie mapy.</p>
       <h3>Co widzisz na ekranie alarmu</h3>
       <ul class="plain">
         <li><b>Poziom i region</b> — czego dokładnie dotyczy alarm.</li>
@@ -658,9 +665,39 @@ footer a{color:var(--tx2)}
     </div>
   </div>
 
+  <div class="warn">
+    <strong>Android 14 i nowszy: wymagana jedna zgoda.</strong> System domyślnie
+    odbiera pełnoekranowe alarmy aplikacjom, które nie są budzikiem ani telefonem.
+    Bez niej czerwony alarm przy wygaszonym ekranie tylko zapali ekran
+    i pokaże powiadomienie z syreną — bez pełnego ekranu. Włączysz ją jednym
+    kliknięciem: <kbd>⚙</kbd> → <kbd>🚨 Zgoda na alarm pełnoekranowy</kbd>.
+    Aplikacja sama pokaże ostrzeżenie, dopóki zgody nie ma.
+  </div>
+
+  <h3>Trzy poziomy sygnalizacji — co dokładnie robi każdy</h3>
+  <div class="tw">
+    <table>
+      <thead><tr><th>Poziom</th><th>Dźwięk i wibracja</th><th>Ekran</th></tr></thead>
+      <tbody>
+        <tr><td><b>Nasłuch aktywny</b><br><span class="muted">stałe powiadomienie</span></td>
+          <td>Bez dźwięku. Pokazuje stan źródeł, np. <code>Neptun✓ Media✓ RCB✓</code>.</td>
+          <td>Nie budzi ekranu. Wymóg Androida dla usług w tle.</td></tr>
+        <tr><td><b>≥ 2 pkt — żółty</b></td>
+          <td>Dwutonowy sygnał uwagi (740↔988 Hz) i krótka wibracja.</td>
+          <td><b>Nie budzi ekranu</b> — to ostrzeżenie, nie alarm. Zwykłe powiadomienie.</td></tr>
+        <tr><td><b>≥ 4 pkt — czerwony</b></td>
+          <td>Modulowana syrena alarmu powietrznego (380↔860 Hz) w pętli
+            plus wibracja, aż do potwierdzenia. Przebija tryb cichy.</td>
+          <td><b>Zapala ekran</b>, pokazuje pełnoekranowy migający alarm nad blokadą.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
   <div class="note">
-    Chcesz wiedzieć, jak to brzmi, zanim wydarzy się na serio?
-    <kbd>⚙</kbd> → <b>Test: pełny alarm</b> odtwarza dokładnie ten ekran i dźwięk.
+    Dźwięki w tle są <b>te same</b>, które słyszysz w otwartej aplikacji —
+    generuje je jeden skrypt (<code>scripts/build_sounds.py</code>) do plików,
+    z których korzysta warstwa natywna. Chcesz je usłyszeć zawczasu?
+    <kbd>⚙</kbd> → <b>Test: uwaga</b> / <b>Test: syrena</b> / <b>Test: pełny alarm</b>.
   </div>
 </section>
 
@@ -682,14 +719,27 @@ footer a{color:var(--tx2)}
       <h3>Gdy alarmy nie dochodzą</h3>
       <ul class="plain">
         <li>Sprawdź, czy powiadomienie „nasłuch aktywny" jest widoczne —
-          jeśli zniknęło, system ubił usługę.</li>
+          jeśli zniknęło, system ubił usługę. Otwarcie aplikacji ją wskrzesza,
+          bo przy starcie sprawdza, czy nasłuch powinien działać.</li>
         <li>Użyj <kbd>🔋 Wyłącz oszczędzanie baterii</kbd> w ustawieniach.</li>
+        <li>Włącz <kbd>🚨 Zgodę na alarm pełnoekranowy</kbd> — bez niej czerwony
+          alarm nie pokaże pełnego ekranu przy zablokowanym telefonie.</li>
         <li>Na Xiaomi, Samsungu i Huaweiu dodaj Strażnika do aplikacji
           chronionych / autostartu w ustawieniach systemowych.</li>
         <li>Usługa wraca sama po restarcie telefonu.</li>
       </ul>
+      <div class="note" style="margin-top:18px">
+        <b>Sprawdzone, nie deklarowane.</b> Wszystkie trzy poziomy zostały
+        przetestowane na emulatorze Pixel 7 (Android 14) przy <b>zamkniętej
+        aplikacji</b> — z ubitym procesem i wygaszonym ekranem. Czerwony alarm
+        wybudził ekran i pokazał się nad blokadą, żółty celowo ekranu nie zapalił,
+        a przycisk potwierdzenia wyciszył syrenę i wibrację.
+      </div>
     </div>
-    <img src="screens/11_powiadomienia.jpg" alt="Panel powiadomień Androida: Strażnik — nasłuch aktywny, bez sygnałów, Neptun✓ Media✓ RCB✓, przycisk Zatrzymaj">
+    <div>
+      <img src="screens/11_powiadomienia.jpg" alt="Panel powiadomień Androida: Strażnik — nasłuch aktywny, stan źródeł Neptun✓ Media✓">
+      <img src="screens/30_alert_zolty_tlo.jpg" alt="Powiadomienie PODWYŻSZONA UWAGA: woj. lubelskie (2.0 pkt) obok stałego powiadomienia nasłuchu" style="margin-top:14px">
+    </div>
   </div>
 </section>
 

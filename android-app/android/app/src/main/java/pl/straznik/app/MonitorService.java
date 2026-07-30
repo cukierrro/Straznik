@@ -29,8 +29,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class MonitorService extends Service {
     private static final String TAG = "StraznikService";
     static final String CH_STATUS = "straznik-status";
-    static final String CH_HIGH = "straznik-high";
-    static final String CH_INFO = "straznik-info";
+    // sufiks wersji: kanał raz utworzony ignoruje zmiany dźwięku i wibracji,
+    // więc podmiana sygnałów wymaga nowego identyfikatora
+    static final String CH_HIGH = "straznik-high-v2";
+    static final String CH_INFO = "straznik-info-v2";
+    private static final String[] CH_LEGACY = {"straznik-high", "straznik-info"};
     private static final int ID_STATUS = 1001;
     static final String ACTION_STOP = "pl.straznik.app.STOP";
 
@@ -54,10 +57,21 @@ public class MonitorService extends Service {
         status.setShowBadge(false);
         nm.createNotificationChannel(status);
 
+        // stare kanały z systemowymi dźwiękami — usuwamy, żeby nie dublowały wpisów
+        for (String old : CH_LEGACY) {
+            try { nm.deleteNotificationChannel(old); } catch (Exception ignored) {}
+        }
+
+        AudioAttributes alarmAttrs = new AudioAttributes.Builder()
+            .setUsage(AudioAttributes.USAGE_ALARM)
+            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build();
+
         NotificationChannel info = new NotificationChannel(CH_INFO,
             "Podwyższona uwaga (żółty)", NotificationManager.IMPORTANCE_DEFAULT);
         info.enableVibration(true);
         info.setVibrationPattern(new long[]{0, 220, 120, 220});
+        // ten sam dwutonowy sygnał, który gra w otwartej aplikacji
+        info.setSound(soundUri(ctx, R.raw.alert_uwaga), alarmAttrs);
         nm.createNotificationChannel(info);
 
         NotificationChannel high = new NotificationChannel(CH_HIGH,
@@ -66,12 +80,13 @@ public class MonitorService extends Service {
         high.enableVibration(true);
         high.setVibrationPattern(new long[]{0, 700, 300, 700, 300, 900});
         high.setBypassDnd(true);
-        high.setSound(
-            android.provider.Settings.System.DEFAULT_ALARM_ALERT_URI,
-            new AudioAttributes.Builder()
-                .setUsage(AudioAttributes.USAGE_ALARM)
-                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build());
+        // modulowana syrena alarmu powietrznego — identyczna jak w aplikacji
+        high.setSound(soundUri(ctx, R.raw.alarm_syrena), alarmAttrs);
         nm.createNotificationChannel(high);
+    }
+
+    static Uri soundUri(Context ctx, int resId) {
+        return Uri.parse("android.resource://" + ctx.getPackageName() + "/" + resId);
     }
 
     @Override
@@ -146,6 +161,15 @@ public class MonitorService extends Service {
         if (nm != null) nm.notify(ID_STATUS, statusNotification(text));
     }
 
+    private static String reasonsOnly(List<String> reasons) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < Math.min(reasons.size(), 6); i++) {
+            if (sb.length() > 0) sb.append('\n');
+            sb.append(reasons.get(i));
+        }
+        return sb.toString();
+    }
+
     private void alarm(int voiv, String level, double score, List<String> reasons) {
         String voivName = Sources.VOIVS[voiv];
         boolean high = "high".equals(level);
@@ -157,6 +181,18 @@ public class MonitorService extends Service {
 
         PendingIntent open = PendingIntent.getActivity(this, 2,
             new Intent(this, MainActivity.class),
+            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+
+        // Czerwony poziom ma prowadzić do pełnoekranowego alarmu, tak jak połączenie
+        // przychodzące: zapala ekran, pokazuje się nad blokadą, miga i gra do potwierdzenia.
+        PendingIntent fullScreen = PendingIntent.getActivity(this, 3,
+            new Intent(this, AlarmActivity.class)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                // ekran alarmu sam składa nagłówek z województwa i punktów,
+                // więc dostaje wyłącznie rozbicie na sygnały
+                .putExtra(AlarmActivity.EXTRA_BODY, reasonsOnly(reasons))
+                .putExtra(AlarmActivity.EXTRA_VOIV, voivName)
+                .putExtra(AlarmActivity.EXTRA_SCORE, score),
             PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
         Notification.Builder b = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
@@ -173,10 +209,45 @@ public class MonitorService extends Service {
             b.setDefaults(Notification.DEFAULT_VIBRATE | Notification.DEFAULT_SOUND);
             if (high) b.setSound(android.provider.Settings.System.DEFAULT_ALARM_ALERT_URI);
         }
-        if (high) b.setFullScreenIntent(open, true);   // wybudza ekran przy alarmie
+        if (high) {
+            b.setFullScreenIntent(fullScreen, true);
+            b.setCategory(Notification.CATEGORY_ALARM);
+            b.setOngoing(true);        // alarm nie znika przypadkowym muśnięciem
+        }
 
         NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
         if (nm != null) nm.notify(2000 + voiv, b.build());
+
+        if (high) ensureAlarmIsSeen(nm);
+    }
+
+    /**
+     * Czerwony poziom musi zostać zauważony także przy wygaszonym ekranie.
+     *
+     * Ze zgodą na alarm pełnoekranowy robi to system: sam uruchamia AlarmActivity
+     * z przywilejem startu z tła, a ta zapala ekran i pokazuje się nad blokadą.
+     * Nie wolno wtedy niczego wybudzać samemu — przy włączonym ekranie Android
+     * celowo pomija full-screen intent i alarm zostałby zwykłym powiadomieniem.
+     *
+     * Bez zgody (Android 14 odbiera ją domyślnie aplikacjom innym niż budzik
+     * i telefon) start aktywności z tła jest blokowany, więc jedyne, co możemy
+     * zrobić, to zapalić ekran wake lockiem — wtedy użytkownik zobaczy alarm
+     * jako powiadomienie na zapalonym ekranie i usłyszy syrenę.
+     */
+    private void ensureAlarmIsSeen(NotificationManager nm) {
+        if (Build.VERSION.SDK_INT >= 34 && nm != null && nm.canUseFullScreenIntent()) return;
+        try {
+            PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+            if (pm == null || pm.isInteractive()) return;
+            PowerManager.WakeLock screenOn = pm.newWakeLock(
+                PowerManager.SCREEN_BRIGHT_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP,
+                "straznik:wake-alarm");
+            screenOn.acquire(30_000L);
+            new android.os.Handler(android.os.Looper.getMainLooper())
+                .postDelayed(() -> { try { screenOn.release(); } catch (Exception ignored) {} }, 25_000L);
+        } catch (Exception e) {
+            Log.w(TAG, "wybudzanie ekranu", e);
+        }
     }
 
     /** Stan źródeł widoczny dla użytkownika — inaczej „nasłuch aktywny" nic nie mówi. */
