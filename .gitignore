@@ -9,3 +9,10 @@ android-app/android/app/build/
 android-app/android/build/
 android-app/android/local.properties
 *.pyc
+
+# Klucz podpisu wydania i hasła do niego — utrata pliku oznacza brak możliwości
+# aktualizowania aplikacji u użytkowników, a wyciek pozwala podszyć się pod autora.
+# Trzymaj kopię poza repozytorium (menedżer haseł, dysk zewnętrzny).
+keystore.properties
+*.jks
+*.keystore

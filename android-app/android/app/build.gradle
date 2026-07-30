@@ -1,5 +1,26 @@
 apply plugin: 'com.android.application'
 
+/*
+ * Podpis wydania.
+ *
+ * Android przyjmie aktualizację tylko wtedy, gdy jest podpisana tym samym
+ * kluczem co wersja już zainstalowana. Klucz debug, którym Android Studio
+ * podpisuje buildy deweloperskie, ma publicznie znane hasło i bywa przez
+ * narzędzia regenerowany — na nim nie da się utrzymać ciągłości aktualizacji.
+ *
+ * Hasła czytamy z keystore.properties, który jest w .gitignore i NIGDY nie
+ * trafia do repozytorium. Gdy pliku nie ma (ktoś sklonował projekt albo budujesz
+ * tylko debug), build nadal działa — wydanie zostaje wtedy niepodpisane, żeby
+ * przypadkiem nie wyszło z kluczem debug udającym wydanie.
+ *
+ * Utworzenie klucza opisuje README (sekcja „Podpisywanie wydania").
+ */
+def keystorePropsFile = rootProject.file("keystore.properties")
+def keystoreProps = new Properties()
+if (keystorePropsFile.exists()) {
+    keystorePropsFile.withInputStream { keystoreProps.load(it) }
+}
+
 android {
     namespace = "pl.straznik.app"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -7,8 +28,8 @@ android {
         applicationId "pl.straznik.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode 4
+        versionName "1.3.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,10 +37,31 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            if (keystoreProps.containsKey("storeFile")) {
+                storeFile rootProject.file(keystoreProps["storeFile"])
+                storePassword keystoreProps["storePassword"]
+                keyAlias keystoreProps["keyAlias"]
+                keyPassword keystoreProps["keyPassword"]
+                // v1 dla Androida 7 (minSdk 24), v2/v3 dla nowszych
+                enableV1Signing true
+                enableV2Signing true
+                enableV3Signing true
+            }
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            if (keystoreProps.containsKey("storeFile")) {
+                signingConfig signingConfigs.release
+            } else {
+                logger.warn("BRAK keystore.properties — wydanie NIE zostanie podpisane. "
+                    + "Patrz README, sekcja „Podpisywanie wydania”.")
+            }
         }
     }
 }

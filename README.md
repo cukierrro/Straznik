@@ -116,6 +116,55 @@ Tryb wbudowany w przeglądarce: `http://localhost:8600/?standalone=1`
   odczytaj `chat_id` z `https://api.telegram.org/bot<TOKEN>/getUpdates`.
 - **Web Push:** przycisk 🔔 w dashboardzie (wymaga `http://localhost` lub HTTPS).
 
+## Podpisywanie wydania
+
+Każde APK musi być podpisane, a Android przyjmie aktualizację tylko wtedy, gdy
+jest podpisana **tym samym kluczem** co wersja już zainstalowana. Buildy debug
+używają klucza `debug.keystore` o publicznie znanym haśle (`android`), który
+narzędzia potrafią zregenerować — na nim nie da się utrzymać ciągłości
+aktualizacji, a aplikacja ma wtedy włączoną flagę `debuggable` i ufa certyfikatom
+zainstalowanym przez użytkownika.
+
+**Klucz tworzy się raz.** Jego utrata oznacza, że użytkownicy nie zainstalują
+żadnej kolejnej wersji bez odinstalowania aplikacji (i utraty ustawień), więc
+zrób kopię pliku i zapisz hasła w menedżerze haseł.
+
+```bash
+cd android-app/android
+"C:/Program Files/Android/Android Studio/jbr/bin/keytool" -genkeypair -v -keystore straznik-release.jks -alias straznik -keyalg RSA -keysize 4096 -validity 10000
+```
+
+Polecenie zapyta o hasło (dwa razy) i o dane właściciela — wystarczy imię lub
+nazwa projektu, reszta może zostać pusta. Następnie:
+
+```bash
+cp keystore.properties.example keystore.properties
+```
+
+…i wpisz w nim swoje hasła. Plik `keystore.properties`, `*.jks` i `*.keystore`
+są w `.gitignore`, więc nie trafią do repozytorium.
+
+Budowanie podpisanego wydania:
+
+```bash
+cd android-app/android
+JAVA_HOME="C:/Program Files/Android/Android Studio/jbr" ./gradlew assembleRelease
+```
+
+Wynik: `app/build/outputs/apk/release/app-release.apk`. Weryfikacja podpisu:
+
+```bash
+"$ANDROID_HOME/build-tools/37.0.0/apksigner" verify --print-certs -v app/build/outputs/apk/release/app-release.apk
+```
+
+Bez `keystore.properties` build wydania nadal się wykona, ale APK **nie zostanie
+podpisany** — to celowe, żeby wydanie nigdy nie wyszło z kluczem debug.
+
+> Build release nie honoruje `debug-overrides` z `network_security_config`, więc
+> nie ufa certyfikatom zainstalowanym przez użytkownika. Na maszynie z
+> antywirusem skanującym TLS (Avast, Kaspersky, ESET) emulator może wtedy nie
+> pobrać danych — na zwykłych telefonach problemu nie ma.
+
 ## Przebudowa APK
 
 ```bash
