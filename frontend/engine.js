@@ -1,0 +1,627 @@
+/* Strażnik — WBUDOWANY silnik (tryb standalone, bez zewnętrznego backendu).
+   Port logiki backendu do JS: kolektory Neptun/ADS-B/RSS/RCB + fuzja punktowa.
+   Aktywny w aplikacji Android (Capacitor) lub gdy nie skonfigurowano adresu
+   backendu. Żądania HTTP idą natywnie (CapacitorHttp omija CORS); w zwykłej
+   przeglądarce bez backendu działają tylko źródła z otwartym CORS (Neptun, ADS-B).
+   PAŻP niedostępny w standalone (brak API — patrz backend/pansa.py). */
+"use strict";
+
+const Engine = (() => {
+
+/* ── konfiguracja (lustrzana wobec backend/app/config.py) ────────────────── */
+// okno 60 min z wygaszaniem: pełna waga przez 30 min, potem liniowo do zera
+const WINDOW_MIN = 60, FULL_MIN = 30, TH_ELEVATED = 2, TH_HIGH = 4, COOLDOWN_MIN = 10;
+const HISTORY_H = 12;   // ile godzin trzymamy do przeglądania wstecz
+const POINTS = { neptun_high: 3, neptun_medlow: 1.5, adsb_spike: 1, media_keywords: 2,
+                 rcb_alert: 2, ua_alert_border: 1, baltic_context: 1, pansa_zone: 1 };
+const SOURCE_CAPS = { media: 2, rcb: 2, adsb: 1, pansa: 1 };
+const VOIVODESHIPS = ["lubelskie","podkarpackie","podlaskie","mazowieckie","świętokrzyskie",
+  "małopolskie","warmińsko-mazurskie","łódzkie","śląskie","kujawsko-pomorskie","pomorskie",
+  "zachodniopomorskie","lubuskie","wielkopolskie","dolnośląskie","opolskie"];
+const SPILLOVER_FACTOR = 0.4, SPILLOVER_MIN = 2.0;
+const NEIGHBORS = {
+  "dolnośląskie":["lubuskie","wielkopolskie","opolskie"],
+  "kujawsko-pomorskie":["pomorskie","warmińsko-mazurskie","mazowieckie","łódzkie","wielkopolskie"],
+  "lubelskie":["podkarpackie","świętokrzyskie","mazowieckie","podlaskie"],
+  "lubuskie":["zachodniopomorskie","wielkopolskie","dolnośląskie"],
+  "łódzkie":["mazowieckie","kujawsko-pomorskie","wielkopolskie","opolskie","śląskie","świętokrzyskie"],
+  "małopolskie":["śląskie","świętokrzyskie","podkarpackie"],
+  "mazowieckie":["warmińsko-mazurskie","podlaskie","lubelskie","świętokrzyskie","łódzkie","kujawsko-pomorskie"],
+  "opolskie":["dolnośląskie","wielkopolskie","łódzkie","śląskie"],
+  "podkarpackie":["małopolskie","świętokrzyskie","lubelskie"],
+  "podlaskie":["warmińsko-mazurskie","mazowieckie","lubelskie"],
+  "pomorskie":["zachodniopomorskie","wielkopolskie","kujawsko-pomorskie","warmińsko-mazurskie"],
+  "śląskie":["opolskie","łódzkie","świętokrzyskie","małopolskie"],
+  "świętokrzyskie":["łódzkie","mazowieckie","lubelskie","podkarpackie","małopolskie","śląskie"],
+  "warmińsko-mazurskie":["pomorskie","kujawsko-pomorskie","mazowieckie","podlaskie"],
+  "wielkopolskie":["zachodniopomorskie","pomorskie","kujawsko-pomorskie","łódzkie","opolskie","dolnośląskie","lubuskie"],
+  "zachodniopomorskie":["pomorskie","wielkopolskie","lubuskie"],
+};
+const SCORED_TYPES = new Set(["uav","missile","ballistic","kab","mig31k","cruise","shahed"]);
+const NEAR_KM = 100, HEADING_TOL = 50;
+const BORDER_POINTS = [
+  [54.44,19.80,"warmińsko-mazurskie"],[54.35,20.60,"warmińsko-mazurskie"],
+  [54.36,21.50,"warmińsko-mazurskie"],[54.34,22.79,"warmińsko-mazurskie"],
+  [53.90,23.55,"podlaskie"],[53.51,23.65,"podlaskie"],[53.16,23.87,"podlaskie"],
+  [52.70,23.87,"podlaskie"],[52.07,23.62,"lubelskie"],[51.75,23.55,"lubelskie"],
+  [51.55,23.55,"lubelskie"],[51.18,23.80,"lubelskie"],[50.80,24.02,"lubelskie"],
+  [50.58,24.05,"lubelskie"],[50.19,23.55,"podkarpackie"],[49.96,23.10,"podkarpackie"],
+  [49.80,22.94,"podkarpackie"],[49.63,22.64,"podkarpackie"],[49.20,22.70,"podkarpackie"]];
+const VOIV_BBOX = {
+  "lubelskie":[50.25,21.60,52.30,24.15], "podkarpackie":[49.00,21.10,50.85,23.60],
+  "podlaskie":[52.28,21.60,54.40,24.00], "warmińsko-mazurskie":[53.13,19.10,54.45,22.95]};
+const UA_BORDER_OBLASTS = { "Волинська":["lubelskie"], "Львівська":["lubelskie","podkarpackie"],
+  "Закарпатська":["podkarpackie"], "Рівненська":["lubelskie"] };
+/* Klasyfikacja: CRITICAL sam wystarczy, inaczej potrzebna para AIR + EVENT.
+   Lustrzana kopia backend/app/config.py — testy w scripts/test_textmatch.py. */
+const CRITICAL = ["alarm powietrzny","zagrożenie z powietrza","zawyły syreny","zawyła syrena",
+  "naruszenie przestrzeni powietrznej","naruszyła przestrzeń powietrzną",
+  "naruszył przestrzeń powietrzną","obiekt powietrzny spadł","niezidentyfikowany obiekt",
+  "zestrzelono dron","zestrzelono rakiet","poderwano myśliwce","poderwano lotnictwo",
+  "schrony otwarte"];
+const AIR = ["dron","bezzałogow","bsp","shahed","geran","rakiet","pocisk","ch-101","kalibr",
+  "iskander","kab","bomb","myśliwc","mig-31","obiekt powietrzny","przestrzeni powietrznej",
+  "przestrzeń powietrzną","obrona powietrzna","obiekt latając"];
+const EVENT = ["spadł","spadła","spadło","eksploz","wybuch","zestrzel","przechwyc","poderwan",
+  "naruszen","naruszył","naruszyła","wleciał","wtargn","uderzy","trafił","szczątki","atak",
+  "ostrzał","zawył","alarm","ewakuac","schron","zagrożeni"];
+const EXCLUDE = ["ćwiczeni","trening","test syren","próba syren","próby syren","głośna próba",
+  "rocznic","upamiętni","minuta ciszy","wymian","modernizac","przetarg","inwestycj","zakup",
+  "montaż","zamontow","instalac","rozbudow","dofinansow","dotacj","planowan","potrwa",
+  "konserwac","remont","pojawią się","powstan","wdroż","komunikat głosowy",
+  "system ostrzegania będzie","nowe syreny","nowych syren","pożar bloku","pożar domu",
+  "pożar mieszkania","pożar lasu","wypadek drogow","kolizja","lpr lądował","śmigłowiec lpr",
+  "utonię","potrąc","dachowa","karambol","zderzenie samochod"];
+const B_CRITICAL = ["airspace violation","violated airspace","airspace was violated","air raid",
+  "airspace closed","shot down a drone","scrambled jets","oro erdvės pažeid",
+  "gaisa telpas pārkāp","õhuruumi rikku"];
+const B_AIR = ["airspace","air space","drone","uav","missile","shahed","air defence","air defense",
+  "oro erdv","bepilot","raket","gaisa telp","droon","õhuruum","military aircraft","fighter jet","jets"];
+const B_EVENT = ["violat","intercept","shot down","scrambl","incursion","crash","fell","explos",
+  "struck","entered","closed","alert","debris"];
+const B_EXCLUDE = ["exercise","drill","training","anniversary","drone show","festival",
+  "pratyb","mācīb","õppus","delivery drone","drone racing","photo drone"];
+const VOIV_KEYWORDS = {
+  "lubelskie":["lubelski","lublin","chełm","zamość","zamoś","biała podlask","hrubiesz",
+    "włodaw","terespol","dorohusk","świdnik","puław","kraśnik","łęczn"],
+  "podkarpackie":["podkarpack","rzeszów","rzeszow","przemyśl","przemysl","medyk","jarosław",
+    "lubaczów","sanok","krosno","mielec","stalowa wol","tarnobrzeg"],
+  "podlaskie":["podlask","białystok","bialystok","suwałk","suwalk","augustów","sokółk",
+    "kuźnic","siemiatycz","hajnówk","bielsk podlask","łomż"],
+  "mazowieckie":["mazowieck","warszaw","radom","siedlc","płock","ostrołęk"],
+  "warmińsko-mazurskie":["warmińsko","warminsko","olsztyn","elbląg","ełk","gołdap","braniew"]};
+const RSS_FEEDS = [
+  ["https://www.lublin112.pl/feed/","lubelskie"],
+  ["https://radio.lublin.pl/feed/","lubelskie"],
+  ["https://www.dziennikwschodni.pl/rss","lubelskie"],
+  ["https://news.google.com/rss/search?q=(syreny%20OR%20alarm%20OR%20dron%20OR%20rakieta)%20podkarpackie&hl=pl&gl=PL&ceid=PL:pl","podkarpackie"],
+  ["https://news.google.com/rss/search?q=(syreny%20OR%20alarm%20OR%20dron%20OR%20rakieta)%20podlaskie&hl=pl&gl=PL&ceid=PL:pl","podlaskie"],
+  ["https://news.google.com/rss/search?q=(syreny%20OR%20alarm%20OR%20dron%20OR%20rakieta)%20lubelskie&hl=pl&gl=PL&ceid=PL:pl","lubelskie"],
+  ["https://news.google.com/rss/search?q=(syreny%20OR%20alarm%20OR%20dron%20OR%20rakieta)%20(warmi%C5%84sko-mazurskie%20OR%20mazurskie%20OR%20olsztyn)&hl=pl&gl=PL&ceid=PL:pl","warmińsko-mazurskie"]];
+const BALTIC_FEEDS = [["https://news.err.ee/rss","EE"],["https://eng.lsm.lv/rss/","LV"],
+  ["https://www.delfi.lt/rss/feeds/daily.xml","LT"]];
+const BALTIC_TARGETS = ["podlaskie","warmińsko-mazurskie"];
+const MAX_AGE_MS = 45*60*1000;
+
+/* ── stan ────────────────────────────────────────────────────────────────── */
+const tracks = new Map();          // Neptun tracks
+let alertOblasts = new Set();
+let adsbAircraft = [];
+const health = { neptun:false, adsb:false, rcb:false, rss:{}, pansa:false };
+let onState = null, ws = null, wsRetry = 1;
+// bootstrap RCB uznany tylko po JAWNIE odnotowanym udanym przebiegu —
+// wcześniej pusta lista "seen" zapisana przez inny kod myliła się z bootstrapem
+// i stare, statyczne wpisy (np. "Stopnie alarmowe") punktowały jako nowe
+let rcbBootstrapped = localStorage.getItem("eng_rcb_boot") === "1";
+const rcbSeen = new Set(JSON.parse(localStorage.getItem("eng_rcb_seen") || "[]"));
+let signals = JSON.parse(localStorage.getItem("eng_signals") || "[]");
+const seenKeys = new Map(JSON.parse(localStorage.getItem("eng_seen") || "[]"));
+let lastLevels = {}, lastNotif = {};
+
+function persist() {
+  const cut = Date.now() - 24*3600*1000;
+  signals = signals.filter(s => s.t > cut);
+  for (const [k, t] of seenKeys) if (t < cut) seenKeys.delete(k);
+  localStorage.setItem("eng_signals", JSON.stringify(signals));
+  localStorage.setItem("eng_seen", JSON.stringify([...seenKeys]));
+  localStorage.setItem("eng_rcb_seen", JSON.stringify([...rcbSeen].slice(-200)));
+}
+
+/* ── geo ─────────────────────────────────────────────────────────────────── */
+const rad = d => d*Math.PI/180;
+function haversine(a,b,c,d){const p1=rad(a),p2=rad(c),dp=rad(c-a),dl=rad(d-b);
+  const x=Math.sin(dp/2)**2+Math.cos(p1)*Math.cos(p2)*Math.sin(dl/2)**2;
+  return 2*6371*Math.asin(Math.sqrt(x));}
+function bearing(a,b,c,d){const p1=rad(a),p2=rad(c),dl=rad(d-b);
+  const y=Math.sin(dl)*Math.cos(p2),x=Math.cos(p1)*Math.sin(p2)-Math.sin(p1)*Math.cos(p2)*Math.cos(dl);
+  return (Math.atan2(y,x)*180/Math.PI+360)%360;}
+function assess(lat,lon,heading){
+  let best=null;
+  for(const [bl,bo,v] of BORDER_POINTS){const d=haversine(lat,lon,bl,bo);
+    if(!best||d<best[0])best=[d,bl,bo,v];}
+  const brg=bearing(lat,lon,best[1],best[2]);
+  const diff=heading==null?999:Math.min(Math.abs(heading-brg)%360,360-Math.abs(heading-brg)%360);
+  return {dist_km:Math.round(best[0]*10)/10, border_voiv:best[3],
+          bearing_to_border:Math.round(brg), toward_pl:diff<=HEADING_TOL};
+}
+function voivForPoint(lat,lon){
+  let hits=[];
+  for(const [v,[a,b,c,d]] of Object.entries(VOIV_BBOX))
+    if(lat>=a&&lat<=c&&lon>=b&&lon<=d)
+      hits.push([haversine(lat,lon,(a+c)/2,(b+d)/2),v]);
+  return hits.length?hits.sort((x,y)=>x[0]-y[0])[0][1]:null;
+}
+
+/* ── HTTP natywny (CapacitorHttp gdy dostępny — omija CORS) ──────────────── */
+async function httpGet(url) {
+  const CH = window.Capacitor?.Plugins?.CapacitorHttp;
+  if (CH) {
+    const r = await CH.get({ url, headers: { "User-Agent": "Mozilla/5.0" },
+                             connectTimeout: 15000, readTimeout: 15000 });
+    if (r.status >= 400) throw new Error("HTTP " + r.status);
+    return typeof r.data === "string" ? r.data : JSON.stringify(r.data);
+  }
+  const r = await fetch(url);
+  if (!r.ok) throw new Error("HTTP " + r.status);
+  return await r.text();
+}
+
+/* ── dopasowanie słów kluczowych (jak backend/textmatch.py) ──────────────── */
+function matchKw(text, critical, air, event, exclude) {
+  const tl = text.toLowerCase();
+  if (exclude.some(k => tl.includes(k))) return [];
+  const c = critical.filter(k => tl.includes(k));
+  if (c.length) return c;
+  const a = air.filter(k => tl.includes(k)), e = event.filter(k => tl.includes(k));
+  return a.length && e.length ? a.slice(0, 2).concat(e.slice(0, 2)) : [];
+}
+const matchVoiv = (text) => {
+  const tl = text.toLowerCase();
+  for (const [v, keys] of Object.entries(VOIV_KEYWORDS))
+    if (keys.some(k => tl.includes(k))) return v;
+  return null;
+};
+
+/* ── fuzja ───────────────────────────────────────────────────────────────── */
+function addSignal(source, eventType, voiv, points, title, details, key) {
+  if (seenKeys.has(key)) return false;
+  seenKeys.set(key, Date.now());
+  signals.push({ t: Date.now(), ts: new Date().toISOString(), source,
+    event_type: eventType, voivodeship: voiv, points, title, details });
+  persist();
+  reevaluate();
+  return true;
+}
+
+function computeState() {
+  const cut = Date.now() - WINDOW_MIN*60*1000;
+  const per = {}; VOIVODESHIPS.forEach(v => per[v] = { score: 0, level: "none", signals: [] });
+  const perSource = {};
+  for (const s of signals.filter(s => s.t >= cut).sort((a,b) => a.t-b.t)) {
+    // Number.isFinite: jedna zła wartość punktów zatruwałaby NaN-em całą sumę,
+    // spillover i karty województw — lepiej pominąć sygnał niż zepsuć fuzję
+    if (!(s.voivodeship in per) || !Number.isFinite(s.points) || s.points <= 0) continue;
+    const k = s.voivodeship + "|" + s.source;
+    const cap = SOURCE_CAPS[s.source];
+    const already = perSource[k] || 0;
+    let counted = cap == null ? s.points : Math.max(0, Math.min(cap - already, s.points));
+    perSource[k] = already + s.points;
+    const ageMin = (Date.now() - s.t) / 60000;
+    const w = ageMin <= FULL_MIN ? 1
+      : Math.max(0, 1 - (ageMin - FULL_MIN) / Math.max(WINDOW_MIN - FULL_MIN, 1));
+    counted *= w;
+    per[s.voivodeship].score += counted;
+    per[s.voivodeship].signals.push({ ...s, counted_points: Math.round(counted*10)/10,
+      weight: Math.round(w * 100) / 100 });
+  }
+  // propagacja do sąsiadów (jedna iteracja, jak w backendzie)
+  const base = {}; for (const [v, st] of Object.entries(per)) base[v] = st.score;
+  for (const [src, score] of Object.entries(base)) {
+    if (score < SPILLOVER_MIN) continue;
+    const spill = Math.round(score * SPILLOVER_FACTOR * 10) / 10;
+    for (const nb of NEIGHBORS[src] || []) {
+      per[nb].score += spill;
+      per[nb].signals.push({ t: Date.now(), ts: new Date().toISOString(),
+        source: "spillover", event_type: "neighbour_spillover", voivodeship: nb,
+        points: spill, counted_points: spill,
+        title: `Przeniesienie z woj. ${src} (${score} pkt × ${SPILLOVER_FACTOR})`,
+        details: { from: src, from_score: score } });
+    }
+  }
+  for (const st of Object.values(per)) {
+    st.score = Math.round(st.score*10)/10;
+    st.level = st.score >= TH_HIGH ? "high" : st.score >= TH_ELEVATED ? "elevated" : "none";
+    st.signals.reverse();
+  }
+  return { ts: new Date().toISOString(), window_min: WINDOW_MIN,
+           thresholds: { elevated: TH_ELEVATED, high: TH_HIGH }, voivodeships: per };
+}
+
+async function notifyNative(title, body, high) {
+  const LN = window.Capacitor?.Plugins?.LocalNotifications;
+  if (LN) {
+    try {
+      await LN.schedule({ notifications: [{ id: Date.now() % 2147483647, title, body,
+        schedule: { at: new Date(Date.now() + 200) },
+        channelId: high ? "straznik-high" : "straznik-info" }] });
+      return;
+    } catch (e) { console.warn("LocalNotifications:", e); }
+  }
+  if ("Notification" in window && Notification.permission === "granted")
+    new Notification(title, { body });
+}
+
+const LEVEL_LABELS = { elevated: "PODWYŻSZONA UWAGA", high: "WYSOKI PRIORYTET" };
+const PRIORITY_VOIVS = ["lubelskie","podkarpackie","podlaskie","warmińsko-mazurskie"];
+/* Powiadamiamy o moim regionie; bez ustawionej lokalizacji — o przygranicznych.
+   Bez tego filtra propagacja do sąsiadów zasypałaby telefon alertami o całym kraju. */
+function shouldNotify(voiv) {
+  const mine = localStorage.getItem("straznik_voiv");
+  return mine ? voiv === mine : PRIORITY_VOIVS.includes(voiv);
+}
+
+function reevaluate() {
+  const st = computeState();
+  for (const [voiv, s] of Object.entries(st.voivodeships)) {
+    const prev = lastLevels[voiv] || "none";
+    if (s.level !== prev) {
+      const order = ["none","elevated","high"];
+      if (order.indexOf(s.level) > order.indexOf(prev) && shouldNotify(voiv)) {
+        const ck = voiv + "|" + s.level;
+        if (!lastNotif[ck] || Date.now() - lastNotif[ck] > COOLDOWN_MIN*60*1000) {
+          lastNotif[ck] = Date.now();
+          const brk = s.signals.slice(0,5).map(x => `• [${x.source}] ${x.title}`).join("\n");
+          notifyNative(`${LEVEL_LABELS[s.level]}: woj. ${voiv} (${s.score} pkt)`,
+            brk + "\nNIEOFICJALNE źródło — kieruj się syrenami/RCB/RSO.", s.level === "high");
+        }
+      }
+      lastLevels[voiv] = s.level;
+    }
+  }
+  emit();
+}
+
+/* ── kolektor: Neptun (WS bezpośrednio z telefonu) ───────────────────────── */
+function neptunEval(t) {
+  if (t.lat == null) return t;
+  t.pl_assessment = assess(t.lat, t.lon, t.heading);
+  const a = t.pl_assessment, ty = (t.type||"").toLowerCase();
+  if (SCORED_TYPES.has(ty) && a.toward_pl && a.dist_km < NEAR_KM) {
+    const conf = (t.confidenceLevel||"low").toLowerCase();
+    const high = conf === "high";
+    addSignal("neptun", high ? "neptun_high_conf" : "neptun_medlow_conf", a.border_voiv,
+      high ? POINTS.neptun_high : POINTS.neptun_medlow,
+      `${t.title||ty} kursem na granicę PL, ${a.dist_km} km (woj. ${a.border_voiv}, confidence: ${conf}, ±${t.uncertaintyKm??"?"} km)`,
+      { track_id: t.id, dist_km: a.dist_km }, `neptun:${t.id}:${high?"h":"m"}`);
+  }
+  return t;
+}
+function neptunAlerts(data) {
+  const names = new Set();
+  for (const it of (data?.oblasts||[]))
+    names.add(typeof it === "string" ? it : (it?.name||it?.region||it?.title||""));
+  const active = new Set();
+  for (const n of names) for (const [ob, voivs] of Object.entries(UA_BORDER_OBLASTS))
+    if (n.includes(ob)) {
+      active.add(ob);
+      if (!alertOblasts.has(ob)) {
+        const hk = new Date().toISOString().slice(0,13);
+        for (const v of voivs)
+          addSignal("neptun","ua_alert_border",v,POINTS.ua_alert_border,
+            `Alarm powietrzny w obwodzie ${ob} (graniczy z woj. ${v})`,{oblast:ob},
+            `neptun_alert:${ob}:${v}:${hk}`);
+      }
+    }
+  alertOblasts = active;
+}
+function startNeptun() {
+  try { ws = new WebSocket("wss://neptun.in.ua/api/v1/stream"); } catch { return retryNeptun(); }
+  ws.onopen = () => { health.neptun = true; wsRetry = 1; emit(); };
+  ws.onmessage = (e) => {
+    let env; try { env = JSON.parse(e.data); } catch { return; }
+    if (env.type === "snapshot") { tracks.clear();
+      for (const t of env.data?.threats||[]) tracks.set(t.id, neptunEval(t)); }
+    else if (env.type === "upsert") tracks.set(env.data.id, neptunEval(env.data));
+    else if (env.type === "remove") tracks.delete(env.data?.id);
+    else if (env.type === "alerts") neptunAlerts(env.data);
+    emit();
+  };
+  ws.onclose = ws.onerror = () => { health.neptun = false; retryNeptun(); };
+}
+function retryNeptun() {
+  if (ws) { ws.onclose = ws.onerror = null; try { ws.close(); } catch {} ws = null; }
+  setTimeout(startNeptun, Math.min(wsRetry*1000, 30000));
+  wsRetry = Math.min(wsRetry*2, 30);
+}
+
+/* ── kolektor: ADS-B ─────────────────────────────────────────────────────── */
+async function tickAdsb() {
+  try {
+    const txt = await httpGet("https://api.adsb.lol/v2/mil");
+    const ac = (JSON.parse(txt).ac||[]);
+    const per = {}; Object.keys(VOIV_BBOX).forEach(v => per[v] = []);
+    adsbAircraft = [];
+    for (const a of ac) {
+      if (a.lat == null) continue;
+      const v = voivForPoint(a.lat, a.lon);
+      // punktujemy tylko województwa priorytetowe, ale pokazujemy szerszą strefę
+      const inWatch = a.lat >= 44 && a.lat <= 60 && a.lon >= 14 && a.lon <= 32;
+      if (!v && !inWatch) continue;
+      const p = { hex:a.hex, callsign:(a.flight||"").trim(), type:a.t, lat:a.lat, lon:a.lon,
+                  alt:a.alt_baro, gs:a.gs, track:a.track, voivodeship:v, desc:a.desc,
+                  reg:a.r, op:a.ownOp, cat:a.category, vr:a.baro_rate, year:a.year };
+      if (v && per[v]) per[v].push(p);
+      adsbAircraft.push(p);
+    }
+    const samples = JSON.parse(localStorage.getItem("eng_adsb") || "[]");
+    const now = Date.now();
+    for (const [v, planes] of Object.entries(per)) {
+      samples.push([now, v, planes.length]);
+      const week = samples.filter(s => s[1] === v && now - s[0] < 7*24*3600*1000);
+      const baseline = week.reduce((a,s) => a+s[2], 0) / Math.max(week.length, 1);
+      if (baseline > 0 && planes.length >= 3 && planes.length > 2*baseline) {
+        addSignal("adsb","adsb_spike",v,POINTS.adsb_spike,
+          `ADS-B: ${planes.length} maszyn wojskowych nad woj. ${v} (baseline 7d: ${baseline.toFixed(1)})`,
+          {count:planes.length}, `adsb:${v}:${new Date().toISOString().slice(0,13)}`);
+      }
+    }
+    localStorage.setItem("eng_adsb",
+      JSON.stringify(samples.filter(s => now - s[0] < 14*24*3600*1000)));
+    health.adsb = true;
+  } catch (e) { health.adsb = false; }
+  emit();
+}
+
+/* ── kolektor: RSS (PL + bałtyckie) ──────────────────────────────────────── */
+function parseFeed(xmlText) {
+  const doc = new DOMParser().parseFromString(xmlText, "text/xml");
+  return [...doc.querySelectorAll("item, entry")].map(it => ({
+    title: it.querySelector("title")?.textContent || "",
+    link: it.querySelector("link")?.getAttribute("href") || it.querySelector("link")?.textContent || "",
+    desc: it.querySelector("description, summary, content")?.textContent || "",
+    date: it.querySelector("pubDate, published, updated")?.textContent || "",
+  }));
+}
+async function tickRss() {
+  for (const [url, defVoiv] of RSS_FEEDS) {
+    try {
+      const items = parseFeed(await httpGet(url));
+      health.rss[url] = true;
+      for (const it of items.slice(0,30)) {
+        const age = it.date ? Date.now() - new Date(it.date).getTime() : 0;
+        if (age > MAX_AGE_MS) continue;
+        const text = it.title + " " + it.desc;
+        const hits = matchKw(text, CRITICAL, AIR, EVENT, EXCLUDE);
+        if (!hits.length) continue;
+        const voiv = matchVoiv(text) || defVoiv;
+        addSignal("media","media_keywords",voiv,POINTS.media_keywords,
+          `Media: „${it.title.slice(0,120)}”`, {link:it.link, keywords:hits},
+          "media:" + (it.link || it.title));
+      }
+    } catch { health.rss[url] = false; }
+  }
+  for (const [url, country] of BALTIC_FEEDS) {
+    try {
+      const items = parseFeed(await httpGet(url));
+      health.rss[url] = true;
+      for (const it of items.slice(0,30)) {
+        const age = it.date ? Date.now() - new Date(it.date).getTime() : 0;
+        if (age > MAX_AGE_MS) continue;
+        const hits = matchKw(it.title + " " + it.desc, B_CRITICAL, B_AIR, B_EVENT, B_EXCLUDE);
+        if (!hits.length) continue;
+        for (const v of BALTIC_TARGETS)
+          addSignal("media","baltic_context",v,POINTS.baltic_context,
+            `Media ${country}: „${it.title.slice(0,110)}”`, {link:it.link},
+            `baltic:${it.link||it.title}:${v}`);
+      }
+    } catch { health.rss[url] = false; }
+  }
+  emit();
+}
+
+/* ── kolektor: RCB ───────────────────────────────────────────────────────── */
+async function tickRcb() {
+  try {
+    const html = await httpGet("https://www.gov.pl/web/rcb");
+    health.rcb = true;
+    const re = /href="(\/web\/rcb\/[a-z0-9-]{8,})"[^>]*>([\s\S]*?)<\/a>/gi;
+    let m, found = [];
+    while ((m = re.exec(html)) && found.length < 20) {
+      const title = m[2].replace(/<[^>]+>/g," ").replace(/\s+/g," ").trim();
+      if (title.length >= 8) found.push([m[1], title]);
+    }
+    for (const [href, title] of found) {
+      // ta sama reguła co dla mediów: mocne słowo albo ≥2 słabe — pojedyncze
+      // "alarm" łapało statyczną podstronę "Stopnie alarmowe"
+      if (!matchKw(title, CRITICAL, AIR, EVENT, EXCLUDE).length) continue;
+      if (!rcbBootstrapped) { rcbSeen.add(href); continue; }
+      if (rcbSeen.has(href)) continue;
+      rcbSeen.add(href);
+      const voivs = (() => { const v = matchVoiv(title);
+        return v ? [v] : ["lubelskie","podkarpackie","podlaskie","warmińsko-mazurskie"]; })();
+      for (const v of voivs)
+        addSignal("rcb","rcb_alert",v,POINTS.rcb_alert,`RCB: „${title.slice(0,120)}”`,
+          {url:"https://www.gov.pl"+href}, `rcb:${href}:${v}`);
+    }
+    rcbBootstrapped = true;
+    localStorage.setItem("eng_rcb_boot", "1");
+    persist();
+  } catch { health.rcb = false; }
+  emit();
+}
+
+/* ── kolektor: PAŻP (AUP/UUP — publiczny GeoJSON mapy airspace.pansa.pl) ── */
+let voivPolys = null, prevZones = null;
+async function loadVoivPolys() {
+  if (voivPolys) return voivPolys;
+  const gj = await (await fetch("assets/wojewodztwa.geojson")).json();
+  voivPolys = gj.features.map(f => [f.properties.nazwa,
+    f.geometry.type === "Polygon" ? [f.geometry.coordinates] : f.geometry.coordinates]);
+  return voivPolys;
+}
+function ringHas(ring, x, y) {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i], [xj, yj] = ring[j];
+    if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+function voivAtPoint(lon, lat) {
+  for (const [name, polys] of voivPolys || [])
+    for (const poly of polys)
+      if (ringHas(poly[0], lon, lat) && !poly.slice(1).some(h => ringHas(h, lon, lat)))
+        return name;
+  return null;
+}
+async function tickPansa() {
+  try {
+    await loadVoivPolys();
+    let feats = null;
+    for (const u of ["https://airspace.pansa.pl/map-configuration/uup",
+                     "https://airspace.pansa.pl/map-configuration/aup"]) {
+      try {
+        const d = JSON.parse(await httpGet(u));
+        if (Array.isArray(d) && d.length) { feats = d; break; }
+      } catch {}
+    }
+    if (!feats) { health.pansa = false; return emit(); }
+    health.pansa = true;
+    const now = Date.now(), active = new Map();
+    for (const f of feats) {
+      const p = f.properties || {}, dz = p.designator;
+      if (!dz) continue;
+      const res = (p.airspaceReservations || []).find(r => {
+        const s = Date.parse(r.startDate), e = Date.parse(r.endDate);
+        return s && e && now >= s && now <= e &&
+               (r.reservationStatus || "").toUpperCase() !== "CANCELLED";
+      });
+      if (!res) continue;
+      const c = (p.centroid || [])[0];
+      if (!c || c.x == null) continue;
+      const voiv = voivAtPoint(c.x, c.y);
+      if (!voiv) continue;
+      active.set(dz, { voiv, type: p.airspaceElementType, lower: res.lowerAltitude,
+        upper: res.upperAltitude, remarks: res.remarks, end: res.endDate });
+    }
+    if (prevZones) {
+      for (const [dz, info] of active) {
+        if (prevZones.has(dz) || !PRIORITY_VOIVS.includes(info.voiv)) continue;
+        addSignal("pansa","pansa_zone",info.voiv,POINTS.pansa_zone,
+          `PAŻP: aktywacja strefy ${(info.type||"")} ${dz} nad woj. ${info.voiv} `
+          + `(${info.lower}–${info.upper}${info.remarks ? ", " + info.remarks : ""})`,
+          { designator: dz, ...info }, `pansa:${dz}:${info.end}`);
+      }
+    }
+    prevZones = new Set(active.keys());
+  } catch (e) { health.pansa = false; }
+  emit();
+}
+
+/* ── emisja stanu (ten sam kształt co backend build_state) ───────────────── */
+let emitPending = false;
+function emit() {
+  if (!onState || emitPending) return;
+  emitPending = true;
+  setTimeout(() => {
+    emitPending = false;
+    onState({
+      fusion: computeState(),
+      neptun: { status: { connected: health.neptun, mode: "app-ws" },
+        threats: [...tracks.values()], alert_oblasts: [...alertOblasts] },
+      adsb: { aircraft: adsbAircraft, counts: {}, baselines: {} },
+      health: { ...health },
+      engine: "standalone",
+    });
+  }, 1500);
+}
+
+/* ── historia 12 h (migawki co 2 min w localStorage) ─────────────────────── */
+function saveSnapshot() {
+  try {
+    const snaps = JSON.parse(localStorage.getItem("eng_snaps") || "[]");
+    snaps.push({ ts: new Date().toISOString(), t: Date.now(),
+      threats: [...tracks.values()].filter(t => t.lat != null).map(t => ({
+        id: t.id, type: t.type, lat: +t.lat.toFixed(3), lon: +t.lon.toFixed(3),
+        heading: t.heading, confidenceLevel: t.confidenceLevel,
+        uncertaintyKm: t.uncertaintyKm, region: t.region, locality: t.locality,
+        sourceCount: t.sourceCount, destination: t.destination,
+        pl_assessment: t.pl_assessment })),
+      aircraft: adsbAircraft.map(a => ({ hex: a.hex, callsign: a.callsign, type: a.type,
+        lat: +a.lat.toFixed(3), lon: +a.lon.toFixed(3), alt: a.alt, gs: a.gs,
+        track: a.track, voivodeship: a.voivodeship, desc: a.desc, cat: a.cat })),
+    });
+    const cut = Date.now() - HISTORY_H * 3600 * 1000;
+    const kept = snaps.filter(s => s.t > cut);
+    localStorage.setItem("eng_snaps", JSON.stringify(kept));
+  } catch (e) {
+    // przepełniony localStorage — przytnij historię do połowy i próbuj dalej
+    try {
+      const snaps = JSON.parse(localStorage.getItem("eng_snaps") || "[]");
+      localStorage.setItem("eng_snaps", JSON.stringify(snaps.slice(-Math.floor(snaps.length / 2))));
+    } catch {}
+  }
+}
+
+/* API historii dla UI — ten sam kształt co /api/history w backendzie */
+function history(atIso) {
+  const snaps = JSON.parse(localStorage.getItem("eng_snaps") || "[]");
+  const times = snaps.map(s => s.ts);
+  if (!atIso) return { times, hours: HISTORY_H };
+  const at = Date.parse(atIso);
+  let snap = null;
+  for (const s of snaps) if (s.t <= at) snap = s;
+  if (!snap) snap = snaps[0] || null;
+  const end = snap ? snap.t : at;
+  const start = end - WINDOW_MIN * 60000;
+  return { times, at: atIso, snapshot: snap,
+    signals: signals.filter(s => s.t >= start && s.t <= end).sort((a, b) => b.t - a.t) };
+}
+
+/* Oś czasu do pokolorowania suwaka: najwyższy wynik w kraju dla każdej migawki. */
+function timeline() {
+  const snaps = JSON.parse(localStorage.getItem("eng_snaps") || "[]");
+  return snaps.map(s => {
+    const per = {};
+    for (const sig of signals) {
+      const age = (s.t - sig.t) / 60000;
+      if (age < 0 || age > WINDOW_MIN || sig.points <= 0 || !sig.voivodeship) continue;
+      const w = age <= FULL_MIN ? 1
+        : Math.max(0, 1 - (age - FULL_MIN) / Math.max(WINDOW_MIN - FULL_MIN, 1));
+      per[sig.voivodeship] = (per[sig.voivodeship] || 0) + sig.points * w;
+    }
+    const entries = Object.entries(per);
+    const best = entries.length ? entries.reduce((a, b) => a[1] >= b[1] ? a : b) : null;
+    const score = best ? Math.round(best[1] * 10) / 10 : 0;
+    return { ts: s.ts, score, voiv: best ? best[0] : null,
+      level: score >= TH_HIGH ? "high" : score >= TH_ELEVATED ? "elevated" : "none" };
+  });
+}
+
+/* ── start ───────────────────────────────────────────────────────────────── */
+async function start(stateCb) {
+  onState = stateCb;
+  const LN = window.Capacitor?.Plugins?.LocalNotifications;
+  if (LN) {
+    try {
+      await LN.requestPermissions();
+      await LN.createChannel?.({ id: "straznik-high", name: "Strażnik — wysoki priorytet",
+        importance: 5, sound: "", vibration: true });
+      await LN.createChannel?.({ id: "straznik-info", name: "Strażnik — informacje",
+        importance: 3 });
+    } catch (e) { console.warn(e); }
+  } else if ("Notification" in window && Notification.permission === "default") {
+    try { Notification.requestPermission(); } catch {}
+  }
+  startNeptun();
+  tickAdsb(); setInterval(tickAdsb, 60000);
+  tickRss(); setInterval(tickRss, 60000);
+  tickRcb(); setInterval(tickRcb, 120000);
+  tickPansa(); setInterval(tickPansa, 300000);
+  setInterval(reevaluate, 30000);   // wygasanie okna bez nowych zdarzeń
+  setTimeout(saveSnapshot, 20000);
+  setInterval(saveSnapshot, 120000);
+}
+
+return { start, history, timeline };
+})();

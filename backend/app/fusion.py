@@ -1,0 +1,126 @@
+"""Silnik fuzji sygnałów — przejrzysty system punktowy per województwo.
+
+Zasada: żaden pojedynczy sygnał nie jest rozstrzygający; suma punktów z okna
+ostatnich FUSION_WINDOW_MIN minut wyznacza poziom. Zawsze zwracamy pełne
+rozbicie, żeby użytkownik widział DLACZEGO wynik jest taki, a nie inny.
+"""
+import asyncio
+from datetime import datetime, timezone
+
+from . import config, db
+
+# callbacki: notyfikacje i broadcast do frontendów (ustawiane w main)
+on_level_change = None   # async def (voiv, level, score, breakdown)
+on_state_change = None   # async def ()
+
+_last_levels: dict[str, str] = {}
+
+
+def level_for(score: float) -> str:
+    if score >= config.THRESHOLD_HIGH:
+        return "high"
+    if score >= config.THRESHOLD_ELEVATED:
+        return "elevated"
+    return "none"
+
+
+LEVEL_LABELS = {
+    "none": "BRAK SYGNAŁÓW",
+    "elevated": "PODWYŻSZONA UWAGA",
+    "high": "WYSOKI PRIORYTET",
+}
+
+
+def _age_weight(ts: str) -> float:
+    """1.0 do FUSION_FULL_MIN, potem liniowy zjazd do 0 na końcu okna."""
+    try:
+        age_min = (datetime.now(timezone.utc)
+                   - datetime.fromisoformat(ts)).total_seconds() / 60
+    except Exception:
+        return 1.0
+    if age_min <= config.FUSION_FULL_MIN:
+        return 1.0
+    span = max(config.FUSION_WINDOW_MIN - config.FUSION_FULL_MIN, 1)
+    return max(0.0, 1.0 - (age_min - config.FUSION_FULL_MIN) / span)
+
+
+def compute_state() -> dict:
+    """Stan fuzji: per województwo suma punktów + lista sygnałów składowych."""
+    signals = db.signals_since(config.FUSION_WINDOW_MIN)
+    per_voiv: dict[str, dict] = {
+        v: {"score": 0.0, "level": "none", "signals": []} for v in config.VOIVODESHIPS
+    }
+    per_source: dict[tuple, float] = {}
+    signals.sort(key=lambda s: s["ts"])
+    for s in signals:
+        voiv = s["voivodeship"]
+        if voiv not in per_voiv or s["points"] <= 0:
+            continue
+        # limit wkładu jednej klasy źródła (config.SOURCE_CAPS) — kolejne
+        # sygnały tej samej klasy są widoczne, ale nie pompują sumy
+        key = (voiv, s["source"])
+        cap = config.SOURCE_CAPS.get(s["source"])
+        already = per_source.get(key, 0.0)
+        counted = s["points"] if cap is None else max(0.0, min(cap - already, s["points"]))
+        per_source[key] = already + s["points"]
+        counted *= _age_weight(s["ts"])
+        s = {**s, "counted_points": round(counted, 1), "weight": round(_age_weight(s["ts"]), 2)}
+        per_voiv[voiv]["score"] += counted
+        per_voiv[voiv]["signals"].append(s)
+    # propagacja: zdarzenie na wschodzie podnosi czujność u sąsiadów
+    base = {v: st["score"] for v, st in per_voiv.items()}
+    for src, score in base.items():
+        if score < config.SPILLOVER_MIN_SOURCE_SCORE:
+            continue
+        spill = round(score * config.SPILLOVER_FACTOR, 1)
+        for nb in config.VOIV_NEIGHBORS.get(src, []):
+            per_voiv[nb]["score"] += spill
+            per_voiv[nb]["signals"].append({
+                "id": f"spill-{src}-{nb}", "ts": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                "source": "spillover", "event_type": "neighbour_spillover",
+                "voivodeship": nb, "points": spill, "counted_points": spill,
+                "title": f"Przeniesienie z woj. {src} ({score} pkt × {config.SPILLOVER_FACTOR})",
+                "details": {"from": src, "from_score": score},
+            })
+    for v, st in per_voiv.items():
+        st["score"] = round(st["score"], 1)
+        st["level"] = level_for(st["score"])
+    return {
+        "ts": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "window_min": config.FUSION_WINDOW_MIN,
+        "thresholds": {"elevated": config.THRESHOLD_ELEVATED, "high": config.THRESHOLD_HIGH},
+        "voivodeships": per_voiv,
+    }
+
+
+async def ingest(source: str, event_type: str, voivodeship: str | None, points: float,
+                 title: str, details: dict, dedup_key: str):
+    """Dodaje sygnał (z deduplikacją) i odpala reewaluację progów."""
+    is_new = db.add_signal(source, event_type, voivodeship, points, title, details, dedup_key)
+    if is_new:
+        await reevaluate()
+    return is_new
+
+
+async def reevaluate():
+    """Po każdym nowym sygnale: sprawdź przekroczenia progów (rising edge)."""
+    state = compute_state()
+    for voiv, st in state["voivodeships"].items():
+        new_level = st["level"]
+        old_level = _last_levels.get(voiv, "none")
+        if new_level != old_level:
+            _last_levels[voiv] = new_level
+            rising = (["none", "elevated", "high"].index(new_level)
+                      > ["none", "elevated", "high"].index(old_level))
+            if rising and on_level_change:
+                asyncio.create_task(on_level_change(voiv, new_level, st["score"], st["signals"]))
+    if on_state_change:
+        asyncio.create_task(on_state_change())
+
+
+def breakdown_text(signals: list[dict]) -> str:
+    """Czytelne rozbicie punktacji do powiadomienia."""
+    parts = []
+    for s in signals:
+        parts.append(f"• [{s['source']}] {s['title']} (+{s['points']} pkt)")
+    return "\n".join(parts[:8])

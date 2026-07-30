@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0f1a">
+<title>Strażnik — wczesne ostrzeganie</title>
+<link rel="manifest" href="manifest.json">
+<link rel="stylesheet" href="assets/vendor/maplibre-gl.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header id="topbar">
+  <div class="brand">
+    <div class="logo-dot"></div>
+    <div>
+      <div class="brand-name">STRAŻNIK</div>
+      <div class="brand-sub">fuzja sygnałów · wschodnia Polska</div>
+    </div>
+  </div>
+  <div id="status-leds" title="Status źródeł danych"></div>
+  <div class="top-actions">
+    <a id="btn-coffee" class="chip coffee" href="https://buycoffee.to/cukierrro"
+       target="_blank" rel="noopener"
+       title="Postaw kawę dla cukierrro na buycoffee.to">☕ Postaw kawę</a>
+    <button id="btn-about" class="chip" title="O aplikacji — co to jest i jak działa">?</button>
+    <button id="btn-legend" class="chip" title="Legenda symboli">Legenda</button>
+    <button id="btn-3d" class="chip" title="Przełącz widok 2D/3D">3D</button>
+    <button id="btn-push" class="chip" title="Powiadomienia">🔔</button>
+    <button id="btn-settings" class="chip" title="Moja lokalizacja i ustawienia">⚙</button>
+    <button id="btn-panel" class="chip" title="Panel sygnałów">☰</button>
+  </div>
+</header>
+
+<div id="disclaimer">
+  <span>NIEOFICJALNE źródło dodatkowe — nie zastępuje syren, alertów RCB ani RSO.
+  W razie realnego zagrożenia kieruj się oficjalnymi kanałami.</span>
+  <button id="disclaimer-x" title="Ukryj (wróci przy alarmie)">✕</button>
+</div>
+
+<div id="map"></div>
+
+<div id="timebar" class="hidden">
+  <div class="tb-row">
+    <button id="tb-live" class="chip">● NA ŻYWO</button>
+    <input id="tb-slider" type="range" min="0" max="0" value="0" step="1">
+    <span id="tb-label">teraz</span>
+  </div>
+  <div id="tb-info" class="fineprint"></div>
+</div>
+
+<div id="map-actions">
+  <button id="btn-history" class="map-btn" title="Historia 12 godzin">⏱</button>
+  <button id="btn-home" class="map-btn" title="Wróć do mojego regionu">◎</button>
+  <button id="btn-fit" class="map-btn" title="Pokaż całą Polskę i Ukrainę">⤢</button>
+</div>
+
+<div id="my-banner" class="hidden"></div>
+
+<aside id="panel" class="collapsed">
+  <button id="panel-x" title="Zamknij panel">✕</button>
+  <section id="voiv-cards"></section>
+  <section>
+    <h2>Sygnały <span class="muted">(okno <span id="window-min">30</span> min)</span></h2>
+    <div id="signal-list" class="list"></div>
+  </section>
+  <section>
+    <h2>Obiekty ≤ 250 km od granicy <span class="muted">(NEPTUN)</span></h2>
+    <div id="threat-list" class="list"></div>
+  </section>
+  <section>
+    <h2>Lotnictwo wojskowe (ADS-B) <span class="muted">nad PL-wschód</span></h2>
+    <div id="adsb-list" class="list"></div>
+    <p class="fineprint">Publiczne dane z transponderów (samoloty, które chcą być
+    widoczne) — to NIE jest namierzanie obiektów przeciwnika.</p>
+  </section>
+  <!-- atrybucja w panelu: na telefonie panel przykrywa tę na mapie, a warunek
+       API NEPTUN wymaga, żeby była widoczna zawsze -->
+  <section id="panel-attrib" class="fineprint">
+    <b>Dane: <a href="https://neptun.in.ua" target="_blank" rel="noopener">NEPTUN</a></b>
+    (agregator OSINT — nie radar) · ADS-B: adsb.lol · PAŻP · RCB
+    · Mapa: © <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>,
+    © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OSM</a>
+  </section>
+</aside>
+
+<div id="attribution">
+  <b>Dane: <a href="https://neptun.in.ua" target="_blank" rel="noopener">NEPTUN</a></b>
+  (agregator OSINT — nie radar; zawsze sprawdzaj confidence i ±km)
+  · ADS-B: adsb.lol · Mapa: © <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>
+  © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OSM</a>
+</div>
+
+<div id="conn-badge" class="hidden">łączenie…</div>
+<div id="toast" class="hidden"></div>
+
+<div id="legend" class="hidden">
+  <h3>Legenda</h3>
+  <div class="lg-group">Obiekty (Dane: NEPTUN, nad Ukrainą)</div>
+  <div class="lg-row"><i class="dart" style="--c:#ffb020"></i> Dron / BpSP (uav)</div>
+  <div class="lg-row"><i class="dart" style="--c:#ff8c1a"></i> Shahed</div>
+  <div class="lg-row"><i class="dart" style="--c:#ff4d5e"></i> Rakieta manewrująca</div>
+  <div class="lg-row"><i class="dart" style="--c:#ff2db0"></i> Rakieta balistyczna</div>
+  <div class="lg-row"><i class="dart" style="--c:#ffd23b"></i> Bomba kierowana (KAB)</div>
+  <div class="lg-row"><i class="dart" style="--c:#c06bff"></i> MiG-31K (nosiciel Kindżałów)</div>
+  <div class="lg-row"><i class="dart" style="--c:#8a93a6"></i> FPV / inne (lokalne)</div>
+  <div class="lg-row"><i class="ring"></i> okrąg = niepewność pozycji (±km)</div>
+  <div class="lg-row"><i class="trail"></i> przerywana linia = trasa przelotu</div>
+  <div class="lg-row"><i class="plane-ic"></i> samolot wojskowy (ADS-B, jawny transponder)</div>
+  <div class="lg-row"><span style="color:#39c5ec">🚁</span> śmigłowiec wojskowy (ADS-B) —
+    kliknij maszynę: model, przeznaczenie, operator</div>
+  <div class="lg-group">Państwa (odcień tła)</div>
+  <div class="lg-row"><i class="sq" style="--c:#233252"></i> Polska (jaśniejsza, gruby kontur)</div>
+  <div class="lg-row"><i class="sq" style="--c:#4a4030"></i> Ukraina</div>
+  <div class="lg-row"><i class="sq" style="--c:#4a2e33"></i> Białoruś</div>
+  <div class="lg-row"><i class="sq" style="--c:#3f2b3e"></i> Rosja (Kaliningrad)</div>
+  <div class="lg-row"><i class="sq" style="--c:#2e4437"></i> Litwa
+    <i class="sq" style="--c:#2e3f4a"></i> Łotwa
+    <i class="sq" style="--c:#3b3350"></i> Estonia</div>
+  <div class="lg-group">Województwa (suma pkt z 30 min)</div>
+  <div class="lg-row"><i class="sq" style="--c:#233252"></i> 0–1.9 pkt — spokojnie</div>
+  <div class="lg-row"><i class="sq" style="--c:#ffb020"></i> ≥ 2 pkt — podwyższona uwaga</div>
+  <div class="lg-row"><i class="sq" style="--c:#ff4d5e"></i> ≥ 4 pkt — wysoki priorytet</div>
+  <div class="lg-row muted-row">wysokość bryły 3D rośnie z liczbą punktów;<br>
+    kliknij obiekt lub województwo po szczegóły</div>
+</div>
+
+<div id="alarm-overlay" class="hidden">
+  <div class="alarm-box">
+    <div class="alarm-icon">⚠</div>
+    <div class="alarm-level" id="alarm-level">WYSOKI PRIORYTET</div>
+    <div class="alarm-voiv" id="alarm-voiv">—</div>
+    <div class="alarm-score" id="alarm-score"></div>
+    <div class="alarm-signals" id="alarm-signals"></div>
+    <p class="alarm-note">To sygnał NIEOFICJALNY. Sprawdź syreny, RCB i RSO —
+      one są źródłem rozstrzygającym.</p>
+    <button id="alarm-ack" class="alarm-btn">POTWIERDZAM — wycisz syrenę</button>
+    <div class="alarm-time" id="alarm-time"></div>
+  </div>
+</div>
+
+<dialog id="about">
+  <div class="about-body">
+    <div class="about-head">
+      <div class="about-logo"></div>
+      <div>
+        <h2>STRAŻNIK</h2>
+        <p class="about-sub">nieoficjalna fuzja sygnałów o zagrożeniach powietrznych</p>
+      </div>
+    </div>
+
+    <div class="warn-box">
+      To <b>NIE jest</b> oficjalny system ostrzegania. Nie zastępuje syren,
+      alertów RCB ani RSO. W razie realnego zagrożenia kieruj się oficjalnymi
+      kanałami — ta aplikacja ma dać Ci <b>dodatkowy, wcześniejszy sygnał</b>,
+      nic więcej.
+    </div>
+
+    <h3>Jak to działa</h3>
+    <p>Żaden pojedynczy sygnał nie przesądza o zagrożeniu. Aplikacja zbiera
+    kilka niezależnych wskaźników, przydziela im punkty i sumuje je w oknie
+    <b>30 minut</b> osobno dla każdego województwa. Dopiero suma decyduje
+    o poziomie — i zawsze widzisz jej pełne rozbicie.</p>
+
+    <table class="about-tab">
+      <tr><td><b>NEPTUN</b></td><td>obiekt (dron, rakieta, KAB) kursem na granicę PL,
+        bliżej niż 100 km — wiarygodność wysoka</td><td class="pts">+3</td></tr>
+      <tr><td></td><td>jw., wiarygodność średnia lub niska</td><td class="pts">+1,5</td></tr>
+      <tr><td></td><td>oficjalny alarm w przygranicznym obwodzie Ukrainy</td><td class="pts">+1</td></tr>
+      <tr><td><b>Media</b></td><td>relacje lokalnych mediów: syreny, wybuch,
+        naruszenie przestrzeni</td><td class="pts">+2</td></tr>
+      <tr><td><b>RCB</b></td><td>nowy komunikat Rządowego Centrum Bezpieczeństwa</td><td class="pts">+2</td></tr>
+      <tr><td><b>ADS-B</b></td><td>ruch lotnictwa wojskowego ponad dwukrotnie
+        wyższy niż średnia z 7 dni</td><td class="pts">+1</td></tr>
+      <tr><td><b>PAŻP</b></td><td>nowa aktywna strefa przestrzeni powietrznej
+        (AUP/UUP) nad regionem</td><td class="pts">+1</td></tr>
+      <tr><td><b>Bałtyk</b></td><td>incydent powietrzny wg mediów Litwy, Łotwy
+        lub Estonii</td><td class="pts">+1</td></tr>
+    </table>
+
+    <h3>Poziomy</h3>
+    <div class="lvl-row"><i class="sq" style="--c:#ffb020"></i>
+      <b>≥ 2 pkt — PODWYŻSZONA UWAGA:</b> region na żółto, krótki sygnał
+      dźwiękowy, ciche powiadomienie.</div>
+    <div class="lvl-row"><i class="sq" style="--c:#ff4d5e"></i>
+      <b>≥ 4 pkt — WYSOKI PRIORYTET:</b> region na czerwono, modulowana syrena
+      alarmu powietrznego z wibracją, głośne powiadomienie.</div>
+    <p class="fineprint">Zdarzenie na wschodzie podnosi też czujność sąsiednich
+    województw (40% punktów), więc regiony centralne i zachodnie dostają
+    wyprzedzenie, zanim coś dotrze dalej.</p>
+
+    <h3>Gdzie co znajdziesz</h3>
+    <ul class="about-list">
+      <li><b>☰ Panel</b> — karty województw z punktacją, lista sygnałów
+        z godzinami, obiekty przy granicy, lotnictwo wojskowe.</li>
+      <li><b>Legenda</b> — co oznacza każdy symbol i kolor na mapie.</li>
+      <li><b>⚙ Ustawienia</b> — wybór Twojego województwa (decyduje o alarmach
+        i starcie mapy), test dźwięków, opcjonalny wspólny backend.</li>
+      <li><b>◎ / ⤢</b> — powrót do Twojego regionu i widok całej Polski z Ukrainą.</li>
+      <li><b>Diody u góry</b> — stan każdego źródła danych; kliknij obiekt lub
+        samolot na mapie, by zobaczyć szczegóły.</li>
+    </ul>
+
+    <h3>Czego ta aplikacja NIE robi</h3>
+    <p class="fineprint">NEPTUN to agregator OSINT/crowdsourcingowy, nie radar —
+    dlatego zawsze pokazujemy wiarygodność i niepewność pozycji (±km).
+    Dane ADS-B pochodzą z jawnych transponderów (maszyny, które <i>chcą</i> być
+    widoczne) — to nie jest namierzanie obiektów przeciwnika. Obiekty widoczne
+    są nad Ukrainą; po wejściu w polską przestrzeń znikają ze źródła.</p>
+
+    <p class="fineprint">Dane: <a href="https://neptun.in.ua" target="_blank" rel="noopener">NEPTUN</a>
+      · adsb.lol · airspace.pansa.pl · gov.pl/RCB · media regionalne
+      · mapa © CARTO, © OpenStreetMap</p>
+
+    <div class="about-actions">
+      <a class="chip coffee" href="https://buycoffee.to/cukierrro" target="_blank"
+         rel="noopener">☕ Postaw kawę autorowi</a>
+      <button id="about-close" class="chip primary">Rozumiem, zaczynajmy</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="cameras">
+  <h3 id="cam-title">Kamery</h3>
+  <p class="fineprint">Publiczne kamery miejskie i turystyczne (worldcam.pl).
+  Na liście są tylko te, które przy budowie aplikacji faktycznie nadawały —
+  każda została sprawdzona pobraniem świeżego obrazu. Podgląd odświeża się co
+  30 sekund; kliknij kafelek, aby otworzyć pełny stream. Kamery pokazują ziemię,
+  <b>nie niebo</b> — to uzupełnienie obrazu sytuacji, nie sposób wypatrywania
+  obiektów.</p>
+  <div id="cam-list" class="cam-list"></div>
+  <p class="fineprint" style="margin-top:12px">Nie podaję kamer z Ukrainy:
+  od 2022 r. transmisje na żywo z tamtejszych kamer są zakazane, bo pozwalają
+  korygować ostrzał. Zbieranie ich w aplikacji śledzącej obiekty powietrzne
+  byłoby dokładnie tym zastosowaniem, przed którym ten zakaz chroni.</p>
+  <menu><button id="cam-close" class="chip">Zamknij</button></menu>
+</dialog>
+
+<dialog id="settings">
+  <form method="dialog">
+    <h3>Moja lokalizacja</h3>
+    <p class="fineprint">Wybierz województwo, w którym mieszkasz. Alarmy dla
+    Twojego regionu dostają najwyższy priorytet, a mapa startuje na nim.
+    Zdarzenia na wschodzie podnoszą czujność również w regionach centralnych
+    i zachodnich (przeniesienie sygnału do sąsiadów).</p>
+    <label>Województwo
+      <select id="set-voiv"></select>
+    </label>
+    <button type="button" id="btn-gps" class="chip" style="margin-top:10px">
+      📍 Wykryj z GPS</button>
+
+    <h3 style="margin-top:16px">Nasłuch w tle</h3>
+    <p class="fineprint">Bez tego alarmy docierają tylko przy otwartej aplikacji —
+    Android wstrzymuje uśpione aplikacje. Po włączeniu w powiadomieniach pojawi
+    się stała informacja „nasłuch aktywny" (tego wymaga system) i alarmy przyjdą
+    także przy wygaszonym ekranie.</p>
+    <label class="switch-row">
+      <input type="checkbox" id="bg-toggle">
+      <span>Monitoruj także przy zamkniętej aplikacji</span>
+    </label>
+    <div id="bg-status" class="fineprint"></div>
+    <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+      <button type="button" id="btn-battery" class="chip">🔋 Wyłącz oszczędzanie baterii</button>
+      <button type="button" id="btn-notif-settings" class="chip">🔔 Ustawienia powiadomień</button>
+    </div>
+
+    <h3 style="margin-top:16px">Sygnały dźwiękowe</h3>
+    <p class="fineprint">Żółty poziom (≥2 pkt) — krótki sygnał uwagi.
+    Czerwony (≥4 pkt) — modulowana syrena alarmu powietrznego + wibracja.
+    Odtwarzane, gdy aplikacja jest otwarta; w tle działają powiadomienia systemowe.</p>
+    <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+      <button type="button" id="btn-test-chime" class="chip">▶ Test: uwaga</button>
+      <button type="button" id="btn-test-siren" class="chip">▶ Test: syrena</button>
+      <button type="button" id="btn-test-alarm" class="chip">▶ Test: pełny alarm</button>
+    </div>
+    <p class="fineprint">Przy czerwonym poziomie syrena gra <b>bez przerwy</b>,
+    aż potwierdzisz alarm przyciskiem na ekranie.</p>
+    <details style="margin-top:14px">
+      <summary class="fineprint" style="cursor:pointer">Zaawansowane: wspólny backend</summary>
+      <label style="margin-top:8px">Adres serwera (opcjonalnie)
+        <input id="set-api" type="url" placeholder="puste = tryb wbudowany (zalecane)">
+      </label>
+      <p class="fineprint">Domyślnie aplikacja sama pobiera dane i liczy fuzję
+      na urządzeniu. Adres (np. http://192.168.1.10:8600) podaj tylko, jeśli
+      chcesz korzystać z backendu na komputerze.</p>
+    </details>
+    <menu>
+      <button value="cancel" class="chip">Anuluj</button>
+      <button id="set-save" value="ok" class="chip primary">Zapisz</button>
+    </menu>
+  </form>
+</dialog>
+
+<script src="assets/vendor/maplibre-gl.js"></script>
+<script src="engine.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

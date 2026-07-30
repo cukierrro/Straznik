@@ -1,0 +1,11 @@
+backend/.env
+.claude/settings.local.json
+backend/data/
+__pycache__/
+node_modules/
+android-app/www/
+android-app/android/.gradle/
+android-app/android/app/build/
+android-app/android/build/
+android-app/android/local.properties
+*.pyc

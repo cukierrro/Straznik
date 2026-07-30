@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Strażnik — instrukcja użytkownika</title>
+<meta name="description" content="Instrukcja aplikacji Strażnik: nieoficjalne wczesne ostrzeganie o zagrożeniach powietrznych dla Polski. Opis wszystkich funkcji ze zrzutami ekranu.">
+<link rel="icon" href="ikona.png">
+<style>
+:root{
+  --bg:#0b0f1a; --bg2:#111827; --card:#151d2e; --card2:#1a2338;
+  --line:#243049; --line2:#2f3d5c;
+  --tx:#e8edf7; --tx2:#a9b4cc; --tx3:#78849e;
+  --blue:#5b8cff; --amber:#ffb020; --red:#ff4d5e; --green:#3ddc97;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth; scroll-padding-top:70px}
+body{
+  margin:0; background:var(--bg); color:var(--tx);
+  font:16px/1.65 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+img{max-width:100%; display:block}
+a{color:var(--blue); text-decoration:none}
+a:hover{text-decoration:underline}
+code,kbd{font-family:var(--mono); font-size:.88em}
+code{background:#0d1424; border:1px solid var(--line); border-radius:5px; padding:1px 6px; color:#cfe0ff}
+kbd{background:var(--card2); border:1px solid var(--line2); border-radius:6px; padding:2px 7px; font-size:.85em}
+
+/* ── nawigacja ─────────────────────────────────────────── */
+nav{
+  position:sticky; top:0; z-index:50;
+  background:rgba(11,15,26,.92); backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--line);
+}
+.nav-in{
+  max-width:1100px; margin:0 auto; padding:10px 20px;
+  display:flex; align-items:center; gap:14px;
+}
+.nav-brand{display:flex; align-items:center; gap:10px; font-weight:700; letter-spacing:.14em; font-size:14px; flex-shrink:0}
+.nav-brand img{width:26px; height:26px; border-radius:7px}
+.nav-links{display:flex; gap:4px; overflow-x:auto; scrollbar-width:none; margin-left:auto}
+.nav-links::-webkit-scrollbar{display:none}
+.nav-links a{
+  white-space:nowrap; padding:6px 11px; border-radius:8px;
+  color:var(--tx2); font-size:13.5px;
+}
+.nav-links a:hover{background:var(--card2); color:var(--tx); text-decoration:none}
+
+/* ── layout ────────────────────────────────────────────── */
+.wrap{max-width:1100px; margin:0 auto; padding:0 20px}
+section{padding:56px 0; border-bottom:1px solid var(--line)}
+section:last-of-type{border-bottom:0}
+h1{font-size:clamp(32px,6vw,52px); line-height:1.1; margin:0 0 12px; letter-spacing:-.02em}
+h2{font-size:clamp(23px,3.4vw,31px); margin:0 0 8px; letter-spacing:-.01em}
+h3{font-size:18px; margin:30px 0 10px; color:var(--tx)}
+h4{font-size:15.5px; margin:20px 0 6px; color:var(--tx)}
+.lead{color:var(--tx2); font-size:17px; margin:0 0 26px; max-width:70ch}
+p{max-width:72ch}
+.eyebrow{
+  font-size:12px; letter-spacing:.18em; text-transform:uppercase;
+  color:var(--blue); font-weight:700; margin-bottom:10px;
+}
+
+/* ── hero ──────────────────────────────────────────────── */
+header.hero{
+  padding:64px 0 52px;
+  background:
+    radial-gradient(1000px 420px at 15% -8%, rgba(91,140,255,.16), transparent 65%),
+    radial-gradient(760px 380px at 88% 4%, rgba(255,176,32,.10), transparent 62%);
+  border-bottom:1px solid var(--line);
+}
+.hero-grid{display:grid; grid-template-columns:1fr 300px; gap:44px; align-items:center}
+.hero-icon{
+  width:88px; height:88px; border-radius:22px; margin-bottom:22px;
+  box-shadow:0 12px 40px rgba(0,0,0,.5), 0 0 0 1px var(--line2);
+}
+.hero-sub{color:var(--tx2); font-size:18.5px; max-width:60ch; margin:0 0 26px}
+.hero-shot{
+  border-radius:20px; border:1px solid var(--line2);
+  box-shadow:0 24px 70px rgba(0,0,0,.6);
+}
+.badges{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:26px}
+.badge{
+  font-size:12.5px; padding:4px 11px; border-radius:999px;
+  background:var(--card2); border:1px solid var(--line2); color:var(--tx2);
+  font-family:var(--mono);
+}
+.cta-row{display:flex; flex-wrap:wrap; gap:12px}
+.btn{
+  display:inline-flex; align-items:center; gap:9px;
+  padding:12px 22px; border-radius:11px; font-weight:600; font-size:15px;
+  background:var(--blue); color:#fff; border:1px solid transparent;
+}
+.btn:hover{background:#4d7ef5; text-decoration:none}
+.btn.ghost{background:var(--card2); color:var(--tx); border-color:var(--line2)}
+.btn.ghost:hover{background:#22304d; text-decoration:none}
+
+/* ── ostrzeżenie ───────────────────────────────────────── */
+.warn{
+  background:linear-gradient(180deg, rgba(255,176,32,.13), rgba(255,176,32,.05));
+  border:1px solid rgba(255,176,32,.42); border-left:4px solid var(--amber);
+  border-radius:12px; padding:18px 20px; margin:26px 0; max-width:80ch;
+}
+.warn strong{color:var(--amber)}
+.note{
+  background:var(--card); border:1px solid var(--line);
+  border-left:3px solid var(--blue);
+  border-radius:10px; padding:15px 18px; margin:20px 0; max-width:80ch;
+  font-size:15px; color:var(--tx2);
+}
+.note b{color:var(--tx)}
+
+/* ── zrzuty ekranu ─────────────────────────────────────── */
+.shots{display:grid; gap:26px; margin:26px 0}
+.shots.c2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.shots.c3{grid-template-columns:repeat(3,minmax(0,1fr))}
+figure{margin:0}
+figure img{
+  border-radius:16px; border:1px solid var(--line2);
+  background:#000; box-shadow:0 14px 40px rgba(0,0,0,.45);
+  cursor:zoom-in; transition:transform .18s ease, box-shadow .18s ease;
+}
+figure img:hover{transform:translateY(-3px); box-shadow:0 20px 52px rgba(0,0,0,.6)}
+figcaption{
+  color:var(--tx3); font-size:13.5px; margin-top:11px; line-height:1.5;
+}
+figcaption b{color:var(--tx2); font-weight:600}
+
+/* podpis obok zrzutu */
+.split{display:grid; grid-template-columns:330px 1fr; gap:36px; align-items:start; margin:28px 0}
+.split.rev{grid-template-columns:1fr 330px}
+.split img{border-radius:16px; border:1px solid var(--line2); box-shadow:0 14px 40px rgba(0,0,0,.45); cursor:zoom-in}
+.split .txt>*:first-child{margin-top:0}
+
+/* ── tabele ────────────────────────────────────────────── */
+.tw{overflow-x:auto; margin:22px 0; border:1px solid var(--line); border-radius:12px}
+table{width:100%; border-collapse:collapse; font-size:14.5px; min-width:520px}
+th,td{padding:11px 15px; text-align:left; border-bottom:1px solid var(--line)}
+th{background:var(--bg2); font-size:12.5px; letter-spacing:.07em; text-transform:uppercase; color:var(--tx3); font-weight:700}
+tr:last-child td{border-bottom:0}
+td.ic{font-size:21px; width:56px; text-align:center; line-height:1}
+td.pts{font-family:var(--mono); font-weight:700; color:var(--amber); text-align:right; white-space:nowrap; width:76px}
+tbody tr:hover{background:rgba(91,140,255,.05)}
+
+/* ── karty / kroki ─────────────────────────────────────── */
+.cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:16px; margin:24px 0}
+.card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:20px}
+.card h4{margin:0 0 7px; font-size:16px}
+.card p{margin:0; font-size:14.5px; color:var(--tx2)}
+.card .big{font-size:26px; line-height:1; margin-bottom:12px; display:block}
+
+ol.steps{counter-reset:s; list-style:none; padding:0; margin:24px 0; max-width:80ch}
+ol.steps>li{
+  counter-increment:s; position:relative; padding:0 0 22px 52px; margin:0;
+  border-left:2px solid var(--line); margin-left:16px;
+}
+ol.steps>li:last-child{border-left-color:transparent; padding-bottom:0}
+ol.steps>li::before{
+  content:counter(s); position:absolute; left:-17px; top:-2px;
+  width:32px; height:32px; border-radius:50%;
+  background:var(--card2); border:1px solid var(--line2); color:var(--blue);
+  display:grid; place-items:center; font-weight:700; font-size:14px;
+}
+ol.steps>li b{display:block; margin-bottom:3px; font-size:16px}
+ol.steps>li p{margin:0; color:var(--tx2); font-size:15px}
+
+/* poziomy zagrożenia */
+.levels{display:grid; gap:14px; margin:24px 0; max-width:80ch}
+.level{display:flex; gap:15px; align-items:flex-start; padding:17px 19px; border-radius:12px; border:1px solid var(--line)}
+.level .sw{width:22px; height:22px; border-radius:6px; flex-shrink:0; margin-top:2px}
+.level.l0{background:rgba(35,50,82,.35)}
+.level.l0 .sw{background:#233252; border:1px solid var(--line2)}
+.level.l1{background:rgba(255,176,32,.09); border-color:rgba(255,176,32,.34)}
+.level.l1 .sw{background:var(--amber)}
+.level.l2{background:rgba(255,77,94,.09); border-color:rgba(255,77,94,.34)}
+.level.l2 .sw{background:var(--red)}
+.level b{display:block; margin-bottom:3px}
+.level span.d{color:var(--tx2); font-size:14.5px}
+
+ul.plain{padding-left:22px; max-width:78ch; color:var(--tx2)}
+ul.plain li{margin-bottom:9px}
+ul.plain b{color:var(--tx)}
+
+/* ── stopka ────────────────────────────────────────────── */
+footer{padding:44px 0 60px; color:var(--tx3); font-size:14px}
+footer .fr{display:flex; flex-wrap:wrap; gap:26px; justify-content:space-between; align-items:flex-start}
+footer a{color:var(--tx2)}
+
+/* ── lightbox ──────────────────────────────────────────── */
+#lb{
+  position:fixed; inset:0; z-index:100; display:none;
+  background:rgba(5,8,14,.94); padding:24px;
+  place-items:center; cursor:zoom-out;
+}
+#lb.on{display:grid}
+#lb img{max-height:94vh; max-width:100%; border-radius:14px; box-shadow:0 30px 90px rgba(0,0,0,.8)}
+
+@media (max-width:900px){
+  .hero-grid{grid-template-columns:1fr; gap:32px}
+  .hero-shot{max-width:290px; margin:0 auto}
+  .split,.split.rev{grid-template-columns:1fr; gap:20px}
+  .split img{max-width:290px}
+  .shots.c3{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:620px){
+  .shots.c2,.shots.c3{grid-template-columns:1fr}
+  .shots figure img{max-width:330px; margin:0 auto}
+  section{padding:44px 0}
+  .nav-brand span{display:none}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-in">
+    <div class="nav-brand"><img src="ikona.png" alt=""><span>STRAŻNIK</span></div>
+    <div class="nav-links">
+      <a href="#instalacja">Instalacja</a>
+      <a href="#konfiguracja">Konfiguracja</a>
+      <a href="#mapa">Mapa</a>
+      <a href="#przyciski">Przyciski</a>
+      <a href="#panel">Panel</a>
+      <a href="#alarm">Alarm</a>
+      <a href="#tlo">Nasłuch w tle</a>
+      <a href="#punkty">Punktacja</a>
+      <a href="#granice">Ograniczenia</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <img class="hero-icon" src="ikona.png" alt="Ikona aplikacji Strażnik">
+      <h1>Strażnik</h1>
+      <p class="hero-sub">Nieoficjalne wczesne ostrzeganie o zagrożeniach powietrznych.
+      Aplikacja łączy kilka niezależnych źródeł, przydziela im punkty i ostrzega,
+      gdy suma przekroczy próg — osobno dla każdego województwa.</p>
+      <div class="badges">
+        <span class="badge">Android 7.0+</span>
+        <span class="badge">4,7 MB</span>
+        <span class="badge">bez konta</span>
+        <span class="badge">bez reklam</span>
+        <span class="badge">offline-first UI</span>
+      </div>
+      <div class="cta-row">
+        <a class="btn" href="../Straznik.apk" download>⬇ Pobierz APK</a>
+        <a class="btn ghost" href="#instalacja">Jak zainstalować</a>
+      </div>
+    </div>
+    <img class="hero-shot" src="screens/01_start.jpg"
+         alt="Główny ekran aplikacji: mapa 3D wschodniej Polski, województwo podlaskie podświetlone na żółto">
+  </div>
+</header>
+
+<div class="wrap">
+
+<section id="czym-jest">
+  <div class="eyebrow">Zanim zaczniesz</div>
+  <h2>Czym to jest, a czym nie jest</h2>
+  <p class="lead">Strażnik to <b>dodatkowy, wcześniejszy sygnał</b> — nic więcej.
+  Ma dać kilka minut przewagi, zanim zadziałają oficjalne kanały.</p>
+
+  <div class="warn">
+    <strong>To NIE jest oficjalny system ostrzegania.</strong> Nie zastępuje syren,
+    alertów RCB ani RSO. W razie realnego zagrożenia kieruj się oficjalnymi kanałami —
+    one są źródłem rozstrzygającym. Aplikacja korzysta ze źródeł publicznych,
+    w tym crowdsourcingowych, które mogą się mylić, spóźniać lub milczeć.
+  </div>
+
+  <div class="cards">
+    <div class="card">
+      <span class="big">🔀</span>
+      <h4>Fuzja, nie jedno źródło</h4>
+      <p>Żaden pojedynczy sygnał nie wywołuje alarmu. Dopiero zgodność kilku
+      niezależnych źródeł podnosi wiarygodność.</p>
+    </div>
+    <div class="card">
+      <span class="big">🔍</span>
+      <h4>Zawsze widzisz dlaczego</h4>
+      <p>Każdy punkt jest rozpisany: które źródło, jaki tytuł, o której godzinie,
+      ile punktów dodało. Żadnej czarnej skrzynki.</p>
+    </div>
+    <div class="card">
+      <span class="big">📵</span>
+      <h4>Zero kont i telemetrii</h4>
+      <p>Nie ma logowania, rejestracji ani zbierania danych o Tobie.
+      Wybrane województwo zostaje na telefonie.</p>
+    </div>
+    <div class="card">
+      <span class="big">⚙️</span>
+      <h4>Działa samodzielnie</h4>
+      <p>Domyślnie telefon sam pobiera dane i liczy punkty. Serwer jest opcjonalny,
+      dla zaawansowanych.</p>
+    </div>
+  </div>
+</section>
+
+<section id="instalacja">
+  <div class="eyebrow">Krok 1</div>
+  <h2>Instalacja</h2>
+  <p class="lead">Aplikacji nie ma w Google Play — instalujesz plik APK ręcznie.
+  Android zapyta o zgodę, bo źródło jest „nieznane".</p>
+
+  <ol class="steps">
+    <li><b>Pobierz plik <code>Straznik.apk</code></b>
+      <p>Prosto na telefon albo na komputer i przez kabel/chmurę na telefon.</p></li>
+    <li><b>Otwórz pobrany plik</b>
+      <p>Menedżer plików → Pobrane → <code>Straznik.apk</code>. Android wyświetli
+      ekran instalacji.</p></li>
+    <li><b>Zezwól na instalację z nieznanych źródeł</b>
+      <p>Przy pierwszej takiej instalacji system pokaże ostrzeżenie i przycisk
+      „Ustawienia". Włącz zgodę dla przeglądarki lub menedżera plików, wróć i
+      potwierdź instalację.</p></li>
+    <li><b>Uruchom Strażnika</b>
+      <p>Ikona tarczy z sygnałem radarowym pojawi się na liście aplikacji.</p></li>
+    <li><b>Zezwól na powiadomienia</b>
+      <p>Przy pierwszym starcie Android zapyta o uprawnienie. <b>Bez tej zgody
+      nie zobaczysz żadnych alertów</b> — powiadomienia są głównym sposobem
+      ostrzegania.</p></li>
+  </ol>
+
+  <div class="split">
+    <img src="screens/17_pierwszy_start.jpg" alt="Prośba systemu Android o zgodę na wysyłanie powiadomień, w tle ekran O aplikacji">
+    <div class="txt">
+      <h3>Tak wygląda pierwsze uruchomienie</h3>
+      <p>Najpierw otwiera się ekran <b>„O aplikacji"</b> z wyjaśnieniem zasad
+      działania i ostrzeżeniem, że źródło jest nieoficjalne. Na wierzchu Android
+      pyta o zgodę na powiadomienia — wybierz <kbd>Allow</kbd> / <kbd>Zezwól</kbd>.</p>
+      <p>Ekran „O aplikacji" pokazuje się tylko raz. Później wracasz do niego
+      przyciskiem <kbd>?</kbd> w górnym pasku.</p>
+      <figure style="margin-top:22px">
+        <img src="screens/22_ikona_launcher.jpg" alt="Ikona Strażnika z nazwą na liście aplikacji Androida" style="border-radius:12px">
+        <figcaption><b>Ikona na liście aplikacji</b> — tarcza z sygnałem
+        radarowym, podpisana „Strażnik".</figcaption>
+      </figure>
+    </div>
+  </div>
+
+  <div class="note">
+    <b>Skąd wiadomo, że aplikacja działa?</b> Pięć kropek obok napisu STRAŻNIK
+    u góry ekranu to diody stanu źródeł danych. Wszystkie zielone = wszystkie
+    źródła odpowiadają. Czerwona kropka oznacza, że dane źródło chwilowo
+    nie odpowiada — pozostałe działają dalej.
+  </div>
+</section>
+
+<section id="konfiguracja">
+  <div class="eyebrow">Krok 2</div>
+  <h2>Konfiguracja — jednorazowo, dwie rzeczy</h2>
+  <p class="lead">Aplikacja działa od razu, ale warto ustawić dwie rzeczy:
+  swoje województwo i nasłuch w tle. Wszystko jest pod przyciskiem <kbd>⚙</kbd>.</p>
+
+  <div class="split">
+    <img src="screens/18_wybor_wojewodztwa.jpg" alt="Lista wszystkich 16 województw do wyboru">
+    <div class="txt">
+      <h3>Wybierz swoje województwo</h3>
+      <p>To najważniejsze ustawienie. Decyduje o dwóch rzeczach:</p>
+      <ul class="plain">
+        <li><b>Alarmy</b> — dostajesz powiadomienia o swoim regionie. Bez tego
+          ustawienia aplikacja alarmuje o czterech województwach przygranicznych
+          (lubelskie, podkarpackie, podlaskie, warmińsko-mazurskie).</li>
+        <li><b>Start mapy</b> — mapa otwiera się wyśrodkowana na Twoim regionie,
+          a baner u dołu ekranu zawsze pokazuje jego aktualny stan.</li>
+      </ul>
+      <p>Alternatywnie <kbd>📍 Wykryj z GPS</kbd> ustawi województwo automatycznie.
+      Lokalizacja nie jest nigdzie wysyłana.</p>
+    </div>
+  </div>
+
+  <div class="split rev">
+    <div class="txt">
+      <h3>Włącz nasłuch w tle</h3>
+      <p><b>Bez tego alarmy docierają tylko przy otwartej aplikacji</b> — Android
+      wstrzymuje uśpione aplikacje, więc zminimalizowany Strażnik po pewnym czasie
+      przestaje sprawdzać dane.</p>
+      <p>Po zaznaczeniu <b>„Monitoruj także przy zamkniętej aplikacji"</b> startuje
+      usługa systemowa, która sama odpytuje źródła, liczy punkty i wystawia
+      powiadomienia — także przy wygaszonym ekranie i po restarcie telefonu.</p>
+      <p>Dwa przyciski poniżej pomagają, gdy alarmy nie dochodzą:</p>
+      <ul class="plain">
+        <li><kbd>🔋 Wyłącz oszczędzanie baterii</kbd> — Xiaomi, Samsung i Huawei
+          potrafią ubijać usługi w tle. To wyjątek od optymalizacji.</li>
+        <li><kbd>🔔 Ustawienia powiadomień</kbd> — skrót do systemowych ustawień
+          kanałów, gdzie ustawisz dźwięk i priorytet.</li>
+      </ul>
+      <h3>Sprawdź dźwięki alarmu</h3>
+      <p>Trzy przyciski testowe odtwarzają dokładnie to, co usłyszysz przy realnym
+      zdarzeniu: <b>Test: uwaga</b> (krótki sygnał żółtego poziomu),
+      <b>Test: syrena</b> (modulowana syrena alarmu powietrznego),
+      <b>Test: pełny alarm</b> (syrena + wibracja + ekran alarmu).
+      Przetestuj je raz, żeby wiedzieć, czego się spodziewać.</p>
+    </div>
+    <img src="screens/08_ustawienia_1.jpg" alt="Ekran ustawień: wybór województwa, przełącznik nasłuchu w tle, przyciski testów dźwięku">
+  </div>
+
+  <div class="note">
+    Ustawienia zapisują się dopiero po naciśnięciu <kbd>Zapisz</kbd>.
+    Zmiana województwa przesuwa mapę na nowy region.
+  </div>
+</section>
+
+<section id="mapa">
+  <div class="eyebrow">Główny widok</div>
+  <h2>Mapa</h2>
+  <p class="lead">Cały obraz sytuacji na jednym ekranie: które regiony są spokojne,
+  gdzie coś się dzieje i co dokładnie leci.</p>
+
+  <div class="split">
+    <img src="screens/01_start.jpg" alt="Mapa 3D: podlaskie wytłoczone i podświetlone na żółto, obok Litwa, Białoruś i Ukraina w odcieniach tła">
+    <div class="txt">
+      <h3>Jak czytać mapę</h3>
+      <ul class="plain">
+        <li><b>Kolor województwa</b> — suma punktów z ostatnich 30 minut.
+          Ciemnoniebieski = spokojnie, żółty = podwyższona uwaga, czerwony = wysoki priorytet.</li>
+        <li><b>Wysokość bryły 3D</b> — rośnie razem z punktacją, więc zagrożony
+          region widać nawet kątem oka.</li>
+        <li><b>Odcienie tła państw</b> — Polska jaśniejsza z grubym konturem,
+          osobne kolory dla Ukrainy, Białorusi, Kaliningradu i państw bałtyckich.</li>
+        <li><b>Niebieskie sylwetki</b> — samoloty i śmigłowce wojskowe z publicznych
+          transponderów ADS-B. Dotknij, aby zobaczyć model i przeznaczenie.</li>
+        <li><b>Kolorowe groty z okręgami</b> — obiekty nad Ukrainą wg NEPTUN-a.
+          Okrąg to niepewność pozycji, przerywana linia to trasa przelotu.</li>
+        <li><b>Baner u dołu</b> — stan Twojego województwa, widoczny zawsze.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>Poziomy zagrożenia</h3>
+  <div class="levels">
+    <div class="level l0">
+      <div class="sw"></div>
+      <div><b>0 – 1,9 pkt — spokojnie</b>
+      <span class="d">Region ciemnoniebieski, płaski. Brak sygnałów lub pojedynczy,
+      niepotwierdzony sygnał poniżej progu.</span></div>
+    </div>
+    <div class="level l1">
+      <div class="sw"></div>
+      <div><b>≥ 2 pkt — PODWYŻSZONA UWAGA</b>
+      <span class="d">Region na żółto i wytłoczony. Krótki sygnał dźwiękowy,
+      ciche powiadomienie. Warto rzucić okiem na panel sygnałów.</span></div>
+    </div>
+    <div class="level l2">
+      <div class="sw"></div>
+      <div><b>≥ 4 pkt — WYSOKI PRIORYTET</b>
+      <span class="d">Region na czerwono. Modulowana syrena alarmu powietrznego
+      z wibracją, głośne powiadomienie i pełnoekranowy alarm — syrena gra bez przerwy,
+      aż potwierdzisz.</span></div>
+    </div>
+  </div>
+
+  <div class="shots c2">
+    <figure>
+      <img src="screens/12_widok_2d.jpg" alt="Ten sam obszar w widoku 2D, województwo podlaskie płaskie i żółte">
+      <figcaption><b>Widok 2D</b> (<kbd>3D</kbd> / <kbd>2D</kbd>) — płaska mapa
+      bez wytłoczeń. Czytelniejsza przy zbliżeniu i szybsza na starszych telefonach.</figcaption>
+    </figure>
+    <figure>
+      <img src="screens/13_adsb_szczegoly.jpg" alt="Dymek nad sylwetką maszyny: CROSS16, UH-60 Black Hawk, 4975 ft, 225 km/h, kurs 23 stopnie">
+      <figcaption><b>Szczegóły maszyny</b> — dotknij sylwetki na mapie: znak
+      wywoławczy, model, przeznaczenie, wysokość, prędkość i kurs. Trasy startu
+      i celu nie ma, bo wojsko jej nie publikuje.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section id="przyciski">
+  <div class="eyebrow">Interfejs</div>
+  <h2>Każdy przycisk po kolei</h2>
+  <p class="lead">Na wąskich ekranach podpisy zwijają się do samych ikon —
+  poniżej wszystkie w jednym miejscu.</p>
+
+  <h3>Górny pasek</h3>
+  <div class="tw">
+    <table>
+      <thead><tr><th>Ikona</th><th>Funkcja</th><th>Co robi</th></tr></thead>
+      <tbody>
+        <tr><td class="ic">🔵</td><td><b>Kropka + STRAŻNIK</b></td>
+          <td>Logo. Obok pięć diod stanu źródeł danych — zielona znaczy,
+          że źródło odpowiada.</td></tr>
+        <tr><td class="ic">☕</td><td><b>Postaw kawę</b></td>
+          <td>Dobrowolne wsparcie autora przez buycoffee.to. Aplikacja jest
+          i pozostanie darmowa.</td></tr>
+        <tr><td class="ic">❓</td><td><b>O aplikacji</b></td>
+          <td>Pełne wyjaśnienie zasad działania: tabela punktacji, poziomy,
+          spis funkcji i uczciwa lista ograniczeń.</td></tr>
+        <tr><td class="ic">🗺️</td><td><b>Legenda</b></td>
+          <td>Znaczenie każdego symbolu i koloru na mapie.</td></tr>
+        <tr><td class="ic" style="font-size:13px;font-family:var(--mono);font-weight:700">3D</td><td><b>3D / 2D</b></td>
+          <td>Przełącza między mapą z wytłaczanymi bryłami i płaską.</td></tr>
+        <tr><td class="ic">🔔</td><td><b>Powiadomienia</b></td>
+          <td>Włącza powiadomienia push (w przeglądarce — Web Push;
+          w aplikacji — kanały systemowe Androida).</td></tr>
+        <tr><td class="ic">⚙️</td><td><b>Ustawienia</b></td>
+          <td>Województwo, nasłuch w tle, testy dźwięków, opcjonalny serwer.</td></tr>
+        <tr><td class="ic">☰</td><td><b>Panel sygnałów</b></td>
+          <td>Wysuwa panel z punktacją województw, listą sygnałów, obiektami
+          przy granicy i lotnictwem wojskowym.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Przyciski na mapie (prawa krawędź)</h3>
+  <div class="tw">
+    <table>
+      <thead><tr><th>Ikona</th><th>Funkcja</th><th>Co robi</th></tr></thead>
+      <tbody>
+        <tr><td class="ic">⏱️</td><td><b>Historia 12 godzin</b></td>
+          <td>Otwiera suwak czasu — możesz przewinąć sytuację wstecz co 2 minuty.</td></tr>
+        <tr><td class="ic">◎</td><td><b>Mój region</b></td>
+          <td>Wraca do województwa wybranego w ustawieniach.</td></tr>
+        <tr><td class="ic">⤢</td><td><b>Cały obszar</b></td>
+          <td>Oddala widok na całą Polskę razem z Ukrainą i Bałtykiem.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="shots c3">
+    <figure>
+      <img src="screens/04_legenda.jpg" alt="Panel legendy: typy obiektów w kolorach, odcienie państw, progi punktowe">
+      <figcaption><b>Legenda</b> — kolory typów obiektów (dron, Shahed, rakieta
+      manewrująca, balistyczna, KAB, MiG-31K), odcienie państw i progi punktowe.</figcaption>
+    </figure>
+    <figure>
+      <img src="screens/05_about_1.jpg" alt="Ekran O aplikacji: ostrzeżenie o nieoficjalności i tabela punktacji źródeł">
+      <figcaption><b>O aplikacji</b> (1/2) — ostrzeżenie i pełna tabela: które
+      źródło ile punktów dodaje i za co.</figcaption>
+    </figure>
+    <figure>
+      <img src="screens/07_about_3.jpg" alt="Ekran O aplikacji: poziomy alarmu, spis funkcji, sekcja czego aplikacja nie robi">
+      <figcaption><b>O aplikacji</b> (2/2) — poziomy, spis funkcji i sekcja
+      „czego ta aplikacja NIE robi" z listą źródeł.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section id="panel">
+  <div class="eyebrow">Szczegóły</div>
+  <h2>Panel sygnałów</h2>
+  <p class="lead">Tu sprawdzasz, <b>dlaczego</b> region ma tyle punktów.
+  Otwierasz przyciskiem <kbd>☰</kbd> albo dotykając województwa na mapie.</p>
+
+  <div class="shots c3">
+    <figure>
+      <img src="screens/02_panel.jpg" alt="Karty województw z punktacją: Lubelskie 1.1 pkt, Podlaskie 2.0 pkt PODWYŻSZONA UWAGA">
+      <figcaption><b>Karty województw</b> — punktacja, poziom i progi.
+      Twój region ma niebieską obwódkę i podpis „mój region", regiony powyżej
+      progu — kolorową.</figcaption>
+    </figure>
+    <figure>
+      <img src="screens/20_karta_regionu.jpg" alt="Rozwinięta karta Lubelskie z przyciskiem Kamery w regionie (24)">
+      <figcaption><b>Dotknij karty</b>, aby ją rozwinąć: rozbicie punktów
+      sygnał po sygnale i przycisk <kbd>📷 Kamery w regionie</kbd>.</figcaption>
+    </figure>
+    <figure>
+      <img src="screens/03_panel_sygnaly.jpg" alt="Lista sygnałów medialnych z godzinami i punktacją, poniżej lista maszyn ADS-B">
+      <figcaption><b>Sygnały i lotnictwo</b> — każdy wpis z godziną, źródłem,
+      klikalnym tytułem i liczbą punktów. Niżej obiekty ≤ 250 km od granicy
+      oraz maszyny wojskowe z ADS-B.</figcaption>
+    </figure>
+  </div>
+
+  <h3>Co znaczą wpisy na liście sygnałów</h3>
+  <div class="tw">
+    <table>
+      <thead><tr><th>Etykieta</th><th>Znaczenie</th></tr></thead>
+      <tbody>
+        <tr><td><code>NEPTUN</code></td><td>Obiekt powietrzny nad Ukrainą lecący
+          w stronę granicy Polski, albo oficjalny alarm w przygranicznym obwodzie.</td></tr>
+        <tr><td><code>MEDIA</code></td><td>Artykuł lokalnych mediów ze słowami
+          kluczowymi (syreny, alarm powietrzny, naruszenie przestrzeni).
+          Tytuł jest linkiem do źródła.</td></tr>
+        <tr><td><code>RCB</code></td><td>Nowy komunikat Rządowego Centrum
+          Bezpieczeństwa z gov.pl.</td></tr>
+        <tr><td><code>ADSB</code></td><td>Ruch lotnictwa wojskowego nad regionem
+          ponad dwukrotnie wyższy niż średnia z 7 dni.</td></tr>
+        <tr><td><code>PANSA</code></td><td>Nowo aktywowana strefa przestrzeni
+          powietrznej (AUP/UUP) nad regionem.</td></tr>
+        <tr><td><code>SPILLOVER</code></td><td>Przeniesienie punktów z sąsiedniego
+          województwa — patrz <a href="#punkty">punktacja</a>.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    Punkty <b>przekreślone</b> oznaczają sygnał ponad limit swojej klasy źródła.
+    Pięć artykułów o tym samym zdarzeniu to jedno potwierdzenie, nie pięć —
+    nadwyżka jest widoczna, ale nie liczy się do sumy.
+  </div>
+
+  <div class="split">
+    <img src="screens/21_kamery.jpg" alt="Okno kamer w województwie lubelskim: 24 kamery plenerowe z podglądem na żywo z Chełma, Lubartowa i Lublina">
+    <div class="txt">
+      <h3>Kamery w regionie</h3>
+      <p>641 publicznych kamer miejskich i turystycznych (worldcam.pl) we wszystkich
+      16 województwach, pogrupowanych po miastach. Każda została sprawdzona
+      pobraniem świeżego obrazu przy budowie listy — na liście nie ma martwych linków.</p>
+      <p>Podgląd odświeża się co 30 sekund, dotknięcie kafelka otwiera pełny stream.
+      Kamery plenerowe są na wierzchu, transmisje wnętrzowe schowane pod rozwijaną sekcją.</p>
+      <p><b>Kamery pokazują ziemię, nie niebo</b> — to uzupełnienie obrazu sytuacji
+      (czy na ulicach coś się dzieje), nie sposób wypatrywania obiektów.</p>
+      <p>Kamer z Ukrainy celowo nie ma: od 2022 r. transmisje na żywo są tam
+      zakazane, bo pozwalają korygować ostrzał.</p>
+    </div>
+  </div>
+</section>
+
+<section id="historia">
+  <div class="eyebrow">Kontekst</div>
+  <h2>Historia 12 godzin</h2>
+  <p class="lead">Przycisk <kbd>⏱</kbd> otwiera suwak czasu. Migawki zapisują się
+  co 2 minuty, więc możesz zobaczyć, jak sytuacja narastała.</p>
+
+  <div class="shots c2">
+    <figure>
+      <img src="screens/14_historia.jpg" alt="Suwak czasu w pozycji NA ŻYWO, podsumowanie: 7 obiektów, 5 maszyn wojskowych, 3 sygnały">
+      <figcaption><b>Pozycja „NA ŻYWO"</b> — suwak po prawej stronie.
+      Pod nim licznik: ile obiektów, maszyn wojskowych i sygnałów jest w oknie.
+      Tło suwaka jest pokolorowane poziomem zagrożenia, więc od razu widać,
+      kiedy coś się działo.</figcaption>
+    </figure>
+    <figure>
+      <img src="screens/15_historia_przeszlosc.jpg" alt="Suwak przesunięty do 11:48, minus 88 minut, lubelskie na żółto">
+      <figcaption><b>Przewinięte 88 minut wstecz</b> — mapa, lista sygnałów
+      i pozycje obiektów wracają do tamtego momentu. Przycisk
+      <kbd>● NA ŻYWO</kbd> wraca do teraźniejszości.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section id="alarm">
+  <div class="eyebrow">Sytuacja krytyczna</div>
+  <h2>Jak wygląda alarm</h2>
+  <p class="lead">Przy wysokim priorytecie (≥ 4 pkt) aplikacja przerywa wszystko:
+  pełny ekran, modulowana syrena alarmu powietrznego i wibracja.</p>
+
+  <div class="split">
+    <img src="screens/10_alarm.jpg" alt="Pełnoekranowy alarm: WYSOKI PRIORYTET, Woj. Lubelskie, rozbicie punktów, przycisk POTWIERDZAM">
+    <div class="txt">
+      <h3>Co widzisz na ekranie alarmu</h3>
+      <ul class="plain">
+        <li><b>Poziom i region</b> — czego dokładnie dotyczy alarm.</li>
+        <li><b>Suma punktów</b> i okno czasowe, z którego pochodzi.</li>
+        <li><b>Rozbicie na sygnały</b> — które źródła się złożyły na tę sumę,
+          z godzinami i klikalnymi tytułami. Możesz od razu ocenić, czy to
+          poważna zgodność źródeł, czy zbieg okoliczności.</li>
+        <li><b>Przypomnienie</b>, że sygnał jest nieoficjalny i rozstrzygają
+          syreny, RCB i RSO.</li>
+        <li><b><kbd>POTWIERDZAM — wycisz syrenę</kbd></b> — syrena gra bez przerwy,
+          dopóki tego nie naciśniesz. To celowe: alarm ma Cię obudzić.</li>
+      </ul>
+      <p>Przy poziomie żółtym (≥ 2 pkt) jest znacznie spokojniej: krótki sygnał
+      dźwiękowy i ciche powiadomienie, bez przejmowania ekranu.</p>
+    </div>
+  </div>
+
+  <div class="note">
+    Chcesz wiedzieć, jak to brzmi, zanim wydarzy się na serio?
+    <kbd>⚙</kbd> → <b>Test: pełny alarm</b> odtwarza dokładnie ten ekran i dźwięk.
+  </div>
+</section>
+
+<section id="tlo">
+  <div class="eyebrow">Najważniejsze ustawienie</div>
+  <h2>Nasłuch w tle</h2>
+  <p class="lead">Alarm jest przydatny wtedy, gdy dochodzi przy wygaszonym ekranie —
+  a do tego potrzebna jest usługa działająca w tle.</p>
+
+  <div class="split rev">
+    <div class="txt">
+      <h3>Stałe powiadomienie to wymóg Androida</h3>
+      <p>Po włączeniu nasłuchu w powiadomieniach pojawi się stały wpis
+      <b>„Strażnik — nasłuch aktywny"</b> ze stanem źródeł
+      (<code>Neptun✓ Media✓ RCB✓</code>) i przyciskiem <b>Zatrzymaj</b>.</p>
+      <p>Tego wpisu nie da się ukryć — Android wymaga widocznego powiadomienia
+      od każdej usługi pierwszoplanowej. To warunek systemu, nie wybór projektu.
+      W zamian dostajesz podgląd, czy nasłuch faktycznie żyje i czy źródła odpowiadają.</p>
+      <h3>Gdy alarmy nie dochodzą</h3>
+      <ul class="plain">
+        <li>Sprawdź, czy powiadomienie „nasłuch aktywny" jest widoczne —
+          jeśli zniknęło, system ubił usługę.</li>
+        <li>Użyj <kbd>🔋 Wyłącz oszczędzanie baterii</kbd> w ustawieniach.</li>
+        <li>Na Xiaomi, Samsungu i Huaweiu dodaj Strażnika do aplikacji
+          chronionych / autostartu w ustawieniach systemowych.</li>
+        <li>Usługa wraca sama po restarcie telefonu.</li>
+      </ul>
+    </div>
+    <img src="screens/11_powiadomienia.jpg" alt="Panel powiadomień Androida: Strażnik — nasłuch aktywny, bez sygnałów, Neptun✓ Media✓ RCB✓, przycisk Zatrzymaj">
+  </div>
+</section>
+
+<section id="punkty">
+  <div class="eyebrow">Mechanika</div>
+  <h2>Skąd się biorą punkty</h2>
+  <p class="lead">Aplikacja sumuje punkty w oknie 30 minut, osobno dla każdego
+  województwa. Dopiero suma decyduje o poziomie.</p>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th>Źródło</th><th>Warunek</th><th>Pkt</th></tr></thead>
+      <tbody>
+        <tr><td><b>NEPTUN</b></td><td>Obiekt (dron, Shahed, rakieta, KAB, MiG-31K)
+          kursem na granicę PL, bliżej niż 100 km — wiarygodność wysoka</td><td class="pts">+3</td></tr>
+        <tr><td></td><td>To samo, wiarygodność średnia lub niska</td><td class="pts">+1,5</td></tr>
+        <tr><td></td><td>Oficjalny alarm powietrzny w przygranicznym obwodzie Ukrainy
+          (wołyński, lwowski, zakarpacki, rówieński)</td><td class="pts">+1</td></tr>
+        <tr><td><b>Media</b></td><td>Relacje lokalnych mediów: syreny, wybuch,
+          naruszenie przestrzeni powietrznej</td><td class="pts">+2</td></tr>
+        <tr><td><b>RCB</b></td><td>Nowy komunikat Rządowego Centrum Bezpieczeństwa</td><td class="pts">+2</td></tr>
+        <tr><td><b>ADS-B</b></td><td>Ruch lotnictwa wojskowego nad regionem ponad
+          dwukrotnie wyższy niż średnia z 7 dni</td><td class="pts">+1</td></tr>
+        <tr><td><b>PAŻP</b></td><td>Nowa aktywna strefa przestrzeni powietrznej
+          (AUP/UUP) nad regionem</td><td class="pts">+1</td></tr>
+        <tr><td><b>Bałtyk</b></td><td>Incydent powietrzny wg mediów Litwy, Łotwy
+          lub Estonii → podlaskie i warmińsko-mazurskie</td><td class="pts">+1</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Trzy zasady, które chronią przed fałszywym alarmem</h3>
+  <div class="cards">
+    <div class="card">
+      <h4>Limit na klasę źródła</h4>
+      <p>Media maks. 2 pkt, RCB 2, ADS-B 1, PAŻP 1. Pięć artykułów o tym samym
+      zdarzeniu to jedno potwierdzenie — nadwyżka jest widoczna w panelu
+      z przekreśloną punktacją.</p>
+    </div>
+    <div class="card">
+      <h4>Dwupoziomowa analiza tekstu</h4>
+      <p>Słowa mocne („zawyły syreny", „alarm powietrzny", „naruszenie przestrzeni")
+      wystarczą same. Słabe („dron", „rakieta") wymagają co najmniej dwóch różnych
+      trafień. Kontekst administracyjny („wymiana syren", „przetarg", „próba syren")
+      wyklucza dopasowanie.</p>
+    </div>
+    <div class="card">
+      <h4>Wygaszanie w czasie</h4>
+      <p>Sygnał traci wagę, im jest starszy, aż wypadnie z okna. Stare zdarzenia
+      nie podtrzymują sztucznie wysokiej punktacji.</p>
+    </div>
+  </div>
+
+  <h3>Przeniesienie do sąsiadów (spillover)</h3>
+  <p>Region z sumą ≥ 2 pkt przekazuje <b>40 %</b> swojego wyniku bezpośrednim
+  sąsiadom — jedna iteracja, bez kaskady. Dzięki temu zdarzenie na ścianie
+  wschodniej podnosi czujność w centrum i na zachodzie, zanim cokolwiek tam doleci.
+  W panelu widać to jako osobny wpis <code>SPILLOVER — Przeniesienie z woj. X</code>,
+  więc nigdy nie mylisz przeniesienia z własnym sygnałem regionu.</p>
+</section>
+
+<section id="granice">
+  <div class="eyebrow">Uczciwie</div>
+  <h2>Czego ta aplikacja nie potrafi</h2>
+  <p class="lead">Znajomość ograniczeń jest częścią instrukcji. Narzędzie, któremu
+  ufa się bezkrytycznie, jest groźniejsze niż jego brak.</p>
+
+  <ul class="plain">
+    <li><b>NEPTUN to agregator OSINT, nie radar.</b> Dane pochodzą ze zgłoszeń
+      i obserwacji, mogą być niedokładne lub spóźnione. Dlatego aplikacja zawsze
+      pokazuje wiarygodność i niepewność pozycji (±km).</li>
+    <li><b>Obiekty widać nad Ukrainą.</b> Po wejściu w polską przestrzeń znikają
+      ze źródła — system służy jako <i>wyprzedzenie</i>, nie śledzenie.</li>
+    <li><b>ADS-B nie widzi lotnictwa nad Ukrainą.</b> Wojsko UA i RU nie nadaje
+      transponderów, przestrzeń jest zamknięta. Widać natomiast maszyny NATO nad
+      Polską, Rumunią i Bałtykiem. To publiczne transpondery maszyn, które
+      <i>chcą</i> być widoczne — nie namierzanie obiektów przeciwnika.</li>
+    <li><b>Ślady lotu z NEPTUN-a są w praktyce puste</b>, dlatego aplikacja buduje
+      trajektorię sama z kolejnych obserwacji pozycji i dolicza przewidywanie
+      z prędkości typowej dla klasy obiektu.</li>
+    <li><b>Baseline ADS-B potrzebuje około tygodnia</b> zbierania próbek —
+      wcześniej ta warstwa nie przydziela punktów.</li>
+    <li><b>Kamery pokazują ziemię, nie niebo.</b> Nie służą do wypatrywania obiektów.</li>
+    <li><b>Źródła RSS mogą się zepsuć</b>, gdy serwisy zmienią strukturę strony.
+      Widać to po czerwonych diodach u góry ekranu.</li>
+  </ul>
+
+  <div class="warn">
+    <strong>Zasada nadrzędna:</strong> jeśli usłyszysz prawdziwe syreny albo
+    dostaniesz alert RCB — kieruj się nimi, nawet gdy Strażnik milczy.
+    Ta aplikacja jest dodatkiem do oficjalnych kanałów, nigdy ich zamiennikiem.
+  </div>
+</section>
+
+<section id="zaawansowane">
+  <div class="eyebrow">Opcjonalnie</div>
+  <h2>Tryb z własnym serwerem</h2>
+  <p class="lead">Domyślnie telefon robi wszystko sam i nie potrzebuje żadnej
+  konfiguracji. Ta sekcja dotyczy tylko osób, które chcą uruchomić własny backend.</p>
+
+  <div class="split">
+    <img src="screens/09_ustawienia_backend.jpg" alt="Rozwinięta sekcja Zaawansowane w ustawieniach z polem adresu serwera">
+    <div class="txt">
+      <h3>Po co serwer</h3>
+      <ul class="plain">
+        <li>Pełny log sygnałów w bazie SQLite</li>
+        <li>Całodobowy baseline ADS-B (telefon liczy go tylko, gdy działa)</li>
+        <li>Warstwa PAŻP i Web Push</li>
+        <li>Powiadomienia przez ntfy i Telegram — najpewniejsze w tle</li>
+        <li>Jeden serwer obsługuje wiele telefonów w domu</li>
+      </ul>
+      <h3>Jak podłączyć</h3>
+      <p>Uruchom backend na komputerze (instrukcja w repozytorium), a w aplikacji
+      wejdź w <kbd>⚙</kbd> → <b>Zaawansowane: wspólny backend</b> i podaj adres,
+      np. <code>http://192.168.1.10:8600</code>. Puste pole = tryb wbudowany.</p>
+      <p>Komputer i telefon muszą być w tej samej sieci lokalnej.</p>
+    </div>
+  </div>
+</section>
+
+<section id="prywatnosc">
+  <div class="eyebrow">Dane</div>
+  <h2>Prywatność</h2>
+  <ul class="plain">
+    <li><b>Bez konta i rejestracji.</b> Aplikacja nie ma logowania.</li>
+    <li><b>Bez telemetrii i analityki.</b> Nie zbiera informacji o tym, jak
+      korzystasz z aplikacji.</li>
+    <li><b>Wybrane województwo zostaje na telefonie</b> (pamięć lokalna aplikacji).</li>
+    <li><b>GPS jest opcjonalny</b> i używany tylko do jednorazowego rozpoznania
+      województwa. Współrzędne nie są nigdzie wysyłane.</li>
+    <li><b>Ruch sieciowy</b> to wyłącznie pobieranie danych z publicznych źródeł
+      (NEPTUN, adsb.lol, RSS mediów, gov.pl/RCB, PAŻP) i kafelków mapy.</li>
+  </ul>
+</section>
+
+</div>
+
+<footer>
+  <div class="wrap fr">
+    <div>
+      <div style="font-weight:700; letter-spacing:.14em; margin-bottom:8px">STRAŻNIK</div>
+      <div>Nieoficjalne źródło dodatkowe. Nie zastępuje syren, RCB ani RSO.</div>
+    </div>
+    <div>
+      <div style="color:var(--tx2); margin-bottom:6px">Dane</div>
+      <div><a href="https://neptun.in.ua" target="_blank" rel="noopener">NEPTUN</a>
+        (agregator OSINT) · adsb.lol · airspace.pansa.pl · gov.pl/RCB<br>
+        media regionalne · kamery worldcam.pl<br>
+        mapa © CARTO, © OpenStreetMap</div>
+    </div>
+    <div>
+      <div style="color:var(--tx2); margin-bottom:6px">Wsparcie</div>
+      <div><a href="https://buycoffee.to/cukierrro" target="_blank" rel="noopener">☕ Postaw kawę</a></div>
+    </div>
+  </div>
+</footer>
+
+<div id="lb"><img alt=""></div>
+<script>
+const lb = document.getElementById("lb"), lbImg = lb.querySelector("img");
+document.querySelectorAll("figure img, .split img").forEach(img => {
+  img.addEventListener("click", () => {
+    lbImg.src = img.src; lbImg.alt = img.alt; lb.classList.add("on");
+    document.body.style.overflow = "hidden";
+  });
+});
+const closeLb = () => { lb.classList.remove("on"); document.body.style.overflow = ""; };
+lb.addEventListener("click", closeLb);
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeLb(); });
+</script>
+</body>
+</html>

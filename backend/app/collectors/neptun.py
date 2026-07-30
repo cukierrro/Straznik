@@ -1,0 +1,179 @@
+"""Warstwa 1 — Neptun (neptun.in.ua): WebSocket real-time + REST fallback.
+
+Protokół WS: koperty {type, ts, data}, type ∈ snapshot|upsert|remove|heartbeat|alerts.
+Warunek API: widoczna atrybucja "Dane: NEPTUN" w UI (jest w frontendzie).
+
+Neptun to agregator crowdsourcingowy/OSINT — nie wojskowy radar. Zawsze
+przekazujemy dalej confidenceLevel i uncertaintyKm, niczego nie "uściślamy".
+"""
+import asyncio
+import json
+import logging
+import time
+
+import httpx
+import websockets
+
+from .. import config, fusion, geo
+
+log = logging.getLogger("neptun")
+
+# stan: aktywne tracki wg id (dla frontendu i CLI)
+tracks: dict[str, dict] = {}
+status = {"connected": False, "mode": "ws", "last_msg": None, "error": None}
+
+# aktywne oficjalne alarmy powietrzne w obwodach UA (z ramek "alerts")
+alert_oblasts: set[str] = set()
+
+
+def _extract_oblast_names(data) -> set[str]:
+    """Ramka alerts: {raions, oblasts} — elementy mogą być stringami lub dict-ami."""
+    out = set()
+    for item in (data or {}).get("oblasts") or []:
+        if isinstance(item, str):
+            out.add(item)
+        elif isinstance(item, dict):
+            for k in ("name", "region", "title", "oblast", "key"):
+                if isinstance(item.get(k), str):
+                    out.add(item[k])
+                    break
+    return out
+
+
+async def _handle_alerts(data):
+    """Alarm w obwodzie graniczącym z PL ⇒ +1 pkt dla przyległych województw
+    (rising edge; oficjalny sygnał ukraińskiej OC, słabszy niż konkretny track)."""
+    global alert_oblasts
+    names = _extract_oblast_names(data)
+    new_active = set()
+    for name in names:
+        for oblast, voivs in config.UA_BORDER_OBLASTS.items():
+            if oblast in name:
+                new_active.add(oblast)
+                if oblast not in alert_oblasts:
+                    hour_key = time.strftime("%Y-%m-%dT%H")
+                    for voiv in voivs:
+                        await fusion.ingest(
+                            source="neptun", event_type="ua_alert_border",
+                            voivodeship=voiv, points=config.POINTS["ua_alert_border"],
+                            title=f"Alarm powietrzny w obwodzie {oblast} (graniczy z woj. {voiv})",
+                            details={"oblast": oblast},
+                            dedup_key=f"neptun_alert:{oblast}:{voiv}:{hour_key}",
+                        )
+    alert_oblasts = new_active
+
+
+def _evaluate(t: dict) -> dict:
+    """Dokleja do tracka ocenę względem granicy PL."""
+    lat, lon = t.get("lat"), t.get("lon")
+    if lat is None or lon is None:
+        return t
+    a = geo.assess_threat(lat, lon, t.get("heading"), config.NEPTUN_HEADING_TOLERANCE)
+    t["pl_assessment"] = a
+    region = t.get("region") or ""
+    t["border_region"] = any(r in region for r in config.NEPTUN_BORDER_REGIONS)
+    return t
+
+
+async def _maybe_signal(t: dict):
+    """Reguła fuzji dla Neptuna: kurs na PL + <100 km ⇒ punkty wg confidence."""
+    a = t.get("pl_assessment")
+    if not a:
+        return
+    ttype = (t.get("type") or "").lower()
+    if ttype not in config.NEPTUN_SCORED_TYPES:
+        return
+    if not (a["toward_pl"] and a["dist_km"] < config.NEPTUN_NEAR_KM):
+        return
+    conf = (t.get("confidenceLevel") or "low").lower()
+    if conf == "high":
+        points, ev = config.POINTS["neptun_high"], "neptun_high_conf"
+    else:
+        points, ev = config.POINTS["neptun_medlow"], "neptun_medlow_conf"
+    title = (f"{t.get('title') or ttype} kursem na granicę PL, {a['dist_km']} km "
+             f"(woj. {a['border_voiv']}, confidence: {conf}, ±{t.get('uncertaintyKm', '?')} km)")
+    # dedup: jeden sygnał na track na poziom confidence
+    await fusion.ingest(
+        source="neptun", event_type=ev, voivodeship=a["border_voiv"], points=points,
+        title=title,
+        details={"track_id": t.get("id"), "type": ttype, "lat": t.get("lat"),
+                 "lon": t.get("lon"), "heading": t.get("heading"),
+                 "confidence": conf, "uncertainty_km": t.get("uncertaintyKm"),
+                 "dist_km": a["dist_km"], "region": t.get("region")},
+        dedup_key=f"neptun:{t.get('id')}:{ev}",
+    )
+
+
+async def _handle_threats(threats: list[dict], replace: bool):
+    if replace:
+        tracks.clear()
+    for t in threats:
+        t = _evaluate(t)
+        tracks[t.get("id")] = t
+        await _maybe_signal(t)
+    if fusion.on_state_change:
+        asyncio.create_task(fusion.on_state_change())
+
+
+async def _ws_loop():
+    backoff = 1
+    while True:
+        try:
+            async with websockets.connect(
+                config.NEPTUN_WS_URL, ping_interval=25, ping_timeout=15, max_size=8 * 2**20,
+            ) as ws:
+                status.update(connected=True, mode="ws", error=None)
+                log.info("Neptun WS połączony")
+                backoff = 1
+                async for raw in ws:
+                    status["last_msg"] = time.time()
+                    try:
+                        env = json.loads(raw)
+                    except json.JSONDecodeError:
+                        continue
+                    etype = env.get("type")
+                    data = env.get("data") or {}
+                    if etype == "snapshot":
+                        await _handle_threats(data.get("threats") or [], replace=True)
+                    elif etype == "upsert":
+                        await _handle_threats([data], replace=False)
+                    elif etype == "remove":
+                        tracks.pop((data or {}).get("id"), None)
+                        if fusion.on_state_change:
+                            asyncio.create_task(fusion.on_state_change())
+                    elif etype == "alerts":
+                        await _handle_alerts(data)
+                    # heartbeat — ignorujemy
+        except Exception as e:
+            status.update(connected=False, error=str(e))
+            log.warning("Neptun WS rozłączony (%s), reconnect za %ss", e, backoff)
+            await _rest_fallback_once()
+            await asyncio.sleep(backoff)
+            backoff = min(backoff * 2, 60)
+
+
+async def _rest_fallback_once():
+    """Jednorazowy snapshot REST, gdy WS leży (nie częściej niż co 5 s wg API)."""
+    try:
+        async with httpx.AsyncClient(timeout=15) as c:
+            r = await c.get(config.NEPTUN_REST_URL)
+            r.raise_for_status()
+            data = r.json()
+            await _handle_threats(data.get("threats") or [], replace=True)
+            status["mode"] = "rest-fallback"
+            status["last_msg"] = time.time()
+    except Exception as e:
+        log.warning("Neptun REST fallback błąd: %s", e)
+
+
+async def run():
+    await _ws_loop()
+
+
+def public_state() -> dict:
+    """Stan dla frontendu: wszystkie aktywne tracki + ocena PL."""
+    return {
+        "status": {k: status[k] for k in ("connected", "mode", "last_msg")},
+        "threats": list(tracks.values()),
+        "alert_oblasts": sorted(alert_oblasts),
+    }

@@ -1,0 +1,8 @@
+fastapi>=0.115
+uvicorn[standard]>=0.30
+httpx>=0.27
+websockets>=13.0
+feedparser>=6.0
+pywebpush>=2.0
+python-dotenv>=1.0
+truststore

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+    <!-- TYLKO buildy debug: zaufaj CA zainstalowanym przez użytkownika.
+         Potrzebne do testów na emulatorze za antywirusem skanującym TLS
+         (np. Avast Web Shield). Build release tego NIE honoruje. -->
+    <debug-overrides>
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </debug-overrides>
+</network-security-config>

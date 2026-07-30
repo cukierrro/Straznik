@@ -1,0 +1,17 @@
+{
+  "appId": "pl.straznik.app",
+  "appName": "Strażnik",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "http",
+    "cleartext": true
+  },
+  "android": {
+    "allowMixedContent": true
+  },
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    }
+  }
+}
