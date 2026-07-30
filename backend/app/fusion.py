@@ -31,6 +31,30 @@ LEVEL_LABELS = {
 }
 
 
+def _cascade_targets(src: str) -> list[tuple[str, int]]:
+    """Województwa osiągalne z `src`, z odległością w krokach sąsiedztwa (BFS).
+
+    Zwraca każdy region raz, po najkrótszej drodze — to ona decyduje o tym,
+    jak mocno słabnie sygnał, zanim tam dotrze.
+    """
+    seen = {src}
+    frontier = [src]
+    out: list[tuple[str, int]] = []
+    for depth in range(1, config.SPILLOVER_MAX_DEPTH + 1):
+        nxt = []
+        for node in frontier:
+            for nb in config.VOIV_NEIGHBORS.get(node, []):
+                if nb in seen:
+                    continue
+                seen.add(nb)
+                nxt.append(nb)
+                out.append((nb, depth))
+        if not nxt:
+            break
+        frontier = nxt
+    return out
+
+
 def _age_weight(ts: str) -> float:
     """1.0 do FUSION_FULL_MIN, potem liniowy zjazd do 0 na końcu okna."""
     try:
@@ -67,20 +91,28 @@ def compute_state() -> dict:
         s = {**s, "counted_points": round(counted, 1), "weight": round(_age_weight(s["ts"]), 2)}
         per_voiv[voiv]["score"] += counted
         per_voiv[voiv]["signals"].append(s)
-    # propagacja: zdarzenie na wschodzie podnosi czujność u sąsiadów
+    # Propagacja kaskadowa: zdarzenie podnosi czujność najpierw u sąsiadów,
+    # potem — słabiej — u ich sąsiadów, aż wkład zejdzie poniżej progu. Region
+    # dostaje wkład po najkrótszej drodze od źródła, więc każde źródło liczy się
+    # tylko raz i kaskada nie może się zapętlić.
     base = {v: st["score"] for v, st in per_voiv.items()}
+    now_iso = datetime.now(timezone.utc).isoformat(timespec="seconds")
     for src, score in base.items():
         if score < config.SPILLOVER_MIN_SOURCE_SCORE:
             continue
-        spill = round(score * config.SPILLOVER_FACTOR, 1)
-        for nb in config.VOIV_NEIGHBORS.get(src, []):
-            per_voiv[nb]["score"] += spill
-            per_voiv[nb]["signals"].append({
-                "id": f"spill-{src}-{nb}", "ts": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        for target, depth in _cascade_targets(src):
+            spill = round(score * config.SPILLOVER_FACTOR ** depth, 1)
+            if spill < config.SPILLOVER_MIN_CONTRIBUTION:
+                continue
+            hop = "sąsiad" if depth == 1 else f"{depth}. krąg"
+            per_voiv[target]["score"] += spill
+            per_voiv[target]["signals"].append({
+                "id": f"spill-{src}-{target}", "ts": now_iso,
                 "source": "spillover", "event_type": "neighbour_spillover",
-                "voivodeship": nb, "points": spill, "counted_points": spill,
-                "title": f"Przeniesienie z woj. {src} ({score} pkt × {config.SPILLOVER_FACTOR})",
-                "details": {"from": src, "from_score": score},
+                "voivodeship": target, "points": spill, "counted_points": spill,
+                "title": (f"Przeniesienie z woj. {src} ({score} pkt × "
+                          f"{config.SPILLOVER_FACTOR}^{depth}, {hop})"),
+                "details": {"from": src, "from_score": score, "depth": depth},
             })
     for v, st in per_voiv.items():
         st["score"] = round(st["score"], 1)

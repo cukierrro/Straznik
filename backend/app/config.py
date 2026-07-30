@@ -84,6 +84,14 @@ SOURCE_CAPS = {"media": 2.0, "rcb": 2.0, "adsb": 1.0, "pansa": 1.0}
 # system ma pozostać przewidywalny i wytłumaczalny.
 SPILLOVER_FACTOR = 0.4
 SPILLOVER_MIN_SOURCE_SCORE = 2.0
+# Propagacja jest kaskadowa: każdy kolejny krąg sąsiedztwa dostaje SPILLOVER_FACTOR
+# tego, co krąg poprzedni (0.4, 0.16, 0.064…), licząc po najkrótszej drodze od
+# źródła. Dzięki temu zdarzenie na ścianie wschodniej daje wyraźny sygnał w
+# centrum i słabszy — ale niezerowy — na zachodzie, zamiast urywać się na
+# bezpośrednich sąsiadach. Wkłady poniżej progu odcinamy, żeby nie zaśmiecać
+# panelu ułamkami bez znaczenia i żeby kaskada miała skończony zasięg.
+SPILLOVER_MIN_CONTRIBUTION = 0.1
+SPILLOVER_MAX_DEPTH = 5
 
 VOIV_NEIGHBORS = {
     "dolnośląskie": ["lubuskie", "wielkopolskie", "opolskie"],
@@ -176,15 +184,50 @@ EXCLUDE_KEYWORDS = [
     "karambol", "zderzenie samochod",
 ]
 
+# Kolejność ma znaczenie: dopasowanie kończy się na pierwszym trafieniu, więc
+# nazwy zawierające się w innych (pomorskie ⊂ kujawsko-pomorskie, zachodnio-)
+# muszą być sprawdzane po tych bardziej szczegółowych. Świadomie pomijamy nazwy
+# kolidujące ze słowami pospolitymi ("piła", "żary", "hel", "brzeg").
 VOIV_KEYWORDS = {
     "lubelskie": ["lubelski", "lublin", "chełm", "zamość", "zamoś", "biała podlask",
                   "hrubiesz", "włodaw", "terespol", "dorohusk", "świdnik", "puław", "kraśnik", "łęczn"],
     "podkarpackie": ["podkarpack", "rzeszów", "rzeszow", "przemyśl", "przemysl", "medyk",
                      "jarosław", "lubaczów", "sanok", "krosno", "mielec", "stalowa wol", "tarnobrzeg"],
-    "podlaskie": ["podlask", "białystok", "bialystok", "suwałk", "suwalk", "augustów",
-                  "sokółk", "kuźnic", "siemiatycz", "hajnówk", "bielsk podlask", "łomż"],
-    "mazowieckie": ["mazowieck", "warszaw", "radom", "siedlc", "płock", "ostrołęk"],
-    "warmińsko-mazurskie": ["warmińsko", "warminsko", "olsztyn", "elbląg", "ełk", "gołdap", "braniew"],
+    # Białystok odmienia się nieregularnie (Białymstoku, Białegostoku), więc
+    # obok mianownika trzymamy rdzenie odmienionych form
+    "podlaskie": ["podlask", "białystok", "bialystok", "białymstok", "białegostok",
+                  "suwałk", "suwalk", "augustów", "sokółk", "kuźnic", "siemiatycz",
+                  "hajnówk", "bielsk podlask", "łomż"],
+    "mazowieckie": ["mazowieck", "warszaw", "radom", "siedlc", "płock", "ostrołęk",
+                    "pruszków", "legionow", "otwock", "żyrardów", "ciechanów"],
+    "warmińsko-mazurskie": ["warmińsko", "warminsko", "olsztyn", "elbląg", "ełk", "gołdap",
+                            "braniew", "ostróda", "iława", "kętrzyn", "giżyck", "mrągow"],
+    "świętokrzyskie": ["świętokrzysk", "swietokrzysk", "kielc", "ostrowiec świętokrzysk",
+                       "starachowic", "skarżysk", "sandomierz", "końskie", "jędrzejów", "busko"],
+    "małopolskie": ["małopolsk", "malopolsk", "kraków", "krakow", "tarnów", "nowy sącz",
+                    "oświęcim", "zakopane", "chrzanów", "olkusz", "bochni", "wadowic"],
+    "łódzkie": ["łódzk", "lodzk", "łódź", "piotrków trybunalsk", "pabianic", "bełchatów",
+                "sieradz", "kutno", "zgierz", "radomsk", "tomaszów mazowieck",
+                "tomaszowie mazowieck", "tomaszowa mazowieck", "skierniewic"],
+    "śląskie": ["śląski", "slaski", "katowic", "częstochow", "gliwic", "sosnowiec", "zabrze",
+                "bytom", "rybnik", "bielsko-biał", "tychy", "chorzów", "dąbrowa górnicz",
+                "jastrzębie", "żywiec"],
+    "kujawsko-pomorskie": ["kujawsko", "bydgoszcz", "toruń", "torun", "włocławek",
+                           "grudziądz", "inowrocław", "brodnic", "świecie",
+                           "chełmn", "chełmż"],
+    "zachodniopomorskie": ["zachodniopomorsk", "szczecin", "koszalin", "kołobrzeg",
+                           "świnoujści", "stargard", "police", "wałcz", "gryfin"],
+    "pomorskie": ["woj. pomorsk", "pomorskiego", "gdańsk", "gdansk", "gdyni", "sopot",
+                  "słupsk", "tczew", "malbork", "wejherow", "kaszub", "kwidzyn",
+                  "starogard gdańsk", "chojnic", "lębork", "puck"],
+    "lubuskie": ["lubusk", "zielona gór", "zielonej gór", "gorzów", "gorzow", "nowa sól",
+                 "świebodzin", "międzyrzecz", "słubic", "sulechów"],
+    "wielkopolskie": ["wielkopolsk", "poznań", "poznan", "kalisz", "konin", "leszno",
+                      "gniezno", "ostrów wielkopolsk", "piła wielkopolsk", "swarzędz", "śrem"],
+    "dolnośląskie": ["dolnośląsk", "dolnoslask", "wrocław", "wroclaw", "legnic", "wałbrzych",
+                     "jelenia gór", "lubin", "głogów", "świdnic", "bolesławiec", "oleśnic"],
+    "opolskie": ["opolsk", "opole", "opolu", "kędzierzyn", "nysa", "kluczbork", "prudnik",
+                 "strzelce opolsk", "namysłów"],
 }
 
 # ── Kanały RSS (per województwo) ─────────────────────────────────────────────
@@ -198,6 +241,10 @@ RSS_FEEDS = [
     ("https://news.google.com/rss/search?q=(syreny%20OR%20alarm%20OR%20dron%20OR%20rakieta)%20podlaskie&hl=pl&gl=PL&ceid=PL:pl", "podlaskie"),
     ("https://news.google.com/rss/search?q=(syreny%20OR%20alarm%20OR%20dron%20OR%20rakieta)%20lubelskie&hl=pl&gl=PL&ceid=PL:pl", "lubelskie"),
     ("https://news.google.com/rss/search?q=(syreny%20OR%20alarm%20OR%20dron%20OR%20rakieta)%20(warmi%C5%84sko-mazurskie%20OR%20mazurskie%20OR%20olsztyn)&hl=pl&gl=PL&ceid=PL:pl", "warmińsko-mazurskie"),
+    # Ogólnopolski nasłuch bez domyślnego regionu — województwo rozpoznaje
+    # VOIV_KEYWORDS. Jedno zapytanie pokrywa pozostałe 12 województw, zamiast
+    # dokładać po osobnym kanale na każde.
+    ("https://news.google.com/rss/search?q=(%22alarm%20powietrzny%22%20OR%20%22zawy%C5%82y%20syreny%22%20OR%20%22naruszenie%20przestrzeni%20powietrznej%22%20OR%20%22zestrzelono%20dron%22)&hl=pl&gl=PL&ceid=PL:pl", None),
 ]
 
 # ── Media bałtyckie (LT/LV/EE) — kontekst dla północno-wschodniej ściany ─────

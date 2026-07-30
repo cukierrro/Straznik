@@ -728,12 +728,25 @@ footer a{color:var(--tx2)}
           chronionych / autostartu w ustawieniach systemowych.</li>
         <li>Usługa wraca sama po restarcie telefonu.</li>
       </ul>
+      <h3>Nasłuch obejmuje całą Polskę</h3>
+      <p>Usługa w tle liczy punkty dla wszystkich 16 województw i stosuje to samo
+      przeniesienie do sąsiadów co mapa. Alarmy dostajesz o <b>swoim regionie</b> —
+      gdyby powiadamiała o każdym z 16, telefon dzwoniłby przy zdarzeniach po
+      drugiej stronie kraju. Zdarzenie na wschodzie i tak Cię dosięgnie, bo
+      podnosi punktację Twojego województwa proporcjonalnie do odległości.</p>
+      <p class="fineprint">Jeśli nie wybierzesz województwa, aplikacja pilnuje
+      czterech przygranicznych: lubelskiego, podkarpackiego, podlaskiego
+      i warmińsko-mazurskiego.</p>
+
       <div class="note" style="margin-top:18px">
         <b>Sprawdzone, nie deklarowane.</b> Wszystkie trzy poziomy zostały
         przetestowane na emulatorze Pixel 7 (Android 14) przy <b>zamkniętej
         aplikacji</b> — z ubitym procesem i wygaszonym ekranem. Czerwony alarm
         wybudził ekran i pokazał się nad blokadą, żółty celowo ekranu nie zapalił,
-        a przycisk potwierdzenia wyciszył syrenę i wibrację.
+        a przycisk potwierdzenia wyciszył syrenę i wibrację. Osobno sprawdzone
+        przeniesienie: alarm 5 pkt w lubelskim wywołał u użytkownika
+        z <b>mazowieckiego</b> powiadomienie „PODWYŻSZONA UWAGA (2.0 pkt)”
+        z rozbiciem „Przeniesienie z woj. lubelskie”.
       </div>
     </div>
     <div>
@@ -793,12 +806,40 @@ footer a{color:var(--tx2)}
     </div>
   </div>
 
-  <h3>Przeniesienie do sąsiadów (spillover)</h3>
-  <p>Region z sumą ≥ 2 pkt przekazuje <b>40 %</b> swojego wyniku bezpośrednim
-  sąsiadom — jedna iteracja, bez kaskady. Dzięki temu zdarzenie na ścianie
-  wschodniej podnosi czujność w centrum i na zachodzie, zanim cokolwiek tam doleci.
-  W panelu widać to jako osobny wpis <code>SPILLOVER — Przeniesienie z woj. X</code>,
-  więc nigdy nie mylisz przeniesienia z własnym sygnałem regionu.</p>
+  <h3>Przeniesienie na resztę kraju — fala słabnąca z odległością</h3>
+  <p>Region z sumą ≥ 2 pkt dzieli się swoim wynikiem z sąsiadami, ci ze swoimi
+  sąsiadami i tak dalej. Każdy kolejny krąg dostaje <b>40 % tego, co poprzedni</b>,
+  licząc po najkrótszej drodze od zdarzenia. Dzięki temu zagrożenie na ścianie
+  wschodniej podnosi czujność w całym kraju, ale <b>proporcjonalnie do odległości</b> —
+  centrum mocno, zachód symbolicznie.</p>
+
+  <p>Tak rozkłada się alarm <b>5 pkt w województwie lubelskim</b>:</p>
+  <div class="tw">
+    <table>
+      <thead><tr><th>Krąg</th><th>Województwa</th><th>Wkład</th></tr></thead>
+      <tbody>
+        <tr><td><b>źródło</b></td><td>lubelskie</td><td class="pts">5,0</td></tr>
+        <tr><td><b>1. sąsiedzi</b></td><td>podkarpackie, świętokrzyskie, mazowieckie, podlaskie</td>
+          <td class="pts">+2,0</td></tr>
+        <tr><td><b>2. krąg</b></td><td>małopolskie, łódzkie, śląskie, warmińsko-mazurskie, kujawsko-pomorskie</td>
+          <td class="pts">+0,8</td></tr>
+        <tr><td><b>3. krąg</b></td><td>wielkopolskie, opolskie, pomorskie</td>
+          <td class="pts">+0,3</td></tr>
+        <tr><td><b>4. krąg</b></td><td>dolnośląskie, lubuskie, zachodniopomorskie</td>
+          <td class="pts">+0,1</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>Pierwszy krąg przekracza próg 2 pkt, więc sąsiedzi zapalają się na żółto
+  i dostają powiadomienie. Dalsze kręgi dostają punkty widoczne na mapie i w panelu,
+  ale bez alarmu — bo dron nad Chełmem realnie nie zagraża Wrocławiowi. Gdy jednak
+  zdarzeń jest kilka naraz, ich wkłady się sumują i próg może zostać przekroczony
+  także dalej na zachód.</p>
+
+  <p>W panelu każdy taki wkład jest osobnym wpisem
+  <code>SPILLOVER — Przeniesienie z woj. X (… pkt, 2. krąg)</code>, więc zawsze
+  wiadomo, skąd wziął się sygnał i jak daleko podróżował.</p>
 </section>
 
 <section id="granice">

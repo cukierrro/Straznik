@@ -23,6 +23,32 @@ class Fusion {
     static final double TH_ELEVATED = 2.0, TH_HIGH = 4.0;
     static final long COOLDOWN_MS = 10 * 60 * 1000L;
 
+    /* Propagacja kaskadowa — te same reguły co w backendzie i engine.js:
+       każdy kolejny krąg sąsiedztwa dostaje 40% tego, co poprzedni. */
+    static final double SPILLOVER_FACTOR = 0.4, SPILLOVER_MIN = 2.0;
+    static final double SPILLOVER_MIN_CONTRIB = 0.1;
+    static final int SPILLOVER_MAX_DEPTH = 5;
+
+    /** Sąsiedztwo po indeksach w Sources.VOIVS (kopia VOIV_NEIGHBORS z backendu). */
+    private static final int[][] NEIGHBORS = {
+        /* 0  lubelskie          */ {1, 4, 3, 2},
+        /* 1  podkarpackie       */ {5, 4, 0},
+        /* 2  podlaskie          */ {6, 3, 0},
+        /* 3  mazowieckie        */ {6, 2, 0, 4, 7, 9},
+        /* 4  świętokrzyskie     */ {7, 3, 0, 1, 5, 8},
+        /* 5  małopolskie        */ {8, 4, 1},
+        /* 6  warmińsko-mazurskie*/ {10, 9, 3, 2},
+        /* 7  łódzkie            */ {3, 9, 13, 15, 8, 4},
+        /* 8  śląskie            */ {15, 7, 4, 5},
+        /* 9  kujawsko-pomorskie */ {10, 6, 3, 7, 13},
+        /* 10 pomorskie          */ {11, 13, 9, 6},
+        /* 11 zachodniopomorskie */ {10, 13, 12},
+        /* 12 lubuskie           */ {11, 13, 14},
+        /* 13 wielkopolskie      */ {11, 10, 9, 7, 15, 14, 12},
+        /* 14 dolnośląskie       */ {12, 13, 15},
+        /* 15 opolskie           */ {14, 13, 7, 8},
+    };
+
     private static final String PREFS = "straznik_bg";
     private static final String KEY_SIGNALS = "signals";
     private static final String KEY_SEEN = "seen";
@@ -119,8 +145,23 @@ class Fusion {
             }
         } catch (Exception ignored) {}
 
-        // propagacja do sąsiadów pominięta w tle — usługa pilnuje wyłącznie
-        // województw przygranicznych, dla nich liczy się sygnał własny
+        // Propagacja kaskadowa: zdarzenie na wschodzie podnosi czujność najpierw
+        // u sąsiadów, potem słabiej w kolejnych kręgach, aż po ścianę zachodnią.
+        double[] base = r.scores.clone();
+        for (int src = 0; src < base.length; src++) {
+            if (base[src] < SPILLOVER_MIN) continue;
+            int[] depth = cascadeDepths(src);
+            for (int t = 0; t < depth.length; t++) {
+                if (depth[t] <= 0) continue;
+                double spill = Math.round(base[src] * Math.pow(SPILLOVER_FACTOR, depth[t]) * 10) / 10.0;
+                if (spill < SPILLOVER_MIN_CONTRIB) continue;
+                r.scores[t] += spill;
+                r.reasons[t].add("• Przeniesienie z woj. " + Sources.VOIVS[src]
+                    + " (" + base[src] + " pkt, "
+                    + (depth[t] == 1 ? "sąsiad" : depth[t] + ". krąg") + ")");
+            }
+        }
+
         for (int i = 0; i < r.scores.length; i++) {
             r.scores[i] = Math.round(r.scores[i] * 10) / 10.0;
             r.levels[i] = r.scores[i] >= TH_HIGH ? "high"
@@ -129,9 +170,61 @@ class Fusion {
         return r;
     }
 
+    /**
+     * Odległość w krokach sąsiedztwa od `src` do każdego województwa (BFS).
+     * 0 oznacza samo źródło albo brak połączenia — liczy się najkrótsza droga,
+     * bo to ona decyduje, jak mocno sygnał osłabnie, zanim tam dotrze.
+     */
+    private static int[] cascadeDepths(int src) {
+        int[] depth = new int[NEIGHBORS.length];
+        boolean[] seen = new boolean[NEIGHBORS.length];
+        seen[src] = true;
+        List<Integer> frontier = new ArrayList<>();
+        frontier.add(src);
+        for (int d = 1; d <= SPILLOVER_MAX_DEPTH && !frontier.isEmpty(); d++) {
+            List<Integer> next = new ArrayList<>();
+            for (int node : frontier)
+                for (int nb : NEIGHBORS[node]) {
+                    if (seen[nb]) continue;
+                    seen[nb] = true;
+                    depth[nb] = d;
+                    next.add(nb);
+                }
+            frontier = next;
+        }
+        return depth;
+    }
+
+    private static final String KEY_HOME = "home_voiv";
+    /** Bez wybranego regionu pilnujemy ściany wschodniej — tam ryzyko jest największe. */
+    private static final int[] DEFAULT_WATCH = {0, 1, 2, 6};
+
+    static void setHomeVoivodeship(Context c, String name) {
+        prefs(c).edit().putString(KEY_HOME, name == null ? "" : name).apply();
+    }
+
+    /**
+     * Czy alarmować o tym województwie.
+     *
+     * Odkąd fuzja obejmuje całą Polskę, powiadamianie o każdym z 16 regionów
+     * zasypałoby telefon alertami o zdarzeniach po drugiej stronie kraju.
+     * Alarmujemy więc o regionie użytkownika — a że kaskada dolicza mu wkład
+     * z sąsiedztwa, zdarzenie na wschodzie i tak podniesie jego poziom.
+     */
+    private static boolean watched(Context c, int voiv) {
+        String home = prefs(c).getString(KEY_HOME, "");
+        if (home != null && !home.isEmpty()) {
+            for (int i = 0; i < Sources.VOIVS.length; i++)
+                if (Sources.VOIVS[i].equalsIgnoreCase(home)) return i == voiv;
+        }
+        for (int d : DEFAULT_WATCH) if (d == voiv) return true;
+        return false;
+    }
+
     /** Zwraca true, gdy poziom właśnie wzrósł i minął cooldown (czyli: powiadom). */
     static boolean shouldNotify(Context c, int voiv, String level) {
         if ("none".equals(level)) { setLevel(c, voiv, level); return false; }
+        if (!watched(c, voiv)) { setLevel(c, voiv, level); return false; }
         SharedPreferences p = prefs(c);
         String prev = levelOf(p.getString(KEY_LEVEL, ""), voiv);
         int prevRank = rank(prev), newRank = rank(level);

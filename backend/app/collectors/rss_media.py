@@ -9,6 +9,7 @@ import calendar
 import hashlib
 import logging
 import time
+import unicodedata
 
 import feedparser
 import httpx
@@ -32,12 +33,30 @@ def _match_keywords(text: str) -> list[str]:
                           config.EXCLUDE_KEYWORDS)
 
 
+def _fold(s: str) -> str:
+    """Małe litery bez znaków diakrytycznych — część źródeł pisze „Chelm", nie „Chełm"."""
+    s = unicodedata.normalize("NFD", s.lower())
+    s = "".join(c for c in s if not unicodedata.combining(c))
+    # ł/Ł nie rozkładają się w NFD, trzeba je podmienić osobno
+    return s.replace("ł", "l").replace("Ł", "l")
+
+
 def _match_voiv(text: str) -> str | None:
-    tl = text.lower()
+    """Województwo po najdłuższym pasującym haśle.
+
+    Nie pierwsze trafienie, bo nazwy się zawierają: "Chełmno" (kujawsko-pomorskie)
+    zawiera "chełm" (lubelskie), "Radomsko" (łódzkie) zawiera "radom"
+    (mazowieckie), "Tomaszów Mazowiecki" zawiera "mazowieck". Dłuższe hasło jest
+    bardziej szczegółowe, więc wygrywa.
+    """
+    tl = _fold(text)
+    best_voiv, best_len = None, 0
     for voiv, keys in config.VOIV_KEYWORDS.items():
-        if any(k in tl for k in keys):
-            return voiv
-    return None
+        for k in keys:
+            kf = _fold(k)
+            if kf in tl and len(kf) > best_len:
+                best_voiv, best_len = voiv, len(kf)
+    return best_voiv
 
 
 async def _check_feed(client: httpx.AsyncClient, url: str, default_voiv: str | None):

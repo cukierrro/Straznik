@@ -1224,6 +1224,8 @@ document.getElementById("btn-gps").onclick = () => {
 document.getElementById("set-save").onclick = () => {
   const v = document.getElementById("set-voiv").value;
   if (v) localStorage.setItem("straznik_voiv", v); else localStorage.removeItem("straznik_voiv");
+  // usługa w tle nie widzi localStorage, a musi wiedzieć, o którym regionie alarmować
+  BG()?.setHomeVoivodeship({ voivodeship: v || "" });
   const api = document.getElementById("set-api").value.trim();
   const apiChanged = api !== (localStorage.getItem("straznik_api") || "");
   if (api) localStorage.setItem("straznik_api", api); else localStorage.removeItem("straznik_api");

@@ -56,6 +56,18 @@ public class BackgroundPlugin extends Plugin {
         call.resolve(ret);
     }
 
+    /**
+     * Województwo wybrane w ustawieniach. Usługa w tle nie ma dostępu do
+     * localStorage WebView, a musi wiedzieć, o którym regionie alarmować —
+     * bez tego przy 16 województwach telefon dostawałby alerty o zdarzeniach
+     * po drugiej stronie kraju.
+     */
+    @PluginMethod
+    public void setHomeVoivodeship(PluginCall call) {
+        Fusion.setHomeVoivodeship(getContext(), call.getString("voivodeship"));
+        call.resolve();
+    }
+
     @PluginMethod
     public void status(PluginCall call) {
         Context c = getContext();

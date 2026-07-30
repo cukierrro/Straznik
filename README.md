@@ -51,10 +51,13 @@ wyklucza dopasowanie. Jedna klasa źródła ma limit wkładu do sumy
 to wciąż jedno potwierdzenie. Nadmiarowe sygnały są widoczne w UI
 z przekreśloną punktacją.
 
-Region z sumą ≥ 2 pkt przekazuje **40 %** swojego wyniku bezpośrednim sąsiadom
-(jedna iteracja, bez rekurencji), więc zdarzenie na wschodzie podnosi czujność
-w centrum i na zachodzie, zanim cokolwiek tam doleci. Wkład jest widoczny
-w UI jako osobny sygnał „Przeniesienie z woj. X".
+Propagacja jest **kaskadowa**: region z sumą ≥ 2 pkt przekazuje 40 % wyniku
+sąsiadom, ci 40 % tego swoim sąsiadom i tak dalej, licząc po najkrótszej drodze
+(BFS) aż wkład spadnie poniżej 0,1 pkt. Alarm 5 pkt w lubelskim rozkłada się więc
+tak: sąsiedzi +2,0 (żółty próg), drugi krąg +0,8, trzeci +0,3, czwarty +0,1.
+Zagrożenie na wschodzie podnosi czujność w całym kraju, ale proporcjonalnie do
+odległości. Każdy wkład jest osobnym sygnałem „Przeniesienie z woj. X (… , 2. krąg)",
+więc nigdy nie miesza się z własnym sygnałem regionu.
 
 ## Architektura
 
@@ -178,10 +181,25 @@ Dzięki temu tło brzmi identycznie jak pierwszy plan. Po zmianie brzmienia
 w `app.js` uruchom skrypt ponownie. Kanały powiadomień mają sufiks wersji
 (`-v2`), bo raz utworzony kanał ignoruje późniejsze zmiany dźwięku.
 
+**Zasięg nasłuchu w tle:** wszystkie 16 województw, z tą samą kaskadą co mapa.
+Powiadomienia dotyczą regionu wybranego przez użytkownika (`Fusion.setHomeVoivodeship`,
+ustawiane z JS przy zapisie ustawień) — bez tego filtra telefon dostawałby alerty
+o zdarzeniach po drugiej stronie kraju. Bez wybranego regionu usługa pilnuje
+czterech przygranicznych. Rozpoznawanie województwa z tekstu obejmuje wszystkie 16
+(`VOIV_KEYWORDS` / `VOIV_KEYS`), a jeden ogólnopolski kanał Google News pokrywa
+regiony bez własnego feedu.
+
+Tablica sąsiedztwa w `Fusion.java` jest po indeksach `Sources.VOIVS` — przy zmianie
+kolejności województw trzeba ją przeliczyć. Zgodność z `config.VOIV_NEIGHBORS`
+i symetrię sąsiedztwa warto sprawdzić skryptem porównującym oba źródła.
+
 Zweryfikowane na emulatorze Pixel 7 (Android 14) przy ubitym procesie aplikacji
 i wygaszonym ekranie: żółty poziom wystawia powiadomienie i **nie** budzi ekranu,
 czerwony budzi ekran (`Asleep → Awake`) i wypycha `AlarmActivity` na wierzch
 (`BAL_ALLOW_PENDING_INTENT`), a potwierdzenie zatrzymuje dźwięk i wibrację.
+Kaskada sprawdzona osobno: zdarzenie 5 pkt w lubelskim wywołało u użytkownika
+z ustawionym mazowieckim powiadomienie „PODWYŻSZONA UWAGA: woj. mazowieckie
+(2.0 pkt)" z rozbiciem „Przeniesienie z woj. lubelskie (5.0 pkt, sąsiad)".
 
 ## Ograniczenia (świadome)
 
@@ -207,6 +225,12 @@ czerwony budzi ekran (`Asleep → Awake`) i wypycha `AlarmActivity` na wierzch
 - Baseline ADS-B potrzebuje ~tygodnia zbierania próbek, wcześniej warstwa nie punktuje.
 - RSS/scraping może się zepsuć, gdy serwisy zmienią strukturę — status w LED-ach
   i `/api/health`.
+- **Rozpoznawanie województwa z nagłówka jest heurystyczne.** Opiera się na nazwach
+  miast i regionów, więc pomija nazwy kolidujące ze słowami pospolitymi („piła",
+  „żary", „hel", „brzeg"), a przy zbieżnościach („Chełm" i „Chełmno", „Radom"
+  i „Radomsko") wygrywa pierwsze dopasowanie w kolejności listy. Regiony bez
+  własnego kanału RSS pokrywa jedno ogólnopolskie zapytanie Google News, więc
+  docierają do nich tylko mocne frazy („alarm powietrzny", „zawyły syreny").
 
 ## Licencja
 

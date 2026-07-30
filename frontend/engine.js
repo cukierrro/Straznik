@@ -18,7 +18,12 @@ const SOURCE_CAPS = { media: 2, rcb: 2, adsb: 1, pansa: 1 };
 const VOIVODESHIPS = ["lubelskie","podkarpackie","podlaskie","mazowieckie","świętokrzyskie",
   "małopolskie","warmińsko-mazurskie","łódzkie","śląskie","kujawsko-pomorskie","pomorskie",
   "zachodniopomorskie","lubuskie","wielkopolskie","dolnośląskie","opolskie"];
+/* Propagacja kaskadowa (lustrzana kopia backendu): każdy kolejny krąg sąsiedztwa
+   dostaje SPILLOVER_FACTOR tego, co poprzedni — 0.4, 0.16, 0.064… — licząc po
+   najkrótszej drodze od źródła. Zdarzenie na wschodzie daje więc mocny sygnał
+   w centrum i słabszy, ale niezerowy, na zachodzie. */
 const SPILLOVER_FACTOR = 0.4, SPILLOVER_MIN = 2.0;
+const SPILLOVER_MIN_CONTRIB = 0.1, SPILLOVER_MAX_DEPTH = 5;
 const NEIGHBORS = {
   "dolnośląskie":["lubuskie","wielkopolskie","opolskie"],
   "kujawsko-pomorskie":["pomorskie","warmińsko-mazurskie","mazowieckie","łódzkie","wielkopolskie"],
@@ -81,15 +86,45 @@ const B_EVENT = ["violat","intercept","shot down","scrambl","incursion","crash",
   "struck","entered","closed","alert","debris"];
 const B_EXCLUDE = ["exercise","drill","training","anniversary","drone show","festival",
   "pratyb","mācīb","õppus","delivery drone","drone racing","photo drone"];
+/* Kolejność ma znaczenie: dopasowanie kończy się na pierwszym trafieniu, więc
+   nazwy zawierające się w innych (pomorskie ⊂ kujawsko-pomorskie) idą później.
+   Świadomie pomijamy nazwy kolidujące ze słowami pospolitymi ("piła", "żary",
+   "hel", "brzeg"). Lustrzana kopia VOIV_KEYWORDS z backendu. */
 const VOIV_KEYWORDS = {
   "lubelskie":["lubelski","lublin","chełm","zamość","zamoś","biała podlask","hrubiesz",
     "włodaw","terespol","dorohusk","świdnik","puław","kraśnik","łęczn"],
   "podkarpackie":["podkarpack","rzeszów","rzeszow","przemyśl","przemysl","medyk","jarosław",
     "lubaczów","sanok","krosno","mielec","stalowa wol","tarnobrzeg"],
-  "podlaskie":["podlask","białystok","bialystok","suwałk","suwalk","augustów","sokółk",
-    "kuźnic","siemiatycz","hajnówk","bielsk podlask","łomż"],
-  "mazowieckie":["mazowieck","warszaw","radom","siedlc","płock","ostrołęk"],
-  "warmińsko-mazurskie":["warmińsko","warminsko","olsztyn","elbląg","ełk","gołdap","braniew"]};
+  // Białystok odmienia się nieregularnie (Białymstoku, Białegostoku)
+  "podlaskie":["podlask","białystok","bialystok","białymstok","białegostok","suwałk",
+    "suwalk","augustów","sokółk","kuźnic","siemiatycz","hajnówk","bielsk podlask","łomż"],
+  "mazowieckie":["mazowieck","warszaw","radom","siedlc","płock","ostrołęk","pruszków",
+    "legionow","otwock","żyrardów","ciechanów"],
+  "warmińsko-mazurskie":["warmińsko","warminsko","olsztyn","elbląg","ełk","gołdap","braniew",
+    "ostróda","iława","kętrzyn","giżyck","mrągow"],
+  "świętokrzyskie":["świętokrzysk","swietokrzysk","kielc","ostrowiec świętokrzysk",
+    "starachowic","skarżysk","sandomierz","końskie","jędrzejów","busko"],
+  "małopolskie":["małopolsk","malopolsk","kraków","krakow","tarnów","nowy sącz","oświęcim",
+    "zakopane","chrzanów","olkusz","bochni","wadowic"],
+  "łódzkie":["łódzk","lodzk","łódź","piotrków trybunalsk","pabianic","bełchatów","sieradz",
+    "kutno","zgierz","radomsk","tomaszów mazowieck","tomaszowie mazowieck",
+    "tomaszowa mazowieck","skierniewic"],
+  "śląskie":["śląski","slaski","katowic","częstochow","gliwic","sosnowiec","zabrze","bytom",
+    "rybnik","bielsko-biał","tychy","chorzów","dąbrowa górnicz","jastrzębie","żywiec"],
+  "kujawsko-pomorskie":["kujawsko","bydgoszcz","toruń","torun","włocławek","grudziądz",
+    "inowrocław","brodnic","świecie","chełmn","chełmż"],
+  "zachodniopomorskie":["zachodniopomorsk","szczecin","koszalin","kołobrzeg","świnoujści",
+    "stargard","police","wałcz","gryfin"],
+  "pomorskie":["woj. pomorsk","pomorskiego","gdańsk","gdansk","gdyni","sopot","słupsk",
+    "tczew","malbork","wejherow","kaszub","kwidzyn","starogard gdańsk","chojnic","lębork","puck"],
+  "lubuskie":["lubusk","zielona gór","zielonej gór","gorzów","gorzow","nowa sól",
+    "świebodzin","międzyrzecz","słubic","sulechów"],
+  "wielkopolskie":["wielkopolsk","poznań","poznan","kalisz","konin","leszno","gniezno",
+    "ostrów wielkopolsk","piła wielkopolsk","swarzędz","śrem"],
+  "dolnośląskie":["dolnośląsk","dolnoslask","wrocław","wroclaw","legnic","wałbrzych",
+    "jelenia gór","lubin","głogów","świdnic","bolesławiec","oleśnic"],
+  "opolskie":["opolsk","opole","opolu","kędzierzyn","nysa","kluczbork","prudnik",
+    "strzelce opolsk","namysłów"]};
 const RSS_FEEDS = [
   ["https://www.lublin112.pl/feed/","lubelskie"],
   ["https://radio.lublin.pl/feed/","lubelskie"],
@@ -97,7 +132,11 @@ const RSS_FEEDS = [
   ["https://news.google.com/rss/search?q=(syreny%20OR%20alarm%20OR%20dron%20OR%20rakieta)%20podkarpackie&hl=pl&gl=PL&ceid=PL:pl","podkarpackie"],
   ["https://news.google.com/rss/search?q=(syreny%20OR%20alarm%20OR%20dron%20OR%20rakieta)%20podlaskie&hl=pl&gl=PL&ceid=PL:pl","podlaskie"],
   ["https://news.google.com/rss/search?q=(syreny%20OR%20alarm%20OR%20dron%20OR%20rakieta)%20lubelskie&hl=pl&gl=PL&ceid=PL:pl","lubelskie"],
-  ["https://news.google.com/rss/search?q=(syreny%20OR%20alarm%20OR%20dron%20OR%20rakieta)%20(warmi%C5%84sko-mazurskie%20OR%20mazurskie%20OR%20olsztyn)&hl=pl&gl=PL&ceid=PL:pl","warmińsko-mazurskie"]];
+  ["https://news.google.com/rss/search?q=(syreny%20OR%20alarm%20OR%20dron%20OR%20rakieta)%20(warmi%C5%84sko-mazurskie%20OR%20mazurskie%20OR%20olsztyn)&hl=pl&gl=PL&ceid=PL:pl","warmińsko-mazurskie"],
+  // Ogólnopolski nasłuch bez domyślnego regionu — województwo rozpoznaje
+  // VOIV_KEYWORDS. Jedno zapytanie pokrywa pozostałe 12 województw, zamiast
+  // dokładać po osobnym kanale na każde.
+  ["https://news.google.com/rss/search?q=(%22alarm%20powietrzny%22%20OR%20%22zawy%C5%82y%20syreny%22%20OR%20%22naruszenie%20przestrzeni%20powietrznej%22%20OR%20%22zestrzelono%20dron%22)&hl=pl&gl=PL&ceid=PL:pl", null]];
 const BALTIC_FEEDS = [["https://news.err.ee/rss","EE"],["https://eng.lsm.lv/rss/","LV"],
   ["https://www.delfi.lt/rss/feeds/daily.xml","LT"]];
 const BALTIC_TARGETS = ["podlaskie","warmińsko-mazurskie"];
@@ -175,11 +214,25 @@ function matchKw(text, critical, air, event, exclude) {
   const a = air.filter(k => tl.includes(k)), e = event.filter(k => tl.includes(k));
   return a.length && e.length ? a.slice(0, 2).concat(e.slice(0, 2)) : [];
 }
+/* Małe litery bez znaków diakrytycznych — ł nie rozkłada się w NFD, stąd osobna
+   podmiana. Część źródeł pisze „Chelm" zamiast „Chełm". */
+const fold = (s) => s.toLowerCase().normalize("NFD")
+  .replace(/[̀-ͯ]/g, "").replace(/ł/g, "l");
+
 const matchVoiv = (text) => {
   const tl = text.toLowerCase();
+  /* Najdłuższe pasujące hasło, nie pierwsze: nazwy się zawierają — "Chełmno"
+     (kujawsko-pomorskie) zawiera "chełm" (lubelskie), "Radomsko" (łódzkie)
+     zawiera "radom" (mazowieckie). Dłuższe hasło jest bardziej szczegółowe.
+     Porównujemy bez znaków diakrytycznych, bo część źródeł pisze bez ogonków. */
+  const folded = fold(tl);
+  let bestVoiv = null, bestLen = 0;
   for (const [v, keys] of Object.entries(VOIV_KEYWORDS))
-    if (keys.some(k => tl.includes(k))) return v;
-  return null;
+    for (const k of keys) {
+      const kf = fold(k);
+      if (kf.length > bestLen && folded.includes(kf)) { bestVoiv = v; bestLen = kf.length; }
+    }
+  return bestVoiv;
 };
 
 /* ── fuzja ───────────────────────────────────────────────────────────────── */
@@ -191,6 +244,26 @@ function addSignal(source, eventType, voiv, points, title, details, key) {
   persist();
   reevaluate();
   return true;
+}
+
+/* Województwa osiągalne z `src` wraz z odległością w krokach sąsiedztwa (BFS).
+   Każde trafia na listę raz, po najkrótszej drodze — to ona decyduje o tym,
+   jak bardzo sygnał osłabnie, zanim tam dotrze. */
+function cascadeTargets(src) {
+  const seen = new Set([src]);
+  let frontier = [src];
+  const out = [];
+  for (let depth = 1; depth <= SPILLOVER_MAX_DEPTH; depth++) {
+    const next = [];
+    for (const node of frontier)
+      for (const nb of NEIGHBORS[node] || []) {
+        if (seen.has(nb)) continue;
+        seen.add(nb); next.push(nb); out.push([nb, depth]);
+      }
+    if (!next.length) break;
+    frontier = next;
+  }
+  return out;
 }
 
 function computeState() {
@@ -214,18 +287,20 @@ function computeState() {
     per[s.voivodeship].signals.push({ ...s, counted_points: Math.round(counted*10)/10,
       weight: Math.round(w * 100) / 100 });
   }
-  // propagacja do sąsiadów (jedna iteracja, jak w backendzie)
+  // propagacja kaskadowa do kolejnych kręgów sąsiedztwa (jak w backendzie)
   const base = {}; for (const [v, st] of Object.entries(per)) base[v] = st.score;
   for (const [src, score] of Object.entries(base)) {
     if (score < SPILLOVER_MIN) continue;
-    const spill = Math.round(score * SPILLOVER_FACTOR * 10) / 10;
-    for (const nb of NEIGHBORS[src] || []) {
+    for (const [nb, depth] of cascadeTargets(src)) {
+      const spill = Math.round(score * Math.pow(SPILLOVER_FACTOR, depth) * 10) / 10;
+      if (spill < SPILLOVER_MIN_CONTRIB) continue;
+      const hop = depth === 1 ? "sąsiad" : `${depth}. krąg`;
       per[nb].score += spill;
       per[nb].signals.push({ t: Date.now(), ts: new Date().toISOString(),
         source: "spillover", event_type: "neighbour_spillover", voivodeship: nb,
         points: spill, counted_points: spill,
-        title: `Przeniesienie z woj. ${src} (${score} pkt × ${SPILLOVER_FACTOR})`,
-        details: { from: src, from_score: score } });
+        title: `Przeniesienie z woj. ${src} (${score} pkt × ${SPILLOVER_FACTOR}^${depth}, ${hop})`,
+        details: { from: src, from_score: score, depth } });
     }
   }
   for (const st of Object.values(per)) {
