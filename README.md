@@ -10,7 +10,7 @@ Fuzja kilku niezależnych sygnałów dla Polski, z priorytetem dla ściany wscho
 Żaden pojedynczy sygnał nie jest rozstrzygający — dopiero kombinacja podnosi
 wiarygodność ostrzeżenia.
 
-### 📖 [**Pełna instrukcja użytkownika ze zrzutami ekranu →**](https://cukierrro.github.io/straznik/)
+### 📖 [**Pełna instrukcja użytkownika ze zrzutami ekranu →**](https://cukierrro.github.io/Straznik/)
 
 [⬇ Pobierz APK](Straznik.apk) · [☕ Postaw kawę](https://buycoffee.to/cukierrro)
 
