@@ -92,10 +92,17 @@ public class BackgroundPlugin extends Plugin {
         return nm != null && nm.canUseFullScreenIntent();
     }
 
+    /**
+     * Otwiera systemowy ekran zgody na alarm pełnoekranowy.
+     *
+     * Celowo BEZ sprawdzania canUseFullScreenIntent() — ta metoda przy domyślnym
+     * trybie uprawnienia zwraca „dozwolone”, choć system i tak odrzuca alarm.
+     * Wcześniejsze wyjście na jej podstawie sprawiało, że przycisk nie robił nic.
+     * Użytkownik musi móc zajrzeć w ustawienia i zobaczyć stan przełącznika.
+     */
     @PluginMethod
     public void requestFullScreenPermission(PluginCall call) {
         Context c = getContext();
-        if (fullScreenAllowed(c)) { call.resolve(); return; }
         try {
             Intent i = new Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT,
                 Uri.parse("package:" + c.getPackageName()));

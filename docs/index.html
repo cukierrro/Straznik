@@ -241,7 +241,7 @@ footer a{color:var(--tx2)}
       gdy suma przekroczy próg — osobno dla każdego województwa.</p>
       <div class="badges">
         <span class="badge">Android 7.0+</span>
-        <span class="badge">4,7 MB</span>
+        <span class="badge">3,9 MB</span>
         <span class="badge">bez konta</span>
         <span class="badge">bez reklam</span>
         <span class="badge">offline-first UI</span>
@@ -316,6 +316,12 @@ footer a{color:var(--tx2)}
       <p>Przy pierwszej takiej instalacji system pokaże ostrzeżenie i przycisk
       „Ustawienia". Włącz zgodę dla przeglądarki lub menedżera plików, wróć i
       potwierdź instalację.</p></li>
+    <li><b>Przejdź przez ostrzeżenie Play Protect</b>
+      <p>Google pokaże komunikat, że <b>nie zna aplikacji tego dewelopera</b>.
+      To normalne dla każdej aplikacji spoza sklepu Play — nie oznacza, że plik
+      jest zainfekowany, tylko że Google nie widziało go wcześniej u wielu
+      użytkowników. Dotknij <b>„Więcej szczegółów”</b>, a potem
+      <b>„Zainstaluj mimo to”</b>.</p></li>
     <li><b>Uruchom Strażnika</b>
       <p>Ikona tarczy z sygnałem radarowym pojawi się na liście aplikacji.</p></li>
     <li><b>Zezwól na powiadomienia</b>
@@ -346,6 +352,14 @@ footer a{color:var(--tx2)}
     u góry ekranu to diody stanu źródeł danych. Wszystkie zielone = wszystkie
     źródła odpowiadają. Czerwona kropka oznacza, że dane źródło chwilowo
     nie odpowiada — pozostałe działają dalej.
+  </div>
+
+  <div class="note">
+    <b>Aktualizacja z wersji starszej niż 1.3.0.</b> Od tej wersji aplikacja jest
+    podpisana własnym kluczem autora zamiast klucza deweloperskiego. Android
+    traktuje inny podpis jak inną aplikację, więc odmówi nadpisania — trzeba
+    <b>najpierw odinstalować starą wersję</b>, a potem zainstalować nową.
+    To jednorazowe; kolejne aktualizacje zainstalują się już normalnie.
   </div>
 </section>
 
@@ -387,6 +401,10 @@ footer a{color:var(--tx2)}
           potrafią ubijać usługi w tle. To wyjątek od optymalizacji.</li>
         <li><kbd>🔔 Ustawienia powiadomień</kbd> — skrót do systemowych ustawień
           kanałów, gdzie ustawisz dźwięk i priorytet.</li>
+        <li><kbd>🚨 Sprawdź zgodę na alarm pełnoekranowy</kbd> — otwiera systemowy
+          przełącznik „Powiadomienia pełnoekranowe”. <b>Sprawdź go osobiście</b>:
+          Android potrafi zgłaszać tę zgodę jako przyznaną, choć alarm i tak
+          blokuje, więc aplikacja nie może na tym polegać.</li>
       </ul>
       <h3>Sprawdź dźwięki alarmu</h3>
       <p>Trzy przyciski testowe odtwarzają dokładnie to, co usłyszysz przy realnym
@@ -669,9 +687,13 @@ footer a{color:var(--tx2)}
     <strong>Android 14 i nowszy: wymagana jedna zgoda.</strong> System domyślnie
     odbiera pełnoekranowe alarmy aplikacjom, które nie są budzikiem ani telefonem.
     Bez niej czerwony alarm przy wygaszonym ekranie tylko zapali ekran
-    i pokaże powiadomienie z syreną — bez pełnego ekranu. Włączysz ją jednym
-    kliknięciem: <kbd>⚙</kbd> → <kbd>🚨 Zgoda na alarm pełnoekranowy</kbd>.
-    Aplikacja sama pokaże ostrzeżenie, dopóki zgody nie ma.
+    i pokaże powiadomienie z syreną — bez pełnego ekranu. Włączysz ją przez
+    <kbd>⚙</kbd> → <kbd>🚨 Sprawdź zgodę na alarm pełnoekranowy</kbd>.
+    <br><br>
+    <b>Sprawdź ten przełącznik osobiście.</b> Android bywa niekonsekwentny:
+    potrafi zgłaszać aplikacji, że zgoda jest przyznana, a mimo to blokować
+    alarm. Dlatego przycisk zawsze prowadzi do systemowego ekranu, na którym
+    widać prawdziwy stan.
   </div>
 
   <h3>Trzy poziomy sygnalizacji — co dokładnie robi każdy</h3>

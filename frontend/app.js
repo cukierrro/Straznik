@@ -1259,8 +1259,19 @@ async function refreshBgStatus() {
     if (s.fullScreenAllowed === false)
       warn.push("⚠ Brak zgody na alarm pełnoekranowy — czerwony alarm nie zapali "
         + "wygaszonego ekranu. Włącz przyciskiem 🚨 poniżej.");
+    /* canUseFullScreenIntent() bywa optymistyczne: przy domyślnym trybie
+       uprawnienia zwraca „dozwolone”, choć system i tak odrzuca alarm
+       pełnoekranowy (widać to w appops jako rejectTime). Dlatego na Androidzie
+       14+ przycisk pokazujemy ZAWSZE — inaczej użytkownik nie miałby jak wejść
+       w ustawienia i sprawdzić, czy przełącznik jest naprawdę włączony. */
     const fsBtn = document.getElementById("btn-fullscreen");
-    if (fsBtn) fsBtn.style.display = s.fullScreenAllowed === false ? "" : "none";
+    if (fsBtn) {
+      const mayBeBlocked = (s.sdk || 0) >= 34;
+      fsBtn.style.display = mayBeBlocked ? "" : "none";
+      fsBtn.textContent = s.fullScreenAllowed === false
+        ? "🚨 Zezwól na alarm pełnoekranowy"
+        : "🚨 Sprawdź zgodę na alarm pełnoekranowy";
+    }
     info.innerHTML = (warn.join("<br>") || (s.enabled
       ? "Nasłuch działa. W powiadomieniach widnieje stała informacja."
       : "Nasłuch wyłączony — alarmy tylko przy otwartej aplikacji."))
