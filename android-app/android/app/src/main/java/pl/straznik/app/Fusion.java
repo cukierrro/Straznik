@@ -130,8 +130,12 @@ class Fusion {
 
                 String src = o.getString("src");
                 String k = v + "|" + src;
+                // Neptun ma wyższy limit niż reszta (każdy track to osobny obiekt),
+                // ale nie nieograniczony — przy kilkudziesięciu obiektach suma i tak
+                // dawno przekroczyła próg alarmu
                 double cap = "media".equals(src) || "rcb".equals(src) ? 2.0
-                           : "adsb".equals(src) || "pansa".equals(src) ? 1.0 : Double.MAX_VALUE;
+                           : "adsb".equals(src) || "pansa".equals(src) ? 1.0
+                           : "neptun".equals(src) ? 8.0 : Double.MAX_VALUE;
                 double already = perSource.containsKey(k) ? perSource.get(k) : 0.0;
                 double counted = Math.max(0, Math.min(cap - already, pts));
                 perSource.put(k, already + pts);

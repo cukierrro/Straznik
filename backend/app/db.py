@@ -121,8 +121,27 @@ def add_adsb_sample(voiv: str, count: int):
 
 
 def adsb_baseline(voiv: str, days: int) -> float:
-    cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat(timespec="seconds")
+    """Średni ruch wojskowy o TEJ PORZE DOBY z ostatnich `days` dni.
+
+    Średnia z całej doby myliłaby noc z dniem: gdy nocą nad regionem nie ma nic,
+    a po południu lata kilka maszyn, dobowa średnia wypada tak nisko, że każde
+    normalne popołudnie przekracza próg „dwukrotnie więcej niż zwykle”. Porównanie
+    godziny z tymi samymi godzinami z poprzednich dni usuwa ten fałszywy alarm.
+
+    Gdy dla danej godziny nie ma jeszcze próbek (świeża instalacja), schodzimy do
+    średniej dobowej — lepsza zgrubna wartość niż brak porównania.
+    """
+    now = datetime.now(timezone.utc)
+    cutoff = (now - timedelta(days=days)).isoformat(timespec="seconds")
+    hour = f"{now.hour:02d}"
     with _lock:
+        row = _conn.execute(
+            "SELECT AVG(mil_count) FROM adsb_samples "
+            "WHERE voivodeship=? AND ts >= ? AND substr(ts, 12, 2) = ?",
+            (voiv, cutoff, hour),
+        ).fetchone()
+        if row and row[0] is not None:
+            return float(row[0])
         row = _conn.execute(
             "SELECT AVG(mil_count) FROM adsb_samples WHERE voivodeship=? AND ts >= ?",
             (voiv, cutoff),

@@ -78,7 +78,31 @@ public class BackgroundPlugin extends Plugin {
         ret.put("fullScreenAllowed", fullScreenAllowed(c));
         ret.put("sdk", Build.VERSION.SDK_INT);
         ret.put("manufacturer", Build.MANUFACTURER);
+        ret.put("appVersion", appVersion(c));
+        // Faktyczny stan usługi i moment jej ostatniego cyklu — samo „włączone”
+        // w ustawieniach nic nie mówi, gdy system ubił usługę w tle.
+        ret.put("serviceAlive", MonitorService.ALIVE);
+        ret.put("homeVoivodeship",
+            c.getSharedPreferences("straznik_bg", Context.MODE_PRIVATE)
+             .getString("home_voiv", ""));
+        ret.put("lastCycleAgoS", lastCycleAgoSeconds(c));
         call.resolve(ret);
+    }
+
+    /** Ile sekund temu usługa skończyła ostatni obieg (−1, gdy nigdy). */
+    private long lastCycleAgoSeconds(Context c) {
+        long ts = c.getSharedPreferences("straznik_bg", Context.MODE_PRIVATE)
+                   .getLong("diag_ts", 0);
+        return ts > 0 ? (System.currentTimeMillis() - ts) / 1000 : -1;
+    }
+
+    /** Wersja aplikacji — potrzebna, by porównać ją z najnowszym wydaniem. */
+    private String appVersion(Context c) {
+        try {
+            return c.getPackageManager().getPackageInfo(c.getPackageName(), 0).versionName;
+        } catch (Exception e) {
+            return "";
+        }
     }
 
     /**

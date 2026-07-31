@@ -1,5 +1,7 @@
 package pl.straznik.app;
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.util.Log;
 
 import org.json.JSONArray;
@@ -129,6 +131,25 @@ class Sources {
          "strzelce opolsk", "namysłów"}
     };
 
+    /** Przybliżone prostokąty województw przygranicznych: lat_min, lon_min, lat_max, lon_max.
+     *  Do przypisania stref PAŻP wystarczy przybliżenie — strefy są duże, a chodzi
+     *  o to, nad którym regionem leżą, nie o dokładność co do gminy. */
+    private static final Object[][] VOIV_BBOX = {
+        {0, 50.25, 21.60, 52.30, 24.15},   // lubelskie
+        {1, 49.00, 21.10, 50.85, 23.60},   // podkarpackie
+        {2, 52.28, 21.60, 54.40, 24.00},   // podlaskie
+        {6, 53.13, 19.10, 54.45, 22.95},   // warmińsko-mazurskie
+    };
+
+    /** Indeks województwa dla punktu albo −1. */
+    static int voivForPoint(double lat, double lon) {
+        for (Object[] b : VOIV_BBOX) {
+            if (lat >= (Double) b[1] && lat <= (Double) b[3]
+                && lon >= (Double) b[2] && lon <= (Double) b[4]) return (Integer) b[0];
+        }
+        return -1;
+    }
+
     private static final String UA =
         "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Mobile";
 
@@ -210,6 +231,52 @@ class Sources {
     }
 
     /** Neptun: obiekt kursem na granicę PL bliżej niż 100 km. */
+    /* Punktacja obiektów NEPTUN — kopia reguły z backendu i engine.js:
+       waga typu × √liczba × k_odległości × k_wiarygodności × k_potwierdzeń × k_cyklu.
+       Zagrożenie zależy od tego CO leci, ILE tego jest, JAK BLISKO i JAK PEWNA
+       jest obserwacja — jedna stawka za „obiekt kursem na PL” tego nie oddawała. */
+    static final double NEPTUN_MAX_KM = 250.0;
+    private static final String[] TYPE_KEYS =
+        {"ballistic", "mig31k", "cruise", "missile", "kab", "shahed", "uav", "recon", "fpv"};
+    private static final double[] TYPE_W =
+        {3.0, 2.6, 2.4, 2.4, 1.8, 1.4, 1.1, 0.5, 0.0};
+
+    private static double typeWeight(String type) {
+        for (int i = 0; i < TYPE_KEYS.length; i++)
+            if (TYPE_KEYS[i].equals(type)) return TYPE_W[i];
+        return 0.0;
+    }
+
+    private static double distMult(double km) {
+        if (km < 30) return 1.6;
+        if (km < 60) return 1.3;
+        if (km < 100) return 1.0;
+        if (km < 150) return 0.55;
+        if (km < 250) return 0.25;
+        return 0.0;
+    }
+
+    private static double sourceMult(int n) {
+        if (n <= 1) return 0.7;    // jedno zgłoszenie to jeszcze nie potwierdzenie
+        if (n == 2) return 0.9;
+        if (n <= 4) return 1.1;
+        return 1.25;
+    }
+
+    static double scoreThreat(JSONObject t, double distKm) {
+        double weight = typeWeight(t.optString("type", "").toLowerCase(Locale.ROOT));
+        if (weight <= 0 || distKm >= NEPTUN_MAX_KM) return 0.0;
+        int count = Math.max(t.optInt("count", 1), 1);
+        String conf = t.optString("confidenceLevel", "low").toLowerCase(Locale.ROOT);
+        String life = t.optString("lifecycle", "uncertain").toLowerCase(Locale.ROOT);
+        int sources = Math.max(t.optInt("sourceCount", 1), 1);
+        double kConf = "high".equals(conf) ? 1.0 : ("medium".equals(conf) ? 0.6 : 0.35);
+        double kLife = "confirmed".equals(life) ? 1.1 : ("created".equals(life) ? 0.7 : 0.85);
+        double p = weight * Math.sqrt(count) * distMult(distKm) * kConf
+                 * sourceMult(sources) * kLife;
+        return Math.round(p * 100) / 100.0;
+    }
+
     static List<Fusion.Signal> neptun() {
         List<Fusion.Signal> out = new ArrayList<>();
         String body = httpGet("https://neptun.in.ua/api/v1/threats");
@@ -217,21 +284,16 @@ class Sources {
         try {
             JSONArray arr = new JSONObject(body).optJSONArray("threats");
             if (arr == null) return out;
-            Set<String> scored = new HashSet<>();
-            for (String s : new String[]{"uav", "missile", "ballistic", "kab", "mig31k",
-                                         "cruise", "shahed"}) scored.add(s);
             for (int i = 0; i < arr.length(); i++) {
                 JSONObject t = arr.getJSONObject(i);
                 if (t.isNull("lat") || t.isNull("lon")) continue;
-                String type = t.optString("type", "").toLowerCase(Locale.ROOT);
-                if (!scored.contains(type)) continue;
                 double lat = t.getDouble("lat"), lon = t.getDouble("lon");
                 double best = Double.MAX_VALUE; int voiv = 0; double bLat = 0, bLon = 0;
                 for (double[] b : BORDER) {
                     double d = hav(lat, lon, b[0], b[1]);
                     if (d < best) { best = d; voiv = (int) b[2]; bLat = b[0]; bLon = b[1]; }
                 }
-                if (best >= 100) continue;
+                if (best >= NEPTUN_MAX_KM) continue;
                 if (t.isNull("heading")) continue;
                 double hdg = t.getDouble("heading");
                 double brg = bearing(lat, lon, bLat, bLon);
@@ -239,14 +301,23 @@ class Sources {
                 if (diff > 180) diff = 360 - diff;
                 if (diff > 50) continue;
 
+                double points = scoreThreat(t, best);
+                if (points <= 0) continue;
+
                 String conf = t.optString("confidenceLevel", "low").toLowerCase(Locale.ROOT);
-                boolean high = "high".equals(conf);
-                String confPl = high ? "wysoka" : ("medium".equals(conf) ? "średnia" : "niska");
+                String confPl = "high".equals(conf) ? "wysoka"
+                    : ("medium".equals(conf) ? "średnia" : "niska");
+                int count = Math.max(t.optInt("count", 1), 1);
+                int sources = Math.max(t.optInt("sourceCount", 1), 1);
+                String ile = count > 1 ? count + "× " : "";
+                // poziom w kluczu: zbliżenie się obiektu albo nowe potwierdzenia
+                // podnoszą wagę, więc sygnał ma prawo wejść ponownie
+                int tier = (int) (points * 2);
                 out.add(new Fusion.Signal(
-                    "neptun", voiv, high ? 3.0 : 1.5,
-                    "NEPTUN: obiekt kursem na granicę, " + Math.round(best)
-                        + " km (wiarygodność " + confPl + ")",
-                    "neptun:" + t.optString("id") + ":" + (high ? "h" : "m")));
+                    "neptun", voiv, points,
+                    "NEPTUN: " + ile + "obiekt kursem na granicę, " + Math.round(best)
+                        + " km (wiarygodność " + confPl + ", " + sources + " potwierdzeń)",
+                    "neptun:" + t.optString("id") + ":t" + tier));
             }
         } catch (Exception e) {
             Log.w(TAG, "neptun parse", e);
@@ -279,6 +350,44 @@ class Sources {
         // rozpoznaje voivFromText. Jedno zapytanie pokrywa pozostałe 12 województw.
         {"https://news.google.com/rss/search?q=(%22alarm%20powietrzny%22%20OR%20%22zawy%C5%82y%20syreny%22%20OR%20%22naruszenie%20przestrzeni%20powietrznej%22%20OR%20%22zestrzelono%20dron%22)&hl=pl&gl=PL&ceid=PL:pl", "-1"}
     };
+
+    /** Media bałtyckie — incydent powietrzny u sąsiadów NATO podnosi czujność
+     *  podlaskiego i warmińsko-mazurskiego (kierunek Kaliningrad/Białoruś).
+     *  Aplikacja miała to źródło od początku, usługa w tle nie. */
+    private static final String[] BALTIC_FEEDS = {
+        "https://news.err.ee/rss", "https://eng.lsm.lv/rss/",
+        "https://www.delfi.lt/rss/feeds/daily.xml",
+    };
+    private static final int[] BALTIC_TARGETS = {2, 6};   // podlaskie, warmińsko-mazurskie
+    private static final String[] BALTIC_CRITICAL = {
+        "airspace violation", "violated airspace", "airspace was violated", "air raid",
+        "airspace closed", "shot down a drone", "scrambled jets",
+        "oro erdvės pažeid", "gaisa telpas pārkāp", "õhuruumi rikku",
+    };
+    private static final String[] BALTIC_AIR = {
+        "airspace", "air space", "drone", "uav", "missile", "shahed", "air defence",
+        "air defense", "oro erdv", "bepilot", "raket", "gaisa telp", "droon", "õhuruum",
+        "military aircraft", "fighter jet", "jets",
+    };
+    private static final String[] BALTIC_EVENT = {
+        "violat", "intercept", "shot down", "scrambl", "incursion", "crash", "fell",
+        "explos", "struck", "entered", "closed", "alert", "debris",
+    };
+    private static final String[] BALTIC_EXCLUDE = {
+        "exercise", "drill", "training", "anniversary", "drone show", "festival",
+        "pratyb", "mācīb", "õppus", "delivery drone", "drone racing", "photo drone",
+    };
+
+    private static boolean balticMatches(String text) {
+        String t = text.toLowerCase(Locale.ROOT);
+        for (String k : BALTIC_EXCLUDE) if (t.contains(k)) return false;
+        for (String k : BALTIC_CRITICAL) if (t.contains(k)) return true;
+        boolean air = false, event = false;
+        for (String k : BALTIC_AIR) if (t.contains(k)) { air = true; break; }
+        if (!air) return false;
+        for (String k : BALTIC_EVENT) if (t.contains(k)) { event = true; break; }
+        return event;
+    }
 
     private static long parseRssDate(String s) {
         String[] fmts = {"EEE, dd MMM yyyy HH:mm:ss Z", "EEE, dd MMM yyyy HH:mm:ss zzz"};
@@ -324,7 +433,117 @@ class Sources {
                     "media:" + link));
             }
         }
+        // media bałtyckie: incydent u sąsiadów NATO podnosi czujność północno-wschodniej ściany
+        for (String url : BALTIC_FEEDS) {
+            String xml = httpGet(url);
+            if (xml == null) continue;
+            any = true;
+            Matcher m = ITEM.matcher(xml);
+            int n = 0;
+            while (m.find() && n++ < 25) {
+                String item = m.group(1);
+                Matcher tm = TITLE.matcher(item);
+                String title = tm.find() ? clean(tm.group(1)) : "";
+                if (title.isEmpty() || !balticMatches(title)) continue;
+                Matcher dm = PUBDATE.matcher(item);
+                if (dm.find()) {
+                    long ts = parseRssDate(clean(dm.group(1)));
+                    if (ts > 0 && System.currentTimeMillis() - ts > maxAge) continue;
+                }
+                Matcher lm = LINK.matcher(item);
+                String link = lm.find() ? clean(lm.group(1)) : title;
+                for (int v : BALTIC_TARGETS)
+                    out.add(new Fusion.Signal("media", v, 1.0,
+                        "Media bałtyckie: „" + (title.length() > 90
+                            ? title.substring(0, 90) + "…" : title) + "”",
+                        "baltic:" + link + ":" + v));
+            }
+        }
         return any ? out : null;
+    }
+
+    /**
+     * PAŻP — nowo aktywowane strefy przestrzeni powietrznej (AUP/UUP).
+     *
+     * Aplikacja sprawdzała to źródło od początku, ale usługa w tle nie — a to ono
+     * generuje w praktyce najwięcej sygnałów. Efekt był taki, że przy zamkniętej
+     * aplikacji nie przychodziło nic, a po jej otwarciu alarmy pojawiały się
+     * natychmiast. Zbiór stref z poprzedniego obiegu trzymamy w SharedPreferences,
+     * bo sygnałem jest dopiero POJAWIENIE SIĘ nowej strefy, nie jej trwanie.
+     */
+    static List<Fusion.Signal> pansa(Context ctx) {
+        String body = null;
+        for (String u : new String[]{"https://airspace.pansa.pl/map-configuration/uup",
+                                     "https://airspace.pansa.pl/map-configuration/aup"}) {
+            body = httpGet(u);
+            if (body != null && body.length() > 40) break;
+        }
+        if (body == null) return null;
+
+        List<Fusion.Signal> out = new ArrayList<>();
+        SharedPreferences p = ctx.getSharedPreferences("straznik_bg", Context.MODE_PRIVATE);
+        try {
+            JSONArray feats = new JSONArray(body);
+            long now = System.currentTimeMillis();
+            JSONArray seenNow = new JSONArray();
+            Set<String> prev = new HashSet<>();
+            JSONArray prevArr = new JSONArray(p.getString("pansa_zones", "[]"));
+            for (int i = 0; i < prevArr.length(); i++) prev.add(prevArr.getString(i));
+            boolean firstRun = p.getString("pansa_zones", "").isEmpty();
+
+            for (int i = 0; i < feats.length(); i++) {
+                JSONObject props = feats.getJSONObject(i).optJSONObject("properties");
+                if (props == null) continue;
+                String dz = props.optString("designator", "");
+                if (dz.isEmpty()) continue;
+
+                JSONArray res = props.optJSONArray("airspaceReservations");
+                JSONObject activeRes = null;
+                for (int j = 0; res != null && j < res.length(); j++) {
+                    JSONObject r = res.getJSONObject(j);
+                    long s = parseIso(r.optString("startDate")), e = parseIso(r.optString("endDate"));
+                    if (s > 0 && e > 0 && now >= s && now <= e
+                        && !"CANCELLED".equalsIgnoreCase(r.optString("reservationStatus"))) {
+                        activeRes = r; break;
+                    }
+                }
+                if (activeRes == null) continue;
+
+                JSONArray cen = props.optJSONArray("centroid");
+                if (cen == null || cen.length() == 0) continue;
+                JSONObject c = cen.optJSONObject(0);
+                if (c == null || c.isNull("x")) continue;
+                int voiv = voivForPoint(c.optDouble("y"), c.optDouble("x"));
+                if (voiv < 0) continue;
+
+                seenNow.put(dz);
+                // pierwszy obieg tylko zapamiętuje stan — inaczej po każdym starcie
+                // usługi wszystkie trwające strefy zgłosiłyby się jako nowe
+                if (firstRun || prev.contains(dz)) continue;
+                out.add(new Fusion.Signal("pansa", voiv, 1.0,
+                    "PAŻP: aktywacja strefy " + props.optString("airspaceElementType", "")
+                        + " " + dz + " nad woj. " + VOIVS[voiv]
+                        + " (" + activeRes.optString("lowerAltitude", "?") + "–"
+                        + activeRes.optString("upperAltitude", "?") + ")",
+                    "pansa:" + dz + ":" + activeRes.optString("endDate")));
+            }
+            p.edit().putString("pansa_zones", seenNow.toString()).apply();
+        } catch (Exception e) {
+            Log.w(TAG, "pansa parse", e);
+            return null;
+        }
+        return out;
+    }
+
+    private static long parseIso(String s) {
+        if (s == null || s.isEmpty()) return 0;
+        try {
+            SimpleDateFormat f = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US);
+            f.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));
+            return f.parse(s.substring(0, Math.min(19, s.length()))).getTime();
+        } catch (Exception e) {
+            return 0;
+        }
     }
 
     private static final Pattern RCB_LINK =

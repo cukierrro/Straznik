@@ -33,14 +33,49 @@ z syreną. UI zawsze pokazuje pełne rozbicie: które sygnały, skąd, ile punkt
 
 | Sygnał | Warunek | Punkty |
 |---|---|---|
-| **NEPTUN** | obiekt (uav/missile/ballistic/kab/MiG-31K) kursem na granicę PL, < 100 km, confidence **high** | **+3** |
-| **NEPTUN** | jw., confidence medium/low | **+1.5** |
+| **NEPTUN** | obiekt kursem na granicę PL — punktacja zależna od typu, liczby, odległości i liczby potwierdzeń (niżej) | **0–8** |
 | **NEPTUN** | oficjalny alarm powietrzny w obwodzie UA graniczącym z PL | **+1** |
 | **Media/RSS** | słowa kluczowe (syreny, alarm, dron…) w mediach danego województwa | **+2** |
 | **RCB** | nowy komunikat na gov.pl/web/rcb | **+2** |
-| **ADS-B** | liczba maszyn wojskowych nad województwem > 2× baseline z 7 dni | **+1** |
+| **ADS-B** | ≥3 maszyny wojskowe nad województwem i >2× baseline **z tej samej pory doby** z 7 dni | **+1** |
 | **PAŻP** | nowa aktywna strefa (TSA/TRA/D) nad województwem | **+1** |
 | **Media LT/LV/EE** | incydent powietrzny wg mediów bałtyckich → podlaskie + warmińsko-mazurskie | **+1** |
+
+### Punktacja obiektów NEPTUN
+
+Jeden Shahed 80 km od granicy to co innego niż sześć Shahedów 50 km od granicy,
+a dron FPV o zasięgu kilkunastu kilometrów nie zagraża Polsce w ogóle. Zamiast
+jednej stawki za „obiekt kursem na PL" punkty są iloczynem czterech czynników:
+
+```
+punkty = waga_typu × √liczba × k_odległości × k_wiarygodności × k_potwierdzeń × k_cyklu
+```
+
+| Czynnik | Wartości |
+|---|---|
+| **waga typu** | balistyczna 3,0 · MiG-31K 2,6 · manewrująca 2,4 · KAB 1,8 · Shahed 1,4 · dron 1,1 · zwiadowczy 0,5 · **FPV 0** |
+| **liczba** (`count`) | pierwiastek — cztery obiekty ważą 2× tyle co jeden, nie 4× |
+| **odległość** | <30 km ×1,6 · <60 ×1,3 · <100 ×1,0 · <150 ×0,55 · <250 ×0,25 · dalej 0 |
+| **wiarygodność** | high ×1,0 · medium ×0,6 · low ×0,35 |
+| **potwierdzenia** (`sourceCount`) | 1 ×0,7 · 2 ×0,9 · 3–4 ×1,1 · ≥5 ×1,25 |
+| **cykl życia** | confirmed ×1,1 · uncertain ×0,85 · created ×0,7 |
+
+Wkład całego NEPTUN-a ograniczony do **8 pkt** — przy kilkudziesięciu obiektach
+suma i tak dawno przekroczyła próg alarmu, a trzycyfrowa punktacja psułaby skalę.
+
+**Kalibracja.** Wagi dobrano na żywych danych NEPTUN i sprawdzono na
+udokumentowanych zdarzeniach oraz na 354 migawkach zebranych przez backend
+(1998 obserwacji obiektów w 7,5 h):
+
+| Scenariusz | Punkty | Reakcja |
+|---|---|---|
+| masowe naruszenie granicy (~19 dronów blisko) | 8,0 | alarm |
+| rakieta manewrująca 25 km od granicy | 4,7 | alarm |
+| 6 Shahedów 50 km, 5 potwierdzeń | 6,1 | alarm |
+| rutynowy nalot na zachodnią Ukrainę (110–130 km) | 1,3 | brak reakcji |
+| pojedynczy dron 90 km, jedno zgłoszenie | 0,4 | brak reakcji |
+| FPV tuż przy granicy | 0,0 | brak reakcji |
+| zebrana historia (wszystkie obiekty ≥ 542 km) | 0,0 | brak reakcji |
 
 Klasyfikacja mediów jest dwupoziomowa (`textmatch.py`): słowa **mocne**
 ("zawyły", "alarm powietrzny", "zestrzel", "naruszenie przestrzeni"…) wystarczą
@@ -230,6 +265,14 @@ Dzięki temu tło brzmi identycznie jak pierwszy plan. Po zmianie brzmienia
 w `app.js` uruchom skrypt ponownie. Kanały powiadomień mają sufiks wersji
 (`-v2`), bo raz utworzony kanał ignoruje późniejsze zmiany dźwięku.
 
+**Źródła w usłudze tła:** NEPTUN, media regionalne i ogólnopolskie, media bałtyckie,
+RCB oraz PAŻP. Do wersji 1.3.0 usługa sprawdzała tylko trzy pierwsze — brakowało
+jej PAŻP i mediów bałtyckich, a to właśnie PAŻP generuje w praktyce najwięcej
+sygnałów. Objawiało się to tak, że przy zamkniętej aplikacji nie przychodziło nic,
+a po jej otwarciu alarmy pojawiały się natychmiast. ADS-B pozostaje wyłącznie
+w aplikacji: wymaga tygodnia próbek do wyliczenia baseline i daje sygnał
+pomocniczy o wadze 1 pkt.
+
 **Zasięg nasłuchu w tle:** wszystkie 16 województw, z tą samą kaskadą co mapa.
 Powiadomienia dotyczą regionu wybranego przez użytkownika (`Fusion.setHomeVoivodeship`,
 ustawiane z JS przy zapisie ustawień) — bez tego filtra telefon dostawałby alerty
@@ -261,6 +304,13 @@ z ustawionym mazowieckim powiadomienie „PODWYŻSZONA UWAGA: woj. mazowieckie
   przestrzeń jest zamknięta. Widać za to AWACS-y, tankowce i transportowce NATO
   nad Polską, Rumunią i Bałtykiem. To publiczne transpondery maszyn, które *chcą*
   być widoczne — nie namierzanie obiektów przeciwnika.
+- **Myśliwców w akcji nie zobaczy żadne źródło ADS-B** — ani naziemne, ani
+  satelitarne. Maszyny bojowe w misjach QRA nadają szyfrowany Mode 5 (IFF),
+  a nie ADS-B; satelity (Aireon, Spire) odbierają dokładnie ten sam sygnał, więc
+  zmiana dostawcy niczego nie doda. Multilateracja (MLAT) w ADSBexchange bywa
+  w stanie wyliczyć pozycję maszyny nadającej tylko Mode S, ale i tak nie obejmie
+  lotnictwa z wyłączonym transponderem. Dlatego ADS-B jest tu sygnałem
+  pomocniczym o wadze 1 pkt, a nie podstawą alarmu.
 - **Ślady lotu Neptuna są w praktyce puste** (pole `trail` zawiera 0–2 punkty,
   zwykle zduplikowane), dlatego aplikacja buduje własną trajektorię z kolejnych
   obserwacji pozycji i dolicza dead-reckoning z prędkości typowej dla klasy obiektu.

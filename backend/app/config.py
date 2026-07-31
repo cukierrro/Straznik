@@ -28,9 +28,37 @@ NEPTUN_BASE = "https://neptun.in.ua"
 NEPTUN_WS_URL = "wss://neptun.in.ua/api/v1/stream"
 NEPTUN_REST_URL = f"{NEPTUN_BASE}/api/v1/threats"
 NEPTUN_REST_INTERVAL = 10          # s; REST tylko jako fallback gdy WS padnie
-# typy obiektów brane pod uwagę w scoringu (fpv ignorujemy — zasięg kilkanaście km)
-NEPTUN_SCORED_TYPES = {"uav", "missile", "ballistic", "kab", "mig31k", "cruise", "shahed"}
-NEPTUN_NEAR_KM = 100.0             # próg odległości od granicy PL
+# ── Punktacja obiektów NEPTUN ────────────────────────────────────────────────
+# Zamiast jednej stawki za „obiekt kursem na PL” liczymy iloczyn czynników,
+# bo zagrożenie zależy od tego CO leci, ILE tego jest, JAK BLISKO jest i JAK
+# PEWNA jest obserwacja. Model skalibrowano na żywych danych NEPTUN i sprawdzono
+# na udokumentowanych zdarzeniach: masowe naruszenie granicy i rakieta tuż przy
+# granicy przekraczają próg alarmu, a rutynowy nalot na zachodnią Ukrainę —
+# który zdarza się regularnie i Polsce nie zagraża — pozostaje poniżej progu.
+#
+#   punkty = waga_typu × √liczba × k_odległości × k_wiarygodności
+#            × k_potwierdzeń × k_cyklu_życia
+NEPTUN_TYPE_WEIGHTS = {
+    "ballistic": 3.0,   # kilka minut lotu — brak czasu na reakcję
+    "mig31k":    2.6,   # nosiciel Kindżałów, sam start bywa zapowiedzią
+    "cruise":    2.4,   # Kalibr / Ch-101
+    "missile":   2.4,
+    "kab":       1.8,   # bomba kierowana: krótki zasięg, ale groźna przy granicy
+    "shahed":    1.4,   # wolny, nadlatuje masowo
+    "uav":       1.1,
+    "recon":     0.5,   # rozpoznanie samo nie atakuje, ale poprzedza uderzenie
+    "fpv":       0.0,   # zasięg kilkunastu km — dla Polski nieistotny
+}
+# progi odległości od granicy PL (km) → mnożnik
+NEPTUN_DIST_BANDS = ((30, 1.6), (60, 1.3), (100, 1.0), (150, 0.55), (250, 0.25))
+NEPTUN_MAX_KM = 250.0              # dalej nie punktujemy: przy tej odległości kurs
+                                   # jeszcze nic nie przesądza (obiekt może skręcić)
+NEPTUN_CONF_MULT = {"high": 1.0, "medium": 0.6, "low": 0.35}
+NEPTUN_LIFECYCLE_MULT = {"confirmed": 1.1, "uncertain": 0.85, "created": 0.7}
+# liczba niezależnych zgłoszeń (sourceCount) → mnożnik; jedno zgłoszenie to
+# jeszcze nie potwierdzenie, stąd kara poniżej 1.0
+NEPTUN_SOURCE_MULT = ((1, 0.7), (2, 0.9), (4, 1.1))
+NEPTUN_SOURCE_MULT_MAX = 1.25
 NEPTUN_HEADING_TOLERANCE = 50.0    # ± stopni od azymutu na najbliższy punkt granicy
 # obwody graniczące z PL — obiekty stamtąd zawsze obserwujemy
 NEPTUN_BORDER_REGIONS = ("Волинська", "Львівська", "Закарпатська", "Рівненська")
@@ -75,7 +103,10 @@ POINTS = {
 # Wiele artykułów o tym samym zdarzeniu ≠ kilka niezależnych potwierdzeń —
 # fuzja ma mierzyć NIEZALEŻNE klasy wskaźników. Neptun bez limitu (każdy track
 # to osobny fizyczny obiekt). Wszystkie sygnały i tak są widoczne w UI.
-SOURCE_CAPS = {"media": 2.0, "rcb": 2.0, "adsb": 1.0, "pansa": 1.0}
+# Neptun ma limit wyższy niż pozostałe źródła, bo każdy track to osobny fizyczny
+# obiekt — ale nie nieograniczony: przy kilkudziesięciu obiektach suma i tak dawno
+# przekroczyła próg alarmu, a trzycyfrowa punktacja tylko psułaby czytelność skali.
+SOURCE_CAPS = {"media": 2.0, "rcb": 2.0, "adsb": 1.0, "pansa": 1.0, "neptun": 8.0}
 
 # ── Propagacja na resztę kraju ────────────────────────────────────────────────
 # Zdarzenie na wschodzie dotyczy też regionów dalej na zachód (obiekt leci

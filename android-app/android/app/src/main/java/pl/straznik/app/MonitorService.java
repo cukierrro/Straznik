@@ -40,6 +40,11 @@ public class MonitorService extends Service {
     private static final long POLL_NEPTUN_MS = 60_000L;
     private static final long POLL_MEDIA_MS = 120_000L;
     private static final long POLL_RCB_MS = 180_000L;
+    private static final long POLL_PANSA_MS = 300_000L;
+
+    /** Czy usługa faktycznie żyje — samo ustawienie „włączone” tego nie gwarantuje,
+     *  bo system albo menedżer baterii mógł ją w międzyczasie ubić. */
+    static volatile boolean ALIVE = false;
 
     private Thread worker;
     private final AtomicBoolean running = new AtomicBoolean(false);
@@ -102,6 +107,7 @@ public class MonitorService extends Service {
             return START_NOT_STICKY;
         }
         startForegroundCompat();
+        ALIVE = true;
         if (running.compareAndSet(false, true)) {
             acquireWakeLock();
             worker = new Thread(this::loop, "straznik-monitor");
@@ -270,7 +276,7 @@ public class MonitorService extends Service {
     }
 
     private void loop() {
-        long lastNeptun = 0, lastMedia = 0, lastRcb = 0;
+        long lastNeptun = 0, lastMedia = 0, lastRcb = 0, lastPansa = 0;
         boolean bootstrap = true;   // pierwszy przebieg: zapamiętaj istniejące wpisy
 
         while (running.get()) {
@@ -294,6 +300,13 @@ public class MonitorService extends Service {
                     note("RCB", s != null, s == null ? 0 : s.size());
                     if (s != null) Fusion.ingest(this, s, bootstrap);
                     bootstrap = false;
+                }
+                if (now - lastPansa >= POLL_PANSA_MS) {
+                    lastPansa = now;
+                    List<Fusion.Signal> s = Sources.pansa(this);
+                    note("PAŻP", s != null, s == null ? 0 : s.size());
+                    // pansa() sam pilnuje pierwszego obiegu, więc bez bootstrapu
+                    if (s != null) Fusion.ingest(this, s, false);
                 }
 
                 Fusion.Result r = Fusion.evaluate(this);
@@ -323,6 +336,7 @@ public class MonitorService extends Service {
 
     @Override
     public void onDestroy() {
+        ALIVE = false;
         running.set(false);
         if (worker != null) worker.interrupt();
         if (wakeLock != null && wakeLock.isHeld()) {

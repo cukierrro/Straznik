@@ -1350,6 +1350,84 @@ document.getElementById("set-save").onclick = () => {
   if (mapReady) { map.setFilter("my-voiv", ["==", ["get", "nazwa"], v || "—"]); goHome(); }
   if (state) renderPanel();
 };
+/* ── sprawdzanie aktualizacji ────────────────────────────────────────────── */
+/* Aplikacja jest rozprowadzana poza sklepem, więc sama musi powiedzieć, że
+   wyszła nowsza wersja — inaczej użytkownik zostaje z wersją sprzed miesięcy,
+   nieświadomy poprawek w czymś, co ma go ostrzegać.
+
+   UWAGA: gdyby aplikacja kiedyś trafiła do Google Play, to sprawdzanie trzeba
+   wyłączyć (UPDATE_CHECK = false) — regulamin sklepu zabrania aktualizowania
+   się z pominięciem Play. */
+const UPDATE_CHECK = true;
+const UPDATE_API = "https://api.github.com/repos/cukierrro/Straznik/releases/latest";
+const UPDATE_EVERY_MS = 12 * 3600 * 1000;
+
+/** Porównanie wersji typu „1.3.0” — zwraca true, gdy `remote` jest nowsza. */
+function isNewer(remote, local) {
+  const norm = (v) => String(v || "").replace(/^v/, "").split(".").map(n => parseInt(n) || 0);
+  const r = norm(remote), l = norm(local);
+  for (let i = 0; i < Math.max(r.length, l.length); i++) {
+    const a = r[i] || 0, b = l[i] || 0;
+    if (a !== b) return a > b;
+  }
+  return false;
+}
+
+/** `force` — sprawdzenie na żądanie z ustawień: pomija odstęp czasowy
+ *  i wcześniejsze „nie przypominaj”, oraz melduje wynik również wtedy,
+ *  gdy nowszej wersji nie ma. */
+/* Komunikat trafia do okna ustawień, a nie do toasta: modalny <dialog> tworzy
+   własną warstwę, nad którą zwykłe elementy się nie renderują — toast byłby
+   pod spodem i użytkownik nie zobaczyłby żadnej odpowiedzi na kliknięcie. */
+function updStatus(msg) {
+  const el = document.getElementById("upd-status");
+  if (el) el.textContent = msg;
+  else toast(msg);
+}
+
+async function checkForUpdate(force = false) {
+  if (!UPDATE_CHECK || !IS_APP) return;
+  try {
+    const last = +(localStorage.getItem("straznik_upd_check") || 0);
+    if (!force && Date.now() - last < UPDATE_EVERY_MS) return;
+    if (force) updStatus("Sprawdzam…");
+    const s = await BG()?.status();
+    const local = s?.appVersion;
+    if (!local) { if (force) updStatus("Nie udało się odczytać wersji aplikacji."); return; }
+    const r = await fetch(UPDATE_API, { headers: { Accept: "application/vnd.github+json" } });
+    if (!r.ok) { if (force) updStatus("Nie udało się sprawdzić — spróbuj później."); return; }
+    const rel = await r.json();
+    localStorage.setItem("straznik_upd_check", String(Date.now()));
+    if (!isNewer(rel.tag_name, local)) {
+      if (force) updStatus(`Masz najnowszą wersję (${local}).`);
+      return;
+    }
+    // pominięcie dotyczy konkretnej wersji: kolejna znów się przypomni
+    if (!force && localStorage.getItem("straznik_upd_skip") === rel.tag_name) return;
+    showUpdateBanner(rel, local);
+    if (force) {
+      updStatus(`Jest nowsza wersja ${String(rel.tag_name).replace(/^v/, "")} — `
+        + "zamknij ustawienia, żeby pobrać.");
+    }
+  } catch {
+    if (force) updStatus("Brak połączenia — spróbuj później.");
+  }
+}
+
+function showUpdateBanner(rel, local) {
+  const ver = String(rel.tag_name || "").replace(/^v/, "");
+  const el = document.getElementById("update-banner");
+  el.innerHTML = `<div class="upd-txt"><b>Dostępna wersja ${esc(ver)}</b>
+      <span>masz ${esc(local)} · aktualizacja wymaga ręcznej instalacji</span></div>
+    <a class="chip primary" href="${esc(rel.html_url)}" target="_blank" rel="noopener">Pobierz</a>
+    <button class="chip" id="upd-skip" title="Nie przypominaj o tej wersji">✕</button>`;
+  el.classList.remove("hidden");
+  document.getElementById("upd-skip").onclick = () => {
+    localStorage.setItem("straznik_upd_skip", rel.tag_name);
+    el.classList.add("hidden");
+  };
+}
+
 /* ── nasłuch w tle (natywna usługa Androida) ─────────────────────────────── */
 const BG = () => window.Capacitor?.Plugins?.StraznikBackground || null;
 
@@ -1376,11 +1454,29 @@ async function refreshBgStatus() {
     if (s.fullScreenAllowed === false)
       warn.push("⚠ Brak zgody na alarm pełnoekranowy — czerwony alarm nie zapali "
         + "wygaszonego ekranu. Włącz przyciskiem 🚨 poniżej.");
+    /* Rozróżniamy „włączone w ustawieniach” od „faktycznie działa”: system albo
+       menedżer baterii potrafi ubić usługę po cichu, a wtedy alarmy przychodzą
+       tylko przy otwartej aplikacji — objaw, którego bez tej informacji nie da
+       się samodzielnie zdiagnozować. */
+    if (s.enabled && s.serviceAlive === false)
+      warn.push("⚠ Nasłuch jest włączony, ale usługa nie działa — system ją ubił. "
+        + "Wyłącz oszczędzanie baterii i przełącz nasłuch ponownie.");
+    if (s.enabled && s.serviceAlive && s.lastCycleAgoS > 900)
+      warn.push(`⚠ Usługa nie sprawdzała źródeł od ${Math.round(s.lastCycleAgoS / 60)} min `
+        + "— prawdopodobnie została uśpiona przez system.");
+    const mine = myVoiv();
+    if (s.enabled && mine && s.homeVoivodeship && s.homeVoivodeship !== mine)
+      warn.push("⚠ Usługa w tle pilnuje innego regionu niż wybrany — zapisz ustawienia ponownie.");
     /* canUseFullScreenIntent() bywa optymistyczne: przy domyślnym trybie
        uprawnienia zwraca „dozwolone”, choć system i tak odrzuca alarm
        pełnoekranowy (widać to w appops jako rejectTime). Dlatego na Androidzie
        14+ przycisk pokazujemy ZAWSZE — inaczej użytkownik nie miałby jak wejść
        w ustawienia i sprawdzić, czy przełącznik jest naprawdę włączony. */
+    const verEl = document.getElementById("app-version");
+    if (verEl) verEl.textContent = s.appVersion
+      ? `Zainstalowana wersja ${s.appVersion}` : "";
+    const updBtn = document.getElementById("btn-update");
+    if (updBtn) updBtn.style.display = UPDATE_CHECK ? "" : "none";
     const fsBtn = document.getElementById("btn-fullscreen");
     if (fsBtn) {
       const mayBeBlocked = (s.sdk || 0) >= 34;
@@ -1389,10 +1485,15 @@ async function refreshBgStatus() {
         ? "🚨 Zezwól na alarm pełnoekranowy"
         : "🚨 Sprawdź zgodę na alarm pełnoekranowy";
     }
+    const cykl = s.lastCycleAgoS >= 0
+      ? ` · ostatnie sprawdzenie ${s.lastCycleAgoS < 90
+          ? s.lastCycleAgoS + " s" : Math.round(s.lastCycleAgoS / 60) + " min"} temu`
+      : "";
     info.innerHTML = (warn.join("<br>") || (s.enabled
       ? "Nasłuch działa. W powiadomieniach widnieje stała informacja."
       : "Nasłuch wyłączony — alarmy tylko przy otwartej aplikacji."))
-      + `<br><span class="muted">Android ${s.sdk}, ${esc(s.manufacturer || "")}</span>`;
+      + `<br><span class="muted">Android ${s.sdk}, ${esc(s.manufacturer || "")}`
+      + `${s.enabled ? esc(cykl) : ""}${s.homeVoivodeship ? " · region w tle: " + esc(s.homeVoivodeship) : ""}</span>`;
   } catch (e) { info.textContent = "Nie udało się odczytać stanu: " + e; }
 }
 
@@ -1417,6 +1518,11 @@ document.getElementById("btn-notif-settings")?.addEventListener("click", () =>
   BG()?.openNotificationSettings());
 document.getElementById("btn-fullscreen")?.addEventListener("click", async () => {
   await BG()?.requestFullScreenPermission(); setTimeout(refreshBgStatus, 800);
+});
+document.getElementById("btn-update")?.addEventListener("click", async (e) => {
+  e.target.disabled = true;
+  await checkForUpdate(true);
+  e.target.disabled = false;
 });
 
 const aboutDlg = document.getElementById("about");
@@ -1474,5 +1580,14 @@ if (!localStorage.getItem("straznik_onboarded")) {
 }
 setInterval(() => { if (state) renderPanel(); }, 30000);  // odświeżaj "x min temu"
 setInterval(pollOnce, 60000);                              // siatka bezpieczeństwa
+setTimeout(checkForUpdate, 6000);   // po starcie, gdy mapa i dane są już w drodze
+
+/* Region trzeba podać usłudze w tle przy KAŻDYM starcie, nie tylko przy zapisie
+   ustawień. Kto wybrał województwo we wcześniejszej wersji i po aktualizacji nie
+   zajrzał do ustawień, miał w usłudze pusty region — a wtedy pilnowała ona tylko
+   czterech województw przygranicznych i milczała o jego własnym. Alarmy działały
+   przy otwartej aplikacji (silnik w WebView czyta ustawienie bezpośrednio),
+   więc objaw wyglądał jak „w tle nie działa”. */
+setTimeout(() => BG()?.setHomeVoivodeship({ voivodeship: myVoiv() || "" }), 2500);
 if ("serviceWorker" in navigator && !IS_APP)
   navigator.serviceWorker.register("sw.js").catch(() => {});

@@ -9,6 +9,7 @@ przekazujemy dalej confidenceLevel i uncertaintyKm, niczego nie "uściślamy".
 import asyncio
 import json
 import logging
+import math
 import time
 
 import httpx
@@ -75,32 +76,72 @@ def _evaluate(t: dict) -> dict:
     return t
 
 
-async def _maybe_signal(t: dict):
-    """Reguła fuzji dla Neptuna: kurs na PL + <100 km ⇒ punkty wg confidence."""
-    a = t.get("pl_assessment")
-    if not a:
-        return
-    ttype = (t.get("type") or "").lower()
-    if ttype not in config.NEPTUN_SCORED_TYPES:
-        return
-    if not (a["toward_pl"] and a["dist_km"] < config.NEPTUN_NEAR_KM):
-        return
+def _dist_mult(km: float) -> float:
+    for limit, mult in config.NEPTUN_DIST_BANDS:
+        if km < limit:
+            return mult
+    return 0.0
+
+
+def _source_mult(n: int) -> float:
+    for limit, mult in config.NEPTUN_SOURCE_MULT:
+        if n <= limit:
+            return mult
+    return config.NEPTUN_SOURCE_MULT_MAX
+
+
+def score_threat(t: dict, dist_km: float) -> float:
+    """Punkty za pojedynczy track: co leci, ile tego, jak blisko, jak pewnie.
+
+    Zwraca 0 dla typów nieistotnych dla Polski (FPV) i dla obiektów spoza
+    zasięgu. Wzór i kalibrację opisuje komentarz przy NEPTUN_TYPE_WEIGHTS.
+    """
+    weight = config.NEPTUN_TYPE_WEIGHTS.get((t.get("type") or "").lower(), 0.0)
+    if weight <= 0 or dist_km >= config.NEPTUN_MAX_KM:
+        return 0.0
+    count = max(int(t.get("count") or 1), 1)
     conf = (t.get("confidenceLevel") or "low").lower()
-    if conf == "high":
-        points, ev = config.POINTS["neptun_high"], "neptun_high_conf"
-    else:
-        points, ev = config.POINTS["neptun_medlow"], "neptun_medlow_conf"
-    title = (f"{t.get('title') or ttype} kursem na granicę PL, {a['dist_km']} km "
-             f"(woj. {a['border_voiv']}, confidence: {conf}, ±{t.get('uncertaintyKm', '?')} km)")
-    # dedup: jeden sygnał na track na poziom confidence
+    life = (t.get("lifecycle") or "uncertain").lower()
+    sources = max(int(t.get("sourceCount") or 1), 1)
+    points = (weight
+              * math.sqrt(count)
+              * _dist_mult(dist_km)
+              * config.NEPTUN_CONF_MULT.get(conf, 0.35)
+              * _source_mult(sources)
+              * config.NEPTUN_LIFECYCLE_MULT.get(life, 0.85))
+    return round(points, 2)
+
+
+async def _maybe_signal(t: dict):
+    """Reguła fuzji dla Neptuna: obiekt kursem na PL, punktowany wg wagi zagrożenia."""
+    a = t.get("pl_assessment")
+    if not a or not a["toward_pl"]:
+        return
+    points = score_threat(t, a["dist_km"])
+    if points <= 0:
+        return
+
+    ttype = (t.get("type") or "").lower()
+    count = max(int(t.get("count") or 1), 1)
+    conf = (t.get("confidenceLevel") or "low").lower()
+    sources = max(int(t.get("sourceCount") or 1), 1)
+    ile = f"{count}× " if count > 1 else ""
+    title = (f"{ile}{t.get('title') or ttype} kursem na granicę PL, {a['dist_km']} km "
+             f"(woj. {a['border_voiv']}, confidence: {conf}, {sources} potwierdzeń, "
+             f"±{t.get('uncertaintyKm', '?')} km)")
+    # Poziom w kluczu deduplikacji: gdy obiekt się zbliży albo zyska potwierdzenia,
+    # jego waga rośnie i sygnał ma prawo wejść ponownie z wyższą punktacją.
+    tier = int(points * 2)
     await fusion.ingest(
-        source="neptun", event_type=ev, voivodeship=a["border_voiv"], points=points,
-        title=title,
-        details={"track_id": t.get("id"), "type": ttype, "lat": t.get("lat"),
-                 "lon": t.get("lon"), "heading": t.get("heading"),
-                 "confidence": conf, "uncertainty_km": t.get("uncertaintyKm"),
+        source="neptun", event_type="neptun_threat", voivodeship=a["border_voiv"],
+        points=points, title=title,
+        details={"track_id": t.get("id"), "type": ttype, "count": count,
+                 "lat": t.get("lat"), "lon": t.get("lon"), "heading": t.get("heading"),
+                 "confidence": conf, "source_count": sources,
+                 "lifecycle": t.get("lifecycle"),
+                 "uncertainty_km": t.get("uncertaintyKm"),
                  "dist_km": a["dist_km"], "region": t.get("region")},
-        dedup_key=f"neptun:{t.get('id')}:{ev}",
+        dedup_key=f"neptun:{t.get('id')}:t{tier}",
     )
 
 

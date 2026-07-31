@@ -14,7 +14,10 @@ const WINDOW_MIN = 60, FULL_MIN = 30, TH_ELEVATED = 2, TH_HIGH = 4, COOLDOWN_MIN
 const HISTORY_H = 12;   // ile godzin trzymamy do przeglądania wstecz
 const POINTS = { neptun_high: 3, neptun_medlow: 1.5, adsb_spike: 1, media_keywords: 2,
                  rcb_alert: 2, ua_alert_border: 1, baltic_context: 1, pansa_zone: 1 };
-const SOURCE_CAPS = { media: 2, rcb: 2, adsb: 1, pansa: 1 };
+// Neptun ma wyższy limit niż reszta (każdy track to osobny fizyczny obiekt),
+// ale nie nieograniczony — przy kilkudziesięciu obiektach suma i tak dawno
+// przekroczyła próg alarmu, a trzycyfrowa punktacja psułaby czytelność skali.
+const SOURCE_CAPS = { media: 2, rcb: 2, adsb: 1, pansa: 1, neptun: 8 };
 const VOIVODESHIPS = ["lubelskie","podkarpackie","podlaskie","mazowieckie","świętokrzyskie",
   "małopolskie","warmińsko-mazurskie","łódzkie","śląskie","kujawsko-pomorskie","pomorskie",
   "zachodniopomorskie","lubuskie","wielkopolskie","dolnośląskie","opolskie"];
@@ -42,8 +45,20 @@ const NEIGHBORS = {
   "wielkopolskie":["zachodniopomorskie","pomorskie","kujawsko-pomorskie","łódzkie","opolskie","dolnośląskie","lubuskie"],
   "zachodniopomorskie":["pomorskie","wielkopolskie","lubuskie"],
 };
-const SCORED_TYPES = new Set(["uav","missile","ballistic","kab","mig31k","cruise","shahed"]);
-const NEAR_KM = 100, HEADING_TOL = 50;
+/* Punktacja obiektów NEPTUN — lustrzana kopia config.py z backendu.
+   Zagrożenie zależy od tego CO leci, ILE tego jest, JAK BLISKO i JAK PEWNA
+   jest obserwacja, więc zamiast jednej stawki liczymy iloczyn czynników. */
+const NEPTUN_TYPE_WEIGHTS = {
+  ballistic: 3.0, mig31k: 2.6, cruise: 2.4, missile: 2.4,
+  kab: 1.8, shahed: 1.4, uav: 1.1, recon: 0.5, fpv: 0.0,
+};
+const NEPTUN_DIST_BANDS = [[30, 1.6], [60, 1.3], [100, 1.0], [150, 0.55], [250, 0.25]];
+const NEPTUN_MAX_KM = 250;
+const NEPTUN_CONF_MULT = { high: 1.0, medium: 0.6, low: 0.35 };
+const NEPTUN_LIFECYCLE_MULT = { confirmed: 1.1, uncertain: 0.85, created: 0.7 };
+const NEPTUN_SOURCE_MULT = [[1, 0.7], [2, 0.9], [4, 1.1]];
+const NEPTUN_SOURCE_MULT_MAX = 1.25;
+const HEADING_TOL = 50;
 const BORDER_POINTS = [
   [54.44,19.80,"warmińsko-mazurskie"],[54.35,20.60,"warmińsko-mazurskie"],
   [54.36,21.50,"warmińsko-mazurskie"],[54.34,22.79,"warmińsko-mazurskie"],
@@ -357,17 +372,49 @@ function reevaluate() {
 }
 
 /* ── kolektor: Neptun (WS bezpośrednio z telefonu) ───────────────────────── */
+/* Punktacja obiektu — lustrzana kopia reguły z backendu:
+   waga typu × √liczba × k_odległości × k_wiarygodności × k_potwierdzeń × k_cyklu. */
+function distMult(km) {
+  for (const [limit, mult] of NEPTUN_DIST_BANDS) if (km < limit) return mult;
+  return 0;
+}
+function sourceMult(n) {
+  for (const [limit, mult] of NEPTUN_SOURCE_MULT) if (n <= limit) return mult;
+  return NEPTUN_SOURCE_MULT_MAX;
+}
+function scoreThreat(t, distKm) {
+  const weight = NEPTUN_TYPE_WEIGHTS[(t.type || "").toLowerCase()] || 0;
+  if (weight <= 0 || distKm >= NEPTUN_MAX_KM) return 0;
+  const count = Math.max(parseInt(t.count) || 1, 1);
+  const conf = (t.confidenceLevel || "low").toLowerCase();
+  const life = (t.lifecycle || "uncertain").toLowerCase();
+  const sources = Math.max(parseInt(t.sourceCount) || 1, 1);
+  const p = weight * Math.sqrt(count) * distMult(distKm)
+    * (NEPTUN_CONF_MULT[conf] ?? 0.35) * sourceMult(sources)
+    * (NEPTUN_LIFECYCLE_MULT[life] ?? 0.85);
+  return Math.round(p * 100) / 100;
+}
+
 function neptunEval(t) {
   if (t.lat == null) return t;
   t.pl_assessment = assess(t.lat, t.lon, t.heading);
   const a = t.pl_assessment, ty = (t.type||"").toLowerCase();
-  if (SCORED_TYPES.has(ty) && a.toward_pl && a.dist_km < NEAR_KM) {
-    const conf = (t.confidenceLevel||"low").toLowerCase();
-    const high = conf === "high";
-    addSignal("neptun", high ? "neptun_high_conf" : "neptun_medlow_conf", a.border_voiv,
-      high ? POINTS.neptun_high : POINTS.neptun_medlow,
-      `${t.title||ty} kursem na granicę PL, ${a.dist_km} km (woj. ${a.border_voiv}, confidence: ${conf}, ±${t.uncertaintyKm??"?"} km)`,
-      { track_id: t.id, dist_km: a.dist_km }, `neptun:${t.id}:${high?"h":"m"}`);
+  if (a.toward_pl) {
+    const points = scoreThreat(t, a.dist_km);
+    if (points > 0) {
+      const count = Math.max(parseInt(t.count) || 1, 1);
+      const conf = (t.confidenceLevel||"low").toLowerCase();
+      const sources = Math.max(parseInt(t.sourceCount) || 1, 1);
+      const ile = count > 1 ? `${count}× ` : "";
+      // poziom w kluczu: gdy obiekt się zbliży lub zyska potwierdzenia,
+      // sygnał wchodzi ponownie z wyższą punktacją
+      const tier = Math.floor(points * 2);
+      addSignal("neptun", "neptun_threat", a.border_voiv, points,
+        `${ile}${t.title||ty} kursem na granicę PL, ${a.dist_km} km (woj. ${a.border_voiv}, `
+        + `confidence: ${conf}, ${sources} potwierdzeń, ±${t.uncertaintyKm??"?"} km)`,
+        { track_id: t.id, dist_km: a.dist_km, count, source_count: sources },
+        `neptun:${t.id}:t${tier}`);
+    }
   }
   return t;
 }
@@ -430,9 +477,15 @@ async function tickAdsb() {
     }
     const samples = JSON.parse(localStorage.getItem("eng_adsb") || "[]");
     const now = Date.now();
+    const nowHour = new Date(now).getUTCHours();
     for (const [v, planes] of Object.entries(per)) {
       samples.push([now, v, planes.length]);
-      const week = samples.filter(s => s[1] === v && now - s[0] < 7*24*3600*1000);
+      const weekAll = samples.filter(s => s[1] === v && now - s[0] < 7*24*3600*1000);
+      /* Porównujemy z TĄ SAMĄ porą doby: średnia dobowa myliłaby noc z dniem,
+         przez co każde normalne popołudnie wyglądałoby jak anomalia. Gdy dla
+         tej godziny nie ma jeszcze próbek, schodzimy do średniej dobowej. */
+      const sameHour = weekAll.filter(s => new Date(s[0]).getUTCHours() === nowHour);
+      const week = sameHour.length ? sameHour : weekAll;
       const baseline = week.reduce((a,s) => a+s[2], 0) / Math.max(week.length, 1);
       if (baseline > 0 && planes.length >= 3 && planes.length > 2*baseline) {
         addSignal("adsb","adsb_spike",v,POINTS.adsb_spike,

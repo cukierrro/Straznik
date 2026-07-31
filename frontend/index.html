@@ -58,6 +58,7 @@
 </div>
 
 <div id="my-banner" class="hidden"></div>
+<div id="update-banner" class="hidden"></div>
 
 <aside id="panel" class="collapsed">
   <button id="panel-x" title="Zamknij panel">✕</button>
@@ -165,9 +166,9 @@
     o poziomie — i zawsze widzisz jej pełne rozbicie.</p>
 
     <table class="about-tab">
-      <tr><td><b>NEPTUN</b></td><td>obiekt (dron, rakieta, KAB) kursem na granicę PL,
-        bliżej niż 100 km — wiarygodność wysoka</td><td class="pts">+3</td></tr>
-      <tr><td></td><td>jw., wiarygodność średnia lub niska</td><td class="pts">+1,5</td></tr>
+      <tr><td><b>NEPTUN</b></td><td>obiekt kursem na granicę PL — punkty zależą od
+        tego <b>co</b> leci, <b>ile</b> tego jest, <b>jak blisko</b> jest
+        i <b>ile źródeł</b> to potwierdza (rozpisane niżej)</td><td class="pts">0–8</td></tr>
       <tr><td></td><td>oficjalny alarm w przygranicznym obwodzie Ukrainy</td><td class="pts">+1</td></tr>
       <tr><td><b>Media</b></td><td>relacje lokalnych mediów: syreny, wybuch,
         naruszenie przestrzeni</td><td class="pts">+2</td></tr>
@@ -179,6 +180,28 @@
       <tr><td><b>Bałtyk</b></td><td>incydent powietrzny wg mediów Litwy, Łotwy
         lub Estonii</td><td class="pts">+1</td></tr>
     </table>
+
+    <h3>Skąd punkty za obiekt z NEPTUN-a</h3>
+    <p class="fineprint">Jeden Shahed 80 km od granicy to co innego niż sześć
+    Shahedów 50 km od granicy, a dron FPV o zasięgu kilkunastu kilometrów nie
+    zagraża Polsce w ogóle. Dlatego punkty to iloczyn czterech czynników:</p>
+    <table class="about-tab">
+      <tr><td><b>Co leci</b></td><td>rakieta balistyczna 3,0 · MiG-31K 2,6 ·
+        manewrująca 2,4 · KAB 1,8 · Shahed 1,4 · dron 1,1 · zwiadowczy 0,5 ·
+        FPV 0 (nie punktuje)</td></tr>
+      <tr><td><b>Ile</b></td><td>pierwiastek z liczby obiektów — cztery sztuki
+        ważą dwa razy tyle co jedna, ale nie cztery razy</td></tr>
+      <tr><td><b>Jak blisko</b></td><td>&lt;30 km ×1,6 · &lt;60 km ×1,3 ·
+        &lt;100 km ×1,0 · &lt;150 km ×0,55 · &lt;250 km ×0,25 · dalej 0</td></tr>
+      <tr><td><b>Jak pewnie</b></td><td>wiarygodność (wysoka ×1,0, średnia ×0,6,
+        niska ×0,35), liczba niezależnych zgłoszeń (jedno ×0,7, pięć i więcej ×1,25)
+        oraz status obserwacji</td></tr>
+    </table>
+    <p class="fineprint">Model sprawdzono na udokumentowanych zdarzeniach:
+    masowe naruszenie granicy i rakieta tuż przy granicy przekraczają próg alarmu,
+    a rutynowy nalot na zachodnią Ukrainę — który zdarza się regularnie i Polsce
+    nie zagraża — zostaje poniżej progu. Wkład całego NEPTUN-a jest ograniczony
+    do 8 pkt, żeby skala pozostała czytelna.</p>
 
     <h3>Poziomy</h3>
     <div class="lvl-row"><i class="sq" style="--c:#ffb020"></i>
@@ -294,6 +317,14 @@
     </div>
     <p class="fineprint">Przy czerwonym poziomie syrena gra <b>bez przerwy</b>,
     aż potwierdzisz alarm przyciskiem na ekranie.</p>
+    <h3 style="margin-top:16px">Wersja aplikacji</h3>
+    <p class="fineprint" id="app-version">—</p>
+    <button type="button" id="btn-update" class="chip">⬆ Sprawdź aktualizacje</button>
+    <p class="fineprint" id="upd-status"></p>
+    <p class="fineprint">Aplikacja nie pochodzi ze sklepu, więc sama sprawdza raz
+    na dobę, czy jest nowsze wydanie. Jeśli pominiesz powiadomienie, sprawdzisz
+    ręcznie tym przyciskiem.</p>
+
     <details style="margin-top:14px">
       <summary class="fineprint" style="cursor:pointer">Zaawansowane: wspólny backend</summary>
       <label style="margin-top:8px">Adres serwera (opcjonalnie)
