@@ -1350,6 +1350,36 @@ document.getElementById("set-save").onclick = () => {
   if (mapReady) { map.setFilter("my-voiv", ["==", ["get", "nazwa"], v || "—"]); goHome(); }
   if (state) renderPanel();
 };
+/* ── widoczny stan nasłuchu w tle ────────────────────────────────────────── */
+/* Nasłuch jest domyślnie wyłączony, a bez niego alarmy docierają wyłącznie przy
+   otwartej aplikacji. Ukrycie tej informacji w ustawieniach sprawiało, że
+   użytkownik był przekonany, że aplikacja pilnuje go w tle, choć nie pilnowała.
+   Pasek pojawia się tylko wtedy, gdy jest realny problem. */
+async function refreshBgWarning() {
+  const el = document.getElementById("bg-warning");
+  if (!el) return;
+  const plugin = BG();
+  if (!plugin) { el.classList.add("hidden"); return; }
+  try {
+    const s = await plugin.status();
+    let msg = null;
+    if (!s.enabled) {
+      msg = "Nasłuch w tle wyłączony — alarmy dotrą tylko przy otwartej aplikacji";
+    } else if (s.serviceAlive === false) {
+      msg = "Usługa nasłuchu nie działa — system ją zatrzymał";
+    } else if (!s.notificationsAllowed) {
+      msg = "Powiadomienia zablokowane w ustawieniach systemu";
+    }
+    if (msg) {
+      el.innerHTML = `<span>⚠ ${esc(msg)}</span><button class="chip">Napraw</button>`;
+      el.querySelector("button").onclick = () => openSettings();
+      el.classList.remove("hidden");
+    } else {
+      el.classList.add("hidden");
+    }
+  } catch { el.classList.add("hidden"); }
+}
+
 /* ── sprawdzanie aktualizacji ────────────────────────────────────────────── */
 /* Aplikacja jest rozprowadzana poza sklepem, więc sama musi powiedzieć, że
    wyszła nowsza wersja — inaczej użytkownik zostaje z wersją sprzed miesięcy,
@@ -1581,6 +1611,8 @@ if (!localStorage.getItem("straznik_onboarded")) {
 setInterval(() => { if (state) renderPanel(); }, 30000);  // odświeżaj "x min temu"
 setInterval(pollOnce, 60000);                              // siatka bezpieczeństwa
 setTimeout(checkForUpdate, 6000);   // po starcie, gdy mapa i dane są już w drodze
+setTimeout(refreshBgWarning, 3500);
+setInterval(refreshBgWarning, 60000);
 
 /* Region trzeba podać usłudze w tle przy KAŻDYM starcie, nie tylko przy zapisie
    ustawień. Kto wybrał województwo we wcześniejszej wersji i po aktualizacji nie

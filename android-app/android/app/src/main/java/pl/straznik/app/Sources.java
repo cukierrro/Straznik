@@ -159,7 +159,11 @@ class Sources {
             URL url = new URL(urlStr);
             c = (HttpURLConnection) url.openConnection();
             c.setRequestProperty("User-Agent", UA);
-            c.setRequestProperty("Accept", "*/*");
+            // pełniejszy zestaw nagłówków: część serwisów (m.in. gov.pl) odrzuca
+            // żądania wyglądające na automat, a te trzy nagłówki wysyła każda przeglądarka
+            c.setRequestProperty("Accept",
+                "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
+            c.setRequestProperty("Accept-Language", "pl-PL,pl;q=0.9,en;q=0.8");
             c.setConnectTimeout(15000);
             c.setReadTimeout(20000);
             c.setInstanceFollowRedirects(true);

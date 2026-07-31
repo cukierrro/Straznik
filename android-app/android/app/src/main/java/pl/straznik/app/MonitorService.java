@@ -259,8 +259,19 @@ public class MonitorService extends Service {
     /** Stan źródeł widoczny dla użytkownika — inaczej „nasłuch aktywny" nic nie mówi. */
     private final java.util.LinkedHashMap<String, String> diag = new java.util.LinkedHashMap<>();
 
+    /** Ile nieudanych prób z rzędu, zanim źródło uznamy za niedostępne.
+     *  Na mobilnym internecie pojedynczy timeout zdarza się stale — oznaczanie
+     *  źródła krzyżykiem po pierwszym błędzie pokazywało awarię tam, gdzie jej
+     *  nie było. */
+    private static final int FAIL_TOLERANCE = 3;
+    private final java.util.HashMap<String, Integer> failCount = new java.util.HashMap<>();
+
     private void note(String src, boolean ok, int found) {
-        diag.put(src, ok ? (found > 0 ? "✓" + found : "✓") : "✕");
+        int fails = ok ? 0 : failCount.getOrDefault(src, 0) + 1;
+        failCount.put(src, fails);
+        if (ok) diag.put(src, found > 0 ? "✓" + found : "✓");
+        else if (fails >= FAIL_TOLERANCE) diag.put(src, "✕");
+        // przy 1–2 błędach zostawiamy poprzedni stan: źródło jeszcze się nie poddało
         getSharedPreferences("straznik_bg", MODE_PRIVATE).edit()
             .putString("diag", diagText())
             .putLong("diag_ts", System.currentTimeMillis()).apply();

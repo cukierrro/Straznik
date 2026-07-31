@@ -170,7 +170,21 @@ let rcbBootstrapped = localStorage.getItem("eng_rcb_boot") === "1";
 const rcbSeen = new Set(JSON.parse(localStorage.getItem("eng_rcb_seen") || "[]"));
 let signals = JSON.parse(localStorage.getItem("eng_signals") || "[]");
 const seenKeys = new Map(JSON.parse(localStorage.getItem("eng_seen") || "[]"));
+/* Pamięć poziomów przeżywa zamknięcie aplikacji. Trzymana w RAM zerowała się
+   przy każdym starcie, więc aplikacja „odkrywała" ponownie poziom, o którym
+   usługa w tle dawno powiadomiła — i alarmowała drugi raz. Wyglądało to tak,
+   jakby powiadomienia czekały na otwarcie aplikacji. */
 let lastLevels = {}, lastNotif = {};
+try {
+  lastLevels = JSON.parse(localStorage.getItem("eng_levels") || "{}");
+  lastNotif = JSON.parse(localStorage.getItem("eng_notif") || "{}");
+} catch {}
+function persistLevels() {
+  try {
+    localStorage.setItem("eng_levels", JSON.stringify(lastLevels));
+    localStorage.setItem("eng_notif", JSON.stringify(lastNotif));
+  } catch {}
+}
 
 function persist() {
   const cut = Date.now() - 24*3600*1000;
@@ -207,11 +221,21 @@ function voivForPoint(lat,lon){
 }
 
 /* ── HTTP natywny (CapacitorHttp gdy dostępny — omija CORS) ──────────────── */
+/* Nagłówki jak z przeglądarki: samo „Mozilla/5.0" bywa odrzucane przez serwisy
+   filtrujące automaty (m.in. gov.pl), a te trzy pola wysyła każda przeglądarka.
+   Dłuższy limit czasu, bo strony rządowe potrafią odpowiadać wolno. */
+const HTTP_HEADERS = {
+  "User-Agent": "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 "
+    + "(KHTML, like Gecko) Chrome/126.0 Mobile Safari/537.36",
+  "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+  "Accept-Language": "pl-PL,pl;q=0.9,en;q=0.8",
+};
+
 async function httpGet(url) {
   const CH = window.Capacitor?.Plugins?.CapacitorHttp;
   if (CH) {
-    const r = await CH.get({ url, headers: { "User-Agent": "Mozilla/5.0" },
-                             connectTimeout: 15000, readTimeout: 15000 });
+    const r = await CH.get({ url, headers: HTTP_HEADERS,
+                             connectTimeout: 20000, readTimeout: 20000 });
     if (r.status >= 400) throw new Error("HTTP " + r.status);
     return typeof r.data === "string" ? r.data : JSON.stringify(r.data);
   }
@@ -249,6 +273,24 @@ const matchVoiv = (text) => {
     }
   return bestVoiv;
 };
+
+/* Dioda źródła gaśnie dopiero po kilku nieudanych próbach z rzędu.
+   Pojedynczy timeout albo zerwane połączenie zdarza się na mobilnym internecie
+   stale — czerwona dioda przy działającym źródle niepokoiła bez powodu i kazała
+   szukać awarii tam, gdzie jej nie było. */
+const FAIL_TOLERANCE = 3;
+const failCount = {};
+function markHealth(src, ok) {
+  if (ok) { failCount[src] = 0; health[src] = true; return; }
+  failCount[src] = (failCount[src] || 0) + 1;
+  if (failCount[src] >= FAIL_TOLERANCE) health[src] = false;
+}
+function markRss(url, ok) {
+  const key = "rss:" + url;
+  if (ok) { failCount[key] = 0; health.rss[url] = true; return; }
+  failCount[key] = (failCount[key] || 0) + 1;
+  if (failCount[key] >= FAIL_TOLERANCE) health.rss[url] = false;
+}
 
 /* ── fuzja ───────────────────────────────────────────────────────────────── */
 function addSignal(source, eventType, voiv, points, title, details, key) {
@@ -350,13 +392,27 @@ function shouldNotify(voiv) {
   return mine ? voiv === mine : PRIORITY_VOIVS.includes(voiv);
 }
 
+/* Gdy nasłuch w tle działa, to on odpowiada za powiadomienia systemowe.
+   Bez tego rozdziału oba silniki alarmowały niezależnie: użytkownik dostawał
+   duplikaty albo — częściej — powiadomienie dopiero po otwarciu aplikacji,
+   o zdarzeniu, które usługa zgłosiła znacznie wcześniej. Alarm w interfejsie
+   (pełny ekran, syrena) pokazuje się niezależnie od tego ustawienia. */
+let bgServiceOwnsAlerts = false;
+async function refreshAlertOwnership() {
+  try {
+    const s = await window.Capacitor?.Plugins?.StraznikBackground?.status();
+    bgServiceOwnsAlerts = !!(s?.enabled && s?.serviceAlive !== false);
+  } catch { bgServiceOwnsAlerts = false; }
+}
+
 function reevaluate() {
   const st = computeState();
   for (const [voiv, s] of Object.entries(st.voivodeships)) {
     const prev = lastLevels[voiv] || "none";
     if (s.level !== prev) {
       const order = ["none","elevated","high"];
-      if (order.indexOf(s.level) > order.indexOf(prev) && shouldNotify(voiv)) {
+      if (order.indexOf(s.level) > order.indexOf(prev) && shouldNotify(voiv)
+          && !bgServiceOwnsAlerts) {
         const ck = voiv + "|" + s.level;
         if (!lastNotif[ck] || Date.now() - lastNotif[ck] > COOLDOWN_MIN*60*1000) {
           lastNotif[ck] = Date.now();
@@ -366,6 +422,7 @@ function reevaluate() {
         }
       }
       lastLevels[voiv] = s.level;
+      persistLevels();
     }
   }
   emit();
@@ -438,7 +495,7 @@ function neptunAlerts(data) {
 }
 function startNeptun() {
   try { ws = new WebSocket("wss://neptun.in.ua/api/v1/stream"); } catch { return retryNeptun(); }
-  ws.onopen = () => { health.neptun = true; wsRetry = 1; emit(); };
+  ws.onopen = () => { markHealth("neptun", true); wsRetry = 1; emit(); };
   ws.onmessage = (e) => {
     let env; try { env = JSON.parse(e.data); } catch { return; }
     if (env.type === "snapshot") { tracks.clear();
@@ -448,7 +505,7 @@ function startNeptun() {
     else if (env.type === "alerts") neptunAlerts(env.data);
     emit();
   };
-  ws.onclose = ws.onerror = () => { health.neptun = false; retryNeptun(); };
+  ws.onclose = ws.onerror = () => { markHealth("neptun", false); retryNeptun(); };
 }
 function retryNeptun() {
   if (ws) { ws.onclose = ws.onerror = null; try { ws.close(); } catch {} ws = null; }
@@ -495,8 +552,8 @@ async function tickAdsb() {
     }
     localStorage.setItem("eng_adsb",
       JSON.stringify(samples.filter(s => now - s[0] < 14*24*3600*1000)));
-    health.adsb = true;
-  } catch (e) { health.adsb = false; }
+    markHealth("adsb", true);
+  } catch (e) { markHealth("adsb", false); }
   emit();
 }
 
@@ -514,7 +571,7 @@ async function tickRss() {
   for (const [url, defVoiv] of RSS_FEEDS) {
     try {
       const items = parseFeed(await httpGet(url));
-      health.rss[url] = true;
+      markRss(url, true);
       for (const it of items.slice(0,30)) {
         const age = it.date ? Date.now() - new Date(it.date).getTime() : 0;
         if (age > MAX_AGE_MS) continue;
@@ -526,12 +583,12 @@ async function tickRss() {
           `Media: „${it.title.slice(0,120)}”`, {link:it.link, keywords:hits},
           "media:" + (it.link || it.title));
       }
-    } catch { health.rss[url] = false; }
+    } catch { markRss(url, false); }
   }
   for (const [url, country] of BALTIC_FEEDS) {
     try {
       const items = parseFeed(await httpGet(url));
-      health.rss[url] = true;
+      markRss(url, true);
       for (const it of items.slice(0,30)) {
         const age = it.date ? Date.now() - new Date(it.date).getTime() : 0;
         if (age > MAX_AGE_MS) continue;
@@ -542,7 +599,7 @@ async function tickRss() {
             `Media ${country}: „${it.title.slice(0,110)}”`, {link:it.link},
             `baltic:${it.link||it.title}:${v}`);
       }
-    } catch { health.rss[url] = false; }
+    } catch { markRss(url, false); }
   }
   emit();
 }
@@ -551,7 +608,7 @@ async function tickRss() {
 async function tickRcb() {
   try {
     const html = await httpGet("https://www.gov.pl/web/rcb");
-    health.rcb = true;
+    markHealth("rcb", true);
     const re = /href="(\/web\/rcb\/[a-z0-9-]{8,})"[^>]*>([\s\S]*?)<\/a>/gi;
     let m, found = [];
     while ((m = re.exec(html)) && found.length < 20) {
@@ -574,7 +631,7 @@ async function tickRcb() {
     rcbBootstrapped = true;
     localStorage.setItem("eng_rcb_boot", "1");
     persist();
-  } catch { health.rcb = false; }
+  } catch { markHealth("rcb", false); }
   emit();
 }
 
@@ -613,8 +670,8 @@ async function tickPansa() {
         if (Array.isArray(d) && d.length) { feats = d; break; }
       } catch {}
     }
-    if (!feats) { health.pansa = false; return emit(); }
-    health.pansa = true;
+    if (!feats) { markHealth("pansa", false); return emit(); }
+    markHealth("pansa", true);
     const now = Date.now(), active = new Map();
     for (const f of feats) {
       const p = f.properties || {}, dz = p.designator;
@@ -642,7 +699,7 @@ async function tickPansa() {
       }
     }
     prevZones = new Set(active.keys());
-  } catch (e) { health.pansa = false; }
+  } catch (e) { markHealth("pansa", false); }
   emit();
 }
 
@@ -729,6 +786,9 @@ function timeline() {
 /* ── start ───────────────────────────────────────────────────────────────── */
 async function start(stateCb) {
   onState = stateCb;
+  // kto odpowiada za powiadomienia: usługa w tle czy silnik w aplikacji
+  await refreshAlertOwnership();
+  setInterval(refreshAlertOwnership, 60000);
   const LN = window.Capacitor?.Plugins?.LocalNotifications;
   if (LN) {
     try {
@@ -744,7 +804,7 @@ async function start(stateCb) {
   startNeptun();
   tickAdsb(); setInterval(tickAdsb, 60000);
   tickRss(); setInterval(tickRss, 60000);
-  tickRcb(); setInterval(tickRcb, 120000);
+  tickRcb(); setInterval(tickRcb, 180000);   // 3 min: alerty RCB nie zmieniają się częściej
   tickPansa(); setInterval(tickPansa, 300000);
   setInterval(reevaluate, 30000);   // wygasanie okna bez nowych zdarzeń
   setTimeout(saveSnapshot, 20000);
