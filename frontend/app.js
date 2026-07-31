@@ -431,6 +431,7 @@ function openPlanePopup(lngLat, p) {
 }
 
 function updateVoivStates() {
+  if (histMode) return;   // mapa pokazuje wtedy chwilę wybraną suwakiem
   const voivs = state?.fusion?.voivodeships || {};
   for (const [name, st] of Object.entries(voivs)) {
     map.setFeatureState({ source: "voiv", id: name },
@@ -560,6 +561,7 @@ function animate(ts) {
 }
 
 function updateAdsb() {
+  if (histMode) return;   // pozycje maszyn pochodzą wtedy z migawki
   const planes = state?.adsb?.aircraft || [];
   map.getSource("adsb")?.setData({ type: "FeatureCollection",
     features: planes.map(p => ({ type: "Feature",
@@ -581,6 +583,9 @@ const esc = (s) => String(s ?? "").replace(/[<>&"]/g, c => ({ "<": "&lt;", ">": 
 const esc2 = esc;
 
 function renderPanel() {
+  // w trybie historii panel należy do wybranej chwili — cykliczne odświeżanie
+  // (co 30 s) i napływające stany nie mogą go podmienić na dane bieżące
+  if (histMode) return;
   const f = state?.fusion; if (!f) return;
   document.getElementById("window-min").textContent = f.window_min;
 
@@ -691,14 +696,90 @@ function openCard(name) {
   if (el) { el.classList.add("open"); el.scrollIntoView({ behavior: "smooth" }); }
 }
 
-function renderLeds() {
+/* Co znaczy każda dioda i dlaczego bywa czerwona — czerwona kropka bez
+   wyjaśnienia niepokoi bardziej niż powinna, bo najczęstsze przyczyny są
+   niegroźne (źródło chwilowo nie odpowiada, warstwa jeszcze się nie rozgrzała). */
+const SOURCE_INFO = {
+  "NEPTUN": {
+    co: "Agregator OSINT z Ukrainy — obiekty powietrzne (drony, rakiety, KAB) "
+      + "i oficjalne alarmy w obwodach. Główne źródło wyprzedzenia.",
+    czerwona: "Zerwane połączenie z serwerem NEPTUN albo brak internetu. "
+      + "Aplikacja próbuje ponownie co minutę.",
+  },
+  "ADS-B": {
+    co: "Publiczne transpondery lotnicze (adsb.lol) — maszyny wojskowe nad Polską. "
+      + "Punktuje dopiero ruch dwukrotnie wyższy niż średnia z 7 dni.",
+    czerwona: "Serwis adsb.lol nie odpowiada. Warstwa nie punktuje też przez "
+      + "pierwszy tydzień, zanim uzbiera się średnia do porównania.",
+  },
+  "RSS": {
+    co: "Media lokalne i ogólnopolskie — nagłówki o syrenach, alarmach "
+      + "i naruszeniach przestrzeni powietrznej.",
+    czerwona: "Żaden kanał nie odpowiedział. Zwykle chwilowe; bywa też, "
+      + "że serwis zmienił format i wymaga poprawki.",
+  },
+  "RCB": {
+    co: "Komunikaty Rządowego Centrum Bezpieczeństwa z gov.pl — jedyne "
+      + "oficjalne źródło w tym zestawie.",
+    czerwona: "Strona gov.pl nie odpowiada albo zmieniła układ. "
+      + "Alerty RCB docierają wtedy tylko przez SMS-y systemowe.",
+  },
+  "PAŻP": {
+    co: "Strefy przestrzeni powietrznej (AUP/UUP) z airspace.pansa.pl — "
+      + "nowo aktywowana strefa nad regionem to sygnał pomocniczy.",
+    czerwona: "Serwis PAŻP nie odpowiada. W trybie wbudowanym ta warstwa "
+      + "bywa niedostępna — wtedy pozostałe źródła działają normalnie.",
+  },
+};
+
+function ledItems() {
   const h = state?.health || {};
-  const rssOk = h.rss && Object.values(h.rss).some(Boolean);
-  const items = [["NEPTUN", h.neptun], ["ADS-B", h.adsb], ["RSS", rssOk],
-                 ["RCB", h.rcb], ["PAŻP", h.pansa]];
-  document.getElementById("status-leds").innerHTML = items.map(([n, ok]) =>
-    `<span class="led ${ok ? "ok" : "err"}" title="${n}: ${ok ? "OK" : "niedostępne"}"><i></i><span>${n}</span></span>`).join("");
+  const rssFeeds = h.rss ? Object.values(h.rss) : [];
+  const rssOk = rssFeeds.some(Boolean);
+  return [
+    ["NEPTUN", !!h.neptun, ""],
+    ["ADS-B", !!h.adsb, ""],
+    ["RSS", rssOk, rssFeeds.length ? `${rssFeeds.filter(Boolean).length}/${rssFeeds.length} kanałów` : ""],
+    ["RCB", !!h.rcb, ""],
+    ["PAŻP", !!h.pansa, ""],
+  ];
 }
+
+function renderLeds() {
+  document.getElementById("status-leds").innerHTML = ledItems().map(([n, ok]) =>
+    `<span class="led ${ok ? "ok" : "err"}"><i></i><span>${n}</span></span>`).join("");
+  // okno źródeł bywa otwarte właśnie wtedy, gdy użytkownik czeka na powrót
+  // połączenia — musi pokazywać stan na żywo, nie ten sprzed otwarcia
+  if (document.getElementById("sources")?.open) fillSources();
+}
+
+function fillSources() {
+  const rows = ledItems().map(([name, ok, extra]) => {
+    const info = SOURCE_INFO[name] || {};
+    return `<div class="src-row ${ok ? "ok" : "err"}">
+      <div class="src-head"><i></i><b>${name}</b>
+        <span class="src-state">${ok ? "działa" : "nie odpowiada"}${extra ? " · " + esc(extra) : ""}</span></div>
+      <p class="src-what">${info.co || ""}</p>
+      ${ok ? "" : `<p class="src-why">Dlaczego czerwona: ${info.czerwona || ""}</p>`}
+    </div>`;
+  }).join("");
+  const anyErr = ledItems().some(([, ok]) => !ok);
+  document.getElementById("src-list").innerHTML = rows;
+  document.getElementById("src-note").innerHTML = anyErr
+    ? "Czerwona dioda nie oznacza awarii aplikacji — pozostałe źródła liczą się "
+      + "dalej, a fuzja i tak wymaga zgodności kilku z nich. Jeśli czerwone są "
+      + "wszystkie, sprawdź połączenie z internetem."
+    : "Wszystkie źródła odpowiadają.";
+}
+
+function showSources() {
+  fillSources();
+  document.getElementById("sources").showModal();
+}
+
+document.getElementById("status-leds").onclick = () => { if (state) showSources(); };
+document.getElementById("src-close")?.addEventListener("click", () =>
+  document.getElementById("sources").close());
 
 /* ── alarm dźwiękowy przy poziomie WYSOKI ────────────────────────────────── */
 let lastMood = "none";
@@ -1152,17 +1233,27 @@ async function showHistoryAt(idx) {
   const sigs = h?.signals || [];
   const threats = snap?.threats || [];
   const planes = snap?.aircraft || [];
+  // punktacja z tamtej chwili — używa jej i mapa, i panel
+  const perVoiv = {};
+  for (const s of sigs)
+    if (s.voivodeship) perVoiv[s.voivodeship] = (perVoiv[s.voivodeship] || 0) + (s.points || 0);
   // poziom w wybranym momencie — kolor kciuka suwaka i podsumowanie
   const tp = timelinePoints[idx];
   const slider = document.getElementById("tb-slider");
   slider.dataset.level = tp?.level || "none";
+  // liczba sygnałów jest klikalna: bez tego widać „12 sygnałów w oknie”, ale nie
+  // sposób sprawdzić, jakie to były — a to najciekawsza część historii
   document.getElementById("tb-info").innerHTML =
     (tp && tp.score > 0
       ? `<b style="color:${tp.level === "high" ? "var(--red)"
           : tp.level === "elevated" ? "var(--amber)" : "var(--muted)"}">`
         + `${tp.score} pkt${tp.voiv ? " · woj. " + esc(tp.voiv) : ""}</b> · `
       : "")
-    + `${threats.length} obiektów · ${planes.length} maszyn wojskowych · ${sigs.length} sygnałów w oknie`;
+    + `${threats.length} obiektów · ${planes.length} maszyn wojskowych · `
+    + (sigs.length
+      ? `<button id="tb-sigs" class="linklike">${sigs.length} sygnałów w oknie ↗</button>`
+      : "brak sygnałów w oknie");
+  document.getElementById("tb-sigs")?.addEventListener("click", () => setPanel(true));
 
   if (mapReady) {
     // migawka nie zawiera śladów — rysujemy pozycje historyczne bez animacji
@@ -1182,14 +1273,40 @@ async function showHistoryAt(idx) {
           actype: p.type, desc: p.desc, alt: p.alt, gs: p.gs, reg: p.reg,
           heli: isHeli(p.cat, p.type, p.desc) } })) });
     // kolorowanie województw wg sygnałów z tamtego momentu
-    const per = {};
-    for (const s of sigs) per[s.voivodeship] = (per[s.voivodeship] || 0) + (s.points || 0);
     for (const v of ALL_VOIVS) {
-      const sc = per[v] || 0;
+      const sc = perVoiv[v] || 0;
       map.setFeatureState({ source: "voiv", id: v },
         { score: Math.min(sc, 8), level: sc >= 4 ? "high" : sc >= 2 ? "elevated" : "none" });
     }
   }
+
+  renderHistoryPanel(sigs, perVoiv, when, ageMin);
+}
+
+/* Panel w trybie historii: karty województw i lista sygnałów z WYBRANEGO
+   momentu, a nie z teraz. Bez tego karty pokazywałyby bieżącą punktację obok
+   historycznej listy sygnałów — dwie różne chwile w jednym widoku. */
+function renderHistoryPanel(sigs, perVoiv, when, ageMin) {
+  const banner = `<div class="hist-banner">PODGLĄD HISTORII —
+    ${when.toLocaleTimeString("pl-PL", { hour: "2-digit", minute: "2-digit" })}
+    ${ageMin > 1 ? `(−${ageMin} min)` : "(teraz)"}
+    <span>dane sprzed chwili wybranej suwakiem, nie na żywo</span></div>`;
+
+  const shown = Object.entries(perVoiv)
+    .filter(([, sc]) => sc > 0)
+    .sort((a, b) => b[1] - a[1]);
+  const cards = shown.map(([name, sc]) => {
+    const lvl = sc >= 4 ? "high" : sc >= 2 ? "elevated" : "none";
+    const own = sigs.filter(s => s.voivodeship === name);
+    return `<div class="voiv-card level-${lvl} open">
+      <div class="voiv-head"><span class="voiv-name">${esc(name)}</span>
+        <span class="voiv-score">${(Math.round(sc * 10) / 10).toFixed(1)} pkt</span></div>
+      <div class="voiv-level">${lvl === "none" ? "poniżej progu" : LEVEL_LABEL[lvl]}</div>
+      <div class="voiv-breakdown">${own.map(sigHTML).join("")}</div></div>`;
+  }).join("");
+
+  document.getElementById("voiv-cards").innerHTML = banner +
+    (cards || '<div class="fineprint">W tej chwili żadne województwo nie miało punktów.</div>');
   document.getElementById("signal-list").innerHTML =
     sigs.map(sigHTML).join("") || '<div class="fineprint">brak sygnałów w tym oknie</div>';
 }

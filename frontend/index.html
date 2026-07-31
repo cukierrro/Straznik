@@ -19,7 +19,8 @@
       <div class="brand-sub">fuzja sygnałów · wschodnia Polska</div>
     </div>
   </div>
-  <div id="status-leds" title="Status źródeł danych"></div>
+  <div id="status-leds" title="Status źródeł danych — dotknij po szczegóły"
+       role="button" tabindex="0"></div>
   <div class="top-actions">
     <a id="btn-coffee" class="chip coffee" href="https://buycoffee.to/cukierrro"
        target="_blank" rel="noopener"
@@ -219,6 +220,16 @@
       <button id="about-close" class="chip primary">Rozumiem, zaczynajmy</button>
     </div>
   </div>
+</dialog>
+
+<dialog id="sources">
+  <h3>Źródła danych</h3>
+  <p class="fineprint">Każda dioda u góry ekranu to jedno źródło. Fuzja wymaga
+  zgodności kilku z nich, więc pojedyncze niedostępne źródło nie wyłącza
+  ostrzegania — obniża tylko liczbę potwierdzeń.</p>
+  <div id="src-list"></div>
+  <p id="src-note" class="fineprint"></p>
+  <menu><button id="src-close" class="chip">Zamknij</button></menu>
 </dialog>
 
 <dialog id="cameras">
