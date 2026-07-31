@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Komponent testowy dołączany TYLKO do buildu debug (scala się z głównym
+         manifestem). W wydaniu release ten katalog nie jest używany. -->
+    <application>
+        <receiver
+            android:name=".TestReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="pl.straznik.app.TEST_ALARM" />
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>

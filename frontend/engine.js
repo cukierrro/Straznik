@@ -373,9 +373,12 @@ async function notifyNative(title, body, high) {
   const LN = window.Capacitor?.Plugins?.LocalNotifications;
   if (LN) {
     try {
+      // te same kanały, które tworzy usługa natywna (MonitorService) — inaczej
+      // powiadomienie z otwartej aplikacji trafiało w kanał, który usługa kasuje,
+      // i nie pokazywało się z właściwym dźwiękiem ani jako heads-up
       await LN.schedule({ notifications: [{ id: Date.now() % 2147483647, title, body,
         schedule: { at: new Date(Date.now() + 200) },
-        channelId: high ? "straznik-high" : "straznik-info" }] });
+        channelId: high ? "straznik-high-v3" : "straznik-info-v3" }] });
       return;
     } catch (e) { console.warn("LocalNotifications:", e); }
   }

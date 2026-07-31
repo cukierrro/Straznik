@@ -1527,20 +1527,64 @@ async function refreshBgStatus() {
   } catch (e) { info.textContent = "Nie udało się odczytać stanu: " + e; }
 }
 
+/* Włączenie nasłuchu w tle w jednym miejscu — używane i przez przełącznik,
+   i przez onboarding. Prosi o zgodę na powiadomienia, startuje usługę, podaje
+   jej wybrany region i prosi o zdjęcie ograniczeń baterii. */
+async function enableBackgroundMonitoring() {
+  const plugin = BG(); if (!plugin) return false;
+  if (window.Capacitor?.Plugins?.LocalNotifications)
+    await window.Capacitor.Plugins.LocalNotifications.requestPermissions();
+  await plugin.start();
+  try { await plugin.setHomeVoivodeship({ voivodeship: myVoiv() || "" }); } catch {}
+  await plugin.requestBatteryExemption();
+  return true;
+}
+
 document.getElementById("bg-toggle")?.addEventListener("change", async (e) => {
   const plugin = BG(); if (!plugin) return;
   try {
-    if (e.target.checked) {
-      if (window.Capacitor?.Plugins?.LocalNotifications)
-        await window.Capacitor.Plugins.LocalNotifications.requestPermissions();
-      await plugin.start();
-      await plugin.requestBatteryExemption();
-    } else {
-      await plugin.stop();
-    }
+    if (e.target.checked) await enableBackgroundMonitoring();
+    else await plugin.stop();
   } catch (err) { alert("Błąd: " + err); }
   refreshBgStatus();
 });
+
+/* Rozdzielony onboarding: najpierw „o aplikacji", potem region, na końcu — tylko
+   w aplikacji — propozycja nasłuchu w tle. Bez tego kroku świeża instalacja
+   miała nasłuch wyłączony i alarmy dochodziły dopiero po otwarciu aplikacji. */
+function dialogClosed(dlg) {
+  return new Promise(res => {
+    if (!dlg || !dlg.open) return res();
+    dlg.addEventListener("close", () => res(), { once: true });
+  });
+}
+
+async function maybeOfferBackground() {
+  const plugin = BG();
+  if (!plugin || localStorage.getItem("straznik_bg_offered")) return;
+  try {
+    const s = await plugin.status();
+    if (s.enabled) { localStorage.setItem("straznik_bg_offered", "1"); return; }
+  } catch {}
+  localStorage.setItem("straznik_bg_offered", "1");
+  document.getElementById("onboard-bg")?.showModal();
+}
+
+async function runOnboarding() {
+  aboutDlg.showModal();
+  await dialogClosed(aboutDlg);
+  if (!myVoiv()) { openSettings(); await dialogClosed(document.getElementById("settings")); }
+  await maybeOfferBackground();
+}
+
+document.getElementById("onboard-bg-enable")?.addEventListener("click", async () => {
+  document.getElementById("onboard-bg").close();
+  try { await enableBackgroundMonitoring(); toast("🔔 <b>Alarmy w tle włączone.</b><br>Dostaniesz je także przy zamkniętej aplikacji."); }
+  catch (e) { toast("Nie udało się włączyć nasłuchu: " + e); }
+  refreshBgStatus(); refreshBgWarning();
+});
+document.getElementById("onboard-bg-skip")?.addEventListener("click", () =>
+  document.getElementById("onboard-bg").close());
 document.getElementById("btn-battery")?.addEventListener("click", async () => {
   await BG()?.requestBatteryExemption(); setTimeout(refreshBgStatus, 800);
 });
@@ -1595,18 +1639,16 @@ document.getElementById("btn-legend").onclick = () => {
 /* ── start ───────────────────────────────────────────────────────────────── */
 initMap();
 connect();
-// pierwsze uruchomienie: najpierw wyjaśnij czym to jest, potem spytaj o region
+// pierwsze uruchomienie: o aplikacji → region → nasłuch w tle
 if (!localStorage.getItem("straznik_onboarded")) {
   localStorage.setItem("straznik_onboarded", "1");
-  setTimeout(() => {
-    aboutDlg.showModal();
-    aboutDlg.addEventListener("close", () => {
-      if (!myVoiv()) setTimeout(() => openSettings(), 250);
-    }, { once: true });
-  }, 700);
+  setTimeout(() => runOnboarding(), 700);
 } else if (!myVoiv() && !localStorage.getItem("straznik_voiv_asked")) {
   localStorage.setItem("straznik_voiv_asked", "1");
   setTimeout(() => openSettings(), 1200);
+} else {
+  // istniejąca instalacja bez włączonego nasłuchu — zaproponuj raz
+  setTimeout(maybeOfferBackground, 2500);
 }
 setInterval(() => { if (state) renderPanel(); }, 30000);  // odświeżaj "x min temu"
 setInterval(pollOnce, 60000);                              // siatka bezpieczeństwa

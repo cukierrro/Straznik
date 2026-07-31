@@ -29,11 +29,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class MonitorService extends Service {
     private static final String TAG = "StraznikService";
     static final String CH_STATUS = "straznik-status";
-    // sufiks wersji: kanał raz utworzony ignoruje zmiany dźwięku i wibracji,
-    // więc podmiana sygnałów wymaga nowego identyfikatora
-    static final String CH_HIGH = "straznik-high-v2";
-    static final String CH_INFO = "straznik-info-v2";
-    private static final String[] CH_LEGACY = {"straznik-high", "straznik-info"};
+    // sufiks wersji: kanał raz utworzony ignoruje zmiany dźwięku, wibracji i
+    // ważności, więc podmiana sygnałów albo podniesienie żółtego do heads-up
+    // wymaga nowego identyfikatora
+    static final String CH_HIGH = "straznik-high-v3";
+    static final String CH_INFO = "straznik-info-v3";
+    private static final String[] CH_LEGACY = {
+        "straznik-high", "straznik-info", "straznik-high-v2", "straznik-info-v2"};
     private static final int ID_STATUS = 1001;
     static final String ACTION_STOP = "pl.straznik.app.STOP";
 
@@ -71,8 +73,11 @@ public class MonitorService extends Service {
             .setUsage(AudioAttributes.USAGE_ALARM)
             .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build();
 
+        // IMPORTANCE_HIGH, żeby żółty wyskakiwał jako baner (heads-up), a nie tylko
+        // cicho lądował w szufladzie — czerwony zostaje mocniejszy przez pełny ekran,
+        // ominięcie trybu cichego i budzenie ekranu, więc rozróżnienie zostaje
         NotificationChannel info = new NotificationChannel(CH_INFO,
-            "Podwyższona uwaga (żółty)", NotificationManager.IMPORTANCE_DEFAULT);
+            "Podwyższona uwaga (żółty)", NotificationManager.IMPORTANCE_HIGH);
         info.enableVibration(true);
         info.setVibrationPattern(new long[]{0, 220, 120, 220});
         // ten sam dwutonowy sygnał, który gra w otwartej aplikacji
@@ -177,6 +182,12 @@ public class MonitorService extends Service {
     }
 
     private void alarm(int voiv, String level, double score, List<String> reasons) {
+        postAlarm(this, voiv, level, score, reasons);
+    }
+
+    /** Wystawienie powiadomienia alarmowego — statyczne, żeby dało się je odpalić
+     *  także spoza pętli usługi (np. z debugowego wyzwalacza testowego). */
+    static void postAlarm(Context ctx, int voiv, String level, double score, List<String> reasons) {
         String voivName = Sources.VOIVS[voiv];
         boolean high = "high".equals(level);
         String title = (high ? "WYSOKI PRIORYTET" : "PODWYŻSZONA UWAGA")
@@ -185,14 +196,14 @@ public class MonitorService extends Service {
         for (int i = 0; i < Math.min(reasons.size(), 4); i++) body.append(reasons.get(i)).append('\n');
         body.append("NIEOFICJALNE źródło — kieruj się syrenami, RCB i RSO.");
 
-        PendingIntent open = PendingIntent.getActivity(this, 2,
-            new Intent(this, MainActivity.class),
+        PendingIntent open = PendingIntent.getActivity(ctx, 2,
+            new Intent(ctx, MainActivity.class),
             PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
         // Czerwony poziom ma prowadzić do pełnoekranowego alarmu, tak jak połączenie
         // przychodzące: zapala ekran, pokazuje się nad blokadą, miga i gra do potwierdzenia.
-        PendingIntent fullScreen = PendingIntent.getActivity(this, 3,
-            new Intent(this, AlarmActivity.class)
+        PendingIntent fullScreen = PendingIntent.getActivity(ctx, 3,
+            new Intent(ctx, AlarmActivity.class)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP)
                 // ekran alarmu sam składa nagłówek z województwa i punktów,
                 // więc dostaje wyłącznie rozbicie na sygnały
@@ -202,8 +213,8 @@ public class MonitorService extends Service {
             PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
         Notification.Builder b = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
-            ? new Notification.Builder(this, high ? CH_HIGH : CH_INFO)
-            : new Notification.Builder(this);
+            ? new Notification.Builder(ctx, high ? CH_HIGH : CH_INFO)
+            : new Notification.Builder(ctx);
         b.setContentTitle(title)
          .setContentText(reasons.isEmpty() ? "" : reasons.get(0))
          .setStyle(new Notification.BigTextStyle().bigText(body.toString()))
@@ -221,10 +232,10 @@ public class MonitorService extends Service {
             b.setOngoing(true);        // alarm nie znika przypadkowym muśnięciem
         }
 
-        NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+        NotificationManager nm = (NotificationManager) ctx.getSystemService(NOTIFICATION_SERVICE);
         if (nm != null) nm.notify(2000 + voiv, b.build());
 
-        if (high) ensureAlarmIsSeen(nm);
+        if (high) ensureAlarmIsSeen(ctx, nm);
     }
 
     /**
@@ -240,10 +251,10 @@ public class MonitorService extends Service {
      * zrobić, to zapalić ekran wake lockiem — wtedy użytkownik zobaczy alarm
      * jako powiadomienie na zapalonym ekranie i usłyszy syrenę.
      */
-    private void ensureAlarmIsSeen(NotificationManager nm) {
+    static void ensureAlarmIsSeen(Context ctx, NotificationManager nm) {
         if (Build.VERSION.SDK_INT >= 34 && nm != null && nm.canUseFullScreenIntent()) return;
         try {
-            PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+            PowerManager pm = (PowerManager) ctx.getSystemService(Context.POWER_SERVICE);
             if (pm == null || pm.isInteractive()) return;
             PowerManager.WakeLock screenOn = pm.newWakeLock(
                 PowerManager.SCREEN_BRIGHT_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP,

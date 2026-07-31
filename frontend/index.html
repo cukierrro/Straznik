@@ -207,7 +207,7 @@
     <h3>Poziomy</h3>
     <div class="lvl-row"><i class="sq" style="--c:#ffb020"></i>
       <b>≥ 2 pkt — PODWYŻSZONA UWAGA:</b> region na żółto, krótki sygnał
-      dźwiękowy, ciche powiadomienie.</div>
+      dźwiękowy i powiadomienie, które wyskakuje na ekranie.</div>
     <div class="lvl-row"><i class="sq" style="--c:#ff4d5e"></i>
       <b>≥ 4 pkt — WYSOKI PRIORYTET:</b> region na czerwono, modulowana syrena
       alarmu powietrznego z wibracją, głośne powiadomienie.</div>
@@ -272,6 +272,29 @@
   <menu><button id="cam-close" class="chip">Zamknij</button></menu>
 </dialog>
 
+<dialog id="onboard-bg">
+  <div class="about-body" style="max-height:none">
+    <div class="about-head">
+      <div class="about-logo"></div>
+      <div>
+        <h2 style="font-size:17px;letter-spacing:.06em">Alarmy w tle</h2>
+        <p class="about-sub">żeby ostrzeżenie dotarło, gdy nie patrzysz na telefon</p>
+      </div>
+    </div>
+    <p>Strażnik ma sens tylko wtedy, gdy powiadomi Cię <b>zanim</b> otworzysz
+    aplikację. Bez nasłuchu w tle Android usypia zamkniętą aplikację i alarm
+    zobaczysz dopiero po jej otwarciu.</p>
+    <p class="fineprint">Po włączeniu w powiadomieniach pojawi się stała informacja
+    „nasłuch aktywny" — tego wymaga system Android. Poprosimy też o zgodę na
+    powiadomienia i o wyłączenie oszczędzania baterii, żeby telefon nie ubił
+    usługi. Możesz to wyłączyć w każdej chwili w ustawieniach.</p>
+    <div class="about-actions">
+      <button id="onboard-bg-skip" class="chip">Nie teraz</button>
+      <button id="onboard-bg-enable" class="chip primary">Włącz alarmy w tle</button>
+    </div>
+  </div>
+</dialog>
+
 <dialog id="settings">
   <form method="dialog">
     <h3>Moja lokalizacja</h3>
@@ -308,7 +331,8 @@
     przycisk 🚨 otwiera dokładnie ten ekran ustawień.</p>
 
     <h3 style="margin-top:16px">Sygnały dźwiękowe</h3>
-    <p class="fineprint">Żółty poziom (≥2 pkt) — krótki sygnał uwagi.
+    <p class="fineprint">Żółty poziom (≥2 pkt) — krótki sygnał uwagi i powiadomienie
+    wyskakujące na ekranie (heads-up).
     Czerwony (≥4 pkt) — modulowana syrena alarmu powietrznego + wibracja.
     Odtwarzane, gdy aplikacja jest otwarta; w tle działają powiadomienia systemowe.</p>
     <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
