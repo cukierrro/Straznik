@@ -335,7 +335,7 @@ footer a{color:var(--tx2)}
       <a href="https://github.com/cukierrro/Straznik/raw/main/Straznik.apk">linku
       zapasowego</a>, który pobiera ten sam plik prosto z repozytorium.
       Zanim spróbujesz ponownie, sprawdź folder <b>Pobrane</b> — plik o rozmiarze
-      4,13 MB bywa już kompletny mimo zawieszonego paska.</p></li>
+      około 4,1 MB bywa już kompletny mimo zawieszonego paska.</p></li>
     <li><b>Otwórz pobrany plik</b>
       <p>Menedżer plików → Pobrane → <code>Straznik.apk</code>. Android wyświetli
       ekran instalacji.</p></li>
@@ -460,7 +460,7 @@ footer a{color:var(--tx2)}
     <div class="txt">
       <h3>Jak czytać mapę</h3>
       <ul class="plain">
-        <li><b>Kolor województwa</b> — suma punktów z ostatnich 30 minut.
+        <li><b>Kolor województwa</b> — suma punktów z ostatnich 60 minut.
           Ciemnoniebieski = spokojnie, żółty = podwyższona uwaga, czerwony = wysoki priorytet.</li>
         <li><b>Wysokość bryły 3D</b> — rośnie razem z punktacją, więc zagrożony
           region widać nawet kątem oka.</li>
@@ -622,7 +622,7 @@ footer a{color:var(--tx2)}
         <tr><td><code>RCB</code></td><td>Nowy komunikat Rządowego Centrum
           Bezpieczeństwa z gov.pl.</td></tr>
         <tr><td><code>ADSB</code></td><td>Ruch lotnictwa wojskowego nad regionem
-          ponad dwukrotnie wyższy niż średnia z 7 dni.</td></tr>
+          ponad dwukrotnie wyższy niż o tej samej porze doby w ostatnich 7 dniach.</td></tr>
         <tr><td><code>PANSA</code></td><td>Nowo aktywowana strefa przestrzeni
           powietrznej (AUP/UUP) nad regionem.</td></tr>
         <tr><td><code>SPILLOVER</code></td><td>Przeniesienie punktów z sąsiedniego
@@ -729,7 +729,8 @@ footer a{color:var(--tx2)}
       <thead><tr><th>Poziom</th><th>Dźwięk i wibracja</th><th>Ekran</th></tr></thead>
       <tbody>
         <tr><td><b>Nasłuch aktywny</b><br><span class="muted">stałe powiadomienie</span></td>
-          <td>Bez dźwięku. Pokazuje stan źródeł, np. <code>Neptun✓ Media✓ RCB✓</code>.</td>
+          <td>Bez dźwięku. Pokazuje punktację i stan pięciu źródeł, np.
+        <code>lubelskie 2.0 pkt · Neptun✓ Media✓ RCB✓ ADS-B✓ PAŻP✓</code>.</td>
           <td>Nie budzi ekranu. Wymóg Androida dla usług w tle.</td></tr>
         <tr><td><b>≥ 2 pkt — żółty</b></td>
           <td>Dwutonowy sygnał uwagi (740↔988 Hz) i krótka wibracja.</td>
