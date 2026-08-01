@@ -27,7 +27,8 @@ wiarygodność ostrzeżenia.
 ## Co to robi
 
 Aplikacja zbiera sygnały z kilku niezależnych źródeł, przydziela im punkty
-i sumuje w oknie 30 minut osobno dla każdego województwa. Przy **≥ 2 pkt**
+i sumuje w oknie 60 minut (pełna waga przez 30 minut, potem liniowe wygaszanie)
+osobno dla każdego województwa. Przy **≥ 2 pkt**
 włącza podwyższoną uwagę (ciche powiadomienie), przy **≥ 4 pkt** — głośny alarm
 z syreną. UI zawsze pokazuje pełne rozbicie: które sygnały, skąd, ile punktów.
 
@@ -240,7 +241,10 @@ ikon. Testowane na emulatorze Pixel 7 (Android 14).
 **Nasłuch w tle** (`MonitorService.java`) to natywna usługa pierwszoplanowa,
 która sama odpytuje źródła i wystawia powiadomienia także przy wygaszonym
 ekranie. Android wymaga przy tym stałego powiadomienia „nasłuch aktywny"
-(pokazuje stan źródeł, np. `Neptun✓ Media✓ RCB✓`) — to warunek systemu.
+(pokazuje punktację i stan wszystkich pięciu źródeł, np.
+`lubelskie 2.0 pkt · Neptun✓ Media✓ RCB✓ ADS-B✓ PAŻP✓`) — to warunek systemu.
+Usługa i aplikacja korzystają z jednego zbioru sygnałów, więc liczba na pasku
+i w panelu jest zawsze taka sama.
 Usługa wraca po restarcie telefonu oraz przy otwarciu aplikacji (jeśli nasłuch
 jest włączony, a usługi nie ma — np. po wymuszonym zatrzymaniu), i prosi
 o wyłączenie optymalizacji baterii, bo Xiaomi/Samsung/Huawei potrafią ubijać
