@@ -576,7 +576,15 @@ function retryNeptun() {
 /* ── kolektor: ADS-B ─────────────────────────────────────────────────────── */
 async function tickAdsb() {
   try {
-    const txt = await httpGet("https://api.adsb.lol/v2/mil");
+    /* airplanes.live wzbogaca rekordy o pełną nazwę typu (desc), operatora (ownOp)
+       i rok — adsb.lol tego nie zwraca, a to właśnie te pola robią różnicę w karcie
+       samolotu. Dlatego pytamy najpierw jego, a adsb.lol zostaje zapasem. Oba mają
+       ten sam format /v2/mil, więc reszta kodu się nie zmienia. */
+    let txt = null;
+    for (const u of ["https://api.airplanes.live/v2/mil", "https://api.adsb.lol/v2/mil"]) {
+      try { txt = await httpGet(u); if (txt) break; } catch {}
+    }
+    if (!txt) throw new Error("brak odpowiedzi ADS-B");
     const ac = (JSON.parse(txt).ac||[]);
     const per = {}; Object.keys(VOIV_BBOX).forEach(v => per[v] = []);
     adsbAircraft = [];
@@ -586,9 +594,16 @@ async function tickAdsb() {
       // punktujemy tylko województwa priorytetowe, ale pokazujemy szerszą strefę
       const inWatch = a.lat >= 44 && a.lat <= 60 && a.lon >= 14 && a.lon <= 32;
       if (!v && !inWatch) continue;
+      // pełniejszy zestaw pól — karta samolotu pokazuje to, co airplanes.live
       const p = { hex:a.hex, callsign:(a.flight||"").trim(), type:a.t, lat:a.lat, lon:a.lon,
-                  alt:a.alt_baro, gs:a.gs, track:a.track, voivodeship:v, desc:a.desc,
-                  reg:a.r, op:a.ownOp, cat:a.category, vr:a.baro_rate, year:a.year };
+                  alt:a.alt_baro, alt_geom:a.alt_geom, gs:a.gs, tas:a.tas, ias:a.ias, mach:a.mach,
+                  track:a.track, true_heading:a.true_heading, mag_heading:a.mag_heading,
+                  vr: a.baro_rate ?? a.geom_rate, squawk:a.squawk, voivodeship:v, desc:a.desc,
+                  reg:a.r, op:a.ownOp, cat:a.category, vr_src:a.baro_rate!=null?"baro":"geom",
+                  year:a.year, dbflags:a.dbFlags, nav_modes:a.nav_modes, nav_qnh:a.nav_qnh,
+                  nav_alt:a.nav_altitude_mcp, wd:a.wd, ws:a.ws, oat:a.oat, tat:a.tat,
+                  rssi:a.rssi, messages:a.messages, seen:a.seen, version:a.version,
+                  source:(a.mlat&&a.mlat.length)?"MLAT":(a.tisb&&a.tisb.length)?"TIS-B":"ADS-B" };
       if (v && per[v]) per[v].push(p);
       adsbAircraft.push(p);
     }

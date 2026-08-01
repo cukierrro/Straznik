@@ -351,6 +351,12 @@ async function initMap() {
         "icon-allow-overlap": true },
     });
 
+    // ślad śledzonej maszyny — pod ikonami samolotów, żeby ich nie zasłaniał
+    map.addSource("adsb-trail", { type: "geojson", data: emptyFC() });
+    map.addLayer({ id: "adsb-trail", type: "line", source: "adsb-trail",
+      paint: { "line-color": "#39c5ec", "line-width": 2, "line-opacity": 0.7,
+        "line-dasharray": [2, 1.5] } });
+
     map.addSource("adsb", { type: "geojson", data: emptyFC() });
     map.addLayer({ id: "adsb", type: "symbol", source: "adsb",
       layout: { "icon-image": ["case", ["==", ["get", "heli"], true], "heli", "plane"],
@@ -391,13 +397,96 @@ async function initMap() {
 
 const emptyFC = () => ({ type: "FeatureCollection", features: [] });
 
+/* ── karta samolotu: kraj z zakresu hex, zdjęcie z planespotters, ślad ────── */
+const adsbByHex = new Map();     // hex → pełny obiekt maszyny (właściwe typy)
+const adsbTrails = new Map();    // hex → [{lat,lon,t}] — własny zapis trasy
+let followHex = null;            // śledzona maszyna (kamera + rysowany ślad)
+let popupSeq = 0;
+
+/* Zakresy adresów 24-bit ICAO → kraj rejestracji. Tylko pewne, istotne dla
+   regionu — błędna flaga jest gorsza niż jej brak, więc nieznane zostają puste. */
+const ICAO_RANGES = [
+  [0x100000, 0x1FFFFF, "Rosja", "🇷🇺"], [0x508000, 0x50FFFF, "Ukraina", "🇺🇦"],
+  [0x510000, 0x5103FF, "Białoruś", "🇧🇾"], [0x488000, 0x48FFFF, "Polska", "🇵🇱"],
+  [0x480000, 0x487FFF, "Holandia", "🇳🇱"], [0x3C0000, 0x3FFFFF, "Niemcy", "🇩🇪"],
+  [0x380000, 0x3BFFFF, "Francja", "🇫🇷"], [0x400000, 0x43FFFF, "Wielka Brytania", "🇬🇧"],
+  [0x300000, 0x33FFFF, "Włochy", "🇮🇹"], [0x340000, 0x37FFFF, "Hiszpania", "🇪🇸"],
+  [0x440000, 0x447FFF, "Austria", "🇦🇹"], [0x448000, 0x44FFFF, "Belgia", "🇧🇪"],
+  [0x458000, 0x45FFFF, "Dania", "🇩🇰"], [0x460000, 0x467FFF, "Finlandia", "🇫🇮"],
+  [0x468000, 0x46FFFF, "Grecja", "🇬🇷"], [0x470000, 0x477FFF, "Węgry", "🇭🇺"],
+  [0x478000, 0x47FFFF, "Norwegia", "🇳🇴"], [0x490000, 0x497FFF, "Portugalia", "🇵🇹"],
+  [0x498000, 0x49FFFF, "Czechy", "🇨🇿"], [0x4A0000, 0x4A7FFF, "Rumunia", "🇷🇴"],
+  [0x4A8000, 0x4AFFFF, "Szwecja", "🇸🇪"], [0x4B0000, 0x4B7FFF, "Szwajcaria", "🇨🇭"],
+  [0x4B8000, 0x4BFFFF, "Turcja", "🇹🇷"], [0xA00000, 0xAFFFFF, "USA", "🇺🇸"],
+  [0xC00000, 0xC3FFFF, "Kanada", "🇨🇦"], [0x7C0000, 0x7FFFFF, "Australia", "🇦🇺"],
+];
+function hexCountry(hex) {
+  const n = parseInt(hex, 16);
+  if (!isFinite(n)) return null;
+  for (const [a, b, name, flag] of ICAO_RANGES) if (n >= a && n <= b) return { name, flag };
+  return null;
+}
+
+/* Zdjęcie maszyny z planespotters (po rejestracji, w zapasie po hex). API wymaga
+   User-Agenta z adresem kontaktowym — przeglądarka nie pozwala go ustawić, więc
+   zdjęcia działają w aplikacji (CapacitorHttp), a nie w zwykłej karcie www.
+   Wynik cache'ujemy, żeby nie pytać przy każdym otwarciu dymka. */
+const photoCache = new Map();
+async function acPhoto(reg, hex) {
+  const key = (reg || hex || "").toUpperCase();
+  if (!key) return null;
+  if (photoCache.has(key)) return photoCache.get(key);
+  const path = reg ? "reg/" + encodeURIComponent(reg) : "hex/" + encodeURIComponent(hex);
+  const url = "https://api.planespotters.net/pub/photos/" + path;
+  let res = null;
+  try {
+    const CH = window.Capacitor?.Plugins?.CapacitorHttp;
+    let data;
+    if (CH) {
+      const r = await CH.get({ url, connectTimeout: 12000, readTimeout: 12000,
+        headers: { "User-Agent": "Straznik/1.4.7 (+https://github.com/cukierrro/Straznik)" } });
+      data = typeof r.data === "string" ? JSON.parse(r.data) : r.data;
+    } else {
+      data = await (await fetch(url)).json();
+    }
+    const ph = (data.photos || [])[0];
+    if (ph) res = { src: (ph.thumbnail_large || ph.thumbnail || {}).src, link: ph.link, by: ph.photographer };
+  } catch {}
+  photoCache.set(key, res);
+  return res;
+}
+
+function speedRow(p) {
+  const parts = [];
+  if (p.gs != null) parts.push(`${ktToKmh(p.gs)} km/h`);
+  if (p.mach != null) parts.push(`Ma ${(+p.mach).toFixed(2)}`);
+  return parts.join(" · ");
+}
+function headingRow(p) {
+  const t = p.track != null ? `${Math.round(p.track)}° (${compass(p.track)})` : null;
+  const mh = p.mag_heading != null ? `mag. ${Math.round(p.mag_heading)}°` : null;
+  return [t, mh].filter(Boolean).join(" · ") || "b.d.";
+}
+
 /* dymki — wspólne dla kliknięcia w mapę i w pozycję listy */
 function openThreatPopup(lngLat, p) {
   if (!p) return;
   const meta = TYPE_META[p.type] || { label: p.type, color: "#8a93a6" };
+  // Zdjęcie poglądowe typu obiektu (Shahed, rakieta, KAB…): plik assets/threats/<typ>.jpg.
+  // Gdy go nie ma, onerror chowa ramkę — nie pokazujemy pustego kadru. To zdjęcie
+  // KLASY uzbrojenia, nie tego konkretnego obiektu (OSINT nie daje takich zdjęć).
+  // najpierw zdjęcie użytkownika (.jpg — może podmienić na licencjonowane), potem
+  // wbudowana sylwetka (.svg), a gdy nic nie ma — chowamy ramkę zamiast pustego kadru
+  const img = p.type
+    ? `<div class="thr-photo" style="margin:-2px 0 6px"><img src="assets/threats/${esc2(p.type)}.jpg"
+        alt="" style="width:100%;border-radius:6px;display:block;background:#0e1626"
+        onerror="if(!this.dataset.svg){this.dataset.svg=1;this.src='assets/threats/${esc2(p.type)}.svg'}else{this.closest('.thr-photo').style.display='none'}">
+        <div style="font-size:10px;color:#68758c;margin-top:2px">grafika poglądowa typu — nie tego obiektu</div></div>`
+    : "";
   new maplibregl.Popup({ closeButton: true, maxWidth: "290px" })
     .setLngLat(lngLat)
     .setHTML(`<div style="font:12.5px 'Segoe UI';color:#16202f;line-height:1.45">
+      ${img}
       <b style="color:${meta.color};filter:brightness(.75)">◆ ${meta.label}</b><br>
       ${p.opis ? esc2(p.opis) + "<br>" : ""}
       wiarygodność: <b>${esc2(CONF_PL[p.confidence] || p.confidence)}</b>
@@ -409,25 +498,85 @@ function openThreatPopup(lngLat, p) {
     .addTo(map);
 }
 
-function openPlanePopup(lngLat, p) {
+/* Karta samolotu w stylu airplanes.live: zdjęcie, kraj rejestracji, operator,
+   pełna telemetria i przycisk śledzenia trasy. Pełne dane bierzemy z adsbByHex
+   (właściwe typy), bo właściwości warstwy GL potrafią zamienić liczby w tekst. */
+function planePopupHTML(p, heli, uid) {
+  const c = hexCountry(p.hex);
+  const role = acRole(p.type, p.desc);
+  const vr = typeof p.vr === "number" ? p.vr : (p.vr != null ? +p.vr : null);
+  const vrTxt = vr == null ? "" : vr > 100 ? ` · ↑ ${vr} ft/min`
+    : vr < -100 ? ` · ↓ ${Math.abs(vr)} ft/min` : " · lot poziomy";
+  const mil = (p.dbflags & 1)
+    ? `<span style="background:#7a1d2b;color:#fff;border-radius:4px;padding:1px 5px;font-size:10px">WOJSKOWY</span> ` : "";
+  const nav = Array.isArray(p.nav_modes) ? p.nav_modes.join(", ") : (p.nav_modes || "");
+  const geom = p.alt_geom != null && p.alt_geom !== p.alt
+    ? ` <span style="color:#68758c">(geom. ${ftToM(p.alt_geom)} m)</span>` : "";
+  const row = (l, v) => (v == null || v === "") ? ""
+    : `<tr><td style="color:#68758c;padding-right:8px;vertical-align:top">${l}</td><td><b>${v}</b></td></tr>`;
+  return `<div style="font:12.5px 'Segoe UI';color:#16202f;line-height:1.45;max-width:300px">
+    <div id="${uid}-box" style="display:none;margin:-2px 0 6px">
+      <img id="${uid}" alt="" style="width:100%;border-radius:6px;display:block">
+      <div class="ph-cr" style="font-size:10px;color:#68758c;margin-top:2px"></div>
+    </div>
+    <b style="font-size:13.5px">${heli ? "🚁" : "✈"} ${esc2(p.callsign || p.hex || "?")}</b>
+      ${p.reg ? ` · rej. ${esc2(p.reg)}` : ""}<br>
+    ${mil}${c ? `${c.flag} ${esc2(c.name)} · ` : ""}<b>${esc2(acName(p.type, p.desc))}</b>${p.year ? ` (${esc2(p.year)})` : ""}<br>
+    ${role ? `przeznaczenie: <b>${esc2(role)}</b><br>` : ""}
+    ${p.op ? `operator: <b>${esc2(p.op)}</b><br>` : ""}
+    <table style="margin:5px 0;border-collapse:collapse">
+      ${row("wysokość", altText(p.alt) + geom + vrTxt.replace(" · ", "&nbsp; "))}
+      ${row("prędkość", speedRow(p))}
+      ${row("kurs", headingRow(p))}
+      ${row("squawk", p.squawk ? esc2(p.squawk) : "")}
+      ${row("wiatr", (p.ws != null && p.wd != null) ? `${ktToKmh(p.ws)} km/h z ${Math.round(p.wd)}° (${compass(p.wd)})` : "")}
+      ${row("temp.", p.oat != null ? `${Math.round(p.oat)} °C` : "")}
+      ${row("tryby nav", nav ? esc2(nav) : "")}
+      ${row("sygnał", `${esc2(p.source || "ADS-B")}${p.rssi != null ? ` · ${p.rssi} dBFS` : ""}${p.messages != null ? ` · ${p.messages} msg/s` : ""}`)}
+    </table>
+    <button class="btn-follow chip" style="font-size:11px;padding:3px 8px;margin-bottom:4px">${followHex === p.hex ? "■ przestań śledzić" : "📍 śledź trasę"}</button>
+    <div style="color:#68758c;font-size:11px">publiczny transponder ADS-B/MLAT — pozycja emisji, nie namierzanie.
+      Zdjęcie i dane rejestrowe: airplanes.live / planespotters.</div>
+  </div>`;
+}
+
+function openPlanePopup(lngLat, props) {
+  const p = adsbByHex.get(props?.hex) || props;   // pełny obiekt z właściwymi typami
   if (!p) return;
-  const role = acRole(p.actype, p.desc);
-  const vr = typeof p.vr === "number" ? p.vr : null;
-  new maplibregl.Popup({ closeButton: true, maxWidth: "300px" })
-    .setLngLat(lngLat)
-    .setHTML(`<div style="font:12.5px 'Segoe UI';color:#16202f;line-height:1.5">
-      <b>${p.heli ? "🚁" : "✈"} ${esc2(p.callsign || p.hex || "?")}</b>
-        ${p.reg ? "· rej. " + esc2(p.reg) : ""}<br>
-      <b>${esc2(acName(p.actype, p.desc))}</b>${p.year ? " (" + esc2(p.year) + ")" : ""}<br>
-      ${role ? "przeznaczenie: <b>" + esc2(role) + "</b><br>" : ""}
-      ${p.op ? "operator: " + esc2(p.op) + "<br>" : ""}
-      ${altText(p.alt)}
-      ${vr ? (vr > 100 ? " ↑ wznosi się" : vr < -100 ? " ↓ obniża lot" : "") : ""}<br>
-      ${p.gs != null ? `prędkość: ${ktToKmh(p.gs)} km/h · ` : ""}
-      ${p.track != null ? `kurs ${Math.round(p.track)}° (${compass(p.track)})` : "kurs b.d."}<br>
-      <span style="color:#68758c">publiczny transponder ADS-B — bez trasy
-      startu/celu (wojsko ich nie publikuje)</span></div>`)
-    .addTo(map);
+  const heli = p.heli != null ? p.heli : isHeli(p.cat, p.type, p.desc);
+  const uid = "pp" + (++popupSeq);
+  const pop = new maplibregl.Popup({ closeButton: true, maxWidth: "320px" })
+    .setLngLat(lngLat).setHTML(planePopupHTML(p, heli, uid)).addTo(map);
+  pop.getElement().querySelector(".btn-follow")
+    ?.addEventListener("click", () => { toggleFollow(p.hex); pop.remove(); });
+  // zdjęcie dociągamy asynchronicznie: dymek pojawia się od razu, kadr dochodzi po chwili
+  acPhoto(p.reg, p.hex).then(ph => {
+    const img = document.getElementById(uid), box = document.getElementById(uid + "-box");
+    if (ph && ph.src && img && box) {
+      img.src = ph.src; box.style.display = "";
+      const cr = box.querySelector(".ph-cr"); if (cr && ph.by) cr.textContent = "📷 " + ph.by;
+    }
+  });
+}
+
+/* Ślad śledzonej maszyny + kamera podążająca za nią (jak „śledź samolot" u nich). */
+function drawFollowTrail() {
+  const src = map.getSource("adsb-trail"); if (!src) return;
+  const arr = followHex ? adsbTrails.get(followHex) : null;
+  if (!arr || arr.length < 2) { src.setData(emptyFC()); return; }
+  src.setData({ type: "FeatureCollection", features: [{ type: "Feature", properties: {},
+    geometry: { type: "LineString", coordinates: arr.map(q => [q.lon, q.lat]) } }] });
+}
+function toggleFollow(hex) {
+  followHex = followHex === hex ? null : hex;
+  drawFollowTrail();
+  if (followHex && adsbByHex.has(followHex)) {
+    const p = adsbByHex.get(followHex);
+    map.flyTo({ center: [p.lon, p.lat], zoom: Math.max(map.getZoom(), 7), duration: 800 });
+  }
+  toast(followHex
+    ? "📍 <b>Śledzę samolot.</b><br>Mapa podąża, trasa rysowana. Kliknij ponownie, by przestać."
+    : "Śledzenie wyłączone.");
 }
 
 function updateVoivStates() {
@@ -563,13 +712,35 @@ function animate(ts) {
 function updateAdsb() {
   if (histMode) return;   // pozycje maszyn pochodzą wtedy z migawki
   const planes = state?.adsb?.aircraft || [];
+  const now = Date.now(), alive = new Set();
+  adsbByHex.clear();
+  for (const p of planes) {
+    if (!p.hex) continue;
+    p.heli = isHeli(p.cat, p.type, p.desc);
+    adsbByHex.set(p.hex, p);              // pełny obiekt do dymka (właściwe typy)
+    if (p.lat == null || p.lon == null) continue;
+    alive.add(p.hex);
+    // własny zapis trasy (jak dla obiektów NEPTUN): dopisujemy realne przesunięcia
+    const arr = adsbTrails.get(p.hex) || [];
+    const last = arr[arr.length - 1];
+    if (!last || Math.hypot((p.lat - last.lat) * 110.57,
+        (p.lon - last.lon) * 111.32 * Math.cos(p.lat * Math.PI / 180)) > 0.5) {
+      arr.push({ lat: p.lat, lon: p.lon, t: now });
+      if (arr.length > 80) arr.shift();
+      adsbTrails.set(p.hex, arr);
+    }
+  }
+  for (const h of adsbTrails.keys()) if (!alive.has(h)) adsbTrails.delete(h);
+  // warstwa GL trzyma tylko to, co potrzebne do rysowania — resztę czyta dymek z lookupu
   map.getSource("adsb")?.setData({ type: "FeatureCollection",
-    features: planes.map(p => ({ type: "Feature",
+    features: planes.filter(p => p.lat != null).map(p => ({ type: "Feature",
       geometry: { type: "Point", coordinates: [p.lon, p.lat] },
-      properties: { track: p.track ?? 0, callsign: p.callsign, hex: p.hex,
-        actype: p.type, desc: p.desc, alt: p.alt, gs: p.gs,
-        reg: p.reg, op: p.op, vr: p.vr, year: p.year,
-        heli: isHeli(p.cat, p.type, p.desc) } })) });
+      properties: { track: p.track ?? 0, hex: p.hex, heli: p.heli } })) });
+  drawFollowTrail();
+  if (followHex && adsbByHex.has(followHex)) {
+    const p = adsbByHex.get(followHex);
+    map.easeTo({ center: [p.lon, p.lat], duration: 800 });   // kamera podąża
+  }
 }
 
 /* ── panel boczny ────────────────────────────────────────────────────────── */
@@ -716,10 +887,11 @@ const SOURCE_INFO = {
       + "przed otwarciem aplikacji — sprawdź połączenie i nasłuch w tle.",
   },
   "ADS-B": {
-    co: "Publiczne transpondery lotnicze (adsb.lol) — maszyny wojskowe nad Polską. "
-      + "Punktuje dopiero ruch dwukrotnie wyższy niż o tej samej porze doby "
-      + "w ostatnich 7 dniach.",
-    czerwona: "Serwis adsb.lol nie odpowiada. Warstwa nie punktuje też przez "
+    co: "Publiczne transpondery lotnicze (airplanes.live, w zapasie adsb.lol) — "
+      + "maszyny wojskowe nad Polską i regionem. Punktuje dopiero ruch dwukrotnie "
+      + "wyższy niż o tej samej porze doby w ostatnich 7 dniach. Karta samolotu "
+      + "pokazuje zdjęcie, kraj rejestracji i pełną telemetrię.",
+    czerwona: "Serwisy ADS-B nie odpowiadają. Warstwa nie punktuje też przez "
       + "pierwszy tydzień, zanim uzbiera się średnia do porównania.",
   },
   "RSS": {
