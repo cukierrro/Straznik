@@ -162,6 +162,11 @@ const tracks = new Map();          // Neptun tracks
 let alertOblasts = new Set();
 let adsbAircraft = [];
 const health = { neptun:false, adsb:false, rcb:false, rss:{}, pansa:false };
+/* Alarmy obwodów UA mają w aplikacji dwie niezależne drogi: WebSocket Neptuna
+   (ramki `alerts`) i — gdy nasłuch w tle działa — REST-owy pośrednik po stronie
+   usługi. Dioda „Alarmy UA" zapala się, gdy działa którakolwiek z nich, więc
+   stan usługi doczytujemy z jej diagnostyki (patrz syncWithBackground). */
+let bgUaAlertsOk = false;
 let onState = null, ws = null, wsRetry = 1;
 // bootstrap RCB uznany tylko po JAWNIE odnotowanym udanym przebiegu —
 // wcześniej pusta lista "seen" zapisana przez inny kod myliła się z bootstrapem
@@ -317,8 +322,13 @@ async function syncWithBackground() {
   const BG = window.Capacitor?.Plugins?.StraznikBackground;
   if (!BG?.signals) return;
   let res;
-  try { res = await BG.signals(); } catch { return; }
-  if (!res || !res.enabled || !Array.isArray(res.signals)) return;
+  try { res = await BG.signals(); } catch { bgUaAlertsOk = false; return; }
+  if (!res || !res.enabled || !Array.isArray(res.signals)) { bgUaAlertsOk = false; return; }
+
+  // Dioda „Alarmy UA": usługa czyta alarmy obwodowe z pośrednika REST i melduje
+  // ich stan w diagnostyce („Alarmy UA✓"/„✕"). Aplikacja sama zna je tylko przez
+  // WebSocket Neptuna — dlatego łączymy obie drogi przy zapalaniu diody (emit()).
+  bgUaAlertsOk = /Alarmy UA✓/.test(res.diag || "");
 
   /* Najpierw w drugą stronę: sygnały, których usługa nie ma skąd wziąć
      (alarmy w obwodach UA idą tylko WebSocketem, a usługa czyta REST).
@@ -782,7 +792,9 @@ function emit() {
       neptun: { status: { connected: health.neptun, mode: "app-ws" },
         threats: [...tracks.values()], alert_oblasts: [...alertOblasts] },
       adsb: { aircraft: adsbAircraft, counts: {}, baselines: {} },
-      health: { ...health },
+      // ua_alerts nie jest osobnym kolektorem po stronie aplikacji: przychodzą
+      // WebSocketem Neptuna (transport = health.neptun) albo z usługi w tle.
+      health: { ...health, ua_alerts: health.neptun || bgUaAlertsOk },
       engine: "standalone",
     });
   }, 1500);
@@ -860,6 +872,19 @@ async function start(stateCb) {
   // sekundy po otwarciu aplikacji pokazywałyby zero mimo alertu na pasku
   await syncWithBackground();
   setInterval(syncWithBackground, 30000);
+  // Tuż po otwarciu WebView mógł być długo uśpiony: pasek powiadomień (usługa)
+  // ma komplet, a aplikacja dopiero się dolicza — stąd „punkty różnią się przez
+  // chwilę, potem się wyrównują". Kilka szybkich scaleń na starcie skraca ten
+  // rozjazd z ~30 s (odstęp pętli) do kilku sekund.
+  setTimeout(syncWithBackground, 3000);
+  setTimeout(syncWithBackground, 10000);
+  // Powrót do aplikacji z tła: dociągnij, co usługa zebrała, i odśwież wygaszanie
+  // okna — bez tego po odblokowaniu telefonu widać jeszcze stan sprzed uśpienia.
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState !== "visible") return;
+    reevaluate();
+    syncWithBackground();
+  });
   const LN = window.Capacitor?.Plugins?.LocalNotifications;
   if (LN) {
     // Kanały tworzy wyłącznie strona natywna (MonitorService.createChannels

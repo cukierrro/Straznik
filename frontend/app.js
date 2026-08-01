@@ -702,9 +702,18 @@ function openCard(name) {
 const SOURCE_INFO = {
   "NEPTUN": {
     co: "Agregator OSINT z Ukrainy — obiekty powietrzne (drony, rakiety, KAB) "
-      + "i oficjalne alarmy w obwodach. Główne źródło wyprzedzenia.",
+      + "kursem na granicę PL. Główne źródło wyprzedzenia.",
     czerwona: "Zerwane połączenie z serwerem NEPTUN albo brak internetu. "
       + "Aplikacja próbuje ponownie co minutę.",
+  },
+  "Alarmy UA": {
+    co: "Oficjalne alarmy powietrzne w przygranicznych obwodach Ukrainy "
+      + "(wołyński, lwowski, zakarpacki, rówieński) — sygnał wyprzedzający. "
+      + "W aplikacji z WebSocketu NEPTUN, a przy zamkniętej aplikacji z "
+      + "niezależnego pośrednika REST po stronie usługi w tle.",
+    czerwona: "Ani WebSocket NEPTUN, ani usługa w tle nie potwierdzają w tej "
+      + "chwili alarmów obwodowych. Alarm w obwodzie UA może wtedy nie dotrzeć "
+      + "przed otwarciem aplikacji — sprawdź połączenie i nasłuch w tle.",
   },
   "ADS-B": {
     co: "Publiczne transpondery lotnicze (adsb.lol) — maszyny wojskowe nad Polską. "
@@ -739,6 +748,10 @@ function ledItems() {
   const rssOk = rssFeeds.some(Boolean);
   return [
     ["NEPTUN", !!h.neptun, ""],
+    // osobna dioda alarmów obwodowych UA: aplikacja zna je z WebSocketu Neptuna,
+    // a usługa w tle z niezależnego pośrednika REST — to dwa różne źródła tego
+    // samego sygnału, więc zasługują na własny wskaźnik obok NEPTUN-a
+    ["Alarmy UA", !!h.ua_alerts, ""],
     ["ADS-B", !!h.adsb, ""],
     ["RSS", rssOk, rssFeeds.length ? `${rssFeeds.filter(Boolean).length}/${rssFeeds.length} kanałów` : ""],
     ["RCB", !!h.rcb, ""],
@@ -1356,11 +1369,22 @@ document.getElementById("set-save").onclick = () => {
    otwartej aplikacji. Ukrycie tej informacji w ustawieniach sprawiało, że
    użytkownik był przekonany, że aplikacja pilnuje go w tle, choć nie pilnowała.
    Pasek pojawia się tylko wtedy, gdy jest realny problem. */
+/* Ile razy z rzędu widzieliśmy problem. Świeża instalacja i powrót do aplikacji
+   mają stan przejściowy: usługa dopiero się uruchamia (enabled=true, ale jeszcze
+   nie ożyła), a zgoda na powiadomienia jest w trakcie przyznawania. Pokazanie
+   ostrzeżenia od razu dawało fałszywy alarm „nasłuch wyłączony — napraw", który
+   znikał po chwili, mimo że przełącznik był włączony. */
+let bgWarnStrikes = 0;
 async function refreshBgWarning() {
   const el = document.getElementById("bg-warning");
   if (!el) return;
   const plugin = BG();
   if (!plugin) { el.classList.add("hidden"); return; }
+  /* Nie strasz w oknie pierwszego uruchomienia (onboarding jeszcze nie
+     zaproponował nasłuchu) ani gdy użytkownik jest właśnie w ustawieniach —
+     wtedy sam nad tym panuje, a usługa może być w trakcie startu. */
+  if (!localStorage.getItem("straznik_bg_offered")
+      || document.querySelector("dialog[open]")) return;
   try {
     const s = await plugin.status();
     let msg = null;
@@ -1371,13 +1395,13 @@ async function refreshBgWarning() {
     } else if (!s.notificationsAllowed) {
       msg = "Powiadomienia zablokowane w ustawieniach systemu";
     }
-    if (msg) {
-      el.innerHTML = `<span>⚠ ${esc(msg)}</span><button class="chip">Napraw</button>`;
-      el.querySelector("button").onclick = () => openSettings();
-      el.classList.remove("hidden");
-    } else {
-      el.classList.add("hidden");
-    }
+    if (!msg) { bgWarnStrikes = 0; el.classList.add("hidden"); return; }
+    // problem musi utrzymać się przez dwa sprawdzenia z rzędu — inaczej to tylko
+    // stan przejściowy przy starcie usługi, a nie realna usterka
+    if (++bgWarnStrikes < 2) { setTimeout(refreshBgWarning, 5000); return; }
+    el.innerHTML = `<span>⚠ ${esc(msg)}</span><button class="chip">Napraw</button>`;
+    el.querySelector("button").onclick = () => openSettings();
+    el.classList.remove("hidden");
   } catch { el.classList.add("hidden"); }
 }
 
