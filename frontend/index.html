@@ -27,6 +27,7 @@
        title="Postaw kawę dla cukierrro na buycoffee.to">☕ Postaw kawę</a>
     <button id="btn-about" class="chip" title="O aplikacji — co to jest i jak działa">?</button>
     <button id="btn-legend" class="chip" title="Legenda symboli">Legenda</button>
+    <button id="btn-watch" class="chip" title="Obce maszyny (RU/BY) nad wschodnią flanką">🛰<span id="watch-badge" class="badge" style="display:none"></span></button>
     <button id="btn-3d" class="chip" title="Przełącz widok 2D/3D">3D</button>
     <button id="btn-push" class="chip" title="Powiadomienia">🔔</button>
     <button id="btn-settings" class="chip" title="Moja lokalizacja i ustawienia">⚙</button>
@@ -60,6 +61,14 @@
 <div id="my-banner" class="hidden"></div>
 <div id="update-banner" class="hidden"></div>
 <div id="bg-warning" class="hidden"></div>
+
+<!-- Stała karta obiektu (samolot / obiekt NEPTUN): zawsze w tym samym miejscu,
+     nie przyczepiona do pozycji na mapie — inaczej dymek skakał po ekranie
+     i uciekał za krawędź przy obiektach przy brzegu. -->
+<div id="ac-card" class="hidden">
+  <button id="ac-card-x" title="Zamknij">✕</button>
+  <div id="ac-card-body"></div>
+</div>
 
 <aside id="panel" class="collapsed">
   <button id="panel-x" title="Zamknij panel">✕</button>
@@ -255,6 +264,20 @@
   <div id="src-list"></div>
   <p id="src-note" class="fineprint"></p>
   <menu><button id="src-close" class="chip">Zamknij</button></menu>
+</dialog>
+
+<dialog id="watch">
+  <h3>🛰 Obce maszyny nad wschodnią flanką</h3>
+  <p class="fineprint">Wojskowe samoloty o rejestracji <b>rosyjskiej lub białoruskiej</b>,
+  widoczne teraz w publicznych danych ADS-B/MLAT nad Bałtykiem, obwodem królewieckim,
+  Białorusią, Litwą, Łotwą, Estonią, Ukrainą i Rumunią. To <b>obserwacja</b> emisji
+  transpondera — nie namierzanie radarowe i nie alarm. Wiele maszyn leci z wyłączonym
+  transponderem i tu się nie pojawi; brak na liście nie oznacza braku w powietrzu.</p>
+  <h4 class="watch-h">W zasięgu teraz</h4>
+  <div id="watch-current" class="list"></div>
+  <h4 class="watch-h">Dziennik — wleciały / zniknęły z zasięgu</h4>
+  <div id="watch-events" class="list"></div>
+  <menu><button id="watch-close" class="chip">Zamknij</button></menu>
 </dialog>
 
 <dialog id="cameras">

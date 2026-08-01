@@ -39,6 +39,40 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   cursor: pointer; padding: 3px 6px; border-radius: 8px; }
 #status-leds:hover { background: rgba(255,255,255,.06); }
 
+/* ── stała karta obiektu (samolot / obiekt) — bottom-sheet ── */
+#ac-card { position: fixed; left: 8px; right: 8px; bottom: 8px; z-index: 1200;
+  max-height: 60vh; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  background: #fff; color: #16202f; border-radius: 14px; padding: 14px 16px 16px;
+  box-shadow: 0 8px 40px rgba(0,0,0,.55); font: 12.5px "Segoe UI", system-ui, sans-serif;
+  line-height: 1.45; }
+#ac-card.hidden { display: none; }
+#ac-card-x { position: absolute; top: 8px; right: 10px; z-index: 2; width: 28px; height: 28px;
+  border: none; border-radius: 50%; background: rgba(0,0,0,.06); color: #16202f;
+  font-size: 16px; cursor: pointer; }
+#ac-card img { width: 100%; border-radius: 6px; display: block; }
+#ac-card a { color: #1a6fd4; }
+#ac-card table { border-collapse: collapse; }
+#ac-card .btn-follow { border: 1px solid rgba(0,0,0,.15); background: #16202f; color: #fff;
+  border-radius: 9px; }
+/* na szerokim ekranie karta jako narożnik, nie pełna szerokość */
+@media (min-width: 861px) { #ac-card { left: 12px; right: auto; width: 340px; max-height: 72vh; } }
+
+/* ── obserwacja obcych maszyn (RU/BY) ── */
+#btn-watch { position: relative; }
+#watch-badge.badge { position: absolute; top: -6px; right: -6px; min-width: 16px;
+  height: 16px; padding: 0 4px; border-radius: 8px; background: var(--red); color: #fff;
+  font-size: 10px; line-height: 16px; text-align: center; font-weight: 700; }
+#watch { max-width: 520px; }
+.watch-h { margin: 14px 0 6px; font-size: 12px; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .05em; }
+.watch-row { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px;
+  margin-bottom: 6px; background: var(--card); cursor: pointer; }
+.watch-row:hover { border-color: rgba(255,77,94,.5); }
+.watch-ev { padding: 6px 2px; border-bottom: 1px solid var(--line); font-size: 12.5px; }
+.watch-ev .ts { color: var(--muted); font-size: 11px; margin-left: 4px; }
+.ev-in { color: var(--red); font-weight: 700; margin-right: 6px; }
+.ev-out { color: var(--muted); font-weight: 700; margin-right: 6px; }
+
 /* ── okno „Źródła danych” (klik w diody) ── */
 #sources { max-width: 520px; }
 .src-row { border: 1px solid var(--line); border-radius: 10px;

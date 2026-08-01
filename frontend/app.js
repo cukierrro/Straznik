@@ -358,6 +358,12 @@ async function initMap() {
         "line-dasharray": [2, 1.5] } });
 
     map.addSource("adsb", { type: "geojson", data: emptyFC() });
+    // obce (RU/BY) maszyny — czerwona poświata pod ikoną, żeby rzucały się w oczy
+    map.addLayer({ id: "adsb-foreign", type: "circle", source: "adsb",
+      filter: ["==", ["get", "foreign"], true],
+      paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"], 4, 10, 8, 20],
+        "circle-color": "#ff4d5e", "circle-opacity": 0.18,
+        "circle-stroke-color": "#ff4d5e", "circle-stroke-width": 1.6, "circle-stroke-opacity": 0.85 } });
     map.addLayer({ id: "adsb", type: "symbol", source: "adsb",
       layout: { "icon-image": ["case", ["==", ["get", "heli"], true], "heli", "plane"],
         "icon-size": 0.62,
@@ -444,7 +450,7 @@ async function acPhoto(reg, hex) {
     let data;
     if (CH) {
       const r = await CH.get({ url, connectTimeout: 12000, readTimeout: 12000,
-        headers: { "User-Agent": "Straznik/1.4.7 (+https://github.com/cukierrro/Straznik)" } });
+        headers: { "User-Agent": "Straznik/1.4.8 (+https://github.com/cukierrro/Straznik)" } });
       data = typeof r.data === "string" ? JSON.parse(r.data) : r.data;
     } else {
       data = await (await fetch(url)).json();
@@ -468,6 +474,53 @@ function headingRow(p) {
   return [t, mh].filter(Boolean).join(" · ") || "b.d.";
 }
 
+/* ── warstwa obserwacyjna: obce (RU/BY) maszyny nad wschodnią flanką ──────── */
+/* Osobno od punktacji alarmów — czysty podgląd OSINT. „Obce" = rejestracja
+   rosyjska lub białoruska (po zakresie adresu hex; Rosja 0x100000–0x1FFFFF,
+   Białoruś 0x510000–0x5103FF). Wiele rosyjskich maszyn leci z wyłączonym
+   transponderem i tu się nie pojawi — to obserwacja emisji, nie namierzanie. */
+const WATCH_AREAS = [
+  ["obw. królewiecki", 54.1, 19.4, 55.5, 23.1], ["Białoruś", 51.2, 23.1, 56.4, 32.9],
+  ["Litwa", 53.8, 20.9, 56.5, 27.0], ["Łotwa", 55.6, 20.9, 58.1, 28.3],
+  ["Estonia", 57.5, 21.7, 59.8, 28.3], ["Ukraina", 44.2, 22.0, 52.5, 40.4],
+  ["Rumunia", 43.5, 20.2, 48.3, 29.8], ["Bałtyk", 54.0, 13.5, 60.6, 23.5],
+];
+function watchArea(lat, lon) {
+  for (const [n, a, b, c, d] of WATCH_AREAS) if (lat >= a && lat <= c && lon >= b && lon <= d) return n;
+  return null;
+}
+function isForeign(p) {
+  const c = hexCountry(p.hex);
+  return !!(c && (c.name === "Rosja" || c.name === "Białoruś"));
+}
+let watchEvents = [];
+try { watchEvents = JSON.parse(localStorage.getItem("straznik_watch_events") || "[]"); } catch {}
+let watchPrev = new Set();      // hex obcych maszyn z poprzedniego obiegu
+const watchLast = new Map();    // hex → {label, flag, area} — do zdarzeń wyjścia
+function logWatchEvent(kind, info) {
+  watchEvents.unshift({ t: Date.now(), kind, hex: info.hex,
+    label: info.label || info.hex, flag: info.flag || "", area: info.area || "" });
+  if (watchEvents.length > 60) watchEvents.length = 60;
+  try { localStorage.setItem("straznik_watch_events", JSON.stringify(watchEvents)); } catch {}
+}
+function updateWatchBadge(n) {
+  const b = document.getElementById("watch-badge");
+  if (!b) return;
+  b.textContent = n || "";
+  b.style.display = n ? "" : "none";
+}
+
+/* Stała karta obiektu (bottom-sheet) — zawsze w tym samym miejscu, zamiast dymka
+   MapLibre przyczepionego do pozycji na mapie (ten skakał po ekranie, uciekał za
+   krawędź i przesuwał się razem z obiektem). */
+function showCard(html) {
+  const body = document.getElementById("ac-card-body");
+  if (!body) return;
+  body.innerHTML = html;
+  document.getElementById("ac-card").classList.remove("hidden");
+}
+function hideCard() { document.getElementById("ac-card")?.classList.add("hidden"); }
+
 /* dymki — wspólne dla kliknięcia w mapę i w pozycję listy */
 function openThreatPopup(lngLat, p) {
   if (!p) return;
@@ -483,19 +536,14 @@ function openThreatPopup(lngLat, p) {
         onerror="if(!this.dataset.svg){this.dataset.svg=1;this.src='assets/threats/${esc2(p.type)}.svg'}else{this.closest('.thr-photo').style.display='none'}">
         <div style="font-size:10px;color:#68758c;margin-top:2px">grafika poglądowa typu — nie tego obiektu</div></div>`
     : "";
-  new maplibregl.Popup({ closeButton: true, maxWidth: "290px" })
-    .setLngLat(lngLat)
-    .setHTML(`<div style="font:12.5px 'Segoe UI';color:#16202f;line-height:1.45">
-      ${img}
+  showCard(`${img}
       <b style="color:${meta.color};filter:brightness(.75)">◆ ${meta.label}</b><br>
       ${p.opis ? esc2(p.opis) + "<br>" : ""}
       wiarygodność: <b>${esc2(CONF_PL[p.confidence] || p.confidence)}</b>
         · niepewność pozycji: <b>±${p.uncertainty} km</b><br>
       ${p.heading != null ? `kurs: ${Math.round(p.heading)}° (${compass(p.heading)}) · ` : ""}
       odległość od granicy PL: <b>${p.dist_km ?? "?"} km</b><br>
-      <span style="color:#68758c">Dane: NEPTUN — agregator OSINT, nie radar
-      wojskowy</span></div>`)
-    .addTo(map);
+      <span style="color:#68758c">Dane: NEPTUN — agregator OSINT, nie radar wojskowy</span>`);
 }
 
 /* Karta samolotu w stylu airplanes.live: zdjęcie, kraj rejestracji, operator,
@@ -514,7 +562,7 @@ function planePopupHTML(p, heli, uid) {
     ? ` <span style="color:#68758c">(geom. ${ftToM(p.alt_geom)} m)</span>` : "";
   const row = (l, v) => (v == null || v === "") ? ""
     : `<tr><td style="color:#68758c;padding-right:8px;vertical-align:top">${l}</td><td><b>${v}</b></td></tr>`;
-  return `<div style="font:12.5px 'Segoe UI';color:#16202f;line-height:1.45;max-width:300px">
+  return `<div>
     <div id="${uid}-box" style="display:none;margin:-2px 0 6px">
       <img id="${uid}" alt="" style="width:100%;border-radius:6px;display:block">
       <div class="ph-cr" style="font-size:10px;color:#68758c;margin-top:2px"></div>
@@ -545,11 +593,10 @@ function openPlanePopup(lngLat, props) {
   if (!p) return;
   const heli = p.heli != null ? p.heli : isHeli(p.cat, p.type, p.desc);
   const uid = "pp" + (++popupSeq);
-  const pop = new maplibregl.Popup({ closeButton: true, maxWidth: "320px" })
-    .setLngLat(lngLat).setHTML(planePopupHTML(p, heli, uid)).addTo(map);
-  pop.getElement().querySelector(".btn-follow")
-    ?.addEventListener("click", () => { toggleFollow(p.hex); pop.remove(); });
-  // zdjęcie dociągamy asynchronicznie: dymek pojawia się od razu, kadr dochodzi po chwili
+  showCard(planePopupHTML(p, heli, uid));
+  document.querySelector("#ac-card .btn-follow")
+    ?.addEventListener("click", () => { toggleFollow(p.hex); hideCard(); });
+  // zdjęcie dociągamy asynchronicznie: karta pojawia się od razu, kadr dochodzi po chwili
   acPhoto(p.reg, p.hex).then(ph => {
     const img = document.getElementById(uid), box = document.getElementById(uid + "-box");
     if (ph && ph.src && img && box) {
@@ -712,14 +759,22 @@ function animate(ts) {
 function updateAdsb() {
   if (histMode) return;   // pozycje maszyn pochodzą wtedy z migawki
   const planes = state?.adsb?.aircraft || [];
-  const now = Date.now(), alive = new Set();
+  const now = Date.now(), alive = new Set(), nowForeign = new Set();
   adsbByHex.clear();
   for (const p of planes) {
     if (!p.hex) continue;
     p.heli = isHeli(p.cat, p.type, p.desc);
+    p.foreign = isForeign(p);
+    p.area = (p.lat != null && p.lon != null) ? watchArea(p.lat, p.lon) : null;
     adsbByHex.set(p.hex, p);              // pełny obiekt do dymka (właściwe typy)
     if (p.lat == null || p.lon == null) continue;
     alive.add(p.hex);
+    if (p.foreign) {
+      nowForeign.add(p.hex);
+      const c = hexCountry(p.hex);
+      watchLast.set(p.hex, { label: (p.callsign || p.hex) + (p.desc ? " · " + p.desc : ""),
+        flag: c ? c.flag : "", area: p.area || "" });
+    }
     // własny zapis trasy (jak dla obiektów NEPTUN): dopisujemy realne przesunięcia
     const arr = adsbTrails.get(p.hex) || [];
     const last = arr[arr.length - 1];
@@ -731,17 +786,48 @@ function updateAdsb() {
     }
   }
   for (const h of adsbTrails.keys()) if (!alive.has(h)) adsbTrails.delete(h);
+  // zdarzenia wejścia/wyjścia obcych maszyn z zasięgu (obserwacja, nie alarm)
+  for (const h of nowForeign) if (!watchPrev.has(h))
+    logWatchEvent("enter", { hex: h, ...(watchLast.get(h) || {}) });
+  for (const h of watchPrev) if (!nowForeign.has(h)) {
+    logWatchEvent("exit", { hex: h, ...(watchLast.get(h) || {}) });
+    watchLast.delete(h);
+  }
+  watchPrev = nowForeign;
+  updateWatchBadge(nowForeign.size);
+  if (document.getElementById("watch")?.open) fillWatch();
   // warstwa GL trzyma tylko to, co potrzebne do rysowania — resztę czyta dymek z lookupu
   map.getSource("adsb")?.setData({ type: "FeatureCollection",
     features: planes.filter(p => p.lat != null).map(p => ({ type: "Feature",
       geometry: { type: "Point", coordinates: [p.lon, p.lat] },
-      properties: { track: p.track ?? 0, hex: p.hex, heli: p.heli } })) });
+      properties: { track: p.track ?? 0, hex: p.hex, heli: p.heli, foreign: !!p.foreign } })) });
   drawFollowTrail();
   if (followHex && adsbByHex.has(followHex)) {
     const p = adsbByHex.get(followHex);
     map.easeTo({ center: [p.lon, p.lat], duration: 800 });   // kamera podąża
   }
 }
+
+/* Karta obserwacji: obce maszyny w zasięgu teraz + dziennik wejść/wyjść. */
+function fillWatch() {
+  const cur = [...adsbByHex.values()].filter(p => p.foreign && p.lat != null)
+    .sort((a, b) => (a.area || "zz").localeCompare(b.area || "zz"));
+  document.getElementById("watch-current").innerHTML = cur.length ? cur.map(p => {
+    const c = hexCountry(p.hex);
+    return `<div class="watch-row clickable" data-lat="${p.lat}" data-lon="${p.lon}" data-kind="plane">
+      <b>${c ? c.flag + " " : ""}${esc(p.callsign || p.hex)}</b>${p.reg ? " · rej. " + esc(p.reg) : ""}
+      <div class="meta">${esc(acName(p.type, p.desc))}${p.area ? " · nad: <b>" + esc(p.area) + "</b>" : ""}
+        ${p.alt != null ? " · " + esc(altText(p.alt)) : ""}</div></div>`;
+  }).join("") : '<div class="fineprint">Brak obcych maszyn w zasięgu w tej chwili. To normalne — rosyjskie lotnictwo zwykle leci z wyłączonym transponderem.</div>';
+  document.getElementById("watch-events").innerHTML = watchEvents.length ? watchEvents.map(e =>
+    `<div class="watch-ev"><span class="${e.kind === "enter" ? "ev-in" : "ev-out"}">${e.kind === "enter" ? "▲ w zasięgu" : "▼ zniknął"}</span>
+      ${e.flag ? e.flag + " " : ""}${esc(e.label)}${e.area ? " · " + esc(e.area) : ""}
+      <span class="ts">${relTime(new Date(e.t).toISOString())}</span></div>`).join("")
+    : '<div class="fineprint">Brak zdarzeń w tej sesji.</div>';
+  document.querySelectorAll("#watch-current .watch-row").forEach(el =>
+    el.addEventListener("click", () => { document.getElementById("watch").close(); focusOnMap(el.dataset); }));
+}
+function showWatch() { fillWatch(); document.getElementById("watch").showModal(); }
 
 /* ── panel boczny ────────────────────────────────────────────────────────── */
 function relTime(iso) {
@@ -966,6 +1052,10 @@ function showSources() {
 document.getElementById("status-leds").onclick = () => { if (state) showSources(); };
 document.getElementById("src-close")?.addEventListener("click", () =>
   document.getElementById("sources").close());
+document.getElementById("btn-watch")?.addEventListener("click", () => showWatch());
+document.getElementById("watch-close")?.addEventListener("click", () =>
+  document.getElementById("watch").close());
+document.getElementById("ac-card-x")?.addEventListener("click", () => hideCard());
 
 /* ── alarm dźwiękowy przy poziomie WYSOKI ────────────────────────────────── */
 let lastMood = "none";

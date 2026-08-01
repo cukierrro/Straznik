@@ -591,8 +591,11 @@ async function tickAdsb() {
     for (const a of ac) {
       if (a.lat == null) continue;
       const v = voivForPoint(a.lat, a.lon);
-      // punktujemy tylko województwa priorytetowe, ale pokazujemy szerszą strefę
-      const inWatch = a.lat >= 44 && a.lat <= 60 && a.lon >= 14 && a.lon <= 32;
+      // Punktujemy tylko województwa priorytetowe, ale POKAZUJEMY całą wschodnią
+      // flankę: Bałtyk, Kaliningrad, Białoruś, kraje bałtyckie (LT/LV/EE), Ukrainę
+      // i Rumunię — po to, żeby obce (RU/BY) maszyny nad tym regionem trafiały do
+      // warstwy obserwacyjnej (patrz D w app.js). To tylko podgląd, nie punktacja.
+      const inWatch = a.lat >= 43 && a.lat <= 61 && a.lon >= 14 && a.lon <= 42;
       if (!v && !inWatch) continue;
       // pełniejszy zestaw pól — karta samolotu pokazuje to, co airplanes.live
       const p = { hex:a.hex, callsign:(a.flight||"").trim(), type:a.t, lat:a.lat, lon:a.lon,
