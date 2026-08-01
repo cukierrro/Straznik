@@ -20,3 +20,8 @@ test-out/
 keystore.properties
 *.jks
 *.keystore
+
+# Robocze notatki wydania — treść trafia do wydania na GitHubie, nie do repo
+notatki_wydania_*.md
+
+notatki_wydania_*.json
