@@ -110,6 +110,17 @@ lustrzana kopia logiki fuzji w JS, a natywne żądania HTTP z WebView omijają C
 Backend jest opcjonalny i daje pełny log SQLite, całodobowy baseline ADS-B,
 warstwę PAŻP oraz ntfy/Telegram/Web Push.
 
+**Alarmy obwodów UA — dwa niezależne źródła.** Neptun wysyła ramki `alerts`
+wyłącznie WebSocketem, a usługa w tle korzysta ze snapshotu REST, bo gniazdo
+utrzymywane przez dobę kosztuje baterię bez zysku. Przy stale zamkniętej
+aplikacji ten sygnał więc nie powstawał. Usługa bierze go teraz z REST-owego
+pośrednika [ubilling.net.ua/aerialalerts](https://wiki.ubilling.net.ua/doku.php?id=aerialalertsapi),
+który sam scala kilka serwisów alarmowych (Mørk Skogen, JAAM, alerts.in.ua,
+ukrainealarm) — bez klucza i rejestracji, limit 2 zapytania na sekundę.
+Klucz deduplikacji jest identyczny po obu stronach, więc przy otwartej aplikacji
+sygnał nie policzy się dwa razy. Efekt uboczny: gdy jedno źródło zamilknie,
+alarm i tak dotrze.
+
 \* PAŻP: airspace.pansa.pl nie ma udokumentowanego API, ale jego mapa karmi się
 publicznym GeoJSON-em — `/map-configuration/uup` i `/map-configuration/aup`
 (adresy wskazuje `/meta/configuration`). Kolektor bierze stamtąd geometrię stref,
@@ -344,5 +355,6 @@ bez gwarancji: to nieoficjalne źródło dodatkowe, nie system ratunkowy.
 ## Dane i atrybucja
 
 [NEPTUN](https://neptun.in.ua) (agregator OSINT) · adsb.lol · airspace.pansa.pl ·
-gov.pl/RCB · media regionalne · kamery worldcam.pl ·
+gov.pl/RCB · [ubilling.net.ua/aerialalerts](https://wiki.ubilling.net.ua/doku.php?id=aerialalertsapi)
+(alarmy obwodów UA) · media regionalne · kamery worldcam.pl ·
 mapa © [CARTO](https://carto.com/attributions), © [OpenStreetMap](https://www.openstreetmap.org/copyright)

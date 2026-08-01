@@ -106,6 +106,8 @@ KLUCZE = [
     ("pansa", r"`pansa:\$\{dz\}:\$\{info\.end\}`", r'"pansa:" \+ dz \+ ":" \+ activeRes\.optString\("endDate"\)'),
     ("adsb", r"`adsb:\$\{v\}:\$\{new Date\(\)\.toISOString\(\)\.slice\(0,13\)\}`",
      r'"adsb:" \+ VOIVS\[v\] \+ ":" \+ hourKeyUtc\(now\)'),
+    ("alarm obwodu UA", r"`neptun_alert:\$\{ob\}:\$\{v\}:\$\{hk\}`",
+     r'"neptun_alert:" \+ oblast \+ ":" \+ VOIVS\[voiv\] \+ ":" \+ hour'),
 ]
 for nazwa, wz_js, wz_java in KLUCZE:
     if not re.search(wz_js, ENGINE):
@@ -125,6 +127,26 @@ if sorted(js_prio) != sorted(py_prio):
     bledy.append(f"PRIORITY: engine.js={js_prio} ≠ config.py={py_prio}")
 if sorted(js_prio) != sorted(java_prio):
     bledy.append(f"PRIORITY: engine.js={js_prio} ≠ Sources.java={java_prio}")
+
+# ── przygraniczne obwody UA i województwa, które podnoszą ────────────────────
+# Alarm obwodowy powstaje po obu stronach z DWÓCH różnych źródeł (WebSocket
+# Neptuna w aplikacji, REST-owy pośrednik w usłudze), więc mapowanie obwód →
+# województwa musi być identyczne, inaczej ten sam alarm podniesie inne regiony.
+js_ob = {}
+for m in re.finditer(r'"([Ѐ-ӿ]+)"\s*:\s*\[([^\]]*)\]', ENGINE):
+    js_ob[m.group(1)] = sorted(re.findall(r'"([^"]+)"', m.group(2)))
+java_ob = {}
+blok = re.search(r"UA_BORDER_OBLASTS = \{(.*?)\};", SOURCES, re.S)
+if not blok:
+    bledy.append("nie znaleziono UA_BORDER_OBLASTS w Sources.java")
+else:
+    for wiersz in re.finditer(r'\{"([Ѐ-ӿ]+)"((?:,\s*"\d+")+)\}', blok.group(1)):
+        idxs = [int(x) for x in re.findall(r'"(\d+)"', wiersz.group(2))]
+        java_ob[wiersz.group(1)] = sorted(listy["Sources.java"][i] for i in idxs)
+if js_ob and java_ob and js_ob != java_ob:
+    bledy.append(f"mapowanie obwodów UA różne: engine.js={js_ob} ≠ Sources.java={java_ob}")
+elif not js_ob:
+    bledy.append("nie znaleziono UA_BORDER_OBLASTS w engine.js")
 
 # ── komplet źródeł po obu stronach ───────────────────────────────────────────
 js_zrodla = {"neptun", "media", "rcb", "pansa", "adsb"}

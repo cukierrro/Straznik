@@ -708,7 +708,8 @@ const SOURCE_INFO = {
   },
   "ADS-B": {
     co: "Publiczne transpondery lotnicze (adsb.lol) — maszyny wojskowe nad Polską. "
-      + "Punktuje dopiero ruch dwukrotnie wyższy niż średnia z 7 dni.",
+      + "Punktuje dopiero ruch dwukrotnie wyższy niż o tej samej porze doby "
+      + "w ostatnich 7 dniach.",
     czerwona: "Serwis adsb.lol nie odpowiada. Warstwa nie punktuje też przez "
       + "pierwszy tydzień, zanim uzbiera się średnia do porównania.",
   },

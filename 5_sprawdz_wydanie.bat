@@ -10,6 +10,12 @@ set "REPO=%REPO:~0,-1%"
 set "OUT=%REPO%\test-out"
 if not exist "%OUT%" mkdir "%OUT%"
 
+rem  Wersja z build.gradle, zeby nie trzeba bylo jej podbijac w drugim miejscu.
+set "VER="
+for /f "tokens=2 delims= " %%V in ('findstr /c:"versionName" "%REPO%\android-app\android\app\build.gradle"') do set "VER=%%~V"
+set "TAG=v%VER%"
+echo Sprawdzam wydanie %TAG%
+
 echo Pobieram plik spod linku "Pobierz APK" (releases/latest/download)...
 curl -sL -o "%OUT%\80_pobrany.apk" https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk
 
@@ -30,7 +36,7 @@ type "%OUT%\81_porownanie.txt"
 
 echo.
 echo --- stan wydania ---
-gh release view v1.4.4 --json tagName,name,isDraft,isPrerelease,assets > "%OUT%\82_wydanie.txt" 2>&1
+gh release view %TAG% --json tagName,name,isDraft,isPrerelease,assets > "%OUT%\82_wydanie.txt" 2>&1
 type "%OUT%\82_wydanie.txt"
 echo. >> "%OUT%\82_wydanie.txt"
 echo --- lista wydan --- >> "%OUT%\82_wydanie.txt"

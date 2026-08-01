@@ -440,6 +440,84 @@ class Sources {
         return out;
     }
 
+    /**
+     * Oficjalne alarmy powietrzne w obwodach Ukrainy graniczących z Polską.
+     *
+     * Ten sygnał powstawał dotąd wyłącznie w aplikacji, bo Neptun wysyła ramki
+     * `alerts` tylko WebSocketem, a usługa świadomie korzysta ze snapshotu REST
+     * (gniazdo utrzymywane przez dobę kosztuje baterię bez zysku). Przy stale
+     * zamkniętej aplikacji tego sygnału po prostu nie było.
+     *
+     * Bierzemy go więc z drugiego, niezależnego źródła: ubilling.net.ua/aerialalerts
+     * to REST-owy pośrednik, który sam scala kilka serwisów alarmowych (Mørk Skogen,
+     * JAAM, alerts.in.ua, ukrainealarm) i zwraca jednolity JSON — bez klucza,
+     * rejestracji i autoryzacji. Limit to 2 zapytania na sekundę na host, a my
+     * pytamy raz na półtorej minuty.
+     *
+     * Efekt uboczny jest korzystny: gdy WebSocket Neptuna zamilknie, alarm
+     * obwodowy i tak dotrze. Klucz deduplikacji jest identyczny jak w engine.js,
+     * więc przy otwartej aplikacji sygnał nie policzy się dwa razy.
+     *
+     * To źródło NIE jest oficjalne — sami autorzy proszą, by nie opierać na nim
+     * decyzji. U nas waży 1 pkt, czyli sam z siebie nie przekracza progu alarmu.
+     */
+    private static final String KEY_UA_ALERTS = "ua_alerts";
+    /** Obwód UA → indeksy województw, które graniczą (kopia UA_BORDER_OBLASTS). */
+    private static final String[][] UA_BORDER_OBLASTS = {
+        {"Волинська", "0"},                // lubelskie
+        {"Львівська", "0", "1"},           // lubelskie, podkarpackie
+        {"Закарпатська", "1"},             // podkarpackie
+        {"Рівненська", "0"},               // lubelskie
+    };
+
+    static List<Fusion.Signal> uaAlerts(Context ctx) {
+        String body = httpGet("https://ubilling.net.ua/aerialalerts/");
+        if (body == null) return null;
+
+        List<Fusion.Signal> out = new ArrayList<>();
+        SharedPreferences p = ctx.getSharedPreferences("straznik_bg", Context.MODE_PRIVATE);
+        try {
+            JSONObject states = new JSONObject(body).optJSONObject("states");
+            if (states == null) return null;
+
+            Set<String> prev = new HashSet<>();
+            JSONArray prevArr = new JSONArray(p.getString(KEY_UA_ALERTS, "[]"));
+            for (int i = 0; i < prevArr.length(); i++) prev.add(prevArr.getString(i));
+
+            Set<String> active = new HashSet<>();
+            String hour = hourKeyUtc(System.currentTimeMillis());
+
+            for (String[] entry : UA_BORDER_OBLASTS) {
+                String oblast = entry[0];
+                // nazwy w API mają postać „Волинська область", stąd dopasowanie po przedrostku
+                boolean alarm = false;
+                java.util.Iterator<String> it = states.keys();
+                while (it.hasNext()) {
+                    String name = it.next();
+                    if (!name.contains(oblast)) continue;
+                    JSONObject st = states.optJSONObject(name);
+                    if (st != null && st.optBoolean("alertnow", false)) { alarm = true; break; }
+                }
+                if (!alarm) continue;
+                active.add(oblast);
+                if (prev.contains(oblast)) continue;   // trwa od poprzedniego obiegu
+
+                for (int i = 1; i < entry.length; i++) {
+                    int voiv = Integer.parseInt(entry[i]);
+                    out.add(new Fusion.Signal("neptun", voiv, 1.0,
+                        "Alarm powietrzny w obwodzie " + oblast
+                            + " (graniczy z woj. " + VOIVS[voiv] + ")",
+                        "neptun_alert:" + oblast + ":" + VOIVS[voiv] + ":" + hour));
+                }
+            }
+            p.edit().putString(KEY_UA_ALERTS, new JSONArray(active).toString()).apply();
+        } catch (Exception e) {
+            Log.w(TAG, "ua alerts parse", e);
+            return null;
+        }
+        return out;
+    }
+
     private static final Pattern ITEM = Pattern.compile("<item[^>]*>(.*?)</item>", Pattern.DOTALL);
     private static final Pattern TITLE = Pattern.compile("<title[^>]*>(.*?)</title>", Pattern.DOTALL);
     private static final Pattern LINK = Pattern.compile("<link[^>]*>(.*?)</link>", Pattern.DOTALL);

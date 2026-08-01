@@ -1,7 +1,7 @@
 # Strażnik — przekazanie projektu
 
-Stan na 1 sierpnia 2026, commit `63cb047`, wersja aplikacji **1.4.4** (versionCode 9).
-Ostatnie opublikowane wydanie: **v1.4.3**. Dokument opisuje, czym jest projekt,
+Stan na 1 sierpnia 2026, wersja aplikacji **1.4.5** (versionCode 10).
+Ostatnie opublikowane wydanie: **v1.4.4**. Dokument opisuje, czym jest projekt,
 jak jest zbudowany, co po kolei zdiagnozowano i naprawiono oraz co zostało do zrobienia.
 
 ---
@@ -34,7 +34,7 @@ jest w interfejsie, w powiadomieniach i w każdym wydaniu. Nie usuwaj go.
 | Źródło | Co daje | Punkty |
 | --- | --- | --- |
 | NEPTUN (neptun.in.ua) | obiekt kursem na granicę PL | 0–8, iloczyn: waga typu × √liczba × k_odległości × k_wiarygodności × k_potwierdzeń × k_cyklu |
-| NEPTUN — alarmy obwodów | oficjalny alarm w przygranicznym obwodzie UA | +1 |
+| Alarmy obwodów UA | oficjalny alarm w przygranicznym obwodzie Ukrainy | +1 |
 | Media regionalne (RSS) | syreny, wybuchy, naruszenie przestrzeni | +2 |
 | Media bałtyckie (EE/LV/LT) | incydent powietrzny u sąsiadów NATO | +1 (podlaskie, warmińsko-mazurskie) |
 | RCB (scraping gov.pl) | nowy komunikat | +2 |
@@ -82,6 +82,26 @@ a usługą — gdy formaty się rozjadą, ten sam sygnał policzy się dwa razy.
 
 Uwaga: **nazwa** województwa, nie indeks. Strona natywna trzyma stan po indeksach,
 ale w kluczu musi być nazwa, bo aplikacja indeksów nie zna.
+
+### Alarmy obwodów UA mają dwa niezależne źródła
+
+Neptun wysyła ramki `alerts` **wyłącznie WebSocketem**, a usługa w tle korzysta
+ze snapshotu REST — gniazdo utrzymywane przez dobę kosztuje baterię bez zysku.
+Przy stale zamkniętej aplikacji ten sygnał więc w ogóle nie powstawał.
+
+Usługa bierze go teraz z REST-owego pośrednika
+[`ubilling.net.ua/aerialalerts`](https://wiki.ubilling.net.ua/doku.php?id=aerialalertsapi),
+który sam scala kilka serwisów alarmowych (Mørk Skogen, JAAM, alerts.in.ua,
+ukrainealarm) i zwraca jednolity JSON bez klucza i rejestracji. Limit to
+2 zapytania na sekundę na host; usługa pyta raz na 90 sekund.
+
+Obie strony produkują **ten sam klucz** `neptun_alert:{obwód}:{województwo}:{godzina}`
+i to samo źródło `neptun`, więc przy otwartej aplikacji sygnał nie policzy się
+dwa razy. Mapowanie obwód → województwa musi być identyczne po obu stronach —
+pilnuje tego `test_spojnosc.py`.
+
+Sami autorzy pośrednika proszą, żeby nie opierać na nim ważnych decyzji.
+U nas waży 1 pkt, czyli sam z siebie nie przekracza progu alarmu (2 pkt).
 
 ### Podział obowiązków przy powiadomieniach
 
@@ -154,7 +174,7 @@ Silnik w WebView odtwarzał przy starcie kanały, które warstwa natywna kasuje 
 przestarzałe. Efekt: dwie zbędne pozycje w ustawieniach systemu. Kanały tworzy
 teraz wyłącznie strona natywna.
 
-### v1.4.4 (ten commit) — jedna punktacja zamiast dwóch
+### v1.4.4 — jedna punktacja zamiast dwóch
 
 **Zgłoszenie:** powiadomienie w tle pokazywało 1.0 pkt, a aplikacja po otwarciu
 0 pkt i „brak sygnałów".
@@ -249,6 +269,14 @@ aplikacja nie miała prawa wiedzieć z własnych źródeł.
 Przed poprawką aplikacja pokazałaby w tej sytuacji 0 pkt i „brak sygnałów".
 Dioda `ADS-B✓` w pasku potwierdza, że usługa ma teraz komplet pięciu źródeł.
 
+### v1.4.5 — alarmy obwodów UA docierają przy zamkniętej aplikacji
+
+Ostatnia luka po v1.4.4: alarm powietrzny w przygranicznym obwodzie Ukrainy
+powstawał wyłącznie w aplikacji. Usługa dostała własny kolektor
+(`Sources.uaAlerts`) korzystający z REST-owego pośrednika — szczegóły w sekcji
+o architekturze. Test spójności pilnuje teraz również mapowania obwód →
+województwa i formatu klucza tego sygnału.
+
 ---
 
 ## 5. Wydawanie
@@ -256,11 +284,20 @@ Dioda `ADS-B✓` w pasku potwierdza, że usługa ma teraz komplet pięciu źród
 1. Podbij `versionCode` i `versionName` w `android-app/android/app/build.gradle`.
 2. `1_buduj_i_testuj.bat` — build i testy.
 3. Skopiuj APK do `Straznik.apk` w katalogu głównym (skrypt robi to sam) i zacommituj.
-4. `gh release create vX.Y.Z Straznik.apk` z notatkami po polsku, opisującymi
-   **objaw i przyczynę**, nie listę plików. W notatkach zawsze podaj sumę SHA-256
-   i zastrzeżenie o nieoficjalnym źródle.
-5. Sprawdź, że wydanie jest oznaczone jako Latest i że APK na GitHubie jest
-   bajt-w-bajt taki, jaki zbudowałeś.
+4. `4_wydaj.bat` — kontrola bezpieczeństwa, push, wydanie z notatkami po polsku
+   opisującymi **objaw i przyczynę**, nie listę plików. Skrypt przerywa pracę,
+   jeśli klucz podpisu albo hasła znajdą się w repozytorium lub w historii,
+   APK w repo różni się od zbudowanego albo podpis się nie weryfikuje.
+   Tytuł wydania idzie osobno, przez API z pliku JSON — argument przekazany
+   przez cmd zostałby przekodowany i polskie znaki by się rozsypały.
+5. `5_sprawdz_wydanie.bat` — pobiera plik spod linku „Pobierz APK" i porównuje
+   sumę SHA-256 z lokalnym. Sprawdza też, że wydanie nie jest szkicem ani
+   wersją wstępną i że GitHub uznaje je za najnowsze.
+
+Link „Pobierz APK" w instrukcji i README wskazuje
+`releases/latest/download/Straznik.apk`, więc prowadzi do najnowszego wydania
+sam z siebie — nie podbijaj go ręcznie. Warunek: zasób w wydaniu musi nazywać
+się dokładnie `Straznik.apk`.
 
 Suma SHA-256 w notatkach jest bezpieczna do publikacji — to odcisk palca publicznego
 pliku, nie sekret. Prawdziwą ochronę daje podpis APK kluczem autora: Android przy
@@ -270,12 +307,6 @@ każdej aktualizacji wymusza ten sam podpis.
 
 ## 6. Co zostało do zrobienia
 
-- **Wydanie 1.4.4 nie zostało opublikowane.** Kod jest zacommitowany (`63cb047`),
-  wersja podbita, APK zbudowany i przetestowany — brakuje `git push` i `gh release create`.
-- **Alarmy obwodów UA nadal tylko w aplikacji.** Neptun wysyła je wyłącznie
-  WebSocketem, a usługa czyta snapshot REST. Ścieżka `pushSignals` łata to, dopóki
-  aplikacja bywa otwierana, ale przy stale zamkniętej aplikacji tego sygnału zabraknie.
-  Do rozważenia: krótkie połączenie WS raz na kilka minut zamiast stałego gniazda.
 - **`test_spojnosc.py` porównuje stałe i formaty, nie zachowanie.** Test właściwej
   fuzji (te same sygnały na wejściu → te same punkty w trzech implementacjach)
   byłby mocniejszy.

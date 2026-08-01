@@ -121,7 +121,7 @@
   <div class="lg-row"><i class="sq" style="--c:#2e4437"></i> Litwa
     <i class="sq" style="--c:#2e3f4a"></i> Łotwa
     <i class="sq" style="--c:#3b3350"></i> Estonia</div>
-  <div class="lg-group">Województwa (suma pkt z 30 min)</div>
+  <div class="lg-group">Województwa (suma pkt z 60 min)</div>
   <div class="lg-row"><i class="sq" style="--c:#233252"></i> 0–1.9 pkt — spokojnie</div>
   <div class="lg-row"><i class="sq" style="--c:#ffb020"></i> ≥ 2 pkt — podwyższona uwaga</div>
   <div class="lg-row"><i class="sq" style="--c:#ff4d5e"></i> ≥ 4 pkt — wysoki priorytet</div>
@@ -163,8 +163,9 @@
     <h3>Jak to działa</h3>
     <p>Żaden pojedynczy sygnał nie przesądza o zagrożeniu. Aplikacja zbiera
     kilka niezależnych wskaźników, przydziela im punkty i sumuje je w oknie
-    <b>30 minut</b> osobno dla każdego województwa. Dopiero suma decyduje
-    o poziomie — i zawsze widzisz jej pełne rozbicie.</p>
+    <b>60 minut</b> osobno dla każdego województwa — przez pierwsze 30 minut
+    sygnał liczy się w pełni, potem jego waga spada liniowo do zera. Dopiero
+    suma decyduje o poziomie — i zawsze widzisz jej pełne rozbicie.</p>
 
     <table class="about-tab">
       <tr><td><b>NEPTUN</b></td><td>obiekt kursem na granicę PL — punkty zależą od
@@ -175,7 +176,7 @@
         naruszenie przestrzeni</td><td class="pts">+2</td></tr>
       <tr><td><b>RCB</b></td><td>nowy komunikat Rządowego Centrum Bezpieczeństwa</td><td class="pts">+2</td></tr>
       <tr><td><b>ADS-B</b></td><td>ruch lotnictwa wojskowego ponad dwukrotnie
-        wyższy niż średnia z 7 dni</td><td class="pts">+1</td></tr>
+        wyższy niż o tej samej porze doby w ostatnich 7 dniach</td><td class="pts">+1</td></tr>
       <tr><td><b>PAŻP</b></td><td>nowa aktywna strefa przestrzeni powietrznej
         (AUP/UUP) nad regionem</td><td class="pts">+1</td></tr>
       <tr><td><b>Bałtyk</b></td><td>incydent powietrzny wg mediów Litwy, Łotwy

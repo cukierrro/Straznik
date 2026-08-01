@@ -3,7 +3,8 @@ setlocal enabledelayedexpansion
 chcp 65001 >nul 2>&1
 
 rem ===========================================================================
-rem  Publikacja wydania v1.4.4: kontrola bezpieczenstwa, push, release, weryfikacja.
+rem  Publikacja wydania: kontrola bezpieczenstwa, push, release, weryfikacja.
+rem  Wersja czytana z build.gradle, notatki z notatki_wydania_<wersja>.md.
 rem  Skrypt PRZERYWA prace, jesli cokolwiek w kontroli wyjdzie nie tak.
 rem  Wyniki w test-out\.
 rem
@@ -17,6 +18,22 @@ set "REPO=%REPO:~0,-1%"
 set "OUT=%REPO%\test-out"
 if not exist "%OUT%" mkdir "%OUT%"
 cd /d "%REPO%"
+
+rem  Wersja pochodzi z build.gradle, a nie z tresci skryptu: przy wydawaniu
+rem  najlatwiej zapomniec o podbiciu jej w drugim miejscu.
+set "VER="
+for /f "tokens=2 delims= " %%V in ('findstr /c:"versionName" "%REPO%\android-app\android\app\build.gradle"') do set "VER=%%~V"
+if not defined VER (
+  echo PRZERWANE - nie udalo sie odczytac versionName z build.gradle
+  goto :koniec
+)
+set "TAG=v%VER%"
+set "NOTATKI=%REPO%\notatki_wydania_%VER%.md"
+echo Wydanie: %TAG%
+if not exist "%NOTATKI%" (
+  echo PRZERWANE - brak pliku z notatkami: %NOTATKI%
+  goto :koniec
+)
 
 echo.
 echo === 1/7  Klucz podpisu i hasla poza repozytorium ===
@@ -82,11 +99,11 @@ git ls-remote origin refs/heads/main >> "%OUT%\68_head.txt" 2>&1
 type "%OUT%\68_head.txt"
 
 echo.
-echo === 6/7  Utworzenie wydania v1.4.4 ===
-gh release create v1.4.4 "%REPO%\Straznik.apk" --notes-file "%REPO%\notatki_wydania_1.4.4.md" --latest > "%OUT%\69_release.txt" 2>&1
+echo === 6/7  Utworzenie wydania %TAG% ===
+gh release create %TAG% "%REPO%\Straznik.apk" --notes-file "%NOTATKI%" --latest > "%OUT%\69_release.txt" 2>&1
 type "%OUT%\69_release.txt"
 
-for /f "delims=" %%I in ('gh release view v1.4.4 --json databaseId -q .databaseId 2^>nul') do set "RELID=%%I"
+for /f "delims=" %%I in ('gh release view %TAG% --json databaseId -q .databaseId 2^>nul') do set "RELID=%%I"
 if defined RELID (
   echo   id wydania: !RELID! - ustawiam tytul z pliku JSON
   gh api repos/cukierrro/Straznik/releases/!RELID! -X PATCH --input "%REPO%\notatki_wydania_tytul.json" > "%OUT%\70_tytul.txt" 2>&1
@@ -97,7 +114,7 @@ if defined RELID (
 
 echo.
 echo === 7/7  Weryfikacja ===
-gh release view v1.4.4 --json tagName,name,isLatest,isDraft,assets > "%OUT%\71_weryfikacja.txt" 2>&1
+gh release view %TAG% --json tagName,name,isDraft,isPrerelease,assets > "%OUT%\71_weryfikacja.txt" 2>&1
 type "%OUT%\71_weryfikacja.txt"
 echo. >> "%OUT%\71_weryfikacja.txt"
 gh release list -R cukierrro/Straznik >> "%OUT%\71_weryfikacja.txt" 2>&1
