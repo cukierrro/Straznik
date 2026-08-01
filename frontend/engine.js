@@ -794,13 +794,12 @@ async function start(stateCb) {
   setInterval(refreshAlertOwnership, 60000);
   const LN = window.Capacitor?.Plugins?.LocalNotifications;
   if (LN) {
-    try {
-      await LN.requestPermissions();
-      await LN.createChannel?.({ id: "straznik-high", name: "Strażnik — wysoki priorytet",
-        importance: 5, sound: "", vibration: true });
-      await LN.createChannel?.({ id: "straznik-info", name: "Strażnik — informacje",
-        importance: 3 });
-    } catch (e) { console.warn(e); }
+    // Kanały tworzy wyłącznie strona natywna (MonitorService.createChannels
+    // z MainActivity.onCreate): ma właściwe ważności, wibracje i własne dźwięki
+    // (alert_uwaga / alarm_syrena), a przy okazji kasuje stare kanały. Silnik
+    // celowo ich NIE tworzy — inaczej odtwarzał skasowane „straznik-high/info"
+    // i użytkownik widział w ustawieniach zbędne, nieużywane kanały.
+    try { await LN.requestPermissions(); } catch (e) { console.warn(e); }
   } else if ("Notification" in window && Notification.permission === "default") {
     try { Notification.requestPermission(); } catch {}
   }
