@@ -296,11 +296,58 @@ function markRss(url, ok) {
 function addSignal(source, eventType, voiv, points, title, details, key) {
   if (seenKeys.has(key)) return false;
   seenKeys.set(key, Date.now());
+  // klucz zostaje przy sygnale: usługa w tle dostaje go przy scalaniu i po nim
+  // rozpoznaje, że to samo zdarzenie już zna (patrz syncWithBackground)
   signals.push({ t: Date.now(), ts: new Date().toISOString(), source,
-    event_type: eventType, voivodeship: voiv, points, title, details });
+    event_type: eventType, voivodeship: voiv, points, title, details, key });
   persist();
   reevaluate();
   return true;
+}
+
+/* ── scalanie ze stanem usługi w tle ─────────────────────────────────────── */
+/* Usługa i aplikacja liczyły dotąd z dwóch niezależnych zbiorów: usługa ze
+   SharedPreferences, aplikacja z localStorage — a localStorage zapełnia się
+   TYLKO wtedy, gdy aplikacja jest otwarta. Po godzinie zamknięcia okno 60 min
+   siłą rzeczy było puste, więc pasek powiadomień pokazywał punkty, a aplikacja
+   po otwarciu „0 pkt, brak sygnałów". Odkąd usługa działa, to ona ma komplet —
+   aplikacja dociąga jej sygnały i scala po kluczu, tym samym, którego sama
+   używa do deduplikacji, więc nic nie liczy się dwa razy. */
+async function syncWithBackground() {
+  const BG = window.Capacitor?.Plugins?.StraznikBackground;
+  if (!BG?.signals) return;
+  let res;
+  try { res = await BG.signals(); } catch { return; }
+  if (!res || !res.enabled || !Array.isArray(res.signals)) return;
+
+  /* Najpierw w drugą stronę: sygnały, których usługa nie ma skąd wziąć
+     (alarmy w obwodach UA idą tylko WebSocketem, a usługa czyta REST).
+     Wysyłamy całe bieżące okno — deduplikacja po stronie usługi odsieje to,
+     co już zna, a koszt to jedno przejście przez most raz na 30 s. */
+  const cut = Date.now() - WINDOW_MIN * 60 * 1000;
+  const mine = signals
+    .filter(s => s.t >= cut && s.key && !s.from_background)
+    .map(s => ({ key: s.key, source: s.source, voivodeship: s.voivodeship,
+                 points: s.points, title: s.title, t: s.t }));
+  if (mine.length && BG.pushSignals) {
+    try { await BG.pushSignals({ signals: mine }); } catch {}
+  }
+
+  let added = 0;
+  for (const s of res.signals) {
+    if (!s || !s.key || seenKeys.has(s.key)) continue;
+    if (!VOIVODESHIPS.includes(s.voivodeship)) continue;
+    const pts = Number(s.points);
+    if (!Number.isFinite(pts) || pts <= 0) continue;
+    const t = Number(s.t) || Date.now();
+    seenKeys.set(s.key, Date.now());
+    signals.push({ t, ts: new Date(t).toISOString(), source: s.source,
+      event_type: "bg_" + s.source, voivodeship: s.voivodeship, points: pts,
+      title: s.title || "", details: { from_background: true },
+      key: s.key, from_background: true });
+    added++;
+  }
+  if (added) { persist(); reevaluate(); }
 }
 
 /* Województwa osiągalne z `src` wraz z odległością w krokach sąsiedztwa (BFS).
@@ -639,7 +686,23 @@ async function tickRcb() {
 }
 
 /* ── kolektor: PAŻP (AUP/UUP — publiczny GeoJSON mapy airspace.pansa.pl) ── */
-let voivPolys = null, prevZones = null;
+let voivPolys = null;
+/* Zbiór stref z poprzedniego obiegu MUSI przeżyć zamknięcie aplikacji: sygnałem
+   jest POJAWIENIE SIĘ nowej strefy, nie jej trwanie. Trzymany dotąd w RAM
+   zerował się przy każdym starcie, więc pierwszy obieg tylko zapamiętywał stan,
+   a strefa aktywowana przy zamkniętej aplikacji nigdy nie wchodziła do
+   punktacji. Usługa w tle zapisuje to samo trwale (Sources.pansa) — stąd brał
+   się rozjazd: pasek powiadomień pokazywał punkt za strefę PAŻP, a aplikacja
+   po otwarciu zero. */
+const PANSA_ZONES_KEY = "eng_pansa_zones";
+function loadPrevZones() {
+  const raw = localStorage.getItem(PANSA_ZONES_KEY);
+  if (raw == null) return null;             // nigdy nie było obiegu → bootstrap
+  try { return new Set(JSON.parse(raw)); } catch { return null; }
+}
+function savePrevZones(zones) {
+  try { localStorage.setItem(PANSA_ZONES_KEY, JSON.stringify([...zones])); } catch {}
+}
 async function loadVoivPolys() {
   if (voivPolys) return voivPolys;
   const gj = await (await fetch("assets/wojewodztwa.geojson")).json();
@@ -692,6 +755,7 @@ async function tickPansa() {
       active.set(dz, { voiv, type: p.airspaceElementType, lower: res.lowerAltitude,
         upper: res.upperAltitude, remarks: res.remarks, end: res.endDate });
     }
+    const prevZones = loadPrevZones();
     if (prevZones) {
       for (const [dz, info] of active) {
         if (prevZones.has(dz) || !PRIORITY_VOIVS.includes(info.voiv)) continue;
@@ -701,7 +765,7 @@ async function tickPansa() {
           { designator: dz, ...info }, `pansa:${dz}:${info.end}`);
       }
     }
-    prevZones = new Set(active.keys());
+    savePrevZones(active.keys());
   } catch (e) { markHealth("pansa", false); }
   emit();
 }
@@ -792,6 +856,10 @@ async function start(stateCb) {
   // kto odpowiada za powiadomienia: usługa w tle czy silnik w aplikacji
   await refreshAlertOwnership();
   setInterval(refreshAlertOwnership, 60000);
+  // sygnały usługi wczytujemy PRZED własnymi kolektorami — inaczej pierwsze
+  // sekundy po otwarciu aplikacji pokazywałyby zero mimo alertu na pasku
+  await syncWithBackground();
+  setInterval(syncWithBackground, 30000);
   const LN = window.Capacitor?.Plugins?.LocalNotifications;
   if (LN) {
     // Kanały tworzy wyłącznie strona natywna (MonitorService.createChannels

@@ -329,6 +329,117 @@ class Sources {
         return out;
     }
 
+    /**
+     * ADS-B — nietypowe zagęszczenie lotnictwa wojskowego nad ścianą wschodnią.
+     *
+     * Aplikacja miała to źródło od początku, usługa w tle nie: przy zamkniętej
+     * aplikacji sygnał nie powstawał, a po jej otwarciu pojawiał się od razu.
+     * Przez to punkty na pasku powiadomień i w aplikacji potrafiły się różnić
+     * w drugą stronę niż PAŻP — aplikacja pokazywała więcej niż usługa.
+     *
+     * Odniesieniem jest TA SAMA pora doby z ostatniego tygodnia, nie średnia
+     * dobowa: ruch lotniczy waha się w ciągu doby kilkudziesięciokrotnie, więc
+     * średnia z całej doby robiłaby anomalię z każdego normalnego popołudnia.
+     */
+    private static final String KEY_ADSB = "adsb_samples";
+    private static final long ADSB_SAMPLE_EVERY_MS = 10 * 60 * 1000L;   // gęstość historii
+    private static final long ADSB_KEEP_MS = 7 * 24 * 3600 * 1000L;
+    private static final int ADSB_MAX_SAMPLES = 5000;
+    private static final int ADSB_MIN_PLANES = 3;
+    private static final double ADSB_SPIKE_FACTOR = 2.0;
+
+    /** „YYYY-MM-DDTHH" w UTC — identyczny format co toISOString().slice(0,13)
+     *  w engine.js, żeby obie strony wygenerowały ten sam klucz deduplikacji. */
+    static String hourKeyUtc(long ts) {
+        SimpleDateFormat f = new SimpleDateFormat("yyyy-MM-dd'T'HH", Locale.US);
+        f.setTimeZone(TimeZone.getTimeZone("UTC"));
+        return f.format(new Date(ts));
+    }
+
+    private static int hourOfDayUtc(long ts) {
+        java.util.Calendar c = java.util.Calendar.getInstance(TimeZone.getTimeZone("UTC"), Locale.US);
+        c.setTimeInMillis(ts);
+        return c.get(java.util.Calendar.HOUR_OF_DAY);
+    }
+
+    static List<Fusion.Signal> adsb(Context ctx) {
+        String body = httpGet("https://api.adsb.lol/v2/mil");
+        if (body == null) return null;
+
+        int[] counts = new int[VOIVS.length];
+        try {
+            JSONArray ac = new JSONObject(body).optJSONArray("ac");
+            if (ac == null) return new ArrayList<>();
+            for (int i = 0; i < ac.length(); i++) {
+                JSONObject a = ac.optJSONObject(i);
+                if (a == null || a.isNull("lat") || a.isNull("lon")) continue;
+                int v = voivForPoint(a.optDouble("lat"), a.optDouble("lon"));
+                if (v >= 0) counts[v]++;
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "adsb parse", e);
+            return null;
+        }
+
+        List<Fusion.Signal> out = new ArrayList<>();
+        SharedPreferences p = ctx.getSharedPreferences("straznik_bg", Context.MODE_PRIVATE);
+        long now = System.currentTimeMillis();
+        int nowHour = hourOfDayUtc(now);
+        try {
+            JSONArray kept = new JSONArray();
+            // [czas, indeks województwa, liczba maszyn]
+            JSONArray old = new JSONArray(p.getString(KEY_ADSB, "[]"));
+            long[] lastSample = new long[VOIVS.length];
+            for (int i = 0; i < old.length(); i++) {
+                JSONArray s = old.optJSONArray(i);
+                if (s == null || s.length() < 3) continue;
+                long t = s.optLong(0);
+                if (now - t > ADSB_KEEP_MS) continue;
+                kept.put(s);
+                int v = s.optInt(1, -1);
+                if (v >= 0 && v < lastSample.length && t > lastSample[v]) lastSample[v] = t;
+            }
+
+            for (int v : PRIORITY_VOIVS) {
+                double sumHour = 0, nHour = 0, sumAll = 0, nAll = 0;
+                for (int i = 0; i < kept.length(); i++) {
+                    JSONArray s = kept.optJSONArray(i);
+                    if (s == null || s.optInt(1, -1) != v) continue;
+                    double c = s.optDouble(2, 0);
+                    sumAll += c; nAll++;
+                    if (hourOfDayUtc(s.optLong(0)) == nowHour) { sumHour += c; nHour++; }
+                }
+                // gdy dla tej godziny nie ma jeszcze próbek, schodzimy do średniej tygodniowej
+                double baseline = nHour > 0 ? sumHour / nHour : (nAll > 0 ? sumAll / nAll : 0);
+                if (baseline > 0 && counts[v] >= ADSB_MIN_PLANES
+                    && counts[v] > ADSB_SPIKE_FACTOR * baseline) {
+                    out.add(new Fusion.Signal("adsb", v, 1.0,
+                        "ADS-B: " + counts[v] + " maszyn wojskowych nad woj. " + VOIVS[v]
+                            + " (odniesienie 7 dni: " + String.format(Locale.US, "%.1f", baseline) + ")",
+                        "adsb:" + VOIVS[v] + ":" + hourKeyUtc(now)));
+                }
+                // historia rzadsza niż odpytywanie: do wykrycia skoku wystarczy
+                // bieżąca liczba, a gęsta historia rozdęłaby zapis w preferencjach
+                if (now - lastSample[v] >= ADSB_SAMPLE_EVERY_MS) {
+                    JSONArray s = new JSONArray();
+                    s.put(now); s.put(v); s.put(counts[v]);
+                    kept.put(s);
+                }
+            }
+
+            JSONArray trimmed = kept;
+            if (kept.length() > ADSB_MAX_SAMPLES) {
+                trimmed = new JSONArray();
+                for (int i = kept.length() - ADSB_MAX_SAMPLES; i < kept.length(); i++)
+                    trimmed.put(kept.get(i));
+            }
+            p.edit().putString(KEY_ADSB, trimmed.toString()).apply();
+        } catch (Exception e) {
+            Log.w(TAG, "adsb baseline", e);
+        }
+        return out;
+    }
+
     private static final Pattern ITEM = Pattern.compile("<item[^>]*>(.*?)</item>", Pattern.DOTALL);
     private static final Pattern TITLE = Pattern.compile("<title[^>]*>(.*?)</title>", Pattern.DOTALL);
     private static final Pattern LINK = Pattern.compile("<link[^>]*>(.*?)</link>", Pattern.DOTALL);
@@ -363,6 +474,10 @@ class Sources {
         "https://www.delfi.lt/rss/feeds/daily.xml",
     };
     private static final int[] BALTIC_TARGETS = {2, 6};   // podlaskie, warmińsko-mazurskie
+    /** Ściana wschodnia — domyślny cel sygnału bez rozpoznanego regionu.
+     *  Odpowiednik config.PRIORITY_VOIVODESHIPS z backendu i PRIORITY_VOIVS
+     *  z engine.js: lubelskie, podkarpackie, podlaskie, warmińsko-mazurskie. */
+    static final int[] PRIORITY_VOIVS = {0, 1, 2, 6};
     private static final String[] BALTIC_CRITICAL = {
         "airspace violation", "violated airspace", "airspace was violated", "air raid",
         "airspace closed", "shot down a drone", "scrambled jets",
@@ -456,11 +571,13 @@ class Sources {
                 }
                 Matcher lm = LINK.matcher(item);
                 String link = lm.find() ? clean(lm.group(1)) : title;
+                // klucz po NAZWIE województwa — ten sam format co w engine.js,
+                // inaczej scalanie sygnałów usługi z aplikacją liczyłoby je dwa razy
                 for (int v : BALTIC_TARGETS)
                     out.add(new Fusion.Signal("media", v, 1.0,
                         "Media bałtyckie: „" + (title.length() > 90
                             ? title.substring(0, 90) + "…" : title) + "”",
-                        "baltic:" + link + ":" + v));
+                        "baltic:" + link + ":" + VOIVS[v]));
             }
         }
         return any ? out : null;
@@ -567,12 +684,16 @@ class Sources {
             if (title.length() < 8 || !matches(title)) continue;
             int voiv = voivFromText(title);
             String label = "RCB: „" + (title.length() > 90 ? title.substring(0, 90) + "…" : title) + "”";
-            if (voiv >= 0) {
-                out.add(new Fusion.Signal("rcb", voiv, 2.0, label, "rcb:" + href + ":" + voiv));
-            } else {
-                for (int i = 0; i < VOIVS.length; i++)
-                    out.add(new Fusion.Signal("rcb", i, 2.0, label, "rcb:" + href + ":" + i));
-            }
+            /* Bez rozpoznanego regionu komunikat trafia na ścianę wschodnią, nie
+               na cały kraj. Rozsyłanie po 2 pkt do wszystkich 16 województw
+               wystarczało, by kaskada podniosła połowę Polski do „podwyższonej
+               uwagi” od jednego ogólnokrajowego wpisu — a aplikacja i backend
+               (config.PRIORITY_VOIVODESHIPS) od początku ograniczały się do
+               czterech przygranicznych. Klucz po NAZWIE, nie indeksie, żeby
+               zgadzał się z kluczem silnika w aplikacji przy scalaniu. */
+            int[] targets = voiv >= 0 ? new int[]{voiv} : PRIORITY_VOIVS;
+            for (int i : targets)
+                out.add(new Fusion.Signal("rcb", i, 2.0, label, "rcb:" + href + ":" + VOIVS[i]));
         }
         return out;
     }

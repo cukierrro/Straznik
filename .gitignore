@@ -10,6 +10,10 @@ android-app/android/build/
 android-app/android/local.properties
 *.pyc
 
+# Wyniki testów na emulatorze (logi, zrzuty ekranu) — generowane przy każdym
+# uruchomieniu 1_buduj_i_testuj.bat, nie ma powodu wersjonować
+test-out/
+
 # Klucz podpisu wydania i hasła do niego — utrata pliku oznacza brak możliwości
 # aktualizowania aplikacji u użytkowników, a wyciek pozwala podszyć się pod autora.
 # Trzymaj kopię poza repozytorium (menedżer haseł, dysk zewnętrzny).

@@ -43,6 +43,7 @@ public class MonitorService extends Service {
     private static final long POLL_MEDIA_MS = 120_000L;
     private static final long POLL_RCB_MS = 180_000L;
     private static final long POLL_PANSA_MS = 300_000L;
+    private static final long POLL_ADSB_MS = 180_000L;
 
     /** Czy usługa faktycznie żyje — samo ustawienie „włączone” tego nie gwarantuje,
      *  bo system albo menedżer baterii mógł ją w międzyczasie ubić. */
@@ -298,7 +299,7 @@ public class MonitorService extends Service {
     }
 
     private void loop() {
-        long lastNeptun = 0, lastMedia = 0, lastRcb = 0, lastPansa = 0;
+        long lastNeptun = 0, lastMedia = 0, lastRcb = 0, lastPansa = 0, lastAdsb = 0;
         boolean bootstrap = true;   // pierwszy przebieg: zapamiętaj istniejące wpisy
 
         while (running.get()) {
@@ -322,6 +323,13 @@ public class MonitorService extends Service {
                     note("RCB", s != null, s == null ? 0 : s.size());
                     if (s != null) Fusion.ingest(this, s, bootstrap);
                     bootstrap = false;
+                }
+                if (now - lastAdsb >= POLL_ADSB_MS) {
+                    lastAdsb = now;
+                    List<Fusion.Signal> s = Sources.adsb(this);
+                    note("ADS-B", s != null, s == null ? 0 : s.size());
+                    // skok liczony względem własnej historii, więc bez bootstrapu
+                    if (s != null) Fusion.ingest(this, s, false);
                 }
                 if (now - lastPansa >= POLL_PANSA_MS) {
                     lastPansa = now;

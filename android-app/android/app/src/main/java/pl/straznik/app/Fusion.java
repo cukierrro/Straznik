@@ -92,6 +92,10 @@ class Fusion {
                 JSONObject o = new JSONObject();
                 o.put("src", s.source); o.put("v", s.voiv); o.put("p", s.points);
                 o.put("t", s.ts); o.put("title", s.title);
+                // klucz deduplikacji wędruje razem z sygnałem: aplikacja wczytuje
+                // sygnały usługi (patrz BackgroundPlugin.signals) i bez klucza
+                // nie umiałaby odróżnić tego samego zdarzenia od nowego
+                o.put("k", s.key);
                 sigs.put(o);
                 added++;
             }
@@ -111,6 +115,38 @@ class Fusion {
                     .putString(KEY_SEEN, seenOut.toString()).apply();
         } catch (Exception ignored) {}
         return added;
+    }
+
+    /**
+     * Surowe sygnały usługi w formacie zrozumiałym dla silnika w WebView.
+     *
+     * Aplikacja i usługa liczyły dotąd punkty z dwóch niezależnych zbiorów:
+     * usługa ze SharedPreferences, aplikacja z localStorage. Efekt był taki,
+     * że pasek powiadomień pokazywał punkty, o których aplikacja nic nie
+     * wiedziała (i odwrotnie). Odkąd usługa działa, to ona ma komplet sygnałów
+     * — aplikacja je stąd wczytuje i scala ze swoimi po kluczu `key`.
+     */
+    static JSONArray export(Context c) {
+        JSONArray out = new JSONArray();
+        try {
+            JSONArray sigs = new JSONArray(prefs(c).getString(KEY_SIGNALS, "[]"));
+            for (int i = 0; i < sigs.length(); i++) {
+                JSONObject o = sigs.getJSONObject(i);
+                int v = o.optInt("v", -1);
+                if (v < 0 || v >= Sources.VOIVS.length) continue;
+                String key = o.optString("k", "");
+                if (key.isEmpty()) continue;   // rekord sprzed tej wersji — bez klucza nie scalimy
+                JSONObject e = new JSONObject();
+                e.put("source", o.optString("src"));
+                e.put("voivodeship", Sources.VOIVS[v]);
+                e.put("points", o.optDouble("p", 0));
+                e.put("t", o.optLong("t", 0));
+                e.put("title", o.optString("title"));
+                e.put("key", key);
+                out.put(e);
+            }
+        } catch (Exception ignored) {}
+        return out;
     }
 
     static Result evaluate(Context c) {

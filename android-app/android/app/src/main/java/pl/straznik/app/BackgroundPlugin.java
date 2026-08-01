@@ -89,6 +89,66 @@ public class BackgroundPlugin extends Plugin {
         call.resolve(ret);
     }
 
+    /**
+     * Sygnały zebrane przez usługę w tle — jedyne źródło prawdy, gdy usługa żyje.
+     *
+     * Bez tego interfejs nie widział stanu usługi: powiadomienie na pasku mogło
+     * pokazywać punkty, a aplikacja po otwarciu — zero i „brak sygnałów", bo
+     * liczyła wyłącznie z własnego zbioru w localStorage, zbieranego tylko
+     * wtedy, gdy była otwarta.
+     */
+    @PluginMethod
+    public void signals(PluginCall call) {
+        Context c = getContext();
+        JSObject ret = new JSObject();
+        ret.put("signals", Fusion.export(c));
+        ret.put("serviceAlive", MonitorService.ALIVE);
+        ret.put("enabled", isEnabled(c));
+        ret.put("diag", c.getSharedPreferences("straznik_bg", Context.MODE_PRIVATE)
+                         .getString("diag", ""));
+        ret.put("lastCycleAgoS", lastCycleAgoSeconds(c));
+        call.resolve(ret);
+    }
+
+    /**
+     * Sygnały zebrane przez aplikację, których usługa sama by nie zobaczyła.
+     *
+     * Silnik w WebView ma źródła niedostępne usłudze — przede wszystkim alarmy
+     * powietrzne w obwodach UA, które Neptun wysyła wyłącznie WebSocketem
+     * (usługa korzysta ze snapshotu REST, bo trzymanie gniazda przez dobę
+     * kosztowałoby baterię bez zysku). Bez tej ścieżki aplikacja pokazywałaby
+     * punkty, o których pasek powiadomień nic nie wie. Deduplikacja po tym
+     * samym kluczu, więc sygnał, który już przyszedł drugą stroną, jest pomijany.
+     */
+    @PluginMethod
+    public void pushSignals(PluginCall call) {
+        com.getcapacitor.JSArray arr = call.getArray("signals");
+        if (arr == null) { call.resolve(); return; }
+        java.util.List<Fusion.Signal> in = new java.util.ArrayList<>();
+        try {
+            for (Object raw : arr.toList()) {
+                org.json.JSONObject o = new org.json.JSONObject(
+                    raw instanceof org.json.JSONObject ? raw.toString() : String.valueOf(raw));
+                String key = o.optString("key", "");
+                String voivName = o.optString("voivodeship", "");
+                double pts = o.optDouble("points", 0);
+                if (key.isEmpty() || pts <= 0) continue;
+                int voiv = -1;
+                for (int i = 0; i < Sources.VOIVS.length; i++)
+                    if (Sources.VOIVS[i].equalsIgnoreCase(voivName)) { voiv = i; break; }
+                if (voiv < 0) continue;
+                Fusion.Signal s = new Fusion.Signal(o.optString("source", "app"), voiv, pts,
+                    o.optString("title", ""), key);
+                // zachowujemy oryginalny czas — od niego zależy wygaszanie w oknie 60 min
+                long t = o.optLong("t", 0);
+                if (t > 0) s.ts = t;
+                in.add(s);
+            }
+        } catch (Exception ignored) {}
+        Fusion.ingest(getContext(), in, false);
+        call.resolve();
+    }
+
     /** Ile sekund temu usługa skończyła ostatni obieg (−1, gdy nigdy). */
     private long lastCycleAgoSeconds(Context c) {
         long ts = c.getSharedPreferences("straznik_bg", Context.MODE_PRIVATE)
