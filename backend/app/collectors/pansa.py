@@ -141,6 +141,15 @@ async def _tick(client: httpx.AsyncClient):
     if _prev_active is not None:
         for designator in set(active) - _prev_active:
             info = active[designator]
+            # Instrumentacja (bez zmiany punktacji): loguj KAŻDĄ nową aktywację —
+            # też spoza ściany wschodniej — żeby rozpoznać, które typy/pułapy to
+            # rutynowe tło (TSA/TRA/ATZ, wąskie pasma), a które rzadkie
+            # pełnokolumnowe zamknięcia (kandydaci na wyższą wagę). Na tej
+            # podstawie zdecydujemy o różnicowaniu wag stref PAŻP.
+            # Przegląd na VPS:  journalctl -u straznik | grep "PAŻP nowa"
+            log.info("PAŻP nowa: typ=%s %s pułap=%s–%s woj=%s",
+                     info.get("type"), designator, info.get("lower"),
+                     info.get("upper"), info["voiv"])
             if info["voiv"] not in config.PRIORITY_VOIVODESHIPS:
                 continue       # punktujemy tylko ścianę wschodnią
             desc = f"{info['type'] or ''} {designator}".strip()
