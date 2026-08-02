@@ -40,11 +40,6 @@
             android:showOnLockScreen="true"
             android:theme="@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen" />
 
-        <service
-            android:name=".MonitorService"
-            android:exported="false"
-            android:foregroundServiceType="dataSync" />
-
         <!-- Push FCM: odbiera wiadomości `data` (temat voiv_<region>) także przy
              zamkniętej aplikacji i w Doze; dla czerwonego buduje pełnoekranowy alarm. -->
         <service
@@ -54,17 +49,6 @@
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
             </intent-filter>
         </service>
-
-        <receiver
-            android:name=".BootReceiver"
-            android:exported="true"
-            android:enabled="true">
-            <intent-filter>
-                <action android:name="android.intent.action.BOOT_COMPLETED" />
-                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
-                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
-            </intent-filter>
-        </receiver>
 
         <provider
             android:name="androidx.core.content.FileProvider"
@@ -82,11 +66,9 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <!-- nasłuch przy zamkniętej aplikacji: usługa pierwszoplanowa -->
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <!-- czerwony alarm trzyma ekran zapalony do potwierdzenia (AlarmActivity,
+         Alarms.ensureAlarmIsSeen) -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
-    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <!-- alarm czerwony wybudza ekran przy zablokowanym telefonie -->
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />

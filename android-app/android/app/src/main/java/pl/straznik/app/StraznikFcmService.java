@@ -16,8 +16,8 @@ import java.util.Map;
  * i w trybie Doze (wiadomości mają priorytet „high").
  *
  * Celowo wiadomości są `data-only`: dzięki temu ZAWSZE trafiają tutaj (system nie
- * wyświetla ich sam), a my odtwarzamy dokładnie tę samą ścieżkę co usługa w tle —
- * {@link MonitorService#postAlarm}, z pełnoekranowym alarmem dla czerwonego.
+ * wyświetla ich sam), a my sami budujemy powiadomienie —
+ * {@link Alarms#postAlarm}, z pełnoekranowym alarmem dla czerwonego.
  */
 public class StraznikFcmService extends FirebaseMessagingService {
     private static final String TAG = "StraznikFcm";
@@ -29,16 +29,14 @@ public class StraznikFcmService extends FirebaseMessagingService {
 
         // Aplikacja na wierzchu sama pokazuje alarm (WebView/silnik) — nie dublujemy.
         if (MainActivity.isForeground()) return;
-        // Usługa pierwszoplanowa (jeśli włączona) już monitoruje i powiadamia lokalnie.
-        if (MonitorService.ALIVE) return;
 
         String voivName = data.get("voiv");
         String level = data.get("level");
         if (voivName == null || level == null) return;
 
         int voiv = -1;
-        for (int i = 0; i < Sources.VOIVS.length; i++)
-            if (Sources.VOIVS[i].equalsIgnoreCase(voivName)) { voiv = i; break; }
+        for (int i = 0; i < Alarms.VOIVS.length; i++)
+            if (Alarms.VOIVS[i].equalsIgnoreCase(voivName)) { voiv = i; break; }
         if (voiv < 0) { Log.w(TAG, "nieznane województwo: " + voivName); return; }
 
         double score = 0;
@@ -50,8 +48,8 @@ public class StraznikFcmService extends FirebaseMessagingService {
             for (String line : r.split("\n"))
                 if (!line.trim().isEmpty()) reasons.add(line.trim());
 
-        MonitorService.createChannels(this);
-        MonitorService.postAlarm(this, voiv, level, score, reasons);
+        Alarms.createChannels(this);
+        Alarms.postAlarm(this, voiv, level, score, reasons);
     }
 
     @Override

@@ -16,69 +16,30 @@ import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 
-/** Most JS ↔ usługa w tle: start, stop, status, wyjątek od optymalizacji baterii. */
+/**
+ * Most JS ↔ warstwa natywna: stan powiadomień, subskrypcja tematu FCM regionu,
+ * zgody systemowe (powiadomienia, alarm pełnoekranowy, wyjątek baterii).
+ *
+ * Usługa pierwszoplanowa w tle została WYCOFANA (Android 15/16 ubijał `dataSync`
+ * FGS) — alarmy przy zamkniętej aplikacji dostarcza push FCM per województwo,
+ * więc ten plugin nie steruje już żadną usługą.
+ */
 @CapacitorPlugin(name = "StraznikBackground")
 public class BackgroundPlugin extends Plugin {
 
-    private static final String PREFS = "straznik_bg_cfg";
-    private static final String KEY_ENABLED = "enabled";
-
-    static boolean isEnabled(Context c) {
-        // Usługa pierwszoplanowa w tle WYCOFANA — Android 15/16 i tak ją ubijał
-        // („Stop FGS timeout"), a alarmy przy zamkniętej aplikacji dostarcza teraz
-        // FCM (push per województwo). Zwracamy zawsze false, żeby nic jej nie
-        // wskrzeszało: ani BootReceiver po restarcie, ani stare ustawienia sprzed
-        // aktualizacji.
-        return false;
-    }
-
-    private void setEnabled(boolean v) {
-        getContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .edit().putBoolean(KEY_ENABLED, v).apply();
-    }
-
-    @PluginMethod
-    public void start(PluginCall call) {
-        Context c = getContext();
-        Intent i = new Intent(c, MonitorService.class);
-        try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) c.startForegroundService(i);
-            else c.startService(i);
-            setEnabled(true);
-            JSObject ret = new JSObject();
-            ret.put("running", true);
-            call.resolve(ret);
-        } catch (Exception e) {
-            call.reject("Nie udało się uruchomić usługi: " + e.getMessage());
-        }
-    }
-
-    @PluginMethod
-    public void stop(PluginCall call) {
-        Context c = getContext();
-        setEnabled(false);
-        // Jawny ACTION_STOP: usługa sama zdejmuje powiadomienie foreground i się
-        // zabija (na ROM-ach typu ColorOS/OBLUE samo stopService() bywa niepewne).
-        // stopService() zostaje jako zapas.
-        try {
-            c.startService(new Intent(c, MonitorService.class).setAction(MonitorService.ACTION_STOP));
-        } catch (Exception ignored) {}
-        c.stopService(new Intent(c, MonitorService.class));
-        JSObject ret = new JSObject();
-        ret.put("running", false);
-        call.resolve(ret);
-    }
+    /** Prefs współdzielone z resztą warstwy natywnej — trzymamy tu wybrany region. */
+    private static final String PREFS = "straznik_bg";
+    private static final String KEY_HOME = "home_voiv";
 
     /**
-     * Województwo wybrane w ustawieniach. Usługa w tle nie ma dostępu do
-     * localStorage WebView, a musi wiedzieć, o którym regionie alarmować —
-     * bez tego przy 16 województwach telefon dostawałby alerty o zdarzeniach
-     * po drugiej stronie kraju.
+     * Województwo wybrane w ustawieniach. Nazwa regionu wyznacza temat FCM
+     * (voiv_&lt;region&gt;), więc po każdej zmianie przepinamy subskrypcję.
      */
     @PluginMethod
     public void setHomeVoivodeship(PluginCall call) {
-        Fusion.setHomeVoivodeship(getContext(), call.getString("voivodeship"));
-        // po zmianie regionu przepnij subskrypcję tematu FCM na nowe województwo
+        String v = call.getString("voivodeship");
+        getContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit().putString(KEY_HOME, v == null ? "" : v).apply();
         syncFcmSubscription(getContext());
         call.resolve();
     }
@@ -98,20 +59,19 @@ public class BackgroundPlugin extends Plugin {
 
     /**
      * Dopasowuje subskrypcje tematów FCM do wybranego regionu: subskrybuje temat
-     * województwa użytkownika (albo, gdy nie wybrał, ściany wschodniej — jak
-     * Fusion.DEFAULT_WATCH), i odsubskrybowuje poprzednie. Wywoływane przy starcie
-     * aplikacji i po każdej zmianie regionu, więc telefon dostaje push tylko o
-     * swoim województwie.
+     * województwa użytkownika (albo, gdy nie wybrał, ściany wschodniej), i
+     * odsubskrybowuje poprzednie. Wywoływane przy starcie aplikacji i po każdej
+     * zmianie regionu, więc telefon dostaje push tylko o swoim województwie.
      */
     static void syncFcmSubscription(Context c) {
         java.util.Set<String> target = new java.util.HashSet<>();
-        String home = c.getSharedPreferences("straznik_bg", Context.MODE_PRIVATE)
-                       .getString("home_voiv", "");
+        String home = c.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                       .getString(KEY_HOME, "");
         if (home != null && !home.isEmpty()) {
             target.add(voivTopic(home));
         } else {
             for (int i : new int[]{0, 1, 2, 6})   // lubelskie, podkarpackie, podlaskie, warm.-maz.
-                target.add(voivTopic(Sources.VOIVS[i]));
+                target.add(voivTopic(Alarms.VOIVS[i]));
         }
         android.content.SharedPreferences p =
             c.getSharedPreferences("straznik_fcm", Context.MODE_PRIVATE);
@@ -127,88 +87,15 @@ public class BackgroundPlugin extends Plugin {
     public void status(PluginCall call) {
         Context c = getContext();
         JSObject ret = new JSObject();
-        ret.put("enabled", isEnabled(c));
         ret.put("batteryUnrestricted", isIgnoringBattery(c));
         ret.put("notificationsAllowed", notificationsAllowed(c));
         ret.put("fullScreenAllowed", fullScreenAllowed(c));
         ret.put("sdk", Build.VERSION.SDK_INT);
         ret.put("manufacturer", Build.MANUFACTURER);
         ret.put("appVersion", appVersion(c));
-        // Faktyczny stan usługi i moment jej ostatniego cyklu — samo „włączone”
-        // w ustawieniach nic nie mówi, gdy system ubił usługę w tle.
-        ret.put("serviceAlive", MonitorService.ALIVE);
         ret.put("homeVoivodeship",
-            c.getSharedPreferences("straznik_bg", Context.MODE_PRIVATE)
-             .getString("home_voiv", ""));
-        ret.put("lastCycleAgoS", lastCycleAgoSeconds(c));
+            c.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_HOME, ""));
         call.resolve(ret);
-    }
-
-    /**
-     * Sygnały zebrane przez usługę w tle — jedyne źródło prawdy, gdy usługa żyje.
-     *
-     * Bez tego interfejs nie widział stanu usługi: powiadomienie na pasku mogło
-     * pokazywać punkty, a aplikacja po otwarciu — zero i „brak sygnałów", bo
-     * liczyła wyłącznie z własnego zbioru w localStorage, zbieranego tylko
-     * wtedy, gdy była otwarta.
-     */
-    @PluginMethod
-    public void signals(PluginCall call) {
-        Context c = getContext();
-        JSObject ret = new JSObject();
-        ret.put("signals", Fusion.export(c));
-        ret.put("serviceAlive", MonitorService.ALIVE);
-        ret.put("enabled", isEnabled(c));
-        ret.put("diag", c.getSharedPreferences("straznik_bg", Context.MODE_PRIVATE)
-                         .getString("diag", ""));
-        ret.put("lastCycleAgoS", lastCycleAgoSeconds(c));
-        call.resolve(ret);
-    }
-
-    /**
-     * Sygnały zebrane przez aplikację, których usługa sama by nie zobaczyła.
-     *
-     * Silnik w WebView ma źródła niedostępne usłudze — przede wszystkim alarmy
-     * powietrzne w obwodach UA, które Neptun wysyła wyłącznie WebSocketem
-     * (usługa korzysta ze snapshotu REST, bo trzymanie gniazda przez dobę
-     * kosztowałoby baterię bez zysku). Bez tej ścieżki aplikacja pokazywałaby
-     * punkty, o których pasek powiadomień nic nie wie. Deduplikacja po tym
-     * samym kluczu, więc sygnał, który już przyszedł drugą stroną, jest pomijany.
-     */
-    @PluginMethod
-    public void pushSignals(PluginCall call) {
-        com.getcapacitor.JSArray arr = call.getArray("signals");
-        if (arr == null) { call.resolve(); return; }
-        java.util.List<Fusion.Signal> in = new java.util.ArrayList<>();
-        try {
-            for (Object raw : arr.toList()) {
-                org.json.JSONObject o = new org.json.JSONObject(
-                    raw instanceof org.json.JSONObject ? raw.toString() : String.valueOf(raw));
-                String key = o.optString("key", "");
-                String voivName = o.optString("voivodeship", "");
-                double pts = o.optDouble("points", 0);
-                if (key.isEmpty() || pts <= 0) continue;
-                int voiv = -1;
-                for (int i = 0; i < Sources.VOIVS.length; i++)
-                    if (Sources.VOIVS[i].equalsIgnoreCase(voivName)) { voiv = i; break; }
-                if (voiv < 0) continue;
-                Fusion.Signal s = new Fusion.Signal(o.optString("source", "app"), voiv, pts,
-                    o.optString("title", ""), key);
-                // zachowujemy oryginalny czas — od niego zależy wygaszanie w oknie 60 min
-                long t = o.optLong("t", 0);
-                if (t > 0) s.ts = t;
-                in.add(s);
-            }
-        } catch (Exception ignored) {}
-        Fusion.ingest(getContext(), in, false);
-        call.resolve();
-    }
-
-    /** Ile sekund temu usługa skończyła ostatni obieg (−1, gdy nigdy). */
-    private long lastCycleAgoSeconds(Context c) {
-        long ts = c.getSharedPreferences("straznik_bg", Context.MODE_PRIVATE)
-                   .getLong("diag_ts", 0);
-        return ts > 0 ? (System.currentTimeMillis() - ts) / 1000 : -1;
     }
 
     /** Wersja aplikacji — potrzebna, by porównać ją z najnowszym wydaniem. */
@@ -273,7 +160,7 @@ public class BackgroundPlugin extends Plugin {
 
     /**
      * Prośba o zdjęcie ograniczeń baterii. Bez tego producenci (Xiaomi, Samsung,
-     * Huawei, Oppo) potrafią ubić usługę po kilkunastu minutach.
+     * Huawei, Oppo) potrafią uśpić proces i opóźnić dostarczenie pusha.
      */
     @PluginMethod
     public void requestBatteryExemption(PluginCall call) {

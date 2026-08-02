@@ -162,11 +162,6 @@ const tracks = new Map();          // Neptun tracks
 let alertOblasts = new Set();
 let adsbAircraft = [];
 const health = { neptun:false, adsb:false, rcb:false, rss:{}, pansa:false };
-/* Alarmy obwodów UA mają w aplikacji dwie niezależne drogi: WebSocket Neptuna
-   (ramki `alerts`) i — gdy nasłuch w tle działa — REST-owy pośrednik po stronie
-   usługi. Dioda „Alarmy UA" zapala się, gdy działa którakolwiek z nich, więc
-   stan usługi doczytujemy z jej diagnostyki (patrz syncWithBackground). */
-let bgUaAlertsOk = false;
 let onState = null, ws = null, wsRetry = 1;
 // bootstrap RCB uznany tylko po JAWNIE odnotowanym udanym przebiegu —
 // wcześniej pusta lista "seen" zapisana przez inny kod myliła się z bootstrapem
@@ -176,9 +171,8 @@ const rcbSeen = new Set(JSON.parse(localStorage.getItem("eng_rcb_seen") || "[]")
 let signals = JSON.parse(localStorage.getItem("eng_signals") || "[]");
 const seenKeys = new Map(JSON.parse(localStorage.getItem("eng_seen") || "[]"));
 /* Pamięć poziomów przeżywa zamknięcie aplikacji. Trzymana w RAM zerowała się
-   przy każdym starcie, więc aplikacja „odkrywała" ponownie poziom, o którym
-   usługa w tle dawno powiadomiła — i alarmowała drugi raz. Wyglądało to tak,
-   jakby powiadomienia czekały na otwarcie aplikacji. */
+   przy każdym starcie, więc aplikacja „odkrywała" ponownie poziom, o którym już
+   wcześniej powiadomiła — i alarmowała drugi raz po każdym otwarciu. */
 let lastLevels = {}, lastNotif = {};
 try {
   lastLevels = JSON.parse(localStorage.getItem("eng_levels") || "{}");
@@ -301,63 +295,12 @@ function markRss(url, ok) {
 function addSignal(source, eventType, voiv, points, title, details, key) {
   if (seenKeys.has(key)) return false;
   seenKeys.set(key, Date.now());
-  // klucz zostaje przy sygnale: usługa w tle dostaje go przy scalaniu i po nim
-  // rozpoznaje, że to samo zdarzenie już zna (patrz syncWithBackground)
+  // klucz zostaje przy sygnale: to po nim deduplikujemy kolejne obiegi kolektorów
   signals.push({ t: Date.now(), ts: new Date().toISOString(), source,
     event_type: eventType, voivodeship: voiv, points, title, details, key });
   persist();
   reevaluate();
   return true;
-}
-
-/* ── scalanie ze stanem usługi w tle ─────────────────────────────────────── */
-/* Usługa i aplikacja liczyły dotąd z dwóch niezależnych zbiorów: usługa ze
-   SharedPreferences, aplikacja z localStorage — a localStorage zapełnia się
-   TYLKO wtedy, gdy aplikacja jest otwarta. Po godzinie zamknięcia okno 60 min
-   siłą rzeczy było puste, więc pasek powiadomień pokazywał punkty, a aplikacja
-   po otwarciu „0 pkt, brak sygnałów". Odkąd usługa działa, to ona ma komplet —
-   aplikacja dociąga jej sygnały i scala po kluczu, tym samym, którego sama
-   używa do deduplikacji, więc nic nie liczy się dwa razy. */
-async function syncWithBackground() {
-  const BG = window.Capacitor?.Plugins?.StraznikBackground;
-  if (!BG?.signals) return;
-  let res;
-  try { res = await BG.signals(); } catch { bgUaAlertsOk = false; return; }
-  if (!res || !res.enabled || !Array.isArray(res.signals)) { bgUaAlertsOk = false; return; }
-
-  // Dioda „Alarmy UA": usługa czyta alarmy obwodowe z pośrednika REST i melduje
-  // ich stan w diagnostyce („Alarmy UA✓"/„✕"). Aplikacja sama zna je tylko przez
-  // WebSocket Neptuna — dlatego łączymy obie drogi przy zapalaniu diody (emit()).
-  bgUaAlertsOk = /Alarmy UA✓/.test(res.diag || "");
-
-  /* Najpierw w drugą stronę: sygnały, których usługa nie ma skąd wziąć
-     (alarmy w obwodach UA idą tylko WebSocketem, a usługa czyta REST).
-     Wysyłamy całe bieżące okno — deduplikacja po stronie usługi odsieje to,
-     co już zna, a koszt to jedno przejście przez most raz na 30 s. */
-  const cut = Date.now() - WINDOW_MIN * 60 * 1000;
-  const mine = signals
-    .filter(s => s.t >= cut && s.key && !s.from_background)
-    .map(s => ({ key: s.key, source: s.source, voivodeship: s.voivodeship,
-                 points: s.points, title: s.title, t: s.t }));
-  if (mine.length && BG.pushSignals) {
-    try { await BG.pushSignals({ signals: mine }); } catch {}
-  }
-
-  let added = 0;
-  for (const s of res.signals) {
-    if (!s || !s.key || seenKeys.has(s.key)) continue;
-    if (!VOIVODESHIPS.includes(s.voivodeship)) continue;
-    const pts = Number(s.points);
-    if (!Number.isFinite(pts) || pts <= 0) continue;
-    const t = Number(s.t) || Date.now();
-    seenKeys.set(s.key, Date.now());
-    signals.push({ t, ts: new Date(t).toISOString(), source: s.source,
-      event_type: "bg_" + s.source, voivodeship: s.voivodeship, points: pts,
-      title: s.title || "", details: { from_background: true },
-      key: s.key, from_background: true });
-    added++;
-  }
-  if (added) { persist(); reevaluate(); }
 }
 
 /* Województwa osiągalne z `src` wraz z odległością w krokach sąsiedztwa (BFS).
@@ -430,9 +373,9 @@ async function notifyNative(title, body, high) {
   const LN = window.Capacitor?.Plugins?.LocalNotifications;
   if (LN) {
     try {
-      // te same kanały, które tworzy usługa natywna (MonitorService) — inaczej
-      // powiadomienie z otwartej aplikacji trafiało w kanał, który usługa kasuje,
-      // i nie pokazywało się z właściwym dźwiękiem ani jako heads-up
+      // te same kanały, które tworzy strona natywna (Alarms.createChannels) —
+      // inaczej powiadomienie z otwartej aplikacji trafiało w kanał kasowany przy
+      // starcie i nie pokazywało się z właściwym dźwiękiem ani jako heads-up
       await LN.schedule({ notifications: [{ id: Date.now() % 2147483647, title, body,
         schedule: { at: new Date(Date.now() + 200) },
         channelId: high ? "straznik-high-v3" : "straznik-info-v3" }] });
@@ -452,27 +395,13 @@ function shouldNotify(voiv) {
   return mine ? voiv === mine : PRIORITY_VOIVS.includes(voiv);
 }
 
-/* Gdy nasłuch w tle działa, to on odpowiada za powiadomienia systemowe.
-   Bez tego rozdziału oba silniki alarmowały niezależnie: użytkownik dostawał
-   duplikaty albo — częściej — powiadomienie dopiero po otwarciu aplikacji,
-   o zdarzeniu, które usługa zgłosiła znacznie wcześniej. Alarm w interfejsie
-   (pełny ekran, syrena) pokazuje się niezależnie od tego ustawienia. */
-let bgServiceOwnsAlerts = false;
-async function refreshAlertOwnership() {
-  try {
-    const s = await window.Capacitor?.Plugins?.StraznikBackground?.status();
-    bgServiceOwnsAlerts = !!(s?.enabled && s?.serviceAlive !== false);
-  } catch { bgServiceOwnsAlerts = false; }
-}
-
 function reevaluate() {
   const st = computeState();
   for (const [voiv, s] of Object.entries(st.voivodeships)) {
     const prev = lastLevels[voiv] || "none";
     if (s.level !== prev) {
       const order = ["none","elevated","high"];
-      if (order.indexOf(s.level) > order.indexOf(prev) && shouldNotify(voiv)
-          && !bgServiceOwnsAlerts) {
+      if (order.indexOf(s.level) > order.indexOf(prev) && shouldNotify(voiv)) {
         const ck = voiv + "|" + s.level;
         if (!lastNotif[ck] || Date.now() - lastNotif[ck] > COOLDOWN_MIN*60*1000) {
           lastNotif[ck] = Date.now();
@@ -719,9 +648,7 @@ let voivPolys = null;
    jest POJAWIENIE SIĘ nowej strefy, nie jej trwanie. Trzymany dotąd w RAM
    zerował się przy każdym starcie, więc pierwszy obieg tylko zapamiętywał stan,
    a strefa aktywowana przy zamkniętej aplikacji nigdy nie wchodziła do
-   punktacji. Usługa w tle zapisuje to samo trwale (Sources.pansa) — stąd brał
-   się rozjazd: pasek powiadomień pokazywał punkt za strefę PAŻP, a aplikacja
-   po otwarciu zero. */
+   punktacji. Dlatego zapisujemy go trwale w localStorage. */
 const PANSA_ZONES_KEY = "eng_pansa_zones";
 function loadPrevZones() {
   const raw = localStorage.getItem(PANSA_ZONES_KEY);
@@ -810,9 +737,9 @@ function emit() {
       neptun: { status: { connected: health.neptun, mode: "app-ws" },
         threats: [...tracks.values()], alert_oblasts: [...alertOblasts] },
       adsb: { aircraft: adsbAircraft, counts: {}, baselines: {} },
-      // ua_alerts nie jest osobnym kolektorem po stronie aplikacji: przychodzą
-      // WebSocketem Neptuna (transport = health.neptun) albo z usługi w tle.
-      health: { ...health, ua_alerts: health.neptun || bgUaAlertsOk },
+      // ua_alerts nie jest osobnym kolektorem po stronie aplikacji: alarmy
+      // obwodowe przychodzą WebSocketem Neptuna (transport = health.neptun).
+      health: { ...health, ua_alerts: health.neptun },
       engine: "standalone",
     });
   }, 1500);
@@ -883,29 +810,14 @@ function timeline() {
 /* ── start ───────────────────────────────────────────────────────────────── */
 async function start(stateCb) {
   onState = stateCb;
-  // kto odpowiada za powiadomienia: usługa w tle czy silnik w aplikacji
-  await refreshAlertOwnership();
-  setInterval(refreshAlertOwnership, 60000);
-  // sygnały usługi wczytujemy PRZED własnymi kolektorami — inaczej pierwsze
-  // sekundy po otwarciu aplikacji pokazywałyby zero mimo alertu na pasku
-  await syncWithBackground();
-  setInterval(syncWithBackground, 30000);
-  // Tuż po otwarciu WebView mógł być długo uśpiony: pasek powiadomień (usługa)
-  // ma komplet, a aplikacja dopiero się dolicza — stąd „punkty różnią się przez
-  // chwilę, potem się wyrównują". Kilka szybkich scaleń na starcie skraca ten
-  // rozjazd z ~30 s (odstęp pętli) do kilku sekund.
-  setTimeout(syncWithBackground, 3000);
-  setTimeout(syncWithBackground, 10000);
-  // Powrót do aplikacji z tła: dociągnij, co usługa zebrała, i odśwież wygaszanie
-  // okna — bez tego po odblokowaniu telefonu widać jeszcze stan sprzed uśpienia.
+  // Powrót do aplikacji z tła: odśwież wygaszanie okna, żeby po odblokowaniu
+  // telefonu nie było widać stanu sprzed uśpienia.
   document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState !== "visible") return;
-    reevaluate();
-    syncWithBackground();
+    if (document.visibilityState === "visible") reevaluate();
   });
   const LN = window.Capacitor?.Plugins?.LocalNotifications;
   if (LN) {
-    // Kanały tworzy wyłącznie strona natywna (MonitorService.createChannels
+    // Kanały tworzy wyłącznie strona natywna (Alarms.createChannels
     // z MainActivity.onCreate): ma właściwe ważności, wibracje i własne dźwięki
     // (alert_uwaga / alarm_syrena), a przy okazji kasuje stare kanały. Silnik
     // celowo ich NIE tworzy — inaczej odtwarzał skasowane „straznik-high/info"

@@ -27,7 +27,7 @@ import android.widget.TextView;
 
 /**
  * Pełnoekranowy alarm przy WYSOKIM PRIORYTECIE — uruchamiany przez full-screen
- * intent z usługi w tle.
+ * intent alarmu zbudowanego z pusha FCM (patrz {@link Alarms#postAlarm}).
  *
  * Dlaczego natywnie, a nie w WebView: alarm musi pokazać się natychmiast, także
  * gdy proces WebView nie żyje (aplikacja zamknięta) i gdy ekran jest wygaszony.
@@ -195,7 +195,7 @@ public class AlarmActivity extends Activity {
     private void startSiren() {
         try {
             // ta sama modulowana syrena, którą gra otwarta aplikacja (scripts/build_sounds.py)
-            Uri uri = MonitorService.soundUri(this, R.raw.alarm_syrena);
+            Uri uri = Alarms.soundUri(this, R.raw.alarm_syrena);
             player = new MediaPlayer();
             player.setAudioAttributes(new AudioAttributes.Builder()
                 .setUsage(AudioAttributes.USAGE_ALARM)

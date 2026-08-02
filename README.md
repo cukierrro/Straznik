@@ -264,9 +264,10 @@ Wynik: `android-app/android/app/build/outputs/apk/debug/app-debug.apk`
   ntfy, Telegram, Web Push (VAPID)
 - `android-app/` — opakowanie Capacitor (WebView) + projekt Gradle
 - `android-app/android/app/src/main/java/pl/straznik/app/` — warstwa natywna:
-  `StraznikFcmService` (odbiór pushy FCM → powiadomienie/alarm), `AlarmActivity`
-  (pełnoekranowy alarm nad blokadą), `BackgroundPlugin` (most do JS: subskrypcja
-  tematów FCM, zgody na powiadomienia i alarm pełnoekranowy), `MainActivity`
+  `StraznikFcmService` (odbiór pushy FCM → powiadomienie/alarm), `Alarms` (kanały
+  powiadomień i budowa alarmu), `AlarmActivity` (pełnoekranowy alarm nad blokadą),
+  `BackgroundPlugin` (most do JS: subskrypcja tematów FCM, zgody na powiadomienia
+  i alarm pełnoekranowy), `MainActivity`
 - `android-app/android/app/google-services.json` — konfiguracja Firebase (niesekretna)
 - `docs/` — instrukcja użytkownika (GitHub Pages) i zrzuty ekranu
 - `scripts/build_cams.py` — odświeżanie listy kamer

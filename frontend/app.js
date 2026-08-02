@@ -1001,11 +1001,11 @@ const SOURCE_INFO = {
   "Alarmy UA": {
     co: "Oficjalne alarmy powietrzne w przygranicznych obwodach Ukrainy "
       + "(wołyński, lwowski, zakarpacki, rówieński) — sygnał wyprzedzający. "
-      + "W aplikacji z WebSocketu NEPTUN, a przy zamkniętej aplikacji z "
-      + "niezależnego pośrednika REST po stronie usługi w tle.",
-    czerwona: "Ani WebSocket NEPTUN, ani usługa w tle nie potwierdzają w tej "
-      + "chwili alarmów obwodowych. Alarm w obwodzie UA może wtedy nie dotrzeć "
-      + "przed otwarciem aplikacji — sprawdź połączenie i nasłuch w tle.",
+      + "Docierają połączeniem NEPTUN (WebSocket w aplikacji lub przez serwer). "
+      + "Przy zamkniętej aplikacji alarm Twojego regionu przychodzi osobno pushem.",
+    czerwona: "Połączenie NEPTUN nie potwierdza w tej chwili alarmów obwodowych. "
+      + "Alarm w obwodzie UA może wtedy nie być pokazany na żywo — sprawdź "
+      + "połączenie z internetem.",
   },
   "ADS-B": {
     co: "Publiczne transpondery lotnicze (airplanes.live, w zapasie adsb.lol) — "
@@ -1041,9 +1041,9 @@ function ledItems() {
   const rssOk = rssFeeds.some(Boolean);
   return [
     ["NEPTUN", !!h.neptun, ""],
-    // osobna dioda alarmów obwodowych UA: aplikacja zna je z WebSocketu Neptuna,
-    // a usługa w tle z niezależnego pośrednika REST — to dwa różne źródła tego
-    // samego sygnału, więc zasługują na własny wskaźnik obok NEPTUN-a
+    // osobna dioda alarmów obwodowych UA: docierają połączeniem NEPTUN
+    // (WebSocket w aplikacji albo przez serwer), więc zasługują na własny
+    // wskaźnik obok NEPTUN-a
     ["Alarmy UA", !!h.ua_alerts, ""],
     ["ADS-B", !!h.adsb, ""],
     ["RSS", rssOk, rssFeeds.length ? `${rssFeeds.filter(Boolean).length}/${rssFeeds.length} kanałów` : ""],
@@ -1652,7 +1652,7 @@ document.getElementById("btn-gps").onclick = () => {
 document.getElementById("set-save").onclick = () => {
   const v = document.getElementById("set-voiv").value;
   if (v) localStorage.setItem("straznik_voiv", v); else localStorage.removeItem("straznik_voiv");
-  // usługa w tle nie widzi localStorage, a musi wiedzieć, o którym regionie alarmować
+  // warstwa natywna zapisuje region i przepina subskrypcję tematu FCM (voiv_<region>)
   BG()?.setHomeVoivodeship({ voivodeship: v || "" });
   const api = document.getElementById("set-api").value.trim();
   const apiChanged = api !== (localStorage.getItem("straznik_api") || "");
@@ -1954,12 +1954,11 @@ setTimeout(checkForUpdate, 6000);   // po starcie, gdy mapa i dane są już w dr
 setTimeout(refreshBgWarning, 3500);
 setInterval(refreshBgWarning, 60000);
 
-/* Region trzeba podać usłudze w tle przy KAŻDYM starcie, nie tylko przy zapisie
-   ustawień. Kto wybrał województwo we wcześniejszej wersji i po aktualizacji nie
-   zajrzał do ustawień, miał w usłudze pusty region — a wtedy pilnowała ona tylko
-   czterech województw przygranicznych i milczała o jego własnym. Alarmy działały
-   przy otwartej aplikacji (silnik w WebView czyta ustawienie bezpośrednio),
-   więc objaw wyglądał jak „w tle nie działa”. */
+/* Region trzeba podać warstwie natywnej przy KAŻDYM starcie, nie tylko przy
+   zapisie ustawień — od niego zależy subskrypcja tematu FCM. Kto wybrał
+   województwo we wcześniejszej wersji i po aktualizacji nie zajrzał do ustawień,
+   miał pusty region — a wtedy telefon subskrybował tylko cztery tematy
+   przygraniczne i nie dostawał pusha o własnym województwie. */
 setTimeout(() => BG()?.setHomeVoivodeship({ voivodeship: myVoiv() || "" }), 2500);
 if ("serviceWorker" in navigator && !IS_APP)
   navigator.serviceWorker.register("sw.js").catch(() => {});

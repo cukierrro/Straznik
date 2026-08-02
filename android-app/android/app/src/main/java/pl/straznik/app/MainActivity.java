@@ -14,8 +14,8 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(BackgroundPlugin.class);
         super.onCreate(savedInstanceState);
-        // kanały powiadomień potrzebne też dla alarmów z pusha (StraznikFcmService)
-        MonitorService.createChannels(this);
+        // kanały powiadomień potrzebne dla alarmów z pusha (StraznikFcmService)
+        Alarms.createChannels(this);
         // odśwież subskrypcję tematu FCM na podstawie zapisanego regionu
         BackgroundPlugin.syncFcmSubscription(this);
         // Usługa pierwszoplanowa w tle WYCOFANA — alarmy przy zamkniętej aplikacji
