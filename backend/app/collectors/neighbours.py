@@ -20,10 +20,28 @@ import asyncio
 import json
 import logging
 import re
+import ssl
 import time
 from datetime import datetime, timezone
 
 import httpx
+
+
+def _relaxed_tls() -> ssl.SSLContext:
+    """Serwer ROMATSA (flightplan.romatsa.ro) używa słabego klucza Diffiego-
+    Hellmana; nowoczesny OpenSSL (Ubuntu 24.04) odrzuca handshake z błędem
+    „DH_KEY_TOO_SMALL". Dla TEGO hosta luzujemy poziom bezpieczeństwa TLS do
+    SECLEVEL=1. Bezpieczne: to publiczny GeoJSON, wyłącznie odczyt, bez sekretów.
+    """
+    ctx = ssl.create_default_context()
+    try:
+        ctx.set_ciphers("DEFAULT:@SECLEVEL=1")
+    except ssl.SSLError:
+        pass
+    return ctx
+
+
+_RO_TLS = _relaxed_tls()
 
 log = logging.getLogger("neighbours")
 status = {"ok": False, "last": None, "error": "not started", "zones_now": 0}
@@ -125,14 +143,17 @@ async def _tick(client: httpx.AsyncClient):
     zones: list[dict] = []
     errs = []
 
-    for name, coro in (
-        ("RO", _get(client, RO_AUP)),
-        ("EE", _get(client, EE_UAS)),
-        ("LT", _get(client, LT_UAS)),
-    ):
+    # RO — osobny klient z poluzowanym TLS (słaby DH po stronie ROMATSA)
+    try:
+        async with httpx.AsyncClient(timeout=30, verify=_RO_TLS,
+                                     follow_redirects=True) as ro:
+            zones += _parse_ro(await _get(ro, RO_AUP))
+    except Exception as e:
+        errs.append(f"RO:{e}")
+
+    for name, url in (("EE", EE_UAS), ("LT", LT_UAS)):
         try:
-            data = await coro
-            zones += _parse_ro(data) if name == "RO" else _parse_ed269(data, name)
+            zones += _parse_ed269(await _get(client, url), name)
         except Exception as e:
             errs.append(f"{name}:{e}")
 

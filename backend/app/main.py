@@ -165,6 +165,7 @@ async def api_health():
     return {
         "neptun": neptun.status, "adsb": adsb.status, "pansa": pansa.status,
         "rcb": rcb.status, "rss": rss_media.status["feeds"],
+        "neighbours": neighbours.status,
         "notify": {"ntfy": config.NTFY_ENABLED and bool(config.NTFY_TOPIC),
                    "telegram": config.TELEGRAM_ENABLED,
                    "webpush": config.WEBPUSH_ENABLED},
