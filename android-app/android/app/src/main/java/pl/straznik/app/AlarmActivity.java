@@ -3,7 +3,6 @@ package pl.straznik.app;
 import android.animation.ObjectAnimator;
 import android.animation.ValueAnimator;
 import android.app.Activity;
-import android.app.KeyguardManager;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
@@ -69,20 +68,23 @@ public class AlarmActivity extends Activity {
     }
 
     /**
-     * Trzy niezależne mechanizmy, bo żaden nie jest pewny na każdym Androidzie:
-     * atrybuty aktywności (API 27+), flagi okna (starsze) i wake lock ekranu.
+     * Alarm pokazuje się NAD blokadą (jak budzik / połączenie), bez proszenia o PIN.
+     *
+     * Świadomie NIE wołamy requestDismissKeyguard(): na zabezpieczonej blokadzie
+     * wywołałoby to systemowy ekran odblokowania (użytkownik widziałby najpierw
+     * prośbę o PIN, a nie alarm). setShowWhenLocked+setTurnScreenOn wystarczą, by
+     * ekran się zapalił i alarm był w całości widoczny nad blokadą — nic innego z
+     * zawartości telefonu się nie ujawnia. Odblokowanie następuje dopiero, gdy
+     * użytkownik sam wybierze „Otwórz mapę" (uruchomienie MainActivity).
      */
     private void wakeAndShowOverLockscreen() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
             setShowWhenLocked(true);
             setTurnScreenOn(true);
-            KeyguardManager km = (KeyguardManager) getSystemService(Context.KEYGUARD_SERVICE);
-            if (km != null) km.requestDismissKeyguard(this, null);
         } else {
             getWindow().addFlags(
                 WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED
-                | WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
-                | WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD);
+                | WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON);
         }
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 

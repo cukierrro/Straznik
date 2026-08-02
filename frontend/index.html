@@ -301,20 +301,20 @@
     <div class="about-head">
       <div class="about-logo"></div>
       <div>
-        <h2 style="font-size:17px;letter-spacing:.06em">Alarmy w tle</h2>
+        <h2 style="font-size:17px;letter-spacing:.06em">Alarmy push</h2>
         <p class="about-sub">żeby ostrzeżenie dotarło, gdy nie patrzysz na telefon</p>
       </div>
     </div>
     <p>Strażnik ma sens tylko wtedy, gdy powiadomi Cię <b>zanim</b> otworzysz
-    aplikację. Bez nasłuchu w tle Android usypia zamkniętą aplikację i alarm
-    zobaczysz dopiero po jej otwarciu.</p>
-    <p class="fineprint">Po włączeniu w powiadomieniach pojawi się stała informacja
-    „nasłuch aktywny" — tego wymaga system Android. Poprosimy też o zgodę na
-    powiadomienia i o wyłączenie oszczędzania baterii, żeby telefon nie ubił
-    usługi. Możesz to wyłączyć w każdej chwili w ustawieniach.</p>
+    aplikację. Alarmy dla Twojego regionu przychodzą jako <b>powiadomienie push</b> —
+    także przy zamkniętej aplikacji i wygaszonym ekranie. Serwer Strażnika wysyła je
+    prosto na telefon, bez usługi działającej w tle.</p>
+    <p class="fineprint">Poprosimy tylko o zgodę na powiadomienia. Dla czerwonego alarmu
+    warto też włączyć zgodę na alarm pełnoekranowy (zapala ekran nad blokadą) — zrobisz
+    to jednym przyciskiem w Ustawieniach.</p>
     <div class="about-actions">
       <button id="onboard-bg-skip" class="chip">Nie teraz</button>
-      <button id="onboard-bg-enable" class="chip primary">Włącz alarmy w tle</button>
+      <button id="onboard-bg-enable" class="chip primary">Włącz powiadomienia</button>
     </div>
   </div>
 </dialog>
@@ -332,33 +332,32 @@
     <button type="button" id="btn-gps" class="chip" style="margin-top:10px">
       📍 Wykryj z GPS</button>
 
-    <h3 style="margin-top:16px">Nasłuch w tle</h3>
-    <p class="fineprint">Bez tego alarmy docierają tylko przy otwartej aplikacji —
-    Android wstrzymuje uśpione aplikacje. Po włączeniu w powiadomieniach pojawi
-    się stała informacja „nasłuch aktywny" (tego wymaga system) i alarmy przyjdą
-    także przy wygaszonym ekranie.</p>
-    <label class="switch-row">
-      <input type="checkbox" id="bg-toggle">
-      <span>Monitoruj także przy zamkniętej aplikacji</span>
-    </label>
+    <h3 style="margin-top:16px">Alarmy przy zamkniętej aplikacji</h3>
+    <p class="fineprint">Alarmy dla Twojego województwa przychodzą jako
+    <b>powiadomienie push</b> — także gdy aplikacja jest zamknięta, ekran wygaszony
+    albo telefon w uśpieniu. Serwer Strażnika wysyła sygnał prosto na telefon, więc
+    <b>nie trzeba już usługi działającej w tle</b> (Android i tak ją ubijał). Wystarczy
+    zgoda na powiadomienia, a dla czerwonego alarmu — zgoda na alarm pełnoekranowy.</p>
     <div id="bg-status" class="fineprint"></div>
     <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
-      <button type="button" id="btn-battery" class="chip">🔋 Wyłącz oszczędzanie baterii</button>
       <button type="button" id="btn-notif-settings" class="chip">🔔 Ustawienia powiadomień</button>
       <button type="button" id="btn-fullscreen" class="chip" style="display:none">🚨 Zgoda na alarm pełnoekranowy</button>
+      <button type="button" id="btn-battery" class="chip">🔋 Wyłącz oszczędzanie baterii</button>
     </div>
     <p class="fineprint">Alarm pełnoekranowy zapala ekran i pokazuje się nad blokadą,
     tak jak połączenie przychodzące. Android 14 i nowszy domyślnie odbiera tę zgodę
-    aplikacjom innym niż budzik i telefon — bez niej czerwony alarm przy wygaszonym
-    ekranie będzie tylko powiadomieniem. System potrafi zgłaszać ją jako przyznaną,
-    mimo że alarm i tak blokuje, dlatego <b>sprawdź przełącznik osobiście</b>:
-    przycisk 🚨 otwiera dokładnie ten ekran ustawień.</p>
+    aplikacjom innym niż budzik i telefon, a <b>po każdej aktualizacji potrafi ją
+    cofnąć</b> — bez niej czerwony alarm przy wygaszonym ekranie będzie tylko
+    powiadomieniem. Dlatego <b>sprawdź przełącznik osobiście</b>: przycisk 🚨 otwiera
+    dokładnie ten ekran. Zgoda na wyłączenie oszczędzania baterii nie jest wymagana
+    (push i tak dociera), ale na agresywnych nakładkach zwiększa pewność.</p>
 
     <h3 style="margin-top:16px">Sygnały dźwiękowe</h3>
     <p class="fineprint">Żółty poziom (≥2 pkt) — krótki sygnał uwagi i powiadomienie
     wyskakujące na ekranie (heads-up).
     Czerwony (≥4 pkt) — modulowana syrena alarmu powietrznego + wibracja.
-    Odtwarzane, gdy aplikacja jest otwarta; w tle działają powiadomienia systemowe.</p>
+    Odtwarzane, gdy aplikacja jest otwarta; przy zamkniętej aplikacji alarm przychodzi
+    jako powiadomienie push (z pełnym ekranem i syreną dla czerwonego).</p>
     <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
       <button type="button" id="btn-test-chime" class="chip">▶ Test: uwaga</button>
       <button type="button" id="btn-test-siren" class="chip">▶ Test: syrena</button>

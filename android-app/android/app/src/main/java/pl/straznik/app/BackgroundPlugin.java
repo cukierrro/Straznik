@@ -24,7 +24,12 @@ public class BackgroundPlugin extends Plugin {
     private static final String KEY_ENABLED = "enabled";
 
     static boolean isEnabled(Context c) {
-        return c.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_ENABLED, false);
+        // Usługa pierwszoplanowa w tle WYCOFANA — Android 15/16 i tak ją ubijał
+        // („Stop FGS timeout"), a alarmy przy zamkniętej aplikacji dostarcza teraz
+        // FCM (push per województwo). Zwracamy zawsze false, żeby nic jej nie
+        // wskrzeszało: ani BootReceiver po restarcie, ani stare ustawienia sprzed
+        // aktualizacji.
+        return false;
     }
 
     private void setEnabled(boolean v) {
@@ -51,8 +56,14 @@ public class BackgroundPlugin extends Plugin {
     @PluginMethod
     public void stop(PluginCall call) {
         Context c = getContext();
-        c.stopService(new Intent(c, MonitorService.class));
         setEnabled(false);
+        // Jawny ACTION_STOP: usługa sama zdejmuje powiadomienie foreground i się
+        // zabija (na ROM-ach typu ColorOS/OBLUE samo stopService() bywa niepewne).
+        // stopService() zostaje jako zapas.
+        try {
+            c.startService(new Intent(c, MonitorService.class).setAction(MonitorService.ACTION_STOP));
+        } catch (Exception ignored) {}
+        c.stopService(new Intent(c, MonitorService.class));
         JSObject ret = new JSObject();
         ret.put("running", false);
         call.resolve(ret);

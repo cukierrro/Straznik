@@ -112,6 +112,12 @@ public class MonitorService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (intent != null && ACTION_STOP.equals(intent.getAction())) {
+            // pełne, jawne zatrzymanie — na niektórych ROM-ach samo stopService()
+            // nie zdejmuje powiadomienia foreground ani nie ubija pętli
+            ALIVE = false;
+            running.set(false);
+            if (worker != null) worker.interrupt();
+            stopForeground(Service.STOP_FOREGROUND_REMOVE);
             stopSelf();
             return START_NOT_STICKY;
         }
@@ -382,6 +388,9 @@ public class MonitorService extends Service {
         if (wakeLock != null && wakeLock.isHeld()) {
             try { wakeLock.release(); } catch (Exception ignored) {}
         }
+        // pewne zdjęcie powiadomienia „nasłuch aktywny" także przy zatrzymaniu
+        // przez stopService (poza ścieżką ACTION_STOP)
+        try { stopForeground(STOP_FOREGROUND_REMOVE); } catch (Exception ignored) {}
         super.onDestroy();
     }
 

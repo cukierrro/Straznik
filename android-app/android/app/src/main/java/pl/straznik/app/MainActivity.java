@@ -1,7 +1,5 @@
 package pl.straznik.app;
 
-import android.content.Intent;
-import android.os.Build;
 import android.os.Bundle;
 
 import com.getcapacitor.BridgeActivity;
@@ -16,27 +14,14 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(BackgroundPlugin.class);
         super.onCreate(savedInstanceState);
+        // kanały powiadomień potrzebne też dla alarmów z pusha (StraznikFcmService)
         MonitorService.createChannels(this);
         // odśwież subskrypcję tematu FCM na podstawie zapisanego regionu
         BackgroundPlugin.syncFcmSubscription(this);
-        resumeMonitoringIfEnabled();
+        // Usługa pierwszoplanowa w tle WYCOFANA — alarmy przy zamkniętej aplikacji
+        // dostarcza FCM (patrz StraznikFcmService), więc nic tu nie uruchamiamy.
     }
 
-    @Override protected void onResume() { super.onResume(); FOREGROUND = true; }
-    @Override protected void onPause() { FOREGROUND = false; super.onPause(); }
-
-    /**
-     * Nasłuch włączony w ustawieniach ma działać także wtedy, gdy usługa nie
-     * przetrwała — po wymuszonym zatrzymaniu, czyszczeniu pamięci przez system
-     * albo agresywnym menedżerze baterii. Bez tego przełącznik pokazywałby
-     * „włączone", a w tle nic by nie chodziło, aż do restartu telefonu.
-     */
-    private void resumeMonitoringIfEnabled() {
-        if (!BackgroundPlugin.isEnabled(this)) return;
-        try {
-            Intent i = new Intent(this, MonitorService.class);
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) startForegroundService(i);
-            else startService(i);
-        } catch (Exception ignored) {}
-    }
+    @Override public void onResume() { super.onResume(); FOREGROUND = true; }
+    @Override public void onPause() { FOREGROUND = false; super.onPause(); }
 }

@@ -1684,20 +1684,23 @@ async function refreshBgWarning() {
       || document.querySelector("dialog[open]")) return;
   try {
     const s = await plugin.status();
-    let msg = null;
-    if (!s.enabled) {
-      msg = "Nasłuch w tle wyłączony — alarmy dotrą tylko przy otwartej aplikacji";
-    } else if (s.serviceAlive === false) {
-      msg = "Usługa nasłuchu nie działa — system ją zatrzymał";
-    } else if (!s.notificationsAllowed) {
-      msg = "Powiadomienia zablokowane w ustawieniach systemu";
+    // Alarmy dostarcza push (FCM). Ostrzegamy tylko o rzeczach, które go blokują:
+    // brak zgody na powiadomienia, a dla czerwonego — brak zgody na pełny ekran
+    // (Android potrafi ją cofnąć po aktualizacji).
+    let msg = null, fix = "settings";
+    if (!s.notificationsAllowed) {
+      msg = "Powiadomienia zablokowane — alarm nie dotrze. Włącz je w ustawieniach";
+    } else if (s.fullScreenAllowed === false) {
+      msg = "Zgoda na alarm pełnoekranowy wygasła — czerwony alarm nie zapali ekranu z blokady";
+      fix = "fullscreen";
     }
     if (!msg) { bgWarnStrikes = 0; el.classList.add("hidden"); return; }
-    // problem musi utrzymać się przez dwa sprawdzenia z rzędu — inaczej to tylko
-    // stan przejściowy przy starcie usługi, a nie realna usterka
+    // problem musi utrzymać się przez dwa sprawdzenia z rzędu — mniej fałszywych alarmów
     if (++bgWarnStrikes < 2) { setTimeout(refreshBgWarning, 5000); return; }
     el.innerHTML = `<span>⚠ ${esc(msg)}</span><button class="chip">Napraw</button>`;
-    el.querySelector("button").onclick = () => openSettings();
+    el.querySelector("button").onclick = fix === "fullscreen"
+      ? () => { BG()?.requestFullScreenPermission(); setTimeout(refreshBgWarning, 1500); }
+      : () => openSettings();
     el.classList.remove("hidden");
   } catch { el.classList.add("hidden"); }
 }
@@ -1785,50 +1788,30 @@ const BG = () => window.Capacitor?.Plugins?.StraznikBackground || null;
 
 async function refreshBgStatus() {
   const plugin = BG();
-  const row = document.querySelector(".switch-row");
   const info = document.getElementById("bg-status");
   if (!plugin) {
-    if (row) row.style.display = "none";
     document.getElementById("btn-battery").style.display = "none";
     document.getElementById("btn-notif-settings").style.display = "none";
-    info.textContent = "Nasłuch w tle działa tylko w aplikacji na Androida "
-      + "(w przeglądarce zamknięcie karty kończy monitorowanie).";
+    if (info) info.textContent = "Powiadomienia push działają w aplikacji na Androida "
+      + "(w przeglądarce alarm widać tylko przy otwartej karcie).";
     return;
   }
   try {
     const s = await plugin.status();
-    document.getElementById("bg-toggle").checked = !!s.enabled;
     const warn = [];
-    if (s.enabled && !s.batteryUnrestricted)
-      warn.push("⚠ Oszczędzanie baterii może ubić nasłuch — wyłącz je poniżej.");
     if (!s.notificationsAllowed)
-      warn.push("⚠ Powiadomienia są zablokowane w ustawieniach systemu.");
+      warn.push("⚠ Powiadomienia są zablokowane w ustawieniach systemu — bez nich alarm nie dotrze.");
     if (s.fullScreenAllowed === false)
       warn.push("⚠ Brak zgody na alarm pełnoekranowy — czerwony alarm nie zapali "
         + "wygaszonego ekranu. Włącz przyciskiem 🚨 poniżej.");
-    /* Rozróżniamy „włączone w ustawieniach” od „faktycznie działa”: system albo
-       menedżer baterii potrafi ubić usługę po cichu, a wtedy alarmy przychodzą
-       tylko przy otwartej aplikacji — objaw, którego bez tej informacji nie da
-       się samodzielnie zdiagnozować. */
-    if (s.enabled && s.serviceAlive === false)
-      warn.push("⚠ Nasłuch jest włączony, ale usługa nie działa — system ją ubił. "
-        + "Wyłącz oszczędzanie baterii i przełącz nasłuch ponownie.");
-    if (s.enabled && s.serviceAlive && s.lastCycleAgoS > 900)
-      warn.push(`⚠ Usługa nie sprawdzała źródeł od ${Math.round(s.lastCycleAgoS / 60)} min `
-        + "— prawdopodobnie została uśpiona przez system.");
-    const mine = myVoiv();
-    if (s.enabled && mine && s.homeVoivodeship && s.homeVoivodeship !== mine)
-      warn.push("⚠ Usługa w tle pilnuje innego regionu niż wybrany — zapisz ustawienia ponownie.");
-    /* canUseFullScreenIntent() bywa optymistyczne: przy domyślnym trybie
-       uprawnienia zwraca „dozwolone”, choć system i tak odrzuca alarm
-       pełnoekranowy (widać to w appops jako rejectTime). Dlatego na Androidzie
-       14+ przycisk pokazujemy ZAWSZE — inaczej użytkownik nie miałby jak wejść
-       w ustawienia i sprawdzić, czy przełącznik jest naprawdę włączony. */
     const verEl = document.getElementById("app-version");
     if (verEl) verEl.textContent = s.appVersion
       ? `Zainstalowana wersja ${s.appVersion}` : "";
     const updBtn = document.getElementById("btn-update");
     if (updBtn) updBtn.style.display = UPDATE_CHECK ? "" : "none";
+    /* canUseFullScreenIntent() bywa optymistyczne (zwraca „dozwolone", choć system
+       i tak odrzuca alarm), a po aktualizacji zgoda potrafi się cofnąć — dlatego na
+       Androidzie 14+ przycisk pokazujemy ZAWSZE, żeby dało się ją sprawdzić i włączyć. */
     const fsBtn = document.getElementById("btn-fullscreen");
     if (fsBtn) {
       const mayBeBlocked = (s.sdk || 0) >= 34;
@@ -1837,39 +1820,23 @@ async function refreshBgStatus() {
         ? "🚨 Zezwól na alarm pełnoekranowy"
         : "🚨 Sprawdź zgodę na alarm pełnoekranowy";
     }
-    const cykl = s.lastCycleAgoS >= 0
-      ? ` · ostatnie sprawdzenie ${s.lastCycleAgoS < 90
-          ? s.lastCycleAgoS + " s" : Math.round(s.lastCycleAgoS / 60) + " min"} temu`
-      : "";
-    info.innerHTML = (warn.join("<br>") || (s.enabled
-      ? "Nasłuch działa. W powiadomieniach widnieje stała informacja."
-      : "Nasłuch wyłączony — alarmy tylko przy otwartej aplikacji."))
+    if (info) info.innerHTML = (warn.join("<br>")
+      || "Powiadomienia gotowe. Alarmy dla Twojego regionu dotrą także przy zamkniętej aplikacji.")
       + `<br><span class="muted">Android ${s.sdk}, ${esc(s.manufacturer || "")}`
-      + `${s.enabled ? esc(cykl) : ""}${s.homeVoivodeship ? " · region w tle: " + esc(s.homeVoivodeship) : ""}</span>`;
-  } catch (e) { info.textContent = "Nie udało się odczytać stanu: " + e; }
+      + `${s.homeVoivodeship ? " · region: " + esc(s.homeVoivodeship) : ""}</span>`;
+  } catch (e) { if (info) info.textContent = "Nie udało się odczytać stanu: " + e; }
 }
 
-/* Włączenie nasłuchu w tle w jednym miejscu — używane i przez przełącznik,
-   i przez onboarding. Prosi o zgodę na powiadomienia, startuje usługę, podaje
-   jej wybrany region i prosi o zdjęcie ograniczeń baterii. */
-async function enableBackgroundMonitoring() {
+/* Przygotowanie alarmów push: zgoda na powiadomienia i subskrypcja tematu regionu
+   (setHomeVoivodeship natywnie subskrybuje voiv_<region> w FCM). Usługi w tle już
+   nie ma — alarmy przy zamkniętej aplikacji dostarcza push z serwera. */
+async function ensureAlarmPermissions() {
   const plugin = BG(); if (!plugin) return false;
   if (window.Capacitor?.Plugins?.LocalNotifications)
     await window.Capacitor.Plugins.LocalNotifications.requestPermissions();
-  await plugin.start();
   try { await plugin.setHomeVoivodeship({ voivodeship: myVoiv() || "" }); } catch {}
-  await plugin.requestBatteryExemption();
   return true;
 }
-
-document.getElementById("bg-toggle")?.addEventListener("change", async (e) => {
-  const plugin = BG(); if (!plugin) return;
-  try {
-    if (e.target.checked) await enableBackgroundMonitoring();
-    else await plugin.stop();
-  } catch (err) { alert("Błąd: " + err); }
-  refreshBgStatus();
-});
 
 /* Rozdzielony onboarding: najpierw „o aplikacji", potem region, na końcu — tylko
    w aplikacji — propozycja nasłuchu w tle. Bez tego kroku świeża instalacja
@@ -1884,10 +1851,6 @@ function dialogClosed(dlg) {
 async function maybeOfferBackground() {
   const plugin = BG();
   if (!plugin || localStorage.getItem("straznik_bg_offered")) return;
-  try {
-    const s = await plugin.status();
-    if (s.enabled) { localStorage.setItem("straznik_bg_offered", "1"); return; }
-  } catch {}
   localStorage.setItem("straznik_bg_offered", "1");
   document.getElementById("onboard-bg")?.showModal();
 }
@@ -1901,8 +1864,8 @@ async function runOnboarding() {
 
 document.getElementById("onboard-bg-enable")?.addEventListener("click", async () => {
   document.getElementById("onboard-bg").close();
-  try { await enableBackgroundMonitoring(); toast("🔔 <b>Alarmy w tle włączone.</b><br>Dostaniesz je także przy zamkniętej aplikacji."); }
-  catch (e) { toast("Nie udało się włączyć nasłuchu: " + e); }
+  try { await ensureAlarmPermissions(); toast("🔔 <b>Powiadomienia włączone.</b><br>Alarmy dla Twojego regionu dotrą także przy zamkniętej aplikacji."); }
+  catch (e) { toast("Nie udało się włączyć powiadomień: " + e); }
   refreshBgStatus(); refreshBgWarning();
 });
 document.getElementById("onboard-bg-skip")?.addEventListener("click", () =>
