@@ -52,13 +52,17 @@ Ta sama logika fuzji istnieje **w trzech miejscach** i musi być trzymana w zgod
 
 | Gdzie | Plik | Kiedy działa | Stan trzyma w |
 | --- | --- | --- | --- |
-| Backend (opcjonalny serwer) | `backend/app/fusion.py`, `config.py`, `collectors/` | tryb z własnym serwerem | SQLite |
-| Aplikacja (WebView) | `frontend/engine.js` | gdy aplikacja jest otwarta | `localStorage` |
-| Usługa w tle (natywna) | `android-app/.../Fusion.java`, `Sources.java` | zawsze, także przy zamkniętej aplikacji | `SharedPreferences` („straznik_bg") |
+| Backend (serwer, `straznik.eu`) | `backend/app/fusion.py`, `config.py`, `collectors/` | **domyślny** — liczy fuzję dla wszystkich | SQLite |
+| Aplikacja (WebView) | `frontend/engine.js` | fallback, gdy serwer niedostępny | `localStorage` |
+| ~~Usługa w tle (natywna)~~ | ~~`Fusion.java`, `Sources.java`~~ | **WYCOFANA w 1.5.0** | — |
 
-Domyślny tryb aplikacji to **standalone** — bez backendu, telefon liczy sam.
-Backend jest opcjonalny i w praktyce nieużywany przez użytkownika końcowego,
-ale pozostaje **wzorcem** dla dwóch pozostałych implementacji.
+> **⚠️ Aktualizacja 1.5.0.** Aplikacja **domyślnie korzysta z serwera** (`straznik.eu`);
+> wbudowany silnik `engine.js` to fallback. Natywna **usługa pierwszoplanowa w tle
+> została wycofana** (Android 15/16 ubijał `dataSync` FGS) — alarmy przy zamkniętej
+> aplikacji dostarcza teraz **FCM push** (temat `voiv_<region>`, `StraznikFcmService`).
+> Poniższe sekcje o „usłudze w tle", `ubilling` i deduplikacji między trzema
+> implementacjami opisują stan **sprzed 1.5.0** (już tylko historia / martwy kod).
+> Aktualny, spójny opis architektury: **[README](../README.md)**.
 
 **`scripts/test_spojnosc.py` pilnuje, żeby te trzy implementacje się nie rozjechały.**
 Porównuje progi, okno, kaskadę, kolejność województw, limity, punkty za sygnał,

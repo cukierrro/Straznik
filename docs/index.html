@@ -237,7 +237,7 @@ footer a{color:var(--tx2)}
       <a href="#przyciski">Przyciski</a>
       <a href="#panel">Panel</a>
       <a href="#alarm">Alarm</a>
-      <a href="#tlo">Nasłuch w tle</a>
+      <a href="#tlo">Alarmy push</a>
       <a href="#punkty">Punktacja</a>
       <a href="#granice">Ograniczenia</a>
     </div>
@@ -394,7 +394,7 @@ footer a{color:var(--tx2)}
   <div class="eyebrow">Krok 2</div>
   <h2>Konfiguracja — jednorazowo, dwie rzeczy</h2>
   <p class="lead">Aplikacja działa od razu, ale warto ustawić dwie rzeczy:
-  swoje województwo i nasłuch w tle. Wszystko jest pod przyciskiem <kbd>⚙</kbd>.</p>
+  swoje województwo i powiadomienia. Wszystko jest pod przyciskiem <kbd>⚙</kbd>.</p>
 
   <div class="split">
     <img src="screens/18_wybor_wojewodztwa.jpg" alt="Lista wszystkich 16 województw do wyboru">
@@ -415,17 +415,16 @@ footer a{color:var(--tx2)}
 
   <div class="split rev">
     <div class="txt">
-      <h3>Włącz nasłuch w tle</h3>
-      <p><b>Bez tego alarmy docierają tylko przy otwartej aplikacji</b> — Android
-      wstrzymuje uśpione aplikacje, więc zminimalizowany Strażnik po pewnym czasie
-      przestaje sprawdzać dane.</p>
-      <p>Po zaznaczeniu <b>„Monitoruj także przy zamkniętej aplikacji"</b> startuje
-      usługa systemowa, która sama odpytuje źródła, liczy punkty i wystawia
-      powiadomienia — także przy wygaszonym ekranie i po restarcie telefonu.</p>
-      <p>Dwa przyciski poniżej pomagają, gdy alarmy nie dochodzą:</p>
+      <h3>Włącz powiadomienia</h3>
+      <p>Alarmy dla Twojego województwa przychodzą jako <b>powiadomienie push</b>
+      z serwera — także przy zamkniętej aplikacji, wygaszonym ekranie i po restarcie
+      telefonu. Nie trzeba już usługi działającej w tle.</p>
+      <p>Wystarczy <b>wybrać województwo</b> i zezwolić na powiadomienia. Dla
+      czerwonego alarmu włącz też zgodę na alarm pełnoekranowy (poniżej).</p>
+      <p>Przyciski poniżej pomagają, gdy alarmy nie dochodzą:</p>
       <ul class="plain">
-        <li><kbd>🔋 Wyłącz oszczędzanie baterii</kbd> — Xiaomi, Samsung i Huawei
-          potrafią ubijać usługi w tle. To wyjątek od optymalizacji.</li>
+        <li><kbd>🔋 Wyłącz oszczędzanie baterii</kbd> — niewymagane (push i tak
+          dociera), ale na Xiaomi/Samsung/Huawei zwiększa pewność dostarczania.</li>
         <li><kbd>🔔 Ustawienia powiadomień</kbd> — skrót do systemowych ustawień
           kanałów, gdzie ustawisz dźwięk i priorytet.</li>
         <li><kbd>🚨 Sprawdź zgodę na alarm pełnoekranowy</kbd> — otwiera systemowy
@@ -541,7 +540,7 @@ footer a{color:var(--tx2)}
           <td>Włącza powiadomienia push (w przeglądarce — Web Push;
           w aplikacji — kanały systemowe Androida).</td></tr>
         <tr><td class="ic">⚙️</td><td><b>Ustawienia</b></td>
-          <td>Województwo, nasłuch w tle, testy dźwięków, opcjonalny serwer.</td></tr>
+          <td>Województwo, zgody na powiadomienia i alarm pełnoekranowy, testy dźwięków, opcjonalny serwer.</td></tr>
         <tr><td class="ic">☰</td><td><b>Panel sygnałów</b></td>
           <td>Wysuwa panel z punktacją województw, listą sygnałów, obiektami
           przy granicy i lotnictwem wojskowym.</td></tr>
@@ -728,10 +727,10 @@ footer a{color:var(--tx2)}
     <table>
       <thead><tr><th>Poziom</th><th>Dźwięk i wibracja</th><th>Ekran</th></tr></thead>
       <tbody>
-        <tr><td><b>Nasłuch aktywny</b><br><span class="muted">stałe powiadomienie</span></td>
-          <td>Bez dźwięku. Pokazuje punktację i stan pięciu źródeł, np.
-        <code>lubelskie 2.0 pkt · Neptun✓ Media✓ RCB✓ ADS-B✓ PAŻP✓</code>.</td>
-          <td>Nie budzi ekranu. Wymóg Androida dla usług w tle.</td></tr>
+        <tr><td><b>Brak / poniżej progu</b><br><span class="muted">&lt; 2 pkt</span></td>
+          <td>Cisza — żadnego powiadomienia. Sygnały (jeśli są) widać na mapie
+          i w panelu po otwarciu aplikacji.</td>
+          <td>Nic się nie dzieje.</td></tr>
         <tr><td><b>≥ 2 pkt — żółty</b></td>
           <td>Dwutonowy sygnał uwagi (740↔988 Hz) i krótka wibracja.</td>
           <td><b>Nie budzi ekranu</b> — to ostrzeżenie, nie alarm. Zwykłe powiadomienie.</td></tr>
@@ -753,31 +752,33 @@ footer a{color:var(--tx2)}
 
 <section id="tlo">
   <div class="eyebrow">Najważniejsze ustawienie</div>
-  <h2>Nasłuch w tle</h2>
-  <p class="lead">Alarm jest przydatny wtedy, gdy dochodzi przy wygaszonym ekranie —
-  a do tego potrzebna jest usługa działająca w tle.</p>
+  <h2>Alarmy przy zamkniętej aplikacji</h2>
+  <p class="lead">Alarm ma sens, gdy dochodzi także wtedy, gdy nie patrzysz na
+  telefon — dlatego Strażnik wysyła je jako <b>powiadomienia push</b>.</p>
 
   <div class="split rev">
     <div class="txt">
-      <h3>Stałe powiadomienie to wymóg Androida</h3>
-      <p>Po włączeniu nasłuchu w powiadomieniach pojawi się stały wpis
-      <b>„Strażnik — nasłuch aktywny"</b> z aktualną punktacją i stanem wszystkich
-      pięciu źródeł (<code>Neptun✓ Media✓ RCB✓ ADS-B✓ PAŻP✓</code>)
-      oraz przyciskiem <b>Zatrzymaj</b>.</p>
-      <p>Tego wpisu nie da się ukryć — Android wymaga widocznego powiadomienia
-      od każdej usługi pierwszoplanowej. To warunek systemu, nie wybór projektu.
-      W zamian dostajesz podgląd, czy nasłuch faktycznie żyje i czy źródła odpowiadają.</p>
+      <h3>Push z serwera — bez usługi w tle</h3>
+      <p>Fuzję sygnałów liczy serwer Strażnika. Gdy poziom dla Twojego województwa
+      rośnie, serwer wysyła <b>powiadomienie push</b> prosto na telefon — dociera
+      nawet przy zamkniętej aplikacji, wygaszonym ekranie i w trybie oszczędzania.
+      Nie ma już stałego powiadomienia „nasłuch aktywny" ani usługi działającej
+      w tle (Android 15/16 i tak ją ubijał; push jest niezawodniejszy i lżejszy
+      dla baterii).</p>
+      <p>Warunek: wybierz w ustawieniach swoje <b>województwo</b> (telefon zapisuje
+      się wtedy na powiadomienia o tym regionie) i zezwól na <b>powiadomienia</b>.</p>
       <h3>Gdy alarmy nie dochodzą</h3>
       <ul class="plain">
-        <li>Sprawdź, czy powiadomienie „nasłuch aktywny" jest widoczne —
-          jeśli zniknęło, system ubił usługę. Otwarcie aplikacji ją wskrzesza,
-          bo przy starcie sprawdza, czy nasłuch powinien działać.</li>
-        <li>Użyj <kbd>🔋 Wyłącz oszczędzanie baterii</kbd> w ustawieniach.</li>
+        <li>Sprawdź, czy powiadomienia aplikacji są włączone (Ustawienia systemu →
+          Aplikacje → Strażnik → Powiadomienia), łącznie z kanałem „Wysoki priorytet".</li>
         <li>Włącz <kbd>🚨 Zgodę na alarm pełnoekranowy</kbd> — bez niej czerwony
-          alarm nie pokaże pełnego ekranu przy zablokowanym telefonie.</li>
-        <li>Na Xiaomi, Samsungu i Huaweiu dodaj Strażnika do aplikacji
-          chronionych / autostartu w ustawieniach systemowych.</li>
-        <li>Usługa wraca sama po restarcie telefonu.</li>
+          alarm nie zapali ekranu przy zablokowanym telefonie. Android potrafi ją
+          cofnąć po aktualizacji; aplikacja przypomni banerem „Napraw".</li>
+        <li>Wybierz województwo — bez niego telefon dostaje tylko cztery przygraniczne.</li>
+        <li>Nie „wymuszaj zatrzymania" aplikacji w ustawieniach systemu — po
+          force-stop Android blokuje push aż do ponownego otwarcia.</li>
+        <li><kbd>🔋 Wyłącz oszczędzanie baterii</kbd> nie jest wymagane (push i tak
+          dociera), ale na agresywnych nakładkach (Xiaomi/Samsung/Huawei) zwiększa pewność.</li>
       </ul>
       <h3>Gdy mapa jest biała, a diody czerwone</h3>
       <p>Jeśli mapa się nie ładuje i wszystkie albo prawie wszystkie diody źródeł
@@ -788,16 +789,10 @@ footer a{color:var(--tx2)}
       <p>Od wersji <b>1.4.2</b> aplikacja ufa też certyfikatom antywirusa i proxy,
       więc działa z włączoną ochroną — nie musisz jej wyłączać. Jeśli widzisz ten
       objaw, zaktualizuj aplikację.</p>
-      <h3>Gdy punkty na pasku nie zgadzają się z aplikacją</h3>
-      <p>Do wersji 1.4.3 usługa w tle i aplikacja liczyły punkty osobno i nie
-      wymieniały się tym, co znalazły. Powiadomienie mogło pokazywać punkty,
-      o których aplikacja po otwarciu nic nie wiedziała — i odwrotnie.</p>
-      <p>Od wersji <b>1.4.4</b> obie strony korzystają z jednego zbioru sygnałów,
-      więc liczba na pasku i liczba w panelu są zawsze takie same.</p>
-      <h3>Nasłuch obejmuje całą Polskę</h3>
-      <p>Usługa w tle liczy punkty dla wszystkich 16 województw i stosuje to samo
-      przeniesienie do sąsiadów co mapa. Alarmy dostajesz o <b>swoim regionie</b> —
-      gdyby powiadamiała o każdym z 16, telefon dzwoniłby przy zdarzeniach po
+      <h3>Alarm dotyczy Twojego regionu</h3>
+      <p>Fuzja liczy punkty dla wszystkich 16 województw i stosuje to samo
+      przeniesienie do sąsiadów co mapa, ale <b>push dostajesz o swoim regionie</b> —
+      gdyby powiadamiał o każdym z 16, telefon dzwoniłby przy zdarzeniach po
       drugiej stronie kraju. Zdarzenie na wschodzie i tak Cię dosięgnie, bo
       podnosi punktację Twojego województwa proporcjonalnie do odległości.</p>
       <p class="fineprint">Jeśli nie wybierzesz województwa, aplikacja pilnuje
@@ -805,18 +800,17 @@ footer a{color:var(--tx2)}
       i warmińsko-mazurskiego.</p>
 
       <div class="note" style="margin-top:18px">
-        <b>Sprawdzone, nie deklarowane.</b> Wszystkie trzy poziomy zostały
-        przetestowane na emulatorze Pixel 7 (Android 14) przy <b>zamkniętej
-        aplikacji</b> — z ubitym procesem i wygaszonym ekranem. Czerwony alarm
-        wybudził ekran i pokazał się nad blokadą, żółty celowo ekranu nie zapalił,
-        a przycisk potwierdzenia wyciszył syrenę i wibrację. Osobno sprawdzone
-        przeniesienie: alarm 5 pkt w lubelskim wywołał u użytkownika
-        z <b>mazowieckiego</b> powiadomienie „PODWYŻSZONA UWAGA (2.0 pkt)”
+        <b>Sprawdzone, nie deklarowane.</b> Poziomy przetestowano na <b>fizycznym
+        urządzeniu (Android 16)</b> przy zamkniętej aplikacji. Czerwony alarm przy
+        wygaszonym i zablokowanym ekranie zapalił go i pokazał się nad blokadą
+        z syreną, żółty dał ciche powiadomienie heads-up, a potwierdzenie wyciszyło
+        alarm. Osobno sprawdzone przeniesienie: alarm 5 pkt w lubelskim wywołał
+        u użytkownika z <b>mazowieckiego</b> „PODWYŻSZONA UWAGA (2.0 pkt)”
         z rozbiciem „Przeniesienie z woj. lubelskie”.
       </div>
     </div>
     <div>
-      <img src="screens/11_powiadomienia.jpg" alt="Panel powiadomień Androida: Strażnik — nasłuch aktywny, stan źródeł Neptun✓ Media✓">
+      <img src="screens/11_powiadomienia.jpg" alt="Powiadomienie push Strażnika na telefonie">
       <img src="screens/30_alert_zolty_tlo.jpg" alt="Powiadomienie PODWYŻSZONA UWAGA: woj. lubelskie (2.0 pkt) obok stałego powiadomienia nasłuchu" style="margin-top:14px">
     </div>
   </div>
@@ -841,9 +835,8 @@ footer a{color:var(--tx2)}
           i <b>jak pewna</b> jest obserwacja (wiarygodność, liczba niezależnych
           zgłoszeń, status)</td><td class="pts">0–8</td></tr>
         <tr><td></td><td>Oficjalny alarm powietrzny w przygranicznym obwodzie Ukrainy
-          (wołyński, lwowski, zakarpacki, rówieński). Aplikacja bierze go
-          z Neptuna, nasłuch w tle z niezależnego pośrednika alarmowego —
-          gdy jedno źródło zamilknie, sygnał i tak dotrze</td><td class="pts">+1</td></tr>
+          (wołyński, lwowski, zakarpacki, rówieński). Serwer bierze go na bieżąco
+          z WebSocketu Neptuna</td><td class="pts">+1</td></tr>
         <tr><td><b>Media</b></td><td>Relacje lokalnych mediów: syreny, wybuch,
           naruszenie przestrzeni powietrznej</td><td class="pts">+2</td></tr>
         <tr><td><b>RCB</b></td><td>Nowy komunikat Rządowego Centrum Bezpieczeństwa</td><td class="pts">+2</td></tr>
@@ -985,7 +978,7 @@ footer a{color:var(--tx2)}
     <li><b>GPS jest opcjonalny</b> i używany tylko do jednorazowego rozpoznania
       województwa. Współrzędne nie są nigdzie wysyłane.</li>
     <li><b>Ruch sieciowy</b> to wyłącznie pobieranie danych z publicznych źródeł
-      (NEPTUN, adsb.lol, RSS mediów, gov.pl/RCB, PAŻP, ubilling.net.ua/aerialalerts)
+      (NEPTUN, adsb.lol, RSS mediów, gov.pl/RCB, PAŻP)
       i kafelków mapy.</li>
   </ul>
 </section>
@@ -1001,8 +994,8 @@ footer a{color:var(--tx2)}
     <div>
       <div style="color:var(--tx2); margin-bottom:6px">Dane</div>
       <div><a href="https://neptun.in.ua" target="_blank" rel="noopener">NEPTUN</a>
-        (agregator OSINT) · adsb.lol · airspace.pansa.pl · gov.pl/RCB<br>
-        alarmy obwodów UA: ubilling.net.ua/aerialalerts<br>
+        (agregator OSINT; obiekty i alarmy obwodów UA) · adsb.lol ·
+        airspace.pansa.pl · gov.pl/RCB<br>
         media regionalne · kamery worldcam.pl<br>
         mapa © CARTO, © OpenStreetMap</div>
     </div>
