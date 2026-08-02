@@ -33,6 +33,10 @@ def build_state() -> dict:
                  "counts": adsb.status["counts"], "baselines": adsb.status["baselines"]},
         "health": {
             "neptun": neptun.status["connected"],
+            # Alarmy obwodowe UA płyną tym samym WebSocketem co Neptun (nie ma
+            # osobnego kolektora), więc ich zdrowie = połączenie Neptuna. Bez tego
+            # pola dioda „Alarmy UA" świeciła na czerwono w trybie backendu.
+            "ua_alerts": neptun.status["connected"],
             "adsb": adsb.status["ok"],
             "pansa": pansa.status["ok"],
             "rcb": rcb.status["ok"],
