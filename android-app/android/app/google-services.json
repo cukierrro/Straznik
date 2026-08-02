@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "250282738070",
+    "project_id": "straznik-c077d",
+    "storage_bucket": "straznik-c077d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:250282738070:android:cc8165d31bf64bc972ddb7",
+        "android_client_info": {
+          "package_name": "pl.straznik.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB-o7bVaQFujDp8Zfe23lX-4Wm4NexK9mI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -8,6 +8,8 @@ import android.os.Build;
 import android.os.PowerManager;
 import android.provider.Settings;
 
+import com.google.firebase.messaging.FirebaseMessaging;
+
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
@@ -65,7 +67,49 @@ public class BackgroundPlugin extends Plugin {
     @PluginMethod
     public void setHomeVoivodeship(PluginCall call) {
         Fusion.setHomeVoivodeship(getContext(), call.getString("voivodeship"));
+        // po zmianie regionu przepnij subskrypcję tematu FCM na nowe województwo
+        syncFcmSubscription(getContext());
         call.resolve();
+    }
+
+    /**
+     * Temat FCM dla województwa. Nazwy tematów muszą być ASCII, a województwa mają
+     * polskie znaki — mapujemy je 1:1 na ASCII. Ten sam slug liczy backend
+     * (config.voiv_topic), więc obie strony trafiają w ten sam temat.
+     */
+    static String voivTopic(String name) {
+        String s = name.toLowerCase()
+            .replace('ą', 'a').replace('ć', 'c').replace('ę', 'e').replace('ł', 'l')
+            .replace('ń', 'n').replace('ó', 'o').replace('ś', 's').replace('ź', 'z')
+            .replace('ż', 'z');
+        return "voiv_" + s;
+    }
+
+    /**
+     * Dopasowuje subskrypcje tematów FCM do wybranego regionu: subskrybuje temat
+     * województwa użytkownika (albo, gdy nie wybrał, ściany wschodniej — jak
+     * Fusion.DEFAULT_WATCH), i odsubskrybowuje poprzednie. Wywoływane przy starcie
+     * aplikacji i po każdej zmianie regionu, więc telefon dostaje push tylko o
+     * swoim województwie.
+     */
+    static void syncFcmSubscription(Context c) {
+        java.util.Set<String> target = new java.util.HashSet<>();
+        String home = c.getSharedPreferences("straznik_bg", Context.MODE_PRIVATE)
+                       .getString("home_voiv", "");
+        if (home != null && !home.isEmpty()) {
+            target.add(voivTopic(home));
+        } else {
+            for (int i : new int[]{0, 1, 2, 6})   // lubelskie, podkarpackie, podlaskie, warm.-maz.
+                target.add(voivTopic(Sources.VOIVS[i]));
+        }
+        android.content.SharedPreferences p =
+            c.getSharedPreferences("straznik_fcm", Context.MODE_PRIVATE);
+        java.util.Set<String> current = new java.util.HashSet<>(
+            p.getStringSet("topics", java.util.Collections.<String>emptySet()));
+        FirebaseMessaging fm = FirebaseMessaging.getInstance();
+        for (String t : current) if (!target.contains(t)) fm.unsubscribeFromTopic(t);
+        for (String t : target) if (!current.contains(t)) fm.subscribeToTopic(t);
+        p.edit().putStringSet("topics", target).apply();
     }
 
     @PluginMethod

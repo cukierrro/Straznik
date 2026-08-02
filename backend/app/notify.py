@@ -11,6 +11,55 @@ from .fusion import LEVEL_LABELS
 log = logging.getLogger("notify")
 
 _vapid: dict | None = None
+_fcm_ready = False
+
+
+def init_fcm():
+    """Inicjalizuje Firebase Admin SDK (raz), jeśli jest plik konta serwisowego."""
+    global _fcm_ready
+    if not config.FCM_ENABLED:
+        return
+    import os
+    if not os.path.exists(config.FCM_CREDENTIALS_PATH):
+        log.warning("FCM: brak pliku poświadczeń %s — push do aplikacji wyłączony",
+                    config.FCM_CREDENTIALS_PATH)
+        return
+    try:
+        import firebase_admin
+        from firebase_admin import credentials
+        if not firebase_admin._apps:
+            firebase_admin.initialize_app(credentials.Certificate(config.FCM_CREDENTIALS_PATH))
+        _fcm_ready = True
+        log.info("FCM zainicjalizowany")
+    except Exception as e:
+        log.warning("FCM init błąd: %s", e)
+
+
+def _send_fcm_sync(topic: str, data: dict) -> str:
+    from firebase_admin import messaging
+    msg = messaging.Message(
+        topic=topic,
+        data=data,
+        # wysoki priorytet: dociera od razu, przebija Doze; brak bloku `notification`,
+        # bo powiadomienie (z pełnym ekranem dla czerwonego) buduje natywny
+        # StraznikFcmService — wiadomości `data-only` trafiają do niego zawsze,
+        # także przy zamkniętej aplikacji, i nie są przechwytywane przez system.
+        android=messaging.AndroidConfig(priority="high"),
+    )
+    return messaging.send(msg)
+
+
+async def send_fcm(voiv: str, level: str, score: float, reasons_text: str):
+    if not (config.FCM_ENABLED and _fcm_ready):
+        return
+    topic = config.voiv_topic(voiv)
+    data = {"voiv": voiv, "level": level, "score": str(score),
+            "reasons": reasons_text or ""}
+    try:
+        mid = await asyncio.to_thread(_send_fcm_sync, topic, data)
+        log.info("FCM → %s (%s pkt): %s", topic, score, mid)
+    except Exception as e:
+        log.warning("FCM błąd (%s): %s", topic, e)
 
 
 def init_vapid():
@@ -112,9 +161,10 @@ async def notify_level(voiv: str, level: str, score: float, signals: list[dict])
 
     from .fusion import breakdown_text
     label = LEVEL_LABELS[level]
+    reasons = breakdown_text(signals)
     title = f"{label}: woj. {voiv} ({score} pkt)"
     body = (f"Suma sygnałów z ostatnich {config.FUSION_WINDOW_MIN} min: {score} pkt\n"
-            f"{breakdown_text(signals)}\n"
+            f"{reasons}\n"
             f"NIEOFICJALNE źródło dodatkowe — w razie realnego zagrożenia "
             f"kieruj się syrenami/RCB/RSO.")
     ntfy_prio = "urgent" if level == "high" else "default"
@@ -122,5 +172,6 @@ async def notify_level(voiv: str, level: str, score: float, signals: list[dict])
         send_ntfy(title, body, ntfy_prio),
         send_telegram(f"{'🚨' if level == 'high' else '⚠️'} {title}\n{body}"),
         send_webpush(title, body, level),
+        send_fcm(voiv, level, score, reasons),
         return_exceptions=True,
     )

@@ -377,11 +377,13 @@
     <details style="margin-top:14px">
       <summary class="fineprint" style="cursor:pointer">Zaawansowane: wspólny backend</summary>
       <label style="margin-top:8px">Adres serwera (opcjonalnie)
-        <input id="set-api" type="url" placeholder="puste = tryb wbudowany (zalecane)">
+        <input id="set-api" type="url" placeholder="puste = serwer Strażnika (zalecane)">
       </label>
-      <p class="fineprint">Domyślnie aplikacja sama pobiera dane i liczy fuzję
-      na urządzeniu. Adres (np. http://192.168.1.10:8600) podaj tylko, jeśli
-      chcesz korzystać z backendu na komputerze.</p>
+      <p class="fineprint">Domyślnie aplikacja korzysta z serwera Strażnika
+      (straznik.eu) — dane i fuzja liczone są raz na serwerze. Gdy serwer jest
+      niedostępny, aplikacja automatycznie przechodzi na tryb wbudowany i liczy
+      sama na urządzeniu. Własny adres (np. http://192.168.1.10:8600) podaj tylko,
+      jeśli chcesz korzystać z własnego backendu.</p>
     </details>
     <menu>
       <button value="cancel" class="chip">Anuluj</button>

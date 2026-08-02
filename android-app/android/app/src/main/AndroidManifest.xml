@@ -45,6 +45,16 @@
             android:exported="false"
             android:foregroundServiceType="dataSync" />
 
+        <!-- Push FCM: odbiera wiadomości `data` (temat voiv_<region>) także przy
+             zamkniętej aplikacji i w Doze; dla czerwonego buduje pełnoekranowy alarm. -->
+        <service
+            android:name=".StraznikFcmService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
         <receiver
             android:name=".BootReceiver"
             android:exported="true"

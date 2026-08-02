@@ -6,11 +6,16 @@
 /* ── konfiguracja / API base ─────────────────────────────────────────────── */
 const IS_APP = location.protocol === "capacitor:" || location.protocol === "file:" ||
                (window.Capacitor !== undefined);
+const DEFAULT_BACKEND = "https://straznik.eu";   // serwer fuzji Strażnika (VPS przez Cloudflare)
 function apiBase() {
   if (location.search.includes("standalone=1")) return null;  // test trybu wbudowanego
   const saved = localStorage.getItem("straznik_api");
   if (saved) return saved.replace(/\/+$/, "");
   if (!IS_APP && /^https?:$/.test(location.protocol)) return location.origin;
+  // Apka domyślnie korzysta z serwera: fuzja liczona RAZ na backendzie, a nie na
+  // każdym telefonie osobno (skalowanie + oszczędność limitów darmowych API).
+  // Gdy serwer jest niedostępny, connect() schodzi na wbudowany silnik (fallback).
+  if (IS_APP) return DEFAULT_BACKEND;
   return null;
 }
 
@@ -169,18 +174,42 @@ const connBadge = document.getElementById("conn-badge");
 let ws = null, wsRetry = 1;
 
 let standalone = false;
-function connect() {
+async function connect() {
   const base = apiBase();
-  if (!base) {
-    // brak adresu backendu ⇒ WBUDOWANY silnik: telefon/przeglądarka sam
-    // pobiera dane i liczy fuzję (engine.js). Zero konfiguracji.
-    standalone = true;
-    connBadge.classList.add("hidden");
-    Engine.start(applyState);
-    return;
-  }
-  const wsUrl = base.replace(/^http/, "ws") + "/ws";
+  if (!base) return startStandalone();   // brak adresu ⇒ od razu wbudowany silnik
+  // Sonda startowa: czy serwer odpowiada? Zamiast wisieć na „łączenie…", gdy
+  // backend jest niedostępny w chwili otwarcia, schodzimy na WBUDOWANY silnik —
+  // apka działa zawsze. Decyzja zapada RAZ na starcie (silnika nie da się
+  // czysto zatrzymać, więc nie przełączamy trybu w locie).
   connBadge.textContent = "łączenie…"; connBadge.classList.remove("hidden");
+  if (!(await probeBackend(base))) {
+    console.warn("Strażnik: serwer niedostępny przy starcie — tryb wbudowany (standalone).");
+    return startStandalone();
+  }
+  openBackendWs(base);
+}
+
+function startStandalone() {
+  // WBUDOWANY silnik: telefon/przeglądarka sam pobiera dane i liczy fuzję (engine.js).
+  standalone = true;
+  connBadge.classList.add("hidden");
+  Engine.start(applyState);
+}
+
+/* jednorazowa sonda serwera z limitem czasu; przy sukcesie od razu pokazuje stan */
+async function probeBackend(base) {
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 4000);
+    const r = await fetch(base + "/api/state", { signal: ctrl.signal });
+    clearTimeout(timer);
+    if (r.ok) { applyState(await r.json()); return true; }
+  } catch {}
+  return false;
+}
+
+function openBackendWs(base) {
+  const wsUrl = base.replace(/^http/, "ws") + "/ws";
   try { ws = new WebSocket(wsUrl); } catch { return scheduleReconnect(); }
   ws.onopen = () => { wsRetry = 1; connBadge.classList.add("hidden"); };
   ws.onmessage = (e) => {
@@ -189,11 +218,17 @@ function connect() {
   };
   ws.onclose = ws.onerror = () => scheduleReconnect();
 }
+
 function scheduleReconnect() {
+  if (standalone) return;   // w trybie wbudowanym nie ma czego wznawiać
   if (ws) { ws.onclose = ws.onerror = null; try { ws.close(); } catch {} ws = null; }
-  connBadge.textContent = "brak połączenia z backendem — ponawiam…";
+  connBadge.textContent = "brak połączenia z serwerem — ponawiam…";
   connBadge.classList.remove("hidden");
-  setTimeout(connect, Math.min(wsRetry * 1000, 15000));
+  const base = apiBase();
+  // W trakcie sesji trzymamy się serwera (przy starcie potwierdził dostępność):
+  // ponawiamy tylko WebSocket, bez przełączania na wbudowany silnik.
+  setTimeout(() => { if (!standalone && base) openBackendWs(base); },
+    Math.min(wsRetry * 1000, 15000));
   wsRetry = Math.min(wsRetry * 2, 15);
   pollOnce();
 }
@@ -1923,9 +1958,22 @@ document.getElementById("btn-legend").onclick = () => {
   document.getElementById("btn-legend").classList.toggle("active");
 };
 
+/* W trybie backendu (apka na serwerze) alarmy przy zamkniętej aplikacji dostarcza
+   FCM, a powiadomienie systemowe wymaga zgody POST_NOTIFICATIONS. Wbudowany silnik
+   prosił o nią sam, ale w trybie backendu nie startuje — więc prosimy tutaj.
+   Subskrypcję tematu FCM (per województwo) odświeża natywnie MainActivity. */
+async function ensureAppNotifications() {
+  if (!IS_APP) return;
+  try {
+    const LN = window.Capacitor?.Plugins?.LocalNotifications;
+    if (LN) await LN.requestPermissions();
+  } catch (e) { console.warn("prośba o zgodę na powiadomienia:", e); }
+}
+
 /* ── start ───────────────────────────────────────────────────────────────── */
 initMap();
 connect();
+ensureAppNotifications();
 // pierwsze uruchomienie: o aplikacji → region → nasłuch w tle
 if (!localStorage.getItem("straznik_onboarded")) {
   localStorage.setItem("straznik_onboarded", "1");

@@ -159,6 +159,23 @@ TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
 WEBPUSH_ENABLED = os.getenv("WEBPUSH_ENABLED", "true").lower() == "true"
 VAPID_CONTACT = os.getenv("VAPID_CONTACT", "mailto:noweartykuly@gmail.com")
 
+# ── FCM (push do aplikacji Android; tematy per województwo) ────────────────────
+# Serwer liczy fuzję raz i przy wzroście poziomu wysyła wiadomość na temat
+# voiv_<slug województwa>. Aplikacja subskrybuje temat swojego regionu i dostaje
+# push nawet przy zamkniętej aplikacji / w trybie Doze — bez usługi
+# pierwszoplanowej, którą producenci ubijają. Klucz konta serwisowego (sekret)
+# trzymamy poza repo, domyślnie w backend/data/ (jest w .gitignore).
+FCM_ENABLED = os.getenv("FCM_ENABLED", "true").lower() == "true"
+FCM_CREDENTIALS_PATH = os.getenv("FCM_CREDENTIALS_PATH",
+                                 str(DATA_DIR / "fcm-service-account.json"))
+
+# Nazwy tematów FCM muszą być ASCII ([a-zA-Z0-9-_.~%]), a województwa mają polskie
+# znaki — mapujemy je na ASCII. Ten sam slug liczy natywna strona aplikacji
+# (BackgroundPlugin.voivTopic), więc obie strony muszą się zgadzać.
+_PL_ASCII = str.maketrans("ąćęłńóśźż", "acelnoszz")
+def voiv_topic(voiv: str) -> str:
+    return "voiv_" + voiv.translate(_PL_ASCII)
+
 # ── Województwa ───────────────────────────────────────────────────────────────
 VOIVODESHIPS = [
     "lubelskie", "podkarpackie", "podlaskie", "mazowieckie", "świętokrzyskie",

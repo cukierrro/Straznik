@@ -201,6 +201,7 @@ async def test_signal(body: dict):
 async def startup():
     db.init()
     notify.init_vapid()
+    notify.init_fcm()
     fusion.on_level_change = notify.notify_level
     fusion.on_state_change = broadcast_state
     for coro in (neptun.run(), rss_media.run(), rcb.run(), adsb.run(), pansa.run(),
