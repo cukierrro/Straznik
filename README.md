@@ -98,28 +98,34 @@ więc nigdy nie miesza się z własnym sygnałem regionu.
 ## Architektura
 
 ```
-[Neptun WS] ──┐                                   ┌─ mapa 3D (przeglądarka)
-[RSS media] ──┤   backend FastAPI (PC)            ├─ aplikacja Android (APK)
-[RCB gov.pl]──┼─► fuzja punktowa ─► SQLite ─► API ┤
-[ADS-B mil] ──┤   progi 2 / 4 pkt                 ├─ ntfy (telefon)
-[PAŻP AUP*] ──┘                                   └─ Telegram / Web Push
+[Neptun WS] ──┐                                    ┌─ aplikacja Android (push FCM per województwo)
+[RSS media] ──┤   backend FastAPI na VPS           ├─ straznik.eu (mapa 3D w przeglądarce)
+[RCB gov.pl]──┼─► fuzja punktowa ─► SQLite ─► API ─┤
+[ADS-B mil] ──┤   progi 2 / 4 pkt   + WebSocket    ├─ ntfy / Telegram / Web Push
+[PAŻP AUP*] ──┘   (za Cloudflare, HTTPS)           └─ fallback: wbudowany silnik w apce
 ```
 
-Aplikacja Android działa **domyślnie bez backendu**: `frontend/engine.js` to
-lustrzana kopia logiki fuzji w JS, a natywne żądania HTTP z WebView omijają CORS.
-Backend jest opcjonalny i daje pełny log SQLite, całodobowy baseline ADS-B,
-warstwę PAŻP oraz ntfy/Telegram/Web Push.
+**Aplikacja domyślnie korzysta z serwera** (`https://straznik.eu`): fuzja liczona
+jest raz na serwerze, a nie na każdym telefonie osobno — mniejsze zużycie baterii
+i darmowych limitów API. Gdy serwer jest niedostępny, aplikacja schodzi na
+**wbudowany silnik** (`frontend/engine.js` — lustrzana kopia logiki fuzji w JS;
+natywne żądania HTTP z WebView omijają CORS) jako fallback.
 
-**Alarmy obwodów UA — dwa niezależne źródła.** Neptun wysyła ramki `alerts`
-wyłącznie WebSocketem, a usługa w tle korzysta ze snapshotu REST, bo gniazdo
-utrzymywane przez dobę kosztuje baterię bez zysku. Przy stale zamkniętej
-aplikacji ten sygnał więc nie powstawał. Usługa bierze go teraz z REST-owego
-pośrednika [ubilling.net.ua/aerialalerts](https://wiki.ubilling.net.ua/doku.php?id=aerialalertsapi),
-który sam scala kilka serwisów alarmowych (Mørk Skogen, JAAM, alerts.in.ua,
-ukrainealarm) — bez klucza i rejestracji, limit 2 zapytania na sekundę.
-Klucz deduplikacji jest identyczny po obu stronach, więc przy otwartej aplikacji
-sygnał nie policzy się dwa razy. Efekt uboczny: gdy jedno źródło zamilknie,
-alarm i tak dotrze.
+**Powiadomienia push (FCM).** Serwer przy wzroście poziomu wysyła wiadomość na
+temat `voiv_<region>`; telefon subskrybuje temat swojego województwa i dostaje
+alarm nawet przy zamkniętej aplikacji, wygaszonym ekranie i w trybie Doze — bez
+usługi działającej w tle (Android 15/16 taką usługę pierwszoplanową i tak ubijał,
+więc została wycofana). Poziom czerwony wyzwala pełnoekranowy alarm nad blokadą
+(`AlarmActivity`), żółty — powiadomienie heads-up.
+
+**Wdrożenie.** Backend działa na VPS, wystawiony tunelem Cloudflare pod
+`https://straznik.eu` (TLS na brzegu Cloudflare, bez otwierania portu na origin).
+Klucz konta serwisowego FCM leży poza repozytorium, w `backend/data/` (`.gitignore`).
+
+**Alarmy obwodów UA.** Neptun wysyła ramki `alerts` WebSocketem; backend utrzymuje
+to gniazdo stale, więc oficjalne alarmy powietrzne w obwodach UA graniczących z PL
+docierają na bieżąco i są punktowane (`ua_alert_border`). Stan źródła widać w
+`health.ua_alerts` i na diodzie „Alarmy UA".
 
 \* PAŻP: airspace.pansa.pl nie ma udokumentowanego API, ale jego mapa karmi się
 publicznym GeoJSON-em — `/map-configuration/uup` i `/map-configuration/aup`
@@ -138,6 +144,10 @@ py -m uvicorn app.main:app --host 0.0.0.0 --port 8600 --app-dir .
 
 Dashboard: `http://localhost:8600` · API: `/api/state`, `/api/health`, `/api/docs`
 
+> Produkcyjnie backend działa na VPS na porcie `40141`, wystawiony tunelem
+> Cloudflare pod `https://straznik.eu`. Push FCM wymaga klucza konta serwisowego
+> w `backend/data/fcm-service-account.json` (zob. „Powiadomienia").
+
 Test warstwy Neptun bez serwera:
 
 ```bash
@@ -146,7 +156,8 @@ py -m app.cli neptun    # strumień WS na żywo z oceną odległości/kursu do g
 py -m app.cli score     # jednorazowy snapshot REST
 ```
 
-Test fuzji end-to-end:
+Test fuzji end-to-end (endpoint domyślnie **wyłączony** — najpierw ustaw
+`TEST_SIGNAL_ENABLED=true` w `.env`, żeby nie był publicznie dostępny na produkcji):
 
 ```bash
 curl -X POST http://localhost:8600/api/test-signal -H "Content-Type: application/json" -d "{\"voivodeship\":\"lubelskie\",\"points\":2.5,\"title\":\"test\"}"
@@ -156,12 +167,22 @@ Tryb wbudowany w przeglądarce: `http://localhost:8600/?standalone=1`
 
 ## Powiadomienia
 
-- **ntfy (zalecane na telefon):** zainstaluj aplikację ntfy, wymyśl długi
-  losowy temat, wpisz go w `.env` (`NTFY_TOPIC=`) i zasubskrybuj w aplikacji.
-  Poziom WYSOKI idzie z priorytetem `urgent`.
+- **FCM (push do aplikacji Android) — główna ścieżka.** Serwer przy wzroście
+  poziomu wysyła wiadomość `data` na temat `voiv_<region>`; aplikacja subskrybuje
+  temat swojego województwa (`BackgroundPlugin.syncFcmSubscription`) i dostaje
+  alarm nawet przy zamkniętej aplikacji. Wymaga projektu Firebase: pliku
+  `google-services.json` w `android-app/android/app/` oraz klucza konta
+  serwisowego na serwerze w `backend/data/fcm-service-account.json` (`.gitignore`).
+  Włączane flagą `FCM_ENABLED` (domyślnie `true`). Poziom czerwony → pełnoekranowy
+  alarm z syreną; żółty → heads-up.
+- **ntfy:** zainstaluj aplikację ntfy, wymyśl długi losowy temat, wpisz go w
+  `.env` (`NTFY_TOPIC=`) i zasubskrybuj w aplikacji. Poziom WYSOKI idzie
+  z priorytetem `urgent`.
 - **Telegram:** `@BotFather` → `/newbot` → token do `.env`; napisz do bota,
   odczytaj `chat_id` z `https://api.telegram.org/bot<TOKEN>/getUpdates`.
-- **Web Push:** przycisk 🔔 w dashboardzie (wymaga `http://localhost` lub HTTPS).
+- **Web Push (VAPID):** przycisk 🔔 w dashboardzie/na `straznik.eu` (wymaga
+  `http://localhost` lub HTTPS). Ta sama ścieżka obsłuży PWA na iOS 16.4+
+  (po „Dodaj do ekranu początkowego").
 
 ## Podpisywanie wydania
 
@@ -224,6 +245,13 @@ cd android && JAVA_HOME="C:/Program Files/Android/Android Studio/jbr" ./gradlew 
 Wynik: `android-app/android/app/build/outputs/apk/debug/app-debug.apk`
 (kopia w katalogu głównym jako `Straznik.apk`).
 
+> Push FCM wymaga pliku `android-app/android/app/google-services.json` (z projektu
+> Firebase) — bez niego wtyczka `google-services` się nie aktywuje i push nie
+> działa. Na maszynie z antywirusem skanującym TLS (Avast/Kaspersky/ESET) Gradle
+> może nie pobrać zależności Firebase (`PKIX path building failed`) — trzeba wskazać
+> JVM magazyn certyfikatów z CA antywirusa (import certu do kopii `cacerts` +
+> `-Djavax.net.ssl.trustStore=…`); po jednorazowym pobraniu deps wpadają do cache.
+
 ## Struktura
 
 - `backend/app/collectors/` — neptun.py (WS+REST), rss_media.py, rcb.py, adsb.py, pansa.py
@@ -231,11 +259,15 @@ Wynik: `android-app/android/app/build/outputs/apk/debug/app-debug.apk`
 - `backend/app/geo.py` — punkty referencyjne granicy, haversine, ocena kursu
 - `backend/data/straznik.db` — SQLite: pełny log sygnałów (ts, źródło, punkty, województwo)
 - `frontend/` — mapa 3D MapLibre GL, panel sygnałów, legenda, ekran „O aplikacji"
-- `frontend/engine.js` — wbudowany silnik dla APK (lustrzana kopia logiki backendu)
+- `frontend/engine.js` — wbudowany silnik (fallback, gdy serwer niedostępny)
+- `backend/app/notify.py` — kanały powiadomień: FCM (tematy per województwo),
+  ntfy, Telegram, Web Push (VAPID)
 - `android-app/` — opakowanie Capacitor (WebView) + projekt Gradle
 - `android-app/android/app/src/main/java/pl/straznik/app/` — warstwa natywna:
-  `MonitorService` (nasłuch w tle), `AlarmActivity` (alarm pełnoekranowy),
-  `Fusion` + `Sources` (fuzja i kolektory w tle), `BackgroundPlugin` (most do JS)
+  `StraznikFcmService` (odbiór pushy FCM → powiadomienie/alarm), `AlarmActivity`
+  (pełnoekranowy alarm nad blokadą), `BackgroundPlugin` (most do JS: subskrypcja
+  tematów FCM, zgody na powiadomienia i alarm pełnoekranowy), `MainActivity`
+- `android-app/android/app/google-services.json` — konfiguracja Firebase (niesekretna)
 - `docs/` — instrukcja użytkownika (GitHub Pages) i zrzuty ekranu
 - `scripts/build_cams.py` — odświeżanie listy kamer
 - `scripts/build_sounds.py` — generowanie dźwięków alarmów do `res/raw/`
@@ -243,70 +275,61 @@ Wynik: `android-app/android/app/build/outputs/apk/debug/app-debug.apk`
 ## Zgodność z urządzeniami
 
 `minSdk 24` (Android 7.0) — `targetSdk 36` (Android 16). Obsłużone różnice:
-kanały powiadomień od API 26, uprawnienie `POST_NOTIFICATIONS` od API 33,
-typ usługi `dataSync` wymagany od API 34, wyjątek od optymalizacji baterii od
-API 23. Layout używa `env(safe-area-inset-*)`, więc pasek nie chowa się pod
-wycięciem ani paskiem systemowym; na wąskich ekranach przyciski zwijają się do
-ikon. Testowane na emulatorze Pixel 7 (Android 14).
+kanały powiadomień od API 26, uprawnienie `POST_NOTIFICATIONS` od API 33, zgoda
+`USE_FULL_SCREEN_INTENT` od API 34, wyjątek od optymalizacji baterii od API 23.
+Layout używa `env(safe-area-inset-*)`, więc pasek nie chowa się pod wycięciem ani
+paskiem systemowym; na wąskich ekranach przyciski zwijają się do ikon. Testowane
+na fizycznym urządzeniu (Android 16) i emulatorze Pixel 7 (Android 14).
 
-**Nasłuch w tle** (`MonitorService.java`) to natywna usługa pierwszoplanowa,
-która sama odpytuje źródła i wystawia powiadomienia także przy wygaszonym
-ekranie. Android wymaga przy tym stałego powiadomienia „nasłuch aktywny"
-(pokazuje punktację i stan wszystkich pięciu źródeł, np.
-`lubelskie 2.0 pkt · Neptun✓ Media✓ RCB✓ ADS-B✓ PAŻP✓`) — to warunek systemu.
-Usługa i aplikacja korzystają z jednego zbioru sygnałów, więc liczba na pasku
-i w panelu jest zawsze taka sama.
-Usługa wraca po restarcie telefonu oraz przy otwarciu aplikacji (jeśli nasłuch
-jest włączony, a usługi nie ma — np. po wymuszonym zatrzymaniu), i prosi
-o wyłączenie optymalizacji baterii, bo Xiaomi/Samsung/Huawei potrafią ubijać
-usługi w tle.
+**Alarmy przy zamkniętej aplikacji: FCM push, nie usługa w tle.** Wcześniejsze
+wersje pilnowały źródeł natywną usługą pierwszoplanową (`MonitorService`), ale
+Android 15/16 agresywnie ją ubijał (`Stop FGS timeout` kilka sekund po starcie),
+więc została wycofana. Teraz alarm wysyła serwer przez FCM na temat `voiv_<region>`,
+a `StraznikFcmService` buduje z niego powiadomienie — działa przy zamkniętej
+aplikacji, w trybie Doze i po restarcie telefonu, bez usługi w tle i bez drenowania
+baterii. Gdy serwer jest niedostępny, aplikacja i tak działa na wbudowanym silniku
+(alarmy wtedy przy otwartej aplikacji).
 
 **Alarm pełnoekranowy** (`AlarmActivity.java`) przy poziomie czerwonym działa
 jak połączenie przychodzące: zapala ekran, pokazuje się nad blokadą, miga
 (te same barwy i tempo co `#alarm-overlay` w CSS), gra syrenę w pętli i wibruje
 do czasu potwierdzenia. Jest natywny, nie w WebView — musi pojawić się
-natychmiast także wtedy, gdy proces aplikacji nie żyje.
+natychmiast także wtedy, gdy proces aplikacji nie żyje. Wyzwala go full-screen
+intent z powiadomienia FCM (`StraznikFcmService`).
 
 Od Androida 14 uprawnienie `USE_FULL_SCREEN_INTENT` nie jest przyznawane
-automatycznie aplikacjom innym niż budzik i telefon. Bez niego start aktywności
-z tła jest blokowany (`BAL_BLOCK`), więc aplikacja prosi o zgodę w ustawieniach
-(`⚙ → 🚨 Zgoda na alarm pełnoekranowy`), a w razie jej braku ratuje się
-wake lockiem: zapala ekran, żeby powiadomienie z syreną było widoczne.
+automatycznie aplikacjom innym niż budzik i telefon, a **po aktualizacji potrafi
+się cofnąć**. Bez niego start aktywności z tła jest blokowany, więc aplikacja prosi
+o zgodę w ustawieniach (`⚙ → 🚨 Zgoda na alarm pełnoekranowy`), przypomina o niej
+banerem „Napraw", a w razie jej braku ratuje się wake lockiem: zapala ekran, żeby
+powiadomienie z syreną było widoczne.
 
 **Dźwięki** generuje `scripts/build_sounds.py` do `res/raw/` — te same przebiegi,
 które otwarta aplikacja syntetyzuje w Web Audio (żółty: dwutonowy sygnał
 740↔988 Hz, czerwony: modulowana syrena 380↔860 Hz przez filtr dolnoprzepustowy).
 Dzięki temu tło brzmi identycznie jak pierwszy plan. Po zmianie brzmienia
 w `app.js` uruchom skrypt ponownie. Kanały powiadomień mają sufiks wersji
-(`-v2`), bo raz utworzony kanał ignoruje późniejsze zmiany dźwięku.
+(`-v3`), bo raz utworzony kanał ignoruje późniejsze zmiany dźwięku.
 
-**Źródła w usłudze tła:** NEPTUN, media regionalne i ogólnopolskie, media bałtyckie,
-RCB oraz PAŻP. Do wersji 1.3.0 usługa sprawdzała tylko trzy pierwsze — brakowało
-jej PAŻP i mediów bałtyckich, a to właśnie PAŻP generuje w praktyce najwięcej
-sygnałów. Objawiało się to tak, że przy zamkniętej aplikacji nie przychodziło nic,
-a po jej otwarciu alarmy pojawiały się natychmiast. ADS-B pozostaje wyłącznie
-w aplikacji: wymaga tygodnia próbek do wyliczenia baseline i daje sygnał
-pomocniczy o wadze 1 pkt.
+**Źródła fuzji:** NEPTUN (obiekty + alarmy obwodów UA), media regionalne,
+ogólnopolskie i bałtyckie, RCB, PAŻP oraz ADS-B (sygnał pomocniczy o wadze 1 pkt,
+wymaga tygodnia próbek do baseline). Wszystkie liczy backend. Rozpoznawanie
+województwa z tekstu obejmuje wszystkie 16 (`VOIV_KEYWORDS`), a jeden ogólnopolski
+kanał Google News pokrywa regiony bez własnego feedu.
 
-**Zasięg nasłuchu w tle:** wszystkie 16 województw, z tą samą kaskadą co mapa.
-Powiadomienia dotyczą regionu wybranego przez użytkownika (`Fusion.setHomeVoivodeship`,
-ustawiane z JS przy zapisie ustawień) — bez tego filtra telefon dostawałby alerty
-o zdarzeniach po drugiej stronie kraju. Bez wybranego regionu usługa pilnuje
-czterech przygranicznych. Rozpoznawanie województwa z tekstu obejmuje wszystkie 16
-(`VOIV_KEYWORDS` / `VOIV_KEYS`), a jeden ogólnopolski kanał Google News pokrywa
-regiony bez własnego feedu.
+**Region i kaskada.** Fuzja obejmuje wszystkie 16 województw, ze zdarzeniem na
+wschodzie „przelewającym się" na sąsiadów (kaskada, `config.VOIV_NEIGHBORS`).
+Push dociera tylko o **wybranym województwie** — telefon subskrybuje temat
+`voiv_<region>` (bez wyboru: cztery przygraniczne), więc nie dostaje alertów
+o zdarzeniach po drugiej stronie kraju, a wkład z sąsiedztwa i tak podnosi jego
+poziom. Przykład: zdarzenie 5 pkt w lubelskim u użytkownika z ustawionym
+mazowieckim daje „PODWYŻSZONA UWAGA: woj. mazowieckie (2.0 pkt)" z rozbiciem
+„Przeniesienie z woj. lubelskie (5.0 pkt, sąsiad)".
 
-Tablica sąsiedztwa w `Fusion.java` jest po indeksach `Sources.VOIVS` — przy zmianie
-kolejności województw trzeba ją przeliczyć. Zgodność z `config.VOIV_NEIGHBORS`
-i symetrię sąsiedztwa warto sprawdzić skryptem porównującym oba źródła.
-
-Zweryfikowane na emulatorze Pixel 7 (Android 14) przy ubitym procesie aplikacji
-i wygaszonym ekranie: żółty poziom wystawia powiadomienie i **nie** budzi ekranu,
-czerwony budzi ekran (`Asleep → Awake`) i wypycha `AlarmActivity` na wierzch
-(`BAL_ALLOW_PENDING_INTENT`), a potwierdzenie zatrzymuje dźwięk i wibrację.
-Kaskada sprawdzona osobno: zdarzenie 5 pkt w lubelskim wywołało u użytkownika
-z ustawionym mazowieckim powiadomienie „PODWYŻSZONA UWAGA: woj. mazowieckie
-(2.0 pkt)" z rozbiciem „Przeniesienie z woj. lubelskie (5.0 pkt, sąsiad)".
+Zweryfikowane na fizycznym urządzeniu (Android 16) przy zamkniętej aplikacji:
+żółty wystawia heads-up bez budzenia ekranu; czerwony przy wygaszonym
+i zablokowanym ekranie zapala go i pokazuje pełnoekranowy `AlarmActivity` nad
+blokadą z syreną, a potwierdzenie zatrzymuje dźwięk i wibrację.
 
 ## Ograniczenia (świadome)
 
@@ -354,7 +377,7 @@ bez gwarancji: to nieoficjalne źródło dodatkowe, nie system ratunkowy.
 
 ## Dane i atrybucja
 
-[NEPTUN](https://neptun.in.ua) (agregator OSINT) · adsb.lol · airspace.pansa.pl ·
-gov.pl/RCB · [ubilling.net.ua/aerialalerts](https://wiki.ubilling.net.ua/doku.php?id=aerialalertsapi)
-(alarmy obwodów UA) · media regionalne · kamery worldcam.pl ·
+[NEPTUN](https://neptun.in.ua) (agregator OSINT; obiekty i alarmy obwodów UA) ·
+adsb.lol · airspace.pansa.pl · gov.pl/RCB · media regionalne i bałtyckie ·
+kamery worldcam.pl ·
 mapa © [CARTO](https://carto.com/attributions), © [OpenStreetMap](https://www.openstreetmap.org/copyright)
