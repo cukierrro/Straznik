@@ -169,6 +169,11 @@ FCM_ENABLED = os.getenv("FCM_ENABLED", "true").lower() == "true"
 FCM_CREDENTIALS_PATH = os.getenv("FCM_CREDENTIALS_PATH",
                                  str(DATA_DIR / "fcm-service-account.json"))
 
+# Endpoint /api/test-signal wstrzykuje sygnały do fuzji i wyzwala powiadomienia
+# (w tym push do WSZYSTKICH subskrybentów tematu) — publiczny byłby wektorem
+# nadużyć. Domyślnie WYŁĄCZONY; do testów ustaw TEST_SIGNAL_ENABLED=true w .env.
+TEST_SIGNAL_ENABLED = os.getenv("TEST_SIGNAL_ENABLED", "false").lower() == "true"
+
 # Nazwy tematów FCM muszą być ASCII ([a-zA-Z0-9-_.~%]), a województwa mają polskie
 # znaki — mapujemy je na ASCII. Ten sam slug liczy natywna strona aplikacji
 # (BackgroundPlugin.voivTopic), więc obie strony muszą się zgadzać.

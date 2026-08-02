@@ -189,7 +189,13 @@ async def push_unsubscribe(body: dict):
 
 @app.post("/api/test-signal")
 async def test_signal(body: dict):
-    """Testowe wstrzyknięcie sygnału (weryfikacja fuzji i powiadomień end-to-end)."""
+    """Testowe wstrzyknięcie sygnału (weryfikacja fuzji i powiadomień end-to-end).
+
+    Domyślnie wyłączony na produkcji — bez tego każdy mógłby wstrzykiwać fałszywe
+    alarmy i wyzwalać push do wszystkich. Włącz flagą TEST_SIGNAL_ENABLED.
+    """
+    if not config.TEST_SIGNAL_ENABLED:
+        return JSONResponse({"error": "not found"}, status_code=404)
     voiv = body.get("voivodeship", "lubelskie")
     points = float(body.get("points", 2.0))
     is_new = await fusion.ingest(
