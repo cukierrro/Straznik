@@ -27,13 +27,34 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   pointer-events: none;
 }
 #topbar > * { pointer-events: auto; }
-.brand { display: flex; align-items: center; gap: 10px; }
+.brand { display: flex; align-items: center; gap: 10px; position: relative; cursor: help; outline: none; }
 .logo-dot { width: 14px; height: 14px; border-radius: 50%;
   background: radial-gradient(circle at 35% 35%, #9fc1ff, var(--accent));
   box-shadow: 0 0 12px var(--accent); animation: pulse 2.4s infinite; }
 @keyframes pulse { 50% { box-shadow: 0 0 22px var(--accent); } }
 .brand-name { font-weight: 700; letter-spacing: .22em; font-size: 15px; }
 .brand-sub { font-size: 10.5px; color: var(--muted); letter-spacing: .06em; }
+
+/* Popover WYŁĄCZNIE po najechaniu myszą na „Strażnik" (desktop) — nie na stałe.
+   Mostek ::before wypełnia odstęp, żeby dało się przejechać do klikalnego linku
+   bez chowania popovera. */
+.brand-info { display: none; position: absolute; top: calc(100% + 9px); left: -4px; z-index: 3000;
+  width: min(340px, 82vw); padding: 13px 15px; border-radius: 14px;
+  background: rgba(16,22,34,.985); color: #d7deea; border: 1px solid rgba(159,193,255,.24);
+  box-shadow: 0 16px 50px rgba(0,0,0,.62), 0 2px 8px rgba(0,0,0,.4);
+  font: 400 12px/1.55 "Segoe UI", system-ui, sans-serif; letter-spacing: 0; text-transform: none;
+  cursor: default; animation: brandPop .14s ease-out; }
+@keyframes brandPop { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: none; } }
+/* strzałka wskazująca na tytuł */
+.brand-info::after { content: ""; position: absolute; top: -6px; left: 16px; width: 11px; height: 11px;
+  background: rgba(16,22,34,.985); border-left: 1px solid rgba(159,193,255,.24);
+  border-top: 1px solid rgba(159,193,255,.24); transform: rotate(45deg); }
+/* niewidoczny mostek nad popupem — pozwala przejechać myszą do linku bez chowania */
+.brand-info::before { content: ""; position: absolute; top: -11px; left: 0; right: 0; height: 11px; }
+.brand-info b { color: #eaf0fb; }
+.brand-info a { display: inline-block; margin-top: 10px; color: #7fb4ff; font-weight: 600; text-decoration: none; }
+.brand-info a:hover { text-decoration: underline; }
+.brand:hover .brand-info { display: block; }
 
 #status-leds { display: flex; gap: 10px; margin-left: 8px; flex-wrap: wrap;
   cursor: pointer; padding: 3px 6px; border-radius: 8px; }

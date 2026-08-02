@@ -12,11 +12,18 @@
 <body>
 
 <header id="topbar">
-  <div class="brand">
+  <div class="brand" tabindex="0" role="button" aria-label="O aplikacji Strażnik">
     <div class="logo-dot"></div>
     <div>
       <div class="brand-name">STRAŻNIK</div>
       <div class="brand-sub">fuzja sygnałów · wschodnia Polska</div>
+    </div>
+    <div class="brand-info" role="tooltip">
+      <b>Strażnik</b> — nieoficjalny system wczesnego ostrzegania. Łączy sygnały
+      z wielu źródeł (NEPTUN, ADS-B, PAŻP, RCB, media, alarmy obwodów UA) w jedną
+      ocenę zagrożenia z powietrza dla województw, ze szczególną uwagą na wschodnią
+      Polskę. Źródło <b>dodatkowe</b> — nie zastępuje syren, RCB ani RSO.
+      <a href="https://github.com/cukierrro/Straznik" target="_blank" rel="noopener">Kod źródłowy na GitHub ↗</a>
     </div>
   </div>
   <div id="status-leds" title="Status źródeł danych — dotknij po szczegóły"
