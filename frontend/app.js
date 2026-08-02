@@ -1085,6 +1085,26 @@ function showSources() {
 }
 
 document.getElementById("status-leds").onclick = () => { if (state) showSources(); };
+
+/* Popup „Strażnik": na desktopie pokazuje go hover (CSS), a na ekranach
+   dotykowych sterujemy nim tapnięciem — dotknięcie marki przełącza, dotknięcie
+   poza nią albo Escape chowa. Bez tego mobilny :hover zostawał „przyklejony"
+   i popup nie znikał, zasłaniając interfejs. */
+(() => {
+  const brand = document.querySelector(".brand");
+  if (!brand) return;
+  brand.addEventListener("click", (e) => {
+    if (e.target.closest("a")) return;   // link „Kod źródłowy" ma otworzyć GitHub
+    brand.classList.toggle("brand-open");
+  });
+  brand.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); brand.classList.toggle("brand-open"); }
+    else if (e.key === "Escape") brand.classList.remove("brand-open");
+  });
+  document.addEventListener("click", (e) => {
+    if (!brand.contains(e.target)) brand.classList.remove("brand-open");
+  });
+})();
 document.getElementById("src-close")?.addEventListener("click", () =>
   document.getElementById("sources").close());
 document.getElementById("btn-watch")?.addEventListener("click", () => showWatch());

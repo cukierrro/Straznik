@@ -54,7 +54,11 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 .brand-info b { color: #eaf0fb; }
 .brand-info a { display: inline-block; margin-top: 10px; color: #7fb4ff; font-weight: 600; text-decoration: none; }
 .brand-info a:hover { text-decoration: underline; }
-.brand:hover .brand-info { display: block; }
+/* Desktop: hover pokazuje popup. Na dotyku hover „przykleja się" i popup nie
+   znikał, zasłaniając UI — tam sterujemy klasą .brand-open (tap otwiera, tap
+   poza / Escape zamyka; patrz app.js). */
+@media (hover: hover) { .brand:hover .brand-info { display: block; } }
+.brand.brand-open .brand-info { display: block; }
 
 #status-leds { display: flex; gap: 10px; margin-left: 8px; flex-wrap: wrap;
   cursor: pointer; padding: 3px 6px; border-radius: 8px; }
