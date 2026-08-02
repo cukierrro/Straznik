@@ -1564,10 +1564,17 @@ async function showHistoryAt(idx) {
   const sigs = h?.signals || [];
   const threats = snap?.threats || [];
   const planes = snap?.aircraft || [];
-  // punktacja z tamtej chwili — używa jej i mapa, i panel
-  const perVoiv = {};
-  for (const s of sigs)
-    if (s.voivodeship) perVoiv[s.voivodeship] = (perVoiv[s.voivodeship] || 0) + (s.points || 0);
+  // punktacja z tamtej chwili — używa jej i mapa, i panel. Bierzemy gotowy wynik
+  // z limitem klasy źródła (h.scores z backendu/silnika); fallback sumuje
+  // counted_points, też limitowane — NIGDY surowe points (inaczej np. 4 rutynowe
+  // strefy PAŻP dawały fałszywe 4.0 „WYSOKI PRIORYTET”).
+  let perVoiv = h?.scores;
+  if (!perVoiv) {
+    perVoiv = {};
+    for (const s of sigs)
+      if (s.voivodeship) perVoiv[s.voivodeship] =
+        (perVoiv[s.voivodeship] || 0) + (s.counted_points ?? s.points ?? 0);
+  }
   // poziom w wybranym momencie — kolor kciuka suwaka i podsumowanie
   const tp = timelinePoints[idx];
   const slider = document.getElementById("tb-slider");

@@ -55,11 +55,15 @@ def _cascade_targets(src: str) -> list[tuple[str, int]]:
     return out
 
 
-def _age_weight(ts: str) -> float:
-    """1.0 do FUSION_FULL_MIN, potem liniowy zjazd do 0 na końcu okna."""
+def _age_weight(ts: str, ref: datetime | None = None) -> float:
+    """1.0 do FUSION_FULL_MIN, potem liniowy zjazd do 0 na końcu okna.
+
+    `ref` to moment odniesienia (domyślnie teraz; dla rekonstrukcji historii —
+    czas wybranej migawki), żeby wygaszanie liczyło się względem tamtej chwili.
+    """
     try:
-        age_min = (datetime.now(timezone.utc)
-                   - datetime.fromisoformat(ts)).total_seconds() / 60
+        r = ref or datetime.now(timezone.utc)
+        age_min = (r - datetime.fromisoformat(ts)).total_seconds() / 60
     except Exception:
         return 1.0
     if age_min <= config.FUSION_FULL_MIN:
@@ -68,29 +72,41 @@ def _age_weight(ts: str) -> float:
     return max(0.0, 1.0 - (age_min - config.FUSION_FULL_MIN) / span)
 
 
-def compute_state() -> dict:
-    """Stan fuzji: per województwo suma punktów + lista sygnałów składowych."""
-    signals = db.signals_since(config.FUSION_WINDOW_MIN)
+def accumulate(signals: list[dict], ref: datetime | None = None) -> dict:
+    """Per województwo {score, signals[]} z limitem klasy źródła (config.SOURCE_CAPS)
+    i wygaszaniem wiekiem względem `ref`.
+
+    Wspólne dla fuzji na żywo (compute_state) i rekonstrukcji historii. Bez tego
+    historia sumowała SUROWE punkty bez limitu — np. 4 rutynowe strefy PAŻP
+    (każda 1 pkt, cap klasy = 1) dawały fałszywe 4.0 „WYSOKI PRIORYTET”, choć na
+    żywo dawały 1.0. NIE stosuje kaskady sąsiedzkiej — tę dokłada compute_state.
+    """
     per_voiv: dict[str, dict] = {
-        v: {"score": 0.0, "level": "none", "signals": []} for v in config.VOIVODESHIPS
+        v: {"score": 0.0, "signals": []} for v in config.VOIVODESHIPS
     }
     per_source: dict[tuple, float] = {}
-    signals.sort(key=lambda s: s["ts"])
-    for s in signals:
-        voiv = s["voivodeship"]
+    for s in sorted(signals, key=lambda x: x["ts"]):
+        voiv = s.get("voivodeship")
         if voiv not in per_voiv or s["points"] <= 0:
             continue
-        # limit wkładu jednej klasy źródła (config.SOURCE_CAPS) — kolejne
-        # sygnały tej samej klasy są widoczne, ale nie pompują sumy
         key = (voiv, s["source"])
         cap = config.SOURCE_CAPS.get(s["source"])
         already = per_source.get(key, 0.0)
         counted = s["points"] if cap is None else max(0.0, min(cap - already, s["points"]))
         per_source[key] = already + s["points"]
-        counted *= _age_weight(s["ts"])
-        s = {**s, "counted_points": round(counted, 1), "weight": round(_age_weight(s["ts"]), 2)}
+        w = _age_weight(s["ts"], ref)
+        counted *= w
         per_voiv[voiv]["score"] += counted
-        per_voiv[voiv]["signals"].append(s)
+        per_voiv[voiv]["signals"].append(
+            {**s, "counted_points": round(counted, 1), "weight": round(w, 2)})
+    return per_voiv
+
+
+def compute_state() -> dict:
+    """Stan fuzji: per województwo suma punktów + lista sygnałów składowych."""
+    signals = db.signals_since(config.FUSION_WINDOW_MIN)
+    # limit klasy źródła + wygaszanie wiekiem — wspólne z rekonstrukcją historii
+    per_voiv = accumulate(signals)
     # Propagacja kaskadowa: zdarzenie podnosi czujność najpierw u sąsiadów,
     # potem — słabiej — u ich sąsiadów, aż wkład zejdzie poniżej progu. Region
     # dostaje wkład po najkrótszej drodze od źródła, więc każde źródło liczy się

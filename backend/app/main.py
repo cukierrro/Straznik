@@ -109,12 +109,19 @@ async def api_history(at: str | None = None, hours: int = 12):
     from datetime import datetime, timedelta
     end = snap["ts"]
     try:
-        start = (datetime.fromisoformat(end)
-                 - timedelta(minutes=config.FUSION_WINDOW_MIN)).isoformat(timespec="seconds")
+        ref = datetime.fromisoformat(end)
+        start = (ref - timedelta(minutes=config.FUSION_WINDOW_MIN)).isoformat(timespec="seconds")
     except Exception:
-        start = end
+        ref, start = None, end
+    sigs = db.signals_between(start, end)
+    # ten sam limit klasy źródła co fuzja na żywo — bez tego historia sumowała
+    # surowe punkty (np. 4 rutynowe strefy PAŻP = fałszywe 4.0 zamiast 1.0)
+    per_voiv = fusion.accumulate(sigs, ref)
+    scores = {v: round(st["score"], 1) for v, st in per_voiv.items() if st["score"] > 0}
+    annotated = [sig for st in per_voiv.values() for sig in st["signals"]]
+    annotated.sort(key=lambda s: s["ts"], reverse=True)
     return {"times": times, "at": at, "snapshot": snap,
-            "signals": db.signals_between(start, end)}
+            "signals": annotated, "scores": scores}
 
 
 @app.get("/api/history/timeline")
@@ -134,24 +141,20 @@ async def api_timeline(hours: int = 12):
     parsed = []
     for s in signals:
         try:
-            parsed.append((datetime.fromisoformat(s["ts"]), s["voivodeship"], s["points"]))
+            parsed.append((datetime.fromisoformat(s["ts"]), s))
         except Exception:
             continue
     out = []
     for ts in times:
         t = datetime.fromisoformat(ts)
         window_start = t - timedelta(minutes=config.FUSION_WINDOW_MIN)
-        per_voiv: dict[str, float] = {}
-        for sig_t, voiv, pts in parsed:
-            if not (window_start <= sig_t <= t) or pts <= 0 or not voiv:
-                continue
-            age_min = (t - sig_t).total_seconds() / 60
-            w = 1.0 if age_min <= config.FUSION_FULL_MIN else max(
-                0.0, 1 - (age_min - config.FUSION_FULL_MIN)
-                / max(config.FUSION_WINDOW_MIN - config.FUSION_FULL_MIN, 1))
-            per_voiv[voiv] = per_voiv.get(voiv, 0.0) + pts * w
-        best = max(per_voiv.values()) if per_voiv else 0.0
-        top = max(per_voiv, key=per_voiv.get) if per_voiv else None
+        win = [s for sig_t, s in parsed if window_start <= sig_t <= t]
+        # ten sam limit klasy źródła co fuzja na żywo (inaczej suwak pokazywał
+        # fałszywy czerwony z rutynowych stref PAŻP)
+        per_voiv = fusion.accumulate(win, t)
+        scores = {v: st["score"] for v, st in per_voiv.items() if st["score"] > 0}
+        best = max(scores.values()) if scores else 0.0
+        top = max(scores, key=scores.get) if scores else None
         out.append({"ts": ts, "score": round(best, 1), "voiv": top,
                     "level": fusion.level_for(best)})
     return {"points": out}

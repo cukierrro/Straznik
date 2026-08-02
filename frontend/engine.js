@@ -323,27 +323,39 @@ function cascadeTargets(src) {
   return out;
 }
 
-function computeState() {
-  const cut = Date.now() - WINDOW_MIN*60*1000;
-  const per = {}; VOIVODESHIPS.forEach(v => per[v] = { score: 0, level: "none", signals: [] });
+/* Wynik per województwo z limitem klasy źródła (SOURCE_CAPS) i wygaszaniem
+   wiekiem względem `refT` (domyślnie teraz; w rekonstrukcji historii — czas
+   migawki). Wspólny rdzeń fuzji na żywo i historii — bez tego historia sumowała
+   SUROWE punkty i np. 4 rutynowe strefy PAŻP (cap 1) dawały fałszywe 4.0 zamiast
+   1.0. Kaskadę sąsiedzką dokłada dopiero computeState.
+   Number.isFinite: jedna zła wartość punktów zatrułaby NaN-em całą sumę. */
+function accumulate(sigs, refT) {
+  const ref = refT || Date.now();
+  const per = {}; VOIVODESHIPS.forEach(v => per[v] = { score: 0, signals: [] });
   const perSource = {};
-  for (const s of signals.filter(s => s.t >= cut).sort((a,b) => a.t-b.t)) {
-    // Number.isFinite: jedna zła wartość punktów zatruwałaby NaN-em całą sumę,
-    // spillover i karty województw — lepiej pominąć sygnał niż zepsuć fuzję
+  for (const s of [...sigs].sort((a, b) => a.t - b.t)) {
     if (!(s.voivodeship in per) || !Number.isFinite(s.points) || s.points <= 0) continue;
     const k = s.voivodeship + "|" + s.source;
     const cap = SOURCE_CAPS[s.source];
     const already = perSource[k] || 0;
     let counted = cap == null ? s.points : Math.max(0, Math.min(cap - already, s.points));
     perSource[k] = already + s.points;
-    const ageMin = (Date.now() - s.t) / 60000;
+    const ageMin = (ref - s.t) / 60000;
     const w = ageMin <= FULL_MIN ? 1
       : Math.max(0, 1 - (ageMin - FULL_MIN) / Math.max(WINDOW_MIN - FULL_MIN, 1));
     counted *= w;
     per[s.voivodeship].score += counted;
-    per[s.voivodeship].signals.push({ ...s, counted_points: Math.round(counted*10)/10,
+    per[s.voivodeship].signals.push({ ...s, counted_points: Math.round(counted * 10) / 10,
       weight: Math.round(w * 100) / 100 });
   }
+  return per;
+}
+
+function computeState() {
+  const cut = Date.now() - WINDOW_MIN*60*1000;
+  // limit klasy źródła + wygaszanie — wspólny rdzeń z rekonstrukcją historii
+  const per = accumulate(signals.filter(s => s.t >= cut));
+  for (const v of VOIVODESHIPS) per[v].level = "none";
   // propagacja kaskadowa do kolejnych kręgów sąsiedztwa (jak w backendzie)
   const base = {}; for (const [v, st] of Object.entries(per)) base[v] = st.score;
   for (const [src, score] of Object.entries(base)) {
@@ -783,26 +795,28 @@ function history(atIso) {
   if (!snap) snap = snaps[0] || null;
   const end = snap ? snap.t : at;
   const start = end - WINDOW_MIN * 60000;
-  return { times, at: atIso, snapshot: snap,
-    signals: signals.filter(s => s.t >= start && s.t <= end).sort((a, b) => b.t - a.t) };
+  // ten sam limit klasy źródła co fuzja na żywo (accumulate) — bez tego panel
+  // historii sumował surowe punkty i pokazywał np. fałszywe 4.0 z 4 stref PAŻP
+  const per = accumulate(signals.filter(s => s.t >= start && s.t <= end), end);
+  const scores = {};
+  for (const [v, st] of Object.entries(per)) if (st.score > 0) scores[v] = Math.round(st.score * 10) / 10;
+  const annotated = [].concat(...Object.values(per).map(st => st.signals)).sort((a, b) => b.t - a.t);
+  return { times, at: atIso, snapshot: snap, signals: annotated, scores };
 }
 
 /* Oś czasu do pokolorowania suwaka: najwyższy wynik w kraju dla każdej migawki. */
 function timeline() {
   const snaps = JSON.parse(localStorage.getItem("eng_snaps") || "[]");
   return snaps.map(s => {
-    const per = {};
-    for (const sig of signals) {
+    const win = signals.filter(sig => {
       const age = (s.t - sig.t) / 60000;
-      if (age < 0 || age > WINDOW_MIN || sig.points <= 0 || !sig.voivodeship) continue;
-      const w = age <= FULL_MIN ? 1
-        : Math.max(0, 1 - (age - FULL_MIN) / Math.max(WINDOW_MIN - FULL_MIN, 1));
-      per[sig.voivodeship] = (per[sig.voivodeship] || 0) + sig.points * w;
-    }
-    const entries = Object.entries(per);
-    const best = entries.length ? entries.reduce((a, b) => a[1] >= b[1] ? a : b) : null;
-    const score = best ? Math.round(best[1] * 10) / 10 : 0;
-    return { ts: s.ts, score, voiv: best ? best[0] : null,
+      return age >= 0 && age <= WINDOW_MIN;
+    });
+    const per = accumulate(win, s.t);
+    let best = 0, voiv = null;
+    for (const [v, st] of Object.entries(per)) if (st.score > best) { best = st.score; voiv = v; }
+    const score = Math.round(best * 10) / 10;
+    return { ts: s.ts, score, voiv,
       level: score >= TH_HIGH ? "high" : score >= TH_ELEVATED ? "elevated" : "none" };
   });
 }
