@@ -257,7 +257,7 @@ footer a{color:var(--tx2)}
         <span class="badge">4,0 MB</span>
         <span class="badge">bez konta</span>
         <span class="badge">bez reklam</span>
-        <span class="badge">offline-first UI</span>
+        <span class="badge">alarmy push</span>
       </div>
       <div class="cta-row">
         <a class="btn" href="https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk">⬇ Pobierz APK</a>
@@ -311,9 +311,10 @@ footer a{color:var(--tx2)}
     </div>
     <div class="card">
       <span class="big">⚙️</span>
-      <h4>Działa samodzielnie</h4>
-      <p>Domyślnie telefon sam pobiera dane i liczy punkty. Serwer jest opcjonalny,
-      dla zaawansowanych.</p>
+      <h4>Działa też bez serwera</h4>
+      <p>Domyślnie fuzję liczy serwer Strażnika, a alarmy przychodzą jako push —
+      lżej dla telefonu i baterii. Gdy serwer jest niedostępny, telefon przełącza
+      się na własny silnik i liczy sam.</p>
     </div>
   </div>
 </section>
@@ -375,18 +376,10 @@ footer a{color:var(--tx2)}
   </div>
 
   <div class="note">
-    <b>Skąd wiadomo, że aplikacja działa?</b> Pięć kropek obok napisu STRAŻNIK
+    <b>Skąd wiadomo, że aplikacja działa?</b> Sześć kropek obok napisu STRAŻNIK
     u góry ekranu to diody stanu źródeł danych. Wszystkie zielone = wszystkie
     źródła odpowiadają. Czerwona kropka oznacza, że dane źródło chwilowo
     nie odpowiada — pozostałe działają dalej.
-  </div>
-
-  <div class="note">
-    <b>Aktualizacja z wersji starszej niż 1.3.0.</b> Od tej wersji aplikacja jest
-    podpisana własnym kluczem autora zamiast klucza deweloperskiego. Android
-    traktuje inny podpis jak inną aplikację, więc odmówi nadpisania — trzeba
-    <b>najpierw odinstalować starą wersję</b>, a potem zainstalować nową.
-    To jednorazowe; kolejne aktualizacje zainstalują się już normalnie.
   </div>
 </section>
 
@@ -524,7 +517,7 @@ footer a{color:var(--tx2)}
       <thead><tr><th>Ikona</th><th>Funkcja</th><th>Co robi</th></tr></thead>
       <tbody>
         <tr><td class="ic">🔵</td><td><b>Kropka + STRAŻNIK</b></td>
-          <td>Logo. Obok pięć diod stanu źródeł danych — zielona znaczy,
+          <td>Logo. Obok sześć diod stanu źródeł danych — zielona znaczy,
           że źródło odpowiada.</td></tr>
         <tr><td class="ic">☕</td><td><b>Postaw kawę</b></td>
           <td>Dobrowolne wsparcie autora przez buycoffee.to. Aplikacja jest
@@ -810,8 +803,7 @@ footer a{color:var(--tx2)}
       </div>
     </div>
     <div>
-      <img src="screens/31_alert_czerwony_tlo.jpg" alt="Pełnoekranowy alarm WYSOKI PRIORYTET: woj. lubelskie (5.0 pkt) nad blokadą ekranu — czerwone tło, syrena, przycisk potwierdzenia">
-      <img src="screens/30_alert_zolty_tlo.jpg" alt="Powiadomienie push Strażnika: PODWYŻSZONA UWAGA: woj. lubelskie (2.4 pkt) na wygaszonym telefonie" style="margin-top:14px">
+      <img src="screens/30_alert_zolty_tlo.jpg" alt="Powiadomienie push Strażnika: PODWYŻSZONA UWAGA: woj. lubelskie (2.4 pkt) na wygaszonym telefonie">
     </div>
   </div>
 </section>
@@ -944,8 +936,9 @@ footer a{color:var(--tx2)}
 <section id="zaawansowane">
   <div class="eyebrow">Opcjonalnie</div>
   <h2>Tryb z własnym serwerem</h2>
-  <p class="lead">Domyślnie telefon robi wszystko sam i nie potrzebuje żadnej
-  konfiguracji. Ta sekcja dotyczy tylko osób, które chcą uruchomić własny backend.</p>
+  <p class="lead">Domyślnie aplikacja korzysta z serwera Strażnika (a gdy jest on
+  niedostępny, liczy sama na telefonie) — nie musisz nic konfigurować. Ta sekcja
+  dotyczy tylko osób, które chcą uruchomić <b>własny</b> backend, np. w domowej sieci.</p>
 
   <div class="split">
     <img src="screens/09_ustawienia_backend.jpg" alt="Rozwinięta sekcja Zaawansowane w ustawieniach z polem adresu serwera">
