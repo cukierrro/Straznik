@@ -1484,12 +1484,19 @@ document.getElementById("cam-close").onclick = () => {
 /* ── historia 12 h ───────────────────────────────────────────────────────── */
 let histTimes = [], histMode = false;
 
+let _histAbort = null;
 async function fetchHistory(at) {
   if (standalone) return Engine.history(at);
   const base = apiBase(); if (!base) return null;
   const url = base + "/api/history" + (at ? `?at=${encodeURIComponent(at)}` : "");
-  const r = await fetch(url);
-  return r.ok ? await r.json() : null;
+  _histAbort?.abort();                       // anuluj poprzednie żądanie (szybki scrub)
+  const ctrl = _histAbort = new AbortController();
+  try {
+    const r = await fetch(url, { signal: ctrl.signal });
+    return r.ok ? await r.json() : null;
+  } catch {
+    return undefined;                        // przerwane nowszym scrubem — nie renderuj
+  }
 }
 
 /* Kolorowanie osi czasu: tło suwaka odwzorowuje poziom zagrożenia w każdym
@@ -1555,6 +1562,7 @@ async function showHistoryAt(idx) {
   const ts = histTimes[idx];
   if (!ts) return;
   const h = await fetchHistory(ts);
+  if (h === undefined) return;              // fetch anulowany nowszym scrubem
   const snap = h?.snapshot;
   const when = new Date(snap?.ts || ts);
   const ageMin = Math.round((Date.now() - when.getTime()) / 60000);
@@ -1651,8 +1659,20 @@ function renderHistoryPanel(sigs, perVoiv, when, ageMin) {
 
 document.getElementById("btn-history").onclick = () => toggleHistory();
 document.getElementById("tb-live").onclick = () => exitHistory();
-document.getElementById("tb-slider").addEventListener("input", (e) =>
-  showHistoryAt(+e.target.value));
+/* Suwak historii: dławimy odświeżanie do ~7/s. Bez tego KAŻDE drgnięcie paska
+   odpalało fetch /api/history + przerysowanie mapy 3D — na telefonie przeciąganie
+   się zawieszało. Ostatnia pozycja renderuje się zawsze (zdarzenie „change"). */
+let _scrubLast = 0, _scrubTimer = null;
+function scrubTo(idx) {
+  clearTimeout(_scrubTimer);
+  const now = Date.now();
+  if (now - _scrubLast >= 140) { _scrubLast = now; showHistoryAt(idx); }
+  else _scrubTimer = setTimeout(() => { _scrubLast = Date.now(); showHistoryAt(idx); }, 140);
+}
+document.getElementById("tb-slider").addEventListener("input", (e) => scrubTo(+e.target.value));
+document.getElementById("tb-slider").addEventListener("change", (e) => {
+  clearTimeout(_scrubTimer); _scrubLast = Date.now(); showHistoryAt(+e.target.value);
+});
 
 /* ── UI: ustawienia (moja lokalizacja), 3D, panel ────────────────────────── */
 const dlg = document.getElementById("settings");
