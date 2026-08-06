@@ -206,6 +206,11 @@ ALERT_CRITICAL_KEYWORDS = [
     "naruszył przestrzeń powietrzną", "obiekt powietrzny spadł",
     "niezidentyfikowany obiekt", "zestrzelono dron", "zestrzelono rakiet",
     "poderwano myśliwce", "poderwano lotnictwo", "schrony otwarte",
+    # jednoznaczne zamknięcie przestrzeni / reakcja obronna
+    "zamknięto przestrzeń powietrzn", "zamknięcie przestrzeni powietrzn",
+    "zamknięta przestrzeń powietrzn", "operacja obrony powietrzn",
+    "operację obrony powietrzn", "operacji obrony powietrzn",
+    "poderwano f-16", "poderwano f-35", "poderwano samoloty",
 ]
 # obiekt, który może zagrażać z powietrza
 ALERT_AIR_KEYWORDS = [
@@ -213,6 +218,12 @@ ALERT_AIR_KEYWORDS = [
     "ch-101", "kalibr", "iskander", "kab", "bomb", "myśliwc", "mig-31",
     "obiekt powietrzny", "przestrzeni powietrznej", "przestrzeń powietrzną",
     "obrona powietrzna", "obiekt latając",
+    # nowoczesny słownik zagrożeń (amunicja krążąca, pociski, obce lotnictwo)
+    "lancet", "kindżał", "kinżał", "kh-101", "kh-47", "kh-59",
+    "amunicja krążąc", "fpv", "kamikadze", "statek powietrzny",
+    "pocisk manewrując", "pocisk balistyczn", "hipersoniczn",
+    "f-16", "f-35", "su-24", "su-34", "su-35", "tu-95", "tu-160", "mig-29",
+    "lotnictwo wojskow",
 ]
 # zdarzenie związane z tym obiektem
 ALERT_EVENT_KEYWORDS = [
@@ -220,6 +231,8 @@ ALERT_EVENT_KEYWORDS = [
     "poderwan", "naruszen", "naruszył", "naruszyła", "wleciał", "wtargn",
     "uderzy", "trafił", "szczątki", "atak", "ostrzał", "zawył", "alarm",
     "ewakuac", "schron", "zagrożeni",
+    "przekrocz", "wtargnięci", "detonac", "runął", "runęła", "runęło",
+    "zestrzelen", "przechwycen",
 ]
 # weto — konteksty, w których powyższe słowa nie oznaczają zagrożenia
 EXCLUDE_KEYWORDS = [
@@ -235,6 +248,29 @@ EXCLUDE_KEYWORDS = [
     "pożar bloku", "pożar domu", "pożar mieszkania", "pożar lasu", "wypadek drogow",
     "kolizja", "lpr lądował", "śmigłowiec lpr", "utonię", "potrąc", "dachowa",
     "karambol", "zderzenie samochod",
+    # RETROSPEKTYWA: świeży artykuł o DAWNYM zdarzeniu (pubDate nie łapie, bo
+    # data publikacji jest bieżąca, a zdarzenie sprzed dni/tygodni)
+    "tydzień po", "tygodnie po", "tygodni po", "dzień po", "dni po",
+    "miesiąc po", "miesiące po", "miesięcy po", "rok po", "lata po", "lat po",
+    "godzin po", "godziny po", "kalendarium", "przypominamy", "wspomina",
+    # publicystyka / analiza / reportaż (nie meldunek o zdarzeniu na żywo)
+    "kulisy", "reportaż", "felieton", "czy na pewno", "co wiemy", "jak doszło",
+    "śledztwo w sprawie", "podsumowanie roku",
+    # kultura / fikcja / rozrywka („rakieta/dron/atak/bomba" w tytule dzieła)
+    "film fabularn", "film dokumentaln", "serial", "premiera", "recenzja",
+    "zwiastun", "gra wideo", "gry wideo", "powieść", "komiks", "cosplay", "spektakl",
+    # historia (II wojna, rocznice, daty)
+    "1939", "1944", "1945", "ii wojn", "powstanie warszawsk",
+    # kosmos / nauka (rakieta = start rakiety nośnej, nie zagrożenie)
+    "rakieta kosmiczn", "rakieta nośn", "start rakiety", "spacex", "falcon",
+    "starship", "misja kosmiczn", "kosmodrom",
+    # sport / potoczne „rakieta"
+    "rakieta tenisow", "rakietka", "rakiety śnieżn",
+    # metafory / nie-powietrzne
+    "bomba atomow", "wybuchła afera",
+    # drony cywilne / nagrania z drona (dron + zdarzenie, ale nie zagrożenie)
+    "pokaz dron", "dron rolnicz", "dron dostawcz", "wyścig dron",
+    "nagranie z drona", "zdjęcia z drona", "zdjęcie z drona", "widok z drona",
 ]
 
 # Kolejność ma znaczenie: dopasowanie kończy się na pierwszym trafieniu, więc

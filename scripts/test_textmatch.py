@@ -40,6 +40,22 @@ CASES = [
     ("Pokaz dronów nad zalewem — atrakcja na weekend", False),
     ("Wypadek drogowy na S17, jedna osoba ranna", False),
     ("Rusza modernizacja systemu ostrzegania w powiecie", False),
+
+    # ── nowe zaliczenia (nowoczesny słownik zagrożeń) ────────────────────
+    ("Zamknięto przestrzeń powietrzną nad wschodnią Polską", True),
+    ("Poderwano F-16 po naruszeniu granicy", True),
+    ("Lancet uderzył w cel tuż przy granicy", True),
+    ("Rozpoczęto operację obrony powietrznej na wschodzie kraju", True),
+
+    # ── RETROSPEKTYWA i publicystyka: świeży artykuł o DAWNYM zdarzeniu ──
+    ("Czy na pewno? Tydzień po wybuchu rakiety w Tarnawie-Kolonii", False),
+    ("Kalendarium: rok po ataku dronów na Lubelszczyźnie", False),
+    ("Reportaż: co wiemy miesiąc po naruszeniu przestrzeni powietrznej", False),
+    # ── kultura / kosmos / historia / sport („rakieta/dron/atak/bomba") ──
+    ("Recenzja: nowy film fabularny o rosyjskim ataku rakietowym", False),
+    ("Start rakiety SpaceX Falcon 9 zakończony eksplozją", False),
+    ("1944: gdy na Warszawę spadały bomby", False),
+    ("Pokaz dronów nad Wisłą — jeden spadł do wody", False),
 ]
 
 
