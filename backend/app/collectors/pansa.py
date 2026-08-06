@@ -152,6 +152,16 @@ async def _tick(client: httpx.AsyncClient):
                      info.get("upper"), info["voiv"])
             if info["voiv"] not in config.PRIORITY_VOIVODESHIPS:
                 continue       # punktujemy tylko ścianę wschodnią
+            # Punktujemy TYLKO pełnokolumnowe zamknięcia: dolny = GND (od ziemi)
+            # i górny = poziom lotu (F###, w górne kontrolowane niebo). To sygnatura
+            # realnego wykluczenia ruchu cywilnego. Analiza 4 dni (docs/ZRODLA...):
+            # 94% aktywacji to rutyna (GND–A### niskie, A/F–F### górny trening),
+            # która dawała stałe +1 w tle przygranicznych województw. Instrumentacja
+            # (log wyżej) leci nadal dla WSZYSTKICH — filtrujemy tylko wkład do fuzji.
+            lower = str(info.get("lower") or "").upper()
+            upper = str(info.get("upper") or "").upper()
+            if not (lower == "GND" and upper.startswith("F")):
+                continue
             desc = f"{info['type'] or ''} {designator}".strip()
             detail = f"{info['lower']}–{info['upper']}"
             if info["remarks"]:

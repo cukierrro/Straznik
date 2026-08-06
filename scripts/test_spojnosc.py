@@ -92,6 +92,18 @@ sprawdz("VOIVODESHIPS", lista(r"const VOIVODESHIPS = \[(.*?)\];", ENGINE, "voivs
 sprawdz("PRIORITY", sorted(lista(r"const PRIORITY_VOIVS = \[(.*?)\]", ENGINE, "prio js")),
         sorted(lista(r"PRIORITY_VOIVODESHIPS\s*=\s*\[(.*?)\]", CONFIG, "prio py")))
 
+# ── korroboracja: samotne medium NIE może samo przekroczyć progu ─────────────
+# (żeby pojedynczy/retrospektywny artykuł nie alarmował; próg pada dopiero z
+#  drugim niezależnym sygnałem — 2. medium do cap albo inna klasa źródła)
+_th = num(r"THRESHOLD_ELEVATED\s*=\s*([\d.]+)", CONFIG, "próg elevated")
+_media_pts = slownik(r"POINTS = \{(.*?)\}", CONFIG, "POINTS py").get("media_keywords")
+_media_cap = slownik(r"SOURCE_CAPS = \{(.*?)\}", CONFIG, "SOURCE_CAPS py").get("media")
+if _th is not None and _media_pts is not None and _media_pts >= _th:
+    bledy.append(f"media_keywords={_media_pts} ≥ próg {_th}: samotny artykuł "
+                 "zaalarmuje (brak korroboracji)")
+if _th is not None and _media_cap is not None and _media_cap < _th:
+    bledy.append(f"cap media={_media_cap} < próg {_th}: dwa media nie dobiją do progu")
+
 # ── wynik ────────────────────────────────────────────────────────────────────
 if bledy:
     print("ROZJAZD MIĘDZY SILNIKAMI (backend ↔ engine.js):")

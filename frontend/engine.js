@@ -12,7 +12,7 @@ const Engine = (() => {
 // okno 60 min z wygaszaniem: pełna waga przez 30 min, potem liniowo do zera
 const WINDOW_MIN = 60, FULL_MIN = 30, TH_ELEVATED = 2, TH_HIGH = 4, COOLDOWN_MIN = 10;
 const HISTORY_H = 12;   // ile godzin trzymamy do przeglądania wstecz
-const POINTS = { neptun_high: 3, neptun_medlow: 1.5, adsb_spike: 1, media_keywords: 2,
+const POINTS = { neptun_high: 3, neptun_medlow: 1.5, adsb_spike: 1, media_keywords: 1.5,
                  rcb_alert: 2, ua_alert_border: 1, baltic_context: 1, pansa_zone: 1 };
 // Neptun ma wyższy limit niż reszta (każdy track to osobny fizyczny obiekt),
 // ale nie nieograniczony — przy kilkudziesięciu obiektach suma i tak dawno
@@ -751,6 +751,11 @@ async function tickPansa() {
     if (prevZones) {
       for (const [dz, info] of active) {
         if (prevZones.has(dz) || !PRIORITY_VOIVS.includes(info.voiv)) continue;
+        // tylko pełnokolumnowe zamknięcia (GND → poziom lotu F###) — reszta to
+        // rutyna, dawała stałe +1 w tle (patrz backend/pansa.py + docs/ZRODLA)
+        const lo = String(info.lower || "").toUpperCase();
+        const up = String(info.upper || "").toUpperCase();
+        if (!(lo === "GND" && up.startsWith("F"))) continue;
         addSignal("pansa","pansa_zone",info.voiv,POINTS.pansa_zone,
           `PAŻP: aktywacja strefy ${(info.type||"")} ${dz} nad woj. ${info.voiv} `
           + `(${info.lower}–${info.upper}${info.remarks ? ", " + info.remarks : ""})`,

@@ -93,8 +93,11 @@ POINTS = {
     "neptun_medlow": 1.5,
     "adsb_spike": 1.0,
     "pansa_zone": 1.0,
-    "media_keywords": 2.0,
-    "rcb_alert": 2.0,
+    "media_keywords": 1.5,     # <próg (2): samotny artykuł NIE alarmuje; dopiero
+                               # korroboracja (2. medium → cap 2, albo inna klasa
+                               # źródła) przekracza próg. Domyka fałszywe alerty
+                               # z pojedynczego/retrospektywnego artykułu.
+    "rcb_alert": 2.0,          # RCB (oficjalny) nadal może alarmować sam
     "ua_alert_border": 1.0,    # oficjalny alarm powietrzny w przygranicznym obwodzie UA
     "baltic_context": 1.0,     # incydent powietrzny wg mediów LT/LV/EE
 }
