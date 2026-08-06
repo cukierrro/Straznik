@@ -4,11 +4,15 @@ Pomysł: aktywacja strefy zamkniętej dla ruchu cywilnego u sąsiada przy Ukrain
 lub Kaliningradzie/Białorusi bywa sygnałem WYPRZEDZAJĄCYM dla Polski — tak jak
 istniejące „media bałtyckie" i „alarmy obwodów UA".
 
-⚠️ TRYB INSTRUMENTACJI (2026-08-02). Ten kolektor NA RAZIE TYLKO LOGUJE — nie
-dodaje żadnych punktów do fuzji. Cel: zebrać przez kilka dni realny wolumen i
-rozkład typów aktywnych stref (rutyna vs rzeczywiste zamknięcia), zanim
-zdecydujemy o mapowaniu strefa→województwo PL, filtrze i wagach. To ten sam,
-bezpieczny wzorzec co instrumentacja PAŻP (patrz pansa.py + docs/ZRODLA_STREF_SASIEDZI.md).
+PUNKTACJA (2026-08-06, po analizie kilku dni instrumentacji): liczymy TYLKO realne
+zamknięcia — kind ∈ {PROHIBITED, RD, REQ_AUTHORISATION} (odrzucamy NO_RESTRICTION,
+CONDITIONAL, RT itp. ≈ 59% doradczego szumu). RO dodatkowo tylko z PÓŁNOCY (przy
+granicy z UA). Mapowanie na flankę: LT/EE → podlaskie + warmińsko-mazurskie,
+RO → podkarpackie. LV POMINIĘTA w punktowaniu (jej "PROHIBITED" to rutynowe strefy
+dronowe, ~671 aktywnych — patrz _COUNTRY_VOIVS). Waga NISKA 0,3 (cap 0,6) — sygnał
+POŚREDNI: media 1,5 + sąsiad
+0,3 = 1,8 < próg 2,0, więc sam nie domyka alarmu („bez flaszu"). Instrumentacja
+loguje NADAL wszystkie aktywne strefy (rutyna też) — filtrujemy tylko wkład do fuzji.
 Przegląd na VPS:  journalctl -u straznik | grep "SĄSIAD"
 
 Źródła (zweryfikowane realnym curlem — docs/ZRODLA_STREF_SASIEDZI.md):
@@ -25,6 +29,8 @@ import time
 from datetime import datetime, timezone
 
 import httpx
+
+from .. import config, fusion
 
 
 def _relaxed_tls() -> ssl.SSLContext:
@@ -61,6 +67,39 @@ LV_LAYER = ("https://LGS-AGS/rest/services/DRONES/DronesZonesUAS/MapServer/{n}/q
 # strefa z numerem NOTAM, np. A1964/26 albo A196426 — czyli czasowa, nie stała
 _NOTAM_RE = re.compile(r"^[A-Z]\d{3,4}/?\d{2}$")
 
+# ── SCORING: tylko realne zamknięcia, zmapowane na przygraniczne woj. PL ──────
+_MEANINGFUL = {"PROHIBITED", "RD", "REQ_AUTHORISATION"}   # reszta = doradcze/rutyna
+_RO_NORTH = 47.0            # tylko północna RO (przy granicy z UA); płd./M.Czarne odpada
+_COUNTRY_VOIVS = {         # sygnał wyprzedzający → polskie województwo(a) przy tej flance
+    "RO": ["podkarpackie"],
+    "EE": ["podlaskie", "warmińsko-mazurskie"],
+    "LT": ["podlaskie", "warmińsko-mazurskie"],
+    # LV CELOWO POMINIĘTA w punktowaniu: na Łotwie "PROHIBITED" to standardowy typ
+    # stref dronowych (lotniska, granice) — ~671 aktywnych naraz, czysta rutyna, nie
+    # zamknięcie przez zagrożenie (inna taksonomia niż RO/EE). Zostaje w logach
+    # (instrumentacja); wróci, gdy dodamy filtr operatora wojskowego (TOFLYSERVICE).
+}
+
+
+def _centroid_lat(geom):
+    """Przybliżona szerokość środka strefy (średnia z wierzchołków) — do
+    odróżnienia północnej RO (istotnej dla PL przez granicę z UA) od południowej."""
+    lats = []
+
+    def walk(x):
+        if isinstance(x, (list, tuple)):
+            if len(x) >= 2 and isinstance(x[0], (int, float)) and isinstance(x[1], (int, float)):
+                lats.append(x[1])
+            else:
+                for e in x:
+                    walk(e)
+
+    try:
+        walk((geom or {}).get("coordinates"))
+    except Exception:
+        pass
+    return sum(lats) / len(lats) if lats else None
+
 
 def _now() -> datetime:
     return datetime.now(timezone.utc)
@@ -93,7 +132,7 @@ def _parse_ro(data) -> list[dict]:
         q = m.group(1) if m else "????"
         out.append({"country": "RO", "ident": p.get("serie"), "kind": q[:2],
                     "reason": q, "lower": p.get("lower"), "upper": p.get("upper"),
-                    "note": f"tip={p.get('tip')}"})
+                    "note": f"tip={p.get('tip')}", "lat": _centroid_lat(f.get("geometry"))})
     return out
 
 
@@ -180,6 +219,21 @@ async def _tick(client: httpx.AsyncClient):
             log.info("SĄSIAD nowa: %s %s typ=%s powód=%s pułap=%s–%s %s",
                      z["country"], z["ident"], z["kind"], z["reason"],
                      z["lower"], z["upper"], z["note"])
+            # SCORING: tylko realne zamknięcia (PROHIBITED / RD / REQ_AUTHORISATION);
+            # RO dodatkowo tylko z północy (przy granicy z UA — płd./M.Czarne odpada).
+            # Niska waga (0,3, cap 0,6) — sygnał POŚREDNI, sam nie domyka alarmu.
+            if z["kind"] in _MEANINGFUL and (
+                    z["country"] != "RO" or (z.get("lat") or 0) >= _RO_NORTH):
+                for voiv in _COUNTRY_VOIVS.get(z["country"], []):
+                    await fusion.ingest(
+                        source="neighbours", event_type="neighbour_zone",
+                        voivodeship=voiv, points=config.POINTS["neighbour_zone"],
+                        title=(f"Sąsiad ({z['country']}): {z['kind']} {z['ident']} — "
+                               "zamknięcie przestrzeni, możliwy sygnał wyprzedzający"),
+                        details={"country": z["country"], "kind": z["kind"],
+                                 "ident": z["ident"]},
+                        dedup_key=f"neigh:{z['country']}:{z['ident']}:{voiv}",
+                    )
     _prev = cur
     status.update(ok=not errs, last=time.time(), error="; ".join(errs) or None,
                   zones_now=len(zones))

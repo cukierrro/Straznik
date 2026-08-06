@@ -75,14 +75,21 @@ sprawdz("SPILLOVER_MIN_CONTRIB",
 sprawdz("SPILLOVER_MAX_DEPTH", num(r"SPILLOVER_MAX_DEPTH\s*=\s*(\d+)", ENGINE, "depth js"),
         num(r"SPILLOVER_MAX_DEPTH\s*=\s*(\d+)", CONFIG, "depth py"))
 
+# Źródła wyłącznie backendowe (brak kolektora w standalone/engine.js) — nie
+# porównujemy ich w synchronie backend↔engine.
+_BACKEND_ONLY_CAPS = {"neighbours"}
+_BACKEND_ONLY_POINTS = {"neighbour_zone"}
+
 # ── limity wkładu jednej klasy źródła (kluczowe: bez tego historia i fuzja
 #    sumowałyby surowe punkty, np. 4 rutynowe strefy PAŻP = fałszywe 4.0) ──────
 sprawdz("SOURCE_CAPS", slownik(r"SOURCE_CAPS = \{(.*?)\}", ENGINE, "SOURCE_CAPS js"),
-        slownik(r"SOURCE_CAPS = \{(.*?)\}", CONFIG, "SOURCE_CAPS py"))
+        {k: v for k, v in slownik(r"SOURCE_CAPS = \{(.*?)\}", CONFIG, "SOURCE_CAPS py").items()
+         if k not in _BACKEND_ONLY_CAPS})
 
 # ── punkty za sygnał ─────────────────────────────────────────────────────────
 sprawdz("POINTS", slownik(r"const POINTS = \{(.*?)\}", ENGINE, "POINTS js"),
-        slownik(r"POINTS = \{(.*?)\}", CONFIG, "POINTS py"))
+        {k: v for k, v in slownik(r"POINTS = \{(.*?)\}", CONFIG, "POINTS py").items()
+         if k not in _BACKEND_ONLY_POINTS})
 
 # ── kolejność województw (kaskada i indeksowanie zależą od kolejności) ────────
 sprawdz("VOIVODESHIPS", lista(r"const VOIVODESHIPS = \[(.*?)\];", ENGINE, "voivs js"),
