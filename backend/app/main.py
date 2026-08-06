@@ -25,8 +25,34 @@ _last_broadcast = 0.0
 _broadcast_pending = False
 
 
+def _load_notice():
+    """Komunikat administracyjny (np. zapowiedź testu) z pliku data/notice.json,
+    edytowalny na VPS bez restartu. Kształt: {"id","text","until"(opcj. ISO)}.
+    Apka tylko WYŚWIETLA go i pozwala zamknąć — ZERO danych zwrotnych (bez
+    telemetrii). Zwraca None, gdy pliku brak, jest niepełny albo minął `until`
+    (auto-wygaśnięcie, żeby zapomniany komunikat sam zniknął)."""
+    import json
+    from datetime import datetime, timezone
+    try:
+        n = json.loads((config.DATA_DIR / "notice.json").read_text(encoding="utf-8"))
+        if not n.get("id") or not n.get("text"):
+            return None
+        until = n.get("until")
+        if until:
+            try:
+                if datetime.now(timezone.utc) > datetime.fromisoformat(
+                        str(until).replace("Z", "+00:00")):
+                    return None
+            except Exception:
+                pass
+        return {"id": n["id"], "text": n["text"]}
+    except Exception:
+        return None
+
+
 def build_state() -> dict:
     return {
+        "notice": _load_notice(),
         "fusion": fusion.compute_state(),
         "neptun": neptun.public_state(),
         "adsb": {"aircraft": adsb.current_aircraft,

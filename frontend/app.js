@@ -240,8 +240,26 @@ async function pollOnce() {
   } catch {}
 }
 
+/* Komunikat administracyjny z serwera (np. zapowiedź okna testowego). Apka tylko
+   GO WYŚWIETLA — żadnych danych zwrotnych (bez telemetrii). Zamknięcie zapamiętujemy
+   po id, żeby nie wracał i nie „utknął". */
+function showNotice(n) {
+  const el = document.getElementById("notice-banner");
+  if (!el) return;
+  if (!n || !n.id || localStorage.getItem("notice_seen_" + n.id)) {
+    el.classList.add("hidden"); return;
+  }
+  el.innerHTML = `<span>ℹ️ ${esc(n.text)}</span><button class="chip" id="notice-ok">Rozumiem</button>`;
+  el.classList.remove("hidden");
+  document.getElementById("notice-ok").onclick = () => {
+    localStorage.setItem("notice_seen_" + n.id, "1");
+    el.classList.add("hidden");
+  };
+}
+
 function applyState(s) {
   state = s;
+  showNotice(s?.notice);
   threatsReceivedAt = Date.now();
   recordTrails(s?.neptun?.threats || []);
   renderLeds();

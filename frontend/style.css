@@ -143,6 +143,20 @@ body.panel-open #bg-warning { display: none; }
   box-shadow: 0 14px 40px rgba(0,0,0,.5);
 }
 #update-banner.hidden { display: none; }
+
+/* Komunikat administracyjny (np. zapowiedź testu) — u góry, kolor info, do zamknięcia. */
+#notice-banner {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  top: calc(64px + env(safe-area-inset-top)); z-index: 70;
+  display: flex; align-items: center; gap: 10px;
+  max-width: min(560px, 94vw);
+  background: var(--panel, #151d2e); border: 1px solid #4a86d8;
+  border-radius: 12px; padding: 10px 14px; line-height: 1.4;
+  box-shadow: 0 14px 40px rgba(0,0,0,.5);
+}
+#notice-banner.hidden { display: none; }
+#notice-banner span { min-width: 0; font-size: 13px; }
+#notice-banner .chip { flex: none; }
 .upd-txt { display: flex; flex-direction: column; line-height: 1.35; min-width: 0; }
 .upd-txt b { font-size: 13.5px; }
 .upd-txt span { font-size: 11px; color: var(--muted); }
