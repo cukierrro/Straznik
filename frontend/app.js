@@ -898,7 +898,7 @@ function renderPanel() {
         ? "poniżej progu" : LEVEL_LABEL[st.level]}
         <span class="muted">· progi: ≥${f.thresholds.elevated} uwaga, ≥${f.thresholds.high} priorytet</span></div>
       <div class="voiv-breakdown">${st.signals.length
-        ? st.signals.map(sigHTML).join("")
+        ? sigList(st.signals)
         : '<div class="fineprint">brak sygnałów w oknie</div>'}
         ${camIndex?.has(name)
           ? `<button class="chip btn-cams" data-voiv="${esc(name)}">📷 Kamery w regionie
@@ -926,7 +926,7 @@ function renderPanel() {
   const sigs = [];
   for (const [name, st] of voivs) for (const s of st.signals) sigs.push(s);
   sigs.sort((a, b) => b.ts.localeCompare(a.ts));
-  document.getElementById("signal-list").innerHTML = sigs.map(sigHTML).join("");
+  document.getElementById("signal-list").innerHTML = sigList(sigs);
 
   const near = (state.neptun?.threats || [])
     .filter(t => t.pl_assessment && t.pl_assessment.dist_km <= 250)
@@ -968,6 +968,16 @@ function renderPanel() {
   // listenery dopiero teraz — wcześniej listy nie istnieją jeszcze w DOM
   document.querySelectorAll(".threat-row.clickable").forEach(el =>
     el.addEventListener("click", () => focusOnMap(el.dataset)));
+}
+
+/* Lista sygnałów w panelu sortowana malejąco po REALNYM wkładzie
+   (counted_points) — driver alertu na górze, a dogasające/zerowe (np. stare,
+   zlimitowane strefy PAŻP) schodzą niżej. */
+const byPts = (a, b) => (b.counted_points ?? b.points ?? 0) - (a.counted_points ?? a.points ?? 0);
+function sigList(arr, limit) {
+  let a = (arr || []).slice().sort(byPts);
+  if (limit) a = a.slice(0, limit);
+  return a.map(sigHTML).join("");
 }
 
 function sigHTML(s) {
@@ -1144,7 +1154,7 @@ function showAlarm(voiv, st) {
   document.getElementById("alarm-score").textContent =
     `${st.score.toFixed(1)} pkt w oknie ${state?.fusion?.window_min ?? 60} min`;
   document.getElementById("alarm-signals").innerHTML =
-    (st.signals || []).slice(0, 5).map(sigHTML).join("") || "";
+    sigList(st.signals, 5) || "";
   document.getElementById("alarm-time").textContent =
     "alarm o " + new Date().toLocaleTimeString("pl-PL");
   alarmOverlay.classList.remove("hidden");
@@ -1648,13 +1658,13 @@ function renderHistoryPanel(sigs, perVoiv, when, ageMin) {
       <div class="voiv-head"><span class="voiv-name">${esc(name)}</span>
         <span class="voiv-score">${(Math.round(sc * 10) / 10).toFixed(1)} pkt</span></div>
       <div class="voiv-level">${lvl === "none" ? "poniżej progu" : LEVEL_LABEL[lvl]}</div>
-      <div class="voiv-breakdown">${own.map(sigHTML).join("")}</div></div>`;
+      <div class="voiv-breakdown">${sigList(own)}</div></div>`;
   }).join("");
 
   document.getElementById("voiv-cards").innerHTML = banner +
     (cards || '<div class="fineprint">W tej chwili żadne województwo nie miało punktów.</div>');
   document.getElementById("signal-list").innerHTML =
-    sigs.map(sigHTML).join("") || '<div class="fineprint">brak sygnałów w tym oknie</div>';
+    sigList(sigs) || '<div class="fineprint">brak sygnałów w tym oknie</div>';
 }
 
 document.getElementById("btn-history").onclick = () => toggleHistory();
