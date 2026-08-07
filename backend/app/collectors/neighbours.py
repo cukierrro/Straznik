@@ -166,10 +166,18 @@ def _parse_lv(features) -> list[dict]:
             continue
         if not (start and end and start <= now_ms <= end):
             continue
+        # Bogatsza instrumentacja LV (do zaprojektowania filtra — LV nadal NIE
+        # punktuje): czas trwania w godzinach, operator i flaga „wojskowy".
+        # Hipoteza: realne zamknięcie = wysoki pułap (UOM=M, metry) + krótkie okno
+        # + operator wojskowy; rutyna = niskie/długie strefy dronowe (lotniska,
+        # granice). Przegląd:  journalctl -u straznik | grep "SĄSIAD nowa: LV"
+        dur_h = round((end - start) / 3_600_000, 1)
+        oper = (a.get("TOFLYSERVICE") or a.get("TOFLYNAME") or "").strip()
+        mil = 1 if re.search(r"bruņot|gaisa spēk|mamc|\bnbs\b|milit", oper, re.I) else 0
         out.append({"country": "LV", "ident": a.get("ZONENAME"),
                     "kind": a.get("RESTRICTIONNAME") or "?", "reason": a.get("REASONNAME") or "",
                     "lower": a.get("LOWERLIMIT"), "upper": a.get("UPPERLIMIT"),
-                    "note": (a.get("TOFLYSERVICE") or a.get("TOFLYNAME") or "")[:50]})
+                    "note": f"czas={dur_h}h mil={mil} op={oper[:28]}"})
     return out
 
 
