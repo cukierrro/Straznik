@@ -254,7 +254,7 @@ footer a{color:var(--tx2)}
       gdy suma przekroczy próg — osobno dla każdego województwa.</p>
       <div class="badges">
         <span class="badge">Android 7.0+</span>
-        <span class="badge">4,0 MB</span>
+        <span class="badge">4,8 MB</span>
         <span class="badge">bez konta</span>
         <span class="badge">bez reklam</span>
         <span class="badge">alarmy push</span>
@@ -336,7 +336,7 @@ footer a{color:var(--tx2)}
       <a href="https://github.com/cukierrro/Straznik/raw/main/Straznik.apk">linku
       zapasowego</a>, który pobiera ten sam plik prosto z repozytorium.
       Zanim spróbujesz ponownie, sprawdź folder <b>Pobrane</b> — plik o rozmiarze
-      około 4,1 MB bywa już kompletny mimo zawieszonego paska.</p></li>
+      około 4,8 MB bywa już kompletny mimo zawieszonego paska.</p></li>
     <li><b>Otwórz pobrany plik</b>
       <p>Menedżer plików → Pobrane → <code>Straznik.apk</code>. Android wyświetli
       ekran instalacji.</p></li>
@@ -432,7 +432,7 @@ footer a{color:var(--tx2)}
       <b>Test: pełny alarm</b> (syrena + wibracja + ekran alarmu).
       Przetestuj je raz, żeby wiedzieć, czego się spodziewać.</p>
     </div>
-    <img src="screens/08_ustawienia_1.jpg" alt="Ekran ustawień: wybór województwa, przełącznik nasłuchu w tle, przyciski testów dźwięku">
+    <img src="screens/08_ustawienia_1.jpg" alt="Ekran ustawień: wybór województwa, alarmy przy zamkniętej aplikacji (push), zgody na powiadomienia i alarm pełnoekranowy, przyciski testów dźwięku">
   </div>
 
   <div class="note">
@@ -497,7 +497,7 @@ footer a{color:var(--tx2)}
       bez wytłoczeń. Czytelniejsza przy zbliżeniu i szybsza na starszych telefonach.</figcaption>
     </figure>
     <figure>
-      <img src="screens/13_adsb_szczegoly.jpg" alt="Dymek nad sylwetką maszyny: CROSS16, UH-60 Black Hawk, 4975 ft, 225 km/h, kurs 23 stopnie">
+      <img src="screens/13_adsb_szczegoly.jpg" alt="Karta maszyny na dole ekranu: CROSS16, UH-60 Black Hawk, 4975 ft, 225 km/h, kurs 23 stopnie">
       <figcaption><b>Szczegóły maszyny</b> — dotknij sylwetki na mapie: znak
       wywoławczy, model, przeznaczenie, wysokość, prędkość i kurs. Trasy startu
       i celu nie ma, bo wojsko jej nie publikuje.</figcaption>
@@ -617,6 +617,9 @@ footer a{color:var(--tx2)}
           ponad dwukrotnie wyższy niż o tej samej porze doby w ostatnich 7 dniach.</td></tr>
         <tr><td><code>PANSA</code></td><td>Nowo aktywowana strefa przestrzeni
           powietrznej (AUP/UUP) nad regionem.</td></tr>
+        <tr><td><code>NEIGHBOURS</code></td><td>Aktywne zamknięcie przestrzeni
+          u sąsiada NATO (Rumunia płn., Estonia, Litwa) — sygnał obserwacyjny,
+          niski. Tylko w trybie serwerowym.</td></tr>
         <tr><td><code>SPILLOVER</code></td><td>Przeniesienie punktów z sąsiedniego
           województwa — patrz <a href="#punkty">punktacja</a>.</td></tr>
       </tbody>
@@ -683,8 +686,8 @@ footer a{color:var(--tx2)}
       nie musisz odblokowywać telefonu ani mieć otwartej aplikacji. Syrena gra
       w pętli, telefon wibruje, alarm nie zniknie sam.</p>
       <p>Działa też wtedy, gdy system zdążył wcześniej zamknąć aplikację —
-      alarm wystawia usługa nasłuchu, a ekran alarmu jest natywny, więc nie
-      czeka na załadowanie mapy.</p>
+      alarm przychodzi jako powiadomienie push z serwera (FCM), a ekran alarmu
+      jest natywny, więc nie czeka na załadowanie mapy.</p>
       <h3>Co widzisz na ekranie alarmu</h3>
       <ul class="plain">
         <li><b>Poziom i region</b> — czego dokładnie dotyczy alarm.</li>
@@ -830,14 +833,18 @@ footer a{color:var(--tx2)}
           (wołyński, lwowski, zakarpacki, rówieński). Serwer bierze go na bieżąco
           z WebSocketu Neptuna</td><td class="pts">+1</td></tr>
         <tr><td><b>Media</b></td><td>Relacje lokalnych mediów: syreny, wybuch,
-          naruszenie przestrzeni powietrznej</td><td class="pts">+2</td></tr>
+          naruszenie przestrzeni powietrznej. Sam pojedynczy artykuł nie alarmuje —
+          próg przekracza dopiero potwierdzenie (drugie medium albo inna klasa źródła)</td><td class="pts">+1,5</td></tr>
         <tr><td><b>RCB</b></td><td>Nowy komunikat Rządowego Centrum Bezpieczeństwa</td><td class="pts">+2</td></tr>
         <tr><td><b>ADS-B</b></td><td>Ruch lotnictwa wojskowego nad regionem ponad
           dwukrotnie wyższy niż o <b>tej samej porze doby</b> w ostatnich 7 dniach</td><td class="pts">+1</td></tr>
-        <tr><td><b>PAŻP</b></td><td>Nowa aktywna strefa przestrzeni powietrznej
-          (AUP/UUP) nad regionem</td><td class="pts">+1</td></tr>
+        <tr><td><b>PAŻP</b></td><td>Nowo aktywowana strefa przestrzeni powietrznej
+          (AUP/UUP) obejmująca całą kolumnę od ziemi w górę, nad regionem</td><td class="pts">+1</td></tr>
         <tr><td><b>Bałtyk</b></td><td>Incydent powietrzny wg mediów Litwy, Łotwy
           lub Estonii → podlaskie i warmińsko-mazurskie</td><td class="pts">+1</td></tr>
+        <tr><td><b>Sąsiedzi</b></td><td>Aktywne zamknięcie przestrzeni powietrznej
+          u sąsiada NATO (Rumunia płn., Estonia, Litwa) — sygnał obserwacyjny,
+          wyprzedzający</td><td class="pts">+0,3</td></tr>
       </tbody>
     </table>
   </div>
@@ -846,9 +853,9 @@ footer a{color:var(--tx2)}
   <div class="cards">
     <div class="card">
       <h4>Limit na klasę źródła</h4>
-      <p>Media maks. 2 pkt, RCB 2, ADS-B 1, PAŻP 1. Pięć artykułów o tym samym
-      zdarzeniu to jedno potwierdzenie — nadwyżka jest widoczna w panelu
-      z przekreśloną punktacją.</p>
+      <p>Media maks. 2 pkt, RCB 2, ADS-B 1, PAŻP 1, sąsiedzi 0,6. Pięć artykułów
+      o tym samym zdarzeniu to jedno potwierdzenie — nadwyżka jest widoczna
+      w panelu z przekreśloną punktacją.</p>
     </div>
     <div class="card">
       <h4>Dwupoziomowa analiza tekstu</h4>
@@ -971,8 +978,8 @@ footer a{color:var(--tx2)}
     <li><b>GPS jest opcjonalny</b> i używany tylko do jednorazowego rozpoznania
       województwa. Współrzędne nie są nigdzie wysyłane.</li>
     <li><b>Ruch sieciowy</b> to wyłącznie pobieranie danych z publicznych źródeł
-      (NEPTUN, adsb.lol, RSS mediów, gov.pl/RCB, PAŻP)
-      i kafelków mapy.</li>
+      (NEPTUN, adsb.lol / airplanes.live, RSS mediów, gov.pl/RCB, PAŻP,
+      strefy sąsiadów RO/EE/LT) i kafelków mapy.</li>
   </ul>
 </section>
 
@@ -987,9 +994,9 @@ footer a{color:var(--tx2)}
     <div>
       <div style="color:var(--tx2); margin-bottom:6px">Dane</div>
       <div><a href="https://neptun.in.ua" target="_blank" rel="noopener">NEPTUN</a>
-        (agregator OSINT; obiekty i alarmy obwodów UA) · adsb.lol ·
-        airspace.pansa.pl · gov.pl/RCB<br>
-        media regionalne · kamery worldcam.pl<br>
+        (agregator OSINT; obiekty i alarmy obwodów UA) · adsb.lol / airplanes.live ·
+        airspace.pansa.pl · gov.pl/RCB · strefy sąsiadów (RO/EE/LT)<br>
+        media regionalne i bałtyckie · kamery worldcam.pl<br>
         mapa © CARTO, © OpenStreetMap</div>
     </div>
     <div>

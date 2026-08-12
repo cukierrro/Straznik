@@ -36,11 +36,12 @@ z syreną. UI zawsze pokazuje pełne rozbicie: które sygnały, skąd, ile punkt
 |---|---|---|
 | **NEPTUN** | obiekt kursem na granicę PL — punktacja zależna od typu, liczby, odległości i liczby potwierdzeń (niżej) | **0–8** |
 | **NEPTUN** | oficjalny alarm powietrzny w obwodzie UA graniczącym z PL | **+1** |
-| **Media/RSS** | słowa kluczowe (syreny, alarm, dron…) w mediach danego województwa | **+2** |
+| **Media/RSS** | słowa kluczowe (syreny, alarm, dron…) w mediach danego województwa — sam artykuł nie alarmuje, próg przekracza dopiero potwierdzenie | **+1,5** |
 | **RCB** | nowy komunikat na gov.pl/web/rcb | **+2** |
 | **ADS-B** | ≥3 maszyny wojskowe nad województwem i >2× baseline **z tej samej pory doby** z 7 dni | **+1** |
-| **PAŻP** | nowa aktywna strefa (TSA/TRA/D) nad województwem | **+1** |
+| **PAŻP** | nowo aktywowana strefa (AUP/UUP) obejmująca całą kolumnę od ziemi w górę nad województwem | **+1** |
 | **Media LT/LV/EE** | incydent powietrzny wg mediów bałtyckich → podlaskie + warmińsko-mazurskie | **+1** |
+| **Sąsiedzi (RO/EE/LT)** | aktywne zamknięcie przestrzeni u sąsiada NATO — sygnał obserwacyjny, wyprzedzający | **+0,3** |
 
 ### Punktacja obiektów NEPTUN
 
@@ -83,9 +84,9 @@ Klasyfikacja mediów jest dwupoziomowa (`textmatch.py`): słowa **mocne**
 same; słowa **słabe** ("syren", "dron", "rakieta"…) wymagają ≥2 różnych trafień;
 kontekst administracyjny/ćwiczebny ("wymiana syren", "przetarg", "próba syren"…)
 wyklucza dopasowanie. Jedna klasa źródła ma limit wkładu do sumy
-(media ≤2, RCB ≤2, ADS-B ≤1, PAŻP ≤1) — pięć artykułów o tym samym zdarzeniu
-to wciąż jedno potwierdzenie. Nadmiarowe sygnały są widoczne w UI
-z przekreśloną punktacją.
+(media ≤2, RCB ≤2, ADS-B ≤1, PAŻP ≤1, sąsiedzi ≤0,6) — pięć artykułów o tym
+samym zdarzeniu to wciąż jedno potwierdzenie. Nadmiarowe sygnały są widoczne
+w UI z przekreśloną punktacją.
 
 Propagacja jest **kaskadowa**: region z sumą ≥ 2 pkt przekazuje 40 % wyniku
 sąsiadom, ci 40 % tego swoim sąsiadom i tak dalej, licząc po najkrótszej drodze
@@ -313,8 +314,9 @@ w `app.js` uruchom skrypt ponownie. Kanały powiadomień mają sufiks wersji
 (`-v3`), bo raz utworzony kanał ignoruje późniejsze zmiany dźwięku.
 
 **Źródła fuzji:** NEPTUN (obiekty + alarmy obwodów UA), media regionalne,
-ogólnopolskie i bałtyckie, RCB, PAŻP oraz ADS-B (sygnał pomocniczy o wadze 1 pkt,
-wymaga tygodnia próbek do baseline). Wszystkie liczy backend. Rozpoznawanie
+ogólnopolskie i bałtyckie, RCB, PAŻP, strefy sąsiadów (RO płn./EE/LT — sygnał
+obserwacyjny, 0,3 pkt) oraz ADS-B (sygnał pomocniczy o wadze 1 pkt, wymaga
+tygodnia próbek do baseline). Wszystkie liczy backend. Rozpoznawanie
 województwa z tekstu obejmuje wszystkie 16 (`VOIV_KEYWORDS`), a jeden ogólnopolski
 kanał Google News pokrywa regiony bez własnego feedu.
 
