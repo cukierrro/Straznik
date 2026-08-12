@@ -181,12 +181,20 @@ async function connect() {
   // backend jest niedostępny w chwili otwarcia, schodzimy na WBUDOWANY silnik —
   // apka działa zawsze. Decyzja zapada RAZ na starcie (silnika nie da się
   // czysto zatrzymać, więc nie przełączamy trybu w locie).
+  //
+  // KILKA prób, nie jedna: na telefonie tuż po otwarciu radio/DNS/tunel bywają
+  // jeszcze niegotowe (wybudzanie, powrót danych mobilnych), a pojedyncza sonda
+  // 4 s za często spadała na tryb wbudowany — a wtedy historia to lokalne migawki
+  // z dziurami/skokami (zapisywane tylko gdy apka działa). Dajemy 4 próby z
+  // narastającą przerwą; przy prawdziwie martwym serwerze i tak schodzimy na
+  // wbudowany, tylko po ~kilkunastu sekundach zamiast po czterech.
   connBadge.textContent = "łączenie…"; connBadge.classList.remove("hidden");
-  if (!(await probeBackend(base))) {
-    console.warn("Strażnik: serwer niedostępny przy starcie — tryb wbudowany (standalone).");
-    return startStandalone();
+  for (let attempt = 1; attempt <= 4; attempt++) {
+    if (await probeBackend(base)) return openBackendWs(base);
+    if (attempt < 4) await new Promise(r => setTimeout(r, attempt * 1500));
   }
-  openBackendWs(base);
+  console.warn("Strażnik: serwer niedostępny po kilku próbach — tryb wbudowany (standalone).");
+  startStandalone();
 }
 
 function startStandalone() {
@@ -194,6 +202,40 @@ function startStandalone() {
   standalone = true;
   connBadge.classList.add("hidden");
   Engine.start(applyState);
+  // Odzysk: jeśli poszliśmy w standalone mimo ZNANEGO adresu serwera (np. brak
+  // sieci w chwili otwarcia, a wróciła chwilę później), w tle sprawdzamy, czy
+  // serwer wrócił. Silnika nie zatrzymujemy w locie (ryzyko podwójnego stanu i
+  // dziurawej historii) — zamiast tego proponujemy czyste przeładowanie, które
+  // wystartuje sesję w trybie serwerowym z pełną, równą historią z backendu.
+  const base = apiBase();
+  if (base) scheduleStandaloneRecovery(base);
+}
+
+let _recoverTimer = null;
+function scheduleStandaloneRecovery(base) {
+  if (_recoverTimer) return;
+  _recoverTimer = setInterval(async () => {
+    if (!(await pingBackend(base))) return;
+    clearInterval(_recoverTimer); _recoverTimer = null;
+    // Nie przeładowujemy nagle (użytkownik mógłby akurat przeglądać mapę) —
+    // pokazujemy dotykalny baner; kliknięcie startuje czystą sesję serwerową.
+    connBadge.textContent = "serwer dostępny — dotknij, aby połączyć";
+    connBadge.style.cursor = "pointer";
+    connBadge.classList.remove("hidden");
+    connBadge.onclick = () => location.reload();
+  }, 60000);
+}
+
+/* Lekki ping serwera do odzysku ze standalone: sam sprawdza dostępność
+   (bez applyState — silnik wbudowany trzyma stan, dopóki użytkownik nie połączy). */
+async function pingBackend(base) {
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 4000);
+    const r = await fetch(base + "/api/health", { signal: ctrl.signal });
+    clearTimeout(timer);
+    return r.ok;
+  } catch { return false; }
 }
 
 /* jednorazowa sonda serwera z limitem czasu; przy sukcesie od razu pokazuje stan */
