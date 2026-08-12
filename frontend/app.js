@@ -1586,7 +1586,7 @@ function exitHistory() {
   if (state) { renderPanel(); if (mapReady) { updateVoivStates(); updateAdsb(); } }
 }
 
-async function showHistoryAt(idx) {
+async function showHistoryAt(idx, light = false) {
   const ts = histTimes[idx];
   if (!ts) return;
   const h = await fetchHistory(ts);
@@ -1629,7 +1629,8 @@ async function showHistoryAt(idx) {
       : "brak sygnałów w oknie");
   document.getElementById("tb-sigs")?.addEventListener("click", () => setPanel(true));
 
-  if (mapReady) {
+  if (mapReady && !light) {   // ciężkie przerysowanie mapy 3D pomijamy podczas
+                              // przeciągania (light) — robimy je dopiero przy puszczeniu
     // migawka nie zawiera śladów — rysujemy pozycje historyczne bez animacji
     map.getSource("threats")?.setData({ type: "FeatureCollection",
       features: threats.filter(t => t.lat != null).map(t => ({ type: "Feature",
@@ -1687,19 +1688,36 @@ function renderHistoryPanel(sigs, perVoiv, when, ageMin) {
 
 document.getElementById("btn-history").onclick = () => toggleHistory();
 document.getElementById("tb-live").onclick = () => exitHistory();
-/* Suwak historii: dławimy odświeżanie do ~7/s. Bez tego KAŻDE drgnięcie paska
-   odpalało fetch /api/history + przerysowanie mapy 3D — na telefonie przeciąganie
-   się zawieszało. Ostatnia pozycja renderuje się zawsze (zdarzenie „change"). */
+/* Etykieta czasu z PAMIĘCI (histTimes/timelinePoints, bez fetch/mapy) — dzięki
+   temu sam suwak przesuwa się płynnie niezależnie od sieci i renderu. */
+function quickLabel(idx) {
+  const ts = histTimes[idx];
+  if (!ts) return;
+  const when = new Date(ts);
+  const ageMin = Math.round((Date.now() - when.getTime()) / 60000);
+  document.getElementById("tb-label").textContent =
+    when.toLocaleTimeString("pl-PL", { hour: "2-digit", minute: "2-digit" })
+    + (ageMin > 1 ? ` (−${ageMin} min)` : " (teraz)");
+  document.getElementById("tb-slider").dataset.level = timelinePoints[idx]?.level || "none";
+}
+
+/* Suwak historii rozdzielony na trzy poziomy, żeby przeciąganie było płynne:
+   • od razu (każde drgnięcie) — lekka etykieta czasu (quickLabel),
+   • dławione (~6/s) — panel/dane BEZ ciężkiej mapy 3D (showHistoryAt light),
+   • przy PUSZCZENIU (change) — pełny render z mapą.
+   Wcześniej mapa 3D przerysowywała się na każdym kroku i blokowała wątek UI, więc
+   „czasem lagowało/przeskakiwało" — koszt renderu bywał różny (raz lekko, raz ciężko). */
 let _scrubLast = 0, _scrubTimer = null;
 function scrubTo(idx) {
+  quickLabel(idx);
   clearTimeout(_scrubTimer);
   const now = Date.now();
-  if (now - _scrubLast >= 140) { _scrubLast = now; showHistoryAt(idx); }
-  else _scrubTimer = setTimeout(() => { _scrubLast = Date.now(); showHistoryAt(idx); }, 140);
+  if (now - _scrubLast >= 160) { _scrubLast = now; showHistoryAt(idx, true); }
+  else _scrubTimer = setTimeout(() => { _scrubLast = Date.now(); showHistoryAt(idx, true); }, 160);
 }
 document.getElementById("tb-slider").addEventListener("input", (e) => scrubTo(+e.target.value));
 document.getElementById("tb-slider").addEventListener("change", (e) => {
-  clearTimeout(_scrubTimer); _scrubLast = Date.now(); showHistoryAt(+e.target.value);
+  clearTimeout(_scrubTimer); _scrubLast = Date.now(); showHistoryAt(+e.target.value, false);
 });
 
 /* ── UI: ustawienia (moja lokalizacja), 3D, panel ────────────────────────── */
