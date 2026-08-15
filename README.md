@@ -128,6 +128,18 @@ to gniazdo stale, więc oficjalne alarmy powietrzne w obwodach UA graniczących 
 docierają na bieżąco i są punktowane (`ua_alert_border`). Stan źródła widać w
 `health.ua_alerts` i na diodzie „Alarmy UA".
 
+**Historia 12 h — przewijana po stronie klienta.** Zamiast pytać serwer o każdą
+pozycję suwaka (`/api/history?at=` — przy wielu użytkownikach przewijających naraz
+mnożyło zapytania i obciążało VPS), aplikacja pobiera całą historię **raz**
+(`/api/history/bundle`: migawki pozycji + surowe sygnały okna) i trzyma ją w
+**pamięci (RAM), nie na dysku**. Suwak liczy fuzję dla każdej chwili lokalnie tym
+samym `accumulate` co silnik offline (`engine.js` `historyFrom`/`timelineFrom`),
+więc przewijanie jest płynne i **nie generuje ruchu do serwera**. Bufor to okno
+kroczące 12 h (~0,5–2 MB), samo się przycina i odświeża z żywego feedu WebSocket
+(te same dane, które i tak płyną do mapy) — otwarta godzinami apka nie dociąga nic
+dodatkowego. Tryb offline trzyma migawki w `localStorage` (też okno 12 h). Stary
+backend bez `/api/history/bundle` jest znoszony łagodnie (krótsza historia).
+
 \* PAŻP: airspace.pansa.pl nie ma udokumentowanego API, ale jego mapa karmi się
 publicznym GeoJSON-em — `/map-configuration/uup` i `/map-configuration/aup`
 (adresy wskazuje `/meta/configuration`). Kolektor bierze stamtąd geometrię stref,
@@ -143,7 +155,7 @@ copy .env.example .env     # uzupełnij NTFY_TOPIC itd.
 py -m uvicorn app.main:app --host 0.0.0.0 --port 8600 --app-dir .
 ```
 
-Dashboard: `http://localhost:8600` · API: `/api/state`, `/api/health`, `/api/docs`
+Dashboard: `http://localhost:8600` · API: `/api/state`, `/api/health`, `/api/history/bundle`, `/api/docs`
 
 > Produkcyjnie backend działa na VPS na porcie `40141`, wystawiony tunelem
 > Cloudflare pod `https://straznik.eu`. Push FCM wymaga klucza konta serwisowego

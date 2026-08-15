@@ -655,6 +655,18 @@ footer a{color:var(--tx2)}
   <p class="lead">Przycisk <kbd>⏱</kbd> otwiera suwak czasu. Migawki zapisują się
   co 2 minuty, więc możesz zobaczyć, jak sytuacja narastała.</p>
 
+  <div class="note">
+    <b>Gdzie trzymana jest historia i ile waży.</b> Przewijanie odbywa się
+    <b>lokalnie na telefonie</b> — po wejściu w historię aplikacja pobiera całe
+    12 godzin <b>raz</b>, a suwak działa już bez łączności z serwerem (płynnie
+    i bez obciążania go przy wielu użytkownikach). W trybie serwerowym bufor żyje
+    tylko w <b>pamięci aplikacji</b> (nie jest zapisywany na dysk) i znika po jej
+    zamknięciu. W trybie wbudowanym (offline) migawki lądują w pamięci lokalnej
+    aplikacji na telefonie. W obu przypadkach to <b>okno kroczące 12 godzin, które
+    samo się przycina</b> — zajmuje około <b>0,5–2 MB</b> i <b>nie rośnie</b>
+    z czasem (ani przez dzień, ani przez miesiąc); kasuje się razem z danymi aplikacji.
+  </div>
+
   <div class="shots c2">
     <figure>
       <img src="screens/14_historia.jpg" alt="Suwak czasu w pozycji NA ŻYWO, podsumowanie: 7 obiektów, 5 maszyn wojskowych, 3 sygnały">
@@ -975,6 +987,9 @@ footer a{color:var(--tx2)}
     <li><b>Bez telemetrii i analityki.</b> Nie zbiera informacji o tym, jak
       korzystasz z aplikacji.</li>
     <li><b>Wybrane województwo zostaje na telefonie</b> (pamięć lokalna aplikacji).</li>
+    <li><b>Historia 12 h przewijana jest lokalnie</b> — bufor w pamięci aplikacji
+      (tryb serwerowy) lub w pamięci lokalnej (tryb offline); okno kroczące ~0,5–2 MB,
+      które samo się przycina i kasuje z danymi aplikacji. Nic nie jest wysyłane.</li>
     <li><b>GPS jest opcjonalny</b> i używany tylko do jednorazowego rozpoznania
       województwa. Współrzędne nie są nigdzie wysyłane.</li>
     <li><b>Ruch sieciowy</b> to wyłącznie pobieranie danych z publicznych źródeł

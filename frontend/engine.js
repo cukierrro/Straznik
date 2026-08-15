@@ -814,9 +814,12 @@ function saveSnapshot() {
   }
 }
 
-/* API historii dla UI — ten sam kształt co /api/history w backendzie */
-function history(atIso) {
-  const snaps = JSON.parse(localStorage.getItem("eng_snaps") || "[]");
+/* API historii dla UI — ten sam kształt co /api/history w backendzie.
+   RDZEŃ przyjmuje dane (migawki + sygnały) z ZEWNĄTRZ, żeby liczył identycznie
+   niezależnie od źródła: w trybie offline to lokalne `eng_snaps`+`signals`, a w
+   trybie serwerowym bufor pobrany raz z /api/history/bundle i dokładany z żywego
+   feedu (app.js). Dzięki temu przewijanie suwaka nie pyta serwera o każdą pozycję. */
+function historyFrom(snaps, sigs, atIso) {
   const times = snaps.map(s => s.ts);
   if (!atIso) return { times, hours: HISTORY_H };
   const at = Date.parse(atIso);
@@ -827,18 +830,20 @@ function history(atIso) {
   const start = end - WINDOW_MIN * 60000;
   // ten sam limit klasy źródła co fuzja na żywo (accumulate) — bez tego panel
   // historii sumował surowe punkty i pokazywał np. fałszywe 4.0 z 4 stref PAŻP
-  const per = accumulate(signals.filter(s => s.t >= start && s.t <= end), end);
+  const per = accumulate(sigs.filter(s => s.t >= start && s.t <= end), end);
   const scores = {};
   for (const [v, st] of Object.entries(per)) if (st.score > 0) scores[v] = Math.round(st.score * 10) / 10;
   const annotated = [].concat(...Object.values(per).map(st => st.signals)).sort((a, b) => b.t - a.t);
   return { times, at: atIso, snapshot: snap, signals: annotated, scores };
 }
+function history(atIso) {
+  return historyFrom(JSON.parse(localStorage.getItem("eng_snaps") || "[]"), signals, atIso);
+}
 
 /* Oś czasu do pokolorowania suwaka: najwyższy wynik w kraju dla każdej migawki. */
-function timeline() {
-  const snaps = JSON.parse(localStorage.getItem("eng_snaps") || "[]");
+function timelineFrom(snaps, sigs) {
   return snaps.map(s => {
-    const win = signals.filter(sig => {
+    const win = sigs.filter(sig => {
       const age = (s.t - sig.t) / 60000;
       return age >= 0 && age <= WINDOW_MIN;
     });
@@ -849,6 +854,9 @@ function timeline() {
     return { ts: s.ts, score, voiv,
       level: score >= TH_HIGH ? "high" : score >= TH_ELEVATED ? "elevated" : "none" };
   });
+}
+function timeline() {
+  return timelineFrom(JSON.parse(localStorage.getItem("eng_snaps") || "[]"), signals);
 }
 
 /* ── start ───────────────────────────────────────────────────────────────── */
@@ -880,5 +888,5 @@ async function start(stateCb) {
   setInterval(saveSnapshot, 120000);
 }
 
-return { start, history, timeline };
+return { start, history, timeline, historyFrom, timelineFrom, accumulate };
 })();

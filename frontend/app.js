@@ -303,6 +303,7 @@ function applyState(s) {
   state = s;
   showNotice(s?.notice);
   threatsReceivedAt = Date.now();
+  if (!standalone) srvRecord(s);   // nagrywaj żywy feed do bufora historii (RAM)
   recordTrails(s?.neptun?.threats || []);
   renderLeds();
   updateAlarmMood();          // alarmy działają także w trybie przeglądania
@@ -1554,19 +1555,85 @@ document.getElementById("cam-close").onclick = () => {
 /* ── historia 12 h ───────────────────────────────────────────────────────── */
 let histTimes = [], histMode = false;
 
-let _histAbort = null;
-async function fetchHistory(at) {
-  if (standalone) return Engine.history(at);
-  const base = apiBase(); if (!base) return null;
-  const url = base + "/api/history" + (at ? `?at=${encodeURIComponent(at)}` : "");
-  _histAbort?.abort();                       // anuluj poprzednie żądanie (szybki scrub)
-  const ctrl = _histAbort = new AbortController();
-  try {
-    const r = await fetch(url, { signal: ctrl.signal });
-    return r.ok ? await r.json() : null;
-  } catch {
-    return undefined;                        // przerwane nowszym scrubem — nie renderuj
+/* ── bufor historii w PAMIĘCI (tryb serwerowy) ───────────────────────────────
+   Przewijanie suwaka NIE pyta serwera o każdą pozycję (to przy wielu użytkownikach
+   mnożyło zapytania i obciążało VPS). Zamiast tego trzymamy 12 h w RAM aplikacji:
+   • seed RAZ z /api/history/bundle (backfill sprzed otwarcia apki),
+   • odświeżanie z ŻYWEGO feedu (applyState) — te same dane, które i tak przychodzą
+     do mapy na żywo, więc 6 h otwartej apki nie generuje dodatkowych pobrań.
+   Bufor żyje tylko w pamięci — NIE zapisujemy go na dysk; zamknięcie apki czyści
+   go, a nic się nie kumuluje. Fuzję dla każdej chwili liczy lokalnie ten sam
+   `accumulate` co silnik offline (Engine.historyFrom/timelineFrom). */
+let srvSnaps = [], srvSigs = [], srvSeeded = false, _srvSnapT = 0;
+const HIST_MS = 12 * 3600 * 1000;
+const _sigKey = (s) => (s.source || "") + "|" + (s.ts || "") + "|" + (s.voivodeship || "") + "|" + (s.title || "");
+
+function srvMergeSignals(list) {
+  if (!list?.length) return;
+  const have = new Set(srvSigs.map(_sigKey));
+  for (const s of list) {
+    if (!s || s.source === "spillover") continue;   // spillover jest wyliczany, nie surowy
+    const k = _sigKey(s);
+    if (have.has(k)) continue;
+    have.add(k);
+    srvSigs.push({ t: s.t ?? Date.parse(s.ts), ts: s.ts, source: s.source,
+      event_type: s.event_type, voivodeship: s.voivodeship, points: s.points,
+      title: s.title, details: s.details, url: s.url });
   }
+  const cut = Date.now() - HIST_MS;
+  srvSigs = srvSigs.filter(s => s.t >= cut);
+}
+
+/* Zapis żywego stanu do bufora: sygnały (od razu) + migawka pozycji co ~2 min. */
+function srvRecord(s) {
+  const voivs = s?.fusion?.voivodeships || {};
+  const flat = [];
+  for (const st of Object.values(voivs)) for (const sig of (st.signals || [])) flat.push(sig);
+  srvMergeSignals(flat);
+  const now = Date.now();
+  if (now - _srvSnapT < 110000) return;             // migawki co ~2 min, jak w silniku offline
+  _srvSnapT = now;
+  const threats = (s?.neptun?.threats || []).filter(t => t.lat != null).map(t => ({
+    id: t.id, type: t.type, lat: +(+t.lat).toFixed(3), lon: +(+t.lon).toFixed(3),
+    heading: t.heading, confidenceLevel: t.confidenceLevel, uncertaintyKm: t.uncertaintyKm,
+    region: t.region, locality: t.locality, sourceCount: t.sourceCount,
+    destination: t.destination, pl_assessment: t.pl_assessment }));
+  const aircraft = (s?.adsb?.aircraft || []).map(a => ({ hex: a.hex, callsign: a.callsign,
+    type: a.type, lat: +(+a.lat).toFixed(3), lon: +(+a.lon).toFixed(3), alt: a.alt, gs: a.gs,
+    track: a.track, voivodeship: a.voivodeship, desc: a.desc, cat: a.cat }));
+  srvSnaps.push({ ts: new Date(now).toISOString(), t: now, threats, aircraft });
+  const cut = now - HIST_MS;
+  srvSnaps = srvSnaps.filter(sn => sn.t >= cut);
+}
+
+/* Jednorazowy backfill 12 h z serwera (pozycje sprzed otwarcia apki). Łagodnie
+   znosi stary backend bez endpointu — wtedy historia jest krótsza (tylko to, co
+   apka nagrała na żywo od otwarcia), ale apka działa. */
+async function seedBundle() {
+  const base = apiBase(); if (!base) return;
+  try {
+    const r = await fetch(base + "/api/history/bundle?hours=12");
+    if (!r.ok) return;
+    const j = await r.json();
+    srvMergeSignals((j.signals || []).map(s => ({ ...s, t: Date.parse(s.ts) })));
+    const have = new Set(srvSnaps.map(sn => sn.ts));
+    for (const sn of (j.snaps || [])) {
+      if (have.has(sn.ts)) continue;
+      srvSnaps.push({ ...sn, t: Date.parse(sn.ts) });
+    }
+    srvSnaps.sort((a, b) => a.t - b.t);
+    srvSeeded = true;
+  } catch {}
+}
+function needSeed() {
+  if (!srvSeeded) return true;
+  const newest = srvSnaps.length ? srvSnaps[srvSnaps.length - 1].t : 0;
+  return (Date.now() - newest) > 5 * 60 * 1000;   // luka (np. milczący WS) → dociągnij świeże
+}
+
+/* Historia lokalnie (bez sieci): offline ⇒ silnik, serwer ⇒ bufor w RAM. */
+function fetchHistory(at) {
+  return standalone ? Engine.history(at) : Engine.historyFrom(srvSnaps, srvSigs, at);
 }
 
 /* Kolorowanie osi czasu: tło suwaka odwzorowuje poziom zagrożenia w każdym
@@ -1588,21 +1655,17 @@ function paintTimeline(points) {
   slider.style.setProperty("--tl", `linear-gradient(90deg, ${stops})`);
 }
 
-async function fetchTimeline() {
-  if (standalone) return Engine.timeline();
-  const base = apiBase(); if (!base) return [];
-  try {
-    const r = await fetch(base + "/api/history/timeline?hours=12");
-    return r.ok ? (await r.json()).points || [] : [];
-  } catch { return []; }
+function fetchTimeline() {
+  return standalone ? Engine.timeline() : Engine.timelineFrom(srvSnaps, srvSigs);
 }
 
 async function toggleHistory() {
   const bar = document.getElementById("timebar");
   if (histMode) return exitHistory();
-  const h = await fetchHistory();
+  if (!standalone && needSeed()) await seedBundle();   // jednorazowy backfill 12 h z serwera
+  const h = fetchHistory();
   histTimes = h?.times || [];
-  paintTimeline(await fetchTimeline());
+  paintTimeline(fetchTimeline());
   if (!histTimes.length) {
     document.getElementById("tb-info").textContent =
       "Brak zapisanej historii — migawki powstają co 2 minuty od uruchomienia.";
@@ -1617,7 +1680,7 @@ async function toggleHistory() {
   slider.max = String(histTimes.length - 1);
   slider.value = String(histTimes.length - 1);
   document.getElementById("btn-history").classList.add("active");
-  await showHistoryAt(histTimes.length - 1);
+  showHistoryAt(histTimes.length - 1);
 }
 
 function exitHistory() {
@@ -1628,11 +1691,11 @@ function exitHistory() {
   if (state) { renderPanel(); if (mapReady) { updateVoivStates(); updateAdsb(); } }
 }
 
-async function showHistoryAt(idx, light = false) {
+function showHistoryAt(idx) {
   const ts = histTimes[idx];
   if (!ts) return;
-  const h = await fetchHistory(ts);
-  if (h === undefined) return;              // fetch anulowany nowszym scrubem
+  const h = fetchHistory(ts);               // lokalnie, bez sieci — natychmiast
+  if (!h) return;
   const snap = h?.snapshot;
   const when = new Date(snap?.ts || ts);
   const ageMin = Math.round((Date.now() - when.getTime()) / 60000);
@@ -1671,8 +1734,8 @@ async function showHistoryAt(idx, light = false) {
       : "brak sygnałów w oknie");
   document.getElementById("tb-sigs")?.addEventListener("click", () => setPanel(true));
 
-  if (mapReady && !light) {   // ciężkie przerysowanie mapy 3D pomijamy podczas
-                              // przeciągania (light) — robimy je dopiero przy puszczeniu
+  if (mapReady) {   // dane lokalne (bufor w RAM) → mapę odświeżamy też podczas
+                    // przewijania; scrubTo dławi do jednej klatki (rAF), więc płynnie
     // migawka nie zawiera śladów — rysujemy pozycje historyczne bez animacji
     map.getSource("threats")?.setData({ type: "FeatureCollection",
       features: threats.filter(t => t.lat != null).map(t => ({ type: "Feature",
@@ -1743,23 +1806,21 @@ function quickLabel(idx) {
   document.getElementById("tb-slider").dataset.level = timelinePoints[idx]?.level || "none";
 }
 
-/* Suwak historii rozdzielony na trzy poziomy, żeby przeciąganie było płynne:
-   • od razu (każde drgnięcie) — lekka etykieta czasu (quickLabel),
-   • dławione (~6/s) — panel/dane BEZ ciężkiej mapy 3D (showHistoryAt light),
-   • przy PUSZCZENIU (change) — pełny render z mapą.
-   Wcześniej mapa 3D przerysowywała się na każdym kroku i blokowała wątek UI, więc
-   „czasem lagowało/przeskakiwało" — koszt renderu bywał różny (raz lekko, raz ciężko). */
-let _scrubLast = 0, _scrubTimer = null;
+/* Przewijanie suwaka: dane są LOKALNE (bufor w RAM), więc render jest szybki i
+   mapa może podążać na żywo. Żeby nie robić więcej niż jednej klatki na odświeżenie
+   ekranu, dławimy przez requestAnimationFrame — etykieta rusza od razu (quickLabel),
+   a mapa/panel dogania najświeższą pozycję raz na klatkę. Bez sieci per pozycja. */
+let _scrubRaf = 0, _scrubIdx = -1;
 function scrubTo(idx) {
   quickLabel(idx);
-  clearTimeout(_scrubTimer);
-  const now = Date.now();
-  if (now - _scrubLast >= 160) { _scrubLast = now; showHistoryAt(idx, true); }
-  else _scrubTimer = setTimeout(() => { _scrubLast = Date.now(); showHistoryAt(idx, true); }, 160);
+  _scrubIdx = idx;
+  if (_scrubRaf) return;
+  _scrubRaf = requestAnimationFrame(() => { _scrubRaf = 0; showHistoryAt(_scrubIdx); });
 }
 document.getElementById("tb-slider").addEventListener("input", (e) => scrubTo(+e.target.value));
 document.getElementById("tb-slider").addEventListener("change", (e) => {
-  clearTimeout(_scrubTimer); _scrubLast = Date.now(); showHistoryAt(+e.target.value, false);
+  if (_scrubRaf) { cancelAnimationFrame(_scrubRaf); _scrubRaf = 0; }
+  showHistoryAt(+e.target.value);
 });
 
 /* ── UI: ustawienia (moja lokalizacja), 3D, panel ────────────────────────── */

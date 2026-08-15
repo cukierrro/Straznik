@@ -186,6 +186,24 @@ async def api_timeline(hours: int = 12):
     return {"points": out}
 
 
+@app.get("/api/history/bundle")
+async def api_history_bundle(hours: int = 12):
+    """Cała historia N h w JEDNYM pobraniu: migawki (pozycje obiektów/maszyn) +
+    surowe sygnały z okna. Klient trzyma to w pamięci i przewija suwak LOKALNIE —
+    zamiast wołać `/api/history?at=` przy każdej pozycji (co przy wielu użytkownikach
+    przewijających naraz mnożyło zapytania i obciążało serwer). Fuzję dla każdej
+    chwili klient liczy sam (ten sam `accumulate` co silnik wbudowany)."""
+    from datetime import datetime, timedelta
+    snaps = db.all_snapshots(hours)
+    signals = []
+    if snaps:
+        start = (datetime.fromisoformat(snaps[0]["ts"])
+                 - timedelta(minutes=config.FUSION_WINDOW_MIN)).isoformat(timespec="seconds")
+        signals = db.signals_between(start, snaps[-1]["ts"])
+    return {"hours": hours, "window_min": config.FUSION_WINDOW_MIN,
+            "snaps": snaps, "signals": signals}
+
+
 @app.get("/api/health")
 async def api_health():
     return {

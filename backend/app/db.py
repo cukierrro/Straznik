@@ -166,6 +166,17 @@ def snapshot_times(hours: int = 12) -> list[str]:
     return [r[0] for r in rows]
 
 
+def all_snapshots(hours: int = 12) -> list[dict]:
+    """Wszystkie migawki z ostatnich N h w JEDNYM zapytaniu — pod pobranie hurtem
+    (`/api/history/bundle`), żeby klient przewijał historię lokalnie zamiast pytać
+    serwer o każdą pozycję suwaka."""
+    cutoff = (datetime.now(timezone.utc) - timedelta(hours=hours)).isoformat(timespec="seconds")
+    with _lock:
+        rows = _conn.execute("SELECT ts, payload FROM snapshots WHERE ts >= ? ORDER BY ts",
+                             (cutoff,)).fetchall()
+    return [{"ts": r[0], **json.loads(r[1])} for r in rows]
+
+
 def snapshot_at(ts: str) -> dict | None:
     """Najbliższa migawka nie późniejsza niż podany moment."""
     with _lock:
