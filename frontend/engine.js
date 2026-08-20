@@ -694,6 +694,62 @@ async function tickRcb() {
   emit();
 }
 
+/* ── kolektor: oficjalne alerty RCB przez RSO ────────────────────────────────
+   Lustro backendowego `rso.py`. Scraping gov.pl (wyżej) NIE łapie prawdziwych
+   „Alertów RCB" — to broadcasty SMS/RSO, nie wpisy na stronie; 20.08.2026 ludzie
+   dostali alert, a Strażnik go nie widział. RSO wystawia je publicznie w JSON.
+
+   UWAGA na obciążenie źródła: backend odpytuje RAZ dla wszystkich, a tutaj każdy
+   telefon pyta sam. Dlatego rzadziej (3 min zamiast 60 s) i tylko w trybie
+   wbudowanym, który jest awaryjny — przy działającym serwerze ten kod nie biegnie.
+   Odpowiedź to ~20 rekordów, więc koszt jest niewielki. */
+const RSO_URL = "https://komunikaty.tvp.pl/komunikatyxml/wszystkie/wszystkie/1?_format=json";
+const RSO_ORIGIN = ["alert rcb","uwaga! uwaga! uwaga","uwaga!uwaga!uwaga","spo-","rcb"];
+const RSO_AIR = ["powietrzn","z powietrza","dron","bezzałogow","bezzalogow","bsp","shahed",
+  "geran","rakiet","pocisk","nalot","ostrzał","ostrzal","obiekt lataj",
+  "naruszenie przestrzeni","myśliwc","mysliwc","obrony powietrzn","obiekt powietrzn"];
+// komunikat KOŃCZĄCY zagrożenie nie może wywołać alarmu
+const RSO_END = ["zakończył","zakonczyl","zakończen","zakonczen","odwoł","odwol",
+  "brak zagroż","brak zagroz","zniesion","sytuacja opanowan"];
+
+let rsoBootstrapped = localStorage.getItem("eng_rso_boot") === "1";
+const rsoSeen = new Set(JSON.parse(localStorage.getItem("eng_rso_seen") || "[]"));
+
+async function tickRso() {
+  try {
+    const j = JSON.parse(await httpGet(RSO_URL));
+    for (const it of (j.newses || [])) {
+      const text = `${it.title || ""} ${it.shortcut || ""} ${it.content || ""}`.toLowerCase();
+      if (RSO_END.some(w => text.includes(w))) continue;
+      if (!RSO_ORIGIN.some(w => text.includes(w))) continue;   // musi pochodzić od RCB
+      if (!RSO_AIR.some(w => text.includes(w))) continue;      // …i dotyczyć powietrza
+      // pomiń wygasłe (valid_to jest w czasie lokalnym PL — tak też czyta je telefon)
+      const vt = Date.parse(String(it.valid_to || "").replace(" ", "T"));
+      if (isFinite(vt) && vt < Date.now() - 3600000) continue;
+      const voivs = [];
+      for (const p of Object.values(it.provinces || {})) {
+        const hit = VOIVODESHIPS.find(v => fold(v) === fold((p && (p.slug_name || p.name)) || ""));
+        if (hit && !voivs.includes(hit)) voivs.push(hit);
+      }
+      if (!voivs.length) voivs.push("lubelskie","podkarpackie","podlaskie","warmińsko-mazurskie");
+      for (const v of voivs) {
+        const key = `rso:${it.id}:${v}`;
+        if (!rsoBootstrapped) { rsoSeen.add(key); continue; }   // istniejące przy starcie nie alarmują
+        if (rsoSeen.has(key)) continue;
+        rsoSeen.add(key);
+        addSignal("rcb", "rso_alert", v, POINTS.rcb_alert,
+          `Alert RCB (RSO): „${String(it.shortcut || it.title || "").slice(0,120)}”`,
+          { rso_id: it.id, valid_to: it.valid_to }, key);
+      }
+    }
+    rsoBootstrapped = true;
+    localStorage.setItem("eng_rso_boot", "1");
+    localStorage.setItem("eng_rso_seen", JSON.stringify([...rsoSeen].slice(-200)));
+    persist();
+  } catch { /* cicho: dioda RCB pokazuje stan scrapingu gov.pl, tu nie miesza */ }
+  emit();
+}
+
 /* ── kolektor: PAŻP (AUP/UUP — publiczny GeoJSON mapy airspace.pansa.pl) ── */
 let voivPolys = null;
 /* Zbiór stref z poprzedniego obiegu MUSI przeżyć zamknięcie aplikacji: sygnałem
@@ -897,6 +953,8 @@ async function start(stateCb) {
   tickAdsb(); setInterval(tickAdsb, 60000);
   tickRss(); setInterval(tickRss, 60000);
   tickRcb(); setInterval(tickRcb, 180000);   // 3 min: alerty RCB nie zmieniają się częściej
+  tickRso(); setInterval(tickRso, 180000);   // 3 min: rzadziej niż backend (60 s), bo tu
+                                             // pyta KAŻDY telefon osobno — nie obciążamy źródła
   tickPansa(); setInterval(tickPansa, 300000);
   setInterval(reevaluate, 30000);   // wygasanie okna bez nowych zdarzeń
   setTimeout(saveSnapshot, 20000);
