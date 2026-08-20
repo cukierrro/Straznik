@@ -15,7 +15,25 @@ import feedparser
 import httpx
 
 from .. import config, fusion
-from ..textmatch import match_keywords
+from ..textmatch import classify_level, match_keywords
+
+
+async def _get_with_retry(client: httpx.AsyncClient, url: str, tries: int = 2):
+    """GET z jednym ponowieniem — feedy CDN (Google News, portale) bywają
+    chwilowo niedostępne; pojedyncza próba za często dawała `ok:false`. Błąd
+    zapisujemy przez repr(), bo część wyjątków httpx ma pusty str() (stąd
+    wcześniej „error: ''" bez wskazówki, co pada)."""
+    last = None
+    for i in range(tries):
+        try:
+            r = await client.get(url, headers={"User-Agent": UA}, follow_redirects=True)
+            r.raise_for_status()
+            return r, None
+        except Exception as e:
+            last = repr(e) or e.__class__.__name__
+            if i + 1 < tries:
+                await asyncio.sleep(1.5)
+    return None, last
 
 log = logging.getLogger("rss")
 
@@ -61,14 +79,12 @@ def _match_voiv(text: str) -> str | None:
 
 async def _check_feed(client: httpx.AsyncClient, url: str, default_voiv: str | None):
     st = status["feeds"].setdefault(url, {})
-    try:
-        r = await client.get(url, headers={"User-Agent": UA}, follow_redirects=True)
-        r.raise_for_status()
-        parsed = feedparser.parse(r.content)
-        st.update(ok=True, last=time.time(), error=None)
-    except Exception as e:
-        st.update(ok=False, error=str(e))
+    r, err = await _get_with_retry(client, url)
+    if err is not None:
+        st.update(ok=False, error=err)
         return
+    parsed = feedparser.parse(r.content)
+    st.update(ok=True, last=time.time(), error=None)
 
     now = time.time()
     for entry in parsed.entries[:30]:
@@ -79,9 +95,14 @@ async def _check_feed(client: httpx.AsyncClient, url: str, default_voiv: str | N
         t = entry.get("published_parsed") or entry.get("updated_parsed")
         if t and now - calendar.timegm(t) > MAX_AGE_S:
             continue
-        hits = _match_keywords(text)
-        if not hits:
+        # SIŁA trafienia decyduje o wadze: mocne słowo (critical) = pojedynczy
+        # artykuł alarmuje (2,0); słabe (obiekt+zdarzenie) = 1,5, wymaga korroboracji.
+        level, hits = classify_level(text, config.ALERT_CRITICAL_KEYWORDS,
+                                     config.ALERT_AIR_KEYWORDS, config.ALERT_EVENT_KEYWORDS,
+                                     config.EXCLUDE_KEYWORDS)
+        if not level:
             continue
+        pts = config.POINTS["media_critical"] if level == "critical" else config.POINTS["media_keywords"]
         voiv = _match_voiv(text) or default_voiv
         if not voiv:
             continue
@@ -89,9 +110,9 @@ async def _check_feed(client: httpx.AsyncClient, url: str, default_voiv: str | N
         dedup = "media:" + hashlib.sha1((link or title).encode()).hexdigest()[:16]
         await fusion.ingest(
             source="media", event_type="media_keywords", voivodeship=voiv,
-            points=config.POINTS["media_keywords"],
+            points=pts,
             title=f"Media: „{title[:120]}”",
-            details={"link": link, "keywords": hits, "feed": url},
+            details={"link": link, "keywords": hits, "feed": url, "level": level},
             dedup_key=dedup,
         )
 
@@ -100,14 +121,12 @@ async def _check_baltic_feed(client: httpx.AsyncClient, url: str, country: str):
     """Media LT/LV/EE: incydent powietrzny u bałtyckich sąsiadów ⇒ +1 pkt
     dla podlaskiego i warmińsko-mazurskiego (kontekst, nie potwierdzenie)."""
     st = status["feeds"].setdefault(url, {})
-    try:
-        r = await client.get(url, headers={"User-Agent": UA}, follow_redirects=True)
-        r.raise_for_status()
-        parsed = feedparser.parse(r.content)
-        st.update(ok=True, last=time.time(), error=None)
-    except Exception as e:
-        st.update(ok=False, error=str(e))
+    r, err = await _get_with_retry(client, url)
+    if err is not None:
+        st.update(ok=False, error=err)
         return
+    parsed = feedparser.parse(r.content)
+    st.update(ok=True, last=time.time(), error=None)
     now = time.time()
     for entry in parsed.entries[:30]:
         title = entry.get("title", "")

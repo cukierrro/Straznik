@@ -12,8 +12,8 @@ const Engine = (() => {
 // okno 60 min z wygaszaniem: pełna waga przez 30 min, potem liniowo do zera
 const WINDOW_MIN = 60, FULL_MIN = 30, TH_ELEVATED = 2, TH_HIGH = 4, COOLDOWN_MIN = 10;
 const HISTORY_H = 12;   // ile godzin trzymamy do przeglądania wstecz
-const POINTS = { neptun_high: 3, neptun_medlow: 1.5, adsb_spike: 1, media_keywords: 1.5,
-                 rcb_alert: 2, ua_alert_border: 1, baltic_context: 1, pansa_zone: 1 };
+const POINTS = { neptun_high: 3, neptun_medlow: 1.5, media_keywords: 1.5, media_critical: 2,
+                 adsb_spike: 1, rcb_alert: 2, ua_alert_border: 1, baltic_context: 1, pansa_zone: 1 };
 // Neptun ma wyższy limit niż reszta (każdy track to osobny fizyczny obiekt),
 // ale nie nieograniczony — przy kilkudziesięciu obiektach suma i tak dawno
 // przekroczyła próg alarmu, a trzycyfrowa punktacja psułaby czytelność skali.
@@ -276,6 +276,18 @@ function matchKw(text, critical, air, event, exclude) {
   if (c.length) return c;
   const a = air.filter(k => tl.includes(k)), e = event.filter(k => tl.includes(k));
   return a.length && e.length ? a.slice(0, 2).concat(e.slice(0, 2)) : [];
+}
+/* Jak matchKw, ale zwraca SIŁĘ dopasowania (lustro textmatch.classify_level):
+   "critical" = samo mocne słowo (pojedynczy artykuł alarmuje), "weak" = para
+   obiekt+zdarzenie (wymaga korroboracji), null = brak/weto. */
+function matchLevel(text, critical, air, event, exclude) {
+  const tl = text.toLowerCase();
+  if (exclude.some(k => tl.includes(k))) return { level: null, hits: [] };
+  const c = critical.filter(k => tl.includes(k));
+  if (c.length) return { level: "critical", hits: c };
+  const a = air.filter(k => tl.includes(k)), e = event.filter(k => tl.includes(k));
+  if (a.length && e.length) return { level: "weak", hits: a.slice(0, 2).concat(e.slice(0, 2)) };
+  return { level: null, hits: [] };
 }
 /* Małe litery bez znaków diakrytycznych — ł nie rozkłada się w NFD, stąd osobna
    podmiana. Część źródeł pisze „Chelm" zamiast „Chełm". */
@@ -620,11 +632,14 @@ async function tickRss() {
         const age = it.date ? Date.now() - new Date(it.date).getTime() : 0;
         if (age > MAX_AGE_MS) continue;
         const text = it.title + " " + it.desc;
-        const hits = matchKw(text, CRITICAL, AIR, EVENT, EXCLUDE);
-        if (!hits.length) continue;
+        // siła trafienia → waga: mocne słowo = 2,0 (pojedynczy artykuł alarmuje),
+        // słabe (obiekt+zdarzenie) = 1,5 (wymaga korroboracji) — jak backend
+        const { level, hits } = matchLevel(text, CRITICAL, AIR, EVENT, EXCLUDE);
+        if (!level) continue;
+        const pts = level === "critical" ? POINTS.media_critical : POINTS.media_keywords;
         const voiv = matchVoiv(text) || defVoiv;
-        addSignal("media","media_keywords",voiv,POINTS.media_keywords,
-          `Media: „${it.title.slice(0,120)}”`, {link:it.link, keywords:hits},
+        addSignal("media","media_keywords",voiv,pts,
+          `Media: „${it.title.slice(0,120)}”`, {link:it.link, keywords:hits, level},
           "media:" + (it.link || it.title));
       }
     } catch { markRss(url, false); }

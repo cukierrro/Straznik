@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from . import config, db, fusion, notify
-from .collectors import adsb, neighbours, neptun, pansa, rcb, rss_media
+from .collectors import adsb, neighbours, neptun, pansa, rcb, rso, rss_media
 
 logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s %(name)s %(levelname)s %(message)s")
@@ -208,7 +208,7 @@ async def api_history_bundle(hours: int = 12):
 async def api_health():
     return {
         "neptun": neptun.status, "adsb": adsb.status, "pansa": pansa.status,
-        "rcb": rcb.status, "rss": rss_media.status["feeds"],
+        "rcb": rcb.status, "rso": rso.status, "rss": rss_media.status["feeds"],
         "neighbours": neighbours.status,
         "notify": {"ntfy": config.NTFY_ENABLED and bool(config.NTFY_TOPIC),
                    "telegram": config.TELEGRAM_ENABLED,
@@ -262,8 +262,8 @@ async def startup():
     notify.init_fcm()
     fusion.on_level_change = notify.notify_level
     fusion.on_state_change = broadcast_state
-    for coro in (neptun.run(), rss_media.run(), rcb.run(), adsb.run(), pansa.run(),
-                 neighbours.run(), snapshot_loop()):
+    for coro in (neptun.run(), rss_media.run(), rcb.run(), rso.run(), adsb.run(),
+                 pansa.run(), neighbours.run(), snapshot_loop()):
         asyncio.create_task(coro)
     log.info("Strażnik wystartował — kolektory uruchomione")
 
@@ -277,7 +277,11 @@ async def snapshot_loop():
                 "threats": [
                     {k: t.get(k) for k in ("id", "type", "lat", "lon", "heading",
                                            "confidenceLevel", "uncertaintyKm", "region",
-                                           "locality", "sourceCount", "destination")}
+                                           "locality", "sourceCount", "destination",
+                                           # pl_assessment: bez tego karta w historii
+                                           # pokazywała „? km" (dist liczony live, ale
+                                           # nie persystowany do migawki)
+                                           "pl_assessment")}
                     for t in neptun.tracks.values() if t.get("lat") is not None],
                 "aircraft": adsb.current_aircraft,
             })

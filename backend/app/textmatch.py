@@ -38,3 +38,26 @@ def classify(text: str, critical, air, event, exclude) -> tuple[bool, list[str]]
 def match_keywords(text: str, critical, air, event, exclude) -> list[str]:
     ok, hits = classify(text, critical, air, event, exclude)
     return hits if ok else []
+
+
+def classify_level(text: str, critical, air, event, exclude):
+    """Jak `classify`, ale rozróżnia SIŁĘ dopasowania — do zróżnicowanej wagi:
+
+      "critical" → padło samo słowo mocne („zawyły syreny", „poderwano f-16",
+                   „naruszenie przestrzeni powietrznej") — pojedynczy taki
+                   artykuł może alarmować sam.
+      "weak"     → tylko para OBIEKT+ZDARZENIE („dron” + „zestrzelono”) — słabszy
+                   sygnał, wymaga korroboracji (drugie medium / inne źródło).
+      None       → brak / weto.
+
+    Zwraca (poziom|None, dopasowane_słowa)."""
+    t = text.lower()
+    if _hits(t, exclude):
+        return None, []
+    crit = _hits(t, critical)
+    if crit:
+        return "critical", crit
+    a, e = _hits(t, air), _hits(t, event)
+    if a and e:
+        return "weak", a[:2] + e[:2]
+    return None, []

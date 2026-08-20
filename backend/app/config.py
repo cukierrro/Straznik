@@ -76,6 +76,11 @@ PANSA_INTERVAL = int(os.getenv("PANSA_INTERVAL", "300"))
 RSS_INTERVAL = int(os.getenv("RSS_INTERVAL", "60"))
 RCB_INTERVAL = int(os.getenv("RCB_INTERVAL", "120"))
 RCB_URL = "https://www.gov.pl/web/rcb"
+# RSO (Regionalny System Ostrzegania) przez TVP — realne alerty RCB/SPO (SMS-owe
+# broadcasty), których scraping gov.pl nie łapie. Publiczne JSON bez tokenu.
+RSO_URL = os.getenv("RSO_URL",
+                    "https://komunikaty.tvp.pl/komunikatyxml/wszystkie/wszystkie/1?_format=json")
+RSO_INTERVAL = int(os.getenv("RSO_INTERVAL", "60"))   # alerty są czasokrytyczne
 
 # ── Fuzja ─────────────────────────────────────────────────────────────────────
 # Okno sumowania: 60 min, ale z wygaszaniem — sygnał zachowuje pełną wagę przez
@@ -93,10 +98,16 @@ POINTS = {
     "neptun_medlow": 1.5,
     "adsb_spike": 1.0,
     "pansa_zone": 1.0,
-    "media_keywords": 1.5,     # <próg (2): samotny artykuł NIE alarmuje; dopiero
-                               # korroboracja (2. medium → cap 2, albo inna klasa
-                               # źródła) przekracza próg. Domyka fałszywe alerty
+    "media_keywords": 1.5,     # SŁABE trafienie (obiekt+zdarzenie, np. „dron”+
+                               # „zestrzelono”): <próg (2), samotny artykuł NIE
+                               # alarmuje — dopiero korroboracja (2. medium → cap 2,
+                               # albo inna klasa źródła). Domyka fałszywe alerty
                                # z pojedynczego/retrospektywnego artykułu.
+    "media_critical": 2.0,     # MOCNE trafienie (słowo krytyczne: „zawyły syreny”,
+                               # „poderwano f-16”, „naruszenie przestrzeni powietrznej”):
+                               # pojedynczy taki artykuł = próg elevated (żółty). Wprost
+                               # jednoznaczna relacja o zdarzeniu, nie wymaga 2. źródła.
+                               # (Wnioski z 20.08.2026: media 1,5 tłumiło realne alerty.)
     "rcb_alert": 2.0,          # RCB (oficjalny) nadal może alarmować sam
     "ua_alert_border": 1.0,    # oficjalny alarm powietrzny w przygranicznym obwodzie UA
     "baltic_context": 1.0,     # incydent powietrzny wg mediów LT/LV/EE
