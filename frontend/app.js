@@ -204,9 +204,7 @@ function startStandalone() {
   Engine.start(applyState);
   // Odzysk: jeśli poszliśmy w standalone mimo ZNANEGO adresu serwera (np. brak
   // sieci w chwili otwarcia, a wróciła chwilę później), w tle sprawdzamy, czy
-  // serwer wrócił. Silnika nie zatrzymujemy w locie (ryzyko podwójnego stanu i
-  // dziurawej historii) — zamiast tego proponujemy czyste przeładowanie, które
-  // wystartuje sesję w trybie serwerowym z pełną, równą historią z backendu.
+  // serwer wrócił — i wracamy na niego SAMI, bez pytania użytkownika.
   const base = apiBase();
   if (base) scheduleStandaloneRecovery(base);
 }
@@ -216,14 +214,29 @@ function scheduleStandaloneRecovery(base) {
   if (_recoverTimer) return;
   _recoverTimer = setInterval(async () => {
     if (!(await pingBackend(base))) return;
+    // Podczas trwającego alarmu nie przełączamy trybu — użytkownik ma wtedy na
+    // ekranie sygnał, którego nie wolno przerwać; spróbujemy przy następnym obiegu.
+    if (!document.getElementById("alarm-overlay")?.classList.contains("hidden")) return;
     clearInterval(_recoverTimer); _recoverTimer = null;
-    // Nie przeładowujemy nagle (użytkownik mógłby akurat przeglądać mapę) —
-    // pokazujemy dotykalny baner; kliknięcie startuje czystą sesję serwerową.
-    connBadge.textContent = "serwer dostępny — dotknij, aby połączyć";
-    connBadge.style.cursor = "pointer";
-    connBadge.classList.remove("hidden");
-    connBadge.onclick = () => location.reload();
+    switchToBackend(base);
   }, 60000);
+}
+
+/* Powrót ze SILNIKA WBUDOWANEGO na serwer w locie — bez przeładowania apki.
+   Silnik da się teraz czysto zatrzymać (Engine.stop gasi interwały i gniazdo
+   Neptuna), więc nie ma ryzyka dwóch źródeł stanu naraz ani podwójnego
+   odpytywania źródeł. Historia zaczyta się z serwera przy wejściu w tryb
+   przeglądania (seedBundle), więc nic nie tracimy. */
+function switchToBackend(base) {
+  try { Engine.stop(); } catch (e) { console.warn("Engine.stop:", e); }
+  standalone = false;
+  srvSnaps = []; srvSigs = []; srvSeeded = false;   // bufor historii bierzemy od serwera
+  connBadge.style.cursor = "";
+  connBadge.onclick = null;
+  connBadge.textContent = "łączenie…";
+  connBadge.classList.remove("hidden");
+  openBackendWs(base);
+  pollOnce();          // natychmiast pokaż stan z serwera, nie czekaj na pierwszą ramkę WS
 }
 
 /* Lekki ping serwera do odzysku ze standalone: sam sprawdza dostępność

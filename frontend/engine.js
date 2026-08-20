@@ -531,7 +531,17 @@ function neptunAlerts(data) {
     }
   alertOblasts = active;
 }
+/* Silnik da się ZATRZYMAĆ: gdy serwer wróci, przełączamy się na niego w locie,
+   zamiast trzymać dwa źródła stanu naraz (i zamiast przeładowywać apkę pod
+   palcami użytkownika). `stopped` blokuje wszystko, co mogłoby jeszcze wystrzelić
+   z zaległych żądań, a `timers` trzyma uchwyty do wyczyszczenia. */
+let stopped = false;
+const timers = [];
+const every = (fn, ms) => { const id = setInterval(fn, ms); timers.push(id); return id; };
+const later = (fn, ms) => { const id = setTimeout(fn, ms); timers.push(id); return id; };
+
 function startNeptun() {
+  if (stopped) return;
   try { ws = new WebSocket("wss://neptun.in.ua/api/v1/stream"); } catch { return retryNeptun(); }
   ws.onopen = () => { markHealth("neptun", true); wsRetry = 1; emit(); };
   ws.onmessage = (e) => {
@@ -547,8 +557,20 @@ function startNeptun() {
 }
 function retryNeptun() {
   if (ws) { ws.onclose = ws.onerror = null; try { ws.close(); } catch {} ws = null; }
-  setTimeout(startNeptun, Math.min(wsRetry*1000, 30000));
+  if (stopped) return;
+  later(startNeptun, Math.min(wsRetry*1000, 30000));
   wsRetry = Math.min(wsRetry*2, 30);
+}
+
+/* Zatrzymanie silnika: gasi wszystkie interwały/timery i zamyka gniazdo Neptuna.
+   Po tym żaden kolektor nie odpytuje już źródeł ani nie zgłasza stanu do UI. */
+function stop() {
+  if (stopped) return;
+  stopped = true;
+  for (const id of timers) { clearInterval(id); clearTimeout(id); }
+  timers.length = 0;
+  if (ws) { ws.onclose = ws.onerror = ws.onmessage = null; try { ws.close(); } catch {} ws = null; }
+  onState = null;   // zaległe odpowiedzi nie wepchną już stanu do UI
 }
 
 /* ── kolektor: ADS-B ─────────────────────────────────────────────────────── */
@@ -841,10 +863,11 @@ async function tickPansa() {
 /* ── emisja stanu (ten sam kształt co backend build_state) ───────────────── */
 let emitPending = false;
 function emit() {
-  if (!onState || emitPending) return;
+  if (stopped || !onState || emitPending) return;
   emitPending = true;
   setTimeout(() => {
     emitPending = false;
+    if (stopped || !onState) return;   // silnik zatrzymany w międzyczasie
     onState({
       fusion: computeState(),
       neptun: { status: { connected: health.neptun, mode: "app-ws" },
@@ -950,16 +973,16 @@ async function start(stateCb) {
     try { Notification.requestPermission(); } catch {}
   }
   startNeptun();
-  tickAdsb(); setInterval(tickAdsb, 60000);
-  tickRss(); setInterval(tickRss, 60000);
-  tickRcb(); setInterval(tickRcb, 180000);   // 3 min: alerty RCB nie zmieniają się częściej
-  tickRso(); setInterval(tickRso, 180000);   // 3 min: rzadziej niż backend (60 s), bo tu
-                                             // pyta KAŻDY telefon osobno — nie obciążamy źródła
-  tickPansa(); setInterval(tickPansa, 300000);
-  setInterval(reevaluate, 30000);   // wygasanie okna bez nowych zdarzeń
-  setTimeout(saveSnapshot, 20000);
-  setInterval(saveSnapshot, 120000);
+  tickAdsb(); every(tickAdsb, 60000);
+  tickRss(); every(tickRss, 60000);
+  tickRcb(); every(tickRcb, 180000);   // 3 min: alerty RCB nie zmieniają się częściej
+  tickRso(); every(tickRso, 180000);   // 3 min: rzadziej niż backend (60 s), bo tu
+                                       // pyta KAŻDY telefon osobno — nie obciążamy źródła
+  tickPansa(); every(tickPansa, 300000);
+  every(reevaluate, 30000);   // wygasanie okna bez nowych zdarzeń
+  later(saveSnapshot, 20000);
+  every(saveSnapshot, 120000);
 }
 
-return { start, history, timeline, historyFrom, timelineFrom, accumulate };
+return { start, stop, history, timeline, historyFrom, timelineFrom, accumulate };
 })();
