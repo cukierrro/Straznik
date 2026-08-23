@@ -5,7 +5,7 @@ namierzanie obiektów wroga. Sygnał = statystyczna anomalia: liczba maszyn
 wojskowych nad województwem > 2x baseline z ostatnich 7 dni.
 
 Domyślnie darmowe, bezkluczowe API adsb.lol (endpoint /v2/mil — wszystkie
-maszyny wojskowe globalnie, filtrujemy bboxem). Fallback: adsb.fi.
+maszyny wojskowe globalnie, filtrujemy bboxem). Fallback: opendata.adsb.fi.
 Opcjonalnie ADSBexchange przez RapidAPI (klucz w .env).
 """
 import asyncio
@@ -27,33 +27,57 @@ current_aircraft: list[dict] = []
 MIL_CALLSIGN_PREFIXES = ("NATO", "MMF", "REDEYE", "BART", "OSY", "PLF", "HKY",
                          "VIPER", "WOLF", "FENIX", "DUKE", "TIGER")
 
+# Nagłówek jak z przeglądarki — bez niego adsb.lol odrzuca żądanie (403).
+UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+      "(KHTML, like Gecko) Chrome/126.0 Safari/537.36")
+
+# Darmowe, bezkluczowe źródła maszyn wojskowych (globalnie, filtrujemy bboxem).
+MIL_ENDPOINTS = {
+    "adsb.lol": "https://api.adsb.lol/v2/mil",
+    "adsb.fi": "https://opendata.adsb.fi/api/v2/mil",
+}
+
 
 async def _fetch_mil(client: httpx.AsyncClient) -> list[dict] | None:
+    """Lista maszyn wojskowych: wybrany dostawca, a przy błędzie kolejni zapasowi.
+
+    UWAGA (20.08.2026): adsb.lol zaczął odrzucać domyślny User-Agent bibliotek
+    (`python-httpx/...`) z kodem 403 — dokładnie ten sam adres z nagłówkiem
+    przeglądarki zwraca 200. Dlatego KAŻDE żądanie idzie z UA jak z przeglądarki.
+    Przy okazji: stary zapasowy adres `api.adsb.fi/v2` już nie istnieje (404),
+    adsb.fi wystawia dane pod `opendata.adsb.fi/api/v2`.
+    """
     prov = config.ADSB_PROVIDER
-    try:
-        if prov == "adsbx" and config.ADSBX_RAPIDAPI_KEY:
+    if prov == "adsbx" and config.ADSBX_RAPIDAPI_KEY:
+        try:
             r = await client.get(
                 "https://adsbexchange-com1.p.rapidapi.com/v2/mil/",
                 headers={"X-RapidAPI-Key": config.ADSBX_RAPIDAPI_KEY,
                          "X-RapidAPI-Host": "adsbexchange-com1.p.rapidapi.com"})
             r.raise_for_status()
+            status.update(ok=True, error=None, provider="adsbx")
             return r.json().get("ac") or []
-        base = "https://api.adsb.fi/v2" if prov == "adsb.fi" else "https://api.adsb.lol/v2"
-        r = await client.get(f"{base}/mil")
-        r.raise_for_status()
-        return r.json().get("ac") or []
-    except Exception as e:
-        status.update(ok=False, error=f"{prov}: {e}")
-        # automatyczny fallback adsb.lol -> adsb.fi
-        if prov == "adsb.lol":
-            try:
-                r = await client.get("https://api.adsb.fi/v2/mil")
-                r.raise_for_status()
-                status.update(ok=True, error=None, provider="adsb.fi(fallback)")
-                return r.json().get("ac") or []
-            except Exception:
-                pass
-        return None
+        except Exception as e:
+            status.update(ok=False, error=f"adsbx: {e}")
+
+    # wybrany dostawca pierwszy, pozostali jako zapas
+    order = [prov] + [p for p in MIL_ENDPOINTS if p != prov]
+    last_err = None
+    for name in order:
+        url = MIL_ENDPOINTS.get(name)
+        if not url:
+            continue
+        try:
+            r = await client.get(url, headers={"User-Agent": UA})
+            r.raise_for_status()
+            status.update(ok=True, error=None,
+                          provider=name if name == prov else f"{name}(fallback)")
+            return r.json().get("ac") or []
+        except Exception as e:
+            last_err = f"{name}: {e}"
+            log.warning("ADS-B %s nie odpowiada: %s", name, e)
+    status.update(ok=False, error=last_err)
+    return None
 
 
 def _classify(ac: dict) -> dict | None:

@@ -577,11 +577,15 @@ function stop() {
 async function tickAdsb() {
   try {
     /* airplanes.live wzbogaca rekordy o pełną nazwę typu (desc), operatora (ownOp)
-       i rok — adsb.lol tego nie zwraca, a to właśnie te pola robią różnicę w karcie
-       samolotu. Dlatego pytamy najpierw jego, a adsb.lol zostaje zapasem. Oba mają
-       ten sam format /v2/mil, więc reszta kodu się nie zmienia. */
+       i rok — adsb.lol tego nie zwraca. Wszystkie mają ten sam format /v2/mil,
+       więc kolejność można zmieniać bez ruszania reszty kodu. */
     let txt = null;
-    for (const u of ["https://api.airplanes.live/v2/mil", "https://api.adsb.lol/v2/mil"]) {
+    /* Kolejność wg tego, co REALNIE odpowiada (sprawdzone 20.08.2026):
+       airplanes.live zaczął zwracać 403, więc pytamy najpierw adsb.lol; gdy
+       airplanes.live wróci, znów wzbogaci karty o desc/ownOp. opendata.adsb.fi
+       to trzeci zapas (stary api.adsb.fi/v2 już nie istnieje — 404). */
+    for (const u of ["https://api.adsb.lol/v2/mil", "https://api.airplanes.live/v2/mil",
+                     "https://opendata.adsb.fi/api/v2/mil"]) {
       try { txt = await httpGet(u); if (txt) break; } catch {}
     }
     if (!txt) throw new Error("brak odpowiedzi ADS-B");
