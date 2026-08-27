@@ -65,20 +65,44 @@ def nearest_border_point(lat: float, lon: float):
     return best
 
 
-def assess_threat(lat: float, lon: float, heading, tolerance_deg: float):
+def course_factor(heading, brg: float, dist_km: float, tol: float,
+                  soft: float, unknown_mult: float, unknown_max_km: float) -> float:
+    """Waga kursu 0..1 — ile z punktów obiektu bierzemy pod uwagę.
+
+    * kurs znany: 1,0 do `tol`, potem LINIOWO do zera przy `soft` (koniec twardego
+      cięcia, przez które obiekt z różnicą 51° dostawał 0 zamiast prawie pełnej wagi);
+    * kurs NIEZNANY: `unknown_mult`, ale tylko bliżej niż `unknown_max_km` — brak
+      danych o kursie nie może oznaczać ciszy dla obiektu tuż przy granicy.
+    """
+    if heading is None:
+        return unknown_mult if dist_km <= unknown_max_km else 0.0
+    d = angle_diff(float(heading), brg)
+    if d <= tol:
+        return 1.0
+    if d >= soft:
+        return 0.0
+    return round((soft - d) / (soft - tol), 3)
+
+
+def assess_threat(lat: float, lon: float, heading, tolerance_deg: float,
+                  soft_deg: float = 70.0, unknown_mult: float = 0.5,
+                  unknown_max_km: float = 150.0):
     """Ocena obiektu względem granicy PL.
 
-    Zwraca dict: dist_km, border_voiv, toward_pl (heading w stronę granicy),
-    bearing_to_border.
+    Zwraca dict: dist_km, border_voiv, bearing_to_border, course_factor (0..1),
+    heading_known, toward_pl (= course_factor > 0; zgodność z UI i listą obiektów).
     """
     dist, blat, blon, voiv = nearest_border_point(lat, lon)
     brg = bearing_deg(lat, lon, blat, blon)
-    toward = heading is not None and angle_diff(float(heading), brg) <= tolerance_deg
+    cf = course_factor(heading, brg, dist, tolerance_deg, soft_deg,
+                       unknown_mult, unknown_max_km)
     return {
         "dist_km": round(dist, 1),
         "border_voiv": voiv,
         "bearing_to_border": round(brg, 1),
-        "toward_pl": toward,
+        "course_factor": cf,
+        "heading_known": heading is not None,
+        "toward_pl": cf > 0,
     }
 
 

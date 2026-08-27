@@ -15,6 +15,9 @@
 html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--text);
   font-family: "Segoe UI", system-ui, sans-serif; }
 
+/* Bez zaznaczania tekstu na mapie: przytrzymanie palca otwierało systemowe
+   „Kopiuj / Udostępnij", co przy przeciąganiu mapy zdarzało się przypadkiem. */
+#map { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 #map { position: absolute; inset: 0; }
 
 /* ── pasek górny ── */
@@ -449,11 +452,28 @@ dialog select { width: 100%; margin-top: 6px; padding: 8px 10px; border-radius: 
 
 /* pozycje sygnałów */
 .sig {
-  font-size: 12px; line-height: 1.4; padding: 7px 9px; border-radius: 9px;
+  font-size: 12px; line-height: 1.4; padding: 8px 10px; border-radius: 10px;
   background: rgba(90, 120, 190, 0.08); border-left: 3px solid var(--accent);
 }
-.sig .src { font-weight: 700; font-size: 10px; letter-spacing: .08em; margin-right: 6px; }
-.sig .pts { float: right; font-weight: 700; color: var(--amber); }
+/* Nagłówek wiersza: źródło po lewej, punkty po prawej — bez float, żeby przy
+   długim tytule punkty nie wchodziły w tekst (na telefonie to gubiło czytelność). */
+.sig-head { display: flex; align-items: center; justify-content: space-between;
+  gap: 8px; margin-bottom: 3px; }
+.sig .src { font-weight: 700; font-size: 10.5px; letter-spacing: .06em;
+  color: var(--tx2, #a9b4cc); white-space: nowrap; }
+.sig .pts { font-weight: 800; color: var(--amber); font-size: 13px;
+  background: rgba(255,176,32,.12); border-radius: 999px; padding: 1px 8px;
+  white-space: nowrap; }
+.sig .pts.capped { color: var(--muted); background: rgba(140,150,175,.12); }
+.sig-title { font-size: 12.5px; line-height: 1.35; }
+/* Pasek udziału: ile ten sygnał wnosi względem progu 2 pkt — jeden rzut oka
+   wystarczy, żeby odróżnić drobiazg od sygnału domykającego alarm. */
+.sig-bar { height: 3px; border-radius: 2px; background: rgba(140,150,175,.18);
+  margin: 5px 0 4px; overflow: hidden; }
+.sig-bar i { display: block; height: 100%; background: var(--amber); border-radius: 2px; }
+.sig.src-neptun .sig-bar i { background: var(--red); }
+.sig.src-adsb .sig-bar i { background: var(--cyan); }
+.sig.src-pansa .sig-bar i { background: #b07dff; }
 .sig .ts { color: var(--muted); font-size: 10.5px; }
 .sig.src-neptun { border-left-color: var(--red); }
 .sig.src-media { border-left-color: var(--amber); }

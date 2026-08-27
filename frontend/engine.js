@@ -59,6 +59,9 @@ const NEPTUN_LIFECYCLE_MULT = { confirmed: 1.1, uncertain: 0.85, created: 0.7 };
 const NEPTUN_SOURCE_MULT = [[1, 0.7], [2, 0.9], [4, 1.1]];
 const NEPTUN_SOURCE_MULT_MAX = 1.25;
 const HEADING_TOL = 50;
+/* Waga kursu (lustro geo.course_factor): twarde cięcie na 50° gubiło obiekty tuż
+   za progiem, a brak pola heading wyciszał nawet rakietę tuż przy granicy. */
+const HEADING_SOFT = 70, UNKNOWN_HEADING_MULT = 0.5, UNKNOWN_HEADING_MAX_KM = 150;
 const BORDER_POINTS = [
   [54.44,19.80,"warmińsko-mazurskie"],[54.35,20.60,"warmińsko-mazurskie"],
   [54.36,21.50,"warmińsko-mazurskie"],[54.34,22.79,"warmińsko-mazurskie"],
@@ -227,14 +230,24 @@ function haversine(a,b,c,d){const p1=rad(a),p2=rad(c),dp=rad(c-a),dl=rad(d-b);
 function bearing(a,b,c,d){const p1=rad(a),p2=rad(c),dl=rad(d-b);
   const y=Math.sin(dl)*Math.cos(p2),x=Math.cos(p1)*Math.sin(p2)-Math.sin(p1)*Math.cos(p2)*Math.cos(dl);
   return (Math.atan2(y,x)*180/Math.PI+360)%360;}
+function courseFactor(heading, brg, distKm){
+  if (heading == null)
+    return distKm <= UNKNOWN_HEADING_MAX_KM ? UNKNOWN_HEADING_MULT : 0;
+  const raw = Math.abs(heading - brg) % 360;
+  const d = Math.min(raw, 360 - raw);
+  if (d <= HEADING_TOL) return 1;
+  if (d >= HEADING_SOFT) return 0;
+  return Math.round((HEADING_SOFT - d) / (HEADING_SOFT - HEADING_TOL) * 1000) / 1000;
+}
 function assess(lat,lon,heading){
   let best=null;
   for(const [bl,bo,v] of BORDER_POINTS){const d=haversine(lat,lon,bl,bo);
     if(!best||d<best[0])best=[d,bl,bo,v];}
   const brg=bearing(lat,lon,best[1],best[2]);
-  const diff=heading==null?999:Math.min(Math.abs(heading-brg)%360,360-Math.abs(heading-brg)%360);
-  return {dist_km:Math.round(best[0]*10)/10, border_voiv:best[3],
-          bearing_to_border:Math.round(brg), toward_pl:diff<=HEADING_TOL};
+  const dist=Math.round(best[0]*10)/10;
+  const cf=courseFactor(heading,brg,dist);
+  return {dist_km:dist, border_voiv:best[3], bearing_to_border:Math.round(brg),
+          course_factor:cf, heading_known:heading!=null, toward_pl:cf>0};
 }
 function voivForPoint(lat,lon){
   let hits=[];
@@ -477,7 +490,7 @@ function sourceMult(n) {
   for (const [limit, mult] of NEPTUN_SOURCE_MULT) if (n <= limit) return mult;
   return NEPTUN_SOURCE_MULT_MAX;
 }
-function scoreThreat(t, distKm) {
+function scoreThreat(t, distKm, courseFactorVal = 1) {
   const weight = NEPTUN_TYPE_WEIGHTS[(t.type || "").toLowerCase()] || 0;
   if (weight <= 0 || distKm >= NEPTUN_MAX_KM) return 0;
   const count = Math.max(parseInt(t.count) || 1, 1);
@@ -486,16 +499,30 @@ function scoreThreat(t, distKm) {
   const sources = Math.max(parseInt(t.sourceCount) || 1, 1);
   const p = weight * Math.sqrt(count) * distMult(distKm)
     * (NEPTUN_CONF_MULT[conf] ?? 0.35) * sourceMult(sources)
-    * (NEPTUN_LIFECYCLE_MULT[life] ?? 0.85);
+    * (NEPTUN_LIFECYCLE_MULT[life] ?? 0.85)
+    * courseFactorVal;          // waga kursu (lustro geo.course_factor)
   return Math.round(p * 100) / 100;
 }
 
+/* Ostatnia pozycja tracka — kurs wyliczany z ruchu, gdy NEPTUN go nie podaje. */
+const lastPos = new Map();
+function headingOf(t) {
+  if (t.heading != null) return t.heading;
+  const prev = lastPos.get(t.id);
+  if (prev && haversine(prev[0], prev[1], t.lat, t.lon) >= 2) {
+    const est = bearing(prev[0], prev[1], t.lat, t.lon);
+    t.heading_estimated = Math.round(est * 10) / 10;
+    return est;
+  }
+  return null;
+}
 function neptunEval(t) {
   if (t.lat == null) return t;
-  t.pl_assessment = assess(t.lat, t.lon, t.heading);
+  t.pl_assessment = assess(t.lat, t.lon, headingOf(t));
+  if (t.id != null) lastPos.set(t.id, [t.lat, t.lon]);
   const a = t.pl_assessment, ty = (t.type||"").toLowerCase();
   if (a.toward_pl) {
-    const points = scoreThreat(t, a.dist_km);
+    const points = scoreThreat(t, a.dist_km, a.course_factor);
     if (points > 0) {
       const count = Math.max(parseInt(t.count) || 1, 1);
       const conf = (t.confidenceLevel||"low").toLowerCase();
@@ -507,7 +534,10 @@ function neptunEval(t) {
       addSignal("neptun", "neptun_threat", a.border_voiv, points,
         `${ile}${t.title||ty} kursem na granicę PL, ${a.dist_km} km (woj. ${a.border_voiv}, `
         + `confidence: ${conf}, ${sources} potwierdzeń, ±${t.uncertaintyKm??"?"} km)`,
-        { track_id: t.id, dist_km: a.dist_km, count, source_count: sources },
+        { track_id: t.id, dist_km: a.dist_km, count, source_count: sources,
+          course: a.heading_known ? "known"
+                : (t.heading_estimated != null ? "estimated" : "unknown"),
+          course_factor: a.course_factor },
         `neptun:${t.id}:t${tier}`);
     }
   }

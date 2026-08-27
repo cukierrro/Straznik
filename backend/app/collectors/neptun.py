@@ -64,12 +64,40 @@ async def _handle_alerts(data):
     alert_oblasts = new_active
 
 
+# Ostatnia znana pozycja tracka — do wyliczenia kursu, gdy NEPTUN go nie podaje.
+_last_pos: dict[str, tuple[float, float]] = {}
+_MIN_MOVE_KM = 2.0   # mniejsze przesunięcia to szum pozycji (±km niepewności)
+
+
+def _heading_of(t: dict) -> float | None:
+    """Kurs z danych, a gdy go brak — wyliczony z przesunięcia względem
+    poprzedniej obserwacji tego samego obiektu. NEPTUN często nie podaje
+    `heading` (tak przepadła rakieta 130 km od granicy), a kierunek lotu da się
+    odtworzyć z kolejnych pozycji — to samo robi UI, rysując ślad."""
+    h = t.get("heading")
+    if h is not None:
+        return h
+    tid, lat, lon = t.get("id"), t.get("lat"), t.get("lon")
+    prev = _last_pos.get(tid)
+    if prev and geo.haversine_km(prev[0], prev[1], lat, lon) >= _MIN_MOVE_KM:
+        est = geo.bearing_deg(prev[0], prev[1], lat, lon)
+        t["heading_estimated"] = round(est, 1)
+        return est
+    return None
+
+
 def _evaluate(t: dict) -> dict:
     """Dokleja do tracka ocenę względem granicy PL."""
     lat, lon = t.get("lat"), t.get("lon")
     if lat is None or lon is None:
         return t
-    a = geo.assess_threat(lat, lon, t.get("heading"), config.NEPTUN_HEADING_TOLERANCE)
+    heading = _heading_of(t)
+    a = geo.assess_threat(lat, lon, heading, config.NEPTUN_HEADING_TOLERANCE,
+                          config.NEPTUN_HEADING_SOFT_DEG,
+                          config.NEPTUN_UNKNOWN_HEADING_MULT,
+                          config.NEPTUN_UNKNOWN_HEADING_MAX_KM)
+    if t.get("id") is not None:
+        _last_pos[t["id"]] = (lat, lon)
     t["pl_assessment"] = a
     region = t.get("region") or ""
     t["border_region"] = any(r in region for r in config.NEPTUN_BORDER_REGIONS)
@@ -90,7 +118,7 @@ def _source_mult(n: int) -> float:
     return config.NEPTUN_SOURCE_MULT_MAX
 
 
-def score_threat(t: dict, dist_km: float) -> float:
+def score_threat(t: dict, dist_km: float, course_factor: float = 1.0) -> float:
     """Punkty za pojedynczy track: co leci, ile tego, jak blisko, jak pewnie.
 
     Zwraca 0 dla typów nieistotnych dla Polski (FPV) i dla obiektów spoza
@@ -108,7 +136,10 @@ def score_threat(t: dict, dist_km: float) -> float:
               * _dist_mult(dist_km)
               * config.NEPTUN_CONF_MULT.get(conf, 0.35)
               * _source_mult(sources)
-              * config.NEPTUN_LIFECYCLE_MULT.get(life, 0.85))
+              * config.NEPTUN_LIFECYCLE_MULT.get(life, 0.85)
+              # waga kursu: 1,0 przy locie na granicę, mniej przy skosie,
+              # kara przy nieznanym kursie (patrz geo.course_factor)
+              * course_factor)
     return round(points, 2)
 
 
@@ -117,7 +148,7 @@ async def _maybe_signal(t: dict):
     a = t.get("pl_assessment")
     if not a or not a["toward_pl"]:
         return
-    points = score_threat(t, a["dist_km"])
+    points = score_threat(t, a["dist_km"], a.get("course_factor", 1.0))
     if points <= 0:
         return
 
@@ -126,7 +157,10 @@ async def _maybe_signal(t: dict):
     conf = (t.get("confidenceLevel") or "low").lower()
     sources = max(int(t.get("sourceCount") or 1), 1)
     ile = f"{count}× " if count > 1 else ""
-    title = (f"{ile}{t.get('title') or ttype} kursem na granicę PL, {a['dist_km']} km "
+    kurs_info = ("" if a.get("heading_known") else
+                 (" [kurs szacowany z ruchu]" if t.get("heading_estimated") is not None
+                  else " [kurs nieznany]"))
+    title = (f"{ile}{t.get('title') or ttype} kursem na granicę PL, {a['dist_km']} km{kurs_info} "
              f"(woj. {a['border_voiv']}, confidence: {conf}, {sources} potwierdzeń, "
              f"±{t.get('uncertaintyKm', '?')} km)")
     # Poziom w kluczu deduplikacji: gdy obiekt się zbliży albo zyska potwierdzenia,
@@ -140,7 +174,10 @@ async def _maybe_signal(t: dict):
                  "confidence": conf, "source_count": sources,
                  "lifecycle": t.get("lifecycle"),
                  "uncertainty_km": t.get("uncertaintyKm"),
-                 "dist_km": a["dist_km"], "region": t.get("region")},
+                 "dist_km": a["dist_km"], "region": t.get("region"),
+                 "course": ("known" if a.get("heading_known") else
+                            "estimated" if t.get("heading_estimated") is not None else "unknown"),
+                 "course_factor": a.get("course_factor")},
         dedup_key=f"neptun:{t.get('id')}:t{tier}",
     )
 

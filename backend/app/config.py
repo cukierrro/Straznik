@@ -60,6 +60,14 @@ NEPTUN_LIFECYCLE_MULT = {"confirmed": 1.1, "uncertain": 0.85, "created": 0.7}
 NEPTUN_SOURCE_MULT = ((1, 0.7), (2, 0.9), (4, 1.1))
 NEPTUN_SOURCE_MULT_MAX = 1.25
 NEPTUN_HEADING_TOLERANCE = 50.0    # ± stopni od azymutu na najbliższy punkt granicy
+# Twarde cięcie na 50° gubiło obiekty tuż za progiem (51° = 0 pkt), więc waga
+# kursu spada LINIOWO od tolerancji do NEPTUN_HEADING_SOFT_DEG, dopiero potem 0.
+NEPTUN_HEADING_SOFT_DEG = 70.0
+# Obiekt BEZ pola heading (NEPTUN nie zawsze je podaje) był pomijany w ciszy —
+# tak przepadła rakieta manewrująca 130 km od granicy. Teraz liczy się z karą
+# i tylko blisko granicy: nieznany kurs to niepewność, nie dowód bezpieczeństwa.
+NEPTUN_UNKNOWN_HEADING_MULT = 0.5
+NEPTUN_UNKNOWN_HEADING_MAX_KM = 150.0
 # obwody graniczące z PL — obiekty stamtąd zawsze obserwujemy
 NEPTUN_BORDER_REGIONS = ("Волинська", "Львівська", "Закарпатська", "Рівненська")
 

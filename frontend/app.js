@@ -368,10 +368,34 @@ function makePlaneImage() {
   return x.getImageData(0, 0, 44, 44);
 }
 
+/* Kolejność stylów: OpenFreeMap (wektor, schemat OpenMapTiles — niesie nazwy
+   w wielu językach, więc etykiety da się przełączyć na POLSKIE), potem CARTO,
+   na końcu raster. Każdy kolejny to zapas, gdyby poprzedni nie odpowiadał. */
+const MAP_STYLES = [
+  "https://tiles.openfreemap.org/styles/dark",
+  "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
+];
+
+/* Etykiety po polsku: kafelki OpenMapTiles mają name:pl (Warszawa, Niemcy,
+   Białoruś…). Gdy dla obiektu brak polskiej nazwy, schodzimy na name:latin,
+   a potem na name — nigdy nie zostaje pusto. */
+function polishLabels() {
+  const field = ["coalesce", ["get", "name:pl"], ["get", "name:latin"], ["get", "name"]];
+  for (const lyr of map.getStyle().layers || []) {
+    if (lyr.type !== "symbol") continue;
+    try {
+      if (map.getLayoutProperty(lyr.id, "text-field") !== undefined)
+        map.setLayoutProperty(lyr.id, "text-field", field);
+    } catch {}
+  }
+}
+
 async function initMap() {
-  let style = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
-  try { const r = await fetch(style, { method: "HEAD" }); if (!r.ok) style = FALLBACK_STYLE; }
-  catch { style = FALLBACK_STYLE; }
+  let style = FALLBACK_STYLE;
+  for (const url of MAP_STYLES) {
+    try { const r = await fetch(url, { method: "HEAD" }); if (r.ok) { style = url; break; } }
+    catch {}
+  }
 
   map = new maplibregl.Map({
     container: "map", style,
@@ -380,6 +404,7 @@ async function initMap() {
   });
 
   map.on("load", async () => {
+    polishLabels();
     // wzmocnij granice państw w stylu bazowym (domyślnie ledwo widoczne)
     for (const lyr of map.getStyle().layers || []) {
       if (lyr.type === "line" && /boundar|admin/i.test(lyr.id)) {
@@ -409,9 +434,24 @@ async function initMap() {
       paint: { "fill-color": ["match", ["get", "iso"],
           ...Object.entries(COUNTRY_COLORS).flat(), "#333"],
         "fill-opacity": 0.42 } });
-    map.addLayer({ id: "kraje-line", type: "line", source: "kraje",
-      paint: { "line-color": "#9db1d9", "line-opacity": 0.85,
-        "line-width": ["interpolate", ["linear"], ["zoom"], 3, 1.0, 7, 2.0] } });
+    /* Kontury krajów rysuje już styl bazowy (warstwy boundary). Własnej linii
+       NIE dokładamy: wzdłuż granicy PL biegłaby obok linii województw i dawała
+       efekt „podwójnego konturu". Zostaje samo wypełnienie (odcień kraju). */
+
+    /* POLSKA: jeden spójny kształt scalony z 16 województw (assets/polska.geojson),
+       więc jej granica idealnie pokrywa się z warstwami wojewódzkimi — koniec
+       rozjazdu z zgrubnymi poligonami sąsiadów. Delikatny błękit + jeden czysty
+       kontur = kraj czytelnie wyróżniony bez krzykliwości. */
+    const pl = await (await fetch("assets/polska.geojson")).json();
+    map.addSource("pl", { type: "geojson", data: pl });
+    map.addLayer({ id: "pl-fill", type: "fill", source: "pl",
+      paint: { "fill-color": "#3d5f9e", "fill-opacity": 0.22 } });
+    map.addLayer({ id: "pl-halo", type: "line", source: "pl",
+      paint: { "line-color": "#7fb0ff", "line-opacity": 0.18,
+        "line-width": ["interpolate", ["linear"], ["zoom"], 3, 6, 7, 14], "line-blur": 6 } });
+    map.addLayer({ id: "pl-line", type: "line", source: "pl",
+      paint: { "line-color": "#a9c8ff", "line-opacity": 0.95,
+        "line-width": ["interpolate", ["linear"], ["zoom"], 3, 1.4, 7, 2.6] } });
 
     const gj = await (await fetch("assets/wojewodztwa.geojson")).json();
     voivGeo = gj;
@@ -429,10 +469,12 @@ async function initMap() {
     });
     map.addLayer({
       id: "voiv-line", type: "line", source: "voiv",
+      // podziały WEWNĘTRZNE — cieńsze niż granica państwa (pl-line), żeby nie
+      // konkurowały z nią wizualnie; ściana wschodnia nadal wyraźniejsza
       paint: { "line-color": ["case",
-          ["in", ["get", "nazwa"], ["literal", PRIORITY]], "rgba(140,175,255,.75)",
-          "rgba(120,150,210,.38)"],
-        "line-width": ["case", ["in", ["get", "nazwa"], ["literal", PRIORITY]], 2.0, 1.0] },
+          ["in", ["get", "nazwa"], ["literal", PRIORITY]], "rgba(150,180,255,.55)",
+          "rgba(125,150,205,.26)"],
+        "line-width": ["case", ["in", ["get", "nazwa"], ["literal", PRIORITY]], 1.3, 0.7] },
     });
 
     map.addSource("trails", { type: "geojson", data: emptyFC() });
@@ -1011,7 +1053,10 @@ function renderPanel() {
     return `<div class="threat-row clickable" data-lat="${t.lat}" data-lon="${t.lon}"
       data-kind="threat" data-id="${esc(t.id)}">
       <b style="color:${m.color}">${esc(m.label)}</b>
-      — ${a.dist_km} km od granicy (${esc(a.border_voiv)})${a.toward_pl ? " · <b style='color:#ff4d5e'>kurs na PL</b>" : ""}
+      — ${a.dist_km} km od granicy (${esc(a.border_voiv)})${
+        a.heading_known === false
+          ? " · <b style='color:#ffb020'>kurs nieznany</b>"
+          : (a.toward_pl ? " · <b style='color:#ff4d5e'>kurs na PL</b>" : "")}
       <div class="meta">wiarygodność: ${esc(CONF_PL[t.confidenceLevel] || t.confidenceLevel)}
         · ±${esc(t.uncertaintyKm)} km · ${esc(threatDesc(t))} · ${relTime(t.updatedAt)}</div>
     </div>`;
@@ -1054,15 +1099,52 @@ function sigList(arr, limit) {
   return a.map(sigHTML).join("");
 }
 
+/* Etykiety źródeł po polsku — „PANSA"/„NEIGHBOURS" nic nie mówiły użytkownikowi. */
+const SRC_LABEL = { neptun: "NEPTUN", media: "MEDIA", rcb: "RCB", adsb: "ADS-B",
+  pansa: "PAŻP", neighbours: "SĄSIEDZI", spillover: "SĄSIEDZTWO", test: "TEST" };
+const SRC_ICON = { neptun: "🎯", media: "📰", rcb: "🚨", adsb: "✈", pansa: "🛑",
+  neighbours: "🌍", spillover: "↔", test: "🧪" };
+
 function sigHTML(s) {
   const link = s.details?.link || s.details?.url;
   const cp = s.counted_points ?? s.points;
-  const capped = cp < s.points;
-  return `<div class="sig src-${esc(s.source)}">
-    <span class="pts" ${capped ? 'style="color:var(--muted)" title="ponad limit tej klasy źródła — nie liczony do sumy"' : ""}>+${cp}${capped ? ` <s>${s.points}</s>` : ""}</span>
-    <span class="src">${esc(s.source.toUpperCase())}</span>
-    ${link ? `<a href="${esc(link)}" target="_blank" rel="noopener">${esc(s.title)}</a>` : esc(s.title)}
-    <div class="ts">${relTime(s.ts)} · woj. ${esc(s.voivodeship)}</div>
+  const w = s.weight;                       // waga wygaszania z accumulate (1,0 = świeży)
+  // Rozróżniamy DWA powody, dla których liczy się mniej niż nominał:
+  //  • wygaszanie w czasie (waga < 1) — naturalne starzenie sygnału,
+  //  • limit klasy źródła (cap) — nadwyżka ponad wkład tej klasy w oknie.
+  // Wcześniej oba pokazywały ten sam przekreślony nominał z podpowiedzią o limicie,
+  // co przy zwykłym starzeniu wprowadzało w błąd.
+  const expected = s.points * (w ?? 1);
+  const capped = cp < expected - 0.005;
+  const src = s.source || "";
+  // udział względem progu żółtego (2 pkt) — od razu widać, czy to drobiazg,
+  // czy sygnał, który sam niemal domyka alarm
+  const share = Math.max(0, Math.min(100, (cp / 2) * 100));
+  const faded = w != null && w < 0.99;
+  const d = s.details || {};
+  // NEPTUN: odległość i pewność kursu wprost w wierszu — bez tego nie było
+  // widać, że obiekt bez kursu w ogóle jest brany pod uwagę
+  const extra = [];
+  if (d.dist_km != null) extra.push(`${d.dist_km} km od granicy`);
+  if (src === "neptun") {
+    if (d.course === "unknown") extra.push("kurs nieznany");
+    else if (d.course === "estimated") extra.push("kurs szacowany z ruchu");
+  }
+  if (d.source_count) extra.push(`${d.source_count} potw.`);
+  return `<div class="sig src-${esc(src)}">
+    <div class="sig-head">
+      <span class="src">${SRC_ICON[src] || "•"} ${esc(SRC_LABEL[src] || src.toUpperCase())}</span>
+      <span class="pts${capped ? " capped" : ""}"
+        ${capped ? 'title="ponad limit tej klasy źródła — nadwyżka nie liczy się do sumy"' : ""}>
+        +${cp}${capped ? ` <s>${s.points}</s>` : ""}</span>
+    </div>
+    <div class="sig-title">${link
+      ? `<a href="${esc(link)}" target="_blank" rel="noopener">${esc(s.title)}</a>`
+      : esc(s.title)}</div>
+    <div class="sig-bar"><i style="width:${share.toFixed(0)}%"></i></div>
+    <div class="ts">${relTime(s.ts)} · woj. ${esc(s.voivodeship)}${
+      extra.length ? " · " + extra.map(esc).join(" · ") : ""}${
+      faded ? ` · <span title="sygnał starzeje się w oknie 60 min i traci wagę">waga ${Math.round(w * 100)}%</span>` : ""}</div>
   </div>`;
 }
 
@@ -1487,8 +1569,9 @@ function focusOnMap(d) {
   if (!mapReady || !isFinite(lat) || !isFinite(lon)) return;
   map.flyTo({ center: [lon, lat], zoom: Math.max(map.getZoom(), 7.6),
     speed: 1.2, essential: true });
-  // na wąskim ekranie panel zasłania mapę — schowaj go po wyborze
-  if (window.matchMedia("(max-width: 860px)").matches) setPanel(false);
+  // Panel ZOSTAJE otwarty — samoczynne chowanie się po dotknięciu pozycji było
+  // mylące (wyglądało jak „panel sam się zwija po kilku sekundach") i zabierało
+  // kontekst listy. Zamykamy tylko przyciskiem ✕ lub ☰.
   map.once("moveend", () => {
     const layers = (d.kind === "plane" ? ["adsb"] : ["threats", "threats-glow"])
       .filter(l => map.getLayer(l));
