@@ -111,6 +111,30 @@ if _th is not None and _media_pts is not None and _media_pts >= _th:
 if _th is not None and _media_cap is not None and _media_cap < _th:
     bledy.append(f"cap media={_media_cap} < próg {_th}: dwa media nie dobiją do progu")
 
+# ── krzywa odległości i podłoga przy granicy (obie strony muszą liczyć tak samo)
+# Rozjazd tutaj oznaczałby, że ten sam obiekt dostaje inne punkty na serwerze
+# i w trybie wbudowanym — a to wprost przekłada się na to, czy alarm padnie.
+def _pary(wzorzec, tekst, nazwa):
+    m = re.search(wzorzec, tekst, re.S)
+    if not m:
+        bledy.append(f"nie znaleziono {nazwa}")
+        return []
+    return [(float(a), float(b)) for a, b in
+            re.findall(r"[\(\[]\s*([\d.]+)\s*,\s*([\d.]+)\s*[\)\]]", m.group(1))]
+
+sprawdz("NEPTUN_DIST_CURVE",
+        _pary(r"NEPTUN_DIST_CURVE = \[(.*?)\];", ENGINE, "krzywa js"),
+        _pary(r"NEPTUN_DIST_CURVE = \((.*?)\)\s", CONFIG, "krzywa py"))
+sprawdz("podłoga przy granicy (km)",
+        num(r"NEAR_FLOOR_KM\s*=\s*([\d.]+)", ENGINE, "floor km js"),
+        num(r"NEPTUN_NEAR_FLOOR_KM\s*=\s*([\d.]+)", CONFIG, "floor km py"))
+sprawdz("podłoga przy granicy (pkt)",
+        num(r"NEAR_FLOOR_POINTS\s*=\s*([\d.]+)", ENGINE, "floor pkt js"),
+        num(r"NEPTUN_NEAR_FLOOR_POINTS\s*=\s*([\d.]+)", CONFIG, "floor pkt py"))
+sprawdz("podłoga przy granicy (min. potwierdzeń)",
+        num(r"NEAR_FLOOR_SOURCES\s*=\s*([\d.]+)", ENGINE, "floor src js"),
+        num(r"NEPTUN_NEAR_FLOOR_SOURCES\s*=\s*([\d.]+)", CONFIG, "floor src py"))
+
 # ── wynik ────────────────────────────────────────────────────────────────────
 if bledy:
     print("ROZJAZD MIĘDZY SILNIKAMI (backend ↔ engine.js):")

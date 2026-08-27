@@ -105,9 +105,14 @@ def _evaluate(t: dict) -> dict:
 
 
 def _dist_mult(km: float) -> float:
-    for limit, mult in config.NEPTUN_DIST_BANDS:
-        if km < limit:
-            return mult
+    """Mnożnik odległości z interpolacji liniowej po NEPTUN_DIST_CURVE —
+    bez skoków na okrągłych kilometrach (patrz komentarz przy krzywej)."""
+    pts = config.NEPTUN_DIST_CURVE
+    if km <= pts[0][0]:
+        return pts[0][1]
+    for (x1, y1), (x2, y2) in zip(pts, pts[1:]):
+        if km <= x2:
+            return round(y1 + (y2 - y1) * (km - x1) / (x2 - x1), 4)
     return 0.0
 
 
@@ -140,6 +145,13 @@ def score_threat(t: dict, dist_km: float, course_factor: float = 1.0) -> float:
               # waga kursu: 1,0 przy locie na granicę, mniej przy skosie,
               # kara przy nieznanym kursie (patrz geo.course_factor)
               * course_factor)
+    # Podłoga dla ciężkich typów tuż przy granicy — patrz NEPTUN_NEAR_FLOOR_*.
+    # Skalowana pewnością kursu: przy nieznanym kursie (×0,5) podłoga też jest
+    # połową, więc sam brak danych nie wywoła alarmu.
+    if ((t.get("type") or "").lower() in config.NEPTUN_NEAR_FLOOR_TYPES
+            and dist_km <= config.NEPTUN_NEAR_FLOOR_KM
+            and sources >= config.NEPTUN_NEAR_FLOOR_SOURCES):
+        points = max(points, config.NEPTUN_NEAR_FLOOR_POINTS * course_factor)
     return round(points, 2)
 
 

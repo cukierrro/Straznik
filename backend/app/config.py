@@ -49,8 +49,25 @@ NEPTUN_TYPE_WEIGHTS = {
     "recon":     0.5,   # rozpoznanie samo nie atakuje, ale poprzedza uderzenie
     "fpv":       0.0,   # zasięg kilkunastu km — dla Polski nieistotny
 }
-# progi odległości od granicy PL (km) → mnożnik
-NEPTUN_DIST_BANDS = ((30, 1.6), (60, 1.3), (100, 1.0), (150, 0.55), (250, 0.25))
+# Krzywa odległości od granicy PL (km → mnożnik), interpolowana LINIOWO.
+# Wcześniej były półki ((30,1.6),(60,1.3),(100,1.0),(150,0.55),(250,0.25)) i dawały
+# dwa artefakty: obiekt 99 km miał ×1,0, a 101 km już ×0,55 (utrata połowy punktów
+# przez przekroczenie okrągłej liczby), a cały przedział 30–59 km liczył się
+# identycznie, więc dron 31 km od granicy ważył tyle co 59 km. Punkty kontrolne
+# dobrane tak, by środki dawnych półek zostały w tym samym miejscu — kalibracja
+# się nie przesuwa, znikają tylko skoki.
+NEPTUN_DIST_CURVE = ((0, 1.7), (15, 1.6), (45, 1.3), (80, 1.0), (110, 0.7),
+                     (150, 0.4), (200, 0.25), (250, 0.10))
+
+# Podłoga dla obiektów CIĘŻKICH tuż przy granicy: rakieta manewrująca 30 km od
+# granicy przy „średniej" wiarygodności i 2 potwierdzeniach wychodziła 1,43 pkt,
+# czyli poniżej progu — mnożniki niepewności (0,6 × 0,9 × 0,85) ścinały ją o ponad
+# połowę. Przy TAKIM obiekcie i TAKIM dystansie to za mało: gwarantujemy minimum
+# progu żółtego, skalowane pewnością kursu (nieznany kurs = połowa podłogi).
+NEPTUN_NEAR_FLOOR_KM = 60.0
+NEPTUN_NEAR_FLOOR_TYPES = ("ballistic", "mig31k", "cruise", "missile")
+NEPTUN_NEAR_FLOOR_SOURCES = 2      # min. liczba niezależnych zgłoszeń
+NEPTUN_NEAR_FLOOR_POINTS = 2.0     # = THRESHOLD_ELEVATED
 NEPTUN_MAX_KM = 250.0              # dalej nie punktujemy: przy tej odległości kurs
                                    # jeszcze nic nie przesądza (obiekt może skręcić)
 NEPTUN_CONF_MULT = {"high": 1.0, "medium": 0.6, "low": 0.35}

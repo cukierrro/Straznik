@@ -52,7 +52,12 @@ const NEPTUN_TYPE_WEIGHTS = {
   ballistic: 3.0, mig31k: 2.6, cruise: 2.4, missile: 2.4,
   kab: 1.8, shahed: 1.4, uav: 1.1, recon: 0.5, fpv: 0.0,
 };
-const NEPTUN_DIST_BANDS = [[30, 1.6], [60, 1.3], [100, 1.0], [150, 0.55], [250, 0.25]];
+/* Krzywa odległości interpolowana liniowo (lustro NEPTUN_DIST_CURVE): półki
+   dawały skok 99→101 km (×1,0 → ×0,55) i sklejały 30 km z 59 km. */
+const NEPTUN_DIST_CURVE = [[0,1.7],[15,1.6],[45,1.3],[80,1.0],[110,0.7],[150,0.4],[200,0.25],[250,0.10]];
+/* Podłoga dla ciężkich obiektów tuż przy granicy (lustro NEPTUN_NEAR_FLOOR_*). */
+const NEAR_FLOOR_KM = 60, NEAR_FLOOR_SOURCES = 2, NEAR_FLOOR_POINTS = 2.0;
+const NEAR_FLOOR_TYPES = ["ballistic", "mig31k", "cruise", "missile"];
 const NEPTUN_MAX_KM = 250;
 const NEPTUN_CONF_MULT = { high: 1.0, medium: 0.6, low: 0.35 };
 const NEPTUN_LIFECYCLE_MULT = { confirmed: 1.1, uncertain: 0.85, created: 0.7 };
@@ -483,7 +488,12 @@ function reevaluate() {
 /* Punktacja obiektu — lustrzana kopia reguły z backendu:
    waga typu × √liczba × k_odległości × k_wiarygodności × k_potwierdzeń × k_cyklu. */
 function distMult(km) {
-  for (const [limit, mult] of NEPTUN_DIST_BANDS) if (km < limit) return mult;
+  const p = NEPTUN_DIST_CURVE;
+  if (km <= p[0][0]) return p[0][1];
+  for (let i = 0; i < p.length - 1; i++) {
+    const [x1, y1] = p[i], [x2, y2] = p[i + 1];
+    if (km <= x2) return Math.round((y1 + (y2 - y1) * (km - x1) / (x2 - x1)) * 10000) / 10000;
+  }
   return 0;
 }
 function sourceMult(n) {
@@ -501,7 +511,11 @@ function scoreThreat(t, distKm, courseFactorVal = 1) {
     * (NEPTUN_CONF_MULT[conf] ?? 0.35) * sourceMult(sources)
     * (NEPTUN_LIFECYCLE_MULT[life] ?? 0.85)
     * courseFactorVal;          // waga kursu (lustro geo.course_factor)
-  return Math.round(p * 100) / 100;
+  // podłoga dla ciężkich typów tuż przy granicy, skalowana pewnością kursu
+  const pts = (NEAR_FLOOR_TYPES.includes((t.type || "").toLowerCase())
+      && distKm <= NEAR_FLOOR_KM && sources >= NEAR_FLOOR_SOURCES)
+    ? Math.max(p, NEAR_FLOOR_POINTS * courseFactorVal) : p;
+  return Math.round(pts * 100) / 100;
 }
 
 /* Ostatnia pozycja tracka — kurs wyliczany z ruchu, gdy NEPTUN go nie podaje. */
