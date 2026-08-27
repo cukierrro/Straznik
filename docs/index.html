@@ -239,6 +239,7 @@ footer a{color:var(--tx2)}
       <a href="#alarm">Alarm</a>
       <a href="#tlo">Alarmy push</a>
       <a href="#punkty">Punktacja</a>
+      <a href="#nowosci">Co nowego</a>
       <a href="#granice">Ograniczenia</a>
     </div>
   </div>
@@ -848,7 +849,9 @@ footer a{color:var(--tx2)}
         <tr><td><b>Media</b></td><td>Relacje lokalnych mediów: syreny, wybuch,
           naruszenie przestrzeni powietrznej. Sam pojedynczy artykuł nie alarmuje —
           próg przekracza dopiero potwierdzenie (drugie medium albo inna klasa źródła)</td><td class="pts">+1,5</td></tr>
-        <tr><td><b>RCB</b></td><td>Nowy komunikat Rządowego Centrum Bezpieczeństwa</td><td class="pts">+2</td></tr>
+        <tr><td><b>RCB</b></td><td>Oficjalny <b>Alert RCB</b> — ten sam, który przychodzi
+          SMS-em (aplikacja czyta go z Regionalnego Systemu Ostrzegania) — albo nowy
+          komunikat RCB na gov.pl</td><td class="pts">+2</td></tr>
         <tr><td><b>ADS-B</b></td><td>Ruch lotnictwa wojskowego nad regionem ponad
           dwukrotnie wyższy niż o <b>tej samej porze doby</b> w ostatnich 7 dniach</td><td class="pts">+1</td></tr>
         <tr><td><b>PAŻP</b></td><td>Nowo aktywowana strefa przestrzeni powietrznej
@@ -860,6 +863,32 @@ footer a{color:var(--tx2)}
           wyprzedzający</td><td class="pts">+0,3</td></tr>
       </tbody>
     </table>
+  </div>
+
+  <h3>Czas dolotu — ile zostało minut</h3>
+  <p>Sama odległość niewiele mówi. Te same <b>130 km</b> to około <b>10 minut</b>
+  dla rakiety manewrującej i około <b>45 minut</b> dla drona. Dlatego przy każdym
+  obiekcie aplikacja pokazuje czas — osobno <b>do granicy Polski</b> i
+  <b>do Twojego województwa</b>, bo ktoś pod Warszawą ma zupełnie inny zapas niż
+  ktoś przy granicy.</p>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th>Obiekt 130 km od granicy</th><th>Prędkość typowa</th><th>Czas do granicy</th></tr></thead>
+      <tbody>
+        <tr><td>dron / Shahed</td><td>180 km/h</td><td>~45 min</td></tr>
+        <tr><td>rakieta manewrująca</td><td>800 km/h</td><td>~10 min</td></tr>
+        <tr><td>rakieta balistyczna</td><td>3000 km/h</td><td>~3 min</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="warn">
+    <strong>To szacunek, nie obietnica.</strong> Zakłada, że obiekt utrzyma kurs
+    i prędkość, i <b>nie uwzględnia obrony powietrznej</b> — może zostać zestrzelony
+    albo skręcić. Gdy źródło nie podaje kursu, aplikacja nie zgaduje: zamiast liczby
+    zobaczysz „kurs nieznany". Czas liczony jest do granicy regionu, nie do Twojego
+    dokładnego adresu.
   </div>
 
   <h3>Trzy zasady, które chronią przed fałszywym alarmem</h3>
@@ -918,6 +947,57 @@ footer a{color:var(--tx2)}
   <p>W panelu każdy taki wkład jest osobnym wpisem
   <code>SPILLOVER — Przeniesienie z woj. X (… pkt, 2. krąg)</code>, więc zawsze
   wiadomo, skąd wziął się sygnał i jak daleko podróżował.</p>
+</section>
+
+<section id="nowosci">
+  <div class="eyebrow">Ostatnie zmiany</div>
+  <h2>Co nowego w aplikacji</h2>
+  <p class="lead">Najważniejsze rzeczy, które doszły przez ostatnie tygodnie —
+  wszystkie działają od razu, bez ustawiania czegokolwiek.</p>
+
+  <div class="cards">
+    <div class="card">
+      <span class="big">⏱</span>
+      <h4>Czas dolotu</h4>
+      <p>Przy obiekcie widzisz, ile minut zostało do granicy i do Twojego
+      województwa — a nie tylko ile to kilometrów.</p>
+    </div>
+    <div class="card">
+      <span class="big">🚨</span>
+      <h4>Oficjalne alerty RCB</h4>
+      <p>Aplikacja czyta prawdziwe Alerty RCB (te wysyłane SMS-em) z Regionalnego
+      Systemu Ostrzegania — wcześniej ich nie widziała.</p>
+    </div>
+    <div class="card">
+      <span class="big">🎯</span>
+      <h4>Obiekty bez podanego kursu</h4>
+      <p>Nie są już pomijane. Kurs jest wyliczany z ruchu obiektu, a gdy się nie
+      da — obiekt blisko granicy i tak się liczy, z ostrożnościową karą.</p>
+    </div>
+    <div class="card">
+      <span class="big">📋</span>
+      <h4>Czytelniejszy panel</h4>
+      <p>Polskie nazwy źródeł, wyraźne punkty, wiek i waga sygnału, odległość
+      i czas. Panel nie zwija się już sam.</p>
+    </div>
+    <div class="card">
+      <span class="big">🗺️</span>
+      <h4>Mapa po polsku</h4>
+      <p>Nazwy państw i miejscowości po polsku, Polska wyróżniona spokojnym
+      błękitem, czytelne granice.</p>
+    </div>
+    <div class="card">
+      <span class="big">🔄</span>
+      <h4>Pewniejsze połączenie</h4>
+      <p>Gdy serwer chwilowo nie odpowiada, aplikacja liczy sama, a po jego
+      powrocie wraca na serwer automatycznie.</p>
+    </div>
+  </div>
+
+  <div class="note">
+    <b>Historia 12 godzin</b> przewija się teraz płynnie — całość pobierana jest
+    raz i przewijana lokalnie na telefonie, więc suwak nie czeka na sieć.
+  </div>
 </section>
 
 <section id="granice">

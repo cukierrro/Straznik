@@ -7,7 +7,7 @@
 <title>Strażnik — wczesne ostrzeganie</title>
 <link rel="manifest" href="manifest.json">
 <link rel="stylesheet" href="assets/vendor/maplibre-gl.css">
-<link rel="stylesheet" href="style.css?v=1.7.1">
+<link rel="stylesheet" href="style.css?v=1.7.2">
 </head>
 <body>
 
@@ -192,7 +192,9 @@
       <tr><td><b>Media</b></td><td>relacje lokalnych mediów: syreny, wybuch,
         naruszenie przestrzeni — sam artykuł nie alarmuje, próg przekracza
         dopiero potwierdzenie</td><td class="pts">+1,5</td></tr>
-      <tr><td><b>RCB</b></td><td>nowy komunikat Rządowego Centrum Bezpieczeństwa</td><td class="pts">+2</td></tr>
+      <tr><td><b>RCB</b></td><td>oficjalny <b>Alert RCB</b> (ten sam, który przychodzi
+        SMS-em — czytany z Regionalnego Systemu Ostrzegania) albo nowy komunikat
+        RCB na gov.pl</td><td class="pts">+2</td></tr>
       <tr><td><b>ADS-B</b></td><td>ruch lotnictwa wojskowego ponad dwukrotnie
         wyższy niż o tej samej porze doby w ostatnich 7 dniach</td><td class="pts">+1</td></tr>
       <tr><td><b>PAŻP</b></td><td>nowo aktywowana strefa przestrzeni powietrznej
@@ -224,6 +226,18 @@
     a rutynowy nalot na zachodnią Ukrainę — który zdarza się regularnie i Polsce
     nie zagraża — zostaje poniżej progu. Wkład całego NEPTUN-a jest ograniczony
     do 8 pkt, żeby skala pozostała czytelna.</p>
+
+    <h3>Czas dolotu — ile zostało minut</h3>
+    <p class="fineprint">Sama odległość niewiele mówi: te same „130 km" to około
+    <b>10 minut</b> dla rakiety manewrującej i około <b>45 minut</b> dla drona.
+    Dlatego przy obiekcie pokazujemy czas — osobno <b>do granicy Polski</b> i
+    <b>do Twojego województwa</b> (ktoś pod Warszawą ma inny zapas niż ktoś przy
+    granicy). Liczymy go z prędkości: podanej przez źródło, a gdy jej brak —
+    wyliczonej z kolejnych pozycji albo typowej dla klasy obiektu.</p>
+    <p class="fineprint"><b>To szacunek, nie obietnica.</b> Zakłada utrzymanie kursu
+    i prędkości oraz <b>nie uwzględnia obrony powietrznej</b> — obiekt może skręcić
+    albo zostać zestrzelony. Gdy kurs obiektu jest nieznany, czasu nie podajemy
+    (zamiast zmyślonej liczby zobaczysz „kurs nieznany").</p>
 
     <h3>Poziomy</h3>
     <div class="lvl-row"><i class="sq" style="--c:#ffb020"></i>
@@ -407,7 +421,7 @@
      Cloudflare, więc po każdym wydaniu wystarczy podbić ?v= i przeglądarki
      dostają nowe app.js/engine.js OD RAZU, bez ręcznego czyszczenia cache CF.
      Podbijaj ?v= razem z versionName w build.gradle. -->
-<script src="engine.js?v=1.7.1"></script>
-<script src="app.js?v=1.7.1"></script>
+<script src="engine.js?v=1.7.2"></script>
+<script src="app.js?v=1.7.2"></script>
 </body>
 </html>

@@ -146,6 +146,70 @@ function threatDesc(t) {
   return parts.join(" · ") || meta.label;
 }
 
+/* ── czas dolotu ─────────────────────────────────────────────────────────────
+   Odległość w km nic nie mówi o zapasie czasu: ta sama „130 km" to ~10 minut dla
+   rakiety manewrującej i ~43 minuty dla drona. Liczymy więc czas — osobno do
+   granicy PL i do WYBRANEGO województwa (użytkownik pod Warszawą ma inny zapas
+   niż ktoś w Hrubieszowie). Prędkość: podana przez źródło → wyliczona z trasy →
+   typowa dla klasy (NEPTUN prędkości praktycznie nie podaje), więc to SZACUNEK. */
+function pointInRing(lat, lon, ring) {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [x1, y1] = ring[i], [x2, y2] = ring[j];
+    if ((y1 > lat) !== (y2 > lat) && lon < x1 + (lat - y1) * (x2 - x1) / (y2 - y1))
+      inside = !inside;
+  }
+  return inside;
+}
+function distToVoivKm(lat, lon, voiv) {
+  const f = (voivGeo?.features || []).find(x => x.properties?.nazwa === voiv);
+  if (!f) return null;
+  const g = f.geometry;
+  const rings = g.type === "Polygon" ? g.coordinates : g.coordinates.flat();
+  for (const r of rings) if (pointInRing(lat, lon, r)) return 0;   // już nad regionem
+  let best = Infinity;
+  for (const r of rings) for (const [lo, la] of r) {
+    const d = Math.hypot((la - lat) * 110.57,
+      (lo - lon) * 111.32 * Math.cos(lat * Math.PI / 180));
+    if (d < best) best = d;
+  }
+  return Math.round(best * 10) / 10;
+}
+const etaMin = (km, kmh) => (km == null || !kmh) ? null : Math.max(0, Math.round(km / kmh * 60));
+/* Czas pokazujemy TYLKO przy znanym kursie na PL — inaczej byłaby to liczba
+   wzięta znikąd (obiekt może lecieć w przeciwną stronę). */
+function etaInfo(t) {
+  const a = t.pl_assessment;
+  if (!a || !a.toward_pl || a.heading_known === false) return null;
+  const v = t.velocity?.speedKmh ?? trackSpeed(t);
+  if (!v) return null;
+  const mine = myVoiv();
+  return {
+    speed: Math.round(v),
+    border: etaMin(a.dist_km, v),
+    voiv: mine ? etaMin(distToVoivKm(t.lat, t.lon, mine), v) : null,
+    voivName: mine,
+  };
+}
+const etaTxt = (m) => m == null ? null : (m < 1 ? "<1 min" : `~${m} min`);
+
+/* Wiersz „czas dolotu" do karty obiektu. Świadomie piszemy „przy tej prędkości",
+   a NIE „czas na schronienie": to szacunek z prędkości typowej dla klasy, obiekt
+   może skręcić albo zostać zestrzelony. Obiecywanie pewności byłoby groźne. */
+function etaHtml(t) {
+  const e = etaInfo(t);
+  if (!e || e.border == null) {
+    return t.pl_assessment && t.pl_assessment.heading_known === false
+      ? `<span style="color:#ffb020">kurs nieznany — czasu dolotu nie szacujemy</span><br>`
+      : "";
+  }
+  const mine = (e.voiv != null && e.voivName)
+    ? ` · do woj. ${esc2(e.voivName)}: <b>${etaTxt(e.voiv)}</b>` : "";
+  return `czas dolotu do granicy PL: <b>${etaTxt(e.border)}</b>${mine}<br>`
+    + `<span style="color:#68758c">szacunek przy prędkości ${e.speed} km/h `
+    + `i utrzymaniu kursu — nie uwzględnia obrony powietrznej</span><br>`;
+}
+
 const COMPASS = ["płn.", "płn.-wsch.", "wsch.", "płd.-wsch.", "płd.", "płd.-zach.", "zach.", "płn.-zach."];
 const compass = (deg) => deg == null ? "" : COMPASS[Math.round(((deg % 360) + 360) % 360 / 45) % 8];
 const ftToM = (ft) => typeof ft === "number" ? Math.round(ft * 0.3048) : null;
@@ -444,14 +508,15 @@ async function initMap() {
        kontur = kraj czytelnie wyróżniony bez krzykliwości. */
     const pl = await (await fetch("assets/polska.geojson")).json();
     map.addSource("pl", { type: "geojson", data: pl });
+    /* Stonowane: szeroka poświata (6–14 px z rozmyciem) robiła „futrzastą",
+       poszarpaną krawędź i mapa wyglądała jak podgląd debugowy. Zostaje cienki,
+       spokojny kontur i delikatne wypełnienie; wyraźna poświata jest zarezerwowana
+       dla WYBRANEGO województwa (warstwa „my-voiv"), gdzie realnie coś znaczy. */
     map.addLayer({ id: "pl-fill", type: "fill", source: "pl",
-      paint: { "fill-color": "#3d5f9e", "fill-opacity": 0.22 } });
-    map.addLayer({ id: "pl-halo", type: "line", source: "pl",
-      paint: { "line-color": "#7fb0ff", "line-opacity": 0.18,
-        "line-width": ["interpolate", ["linear"], ["zoom"], 3, 6, 7, 14], "line-blur": 6 } });
+      paint: { "fill-color": "#2f5a99", "fill-opacity": 0.15 } });
     map.addLayer({ id: "pl-line", type: "line", source: "pl",
-      paint: { "line-color": "#a9c8ff", "line-opacity": 0.95,
-        "line-width": ["interpolate", ["linear"], ["zoom"], 3, 1.4, 7, 2.6] } });
+      paint: { "line-color": "#8fb4ee", "line-opacity": 0.85,
+        "line-width": ["interpolate", ["linear"], ["zoom"], 3, 0.9, 7, 1.6] } });
 
     const gj = await (await fetch("assets/wojewodztwa.geojson")).json();
     voivGeo = gj;
@@ -540,9 +605,15 @@ async function initMap() {
     });
 
     // obrys mojego województwa
+    /* Delikatna poświata TYLKO pod wybranym województwem — jedyne miejsce, gdzie
+       glow niesie informację („to jest Twój region"), więc nie zaśmieca reszty. */
+    map.addLayer({ id: "my-voiv-glow", type: "line", source: "voiv",
+      filter: ["==", ["get", "nazwa"], myVoiv() || "—"],
+      paint: { "line-color": "#7fb0ff", "line-opacity": 0.22, "line-width": 6,
+               "line-blur": 3 } });
     map.addLayer({ id: "my-voiv", type: "line", source: "voiv",
       filter: ["==", ["get", "nazwa"], myVoiv() || "—"],
-      paint: { "line-color": "#7fb0ff", "line-width": 3, "line-opacity": 0.95,
+      paint: { "line-color": "#8ec0ff", "line-width": 2, "line-opacity": 0.9,
         "line-blur": 0.4 } });
 
     mapReady = true;
@@ -694,6 +765,7 @@ function openThreatPopup(lngLat, p) {
         · niepewność pozycji: <b>±${p.uncertainty} km</b><br>
       ${p.heading != null ? `kurs: ${Math.round(p.heading)}° (${compass(p.heading)}) · ` : ""}
       odległość od granicy PL: <b>${p.dist_km ?? "?"} km</b><br>
+      ${p.eta || ""}
       <span style="color:#68758c">Dane: NEPTUN — agregator OSINT, nie radar wojskowy</span>`);
 }
 
@@ -886,7 +958,8 @@ function animate(ts) {
       properties: { type: TYPE_META[t.type] ? t.type : "fpv", heading: t.heading ?? 0,
         color: meta.color,
         confidence: t.confidenceLevel || "?", uncertainty: t.uncertaintyKm ?? "?",
-        opis: threatDesc(t), dist_km: t.pl_assessment?.dist_km } });
+        opis: threatDesc(t), dist_km: t.pl_assessment?.dist_km,
+        eta: etaHtml(t) } });
     if (t.uncertaintyKm)
       unc.push({ type: "Feature", properties: { color: meta.color },
         geometry: { type: "Polygon", coordinates: circleCoords(p.lat, p.lon, t.uncertaintyKm) } });
@@ -1057,6 +1130,11 @@ function renderPanel() {
         a.heading_known === false
           ? " · <b style='color:#ffb020'>kurs nieznany</b>"
           : (a.toward_pl ? " · <b style='color:#ff4d5e'>kurs na PL</b>" : "")}
+      ${(() => { const e = etaInfo(t);
+        return e && e.border != null
+          ? `<div class="meta eta-row">⏱ do granicy <b>${etaTxt(e.border)}</b>${
+              e.voiv != null ? ` · do woj. ${esc(e.voivName)} <b>${etaTxt(e.voiv)}</b>` : ""}</div>`
+          : ""; })()}
       <div class="meta">wiarygodność: ${esc(CONF_PL[t.confidenceLevel] || t.confidenceLevel)}
         · ±${esc(t.uncertaintyKm)} km · ${esc(threatDesc(t))} · ${relTime(t.updatedAt)}</div>
     </div>`;
@@ -1131,6 +1209,12 @@ function sigHTML(s) {
     else if (d.course === "estimated") extra.push("kurs szacowany z ruchu");
   }
   if (d.source_count) extra.push(`${d.source_count} potw.`);
+  // czas dolotu policzony przy sygnale — dla regionu użytkownika, a gdy go brak,
+  // to do granicy; „ile mam czasu" jest ważniejsze niż „ile to kilometrów"
+  const mineV = myVoiv();
+  const etaV = mineV && d.eta_voiv_min ? d.eta_voiv_min[mineV] : null;
+  if (etaV != null) extra.push(`⏱ ${etaTxt(etaV)} do woj. ${mineV}`);
+  else if (d.eta_border_min != null) extra.push(`⏱ ${etaTxt(d.eta_border_min)} do granicy`);
   return `<div class="sig src-${esc(src)}">
     <div class="sig-head">
       <span class="src">${SRC_ICON[src] || "•"} ${esc(SRC_LABEL[src] || src.toUpperCase())}</span>
@@ -1839,7 +1923,8 @@ function showHistoryAt(idx) {
         properties: { type: TYPE_META[t.type] ? t.type : "fpv", heading: t.heading ?? 0,
           color: (TYPE_META[t.type] || {}).color || "#8a93a6",
           confidence: t.confidenceLevel || "?", uncertainty: t.uncertaintyKm ?? "?",
-          opis: threatDesc(t), dist_km: t.pl_assessment?.dist_km } })) });
+          opis: threatDesc(t), dist_km: t.pl_assessment?.dist_km,
+          eta: etaHtml(t) } })) });
     map.getSource("trails")?.setData(emptyFC());
     map.getSource("uncertainty")?.setData(emptyFC());
     map.getSource("adsb")?.setData({ type: "FeatureCollection",
@@ -1950,7 +2035,11 @@ document.getElementById("set-save").onclick = () => {
   const apiChanged = api !== (localStorage.getItem("straznik_api") || "");
   if (api) localStorage.setItem("straznik_api", api); else localStorage.removeItem("straznik_api");
   if (apiChanged) { setTimeout(() => location.reload(), 100); return; }
-  if (mapReady) { map.setFilter("my-voiv", ["==", ["get", "nazwa"], v || "—"]); goHome(); }
+  if (mapReady) {
+    for (const id of ["my-voiv", "my-voiv-glow"])
+      if (map.getLayer(id)) map.setFilter(id, ["==", ["get", "nazwa"], v || "—"]);
+    goHome();
+  }
   if (state) renderPanel();
 };
 /* ── widoczny stan nasłuchu w tle ────────────────────────────────────────── */

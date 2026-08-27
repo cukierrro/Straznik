@@ -106,6 +106,56 @@ def assess_threat(lat: float, lon: float, heading, tolerance_deg: float,
     }
 
 
+# ── odległość do województwa i czas dolotu ───────────────────────────────────
+from .voiv_points import VOIV_OUTLINE
+
+
+def dist_to_voiv_km(lat: float, lon: float, voiv: str) -> float | None:
+    """Najmniejsza odległość obiektu do obrysu województwa.
+
+    Sama odległość „do granicy PL" nie mówi użytkownikowi, ile czasu ma ON —
+    ktoś pod Warszawą jest 200 km dalej niż ktoś w Hrubieszowie. Liczymy więc
+    dystans do KAŻDEGO województwa (użytkownicy wybierają różne), po punktach
+    uproszczonego obrysu. Gdy obiekt jest już nad regionem, zwracamy 0.
+    """
+    ring = VOIV_OUTLINE.get(voiv)
+    if not ring:
+        return None
+    if point_in_ring(lat, lon, ring):
+        return 0.0          # obiekt jest już NAD regionem — nie ma „drogi do niego"
+    return round(min(haversine_km(lat, lon, blat, blon) for blat, blon in ring), 1)
+
+
+def point_in_ring(lat: float, lon: float, ring) -> bool:
+    """Czy punkt leży wewnątrz obrysu (ray casting).
+
+    Bez tego obiekt nad środkiem województwa dostawał odległość do najbliższego
+    punktu GRANICY tego województwa (np. Lublin → „50 km do lubelskiego"),
+    co przy liczeniu czasu dolotu byłoby wprost mylące."""
+    inside = False
+    n = len(ring)
+    for i in range(n):
+        y1, x1 = ring[i]            # (lat, lon)
+        y2, x2 = ring[(i + 1) % n]
+        if (y1 > lat) != (y2 > lat):
+            xin = x1 + (lat - y1) * (x2 - x1) / (y2 - y1)
+            if lon < xin:
+                inside = not inside
+    return inside
+
+
+def eta_minutes(dist_km: float | None, speed_kmh: float | None) -> int | None:
+    """Czas dolotu w minutach — przy TEJ prędkości i utrzymaniu kursu.
+
+    Świadomie zwracamy liczbę całkowitą: to szacunek (NEPTUN nie podaje
+    prędkości, więc zwykle bierzemy typową dla klasy obiektu), a minuty
+    z przecinkiem sugerowałyby precyzję, której nie ma.
+    """
+    if not dist_km or not speed_kmh or speed_kmh <= 0:
+        return None
+    return max(0, int(round(dist_km / speed_kmh * 60)))
+
+
 # Centroidy województw priorytetowych + bounding boxy do ADS-B
 VOIV_BBOX = {
     # (lat_min, lon_min, lat_max, lon_max) — przybliżone

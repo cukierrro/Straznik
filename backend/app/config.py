@@ -68,6 +68,15 @@ NEPTUN_NEAR_FLOOR_KM = 60.0
 NEPTUN_NEAR_FLOOR_TYPES = ("ballistic", "mig31k", "cruise", "missile")
 NEPTUN_NEAR_FLOOR_SOURCES = 2      # min. liczba niezależnych zgłoszeń
 NEPTUN_NEAR_FLOOR_POINTS = 2.0     # = THRESHOLD_ELEVATED
+
+# Prędkości typowe klas obiektów (km/h) — do szacowania CZASU DOLOTU. NEPTUN nie
+# podaje prędkości (sprawdzone na żywym API), więc czas liczymy z tej tablicy;
+# gdy z kolejnych pozycji da się wyliczyć prędkość rzeczywistą, ma pierwszeństwo.
+# Ta sama tablica jest w froncie (TYPE_SPEED_KMH) — musi się zgadzać, bo inaczej
+# aplikacja pokazałaby inny czas niż ten w powiadomieniu.
+NEPTUN_TYPE_SPEED_KMH = {"uav": 180, "shahed": 180, "fpv": 100, "missile": 800,
+                         "cruise": 800, "ballistic": 3000, "kab": 900, "mig31k": 900,
+                         "recon": 180}
 NEPTUN_MAX_KM = 250.0              # dalej nie punktujemy: przy tej odległości kurs
                                    # jeszcze nic nie przesądza (obiekt może skręcić)
 NEPTUN_CONF_MULT = {"high": 1.0, "medium": 0.6, "low": 0.35}

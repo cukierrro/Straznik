@@ -530,6 +530,27 @@ function headingOf(t) {
   }
   return null;
 }
+/* Prędkość: ze źródła, a gdy brak — typowa dla klasy (NEPTUN jej nie podaje). */
+const TYPE_SPEED_KMH = { uav: 180, shahed: 180, fpv: 100, missile: 800, cruise: 800,
+  ballistic: 3000, kab: 900, mig31k: 900, recon: 180 };
+const speedOf = (t) => t.velocity?.speedKmh || TYPE_SPEED_KMH[(t.type || "").toLowerCase()] || null;
+const etaMinutes = (km, kmh) => (km == null || !kmh) ? null : Math.max(0, Math.round(km / kmh * 60));
+/* Odległość do województwa liczymy z tych samych punktów granicy co ocena
+   zagrożenia — w trybie wbudowanym nie mamy pełnych obrysów, więc bierzemy
+   najbliższy punkt granicy przypisany do danego województwa. */
+function etaPerVoiv(t) {
+  const sp = speedOf(t);
+  if (!sp || t.lat == null) return {};
+  const best = {};
+  for (const [bl, bo, v] of BORDER_POINTS) {
+    const d = haversine(t.lat, t.lon, bl, bo);
+    if (best[v] == null || d < best[v]) best[v] = d;
+  }
+  const out = {};
+  for (const [v, d] of Object.entries(best)) out[v] = etaMinutes(d, sp);
+  return out;
+}
+
 function neptunEval(t) {
   if (t.lat == null) return t;
   t.pl_assessment = assess(t.lat, t.lon, headingOf(t));
@@ -549,6 +570,11 @@ function neptunEval(t) {
         `${ile}${t.title||ty} kursem na granicę PL, ${a.dist_km} km (woj. ${a.border_voiv}, `
         + `confidence: ${conf}, ${sources} potwierdzeń, ±${t.uncertaintyKm??"?"} km)`,
         { track_id: t.id, dist_km: a.dist_km, count, source_count: sources,
+          // czas dolotu (lustro backendu): do granicy oraz do każdego woj. —
+          // panel pokazuje ten dla regionu wybranego przez użytkownika
+          speed_kmh: speedOf(t),
+          eta_border_min: etaMinutes(a.dist_km, speedOf(t)),
+          eta_voiv_min: etaPerVoiv(t),
           course: a.heading_known ? "known"
                 : (t.heading_estimated != null ? "estimated" : "unknown"),
           course_factor: a.course_factor },
