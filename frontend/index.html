@@ -5,9 +5,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0b0f1a">
 <title>Strażnik — wczesne ostrzeganie</title>
+<script>
+/* Klasa platformy przed pierwszym renderem: elementy .web-only nie mogą
+   mignąć w APK, nawet gdy główny app.js załaduje się później lub z błędem. */
+document.documentElement.classList.add(
+  location.protocol === "capacitor:" || location.protocol === "file:" || window.Capacitor
+    ? "native-app" : "web-app"
+);
+</script>
 <link rel="manifest" href="manifest.json">
 <link rel="stylesheet" href="assets/vendor/maplibre-gl.css">
-<link rel="stylesheet" href="style.css?v=1.7.2-web1">
+<link rel="stylesheet" href="style.css?v=1.7.2-web2">
 </head>
 <body>
 
