@@ -74,9 +74,17 @@ async def _handle_alerts(data):
 # rozkład w /api/health, żeby dało się to odczytać zdalnie, bez wchodzenia na serwer.
 _lag_samples: deque = deque(maxlen=1000)
 _lag_seen: set = set()
+_lag_start = time.time()
+# Po starcie NEPTUN przysyła SNAPSHOT wszystkich istniejących obiektów — ich
+# `updatedAt` bywa sprzed wielu minut, choć do nas dotarły natychmiast. Wliczanie
+# ich zawyżałoby opóźnienie (po restarcie 30.08 pierwsze próbki dały medianę
+# 160 s zamiast realnych ~30 s). Dlatego pierwsze sekundy pomijamy.
+_LAG_WARMUP_S = 180
 
 
 def _record_lag(t: dict) -> None:
+    if time.time() - _lag_start < _LAG_WARMUP_S:
+        return                      # rozgrzewka: pomijamy startowy snapshot
     tid = t.get("id")
     if tid is None or tid in _lag_seen:
         return
@@ -102,6 +110,7 @@ def _update_lag_stats() -> None:
     if not n:
         return
     status["lag"] = {
+        "pomiar_od_s": int(time.time() - _lag_start - _LAG_WARMUP_S),
         "n": n,
         "median_s": xs[n // 2],
         "p90_s": xs[min(n - 1, int(n * 0.9))],
