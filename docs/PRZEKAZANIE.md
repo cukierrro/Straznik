@@ -39,7 +39,7 @@ jest w interfejsie, w powiadomieniach i w każdym wydaniu. Nie usuwaj go.
 | Media bałtyckie (EE/LV/LT) | incydent powietrzny u sąsiadów NATO | +1 (podlaskie, warmińsko-mazurskie) |
 | RCB (scraping gov.pl) | nowy komunikat | +2 |
 | ADS-B (adsb.lol) | ruch wojskowy ponad 2× odniesienia z 7 dni | +1 |
-| PAŻP (airspace.pansa.pl) | nowo aktywowana strefa AUP/UUP | +1 |
+| PAŻP (airspace.pansa.pl) | rzadka ADHOC/R/NPZ/D GND–F, bez rutyny i powtórek 7 dni | +0,5 |
 
 Limity wkładu jednego źródła na województwo: media 2, RCB 2, ADS-B 1, PAŻP 1, NEPTUN 8.
 

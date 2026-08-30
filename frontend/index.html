@@ -15,7 +15,7 @@ document.documentElement.classList.add(
 </script>
 <link rel="manifest" href="manifest.json">
 <link rel="stylesheet" href="assets/vendor/maplibre-gl.css">
-<link rel="stylesheet" href="style.css?v=1.7.2-web2">
+<link rel="stylesheet" href="style.css?v=1.7.3">
 </head>
 <body>
 
@@ -213,8 +213,8 @@ document.documentElement.classList.add(
         RCB na gov.pl</td><td class="pts">+2</td></tr>
       <tr><td><b>ADS-B</b></td><td>ruch lotnictwa wojskowego ponad dwukrotnie
         wyższy niż o tej samej porze doby w ostatnich 7 dniach</td><td class="pts">+1</td></tr>
-      <tr><td><b>PAŻP</b></td><td>nowo aktywowana strefa przestrzeni powietrznej
-        (AUP/UUP) od ziemi w górę, nad regionem</td><td class="pts">+1</td></tr>
+      <tr><td><b>PAŻP</b></td><td>rzadka strefa ADHOC/R/NPZ/D od ziemi w górę;
+        rutynowe TRA/TSA/MRT/ATZ i strefy powtarzane w ciągu 7 dni nie punktują</td><td class="pts">+0,5</td></tr>
       <tr><td><b>Bałtyk</b></td><td>incydent powietrzny wg mediów Litwy, Łotwy
         lub Estonii</td><td class="pts">+1</td></tr>
       <tr><td><b>Sąsiedzi</b></td><td>zamknięcie przestrzeni u sąsiada NATO
@@ -250,6 +250,10 @@ document.documentElement.classList.add(
     <b>do Twojego województwa</b> (ktoś pod Warszawą ma inny zapas niż ktoś przy
     granicy). Liczymy go z prędkości: podanej przez źródło, a gdy jej brak —
     wyliczonej z kolejnych pozycji albo typowej dla klasy obiektu.</p>
+    <p class="fineprint">Pokazywany czas jest <b>konserwatywny</b>: odejmujemy 2,5 minuty
+    na zmierzone opóźnienie źródła. Przy znanym/wyliczonym kursie, co najmniej dwóch
+    potwierdzeniach i średniej lub wysokiej pewności aplikacja uruchamia żółty alarm
+    przy ≤10 minutach, a czerwony przy ≤5 minutach.</p>
     <p class="fineprint"><b>To szacunek, nie obietnica.</b> Zakłada utrzymanie kursu
     i prędkości oraz <b>nie uwzględnia obrony powietrznej</b> — obiekt może skręcić
     albo zostać zestrzelony. Gdy kurs obiektu jest nieznany, czasu nie podajemy
@@ -437,7 +441,7 @@ document.documentElement.classList.add(
      Cloudflare, więc po każdym wydaniu wystarczy podbić ?v= i przeglądarki
      dostają nowe app.js/engine.js OD RAZU, bez ręcznego czyszczenia cache CF.
      Podbijaj ?v= razem z versionName w build.gradle. -->
-<script src="engine.js?v=1.7.2"></script>
-<script src="app.js?v=1.7.2-web1"></script>
+<script src="engine.js?v=1.7.3"></script>
+<script src="app.js?v=1.7.3"></script>
 </body>
 </html>

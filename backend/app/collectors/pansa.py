@@ -18,6 +18,7 @@ odczycie) w oknie czasowym obejmującym teraz.
 import asyncio
 import json
 import logging
+import os
 import time
 from datetime import datetime, timezone
 
@@ -35,6 +36,41 @@ ENDPOINTS = (f"{BASE}/map-configuration/uup", f"{BASE}/map-configuration/aup")
 
 _voiv_polys: list[tuple[str, list]] = []   # (nazwa, lista pierścieni)
 _prev_active: set[str] | None = None
+_SEEN_PATH = config.DATA_DIR / "pansa_seen.json"
+_REPEAT_WINDOW_S = 7 * 24 * 3600
+_ROUTINE_TYPES = {"TRA", "TSA", "MRT", "ATZ"}
+_SCORING_TYPES = {"ADHOC", "R", "NPZ", "D"}
+
+
+def _load_seen(now_ts: float | None = None) -> dict[str, float]:
+    """Ostatnie wystąpienia designatorów; plik przeżywa restart VPS."""
+    now_ts = now_ts or time.time()
+    try:
+        raw = json.loads(_SEEN_PATH.read_text(encoding="utf-8"))
+        return {str(k): float(v) for k, v in raw.items()
+                if now_ts - float(v) <= _REPEAT_WINDOW_S}
+    except (OSError, ValueError, TypeError):
+        return {}
+
+
+def _save_seen(seen: dict[str, float]) -> None:
+    """Zapis atomowy — awaria w połowie nie może skasować pamięci rutyny."""
+    config.DATA_DIR.mkdir(parents=True, exist_ok=True)
+    tmp = _SEEN_PATH.with_suffix(".tmp")
+    tmp.write_text(json.dumps(seen, ensure_ascii=False, sort_keys=True), encoding="utf-8")
+    os.replace(tmp, _SEEN_PATH)
+
+
+def _should_score(info: dict, seen: dict[str, float], now_ts: float) -> bool:
+    zone_type = str(info.get("type") or "").upper()
+    lower = str(info.get("lower") or "").upper()
+    upper = str(info.get("upper") or "").upper()
+    if zone_type in _ROUTINE_TYPES or zone_type not in _SCORING_TYPES:
+        return False
+    if not (lower == "GND" and upper.startswith("F")):
+        return False
+    previous = seen.get(str(info.get("designator") or ""))
+    return previous is None or now_ts - previous > _REPEAT_WINDOW_S
 
 
 def _load_voivodeships():
@@ -138,9 +174,12 @@ async def _tick(client: httpx.AsyncClient):
 
     status["zones_now"] = len(active)
 
+    now_ts = time.time()
+    seen = _load_seen(now_ts)
     if _prev_active is not None:
         for designator in set(active) - _prev_active:
             info = active[designator]
+            info["designator"] = designator
             # Instrumentacja (bez zmiany punktacji): loguj KAŻDĄ nową aktywację —
             # też spoza ściany wschodniej — żeby rozpoznać, które typy/pułapy to
             # rutynowe tło (TSA/TRA/ATZ, wąskie pasma), a które rzadkie
@@ -152,15 +191,11 @@ async def _tick(client: httpx.AsyncClient):
                      info.get("upper"), info["voiv"])
             if info["voiv"] not in config.PRIORITY_VOIVODESHIPS:
                 continue       # punktujemy tylko ścianę wschodnią
-            # Punktujemy TYLKO pełnokolumnowe zamknięcia: dolny = GND (od ziemi)
-            # i górny = poziom lotu (F###, w górne kontrolowane niebo). To sygnatura
-            # realnego wykluczenia ruchu cywilnego. Analiza 4 dni (docs/ZRODLA...):
-            # 94% aktywacji to rutyna (GND–A### niskie, A/F–F### górny trening),
-            # która dawała stałe +1 w tle przygranicznych województw. Instrumentacja
-            # (log wyżej) leci nadal dla WSZYSTKICH — filtrujemy tylko wkład do fuzji.
-            lower = str(info.get("lower") or "").upper()
-            upper = str(info.get("upper") or "").upper()
-            if not (lower == "GND" and upper.startswith("F")):
+            # Test 3-dniowy: nawet po filtrze GND–F sześć z siedmiu trafień było
+            # rutyną. TRA/TSA/MRT/ATZ nie punktują nigdy. Dopuszczamy wyłącznie
+            # ADHOC/R/NPZ/D z pełną kolumną i tylko gdy designator nie pojawił się
+            # przez 7 dni. Dzięki temu codzienna EPTR10A/EPD29 nie wraca jako alarm.
+            if not _should_score(info, seen, now_ts):
                 continue
             desc = f"{info['type'] or ''} {designator}".strip()
             detail = f"{info['lower']}–{info['upper']}"
@@ -173,6 +208,11 @@ async def _tick(client: httpx.AsyncClient):
                 details={"designator": designator, **info},
                 dedup_key=f"pansa:{designator}:{info['end']}",
             )
+    # Pamięć obejmuje także strefy zastane przy starcie i rutynowe — jeśli
+    # znikną i wrócą jutro, zostaną rozpoznane jako powtarzalne tło.
+    for designator in active:
+        seen[designator] = now_ts
+    _save_seen(seen)
     _prev_active = set(active)
 
 

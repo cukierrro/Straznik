@@ -39,7 +39,7 @@ z syreną. UI zawsze pokazuje pełne rozbicie: które sygnały, skąd, ile punkt
 | **Media/RSS** | słowa kluczowe (syreny, alarm, dron…) w mediach danego województwa — sam artykuł nie alarmuje, próg przekracza dopiero potwierdzenie | **+1,5** |
 | **RCB** | nowy komunikat na gov.pl/web/rcb | **+2** |
 | **ADS-B** | ≥3 maszyny wojskowe nad województwem i >2× baseline **z tej samej pory doby** z 7 dni | **+1** |
-| **PAŻP** | nowo aktywowana strefa (AUP/UUP) obejmująca całą kolumnę od ziemi w górę nad województwem | **+1** |
+| **PAŻP** | rzadka strefa ADHOC/R/NPZ/D obejmująca całą kolumnę od ziemi w górę; TRA/TSA/MRT/ATZ i designatory powtarzane w ciągu 7 dni nie punktują | **+0,5** |
 | **Media LT/LV/EE** | incydent powietrzny wg mediów bałtyckich → podlaskie + warmińsko-mazurskie | **+1** |
 | **Sąsiedzi (RO/EE/LT)** | aktywne zamknięcie przestrzeni u sąsiada NATO — sygnał obserwacyjny, wyprzedzający | **+0,3** |
 
@@ -87,6 +87,13 @@ wyklucza dopasowanie. Jedna klasa źródła ma limit wkładu do sumy
 (media ≤2, RCB ≤2, ADS-B ≤1, PAŻP ≤1, sąsiedzi ≤0,6) — pięć artykułów o tym
 samym zdarzeniu to wciąż jedno potwierdzenie. Nadmiarowe sygnały są widoczne
 w UI z przekreśloną punktacją.
+
+**Alarm czasowy NEPTUN.** Dla obiektu o znanym albo wiarygodnie wyliczonym
+kursie, średniej/wysokiej pewności i co najmniej dwóch potwierdzeniach działa
+dodatkowe zabezpieczenie ETA: żółty przy konserwatywnym czasie ≤10 min, czerwony
+przy ≤5 min. Od surowego czasu odejmowane jest **2,5 min** (p90 opóźnienia
+źródła z pomiaru 27–30.08.2026). Brak kursu, niska pewność lub jedno zgłoszenie
+nie mogą samodzielnie uruchomić alarmu ETA.
 
 Propagacja jest **kaskadowa**: region z sumą ≥ 2 pkt przekazuje 40 % wyniku
 sąsiadom, ci 40 % tego swoim sąsiadom i tak dalej, licząc po najkrótszej drodze

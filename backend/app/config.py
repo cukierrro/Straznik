@@ -94,6 +94,14 @@ NEPTUN_HEADING_SOFT_DEG = 70.0
 # i tylko blisko granicy: nieznany kurs to niepewność, nie dowód bezpieczeństwa.
 NEPTUN_UNKNOWN_HEADING_MULT = 0.5
 NEPTUN_UNKNOWN_HEADING_MAX_KM = 150.0
+# Pomiar 27–30.08.2026: p90 opóźnienia źródła wyniósł ok. 125–135 s, a
+# sporadyczne próbki 5–7 min. Czas pokazywany użytkownikowi i progi alarmowe
+# pomniejszamy o 2,5 min, żeby nie obiecywać zapasu, który mógł już upłynąć.
+NEPTUN_ETA_BUFFER_MIN = 2.5
+NEPTUN_ETA_ELEVATED_MIN = 10.0
+NEPTUN_ETA_HIGH_MIN = 5.0
+NEPTUN_ETA_MIN_SOURCES = 2
+NEPTUN_ETA_CONFIDENCE = ("medium", "high")
 # obwody graniczące z PL — obiekty stamtąd zawsze obserwujemy
 NEPTUN_BORDER_REGIONS = ("Волинська", "Львівська", "Закарпатська", "Рівненська")
 
@@ -131,7 +139,7 @@ POINTS = {
     "neptun_high": 3.0,
     "neptun_medlow": 1.5,
     "adsb_spike": 1.0,
-    "pansa_zone": 1.0,
+    "pansa_zone": 0.5,
     "media_keywords": 1.5,     # SŁABE trafienie (obiekt+zdarzenie, np. „dron”+
                                # „zestrzelono”): <próg (2), samotny artykuł NIE
                                # alarmuje — dopiero korroboracja (2. medium → cap 2,
@@ -300,6 +308,12 @@ EXCLUDE_KEYWORDS = [
     "pożar bloku", "pożar domu", "pożar mieszkania", "pożar lasu", "wypadek drogow",
     "kolizja", "lpr lądował", "śmigłowiec lpr", "utonię", "potrąc", "dachowa",
     "karambol", "zderzenie samochod",
+    # pożary/wybuchy naziemne: w teście „pożar ciężarówki, wybuch paliwa”
+    # został błędnie połączony z fragmentem „kab” ukrytym w zwykłym słowie
+    "pożar ciężarów", "pożar samochod", "pożar autobusu", "pożar cystern",
+    "zapaliła się ciężarów", "zapalił się samoch", "zbiornik paliw", "wyciek paliw",
+    # demografia/statystyka — skrót BSP pojawiał się jako fragment dłuższego słowa
+    "demograf", "przyrost naturaln", "liczba mieszkańc", "wyludnia",
     # RETROSPEKTYWA: świeży artykuł o DAWNYM zdarzeniu (pubDate nie łapie, bo
     # data publikacji jest bieżąca, a zdarzenie sprzed dni/tygodni)
     "tydzień po", "tygodnie po", "tygodni po", "dzień po", "dni po",

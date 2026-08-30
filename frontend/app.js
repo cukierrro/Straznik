@@ -178,7 +178,9 @@ function distToVoivKm(lat, lon, voiv) {
   }
   return Math.round(best * 10) / 10;
 }
-const etaMin = (km, kmh) => (km == null || !kmh) ? null : Math.max(0, Math.round(km / kmh * 60));
+const ETA_SOURCE_BUFFER_MIN = 2.5;
+const etaMin = (km, kmh) => (km == null || !kmh) ? null
+  : Math.max(0, Math.floor(km / kmh * 60 - ETA_SOURCE_BUFFER_MIN));
 /* Czas pokazujemy TYLKO przy znanym kursie na PL — inaczej byłaby to liczba
    wzięta znikąd (obiekt może lecieć w przeciwną stronę). */
 function etaInfo(t) {
@@ -208,9 +210,9 @@ function etaHtml(t) {
   }
   const mine = (e.voiv != null && e.voivName)
     ? ` · do woj. ${esc2(e.voivName)}: <b>${etaTxt(e.voiv)}</b>` : "";
-  return `czas dolotu do granicy PL: <b>${etaTxt(e.border)}</b>${mine}<br>`
-    + `<span style="color:#68758c">szacunek przy prędkości ${e.speed} km/h `
-    + `i utrzymaniu kursu — nie uwzględnia obrony powietrznej</span><br>`;
+  return `konserwatywny czas dolotu do granicy PL: <b>${etaTxt(e.border)}</b>${mine}<br>`
+    + `<span style="color:#68758c">szacunek przy prędkości ${e.speed} km/h i utrzymaniu kursu; `
+    + `odjęto 2,5 min na opóźnienie danych — nie uwzględnia obrony powietrznej</span><br>`;
 }
 
 const COMPASS = ["płn.", "płn.-wsch.", "wsch.", "płd.-wsch.", "płd.", "płd.-zach.", "zach.", "płn.-zach."];

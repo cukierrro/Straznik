@@ -14,10 +14,26 @@ Stąd obecna reguła — zdarzenie musi mieć OBIEKT i AKCJĘ:
 Samo "syreny", samo "dron" czy sam "alarm" nigdy nie wystarczą — bo to słowa,
 które w mediach lokalnych padają najczęściej w kontekście administracyjnym.
 """
+import re
+
+
+_TOKEN_KEYWORDS = {"kab", "bsp", "fpv"}
+
+
+def _contains(text: str, word: str) -> bool:
+    """Krótkie skróty wojskowe muszą być samodzielnymi tokenami.
+
+    Zwykłe wyszukiwanie podciągu uznawało m.in. ``kab`` wewnątrz zwykłego
+    słowa i ``bsp`` w tekście demograficznym. Dłuższe rdzenie celowo nadal są
+    podciągami, bo obsługują polską odmianę (rakiet-a/y, zestrzel-ono/enie).
+    """
+    if word in _TOKEN_KEYWORDS:
+        return re.search(rf"(?<!\w){re.escape(word)}(?!\w)", text, re.UNICODE) is not None
+    return word in text
 
 
 def _hits(text: str, words) -> list[str]:
-    return [w for w in words if w in text]
+    return [w for w in words if _contains(text, w)]
 
 
 def classify(text: str, critical, air, event, exclude) -> tuple[bool, list[str]]:

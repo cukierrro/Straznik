@@ -11,9 +11,10 @@ const Engine = (() => {
 /* ── konfiguracja (lustrzana wobec backend/app/config.py) ────────────────── */
 // okno 60 min z wygaszaniem: pełna waga przez 30 min, potem liniowo do zera
 const WINDOW_MIN = 60, FULL_MIN = 30, TH_ELEVATED = 2, TH_HIGH = 4, COOLDOWN_MIN = 10;
+const ETA_BUFFER_MIN = 2.5, ETA_ELEVATED_MIN = 10, ETA_HIGH_MIN = 5, ETA_MIN_SOURCES = 2;
 const HISTORY_H = 12;   // ile godzin trzymamy do przeglądania wstecz
 const POINTS = { neptun_high: 3, neptun_medlow: 1.5, media_keywords: 1.5, media_critical: 2,
-                 adsb_spike: 1, rcb_alert: 2, ua_alert_border: 1, baltic_context: 1, pansa_zone: 1 };
+                 adsb_spike: 1, rcb_alert: 2, ua_alert_border: 1, baltic_context: 1, pansa_zone: 0.5 };
 // Neptun ma wyższy limit niż reszta (każdy track to osobny fizyczny obiekt),
 // ale nie nieograniczony — przy kilkudziesięciu obiektach suma i tak dawno
 // przekroczyła próg alarmu, a trzycyfrowa punktacja psułaby czytelność skali.
@@ -111,6 +112,9 @@ const EXCLUDE = ["ćwiczeni","trening","test syren","próba syren","próby syren
   "system ostrzegania będzie","nowe syreny","nowych syren","pożar bloku","pożar domu",
   "pożar mieszkania","pożar lasu","wypadek drogow","kolizja","lpr lądował","śmigłowiec lpr",
   "utonię","potrąc","dachowa","karambol","zderzenie samochod",
+  "pożar ciężarów","pożar samochod","pożar autobusu","pożar cystern",
+  "zapaliła się ciężarów","zapalił się samoch","zbiornik paliw","wyciek paliw",
+  "demograf","przyrost naturaln","liczba mieszkańc","wyludnia",
   "tydzień po","tygodnie po","tygodni po","dzień po","dni po",
   "miesiąc po","miesiące po","miesięcy po","rok po","lata po","lat po",
   "godzin po","godziny po","kalendarium","przypominamy","wspomina",
@@ -199,7 +203,7 @@ const tracks = new Map();          // Neptun tracks
 let alertOblasts = new Set();
 let adsbAircraft = [];
 const health = { neptun:false, adsb:false, rcb:false, rss:{}, pansa:false };
-let onState = null, ws = null, wsRetry = 1;
+let onState = null, ws = null, wsRetry = 1, wsRetryPending = false;
 // bootstrap RCB uznany tylko po JAWNIE odnotowanym udanym przebiegu —
 // wcześniej pusta lista "seen" zapisana przez inny kod myliła się z bootstrapem
 // i stare, statyczne wpisy (np. "Stopnie alarmowe") punktowały jako nowe
@@ -291,12 +295,18 @@ async function httpGet(url) {
 }
 
 /* ── dopasowanie słów kluczowych (jak backend/textmatch.py) ──────────────── */
+const TOKEN_KEYWORDS = new Set(["kab", "bsp", "fpv"]);
+function hasKeyword(text, keyword) {
+  if (!TOKEN_KEYWORDS.has(keyword)) return text.includes(keyword);
+  const esc = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(^|[^\\p{L}\\p{N}_])${esc}([^\\p{L}\\p{N}_]|$)`, "u").test(text);
+}
 function matchKw(text, critical, air, event, exclude) {
   const tl = text.toLowerCase();
-  if (exclude.some(k => tl.includes(k))) return [];
-  const c = critical.filter(k => tl.includes(k));
+  if (exclude.some(k => hasKeyword(tl, k))) return [];
+  const c = critical.filter(k => hasKeyword(tl, k));
   if (c.length) return c;
-  const a = air.filter(k => tl.includes(k)), e = event.filter(k => tl.includes(k));
+  const a = air.filter(k => hasKeyword(tl, k)), e = event.filter(k => hasKeyword(tl, k));
   return a.length && e.length ? a.slice(0, 2).concat(e.slice(0, 2)) : [];
 }
 /* Jak matchKw, ale zwraca SIŁĘ dopasowania (lustro textmatch.classify_level):
@@ -304,10 +314,10 @@ function matchKw(text, critical, air, event, exclude) {
    obiekt+zdarzenie (wymaga korroboracji), null = brak/weto. */
 function matchLevel(text, critical, air, event, exclude) {
   const tl = text.toLowerCase();
-  if (exclude.some(k => tl.includes(k))) return { level: null, hits: [] };
-  const c = critical.filter(k => tl.includes(k));
+  if (exclude.some(k => hasKeyword(tl, k))) return { level: null, hits: [] };
+  const c = critical.filter(k => hasKeyword(tl, k));
   if (c.length) return { level: "critical", hits: c };
-  const a = air.filter(k => tl.includes(k)), e = event.filter(k => tl.includes(k));
+  const a = air.filter(k => hasKeyword(tl, k)), e = event.filter(k => hasKeyword(tl, k));
   if (a.length && e.length) return { level: "weak", hits: a.slice(0, 2).concat(e.slice(0, 2)) };
   return { level: null, hits: [] };
 }
@@ -551,7 +561,11 @@ function headingOf(t) {
 const TYPE_SPEED_KMH = { uav: 180, shahed: 180, fpv: 100, missile: 800, cruise: 800,
   ballistic: 3000, kab: 900, mig31k: 900, recon: 180 };
 const speedOf = (t) => t.velocity?.speedKmh || TYPE_SPEED_KMH[(t.type || "").toLowerCase()] || null;
-const etaMinutes = (km, kmh) => (km == null || !kmh) ? null : Math.max(0, Math.round(km / kmh * 60));
+const etaRawMinutes = (km, kmh) => (km == null || !kmh) ? null : Math.max(0, km / kmh * 60);
+const etaMinutes = (km, kmh) => {
+  const raw = etaRawMinutes(km, kmh);
+  return raw == null ? null : Math.max(0, Math.floor(raw - ETA_BUFFER_MIN));
+};
 /* Odległość do województwa liczymy z tych samych punktów granicy co ocena
    zagrożenia — w trybie wbudowanym nie mamy pełnych obrysów, więc bierzemy
    najbliższy punkt granicy przypisany do danego województwa. */
@@ -574,23 +588,38 @@ function neptunEval(t) {
   if (t.id != null) lastPos.set(t.id, [t.lat, t.lon]);
   const a = t.pl_assessment, ty = (t.type||"").toLowerCase();
   if (a.toward_pl) {
-    const points = scoreThreat(t, a.dist_km, a.course_factor);
+    let points = scoreThreat(t, a.dist_km, a.course_factor);
     if (points > 0) {
       const count = Math.max(parseInt(t.count) || 1, 1);
       const conf = (t.confidenceLevel||"low").toLowerCase();
       const sources = Math.max(parseInt(t.sourceCount) || 1, 1);
+      const speed = speedOf(t), etaRaw = etaRawMinutes(a.dist_km, speed);
+      const etaConservative = etaRaw == null ? null : Math.max(0, etaRaw - ETA_BUFFER_MIN);
+      const etaSafe = etaMinutes(a.dist_km, speed);
+      let etaAlarm = null;
+      const etaEligible = a.heading_known && sources >= ETA_MIN_SOURCES
+        && ["medium", "high"].includes(conf) && etaConservative != null;
+      if (etaEligible && etaConservative <= ETA_HIGH_MIN) {
+        etaAlarm = "high"; points = Math.max(points, TH_HIGH);
+      } else if (etaEligible && etaConservative <= ETA_ELEVATED_MIN) {
+        etaAlarm = "elevated"; points = Math.max(points, TH_ELEVATED);
+      }
       const ile = count > 1 ? `${count}× ` : "";
       // poziom w kluczu: gdy obiekt się zbliży lub zyska potwierdzenia,
       // sygnał wchodzi ponownie z wyższą punktacją
       const tier = Math.floor(points * 2);
       addSignal("neptun", "neptun_threat", a.border_voiv, points,
-        `${ile}${t.title||ty} kursem na granicę PL, ${a.dist_km} km (woj. ${a.border_voiv}, `
+        `${ile}${t.title||ty} kursem na granicę PL, ${a.dist_km} km`
+        + `${etaAlarm ? `, konserwatywny czas dolotu ~${etaSafe} min` : ""} (woj. ${a.border_voiv}, `
         + `confidence: ${conf}, ${sources} potwierdzeń, ±${t.uncertaintyKm??"?"} km)`,
         { track_id: t.id, dist_km: a.dist_km, count, source_count: sources,
           // czas dolotu (lustro backendu): do granicy oraz do każdego woj. —
           // panel pokazuje ten dla regionu wybranego przez użytkownika
-          speed_kmh: speedOf(t),
-          eta_border_min: etaMinutes(a.dist_km, speedOf(t)),
+          speed_kmh: speed,
+          eta_raw_border_min: etaRaw == null ? null : Math.round(etaRaw * 10) / 10,
+          eta_border_min: etaSafe,
+          eta_buffer_min: ETA_BUFFER_MIN,
+          eta_alarm: etaAlarm,
           eta_voiv_min: etaPerVoiv(t),
           course: a.heading_known ? "known"
                 : (t.heading_estimated != null ? "estimated" : "unknown"),
@@ -629,6 +658,7 @@ const later = (fn, ms) => { const id = setTimeout(fn, ms); timers.push(id); retu
 
 function startNeptun() {
   if (stopped) return;
+  wsRetryPending = false;
   try { ws = new WebSocket("wss://neptun.in.ua/api/v1/stream"); } catch { return retryNeptun(); }
   ws.onopen = () => { markHealth("neptun", true); wsRetry = 1; emit(); };
   ws.onmessage = (e) => {
@@ -640,13 +670,22 @@ function startNeptun() {
     else if (env.type === "alerts") neptunAlerts(env.data);
     emit();
   };
-  ws.onclose = ws.onerror = () => { markHealth("neptun", false); retryNeptun(); };
+  // WebSocket po `error` emituje także `close`; retry robimy dopiero tam, bo
+  // tylko close niesie kod 1013 i powód „server full”.
+  ws.onerror = () => { markHealth("neptun", false); };
+  ws.onclose = (e) => {
+    markHealth("neptun", false);
+    const full = e?.code === 1013 || String(e?.reason || "").toLowerCase().includes("server full");
+    retryNeptun(full ? 15000 + Math.random() * 15000 : null);
+  };
 }
-function retryNeptun() {
+function retryNeptun(forcedDelay = null) {
+  if (wsRetryPending) return; // onerror i onclose dotyczą zwykle tego samego zerwania
   if (ws) { ws.onclose = ws.onerror = null; try { ws.close(); } catch {} ws = null; }
   if (stopped) return;
-  later(startNeptun, Math.min(wsRetry*1000, 30000));
-  wsRetry = Math.min(wsRetry*2, 30);
+  wsRetryPending = true;
+  later(startNeptun, forcedDelay ?? Math.min(wsRetry*1000, 30000));
+  wsRetry = forcedDelay == null ? Math.min(wsRetry*2, 30) : 30;
 }
 
 /* Zatrzymanie silnika: gasi wszystkie interwały/timery i zamyka gniazdo Neptuna.
@@ -871,6 +910,9 @@ let voivPolys = null;
    a strefa aktywowana przy zamkniętej aplikacji nigdy nie wchodziła do
    punktacji. Dlatego zapisujemy go trwale w localStorage. */
 const PANSA_ZONES_KEY = "eng_pansa_zones";
+const PANSA_SEEN_KEY = "eng_pansa_seen_7d", PANSA_REPEAT_MS = 7 * 24 * 3600 * 1000;
+const PANSA_ROUTINE_TYPES = new Set(["TRA", "TSA", "MRT", "ATZ"]);
+const PANSA_SCORING_TYPES = new Set(["ADHOC", "R", "NPZ", "D"]);
 function loadPrevZones() {
   const raw = localStorage.getItem(PANSA_ZONES_KEY);
   if (raw == null) return null;             // nigdy nie było obiegu → bootstrap
@@ -878,6 +920,23 @@ function loadPrevZones() {
 }
 function savePrevZones(zones) {
   try { localStorage.setItem(PANSA_ZONES_KEY, JSON.stringify([...zones])); } catch {}
+}
+function loadPansaSeen(now) {
+  try {
+    const raw = JSON.parse(localStorage.getItem(PANSA_SEEN_KEY) || "{}");
+    return Object.fromEntries(Object.entries(raw).filter(([, t]) => now - Number(t) <= PANSA_REPEAT_MS));
+  } catch { return {}; }
+}
+function savePansaSeen(seen) {
+  try { localStorage.setItem(PANSA_SEEN_KEY, JSON.stringify(seen)); } catch {}
+}
+function shouldScorePansa(dz, info, seen, now) {
+  const ty = String(info.type || "").toUpperCase();
+  const lo = String(info.lower || "").toUpperCase();
+  const up = String(info.upper || "").toUpperCase();
+  if (PANSA_ROUTINE_TYPES.has(ty) || !PANSA_SCORING_TYPES.has(ty)) return false;
+  if (!(lo === "GND" && up.startsWith("F"))) return false;
+  return seen[dz] == null || now - Number(seen[dz]) > PANSA_REPEAT_MS;
 }
 async function loadVoivPolys() {
   if (voivPolys) return voivPolys;
@@ -931,21 +990,21 @@ async function tickPansa() {
       active.set(dz, { voiv, type: p.airspaceElementType, lower: res.lowerAltitude,
         upper: res.upperAltitude, remarks: res.remarks, end: res.endDate });
     }
-    const prevZones = loadPrevZones();
+    const prevZones = loadPrevZones(), seen = loadPansaSeen(now);
     if (prevZones) {
       for (const [dz, info] of active) {
         if (prevZones.has(dz) || !PRIORITY_VOIVS.includes(info.voiv)) continue;
-        // tylko pełnokolumnowe zamknięcia (GND → poziom lotu F###) — reszta to
-        // rutyna, dawała stałe +1 w tle (patrz backend/pansa.py + docs/ZRODLA)
-        const lo = String(info.lower || "").toUpperCase();
-        const up = String(info.upper || "").toUpperCase();
-        if (!(lo === "GND" && up.startsWith("F"))) continue;
+        // TRA/TSA/MRT/ATZ to rutyna nawet przy GND–F. Punktujemy tylko rzadkie
+        // ADHOC/R/NPZ/D z pełną kolumną, jeśli designator nie wracał przez 7 dni.
+        if (!shouldScorePansa(dz, info, seen, now)) continue;
         addSignal("pansa","pansa_zone",info.voiv,POINTS.pansa_zone,
           `PAŻP: aktywacja strefy ${(info.type||"")} ${dz} nad woj. ${info.voiv} `
           + `(${info.lower}–${info.upper}${info.remarks ? ", " + info.remarks : ""})`,
           { designator: dz, ...info }, `pansa:${dz}:${info.end}`);
       }
     }
+    for (const dz of active.keys()) seen[dz] = now;
+    savePansaSeen(seen);
     savePrevZones(active.keys());
   } catch (e) { markHealth("pansa", false); }
   emit();

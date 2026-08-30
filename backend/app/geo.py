@@ -144,16 +144,26 @@ def point_in_ring(lat: float, lon: float, ring) -> bool:
     return inside
 
 
-def eta_minutes(dist_km: float | None, speed_kmh: float | None) -> int | None:
-    """Czas dolotu w minutach — przy TEJ prędkości i utrzymaniu kursu.
+def eta_raw_minutes(dist_km: float | None, speed_kmh: float | None) -> float | None:
+    """Surowy czas dolotu, przed buforem opóźnienia źródła."""
+    if dist_km is None or not speed_kmh or speed_kmh <= 0:
+        return None
+    return max(0.0, dist_km / speed_kmh * 60)
+
+
+def eta_minutes(dist_km: float | None, speed_kmh: float | None,
+                buffer_min: float = 0.0) -> int | None:
+    """Konserwatywny czas dolotu — przy TEJ prędkości i utrzymaniu kursu.
 
     Świadomie zwracamy liczbę całkowitą: to szacunek (NEPTUN nie podaje
     prędkości, więc zwykle bierzemy typową dla klasy obiektu), a minuty
-    z przecinkiem sugerowałyby precyzję, której nie ma.
+    z przecinkiem sugerowałyby precyzję, której nie ma. Zaokrąglamy w dół po
+    odjęciu bufora, aby komunikat nigdy nie zawyżał dostępnego czasu.
     """
-    if not dist_km or not speed_kmh or speed_kmh <= 0:
+    raw = eta_raw_minutes(dist_km, speed_kmh)
+    if raw is None:
         return None
-    return max(0, int(round(dist_km / speed_kmh * 60)))
+    return max(0, int(math.floor(raw - max(0.0, buffer_min))))
 
 
 # Centroidy województw priorytetowych + bounding boxy do ADS-B

@@ -854,8 +854,9 @@ footer a{color:var(--tx2)}
           komunikat RCB na gov.pl</td><td class="pts">+2</td></tr>
         <tr><td><b>ADS-B</b></td><td>Ruch lotnictwa wojskowego nad regionem ponad
           dwukrotnie wyższy niż o <b>tej samej porze doby</b> w ostatnich 7 dniach</td><td class="pts">+1</td></tr>
-        <tr><td><b>PAŻP</b></td><td>Nowo aktywowana strefa przestrzeni powietrznej
-          (AUP/UUP) obejmująca całą kolumnę od ziemi w górę, nad regionem</td><td class="pts">+1</td></tr>
+        <tr><td><b>PAŻP</b></td><td>Rzadka strefa ADHOC/R/NPZ/D obejmująca całą
+          kolumnę od ziemi w górę. Rutynowe TRA/TSA/MRT/ATZ oraz designatory
+          powtarzane w ciągu 7 dni nie punktują</td><td class="pts">+0,5</td></tr>
         <tr><td><b>Bałtyk</b></td><td>Incydent powietrzny wg mediów Litwy, Łotwy
           lub Estonii → podlaskie i warmińsko-mazurskie</td><td class="pts">+1</td></tr>
         <tr><td><b>Sąsiedzi</b></td><td>Aktywne zamknięcie przestrzeni powietrznej
@@ -890,6 +891,11 @@ footer a{color:var(--tx2)}
     zobaczysz „kurs nieznany". Czas liczony jest do granicy regionu, nie do Twojego
     dokładnego adresu.
   </div>
+  <p>Od wyliczonego czasu aplikacja odejmuje <b>2,5 minuty</b> — bufor wynikający
+  z pomiaru opóźnienia źródła. Przy znanym lub wiarygodnie wyliczonym kursie,
+  co najmniej dwóch potwierdzeniach i średniej/wysokiej pewności uruchamia
+  <b>żółty alarm przy ≤10 min</b> oraz <b>czerwony przy ≤5 min</b>. Brak kursu,
+  niska pewność albo pojedyncze zgłoszenie nie uruchomią alarmu ETA.</p>
 
   <h3>Trzy zasady, które chronią przed fałszywym alarmem</h3>
   <div class="cards">

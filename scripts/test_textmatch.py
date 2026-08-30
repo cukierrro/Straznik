@@ -54,6 +54,11 @@ CASES = [
     ("W Warszawie zawyły syreny? Co powinieneś zrobić? Wielu mieszkańców popełnia podstawowy błąd", False),
     ("Poradnik bezpieczeństwa: co zrobić w razie alarmu powietrznego", False),
     ("W Warszawie zawyły syreny. Mieszkańcy otrzymali pilny komunikat", True),
+    # krótkie skróty muszą być osobnymi wyrazami, nie fragmentem zwykłego słowa
+    ("Pożar ciężarówki. Kabina stanęła w ogniu, doszło do wybuchu paliwa", False),
+    ("Alarm demograficzny: subspopulacja regionu nadal maleje", False),
+    ("KAB uderzyła w rejonie przygranicznym", True),
+    ("BSP naruszył przestrzeń powietrzną Polski", True),
     # ── kultura / kosmos / historia / sport („rakieta/dron/atak/bomba") ──
     ("Recenzja: nowy film fabularny o rosyjskim ataku rakietowym", False),
     ("Start rakiety SpaceX Falcon 9 zakończony eksplozją", False),

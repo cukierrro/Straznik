@@ -162,9 +162,13 @@ async def notify_level(voiv: str, level: str, score: float, signals: list[dict])
     from .fusion import breakdown_text
     label = LEVEL_LABELS[level]
     reasons = breakdown_text(signals)
+    eta_alarm = any((s.get("details") or {}).get("eta_alarm") for s in signals)
+    eta_note = ("\nSzacunek czasu dolotu; dane źródłowe mogą być opóźnione o kilka minut."
+                if eta_alarm else "")
+    reasons_for_push = reasons + eta_note
     title = f"{label}: woj. {voiv} ({score} pkt)"
     body = (f"Suma sygnałów z ostatnich {config.FUSION_WINDOW_MIN} min: {score} pkt\n"
-            f"{reasons}\n"
+            f"{reasons_for_push}\n"
             f"NIEOFICJALNE źródło dodatkowe — w razie realnego zagrożenia "
             f"kieruj się syrenami/RCB/RSO.")
     ntfy_prio = "urgent" if level == "high" else "default"
@@ -172,6 +176,6 @@ async def notify_level(voiv: str, level: str, score: float, signals: list[dict])
         send_ntfy(title, body, ntfy_prio),
         send_telegram(f"{'🚨' if level == 'high' else '⚠️'} {title}\n{body}"),
         send_webpush(title, body, level),
-        send_fcm(voiv, level, score, reasons),
+        send_fcm(voiv, level, score, reasons_for_push),
         return_exceptions=True,
     )
