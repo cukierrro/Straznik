@@ -7,8 +7,6 @@ Neptun to agregator crowdsourcingowy/OSINT — nie wojskowy radar. Zawsze
 przekazujemy dalej confidenceLevel i uncertaintyKm, niczego nie "uściślamy".
 """
 import asyncio
-from collections import deque
-from datetime import datetime, timezone
 import json
 import logging
 import math
@@ -66,59 +64,6 @@ async def _handle_alerts(data):
     alert_oblasts = new_active
 
 
-# ── pomiar opóźnienia źródła (test 27–30.08.2026) ────────────────────────────
-# Ile czasu mija od chwili, gdy NEPTUN oznaczył obiekt jako zaktualizowany, do
-# chwili, gdy trafia do nas. To NIE jest opóźnienie naszego łańcucha (ten mierzy
-# się w sekundach), tylko zwłoka samego źródła — a od niej zależy, czy alarm
-# czasowy („X minut do granicy") ma sens. Trzymamy próbki w pamięci i wystawiamy
-# rozkład w /api/health, żeby dało się to odczytać zdalnie, bez wchodzenia na serwer.
-_lag_samples: deque = deque(maxlen=1000)
-_lag_seen: set = set()
-_lag_start = time.time()
-# Po starcie NEPTUN przysyła SNAPSHOT wszystkich istniejących obiektów — ich
-# `updatedAt` bywa sprzed wielu minut, choć do nas dotarły natychmiast. Wliczanie
-# ich zawyżałoby opóźnienie (po restarcie 30.08 pierwsze próbki dały medianę
-# 160 s zamiast realnych ~30 s). Dlatego pierwsze sekundy pomijamy.
-_LAG_WARMUP_S = 180
-
-
-def _record_lag(t: dict) -> None:
-    if time.time() - _lag_start < _LAG_WARMUP_S:
-        return                      # rozgrzewka: pomijamy startowy snapshot
-    tid = t.get("id")
-    if tid is None or tid in _lag_seen:
-        return
-    _lag_seen.add(tid)
-    if len(_lag_seen) > 5000:          # nie rośnij w nieskończoność
-        _lag_seen.clear()
-    u = t.get("updatedAt")
-    if not u:
-        return
-    try:
-        ts = datetime.fromisoformat(str(u).replace("Z", "+00:00"))
-    except Exception:
-        return
-    age = (datetime.now(timezone.utc) - ts).total_seconds()
-    if 0 <= age <= 3600:               # odrzuć zegary z przyszłości i wiekowe wpisy
-        _lag_samples.append(round(age, 1))
-        _update_lag_stats()
-
-
-def _update_lag_stats() -> None:
-    xs = sorted(_lag_samples)
-    n = len(xs)
-    if not n:
-        return
-    status["lag"] = {
-        "pomiar_od_s": int(time.time() - _lag_start - _LAG_WARMUP_S),
-        "n": n,
-        "median_s": xs[n // 2],
-        "p90_s": xs[min(n - 1, int(n * 0.9))],
-        "max_s": xs[-1],
-        "under_60s_pct": round(100 * sum(1 for x in xs if x <= 60) / n),
-    }
-
-
 # Ostatnia znana pozycja tracka — do wyliczenia kursu, gdy NEPTUN go nie podaje.
 _last_pos: dict[str, tuple[float, float]] = {}
 _MIN_MOVE_KM = 2.0   # mniejsze przesunięcia to szum pozycji (±km niepewności)
@@ -146,7 +91,6 @@ def _evaluate(t: dict) -> dict:
     lat, lon = t.get("lat"), t.get("lon")
     if lat is None or lon is None:
         return t
-    _record_lag(t)
     heading = _heading_of(t)
     a = geo.assess_threat(lat, lon, heading, config.NEPTUN_HEADING_TOLERANCE,
                           config.NEPTUN_HEADING_SOFT_DEG,
