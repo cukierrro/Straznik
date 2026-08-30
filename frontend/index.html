@@ -7,7 +7,7 @@
 <title>Strażnik — wczesne ostrzeganie</title>
 <link rel="manifest" href="manifest.json">
 <link rel="stylesheet" href="assets/vendor/maplibre-gl.css">
-<link rel="stylesheet" href="style.css?v=1.7.2">
+<link rel="stylesheet" href="style.css?v=1.7.2-web1">
 </head>
 <body>
 
@@ -29,6 +29,14 @@
   <div id="status-leds" title="Status źródeł danych — dotknij po szczegóły"
        role="button" tabindex="0"></div>
   <div class="top-actions">
+    <a id="btn-download" class="chip download web-only"
+       href="https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk"
+       title="Pobierz najnowszą wersję aplikacji Strażnik na Androida"
+       aria-label="Pobierz najnowszą wersję aplikacji Strażnik na Androida">⬇ Pobierz aplikację</a>
+    <a id="btn-instructions" class="chip instructions web-only"
+       href="https://cukierrro.github.io/Straznik/" target="_blank" rel="noopener"
+       title="Otwórz pełną instrukcję aplikacji Strażnik"
+       aria-label="Otwórz pełną instrukcję aplikacji Strażnik">📖 Instrukcja</a>
     <a id="btn-coffee" class="chip coffee" href="https://buycoffee.to/cukierrro"
        target="_blank" rel="noopener"
        title="Postaw kawę dla cukierrro na buycoffee.to">☕ Postaw kawę</a>
@@ -422,6 +430,6 @@
      dostają nowe app.js/engine.js OD RAZU, bez ręcznego czyszczenia cache CF.
      Podbijaj ?v= razem z versionName w build.gradle. -->
 <script src="engine.js?v=1.7.2"></script>
-<script src="app.js?v=1.7.2"></script>
+<script src="app.js?v=1.7.2-web1"></script>
 </body>
 </html>

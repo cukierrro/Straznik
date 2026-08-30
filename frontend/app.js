@@ -6,6 +6,9 @@
 /* ── konfiguracja / API base ─────────────────────────────────────────────── */
 const IS_APP = location.protocol === "capacitor:" || location.protocol === "file:" ||
                (window.Capacitor !== undefined);
+// Przycisk instalacyjny jest przeznaczony dla strony WWW. W zainstalowanej
+// aplikacji aktualizacje obsługuje osobny mechanizm w Ustawieniach.
+if (IS_APP) document.querySelectorAll(".web-only").forEach(el => { el.hidden = true; });
 const DEFAULT_BACKEND = "https://straznik.eu";   // serwer fuzji Strażnika (VPS przez Cloudflare)
 function apiBase() {
   if (location.search.includes("standalone=1")) return null;  // test trybu wbudowanego

@@ -187,6 +187,13 @@ body.panel-open #update-banner { display: none; }
 .chip:hover { border-color: var(--accent); }
 .chip.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
 .chip.active { background: var(--accent); color: #fff; }
+.chip.download { background: linear-gradient(135deg, #287a52, #3ca76e); color: #fff;
+  border-color: rgba(119,235,171,.55); font-weight: 700; text-decoration: none;
+  box-shadow: 0 3px 14px rgba(61,220,132,.18); }
+.chip.download:hover { border-color: #9af0bd; filter: brightness(1.08); }
+.chip.instructions { color: #dbe8ff; border-color: rgba(127,180,255,.38);
+  background: rgba(40,67,112,.5); font-weight: 600; text-decoration: none; }
+.chip.instructions:hover { border-color: #7fb4ff; background: rgba(50,82,136,.68); }
 
 /* ── disclaimer ── */
 #disclaimer {
@@ -580,6 +587,10 @@ dialog menu { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14
   #map-actions { bottom: 150px; }
   #legend { width: 210px; font-size: 11px; }
   /* na wąskim ekranie sam kubek — pełny napis nie mieści się w pasku */
+  .chip.download { font-size: 0; padding: 5px 8px; }
+  .chip.download::before { content: "⬇"; font-size: 15px; }
+  .chip.instructions { font-size: 0; padding: 5px 8px; }
+  .chip.instructions::before { content: "📖"; font-size: 14px; }
   .chip.coffee { font-size: 0; padding: 5px 8px; }
   .chip.coffee::before { content: "☕"; font-size: 14px; }
   .about-tab td:first-child { width: 62px; }
