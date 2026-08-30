@@ -51,6 +51,9 @@ CASES = [
     ("Czy na pewno? Tydzień po wybuchu rakiety w Tarnawie-Kolonii", False),
     ("Kalendarium: rok po ataku dronów na Lubelszczyźnie", False),
     ("Reportaż: co wiemy miesiąc po naruszeniu przestrzeni powietrznej", False),
+    ("W Warszawie zawyły syreny? Co powinieneś zrobić? Wielu mieszkańców popełnia podstawowy błąd", False),
+    ("Poradnik bezpieczeństwa: co zrobić w razie alarmu powietrznego", False),
+    ("W Warszawie zawyły syreny. Mieszkańcy otrzymali pilny komunikat", True),
     # ── kultura / kosmos / historia / sport („rakieta/dron/atak/bomba") ──
     ("Recenzja: nowy film fabularny o rosyjskim ataku rakietowym", False),
     ("Start rakiety SpaceX Falcon 9 zakończony eksplozją", False),

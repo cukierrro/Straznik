@@ -85,15 +85,39 @@ def accumulate(signals: list[dict], ref: datetime | None = None) -> dict:
         v: {"score": 0.0, "signals": []} for v in config.VOIVODESHIPS
     }
     per_source: dict[tuple, float] = {}
+
+    # Kolejny tier tego samego track_id jest aktualizacją jednego fizycznego
+    # obiektu, nie nowym obiektem. Do wyniku wybieramy najmocniejszy wpis toru;
+    # starsze zostają widoczne w historii, ale z counted_points=0.
+    neptun_winners: dict[tuple, dict] = {}
+    for s in signals:
+        if s.get("source") != "neptun":
+            continue
+        track_id = (s.get("details") or {}).get("track_id")
+        if not track_id:
+            continue
+        winner_key = (s.get("voivodeship"), track_id)
+        prev = neptun_winners.get(winner_key)
+        if (prev is None
+                or (s.get("points", 0), s.get("ts", ""))
+                > (prev.get("points", 0), prev.get("ts", ""))):
+            neptun_winners[winner_key] = s
+
     for s in sorted(signals, key=lambda x: x["ts"]):
         voiv = s.get("voivodeship")
         if voiv not in per_voiv or s["points"] <= 0:
             continue
+        track_id = ((s.get("details") or {}).get("track_id")
+                    if s.get("source") == "neptun" else None)
+        superseded = bool(track_id and neptun_winners.get((voiv, track_id)) is not s)
         key = (voiv, s["source"])
         cap = config.SOURCE_CAPS.get(s["source"])
         already = per_source.get(key, 0.0)
-        counted = s["points"] if cap is None else max(0.0, min(cap - already, s["points"]))
-        per_source[key] = already + s["points"]
+        counted = (0.0 if superseded else
+                   s["points"] if cap is None else
+                   max(0.0, min(cap - already, s["points"])))
+        if not superseded:
+            per_source[key] = already + s["points"]
         w = _age_weight(s["ts"], ref)
         counted *= w
         per_voiv[voiv]["score"] += counted

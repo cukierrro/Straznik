@@ -116,6 +116,10 @@ const EXCLUDE = ["ćwiczeni","trening","test syren","próba syren","próby syren
   "godzin po","godziny po","kalendarium","przypominamy","wspomina",
   "kulisy","reportaż","felieton","czy na pewno","co wiemy","jak doszło",
   "śledztwo w sprawie","podsumowanie roku",
+  "zawyły syreny?","zawyła syrena?","alarm powietrzny?",
+  "co powinieneś zrobić","co należy zrobić","jak się zachować w razie",
+  "co robić w razie","co zrobić w razie","poradnik bezpieczeństwa",
+  "poznaj sygnały alarmowe","co oznacza sygnał alarmowy",
   "film fabularn","film dokumentaln","serial","premiera","recenzja",
   "zwiastun","gra wideo","gry wideo","powieść","komiks","cosplay","spektakl",
   "1939","1944","1945","ii wojn","powstanie warszawsk",
@@ -388,13 +392,26 @@ function accumulate(sigs, refT) {
   const ref = refT || Date.now();
   const per = {}; VOIVODESHIPS.forEach(v => per[v] = { score: 0, signals: [] });
   const perSource = {};
+  const neptunWinners = new Map();
+  for (const s of sigs) {
+    const trackId = s.source === "neptun" && s.details?.track_id;
+    if (!trackId) continue;
+    const key = s.voivodeship + "|" + trackId;
+    const prev = neptunWinners.get(key);
+    if (!prev || s.points > prev.points || (s.points === prev.points && s.t > prev.t)) {
+      neptunWinners.set(key, s);
+    }
+  }
   for (const s of [...sigs].sort((a, b) => a.t - b.t)) {
     if (!(s.voivodeship in per) || !Number.isFinite(s.points) || s.points <= 0) continue;
+    const trackId = s.source === "neptun" && s.details?.track_id;
+    const superseded = !!trackId && neptunWinners.get(s.voivodeship + "|" + trackId) !== s;
     const k = s.voivodeship + "|" + s.source;
     const cap = SOURCE_CAPS[s.source];
     const already = perSource[k] || 0;
-    let counted = cap == null ? s.points : Math.max(0, Math.min(cap - already, s.points));
-    perSource[k] = already + s.points;
+    let counted = superseded ? 0
+      : (cap == null ? s.points : Math.max(0, Math.min(cap - already, s.points)));
+    if (!superseded) perSource[k] = already + s.points;
     const ageMin = (ref - s.t) / 60000;
     const w = ageMin <= FULL_MIN ? 1
       : Math.max(0, 1 - (ageMin - FULL_MIN) / Math.max(WINDOW_MIN - FULL_MIN, 1));

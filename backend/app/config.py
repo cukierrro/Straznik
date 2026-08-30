@@ -308,6 +308,11 @@ EXCLUDE_KEYWORDS = [
     # publicystyka / analiza / reportaż (nie meldunek o zdarzeniu na żywo)
     "kulisy", "reportaż", "felieton", "czy na pewno", "co wiemy", "jak doszło",
     "śledztwo w sprawie", "podsumowanie roku",
+    # pytania hipotetyczne i poradniki, a nie meldunki o trwającym zdarzeniu
+    "zawyły syreny?", "zawyła syrena?", "alarm powietrzny?",
+    "co powinieneś zrobić", "co należy zrobić", "jak się zachować w razie",
+    "co robić w razie", "co zrobić w razie", "poradnik bezpieczeństwa",
+    "poznaj sygnały alarmowe", "co oznacza sygnał alarmowy",
     # kultura / fikcja / rozrywka („rakieta/dron/atak/bomba" w tytule dzieła)
     "film fabularn", "film dokumentaln", "serial", "premiera", "recenzja",
     "zwiastun", "gra wideo", "gry wideo", "powieść", "komiks", "cosplay", "spektakl",
