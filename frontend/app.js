@@ -541,8 +541,9 @@ async function initMap() {
     map.addImage("plane", makePlaneImage());
     map.addImage("heli", makeHeliImage());
 
-    // każdy kraj sąsiedni własnym odcieniem — Polska (województwa) wyróżnia
-    // się na ich tle jaśniejszym wypełnieniem i grubym konturem
+    // Każdy kraj sąsiedni ma własny, ale dyskretny odcień. Przy szerokim
+    // widoku mocne wypełnienia ogromnych państw dominowały nad informacją
+    // alarmową, dlatego krycie rośnie łagodnie dopiero wraz ze zbliżeniem.
     const COUNTRY_COLORS = {
       UKR: "#4a4030", BLR: "#4a2e33", RUS: "#3f2b3e",
       LTU: "#2e4437", LVA: "#2e3f4a", EST: "#3b3350",
@@ -554,7 +555,8 @@ async function initMap() {
     map.addLayer({ id: "kraje-fill", type: "fill", source: "kraje",
       paint: { "fill-color": ["match", ["get", "iso"],
           ...Object.entries(COUNTRY_COLORS).flat(), "#333"],
-        "fill-opacity": 0.42 } });
+        "fill-opacity": ["interpolate", ["linear"], ["zoom"],
+          3, 0.13, 6, 0.20, 9, 0.24] } });
     /* Kontury krajów rysuje już styl bazowy (warstwy boundary). Własnej linii
        NIE dokładamy: wzdłuż granicy PL biegłaby obok linii województw i dawała
        efekt „podwójnego konturu". Zostaje samo wypełnienie (odcień kraju). */
