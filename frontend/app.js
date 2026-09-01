@@ -552,11 +552,15 @@ async function initMap() {
     };
     const kraje = await (await fetch("assets/kraje.geojson")).json();
     map.addSource("kraje", { type: "geojson", data: kraje });
+    // Android WebView wyświetla ciemną mapę bardziej płasko niż przeglądarka
+    // desktopowa. Wspólne, niskie krycie zlewało tam kraje w jeden odcień.
+    const countryOpacity = IS_APP
+      ? ["interpolate", ["linear"], ["zoom"], 3, 0.30, 6, 0.38, 9, 0.42]
+      : ["interpolate", ["linear"], ["zoom"], 3, 0.13, 6, 0.20, 9, 0.24];
     map.addLayer({ id: "kraje-fill", type: "fill", source: "kraje",
       paint: { "fill-color": ["match", ["get", "iso"],
           ...Object.entries(COUNTRY_COLORS).flat(), "#333"],
-        "fill-opacity": ["interpolate", ["linear"], ["zoom"],
-          3, 0.13, 6, 0.20, 9, 0.24] } });
+        "fill-opacity": countryOpacity } });
     /* Kontury krajów rysuje już styl bazowy (warstwy boundary). Własnej linii
        NIE dokładamy: wzdłuż granicy PL biegłaby obok linii województw i dawała
        efekt „podwójnego konturu". Zostaje samo wypełnienie (odcień kraju). */
