@@ -8,8 +8,10 @@ import asyncio
 import calendar
 import hashlib
 import logging
+import re
 import time
 import unicodedata
+from urllib.parse import urlparse
 
 import feedparser
 import httpx
@@ -43,6 +45,30 @@ UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/126.0 Safari/537.36")
 
 MAX_AGE_S = 45 * 60   # ignoruj wpisy starsze niż 45 min (stare newsy ≠ sygnał "teraz")
+
+
+def _is_baltic_clear(text: str) -> bool:
+    tl = text.lower()
+    return any(word in tl for word in config.BALTIC_CLEAR_KEYWORDS)
+
+
+def _baltic_incident_key(link: str, title: str, country: str) -> str:
+    """Stabilny identyfikator rozwijanego artykułu/zdarzenia.
+
+    LSM zmienia slug przy przejściu „alarm” → „alarm zakończony”, ale zostawia
+    końcowe ``a661158``. ERR analogicznie zachowuje numer artykułu. Dzięki temu
+    odwołanie wygasza właściwy sygnał, a nie wszystkie równoległe alerty kraju.
+    """
+    for pattern in (r"(?:^|[./-])(a\d{5,})(?:[/?#.-]|$)",
+                    r"(?:^|[./-])(\d{7,})(?:[/?#.-]|$)"):
+        m = re.search(pattern, link, re.I)
+        if m:
+            return f"{country}:{m.group(1).lower()}"
+    path = urlparse(link).path.rstrip("/").lower()
+    basis = path.rsplit("/", 1)[-1] if path else title.lower()
+    # Fallback służy tylko deduplikacji. Nie próbujemy agresywnie łączyć różnych
+    # regionów jednego kraju, bo odwołanie jednego alarmu mogłoby skasować drugi.
+    return f"{country}:fallback:{hashlib.sha1(basis.encode()).hexdigest()[:12]}"
 
 
 def _match_keywords(text: str) -> list[str]:
@@ -134,19 +160,34 @@ async def _check_baltic_feed(client: httpx.AsyncClient, url: str, country: str):
         t = entry.get("published_parsed") or entry.get("updated_parsed")
         if t and now - calendar.timegm(t) > MAX_AGE_S:
             continue
+        link = entry.get("link", "")
+        incident_key = _baltic_incident_key(link, title, country)
+        if _is_baltic_clear(text):
+            # Punkty 0 są celowe: wpis zostaje w historii i natychmiast wymusza
+            # reevaluację, a fusion.accumulate wygasza wcześniejszy kontekst o
+            # tym samym incident_key. Nigdy nie może podbić wyniku.
+            for voiv in config.BALTIC_TARGET_VOIVS:
+                await fusion.ingest(
+                    source="media", event_type="baltic_clear", voivodeship=voiv,
+                    points=0.0, title=f"Media {country}: odwołanie — „{title[:100]}”",
+                    details={"link": link, "country": country,
+                             "incident_key": incident_key, "clear": True},
+                    dedup_key=f"baltic-clear:{incident_key}:{voiv}",
+                )
+            continue
         hits = match_keywords(text, config.BALTIC_CRITICAL_KEYWORDS,
                               config.BALTIC_AIR_KEYWORDS, config.BALTIC_EVENT_KEYWORDS,
                               config.BALTIC_EXCLUDE_KEYWORDS)
         if not hits:
             continue
-        link = entry.get("link", "")
         h = hashlib.sha1((link or title).encode()).hexdigest()[:16]
         for voiv in config.BALTIC_TARGET_VOIVS:
             await fusion.ingest(
                 source="media", event_type="baltic_context", voivodeship=voiv,
                 points=config.POINTS["baltic_context"],
                 title=f"Media {country}: „{title[:110]}”",
-                details={"link": link, "keywords": hits, "country": country},
+                details={"link": link, "keywords": hits, "country": country,
+                         "incident_key": incident_key},
                 dedup_key=f"baltic:{h}:{voiv}",
             )
 

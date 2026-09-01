@@ -86,6 +86,19 @@ def accumulate(signals: list[dict], ref: datetime | None = None) -> dict:
     }
     per_source: dict[tuple, float] = {}
 
+    # Odwołanie alertu u sąsiada wygasza tylko wcześniejszy wpis tego samego
+    # zdarzenia (stabilny incident_key z numeru artykułu). Sygnału nie kasujemy
+    # z bazy — historia nadal pokazuje, że alarm istniał przed odwołaniem.
+    baltic_clears: dict[tuple, str] = {}
+    for s in signals:
+        if s.get("event_type") != "baltic_clear":
+            continue
+        incident = (s.get("details") or {}).get("incident_key")
+        if not incident:
+            continue
+        key = (s.get("voivodeship"), incident)
+        baltic_clears[key] = max(baltic_clears.get(key, ""), s.get("ts", ""))
+
     # Kolejny tier tego samego track_id jest aktualizacją jednego fizycznego
     # obiektu, nie nowym obiektem. Do wyniku wybieramy najmocniejszy wpis toru;
     # starsze zostają widoczne w historii, ale z counted_points=0.
@@ -110,19 +123,24 @@ def accumulate(signals: list[dict], ref: datetime | None = None) -> dict:
         track_id = ((s.get("details") or {}).get("track_id")
                     if s.get("source") == "neptun" else None)
         superseded = bool(track_id and neptun_winners.get((voiv, track_id)) is not s)
+        incident = ((s.get("details") or {}).get("incident_key")
+                    if s.get("event_type") == "baltic_context" else None)
+        clear_ts = baltic_clears.get((voiv, incident)) if incident else None
+        cleared = bool(clear_ts and clear_ts >= s.get("ts", ""))
         key = (voiv, s["source"])
         cap = config.SOURCE_CAPS.get(s["source"])
         already = per_source.get(key, 0.0)
-        counted = (0.0 if superseded else
+        counted = (0.0 if superseded or cleared else
                    s["points"] if cap is None else
                    max(0.0, min(cap - already, s["points"])))
-        if not superseded:
+        if not superseded and not cleared:
             per_source[key] = already + s["points"]
         w = _age_weight(s["ts"], ref)
         counted *= w
         per_voiv[voiv]["score"] += counted
         per_voiv[voiv]["signals"].append(
-            {**s, "counted_points": round(counted, 1), "weight": round(w, 2)})
+            {**s, "counted_points": round(counted, 1), "weight": round(w, 2),
+             **({"cleared": True} if cleared else {})})
     return per_voiv
 
 

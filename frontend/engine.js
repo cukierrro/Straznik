@@ -196,6 +196,13 @@ const RSS_FEEDS = [
 const BALTIC_FEEDS = [["https://news.err.ee/rss","EE"],["https://eng.lsm.lv/rss/","LV"],
   ["https://www.delfi.lt/rss/feeds/daily.xml","LT"]];
 const BALTIC_TARGETS = ["podlaskie","warmińsko-mazurskie"];
+const BALTIC_CLEAR = ["alert over","alert is over","threat over","threat is over",
+  "warning over","warning is over","warning lifted","alert lifted","threat ended",
+  "threat has ended","danger has passed","all clear","no longer a threat","cancelled","canceled",
+  "apdraudējums noslēdzies","apdraudējums beidzies","brīdinājums atcelts","draudi beigušies",
+  "gaisa apdraudējums noslēdzies","oht on möödas","õhuoht on möödas","ohu lõpp",
+  "oht lõppenud","ohuhoiatus tühistati","ohuteade lõpetati","pavojus baigėsi",
+  "oro pavojus baigėsi","perspėjimas atšauktas"];
 const MAX_AGE_MS = 45*60*1000;
 
 /* ── stan ────────────────────────────────────────────────────────────────── */
@@ -402,6 +409,13 @@ function accumulate(sigs, refT) {
   const ref = refT || Date.now();
   const per = {}; VOIVODESHIPS.forEach(v => per[v] = { score: 0, signals: [] });
   const perSource = {};
+  const balticClears = new Map();
+  for (const s of sigs) {
+    if (s.event_type !== "baltic_clear" || !s.details?.incident_key) continue;
+    const key = s.voivodeship + "|" + s.details.incident_key;
+    const prev = balticClears.get(key) || 0;
+    balticClears.set(key, Math.max(prev, s.t || Date.parse(s.ts) || 0));
+  }
   const neptunWinners = new Map();
   for (const s of sigs) {
     const trackId = s.source === "neptun" && s.details?.track_id;
@@ -416,19 +430,22 @@ function accumulate(sigs, refT) {
     if (!(s.voivodeship in per) || !Number.isFinite(s.points) || s.points <= 0) continue;
     const trackId = s.source === "neptun" && s.details?.track_id;
     const superseded = !!trackId && neptunWinners.get(s.voivodeship + "|" + trackId) !== s;
+    const incident = s.event_type === "baltic_context" && s.details?.incident_key;
+    const clearT = incident && balticClears.get(s.voivodeship + "|" + incident);
+    const cleared = !!clearT && clearT >= (s.t || Date.parse(s.ts) || 0);
     const k = s.voivodeship + "|" + s.source;
     const cap = SOURCE_CAPS[s.source];
     const already = perSource[k] || 0;
-    let counted = superseded ? 0
+    let counted = (superseded || cleared) ? 0
       : (cap == null ? s.points : Math.max(0, Math.min(cap - already, s.points)));
-    if (!superseded) perSource[k] = already + s.points;
+    if (!superseded && !cleared) perSource[k] = already + s.points;
     const ageMin = (ref - s.t) / 60000;
     const w = ageMin <= FULL_MIN ? 1
       : Math.max(0, 1 - (ageMin - FULL_MIN) / Math.max(WINDOW_MIN - FULL_MIN, 1));
     counted *= w;
     per[s.voivodeship].score += counted;
     per[s.voivodeship].signals.push({ ...s, counted_points: Math.round(counted * 10) / 10,
-      weight: Math.round(w * 100) / 100 });
+      weight: Math.round(w * 100) / 100, ...(cleared ? { cleared:true } : {}) });
   }
   return per;
 }
@@ -700,6 +717,20 @@ function stop() {
 }
 
 /* ── kolektor: ADS-B ─────────────────────────────────────────────────────── */
+const ADSB_MIL_PREFIXES = ["NATO","MMF","REDEYE","BART","OSY","PLF","HKY","VIPER",
+  "WOLF","FENIX","DUKE","TIGER","KAPLAN","TUAF","TURAF","SOLOTURK"];
+const ADSB_MIL_TYPES = new Set(["F16","F15","F18","FA18","F35","EUFI","RFAL","JAS39",
+  "MIR2","M2K","SU27","SU30","SU35","MIG29","MIG31","A10","B1","B2","B52",
+  "E3CF","E3TF","A400","C130","C17","KC135","ATLA"]);
+function looksMilitaryAdsb(a) {
+  if ((Number(a.dbFlags)||0) & 1) return true;
+  const call = String(a.flight||"").trim().toUpperCase();
+  if (ADSB_MIL_PREFIXES.some(p => call.startsWith(p))) return true;
+  const type = String(a.t||"").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (ADSB_MIL_TYPES.has(type)) return true;
+  return /air ?force|army|navy|military|nato|force aérienne|luftwaffe|türk hava|turkish af|polish af/i
+    .test(String(a.ownOp||""));
+}
 async function tickAdsb() {
   try {
     /* airplanes.live wzbogaca rekordy o pełną nazwę typu (desc), operatora (ownOp)
@@ -710,12 +741,33 @@ async function tickAdsb() {
        airplanes.live zaczął zwracać 403, więc pytamy najpierw adsb.lol; gdy
        airplanes.live wróci, znów wzbogaci karty o desc/ownOp. opendata.adsb.fi
        to trzeci zapas (stary api.adsb.fi/v2 już nie istnieje — 404). */
+    let base = null;
     for (const u of ["https://api.adsb.lol/v2/mil", "https://api.airplanes.live/v2/mil",
                      "https://opendata.adsb.fi/api/v2/mil"]) {
-      try { txt = await httpGet(u); if (txt) break; } catch {}
+      try { txt = await httpGet(u); if (txt) { base = u.replace(/\/mil$/, ""); break; } } catch {}
     }
     if (!txt) throw new Error("brak odpowiedzi ADS-B");
-    const ac = (JSON.parse(txt).ac||[]);
+    const merged = new Map();
+    for (const a of (JSON.parse(txt).ac||[])) {
+      const key = a.hex || `${a.lat}:${a.lon}:${a.flight}`;
+      merged.set(key, {...a, _straznik_detection:"mil_registry"});
+    }
+    // Gdy backend jest niedostępny, standalone nadal sam sprawdza Bałtyk. Dwa
+    // niewielkie koła/min są filtrowane lokalnie i nie pobierają globalnego ruchu.
+    if (base) {
+      const points = [[55.5,24.0,220],[58.2,25.5,220]];
+      const geo = await Promise.all(points.map(([lat,lon,r]) =>
+        httpGet(`${base}/point/${lat}/${lon}/${r}`).catch(() => null)));
+      for (const body of geo) {
+        if (!body) continue;
+        for (const a of (JSON.parse(body).ac||[])) {
+          if (!looksMilitaryAdsb(a)) continue;
+          const key = a.hex || `${a.lat}:${a.lon}:${a.flight}`;
+          if (!merged.has(key)) merged.set(key, {...a, _straznik_detection:"baltic_geo"});
+        }
+      }
+    }
+    const ac = [...merged.values()];
     const per = {}; Object.keys(VOIV_BBOX).forEach(v => per[v] = []);
     adsbAircraft = [];
     for (const a of ac) {
@@ -736,7 +788,8 @@ async function tickAdsb() {
                   year:a.year, dbflags:a.dbFlags, nav_modes:a.nav_modes, nav_qnh:a.nav_qnh,
                   nav_alt:a.nav_altitude_mcp, wd:a.wd, ws:a.ws, oat:a.oat, tat:a.tat,
                   rssi:a.rssi, messages:a.messages, seen:a.seen, version:a.version,
-                  source:(a.mlat&&a.mlat.length)?"MLAT":(a.tisb&&a.tisb.length)?"TIS-B":"ADS-B" };
+                  source:(a.mlat&&a.mlat.length)?"MLAT":(a.tisb&&a.tisb.length)?"TIS-B":"ADS-B",
+                  detection:a._straznik_detection||"mil_registry" };
       if (v && per[v]) per[v].push(p);
       adsbAircraft.push(p);
     }
@@ -775,6 +828,17 @@ function parseFeed(xmlText) {
     date: it.querySelector("pubDate, published, updated")?.textContent || "",
   }));
 }
+function balticIncidentKey(link, title, country) {
+  const s = String(link || "");
+  const m = s.match(/(?:^|[./-])(a\d{5,})(?:[/?#.-]|$)/i)
+    || s.match(/(?:^|[./-])(\d{7,})(?:[/?#.-]|$)/);
+  if (m) return `${country}:${m[1].toLowerCase()}`;
+  let basis = String(title || "").toLowerCase();
+  try { basis = new URL(s).pathname.replace(/\/$/, "").split("/").pop() || basis; } catch {}
+  let h = 2166136261;
+  for (let i=0; i<basis.length; i++) h = Math.imul(h ^ basis.charCodeAt(i), 16777619);
+  return `${country}:fallback:${(h >>> 0).toString(16)}`;
+}
 async function tickRss() {
   for (const [url, defVoiv] of RSS_FEEDS) {
     try {
@@ -803,11 +867,22 @@ async function tickRss() {
       for (const it of items.slice(0,30)) {
         const age = it.date ? Date.now() - new Date(it.date).getTime() : 0;
         if (age > MAX_AGE_MS) continue;
-        const hits = matchKw(it.title + " " + it.desc, B_CRITICAL, B_AIR, B_EVENT, B_EXCLUDE);
+        const text = (it.title + " " + it.desc).toLowerCase();
+        const incident = balticIncidentKey(it.link, it.title, country);
+        if (BALTIC_CLEAR.some(k => text.includes(k))) {
+          for (const v of BALTIC_TARGETS)
+            addSignal("media","baltic_clear",v,0,
+              `Media ${country}: odwołanie — „${it.title.slice(0,100)}”`,
+              {link:it.link, country, incident_key:incident, clear:true},
+              `baltic-clear:${incident}:${v}`);
+          continue;
+        }
+        const hits = matchKw(text, B_CRITICAL, B_AIR, B_EVENT, B_EXCLUDE);
         if (!hits.length) continue;
         for (const v of BALTIC_TARGETS)
           addSignal("media","baltic_context",v,POINTS.baltic_context,
-            `Media ${country}: „${it.title.slice(0,110)}”`, {link:it.link},
+            `Media ${country}: „${it.title.slice(0,110)}”`,
+            {link:it.link, country, incident_key:incident},
             `baltic:${it.link||it.title}:${v}`);
       }
     } catch { markRss(url, false); }

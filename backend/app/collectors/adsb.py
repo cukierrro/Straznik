@@ -10,6 +10,7 @@ Opcjonalnie ADSBexchange przez RapidAPI (klucz w .env).
 """
 import asyncio
 import logging
+import re
 import time
 from datetime import datetime, timezone
 
@@ -19,13 +20,26 @@ from .. import config, db, fusion, geo
 
 log = logging.getLogger("adsb")
 status = {"ok": False, "last": None, "error": None, "provider": config.ADSB_PROVIDER,
-          "counts": {}, "baselines": {}}
+          "counts": {}, "baselines": {},
+          "baltic_geo": {"ok": False, "provider": None, "candidates": 0}}
 
 # aktualne maszyny wojskowe nad PL-wschód (dla frontendu)
 current_aircraft: list[dict] = []
 
 MIL_CALLSIGN_PREFIXES = ("NATO", "MMF", "REDEYE", "BART", "OSY", "PLF", "HKY",
-                         "VIPER", "WOLF", "FENIX", "DUKE", "TIGER")
+                         "VIPER", "WOLF", "FENIX", "DUKE", "TIGER", "KAPLAN",
+                         "TUAF", "TURAF", "SOLOTURK")
+
+# Dwa koła po 220 NM pokrywają LT/LV/EE i najbliższy Bałtyk. To tylko dwa małe
+# zapytania/min, nie globalny zrzut całego ruchu cywilnego.
+BALTIC_GEO_POINTS = ((55.5, 24.0, 220), (58.2, 25.5, 220))
+MIL_TYPES = {"F16", "F15", "F18", "FA18", "F35", "EUFI", "RFAL", "JAS39",
+             "MIR2", "M2K", "SU27", "SU30", "SU35", "MIG29", "MIG31",
+             "A10", "B1", "B2", "B52", "E3CF", "E3TF", "A400", "C130",
+             "C17", "KC135", "ATLA"}
+MIL_OPERATOR_WORDS = ("air force", "airforce", "army", "navy", "military",
+                      "nato", "force aérienne", "luftwaffe", "Türk Hava",
+                      "turkish af", "polish af")
 
 # Nagłówek jak z przeglądarki — bez niego adsb.lol odrzuca żądanie (403).
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -80,6 +94,63 @@ async def _fetch_mil(client: httpx.AsyncClient) -> list[dict] | None:
     return None
 
 
+def _looks_military(ac: dict) -> bool:
+    """Konserwatywna klasyfikacja rekordu z zapytania geograficznego."""
+    try:
+        if int(ac.get("dbFlags") or 0) & 1:  # tar1090: bit 0 = military
+            return True
+    except (TypeError, ValueError):
+        pass
+    callsign = (ac.get("flight") or "").strip().upper()
+    if callsign.startswith(MIL_CALLSIGN_PREFIXES):
+        return True
+    ac_type = re.sub(r"[^A-Z0-9]", "", str(ac.get("t") or "").upper())
+    if ac_type in MIL_TYPES:
+        return True
+    operator = str(ac.get("ownOp") or "").lower()
+    return any(word.lower() in operator for word in MIL_OPERATOR_WORDS)
+
+
+async def _fetch_baltic_geo(client: httpx.AsyncClient, provider: str) -> list[dict]:
+    """Wszystkie rekordy w dwóch kołach, potem lokalny filtr wojskowy.
+
+    `/v2/mil` ominął nocne tureckie F-16, choć według użytkownika były widoczne
+    w FR24. Zapytanie geograficzne usuwa zależność od flagi „military” dostawcy.
+    Przy awarii wybranego hosta próbujemy drugi, ale nigdy nie odpytujemy obu
+    równolegle bez potrzeby.
+    """
+    order = [provider] + [p for p in MIL_ENDPOINTS if p != provider]
+    last_error = None
+    for name in order:
+        base = MIL_ENDPOINTS.get(name, "").rsplit("/mil", 1)[0]
+        if not base:
+            continue
+        try:
+            responses = await asyncio.gather(*[
+                client.get(f"{base}/point/{lat}/{lon}/{radius}",
+                           headers={"User-Agent": UA})
+                for lat, lon, radius in BALTIC_GEO_POINTS
+            ])
+            merged = {}
+            for response in responses:
+                response.raise_for_status()
+                for ac in response.json().get("ac") or []:
+                    key = ac.get("hex") or f"{ac.get('lat')}:{ac.get('lon')}:{ac.get('flight')}"
+                    merged[key] = ac
+            candidates = []
+            for ac in merged.values():
+                if _looks_military(ac):
+                    candidates.append({**ac, "_straznik_detection": "baltic_geo"})
+            status["baltic_geo"] = {"ok": True, "provider": name,
+                                    "candidates": len(candidates), "error": None}
+            return candidates
+        except Exception as exc:
+            last_error = f"{name}: {exc!r}"
+    status["baltic_geo"] = {"ok": False, "provider": None, "candidates": 0,
+                            "error": last_error}
+    return []
+
+
 def _classify(ac: dict) -> dict | None:
     """Punktujemy tylko województwa priorytetowe, ale pokazujemy szerszą strefę
     (wschodnia flanka NATO), żeby było widać kontekst — np. tankowce nad Rumunią."""
@@ -99,6 +170,7 @@ def _classify(ac: dict) -> dict | None:
         # prędkość pionowa [ft/min], rocznik — wszystko wprost z ADS-B/rejestru
         "reg": ac.get("r"), "op": ac.get("ownOp"), "cat": ac.get("category"),
         "vr": ac.get("baro_rate"), "year": ac.get("year"),
+        "detection": ac.get("_straznik_detection", "mil_registry"),
     }
 
 
@@ -106,6 +178,16 @@ async def _tick(client: httpx.AsyncClient):
     ac_list = await _fetch_mil(client)
     if ac_list is None:
         return
+    selected = str(status.get("provider") or config.ADSB_PROVIDER).replace("(fallback)", "")
+    geo_candidates = await _fetch_baltic_geo(client, selected)
+    merged: dict[str, dict] = {}
+    for ac in ac_list:
+        key = ac.get("hex") or f"{ac.get('lat')}:{ac.get('lon')}:{ac.get('flight')}"
+        merged[key] = {**ac, "_straznik_detection": "mil_registry"}
+    for ac in geo_candidates:
+        key = ac.get("hex") or f"{ac.get('lat')}:{ac.get('lon')}:{ac.get('flight')}"
+        merged.setdefault(key, ac)
+    ac_list = list(merged.values())
     status.update(ok=True, last=time.time(), error=None)
 
     per_voiv: dict[str, list] = {v: [] for v in geo.VOIV_BBOX}

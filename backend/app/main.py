@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from . import config, db, fusion, notify
-from .collectors import adsb, neighbours, neptun, pansa, rcb, rso, rss_media
+from .collectors import adsb, neighbours, neptun, official_alerts, pansa, rcb, rso, rss_media
 
 logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s %(name)s %(levelname)s %(message)s")
@@ -210,6 +210,7 @@ async def api_health():
         "neptun": neptun.status, "adsb": adsb.status, "pansa": pansa.status,
         "rcb": rcb.status, "rso": rso.status, "rss": rss_media.status["feeds"],
         "neighbours": neighbours.status,
+        "official_alerts": official_alerts.status,
         "notify": {"ntfy": config.NTFY_ENABLED and bool(config.NTFY_TOPIC),
                    "telegram": config.TELEGRAM_ENABLED,
                    "webpush": config.WEBPUSH_ENABLED},
@@ -263,7 +264,7 @@ async def startup():
     fusion.on_level_change = notify.notify_level
     fusion.on_state_change = broadcast_state
     for coro in (neptun.run(), rss_media.run(), rcb.run(), rso.run(), adsb.run(),
-                 pansa.run(), neighbours.run(), snapshot_loop()):
+                 pansa.run(), neighbours.run(), official_alerts.run(), snapshot_loop()):
         asyncio.create_task(coro)
     log.info("Strażnik wystartował — kolektory uruchomione")
 

@@ -116,6 +116,7 @@ ADSB_MIN_COUNT = 3                 # ...i co najmniej tyle maszyn wojskowych
 # ── PAŻP / RSS / RCB ─────────────────────────────────────────────────────────
 PANSA_INTERVAL = int(os.getenv("PANSA_INTERVAL", "300"))
 RSS_INTERVAL = int(os.getenv("RSS_INTERVAL", "60"))
+OFFICIAL_ALERTS_INTERVAL = int(os.getenv("OFFICIAL_ALERTS_INTERVAL", "30"))
 RCB_INTERVAL = int(os.getenv("RCB_INTERVAL", "120"))
 RCB_URL = "https://www.gov.pl/web/rcb"
 # RSO (Regionalny System Ostrzegania) przez TVP — realne alerty RCB/SPO (SMS-owe
@@ -433,3 +434,20 @@ BALTIC_EVENT_KEYWORDS = [
 BALTIC_EXCLUDE_KEYWORDS = ["exercise", "drill", "training", "anniversary",
                            "drone show", "festival", "pratyb", "mācīb", "õppus",
                            "delivery drone", "drone racing", "photo drone"]
+# Komunikat kończący alarm nie jest kolejnym potwierdzeniem zagrożenia. Musi
+# wyzerować odpowiadający mu aktywny kontekst (LSM/ERR często zmieniają tytuł
+# i slug tego samego artykułu, zachowując jego numeryczny identyfikator).
+BALTIC_CLEAR_KEYWORDS = [
+    "alert over", "alert is over", "threat over", "threat is over",
+    "warning over", "warning is over", "warning lifted", "alert lifted",
+    "threat ended", "threat has ended", "danger has passed", "all clear",
+    "no longer a threat", "cancelled", "canceled",
+    # łotewski
+    "apdraudējums noslēdzies", "apdraudējums beidzies", "brīdinājums atcelts",
+    "draudi beigušies", "gaisa apdraudējums noslēdzies",
+    # estoński
+    "oht on möödas", "õhuoht on möödas", "ohu lõpp", "oht lõppenud",
+    "ohuhoiatus tühistati", "ohuteade lõpetati",
+    # litewski
+    "pavojus baigėsi", "oro pavojus baigėsi", "perspėjimas atšauktas",
+]

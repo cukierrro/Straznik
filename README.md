@@ -40,7 +40,7 @@ z syreną. UI zawsze pokazuje pełne rozbicie: które sygnały, skąd, ile punkt
 | **RCB** | nowy komunikat na gov.pl/web/rcb | **+2** |
 | **ADS-B** | ≥3 maszyny wojskowe nad województwem i >2× baseline **z tej samej pory doby** z 7 dni | **+1** |
 | **PAŻP** | rzadka strefa ADHOC/R/NPZ/D obejmująca całą kolumnę od ziemi w górę; TRA/TSA/MRT/ATZ i designatory powtarzane w ciągu 7 dni nie punktują | **+0,5** |
-| **Media LT/LV/EE** | incydent powietrzny wg mediów bałtyckich → podlaskie + warmińsko-mazurskie | **+1** |
+| **Media LT/LV/EE** | incydent powietrzny wg mediów bałtyckich → podlaskie + warmińsko-mazurskie; komunikat kończący wygasza wkład tego samego zdarzenia | **+1** |
 | **Sąsiedzi (RO/EE/LT)** | aktywne zamknięcie przestrzeni u sąsiada NATO — sygnał obserwacyjny, wyprzedzający | **+0,3** |
 
 ### Punktacja obiektów NEPTUN
@@ -339,6 +339,12 @@ tygodnia próbek do baseline). Wszystkie liczy backend. Rozpoznawanie
 województwa z tekstu obejmuje wszystkie 16 (`VOIV_KEYWORDS`), a jeden ogólnopolski
 kanał Google News pokrywa regiony bez własnego feedu.
 
+Lista aktualności łotewskich sił zbrojnych (`mil.lv`) jest dodatkowo sprawdzana
+co 30 sekund jako **instrumentacja bez punktów**. Rejestruje początek i koniec
+oficjalnego zagrożenia, aby mierzyć opóźnienia mediów; sama nie może wywołać
+alarmu. Komunikaty bałtyckie typu „alert over / zagrożenie zakończone” również
+nie dodają punktów — wygaszają wcześniejszy wpis tego samego incydentu.
+
 **Region i kaskada.** Fuzja obejmuje wszystkie 16 województw, ze zdarzeniem na
 wschodzie „przelewającym się" na sąsiadów (kaskada, `config.VOIV_NEIGHBORS`).
 Push dociera tylko o **wybranym województwie** — telefon subskrybuje temat
@@ -364,7 +370,12 @@ blokadą z syreną, a potwierdzenie zatrzymuje dźwięk i wibrację.
   przestrzeń jest zamknięta. Widać za to AWACS-y, tankowce i transportowce NATO
   nad Polską, Rumunią i Bałtykiem. To publiczne transpondery maszyn, które *chcą*
   być widoczne — nie namierzanie obiektów przeciwnika.
-- **Myśliwców w akcji nie zobaczy żadne źródło ADS-B** — ani naziemne, ani
+- Oprócz globalnej listy oznaczonej przez dostawcę jako wojskowa Strażnik odpytuje
+  dwa ograniczone obszary geograficzne nad krajami bałtyckimi i lokalnie wybiera
+  znane typy, operatorów oraz callsigny wojskowe. Ogranicza to pominięcia wynikające
+  z błędnej flagi w rejestrze, ale nie zmienia wagi ADS-B ani nie obejmuje maszyn
+  z wyłączonym transponderem.
+- **Myśliwców w akcji nie zobaczy żadne źródło ADS-B, jeżeli nie nadają jawnie** — ani naziemne, ani
   satelitarne. Maszyny bojowe w misjach QRA nadają szyfrowany Mode 5 (IFF),
   a nie ADS-B; satelity (Aireon, Spire) odbierają dokładnie ten sam sygnał, więc
   zmiana dostawcy niczego nie doda. Multilateracja (MLAT) w ADSBexchange bywa

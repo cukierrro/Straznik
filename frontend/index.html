@@ -15,7 +15,7 @@ document.documentElement.classList.add(
 </script>
 <link rel="manifest" href="manifest.json">
 <link rel="stylesheet" href="assets/vendor/maplibre-gl.css">
-<link rel="stylesheet" href="style.css?v=1.7.3">
+<link rel="stylesheet" href="style.css?v=1.7.4">
 </head>
 <body>
 
@@ -115,7 +115,7 @@ document.documentElement.classList.add(
        API NEPTUN wymaga, żeby była widoczna zawsze -->
   <section id="panel-attrib" class="fineprint">
     <b>Dane: <a href="https://neptun.in.ua" target="_blank" rel="noopener">NEPTUN</a></b>
-    (agregator OSINT — nie radar) · ADS-B: airplanes.live · PAŻP · RCB
+    (agregator OSINT — nie radar) · ADS-B: adsb.lol / adsb.fi · PAŻP · RCB
     · Mapa: <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a>,
     © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OSM</a>
   </section>
@@ -124,7 +124,7 @@ document.documentElement.classList.add(
 <div id="attribution">
   <b>Dane: <a href="https://neptun.in.ua" target="_blank" rel="noopener">NEPTUN</a></b>
   (agregator OSINT — nie radar; zawsze sprawdzaj confidence i ±km)
-  · ADS-B: airplanes.live · Mapa: <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a>
+  · ADS-B: adsb.lol / adsb.fi · Mapa: <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a>
   © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OSM</a>
 </div>
 
@@ -216,7 +216,7 @@ document.documentElement.classList.add(
       <tr><td><b>PAŻP</b></td><td>rzadka strefa ADHOC/R/NPZ/D od ziemi w górę;
         rutynowe TRA/TSA/MRT/ATZ i strefy powtarzane w ciągu 7 dni nie punktują</td><td class="pts">+0,5</td></tr>
       <tr><td><b>Bałtyk</b></td><td>incydent powietrzny wg mediów Litwy, Łotwy
-        lub Estonii</td><td class="pts">+1</td></tr>
+        lub Estonii; komunikat kończący wygasza wkład tego samego zdarzenia</td><td class="pts">+1</td></tr>
       <tr><td><b>Sąsiedzi</b></td><td>zamknięcie przestrzeni u sąsiada NATO
         (Rumunia płn., Estonia, Litwa) — sygnał obserwacyjny</td><td class="pts">+0,3</td></tr>
     </table>
@@ -441,7 +441,7 @@ document.documentElement.classList.add(
      Cloudflare, więc po każdym wydaniu wystarczy podbić ?v= i przeglądarki
      dostają nowe app.js/engine.js OD RAZU, bez ręcznego czyszczenia cache CF.
      Podbijaj ?v= razem z versionName w build.gradle. -->
-<script src="engine.js?v=1.7.3"></script>
-<script src="app.js?v=1.7.3"></script>
+<script src="engine.js?v=1.7.4"></script>
+<script src="app.js?v=1.7.4"></script>
 </body>
 </html>
