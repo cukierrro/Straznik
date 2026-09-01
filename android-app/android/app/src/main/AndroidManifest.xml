@@ -64,6 +64,9 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Aktualizacje APK spoza Google Play. Android zawsze pokazuje własny ekran
+         potwierdzenia i dodatkowo weryfikuje podpis tym samym kluczem autora. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- czerwony alarm trzyma ekran zapalony do potwierdzenia (AlarmActivity,

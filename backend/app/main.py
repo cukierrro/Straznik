@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import config, db, fusion, notify
+from . import app_updates, config, db, fusion, notify
 from .collectors import adsb, neighbours, neptun, official_alerts, pansa, rcb, rso, rss_media
 
 logging.basicConfig(level=logging.INFO,
@@ -215,6 +215,17 @@ async def api_health():
                    "telegram": config.TELEGRAM_ENABLED,
                    "webpush": config.WEBPUSH_ENABLED},
     }
+
+
+@app.get("/api/app-version")
+async def api_app_version():
+    """Bezpieczne metadane APK. GitHub jest odpytywany najwyżej raz na 15 min,
+    niezależnie od liczby telefonów sprawdzających aktualizację."""
+    try:
+        return await app_updates.latest()
+    except Exception as exc:
+        log.warning("Metadane aktualizacji niedostępne: %r", exc)
+        return JSONResponse({"error": "update metadata unavailable"}, status_code=503)
 
 
 @app.get("/api/push/key")

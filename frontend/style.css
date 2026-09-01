@@ -147,6 +147,7 @@ body.panel-open #bg-warning { display: none; }
   box-shadow: 0 14px 40px rgba(0,0,0,.5);
 }
 #update-banner.hidden { display: none; }
+#update-banner.critical { border-color: var(--red); box-shadow: 0 14px 40px rgba(220,45,55,.28); }
 
 /* Komunikat administracyjny (np. zapowiedź testu) — u góry, kolor info, do zamknięcia. */
 #notice-banner {
@@ -165,7 +166,7 @@ body.panel-open #bg-warning { display: none; }
 .upd-txt b { font-size: 13.5px; }
 .upd-txt span { font-size: 11px; color: var(--muted); }
 #update-banner .chip { flex: none; }
-body.panel-open #update-banner { display: none; }
+body.panel-open #update-banner:not(.critical) { display: none; }
 
 /* ── tryb historii w panelu ── */
 .hist-banner { background: rgba(255,176,32,.12); border: 1px solid rgba(255,176,32,.4);

@@ -359,6 +359,16 @@ Zweryfikowane na fizycznym urządzeniu (Android 16) przy zamkniętej aplikacji:
 i zablokowanym ekranie zapala go i pokazuje pełnoekranowy `AlarmActivity` nad
 blokadą z syreną, a potwierdzenie zatrzymuje dźwięk i wibrację.
 
+### Aktualizacje poza Google Play
+
+Aplikacja sprawdza `GET /api/app-version`, a po wykryciu nowego wydania może
+pobrać `Straznik.apk` bezpośrednio i otworzyć systemowy instalator Androida.
+Przed instalacją natywnie sprawdza SHA-256 pliku; Android dodatkowo wymaga podpisu
+tym samym kluczem autora. Zwykłą aktualizację można odłożyć przyciskiem „Później”
+do końca bieżącej sesji. Wydanie oznaczone w opisie GitHub niewidocznym markerem
+`<!-- critical-update -->` nie ma przycisku odłożenia. Systemowe potwierdzenie
+instalacji pozostaje obowiązkowe — aplikacja nigdy nie instaluje się po cichu.
+
 ## Ograniczenia (świadome)
 
 - **NEPTUN to agregator OSINT/crowdsourcingowy, nie radar** — UI zawsze pokazuje

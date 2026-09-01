@@ -2100,8 +2100,11 @@ async function refreshBgWarning() {
    wyłączyć (UPDATE_CHECK = false) — regulamin sklepu zabrania aktualizowania
    się z pominięciem Play. */
 const UPDATE_CHECK = true;
-const UPDATE_API = "https://api.github.com/repos/cukierrro/Straznik/releases/latest";
+const UPDATE_API = DEFAULT_BACKEND + "/api/app-version";
 const UPDATE_EVERY_MS = 12 * 3600 * 1000;
+// „Później” obowiązuje tylko do zamknięcia aplikacji/karty. Nie zapisujemy tego
+// w localStorage, więc następna sesja ponownie pokaże nadal aktualną wersję.
+const sessionSkippedUpdates = new Set();
 
 /** Porównanie wersji typu „1.3.0” — zwraca true, gdy `remote` jest nowsza. */
 function isNewer(remote, local) {
@@ -2139,16 +2142,14 @@ async function checkForUpdate(force = false) {
     if (!r.ok) { if (force) updStatus("Nie udało się sprawdzić — spróbuj później."); return; }
     const rel = await r.json();
     localStorage.setItem("straznik_upd_check", String(Date.now()));
-    if (!isNewer(rel.tag_name, local)) {
+    if (!isNewer(rel.version, local)) {
       if (force) updStatus(`Masz najnowszą wersję (${local}).`);
       return;
     }
-    // pominięcie dotyczy konkretnej wersji: kolejna znów się przypomni
-    if (!force && localStorage.getItem("straznik_upd_skip") === rel.tag_name) return;
+    if (!force && !rel.critical && sessionSkippedUpdates.has(rel.version)) return;
     showUpdateBanner(rel, local);
     if (force) {
-      updStatus(`Jest nowsza wersja ${String(rel.tag_name).replace(/^v/, "")} — `
-        + "zamknij ustawienia, żeby pobrać.");
+      updStatus(`Jest nowsza wersja ${rel.version} — zamknij ustawienia, żeby zaktualizować.`);
     }
   } catch {
     if (force) updStatus("Brak połączenia — spróbuj później.");
@@ -2156,16 +2157,46 @@ async function checkForUpdate(force = false) {
 }
 
 function showUpdateBanner(rel, local) {
-  const ver = String(rel.tag_name || "").replace(/^v/, "");
+  const ver = String(rel.version || "").replace(/^v/, "");
   const el = document.getElementById("update-banner");
-  el.innerHTML = `<div class="upd-txt"><b>Dostępna wersja ${esc(ver)}</b>
-      <span>masz ${esc(local)} · aktualizacja wymaga ręcznej instalacji</span></div>
-    <a class="chip primary" href="${esc(rel.html_url)}" target="_blank" rel="noopener">Pobierz</a>
-    <button class="chip" id="upd-skip" title="Nie przypominaj o tej wersji">✕</button>`;
+  const size = rel.size ? ` · ${(rel.size / 1048576).toFixed(1)} MB` : "";
+  el.classList.toggle("critical", !!rel.critical);
+  el.innerHTML = `<div class="upd-txt"><b>${rel.critical ? "Wymagana" : "Dostępna"} wersja ${esc(ver)}</b>
+      <span>masz ${esc(local)}${esc(size)} · instalację potwierdzi Android</span>
+      <span id="upd-progress"></span></div>
+    <button class="chip primary" id="upd-install">Aktualizuj</button>
+    ${rel.critical ? "" : '<button class="chip" id="upd-later">Później</button>'}`;
   el.classList.remove("hidden");
-  document.getElementById("upd-skip").onclick = () => {
-    localStorage.setItem("straznik_upd_skip", rel.tag_name);
+  document.getElementById("upd-later")?.addEventListener("click", () => {
+    sessionSkippedUpdates.add(ver);
     el.classList.add("hidden");
+  });
+  document.getElementById("upd-install").onclick = async (event) => {
+    const btn = event.currentTarget;
+    const progress = document.getElementById("upd-progress");
+    const plugin = BG();
+    if (!plugin?.installUpdate) {
+      progress.textContent = "Aktualizator wymaga nowszej wersji aplikacji.";
+      return;
+    }
+    try {
+      const perm = await plugin.canInstallUpdates();
+      if (!perm?.allowed) {
+        await plugin.requestInstallPermission();
+        progress.textContent = "Włącz zgodę „Zezwalaj z tego źródła”, wróć i dotknij Aktualizuj ponownie.";
+        return;
+      }
+      btn.disabled = true;
+      btn.textContent = "Pobieram…";
+      progress.textContent = "Sprawdzam podpis i sumę SHA-256…";
+      await plugin.installUpdate({url: rel.url, sha256: rel.sha256});
+      progress.textContent = "Potwierdź instalację w oknie Androida.";
+      btn.textContent = "Instalator otwarty";
+    } catch (error) {
+      btn.disabled = false;
+      btn.textContent = "Spróbuj ponownie";
+      progress.textContent = "Aktualizacja nie powiodła się: " + String(error?.message || error);
+    }
   };
 }
 

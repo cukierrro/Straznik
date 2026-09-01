@@ -8,6 +8,8 @@ import android.os.Build;
 import android.os.PowerManager;
 import android.provider.Settings;
 
+import androidx.core.content.FileProvider;
+
 import com.google.firebase.messaging.FirebaseMessaging;
 
 import com.getcapacitor.JSObject;
@@ -15,6 +17,14 @@ import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.security.MessageDigest;
+import java.util.Locale;
 
 /**
  * Most JS ↔ warstwa natywna: stan powiadomień, subskrypcja tematu FCM regionu,
@@ -105,6 +115,114 @@ public class BackgroundPlugin extends Plugin {
         } catch (Exception e) {
             return "";
         }
+    }
+
+    /** Czy Strażnik może otworzyć instalator pobranego APK. Na Androidzie 8+
+     * użytkownik przyznaje tę zgodę osobno dla każdej aplikacji-źródła. */
+    @PluginMethod
+    public void canInstallUpdates(PluginCall call) {
+        boolean allowed = Build.VERSION.SDK_INT < Build.VERSION_CODES.O
+            || getContext().getPackageManager().canRequestPackageInstalls();
+        JSObject ret = new JSObject();
+        ret.put("allowed", allowed);
+        call.resolve(ret);
+    }
+
+    /** Otwiera systemowy ekran „Instaluj nieznane aplikacje” dla Strażnika. */
+    @PluginMethod
+    public void requestInstallPermission(PluginCall call) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O
+                || getContext().getPackageManager().canRequestPackageInstalls()) {
+            call.resolve();
+            return;
+        }
+        try {
+            Intent i = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                Uri.parse("package:" + getContext().getPackageName()));
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            getContext().startActivity(i);
+            call.resolve();
+        } catch (Exception e) {
+            call.reject("Nie udało się otworzyć ustawień instalacji", e);
+        }
+    }
+
+    /** Pobiera APK do prywatnego cache, sprawdza SHA-256 i dopiero wtedy otwiera
+     * systemowy instalator. Host wejściowy jest ograniczony do domen projektu;
+     * przekierowania GitHuba są dozwolone przez HTTPS. */
+    @PluginMethod
+    public void installUpdate(PluginCall call) {
+        String rawUrl = call.getString("url");
+        String expected = call.getString("sha256");
+        if (rawUrl == null || expected == null || !expected.matches("(?i)[0-9a-f]{64}")) {
+            call.reject("Nieprawidłowe dane aktualizacji");
+            return;
+        }
+        try {
+            URL parsed = new URL(rawUrl);
+            String host = parsed.getHost().toLowerCase(Locale.ROOT);
+            if (!"github.com".equals(host) && !"straznik.eu".equals(host)
+                    || !"https".equalsIgnoreCase(parsed.getProtocol())) {
+                call.reject("Niedozwolone źródło aktualizacji");
+                return;
+            }
+        } catch (Exception e) {
+            call.reject("Nieprawidłowy adres aktualizacji");
+            return;
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+                && !getContext().getPackageManager().canRequestPackageInstalls()) {
+            call.reject("Najpierw zezwól Strażnikowi na instalowanie aktualizacji", "INSTALL_PERMISSION");
+            return;
+        }
+
+        new Thread(() -> {
+            File apk = new File(getContext().getCacheDir(), "Straznik-update.apk");
+            try {
+                HttpURLConnection conn = (HttpURLConnection) new URL(rawUrl).openConnection();
+                conn.setConnectTimeout(20000);
+                conn.setReadTimeout(60000);
+                conn.setInstanceFollowRedirects(true);
+                conn.setRequestProperty("User-Agent", "Straznik-Android-Updater");
+                if (conn.getResponseCode() < 200 || conn.getResponseCode() >= 300)
+                    throw new IllegalStateException("HTTP " + conn.getResponseCode());
+                MessageDigest digest = MessageDigest.getInstance("SHA-256");
+                try (InputStream in = conn.getInputStream();
+                     FileOutputStream out = new FileOutputStream(apk)) {
+                    byte[] buf = new byte[32768];
+                    int n;
+                    while ((n = in.read(buf)) != -1) {
+                        out.write(buf, 0, n);
+                        digest.update(buf, 0, n);
+                    }
+                } finally {
+                    conn.disconnect();
+                }
+                StringBuilder actual = new StringBuilder();
+                for (byte b : digest.digest()) actual.append(String.format(Locale.ROOT, "%02x", b));
+                if (!actual.toString().equalsIgnoreCase(expected)) {
+                    apk.delete();
+                    throw new SecurityException("Suma SHA-256 nie zgadza się");
+                }
+                getActivity().runOnUiThread(() -> {
+                    try {
+                        Uri uri = FileProvider.getUriForFile(getContext(),
+                            getContext().getPackageName() + ".fileprovider", apk);
+                        Intent i = new Intent(Intent.ACTION_VIEW)
+                            .setDataAndType(uri, "application/vnd.android.package-archive")
+                            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION
+                                | Intent.FLAG_ACTIVITY_NEW_TASK);
+                        getContext().startActivity(i);
+                        call.resolve();
+                    } catch (Exception e) {
+                        call.reject("Nie udało się uruchomić instalatora", e);
+                    }
+                });
+            } catch (Exception e) {
+                apk.delete();
+                call.reject("Pobieranie aktualizacji nie powiodło się: " + e.getMessage(), e);
+            }
+        }, "straznik-updater").start();
     }
 
     /**
