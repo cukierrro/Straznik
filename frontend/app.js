@@ -409,14 +409,62 @@ const FALLBACK_STYLE = {
            { id: "carto", type: "raster", source: "carto" }],
 };
 
-function makeDartImage(color) {
+function makeThreatImage(type, color) {
   const c = document.createElement("canvas"); c.width = c.height = 48;
   const x = c.getContext("2d");
   x.translate(24, 24);
-  x.beginPath();               // strzałka skierowana na północ (rotacja przez icon-rotate)
-  x.moveTo(0, -16); x.lineTo(11, 12); x.lineTo(0, 5); x.lineTo(-11, 12); x.closePath();
-  x.fillStyle = color; x.shadowColor = color; x.shadowBlur = 10; x.fill();
-  x.lineWidth = 2; x.strokeStyle = "rgba(255,255,255,.85)"; x.stroke();
+  x.scale(.72, .72);           // współrzędne ikon: -30..30; nos zawsze na północ
+  x.fillStyle = color; x.strokeStyle = "rgba(255,255,255,.9)";
+  x.lineWidth = 2; x.lineJoin = "round"; x.lineCap = "round";
+  x.shadowColor = color; x.shadowBlur = 9;
+  const path = (points) => {
+    x.beginPath(); x.moveTo(points[0][0], points[0][1]);
+    for (let i = 1; i < points.length; i++) x.lineTo(points[i][0], points[i][1]);
+    x.closePath(); x.fill(); x.stroke();
+  };
+  switch (type) {
+    case "shahed":
+      path([[0,-28],[28,22],[5,12],[3,27],[-3,27],[-5,12],[-28,22]]);
+      x.beginPath(); x.moveTo(0,-26); x.lineTo(0,20); x.stroke();
+      break;
+    case "fpv":
+      x.lineWidth = 4; x.beginPath();
+      x.moveTo(-5,-4); x.lineTo(-20,-17); x.moveTo(5,-4); x.lineTo(20,-17);
+      x.moveTo(-5,4); x.lineTo(-20,17); x.moveTo(5,4); x.lineTo(20,17); x.stroke();
+      x.lineWidth = 2;
+      for (const [cx, cy] of [[-23,-20],[23,-20],[-23,20],[23,20]]) {
+        x.beginPath(); x.arc(cx, cy, 7, 0, Math.PI * 2); x.fill(); x.stroke();
+      }
+      path([[-6,-8],[6,-8],[6,8],[-6,8]]);
+      break;
+    case "recon":
+      path([[0,-28],[4,-7],[30,-1],[4,5],[3,22],[10,28],[0,25],[-10,28],[-3,22],[-4,5],[-30,-1],[-4,-7]]);
+      break;
+    case "missile": case "cruise":
+      path([[0,-29],[5,-20],[7,-4],[22,11],[7,7],[6,21],[15,28],[0,23],[-15,28],[-6,21],[-7,7],[-22,11],[-7,-4],[-5,-20]]);
+      break;
+    case "ballistic":
+      path([[0,-29],[7,-18],[8,12],[18,21],[6,18],[0,28],[-6,18],[-18,21],[-8,12],[-7,-18]]);
+      x.fillStyle = "#ff8a20"; x.strokeStyle = "#fff";
+      path([[-5,24],[0,32],[5,24],[0,27]]);
+      break;
+    case "kab":
+      path([[0,-27],[7,-17],[8,11],[21,22],[7,18],[0,29],[-7,18],[-21,22],[-8,11],[-7,-17]]);
+      x.beginPath(); x.moveTo(0,-22); x.lineTo(0,23); x.stroke();
+      break;
+    case "mig31k":
+      path([[0,-30],[7,-8],[25,9],[7,5],[7,19],[16,27],[2,23],[0,30],[-2,23],[-16,27],[-7,19],[-7,5],[-25,9],[-7,-8]]);
+      x.beginPath(); x.moveTo(0,-27); x.lineTo(0,23); x.stroke();
+      break;
+    case "unknown":
+      path([[0,-27],[25,0],[0,27],[-25,0]]);
+      x.fillStyle = "#fff"; x.font = "bold 30px system-ui"; x.textAlign = "center";
+      x.textBaseline = "middle"; x.shadowBlur = 0; x.fillText("?", 0, 1);
+      break;
+    case "uav": default:
+      path([[0,-29],[5,-7],[28,0],[5,6],[3,23],[-3,23],[-5,6],[-28,0],[-5,-7]]);
+      break;
+  }
   return x.getImageData(0, 0, 48, 48);
 }
 function makeHeliImage() {
@@ -489,7 +537,7 @@ async function initMap() {
         } catch {}
       }
     }
-    for (const [t, m] of Object.entries(TYPE_META)) map.addImage("dart-" + t, makeDartImage(m.color));
+    for (const [t, m] of Object.entries(TYPE_META)) map.addImage("dart-" + t, makeThreatImage(t, m.color));
     map.addImage("plane", makePlaneImage());
     map.addImage("heli", makeHeliImage());
 

@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="840" viewBox="0 0 1200 840">
+  <defs>
+    <filter id="glow"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <style>
+      .title{font:700 28px system-ui;fill:#eef4ff}.sub{font:400 15px system-ui;fill:#92a3c3}
+      .name{font:700 17px system-ui;fill:#eef4ff}.code{font:500 13px ui-monospace,monospace;fill:#8392ad}
+      .card{fill:#121a2a;stroke:#283754;stroke-width:1}.grid{stroke:#202b42;stroke-width:1;opacity:.7}
+      .smallbg{fill:#0a101c;stroke:#334461}.note{font:500 13px system-ui;fill:#aebbd2}
+      .ico{stroke:#fff;stroke-width:1.5;stroke-linejoin:round;stroke-linecap:round;filter:url(#glow)}
+    </style>
+    <!-- Wszystkie symbole są kierunkowe: nos wskazuje do góry. -->
+    <symbol id="uav" viewBox="0 0 64 64"><path d="M32 5 37 25 57 32 37 37 35 54 29 54 27 37 7 32 27 25Z"/></symbol>
+    <symbol id="shahed" viewBox="0 0 64 64"><path d="M32 5 59 49 36 40 35 57 29 57 28 40 5 49Z"/><path d="M32 5V49" fill="none"/></symbol>
+    <symbol id="fpv" viewBox="0 0 64 64"><path d="M27 25h10v14H27z"/><path d="m27 28-12-9m22 9 12-9M27 36l-12 9m22-9 12 9" fill="none" stroke-width="4"/><circle cx="12" cy="17" r="8" fill="none"/><circle cx="52" cy="17" r="8" fill="none"/><circle cx="12" cy="47" r="8" fill="none"/><circle cx="52" cy="47" r="8" fill="none"/></symbol>
+    <symbol id="missile" viewBox="0 0 64 64"><path d="M32 4c6 7 8 15 8 27v13l8 10-13-5-3 11-3-11-13 5 8-10V31c0-12 2-20 8-27Z"/><path d="M27 29h10" fill="none"/></symbol>
+    <symbol id="ballistic" viewBox="0 0 64 64"><path d="M32 3c7 8 9 18 8 33l8 9-12-3-4 13-4-13-12 3 8-9C23 21 25 11 32 3Z"/><path d="m28 56 4 6 4-6" fill="#ff7a18" stroke="none"/></symbol>
+    <symbol id="kab" viewBox="0 0 64 64"><path d="M32 7c6 6 8 13 8 24v13c0 8-3 13-8 16-5-3-8-8-8-16V31c0-11 2-18 8-24Z"/><path d="m24 39-10 9 11-2m15-7 10 9-11-2M32 11v41" fill="none"/></symbol>
+    <symbol id="mig31k" viewBox="0 0 64 64"><path d="M32 3 39 24 56 40 38 36 38 51 47 58 33 54 31 63 29 54 15 58 24 51 24 36 6 40 25 24Z"/><path d="M32 4v50" fill="none"/></symbol>
+    <symbol id="recon" viewBox="0 0 64 64"><path d="M32 5 36 25 61 31 36 36 35 53 42 59 32 56 22 59 29 53 28 36 3 31 28 25Z"/></symbol>
+    <symbol id="unknown" viewBox="0 0 64 64"><path d="M32 5 56 32 32 59 8 32Z"/><path d="M24 24c1-8 15-9 16 0 1 7-8 8-8 15m0 8v1" fill="none" stroke-width="5"/></symbol>
+  </defs>
+  <rect width="1200" height="840" fill="#080d17"/>
+  <path class="grid" d="M0 105h1200M0 348h1200M0 591h1200M300 105v729M600 105v729M900 105v729"/>
+  <text x="38" y="48" class="title">Strażnik — propozycja ikon obiektów NEPTUN</text>
+  <text x="38" y="78" class="sub">Widok z góry · nos zawsze wskazuje kierunek lotu · kształt rozpoznawalny także bez koloru</text>
+
+  <!-- row 1 -->
+  <g transform="translate(22 122)"><rect class="card" width="278" height="208" rx="16"/><g class="ico" fill="#ffb020" transform="translate(29 28) scale(1.5)"><use href="#uav" width="64" height="64"/></g><rect class="smallbg" x="195" y="28" width="54" height="54" rx="10"/><g class="ico" fill="#ffb020" transform="translate(205 38) scale(.53)"><use href="#uav" width="64" height="64"/></g><text x="25" y="148" class="name">Dron / BpSP</text><text x="25" y="174" class="code">uav</text><text x="25" y="195" class="note">klasyczny płatowiec bezzałogowy</text></g>
+  <g transform="translate(322 122)"><rect class="card" width="278" height="208" rx="16"/><g class="ico" fill="#ff8c1a" transform="translate(29 28) scale(1.5)"><use href="#shahed" width="64" height="64"/></g><rect class="smallbg" x="195" y="28" width="54" height="54" rx="10"/><g class="ico" fill="#ff8c1a" transform="translate(205 38) scale(.53)"><use href="#shahed" width="64" height="64"/></g><text x="25" y="148" class="name">Dron Shahed</text><text x="25" y="174" class="code">shahed</text><text x="25" y="195" class="note">charakterystyczne skrzydło delta</text></g>
+  <g transform="translate(622 122)"><rect class="card" width="278" height="208" rx="16"/><g class="ico" fill="#8a93a6" transform="translate(29 28) scale(1.5)"><use href="#fpv" width="64" height="64"/></g><rect class="smallbg" x="195" y="28" width="54" height="54" rx="10"/><g class="ico" fill="#8a93a6" transform="translate(205 38) scale(.53)"><use href="#fpv" width="64" height="64"/></g><text x="25" y="148" class="name">Dron FPV (lokalny)</text><text x="25" y="174" class="code">fpv</text><text x="25" y="195" class="note">cztery wirniki, bez kierunku skrzydeł</text></g>
+  <g transform="translate(922 122)"><rect class="card" width="256" height="208" rx="16"/><g class="ico" fill="#d7a84b" transform="translate(24 28) scale(1.5)"><use href="#recon" width="64" height="64"/></g><rect class="smallbg" x="178" y="28" width="54" height="54" rx="10"/><g class="ico" fill="#d7a84b" transform="translate(188 38) scale(.53)"><use href="#recon" width="64" height="64"/></g><text x="22" y="148" class="name">Dron rozpoznawczy</text><text x="22" y="174" class="code">recon</text><text x="22" y="195" class="note">bardzo długie skrzydła</text></g>
+
+  <!-- row 2 -->
+  <g transform="translate(22 365)"><rect class="card" width="278" height="208" rx="16"/><g class="ico" fill="#ff4d5e" transform="translate(29 28) scale(1.5)"><use href="#missile" width="64" height="64"/></g><rect class="smallbg" x="195" y="28" width="54" height="54" rx="10"/><g class="ico" fill="#ff4d5e" transform="translate(205 38) scale(.53)"><use href="#missile" width="64" height="64"/></g><text x="25" y="148" class="name">Rakieta manewrująca</text><text x="25" y="174" class="code">missile / cruise</text><text x="25" y="195" class="note">korpus i skrzydła manewrowe</text></g>
+  <g transform="translate(322 365)"><rect class="card" width="278" height="208" rx="16"/><g class="ico" fill="#ff2db0" transform="translate(29 28) scale(1.5)"><use href="#ballistic" width="64" height="64"/></g><rect class="smallbg" x="195" y="28" width="54" height="54" rx="10"/><g class="ico" fill="#ff2db0" transform="translate(205 38) scale(.53)"><use href="#ballistic" width="64" height="64"/></g><text x="25" y="148" class="name">Rakieta balistyczna</text><text x="25" y="174" class="code">ballistic</text><text x="25" y="195" class="note">smukły grot z płomieniem</text></g>
+  <g transform="translate(622 365)"><rect class="card" width="278" height="208" rx="16"/><g class="ico" fill="#ffd23b" transform="translate(29 28) scale(1.5)"><use href="#kab" width="64" height="64"/></g><rect class="smallbg" x="195" y="28" width="54" height="54" rx="10"/><g class="ico" fill="#ffd23b" transform="translate(205 38) scale(.53)"><use href="#kab" width="64" height="64"/></g><text x="25" y="148" class="name">Kierowana bomba KAB</text><text x="25" y="174" class="code">kab</text><text x="25" y="195" class="note">zaokrąglony korpus i stateczniki</text></g>
+  <g transform="translate(922 365)"><rect class="card" width="256" height="208" rx="16"/><g class="ico" fill="#c06bff" transform="translate(24 28) scale(1.5)"><use href="#mig31k" width="64" height="64"/></g><rect class="smallbg" x="178" y="28" width="54" height="54" rx="10"/><g class="ico" fill="#c06bff" transform="translate(188 38) scale(.53)"><use href="#mig31k" width="64" height="64"/></g><text x="22" y="148" class="name">MiG-31K (nosiciel)</text><text x="22" y="174" class="code">mig31k</text><text x="22" y="195" class="note">dwusilnikowa sylwetka myśliwca</text></g>
+
+  <!-- row 3 -->
+  <g transform="translate(22 608)"><rect class="card" width="278" height="208" rx="16"/><g class="ico" fill="#8a93a6" transform="translate(29 28) scale(1.5)"><use href="#unknown" width="64" height="64"/></g><rect class="smallbg" x="195" y="28" width="54" height="54" rx="10"/><g class="ico" fill="#8a93a6" transform="translate(205 38) scale(.53)"><use href="#unknown" width="64" height="64"/></g><text x="25" y="148" class="name">Obiekt powietrzny</text><text x="25" y="174" class="code">unknown / przyszły typ</text><text x="25" y="195" class="note">neutralny romb ze znakiem zapytania</text></g>
+  <g transform="translate(340 635)"><text class="name" x="0" y="0">Zasada czytelności</text><text class="note" x="0" y="30">• kształt niesie typ, kolor niesie priorytet klasy</text><text class="note" x="0" y="55">• biały kontur utrzymuje kontrast nad każdym krajem</text><text class="note" x="0" y="80">• symbol obraca się zgodnie z heading</text><text class="note" x="0" y="105">• mały kwadrat pokazuje realny rozmiar na mapie telefonu</text></g>
+</svg>
