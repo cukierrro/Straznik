@@ -20,6 +20,20 @@ from .. import config, fusion, geo
 
 log = logging.getLogger("neptun")
 
+# Nazwy źródłowe bywają ukraińskie/rosyjskie (np. „БпЛА”). Tytuł sygnału jest
+# informacją dla polskiego użytkownika, więc opieramy go na stabilnym polu `type`.
+THREAT_LABELS_PL = {
+    "uav": "Dron / BpSP", "shahed": "Dron Shahed",
+    "fpv": "Dron FPV (lokalny)", "missile": "Rakieta manewrująca",
+    "cruise": "Rakieta manewrująca", "ballistic": "Rakieta balistyczna",
+    "kab": "Kierowana bomba lotnicza (KAB)", "mig31k": "MiG-31K (nosiciel)",
+    "recon": "Dron rozpoznawczy",
+}
+
+
+def threat_label_pl(threat_type: str) -> str:
+    return THREAT_LABELS_PL.get((threat_type or "").lower(), "Obiekt powietrzny")
+
 # stan: aktywne tracki wg id (dla frontendu i CLI)
 tracks: dict[str, dict] = {}
 status = {"connected": False, "mode": "ws", "last_msg": None, "error": None}
@@ -237,7 +251,7 @@ async def _maybe_signal(t: dict):
                  (" [kurs szacowany z ruchu]" if t.get("heading_estimated") is not None
                   else " [kurs nieznany]"))
     eta_info = (f", konserwatywny czas dolotu ~{eta_safe} min" if eta_level else "")
-    title = (f"{ile}{t.get('title') or ttype} kursem na granicę PL, {a['dist_km']} km{kurs_info}{eta_info} "
+    title = (f"{ile}{threat_label_pl(ttype)} kursem na granicę PL, {a['dist_km']} km{kurs_info}{eta_info} "
              f"(woj. {a['border_voiv']}, confidence: {conf}, {sources} potwierdzeń, "
              f"±{t.get('uncertaintyKm', '?')} km)")
     # Poziom w kluczu deduplikacji: gdy obiekt się zbliży albo zyska potwierdzenia,

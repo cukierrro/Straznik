@@ -31,7 +31,11 @@ const TYPE_META = {
   ballistic:{ label: "Balistyczna",        color: "#ff2db0" },
   kab:      { label: "KAB",                color: "#ffd23b" },
   mig31k:   { label: "MiG-31K (nosiciel)", color: "#c06bff" },
+  recon:    { label: "Dron rozpoznawczy",  color: "#d7a84b" },
+  unknown:  { label: "Obiekt powietrzny",  color: "#8a93a6" },
 };
+const threatLabelPL = (type) =>
+  (TYPE_META[String(type || "").toLowerCase()] || TYPE_META.unknown).label;
 const LEVEL_LABEL = { none: "brak sygnałów", elevated: "PODWYŻSZONA UWAGA", high: "WYSOKI PRIORYTET" };
 
 /* ── ADS-B: role maszyn wojskowych (kod typu ICAO → przeznaczenie) ───────── */
@@ -562,7 +566,8 @@ async function initMap() {
     // poświata pod ikoną = większy, czytelny obszar kliknięcia
     map.addLayer({ id: "threats-glow", type: "circle", source: "threats",
       paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"], 4, 10, 8, 18],
-        "circle-color": ["get", "color"], "circle-opacity": 0.16,
+        "circle-color": ["get", "color"],
+        "circle-opacity": ["case", ["==", ["get", "historicalOnly"], true], 0.07, 0.16],
         "circle-stroke-color": ["get", "color"], "circle-stroke-opacity": 0.45,
         "circle-stroke-width": 1 } });
     map.addLayer({ id: "threats", type: "symbol", source: "threats",
@@ -570,6 +575,7 @@ async function initMap() {
         "icon-size": ["interpolate", ["linear"], ["zoom"], 4, 0.5, 8, 0.85],
         "icon-rotate": ["get", "heading"], "icon-rotation-alignment": "map",
         "icon-allow-overlap": true },
+      paint: { "icon-opacity": ["case", ["==", ["get", "historicalOnly"], true], 0.48, 1] },
     });
 
     // ślad śledzonej maszyny — pod ikonami samolotów, żeby ich nie zasłaniał
@@ -960,7 +966,7 @@ function animate(ts) {
     const meta = TYPE_META[t.type] || { color: "#8a93a6" };
     const p = predict(t, now);
     pts.push({ type: "Feature", geometry: { type: "Point", coordinates: [p.lon, p.lat] },
-      properties: { type: TYPE_META[t.type] ? t.type : "fpv", heading: t.heading ?? 0,
+      properties: { type: TYPE_META[t.type] ? t.type : "unknown", heading: t.heading ?? 0,
         color: meta.color,
         confidence: t.confidenceLevel || "?", uncertainty: t.uncertaintyKm ?? "?",
         opis: threatDesc(t), dist_km: t.pl_assessment?.dist_km,
@@ -1220,6 +1226,16 @@ function sigHTML(s) {
   const etaV = mineV && d.eta_voiv_min ? d.eta_voiv_min[mineV] : null;
   if (etaV != null) extra.push(`⏱ ${etaTxt(etaV)} do woj. ${mineV}`);
   else if (d.eta_border_min != null) extra.push(`⏱ ${etaTxt(d.eta_border_min)} do granicy`);
+  let shownTitle = s.title;
+  // Polonizujemy także stare wpisy zapisane już w bazie, korzystając ze
+  // stabilnego details.type zamiast ukraińskiego/rosyjskiego tytułu źródła.
+  if (src === "neptun" && d.type) {
+    const marker = " kursem na granicę PL";
+    const at = String(shownTitle || "").indexOf(marker);
+    const prefix = (Number(d.count) || 1) > 1 ? `${Number(d.count)}× ` : "";
+    shownTitle = prefix + threatLabelPL(d.type)
+      + (at >= 0 ? String(shownTitle).slice(at) : "");
+  }
   return `<div class="sig src-${esc(src)}">
     <div class="sig-head">
       <span class="src">${SRC_ICON[src] || "•"} ${esc(SRC_LABEL[src] || src.toUpperCase())}</span>
@@ -1228,8 +1244,8 @@ function sigHTML(s) {
         +${cp}${capped ? ` <s>${s.points}</s>` : ""}</span>
     </div>
     <div class="sig-title">${link
-      ? `<a href="${esc(link)}" target="_blank" rel="noopener">${esc(s.title)}</a>`
-      : esc(s.title)}</div>
+      ? `<a href="${esc(link)}" target="_blank" rel="noopener">${esc(shownTitle)}</a>`
+      : esc(shownTitle)}</div>
     <div class="sig-bar"><i style="width:${share.toFixed(0)}%"></i></div>
     <div class="ts">${relTime(s.ts)} · woj. ${esc(s.voivodeship)}${
       extra.length ? " · " + extra.map(esc).join(" · ") : ""}${
@@ -1890,6 +1906,26 @@ function showHistoryAt(idx) {
   const sigs = h?.signals || [];
   const threats = snap?.threats || [];
   const planes = snap?.aircraft || [];
+  // Obiekt może pojawić się i zniknąć między migawkami (co 2 min), mimo że jego
+  // sygnał pozostaje w oknie 60 min. Pokazujemy wtedy zapisaną pozycję jako
+  // półprzezroczysty ślad historyczny, a nie obiekt obecny w migawce.
+  const snapTrackIds = new Set(threats.map(t => t.id).filter(Boolean));
+  const ghostByTrack = new Map();
+  for (const s of sigs) {
+    const d = s.details || {}, id = d.track_id;
+    if (s.source !== "neptun" || !id || snapTrackIds.has(id)
+        || d.lat == null || d.lon == null) continue;
+    const prev = ghostByTrack.get(id);
+    if (!prev || Date.parse(s.ts) > Date.parse(prev.ts)) ghostByTrack.set(id, s);
+  }
+  const historyThreats = threats.concat([...ghostByTrack.values()].map(s => {
+    const d = s.details || {};
+    return { id: d.track_id, type: d.type || "unknown", lat: d.lat, lon: d.lon,
+      heading: d.heading, confidenceLevel: d.confidence,
+      uncertaintyKm: d.uncertainty_km, sourceCount: d.source_count,
+      region: d.region, historicalOnly: true,
+      pl_assessment: { dist_km: d.dist_km } };
+  }));
   // punktacja z tamtej chwili — używa jej i mapa, i panel. Bierzemy gotowy wynik
   // z limitem klasy źródła (h.scores z backendu/silnika); fallback sumuje
   // counted_points, też limitowane — NIGDY surowe points (inaczej np. 4 rutynowe
@@ -1923,12 +1959,15 @@ function showHistoryAt(idx) {
                     // przewijania; scrubTo dławi do jednej klatki (rAF), więc płynnie
     // migawka nie zawiera śladów — rysujemy pozycje historyczne bez animacji
     map.getSource("threats")?.setData({ type: "FeatureCollection",
-      features: threats.filter(t => t.lat != null).map(t => ({ type: "Feature",
+      features: historyThreats.filter(t => t.lat != null).map(t => ({ type: "Feature",
         geometry: { type: "Point", coordinates: [t.lon, t.lat] },
-        properties: { type: TYPE_META[t.type] ? t.type : "fpv", heading: t.heading ?? 0,
+        properties: { type: TYPE_META[t.type] ? t.type : "unknown", heading: t.heading ?? 0,
           color: (TYPE_META[t.type] || {}).color || "#8a93a6",
           confidence: t.confidenceLevel || "?", uncertainty: t.uncertaintyKm ?? "?",
-          opis: threatDesc(t), dist_km: t.pl_assessment?.dist_km,
+          opis: t.historicalOnly
+            ? `${threatLabelPL(t.type)} — ostatnia pozycja z sygnału; obiekt nie występował już w tej migawce`
+            : threatDesc(t),
+          historicalOnly: !!t.historicalOnly, dist_km: t.pl_assessment?.dist_km,
           eta: etaHtml(t) } })) });
     map.getSource("trails")?.setData(emptyFC());
     map.getSource("uncertainty")?.setData(emptyFC());

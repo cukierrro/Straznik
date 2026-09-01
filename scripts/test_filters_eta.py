@@ -38,6 +38,13 @@ assert neptun._eta_alarm_level({"heading_known": False}, 5, "high", 2) is None
 assert neptun._eta_alarm_level(a_known, 1, "high", 2) is None
 assert neptun._eta_alarm_level(a_known, 5, "low", 2) is None
 
+# Każdy typ, który może wnieść punkty, musi mieć polską nazwę. Chroni to panel
+# przed powrotem źródłowych etykiet typu „БпЛА” przy nowych klasach obiektów.
+for threat_type in config.NEPTUN_TYPE_WEIGHTS:
+    assert threat_type in neptun.THREAT_LABELS_PL, threat_type
+    assert not any("а" <= ch.lower() <= "я" for ch in neptun.threat_label_pl(threat_type))
+assert neptun.threat_label_pl("nowy-nieznany-typ") == "Obiekt powietrzny"
+
 
 class Full(Exception):
     code = 1013

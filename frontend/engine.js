@@ -53,6 +53,14 @@ const NEPTUN_TYPE_WEIGHTS = {
   ballistic: 3.0, mig31k: 2.6, cruise: 2.4, missile: 2.4,
   kab: 1.8, shahed: 1.4, uav: 1.1, recon: 0.5, fpv: 0.0,
 };
+const NEPTUN_TYPE_LABELS_PL = {
+  uav:"Dron / BpSP", shahed:"Dron Shahed", fpv:"Dron FPV (lokalny)",
+  missile:"Rakieta manewrująca", cruise:"Rakieta manewrująca",
+  ballistic:"Rakieta balistyczna", kab:"Kierowana bomba lotnicza (KAB)",
+  mig31k:"MiG-31K (nosiciel)", recon:"Dron rozpoznawczy"
+};
+const neptunTypeLabelPL = (type) => NEPTUN_TYPE_LABELS_PL[String(type||"").toLowerCase()]
+  || "Obiekt powietrzny";
 /* Krzywa odległości interpolowana liniowo (lustro NEPTUN_DIST_CURVE): półki
    dawały skok 99→101 km (×1,0 → ×0,55) i sklejały 30 km z 59 km. */
 const NEPTUN_DIST_CURVE = [[0,1.7],[15,1.6],[45,1.3],[80,1.0],[110,0.7],[150,0.4],[200,0.25],[250,0.10]];
@@ -626,7 +634,7 @@ function neptunEval(t) {
       // sygnał wchodzi ponownie z wyższą punktacją
       const tier = Math.floor(points * 2);
       addSignal("neptun", "neptun_threat", a.border_voiv, points,
-        `${ile}${t.title||ty} kursem na granicę PL, ${a.dist_km} km`
+        `${ile}${neptunTypeLabelPL(ty)} kursem na granicę PL, ${a.dist_km} km`
         + `${etaAlarm ? `, konserwatywny czas dolotu ~${etaSafe} min` : ""} (woj. ${a.border_voiv}, `
         + `confidence: ${conf}, ${sources} potwierdzeń, ±${t.uncertaintyKm??"?"} km)`,
         { track_id: t.id, dist_km: a.dist_km, count, source_count: sources,
