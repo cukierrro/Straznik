@@ -15,7 +15,7 @@ document.documentElement.classList.add(
 </script>
 <link rel="manifest" href="manifest.json">
 <link rel="stylesheet" href="assets/vendor/maplibre-gl.css">
-<link rel="stylesheet" href="style.css?v=1.7.9">
+<link rel="stylesheet" href="style.css?v=1.7.10">
 </head>
 <body>
 
@@ -134,26 +134,20 @@ document.documentElement.classList.add(
 <div id="legend" class="hidden">
   <h3>Legenda</h3>
   <div class="lg-group">Obiekty (Dane: NEPTUN, nad Ukrainą)</div>
-  <div class="lg-row"><i class="dart" style="--c:#ffb020"></i> Dron / BpSP (uav)</div>
-  <div class="lg-row"><i class="dart" style="--c:#ff8c1a"></i> Shahed</div>
-  <div class="lg-row"><i class="dart" style="--c:#ff4d5e"></i> Rakieta manewrująca</div>
-  <div class="lg-row"><i class="dart" style="--c:#ff2db0"></i> Rakieta balistyczna</div>
-  <div class="lg-row"><i class="dart" style="--c:#ffd23b"></i> Bomba kierowana (KAB)</div>
-  <div class="lg-row"><i class="dart" style="--c:#c06bff"></i> MiG-31K (nosiciel Kindżałów)</div>
-  <div class="lg-row"><i class="dart" style="--c:#8a93a6"></i> FPV / inne (lokalne)</div>
+  <div class="lg-row"><i class="lg-threat" data-type="uav"></i> Dron / BpSP</div>
+  <div class="lg-row"><i class="lg-threat" data-type="shahed"></i> Dron Shahed</div>
+  <div class="lg-row"><i class="lg-threat" data-type="fpv"></i> Dron FPV (lokalny)</div>
+  <div class="lg-row"><i class="lg-threat" data-type="recon"></i> Dron rozpoznawczy</div>
+  <div class="lg-row"><i class="lg-threat" data-type="missile"></i> Rakieta manewrująca</div>
+  <div class="lg-row"><i class="lg-threat" data-type="ballistic"></i> Rakieta balistyczna</div>
+  <div class="lg-row"><i class="lg-threat" data-type="kab"></i> Bomba kierowana KAB</div>
+  <div class="lg-row"><i class="lg-threat" data-type="mig31k"></i> MiG-31K (nosiciel)</div>
+  <div class="lg-row"><i class="lg-threat" data-type="unknown"></i> Obiekt nierozpoznany</div>
   <div class="lg-row"><i class="ring"></i> okrąg = niepewność pozycji (±km)</div>
   <div class="lg-row"><i class="trail"></i> przerywana linia = trasa przelotu</div>
   <div class="lg-row"><i class="plane-ic"></i> samolot wojskowy (ADS-B, jawny transponder)</div>
   <div class="lg-row"><span style="color:#39c5ec">🚁</span> śmigłowiec wojskowy (ADS-B) —
     kliknij maszynę: model, przeznaczenie, operator</div>
-  <div class="lg-group">Państwa (odcień tła)</div>
-  <div class="lg-row"><i class="sq" style="--c:#233252"></i> Polska (jaśniejsza, gruby kontur)</div>
-  <div class="lg-row"><i class="sq" style="--c:#4a4030"></i> Ukraina</div>
-  <div class="lg-row"><i class="sq" style="--c:#4a2e33"></i> Białoruś</div>
-  <div class="lg-row"><i class="sq" style="--c:#3f2b3e"></i> Rosja (Kaliningrad)</div>
-  <div class="lg-row"><i class="sq" style="--c:#2e4437"></i> Litwa
-    <i class="sq" style="--c:#2e3f4a"></i> Łotwa
-    <i class="sq" style="--c:#3b3350"></i> Estonia</div>
   <div class="lg-group">Województwa (suma pkt z 60 min)</div>
   <div class="lg-row"><i class="sq" style="--c:#233252"></i> 0–1.9 pkt — spokojnie</div>
   <div class="lg-row"><i class="sq" style="--c:#ffb020"></i> ≥ 2 pkt — podwyższona uwaga</div>
@@ -441,7 +435,7 @@ document.documentElement.classList.add(
      Cloudflare, więc po każdym wydaniu wystarczy podbić ?v= i przeglądarki
      dostają nowe app.js/engine.js OD RAZU, bez ręcznego czyszczenia cache CF.
      Podbijaj ?v= razem z versionName w build.gradle. -->
-<script src="engine.js?v=1.7.9"></script>
-<script src="app.js?v=1.7.9"></script>
+<script src="engine.js?v=1.7.10"></script>
+<script src="app.js?v=1.7.10"></script>
 </body>
 </html>

@@ -34,6 +34,31 @@ const TYPE_META = {
   recon:    { label: "Dron rozpoznawczy",  color: "#d7a84b" },
   unknown:  { label: "Obiekt powietrzny",  color: "#8a93a6" },
 };
+/* Lokalne zdjęcia poglądowe wyłącznie z jednoznacznie potwierdzoną domeną
+   publiczną. Brak wpisu oznacza świadomy powrót do sylwetki SVG — nie
+   podstawiamy fotografii podobnego, lecz innego typu uzbrojenia. */
+const THREAT_PHOTOS = {
+  uav: {
+    file: "uav.jpg", credit: "U.S. Air Force — domena publiczna",
+    source: "https://commons.wikimedia.org/wiki/File:MQ-9_Reaper_in_flight_2.jpg",
+  },
+  recon: {
+    file: "recon.jpg", credit: "Stacey Knott / U.S. Air Force — domena publiczna",
+    source: "https://commons.wikimedia.org/wiki/File:RQ-4_Global_Hawk.jpg",
+  },
+  shahed: {
+    file: "shahed.jpg", credit: "Defense Intelligence Agency — domena publiczna",
+    source: "https://commons.wikimedia.org/wiki/File:Shahed_101.jpg",
+  },
+  missile: {
+    file: "missile.jpg", credit: "Vslv — CC0",
+    source: "https://commons.wikimedia.org/wiki/File:H101_missile.jpg",
+  },
+  cruise: {
+    file: "missile.jpg", credit: "Vslv — CC0",
+    source: "https://commons.wikimedia.org/wiki/File:H101_missile.jpg",
+  },
+};
 const threatLabelPL = (type) =>
   (TYPE_META[String(type || "").toLowerCase()] || TYPE_META.unknown).label;
 const LEVEL_LABEL = { none: "brak sygnałów", elevated: "PODWYŻSZONA UWAGA", high: "WYSOKI PRIORYTET" };
@@ -489,6 +514,20 @@ function makePlaneImage() {
   return x.getImageData(0, 0, 44, 44);
 }
 
+// Legenda używa dokładnie tych samych pikseli co warstwa mapy. Dzięki temu
+// dodanie lub korekta ikony nie zostawi w legendzie starego, umownego trójkąta.
+function renderLegendThreatIcons() {
+  document.querySelectorAll(".lg-threat[data-type]").forEach(el => {
+    const type = el.dataset.type;
+    const meta = TYPE_META[type] || TYPE_META.unknown;
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = 48;
+    canvas.getContext("2d").putImageData(makeThreatImage(type, meta.color), 0, 0);
+    el.replaceChildren(canvas);
+  });
+}
+renderLegendThreatIcons();
+
 /* Kolejność stylów: OpenFreeMap (wektor, schemat OpenMapTiles — niesie nazwy
    w wielu językach, więc etykiety da się przełączyć na POLSKIE), potem CARTO,
    na końcu raster. Każdy kolejny to zapas, gdyby poprzedni nie odpowiadał. */
@@ -812,16 +851,18 @@ function hideCard() { document.getElementById("ac-card")?.classList.add("hidden"
 function openThreatPopup(lngLat, p) {
   if (!p) return;
   const meta = TYPE_META[p.type] || { label: p.type, color: "#8a93a6" };
-  // Zdjęcie poglądowe typu obiektu (Shahed, rakieta, KAB…): plik assets/threats/<typ>.jpg.
-  // Gdy go nie ma, onerror chowa ramkę — nie pokazujemy pustego kadru. To zdjęcie
-  // KLASY uzbrojenia, nie tego konkretnego obiektu (OSINT nie daje takich zdjęć).
-  // najpierw zdjęcie użytkownika (.jpg — może podmienić na licencjonowane), potem
-  // wbudowana sylwetka (.svg), a gdy nic nie ma — chowamy ramkę zamiast pustego kadru
-  const img = p.type
-    ? `<div class="thr-photo" style="margin:-2px 0 6px"><img src="assets/threats/${esc2(p.type)}.jpg"
-        alt="" style="width:100%;border-radius:6px;display:block;background:#0e1626"
-        onerror="if(!this.dataset.svg){this.dataset.svg=1;this.src='assets/threats/${esc2(p.type)}.svg'}else{this.closest('.thr-photo').style.display='none'}">
-        <div style="font-size:10px;color:#68758c;margin-top:2px">grafika poglądowa typu — nie tego obiektu</div></div>`
+  const photo = THREAT_PHOTOS[p.type];
+  const fallbackType = p.type === "cruise" ? "missile" : p.type;
+  const img = p.type ? (photo
+    ? `<div class="thr-photo" style="margin:-2px 0 6px"><img src="assets/threats/${esc2(photo.file)}"
+        alt="Zdjęcie poglądowe typu ${esc2(meta.label)}" loading="lazy"
+        onerror="this.onerror=null;this.src='assets/threats/${esc2(fallbackType)}.svg'">
+        <div class="thr-photo-note">zdjęcie poglądowe typu — nie tego obiektu ·
+          <a href="${esc2(photo.source)}" target="_blank" rel="noopener noreferrer">${esc2(photo.credit)}</a></div></div>`
+    : `<div class="thr-photo" style="margin:-2px 0 6px"><img src="assets/threats/${esc2(fallbackType)}.svg"
+        alt="Grafika poglądowa typu ${esc2(meta.label)}"
+        onerror="this.closest('.thr-photo').style.display='none'">
+        <div class="thr-photo-note">grafika poglądowa typu — nie tego obiektu</div></div>`)
     : "";
   showCard(`${img}
       <b style="color:${meta.color};filter:brightness(.75)">◆ ${meta.label}</b><br>
@@ -2430,6 +2471,33 @@ document.getElementById("btn-legend").onclick = () => {
   document.getElementById("legend").classList.toggle("hidden");
   document.getElementById("btn-legend").classList.toggle("active");
 };
+
+/* Jedno zachowanie dla myszy i dotyku: panel, legenda i karta obiektu zamykają
+   się po wskazaniu dowolnego miejsca poza nimi. pointerdown działa przed
+   mapowym clickiem, więc kliknięcie nowego obiektu może od razu otworzyć jego
+   kartę zamiast zamknąć ją w tej samej akcji. */
+document.addEventListener("pointerdown", (e) => {
+  const path = e.composedPath();
+  const panel = document.getElementById("panel");
+  const panelBtn = document.getElementById("btn-panel");
+  if (!panel.classList.contains("collapsed")
+      && !path.includes(panel) && !path.includes(panelBtn)) setPanel(false);
+
+  const legend = document.getElementById("legend");
+  const legendBtn = document.getElementById("btn-legend");
+  if (!legend.classList.contains("hidden")
+      && !path.includes(legend) && !path.includes(legendBtn)) {
+    legend.classList.add("hidden");
+    legendBtn.classList.remove("active");
+  }
+
+  const card = document.getElementById("ac-card");
+  if (!card.classList.contains("hidden") && !path.includes(card)) hideCard();
+
+  // Dla modalnych okien kliknięcie w przyciemnione tło ma ten sam sens.
+  const dialog = e.target instanceof HTMLDialogElement ? e.target : null;
+  if (dialog?.open) dialog.close();
+}, { passive: true });
 
 /* W trybie backendu (apka na serwerze) alarmy przy zamkniętej aplikacji dostarcza
    FCM, a powiadomienie systemowe wymaga zgody POST_NOTIFICATIONS. Wbudowany silnik

@@ -84,6 +84,9 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   cursor: pointer; box-shadow: 0 1px 6px rgba(0,0,0,.5); transition: background .15s; }
 #ac-card-x:hover { background: rgba(15,22,34,.88); }
 #ac-card img { width: 100%; border-radius: 6px; display: block; }
+.thr-photo img { max-height: 190px; object-fit: cover; background: #0e1626; }
+.thr-photo-note { margin-top: 3px; color: #68758c; font-size: 10px; line-height: 1.25; }
+.thr-photo-note a { color: #55729d; text-decoration: underline; }
 #ac-card a { color: #1a6fd4; }
 #ac-card table { border-collapse: collapse; }
 #ac-card .btn-follow { border: 1px solid rgba(0,0,0,.15); background: #16202f; color: #fff;
@@ -511,9 +514,8 @@ dialog select { width: 100%; margin-top: 6px; padding: 8px 10px; border-radius: 
   text-transform: uppercase; margin: 8px 0 4px; }
 .lg-row { display: flex; align-items: center; gap: 8px; padding: 2.5px 0; }
 .lg-row i { flex: none; display: inline-block; }
-.lg-row .dart { width: 0; height: 0; border-left: 6px solid transparent;
-  border-right: 6px solid transparent; border-bottom: 12px solid var(--c);
-  filter: drop-shadow(0 0 3px var(--c)); }
+.lg-row .lg-threat { width: 22px; height: 22px; }
+.lg-row .lg-threat canvas { display: block; width: 22px; height: 22px; }
 .lg-row .ring { width: 14px; height: 14px; border-radius: 50%;
   border: 1.5px solid var(--amber); opacity: .7; }
 .lg-row .trail { width: 16px; height: 0;
