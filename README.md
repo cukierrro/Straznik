@@ -4,6 +4,10 @@
 
 # Strażnik
 
+Wersja 1.7.11: podglądy obiektów NEPTUN używają ilustracji wygenerowanych przez
+AI z wyraźnym oznaczeniem. Nie przedstawiają śledzonego obiektu i nie służą
+do identyfikacji modelu. Ikony mapy, punktacja i alarmy pozostają bez zmian.
+
 **Nieoficjalne wczesne ostrzeganie o zagrożeniach powietrznych**
 
 Fuzja kilku niezależnych sygnałów dla Polski, z priorytetem dla ściany wschodniej.

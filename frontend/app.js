@@ -34,30 +34,17 @@ const TYPE_META = {
   recon:    { label: "Dron rozpoznawczy",  color: "#d7a84b" },
   unknown:  { label: "Obiekt powietrzny",  color: "#8a93a6" },
 };
-/* Lokalne zdjęcia poglądowe wyłącznie z jednoznacznie potwierdzoną domeną
-   publiczną. Brak wpisu oznacza świadomy powrót do sylwetki SVG — nie
-   podstawiamy fotografii podobnego, lecz innego typu uzbrojenia. */
+/* Ilustracje AI klas obiektów — nie zdjęcia ani wzorzec identyfikacji. */
 const THREAT_PHOTOS = {
-  uav: {
-    file: "uav.jpg", credit: "U.S. Air Force — domena publiczna",
-    source: "https://commons.wikimedia.org/wiki/File:MQ-9_Reaper_in_flight_2.jpg",
-  },
-  recon: {
-    file: "recon.jpg", credit: "Stacey Knott / U.S. Air Force — domena publiczna",
-    source: "https://commons.wikimedia.org/wiki/File:RQ-4_Global_Hawk.jpg",
-  },
-  shahed: {
-    file: "shahed.jpg", credit: "Defense Intelligence Agency — domena publiczna",
-    source: "https://commons.wikimedia.org/wiki/File:Shahed_101.jpg",
-  },
-  missile: {
-    file: "missile.jpg", credit: "Vslv — CC0",
-    source: "https://commons.wikimedia.org/wiki/File:H101_missile.jpg",
-  },
-  cruise: {
-    file: "missile.jpg", credit: "Vslv — CC0",
-    source: "https://commons.wikimedia.org/wiki/File:H101_missile.jpg",
-  },
+  kab: { file: "kab-ai.png" },
+  uav: { file: "uav-ai.png" },
+  shahed: { file: "shahed-ai.png" },
+  fpv: { file: "fpv-ai.png" },
+  recon: { file: "recon-ai.png" },
+  missile: { file: "missile-ai.png" },
+  ballistic: { file: "ballistic-ai.png" },
+  mig31k: { file: "mig31k-ai.png" },
+  cruise: { file: "missile-ai.png" },
 };
 const threatLabelPL = (type) =>
   (TYPE_META[String(type || "").toLowerCase()] || TYPE_META.unknown).label;
@@ -855,10 +842,10 @@ function openThreatPopup(lngLat, p) {
   const fallbackType = p.type === "cruise" ? "missile" : p.type;
   const img = p.type ? (photo
     ? `<div class="thr-photo" style="margin:-2px 0 6px"><img src="assets/threats/${esc2(photo.file)}"
-        alt="Zdjęcie poglądowe typu ${esc2(meta.label)}" loading="lazy"
-        onerror="this.onerror=null;this.src='assets/threats/${esc2(fallbackType)}.svg'">
-        <div class="thr-photo-note">zdjęcie poglądowe typu — nie tego obiektu ·
-          <a href="${esc2(photo.source)}" target="_blank" rel="noopener noreferrer">${esc2(photo.credit)}</a></div></div>`
+        alt="Ilustracja AI: ${esc2(meta.label)} — nie śledzony obiekt" loading="lazy"
+        onerror="this.closest('.thr-photo').hidden=true">
+        <div class="thr-photo-note"><strong>Ilustracja poglądowa wygenerowana przez AI.</strong><br>
+          Nie przedstawia śledzonego obiektu. Może zawierać uproszczenia; nie służy do identyfikacji modelu.</div></div>`
     : `<div class="thr-photo" style="margin:-2px 0 6px"><img src="assets/threats/${esc2(fallbackType)}.svg"
         alt="Grafika poglądowa typu ${esc2(meta.label)}"
         onerror="this.closest('.thr-photo').style.display='none'">
