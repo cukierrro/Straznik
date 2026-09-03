@@ -337,7 +337,7 @@ footer a{color:var(--tx2)}
       <a href="https://github.com/cukierrro/Straznik/raw/main/Straznik.apk">linku
       zapasowego</a>, który pobiera ten sam plik prosto z repozytorium.
       Zanim spróbujesz ponownie, sprawdź folder <b>Pobrane</b> — plik o rozmiarze
-      około 4,8 MB bywa już kompletny mimo zawieszonego paska.</p></li>
+      podanym w najnowszym wydaniu może być już kompletny mimo zawieszonego paska.</p></li>
     <li><b>Otwórz pobrany plik</b>
       <p>Menedżer plików → Pobrane → <code>Straznik.apk</code>. Android wyświetli
       ekran instalacji.</p></li>
@@ -345,12 +345,10 @@ footer a{color:var(--tx2)}
       <p>Przy pierwszej takiej instalacji system pokaże ostrzeżenie i przycisk
       „Ustawienia". Włącz zgodę dla przeglądarki lub menedżera plików, wróć i
       potwierdź instalację.</p></li>
-    <li><b>Przejdź przez ostrzeżenie Play Protect</b>
-      <p>Google pokaże komunikat, że <b>nie zna aplikacji tego dewelopera</b>.
-      To normalne dla każdej aplikacji spoza sklepu Play — nie oznacza, że plik
-      jest zainfekowany, tylko że Google nie widziało go wcześniej u wielu
-      użytkowników. Dotknij <b>„Więcej szczegółów”</b>, a potem
-      <b>„Zainstaluj mimo to”</b>.</p></li>
+    <li><b>Sprawdź wynik Play Protect</b>
+      <p>System może zaproponować skan aplikacji — pozwól go wykonać.
+      Nie wyłączaj ochrony. Jeśli skan wykryje zagrożenie lub instalacja zostanie
+      zablokowana, przerwij instalację i zgłoś komunikat autorowi.</p></li>
     <li><b>Uruchom Strażnika</b>
       <p>Ikona tarczy z sygnałem radarowym pojawi się na liście aplikacji.</p></li>
     <li><b>Zezwól na powiadomienia</b>
@@ -358,6 +356,18 @@ footer a{color:var(--tx2)}
       nie zobaczysz żadnych alertów</b> — powiadomienia są głównym sposobem
       ostrzegania.</p></li>
   </ol>
+
+  <div class="note">
+    <b>Aktualizacje i bezpieczeństwo (od 1.7.12).</b> Kolejne wydanie można pobrać
+    z komunikatu w aplikacji; zwykłą aktualizację odłożysz przyciskiem „Później”
+    do kolejnej sesji. Instalację zawsze zatwierdzasz w Androidzie. APK jest
+    podpisany kluczem autora, a aplikacja przed instalacją sprawdza SHA-256.
+    Własny serwer wymaga HTTPS i zaufanego certyfikatu systemowego. Wyjątek HTTP
+    dotyczy wyłącznie wewnętrznego localhost, aby zachować ustawienia.
+    Sprawdź zgodę na powiadomienia i pełny ekran po instalacji lub aktualizacji.
+    Bez zgody pełnoekranowej czerwony alert może być tylko powiadomieniem.
+    Strażnik uzupełnia, a nie zastępuje RCB, RSO i syren.
+  </div>
 
   <div class="split">
     <img src="screens/17_pierwszy_start.jpg" alt="Prośba systemu Android o zgodę na wysyłanie powiadomień, w tle ekran O aplikacji">
@@ -720,16 +730,14 @@ footer a{color:var(--tx2)}
   </div>
 
   <div class="warn">
-    <strong>Android 14 i nowszy: wymagana jedna zgoda.</strong> System domyślnie
-    odbiera pełnoekranowe alarmy aplikacjom, które nie są budzikiem ani telefonem.
-    Bez niej czerwony alarm przy wygaszonym ekranie tylko zapali ekran
-    i pokaże powiadomienie z syreną — bez pełnego ekranu. Włączysz ją przez
+    <strong>Android 14 i nowszy: sprawdź zgodę na pełny ekran.</strong>
+    Bez niej czerwony alarm może pozostać powiadomieniem — nie gwarantujemy
+    wybudzenia ekranu. Włączysz ją przez
     <kbd>⚙</kbd> → <kbd>🚨 Sprawdź zgodę na alarm pełnoekranowy</kbd>.
     <br><br>
-    <b>Sprawdź ten przełącznik osobiście.</b> Android bywa niekonsekwentny:
-    potrafi zgłaszać aplikacji, że zgoda jest przyznana, a mimo to blokować
-    alarm. Dlatego przycisk zawsze prowadzi do systemowego ekranu, na którym
-    widać prawdziwy stan.
+    <b>Sprawdź przełącznik także po aktualizacji.</b> Działanie zależy również
+    od zgody na powiadomienia, ustawień kanałów, trybu Nie przeszkadzać i
+    ograniczeń telefonu. Test na emulatorze nie gwarantuje zachowania każdego urządzenia.
   </div>
 
   <h3>Trzy poziomy sygnalizacji — co dokładnie robi każdy</h3>
@@ -1059,14 +1067,17 @@ footer a{color:var(--tx2)}
         <li>Pełny log sygnałów w bazie SQLite</li>
         <li>Całodobowy baseline ADS-B (telefon liczy go tylko, gdy działa)</li>
         <li>Warstwa PAŻP i Web Push</li>
-        <li>Powiadomienia przez ntfy i Telegram — najpewniejsze w tle</li>
+        <li>Opcjonalne powiadomienia przez ntfy i Telegram</li>
         <li>Jeden serwer obsługuje wiele telefonów w domu</li>
       </ul>
       <h3>Jak podłączyć</h3>
       <p>Uruchom backend na komputerze (instrukcja w repozytorium), a w aplikacji
       wejdź w <kbd>⚙</kbd> → <b>Zaawansowane: wspólny backend</b> i podaj adres,
-      np. <code>http://192.168.1.10:8600</code>. Puste pole = tryb wbudowany.</p>
-      <p>Komputer i telefon muszą być w tej samej sieci lokalnej.</p>
+      np. <code>https://twoj-serwer.example</code>. Puste pole = domyślny serwer
+      Strażnika. Tryb wbudowany uruchamia się awaryjnie, gdy serwer nie odpowiada.</p>
+      <p>Adres musi być dostępny z telefonu przez HTTPS z zaufanym certyfikatem.
+      Od 1.7.12 zewnętrzny HTTP oraz certyfikaty dodane przez użytkownika nie są
+      obsługiwane. Własny backend wymaga osobnej konfiguracji kanałów powiadomień.</p>
     </div>
   </div>
 </section>

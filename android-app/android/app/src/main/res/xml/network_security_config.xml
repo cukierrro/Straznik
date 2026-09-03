@@ -1,25 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
-    <base-config cleartextTrafficPermitted="true">
+    <base-config cleartextTrafficPermitted="false">
         <trust-anchors>
             <certificates src="system" />
-            <!--
-              Zaufaj także certyfikatom zainstalowanym przez użytkownika i przez
-              oprogramowanie ochronne. Antywirusy skanujące HTTPS (Avast, AVG,
-              Kaspersky, ESET) oraz firmowe proxy podstawiają własny certyfikat
-              w miejsce oryginalnego. Bez tego zaufania build release nie pobrałby
-              NICZEGO przez HTTPS — ani kafelków mapy, ani Neptuna, ani ADS-B, RCB
-              czy PAŻP. Objawiało się to białą mapą i wszystkimi diodami na czerwono,
-              choć aplikacja i sieć działały (typowy przypadek: włączony Avast Web
-              Shield na telefonie).
-
-              Kompromis jest bezpieczny dla TEJ aplikacji: pobiera wyłącznie
-              publiczne dane do odczytu, nie ma logowania ani danych wrażliwych,
-              a wszystkie dane i tak są oznaczone jako nieoficjalne. Dostępność
-              (działanie za antywirusem) jest tu ważniejsza niż ścisła weryfikacja
-              łańcucha certyfikatów.
-            -->
-            <certificates src="user" />
         </trust-anchors>
     </base-config>
+    <!-- Virtual Capacitor origin only; preserve existing localStorage. -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">localhost</domain>
+    </domain-config>
 </network-security-config>

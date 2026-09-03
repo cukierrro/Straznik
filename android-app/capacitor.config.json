@@ -4,10 +4,10 @@
   "webDir": "www",
   "server": {
     "androidScheme": "http",
-    "cleartext": true
+    "cleartext": false
   },
   "android": {
-    "allowMixedContent": true
+    "allowMixedContent": false
   },
   "plugins": {
     "CapacitorHttp": {

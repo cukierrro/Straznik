@@ -22,14 +22,18 @@ if (keystorePropsFile.exists()) {
 }
 
 android {
+    // Opt-in instrumentation against the real release; no test code in app APK.
+    if (project.hasProperty('securityTests')) {
+        testBuildType 'release'
+    }
     namespace = "pl.straznik.app"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
         applicationId "pl.straznik.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 41
-        versionName "1.7.11"
+        versionCode 42
+        versionName "1.7.12"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

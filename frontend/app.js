@@ -10,10 +10,16 @@ const IS_APP = location.protocol === "capacitor:" || location.protocol === "file
 // aplikacji aktualizacje obsługuje osobny mechanizm w Ustawieniach.
 if (IS_APP) document.querySelectorAll(".web-only").forEach(el => { el.hidden = true; });
 const DEFAULT_BACKEND = "https://straznik.eu";   // serwer fuzji Strażnika (VPS przez Cloudflare)
+function validBackendUrl(value) {
+  try {
+    const u = new URL(value);
+    return u.protocol === "https:" && !u.username && !u.password && !u.search && !u.hash;
+  } catch { return false; }
+}
 function apiBase() {
   if (location.search.includes("standalone=1")) return null;  // test trybu wbudowanego
   const saved = localStorage.getItem("straznik_api");
-  if (saved) return saved.replace(/\/+$/, "");
+  if (saved) return validBackendUrl(saved) ? saved.replace(/\/+$/, "") : null;
   if (!IS_APP && /^https?:$/.test(location.protocol)) return location.origin;
   // Apka domyślnie korzysta z serwera: fuzja liczona RAZ na backendzie, a nie na
   // każdym telefonie osobno (skalowanie + oszczędność limitów darmowych API).
@@ -260,6 +266,14 @@ let ws = null, wsRetry = 1;
 
 let standalone = false;
 async function connect() {
+  const savedApi = localStorage.getItem("straznik_api");
+  if (savedApi && !validBackendUrl(savedApi)) {
+    connBadge.textContent = "Serwer zablokowany — wymagany HTTPS. Otwórz ustawienia.";
+    connBadge.classList.remove("hidden");
+    connBadge.onclick = () => openSettings();
+    connBadge.style.cursor = "pointer";
+    return; // Preserve settings; never silently replace the user's server.
+  }
   const base = apiBase();
   if (!base) return startStandalone();   // brak adresu ⇒ od razu wbudowany silnik
   // Sonda startowa: czy serwer odpowiada? Zamiast wisieć na „łączenie…", gdy
@@ -2152,12 +2166,17 @@ document.getElementById("btn-gps").onclick = () => {
     (err) => alert("Nie udało się ustalić pozycji: " + err.message),
     { enableHighAccuracy: false, timeout: 10000, maximumAge: 600000 });
 };
-document.getElementById("set-save").onclick = () => {
+document.getElementById("set-save").onclick = (event) => {
+  const api = document.getElementById("set-api").value.trim();
+  if (api && !validBackendUrl(api)) {
+    event.preventDefault();
+    alert("Własny serwer wymaga adresu HTTPS bez loginu, hasła, parametrów ani fragmentu. Wpisz bezpieczny adres lub wyczyść pole, aby wybrać serwer Strażnika.");
+    return;
+  }
   const v = document.getElementById("set-voiv").value;
   if (v) localStorage.setItem("straznik_voiv", v); else localStorage.removeItem("straznik_voiv");
   // warstwa natywna zapisuje region i przepina subskrypcję tematu FCM (voiv_<region>)
   BG()?.setHomeVoivodeship({ voivodeship: v || "" });
-  const api = document.getElementById("set-api").value.trim();
   const apiChanged = api !== (localStorage.getItem("straznik_api") || "");
   if (api) localStorage.setItem("straznik_api", api); else localStorage.removeItem("straznik_api");
   if (apiChanged) { setTimeout(() => location.reload(), 100); return; }

@@ -4,9 +4,9 @@
 
 # Strażnik
 
-Wersja 1.7.11: podglądy obiektów NEPTUN używają ilustracji wygenerowanych przez
-AI z wyraźnym oznaczeniem. Nie przedstawiają śledzonego obiektu i nie służą
-do identyfikacji modelu. Ikony mapy, punktacja i alarmy pozostają bez zmian.
+Wersja 1.7.12: wzmocnione zabezpieczenia połączeń — wyłącznie systemowe CA
+i HTTPS dla zewnętrznych serwerów. Aktualizacja zachowuje ustawienia i może być
+odłożona do kolejnej sesji. Punktacja i progi alarmów pozostają bez zmian.
 
 **Nieoficjalne wczesne ostrzeganie o zagrożeniach powietrznych**
 
@@ -16,7 +16,7 @@ wiarygodność ostrzeżenia.
 
 ### 📖 [**Pełna instrukcja użytkownika ze zrzutami ekranu →**](https://cukierrro.github.io/Straznik/)
 
-[⬇ Pobierz APK](Straznik.apk) · [☕ Postaw kawę](https://buycoffee.to/cukierrro)
+[⬇ Pobierz APK](https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk) · [☕ Postaw kawę](https://buycoffee.to/cukierrro)
 
 </div>
 
@@ -214,8 +214,8 @@ Każde APK musi być podpisane, a Android przyjmie aktualizację tylko wtedy, gd
 jest podpisana **tym samym kluczem** co wersja już zainstalowana. Buildy debug
 używają klucza `debug.keystore` o publicznie znanym haśle (`android`), który
 narzędzia potrafią zregenerować — na nim nie da się utrzymać ciągłości
-aktualizacji, a aplikacja ma wtedy włączoną flagę `debuggable` i ufa certyfikatom
-zainstalowanym przez użytkownika.
+aktualizacji. Build debug ma włączoną flagę `debuggable`; zaufanie certyfikatom
+wynika osobno z konfiguracji sieci, nie z samego rodzaju podpisu.
 
 **Klucz tworzy się raz.** Jego utrata oznacza, że użytkownicy nie zainstalują
 żadnej kolejnej wersji bez odinstalowania aplikacji (i utraty ustawień), więc
@@ -252,10 +252,13 @@ Wynik: `app/build/outputs/apk/release/app-release.apk`. Weryfikacja podpisu:
 Bez `keystore.properties` build wydania nadal się wykona, ale APK **nie zostanie
 podpisany** — to celowe, żeby wydanie nigdy nie wyszło z kluczem debug.
 
-> Build release nie honoruje `debug-overrides` z `network_security_config`, więc
-> nie ufa certyfikatom zainstalowanym przez użytkownika. Na maszynie z
-> antywirusem skanującym TLS (Avast, Kaspersky, ESET) emulator może wtedy nie
-> pobrać danych — na zwykłych telefonach problemu nie ma.
+> Od wersji 1.7.12 aplikacja ufa wyłącznie systemowym certyfikatom i blokuje
+> zewnętrzny HTTP. Jedyny wyjątek to dokładnie `localhost`: wirtualny interfejs
+> Capacitor, pozostawiony pod HTTP dla zachowania ustawień użytkowników.
+> Sieć lub antywirus przechwytujący TLS certyfikatem użytkownika może blokować
+> pobieranie danych. Nie wyłączamy weryfikacji certyfikatów jako obejścia.
+> Zmiana wymaga nowego APK; starsze wydanie 1.7.11 nadal ufa certyfikatom
+> użytkownika. Samo zaktualizowanie serwera nie zmienia jego zabezpieczeń.
 
 ## Przebudowa APK
 
@@ -263,11 +266,14 @@ podpisany** — to celowe, żeby wydanie nigdy nie wyszło z kluczem debug.
 cd android-app
 rm -rf www && cp -r ../frontend www && rm www/sw.js
 npx cap sync android
-cd android && JAVA_HOME="C:/Program Files/Android/Android Studio/jbr" ./gradlew assembleDebug
+cd android && JAVA_HOME="C:/Program Files/Android/Android Studio/jbr" ./gradlew assembleRelease
 ```
 
-Wynik: `android-app/android/app/build/outputs/apk/debug/app-debug.apk`
-(kopia w katalogu głównym jako `Straznik.apk`).
+Wynik: `android-app/android/app/build/outputs/apk/release/app-release.apk`.
+Po testach i sprawdzeniu podpisu wydania kopiujemy go jako `Straznik.apk`.
+Nigdy nie publikujemy `app-debug.apk` jako wydania. Przed publikacją sprawdź
+`apksigner verify --print-certs`, brak `debuggable` oraz skompilowaną konfigurację
+sieci. Aktualizacja musi zachować certyfikat podpisujący poprzednie wydanie.
 
 > Push FCM wymaga pliku `android-app/android/app/google-services.json` (z projektu
 > Firebase) — bez niego wtyczka `google-services` się nie aktywuje i push nie
@@ -319,15 +325,17 @@ baterii. Gdy serwer jest niedostępny, aplikacja i tak działa na wbudowanym sil
 jak połączenie przychodzące: zapala ekran, pokazuje się nad blokadą, miga
 (te same barwy i tempo co `#alarm-overlay` w CSS), gra syrenę w pętli i wibruje
 do czasu potwierdzenia. Jest natywny, nie w WebView — musi pojawić się
-natychmiast także wtedy, gdy proces aplikacji nie żyje. Wyzwala go full-screen
+także wtedy, gdy proces aplikacji nie działa, o ile system pozwoli na dostarczenie
+powiadomienia i jego pełnoekranową prezentację. Wyzwala go full-screen
 intent z powiadomienia FCM (`StraznikFcmService`).
 
-Od Androida 14 uprawnienie `USE_FULL_SCREEN_INTENT` nie jest przyznawane
-automatycznie aplikacjom innym niż budzik i telefon, a **po aktualizacji potrafi
-się cofnąć**. Bez niego start aktywności z tła jest blokowany, więc aplikacja prosi
+Na Androidzie 14+ należy sprawdzić uprawnienie `USE_FULL_SCREEN_INTENT`
+w ustawieniach, również po aktualizacji. Bez niego pełny ekran nie jest
+gwarantowany, więc aplikacja prosi
 o zgodę w ustawieniach (`⚙ → 🚨 Zgoda na alarm pełnoekranowy`), przypomina o niej
-banerem „Napraw", a w razie jej braku ratuje się wake lockiem: zapala ekran, żeby
-powiadomienie z syreną było widoczne.
+banerem „Napraw". Przy braku zgody pozostaje powiadomienie systemowe; aplikacja
+podejmuje próbę wybudzenia, ale nie gwarantuje zapalenia ekranu. Działanie zależy
+też od ustawień powiadomień, kanałów, trybu Nie przeszkadzać i ograniczeń systemu.
 
 **Dźwięki** generuje `scripts/build_sounds.py` do `res/raw/` — te same przebiegi,
 które otwarta aplikacja syntetyzuje w Web Audio (żółty: dwutonowy sygnał
@@ -358,10 +366,12 @@ poziom. Przykład: zdarzenie 5 pkt w lubelskim u użytkownika z ustawionym
 mazowieckim daje „PODWYŻSZONA UWAGA: woj. mazowieckie (2.0 pkt)" z rozbiciem
 „Przeniesienie z woj. lubelskie (5.0 pkt, sąsiad)".
 
-Zweryfikowane na fizycznym urządzeniu (Android 16) przy zamkniętej aplikacji:
+Wcześniejsze wydanie sprawdzono na fizycznym urządzeniu (Android 16) przy zamkniętej aplikacji:
 żółty wystawia heads-up bez budzenia ekranu; czerwony przy wygaszonym
 i zablokowanym ekranie zapala go i pokazuje pełnoekranowy `AlarmActivity` nad
 blokadą z syreną, a potwierdzenie zatrzymuje dźwięk i wibrację.
+Testy bieżącej zmiany zabezpieczeń wykonano na emulatorze Pixel 7 / Android 14;
+nie są gwarancją działania każdego telefonu. [Raport testów](docs/TESTY_BEZPIECZENSTWA_2026-09-03.md).
 
 ### Aktualizacje poza Google Play
 

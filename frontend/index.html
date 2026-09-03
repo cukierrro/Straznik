@@ -15,7 +15,7 @@ document.documentElement.classList.add(
 </script>
 <link rel="manifest" href="manifest.json">
 <link rel="stylesheet" href="assets/vendor/maplibre-gl.css">
-<link rel="stylesheet" href="style.css?v=1.7.11">
+<link rel="stylesheet" href="style.css?v=1.7.12">
 </head>
 <body>
 
@@ -420,8 +420,9 @@ document.documentElement.classList.add(
       <p class="fineprint">Domyślnie aplikacja korzysta z serwera Strażnika
       (straznik.eu) — dane i fuzja liczone są raz na serwerze. Gdy serwer jest
       niedostępny, aplikacja automatycznie przechodzi na tryb wbudowany i liczy
-      sama na urządzeniu. Własny adres (np. http://192.168.1.10:8600) podaj tylko,
-      jeśli chcesz korzystać z własnego backendu.</p>
+      sama na urządzeniu. Własny adres HTTPS (np. https://straznik.twoja-domena.pl) podaj tylko,
+      jeśli chcesz korzystać z własnego backendu. HTTP oraz certyfikaty dodane ręcznie
+      do telefonu nie są obsługiwane w wydaniu produkcyjnym.</p>
     </details>
     <menu>
       <button value="cancel" class="chip">Anuluj</button>
@@ -435,7 +436,7 @@ document.documentElement.classList.add(
      Cloudflare, więc po każdym wydaniu wystarczy podbić ?v= i przeglądarki
      dostają nowe app.js/engine.js OD RAZU, bez ręcznego czyszczenia cache CF.
      Podbijaj ?v= razem z versionName w build.gradle. -->
-<script src="engine.js?v=1.7.11"></script>
-<script src="app.js?v=1.7.11"></script>
+<script src="engine.js?v=1.7.12"></script>
+<script src="app.js?v=1.7.12"></script>
 </body>
 </html>
