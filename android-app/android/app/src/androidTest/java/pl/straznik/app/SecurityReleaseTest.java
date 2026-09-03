@@ -56,6 +56,23 @@ public class SecurityReleaseTest {
         } finally { network(true); }
     }
 
+    @Test public void publishedUpdate() throws Exception {
+        android.app.Instrumentation ins = InstrumentationRegistry.getInstrumentation();
+        MainActivity a = (MainActivity) ins.startActivitySync(new android.content.Intent(
+            ins.getTargetContext(), MainActivity.class).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
+        for (int i=0; i<30 && !"true".equals(js(a,"typeof showUpdateBanner === 'function'")); i++) Thread.sleep(1000);
+        assertEquals("\"podlaskie\"", js(a,"myVoiv()"));
+        js(a,"window.releaseProbe=null; fetch(UPDATE_API).then(r=>r.json()).then(r=>window.releaseProbe=r); void 0");
+        for (int i=0; i<30 && !"true".equals(js(a,"!!window.releaseProbe")); i++) Thread.sleep(1000);
+        assertEquals("\"1.7.12\"", js(a,"releaseProbe.version"));
+        assertEquals("false", js(a,"releaseProbe.critical"));
+        // Render the real metadata as seen by an older version; do not install.
+        js(a,"showUpdateBanner(releaseProbe,'1.7.11'); void 0");
+        assertEquals("true", js(a,"!!document.getElementById('upd-later')"));
+        js(a,"document.getElementById('upd-later').click(); void 0");
+        assertEquals("true", js(a,"document.getElementById('update-banner').classList.contains('hidden') && sessionSkippedUpdates.has('1.7.12')"));
+    }
+
     @Test public void networkPolicy() throws Exception {
         NetworkSecurityPolicy p = NetworkSecurityPolicy.getInstance();
         assertFalse(p.isCleartextTrafficPermitted("example.org"));

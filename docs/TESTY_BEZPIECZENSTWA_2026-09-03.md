@@ -1,8 +1,22 @@
 # Weryfikacja zabezpieczeń — 2026-09-03
 
-Kandydat do wydania: 1.7.12/42. Starsze APK 1.7.11 nie zawiera poprawki.
+Wydano 1.7.12/42. Starsze APK 1.7.11 nie zawiera poprawki.
 Poniżej wyniki przed publikacją; informacje o wcześniejszych próbach mają
 charakter historyczny, a nie listy nadal otwartych zadań.
+
+## Potwierdzenie publikacji
+
+- GitHub Release v1.7.12, APK i kopia w repozytorium opublikowane.
+- Pobrany z publicznego wydania APK ma SHA-256
+  `e9ab6c24a836a47605eb7178b47495aac4a4c6ca9ddb5f49a0f4c8b419a13884`.
+- VPS: wdrożony commit 36982b3, usługi straznik i straznik-tunnel active;
+  /api/health HTTP 200. Frontend podaje zasoby 1.7.12.
+- /api/app-version: 1.7.12, critical=false, zgodna suma SHA-256.
+- GitHub Pages: publikacja zakończona sukcesem, aktualna instrukcja dostępna.
+- Pixel publishedUpdate: PASS (8,622 s), zachowane podlaskie; rzeczywiste
+  metadane produkcyjne wyświetlono w banerze z symulowaną starszą wersją.
+  „Później” ukrywa baner i zapisuje odłożenie w pamięci sesji, bez instalacji.
+- Testowanie po publikacji nie wysyłało żadnych pushy.
 
 ## Weryfikacja finalnego APK 1.7.12
 
@@ -81,7 +95,7 @@ Nie wysłano żadnego alarmu na temat województwa.
   cztery próby, start standalone, brak przełączenia podczas alarmu,
   zatrzymanie silnika przed wznowieniem połączenia. Nie jest to test sieciowy.
 
-## Niepotwierdzone / wymagane przed wydaniem
+## Archiwalne notatki z wcześniejszych prób
 
 ### Dodatkowa sesja Pixela (16:17–16:23 UTC)
 
@@ -100,7 +114,7 @@ Nie wysłano żadnego alarmu na temat województwa.
 - SSH BatchMode do VPS odmówił uwierzytelnienia; release nie udostępnia tokenu
   FCM, a emulator nie pozwala na adb root. Nie wysłano żadnej wiadomości FCM.
 
-### Pozostałe kryteria
+### Ówczesna lista kryteriów (aktualne wyniki powyżej)
 
 - Pełny cykl standalone → serwer na podpisanym APK, bez przechwytywania TLS.
 - FCM end-to-end: push wyłącznie do tokenu urządzenia testowego, nigdy na
