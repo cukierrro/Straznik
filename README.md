@@ -4,9 +4,9 @@
 
 # Strażnik
 
-Wersja 1.7.12: wzmocnione zabezpieczenia połączeń — wyłącznie systemowe CA
-i HTTPS dla zewnętrznych serwerów. Aktualizacja zachowuje ustawienia i może być
-odłożona do kolejnej sesji. Punktacja i progi alarmów pozostają bez zmian.
+Wersja 1.7.13: historia zachowuje krótkotrwałe rosyjskie i białoruskie maszyny
+ADS-B, nawet gdy pojawiły się pomiędzy dwuminutowymi migawkami mapy. Są rysowane
+jako półprzezroczysty ślad, bez wpływu na punktację i progi alarmów.
 
 **Nieoficjalne wczesne ostrzeganie o zagrożeniach powietrznych**
 

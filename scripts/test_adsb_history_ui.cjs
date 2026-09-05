@@ -1,0 +1,18 @@
+const fs = require('node:fs');
+const vm = require('node:vm');
+const assert = require('node:assert/strict');
+const js = fs.readFileSync('frontend/app.js', 'utf8');
+const start = js.indexOf('function historicalAdsbGhosts');
+const end = js.indexOf('\n\n/* Kolorowanie osi czasu', start);
+const ctx = vm.createContext({Date, Map, Set, Math});
+vm.runInContext(js.slice(start, end), ctx);
+const now = Date.parse('2026-09-05T08:00:00Z');
+const event = {ts:'2026-09-05T07:59:10Z', kind:'exit', hex:'14abcd', callsign:'SUM9125', lat:43.9, lon:25.1};
+let out = ctx.historicalAdsbGhosts([event], [], now);
+assert.equal(out.length, 1);
+assert.equal(out[0].callsign, 'SUM9125');
+assert.equal(out[0].historicalOnly, true);
+assert.equal(out[0].foreign, true);
+assert.equal(ctx.historicalAdsbGhosts([event], [{hex:'14abcd'}], now).length, 0);
+assert.equal(ctx.historicalAdsbGhosts([{...event, ts:'2026-09-05T07:50:00Z'}], [], now).length, 0);
+console.log('OK: ślad ADS-B wypełnia lukę migawki bez duplikatu i bez starego obiektu');

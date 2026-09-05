@@ -47,6 +47,15 @@ CREATE TABLE IF NOT EXISTS snapshots (
     payload TEXT NOT NULL         -- JSON: {threats:[...], aircraft:[...]}
 );
 CREATE INDEX IF NOT EXISTS idx_snap_ts ON snapshots(ts);
+-- krótkotrwałe obce maszyny mogą pojawić się między migawkami mapy
+CREATE TABLE IF NOT EXISTS adsb_watch_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    hex TEXT NOT NULL,
+    payload TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_adsb_watch_ts ON adsb_watch_events(ts);
 """
 
 
@@ -156,6 +165,27 @@ def add_snapshot(payload: dict, keep_hours: int = 12):
         cutoff = (datetime.now(timezone.utc) - timedelta(hours=keep_hours)).isoformat(timespec="seconds")
         _conn.execute("DELETE FROM snapshots WHERE ts < ?", (cutoff,))
         _conn.commit()
+
+
+def add_adsb_watch_event(kind: str, aircraft: dict, keep_hours: int = 12):
+    """Trwały ślad wejścia/wyjścia obcej maszyny; zero wpływu na punktację."""
+    ts = now_iso()
+    cutoff = (datetime.now(timezone.utc) - timedelta(hours=keep_hours)).isoformat(timespec="seconds")
+    with _lock:
+        _conn.execute("INSERT INTO adsb_watch_events (ts, kind, hex, payload) VALUES (?,?,?,?)",
+                      (ts, kind, str(aircraft.get("hex") or ""),
+                       json.dumps(aircraft, ensure_ascii=False)))
+        _conn.execute("DELETE FROM adsb_watch_events WHERE ts < ?", (cutoff,))
+        _conn.commit()
+
+
+def adsb_watch_events(hours: int = 12) -> list[dict]:
+    cutoff = (datetime.now(timezone.utc) - timedelta(hours=hours)).isoformat(timespec="seconds")
+    with _lock:
+        rows = _conn.execute(
+            "SELECT ts, kind, hex, payload FROM adsb_watch_events WHERE ts >= ? ORDER BY ts",
+            (cutoff,)).fetchall()
+    return [{"ts": r[0], "kind": r[1], "hex": r[2], **json.loads(r[3])} for r in rows]
 
 
 def snapshot_times(hours: int = 12) -> list[str]:

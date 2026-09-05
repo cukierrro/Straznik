@@ -201,7 +201,8 @@ async def api_history_bundle(hours: int = 12):
                  - timedelta(minutes=config.FUSION_WINDOW_MIN)).isoformat(timespec="seconds")
         signals = db.signals_between(start, snaps[-1]["ts"])
     return {"hours": hours, "window_min": config.FUSION_WINDOW_MIN,
-            "snaps": snaps, "signals": signals}
+            "snaps": snaps, "signals": signals,
+            "adsb_watch_events": db.adsb_watch_events(hours)}
 
 
 @app.get("/api/health")

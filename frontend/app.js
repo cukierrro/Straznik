@@ -329,7 +329,7 @@ function scheduleStandaloneRecovery(base) {
 function switchToBackend(base) {
   try { Engine.stop(); } catch (e) { console.warn("Engine.stop:", e); }
   standalone = false;
-  srvSnaps = []; srvSigs = []; srvSeeded = false;   // bufor historii bierzemy od serwera
+  srvSnaps = []; srvSigs = []; srvAdsbEvents = []; srvSeeded = false;
   connBadge.style.cursor = "";
   connBadge.onclick = null;
   connBadge.textContent = "łączenie…";
@@ -683,13 +683,14 @@ async function initMap() {
     map.addLayer({ id: "adsb-foreign", type: "circle", source: "adsb",
       filter: ["==", ["get", "foreign"], true],
       paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"], 4, 10, 8, 20],
-        "circle-color": "#ff4d5e", "circle-opacity": 0.18,
+        "circle-color": "#ff4d5e", "circle-opacity": ["case", ["==", ["get", "historicalOnly"], true], 0.08, 0.18],
         "circle-stroke-color": "#ff4d5e", "circle-stroke-width": 1.6, "circle-stroke-opacity": 0.85 } });
     map.addLayer({ id: "adsb", type: "symbol", source: "adsb",
       layout: { "icon-image": ["case", ["==", ["get", "heli"], true], "heli", "plane"],
         "icon-size": 0.62,
         "icon-rotate": ["get", "track"], "icon-rotation-alignment": "map",
         "icon-allow-overlap": true },
+      paint: { "icon-opacity": ["case", ["==", ["get", "historicalOnly"], true], 0.5, 1] },
     });
 
     for (const layer of ["threats", "threats-glow"]) {
@@ -826,7 +827,10 @@ let watchPrev = new Set();      // hex obcych maszyn z poprzedniego obiegu
 const watchLast = new Map();    // hex → {label, flag, area} — do zdarzeń wyjścia
 function logWatchEvent(kind, info) {
   watchEvents.unshift({ t: Date.now(), kind, hex: info.hex,
-    label: info.label || info.hex, flag: info.flag || "", area: info.area || "" });
+    label: info.label || info.hex, flag: info.flag || "", area: info.area || "",
+    callsign: info.callsign, type: info.type, lat: info.lat, lon: info.lon,
+    alt: info.alt, gs: info.gs, track: info.track, desc: info.desc, reg: info.reg,
+    cat: info.cat, foreign: true });
   if (watchEvents.length > 60) watchEvents.length = 60;
   try { localStorage.setItem("straznik_watch_events", JSON.stringify(watchEvents)); } catch {}
 }
@@ -1103,7 +1107,8 @@ function updateAdsb() {
     if (p.foreign) {
       nowForeign.add(p.hex);
       const c = hexCountry(p.hex);
-      watchLast.set(p.hex, { label: (p.callsign || p.hex) + (p.desc ? " · " + p.desc : ""),
+      watchLast.set(p.hex, { ...p,
+        label: (p.callsign || p.hex) + (p.desc ? " · " + p.desc : ""),
         flag: c ? c.flag : "", area: p.area || "" });
     }
     // własny zapis trasy (jak dla obiektów NEPTUN): dopisujemy realne przesunięcia
@@ -1861,7 +1866,7 @@ let histTimes = [], histMode = false;
    Bufor żyje tylko w pamięci — NIE zapisujemy go na dysk; zamknięcie apki czyści
    go, a nic się nie kumuluje. Fuzję dla każdej chwili liczy lokalnie ten sam
    `accumulate` co silnik offline (Engine.historyFrom/timelineFrom). */
-let srvSnaps = [], srvSigs = [], srvSeeded = false, _srvSnapT = 0;
+let srvSnaps = [], srvSigs = [], srvAdsbEvents = [], srvSeeded = false, _srvSnapT = 0;
 const HIST_MS = 12 * 3600 * 1000;
 const _sigKey = (s) => (s.source || "") + "|" + (s.ts || "") + "|" + (s.voivodeship || "") + "|" + (s.title || "");
 
@@ -1918,6 +1923,7 @@ async function seedBundle() {
       if (have.has(sn.ts)) continue;
       srvSnaps.push({ ...sn, t: Date.parse(sn.ts) });
     }
+    srvAdsbEvents = (j.adsb_watch_events || []).map(e => ({ ...e, t: Date.parse(e.ts) }));
     srvSnaps.sort((a, b) => a.t - b.t);
     srvSeeded = true;
   } catch {}
@@ -1931,6 +1937,20 @@ function needSeed() {
 /* Historia lokalnie (bez sieci): offline ⇒ silnik, serwer ⇒ bufor w RAM. */
 function fetchHistory(at) {
   return standalone ? Engine.history(at) : Engine.historyFrom(srvSnaps, srvSigs, at);
+}
+
+function historicalAdsbGhosts(events, planes, whenMs) {
+  const planeHexes = new Set(planes.map(p => p.hex).filter(Boolean));
+  const nearest = new Map();
+  for (const e of events || []) {
+    const et = e.t ?? Date.parse(e.ts);
+    if (!e.hex || e.lat == null || e.lon == null || Math.abs(et - whenMs) > 150000
+        || planeHexes.has(e.hex)) continue;
+    const prev = nearest.get(e.hex);
+    if (!prev || Math.abs(et - whenMs) < Math.abs((prev.t ?? Date.parse(prev.ts)) - whenMs))
+      nearest.set(e.hex, e);
+  }
+  return [...nearest.values()].map(e => ({ ...e, historicalOnly: true, foreign: true }));
 }
 
 /* Kolorowanie osi czasu: tło suwaka odwzorowuje poziom zagrożenia w każdym
@@ -2001,7 +2021,12 @@ function showHistoryAt(idx) {
     + (ageMin > 1 ? ` (−${ageMin} min)` : " (teraz)");
   const sigs = h?.signals || [];
   const threats = snap?.threats || [];
-  const planes = snap?.aircraft || [];
+  const planes = [...(snap?.aircraft || [])];
+  // ADS-B jest odpytywane częściej niż powstają migawki. Zdarzenie wejścia lub
+  // wyjścia z ostatnią pozycją wypełnia dwuminutową lukę jako półprzezroczysty
+  // ślad. Nie jest sygnałem i nie wnosi punktów.
+  const historyAdsbEvents = standalone ? watchEvents : srvAdsbEvents;
+  planes.push(...historicalAdsbGhosts(historyAdsbEvents, planes, when.getTime()));
   // Obiekt może pojawić się i zniknąć między migawkami (co 2 min), mimo że jego
   // sygnał pozostaje w oknie 60 min. Pokazujemy wtedy zapisaną pozycję jako
   // półprzezroczysty ślad historyczny, a nie obiekt obecny w migawce.
@@ -2072,7 +2097,8 @@ function showHistoryAt(idx) {
         geometry: { type: "Point", coordinates: [p.lon, p.lat] },
         properties: { track: p.track ?? 0, callsign: p.callsign, hex: p.hex,
           actype: p.type, desc: p.desc, alt: p.alt, gs: p.gs, reg: p.reg,
-          heli: isHeli(p.cat, p.type, p.desc) } })) });
+          heli: isHeli(p.cat, p.type, p.desc), foreign: !!p.foreign,
+          historicalOnly: !!p.historicalOnly } })) });
     // kolorowanie województw wg sygnałów z tamtego momentu
     for (const v of ALL_VOIVS) {
       const sc = perVoiv[v] || 0;

@@ -25,6 +25,25 @@ status = {"ok": False, "last": None, "error": None, "provider": config.ADSB_PROV
 
 # aktualne maszyny wojskowe nad PL-wschód (dla frontendu)
 current_aircraft: list[dict] = []
+_watch_prev: dict[str, dict] | None = None
+
+
+def _is_foreign_hex(value: str | None) -> bool:
+    """Rosja 100000–1FFFFF, Białoruś 510000–5103FF — jak w frontendzie."""
+    try:
+        n = int(str(value or "").strip().lower(), 16)
+    except ValueError:
+        return False
+    return 0x100000 <= n <= 0x1FFFFF or 0x510000 <= n <= 0x5103FF
+
+
+def _watch_transitions(previous: dict[str, dict] | None,
+                       current: dict[str, dict]) -> tuple[list[dict], list[dict]]:
+    """Zwraca wejścia i wyjścia; None oznacza pierwszy obieg bez zdarzeń."""
+    if previous is None:
+        return [], []
+    return ([current[h] for h in current.keys() - previous.keys()],
+            [previous[h] for h in previous.keys() - current.keys()])
 
 MIL_CALLSIGN_PREFIXES = ("NATO", "MMF", "REDEYE", "BART", "OSY", "PLF", "HKY",
                          "VIPER", "WOLF", "FENIX", "DUKE", "TIGER", "KAPLAN",
@@ -175,6 +194,7 @@ def _classify(ac: dict) -> dict | None:
 
 
 async def _tick(client: httpx.AsyncClient):
+    global _watch_prev
     ac_list = await _fetch_mil(client)
     if ac_list is None:
         return
@@ -200,6 +220,17 @@ async def _tick(client: httpx.AsyncClient):
                 per_voiv[c["voivodeship"]].append(c)
             current.append(c)
     current_aircraft = current
+
+    # Rejestrujemy przejścia co minutę, niezależnie od migawki mapy co 2 min.
+    # Pierwszy obieg po restarcie tylko ustanawia bazę, żeby nie tworzyć lawiny
+    # fałszywych „wejść”. Ostatnia znana pozycja jest zachowana także przy wyjściu.
+    watch_now = {p["hex"]: p for p in current if p.get("hex") and _is_foreign_hex(p.get("hex"))}
+    entered, exited = _watch_transitions(_watch_prev, watch_now)
+    for plane in entered:
+        db.add_adsb_watch_event("enter", plane)
+    for plane in exited:
+        db.add_adsb_watch_event("exit", plane)
+    _watch_prev = watch_now
 
     hour_key = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H")
     for voiv, planes in per_voiv.items():
