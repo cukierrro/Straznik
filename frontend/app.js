@@ -52,9 +52,14 @@ const THREAT_PHOTOS = {
   mig31k: { file: "mig31k-ai.png" },
   cruise: { file: "missile-ai.png" },
 };
-const threatLabelPL = (type) =>
-  (TYPE_META[String(type || "").toLowerCase()] || TYPE_META.unknown).label;
-const LEVEL_LABEL = { none: "brak sygnałów", elevated: "PODWYŻSZONA UWAGA", high: "WYSOKI PRIORYTET" };
+const UI = window.I18N || { isEn:false, tr:s=>s, voiv:s=>s, type:(k,s)=>s, confidence:(k,s)=>s };
+const threatLabelPL = (type) => {
+  const key = String(type || "").toLowerCase();
+  return UI.type(key, (TYPE_META[key] || TYPE_META.unknown).label);
+};
+const LEVEL_LABEL = UI.isEn
+  ? { none: "no signals", elevated: "ELEVATED ATTENTION", high: "HIGH PRIORITY" }
+  : { none: "brak sygnałów", elevated: "PODWYŻSZONA UWAGA", high: "WYSOKI PRIORYTET" };
 
 /* ── ADS-B: role maszyn wojskowych (kod typu ICAO → przeznaczenie) ───────── */
 const MIL_ROLES = {
@@ -166,9 +171,10 @@ function threatDesc(t) {
   const where = [t.locality ? translit(t.locality) : null, oblastPL(t.region)]
     .filter(Boolean).join(", ");
   const parts = [];
-  if (where) parts.push(t.destination ? `kursem na ${where}` : `rejon: ${where}`);
-  if (t.sourceCount) parts.push(`potwierdzeń: ${t.sourceCount}`);
-  return parts.join(" · ") || meta.label;
+  if (where) parts.push(UI.isEn ? (t.destination ? `heading towards ${where}` : `area: ${where}`)
+    : (t.destination ? `kursem na ${where}` : `rejon: ${where}`));
+  if (t.sourceCount) parts.push(UI.isEn ? `confirmations: ${t.sourceCount}` : `potwierdzeń: ${t.sourceCount}`);
+  return parts.join(" · ") || UI.type(t.type, meta.label);
 }
 
 /* ── czas dolotu ─────────────────────────────────────────────────────────────
@@ -227,17 +233,17 @@ function etaHtml(t) {
   const e = etaInfo(t);
   if (!e || e.border == null) {
     return t.pl_assessment && t.pl_assessment.heading_known === false
-      ? `<span style="color:#ffb020">kurs nieznany — czasu dolotu nie szacujemy</span><br>`
+      ? `<span style="color:#ffb020">${UI.isEn ? "unknown heading — arrival time is not estimated" : "kurs nieznany — czasu dolotu nie szacujemy"}</span><br>`
       : "";
   }
   const mine = (e.voiv != null && e.voivName)
-    ? ` · do woj. ${esc2(e.voivName)}: <b>${etaTxt(e.voiv)}</b>` : "";
-  return `konserwatywny czas dolotu do granicy PL: <b>${etaTxt(e.border)}</b>${mine}<br>`
-    + `<span style="color:#68758c">szacunek przy prędkości ${e.speed} km/h i utrzymaniu kursu; `
-    + `odjęto 2,5 min na opóźnienie danych — nie uwzględnia obrony powietrznej</span><br>`;
+    ? ` · ${UI.isEn ? "to" : "do woj."} ${esc2(UI.voiv(e.voivName))}: <b>${etaTxt(e.voiv)}</b>` : "";
+  return `${UI.isEn ? "conservative time to the Polish border" : "konserwatywny czas dolotu do granicy PL"}: <b>${etaTxt(e.border)}</b>${mine}<br>`
+    + `<span style="color:#68758c">${UI.isEn ? `estimate at ${e.speed} km/h with unchanged heading; 2.5 min deducted for data delay — air defence not included` : `szacunek przy prędkości ${e.speed} km/h i utrzymaniu kursu; odjęto 2,5 min na opóźnienie danych — nie uwzględnia obrony powietrznej`}</span><br>`;
 }
 
-const COMPASS = ["płn.", "płn.-wsch.", "wsch.", "płd.-wsch.", "płd.", "płd.-zach.", "zach.", "płn.-zach."];
+const COMPASS = UI.isEn ? ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
+  : ["płn.", "płn.-wsch.", "wsch.", "płd.-wsch.", "płd.", "płd.-zach.", "zach.", "płn.-zach."];
 const compass = (deg) => deg == null ? "" : COMPASS[Math.round(((deg % 360) + 360) % 360 / 45) % 8];
 const ftToM = (ft) => typeof ft === "number" ? Math.round(ft * 0.3048) : null;
 const ktToKmh = (kt) => typeof kt === "number" ? Math.round(kt * 1.852) : null;
@@ -376,7 +382,7 @@ function openBackendWs(base) {
 function scheduleReconnect() {
   if (standalone) return;   // w trybie wbudowanym nie ma czego wznawiać
   if (ws) { ws.onclose = ws.onerror = null; try { ws.close(); } catch {} ws = null; }
-  connBadge.textContent = "brak połączenia z serwerem — ponawiam…";
+  connBadge.textContent = UI.isEn ? "server connection lost — retrying…" : "brak połączenia z serwerem — ponawiam…";
   connBadge.classList.remove("hidden");
   const base = apiBase();
   // W trakcie sesji trzymamy się serwera (przy starcie potwierdził dostępność):
@@ -855,29 +861,30 @@ function hideCard() { document.getElementById("ac-card")?.classList.add("hidden"
 /* dymki — wspólne dla kliknięcia w mapę i w pozycję listy */
 function openThreatPopup(lngLat, p) {
   if (!p) return;
-  const meta = TYPE_META[p.type] || { label: p.type, color: "#8a93a6" };
+  const meta0 = TYPE_META[p.type] || { label: p.type, color: "#8a93a6" };
+  const meta = { ...meta0, label: UI.type(p.type, meta0.label) };
   const photo = THREAT_PHOTOS[p.type];
   const fallbackType = p.type === "cruise" ? "missile" : p.type;
   const img = p.type ? (photo
     ? `<div class="thr-photo" style="margin:-2px 0 6px"><img src="assets/threats/${esc2(photo.file)}"
-        alt="Ilustracja AI: ${esc2(meta.label)} — nie śledzony obiekt" loading="lazy"
+        alt="${UI.isEn ? "AI illustration" : "Ilustracja AI"}: ${esc2(meta.label)} — ${UI.isEn ? "not the tracked object" : "nie śledzony obiekt"}" loading="lazy"
         onerror="this.closest('.thr-photo').hidden=true">
-        <div class="thr-photo-note"><strong>Ilustracja poglądowa wygenerowana przez AI.</strong><br>
-          Nie przedstawia śledzonego obiektu. Może zawierać uproszczenia; nie służy do identyfikacji modelu.</div></div>`
+        <div class="thr-photo-note"><strong>${UI.isEn ? "Reference illustration generated by AI." : "Ilustracja poglądowa wygenerowana przez AI."}</strong><br>
+          ${UI.isEn ? "It does not depict the tracked object. It may contain simplifications and must not be used to identify a model." : "Nie przedstawia śledzonego obiektu. Może zawierać uproszczenia; nie służy do identyfikacji modelu."}</div></div>`
     : `<div class="thr-photo" style="margin:-2px 0 6px"><img src="assets/threats/${esc2(fallbackType)}.svg"
         alt="Grafika poglądowa typu ${esc2(meta.label)}"
         onerror="this.closest('.thr-photo').style.display='none'">
-        <div class="thr-photo-note">grafika poglądowa typu — nie tego obiektu</div></div>`)
+        <div class="thr-photo-note">${UI.isEn ? "type reference — not this object" : "grafika poglądowa typu — nie tego obiektu"}</div></div>`)
     : "";
   showCard(`${img}
       <b style="color:${meta.color};filter:brightness(.75)">◆ ${meta.label}</b><br>
       ${p.opis ? esc2(p.opis) + "<br>" : ""}
-      wiarygodność: <b>${esc2(CONF_PL[p.confidence] || p.confidence)}</b>
-        · niepewność pozycji: <b>±${p.uncertainty} km</b><br>
-      ${p.heading != null ? `kurs: ${Math.round(p.heading)}° (${compass(p.heading)}) · ` : ""}
-      odległość od granicy PL: <b>${p.dist_km ?? "?"} km</b><br>
+      ${UI.isEn ? "confidence" : "wiarygodność"}: <b>${esc2(UI.confidence(p.confidence, CONF_PL[p.confidence] || p.confidence))}</b>
+        · ${UI.isEn ? "position uncertainty" : "niepewność pozycji"}: <b>±${p.uncertainty} km</b><br>
+      ${p.heading != null ? `${UI.isEn ? "heading" : "kurs"}: ${Math.round(p.heading)}° (${compass(p.heading)}) · ` : ""}
+      ${UI.isEn ? "distance from the Polish border" : "odległość od granicy PL"}: <b>${p.dist_km ?? "?"} km</b><br>
       ${p.eta || ""}
-      <span style="color:#68758c">Dane: NEPTUN — agregator OSINT, nie radar wojskowy</span>`);
+      <span style="color:#68758c">${UI.isEn ? "Data: NEPTUN — OSINT aggregator, not military radar" : "Dane: NEPTUN — agregator OSINT, nie radar wojskowy"}</span>`);
 }
 
 /* Karta samolotu w stylu airplanes.live: zdjęcie, kraj rejestracji, operator,
@@ -1168,9 +1175,9 @@ function showWatch() { fillWatch(); document.getElementById("watch").showModal()
 /* ── panel boczny ────────────────────────────────────────────────────────── */
 function relTime(iso) {
   const d = (Date.now() - new Date(iso).getTime()) / 60000;
-  if (d < 1) return "przed chwilą";
-  if (d < 60) return `${Math.round(d)} min temu`;
-  return `${Math.floor(d / 60)} h ${Math.round(d % 60)} min temu`;
+  if (d < 1) return UI.isEn ? "just now" : "przed chwilą";
+  if (d < 60) return `${Math.round(d)} min ${UI.isEn ? "ago" : "temu"}`;
+  return `${Math.floor(d / 60)} h ${Math.round(d % 60)} min ${UI.isEn ? "ago" : "temu"}`;
 }
 const esc = (s) => String(s ?? "").replace(/[<>&"]/g, c => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;" }[c]));
 const esc2 = esc;
@@ -1192,17 +1199,17 @@ function renderPanel() {
   document.getElementById("voiv-cards").innerHTML = show.map(([name, st]) => `
     <div class="voiv-card level-${st.level}${name === mine ? " is-mine" : ""}" data-voiv="${esc(name)}">
       <div class="voiv-head">
-        <span class="voiv-name">${esc(name)}</span>
-        <span class="voiv-score">${st.score.toFixed(1)} pkt</span>
+        <span class="voiv-name">${esc(UI.voiv(name))}</span>
+        <span class="voiv-score">${st.score.toFixed(1)} ${UI.isEn ? "pts" : "pkt"}</span>
       </div>
       <div class="voiv-level">${st.level === "none" && st.score > 0
-        ? "poniżej progu" : LEVEL_LABEL[st.level]}
-        <span class="muted">· progi: ≥${f.thresholds.elevated} uwaga, ≥${f.thresholds.high} priorytet</span></div>
+        ? (UI.isEn ? "below threshold" : "poniżej progu") : LEVEL_LABEL[st.level]}
+        <span class="muted">· ${UI.isEn ? "thresholds" : "progi"}: ≥${f.thresholds.elevated} ${UI.isEn ? "attention" : "uwaga"}, ≥${f.thresholds.high} ${UI.isEn ? "priority" : "priorytet"}</span></div>
       <div class="voiv-breakdown">${st.signals.length
         ? sigList(st.signals)
-        : '<div class="fineprint">brak sygnałów w oknie</div>'}
+        : `<div class="fineprint">${UI.isEn ? "no signals in the window" : "brak sygnałów w oknie"}</div>`}
         ${camIndex?.has(name)
-          ? `<button class="chip btn-cams" data-voiv="${esc(name)}">📷 Kamery w regionie
+          ? `<button class="chip btn-cams" data-voiv="${esc(name)}">📷 ${UI.isEn ? "Cameras in the region" : "Kamery w regionie"}
                (${camData[name].filter(c => c.outdoor !== false).length})</button>`
           : ""}</div>
     </div>`).join("");
@@ -1216,8 +1223,8 @@ function renderPanel() {
   if (mine && f.voivodeships[mine]) {
     const st = f.voivodeships[mine];
     banner.className = "level-" + st.level;
-    banner.innerHTML = `<b>${esc(mine)}</b> — <span class="lvl">${LEVEL_LABEL[st.level]}</span>
-      <span class="muted">${st.score.toFixed(1)} pkt</span>`;
+    banner.innerHTML = `<b>${esc(UI.voiv(mine))}</b> — <span class="lvl">${LEVEL_LABEL[st.level]}</span>
+      <span class="muted">${st.score.toFixed(1)} ${UI.isEn ? "pts" : "pkt"}</span>`;
     banner.onclick = () => { setPanel(true); openCard(mine); };
   } else {
     banner.className = "hidden";
@@ -1237,17 +1244,17 @@ function renderPanel() {
     const a = t.pl_assessment;
     return `<div class="threat-row clickable" data-lat="${t.lat}" data-lon="${t.lon}"
       data-kind="threat" data-id="${esc(t.id)}">
-      <b style="color:${m.color}">${esc(m.label)}</b>
-      — ${a.dist_km} km od granicy (${esc(a.border_voiv)})${
+      <b style="color:${m.color}">${esc(UI.type(t.type, m.label))}</b>
+      — ${a.dist_km} km ${UI.isEn ? "from the border" : "od granicy"} (${esc(UI.voiv(a.border_voiv))})${
         a.heading_known === false
-          ? " · <b style='color:#ffb020'>kurs nieznany</b>"
-          : (a.toward_pl ? " · <b style='color:#ff4d5e'>kurs na PL</b>" : "")}
+          ? ` · <b style='color:#ffb020'>${UI.isEn ? "unknown heading" : "kurs nieznany"}</b>`
+          : (a.toward_pl ? ` · <b style='color:#ff4d5e'>${UI.isEn ? "heading towards Poland" : "kurs na PL"}</b>` : "")}
       ${(() => { const e = etaInfo(t);
         return e && e.border != null
-          ? `<div class="meta eta-row">⏱ do granicy <b>${etaTxt(e.border)}</b>${
-              e.voiv != null ? ` · do woj. ${esc(e.voivName)} <b>${etaTxt(e.voiv)}</b>` : ""}</div>`
+          ? `<div class="meta eta-row">⏱ ${UI.isEn ? "to border" : "do granicy"} <b>${etaTxt(e.border)}</b>${
+              e.voiv != null ? ` · ${UI.isEn ? "to" : "do woj."} ${esc(UI.voiv(e.voivName))} <b>${etaTxt(e.voiv)}</b>` : ""}</div>`
           : ""; })()}
-      <div class="meta">wiarygodność: ${esc(CONF_PL[t.confidenceLevel] || t.confidenceLevel)}
+      <div class="meta">${UI.isEn ? "confidence" : "wiarygodność"}: ${esc(UI.confidence(t.confidenceLevel, CONF_PL[t.confidenceLevel] || t.confidenceLevel))}
         · ±${esc(t.uncertaintyKm)} km · ${esc(threatDesc(t))} · ${relTime(t.updatedAt)}</div>
     </div>`;
   }).join("");
@@ -1264,13 +1271,13 @@ function renderPanel() {
       ${esc(acName(p.type, p.desc))}${p.year ? ` <span class="meta">(${esc(p.year)})</span>` : ""}
       ${role ? `<div style="color:#9fd8ec;font-size:11px">${esc(role)}</div>` : ""}
       <div class="meta">
-        woj. ${esc(p.voivodeship)}
+        ${UI.isEn ? "province" : "woj."} ${esc(UI.voiv(p.voivodeship))}
         · ${altText(p.alt)}
         ${vr ? (vr > 100 ? " ↑" : vr < -100 ? " ↓" : "") : ""}
         ${p.gs != null ? ` · ${ktToKmh(p.gs)} km/h` : ""}
-        ${p.track != null ? ` · kurs ${Math.round(p.track)}° (${compass(p.track)})` : ""}
+        ${p.track != null ? ` · ${UI.isEn ? "heading" : "kurs"} ${Math.round(p.track)}° (${compass(p.track)})` : ""}
       </div>
-      <div class="meta">${p.reg ? "rej. " + esc(p.reg) : ""}${p.op ? " · " + esc(p.op) : ""}</div>
+      <div class="meta">${p.reg ? (UI.isEn ? "reg. " : "rej. ") + esc(p.reg) : ""}${p.op ? " · " + esc(p.op) : ""}</div>
     </div>`;
   }).join("");
 
@@ -1315,18 +1322,18 @@ function sigHTML(s) {
   // NEPTUN: odległość i pewność kursu wprost w wierszu — bez tego nie było
   // widać, że obiekt bez kursu w ogóle jest brany pod uwagę
   const extra = [];
-  if (d.dist_km != null) extra.push(`${d.dist_km} km od granicy`);
+  if (d.dist_km != null) extra.push(`${d.dist_km} km ${UI.isEn ? "from the border" : "od granicy"}`);
   if (src === "neptun") {
-    if (d.course === "unknown") extra.push("kurs nieznany");
-    else if (d.course === "estimated") extra.push("kurs szacowany z ruchu");
+    if (d.course === "unknown") extra.push(UI.isEn ? "unknown heading" : "kurs nieznany");
+    else if (d.course === "estimated") extra.push(UI.isEn ? "heading estimated from movement" : "kurs szacowany z ruchu");
   }
-  if (d.source_count) extra.push(`${d.source_count} potw.`);
+  if (d.source_count) extra.push(`${d.source_count} ${UI.isEn ? "conf." : "potw."}`);
   // czas dolotu policzony przy sygnale — dla regionu użytkownika, a gdy go brak,
   // to do granicy; „ile mam czasu" jest ważniejsze niż „ile to kilometrów"
   const mineV = myVoiv();
   const etaV = mineV && d.eta_voiv_min ? d.eta_voiv_min[mineV] : null;
-  if (etaV != null) extra.push(`⏱ ${etaTxt(etaV)} do woj. ${mineV}`);
-  else if (d.eta_border_min != null) extra.push(`⏱ ${etaTxt(d.eta_border_min)} do granicy`);
+  if (etaV != null) extra.push(`⏱ ${etaTxt(etaV)} ${UI.isEn ? "to" : "do woj."} ${UI.voiv(mineV)}`);
+  else if (d.eta_border_min != null) extra.push(`⏱ ${etaTxt(d.eta_border_min)} ${UI.isEn ? "to border" : "do granicy"}`);
   let shownTitle = s.title;
   // Polonizujemy także stare wpisy zapisane już w bazie, korzystając ze
   // stabilnego details.type zamiast ukraińskiego/rosyjskiego tytułu źródła.
@@ -1336,19 +1343,24 @@ function sigHTML(s) {
     const prefix = (Number(d.count) || 1) > 1 ? `${Number(d.count)}× ` : "";
     shownTitle = prefix + threatLabelPL(d.type)
       + (at >= 0 ? String(shownTitle).slice(at) : "");
+    if (UI.isEn) {
+      const count = (Number(d.count) || 1) > 1 ? `${Number(d.count)}× ` : "";
+      shownTitle = count + threatLabelPL(d.type)
+        + (d.dist_km != null ? ` heading towards the Polish border, ${d.dist_km} km` : "");
+    }
   }
   return `<div class="sig src-${esc(src)}">
     <div class="sig-head">
       <span class="src">${SRC_ICON[src] || "•"} ${esc(SRC_LABEL[src] || src.toUpperCase())}</span>
       <span class="pts${capped ? " capped" : ""}"
-        ${capped ? 'title="ponad limit tej klasy źródła — nadwyżka nie liczy się do sumy"' : ""}>
+        ${capped ? `title="${UI.isEn ? "above this source-class cap — excess points are not counted" : "ponad limit tej klasy źródła — nadwyżka nie liczy się do sumy"}"` : ""}>
         +${cp}${capped ? ` <s>${s.points}</s>` : ""}</span>
     </div>
     <div class="sig-title">${link
       ? `<a href="${esc(link)}" target="_blank" rel="noopener">${esc(shownTitle)}</a>`
       : esc(shownTitle)}</div>
     <div class="sig-bar"><i style="width:${share.toFixed(0)}%"></i></div>
-    <div class="ts">${relTime(s.ts)} · woj. ${esc(s.voivodeship)}${
+    <div class="ts">${relTime(s.ts)} · ${UI.isEn ? "province" : "woj."} ${esc(UI.voiv(s.voivodeship))}${
       extra.length ? " · " + extra.map(esc).join(" · ") : ""}${
       faded ? ` · <span title="sygnał starzeje się w oknie 60 min i traci wagę">waga ${Math.round(w * 100)}%</span>` : ""}</div>
   </div>`;
@@ -1512,13 +1524,13 @@ function updateAlarmMood() {
 const alarmOverlay = document.getElementById("alarm-overlay");
 function showAlarm(voiv, st) {
   if (!voiv || !st) return;
-  document.getElementById("alarm-voiv").textContent = "woj. " + voiv;
+  document.getElementById("alarm-voiv").textContent = (UI.isEn ? "province " : "woj. ") + UI.voiv(voiv);
   document.getElementById("alarm-score").textContent =
-    `${st.score.toFixed(1)} pkt w oknie ${state?.fusion?.window_min ?? 60} min`;
+    `${st.score.toFixed(1)} ${UI.isEn ? "pts in a" : "pkt w oknie"} ${state?.fusion?.window_min ?? 60} min ${UI.isEn ? "window" : ""}`;
   document.getElementById("alarm-signals").innerHTML =
     sigList(st.signals, 5) || "";
   document.getElementById("alarm-time").textContent =
-    "alarm o " + new Date().toLocaleTimeString("pl-PL");
+    (UI.isEn ? "alert at " : "alarm o ") + new Date().toLocaleTimeString(UI.isEn ? "en-GB" : "pl-PL");
   alarmOverlay.classList.remove("hidden");
   airRaidSiren(true);          // ciągła — milknie dopiero po potwierdzeniu
 }
@@ -1565,6 +1577,9 @@ function attentionChime() {
    tak jak prawdziwy sygnał „ogłoszenie alarmu" nie milknie sam z siebie. */
 let sirenNodes = null, sirenTimer = null, vibrateTimer = null;
 const SIREN_UP = 2.0, SIREN_DOWN = 2.0, SIREN_LO = 380, SIREN_HI = 860;
+// Żółty gong osiąga ok. 0,55 z dodatkową harmoniczną. Dawne 0,40 sprawiało,
+// że alarm czerwony był wyraźnie cichszy mimo wyższego priorytetu.
+const SIREN_GAIN = 0.62;
 
 function scheduleSirenSweeps(o, fromTime, cycles) {
   for (let i = 0; i < cycles; i++) {
@@ -1586,7 +1601,7 @@ function airRaidSiren(continuous = true) {
     o.frequency.setValueAtTime(SIREN_LO, t0);
     let until = scheduleSirenSweeps(o, t0, 3);
     g.gain.setValueAtTime(0.0001, t0);
-    g.gain.exponentialRampToValueAtTime(0.4, t0 + 0.3);
+    g.gain.exponentialRampToValueAtTime(SIREN_GAIN, t0 + 0.3);
     o.start(t0);
     sirenNodes = { o, g, c };
 
@@ -1603,7 +1618,7 @@ function airRaidSiren(continuous = true) {
     } else {
       // tryb testowy — wycisz po trzech cyklach
       const total = 3 * (SIREN_UP + SIREN_DOWN);
-      g.gain.setValueAtTime(0.4, t0 + total - 0.6);
+      g.gain.setValueAtTime(SIREN_GAIN, t0 + total - 0.6);
       g.gain.exponentialRampToValueAtTime(0.0001, t0 + total);
       o.stop(t0 + total + 0.1);
       setTimeout(() => { sirenNodes = null; }, total * 1000 + 200);
@@ -1985,7 +2000,8 @@ async function toggleHistory() {
   paintTimeline(fetchTimeline());
   if (!histTimes.length) {
     document.getElementById("tb-info").textContent =
-      "Brak zapisanej historii — migawki powstają co 2 minuty od uruchomienia.";
+      UI.isEn ? "No saved history — snapshots are created every 2 minutes after startup."
+        : "Brak zapisanej historii — migawki powstają co 2 minuty od uruchomienia.";
     bar.classList.remove("hidden");
     setTimeout(() => bar.classList.add("hidden"), 3500);
     return;
@@ -2017,8 +2033,8 @@ function showHistoryAt(idx) {
   const when = new Date(snap?.ts || ts);
   const ageMin = Math.round((Date.now() - when.getTime()) / 60000);
   document.getElementById("tb-label").textContent =
-    when.toLocaleTimeString("pl-PL", { hour: "2-digit", minute: "2-digit" })
-    + (ageMin > 1 ? ` (−${ageMin} min)` : " (teraz)");
+    when.toLocaleTimeString(UI.isEn ? "en-GB" : "pl-PL", { hour: "2-digit", minute: "2-digit" })
+    + (ageMin > 1 ? ` (−${ageMin} min)` : (UI.isEn ? " (now)" : " (teraz)"));
   const sigs = h?.signals || [];
   const threats = snap?.threats || [];
   const planes = [...(snap?.aircraft || [])];
@@ -2068,12 +2084,12 @@ function showHistoryAt(idx) {
     (tp && tp.score > 0
       ? `<b style="color:${tp.level === "high" ? "var(--red)"
           : tp.level === "elevated" ? "var(--amber)" : "var(--muted)"}">`
-        + `${tp.score} pkt${tp.voiv ? " · woj. " + esc(tp.voiv) : ""}</b> · `
+        + `${tp.score} ${UI.isEn ? "pts" : "pkt"}${tp.voiv ? ` · ${UI.isEn ? "province" : "woj."} ` + esc(UI.voiv(tp.voiv)) : ""}</b> · `
       : "")
-    + `${threats.length} obiektów · ${planes.length} maszyn wojskowych · `
+    + `${threats.length} ${UI.isEn ? "objects" : "obiektów"} · ${planes.length} ${UI.isEn ? "military aircraft" : "maszyn wojskowych"} · `
     + (sigs.length
-      ? `<button id="tb-sigs" class="linklike">${sigs.length} sygnałów w oknie ↗</button>`
-      : "brak sygnałów w oknie");
+      ? `<button id="tb-sigs" class="linklike">${sigs.length} ${UI.isEn ? "signals in the window" : "sygnałów w oknie"} ↗</button>`
+      : (UI.isEn ? "no signals in the window" : "brak sygnałów w oknie"));
   document.getElementById("tb-sigs")?.addEventListener("click", () => setPanel(true));
 
   if (mapReady) {   // dane lokalne (bufor w RAM) → mapę odświeżamy też podczas
@@ -2114,10 +2130,10 @@ function showHistoryAt(idx) {
    momentu, a nie z teraz. Bez tego karty pokazywałyby bieżącą punktację obok
    historycznej listy sygnałów — dwie różne chwile w jednym widoku. */
 function renderHistoryPanel(sigs, perVoiv, when, ageMin) {
-  const banner = `<div class="hist-banner">PODGLĄD HISTORII —
-    ${when.toLocaleTimeString("pl-PL", { hour: "2-digit", minute: "2-digit" })}
-    ${ageMin > 1 ? `(−${ageMin} min)` : "(teraz)"}
-    <span>dane sprzed chwili wybranej suwakiem, nie na żywo</span></div>`;
+  const banner = `<div class="hist-banner">${UI.isEn ? "HISTORY VIEW" : "PODGLĄD HISTORII"} —
+    ${when.toLocaleTimeString(UI.isEn ? "en-GB" : "pl-PL", { hour: "2-digit", minute: "2-digit" })}
+    ${ageMin > 1 ? `(−${ageMin} min)` : (UI.isEn ? "(now)" : "(teraz)")}
+    <span>${UI.isEn ? "data from the time selected on the slider, not live" : "dane sprzed chwili wybranej suwakiem, nie na żywo"}</span></div>`;
 
   const shown = Object.entries(perVoiv)
     .filter(([, sc]) => sc > 0)
@@ -2126,16 +2142,16 @@ function renderHistoryPanel(sigs, perVoiv, when, ageMin) {
     const lvl = sc >= 4 ? "high" : sc >= 2 ? "elevated" : "none";
     const own = sigs.filter(s => s.voivodeship === name);
     return `<div class="voiv-card level-${lvl} open">
-      <div class="voiv-head"><span class="voiv-name">${esc(name)}</span>
-        <span class="voiv-score">${(Math.round(sc * 10) / 10).toFixed(1)} pkt</span></div>
-      <div class="voiv-level">${lvl === "none" ? "poniżej progu" : LEVEL_LABEL[lvl]}</div>
+      <div class="voiv-head"><span class="voiv-name">${esc(UI.voiv(name))}</span>
+        <span class="voiv-score">${(Math.round(sc * 10) / 10).toFixed(1)} ${UI.isEn ? "pts" : "pkt"}</span></div>
+      <div class="voiv-level">${lvl === "none" ? (UI.isEn ? "below threshold" : "poniżej progu") : LEVEL_LABEL[lvl]}</div>
       <div class="voiv-breakdown">${sigList(own)}</div></div>`;
   }).join("");
 
   document.getElementById("voiv-cards").innerHTML = banner +
-    (cards || '<div class="fineprint">W tej chwili żadne województwo nie miało punktów.</div>');
+    (cards || `<div class="fineprint">${UI.isEn ? "No province had points at this time." : "W tej chwili żadne województwo nie miało punktów."}</div>`);
   document.getElementById("signal-list").innerHTML =
-    sigList(sigs) || '<div class="fineprint">brak sygnałów w tym oknie</div>';
+    sigList(sigs) || `<div class="fineprint">${UI.isEn ? "no signals in this window" : "brak sygnałów w tym oknie"}</div>`;
 }
 
 document.getElementById("btn-history").onclick = () => toggleHistory();
@@ -2173,14 +2189,20 @@ document.getElementById("tb-slider").addEventListener("change", (e) => {
 /* ── UI: ustawienia (moja lokalizacja), 3D, panel ────────────────────────── */
 const dlg = document.getElementById("settings");
 function openSettings() {
+  UI.previewSettings?.(UI.lang || "pl");
   refreshBgStatus();
   const sel = document.getElementById("set-voiv");
-  sel.innerHTML = '<option value="">— nie wybrano —</option>' +
-    ALL_VOIVS.map(v => `<option value="${esc(v)}"${v === myVoiv() ? " selected" : ""}>${esc(v)}</option>`).join("");
+  sel.innerHTML = `<option value="">— ${UI.isEn ? "not selected" : "nie wybrano"} —</option>` +
+    ALL_VOIVS.map(v => `<option value="${esc(v)}"${v === myVoiv() ? " selected" : ""}>${esc(UI.voiv(v))}</option>`).join("");
+  const langSel = document.getElementById("set-lang"); if (langSel) langSel.value = UI.lang || "pl";
   document.getElementById("set-api").value = localStorage.getItem("straznik_api") || "";
   dlg.showModal();
 }
 document.getElementById("btn-settings").onclick = () => openSettings();
+document.getElementById("set-lang")?.addEventListener("change", (event) => {
+  UI.previewSettings?.(event.target.value);
+  refreshBgStatus(event.target.value);
+});
 document.getElementById("btn-gps").onclick = () => {
   if (!navigator.geolocation) return alert("Brak dostępu do GPS w tym środowisku.");
   navigator.geolocation.getCurrentPosition(
@@ -2200,11 +2222,14 @@ document.getElementById("set-save").onclick = (event) => {
     return;
   }
   const v = document.getElementById("set-voiv").value;
+  const nextLang = document.getElementById("set-lang")?.value || "pl";
   if (v) localStorage.setItem("straznik_voiv", v); else localStorage.removeItem("straznik_voiv");
   // warstwa natywna zapisuje region i przepina subskrypcję tematu FCM (voiv_<region>)
   BG()?.setHomeVoivodeship({ voivodeship: v || "" });
   const apiChanged = api !== (localStorage.getItem("straznik_api") || "");
   if (api) localStorage.setItem("straznik_api", api); else localStorage.removeItem("straznik_api");
+  const langChanged = nextLang !== (UI.lang || "pl");
+  if (langChanged) { localStorage.setItem("straznik_lang", nextLang); setTimeout(() => location.reload(), 100); return; }
   if (apiChanged) { setTimeout(() => location.reload(), 100); return; }
   if (mapReady) {
     for (const id of ["my-voiv", "my-voiv-glow"])
@@ -2241,15 +2266,17 @@ async function refreshBgWarning() {
     // (Android potrafi ją cofnąć po aktualizacji).
     let msg = null, fix = "settings";
     if (!s.notificationsAllowed) {
-      msg = "Powiadomienia zablokowane — alarm nie dotrze. Włącz je w ustawieniach";
+      msg = UI.isEn ? "Notifications are blocked — alerts cannot arrive. Enable them in settings"
+        : "Powiadomienia zablokowane — alarm nie dotrze. Włącz je w ustawieniach";
     } else if (s.fullScreenAllowed === false) {
-      msg = "Zgoda na alarm pełnoekranowy wygasła — czerwony alarm nie zapali ekranu z blokady";
+      msg = UI.isEn ? "Full-screen alert permission expired — a red alert will not wake the locked screen"
+        : "Zgoda na alarm pełnoekranowy wygasła — czerwony alarm nie zapali ekranu z blokady";
       fix = "fullscreen";
     }
     if (!msg) { bgWarnStrikes = 0; el.classList.add("hidden"); return; }
     // problem musi utrzymać się przez dwa sprawdzenia z rzędu — mniej fałszywych alarmów
     if (++bgWarnStrikes < 2) { setTimeout(refreshBgWarning, 5000); return; }
-    el.innerHTML = `<span>⚠ ${esc(msg)}</span><button class="chip">Napraw</button>`;
+    el.innerHTML = `<span>⚠ ${esc(msg)}</span><button class="chip">${UI.isEn ? "Fix" : "Napraw"}</button>`;
     el.querySelector("button").onclick = fix === "fullscreen"
       ? () => { BG()?.requestFullScreenPermission(); setTimeout(refreshBgWarning, 1500); }
       : () => openSettings();
@@ -2377,27 +2404,30 @@ function showUpdateBanner(rel, local) {
 /* ── nasłuch w tle (natywna usługa Androida) ─────────────────────────────── */
 const BG = () => window.Capacitor?.Plugins?.StraznikBackground || null;
 
-async function refreshBgStatus() {
+async function refreshBgStatus(previewLang = UI.lang) {
+  const isEn = previewLang === "en";
   const plugin = BG();
   const info = document.getElementById("bg-status");
   if (!plugin) {
     document.getElementById("btn-battery").style.display = "none";
     document.getElementById("btn-notif-settings").style.display = "none";
-    if (info) info.textContent = "Powiadomienia push działają w aplikacji na Androida "
-      + "(w przeglądarce alarm widać tylko przy otwartej karcie).";
+    if (info) info.textContent = isEn
+      ? "Push notifications are available in the Android app (in a browser, alerts are visible only while the tab is open)."
+      : "Powiadomienia push działają w aplikacji na Androida (w przeglądarce alarm widać tylko przy otwartej karcie).";
     return;
   }
   try {
     const s = await plugin.status();
     const warn = [];
     if (!s.notificationsAllowed)
-      warn.push("⚠ Powiadomienia są zablokowane w ustawieniach systemu — bez nich alarm nie dotrze.");
+      warn.push(isEn ? "⚠ Notifications are blocked in system settings — alerts cannot arrive."
+        : "⚠ Powiadomienia są zablokowane w ustawieniach systemu — bez nich alarm nie dotrze.");
     if (s.fullScreenAllowed === false)
-      warn.push("⚠ Brak zgody na alarm pełnoekranowy — czerwony alarm nie zapali "
-        + "wygaszonego ekranu. Włącz przyciskiem 🚨 poniżej.");
+      warn.push(isEn ? "⚠ Full-screen alert permission is missing — a red alert will not wake the screen. Enable it below."
+        : "⚠ Brak zgody na alarm pełnoekranowy — czerwony alarm nie zapali wygaszonego ekranu. Włącz przyciskiem 🚨 poniżej.");
     const verEl = document.getElementById("app-version");
     if (verEl) verEl.textContent = s.appVersion
-      ? `Zainstalowana wersja ${s.appVersion}` : "";
+      ? `${isEn ? "Installed version" : "Zainstalowana wersja"} ${s.appVersion}` : "";
     const updBtn = document.getElementById("btn-update");
     if (updBtn) updBtn.style.display = UPDATE_CHECK ? "" : "none";
     /* canUseFullScreenIntent() bywa optymistyczne (zwraca „dozwolone", choć system
@@ -2408,14 +2438,15 @@ async function refreshBgStatus() {
       const mayBeBlocked = (s.sdk || 0) >= 34;
       fsBtn.style.display = mayBeBlocked ? "" : "none";
       fsBtn.textContent = s.fullScreenAllowed === false
-        ? "🚨 Zezwól na alarm pełnoekranowy"
-        : "🚨 Sprawdź zgodę na alarm pełnoekranowy";
+        ? (isEn ? "🚨 Allow full-screen alerts" : "🚨 Zezwól na alarm pełnoekranowy")
+        : (isEn ? "🚨 Check full-screen alert permission" : "🚨 Sprawdź zgodę na alarm pełnoekranowy");
     }
     if (info) info.innerHTML = (warn.join("<br>")
-      || "Powiadomienia gotowe. Alarmy dla Twojego regionu dotrą także przy zamkniętej aplikacji.")
+      || (isEn ? "Notifications ready. Alerts for your region will arrive even while the app is closed."
+        : "Powiadomienia gotowe. Alarmy dla Twojego regionu dotrą także przy zamkniętej aplikacji."))
       + `<br><span class="muted">Android ${s.sdk}, ${esc(s.manufacturer || "")}`
-      + `${s.homeVoivodeship ? " · region: " + esc(s.homeVoivodeship) : ""}</span>`;
-  } catch (e) { if (info) info.textContent = "Nie udało się odczytać stanu: " + e; }
+      + `${s.homeVoivodeship ? " · region: " + esc(UI.voiv(s.homeVoivodeship)) : ""}</span>`;
+  } catch (e) { if (info) info.textContent = (isEn ? "Could not read status: " : "Nie udało się odczytać stanu: ") + e; }
 }
 
 /* Przygotowanie alarmów push: zgoda na powiadomienia i subskrypcja tematu regionu

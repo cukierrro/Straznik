@@ -48,7 +48,7 @@ document.documentElement.classList.add(
 </script>
 <link rel="manifest" href="manifest.json">
 <link rel="stylesheet" href="assets/vendor/maplibre-gl.css">
-<link rel="stylesheet" href="style.css?v=1.7.14">
+<link rel="stylesheet" href="style.css?v=1.7.15">
 </head>
 <body>
 
@@ -421,6 +421,14 @@ document.documentElement.classList.add(
     <button type="button" id="btn-gps" class="chip" style="margin-top:10px">
       📍 Wykryj z GPS</button>
 
+    <h3 style="margin-top:16px">Język interfejsu</h3>
+    <label>Język interfejsu
+      <select id="set-lang">
+        <option value="pl">Polski</option>
+        <option value="en">English</option>
+      </select>
+    </label>
+
     <h3 style="margin-top:16px">Alarmy przy zamkniętej aplikacji</h3>
     <p class="fineprint">Alarmy dla Twojego województwa przychodzą jako
     <b>powiadomienie push</b> — także gdy aplikacja jest zamknięta, ekran wygaszony
@@ -486,7 +494,8 @@ document.documentElement.classList.add(
      Cloudflare, więc po każdym wydaniu wystarczy podbić ?v= i przeglądarki
      dostają nowe app.js/engine.js OD RAZU, bez ręcznego czyszczenia cache CF.
      Podbijaj ?v= razem z versionName w build.gradle. -->
-<script src="engine.js?v=1.7.14"></script>
-<script src="app.js?v=1.7.14"></script>
+<script src="i18n.js?v=1.7.15"></script>
+<script src="engine.js?v=1.7.15"></script>
+<script src="app.js?v=1.7.15"></script>
 </body>
 </html>

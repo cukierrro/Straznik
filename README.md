@@ -4,9 +4,9 @@
 
 # Strażnik
 
-Wersja 1.7.14: okno aktualizacji pokazuje krótką listę zmian; historia zachowuje krótkotrwałe rosyjskie i białoruskie maszyny
-ADS-B, nawet gdy pojawiły się pomiędzy dwuminutowymi migawkami mapy. Są rysowane
-jako półprzezroczysty ślad, bez wpływu na punktację i progi alarmów.
+Wersja 1.7.15: polski lub angielski interfejs można wybrać w ustawieniach — podgląd
+zmienia się od razu, a przycisk zapisu zatwierdza wybór. Czerwony alarm ma teraz
+głośność co najmniej równą żółtemu sygnałowi uwagi.
 
 **Nieoficjalne wczesne ostrzeganie o zagrożeniach powietrznych**
 

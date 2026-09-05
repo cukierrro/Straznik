@@ -449,6 +449,7 @@ dialog select { width: 100%; margin-top: 6px; padding: 8px 10px; border-radius: 
 .fineprint { font-size: 10.5px; color: var(--muted); margin-top: 6px; line-height: 1.35; }
 .list { display: flex; flex-direction: column; gap: 7px; max-height: 30vh; overflow-y: auto; }
 .list:empty::after { content: "— brak —"; color: var(--muted); font-size: 12px; }
+html[lang="en"] .list:empty::after { content: "— none —"; }
 
 /* karty województw */
 .voiv-card {
