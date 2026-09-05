@@ -36,7 +36,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   background: radial-gradient(circle at 35% 35%, #9fc1ff, var(--accent));
   box-shadow: 0 0 12px var(--accent); animation: pulse 2.4s infinite; }
 @keyframes pulse { 50% { box-shadow: 0 0 22px var(--accent); } }
-.brand-name { font-weight: 700; letter-spacing: .22em; font-size: 15px; }
+.brand-name { margin: 0; line-height: normal; font-weight: 700; letter-spacing: .22em; font-size: 15px; }
 .brand-sub { font-size: 10.5px; color: var(--muted); letter-spacing: .06em; }
 
 /* Popover WYŁĄCZNIE po najechaniu myszą na „Strażnik" (desktop) — nie na stałe.
@@ -138,6 +138,14 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 #bg-warning span { line-height: 1.35; }
 #bg-warning .chip { flex: none; padding: 4px 10px; font-size: 11.5px; }
 body.panel-open #bg-warning { display: none; }
+
+.noscript-info {
+  position: fixed; inset: 70px 16px auto; z-index: 80; max-width: 720px;
+  margin: 0 auto; padding: 20px; color: var(--text); background: var(--panel);
+  border: 1px solid var(--panel-border); border-radius: 14px; line-height: 1.5;
+}
+.noscript-info h2 { margin-top: 0; }
+.noscript-info a { color: var(--accent); }
 
 /* ── baner „dostępna nowa wersja” ── */
 #update-banner {

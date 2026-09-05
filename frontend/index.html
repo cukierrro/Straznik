@@ -4,7 +4,40 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0b0f1a">
-<title>Strażnik — wczesne ostrzeganie</title>
+<title>Strażnik — mapa zagrożeń powietrznych i alerty dla Polski</title>
+<meta name="description" content="Strażnik to nieoficjalna mapa zagrożeń powietrznych dla Polski. Łączy informacje o dronach i rakietach nad Ukrainą z alertami RCB i RSO, strefami PAŻP, ADS-B i mediami.">
+<meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
+<link rel="canonical" href="https://straznik.eu/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Strażnik">
+<meta property="og:locale" content="pl_PL">
+<meta property="og:url" content="https://straznik.eu/">
+<meta property="og:title" content="Strażnik — mapa zagrożeń powietrznych i alerty dla Polski">
+<meta property="og:description" content="Mapa na żywo i nieoficjalne wczesne ostrzeganie. Strażnik łączy NEPTUN, RCB, RSO, PAŻP, ADS-B i media. Darmowa aplikacja na Androida, bez reklam i konta.">
+<meta property="og:image" content="https://straznik.eu/assets/og-straznik.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="675">
+<meta property="og:image:alt" content="Strażnik: mapa zagrożeń, alarm pełnoekranowy i panel punktacji">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Strażnik — mapa zagrożeń powietrznych dla Polski">
+<meta name="twitter:description" content="Nieoficjalne wczesne ostrzeganie łączące wiele niezależnych źródeł. Mapa na żywo i bezpłatna aplikacja na Androida.">
+<meta name="twitter:image" content="https://straznik.eu/assets/og-straznik.jpg">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Strażnik",
+  "url": "https://straznik.eu/",
+  "description": "Nieoficjalna mapa zagrożeń powietrznych i system wczesnego ostrzegania dla Polski.",
+  "applicationCategory": "UtilitiesApplication",
+  "operatingSystem": "Android, Web",
+  "isAccessibleForFree": true,
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "PLN" },
+  "downloadUrl": "https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk",
+  "softwareHelp": "https://cukierrro.github.io/Straznik/",
+  "sameAs": ["https://github.com/cukierrro/Straznik"]
+}
+</script>
 <script>
 /* Klasa platformy przed pierwszym renderem: elementy .web-only nie mogą
    mignąć w APK, nawet gdy główny app.js załaduje się później lub z błędem. */
@@ -23,7 +56,7 @@ document.documentElement.classList.add(
   <div class="brand" tabindex="0" role="button" aria-label="O aplikacji Strażnik">
     <div class="logo-dot"></div>
     <div>
-      <div class="brand-name">STRAŻNIK</div>
+      <h1 class="brand-name">STRAŻNIK</h1>
       <div class="brand-sub">fuzja sygnałów · wschodnia Polska</div>
     </div>
     <div class="brand-info" role="tooltip">
@@ -65,6 +98,18 @@ document.documentElement.classList.add(
 </div>
 
 <div id="map"></div>
+
+<noscript>
+  <main class="noscript-info">
+    <h2>Strażnik — mapa zagrożeń powietrznych dla Polski</h2>
+    <p>Strażnik łączy informacje o dronach i rakietach nad Ukrainą z alertami
+      RCB i RSO, strefami PAŻP, ruchem ADS-B oraz doniesieniami medialnymi.</p>
+    <p>Do wyświetlenia mapy na żywo potrzebna jest obsługa JavaScript.
+      <a href="https://cukierrro.github.io/Straznik/">Przeczytaj instrukcję</a> lub
+      <a href="https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk">pobierz aplikację na Androida</a>.</p>
+    <p><b>To źródło dodatkowe.</b> Nie zastępuje syren, Alertu RCB, RSO ani komunikatów służb.</p>
+  </main>
+</noscript>
 
 <div id="timebar" class="hidden">
   <div class="tb-row">
@@ -179,6 +224,11 @@ document.documentElement.classList.add(
         <p class="about-sub">nieoficjalna fuzja sygnałów o zagrożeniach powietrznych</p>
       </div>
     </div>
+
+    <p>Strażnik to nieoficjalna <b>mapa zagrożeń powietrznych dla Polski</b>.
+      Zestawia informacje o dronach i rakietach nad Ukrainą z alertami RCB i RSO,
+      strefami PAŻP, ruchem ADS-B oraz doniesieniami medialnymi. Mapa działa na
+      żywo w przeglądarce, a aplikacja na Androida może wysyłać powiadomienia.</p>
 
     <div class="warn-box">
       To <b>NIE jest</b> oficjalny system ostrzegania. Nie zastępuje syren,
