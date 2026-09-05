@@ -87,6 +87,30 @@ const MIL_ROLES = {
   EC35: "śmigłowiec lekki", H145: "śmigłowiec lekki", H225: "śmigłowiec (Caracal)",
   AS32: "śmigłowiec (Super Puma)", A109: "śmigłowiec lekki", A139: "śmigłowiec (AW139)",
 };
+const ROLE_EN = {
+  "transport taktyczny":"tactical transport", "lekki transport / patrol (Bryza)":"light transport / patrol (Bryza)",
+  "transport strategiczny (Atlas)":"strategic transport (Atlas)", "transport strategiczny (Globemaster)":"strategic transport (Globemaster)",
+  "transport ciężki (Galaxy)":"heavy transport (Galaxy)", "transport ciężki":"heavy transport",
+  "latający tankowiec (KC-135)":"aerial refuelling tanker (KC-135)", "latający tankowiec (Pegasus)":"aerial refuelling tanker (Pegasus)",
+  "tankowiec / transport (MRTT)":"tanker / transport (MRTT)", "AWACS — wczesne ostrzeganie":"AWACS — airborne early warning",
+  "wczesne ostrzeganie (Wedgetail)":"airborne early warning (Wedgetail)", "myśliwiec wielozadaniowy":"multirole fighter",
+  "myśliwiec 5. gen. (Lightning II)":"5th-generation fighter (Lightning II)", "myśliwiec przewagi powietrznej":"air-superiority fighter",
+  "myśliwiec (Eurofighter Typhoon)":"fighter (Eurofighter Typhoon)", "myśliwiec (Rafale)":"fighter (Rafale)",
+  "myśliwiec (Gripen)":"fighter (Gripen)", "myśliwiec (MiG-29)":"fighter (MiG-29)", "myśliwsko-bombowy (Su-22)":"fighter-bomber (Su-22)",
+  "patrolowy morski (Poseidon)":"maritime patrol (Poseidon)", "dron rozpoznawczy (Phoenix)":"reconnaissance drone (Phoenix)",
+  "dron rozpoznawczy (Global Hawk)":"reconnaissance drone (Global Hawk)", "dron rozpoznawczo-uderzeniowy (Reaper)":"reconnaissance/strike drone (Reaper)",
+  "rozpoznanie / łącznikowy":"reconnaissance / liaison", "rozpoznanie specjalne":"special reconnaissance", "rozpoznanie / VIP":"reconnaissance / VIP",
+  "VIP / sztabowy":"VIP / command transport", "szkolno-treningowy (Texan II)":"trainer (Texan II)", "szkolno-bojowy (Albatros)":"combat trainer (Albatros)",
+  "śmigłowiec wielozadaniowy (Black Hawk)":"multirole helicopter (Black Hawk)", "śmigłowiec szturmowy (Apache)":"attack helicopter (Apache)",
+  "śmigłowiec transportowy (Chinook)":"transport helicopter (Chinook)", "śmigłowiec transportowy (Mi-8)":"transport helicopter (Mi-8)",
+  "śmigłowiec transportowy (Mi-17)":"transport helicopter (Mi-17)", "śmigłowiec szturmowy (Mi-24)":"attack helicopter (Mi-24)",
+  "śmigłowiec wielozadaniowy (Sokół)":"multirole helicopter (Sokół)", "śmigłowiec lekki":"light helicopter",
+  "śmigłowiec (Caracal)":"helicopter (Caracal)", "śmigłowiec (Super Puma)":"helicopter (Super Puma)", "śmigłowiec (AW139)":"helicopter (AW139)",
+  "latający tankowiec":"aerial refuelling tanker", "myśliwiec":"fighter", "transport strategiczny":"strategic transport",
+  "patrolowy morski":"maritime patrol", "dron rozpoznawczy":"reconnaissance drone", "śmigłowiec wielozadaniowy":"multirole helicopter",
+  "śmigłowiec szturmowy":"attack helicopter", "śmigłowiec transportowy":"transport helicopter", "śmigłowiec":"helicopter"
+};
+const roleText = role => UI.isEn ? (ROLE_EN[role] || role) : role;
 // pełne nazwy modeli — adsb.lol często nie zwraca pola desc
 const MIL_NAMES = {
   C30J: "C-130J Super Hercules", C130: "C-130 Hercules", C160: "C-160 Transall",
@@ -106,7 +130,7 @@ const MIL_NAMES = {
   MI24: "Mi-24", W3: "PZL W-3 Sokół", EC35: "H135M", H145: "H145M",
   H225: "H225M Caracal", AS32: "AS332 Super Puma", A109: "AW109", A139: "AW139",
 };
-const acName = (type, desc) => desc || MIL_NAMES[type] || type || "typ nieznany";
+const acName = (type, desc) => desc || MIL_NAMES[type] || type || (UI.isEn ? "unknown type" : "typ nieznany");
 const ROLE_FALLBACK = [
   [/hercules|transall|spartan|casa/i, "transport taktyczny"],
   [/stratotanker|extender|mrtt|pegasus/i, "latający tankowiec"],
@@ -248,8 +272,8 @@ const compass = (deg) => deg == null ? "" : COMPASS[Math.round(((deg % 360) + 36
 const ftToM = (ft) => typeof ft === "number" ? Math.round(ft * 0.3048) : null;
 const ktToKmh = (kt) => typeof kt === "number" ? Math.round(kt * 1.852) : null;
 // alt_baro bywa stringiem "ground" (maszyna na płycie lotniska)
-const altText = (alt) => alt === "ground" ? "na ziemi"
-  : typeof alt === "number" ? `${alt} ft (${ftToM(alt)} m)` : "wysokość b.d.";
+const altText = (alt) => alt === "ground" ? (UI.isEn ? "on the ground" : "na ziemi")
+  : typeof alt === "number" ? `${alt} ft (${ftToM(alt)} m)` : (UI.isEn ? "altitude unavailable" : "wysokość b.d.");
 const PRIORITY = ["lubelskie", "podkarpackie", "podlaskie", "warmińsko-mazurskie"];
 const ALL_VOIVS = ["dolnośląskie","kujawsko-pomorskie","lubelskie","lubuskie","łódzkie",
   "małopolskie","mazowieckie","opolskie","podkarpackie","podlaskie","pomorskie","śląskie",
@@ -543,11 +567,11 @@ const MAP_STYLES = [
   "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
 ];
 
-/* Etykiety po polsku: kafelki OpenMapTiles mają name:pl (Warszawa, Niemcy,
-   Białoruś…). Gdy dla obiektu brak polskiej nazwy, schodzimy na name:latin,
-   a potem na name — nigdy nie zostaje pusto. */
-function polishLabels() {
-  const field = ["coalesce", ["get", "name:pl"], ["get", "name:latin"], ["get", "name"]];
+/* Etykiety mapy zgodne z językiem interfejsu. Kafelki OpenMapTiles niosą
+   name:pl/name:en; gdy tłumaczenia brak, zachowujemy nazwę łacińską lub źródłową. */
+function localiseMapLabels() {
+  const field = ["coalesce", ["get", UI.isEn ? "name:en" : "name:pl"],
+    ["get", "name:latin"], ["get", "name"]];
   for (const lyr of map.getStyle().layers || []) {
     if (lyr.type !== "symbol") continue;
     try {
@@ -571,7 +595,7 @@ async function initMap() {
   });
 
   map.on("load", async () => {
-    polishLabels();
+    localiseMapLabels();
     // wzmocnij granice państw w stylu bazowym (domyślnie ledwo widoczne)
     for (const lyr of map.getStyle().layers || []) {
       if (lyr.type === "line" && /boundar|admin/i.test(lyr.id)) {
@@ -766,6 +790,15 @@ function hexCountry(hex) {
   for (const [a, b, name, flag] of ICAO_RANGES) if (n >= a && n <= b) return { name, flag };
   return null;
 }
+const COUNTRY_EN = { "Polska":"Poland", "Rosja":"Russia", "Białoruś":"Belarus", "Niemcy":"Germany",
+  "Francja":"France", "Wielka Brytania":"United Kingdom", "Włochy":"Italy", "Hiszpania":"Spain",
+  "Czechy":"Czechia", "Słowacja":"Slovakia", "Węgry":"Hungary", "Rumunia":"Romania",
+  "Litwa":"Lithuania", "Łotwa":"Latvia", "Estonia":"Estonia", "Ukraina":"Ukraine",
+  "Holandia":"Netherlands", "Belgia":"Belgium", "Dania":"Denmark", "Norwegia":"Norway",
+  "Szwecja":"Sweden", "Finlandia":"Finland", "Austria":"Austria", "Grecja":"Greece",
+  "Portugalia":"Portugal", "Szwajcaria":"Switzerland", "Turcja":"Türkiye",
+  "USA":"United States", "Kanada":"Canada", "Australia":"Australia" };
+const countryText = name => UI.isEn ? (COUNTRY_EN[name] || name) : name;
 
 /* Zdjęcie maszyny z planespotters (po rejestracji, w zapasie po hex). API wymaga
    User-Agenta z adresem kontaktowym — przeglądarka nie pozwala go ustawić, więc
@@ -805,7 +838,7 @@ function speedRow(p) {
 function headingRow(p) {
   const t = p.track != null ? `${Math.round(p.track)}° (${compass(p.track)})` : null;
   const mh = p.mag_heading != null ? `mag. ${Math.round(p.mag_heading)}°` : null;
-  return [t, mh].filter(Boolean).join(" · ") || "b.d.";
+  return [t, mh].filter(Boolean).join(" · ") || (UI.isEn ? "unavailable" : "b.d.");
 }
 
 /* ── warstwa obserwacyjna: obce (RU/BY) maszyny nad wschodnią flanką ──────── */
@@ -895,9 +928,9 @@ function planePopupHTML(p, heli, uid) {
   const role = acRole(p.type, p.desc);
   const vr = typeof p.vr === "number" ? p.vr : (p.vr != null ? +p.vr : null);
   const vrTxt = vr == null ? "" : vr > 100 ? ` · ↑ ${vr} ft/min`
-    : vr < -100 ? ` · ↓ ${Math.abs(vr)} ft/min` : " · lot poziomy";
+    : vr < -100 ? ` · ↓ ${Math.abs(vr)} ft/min` : (UI.isEn ? " · level flight" : " · lot poziomy");
   const mil = (p.dbflags & 1)
-    ? `<span style="background:#7a1d2b;color:#fff;border-radius:4px;padding:1px 5px;font-size:10px">WOJSKOWY</span> ` : "";
+    ? `<span style="background:#7a1d2b;color:#fff;border-radius:4px;padding:1px 5px;font-size:10px">${UI.isEn ? "MILITARY" : "WOJSKOWY"}</span> ` : "";
   const nav = Array.isArray(p.nav_modes) ? p.nav_modes.join(", ") : (p.nav_modes || "");
   const geom = p.alt_geom != null && p.alt_geom !== p.alt
     ? ` <span style="color:#68758c">(geom. ${ftToM(p.alt_geom)} m)</span>` : "";
@@ -909,23 +942,25 @@ function planePopupHTML(p, heli, uid) {
       <div class="ph-cr" style="font-size:10px;color:#68758c;margin-top:2px"></div>
     </div>
     <b style="font-size:13.5px">${heli ? "🚁" : "✈"} ${esc2(p.callsign || p.hex || "?")}</b>
-      ${p.reg ? ` · rej. ${esc2(p.reg)}` : ""}<br>
-    ${mil}${c ? `${c.flag} ${esc2(c.name)} · ` : ""}<b>${esc2(acName(p.type, p.desc))}</b>${p.year ? ` (${esc2(p.year)})` : ""}<br>
-    ${role ? `przeznaczenie: <b>${esc2(role)}</b><br>` : ""}
-    ${p.op ? `operator: <b>${esc2(p.op)}</b><br>` : ""}
+      ${p.reg ? ` · ${UI.isEn ? "reg." : "rej."} ${esc2(p.reg)}` : ""}<br>
+    ${mil}${c ? `${c.flag} ${esc2(countryText(c.name))} · ` : ""}<b>${esc2(acName(p.type, p.desc))}</b>${p.year ? ` (${esc2(p.year)})` : ""}<br>
+    ${role ? `${UI.isEn ? "role" : "przeznaczenie"}: <b>${esc2(roleText(role))}</b><br>` : ""}
+    ${p.op ? `${UI.isEn ? "operator" : "operator"}: <b>${esc2(p.op)}</b><br>` : ""}
     <table style="margin:5px 0;border-collapse:collapse">
-      ${row("wysokość", altText(p.alt) + geom + vrTxt.replace(" · ", "&nbsp; "))}
-      ${row("prędkość", speedRow(p))}
-      ${row("kurs", headingRow(p))}
+      ${row(UI.isEn ? "altitude" : "wysokość", altText(p.alt) + geom + vrTxt.replace(" · ", "&nbsp; "))}
+      ${row(UI.isEn ? "speed" : "prędkość", speedRow(p))}
+      ${row(UI.isEn ? "heading" : "kurs", headingRow(p))}
       ${row("squawk", p.squawk ? esc2(p.squawk) : "")}
-      ${row("wiatr", (p.ws != null && p.wd != null) ? `${ktToKmh(p.ws)} km/h z ${Math.round(p.wd)}° (${compass(p.wd)})` : "")}
+      ${row(UI.isEn ? "wind" : "wiatr", (p.ws != null && p.wd != null) ? `${ktToKmh(p.ws)} km/h ${UI.isEn ? "from" : "z"} ${Math.round(p.wd)}° (${compass(p.wd)})` : "")}
       ${row("temp.", p.oat != null ? `${Math.round(p.oat)} °C` : "")}
-      ${row("tryby nav", nav ? esc2(nav) : "")}
-      ${row("sygnał", `${esc2(p.source || "ADS-B")}${p.rssi != null ? ` · ${p.rssi} dBFS` : ""}${p.messages != null ? ` · ${p.messages} msg/s` : ""}`)}
+      ${row(UI.isEn ? "nav modes" : "tryby nav", nav ? esc2(nav) : "")}
+      ${row(UI.isEn ? "signal" : "sygnał", `${esc2(p.source || "ADS-B")}${p.rssi != null ? ` · ${p.rssi} dBFS` : ""}${p.messages != null ? ` · ${p.messages} msg/s` : ""}`)}
     </table>
-    <button class="btn-follow chip" style="font-size:11px;padding:3px 8px;margin-bottom:4px">${followHex === p.hex ? "■ przestań śledzić" : "📍 śledź trasę"}</button>
-    <div style="color:#68758c;font-size:11px">publiczny transponder ADS-B/MLAT — pozycja emisji, nie namierzanie.
-      Zdjęcie i dane rejestrowe: airplanes.live / planespotters.</div>
+    <button class="btn-follow chip" style="font-size:11px;padding:3px 8px;margin-bottom:4px">${followHex === p.hex
+      ? (UI.isEn ? "■ stop tracking" : "■ przestań śledzić") : (UI.isEn ? "📍 follow track" : "📍 śledź trasę")}</button>
+    <div style="color:#68758c;font-size:11px">${UI.isEn
+      ? "public ADS-B/MLAT transponder — emitted position, not active tracking. Photo and registration data: airplanes.live / planespotters."
+      : "publiczny transponder ADS-B/MLAT — pozycja emisji, nie namierzanie. Zdjęcie i dane rejestrowe: airplanes.live / planespotters."}</div>
   </div>`;
 }
 
@@ -1158,15 +1193,18 @@ function fillWatch() {
   document.getElementById("watch-current").innerHTML = cur.length ? cur.map(p => {
     const c = hexCountry(p.hex);
     return `<div class="watch-row clickable" data-lat="${p.lat}" data-lon="${p.lon}" data-kind="plane">
-      <b>${c ? c.flag + " " : ""}${esc(p.callsign || p.hex)}</b>${p.reg ? " · rej. " + esc(p.reg) : ""}
-      <div class="meta">${esc(acName(p.type, p.desc))}${p.area ? " · nad: <b>" + esc(p.area) + "</b>" : ""}
+      <b>${c ? c.flag + " " : ""}${esc(p.callsign || p.hex)}</b>${p.reg ? ` · ${UI.isEn ? "reg." : "rej."} ` + esc(p.reg) : ""}
+      <div class="meta">${esc(acName(p.type, p.desc))}${p.area ? ` · ${UI.isEn ? "over" : "nad"}: <b>` + esc(p.area) + "</b>" : ""}
         ${p.alt != null ? " · " + esc(altText(p.alt)) : ""}</div></div>`;
-  }).join("") : '<div class="fineprint">Brak obcych maszyn w zasięgu w tej chwili. To normalne — rosyjskie lotnictwo zwykle leci z wyłączonym transponderem.</div>';
+  }).join("") : `<div class="fineprint">${UI.isEn
+    ? "No foreign aircraft are currently in range. This is normal — Russian military aircraft usually fly with their transponders off."
+    : "Brak obcych maszyn w zasięgu w tej chwili. To normalne — rosyjskie lotnictwo zwykle leci z wyłączonym transponderem."}</div>`;
   document.getElementById("watch-events").innerHTML = watchEvents.length ? watchEvents.map(e =>
-    `<div class="watch-ev"><span class="${e.kind === "enter" ? "ev-in" : "ev-out"}">${e.kind === "enter" ? "▲ w zasięgu" : "▼ zniknął"}</span>
+    `<div class="watch-ev"><span class="${e.kind === "enter" ? "ev-in" : "ev-out"}">${e.kind === "enter"
+      ? (UI.isEn ? "▲ in range" : "▲ w zasięgu") : (UI.isEn ? "▼ disappeared" : "▼ zniknął")}</span>
       ${e.flag ? e.flag + " " : ""}${esc(e.label)}${e.area ? " · " + esc(e.area) : ""}
       <span class="ts">${relTime(new Date(e.t).toISOString())}</span></div>`).join("")
-    : '<div class="fineprint">Brak zdarzeń w tej sesji.</div>';
+    : `<div class="fineprint">${UI.isEn ? "No events in this session." : "Brak zdarzeń w tej sesji."}</div>`;
   document.querySelectorAll("#watch-current .watch-row").forEach(el =>
     el.addEventListener("click", () => { document.getElementById("watch").close(); focusOnMap(el.dataset); }));
 }
@@ -1269,7 +1307,7 @@ function renderPanel() {
          data-lat="${p.lat}" data-lon="${p.lon}" data-kind="plane">
       <b style="color:#39c5ec">${heli ? "🚁" : "✈"} ${esc(p.callsign || p.hex)}</b>
       ${esc(acName(p.type, p.desc))}${p.year ? ` <span class="meta">(${esc(p.year)})</span>` : ""}
-      ${role ? `<div style="color:#9fd8ec;font-size:11px">${esc(role)}</div>` : ""}
+      ${role ? `<div style="color:#9fd8ec;font-size:11px">${esc(roleText(role))}</div>` : ""}
       <div class="meta">
         ${UI.isEn ? "province" : "woj."} ${esc(UI.voiv(p.voivodeship))}
         · ${altText(p.alt)}

@@ -4,9 +4,9 @@
 
 # Strażnik
 
-Wersja 1.7.15: polski lub angielski interfejs można wybrać w ustawieniach — podgląd
-zmienia się od razu, a przycisk zapisu zatwierdza wybór. Czerwony alarm ma teraz
-głośność co najmniej równą żółtemu sygnałowi uwagi.
+Wersja 1.7.16: pełne angielskie opisy samolotów, krajów i telemetrii oraz angielskie
+nazwy geograficzne na mapie. Wybór języka nadal daje natychmiastowy podgląd przed
+zapisaniem, a czerwony alarm ma głośność co najmniej równą żółtemu sygnałowi uwagi.
 
 **Nieoficjalne wczesne ostrzeganie o zagrożeniach powietrznych**
 

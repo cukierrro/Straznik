@@ -438,6 +438,7 @@ dialog select { width: 100%; margin-top: 6px; padding: 8px 10px; border-radius: 
 .voiv-card.is-mine { box-shadow: 0 0 0 1px var(--accent) inset; }
 .voiv-card.is-mine .voiv-name::after { content: " · mój region"; color: var(--accent);
   font-size: 10px; letter-spacing: .05em; text-transform: none; }
+html[lang="en"] .voiv-card.is-mine .voiv-name::after { content: " · my region"; }
 .sig.src-spillover { border-left-color: #6f7ea8; opacity: .85; }
 #panel section {
   background: var(--panel); border: 1px solid var(--panel-border);
