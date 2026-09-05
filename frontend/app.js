@@ -2326,10 +2326,18 @@ function showUpdateBanner(rel, local) {
   const ver = String(rel.version || "").replace(/^v/, "");
   const el = document.getElementById("update-banner");
   const size = rel.size ? ` · ${(rel.size / 1048576).toFixed(1)} MB` : "";
+  const fallbackChanges = String(rel.notes || "").split(/\r?\n/)
+    .map(x => x.replace(/^\s*(?:[-*+]|•|\d+[.)])\s*/, "").replace(/[*_`~]/g, "").trim())
+    .filter(x => x && !x.startsWith("#") && !x.startsWith("<!--")).slice(0, 3);
+  const changes = (Array.isArray(rel.changes) ? rel.changes : fallbackChanges)
+    .map(x => String(x || "").trim()).filter(Boolean).slice(0, 3);
+  const changesHtml = changes.length
+    ? `<div class="upd-changes"><b>Co się zmienia:</b><ul>${changes.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>`
+    : `<div class="upd-changes"><b>Co się zmienia:</b> poprawki działania i aktualizacja danych aplikacji.</div>`;
   el.classList.toggle("critical", !!rel.critical);
   el.innerHTML = `<div class="upd-txt"><b>${rel.critical ? "Wymagana" : "Dostępna"} wersja ${esc(ver)}</b>
       <span>masz ${esc(local)}${esc(size)} · instalację potwierdzi Android</span>
-      <span id="upd-progress"></span></div>
+      ${changesHtml}<span id="upd-progress"></span></div>
     <button class="chip primary" id="upd-install">Aktualizuj</button>
     ${rel.critical ? "" : '<button class="chip" id="upd-later">Później</button>'}`;
   el.classList.remove("hidden");

@@ -4,7 +4,7 @@
 
 # Strażnik
 
-Wersja 1.7.13: historia zachowuje krótkotrwałe rosyjskie i białoruskie maszyny
+Wersja 1.7.14: okno aktualizacji pokazuje krótką listę zmian; historia zachowuje krótkotrwałe rosyjskie i białoruskie maszyny
 ADS-B, nawet gdy pojawiły się pomiędzy dwuminutowymi migawkami mapy. Są rysowane
 jako półprzezroczysty ślad, bez wpływu na punktację i progi alarmów.
 
@@ -382,6 +382,11 @@ tym samym kluczem autora. Zwykłą aktualizację można odłożyć przyciskiem �
 do końca bieżącej sesji. Wydanie oznaczone w opisie GitHub niewidocznym markerem
 `<!-- critical-update -->` nie ma przycisku odłożenia. Systemowe potwierdzenie
 instalacji pozostaje obowiązkowe — aplikacja nigdy nie instaluje się po cichu.
+
+Każde kolejne wydanie GitHub Release musi mieć krótki opis zmian w punktach.
+Aplikacja pokazuje maksymalnie trzy pierwsze punkty w oknie aktualizacji jako
+sekcję „Co się zmienia”; opisuj w nich efekt widoczny dla użytkownika, nie detale
+techniczne.
 
 ## Ograniczenia (świadome)
 

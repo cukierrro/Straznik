@@ -1,5 +1,5 @@
 """Regresje metadanych bezpiecznej aktualizacji APK."""
-from app.app_updates import _release_data
+from app.app_updates import _change_items, _release_data
 
 
 def main():
@@ -18,6 +18,10 @@ def main():
                     "browser_download_url": "https://github.com/x.apk"}],
     })
     assert critical["critical"] and "critical-update" not in critical["notes"]
+    assert critical["changes"] == ["Pilna poprawka"]
+
+    changes = _change_items("""# Wersja 2.1\n- **Naprawiono** historię.\n- Dodano [opis](https://example.test).\n- Usprawniono alarmy.\n- Czwarty punkt.\n""")
+    assert changes == ["Naprawiono historię.", "Dodano opis.", "Usprawniono alarmy."]
 
     try:
         _release_data({"tag_name": "v1.0.0", "assets": []})

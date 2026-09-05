@@ -168,6 +168,10 @@ body.panel-open #bg-warning { display: none; }
 .upd-txt { display: flex; flex-direction: column; line-height: 1.35; min-width: 0; }
 .upd-txt b { font-size: 13.5px; }
 .upd-txt span { font-size: 11px; color: var(--muted); }
+.upd-changes { margin-top: 5px; font-size: 11px; color: #dce7fa; }
+.upd-changes b { font-size: inherit; }
+.upd-changes ul { margin: 2px 0 0; padding-left: 16px; }
+.upd-changes li { margin: 1px 0; line-height: 1.3; }
 #update-banner .chip { flex: none; }
 body.panel-open #update-banner:not(.critical) { display: none; }
 
