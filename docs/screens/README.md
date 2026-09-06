@@ -12,8 +12,13 @@ Current English captures: `start-en.jpg`, `legend-en.jpg`, `settings-en.jpg`,
 `updates-en.jpg`, `panel-en.jpg`, `history-en.jpg`, `past-en.jpg`,
 `aircraft-en.jpg`, `object-en.jpg`.
 
-Other image files are retained as historical assets; the current guides do
-not use them as screenshots of the latest app.
+The alarm section also includes two explicitly labelled historical test
+captures: `30_alert_zolty_tlo.jpg` (1440 × 3200) and
+`32_alarm_pelnoekranowy.jpg` (720 × 1600). They illustrate the expanded yellow
+notification and native red full-screen alarm. Both retain their original
+Polish UI, including in the English guide. They are not presented as captures
+of 1.7.16 or as current incidents, and their example scores are not a reference
+for today's scoring rules. Other image files remain unused historical assets.
 
 ## Updating
 

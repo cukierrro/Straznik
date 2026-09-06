@@ -6,6 +6,10 @@ from urllib.parse import unquote, urlsplit
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1] / "docs"
+HISTORICAL = {
+    "screens/30_alert_zolty_tlo.jpg": (1440, 3200),
+    "screens/32_alarm_pelnoekranowy.jpg": (720, 1600),
+}
 
 
 class Page(HTMLParser):
@@ -27,7 +31,8 @@ class Page(HTMLParser):
                 self.refs.append(attrs[name])
         if tag == "img":
             assert attrs.get("alt", "").strip(), (self.path, "missing alt")
-            assert attrs.get("width") == "1080" and attrs.get("height") == "2400"
+            expected = HISTORICAL.get(attrs["src"], (1080, 2400))
+            assert (int(attrs.get("width", 0)), int(attrs.get("height", 0))) == expected
             self.images.append(attrs["src"])
 
 
@@ -47,11 +52,11 @@ def main():
                 assert unquote(url.fragment) in pages[target.name].ids, (page.path, ref)
     for path in images:
         with Image.open(ROOT / path) as shot:
-            assert shot.format == "JPEG" and shot.size == (1080, 2400), path
+            assert shot.format == "JPEG" and shot.size == HISTORICAL.get(path, (1080, 2400)), path
             shot.verify()
-    assert len(images) == 17, images
+    assert len(images) == 19 and set(HISTORICAL).issubset(images), images
     print(f"OK: 2 languages, {len(pages['index.html'].sections)} matching sections, "
-          f"{len(images)} valid Pixel screenshots, local links and alt text.")
+          f"17 current Pixel + 2 historical alarm screenshots, local links and alt text.")
 
 
 if __name__ == "__main__":
