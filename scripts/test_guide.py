@@ -9,6 +9,7 @@ ROOT = Path(__file__).resolve().parents[1] / "docs"
 HISTORICAL = {
     "screens/30_alert_zolty_tlo.jpg": (1440, 3200),
     "screens/32_alarm_pelnoekranowy.jpg": (720, 1600),
+    "screens/history-lubelskie-user.png": (1440, 3200),
 }
 
 
@@ -52,11 +53,22 @@ def main():
                 assert unquote(url.fragment) in pages[target.name].ids, (page.path, ref)
     for path in images:
         with Image.open(ROOT / path) as shot:
-            assert shot.format == "JPEG" and shot.size == HISTORICAL.get(path, (1080, 2400)), path
+            fmt = "PNG" if path.endswith(".png") else "JPEG"
+            assert shot.format == fmt and shot.size == HISTORICAL.get(path, (1080, 2400)), path
             shot.verify()
-    assert len(images) == 19 and set(HISTORICAL).issubset(images), images
+    assert len(images) == 20 and set(HISTORICAL).issubset(images), images
+    share = ROOT / "share-history-v1.jpg"
+    assert share.read_bytes() == (ROOT.parent / "frontend/assets/share-history-v1.jpg").read_bytes()
+    with Image.open(share) as card:
+        assert card.format == "JPEG" and card.size == (1200, 630)
+    for file, expected in [(ROOT / "index.html", "https://cukierrro.github.io/Straznik/share-history-v1.jpg"),
+                           (ROOT / "en.html", "https://cukierrro.github.io/Straznik/share-history-v1.jpg"),
+                           (ROOT.parent / "frontend/index.html", "https://straznik.eu/assets/share-history-v1.jpg")]:
+        html = file.read_text(encoding="utf-8")
+        assert f'property="og:image" content="{expected}"' in html
+        assert f'name="twitter:image" content="{expected}"' in html
     print(f"OK: 2 languages, {len(pages['index.html'].sections)} matching sections, "
-          f"17 current Pixel + 2 historical alarm screenshots, local links and alt text.")
+          f"20 screenshots, local links, alt text and shared 1200x630 preview.")
 
 
 if __name__ == "__main__":

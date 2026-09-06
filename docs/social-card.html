@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="pl"><head><meta charset="utf-8"><meta name="robots" content="noindex">
+<title>Strażnik — share image source</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:1200px;height:630px;overflow:hidden}
+body{font-family:Arial,sans-serif;color:#edf3ff;background:radial-gradient(ellipse at 10% 0,#223e69,transparent 70%),#090e19}
+main{position:relative;width:1200px;height:630px;padding:58px 64px}
+.brand{font-size:39px;font-weight:800;letter-spacing:6px;display:flex;align-items:center;gap:18px}.dot{width:25px;height:25px;border-radius:50%;background:#82acff;box-shadow:0 0 27px #619dff}
+h1{font-size:48px;line-height:1.15;letter-spacing:-1px;margin:48px 0 24px;max-width:660px}
+.sub{font-size:23px;color:#b4c7e4;line-height:1.5}.url{font-size:28px;font-weight:700;color:#8db3ff;margin-top:32px}
+.disclaimer{position:absolute;left:64px;bottom:37px;color:#d8b970;font-size:18px}
+.phone{position:absolute;left:857px;top:31px;width:243px;padding:7px;border-radius:28px;background:linear-gradient(115deg,#8994a7,#111723 18%,#394554 90%,#bbc6d6);box-shadow:7px 3px 0 #242f40,13px 20px 36px #000b;transform:perspective(1300px) rotateY(-12deg) rotateZ(3deg)}
+.phone img{display:block;width:100%;height:auto;border-radius:20px;border:2px solid #060b12}
+.example{position:absolute;right:58px;bottom:31px;width:325px;text-align:center;font-size:15px;line-height:1.4;color:#b4c7e4}
+</style></head><body><main>
+<div class="brand"><span class="dot"></span>STRAŻNIK</div>
+<h1 id="title">Mapa, sygnały<br>i powiadomienia<br>o zagrożeniach powietrznych</h1>
+<div class="sub" id="sub">Wiele źródeł. Czytelne przyczyny alertów.<br>Android + przeglądarka</div>
+<div class="url">straznik.eu</div>
+<div class="disclaimer" id="disclaimer">Nieoficjalne źródło dodatkowe · nie zastępuje RCB i syren</div>
+<div class="phone"><img src="screens/history-lubelskie-user.png" alt="Historyczny podgląd aplikacji Strażnik"></div>
+<div class="example" id="example">Przykład historyczny — nie bieżący alert</div>
+</main><script>
+if(new URLSearchParams(location.search).get('lang')==='en'){
+ document.documentElement.lang='en';
+ document.getElementById('title').innerHTML='Airborne threats.<br>Maps, signals<br>and notifications.';
+ document.getElementById('sub').innerHTML='Multiple sources. Clear reasons behind alerts.<br>Android + browser';
+ document.getElementById('disclaimer').textContent='Unofficial additional source · does not replace official alerts';
+ document.getElementById('example').textContent='Historical example · Polish app interface';
+}
+</script></body></html>

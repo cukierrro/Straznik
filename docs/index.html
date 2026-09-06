@@ -15,7 +15,12 @@
 <meta property="og:url" content="https://cukierrro.github.io/Straznik/">
 <meta property="og:title" content="Strażnik — instrukcja użytkownika">
 <meta property="og:description" content="Jak korzystać z mapy, powiadomień i historii. Aktualna instrukcja po polsku i angielsku. Nieoficjalne źródło dodatkowe.">
-<meta property="og:image" content="https://cukierrro.github.io/Straznik/podglad.jpg">
+<meta property="og:image" content="https://cukierrro.github.io/Straznik/share-history-v1.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:type" content="image/jpeg">
+<meta property="og:image:alt" content="Strażnik — mapa, sygnały i powiadomienia; telefon z historycznym przykładem punktacji Lubelskiego">
+<meta name="twitter:image" content="https://cukierrro.github.io/Straznik/share-history-v1.jpg">
 <meta property="og:locale" content="pl_PL">
 <meta property="og:locale:alternate" content="en_GB">
 <meta name="twitter:card" content="summary_large_image">
@@ -133,6 +138,13 @@
 </section>
 <section id="historia">
   <h2>6. Historia 12 godzin</h2>
+  <div class="split">
+    <div><h3>Przykład: skąd wzięło się 2,2 pkt</h3>
+      <p>Na przekazanym przez użytkownika zrzucie Lubelskie ma żółty poziom, a panel pokazuje wkład komunikatu RCB (RSO) oraz obserwacji NEPTUN. Pasek na dole wskazuje cztery sygnały — nie wszystkie mieszczą się jednocześnie na widocznym fragmencie listy.</p>
+      <p>Etykieta <b>PODGLĄD HISTORII — 15:11 (−10 min)</b> oznacza odtwarzanie wcześniejszej chwili. To przykład historyczny, nie bieżący alert. Wartości na zrzucie nie są tabelą aktualnych wag ani dowodem czasu doręczenia powiadomienia.</p>
+    </div>
+    <figure><a class="shot-link" href="screens/history-lubelskie-user.png"><img loading="lazy" src="screens/history-lubelskie-user.png" width="1440" height="3200" alt="Historyczne Lubelskie: żółty poziom 2,2 pkt, wpis RCB (RSO), obiekty NEPTUN na mapie i suwak o 15:11"></a><figcaption>Przykład historyczny od użytkownika: podwyższona uwaga w Lubelskiem i rozbicie punktacji na źródła. Oryginalny zrzut, bez zmiany treści.</figcaption></figure>
+  </div>
   <p>Naciśnij <kbd>⏱</kbd> i przeciągaj suwak w lewo lub w prawo. Mapa oraz panel pokazują wybraną chwilę, nie bieżący stan. Etykieta podaje godzinę i liczbę minut wstecz. <kbd>● NA ŻYWO</kbd> przywraca aktualny widok.</p>
   <p>Pakiet historii pobierany jest na urządzenie, a przewijanie korzysta z lokalnego bufora. Każdy ruch palca nie wysyła osobnego zapytania do serwera. Migawki powstają zwykle co 2 minuty: to odtwarzanie zapisanych próbek, nie ciągłe nagranie radarowe. Długość dostępnej historii zależy od ciągłości zapisu i źródeł.</p>
   <div class="shots">

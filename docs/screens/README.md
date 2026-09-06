@@ -22,6 +22,21 @@ for today's scoring rules. Other image files remain unused historical assets.
 
 ## Updating
 
+`history-lubelskie-user.png` is an unchanged 1440 × 3200 screenshot supplied
+by the user on 6 September 2026 (capture date and app version unverified).
+It shows history at 15:11 with 2.2 points in Lublin province, not a current
+warning. Both guides retain its Polish UI and identify it as a historical
+example. The original file's contents must not be retouched.
+
+The shared link-preview image is `docs/share-history-v1.jpg`, copied byte for
+byte to `frontend/assets/share-history-v1.jpg`. Its 1200 × 630 composition
+comes from rendering `docs/social-card.html` in a browser at that viewport
+size; the screen is the original image inside a CSS phone shell. The rendered
+file is JPEG. Check the actual file format rather than assuming screenshot
+bytes are PNG. The WWW and guide metadata reference the same design.
+Use a new versioned filename for future preview revisions, and update the
+Open Graph / Twitter metadata and `scripts/test_guide.py` together.
+
 Capture PNG files with `adb shell screencap -p /sdcard/<name>.png` and
 `adb pull`, not PowerShell output redirection. Inspect each capture before
 publishing. The source filenames used by `scripts/prepare_guide_screens.py`
