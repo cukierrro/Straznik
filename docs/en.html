@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Strażnik 1.7.16 — user guide</title>
+<meta name="description" content="The current Strażnik user guide: Android installation and updates, alerts, maps, new object icons, history, languages and scoring. Screenshots from Pixel 7.">
+<link rel="canonical" href="https://cukierrro.github.io/Straznik/en.html">
+<link rel="alternate" hreflang="pl" href="https://cukierrro.github.io/Straznik/">
+<link rel="alternate" hreflang="en" href="https://cukierrro.github.io/Straznik/en.html">
+<link rel="alternate" hreflang="x-default" href="https://cukierrro.github.io/Straznik/">
+<link rel="icon" href="ikona.png">
+<link rel="stylesheet" href="guide.css">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://cukierrro.github.io/Straznik/en.html">
+<meta property="og:title" content="Strażnik — user guide">
+<meta property="og:description" content="How to use the map, notifications and history. Current guides in English and Polish. An unofficial supplementary source.">
+<meta property="og:image" content="https://cukierrro.github.io/Straznik/podglad.jpg">
+<meta property="og:locale" content="en_GB">
+<meta property="og:locale:alternate" content="pl_PL">
+<meta name="twitter:card" content="summary_large_image">
+</head>
+<body id="top">
+<a class="skip" href="#content">Skip to content</a>
+<nav aria-label="Guide navigation"><div class="nav-in">
+  <a class="brand" href="#top">STRAŻNIK</a>
+  <div class="nav-links"><a href="#instalacja">Install</a><a href="#mapa">Map</a><a href="#panel">Signals</a><a href="#historia">History</a><a href="#alarm">Alerts</a><a href="#punkty">Scoring</a></div>
+  <div class="languages" aria-label="Guide language"><a href="index.html" lang="pl" hreflang="pl">PL</a><a href="en.html" lang="en" aria-current="page">EN</a></div>
+</div></nav>
+<header class="hero"><div class="wrap hero-grid">
+  <div><div class="eyebrow">User guide · version 1.7.16</div>
+    <h1>The situation on a map.<br>The sources behind each signal.</h1>
+    <p class="lead">Strażnik combines public information about airborne threats and displays a score for each Polish province. Available on Android and in your browser.</p>
+    <div class="actions"><a class="button primary" href="https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk">↓ Download app</a><a class="button" href="https://straznik.eu">Open map</a></div>
+    <p class="fineprint">Checked against version 1.7.16. Current screenshots captured on 6 September 2026 using a Pixel 7 emulator with Android 14. Tap any screenshot to open the full-size image.</p>
+  </div>
+  <a class="shot-link" href="screens/start-en.jpg"><img src="screens/start-en.jpg" width="1080" height="2400" alt="Strażnik 1.7.16 on Pixel 7: English map labels and six green source indicators"></a>
+</div></header>
+<main id="content" class="wrap">
+<section id="czym-jest">
+  <h2>What Strażnik does</h2>
+  <p>A server collects information and calculates scores. The app displays the map, sources and history; Android receives alerts through push notifications. You do not need an account or your own server.</p>
+  <div class="warn"><strong>This is not an official warning system.</strong> Strażnik supplements sirens, Poland's Alert RCB messages and RSO warnings. It cannot guarantee detection or an earlier warning than official channels. Follow official instructions if you receive an Alert RCB or hear sirens, even when the app shows a calm map.</div>
+  <p>Combining sources helps interpret a situation, but an alert does not always require several sources. A qualifying official message, critical media report or nearby object may reach the threshold on its own. The score is an application indicator, not a probability of impact.</p>
+</section>
+<section id="instalacja">
+  <h2>1. Installation and updates</h2>
+  <ol>
+    <li>Download the <a href="https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk">latest Straznik.apk</a> to your Android phone.</li>
+    <li>Open it from <b>Downloads</b>. If Android asks, allow that browser or file manager to install apps from this source.</li>
+    <li>Confirm installation and launch Strażnik. Allow the system to scan the file; do not disable Play Protect.</li>
+    <li>Allow notifications, choose your province and check full-screen alert permission.</li>
+  </ol>
+  <p>If the GitHub app intercepts the download link and stalls, open the link in your browser instead. A <a href="https://github.com/cukierrro/Straznik/raw/main/Straznik.apk">backup APK in the repository</a> is also available.</p>
+  <div class="split">
+    <div>
+      <h3>Updating from inside the app</h3>
+      <p>Strażnik checks for a release once a day. The update prompt includes the version and a description of the changes. You can also use <kbd>⚙</kbd> → <kbd>Check for updates</kbd>.</p>
+      <p>For a normal, non-critical update, choose <kbd>Later</kbd> (the updater may display <kbd>Później</kbd>) to dismiss it for the current session. If you choose to install, the app downloads the APK and checks its SHA-256, then Android asks you to confirm installation. Updating still downloads a file; you no longer need to find it manually.</p>
+      <p>Install over the existing app without uninstalling to keep your settings. The published APK is a signed <b>release build</b>. Check notification and full-screen permissions after updating.</p>
+    </div>
+    <figure><a class="shot-link" href="screens/updates-en.jpg"><img loading="lazy" src="screens/updates-en.jpg" width="1080" height="2400" alt="Version 1.7.16 settings showing sound tests and Check for updates"></a><figcaption>The installed version and the manual update check.</figcaption></figure>
+  </div>
+</section>
+<section id="konfiguracja">
+  <h2>2. Province, language and permissions</h2>
+  <div class="split">
+    <div>
+      <p>Open <kbd>⚙</kbd>, choose one of Poland's 16 provinces (voivodeships), then press <kbd>Save</kbd>. This determines your notification region, the initial map view and the “my region” card. Without a selection, the subscription covers four eastern provinces: Lublin, Subcarpathian, Podlaskie and Warmian-Masurian.</p>
+      <p><kbd>Detect with GPS</kbd> optionally identifies the province on your device. Coordinates are not sent to the Strażnik server.</p>
+      <h3>Polski / English</h3>
+      <p>Selecting a language immediately changes the settings preview. <kbd>Save</kbd> confirms it and reloads the app; <kbd>Cancel</kbd> keeps the previous language. English covers the interface, object and aircraft descriptions, and map labels. A source name may remain where an English name is unavailable. Quoted external messages are not necessarily translated, and some labels in the current APK may still appear in Polish.</p>
+      <h3>Notifications</h3>
+      <p>Check system notifications, alert channels and full-screen permission in settings. A shortcut to the app's battery optimisation settings is also available. Delivery and presentation depend on your phone's settings and restrictions.</p>
+    </div>
+    <figure><a class="shot-link" href="screens/settings-en.jpg"><img loading="lazy" src="screens/settings-en.jpg" width="1080" height="2400" alt="Province and English language selection with push and full-screen settings"></a><figcaption>Region, language and permissions in the current app.</figcaption></figure>
+  </div>
+</section>
+<section id="mapa">
+  <h2>3. The map and new icons</h2>
+  <p>Drag to move, pinch to zoom, and tap an object for details. A province's colour represents its score: below 2 points is blue, 2 or more is yellow, and 4 or more is red. In 3D mode, the height of the province increases with its score.</p>
+  <p>NEPTUN objects now have distinct <b>shapes</b> as well as colours. ADS-B planes and helicopters keep their familiar silhouettes. The legend no longer includes a separate country-background-colour section.</p>
+  <div class="split">
+    <div><div class="tw"><table>
+      <caption>NEPTUN object icon library</caption>
+      <thead><tr><th>Object</th><th>Appearance</th></tr></thead><tbody>
+      <tr><td>Drone / UAV</td><td>A yellow fixed-wing silhouette.</td></tr>
+      <tr><td>Shahed</td><td>An orange delta wing.</td></tr>
+      <tr><td>FPV drone</td><td>Four rotors; a local drone with no points in this model.</td></tr>
+      <tr><td>Reconnaissance drone</td><td>A light-coloured silhouette with long wings.</td></tr>
+      <tr><td>Cruise missile</td><td>A red body with wings.</td></tr>
+      <tr><td>Ballistic missile</td><td>A slender pink shape with an exhaust flame.</td></tr>
+      <tr><td>KAB guided bomb</td><td>A yellow guided-bomb silhouette.</td></tr>
+      <tr><td>MiG-31K — carrier</td><td>A purple aircraft silhouette from the NEPTUN source.</td></tr>
+      <tr><td>Unidentified object</td><td>A grey diamond with a question mark.</td></tr>
+    </tbody></table></div>
+    <p><b>The circle around an object represents position uncertainty (±km).</b> A larger circle means a larger uncertain area, not a larger destructive range. A dashed line shows the recorded flight path.</p></div>
+    <figure><a class="shot-link" href="screens/legend-en.jpg"><img loading="lazy" src="screens/legend-en.jpg" width="1080" height="2400" alt="Current legend with nine distinct NEPTUN icons, uncertainty circle, aircraft, helicopter and score thresholds"></a><figcaption>Current symbols in version 1.7.16. The helicopter row in this APK still has a Polish label.</figcaption></figure>
+  </div>
+  <h3>Object details and pictures</h3>
+  <p>An object card shows its type, area, confirmations, confidence, position uncertainty, heading, distance from Poland and an estimated arrival time when available. AI illustrations are explicitly labelled as reference images: they do not depict the tracked object and must not be used to identify a model.</p>
+  <p>Tap an ADS-B aircraft for its callsign, registration, country, model, role, altitude, speed and heading, where available. A registration photo appears if the provider supplies one. <kbd>Follow track</kbd> displays the collected trail. Without a public transponder signal or reception, there may be no position: the map does not show every military aircraft.</p>
+  <div class="shots">
+    <figure><a class="shot-link" href="screens/aircraft-en.jpg"><img loading="lazy" src="screens/aircraft-en.jpg" width="1080" height="2400" alt="BRIO66 aircraft card with Challenger 600 model and English flight telemetry"></a><figcaption>An actual aircraft observation, with the data available at capture time.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/object-en.jpg"><img loading="lazy" src="screens/object-en.jpg" width="1080" height="2400" alt="NEPTUN object card with a labelled reference illustration and observation details"></a><figcaption>Object details and a reference illustration, not a photograph of the tracked object.</figcaption></figure>
+  </div>
+</section>
+<section id="przyciski">
+  <h2>4. Buttons and closing panels</h2>
+  <div class="tw"><table><thead><tr><th>Control</th><th>Action</th></tr></thead><tbody>
+    <tr><td>STRAŻNIK + six indicators</td><td>Status of NEPTUN, UA Alerts, ADS-B, RSS, RCB and PAŻP. Green means a layer is available, not that safety has been confirmed. Tapping the app name also opens its explanation on a phone.</td></tr>
+    <tr><td>☕ / ?</td><td>Optional support for the author / information about the app and its features.</td></tr>
+    <tr><td>Legend / 🗺️</td><td>Object icons, uncertainty and score thresholds.</td></tr>
+    <tr><td>🛰️</td><td>Foreign aircraft and recorded observations.</td></tr>
+    <tr><td>3D / 2D</td><td>Switch between raised provinces and a flat map.</td></tr>
+    <tr><td>🔔 / ⚙ / ☰</td><td>Notifications / settings / signals panel.</td></tr>
+    <tr><td>⏱ / ◎ / ⤢</td><td>12-hour history / return to my region / the wider area.</td></tr>
+    <tr><td>Download app / User guide</td><td>Website-only buttons; they are not displayed in the APK.</td></tr>
+  </tbody></table></div>
+  <p>The signals panel no longer collapses after a few seconds. Close it with the cross or by tapping the map outside it. The legend and other panels also support outside clicks. In settings, use <kbd>Save</kbd> to confirm changes.</p>
+</section>
+<section id="panel">
+  <h2>5. The signals panel</h2>
+  <div class="split">
+    <div>
+      <p><kbd>☰</kbd> opens the province cards. Tap a region to inspect the sources behind its score. Your region has an outline and a “my region” label. The panel includes signals from the 60-minute window, objects near the border and public military aviation observations.</p>
+      <p>Signals are ordered by their actual counted contribution. The displayed number reflects source caps and ageing; a crossed-out value explains why the full raw score was not counted. Successive reports of the same track do not mean additional physical objects.</p>
+      <p>A <b>Spillover</b> entry explains a contribution from another province. Media titles link to their sources: check the original text and publication time.</p>
+      <p><b>Cameras in the region</b> opens available views of the surroundings. These are ground cameras, not airborne-object detectors.</p>
+    </div>
+    <figure><a class="shot-link" href="screens/panel-en.jpg"><img loading="lazy" src="screens/panel-en.jpg" width="1080" height="2400" alt="Current province panel with Podlaskie marked as my region and the signals list below"></a><figcaption>The actual calm state at capture time. Values change with incoming data.</figcaption></figure>
+  </div>
+</section>
+<section id="historia">
+  <h2>6. Twelve hours of history</h2>
+  <p>Press <kbd>⏱</kbd>, then drag the slider left or right. The map and panel show the selected time rather than the live situation. The label gives the time and minutes in the past. <kbd>● LIVE / NA ŻYWO</kbd> returns to the current view (this button still has a Polish label in the captured APK).</p>
+  <p>A history bundle is downloaded to your device and scrolling uses that local buffer. Every finger movement does not make a separate server request. Snapshots are normally recorded every two minutes: this is playback of saved samples, not continuous radar footage. The available history depends on continuous recording and source availability.</p>
+  <div class="shots">
+    <figure><a class="shot-link" href="screens/history-en.jpg"><img loading="lazy" src="screens/history-en.jpg" width="1080" height="2400" alt="English history slider and counts for objects, aircraft and signals"></a><figcaption>The slider and summary for the selected moment.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/past-en.jpg"><img loading="lazy" src="screens/past-en.jpg" width="1080" height="2400" alt="English history view with the slider moved into the past"></a><figcaption>Moving backwards changes the time and the available map observations.</figcaption></figure>
+  </div>
+  <p>A signal can remain in the 60-minute list after an object disappears from the map. The list describes recorded events; the map shows positions available in a particular snapshot. Disappearance does not prove an interception. For some foreign aircraft, a faded last observation may appear, distinguished from a current position.</p>
+</section>
+<section id="alarm">
+  <h2>7. Yellow and red alerts</h2>
+  <div class="tw"><table><thead><tr><th>Score</th><th>Behaviour</th></tr></thead><tbody>
+    <tr><td>Below 2 points</td><td>Information remains on the map and in the panel, without a score-threshold alert.</td></tr>
+    <tr><td>2 to below 4 points</td><td>Yellow “ELEVATED ATTENTION”: a short attention sound and a notification, which may appear as heads-up.</td></tr>
+    <tr><td>4 points or more</td><td>Red “HIGH PRIORITY”: a siren, vibration and a full-screen alert when permissions and the system allow it. Acknowledging the alert silences it.</td></tr>
+  </tbody></table></div>
+  <p><kbd>⚙</kbd> includes <kbd>Test: attention</kbd>, <kbd>Test: siren</kbd> and <kbd>Test: full alert</kbd>. These are local tests on your device; they do not confirm push delivery from the server. Version 1.7.15 increased the red siren's level. Actual loudness also depends on the phone and its audio settings.</p>
+  <div class="warn"><b>Check full-screen alerts on your own phone.</b> Without permission, a red alert may remain a notification. Check volume, channel settings, Do Not Disturb and battery restrictions too. Recheck permissions after an update.</div>
+</section>
+<section id="tlo">
+  <h2>8. Push, the website and fallback mode</h2>
+  <p><b>Android:</b> the server sends push notifications through Firebase for your selected province. This is designed to work while the app is closed or the screen is locked. It requires connectivity and correct phone settings. Android's “Force stop” can prevent delivery until the app is opened again. The old permanently running “listening active” service is no longer used.</p>
+  <p><b>Browser:</b> bookmarking the address does not enable alerts. An open tab can display and play alerts; sound requires user interaction. Delivery with the tab closed requires a separate permission and Web Push subscription, plus browser and operating-system support. Its behaviour is not equivalent to Android's native full-screen alert.</p>
+  <p><b>Server outage:</b> after unsuccessful connection attempts, the open app starts its built-in engine. It still needs internet access to the sources. The current code checks server recovery every minute and stops its own polling once it reconnects. Switching is postponed during an active alert. Fallback mode does not provide replacement round-the-clock monitoring after the app is closed.</p>
+  <p>A test announcement may appear as a message you can acknowledge and close. An announcement alone does not verify alarm delivery.</p>
+</section>
+<section id="punkty">
+  <h2>9. How scoring works</h2>
+  <p>The basic window is 60 minutes. A signal retains full weight for 30 minutes, then fades linearly to zero. Each source class has a contribution cap; another observation of the same NEPTUN track is not counted as a new object.</p>
+  <div class="tw"><table><thead><tr><th>Source</th><th>What is considered</th><th>Weight / cap</th></tr></thead><tbody>
+    <tr><td>NEPTUN objects</td><td>Type, reported object count, border distance, course, confidence, confirmations and observation status.</td><td>Up to 8 points in total</td></tr>
+    <tr><td>UA alerts</td><td>An air alert in selected western Ukrainian regions.</td><td>1 point</td></tr>
+    <tr><td>Media</td><td>Topic and context matching: an ordinary match adds 1.5 points; a critical report adds 2. Filters reject advice, tests and cancellations, among other cases, but can make mistakes.</td><td>Maximum 2 points</td></tr>
+    <tr><td>RCB / RSO</td><td>Qualifying published airborne-threat warnings. Source publication time can differ from SMS delivery time.</td><td>2 points, cap 2</td></tr>
+    <tr><td>ADS-B</td><td>At least 3 aircraft and more than twice the baseline for the same time of day, collected over 7 days.</td><td>1 point, cap 1</td></tr>
+    <tr><td>PAŻP / PANSA</td><td>Rare ADHOC/R/NPZ/D zones from the ground to a flight level, with filters for routine and repeated designators. Activation alone does not prove a military threat.</td><td>0.5 points, cap 1</td></tr>
+    <tr><td>Baltic media</td><td>LT/LV/EE incidents as context for Podlaskie and Warmian-Masurian. A recognised cancellation clears the same incident's contribution.</td><td>1 point</td></tr>
+    <tr><td>Neighbouring airspace</td><td>Selected LT/EE restrictions and northern Romania (47°N and above). Latvian zones and official LV notices are observation-only, with no points.</td><td>0.3 points, cap 0.6</td></tr>
+  </tbody></table></div>
+  <h3>Objects: a smooth distance curve</h3>
+  <p>Type weights: ballistic 3.0; MiG-31K 2.6; cruise missile 2.4; KAB 1.8; Shahed 1.4; UAV 1.1; reconnaissance drone 0.5; FPV 0. This is multiplied by the square root of the reported object count and factors for data quality and course, among others.</p>
+  <p>The distance factor is interpolated through <b>0 km ×1.7; 15 ×1.6; 45 ×1.3; 80 ×1.0; 110 ×0.7; 150 ×0.4; 200 ×0.25; 250 ×0.1</b>. At 250 km or beyond the ordinary contribution is zero. Unknown-course scoring is reduced and limited to nearby objects. Missiles and MiG-31K within 60 km with at least two confirmations have a 2-point floor, scaled by the course factor.</p>
+  <h3>Estimated arrival time</h3>
+  <p>The card estimates time to Poland's border and to the selected province's boundary, not to your address. It uses a source speed where available, otherwise a typical class speed. A 2.5-minute buffer based on earlier source-delay measurements is deducted. This buffer does not cover every possible delay.</p>
+  <p>The current ETA threshold mechanism refers to <b>Poland's border</b>: with a known heading, at least two confirmations and medium or high confidence, it may raise an object's contribution to 2 points at ≤10 minutes or 4 points at ≤5 minutes. It does not add a second set of points for the same object.</p>
+  <div class="warn">Arrival time is an approximation assuming continued flight. It does not account for interception, a change of course or the full uncertainty of the data. Do not treat it as a countdown of time available to seek shelter. If the heading is unavailable, the app indicates the estimation limitation.</div>
+  <h3>Spillover to neighbouring provinces</h3>
+  <p>A source province with at least 2 points can contribute 40% to its first ring of neighbours, 16% to its second, and so on within the algorithm's limits. For example, 5 points in Lublin contributes 2 to the first ring and 0.8 to the second. This provides regional context; it does not predict an object's route. The panel explains each contribution.</p>
+</section>
+<section id="nowosci">
+  <h2>10. Features in the current release</h2>
+  <div class="cards">
+    <div class="card"><h3>Polish and English</h3><p>Preview the language before saving, with English aircraft descriptions and geographic map labels.</p></div>
+    <div class="card"><h3>Distinct object icons</h3><p>Separate silhouettes for drones, missiles, KAB and unidentified objects, a current legend and labelled reference illustrations.</p></div>
+    <div class="card"><h3>Easier inspection</h3><p>A panel without timed collapse, object details, local history scrolling and foreign aircraft observations.</p></div>
+    <div class="card"><h3>Updates and the siren</h3><p>Release notes in the updater, deferral of non-critical updates and an increased red-siren level.</p></div>
+  </div>
+  <p>Full change history: <a href="https://github.com/cukierrro/Straznik/releases">GitHub releases</a>.</p>
+</section>
+<section id="granice">
+  <h2>11. Limitations and troubleshooting</h2>
+  <ul>
+    <li><b>Red indicator:</b> a layer is unavailable or reports an error; other sources may still work. The six indicators do not separately represent every additional source.</li>
+    <li><b>Missing map with working signals:</b> map tiles are downloaded separately. Check connectivity, try another network and restart the app. An antivirus or proxy intercepting HTTPS can block these connections. The production APK does not trust user-added certificates; the old advice that it trusts Avast certificates is obsolete. Do not solve this by permanently disabling protection.</li>
+    <li><b>No push:</b> check your region, permissions, channels, connectivity and whether the app was force-stopped. An in-app sound test does not verify the complete push path.</li>
+    <li><b>Object only in the list:</b> a signal and a current position have different availability windows. Check the time, history mode and last observation.</li>
+    <li><b>Incomplete coverage:</b> NEPTUN is an OSINT aggregator, ADS-B depends on public transmissions and receivers, and messages or RSS can be delayed. Missing data or a zero score does not prove that no threat exists.</li>
+  </ul>
+</section>
+<section id="zaawansowane">
+  <h2>12. Your own server — optional</h2>
+  <p>A blank address under <kbd>⚙</kbd> → <kbd>Advanced: shared backend</kbd> selects the default Strażnik server. Enter your own address only if you operate a compatible backend and its notification services.</p>
+  <p><b>HTTPS with a system-trusted certificate is required.</b> External HTTP and manually installed certificates are not supported by the production APK. The app's internal localhost address is a separate technical exception. <a href="https://github.com/cukierrro/Straznik#readme">Backend setup is documented in the repository README</a>.</p>
+</section>
+<section id="prywatnosc">
+  <h2>13. Privacy and sources</h2>
+  <p>No account, advertising or behavioural analytics. Settings are stored locally. Your selected region also determines the push subscription; push infrastructure handles a device or browser subscription identifier. Optional GPS is used to identify your province on the device.</p>
+  <p>The server and providers of maps, notifications, photos and data receive network requests and may keep ordinary technical logs. No in-app telemetry does not mean no network traffic. Downloaded server history is replayed from device memory; the built-in engine stores its own snapshots locally. Size depends on data volume and covers a rolling 12-hour window.</p>
+  <p class="source-links">Data: <a href="https://neptun.in.ua">NEPTUN</a> · <a href="https://adsb.lol">adsb.lol</a> / adsb.fi and fallback providers · <a href="https://www.gov.pl/web/rcb">RCB</a> / RSO · <a href="https://airspace.pansa.pl">PAŻP</a> · regional and Baltic media · neighbouring airspace zones. Map: <a href="https://openfreemap.org">OpenFreeMap</a>, © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>. Aircraft photo providers and photographers are credited in the cards.</p>
+</section>
+</main>
+<footer><div class="wrap">
+  <p><b>STRAŻNIK</b> — an unofficial supplementary source. It does not replace sirens, RCB or RSO.</p>
+  <p><a href="https://github.com/cukierrro/Straznik">Source code</a> · <a href="index.html" lang="pl">Instrukcja po polsku</a> · <a href="https://buycoffee.to/cukierrro">Buy me a coffee</a></p>
+  <a class="back-top" href="#top">↑ Back to top</a>
+</div></footer>
+</body>
+</html>

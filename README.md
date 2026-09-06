@@ -16,6 +16,11 @@ wiarygodność ostrzeżenia.
 
 ### 📖 [**Pełna instrukcja użytkownika ze zrzutami ekranu →**](https://cukierrro.github.io/Straznik/)
 
+[Instrukcja po polsku](https://cukierrro.github.io/Straznik/) · [English user guide](https://cukierrro.github.io/Straznik/en.html)
+
+Instrukcja dla 1.7.16 zawiera aktualne zrzuty z Pixela 7, nową bibliotekę ikon,
+opisy aktualizacji, języków, historii i alarmów. Zrzuty otwierają się także w pełnym rozmiarze.
+
 [⬇ Pobierz APK](https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk) · [☕ Postaw kawę](https://buycoffee.to/cukierrro)
 
 </div>
@@ -33,14 +38,14 @@ wiarygodność ostrzeżenia.
 Aplikacja zbiera sygnały z kilku niezależnych źródeł, przydziela im punkty
 i sumuje w oknie 60 minut (pełna waga przez 30 minut, potem liniowe wygaszanie)
 osobno dla każdego województwa. Przy **≥ 2 pkt**
-włącza podwyższoną uwagę (ciche powiadomienie), przy **≥ 4 pkt** — głośny alarm
+włącza podwyższoną uwagę (sygnał uwagi i powiadomienie), przy **≥ 4 pkt** — głośny alarm
 z syreną. UI zawsze pokazuje pełne rozbicie: które sygnały, skąd, ile punktów.
 
 | Sygnał | Warunek | Punkty |
 |---|---|---|
 | **NEPTUN** | obiekt kursem na granicę PL — punktacja zależna od typu, liczby, odległości i liczby potwierdzeń (niżej) | **0–8** |
 | **NEPTUN** | oficjalny alarm powietrzny w obwodzie UA graniczącym z PL | **+1** |
-| **Media/RSS** | słowa kluczowe (syreny, alarm, dron…) w mediach danego województwa — sam artykuł nie alarmuje, próg przekracza dopiero potwierdzenie | **+1,5** |
+| **Media/RSS** | dopasowanie tematu i kontekstu; zwykła relacja 1,5 pkt, krytyczna 2 pkt — ta druga może samodzielnie osiągnąć żółty próg | **+1,5 / +2** |
 | **RCB** | nowy komunikat na gov.pl/web/rcb | **+2** |
 | **ADS-B** | ≥3 maszyny wojskowe nad województwem i >2× baseline **z tej samej pory doby** z 7 dni | **+1** |
 | **PAŻP** | rzadka strefa ADHOC/R/NPZ/D obejmująca całą kolumnę od ziemi w górę; TRA/TSA/MRT/ATZ i designatory powtarzane w ciągu 7 dni nie punktują | **+0,5** |
@@ -50,18 +55,19 @@ z syreną. UI zawsze pokazuje pełne rozbicie: które sygnały, skąd, ile punkt
 ### Punktacja obiektów NEPTUN
 
 Jeden Shahed 80 km od granicy to co innego niż sześć Shahedów 50 km od granicy,
-a dron FPV o zasięgu kilkunastu kilometrów nie zagraża Polsce w ogóle. Zamiast
-jednej stawki za „obiekt kursem na PL" punkty są iloczynem czterech czynników:
+a lokalny dron FPV nie jest punktowany w tym modelu — nie oznacza to, że jest
+nieszkodliwy. Zamiast jednej stawki za „obiekt kursem na PL" punkty uwzględniają
+kilka czynników:
 
 ```
-punkty = waga_typu × √liczba × k_odległości × k_wiarygodności × k_potwierdzeń × k_cyklu
+punkty = waga_typu × √liczba × k_odległości × k_wiarygodności × k_potwierdzeń × k_cyklu × k_kursu
 ```
 
 | Czynnik | Wartości |
 |---|---|
 | **waga typu** | balistyczna 3,0 · MiG-31K 2,6 · manewrująca 2,4 · KAB 1,8 · Shahed 1,4 · dron 1,1 · zwiadowczy 0,5 · **FPV 0** |
 | **liczba** (`count`) | pierwiastek — cztery obiekty ważą 2× tyle co jeden, nie 4× |
-| **odległość** | <30 km ×1,6 · <60 ×1,3 · <100 ×1,0 · <150 ×0,55 · <250 ×0,25 · dalej 0 |
+| **odległość** | płynna interpolacja: 0 km ×1,7 · 15 ×1,6 · 45 ×1,3 · 80 ×1,0 · 110 ×0,7 · 150 ×0,4 · 200 ×0,25 · 250 ×0,1; od 250 km wkład 0 |
 | **wiarygodność** | high ×1,0 · medium ×0,6 · low ×0,35 |
 | **potwierdzenia** (`sourceCount`) | 1 ×0,7 · 2 ×0,9 · 3–4 ×1,1 · ≥5 ×1,25 |
 | **cykl życia** | confirmed ×1,1 · uncertain ×0,85 · created ×0,7 |
@@ -69,7 +75,11 @@ punkty = waga_typu × √liczba × k_odległości × k_wiarygodności × k_potwi
 Wkład całego NEPTUN-a ograniczony do **8 pkt** — przy kilkudziesięciu obiektach
 suma i tak dawno przekroczyła próg alarmu, a trzycyfrowa punktacja psułaby skalę.
 
-**Kalibracja.** Wagi dobrano na żywych danych NEPTUN i sprawdzono na
+**Historyczna kalibracja (wcześniejsza krzywa odległości).** Poniższe wyniki
+opisują wcześniejszy model i nie są aktualną tabelą progów. Obecny algorytm ma
+płynną krzywą, współczynnik kursu, minimum dla ciężkich obiektów przy granicy
+i progi ETA opisane w [aktualnej instrukcji](https://cukierrro.github.io/Straznik/#punkty).
+Wagi dobrano na żywych danych NEPTUN i sprawdzono na
 udokumentowanych zdarzeniach oraz na 354 migawkach zebranych przez backend
 (1998 obserwacji obiektów w 7,5 h):
 
@@ -83,18 +93,20 @@ udokumentowanych zdarzeniach oraz na 354 migawkach zebranych przez backend
 | FPV tuż przy granicy | 0,0 | brak reakcji |
 | zebrana historia (wszystkie obiekty ≥ 542 km) | 0,0 | brak reakcji |
 
-Klasyfikacja mediów jest dwupoziomowa (`textmatch.py`): słowa **mocne**
-("zawyły", "alarm powietrzny", "zestrzel", "naruszenie przestrzeni"…) wystarczą
-same; słowa **słabe** ("syren", "dron", "rakieta"…) wymagają ≥2 różnych trafień;
-kontekst administracyjny/ćwiczebny ("wymiana syren", "przetarg", "próba syren"…)
-wyklucza dopasowanie. Jedna klasa źródła ma limit wkładu do sumy
+Klasyfikacja mediów jest dwupoziomowa (`textmatch.py`): fraza **krytyczna**
+(np. „alarm powietrzny”) wystarcza do dopasowania; słabszy sygnał wymaga
+jednocześnie **obiektu powietrznego i zdarzenia** (AIR + EVENT), nie dowolnych
+dwóch słów. Lista wykluczeń ma pierwszeństwo i odrzuca m.in. rozpoznany
+kontekst administracyjny, poradnikowy i ćwiczebny. Filtry mogą się mylić.
+Jedna klasa źródła ma limit wkładu do sumy
 (media ≤2, RCB ≤2, ADS-B ≤1, PAŻP ≤1, sąsiedzi ≤0,6) — pięć artykułów o tym
 samym zdarzeniu to wciąż jedno potwierdzenie. Nadmiarowe sygnały są widoczne
 w UI z przekreśloną punktacją.
 
 **Alarm czasowy NEPTUN.** Dla obiektu o znanym albo wiarygodnie wyliczonym
 kursie, średniej/wysokiej pewności i co najmniej dwóch potwierdzeniach działa
-dodatkowe zabezpieczenie ETA: żółty przy konserwatywnym czasie ≤10 min, czerwony
+dodatkowe zabezpieczenie ETA do **granicy Polski**, nie adresu użytkownika:
+żółty przy konserwatywnym czasie ≤10 min, czerwony
 przy ≤5 min. Od surowego czasu odejmowane jest **2,5 min** (p90 opóźnienia
 źródła z pomiaru 27–30.08.2026). Brak kursu, niska pewność lub jedno zgłoszenie
 nie mogą samodzielnie uruchomić alarmu ETA.
