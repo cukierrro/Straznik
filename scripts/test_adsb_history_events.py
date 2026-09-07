@@ -1,5 +1,7 @@
 """Regresje krótkotrwałych obcych maszyn pomiędzy migawkami historii."""
 from pathlib import Path
+import ast
+import asyncio
 import sys
 import tempfile
 
@@ -25,5 +27,15 @@ with tempfile.TemporaryDirectory() as tmp:
     saved = db.adsb_watch_events()
     assert len(saved) == 1 and saved[0]["callsign"] == "SUM9125"
     assert saved[0]["lat"] == 43.9 and saved[0]["kind"] == "enter"
+    # Exercise the real endpoint body without starting production collectors.
+    main = ast.parse((Path(__file__).resolve().parent.parent / "backend/app/main.py").read_text(encoding="utf-8"))
+    endpoint = next(n for n in main.body if isinstance(n, ast.AsyncFunctionDef) and n.name == "api_adsb_watch")
+    endpoint.decorator_list = []
+    scope = {"db": db}
+    exec(compile(ast.Module(body=[endpoint], type_ignores=[]), "watch-endpoint", "exec"), scope)
+    for hours in [-1, 1, 12, 999]:
+        response = asyncio.run(scope["api_adsb_watch"](hours))
+        assert len(response["events"]) == 1 and response["events"][0]["hex"] == ru["hex"]
+    assert len(db.adsb_watch_events()) == 1, "Read-only endpoint must not create events"
     db._conn.close()
 print("OK: obce ADS-B, pierwszy obieg bez lawiny, wejście i wyjście z pozycją")

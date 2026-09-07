@@ -1151,8 +1151,7 @@ function historyFrom(snaps, sigs, atIso) {
   if (!atIso) return { times, hours: HISTORY_H };
   const at = Date.parse(atIso);
   let snap = null;
-  for (const s of snaps) if (s.t <= at) snap = s;
-  if (!snap) snap = snaps[0] || null;
+  for (const s of snaps) if (s.t <= at && (!snap || s.t > snap.t)) snap = s;
   const end = snap ? snap.t : at;
   const start = end - WINDOW_MIN * 60000;
   // ten sam limit klasy źródła co fuzja na żywo (accumulate) — bez tego panel

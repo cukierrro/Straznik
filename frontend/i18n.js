@@ -218,7 +218,7 @@
     set("#sources > p:first-of-type", "Each LED at the top represents one data source. Fusion relies on agreement between several sources, so one unavailable source reduces confirmation rather than disabling warnings.");
     set("#watch h3", "🛰 Foreign aircraft over the eastern flank");
     setMany("#watch .watch-h", ["In range now", "Log — entered / disappeared from range"]);
-    set("#watch > p", "Military aircraft with Russian or Belarusian registration visible in public ADS-B/MLAT data over the Baltic region and the eastern flank. This observes transponder emissions; it is not radar tracking and is not an alert. Many aircraft fly with transponders off.");
+    set("#watch > p", "Military aircraft with Russian or Belarusian registration visible in public ADS-B/MLAT data over and around the eastern flank. In history, this panel follows the selected time. This observes transponder emissions; it is not radar tracking and is not an alert. Missing data does not imply empty airspace.");
     set("#cameras > p:first-of-type", "Public city and tourism cameras. Previews refresh every 30 seconds. Cameras show the ground, not the sky; they only provide additional context.");
     set("#onboard-bg .about-sub", "receive warnings even when you are not looking at your phone");
     setMany("#onboard-bg .about-body > p", [

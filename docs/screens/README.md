@@ -1,15 +1,24 @@
 # Current user-guide screenshots
 
-The Polish and English guides use 17 real captures from Strażnik 1.7.16
+The Polish and English guides retain 13 real captures from Strażnik 1.7.16
 (version code 46), running on a Pixel 7 emulator with Android 14.
 Captured on 6 September 2026. These are observations of the application,
 not fabricated alert scenarios. No public test notifications were sent.
 
+The four history captures now used are `history-map-pl.png`,
+`history-watch-pl.png`, `history-map-en.png`, `history-watch-en.png`.
+They are unchanged 1080 × 2400 PNG screenshots of release 1.7.17 (code 47),
+captured on 7 September 2026 on Pixel 7 / Android 14, using real server history.
+They were captured after reloading the app to discard the in-memory regression
+fixture. The SUM9125 replay is a separate local test, not the guide screenshot
+source. No public push notifications or production signal writes were used.
+The previous `history-*.jpg` and `past-*.jpg` remain as unused historical assets.
+
 Current Polish captures: `01_start.jpg`, `04_legenda.jpg`, `settings-pl.jpg`,
-`updates-pl.jpg`, `panel-pl.jpg`, `history-pl.jpg`, `past-pl.jpg`, `object-pl.jpg`.
+`updates-pl.jpg`, `panel-pl.jpg`, `object-pl.jpg`.
 
 Current English captures: `start-en.jpg`, `legend-en.jpg`, `settings-en.jpg`,
-`updates-en.jpg`, `panel-en.jpg`, `history-en.jpg`, `past-en.jpg`,
+`updates-en.jpg`, `panel-en.jpg`,
 `aircraft-en.jpg`, `object-en.jpg`.
 
 The alarm section also includes two explicitly labelled historical test

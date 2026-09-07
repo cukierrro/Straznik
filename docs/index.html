@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Strażnik 1.7.16 — instrukcja użytkownika</title>
+<title>Strażnik 1.7.17 — instrukcja użytkownika</title>
 <meta name="description" content="Aktualna instrukcja Strażnika: instalacja i aktualizacje Android, alarmy, mapa, nowe ikony, historia, języki i punktacja. Zrzuty z Pixela 7.">
 <link rel="canonical" href="https://cukierrro.github.io/Straznik/">
 <link rel="alternate" hreflang="pl" href="https://cukierrro.github.io/Straznik/">
@@ -33,11 +33,11 @@
   <div class="languages" aria-label="Język instrukcji"><a href="index.html" lang="pl" aria-current="page">PL</a><a href="en.html" lang="en" hreflang="en">EN</a></div>
 </div></nav>
 <header class="hero"><div class="wrap hero-grid">
-  <div><div class="eyebrow">Instrukcja użytkownika · wersja 1.7.16</div>
+  <div><div class="eyebrow">Instrukcja użytkownika · wersja 1.7.17</div>
     <h1>Sytuacja na mapie.<br>Źródła za każdym sygnałem.</h1>
     <p class="lead">Strażnik łączy publiczne informacje o zagrożeniach powietrznych i pokazuje ich punktację dla polskich województw. Dostępny na Androidzie i w przeglądarce.</p>
     <div class="actions"><a class="button primary" href="https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk">↓ Pobierz aplikację</a><a class="button" href="https://straznik.eu">Otwórz mapę</a></div>
-    <p class="fineprint">Instrukcja sprawdzona z kodem 1.7.16. Aktualne zrzuty wykonano 6 września 2026 na emulatorze Pixel 7, Android 14. Dotknij zdjęcia, aby otworzyć je w pełnym rozmiarze.</p>
+    <p class="fineprint">Instrukcja dla 1.7.17. Zrzuty historii i panelu 🛰: 7 września 2026, Pixel 7, Android 14. Pozostałe niezmienione ekrany: 1.7.16, 6 września 2026; starsze przykłady oznaczono osobno. Dotknij zdjęcia, aby otworzyć je w pełnym rozmiarze.</p>
   </div>
   <a class="shot-link" href="screens/01_start.jpg"><img src="screens/01_start.jpg" width="1080" height="2400" alt="Strażnik 1.7.16 na Pixelu 7: mapa Polski i sześć zielonych diod źródeł"></a>
 </div></header>
@@ -147,9 +147,12 @@
   </div>
   <p>Naciśnij <kbd>⏱</kbd> i przeciągaj suwak w lewo lub w prawo. Mapa oraz panel pokazują wybraną chwilę, nie bieżący stan. Etykieta podaje godzinę i liczbę minut wstecz. <kbd>● NA ŻYWO</kbd> przywraca aktualny widok.</p>
   <p>Pakiet historii pobierany jest na urządzenie, a przewijanie korzysta z lokalnego bufora. Każdy ruch palca nie wysyła osobnego zapytania do serwera. Migawki powstają zwykle co 2 minuty: to odtwarzanie zapisanych próbek, nie ciągłe nagranie radarowe. Długość dostępnej historii zależy od ciągłości zapisu i źródeł.</p>
+  <p><b>Spójny czas samolotów (1.7.17):</b> mapa, lista maszyn, panel <kbd>🛰</kbd> i szczegóły samolotu korzystają z tej samej wybranej chwili. Późniejsze zdarzenie nie może pojawić się we wcześniejszym widoku. Powrót <kbd>● NA ŻYWO</kbd> przywraca dane bieżące.</p>
+  <p>Przygaszona obca maszyna to <b>ostatnia zapisana pozycja</b>, uzupełniająca lukę między migawkami. Pokazujemy ją tylko na podstawie wcześniejszego wpisu dziennika, nie starszego niż 2,5 minuty względem wybranej chwili. Karta podaje czas zapisu i zaznacza brak w migawce. Wpis „zniknął” opisuje utratę obecności w danych, nie lądowanie ani zestrzelenie; jego czas nie musi być czasem ostatniej emisji transpondera. Licznik rozdziela maszyny w migawce od ostatnich obserwacji.</p>
+  <p>Panel 🛰 pobiera niewielki dziennik serwera z ostatnich 12 godzin, także z czasu, gdy aplikacja była zamknięta, i łączy go z lokalnymi wpisami bez powielania tych samych przejść. Wyświetla tylko wpisy do wybranej chwili. Odświeżanie jest ograniczone do najwyżej jednego zapytania na minutę, nie jest wykonywane przy każdym ruchu suwaka. Niedostępność dziennika lub lokalny tryb awaryjny są opisane w panelu. Te obserwacje nie dodają punktów.</p>
   <div class="shots">
-    <figure><a class="shot-link" href="screens/history-pl.jpg"><img loading="lazy" src="screens/history-pl.jpg" width="1080" height="2400" alt="Suwak historii przy najnowszej chwili, liczniki obiektów, samolotów i sygnałów"></a><figcaption>Suwak i podsumowanie wybranego momentu.</figcaption></figure>
-    <figure><a class="shot-link" href="screens/past-pl.jpg"><img loading="lazy" src="screens/past-pl.jpg" width="1080" height="2400" alt="Historia przewinięta do 01:05, 529 minut wstecz"></a><figcaption>Przesunięcie w przeszłość zmienia czas i zawartość mapy.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/history-map-pl.png"><img loading="lazy" src="screens/history-map-pl.png" width="1080" height="2400" alt="Historia w 1.7.17 na Pixelu 7, suwak oraz licznik maszyn w migawce"></a><figcaption>Rzeczywista historia serwera, APK 1.7.17 — 7 września 2026.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/history-watch-pl.png"><img loading="lazy" src="screens/history-watch-pl.png" width="1080" height="2400" alt="Panel obcych maszyn zsynchronizowany z wybranym czasem historii, ze statusem dziennika"></a><figcaption>Panel 🛰 pokazuje ten sam czas co mapa — Pixel 7, 1.7.17.</figcaption></figure>
   </div>
   <p>Sygnał w oknie 60 minut może pozostać na liście po zniknięciu obiektu z mapy. To różne rzeczy: lista opisuje zarejestrowane zdarzenia, mapa — pozycje dostępne w konkretnej migawce. Zniknięcie obiektu nie dowodzi zestrzelenia. Dla części obcych maszyn aplikacja może pokazać przygaszoną ostatnią obserwację, odróżnioną od bieżącej pozycji.</p>
 </section>

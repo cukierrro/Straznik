@@ -4,9 +4,10 @@
 
 # Strażnik
 
-Wersja 1.7.16: pełne angielskie opisy samolotów, krajów i telemetrii oraz angielskie
-nazwy geograficzne na mapie. Wybór języka nadal daje natychmiastowy podgląd przed
-zapisaniem, a czerwony alarm ma głośność co najmniej równą żółtemu sygnałowi uwagi.
+Wersja 1.7.17: spójny czas historii samolotów na mapie, w panelu 🛰 i w szczegółach.
+Bez wpisów z przyszłości; przygaszone ostatnie pozycje są opisane osobno od maszyn
+w migawce. Dziennik serwera obejmuje również czas zamknięcia aplikacji.
+Punktacja i mechanizm alarmów pozostają bez zmian.
 
 **Nieoficjalne wczesne ostrzeganie o zagrożeniach powietrznych**
 
@@ -18,7 +19,7 @@ wiarygodność ostrzeżenia.
 
 [Instrukcja po polsku](https://cukierrro.github.io/Straznik/) · [English user guide](https://cukierrro.github.io/Straznik/en.html)
 
-Instrukcja dla 1.7.16 zawiera aktualne zrzuty z Pixela 7, nową bibliotekę ikon,
+Instrukcja dla 1.7.17 zawiera aktualne zrzuty historii z Pixela 7, nową bibliotekę ikon,
 opisy aktualizacji, języków, historii i alarmów. Zrzuty otwierają się także w pełnym rozmiarze.
 
 [⬇ Pobierz APK](https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk) · [☕ Postaw kawę](https://buycoffee.to/cukierrro)

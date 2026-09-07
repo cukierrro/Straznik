@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Strażnik 1.7.16 — user guide</title>
+<title>Strażnik 1.7.17 — user guide</title>
 <meta name="description" content="The current Strażnik user guide: Android installation and updates, alerts, maps, new object icons, history, languages and scoring. Screenshots from Pixel 7.">
 <link rel="canonical" href="https://cukierrro.github.io/Straznik/en.html">
 <link rel="alternate" hreflang="pl" href="https://cukierrro.github.io/Straznik/">
@@ -33,11 +33,11 @@
   <div class="languages" aria-label="Guide language"><a href="index.html" lang="pl" hreflang="pl">PL</a><a href="en.html" lang="en" aria-current="page">EN</a></div>
 </div></nav>
 <header class="hero"><div class="wrap hero-grid">
-  <div><div class="eyebrow">User guide · version 1.7.16</div>
+  <div><div class="eyebrow">User guide · version 1.7.17</div>
     <h1>The situation on a map.<br>The sources behind each signal.</h1>
     <p class="lead">Strażnik combines public information about airborne threats and displays a score for each Polish province. Available on Android and in your browser.</p>
     <div class="actions"><a class="button primary" href="https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk">↓ Download app</a><a class="button" href="https://straznik.eu">Open map</a></div>
-    <p class="fineprint">Checked against version 1.7.16. Current screenshots captured on 6 September 2026 using a Pixel 7 emulator with Android 14. Tap any screenshot to open the full-size image.</p>
+    <p class="fineprint">Guide for 1.7.17. History and 🛰 screenshots: 7 September 2026, Pixel 7, Android 14. Unchanged screens: 1.7.16, captured on 6 September; older examples are labelled separately. Tap any screenshot to open the full-size image.</p>
   </div>
   <a class="shot-link" href="screens/start-en.jpg"><img src="screens/start-en.jpg" width="1080" height="2400" alt="Strażnik 1.7.16 on Pixel 7: English map labels and six green source indicators"></a>
 </div></header>
@@ -147,9 +147,12 @@
   </div>
   <p>Press <kbd>⏱</kbd>, then drag the slider left or right. The map and panel show the selected time rather than the live situation. The label gives the time and minutes in the past. <kbd>● LIVE / NA ŻYWO</kbd> returns to the current view (this button still has a Polish label in the captured APK).</p>
   <p>A history bundle is downloaded to your device and scrolling uses that local buffer. Every finger movement does not make a separate server request. Snapshots are normally recorded every two minutes: this is playback of saved samples, not continuous radar footage. The available history depends on continuous recording and source availability.</p>
+  <p><b>Consistent aircraft time (1.7.17):</b> the map, aircraft list, <kbd>🛰</kbd> panel and aircraft details all follow the selected time. Later events cannot appear in an earlier view. <kbd>● LIVE</kbd> returns to current data.</p>
+  <p>A dimmed foreign aircraft is a <b>last recorded position</b> filling a gap between snapshots. It uses only an earlier journal entry, at most 2.5 minutes before the selected time. Details show the record time and explain that the aircraft is absent from the snapshot. “Disappeared” means missing from the available data, not a landing or shoot-down; its timestamp is not necessarily the last transponder emission time. Counters separate snapshot aircraft from last observations.</p>
+  <p>The 🛰 panel downloads a small server journal covering the last 12 hours, including times when your app was closed. It merges local entries without duplicating matching transitions and excludes entries later than the selected time. Refreshes are limited to one request per minute, not one per slider movement. Journal unavailability and local fallback mode are explicitly labelled. These observations do not add points.</p>
   <div class="shots">
-    <figure><a class="shot-link" href="screens/history-en.jpg"><img loading="lazy" src="screens/history-en.jpg" width="1080" height="2400" alt="English history slider and counts for objects, aircraft and signals"></a><figcaption>The slider and summary for the selected moment.</figcaption></figure>
-    <figure><a class="shot-link" href="screens/past-en.jpg"><img loading="lazy" src="screens/past-en.jpg" width="1080" height="2400" alt="English history view with the slider moved into the past"></a><figcaption>Moving backwards changes the time and the available map observations.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/history-map-en.png"><img loading="lazy" src="screens/history-map-en.png" width="1080" height="2400" alt="English history in 1.7.17 on Pixel 7, with slider and snapshot aircraft count"></a><figcaption>Real server history in APK 1.7.17 — 7 September 2026.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/history-watch-en.png"><img loading="lazy" src="screens/history-watch-en.png" width="1080" height="2400" alt="Foreign aircraft panel following the selected historical time, including journal status"></a><figcaption>The 🛰 panel follows the map time — Pixel 7, 1.7.17.</figcaption></figure>
   </div>
   <p>A signal can remain in the 60-minute list after an object disappears from the map. The list describes recorded events; the map shows positions available in a particular snapshot. Disappearance does not prove an interception. For some foreign aircraft, a faded last observation may appear, distinguished from a current position.</p>
 </section>

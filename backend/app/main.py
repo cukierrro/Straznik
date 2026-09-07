@@ -205,6 +205,12 @@ async def api_history_bundle(hours: int = 12):
             "adsb_watch_events": db.adsb_watch_events(hours)}
 
 
+@app.get("/api/adsb/watch")
+async def api_adsb_watch(hours: int = 12):
+    """Small read-only journal; independent of the large snapshot bundle."""
+    return {"events": db.adsb_watch_events(max(1, min(hours, 12)))}
+
+
 @app.get("/api/health")
 async def api_health():
     return {

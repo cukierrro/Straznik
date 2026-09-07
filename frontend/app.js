@@ -763,6 +763,8 @@ const emptyFC = () => ({ type: "FeatureCollection", features: [] });
 
 /* ── karta samolotu: kraj z zakresu hex, zdjęcie z planespotters, ślad ────── */
 const adsbByHex = new Map();     // hex → pełny obiekt maszyny (właściwe typy)
+const historyAdsbByHex = new Map();
+let historyAdsbTime = null;
 const adsbTrails = new Map();    // hex → [{lat,lon,t}] — własny zapis trasy
 let followHex = null;            // śledzona maszyna (kamera + rysowany ślad)
 let popupSeq = 0;
@@ -965,11 +967,15 @@ function planePopupHTML(p, heli, uid) {
 }
 
 function openPlanePopup(lngLat, props) {
-  const p = adsbByHex.get(props?.hex) || props;   // pełny obiekt z właściwymi typami
+  const p = (histMode ? historyAdsbByHex : adsbByHex).get(props?.hex) || props;
   if (!p) return;
   const heli = p.heli != null ? p.heli : isHeli(p.cat, p.type, p.desc);
   const uid = "pp" + (++popupSeq);
-  showCard(planePopupHTML(p, heli, uid));
+  const timeNote = histMode ? `<div class="hist-banner">${UI.isEn ? "HISTORY VIEW" : "PODGLĄD HISTORII"} — ${watchClock(historyAdsbTime)}<br>${p.historicalOnly
+    ? (UI.isEn ? "Last observation" : "Ostatnia obserwacja") + " " + watchClock(p.observedAt) + (UI.isEn ? " — no position in this snapshot" : " — brak pozycji w tej migawce")
+    : (UI.isEn ? "Position recorded in the selected snapshot" : "Pozycja zapisana w wybranej migawce")}</div>` : "";
+  showCard(timeNote + planePopupHTML(p, heli, uid));
+  if (histMode) document.querySelector("#ac-card .btn-follow")?.remove();
   document.querySelector("#ac-card .btn-follow")
     ?.addEventListener("click", () => { toggleFollow(p.hex); hideCard(); });
   // zdjęcie dociągamy asynchronicznie: karta pojawia się od razu, kadr dochodzi po chwili
@@ -1173,7 +1179,7 @@ function updateAdsb() {
   }
   watchPrev = nowForeign;
   updateWatchBadge(nowForeign.size);
-  if (document.getElementById("watch")?.open) fillWatch();
+  if (document.getElementById("watch")?.open) { fillWatch(); refreshWatchEvents(); }
   // warstwa GL trzyma tylko to, co potrzebne do rysowania — resztę czyta dymek z lookupu
   map.getSource("adsb")?.setData({ type: "FeatureCollection",
     features: planes.filter(p => p.lat != null).map(p => ({ type: "Feature",
@@ -1188,27 +1194,76 @@ function updateAdsb() {
 
 /* Karta obserwacji: obce maszyny w zasięgu teraz + dziennik wejść/wyjść. */
 function fillWatch() {
-  const cur = [...adsbByHex.values()].filter(p => p.foreign && p.lat != null)
+  const at = histMode ? historyAdsbTime : Date.now();
+  const cur = [...(histMode ? historyAdsbByHex : adsbByHex).values()].filter(p => p.foreign && p.lat != null)
     .sort((a, b) => (a.area || "zz").localeCompare(b.area || "zz"));
+  const events = mergedWatchEvents(standalone ? [] : srvAdsbEvents, watchEvents, at);
+  document.getElementById("watch-time").textContent = histMode
+    ? `${UI.isEn ? "HISTORY VIEW" : "PODGLĄD HISTORII"} — ${watchClock(at)}`
+    : (UI.isEn ? "LIVE — current observations" : "NA ŻYWO — bieżące obserwacje");
+  document.getElementById("watch-scope").textContent = histMode
+    ? (UI.isEn ? "Aircraft in the snapshot and earlier last observations" : "Maszyny w migawce i wcześniejsze ostatnie obserwacje")
+    : (UI.isEn ? "Currently in range" : "W zasięgu teraz");
+  document.getElementById("watch-sync").textContent = standalone
+    ? (UI.isEn ? "Fallback: local journal only." : "Tryb awaryjny: wyłącznie dziennik lokalny.")
+    : watchSyncState === "error"
+      ? (UI.isEn ? "Server journal unavailable — showing available cached/local entries." : "Dziennik serwera niedostępny — pokazano dostępne wpisy z pamięci i lokalne.")
+      : watchSyncState === "loading"
+        ? (UI.isEn ? "Loading server journal…" : "Pobieranie dziennika serwera…")
+        : (UI.isEn ? "Server and local journal · last 12 hours · entries no later than the displayed time" : "Dziennik serwera i lokalny · ostatnie 12 godzin · wpisy nie późniejsze niż wyświetlany czas");
   document.getElementById("watch-current").innerHTML = cur.length ? cur.map(p => {
     const c = hexCountry(p.hex);
-    return `<div class="watch-row clickable" data-lat="${p.lat}" data-lon="${p.lon}" data-kind="plane">
+    return `<div class="watch-row clickable" data-hex="${esc(p.hex)}" data-lat="${p.lat}" data-lon="${p.lon}" data-kind="plane">
       <b>${c ? c.flag + " " : ""}${esc(p.callsign || p.hex)}</b>${p.reg ? ` · ${UI.isEn ? "reg." : "rej."} ` + esc(p.reg) : ""}
       <div class="meta">${esc(acName(p.type, p.desc))}${p.area ? ` · ${UI.isEn ? "over" : "nad"}: <b>` + esc(p.area) + "</b>" : ""}
-        ${p.alt != null ? " · " + esc(altText(p.alt)) : ""}</div></div>`;
+        ${p.alt != null ? " · " + esc(altText(p.alt)) : ""}</div>
+        ${p.historicalOnly ? `<div class="fineprint">${UI.isEn ? "Last observation" : "Ostatnia obserwacja"} ${watchClock(p.observedAt)} — ${UI.isEn ? "not in snapshot" : "brak w migawce"}</div>` : ""}</div>`;
   }).join("") : `<div class="fineprint">${UI.isEn
-    ? "No foreign aircraft are currently in range. This is normal — Russian military aircraft usually fly with their transponders off."
-    : "Brak obcych maszyn w zasięgu w tej chwili. To normalne — rosyjskie lotnictwo zwykle leci z wyłączonym transponderem."}</div>`;
-  document.getElementById("watch-events").innerHTML = watchEvents.length ? watchEvents.map(e =>
+    ? "No RU/BY aircraft with a position in this view. No data does not imply an empty airspace."
+    : "Brak maszyn RU/BY z pozycją w tym widoku. Brak danych nie oznacza braku maszyn w powietrzu."}</div>`;
+  document.getElementById("watch-events").innerHTML = events.length ? events.map(e =>
     `<div class="watch-ev"><span class="${e.kind === "enter" ? "ev-in" : "ev-out"}">${e.kind === "enter"
       ? (UI.isEn ? "▲ in range" : "▲ w zasięgu") : (UI.isEn ? "▼ disappeared" : "▼ zniknął")}</span>
-      ${e.flag ? e.flag + " " : ""}${esc(e.label)}${e.area ? " · " + esc(e.area) : ""}
-      <span class="ts">${relTime(new Date(e.t).toISOString())}</span></div>`).join("")
-    : `<div class="fineprint">${UI.isEn ? "No events in this session." : "Brak zdarzeń w tej sesji."}</div>`;
+      ${e.flag ? e.flag + " " : ""}${esc(e.callsign || e.label || e.reg || e.hex)}${e.reg && e.reg !== (e.callsign || e.label || e.reg || e.hex) ? " · " + esc(e.reg) : ""}${e.area ? " · " + esc(e.area) : ""}
+      <span class="ts">${watchClock(e.t)} · ${Math.max(0, Math.floor((at - e.t) / 60000))} min ${UI.isEn ? "before displayed time" : "przed wyświetlanym czasem"}</span></div>`).join("")
+    : `<div class="fineprint">${UI.isEn ? "No recorded events before the displayed time." : "Brak zapisanych zdarzeń przed wyświetlanym czasem."}</div>`;
   document.querySelectorAll("#watch-current .watch-row").forEach(el =>
-    el.addEventListener("click", () => { document.getElementById("watch").close(); focusOnMap(el.dataset); }));
+    el.addEventListener("click", () => {
+      const p = cur.find(p => p.hex === el.dataset.hex);
+      document.getElementById("watch").close(); focusOnMap(el.dataset);
+      if (p) openPlanePopup([p.lon, p.lat], p);
+    }));
 }
-function showWatch() { fillWatch(); document.getElementById("watch").showModal(); }
+function watchClock(t) {
+  return new Date(t).toLocaleTimeString(UI.isEn ? "en-GB" : "pl-PL", {hour:"2-digit",minute:"2-digit",second:"2-digit"});
+}
+let watchSyncState = "loading", watchFetchAt = 0, watchFetchPending = false;
+async function refreshWatchEvents() {
+  if (standalone || watchFetchPending || Date.now() - watchFetchAt < 60000) return;
+  const base = apiBase(); if (!base) return;
+  watchFetchAt = Date.now(); watchFetchPending = true; watchSyncState = "loading";
+  try {
+    const r = await fetch(base + "/api/adsb/watch?hours=12", {signal: AbortSignal.timeout(12000)});
+    if (!r.ok) throw new Error("watch journal unavailable");
+    const j = await r.json();
+    if (!Array.isArray(j.events)) throw new Error("invalid journal");
+    // Ignore responses from a backend that was replaced while the request ran.
+    if (base !== apiBase() || standalone) return;
+    srvAdsbEvents = j.events.map(e => ({...e, t: Date.parse(e.ts)}));
+    watchSyncState = "ok";
+    // The journal may arrive after the snapshot. Refresh the same selection,
+    // never a remembered slider index and never a view that has returned live.
+    if (histMode) {
+      const idx = histTimes.findIndex(ts => Date.parse(ts) === historyAdsbTime);
+      if (idx >= 0) showHistoryAt(idx);
+    }
+  } catch { watchSyncState = "error"; }
+  finally {
+    watchFetchPending = false;
+    if (document.getElementById("watch")?.open) fillWatch();
+  }
+}
+function showWatch() { fillWatch(); document.getElementById("watch").showModal(); refreshWatchEvents(); }
 
 /* ── panel boczny ────────────────────────────────────────────────────────── */
 function relTime(iso) {
@@ -1273,8 +1328,11 @@ function renderPanel() {
   for (const [name, st] of voivs) for (const s of st.signals) sigs.push(s);
   sigs.sort((a, b) => b.ts.localeCompare(a.ts));
   document.getElementById("signal-list").innerHTML = sigList(sigs);
+  renderObservationLists(state);
+}
 
-  const near = (state.neptun?.threats || [])
+function renderObservationLists(viewState) {
+  const near = (viewState.neptun?.threats || [])
     .filter(t => t.pl_assessment && t.pl_assessment.dist_km <= 250)
     .sort((a, b) => a.pl_assessment.dist_km - b.pl_assessment.dist_km);
   document.getElementById("threat-list").innerHTML = near.map(t => {
@@ -1297,7 +1355,7 @@ function renderPanel() {
     </div>`;
   }).join("");
 
-  const planes = state.adsb?.aircraft || [];
+  const planes = viewState.adsb?.aircraft || [];
   document.getElementById("adsb-list").innerHTML = planes.map(p => {
     const role = acRole(p.type, p.desc);
     const heli = isHeli(p.cat, p.type, p.desc);
@@ -1316,6 +1374,7 @@ function renderPanel() {
         ${p.track != null ? ` · ${UI.isEn ? "heading" : "kurs"} ${Math.round(p.track)}° (${compass(p.track)})` : ""}
       </div>
       <div class="meta">${p.reg ? (UI.isEn ? "reg. " : "rej. ") + esc(p.reg) : ""}${p.op ? " · " + esc(p.op) : ""}</div>
+      ${p.historicalOnly ? `<div class="fineprint">${UI.isEn ? "Last observation" : "Ostatnia obserwacja"} ${watchClock(p.observedAt)} — ${UI.isEn ? "not in snapshot" : "brak w migawce"}</div>` : ""}
     </div>`;
   }).join("");
 
@@ -1955,7 +2014,8 @@ function srvRecord(s) {
     destination: t.destination, pl_assessment: t.pl_assessment }));
   const aircraft = (s?.adsb?.aircraft || []).map(a => ({ hex: a.hex, callsign: a.callsign,
     type: a.type, lat: +(+a.lat).toFixed(3), lon: +(+a.lon).toFixed(3), alt: a.alt, gs: a.gs,
-    track: a.track, voivodeship: a.voivodeship, desc: a.desc, cat: a.cat }));
+    track: a.track, voivodeship: a.voivodeship, desc: a.desc, cat: a.cat,
+    reg: a.reg, op: a.op, vr: a.vr, year: a.year }));
   srvSnaps.push({ ts: new Date(now).toISOString(), t: now, threats, aircraft });
   const cut = now - HIST_MS;
   srvSnaps = srvSnaps.filter(sn => sn.t >= cut);
@@ -1977,6 +2037,7 @@ async function seedBundle() {
       srvSnaps.push({ ...sn, t: Date.parse(sn.ts) });
     }
     srvAdsbEvents = (j.adsb_watch_events || []).map(e => ({ ...e, t: Date.parse(e.ts) }));
+    watchSyncState = "ok";
     srvSnaps.sort((a, b) => a.t - b.t);
     srvSeeded = true;
   } catch {}
@@ -1997,13 +2058,30 @@ function historicalAdsbGhosts(events, planes, whenMs) {
   const nearest = new Map();
   for (const e of events || []) {
     const et = e.t ?? Date.parse(e.ts);
-    if (!e.hex || e.lat == null || e.lon == null || Math.abs(et - whenMs) > 150000
+    const age = whenMs - et;
+    if (!e.hex || e.lat == null || e.lon == null || !Number.isFinite(age) || age < 0 || age > 150000
         || planeHexes.has(e.hex)) continue;
     const prev = nearest.get(e.hex);
     if (!prev || Math.abs(et - whenMs) < Math.abs((prev.t ?? Date.parse(prev.ts)) - whenMs))
       nearest.set(e.hex, e);
   }
-  return [...nearest.values()].map(e => ({ ...e, historicalOnly: true, foreign: true }));
+  return [...nearest.values()].map(e => ({ ...e, observedAt: e.t ?? Date.parse(e.ts), historicalOnly: true, foreign: true }));
+}
+
+function mergedWatchEvents(server, local, at) {
+  const valid = list => (list || []).map(e => ({...e, t: e.t ?? Date.parse(e.ts)}))
+    .filter(e => e.hex && Number.isFinite(e.t) && e.t <= at && e.t >= at - 12 * 3600000);
+  const result = valid(server);
+  for (const e of valid(local)) {
+    // Only coalesce copies of the same transition, not successive enter/exit cycles.
+    if (!result.some(s => s.hex === e.hex && s.kind === e.kind && Math.abs(s.t - e.t) <= 60000)) result.push(e);
+  }
+  const keys = new Set();
+  return result.sort((a,b) => b.t-a.t).filter(e => {
+    const key = `${e.hex}|${e.kind}|${e.t}`;
+    if (keys.has(key)) return false;
+    keys.add(key); return true;
+  });
 }
 
 /* Kolorowanie osi czasu: tło suwaka odwzorowuje poziom zagrożenia w każdym
@@ -2052,17 +2130,22 @@ async function toggleHistory() {
   slider.value = String(histTimes.length - 1);
   document.getElementById("btn-history").classList.add("active");
   showHistoryAt(histTimes.length - 1);
+  refreshWatchEvents(); // one small journal request, never one per slider movement
 }
 
 function exitHistory() {
+  if (_scrubRaf) { cancelAnimationFrame(_scrubRaf); _scrubRaf = 0; }
   histMode = false;
+  historyAdsbByHex.clear(); historyAdsbTime = null; hideCard();
   document.body.classList.remove("history-mode");
   document.getElementById("timebar").classList.add("hidden");
   document.getElementById("btn-history").classList.remove("active");
   if (state) { renderPanel(); if (mapReady) { updateVoivStates(); updateAdsb(); } }
+  if (document.getElementById("watch")?.open) fillWatch();
 }
 
 function showHistoryAt(idx) {
+  if (!histMode) return;
   const ts = histTimes[idx];
   if (!ts) return;
   const h = fetchHistory(ts);               // lokalnie, bez sieci — natychmiast
@@ -2079,8 +2162,19 @@ function showHistoryAt(idx) {
   // ADS-B jest odpytywane częściej niż powstają migawki. Zdarzenie wejścia lub
   // wyjścia z ostatnią pozycją wypełnia dwuminutową lukę jako półprzezroczysty
   // ślad. Nie jest sygnałem i nie wnosi punktów.
-  const historyAdsbEvents = standalone ? watchEvents : srvAdsbEvents;
+  const historyAdsbEvents = mergedWatchEvents(standalone ? [] : srvAdsbEvents, watchEvents, when.getTime());
   planes.push(...historicalAdsbGhosts(historyAdsbEvents, planes, when.getTime()));
+  historyAdsbTime = when.getTime();
+  historyAdsbByHex.clear();
+  for (let i = 0; i < planes.length; i++) {
+    const p = planes[i];
+    planes[i] = {...p, foreign:isForeign(p), heli:isHeli(p.cat,p.type,p.desc),
+      area:watchArea(p.lat,p.lon), observedAt:p.observedAt ?? historyAdsbTime};
+    if (p.hex) historyAdsbByHex.set(p.hex, planes[i]);
+  }
+  hideCard();
+  updateWatchBadge(planes.filter(p => p.foreign).length);
+  if (document.getElementById("watch")?.open) fillWatch();
   // Obiekt może pojawić się i zniknąć między migawkami (co 2 min), mimo że jego
   // sygnał pozostaje w oknie 60 min. Pokazujemy wtedy zapisaną pozycję jako
   // półprzezroczysty ślad historyczny, a nie obiekt obecny w migawce.
@@ -2124,7 +2218,8 @@ function showHistoryAt(idx) {
           : tp.level === "elevated" ? "var(--amber)" : "var(--muted)"}">`
         + `${tp.score} ${UI.isEn ? "pts" : "pkt"}${tp.voiv ? ` · ${UI.isEn ? "province" : "woj."} ` + esc(UI.voiv(tp.voiv)) : ""}</b> · `
       : "")
-    + `${threats.length} ${UI.isEn ? "objects" : "obiektów"} · ${planes.length} ${UI.isEn ? "military aircraft" : "maszyn wojskowych"} · `
+    + `${threats.length} ${UI.isEn ? "objects" : "obiektów"} · ${planes.filter(p => !p.historicalOnly).length} ${UI.isEn ? "aircraft in snapshot" : "maszyn w migawce"}`
+    + (planes.some(p => p.historicalOnly) ? ` + ${planes.filter(p => p.historicalOnly).length} ${UI.isEn ? "last observations" : "ostatnich obserwacji"}` : "") + " · "
     + (sigs.length
       ? `<button id="tb-sigs" class="linklike">${sigs.length} ${UI.isEn ? "signals in the window" : "sygnałów w oknie"} ↗</button>`
       : (UI.isEn ? "no signals in the window" : "brak sygnałów w oknie"));
@@ -2132,6 +2227,8 @@ function showHistoryAt(idx) {
 
   if (mapReady) {   // dane lokalne (bufor w RAM) → mapę odświeżamy też podczas
                     // przewijania; scrubTo dławi do jednej klatki (rAF), więc płynnie
+    // Never leave a live followed-aircraft track over historical positions.
+    map.getSource("adsb-trail")?.setData(emptyFC());
     // migawka nie zawiera śladów — rysujemy pozycje historyczne bez animacji
     map.getSource("threats")?.setData({ type: "FeatureCollection",
       features: historyThreats.filter(t => t.lat != null).map(t => ({ type: "Feature",
@@ -2162,6 +2259,7 @@ function showHistoryAt(idx) {
   }
 
   renderHistoryPanel(sigs, perVoiv, when, ageMin);
+  renderObservationLists({neptun:{threats}, adsb:{aircraft:planes}});
 }
 
 /* Panel w trybie historii: karty województw i lista sygnałów z WYBRANEGO

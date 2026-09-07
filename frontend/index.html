@@ -49,7 +49,7 @@ document.documentElement.classList.add(
 </script>
 <link rel="manifest" href="manifest.json">
 <link rel="stylesheet" href="assets/vendor/maplibre-gl.css">
-<link rel="stylesheet" href="style.css?v=1.7.16">
+<link rel="stylesheet" href="style.css?v=1.7.17">
 </head>
 <body>
 
@@ -359,11 +359,13 @@ document.documentElement.classList.add(
 <dialog id="watch">
   <h3>🛰 Obce maszyny nad wschodnią flanką</h3>
   <p class="fineprint">Wojskowe samoloty o rejestracji <b>rosyjskiej lub białoruskiej</b>,
-  widoczne teraz w publicznych danych ADS-B/MLAT nad Bałtykiem, obwodem królewieckim,
-  Białorusią, Litwą, Łotwą, Estonią, Ukrainą i Rumunią. To <b>obserwacja</b> emisji
+  widoczne w publicznych danych ADS-B/MLAT nad wschodnią flanką i w jej otoczeniu.
+  W historii panel pokazuje czas wybrany suwakiem. To <b>obserwacja</b> emisji
   transpondera — nie namierzanie radarowe i nie alarm. Wiele maszyn leci z wyłączonym
   transponderem i tu się nie pojawi; brak na liście nie oznacza braku w powietrzu.</p>
-  <h4 class="watch-h">W zasięgu teraz</h4>
+  <div id="watch-time" class="hist-banner"></div>
+  <p id="watch-sync" class="fineprint"></p>
+  <h4 id="watch-scope" class="watch-h">W zasięgu teraz</h4>
   <div id="watch-current" class="list"></div>
   <h4 class="watch-h">Dziennik — wleciały / zniknęły z zasięgu</h4>
   <div id="watch-events" class="list"></div>
@@ -495,8 +497,8 @@ document.documentElement.classList.add(
      Cloudflare, więc po każdym wydaniu wystarczy podbić ?v= i przeglądarki
      dostają nowe app.js/engine.js OD RAZU, bez ręcznego czyszczenia cache CF.
      Podbijaj ?v= razem z versionName w build.gradle. -->
-<script src="i18n.js?v=1.7.16"></script>
-<script src="engine.js?v=1.7.16"></script>
-<script src="app.js?v=1.7.16"></script>
+<script src="i18n.js?v=1.7.17"></script>
+<script src="engine.js?v=1.7.17"></script>
+<script src="app.js?v=1.7.17"></script>
 </body>
 </html>
