@@ -12,11 +12,13 @@ import logging
 import math
 import random
 import time
+from datetime import datetime, timezone
 
 import httpx
 import websockets
 
 from .. import config, fusion, geo
+from ..neptun_archive import source_metadata
 
 log = logging.getLogger("neptun")
 
@@ -261,6 +263,7 @@ async def _maybe_signal(t: dict):
         source="neptun", event_type="neptun_threat", voivodeship=a["border_voiv"],
         points=points, title=title,
         details={"track_id": t.get("id"), "type": ttype, "count": count,
+                 "source_metadata": source_metadata(t),
                  "lat": t.get("lat"), "lon": t.get("lon"), "heading": t.get("heading"),
                  "confidence": conf, "source_count": sources,
                  "lifecycle": t.get("lifecycle"),
@@ -282,10 +285,20 @@ async def _maybe_signal(t: dict):
     )
 
 
-async def _handle_threats(threats: list[dict], replace: bool):
+async def _handle_threats(threats: list[dict], replace: bool, *,
+                          received_at: float | None = None, transport: str = "unknown",
+                          message_type: str = "unknown", source_message_ts=None):
+    # Receipt time belongs to the incoming batch, never to the later snapshot.
+    received_iso = datetime.fromtimestamp(
+        time.time() if received_at is None else received_at, timezone.utc,
+    ).isoformat(timespec="milliseconds")
     if replace:
         tracks.clear()
     for t in threats:
+        t = dict(t)
+        # Always overwrite this reserved field; the source cannot claim local receipt.
+        t["_receipt"] = {"received_at": received_iso, "transport": transport,
+                         "message_type": message_type, "source_message_ts": source_message_ts}
         t = _evaluate(t)
         tracks[t.get("id")] = t
         await _maybe_signal(t)
@@ -312,9 +325,13 @@ async def _ws_loop():
                     etype = env.get("type")
                     data = env.get("data") or {}
                     if etype == "snapshot":
-                        await _handle_threats(data.get("threats") or [], replace=True)
+                        await _handle_threats(data.get("threats") or [], replace=True,
+                                             received_at=status["last_msg"], transport="ws",
+                                             message_type=etype, source_message_ts=env.get("ts"))
                     elif etype == "upsert":
-                        await _handle_threats([data], replace=False)
+                        await _handle_threats([data], replace=False,
+                                             received_at=status["last_msg"], transport="ws",
+                                             message_type=etype, source_message_ts=env.get("ts"))
                     elif etype == "remove":
                         tracks.pop((data or {}).get("id"), None)
                         if fusion.on_state_change:
@@ -339,9 +356,12 @@ async def _rest_fallback_once():
     try:
         async with httpx.AsyncClient(timeout=15) as c:
             r = await c.get(config.NEPTUN_REST_URL)
+            received_at = time.time()
             r.raise_for_status()
             data = r.json()
-            await _handle_threats(data.get("threats") or [], replace=True)
+            await _handle_threats(data.get("threats") or [], replace=True,
+                                 received_at=received_at, transport="rest",
+                                 message_type="snapshot", source_message_ts=data.get("ts"))
             status["mode"] = "rest-fallback"
             status["last_msg"] = time.time()
     except Exception as e:

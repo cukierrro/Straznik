@@ -10,6 +10,7 @@ from fastapi.staticfiles import StaticFiles
 
 from . import app_updates, config, db, fusion, notify
 from .collectors import adsb, neighbours, neptun, official_alerts, pansa, rcb, rso, rss_media
+from .neptun_archive import source_metadata
 
 logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s %(name)s %(levelname)s %(message)s")
@@ -294,13 +295,14 @@ async def snapshot_loop():
         try:
             db.add_snapshot({
                 "threats": [
-                    {k: t.get(k) for k in ("id", "type", "lat", "lon", "heading",
+                    {**{k: t.get(k) for k in ("id", "type", "lat", "lon", "heading",
                                            "confidenceLevel", "uncertaintyKm", "region",
                                            "locality", "sourceCount", "destination",
                                            # pl_assessment: bez tego karta w historii
                                            # pokazywała „? km" (dist liczony live, ale
                                            # nie persystowany do migawki)
-                                           "pl_assessment")}
+                                           "pl_assessment")},
+                     "source_metadata": source_metadata(t)}
                     for t in neptun.tracks.values() if t.get("lat") is not None],
                 "aircraft": adsb.current_aircraft,
             })
