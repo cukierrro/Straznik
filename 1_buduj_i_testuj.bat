@@ -102,6 +102,10 @@ copy /y "%REPO%\frontend\app.js"     "%APP%\www\app.js"     >nul
 copy /y "%REPO%\frontend\engine.js"  "%APP%\www\engine.js"  >nul
 copy /y "%REPO%\frontend\index.html" "%APP%\www\index.html" >nul
 copy /y "%REPO%\frontend\style.css"  "%APP%\www\style.css"  >nul
+copy /y "%REPO%\frontend\i18n.js" "%APP%\www\i18n.js" >nul
+copy /y "%REPO%\frontend\aircraft-photo-catalog.js" "%APP%\www\aircraft-photo-catalog.js" >nul
+copy /y "%REPO%\frontend\aircraft-photos.js" "%APP%\www\aircraft-photos.js" >nul
+copy /y "%REPO%\frontend\places.js" "%APP%\www\places.js" >nul
 xcopy /e /y /q "%REPO%\frontend\assets" "%APP%\www\assets\" >nul
 pushd "%APP%"
 call npx cap sync android > "%OUT%\3_capsync.txt" 2>&1

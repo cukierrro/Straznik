@@ -21,6 +21,12 @@ Current English captures: `start-en.jpg`, `legend-en.jpg`, `settings-en.jpg`,
 `updates-en.jpg`, `panel-en.jpg`,
 `object-en.jpg`.
 
+The “My places” captures are `places-pl.png` and `places-en.png`: unchanged
+1080 × 2400 PNG screenshots of signed release 1.7.19 (code 49), Pixel 7 /
+Android 14, captured 9 September 2026. They show a voluntary one-time test
+position in Warsaw, stored only in the emulator, and the foreground/background
+explanation. No public test alerts were sent.
+
 The aircraft cards are `aircraft-pl.png` and `aircraft-en.png`: unchanged
 1080 × 2400 screenshots of signed release 1.7.18 (code 48), Pixel 7 / Android 14,
 captured 8 September 2026. They show real RCH5078 / 10-0213 / hex ae4d66

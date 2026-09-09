@@ -87,17 +87,17 @@
       if (el?.firstChild) el.firstChild.nodeValue=(en?eng:pl)+"\n      ";
     };
     many(":scope form > h3", en
-      ? ["My location","Interface language","Alerts while the app is closed","Alert sounds","App version"]
-      : ["Moja lokalizacja","Język interfejsu","Alarmy przy zamkniętej aplikacji","Sygnały dźwiękowe","Wersja aplikacji"]);
+      ? ["My places","Interface language","Alerts while the app is closed","Alert sounds","App version"]
+      : ["Moje miejsca","Język interfejsu","Alarmy przy zamkniętej aplikacji","Sygnały dźwiękowe","Wersja aplikacji"]);
     many(":scope form > p.fineprint:not(#app-version):not(#upd-status)", en ? [
-      "Choose the province where you live. Alerts for your region receive the highest priority and the map starts there.",
+      "Save up to 8 places and choose which provinces you want notifications for. Exact places remain on this device.",
       "Alerts for your province arrive as push notifications even when the app is closed or the phone is asleep. Full-screen permission is required for a red alert to wake the screen.",
       "A full-screen alert wakes the display and appears above the lock screen. Android 14 or later may revoke this permission after an update, so verify it manually.",
       "Yellow (≥2 pts): attention sound and heads-up notification. Red (≥4 pts): modulated siren, vibration and a full-screen alert.",
       "The red siren continues until you acknowledge the alert.",
       "The app checks for a newer release once a day. A dismissed non-critical update can be checked again here."
     ] : [
-      "Wybierz województwo, w którym mieszkasz. Alarmy dla Twojego regionu dostają najwyższy priorytet, a mapa startuje na nim.",
+      "Zapisz do 8 miejsc i wybierz, dla których województw chcesz otrzymywać powiadomienia. Dokładne miejsca zostają na tym urządzeniu.",
       "Alarmy dla Twojego województwa przychodzą jako powiadomienie push — także gdy aplikacja jest zamknięta, ekran wygaszony albo telefon w uśpieniu.",
       "Alarm pełnoekranowy zapala ekran i pokazuje się nad blokadą. Android 14 i nowszy może cofnąć tę zgodę po aktualizacji, dlatego sprawdź ją osobiście.",
       "Żółty poziom (≥2 pkt) — krótki sygnał uwagi i powiadomienie. Czerwony (≥4 pkt) — modulowana syrena, wibracja i alarm pełnoekranowy.",
@@ -109,7 +109,7 @@
     const opts=document.getElementById("set-lang")?.options;
     if(opts?.[0]) opts[0].textContent=en?"Polish":"Polski";
     if(opts?.[1]) opts[1].textContent="English";
-    button("btn-gps","📍 Wykryj z GPS","📍 Detect with GPS");
+    button("btn-places","📍 Otwórz Moje miejsca","📍 Open My places");
     button("btn-notif-settings","🔔 Ustawienia powiadomień","🔔 Notification settings");
     button("btn-battery","🔋 Wyłącz oszczędzanie baterii","🔋 Disable battery optimisation");
     button("btn-test-chime","▶ Test: uwaga","▶ Test: attention");
@@ -226,13 +226,28 @@
       "Notification permission is required. For red alerts, full-screen alert permission is also recommended."
     ]);
     setMany("#settings form > p.fineprint:not(#app-version):not(#upd-status)", [
-      "Choose the province where you live. Alerts for your region receive the highest priority and the map starts there.",
+      "Save up to 8 places and choose which provinces you want notifications for. Exact places remain on this device.",
       "Alerts for your province arrive as push notifications even when the app is closed or the phone is asleep. Full-screen permission is required for a red alert to wake the screen.",
       "A full-screen alert wakes the display and appears above the lock screen. Android 14 or later may revoke this permission after an update, so verify it manually.",
       "Yellow (≥2 pts): attention sound and heads-up notification. Red (≥4 pts): modulated siren, vibration and a full-screen alert.",
       "The red siren continues until you acknowledge the alert.",
       "The app checks for a newer release once a day. A dismissed non-critical update can be checked again here."
     ]);
+    set("#places-dialog h2", "My places");
+    const placesClose=document.getElementById("places-close"); if(placesClose)placesClose.setAttribute("aria-label","Close");
+    set("#places-intro", "A saved place does not indicate your presence. Data remains on this device.");
+    set("#place-add", "＋ Add place");
+    const plabels=document.querySelectorAll("#places-dialog form > label:not(.place-alerts)");
+    ["Place name","Place scope","Province"].forEach((v,i)=>{if(plabels[i]?.firstChild)plabels[i].firstChild.nodeValue=v;});
+    const precision=document.getElementById("place-precision")?.options;
+    if(precision){precision[0].textContent="Province";precision[1].textContent="Province + one-time location";}
+    const placeName=document.getElementById("place-name"); if(placeName)placeName.placeholder="e.g. Home";
+    set("#place-gps", "◎ Read location once"); set("#place-gps-remove", "Remove saved position");
+    const alerts=document.querySelector(".place-alerts"); if(alerts?.firstChild)alerts.firstChild.nodeValue="Watch alerts for this province ";
+    set("#places-alert-model", "How it works: when the app is closed, in the background or the screen is locked, you receive a province-level alert. After it arrives, open Strażnik and keep it in the foreground — for a saved exact location the app locally shows distance and, when heading and speed allow it, an estimated arrival time.");
+    set("#places-privacy", "Several places in the same province create one notification subscription. Province names are shared with the notification provider; place names and coordinates are not sent to the VPS or notifications.");
+    set("#place-delete", "Delete place"); set("#place-cancel", "Cancel changes");
+    const submit=document.querySelector('#places-form button[type="submit"]'); if(submit)submit.textContent="Save on device";
     document.querySelectorAll("dialog menu button, #src-close, #watch-close, #cam-close").forEach(el => {
       if (el.textContent.trim() === "Zamknij") el.textContent = "Close";
     });

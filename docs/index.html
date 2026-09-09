@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Strażnik 1.7.18 — instrukcja użytkownika</title>
+<title>Strażnik 1.7.19 — instrukcja użytkownika</title>
 <meta name="description" content="Aktualna instrukcja Strażnika: instalacja i aktualizacje Android, alarmy, mapa, nowe ikony, historia, języki i punktacja. Zrzuty z Pixela 7.">
 <link rel="canonical" href="https://cukierrro.github.io/Straznik/">
 <link rel="alternate" hreflang="pl" href="https://cukierrro.github.io/Straznik/">
@@ -33,11 +33,11 @@
   <div class="languages" aria-label="Język instrukcji"><a href="index.html" lang="pl" aria-current="page">PL</a><a href="en.html" lang="en" hreflang="en">EN</a></div>
 </div></nav>
 <header class="hero"><div class="wrap hero-grid">
-  <div><div class="eyebrow">Instrukcja użytkownika · wersja 1.7.18</div>
+  <div><div class="eyebrow">Instrukcja użytkownika · wersja 1.7.19</div>
     <h1>Sytuacja na mapie.<br>Źródła za każdym sygnałem.</h1>
     <p class="lead">Strażnik łączy publiczne informacje o zagrożeniach powietrznych i pokazuje ich punktację dla polskich województw. Dostępny na Androidzie i w przeglądarce.</p>
     <div class="actions"><a class="button primary" href="https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk">↓ Pobierz aplikację</a><a class="button" href="https://straznik.eu">Otwórz mapę</a></div>
-    <p class="fineprint">Instrukcja dla 1.7.18. Karta samolotu: 8 września 2026, Pixel 7, Android 14. Historia i panel 🛰: 1.7.17, 7 września; pozostałe niezmienione ekrany: 1.7.16, 6 września. Starsze przykłady oznaczono osobno. Dotknij zdjęcia, aby otworzyć je w pełnym rozmiarze.</p>
+    <p class="fineprint">Instrukcja dla 1.7.19. „Moje miejsca”: 9 września 2026, Pixel 7, Android 14. Karta samolotu: 1.7.18, 8 września; pozostałe niezmienione ekrany opisano przy zrzutach. Dotknij zdjęcia, aby otworzyć je w pełnym rozmiarze.</p>
   </div>
   <a class="shot-link" href="screens/01_start.jpg"><img src="screens/01_start.jpg" width="1080" height="2400" alt="Strażnik 1.7.16 na Pixelu 7: mapa Polski i sześć zielonych diod źródeł"></a>
 </div></header>
@@ -68,17 +68,20 @@
   </div>
 </section>
 <section id="konfiguracja">
-  <h2>2. Województwo, język i zgody</h2>
+  <h2>2. Moje miejsca, język i zgody</h2>
   <div class="split">
     <div>
-      <p>Otwórz <kbd>⚙</kbd>, wybierz jedno z 16 województw i naciśnij <kbd>Zapisz</kbd>. To region powiadomień, startowego widoku mapy i karty „mój region”. Bez wyboru subskrypcja obejmuje cztery województwa wschodnie: lubelskie, podkarpackie, podlaskie i warmińsko-mazurskie.</p>
-      <p><kbd>Wykryj z GPS</kbd> opcjonalnie rozpoznaje województwo na urządzeniu. Współrzędne nie są wysyłane do serwera Strażnika.</p>
+      <p>Otwórz <kbd>⚙</kbd> → <kbd>Otwórz Moje miejsca</kbd>. Możesz zapisać do 8 profili, np. Dom, Praca i Wyjazd. Dla każdego wybierasz województwo oraz opcjonalnie dobrowolną jednorazową lokalizację. Obecne powiadomienia są kierowane według województwa.</p>
+      <p>Przełącznik <kbd>Obserwuj alerty</kbd> tworzy subskrypcję dla województwa. Kilka miejsc w tym samym regionie daje jedną subskrypcję. Wyłączenie obserwacji nie usuwa profilu. Pierwsze zapisane miejsce jest regionem startowym mapy; stary wybór województwa po aktualizacji zostaje przeniesiony do profilu „Dom”.</p>
+      <p>Jednorazowa lokalizacja działa wyłącznie po dotknięciu przycisku i zapisuje punkt, dokładność oraz czas odczytu. Nie ma śledzenia w tle ani internetowego wyszukiwania adresów. Punkt można usunąć osobno.</p>
+      <p><b>Dwa poziomy działania:</b> gdy aplikacja jest zamknięta, zminimalizowana albo ekran jest zablokowany, powiadomienie dotyczy województwa. Po jego otrzymaniu otwórz Strażnika i pozostaw go na pierwszym planie. Dla zapisanej dokładnej lokalizacji aplikacja obliczy na urządzeniu odległość do widocznego obiektu. Orientacyjny czas pokaże tylko wtedy, gdy zna rzeczywistą prędkość i kurs prowadzi w stronę punktu; w przeciwnym razie wyraźnie poda, że ETA nie można wiarygodnie oszacować.</p>
+      <p>To obliczenie nie jest osobnym alarmem odległościowym i nie działa niezawodnie w tle. Zakłada niezmienny kurs, może się zmienić wraz z nowymi danymi i nie zastępuje komunikatów RCB, RSO ani poleceń służb.</p>
       <h3>Polski / English</h3>
       <p>Wybór języka od razu zmienia podgląd ustawień. <kbd>Zapisz</kbd> zatwierdza wybór i odświeża aplikację; <kbd>Anuluj</kbd> zachowuje poprzedni język. Angielska wersja obejmuje interfejs, opisy obiektów i samolotów oraz nazwy na mapie. Gdy brak nazwy angielskiej, może pozostać nazwa źródłowa. Cytowane treści zewnętrznych komunikatów nie muszą być przetłumaczone.</p>
       <h3>Powiadomienia</h3>
       <p>W ustawieniach sprawdź powiadomienia systemowe, kanały alarmów i zgodę na alarm pełnoekranowy. Dostępny jest również skrót do wyłączenia optymalizacji baterii dla aplikacji. Działanie zależy od ustawień i ograniczeń telefonu.</p>
     </div>
-    <figure><a class="shot-link" href="screens/settings-pl.jpg"><img loading="lazy" src="screens/settings-pl.jpg" width="1080" height="2400" alt="Wybór województwa, języka polskiego oraz ustawienia push i pełnego ekranu"></a><figcaption>Region, język i zgody w bieżącej wersji.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/places-pl.png"><img loading="lazy" src="screens/places-pl.png" width="1080" height="2400" alt="Moje miejsca w aplikacji 1.7.19: profil Dom, jednorazowa dokładna lokalizacja i obserwacja alertów województwa"></a><figcaption>Rzeczywisty ekran „Moje miejsca” z testowym jednorazowym punktem w Warszawie, zapisanym tylko w emulatorze. Pixel 7, APK 1.7.19, 9 września 2026.</figcaption></figure>
   </div>
 </section>
 <section id="mapa">
@@ -105,7 +108,7 @@
   <h3 id="zdjecia">Podgląd obiektu i zdjęcia</h3>
   <p>Karta obiektu podaje typ, rejon, liczbę potwierdzeń, wiarygodność, niepewność pozycji, kurs, odległość od Polski i — gdy można go oszacować — czas dolotu. Ilustracje AI są podpisane jako poglądowe: nie przedstawiają śledzonego egzemplarza i nie służą do rozpoznawania modelu.</p>
   <p>Po dotknięciu samolotu ADS-B zobaczysz znak wywoławczy, rejestrację, kraj, model, przeznaczenie, wysokość, prędkość i kurs, zależnie od dostępnych danych. <kbd>Śledź trasę</kbd> pozwala obserwować zebrany ślad. Brak transpondera lub odbioru oznacza brak pozycji — mapa nie pokazuje wszystkich maszyn wojskowych.</p>
-  <p><b>Fotografie modeli (1.7.18):</b> karta samolotu lub śmigłowca korzysta z lokalnej biblioteki prawdziwych zdjęć. To przykładowy egzemplarz, nie śledzona maszyna; wyposażenie i podwariant mogą się różnić. Pod zdjęciem znajdziesz autora, źródło i licencję. Krótka rejestracja nie wystarcza do doboru fotografii. Gdy wariant jest nieznany lub dane są sprzeczne, pojawia się „Brak zweryfikowanego zdjęcia tego modelu/wariantu”. Dalszą telemetrię zobaczysz, przewijając kartę. Zdjęcia w APK działają także offline, co nie oznacza dostępu do bieżących pozycji bez internetu.</p>
+  <p><b>Fotografie modeli (1.7.19):</b> karta samolotu lub śmigłowca korzysta z lokalnej biblioteki prawdziwych zdjęć. To przykładowy egzemplarz, nie śledzona maszyna; wyposażenie i podwariant mogą się różnić. Gdy dostawca podaje znany kod typu bez opisu wariantu, aplikacja pokazuje sprawdzony przykład rodziny zamiast pustego miejsca. Wyraźnie sprzeczny opis nadal blokuje zdjęcie. Biblioteka obejmuje też Boeing 737-800. Pod fotografią znajdziesz autora, źródło i licencję.</p>
   <div class="shots">
     <figure><a class="shot-link" href="screens/object-pl.jpg"><img loading="lazy" src="screens/object-pl.jpg" width="1080" height="2400" alt="Karta drona z podpisaną ilustracją AI i parametrami obserwacji po polsku"></a><figcaption>Podgląd obiektu z ilustracją poglądową oraz informacjami ze źródła.</figcaption></figure>
     <figure><a class="shot-link" href="screens/aircraft-pl.png"><img loading="lazy" src="screens/aircraft-pl.png" width="1080" height="2400" alt="RCH5078, C-17: polska karta historii z przykładową fotografią modelu, autorem, źródłem i licencją"></a><figcaption>Rzeczywista obserwacja RCH5078; fotografia przedstawia inny egzemplarz C-17. Pixel 7, APK 1.7.18, 8 września 2026. Kartę można przewijać.</figcaption></figure>
@@ -229,7 +232,7 @@
 </section>
 <section id="prywatnosc">
   <h2>13. Prywatność i źródła</h2>
-  <p>Brak konta, reklam i analityki zachowania użytkownika. Ustawienia zapisują się lokalnie. Wybrany region służy też do subskrypcji powiadomień; infrastruktura push obsługuje identyfikator subskrypcji urządzenia lub przeglądarki. GPS służy opcjonalnemu rozpoznaniu województwa na urządzeniu.</p>
+  <p>Brak konta, reklam i analityki zachowania użytkownika. Profile „Moich miejsc”, nazwy, miasta, adresy i jednorazowe punkty lokalizacji zapisują się lokalnie; kopia zapasowa Androida dla aplikacji jest wyłączona. Na VPS Strażnika ani do treści powiadomień nie trafia dokładna lokalizacja. Do dostawcy push przekazywane są nazwy obserwowanych województw oraz identyfikator subskrypcji urządzenia. System lokalizacji telefonu może korzystać z dostawców systemowych i sieciowych, dlatego nie obiecujemy, że sam odczyt pozycji jest całkowicie offline.</p>
   <p>Serwer i dostawcy map, powiadomień, zdjęć oraz danych otrzymują żądania sieciowe i mogą prowadzić zwykłe logi techniczne. Brak telemetrii aplikacji nie oznacza braku takiego ruchu. Historia serwerowa po pobraniu jest przewijana w pamięci urządzenia; tryb wbudowany zapisuje własne migawki lokalnie. Rozmiar zależy od liczby danych i obejmuje kroczące okno 12 godzin.</p>
   <p class="source-links">Dane: <a href="https://neptun.in.ua">NEPTUN</a> · <a href="https://adsb.lol">adsb.lol</a> / adsb.fi i dostawcy zapasowi · <a href="https://www.gov.pl/web/rcb">RCB</a> / RSO · <a href="https://airspace.pansa.pl">PAŻP</a> · media regionalne i bałtyckie · strefy sąsiadów. Mapa: <a href="https://openfreemap.org">OpenFreeMap</a>, © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>. Zdjęcia maszyn i ich autorzy są podpisani w podglądach.</p>
 </section>

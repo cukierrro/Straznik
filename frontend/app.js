@@ -250,20 +250,41 @@ function etaInfo(t) {
 }
 const etaTxt = (m) => m == null ? null : (m < 1 ? "<1 min" : `~${m} min`);
 
+function localPlaceHtml(t) {
+  if (histMode || t.historicalOnly || !Places?.exactPoint) return "";
+  const exact = savedPlaces.filter(place => place.precision === "gps" && place.gps);
+  if (!exact.length || t.lat == null || t.lon == null) return "";
+  const measuredSpeed = measuredTrackSpeed(t);
+  const rows = exact.map(place => {
+    const info = Places.exactPoint(place, t, measuredSpeed, ETA_SOURCE_BUFFER_MIN);
+    if (!info) return "";
+    const distance = info.distanceKm < 10 ? info.distanceKm.toFixed(1) : Math.round(info.distanceKm);
+    let detail;
+    if (info.etaMin != null) detail = ` · ⏱ <b>${etaTxt(info.etaMin)}</b>`;
+    else if (info.reason === "course") detail = ` · <span style="color:#ffb020">${UI.isEn ? "not heading towards this point" : "kurs nie prowadzi do tego punktu"}</span>`;
+    else detail = ` · <span style="color:#ffb020">${UI.isEn ? "ETA unavailable — insufficient heading or speed data" : "brak ETA — za mało danych o kursie lub prędkości"}</span>`;
+    return `<div><b>${esc2(place.name)}</b>: ${distance} km${detail}</div>`;
+  }).filter(Boolean).join("");
+  if (!rows) return "";
+  return `<div class="local-place-eta"><div>${UI.isEn ? "To saved exact locations" : "Do zapisanych dokładnych lokalizacji"}</div>${rows}<small>${UI.isEn ? "calculated only on this device while the app is in the foreground; ETA assumes unchanged heading and deducts 2.5 min for data delay" : "liczone tylko na tym urządzeniu, gdy aplikacja jest na pierwszym planie; ETA zakłada niezmienny kurs i odejmuje 2,5 min na opóźnienie danych"}</small></div>`;
+}
+
 /* Wiersz „czas dolotu" do karty obiektu. Świadomie piszemy „przy tej prędkości",
    a NIE „czas na schronienie": to szacunek z prędkości typowej dla klasy, obiekt
    może skręcić albo zostać zestrzelony. Obiecywanie pewności byłoby groźne. */
 function etaHtml(t) {
   const e = etaInfo(t);
   if (!e || e.border == null) {
-    return t.pl_assessment && t.pl_assessment.heading_known === false
+    const base = t.pl_assessment && t.pl_assessment.heading_known === false
       ? `<span style="color:#ffb020">${UI.isEn ? "unknown heading — arrival time is not estimated" : "kurs nieznany — czasu dolotu nie szacujemy"}</span><br>`
       : "";
+    return base + localPlaceHtml(t);
   }
   const mine = (e.voiv != null && e.voivName)
     ? ` · ${UI.isEn ? "to" : "do woj."} ${esc2(UI.voiv(e.voivName))}: <b>${etaTxt(e.voiv)}</b>` : "";
   return `${UI.isEn ? "conservative time to the Polish border" : "konserwatywny czas dolotu do granicy PL"}: <b>${etaTxt(e.border)}</b>${mine}<br>`
-    + `<span style="color:#68758c">${UI.isEn ? `estimate at ${e.speed} km/h with unchanged heading; 2.5 min deducted for data delay — air defence not included` : `szacunek przy prędkości ${e.speed} km/h i utrzymaniu kursu; odjęto 2,5 min na opóźnienie danych — nie uwzględnia obrony powietrznej`}</span><br>`;
+    + `<span style="color:#68758c">${UI.isEn ? `estimate at ${e.speed} km/h with unchanged heading; 2.5 min deducted for data delay — air defence not included` : `szacunek przy prędkości ${e.speed} km/h i utrzymaniu kursu; odjęto 2,5 min na opóźnienie danych — nie uwzględnia obrony powietrznej`}</span><br>`
+    + localPlaceHtml(t);
 }
 
 const COMPASS = UI.isEn ? ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
@@ -279,8 +300,10 @@ const ALL_VOIVS = ["dolnośląskie","kujawsko-pomorskie","lubelskie","lubuskie",
   "małopolskie","mazowieckie","opolskie","podkarpackie","podlaskie","pomorskie","śląskie",
   "świętokrzyskie","warmińsko-mazurskie","wielkopolskie","zachodniopomorskie"];
 
-/* moja lokalizacja — sterowanie kamerą i priorytetem alarmów */
-const myVoiv = () => localStorage.getItem("straznik_voiv") || null;
+/* Lokalne profile miejsc. Nazwy i GPS nie są używane w żądaniach API. */
+const Places = window.StraznikPlaces;
+let savedPlaces = Places?.migrate(localStorage) || [];
+const myVoiv = () => Places?.primaryVoivodeship(savedPlaces) || localStorage.getItem("straznik_voiv") || null;
 let voivGeo = null;   // GeoJSON województw (do GPS → województwo i do centrowania)
 
 /* widok startowy: cała Polska + zachodnia Ukraina (kierunek nadlotu) */
@@ -1065,7 +1088,8 @@ function cleanTrail(t) {
    więc bez tego dead-reckoning nigdy by nie ruszył znacznika. */
 const TYPE_SPEED_KMH = { uav: 180, shahed: 180, fpv: 100, missile: 800, cruise: 800,
   ballistic: 3000, kab: 900, mig31k: 900 };
-function trackSpeed(t) {
+function measuredTrackSpeed(t) {
+  if (Number.isFinite(+t.velocity?.speedKmh) && +t.velocity.speedKmh > 0) return +t.velocity.speedKmh;
   const tr = cleanTrail(t);
   if (tr.length >= 2) {
     const a = tr[tr.length - 2], b = tr[tr.length - 1];
@@ -1077,7 +1101,10 @@ function trackSpeed(t) {
       if (v > 20 && v < 4000) return v;      // odrzuć artefakty
     }
   }
-  return TYPE_SPEED_KMH[t.type] ?? null;     // zapas: prędkość typowa dla klasy
+  return null;
+}
+function trackSpeed(t) {
+  return measuredTrackSpeed(t) ?? TYPE_SPEED_KMH[t.type] ?? null; // zapas mapy: prędkość typowa dla klasy
 }
 
 /* dead-reckoning między aktualizacjami serwera (jak predict() w SDK Neptuna) */
@@ -1343,6 +1370,7 @@ function renderObservationLists(viewState) {
           ? `<div class="meta eta-row">⏱ ${UI.isEn ? "to border" : "do granicy"} <b>${etaTxt(e.border)}</b>${
               e.voiv != null ? ` · ${UI.isEn ? "to" : "do woj."} ${esc(UI.voiv(e.voivName))} <b>${etaTxt(e.voiv)}</b>` : ""}</div>`
           : ""; })()}
+      ${localPlaceHtml(t)}
       <div class="meta">${UI.isEn ? "confidence" : "wiarygodność"}: ${esc(UI.confidence(t.confidenceLevel, CONF_PL[t.confidenceLevel] || t.confidenceLevel))}
         · ±${esc(t.uncertaintyKm)} km · ${esc(threatDesc(t))} · ${relTime(t.updatedAt)}</div>
     </div>`;
@@ -2317,6 +2345,18 @@ document.getElementById("tb-slider").addEventListener("change", (e) => {
 
 /* ── UI: ustawienia (moja lokalizacja), 3D, panel ────────────────────────── */
 const dlg = document.getElementById("settings");
+function syncObservedRegions() {
+  const regions=Places?.observedVoivodeships(savedPlaces)||[];
+  const plugin=BG();
+  if(plugin?.setObservedVoivodeships) return plugin.setObservedVoivodeships({voivodeships:regions});
+  return plugin?.setHomeVoivodeship?.({voivodeship:myVoiv()||""});
+}
+function renderPlacesSummary() {
+  const el=document.getElementById("places-summary"); if(!el)return;
+  if(!savedPlaces.length){el.textContent=UI.isEn?"No saved places yet.":"Nie zapisano jeszcze żadnego miejsca.";return;}
+  const watched=Places.observedVoivodeships(savedPlaces).map(v=>UI.voiv(v));
+  el.textContent=(UI.isEn?`${savedPlaces.length}/8 places. Watched provinces: `:`${savedPlaces.length}/8 miejsc. Obserwowane województwa: `)+(watched.join(", ")||(UI.isEn?"none":"brak"));
+}
 function openSettings() {
   UI.previewSettings?.(UI.lang || "pl");
   refreshBgStatus();
@@ -2325,6 +2365,7 @@ function openSettings() {
     ALL_VOIVS.map(v => `<option value="${esc(v)}"${v === myVoiv() ? " selected" : ""}>${esc(UI.voiv(v))}</option>`).join("");
   const langSel = document.getElementById("set-lang"); if (langSel) langSel.value = UI.lang || "pl";
   document.getElementById("set-api").value = localStorage.getItem("straznik_api") || "";
+  renderPlacesSummary();
   dlg.showModal();
 }
 document.getElementById("btn-settings").onclick = () => openSettings();
@@ -2332,17 +2373,6 @@ document.getElementById("set-lang")?.addEventListener("change", (event) => {
   UI.previewSettings?.(event.target.value);
   refreshBgStatus(event.target.value);
 });
-document.getElementById("btn-gps").onclick = () => {
-  if (!navigator.geolocation) return alert("Brak dostępu do GPS w tym środowisku.");
-  navigator.geolocation.getCurrentPosition(
-    (pos) => {
-      const v = voivAt(pos.coords.longitude, pos.coords.latitude);
-      if (!v) return alert("Twoja pozycja jest poza granicami Polski — wybierz województwo ręcznie.");
-      document.getElementById("set-voiv").value = v;
-    },
-    (err) => alert("Nie udało się ustalić pozycji: " + err.message),
-    { enableHighAccuracy: false, timeout: 10000, maximumAge: 600000 });
-};
 document.getElementById("set-save").onclick = (event) => {
   const api = document.getElementById("set-api").value.trim();
   if (api && !validBackendUrl(api)) {
@@ -2350,11 +2380,9 @@ document.getElementById("set-save").onclick = (event) => {
     alert("Własny serwer wymaga adresu HTTPS bez loginu, hasła, parametrów ani fragmentu. Wpisz bezpieczny adres lub wyczyść pole, aby wybrać serwer Strażnika.");
     return;
   }
-  const v = document.getElementById("set-voiv").value;
+  const v = myVoiv() || "";
   const nextLang = document.getElementById("set-lang")?.value || "pl";
-  if (v) localStorage.setItem("straznik_voiv", v); else localStorage.removeItem("straznik_voiv");
-  // warstwa natywna zapisuje region i przepina subskrypcję tematu FCM (voiv_<region>)
-  BG()?.setHomeVoivodeship({ voivodeship: v || "" });
+  syncObservedRegions();
   const apiChanged = api !== (localStorage.getItem("straznik_api") || "");
   if (api) localStorage.setItem("straznik_api", api); else localStorage.removeItem("straznik_api");
   const langChanged = nextLang !== (UI.lang || "pl");
@@ -2367,6 +2395,47 @@ document.getElementById("set-save").onclick = (event) => {
   }
   if (state) renderPanel();
 };
+
+/* ── Moje miejsca: zapis lokalny, bez geokodowania i ruchu w tle ── */
+const placesDlg=document.getElementById("places-dialog");
+let placeDraft=null, placeSnapshot="";
+const placeEl=id=>document.getElementById(id);
+const placeText=(pl,en)=>UI.isEn?en:pl;
+function draftFromForm(){return Places.clean({id:placeEl("place-id").value,name:placeEl("place-name").value,precision:placeEl("place-precision").value,region:placeEl("place-region").value,gps:placeDraft?.gps||null,alerts:placeEl("place-alerts").checked});}
+function placeDirty(){return placeSnapshot&&JSON.stringify(draftFromForm())!==placeSnapshot;}
+function fillPlace(place){
+  placeDraft=Places.clean(place); placeSnapshot=JSON.stringify(placeDraft);
+  placeEl("place-id").value=placeDraft.id; placeEl("place-name").value=placeDraft.name; placeEl("place-precision").value=placeDraft.precision; placeEl("place-region").value=placeDraft.region; placeEl("place-alerts").checked=placeDraft.alerts; placeEl("place-feedback").textContent="";
+  placeEl("place-delete").hidden=!savedPlaces.some(p=>p.id===placeDraft.id);
+  renderPlacePrecision(); renderPlaceTabs();
+}
+function renderPlaceTabs(){
+  placeEl("places-tabs").innerHTML=savedPlaces.map(p=>`<button type="button" class="chip${p.id===placeDraft?.id?' active':''}" data-id="${esc(p.id)}">${esc(p.name)}</button>`).join("");
+  placeEl("places-tabs").querySelectorAll("button").forEach(b=>b.onclick=()=>{if(placeDirty()&&!confirm(placeText("Odrzucić niezapisane zmiany?","Discard unsaved changes?")))return;fillPlace(savedPlaces.find(p=>p.id===b.dataset.id));});
+}
+function renderPlacePrecision(){
+  const precision=placeEl("place-precision").value;
+  placeEl("place-gps-row").hidden=precision!=='gps';
+  const gps=placeDraft?.gps; placeEl("place-gps-status").textContent=gps?`${placeText("Zapisano jednorazowo","Saved once")}: ${gps.lat.toFixed(5)}, ${gps.lon.toFixed(5)} · ±${Math.round(gps.accuracy)} m · ${new Date(gps.capturedAt).toLocaleString(UI.isEn?"en-GB":"pl-PL")}`:placeText("Lokalizacja jest wyłączona.","Location is off."); placeEl("place-gps-remove").hidden=!gps;
+}
+function openPlaces(){
+  savedPlaces=Places.migrate(localStorage); placeEl("place-region").innerHTML=ALL_VOIVS.map(v=>`<option value="${esc(v)}">${esc(UI.voiv(v))}</option>`).join("");
+  fillPlace(savedPlaces[0]||{id:crypto.randomUUID?.()||String(Date.now()),name:"",precision:"region",region:myVoiv()||"lubelskie",alerts:true}); placesDlg.showModal();
+}
+placeEl("btn-places").onclick=()=>{dlg.close();openPlaces();};
+placeEl("places-close").onclick=()=>{if(!placeDirty()||confirm(placeText("Odrzucić niezapisane zmiany?","Discard unsaved changes?")))placesDlg.close();};
+placeEl("place-add").onclick=()=>{if(savedPlaces.length>=8)return alert(placeText("Możesz zapisać maksymalnie 8 miejsc.","You can save up to 8 places."));if(placeDirty()&&!confirm(placeText("Odrzucić niezapisane zmiany?","Discard unsaved changes?")))return;fillPlace({id:crypto.randomUUID?.()||String(Date.now()),name:"",precision:"region",region:myVoiv()||"lubelskie",alerts:false});};
+placeEl("place-precision").onchange=()=>{placeDraft={...placeDraft,precision:placeEl("place-precision").value,gps:placeEl("place-precision").value==='gps'?placeDraft?.gps:null};renderPlacePrecision();};
+placeEl("place-gps").onclick=()=>{
+  if(!navigator.geolocation)return alert(placeText("Brak dostępu do lokalizacji w tym środowisku.","Location is unavailable in this environment."));
+  placeEl("place-gps-status").textContent=placeText("Oczekiwanie na zgodę i jednorazowy odczyt…","Waiting for permission and a one-time reading…");
+  navigator.geolocation.getCurrentPosition(pos=>{const region=voivAt(pos.coords.longitude,pos.coords.latitude);if(!region)return alert(placeText("Pozycja jest poza granicami Polski.","The position is outside Poland."));placeDraft={...placeDraft,region,gps:{lat:pos.coords.latitude,lon:pos.coords.longitude,accuracy:pos.coords.accuracy,capturedAt:new Date().toISOString()}};placeEl("place-region").value=region;renderPlacePrecision();},err=>{placeEl("place-gps-status").textContent=placeText("Nie udało się pobrać pozycji: ","Could not read the position: ")+err.message;},{enableHighAccuracy:true,timeout:15000,maximumAge:0});
+};
+placeEl("place-gps-remove").onclick=()=>{placeDraft={...placeDraft,gps:null};renderPlacePrecision();};
+placeEl("place-cancel").onclick=()=>{const saved=savedPlaces.find(p=>p.id===placeDraft?.id);if(saved)fillPlace(saved);else placesDlg.close();};
+placeEl("place-delete").onclick=()=>{const found=savedPlaces.some(p=>p.id===placeDraft?.id);if(!found)return placesDlg.close();if(!confirm(placeText("Usunąć to miejsce z urządzenia?","Delete this place from the device?")))return;savedPlaces=Places.save(localStorage,savedPlaces.filter(p=>p.id!==placeDraft.id));syncObservedRegions();if(savedPlaces.length)fillPlace(savedPlaces[0]);else placesDlg.close();renderPlacesSummary();};
+placeEl("places-form").onsubmit=event=>{event.preventDefault();const clean=draftFromForm();if(!clean.name||!clean.region||(clean.precision==='gps'&&!clean.gps)){placeEl("place-feedback").textContent=placeText("Uzupełnij nazwę i wybraną lokalizację.","Enter a name and the selected location.");return;}const idx=savedPlaces.findIndex(p=>p.id===clean.id);if(idx<0&&savedPlaces.length>=8)return;savedPlaces=Places.save(localStorage,idx<0?[...savedPlaces,clean]:savedPlaces.map(p=>p.id===clean.id?clean:p));syncObservedRegions();fillPlace(clean);placeEl("place-feedback").textContent=placeText("Zapisano tylko na tym urządzeniu.","Saved on this device only.");renderPlacesSummary();if(mapReady){for(const id of ["my-voiv","my-voiv-glow"])if(map.getLayer(id))map.setFilter(id,["==",["get","nazwa"],myVoiv()||"—"]);}};
+
 /* ── widoczny stan nasłuchu w tle ────────────────────────────────────────── */
 /* Nasłuch jest domyślnie wyłączony, a bez niego alarmy docierają wyłącznie przy
    otwartej aplikacji. Ukrycie tej informacji w ustawieniach sprawiało, że
@@ -2585,7 +2654,7 @@ async function ensureAlarmPermissions() {
   const plugin = BG(); if (!plugin) return false;
   if (window.Capacitor?.Plugins?.LocalNotifications)
     await window.Capacitor.Plugins.LocalNotifications.requestPermissions();
-  try { await plugin.setHomeVoivodeship({ voivodeship: myVoiv() || "" }); } catch {}
+  try { await syncObservedRegions(); } catch {}
   return true;
 }
 
@@ -2737,6 +2806,6 @@ setInterval(refreshBgWarning, 60000);
    województwo we wcześniejszej wersji i po aktualizacji nie zajrzał do ustawień,
    miał pusty region — a wtedy telefon subskrybował tylko cztery tematy
    przygraniczne i nie dostawał pusha o własnym województwie. */
-setTimeout(() => BG()?.setHomeVoivodeship({ voivodeship: myVoiv() || "" }), 2500);
+setTimeout(() => syncObservedRegions(), 2500);
 if ("serviceWorker" in navigator && !IS_APP)
   navigator.serviceWorker.register("sw.js").catch(() => {});

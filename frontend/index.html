@@ -49,7 +49,7 @@ document.documentElement.classList.add(
 </script>
 <link rel="manifest" href="manifest.json">
 <link rel="stylesheet" href="assets/vendor/maplibre-gl.css">
-<link rel="stylesheet" href="style.css?v=1.7.18">
+<link rel="stylesheet" href="style.css?v=1.7.19-2">
 </head>
 <body>
 
@@ -413,16 +413,12 @@ document.documentElement.classList.add(
 
 <dialog id="settings">
   <form method="dialog">
-    <h3>Moja lokalizacja</h3>
-    <p class="fineprint">Wybierz województwo, w którym mieszkasz. Alarmy dla
-    Twojego regionu dostają najwyższy priorytet, a mapa startuje na nim.
-    Zdarzenia na wschodzie podnoszą czujność również w regionach centralnych
-    i zachodnich (przeniesienie sygnału do sąsiadów).</p>
-    <label>Województwo
-      <select id="set-voiv"></select>
-    </label>
-    <button type="button" id="btn-gps" class="chip" style="margin-top:10px">
-      📍 Wykryj z GPS</button>
+    <h3>Moje miejsca</h3>
+    <p class="fineprint">Zapisz do 8 miejsc i wybierz, dla których województw chcesz
+    otrzymywać powiadomienia. Dokładne miejsca zostają na tym urządzeniu.</p>
+    <div id="places-summary" class="fineprint">Nie zapisano jeszcze żadnego miejsca.</div>
+    <button type="button" id="btn-places" class="chip primary" style="margin-top:10px">📍 Otwórz Moje miejsca</button>
+    <select id="set-voiv" hidden aria-hidden="true"></select>
 
     <h3 style="margin-top:16px">Język interfejsu</h3>
     <label>Język interfejsu
@@ -492,15 +488,35 @@ document.documentElement.classList.add(
   </form>
 </dialog>
 
+<dialog id="places-dialog" class="places-dialog">
+  <form id="places-form">
+    <div class="places-head"><div><div class="eyebrow">STRAŻNIK</div><h2>Moje miejsca</h2></div><button type="button" id="places-close" class="chip" aria-label="Zamknij">✕</button></div>
+    <p class="fineprint" id="places-intro">Zapisane miejsce nie oznacza Twojej obecności. Dane pozostają na tym urządzeniu.</p>
+    <div class="places-tabs" id="places-tabs"></div>
+    <button type="button" id="place-add" class="chip">＋ Dodaj miejsce</button>
+    <input id="place-id" type="hidden">
+    <label>Nazwa miejsca<input id="place-name" maxlength="40" autocomplete="off" placeholder="np. Dom"></label>
+    <label>Zakres miejsca<select id="place-precision"><option value="region">Województwo</option><option value="gps">Województwo + jednorazowa lokalizacja</option></select></label>
+    <label>Województwo<select id="place-region"></select></label>
+    <div id="place-gps-row"><button type="button" id="place-gps" class="chip">◎ Pobierz pozycję jeden raz</button><div id="place-gps-status" class="fineprint">Lokalizacja jest wyłączona.</div><button type="button" id="place-gps-remove" class="text-button">Usuń zapisaną pozycję</button></div>
+    <label class="place-alerts">Obserwuj alerty dla tego województwa <input id="place-alerts" type="checkbox"></label>
+    <p class="places-notice" id="places-alert-model"><b>Jak to działa:</b> przy zamkniętej aplikacji, w tle lub zablokowanym ekranie otrzymasz alert dla województwa. Po jego otrzymaniu otwórz Strażnika i pozostaw na pierwszym planie — dla zapisanej dokładnej lokalizacji aplikacja lokalnie pokaże odległość i, jeśli kurs oraz prędkość na to pozwalają, orientacyjny czas dolotu.</p>
+    <p class="fineprint" id="places-privacy">Kilka miejsc w tym samym województwie oznacza jedną subskrypcję powiadomień. Województwa są przekazywane dostawcy powiadomień; nazwy miejsc i współrzędne nie są wysyłane na VPS ani do powiadomień.</p>
+    <div id="place-feedback" class="fineprint" role="status"></div>
+    <div class="places-actions"><button type="button" id="place-delete" class="chip danger">Usuń miejsce</button><span></span><button type="button" id="place-cancel" class="chip">Anuluj zmiany</button><button type="submit" class="chip primary">Zapisz na urządzeniu</button></div>
+  </form>
+</dialog>
+
 <script src="assets/vendor/maplibre-gl.js"></script>
 <!-- Wersja w adresie (cache-busting): index.html NIE jest cache'owany przez
      Cloudflare, więc po każdym wydaniu wystarczy podbić ?v= i przeglądarki
      dostają nowe app.js/engine.js OD RAZU, bez ręcznego czyszczenia cache CF.
      Podbijaj ?v= razem z versionName w build.gradle. -->
-<script src="i18n.js?v=1.7.18"></script>
-<script src="engine.js?v=1.7.18"></script>
-<script src="aircraft-photo-catalog.js?v=1.7.18"></script>
-<script src="aircraft-photos.js?v=1.7.18"></script>
-<script src="app.js?v=1.7.18"></script>
+<script src="i18n.js?v=1.7.19-3"></script>
+<script src="engine.js?v=1.7.19"></script>
+<script src="aircraft-photo-catalog.js?v=1.7.19"></script>
+<script src="aircraft-photos.js?v=1.7.19"></script>
+<script src="places.js?v=1.7.19-3"></script>
+<script src="app.js?v=1.7.19-3"></script>
 </body>
 </html>

@@ -1,24 +1,25 @@
 # Biblioteka zdjęć samolotów i śmigłowców — weryfikacja wydania
 
-Data: 2026-09-08. Biblioteka podłączona do frontendu i APK 1.7.18
-(code 48). Bez zmian VPS, punktacji i powiadomień.
+Data: 2026-09-09. Biblioteka podłączona do frontendu i APK 1.7.19
+(code 49). Bez zmian VPS, punktacji i powiadomień.
 
 ## Aktualny wynik
 
-- 61 kodów z dostępnej historii ma jawną decyzję. 60 prawdziwych fotografii
+- 62 kody z dostępnej historii mają jawną decyzję. 61 prawdziwych fotografii
   obejrzano i sprawdzono z opisem źródła oraz warunkami wykorzystania.
-- 21 kodów pozwala na bezpośredni dobór przykładu modelu; 39 wymaga
-  dodatkowego potwierdzenia modelu/wariantu. SB39 pozostaje bez zdjęcia.
+- 22 kody pozwalają na bezpośredni dobór przykładu rodziny, 38 zachowuje
+  kontrolę zgodności opisanego modelu/wariantu. Gdy dostawca nie podaje opisu,
+  60 przejrzanych kodów może pokazać zatwierdzony przykład; jawnie sprzeczny
+  opis nadal blokuje zdjęcie. Z42 wymaga pełnej tożsamości, a SB39 pozostaje bez zdjęcia.
 - Krótkie rejestracje nie są kluczem zdjęć. Dla Z42/0543 dopuszczono
   udokumentowane powiązanie z hex 4984f4. Sprzeczny opis zawsze blokuje dobór.
-- Lokalne zdjęcia zajmują 5,17 MiB; nie wymagają zapytań do API fotografii.
+- Lokalne zdjęcia zajmują 5,27 MiB; nie wymagają zapytań do API fotografii.
   Podpisy PL/EN odróżniają przykład modelu od obserwowanego egzemplarza,
   zawierają autora, źródło, licencję i informację o kadrowaniu źródłowym.
 - Manifest: [verified-photos.json](verified-photos.json). Ręczne decyzje:
   [review-decisions.json](review-decisions.json). Pełna galeria: uruchom
   `scripts/serve_aircraft_review.py`, następnie http://127.0.0.1:8780/.
-- Testy selektora: 10 PASS; test Android release na Pixelu 7: PASS,
-  w tym załadowanie wszystkich 60 zdjęć offline i dwie karty regresyjne.
+- Testy selektora: 11 PASS; kompilacja podpisanego Android release: PASS.
   Podpis certyfikatu release zgodny z dotychczasowym APK.
 - Rzeczywiste zrzuty PL/EN z mapą: PASS po usunięciu przez użytkownika
   przeszkody po stronie osłony HTTPS hosta. Początkowy błąd
@@ -53,7 +54,7 @@ zdjęcia. Brak zgodności = brak zdjęcia, nigdy losowy podobny samolot.
 
 ## Inwentaryzacja, nie pełna historia
 
-Znaleziono **61 kodów typu** w trzech lokalnych eksportach historii,
+Znaleziono **62 kody typu** w lokalnych eksportach historii i odczytach
 lokalnym stanie oraz jednym odczycie publicznego /api/history/bundle.
 Pokrycie migawek: 07.09.2026 18:32:48 – 08.09.2026 21:05:51 CEST.
 Pliki częściowo się pokrywają; liczby migawek nie oznaczają unikalnych lotów.
@@ -62,7 +63,7 @@ Kod typu nie zawsze identyfikuje dokładny wariant.
 Źródła i czasy dla każdego kodu: [inventory.json](inventory.json).
 Skrypt: scripts/audit_aircraft_models.py. Cztery testy offline PASS.
 
-Kody: A148, A169, A319, A332, A400, AN28, AS32, B06, B350, B737, B739, B744, B77W, B788, BE20, C130, C17, C27J, C295, C30J, C560, CL2T, CL60, D228, DA40, DA62, E3CF, E3TF, E737, EC35, EN48, F16, F2TH, FA7X, GLEX, GLF4, GLF5, GLF6, H47, H60, IL76, K35R, L39, L410, LJ45, M28, MI8, P180, PC12, PC6T, PC7, PC9, PZ3T, R135, RFAL, SB39, SUCO, SW4, T204, W3, Z42.
+Kody: A148, A169, A319, A332, A400, AN28, AS32, B06, B350, B737, B738, B739, B744, B77W, B788, BE20, C130, C17, C27J, C295, C30J, C560, CL2T, CL60, D228, DA40, DA62, E3CF, E3TF, E737, EC35, EN48, F16, F2TH, FA7X, GLEX, GLF4, GLF5, GLF6, H47, H60, IL76, K35R, L39, L410, LJ45, M28, MI8, P180, PC12, PC6T, PC7, PC9, PZ3T, R135, RFAL, SB39, SUCO, SW4, T204, W3, Z42.
 
 **Nie udało się potwierdzić wszystkich modeli od początku działania aplikacji.**
 Bieżące snapshots i adsb_watch_events są kasowane po 12 h; adsb_samples

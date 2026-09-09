@@ -568,6 +568,36 @@ dialog input { width: 100%; margin-top: 6px; padding: 8px 10px; border-radius: 8
   border: 1px solid var(--panel-border); background: #0b0f1a; color: var(--text); }
 dialog menu { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
 
+/* ── lokalne profile „Moje miejsca” ── */
+.places-dialog { width:min(620px,96vw); max-height:92vh; padding:0; overflow:hidden; }
+.places-dialog form { max-height:92vh; overflow:auto; padding:20px; }
+.places-dialog [hidden] { display:none!important; }
+.places-head { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; }
+.places-head h2 { margin:3px 0 6px; font-size:26px; }
+.places-head .eyebrow { color:var(--muted); font-size:10px; letter-spacing:.18em; }
+.places-tabs { display:flex; gap:7px; margin:16px 0 10px; overflow-x:auto; padding-bottom:5px; }
+.places-tabs button { white-space:nowrap; }
+.places-tabs button.active { color:#fff; border-color:var(--accent); background:#243c6e; }
+.places-dialog label { margin-top:14px; }
+.places-dialog small { display:block; margin-top:5px; color:var(--muted); }
+.place-alerts { display:flex!important; align-items:center; justify-content:space-between; gap:12px; color:var(--text)!important; }
+.place-alerts input { width:21px; height:21px; margin:0; accent-color:var(--accent); }
+.places-notice { margin:12px 0 4px; padding:11px 12px; border:1px solid #476484; border-radius:10px; background:#13243a; color:#d9e8fb; font-size:12px; line-height:1.45; }
+.local-place-eta { margin:7px 0; padding:8px 10px; border-left:3px solid #55b7ff; border-radius:5px; background:rgba(44,123,190,.13); font-size:12px; line-height:1.45; }
+.local-place-eta small { display:block; margin-top:4px; color:var(--muted); }
+#place-gps-row { margin-top:15px; }
+#place-gps-status { margin:8px 0 0; }
+.text-button { border:0; background:none; color:#8db5ff; padding:7px 0; cursor:pointer; }
+.places-actions { position:sticky; bottom:-20px; display:grid; grid-template-columns:auto 1fr auto auto; gap:8px; align-items:center; margin:20px -20px -20px; padding:13px 20px calc(13px + env(safe-area-inset-bottom)); border-top:1px solid var(--panel-border); background:#121828; }
+.chip.danger { color:#ff9aa4; border-color:#743743; }
+#place-feedback:not(:empty) { margin-top:12px; padding:9px; border:1px solid #375e82; border-radius:8px; background:#122437; color:#b8d8f7; }
+@media(max-width:600px){
+  .places-dialog { width:100vw; height:100dvh; max-height:none; border-radius:0; border:0; }
+  .places-dialog form { max-height:100dvh; padding:18px; }
+  .places-actions { grid-template-columns:1fr 1fr; margin-left:-18px; margin-right:-18px; }
+  .places-actions span { display:none; }
+}
+
 .only-mobile { display: none; }
 @media (max-width: 860px) {
   .only-mobile { display: inline-block; }

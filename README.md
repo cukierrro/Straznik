@@ -4,10 +4,11 @@
 
 # Strażnik
 
-Wersja 1.7.18: lokalna biblioteka zweryfikowanych fotografii modeli samolotów
-i śmigłowców. Przykładowy egzemplarz zamiast przypadkowego zdjęcia po krótkiej
-rejestracji; przy niepewnym wariancie — brak zdjęcia. Podpisy PL/EN, autorzy
-i licencje w kartach. Ikony, punktacja i mechanizm alarmów pozostają bez zmian.
+Wersja 1.7.19: „Moje miejsca” przechowują na urządzeniu do 8 profili i opcjonalne
+jednorazowe pozycje. Powiadomienia w tle nadal dotyczą województwa; po otwarciu
+aplikacji dokładny punkt służy do lokalnego wyświetlenia odległości i — tylko
+przy wystarczających danych o locie — orientacyjnego ETA. Biblioteka zdjęć ma
+również bezpieczne przykłady dla rozpoznanych kodów modeli bez opisu dostawcy.
 
 **Nieoficjalne wczesne ostrzeganie o zagrożeniach powietrznych**
 
@@ -19,8 +20,9 @@ wiarygodność ostrzeżenia.
 
 [Instrukcja po polsku](https://cukierrro.github.io/Straznik/) · [English user guide](https://cukierrro.github.io/Straznik/en.html)
 
-Instrukcja dla 1.7.18 zawiera nowe karty fotografii PL/EN z Pixela 7, bibliotekę ikon,
-opisy aktualizacji, języków, historii i alarmów. Zrzuty otwierają się także w pełnym rozmiarze.
+Instrukcja dla 1.7.19 opisuje „Moje miejsca”, rozdział alertów wojewódzkich i
+lokalnych obliczeń na pierwszym planie oraz bibliotekę fotografii PL/EN. Zrzuty
+otwierają się także w pełnym rozmiarze.
 
 [⬇ Pobierz APK](https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk) · [☕ Postaw kawę](https://buycoffee.to/cukierrro)
 

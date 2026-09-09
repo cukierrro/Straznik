@@ -1,6 +1,6 @@
 {
   "reviewedOn": "2026-09-08",
-  "scope": "61 codes in available September 7–8 exports; not all-time history. code = base-model example; model = additional exact model description required. No variant is inferred from registration alone.",
+  "scope": "62 codes in available September 7–9 exports; not all-time history. A reviewed type-code match may show a family/model example when the provider omits description; an explicit contradictory description still fails closed. identity requires the complete reviewed identity.",
   "blocked": {"SB39": "Not found in the retrieved official ICAO subset; do not silently infer Gripen from an unverified provider code."},
   "rows": {
     "A148": ["Antonov An-148-100B", "model", ["ANTONOV AN-148-100B", "AN-148-100B"]],
@@ -13,6 +13,7 @@
     "B06": ["Bell 206 JetRanger", "model", ["BELL 206 JETRANGER", "BELL 206B", "BELL 206B JETRANGER"]],
     "B350": ["Beechcraft King Air 350", "model", ["BEECHCRAFT KING AIR 350", "BEECH 350", "BEECH B300 KING AIR 350"]],
     "B737": ["Boeing 737-700", "code", ["BOEING 737-700"]],
+    "B738": ["Boeing 737-800", "code", ["BOEING 737-800", "BOEING 737-8", "BOEING 737-8AS"]],
     "B739": ["Boeing 737-900", "code", ["BOEING 737-900"]],
     "B744": ["Boeing 747-400", "code", ["BOEING 747-400", "BOEING 747-430"]],
     "B77W": ["Boeing 777-300ER", "code", ["BOEING 777-300ER"]],
@@ -62,7 +63,7 @@
     "SW4": ["Fairchild SA-227AC Metro III", "model", ["FAIRCHILD SA-227AC METRO III", "FAIRCHILD SWEARINGEN SA-227AC METRO III", "SA-227AC"]],
     "T204": ["Tupolev Tu-204-100B", "model", ["TUPOLEV TU-204-100B", "TU-204-100B"]],
     "W3": ["PZL W-3A Sokół", "model", ["PZL W-3A", "PZL W-3A SOKOL", "W-3A SOKOL"]],
-    "Z42": ["Zlín Z-242L", "model", ["ZLIN Z-242L", "ZLIN Z242L", "MORAVAN Z-242L"]]
+    "Z42": ["Zlín Z-242L", "identity", ["ZLIN Z-242L", "ZLIN Z242L", "MORAVAN Z-242L"]]
   },
   "identities": [{"hex":"4984f4","reg":"0543","type":"Z42","photo":"Z42","verifiedOn":"2026-09-08","source":"https://www.lompraha.cz/en/aktuality/zacina-nova-etapa-vycviku-ceskych-armadnich-pilotu-centrum-leteckeho-vycviku-prevzalo-moderni-letouny-zlin/","evidence":"Operator identifies Czech 0543 as Z-242L; local history independently pairs 0543 and Czech address 4984f4. No callsign-only or registration-only matching."}]
 }

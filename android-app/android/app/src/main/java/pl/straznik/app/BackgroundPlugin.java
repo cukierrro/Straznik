@@ -13,6 +13,7 @@ import androidx.core.content.FileProvider;
 import com.google.firebase.messaging.FirebaseMessaging;
 
 import com.getcapacitor.JSObject;
+import com.getcapacitor.JSArray;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
@@ -40,6 +41,7 @@ public class BackgroundPlugin extends Plugin {
     /** Prefs współdzielone z resztą warstwy natywnej — trzymamy tu wybrany region. */
     private static final String PREFS = "straznik_bg";
     private static final String KEY_HOME = "home_voiv";
+    private static final String KEY_REGIONS = "observed_voivs";
 
     /**
      * Województwo wybrane w ustawieniach. Nazwa regionu wyznacza temat FCM
@@ -48,10 +50,38 @@ public class BackgroundPlugin extends Plugin {
     @PluginMethod
     public void setHomeVoivodeship(PluginCall call) {
         String v = call.getString("voivodeship");
-        getContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .edit().putString(KEY_HOME, v == null ? "" : v).apply();
+        java.util.Set<String> regions = new java.util.HashSet<>();
+        if (isKnownVoivodeship(v)) regions.add(v);
+        getContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putString(KEY_HOME, v == null ? "" : v).putStringSet(KEY_REGIONS, regions).apply();
         syncFcmSubscription(getContext());
         call.resolve();
+    }
+
+    /** Otrzymuje wyłącznie zbiór województw obserwowanych przez użytkownika.
+     * Nazwy profili, miasta, adresy i współrzędne nigdy nie przechodzą do FCM. */
+    @PluginMethod
+    public void setObservedVoivodeships(PluginCall call) {
+        JSArray input = call.getArray("voivodeships", new JSArray());
+        java.util.Set<String> regions = new java.util.LinkedHashSet<>();
+        String home = "";
+        for (int i = 0; i < input.length(); i++) {
+            String value = input.optString(i, "");
+            if (isKnownVoivodeship(value)) {
+                if (home.isEmpty()) home = value;
+                regions.add(value);
+            }
+        }
+        getContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putString(KEY_HOME, home).putStringSet(KEY_REGIONS, regions).apply();
+        syncFcmSubscription(getContext());
+        call.resolve();
+    }
+
+    private static boolean isKnownVoivodeship(String value) {
+        if (value == null) return false;
+        for (String v : Alarms.VOIVS) if (v.equals(value)) return true;
+        return false;
     }
 
     /**
@@ -68,20 +98,20 @@ public class BackgroundPlugin extends Plugin {
     }
 
     /**
-     * Dopasowuje subskrypcje tematów FCM do wybranego regionu: subskrybuje temat
-     * województwa użytkownika (albo, gdy nie wybrał, ściany wschodniej), i
-     * odsubskrybowuje poprzednie. Wywoływane przy starcie aplikacji i po każdej
-     * zmianie regionu, więc telefon dostaje push tylko o swoim województwie.
+     * Dopasowuje subskrypcje tematów FCM do obserwowanych województw. Dla starej
+     * instalacji bez nowego ustawienia zachowuje dotychczasowy region albo ścianę
+     * wschodnią. Wywoływane przy starcie aplikacji i po każdej zmianie miejsc.
      */
     static void syncFcmSubscription(Context c) {
         java.util.Set<String> target = new java.util.HashSet<>();
-        String home = c.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-                       .getString(KEY_HOME, "");
-        if (home != null && !home.isEmpty()) {
-            target.add(voivTopic(home));
+        android.content.SharedPreferences bg = c.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        if (bg.contains(KEY_REGIONS)) {
+            for (String region : bg.getStringSet(KEY_REGIONS, java.util.Collections.<String>emptySet()))
+                if (isKnownVoivodeship(region)) target.add(voivTopic(region));
         } else {
-            for (int i : new int[]{0, 1, 2, 6})   // lubelskie, podkarpackie, podlaskie, warm.-maz.
-                target.add(voivTopic(Alarms.VOIVS[i]));
+            String home = bg.getString(KEY_HOME, "");
+            if (isKnownVoivodeship(home)) target.add(voivTopic(home));
+            else for (int i : new int[]{0, 1, 2, 6}) target.add(voivTopic(Alarms.VOIVS[i]));
         }
         android.content.SharedPreferences p =
             c.getSharedPreferences("straznik_fcm", Context.MODE_PRIVATE);
@@ -105,6 +135,8 @@ public class BackgroundPlugin extends Plugin {
         ret.put("appVersion", appVersion(c));
         ret.put("homeVoivodeship",
             c.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_HOME, ""));
+        ret.put("observedVoivodeships", new JSArray(c.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getStringSet(KEY_REGIONS, java.util.Collections.<String>emptySet())));
         call.resolve(ret);
     }
 

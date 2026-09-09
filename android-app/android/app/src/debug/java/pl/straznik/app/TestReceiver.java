@@ -20,7 +20,7 @@ public class TestReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context ctx, Intent i) {
         if (i == null) return;
-        MonitorService.createChannels(ctx);
+        Alarms.createChannels(ctx);
         String level = i.getStringExtra("level");
         if (level == null) level = "high";
         int voiv = i.getIntExtra("voiv", 0);
@@ -31,7 +31,7 @@ public class TestReceiver extends BroadcastReceiver {
         if (i.getBooleanExtra("direct", false)) {
             ctx.startActivity(new Intent(ctx, AlarmActivity.class)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                .putExtra(AlarmActivity.EXTRA_VOIV, Sources.VOIVS[voiv])
+                .putExtra(AlarmActivity.EXTRA_VOIV, Alarms.VOIVS[voiv])
                 .putExtra(AlarmActivity.EXTRA_SCORE, score)
                 .putExtra(AlarmActivity.EXTRA_BODY, "• [test] Rakieta kursem na granicę PL, 60 km"));
             return;
@@ -40,6 +40,6 @@ public class TestReceiver extends BroadcastReceiver {
         List<String> reasons = new ArrayList<>();
         reasons.add("• [test] Rakieta kursem na granicę PL, 60 km");
         reasons.add("• [test] Sygnał testowy — weryfikacja alarmu w tle");
-        MonitorService.postAlarm(ctx, voiv, level, score, reasons);
+        Alarms.postAlarm(ctx, voiv, level, score, reasons);
     }
 }

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Strażnik 1.7.18 — user guide</title>
+<title>Strażnik 1.7.19 — user guide</title>
 <meta name="description" content="The current Strażnik user guide: Android installation and updates, alerts, maps, new object icons, history, languages and scoring. Screenshots from Pixel 7.">
 <link rel="canonical" href="https://cukierrro.github.io/Straznik/en.html">
 <link rel="alternate" hreflang="pl" href="https://cukierrro.github.io/Straznik/">
@@ -33,11 +33,11 @@
   <div class="languages" aria-label="Guide language"><a href="index.html" lang="pl" hreflang="pl">PL</a><a href="en.html" lang="en" aria-current="page">EN</a></div>
 </div></nav>
 <header class="hero"><div class="wrap hero-grid">
-  <div><div class="eyebrow">User guide · version 1.7.18</div>
+  <div><div class="eyebrow">User guide · version 1.7.19</div>
     <h1>The situation on a map.<br>The sources behind each signal.</h1>
     <p class="lead">Strażnik combines public information about airborne threats and displays a score for each Polish province. Available on Android and in your browser.</p>
     <div class="actions"><a class="button primary" href="https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk">↓ Download app</a><a class="button" href="https://straznik.eu">Open map</a></div>
-    <p class="fineprint">Guide for 1.7.18. Aircraft card: 8 September 2026, Pixel 7, Android 14. History and 🛰: 1.7.17, 7 September; other unchanged screens: 1.7.16, 6 September. Older examples are labelled separately. Tap any screenshot to open the full-size image.</p>
+    <p class="fineprint">Guide for 1.7.19. “My places”: 9 September 2026, Pixel 7, Android 14. Aircraft card: 1.7.18, 8 September; other unchanged screens are labelled individually. Tap any screenshot to open the full-size image.</p>
   </div>
   <a class="shot-link" href="screens/start-en.jpg"><img src="screens/start-en.jpg" width="1080" height="2400" alt="Strażnik 1.7.16 on Pixel 7: English map labels and six green source indicators"></a>
 </div></header>
@@ -68,17 +68,20 @@
   </div>
 </section>
 <section id="konfiguracja">
-  <h2>2. Province, language and permissions</h2>
+  <h2>2. My places, language and permissions</h2>
   <div class="split">
     <div>
-      <p>Open <kbd>⚙</kbd>, choose one of Poland's 16 provinces (voivodeships), then press <kbd>Save</kbd>. This determines your notification region, the initial map view and the “my region” card. Without a selection, the subscription covers four eastern provinces: Lublin, Subcarpathian, Podlaskie and Warmian-Masurian.</p>
-      <p><kbd>Detect with GPS</kbd> optionally identifies the province on your device. Coordinates are not sent to the Strażnik server.</p>
+      <p>Open <kbd>⚙</kbd> → <kbd>Open My places</kbd>. You can save up to 8 profiles, such as Home, Work and Trip. Each has a province and may optionally store a voluntary one-time location. Current notifications are routed by province.</p>
+      <p><kbd>Watch alerts</kbd> creates a subscription for that province. Several places in one province create one subscription. Turning watching off does not delete the profile. The first saved place sets the map's initial region; an older single-province setting is migrated to a “Home” profile after updating.</p>
+      <p>A one-time location is read only after you press its button and stores the point, accuracy and reading time. There is no background tracking or online address lookup. You can remove the point separately.</p>
+      <p><b>Two operating levels:</b> while the app is closed, minimised or the screen is locked, the notification is province-level. After receiving it, open Strażnik and keep it in the foreground. For a saved exact location, the app calculates the distance to a visible object on the device. It shows an estimated arrival time only when actual speed is available and the heading leads towards that point; otherwise it clearly says that ETA cannot be estimated reliably.</p>
+      <p>This calculation is not a separate distance alert and is not reliable in the background. It assumes an unchanged heading, may change as new data arrives, and does not replace RCB, RSO or emergency-service instructions.</p>
       <h3>Polski / English</h3>
       <p>Selecting a language immediately changes the settings preview. <kbd>Save</kbd> confirms it and reloads the app; <kbd>Cancel</kbd> keeps the previous language. English covers the interface, object and aircraft descriptions, and map labels. A source name may remain where an English name is unavailable. Quoted external messages are not necessarily translated, and some labels in the current APK may still appear in Polish.</p>
       <h3>Notifications</h3>
       <p>Check system notifications, alert channels and full-screen permission in settings. A shortcut to the app's battery optimisation settings is also available. Delivery and presentation depend on your phone's settings and restrictions.</p>
     </div>
-    <figure><a class="shot-link" href="screens/settings-en.jpg"><img loading="lazy" src="screens/settings-en.jpg" width="1080" height="2400" alt="Province and English language selection with push and full-screen settings"></a><figcaption>Region, language and permissions in the current app.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/places-en.png"><img loading="lazy" src="screens/places-en.png" width="1080" height="2400" alt="My places in app 1.7.19: Home profile, a one-time exact location and province alert watching"></a><figcaption>The actual “My places” screen with a one-time Warsaw test point stored only in the emulator. Pixel 7, APK 1.7.19, 9 September 2026.</figcaption></figure>
   </div>
 </section>
 <section id="mapa">
@@ -105,7 +108,7 @@
   <h3 id="zdjecia">Object details and pictures</h3>
   <p>An object card shows its type, area, confirmations, confidence, position uncertainty, heading, distance from Poland and an estimated arrival time when available. AI illustrations are explicitly labelled as reference images: they do not depict the tracked object and must not be used to identify a model.</p>
   <p>Tap an ADS-B aircraft for its callsign, registration, country, model, role, altitude, speed and heading, where available. <kbd>Follow track</kbd> displays the collected trail. Without a public transponder signal or reception, there may be no position: the map does not show every military aircraft.</p>
-  <p><b>Model photographs (1.7.18):</b> aircraft and helicopter cards use a local library of real photographs. Each is an example aircraft, not the tracked one; equipment and subvariant may differ. The caption includes the author, source and license. A short registration alone is not enough to select a photo. Unknown variants or conflicting data show “No verified photo for this model/variant.” Scroll inside the card for further telemetry. APK photos also work offline; this does not provide live positions without internet access.</p>
+  <p><b>Model photographs (1.7.19):</b> aircraft and helicopter cards use a local library of real photographs. Each is an example aircraft, not the tracked one; equipment and subvariant may differ. When the provider supplies a known type code without a variant description, the app now shows a reviewed family example instead of an empty area. An explicitly conflicting description still blocks the photo. The library now also includes the Boeing 737-800. Author, source and license remain visible below each photo.</p>
   <div class="shots">
     <figure><a class="shot-link" href="screens/aircraft-en.png"><img loading="lazy" src="screens/aircraft-en.png" width="1080" height="2400" alt="RCH5078 C-17 historical card in English, with a model example photograph, author, source and license"></a><figcaption>Actual observation of RCH5078; the photograph depicts another C-17. Pixel 7, APK 1.7.18, 8 September 2026. Scroll inside the card for more details.</figcaption></figure>
     <figure><a class="shot-link" href="screens/object-en.jpg"><img loading="lazy" src="screens/object-en.jpg" width="1080" height="2400" alt="NEPTUN object card with a labelled reference illustration and observation details"></a><figcaption>Object details and a reference illustration, not a photograph of the tracked object.</figcaption></figure>
@@ -229,7 +232,7 @@
 </section>
 <section id="prywatnosc">
   <h2>13. Privacy and sources</h2>
-  <p>No account, advertising or behavioural analytics. Settings are stored locally. Your selected region also determines the push subscription; push infrastructure handles a device or browser subscription identifier. Optional GPS is used to identify your province on the device.</p>
+  <p>No account, advertising or behavioural analytics. “My places” profiles, names and one-time location points are stored locally; Android backup is disabled for the app. Exact locations are not sent to the Strażnik VPS or notification content. Province names and the device subscription identifier are handled by the push provider. The phone's location system may use system and network providers, so Strażnik does not claim that the position reading itself is entirely offline.</p>
   <p>The server and providers of maps, notifications, photos and data receive network requests and may keep ordinary technical logs. No in-app telemetry does not mean no network traffic. Downloaded server history is replayed from device memory; the built-in engine stores its own snapshots locally. Size depends on data volume and covers a rolling 12-hour window.</p>
   <p class="source-links">Data: <a href="https://neptun.in.ua">NEPTUN</a> · <a href="https://adsb.lol">adsb.lol</a> / adsb.fi and fallback providers · <a href="https://www.gov.pl/web/rcb">RCB</a> / RSO · <a href="https://airspace.pansa.pl">PAŻP</a> · regional and Baltic media · neighbouring airspace zones. Map: <a href="https://openfreemap.org">OpenFreeMap</a>, © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>. Aircraft photo providers and photographers are credited in the cards.</p>
 </section>

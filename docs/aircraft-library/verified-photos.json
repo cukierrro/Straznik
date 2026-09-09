@@ -217,6 +217,28 @@
       "sourceCrop": false,
       "reviewedOn": "2026-09-08"
     },
+    "B738": {
+      "model": "Boeing 737-800",
+      "mode": "code",
+      "aliases": [
+        "BOEING 737-800",
+        "BOEING 737-8",
+        "BOEING 737-8AS"
+      ],
+      "src": "assets/aircraft/b738-39116debcbe1.jpg",
+      "author": "Brangbee",
+      "license": "CC0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:NewGen-Boeing737-800.jpg",
+      "sourceTitle": "File:NewGen-Boeing737-800.jpg",
+      "sourceSha1": "eec82a317b7d44b803fc31c337337e92ecb588a1",
+      "sha256": "39116debcbe102369fb5538bb24bda75106b364fd1c459eac26f0345d61b228f",
+      "width": 960,
+      "height": 641,
+      "licenseBasis": [],
+      "sourceCrop": false,
+      "reviewedOn": "2026-09-08"
+    },
     "B739": {
       "model": "Boeing 737-900",
       "mode": "code",
@@ -1296,7 +1318,7 @@
     },
     "Z42": {
       "model": "Zlín Z-242L",
-      "mode": "model",
+      "mode": "identity",
       "aliases": [
         "ZLIN Z-242L",
         "ZLIN Z242L",

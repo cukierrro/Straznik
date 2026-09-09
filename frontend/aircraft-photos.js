@@ -15,7 +15,11 @@
     const identity = catalog.identities?.some(i => i.type === code &&
       String(plane.hex || '').toLowerCase() === i.hex &&
       String(plane.reg || '').trim().toUpperCase() === i.reg && i.photo === code);
-    if (!description && photo.mode !== 'code' && !identity) return null;
+    // The provider often omits `desc` even when its ICAO type code is present.
+    // In that case the reviewed local photo is still a useful family/model
+    // example; its caption explicitly says that subvariant/equipment may differ.
+    // Identity-only entries remain fail-closed.
+    if (!description && photo.mode === 'identity' && !identity) return null;
     if (!/^assets\/aircraft\/[a-z0-9]+-[a-f0-9]{12}\.jpg$/.test(photo.src)) return null;
     return {...photo};
   }
