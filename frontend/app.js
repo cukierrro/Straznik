@@ -999,7 +999,11 @@ function openPlanePopup(lngLat, props) {
           ? (UI.isEn ? "Source crop; no further retouching." : "Kadrowanie źródłowe; bez dodatkowego retuszu.")
           : (UI.isEn ? "Source thumbnail; no retouching." : "Miniatura źródłowa; bez retuszu.")));
       }
-      img.src = ph.src;
+      // Pierwsze żądanie nowego pliku mogło zostać zapamiętane przez CDN jako
+      // 404 przed wdrożeniem. Osobny klucz wersji omija ten ujemny cache.
+      img.src = ph.src === "assets/aircraft/b738-39116debcbe1.jpg"
+        ? ph.src + "?v=1.7.19"
+        : ph.src;
     }
   });
 }
