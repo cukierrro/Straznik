@@ -761,7 +761,7 @@ async function initMap() {
 
 const emptyFC = () => ({ type: "FeatureCollection", features: [] });
 
-/* ── karta samolotu: kraj z zakresu hex, zdjęcie z planespotters, ślad ────── */
+/* ── karta samolotu: kraj z zakresu hex, lokalne zdjęcie modelu, ślad ────── */
 const adsbByHex = new Map();     // hex → pełny obiekt maszyny (właściwe typy)
 const historyAdsbByHex = new Map();
 let historyAdsbTime = null;
@@ -802,33 +802,10 @@ const COUNTRY_EN = { "Polska":"Poland", "Rosja":"Russia", "Białoruś":"Belarus"
   "USA":"United States", "Kanada":"Canada", "Australia":"Australia" };
 const countryText = name => UI.isEn ? (COUNTRY_EN[name] || name) : name;
 
-/* Zdjęcie maszyny z planespotters (po rejestracji, w zapasie po hex). API wymaga
-   User-Agenta z adresem kontaktowym — przeglądarka nie pozwala go ustawić, więc
-   zdjęcia działają w aplikacji (CapacitorHttp), a nie w zwykłej karcie www.
-   Wynik cache'ujemy, żeby nie pytać przy każdym otwarciu dymka. */
-const photoCache = new Map();
-async function acPhoto(reg, hex) {
-  const key = (reg || hex || "").toUpperCase();
-  if (!key) return null;
-  if (photoCache.has(key)) return photoCache.get(key);
-  const path = reg ? "reg/" + encodeURIComponent(reg) : "hex/" + encodeURIComponent(hex);
-  const url = "https://api.planespotters.net/pub/photos/" + path;
-  let res = null;
-  try {
-    const CH = window.Capacitor?.Plugins?.CapacitorHttp;
-    let data;
-    if (CH) {
-      const r = await CH.get({ url, connectTimeout: 12000, readTimeout: 12000,
-        headers: { "User-Agent": "Straznik/1.4.8 (+https://github.com/cukierrro/Straznik)" } });
-      data = typeof r.data === "string" ? JSON.parse(r.data) : r.data;
-    } else {
-      data = await (await fetch(url)).json();
-    }
-    const ph = (data.photos || [])[0];
-    if (ph) res = { src: (ph.thumbnail_large || ph.thumbnail || {}).src, link: ph.link, by: ph.photographer };
-  } catch {}
-  photoCache.set(key, res);
-  return res;
+/* Biblioteka modelu: lokalna, bez API wyszukującego po powtarzalnych numerach.
+   Brak potwierdzonego wariantu oznacza brak fotografii, nie podobną maszynę. */
+async function acPhoto(plane) {
+  return window.AircraftPhotos?.select(plane, window.AircraftPhotoCatalog) || null;
 }
 
 function speedRow(p) {
@@ -940,9 +917,10 @@ function planePopupHTML(p, heli, uid) {
     : `<tr><td style="color:#68758c;padding-right:8px;vertical-align:top">${l}</td><td><b>${v}</b></td></tr>`;
   return `<div>
     <div id="${uid}-box" style="display:none;margin:-2px 0 6px">
-      <img id="${uid}" alt="" style="width:100%;border-radius:6px;display:block">
+      <img id="${uid}" alt="" style="width:100%;max-height:220px;object-fit:contain;border-radius:6px;display:block">
       <div class="ph-cr" style="font-size:10px;color:#68758c;margin-top:2px"></div>
     </div>
+    <div id="${uid}-missing" style="font-size:10px;color:#68758c;margin-bottom:6px">${UI.isEn ? "No verified photo for this model/variant." : "Brak zweryfikowanego zdjęcia tego modelu/wariantu."}</div>
     <b style="font-size:13.5px">${heli ? "🚁" : "✈"} ${esc2(p.callsign || p.hex || "?")}</b>
       ${p.reg ? ` · ${UI.isEn ? "reg." : "rej."} ${esc2(p.reg)}` : ""}<br>
     ${mil}${c ? `${c.flag} ${esc2(countryText(c.name))} · ` : ""}<b>${esc2(acName(p.type, p.desc))}</b>${p.year ? ` (${esc2(p.year)})` : ""}<br>
@@ -961,8 +939,8 @@ function planePopupHTML(p, heli, uid) {
     <button class="btn-follow chip" style="font-size:11px;padding:3px 8px;margin-bottom:4px">${followHex === p.hex
       ? (UI.isEn ? "■ stop tracking" : "■ przestań śledzić") : (UI.isEn ? "📍 follow track" : "📍 śledź trasę")}</button>
     <div style="color:#68758c;font-size:11px">${UI.isEn
-      ? "public ADS-B/MLAT transponder — emitted position, not active tracking. Photo and registration data: airplanes.live / planespotters."
-      : "publiczny transponder ADS-B/MLAT — pozycja emisji, nie namierzanie. Zdjęcie i dane rejestrowe: airplanes.live / planespotters."}</div>
+      ? "public ADS-B/MLAT transponder — emitted position, not active tracking. Telemetry: ADS-B providers. Model photo: local library; source and license above."
+      : "publiczny transponder ADS-B/MLAT — pozycja emisji, nie namierzanie. Telemetria: dostawcy ADS-B. Zdjęcie modelu: biblioteka lokalna; źródło i licencja powyżej."}</div>
   </div>`;
 }
 
@@ -978,12 +956,27 @@ function openPlanePopup(lngLat, props) {
   if (histMode) document.querySelector("#ac-card .btn-follow")?.remove();
   document.querySelector("#ac-card .btn-follow")
     ?.addEventListener("click", () => { toggleFollow(p.hex); hideCard(); });
-  // zdjęcie dociągamy asynchronicznie: karta pojawia się od razu, kadr dochodzi po chwili
-  acPhoto(p.reg, p.hex).then(ph => {
+  // Unikalne uid chroni przed wstawieniem zdjęcia do następnej otwartej karty.
+  acPhoto(p).then(ph => {
     const img = document.getElementById(uid), box = document.getElementById(uid + "-box");
     if (ph && ph.src && img && box) {
-      img.src = ph.src; box.style.display = "";
-      const cr = box.querySelector(".ph-cr"); if (cr && ph.by) cr.textContent = "📷 " + ph.by;
+      const missing = document.getElementById(uid + "-missing");
+      img.onload = () => { box.style.display = ""; if (missing) missing.style.display = "none"; };
+      img.onerror = () => { box.style.display = "none"; if (missing) missing.style.display = ""; };
+      img.alt = ph.model;
+      const cr = box.querySelector(".ph-cr");
+      if (cr) {
+        cr.textContent = window.AircraftPhotos.caption(ph, UI.isEn ? "en" : "pl");
+        cr.append(document.createElement("br"), document.createTextNode("📷 " + ph.author + " · "));
+        for (const [label, url] of [[UI.isEn ? "Source" : "Źródło", ph.sourceUrl], [ph.license, ph.licenseUrl]]) {
+          const a = document.createElement("a"); a.textContent = label; a.href = url; a.target = "_blank"; a.rel = "noopener noreferrer";
+          cr.append(a, document.createTextNode(" · "));
+        }
+        cr.append(document.createTextNode(ph.sourceCrop
+          ? (UI.isEn ? "Source crop; no further retouching." : "Kadrowanie źródłowe; bez dodatkowego retuszu.")
+          : (UI.isEn ? "Source thumbnail; no retouching." : "Miniatura źródłowa; bez retuszu.")));
+      }
+      img.src = ph.src;
     }
   });
 }

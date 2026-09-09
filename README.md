@@ -4,10 +4,10 @@
 
 # Strażnik
 
-Wersja 1.7.17: spójny czas historii samolotów na mapie, w panelu 🛰 i w szczegółach.
-Bez wpisów z przyszłości; przygaszone ostatnie pozycje są opisane osobno od maszyn
-w migawce. Dziennik serwera obejmuje również czas zamknięcia aplikacji.
-Punktacja i mechanizm alarmów pozostają bez zmian.
+Wersja 1.7.18: lokalna biblioteka zweryfikowanych fotografii modeli samolotów
+i śmigłowców. Przykładowy egzemplarz zamiast przypadkowego zdjęcia po krótkiej
+rejestracji; przy niepewnym wariancie — brak zdjęcia. Podpisy PL/EN, autorzy
+i licencje w kartach. Ikony, punktacja i mechanizm alarmów pozostają bez zmian.
 
 **Nieoficjalne wczesne ostrzeganie o zagrożeniach powietrznych**
 
@@ -19,7 +19,7 @@ wiarygodność ostrzeżenia.
 
 [Instrukcja po polsku](https://cukierrro.github.io/Straznik/) · [English user guide](https://cukierrro.github.io/Straznik/en.html)
 
-Instrukcja dla 1.7.17 zawiera aktualne zrzuty historii z Pixela 7, nową bibliotekę ikon,
+Instrukcja dla 1.7.18 zawiera nowe karty fotografii PL/EN z Pixela 7, bibliotekę ikon,
 opisy aktualizacji, języków, historii i alarmów. Zrzuty otwierają się także w pełnym rozmiarze.
 
 [⬇ Pobierz APK](https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk) · [☕ Postaw kawę](https://buycoffee.to/cukierrro)

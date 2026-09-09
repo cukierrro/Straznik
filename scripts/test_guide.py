@@ -56,7 +56,7 @@ def main():
             fmt = "PNG" if path.endswith(".png") else "JPEG"
             assert shot.format == fmt and shot.size == HISTORICAL.get(path, (1080, 2400)), path
             shot.verify()
-    assert len(images) == 20 and set(HISTORICAL).issubset(images), images
+    assert len(images) == 21 and set(HISTORICAL).issubset(images), images
     share = ROOT / "share-history-v1.jpg"
     assert share.read_bytes() == (ROOT.parent / "frontend/assets/share-history-v1.jpg").read_bytes()
     with Image.open(share) as card:
@@ -68,7 +68,7 @@ def main():
         assert f'property="og:image" content="{expected}"' in html
         assert f'name="twitter:image" content="{expected}"' in html
     print(f"OK: 2 languages, {len(pages['index.html'].sections)} matching sections, "
-          f"20 screenshots, local links, alt text and shared 1200x630 preview.")
+          f"21 screenshots, local links, alt text and shared 1200x630 preview.")
 
 
 if __name__ == "__main__":

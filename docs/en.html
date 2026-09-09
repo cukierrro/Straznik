@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Strażnik 1.7.17 — user guide</title>
+<title>Strażnik 1.7.18 — user guide</title>
 <meta name="description" content="The current Strażnik user guide: Android installation and updates, alerts, maps, new object icons, history, languages and scoring. Screenshots from Pixel 7.">
 <link rel="canonical" href="https://cukierrro.github.io/Straznik/en.html">
 <link rel="alternate" hreflang="pl" href="https://cukierrro.github.io/Straznik/">
@@ -33,11 +33,11 @@
   <div class="languages" aria-label="Guide language"><a href="index.html" lang="pl" hreflang="pl">PL</a><a href="en.html" lang="en" aria-current="page">EN</a></div>
 </div></nav>
 <header class="hero"><div class="wrap hero-grid">
-  <div><div class="eyebrow">User guide · version 1.7.17</div>
+  <div><div class="eyebrow">User guide · version 1.7.18</div>
     <h1>The situation on a map.<br>The sources behind each signal.</h1>
     <p class="lead">Strażnik combines public information about airborne threats and displays a score for each Polish province. Available on Android and in your browser.</p>
     <div class="actions"><a class="button primary" href="https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk">↓ Download app</a><a class="button" href="https://straznik.eu">Open map</a></div>
-    <p class="fineprint">Guide for 1.7.17. History and 🛰 screenshots: 7 September 2026, Pixel 7, Android 14. Unchanged screens: 1.7.16, captured on 6 September; older examples are labelled separately. Tap any screenshot to open the full-size image.</p>
+    <p class="fineprint">Guide for 1.7.18. Aircraft card: 8 September 2026, Pixel 7, Android 14. History and 🛰: 1.7.17, 7 September; other unchanged screens: 1.7.16, 6 September. Older examples are labelled separately. Tap any screenshot to open the full-size image.</p>
   </div>
   <a class="shot-link" href="screens/start-en.jpg"><img src="screens/start-en.jpg" width="1080" height="2400" alt="Strażnik 1.7.16 on Pixel 7: English map labels and six green source indicators"></a>
 </div></header>
@@ -102,11 +102,12 @@
     <p><b>The circle around an object represents position uncertainty (±km).</b> A larger circle means a larger uncertain area, not a larger destructive range. A dashed line shows the recorded flight path.</p></div>
     <figure><a class="shot-link" href="screens/legend-en.jpg"><img loading="lazy" src="screens/legend-en.jpg" width="1080" height="2400" alt="Current legend with nine distinct NEPTUN icons, uncertainty circle, aircraft, helicopter and score thresholds"></a><figcaption>Current symbols in version 1.7.16. The helicopter row in this APK still has a Polish label.</figcaption></figure>
   </div>
-  <h3>Object details and pictures</h3>
+  <h3 id="zdjecia">Object details and pictures</h3>
   <p>An object card shows its type, area, confirmations, confidence, position uncertainty, heading, distance from Poland and an estimated arrival time when available. AI illustrations are explicitly labelled as reference images: they do not depict the tracked object and must not be used to identify a model.</p>
-  <p>Tap an ADS-B aircraft for its callsign, registration, country, model, role, altitude, speed and heading, where available. A registration photo appears if the provider supplies one. <kbd>Follow track</kbd> displays the collected trail. Without a public transponder signal or reception, there may be no position: the map does not show every military aircraft.</p>
+  <p>Tap an ADS-B aircraft for its callsign, registration, country, model, role, altitude, speed and heading, where available. <kbd>Follow track</kbd> displays the collected trail. Without a public transponder signal or reception, there may be no position: the map does not show every military aircraft.</p>
+  <p><b>Model photographs (1.7.18):</b> aircraft and helicopter cards use a local library of real photographs. Each is an example aircraft, not the tracked one; equipment and subvariant may differ. The caption includes the author, source and license. A short registration alone is not enough to select a photo. Unknown variants or conflicting data show “No verified photo for this model/variant.” Scroll inside the card for further telemetry. APK photos also work offline; this does not provide live positions without internet access.</p>
   <div class="shots">
-    <figure><a class="shot-link" href="screens/aircraft-en.jpg"><img loading="lazy" src="screens/aircraft-en.jpg" width="1080" height="2400" alt="BRIO66 aircraft card with Challenger 600 model and English flight telemetry"></a><figcaption>An actual aircraft observation, with the data available at capture time.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/aircraft-en.png"><img loading="lazy" src="screens/aircraft-en.png" width="1080" height="2400" alt="RCH5078 C-17 historical card in English, with a model example photograph, author, source and license"></a><figcaption>Actual observation of RCH5078; the photograph depicts another C-17. Pixel 7, APK 1.7.18, 8 September 2026. Scroll inside the card for more details.</figcaption></figure>
     <figure><a class="shot-link" href="screens/object-en.jpg"><img loading="lazy" src="screens/object-en.jpg" width="1080" height="2400" alt="NEPTUN object card with a labelled reference illustration and observation details"></a><figcaption>Object details and a reference illustration, not a photograph of the tracked object.</figcaption></figure>
   </div>
 </section>

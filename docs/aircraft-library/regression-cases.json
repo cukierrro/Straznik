@@ -1,0 +1,23 @@
+{
+  "reviewed_on": "2026-09-08",
+  "status": "Evidence and offline fixtures; not production aircraft overrides",
+  "cases": [
+    {
+      "callsign": "PADRE02", "country": "PL", "registration": "019", "type": "PZ3T",
+      "expected_model": "PZL-130 Orlik",
+      "bad_photo_id": "1596068", "bad_photo_model": "Shenyang J-6",
+      "bad_photo_author": "iZhang",
+      "bad_photo_url": "https://www.planespotters.net/photo/1596068/019-peoples-liberation-army-air-force-chinese-air-force-shenyang-j-6",
+      "evidence": "User screenshot and read-only /pub/photos/reg/019 response; PZ3T type from ICAO Doc 8643. Exact Orlik subvariant not established."
+    },
+    {
+      "callsign": "CAMEL41", "country": "CZ", "registration": "0543", "type": "Z42",
+      "expected_model": "Zlin Z-242L",
+      "bad_photo_id": "816136", "bad_photo_model": "MiG-15SB",
+      "bad_photo_author": "TangoYankee Aviation",
+      "bad_photo_url": "https://www.planespotters.net/photo/816136/0543-czech-air-force-mikoyan-gurevich-mig-15sb",
+      "model_source": "https://www.lompraha.cz/en/aktuality/zacina-nova-etapa-vycviku-ceskych-armadnich-pilotu-centrum-leteckeho-vycviku-prevzalo-moderni-letouny-zlin/",
+      "evidence": "Operator confirms its Czech 0543 is Z-242L. This supports the screenshot identity but is NOT a global registration-only override. Z42 alone also covers Z-42/Z-142/Z-242."
+    }
+  ]
+}

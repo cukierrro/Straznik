@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Strażnik 1.7.17 — instrukcja użytkownika</title>
+<title>Strażnik 1.7.18 — instrukcja użytkownika</title>
 <meta name="description" content="Aktualna instrukcja Strażnika: instalacja i aktualizacje Android, alarmy, mapa, nowe ikony, historia, języki i punktacja. Zrzuty z Pixela 7.">
 <link rel="canonical" href="https://cukierrro.github.io/Straznik/">
 <link rel="alternate" hreflang="pl" href="https://cukierrro.github.io/Straznik/">
@@ -33,11 +33,11 @@
   <div class="languages" aria-label="Język instrukcji"><a href="index.html" lang="pl" aria-current="page">PL</a><a href="en.html" lang="en" hreflang="en">EN</a></div>
 </div></nav>
 <header class="hero"><div class="wrap hero-grid">
-  <div><div class="eyebrow">Instrukcja użytkownika · wersja 1.7.17</div>
+  <div><div class="eyebrow">Instrukcja użytkownika · wersja 1.7.18</div>
     <h1>Sytuacja na mapie.<br>Źródła za każdym sygnałem.</h1>
     <p class="lead">Strażnik łączy publiczne informacje o zagrożeniach powietrznych i pokazuje ich punktację dla polskich województw. Dostępny na Androidzie i w przeglądarce.</p>
     <div class="actions"><a class="button primary" href="https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk">↓ Pobierz aplikację</a><a class="button" href="https://straznik.eu">Otwórz mapę</a></div>
-    <p class="fineprint">Instrukcja dla 1.7.17. Zrzuty historii i panelu 🛰: 7 września 2026, Pixel 7, Android 14. Pozostałe niezmienione ekrany: 1.7.16, 6 września 2026; starsze przykłady oznaczono osobno. Dotknij zdjęcia, aby otworzyć je w pełnym rozmiarze.</p>
+    <p class="fineprint">Instrukcja dla 1.7.18. Karta samolotu: 8 września 2026, Pixel 7, Android 14. Historia i panel 🛰: 1.7.17, 7 września; pozostałe niezmienione ekrany: 1.7.16, 6 września. Starsze przykłady oznaczono osobno. Dotknij zdjęcia, aby otworzyć je w pełnym rozmiarze.</p>
   </div>
   <a class="shot-link" href="screens/01_start.jpg"><img src="screens/01_start.jpg" width="1080" height="2400" alt="Strażnik 1.7.16 na Pixelu 7: mapa Polski i sześć zielonych diod źródeł"></a>
 </div></header>
@@ -102,12 +102,13 @@
     <p><b>Okrąg wokół obiektu oznacza niepewność pozycji (±km).</b> Większy okrąg oznacza większy obszar niepewności, nie większy zasięg rażenia. Przerywana linia pokazuje ślad lotu.</p></div>
     <figure><a class="shot-link" href="screens/04_legenda.jpg"><img loading="lazy" src="screens/04_legenda.jpg" width="1080" height="2400" alt="Aktualna legenda: dziewięć odrębnych ikon NEPTUN, okrąg niepewności, samolot, śmigłowiec i progi punktowe"></a><figcaption>Aktualne symbole w aplikacji 1.7.16.</figcaption></figure>
   </div>
-  <h3>Podgląd obiektu i zdjęcia</h3>
+  <h3 id="zdjecia">Podgląd obiektu i zdjęcia</h3>
   <p>Karta obiektu podaje typ, rejon, liczbę potwierdzeń, wiarygodność, niepewność pozycji, kurs, odległość od Polski i — gdy można go oszacować — czas dolotu. Ilustracje AI są podpisane jako poglądowe: nie przedstawiają śledzonego egzemplarza i nie służą do rozpoznawania modelu.</p>
-  <p>Po dotknięciu samolotu ADS-B zobaczysz znak wywoławczy, rejestrację, kraj, model, przeznaczenie, wysokość, prędkość i kurs, zależnie od dostępnych danych. Zdjęcie rejestrowe pojawia się, jeśli dostawca je udostępnia. <kbd>Śledź trasę</kbd> pozwala obserwować zebrany ślad. Brak transpondera lub odbioru oznacza brak pozycji — mapa nie pokazuje wszystkich maszyn wojskowych.</p>
+  <p>Po dotknięciu samolotu ADS-B zobaczysz znak wywoławczy, rejestrację, kraj, model, przeznaczenie, wysokość, prędkość i kurs, zależnie od dostępnych danych. <kbd>Śledź trasę</kbd> pozwala obserwować zebrany ślad. Brak transpondera lub odbioru oznacza brak pozycji — mapa nie pokazuje wszystkich maszyn wojskowych.</p>
+  <p><b>Fotografie modeli (1.7.18):</b> karta samolotu lub śmigłowca korzysta z lokalnej biblioteki prawdziwych zdjęć. To przykładowy egzemplarz, nie śledzona maszyna; wyposażenie i podwariant mogą się różnić. Pod zdjęciem znajdziesz autora, źródło i licencję. Krótka rejestracja nie wystarcza do doboru fotografii. Gdy wariant jest nieznany lub dane są sprzeczne, pojawia się „Brak zweryfikowanego zdjęcia tego modelu/wariantu”. Dalszą telemetrię zobaczysz, przewijając kartę. Zdjęcia w APK działają także offline, co nie oznacza dostępu do bieżących pozycji bez internetu.</p>
   <div class="shots">
     <figure><a class="shot-link" href="screens/object-pl.jpg"><img loading="lazy" src="screens/object-pl.jpg" width="1080" height="2400" alt="Karta drona z podpisaną ilustracją AI i parametrami obserwacji po polsku"></a><figcaption>Podgląd obiektu z ilustracją poglądową oraz informacjami ze źródła.</figcaption></figure>
-    <figure><a class="shot-link" href="screens/aircraft-en.jpg"><img loading="lazy" src="screens/aircraft-en.jpg" width="1080" height="2400" alt="BRIO66, Challenger 600: zdjęcie z podpisem autora i telemetria w angielskim interfejsie"></a><figcaption>Karta samolotu — przykład w angielskiej wersji interfejsu. Zdjęcie pojawia się, gdy jest dostępne.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/aircraft-pl.png"><img loading="lazy" src="screens/aircraft-pl.png" width="1080" height="2400" alt="RCH5078, C-17: polska karta historii z przykładową fotografią modelu, autorem, źródłem i licencją"></a><figcaption>Rzeczywista obserwacja RCH5078; fotografia przedstawia inny egzemplarz C-17. Pixel 7, APK 1.7.18, 8 września 2026. Kartę można przewijać.</figcaption></figure>
   </div>
 </section>
 <section id="przyciski">

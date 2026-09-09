@@ -1,0 +1,87 @@
+{
+  "status": "Research candidates, not a production library",
+  "photos": [
+    {
+      "code": "C17",
+      "model": "C-17 Globemaster III",
+      "author": "James St. John",
+      "license": "CC BY 2.0",
+      "license_url": "https://creativecommons.org/licenses/by/2.0/",
+      "url": "https://commons.wikimedia.org/wiki/File:United_States_Air_Force_-_Boeing_C-17_Globemaster_III_14.jpg",
+      "note": "Prototype T-1 at museum; evaluate whether suitable as representative model.",
+      "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1c/United_States_Air_Force_-_Boeing_C-17_Globemaster_III_14.jpg/1280px-United_States_Air_Force_-_Boeing_C-17_Globemaster_III_14.jpg",
+      "source_reviewed": "2026-09-08",
+      "status": "candidate_not_in_app",
+      "visual_review": "needs_better_composition",
+      "visual_note": "Real museum prototype, frontal view with engine covers; too panoramic for a model-identification card."
+    },
+    {
+      "code": "C30J",
+      "model": "C-130J Super Hercules",
+      "author": "Tech. Sgt. Chris Birdwell / U.S. Air Force",
+      "license": "Public domain (U.S. federal government work)",
+      "license_url": "https://commons.wikimedia.org/wiki/Template:PD-USGov-Military-Air_Force",
+      "url": "https://commons.wikimedia.org/wiki/File:C-130J_Super_Hercules_(12838689063).jpg",
+      "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8b/C-130J_Super_Hercules_%2812838689063%29.jpg/1280px-C-130J_Super_Hercules_%2812838689063%29.jpg",
+      "source_reviewed": "2026-09-08",
+      "status": "candidate_not_in_app",
+      "visual_review": "needs_better_composition",
+      "visual_note": "Real C-130J; wing tips cropped in source, seek whole-airframe view."
+    },
+    {
+      "code": "H60",
+      "model": "UH-60 Black Hawk",
+      "author": "Charles Rosemond / U.S. Army",
+      "license": "Public domain (U.S. federal government work)",
+      "license_url": "https://commons.wikimedia.org/wiki/Template:PD-USGov-Military-Army",
+      "url": "https://commons.wikimedia.org/wiki/File:UH-60_Black_Hawk_Helicopter_Maintenance_Test_Flight_170426-A-IY962-004.jpg",
+      "note": "Use only when UH-60 family confirmed; H60 code alone may not establish subvariant.",
+      "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3e/UH-60_Black_Hawk_Helicopter_Maintenance_Test_Flight_170426-A-IY962-004.jpg/1280px-UH-60_Black_Hawk_Helicopter_Maintenance_Test_Flight_170426-A-IY962-004.jpg",
+      "source_reviewed": "2026-09-08",
+      "status": "candidate_not_in_app",
+      "visual_review": "acceptable_family_example_pending_variant",
+      "visual_note": "Whole UH-60 visible; good three-quarter view. Exact subvariant not established."
+    },
+    {
+      "code": "H47",
+      "model": "CH-47 Chinook",
+      "author": "Petty Officer 3rd Class Dustin Knight / U.S. Navy",
+      "license": "Public domain (U.S. federal government work)",
+      "license_url": "https://commons.wikimedia.org/wiki/Template:PD-USGov-Military-Navy",
+      "url": "https://commons.wikimedia.org/wiki/File:CH-47_Chinook_flight_ops_140428-N-HU377-177.jpg",
+      "note": "Special operations unit; verify subtype before general assignment.",
+      "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/55/CH-47_Chinook_flight_ops_140428-N-HU377-177.jpg/1280px-CH-47_Chinook_flight_ops_140428-N-HU377-177.jpg",
+      "source_reviewed": "2026-09-08",
+      "status": "candidate_not_in_app",
+      "visual_review": "needs_variant_verification",
+      "visual_note": "Special-operations equipment and refuelling probe visible; do not use as an unqualified standard CH-47 example."
+    },
+    {
+      "code": "W3",
+      "model": "PZL W-3A Sokół",
+      "author": "Iky100",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "url": "https://commons.wikimedia.org/wiki/File:Czech_Air_Force_PZL_W-3A_Sokol_Helicopter.jpg",
+      "note": "W-3A example, not evidence of exact variant of observed W3.",
+      "image_url": "https://upload.wikimedia.org/wikipedia/commons/2/27/Czech_Air_Force_PZL_W-3A_Sokol_Helicopter.jpg",
+      "source_reviewed": "2026-09-08",
+      "status": "candidate_not_in_app",
+      "visual_review": "acceptable_named_variant_example",
+      "visual_note": "Real W-3A, distinguish example W-3A from any unconfirmed W3 subtype; tips clipped in original."
+    },
+    {
+      "code": "A400",
+      "model": "Airbus A400M Atlas",
+      "author": "Oleg V. Belyakov / AirTeamImages",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "url": "https://commons.wikimedia.org/wiki/File:Airbus_A400M_Atlas,_Airbus_Industrie_AN2147913.jpg",
+      "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fc/Airbus_A400M_Atlas%2C_Airbus_Industrie_AN2147913.jpg/1280px-Airbus_A400M_Atlas%2C_Airbus_Industrie_AN2147913.jpg",
+      "source_reviewed": "2026-09-08",
+      "status": "candidate_not_in_app",
+      "visual_review": "needs_better_composition",
+      "visual_note": "Real A400M; source crops wings and tail, seek full silhouette."
+    }
+  ]
+}

@@ -1,0 +1,381 @@
+[
+  {
+    "code": "A148",
+    "commons_file": "Rossiya Antonov An-148-100B Dvurekov-11.jpg",
+    "model": "Antonov An-148",
+    "article": "Antonov An-148",
+    "status": "search_seed_requires_verification"
+  },
+  {
+    "code": "A169",
+    "model": "Leonardo AW169",
+    "article": "AgustaWestland AW169",
+    "status": "search_seed_requires_verification"
+  },
+  {
+    "code": "A319",
+    "model": "Airbus A319",
+    "article": "Airbus A319",
+    "status": "search_seed_requires_verification"
+  },
+  {
+    "code": "A332",
+    "commons_file": "Airbus A330-200 (Middle East Airlines) (2843577643).jpg",
+    "model": "Airbus A330-200",
+    "article": "Airbus A330",
+    "status": "search_seed_requires_verification"
+  },
+  {
+    "code": "A400",
+    "model": "Airbus A400M Atlas",
+    "article": "Airbus A400M Atlas",
+    "status": "search_seed_requires_verification"
+  },
+  {
+    "code": "AN28",
+    "model": "Antonov An-28",
+    "article": "Antonov An-28",
+    "status": "search_seed_requires_verification"
+  },
+  {
+    "code": "AS32",
+    "model": "AS332 Super Puma",
+    "article": "Eurocopter AS332 Super Puma",
+    "status": "search_seed_requires_verification"
+  },
+  {
+    "code": "B06",
+    "model": "Bell 206",
+    "article": "Bell 206",
+    "status": "search_seed_requires_verification"
+  },
+  {
+    "code": "B350",
+    "commons_file": "Beechcraft King Air 350 PR-OTG (15905068624).jpg",
+    "model": "Beechcraft King Air 350",
+    "article": "Beechcraft Super King Air",
+    "status": "search_seed_requires_verification"
+  },
+  {
+    "code": "B737",
+    "commons_file": "Boeing 737-700 (All Nippon Airways) 12a.jpg",
+    "model": "Boeing 737-700",
+    "article": "Boeing 737 Next Generation",
+    "status": "search_seed_requires_verification"
+  },
+  {
+    "code": "B739",
+    "commons_file": "Boeing 737-900 United Airlines.jpg",
+    "model": "Boeing 737-900",
+    "article": "Boeing 737 Next Generation",
+    "status": "search_seed_requires_verification"
+  },
+  {
+    "code": "B744",
+    "model": "Boeing 747-400",
+    "article": "Boeing 747-400",
+    "status": "search_seed_requires_verification"
+  },
+  {
+    "code": "B77W",
+    "commons_file": "Boeing 777-300ER (Air New Zealand).jpg",
+    "model": "Boeing 777-300ER",
+    "article": "Boeing 777",
+    "status": "search_seed_requires_verification"
+  },
+  {
+    "code": "B788",
+    "commons_file": "Boeing 787-8 Dreamliner, United Airlines AN2212978.jpg",
+    "model": "Boeing 787-8",
+    "article": "Boeing 787 Dreamliner",
+    "status": "search_seed_requires_verification"
+  },
+  {
+    "code": "BE20",
+    "model": "Beechcraft King Air 200",
+    "article": "Beechcraft Super King Air",
+    "status": "search_seed_requires_verification"
+  },
+  {
+    "code": "C130",
+    "model": "Lockheed C-130 Hercules",
+    "article": "Lockheed C-130 Hercules",
+    "status": "search_seed_requires_verification"
+  },
+  {
+    "code": "C17",
+    "model": "Boeing C-17 Globemaster III",
+    "article": "Boeing C-17 Globemaster III",
+    "status": "search_seed_requires_verification"
+  },
+  {
+    "code": "C27J",
+    "model": "Leonardo C-27J Spartan",
+    "article": "Alenia C-27J Spartan",
+    "status": "search_seed_requires_verification"
+  },
+  {
+    "code": "C295",
+    "model": "Airbus C295",
+    "article": "Airbus C295",
+    "status": "search_seed_requires_verification"
+  },
+  {
+    "code": "C30J",
+    "model": "Lockheed Martin C-130J Super Hercules",
+    "article": "Lockheed Martin C-130J Super Hercules",
+    "status": "search_seed_requires_verification"
+  },
+  {
+    "code": "C560",
+    "model": "Cessna Citation V / Ultra / Encore",
+    "article": "Cessna Citation V",
+    "status": "search_seed_requires_verification"
+  },
+  {
+    "code": "CL2T",
+    "model": "Canadair CL-415",
+    "article": "Canadair CL-415",
+    "status": "search_seed_requires_verification"
+  },
+  {
+    "code": "CL60",
+    "model": "Bombardier Challenger 600 series",
+    "article": "Bombardier Challenger 600 series",
+    "status": "search_seed_requires_verification"
+  },
+  {
+    "code": "D228",
+    "model": "Dornier 228",
+    "article": "Dornier 228",
+    "status": "search_seed_requires_verification"
+  },
+  {
+    "code": "DA40",
+    "model": "Diamond DA40",
+    "article": "Diamond DA40 Diamond Star",
+    "status": "search_seed_requires_verification"
+  },
+  {
+    "code": "DA62",
+    "model": "Diamond DA62",
+    "article": "Diamond DA62",
+    "status": "search_seed_requires_verification"
+  },
+  {
+    "code": "E3CF",
+    "commons_file": "Boeing E-3D Sentry aircraft, RAF Waddington - geograph.org.uk - 4268362.jpg",
+    "model": "Boeing E-3 Sentry (CFM56)",
+    "article": "Boeing E-3 Sentry",
+    "status": "search_seed_requires_verification"
+  },
+  {
+    "code": "E3TF",
+    "model": "Boeing E-3 Sentry (TF33)",
+    "article": "Boeing E-3 Sentry",
+    "status": "search_seed_requires_verification"
+  },
+  {
+    "code": "E737",
+    "model": "Boeing 737 AEW&C",
+    "article": "Boeing 737 AEW&C",
+    "status": "search_seed_requires_verification"
+  },
+  {
+    "code": "EC35",
+    "model": "Eurocopter EC135 / Airbus H135",
+    "article": "Eurocopter EC135",
+    "status": "search_seed_requires_verification"
+  },
+  {
+    "code": "EN48",
+    "model": "Enstrom 480",
+    "article": "Enstrom 480",
+    "status": "search_seed_requires_verification"
+  },
+  {
+    "code": "F16",
+    "model": "General Dynamics F-16 Fighting Falcon",
+    "article": "General Dynamics F-16 Fighting Falcon",
+    "status": "search_seed_requires_verification"
+  },
+  {
+    "code": "F2TH",
+    "model": "Dassault Falcon 2000",
+    "article": "Dassault Falcon 2000",
+    "status": "search_seed_requires_verification"
+  },
+  {
+    "code": "FA7X",
+    "model": "Dassault Falcon 7X",
+    "article": "Dassault Falcon 7X",
+    "status": "search_seed_requires_verification"
+  },
+  {
+    "code": "GLEX",
+    "model": "Bombardier Global Express",
+    "article": "Bombardier Global Express",
+    "status": "search_seed_requires_verification"
+  },
+  {
+    "code": "GLF4",
+    "model": "Gulfstream IV",
+    "article": "Gulfstream IV",
+    "status": "search_seed_requires_verification"
+  },
+  {
+    "code": "GLF5",
+    "commons_file": "Gulfstream V from below.jpg",
+    "model": "Gulfstream V",
+    "article": "Gulfstream V",
+    "status": "search_seed_requires_verification"
+  },
+  {
+    "code": "GLF6",
+    "model": "Gulfstream G650",
+    "article": "Gulfstream G650",
+    "status": "search_seed_requires_verification"
+  },
+  {
+    "code": "H47",
+    "model": "Boeing CH-47 Chinook",
+    "article": "Boeing CH-47 Chinook",
+    "status": "search_seed_requires_verification"
+  },
+  {
+    "code": "H60",
+    "model": "Sikorsky H-60 family",
+    "article": "Sikorsky UH-60 Black Hawk",
+    "status": "search_seed_requires_verification"
+  },
+  {
+    "code": "IL76",
+    "model": "Ilyushin Il-76",
+    "article": "Ilyushin Il-76",
+    "status": "search_seed_requires_verification"
+  },
+  {
+    "code": "K35R",
+    "model": "Boeing KC-135R Stratotanker",
+    "article": "Boeing KC-135 Stratotanker",
+    "status": "search_seed_requires_verification"
+  },
+  {
+    "code": "L39",
+    "model": "Aero L-39 Albatros",
+    "article": "Aero L-39 Albatros",
+    "status": "search_seed_requires_verification"
+  },
+  {
+    "code": "L410",
+    "model": "Let L-410 Turbolet",
+    "article": "Let L-410 Turbolet",
+    "status": "search_seed_requires_verification"
+  },
+  {
+    "code": "LJ45",
+    "model": "Learjet 45",
+    "article": "Learjet 45",
+    "status": "search_seed_requires_verification"
+  },
+  {
+    "code": "M28",
+    "commons_file": "ESTONIAN AIR FORCE PZL M28 SKYTRUCK 44 BLACK (52245656955).jpg",
+    "model": "PZL M28",
+    "article": "PZL M28 Skytruck",
+    "status": "search_seed_requires_verification"
+  },
+  {
+    "code": "MI8",
+    "model": "Mil Mi-8 family",
+    "article": "Mil Mi-8",
+    "status": "search_seed_requires_verification"
+  },
+  {
+    "code": "P180",
+    "model": "Piaggio P.180 Avanti",
+    "article": "Piaggio P.180 Avanti",
+    "status": "search_seed_requires_verification"
+  },
+  {
+    "code": "PC12",
+    "commons_file": "Pilatus PC-12-45 (N616EL).jpg",
+    "model": "Pilatus PC-12",
+    "article": "Pilatus PC-12",
+    "status": "search_seed_requires_verification"
+  },
+  {
+    "code": "PC6T",
+    "model": "Pilatus PC-6 Turbo Porter",
+    "article": "Pilatus PC-6 Porter",
+    "status": "search_seed_requires_verification"
+  },
+  {
+    "code": "PC7",
+    "model": "Pilatus PC-7",
+    "article": "Pilatus PC-7",
+    "status": "search_seed_requires_verification"
+  },
+  {
+    "code": "PC9",
+    "model": "Pilatus PC-9",
+    "article": "Pilatus PC-9",
+    "status": "search_seed_requires_verification"
+  },
+  {
+    "code": "PZ3T",
+    "model": "PZL-130 Orlik turboprop",
+    "article": "PZL-130 Orlik",
+    "status": "search_seed_requires_verification"
+  },
+  {
+    "code": "R135",
+    "model": "Boeing RC-135",
+    "article": "Boeing RC-135",
+    "status": "search_seed_requires_verification"
+  },
+  {
+    "code": "RFAL",
+    "model": "Dassault Rafale",
+    "article": "Dassault Rafale",
+    "status": "search_seed_requires_verification"
+  },
+  {
+    "code": "SB39",
+    "model": "Unverified provider code",
+    "article": null,
+    "status": "blocked_unverified_designator"
+  },
+  {
+    "code": "SUCO",
+    "model": "Bell SuperCobra family",
+    "article": "Bell AH-1 SuperCobra",
+    "status": "search_seed_requires_verification"
+  },
+  {
+    "code": "SW4",
+    "commons_file": "Fairchild Swearingen SA-227AC Metro III, Crossair AN1476119.jpg",
+    "model": "Fairchild Swearingen Metro / Merlin IV family",
+    "article": "Fairchild Swearingen Metroliner",
+    "status": "search_seed_requires_verification"
+  },
+  {
+    "code": "T204",
+    "model": "Tupolev Tu-204",
+    "article": "Tupolev Tu-204",
+    "status": "search_seed_requires_verification"
+  },
+  {
+    "code": "W3",
+    "model": "PZL W-3 Sokół",
+    "article": "PZL W-3 Sokół",
+    "status": "search_seed_requires_verification"
+  },
+  {
+    "code": "Z42",
+    "model": "Zlín Z 42 family",
+    "article": "Zlín Z 42",
+    "commons_file": "RAAF Richmond Flying Club (VH-NZL) Zlín Z.242L on display at the 2021 Wagga City Aero Club open day.jpg",
+    "status": "search_seed_requires_verification"
+  }
+]

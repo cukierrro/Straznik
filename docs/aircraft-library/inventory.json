@@ -1,0 +1,761 @@
+{
+  "scope": "Available exports only; not a complete all-time flight record. Type codes may cover multiple variants.",
+  "coverage": [
+    {
+      "source": "test-out/audit-2026-09-08-history.json",
+      "snapshots": 359,
+      "first": "2026-09-07T16:32:48+00:00",
+      "last": "2026-09-08T04:31:44+00:00"
+    },
+    {
+      "source": "test-out/audit-red-2026-09-08-history.json",
+      "snapshots": 359,
+      "first": "2026-09-07T17:01:07+00:00",
+      "last": "2026-09-08T04:59:47+00:00"
+    },
+    {
+      "source": "test-out/real-replay-2026-09-08-history.json",
+      "snapshots": 359,
+      "first": "2026-09-08T03:31:39+00:00",
+      "last": "2026-09-08T15:30:04+00:00"
+    },
+    {
+      "source": "test-out/real-replay-2026-09-08-state.json",
+      "snapshots": 0,
+      "first": null,
+      "last": null
+    },
+    {
+      "source": "https://straznik.eu/api/history/bundle?hours=12",
+      "snapshots": 359,
+      "first": "2026-09-08T07:07:56+00:00",
+      "last": "2026-09-08T19:05:51+00:00"
+    }
+  ],
+  "model_count": 61,
+  "unknown_type_observations": 178,
+  "models": [
+    {
+      "type": "A148",
+      "descriptions": [],
+      "distinct_hex": 1,
+      "sources": [
+        "https://straznik.eu/api/history/bundle?hours=12",
+        "test-out/real-replay-2026-09-08-history.json"
+      ],
+      "first": "2026-09-08T07:02:19+00:00",
+      "last": "2026-09-08T12:56:22+00:00"
+    },
+    {
+      "type": "A169",
+      "descriptions": [],
+      "distinct_hex": 4,
+      "sources": [
+        "https://straznik.eu/api/history/bundle?hours=12",
+        "test-out/real-replay-2026-09-08-history.json"
+      ],
+      "first": "2026-09-08T09:58:40+00:00",
+      "last": "2026-09-08T19:05:51+00:00"
+    },
+    {
+      "type": "A319",
+      "descriptions": [],
+      "distinct_hex": 7,
+      "sources": [
+        "https://straznik.eu/api/history/bundle?hours=12",
+        "test-out/audit-2026-09-08-history.json",
+        "test-out/audit-red-2026-09-08-history.json",
+        "test-out/real-replay-2026-09-08-history.json",
+        "test-out/real-replay-2026-09-08-state.json"
+      ],
+      "first": "2026-09-07T16:32:48+00:00",
+      "last": "2026-09-08T17:14:36+00:00"
+    },
+    {
+      "type": "A332",
+      "descriptions": [],
+      "distinct_hex": 6,
+      "sources": [
+        "https://straznik.eu/api/history/bundle?hours=12",
+        "test-out/audit-2026-09-08-history.json",
+        "test-out/audit-red-2026-09-08-history.json",
+        "test-out/real-replay-2026-09-08-history.json"
+      ],
+      "first": "2026-09-08T01:31:36+00:00",
+      "last": "2026-09-08T15:11:59+00:00"
+    },
+    {
+      "type": "A400",
+      "descriptions": [
+        "AIRBUS A-400M"
+      ],
+      "distinct_hex": 4,
+      "sources": [
+        "https://straznik.eu/api/history/bundle?hours=12",
+        "test-out/audit-2026-09-08-history.json",
+        "test-out/audit-red-2026-09-08-history.json",
+        "test-out/real-replay-2026-09-08-history.json"
+      ],
+      "first": "2026-09-07T16:32:48+00:00",
+      "last": "2026-09-08T18:01:51+00:00"
+    },
+    {
+      "type": "AN28",
+      "descriptions": [
+        "ANTONOV An-28"
+      ],
+      "distinct_hex": 1,
+      "sources": [
+        "https://straznik.eu/api/history/bundle?hours=12",
+        "test-out/audit-2026-09-08-history.json",
+        "test-out/audit-red-2026-09-08-history.json",
+        "test-out/real-replay-2026-09-08-history.json",
+        "test-out/real-replay-2026-09-08-state.json"
+      ],
+      "first": "2026-09-07T16:32:48+00:00",
+      "last": "2026-09-08T16:18:21+00:00"
+    },
+    {
+      "type": "AS32",
+      "descriptions": [],
+      "distinct_hex": 1,
+      "sources": [
+        "https://straznik.eu/api/history/bundle?hours=12",
+        "test-out/real-replay-2026-09-08-history.json"
+      ],
+      "first": "2026-09-08T06:09:51+00:00",
+      "last": "2026-09-08T16:56:32+00:00"
+    },
+    {
+      "type": "B06",
+      "descriptions": [],
+      "distinct_hex": 1,
+      "sources": [
+        "https://straznik.eu/api/history/bundle?hours=12",
+        "test-out/real-replay-2026-09-08-history.json"
+      ],
+      "first": "2026-09-08T13:31:29+00:00",
+      "last": "2026-09-08T13:49:38+00:00"
+    },
+    {
+      "type": "B350",
+      "descriptions": [
+        "BEECHCRAFT Super King Air 350"
+      ],
+      "distinct_hex": 1,
+      "sources": [
+        "test-out/audit-2026-09-08-history.json",
+        "test-out/audit-red-2026-09-08-history.json"
+      ],
+      "first": "2026-09-07T16:32:48+00:00",
+      "last": "2026-09-07T19:25:32+00:00"
+    },
+    {
+      "type": "B737",
+      "descriptions": [],
+      "distinct_hex": 1,
+      "sources": [
+        "https://straznik.eu/api/history/bundle?hours=12",
+        "test-out/audit-2026-09-08-history.json",
+        "test-out/audit-red-2026-09-08-history.json",
+        "test-out/real-replay-2026-09-08-history.json",
+        "test-out/real-replay-2026-09-08-state.json"
+      ],
+      "first": "2026-09-07T17:49:19+00:00",
+      "last": "2026-09-08T16:26:27+00:00"
+    },
+    {
+      "type": "B739",
+      "descriptions": [],
+      "distinct_hex": 1,
+      "sources": [
+        "https://straznik.eu/api/history/bundle?hours=12"
+      ],
+      "first": "2026-09-08T16:00:18+00:00",
+      "last": "2026-09-08T17:37:51+00:00"
+    },
+    {
+      "type": "B744",
+      "descriptions": [],
+      "distinct_hex": 1,
+      "sources": [
+        "https://straznik.eu/api/history/bundle?hours=12",
+        "test-out/real-replay-2026-09-08-history.json"
+      ],
+      "first": "2026-09-08T13:51:39+00:00",
+      "last": "2026-09-08T14:13:41+00:00"
+    },
+    {
+      "type": "B77W",
+      "descriptions": [],
+      "distinct_hex": 1,
+      "sources": [
+        "https://straznik.eu/api/history/bundle?hours=12"
+      ],
+      "first": "2026-09-08T16:10:21+00:00",
+      "last": "2026-09-08T16:30:31+00:00"
+    },
+    {
+      "type": "B788",
+      "descriptions": [],
+      "distinct_hex": 1,
+      "sources": [
+        "https://straznik.eu/api/history/bundle?hours=12",
+        "test-out/real-replay-2026-09-08-history.json"
+      ],
+      "first": "2026-09-08T14:59:51+00:00",
+      "last": "2026-09-08T15:07:56+00:00"
+    },
+    {
+      "type": "BE20",
+      "descriptions": [],
+      "distinct_hex": 1,
+      "sources": [
+        "https://straznik.eu/api/history/bundle?hours=12",
+        "test-out/real-replay-2026-09-08-history.json"
+      ],
+      "first": "2026-09-08T08:38:28+00:00",
+      "last": "2026-09-08T10:48:49+00:00"
+    },
+    {
+      "type": "C130",
+      "descriptions": [],
+      "distinct_hex": 5,
+      "sources": [
+        "https://straznik.eu/api/history/bundle?hours=12",
+        "test-out/audit-2026-09-08-history.json",
+        "test-out/audit-red-2026-09-08-history.json",
+        "test-out/real-replay-2026-09-08-history.json"
+      ],
+      "first": "2026-09-07T19:21:07+00:00",
+      "last": "2026-09-08T18:07:51+00:00"
+    },
+    {
+      "type": "C17",
+      "descriptions": [],
+      "distinct_hex": 13,
+      "sources": [
+        "https://straznik.eu/api/history/bundle?hours=12",
+        "test-out/audit-2026-09-08-history.json",
+        "test-out/audit-red-2026-09-08-history.json",
+        "test-out/real-replay-2026-09-08-history.json",
+        "test-out/real-replay-2026-09-08-state.json"
+      ],
+      "first": "2026-09-07T17:19:10+00:00",
+      "last": "2026-09-08T19:05:51+00:00"
+    },
+    {
+      "type": "C27J",
+      "descriptions": [
+        "ALENIA C-27J Spartan"
+      ],
+      "distinct_hex": 5,
+      "sources": [
+        "https://straznik.eu/api/history/bundle?hours=12",
+        "test-out/audit-2026-09-08-history.json",
+        "test-out/audit-red-2026-09-08-history.json",
+        "test-out/real-replay-2026-09-08-history.json"
+      ],
+      "first": "2026-09-07T17:25:15+00:00",
+      "last": "2026-09-08T15:07:56+00:00"
+    },
+    {
+      "type": "C295",
+      "descriptions": [],
+      "distinct_hex": 4,
+      "sources": [
+        "https://straznik.eu/api/history/bundle?hours=12",
+        "test-out/audit-2026-09-08-history.json",
+        "test-out/audit-red-2026-09-08-history.json",
+        "test-out/real-replay-2026-09-08-history.json"
+      ],
+      "first": "2026-09-07T16:32:48+00:00",
+      "last": "2026-09-08T13:47:38+00:00"
+    },
+    {
+      "type": "C30J",
+      "descriptions": [],
+      "distinct_hex": 3,
+      "sources": [
+        "https://straznik.eu/api/history/bundle?hours=12",
+        "test-out/real-replay-2026-09-08-history.json"
+      ],
+      "first": "2026-09-08T09:46:40+00:00",
+      "last": "2026-09-08T17:19:51+00:00"
+    },
+    {
+      "type": "C560",
+      "descriptions": [],
+      "distinct_hex": 1,
+      "sources": [
+        "https://straznik.eu/api/history/bundle?hours=12",
+        "test-out/real-replay-2026-09-08-history.json"
+      ],
+      "first": "2026-09-08T06:01:48+00:00",
+      "last": "2026-09-08T11:45:06+00:00"
+    },
+    {
+      "type": "CL2T",
+      "descriptions": [],
+      "distinct_hex": 3,
+      "sources": [
+        "https://straznik.eu/api/history/bundle?hours=12",
+        "test-out/audit-2026-09-08-history.json",
+        "test-out/audit-red-2026-09-08-history.json",
+        "test-out/real-replay-2026-09-08-history.json"
+      ],
+      "first": "2026-09-07T17:05:07+00:00",
+      "last": "2026-09-08T17:23:51+00:00"
+    },
+    {
+      "type": "CL60",
+      "descriptions": [],
+      "distinct_hex": 1,
+      "sources": [
+        "https://straznik.eu/api/history/bundle?hours=12",
+        "test-out/real-replay-2026-09-08-history.json"
+      ],
+      "first": "2026-09-08T05:59:48+00:00",
+      "last": "2026-09-08T15:05:56+00:00"
+    },
+    {
+      "type": "D228",
+      "descriptions": [],
+      "distinct_hex": 1,
+      "sources": [
+        "https://straznik.eu/api/history/bundle?hours=12"
+      ],
+      "first": "2026-09-08T17:31:51+00:00",
+      "last": "2026-09-08T17:53:51+00:00"
+    },
+    {
+      "type": "DA40",
+      "descriptions": [],
+      "distinct_hex": 1,
+      "sources": [
+        "https://straznik.eu/api/history/bundle?hours=12",
+        "test-out/real-replay-2026-09-08-history.json"
+      ],
+      "first": "2026-09-08T09:38:40+00:00",
+      "last": "2026-09-08T10:12:42+00:00"
+    },
+    {
+      "type": "DA62",
+      "descriptions": [],
+      "distinct_hex": 1,
+      "sources": [
+        "https://straznik.eu/api/history/bundle?hours=12",
+        "test-out/real-replay-2026-09-08-history.json"
+      ],
+      "first": "2026-09-08T07:21:59+00:00",
+      "last": "2026-09-08T12:17:18+00:00"
+    },
+    {
+      "type": "E3CF",
+      "descriptions": [],
+      "distinct_hex": 1,
+      "sources": [
+        "https://straznik.eu/api/history/bundle?hours=12",
+        "test-out/real-replay-2026-09-08-history.json"
+      ],
+      "first": "2026-09-08T07:54:11+00:00",
+      "last": "2026-09-08T14:29:43+00:00"
+    },
+    {
+      "type": "E3TF",
+      "descriptions": [],
+      "distinct_hex": 1,
+      "sources": [
+        "https://straznik.eu/api/history/bundle?hours=12"
+      ],
+      "first": "2026-09-08T18:19:51+00:00",
+      "last": "2026-09-08T19:05:51+00:00"
+    },
+    {
+      "type": "E737",
+      "descriptions": [],
+      "distinct_hex": 1,
+      "sources": [
+        "https://straznik.eu/api/history/bundle?hours=12",
+        "test-out/real-replay-2026-09-08-history.json"
+      ],
+      "first": "2026-09-08T08:40:28+00:00",
+      "last": "2026-09-08T13:01:22+00:00"
+    },
+    {
+      "type": "EC35",
+      "descriptions": [],
+      "distinct_hex": 5,
+      "sources": [
+        "https://straznik.eu/api/history/bundle?hours=12",
+        "test-out/audit-2026-09-08-history.json",
+        "test-out/audit-red-2026-09-08-history.json",
+        "test-out/real-replay-2026-09-08-history.json"
+      ],
+      "first": "2026-09-07T16:36:52+00:00",
+      "last": "2026-09-08T15:05:56+00:00"
+    },
+    {
+      "type": "EN48",
+      "descriptions": [],
+      "distinct_hex": 2,
+      "sources": [
+        "https://straznik.eu/api/history/bundle?hours=12",
+        "test-out/audit-2026-09-08-history.json",
+        "test-out/audit-red-2026-09-08-history.json",
+        "test-out/real-replay-2026-09-08-history.json",
+        "test-out/real-replay-2026-09-08-state.json"
+      ],
+      "first": "2026-09-07T16:32:48+00:00",
+      "last": "2026-09-08T19:05:51+00:00"
+    },
+    {
+      "type": "F16",
+      "descriptions": [],
+      "distinct_hex": 1,
+      "sources": [
+        "https://straznik.eu/api/history/bundle?hours=12",
+        "test-out/real-replay-2026-09-08-history.json"
+      ],
+      "first": "2026-09-08T14:13:41+00:00",
+      "last": "2026-09-08T15:05:56+00:00"
+    },
+    {
+      "type": "F2TH",
+      "descriptions": [],
+      "distinct_hex": 1,
+      "sources": [
+        "https://straznik.eu/api/history/bundle?hours=12"
+      ],
+      "first": "2026-09-08T16:08:21+00:00",
+      "last": "2026-09-08T16:42:31+00:00"
+    },
+    {
+      "type": "FA7X",
+      "descriptions": [],
+      "distinct_hex": 2,
+      "sources": [
+        "https://straznik.eu/api/history/bundle?hours=12",
+        "test-out/real-replay-2026-09-08-history.json"
+      ],
+      "first": "2026-09-08T07:03:56+00:00",
+      "last": "2026-09-08T09:56:40+00:00"
+    },
+    {
+      "type": "GLEX",
+      "descriptions": [],
+      "distinct_hex": 1,
+      "sources": [
+        "https://straznik.eu/api/history/bundle?hours=12",
+        "test-out/real-replay-2026-09-08-history.json"
+      ],
+      "first": "2026-09-08T10:18:47+00:00",
+      "last": "2026-09-08T11:08:51+00:00"
+    },
+    {
+      "type": "GLF4",
+      "descriptions": [],
+      "distinct_hex": 2,
+      "sources": [
+        "https://straznik.eu/api/history/bundle?hours=12",
+        "test-out/audit-red-2026-09-08-history.json",
+        "test-out/real-replay-2026-09-08-history.json"
+      ],
+      "first": "2026-09-08T04:59:47+00:00",
+      "last": "2026-09-08T13:01:22+00:00"
+    },
+    {
+      "type": "GLF5",
+      "descriptions": [],
+      "distinct_hex": 3,
+      "sources": [
+        "https://straznik.eu/api/history/bundle?hours=12",
+        "test-out/audit-2026-09-08-history.json",
+        "test-out/audit-red-2026-09-08-history.json",
+        "test-out/real-replay-2026-09-08-history.json",
+        "test-out/real-replay-2026-09-08-state.json"
+      ],
+      "first": "2026-09-08T02:07:36+00:00",
+      "last": "2026-09-08T15:42:04+00:00"
+    },
+    {
+      "type": "GLF6",
+      "descriptions": [],
+      "distinct_hex": 1,
+      "sources": [
+        "https://straznik.eu/api/history/bundle?hours=12",
+        "test-out/real-replay-2026-09-08-history.json"
+      ],
+      "first": "2026-09-08T13:03:22+00:00",
+      "last": "2026-09-08T13:23:29+00:00"
+    },
+    {
+      "type": "H47",
+      "descriptions": [],
+      "distinct_hex": 2,
+      "sources": [
+        "https://straznik.eu/api/history/bundle?hours=12",
+        "test-out/real-replay-2026-09-08-history.json"
+      ],
+      "first": "2026-09-08T08:42:28+00:00",
+      "last": "2026-09-08T18:31:51+00:00"
+    },
+    {
+      "type": "H60",
+      "descriptions": [],
+      "distinct_hex": 6,
+      "sources": [
+        "https://straznik.eu/api/history/bundle?hours=12",
+        "test-out/audit-2026-09-08-history.json",
+        "test-out/audit-red-2026-09-08-history.json",
+        "test-out/real-replay-2026-09-08-history.json",
+        "test-out/real-replay-2026-09-08-state.json"
+      ],
+      "first": "2026-09-07T17:19:10+00:00",
+      "last": "2026-09-08T19:05:51+00:00"
+    },
+    {
+      "type": "IL76",
+      "descriptions": [],
+      "distinct_hex": 2,
+      "sources": [
+        "https://straznik.eu/api/history/bundle?hours=12",
+        "test-out/real-replay-2026-09-08-history.json"
+      ],
+      "first": "2026-09-08T07:22:37+00:00",
+      "last": "2026-09-08T19:03:51+00:00"
+    },
+    {
+      "type": "K35R",
+      "descriptions": [],
+      "distinct_hex": 3,
+      "sources": [
+        "https://straznik.eu/api/history/bundle?hours=12",
+        "test-out/audit-2026-09-08-history.json",
+        "test-out/audit-red-2026-09-08-history.json",
+        "test-out/real-replay-2026-09-08-history.json"
+      ],
+      "first": "2026-09-07T19:29:32+00:00",
+      "last": "2026-09-08T18:59:51+00:00"
+    },
+    {
+      "type": "L39",
+      "descriptions": [],
+      "distinct_hex": 2,
+      "sources": [
+        "https://straznik.eu/api/history/bundle?hours=12",
+        "test-out/real-replay-2026-09-08-history.json"
+      ],
+      "first": "2026-09-08T07:32:01+00:00",
+      "last": "2026-09-08T14:07:41+00:00"
+    },
+    {
+      "type": "L410",
+      "descriptions": [],
+      "distinct_hex": 2,
+      "sources": [
+        "https://straznik.eu/api/history/bundle?hours=12",
+        "test-out/real-replay-2026-09-08-history.json"
+      ],
+      "first": "2026-09-08T07:27:59+00:00",
+      "last": "2026-09-08T11:57:09+00:00"
+    },
+    {
+      "type": "LJ45",
+      "descriptions": [],
+      "distinct_hex": 1,
+      "sources": [
+        "https://straznik.eu/api/history/bundle?hours=12",
+        "test-out/real-replay-2026-09-08-history.json"
+      ],
+      "first": "2026-09-08T09:16:37+00:00",
+      "last": "2026-09-08T11:37:06+00:00"
+    },
+    {
+      "type": "M28",
+      "descriptions": [],
+      "distinct_hex": 3,
+      "sources": [
+        "https://straznik.eu/api/history/bundle?hours=12",
+        "test-out/real-replay-2026-09-08-history.json",
+        "test-out/real-replay-2026-09-08-state.json"
+      ],
+      "first": "2026-09-08T07:42:05+00:00",
+      "last": "2026-09-08T18:07:51+00:00"
+    },
+    {
+      "type": "MI8",
+      "descriptions": [],
+      "distinct_hex": 6,
+      "sources": [
+        "https://straznik.eu/api/history/bundle?hours=12",
+        "test-out/audit-2026-09-08-history.json",
+        "test-out/audit-red-2026-09-08-history.json",
+        "test-out/real-replay-2026-09-08-history.json",
+        "test-out/real-replay-2026-09-08-state.json"
+      ],
+      "first": "2026-09-07T17:57:31+00:00",
+      "last": "2026-09-08T19:05:51+00:00"
+    },
+    {
+      "type": "P180",
+      "descriptions": [],
+      "distinct_hex": 1,
+      "sources": [
+        "https://straznik.eu/api/history/bundle?hours=12",
+        "test-out/audit-2026-09-08-history.json",
+        "test-out/audit-red-2026-09-08-history.json",
+        "test-out/real-replay-2026-09-08-history.json"
+      ],
+      "first": "2026-09-07T17:23:15+00:00",
+      "last": "2026-09-08T08:34:28+00:00"
+    },
+    {
+      "type": "PC12",
+      "descriptions": [],
+      "distinct_hex": 1,
+      "sources": [
+        "https://straznik.eu/api/history/bundle?hours=12",
+        "test-out/audit-2026-09-08-history.json",
+        "test-out/audit-red-2026-09-08-history.json",
+        "test-out/real-replay-2026-09-08-history.json"
+      ],
+      "first": "2026-09-07T16:32:48+00:00",
+      "last": "2026-09-08T17:41:51+00:00"
+    },
+    {
+      "type": "PC6T",
+      "descriptions": [],
+      "distinct_hex": 2,
+      "sources": [
+        "https://straznik.eu/api/history/bundle?hours=12",
+        "test-out/real-replay-2026-09-08-history.json"
+      ],
+      "first": "2026-09-08T05:05:47+00:00",
+      "last": "2026-09-08T18:35:51+00:00"
+    },
+    {
+      "type": "PC7",
+      "descriptions": [],
+      "distinct_hex": 2,
+      "sources": [
+        "https://straznik.eu/api/history/bundle?hours=12",
+        "test-out/real-replay-2026-09-08-history.json"
+      ],
+      "first": "2026-09-08T09:38:40+00:00",
+      "last": "2026-09-08T11:51:09+00:00"
+    },
+    {
+      "type": "PC9",
+      "descriptions": [],
+      "distinct_hex": 1,
+      "sources": [
+        "https://straznik.eu/api/history/bundle?hours=12",
+        "test-out/real-replay-2026-09-08-history.json",
+        "test-out/real-replay-2026-09-08-state.json"
+      ],
+      "first": "2026-09-08T14:29:43+00:00",
+      "last": "2026-09-08T16:20:27+00:00"
+    },
+    {
+      "type": "PZ3T",
+      "descriptions": [],
+      "distinct_hex": 4,
+      "sources": [
+        "https://straznik.eu/api/history/bundle?hours=12",
+        "test-out/audit-2026-09-08-history.json",
+        "test-out/audit-red-2026-09-08-history.json",
+        "test-out/real-replay-2026-09-08-history.json",
+        "test-out/real-replay-2026-09-08-state.json"
+      ],
+      "first": "2026-09-07T16:32:48+00:00",
+      "last": "2026-09-08T16:54:32+00:00"
+    },
+    {
+      "type": "R135",
+      "descriptions": [],
+      "distinct_hex": 1,
+      "sources": [
+        "https://straznik.eu/api/history/bundle?hours=12",
+        "test-out/real-replay-2026-09-08-history.json"
+      ],
+      "first": "2026-09-08T11:22:53+00:00",
+      "last": "2026-09-08T11:22:53+00:00"
+    },
+    {
+      "type": "RFAL",
+      "descriptions": [],
+      "distinct_hex": 1,
+      "sources": [
+        "https://straznik.eu/api/history/bundle?hours=12",
+        "test-out/real-replay-2026-09-08-history.json"
+      ],
+      "first": "2026-09-08T13:41:38+00:00",
+      "last": "2026-09-08T14:47:45+00:00"
+    },
+    {
+      "type": "SB39",
+      "descriptions": [],
+      "distinct_hex": 3,
+      "sources": [
+        "https://straznik.eu/api/history/bundle?hours=12",
+        "test-out/real-replay-2026-09-08-history.json"
+      ],
+      "first": "2026-09-08T07:46:05+00:00",
+      "last": "2026-09-08T10:02:40+00:00"
+    },
+    {
+      "type": "SUCO",
+      "descriptions": [],
+      "distinct_hex": 1,
+      "sources": [
+        "https://straznik.eu/api/history/bundle?hours=12"
+      ],
+      "first": "2026-09-08T18:53:51+00:00",
+      "last": "2026-09-08T19:05:51+00:00"
+    },
+    {
+      "type": "SW4",
+      "descriptions": [],
+      "distinct_hex": 1,
+      "sources": [
+        "test-out/real-replay-2026-09-08-history.json"
+      ],
+      "first": "2026-09-08T05:15:47+00:00",
+      "last": "2026-09-08T07:01:56+00:00"
+    },
+    {
+      "type": "T204",
+      "descriptions": [],
+      "distinct_hex": 1,
+      "sources": [
+        "https://straznik.eu/api/history/bundle?hours=12"
+      ],
+      "first": "2026-09-08T16:03:06+00:00",
+      "last": "2026-09-08T16:37:12+00:00"
+    },
+    {
+      "type": "W3",
+      "descriptions": [],
+      "distinct_hex": 1,
+      "sources": [
+        "https://straznik.eu/api/history/bundle?hours=12",
+        "test-out/real-replay-2026-09-08-history.json"
+      ],
+      "first": "2026-09-08T12:25:18+00:00",
+      "last": "2026-09-08T16:58:32+00:00"
+    },
+    {
+      "type": "Z42",
+      "descriptions": [],
+      "distinct_hex": 4,
+      "sources": [
+        "https://straznik.eu/api/history/bundle?hours=12",
+        "test-out/real-replay-2026-09-08-history.json",
+        "test-out/real-replay-2026-09-08-state.json"
+      ],
+      "first": "2026-09-08T07:05:56+00:00",
+      "last": "2026-09-08T16:36:31+00:00"
+    }
+  ]
+}

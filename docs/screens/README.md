@@ -1,6 +1,6 @@
 # Current user-guide screenshots
 
-The Polish and English guides retain 13 real captures from Strażnik 1.7.16
+The Polish and English guides retain 12 real captures from Strażnik 1.7.16
 (version code 46), running on a Pixel 7 emulator with Android 14.
 Captured on 6 September 2026. These are observations of the application,
 not fabricated alert scenarios. No public test notifications were sent.
@@ -19,7 +19,18 @@ Current Polish captures: `01_start.jpg`, `04_legenda.jpg`, `settings-pl.jpg`,
 
 Current English captures: `start-en.jpg`, `legend-en.jpg`, `settings-en.jpg`,
 `updates-en.jpg`, `panel-en.jpg`,
-`aircraft-en.jpg`, `object-en.jpg`.
+`object-en.jpg`.
+
+The aircraft cards are `aircraft-pl.png` and `aircraft-en.png`: unchanged
+1080 × 2400 screenshots of signed release 1.7.18 (code 48), Pixel 7 / Android 14,
+captured 8 September 2026. They show real RCH5078 / 10-0213 / hex ae4d66
+observations, with a photograph of another C-17 from the model library.
+The capture test used actual server-backed snapshots, not synthetic aircraft.
+The photo captions and license links are part of the app. Cards scroll for
+additional telemetry. The initial HTTPS certificate failure was resolved by
+the user disabling the interfering host shield temporarily; app certificate
+validation was never bypassed. No public test alerts were sent.
+The older `aircraft-en.jpg` remains an unused historical asset.
 
 The alarm section also includes two explicitly labelled historical test
 captures: `30_alert_zolty_tlo.jpg` (1440 × 3200) and

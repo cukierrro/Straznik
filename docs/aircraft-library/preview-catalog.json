@@ -1,0 +1,24 @@
+{
+  "status": "isolated_preview_only",
+  "codeDefaults": {"PZ3T": "pzl130"},
+  "photos": [
+    {
+      "id": "pzl130", "model": "PZL-130 Orlik", "codes": ["PZ3T"],
+      "status": "reviewed_preview", "src": "assets/pzl130.jpg",
+      "author": "Ronnie Macdonald; source crop by FOX 52",
+      "license": "CC BY 2.0", "licenseUrl": "https://creativecommons.org/licenses/by/2.0/",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Orlik_Aerobatic_Team_PZL-130_(cropped).jpg",
+      "changes": "Commons thumbnail of an existing source crop; no additional retouching.",
+      "scope": "Base model PZL-130; not a verified TC-I/TC-II representation of the tracked aircraft."
+    },
+    {
+      "id": "z242l", "model": "Zlín Z-242L", "codes": ["Z42"],
+      "status": "reviewed_preview", "src": "assets/z242l.jpg",
+      "author": "Robert Myers (Bidgee)",
+      "license": "CC BY-SA 3.0 AU", "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/au/",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:RAAF_Richmond_Flying_Club_(VH-NZL)_Zl%C3%ADn_Z.242L_on_display_at_the_2021_Wagga_City_Aero_Club_open_day.jpg",
+      "changes": "Commons thumbnail; no additional cropping or retouching.",
+      "scope": "Z-242L example VH-NZL; not the Czech 0543 and not a claim of identical Zeus equipment. Requires a verified model, not Z42 alone."
+    }
+  ]
+}
