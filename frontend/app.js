@@ -201,6 +201,19 @@ function threatDesc(t) {
   return parts.join(" · ") || UI.type(t.type, meta.label);
 }
 
+/* NEPTUN oznacza część punktów jako `approx`: to rejon zgłoszenia (często
+   środek miejscowości), a nie kolejne namiary radarowe. Pole jest na żywo na
+   tracku, a w archiwum — w zachowanym source_metadata. */
+function positionQuality(t) {
+  return String(t?.positionQuality
+    ?? t?.source_metadata?.source_fields?.positionQuality
+    ?? "").toLowerCase();
+}
+function isApproxPosition(t) { return positionQuality(t) === "approx"; }
+function approxPositionNote() {
+  return `<span style="color:#ffb020"><b>${UI.isEn ? "approximate report area" : "przybliżony rejon zgłoszenia"}</b> — ${UI.isEn ? "no confirmed route or arrival time" : "brak potwierdzonej trasy i czasu dolotu"}</span>`;
+}
+
 /* ── czas dolotu ─────────────────────────────────────────────────────────────
    Odległość w km nic nie mówi o zapasie czasu: ta sama „130 km" to ~10 minut dla
    rakiety manewrującej i ~43 minuty dla drona. Liczymy więc czas — osobno do
@@ -236,6 +249,7 @@ const etaMin = (km, kmh) => (km == null || !kmh) ? null
 /* Czas pokazujemy TYLKO przy znanym kursie na PL — inaczej byłaby to liczba
    wzięta znikąd (obiekt może lecieć w przeciwną stronę). */
 function etaInfo(t) {
+  if (isApproxPosition(t)) return null;
   const a = t.pl_assessment;
   if (!a || !a.toward_pl || a.heading_known === false) return null;
   const v = t.velocity?.speedKmh ?? trackSpeed(t);
@@ -251,7 +265,7 @@ function etaInfo(t) {
 const etaTxt = (m) => m == null ? null : (m < 1 ? "<1 min" : `~${m} min`);
 
 function localPlaceHtml(t) {
-  if (histMode || t.historicalOnly || !Places?.exactPoint) return "";
+  if (histMode || t.historicalOnly || isApproxPosition(t) || !Places?.exactPoint) return "";
   const exact = savedPlaces.filter(place => place.precision === "gps" && place.gps);
   if (!exact.length || t.lat == null || t.lon == null) return "";
   const measuredSpeed = measuredTrackSpeed(t);
@@ -273,6 +287,7 @@ function localPlaceHtml(t) {
    a NIE „czas na schronienie": to szacunek z prędkości typowej dla klasy, obiekt
    może skręcić albo zostać zestrzelony. Obiecywanie pewności byłoby groźne. */
 function etaHtml(t) {
+  if (isApproxPosition(t)) return approxPositionNote() + "<br>";
   const e = etaInfo(t);
   if (!e || e.border == null) {
     const base = t.pl_assessment && t.pl_assessment.heading_known === false
@@ -1059,6 +1074,10 @@ function recordTrails(threats) {
   const alive = new Set();
   for (const t of threats) {
     if (t.lat == null || !t.id) continue;
+    if (isApproxPosition(t)) {
+      localTrails.delete(t.id);
+      continue;
+    }
     alive.add(t.id);
     const arr = localTrails.get(t.id) || [];
     const last = arr[arr.length - 1];
@@ -1077,6 +1096,7 @@ function recordTrails(threats) {
    aktualizacji, więc surowa lista daje zdegenerowaną linię (punkt).
    Zostawiamy tylko realnie różne pozycje. */
 function cleanTrail(t) {
+  if (isApproxPosition(t)) return [];
   const out = [];
   for (const p of t.trail || []) {
     if (p.lat == null || p.lon == null) continue;
@@ -1093,6 +1113,7 @@ function cleanTrail(t) {
 const TYPE_SPEED_KMH = { uav: 180, shahed: 180, fpv: 100, missile: 800, cruise: 800,
   ballistic: 3000, kab: 900, mig31k: 900 };
 function measuredTrackSpeed(t) {
+  if (isApproxPosition(t)) return null;
   if (Number.isFinite(+t.velocity?.speedKmh) && +t.velocity.speedKmh > 0) return +t.velocity.speedKmh;
   const tr = cleanTrail(t);
   if (tr.length >= 2) {
@@ -1114,6 +1135,7 @@ function trackSpeed(t) {
 /* dead-reckoning między aktualizacjami serwera (jak predict() w SDK Neptuna) */
 function predict(t, nowMs) {
   let lat = t.lat, lon = t.lon;
+  if (isApproxPosition(t)) return { lat, lon };
   const hdg = t.velocity?.bearingDeg ?? t.heading;
   const speed = t.velocity?.speedKmh ?? trackSpeed(t);
   if (speed && hdg != null) {
@@ -1146,7 +1168,9 @@ function animate(ts) {
     if (t.uncertaintyKm)
       unc.push({ type: "Feature", properties: { color: meta.color },
         geometry: { type: "Polygon", coordinates: circleCoords(p.lat, p.lon, t.uncertaintyKm) } });
-    // ślad = to, co dało API + to, co sami zaobserwowaliśmy + pozycja bieżąca
+    // ślad = to, co dało API + to, co sami zaobserwowaliśmy + pozycja bieżąca.
+    // Dla przybliżonego rejonu nie łączymy kolejnych raportów w pozorną trasę.
+    if (isApproxPosition(t)) continue;
     const seen = new Set();
     const coords = [];
     for (const q of [...cleanTrail(t), ...(localTrails.get(t.id) || []), { lat: p.lat, lon: p.lon }]) {
@@ -1375,6 +1399,7 @@ function renderObservationLists(viewState) {
               e.voiv != null ? ` · ${UI.isEn ? "to" : "do woj."} ${esc(UI.voiv(e.voivName))} <b>${etaTxt(e.voiv)}</b>` : ""}</div>`
           : ""; })()}
       ${localPlaceHtml(t)}
+      ${isApproxPosition(t) ? `<div class="meta">${approxPositionNote()}</div>` : ""}
       <div class="meta">${UI.isEn ? "confidence" : "wiarygodność"}: ${esc(UI.confidence(t.confidenceLevel, CONF_PL[t.confidenceLevel] || t.confidenceLevel))}
         · ±${esc(t.uncertaintyKm)} km · ${esc(threatDesc(t))} · ${relTime(t.updatedAt)}</div>
     </div>`;
@@ -2039,7 +2064,8 @@ function srvRecord(s) {
     id: t.id, type: t.type, lat: +(+t.lat).toFixed(3), lon: +(+t.lon).toFixed(3),
     heading: t.heading, confidenceLevel: t.confidenceLevel, uncertaintyKm: t.uncertaintyKm,
     region: t.region, locality: t.locality, sourceCount: t.sourceCount,
-    destination: t.destination, pl_assessment: t.pl_assessment }));
+    destination: t.destination, positionQuality: positionQuality(t),
+    pl_assessment: t.pl_assessment }));
   const aircraft = (s?.adsb?.aircraft || []).map(a => ({ hex: a.hex, callsign: a.callsign,
     type: a.type, lat: +(+a.lat).toFixed(3), lon: +(+a.lon).toFixed(3), alt: a.alt, gs: a.gs,
     track: a.track, voivodeship: a.voivodeship, desc: a.desc, cat: a.cat,
@@ -2220,7 +2246,8 @@ function showHistoryAt(idx) {
     return { id: d.track_id, type: d.type || "unknown", lat: d.lat, lon: d.lon,
       heading: d.heading, confidenceLevel: d.confidence,
       uncertaintyKm: d.uncertainty_km, sourceCount: d.source_count,
-      region: d.region, historicalOnly: true,
+      region: d.region, positionQuality: d.position_quality
+        ?? d.source_metadata?.source_fields?.positionQuality, historicalOnly: true,
       pl_assessment: { dist_km: d.dist_km } };
   }));
   // punktacja z tamtej chwili — używa jej i mapa, i panel. Bierzemy gotowy wynik

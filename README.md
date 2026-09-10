@@ -4,7 +4,9 @@
 
 # Strażnik
 
-Wersja 1.7.19: „Moje miejsca” przechowują na urządzeniu do 8 profili i opcjonalne
+Wersja 1.7.20: pozycje oznaczone przez NEPTUN jako przybliżone są pokazywane jako
+rejony zgłoszeń, bez sztucznego przesuwania, pozornej trasy i ETA. „Moje miejsca”
+przechowują na urządzeniu do 8 profili i opcjonalne
 jednorazowe pozycje. Powiadomienia w tle nadal dotyczą województwa; po otwarciu
 aplikacji dokładny punkt służy do lokalnego wyświetlenia odległości i — tylko
 przy wystarczających danych o locie — orientacyjnego ETA. Biblioteka zdjęć ma
@@ -20,7 +22,7 @@ wiarygodność ostrzeżenia.
 
 [Instrukcja po polsku](https://cukierrro.github.io/Straznik/) · [English user guide](https://cukierrro.github.io/Straznik/en.html)
 
-Instrukcja dla 1.7.19 opisuje „Moje miejsca”, rozdział alertów wojewódzkich i
+Instrukcja dla 1.7.20 opisuje „Moje miejsca”, rozdział alertów wojewódzkich i
 lokalnych obliczeń na pierwszym planie oraz bibliotekę fotografii PL/EN. Zrzuty
 otwierają się także w pełnym rozmiarze.
 
@@ -431,8 +433,11 @@ techniczne.
   lotnictwa z wyłączonym transponderem. Dlatego ADS-B jest tu sygnałem
   pomocniczym o wadze 1 pkt, a nie podstawą alarmu.
 - **Ślady lotu Neptuna są w praktyce puste** (pole `trail` zawiera 0–2 punkty,
-  zwykle zduplikowane), dlatego aplikacja buduje własną trajektorię z kolejnych
-  obserwacji pozycji i dolicza dead-reckoning z prędkości typowej dla klasy obiektu.
+  zwykle zduplikowane). Dla pozycji nieoznaczonych jako przybliżone aplikacja może
+  budować trajektorię z kolejnych obserwacji. Przy `positionQuality=approx` pokazuje
+  wyłącznie rejon zgłoszenia: bez dead-reckoning, pozornej trasy i ETA. Usunięcie
+  wpisu przez źródło nie określa, czy obiekt zestrzelono, utracono czy zgłoszono
+  ponownie pod innym identyfikatorem.
 - **Kamery tylko z Polski** — 641 publicznych kamer miejskich i turystycznych
   (worldcam.pl) we wszystkich 16 województwach, w tym 582 plenerowe; każda
   zweryfikowana pobraniem świeżego obrazu przy budowie listy. Pierwotnie użyłem

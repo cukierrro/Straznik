@@ -616,6 +616,9 @@ function headingOf(t) {
 /* Prędkość: ze źródła, a gdy brak — typowa dla klasy (NEPTUN jej nie podaje). */
 const TYPE_SPEED_KMH = { uav: 180, shahed: 180, fpv: 100, missile: 800, cruise: 800,
   ballistic: 3000, kab: 900, mig31k: 900, recon: 180 };
+const positionQuality = (t) => String(t?.positionQuality
+  ?? t?.source_metadata?.source_fields?.positionQuality ?? "").toLowerCase();
+const isApproxPosition = (t) => positionQuality(t) === "approx";
 const speedOf = (t) => t.velocity?.speedKmh || TYPE_SPEED_KMH[(t.type || "").toLowerCase()] || null;
 const etaRawMinutes = (km, kmh) => (km == null || !kmh) ? null : Math.max(0, km / kmh * 60);
 const etaMinutes = (km, kmh) => {
@@ -626,6 +629,7 @@ const etaMinutes = (km, kmh) => {
    zagrożenia — w trybie wbudowanym nie mamy pełnych obrysów, więc bierzemy
    najbliższy punkt granicy przypisany do danego województwa. */
 function etaPerVoiv(t) {
+  if (isApproxPosition(t)) return {};
   const sp = speedOf(t);
   if (!sp || t.lat == null) return {};
   const best = {};
@@ -649,11 +653,12 @@ function neptunEval(t) {
       const count = Math.max(parseInt(t.count) || 1, 1);
       const conf = (t.confidenceLevel||"low").toLowerCase();
       const sources = Math.max(parseInt(t.sourceCount) || 1, 1);
-      const speed = speedOf(t), etaRaw = etaRawMinutes(a.dist_km, speed);
+      const approx = isApproxPosition(t);
+      const speed = approx ? null : speedOf(t), etaRaw = etaRawMinutes(a.dist_km, speed);
       const etaConservative = etaRaw == null ? null : Math.max(0, etaRaw - ETA_BUFFER_MIN);
       const etaSafe = etaMinutes(a.dist_km, speed);
       let etaAlarm = null;
-      const etaEligible = a.heading_known && sources >= ETA_MIN_SOURCES
+      const etaEligible = !approx && a.heading_known && sources >= ETA_MIN_SOURCES
         && ["medium", "high"].includes(conf) && etaConservative != null;
       if (etaEligible && etaConservative <= ETA_HIGH_MIN) {
         etaAlarm = "high"; points = Math.max(points, TH_HIGH);
@@ -669,6 +674,7 @@ function neptunEval(t) {
         + `${etaAlarm ? `, konserwatywny czas dolotu ~${etaSafe} min` : ""} (woj. ${a.border_voiv}, `
         + `confidence: ${conf}, ${sources} potwierdzeń, ±${t.uncertaintyKm??"?"} km)`,
         { track_id: t.id, dist_km: a.dist_km, count, source_count: sources,
+          position_quality: t.positionQuality,
           // czas dolotu (lustro backendu): do granicy oraz do każdego woj. —
           // panel pokazuje ten dla regionu wybranego przez użytkownika
           speed_kmh: speed,

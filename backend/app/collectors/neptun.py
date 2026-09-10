@@ -183,9 +183,19 @@ def _speed_of(t: dict) -> float | None:
     return config.NEPTUN_TYPE_SPEED_KMH.get((t.get("type") or "").lower())
 
 
+def _is_approx_position(t: dict) -> bool:
+    """`approx` oznacza rejon raportu, nie punkt nadający się do ETA."""
+    quality = (t.get("positionQuality")
+               or ((t.get("source_metadata") or {}).get("source_fields") or {})
+               .get("positionQuality"))
+    return str(quality or "").lower() == "approx"
+
+
 def _eta_per_voiv(t: dict) -> dict:
     """Czas dolotu do każdego województwa (minuty). Liczone raz przy sygnale,
     żeby powiadomienie dla danego regionu mogło podać JEGO czas."""
+    if _is_approx_position(t):
+        return {}
     sp = _speed_of(t)
     lat, lon = t.get("lat"), t.get("lon")
     if not sp or lat is None or lon is None:
@@ -200,9 +210,10 @@ def _eta_per_voiv(t: dict) -> dict:
 
 
 def _eta_alarm_level(a: dict, sources: int, confidence: str,
-                     eta_safe: float | None) -> str | None:
+                     eta_safe: float | None, *, approximate: bool = False) -> str | None:
     """Poziom ETA po wszystkich bezpiecznikach jakości danych."""
-    eligible = (a.get("heading_known") and sources >= config.NEPTUN_ETA_MIN_SOURCES
+    eligible = (not approximate and a.get("heading_known")
+                and sources >= config.NEPTUN_ETA_MIN_SOURCES
                 and confidence in config.NEPTUN_ETA_CONFIDENCE and eta_safe is not None)
     if not eligible:
         return None
@@ -234,7 +245,8 @@ async def _maybe_signal(t: dict):
     count = max(int(t.get("count") or 1), 1)
     conf = (t.get("confidenceLevel") or "low").lower()
     sources = max(int(t.get("sourceCount") or 1), 1)
-    speed = _speed_of(t)
+    approximate = _is_approx_position(t)
+    speed = None if approximate else _speed_of(t)
     eta_raw = geo.eta_raw_minutes(a["dist_km"], speed)
     eta_conservative = (max(0.0, eta_raw - config.NEPTUN_ETA_BUFFER_MIN)
                         if eta_raw is not None else None)
@@ -243,7 +255,8 @@ async def _maybe_signal(t: dict):
     # obiektu. Nie działa przy nieznanym kursie, pojedynczym zgłoszeniu ani niskiej
     # pewności. Punkty podnosimy najwyżej do progu danego alarmu; deduplikacja po
     # track_id sprawia, że nie sumuje się on drugi raz ze zwykłą punktacją obiektu.
-    eta_level = _eta_alarm_level(a, sources, conf, eta_conservative)
+    eta_level = _eta_alarm_level(a, sources, conf, eta_conservative,
+                                 approximate=approximate)
     if eta_level == "high":
         points = max(points, config.THRESHOLD_HIGH)
     elif eta_level == "elevated":
@@ -268,6 +281,7 @@ async def _maybe_signal(t: dict):
                  "confidence": conf, "source_count": sources,
                  "lifecycle": t.get("lifecycle"),
                  "uncertainty_km": t.get("uncertaintyKm"),
+                 "position_quality": t.get("positionQuality"),
                  "dist_km": a["dist_km"], "region": t.get("region"),
                  "course": ("known" if a.get("heading_known") else
                             "estimated" if t.get("heading_estimated") is not None else "unknown"),

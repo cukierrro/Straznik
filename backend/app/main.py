@@ -298,6 +298,7 @@ async def snapshot_loop():
                     {**{k: t.get(k) for k in ("id", "type", "lat", "lon", "heading",
                                            "confidenceLevel", "uncertaintyKm", "region",
                                            "locality", "sourceCount", "destination",
+                                           "positionQuality",
                                            # pl_assessment: bez tego karta w historii
                                            # pokazywała „? km" (dist liczony live, ale
                                            # nie persystowany do migawki)

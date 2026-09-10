@@ -37,6 +37,9 @@ assert neptun._eta_alarm_level(a_known, 2, "high", 11) is None
 assert neptun._eta_alarm_level({"heading_known": False}, 5, "high", 2) is None
 assert neptun._eta_alarm_level(a_known, 1, "high", 2) is None
 assert neptun._eta_alarm_level(a_known, 5, "low", 2) is None
+assert neptun._eta_alarm_level(a_known, 5, "high", 2, approximate=True) is None
+assert neptun._eta_per_voiv({"type": "uav", "lat": 50.8, "lon": 25.8,
+                             "positionQuality": "approx"}) == {}
 
 # Każdy typ, który może wnieść punkty, musi mieć polską nazwę. Chroni to panel
 # przed powrotem źródłowych etykiet typu „БпЛА” przy nowych klasach obiektów.
