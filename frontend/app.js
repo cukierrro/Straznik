@@ -1870,6 +1870,8 @@ async function toggleBell() {
 async function enablePush() {
   if (standalone) return toggleBell();
   const base = apiBase(); if (!base) return openSettings(true);
+  const voivodeships = Places?.observedVoivodeships(savedPlaces) || [];
+  if (!voivodeships.length) return openSettings(true);
   if (!("serviceWorker" in navigator) || !("PushManager" in window))
     return alert("Ta przeglądarka nie wspiera Web Push. Użyj ntfy/Telegrama.");
   const perm = await Notification.requestPermission();
@@ -1882,9 +1884,33 @@ async function enablePush() {
     applicationServerKey: Uint8Array.from(atob(publicKey.replace(/-/g, "+").replace(/_/g, "/")
       .padEnd(publicKey.length + (4 - publicKey.length % 4) % 4, "=")), c => c.charCodeAt(0)),
   });
-  await fetch(base + "/api/push/subscribe", { method: "POST",
-    headers: { "Content-Type": "application/json" }, body: JSON.stringify(sub.toJSON()) });
+  const saved = await fetch(base + "/api/push/subscribe", { method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ...sub.toJSON(), voivodeships }) });
+  if (!saved.ok) throw new Error("Nie udało się zapisać subskrypcji Web Push");
   document.getElementById("btn-push").classList.add("active");
+}
+
+async function syncBrowserPushRegion() {
+  if (standalone || !("serviceWorker" in navigator) || !("PushManager" in window)
+      || !("Notification" in window) || Notification.permission !== "granted") return;
+  const base = apiBase();
+  if (!base) return;
+  const reg = await navigator.serviceWorker.ready;
+  const sub = await reg.pushManager.getSubscription();
+  if (!sub) return;
+  const voivodeships = Places?.observedVoivodeships(savedPlaces) || [];
+  if (!voivodeships.length) {
+    await fetch(base + "/api/push/unsubscribe", { method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ endpoint: sub.endpoint }) });
+    document.getElementById("btn-push").classList.remove("active");
+    return;
+  }
+  const saved = await fetch(base + "/api/push/subscribe", { method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ...sub.toJSON(), voivodeships }) });
+  if (saved.ok) document.getElementById("btn-push").classList.add("active");
 }
 
 /* ── geometria: bbox i punkt-w-wielokącie dla GeoJSON województw ─────────── */
@@ -2384,6 +2410,7 @@ document.getElementById("tb-slider").addEventListener("change", (e) => {
 const dlg = document.getElementById("settings");
 function syncObservedRegions() {
   const regions=Places?.observedVoivodeships(savedPlaces)||[];
+  if(!IS_APP) syncBrowserPushRegion().catch(()=>{});
   const plugin=BG();
   if(plugin?.setObservedVoivodeships) return plugin.setObservedVoivodeships({voivodeships:regions});
   return plugin?.setHomeVoivodeship?.({voivodeship:myVoiv()||""});

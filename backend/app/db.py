@@ -231,11 +231,12 @@ def signals_between(start: str, end: str) -> list[dict]:
              "details": json.loads(r[7]) if r[7] else {}} for r in rows]
 
 
-def add_push_sub(sub: dict):
+def add_push_sub(sub: dict, voivodeships: list[str]):
+    stored = {**sub, "_voivodeships": sorted(set(voivodeships))}
     with _lock:
         _conn.execute(
             "INSERT OR REPLACE INTO push_subs (endpoint, sub_json, created) VALUES (?,?,?)",
-            (sub.get("endpoint", ""), json.dumps(sub), now_iso()),
+            (sub.get("endpoint", ""), json.dumps(stored), now_iso()),
         )
         _conn.commit()
 
@@ -246,10 +247,19 @@ def remove_push_sub(endpoint: str):
         _conn.commit()
 
 
-def all_push_subs() -> list[dict]:
+def all_push_subs(voivodeship: str | None = None) -> list[dict]:
     with _lock:
         rows = _conn.execute("SELECT sub_json FROM push_subs").fetchall()
-    return [json.loads(r[0]) for r in rows]
+    out = []
+    for row in rows:
+        sub = json.loads(row[0])
+        assigned = sub.pop("_voivodeships", None)
+        # Legacy records had no region and must not receive nationwide alerts.
+        # The frontend upgrades an existing browser subscription on its next
+        # visit, without asking the user for notification permission again.
+        if voivodeship is None or (isinstance(assigned, list) and voivodeship in assigned):
+            out.append(sub)
+    return out
 
 
 def last_notif(voiv: str, level: str):

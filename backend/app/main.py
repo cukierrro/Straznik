@@ -243,9 +243,15 @@ async def push_key():
 
 @app.post("/api/push/subscribe")
 async def push_subscribe(sub: dict):
-    if not sub.get("endpoint"):
+    voivodeships = sub.get("voivodeships")
+    if (not notify.validate_push_subscription(sub)
+            or not isinstance(voivodeships, list)
+            or not 1 <= len(voivodeships) <= len(config.VOIVODESHIPS)
+            or any(v not in config.VOIVODESHIPS for v in voivodeships)):
         return JSONResponse({"error": "bad subscription"}, status_code=400)
-    db.add_push_sub(sub)
+    clean_sub = {key: sub[key] for key in ("endpoint", "expirationTime", "keys")
+                 if key in sub}
+    db.add_push_sub(clean_sub, voivodeships)
     return {"ok": True}
 
 

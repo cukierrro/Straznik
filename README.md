@@ -227,7 +227,9 @@ Tryb wbudowany w przeglądarce: `http://localhost:8600/?standalone=1`
   odczytaj `chat_id` z `https://api.telegram.org/bot<TOKEN>/getUpdates`.
 - **Web Push (VAPID):** przycisk 🔔 w dashboardzie/na `straznik.eu` (wymaga
   `http://localhost` lub HTTPS). Ta sama ścieżka obsłuży PWA na iOS 16.4+
-  (po „Dodaj do ekranu początkowego").
+  (po „Dodaj do ekranu początkowego"). Subskrypcja zawiera wyłącznie listę
+  obserwowanych województw — bez nazw miejsc, adresów i GPS. Trwale odrzucone
+  endpointy są usuwane, a ponowne otwarcie strony aktualizuje przypisanie regionów.
 
 ## Podpisywanie wydania
 
