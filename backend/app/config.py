@@ -236,6 +236,11 @@ FCM_CREDENTIALS_PATH = os.getenv("FCM_CREDENTIALS_PATH",
 # nadużyć. Domyślnie WYŁĄCZONY; do testów ustaw TEST_SIGNAL_ENABLED=true w .env.
 TEST_SIGNAL_ENABLED = os.getenv("TEST_SIGNAL_ENABLED", "false").lower() == "true"
 
+# Produkcyjna obserwacja kandydatów 1,5 oraz progresji 2,5 / 3,0 / 3,5. Ten tryb nie ma
+# żadnego połączenia z kanałami powiadomień: zapisuje wyłącznie próbki i decyzje
+# do SQLite/logów, żeby przed osobną zgodą ocenić reguły na prawdziwych danych.
+ESCALATION_SHADOW_ENABLED = os.getenv("ESCALATION_SHADOW_ENABLED", "true").lower() == "true"
+
 # Nazwy tematów FCM muszą być ASCII ([a-zA-Z0-9-_.~%]), a województwa mają polskie
 # znaki — mapujemy je na ASCII. Ten sam slug liczy natywna strona aplikacji
 # (BackgroundPlugin.voivTopic), więc obie strony muszą się zgadzać.

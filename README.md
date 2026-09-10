@@ -231,6 +231,27 @@ Tryb wbudowany w przeglądarce: `http://localhost:8600/?standalone=1`
   obserwowanych województw — bez nazw miejsc, adresów i GPS. Trwale odrzucone
   endpointy są usuwane, a ponowne otwarcie strony aktualizuje przypisanie regionów.
 
+## Tryb cienia progresji
+
+Backend obserwuje na żywych danych hipotetyczne dodatkowe stopnie 2,5 / 3,0 /
+3,5, ale nie łączy ich z żadnym kanałem powiadomień. Rejestruje również
+eksperymentalny stopień oznaczony `1,5` dla świeżego, ciągłego śladu obiektu
+lecącego w stronę Polski. Zasięg zależy od typu: do 250 km dla rakiet i
+MiG-31K, 120 km dla KAB, 100 km dla dronów/Shahedów oraz 60 km dla obiektu
+rozpoznawczego. Drugi wariant to wynik 1,5–2,0 potwierdzony przez co najmniej
+dwie niezależne klasy źródeł, w tym NEPTUN/alarm UA, ADS-B albo PAŻP.
+Obejmuje to dostępne dziś klasy wzmożonej czujności: wiarygodny obiekt lecący
+ku Polsce (rakieta, pocisk, KAB, Shahed/dron, nosiciel lub rozpoznanie) oraz
+zbieżność alarmu przy granicy, nietypowego ruchu wojskowego ADS-B, istotnej
+strefy PAŻP, sygnału sąsiedniego i mediów. Nie każdy z nich wystarcza sam:
+pozycje przybliżone, grupy, obiekt lecący od Polski, pojedynczy RSS, sama
+propagacja, stare obserwacje i pierwszy niepotwierdzony meldunek nie kwalifikują
+stopnia. Stan i próbki trafiają na 14 dni do tabel SQLite
+`escalation_shadow_state` oraz `escalation_shadow_events`.
+
+`ESCALATION_SHADOW_ENABLED=false` wyłącza obserwację. Nawet po jej włączeniu
+moduł nie importuje warstwy powiadomień i nie wysyła push, dźwięku ani alarmu.
+
 ## Podpisywanie wydania
 
 Każde APK musi być podpisane, a Android przyjmie aktualizację tylko wtedy, gdy

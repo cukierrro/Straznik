@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import app_updates, config, db, fusion, notify
+from . import app_updates, config, db, escalation_shadow, fusion, notify
 from .collectors import adsb, neighbours, neptun, official_alerts, pansa, rcb, rso, rss_media
 from .neptun_archive import source_metadata
 
@@ -222,6 +222,7 @@ async def api_health():
         "notify": {"ntfy": config.NTFY_ENABLED and bool(config.NTFY_TOPIC),
                    "telegram": config.TELEGRAM_ENABLED,
                    "webpush": config.WEBPUSH_ENABLED},
+        "progression_shadow": escalation_shadow.status,
     }
 
 
@@ -289,7 +290,8 @@ async def startup():
     fusion.on_level_change = notify.notify_level
     fusion.on_state_change = broadcast_state
     for coro in (neptun.run(), rss_media.run(), rcb.run(), rso.run(), adsb.run(),
-                 pansa.run(), neighbours.run(), official_alerts.run(), snapshot_loop()):
+                 pansa.run(), neighbours.run(), official_alerts.run(), snapshot_loop(),
+                 progression_shadow_loop()):
         asyncio.create_task(coro)
     log.info("Strażnik wystartował — kolektory uruchomione")
 
@@ -315,6 +317,25 @@ async def snapshot_loop():
             })
         except Exception as e:
             log.warning("snapshot błąd: %s", e)
+        await asyncio.sleep(120)
+
+
+async def progression_shadow_loop():
+    """Observe live threshold progression; structurally unable to send alerts."""
+    if not config.ESCALATION_SHADOW_ENABLED:
+        escalation_shadow.status.update(enabled=False, mode="disabled")
+        return
+    await asyncio.sleep(15)
+    while True:
+        try:
+            state = fusion.compute_state()
+            escalation_shadow.evaluate_all(
+                state["voivodeships"], neptun.tracks, now=time.time(),
+                healthy=bool(neptun.status.get("connected")),
+            )
+        except Exception as e:
+            escalation_shadow.status["error"] = str(e)
+            log.exception("tryb cienia progresji: błąd")
         await asyncio.sleep(120)
 
 

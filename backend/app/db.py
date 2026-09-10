@@ -56,6 +56,22 @@ CREATE TABLE IF NOT EXISTS adsb_watch_events (
     payload TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_adsb_watch_ts ON adsb_watch_events(ts);
+CREATE TABLE IF NOT EXISTS escalation_shadow_state (
+    voivodeship TEXT PRIMARY KEY,
+    payload TEXT NOT NULL,
+    updated TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS escalation_shadow_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts TEXT NOT NULL,
+    voivodeship TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    band REAL,
+    score REAL NOT NULL,
+    qualified REAL,
+    payload TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_escalation_shadow_ts ON escalation_shadow_events(ts);
 """
 
 
@@ -276,3 +292,53 @@ def log_notif(voiv: str, level: str):
         _conn.execute("INSERT INTO notif_log (ts, voivodeship, level) VALUES (?,?,?)",
                       (now_iso(), voiv, level))
         _conn.commit()
+
+
+def load_escalation_shadow_state(voiv: str) -> dict | None:
+    with _lock:
+        row = _conn.execute(
+            "SELECT payload FROM escalation_shadow_state WHERE voivodeship=?", (voiv,),
+        ).fetchone()
+    if not row:
+        return None
+    try:
+        return json.loads(row[0])
+    except (TypeError, json.JSONDecodeError):
+        return None
+
+
+def save_escalation_shadow_state(voiv: str, payload: dict):
+    with _lock:
+        _conn.execute(
+            "INSERT OR REPLACE INTO escalation_shadow_state"
+            " (voivodeship,payload,updated) VALUES (?,?,?)",
+            (voiv, json.dumps(payload, ensure_ascii=False), now_iso()),
+        )
+        _conn.commit()
+
+
+def log_escalation_shadow_event(voiv: str, kind: str, score: float,
+                                qualified: float | None, band: float | None,
+                                payload: dict, keep_days: int = 14):
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=keep_days)).isoformat(timespec="seconds")
+    with _lock:
+        _conn.execute(
+            "INSERT INTO escalation_shadow_events"
+            " (ts,voivodeship,kind,band,score,qualified,payload) VALUES (?,?,?,?,?,?,?)",
+            (now_iso(), voiv, kind, band, score, qualified,
+             json.dumps(payload, ensure_ascii=False)),
+        )
+        _conn.execute("DELETE FROM escalation_shadow_events WHERE ts < ?", (cutoff,))
+        _conn.commit()
+
+
+def escalation_shadow_events(hours: int = 48) -> list[dict]:
+    cutoff = (datetime.now(timezone.utc) - timedelta(hours=hours)).isoformat(timespec="seconds")
+    with _lock:
+        rows = _conn.execute(
+            "SELECT ts,voivodeship,kind,band,score,qualified,payload"
+            " FROM escalation_shadow_events WHERE ts >= ? ORDER BY ts", (cutoff,),
+        ).fetchall()
+    return [{"ts": r[0], "voivodeship": r[1], "kind": r[2], "band": r[3],
+             "score": r[4], "qualified": r[5], "payload": json.loads(r[6])}
+            for r in rows]
