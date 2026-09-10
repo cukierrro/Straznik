@@ -47,3 +47,16 @@ test('standalone does not suppress a distinct article that only mentions RCB', (
   assert.equal(state.score, 3.5);
   assert.equal(state.signals[1].duplicate_of_official, undefined);
 });
+
+test('standalone keeps a stored Wyryki retrospective visible with zero points', () => {
+  const historical = {
+    id: 721, t: t('2026-09-10T17:31:11Z'), ts: '2026-09-10T17:31:11Z',
+    source: 'media', event_type: 'media_keywords', voivodeship: 'lubelskie', points: 1.5,
+    title: 'Media: „Najpierw postawimy choinkę. Dom w Wyrykach ma być gotowy na święta”',
+    details: {},
+  };
+  const state = Engine.accumulate([historical], t('2026-09-10T17:40:00Z')).lubelskie;
+  assert.equal(state.score, 0);
+  assert.equal(state.signals[0].counted_points, 0);
+  assert.equal(state.signals[0].retrospective, true);
+});

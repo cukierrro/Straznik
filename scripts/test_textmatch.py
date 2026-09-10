@@ -5,9 +5,15 @@ w trakcie pracy — regresja tutaj oznacza, że wraca stary błąd.
 Uruchom: py scripts/test_textmatch.py
 """
 import sys
+import types
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "backend"))
+# Klasyfikator nie potrzebuje integracji TLS ani pliku .env.
+sys.modules.setdefault("truststore", types.SimpleNamespace(inject_into_ssl=lambda: None))
+dotenv_stub = types.ModuleType("dotenv")
+dotenv_stub.load_dotenv = lambda *_args, **_kwargs: None
+sys.modules.setdefault("dotenv", dotenv_stub)
 
 from app import config
 from app.textmatch import match_keywords
@@ -64,6 +70,11 @@ CASES = [
     ("Start rakiety SpaceX Falcon 9 zakończony eksplozją", False),
     ("1944: gdy na Warszawę spadały bomby", False),
     ("Pokaz dronów nad Wisłą — jeden spadł do wody", False),
+    ("Rok temu rosyjski dron spadł na dom w Wyrykach", False),
+    ("Śledztwo ws. uderzenia rakiety w dom w Wyrykach umorzone", False),
+    ("Najpierw postawimy choinkę. Dom w Wyrykach ma być gotowy na święta. "
+     "W nocy polską przestrzeń powietrzną przekroczyły rosyjskie drony, "
+     "a rakieta spadła na dom.", False),
 ]
 
 

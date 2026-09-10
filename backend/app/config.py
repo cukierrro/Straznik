@@ -320,10 +320,11 @@ EXCLUDE_KEYWORDS = [
     # data publikacji jest bieżąca, a zdarzenie sprzed dni/tygodni)
     "tydzień po", "tygodnie po", "tygodni po", "dzień po", "dni po",
     "miesiąc po", "miesiące po", "miesięcy po", "rok po", "lata po", "lat po",
+    "rok temu", "lata temu", "lat temu", "ubiegłym roku", "ubiegłego roku",
     "godzin po", "godziny po", "kalendarium", "przypominamy", "wspomina",
     # publicystyka / analiza / reportaż (nie meldunek o zdarzeniu na żywo)
     "kulisy", "reportaż", "felieton", "czy na pewno", "co wiemy", "jak doszło",
-    "śledztwo w sprawie", "podsumowanie roku",
+    "śledztwo w sprawie", "śledztwo ws", "podsumowanie roku",
     # pytania hipotetyczne i poradniki, a nie meldunki o trwającym zdarzeniu
     "zawyły syreny?", "zawyła syrena?", "alarm powietrzny?",
     "co powinieneś zrobić", "co należy zrobić", "jak się zachować w razie",
@@ -336,7 +337,7 @@ EXCLUDE_KEYWORDS = [
     "1939", "1944", "1945", "ii wojn", "powstanie warszawsk",
     # kosmos / nauka (rakieta = start rakiety nośnej, nie zagrożenie)
     "rakieta kosmiczn", "rakieta nośn", "start rakiety", "spacex", "falcon",
-    "starship", "misja kosmiczn", "kosmodrom",
+    "starship", "misja kosmiczn", "kosmodrom", "odbudow", "ma być gotow",
     # sport / potoczne „rakieta"
     "rakieta tenisow", "rakietka", "rakiety śnieżn",
     # metafory / nie-powietrzne

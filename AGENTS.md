@@ -36,3 +36,15 @@ Przy poprawkach niewidocznych dla użytkownika oceń wpływ na opisy; nie wymien
 bez potrzeby niezmienionych zrzutów. Procedura zrzutów: `docs/screens/README.md`.
 Ta zasada nie upoważnia do wysyłania testowych alarmów do użytkowników ani do
 zmniejszania zabezpieczeń aplikacji lub systemu.
+
+## Dostęp do stron internetowych — Firecrawl CLI
+
+Do wyszukiwania, otwierania i odczytywania bieżących stron internetowych używaj
+w pierwszej kolejności lokalnie skonfigurowanego `firecrawl-cli`. Nie korzystaj
+z wbudowanego konektora Firecrawl obciążającego oddzielny miesięczny limit,
+jeżeli lokalny CLI może wykonać zadanie. Innego narzędzia sieciowego użyj dopiero,
+gdy CLI jest niedostępny albo nie obsługuje wymaganej operacji; zaznacz wtedy
+użytkownikowi przyczynę zmiany narzędzia.
+
+Klucz API ma pozostać wyłącznie w ignorowanej konfiguracji lokalnej. Nigdy nie
+wpisuj go do `AGENTS.md`, dokumentacji, kodu, commita, logu ani odpowiedzi.

@@ -92,9 +92,25 @@ def test_independent_non_rcb_risk_can_still_spill():
     assert state["podkarpackie"]["score"] == 0.8
 
 
+def test_stored_wyryki_retrospective_is_visible_but_scores_zero():
+    historical = sig(
+        721, "2026-09-10T17:31:11+00:00", "media", "media_keywords",
+        "lubelskie", 1.5,
+        "Media: „Najpierw postawimy choinkę. Dom w Wyrykach ma być gotowy na święta”")
+    state = fusion.accumulate(
+        [historical], datetime(2026, 9, 10, 17, 40, tzinfo=timezone.utc)
+    )["lubelskie"]
+    assert state["score"] == 0.0
+    assert state["signals"][0]["counted_points"] == 0.0
+    assert state["signals"][0]["retrospective"] is True
+    assert "materiał historyczny/następstwa, bez punktów" in fusion.breakdown_text(
+        state["signals"])
+
+
 if __name__ == "__main__":
     test_relay_is_visible_but_scores_zero()
     test_rcb_mention_with_new_information_is_not_suppressed()
     test_regional_rcb_does_not_spill_or_make_today_red()
     test_independent_non_rcb_risk_can_still_spill()
-    print("OK: 4 regresje RCB/media i propagacji")
+    test_stored_wyryki_retrospective_is_visible_but_scores_zero()
+    print("OK: 5 regresji RCB/media, materiałów historycznych i propagacji")

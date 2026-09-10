@@ -129,9 +129,10 @@ const EXCLUDE = ["ćwiczeni","trening","test syren","próba syren","próby syren
   "demograf","przyrost naturaln","liczba mieszkańc","wyludnia",
   "tydzień po","tygodnie po","tygodni po","dzień po","dni po",
   "miesiąc po","miesiące po","miesięcy po","rok po","lata po","lat po",
+  "rok temu","lata temu","lat temu","ubiegłym roku","ubiegłego roku",
   "godzin po","godziny po","kalendarium","przypominamy","wspomina",
   "kulisy","reportaż","felieton","czy na pewno","co wiemy","jak doszło",
-  "śledztwo w sprawie","podsumowanie roku",
+  "śledztwo w sprawie","śledztwo ws","podsumowanie roku",
   "zawyły syreny?","zawyła syrena?","alarm powietrzny?",
   "co powinieneś zrobić","co należy zrobić","jak się zachować w razie",
   "co robić w razie","co zrobić w razie","poradnik bezpieczeństwa",
@@ -140,7 +141,7 @@ const EXCLUDE = ["ćwiczeni","trening","test syren","próba syren","próby syren
   "zwiastun","gra wideo","gry wideo","powieść","komiks","cosplay","spektakl",
   "1939","1944","1945","ii wojn","powstanie warszawsk",
   "rakieta kosmiczn","rakieta nośn","start rakiety","spacex","falcon",
-  "starship","misja kosmiczn","kosmodrom",
+  "starship","misja kosmiczn","kosmodrom","odbudow","ma być gotow",
   "rakieta tenisow","rakietka","rakiety śnieżn",
   "bomba atomow","wybuchła afera",
   "pokaz dron","dron rolnicz","dron dostawcz","wyścig dron",
@@ -431,6 +432,15 @@ function mediaRelayOfOfficial(media, officials) {
   return null;
 }
 
+const MEDIA_RETROSPECTIVE_TITLE_MARKERS = [
+  "rok temu", "lata temu", "lat temu", "sledztwo ws", "odbudow", "ma byc gotow",
+];
+function mediaRetrospective(media) {
+  if (media.source !== "media" || media.event_type !== "media_keywords") return false;
+  const title = fold(media.title || "");
+  return MEDIA_RETROSPECTIVE_TITLE_MARKERS.some(marker => title.includes(marker));
+}
+
 /* Wynik per województwo z limitem klasy źródła (SOURCE_CAPS) i wygaszaniem
    wiekiem względem `refT` (domyślnie teraz; w rekonstrukcji historii — czas
    migawki). Wspólny rdzeń fuzji na żywo i historii — bez tego historia sumowała
@@ -468,12 +478,13 @@ function accumulate(sigs, refT) {
     const clearT = incident && balticClears.get(s.voivodeship + "|" + incident);
     const cleared = !!clearT && clearT >= (s.t || Date.parse(s.ts) || 0);
     const relayOf = mediaRelayOfOfficial(s, officials);
+    const retrospective = mediaRetrospective(s);
     const k = s.voivodeship + "|" + s.source;
     const cap = SOURCE_CAPS[s.source];
     const already = perSource[k] || 0;
-    let counted = (superseded || cleared || relayOf) ? 0
+    let counted = (superseded || cleared || relayOf || retrospective) ? 0
       : (cap == null ? s.points : Math.max(0, Math.min(cap - already, s.points)));
-    if (!superseded && !cleared && !relayOf) perSource[k] = already + s.points;
+    if (!superseded && !cleared && !relayOf && !retrospective) perSource[k] = already + s.points;
     const ageMin = (ref - s.t) / 60000;
     const w = ageMin <= FULL_MIN ? 1
       : Math.max(0, 1 - (ageMin - FULL_MIN) / Math.max(WINDOW_MIN - FULL_MIN, 1));
@@ -482,7 +493,8 @@ function accumulate(sigs, refT) {
     if (s.source !== "rcb") per[s.voivodeship]._spillover_score += counted;
     per[s.voivodeship].signals.push({ ...s, counted_points: Math.round(counted * 10) / 10,
       weight: Math.round(w * 100) / 100, ...(cleared ? { cleared:true } : {}),
-      ...(relayOf ? { duplicate_of_official: relayOf.details?.rso_id || relayOf.id || true } : {}) });
+      ...(relayOf ? { duplicate_of_official: relayOf.details?.rso_id || relayOf.id || true } : {}),
+      ...(retrospective ? { retrospective:true } : {}) });
   }
   return per;
 }

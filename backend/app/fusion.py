@@ -24,6 +24,14 @@ _RELAY_STOP_WORDS = {
     "polskie", "polski", "polska", "ktory", "ktora", "ktore", "przed",
 }
 
+# Druga bariera dla rekordów zapisanych przed poprawą klasyfikatora RSS.
+# Jednoznaczny materiał historyczny lub o następstwach zostaje w historii,
+# ale nie podnosi bieżącego wyniku zagrożenia.
+_MEDIA_RETROSPECTIVE_TITLE_MARKERS = (
+    "rok temu", "lata temu", "lat temu", "sledztwo ws",
+    "odbudow", "ma byc gotow",
+)
+
 
 def _fold_text(value: str) -> str:
     value = unicodedata.normalize("NFD", (value or "").lower()).replace("ł", "l")
@@ -66,6 +74,13 @@ def _media_relay_of_official(media: dict, officials: list[dict]) -> dict | None:
         if len(shared) >= 4 and len(shared) / max(1, min(len(mt), len(ot))) >= 0.45:
             return official
     return None
+
+
+def _media_retrospective(media: dict) -> bool:
+    if media.get("source") != "media" or media.get("event_type") != "media_keywords":
+        return False
+    title = _fold_text(media.get("title", ""))
+    return any(marker in title for marker in _MEDIA_RETROSPECTIVE_TITLE_MARKERS)
 
 
 def level_for(score: float) -> str:
@@ -184,13 +199,14 @@ def accumulate(signals: list[dict], ref: datetime | None = None) -> dict:
         clear_ts = baltic_clears.get((voiv, incident)) if incident else None
         cleared = bool(clear_ts and clear_ts >= s.get("ts", ""))
         relay_of = _media_relay_of_official(s, officials)
+        retrospective = _media_retrospective(s)
         key = (voiv, s["source"])
         cap = config.SOURCE_CAPS.get(s["source"])
         already = per_source.get(key, 0.0)
-        counted = (0.0 if superseded or cleared or relay_of else
+        counted = (0.0 if superseded or cleared or relay_of or retrospective else
                    s["points"] if cap is None else
                    max(0.0, min(cap - already, s["points"])))
-        if not superseded and not cleared and not relay_of:
+        if not superseded and not cleared and not relay_of and not retrospective:
             per_source[key] = already + s["points"]
         w = _age_weight(s["ts"], ref)
         counted *= w
@@ -205,7 +221,8 @@ def accumulate(signals: list[dict], ref: datetime | None = None) -> dict:
              **({"cleared": True} if cleared else {}),
              **({"duplicate_of_official":
                  (relay_of.get("details") or {}).get("rso_id") or relay_of.get("id")}
-                if relay_of else {})})
+                if relay_of else {}),
+             **({"retrospective": True} if retrospective else {})})
     return per_voiv
 
 
@@ -279,5 +296,7 @@ def breakdown_text(signals: list[dict]) -> str:
     for s in signals:
         points = s.get("counted_points", s["points"])
         note = " — powtórzenie oficjalnego alertu" if s.get("duplicate_of_official") else ""
+        if s.get("retrospective"):
+            note = " — materiał historyczny/następstwa, bez punktów"
         parts.append(f"• [{s['source']}] {s['title']} (+{points} pkt{note})")
     return "\n".join(parts[:8])

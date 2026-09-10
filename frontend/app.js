@@ -1453,7 +1453,7 @@ function sigHTML(s) {
   const link = s.details?.link || s.details?.url;
   const cp = s.counted_points ?? s.points;
   const w = s.weight;                       // waga wygaszania z accumulate (1,0 = świeży)
-  // Rozróżniamy DWA powody, dla których liczy się mniej niż nominał:
+  // Rozróżniamy powody, dla których liczy się mniej niż nominał:
   //  • wygaszanie w czasie (waga < 1) — naturalne starzenie sygnału,
   //  • limit klasy źródła (cap) — nadwyżka ponad wkład tej klasy w oknie.
   // Wcześniej oba pokazywały ten sam przekreślony nominał z podpowiedzią o limicie,
@@ -1461,6 +1461,7 @@ function sigHTML(s) {
   const expected = s.points * (w ?? 1);
   const capped = cp < expected - 0.005;
   const repeatedOfficial = !!s.duplicate_of_official;
+  const retrospective = !!s.retrospective;
   const src = s.source || "";
   // udział względem progu żółtego (2 pkt) — od razu widać, czy to drobiazg,
   // czy sygnał, który sam niemal domyka alarm
@@ -1503,10 +1504,12 @@ function sigHTML(s) {
       <span class="pts${capped ? " capped" : ""}"
         ${capped ? `title="${repeatedOfficial
           ? (UI.isEn ? "repeats an official alert — visible, with no extra points" : "powtarza oficjalny alert — widoczne, bez dodatkowych punktów")
+          : retrospective
+            ? (UI.isEn ? "historical report or aftermath — visible, with no threat points" : "materiał historyczny lub następstwa — widoczne, bez punktów zagrożenia")
           : (UI.isEn ? "above this source-class cap — excess points are not counted" : "ponad limit tej klasy źródła — nadwyżka nie liczy się do sumy")}"` : ""}>
         +${cp}${capped ? ` <s>${s.points}</s>` : ""}</span>
     </div>
-    <div class="sig-title">${repeatedOfficial ? `<b>${UI.isEn ? "Repeated official alert:" : "Powtórzenie oficjalnego alertu:"}</b> ` : ""}${link
+    <div class="sig-title">${repeatedOfficial ? `<b>${UI.isEn ? "Repeated official alert:" : "Powtórzenie oficjalnego alertu:"}</b> ` : ""}${retrospective ? `<b>${UI.isEn ? "Historical report / aftermath:" : "Materiał historyczny / następstwa:"}</b> ` : ""}${link
       ? `<a href="${esc(link)}" target="_blank" rel="noopener">${esc(shownTitle)}</a>`
       : esc(shownTitle)}</div>
     <div class="sig-bar"><i style="width:${share.toFixed(0)}%"></i></div>
