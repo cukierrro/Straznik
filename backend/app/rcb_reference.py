@@ -7,7 +7,9 @@ from . import config, db
 
 log = logging.getLogger("rcb-reference")
 WINDOW_MINUTES = 30
-status = {"enabled": False, "mode": "observe_only", "last_capture": None,
+status = {"enabled": config.RCB_REFERENCE_AUDIT_ENABLED,
+          "mode": ("observe_only" if config.RCB_REFERENCE_AUDIT_ENABLED else "disabled"),
+          "last_capture": None,
           "records": 0, "error": None}
 
 
