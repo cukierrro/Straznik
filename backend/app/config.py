@@ -241,6 +241,10 @@ TEST_SIGNAL_ENABLED = os.getenv("TEST_SIGNAL_ENABLED", "false").lower() == "true
 # do SQLite/logów, żeby przed osobną zgodą ocenić reguły na prawdziwych danych.
 ESCALATION_SHADOW_ENABLED = os.getenv("ESCALATION_SHADOW_ENABLED", "true").lower() == "true"
 
+# Audyt referencyjny oficjalnych alertów RCB/RSO. Zachowuje 30 minut danych
+# sprzed pierwszego wykrycia, ale nie zmienia punktacji ani powiadomień.
+RCB_REFERENCE_AUDIT_ENABLED = os.getenv("RCB_REFERENCE_AUDIT_ENABLED", "true").lower() == "true"
+
 # Nazwy tematów FCM muszą być ASCII ([a-zA-Z0-9-_.~%]), a województwa mają polskie
 # znaki — mapujemy je na ASCII. Ten sam slug liczy natywna strona aplikacji
 # (BackgroundPlugin.voivTopic), więc obie strony muszą się zgadzać.

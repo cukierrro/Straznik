@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import app_updates, config, db, escalation_shadow, fusion, notify
+from . import app_updates, config, db, escalation_shadow, fusion, notify, rcb_reference
 from .collectors import adsb, neighbours, neptun, official_alerts, pansa, rcb, rso, rss_media
 from .neptun_archive import source_metadata
 
@@ -223,6 +223,7 @@ async def api_health():
                    "telegram": config.TELEGRAM_ENABLED,
                    "webpush": config.WEBPUSH_ENABLED},
         "progression_shadow": escalation_shadow.status,
+        "rcb_reference": rcb_reference.status,
     }
 
 

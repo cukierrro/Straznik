@@ -13,7 +13,7 @@ import time
 
 import httpx
 
-from .. import config, fusion
+from .. import config, fusion, rcb_reference
 from ..textmatch import match_keywords
 
 log = logging.getLogger("rcb")
@@ -62,23 +62,33 @@ async def _check(client: httpx.AsyncClient):
                               config.EXCLUDE_KEYWORDS):
             continue
         dedup = "rcb:" + hashlib.sha1(href.encode()).hexdigest()[:16]
+        voivodeships = _match_voivs(title)
+        reference_new = False
         if _seen_bootstrap:
-            for voiv in _match_voivs(title):
-                await fusion.ingest(
+            for voiv in voivodeships:
+                inserted = await fusion.ingest(
                     source="rcb", event_type="rcb_alert", voivodeship=voiv,
                     points=config.POINTS["rcb_alert"],
                     title=f"RCB: „{title[:120]}”",
                     details={"url": f"https://www.gov.pl{href}"},
                     dedup_key=f"{dedup}:{voiv}",
                 )
+                reference_new = reference_new or inserted
         else:
             # pierwszy przebieg: zapisz istniejące wpisy bez punktów,
             # żeby stare komunikaty nie generowały fałszywego alarmu na starcie
-            for voiv in _match_voivs(title):
-                fusion.db.add_signal(
+            for voiv in voivodeships:
+                inserted = fusion.db.add_signal(
                     "rcb", "rcb_alert_seen", voiv, 0.0,
                     f"RCB (istniejący przy starcie): „{title[:120]}”",
                     {"url": f"https://www.gov.pl{href}"}, f"{dedup}:{voiv}")
+                reference_new = reference_new or inserted
+        if reference_new:
+            rcb_reference.capture(
+                source="govpl", source_event_id=f"https://www.gov.pl{href}",
+                title=title, voivodeships=voivodeships,
+                source_time_raw=None, bootstrap=not _seen_bootstrap,
+            )
     _seen_bootstrap = True
 
 

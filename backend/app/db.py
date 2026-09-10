@@ -72,6 +72,18 @@ CREATE TABLE IF NOT EXISTS escalation_shadow_events (
     payload TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_escalation_shadow_ts ON escalation_shadow_events(ts);
+CREATE TABLE IF NOT EXISTS rcb_reference_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    source TEXT NOT NULL,
+    source_event_id TEXT NOT NULL,
+    detected_at TEXT NOT NULL,
+    source_time_raw TEXT,
+    source_time_iso TEXT,
+    bootstrap INTEGER NOT NULL,
+    payload TEXT NOT NULL,
+    UNIQUE(source, source_event_id)
+);
+CREATE INDEX IF NOT EXISTS idx_rcb_reference_detected ON rcb_reference_events(detected_at);
 """
 
 
@@ -342,3 +354,57 @@ def escalation_shadow_events(hours: int = 48) -> list[dict]:
     return [{"ts": r[0], "voivodeship": r[1], "kind": r[2], "band": r[3],
              "score": r[4], "qualified": r[5], "payload": json.loads(r[6])}
             for r in rows]
+
+
+def escalation_shadow_events_between(start: str, end: str) -> list[dict]:
+    with _lock:
+        rows = _conn.execute(
+            "SELECT ts,voivodeship,kind,band,score,qualified,payload"
+            " FROM escalation_shadow_events WHERE ts >= ? AND ts < ? ORDER BY ts",
+            (start, end),
+        ).fetchall()
+    return [{"ts": r[0], "voivodeship": r[1], "kind": r[2], "band": r[3],
+             "score": r[4], "qualified": r[5], "payload": json.loads(r[6])}
+            for r in rows]
+
+
+def snapshots_between(start: str, end: str) -> list[dict]:
+    with _lock:
+        rows = _conn.execute(
+            "SELECT ts,payload FROM snapshots WHERE ts >= ? AND ts < ? ORDER BY ts",
+            (start, end),
+        ).fetchall()
+    return [{"ts": r[0], **json.loads(r[1])} for r in rows]
+
+
+def add_rcb_reference_event(source: str, source_event_id: str, detected_at: str,
+                            source_time_raw: str | None, source_time_iso: str | None,
+                            bootstrap: bool, payload: dict, keep_days: int = 30) -> bool:
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=keep_days)).isoformat(timespec="seconds")
+    with _lock:
+        try:
+            _conn.execute(
+                "INSERT INTO rcb_reference_events"
+                " (source,source_event_id,detected_at,source_time_raw,source_time_iso,bootstrap,payload)"
+                " VALUES (?,?,?,?,?,?,?)",
+                (source, source_event_id, detected_at, source_time_raw, source_time_iso,
+                 int(bootstrap), json.dumps(payload, ensure_ascii=False)),
+            )
+            _conn.execute("DELETE FROM rcb_reference_events WHERE detected_at < ?", (cutoff,))
+            _conn.commit()
+            return True
+        except sqlite3.IntegrityError:
+            return False
+
+
+def rcb_reference_events(hours: int = 24 * 30) -> list[dict]:
+    cutoff = (datetime.now(timezone.utc) - timedelta(hours=hours)).isoformat(timespec="seconds")
+    with _lock:
+        rows = _conn.execute(
+            "SELECT source,source_event_id,detected_at,source_time_raw,source_time_iso,"
+            "bootstrap,payload FROM rcb_reference_events WHERE detected_at >= ?"
+            " ORDER BY detected_at", (cutoff,),
+        ).fetchall()
+    return [{"source": r[0], "source_event_id": r[1], "detected_at": r[2],
+             "source_time_raw": r[3], "source_time_iso": r[4],
+             "bootstrap": bool(r[5]), "payload": json.loads(r[6])} for r in rows]

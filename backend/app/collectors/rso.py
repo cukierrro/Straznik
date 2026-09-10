@@ -19,7 +19,7 @@ import unicodedata
 
 import httpx
 
-from .. import config, fusion
+from .. import config, fusion, rcb_reference
 
 log = logging.getLogger("rso")
 status = {"ok": False, "last": None, "error": None, "active": 0}
@@ -108,7 +108,9 @@ async def _check(client: httpx.AsyncClient):
         mid = str(it.get("id"))
         if not _still_active(it):
             continue
-        for voiv in _voivs_for(it):
+        voivodeships = _voivs_for(it)
+        reference_new = False
+        for voiv in voivodeships:
             key = f"rso:{mid}:{voiv}"
             if key in _seen:
                 continue
@@ -118,15 +120,24 @@ async def _check(client: httpx.AsyncClient):
                 fusion.db.add_signal("rcb", "rso_alert_seen", voiv, 0.0,
                                      f"RCB/RSO (istniejący przy starcie): „{it.get('title','')[:110]}”",
                                      {"rso_id": mid}, key)
+                reference_new = True
                 continue
             title = it.get("shortcut") or it.get("title") or "Alert RCB"
-            await fusion.ingest(
+            inserted = await fusion.ingest(
                 source="rcb", event_type="rso_alert", voivodeship=voiv,
                 points=config.POINTS["rcb_alert"],
                 title=f"Alert RCB (RSO): „{title[:120]}”",
                 details={"rso_id": mid, "valid_from": it.get("valid_from"),
                          "valid_to": it.get("valid_to")},
                 dedup_key=key,
+            )
+            reference_new = reference_new or inserted
+        if reference_new:
+            rcb_reference.capture(
+                source="rso", source_event_id=mid,
+                title=it.get("shortcut") or it.get("title") or "Alert RCB",
+                voivodeships=voivodeships, source_time_raw=it.get("valid_from"),
+                bootstrap=not _bootstrap,
             )
     status["active"] = active
     _bootstrap = True

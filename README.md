@@ -252,6 +252,17 @@ stopnia. Stan i próbki trafiają na 14 dni do tabel SQLite
 `ESCALATION_SHADOW_ENABLED=false` wyłącza obserwację. Nawet po jej włączeniu
 moduł nie importuje warstwy powiadomień i nie wysyła push, dźwięku ani alarmu.
 
+Oficjalne alarmy lotnicze RCB/RSO są ponadto zapisywane jako punkty odniesienia.
+Dla każdego nowego komunikatu backend zachowuje 30 minut wcześniejszych klatek
+mapy, sygnałów, punktacji i kandydatów trybu cienia. Osobno przechowuje surowy
+`valid_from` RSO, jego znormalizowany czas oraz chwilę pierwszego wykrycia na
+VPS. `valid_from` nie jest dowodem doręczenia SMS użytkownikowi; publiczne dane
+nie ujawniają takiego czasu. Wpisy zastane podczas startu są oznaczone jako
+niekwalifikujące się do pomiaru wyprzedzenia. Dane referencyjne są zachowywane
+30 dni w `rcb_reference_events`, bez wpływu na wynik i wysyłkę.
+
+`RCB_REFERENCE_AUDIT_ENABLED=false` wyłącza ten audyt.
+
 ## Podpisywanie wydania
 
 Każde APK musi być podpisane, a Android przyjmie aktualizację tylko wtedy, gdy
