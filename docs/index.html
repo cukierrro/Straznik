@@ -133,7 +133,7 @@
   <div class="split">
     <div>
       <p><kbd>☰</kbd> otwiera karty województw. Dotknij regionu, aby zobaczyć źródła jego wyniku. Twój region ma obwódkę i podpis „mój region”. Panel zawiera sygnały z okna 60 minut, obiekty blisko granicy oraz publiczne obserwacje lotnictwa wojskowego.</p>
-      <p>Sygnały są uporządkowane według faktycznie zaliczonego wkładu. Widoczna liczba uwzględnia limity źródła i wygaszanie w czasie; przekreślona wartość wyjaśnia, dlaczego nie zaliczono pełnej punktacji. Kolejne zgłoszenia tego samego obiektu nie oznaczają kolejnych fizycznych obiektów.</p>
+      <p>Sygnały są uporządkowane według faktycznie zaliczonego wkładu. Widoczna liczba uwzględnia limity źródła i wygaszanie w czasie; przekreślona wartość wyjaśnia, dlaczego nie zaliczono pełnej punktacji. Artykuł rozpoznany jako powtórzenie świeżego Alertu RCB pozostaje widoczny, lecz ma 0 dodatkowych punktów. Kolejne zgłoszenia tego samego obiektu nie oznaczają kolejnych fizycznych obiektów.</p>
       <p>Wpis <b>Przeniesienie / SPILLOVER</b> wyjaśnia wkład z innego województwa. Tytuł medialny prowadzi do źródła. Sprawdź jego treść i czas publikacji.</p>
       <p><b>Kamery w regionie</b> prowadzą do dostępnych podglądów otoczenia. To kamery naziemne, nie narzędzie wykrywania obiektów powietrznych.</p>
     </div>
@@ -188,7 +188,7 @@
   <div class="tw"><table><thead><tr><th>Źródło</th><th>Co jest uwzględniane</th><th>Waga / limit</th></tr></thead><tbody>
     <tr><td>NEPTUN — obiekty</td><td>Typ, liczba obiektów w zgłoszeniu, odległość od granicy, kurs, wiarygodność, potwierdzenia i stan obserwacji.</td><td>Łącznie maks. 8 pkt</td></tr>
     <tr><td>Alarmy UA</td><td>Alarm w wybranych obwodach zachodniej Ukrainy.</td><td>1 pkt</td></tr>
-    <tr><td>Media</td><td>Dopasowanie tematu i kontekstu: zwykłe 1,5 pkt; krytyczna relacja 2 pkt. Filtry odrzucają m.in. poradniki, testy i odwołania, lecz mogą się mylić.</td><td>Maks. 2 pkt</td></tr>
+    <tr><td>Media</td><td>Dopasowanie tematu i kontekstu: zwykłe 1,5 pkt; krytyczna relacja 2 pkt. Artykuł wyraźnie powtarzający świeży Alert RCB jest widoczny z wkładem 0 pkt. Sama wzmianka o RCB nie wystarcza do wyzerowania nowej informacji.</td><td>Maks. 2 pkt</td></tr>
     <tr><td>RCB / RSO</td><td>Odpowiednie opublikowane komunikaty o zagrożeniach powietrznych. Czas publikacji w źródle może różnić się od doręczenia SMS.</td><td>2 pkt, limit 2</td></tr>
     <tr><td>ADS-B</td><td>Co najmniej 3 maszyny i ponad dwukrotność tła dla tej pory doby, zbieranego przez 7 dni.</td><td>1 pkt, limit 1</td></tr>
     <tr><td>PAŻP</td><td>Rzadkie ADHOC/R/NPZ/D od ziemi do poziomu lotu; filtry rutyny i powtarzania designatorów. Sama aktywacja nie dowodzi zagrożenia militarnego.</td><td>0,5 pkt, limit 1</td></tr>
@@ -203,7 +203,7 @@
   <p>Aktualny mechanizm progowy ETA odnosi się do <b>granicy Polski</b>: przy znanym kursie, co najmniej dwóch potwierdzeniach i średniej lub wysokiej wiarygodności może podnieść wkład obiektu do 2 pkt przy ≤10 min lub 4 pkt przy ≤5 min. Nie dolicza drugiego kompletu punktów za ten sam obiekt.</p>
   <div class="warn">Czas dolotu to przybliżenie zakładające dalszy lot. Nie uwzględnia zestrzelenia, zmiany kursu ani pełnej niepewności danych. Nie traktuj go jako odliczania czasu na schronienie. Przy braku kursu aplikacja zaznacza ograniczenie estymacji.</div>
   <h3>Przeniesienie na sąsiednie województwa</h3>
-  <p>Wynik co najmniej 2 pkt może wnosić 40% do pierwszego kręgu sąsiadów, 16% do drugiego itd., do limitów algorytmu. Przykładowe 5 pkt w Lubelskiem wnosi 2 pkt do pierwszego kręgu i 0,8 do drugiego. To reguła kontekstu regionalnego, nie prognoza trasy obiektu. Wkład jest opisany w panelu.</p>
+  <p>Wynik co najmniej 2 pkt z sygnałów innych niż regionalny Alert RCB może wnosić 40% do pierwszego kręgu sąsiadów, 16% do drugiego itd., do limitów algorytmu. Oficjalny komunikat RCB/RSO nie jest przenoszony: jego obszar wskazał już nadawca, a ten sam komunikat może być wydany osobno dla kilku województw. To reguła kontekstu regionalnego, nie prognoza trasy obiektu. Wkład jest opisany w panelu.</p>
 </section>
 <section id="nowosci">
   <h2>10. Co obejmuje obecne wydanie</h2>

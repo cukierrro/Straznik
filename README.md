@@ -104,7 +104,9 @@ kontekst administracyjny, poradnikowy i ćwiczebny. Filtry mogą się mylić.
 Jedna klasa źródła ma limit wkładu do sumy
 (media ≤2, RCB ≤2, ADS-B ≤1, PAŻP ≤1, sąsiedzi ≤0,6) — pięć artykułów o tym
 samym zdarzeniu to wciąż jedno potwierdzenie. Nadmiarowe sygnały są widoczne
-w UI z przekreśloną punktacją.
+w UI z przekreśloną punktacją. Artykuł rozpoznany po treści, regionie i czasie
+jako powtórzenie świeżego Alertu RCB pozostaje widoczny, ale wnosi 0 pkt; sama
+wzmianka o RCB nie wycina artykułu z nową informacją.
 
 **Alarm czasowy NEPTUN.** Dla obiektu o znanym albo wiarygodnie wyliczonym
 kursie, średniej/wysokiej pewności i co najmniej dwóch potwierdzeniach działa
@@ -114,12 +116,14 @@ przy ≤5 min. Od surowego czasu odejmowane jest **2,5 min** (p90 opóźnienia
 źródła z pomiaru 27–30.08.2026). Brak kursu, niska pewność lub jedno zgłoszenie
 nie mogą samodzielnie uruchomić alarmu ETA.
 
-Propagacja jest **kaskadowa**: region z sumą ≥ 2 pkt przekazuje 40 % wyniku
+Propagacja jest **kaskadowa**: region z sumą ≥ 2 pkt po wyłączeniu regionalnych
+Alertów RCB/RSO przekazuje 40 % pozostałego wyniku
 sąsiadom, ci 40 % tego swoim sąsiadom i tak dalej, licząc po najkrótszej drodze
 (BFS) aż wkład spadnie poniżej 0,1 pkt. Alarm 5 pkt w lubelskim rozkłada się więc
 tak: sąsiedzi +2,0 (żółty próg), drugi krąg +0,8, trzeci +0,3, czwarty +0,1.
-Zagrożenie na wschodzie podnosi czujność w całym kraju, ale proporcjonalnie do
-odległości. Każdy wkład jest osobnym sygnałem „Przeniesienie z woj. X (… , 2. krąg)",
+Oficjalny nadawca sam wskazuje obszar Alertu RCB, więc ten wkład nie jest
+powielany u sąsiadów. Pozostałe zagrożenie na wschodzie podnosi czujność w całym
+kraju proporcjonalnie do odległości. Każdy wkład jest osobnym sygnałem „Przeniesienie z woj. X (… , 2. krąg)",
 więc nigdy nie miesza się z własnym sygnałem regionu.
 
 ## Architektura

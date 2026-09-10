@@ -24,10 +24,14 @@ const VOIVODESHIPS = ["lubelskie","podkarpackie","podlaskie","mazowieckie","świ
   "zachodniopomorskie","lubuskie","wielkopolskie","dolnośląskie","opolskie"];
 /* Propagacja kaskadowa (lustrzana kopia backendu): każdy kolejny krąg sąsiedztwa
    dostaje SPILLOVER_FACTOR tego, co poprzedni — 0.4, 0.16, 0.064… — licząc po
-   najkrótszej drodze od źródła. Zdarzenie na wschodzie daje więc mocny sygnał
-   w centrum i słabszy, ale niezerowy, na zachodzie. */
+   najkrótszej drodze od źródła. Regionalne Alerty RCB/RSO nie wchodzą do tej
+   podstawy: ich obszar wskazuje już oficjalny nadawca. */
 const SPILLOVER_FACTOR = 0.4, SPILLOVER_MIN = 2.0;
 const SPILLOVER_MIN_CONTRIB = 0.1, SPILLOVER_MAX_DEPTH = 5;
+const RCB_RELAY_WINDOW_MS = 45*60*1000;
+const RELAY_STOP = new Set(["alert","rcb","uwaga","media","woj","wojewodztwo",
+  "sytuacja","monitorowana","terenie","teren","oraz","jest","przez","dla",
+  "polskie","polski","polska","ktory","ktora","ktore","przed"]);
 const NEIGHBORS = {
   "dolnośląskie":["lubuskie","wielkopolskie","opolskie"],
   "kujawsko-pomorskie":["pomorskie","warmińsko-mazurskie","mazowieckie","łódzkie","wielkopolskie"],
@@ -407,6 +411,26 @@ function cascadeTargets(src) {
   return out;
 }
 
+function relayTokens(value) {
+  return new Set(fold(String(value || "")).match(/[a-z0-9]+/g)?.filter(
+    w => w.length >= 4 && !RELAY_STOP.has(w)) || []);
+}
+function mediaRelayOfOfficial(media, officials) {
+  if (media.source !== "media" || media.event_type !== "media_keywords"
+      || !fold(media.title || "").includes("alert rcb")) return null;
+  const mt = relayTokens(media.title);
+  for (const official of officials) {
+    if (official.voivodeship !== media.voivodeship) continue;
+    const apart = Math.abs((media.t || Date.parse(media.ts))
+      - (official.t || Date.parse(official.ts)));
+    if (!Number.isFinite(apart) || apart > RCB_RELAY_WINDOW_MS) continue;
+    const ot = relayTokens(official.title), shared = [...mt].filter(w => ot.has(w));
+    if (shared.length >= 4 && shared.length / Math.max(1, Math.min(mt.size, ot.size)) >= 0.45)
+      return official;
+  }
+  return null;
+}
+
 /* Wynik per województwo z limitem klasy źródła (SOURCE_CAPS) i wygaszaniem
    wiekiem względem `refT` (domyślnie teraz; w rekonstrukcji historii — czas
    migawki). Wspólny rdzeń fuzji na żywo i historii — bez tego historia sumowała
@@ -415,8 +439,10 @@ function cascadeTargets(src) {
    Number.isFinite: jedna zła wartość punktów zatrułaby NaN-em całą sumę. */
 function accumulate(sigs, refT) {
   const ref = refT || Date.now();
-  const per = {}; VOIVODESHIPS.forEach(v => per[v] = { score: 0, signals: [] });
+  const per = {}; VOIVODESHIPS.forEach(v => per[v] = { score: 0, signals: [], _spillover_score: 0 });
   const perSource = {};
+  const officials = sigs.filter(s => s.source === "rcb"
+    && ["rso_alert","rcb_alert"].includes(s.event_type) && s.points > 0);
   const balticClears = new Map();
   for (const s of sigs) {
     if (s.event_type !== "baltic_clear" || !s.details?.incident_key) continue;
@@ -441,19 +467,22 @@ function accumulate(sigs, refT) {
     const incident = s.event_type === "baltic_context" && s.details?.incident_key;
     const clearT = incident && balticClears.get(s.voivodeship + "|" + incident);
     const cleared = !!clearT && clearT >= (s.t || Date.parse(s.ts) || 0);
+    const relayOf = mediaRelayOfOfficial(s, officials);
     const k = s.voivodeship + "|" + s.source;
     const cap = SOURCE_CAPS[s.source];
     const already = perSource[k] || 0;
-    let counted = (superseded || cleared) ? 0
+    let counted = (superseded || cleared || relayOf) ? 0
       : (cap == null ? s.points : Math.max(0, Math.min(cap - already, s.points)));
-    if (!superseded && !cleared) perSource[k] = already + s.points;
+    if (!superseded && !cleared && !relayOf) perSource[k] = already + s.points;
     const ageMin = (ref - s.t) / 60000;
     const w = ageMin <= FULL_MIN ? 1
       : Math.max(0, 1 - (ageMin - FULL_MIN) / Math.max(WINDOW_MIN - FULL_MIN, 1));
     counted *= w;
     per[s.voivodeship].score += counted;
+    if (s.source !== "rcb") per[s.voivodeship]._spillover_score += counted;
     per[s.voivodeship].signals.push({ ...s, counted_points: Math.round(counted * 10) / 10,
-      weight: Math.round(w * 100) / 100, ...(cleared ? { cleared:true } : {}) });
+      weight: Math.round(w * 100) / 100, ...(cleared ? { cleared:true } : {}),
+      ...(relayOf ? { duplicate_of_official: relayOf.details?.rso_id || relayOf.id || true } : {}) });
   }
   return per;
 }
@@ -464,7 +493,9 @@ function computeState() {
   const per = accumulate(signals.filter(s => s.t >= cut));
   for (const v of VOIVODESHIPS) per[v].level = "none";
   // propagacja kaskadowa do kolejnych kręgów sąsiedztwa (jak w backendzie)
-  const base = {}; for (const [v, st] of Object.entries(per)) base[v] = st.score;
+  const base = {}; for (const [v, st] of Object.entries(per)) {
+    base[v] = st._spillover_score || 0; delete st._spillover_score;
+  }
   for (const [src, score] of Object.entries(base)) {
     if (score < SPILLOVER_MIN) continue;
     for (const [nb, depth] of cascadeTargets(src)) {

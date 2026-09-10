@@ -133,7 +133,7 @@
   <div class="split">
     <div>
       <p><kbd>☰</kbd> opens the province cards. Tap a region to inspect the sources behind its score. Your region has an outline and a “my region” label. The panel includes signals from the 60-minute window, objects near the border and public military aviation observations.</p>
-      <p>Signals are ordered by their actual counted contribution. The displayed number reflects source caps and ageing; a crossed-out value explains why the full raw score was not counted. Successive reports of the same track do not mean additional physical objects.</p>
+      <p>Signals are ordered by their actual counted contribution. The displayed number reflects source caps and ageing; a crossed-out value explains why the full raw score was not counted. An article recognised as a repeat of a fresh official RCB alert remains visible but contributes 0 additional points. Successive reports of the same track do not mean additional physical objects.</p>
       <p>A <b>Spillover</b> entry explains a contribution from another province. Media titles link to their sources: check the original text and publication time.</p>
       <p><b>Cameras in the region</b> opens available views of the surroundings. These are ground cameras, not airborne-object detectors.</p>
     </div>
@@ -188,7 +188,7 @@
   <div class="tw"><table><thead><tr><th>Source</th><th>What is considered</th><th>Weight / cap</th></tr></thead><tbody>
     <tr><td>NEPTUN objects</td><td>Type, reported object count, border distance, course, confidence, confirmations and observation status.</td><td>Up to 8 points in total</td></tr>
     <tr><td>UA alerts</td><td>An air alert in selected western Ukrainian regions.</td><td>1 point</td></tr>
-    <tr><td>Media</td><td>Topic and context matching: an ordinary match adds 1.5 points; a critical report adds 2. Filters reject advice, tests and cancellations, among other cases, but can make mistakes.</td><td>Maximum 2 points</td></tr>
+    <tr><td>Media</td><td>Topic and context matching: an ordinary match adds 1.5 points; a critical report adds 2. An article clearly repeating a fresh official RCB alert remains visible with a 0-point contribution. Merely mentioning RCB is not enough to suppress new information.</td><td>Maximum 2 points</td></tr>
     <tr><td>RCB / RSO</td><td>Qualifying published airborne-threat warnings. Source publication time can differ from SMS delivery time.</td><td>2 points, cap 2</td></tr>
     <tr><td>ADS-B</td><td>At least 3 aircraft and more than twice the baseline for the same time of day, collected over 7 days.</td><td>1 point, cap 1</td></tr>
     <tr><td>PAŻP / PANSA</td><td>Rare ADHOC/R/NPZ/D zones from the ground to a flight level, with filters for routine and repeated designators. Activation alone does not prove a military threat.</td><td>0.5 points, cap 1</td></tr>
@@ -203,7 +203,7 @@
   <p>The current ETA threshold mechanism refers to <b>Poland's border</b>: with a known heading, at least two confirmations and medium or high confidence, it may raise an object's contribution to 2 points at ≤10 minutes or 4 points at ≤5 minutes. It does not add a second set of points for the same object.</p>
   <div class="warn">Arrival time is an approximation assuming continued flight. It does not account for interception, a change of course or the full uncertainty of the data. Do not treat it as a countdown of time available to seek shelter. If the heading is unavailable, the app indicates the estimation limitation.</div>
   <h3>Spillover to neighbouring provinces</h3>
-  <p>A source province with at least 2 points can contribute 40% to its first ring of neighbours, 16% to its second, and so on within the algorithm's limits. For example, 5 points in Lublin contributes 2 to the first ring and 0.8 to the second. This provides regional context; it does not predict an object's route. The panel explains each contribution.</p>
+  <p>A source province with at least 2 points from signals other than a regional RCB alert can contribute 40% to its first ring of neighbours, 16% to its second, and so on within the algorithm's limits. Official RCB/RSO notices are not propagated: the issuer already specifies their area, and the same notice may be issued separately for several provinces. This provides regional context; it does not predict an object's route. The panel explains each contribution.</p>
 </section>
 <section id="nowosci">
   <h2>10. Features in the current release</h2>

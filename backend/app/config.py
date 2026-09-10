@@ -171,9 +171,10 @@ SOURCE_CAPS = {"media": 2.0, "rcb": 2.0, "adsb": 1.0, "pansa": 1.0, "neptun": 8.
 
 # ── Propagacja na resztę kraju ────────────────────────────────────────────────
 # Zdarzenie na wschodzie dotyczy też regionów dalej na zachód (obiekt leci
-# dalej, alarmy się rozszerzają). Jedna iteracja: województwo z sumą >= progu
-# "uwagi" przelewa ułamek punktów na bezpośrednich sąsiadów. Bez rekurencji —
-# system ma pozostać przewidywalny i wytłumaczalny.
+# dalej, alarmy się rozszerzają). Do podstawy propagacji nie wchodzą regionalne
+# Alerty RCB/RSO: urząd już wskazał ich obszar, a ten sam komunikat bywa wydany
+# osobno dla kilku województw. Pozostały wynik >= progu "uwagi" przelewa ułamek
+# punktów na sąsiadów.
 SPILLOVER_FACTOR = 0.4
 SPILLOVER_MIN_SOURCE_SCORE = 2.0
 # Propagacja jest kaskadowa: każdy kolejny krąg sąsiedztwa dostaje SPILLOVER_FACTOR

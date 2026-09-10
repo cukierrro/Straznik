@@ -1435,6 +1435,7 @@ function sigHTML(s) {
   // co przy zwykłym starzeniu wprowadzało w błąd.
   const expected = s.points * (w ?? 1);
   const capped = cp < expected - 0.005;
+  const repeatedOfficial = !!s.duplicate_of_official;
   const src = s.source || "";
   // udział względem progu żółtego (2 pkt) — od razu widać, czy to drobiazg,
   // czy sygnał, który sam niemal domyka alarm
@@ -1475,10 +1476,12 @@ function sigHTML(s) {
     <div class="sig-head">
       <span class="src">${SRC_ICON[src] || "•"} ${esc(SRC_LABEL[src] || src.toUpperCase())}</span>
       <span class="pts${capped ? " capped" : ""}"
-        ${capped ? `title="${UI.isEn ? "above this source-class cap — excess points are not counted" : "ponad limit tej klasy źródła — nadwyżka nie liczy się do sumy"}"` : ""}>
+        ${capped ? `title="${repeatedOfficial
+          ? (UI.isEn ? "repeats an official alert — visible, with no extra points" : "powtarza oficjalny alert — widoczne, bez dodatkowych punktów")
+          : (UI.isEn ? "above this source-class cap — excess points are not counted" : "ponad limit tej klasy źródła — nadwyżka nie liczy się do sumy")}"` : ""}>
         +${cp}${capped ? ` <s>${s.points}</s>` : ""}</span>
     </div>
-    <div class="sig-title">${link
+    <div class="sig-title">${repeatedOfficial ? `<b>${UI.isEn ? "Repeated official alert:" : "Powtórzenie oficjalnego alertu:"}</b> ` : ""}${link
       ? `<a href="${esc(link)}" target="_blank" rel="noopener">${esc(shownTitle)}</a>`
       : esc(shownTitle)}</div>
     <div class="sig-bar"><i style="width:${share.toFixed(0)}%"></i></div>
