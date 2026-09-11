@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Strażnik 1.7.20 — instrukcja użytkownika</title>
+<title>Strażnik 1.7.21 — instrukcja użytkownika</title>
 <meta name="description" content="Aktualna instrukcja Strażnika: instalacja i aktualizacje Android, alarmy, mapa, nowe ikony, historia, języki i punktacja. Zrzuty z Pixela 7.">
 <link rel="canonical" href="https://cukierrro.github.io/Straznik/">
 <link rel="alternate" hreflang="pl" href="https://cukierrro.github.io/Straznik/">
@@ -33,11 +33,11 @@
   <div class="languages" aria-label="Język instrukcji"><a href="index.html" lang="pl" aria-current="page">PL</a><a href="en.html" lang="en" hreflang="en">EN</a></div>
 </div></nav>
 <header class="hero"><div class="wrap hero-grid">
-  <div><div class="eyebrow">Instrukcja użytkownika · wersja 1.7.20</div>
+  <div><div class="eyebrow">Instrukcja użytkownika · wersja 1.7.21</div>
     <h1>Sytuacja na mapie.<br>Źródła za każdym sygnałem.</h1>
     <p class="lead">Strażnik łączy publiczne informacje o zagrożeniach powietrznych i pokazuje ich punktację dla polskich województw. Dostępny na Androidzie i w przeglądarce.</p>
     <div class="actions"><a class="button primary" href="https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk">↓ Pobierz aplikację</a><a class="button" href="https://straznik.eu">Otwórz mapę</a></div>
-    <p class="fineprint">Instrukcja dla 1.7.20. Karta pozycji przybliżonej: 1.7.20, 10 września 2026. „Moje miejsca”: 1.7.19, 9 września. Karta samolotu: 1.7.18, 8 września. Wszystkie zrzuty wykonano na Pixelu 7 z Androidem 14; pozostałe niezmienione ekrany opisano przy zrzutach. Dotknij zdjęcia, aby otworzyć je w pełnym rozmiarze.</p>
+    <p class="fineprint">Instrukcja dla 1.7.21. Karta pozycji przybliżonej: 1.7.21, 11 września 2026. „Moje miejsca”: 1.7.19, 9 września. Karta samolotu: 1.7.18, 8 września. Wszystkie zrzuty wykonano na Pixelu 7 z Androidem 14; pozostałe niezmienione ekrany opisano przy zrzutach. Dotknij zdjęcia, aby otworzyć je w pełnym rozmiarze.</p>
   </div>
   <a class="shot-link" href="screens/01_start.jpg"><img src="screens/01_start.jpg" width="1080" height="2400" alt="Strażnik 1.7.16 na Pixelu 7: mapa Polski i sześć zielonych diod źródeł"></a>
 </div></header>
@@ -46,7 +46,7 @@
   <h2>Czym jest Strażnik</h2>
   <p>Serwer zbiera dane i oblicza punktację, a aplikacja pokazuje mapę, źródła i historię. Android otrzymuje alarmy przez push. Nie potrzebujesz konta ani własnego serwera.</p>
   <div class="warn"><strong>To nie jest oficjalny system ostrzegania.</strong> Strażnik uzupełnia syreny, Alert RCB i RSO. Nie gwarantuje wykrycia zagrożenia ani ostrzeżenia wcześniej niż oficjalne kanały. Jeśli dostaniesz Alert RCB lub usłyszysz syreny, kieruj się oficjalnymi instrukcjami również wtedy, gdy mapa jest spokojna.</div>
-  <p>Połączenie źródeł pomaga ocenić sytuację, ale nie każdy alarm wymaga kilku źródeł: odpowiedni komunikat oficjalny, krytyczna relacja medialna lub bliski obiekt mogą samodzielnie osiągnąć próg. Wynik jest wskaźnikiem aplikacji, a nie prawdopodobieństwem uderzenia.</p>
+  <p>Połączenie źródeł pomaga ocenić sytuację. Odpowiedni komunikat oficjalny albo wystarczająco poważny bliski obiekt mogą samodzielnie osiągnąć próg; same artykuły RSS nie mogą. Wynik jest wskaźnikiem aplikacji, a nie prawdopodobieństwem uderzenia.</p>
 </section>
 <section id="instalacja">
   <h2>1. Instalacja i kolejne aktualizacje</h2>
@@ -106,11 +106,11 @@
     <figure><a class="shot-link" href="screens/04_legenda.jpg"><img loading="lazy" src="screens/04_legenda.jpg" width="1080" height="2400" alt="Aktualna legenda: dziewięć odrębnych ikon NEPTUN, okrąg niepewności, samolot, śmigłowiec i progi punktowe"></a><figcaption>Aktualne symbole w aplikacji 1.7.16.</figcaption></figure>
   </div>
   <h3 id="zdjecia">Podgląd obiektu i zdjęcia</h3>
-  <p>Karta obiektu podaje typ, rejon, liczbę potwierdzeń, wiarygodność, niepewność pozycji, kurs, odległość od Polski i — tylko przy pozycji nieoznaczonej przez źródło jako przybliżona — czas dolotu. Dla przybliżonego rejonu zgłoszenia aplikacja nie przesuwa sztucznie znacznika, nie rysuje pozornej trasy i nie pokazuje ETA. Nazwa miejscowości może opisywać kierunek lub cel raportu, a nie dokładne położenie obiektu. Ilustracje AI są podpisane jako poglądowe: nie przedstawiają śledzonego egzemplarza i nie służą do rozpoznawania modelu.</p>
+  <p>Karta obiektu podaje typ, rejon, liczbę potwierdzeń, wiarygodność, niepewność pozycji, kurs i odległość od Polski. ETA pojawia się tylko dla pozycji nadającej się do takiego obliczenia. Pole źródłowe <code>confirmed</code> może potwierdzać meldunek, nie dokładność współrzędnych. Jeżeli NEPTUN oznaczy rejon jako przybliżony albo Strażnik rozpozna kanoniczny punkt środka miejscowości, odległość jest zaokrąglona do dziesiątek kilometrów, a aplikacja nie przesuwa sztucznie znacznika, nie rysuje pozornej trasy i nie pokazuje ETA. Nazwa miejscowości może opisywać kierunek lub cel raportu, a nie położenie obiektu. Ilustracje AI są poglądowe i nie służą do rozpoznawania modelu.</p>
   <p>Po dotknięciu samolotu ADS-B zobaczysz znak wywoławczy, rejestrację, kraj, model, przeznaczenie, wysokość, prędkość i kurs, zależnie od dostępnych danych. <kbd>Śledź trasę</kbd> pozwala obserwować zebrany ślad. Brak transpondera lub odbioru oznacza brak pozycji — mapa nie pokazuje wszystkich maszyn wojskowych.</p>
   <p><b>Fotografie modeli (1.7.19):</b> karta samolotu lub śmigłowca korzysta z lokalnej biblioteki prawdziwych zdjęć. To przykładowy egzemplarz, nie śledzona maszyna; wyposażenie i podwariant mogą się różnić. Gdy dostawca podaje znany kod typu bez opisu wariantu, aplikacja pokazuje sprawdzony przykład rodziny zamiast pustego miejsca. Wyraźnie sprzeczny opis nadal blokuje zdjęcie. Biblioteka obejmuje też Boeing 737-800. Pod fotografią znajdziesz autora, źródło i licencję.</p>
   <div class="shots">
-    <figure><a class="shot-link" href="screens/approx-position-pl.png"><img loading="lazy" src="screens/approx-position-pl.png" width="1080" height="2400" alt="Karta pozycji przybliżonej w Strażniku 1.7.20 bez trasy i czasu dolotu"></a><figcaption><b>Pozycja przybliżona w APK 1.7.20.</b> Odizolowany replay rzeczywistego wpisu archiwalnego NEPTUN z 10 września 2026 służący kontroli interfejsu; nie bieżący obiekt ani alarm. Aplikacja nie pokazuje dla niego trasy ani ETA.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/approx-position-pl.png"><img loading="lazy" src="screens/approx-position-pl.png" width="1080" height="2400" alt="Karta punktu środka Łucka rozpoznanego jako pozycja rejonowa, bez dokładnego dystansu, trasy i ETA"></a><figcaption><b>Rozpoznany punkt miejscowości w APK 1.7.21.</b> Odizolowany replay wpisu NEPTUN z 11 września 2026: źródłowe <code>confirmed</code>, ale współrzędne odpowiadają środkowi Łucka. To test interfejsu, nie bieżący obiekt ani alarm.</figcaption></figure>
     <figure><a class="shot-link" href="screens/object-pl.jpg"><img loading="lazy" src="screens/object-pl.jpg" width="1080" height="2400" alt="Karta drona z podpisaną ilustracją AI i parametrami obserwacji po polsku"></a><figcaption>Podgląd obiektu z ilustracją poglądową oraz informacjami ze źródła.</figcaption></figure>
     <figure><a class="shot-link" href="screens/aircraft-pl.png"><img loading="lazy" src="screens/aircraft-pl.png" width="1080" height="2400" alt="RCH5078, C-17: polska karta historii z przykładową fotografią modelu, autorem, źródłem i licencją"></a><figcaption>Rzeczywista obserwacja RCH5078; fotografia przedstawia inny egzemplarz C-17. Pixel 7, APK 1.7.18, 8 września 2026. Kartę można przewijać.</figcaption></figure>
   </div>
@@ -134,7 +134,7 @@
   <div class="split">
     <div>
       <p><kbd>☰</kbd> otwiera karty województw. Dotknij regionu, aby zobaczyć źródła jego wyniku. Twój region ma obwódkę i podpis „mój region”. Panel zawiera sygnały z okna 60 minut, obiekty blisko granicy oraz publiczne obserwacje lotnictwa wojskowego.</p>
-      <p>Sygnały są uporządkowane według faktycznie zaliczonego wkładu. Widoczna liczba uwzględnia limity źródła i wygaszanie w czasie; przekreślona wartość wyjaśnia, dlaczego nie zaliczono pełnej punktacji. Artykuł rozpoznany jako powtórzenie świeżego Alertu RCB albo materiał historyczny lub opis następstw pozostaje widoczny, lecz ma 0 dodatkowych punktów i odpowiednią etykietę. Kolejne zgłoszenia tego samego obiektu nie oznaczają kolejnych fizycznych obiektów.</p>
+      <p>Sygnały są uporządkowane według faktycznie zaliczonego wkładu. Widoczna liczba uwzględnia limity źródła i wygaszanie w czasie; przekreślona wartość wyjaśnia, dlaczego nie zaliczono pełnej punktacji. Artykuł rozpoznany jako powtórzenie świeżego Alertu RCB albo materiał historyczny lub opis następstw pozostaje widoczny, lecz ma 0 dodatkowych punktów i odpowiednią etykietę. Różne ID tego samego typu w identycznym punkcie rejonowym są w jednym oknie traktowane jako aktualizacje jednego niepewnego zdarzenia, chyba że źródło poda wiarygodną liczbę obiektów.</p>
       <p>Wpis <b>Przeniesienie / SPILLOVER</b> wyjaśnia wkład z innego województwa. Tytuł medialny prowadzi do źródła. Sprawdź jego treść i czas publikacji.</p>
       <p><b>Kamery w regionie</b> prowadzą do dostępnych podglądów otoczenia. To kamery naziemne, nie narzędzie wykrywania obiektów powietrznych.</p>
     </div>
@@ -185,11 +185,11 @@
 </section>
 <section id="punkty">
   <h2>9. Skąd biorą się punkty</h2>
-  <p>Podstawowe okno wynosi 60 minut. Przez pierwsze 30 minut sygnał zachowuje pełną wagę, następnie maleje ona liniowo do zera. Każda klasa źródła ma limit wkładu; kolejna obserwacja tego samego toru NEPTUN nie jest sumowana jako nowy obiekt.</p>
+  <p>Podstawowe okno wynosi 60 minut. Przez pierwsze 30 minut sygnał zachowuje pełną wagę, następnie maleje ona liniowo do zera. Każda klasa źródła ma limit wkładu; kolejna obserwacja tego samego toru NEPTUN ani nowe ID w identycznym punkcie rejonowym nie są automatycznie sumowane jako nowy obiekt.</p>
   <div class="tw"><table><thead><tr><th>Źródło</th><th>Co jest uwzględniane</th><th>Waga / limit</th></tr></thead><tbody>
-    <tr><td>NEPTUN — obiekty</td><td>Typ, liczba obiektów w zgłoszeniu, odległość od granicy, kurs, wiarygodność, potwierdzenia i stan obserwacji.</td><td>Łącznie maks. 8 pkt</td></tr>
+    <tr><td>NEPTUN — obiekty</td><td>Typ, liczba obiektów w zgłoszeniu, odległość od granicy, kurs, wiarygodność, potwierdzenia, stan obserwacji i jakość pozycji. Rejon źródłowy ma mnożnik ×0,6, a rozpoznany środek miejscowości ×0,5.</td><td>Łącznie maks. 8 pkt</td></tr>
     <tr><td>Alarmy UA</td><td>Alarm w wybranych obwodach zachodniej Ukrainy.</td><td>1 pkt</td></tr>
-    <tr><td>Media</td><td>Dopasowanie tematu i kontekstu: zwykłe 1,5 pkt; krytyczna relacja 2 pkt. Powtórzenie świeżego Alertu RCB oraz rozpoznany materiał historyczny lub o następstwach pozostają widoczne z wkładem 0 pkt. Sama wzmianka o RCB nie wystarcza do wyzerowania nowej informacji.</td><td>Maks. 2 pkt</td></tr>
+    <tr><td>Media</td><td>Obiekt powietrzny i zdarzenie dają 1 pkt. Jednoznaczna bieżąca relacja operacyjna — np. alarm powietrzny, syreny, poderwanie lotnictwa, zestrzelenie lub upadek obiektu — daje 1,5 pkt. Sama fraza „naruszenie przestrzeni powietrznej” daje 1 pkt. Cała klasa RSS ma limit 1,5 pkt, dlatego same artykuły nie uruchamiają żółtego. Ćwiczenia, materiały historyczne, następstwa prawne i powtórzenie świeżego Alertu RCB pozostają widoczne z wkładem 0 pkt; sama wzmianka o RCB nie zeruje nowej informacji.</td><td>0 / 1 / 1,5 pkt; limit 1,5</td></tr>
     <tr><td>RCB / RSO</td><td>Odpowiednie opublikowane komunikaty o zagrożeniach powietrznych. Czas publikacji w źródle może różnić się od doręczenia SMS.</td><td>2 pkt, limit 2</td></tr>
     <tr><td>ADS-B</td><td>Co najmniej 3 maszyny i ponad dwukrotność tła dla tej pory doby, zbieranego przez 7 dni.</td><td>1 pkt, limit 1</td></tr>
     <tr><td>PAŻP</td><td>Rzadkie ADHOC/R/NPZ/D od ziemi do poziomu lotu; filtry rutyny i powtarzania designatorów. Sama aktywacja nie dowodzi zagrożenia militarnego.</td><td>0,5 pkt, limit 1</td></tr>
@@ -200,7 +200,7 @@
   <p>Wagi typów: balistyczna 3,0; MiG-31K 2,6; manewrująca 2,4; KAB 1,8; Shahed 1,4; dron 1,1; rozpoznawczy 0,5; FPV 0. Waga jest mnożona m.in. przez pierwiastek z liczby obiektów i współczynniki jakości danych oraz kursu.</p>
   <p>Odległość jest interpolowana płynnie przez punkty: <b>0 km ×1,7; 15 ×1,6; 45 ×1,3; 80 ×1,0; 110 ×0,7; 150 ×0,4; 200 ×0,25; 250 ×0,1</b>. Od 250 km zwykły wkład wynosi zero. Przy nieznanym kursie punktowanie jest ograniczone do bliskich obiektów i obniżone. Dla rakiet i MiG-31K do 60 km, z co najmniej dwoma potwierdzeniami, działa minimum 2 pkt skalowane współczynnikiem kursu.</p>
   <h3>Czas dolotu</h3>
-  <p>Karta pokazuje szacunek do granicy Polski oraz do granicy wybranego województwa, nie do adresu użytkownika. ETA jest wyłączone, gdy NEPTUN oznaczy pozycję jako przybliżoną. Dla pozostałych pozycji aplikacja korzysta z prędkości źródłowej, gdy jest dostępna, albo typowej dla klasy. Odejmuje bufor 2,5 minuty wynikający z wcześniejszych pomiarów opóźnienia. Bufor nie pokrywa każdej możliwej zwłoki.</p>
+  <p>Karta pokazuje szacunek do granicy Polski oraz do granicy wybranego województwa, nie do adresu użytkownika. ETA jest wyłączone, gdy NEPTUN oznaczy pozycję jako przybliżoną lub Strażnik rozpozna punkt środka miejscowości. Dla pozostałych pozycji aplikacja korzysta z prędkości źródłowej, gdy jest dostępna, albo typowej dla klasy. Odejmuje bufor 2,5 minuty wynikający z wcześniejszych pomiarów opóźnienia. Bufor nie pokrywa każdej możliwej zwłoki.</p>
   <p>Aktualny mechanizm progowy ETA odnosi się do <b>granicy Polski</b>: tylko dla pozycji nieoznaczonej jako przybliżona, przy znanym kursie, co najmniej dwóch potwierdzeniach i średniej lub wysokiej wiarygodności może podnieść wkład obiektu do 2 pkt przy ≤10 min lub 4 pkt przy ≤5 min. Nie dolicza drugiego kompletu punktów za ten sam obiekt.</p>
   <div class="warn">Czas dolotu to przybliżenie zakładające dalszy lot. Nie uwzględnia zestrzelenia, zmiany kursu ani pełnej niepewności danych. Nie traktuj go jako odliczania czasu na schronienie. Przy braku kursu aplikacja zaznacza ograniczenie estymacji.</div>
   <h3>Przeniesienie na sąsiednie województwa</h3>

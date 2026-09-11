@@ -70,6 +70,25 @@ def main():
     check("same observation does not repeat 1.5", repeat["kind"] == "none")
 
     fresh()
+    shadow.evaluate_region("lubelskie", state(0.8, points=0.8),
+                           {"A": track(now)}, now=now, healthy=True,
+                           persist=False)
+    scheduled = shadow.evaluate_region(
+        "lubelskie", state(0.8, points=0.8), {"A": track(now + 120.5)},
+        now=now + 120.5, healthy=True, persist=False)
+    check("normal two-minute scheduler overhead preserves continuity",
+          scheduled["kind"] == "candidate" and scheduled["band"] == 1.5)
+
+    fresh()
+    shadow.evaluate_region("lubelskie", state(0.0), {}, now=now,
+                           healthy=True, persist=False)
+    idle = shadow.evaluate_region("lubelskie", state(0.0), {},
+                                  now=now + shadow.RESET_SECONDS + 1,
+                                  healthy=True, persist=False)
+    check("an already idle region does not emit hourly reset noise",
+          idle["kind"] == "none")
+
+    fresh()
     shadow.evaluate_region("lubelskie", state(0.9, points=0.9, distance=200),
                            {"A": track(now, distance=200, object_type="missile")},
                            now=now, healthy=True, persist=False)

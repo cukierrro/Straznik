@@ -1,8 +1,9 @@
 """Warstwa 2c — media regionalne (RSS) per województwo.
 
-Najsilniejszy pojedynczy sygnał potwierdzający (+2 pkt): relacja z ziemi.
-Dopasowanie: słowo kluczowe alarmowe + (feed przypisany do województwa albo
-nazwa województwa/miasta w tytule). Wykluczamy ćwiczenia/testy syren.
+RSS jest źródłem pomocniczym: 1 pkt za obiekt+zdarzenie albo 1,5 pkt za
+jednoznaczną relację operacyjną. Limit całej klasy 1,5 pkt sprawia, że same
+artykuły nie osiągają żółtego progu. Wykluczamy m.in. ćwiczenia, historię i
+następstwa prawne.
 """
 import asyncio
 import calendar
@@ -121,8 +122,8 @@ async def _check_feed(client: httpx.AsyncClient, url: str, default_voiv: str | N
         t = entry.get("published_parsed") or entry.get("updated_parsed")
         if t and now - calendar.timegm(t) > MAX_AGE_S:
             continue
-        # SIŁA trafienia decyduje o wadze: mocne słowo (critical) = pojedynczy
-        # artykuł alarmuje (2,0); słabe (obiekt+zdarzenie) = 1,5, wymaga korroboracji.
+        # SIŁA trafienia decyduje o wadze: relacja operacyjna = 1,5, a słabsze
+        # obiekt+zdarzenie = 1,0. Obie wartości wymagają innej klasy źródła.
         level, hits = classify_level(text, config.ALERT_CRITICAL_KEYWORDS,
                                      config.ALERT_AIR_KEYWORDS, config.ALERT_EVENT_KEYWORDS,
                                      config.EXCLUDE_KEYWORDS)

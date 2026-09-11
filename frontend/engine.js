@@ -13,12 +13,12 @@ const Engine = (() => {
 const WINDOW_MIN = 60, FULL_MIN = 30, TH_ELEVATED = 2, TH_HIGH = 4, COOLDOWN_MIN = 10;
 const ETA_BUFFER_MIN = 2.5, ETA_ELEVATED_MIN = 10, ETA_HIGH_MIN = 5, ETA_MIN_SOURCES = 2;
 const HISTORY_H = 12;   // ile godzin trzymamy do przeglądania wstecz
-const POINTS = { neptun_high: 3, neptun_medlow: 1.5, media_keywords: 1.5, media_critical: 2,
+const POINTS = { neptun_high: 3, neptun_medlow: 1.5, media_keywords: 1, media_critical: 1.5,
                  adsb_spike: 1, rcb_alert: 2, ua_alert_border: 1, baltic_context: 1, pansa_zone: 0.5 };
 // Neptun ma wyższy limit niż reszta (każdy track to osobny fizyczny obiekt),
 // ale nie nieograniczony — przy kilkudziesięciu obiektach suma i tak dawno
 // przekroczyła próg alarmu, a trzycyfrowa punktacja psułaby czytelność skali.
-const SOURCE_CAPS = { media: 2, rcb: 2, adsb: 1, pansa: 1, neptun: 8 };
+const SOURCE_CAPS = { media: 1.5, rcb: 2, adsb: 1, pansa: 1, neptun: 8 };
 const VOIVODESHIPS = ["lubelskie","podkarpackie","podlaskie","mazowieckie","świętokrzyskie",
   "małopolskie","warmińsko-mazurskie","łódzkie","śląskie","kujawsko-pomorskie","pomorskie",
   "zachodniopomorskie","lubuskie","wielkopolskie","dolnośląskie","opolskie"];
@@ -76,6 +76,9 @@ const NEPTUN_CONF_MULT = { high: 1.0, medium: 0.6, low: 0.35 };
 const NEPTUN_LIFECYCLE_MULT = { confirmed: 1.1, uncertain: 0.85, created: 0.7 };
 const NEPTUN_SOURCE_MULT = [[1, 0.7], [2, 0.9], [4, 1.1]];
 const NEPTUN_SOURCE_MULT_MAX = 1.25;
+const NEPTUN_POSITION_MULT = { point: 1, source_approx: 0.6, locality_center: 0.5 };
+// Audytowalna lista potwierdzonych punktów katalogowych. Nie jest bazą miast.
+const NEPTUN_LOCALITY_ANCHORS = [{ name:"Łuck", lat:50.7472, lon:25.3254 }];
 const HEADING_TOL = 50;
 /* Waga kursu (lustro geo.course_factor): twarde cięcie na 50° gubiło obiekty tuż
    za progiem, a brak pola heading wyciszał nawet rakietę tuż przy granicy. */
@@ -93,11 +96,11 @@ const VOIV_BBOX = {
   "podlaskie":[52.28,21.60,54.40,24.00], "warmińsko-mazurskie":[53.13,19.10,54.45,22.95]};
 const UA_BORDER_OBLASTS = { "Волинська":["lubelskie"], "Львівська":["lubelskie","podkarpackie"],
   "Закарпатська":["podkarpackie"], "Рівненська":["lubelskie"] };
-/* Klasyfikacja: CRITICAL sam wystarczy, inaczej potrzebna para AIR + EVENT.
+/* Klasyfikacja: CRITICAL oznacza 1,5 pkt, para AIR + EVENT 1,0 pkt. Twardy
+   limit RSS 1,5 sprawia, że same media nigdy nie osiągają żółtego progu 2,0.
    Lustrzana kopia backend/app/config.py — testy w scripts/test_textmatch.py. */
 const CRITICAL = ["alarm powietrzny","zagrożenie z powietrza","zawyły syreny","zawyła syrena",
-  "naruszenie przestrzeni powietrznej","naruszyła przestrzeń powietrzną",
-  "naruszył przestrzeń powietrzną","obiekt powietrzny spadł","niezidentyfikowany obiekt",
+  "obiekt powietrzny spadł","niezidentyfikowany obiekt spadł",
   "zestrzelono dron","zestrzelono rakiet","poderwano myśliwce","poderwano lotnictwo",
   "schrony otwarte",
   "zamknięto przestrzeń powietrzn","zamknięcie przestrzeni powietrzn",
@@ -145,7 +148,11 @@ const EXCLUDE = ["ćwiczeni","trening","test syren","próba syren","próby syren
   "rakieta tenisow","rakietka","rakiety śnieżn",
   "bomba atomow","wybuchła afera",
   "pokaz dron","dron rolnicz","dron dostawcz","wyścig dron",
-  "nagranie z drona","zdjęcia z drona","zdjęcie z drona","widok z drona"];
+  "nagranie z drona","zdjęcia z drona","zdjęcie z drona","widok z drona",
+  "są zarzuty","usłyszał zarzut","usłyszała zarzut","usłyszeli zarzuty",
+  "postawiono zarzut","postawiono zarzuty","zarzuty dla","akt oskarżenia",
+  "odpowie przed sądem","stanął przed sądem","stanęła przed sądem",
+  "skazany za","skazana za","do zdarzenia miało dojść"];
 const B_CRITICAL = ["airspace violation","violated airspace","airspace was violated","air raid",
   "airspace closed","shot down a drone","scrambled jets","oro erdvės pažeid",
   "gaisa telpas pārkāp","õhuruumi rikku"];
@@ -330,8 +337,8 @@ function matchKw(text, critical, air, event, exclude) {
   return a.length && e.length ? a.slice(0, 2).concat(e.slice(0, 2)) : [];
 }
 /* Jak matchKw, ale zwraca SIŁĘ dopasowania (lustro textmatch.classify_level):
-   "critical" = samo mocne słowo (pojedynczy artykuł alarmuje), "weak" = para
-   obiekt+zdarzenie (wymaga korroboracji), null = brak/weto. */
+   "critical" = relacja operacyjna (1,5 pkt), "weak" = para obiekt+zdarzenie
+   (1 pkt). Oba wymagają innej klasy źródła; null = brak/weto. */
 function matchLevel(text, critical, air, event, exclude) {
   const tl = text.toLowerCase();
   if (exclude.some(k => hasKeyword(tl, k))) return { level: null, hits: [] };
@@ -434,6 +441,10 @@ function mediaRelayOfOfficial(media, officials) {
 
 const MEDIA_RETROSPECTIVE_TITLE_MARKERS = [
   "rok temu", "lata temu", "lat temu", "sledztwo ws", "odbudow", "ma byc gotow",
+  "sa zarzuty", "uslyszal zarzut", "uslyszala zarzut", "uslyszeli zarzuty",
+  "postawiono zarzut", "postawiono zarzuty", "zarzuty dla", "akt oskarzenia",
+  "odpowie przed sadem", "stanal przed sadem", "stanela przed sadem",
+  "skazany za", "skazana za", "do zdarzenia mialo dojsc",
 ];
 function mediaRetrospective(media) {
   if (media.source !== "media" || media.event_type !== "media_keywords") return false;
@@ -463,8 +474,9 @@ function accumulate(sigs, refT) {
   const neptunWinners = new Map();
   for (const s of sigs) {
     const trackId = s.source === "neptun" && s.details?.track_id;
-    if (!trackId) continue;
-    const key = s.voivodeship + "|" + trackId;
+    const physicalId = trackId && (s.details?.physical_key || trackId);
+    if (!physicalId) continue;
+    const key = s.voivodeship + "|" + physicalId;
     const prev = neptunWinners.get(key);
     if (!prev || s.points > prev.points || (s.points === prev.points && s.t > prev.t)) {
       neptunWinners.set(key, s);
@@ -473,7 +485,9 @@ function accumulate(sigs, refT) {
   for (const s of [...sigs].sort((a, b) => a.t - b.t)) {
     if (!(s.voivodeship in per) || !Number.isFinite(s.points) || s.points <= 0) continue;
     const trackId = s.source === "neptun" && s.details?.track_id;
-    const superseded = !!trackId && neptunWinners.get(s.voivodeship + "|" + trackId) !== s;
+    const physicalId = trackId && (s.details?.physical_key || trackId);
+    const superseded = !!physicalId
+      && neptunWinners.get(s.voivodeship + "|" + physicalId) !== s;
     const incident = s.event_type === "baltic_context" && s.details?.incident_key;
     const clearT = incident && balticClears.get(s.voivodeship + "|" + incident);
     const cleared = !!clearT && clearT >= (s.t || Date.parse(s.ts) || 0);
@@ -602,12 +616,14 @@ function scoreThreat(t, distKm, courseFactorVal = 1) {
   const conf = (t.confidenceLevel || "low").toLowerCase();
   const life = (t.lifecycle || "uncertain").toLowerCase();
   const sources = Math.max(parseInt(t.sourceCount) || 1, 1);
+  const positionFactor = NEPTUN_POSITION_MULT[(t.straznik_position || positionInfo(t)).reason] ?? 1;
   const p = weight * Math.sqrt(count) * distMult(distKm)
     * (NEPTUN_CONF_MULT[conf] ?? 0.35) * sourceMult(sources)
     * (NEPTUN_LIFECYCLE_MULT[life] ?? 0.85)
+    * positionFactor
     * courseFactorVal;          // waga kursu (lustro geo.course_factor)
   // podłoga dla ciężkich typów tuż przy granicy, skalowana pewnością kursu
-  const pts = (NEAR_FLOOR_TYPES.includes((t.type || "").toLowerCase())
+  const pts = (!isApproxPosition(t) && NEAR_FLOOR_TYPES.includes((t.type || "").toLowerCase())
       && distKm <= NEAR_FLOOR_KM && sources >= NEAR_FLOOR_SOURCES)
     ? Math.max(p, NEAR_FLOOR_POINTS * courseFactorVal) : p;
   return Math.round(pts * 100) / 100;
@@ -630,7 +646,20 @@ const TYPE_SPEED_KMH = { uav: 180, shahed: 180, fpv: 100, missile: 800, cruise: 
   ballistic: 3000, kab: 900, mig31k: 900, recon: 180 };
 const positionQuality = (t) => String(t?.positionQuality
   ?? t?.source_metadata?.source_fields?.positionQuality ?? "").toLowerCase();
-const isApproxPosition = (t) => positionQuality(t) === "approx";
+function positionInfo(t) {
+  if (positionQuality(t) === "approx" || t?.areaOnly === true)
+    return { quality:"approx", reason:"source_approx" };
+  if (t?.lat != null && t?.lon != null) for (const a of NEPTUN_LOCALITY_ANCHORS)
+    if (haversine(t.lat, t.lon, a.lat, a.lon) <= 0.25)
+      return { quality:"approx", reason:"locality_center", locality:a.name };
+  return { quality:"point", reason:"source_point" };
+}
+const isApproxPosition = (t) => (t?.straznik_position || positionInfo(t)).quality === "approx";
+const physicalKey = (t) => isApproxPosition(t)
+  ? `area:${(t.type||"unknown").toLowerCase()}:${(+t.lat).toFixed(3)}:${(+t.lon).toFixed(3)}`
+  : `track:${t.id}`;
+const areaDistance = (km) => km < 10 ? "mniej niż 10 km"
+  : `około ${Math.round(km / 10) * 10} km`;
 const speedOf = (t) => t.velocity?.speedKmh || TYPE_SPEED_KMH[(t.type || "").toLowerCase()] || null;
 const etaRawMinutes = (km, kmh) => (km == null || !kmh) ? null : Math.max(0, km / kmh * 60);
 const etaMinutes = (km, kmh) => {
@@ -656,6 +685,7 @@ function etaPerVoiv(t) {
 
 function neptunEval(t) {
   if (t.lat == null) return t;
+  t.straznik_position = positionInfo(t);
   t.pl_assessment = assess(t.lat, t.lon, headingOf(t));
   if (t.id != null) lastPos.set(t.id, [t.lat, t.lon]);
   const a = t.pl_assessment, ty = (t.type||"").toLowerCase();
@@ -681,12 +711,19 @@ function neptunEval(t) {
       // poziom w kluczu: gdy obiekt się zbliży lub zyska potwierdzenia,
       // sygnał wchodzi ponownie z wyższą punktacją
       const tier = Math.floor(points * 2);
+      const distanceInfo = approx ? `${areaDistance(a.dist_km)} [pozycja rejonowa]`
+        : `${a.dist_km} km`;
       addSignal("neptun", "neptun_threat", a.border_voiv, points,
-        `${ile}${neptunTypeLabelPL(ty)} kursem na granicę PL, ${a.dist_km} km`
+        `${ile}${neptunTypeLabelPL(ty)} kursem na granicę PL, ${distanceInfo}`
         + `${etaAlarm ? `, konserwatywny czas dolotu ~${etaSafe} min` : ""} (woj. ${a.border_voiv}, `
         + `confidence: ${conf}, ${sources} potwierdzeń, ±${t.uncertaintyKm??"?"} km)`,
         { track_id: t.id, dist_km: a.dist_km, count, source_count: sources,
           position_quality: t.positionQuality,
+          position_approximate: approx,
+          position_reason: t.straznik_position.reason,
+          position_locality: t.straznik_position.locality,
+          distance_display_km: approx ? Math.round(a.dist_km / 10) * 10 : a.dist_km,
+          physical_key: physicalKey(t),
           // czas dolotu (lustro backendu): do granicy oraz do każdego woj. —
           // panel pokazuje ten dla regionu wybranego przez użytkownika
           speed_kmh: speed,
@@ -905,8 +942,8 @@ async function tickRss() {
         const age = it.date ? Date.now() - new Date(it.date).getTime() : 0;
         if (age > MAX_AGE_MS) continue;
         const text = it.title + " " + it.desc;
-        // siła trafienia → waga: mocne słowo = 2,0 (pojedynczy artykuł alarmuje),
-        // słabe (obiekt+zdarzenie) = 1,5 (wymaga korroboracji) — jak backend
+        // RSS jest wyłącznie wsparciem: relacja operacyjna = 1,5, a słabsze
+        // obiekt+zdarzenie = 1,0. Limit całej klasy 1,5 blokuje alarm z samych mediów.
         const { level, hits } = matchLevel(text, CRITICAL, AIR, EVENT, EXCLUDE);
         if (!level) continue;
         const pts = level === "critical" ? POINTS.media_critical : POINTS.media_keywords;
@@ -1173,6 +1210,8 @@ function saveSnapshot() {
         heading: t.heading, confidenceLevel: t.confidenceLevel,
         uncertaintyKm: t.uncertaintyKm, region: t.region, locality: t.locality,
         sourceCount: t.sourceCount, destination: t.destination,
+        positionQuality: t.positionQuality, areaOnly: t.areaOnly,
+        straznik_position: t.straznik_position,
         pl_assessment: t.pl_assessment })),
       aircraft: adsbAircraft.map(a => ({ hex: a.hex, callsign: a.callsign, type: a.type,
         lat: +a.lat.toFixed(3), lon: +a.lon.toFixed(3), alt: a.alt, gs: a.gs,

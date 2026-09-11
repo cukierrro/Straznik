@@ -37,7 +37,7 @@ NEPTUN_REST_INTERVAL = 10          # s; REST tylko jako fallback gdy WS padnie
 # który zdarza się regularnie i Polsce nie zagraża — pozostaje poniżej progu.
 #
 #   punkty = waga_typu × √liczba × k_odległości × k_wiarygodności
-#            × k_potwierdzeń × k_cyklu_życia
+#            × k_potwierdzeń × k_cyklu_życia × k_jakości_pozycji
 NEPTUN_TYPE_WEIGHTS = {
     "ballistic": 3.0,   # kilka minut lotu — brak czasu na reakcję
     "mig31k":    2.6,   # nosiciel Kindżałów, sam start bywa zapowiedzią
@@ -85,6 +85,19 @@ NEPTUN_LIFECYCLE_MULT = {"confirmed": 1.1, "uncertain": 0.85, "created": 0.7}
 # jeszcze nie potwierdzenie, stąd kara poniżej 1.0
 NEPTUN_SOURCE_MULT = ((1, 0.7), (2, 0.9), (4, 1.1))
 NEPTUN_SOURCE_MULT_MAX = 1.25
+# Punkt rejonowy nie może ważyć jak precyzyjny namiar. `source_approx` pochodzi
+# wprost z API, a `locality_center` wykrywamy lokalnie, gdy współrzędne są
+# kanonicznym punktem miejscowości. To nie zmienia danych źródłowych.
+NEPTUN_POSITION_MULT = {"point": 1.0, "source_approx": 0.6,
+                        "locality_center": 0.5}
+NEPTUN_LOCALITY_ANCHOR_TOLERANCE_KM = 0.25
+# Potwierdzony przypadek z 10–11.09.2026: kolejne ID miały dokładnie punkt
+# katalogowy Łucka 50.7472,25.3254. Lista jest celowo audytowalna i nie udaje
+# kompletnej bazy miast; nowe punkty dodajemy dopiero po potwierdzeniu w danych.
+NEPTUN_LOCALITY_ANCHORS = (
+    {"name": "Łuck", "lat": 50.7472, "lon": 25.3254,
+     "aliases": ("Луцьк", "Луцк", "Łuck", "Lutsk")},
+)
 NEPTUN_HEADING_TOLERANCE = 50.0    # ± stopni od azymutu na najbliższy punkt granicy
 # Twarde cięcie na 50° gubiło obiekty tuż za progiem (51° = 0 pkt), więc waga
 # kursu spada LINIOWO od tolerancji do NEPTUN_HEADING_SOFT_DEG, dopiero potem 0.
@@ -141,16 +154,10 @@ POINTS = {
     "neptun_medlow": 1.5,
     "adsb_spike": 1.0,
     "pansa_zone": 0.5,
-    "media_keywords": 1.5,     # SŁABE trafienie (obiekt+zdarzenie, np. „dron”+
-                               # „zestrzelono”): <próg (2), samotny artykuł NIE
-                               # alarmuje — dopiero korroboracja (2. medium → cap 2,
-                               # albo inna klasa źródła). Domyka fałszywe alerty
-                               # z pojedynczego/retrospektywnego artykułu.
-    "media_critical": 2.0,     # MOCNE trafienie (słowo krytyczne: „zawyły syreny”,
-                               # „poderwano f-16”, „naruszenie przestrzeni powietrznej”):
-                               # pojedynczy taki artykuł = próg elevated (żółty). Wprost
-                               # jednoznaczna relacja o zdarzeniu, nie wymaga 2. źródła.
-                               # (Wnioski z 20.08.2026: media 1,5 tłumiło realne alerty.)
+    "media_keywords": 1.0,     # OBIEKT+ZDARZENIE: sygnał pomocniczy wymagający
+                               # potwierdzenia przez inną klasę źródła.
+    "media_critical": 1.5,     # Jednoznaczna relacja operacyjna jest silniejsza,
+                               # ale nadal nie uruchamia żółtego wyłącznie z RSS.
     "rcb_alert": 2.0,          # RCB (oficjalny) nadal może alarmować sam
     "ua_alert_border": 1.0,    # oficjalny alarm powietrzny w przygranicznym obwodzie UA
     "baltic_context": 1.0,     # incydent powietrzny wg mediów LT/LV/EE
@@ -166,7 +173,7 @@ POINTS = {
 # Neptun ma limit wyższy niż pozostałe źródła, bo każdy track to osobny fizyczny
 # obiekt — ale nie nieograniczony: przy kilkudziesięciu obiektach suma i tak dawno
 # przekroczyła próg alarmu, a trzycyfrowa punktacja tylko psułaby czytelność skali.
-SOURCE_CAPS = {"media": 2.0, "rcb": 2.0, "adsb": 1.0, "pansa": 1.0, "neptun": 8.0,
+SOURCE_CAPS = {"media": 1.5, "rcb": 2.0, "adsb": 1.0, "pansa": 1.0, "neptun": 8.0,
                "neighbours": 0.6}   # sąsiedzi: nawet kilka zamknięć = drobny wkład
 
 # ── Propagacja na resztę kraju ────────────────────────────────────────────────
@@ -269,13 +276,17 @@ UA_BORDER_OBLASTS = {
     "Рівненська": ["lubelskie"],
 }
 
-# Klasyfikacja nagłówków (patrz textmatch.py): CRITICAL wystarcza samo,
-# w przeciwnym razie potrzebny OBIEKT powietrzny + ZDARZENIE.
+# Klasyfikacja RSS (patrz textmatch.py) ma trzy rozłączne wyniki:
+#   0 pkt  — ćwiczenia, administracja, publicystyka, historia i następstwa prawne;
+#   1,0 pkt — obiekt powietrzny + zdarzenie, wymagające innej klasy źródła;
+#   1,5 pkt — jednoznaczna bieżąca reakcja operacyjna, nadal bez alarmu sama.
+# Sama fraza „naruszenie przestrzeni powietrznej” jest niejednoznaczna czasowo:
+# opisuje zarówno zdarzenie bieżące, jak i zarzuty za dawny lot. Dlatego należy
+# do AIR+EVENT (1,0), a nie do silniejszej klasy CRITICAL.
 ALERT_CRITICAL_KEYWORDS = [
     "alarm powietrzny", "zagrożenie z powietrza", "zawyły syreny", "zawyła syrena",
-    "naruszenie przestrzeni powietrznej", "naruszyła przestrzeń powietrzną",
-    "naruszył przestrzeń powietrzną", "obiekt powietrzny spadł",
-    "niezidentyfikowany obiekt", "zestrzelono dron", "zestrzelono rakiet",
+    "obiekt powietrzny spadł", "niezidentyfikowany obiekt spadł",
+    "zestrzelono dron", "zestrzelono rakiet",
     "poderwano myśliwce", "poderwano lotnictwo", "schrony otwarte",
     # jednoznaczne zamknięcie przestrzeni / reakcja obronna
     "zamknięto przestrzeń powietrzn", "zamknięcie przestrzeni powietrzn",
@@ -305,6 +316,19 @@ ALERT_EVENT_KEYWORDS = [
     "przekrocz", "wtargnięci", "detonac", "runął", "runęła", "runęło",
     "zestrzelen", "przechwycen",
 ]
+
+# Materiał o postępowaniu po zdarzeniu nie jest meldunkiem operacyjnym. Te
+# sformułowania mają pierwszeństwo przed AIR/EVENT i CRITICAL. Nie stosujemy
+# ogólnych słów „prokuratura” ani „policja”, bo instytucja może również jako
+# pierwsza potwierdzić aktualny upadek obiektu.
+MEDIA_NONCURRENT_KEYWORDS = [
+    "są zarzuty", "usłyszał zarzut", "usłyszała zarzut", "usłyszeli zarzuty",
+    "postawiono zarzut", "postawiono zarzuty", "zarzuty dla",
+    "akt oskarżenia", "odpowie przed sądem", "stanął przed sądem",
+    "stanęła przed sądem", "skazany za", "skazana za",
+    "do zdarzenia miało dojść",
+]
+
 # weto — konteksty, w których powyższe słowa nie oznaczają zagrożenia
 EXCLUDE_KEYWORDS = [
     # ćwiczenia i testy
@@ -354,6 +378,8 @@ EXCLUDE_KEYWORDS = [
     # drony cywilne / nagrania z drona (dron + zdarzenie, ale nie zagrożenie)
     "pokaz dron", "dron rolnicz", "dron dostawcz", "wyścig dron",
     "nagranie z drona", "zdjęcia z drona", "zdjęcie z drona", "widok z drona",
+    # postępowania i następstwa prawne po wcześniejszym zdarzeniu
+    *MEDIA_NONCURRENT_KEYWORDS,
 ]
 
 # Kolejność ma znaczenie: dopasowanie kończy się na pierwszym trafieniu, więc

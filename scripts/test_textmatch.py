@@ -16,7 +16,7 @@ dotenv_stub.load_dotenv = lambda *_args, **_kwargs: None
 sys.modules.setdefault("dotenv", dotenv_stub)
 
 from app import config
-from app.textmatch import match_keywords
+from app.textmatch import classify_level, match_keywords
 
 CASES = [
     # (nagłówek, czy_ma_być_alarmem)
@@ -65,6 +65,10 @@ CASES = [
     ("Alarm demograficzny: subspopulacja regionu nadal maleje", False),
     ("KAB uderzyła w rejonie przygranicznym", True),
     ("BSP naruszył przestrzeń powietrzną Polski", True),
+    # samo naruszenie jest sygnałem 1,5 wymagającym potwierdzenia; postępowanie
+    # po dawnym locie nie jest sygnałem zagrożenia
+    ("Amatorski lot dronem i naruszenie przestrzeni powietrznej. Są zarzuty", False),
+    ("Pilot drona usłyszał zarzut naruszenia przestrzeni powietrznej", False),
     # ── kultura / kosmos / historia / sport („rakieta/dron/atak/bomba") ──
     ("Recenzja: nowy film fabularny o rosyjskim ataku rakietowym", False),
     ("Start rakiety SpaceX Falcon 9 zakończony eksplozją", False),
@@ -95,6 +99,17 @@ def main():
         for f in failed:
             print("  -", f)
         sys.exit(1)
+
+    weak, weak_hits = classify_level(
+        "BSP naruszył przestrzeń powietrzną Polski",
+        config.ALERT_CRITICAL_KEYWORDS, config.ALERT_AIR_KEYWORDS,
+        config.ALERT_EVENT_KEYWORDS, config.EXCLUDE_KEYWORDS)
+    assert weak == "weak" and weak_hits, (weak, weak_hits)
+    critical, critical_hits = classify_level(
+        "Rosyjski dron naruszył przestrzeń powietrzną; poderwano F-16",
+        config.ALERT_CRITICAL_KEYWORDS, config.ALERT_AIR_KEYWORDS,
+        config.ALERT_EVENT_KEYWORDS, config.EXCLUDE_KEYWORDS)
+    assert critical == "critical" and critical_hits, (critical, critical_hits)
     print(f"WSZYSTKIE {len(CASES)} PRZYPADKÓW OK")
 
 

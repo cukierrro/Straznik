@@ -209,9 +209,38 @@ function positionQuality(t) {
     ?? t?.source_metadata?.source_fields?.positionQuality
     ?? "").toLowerCase();
 }
-function isApproxPosition(t) { return positionQuality(t) === "approx"; }
-function approxPositionNote() {
-  return `<span style="color:#ffb020"><b>${UI.isEn ? "approximate report area" : "przybliżony rejon zgłoszenia"}</b> — ${UI.isEn ? "no confirmed route or arrival time" : "brak potwierdzonej trasy i czasu dolotu"}</span>`;
+const NEPTUN_LOCALITY_ANCHORS = [{ name:"Łuck", lat:50.7472, lon:25.3254 }];
+function geoDistanceKm(lat1, lon1, lat2, lon2) {
+  const rad = n => n * Math.PI / 180;
+  const dLat = rad(lat2 - lat1), dLon = rad(lon2 - lon1);
+  const a = Math.sin(dLat / 2) ** 2
+    + Math.cos(rad(lat1)) * Math.cos(rad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return 12742 * Math.asin(Math.sqrt(Math.min(1, a)));
+}
+function positionInfo(t) {
+  if (t?.straznik_position?.quality) return t.straznik_position;
+  if (positionQuality(t) === "approx" || t?.areaOnly === true)
+    return { quality:"approx", reason:"source_approx" };
+  if (t?.lat != null && t?.lon != null) for (const a of NEPTUN_LOCALITY_ANCHORS)
+    if (geoDistanceKm(t.lat, t.lon, a.lat, a.lon) <= 0.25)
+      return { quality:"approx", reason:"locality_center", locality:a.name };
+  return { quality:"point", reason:"source_point" };
+}
+function isApproxPosition(t) { return positionInfo(t).quality === "approx"; }
+function approxPositionNote(t) {
+  const locality = positionInfo(t).reason === "locality_center";
+  const heading = locality
+    ? (UI.isEn ? "locality centre used as a reference point, not a measured object position"
+               : "środek miejscowości użyty jako punkt odniesienia, nie zmierzona pozycja obiektu")
+    : (UI.isEn ? "approximate report area" : "przybliżony rejon zgłoszenia");
+  return `<span style="color:#ffb020"><b>${heading}</b> — ${UI.isEn ? "no confirmed route or arrival time" : "brak potwierdzonej trasy i czasu dolotu"}</span>`;
+}
+function threatDistanceText(t, km) {
+  if (km == null) return "?";
+  if (!isApproxPosition(t)) return `${km} km`;
+  if (km < 10) return UI.isEn ? "less than 10 km (area estimate)" : "mniej niż 10 km (szacunek rejonowy)";
+  const rounded = Math.round(km / 10) * 10;
+  return UI.isEn ? `about ${rounded} km (area estimate)` : `około ${rounded} km (szacunek rejonowy)`;
 }
 
 /* ── czas dolotu ─────────────────────────────────────────────────────────────
@@ -287,7 +316,7 @@ function localPlaceHtml(t) {
    a NIE „czas na schronienie": to szacunek z prędkości typowej dla klasy, obiekt
    może skręcić albo zostać zestrzelony. Obiecywanie pewności byłoby groźne. */
 function etaHtml(t) {
-  if (isApproxPosition(t)) return approxPositionNote() + "<br>";
+  if (isApproxPosition(t)) return approxPositionNote(t) + "<br>";
   const e = etaInfo(t);
   if (!e || e.border == null) {
     const base = t.pl_assessment && t.pl_assessment.heading_known === false
@@ -932,7 +961,7 @@ function openThreatPopup(lngLat, p) {
       ${UI.isEn ? "confidence" : "wiarygodność"}: <b>${esc2(UI.confidence(p.confidence, CONF_PL[p.confidence] || p.confidence))}</b>
         · ${UI.isEn ? "position uncertainty" : "niepewność pozycji"}: <b>±${p.uncertainty} km</b><br>
       ${p.heading != null ? `${UI.isEn ? "heading" : "kurs"}: ${Math.round(p.heading)}° (${compass(p.heading)}) · ` : ""}
-      ${UI.isEn ? "distance from the Polish border" : "odległość od granicy PL"}: <b>${p.dist_km ?? "?"} km</b><br>
+      ${UI.isEn ? "distance from the Polish border" : "odległość od granicy PL"}: <b>${p.distance_text ?? ((p.dist_km ?? "?") + " km")}</b><br>
       ${p.eta || ""}
       <span style="color:#68758c">${UI.isEn ? "Data: NEPTUN — OSINT aggregator, not military radar" : "Dane: NEPTUN — agregator OSINT, nie radar wojskowy"}</span>`);
 }
@@ -1164,6 +1193,7 @@ function animate(ts) {
         color: meta.color,
         confidence: t.confidenceLevel || "?", uncertainty: t.uncertaintyKm ?? "?",
         opis: threatDesc(t), dist_km: t.pl_assessment?.dist_km,
+        distance_text: threatDistanceText(t, t.pl_assessment?.dist_km),
         eta: etaHtml(t) } });
     if (t.uncertaintyKm)
       unc.push({ type: "Feature", properties: { color: meta.color },
@@ -1389,7 +1419,7 @@ function renderObservationLists(viewState) {
     return `<div class="threat-row clickable" data-lat="${t.lat}" data-lon="${t.lon}"
       data-kind="threat" data-id="${esc(t.id)}">
       <b style="color:${m.color}">${esc(UI.type(t.type, m.label))}</b>
-      — ${a.dist_km} km ${UI.isEn ? "from the border" : "od granicy"} (${esc(UI.voiv(a.border_voiv))})${
+      — ${threatDistanceText(t, a.dist_km)} ${UI.isEn ? "from the border" : "od granicy"} (${esc(UI.voiv(a.border_voiv))})${
         a.heading_known === false
           ? ` · <b style='color:#ffb020'>${UI.isEn ? "unknown heading" : "kurs nieznany"}</b>`
           : (a.toward_pl ? ` · <b style='color:#ff4d5e'>${UI.isEn ? "heading towards Poland" : "kurs na PL"}</b>` : "")}
@@ -1399,7 +1429,7 @@ function renderObservationLists(viewState) {
               e.voiv != null ? ` · ${UI.isEn ? "to" : "do woj."} ${esc(UI.voiv(e.voivName))} <b>${etaTxt(e.voiv)}</b>` : ""}</div>`
           : ""; })()}
       ${localPlaceHtml(t)}
-      ${isApproxPosition(t) ? `<div class="meta">${approxPositionNote()}</div>` : ""}
+      ${isApproxPosition(t) ? `<div class="meta">${approxPositionNote(t)}</div>` : ""}
       <div class="meta">${UI.isEn ? "confidence" : "wiarygodność"}: ${esc(UI.confidence(t.confidenceLevel, CONF_PL[t.confidenceLevel] || t.confidenceLevel))}
         · ±${esc(t.uncertaintyKm)} km · ${esc(threatDesc(t))} · ${relTime(t.updatedAt)}</div>
     </div>`;
@@ -1468,10 +1498,14 @@ function sigHTML(s) {
   const share = Math.max(0, Math.min(100, (cp / 2) * 100));
   const faded = w != null && w < 0.99;
   const d = s.details || {};
+  const signalPosition = { lat:d.lat, lon:d.lon, positionQuality:d.position_quality,
+    areaOnly:d.area_only, straznik_position:d.position_approximate
+      ? { quality:"approx", reason:d.position_reason, locality:d.position_locality } : null };
+  const signalApprox = src === "neptun" && isApproxPosition(signalPosition);
   // NEPTUN: odległość i pewność kursu wprost w wierszu — bez tego nie było
   // widać, że obiekt bez kursu w ogóle jest brany pod uwagę
   const extra = [];
-  if (d.dist_km != null) extra.push(`${d.dist_km} km ${UI.isEn ? "from the border" : "od granicy"}`);
+  if (d.dist_km != null) extra.push(`${threatDistanceText(signalPosition, d.dist_km)} ${UI.isEn ? "from the border" : "od granicy"}`);
   if (src === "neptun") {
     if (d.course === "unknown") extra.push(UI.isEn ? "unknown heading" : "kurs nieznany");
     else if (d.course === "estimated") extra.push(UI.isEn ? "heading estimated from movement" : "kurs szacowany z ruchu");
@@ -1481,8 +1515,8 @@ function sigHTML(s) {
   // to do granicy; „ile mam czasu" jest ważniejsze niż „ile to kilometrów"
   const mineV = myVoiv();
   const etaV = mineV && d.eta_voiv_min ? d.eta_voiv_min[mineV] : null;
-  if (etaV != null) extra.push(`⏱ ${etaTxt(etaV)} ${UI.isEn ? "to" : "do woj."} ${UI.voiv(mineV)}`);
-  else if (d.eta_border_min != null) extra.push(`⏱ ${etaTxt(d.eta_border_min)} ${UI.isEn ? "to border" : "do granicy"}`);
+  if (!signalApprox && etaV != null) extra.push(`⏱ ${etaTxt(etaV)} ${UI.isEn ? "to" : "do woj."} ${UI.voiv(mineV)}`);
+  else if (!signalApprox && d.eta_border_min != null) extra.push(`⏱ ${etaTxt(d.eta_border_min)} ${UI.isEn ? "to border" : "do granicy"}`);
   let shownTitle = s.title;
   // Polonizujemy także stare wpisy zapisane już w bazie, korzystając ze
   // stabilnego details.type zamiast ukraińskiego/rosyjskiego tytułu źródła.
@@ -1490,12 +1524,13 @@ function sigHTML(s) {
     const marker = " kursem na granicę PL";
     const at = String(shownTitle || "").indexOf(marker);
     const prefix = (Number(d.count) || 1) > 1 ? `${Number(d.count)}× ` : "";
-    shownTitle = prefix + threatLabelPL(d.type)
-      + (at >= 0 ? String(shownTitle).slice(at) : "");
+    shownTitle = signalApprox && d.dist_km != null
+      ? prefix + threatLabelPL(d.type) + ` kursem na granicę PL, ${threatDistanceText(signalPosition, d.dist_km)}`
+      : prefix + threatLabelPL(d.type) + (at >= 0 ? String(shownTitle).slice(at) : "");
     if (UI.isEn) {
       const count = (Number(d.count) || 1) > 1 ? `${Number(d.count)}× ` : "";
       shownTitle = count + threatLabelPL(d.type)
-        + (d.dist_km != null ? ` heading towards the Polish border, ${d.dist_km} km` : "");
+        + (d.dist_km != null ? ` heading towards the Polish border, ${threatDistanceText(signalPosition, d.dist_km)}` : "");
     }
   }
   return `<div class="sig src-${esc(src)}">
@@ -1531,7 +1566,9 @@ function openCard(name) {
 const SOURCE_INFO = {
   "NEPTUN": {
     co: "Agregator OSINT z Ukrainy — obiekty powietrzne (drony, rakiety, KAB) "
-      + "kursem na granicę PL. Główne źródło wyprzedzenia.",
+      + "kursem na granicę PL. Główne źródło wyprzedzenia. Pole „confirmed” może "
+      + "potwierdzać meldunek, nie dokładność współrzędnych; rozpoznane punkty "
+      + "miejscowości pokazujemy i punktujemy jako rejonowe.",
     czerwona: "Zerwane połączenie z serwerem NEPTUN albo brak internetu. "
       + "Aplikacja próbuje ponownie co minutę.",
   },
@@ -2094,6 +2131,7 @@ function srvRecord(s) {
     heading: t.heading, confidenceLevel: t.confidenceLevel, uncertaintyKm: t.uncertaintyKm,
     region: t.region, locality: t.locality, sourceCount: t.sourceCount,
     destination: t.destination, positionQuality: positionQuality(t),
+    areaOnly: t.areaOnly, straznik_position: positionInfo(t),
     pl_assessment: t.pl_assessment }));
   const aircraft = (s?.adsb?.aircraft || []).map(a => ({ hex: a.hex, callsign: a.callsign,
     type: a.type, lat: +(+a.lat).toFixed(3), lon: +(+a.lon).toFixed(3), alt: a.alt, gs: a.gs,
@@ -2277,6 +2315,8 @@ function showHistoryAt(idx) {
       uncertaintyKm: d.uncertainty_km, sourceCount: d.source_count,
       region: d.region, positionQuality: d.position_quality
         ?? d.source_metadata?.source_fields?.positionQuality, historicalOnly: true,
+      areaOnly: d.area_only, straznik_position: d.position_approximate
+        ? { quality:"approx", reason:d.position_reason, locality:d.position_locality } : null,
       pl_assessment: { dist_km: d.dist_km } };
   }));
   // punktacja z tamtej chwili — używa jej i mapa, i panel. Bierzemy gotowy wynik
@@ -2324,6 +2364,7 @@ function showHistoryAt(idx) {
             ? `${threatLabelPL(t.type)} — ostatnia pozycja z sygnału; obiekt nie występował już w tej migawce`
             : threatDesc(t),
           historicalOnly: !!t.historicalOnly, dist_km: t.pl_assessment?.dist_km,
+          distance_text: threatDistanceText(t, t.pl_assessment?.dist_km),
           eta: etaHtml(t) } })) });
     map.getSource("trails")?.setData(emptyFC());
     map.getSource("uncertainty")?.setData(emptyFC());

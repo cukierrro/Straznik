@@ -4,8 +4,10 @@
 
 # Strażnik
 
-Wersja 1.7.20: pozycje oznaczone przez NEPTUN jako przybliżone są pokazywane jako
-rejony zgłoszeń, bez sztucznego przesuwania, pozornej trasy i ETA. „Moje miejsca”
+Wersja 1.7.21: pozycje oznaczone przez NEPTUN jako przybliżone oraz rozpoznane
+punkty środkowe miejscowości są pokazywane jako rejony zgłoszeń, bez sztucznego
+przesuwania, pozornej trasy i ETA. Dystans rejonowy jest zaokrąglany, ma niższą
+wagę, a nowe ID w tym samym punkcie nie są automatycznie sumowane. „Moje miejsca”
 przechowują na urządzeniu do 8 profili i opcjonalne
 jednorazowe pozycje. Powiadomienia w tle nadal dotyczą województwa; po otwarciu
 aplikacji dokładny punkt służy do lokalnego wyświetlenia odległości i — tylko
@@ -22,7 +24,7 @@ wiarygodność ostrzeżenia.
 
 [Instrukcja po polsku](https://cukierrro.github.io/Straznik/) · [English user guide](https://cukierrro.github.io/Straznik/en.html)
 
-Instrukcja dla 1.7.20 opisuje „Moje miejsca”, rozdział alertów wojewódzkich i
+Instrukcja dla 1.7.21 opisuje „Moje miejsca”, rozdział alertów wojewódzkich i
 lokalnych obliczeń na pierwszym planie oraz bibliotekę fotografii PL/EN. Zrzuty
 otwierają się także w pełnym rozmiarze.
 
@@ -50,7 +52,7 @@ z syreną. UI zawsze pokazuje pełne rozbicie: które sygnały, skąd, ile punkt
 |---|---|---|
 | **NEPTUN** | obiekt kursem na granicę PL — punktacja zależna od typu, liczby, odległości i liczby potwierdzeń (niżej) | **0–8** |
 | **NEPTUN** | oficjalny alarm powietrzny w obwodzie UA graniczącym z PL | **+1** |
-| **Media/RSS** | dopasowanie tematu i kontekstu; zwykła relacja 1,5 pkt, krytyczna 2 pkt — ta druga może samodzielnie osiągnąć żółty próg | **+1,5 / +2** |
+| **Media/RSS** | obiekt + zdarzenie: 1 pkt; jednoznaczna bieżąca relacja operacyjna: 1,5 pkt; historia, ćwiczenia i następstwa prawne: 0 pkt. Całe RSS ma limit 1,5 pkt i samo nie alarmuje | **0 / +1 / +1,5** |
 | **RCB** | nowy komunikat na gov.pl/web/rcb | **+2** |
 | **ADS-B** | ≥3 maszyny wojskowe nad województwem i >2× baseline **z tej samej pory doby** z 7 dni | **+1** |
 | **PAŻP** | rzadka strefa ADHOC/R/NPZ/D obejmująca całą kolumnę od ziemi w górę; TRA/TSA/MRT/ATZ i designatory powtarzane w ciągu 7 dni nie punktują | **+0,5** |
@@ -98,13 +100,17 @@ udokumentowanych zdarzeniach oraz na 354 migawkach zebranych przez backend
 | FPV tuż przy granicy | 0,0 | brak reakcji |
 | zebrana historia (wszystkie obiekty ≥ 542 km) | 0,0 | brak reakcji |
 
-Klasyfikacja mediów jest dwupoziomowa (`textmatch.py`): fraza **krytyczna**
-(np. „alarm powietrzny”) wystarcza do dopasowania; słabszy sygnał wymaga
-jednocześnie **obiektu powietrznego i zdarzenia** (AIR + EVENT), nie dowolnych
-dwóch słów. Lista wykluczeń ma pierwszeństwo i odrzuca m.in. rozpoznany
-kontekst administracyjny, poradnikowy i ćwiczebny. Filtry mogą się mylić.
+Klasyfikacja mediów ma trzy jawne wyniki (`textmatch.py`): **0 pkt** dla
+ćwiczeń, administracji, publicystyki, historii oraz postępowań prawnych po
+zdarzeniu; **1 pkt** dla jednoczesnego obiektu powietrznego i zdarzenia
+(AIR + EVENT); **1,5 pkt** dla jednoznacznej
+bieżącej reakcji operacyjnej, np. alarmu powietrznego, syren, poderwania
+lotnictwa, zestrzelenia lub upadku obiektu. Sama fraza „naruszenie przestrzeni
+powietrznej” jest niejednoznaczna czasowo i należy do poziomu 1 pkt.
+Łączny wkład całej klasy RSS jest ograniczony do 1,5 pkt, więc same artykuły
+nie mogą uruchomić żółtego progu. Wykluczenia mają pierwszeństwo. Filtry mogą się mylić.
 Jedna klasa źródła ma limit wkładu do sumy
-(media ≤2, RCB ≤2, ADS-B ≤1, PAŻP ≤1, sąsiedzi ≤0,6) — pięć artykułów o tym
+(media ≤1,5, RCB ≤2, ADS-B ≤1, PAŻP ≤1, sąsiedzi ≤0,6) — pięć artykułów o tym
 samym zdarzeniu to wciąż jedno potwierdzenie. Nadmiarowe sygnały są widoczne
 w UI z przekreśloną punktacją. Artykuł rozpoznany po treści, regionie i czasie
 jako powtórzenie świeżego Alertu RCB pozostaje widoczny, ale wnosi 0 pkt; sama

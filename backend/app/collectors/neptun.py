@@ -103,11 +103,58 @@ def _heading_of(t: dict) -> float | None:
     return None
 
 
+def _position_info(t: dict) -> dict:
+    """Konserwatywna ocena precyzji bez nadpisywania pól NEPTUN-a.
+
+    `confirmed` może potwierdzać sam meldunek, nie pomiar współrzędnych. Dlatego
+    znany punkt katalogowy miejscowości klasyfikujemy osobno jako rejonowy.
+    """
+    quality = (t.get("positionQuality")
+               or ((t.get("source_metadata") or {}).get("source_fields") or {})
+               .get("positionQuality"))
+    if str(quality or "").lower() == "approx" or t.get("areaOnly") is True:
+        return {"quality": "approx", "reason": "source_approx"}
+    lat, lon = t.get("lat"), t.get("lon")
+    if isinstance(lat, (int, float)) and isinstance(lon, (int, float)):
+        for anchor in config.NEPTUN_LOCALITY_ANCHORS:
+            if geo.haversine_km(lat, lon, anchor["lat"], anchor["lon"]) \
+                    <= config.NEPTUN_LOCALITY_ANCHOR_TOLERANCE_KM:
+                return {"quality": "approx", "reason": "locality_center",
+                        "locality": anchor["name"]}
+    return {"quality": "point", "reason": "source_point"}
+
+
+def _is_approx_position(t: dict) -> bool:
+    """Pozycja rejonowa jawna w źródle albo rozpoznana lokalnie."""
+    derived = t.get("straznik_position")
+    return (derived or _position_info(t)).get("quality") == "approx"
+
+
+def _position_factor(t: dict) -> float:
+    info = t.get("straznik_position") or _position_info(t)
+    return config.NEPTUN_POSITION_MULT.get(info.get("reason", "point"), 1.0)
+
+
+def _physical_key(t: dict) -> str:
+    """Nie traktuj nowego ID w tym samym rejonowym punkcie jak nowego obiektu."""
+    if _is_approx_position(t) and t.get("lat") is not None and t.get("lon") is not None:
+        return (f"area:{(t.get('type') or 'unknown').lower()}:"
+                f"{float(t['lat']):.3f}:{float(t['lon']):.3f}")
+    return f"track:{t.get('id')}"
+
+
+def _area_distance_label(km: float) -> str:
+    if km < 10:
+        return "mniej niż 10 km"
+    return f"około {int(round(km / 10.0) * 10)} km"
+
+
 def _evaluate(t: dict) -> dict:
     """Dokleja do tracka ocenę względem granicy PL."""
     lat, lon = t.get("lat"), t.get("lon")
     if lat is None or lon is None:
         return t
+    t["straznik_position"] = _position_info(t)
     heading = _heading_of(t)
     a = geo.assess_threat(lat, lon, heading, config.NEPTUN_HEADING_TOLERANCE,
                           config.NEPTUN_HEADING_SOFT_DEG,
@@ -159,13 +206,15 @@ def score_threat(t: dict, dist_km: float, course_factor: float = 1.0) -> float:
               * config.NEPTUN_CONF_MULT.get(conf, 0.35)
               * _source_mult(sources)
               * config.NEPTUN_LIFECYCLE_MULT.get(life, 0.85)
+              * _position_factor(t)
               # waga kursu: 1,0 przy locie na granicę, mniej przy skosie,
               # kara przy nieznanym kursie (patrz geo.course_factor)
               * course_factor)
     # Podłoga dla ciężkich typów tuż przy granicy — patrz NEPTUN_NEAR_FLOOR_*.
     # Skalowana pewnością kursu: przy nieznanym kursie (×0,5) podłoga też jest
     # połową, więc sam brak danych nie wywoła alarmu.
-    if ((t.get("type") or "").lower() in config.NEPTUN_NEAR_FLOOR_TYPES
+    if (not _is_approx_position(t)
+            and (t.get("type") or "").lower() in config.NEPTUN_NEAR_FLOOR_TYPES
             and dist_km <= config.NEPTUN_NEAR_FLOOR_KM
             and sources >= config.NEPTUN_NEAR_FLOOR_SOURCES):
         points = max(points, config.NEPTUN_NEAR_FLOOR_POINTS * course_factor)
@@ -181,14 +230,6 @@ def _speed_of(t: dict) -> float | None:
     if isinstance(v, (int, float)) and v > 0:
         return float(v)
     return config.NEPTUN_TYPE_SPEED_KMH.get((t.get("type") or "").lower())
-
-
-def _is_approx_position(t: dict) -> bool:
-    """`approx` oznacza rejon raportu, nie punkt nadający się do ETA."""
-    quality = (t.get("positionQuality")
-               or ((t.get("source_metadata") or {}).get("source_fields") or {})
-               .get("positionQuality"))
-    return str(quality or "").lower() == "approx"
 
 
 def _eta_per_voiv(t: dict) -> dict:
@@ -266,7 +307,10 @@ async def _maybe_signal(t: dict):
                  (" [kurs szacowany z ruchu]" if t.get("heading_estimated") is not None
                   else " [kurs nieznany]"))
     eta_info = (f", konserwatywny czas dolotu ~{eta_safe} min" if eta_level else "")
-    title = (f"{ile}{threat_label_pl(ttype)} kursem na granicę PL, {a['dist_km']} km{kurs_info}{eta_info} "
+    position = t.get("straznik_position") or _position_info(t)
+    distance_info = (_area_distance_label(a["dist_km"]) + " [pozycja rejonowa]"
+                     if approximate else f"{a['dist_km']} km")
+    title = (f"{ile}{threat_label_pl(ttype)} kursem na granicę PL, {distance_info}{kurs_info}{eta_info} "
              f"(woj. {a['border_voiv']}, confidence: {conf}, {sources} potwierdzeń, "
              f"±{t.get('uncertaintyKm', '?')} km)")
     # Poziom w kluczu deduplikacji: gdy obiekt się zbliży albo zyska potwierdzenia,
@@ -282,6 +326,13 @@ async def _maybe_signal(t: dict):
                  "lifecycle": t.get("lifecycle"),
                  "uncertainty_km": t.get("uncertaintyKm"),
                  "position_quality": t.get("positionQuality"),
+                 "area_only": t.get("areaOnly"),
+                 "position_approximate": approximate,
+                 "position_reason": position.get("reason"),
+                 "position_locality": position.get("locality"),
+                 "distance_display_km": (int(round(a["dist_km"] / 10.0) * 10)
+                                         if approximate else a["dist_km"]),
+                 "physical_key": _physical_key(t),
                  "dist_km": a["dist_km"], "region": t.get("region"),
                  "course": ("known" if a.get("heading_known") else
                             "estimated" if t.get("heading_estimated") is not None else "unknown"),

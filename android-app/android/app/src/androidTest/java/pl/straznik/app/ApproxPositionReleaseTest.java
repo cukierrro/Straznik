@@ -39,6 +39,11 @@ public class ApproxPositionReleaseTest {
         assertEquals(expression, "true", js(activity, expression));
     }
 
+    private void reload(MainActivity activity) {
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(() ->
+            activity.getBridge().getWebView().reload());
+    }
+
     private void capture(String name) throws Exception {
         Instrumentation instrumentation = InstrumentationRegistry.getInstrumentation();
         Bitmap screen = instrumentation.getUiAutomation().takeScreenshot();
@@ -64,7 +69,9 @@ public class ApproxPositionReleaseTest {
             }
             originalLang = js(activity, "localStorage.getItem('straznik_lang')");
             for (String lang : new String[]{"pl", "en"}) {
-                js(activity, "localStorage.setItem('straznik_lang','" + lang + "'); location.reload(); void 0");
+                js(activity, "localStorage.setItem('straznik_lang','" + lang + "')");
+                reload(activity);
+                Thread.sleep(1500);
                 for (int i = 0; i < 45 && !"true".equals(js(activity,
                         "typeof openThreatPopup === 'function' && UI.lang === '" + lang + "'")); i++) {
                     Thread.sleep(1000);
@@ -72,19 +79,22 @@ public class ApproxPositionReleaseTest {
                 js(activity,
                     "document.querySelectorAll('dialog[open]').forEach(d=>d.close());"
                     + "document.getElementById('disclaimer-x')?.click();"
-                    + "const t={id:'trk_00178131',type:'drone',lat:50.85710859817629,lon:25.86737474811073,"
-                    + "positionQuality:'approx',confidenceLevel:'medium',uncertaintyKm:4,sourceCount:13,"
-                    + "locality:'Луцьк',destination:true,updatedAt:'2026-09-10T07:30:44+02:00',"
-                    + "pl_assessment:{dist_km:129.9,toward_pl:true,heading_known:true,border_voiv:'lubelskie'},"
-                    + "heading:252};"
+                    + "const t={id:'trk_00180686',type:'uav',lat:50.7472,lon:25.3254,"
+                    + "positionQuality:'confirmed',confidenceLevel:'medium',uncertaintyKm:10,sourceCount:1,"
+                    + "locality:'Луцьк',updatedAt:'2026-09-11T11:33:00+02:00',"
+                    + "pl_assessment:{dist_km:91.8,toward_pl:true,heading_known:true,border_voiv:'lubelskie'},"
+                    + "heading:317};"
                     + "openThreatPopup([t.lon,t.lat],{type:t.type,opis:threatDesc(t),confidence:t.confidenceLevel,"
-                    + "uncertainty:t.uncertaintyKm,heading:t.heading,dist_km:t.pl_assessment.dist_km,eta:etaHtml(t)});"
+                    + "uncertainty:t.uncertaintyKm,heading:t.heading,dist_km:t.pl_assessment.dist_km,"
+                    + "distance_text:threatDistanceText(t,t.pl_assessment.dist_km),eta:etaHtml(t)});"
                     + "void 0");
                 String expected = lang.equals("pl")
-                    ? "przybliżony rejon zgłoszenia"
-                    : "approximate report area";
+                    ? "środek miejscowości użyty jako punkt odniesienia"
+                    : "locality centre used as a reference point";
                 check(activity, "document.getElementById('ac-card').textContent.includes('" + expected + "')");
                 check(activity, "!document.getElementById('ac-card').textContent.includes('~40 min')");
+                check(activity, "!document.getElementById('ac-card').textContent.includes('91.8 km')");
+                check(activity, "document.getElementById('ac-card').textContent.includes('90 km')");
                 check(activity, "!document.querySelector('#ac-card .local-place-eta')");
                 Thread.sleep(500);
                 capture("approx-position-" + lang);
@@ -93,7 +103,8 @@ public class ApproxPositionReleaseTest {
             if (originalLang != null) {
                 js(activity, "const savedLang=" + originalLang
                     + "; if(savedLang===null)localStorage.removeItem('straznik_lang');"
-                    + "else localStorage.setItem('straznik_lang',savedLang); location.reload(); void 0");
+                    + "else localStorage.setItem('straznik_lang',savedLang)");
+                reload(activity);
             }
         }
     }

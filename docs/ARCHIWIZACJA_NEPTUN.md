@@ -1,7 +1,11 @@
 # Metadane NEPTUN do analizy progów
 
 Stan 2026-09-08: użytkownik zatwierdził wdrożenie wyłącznie archiwizacji.
-**Wdrożenie i weryfikacja na VPS jeszcze niepotwierdzone.**
+Commit `478342f` opublikowany; użytkownik wykonał pull i restart VPS.
+Odczyt API potwierdził nowe metadane w migawce 19:17:51 CEST (12/12 śladów).
+Starsza sprawdzona migawka zachowała stary format. Health źródeł bez błędów.
+Nie potwierdzono jeszcze zapisu nowego naturalnego sygnału w signals.details,
+ścieżki REST, zużycia RAM ani dziennika błędów VPS (SSH wymaga logowania).
 Dotyczy zapisu diagnostycznego, nie zmiany progów, punktacji ani wysyłek.
 
 ## Format
@@ -81,8 +85,9 @@ i 360 migawkach daje około 3,4 MB dodatkowego surowego JSON na 12 godzin.
   Pozostałe 119 kontroli oraz test pamięci po restarcie nadal PASS.
 - Test na Pixelu sprawdza równoważną projekcję deklaratywnego schematu;
   **nie uruchamia kolektora Python, SQLite ani prawdziwej wysyłki**.
-  Rzeczywisty odbiór WS/REST i zapis do bazy nie są jeszcze zweryfikowane
-  wykonaniem backendu. Nie przedstawiać kontroli AST jako testu integracyjnego.
+  Późniejsza weryfikacja produkcyjna potwierdziła WS i odczyt zapisanej
+  migawki z metadanymi; REST i zapis nowego sygnału pozostają niezweryfikowane.
+  Nie przedstawiać kontroli AST jako testu integracyjnego.
 
 Instrukcja PL/EN i zrzuty: nie wymieniać, ponieważ interfejs, alarmy i sposób
 obsługi nie ulegają zmianie. Dokumentacja techniczna tej poprawki jest tutaj.

@@ -281,6 +281,9 @@ document.documentElement.classList.add(
       <tr><td><b>Jak pewnie</b></td><td>wiarygodność (wysoka ×1,0, średnia ×0,6,
         niska ×0,35), liczba niezależnych zgłoszeń (jedno ×0,7, pięć i więcej ×1,25)
         oraz status obserwacji</td></tr>
+      <tr><td><b>Jakość pozycji</b></td><td>punkt źródłowy ×1,0 · rejon wskazany
+        przez źródło ×0,6 · rozpoznany środek miejscowości ×0,5; pozycja rejonowa
+        nie uruchamia progów ETA</td></tr>
     </table>
     <p class="fineprint">Model sprawdzono na udokumentowanych zdarzeniach:
     masowe naruszenie granicy i rakieta tuż przy granicy przekraczają próg alarmu,
@@ -302,7 +305,10 @@ document.documentElement.classList.add(
     <p class="fineprint"><b>To szacunek, nie obietnica.</b> Zakłada utrzymanie kursu
     i prędkości oraz <b>nie uwzględnia obrony powietrznej</b> — obiekt może skręcić
     albo zostać zestrzelony. Gdy kurs obiektu jest nieznany, czasu nie podajemy
-    (zamiast zmyślonej liczby zobaczysz „kurs nieznany").</p>
+    (zamiast zmyślonej liczby zobaczysz „kurs nieznany"). Pole NEPTUN
+    <code>confirmed</code> może potwierdzać meldunek, a nie dokładność punktu.
+    Jeżeli współrzędne odpowiadają rozpoznanemu środkowi miejscowości, Strażnik
+    pokazuje tylko zaokrągloną odległość rejonową, nie rysuje trasy i nie podaje ETA.</p>
 
     <h3>Poziomy</h3>
     <div class="lvl-row"><i class="sq" style="--c:#ffb020"></i>
@@ -330,6 +336,8 @@ document.documentElement.classList.add(
     <h3>Czego ta aplikacja NIE robi</h3>
     <p class="fineprint">NEPTUN to agregator OSINT/crowdsourcingowy, nie radar —
     dlatego zawsze pokazujemy wiarygodność i niepewność pozycji (±km).
+    Nowy identyfikator w tym samym punkcie miejscowości nie dowodzi nowego
+    fizycznego obiektu i nie jest automatycznie doliczany drugi raz.
     Dane ADS-B pochodzą z jawnych transponderów (maszyny, które <i>chcą</i> być
     widoczne) — to nie jest namierzanie obiektów przeciwnika. Obiekty widoczne
     są nad Ukrainą; po wejściu w polską przestrzeń znikają ze źródła.</p>
@@ -512,11 +520,11 @@ document.documentElement.classList.add(
      Cloudflare, więc po każdym wydaniu wystarczy podbić ?v= i przeglądarki
      dostają nowe app.js/engine.js OD RAZU, bez ręcznego czyszczenia cache CF.
      Podbijaj ?v= razem z versionName w build.gradle. -->
-<script src="i18n.js?v=1.7.19-3"></script>
-<script src="engine.js?v=1.7.20-1"></script>
+<script src="i18n.js?v=1.7.21-1"></script>
+<script src="engine.js?v=1.7.21-1"></script>
 <script src="aircraft-photo-catalog.js?v=1.7.19"></script>
 <script src="aircraft-photos.js?v=1.7.19"></script>
 <script src="places.js?v=1.7.19-4"></script>
-<script src="app.js?v=1.7.20-2"></script>
+<script src="app.js?v=1.7.21-1"></script>
 </body>
 </html>

@@ -59,11 +59,10 @@ def match_keywords(text: str, critical, air, event, exclude) -> list[str]:
 def classify_level(text: str, critical, air, event, exclude):
     """Jak `classify`, ale rozróżnia SIŁĘ dopasowania — do zróżnicowanej wagi:
 
-      "critical" → padło samo słowo mocne („zawyły syreny", „poderwano f-16",
-                   „naruszenie przestrzeni powietrznej") — pojedynczy taki
-                   artykuł może alarmować sam.
-      "weak"     → tylko para OBIEKT+ZDARZENIE („dron” + „zestrzelono”) — słabszy
-                   sygnał, wymaga korroboracji (drugie medium / inne źródło).
+      "critical" → jednoznaczna relacja operacyjna („zawyły syreny",
+                   „poderwano F-16") — 1,5 pkt, nadal bez alarmu z samego RSS.
+      "weak"     → tylko para OBIEKT+ZDARZENIE („dron” + „naruszył”) — 1 pkt,
+                   wymaga potwierdzenia przez inną klasę źródła.
       None       → brak / weto.
 
     Zwraca (poziom|None, dopasowane_słowa)."""

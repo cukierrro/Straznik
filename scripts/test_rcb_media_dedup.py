@@ -107,10 +107,39 @@ def test_stored_wyryki_retrospective_is_visible_but_scores_zero():
         state["signals"])
 
 
+def test_stored_podlaskie_legal_followup_is_visible_but_scores_zero():
+    historical = sig(
+        722, "2026-09-11T05:16:28+00:00", "media", "media_keywords",
+        "podlaskie", 2.0,
+        "Media: „Amatorski lot dronem i naruszenie przestrzeni powietrznej. "
+        "Są zarzuty”")
+    state = fusion.accumulate(
+        [historical], datetime(2026, 9, 11, 5, 20, tzinfo=timezone.utc)
+    )["podlaskie"]
+    assert state["score"] == 0.0
+    assert state["signals"][0]["counted_points"] == 0.0
+    assert state["signals"][0]["retrospective"] is True
+
+
+def test_media_source_cap_cannot_reach_yellow_threshold():
+    articles = [
+        sig(800 + idx, f"2026-09-11T06:0{idx}:00+00:00", "media",
+            "media_keywords", "podlaskie", 1.5, f"Media: artykuł {idx}")
+        for idx in (1, 2, 3)
+    ]
+    state = fusion.accumulate(
+        articles, datetime(2026, 9, 11, 6, 10, tzinfo=timezone.utc)
+    )["podlaskie"]
+    assert state["score"] == 1.5
+    assert fusion.level_for(state["score"]) == "none"
+
+
 if __name__ == "__main__":
     test_relay_is_visible_but_scores_zero()
     test_rcb_mention_with_new_information_is_not_suppressed()
     test_regional_rcb_does_not_spill_or_make_today_red()
     test_independent_non_rcb_risk_can_still_spill()
     test_stored_wyryki_retrospective_is_visible_but_scores_zero()
-    print("OK: 5 regresji RCB/media, materiałów historycznych i propagacji")
+    test_stored_podlaskie_legal_followup_is_visible_but_scores_zero()
+    test_media_source_cap_cannot_reach_yellow_threshold()
+    print("OK: 7 regresji RCB/media, materiałów historycznych i propagacji")

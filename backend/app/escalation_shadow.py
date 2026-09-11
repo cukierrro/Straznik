@@ -24,7 +24,11 @@ EARLY_DISTANCE_KM = {
 EARLY_CORROBORATING_SOURCES = {"neptun", "adsb", "pansa", "neighbours", "media"}
 EARLY_OPERATIONAL_SOURCES = {"neptun", "adsb", "pansa"}
 FRESH_SECONDS = 5 * 60
-GAP_SECONDS = 2 * 60
+# The production loop runs every 120 s.  Treating any delay above exactly
+# 120 s as a gap made normal scheduler overhead force a recovery baseline on
+# every pass.  Five minutes still rejects stale continuity and tolerates one
+# delayed/missed observation.
+GAP_SECONDS = 5 * 60
 RESET_SECONDS = 60 * 60
 MAX_LEDGER = 1000
 
@@ -261,7 +265,9 @@ def _objects(session: Session, region: str, state: dict, tracks: dict[str, dict]
         observed_at = _source_observed_at(raw)
         count = raw.get("count") if "count" in raw else None
         speed = config.NEPTUN_TYPE_SPEED_KMH.get(str(raw.get("type") or "").lower())
-        if str(raw.get("positionQuality") or "").lower() == "approx":
+        if ((raw.get("straznik_position") or {}).get("quality") == "approx"
+                or str(raw.get("positionQuality") or "").lower() == "approx"
+                or raw.get("areaOnly") is True):
             blockers["approximate-position"] += 1
             continue
         item = {"id": str(track_id), "lat": raw.get("lat"), "lon": raw.get("lon"),
@@ -350,12 +356,20 @@ def evaluate_region(region: str, state: dict, tracks: dict[str, dict], *,
             if session.quiet_since is None:
                 session.quiet_since = now
             elif now - session.quiet_since >= RESET_SECONDS:
-                session.model = ProgressionModel()
-                session.guard = TrackGuard()
-                session.serial += 1
-                session.quiet_since = now
-                session.early_emitted = False
-                reset = True
+                # Record a reset only when there is incident state to clear.
+                # Previously every completely idle region emitted another
+                # reset row each hour, obscuring the useful shadow samples.
+                had_activity = (session.model.anchor is not None
+                                or bool(session.guard.records)
+                                or session.early_emitted
+                                or session.model.previous_score > 0)
+                if had_activity:
+                    session.model = ProgressionModel()
+                    session.guard = TrackGuard()
+                    session.serial += 1
+                    session.quiet_since = now
+                    session.early_emitted = False
+                    reset = True
         else:
             session.quiet_since = None
         if session.recovering or gap:

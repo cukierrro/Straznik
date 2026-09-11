@@ -4,7 +4,8 @@
 # updatedAt/confirmedAt/message ts do NOT assert physical observation time.
 SOURCE_FIELDS = (
     "updatedAt", "confirmedAt", "createdAt", "observedAt", "observed_at",
-    "count", "status", "lifecycle", "positionQuality", "displayConfidence",
+    "count", "status", "lifecycle", "positionQuality", "areaOnly",
+    "displayConfidence",
 )
 
 

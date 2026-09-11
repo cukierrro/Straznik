@@ -29,12 +29,13 @@ explanation. No public test alerts were sent.
 
 The approximate-position captures are `approx-position-pl.png` and
 `approx-position-en.png`: unchanged 1080 × 2400 PNG screenshots of signed
-release 1.7.20 (code 50), Pixel 7 / Android 14, captured 10 September 2026.
+release 1.7.21 (code 51), Pixel 7 / Android 14, captured 11 September 2026.
 They use an isolated in-memory replay of the real archived NEPTUN entry
 `trk_00178131` solely to verify the card. They are not presented as a current
-object or alert. The test confirms that an `approx` report shows no route,
-arrival time or saved-place ETA. It performs no production writes or public
-notifications.
+object or alert. The test uses source quality `confirmed`, but coordinates at
+the recognised centre of Lutsk; it confirms that the derived area position
+shows only rounded distance and no route, arrival time or saved-place ETA. It
+performs no production writes or public notifications.
 
 The aircraft cards are `aircraft-pl.png` and `aircraft-en.png`: unchanged
 1080 × 2400 screenshots of signed release 1.7.18 (code 48), Pixel 7 / Android 14,

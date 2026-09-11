@@ -60,3 +60,26 @@ test('standalone keeps a stored Wyryki retrospective visible with zero points', 
   assert.equal(state.signals[0].counted_points, 0);
   assert.equal(state.signals[0].retrospective, true);
 });
+
+test('standalone keeps a stored Podlaskie legal follow-up visible with zero points', () => {
+  const historical = {
+    id: 722, t: t('2026-09-11T05:16:28Z'), ts: '2026-09-11T05:16:28Z',
+    source: 'media', event_type: 'media_keywords', voivodeship: 'podlaskie', points: 2,
+    title: 'Media: „Amatorski lot dronem i naruszenie przestrzeni powietrznej. Są zarzuty”',
+    details: {},
+  };
+  const state = Engine.accumulate([historical], t('2026-09-11T05:20:00Z')).podlaskie;
+  assert.equal(state.score, 0);
+  assert.equal(state.signals[0].counted_points, 0);
+  assert.equal(state.signals[0].retrospective, true);
+});
+
+test('standalone media source cap cannot reach the yellow threshold', () => {
+  const articles = [1, 2, 3].map(id => ({
+    id: 800 + id, t: t(`2026-09-11T06:0${id}:00Z`), ts: `2026-09-11T06:0${id}:00Z`,
+    source: 'media', event_type: 'media_keywords', voivodeship: 'podlaskie', points: 1.5,
+    title: `Media: niezależny artykuł ${id}`, details: {},
+  }));
+  const state = Engine.accumulate(articles, t('2026-09-11T06:10:00Z')).podlaskie;
+  assert.equal(state.score, 1.5);
+});

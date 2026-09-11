@@ -174,13 +174,13 @@
     setMany("#about .about-body > p", [
       "Strażnik is an unofficial air-threat map for Poland. It combines reports of drones and missiles over Ukraine with RCB and RSO alerts, PAŻP airspace zones, ADS-B traffic and media reports. The map works live in a browser; the Android app can also send notifications.",
       "No single signal proves that a threat exists. The app assigns points to several independent indicators and totals them over a 60-minute window for each province. A signal has full weight for 30 minutes, then fades linearly to zero. The resulting total determines the level, and the full breakdown is always visible.",
-      "One Shahed 80 km from the border is different from six Shaheds 50 km away, while a short-range FPV drone does not threaten Poland. The score combines object class, count, distance and confidence.",
+      "One Shahed 80 km from the border is different from six Shaheds 50 km away, while a short-range FPV drone does not threaten Poland. The score combines object class, count, distance, confidence and position quality.",
       "The model was checked against documented incidents. A mass border violation or a missile immediately next to the border crosses an alert threshold; routine activity over western Ukraine stays below it. NEPTUN contribution is capped at 8 points.",
       "Distance alone is misleading: 130 km may mean about 10 minutes for a cruise missile and about 45 minutes for a drone. When possible, Strażnik estimates time to the Polish border and to your province using reported, measured or class-typical speed.",
       "The estimate is conservative: 2.5 minutes are deducted for measured source delay. With a known or calculated heading, at least two confirmations and medium/high confidence, the model can raise yellow at ≤10 minutes and red at ≤5 minutes.",
-      "This is an estimate, not a promise. It assumes unchanged speed and heading and does not account for air defence. No time is shown when heading is unknown.",
+      "This is an estimate, not a promise. It assumes unchanged speed and heading and does not account for air defence. No time is shown when heading is unknown. NEPTUN's ‘confirmed’ may confirm a report rather than coordinate accuracy. A recognised locality-centre point gets only a rounded area distance, with no route or ETA.",
       "An eastern event also transfers 40% of its points to neighbouring provinces, providing earlier awareness farther west.",
-      "NEPTUN is an OSINT/crowdsourced aggregator, not radar, so confidence and position uncertainty are always shown. ADS-B contains only public transponder emissions and cannot reveal aircraft flying dark.",
+      "NEPTUN is an OSINT/crowdsourced aggregator, not radar, so confidence and position uncertainty are always shown. A new ID at the same locality-centre point does not prove a new physical object and is not automatically counted twice. ADS-B contains only public transponder emissions and cannot reveal aircraft flying dark.",
       "Data: NEPTUN · adsb.lol / airplanes.live · PAŻP · gov.pl/RCB · regional and Baltic media · neighbouring airspace sources · map © CARTO, © OpenStreetMap"
     ]);
     set("#about .warn-box", "This is NOT an official warning system. It does not replace sirens, RCB or RSO alerts. In a real emergency, follow official channels. Strażnik provides an additional, potentially earlier signal — nothing more.");
@@ -195,12 +195,13 @@
       "Air incident reported by Lithuanian, Latvian or Estonian media; an all-clear ends its contribution",
       "NATO neighbour airspace closure in northern Romania, Estonia or Lithuania — observational signal"
     ]);
-    setMany("#about .about-tab:nth-of-type(2) tr td:first-child", ["Object class", "Count", "Distance", "Confidence"]);
+    setMany("#about .about-tab:nth-of-type(2) tr td:first-child", ["Object class", "Count", "Distance", "Confidence", "Position quality"]);
     setMany("#about .about-tab:nth-of-type(2) tr td:nth-child(2)", [
       "ballistic missile 3.0 · MiG-31K 2.6 · cruise missile 2.4 · KAB 1.8 · Shahed 1.4 · drone 1.1 · reconnaissance 0.5 · FPV 0",
       "square root of object count — four objects weigh twice as much as one, not four times as much",
       "<30 km ×1.6 · <60 km ×1.3 · <100 km ×1.0 · <150 km ×0.55 · <250 km ×0.25 · farther 0",
-      "confidence, independent report count and observation status"
+      "confidence, independent report count and observation status",
+      "source point ×1.0 · source-reported area ×0.6 · recognised locality centre ×0.5; area positions cannot trigger ETA thresholds"
     ]);
     setMany("#about .lvl-row", [
       "≥ 2 pts — ELEVATED ATTENTION: yellow region, short attention sound and heads-up notification.",

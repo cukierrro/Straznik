@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Strażnik 1.7.20 — user guide</title>
+<title>Strażnik 1.7.21 — user guide</title>
 <meta name="description" content="The current Strażnik user guide: Android installation and updates, alerts, maps, new object icons, history, languages and scoring. Screenshots from Pixel 7.">
 <link rel="canonical" href="https://cukierrro.github.io/Straznik/en.html">
 <link rel="alternate" hreflang="pl" href="https://cukierrro.github.io/Straznik/">
@@ -33,11 +33,11 @@
   <div class="languages" aria-label="Guide language"><a href="index.html" lang="pl" hreflang="pl">PL</a><a href="en.html" lang="en" aria-current="page">EN</a></div>
 </div></nav>
 <header class="hero"><div class="wrap hero-grid">
-  <div><div class="eyebrow">User guide · version 1.7.20</div>
+  <div><div class="eyebrow">User guide · version 1.7.21</div>
     <h1>The situation on a map.<br>The sources behind each signal.</h1>
     <p class="lead">Strażnik combines public information about airborne threats and displays a score for each Polish province. Available on Android and in your browser.</p>
     <div class="actions"><a class="button primary" href="https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk">↓ Download app</a><a class="button" href="https://straznik.eu">Open map</a></div>
-    <p class="fineprint">Guide for 1.7.20. Approximate-position card: 1.7.20, 10 September 2026. “My places”: 1.7.19, 9 September. Aircraft card: 1.7.18, 8 September. All captures were made on a Pixel 7 with Android 14; other unchanged screens are labelled individually. Tap any screenshot to open the full-size image.</p>
+    <p class="fineprint">Guide for 1.7.21. Approximate-position card: 1.7.21, 11 September 2026. “My places”: 1.7.19, 9 September. Aircraft card: 1.7.18, 8 September. All captures were made on a Pixel 7 with Android 14; other unchanged screens are labelled individually. Tap any screenshot to open the full-size image.</p>
   </div>
   <a class="shot-link" href="screens/start-en.jpg"><img src="screens/start-en.jpg" width="1080" height="2400" alt="Strażnik 1.7.16 on Pixel 7: English map labels and six green source indicators"></a>
 </div></header>
@@ -46,7 +46,7 @@
   <h2>What Strażnik does</h2>
   <p>A server collects information and calculates scores. The app displays the map, sources and history; Android receives alerts through push notifications. You do not need an account or your own server.</p>
   <div class="warn"><strong>This is not an official warning system.</strong> Strażnik supplements sirens, Poland's Alert RCB messages and RSO warnings. It cannot guarantee detection or an earlier warning than official channels. Follow official instructions if you receive an Alert RCB or hear sirens, even when the app shows a calm map.</div>
-  <p>Combining sources helps interpret a situation, but an alert does not always require several sources. A qualifying official message, critical media report or nearby object may reach the threshold on its own. The score is an application indicator, not a probability of impact.</p>
+  <p>Combining sources helps interpret a situation. A qualifying official message or a sufficiently serious nearby object may reach the threshold on its own; RSS articles alone cannot. The score is an application indicator, not a probability of impact.</p>
 </section>
 <section id="instalacja">
   <h2>1. Installation and updates</h2>
@@ -106,11 +106,11 @@
     <figure><a class="shot-link" href="screens/legend-en.jpg"><img loading="lazy" src="screens/legend-en.jpg" width="1080" height="2400" alt="Current legend with nine distinct NEPTUN icons, uncertainty circle, aircraft, helicopter and score thresholds"></a><figcaption>Current symbols in version 1.7.16. The helicopter row in this APK still has a Polish label.</figcaption></figure>
   </div>
   <h3 id="zdjecia">Object details and pictures</h3>
-  <p>An object card shows its type, area, confirmations, confidence, position uncertainty, heading, distance from Poland and — only when the source does not mark the position as approximate — an estimated arrival time. For an approximate report area, the app does not move the marker artificially, draw an apparent route or show ETA. A locality name may describe the report's direction or destination rather than the object's exact position. AI illustrations are explicitly labelled as reference images: they do not depict the tracked object and must not be used to identify a model.</p>
+  <p>An object card shows its type, area, confirmations, confidence, position uncertainty, heading and distance from Poland. ETA appears only for a position suitable for that calculation. The source field <code>confirmed</code> may confirm the report rather than coordinate accuracy. If NEPTUN marks an area as approximate or Strażnik recognises a canonical locality-centre point, distance is rounded to tens of kilometres and the app does not move the marker artificially, draw an apparent route or show ETA. A locality may describe a report's direction or destination rather than the object's position. AI illustrations are reference images and must not be used to identify a model.</p>
   <p>Tap an ADS-B aircraft for its callsign, registration, country, model, role, altitude, speed and heading, where available. <kbd>Follow track</kbd> displays the collected trail. Without a public transponder signal or reception, there may be no position: the map does not show every military aircraft.</p>
   <p><b>Model photographs (1.7.19):</b> aircraft and helicopter cards use a local library of real photographs. Each is an example aircraft, not the tracked one; equipment and subvariant may differ. When the provider supplies a known type code without a variant description, the app now shows a reviewed family example instead of an empty area. An explicitly conflicting description still blocks the photo. The library now also includes the Boeing 737-800. Author, source and license remain visible below each photo.</p>
   <div class="shots">
-    <figure><a class="shot-link" href="screens/approx-position-en.png"><img loading="lazy" src="screens/approx-position-en.png" width="1080" height="2400" alt="Approximate-position card in Strażnik 1.7.20 without a route or arrival time"></a><figcaption><b>Approximate position in APK 1.7.20.</b> Isolated replay of a real archived NEPTUN entry from 10 September 2026 for UI verification; not a current object or alert. The app shows no route or ETA for it.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/approx-position-en.png"><img loading="lazy" src="screens/approx-position-en.png" width="1080" height="2400" alt="Lutsk locality-centre point recognised as an area position, without an exact distance, route or ETA"></a><figcaption><b>Recognised locality point in APK 1.7.21.</b> Isolated replay of a NEPTUN entry from 11 September 2026: source <code>confirmed</code>, but the coordinates match central Lutsk. This is a UI test, not a current object or alert.</figcaption></figure>
     <figure><a class="shot-link" href="screens/aircraft-en.png"><img loading="lazy" src="screens/aircraft-en.png" width="1080" height="2400" alt="RCH5078 C-17 historical card in English, with a model example photograph, author, source and license"></a><figcaption>Actual observation of RCH5078; the photograph depicts another C-17. Pixel 7, APK 1.7.18, 8 September 2026. Scroll inside the card for more details.</figcaption></figure>
     <figure><a class="shot-link" href="screens/object-en.jpg"><img loading="lazy" src="screens/object-en.jpg" width="1080" height="2400" alt="NEPTUN object card with a labelled reference illustration and observation details"></a><figcaption>Object details and a reference illustration, not a photograph of the tracked object.</figcaption></figure>
   </div>
@@ -134,7 +134,7 @@
   <div class="split">
     <div>
       <p><kbd>☰</kbd> opens the province cards. Tap a region to inspect the sources behind its score. Your region has an outline and a “my region” label. The panel includes signals from the 60-minute window, objects near the border and public military aviation observations.</p>
-      <p>Signals are ordered by their actual counted contribution. The displayed number reflects source caps and ageing; a crossed-out value explains why the full raw score was not counted. An article recognised as a repeat of a fresh official RCB alert, a historical report or an aftermath story remains visible but contributes 0 additional points and is labelled accordingly. Successive reports of the same track do not mean additional physical objects.</p>
+      <p>Signals are ordered by their actual counted contribution. The displayed number reflects source caps and ageing; a crossed-out value explains why the full raw score was not counted. An article recognised as a repeat of a fresh official RCB alert, a historical report or an aftermath story remains visible but contributes 0 additional points and is labelled accordingly. Different IDs of the same type at an identical area point are treated within one window as updates of one uncertain event unless the source provides a credible object count.</p>
       <p>A <b>Spillover</b> entry explains a contribution from another province. Media titles link to their sources: check the original text and publication time.</p>
       <p><b>Cameras in the region</b> opens available views of the surroundings. These are ground cameras, not airborne-object detectors.</p>
     </div>
@@ -185,11 +185,11 @@
 </section>
 <section id="punkty">
   <h2>9. How scoring works</h2>
-  <p>The basic window is 60 minutes. A signal retains full weight for 30 minutes, then fades linearly to zero. Each source class has a contribution cap; another observation of the same NEPTUN track is not counted as a new object.</p>
+  <p>The basic window is 60 minutes. A signal retains full weight for 30 minutes, then fades linearly to zero. Each source class has a contribution cap; another observation of the same NEPTUN track or a new ID at an identical area point is not automatically counted as a new object.</p>
   <div class="tw"><table><thead><tr><th>Source</th><th>What is considered</th><th>Weight / cap</th></tr></thead><tbody>
-    <tr><td>NEPTUN objects</td><td>Type, reported object count, border distance, course, confidence, confirmations and observation status.</td><td>Up to 8 points in total</td></tr>
+    <tr><td>NEPTUN objects</td><td>Type, reported object count, border distance, course, confidence, confirmations, observation status and position quality. A source-reported area uses ×0.6; a recognised locality centre uses ×0.5.</td><td>Up to 8 points in total</td></tr>
     <tr><td>UA alerts</td><td>An air alert in selected western Ukrainian regions.</td><td>1 point</td></tr>
-    <tr><td>Media</td><td>Topic and context matching: an ordinary match adds 1.5 points; a critical report adds 2. A repeated fresh official RCB alert and a recognised historical or aftermath story remain visible with a 0-point contribution. Merely mentioning RCB is not enough to suppress new information.</td><td>Maximum 2 points</td></tr>
+    <tr><td>Media</td><td>An airborne object plus an event adds 1 point. An unambiguous current operational report—such as an air alert, sirens, scrambled aircraft, interception or an object impact—adds 1.5 points. The phrase “airspace violation” alone adds 1 point. The entire RSS class is capped at 1.5, so articles alone cannot trigger yellow. Exercises, historical stories, legal aftermath and a repeated fresh RCB alert remain visible with a 0-point contribution; merely mentioning RCB does not suppress new information.</td><td>0 / 1 / 1.5 points; cap 1.5</td></tr>
     <tr><td>RCB / RSO</td><td>Qualifying published airborne-threat warnings. Source publication time can differ from SMS delivery time.</td><td>2 points, cap 2</td></tr>
     <tr><td>ADS-B</td><td>At least 3 aircraft and more than twice the baseline for the same time of day, collected over 7 days.</td><td>1 point, cap 1</td></tr>
     <tr><td>PAŻP / PANSA</td><td>Rare ADHOC/R/NPZ/D zones from the ground to a flight level, with filters for routine and repeated designators. Activation alone does not prove a military threat.</td><td>0.5 points, cap 1</td></tr>
@@ -200,7 +200,7 @@
   <p>Type weights: ballistic 3.0; MiG-31K 2.6; cruise missile 2.4; KAB 1.8; Shahed 1.4; UAV 1.1; reconnaissance drone 0.5; FPV 0. This is multiplied by the square root of the reported object count and factors for data quality and course, among others.</p>
   <p>The distance factor is interpolated through <b>0 km ×1.7; 15 ×1.6; 45 ×1.3; 80 ×1.0; 110 ×0.7; 150 ×0.4; 200 ×0.25; 250 ×0.1</b>. At 250 km or beyond the ordinary contribution is zero. Unknown-course scoring is reduced and limited to nearby objects. Missiles and MiG-31K within 60 km with at least two confirmations have a 2-point floor, scaled by the course factor.</p>
   <h3>Estimated arrival time</h3>
-  <p>The card estimates time to Poland's border and to the selected province's boundary, not to your address. ETA is disabled when NEPTUN marks the position as approximate. For other positions, the app uses a source speed where available, otherwise a typical class speed. A 2.5-minute buffer based on earlier source-delay measurements is deducted. This buffer does not cover every possible delay.</p>
+  <p>The card estimates time to Poland's border and to the selected province's boundary, not to your address. ETA is disabled when NEPTUN marks the position as approximate or Strażnik recognises a locality-centre point. For other positions, the app uses a source speed where available, otherwise a typical class speed. A 2.5-minute buffer based on earlier source-delay measurements is deducted. This buffer does not cover every possible delay.</p>
   <p>The current ETA threshold mechanism refers to <b>Poland's border</b>: only for a position not marked as approximate, with a known heading, at least two confirmations and medium or high confidence, it may raise an object's contribution to 2 points at ≤10 minutes or 4 points at ≤5 minutes. It does not add a second set of points for the same object.</p>
   <div class="warn">Arrival time is an approximation assuming continued flight. It does not account for interception, a change of course or the full uncertainty of the data. Do not treat it as a countdown of time available to seek shelter. If the heading is unavailable, the app indicates the estimation limitation.</div>
   <h3>Spillover to neighbouring provinces</h3>

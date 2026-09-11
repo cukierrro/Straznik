@@ -41,6 +41,24 @@ assert neptun._eta_alarm_level(a_known, 5, "high", 2, approximate=True) is None
 assert neptun._eta_per_voiv({"type": "uav", "lat": 50.8, "lon": 25.8,
                              "positionQuality": "approx"}) == {}
 
+# `confirmed` nie oznacza automatycznie dokładnego namiaru. Punkt katalogowy
+# Łucka, powtarzający się dla różnych ID 10–11.09, jest traktowany rejonowo.
+lutsk = {"id": "trk-lutsk", "type": "uav", "lat": 50.7472, "lon": 25.3254,
+         "heading": 317, "positionQuality": "confirmed", "confidenceLevel": "medium",
+         "sourceCount": 1, "lifecycle": "confirmed", "uncertaintyKm": 10}
+neptun._evaluate(lutsk)
+assert neptun._is_approx_position(lutsk)
+assert lutsk["straznik_position"] == {
+    "quality": "approx", "reason": "locality_center", "locality": "Łuck"}
+assert neptun._eta_per_voiv(lutsk) == {}
+assert neptun._physical_key(lutsk).startswith("area:uav:50.747:25.325")
+
+# Ta sama obserwacja poza punktem katalogowym zachowuje pełną wagę pozycji.
+exact = {**lutsk, "id": "trk-exact", "lat": 50.9, "lon": 25.5,
+         "straznik_position": {"quality": "point", "reason": "source_point"}}
+assert neptun._position_factor(lutsk) == config.NEPTUN_POSITION_MULT["locality_center"]
+assert neptun._position_factor(exact) == 1.0
+
 # Każdy typ, który może wnieść punkty, musi mieć polską nazwę. Chroni to panel
 # przed powrotem źródłowych etykiet typu „БпЛА” przy nowych klasach obiektów.
 for threat_type in config.NEPTUN_TYPE_WEIGHTS:

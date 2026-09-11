@@ -38,6 +38,13 @@ def _fold_text(value: str) -> str:
     return "".join(c for c in value if not unicodedata.combining(c))
 
 
+# Ta sama polityka obowiązuje rekordy zapisane przed poprawą kolektora. Fusion
+# widzi tylko zachowany tytuł, dlatego normalizuje wspólną listę z config.py.
+_MEDIA_RETROSPECTIVE_TITLE_MARKERS += tuple(
+    _fold_text(marker) for marker in config.MEDIA_NONCURRENT_KEYWORDS
+)
+
+
 def _relay_tokens(value: str) -> set[str]:
     return {w for w in re.findall(r"[a-z0-9]+", _fold_text(value))
             if len(w) >= 4 and w not in _RELAY_STOP_WORDS}
@@ -171,16 +178,19 @@ def accumulate(signals: list[dict], ref: datetime | None = None) -> dict:
         baltic_clears[key] = max(baltic_clears.get(key, ""), s.get("ts", ""))
 
     # Kolejny tier tego samego track_id jest aktualizacją jednego fizycznego
-    # obiektu, nie nowym obiektem. Do wyniku wybieramy najmocniejszy wpis toru;
-    # starsze zostają widoczne w historii, ale z counted_points=0.
+    # obiektu, nie nowym obiektem. Dla pozycji rejonowej korzystamy z
+    # `physical_key`, więc także nowe ID w identycznym punkcie miejscowości nie
+    # udaje automatycznie kolejnego drona. Do wyniku wybieramy najmocniejszy wpis.
     neptun_winners: dict[tuple, dict] = {}
     for s in signals:
         if s.get("source") != "neptun":
             continue
-        track_id = (s.get("details") or {}).get("track_id")
-        if not track_id:
+        details = s.get("details") or {}
+        track_id = details.get("track_id")
+        physical_id = details.get("physical_key") or track_id
+        if not physical_id:
             continue
-        winner_key = (s.get("voivodeship"), track_id)
+        winner_key = (s.get("voivodeship"), physical_id)
         prev = neptun_winners.get(winner_key)
         if (prev is None
                 or (s.get("points", 0), s.get("ts", ""))
@@ -191,9 +201,11 @@ def accumulate(signals: list[dict], ref: datetime | None = None) -> dict:
         voiv = s.get("voivodeship")
         if voiv not in per_voiv or s["points"] <= 0:
             continue
-        track_id = ((s.get("details") or {}).get("track_id")
-                    if s.get("source") == "neptun" else None)
-        superseded = bool(track_id and neptun_winners.get((voiv, track_id)) is not s)
+        details = s.get("details") or {}
+        track_id = details.get("track_id") if s.get("source") == "neptun" else None
+        physical_id = ((details.get("physical_key") or track_id) if track_id else None)
+        superseded = bool(physical_id
+                          and neptun_winners.get((voiv, physical_id)) is not s)
         incident = ((s.get("details") or {}).get("incident_key")
                     if s.get("event_type") == "baltic_context" else None)
         clear_ts = baltic_clears.get((voiv, incident)) if incident else None
