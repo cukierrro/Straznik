@@ -4,6 +4,12 @@
 
 # Strażnik
 
+Wersja 1.7.27: obiekt widoczny na mapie, który nie wnosi punktów (leci w bok albo
+od nas), pokazuje się teraz w „Sygnałach" jako „Na mapie, ale bez punktów" wraz z
+powodem — wcześniej znikał z listy i wyglądało to na przeoczenie. Punktacja bez
+zmian. Okno „Źródła danych" doczekało się wersji angielskiej.
+Szczegóły: `docs/RELEASE_1.7.27.md`.
+
 Wersja 1.7.26: alarmy w obwodach Ukrainy punktowane według odległości od
 województwa, a nie płaską listą „obwodów granicznych" — obwód rówieński (70 km) i
 żytomierski (220 km) ogłaszały się jako graniczące z Lubelskiem i dawały tyle samo
@@ -59,7 +65,7 @@ wiarygodność ostrzeżenia.
 
 [Instrukcja po polsku](https://cukierrro.github.io/Straznik/) · [English user guide](https://cukierrro.github.io/Straznik/en.html)
 
-Instrukcja dla 1.7.26 opisuje „Moje miejsca”, rozdział alertów wojewódzkich i
+Instrukcja dla 1.7.27 opisuje „Moje miejsca”, rozdział alertów wojewódzkich i
 lokalnych obliczeń na pierwszym planie oraz bibliotekę fotografii PL/EN. Zrzuty
 otwierają się także w pełnym rozmiarze.
 

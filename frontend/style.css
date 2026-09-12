@@ -603,6 +603,14 @@ html[lang="en"] .list:empty::after { content: "— none —"; }
   background: rgba(255, 77, 94, 0.07); }
 .threat-row b { text-transform: uppercase; font-size: 11px; }
 .threat-row .meta { color: var(--muted); font-size: 10.5px; }
+/* „Na mapie, ale bez punktów" — te same wiersze co obiekty punktowane, tylko
+   wygaszone i z jawnym zerem, żeby nie udawały wkładu do wyniku. */
+.unscored-head { margin: 10px 0 5px; font-size: 10.5px; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--muted); }
+.threat-row.unscored { opacity: .72; border-left: 2px solid var(--line-strong, rgba(120,150,210,.3)); }
+.threat-row.unscored .zero { margin-left: 6px; padding: 1px 6px; border-radius: 7px;
+  background: rgba(120,150,210,.14); color: var(--muted); font-size: 10.5px;
+  font-weight: 700; }
 
 /* ── legenda ── */
 #legend {

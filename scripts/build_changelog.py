@@ -16,6 +16,19 @@ DOCS = ROOT / "docs"
 # (wersja, data PL, data EN, tytuł PL, tytuł EN, punkty PL, punkty EN, zrzuty)
 # Zrzut: (plik, alt PL, alt EN, podpis PL, podpis EN)
 RELEASES = [
+    ("1.7.27", "12 września 2026", "12 September 2026",
+     "Obiekt na mapie musi być widoczny na liście",
+     "An object on the map has to appear in the list",
+     ["Dron blisko granicy był widoczny na mapie, a w „Sygnałach” nie było go wcale — bo leciał w bok i nie wnosił punktów. Zero było policzone dobrze, ale wyglądało jak przeoczenie aplikacji.",
+      "Sekcja „Sygnały” kończy się teraz listą „Na mapie, ale bez punktów” z podanym powodem — np. „kurs 86° od kierunku na Polskę” albo „kurs nieznany”.",
+      "Punktacja bez zmian: obiekt lecący w bok 150 km od granicy nadal wnosi zero. Zmieniło się to, że widać, iż aplikacja go widzi.",
+      "Okno „Źródła danych” ma wersję angielską — było ostatnim ekranem, w którym treść zostawała po polsku."],
+     ["A drone near the border was visible on the map but missing from “Signals” entirely — because it was flying sideways and scored nothing. The zero was correct, but it looked like the app had missed it.",
+      "The “Signals” section now ends with an “On the map, but scoring 0 pts” list that states the reason — e.g. “heading 86° away from the direction to Poland” or “heading unknown”.",
+      "Scoring is unchanged: an object flying sideways 150 km from the border still contributes zero. What changed is that you can see the app noticed it.",
+      "The “Data sources” dialog now has an English version — it was the last screen whose content stayed in Polish."],
+     []),
+
     ("1.7.26", "12 września 2026", "12 September 2026",
      "Alarmy UA punktowane po odległości",
      "Ukrainian alerts scored by distance",

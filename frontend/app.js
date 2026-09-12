@@ -1508,12 +1508,59 @@ function renderPanel() {
   for (const [name, st] of voivs) for (const s of st.signals) sigs.push(s);
   sigs.sort((a, b) => b.ts.localeCompare(a.ts));
   document.getElementById("signal-list").innerHTML = sigList(sigs);
+  document.getElementById("signal-unscored").innerHTML = unscoredHTML(state);
   renderObservationLists(state);
+}
+
+/* Zasięg obu list obiektów w panelu — ta sama liczba w nagłówku sekcji. */
+const NEAR_LIST_KM = 250;
+
+/** Kąt między kursem obiektu a azymutem na najbliższy punkt granicy (stopnie). */
+function courseOffsetDeg(t) {
+  const a = t.pl_assessment;
+  if (!a || a.bearing_to_border == null || t.heading == null) return null;
+  return Math.round(Math.abs(((t.heading - a.bearing_to_border + 180) % 360) - 180));
+}
+
+/* Obiekty blisko granicy, które NIE wnoszą punktów. Pokazujemy je razem z
+   sygnałami — inaczej użytkownik widzi znacznik na mapie, nie znajduje go na
+   liście i wygląda to, jakby aplikacja go przeoczyła (zgłoszone 12.09.2026).
+   Powód braku punktów podajemy wprost, żeby zero dało się sprawdzić. */
+function unscoredHTML(viewState) {
+  const rows = (viewState?.neptun?.threats || [])
+    .filter(t => t.pl_assessment && t.pl_assessment.dist_km <= NEAR_LIST_KM
+                 && t.pl_assessment.toward_pl === false)
+    .sort((a, b) => a.pl_assessment.dist_km - b.pl_assessment.dist_km);
+  if (!rows.length) return "";
+  const head = `<div class="unscored-head">${UI.isEn
+    ? `On the map, but scoring 0 pts (${rows.length})`
+    : `Na mapie, ale bez punktów (${rows.length})`}</div>`;
+  return head + rows.map(t => {
+    const a = t.pl_assessment;
+    const m = TYPE_META[t.type] || { label: t.type, color: "#8a93a6" };
+    const off = courseOffsetDeg(t);
+    const why = a.heading_known === false
+      ? (UI.isEn ? "heading unknown — not counted as approaching"
+                 : "kurs nieznany — nie liczymy jako zbliżający się")
+      : off != null
+        ? (UI.isEn ? `heading ${off}° away from the direction to Poland`
+                   : `kurs ${off}° od kierunku na Polskę`)
+        : (UI.isEn ? "not heading towards Poland" : "kurs nie prowadzi na Polskę");
+    return `<div class="threat-row clickable unscored" data-lat="${t.lat}" data-lon="${t.lon}"
+      data-kind="threat" data-id="${esc(t.id)}">
+      <b style="color:${m.color}">${esc(UI.type(t.type, m.label))}</b>
+      — ${threatDistanceText(t, a.dist_km)} ${UI.isEn ? "from the border" : "od granicy"}
+      <span class="zero">0 ${UI.isEn ? "pts" : "pkt"}</span>
+      <div class="meta">${esc(why)} · ${UI.isEn ? "confidence" : "wiarygodność"}: ${
+        esc(UI.confidence(t.confidenceLevel, CONF_PL[t.confidenceLevel] || t.confidenceLevel))
+      } · ${relTime(t.updatedAt)}</div>
+    </div>`;
+  }).join("");
 }
 
 function renderObservationLists(viewState) {
   const near = (viewState.neptun?.threats || [])
-    .filter(t => t.pl_assessment && t.pl_assessment.dist_km <= 250)
+    .filter(t => t.pl_assessment && t.pl_assessment.dist_km <= NEAR_LIST_KM)
     .sort((a, b) => a.pl_assessment.dist_km - b.pl_assessment.dist_km);
   document.getElementById("threat-list").innerHTML = near.map(t => {
     const m = TYPE_META[t.type] || { label: t.type, color: "#8a93a6" };
