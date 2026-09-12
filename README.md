@@ -4,6 +4,11 @@
 
 # Strażnik
 
+Wersja 1.7.29: artykuł o kilku województwach trafia do każdego z nich (alert RCB
+„dla województw lubelskiego i podkarpackiego" wchodził tylko do podkarpackiego),
+świeży sygnał idzie na górę listy z plakietką NOWY, karta województwa rozpisuje sumę,
+a sygnał bez obiektu na mapie mówi „nieśledzony". Szczegóły: `docs/RELEASE_1.7.29.md`.
+
 Wersja 1.7.28: karta obiektu podaje werdykt kursu („0 pkt — kurs 71° od kierunku
 na Polskę" albo „kurs na Polskę"), a wiersz sygnału dopisuje bieżącą odległość
 śledzonego obiektu — panel mówił „192,5 km", gdy ten sam dron był 130 km od granicy.
@@ -70,7 +75,7 @@ wiarygodność ostrzeżenia.
 
 [Instrukcja po polsku](https://cukierrro.github.io/Straznik/) · [English user guide](https://cukierrro.github.io/Straznik/en.html)
 
-Instrukcja dla 1.7.28 opisuje „Moje miejsca”, rozdział alertów wojewódzkich i
+Instrukcja dla 1.7.29 opisuje „Moje miejsca”, rozdział alertów wojewódzkich i
 lokalnych obliczeń na pierwszym planie oraz bibliotekę fotografii PL/EN. Zrzuty
 otwierają się także w pełnym rozmiarze.
 

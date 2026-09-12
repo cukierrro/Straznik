@@ -16,6 +16,21 @@ DOCS = ROOT / "docs"
 # (wersja, data PL, data EN, tytuł PL, tytuł EN, punkty PL, punkty EN, zrzuty)
 # Zrzut: (plik, alt PL, alt EN, podpis PL, podpis EN)
 RELEASES = [
+    ("1.7.29", "12 września 2026", "12 September 2026",
+     "Widać, co przyleciało i skąd bierze się wynik",
+     "You can see what arrived and where the score comes from",
+     ["Artykuł o kilku województwach trafia teraz do każdego z nich. Alert RCB „dla województw lubelskiego i podkarpackiego” wchodził wyłącznie do podkarpackiego, bo dopasowanie brało jedno, najdłuższe hasło.",
+      "Sygnał z ostatnich pięciu minut idzie na górę listy z plakietką NOWY — wcześniej nowy obiekt wart 0,1 pkt lądował pod wpisami sprzed godziny. Potem wraca na miejsce według wkładu.",
+      "Karta województwa rozpisuje sumę: „składa się z: 1.2 RCB + 1.0 ALARM UA + 0.9 MEDIA · 2 sygnałów bez wkładu”.",
+      "Sygnał, którego obiekt zniknął z mapy, mówi „nieśledzony na mapie” zamiast podać odległość sprzed 40 minut.",
+      "Punktacja bez zmian poza przypisaniem artykułu do właściwych województw."],
+     ["An article naming several provinces now reaches each of them. An RCB alert “for the Lublin and Subcarpathian provinces” used to reach Subcarpathia only, because the matcher took a single, longest keyword.",
+      "A signal from the last five minutes goes to the top of the list with a NEW badge — a new object worth 0.1 pts used to land below hour-old entries. It returns to its place by contribution afterwards.",
+      "The province card spells the total out: “adds up to: 1.2 RCB + 1.0 UA ALERT + 0.9 MEDIA · 2 signals add nothing”.",
+      "A signal whose object left the map says “no longer tracked” instead of quoting a distance from 40 minutes ago.",
+      "Scoring is unchanged apart from attributing an article to the right provinces."],
+     []),
+
     ("1.7.28", "12 września 2026", "12 September 2026",
      "Karta obiektu i sygnały mówią to samo",
      "The object card and the signals agree",
