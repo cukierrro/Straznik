@@ -1,5 +1,13 @@
 # Strażnik 1.7.31 — artykuł trafia tam, gdzie się zdarzył
 
+- Nazwa miejscowości nie łapie się już w środku innego słowa — ogólnopolski komunikat wojskowy trafiał do wielkopolskiego, bo „rozpoznania" zawiera „poznan".
+- Artykuł mówiący, że zagrożenie się skończyło, nie punktuje i wygasza wcześniejsze doniesienia medialne w tym województwie. Oficjalnego alertu RCB nie rusza.
+- Nazwa redakcji przestała decydować o regionie — „Rumunia: dron spadł na blok" z Radia Szczecin trafiało do zachodniopomorskiego.
+- Słownik nazw urósł z około 200 do 565 haseł, od 23 do 49 na województwo: nazwy potoczne krain, większe miasta, przejścia graniczne i lotniska.
+- Na tych samych kanałach: przed zmianą 8 przypisań z treści i 31 z domniemania, po zmianie 17 z treści i 0 z domniemania.
+- Alarm bombowy w szkole i syreny na uroczystościach przestały punktować.
+- Punktacja poza tym bez zmian.
+
 Wydanie z jednego zgłoszenia: „komunikat DORSZ powinien dotyczyć tylko regionów,
 które dostały alerty". Pociągnięcie tej nitki odsłoniło cztery niezależne błędy
 w tym, jak media są przypisywane do województw — i wszystkie zaczęły mieć większe
