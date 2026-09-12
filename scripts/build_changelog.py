@@ -16,6 +16,21 @@ DOCS = ROOT / "docs"
 # (wersja, data PL, data EN, tytuł PL, tytuł EN, punkty PL, punkty EN, zrzuty)
 # Zrzut: (plik, alt PL, alt EN, podpis PL, podpis EN)
 RELEASES = [
+    ("1.7.26", "12 września 2026", "12 September 2026",
+     "Alarmy UA punktowane po odległości",
+     "Ukrainian alerts scored by distance",
+     ["Obwód rówieński i żytomierski ogłaszały się jako „graniczy z woj. lubelskie” i dostawały tyle samo punktów co obwód wołyński — a leżą 70 i 220 km od granicy.",
+     "Teraz punkty maleją z odległością: wspólna granica ×1,0, do 120 km ×0,6, do 220 km ×0,35, do 320 km ×0,2. Dalej nie punktujemy.",
+     "Doszedł obwód tarnopolski, iwanofrankowski, chmielnicki, czerniowiecki i winnicki. Ten sam obwód może ważyć różnie dla Lubelskiego i Podkarpacia.",
+     "Tytuł podaje dystans zamiast nieprawdziwego „graniczy”. Limit klasy 1,0 pkt bez zmian — alarmy nadal nie zastąpią obiektu na mapie.",
+     "Okna otwierają się od góry i uwzględniają pasek stanu; legenda ma zapas na dole i cień „jest więcej poniżej”."],
+     ["Rivne and Zhytomyr oblasts announced themselves as “borders Lublin province” and scored the same as Volyn — while lying 70 and 220 km from the border.",
+      "Points now fall with distance: a shared border ×1.0, up to 120 km ×0.6, up to 220 km ×0.35, up to 320 km ×0.2. Beyond that, nothing.",
+      "Ternopil, Ivano-Frankivsk, Khmelnytskyi, Chernivtsi and Vinnytsia oblasts were added. The same oblast can weigh differently for Lublin and Subcarpathia.",
+      "The title gives the distance instead of an untrue “borders”. The 1.0-point class cap is unchanged — alerts still cannot replace an object on the map.",
+      "Dialogs open from the top and clear the status bar; the legend has bottom padding and a “more below” shadow."],
+     []),
+
     ("1.7.25", "12 września 2026", "12 September 2026",
      "Okno aktualizacji po angielsku",
      "The update dialog speaks English",

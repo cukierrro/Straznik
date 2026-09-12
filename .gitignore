@@ -26,3 +26,6 @@ keystore.properties
 notatki_wydania_*.md
 
 notatki_wydania_*.json
+
+# Pobrana geometria ADM1 do scripts/ua_oblast_rings.py (~11 MB, odtwarzalna)
+scripts/.cache/

@@ -14,11 +14,12 @@
      krawędzi, musi ją doliczyć — inaczej przyciski Androida zasłaniają
      suwak historii, atrybucję i przyciski mapy. */
   --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-t: env(safe-area-inset-top, 0px);
   /* wysokość dolnego paska zakładek — odsuwa panel, kartę obiektu i stos komunikatów */
   --tabbar-h: 72px;
   /* Okna dialogowe centrujemy nad paskiem zakładek i nigdy nie pozwalamy im go
      dotknąć — inaczej „O aplikacji" kończyło się w połowie wiersza pod zakładkami. */
-  --dlg-max: calc(100dvh - var(--tabbar-h) - var(--safe-b) - 28px);
+  --dlg-max: calc(100dvh - var(--safe-t) - var(--tabbar-h) - var(--safe-b) - 28px);
   font-size: 15px;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -613,6 +614,15 @@ html[lang="en"] .list:empty::after { content: "— none —"; }
      wiedziało o pasku zakładek ani o stosie komunikatów i wchodziła na nie. */
   max-height: calc(100dvh - 74px - var(--tabbar-h) - var(--safe-b) - var(--stack-h, 0px));
   overflow-y: auto; overscroll-behavior: contain;
+  /* Ostatni wiersz nie może kończyć się dokładnie na krawędzi — wyglądało to jak
+     ucięta treść, mimo że legenda przewija się do końca. */
+  padding-bottom: 16px;
+}
+/* Cień „jest więcej poniżej" znika, gdy przewiniesz legendę do końca. */
+#legend::after {
+  content: ""; position: sticky; bottom: -16px; display: block;
+  height: 18px; margin: 4px -12px -16px; pointer-events: none;
+  background: linear-gradient(rgba(13, 18, 32, 0), rgba(13, 18, 32, .95));
 }
 #legend h3 { font-size: 12px; letter-spacing: .08em; text-transform: uppercase;
   color: var(--muted); margin-bottom: 6px; }
@@ -657,7 +667,9 @@ html[lang="en"] .list:empty::after { content: "— none —"; }
 dialog { margin: auto; background: #121828; color: var(--text); border: 1px solid var(--panel-border);
   /* Skrócony obszar pozycjonowania: dół kończy się nad paskiem zakładek, a
      `margin:auto` centruje okno w tym, co zostaje. */
-  position: fixed; top: 0; left: 0; right: 0;
+  /* Górna krawędź MUSI uwzględniać pasek stanu: bez tego wysokie okno (np. lista
+     źródeł) zaczynało się pod zegarkiem Androida i wyglądało jak ucięte u góry. */
+  position: fixed; top: var(--safe-t); left: 0; right: 0;
   bottom: calc(var(--tabbar-h) + var(--safe-b));
   border-radius: 14px; padding: 18px; width: min(420px, 92vw);
   max-height: var(--dlg-max); overflow-y: auto; overscroll-behavior: contain;

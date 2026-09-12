@@ -4,6 +4,13 @@
 
 # Strażnik
 
+Wersja 1.7.26: alarmy w obwodach Ukrainy punktowane według odległości od
+województwa, a nie płaską listą „obwodów granicznych" — obwód rówieński (70 km) i
+żytomierski (220 km) ogłaszały się jako graniczące z Lubelskiem i dawały tyle samo
+punktów co wołyński. Doszło pięć dalszych obwodów z małą wagą; limit klasy 1,0 pkt
+bez zmian. Liczby z geometrii ADM1, sprawdzalne `scripts/ua_oblast_rings.py --check`.
+Szczegóły: `docs/RELEASE_1.7.26.md`.
+
 Wersja 1.7.25: okno i komunikaty aktualizacji mówią językiem interfejsu — cała ta
 ścieżka była zapisana po polsku na sztywno i taka zostawała w angielskiej aplikacji.
 Szczegóły: `docs/RELEASE_1.7.25.md`.
@@ -52,7 +59,7 @@ wiarygodność ostrzeżenia.
 
 [Instrukcja po polsku](https://cukierrro.github.io/Straznik/) · [English user guide](https://cukierrro.github.io/Straznik/en.html)
 
-Instrukcja dla 1.7.25 opisuje „Moje miejsca”, rozdział alertów wojewódzkich i
+Instrukcja dla 1.7.26 opisuje „Moje miejsca”, rozdział alertów wojewódzkich i
 lokalnych obliczeń na pierwszym planie oraz bibliotekę fotografii PL/EN. Zrzuty
 otwierają się także w pełnym rozmiarze.
 

@@ -74,29 +74,43 @@ def _extract_oblast_names(data) -> set[str]:
     return out
 
 
+def _alert_title(oblast: str, voiv: str, km: int) -> str:
+    """Tytuł mówi PRAWDĘ o położeniu: „graniczy" tylko dla wspólnej granicy, w
+    pozostałych przypadkach odległość. Wcześniej obwód rówieński i żytomierski
+    ogłaszały się jako graniczące z Lubelskiem, czym nie są."""
+    name = config.UA_OBLAST_PL.get(oblast, oblast)
+    # Nazwa województwa zostaje w mianowniku, a odległość idzie po myślniku —
+    # inaczej trzeba by odmieniać szesnaście nazw przez przypadki.
+    where = "przy granicy" if km <= 0 else f"{km} km"
+    return f"Alarm powietrzny w obwodzie {name} (woj. {voiv} — {where})"
+
+
 async def _handle_alerts(data):
-    """Alarm w obwodzie graniczącym z PL ⇒ +1 pkt dla przyległych województw
-    (rising edge; oficjalny sygnał ukraińskiej OC, słabszy niż konkretny track)."""
+    """Alarm w obwodzie po ukraińskiej stronie ⇒ punkty dla polskich województw,
+    tym mniejsze, im dalej od nich leży obwód (rising edge; oficjalny sygnał
+    ukraińskiej OC, słabszy niż konkretny track)."""
     global alert_oblasts
     names = _extract_oblast_names(data)
     new_active = set()
     for name in names:
-        for oblast, voivs in config.UA_BORDER_OBLASTS.items():
+        for oblast, voivs in config.UA_ALERT_OBLASTS.items():
             if oblast in name:
                 new_active.add(oblast)
                 if oblast not in alert_oblasts:
                     hour_key = time.strftime("%Y-%m-%dT%H")
-                    for voiv in voivs:
+                    for voiv, km in voivs.items():
+                        weight = config.ua_alert_weight(km)
+                        if weight <= 0:
+                            continue
                         await fusion.ingest(
                             # OSOBNA klasa źródła: w klasie „neptun" (limit 8,0)
                             # trzy obwody naraz dawały 3,0 pkt i żółty alarm bez
                             # ani jednego obiektu na mapie (audyt 11.09.2026).
                             source="ua_alert", event_type="ua_alert_border",
-                            voivodeship=voiv, points=config.POINTS["ua_alert_border"],
-                            title=("Alarm powietrzny w obwodzie "
-                                   f"{config.UA_OBLAST_PL.get(oblast, oblast)} "
-                                   f"(graniczy z woj. {voiv})"),
-                            details={"oblast": oblast},
+                            voivodeship=voiv,
+                            points=round(config.POINTS["ua_alert_border"] * weight, 2),
+                            title=_alert_title(oblast, voiv, km),
+                            details={"oblast": oblast, "distance_km": km},
                             dedup_key=f"neptun_alert:{oblast}:{voiv}:{hour_key}",
                         )
     alert_oblasts = new_active

@@ -272,16 +272,46 @@ VOIVODESHIPS = [
 ]
 PRIORITY_VOIVODESHIPS = ["lubelskie", "podkarpackie", "podlaskie", "warmińsko-mazurskie"]
 
-# obwody UA graniczące z PL -> województwa, których dotyczy tamtejszy alarm
-UA_BORDER_OBLASTS = {
-    "Волинська": ["lubelskie"],
-    "Львівська": ["lubelskie", "podkarpackie"],
-    "Закарпатська": ["podkarpackie"],
-    "Рівненська": ["lubelskie"],
+# Obwody UA, w których alarm powietrzny jest sygnałem dla polskich województw,
+# wraz z NAJKRÓTSZĄ odległością wielokąta obwodu od wielokąta województwa (km).
+#
+# Do 1.7.25 była tu płaska lista „obwody graniczące", w której obwód rówieński i
+# żytomierski dostawały tyle samo punktów co wołyński i miały w tytule nieprawdziwe
+# „graniczy z woj. lubelskie" — żaden z nich nie ma z Polską wspólnej granicy
+# (zgłoszone 12.09.2026). Teraz waga spada z odległością, a tytuł podaje dystans.
+#
+# Liczby pochodzą z geometrii ADM1 geoBoundaries (gbOpen), policzone
+# `py scripts/ua_oblast_rings.py`; zaokrąglone do 5 km, bo granice z dwóch źródeł
+# nie leżą idealnie na sobie. Polska graniczy TYLKO z obwodem wołyńskim, lwowskim
+# i (krótkim odcinkiem w Bieszczadach) zakarpackim.
+UA_ALERT_OBLASTS = {
+    "Львівська":         {"lubelskie": 0,   "podkarpackie": 0},
+    "Волинська":         {"lubelskie": 0,   "podkarpackie": 55},
+    "Закарпатська":      {"lubelskie": 135, "podkarpackie": 0},
+    "Івано-Франківська": {"lubelskie": 100, "podkarpackie": 50},
+    "Рівненська":        {"lubelskie": 70,  "podkarpackie": 110},
+    "Тернопільська":     {"lubelskie": 100, "podkarpackie": 115},
+    "Хмельницька":       {"lubelskie": 160, "podkarpackie": 190},
+    "Чернівецька":       {"lubelskie": 225, "podkarpackie": 180},
     # Żytomierski nie graniczy z Polską, ale to stamtąd (przez Białoruś) szły
     # drony 10.09.2026 — alarm w tym obwodzie jest wskaźnikiem wyprzedzającym.
-    "Житомирська": ["lubelskie"],
+    "Житомирська":       {"lubelskie": 220, "podkarpackie": 265},
+    "Вінницька":         {"lubelskie": 280, "podkarpackie": 305},
 }
+
+# Pasy odległości: (do ilu km, mnożnik punktów). Alarm tuż za granicą znaczy dla
+# nas więcej niż alarm 300 km w głąb Ukrainy, a limit klasy (SOURCE_CAPS) i tak
+# nie pozwoli, by suma alarmów zastąpiła obiekt na mapie.
+UA_ALERT_RINGS = ((0, 1.0), (120, 0.6), (220, 0.35), (320, 0.2))
+
+
+def ua_alert_weight(distance_km: float) -> float:
+    """Mnożnik punktów dla alarmu w obwodzie oddalonym o `distance_km`."""
+    for limit, weight in UA_ALERT_RINGS:
+        if distance_km <= limit:
+            return weight
+    return 0.0
+
 
 # Nazwa obwodu w tytule sygnału po polsku — użytkownik nie ma czytać cyrylicy
 # w polskim interfejsie (zgłoszone 12.09.2026).
@@ -291,6 +321,11 @@ UA_OBLAST_PL = {
     "Закарпатська": "zakarpackim",
     "Рівненська": "rówieńskim",
     "Житомирська": "żytomierskim",
+    "Тернопільська": "tarnopolskim",
+    "Івано-Франківська": "iwanofrankowskim",
+    "Хмельницька": "chmielnickim",
+    "Чернівецька": "czerniowieckim",
+    "Вінницька": "winnickim",
 }
 
 # Klasyfikacja RSS (patrz textmatch.py) ma trzy rozłączne wyniki:

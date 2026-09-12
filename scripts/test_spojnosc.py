@@ -143,6 +143,25 @@ sprawdz("podłoga przy granicy (min. potwierdzeń)",
         num(r"NEAR_FLOOR_SOURCES\s*=\s*([\d.]+)", ENGINE, "floor src js"),
         num(r"NEPTUN_NEAR_FLOOR_SOURCES\s*=\s*([\d.]+)", CONFIG, "floor src py"))
 
+# ── alarmy w obwodach UA: te same odległości i te same pasy wag ──────────────
+def _oblasty(tekst, nazwa):
+    """{obwód: {województwo: km}} z config.py albo engine.js."""
+    m = re.search(r"UA_ALERT_OBLASTS = \{(.*?)\n\}", tekst, re.S)
+    if not m:
+        bledy.append(f"nie znaleziono UA_ALERT_OBLASTS ({nazwa})")
+        return {}
+    out = {}
+    for oblast, cialo in re.findall(r'"([^"]+)":\s*\{([^}]*)\}', m.group(1)):
+        out[oblast] = {v: float(km) for v, km in
+                       re.findall(r'"?([a-z\u0105\u0107\u0119\u0142\u0144\u00f3\u015b\u017a\u017c-]+)"?:\s*(\d+)', cialo)}
+    return out
+
+
+sprawdz("UA_ALERT_OBLASTS", _oblasty(ENGINE, "engine.js"), _oblasty(CONFIG, "config.py"))
+sprawdz("UA_ALERT_RINGS",
+        _pary(r"UA_ALERT_RINGS = \[(.*?)\];", ENGINE, "pasy js"),
+        _pary(r"UA_ALERT_RINGS = \((.*?)\)\n", CONFIG, "pasy py"))
+
 # ── wynik ────────────────────────────────────────────────────────────────────
 if bledy:
     print("ROZJAZD MIĘDZY SILNIKAMI (backend ↔ engine.js):")
@@ -151,4 +170,4 @@ if bledy:
     sys.exit(1)
 print("OK — config.py (backend) i engine.js są spójne")
 print("     (progi, okno, wygaszanie, kaskada, limity źródeł, punkty,")
-print("      kolejność województw, ściana wschodnia)")
+print("      kolejność województw, ściana wschodnia, obwody UA)")

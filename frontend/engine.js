@@ -96,14 +96,33 @@ const BORDER_POINTS = [
 const VOIV_BBOX = {
   "lubelskie":[50.25,21.60,52.30,24.15], "podkarpackie":[49.00,21.10,50.85,23.60],
   "podlaskie":[52.28,21.60,54.40,24.00], "warmińsko-mazurskie":[53.13,19.10,54.45,22.95]};
-const UA_BORDER_OBLASTS = { "Волинська":["lubelskie"], "Львівська":["lubelskie","podkarpackie"],
-  "Закарпатська":["podkarpackie"], "Рівненська":["lubelskie"],
+/* Obwód UA -> najkrótsza odległość od województwa (km). Lustro
+   config.UA_ALERT_OBLASTS; liczby z scripts/ua_oblast_rings.py. Polska graniczy
+   tylko z wołyńskim, lwowskim i krótkim odcinkiem zakarpackiego — dalsze obwody
+   dostają mniej punktów, zamiast udawać przygraniczne. */
+const UA_ALERT_OBLASTS = {
+  "Львівська":{lubelskie:0, podkarpackie:0},
+  "Волинська":{lubelskie:0, podkarpackie:55},
+  "Закарпатська":{lubelskie:135, podkarpackie:0},
+  "Івано-Франківська":{lubelskie:100, podkarpackie:50},
+  "Рівненська":{lubelskie:70, podkarpackie:110},
+  "Тернопільська":{lubelskie:100, podkarpackie:115},
+  "Хмельницька":{lubelskie:160, podkarpackie:190},
+  "Чернівецька":{lubelskie:225, podkarpackie:180},
   // Żytomierski nie graniczy z Polską, ale stamtąd — przez Białoruś — szły drony
   // 10.09.2026; alarm w tym obwodzie jest wskaźnikiem wyprzedzającym.
-  "Житомирська":["lubelskie"] };
+  "Житомирська":{lubelskie:220, podkarpackie:265},
+  "Вінницька":{lubelskie:280, podkarpackie:305} };
+const UA_ALERT_RINGS = [[0,1.0],[120,0.6],[220,0.35],[320,0.2]];
+function uaAlertWeight(km) {
+  for (const [limit, w] of UA_ALERT_RINGS) if (km <= limit) return w;
+  return 0;
+}
 /* Nazwa obwodu po polsku w tytule sygnału — lustro config.UA_OBLAST_PL. */
 const UA_OBLAST_PL = { "Волинська":"wołyńskim", "Львівська":"lwowskim",
-  "Закарпатська":"zakarpackim", "Рівненська":"rówieńskim", "Житомирська":"żytomierskim" };
+  "Закарпатська":"zakarpackim", "Рівненська":"rówieńskim", "Житомирська":"żytomierskim",
+  "Тернопільська":"tarnopolskim", "Івано-Франківська":"iwanofrankowskim",
+  "Хмельницька":"chmielnickim", "Чернівецька":"czerniowieckim", "Вінницька":"winnickim" };
 /* Klasyfikacja: CRITICAL oznacza 1,5 pkt, para AIR + EVENT 1,0 pkt. Twardy
    limit RSS 1,5 sprawia, że same media nigdy nie osiągają żółtego progu 2,0.
    Lustrzana kopia backend/app/config.py — testy w scripts/test_textmatch.py. */
@@ -790,15 +809,21 @@ function neptunAlerts(data) {
       names.add(it.oblast || it.name || it.region || it.title || "");
     }
   const active = new Set();
-  for (const n of names) for (const [ob, voivs] of Object.entries(UA_BORDER_OBLASTS))
+  for (const n of names) for (const [ob, voivs] of Object.entries(UA_ALERT_OBLASTS))
     if (n.includes(ob)) {
       active.add(ob);
       if (!alertOblasts.has(ob)) {
         const hk = new Date().toISOString().slice(0,13);
-        for (const v of voivs)
-          addSignal("ua_alert","ua_alert_border",v,POINTS.ua_alert_border,
-            `Alarm powietrzny w obwodzie ${UA_OBLAST_PL[ob] || ob} (graniczy z woj. ${v})`,{oblast:ob},
+        for (const [v, km] of Object.entries(voivs)) {
+          const w = uaAlertWeight(km);
+          if (w <= 0) continue;
+          const where = km <= 0 ? "przy granicy" : `${km} km`;
+          addSignal("ua_alert","ua_alert_border",v,
+            Math.round(POINTS.ua_alert_border * w * 100) / 100,
+            `Alarm powietrzny w obwodzie ${UA_OBLAST_PL[ob] || ob} (woj. ${v} — ${where})`,
+            {oblast:ob, distance_km:km},
             `neptun_alert:${ob}:${v}:${hk}`);
+        }
       }
     }
   alertOblasts = active;

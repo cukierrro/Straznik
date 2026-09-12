@@ -53,6 +53,21 @@ const THREAT_PHOTOS = {
   cruise: { file: "missile-ai.png" },
 };
 const UI = window.I18N || { isEn:false, tr:s=>s, voiv:s=>s, type:(k,s)=>s, confidence:(k,s)=>s };
+
+/* <dialog>.showModal() ustawia fokus na pierwszym elemencie, do którego można trafić
+   klawiaturą. Gdy leży on niżej (lista źródeł zaczyna się od odnośników), przeglądarka
+   przewija okno i użytkownik dostaje je otwarte w połowie, bez nagłówka i bez odstępu
+   u góry. Każde okno otwieramy więc od początku — także jego wewnętrzne obszary
+   przewijane. */
+if (window.HTMLDialogElement) {
+  const openModal = HTMLDialogElement.prototype.showModal;
+  HTMLDialogElement.prototype.showModal = function (...args) {
+    const r = openModal.apply(this, args);
+    this.scrollTop = 0;
+    this.querySelectorAll(".about-body, form, #src-list").forEach(el => { el.scrollTop = 0; });
+    return r;
+  };
+}
 const threatLabelPL = (type) => {
   const key = String(type || "").toLowerCase();
   return UI.type(key, (TYPE_META[key] || TYPE_META.unknown).label);
@@ -1570,9 +1585,13 @@ const SRC_ICON = { neptun: "🎯", media: "📰", rcb: "🚨", adsb: "✈", pans
 /* Nazwy obwodów UA do tytułu sygnału — po polsku i po angielsku, żeby interfejs
    nie pokazywał cyrylicy ani polskiego tekstu w wersji angielskiej. */
 const UA_OBLAST_PL_UI = { "Волинська": "wołyńskim", "Львівська": "lwowskim",
-  "Закарпатська": "zakarpackim", "Рівненська": "rówieńskim", "Житомирська": "żytomierskim" };
+  "Закарпатська": "zakarpackim", "Рівненська": "rówieńskim", "Житомирська": "żytomierskim",
+  "Тернопільська": "tarnopolskim", "Івано-Франківська": "iwanofrankowskim",
+  "Хмельницька": "chmielnickim", "Чернівецька": "czerniowieckim", "Вінницька": "winnickim" };
 const UA_OBLAST_EN = { "Волинська": "Volyn", "Львівська": "Lviv",
-  "Закарпатська": "Zakarpattia", "Рівненська": "Rivne", "Житомирська": "Zhytomyr" };
+  "Закарпатська": "Zakarpattia", "Рівненська": "Rivne", "Житомирська": "Zhytomyr",
+  "Тернопільська": "Ternopil", "Івано-Франківська": "Ivano-Frankivsk",
+  "Хмельницька": "Khmelnytskyi", "Чернівецька": "Chernivtsi", "Вінницька": "Vinnytsia" };
 
 function sigHTML(s) {
   const link = safeUrl(s.details?.link || s.details?.url);
@@ -1620,9 +1639,15 @@ function sigHTML(s) {
   if (s.event_type === "ua_alert_border" && d.oblast) {
     const ob = UI.isEn ? (UA_OBLAST_EN[d.oblast] || d.oblast)
                        : (UA_OBLAST_PL_UI[d.oblast] || d.oblast);
+    // Odległość obwodu od województwa mówi, dlaczego ten alarm waży tyle, ile waży.
+    // Wcześniej każdy obwód — także oddalony o 200 km — ogłaszał się jako graniczący.
+    const km = d.distance_km;
+    const where = km == null ? null
+      : km <= 0 ? (UI.isEn ? "at the border" : "przy granicy") : `${km} km`;
+    const voivName = UI.voiv(s.voivodeship);
     shownTitle = UI.isEn
-      ? `Air-raid alert in ${ob} oblast (borders ${UI.voiv(s.voivodeship)})`
-      : `Alarm powietrzny w obwodzie ${ob} (graniczy z woj. ${UI.voiv(s.voivodeship)})`;
+      ? `Air-raid alert in ${ob} oblast${where ? ` (${voivName} — ${where})` : ""}`
+      : `Alarm powietrzny w obwodzie ${ob}${where ? ` (woj. ${voivName} — ${where})` : ""}`;
   } else if (s.event_type === "neighbour_spillover" && d.from) {
     const factor = `${d.from_score} × 0.4^${d.depth}`;
     shownTitle = UI.isEn
@@ -1684,8 +1709,11 @@ const SOURCE_INFO = {
       + "Aplikacja próbuje ponownie co minutę.",
   },
   "Alarmy UA": {
-    co: "Oficjalne alarmy powietrzne w przygranicznych obwodach Ukrainy "
-      + "(wołyński, lwowski, zakarpacki, rówieński) — sygnał wyprzedzający. "
+    co: "Oficjalne alarmy powietrzne w zachodnich obwodach Ukrainy — sygnał "
+      + "wyprzedzający. Waga zależy od odległości obwodu od województwa: "
+      + "przy granicy (wołyński, lwowski, zakarpacki) liczy się w pełni, dalsze "
+      + "(rówieński, tarnopolski, iwanofrankowski, chmielnicki, czerniowiecki, "
+      + "żytomierski, winnicki) — proporcjonalnie mniej. "
       + "Docierają połączeniem NEPTUN (WebSocket w aplikacji lub przez serwer). "
       + "Przy zamkniętej aplikacji alarm Twojego regionu przychodzi osobno pushem.",
     czerwona: "Połączenie NEPTUN nie potwierdza w tej chwili alarmów obwodowych. "
