@@ -380,21 +380,30 @@ function matchLevel(text, critical, air, event, exclude) {
 const fold = (s) => s.toLowerCase().normalize("NFD")
   .replace(/[̀-ͯ]/g, "").replace(/ł/g, "l");
 
-const matchVoiv = (text) => {
-  const tl = text.toLowerCase();
-  /* Najdłuższe pasujące hasło, nie pierwsze: nazwy się zawierają — "Chełmno"
-     (kujawsko-pomorskie) zawiera "chełm" (lubelskie), "Radomsko" (łódzkie)
-     zawiera "radom" (mazowieckie). Dłuższe hasło jest bardziej szczegółowe.
-     Porównujemy bez znaków diakrytycznych, bo część źródeł pisze bez ogonków. */
-  const folded = fold(tl);
-  let bestVoiv = null, bestLen = 0;
+/* WSZYSTKIE województwa wymienione w tekście — lustro _match_voivs z backendu.
+   Wcześniej zwracaliśmy jedno, z najdłuższym hasłem, więc alert „dla województw
+   lubelskiego i podkarpackiego" trafiał tylko do podkarpackiego. Odrzucamy jedynie
+   trafienia zawarte w DŁUŻSZYM trafieniu innego województwa w tym samym miejscu
+   (kolizje nazw: „Biała Podlaska" to lubelskie, „Chełmno" kujawsko-pomorskie).
+   Porównujemy bez znaków diakrytycznych, bo część źródeł pisze bez ogonków. */
+const matchVoivs = (text) => {
+  const folded = fold(text.toLowerCase());
+  const hits = [];
   for (const [v, keys] of Object.entries(VOIV_KEYWORDS))
     for (const k of keys) {
       const kf = fold(k);
-      if (kf.length > bestLen && folded.includes(kf)) { bestVoiv = v; bestLen = kf.length; }
+      for (let i = folded.indexOf(kf); i !== -1; i = folded.indexOf(kf, i + 1))
+        hits.push([i, i + kf.length, v]);
     }
-  return bestVoiv;
+  hits.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const out = [];
+  for (const [s, e, v] of hits) {
+    const covered = hits.some(([os, oe, o]) => o !== v && os <= s && e <= oe && (oe - os) > (e - s));
+    if (!covered && !out.includes(v)) out.push(v);
+  }
+  return out;
 };
+const matchVoiv = (text) => matchVoivs(text)[0] || null;
 
 /* Dioda źródła gaśnie dopiero po kilku nieudanych próbach z rzędu.
    Pojedynczy timeout albo zerwane połączenie zdarza się na mobilnym internecie
@@ -1028,10 +1037,13 @@ async function tickRss() {
         const { level, hits } = matchLevel(text, CRITICAL, AIR, EVENT, EXCLUDE);
         if (!level) continue;
         const pts = level === "critical" ? POINTS.media_critical : POINTS.media_keywords;
-        const voiv = matchVoiv(text) || defVoiv;
-        addSignal("media","media_keywords",voiv,pts,
-          `Media: „${it.title.slice(0,120)}”`, {link:it.link, keywords:hits, level},
-          "media:" + (it.link || it.title));
+        const voivs = matchVoivs(text);
+        const targets = voivs.length ? voivs : (defVoiv ? [defVoiv] : []);
+        for (const voiv of targets)
+          addSignal("media","media_keywords",voiv,pts,
+            `Media: „${it.title.slice(0,120)}”`,
+            {link:it.link, keywords:hits, level, voivodeships:voivs},
+            "media:" + (it.link || it.title) + ":" + voiv);
       }
     } catch { markRss(url, false); }
   }
@@ -1385,5 +1397,7 @@ async function start(stateCb) {
   every(saveSnapshot, 120000);
 }
 
-return { start, stop, history, timeline, historyFrom, timelineFrom, accumulate };
+// matchVoivs wystawiamy wyłącznie do testów zgodności z backendem
+// (scripts/test_voiv_match.cjs) — reszta aplikacji go nie używa.
+return { start, stop, history, timeline, historyFrom, timelineFrom, accumulate, matchVoivs };
 })();

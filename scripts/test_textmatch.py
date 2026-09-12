@@ -110,7 +110,32 @@ def main():
         config.ALERT_CRITICAL_KEYWORDS, config.ALERT_AIR_KEYWORDS,
         config.ALERT_EVENT_KEYWORDS, config.EXCLUDE_KEYWORDS)
     assert critical == "critical" and critical_hits, (critical, critical_hits)
-    print(f"WSZYSTKIE {len(CASES)} PRZYPADKÓW OK")
+    # ── przypisanie artykułu do województw ───────────────────────────────────
+    # Ta sama tabela co w scripts/test_voiv_match.cjs (silnik wbudowany) — oba
+    # silniki muszą przypisywać artykuły identycznie.
+    from app.collectors.rss_media import _match_voivs
+    voiv_cases = [
+        # Alert RCB „dla województw lubelskiego i podkarpackiego" trafiał do 12.09.2026
+        # WYŁĄCZNIE do podkarpackiego, bo dopasowanie brało jedno, najdłuższe hasło.
+        ("Lubelskie: RCB ostrzega mieszkańców w związku z atakami Rosji na Ukrainę. "
+         "Rządowe Centrum Bezpieczeństwa rozesłało w sobotę alert do osób na terenie "
+         "województw lubelskiego i podkarpackiego.", ["lubelskie", "podkarpackie"]),
+        # kolizje nazw: krótsze hasło schowane w dłuższym trafieniu musi przegrać
+        ("Chełmno: ćwiczenia syren", ["kujawsko-pomorskie"]),
+        ("Radomsko: alarm", ["łódzkie"]),
+        ("Tomaszów Mazowiecki — nalot", ["łódzkie"]),
+        ("Biała Podlaska: syreny", ["lubelskie"]),
+        ("Ostrowiec Świętokrzyski", ["świętokrzyskie"]),
+        ("Alarm w Rzeszowie", ["podkarpackie"]),
+        ("Nic o regionach", []),
+        ("Syreny w Przemyślu, potem w Lublinie", ["podkarpackie", "lubelskie"]),
+    ]
+    for text, expected in voiv_cases:
+        got = _match_voivs(text)
+        assert got == expected, f"{text[:48]!r}: {got} ≠ {expected}"
+
+    print(f"WSZYSTKIE {len(CASES)} PRZYPADKÓW OK "
+          f"+ {len(voiv_cases)} przypisań do województw")
 
 
 main()

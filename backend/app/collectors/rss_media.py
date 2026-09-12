@@ -86,22 +86,38 @@ def _fold(s: str) -> str:
     return s.replace("ł", "l").replace("Ł", "l")
 
 
-def _match_voiv(text: str) -> str | None:
-    """Województwo po najdłuższym pasującym haśle.
+def _match_voivs(text: str) -> list[str]:
+    """WSZYSTKIE województwa wymienione w tekście, w kolejności wystąpienia.
 
-    Nie pierwsze trafienie, bo nazwy się zawierają: "Chełmno" (kujawsko-pomorskie)
-    zawiera "chełm" (lubelskie), "Radomsko" (łódzkie) zawiera "radom"
-    (mazowieckie), "Tomaszów Mazowiecki" zawiera "mazowieck". Dłuższe hasło jest
-    bardziej szczegółowe, więc wygrywa.
+    Do 1.7.28 zwracaliśmy jedno — to z najdłuższym trafionym hasłem. Reguła
+    powstała przeciwko kolizjom nazw ("Chełmno" zawiera "chełm", "Radomsko"
+    zawiera "radom"), ale po cichu rozstrzygała też przypadki, w których artykuł
+    mówi o kilku regionach naraz. Alert RCB rozesłany "do osób na terenie
+    województw lubelskiego i podkarpackiego" trafiał WYŁĄCZNIE do podkarpackiego,
+    bo "podkarpack" jest dłuższe niż "lubelski" — a lubelskie, wymienione w tytule
+    i pierwsze w zdaniu, nie dostawało nic (zgłoszone 12.09.2026).
+
+    Teraz zbieramy każde trafienie i odrzucamy tylko te, które mieszczą się
+    w DŁUŻSZYM trafieniu innego województwa w tym samym miejscu tekstu — czyli
+    dokładnie kolizje nazw: "Biała Podlaska" to lubelskie, nie podlaskie.
     """
     tl = _fold(text)
-    best_voiv, best_len = None, 0
+    hits: list[tuple[int, int, str]] = []
     for voiv, keys in config.VOIV_KEYWORDS.items():
         for k in keys:
             kf = _fold(k)
-            if kf in tl and len(kf) > best_len:
-                best_voiv, best_len = voiv, len(kf)
-    return best_voiv
+            start = tl.find(kf)
+            while start != -1:
+                hits.append((start, start + len(kf), voiv))
+                start = tl.find(kf, start + 1)
+    out: list[str] = []
+    for start, end, voiv in sorted(hits):
+        covered = any(other != voiv and o_start <= start and end <= o_end
+                      and (o_end - o_start) > (end - start)
+                      for o_start, o_end, other in hits)
+        if not covered and voiv not in out:
+            out.append(voiv)
+    return out
 
 
 async def _check_feed(client: httpx.AsyncClient, url: str, default_voiv: str | None):
@@ -130,18 +146,22 @@ async def _check_feed(client: httpx.AsyncClient, url: str, default_voiv: str | N
         if not level:
             continue
         pts = config.POINTS["media_critical"] if level == "critical" else config.POINTS["media_keywords"]
-        voiv = _match_voiv(text) or default_voiv
-        if not voiv:
+        voivs = _match_voivs(text) or ([default_voiv] if default_voiv else [])
+        if not voivs:
             continue
         link = entry.get("link", "")
         dedup = "media:" + hashlib.sha1((link or title).encode()).hexdigest()[:16]
-        await fusion.ingest(
-            source="media", event_type="media_keywords", voivodeship=voiv,
-            points=pts,
-            title=f"Media: „{title[:120]}”",
-            details={"link": link, "keywords": hits, "feed": url, "level": level},
-            dedup_key=dedup,
-        )
+        # Województwo w kluczu deduplikacji: jeden artykuł o dwóch regionach ma
+        # dać sygnał w każdym z nich, a nie zniknąć po pierwszym zapisie.
+        for voiv in voivs:
+            await fusion.ingest(
+                source="media", event_type="media_keywords", voivodeship=voiv,
+                points=pts,
+                title=f"Media: „{title[:120]}”",
+                details={"link": link, "keywords": hits, "feed": url, "level": level,
+                         "voivodeships": voivs},
+                dedup_key=f"{dedup}:{voiv}",
+            )
 
 
 async def _check_baltic_feed(client: httpx.AsyncClient, url: str, country: str):
