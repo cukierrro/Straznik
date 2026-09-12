@@ -292,16 +292,38 @@ async function httpGet(url) {
 
 /* ── dopasowanie słów kluczowych (jak backend/textmatch.py) ──────────────── */
 const TOKEN_KEYWORDS = new Set(["kab", "bsp", "fpv"]);
+/* Hasło musi zaczynać się na GRANICY SŁOWA. Bez tego weto „dni po" trafiało
+   w środek „wscho-DNI PO-wiat" i kasowało prawdziwy meldunek o poderwaniu
+   lotnictwa (ustalenie A8 audytu). Prawa strona zostaje otwarta, bo hasła są
+   rdzeniami odmian; krótkie skróty (kab, bsp, fpv) domykamy z obu stron.
+   Bez lookbehind — starsze WebView na Androidzie 7 go nie znają. */
+const _wzorceHasel = new Map();
 function hasKeyword(text, keyword) {
-  if (!TOKEN_KEYWORDS.has(keyword)) return text.includes(keyword);
-  const esc = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return new RegExp(`(^|[^\\p{L}\\p{N}_])${esc}([^\\p{L}\\p{N}_]|$)`, "u").test(text);
+  let re = _wzorceHasel.get(keyword);
+  if (!re) {
+    const esc = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const prawo = TOKEN_KEYWORDS.has(keyword) ? "([^\\p{L}\\p{N}_]|$)" : "";
+    re = new RegExp(`(^|[^\\p{L}\\p{N}_])${esc}${prawo}`, "u");
+    _wzorceHasel.set(keyword, re);
+  }
+  return re.test(text);
+}
+/* Weta MIĘKKIE obniżają frazę krytyczną do zwykłej pary zamiast ją kasować —
+   musi się zgadzać z config.SOFT_EXCLUDE_KEYWORDS. */
+const SOFT_EXCLUDE = ["co wiemy","co należy zrobić","co powinieneś zrobić","co robić w razie","co zrobić w razie","jak się zachować w razie","poradnik bezpieczeństwa","poznaj sygnały alarmowe","co oznacza sygnał alarmowy","przypominamy","potrwa","jak doszło","kulisy","czy na pewno","felieton","reportaż"];
+function podzialWet(tl, exclude) {
+  const miekkie = SOFT_EXCLUDE.filter(k => hasKeyword(tl, k));
+  const zbior = new Set(miekkie);
+  const twarde = exclude.filter(k => hasKeyword(tl, k) && !zbior.has(k));
+  return { twarde, miekkie };
 }
 function matchKw(text, critical, air, event, exclude) {
   const tl = text.toLowerCase();
-  if (exclude.some(k => hasKeyword(tl, k))) return [];
+  const { twarde, miekkie } = podzialWet(tl, exclude);
+  if (twarde.length) return [];
   const c = critical.filter(k => hasKeyword(tl, k));
   if (c.length) return c;
+  if (miekkie.length) return [];
   const a = air.filter(k => hasKeyword(tl, k)), e = event.filter(k => hasKeyword(tl, k));
   return a.length && e.length ? a.slice(0, 2).concat(e.slice(0, 2)) : [];
 }
@@ -310,9 +332,11 @@ function matchKw(text, critical, air, event, exclude) {
    (1 pkt). Oba wymagają innej klasy źródła; null = brak/weto. */
 function matchLevel(text, critical, air, event, exclude) {
   const tl = text.toLowerCase();
-  if (exclude.some(k => hasKeyword(tl, k))) return { level: null, hits: [] };
+  const { twarde, miekkie } = podzialWet(tl, exclude);
+  if (twarde.length) return { level: null, hits: [] };
   const c = critical.filter(k => hasKeyword(tl, k));
-  if (c.length) return { level: "critical", hits: c };
+  if (c.length) return { level: miekkie.length ? "weak" : "critical", hits: c };
+  if (miekkie.length) return { level: null, hits: [] };
   const a = air.filter(k => hasKeyword(tl, k)), e = event.filter(k => hasKeyword(tl, k));
   if (a.length && e.length) return { level: "weak", hits: a.slice(0, 2).concat(e.slice(0, 2)) };
   return { level: null, hits: [] };

@@ -624,6 +624,20 @@ VOIV_KEYWORDS = {
 # lotnictwa" dał 12.09.2026 pełne +1,0. Teraz taki tekst nie punktuje i wygasza
 # wcześniejsze doniesienia medialne w tym samym województwie — dokładnie tak, jak
 # od dawna działa to dla mediów bałtyckich (BALTIC_CLEAR_KEYWORDS).
+# Weta MIĘKKIE: frazy, które nie przeczą zdarzeniu, tylko mówią, że artykuł jest
+# jego omówieniem, poradnikiem albo relacją o skutkach. Gdy w tekście jest fraza
+# KRYTYCZNA, takie weto obniża ją do zwykłej pary OBIEKT+ZDARZENIE (1,0 zamiast
+# 1,5) zamiast kasować cały sygnał. Bez frazy krytycznej działa jak dotąd — blokuje.
+# Reszta EXCLUDE_KEYWORDS zostaje TWARDA: ćwiczenia, rocznice, retrospektywy,
+# fikcja, kosmos, sport i alarmy bombowe muszą kasować także frazę krytyczną,
+# bo przy teście syren one naprawdę zawyły.
+SOFT_EXCLUDE_KEYWORDS = [
+    "co wiemy", "co należy zrobić", "co powinieneś zrobić", "co robić w razie",
+    "co zrobić w razie", "jak się zachować w razie", "poradnik bezpieczeństwa",
+    "poznaj sygnały alarmowe", "co oznacza sygnał alarmowy", "przypominamy",
+    "potrwa", "jak doszło", "kulisy", "czy na pewno", "felieton", "reportaż",
+]
+
 MEDIA_CLEAR_KEYWORDS = [
     "odwołano alarm", "odwołanie alarmu", "alarm odwołany", "koniec alarmu",
     "zakończono operowanie", "zakończyło operowanie", "zakończone operowanie",

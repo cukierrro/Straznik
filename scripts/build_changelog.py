@@ -16,6 +16,19 @@ DOCS = ROOT / "docs"
 # (wersja, data PL, data EN, tytuł PL, tytuł EN, punkty PL, punkty EN, zrzuty)
 # Zrzut: (plik, alt PL, alt EN, podpis PL, podpis EN)
 RELEASES = [
+    ("1.7.34", "12 września 2026", "12 September 2026",
+     "Weto nie kasuje już prawdziwego meldunku",
+     "A veto no longer deletes a genuine report",
+     ["Weto „dni po” trafiało w środek słowa „wschodni powiat” i kasowało prawdziwy meldunek o poderwaniu lotnictwa. Hasła muszą się teraz zaczynać na granicy słowa.",
+      "Weta podzielone na twarde i miękkie. „Ćwiczenia” czy „rocznica” kasują wszystko, bo przy teście syren one naprawdę zawyły. „Potrwają” czy „co wiemy” tylko obniżają relację z 1,5 do 1,0 pkt — zdarzenie jest prawdziwe, artykuł opisuje skutki.",
+      "Miękkie weto działa wyłącznie przy frazie krytycznej; sam poradnik jest odrzucany jak dotychczas.",
+      "Progi i limity bez zmian — same media nadal nigdy nie alarmują."],
+     ["The veto “dni po” was matching inside the Polish word for “eastern district” and deleting a genuine report of fighters being scrambled. Keywords must now start at a word boundary.",
+      "Vetoes are split into hard and soft. “Exercise” or “anniversary” cancel everything, because during a siren test the sirens really do sound. “Will last” or “what we know” only downgrade an operational report from 1.5 to 1.0 points — the event is real, the article covers its effects.",
+      "A soft veto only applies when a critical phrase is present; a plain explainer is rejected exactly as before.",
+      "Thresholds and caps are unchanged — media alone still never raise an alert."],
+     []),
+
     ("1.7.33", "12 września 2026", "12 September 2026",
      "Karta strefy czytelna, karencja naprawdę działa",
      "The zone card is readable, and the grace period really works",

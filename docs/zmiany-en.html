@@ -39,6 +39,16 @@
   <p class="fineprint">To see which version your phone has, open the app: <kbd>⚙</kbd> → the <kbd>App</kbd> tab → “App version”. The <kbd>⬆ Check for updates</kbd> button is right there too.</p>
 </div></header>
 <main id="content" class="wrap">
+<section id="v1-7-34">
+  <h2>1.7.34 — A veto no longer deletes a genuine report</h2>
+  <p class="fineprint">Release 1.7.34 · 12 September 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.34">Full release notes</a></p>
+  <ul>
+    <li>The veto “dni po” was matching inside the Polish word for “eastern district” and deleting a genuine report of fighters being scrambled. Keywords must now start at a word boundary.</li>
+    <li>Vetoes are split into hard and soft. “Exercise” or “anniversary” cancel everything, because during a siren test the sirens really do sound. “Will last” or “what we know” only downgrade an operational report from 1.5 to 1.0 points — the event is real, the article covers its effects.</li>
+    <li>A soft veto only applies when a critical phrase is present; a plain explainer is rejected exactly as before.</li>
+    <li>Thresholds and caps are unchanged — media alone still never raise an alert.</li>
+  </ul>
+</section>
 <section id="v1-7-33">
   <h2>1.7.33 — The zone card is readable, and the grace period really works</h2>
   <p class="fineprint">Release 1.7.33 · 12 September 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.33">Full release notes</a></p>

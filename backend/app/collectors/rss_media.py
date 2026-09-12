@@ -75,7 +75,7 @@ def _baltic_incident_key(link: str, title: str, country: str) -> str:
 def _match_keywords(text: str) -> list[str]:
     return match_keywords(text, config.ALERT_CRITICAL_KEYWORDS,
                           config.ALERT_AIR_KEYWORDS, config.ALERT_EVENT_KEYWORDS,
-                          config.EXCLUDE_KEYWORDS)
+                          config.EXCLUDE_KEYWORDS, config.SOFT_EXCLUDE_KEYWORDS)
 
 
 def _fold(s: str) -> str:
@@ -175,7 +175,8 @@ async def _check_feed(client: httpx.AsyncClient, url: str, default_voiv: str | N
         # obiekt+zdarzenie = 1,0. Obie wartości wymagają innej klasy źródła.
         level, hits = classify_level(text, config.ALERT_CRITICAL_KEYWORDS,
                                      config.ALERT_AIR_KEYWORDS, config.ALERT_EVENT_KEYWORDS,
-                                     config.EXCLUDE_KEYWORDS)
+                                     config.EXCLUDE_KEYWORDS,
+                                     config.SOFT_EXCLUDE_KEYWORDS)
         if not level:
             continue
         pts = config.POINTS["media_critical"] if level == "critical" else config.POINTS["media_keywords"]

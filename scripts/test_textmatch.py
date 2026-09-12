@@ -20,6 +20,19 @@ from app.textmatch import classify_level, match_keywords
 
 CASES = [
     # (nagłówek, czy_ma_być_alarmem)
+    # ── A8 z audytu 1.7.21: weta bez granicy słowa i weto bijące frazę krytyczną
+    # Weto „dni po" trafiało w środek „wscho-DNI PO-wiat" i kasowało prawdziwy
+    # meldunek; „potrwa" kasowało realne zamknięcie przestrzeni.
+    ("Poderwano myśliwce. Wschodni powiat w gotowości", True),
+    ("Zamknięto przestrzeń powietrzną nad Lublinem. Utrudnienia potrwają do rana", True),
+    ("Zawyły syreny w Lublinie. Przypominamy, co oznacza sygnał alarmowy", True),
+    # … ale weto TWARDE nadal musi kasować także frazę krytyczną
+    ("Syreny zawyły w całym mieście — to ogólnopolskie ćwiczenia", False),
+    ("Zawyły syreny alarmowe. Rocznica wybuchu powstania", False),
+    ("Wybiła godzina „W”. Warszawa stanęła, w mieście zawyły syreny", False),
+    ("Alarm bombowy w szkole. Ewakuowano uczniów", False),
+    # samo omówienie bez frazy krytycznej nadal nie punktuje
+    ("Poznaj sygnały alarmowe — poradnik bezpieczeństwa", False),
     # ── prawdziwe zdarzenia ──────────────────────────────────────────────
     ("Pocisk spadł w Tarnawie-Kolonii. Tusk: wszystko wskazuje na rosyjski Ch-101", True),
     ("Rakieta z Rosji spadła na Lubelszczyźnie. Tak wyglądał moment wybuchu", True),
@@ -87,7 +100,7 @@ def main():
     for text, expected in CASES:
         hits = match_keywords(text, config.ALERT_CRITICAL_KEYWORDS,
                               config.ALERT_AIR_KEYWORDS, config.ALERT_EVENT_KEYWORDS,
-                              config.EXCLUDE_KEYWORDS)
+                              config.EXCLUDE_KEYWORDS, config.SOFT_EXCLUDE_KEYWORDS)
         got = bool(hits)
         status = "OK  " if got == expected else "FAIL"
         if got != expected:
@@ -103,13 +116,30 @@ def main():
     weak, weak_hits = classify_level(
         "BSP naruszył przestrzeń powietrzną Polski",
         config.ALERT_CRITICAL_KEYWORDS, config.ALERT_AIR_KEYWORDS,
-        config.ALERT_EVENT_KEYWORDS, config.EXCLUDE_KEYWORDS)
+        config.ALERT_EVENT_KEYWORDS, config.EXCLUDE_KEYWORDS,
+        config.SOFT_EXCLUDE_KEYWORDS)
     assert weak == "weak" and weak_hits, (weak, weak_hits)
     critical, critical_hits = classify_level(
         "Rosyjski dron naruszył przestrzeń powietrzną; poderwano F-16",
         config.ALERT_CRITICAL_KEYWORDS, config.ALERT_AIR_KEYWORDS,
-        config.ALERT_EVENT_KEYWORDS, config.EXCLUDE_KEYWORDS)
+        config.ALERT_EVENT_KEYWORDS, config.EXCLUDE_KEYWORDS,
+        config.SOFT_EXCLUDE_KEYWORDS)
     assert critical == "critical" and critical_hits, (critical, critical_hits)
+
+    # A8: miękkie weto OBNIŻA frazę krytyczną do 1,0 zamiast ją kasować,
+    # a twarde nadal kasuje wszystko — inaczej test syren dawałby punkty.
+    obnizone, _ = classify_level(
+        "Zamknięto przestrzeń powietrzną nad Lublinem. Utrudnienia potrwają do rana",
+        config.ALERT_CRITICAL_KEYWORDS, config.ALERT_AIR_KEYWORDS,
+        config.ALERT_EVENT_KEYWORDS, config.EXCLUDE_KEYWORDS,
+        config.SOFT_EXCLUDE_KEYWORDS)
+    assert obnizone == "weak", obnizone
+    twarde, _ = classify_level(
+        "Syreny zawyły w całym mieście — to ogólnopolskie ćwiczenia",
+        config.ALERT_CRITICAL_KEYWORDS, config.ALERT_AIR_KEYWORDS,
+        config.ALERT_EVENT_KEYWORDS, config.EXCLUDE_KEYWORDS,
+        config.SOFT_EXCLUDE_KEYWORDS)
+    assert twarde is None, twarde
     # ── przypisanie artykułu do województw ───────────────────────────────────
     # Ta sama tabela co w scripts/test_voiv_match.cjs (silnik wbudowany) — oba
     # silniki muszą przypisywać artykuły identycznie.

@@ -15,48 +15,71 @@ Samo "syreny", samo "dron" czy sam "alarm" nigdy nie wystarczą — bo to słowa
 które w mediach lokalnych padają najczęściej w kontekście administracyjnym.
 """
 import re
+from functools import lru_cache
 
 
 _TOKEN_KEYWORDS = {"kab", "bsp", "fpv"}
 
 
-def _contains(text: str, word: str) -> bool:
-    """Krótkie skróty wojskowe muszą być samodzielnymi tokenami.
+@lru_cache(maxsize=4096)
+def _wzorzec(word: str):
+    """Hasło musi zaczynać się na GRANICY SŁOWA.
 
-    Zwykłe wyszukiwanie podciągu uznawało m.in. ``kab`` wewnątrz zwykłego
-    słowa i ``bsp`` w tekście demograficznym. Dłuższe rdzenie celowo nadal są
-    podciągami, bo obsługują polską odmianę (rakiet-a/y, zestrzel-ono/enie).
+    Wcześniej było zwykłe wyszukiwanie podciągu i weto „dni po" trafiało
+    w środek „wscho-DNI PO-wiat", kasując prawdziwy meldunek o poderwaniu
+    lotnictwa (ustalenie A8 audytu, zmierzone 12.09.2026). Obcinamy tylko lewą
+    stronę — hasła są rdzeniami odmian (rakiet-a/y, zestrzel-ono/enie), więc
+    prawa musi zostać otwarta.
+
+    Krótkie skróty wojskowe (kab, bsp, fpv) dodatkowo muszą być samodzielnymi
+    tokenami: bez tego „kab" trafiało w środek zwykłego słowa.
     """
-    if word in _TOKEN_KEYWORDS:
-        return re.search(rf"(?<!\w){re.escape(word)}(?!\w)", text, re.UNICODE) is not None
-    return word in text
+    prawo = r"(?!\w)" if word in _TOKEN_KEYWORDS else ""
+    return re.compile(rf"(?<!\w){re.escape(word)}{prawo}", re.UNICODE)
+
+
+def _contains(text: str, word: str) -> bool:
+    return _wzorzec(word).search(text) is not None
 
 
 def _hits(text: str, words) -> list[str]:
     return [w for w in words if _contains(text, w)]
 
 
-def classify(text: str, critical, air, event, exclude) -> tuple[bool, list[str]]:
+def _weta(t: str, exclude, soft) -> tuple[list[str], list[str]]:
+    """Dzieli trafione weta na twarde i miękkie.
+
+    Miękkie (`soft`) są podzbiorem `exclude`, więc twarde to reszta trafień.
+    """
+    miekkie = _hits(t, soft or ())
+    twarde = [w for w in _hits(t, exclude) if w not in set(miekkie)]
+    return twarde, miekkie
+
+
+def classify(text: str, critical, air, event, exclude, soft=()) -> tuple[bool, list[str]]:
     """Zwraca (czy_alarm, dopasowane_słowa) — słowa idą do UI, żeby użytkownik
     widział, co konkretnie wywołało sygnał."""
     t = text.lower()
-    if _hits(t, exclude):
+    twarde, miekkie = _weta(t, exclude, soft)
+    if twarde:
         return False, []
     crit = _hits(t, critical)
     if crit:
         return True, crit
+    if miekkie:
+        return False, []
     a, e = _hits(t, air), _hits(t, event)
     if a and e:
         return True, a[:2] + e[:2]
     return False, []
 
 
-def match_keywords(text: str, critical, air, event, exclude) -> list[str]:
-    ok, hits = classify(text, critical, air, event, exclude)
+def match_keywords(text: str, critical, air, event, exclude, soft=()) -> list[str]:
+    ok, hits = classify(text, critical, air, event, exclude, soft)
     return hits if ok else []
 
 
-def classify_level(text: str, critical, air, event, exclude):
+def classify_level(text: str, critical, air, event, exclude, soft=()):
     """Jak `classify`, ale rozróżnia SIŁĘ dopasowania — do zróżnicowanej wagi:
 
       "critical" → jednoznaczna relacja operacyjna („zawyły syreny",
@@ -67,11 +90,17 @@ def classify_level(text: str, critical, air, event, exclude):
 
     Zwraca (poziom|None, dopasowane_słowa)."""
     t = text.lower()
-    if _hits(t, exclude):
+    twarde, miekkie = _weta(t, exclude, soft)
+    if twarde:
         return None, []
     crit = _hits(t, critical)
     if crit:
-        return "critical", crit
+        # Miękkie weto OBNIŻA relację operacyjną do zwykłej pary, zamiast ją
+        # kasować: „Zamknięto przestrzeń powietrzną. Utrudnienia potrwają" to
+        # prawdziwe zdarzenie opisane od strony skutków.
+        return ("weak" if miekkie else "critical"), crit
+    if miekkie:
+        return None, []
     a, e = _hits(t, air), _hits(t, event)
     if a and e:
         return "weak", a[:2] + e[:2]

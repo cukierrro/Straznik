@@ -4,6 +4,16 @@
 
 # Strażnik
 
+Wersja 1.7.34: weto „dni po” trafiało w środek słowa „wschodni powiat” i kasowało
+prawdziwy meldunek o poderwaniu lotnictwa. Hasła mają teraz granicę słowa, a weta
+dzielą się na twarde (ćwiczenia, rocznice — kasują wszystko) i miękkie (omówienia —
+obniżają relację z 1,5 do 1,0 pkt). Szczegóły: `docs/RELEASE_1.7.34.md`.
+
+Wersja 1.7.33: karta strefy była nieczytelna (kontrast 1,83:1 na białym tle) i miała
+ucięty nagłówek; karencja zniknięcia strefy, opisana w notatkach 1.7.30, nie była
+zaimplementowana — teraz jest. Instrukcja pokazuje warstwę stref na zrzutach.
+Szczegóły: `docs/RELEASE_1.7.33.md`.
+
 Wersja 1.7.32: okno aktualizacji pokazuje pełne punkty zamiast trzech urwanych
 kawałków zdania i przewija się; karta strefy PAŻP nie obiecuje już końca, którego
 nie zna (PAŻP publikuje plan dobowy); instrukcja tłumaczy, które strefy punktują,
@@ -93,7 +103,7 @@ wiarygodność ostrzeżenia.
 
 [Instrukcja po polsku](https://cukierrro.github.io/Straznik/) · [English user guide](https://cukierrro.github.io/Straznik/en.html)
 
-Instrukcja dla 1.7.32 opisuje „Moje miejsca”, rozdział alertów wojewódzkich i
+Instrukcja dla 1.7.34 opisuje „Moje miejsca”, rozdział alertów wojewódzkich i
 lokalnych obliczeń na pierwszym planie oraz bibliotekę fotografii PL/EN. Zrzuty
 otwierają się także w pełnym rozmiarze.
 

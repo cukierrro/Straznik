@@ -154,6 +154,7 @@ console.log(JSON.stringify({{
   EXCLUDE: tablica('EXCLUDE'), CRITICAL: tablica('CRITICAL'),
   AIR: tablica('AIR'), EVENT: tablica('EVENT'),
   MEDIA_CLEAR: tablica('MEDIA_CLEAR'), FOREIGN: tablica('FOREIGN_PLACES'),
+  SOFT_EXCLUDE: tablica('SOFT_EXCLUDE'),
 }}));
 """
 try:
@@ -172,7 +173,8 @@ if silnik:
             ("AIR", config.ALERT_AIR_KEYWORDS),
             ("EVENT", config.ALERT_EVENT_KEYWORDS),
             ("MEDIA_CLEAR", config.MEDIA_CLEAR_KEYWORDS),
-            ("FOREIGN", config.FOREIGN_PLACE_MARKERS)):
+            ("FOREIGN", config.FOREIGN_PLACE_MARKERS),
+            ("SOFT_EXCLUDE", config.SOFT_EXCLUDE_KEYWORDS)):
         js_val = silnik[nazwa]
         if isinstance(po_stronie_py, dict):
             zgodne = {k: sorted(v) for k, v in js_val.items()} == \
