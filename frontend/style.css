@@ -9,6 +9,11 @@
   --green: #3ddc84;
   --cyan: #39c5ec;
   --accent: #5b8cff;
+  /* Wysokość systemowego obszaru na dole: pasek gestów albo trzy przyciski
+     nawigacji (te są znacznie wyższe). Wszystko, co przyklejone do dolnej
+     krawędzi, musi ją doliczyć — inaczej przyciski Androida zasłaniają
+     suwak historii, atrybucję i przyciski mapy. */
+  --safe-b: env(safe-area-inset-bottom, 0px);
   font-size: 15px;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -69,7 +74,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 #status-leds:hover { background: rgba(255,255,255,.06); }
 
 /* ── stała karta obiektu (samolot / obiekt) — bottom-sheet ── */
-#ac-card { position: fixed; left: 8px; right: 8px; bottom: 8px; z-index: 1200;
+#ac-card { position: fixed; left: 8px; right: 8px; bottom: calc(8px + var(--safe-b)); z-index: 1200;
   max-height: 60vh; overflow-y: auto; -webkit-overflow-scrolling: touch;
   background: #fff; color: #16202f; border-radius: 14px; padding: 14px 16px 16px;
   box-shadow: 0 8px 40px rgba(0,0,0,.55); font: 12.5px "Segoe UI", system-ui, sans-serif;
@@ -243,7 +248,7 @@ body.panel-open #update-banner:not(.critical) { display: none; }
 
 /* ── atrybucja ── */
 #attribution {
-  position: fixed; left: 10px; bottom: 46px; z-index: 25;
+  position: fixed; left: 10px; bottom: calc(46px + var(--safe-b)); z-index: 25;
   background: var(--panel); border: 1px solid var(--panel-border); border-radius: 8px;
   font-size: 10.5px; color: var(--muted); padding: 5px 9px; max-width: 46vw;
 }
@@ -253,7 +258,7 @@ body.panel-open #update-banner:not(.critical) { display: none; }
 /* ── panel boczny (wysuwany) ── */
 #panel {
   position: fixed; top: calc(54px + env(safe-area-inset-top)); right: 10px;
-  bottom: 52px; z-index: 25;
+  bottom: calc(52px + var(--safe-b)); z-index: 25;
   width: 340px; overflow-y: auto; scrollbar-width: thin;
   display: flex; flex-direction: column; gap: 12px;
   background: transparent;
@@ -269,7 +274,7 @@ body.panel-open #update-banner:not(.critical) { display: none; }
 
 /* ── przyciski nawigacji mapy (jak w Mapach Google) ── */
 #map-actions {
-  position: fixed; right: 12px; bottom: 120px; z-index: 26;
+  position: fixed; right: 12px; bottom: calc(120px + var(--safe-b)); z-index: 26;
   display: flex; flex-direction: column; gap: 8px;
 }
 .map-btn {
@@ -282,7 +287,7 @@ body.panel-open #update-banner:not(.critical) { display: none; }
 
 /* ── pasek historii 12 h ── */
 #timebar {
-  position: fixed; left: 10px; right: 10px; bottom: 46px; z-index: 28;
+  position: fixed; left: 10px; right: 10px; bottom: calc(46px + var(--safe-b)); z-index: 28;
   background: var(--panel); border: 1px solid var(--panel-border);
   border-radius: 12px; padding: 8px 12px; backdrop-filter: blur(8px);
 }
@@ -322,12 +327,12 @@ body.panel-open #update-banner:not(.critical) { display: none; }
 #tb-live.active { background: var(--accent); color: #fff; border-color: var(--accent); }
 #tb-info { margin-top: 4px; }
 body.history-mode #my-banner { display: none; }
-body.history-mode #attribution { bottom: 108px; }
+body.history-mode #attribution { bottom: calc(108px + var(--safe-b)); }
 
 /* ── baner mojego regionu ── */
 #my-banner {
   /* nad atrybucją NEPTUN — ta musi pozostać widoczna (warunek API) */
-  position: fixed; left: 10px; bottom: 88px; z-index: 27; max-width: 62vw;
+  position: fixed; left: 10px; bottom: calc(88px + var(--safe-b)); z-index: 27; max-width: 62vw;
   background: var(--panel); border: 1px solid var(--panel-border);
   border-left: 3px solid var(--accent); border-radius: 10px;
   padding: 7px 11px; font-size: 12px; backdrop-filter: blur(8px);
@@ -660,9 +665,9 @@ dialog menu { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14
   .led i { width: 7px; height: 7px; }
   #panel { left: 10px; width: auto; top: auto; height: 52vh; }
   #panel.collapsed { transform: translateY(calc(100% + 60px)); }
-  #attribution { max-width: 70vw; bottom: 42px; }
-  #my-banner { max-width: 58vw; bottom: 92px; }
-  #map-actions { bottom: 150px; }
+  #attribution { max-width: 70vw; bottom: calc(42px + var(--safe-b)); }
+  #my-banner { max-width: 58vw; bottom: calc(92px + var(--safe-b)); }
+  #map-actions { bottom: calc(150px + var(--safe-b)); }
   #legend { width: 210px; font-size: 11px; }
   /* na wąskim ekranie sam kubek — pełny napis nie mieści się w pasku */
   .chip.download { font-size: 0; padding: 5px 8px; }

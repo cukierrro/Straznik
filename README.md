@@ -4,6 +4,14 @@
 
 # Strażnik
 
+Wersja 1.7.22: limit klasy źródła liczony po wygaszeniu wiekiem (świeży obiekt
+przy granicy nie wnosi już 0 pkt w dłuższym ataku), poziom przeliczany co 45 s
+także bez nowego sygnału i trwały po restarcie, push z terminem ważności i
+ponowieniami, alarmy powietrzne z ukraińskich rejonów oraz zasada, że samo
+przeniesienie od sąsiada nie wysyła powiadomienia. Okna informacyjne mają
+ograniczoną wysokość i przewijanie, a elementy przy dolnej krawędzi omijają
+systemowy pasek nawigacji. Szczegóły: `docs/RELEASE_1.7.22.md`.
+
 Wersja 1.7.21: pozycje oznaczone przez NEPTUN jako przybliżone oraz rozpoznane
 punkty środkowe miejscowości są pokazywane jako rejony zgłoszeń, bez sztucznego
 przesuwania, pozornej trasy i ETA. Dystans rejonowy jest zaokrąglany, ma niższą
@@ -24,7 +32,7 @@ wiarygodność ostrzeżenia.
 
 [Instrukcja po polsku](https://cukierrro.github.io/Straznik/) · [English user guide](https://cukierrro.github.io/Straznik/en.html)
 
-Instrukcja dla 1.7.21 opisuje „Moje miejsca”, rozdział alertów wojewódzkich i
+Instrukcja dla 1.7.22 opisuje „Moje miejsca”, rozdział alertów wojewódzkich i
 lokalnych obliczeń na pierwszym planie oraz bibliotekę fotografii PL/EN. Zrzuty
 otwierają się także w pełnym rozmiarze.
 
