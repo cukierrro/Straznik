@@ -82,6 +82,12 @@ _EVENT_WINDOW_S = 12 * 3600
 # włączono (plan dobowy PAŻP przepisuje startDate codziennie o 06:00 UTC), więc
 # nie wolno ich zgłaszać jako aktywacji ani pisać użytkownikowi „włączona teraz".
 _zones_at_boot: set[str] = set()
+# designator -> chwila, w której strefa zniknęła z odczytu po raz pierwszy
+_zones_pending_off: dict[str, float] = {}
+# Zniesienie zgłaszamy dopiero, gdy strefy nie ma przez ten czas. Krótsza przerwa
+# to przełączenie planu dobowego o 06:00 UTC albo dziura w odczycie, a nie decyzja
+# o otwarciu nieba. Tick trwa 300 s, więc 20 minut to cztery kolejne odczyty.
+_OFF_GRACE_S = 20 * 60
 _ZONES_SINCE_PATH = config.DATA_DIR / "zones_since.json"
 _ZONES_SINCE_TTL_S = 7 * 24 * 3600
 _since_loaded = False
@@ -298,12 +304,23 @@ async def _tick(client: httpx.AsyncClient):
         _zone_events.append({"ts": now.isoformat(timespec="seconds"), "action": "on",
                              **{k: pokazywane[des]["feature"]["properties"][k]
                                 for k in ("designator", "type", "voiv", "lower", "upper")}})
-    for des in sorted(set(_zones_shown) - set(pokazywane)):
+    obecne = set(pokazywane)          # to, co REALNIE przyszło w tym odczycie
+    for des in sorted(set(_zones_shown) - obecne):
+        # Karencja: strefa, której zabrakło, zostaje na mapie i bez zdarzenia,
+        # dopóki nie minie _OFF_GRACE_S. Jeśli wróci wcześniej — nic się nie stało
+        # i nie dostanie żółtej bryły „nowej aktywacji".
+        znikla_o = _zones_pending_off.setdefault(des, now_epoch)
+        if now_epoch - znikla_o < _OFF_GRACE_S:
+            pokazywane[des] = _zones_shown[des]
+            continue
         _zone_events.append({"ts": now.isoformat(timespec="seconds"), "action": "off",
                              **{k: _zones_shown[des]["feature"]["properties"][k]
                                 for k in ("designator", "type", "voiv", "lower", "upper")}})
+        _zones_pending_off.pop(des, None)
         _zones_since.pop(des, None)
         _zones_at_boot.discard(des)
+    for des in obecne:
+        _zones_pending_off.pop(des, None)   # wróciła albo nigdy nie znikała
     cut = now - timedelta(seconds=_EVENT_WINDOW_S)
     cut_iso = cut.isoformat(timespec="seconds")
     _zone_events[:] = [e for e in _zone_events if e["ts"] >= cut_iso][-300:]
