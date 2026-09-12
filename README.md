@@ -4,6 +4,10 @@
 
 # Strażnik
 
+Wersja 1.7.25: okno i komunikaty aktualizacji mówią językiem interfejsu — cała ta
+ścieżka była zapisana po polsku na sztywno i taka zostawała w angielskiej aplikacji.
+Szczegóły: `docs/RELEASE_1.7.25.md`.
+
 Wersja 1.7.24: „Sprawdź aktualizacje” znów odpowiada — serwer trzyma ostatnie znane
 wydanie i podaje je, gdy GitHub odrzuci zapytanie limitem 60/h na adres IP. „Moje
 miejsca” pokazują, czego brakuje przy zapisie, a udany zapis zamyka okno i wraca do
@@ -48,7 +52,7 @@ wiarygodność ostrzeżenia.
 
 [Instrukcja po polsku](https://cukierrro.github.io/Straznik/) · [English user guide](https://cukierrro.github.io/Straznik/en.html)
 
-Instrukcja dla 1.7.24 opisuje „Moje miejsca”, rozdział alertów wojewódzkich i
+Instrukcja dla 1.7.25 opisuje „Moje miejsca”, rozdział alertów wojewódzkich i
 lokalnych obliczeń na pierwszym planie oraz bibliotekę fotografii PL/EN. Zrzuty
 otwierają się także w pełnym rozmiarze.
 

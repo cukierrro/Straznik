@@ -16,6 +16,13 @@ DOCS = ROOT / "docs"
 # (wersja, data PL, data EN, tytuł PL, tytuł EN, punkty PL, punkty EN, zrzuty)
 # Zrzut: (plik, alt PL, alt EN, podpis PL, podpis EN)
 RELEASES = [
+    ("1.7.25", "12 września 2026", "12 September 2026",
+     "Okno aktualizacji po angielsku",
+     "The update dialog speaks English",
+     ["Cała ścieżka aktualizacji — komunikaty, opis „Co się zmienia”, przyciski i informacje z pobierania — była zapisana po polsku na sztywno i taka zostawała w angielskim interfejsie. Teraz mówi językiem interfejsu."],
+     ["The whole update path — messages, the “What changes” list, the buttons and the download progress — was hard-coded in Polish and stayed that way in the English interface. It now follows the interface language."],
+     []),
+
     ("1.7.24", "12 września 2026", "12 September 2026",
      "Poprawki po dniu na urządzeniu",
      "Fixes after a day on a real device",

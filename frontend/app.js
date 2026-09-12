@@ -2803,25 +2803,37 @@ async function checkForUpdate(force = false, throttled = false) {
   try {
     const last = +(localStorage.getItem("straznik_upd_check") || 0);
     if (throttled && !force && Date.now() - last < UPDATE_EVERY_MS) return;
-    if (force) updStatus("Sprawdzam…");
+    if (force) updStatus(UI.isEn ? "Checking…" : "Sprawdzam…");
     const s = await BG()?.status();
     const local = s?.appVersion;
-    if (!local) { if (force) updStatus("Nie udało się odczytać wersji aplikacji."); return; }
+    if (!local) {
+      if (force) updStatus(UI.isEn ? "Could not read the app version."
+                                   : "Nie udało się odczytać wersji aplikacji.");
+      return;
+    }
     const r = await fetch(UPDATE_API, { headers: { Accept: "application/vnd.github+json" } });
-    if (!r.ok) { if (force) updStatus("Nie udało się sprawdzić — spróbuj później."); return; }
+    if (!r.ok) {
+      if (force) updStatus(UI.isEn ? "Could not check — try again later."
+                                   : "Nie udało się sprawdzić — spróbuj później.");
+      return;
+    }
     const rel = await r.json();
     localStorage.setItem("straznik_upd_check", String(Date.now()));
     if (!isNewer(rel.version, local)) {
-      if (force) updStatus(`Masz najnowszą wersję (${local}).`);
+      if (force) updStatus(UI.isEn ? `You have the latest version (${local}).`
+                                   : `Masz najnowszą wersję (${local}).`);
       return;
     }
     if (!force && !rel.critical && sessionSkippedUpdates.has(rel.version)) return;
     showUpdateBanner(rel, local);
     if (force) {
-      updStatus(`Jest nowsza wersja ${rel.version} — zamknij ustawienia, żeby zaktualizować.`);
+      updStatus(UI.isEn
+        ? `Version ${rel.version} is available — close settings to update.`
+        : `Jest nowsza wersja ${rel.version} — zamknij ustawienia, żeby zaktualizować.`);
     }
   } catch {
-    if (force) updStatus("Brak połączenia — spróbuj później.");
+    if (force) updStatus(UI.isEn ? "No connection — try again later."
+                                 : "Brak połączenia — spróbuj później.");
   }
 }
 
@@ -2834,19 +2846,28 @@ function showUpdateBanner(rel, local) {
     .filter(x => x && !x.startsWith("#") && !x.startsWith("<!--")).slice(0, 3);
   const changes = (Array.isArray(rel.changes) ? rel.changes : fallbackChanges)
     .map(x => String(x || "").trim()).filter(Boolean).slice(0, 3);
+  const changesLabel = UI.isEn ? "What changes:" : "Co się zmienia:";
   const changesHtml = changes.length
-    ? `<div class="upd-changes"><b>Co się zmienia:</b><ul>${changes.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>`
-    : `<div class="upd-changes"><b>Co się zmienia:</b> poprawki działania i aktualizacja danych aplikacji.</div>`;
+    ? `<div class="upd-changes"><b>${changesLabel}</b><ul>${changes.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>`
+    : `<div class="upd-changes"><b>${changesLabel}</b> ${UI.isEn
+        ? "operational fixes and updated app data."
+        : "poprawki działania i aktualizacja danych aplikacji."}</div>`;
   el.classList.toggle("critical", !!rel.critical);
   // Przyciski i status w osobnych rzędach — w jednym wierszu z tekstem ściskały go
   // przy dłuższej liście zmian, a status znikał poza przewijanym obszarem.
-  el.innerHTML = `<div class="upd-txt"><b>${rel.critical ? "Wymagana" : "Dostępna"} wersja ${esc(ver)}</b>
-      <span>masz ${esc(local)}${esc(size)} · instalację potwierdzi Android</span>
+  const title = UI.isEn
+    ? `${rel.critical ? "Required" : "Available"} version ${esc(ver)}`
+    : `${rel.critical ? "Wymagana" : "Dostępna"} wersja ${esc(ver)}`;
+  const have = UI.isEn
+    ? `you have ${esc(local)}${esc(size)} · Android will confirm the install`
+    : `masz ${esc(local)}${esc(size)} · instalację potwierdzi Android`;
+  el.innerHTML = `<div class="upd-txt"><b>${title}</b>
+      <span>${have}</span>
       ${changesHtml}</div>
     <span id="upd-progress"></span>
     <div class="upd-actions">
-      <button class="chip primary" id="upd-install">Aktualizuj</button>
-      ${rel.critical ? "" : '<button class="chip" id="upd-later">Później</button>'}
+      <button class="chip primary" id="upd-install">${UI.isEn ? "Update" : "Aktualizuj"}</button>
+      ${rel.critical ? "" : `<button class="chip" id="upd-later">${UI.isEn ? "Later" : "Później"}</button>`}
     </div>`;
   el.classList.remove("hidden");
   document.getElementById("upd-later")?.addEventListener("click", () => {
@@ -2858,22 +2879,27 @@ function showUpdateBanner(rel, local) {
     const progress = document.getElementById("upd-progress");
     const plugin = BG();
     if (!plugin?.installUpdate) {
-      progress.textContent = "Aktualizator wymaga nowszej wersji aplikacji.";
+      progress.textContent = UI.isEn ? "The updater needs a newer version of the app."
+                                     : "Aktualizator wymaga nowszej wersji aplikacji.";
       return;
     }
     try {
       const perm = await plugin.canInstallUpdates();
       if (!perm?.allowed) {
         await plugin.requestInstallPermission();
-        progress.textContent = "Włącz zgodę „Zezwalaj z tego źródła”, wróć i dotknij Aktualizuj ponownie.";
+        progress.textContent = UI.isEn
+          ? "Allow “Install from this source”, come back and tap Update again."
+          : "Włącz zgodę „Zezwalaj z tego źródła”, wróć i dotknij Aktualizuj ponownie.";
         return;
       }
       btn.disabled = true;
-      btn.textContent = "Pobieram…";
-      progress.textContent = "Sprawdzam podpis i sumę SHA-256…";
+      btn.textContent = UI.isEn ? "Downloading…" : "Pobieram…";
+      progress.textContent = UI.isEn ? "Checking the signature and SHA-256…"
+                                     : "Sprawdzam podpis i sumę SHA-256…";
       await plugin.installUpdate({url: rel.url, sha256: rel.sha256});
-      progress.textContent = "Potwierdź instalację w oknie Androida.";
-      btn.textContent = "Instalator otwarty";
+      progress.textContent = UI.isEn ? "Confirm the install in the Android dialog."
+                                     : "Potwierdź instalację w oknie Androida.";
+      btn.textContent = UI.isEn ? "Installer opened" : "Instalator otwarty";
     } catch (error) {
       btn.disabled = false;
       btn.textContent = "Spróbuj ponownie";
