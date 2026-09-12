@@ -4,6 +4,13 @@
 
 # Strażnik
 
+Wersja 1.7.30: nowy przycisk „strefy” pokazuje aktywne strefy PAŻP — dotknięcie
+strefy tłumaczy po ludzku, co to jest i od kiedy działa. Strefy nie dodają punktów.
+Północ (Pomorze, Kaliningrad) liczy się inaczej, bo NEPTUN pokrywa Ukrainę i daje
+tam zero: strefa PAŻP waży tam 1 pkt zamiast 0,5, a incydenty bałtyckie docierają
+wreszcie na wybrzeże — nadal żaden pojedynczy sygnał nie alarmuje sam.
+Szczegóły: `docs/RELEASE_1.7.30.md`.
+
 Wersja 1.7.29: artykuł o kilku województwach trafia do każdego z nich (alert RCB
 „dla województw lubelskiego i podkarpackiego" wchodził tylko do podkarpackiego),
 świeży sygnał idzie na górę listy z plakietką NOWY, karta województwa rozpisuje sumę,
@@ -75,7 +82,7 @@ wiarygodność ostrzeżenia.
 
 [Instrukcja po polsku](https://cukierrro.github.io/Straznik/) · [English user guide](https://cukierrro.github.io/Straznik/en.html)
 
-Instrukcja dla 1.7.29 opisuje „Moje miejsca”, rozdział alertów wojewódzkich i
+Instrukcja dla 1.7.30 opisuje „Moje miejsca”, rozdział alertów wojewódzkich i
 lokalnych obliczeń na pierwszym planie oraz bibliotekę fotografii PL/EN. Zrzuty
 otwierają się także w pełnym rozmiarze.
 

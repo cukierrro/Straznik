@@ -20,7 +20,7 @@ import json
 import logging
 import os
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import httpx
 
@@ -40,6 +40,93 @@ _SEEN_PATH = config.DATA_DIR / "pansa_seen.json"
 _REPEAT_WINDOW_S = 7 * 24 * 3600
 _ROUTINE_TYPES = {"TRA", "TSA", "MRT", "ATZ"}
 _SCORING_TYPES = {"ADHOC", "R", "NPZ", "D"}
+
+# ── strefy pokazywane w aplikacji (informacyjnie, BEZ punktów) ──────────────
+# Użytkownik ma widzieć, kiedy i gdzie wojsko zamyka kawałek nieba, ale nie ma
+# tonąć w rutynie: nad samą ścianą wschodnią stoi codziennie ~70 stref, z czego
+# większość to skoki spadochronowe, szybowce i szkolenie (audyt 12.09.2026).
+_SHOW_TYPES = {"ADHOC", "R", "NPZ", "D", "TSA"}
+# TRA pokazujemy tylko wtedy, gdy powołał ją NOTAM albo suplement — zwykła TRA
+# z adnotacją „PJE"/„GLD"/typem samolotu to lotnictwo sportowe, nie zagrożenie.
+_TRA_SHOW_MARKS = ("NOT.", "SUP")
+_CIVIL_MARKS = ("PJE", "GLD", "CLN", "BSP", "UAV")
+
+
+def _is_threat_zone(zone_type: str, remarks: str) -> bool:
+    """Czy strefa ma charakter wojskowy/ograniczający, a nie sportowy."""
+    t = (zone_type or "").upper()
+    r = (remarks or "").upper()
+    if t == "ATZ":
+        return False
+    # Rezerwacje pod loty bezzałogowe (BSP/UAV), skoki (PJE) i szybowce (GLD) to
+    # lotnictwo cywilne. Bez tego filtra na mapie stało 19 stref dronowych, które
+    # wyglądały jak reakcja wojska — pomiar 12.09.2026: 50 stref, po filtrze 31.
+    if t in ("TRA", "ADHOC") and any(m in r for m in _CIVIL_MARKS):
+        return False
+    if t in _SHOW_TYPES:
+        return True
+    if t == "TRA":
+        return any(m in r for m in _TRA_SHOW_MARKS)
+    return False
+
+
+# designator -> {"since": ts pierwszego zobaczenia, "feature": GeoJSON}
+_zones_shown: dict[str, dict] = {}
+_zones_since: dict[str, float] = {}
+# ostatnie zdarzenia stref (aktywacja/zniesienie) — okno 12 h jak historia
+_zone_events: list[dict] = []
+_EVENT_WINDOW_S = 12 * 3600
+
+
+# Strefy zobaczone w pierwszym odczycie po starcie procesu. Nie wiemy, kiedy je
+# włączono (plan dobowy PAŻP przepisuje startDate codziennie o 06:00 UTC), więc
+# nie wolno ich zgłaszać jako aktywacji ani pisać użytkownikowi „włączona teraz".
+_zones_at_boot: set[str] = set()
+_ZONES_SINCE_PATH = config.DATA_DIR / "zones_since.json"
+_ZONES_SINCE_TTL_S = 7 * 24 * 3600
+_since_loaded = False
+
+
+def _load_zones_since() -> None:
+    """Wczytaj „od kiedy" z dysku.
+
+    Bez tego każdy restart usługi resetował wiek stref: strefa stojąca od 10.09
+    znów wyglądałaby na świeżo włączoną, a dziennik zdarzeń dostawałby serię
+    fałszywych aktywacji wszystkich 30+ stref naraz.
+    """
+    global _since_loaded
+    _since_loaded = True
+    try:
+        raw = json.loads(_ZONES_SINCE_PATH.read_text(encoding="utf-8"))
+    except Exception:
+        return
+    cut = time.time() - _ZONES_SINCE_TTL_S
+    for des, ts in (raw or {}).items():
+        try:
+            ts = float(ts)
+        except (TypeError, ValueError):
+            continue
+        if ts >= cut:
+            _zones_since[des] = ts
+
+
+def _save_zones_since() -> None:
+    try:
+        _ZONES_SINCE_PATH.parent.mkdir(parents=True, exist_ok=True)
+        _ZONES_SINCE_PATH.write_text(json.dumps(_zones_since), encoding="utf-8")
+    except Exception as e:      # dysk pełny / brak praw — to tylko wygoda
+        log.debug("PAŻP: nie zapisano wieku stref: %s", e)
+
+
+def zones_geojson() -> dict:
+    """Aktywne strefy związane z zagrożeniem, gotowe dla mapy w aplikacji."""
+    return {"type": "FeatureCollection",
+            "features": [z["feature"] for z in _zones_shown.values()]}
+
+
+def zone_events() -> list[dict]:
+    """Kiedy która strefa się włączyła i wyłączyła (okno 12 h)."""
+    return list(_zone_events)
 
 
 def _load_seen(now_ts: float | None = None) -> dict[str, float]:
@@ -147,7 +234,13 @@ async def _tick(client: httpx.AsyncClient):
     if features is None:
         return
     now = datetime.now(timezone.utc)
+    now_epoch = time.time()
+    pierwszy_tick = not _since_loaded
+    if pierwszy_tick:
+        _load_zones_since()
+    znane_przed = set(_zones_since)
     active: dict[str, dict] = {}
+    pokazywane: dict[str, dict] = {}
 
     for f in features:
         props = f.get("properties") or {}
@@ -171,8 +264,53 @@ async def _tick(client: httpx.AsyncClient):
             "unit": res.get("unit"), "remarks": res.get("remarks"),
             "end": res.get("endDate"),
         }
+        zone_type = props.get("airspaceElementType")
+        remarks = res.get("remarks") or ""
+        if not _is_threat_zone(zone_type, remarks) or not f.get("geometry"):
+            continue
+        since = _zones_since.setdefault(designator, now_epoch)
+        pokazywane[designator] = {"feature": {
+            "type": "Feature", "geometry": f["geometry"], "properties": {
+                "designator": designator, "type": zone_type, "voiv": voiv,
+                "lower": res.get("lowerAltitude"), "upper": res.get("upperAltitude"),
+                "remarks": remarks.strip(), "unit": res.get("unit"),
+                "start": res.get("startDate"),
+                "end": res.get("endDate"), "since": since,
+                "atBoot": designator in _zones_at_boot,
+                # strefa stojąca dłużej niż dobę to STAN, nie zdarzenie —
+                # aplikacja rysuje ją inaczej i pisze o tym wprost
+                "standing": (now_epoch - since) > 24 * 3600,
+            }}}
 
     status["zones_now"] = len(active)
+    status["zones_shown"] = len(pokazywane)
+
+    # zdarzenia: co się włączyło i co zniknęło od poprzedniego odczytu
+    if pierwszy_tick:
+        # Pierwszy odczyt pokazuje stan zastany, a nie zdarzenia: bez tego każdy
+        # restart usługi wpisywał do dziennika 30+ fałszywych aktywacji naraz.
+        _zones_at_boot.update(pokazywane)
+        for des in pokazywane:
+            pokazywane[des]["feature"]["properties"]["atBoot"] = True
+    for des in sorted(set(pokazywane) - set(_zones_shown)):
+        if pierwszy_tick:
+            continue
+        _zone_events.append({"ts": now.isoformat(timespec="seconds"), "action": "on",
+                             **{k: pokazywane[des]["feature"]["properties"][k]
+                                for k in ("designator", "type", "voiv", "lower", "upper")}})
+    for des in sorted(set(_zones_shown) - set(pokazywane)):
+        _zone_events.append({"ts": now.isoformat(timespec="seconds"), "action": "off",
+                             **{k: _zones_shown[des]["feature"]["properties"][k]
+                                for k in ("designator", "type", "voiv", "lower", "upper")}})
+        _zones_since.pop(des, None)
+        _zones_at_boot.discard(des)
+    cut = now - timedelta(seconds=_EVENT_WINDOW_S)
+    cut_iso = cut.isoformat(timespec="seconds")
+    _zone_events[:] = [e for e in _zone_events if e["ts"] >= cut_iso][-300:]
+    _zones_shown.clear()
+    _zones_shown.update(pokazywane)
+    if set(_zones_since) != znane_przed:
+        _save_zones_since()
 
     now_ts = time.time()
     seen = _load_seen(now_ts)
@@ -189,8 +327,9 @@ async def _tick(client: httpx.AsyncClient):
             log.info("PAŻP nowa: typ=%s %s pułap=%s–%s woj=%s",
                      info.get("type"), designator, info.get("lower"),
                      info.get("upper"), info["voiv"])
-            if info["voiv"] not in config.PRIORITY_VOIVODESHIPS:
-                continue       # punktujemy tylko ścianę wschodnią
+            polnoc = info["voiv"] in config.NORTH_VOIVODESHIPS
+            if info["voiv"] not in config.PRIORITY_VOIVODESHIPS and not polnoc:
+                continue       # ściana wschodnia i północ — reszta bez punktów
             # Test 3-dniowy: nawet po filtrze GND–F sześć z siedmiu trafień było
             # rutyną. TRA/TSA/MRT/ATZ nie punktują nigdy. Dopuszczamy wyłącznie
             # ADHOC/R/NPZ/D z pełną kolumną i tylko gdy designator nie pojawił się
@@ -203,7 +342,7 @@ async def _tick(client: httpx.AsyncClient):
                 detail += f", {info['remarks']}"
             await fusion.ingest(
                 source="pansa", event_type="pansa_zone", voivodeship=info["voiv"],
-                points=config.POINTS["pansa_zone"],
+                points=config.POINTS["pansa_zone_north" if polnoc else "pansa_zone"],
                 title=f"PAŻP: aktywacja strefy {desc} nad woj. {info['voiv']} ({detail})",
                 details={"designator": designator, **info},
                 dedup_key=f"pansa:{designator}:{info['end']}",

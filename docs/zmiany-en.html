@@ -39,6 +39,18 @@
   <p class="fineprint">To see which version your phone has, open the app: <kbd>⚙</kbd> → the <kbd>App</kbd> tab → “App version”. The <kbd>⬆ Check for updates</kbd> button is right there too.</p>
 </div></header>
 <main id="content" class="wrap">
+<section id="v1-7-30">
+  <h2>1.7.30 — PAŻP zones are visible, and the north stops being blind</h2>
+  <p class="fineprint">Release 1.7.30 · 12 September 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.30">Full release notes</a></p>
+  <ul>
+    <li>A new “zones” button on the map shows active airspace zones. Tapping a zone explains in plain language what it is, since when Strażnik has seen it active, when it is due to end and at what altitude.</li>
+    <li>Zones add no points and raise no alert — closing airspace is a decision by the military, not an independent measurement of the threat. The card says so explicitly.</li>
+    <li>A long-standing zone gets a quiet outline; only a zone switched on while we were watching gets a 3D block — otherwise 31 zones flooded the map and looked like a nationwide alert.</li>
+    <li>The north (Pomeranian, West Pomeranian, Warmian-Masurian, Kuyavian-Pomeranian) is scored differently, because NEPTUN covers Ukraine and gives it zero. A PAŻP zone weighs 1 pt there instead of 0.5, and Baltic incidents and Lithuanian or Estonian airspace closures finally reach the coast.</li>
+    <li>No single signal still raises the level on its own: zone 1 + ADS-B activity 1 = 2 pts, zone 1 + Baltic incident 1 = 2 pts. Zones repeating within 7 days are routine and score nothing.</li>
+    <li>A province fully covered by a large zone can be tapped again; the zone card leads to the province, and the province card lists its zones.</li>
+  </ul>
+</section>
 <section id="v1-7-29">
   <h2>1.7.29 — You can see what arrived and where the score comes from</h2>
   <p class="fineprint">Release 1.7.29 · 12 September 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.29">Full release notes</a></p>

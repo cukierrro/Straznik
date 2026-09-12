@@ -763,6 +763,21 @@ async function initMap() {
         "line-width": ["case", ["in", ["get", "nazwa"], ["literal", PRIORITY]], 1.3, 0.7] },
     });
 
+    /* ── strefy PAŻP: WYŁĄCZNIE informacyjnie ────────────────────────────────
+       Nie dokładają punktów i nie wywołują alarmu. Pokazujemy je, bo bez tego
+       zamknięcie kawałka nieba przez wojsko było w aplikacji niewidoczne — a to
+       najbardziej namacalny ślad realnej reakcji na zagrożenie.
+       Bryła strefy stoi na SWOIM pułapie (GND–F095 to ok. 0–2,9 km), więc tonie
+       w bryle województwa (skala punktów · 16 km). Dlatego kontur i warstwa
+       dotyku idą OSOBNO, nad bryłami — inaczej strefy nie dałoby się ani
+       zobaczyć, ani kliknąć. */
+    map.addSource("strefy", { type: "geojson", data: emptyFC() });
+    map.addLayer({ id: "strefy-3d", type: "fill-extrusion", source: "strefy",
+      filter: ["!", ZONE_QUIET],
+      paint: { "fill-extrusion-color": ZONE_COLOR,
+        "fill-extrusion-base": ["get", "baseM"], "fill-extrusion-height": ["get", "topM"],
+        "fill-extrusion-opacity": 0.34 } });
+
     map.addSource("trails", { type: "geojson", data: emptyFC() });
     map.addLayer({ id: "trails", type: "line", source: "trails",
       paint: { "line-color": ["get", "color"], "line-width": 1.6, "line-opacity": 0.5,
@@ -836,11 +851,34 @@ async function initMap() {
     map.on("click", "voiv-extrude", (e) => {
       // nie otwieraj karty województwa, gdy kliknięto obiekt
       const hit = map.queryRenderedFeatures(e.point,
-        { layers: ["threats", "threats-glow", "adsb"] });
+        { layers: ["threats", "threats-glow", "adsb", "strefy-hit"] });
       if (hit.length) return;
       const name = e.features?.[0]?.properties?.nazwa;
       if (name) { openCard(name); }
     });
+
+    /* Ciche strefy dostają ledwo widoczną plamę, zeby kształt dało się odczytac
+       bez zalewania mapy; świeże aktywacje maja bryłę 3D warstwę wyżej.
+       UWAGA: line-dasharray NIE przyjmuje wyrażeń sterowanych danymi (MapLibre
+       rzuca błędem i cała warstwa nie powstaje) — różnicujemy samą grubością. */
+    map.addLayer({ id: "strefy-tlo", type: "fill", source: "strefy",
+      filter: ZONE_QUIET,
+      paint: { "fill-color": "#b39ddb", "fill-opacity": 0.07 } });
+    map.addLayer({ id: "strefy-line", type: "line", source: "strefy",
+      paint: { "line-color": ZONE_COLOR,
+        "line-opacity": ["case", ZONE_QUIET, 0.7, 0.95],
+        "line-width": ["case", ZONE_QUIET, 1.2, 1.9] } });
+    /* Przezroczysta warstwa dotyku: bryła strefy bywa schowana w bryle
+       województwa, a w sam kontur (1,5 px) nikt palcem nie trafi. */
+    map.addLayer({ id: "strefy-hit", type: "fill", source: "strefy",
+      paint: { "fill-color": "#000000", "fill-opacity": 0.001 } });
+    map.on("click", "strefy-hit", (e) => {
+      const hit = map.queryRenderedFeatures(e.point,
+        { layers: ["threats", "threats-glow", "adsb"] });
+      if (!hit.length) openZoneCard(e.features?.[0]?.properties);
+    });
+    map.on("mouseenter", "strefy-hit", () => map.getCanvas().style.cursor = "pointer");
+    map.on("mouseleave", "strefy-hit", () => map.getCanvas().style.cursor = "");
 
     // obrys mojego województwa
     /* Delikatna poświata TYLKO pod wybranym województwem — jedyne miejsce, gdzie
@@ -855,6 +893,8 @@ async function initMap() {
         "line-blur": 0.4 } });
 
     mapReady = true;
+    syncZonesButton();
+    refreshZones(true);
     if (state) { updateVoivStates(); updateAdsb(); }
     /* Ekran startowy jest ZAWSZE ten sam: Polska i cała Ukraina. Skok na zapisane
        województwo startował tak blisko, że nie było widać, skąd nadlatują obiekty —
@@ -866,6 +906,202 @@ async function initMap() {
 }
 
 const emptyFC = () => ({ type: "FeatureCollection", features: [] });
+
+/* ══ strefy PAŻP — warstwa czysto informacyjna ═════════════════════════════
+   Świadoma decyzja: strefy NIE wchodzą do punktacji i nie wywołują alarmu.
+   Aktywacja strefy jest skutkiem decyzji wojska, a nie niezależnym pomiarem
+   zagrożenia — dołożenie jej do sumy podwajałoby to samo zdarzenie. Ale bez
+   niej użytkownik nie widział rzeczy najbardziej namacalnej: że właśnie
+   zamknięto kawałek nieba nad jego głową. Stąd osobna warstwa i osobna karta. */
+/* Strefa „cicha" to taka, której WŁĄCZENIA nie widzieliśmy: albo stoi tu od
+   dawna, albo była już aktywna, gdy Strażnik startował. Nad Polską stoi
+   codziennie ~30 takich stref (pomiar 12.09.2026) — wypełnione bryłami zalewały
+   całą mapę i wyglądały jak alarm w każdym województwie. Dlatego tło dostaje
+   sam kontur, a bryłę tylko to, co realnie właśnie włączono. */
+const ZONE_QUIET = ["any", ["==", ["get", "standing"], true],
+                           ["==", ["get", "atBoot"], true]];
+const ZONE_COLOR = ["case", ZONE_QUIET, "#b39ddb", "#ffb020"];
+const ZONE_TTL_MS = 4 * 60 * 1000;
+let zonesData = null, zonesAt = 0, zonesPending = false;
+
+function zonesOn() {
+  try { return localStorage.getItem("straznik_zones") !== "0"; } catch { return true; }
+}
+
+/* GND / A020 / F095 → metry. PAŻP podaje pułap tekstem: GND to ziemia,
+   A0xx i F0xx to setki stóp (A = nad terenem, F = poziom lotu). */
+function zoneAltM(v) {
+  const t = String(v == null ? "" : v).trim().toUpperCase();
+  if (!t || t === "GND" || t === "SFC") return 0;
+  const m = t.match(/^[AF](\d+)$/);
+  if (m) return +m[1] * 100 * 0.3048;
+  const n = parseFloat(t);
+  return isNaN(n) ? 0 : n * 0.3048;
+}
+function zoneAltText(v) {
+  const t = String(v == null ? "" : v).trim().toUpperCase();
+  if (!t) return "?";
+  if (t === "GND" || t === "SFC") return UI.isEn ? "ground" : "ziemia";
+  const m = zoneAltM(t);
+  return m ? `${t} (${(m / 1000).toFixed(1).replace(".", UI.isEn ? "." : ",")} km)` : t;
+}
+
+async function refreshZones(force) {
+  if (zonesPending) return;
+  if (!force && Date.now() - zonesAt < ZONE_TTL_MS) return;
+  syncZonesButton();
+  if (!zonesOn()) return;
+  const base = apiBase();
+  // Tryb wbudowany liczy fuzję na telefonie, ale geometrii stref nie ma skąd
+  // wziąć — endpoint jest tylko na serwerze. Warstwa po prostu zostaje pusta.
+  if (!base || standalone) return;
+  zonesPending = true;
+  try {
+    const r = await fetch(base + "/api/zones", { signal: AbortSignal.timeout(12000) });
+    if (!r.ok) throw new Error("zones unavailable");
+    const j = await r.json();
+    if (base !== apiBase() || standalone) return;   // serwer zmieniony w locie
+    const fc = j.zones && Array.isArray(j.zones.features) ? j.zones : emptyFC();
+    for (const f of fc.features) {
+      const p = f.properties || (f.properties = {});
+      p.baseM = zoneAltM(p.lower);
+      // minimum 400 m grubości, inaczej płaska strefa znika przy pochyleniu mapy
+      p.topM = Math.max(zoneAltM(p.upper), p.baseM + 400);
+    }
+    zonesData = fc; zonesAt = Date.now();
+    applyZones();
+  } catch { /* strefy są dodatkiem — ich brak niczego nie blokuje */ }
+  finally { zonesPending = false; }
+}
+
+function applyZones() {
+  if (!mapReady || !map.getSource("strefy")) return;
+  const on = zonesOn();
+  map.getSource("strefy").setData(on && zonesData ? zonesData : emptyFC());
+  for (const id of ["strefy-3d", "strefy-tlo", "strefy-line", "strefy-hit"])
+    if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", on ? "visible" : "none");
+}
+
+function syncZonesButton() {
+  const b = document.getElementById("btn-zones");
+  if (!b) return;
+  // W trybie wbudowanym nie ma czego pokazywać, więc przycisk znika zamiast
+  // udawać, że działa.
+  b.style.display = (standalone || !apiBase()) ? "none" : "";
+  const on = zonesOn();
+  b.setAttribute("aria-pressed", on ? "true" : "false");
+  const t = on ? (UI.isEn ? "Hide PAŻP zones" : "Ukryj strefy PAŻP")
+               : (UI.isEn ? "Show PAŻP zones" : "Pokaż strefy PAŻP");
+  b.title = t; b.setAttribute("aria-label", t);
+  const label = b.querySelector("span");
+  if (label) label.textContent = UI.isEn ? "zones" : "strefy";
+}
+
+/* ── karta strefy: po ludzku, bez żargonu lotniczego ─────────────────────── */
+const ZONE_KIND = {
+  D:     ["strefa niebezpieczna (D)", "danger area (D)"],
+  R:     ["strefa ograniczona (R)", "restricted area (R)"],
+  P:     ["strefa zakazana (P)", "prohibited area (P)"],
+  NPZ:   ["strefa zakazu lotów (NPZ)", "no-flight zone (NPZ)"],
+  ADHOC: ["strefa doraźna (ADHOC)", "ad-hoc zone (ADHOC)"],
+  TSA:   ["strefa czasowo wydzielona (TSA)", "temporary segregated area (TSA)"],
+  TRA:   ["strefa czasowo rezerwowana (TRA)", "temporary reserved area (TRA)"],
+  MRT:   ["trasa lotów wojskowych (MRT)", "military training route (MRT)"],
+};
+const ZONE_MEANING = {
+  D: ["Nad tym obszarem odbywa się działalność niebezpieczna dla lotnictwa — najczęściej strzelania albo ćwiczenia wojskowe.",
+      "Activity hazardous to aircraft takes place here — usually live firing or military exercises."],
+  R: ["Loty w tym obszarze są ograniczone: wejść może tylko ten, kto ma zgodę.",
+      "Flights here are restricted: only aircraft with clearance may enter."],
+  P: ["Loty w tym obszarze są zakazane.", "Flights here are prohibited."],
+  NPZ: ["Zakaz lotów — obszar zamknięty dla ruchu lotniczego.",
+        "No-flight zone — the area is closed to air traffic."],
+  ADHOC: ["Strefa powołana doraźnie, zwykle na kilka–kilkanaście godzin, decyzją podjętą tego samego dnia.",
+          "A zone raised at short notice, usually for a few hours, on a same-day decision."],
+  TSA: ["Kawałek nieba wydzielony na czas ćwiczeń lub lotów wojskowych — na ten czas zwykły ruch go omija.",
+        "A block of airspace segregated for military training or operations — ordinary traffic routes around it."],
+  TRA: ["Kawałek nieba zarezerwowany czasowo, najczęściej na loty wojskowe.",
+        "A block of airspace reserved temporarily, most often for military flights."],
+};
+
+function zoneClock(iso) {
+  const t = Date.parse(iso);
+  if (isNaN(t)) return "?";
+  return new Date(t).toLocaleString(UI.isEn ? "en-GB" : "pl-PL",
+    { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+}
+function zoneSinceText(sinceEpochS) {
+  const t = Number(sinceEpochS) * 1000;
+  if (!t || isNaN(t)) return "";
+  const h = (Date.now() - t) / 3600000;
+  if (h < 1) return UI.isEn ? `${Math.max(1, Math.round(h * 60))} min ago`
+                            : `${Math.max(1, Math.round(h * 60))} min temu`;
+  if (h < 48) return UI.isEn ? `${Math.round(h)} h ago` : `${Math.round(h)} godz. temu`;
+  return UI.isEn ? `${Math.round(h / 24)} days ago` : `${Math.round(h / 24)} dni temu`;
+}
+
+function openZoneCard(p) {
+  if (!p) return;
+  markSelected(null, null);
+  const en = UI.isEn;
+  const type = String(p.type || "").toUpperCase();
+  const kind = (ZONE_KIND[type] || [type, type])[en ? 1 : 0];
+  const standing = p.standing === true || p.standing === "true";
+  let meaning = (ZONE_MEANING[type] || ["", ""])[en ? 1 : 0];
+  /* Strefa doraźna, która stoi tygodniami, przestaje być doraźna — opis „zwykle
+     na kilka godzin" kłóciłby się z wierszem o tym, że to stan (np. EPR134 nad
+     pasem przygranicznym, przedłużana od 10.09.2026). */
+  if (standing && type === "ADHOC")
+    meaning = en
+      ? "A zone raised by an administrative decision. This one keeps being extended, so it stays up for weeks rather than hours."
+      : "Strefa powołana decyzją administracyjną. Ta akurat jest przedłużana, więc stoi tygodniami, a nie godzinami.";
+  const color = standing ? "#b39ddb" : "#ffb020";
+  /* „Od kiedy” bierzemy z chwili, w której Strażnik zobaczył strefę po raz
+     pierwszy, a nie z pola startDate — plan dobowy PAŻP przepisuje tę samą
+     strefę codziennie od 06:00 UTC, więc startDate kłamałby o świeżości. */
+  const since = zoneSinceText(p.since);
+  const time = standing
+    ? (en ? `This zone has been standing here for a long time — it is a state, not a new event.`
+          : `Ta strefa stoi tu od dłuższego czasu — to stan, nie nowe zdarzenie.`)
+    : (p.atBoot === true || p.atBoot === "true")
+      ? (en ? "The zone was already active when Strażnik started watching — it may have been switched on earlier."
+            : "Strefa była już aktywna, gdy Strażnik zaczął obserwację — mogła zostać włączona wcześniej.")
+      : (en ? `Strażnik saw it switch on ${since || "recently"}.`
+            : `Strażnik zobaczył jej włączenie ${since || "niedawno"}.`);
+  const untilRaw = zoneClock(p.end);
+  const until = untilRaw === "?" ? ""
+    : `${en ? "Planned end" : "Planowany koniec"}: <b>${esc2(untilRaw)}</b><br>`;
+  showCard(`
+    <b style="color:${color}">▦ ${esc2(String(p.designator || "—"))}</b>
+      <span style="color:#8fa3c4">· ${esc2(kind)}</span><br>
+    ${meaning ? `<span>${esc2(meaning)}</span><br>` : ""}
+    <span style="color:#8fa3c4">${esc2(time)}</span><br>
+    ${until}
+    ${en ? "Altitude band" : "Pułap"}: <b>${esc2(zoneAltText(p.lower))} – ${esc2(zoneAltText(p.upper))}</b><br>
+    ${p.voiv ? `<button type="button" class="chip btn-zone-voiv" data-voiv="${esc2(p.voiv)}"
+        style="margin:5px 0 6px">${en ? "Province" : "Województwo"}: ${esc2(UI.voiv(p.voiv))} ›</button><br>` : ""}
+    ${p.remarks ? `<span style="color:#68758c">${en ? "PAŻP note" : "Adnotacja PAŻP"}: ${esc2(String(p.remarks))}</span><br>` : ""}
+    <span style="color:#68758c">${en
+      ? "This is information, not an alert. Zones add no points to the province level — closing airspace is a decision by the military, not an independent measurement of the threat. Source: PAŻP (AUP/UUP)."
+      : "To informacja, nie alarm. Strefy nie dodają punktów do poziomu województwa — zamknięcie nieba jest decyzją wojska, a nie niezależnym pomiarem zagrożenia. Źródło: PAŻP (AUP/UUP)."}</span>`, { big: true });
+}
+
+/* Dotknięcie wnętrza dużej strefy trafia w strefę, nie w województwo — bez tego
+   przycisku województwo w całości przykryte strefą byłoby na mapie nieklikalne. */
+document.addEventListener("click", (e) => {
+  const b = e.target.closest?.(".btn-zone-voiv");
+  if (!b) return;
+  hideCard();
+  openCard(b.dataset.voiv);
+});
+
+document.getElementById("btn-zones")?.addEventListener("click", () => {
+  const next = !zonesOn();
+  try { localStorage.setItem("straznik_zones", next ? "1" : "0"); } catch {}
+  syncZonesButton();
+  if (next) refreshZones(true); else applyZones();
+});
+
 
 /* ── karta samolotu: kraj z zakresu hex, lokalne zdjęcie modelu, ślad ────── */
 const adsbByHex = new Map();     // hex → pełny obiekt maszyny (właściwe typy)
@@ -980,28 +1216,33 @@ function markSelected(kind, id) {
   } catch {}
 }
 
-function showCard(html) {
+function showCard(html, opts) {
   const body = document.getElementById("ac-card-body");
   if (!body) return;
   body.innerHTML = html;
   const card = document.getElementById("ac-card");
   card.classList.remove("hidden");
   card.scrollTop = 0;
-  applyCardSize();
+  applyCardSize(opts && opts.big === true);
 }
 function hideCard() {
-  document.getElementById("ac-card")?.classList.add("hidden");
+  const card = document.getElementById("ac-card");
+  if (card) { card.classList.add("hidden"); card.dataset.forceBig = ""; }
   markSelected(null, null);
 }
 
 /* Karta obiektu ma dwa rozmiary: miniatura w rogu (domyślnie — nie zasłania mapy)
    i rozwinięta karta na niemal cały ekran. Wybór zostaje na urządzeniu. */
 function cardBig() { try { return localStorage.getItem("straznik_card_big") === "1"; } catch { return false; } }
-function applyCardSize() {
+function applyCardSize(force) {
   const card = document.getElementById("ac-card");
   const btn = document.getElementById("ac-card-zoom");
   if (!card) return;
-  const big = cardBig();
+  /* Karta strefy to sam opis — w miniaturze wychodzi 10-punktowa ściana tekstu.
+     Otwieramy ją rozwiniętą JEDNORAZOWO, nie zmieniając ustawienia zapisanego
+     przez użytkownika dla kart obiektów; zwinięcie przyciskiem znosi wymuszenie. */
+  if (force === true) card.dataset.forceBig = "1";
+  const big = card.dataset.forceBig === "1" || cardBig();
   card.classList.toggle("big", big);
   if (btn) {
     const t = big ? (UI.isEn ? "Collapse card" : "Zwiń kartę")
@@ -1482,7 +1723,8 @@ function renderPanel() {
     .sort((a, b) => (b[1].score - a[1].score) ||
       (PRIORITY.indexOf(a[0]) + 99) - (PRIORITY.indexOf(b[0]) + 99));
   // zawsze: mój region + priorytetowe + wszystkie z jakimkolwiek sygnałem
-  const show = voivs.filter(([n, st]) => st.score > 0 || PRIORITY.includes(n) || n === mine);
+  const show = voivs.filter(([n, st]) => st.score > 0 || PRIORITY.includes(n)
+    || n === mine || forcedVoivs.has(n));
   if (mine) show.sort((a, b) => (b[0] === mine) - (a[0] === mine));
   // Rozwinięte karty i pozycja przewinięcia MUSZĄ przeżyć przebudowę listy:
   // panel odświeża się przy każdym stanie z serwera i co 30 s, więc rozwinięta
@@ -1500,6 +1742,7 @@ function renderPanel() {
         ? (UI.isEn ? "below threshold" : "poniżej progu") : LEVEL_LABEL[st.level]}
         <span class="muted">· ${UI.isEn ? "thresholds" : "progi"}: ≥${f.thresholds.elevated} ${UI.isEn ? "attention" : "uwaga"}, ≥${f.thresholds.high} ${UI.isEn ? "priority" : "priorytet"}</span></div>
       ${scoreBreakdown(st)}
+      ${zonesRowHTML(name)}
       <div class="voiv-breakdown">${st.signals.length
         ? sigList(st.signals)
         : `<div class="fineprint">${UI.isEn ? "no signals in the window" : "brak sygnałów w oknie"}</div>`}
@@ -1517,6 +1760,8 @@ function renderPanel() {
   if (panelEl && keepScroll) panelEl.scrollTop = keepScroll;
   document.querySelectorAll(".btn-cams").forEach(el =>
     el.addEventListener("click", (e) => { e.stopPropagation(); showCameras(el.dataset.voiv); }));
+  document.querySelectorAll(".btn-zone").forEach(el =>
+    el.addEventListener("click", (e) => { e.stopPropagation(); openZoneByName(el.dataset.zone); }));
 
   // baner mojego regionu — zawsze widoczny, niezależnie od panelu
   const banner = document.getElementById("my-banner");
@@ -1824,10 +2069,41 @@ function scoreBreakdown(st) {
     parts.join(" + ")}${zeroNote}</div>`;
 }
 
+/* Strefy nad danym województwem — druga droga do karty strefy, niezależna od
+   celowania palcem w mapę. Bez tego trzeba by trafić w konkretny wielokąt. */
+function zonesForVoiv(name) {
+  if (!zonesOn() || !zonesData) return [];
+  return zonesData.features
+    .filter(f => f.properties?.voiv === name)
+    .map(f => f.properties);
+}
+function zonesRowHTML(name) {
+  const z = zonesForVoiv(name);
+  if (!z.length) return "";
+  const chips = z.map(p => `<button class="chip btn-zone" data-zone="${esc(String(p.designator))}"
+      >${esc(String(p.designator))}</button>`).join(" ");
+  return `<div class="voiv-zones fineprint">${UI.isEn ? "PAŻP zones" : "Strefy PAŻP"}
+    <span class="muted">(${UI.isEn ? "no points" : "bez punktów"})</span>: ${chips}</div>`;
+}
+function openZoneByName(designator) {
+  const f = (zonesData?.features || []).find(x => x.properties?.designator === designator);
+  if (f) openZoneCard(f.properties);
+}
+
+/* Województwa dotknięte na mapie, które nie zmieściłyby się w panelu z własnych
+   powodów (zero punktów, poza ścianą wschodnią, nie moje). Bez tego dotknięcie
+   spokojnego województwa otwierało pusty panel — karty po prostu nie było. */
+const forcedVoivs = new Set();
+
 function openCard(name) {
   setPanel(true);   // klasa "open" była pozostałością po starym układzie panelu
+  if (name && !document.querySelector(`.voiv-card[data-voiv="${CSS.escape(name)}"]`)) {
+    forcedVoivs.add(name);
+    openVoivs.add(name);
+    renderPanel();
+  }
   const el = document.querySelector(`.voiv-card[data-voiv="${CSS.escape(name)}"]`);
-  if (el) { el.classList.add("open"); el.scrollIntoView({ behavior: "smooth" }); }
+  if (el) { el.classList.add("open"); openVoivs.add(name); el.scrollIntoView({ behavior: "smooth" }); }
 }
 
 /* Co znaczy każda dioda i dlaczego bywa czerwona — czerwona kropka bez
@@ -2006,7 +2282,10 @@ document.getElementById("watch-close")?.addEventListener("click", () =>
   document.getElementById("watch").close());
 document.getElementById("ac-card-x")?.addEventListener("click", () => hideCard());
 document.getElementById("ac-card-zoom")?.addEventListener("click", () => {
-  try { localStorage.setItem("straznik_card_big", cardBig() ? "0" : "1"); } catch {}
+  const card = document.getElementById("ac-card");
+  const big = card?.dataset.forceBig === "1" || cardBig();
+  if (card) card.dataset.forceBig = "";
+  try { localStorage.setItem("straznik_card_big", big ? "0" : "1"); } catch {}
   applyCardSize();
   document.getElementById("ac-card").scrollTop = 0;
 });
@@ -3393,6 +3672,7 @@ if (!localStorage.getItem("straznik_onboarded")) {
   setTimeout(maybeOfferBackground, 2500);
 }
 setInterval(() => { if (state) renderPanel(); }, 30000);  // odświeżaj "x min temu"
+setInterval(() => refreshZones(), 60000);   // strefy: własny TTL 4 min w środku
 setInterval(pollOnce, 60000);                              // siatka bezpieczeństwa
 setTimeout(checkForUpdate, 6000);   // po starcie, gdy mapa i dane są już w drodze
 // Powrót aplikacji na wierzch traktujemy jak kolejne otwarcie — z odstępem,

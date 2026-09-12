@@ -39,6 +39,18 @@
   <p class="fineprint">Wersję zainstalowaną na telefonie sprawdzisz w aplikacji: <kbd>⚙</kbd> → zakładka <kbd>Aplikacja</kbd> → „Wersja aplikacji”. Tam też jest przycisk <kbd>⬆ Sprawdź aktualizacje</kbd>.</p>
 </div></header>
 <main id="content" class="wrap">
+<section id="v1-7-30">
+  <h2>1.7.30 — Widać strefy PAŻP, a północ przestaje być ślepa</h2>
+  <p class="fineprint">Wydanie 1.7.30 · 12 września 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.30">Pełny opis wydania</a></p>
+  <ul>
+    <li>Nowy przycisk „strefy” na mapie pokazuje aktywne strefy przestrzeni powietrznej. Dotknięcie strefy tłumaczy po ludzku, co to jest, od kiedy Strażnik widzi ją włączoną, do kiedy ma obowiązywać i na jakiej wysokości.</li>
+    <li>Strefy nie dodają punktów i nie wywołują alarmu — zamknięcie nieba jest decyzją wojska, a nie niezależnym pomiarem zagrożenia. Karta mówi to wprost.</li>
+    <li>Strefa stojąca od dawna ma spokojny kontur, a bryłę dostaje tylko strefa włączona na naszych oczach — inaczej 31 stref zalewało mapę i wyglądało jak alarm w całym kraju.</li>
+    <li>Północ (pomorskie, zachodniopomorskie, warmińsko-mazurskie, kujawsko-pomorskie) liczy się inaczej, bo NEPTUN pokrywa Ukrainę i daje tam zero. Strefa PAŻP waży tam 1 pkt zamiast 0,5, a incydenty bałtyckie i zamknięcia nieba na Litwie i w Estonii docierają wreszcie na wybrzeże.</li>
+    <li>Nadal żaden pojedynczy sygnał nie podnosi poziomu sam: strefa 1 + ruch ADS-B 1 = 2 pkt, strefa 1 + incydent bałtycki 1 = 2 pkt. Strefy powtarzające się w ciągu 7 dni to rutyna i nie punktują wcale.</li>
+    <li>Województwo w całości przykryte dużą strefą znów da się dotknąć; karta strefy prowadzi do województwa, a karta województwa wylicza swoje strefy.</li>
+  </ul>
+</section>
 <section id="v1-7-29">
   <h2>1.7.29 — Widać, co przyleciało i skąd bierze się wynik</h2>
   <p class="fineprint">Wydanie 1.7.29 · 12 września 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.29">Pełny opis wydania</a></p>

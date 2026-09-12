@@ -30,6 +30,10 @@
     "wysokość bryły 3D rośnie z liczbą punktów;": "3D height increases with the point total;",
     "kliknij obiekt lub województwo po szczegóły": "select an object or province for details",
     "Województwa (suma pkt z 60 min)": "Provinces (60-minute point total)",
+    "Strefy PAŻP (tylko informacyjnie)": "PAŻP zones (information only)",
+    "strefa stała — stoi tu od dawna": "standing zone — it has been here for a long time",
+    "strefa włączona ostatnio (D / R / ADHOC / TSA)": "recently activated zone (D / R / ADHOC / TSA)",
+    "strefy": "zones",
     "0–1.9 pkt — spokojnie": "0–1.9 pts — calm", "≥ 2 pkt — podwyższona uwaga": "≥ 2 pts — elevated attention",
     "≥ 4 pkt — wysoki priorytet": "≥ 4 pts — high priority",
     "WYSOKI PRIORYTET": "HIGH PRIORITY", "PODWYŻSZONA UWAGA": "ELEVATED ATTENTION",
@@ -155,6 +159,11 @@
     // Atrybucja jest podzielona linkami na kilka węzłów, więc jej krótkie
     // fragmenty tłumaczymy bez usuwania wymaganych odnośników do mapy i danych.
     const fragments = [["agregator OSINT — nie radar", "OSINT aggregator — not radar"],
+      // wiersz legendy o śmigłowcu jest jednym węzłem łamanym w źródle na dwie linie,
+      // więc nie trafia w słownik całych fraz — tłumaczymy go po kawałku
+      ["śmigłowiec wojskowy (ADS-B)", "military helicopter (ADS-B)"],
+      ["kliknij maszynę: model, przeznaczenie, operator",
+       "select an aircraft: model, role and operator"],
       ["zawsze sprawdzaj", "always check"], ["Mapa:", "Map:"]];
     for (const node of nodes) for (const [from,to] of fragments)
       if (node.nodeValue.includes(from)) node.nodeValue = node.nodeValue.replaceAll(from,to);
@@ -184,7 +193,11 @@
     set("#more-sheet h3", "More");
     setMany("#more-sheet .sheet-row span", ["About and scoring", "User guide",
       "Support the author"]);
-    setMany("#map-actions .map-btn span", ["my region", "whole PL"]);
+    // kolejność kafelków na mapie: mój region → strefy → cała PL
+    setMany("#map-actions .map-btn span", ["my region", "zones", "whole PL"]);
+    const zoneNote = [...document.querySelectorAll("#legend .muted-row")].pop();
+    if (zoneNote) zoneNote.textContent = "zones add NO points — they are shown so you "
+      + "can see when and where a block of airspace is closed; tap a zone for details";
     const live = document.getElementById("tb-live");
     if (live) live.textContent = "▶ Back to live view";
     set(".tb-mode", "⏱ HISTORY MODE");
@@ -217,6 +230,13 @@
       "NEPTUN is an OSINT/crowdsourced aggregator, not radar, so confidence and position uncertainty are always shown. A new ID at the same locality-centre point does not prove a new physical object and is not automatically counted twice. ADS-B contains only public transponder emissions and cannot reveal aircraft flying dark.",
       "Data: NEPTUN · adsb.lol / airplanes.live · PAŻP · gov.pl/RCB · regional and Baltic media · neighbouring airspace sources · map © CARTO, © OpenStreetMap"
     ]);
+    const north = document.querySelector("#about .about-note");
+    if (north) north.innerHTML = "<b>The north (Pomeranian, West Pomeranian, "
+      + "Warmian-Masurian, Kuyavian-Pomeranian) is scored differently</b>, because "
+      + "NEPTUN covers Ukraine and gives those provinces zero. What remains is PA\u017bP, "
+      + "ADS-B, Baltic media, RCB and neighbouring closures, so a PA\u017bP zone weighs 1 pt "
+      + "there instead of 0.5. None of these raises the level on its own: zone 1 + ADS-B "
+      + "activity 1 = 2 pts (yellow), zone 1 + Baltic incident 1 = 2 pts.";
     set("#about .warn-box", "This is NOT an official warning system. It does not replace sirens, RCB or RSO alerts. In a real emergency, follow official channels. Strażnik provides an additional, potentially earlier signal — nothing more.");
     setMany("#about h3", ["How it works", "How NEPTUN object points are calculated", "Estimated arrival time", "Levels", "Where to find things", "What this app does NOT do"]);
     setMany("#about .about-tab:first-of-type tr td:nth-child(2)", [
@@ -225,8 +245,8 @@
       "Local reports of sirens, explosions or airspace violations; one article alone cannot trigger an alert",
       "Official RCB alert from the Regional Warning System or a new gov.pl/RCB notice",
       "Military aviation activity over twice the seven-day baseline for the same time of day",
-      "Rare ground-up ADHOC/R/NPZ/D zone; routine and repeating zones do not score",
-      "Air incident reported by Lithuanian, Latvian or Estonian media; an all-clear ends its contribution",
+      "Rare ground-up ADHOC/R/NPZ/D zone; routine and repeating zones do not score. In the north it weighs twice as much, because NEPTUN does not reach there",
+      "Air incident reported by Lithuanian, Latvian or Estonian media; an all-clear ends its contribution. It reaches the whole coast: Podlaskie, Warmian-Masurian and Pomeranian at full weight, West Pomeranian at half",
       "NATO neighbour airspace closure in northern Romania, Estonia or Lithuania — observational signal"
     ]);
     setMany("#about .about-tab:nth-of-type(2) tr td:first-child", ["Object class", "Count", "Distance", "Confidence", "Position quality"]);
@@ -246,6 +266,9 @@
       "Legend — explains every map symbol and colour.",
       "⚙ Settings — your province, alert permissions, sound tests, language and optional backend.",
       "◎ / ⤢ — return to your region or show Poland and Ukraine.",
+      "zones — shows active PAŻP airspace zones (airspace closed by the military). "
+        + "Tap a zone to see what it is and since when it has been active. Zones add no "
+        + "points — they are information only.",
       "Top LEDs — data-source status; select an object or aircraft for details."
     ]);
     set("#about-close", "I understand — continue");

@@ -14,7 +14,8 @@ const WINDOW_MIN = 60, FULL_MIN = 30, TH_ELEVATED = 2, TH_HIGH = 4, COOLDOWN_MIN
 const ETA_BUFFER_MIN = 2.5, ETA_ELEVATED_MIN = 10, ETA_HIGH_MIN = 5, ETA_MIN_SOURCES = 2;
 const HISTORY_H = 12;   // ile godzin trzymamy do przeglądania wstecz
 const POINTS = { neptun_high: 3, neptun_medlow: 1.5, media_keywords: 1, media_critical: 1.5,
-                 adsb_spike: 1, rcb_alert: 2, ua_alert_border: 1, baltic_context: 1, pansa_zone: 0.5 };
+                 adsb_spike: 1, rcb_alert: 2, ua_alert_border: 1, baltic_context: 1, pansa_zone: 0.5,
+                 pansa_zone_north: 1 };
 // Neptun ma wyższy limit niż reszta (każdy track to osobny fizyczny obiekt),
 // ale nie nieograniczony — przy kilkudziesięciu obiektach suma i tak dawno
 // przekroczyła próg alarmu, a trzycyfrowa punktacja psułaby czytelność skali.
@@ -242,7 +243,12 @@ const RSS_FEEDS = [
   ["https://news.google.com/rss/search?q=(%22alarm%20powietrzny%22%20OR%20%22zawy%C5%82y%20syreny%22%20OR%20%22naruszenie%20przestrzeni%20powietrznej%22%20OR%20%22zestrzelono%20dron%22)&hl=pl&gl=PL&ceid=PL:pl", null]];
 const BALTIC_FEEDS = [["https://news.err.ee/rss","EE"],["https://eng.lsm.lv/rss/","LV"],
   ["https://www.delfi.lt/rss/feeds/daily.xml","LT"]];
-const BALTIC_TARGETS = ["podlaskie","warmińsko-mazurskie"];
+/* Incydent nad Bałtykiem dotyczy całego wybrzeża, nie tylko flanki wschodniej;
+   waga maleje z odległością od miejsca zdarzenia. Musi się zgadzać z
+   config.BALTIC_TARGET_WEIGHTS — pilnuje tego scripts/test_spojnosc.py. */
+const BALTIC_TARGET_WEIGHTS = {"podlaskie":1, "warmińsko-mazurskie":1,
+                               "pomorskie":1, "zachodniopomorskie":0.5};
+const BALTIC_TARGETS = Object.keys(BALTIC_TARGET_WEIGHTS);
 const BALTIC_CLEAR = ["alert over","alert is over","threat over","threat is over",
   "warning over","warning is over","warning lifted","alert lifted","threat ended",
   "threat has ended","danger has passed","all clear","no longer a threat","cancelled","canceled",
@@ -1067,7 +1073,8 @@ async function tickRss() {
         const hits = matchKw(text, B_CRITICAL, B_AIR, B_EVENT, B_EXCLUDE);
         if (!hits.length) continue;
         for (const v of BALTIC_TARGETS)
-          addSignal("media","baltic_context",v,POINTS.baltic_context,
+          addSignal("media","baltic_context",v,
+            POINTS.baltic_context * (BALTIC_TARGET_WEIGHTS[v] ?? 1),
             `Media ${country}: „${it.title.slice(0,110)}”`,
             {link:it.link, country, incident_key:incident},
             `baltic:${it.link||it.title}:${v}`);

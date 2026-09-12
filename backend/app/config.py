@@ -154,6 +154,10 @@ POINTS = {
     "neptun_medlow": 1.5,
     "adsb_spike": 1.0,
     "pansa_zone": 0.5,
+    # Północ (patrz NORTH_VOIVODESHIPS): ta sama strefa waży dwa razy tyle, bo
+    # nie ma tam warstwy wyprzedzającej z NEPTUN-a. Nadal NIE domyka alarmu sama
+    # (próg żółty 2,0) — musi spotkać się z drugim, niezależnym źródłem.
+    "pansa_zone_north": 1.0,
     "media_keywords": 1.0,     # OBIEKT+ZDARZENIE: sygnał pomocniczy wymagający
                                # potwierdzenia przez inną klasę źródła.
     "media_critical": 1.5,     # Jednoznaczna relacja operacyjna jest silniejsza,
@@ -271,6 +275,13 @@ VOIVODESHIPS = [
     "opolskie",
 ]
 PRIORITY_VOIVODESHIPS = ["lubelskie", "podkarpackie", "podlaskie", "warmińsko-mazurskie"]
+
+# ── północ: Pomorze, Kaliningrad, Bałtyk ────────────────────────────────────
+# Tu nie ma NEPTUN-a (pokrywa Ukrainę), więc jedyne sygnały wyprzedzające to
+# strefy PAŻP, ruch ADS-B, media bałtyckie i zamknięcia u sąsiadów. Dlatego
+# strefa PAŻP punktuje także tutaj, a nie tylko na ścianie wschodniej.
+NORTH_VOIVODESHIPS = ["zachodniopomorskie", "pomorskie", "warmińsko-mazurskie",
+                      "kujawsko-pomorskie"]
 
 # Obwody UA, w których alarm powietrzny jest sygnałem dla polskich województw,
 # wraz z NAJKRÓTSZĄ odległością wielokąta obwodu od wielokąta województwa (km).
@@ -505,7 +516,13 @@ BALTIC_FEEDS = [
     ("https://eng.lsm.lv/rss/", "LV"),
     ("https://www.delfi.lt/rss/feeds/daily.xml", "LT"),
 ]
-BALTIC_TARGET_VOIVS = ["podlaskie", "warmińsko-mazurskie"]
+# Incydent powietrzny nad Bałtykiem dotyczy całego wybrzeża, nie tylko flanki
+# wschodniej. Waga maleje z odległością od miejsca zdarzenia: podlaskie,
+# warmińsko-mazurskie i pomorskie w pełni, zachodniopomorskie o połowę słabiej
+# (Estonia leży od niego ~900 km).
+BALTIC_TARGET_WEIGHTS = {"podlaskie": 1.0, "warmińsko-mazurskie": 1.0,
+                         "pomorskie": 1.0, "zachodniopomorskie": 0.5}
+BALTIC_TARGET_VOIVS = list(BALTIC_TARGET_WEIGHTS)
 BALTIC_CRITICAL_KEYWORDS = [
     "airspace violation", "violated airspace", "airspace was violated",
     "air raid", "airspace closed", "shot down a drone", "scrambled jets",

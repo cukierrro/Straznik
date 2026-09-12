@@ -16,6 +16,23 @@ DOCS = ROOT / "docs"
 # (wersja, data PL, data EN, tytuł PL, tytuł EN, punkty PL, punkty EN, zrzuty)
 # Zrzut: (plik, alt PL, alt EN, podpis PL, podpis EN)
 RELEASES = [
+    ("1.7.30", "12 września 2026", "12 September 2026",
+     "Widać strefy PAŻP, a północ przestaje być ślepa",
+     "PAŻP zones are visible, and the north stops being blind",
+     ["Nowy przycisk „strefy” na mapie pokazuje aktywne strefy przestrzeni powietrznej. Dotknięcie strefy tłumaczy po ludzku, co to jest, od kiedy Strażnik widzi ją włączoną, do kiedy ma obowiązywać i na jakiej wysokości.",
+      "Strefy nie dodają punktów i nie wywołują alarmu — zamknięcie nieba jest decyzją wojska, a nie niezależnym pomiarem zagrożenia. Karta mówi to wprost.",
+      "Strefa stojąca od dawna ma spokojny kontur, a bryłę dostaje tylko strefa włączona na naszych oczach — inaczej 31 stref zalewało mapę i wyglądało jak alarm w całym kraju.",
+      "Północ (pomorskie, zachodniopomorskie, warmińsko-mazurskie, kujawsko-pomorskie) liczy się inaczej, bo NEPTUN pokrywa Ukrainę i daje tam zero. Strefa PAŻP waży tam 1 pkt zamiast 0,5, a incydenty bałtyckie i zamknięcia nieba na Litwie i w Estonii docierają wreszcie na wybrzeże.",
+      "Nadal żaden pojedynczy sygnał nie podnosi poziomu sam: strefa 1 + ruch ADS-B 1 = 2 pkt, strefa 1 + incydent bałtycki 1 = 2 pkt. Strefy powtarzające się w ciągu 7 dni to rutyna i nie punktują wcale.",
+      "Województwo w całości przykryte dużą strefą znów da się dotknąć; karta strefy prowadzi do województwa, a karta województwa wylicza swoje strefy."],
+     ["A new “zones” button on the map shows active airspace zones. Tapping a zone explains in plain language what it is, since when Strażnik has seen it active, when it is due to end and at what altitude.",
+      "Zones add no points and raise no alert — closing airspace is a decision by the military, not an independent measurement of the threat. The card says so explicitly.",
+      "A long-standing zone gets a quiet outline; only a zone switched on while we were watching gets a 3D block — otherwise 31 zones flooded the map and looked like a nationwide alert.",
+      "The north (Pomeranian, West Pomeranian, Warmian-Masurian, Kuyavian-Pomeranian) is scored differently, because NEPTUN covers Ukraine and gives it zero. A PAŻP zone weighs 1 pt there instead of 0.5, and Baltic incidents and Lithuanian or Estonian airspace closures finally reach the coast.",
+      "No single signal still raises the level on its own: zone 1 + ADS-B activity 1 = 2 pts, zone 1 + Baltic incident 1 = 2 pts. Zones repeating within 7 days are routine and score nothing.",
+      "A province fully covered by a large zone can be tapped again; the zone card leads to the province, and the province card lists its zones."],
+     []),
+
     ("1.7.29", "12 września 2026", "12 September 2026",
      "Widać, co przyleciało i skąd bierze się wynik",
      "You can see what arrived and where the score comes from",

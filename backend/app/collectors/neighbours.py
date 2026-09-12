@@ -72,8 +72,10 @@ _MEANINGFUL = {"PROHIBITED", "RD", "REQ_AUTHORISATION"}   # reszta = doradcze/ru
 _RO_NORTH = 47.0            # tylko północna RO (przy granicy z UA); płd./M.Czarne odpada
 _COUNTRY_VOIVS = {         # sygnał wyprzedzający → polskie województwo(a) przy tej flance
     "RO": ["podkarpackie"],
-    "EE": ["podlaskie", "warmińsko-mazurskie"],
-    "LT": ["podlaskie", "warmińsko-mazurskie"],
+    # Zamknięcie nieba u sąsiada nad Bałtykiem dotyczy też wybrzeża, nie tylko
+    # flanki wschodniej — bez tego pomorskie nie miało z tej warstwy nic.
+    "EE": ["podlaskie", "warmińsko-mazurskie", "pomorskie", "zachodniopomorskie"],
+    "LT": ["podlaskie", "warmińsko-mazurskie", "pomorskie", "zachodniopomorskie"],
     # LV CELOWO POMINIĘTA w punktowaniu: na Łotwie "PROHIBITED" to standardowy typ
     # stref dronowych (lotniska, granice) — ~671 aktywnych naraz, czysta rutyna, nie
     # zamknięcie przez zagrożenie (inna taksonomia niż RO/EE). Zostaje w logach

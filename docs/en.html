@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Strażnik 1.7.29 — user guide</title>
+<title>Strażnik 1.7.30 — user guide</title>
 <meta name="description" content="The current Strażnik user guide: Android installation and updates, alerts, maps, new object icons, history, languages and scoring. Screenshots from Pixel 7.">
 <link rel="canonical" href="https://cukierrro.github.io/Straznik/en.html">
 <link rel="alternate" hreflang="pl" href="https://cukierrro.github.io/Straznik/">
@@ -33,11 +33,11 @@
   <div class="languages" aria-label="Guide language"><a href="index.html" lang="pl" hreflang="pl">PL</a><a href="en.html" lang="en" aria-current="page">EN</a></div>
 </div></nav>
 <header class="hero"><div class="wrap hero-grid">
-  <div><div class="eyebrow">User guide · version 1.7.29</div>
+  <div><div class="eyebrow">User guide · version 1.7.30</div>
     <h1>The situation on a map.<br>The sources behind each signal.</h1>
     <p class="lead">Strażnik combines public information about airborne threats and displays a score for each Polish province. Available on Android and in your browser.</p>
     <div class="actions"><a class="button primary" href="https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk">↓ Download app</a><a class="button" href="https://straznik.eu">Open map</a></div>
-    <p class="fineprint">Guide for 1.7.29. Approximate-position card: 1.7.21, 11 September 2026. Captures of the current interface were made on 12 September 2026 on a Pixel 7 with Android 14 and <b>three-button</b> system navigation; older, unchanged screens are labelled individually. Tap any screenshot to open the full-size image.</p>
+    <p class="fineprint">Guide for 1.7.30. Approximate-position card: 1.7.21, 11 September 2026. Captures of the current interface were made on 12 September 2026 on a Pixel 7 with Android 14 and <b>three-button</b> system navigation; older, unchanged screens are labelled individually. Tap any screenshot to open the full-size image.</p>
   </div>
   <a class="shot-link" href="screens/start-en.jpg"><img src="screens/start-en.jpg" width="1080" height="2400" alt="Strażnik 1.7.23 on Pixel 7: English map labels, six green source indicators and the Map, Signals, History, More tab bar"></a>
 </div></header>
@@ -56,9 +56,38 @@
     <li>Confirm installation and launch Strażnik. Allow the system to scan the file; do not disable Play Protect.</li>
     <li>Allow notifications, choose your province and check full-screen alert permission.</li>
   </ol>
+  <h3 id="install-permission">The “Install unknown apps” permission — and how to revoke it</h3>
+  <p>Strażnik is not on Google Play, so the APK is opened from <b>Downloads</b>. Android will
+  not install it until the app that opens the file — usually <b>Chrome</b>, sometimes a file
+  manager or the GitHub app — has been granted <b>Install unknown apps</b>. That is why the
+  browser interrupts the installation and sends you to a system settings screen with an
+  <kbd>Allow from this source</kbd> switch. This is a normal step, not an error, and not a
+  sign that anything is wrong with the file.</p>
+  <p>Two things are worth knowing. First, this is <b>not</b> the old global “unknown sources”
+  setting — the permission applies only to the single app that opens the file, which is the
+  safer design. Second, it <b>stays on</b>: until you turn it off, that browser can install
+  apps later as well. So once Strażnik is installed, it is worth going back and restoring the
+  original setting.</p>
+  <div class="note"><b>How to revoke the permission after installing.</b>
+    <ol>
+      <li>Open <kbd>Settings</kbd> → <kbd>Apps</kbd> → <kbd>Special app access</kbd>
+        → <kbd>Install unknown apps</kbd>.</li>
+      <li>Pick the app you used to open the file (usually <b>Chrome</b>; when the permission
+        is on, it is listed as “Allowed”).</li>
+      <li>Turn <kbd>Allow from this source</kbd> off.</li>
+    </ol>
+    <p>A faster route: search <b>unknown</b> in <kbd>Settings</kbd>. You can also long-press the
+    browser icon → <kbd>App info</kbd> → <kbd>Install unknown apps</kbd>. The wording differs
+    slightly between Android 13, 14 and 15 and between manufacturers (Samsung, Xiaomi), but the
+    path is the same.</p>
+    <p>Strażnik works normally once the permission is off — it is only needed at the moment of
+    installation. The next update will ask for it again, and that is exactly the safer setting:
+    granted for one installation rather than permanently. <b>Do not turn off Play Protect</b> —
+    it scans the file before installation and has nothing to do with this permission.</p></div>
+
   <p>If the GitHub app intercepts the download link and stalls, open the link in your browser instead. A <a href="https://github.com/cukierrro/Straznik/raw/main/Straznik.apk">backup APK in the repository</a> is also available.</p>
   <div class="note"><b>Check which version your phone has.</b> Open <kbd>&#9881;</kbd> &rarr; the <kbd>App</kbd> tab &mdash; the installed number is under the &ldquo;App version&rdquo; heading.
-    The latest release is <b>1.7.29</b>, published on <b>12 September 2026</b>. If you see an older number, tap <kbd>&#11014; Check for updates</kbd> or download the APK above. The full list of changes per release is in the <a href="zmiany-en.html">changelog</a>.</div>
+    The latest release is <b>1.7.30</b>, published on <b>12 September 2026</b>. If you see an older number, tap <kbd>&#11014; Check for updates</kbd> or download the APK above. The full list of changes per release is in the <a href="zmiany-en.html">changelog</a>.</div>
   <div class="split">
     <div>
       <h3>Updating from inside the app</h3>

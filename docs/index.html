@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Strażnik 1.7.29 — instrukcja użytkownika</title>
-<meta name="description" content="Aktualna instrukcja Strażnika 1.7.29: dolne zakładki, karta obiektu jako miniatura, instalacja i aktualizacje Android, alarmy, mapa, historia, języki i punktacja. Zrzuty z Pixela 7.">
+<title>Strażnik 1.7.30 — instrukcja użytkownika</title>
+<meta name="description" content="Aktualna instrukcja Strażnika 1.7.30: dolne zakładki, karta obiektu jako miniatura, instalacja i aktualizacje Android, alarmy, mapa, historia, języki i punktacja. Zrzuty z Pixela 7.">
 <link rel="canonical" href="https://cukierrro.github.io/Straznik/">
 <link rel="alternate" hreflang="pl" href="https://cukierrro.github.io/Straznik/">
 <link rel="alternate" hreflang="en" href="https://cukierrro.github.io/Straznik/en.html">
@@ -33,11 +33,11 @@
   <div class="languages" aria-label="Język instrukcji"><a href="index.html" lang="pl" aria-current="page">PL</a><a href="en.html" lang="en" hreflang="en">EN</a></div>
 </div></nav>
 <header class="hero"><div class="wrap hero-grid">
-  <div><div class="eyebrow">Instrukcja użytkownika · wersja 1.7.29</div>
+  <div><div class="eyebrow">Instrukcja użytkownika · wersja 1.7.30</div>
     <h1>Sytuacja na mapie.<br>Źródła za każdym sygnałem.</h1>
     <p class="lead">Strażnik łączy publiczne informacje o zagrożeniach powietrznych i pokazuje ich punktację dla polskich województw. Dostępny na Androidzie i w przeglądarce.</p>
     <div class="actions"><a class="button primary" href="https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk">↓ Pobierz aplikację</a><a class="button" href="https://straznik.eu">Otwórz mapę</a></div>
-    <p class="fineprint">Instrukcja dla 1.7.29. Karta pozycji przybliżonej: 1.7.21, 11 września 2026. Zrzuty aktualnego interfejsu wykonano 12 września 2026 na Pixelu 7 z Androidem 14 i <b>trzyprzyciskową</b> nawigacją systemową; starsze, niezmienione ekrany opisano przy zrzutach. Dotknij zdjęcia, aby otworzyć je w pełnym rozmiarze.</p>
+    <p class="fineprint">Instrukcja dla 1.7.30. Karta pozycji przybliżonej: 1.7.21, 11 września 2026. Zrzuty aktualnego interfejsu wykonano 12 września 2026 na Pixelu 7 z Androidem 14 i <b>trzyprzyciskową</b> nawigacją systemową; starsze, niezmienione ekrany opisano przy zrzutach. Dotknij zdjęcia, aby otworzyć je w pełnym rozmiarze.</p>
   </div>
   <a class="shot-link" href="screens/01_start.jpg"><img src="screens/01_start.jpg" width="1080" height="2400" alt="Strażnik 1.7.23 na Pixelu 7: mapa, sześć zielonych diod źródeł i dolne zakładki Mapa, Sygnały, Historia, Więcej"></a>
 </div></header>
@@ -56,9 +56,41 @@
     <li>Zatwierdź instalację i uruchom Strażnika. Pozwól systemowi przeskanować plik; nie wyłączaj Play Protect.</li>
     <li>Zezwól na powiadomienia, wybierz województwo i sprawdź zgodę na pełny ekran.</li>
   </ol>
+  <h3 id="zgoda-instalacji">Zgoda „Instalowanie nieznanych aplikacji” — i jak ją cofnąć</h3>
+  <p>Strażnik nie jest w sklepie Google Play, więc plik APK otwiera się z <b>Pobranych</b>.
+  Android nie pozwoli go zainstalować, dopóki aplikacja, która ten plik otwiera —
+  najczęściej <b>Chrome</b>, czasem menedżer plików albo aplikacja GitHuba — nie dostanie
+  uprawnienia <b>Instalowanie nieznanych aplikacji</b>. Dlatego przeglądarka przerywa
+  instalację i przenosi Cię do ustawień systemowych z przełącznikiem
+  <kbd>Zezwalaj z tego źródła</kbd>. To normalny krok, nie błąd i nie oznaka, że coś
+  jest nie tak z plikiem.</p>
+  <p>Warto wiedzieć dwie rzeczy. Po pierwsze, to <b>nie</b> jest dawne globalne
+  „nieznane źródła” — uprawnienie dotyczy tylko tej jednej aplikacji, która otwiera plik,
+  i to jest bezpieczniejsze rozwiązanie. Po drugie, <b>zostaje włączone</b>: dopóki go nie
+  wyłączysz, ta przeglądarka może instalować aplikacje także później. Dlatego po
+  zainstalowaniu Strażnika warto wrócić do ustawień i przywrócić stan wyjściowy.</p>
+  <div class="note"><b>Jak cofnąć zgodę po instalacji.</b>
+    <ol>
+      <li>Otwórz <kbd>Ustawienia</kbd> → <kbd>Aplikacje</kbd> → <kbd>Specjalny dostęp do aplikacji</kbd>
+        → <kbd>Instalowanie nieznanych aplikacji</kbd>.</li>
+      <li>Wybierz z listy aplikację, której użyłeś do otwarcia pliku (zwykle <b>Chrome</b>;
+        przy zgodzie włączonej zobaczysz przy niej podpis „Dozwolone”).</li>
+      <li>Wyłącz <kbd>Zezwalaj z tego źródła</kbd>.</li>
+    </ol>
+    <p>Szybciej: w <kbd>Ustawieniach</kbd> użyj wyszukiwarki i wpisz <b>nieznanych</b>.
+    Można też przytrzymać ikonę przeglądarki → <kbd>Informacje o aplikacji</kbd> →
+    <kbd>Instalowanie nieznanych aplikacji</kbd>. Nazwy pozycji różnią się nieco między
+    Androidem 13, 14 i 15 oraz między producentami (Samsung, Xiaomi), ale ścieżka jest
+    ta sama.</p>
+    <p>Po wyłączeniu zgody Strażnik działa normalnie — uprawnienie jest potrzebne tylko
+    w chwili instalacji. Przy następnej aktualizacji Android poprosi o nie ponownie i to
+    jest właśnie bezpieczniejsze ustawienie: zgoda włączona na jedną instalację zamiast
+    na stałe. <b>Nie wyłączaj Play Protect</b> — skanuje plik przed instalacją i nie ma
+    nic wspólnego z tą zgodą.</p></div>
+
   <p>Jeśli aplikacja GitHub przechwytuje link i pobieranie staje, otwórz link w przeglądarce. Dostępna jest też <a href="https://github.com/cukierrro/Straznik/raw/main/Straznik.apk">kopia APK w repozytorium</a>.</p>
   <div class="note"><b>Sprawdź, jaką wersję masz w telefonie.</b> Otwórz <kbd>⚙</kbd> → zakładka <kbd>Aplikacja</kbd> — pod nagłówkiem „Wersja aplikacji” zobaczysz zainstalowany numer.
-    Najnowsze wydanie to <b>1.7.29</b> z dnia <b>12 września 2026</b>. Jeśli masz starszy numer, dotknij <kbd>⬆ Sprawdź aktualizacje</kbd> albo pobierz APK powyżej. Pełną listę zmian w każdym wydaniu znajdziesz w <a href="zmiany.html">historii zmian</a>.</div>
+    Najnowsze wydanie to <b>1.7.30</b> z dnia <b>12 września 2026</b>. Jeśli masz starszy numer, dotknij <kbd>⬆ Sprawdź aktualizacje</kbd> albo pobierz APK powyżej. Pełną listę zmian w każdym wydaniu znajdziesz w <a href="zmiany.html">historii zmian</a>.</div>
   <div class="split">
     <div>
       <h3>Aktualizacja z poziomu aplikacji</h3>

@@ -205,7 +205,8 @@ async def _check_baltic_feed(client: httpx.AsyncClient, url: str, country: str):
         for voiv in config.BALTIC_TARGET_VOIVS:
             await fusion.ingest(
                 source="media", event_type="baltic_context", voivodeship=voiv,
-                points=config.POINTS["baltic_context"],
+                points=config.POINTS["baltic_context"]
+                       * config.BALTIC_TARGET_WEIGHTS.get(voiv, 1.0),
                 title=f"Media {country}: „{title[:110]}”",
                 details={"link": link, "keywords": hits, "country": country,
                          "incident_key": incident_key},

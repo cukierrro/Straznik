@@ -881,6 +881,20 @@ body.panel-open #bottom-stack > #update-banner:not(.critical) { display: none; }
 #map-actions .map-btn svg { width: 21px; height: 21px; fill: none; stroke: currentColor;
   stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 #map-actions .map-btn:hover { border-color: var(--accent); }
+/* przełącznik stref PAŻP: stan włączony/wyłączony musi być widoczny bez tekstu,
+   bo kafelek ma miejsce tylko na jedno słowo */
+/* strefy PAŻP w karcie województwa — druga droga do opisu strefy, gdy trafienie
+   palcem w wielokąt na mapie jest niewygodne */
+.voiv-zones { margin: 6px 0 2px; display: flex; flex-wrap: wrap; align-items: center;
+  gap: 5px; }
+.voiv-zones .btn-zone { padding: 2px 7px; font-size: 11px; border-radius: 8px;
+  border-color: rgba(179,157,219,.45); color: #d9cdf3; background: rgba(179,157,219,.09); }
+.voiv-zones .btn-zone:hover { border-color: #b39ddb; }
+
+#map-actions .map-btn[aria-pressed="true"] { border-color: rgba(179,157,219,.62);
+  color: #d9cdf3; }
+#map-actions .map-btn[aria-pressed="false"] { opacity: .48; }
+#map-actions .map-btn[aria-pressed="false"]:hover { opacity: .8; }
 
 /* ── arkusz „Więcej” ── */
 .sheet { width: min(460px, 94vw); padding: 16px 16px calc(16px + var(--safe-b)); }

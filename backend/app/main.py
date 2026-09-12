@@ -229,6 +229,17 @@ async def api_health():
     }
 
 
+@app.get("/api/zones")
+async def api_zones():
+    """Aktywne strefy PAŻP o charakterze wojskowym — WYŁĄCZNIE informacyjnie.
+
+    Nie wchodzą do punktacji i nie wywołują powiadomień. Osobny endpoint, a nie
+    część /api/state, bo geometria stref waży setki kilobajtów, a stan leci przez
+    WebSocket co kilka sekund. Aplikacja pobiera to raz na kilka minut.
+    """
+    return {"zones": pansa.zones_geojson(), "events": pansa.zone_events()}
+
+
 @app.get("/api/app-version")
 async def api_app_version():
     """Bezpieczne metadane APK. GitHub jest odpytywany najwyżej raz na 15 min,
