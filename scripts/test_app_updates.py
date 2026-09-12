@@ -1,4 +1,8 @@
 """Regresje metadanych bezpiecznej aktualizacji APK."""
+import asyncio
+import time
+
+from app import app_updates
 from app.app_updates import _change_items, _release_data
 
 
@@ -28,7 +32,41 @@ def main():
         raise AssertionError("brak APK powinien zostać odrzucony")
     except ValueError:
         pass
-    print("OK: app update metadata")
+
+    # Limit GitHuba (403) nie może kończyć się komunikatem „nie udało się sprawdzić”,
+    # jeśli mamy ostatnie znane wydanie — oddajemy je z flagą `stale`.
+    calls = {"n": 0}
+
+    async def boom():
+        calls["n"] += 1
+        raise RuntimeError("403 rate limit exceeded")
+
+    saved = dict(app_updates._cache)
+    original_fetch, original_save = app_updates._fetch, app_updates._save_store
+    try:
+        app_updates._fetch = boom
+        app_updates._save_store = lambda data, at: None
+        app_updates._cache.update(at=0.0, data=normal, failed_at=0.0)
+        stale = asyncio.run(app_updates.latest())
+        assert stale["stale"] is True and stale["version"] == "1.8.0", stale
+        assert stale["sha256"] == digest, "suma z ostatniego wydania musi zostać"
+        # przerwa po błędzie: kolejne telefony nie dokładają się do limitu
+        asyncio.run(app_updates.latest())
+        assert calls["n"] == 1, calls
+
+        # bez żadnych znanych danych błąd nadal jest błędem
+        app_updates._cache.update(at=0.0, data=None, failed_at=0.0)
+        try:
+            asyncio.run(app_updates.latest())
+            raise AssertionError("bez danych zapasowych powinien być wyjątek")
+        except RuntimeError:
+            pass
+    finally:
+        app_updates._fetch, app_updates._save_store = original_fetch, original_save
+        app_updates._cache.clear()
+        app_updates._cache.update(saved)
+
+    print("OK: app update metadata + stale fallback")
 
 
 if __name__ == "__main__":
