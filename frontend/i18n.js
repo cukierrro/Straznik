@@ -86,20 +86,23 @@
       const el=document.getElementById(id)?.closest("label");
       if (el?.firstChild) el.firstChild.nodeValue=(en?eng:pl)+"\n      ";
     };
-    many(":scope form > h3", en
-      ? ["My places","Interface language","Alerts while the app is closed","Alert sounds","App version"]
-      : ["Moje miejsca","Język interfejsu","Alarmy przy zamkniętej aplikacji","Sygnały dźwiękowe","Wersja aplikacji"]);
-    many(":scope form > p.fineprint:not(#app-version):not(#upd-status)", en ? [
-      "Save up to 8 places and choose which provinces you want notifications for. Exact places remain on this device.",
+    // kolejność zgodna z zakładkami: Alarmy → Moje miejsca → Dźwięk → Aplikacja
+    many(":scope .set-pane > h3", en
+      ? ["Alerts while the app is closed","My places","Alert sounds","Interface language","App version"]
+      : ["Alarmy przy zamkniętej aplikacji","Moje miejsca","Sygnały dźwiękowe","Język interfejsu","Wersja aplikacji"]);
+    many(":scope .set-tab", en
+      ? ["Alerts","My places","Sound","App"] : ["Alarmy","Moje miejsca","Dźwięk","Aplikacja"]);
+    many(":scope .set-pane > p.fineprint:not(#app-version):not(#upd-status):not(#more-links)", en ? [
       "Alerts for your province arrive as push notifications even when the app is closed or the phone is asleep. Full-screen permission is required for a red alert to wake the screen.",
       "A full-screen alert wakes the display and appears above the lock screen. Android 14 or later may revoke this permission after an update, so verify it manually.",
+      "Save up to 8 places and choose which provinces you want notifications for. Exact places remain on this device.",
       "Yellow (≥2 pts): attention sound and heads-up notification. Red (≥4 pts): modulated siren, vibration and a full-screen alert.",
       "The red siren continues until you acknowledge the alert.",
       "The app checks for a newer release once a day. A dismissed non-critical update can be checked again here."
     ] : [
-      "Zapisz do 8 miejsc i wybierz, dla których województw chcesz otrzymywać powiadomienia. Dokładne miejsca zostają na tym urządzeniu.",
       "Alarmy dla Twojego województwa przychodzą jako powiadomienie push — także gdy aplikacja jest zamknięta, ekran wygaszony albo telefon w uśpieniu.",
       "Alarm pełnoekranowy zapala ekran i pokazuje się nad blokadą. Android 14 i nowszy może cofnąć tę zgodę po aktualizacji, dlatego sprawdź ją osobiście.",
+      "Zapisz do 8 miejsc i wybierz, dla których województw chcesz otrzymywać powiadomienia. Dokładne miejsca zostają na tym urządzeniu.",
       "Żółty poziom (≥2 pkt) — krótki sygnał uwagi i powiadomienie. Czerwony (≥4 pkt) — modulowana syrena, wibracja i alarm pełnoekranowy.",
       "Przy czerwonym poziomie syrena gra bez przerwy, aż potwierdzisz alarm przyciskiem na ekranie.",
       "Aplikacja sama sprawdza raz na dobę, czy jest nowsze wydanie. Pominiętą aktualizację sprawdzisz ręcznie tym przyciskiem."
@@ -168,6 +171,15 @@
     });
     set(".brand-info", "Strażnik is an unofficial early-warning system. It combines NEPTUN, ADS-B, PAŻP, RCB, media and Ukrainian regional alerts into one air-threat assessment for Polish provinces. It is an additional source and does not replace sirens, RCB or RSO alerts.");
     set("#disclaimer span", "UNOFFICIAL additional source — it does not replace sirens, RCB or RSO alerts. In a real emergency, follow official instructions.");
+    // nowa nawigacja 1.7.23: dolne zakładki, menu „Więcej", kadrowanie mapy
+    setMany("#tabbar .tab-btn > span:not(.badge)", ["Map", "Signals", "History", "More"]);
+    set("#more-sheet h3", "More");
+    setMany("#more-sheet .sheet-row span", ["Map legend", "3D view",
+      "Foreign aircraft (RU/BY)", "About and scoring", "User guide", "Support the author"]);
+    setMany("#map-actions .map-btn span", ["my region", "whole PL"]);
+    setMany("#settings .set-tab", ["Alerts", "My places", "Sound", "App"]);
+    const moreClose = document.querySelector('#more-sheet button[value="cancel"]');
+    if (moreClose) moreClose.textContent = "Close";
     set("#adsb-list + p", "Public transponder data (aircraft that choose to be visible) — this is NOT hostile-aircraft tracking.");
     set("#alarm-overlay .alarm-note", "This is an UNOFFICIAL signal. Check sirens, RCB and RSO alerts — official channels are authoritative.");
     set("#about .about-sub", "unofficial fusion of air-threat signals");
@@ -226,10 +238,10 @@
       "Strażnik is useful only if it can warn you before you open it. Alerts for your region arrive as push notifications, even when the app is closed and the screen is off.",
       "Notification permission is required. For red alerts, full-screen alert permission is also recommended."
     ]);
-    setMany("#settings form > p.fineprint:not(#app-version):not(#upd-status)", [
-      "Save up to 8 places and choose which provinces you want notifications for. Exact places remain on this device.",
+    setMany("#settings .set-pane > p.fineprint:not(#app-version):not(#upd-status):not(#more-links)", [
       "Alerts for your province arrive as push notifications even when the app is closed or the phone is asleep. Full-screen permission is required for a red alert to wake the screen.",
       "A full-screen alert wakes the display and appears above the lock screen. Android 14 or later may revoke this permission after an update, so verify it manually.",
+      "Save up to 8 places and choose which provinces you want notifications for. Exact places remain on this device.",
       "Yellow (≥2 pts): attention sound and heads-up notification. Red (≥4 pts): modulated siren, vibration and a full-screen alert.",
       "The red siren continues until you acknowledge the alert.",
       "The app checks for a newer release once a day. A dismissed non-critical update can be checked again here."

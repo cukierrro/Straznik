@@ -283,6 +283,16 @@ UA_BORDER_OBLASTS = {
     "Житомирська": ["lubelskie"],
 }
 
+# Nazwa obwodu w tytule sygnału po polsku — użytkownik nie ma czytać cyrylicy
+# w polskim interfejsie (zgłoszone 12.09.2026).
+UA_OBLAST_PL = {
+    "Волинська": "wołyńskim",
+    "Львівська": "lwowskim",
+    "Закарпатська": "zakarpackim",
+    "Рівненська": "rówieńskim",
+    "Житомирська": "żytomierskim",
+}
+
 # Klasyfikacja RSS (patrz textmatch.py) ma trzy rozłączne wyniki:
 #   0 pkt  — ćwiczenia, administracja, publicystyka, historia i następstwa prawne;
 #   1,0 pkt — obiekt powietrzny + zdarzenie, wymagające innej klasy źródła;

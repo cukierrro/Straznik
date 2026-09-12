@@ -1364,6 +1364,10 @@ const safeUrl = (u) => {
   } catch { return ""; }
 };
 
+/* Które karty województw są rozwinięte — stan trzymany poza DOM, bo listę
+   przebudowujemy przy każdym odświeżeniu stanu. */
+const openVoivs = new Set();
+
 function renderPanel() {
   // w trybie historii panel należy do wybranej chwili — cykliczne odświeżanie
   // (co 30 s) i napływające stany nie mogą go podmienić na dane bieżące
@@ -1378,8 +1382,14 @@ function renderPanel() {
   // zawsze: mój region + priorytetowe + wszystkie z jakimkolwiek sygnałem
   const show = voivs.filter(([n, st]) => st.score > 0 || PRIORITY.includes(n) || n === mine);
   if (mine) show.sort((a, b) => (b[0] === mine) - (a[0] === mine));
+  // Rozwinięte karty i pozycja przewinięcia MUSZĄ przeżyć przebudowę listy:
+  // panel odświeża się przy każdym stanie z serwera i co 30 s, więc rozwinięta
+  // karta zwijała się sama, a treść „uciekała" spod palca (zgłoszone 12.09.2026).
+  const panelEl = document.getElementById("panel");
+  const keepScroll = panelEl?.scrollTop || 0;
   document.getElementById("voiv-cards").innerHTML = show.map(([name, st]) => `
-    <div class="voiv-card level-${st.level}${name === mine ? " is-mine" : ""}" data-voiv="${esc(name)}">
+    <div class="voiv-card level-${st.level}${name === mine ? " is-mine" : ""}${
+      openVoivs.has(name) ? " open" : ""}" data-voiv="${esc(name)}">
       <div class="voiv-head">
         <span class="voiv-name">${esc(UI.voiv(name))}</span>
         <span class="voiv-score">${st.score.toFixed(1)} ${UI.isEn ? "pts" : "pkt"}</span>
@@ -1396,7 +1406,12 @@ function renderPanel() {
           : ""}</div>
     </div>`).join("");
   document.querySelectorAll(".voiv-card").forEach(el =>
-    el.addEventListener("click", () => el.classList.toggle("open")));
+    el.addEventListener("click", () => {
+      const open = el.classList.toggle("open");
+      const name = el.dataset.voiv;
+      if (open) openVoivs.add(name); else openVoivs.delete(name);
+    }));
+  if (panelEl && keepScroll) panelEl.scrollTop = keepScroll;
   document.querySelectorAll(".btn-cams").forEach(el =>
     el.addEventListener("click", (e) => { e.stopPropagation(); showCameras(el.dataset.voiv); }));
 
@@ -1486,9 +1501,17 @@ function sigList(arr, limit) {
 
 /* Etykiety źródeł po polsku — „PANSA"/„NEIGHBOURS" nic nie mówiły użytkownikowi. */
 const SRC_LABEL = { neptun: "NEPTUN", media: "MEDIA", rcb: "RCB", adsb: "ADS-B",
-  pansa: "PAŻP", neighbours: "SĄSIEDZI", spillover: "SĄSIEDZTWO", test: "TEST" };
+  pansa: "PAŻP", neighbours: "SĄSIEDZI", spillover: "SĄSIEDZTWO",
+  // osobna klasa od 1.7.22: oficjalny alarm powietrzny w przygranicznym obwodzie UA
+  ua_alert: "ALARM UA", test: "TEST" };
 const SRC_ICON = { neptun: "🎯", media: "📰", rcb: "🚨", adsb: "✈", pansa: "🛑",
-  neighbours: "🌍", spillover: "↔", test: "🧪" };
+  neighbours: "🌍", spillover: "↔", ua_alert: "📢", test: "🧪" };
+/* Nazwy obwodów UA do tytułu sygnału — po polsku i po angielsku, żeby interfejs
+   nie pokazywał cyrylicy ani polskiego tekstu w wersji angielskiej. */
+const UA_OBLAST_PL_UI = { "Волинська": "wołyńskim", "Львівська": "lwowskim",
+  "Закарпатська": "zakarpackim", "Рівненська": "rówieńskim", "Житомирська": "żytomierskim" };
+const UA_OBLAST_EN = { "Волинська": "Volyn", "Львівська": "Lviv",
+  "Закарпатська": "Zakarpattia", "Рівненська": "Rivne", "Житомирська": "Zhytomyr" };
 
 function sigHTML(s) {
   const link = safeUrl(s.details?.link || s.details?.url);
@@ -1529,6 +1552,22 @@ function sigHTML(s) {
   if (!signalApprox && etaV != null) extra.push(`⏱ ${etaTxt(etaV)} ${UI.isEn ? "to" : "do woj."} ${UI.voiv(mineV)}`);
   else if (!signalApprox && d.eta_border_min != null) extra.push(`⏱ ${etaTxt(d.eta_border_min)} ${UI.isEn ? "to border" : "do granicy"}`);
   let shownTitle = s.title;
+  // Tytuły, które PISZEMY SAMI (alarm obwodu UA, przeniesienie od sąsiada), muszą
+  // iść za językiem interfejsu — serwer zapisuje je po polsku, więc w wersji
+  // angielskiej zostawały polskie. Cytaty ze źródeł (NEPTUN, RCB, media) zostają
+  // w oryginale, bo to przytoczenie cudzej treści.
+  if (s.event_type === "ua_alert_border" && d.oblast) {
+    const ob = UI.isEn ? (UA_OBLAST_EN[d.oblast] || d.oblast)
+                       : (UA_OBLAST_PL_UI[d.oblast] || d.oblast);
+    shownTitle = UI.isEn
+      ? `Air-raid alert in ${ob} oblast (borders ${UI.voiv(s.voivodeship)})`
+      : `Alarm powietrzny w obwodzie ${ob} (graniczy z woj. ${UI.voiv(s.voivodeship)})`;
+  } else if (s.event_type === "neighbour_spillover" && d.from) {
+    const factor = `${d.from_score} × 0.4^${d.depth}`;
+    shownTitle = UI.isEn
+      ? `Carried over from ${UI.voiv(d.from)} (${factor})`
+      : `Przeniesienie z woj. ${UI.voiv(d.from)} (${factor})`;
+  }
   // Polonizujemy także stare wpisy zapisane już w bazie, korzystając ze
   // stabilnego details.type zamiast ukraińskiego/rosyjskiego tytułu źródła.
   if (src === "neptun" && d.type) {
@@ -2261,6 +2300,7 @@ async function toggleHistory() {
   slider.max = String(histTimes.length - 1);
   slider.value = String(histTimes.length - 1);
   document.getElementById("btn-history").classList.add("active");
+  syncTabs();
   showHistoryAt(histTimes.length - 1);
   refreshWatchEvents(); // one small journal request, never one per slider movement
 }
@@ -2272,6 +2312,7 @@ function exitHistory() {
   document.body.classList.remove("history-mode");
   document.getElementById("timebar").classList.add("hidden");
   document.getElementById("btn-history").classList.remove("active");
+  syncTabs();
   if (state) { renderPanel(); if (mapReady) { updateVoivStates(); updateAdsb(); } }
   if (document.getElementById("watch")?.open) fillWatch();
 }
@@ -2485,6 +2526,22 @@ function openSettings() {
   dlg.showModal();
 }
 document.getElementById("btn-settings").onclick = () => openSettings();
+
+/* Zakładki w Ustawieniach: jedna długa lista zamieniona na cztery sekcje.
+   Zmiana zakładki przewija okno na górę, żeby nowa sekcja zaczynała się od
+   początku, a nie w połowie poprzedniej. */
+document.querySelectorAll("#settings .set-tab").forEach(tab =>
+  tab.addEventListener("click", () => {
+    const pane = tab.dataset.pane;
+    document.querySelectorAll("#settings .set-tab").forEach(t => {
+      const on = t === tab;
+      t.classList.toggle("active", on);
+      t.setAttribute("aria-selected", String(on));
+    });
+    document.querySelectorAll("#settings .set-pane").forEach(p =>
+      p.hidden = p.dataset.pane !== pane);
+    document.getElementById("settings").scrollTop = 0;
+  }));
 document.getElementById("set-lang")?.addEventListener("change", (event) => {
   UI.previewSettings?.(event.target.value);
   refreshBgStatus(event.target.value);
@@ -2847,13 +2904,32 @@ refreshBell();
 document.getElementById("btn-3d").onclick = () => {
   is3d = !is3d;
   map?.easeTo({ pitch: is3d ? 45 : 0, bearing: is3d ? -8 : 0, duration: 700 });
-  document.getElementById("btn-3d").textContent = is3d ? "3D" : "2D";
+  // etykieta w wierszu menu; ikona zostaje nietknięta
+  const lbl = document.querySelector("#btn-3d .lbl");
+  if (lbl) lbl.textContent = is3d ? (UI.isEn ? "3D view" : "Widok 3D")
+                                  : (UI.isEn ? "2D view" : "Widok 2D");
+  document.getElementById("btn-3d").classList.toggle("active", is3d);
 };
+
+/* Dolne zakładki: „Mapa" jest stanem spoczynku — zamyka panel, historię i menu. */
+function syncTabs() {
+  const panelOpen = !document.getElementById("panel").classList.contains("collapsed");
+  const histOn = document.body.classList.contains("history-mode");
+  const mapTab = document.getElementById("tab-map");
+  if (mapTab) {
+    mapTab.classList.toggle("active", !panelOpen && !histOn);
+    mapTab.setAttribute("aria-pressed", String(!panelOpen && !histOn));
+  }
+  document.getElementById("btn-panel")?.setAttribute("aria-pressed", String(panelOpen));
+  document.getElementById("btn-history")?.setAttribute("aria-pressed", String(histOn));
+}
+
 function setPanel(open) {
   const p = document.getElementById("panel");
   p.classList.toggle("collapsed", !open);
   document.getElementById("btn-panel").classList.toggle("active", open);
   document.body.classList.toggle("panel-open", open);
+  syncTabs();
 }
 document.getElementById("btn-panel").onclick = () =>
   setPanel(document.getElementById("panel").classList.contains("collapsed"));
@@ -2861,6 +2937,56 @@ document.getElementById("btn-legend").onclick = () => {
   document.getElementById("legend").classList.toggle("hidden");
   document.getElementById("btn-legend").classList.toggle("active");
 };
+
+/* Panel i przyciski mapy muszą wiedzieć, ile miejsca zajmuje dolny stos —
+   inaczej pasek zastrzeżenia zasłaniał nagłówek listy sygnałów. */
+const stackEl = document.getElementById("bottom-stack");
+if (stackEl && window.ResizeObserver) {
+  const setStackH = () => document.documentElement.style
+    .setProperty("--stack-h", stackEl.offsetHeight + "px");
+  new ResizeObserver(setStackH).observe(stackEl);
+  setStackH();
+}
+
+/* ✕ przy atrybucji NIE usuwa jej — zwija do jednej plakietki. Widoczna atrybucja
+   NEPTUN jest warunkiem korzystania z ich API, więc znika tylko z pola widzenia,
+   nie z ekranu. Dotknięcie plakietki rozwija ją z powrotem. */
+const attrEl = document.getElementById("attribution");
+if (attrEl) {
+  const mini = document.createElement("span");
+  mini.className = "mini-label";
+  mini.textContent = "źródła ⓘ";
+  attrEl.appendChild(mini);
+  if (localStorage.getItem("straznik_attr_mini") === "1") attrEl.classList.add("mini");
+  document.getElementById("attr-x")?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    attrEl.classList.add("mini");
+    try { localStorage.setItem("straznik_attr_mini", "1"); } catch {}
+  });
+  attrEl.addEventListener("click", () => {
+    if (!attrEl.classList.contains("mini")) return;
+    attrEl.classList.remove("mini");
+    try { localStorage.removeItem("straznik_attr_mini"); } catch {}
+  });
+}
+
+/* ── dolne zakładki i menu „Więcej” ── */
+const moreSheet = document.getElementById("more-sheet");
+document.getElementById("tab-more")?.addEventListener("click", () => {
+  if (moreSheet?.open) moreSheet.close(); else moreSheet?.showModal();
+});
+document.getElementById("tab-map")?.addEventListener("click", () => {
+  setPanel(false);
+  if (moreSheet?.open) moreSheet.close();
+  if (document.body.classList.contains("history-mode")) toggleHistory();
+  document.getElementById("legend")?.classList.add("hidden");
+  document.getElementById("btn-legend")?.classList.remove("active");
+  syncTabs();
+});
+// Wybór z menu wykonuje akcję i zamyka arkusz — inaczej zasłaniałby to,
+// co użytkownik przed chwilą włączył (legendę, widok 3D, listę maszyn).
+moreSheet?.querySelectorAll(".sheet-row").forEach(row =>
+  row.addEventListener("click", () => setTimeout(() => moreSheet.close(), 60)));
 
 /* Jedno zachowanie dla myszy i dotyku: panel, legenda i karta obiektu zamykają
    się po wskazaniu dowolnego miejsca poza nimi. pointerdown działa przed

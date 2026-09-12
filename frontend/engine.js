@@ -101,6 +101,9 @@ const UA_BORDER_OBLASTS = { "Волинська":["lubelskie"], "Львівсь�
   // Żytomierski nie graniczy z Polską, ale stamtąd — przez Białoruś — szły drony
   // 10.09.2026; alarm w tym obwodzie jest wskaźnikiem wyprzedzającym.
   "Житомирська":["lubelskie"] };
+/* Nazwa obwodu po polsku w tytule sygnału — lustro config.UA_OBLAST_PL. */
+const UA_OBLAST_PL = { "Волинська":"wołyńskim", "Львівська":"lwowskim",
+  "Закарпатська":"zakarpackim", "Рівненська":"rówieńskim", "Житомирська":"żytomierskim" };
 /* Klasyfikacja: CRITICAL oznacza 1,5 pkt, para AIR + EVENT 1,0 pkt. Twardy
    limit RSS 1,5 sprawia, że same media nigdy nie osiągają żółtego progu 2,0.
    Lustrzana kopia backend/app/config.py — testy w scripts/test_textmatch.py. */
@@ -794,7 +797,7 @@ function neptunAlerts(data) {
         const hk = new Date().toISOString().slice(0,13);
         for (const v of voivs)
           addSignal("ua_alert","ua_alert_border",v,POINTS.ua_alert_border,
-            `Alarm powietrzny w obwodzie ${ob} (graniczy z woj. ${v})`,{oblast:ob},
+            `Alarm powietrzny w obwodzie ${UA_OBLAST_PL[ob] || ob} (graniczy z woj. ${v})`,{oblast:ob},
             `neptun_alert:${ob}:${v}:${hk}`);
       }
     }

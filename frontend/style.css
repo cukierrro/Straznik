@@ -14,6 +14,8 @@
      krawędzi, musi ją doliczyć — inaczej przyciski Androida zasłaniają
      suwak historii, atrybucję i przyciski mapy. */
   --safe-b: env(safe-area-inset-bottom, 0px);
+  /* wysokość dolnego paska zakładek — odsuwa panel, kartę obiektu i stos komunikatów */
+  --tabbar-h: 62px;
   font-size: 15px;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -74,7 +76,8 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 #status-leds:hover { background: rgba(255,255,255,.06); }
 
 /* ── stała karta obiektu (samolot / obiekt) — bottom-sheet ── */
-#ac-card { position: fixed; left: 8px; right: 8px; bottom: calc(8px + var(--safe-b)); z-index: 1200;
+#ac-card { position: fixed; left: 8px; right: 8px; z-index: 1200;
+  bottom: calc(var(--tabbar-h) + var(--safe-b) + 8px);
   max-height: 60vh; overflow-y: auto; -webkit-overflow-scrolling: touch;
   background: #fff; color: #16202f; border-radius: 14px; padding: 14px 16px 16px;
   box-shadow: 0 8px 40px rgba(0,0,0,.55); font: 12.5px "Segoe UI", system-ui, sans-serif;
@@ -158,11 +161,9 @@ body.panel-open #bg-warning { display: none; }
    ograniczoną wysokość, a przewija się jej treść. Przyciski w osobnym rzędzie —
    wcześniej przy długim tekście ściskały go do kilku znaków. */
 #update-banner {
-  position: fixed; left: 50%; transform: translateX(-50%);
-  bottom: calc(14px + env(safe-area-inset-bottom)); z-index: 60;
   display: grid; gap: 10px; grid-template-columns: minmax(0, 1fr);
-  width: min(520px, calc(100vw - 20px));
-  max-height: calc(100dvh - var(--topbar-h, 52px) - 40px);
+  width: 100%; max-width: 520px; margin: 0 auto;
+  max-height: calc(100dvh - var(--topbar-h, 52px) - 140px);
   background: var(--panel, #151d2e); border: 1px solid var(--accent);
   border-radius: 12px; padding: 12px 14px;
   box-shadow: 0 14px 40px rgba(0,0,0,.5);
@@ -234,10 +235,10 @@ body.panel-open #update-banner:not(.critical) { display: none; }
 
 /* ── disclaimer ── */
 #disclaimer {
-  position: fixed; bottom: 0; left: 0; right: 0; z-index: 30;
-  background: rgba(64, 44, 6, 0.92); border-top: 1px solid rgba(255, 176, 32, .5);
+  position: relative; border-radius: 10px;
+  background: rgba(64, 44, 6, 0.95); border: 1px solid rgba(255, 176, 32, .5);
   color: #ffd98a; font-size: 11.5px; line-height: 1.35;
-  padding: 6px 34px calc(6px + env(safe-area-inset-bottom)); text-align: center;
+  padding: 7px 34px 7px 12px; text-align: center;
 }
 #disclaimer.hidden { display: none !important; }
 #disclaimer-x {
@@ -248,9 +249,13 @@ body.panel-open #update-banner:not(.critical) { display: none; }
 
 /* ── atrybucja ── */
 #attribution {
-  position: fixed; left: 10px; bottom: calc(46px + var(--safe-b)); z-index: 25;
   background: var(--panel); border: 1px solid var(--panel-border); border-radius: 8px;
-  font-size: 10.5px; color: var(--muted); padding: 5px 9px; max-width: 46vw;
+  font-size: 9.5px; line-height: 1.35; color: var(--muted); padding: 5px 9px;
+  max-width: 100%;
+  /* atrybucja NEPTUN musi być widoczna (warunek API), ale nie może zjadać pół
+     ekranu — trzy linie wystarczą, całość i tak jest w „O aplikacji" */
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 #attribution a { color: var(--cyan); text-decoration: none; }
 #attribution b { color: var(--text); }
@@ -258,7 +263,7 @@ body.panel-open #update-banner:not(.critical) { display: none; }
 /* ── panel boczny (wysuwany) ── */
 #panel {
   position: fixed; top: calc(54px + env(safe-area-inset-top)); right: 10px;
-  bottom: calc(52px + var(--safe-b)); z-index: 25;
+  bottom: calc(var(--tabbar-h) + var(--safe-b) + var(--stack-h, 0px) + 14px); z-index: 25;
   width: 340px; overflow-y: auto; scrollbar-width: thin;
   display: flex; flex-direction: column; gap: 12px;
   background: transparent;
@@ -266,15 +271,23 @@ body.panel-open #update-banner:not(.critical) { display: none; }
 }
 #panel.collapsed { transform: translateX(calc(100% + 16px)); opacity: 0;
   pointer-events: none; }
+/* Zamykanie panelu: wyraźny, okrągły cel dotyku z ramką i tłem — wcześniej goły
+   znak × zlewał się z mapą i wyglądał jak niedokończony element. */
 #panel-x {
-  position: sticky; top: 0; align-self: flex-end; z-index: 2;
-  background: var(--panel); border: 1px solid var(--panel-border); color: var(--text);
-  border-radius: 8px; width: 30px; height: 30px; cursor: pointer; font-size: 13px;
+  position: sticky; top: 0; align-self: flex-end; z-index: 3;
+  display: flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; border-radius: 50%; cursor: pointer;
+  background: rgba(20,28,46,.96); border: 1px solid var(--line-strong, rgba(120,150,210,.3));
+  color: var(--text); font-size: 15px; line-height: 1;
+  box-shadow: 0 4px 14px rgba(0,0,0,.45);
+  transition: background .15s, border-color .15s;
 }
+#panel-x:hover { background: rgba(36,48,74,.98); border-color: var(--accent); }
 
 /* ── przyciski nawigacji mapy (jak w Mapach Google) ── */
 #map-actions {
-  position: fixed; right: 12px; bottom: calc(120px + var(--safe-b)); z-index: 26;
+  position: fixed; right: 12px; z-index: 26; align-items: flex-end;
+  bottom: calc(var(--tabbar-h) + var(--safe-b) + var(--stack-h, 0px) + 16px);
   display: flex; flex-direction: column; gap: 8px;
 }
 .map-btn {
@@ -287,7 +300,6 @@ body.panel-open #update-banner:not(.critical) { display: none; }
 
 /* ── pasek historii 12 h ── */
 #timebar {
-  position: fixed; left: 10px; right: 10px; bottom: calc(46px + var(--safe-b)); z-index: 28;
   background: var(--panel); border: 1px solid var(--panel-border);
   border-radius: 12px; padding: 8px 12px; backdrop-filter: blur(8px);
 }
@@ -327,12 +339,11 @@ body.panel-open #update-banner:not(.critical) { display: none; }
 #tb-live.active { background: var(--accent); color: #fff; border-color: var(--accent); }
 #tb-info { margin-top: 4px; }
 body.history-mode #my-banner { display: none; }
-body.history-mode #attribution { bottom: calc(108px + var(--safe-b)); }
 
 /* ── baner mojego regionu ── */
 #my-banner {
-  /* nad atrybucją NEPTUN — ta musi pozostać widoczna (warunek API) */
-  position: fixed; left: 10px; bottom: calc(88px + var(--safe-b)); z-index: 27; max-width: 62vw;
+  /* w stosie nad atrybucją NEPTUN — ta musi pozostać widoczna (warunek API) */
+  max-width: 100%;
   background: var(--panel); border: 1px solid var(--panel-border);
   border-left: 3px solid var(--accent); border-radius: 10px;
   padding: 7px 11px; font-size: 12px; backdrop-filter: blur(8px);
@@ -659,15 +670,13 @@ dialog menu { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14
   #topbar { gap: 6px; padding-left: 10px; padding-right: 10px; }
   .top-actions { gap: 5px; }
   .chip { padding: 6px 8px; font-size: 13px; }
-  #btn-legend { font-size: 0; }
-  #btn-legend::before { content: "🗺"; font-size: 15px; }
   #status-leds { gap: 4px; }
   .led i { width: 7px; height: 7px; }
   #panel { left: 10px; width: auto; top: auto; height: 52vh; }
   #panel.collapsed { transform: translateY(calc(100% + 60px)); }
-  #attribution { max-width: 70vw; bottom: calc(42px + var(--safe-b)); }
-  #my-banner { max-width: 58vw; bottom: calc(92px + var(--safe-b)); }
-  #map-actions { bottom: calc(150px + var(--safe-b)); }
+  #attribution { font-size: 10px; }
+
+
   #legend { width: 210px; font-size: 11px; }
   /* na wąskim ekranie sam kubek — pełny napis nie mieści się w pasku */
   .chip.download { font-size: 0; padding: 5px 8px; }
@@ -681,3 +690,116 @@ dialog menu { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14
 }
 
 .maplibregl-ctrl-attrib { display: none !important; }
+
+/* ── dolny stos komunikatów ─────────────────────────────────────────────────
+   Jeden pojemnik zamiast pięciu osobno pozycjonowanych elementów. Kolejność w
+   kolumnie z odstępem sprawia, że nic nie może na siebie wejść, a zamknięcie
+   paska zastrzeżenia automatycznie przesuwa resztę w dół. */
+#bottom-stack {
+  position: fixed; left: 10px; right: 10px; z-index: 28;
+  bottom: calc(var(--tabbar-h) + var(--safe-b) + 8px);
+  display: flex; flex-direction: column; gap: 7px;
+  pointer-events: none;                 /* mapa pod spodem zostaje przesuwalna */
+}
+#bottom-stack > * { pointer-events: auto; }
+
+/* Atrybucja NEPTUN musi pozostać widoczna (warunek korzystania z API), więc ✕ nie
+   usuwa jej, tylko ZWIJA do jednej plakietki. Użytkownik odzyskuje ekran, a źródło
+   nadal jest podane; pełna lista jest też w „O aplikacji". */
+#attribution { position: relative; padding-right: 30px; }
+#attr-x {
+  position: absolute; top: 3px; right: 3px; width: 24px; height: 24px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%; cursor: pointer; font-size: 12px; line-height: 1;
+  background: rgba(20,28,46,.9); border: 1px solid var(--panel-border); color: var(--muted);
+}
+#attr-x:hover { color: var(--text); border-color: var(--accent); }
+#attribution.mini {
+  -webkit-line-clamp: 1; padding-right: 9px; cursor: pointer;
+  max-width: max-content;
+}
+#attribution.mini > :not(.mini-label) { display: none; }
+#attribution .mini-label { display: none; }
+#attribution.mini .mini-label { display: inline; }
+#bottom-stack > .hidden { display: none !important; }
+body.panel-open #bottom-stack > #update-banner:not(.critical) { display: none; }
+
+/* ── dolny pasek zakładek ──────────────────────────────────────────────────
+   Cztery cele dotyku z podpisami. Odstęp od systemowego paska nawigacji, żeby
+   zakładek nie mylić z przyciskami Androida. */
+#tabbar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  padding: 6px 4px calc(6px + var(--safe-b));
+  background: rgba(9, 13, 22, .96); border-top: 1px solid var(--panel-border);
+  backdrop-filter: blur(10px);
+}
+.tab-btn {
+  position: relative; display: grid; justify-items: center; gap: 3px;
+  padding: 6px 2px; border: 0; border-radius: 12px; background: transparent;
+  color: var(--muted); font: 500 10.5px/1.1 "Segoe UI", system-ui, sans-serif;
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.tab-btn svg { width: 23px; height: 23px; fill: none; stroke: currentColor;
+  stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active { color: var(--accent); background: rgba(91,140,255,.13); }
+.tab-btn .badge { position: absolute; top: 2px; right: 22%; }
+
+/* ── ikony w pasku górnym ── */
+.icon-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 38px; height: 38px; border-radius: 11px; cursor: pointer;
+  border: 1px solid var(--panel-border); background: rgba(18,26,43,.86);
+  color: var(--text);
+}
+.icon-btn svg { width: 20px; height: 20px; fill: none; stroke: currentColor;
+  stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.icon-btn:hover { border-color: var(--accent); }
+.icon-btn.active { background: rgba(91,140,255,.18); border-color: var(--accent); }
+
+/* ── przyciski kadrowania mapy ── */
+#map-actions .map-btn {
+  /* szerokość z treści, nie sztywna: „mój region" i „whole PL" łamały się na dwie
+     linie i wychodziły poza kafelek. Napis nigdy się nie zawija. */
+  display: grid; justify-items: center; gap: 3px; min-width: 64px; padding: 7px 9px 8px;
+  border-radius: 13px; background: rgba(13,18,32,.94);
+  border: 1px solid var(--line-strong, rgba(120,150,210,.3)); color: var(--text);
+  font: 500 9px/1.1 "Segoe UI", system-ui, sans-serif; cursor: pointer;
+}
+#map-actions .map-btn span { font-size: 9px; line-height: 1.2; white-space: nowrap; }
+#map-actions .map-btn svg { width: 19px; height: 19px; fill: none; stroke: currentColor;
+  stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+#map-actions .map-btn:hover { border-color: var(--accent); }
+
+/* ── arkusz „Więcej” ── */
+.sheet { width: min(460px, 94vw); padding: 16px 16px calc(16px + var(--safe-b)); }
+.sheet h3 { margin-bottom: 12px; }
+.sheet-list { display: grid; gap: 6px; }
+.sheet-row {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  padding: 12px 13px; border-radius: 11px; text-align: left; cursor: pointer;
+  border: 1px solid var(--panel-border); background: rgba(18,26,43,.7);
+  color: var(--text); font: 500 14px/1.25 "Segoe UI", system-ui, sans-serif;
+  text-decoration: none;
+}
+.sheet-row svg { width: 21px; height: 21px; flex: none; fill: none; stroke: currentColor;
+  stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; color: var(--accent); }
+.sheet-row:hover { border-color: var(--accent); background: rgba(91,140,255,.12); }
+.sheet-row.active { border-color: var(--accent); }
+
+/* ── zakładki w Ustawieniach ── */
+.set-tabs {
+  display: flex; gap: 6px; overflow-x: auto; padding-bottom: 10px;
+  margin: -2px -2px 12px; scrollbar-width: none;
+}
+.set-tabs::-webkit-scrollbar { display: none; }
+.set-tab {
+  flex: none; padding: 8px 12px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--line-strong, rgba(120,150,210,.3)); background: transparent;
+  color: var(--muted); font: 600 12.5px/1 "Segoe UI", system-ui, sans-serif;
+}
+.set-tab:hover { color: var(--text); }
+.set-tab.active { background: rgba(91,140,255,.16); border-color: var(--accent); color: var(--text); }
+.set-pane[hidden] { display: none; }
+.set-pane > h3:first-child { margin-top: 0; }

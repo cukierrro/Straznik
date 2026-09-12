@@ -22,7 +22,9 @@ assert.match(engine, /NEPTUN_POSITION_MULT/);
 assert.match(engine, /physical_key: physicalKey\(t\)/);
 assert.match(engine, /const speed = approx \? null : speedOf\(t\)/);
 assert.match(engine, /position_quality: t\.positionQuality/);
-assert.match(html, /engine\.js\?v=1\.7\.21/);
-assert.match(html, /app\.js\?v=1\.7\.21/);
+// Parametr cache musi rosnąć z każdym wydaniem (Cloudflare trzyma /app.js 4 h),
+// ale test nie może przypinać się do konkretnego numeru — sprawdzamy sam wzorzec.
+assert.match(html, /engine\.js\?v=\d+\.\d+\.\d+/);
+assert.match(html, /app\.js\?v=\d+\.\d+\.\d+/);
 
 console.log('OK — pozycje przybliżone bez ETA, predykcji i pozornej trasy');

@@ -49,7 +49,7 @@ document.documentElement.classList.add(
 </script>
 <link rel="manifest" href="manifest.json">
 <link rel="stylesheet" href="assets/vendor/maplibre-gl.css">
-<link rel="stylesheet" href="style.css?v=1.7.19-2">
+<link rel="stylesheet" href="style.css?v=1.7.23-1">
 </head>
 <body>
 
@@ -79,24 +79,21 @@ document.documentElement.classList.add(
        href="https://cukierrro.github.io/Straznik/" target="_blank" rel="noopener"
        title="Otwórz pełną instrukcję aplikacji Strażnik"
        aria-label="Otwórz pełną instrukcję aplikacji Strażnik">📖 Instrukcja</a>
-    <a id="btn-coffee" class="chip coffee" href="https://buycoffee.to/cukierrro"
+    <a id="btn-coffee" class="chip coffee web-only" href="https://buycoffee.to/cukierrro"
        target="_blank" rel="noopener"
        title="Postaw kawę dla cukierrro na buycoffee.to">☕ Postaw kawę</a>
-    <button id="btn-about" class="chip" title="O aplikacji — co to jest i jak działa">?</button>
-    <button id="btn-legend" class="chip" title="Legenda symboli">Legenda</button>
-    <button id="btn-watch" class="chip" title="Obce maszyny (RU/BY) nad wschodnią flanką">🛰<span id="watch-badge" class="badge" style="display:none"></span></button>
-    <button id="btn-3d" class="chip" title="Przełącz widok 2D/3D">3D</button>
-    <button id="btn-push" class="chip" title="Powiadomienia">🔔</button>
-    <button id="btn-settings" class="chip" title="Moja lokalizacja i ustawienia">⚙</button>
-    <button id="btn-panel" class="chip" title="Panel sygnałów">☰</button>
+    <!-- Na pasku zostają tylko dwie rzeczy: stan powiadomień i ustawienia.
+         Reszta zeszła do dolnych zakładek i do menu „Więcej” — wcześniej
+         najgłośniejszym elementem ekranu była pomarańczowa kawa, a nie alarm. -->
+    <button id="btn-push" class="icon-btn" title="Powiadomienia" aria-label="Powiadomienia">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 1 0-12 0c0 6-2 7-2 7h16s-2-1-2-7"/><path d="M10.3 20a2 2 0 0 0 3.4 0"/></svg>
+    </button>
+    <button id="btn-settings" class="icon-btn" title="Moja lokalizacja i ustawienia" aria-label="Ustawienia">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 14a1.6 1.6 0 0 0 .3 1.8 2 2 0 1 1-2.8 2.8 1.6 1.6 0 0 0-2.7 1.1 2 2 0 1 1-4 0 1.6 1.6 0 0 0-2.8-1.1 2 2 0 1 1-2.8-2.8A1.6 1.6 0 0 0 4 14a2 2 0 1 1 0-4 1.6 1.6 0 0 0 1.1-2.7 2 2 0 1 1 2.8-2.8A1.6 1.6 0 0 0 10 4.6a2 2 0 1 1 4 0 1.6 1.6 0 0 0 2.7 1.1 2 2 0 1 1 2.8 2.8A1.6 1.6 0 0 0 20 10a2 2 0 1 1 0 4"/></svg>
+    </button>
   </div>
 </header>
 
-<div id="disclaimer">
-  <span>NIEOFICJALNE źródło dodatkowe — nie zastępuje syren, alertów RCB ani RSO.
-  W razie realnego zagrożenia kieruj się oficjalnymi kanałami.</span>
-  <button id="disclaimer-x" title="Ukryj (wróci przy alarmie)">✕</button>
-</div>
 
 <div id="map"></div>
 
@@ -112,6 +109,25 @@ document.documentElement.classList.add(
   </main>
 </noscript>
 
+<!-- Przy mapie zostają tylko dwa kadrowania: historia przeniosła się do dolnych
+     zakładek. Ikony z podpisami, bo trzy ciemne kółka z symbolami ⏱ ◎ ⤢ były
+     nieczytelne, zwłaszcza na jasnym tle mapy. -->
+<div id="map-actions">
+  <button id="btn-home" class="map-btn" title="Wróć do mojego regionu">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.4"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3"/></svg>
+    <span>mój region</span>
+  </button>
+  <button id="btn-fit" class="map-btn" title="Pokaż całą Polskę i Ukrainę">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+    <span>cała PL</span>
+  </button>
+</div>
+
+<!-- Wszystko przyklejone do dolnej krawędzi w JEDNYM stosie: elementy układają
+     się w kolumnie z odstępem, więc nie mogą na siebie wejść niezależnie od
+     długości tekstu, a zamknięcie paska zastrzeżenia przesuwa resztę w dół.
+     Wcześniej każdy miał własne `bottom: Xpx` i nie wiedział o pozostałych. -->
+<div id="bottom-stack">
 <div id="timebar" class="hidden">
   <div class="tb-row">
     <button id="tb-live" class="chip">● NA ŻYWO</button>
@@ -120,17 +136,71 @@ document.documentElement.classList.add(
   </div>
   <div id="tb-info" class="fineprint"></div>
 </div>
-
-<div id="map-actions">
-  <button id="btn-history" class="map-btn" title="Historia 12 godzin">⏱</button>
-  <button id="btn-home" class="map-btn" title="Wróć do mojego regionu">◎</button>
-  <button id="btn-fit" class="map-btn" title="Pokaż całą Polskę i Ukrainę">⤢</button>
+<div id="my-banner" class="hidden"></div>
+<div id="update-banner" class="hidden"></div>
+<div id="attribution">
+  <button id="attr-x" type="button" title="Zwiń informację o źródłach" aria-label="Zwiń informację o źródłach">✕</button>
+  <b>Dane: <a href="https://neptun.in.ua" target="_blank" rel="noopener">NEPTUN</a></b>
+  (agregator OSINT — nie radar; zawsze sprawdzaj confidence i ±km)
+  · ADS-B: adsb.lol / adsb.fi · Mapa: <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a>
+  © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OSM</a>
+</div>
+<div id="disclaimer">
+  <span>NIEOFICJALNE źródło dodatkowe — nie zastępuje syren, alertów RCB ani RSO.
+  W razie realnego zagrożenia kieruj się oficjalnymi kanałami.</span>
+  <button id="disclaimer-x" title="Ukryj (wróci przy alarmie)">✕</button>
+</div>
 </div>
 
-<div id="my-banner" class="hidden"></div>
 <div id="notice-banner" class="hidden"></div>
-<div id="update-banner" class="hidden"></div>
 <div id="bg-warning" class="hidden"></div>
+
+<!-- Dolne zakładki: to, po co ludzie tu wchodzą, jest w zasięgu kciuka i z podpisem.
+     Górny pasek zostaje prawie pusty, a mapa dostaje najwięcej miejsca. -->
+<nav id="tabbar" aria-label="Nawigacja główna">
+  <button type="button" id="tab-map" class="tab-btn active" aria-pressed="true">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4.5 3.5 6.8v12.7L9 17.2l6 2.3 5.5-2.3V4.5L15 6.8z"/><path d="M9 4.5v12.7M15 6.8v12.7"/></svg>
+    <span>Mapa</span>
+  </button>
+  <button type="button" id="btn-panel" class="tab-btn" aria-pressed="false">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+    <span>Sygnały</span>
+  </button>
+  <button type="button" id="btn-history" class="tab-btn" aria-pressed="false">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 1.8"/></svg>
+    <span>Historia</span>
+  </button>
+  <button type="button" id="tab-more" class="tab-btn" aria-pressed="false">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg>
+    <span>Więcej</span>
+    <span id="watch-badge" class="badge" style="display:none"></span>
+  </button>
+</nav>
+
+<dialog id="more-sheet" class="sheet">
+  <h3>Więcej</h3>
+  <div class="sheet-list">
+    <button type="button" id="btn-legend" class="sheet-row">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h6M4 12h6M4 18h6"/><circle cx="16.5" cy="6" r="2"/><circle cx="16.5" cy="12" r="2"/><circle cx="16.5" cy="18" r="2"/></svg>
+      <span>Legenda symboli</span></button>
+    <button type="button" id="btn-3d" class="sheet-row">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.6 20 8v8l-8 4.4L4 16V8z"/><path d="M4 8l8 4.4L20 8M12 12.4V20.4"/></svg>
+      <span class="lbl">Widok 3D</span></button>
+    <button type="button" id="btn-watch" class="sheet-row">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 14.5 9 13l4-8 1.8.8-2 7.6 4.7-1.6 1.2-2.2 1.4.5-1 3.3-2.6 2.2-9.6 3.3z"/></svg>
+      <span>Obce maszyny (RU/BY)</span></button>
+    <button type="button" id="btn-about" class="sheet-row">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.3 2.4c-.6.2-.9.8-.9 1.4v.4"/><path d="M12 16.8h.01"/></svg>
+      <span>O aplikacji i punktacja</span></button>
+    <a class="sheet-row" href="https://cukierrro.github.io/Straznik/" target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5h9l5 5v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-14a1 1 0 0 1 1-1z"/><path d="M14 4.5v5h5M8 13h8M8 16.5h5"/></svg>
+      <span>Instrukcja użytkownika</span></a>
+    <a class="sheet-row" href="https://buycoffee.to/cukierrro" target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 8h11v5.5a4 4 0 0 1-4 4H8.5a4 4 0 0 1-4-4z"/><path d="M15.5 9.5h2a2.5 2.5 0 0 1 0 5h-2M6 5V3.4M9.5 5V3.4M13 5V3.4"/></svg>
+      <span>Wesprzyj autora</span></a>
+  </div>
+  <menu><button value="cancel" class="chip">Zamknij</button></menu>
+</dialog>
 
 <!-- Stała karta obiektu (samolot / obiekt NEPTUN): zawsze w tym samym miejscu,
      nie przyczepiona do pozycji na mapie — inaczej dymek skakał po ekranie
@@ -167,12 +237,6 @@ document.documentElement.classList.add(
   </section>
 </aside>
 
-<div id="attribution">
-  <b>Dane: <a href="https://neptun.in.ua" target="_blank" rel="noopener">NEPTUN</a></b>
-  (agregator OSINT — nie radar; zawsze sprawdzaj confidence i ±km)
-  · ADS-B: adsb.lol / adsb.fi · Mapa: <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a>
-  © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OSM</a>
-</div>
 
 <div id="conn-badge" class="hidden">łączenie…</div>
 <div id="toast" class="hidden"></div>
@@ -421,22 +485,17 @@ document.documentElement.classList.add(
 
 <dialog id="settings">
   <form method="dialog">
-    <h3>Moje miejsca</h3>
-    <p class="fineprint">Zapisz do 8 miejsc i wybierz, dla których województw chcesz
-    otrzymywać powiadomienia. Dokładne miejsca zostają na tym urządzeniu.</p>
-    <div id="places-summary" class="fineprint">Nie zapisano jeszcze żadnego miejsca.</div>
-    <button type="button" id="btn-places" class="chip primary" style="margin-top:10px">📍 Otwórz Moje miejsca</button>
-    <select id="set-voiv" hidden aria-hidden="true"></select>
+    <!-- Cztery zakładki zamiast jednej długiej listy: żeby dojść do wersji aplikacji,
+         trzeba było wcześniej przewinąć przez miejsca, język, alarmy i dźwięki. -->
+    <div class="set-tabs" role="tablist" aria-label="Sekcje ustawień">
+      <button type="button" class="set-tab active" data-pane="alarmy" role="tab" aria-selected="true">Alarmy</button>
+      <button type="button" class="set-tab" data-pane="miejsca" role="tab" aria-selected="false">Moje miejsca</button>
+      <button type="button" class="set-tab" data-pane="dzwiek" role="tab" aria-selected="false">Dźwięk</button>
+      <button type="button" class="set-tab" data-pane="aplikacja" role="tab" aria-selected="false">Aplikacja</button>
+    </div>
 
-    <h3 style="margin-top:16px">Język interfejsu</h3>
-    <label>Język interfejsu
-      <select id="set-lang">
-        <option value="pl">Polski</option>
-        <option value="en">English</option>
-      </select>
-    </label>
-
-    <h3 style="margin-top:16px">Alarmy przy zamkniętej aplikacji</h3>
+    <section class="set-pane" data-pane="alarmy" role="tabpanel">
+    <h3>Alarmy przy zamkniętej aplikacji</h3>
     <p class="fineprint">Alarmy dla Twojego województwa przychodzą jako
     <b>powiadomienie push</b> — także gdy aplikacja jest zamknięta, ekran wygaszony
     albo telefon w uśpieniu. Serwer Strażnika wysyła sygnał prosto na telefon, więc
@@ -455,8 +514,19 @@ document.documentElement.classList.add(
     powiadomieniem. Dlatego <b>sprawdź przełącznik osobiście</b>: przycisk 🚨 otwiera
     dokładnie ten ekran. Zgoda na wyłączenie oszczędzania baterii nie jest wymagana
     (push i tak dociera), ale na agresywnych nakładkach zwiększa pewność.</p>
+    </section>
 
-    <h3 style="margin-top:16px">Sygnały dźwiękowe</h3>
+    <section class="set-pane" data-pane="miejsca" role="tabpanel" hidden>
+    <h3>Moje miejsca</h3>
+    <p class="fineprint">Zapisz do 8 miejsc i wybierz, dla których województw chcesz
+    otrzymywać powiadomienia. Dokładne miejsca zostają na tym urządzeniu.</p>
+    <div id="places-summary" class="fineprint">Nie zapisano jeszcze żadnego miejsca.</div>
+    <button type="button" id="btn-places" class="chip primary" style="margin-top:10px">📍 Otwórz Moje miejsca</button>
+    <select id="set-voiv" hidden aria-hidden="true"></select>
+    </section>
+
+    <section class="set-pane" data-pane="dzwiek" role="tabpanel" hidden>
+    <h3>Sygnały dźwiękowe</h3>
     <p class="fineprint">Żółty poziom (≥2 pkt) — krótki sygnał uwagi i powiadomienie
     wyskakujące na ekranie (heads-up).
     Czerwony (≥4 pkt) — modulowana syrena alarmu powietrznego + wibracja.
@@ -469,6 +539,17 @@ document.documentElement.classList.add(
     </div>
     <p class="fineprint">Przy czerwonym poziomie syrena gra <b>bez przerwy</b>,
     aż potwierdzisz alarm przyciskiem na ekranie.</p>
+    </section>
+
+    <section class="set-pane" data-pane="aplikacja" role="tabpanel" hidden>
+    <h3>Język interfejsu</h3>
+    <label>Język interfejsu
+      <select id="set-lang">
+        <option value="pl">Polski</option>
+        <option value="en">English</option>
+      </select>
+    </label>
+
     <h3 style="margin-top:16px">Wersja aplikacji</h3>
     <p class="fineprint" id="app-version">—</p>
     <button type="button" id="btn-update" class="chip">⬆ Sprawdź aktualizacje</button>
@@ -489,6 +570,12 @@ document.documentElement.classList.add(
       jeśli chcesz korzystać z własnego backendu. HTTP oraz certyfikaty dodane ręcznie
       do telefonu nie są obsługiwane w wydaniu produkcyjnym.</p>
     </details>
+    <p class="fineprint" id="more-links" style="margin-top:14px">
+      <a href="https://cukierrro.github.io/Straznik/" target="_blank" rel="noopener">Instrukcja użytkownika ↗</a>
+      &nbsp;·&nbsp;
+      <a href="https://buycoffee.to/cukierrro" target="_blank" rel="noopener">Wesprzyj autora ☕</a>
+    </p>
+    </section>
     <menu>
       <button value="cancel" class="chip">Anuluj</button>
       <button id="set-save" value="ok" class="chip primary">Zapisz</button>
@@ -520,11 +607,11 @@ document.documentElement.classList.add(
      Cloudflare, więc po każdym wydaniu wystarczy podbić ?v= i przeglądarki
      dostają nowe app.js/engine.js OD RAZU, bez ręcznego czyszczenia cache CF.
      Podbijaj ?v= razem z versionName w build.gradle. -->
-<script src="i18n.js?v=1.7.21-1"></script>
-<script src="engine.js?v=1.7.22-1"></script>
+<script src="i18n.js?v=1.7.23-1"></script>
+<script src="engine.js?v=1.7.23-1"></script>
 <script src="aircraft-photo-catalog.js?v=1.7.19"></script>
 <script src="aircraft-photos.js?v=1.7.19"></script>
 <script src="places.js?v=1.7.19-4"></script>
-<script src="app.js?v=1.7.22-1"></script>
+<script src="app.js?v=1.7.23-1"></script>
 </body>
 </html>

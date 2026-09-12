@@ -93,7 +93,9 @@ async def _handle_alerts(data):
                             # ani jednego obiektu na mapie (audyt 11.09.2026).
                             source="ua_alert", event_type="ua_alert_border",
                             voivodeship=voiv, points=config.POINTS["ua_alert_border"],
-                            title=f"Alarm powietrzny w obwodzie {oblast} (graniczy z woj. {voiv})",
+                            title=("Alarm powietrzny w obwodzie "
+                                   f"{config.UA_OBLAST_PL.get(oblast, oblast)} "
+                                   f"(graniczy z woj. {voiv})"),
                             details={"oblast": oblast},
                             dedup_key=f"neptun_alert:{oblast}:{voiv}:{hour_key}",
                         )
