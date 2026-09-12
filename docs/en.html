@@ -149,17 +149,32 @@
 </section>
 <section id="przyciski">
   <h2>4. Buttons and closing panels</h2>
-  <div class="tw"><table><thead><tr><th>Control</th><th>Action</th></tr></thead><tbody>
-    <tr><td>STRAŻNIK + six indicators</td><td>Status of NEPTUN, UA Alerts, ADS-B, RSS, RCB and PAŻP. Green means a layer is available, not that safety has been confirmed. Tapping the app name also opens its explanation on a phone.</td></tr>
-    <tr><td>☕ / ?</td><td>Optional support for the author / information about the app and its features.</td></tr>
-    <tr><td>Legend / 🗺️</td><td>Object icons, uncertainty and score thresholds.</td></tr>
-    <tr><td>🛰️</td><td>Foreign aircraft and recorded observations.</td></tr>
-    <tr><td>3D / 2D</td><td>Switch between raised provinces and a flat map.</td></tr>
-    <tr><td>🔔 / ⚙ / ☰</td><td>Notifications / settings / signals panel.</td></tr>
-    <tr><td>⏱ / ◎ / ⤢</td><td>12-hour history / return to my region / the wider area.</td></tr>
-    <tr><td>Download app / User guide</td><td>Website-only buttons; they are not displayed in the APK.</td></tr>
+  <p>Since version 1.7.23 the layout has three groups: a <b>tab bar at the bottom</b>, a <b>row of icons at the top</b> and <b>labelled tiles along the right edge of the map</b>.</p>
+  <h3>Tabs at the bottom</h3>
+  <div class="tw"><table><thead><tr><th>Tab</th><th>Function</th></tr></thead><tbody>
+    <tr><td><kbd>Map</kbd></td><td>The main view. Returns to the map from any panel.</td></tr>
+    <tr><td><kbd>Signals</kbd></td><td>Province cards with their scores, the 60-minute signal list, objects near the border and military aviation.</td></tr>
+    <tr><td><kbd>History</kbd></td><td>Scrub through the last 12 hours with a slider.</td></tr>
+    <tr><td><kbd>More</kbd></td><td>A sheet with three items: “About and scoring”, “User guide”, “Support the author”.</td></tr>
   </tbody></table></div>
-  <p>The signals panel no longer collapses after a few seconds. Close it with the cross, the <kbd>Map</kbd> tab or by tapping the map outside it. The legend and other panels also support outside clicks. In settings, use <kbd>Save</kbd> to confirm changes.</p>
+  <h3>Icons at the top right</h3>
+  <p>Five line icons, no emoji, in this order:</p>
+  <div class="tw"><table><thead><tr><th>Icon</th><th>Function</th></tr></thead><tbody>
+    <tr><td>sliders</td><td><b>Symbol legend</b> — object icons, province colours and zone colours.</td></tr>
+    <tr><td>cube</td><td><b>2D / 3D view</b> — raised provinces or a flat map.</td></tr>
+    <tr><td>aircraft</td><td><b>Foreign aircraft</b> over the eastern flank (ADS-B) with the observation log.</td></tr>
+    <tr><td>bell</td><td><b>Notifications</b> — permissions and alert delivery status.</td></tr>
+    <tr><td>gear</td><td><b>Settings</b> — province, my places, sound, language, app version.</td></tr>
+  </tbody></table></div>
+  <h3>Tiles along the right edge of the map</h3>
+  <p>Labelled with words, stacked vertically:</p>
+  <div class="tw"><table><thead><tr><th>Tile</th><th>Function</th></tr></thead><tbody>
+    <tr><td><kbd>my region</kbd></td><td>Frames the map on your province.</td></tr>
+    <tr><td><kbd>zones</kbd></td><td>Turns the PAŻP zone layer on and off. A dimmed tile means the layer is off. Details in the <a href="#zone-scoring">section on zones</a>.</td></tr>
+    <tr><td><kbd>whole PL</kbd></td><td>Shows all of Poland together with Ukraine.</td></tr>
+  </tbody></table></div>
+  <p>The top bar also carries the name <b>STRAŻNIK</b> with six indicators: NEPTUN, UA Alerts, ADS-B, RSS, RCB and PAŻP. Green means a layer is available, not that safety has been confirmed; tapping the name opens the explanation. The <b>Download app</b> and <b>User guide</b> buttons exist only on the website — the app does not show them.</p>
+  <p>Panels do not collapse after a few seconds. Close them with the cross, the <kbd>Map</kbd> tab, or by tapping outside the panel. In settings, use <kbd>Save</kbd> to confirm your changes.</p>
 </section>
 <section id="panel">
   <h2>5. The signals panel</h2>
