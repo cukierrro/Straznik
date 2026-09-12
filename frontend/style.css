@@ -293,7 +293,9 @@ body.panel-open #update-banner:not(.critical) { display: none; }
    się od reszty interfejsu i wyglądał jak surowy HTML. */
 dialog a { color: var(--cyan); text-decoration: none; }
 dialog a:hover, dialog a:focus-visible { text-decoration: underline; }
-#more-links { line-height: 2; }
+/* Trzy odnośniki jako rząd z odstępem zamiast kropek rozdzielających: przy zawijaniu
+   kropka zostawała sama na końcu wiersza. */
+#more-links { display: flex; flex-wrap: wrap; gap: 6px 16px; line-height: 1.7; }
 
 #attribution a { color: var(--cyan); text-decoration: none; }
 #attribution b { color: var(--text); }
