@@ -16,6 +16,21 @@ DOCS = ROOT / "docs"
 # (wersja, data PL, data EN, tytuł PL, tytuł EN, punkty PL, punkty EN, zrzuty)
 # Zrzut: (plik, alt PL, alt EN, podpis PL, podpis EN)
 RELEASES = [
+    ("1.7.24", "12 września 2026", "12 September 2026",
+     "Poprawki po dniu na urządzeniu",
+     "Fixes after a day on a real device",
+     ["<b>„Sprawdź aktualizacje” znów odpowiada.</b> GitHub odrzucał zapytania serwera limitem 60/h na adres IP; teraz serwer trzyma ostatnie znane wydanie i podaje je zamiast błędu.",
+      "„Zapisz na urządzeniu” przy pustej nazwie nie jest już martwym przyciskiem — komunikat przewija się na ekran, a kursor ląduje w brakującym polu. Udany zapis zamyka okno i wraca do Ustawień.",
+      "Mapa startuje zawsze na tym samym kadrze: Polska i cała Ukraina. Przycisk „mój region” też pokazuje województwo w kontekście, a nie sam obrys.",
+      "Pasek historii stoi w miejscu — wcześniej uciekał w górę spod palca, gdy w oknie pojawiał się sygnał.",
+      "Nowa strona z historią zmian, dostępna z aplikacji: Ustawienia → Aplikacja → „Historia zmian ↗”."],
+     ["<b>“Check for updates” answers again.</b> GitHub was rejecting the server’s requests with its 60/h per-IP limit; the server now keeps the last known release and serves it instead of an error.",
+      "“Save on device” with an empty name is no longer a dead button — the message scrolls into view and the cursor lands in the missing field. A successful save closes the dialog and returns to Settings.",
+      "The map always opens on the same frame: Poland and the whole of Ukraine. The “my region” button also shows the province in context rather than just its outline.",
+      "The history bar stays put — it used to jump upwards from under your thumb when a signal appeared in the window.",
+      "A new changelog page, reachable from the app: Settings → App → “Changelog ↗”."],
+     []),
+
     ("1.7.23", "12 września 2026", "12 September 2026",
      "Nawigacja, która nie zasłania mapy",
      "Navigation that stops covering the map",

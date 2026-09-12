@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Strażnik 1.7.23 — user guide</title>
+<title>Strażnik 1.7.24 — user guide</title>
 <meta name="description" content="The current Strażnik user guide: Android installation and updates, alerts, maps, new object icons, history, languages and scoring. Screenshots from Pixel 7.">
 <link rel="canonical" href="https://cukierrro.github.io/Straznik/en.html">
 <link rel="alternate" hreflang="pl" href="https://cukierrro.github.io/Straznik/">
@@ -33,11 +33,11 @@
   <div class="languages" aria-label="Guide language"><a href="index.html" lang="pl" hreflang="pl">PL</a><a href="en.html" lang="en" aria-current="page">EN</a></div>
 </div></nav>
 <header class="hero"><div class="wrap hero-grid">
-  <div><div class="eyebrow">User guide · version 1.7.23</div>
+  <div><div class="eyebrow">User guide · version 1.7.24</div>
     <h1>The situation on a map.<br>The sources behind each signal.</h1>
     <p class="lead">Strażnik combines public information about airborne threats and displays a score for each Polish province. Available on Android and in your browser.</p>
     <div class="actions"><a class="button primary" href="https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk">↓ Download app</a><a class="button" href="https://straznik.eu">Open map</a></div>
-    <p class="fineprint">Guide for 1.7.23. Approximate-position card: 1.7.21, 11 September 2026. Captures of the current interface were made on 12 September 2026 on a Pixel 7 with Android 14 and <b>three-button</b> system navigation; older, unchanged screens are labelled individually. Tap any screenshot to open the full-size image.</p>
+    <p class="fineprint">Guide for 1.7.24. Approximate-position card: 1.7.21, 11 September 2026. Captures of the current interface were made on 12 September 2026 on a Pixel 7 with Android 14 and <b>three-button</b> system navigation; older, unchanged screens are labelled individually. Tap any screenshot to open the full-size image.</p>
   </div>
   <a class="shot-link" href="screens/start-en.jpg"><img src="screens/start-en.jpg" width="1080" height="2400" alt="Strażnik 1.7.23 on Pixel 7: English map labels, six green source indicators and the Map, Signals, History, More tab bar"></a>
 </div></header>
@@ -58,15 +58,15 @@
   </ol>
   <p>If the GitHub app intercepts the download link and stalls, open the link in your browser instead. A <a href="https://github.com/cukierrro/Straznik/raw/main/Straznik.apk">backup APK in the repository</a> is also available.</p>
   <div class="note"><b>Check which version your phone has.</b> Open <kbd>&#9881;</kbd> &rarr; the <kbd>App</kbd> tab &mdash; the installed number is under the &ldquo;App version&rdquo; heading.
-    The latest release is <b>1.7.23</b>, published on <b>12 September 2026</b>. If you see an older number, tap <kbd>&#11014; Check for updates</kbd> or download the APK above.</div>
+    The latest release is <b>1.7.24</b>, published on <b>12 September 2026</b>. If you see an older number, tap <kbd>&#11014; Check for updates</kbd> or download the APK above. The full list of changes per release is in the <a href="zmiany-en.html">changelog</a>.</div>
   <div class="split">
     <div>
       <h3>Updating from inside the app</h3>
       <p>Since 1.7.23 Strażnik checks for a release <b>at every launch</b> and whenever the app returns to the foreground (no more often than every 30 minutes). It used to check once a day, so a fix could wait almost a full day. The update prompt includes the version and a description of the changes. You can also use <kbd>⚙</kbd> → <kbd>App</kbd> → <kbd>Check for updates</kbd>.</p>
       <p>For a normal, non-critical update, choose <kbd>Later</kbd> (the updater may display <kbd>Później</kbd>) to dismiss it for the current session. If you choose to install, the app downloads the APK and checks its SHA-256, then Android asks you to confirm installation. Updating still downloads a file; you no longer need to find it manually.</p>
-      <p>Install over the existing app without uninstalling to keep your settings. The published APK is a signed <b>release build</b>. Check notification and full-screen permissions after updating.</p>
+      <p>Install over the existing app without uninstalling to keep your settings. The published APK is a signed <b>release build</b>. Check notification and full-screen permissions after updating. What changed in each version is described in the <a href="zmiany-en.html">changelog</a>.</p>
     </div>
-    <figure><a class="shot-link" href="screens/updates-en.jpg"><img loading="lazy" src="screens/updates-en.jpg" width="1080" height="2400" alt="App tab in 1.7.23 settings: interface language, installed version 1.7.23 and the Check for updates button"></a><figcaption><b>Settings → “App” tab in 1.7.23.</b> This is where you see which version is installed and look for a newer one manually. The dialog ends above the tab bar and scrolls all the way down.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/updates-en.jpg"><img loading="lazy" src="screens/updates-en.jpg" width="1080" height="2400" alt="App tab in 1.7.24 settings: interface language, installed version 1.7.24, the Check for updates button and links to the guide and changelog"></a><figcaption><b>Settings → “App” tab in 1.7.24.</b> This is where you see which version is installed and look for a newer one manually. At the bottom are links to the guide, the changelog and supporting the author.</figcaption></figure>
   </div>
 </section>
 <section id="konfiguracja">
@@ -159,7 +159,7 @@
   <p>A dimmed foreign aircraft is a <b>last recorded position</b> filling a gap between snapshots. It uses only an earlier journal entry, at most 2.5 minutes before the selected time. Details show the record time and explain that the aircraft is absent from the snapshot. “Disappeared” means missing from the available data, not a landing or shoot-down; its timestamp is not necessarily the last transponder emission time. Counters separate snapshot aircraft from last observations.</p>
   <p>The 🛰 panel downloads a small server journal covering the last 12 hours, including times when your app was closed. It merges local entries without duplicating matching transitions and excludes entries later than the selected time. Refreshes are limited to one request per minute, not one per slider movement. Journal unavailability and local fallback mode are explicitly labelled. These observations do not add points.</p>
   <div class="shots">
-    <figure><a class="shot-link" href="screens/history-map-en.png"><img loading="lazy" src="screens/history-map-en.png" width="1080" height="2400" alt="History mode in 1.7.23: HISTORY MODE heading, larger slider, Back to live view button and snapshot aircraft count"></a><figcaption>Real server history in APK 1.7.23 — 12 September 2026.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/history-map-en.png"><img loading="lazy" src="screens/history-map-en.png" width="1080" height="2400" alt="History mode in 1.7.24: HISTORY MODE heading, larger slider, Back to live view button and snapshot aircraft count"></a><figcaption>Real server history in APK 1.7.24 — 12 September 2026. The bar keeps its height when a signal appears in the window.</figcaption></figure>
     <figure><a class="shot-link" href="screens/history-watch-en.png"><img loading="lazy" src="screens/history-watch-en.png" width="1080" height="2400" alt="Foreign aircraft panel following the selected historical time, including journal status"></a><figcaption>The 🛰 panel follows the map time — Pixel 7, 1.7.17.</figcaption></figure>
   </div>
   <p>A signal can remain in the 60-minute list after an object disappears from the map. The list describes recorded events; the map shows positions available in a particular snapshot. NEPTUN removes an entry through a source message or replaces the active-object list; it does not provide the reason for removal. Disappearance does not prove interception, a crash or departure from the area. A new identifier at the same approximate point may be a renewed report rather than a new physical object. For some foreign aircraft, a faded last observation may appear, distinguished from a current position.</p>

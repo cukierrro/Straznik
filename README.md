@@ -4,6 +4,14 @@
 
 # Strażnik
 
+Wersja 1.7.24: „Sprawdź aktualizacje” znów odpowiada — serwer trzyma ostatnie znane
+wydanie i podaje je, gdy GitHub odrzuci zapytanie limitem 60/h na adres IP. „Moje
+miejsca” pokazują, czego brakuje przy zapisie, a udany zapis zamyka okno i wraca do
+ustawień. Mapa startuje zawsze na tym samym kadrze (Polska i cała Ukraina), kadr „mój
+region” odsunięty, pasek historii nie zmienia wysokości. Nowa dwujęzyczna strona
+historii zmian (`docs/zmiany.html`), dostępna z aplikacji. Szczegóły:
+`docs/RELEASE_1.7.24.md`.
+
 Wersja 1.7.23: przebudowana nawigacja — dolne zakładki Mapa / Sygnały / Historia /
 Więcej, pięć ikon w górnym pasku, jeden dolny stos komunikatów zamiast pięciu
 pływających ramek i okna dialogowe, które nie wchodzą na systemowy pasek nawigacji.
@@ -40,7 +48,7 @@ wiarygodność ostrzeżenia.
 
 [Instrukcja po polsku](https://cukierrro.github.io/Straznik/) · [English user guide](https://cukierrro.github.io/Straznik/en.html)
 
-Instrukcja dla 1.7.23 opisuje „Moje miejsca”, rozdział alertów wojewódzkich i
+Instrukcja dla 1.7.24 opisuje „Moje miejsca”, rozdział alertów wojewódzkich i
 lokalnych obliczeń na pierwszym planie oraz bibliotekę fotografii PL/EN. Zrzuty
 otwierają się także w pełnym rozmiarze.
 
