@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Strażnik — historia zmian</title>
+<meta name="description" content="Co zmieniło się w każdym wydaniu Strażnika: opis zmian ze zrzutami, od 1.7.12 do najnowszej wersji.">
+<link rel="canonical" href="https://cukierrro.github.io/Straznik/zmiany.html">
+<link rel="alternate" hreflang="pl" href="https://cukierrro.github.io/Straznik/zmiany.html">
+<link rel="alternate" hreflang="en" href="https://cukierrro.github.io/Straznik/zmiany-en.html">
+<link rel="icon" href="ikona.png">
+<link rel="stylesheet" href="guide.css">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://cukierrro.github.io/Straznik/zmiany.html">
+<meta property="og:title" content="Strażnik — historia zmian">
+<meta property="og:description" content="Co zmieniło się w każdym wydaniu Strażnika: opis zmian ze zrzutami, od 1.7.12 do najnowszej wersji.">
+<meta property="og:image" content="https://cukierrro.github.io/Straznik/share-history-v1.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:type" content="image/jpeg">
+<meta property="og:image:alt" content="Strażnik — historia zmian aplikacji">
+<meta name="twitter:image" content="https://cukierrro.github.io/Straznik/share-history-v1.jpg">
+<meta property="og:locale" content="pl_PL">
+<meta property="og:locale:alternate" content="en_GB">
+<meta name="twitter:card" content="summary_large_image">
+</head>
+<body id="top">
+<a class="skip" href="#content">Przejdź do treści</a>
+<nav aria-label="Nawigacja"><div class="nav-in">
+  <a class="brand" href="index.html#top">STRAŻNIK</a>
+  <div class="nav-links"><a href="index.html">Instrukcja</a><a href="zmiany.html" aria-current="page">Historia zmian</a><a href="https://github.com/cukierrro/Straznik/releases">Wydania na GitHubie</a></div>
+  <div class="languages" aria-label="Język strony"><a href="zmiany.html" lang="pl" aria-current="page">PL</a><a href="zmiany-en.html" lang="en" hreflang="en">EN</a></div>
+</div></nav>
+<header class="hero"><div class="wrap">
+  <div class="eyebrow">Historia zmian</div>
+  <h1>Co zmieniło się<br>w każdym wydaniu.</h1>
+  <p class="lead">Skrót zmian widocznych dla użytkownika, od najnowszego wydania. Pełne omówienia są w plikach <code>docs/RELEASE_*.md</code> w repozytorium.</p>
+  <div class="actions"><a class="button primary" href="https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk">↓ Pobierz najnowsze APK</a><a class="button" href="index.html">Instrukcja użytkownika</a></div>
+  <p class="fineprint">Wersję zainstalowaną na telefonie sprawdzisz w aplikacji: <kbd>⚙</kbd> → zakładka <kbd>Aplikacja</kbd> → „Wersja aplikacji”. Tam też jest przycisk <kbd>⬆ Sprawdź aktualizacje</kbd>.</p>
+</div></header>
+<main id="content" class="wrap">
+<section id="v1-7-23">
+  <h2>1.7.23 — Nawigacja, która nie zasłania mapy</h2>
+  <p class="fineprint">Wydanie 1.7.23 · 12 września 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.23">Pełny opis wydania</a></p>
+  <ul>
+    <li>Dolne zakładki <b>Mapa · Sygnały · Historia · Więcej</b> — z podpisami, w zasięgu kciuka. Górny pasek to już tylko legenda, 2D/3D, obce lotnictwo, powiadomienia i ustawienia.</li>
+    <li>Karta obiektu otwiera się jako <b>miniatura w rogu</b> i nie zasłania mapy; strzałka rozwija ją do pełnej karty. Zaznaczony obiekt ma na mapie biały pierścień.</li>
+    <li>Okna („O aplikacji”, ustawienia, „Moje miejsca”) kończą się nad paskiem zakładek i nie wchodzą na przyciski Androida.</li>
+    <li>Tryb historii nazywa się wprost, a suwak jest wyraźnie większy. Ustawienia podzielone na cztery zakładki.</li>
+    <li>Aktualizacje sprawdzane <b>przy każdym uruchomieniu</b>, a nie raz na dobę.</li>
+  </ul>
+  <div class="shots">
+    <figure><a class="shot-link" href="screens/card-mini-pl.jpg"><img loading="lazy" src="screens/card-mini-pl.jpg" width="1080" height="2400" alt="Miniatura karty obiektu w rogu mapy z białym pierścieniem wokół zaznaczonego samolotu"></a><figcaption>Karta jako miniatura — mapa zostaje widoczna.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/01_start.jpg"><img loading="lazy" src="screens/01_start.jpg" width="1080" height="2400" alt="Ekran startowy 1.7.23 z dolnymi zakładkami Mapa, Sygnały, Historia, Więcej"></a><figcaption>Nowy dolny pasek zakładek.</figcaption></figure>
+  </div>
+</section>
+<section id="v1-7-22">
+  <h2>1.7.22 — Alarm ma powstać i dotrzeć</h2>
+  <p class="fineprint">Wydanie 1.7.22 · 12 września 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.22">Pełny opis wydania</a></p>
+  <ul>
+    <li>Limit klasy źródła przydzielany <b>po wygaszeniu wiekiem</b>: w dłuższym ataku świeży obiekt przy granicy nie wnosi już zera.</li>
+    <li>Poziom zagrożenia przeliczany co 45 sekund także bez nowego sygnału i trwały po restarcie serwera.</li>
+    <li>Push ma termin ważności 15 minut i trzy próby wysyłki — telefon po powrocie z offline nie dostanie syreny o zdarzeniu sprzed godzin.</li>
+    <li>Alarmy powietrzne z zachodnich obwodów Ukrainy są wreszcie odczytywane (przychodzą jako rejony).</li>
+    <li>Samo przeniesienie punktów od sąsiada nie budzi już telefonu — powiadomienie wymaga własnego sygnału w województwie.</li>
+  </ul>
+  <div class="shots">
+    <figure><a class="shot-link" href="screens/updates-pl.jpg"><img loading="lazy" src="screens/updates-pl.jpg" width="1080" height="2400" alt="Zakładka Aplikacja w ustawieniach: zainstalowana wersja i przycisk Sprawdź aktualizacje"></a><figcaption>Okna informacyjne przewijają się do końca zamiast ucinać treść.</figcaption></figure>
+  </div>
+</section>
+<section id="v1-7-21">
+  <h2>1.7.21 — Ostrożniejsze źródła</h2>
+  <p class="fineprint">Wydanie 1.7.21 · 11 września 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.21">Pełny opis wydania</a></p>
+  <ul>
+    <li>Zwykły artykuł RSS wnosi 1 pkt, jednoznaczna reakcja operacyjna 1,5 pkt, a cała klasa RSS ma limit 1,5 pkt — <b>same media nie zapalą już żółtego poziomu</b>.</li>
+    <li>Materiały historyczne, rocznicowe, poradnikowe i prawne zostają widoczne, ale nie podnoszą poziomu zagrożenia.</li>
+    <li>Punkt środka Łucka używany w meldunkach NEPTUN jest rozpoznawany jako pozycja rejonowa, mimo źródłowego <code>confirmed</code>.</li>
+  </ul>
+  <div class="shots">
+    <figure><a class="shot-link" href="screens/approx-position-pl.png"><img loading="lazy" src="screens/approx-position-pl.png" width="1080" height="2400" alt="Karta punktu środka Łucka rozpoznanego jako pozycja rejonowa, bez dystansu, trasy i ETA"></a><figcaption>Pozycja rejonowa: bez pozornej trasy i czasu dolotu.</figcaption></figure>
+  </div>
+</section>
+<section id="v1-7-20">
+  <h2>1.7.20 — Uczciwe pozycje przybliżone</h2>
+  <p class="fineprint">Wydanie 1.7.20 · 10 września 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.20">Pełny opis wydania</a></p>
+  <ul>
+    <li>Punkt oznaczony przez NEPTUN jako przybliżony jest opisany jako <b>rejon zgłoszenia</b>, a nie potwierdzona pozycja obiektu.</li>
+    <li>Dla takiego punktu aplikacja nie przesuwa sztucznie znacznika, nie rysuje pozornej trasy i nie podaje czasu dolotu.</li>
+    <li>Przybliżona pozycja nie może uruchomić progowego alarmu ETA.</li>
+  </ul>
+</section>
+<section id="v1-7-19">
+  <h2>1.7.19 — Moje miejsca</h2>
+  <p class="fineprint">Wydanie 1.7.19 · 9 września 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.19">Pełny opis wydania</a></p>
+  <ul>
+    <li>Do 8 profili miejsc przechowywanych <b>lokalnie</b>; stare pojedyncze województwo przeniesione do profilu „Dom”.</li>
+    <li>Każde miejsce może obserwować alerty swojego województwa; powtórzone województwa dają jedną subskrypcję.</li>
+    <li>Opcjonalny GPS odczytywany wyłącznie na żądanie. Nazwy miejsc i współrzędne nie trafiają na serwer ani do powiadomień.</li>
+  </ul>
+  <div class="shots">
+    <figure><a class="shot-link" href="screens/places-pl.png"><img loading="lazy" src="screens/places-pl.png" width="1080" height="2400" alt="Okno Moje miejsca: nazwa, zakres, województwo i przełącznik obserwacji alertów"></a><figcaption>Miejsca zostają na urządzeniu.</figcaption></figure>
+  </div>
+</section>
+<section id="v1-7-18">
+  <h2>1.7.18 — Zweryfikowane fotografie modeli</h2>
+  <p class="fineprint">Wydanie 1.7.18 · 8 września 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.18">Pełny opis wydania</a></p>
+  <ul>
+    <li>Lokalna biblioteka 60 sprawdzonych zdjęć samolotów i śmigłowców zamiast losowej fotografii z sieci.</li>
+    <li>Każde zdjęcie ma autora, źródło i licencję; nie przedstawia konkretnego śledzonego egzemplarza.</li>
+    <li>Przy nieznanym albo sprzecznym wariancie karta mówi wprost, że brakuje zweryfikowanego zdjęcia.</li>
+  </ul>
+  <div class="shots">
+    <figure><a class="shot-link" href="screens/aircraft-pl.png"><img loading="lazy" src="screens/aircraft-pl.png" width="1080" height="2400" alt="Rozwinięta karta samolotu z fotografią przykładowego egzemplarza, autorem, źródłem i licencją"></a><figcaption>Zdjęcie przykładowego egzemplarza, nie śledzonej maszyny.</figcaption></figure>
+  </div>
+</section>
+<section id="v1-7-17">
+  <h2>1.7.17 — Spójny czas w historii</h2>
+  <p class="fineprint">Wydanie 1.7.17 · 7 września 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.17">Pełny opis wydania</a></p>
+  <ul>
+    <li>Mapa, lista maszyn i szczegóły samolotu pokazują tę samą wybraną chwilę — wpis z przyszłości nie pojawi się na wcześniejszej migawce.</li>
+    <li>Przygaszone ostatnie pozycje mają oznaczenie czasu i osobny licznik; nie oznaczają lądowania ani zestrzelenia.</li>
+    <li>Dziennik serwera obejmuje też czas, gdy aplikacja była zamknięta.</li>
+  </ul>
+  <div class="shots">
+    <figure><a class="shot-link" href="screens/history-map-pl.png"><img loading="lazy" src="screens/history-map-pl.png" width="1080" height="2400" alt="Tryb historii: nagłówek trybu, suwak i licznik maszyn w migawce"></a><figcaption>Jedna wybrana chwila w całym interfejsie.</figcaption></figure>
+  </div>
+</section>
+<section id="v1-7-16">
+  <h2>1.7.16 — Dokończony angielski</h2>
+  <p class="fineprint">Wydanie 1.7.16 · 6 września 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.16">Pełny opis wydania</a></p>
+  <ul>
+    <li>Angielskie opisy samolotów wojskowych: przeznaczenie, kraj rejestracji, telemetria i śledzenie trasy.</li>
+    <li>Przetłumaczony widok obcych maszyn oraz brakujące objaśnienia w legendzie.</li>
+    <li>Nazwy państw, miast i regionów na mapie po angielsku; brakujące nazwy zachowują bezpieczną nazwę źródłową.</li>
+  </ul>
+</section>
+<section id="v1-7-15">
+  <h2>1.7.15 — Angielski interfejs</h2>
+  <p class="fineprint">Wydanie 1.7.15 · 5 września 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.15">Pełny opis wydania</a></p>
+  <ul>
+    <li>Angielski interfejs strony i aplikacji, bez zmiany źródeł, punktacji ani nazw technicznych.</li>
+    <li>Wybór języka pokazuje tłumaczenie ustawień od razu; utrwala je dopiero „Zapisz”.</li>
+    <li>Podniesiona głośność czerwonej syreny, żeby nie była cichsza od żółtego sygnału uwagi.</li>
+  </ul>
+</section>
+<section id="v1-7-14">
+  <h2>1.7.14 — Okno aktualizacji mówi, czego dotyczy</h2>
+  <p class="fineprint">Wydanie 1.7.14 · 4 września 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.14">Pełny opis wydania</a></p>
+  <ul>
+    <li>Okno aktualizacji pokazuje listę „Co się zmienia” — do trzech najważniejszych punktów.</li>
+    <li>Aktualizację niekrytyczną nadal można odłożyć do następnej sesji.</li>
+  </ul>
+</section>
+<section id="v1-7-13">
+  <h2>1.7.13 — Pełniejsza historia obcych maszyn</h2>
+  <p class="fineprint">Wydanie 1.7.13 · 3 września 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.13">Pełny opis wydania</a></p>
+  <ul>
+    <li>Historia zapisuje wejścia i wyjścia rosyjskich oraz białoruskich maszyn ADS-B razem z ostatnią pozycją.</li>
+    <li>Krótkotrwała maszyna wykryta pomiędzy migawkami nie znika już z mapy historycznej.</li>
+    <li>Pozycja odtworzona ze zdarzenia jest półprzezroczysta, żeby nie udawała zwykłej migawki.</li>
+  </ul>
+</section>
+<section id="v1-7-12">
+  <h2>1.7.12 — Bezpieczniejsze połączenia</h2>
+  <p class="fineprint">Wydanie 1.7.12 · 2 września 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.12">Pełny opis wydania</a></p>
+  <ul>
+    <li>Zewnętrzne serwery wymagają HTTPS; aplikacja ufa wyłącznie systemowym urzędom certyfikacji.</li>
+    <li>Własny adres HTTP nie jest zapisywany — wcześniej zapisany błędny adres trzeba poprawić w ustawieniach.</li>
+    <li>Ustawienia użytkownika zachowane podczas aktualizacji.</li>
+  </ul>
+</section>
+</main>
+<footer><div class="wrap">
+  <p><b>STRAŻNIK</b> — nieoficjalne źródło dodatkowe. Nie zastępuje syren, RCB ani RSO.</p>
+  <p><a href="https://github.com/cukierrro/Straznik">Kod źródłowy</a> · <a href="index.html">Instrukcja użytkownika</a> · <a href="zmiany-en.html" lang="en">English changelog</a> · <a href="https://buycoffee.to/cukierrro">Postaw kawę</a></p>
+  <a class="back-top" href="#top">↑ Wróć na górę</a>
+</div></footer>
+</body>
+</html>

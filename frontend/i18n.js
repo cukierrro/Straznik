@@ -121,7 +121,12 @@
     button("btn-update","⬆ Sprawdź aktualizacje","⬆ Check for updates");
     const links = dlg.querySelectorAll("#more-links a");
     if (links[0]) links[0].textContent = en ? "User guide ↗" : "Instrukcja użytkownika ↗";
-    if (links[1]) links[1].textContent = en ? "Support the author ☕" : "Wesprzyj autora ☕";
+    if (links[1]) {
+      links[1].textContent = en ? "Changelog ↗" : "Historia zmian ↗";
+      links[1].href = en ? "https://cukierrro.github.io/Straznik/zmiany-en.html"
+                         : "https://cukierrro.github.io/Straznik/zmiany.html";
+    }
+    if (links[2]) links[2].textContent = en ? "Support the author ☕" : "Wesprzyj autora ☕";
     button("set-save","Zapisz","Save");
     const cancel=dlg.querySelector('button[value="cancel"]'); if(cancel) cancel.textContent=en?"Cancel":"Anuluj";
     const summary=dlg.querySelector("summary"); if(summary) summary.textContent=en?"Advanced: shared backend":"Zaawansowane: wspólny backend";
@@ -186,7 +191,9 @@
     setMany("#settings .set-tab", ["Alerts", "My places", "Sound", "App"]);
     // linki w zakładce „Aplikacja" są wyłączone z tłumaczenia zbiorczego (żeby nie
     // skasować odnośników), więc podpisy ustawiamy osobno
-    setMany("#more-links a", ["User guide ↗", "Support the author ☕"]);
+    setMany("#more-links a", ["User guide ↗", "Changelog ↗", "Support the author ☕"]);
+    const changes = document.querySelector('#more-links a[href*="zmiany"]');
+    if (changes) changes.href = "https://cukierrro.github.io/Straznik/zmiany-en.html";
     // atrybucja: nazwy własne zostają, opis źródła musi być po angielsku
     const attr = document.getElementById("attr-text");
     if (attr) attr.innerHTML = '<b>Data: <a href="https://neptun.in.ua" target="_blank" rel="noopener">NEPTUN</a></b>'

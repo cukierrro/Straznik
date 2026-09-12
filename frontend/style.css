@@ -385,7 +385,15 @@ dialog a:hover, dialog a:focus-visible { text-decoration: underline; }
 #tb-label { font-size: 12px; font-variant-numeric: tabular-nums; min-width: 96px;
   text-align: right; }
 #tb-live.active { background: var(--accent); color: #fff; border-color: var(--accent); }
-#tb-info { margin-top: 4px; }
+/* Stała wysokość dwóch wierszy: gdy w oknie pojawiał się sygnał, dochodziła druga
+   linijka i cały pasek historii podskakiwał w górę pod palcem. Rezerwujemy miejsce
+   od razu, więc pasek stoi w jednym miejscu niezależnie od treści. */
+#tb-info { margin-top: 4px; min-height: 38px; }
+/* Klikalna liczba sygnałów jest <button>, czyli inline-block: przy wyrównaniu do
+   linii bazowej dokładała pod sobą kilka pikseli i pasek historii był wtedy wyższy
+   niż przy zwykłym tekście. Razem z min-height wyżej wysokość paska nie zależy już
+   od tego, czy w oknie są sygnały — wcześniej pasek podskakiwał w górę pod palcem. */
+#tb-info .linklike { vertical-align: top; line-height: inherit; }
 body.history-mode #my-banner { display: none; }
 
 /* ── baner mojego regionu ── */

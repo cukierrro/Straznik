@@ -40,8 +40,12 @@ class Page(HTMLParser):
 
 
 def main():
-    pages = {name: Page(ROOT / name) for name in ("index.html", "en.html")}
+    pages = {name: Page(ROOT / name)
+             for name in ("index.html", "en.html", "zmiany.html", "zmiany-en.html")}
     assert pages["index.html"].sections == pages["en.html"].sections
+    # historia zmian: te same wydania w obu językach, każde z własną sekcją
+    assert pages["zmiany.html"].sections == pages["zmiany-en.html"].sections
+    assert len(pages["zmiany.html"].sections) >= 12, pages["zmiany.html"].sections
     images = set()
     for page in pages.values():
         images.update(page.images)
