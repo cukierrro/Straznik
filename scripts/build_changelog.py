@@ -16,6 +16,17 @@ DOCS = ROOT / "docs"
 # (wersja, data PL, data EN, tytuł PL, tytuł EN, punkty PL, punkty EN, zrzuty)
 # Zrzut: (plik, alt PL, alt EN, podpis PL, podpis EN)
 RELEASES = [
+    ("1.7.35", "12 września 2026", "12 September 2026",
+     "Zamknięcie karty strefy nie zamyka listy sygnałów",
+     "Closing a zone card no longer closes the signal list",
+     ["Dotknięcie ✕ na karcie strefy zamykało listę sygnałów, a samej karty nie — karta leży poza panelem, więc liczyło się to jak kliknięcie obok niego.",
+      "Zwinięcie panelu przesuwało przy tym kartę spod palca, więc właściwy klik już w ✕ nie trafiał. Stąd oba objawy naraz.",
+      "Punktacja bez zmian."],
+     ["Tapping the close cross on a zone card was closing the signal list instead of the card — the card sits outside the panel, so it counted as a tap beside it.",
+      "Collapsing the panel also moved the card out from under the finger, so the actual click missed the cross. Hence both symptoms at once.",
+      "Scoring is unchanged."],
+     []),
+
     ("1.7.34", "12 września 2026", "12 September 2026",
      "Weto nie kasuje już prawdziwego meldunku",
      "A veto no longer deletes a genuine report",

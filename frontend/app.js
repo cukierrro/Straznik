@@ -3639,19 +3639,25 @@ document.addEventListener("pointerdown", (e) => {
   const path = e.composedPath();
   const panel = document.getElementById("panel");
   const panelBtn = document.getElementById("btn-panel");
-  if (!panel.classList.contains("collapsed")
+  const karta = document.getElementById("ac-card");
+  /* Karta obiektu i strefy NIE jest „poza panelem": otwiera się z listy sygnałów
+     (plakietki stref w karcie województwa), a leży poza elementem #panel. Bez tego
+     wyjątku dotknięcie ✕ na karcie zamykało listę sygnałów — i to zanim doszedł
+     właściwy klik, bo zwinięcie panelu przesuwało kartę spod palca, więc samo okno
+     zostawało otwarte (zgłoszone 12.09.2026). */
+  const wKarcie = karta && !karta.classList.contains("hidden") && path.includes(karta);
+  if (!panel.classList.contains("collapsed") && !wKarcie
       && !path.includes(panel) && !path.includes(panelBtn)) setPanel(false);
 
   const legend = document.getElementById("legend");
   const legendBtn = document.getElementById("btn-legend");
-  if (!legend.classList.contains("hidden")
+  if (!legend.classList.contains("hidden") && !wKarcie
       && !path.includes(legend) && !path.includes(legendBtn)) {
     legend.classList.add("hidden");
     legendBtn.classList.remove("active");
   }
 
-  const card = document.getElementById("ac-card");
-  if (!card.classList.contains("hidden") && !path.includes(card)) hideCard();
+  if (karta && !karta.classList.contains("hidden") && !path.includes(karta)) hideCard();
 
   // Dla modalnych okien kliknięcie w przyciemnione tło ma ten sam sens.
   const dialog = e.target instanceof HTMLDialogElement ? e.target : null;
