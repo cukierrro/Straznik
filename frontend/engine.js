@@ -18,7 +18,9 @@ const POINTS = { neptun_high: 3, neptun_medlow: 1.5, media_keywords: 1, media_cr
 // Neptun ma wyższy limit niż reszta (każdy track to osobny fizyczny obiekt),
 // ale nie nieograniczony — przy kilkudziesięciu obiektach suma i tak dawno
 // przekroczyła próg alarmu, a trzycyfrowa punktacja psułaby czytelność skali.
-const SOURCE_CAPS = { media: 1.5, rcb: 2, adsb: 1, pansa: 1, neptun: 8 };
+// Alarmy obwodowe UA to JEDNA informacja, nie kilka niezależnych potwierdzeń:
+// bez własnego limitu trzy obwody naraz dawały 3,0 pkt i żółty bez żadnego obiektu.
+const SOURCE_CAPS = { media: 1.5, rcb: 2, adsb: 1, pansa: 1, neptun: 8, ua_alert: 1 };
 const VOIVODESHIPS = ["lubelskie","podkarpackie","podlaskie","mazowieckie","świętokrzyskie",
   "małopolskie","warmińsko-mazurskie","łódzkie","śląskie","kujawsko-pomorskie","pomorskie",
   "zachodniopomorskie","lubuskie","wielkopolskie","dolnośląskie","opolskie"];
@@ -95,7 +97,10 @@ const VOIV_BBOX = {
   "lubelskie":[50.25,21.60,52.30,24.15], "podkarpackie":[49.00,21.10,50.85,23.60],
   "podlaskie":[52.28,21.60,54.40,24.00], "warmińsko-mazurskie":[53.13,19.10,54.45,22.95]};
 const UA_BORDER_OBLASTS = { "Волинська":["lubelskie"], "Львівська":["lubelskie","podkarpackie"],
-  "Закарпатська":["podkarpackie"], "Рівненська":["lubelskie"] };
+  "Закарпатська":["podkarpackie"], "Рівненська":["lubelskie"],
+  // Żytomierski nie graniczy z Polską, ale stamtąd — przez Białoruś — szły drony
+  // 10.09.2026; alarm w tym obwodzie jest wskaźnikiem wyprzedzającym.
+  "Житомирська":["lubelskie"] };
 /* Klasyfikacja: CRITICAL oznacza 1,5 pkt, para AIR + EVENT 1,0 pkt. Twardy
    limit RSS 1,5 sprawia, że same media nigdy nie osiągają żółtego progu 2,0.
    Lustrzana kopia backend/app/config.py — testy w scripts/test_textmatch.py. */
@@ -482,6 +487,11 @@ function accumulate(sigs, refT) {
       neptunWinners.set(key, s);
     }
   }
+  // Limit klasy źródła przydzielamy PO wygaszeniu wiekiem i od NAJMOCNIEJSZEGO
+  // wkładu (lustro backend/app/fusion.py). Liczony wcześniej na surowych punktach
+  // w kolejności czasu powodował, że w ataku dłuższym niż FULL_MIN stare wpisy
+  // wypełniały limit, a świeży obiekt przy granicy wnosił 0 pkt.
+  const prepared = [];
   for (const s of [...sigs].sort((a, b) => a.t - b.t)) {
     if (!(s.voivodeship in per) || !Number.isFinite(s.points) || s.points <= 0) continue;
     const trackId = s.source === "neptun" && s.details?.track_id;
@@ -493,22 +503,28 @@ function accumulate(sigs, refT) {
     const cleared = !!clearT && clearT >= (s.t || Date.parse(s.ts) || 0);
     const relayOf = mediaRelayOfOfficial(s, officials);
     const retrospective = mediaRetrospective(s);
-    const k = s.voivodeship + "|" + s.source;
-    const cap = SOURCE_CAPS[s.source];
-    const already = perSource[k] || 0;
-    let counted = (superseded || cleared || relayOf || retrospective) ? 0
-      : (cap == null ? s.points : Math.max(0, Math.min(cap - already, s.points)));
-    if (!superseded && !cleared && !relayOf && !retrospective) perSource[k] = already + s.points;
     const ageMin = (ref - s.t) / 60000;
     const w = ageMin <= FULL_MIN ? 1
       : Math.max(0, 1 - (ageMin - FULL_MIN) / Math.max(WINDOW_MIN - FULL_MIN, 1));
-    counted *= w;
+    const zeroed = superseded || cleared || relayOf || retrospective;
+    prepared.push({ s, w, counted: 0, weighted: zeroed ? 0 : s.points * w,
+                    cleared, relayOf, retrospective });
+  }
+  for (const e of [...prepared].sort((a, b) => b.weighted - a.weighted || a.s.t - b.s.t)) {
+    const k = e.s.voivodeship + "|" + e.s.source;
+    const cap = SOURCE_CAPS[e.s.source];
+    const already = perSource[k] || 0;
+    e.counted = cap == null ? e.weighted : Math.max(0, Math.min(cap - already, e.weighted));
+    perSource[k] = already + e.counted;
+  }
+  for (const e of prepared) {        // do wyniku i rozbicia — w kolejności czasu
+    const { s, counted, relayOf } = e;
     per[s.voivodeship].score += counted;
     if (s.source !== "rcb") per[s.voivodeship]._spillover_score += counted;
     per[s.voivodeship].signals.push({ ...s, counted_points: Math.round(counted * 10) / 10,
-      weight: Math.round(w * 100) / 100, ...(cleared ? { cleared:true } : {}),
+      weight: Math.round(e.w * 100) / 100, ...(e.cleared ? { cleared:true } : {}),
       ...(relayOf ? { duplicate_of_official: relayOf.details?.rso_id || relayOf.id || true } : {}),
-      ...(retrospective ? { retrospective:true } : {}) });
+      ...(e.retrospective ? { retrospective:true } : {}) });
   }
   return per;
 }
@@ -521,6 +537,8 @@ function computeState() {
   // propagacja kaskadowa do kolejnych kręgów sąsiedztwa (jak w backendzie)
   const base = {}; for (const [v, st] of Object.entries(per)) {
     base[v] = st._spillover_score || 0; delete st._spillover_score;
+    // wynik WŁASNY (przed przeniesieniem) — tylko on może wywołać powiadomienie
+    st.own_score = Math.round(st.score * 10) / 10;
   }
   for (const [src, score] of Object.entries(base)) {
     if (score < SPILLOVER_MIN) continue;
@@ -567,6 +585,16 @@ const PRIORITY_VOIVS = ["lubelskie","podkarpackie","podlaskie","warmińsko-mazur
 /* Powiadamiamy o moim regionie; bez ustawionej lokalizacji — o przygranicznych.
    Bez tego filtra propagacja do sąsiadów zasypałaby telefon alertami o całym kraju. */
 function shouldNotify(voiv) {
+  // Wyciszenie z dzwonka musi działać też tutaj — wcześniej czytał je wyłącznie
+  // interfejs, więc tryb awaryjny powiadamiał mimo wyciszenia.
+  try { if (localStorage.getItem("straznik_notif_on") === "0") return false; } catch {}
+  // Wszystkie obserwowane „Moje miejsca", nie tylko pierwsze: drugie miejsce
+  // w innym województwie nie dostawało w trybie awaryjnym żadnego alarmu.
+  try {
+    const places = globalThis.Places?.migrate?.(localStorage) || [];
+    const observed = globalThis.Places?.observedVoivodeships?.(places) || [];
+    if (observed.length) return observed.includes(voiv);
+  } catch {}
   const mine = localStorage.getItem("straznik_voiv");
   return mine ? voiv === mine : PRIORITY_VOIVS.includes(voiv);
 }
@@ -577,7 +605,12 @@ function reevaluate() {
     const prev = lastLevels[voiv] || "none";
     if (s.level !== prev) {
       const order = ["none","elevated","high"];
-      if (order.indexOf(s.level) > order.indexOf(prev) && shouldNotify(voiv)) {
+      const rising = order.indexOf(s.level) > order.indexOf(prev);
+      // Poziom wyłącznie z przeniesienia od sąsiadów zostaje widoczny, ale nie
+      // budzi telefonu — i nie zapisujemy go, żeby własny sygnał nadal alarmował
+      // (lustro backend/app/fusion.py).
+      if (rising && (s.own_score || 0) <= 0) { continue; }
+      if (rising && shouldNotify(voiv)) {
         const ck = voiv + "|" + s.level;
         if (!lastNotif[ck] || Date.now() - lastNotif[ck] > COOLDOWN_MIN*60*1000) {
           lastNotif[ck] = Date.now();
@@ -740,10 +773,19 @@ function neptunEval(t) {
   }
   return t;
 }
+const ALERT_LEVELS_OFF = new Set(["none","green","off","clear","no","false"]);
 function neptunAlerts(data) {
+  // Obwody z aktywnym alarmem bierzemy z `oblasts` ORAZ `raions`: w `oblasts`
+  // NEPTUN trzyma wyłącznie obwody okupowane (alarm od 2022), więc sam ten sygnał
+  // nie zadziałał ani razu. Alarmy zachodniej Ukrainy przychodzą jako rejony,
+  // z nazwą obwodu w polu `oblast` (audyt 11.09.2026 — lustro backendu).
   const names = new Set();
-  for (const it of (data?.oblasts||[]))
-    names.add(typeof it === "string" ? it : (it?.name||it?.region||it?.title||""));
+  for (const field of ["oblasts","raions"])
+    for (const it of (data?.[field]||[])) {
+      if (typeof it === "string") { names.add(it); continue; }
+      if (!it || ALERT_LEVELS_OFF.has(String(it.level||"").toLowerCase())) continue;
+      names.add(it.oblast || it.name || it.region || it.title || "");
+    }
   const active = new Set();
   for (const n of names) for (const [ob, voivs] of Object.entries(UA_BORDER_OBLASTS))
     if (n.includes(ob)) {
@@ -751,7 +793,7 @@ function neptunAlerts(data) {
       if (!alertOblasts.has(ob)) {
         const hk = new Date().toISOString().slice(0,13);
         for (const v of voivs)
-          addSignal("neptun","ua_alert_border",v,POINTS.ua_alert_border,
+          addSignal("ua_alert","ua_alert_border",v,POINTS.ua_alert_border,
             `Alarm powietrzny w obwodzie ${ob} (graniczy z woj. ${v})`,{oblast:ob},
             `neptun_alert:${ob}:${v}:${hk}`);
       }
@@ -913,11 +955,22 @@ async function tickAdsb() {
 }
 
 /* ── kolektor: RSS (PL + bałtyckie) ──────────────────────────────────────── */
+/* Adres z kanału RSS trafia potem do `href` w panelu sygnałów, więc odsiewamy
+   wszystko poza http(s) już przy wczytaniu — „javascript:" z przejętego kanału
+   nie może stać się klikalnym kodem (lustro `safeUrl` w app.js). */
+function feedLink(raw) {
+  const value = String(raw || "").trim();
+  if (!value) return "";
+  try {
+    const parsed = new URL(value, "https://example.invalid/");
+    return (parsed.protocol === "http:" || parsed.protocol === "https:") ? value : "";
+  } catch { return ""; }
+}
 function parseFeed(xmlText) {
   const doc = new DOMParser().parseFromString(xmlText, "text/xml");
   return [...doc.querySelectorAll("item, entry")].map(it => ({
     title: it.querySelector("title")?.textContent || "",
-    link: it.querySelector("link")?.getAttribute("href") || it.querySelector("link")?.textContent || "",
+    link: feedLink(it.querySelector("link")?.getAttribute("href") || it.querySelector("link")?.textContent || ""),
     desc: it.querySelector("description, summary, content")?.textContent || "",
     date: it.querySelector("pubDate, published, updated")?.textContent || "",
   }));

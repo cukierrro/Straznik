@@ -41,6 +41,14 @@ CREATE TABLE IF NOT EXISTS notif_log (
     voivodeship TEXT NOT NULL,
     level TEXT NOT NULL
 );
+-- ostatnio zgłoszony poziom per województwo. Trwały, bo stan tylko w pamięci
+-- powodował po restarcie powtórny alarm trwającego zdarzenia, a po cichym
+-- wygaszeniu wyniku — brak alarmu przy kolejnym wzroście (audyt 11.09.2026).
+CREATE TABLE IF NOT EXISTS level_state (
+    voivodeship TEXT PRIMARY KEY,
+    level TEXT NOT NULL,
+    ts TEXT NOT NULL
+);
 -- migawki mapy do przeglądania wstecz (12 h)
 CREATE TABLE IF NOT EXISTS snapshots (
     ts TEXT PRIMARY KEY,
@@ -303,6 +311,23 @@ def log_notif(voiv: str, level: str):
     with _lock:
         _conn.execute("INSERT INTO notif_log (ts, voivodeship, level) VALUES (?,?,?)",
                       (now_iso(), voiv, level))
+        _conn.commit()
+
+
+def load_levels() -> dict[str, str]:
+    """Ostatnio zgłoszone poziomy — odtwarzane po restarcie usługi."""
+    with _lock:
+        rows = _conn.execute("SELECT voivodeship, level FROM level_state").fetchall()
+    return {r[0]: r[1] for r in rows}
+
+
+def save_level(voiv: str, level: str):
+    with _lock:
+        _conn.execute(
+            "INSERT INTO level_state (voivodeship, level, ts) VALUES (?,?,?)"
+            " ON CONFLICT(voivodeship) DO UPDATE SET level=excluded.level, ts=excluded.ts",
+            (voiv, level, now_iso()),
+        )
         _conn.commit()
 
 

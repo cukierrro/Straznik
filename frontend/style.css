@@ -135,8 +135,9 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   box-shadow: 0 8px 24px rgba(0,0,0,.4);
 }
 #bg-warning.hidden { display: none; }
-#bg-warning span { line-height: 1.35; }
-#bg-warning .chip { flex: none; padding: 4px 10px; font-size: 11.5px; }
+#bg-warning { flex-wrap: wrap; }          /* ten sam układ co pozostałe ramki */
+#bg-warning span { min-width: 0; line-height: 1.35; }
+#bg-warning .chip { flex: none; margin-left: auto; padding: 4px 10px; font-size: 11.5px; }
 body.panel-open #bg-warning { display: none; }
 
 .noscript-info {
@@ -148,15 +149,22 @@ body.panel-open #bg-warning { display: none; }
 .noscript-info a { color: var(--accent); }
 
 /* ── baner „dostępna nowa wersja” ── */
+/* Okno aktualizacji: lista „Co się zmienia" bywa dłuższa niż ekran, więc karta ma
+   ograniczoną wysokość, a przewija się jej treść. Przyciski w osobnym rzędzie —
+   wcześniej przy długim tekście ściskały go do kilku znaków. */
 #update-banner {
   position: fixed; left: 50%; transform: translateX(-50%);
   bottom: calc(14px + env(safe-area-inset-bottom)); z-index: 60;
-  display: flex; align-items: center; gap: 10px;
-  max-width: min(520px, 94vw);
+  display: grid; gap: 10px; grid-template-columns: minmax(0, 1fr);
+  width: min(520px, calc(100vw - 20px));
+  max-height: calc(100dvh - var(--topbar-h, 52px) - 40px);
   background: var(--panel, #151d2e); border: 1px solid var(--accent);
-  border-radius: 12px; padding: 10px 12px;
+  border-radius: 12px; padding: 12px 14px;
   box-shadow: 0 14px 40px rgba(0,0,0,.5);
 }
+.upd-txt { max-height: min(44dvh, 340px); overflow-y: auto; padding-right: 2px; }
+.upd-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.upd-actions .chip { flex: 0 1 auto; }
 #update-banner.hidden { display: none; }
 #update-banner.critical { border-color: var(--red); box-shadow: 0 14px 40px rgba(220,45,55,.28); }
 
@@ -171,12 +179,19 @@ body.panel-open #bg-warning { display: none; }
   box-shadow: 0 14px 40px rgba(0,0,0,.5);
 }
 #notice-banner.hidden { display: none; }
+/* dłuższy komunikat ma się zawijać i przewijać, a nie wychodzić poza ekran */
+#notice-banner { flex-wrap: wrap; max-height: min(40dvh, 300px); overflow-y: auto; }
 #notice-banner span { min-width: 0; font-size: 13px; }
-#notice-banner .chip { flex: none; }
+#notice-banner .chip { flex: none; margin-left: auto; }
 .upd-txt { display: flex; flex-direction: column; line-height: 1.35; min-width: 0; }
 .upd-txt b { font-size: 13.5px; }
 .upd-txt span { font-size: 11px; color: var(--muted); }
-.upd-changes { margin-top: 5px; font-size: 11px; color: #dce7fa; }
+#upd-progress:not(:empty) { display: block; font-size: 11.5px; line-height: 1.4;
+  color: #cfe0fb; background: #13243a; border: 1px solid #375e82;
+  border-radius: 8px; padding: 7px 9px; }
+.upd-changes { margin-top: 7px; font-size: 11.5px; line-height: 1.45; color: #dce7fa;
+  background: rgba(91,140,255,.09); border: 1px solid rgba(91,140,255,.24);
+  border-radius: 9px; padding: 8px 10px; }
 .upd-changes b { font-size: inherit; }
 .upd-changes ul { margin: 2px 0 0; padding-left: 16px; }
 .upd-changes li { margin: 1px 0; line-height: 1.3; }
@@ -559,9 +574,24 @@ html[lang="en"] .list:empty::after { content: "— none —"; }
 #panel-attrib { display: none; line-height: 1.45; }
 #panel-attrib a { color: var(--cyan); }
 
+/* Okna informacyjne: bez max-height i przewijania dłuższa treść (np. lista źródeł
+   albo ustawienia) była ucinana na telefonie i nie dało się jej przewinąć.
+   `dvh` zamiast `vh`, bo pasek adresu w przeglądarce zmienia wysokość widoku. */
 dialog { margin: auto; background: #121828; color: var(--text); border: 1px solid var(--panel-border);
-  border-radius: 14px; padding: 18px; width: min(420px, 92vw); }
+  border-radius: 14px; padding: 18px; width: min(420px, 92vw);
+  max-height: min(88dvh, 88vh); overflow-y: auto; overscroll-behavior: contain;
+  padding-bottom: calc(18px + env(safe-area-inset-bottom));
+  box-shadow: 0 24px 60px rgba(0,0,0,.55); }
 dialog::backdrop { background: rgba(0,0,0,.55); }
+/* cienki, ciemny pasek przewijania — jaśniejszy domyślny rozjeżdżał się z panelem */
+dialog, .upd-txt, .about-body, .places-dialog form {
+  scrollbar-width: thin; scrollbar-color: #3a4a6b transparent; }
+dialog::-webkit-scrollbar, .upd-txt::-webkit-scrollbar,
+.about-body::-webkit-scrollbar, .places-dialog form::-webkit-scrollbar { width: 9px; }
+dialog::-webkit-scrollbar-thumb, .upd-txt::-webkit-scrollbar-thumb,
+.about-body::-webkit-scrollbar-thumb, .places-dialog form::-webkit-scrollbar-thumb {
+  background: #33425f; border-radius: 9px; border: 2px solid transparent;
+  background-clip: content-box; }
 dialog h3 { margin-bottom: 10px; }
 dialog label { display: block; font-size: 13px; color: var(--muted); }
 dialog input { width: 100%; margin-top: 6px; padding: 8px 10px; border-radius: 8px;

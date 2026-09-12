@@ -36,8 +36,17 @@ RSO_AIR = ("powietrzn", "z powietrza", "dron", "bezzałogow", "bezzalogow", "bsp
            "obiekt lataj", "naruszenie przestrzeni", "myśliwc", "mysliwc",
            "obrony powietrzn", "obiekt powietrzn")
 # Nie alarmujemy na komunikat KOŃCZĄCY zagrożenie / odwołanie.
-RSO_END = ("zakończył", "zakonczyl", "zakończen", "zakonczen", "odwoł", "odwol",
-           "brak zagroż", "brak zagroz", "zniesion", "sytuacja opanowan")
+RSO_END = ("zakończył", "zakonczyl", "zakończen", "zakonczen",
+           # „Alert RCB zakończony" nie pasował do form powyżej i przechodził jako
+           # nowy alarm; tak samo „zagrożenie minęło" (test 12.09.2026)
+           "zakończon", "zakonczon", "odwoł", "odwol",
+           "brak zagroż", "brak zagroz", "zniesion", "sytuacja opanowan",
+           "zagrożenie minęł", "zagrozenie minel", "niebezpieczeństwo minęł",
+           "niebezpieczenstwo minel")
+# …ale te zwroty opisują alert WCIĄŻ OBOWIĄZUJĄCY i nie mogą go wyłączyć.
+RSO_CONTINUES = ("do odwołania", "do odwolania", "do czasu odwołania",
+                 "do czasu odwolania", "do czasu zakończenia", "do czasu zakonczenia",
+                 "aż do odwołania", "az do odwolania")
 
 _seen: set[str] = set()
 _bootstrap = False
@@ -48,9 +57,18 @@ def _fold(s: str) -> str:
     return "".join(c for c in s if not unicodedata.combining(c)).replace("ł", "l")
 
 
-def _is_rcb_air_alert(text: str) -> bool:
+def _is_rcb_air_alert(text: str, headline: str | None = None) -> bool:
+    """Czy to alert RCB o zagrożeniu z powietrza.
+
+    Znaczniki KOŃCA zagrożenia szukamy wyłącznie w tytule i skrócie. Szukane w
+    całej treści odrzucały prawdziwe alerty, bo sam alert często zawiera zwrot
+    „obowiązuje do odwołania" albo „do czasu zakończenia" (audyt 11.09.2026).
+    """
     t = (text or "").lower()
-    if any(w in t for w in RSO_END):
+    head = (headline if headline is not None else text or "").lower()
+    for cont in RSO_CONTINUES:      # zwroty TRWAJĄCEGO alertu, nie jego końca
+        head = head.replace(cont, " ")
+    if any(w in head for w in RSO_END):
         return False
     return any(o in t for o in RSO_ORIGIN) and any(a in t for a in RSO_AIR)
 
@@ -69,6 +87,24 @@ def _voivs_for(item: dict) -> list[str]:
                 out.append(v)
     # brak przypisania → cała ściana wschodnia (alert ogólnokrajowy dotyczy nas)
     return out or list(config.PRIORITY_VOIVODESHIPS)
+
+
+BOOTSTRAP_FRESH_MIN = 60
+
+
+def _issued_recently(item: dict, minutes: int = BOOTSTRAP_FRESH_MIN) -> bool:
+    """Czy alert wydano w ostatnich `minutes`. `valid_from` jest w czasie lokalnym
+    PL bez strefy, więc porównujemy z lokalnym „teraz" (jak w `_still_active`)."""
+    vf = item.get("valid_from")
+    if not vf:
+        return False
+    try:
+        from datetime import datetime, timedelta, timezone
+        start = datetime.strptime(str(vf)[:19], "%Y-%m-%d %H:%M:%S")
+        now_pl = (datetime.now(timezone.utc) + timedelta(hours=2)).replace(tzinfo=None)
+        return start >= now_pl - timedelta(minutes=minutes)
+    except Exception:
+        return False
 
 
 def _still_active(item: dict) -> bool:
@@ -102,7 +138,8 @@ async def _check(client: httpx.AsyncClient):
     active = 0
     for it in items:
         text = f"{it.get('title','')} {it.get('shortcut','')} {it.get('content','')}"
-        if not _is_rcb_air_alert(text):
+        headline = f"{it.get('title','')} {it.get('shortcut','')}"
+        if not _is_rcb_air_alert(text, headline):
             continue
         active += 1
         mid = str(it.get("id"))
@@ -115,8 +152,12 @@ async def _check(client: httpx.AsyncClient):
             if key in _seen:
                 continue
             _seen.add(key)
-            if not _bootstrap:
-                # pierwszy przebieg: istniejące już alerty NIE mają alarmować
+            if not _bootstrap and not _issued_recently(it):
+                # Pierwszy przebieg: STARE alerty nie mają alarmować. Świeży alert
+                # (patrz _issued_recently) musi jednak zadziałać normalnie — alert
+                # wydany w czasie przestoju albo sekundę przed wdrożeniem dostawał
+                # 0 pkt i ten sam klucz deduplikacji, więc przepadał na zawsze,
+                # a RCB to jedyne źródło trafnych alarmów (audyt 11.09.2026).
                 fusion.db.add_signal("rcb", "rso_alert_seen", voiv, 0.0,
                                      f"RCB/RSO (istniejący przy starcie): „{it.get('title','')[:110]}”",
                                      {"rso_id": mid}, key)

@@ -1352,6 +1352,17 @@ function relTime(iso) {
 }
 const esc = (s) => String(s ?? "").replace(/[<>&"]/g, c => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;" }[c]));
 const esc2 = esc;
+/* Adres z kanału RSS to treść z zewnątrz, a `esc` zamienia tylko znaki HTML —
+   sam schemat przepuszczał. Dopuszczamy wyłącznie http(s), żeby „javascript:"
+   z przejętego lub złośliwego kanału nie stało się klikalnym kodem w WebView. */
+const safeUrl = (u) => {
+  const raw = String(u ?? "").trim();
+  if (!raw) return "";
+  try {
+    const parsed = new URL(raw, location.href);
+    return (parsed.protocol === "http:" || parsed.protocol === "https:") ? parsed.href : "";
+  } catch { return ""; }
+};
 
 function renderPanel() {
   // w trybie historii panel należy do wybranej chwili — cykliczne odświeżanie
@@ -1480,7 +1491,7 @@ const SRC_ICON = { neptun: "🎯", media: "📰", rcb: "🚨", adsb: "✈", pans
   neighbours: "🌍", spillover: "↔", test: "🧪" };
 
 function sigHTML(s) {
-  const link = s.details?.link || s.details?.url;
+  const link = safeUrl(s.details?.link || s.details?.url);
   const cp = s.counted_points ?? s.points;
   const w = s.weight;                       // waga wygaszania z accumulate (1,0 = świeży)
   // Rozróżniamy powody, dla których liczy się mniej niż nominał:
@@ -2665,11 +2676,16 @@ function showUpdateBanner(rel, local) {
     ? `<div class="upd-changes"><b>Co się zmienia:</b><ul>${changes.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>`
     : `<div class="upd-changes"><b>Co się zmienia:</b> poprawki działania i aktualizacja danych aplikacji.</div>`;
   el.classList.toggle("critical", !!rel.critical);
+  // Przyciski i status w osobnych rzędach — w jednym wierszu z tekstem ściskały go
+  // przy dłuższej liście zmian, a status znikał poza przewijanym obszarem.
   el.innerHTML = `<div class="upd-txt"><b>${rel.critical ? "Wymagana" : "Dostępna"} wersja ${esc(ver)}</b>
       <span>masz ${esc(local)}${esc(size)} · instalację potwierdzi Android</span>
-      ${changesHtml}<span id="upd-progress"></span></div>
-    <button class="chip primary" id="upd-install">Aktualizuj</button>
-    ${rel.critical ? "" : '<button class="chip" id="upd-later">Później</button>'}`;
+      ${changesHtml}</div>
+    <span id="upd-progress"></span>
+    <div class="upd-actions">
+      <button class="chip primary" id="upd-install">Aktualizuj</button>
+      ${rel.critical ? "" : '<button class="chip" id="upd-later">Później</button>'}
+    </div>`;
   el.classList.remove("hidden");
   document.getElementById("upd-later")?.addEventListener("click", () => {
     sessionSkippedUpdates.add(ver);

@@ -205,6 +205,7 @@
   <div class="warn">Arrival time is an approximation assuming continued flight. It does not account for interception, a change of course or the full uncertainty of the data. Do not treat it as a countdown of time available to seek shelter. If the heading is unavailable, the app indicates the estimation limitation.</div>
   <h3>Spillover to neighbouring provinces</h3>
   <p>A source province with at least 2 points from signals other than a regional RCB alert can contribute 40% to its first ring of neighbours, 16% to its second, and so on within the algorithm's limits. Official RCB/RSO notices are not propagated: the issuer already specifies their area, and the same notice may be issued separately for several provinces. This provides regional context; it does not predict an object's route. The panel explains each contribution.</p>
+  <p><b>Spillover alone never sends a notification.</b> A province with no signal of its own shows the raised level on the map and in the panel, but the phone stays silent — one event next door must not wake several regions at once. The notification fires once your own province records a signal of its own.</p>
 </section>
 <section id="nowosci">
   <h2>10. Features in the current release</h2>

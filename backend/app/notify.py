@@ -16,6 +16,16 @@ log = logging.getLogger("notify")
 _vapid: dict | None = None
 _fcm_ready = False
 
+# Widoczny w /api/health: bez tego cicha awaria wysyłki (błąd Google, wygasłe
+# poświadczenia) nie dawała żadnego śladu — alarm po prostu nie docierał.
+fcm_status = {"ready": False, "last_ok": None, "last_error": None, "sent": 0,
+              "failed": 0}
+
+# Alarm jest ważny minuty, nie tygodnie. Domyślny TTL w FCM to 4 tygodnie, więc
+# telefon po nocy offline dostawał pełnoekranową syrenę o zdarzeniu sprzed godzin.
+FCM_TTL_S = 900
+FCM_RETRIES = 3
+
 _WEBPUSH_HOSTS = {"fcm.googleapis.com", "web.push.apple.com"}
 _WEBPUSH_HOST_SUFFIXES = (".push.services.mozilla.com", ".notify.windows.com")
 
@@ -36,12 +46,14 @@ def init_fcm():
         if not firebase_admin._apps:
             firebase_admin.initialize_app(credentials.Certificate(config.FCM_CREDENTIALS_PATH))
         _fcm_ready = True
+        fcm_status["ready"] = True
         log.info("FCM zainicjalizowany")
     except Exception as e:
         log.warning("FCM init błąd: %s", e)
 
 
 def _send_fcm_sync(topic: str, data: dict) -> str:
+    from datetime import timedelta
     from firebase_admin import messaging
     msg = messaging.Message(
         topic=topic,
@@ -50,22 +62,49 @@ def _send_fcm_sync(topic: str, data: dict) -> str:
         # bo powiadomienie (z pełnym ekranem dla czerwonego) buduje natywny
         # StraznikFcmService — wiadomości `data-only` trafiają do niego zawsze,
         # także przy zamkniętej aplikacji, i nie są przechwytywane przez system.
-        android=messaging.AndroidConfig(priority="high"),
+        # `ttl`: wiadomość nieaktualna ma przepaść, a nie wyć po powrocie zasięgu.
+        # `direct_boot_ok`: telefon po nocnym restarcie, przed pierwszym
+        # odblokowaniem, bez tego nie dostaje nic.
+        # `collapse_key`: kolejny stan tego samego województwa zastępuje poprzedni.
+        android=messaging.AndroidConfig(
+            priority="high",
+            ttl=timedelta(seconds=FCM_TTL_S),
+            collapse_key=topic,
+            direct_boot_ok=True,
+        ),
     )
     return messaging.send(msg)
 
 
-async def send_fcm(voiv: str, level: str, score: float, reasons_text: str):
+async def send_fcm(voiv: str, level: str, score: float, reasons_text: str) -> bool:
+    """Zwraca True po udanej wysyłce. Ponawia, bo jedno chwilowe 503 od Google
+    gubiło alarm bezpowrotnie — cooldown blokował kolejną próbę."""
     if not (config.FCM_ENABLED and _fcm_ready):
-        return
+        return False
+    from datetime import datetime, timezone
     topic = config.voiv_topic(voiv)
+    sent_at = datetime.now(timezone.utc)
     data = {"voiv": voiv, "level": level, "score": str(score),
-            "reasons": reasons_text or ""}
-    try:
-        mid = await asyncio.to_thread(_send_fcm_sync, topic, data)
-        log.info("FCM → %s (%s pkt): %s", topic, score, mid)
-    except Exception as e:
-        log.warning("FCM błąd (%s): %s", topic, e)
+            "reasons": reasons_text or "",
+            # klient odrzuca/wycisza wiadomość starszą niż kilka minut i nie
+            # pokazuje dwa razy tego samego zdarzenia
+            "sent_at": sent_at.isoformat(timespec="seconds"),
+            "event_id": f"{voiv}|{level}|{int(sent_at.timestamp())}"}
+    last_error = None
+    for attempt in range(1, FCM_RETRIES + 1):
+        try:
+            mid = await asyncio.to_thread(_send_fcm_sync, topic, data)
+            fcm_status.update(last_ok=sent_at.isoformat(timespec="seconds"),
+                              last_error=None, sent=fcm_status["sent"] + 1)
+            log.info("FCM → %s (%s pkt, próba %d): %s", topic, score, attempt, mid)
+            return True
+        except Exception as e:
+            last_error = e
+            log.warning("FCM błąd (%s, próba %d/%d): %s", topic, attempt, FCM_RETRIES, e)
+            if attempt < FCM_RETRIES:
+                await asyncio.sleep(2 * attempt)
+    fcm_status.update(last_error=repr(last_error), failed=fcm_status["failed"] + 1)
+    return False
 
 
 def init_vapid():
@@ -224,18 +263,35 @@ async def send_webpush(voiv: str, title: str, body: str, level: str):
     errors = len(results) - sent - removed
     log.info("WebPush %s: wysłano=%d, usunięto=%d, błędy=%d, razem=%d",
              voiv, sent, removed, errors, len(results))
+    return sent
+
+
+_inflight: set[tuple] = set()
 
 
 async def notify_level(voiv: str, level: str, score: float, signals: list[dict]):
-    """Wysyłka po przekroczeniu progu (rising edge) z cooldownem per woj./poziom."""
+    """Wysyłka po przekroczeniu progu (rising edge) z cooldownem per woj./poziom.
+
+    Cooldown zapisujemy DOPIERO po udanej wysyłce. Wcześniej zapis szedł przed
+    wysyłką, więc jeden błąd sieci gubił alarm na cały okres cooldownu.
+    """
     from datetime import datetime, timedelta, timezone
     last = db.last_notif(voiv, level)
     if last:
         last_dt = datetime.fromisoformat(last)
         if datetime.now(timezone.utc) - last_dt < timedelta(minutes=config.NOTIFY_COOLDOWN_MIN):
             return
-    db.log_notif(voiv, level)
+    key = (voiv, level)
+    if key in _inflight:          # okresowa reewaluacja nie może dublować wysyłki
+        return
+    _inflight.add(key)
+    try:
+        await _deliver_level(voiv, level, score, signals)
+    finally:
+        _inflight.discard(key)
 
+
+async def _deliver_level(voiv: str, level: str, score: float, signals: list[dict]):
     from .fusion import breakdown_text
     label = LEVEL_LABELS[level]
     reasons = breakdown_text(signals)
@@ -249,10 +305,20 @@ async def notify_level(voiv: str, level: str, score: float, signals: list[dict])
             f"NIEOFICJALNE źródło dodatkowe — w razie realnego zagrożenia "
             f"kieruj się syrenami/RCB/RSO.")
     ntfy_prio = "urgent" if level == "high" else "default"
-    await asyncio.gather(
+    results = await asyncio.gather(
         send_ntfy(title, body, ntfy_prio),
         send_telegram(f"{'🚨' if level == 'high' else '⚠️'} {title}\n{body}"),
         send_webpush(voiv, title, body, level),
         send_fcm(voiv, level, score, reasons_for_push),
         return_exceptions=True,
     )
+    web_sent, fcm_ok = results[2], results[3]
+    delivered = (fcm_ok is True) or (isinstance(web_sent, int) and web_sent > 0)
+    channels_off = not (config.FCM_ENABLED or config.WEBPUSH_ENABLED)
+    if delivered or channels_off:
+        db.log_notif(voiv, level)
+    else:
+        # Bez zapisu cooldownu: kolejny wzrost poziomu pójdzie od razu, bez czekania
+        # NOTIFY_COOLDOWN_MIN. Same ponowienia robi już send_fcm (FCM_RETRIES).
+        log.error("ALARM NIEDOSTARCZONY: woj. %s, poziom %s (%s pkt) — FCM=%r, WebPush=%r",
+                  voiv, level, score, fcm_ok, web_sent)

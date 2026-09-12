@@ -44,15 +44,31 @@ status = {"connected": False, "mode": "ws", "last_msg": None, "error": None}
 alert_oblasts: set[str] = set()
 
 
+_ALERT_LEVELS_OFF = {"none", "green", "off", "clear", "no", "false"}
+
+
 def _extract_oblast_names(data) -> set[str]:
-    """Ramka alerts: {raions, oblasts} — elementy mogą być stringami lub dict-ami."""
+    """Obwody z aktywnym alarmem powietrznym — z pól `oblasts` ORAZ `raions`.
+
+    Samo `oblasts` nie dawało nic: NEPTUN trzyma tam wyłącznie obwody okupowane
+    (Krym i Ługańsk mają alarm od 2022), więc od 02.08.2026 nie powstał ani jeden
+    sygnał `ua_alert_border`. Alarmy zachodniej Ukrainy przychodzą w tej samej
+    ramce jako `raions` — rejon z poziomem i powodem („Ракетна загроза”) — i
+    niosą nazwę swojego obwodu w polu `oblast` (audyt 11.09.2026).
+    """
     out = set()
-    for item in (data or {}).get("oblasts") or []:
-        if isinstance(item, str):
-            out.add(item)
-        elif isinstance(item, dict):
-            for k in ("name", "region", "title", "oblast", "key"):
-                if isinstance(item.get(k), str):
+    for field in ("oblasts", "raions"):
+        for item in (data or {}).get(field) or []:
+            if isinstance(item, str):
+                out.add(item)
+                continue
+            if not isinstance(item, dict):
+                continue
+            if str(item.get("level") or "").lower() in _ALERT_LEVELS_OFF:
+                continue
+            # „oblast" pierwsze: dla rejonu chcemy nazwę OBWODU, nie rejonu
+            for k in ("oblast", "name", "region", "title", "key"):
+                if isinstance(item.get(k), str) and item[k]:
                     out.add(item[k])
                     break
     return out
@@ -72,7 +88,10 @@ async def _handle_alerts(data):
                     hour_key = time.strftime("%Y-%m-%dT%H")
                     for voiv in voivs:
                         await fusion.ingest(
-                            source="neptun", event_type="ua_alert_border",
+                            # OSOBNA klasa źródła: w klasie „neptun" (limit 8,0)
+                            # trzy obwody naraz dawały 3,0 pkt i żółty alarm bez
+                            # ani jednego obiektu na mapie (audyt 11.09.2026).
+                            source="ua_alert", event_type="ua_alert_border",
                             voivodeship=voiv, points=config.POINTS["ua_alert_border"],
                             title=f"Alarm powietrzny w obwodzie {oblast} (graniczy z woj. {voiv})",
                             details={"oblast": oblast},

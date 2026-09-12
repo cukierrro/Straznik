@@ -174,7 +174,11 @@ POINTS = {
 # obiekt — ale nie nieograniczony: przy kilkudziesięciu obiektach suma i tak dawno
 # przekroczyła próg alarmu, a trzycyfrowa punktacja tylko psułaby czytelność skali.
 SOURCE_CAPS = {"media": 1.5, "rcb": 2.0, "adsb": 1.0, "pansa": 1.0, "neptun": 8.0,
-               "neighbours": 0.6}   # sąsiedzi: nawet kilka zamknięć = drobny wkład
+               "neighbours": 0.6,   # sąsiedzi: nawet kilka zamknięć = drobny wkład
+               # Alarmy obwodowe UA to JEDNA informacja („na zachodniej Ukrainie
+               # trwa alarm"), nie kilka niezależnych potwierdzeń — inaczej Wołyń
+               # + Lwów + Równe dawały 3,0 pkt i żółty bez żadnego obiektu.
+               "ua_alert": 1.0}
 
 # ── Propagacja na resztę kraju ────────────────────────────────────────────────
 # Zdarzenie na wschodzie dotyczy też regionów dalej na zachód (obiekt leci
@@ -274,6 +278,9 @@ UA_BORDER_OBLASTS = {
     "Львівська": ["lubelskie", "podkarpackie"],
     "Закарпатська": ["podkarpackie"],
     "Рівненська": ["lubelskie"],
+    # Żytomierski nie graniczy z Polską, ale to stamtąd (przez Białoruś) szły
+    # drony 10.09.2026 — alarm w tym obwodzie jest wskaźnikiem wyprzedzającym.
+    "Житомирська": ["lubelskie"],
 }
 
 # Klasyfikacja RSS (patrz textmatch.py) ma trzy rozłączne wyniki:

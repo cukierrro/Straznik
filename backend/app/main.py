@@ -221,7 +221,9 @@ async def api_health():
         "official_alerts": official_alerts.status,
         "notify": {"ntfy": config.NTFY_ENABLED and bool(config.NTFY_TOPIC),
                    "telegram": config.TELEGRAM_ENABLED,
-                   "webpush": config.WEBPUSH_ENABLED},
+                   "webpush": config.WEBPUSH_ENABLED,
+                   # cicha awaria wysyłki do aplikacji nie może być niewidoczna
+                   "fcm": notify.fcm_status},
         "progression_shadow": escalation_shadow.status,
         "rcb_reference": rcb_reference.status,
     }
@@ -292,9 +294,25 @@ async def startup():
     fusion.on_state_change = broadcast_state
     for coro in (neptun.run(), rss_media.run(), rcb.run(), rso.run(), adsb.run(),
                  pansa.run(), neighbours.run(), official_alerts.run(), snapshot_loop(),
-                 progression_shadow_loop()):
+                 progression_shadow_loop(), level_loop()):
         asyncio.create_task(coro)
     log.info("Strażnik wystartował — kolektory uruchomione")
+
+
+async def level_loop():
+    """Reewaluacja progów bez nowego sygnału — wynik spada z wiekiem sam.
+
+    Bez tej pętli `fusion.reevaluate()` ruszało tylko przy nowym sygnale, więc po
+    cichej godzinie serwer nadal „pamiętał" poprzedni poziom i kolejny wzrost do
+    tego samego poziomu nie wysyłał powiadomienia (audyt 11.09.2026).
+    """
+    await asyncio.sleep(20)
+    while True:
+        try:
+            await fusion.reevaluate()
+        except Exception as e:
+            log.warning("reewaluacja poziomów: %s", e)
+        await asyncio.sleep(45)
 
 
 async def snapshot_loop():
