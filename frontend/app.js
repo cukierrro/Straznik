@@ -1047,6 +1047,7 @@ function openZoneCard(p) {
   const type = String(p.type || "").toUpperCase();
   const kind = (ZONE_KIND[type] || [type, type])[en ? 1 : 0];
   const standing = p.standing === true || p.standing === "true";
+  const zastana = p.atBoot === true || p.atBoot === "true";
   let meaning = (ZONE_MEANING[type] || ["", ""])[en ? 1 : 0];
   /* Strefa doraźna, która stoi tygodniami, przestaje być doraźna — opis „zwykle
      na kilka godzin" kłóciłby się z wierszem o tym, że to stan (np. EPR134 nad
@@ -1055,7 +1056,11 @@ function openZoneCard(p) {
     meaning = en
       ? "A zone raised by an administrative decision. This one keeps being extended, so it stays up for weeks rather than hours."
       : "Strefa powołana decyzją administracyjną. Ta akurat jest przedłużana, więc stoi tygodniami, a nie godzinami.";
-  const color = standing ? "#b39ddb" : "#ffb020";
+  /* Karta ma BIAŁE tło (#ac-card), a kolory z mapy są na nie za jasne: surowy
+     amber #ffb020 daje kontrast 1,83:1, czyli poniżej każdego progu czytelności.
+     Wersje tekstowe tych samych barw trzymają ~5,8:1. Predykat ten sam co na
+     mapie (ZONE_QUIET), żeby kolor karty zgadzał się z kolorem konturu. */
+  const color = (standing || zastana) ? "#6f5b9e" : "#8a5a00";
   /* „Od kiedy” bierzemy z chwili, w której Strażnik zobaczył strefę po raz
      pierwszy, a nie z pola startDate — plan dobowy PAŻP przepisuje tę samą
      strefę codziennie od 06:00 UTC, więc startDate kłamałby o świeżości. */
@@ -1079,8 +1084,8 @@ function openZoneCard(p) {
          ? "(end of today’s slot — PAŻP publishes day by day and a zone can be renewed)"
          : "(koniec dzisiejszej rezerwacji — PAŻP publikuje plan dobowy, strefa bywa przedłużana)"}</span><br>`;
   showCard(`
-    <b style="color:${color}">▦ ${esc2(String(p.designator || "—"))}</b>
-      <span style="color:#8fa3c4">· ${esc2(kind)}</span><br>
+    <div class="zone-head"><b style="color:${color}">▦ ${esc2(String(p.designator || "—"))}</b>
+      <span style="color:#8fa3c4">· ${esc2(kind)}</span></div>
     ${meaning ? `<span>${esc2(meaning)}</span><br>` : ""}
     <span style="color:#8fa3c4">${esc2(time)}</span><br>
     ${until}

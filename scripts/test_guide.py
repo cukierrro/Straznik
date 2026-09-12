@@ -12,7 +12,7 @@ HISTORICAL = {
     "screens/history-lubelskie-user.png": (1440, 3200),
 }
 # liczba odrębnych zrzutów użytych w obu wersjach instrukcji
-EXPECTED_SHOTS = 25
+EXPECTED_SHOTS = 29
 
 
 class Page(HTMLParser):

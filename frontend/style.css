@@ -96,6 +96,12 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 /* !important, bo karta samolotu ustawia max-height w atrybucie style */
 #ac-card:not(.big) #ac-card-body img { max-height: 44px !important; }
 #ac-card:not(.big) .thr-photo-note { display: none; }
+/* Nagłówek karty strefy musi omijać przyciski (zwiń/zamknij), które leżą
+   absolutnie w prawym górnym rogu — bez tego długa nazwa typu strefy chowała się
+   pod nimi („strefa czasowo wydzielona (T…"). Element blokowy, bo padding-right
+   na tekście liniowym nie wymusza złamania wiersza. */
+.zone-head { padding-right: 78px; margin-bottom: 1px; }
+#ac-card:not(.big) .zone-head { padding-right: 56px; }
 #ac-card.hidden { display: none; }
 #ac-card-tools { position: absolute; top: 6px; right: 6px; z-index: 2;
   display: flex; gap: 5px; }

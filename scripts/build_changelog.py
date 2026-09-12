@@ -16,6 +16,21 @@ DOCS = ROOT / "docs"
 # (wersja, data PL, data EN, tytuł PL, tytuł EN, punkty PL, punkty EN, zrzuty)
 # Zrzut: (plik, alt PL, alt EN, podpis PL, podpis EN)
 RELEASES = [
+    ("1.7.33", "12 września 2026", "12 September 2026",
+     "Karta strefy czytelna, karencja naprawdę działa",
+     "The zone card is readable, and the grace period really works",
+     ["Karencja zniknięcia strefy, opisana w notatkach 1.7.30, nie była zaimplementowana. Bez niej przełączenie planu PAŻP o 06:00 UTC zgłosiłoby dziś rano trzydzieści stref jako świeże aktywacje.",
+      "Nazwa strefy chowała się pod przyciskami zwiń i zamknij — teraz zawija się w całości.",
+      "Kolor nagłówka karty dawał na białym tle kontrast 1,83:1, czyli poniżej progu czytelności. Teraz 5,7:1, tą samą metodą, której od dawna używają karty obiektów.",
+      "Instrukcja pokazuje warstwę stref na zrzutach z aplikacji, po polsku i po angielsku.",
+      "Punktacja bez zmian."],
+     ["The zone-disappearance grace period described in the 1.7.30 notes had never been implemented. Without it, this morning’s PAŻP daily-plan rollover would have reported thirty zones as fresh activations.",
+      "The zone designator was hiding under the collapse and close buttons — it now wraps in full.",
+      "The card heading gave a contrast of 1.83:1 on the white card, below any legibility threshold. It is now 5.7:1, using the same approach object cards have used for a long time.",
+      "The guide shows the zone layer in screenshots from the app, in Polish and English.",
+      "Scoring is unchanged."],
+     []),
+
     ("1.7.32", "12 września 2026", "12 September 2026",
      "Okno aktualizacji mówi całym zdaniem, strefa nie obiecuje końca",
      "The update box speaks in full sentences, a zone promises no end",

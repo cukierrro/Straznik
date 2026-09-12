@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Strażnik 1.7.32 — user guide</title>
+<title>Strażnik 1.7.33 — user guide</title>
 <meta name="description" content="The current Strażnik user guide: Android installation and updates, alerts, maps, new object icons, history, languages and scoring. Screenshots from Pixel 7.">
 <link rel="canonical" href="https://cukierrro.github.io/Straznik/en.html">
 <link rel="alternate" hreflang="pl" href="https://cukierrro.github.io/Straznik/">
@@ -33,11 +33,11 @@
   <div class="languages" aria-label="Guide language"><a href="index.html" lang="pl" hreflang="pl">PL</a><a href="en.html" lang="en" aria-current="page">EN</a></div>
 </div></nav>
 <header class="hero"><div class="wrap hero-grid">
-  <div><div class="eyebrow">User guide · version 1.7.32</div>
+  <div><div class="eyebrow">User guide · version 1.7.33</div>
     <h1>The situation on a map.<br>The sources behind each signal.</h1>
     <p class="lead">Strażnik combines public information about airborne threats and displays a score for each Polish province. Available on Android and in your browser.</p>
     <div class="actions"><a class="button primary" href="https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk">↓ Download app</a><a class="button" href="https://straznik.eu">Open map</a></div>
-    <p class="fineprint">Guide for 1.7.32. Approximate-position card: 1.7.21, 11 September 2026. Captures of the current interface were made on 12 September 2026 on a Pixel 7 with Android 14 and <b>three-button</b> system navigation; older, unchanged screens are labelled individually. Tap any screenshot to open the full-size image.</p>
+    <p class="fineprint">Guide for 1.7.33. Approximate-position card: 1.7.21, 11 September 2026. Captures of the current interface were made on 12 September 2026 on a Pixel 7 with Android 14 and <b>three-button</b> system navigation; older, unchanged screens are labelled individually. Tap any screenshot to open the full-size image.</p>
   </div>
   <a class="shot-link" href="screens/start-en.jpg"><img src="screens/start-en.jpg" width="1080" height="2400" alt="Strażnik 1.7.23 on Pixel 7: English map labels, six green source indicators and the Map, Signals, History, More tab bar"></a>
 </div></header>
@@ -87,7 +87,7 @@
 
   <p>If the GitHub app intercepts the download link and stalls, open the link in your browser instead. A <a href="https://github.com/cukierrro/Straznik/raw/main/Straznik.apk">backup APK in the repository</a> is also available.</p>
   <div class="note"><b>Check which version your phone has.</b> Open <kbd>&#9881;</kbd> &rarr; the <kbd>App</kbd> tab &mdash; the installed number is under the &ldquo;App version&rdquo; heading.
-    The latest release is <b>1.7.32</b>, published on <b>12 September 2026</b>. If you see an older number, tap <kbd>&#11014; Check for updates</kbd> or download the APK above. The full list of changes per release is in the <a href="zmiany-en.html">changelog</a>.</div>
+    The latest release is <b>1.7.33</b>, published on <b>12 September 2026</b>. If you see an older number, tap <kbd>&#11014; Check for updates</kbd> or download the APK above. The full list of changes per release is in the <a href="zmiany-en.html">changelog</a>.</div>
   <div class="split">
     <div>
       <h3>Updating from inside the app</h3>
@@ -297,6 +297,11 @@
     <li><b>It lies over the eastern flank or the north.</b> In the remaining
       provinces a zone is shown for information but adds no points.</li>
   </ol>
+  <div class="split">
+    <figure><a class="shot-link" href="screens/zones-map-en.jpg"><img loading="lazy" src="screens/zones-map-en.jpg" width="1080" height="2400" alt="Strażnik 1.7.33 map with the PAŻP zone layer on: zone outlines spread across Poland and the zones button in the right-hand column next to my region and whole PL"></a><figcaption><b>The <kbd>zones</kbd> button turns the layer on and off.</b> A zone whose activation Strażnik did not observe — standing for a long time, or already active at startup — gets a quiet outline. Only a zone switched on while we were watching gets a filled block.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/zones-card-en.jpg"><img loading="lazy" src="screens/zones-card-en.jpg" width="1080" height="2400" alt="Zone card for EPTS545 in Strażnik: designator and zone type, a plain-language explanation, a note that the zone was already active when watching started, reserved until 13/09 06:00, altitude band F225 to F315, a button leading to the province and a note that zones add no points"></a><figcaption><b>Tapping a zone opens its description.</b> “Reserved until” is the end of <i>today’s</i> slot, not of the zone — PAŻP publishes a daily plan. The button with the province name leads to its card, because a region fully covered by a zone is hard to tap on the map.</figcaption></figure>
+  </div>
+
   <h3>Where this split came from</h3>
   <p>Not from assumptions, but from measurement. For four days in August 2026 the
   app <b>logged every zone activation without awarding any points</b>, purely to
