@@ -224,6 +224,14 @@ def accumulate(signals: list[dict], ref: datetime | None = None) -> dict:
     # już wygaszone wpisy wypełniały limit klasy, a świeży obiekt tuż przy granicy
     # wnosił 0 pkt (audyt 11.09.2026: 4 tory sprzed 55 min + świeży alarm ETA dawały
     # 1,33 zamiast 4,0; nowy alert RSO obok starego — 0,67 zamiast 2,0).
+    media_clears: dict[str, str] = {}
+    for s in signals:
+        if s.get("event_type") != "media_clear":
+            continue
+        v = s.get("voivodeship")
+        if v and s.get("ts", "") > media_clears.get(v, ""):
+            media_clears[v] = s["ts"]
+
     prepared: list[dict] = []
     for s in sorted(signals, key=lambda x: x["ts"]):
         voiv = s.get("voivodeship")
@@ -238,6 +246,14 @@ def accumulate(signals: list[dict], ref: datetime | None = None) -> dict:
                     if s.get("event_type") == "baltic_context" else None)
         clear_ts = baltic_clears.get((voiv, incident)) if incident else None
         cleared = bool(clear_ts and clear_ts >= s.get("ts", ""))
+        # Odwołanie w mediach polskich nie ma wspólnego klucza zdarzenia z
+        # artykułem alarmowym (to zwykle inny adres), więc wygasza WSZYSTKIE
+        # wcześniejsze doniesienia medialne w tym województwie. Świadomie
+        # asymetryczne: media i tak nigdy nie alarmują same, a błąd w tę stronę
+        # daje ciszę zamiast fałszywego alarmu.
+        if not cleared and s.get("source") == "media":
+            mc = media_clears.get(voiv)
+            cleared = bool(mc and mc >= s.get("ts", ""))
         relay_of = _media_relay_of_official(s, officials)
         retrospective = _media_retrospective(s)
         w = _age_weight(s["ts"], ref)

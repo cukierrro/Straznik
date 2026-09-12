@@ -86,6 +86,18 @@ def _fold(s: str) -> str:
     return s.replace("ł", "l").replace("Ł", "l")
 
 
+def _mentions_abroad(text: str) -> bool:
+    """Czy tekst umiejscawia zdarzenie poza Polską."""
+    tl = _fold(text)
+    return any(_fold(k) in tl for k in config.FOREIGN_PLACE_MARKERS)
+
+
+def _is_media_clear(text: str) -> bool:
+    """Czy artykuł ogłasza koniec zagrożenia, a nie zagrożenie."""
+    tl = _fold(text)
+    return any(_fold(k) in tl for k in config.MEDIA_CLEAR_KEYWORDS)
+
+
 def _match_voivs(text: str) -> list[str]:
     """WSZYSTKIE województwa wymienione w tekście, w kolejności wystąpienia.
 
@@ -108,7 +120,13 @@ def _match_voivs(text: str) -> list[str]:
             kf = _fold(k)
             start = tl.find(kf)
             while start != -1:
-                hits.append((start, start + len(kf), voiv))
+                # Trafienie MUSI zaczynać się na granicy słowa. Bez tego
+                # „rozpoznania" zawierało „poznan" i ogólnopolski komunikat
+                # wojskowy wpadał do wielkopolskiego (złapane na żywo 12.09.2026);
+                # tak samo „bełkot"→Ełk i „topole"→Opole. Hasła są rdzeniami
+                # odmian („podlask", „chełm"), więc obcinamy tylko lewą stronę.
+                if start == 0 or not (tl[start - 1].isalnum() or tl[start - 1] == "-"):
+                    hits.append((start, start + len(kf), voiv))
                 start = tl.find(kf, start + 1)
     out: list[str] = []
     for start, end, voiv in sorted(hits):
@@ -118,6 +136,20 @@ def _match_voivs(text: str) -> list[str]:
         if not covered and voiv not in out:
             out.append(voiv)
     return out
+
+
+def _strip_publisher(text: str, publisher: str) -> str:
+    """Usuwa nazwę redakcji z tekstu poddawanego dopasowaniu.
+
+    Wydawca mówi, KTO napisał, a nie GDZIE się stało. „Radio Szczecin" czy
+    „MiastoKolobrzeg.pl" przypisywały artykuł o Rumunii do zachodniopomorskiego.
+    Wyświetlany tytuł zostaje nietknięty — tam nazwa źródła jest przydatna.
+    """
+    p = (publisher or "").strip()
+    if len(p) < 3:
+        return text
+    out = text.replace(" - " + p, " ").replace(p, " ")
+    return out if out.strip() else text
 
 
 async def _check_feed(client: httpx.AsyncClient, url: str, default_voiv: str | None):
@@ -133,7 +165,8 @@ async def _check_feed(client: httpx.AsyncClient, url: str, default_voiv: str | N
     for entry in parsed.entries[:30]:
         title = entry.get("title", "")
         summary = entry.get("summary", "") or entry.get("description", "")
-        text = f"{title} {summary}"
+        publisher = ((entry.get("source") or {}) or {}).get("title") or ""
+        text = _strip_publisher(f"{title} {summary}", publisher)
         # wiek wpisu
         t = entry.get("published_parsed") or entry.get("updated_parsed")
         if t and now - calendar.timegm(t) > MAX_AGE_S:
@@ -146,11 +179,27 @@ async def _check_feed(client: httpx.AsyncClient, url: str, default_voiv: str | N
         if not level:
             continue
         pts = config.POINTS["media_critical"] if level == "critical" else config.POINTS["media_keywords"]
-        voivs = _match_voivs(text) or ([default_voiv] if default_voiv else [])
+        voivs = _match_voivs(text)
+        if not voivs and default_voiv and not _mentions_abroad(text):
+            # Domyślny region kanału jest DOMNIEMANIEM, nie faktem: stosujemy go
+            # tylko wtedy, gdy tekst nie umiejscawia zdarzenia za granicą.
+            voivs = [default_voiv]
         if not voivs:
             continue
         link = entry.get("link", "")
         dedup = "media:" + hashlib.sha1((link or title).encode()).hexdigest()[:16]
+        # Tekst mówiący, że jest PO wszystkim, nie jest dowodem zagrożenia.
+        # Punkty 0 są celowe: wpis zostaje w historii i wygasza wcześniejsze
+        # doniesienia medialne w tym województwie (patrz fusion.accumulate).
+        if _is_media_clear(text):
+            for voiv in voivs:
+                await fusion.ingest(
+                    source="media", event_type="media_clear", voivodeship=voiv,
+                    points=0.0, title=f"Media: odwołanie — „{title[:110]}”",
+                    details={"link": link, "clear": True},
+                    dedup_key=f"media-clear:{dedup}:{voiv}",
+                )
+            continue
         # Województwo w kluczu deduplikacji: jeden artykuł o dwóch regionach ma
         # dać sygnał w każdym z nich, a nie zniknąć po pierwszym zapisie.
         for voiv in voivs:

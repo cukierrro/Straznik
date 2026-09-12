@@ -16,6 +16,23 @@ DOCS = ROOT / "docs"
 # (wersja, data PL, data EN, tytuł PL, tytuł EN, punkty PL, punkty EN, zrzuty)
 # Zrzut: (plik, alt PL, alt EN, podpis PL, podpis EN)
 RELEASES = [
+    ("1.7.31", "12 września 2026", "12 September 2026",
+     "Artykuł trafia tam, gdzie się zdarzył",
+     "An article lands where the event happened",
+     ["Ogólnopolski komunikat wojskowy trafiał do wielkopolskiego, bo słowo „rozpoznania” zawiera „poznan”. Nazwa miejscowości musi się teraz zaczynać na granicy słowa.",
+      "Artykuł mówiący, że zagrożenie się skończyło („odwołano alarm”, „zakończono operowanie lotnictwa”), nie punktuje i wygasza wcześniejsze doniesienia medialne w tym województwie. Oficjalnego alertu RCB nie rusza.",
+      "Nazwa redakcji przestaje decydować o regionie — „Rumunia: dron spadł na blok” z Radia Szczecin trafiało do zachodniopomorskiego.",
+      "Słownik nazw urósł z około 200 do 565 haseł, od 23 do 49 na województwo: nazwy potoczne krain („na Podlasiu”, „na Lubelszczyźnie”), większe miasta, przejścia graniczne i lotniska.",
+      "Na tych samych kanałach: przed zmianą 8 przypisań z treści i 31 z domniemania, po zmianie 17 z treści i 0 z domniemania.",
+      "Alarm bombowy w szkole i syreny na uroczystościach przestały punktować."],
+     ["A nationwide military statement was landing in Greater Poland, because the Polish word for “reconnaissance” contains “poznan”. A place name must now start at a word boundary.",
+      "An article saying the threat is over (“alert cancelled”, “air operations concluded”) scores nothing and fades earlier media reports in that province. It does not touch an official RCB alert.",
+      "A newsroom’s name no longer decides the region — “Romania: a drone hit a block of flats” from Radio Szczecin was landing in West Pomerania.",
+      "The place-name dictionary grew from about 200 to 565 entries, 23 to 49 per province: colloquial region names, larger towns, border crossings and airfields.",
+      "On the same feeds: before the change 8 attributions came from the text and 31 from a guess; after it, 17 from the text and none from a guess.",
+      "A bomb hoax at a school and sirens at commemorations no longer score."],
+     []),
+
     ("1.7.30", "12 września 2026", "12 September 2026",
      "Widać strefy PAŻP, a północ przestaje być ślepa",
      "PAŻP zones are visible, and the north stops being blind",

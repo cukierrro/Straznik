@@ -384,7 +384,45 @@ ALERT_EVENT_KEYWORDS = [
 # sformułowania mają pierwszeństwo przed AIR/EVENT i CRITICAL. Nie stosujemy
 # ogólnych słów „prokuratura” ani „policja”, bo instytucja może również jako
 # pierwsza potwierdzić aktualny upadek obiektu.
+# Alarm bombowy w szkole czy urzędzie przechodził bramkę OBIEKT+ZDARZENIE
+# („alarm" + „ewakuowano") i punktował jak zagrożenie z powietrza. Frazy MUSZĄ
+# być pełne — sam rdzeń „bombow" wyciąłby też „bombowiec".
+BOMB_HOAX_KEYWORDS = [
+    "alarm bombowy", "alarmy bombowe", "alarmu bombowego", "alarmów bombowych",
+    "alarmie bombowym", "alarmem bombowym", "alarmów bombowych",
+    "o podłożeniu ładunku", "podłożeniu bomby", "informacja o bombie",
+]
+
+# Kanał regionalny (zapytanie Google News) ma domyślne województwo dla artykułów,
+# które nie nazywają miejsca wprost. Ale te kanały niosą też sporo depesz
+# zagranicznych — „Kolejne drony spadły w Rumunii i Bułgarii" z Radia Szczecin
+# dostawało domyślne zachodniopomorskie. Gdy tekst mówi o zagranicy, a żadne
+# polskie hasło nie padło, domyślnego regionu NIE używamy.
+# Formy przyimkowe, nie przymiotniki: „rosyjski dron nad Polską" ma zostać.
+FOREIGN_PLACE_MARKERS = [
+    "w rumunii", "nad rumunią", "do rumunii", "rumunia:", "rumunii",
+    "w bułgarii", "nad bułgarią", "bułgarii",
+    "w mołdawii", "nad mołdawią", "mołdawii",
+    "na łotwie", "nad łotwą", "łotwy",
+    "na litwie", "nad litwą", "litwy",
+    "w estonii", "nad estonią", "estonii",
+    "w finlandii", "nad finlandią", "finlandii",
+    "na ukrainie", "nad ukrainą", "ukrainy", "charkow", "charków", "kijow", "kijów",
+    "na białorusi", "białorusi", "w rosji", "rosji", "obwodzie kaliningradzkim",
+    "w niemczech", "niemiec", "w czechach", "czech", "na słowacji", "słowacji",
+    "na węgrzech", "węgier", "w danii", "danii", "w norwegii", "norwegii",
+    "w szwecji", "szwecji", "w iranie", "iranu", "w izraelu", "izraela",
+]
+
 MEDIA_NONCURRENT_KEYWORDS = [
+    # Syreny na uroczystości i alarmy próbne. „Wybiła godzina W. Warszawa
+    # stanęła, w mieście zawyły syreny" przechodziło bramkę i dawało
+    # mazowieckiemu 1,0 pkt (pomiar 12.09.2026).
+    "wybiła godzina", 'godzina "w"', 'godzinie "w"', 'godziny "w"',
+    "oddali hołd", "oddał hołd", "oddano hołd", "hołd bohaterom", "hołd powstańcom",
+    "uroczystoś", "próbny alarm", "alarm próbny", "próbnego alarmu",
+    "próba syren alarmowych", "ogólnopolskie ćwiczenia",
+
     "są zarzuty", "usłyszał zarzut", "usłyszała zarzut", "usłyszeli zarzuty",
     "postawiono zarzut", "postawiono zarzuty", "zarzuty dla",
     "akt oskarżenia", "odpowie przed sądem", "stanął przed sądem",
@@ -443,6 +481,7 @@ EXCLUDE_KEYWORDS = [
     "nagranie z drona", "zdjęcia z drona", "zdjęcie z drona", "widok z drona",
     # postępowania i następstwa prawne po wcześniejszym zdarzeniu
     *MEDIA_NONCURRENT_KEYWORDS,
+    *BOMB_HOAX_KEYWORDS,
 ]
 
 # Kolejność ma znaczenie: dopasowanie kończy się na pierwszym trafieniu, więc
@@ -450,58 +489,178 @@ EXCLUDE_KEYWORDS = [
 # muszą być sprawdzane po tych bardziej szczegółowych. Świadomie pomijamy nazwy
 # kolidujące ze słowami pospolitymi ("piła", "żary", "hel", "brzeg").
 VOIV_KEYWORDS = {
-    "lubelskie": ["lubelski", "lublin", "chełm", "zamość", "zamoś", "biała podlask",
-                  "hrubiesz", "włodaw", "terespol", "dorohusk", "świdnik", "puław", "kraśnik", "łęczn"],
-    "podkarpackie": ["podkarpack", "rzeszów", "rzeszow", "przemyśl", "przemysl", "medyk",
-                     "jarosław", "lubaczów", "sanok", "krosno", "mielec", "stalowa wol", "tarnobrzeg"],
-    # Białystok odmienia się nieregularnie (Białymstoku, Białegostoku), więc
-    # obok mianownika trzymamy rdzenie odmienionych form
-    "podlaskie": ["podlask", "białystok", "bialystok", "białymstok", "białegostok",
-                  "suwałk", "suwalk", "augustów", "sokółk", "kuźnic", "siemiatycz",
-                  "hajnówk", "bielsk podlask", "łomż"],
-    "mazowieckie": ["mazowieck", "warszaw", "radom", "siedlc", "płock", "ostrołęk",
-                    "pruszków", "legionow", "otwock", "żyrardów", "ciechanów"],
-    "warmińsko-mazurskie": ["warmińsko", "warminsko", "olsztyn", "elbląg", "ełk", "gołdap",
-                            "braniew", "ostróda", "iława", "kętrzyn", "giżyck", "mrągow"],
-    "świętokrzyskie": ["świętokrzysk", "swietokrzysk", "kielc", "ostrowiec świętokrzysk",
-                       "starachowic", "skarżysk", "sandomierz", "końskie", "jędrzejów", "busko"],
-    "małopolskie": ["małopolsk", "malopolsk", "kraków", "krakow", "tarnów", "nowy sącz",
-                    "oświęcim", "zakopane", "chrzanów", "olkusz", "bochni", "wadowic"],
-    "łódzkie": ["łódzk", "lodzk", "łódź", "piotrków trybunalsk", "pabianic", "bełchatów",
-                "sieradz", "kutno", "zgierz", "radomsk", "tomaszów mazowieck",
-                "tomaszowie mazowieck", "tomaszowa mazowieck", "skierniewic"],
-    "śląskie": ["śląski", "slaski", "katowic", "częstochow", "gliwic", "sosnowiec", "zabrze",
-                "bytom", "rybnik", "bielsko-biał", "tychy", "chorzów", "dąbrowa górnicz",
-                "jastrzębie", "żywiec"],
-    "kujawsko-pomorskie": ["kujawsko", "bydgoszcz", "toruń", "torun", "włocławek",
-                           "grudziądz", "inowrocław", "brodnic", "świecie",
-                           "chełmn", "chełmż"],
-    "zachodniopomorskie": ["zachodniopomorsk", "szczecin", "koszalin", "kołobrzeg",
-                           "świnoujści", "stargard", "police", "wałcz", "gryfin"],
-    "pomorskie": ["woj. pomorsk", "pomorskiego", "gdańsk", "gdansk", "gdyni", "sopot",
-                  "słupsk", "tczew", "malbork", "wejherow", "kaszub", "kwidzyn",
-                  "starogard gdańsk", "chojnic", "lębork", "puck"],
-    "lubuskie": ["lubusk", "zielona gór", "zielonej gór", "gorzów", "gorzow", "nowa sól",
-                 "świebodzin", "międzyrzecz", "słubic", "sulechów"],
-    "wielkopolskie": ["wielkopolsk", "poznań", "poznan", "kalisz", "konin", "leszno",
-                      "gniezno", "ostrów wielkopolsk", "piła wielkopolsk", "swarzędz", "śrem"],
-    "dolnośląskie": ["dolnośląsk", "dolnoslask", "wrocław", "wroclaw", "legnic", "wałbrzych",
-                     "jelenia gór", "lubin", "głogów", "świdnic", "bolesławiec", "oleśnic"],
-    "opolskie": ["opolsk", "opole", "opolu", "kędzierzyn", "nysa", "kluczbork", "prudnik",
-                 "strzelce opolsk", "namysłów"],
+    "dolnośląskie": [
+        "dolnośląsk", "dolnoslask", "dolny śląsk", "dolnym śląsku", "dolnym śląskiem",
+        "dolnego śląska", "dolnoślązak", "wrocław", "wroclaw", "legnic", "wałbrzych",
+        "jelenia gór", "jeleniej gór", "lubin", "głogów", "świdnic", "bolesławiec", "oleśnic",
+        "dzierżoniów", "zgorzelec", "polkowic", "kłodzk", "bielaw", "oława", "oławie",
+        "brzeg dolny", "strzelin", "środa śląsk", "trzebnic", "złotoryj", "kamienna gór",
+        "kamiennej gór", "lubań", "milicz", "syców", "chojnów", "karpacz", "szklarska poręb",
+        "bogatyni", "zgorzelc"
+    ],
+    "kujawsko-pomorskie": [
+        "kujawsko", "kujawach", "kujawy", "bydgoszcz", "toruń", "torun", "włocławek",
+        "grudziądz", "inowrocław", "brodnic", "świeciu", "świecia", "świecie nad wisłą",
+        "chełmn", "chełmż", "rypin", "lipno", "nakło", "żnin", "mogilno", "tuchol", "sępólno",
+        "wąbrzeźno", "golub-dobrzyń", "aleksandrów kujawsk", "ciechocinek", "solec kujawsk",
+        "kruszwic", "radziejów", "janikowo", "koronowo", "szubin"
+    ],
+    "lubelskie": [
+        "lubelski", "lubelskie", "lubelskiem", "lubelszczy", "lublin", "chełm", "zamość",
+        "zamoś", "hrubiesz", "włodaw", "terespol", "dorohusk", "świdnik", "puław", "kraśnik",
+        "łęczn", "biała podlask", "białej podlask", "białą podlask", "bialskopodlask",
+        "radzyń podlask", "radzyniu podlask", "radzynia podlask", "tomaszów lubelsk",
+        "tomaszowie lubelsk", "janów lubelsk", "opole lubelsk", "opolu lubelsk", "biłgoraj",
+        "lubartów", "łuków", "parczew", "dęblin", "krasnystaw", "krasnymstaw", "szczebrzeszyn",
+        "józefów", "poniatowa", "bychawa", "rejowiec", "międzyrzec podlask", "kock", "annopol",
+        "tarnawa-kolonia", "wyryki", "czosnówka"
+    ],
+    "lubuskie": [
+        "lubusk", "zielona gór", "zielonej gór", "gorzów", "gorzow", "nowa sól", "nowej soli",
+        "świebodzin", "międzyrzecz", "słubic", "sulechów", "żagań", "kostrzyn", "gubin",
+        "krosno odrzańsk", "krośnie odrzańsk", "drezdenko", "strzelce krajeńsk", "wschowa",
+        "szprotawa", "lubsko", "skwierzyna", "sulęcin", "rzepin", "dobiegniew", "witnica",
+        "międzyrzeck"
+    ],
+    "łódzkie": [
+        "łódzk", "lodzk", "łódź", "piotrków trybunalsk", "pabianic", "bełchatów", "sieradz",
+        "kutno", "zgierz", "radomsk", "skierniewic", "tomaszów mazowieck",
+        "tomaszowie mazowieck", "tomaszowa mazowieck", "tomaszowem mazowieck", "zduńska wol",
+        "zduńskiej wol", "wieluń", "opoczno", "rawa mazowieck", "łowicz", "kolusz",
+        "aleksandrów łódzk", "konstantynów łódzk", "ozorków", "głowno", "poddębic", "łęczyc",
+        "pajęczno", "wieruszów", "warta k. sieradza"
+    ],
+    "małopolskie": [
+        "małopolsk", "malopolsk", "małopolsce", "kraków", "krakow", "tarnów", "nowy sącz",
+        "nowym sączu", "nowego sącza", "oświęcim", "zakopane", "chrzanów", "olkusz", "bochni",
+        "wadowic", "nowy targ", "nowym targu", "gorlic", "brzesk", "andrychów", "skawina",
+        "myślenic", "limanow", "trzebini", "libiąż", "wieliczk", "sucha beskidzk",
+        "krynic-zdrój", "muszyn", "dąbrowa tarnowsk", "proszowic", "miechów", "wolbrom",
+        "kęty", "niepołomic", "bukowno", "szczawnic"
+    ],
+    "mazowieckie": [
+        "mazowieck", "mazowsz", "warszaw", "radom", "siedlc", "płock", "ostrołęk", "pruszków",
+        "legionow", "otwock", "żyrardów", "ciechanów", "mińsk mazowieck",
+        "nowy dwór mazowieck", "grodzisk mazowieck", "maków mazowieck", "ostrów mazowieck",
+        "ostrowie mazowieck", "sokołów podlask", "sokołowie podlask", "sokołowa podlask",
+        "mińsku mazowieck", "grodzisku mazowieck", "makowie mazowieck", "rawie mazowieck",
+        "wołomin", "piaseczno", "sochaczew", "wyszków", "garwolin", "węgrów", "płońsk",
+        "mława", "żuromin", "gostynin", "sierpc", "przasnysz", "pułtusk", "łosic", "grójec",
+        "kozienic", "zwoleń", "lipsko", "szydłowiec", "białobrzeg", "sulejówek", "konstancin",
+        "modlin", "sochaczewsk"
+    ],
+    "opolskie": [
+        "opolsk", "opole", "opolu", "opolszczy", "kędzierzyn", "nysa", "nysie", "kluczbork",
+        "prudnik", "strzelce opolsk", "namysłów", "krapkowic", "głubczyc", "olesno", "ozimek",
+        "zdzieszowic", "praszka", "grodków", "niemodlin", "gogolin", "brzeg opolsk", "paczków",
+        "biała prudnick"
+    ],
+    "podkarpackie": [
+        "podkarpack", "podkarpaci", "rzeszów", "rzeszow", "przemyśl", "przemysl", "medyk",
+        "jarosław", "lubaczów", "sanok", "krosno", "krośni", "mielec", "stalowa wol",
+        "stalowej woli", "tarnobrzeg", "dębic", "jasło", "jaśle", "łańcut", "ropczyc",
+        "sędziszów", "leżajsk", "przeworsk", "ustrzyk", "lesko", "brzozów", "strzyżów",
+        "kolbuszow", "głogów małopolsk", "nowa dęba", "radymno", "korczowa", "budomierz",
+        "krościenko", "bieszczad", "nisku", "jasionka", "arłamów"
+    ],
+    "podlaskie": [
+        "podlask", "podlasi", "białystok", "bialystok", "białymstok", "białegostok", "suwałk",
+        "suwalk", "augustów", "sokółk", "kuźnic", "siemiatycz", "hajnówk", "bielsk podlask",
+        "bielsku podlask", "wysokie mazowieck", "wysokiem mazowieck", "łomż", "grajewo",
+        "zambrów", "mońk", "kolno", "sejny", "dąbrowa białostock", "czarna białostock",
+        "supraśl", "michałowo", "narewk", "białowież", "krynk", "czeremch", "siemianówk",
+        "wasilków", "zabłudów", "kuźnica białostock", "połowce"
+    ],
+    "pomorskie": [
+        "woj. pomorsk", "pomorskiego", "pomorzu", "pomorza", "pomorze", "kaszub", "gdańsk",
+        "gdansk", "gdyni", "sopot", "słupsk", "tczew", "malbork", "wejherow", "kwidzyn",
+        "starogard gdańsk", "chojnic", "lębork", "puck", "pruszcz gdańsk", "kościerzyn",
+        "kartuz", "bytów", "człuchów", "sztum", "nowy dwór gdańsk", "ustk", "półwysep hel",
+        "władysławow", "jastarni", "krynica morsk", "skarszew", "żukowo", "trójmiast"
+    ],
+    "śląskie": [
+        "śląski", "slaski", "śląsku", "śląska", "śląsk", "katowic", "częstochow", "gliwic",
+        "sosnowiec", "zabrze", "bytom", "rybnik", "bielsko-biał", "bielsku-biał", "tychy",
+        "tychach", "chorzów", "dąbrowa górnicz", "jastrzębie", "żywiec", "ruda śląsk",
+        "tarnowskie gór", "tarnowskich gór", "mysłowic", "siemianowic", "piekary śląsk",
+        "świętochłowic", "zawiercie", "będzin", "racibórz", "wodzisław", "mikołów",
+        "czechowic", "cieszyn", "pszczyn", "lubliniec", "myszków", "kłobuck", "knurów", "żory",
+        "jaworzno", "bieruń", "radzionków", "orzesze", "pyrzowic"
+    ],
+    "świętokrzyskie": [
+        "świętokrzysk", "swietokrzysk", "kielc", "kielecczy", "ostrowiec świętokrzysk",
+        "starachowic", "skarżysk", "sandomierz", "końskie", "jędrzejów", "busko", "staszów",
+        "opatów", "pińczów", "włoszczow", "kazimierza wielk", "chmielnik", "suchedniów",
+        "morawic", "daleszyc", "bodzentyn", "połaniec", "ćmielów"
+    ],
+    "warmińsko-mazurskie": [
+        "warmińsko", "warminsko", "warmii", "warmia", "mazurach", "mazurskiego", "olsztyn",
+        "elbląg", "ełk", "gołdap", "braniew", "ostróda", "iława", "kętrzyn", "giżyck",
+        "mrągow", "szczytno", "działdow", "bartoszyc", "lidzbark", "węgorzew", "olecko",
+        "nidzic", "nowe miasto lubawsk", "morąg", "orneta", "dobre miasto", "biskupiec",
+        "mikołajk", "bezledy", "grzechotki", "gronowo", "pieniężno", "pasłęk", "piszu"
+    ],
+    "wielkopolskie": [
+        "wielkopolsk", "wielkopolsce", "poznań", "poznan", "kalisz", "konin", "leszno",
+        "gniezno", "ostrów wielkopolsk", "piła wielkopolsk", "grodzisk wielkopolsk",
+        "środa wielkopolsk", "swarzędz", "śrem", "luboń", "kościan", "wrześni", "jarocin",
+        "krotoszyn", "słupc", "oborniki", "szamotuł", "wągrowiec", "chodzież", "czarnków",
+        "złotów", "rawicz", "gostyń", "pleszew", "wolsztyn", "nowy tomyśl", "murowana goślin",
+        "puszczykowo", "opalenic", "krzesiny"
+    ],
+    "zachodniopomorskie": [
+        "zachodniopomorsk", "pomorze zachodnie", "pomorzu zachodnim", "pomorza zachodniego",
+        "zachodnim pomorzu", "zachodniego pomorza", "szczecin", "koszalin", "kołobrzeg",
+        "świnoujści", "stargard", "police", "wałcz", "gryfin", "białogard", "szczecinek",
+        "goleniów", "gryfic", "kamień pomorsk", "nowogard", "choszczno", "drawsko pomorsk",
+        "świdwin", "myślibórz", "dębno", "barlinek", "trzebiatów", "darłowo", "sławno",
+        "złocieniec", "połczyn", "mielno", "międzyzdroj"
+    ],
 }
+
+# ── Odwołanie zagrożenia w mediach polskich ─────────────────────────────────
+# Artykuł mówiący, że jest PO wszystkim, przechodził bramkę OBIEKT+ZDARZENIE
+# i punktował jak zapowiedź zagrożenia: komunikat „DORSZ: zakończono operowanie
+# lotnictwa" dał 12.09.2026 pełne +1,0. Teraz taki tekst nie punktuje i wygasza
+# wcześniejsze doniesienia medialne w tym samym województwie — dokładnie tak, jak
+# od dawna działa to dla mediów bałtyckich (BALTIC_CLEAR_KEYWORDS).
+MEDIA_CLEAR_KEYWORDS = [
+    "odwołano alarm", "odwołanie alarmu", "alarm odwołany", "koniec alarmu",
+    "zakończono operowanie", "zakończyło operowanie", "zakończone operowanie",
+    "powróciły do standardowej", "wrócił do standardowej", "powrót do standardowej",
+    "zagrożenie minęło", "zagrożenie minelo", "niebezpieczeństwo minęło",
+    "zakończono działania", "zakończyły się działania", "zakończono operację",
+    "przestrzeń powietrzna została otwarta", "wznowiono ruch lotniczy",
+    "lotniska wznowiły", "lotnisko wznowiło", "odwołano ostrzeżenie",
+    "ostrzeżenie odwołane", "alert odwołany", "alert rcb odwołany",
+    "sytuacja wróciła do normy", "po zagrożeniu",
+]
 
 # ── Kanały RSS (per województwo) ─────────────────────────────────────────────
 RSS_FEEDS = [
     # (url, województwo domyślne | None => wykryj po słowach kluczowych)
+    #
+    # DOMYŚLNY REGION MAJĄ TYLKO WŁASNE REDAKCJE LOKALNE. Zapytanie Google News to
+    # agregator, nie źródło wiedzy o miejscu: pomiar z 12.09.2026 na żywych kanałach
+    # pokazał, że domniemanie myli się częściej niż trafia — „Czosnówka. Pierwszy
+    # dron odnaleziony" szło do podlaskiego (Czosnówka leży w lubelskim), a „Rumunia:
+    # rosyjski dron spadł na blok" do zachodniopomorskiego (bo wydawcą było Radio
+    # Szczecin). Kanały regionalne zostają — wyławiają artykuły, których ogólnopolskie
+    # zapytanie nie widzi — ale województwo bierze się wyłącznie z treści.
+    # Ma to znaczenie od 1.7.30: na północy media 1,0 + strefa PAŻP 1,0 = próg żółty.
     ("https://www.lublin112.pl/feed/", "lubelskie"),
     ("https://radio.lublin.pl/feed/", "lubelskie"),
     ("https://www.dziennikwschodni.pl/rss", "lubelskie"),
     # nowiny24/poranny blokują boty (403) — Google News jako niezależny agregator regionalny
-    ("https://news.google.com/rss/search?q=(syreny%20OR%20alarm%20OR%20dron%20OR%20rakieta)%20podkarpackie&hl=pl&gl=PL&ceid=PL:pl", "podkarpackie"),
-    ("https://news.google.com/rss/search?q=(syreny%20OR%20alarm%20OR%20dron%20OR%20rakieta)%20podlaskie&hl=pl&gl=PL&ceid=PL:pl", "podlaskie"),
-    ("https://news.google.com/rss/search?q=(syreny%20OR%20alarm%20OR%20dron%20OR%20rakieta)%20lubelskie&hl=pl&gl=PL&ceid=PL:pl", "lubelskie"),
-    ("https://news.google.com/rss/search?q=(syreny%20OR%20alarm%20OR%20dron%20OR%20rakieta)%20(warmi%C5%84sko-mazurskie%20OR%20mazurskie%20OR%20olsztyn)&hl=pl&gl=PL&ceid=PL:pl", "warmińsko-mazurskie"),
+    ("https://news.google.com/rss/search?q=(syreny%20OR%20alarm%20OR%20dron%20OR%20rakieta)%20podkarpackie&hl=pl&gl=PL&ceid=PL:pl", None),
+    ("https://news.google.com/rss/search?q=(syreny%20OR%20alarm%20OR%20dron%20OR%20rakieta)%20podlaskie&hl=pl&gl=PL&ceid=PL:pl", None),
+    ("https://news.google.com/rss/search?q=(syreny%20OR%20alarm%20OR%20dron%20OR%20rakieta)%20lubelskie&hl=pl&gl=PL&ceid=PL:pl", None),
+    ("https://news.google.com/rss/search?q=(syreny%20OR%20alarm%20OR%20dron%20OR%20rakieta)%20(warmi%C5%84sko-mazurskie%20OR%20mazurskie%20OR%20olsztyn)&hl=pl&gl=PL&ceid=PL:pl", None),
+    # Północ dostała punktację PAŻP (NORTH_VOIVODESHIPS), więc musi mieć czym
+    # ją sparować — bez własnego kanału strefa 1,0 stałaby samotnie pod progiem.
+    # Te same słowa co dla ściany wschodniej: filtr OBIEKT+ZDARZENIE bez zmian.
+    ("https://news.google.com/rss/search?q=(syreny%20OR%20alarm%20OR%20dron%20OR%20rakieta)%20(pomorskie%20OR%20Gda%C5%84sk%20OR%20Gdynia%20OR%20S%C5%82upsk)&hl=pl&gl=PL&ceid=PL:pl", None),
+    ("https://news.google.com/rss/search?q=(syreny%20OR%20alarm%20OR%20dron%20OR%20rakieta)%20(zachodniopomorskie%20OR%20Szczecin%20OR%20Ko%C5%82obrzeg)&hl=pl&gl=PL&ceid=PL:pl", None),
     # Ogólnopolski nasłuch bez domyślnego regionu — województwo rozpoznaje
     # VOIV_KEYWORDS. Jedno zapytanie pokrywa pozostałe 12 województw, zamiast
     # dokładać po osobnym kanale na każde.

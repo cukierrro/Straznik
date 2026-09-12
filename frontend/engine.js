@@ -127,60 +127,10 @@ const UA_OBLAST_PL = { "Волинська":"wołyńskim", "Львівська":
 /* Klasyfikacja: CRITICAL oznacza 1,5 pkt, para AIR + EVENT 1,0 pkt. Twardy
    limit RSS 1,5 sprawia, że same media nigdy nie osiągają żółtego progu 2,0.
    Lustrzana kopia backend/app/config.py — testy w scripts/test_textmatch.py. */
-const CRITICAL = ["alarm powietrzny","zagrożenie z powietrza","zawyły syreny","zawyła syrena",
-  "obiekt powietrzny spadł","niezidentyfikowany obiekt spadł",
-  "zestrzelono dron","zestrzelono rakiet","poderwano myśliwce","poderwano lotnictwo",
-  "schrony otwarte",
-  "zamknięto przestrzeń powietrzn","zamknięcie przestrzeni powietrzn",
-  "zamknięta przestrzeń powietrzn","operacja obrony powietrzn",
-  "operację obrony powietrzn","operacji obrony powietrzn",
-  "poderwano f-16","poderwano f-35","poderwano samoloty"];
-const AIR = ["dron","bezzałogow","bsp","shahed","geran","rakiet","pocisk","ch-101","kalibr",
-  "iskander","kab","bomb","myśliwc","mig-31","obiekt powietrzny","przestrzeni powietrznej",
-  "przestrzeń powietrzną","obrona powietrzna","obiekt latając",
-  "lancet","kindżał","kinżał","kh-101","kh-47","kh-59",
-  "amunicja krążąc","fpv","kamikadze","statek powietrzny",
-  "pocisk manewrując","pocisk balistyczn","hipersoniczn",
-  "f-16","f-35","su-24","su-34","su-35","tu-95","tu-160","mig-29",
-  "lotnictwo wojskow"];
-const EVENT = ["spadł","spadła","spadło","eksploz","wybuch","zestrzel","przechwyc","poderwan",
-  "naruszen","naruszył","naruszyła","wleciał","wtargn","uderzy","trafił","szczątki","atak",
-  "ostrzał","zawył","alarm","ewakuac","schron","zagrożeni",
-  "przekrocz","wtargnięci","detonac","runął","runęła","runęło",
-  "zestrzelen","przechwycen"];
-const EXCLUDE = ["ćwiczeni","trening","test syren","próba syren","próby syren","głośna próba",
-  "rocznic","upamiętni","minuta ciszy","wymian","modernizac","przetarg","inwestycj","zakup",
-  "montaż","zamontow","instalac","rozbudow","dofinansow","dotacj","planowan","potrwa",
-  "konserwac","remont","pojawią się","powstan","wdroż","komunikat głosowy",
-  "system ostrzegania będzie","nowe syreny","nowych syren","pożar bloku","pożar domu",
-  "pożar mieszkania","pożar lasu","wypadek drogow","kolizja","lpr lądował","śmigłowiec lpr",
-  "utonię","potrąc","dachowa","karambol","zderzenie samochod",
-  "pożar ciężarów","pożar samochod","pożar autobusu","pożar cystern",
-  "zapaliła się ciężarów","zapalił się samoch","zbiornik paliw","wyciek paliw",
-  "demograf","przyrost naturaln","liczba mieszkańc","wyludnia",
-  "tydzień po","tygodnie po","tygodni po","dzień po","dni po",
-  "miesiąc po","miesiące po","miesięcy po","rok po","lata po","lat po",
-  "rok temu","lata temu","lat temu","ubiegłym roku","ubiegłego roku",
-  "godzin po","godziny po","kalendarium","przypominamy","wspomina",
-  "kulisy","reportaż","felieton","czy na pewno","co wiemy","jak doszło",
-  "śledztwo w sprawie","śledztwo ws","podsumowanie roku",
-  "zawyły syreny?","zawyła syrena?","alarm powietrzny?",
-  "co powinieneś zrobić","co należy zrobić","jak się zachować w razie",
-  "co robić w razie","co zrobić w razie","poradnik bezpieczeństwa",
-  "poznaj sygnały alarmowe","co oznacza sygnał alarmowy",
-  "film fabularn","film dokumentaln","serial","premiera","recenzja",
-  "zwiastun","gra wideo","gry wideo","powieść","komiks","cosplay","spektakl",
-  "1939","1944","1945","ii wojn","powstanie warszawsk",
-  "rakieta kosmiczn","rakieta nośn","start rakiety","spacex","falcon",
-  "starship","misja kosmiczn","kosmodrom","odbudow","ma być gotow",
-  "rakieta tenisow","rakietka","rakiety śnieżn",
-  "bomba atomow","wybuchła afera",
-  "pokaz dron","dron rolnicz","dron dostawcz","wyścig dron",
-  "nagranie z drona","zdjęcia z drona","zdjęcie z drona","widok z drona",
-  "są zarzuty","usłyszał zarzut","usłyszała zarzut","usłyszeli zarzuty",
-  "postawiono zarzut","postawiono zarzuty","zarzuty dla","akt oskarżenia",
-  "odpowie przed sądem","stanął przed sądem","stanęła przed sądem",
-  "skazany za","skazana za","do zdarzenia miało dojść"];
+const CRITICAL = ["alarm powietrzny","zagrożenie z powietrza","zawyły syreny","zawyła syrena","obiekt powietrzny spadł","niezidentyfikowany obiekt spadł","zestrzelono dron","zestrzelono rakiet","poderwano myśliwce","poderwano lotnictwo","schrony otwarte","zamknięto przestrzeń powietrzn","zamknięcie przestrzeni powietrzn","zamknięta przestrzeń powietrzn","operacja obrony powietrzn","operację obrony powietrzn","operacji obrony powietrzn","poderwano f-16","poderwano f-35","poderwano samoloty"];
+const AIR = ["dron","bezzałogow","bsp","shahed","geran","rakiet","pocisk","ch-101","kalibr","iskander","kab","bomb","myśliwc","mig-31","obiekt powietrzny","przestrzeni powietrznej","przestrzeń powietrzną","obrona powietrzna","obiekt latając","lancet","kindżał","kinżał","kh-101","kh-47","kh-59","amunicja krążąc","fpv","kamikadze","statek powietrzny","pocisk manewrując","pocisk balistyczn","hipersoniczn","f-16","f-35","su-24","su-34","su-35","tu-95","tu-160","mig-29","lotnictwo wojskow"];
+const EVENT = ["spadł","spadła","spadło","eksploz","wybuch","zestrzel","przechwyc","poderwan","naruszen","naruszył","naruszyła","wleciał","wtargn","uderzy","trafił","szczątki","atak","ostrzał","zawył","alarm","ewakuac","schron","zagrożeni","przekrocz","wtargnięci","detonac","runął","runęła","runęło","zestrzelen","przechwycen"];
+const EXCLUDE = ["ćwiczeni","trening","test syren","próba syren","próby syren","głośna próba","rocznic","upamiętni","minuta ciszy","wymian","modernizac","przetarg","inwestycj","zakup","montaż","zamontow","instalac","rozbudow","dofinansow","dotacj","planowan","potrwa","konserwac","remont","pojawią się","powstan","wdroż","komunikat głosowy","system ostrzegania będzie","nowe syreny","nowych syren","pożar bloku","pożar domu","pożar mieszkania","pożar lasu","wypadek drogow","kolizja","lpr lądował","śmigłowiec lpr","utonię","potrąc","dachowa","karambol","zderzenie samochod","pożar ciężarów","pożar samochod","pożar autobusu","pożar cystern","zapaliła się ciężarów","zapalił się samoch","zbiornik paliw","wyciek paliw","demograf","przyrost naturaln","liczba mieszkańc","wyludnia","tydzień po","tygodnie po","tygodni po","dzień po","dni po","miesiąc po","miesiące po","miesięcy po","rok po","lata po","lat po","rok temu","lata temu","lat temu","ubiegłym roku","ubiegłego roku","godzin po","godziny po","kalendarium","przypominamy","wspomina","kulisy","reportaż","felieton","czy na pewno","co wiemy","jak doszło","śledztwo w sprawie","śledztwo ws","podsumowanie roku","zawyły syreny?","zawyła syrena?","alarm powietrzny?","co powinieneś zrobić","co należy zrobić","jak się zachować w razie","co robić w razie","co zrobić w razie","poradnik bezpieczeństwa","poznaj sygnały alarmowe","co oznacza sygnał alarmowy","film fabularn","film dokumentaln","serial","premiera","recenzja","zwiastun","gra wideo","gry wideo","powieść","komiks","cosplay","spektakl","1939","1944","1945","ii wojn","powstanie warszawsk","rakieta kosmiczn","rakieta nośn","start rakiety","spacex","falcon","starship","misja kosmiczn","kosmodrom","odbudow","ma być gotow","rakieta tenisow","rakietka","rakiety śnieżn","bomba atomow","wybuchła afera","pokaz dron","dron rolnicz","dron dostawcz","wyścig dron","nagranie z drona","zdjęcia z drona","zdjęcie z drona","widok z drona","wybiła godzina","godzina \"w\"","godzinie \"w\"","godziny \"w\"","oddali hołd","oddał hołd","oddano hołd","hołd bohaterom","hołd powstańcom","uroczystoś","próbny alarm","alarm próbny","próbnego alarmu","próba syren alarmowych","ogólnopolskie ćwiczenia","są zarzuty","usłyszał zarzut","usłyszała zarzut","usłyszeli zarzuty","postawiono zarzut","postawiono zarzuty","zarzuty dla","akt oskarżenia","odpowie przed sądem","stanął przed sądem","stanęła przed sądem","skazany za","skazana za","do zdarzenia miało dojść","alarm bombowy","alarmy bombowe","alarmu bombowego","alarmów bombowych","alarmie bombowym","alarmem bombowym","alarmów bombowych","o podłożeniu ładunku","podłożeniu bomby","informacja o bombie"];
 const B_CRITICAL = ["airspace violation","violated airspace","airspace was violated","air raid",
   "airspace closed","shot down a drone","scrambled jets","oro erdvės pažeid",
   "gaisa telpas pārkāp","õhuruumi rikku"];
@@ -195,48 +145,34 @@ const B_EXCLUDE = ["exercise","drill","training","anniversary","drone show","fes
    Świadomie pomijamy nazwy kolidujące ze słowami pospolitymi ("piła", "żary",
    "hel", "brzeg"). Lustrzana kopia VOIV_KEYWORDS z backendu. */
 const VOIV_KEYWORDS = {
-  "lubelskie":["lubelski","lublin","chełm","zamość","zamoś","biała podlask","hrubiesz",
-    "włodaw","terespol","dorohusk","świdnik","puław","kraśnik","łęczn"],
-  "podkarpackie":["podkarpack","rzeszów","rzeszow","przemyśl","przemysl","medyk","jarosław",
-    "lubaczów","sanok","krosno","mielec","stalowa wol","tarnobrzeg"],
-  // Białystok odmienia się nieregularnie (Białymstoku, Białegostoku)
-  "podlaskie":["podlask","białystok","bialystok","białymstok","białegostok","suwałk",
-    "suwalk","augustów","sokółk","kuźnic","siemiatycz","hajnówk","bielsk podlask","łomż"],
-  "mazowieckie":["mazowieck","warszaw","radom","siedlc","płock","ostrołęk","pruszków",
-    "legionow","otwock","żyrardów","ciechanów"],
-  "warmińsko-mazurskie":["warmińsko","warminsko","olsztyn","elbląg","ełk","gołdap","braniew",
-    "ostróda","iława","kętrzyn","giżyck","mrągow"],
-  "świętokrzyskie":["świętokrzysk","swietokrzysk","kielc","ostrowiec świętokrzysk",
-    "starachowic","skarżysk","sandomierz","końskie","jędrzejów","busko"],
-  "małopolskie":["małopolsk","malopolsk","kraków","krakow","tarnów","nowy sącz","oświęcim",
-    "zakopane","chrzanów","olkusz","bochni","wadowic"],
-  "łódzkie":["łódzk","lodzk","łódź","piotrków trybunalsk","pabianic","bełchatów","sieradz",
-    "kutno","zgierz","radomsk","tomaszów mazowieck","tomaszowie mazowieck",
-    "tomaszowa mazowieck","skierniewic"],
-  "śląskie":["śląski","slaski","katowic","częstochow","gliwic","sosnowiec","zabrze","bytom",
-    "rybnik","bielsko-biał","tychy","chorzów","dąbrowa górnicz","jastrzębie","żywiec"],
-  "kujawsko-pomorskie":["kujawsko","bydgoszcz","toruń","torun","włocławek","grudziądz",
-    "inowrocław","brodnic","świecie","chełmn","chełmż"],
-  "zachodniopomorskie":["zachodniopomorsk","szczecin","koszalin","kołobrzeg","świnoujści",
-    "stargard","police","wałcz","gryfin"],
-  "pomorskie":["woj. pomorsk","pomorskiego","gdańsk","gdansk","gdyni","sopot","słupsk",
-    "tczew","malbork","wejherow","kaszub","kwidzyn","starogard gdańsk","chojnic","lębork","puck"],
-  "lubuskie":["lubusk","zielona gór","zielonej gór","gorzów","gorzow","nowa sól",
-    "świebodzin","międzyrzecz","słubic","sulechów"],
-  "wielkopolskie":["wielkopolsk","poznań","poznan","kalisz","konin","leszno","gniezno",
-    "ostrów wielkopolsk","piła wielkopolsk","swarzędz","śrem"],
-  "dolnośląskie":["dolnośląsk","dolnoslask","wrocław","wroclaw","legnic","wałbrzych",
-    "jelenia gór","lubin","głogów","świdnic","bolesławiec","oleśnic"],
-  "opolskie":["opolsk","opole","opolu","kędzierzyn","nysa","kluczbork","prudnik",
-    "strzelce opolsk","namysłów"]};
+  "dolnośląskie":["dolnośląsk","dolnoslask","dolny śląsk","dolnym śląsku","dolnym śląskiem","dolnego śląska","dolnoślązak","wrocław","wroclaw","legnic","wałbrzych","jelenia gór","jeleniej gór","lubin","głogów","świdnic","bolesławiec","oleśnic","dzierżoniów","zgorzelec","polkowic","kłodzk","bielaw","oława","oławie","brzeg dolny","strzelin","środa śląsk","trzebnic","złotoryj","kamienna gór","kamiennej gór","lubań","milicz","syców","chojnów","karpacz","szklarska poręb","bogatyni","zgorzelc"],
+  "kujawsko-pomorskie":["kujawsko","kujawach","kujawy","bydgoszcz","toruń","torun","włocławek","grudziądz","inowrocław","brodnic","świeciu","świecia","świecie nad wisłą","chełmn","chełmż","rypin","lipno","nakło","żnin","mogilno","tuchol","sępólno","wąbrzeźno","golub-dobrzyń","aleksandrów kujawsk","ciechocinek","solec kujawsk","kruszwic","radziejów","janikowo","koronowo","szubin"],
+  "lubelskie":["lubelski","lubelskie","lubelskiem","lubelszczy","lublin","chełm","zamość","zamoś","hrubiesz","włodaw","terespol","dorohusk","świdnik","puław","kraśnik","łęczn","biała podlask","białej podlask","białą podlask","bialskopodlask","radzyń podlask","radzyniu podlask","radzynia podlask","tomaszów lubelsk","tomaszowie lubelsk","janów lubelsk","opole lubelsk","opolu lubelsk","biłgoraj","lubartów","łuków","parczew","dęblin","krasnystaw","krasnymstaw","szczebrzeszyn","józefów","poniatowa","bychawa","rejowiec","międzyrzec podlask","kock","annopol","tarnawa-kolonia","wyryki","czosnówka"],
+  "lubuskie":["lubusk","zielona gór","zielonej gór","gorzów","gorzow","nowa sól","nowej soli","świebodzin","międzyrzecz","słubic","sulechów","żagań","kostrzyn","gubin","krosno odrzańsk","krośnie odrzańsk","drezdenko","strzelce krajeńsk","wschowa","szprotawa","lubsko","skwierzyna","sulęcin","rzepin","dobiegniew","witnica","międzyrzeck"],
+  "łódzkie":["łódzk","lodzk","łódź","piotrków trybunalsk","pabianic","bełchatów","sieradz","kutno","zgierz","radomsk","skierniewic","tomaszów mazowieck","tomaszowie mazowieck","tomaszowa mazowieck","tomaszowem mazowieck","zduńska wol","zduńskiej wol","wieluń","opoczno","rawa mazowieck","łowicz","kolusz","aleksandrów łódzk","konstantynów łódzk","ozorków","głowno","poddębic","łęczyc","pajęczno","wieruszów","warta k. sieradza"],
+  "małopolskie":["małopolsk","malopolsk","małopolsce","kraków","krakow","tarnów","nowy sącz","nowym sączu","nowego sącza","oświęcim","zakopane","chrzanów","olkusz","bochni","wadowic","nowy targ","nowym targu","gorlic","brzesk","andrychów","skawina","myślenic","limanow","trzebini","libiąż","wieliczk","sucha beskidzk","krynic-zdrój","muszyn","dąbrowa tarnowsk","proszowic","miechów","wolbrom","kęty","niepołomic","bukowno","szczawnic"],
+  "mazowieckie":["mazowieck","mazowsz","warszaw","radom","siedlc","płock","ostrołęk","pruszków","legionow","otwock","żyrardów","ciechanów","mińsk mazowieck","nowy dwór mazowieck","grodzisk mazowieck","maków mazowieck","ostrów mazowieck","ostrowie mazowieck","sokołów podlask","sokołowie podlask","sokołowa podlask","mińsku mazowieck","grodzisku mazowieck","makowie mazowieck","rawie mazowieck","wołomin","piaseczno","sochaczew","wyszków","garwolin","węgrów","płońsk","mława","żuromin","gostynin","sierpc","przasnysz","pułtusk","łosic","grójec","kozienic","zwoleń","lipsko","szydłowiec","białobrzeg","sulejówek","konstancin","modlin","sochaczewsk"],
+  "opolskie":["opolsk","opole","opolu","opolszczy","kędzierzyn","nysa","nysie","kluczbork","prudnik","strzelce opolsk","namysłów","krapkowic","głubczyc","olesno","ozimek","zdzieszowic","praszka","grodków","niemodlin","gogolin","brzeg opolsk","paczków","biała prudnick"],
+  "podkarpackie":["podkarpack","podkarpaci","rzeszów","rzeszow","przemyśl","przemysl","medyk","jarosław","lubaczów","sanok","krosno","krośni","mielec","stalowa wol","stalowej woli","tarnobrzeg","dębic","jasło","jaśle","łańcut","ropczyc","sędziszów","leżajsk","przeworsk","ustrzyk","lesko","brzozów","strzyżów","kolbuszow","głogów małopolsk","nowa dęba","radymno","korczowa","budomierz","krościenko","bieszczad","nisku","jasionka","arłamów"],
+  "podlaskie":["podlask","podlasi","białystok","bialystok","białymstok","białegostok","suwałk","suwalk","augustów","sokółk","kuźnic","siemiatycz","hajnówk","bielsk podlask","bielsku podlask","wysokie mazowieck","wysokiem mazowieck","łomż","grajewo","zambrów","mońk","kolno","sejny","dąbrowa białostock","czarna białostock","supraśl","michałowo","narewk","białowież","krynk","czeremch","siemianówk","wasilków","zabłudów","kuźnica białostock","połowce"],
+  "pomorskie":["woj. pomorsk","pomorskiego","pomorzu","pomorza","pomorze","kaszub","gdańsk","gdansk","gdyni","sopot","słupsk","tczew","malbork","wejherow","kwidzyn","starogard gdańsk","chojnic","lębork","puck","pruszcz gdańsk","kościerzyn","kartuz","bytów","człuchów","sztum","nowy dwór gdańsk","ustk","półwysep hel","władysławow","jastarni","krynica morsk","skarszew","żukowo","trójmiast"],
+  "śląskie":["śląski","slaski","śląsku","śląska","śląsk","katowic","częstochow","gliwic","sosnowiec","zabrze","bytom","rybnik","bielsko-biał","bielsku-biał","tychy","tychach","chorzów","dąbrowa górnicz","jastrzębie","żywiec","ruda śląsk","tarnowskie gór","tarnowskich gór","mysłowic","siemianowic","piekary śląsk","świętochłowic","zawiercie","będzin","racibórz","wodzisław","mikołów","czechowic","cieszyn","pszczyn","lubliniec","myszków","kłobuck","knurów","żory","jaworzno","bieruń","radzionków","orzesze","pyrzowic"],
+  "świętokrzyskie":["świętokrzysk","swietokrzysk","kielc","kielecczy","ostrowiec świętokrzysk","starachowic","skarżysk","sandomierz","końskie","jędrzejów","busko","staszów","opatów","pińczów","włoszczow","kazimierza wielk","chmielnik","suchedniów","morawic","daleszyc","bodzentyn","połaniec","ćmielów"],
+  "warmińsko-mazurskie":["warmińsko","warminsko","warmii","warmia","mazurach","mazurskiego","olsztyn","elbląg","ełk","gołdap","braniew","ostróda","iława","kętrzyn","giżyck","mrągow","szczytno","działdow","bartoszyc","lidzbark","węgorzew","olecko","nidzic","nowe miasto lubawsk","morąg","orneta","dobre miasto","biskupiec","mikołajk","bezledy","grzechotki","gronowo","pieniężno","pasłęk","piszu"],
+  "wielkopolskie":["wielkopolsk","wielkopolsce","poznań","poznan","kalisz","konin","leszno","gniezno","ostrów wielkopolsk","piła wielkopolsk","grodzisk wielkopolsk","środa wielkopolsk","swarzędz","śrem","luboń","kościan","wrześni","jarocin","krotoszyn","słupc","oborniki","szamotuł","wągrowiec","chodzież","czarnków","złotów","rawicz","gostyń","pleszew","wolsztyn","nowy tomyśl","murowana goślin","puszczykowo","opalenic","krzesiny"],
+  "zachodniopomorskie":["zachodniopomorsk","pomorze zachodnie","pomorzu zachodnim","pomorza zachodniego","zachodnim pomorzu","zachodniego pomorza","szczecin","koszalin","kołobrzeg","świnoujści","stargard","police","wałcz","gryfin","białogard","szczecinek","goleniów","gryfic","kamień pomorsk","nowogard","choszczno","drawsko pomorsk","świdwin","myślibórz","dębno","barlinek","trzebiatów","darłowo","sławno","złocieniec","połczyn","mielno","międzyzdroj"]};
 const RSS_FEEDS = [
   ["https://www.lublin112.pl/feed/","lubelskie"],
   ["https://radio.lublin.pl/feed/","lubelskie"],
   ["https://www.dziennikwschodni.pl/rss","lubelskie"],
-  ["https://news.google.com/rss/search?q=(syreny%20OR%20alarm%20OR%20dron%20OR%20rakieta)%20podkarpackie&hl=pl&gl=PL&ceid=PL:pl","podkarpackie"],
-  ["https://news.google.com/rss/search?q=(syreny%20OR%20alarm%20OR%20dron%20OR%20rakieta)%20podlaskie&hl=pl&gl=PL&ceid=PL:pl","podlaskie"],
-  ["https://news.google.com/rss/search?q=(syreny%20OR%20alarm%20OR%20dron%20OR%20rakieta)%20lubelskie&hl=pl&gl=PL&ceid=PL:pl","lubelskie"],
-  ["https://news.google.com/rss/search?q=(syreny%20OR%20alarm%20OR%20dron%20OR%20rakieta)%20(warmi%C5%84sko-mazurskie%20OR%20mazurskie%20OR%20olsztyn)&hl=pl&gl=PL&ceid=PL:pl","warmińsko-mazurskie"],
+  ["https://news.google.com/rss/search?q=(syreny%20OR%20alarm%20OR%20dron%20OR%20rakieta)%20podkarpackie&hl=pl&gl=PL&ceid=PL:pl",null],
+  ["https://news.google.com/rss/search?q=(syreny%20OR%20alarm%20OR%20dron%20OR%20rakieta)%20podlaskie&hl=pl&gl=PL&ceid=PL:pl",null],
+  ["https://news.google.com/rss/search?q=(syreny%20OR%20alarm%20OR%20dron%20OR%20rakieta)%20lubelskie&hl=pl&gl=PL&ceid=PL:pl",null],
+  ["https://news.google.com/rss/search?q=(syreny%20OR%20alarm%20OR%20dron%20OR%20rakieta)%20(warmi%C5%84sko-mazurskie%20OR%20mazurskie%20OR%20olsztyn)&hl=pl&gl=PL&ceid=PL:pl",null],
+  // Północ ma własne kanały, bo od 1.7.30 punktuje tam strefa PAŻP i musi mieć
+  // czym się sparować (te same słowa co dla ściany wschodniej).
+  ["https://news.google.com/rss/search?q=(syreny%20OR%20alarm%20OR%20dron%20OR%20rakieta)%20(pomorskie%20OR%20Gda%C5%84sk%20OR%20Gdynia%20OR%20S%C5%82upsk)&hl=pl&gl=PL&ceid=PL:pl",null],
+  ["https://news.google.com/rss/search?q=(syreny%20OR%20alarm%20OR%20dron%20OR%20rakieta)%20(zachodniopomorskie%20OR%20Szczecin%20OR%20Ko%C5%82obrzeg)&hl=pl&gl=PL&ceid=PL:pl",null],
   // Ogólnopolski nasłuch bez domyślnego regionu — województwo rozpoznaje
   // VOIV_KEYWORDS. Jedno zapytanie pokrywa pozostałe 12 województw, zamiast
   // dokładać po osobnym kanale na każde.
@@ -398,8 +334,13 @@ const matchVoivs = (text) => {
   for (const [v, keys] of Object.entries(VOIV_KEYWORDS))
     for (const k of keys) {
       const kf = fold(k);
-      for (let i = folded.indexOf(kf); i !== -1; i = folded.indexOf(kf, i + 1))
-        hits.push([i, i + kf.length, v]);
+      for (let i = folded.indexOf(kf); i !== -1; i = folded.indexOf(kf, i + 1)) {
+        /* Trafienie MUSI zaczynać się na granicy słowa: „rozpoznania" zawiera
+           „poznan" i ogólnopolski komunikat wojskowy wpadał do wielkopolskiego
+           (złapane na żywo 12.09.2026); tak samo „bełkot"→Ełk, „topole"→Opole. */
+        const p = i ? folded[i - 1] : "";
+        if (i === 0 || !(/[a-z0-9]/.test(p) || p === "-")) hits.push([i, i + kf.length, v]);
+      }
     }
   hits.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
   const out = [];
@@ -410,6 +351,30 @@ const matchVoivs = (text) => {
   return out;
 };
 const matchVoiv = (text) => matchVoivs(text)[0] || null;
+const FOREIGN_PLACES = ["w rumunii","nad rumunią","do rumunii","rumunia:","rumunii","w bułgarii","nad bułgarią","bułgarii","w mołdawii","nad mołdawią","mołdawii","na łotwie","nad łotwą","łotwy","na litwie","nad litwą","litwy","w estonii","nad estonią","estonii","w finlandii","nad finlandią","finlandii","na ukrainie","nad ukrainą","ukrainy","charkow","charków","kijow","kijów","na białorusi","białorusi","w rosji","rosji","obwodzie kaliningradzkim","w niemczech","niemiec","w czechach","czech","na słowacji","słowacji","na węgrzech","węgier","w danii","danii","w norwegii","norwegii","w szwecji","szwecji","w iranie","iranu","w izraelu","izraela"];
+/* Domyślny region kanału to DOMNIEMANIE: nie stosujemy go, gdy tekst
+   umiejscawia zdarzenie za granicą („drony spadły w Rumunii" z Radia Szczecin). */
+const mentionsAbroad = (text) => {
+  const t = fold(String(text).toLowerCase());
+  return FOREIGN_PLACES.some(k => t.includes(fold(k)));
+};
+
+
+/* Artykuł mówiący, że jest PO wszystkim, nie jest dowodem zagrożenia. Musi się
+   zgadzać z config.MEDIA_CLEAR_KEYWORDS — pilnuje tego scripts/test_spojnosc.py. */
+const MEDIA_CLEAR = ["odwołano alarm","odwołanie alarmu","alarm odwołany","koniec alarmu",
+  "zakończono operowanie","zakończyło operowanie","zakończone operowanie",
+  "powróciły do standardowej","wrócił do standardowej","powrót do standardowej",
+  "zagrożenie minęło","zagrożenie minelo","niebezpieczeństwo minęło",
+  "zakończono działania","zakończyły się działania","zakończono operację",
+  "przestrzeń powietrzna została otwarta","wznowiono ruch lotniczy",
+  "lotniska wznowiły","lotnisko wznowiło","odwołano ostrzeżenie",
+  "ostrzeżenie odwołane","alert odwołany","alert rcb odwołany",
+  "sytuacja wróciła do normy","po zagrożeniu"];
+const isMediaClear = (text) => {
+  const t = fold(String(text).toLowerCase());
+  return MEDIA_CLEAR.some(k => t.includes(fold(k)));
+};
 
 /* Dioda źródła gaśnie dopiero po kilku nieudanych próbach z rzędu.
    Pojedynczy timeout albo zerwane połączenie zdarza się na mobilnym internecie
@@ -513,6 +478,15 @@ function accumulate(sigs, refT) {
     const prev = balticClears.get(key) || 0;
     balticClears.set(key, Math.max(prev, s.t || Date.parse(s.ts) || 0));
   }
+  /* Odwołanie w mediach polskich nie ma wspólnego klucza zdarzenia z artykułem
+     alarmowym (to zwykle inny adres), więc wygasza WSZYSTKIE wcześniejsze
+     doniesienia medialne w tym województwie. Lustrzane wobec fusion.accumulate. */
+  const mediaClears = new Map();
+  for (const s of sigs) {
+    if (s.event_type !== "media_clear" || !s.voivodeship) continue;
+    const t = s.t || Date.parse(s.ts) || 0;
+    if (t > (mediaClears.get(s.voivodeship) || 0)) mediaClears.set(s.voivodeship, t);
+  }
   const neptunWinners = new Map();
   for (const s of sigs) {
     const trackId = s.source === "neptun" && s.details?.track_id;
@@ -537,7 +511,9 @@ function accumulate(sigs, refT) {
       && neptunWinners.get(s.voivodeship + "|" + physicalId) !== s;
     const incident = s.event_type === "baltic_context" && s.details?.incident_key;
     const clearT = incident && balticClears.get(s.voivodeship + "|" + incident);
-    const cleared = !!clearT && clearT >= (s.t || Date.parse(s.ts) || 0);
+    const st = s.t || Date.parse(s.ts) || 0;
+    const mediaClearT = s.source === "media" ? (mediaClears.get(s.voivodeship) || 0) : 0;
+    const cleared = (!!clearT && clearT >= st) || (mediaClearT > 0 && mediaClearT >= st);
     const relayOf = mediaRelayOfOfficial(s, officials);
     const retrospective = mediaRetrospective(s);
     const ageMin = (ref - s.t) / 60000;
@@ -1044,7 +1020,18 @@ async function tickRss() {
         if (!level) continue;
         const pts = level === "critical" ? POINTS.media_critical : POINTS.media_keywords;
         const voivs = matchVoivs(text);
-        const targets = voivs.length ? voivs : (defVoiv ? [defVoiv] : []);
+        const targets = voivs.length ? voivs
+          : (defVoiv && !mentionsAbroad(text) ? [defVoiv] : []);
+        // Tekst mówiący, że jest PO wszystkim, nie jest dowodem zagrożenia:
+        // 0 pkt i wygaszenie wcześniejszych mediów w tym województwie.
+        if (isMediaClear(text)) {
+          for (const voiv of targets)
+            addSignal("media","media_clear",voiv,0,
+              `Media: odwołanie — „${it.title.slice(0,110)}”`,
+              {link:it.link, clear:true},
+              "media-clear:" + (it.link || it.title) + ":" + voiv);
+          continue;
+        }
         for (const voiv of targets)
           addSignal("media","media_keywords",voiv,pts,
             `Media: „${it.title.slice(0,120)}”`,

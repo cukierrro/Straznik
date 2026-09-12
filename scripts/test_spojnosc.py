@@ -162,6 +162,28 @@ sprawdz("UA_ALERT_RINGS",
         _pary(r"UA_ALERT_RINGS = \[(.*?)\];", ENGINE, "pasy js"),
         _pary(r"UA_ALERT_RINGS = \((.*?)\)\n", CONFIG, "pasy py"))
 
+# ── słowniki mediów: rozjazd = inne przypisanie artykułu na serwerze i w telefonie
+def _hasla_woj(tekst, wzorzec, nazwa):
+    """{województwo: posortowane hasła} z config.py albo engine.js."""
+    m = re.search(wzorzec, tekst, re.S)
+    if not m:
+        bledy.append(f"nie znaleziono VOIV_KEYWORDS ({nazwa})")
+        return {}
+    return {woj: sorted(re.findall(r'"([^"]+)"', cialo))
+            for woj, cialo in re.findall(r'"([^"]+)":\s*\[(.*?)\]', m.group(1), re.S)}
+
+
+sprawdz("VOIV_KEYWORDS",
+        _hasla_woj(ENGINE, r"const VOIV_KEYWORDS = \{(.*?)\};", "engine.js"),
+        _hasla_woj(CONFIG, "VOIV_KEYWORDS = \\{(.*?)\\n\\}", "config.py"))
+# Listy haseł (EXCLUDE/CRITICAL/AIR/EVENT) składają się w config.py z kilku
+# pod-list przez `*SPLAT` i mają komentarze w środku, więc wyrażenie regularne
+# ich nie ogarnie. Porównuje je dokładnie scripts/test_media_clear.py, który
+# IMPORTUJE config zamiast czytać go jako tekst.
+sprawdz("MEDIA_CLEAR",
+        sorted(lista(r"const MEDIA_CLEAR = \[(.*?)\];", ENGINE, "odwołania js")),
+        sorted(lista(r"MEDIA_CLEAR_KEYWORDS = \[(.*?)\]", CONFIG, "odwołania py")))
+
 # ── wynik ────────────────────────────────────────────────────────────────────
 if bledy:
     print("ROZJAZD MIĘDZY SILNIKAMI (backend ↔ engine.js):")

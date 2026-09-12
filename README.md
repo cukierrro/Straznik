@@ -4,6 +4,12 @@
 
 # Strażnik
 
+Wersja 1.7.31: artykuł trafia do województwa, którego naprawdę dotyczy. Nazwa
+miejscowości nie łapie się już w środku innego słowa („rozpoznania” ≠ Poznań),
+nazwa redakcji nie decyduje o regionie, a tekst o KOŃCU zagrożenia nie punktuje
+i wygasza wcześniejsze doniesienia. Słownik nazw urósł do 565 haseł, 23–49 na
+województwo. Szczegóły: `docs/RELEASE_1.7.31.md`.
+
 Wersja 1.7.30: nowy przycisk „strefy” pokazuje aktywne strefy PAŻP — dotknięcie
 strefy tłumaczy po ludzku, co to jest i od kiedy działa. Strefy nie dodają punktów.
 Północ (Pomorze, Kaliningrad) liczy się inaczej, bo NEPTUN pokrywa Ukrainę i daje
@@ -82,7 +88,7 @@ wiarygodność ostrzeżenia.
 
 [Instrukcja po polsku](https://cukierrro.github.io/Straznik/) · [English user guide](https://cukierrro.github.io/Straznik/en.html)
 
-Instrukcja dla 1.7.30 opisuje „Moje miejsca”, rozdział alertów wojewódzkich i
+Instrukcja dla 1.7.31 opisuje „Moje miejsca”, rozdział alertów wojewódzkich i
 lokalnych obliczeń na pierwszym planie oraz bibliotekę fotografii PL/EN. Zrzuty
 otwierają się także w pełnym rozmiarze.
 
