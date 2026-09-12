@@ -1499,6 +1499,7 @@ function renderPanel() {
       <div class="voiv-level">${st.level === "none" && st.score > 0
         ? (UI.isEn ? "below threshold" : "poniżej progu") : LEVEL_LABEL[st.level]}
         <span class="muted">· ${UI.isEn ? "thresholds" : "progi"}: ≥${f.thresholds.elevated} ${UI.isEn ? "attention" : "uwaga"}, ≥${f.thresholds.high} ${UI.isEn ? "priority" : "priorytet"}</span></div>
+      ${scoreBreakdown(st)}
       <div class="voiv-breakdown">${st.signals.length
         ? sigList(st.signals)
         : `<div class="fineprint">${UI.isEn ? "no signals in the window" : "brak sygnałów w oknie"}</div>`}
@@ -1698,7 +1699,8 @@ function sigHTML(s) {
      granicy (zgłoszone 12.09.2026). Dopisujemy bieżącą odległość, dopóki obiekt
      jest jeszcze śledzony. W trybie historii tego nie robimy: tam panel należy do
      wybranej chwili, a nie do teraz. */
-  const liveNow = !histMode && src === "neptun" && d.track_id != null
+  const tracksNow = !histMode && src === "neptun" && d.track_id != null;
+  const liveNow = tracksNow
     ? (state?.neptun?.threats || []).find(t => String(t.id) === String(d.track_id))
     : null;
   const nowKm = liveNow?.pl_assessment?.dist_km;
@@ -1706,6 +1708,12 @@ function sigHTML(s) {
     const closer = nowKm < d.dist_km;
     extra.push(`<b style="color:${closer ? "#ff9f43" : "var(--muted)"}">${
       UI.isEn ? "now" : "teraz"} ${threatDistanceText(liveNow, nowKm)}</b>`);
+  } else if (tracksNow && !liveNow) {
+    /* Obiekt zniknął z bieżącej migawki NEPTUN-a, a sygnał żyje jeszcze w oknie
+       60 min. Bez tej adnotacji panel pokazywał odległość obiektu, którego nie ma
+       już na mapie — „śledzenie i sygnały muszą być spójne" (zgłoszone 12.09.2026). */
+    extra.push(`<b style="color:var(--muted)">${
+      UI.isEn ? "no longer tracked" : "nieśledzony na mapie"}</b>`);
   }
   if (src === "neptun") {
     if (d.course === "unknown") extra.push(UI.isEn ? "unknown heading" : "kurs nieznany");
@@ -1775,6 +1783,31 @@ function sigHTML(s) {
       extra.length ? " · " + extra.map(x => x.startsWith("<b") ? x : esc(x)).join(" · ") : ""}${
       faded ? ` · <span title="sygnał starzeje się w oknie 60 min i traci wagę">waga ${Math.round(w * 100)}%</span>` : ""}</div>
   </div>`;
+}
+
+/* Rozpisanie wyniku województwa. Suma na karcie zgadza się co do dziesiątej z
+   sygnałami, ale żeby to sprawdzić, trzeba było dodać w pamięci plakietki
+   rozrzucone po przewijanej liście — a część wpisów ma wkład 0 (wygaszone wiekiem
+   albo ucięte limitem klasy) i tylko myli rachunek (zgłoszone 12.09.2026). */
+function scoreBreakdown(st) {
+  const byClass = new Map();
+  let zeros = 0;
+  for (const s of st.signals || []) {
+    const cp = s.counted_points ?? s.points ?? 0;
+    if (cp <= 0) { zeros++; continue; }
+    const key = s.source || "?";
+    byClass.set(key, (byClass.get(key) || 0) + cp);
+  }
+  const parts = [...byClass.entries()].sort((a, b) => b[1] - a[1])
+    .map(([src, v]) => `${v.toFixed(1)} ${SRC_LABEL[src] || src.toUpperCase()}`);
+  if (!parts.length) return "";
+  const zeroNote = zeros
+    ? ` · ${zeros} ${UI.isEn ? (zeros === 1 ? "signal adds nothing" : "signals add nothing")
+                             : (zeros === 1 ? "sygnał bez wkładu" : "sygnałów bez wkładu")}`
+      + ` (${UI.isEn ? "faded or over the source-class cap" : "wygaszone albo ponad limit klasy"})`
+    : "";
+  return `<div class="voiv-sum">${UI.isEn ? "adds up to" : "składa się z"}: ${
+    parts.join(" + ")}${zeroNote}</div>`;
 }
 
 function openCard(name) {

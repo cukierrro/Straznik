@@ -530,6 +530,10 @@ dialog select { width: 100%; margin-top: 6px; padding: 8px 10px; border-radius: 
   font-size: 10px; letter-spacing: .05em; text-transform: none; }
 html[lang="en"] .voiv-card.is-mine .voiv-name::after { content: " · my region"; }
 .sig.src-spillover { border-left-color: #6f7ea8; opacity: .85; }
+/* Rozpisanie wyniku pod nagłówkiem karty — cichsze niż sygnały, ale czytelne. */
+.voiv-sum { margin: 4px 0 2px; font-size: 11px; line-height: 1.4; color: var(--muted); }
+.voiv-sum b { color: var(--text); }
+
 #panel section {
   background: var(--panel); border: 1px solid var(--panel-border);
   border-radius: 12px; padding: 10px 12px; backdrop-filter: blur(8px);
