@@ -531,6 +531,11 @@ dialog select { width: 100%; margin-top: 6px; padding: 8px 10px; border-radius: 
 html[lang="en"] .voiv-card.is-mine .voiv-name::after { content: " · my region"; }
 .sig.src-spillover { border-left-color: #6f7ea8; opacity: .85; }
 /* Rozpisanie wyniku pod nagłówkiem karty — cichsze niż sygnały, ale czytelne. */
+/* Plakietka przy sygnale z ostatnich 5 minut — tłumaczy, czemu jest na górze. */
+.sig-fresh { display: inline-block; margin-bottom: 3px; padding: 1px 6px;
+  border-radius: 7px; background: rgba(91,140,255,.18); color: var(--accent);
+  font-size: 9.5px; font-weight: 700; letter-spacing: .08em; }
+
 .voiv-sum { margin: 4px 0 2px; font-size: 11px; line-height: 1.4; color: var(--muted); }
 .voiv-sum b { color: var(--text); }
 

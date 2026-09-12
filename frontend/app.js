@@ -1643,8 +1643,21 @@ function renderObservationLists(viewState) {
    (counted_points) — driver alertu na górze, a dogasające/zerowe (np. stare,
    zlimitowane strefy PAŻP) schodzą niżej. */
 const byPts = (a, b) => (b.counted_points ?? b.points ?? 0) - (a.counted_points ?? a.points ?? 0);
+/* Sygnał z ostatnich pięciu minut jest ŚWIEŻY i idzie na górę listy niezależnie od
+   wkładu. Sama kolejność po punktach tłumaczyła wynik, ale nowy obiekt wart 0,1 pkt
+   lądował pod wpisami sprzed godziny — na mapie coś się pojawiało, a na górze listy
+   nic się nie zmieniało (zgłoszone 12.09.2026). Po pięciu minutach wpis wraca na
+   swoje miejsce według wkładu, więc lista dalej wyjaśnia, skąd wziął się wynik. */
+const FRESH_SIGNAL_MS = 5 * 60 * 1000;
+const isFreshSignal = (s) => {
+  const t = Date.parse(s?.ts || "");
+  return Number.isFinite(t) && Date.now() - t < FRESH_SIGNAL_MS;
+};
 function sigList(arr, limit) {
-  let a = (arr || []).slice().sort(byPts);
+  let a = (arr || []).slice().sort((x, y) =>
+    (isFreshSignal(y) - isFreshSignal(x))
+    || (isFreshSignal(x) ? Date.parse(y.ts) - Date.parse(x.ts) : 0)
+    || byPts(x, y));
   if (limit) a = a.slice(0, limit);
   return a.map(sigHTML).join("");
 }
@@ -1775,6 +1788,7 @@ function sigHTML(s) {
           : (UI.isEn ? "above this source-class cap — excess points are not counted" : "ponad limit tej klasy źródła — nadwyżka nie liczy się do sumy")}"` : ""}>
         +${cp}${capped ? ` <s>${s.points}</s>` : ""}</span>
     </div>
+    ${isFreshSignal(s) ? `<div class="sig-fresh">${UI.isEn ? "NEW" : "NOWY"}</div>` : ""}
     <div class="sig-title">${repeatedOfficial ? `<b>${UI.isEn ? "Repeated official alert:" : "Powtórzenie oficjalnego alertu:"}</b> ` : ""}${retrospective ? `<b>${UI.isEn ? "Historical report / aftermath:" : "Materiał historyczny / następstwa:"}</b> ` : ""}${link
       ? `<a href="${esc(link)}" target="_blank" rel="noopener">${esc(shownTitle)}</a>`
       : esc(shownTitle)}</div>
