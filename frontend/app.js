@@ -841,7 +841,11 @@ async function initMap() {
 
     mapReady = true;
     if (state) { updateVoivStates(); updateAdsb(); }
-    if (myVoiv()) goHome(true);
+    /* Ekran startowy jest ZAWSZE ten sam: Polska i cała Ukraina. Skok na zapisane
+       województwo startował tak blisko, że nie było widać, skąd nadlatują obiekty —
+       a to jest właśnie powód, dla którego ktoś otwiera tę mapę. Do swojego regionu
+       wraca się przyciskiem „mój region". */
+    fitAll(true);
     requestAnimationFrame(animate);
   });
 }
@@ -2102,7 +2106,9 @@ function voivAt(lon, lat) {
 /* Jednolite przybliżenie dla KAŻDEGO województwa: `fitBounds` dawał inny plan dla
    dużego mazowieckiego i małego opolskiego, więc „mój region" wyglądał za każdym
    razem inaczej. Stały zoom = ten sam kadr niezależnie od regionu. */
-const VOIV_ZOOM = 7.15;
+/* Kadr „mój region": województwo z zapasem na sąsiadów i pas przygraniczny, a nie
+   sam obrys wypełniający ekran. */
+const VOIV_ZOOM = 6.6;
 function goHome(instant) {
   const name = myVoiv();
   if (!name) {
@@ -2672,7 +2678,13 @@ function openPlaces(){
   fillPlace(savedPlaces[0]||{id:crypto.randomUUID?.()||String(Date.now()),name:"",precision:"region",region:myVoiv()||"lubelskie",alerts:true}); placesDlg.showModal();
 }
 placeEl("btn-places").onclick=()=>{dlg.close();openPlaces();};
-placeEl("places-close").onclick=()=>{if(!placeDirty()||confirm(placeText("Odrzucić niezapisane zmiany?","Discard unsaved changes?")))placesDlg.close();};
+/* „Moje miejsca" otwierają się Z Ustawień, więc po zamknięciu wracamy dokładnie tam,
+   skąd użytkownik przyszedł — inaczej ląduje na mapie i musi klikać ⚙ od nowa. */
+function backToPlacesTab(){
+  openSettings();
+  document.querySelector('#settings .set-tab[data-pane="miejsca"]')?.click();
+}
+placeEl("places-close").onclick=()=>{if(!placeDirty()||confirm(placeText("Odrzucić niezapisane zmiany?","Discard unsaved changes?"))){placesDlg.close();backToPlacesTab();}};
 placeEl("place-add").onclick=()=>{if(savedPlaces.length>=8)return alert(placeText("Możesz zapisać maksymalnie 8 miejsc.","You can save up to 8 places."));if(placeDirty()&&!confirm(placeText("Odrzucić niezapisane zmiany?","Discard unsaved changes?")))return;fillPlace({id:crypto.randomUUID?.()||String(Date.now()),name:"",precision:"region",region:myVoiv()||"lubelskie",alerts:false});};
 placeEl("place-precision").onchange=()=>{placeDraft={...placeDraft,precision:placeEl("place-precision").value,gps:placeEl("place-precision").value==='gps'?placeDraft?.gps:null};renderPlacePrecision();};
 placeEl("place-gps").onclick=()=>{
@@ -2683,7 +2695,17 @@ placeEl("place-gps").onclick=()=>{
 placeEl("place-gps-remove").onclick=()=>{placeDraft={...placeDraft,gps:null};renderPlacePrecision();};
 placeEl("place-cancel").onclick=()=>{const saved=savedPlaces.find(p=>p.id===placeDraft?.id);if(saved)fillPlace(saved);else placesDlg.close();};
 placeEl("place-delete").onclick=()=>{const found=savedPlaces.some(p=>p.id===placeDraft?.id);if(!found)return placesDlg.close();if(!confirm(placeText("Usunąć to miejsce z urządzenia?","Delete this place from the device?")))return;savedPlaces=Places.save(localStorage,savedPlaces.filter(p=>p.id!==placeDraft.id));syncObservedRegions();if(savedPlaces.length)fillPlace(savedPlaces[0]);else placesDlg.close();renderPlacesSummary();};
-placeEl("places-form").onsubmit=event=>{event.preventDefault();const clean=draftFromForm();if(!clean.name||!clean.region||(clean.precision==='gps'&&!clean.gps)){placeEl("place-feedback").textContent=placeText("Uzupełnij nazwę i wybraną lokalizację.","Enter a name and the selected location.");return;}const idx=savedPlaces.findIndex(p=>p.id===clean.id);if(idx<0&&savedPlaces.length>=8)return;savedPlaces=Places.save(localStorage,idx<0?[...savedPlaces,clean]:savedPlaces.map(p=>p.id===clean.id?clean:p));syncObservedRegions();fillPlace(clean);placeEl("place-feedback").textContent=placeText("Zapisano tylko na tym urządzeniu.","Saved on this device only.");renderPlacesSummary();if(mapReady){for(const id of ["my-voiv","my-voiv-glow"])if(map.getLayer(id))map.setFilter(id,["==",["get","nazwa"],myVoiv()||"—"]);}};
+/* Kliknięcie „Zapisz na urządzeniu" przy pustej nazwie wyglądało jak martwy przycisk:
+   komunikat trafiał do #place-feedback pod przewiniętą treścią, więc nikt go nie widział.
+   Teraz przewijamy go na ekran i ustawiamy kursor w brakującym polu. */
+function placeFail(msg, fieldId) {
+  const fb = placeEl("place-feedback");
+  fb.textContent = msg;
+  const field = document.getElementById(fieldId);
+  try { (field || fb).scrollIntoView({ block: "center", behavior: "smooth" }); } catch {}
+  try { field?.focus({ preventScroll: true }); } catch { field?.focus(); }
+}
+placeEl("places-form").onsubmit=event=>{event.preventDefault();const clean=draftFromForm();if(!clean.name||!clean.region||(clean.precision==='gps'&&!clean.gps)){placeFail(placeText("Uzupełnij nazwę i wybraną lokalizację.","Enter a name and the selected location."),!clean.name?"place-name":(!clean.region?"place-region":"place-gps"));return;}const idx=savedPlaces.findIndex(p=>p.id===clean.id);if(idx<0&&savedPlaces.length>=8){placeFail(placeText("Masz już 8 miejsc — usuń jedno, żeby dodać nowe.","You already have 8 places — delete one to add another."),"place-add");return;}savedPlaces=Places.save(localStorage,idx<0?[...savedPlaces,clean]:savedPlaces.map(p=>p.id===clean.id?clean:p));syncObservedRegions();fillPlace(clean);placeEl("place-feedback").textContent=placeText("Zapisano tylko na tym urządzeniu.","Saved on this device only.");renderPlacesSummary();/* Zapis kończy pracę w tym oknie — zostawianie go otwartego wyglądało, jakby nic się nie stało. Potwierdzenie idzie toastem nad mapą. */placesDlg.close();toast(placeText("Zapisano tylko na tym urządzeniu.","Saved on this device only."));backToPlacesTab();if(mapReady){for(const id of ["my-voiv","my-voiv-glow"])if(map.getLayer(id))map.setFilter(id,["==",["get","nazwa"],myVoiv()||"—"]);}};
 
 /* ── widoczny stan nasłuchu w tle ────────────────────────────────────────── */
 /* Nasłuch jest domyślnie wyłączony, a bez niego alarmy docierają wyłącznie przy
