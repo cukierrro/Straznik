@@ -63,13 +63,13 @@ def main():
             assert shot.format == fmt and shot.size == HISTORICAL.get(path, (1080, 2400)), path
             shot.verify()
     assert len(images) == EXPECTED_SHOTS and set(HISTORICAL).issubset(images), images
-    share = ROOT / "share-history-v1.jpg"
-    assert share.read_bytes() == (ROOT.parent / "frontend/assets/share-history-v1.jpg").read_bytes()
+    share = ROOT / "share-panel-v2.jpg"
+    assert share.read_bytes() == (ROOT.parent / "frontend/assets/share-panel-v2.jpg").read_bytes()
     with Image.open(share) as card:
         assert card.format == "JPEG" and card.size == (1200, 630)
-    for file, expected in [(ROOT / "index.html", "https://cukierrro.github.io/Straznik/share-history-v1.jpg"),
-                           (ROOT / "en.html", "https://cukierrro.github.io/Straznik/share-history-v1.jpg"),
-                           (ROOT.parent / "frontend/index.html", "https://straznik.eu/assets/share-history-v1.jpg")]:
+    for file, expected in [(ROOT / "index.html", "https://cukierrro.github.io/Straznik/share-panel-v2.jpg"),
+                           (ROOT / "en.html", "https://cukierrro.github.io/Straznik/share-panel-v2.jpg"),
+                           (ROOT.parent / "frontend/index.html", "https://straznik.eu/assets/share-panel-v2.jpg")]:
         html = file.read_text(encoding="utf-8")
         assert f'property="og:image" content="{expected}"' in html
         assert f'name="twitter:image" content="{expected}"' in html

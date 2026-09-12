@@ -276,12 +276,12 @@ HEAD = """<!DOCTYPE html>
 <meta property="og:url" content="https://cukierrro.github.io/Straznik/{self_file}">
 <meta property="og:title" content="{og_title}">
 <meta property="og:description" content="{description}">
-<meta property="og:image" content="https://cukierrro.github.io/Straznik/share-history-v1.jpg">
+<meta property="og:image" content="https://cukierrro.github.io/Straznik/share-panel-v2.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:type" content="image/jpeg">
 <meta property="og:image:alt" content="{og_alt}">
-<meta name="twitter:image" content="https://cukierrro.github.io/Straznik/share-history-v1.jpg">
+<meta name="twitter:image" content="https://cukierrro.github.io/Straznik/share-panel-v2.jpg">
 <meta property="og:locale" content="{locale}">
 <meta property="og:locale:alternate" content="{locale_alt}">
 <meta name="twitter:card" content="summary_large_image">

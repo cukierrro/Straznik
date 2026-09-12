@@ -64,14 +64,27 @@ It shows history at 15:11 with 2.2 points in Lublin province, not a current
 warning. Both guides retain its Polish UI and identify it as a historical
 example. The original file's contents must not be retouched.
 
-The shared link-preview image is `docs/share-history-v1.jpg`, copied byte for
-byte to `frontend/assets/share-history-v1.jpg`. Its 1200 × 630 composition
-comes from rendering `docs/social-card.html` in a browser at that viewport
-size; the screen is the original image inside a CSS phone shell. The rendered
-file is JPEG. Check the actual file format rather than assuming screenshot
-bytes are PNG. The WWW and guide metadata reference the same design.
+The shared link-preview image is `docs/share-panel-v2.jpg`, copied byte for
+byte to `frontend/assets/share-panel-v2.jpg`. Its 1200 × 630 composition comes
+from rendering `docs/social-card.html`; the screen is `screens/share-app-2026-09-12.png`
+inside a CSS phone shell. Render it at twice the size and downscale, so the text
+on the phone stays readable:
+
+    msedge --headless=new --disable-gpu --hide-scrollbars       --force-device-scale-factor=2 --window-size=1200,630       --screenshot=card.png file:///…/docs/social-card.html
+
+then resize 2400 × 1260 → 1200 × 630 and save as JPEG. The rendered file is JPEG;
+check the actual format rather than assuming screenshot bytes are PNG.
+
+The phone screen must show a state that is **below the alert threshold** and the
+caption must say when it was captured. A live red or yellow level would be cached
+by link previews for weeks after the situation passed. The superseded
+`share-history-v1.jpg` stays in the repository, because other sites may still have
+it cached.
+
 Use a new versioned filename for future preview revisions, and update the
-Open Graph / Twitter metadata and `scripts/test_guide.py` together.
+Open Graph / Twitter metadata (`docs/index.html`, `docs/en.html`,
+`frontend/index.html`, `scripts/build_changelog.py`) and `scripts/test_guide.py`
+together.
 
 Capture PNG files with `adb shell screencap -p /sdcard/<name>.png` and
 `adb pull`, not PowerShell output redirection. Inspect each capture before
