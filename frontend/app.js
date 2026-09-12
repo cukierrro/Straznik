@@ -1705,8 +1705,14 @@ const SOURCE_INFO = {
       + "kursem na granicę PL. Główne źródło wyprzedzenia. Pole „confirmed” może "
       + "potwierdzać meldunek, nie dokładność współrzędnych; rozpoznane punkty "
       + "miejscowości pokazujemy i punktujemy jako rejonowe.",
+    coEn: "An OSINT aggregator from Ukraine — air objects (drones, missiles, glide "
+      + "bombs) heading towards the Polish border. The main source of early warning. "
+      + "A “confirmed” field may confirm the report rather than the accuracy of the "
+      + "coordinates; recognised locality points are shown and scored as areas.",
     czerwona: "Zerwane połączenie z serwerem NEPTUN albo brak internetu. "
       + "Aplikacja próbuje ponownie co minutę.",
+    czerwonaEn: "The connection to the NEPTUN server dropped, or there is no "
+      + "internet access. The app retries every minute.",
   },
   "Alarmy UA": {
     co: "Oficjalne alarmy powietrzne w zachodnich obwodach Ukrainy — sygnał "
@@ -1716,37 +1722,70 @@ const SOURCE_INFO = {
       + "żytomierski, winnicki) — proporcjonalnie mniej. "
       + "Docierają połączeniem NEPTUN (WebSocket w aplikacji lub przez serwer). "
       + "Przy zamkniętej aplikacji alarm Twojego regionu przychodzi osobno pushem.",
+    coEn: "Official air-raid alerts in the western oblasts of Ukraine — an early "
+      + "indicator. The weight depends on how far the oblast lies from the province: "
+      + "those on the border (Volyn, Lviv, Zakarpattia) count in full, more distant "
+      + "ones (Rivne, Ternopil, Ivano-Frankivsk, Khmelnytskyi, Chernivtsi, Zhytomyr, "
+      + "Vinnytsia) proportionally less. They arrive over the NEPTUN connection "
+      + "(a WebSocket in the app, or through the server). When the app is closed, an "
+      + "alert for your region arrives separately as a push notification.",
     czerwona: "Połączenie NEPTUN nie potwierdza w tej chwili alarmów obwodowych. "
       + "Alarm w obwodzie UA może wtedy nie być pokazany na żywo — sprawdź "
       + "połączenie z internetem.",
+    czerwonaEn: "The NEPTUN connection is not confirming oblast alerts right now. "
+      + "An alert in a Ukrainian oblast may then not be shown live — check your "
+      + "internet connection.",
   },
   "ADS-B": {
     co: "Publiczne transpondery lotnicze (airplanes.live, w zapasie adsb.lol) — "
       + "maszyny wojskowe nad Polską i regionem. Punktuje dopiero ruch dwukrotnie "
       + "wyższy niż o tej samej porze doby w ostatnich 7 dniach. Karta samolotu "
       + "pokazuje zdjęcie, kraj rejestracji i pełną telemetrię.",
+    coEn: "Public aircraft transponders (airplanes.live, with adsb.lol as a backup) "
+      + "— military aircraft over Poland and the region. It only scores when traffic "
+      + "is twice as heavy as at the same time of day over the last 7 days. The "
+      + "aircraft card shows a photograph, the country of registration and full "
+      + "telemetry.",
     czerwona: "Serwisy ADS-B nie odpowiadają. Warstwa nie punktuje też przez "
       + "pierwszy tydzień, zanim uzbiera się średnia do porównania.",
+    czerwonaEn: "The ADS-B services are not responding. The layer also scores "
+      + "nothing during the first week, before there is an average to compare with.",
   },
   "RSS": {
     co: "Media lokalne i ogólnopolskie — nagłówki o syrenach, alarmach "
       + "i naruszeniach przestrzeni powietrznej.",
+    coEn: "Local and national media — headlines about sirens, alerts and airspace "
+      + "violations.",
     czerwona: "Żaden kanał nie odpowiedział. Zwykle chwilowe; bywa też, "
       + "że serwis zmienił format i wymaga poprawki.",
+    czerwonaEn: "No feed responded. Usually temporary; sometimes a site has changed "
+      + "its format and needs a fix.",
   },
   "RCB": {
     co: "Komunikaty Rządowego Centrum Bezpieczeństwa z gov.pl — jedyne "
       + "oficjalne źródło w tym zestawie.",
+    coEn: "Announcements from the Polish Government Centre for Security (RCB) on "
+      + "gov.pl — the only official source in this set.",
     czerwona: "Strona gov.pl nie odpowiada albo zmieniła układ. "
       + "Alerty RCB docierają wtedy tylko przez SMS-y systemowe.",
+    czerwonaEn: "The gov.pl page is not responding or has changed its layout. RCB "
+      + "alerts then reach you only through the system SMS service.",
   },
   "PAŻP": {
     co: "Strefy przestrzeni powietrznej (AUP/UUP) z airspace.pansa.pl — "
       + "nowo aktywowana strefa nad regionem to sygnał pomocniczy.",
+    coEn: "Airspace zones (AUP/UUP) from airspace.pansa.pl — a newly activated zone "
+      + "over the region is a supporting signal.",
     czerwona: "Serwis PAŻP nie odpowiada. W trybie wbudowanym ta warstwa "
       + "bywa niedostępna — wtedy pozostałe źródła działają normalnie.",
+    czerwonaEn: "The PAŻP service is not responding. In built-in mode this layer is "
+      + "sometimes unavailable — the remaining sources keep working normally.",
   },
 };
+/* Podpis diody. Klucz zostaje polski (jest też kluczem SOURCE_INFO i stanu
+   zdrowia), więc nazwę do wyświetlenia trzymamy osobno. */
+const SRC_TITLE_EN = { "Alarmy UA": "UA alerts" };
+const srcTitle = (name) => (UI.isEn && SRC_TITLE_EN[name]) || name;
 
 function ledItems() {
   const h = state?.health || {};
@@ -1759,7 +1798,8 @@ function ledItems() {
     // wskaźnik obok NEPTUN-a
     ["Alarmy UA", !!h.ua_alerts, ""],
     ["ADS-B", !!h.adsb, ""],
-    ["RSS", rssOk, rssFeeds.length ? `${rssFeeds.filter(Boolean).length}/${rssFeeds.length} kanałów` : ""],
+    ["RSS", rssOk, rssFeeds.length
+      ? `${rssFeeds.filter(Boolean).length}/${rssFeeds.length} ${UI.isEn ? "feeds" : "kanałów"}` : ""],
     ["RCB", !!h.rcb, ""],
     ["PAŻP", !!h.pansa, ""],
   ];
@@ -1767,7 +1807,7 @@ function ledItems() {
 
 function renderLeds() {
   document.getElementById("status-leds").innerHTML = ledItems().map(([n, ok]) =>
-    `<span class="led ${ok ? "ok" : "err"}"><i></i><span>${n}</span></span>`).join("");
+    `<span class="led ${ok ? "ok" : "err"}"><i></i><span>${esc(srcTitle(n))}</span></span>`).join("");
   // okno źródeł bywa otwarte właśnie wtedy, gdy użytkownik czeka na powrót
   // połączenia — musi pokazywać stan na żywo, nie ten sprzed otwarcia
   if (document.getElementById("sources")?.open) fillSources();
@@ -1776,20 +1816,27 @@ function renderLeds() {
 function fillSources() {
   const rows = ledItems().map(([name, ok, extra]) => {
     const info = SOURCE_INFO[name] || {};
+    const what = (UI.isEn ? info.coEn : info.co) || info.co || "";
+    const why = (UI.isEn ? info.czerwonaEn : info.czerwona) || info.czerwona || "";
     return `<div class="src-row ${ok ? "ok" : "err"}">
-      <div class="src-head"><i></i><b>${name}</b>
-        <span class="src-state">${ok ? "działa" : "nie odpowiada"}${extra ? " · " + esc(extra) : ""}</span></div>
-      <p class="src-what">${info.co || ""}</p>
-      ${ok ? "" : `<p class="src-why">Dlaczego czerwona: ${info.czerwona || ""}</p>`}
+      <div class="src-head"><i></i><b>${esc(srcTitle(name))}</b>
+        <span class="src-state">${ok ? (UI.isEn ? "working" : "działa")
+          : (UI.isEn ? "not responding" : "nie odpowiada")}${extra ? " · " + esc(extra) : ""}</span></div>
+      <p class="src-what">${what}</p>
+      ${ok ? "" : `<p class="src-why">${UI.isEn ? "Why it is red" : "Dlaczego czerwona"}: ${why}</p>`}
     </div>`;
   }).join("");
   const anyErr = ledItems().some(([, ok]) => !ok);
   document.getElementById("src-list").innerHTML = rows;
   document.getElementById("src-note").innerHTML = anyErr
-    ? "Czerwona dioda nie oznacza awarii aplikacji — pozostałe źródła liczą się "
-      + "dalej, a fuzja i tak wymaga zgodności kilku z nich. Jeśli czerwone są "
-      + "wszystkie, sprawdź połączenie z internetem."
-    : "Wszystkie źródła odpowiadają.";
+    ? (UI.isEn
+      ? "A red indicator does not mean the app has failed — the remaining sources "
+        + "keep counting, and the fusion needs several of them to agree anyway. If "
+        + "every indicator is red, check your internet connection."
+      : "Czerwona dioda nie oznacza awarii aplikacji — pozostałe źródła liczą się "
+        + "dalej, a fuzja i tak wymaga zgodności kilku z nich. Jeśli czerwone są "
+        + "wszystkie, sprawdź połączenie z internetem.")
+    : (UI.isEn ? "Every source is responding." : "Wszystkie źródła odpowiadają.");
 }
 
 function showSources() {
