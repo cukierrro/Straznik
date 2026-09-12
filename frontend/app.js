@@ -970,6 +970,10 @@ async function refreshZones(force) {
     }
     zonesData = fc; zonesAt = Date.now();
     applyZones();
+    /* Panel przerysowuje się dopiero przy następnym stanie z serwera, więc bez
+       tego plakietki stref pojawiały się w kartach województw z opóźnieniem —
+       po świeżym starcie aplikacji nie było ich wcale. */
+    if (state) renderPanel();
   } catch { /* strefy są dodatkiem — ich brak niczego nie blokuje */ }
   finally { zonesPending = false; }
 }
