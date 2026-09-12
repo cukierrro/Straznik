@@ -1068,9 +1068,16 @@ function openZoneCard(p) {
             : "Strefa była już aktywna, gdy Strażnik zaczął obserwację — mogła zostać włączona wcześniej.")
       : (en ? `Strażnik saw it switch on ${since || "recently"}.`
             : `Strażnik zobaczył jej włączenie ${since || "niedawno"}.`);
+  /* PAŻP publikuje plan DOBOWY: pole „koniec" to koniec dzisiejszej rezerwacji,
+     a nie koniec strefy. EPR134 nad pasem przygranicznym jest powołana NOTAM-em
+     do grudnia 2026, a feed podawał dla niej 13.09 — karta obiecywała zniesienie,
+     którego nie będzie (zgłoszone 12.09.2026). Nie nazywamy tego końcem strefy. */
   const untilRaw = zoneClock(p.end);
   const until = untilRaw === "?" ? ""
-    : `${en ? "Planned end" : "Planowany koniec"}: <b>${esc2(untilRaw)}</b><br>`;
+    : `${en ? "Reserved until" : "Rezerwacja do"}: <b>${esc2(untilRaw)}</b>
+       <span style="color:#68758c">${en
+         ? "(end of today’s slot — PAŻP publishes day by day and a zone can be renewed)"
+         : "(koniec dzisiejszej rezerwacji — PAŻP publikuje plan dobowy, strefa bywa przedłużana)"}</span><br>`;
   showCard(`
     <b style="color:${color}">▦ ${esc2(String(p.designator || "—"))}</b>
       <span style="color:#8fa3c4">· ${esc2(kind)}</span><br>
@@ -3334,9 +3341,11 @@ function showUpdateBanner(rel, local) {
   const size = rel.size ? ` · ${(rel.size / 1048576).toFixed(1)} MB` : "";
   const fallbackChanges = String(rel.notes || "").split(/\r?\n/)
     .map(x => x.replace(/^\s*(?:[-*+]|•|\d+[.)])\s*/, "").replace(/[*_`~]/g, "").trim())
-    .filter(x => x && !x.startsWith("#") && !x.startsWith("<!--")).slice(0, 3);
+    .filter(x => x && !x.startsWith("#") && !x.startsWith("<!--")).slice(0, 8);
+  // Osiem, nie trzy: opis zmian ma się zmieścić w całości, a pole tekstowe
+  // banera przewija się samo (patrz #update-banner w style.css).
   const changes = (Array.isArray(rel.changes) ? rel.changes : fallbackChanges)
-    .map(x => String(x || "").trim()).filter(Boolean).slice(0, 3);
+    .map(x => String(x || "").trim()).filter(Boolean).slice(0, 8);
   const changesLabel = UI.isEn ? "What changes:" : "Co się zmienia:";
   const changesHtml = changes.length
     ? `<div class="upd-changes"><b>${changesLabel}</b><ul>${changes.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>`

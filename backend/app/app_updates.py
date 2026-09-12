@@ -35,23 +35,64 @@ _cache: dict = {"at": 0.0, "data": None, "failed_at": 0.0}
 _lock = asyncio.Lock()
 
 
+MAX_CHANGE_ITEMS = 8
+MAX_CHANGE_LEN = 300
+
+
+def _clean_markdown(line: str) -> str:
+    line = re.sub(r"!\[[^]]*]\([^)]*\)", "", line)
+    line = re.sub(r"\[([^]]+)]\([^)]*\)", r"\1", line)
+    return re.sub(r"[*_`~]", "", line).strip()
+
+
 def _change_items(body: str) -> list[str]:
-    """Krótkie, tekstowe punkty do pokazania w małym oknie aktualizacji."""
+    """Punkty do pokazania w oknie aktualizacji.
+
+    Kolejność: najpierw PIERWSZY blok listy w notatkach (to jest streszczenie
+    wydania), a dopiero gdy listy nie ma nigdzie — pierwszy akapit złożony
+    z powrotem w całe zdania.
+
+    Wcześniej każda linia tekstu uchodziła za punkt, a notatki wydania są
+    zawijane na ~85 znakach — jeden akapit rozpadał się na trzy urwane w połowie
+    zdania „punkty" i dokładnie to widział użytkownik w 1.7.30.
+    """
     clean = body.replace("<!-- critical-update -->", "")
-    items: list[str] = []
+    punkty: list[str] = []
+    akapit: list[str] = []
+    w_liscie = False
+    akapit_zamkniety = False
     for raw in clean.splitlines():
         line = raw.strip()
         if not line or line.startswith("#") or line.startswith("<!--"):
-            continue
-        line = re.sub(r"^(?:[-*+]|•|\d+[.)])\s+", "", line)
-        line = re.sub(r"!\[[^]]*]\([^)]*\)", "", line)
-        line = re.sub(r"\[([^]]+)]\([^)]*\)", r"\1", line)
-        line = re.sub(r"[*_`~]", "", line).strip()
-        if line and line not in items:
-            items.append(line[:180])
-        if len(items) == 3:
+            if w_liscie:
+                break              # koniec pierwszego bloku listy
+            if akapit:
+                akapit_zamkniety = True   # pierwszy akapit ma swój koniec,
+            continue                      # ale listy szukamy dalej
+        if re.match(r"^(?:[-*+]|•|\d+[.)])\s+", line):
+            w_liscie = True
+            tekst = _clean_markdown(re.sub(r"^(?:[-*+]|•|\d+[.)])\s+", "", line))
+            if tekst and tekst not in punkty:
+                punkty.append(tekst[:MAX_CHANGE_LEN])
+            if len(punkty) == MAX_CHANGE_ITEMS:
+                break
+        elif w_liscie:
+            break                  # zwykły tekst po liście kończy blok
+        elif not akapit_zamkniety:
+            akapit.append(_clean_markdown(line))
+    if punkty:
+        return punkty
+    tekst = " ".join(x for x in akapit if x).strip()
+    if not tekst:
+        return []
+    out: list[str] = []
+    for z in re.split(r"(?<=[.!?])\s+", tekst):
+        z = z.strip()
+        if z and z not in out:
+            out.append(z[:MAX_CHANGE_LEN])
+        if len(out) == MAX_CHANGE_ITEMS:
             break
-    return items
+    return out
 
 
 def _release_data(release: dict) -> dict:

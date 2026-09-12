@@ -4,6 +4,11 @@
 
 # Strażnik
 
+Wersja 1.7.32: okno aktualizacji pokazuje pełne punkty zamiast trzech urwanych
+kawałków zdania i przewija się; karta strefy PAŻP nie obiecuje już końca, którego
+nie zna (PAŻP publikuje plan dobowy); instrukcja tłumaczy, które strefy punktują,
+które nie i dlaczego. Szczegóły: `docs/RELEASE_1.7.32.md`.
+
 Wersja 1.7.31: artykuł trafia do województwa, którego naprawdę dotyczy. Nazwa
 miejscowości nie łapie się już w środku innego słowa („rozpoznania” ≠ Poznań),
 nazwa redakcji nie decyduje o regionie, a tekst o KOŃCU zagrożenia nie punktuje
@@ -88,7 +93,7 @@ wiarygodność ostrzeżenia.
 
 [Instrukcja po polsku](https://cukierrro.github.io/Straznik/) · [English user guide](https://cukierrro.github.io/Straznik/en.html)
 
-Instrukcja dla 1.7.31 opisuje „Moje miejsca”, rozdział alertów wojewódzkich i
+Instrukcja dla 1.7.32 opisuje „Moje miejsca”, rozdział alertów wojewódzkich i
 lokalnych obliczeń na pierwszym planie oraz bibliotekę fotografii PL/EN. Zrzuty
 otwierają się także w pełnym rozmiarze.
 

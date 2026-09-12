@@ -2,6 +2,9 @@
 import asyncio
 import time
 
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))
 from app import app_updates
 from app.app_updates import _change_items, _release_data
 
@@ -25,7 +28,23 @@ def main():
     assert critical["changes"] == ["Pilna poprawka"]
 
     changes = _change_items("""# Wersja 2.1\n- **Naprawiono** historię.\n- Dodano [opis](https://example.test).\n- Usprawniono alarmy.\n- Czwarty punkt.\n""")
-    assert changes == ["Naprawiono historię.", "Dodano opis.", "Usprawniono alarmy."]
+    # Limit podniesiony z 3 do 8: okno aktualizacji ucinało opis w połowie.
+    assert changes == ["Naprawiono historię.", "Dodano opis.", "Usprawniono alarmy.",
+                       "Czwarty punkt."]
+
+    # Notatki bez listy: akapit zawinięty na kilku liniach MUSI wrócić jako całe
+    # zdania. Wcześniej każda linia uchodziła za punkt i użytkownik widział trzy
+    # urwane kawałki jednego zdania (zgłoszone 12.09.2026 na wydaniu 1.7.30).
+    proza = _change_items(
+        "# Tytuł\n\nPierwsze zdanie opisu zmiany, które zostało\n"
+        "zawinięte na dwóch liniach. Drugie zdanie tego samego akapitu.\n\n"
+        "## Szczegóły\n\nTego już nie pokazujemy.\n")
+    assert proza == ["Pierwsze zdanie opisu zmiany, które zostało zawinięte na dwóch liniach.",
+                     "Drugie zdanie tego samego akapitu."], proza
+
+    # Lista wygrywa z akapitem, nawet gdy akapit jest pierwszy.
+    mieszane = _change_items("Wstęp jednym zdaniem.\n\n- Punkt pierwszy.\n- Punkt drugi.\n")
+    assert mieszane == ["Punkt pierwszy.", "Punkt drugi."], mieszane
 
     try:
         _release_data({"tag_name": "v1.0.0", "assets": []})

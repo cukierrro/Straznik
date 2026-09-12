@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Strażnik 1.7.31 — instrukcja użytkownika</title>
-<meta name="description" content="Aktualna instrukcja Strażnika 1.7.31: dolne zakładki, karta obiektu jako miniatura, instalacja i aktualizacje Android, alarmy, mapa, historia, języki i punktacja. Zrzuty z Pixela 7.">
+<title>Strażnik 1.7.32 — instrukcja użytkownika</title>
+<meta name="description" content="Aktualna instrukcja Strażnika 1.7.32: dolne zakładki, karta obiektu jako miniatura, instalacja i aktualizacje Android, alarmy, mapa, historia, języki i punktacja. Zrzuty z Pixela 7.">
 <link rel="canonical" href="https://cukierrro.github.io/Straznik/">
 <link rel="alternate" hreflang="pl" href="https://cukierrro.github.io/Straznik/">
 <link rel="alternate" hreflang="en" href="https://cukierrro.github.io/Straznik/en.html">
@@ -33,11 +33,11 @@
   <div class="languages" aria-label="Język instrukcji"><a href="index.html" lang="pl" aria-current="page">PL</a><a href="en.html" lang="en" hreflang="en">EN</a></div>
 </div></nav>
 <header class="hero"><div class="wrap hero-grid">
-  <div><div class="eyebrow">Instrukcja użytkownika · wersja 1.7.31</div>
+  <div><div class="eyebrow">Instrukcja użytkownika · wersja 1.7.32</div>
     <h1>Sytuacja na mapie.<br>Źródła za każdym sygnałem.</h1>
     <p class="lead">Strażnik łączy publiczne informacje o zagrożeniach powietrznych i pokazuje ich punktację dla polskich województw. Dostępny na Androidzie i w przeglądarce.</p>
     <div class="actions"><a class="button primary" href="https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk">↓ Pobierz aplikację</a><a class="button" href="https://straznik.eu">Otwórz mapę</a></div>
-    <p class="fineprint">Instrukcja dla 1.7.31. Karta pozycji przybliżonej: 1.7.21, 11 września 2026. Zrzuty aktualnego interfejsu wykonano 12 września 2026 na Pixelu 7 z Androidem 14 i <b>trzyprzyciskową</b> nawigacją systemową; starsze, niezmienione ekrany opisano przy zrzutach. Dotknij zdjęcia, aby otworzyć je w pełnym rozmiarze.</p>
+    <p class="fineprint">Instrukcja dla 1.7.32. Karta pozycji przybliżonej: 1.7.21, 11 września 2026. Zrzuty aktualnego interfejsu wykonano 12 września 2026 na Pixelu 7 z Androidem 14 i <b>trzyprzyciskową</b> nawigacją systemową; starsze, niezmienione ekrany opisano przy zrzutach. Dotknij zdjęcia, aby otworzyć je w pełnym rozmiarze.</p>
   </div>
   <a class="shot-link" href="screens/01_start.jpg"><img src="screens/01_start.jpg" width="1080" height="2400" alt="Strażnik 1.7.23 na Pixelu 7: mapa, sześć zielonych diod źródeł i dolne zakładki Mapa, Sygnały, Historia, Więcej"></a>
 </div></header>
@@ -90,7 +90,7 @@
 
   <p>Jeśli aplikacja GitHub przechwytuje link i pobieranie staje, otwórz link w przeglądarce. Dostępna jest też <a href="https://github.com/cukierrro/Straznik/raw/main/Straznik.apk">kopia APK w repozytorium</a>.</p>
   <div class="note"><b>Sprawdź, jaką wersję masz w telefonie.</b> Otwórz <kbd>⚙</kbd> → zakładka <kbd>Aplikacja</kbd> — pod nagłówkiem „Wersja aplikacji” zobaczysz zainstalowany numer.
-    Najnowsze wydanie to <b>1.7.31</b> z dnia <b>12 września 2026</b>. Jeśli masz starszy numer, dotknij <kbd>⬆ Sprawdź aktualizacje</kbd> albo pobierz APK powyżej. Pełną listę zmian w każdym wydaniu znajdziesz w <a href="zmiany.html">historii zmian</a>.</div>
+    Najnowsze wydanie to <b>1.7.32</b> z dnia <b>12 września 2026</b>. Jeśli masz starszy numer, dotknij <kbd>⬆ Sprawdź aktualizacje</kbd> albo pobierz APK powyżej. Pełną listę zmian w każdym wydaniu znajdziesz w <a href="zmiany.html">historii zmian</a>.</div>
   <div class="split">
     <div>
       <h3>Aktualizacja z poziomu aplikacji</h3>
@@ -227,7 +227,7 @@
     <tr><td>Media</td><td>Obiekt powietrzny i zdarzenie dają 1 pkt. Jednoznaczna bieżąca relacja operacyjna — np. alarm powietrzny, syreny, poderwanie lotnictwa, zestrzelenie lub upadek obiektu — daje 1,5 pkt. Sama fraza „naruszenie przestrzeni powietrznej” daje 1 pkt. Cała klasa RSS ma limit 1,5 pkt, dlatego same artykuły nie uruchamiają żółtego. Ćwiczenia, materiały historyczne, następstwa prawne i powtórzenie świeżego Alertu RCB pozostają widoczne z wkładem 0 pkt; sama wzmianka o RCB nie zeruje nowej informacji.</td><td>0 / 1 / 1,5 pkt; limit 1,5</td></tr>
     <tr><td>RCB / RSO</td><td>Odpowiednie opublikowane komunikaty o zagrożeniach powietrznych. Czas publikacji w źródle może różnić się od doręczenia SMS.</td><td>2 pkt, limit 2</td></tr>
     <tr><td>ADS-B</td><td>Co najmniej 3 maszyny i ponad dwukrotność tła dla tej pory doby, zbieranego przez 7 dni.</td><td>1 pkt, limit 1</td></tr>
-    <tr><td>PAŻP</td><td>Rzadkie ADHOC/R/NPZ/D od ziemi do poziomu lotu; filtry rutyny i powtarzania designatorów. Sama aktywacja nie dowodzi zagrożenia militarnego.</td><td>0,5 pkt, limit 1</td></tr>
+    <tr><td>PAŻP</td><td>Rzadkie ADHOC/R/NPZ/D od ziemi do poziomu lotu; filtry rutyny i powtarzania designatorów. Sama aktywacja nie dowodzi zagrożenia militarnego. Na północy waży dwa razy tyle — <a href="#strefy-punktacja">dlaczego</a>.</td><td>0,5 pkt (północ 1), limit 1</td></tr>
     <tr><td>Media bałtyckie</td><td>Incydenty LT/LV/EE jako kontekst dla Podlaskiego i Warmińsko-Mazurskiego. Rozpoznane odwołanie wygasza ten sam incydent.</td><td>1 pkt</td></tr>
     <tr><td>Strefy sąsiadów</td><td>Wybrane restrykcje LT/EE i północnej Rumunii (od 47°N). Łotewskie strefy i oficjalne komunikaty LV są na etapie obserwacji bez punktów.</td><td>0,3 pkt, limit 0,6</td></tr>
   </tbody></table></div>
@@ -271,6 +271,63 @@
   <h2>13. Prywatność i źródła</h2>
   <p>Brak konta, reklam i analityki zachowania użytkownika. Profile „Moich miejsc”, nazwy, miasta, adresy i jednorazowe punkty lokalizacji zapisują się lokalnie; kopia zapasowa Androida dla aplikacji jest wyłączona. Na VPS Strażnika ani do treści powiadomień nie trafia dokładna lokalizacja. Do dostawcy push przekazywane są nazwy obserwowanych województw oraz identyfikator subskrypcji urządzenia. System lokalizacji telefonu może korzystać z dostawców systemowych i sieciowych, dlatego nie obiecujemy, że sam odczyt pozycji jest całkowicie offline.</p>
   <p>Serwer i dostawcy map, powiadomień, zdjęć oraz danych otrzymują żądania sieciowe i mogą prowadzić zwykłe logi techniczne. Brak telemetrii aplikacji nie oznacza braku takiego ruchu. Historia serwerowa po pobraniu jest przewijana w pamięci urządzenia; tryb wbudowany zapisuje własne migawki lokalnie. Rozmiar zależy od liczby danych i obejmuje kroczące okno 12 godzin.</p>
+  <h3 id="strefy-punktacja">Które strefy PAŻP punktują, a które nie</h3>
+  <p>Strefa przestrzeni powietrznej to fragment nieba wyłączony na jakiś czas ze
+  zwykłego ruchu. Ogłasza je Polska Agencja Żeglugi Powietrznej — codziennie,
+  w planie dobowym. <b>Zdecydowana większość z nich nie ma nic wspólnego
+  z zagrożeniem</b>: to szkolenie wojskowe, skoki spadochronowe, loty szybowcowe
+  i rezerwacje dla dronów komercyjnych. Pomiar z 12 września 2026: nad Polską
+  stało wtedy 50 stref spełniających wstępne kryteria, a po odsianiu lotnictwa
+  cywilnego zostało 31. Gdyby każda z nich dokładała punkty, aplikacja
+  świeciłaby na żółto codziennie i przestałaby cokolwiek znaczyć.</p>
+  <div class="tw"><table><thead><tr><th>Typ strefy</th><th>Co zwykle oznacza</th><th>Punktuje?</th></tr></thead><tbody>
+    <tr><td><b>D</b> — strefa niebezpieczna</td><td>Działalność groźna dla lotnictwa: strzelania, ćwiczenia wojskowe.</td><td><b>Tak</b>, jeśli spełnia trzy warunki niżej</td></tr>
+    <tr><td><b>R</b> — strefa ograniczona</td><td>Wejść może tylko ten, kto ma zgodę.</td><td><b>Tak</b>, na tych samych warunkach</td></tr>
+    <tr><td><b>NPZ</b> — zakaz lotów</td><td>Obszar zamknięty dla ruchu lotniczego.</td><td><b>Tak</b>, na tych samych warunkach</td></tr>
+    <tr><td><b>ADHOC</b> — strefa doraźna</td><td>Powołana tego samego dnia, zwykle na kilka–kilkanaście godzin.</td><td><b>Tak</b>, na tych samych warunkach</td></tr>
+    <tr><td><b>TSA / TRA</b> — strefy czasowo wydzielone i rezerwowane</td><td>Ćwiczenia i loty wojskowe planowane z wyprzedzeniem. Stoją niemal codziennie.</td><td><b>Nie</b> — są pokazywane na mapie, ale nie dodają punktów</td></tr>
+    <tr><td><b>ATZ</b> — strefa ruchu lotniskowego</td><td>Zwykły ruch wokół lotniska.</td><td><b>Nie</b> — nie są nawet pokazywane</td></tr>
+    <tr><td>Strefy z adnotacją <b>PJE, GLD, CLN, BSP, UAV</b></td><td>Skoki spadochronowe, szybowce, loty bezzałogowe — lotnictwo cywilne i sportowe.</td><td><b>Nie</b> — odsiewane niezależnie od typu</td></tr>
+  </tbody></table></div>
+  <p>Strefa typu D, R, NPZ albo ADHOC punktuje dopiero wtedy, gdy spełnia
+  <b>wszystkie trzy</b> warunki naraz:</p>
+  <ol>
+    <li><b>Sięga od ziemi w górę</b> (GND–F###). Wąskie pasmo na dużej wysokości
+      to przelot wojskowy, a nie zamknięcie nieba nad ludźmi.</li>
+    <li><b>Ten sam identyfikator nie pojawił się przez ostatnie 7 dni.</b>
+      Strefa, która wraca codziennie, jest rutyną — nawet jeśli formalnie
+      „aktywuje się” każdego ranka.</li>
+    <li><b>Leży nad ścianą wschodnią albo nad północą.</b> W pozostałych
+      województwach strefa jest pokazywana informacyjnie, ale nie punktuje.</li>
+  </ol>
+  <h3>Skąd wziął się taki podział</h3>
+  <p>Nie z założeń, tylko z pomiaru. Przez cztery dni sierpnia 2026 aplikacja
+  <b>logowała każdą aktywację strefy bez przyznawania punktów</b> — po to, żeby
+  zobaczyć, co się w tych danych naprawdę pojawia. Wyszło, że na 799 aktywacji
+  413 zaczynało się od ziemi, ale większość z nich kończyła się nisko i była
+  rutyną; realnych zamknięć „od ziemi do poziomu lotu” było około stu. Osobny
+  test trzydniowy pokazał, że nawet po tym filtrze sześć z siedmiu trafień nad
+  ścianą wschodnią to było zwykłe tło. Stąd trzeci warunek — pamięć siedmiu dni.</p>
+  <p>Waga jest celowo niska (0,5 pkt przy progu żółtym 2,0), bo aktywacja strefy
+  jest <b>skutkiem czyjejś decyzji, a nie niezależnym pomiarem zagrożenia</b>.
+  Wojsko zamyka niebo także wtedy, gdy chce mieć spokój na ćwiczenia. Sama strefa
+  nigdy nie podniesie poziomu — musi spotkać się z drugim, niezależnym źródłem.</p>
+  <h3>Dlaczego na północy strefa waży dwa razy tyle</h3>
+  <p>NEPTUN, czyli warstwa dająca najwięcej wyprzedzenia, obserwuje Ukrainę. Dla
+  Pomorza i sąsiedztwa Kaliningradu daje <b>dokładnie zero punktów</b> — nie
+  dlatego, że tam jest bezpiecznie, tylko dlatego, że nie ma stamtąd danych.
+  Zostają: strefy PAŻP, ruch lotnictwa wojskowego w ADS-B, media, RCB i
+  zamknięcia przestrzeni u sąsiadów nad Bałtykiem. Dlatego od wersji 1.7.30
+  strefa nad pomorskim, zachodniopomorskim, warmińsko-mazurskim i
+  kujawsko-pomorskim waży 1 pkt zamiast 0,5.</p>
+  <p>Zasada bezpieczeństwa zostaje bez zmian: <b>żaden pojedynczy sygnał nie
+  podnosi poziomu</b>. Strefa 1 pkt + wzmożony ruch ADS-B 1 pkt = 2 pkt, czyli
+  próg żółty. Strefa 1 pkt + incydent powietrzny w mediach litewskich, łotewskich
+  lub estońskich 1 pkt = również 2 pkt. Sama strefa to nadal tylko 1 pkt i cisza.</p>
+  <p>Wszystkie aktywne strefy — także te, które nie punktują — zobaczysz na mapie
+  po włączeniu przycisku <kbd>strefy</kbd>. Dotknięcie strefy opisuje, co to jest,
+  od kiedy Strażnik widzi ją włączoną i do kiedy ma obowiązywać.</p>
+
   <p class="source-links">Dane: <a href="https://neptun.in.ua">NEPTUN</a> · <a href="https://adsb.lol">adsb.lol</a> / adsb.fi i dostawcy zapasowi · <a href="https://www.gov.pl/web/rcb">RCB</a> / RSO · <a href="https://airspace.pansa.pl">PAŻP</a> · media regionalne i bałtyckie · strefy sąsiadów. Mapa: <a href="https://openfreemap.org">OpenFreeMap</a>, © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>. Zdjęcia maszyn i ich autorzy są podpisani w podglądach.</p>
 </section>
 </main>

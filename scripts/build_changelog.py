@@ -16,6 +16,19 @@ DOCS = ROOT / "docs"
 # (wersja, data PL, data EN, tytuł PL, tytuł EN, punkty PL, punkty EN, zrzuty)
 # Zrzut: (plik, alt PL, alt EN, podpis PL, podpis EN)
 RELEASES = [
+    ("1.7.32", "12 września 2026", "12 September 2026",
+     "Okno aktualizacji mówi całym zdaniem, strefa nie obiecuje końca",
+     "The update box speaks in full sentences, a zone promises no end",
+     ["Okno aktualizacji pokazywało trzy urwane w połowie kawałki jednego zdania — notatki wydania są zawijane, a każda linia uchodziła za osobny punkt. Teraz są pełne punkty, do ośmiu, a pole się przewija.",
+      "Karta strefy PAŻP pisała „Planowany koniec: 13.09” także dla strefy powołanej do grudnia. To był koniec dobowej rezerwacji, nie strefy — wiersz nazywa się teraz „Rezerwacja do” i mówi, że PAŻP publikuje plan dzień po dniu.",
+      "Instrukcja tłumaczy w tabeli, które strefy punktują (D, R, NPZ, ADHOC), które nie (TSA, TRA, ATZ, skoki, szybowce, drony) i skąd wzięła się ta decyzja — z czterodniowego pomiaru bez przyznawania punktów.",
+      "Punktacja bez zmian."],
+     ["The update box was showing three fragments of a single sentence cut in half — release notes are wrapped, and every line counted as a separate bullet. Now it shows whole points, up to eight, and scrolls.",
+      "A PAŻP zone card said “Planned end: 13.09” even for a zone declared until December. That was the end of the daily slot, not of the zone — the row now reads “Reserved until” and says PAŻP publishes its plan day by day.",
+      "The guide now explains in a table which zones score (D, R, NPZ, ADHOC), which do not (TSA, TRA, ATZ, parachuting, gliding, drones) and where that decision came from — a four-day measurement with no points awarded.",
+      "Scoring is unchanged."],
+     []),
+
     ("1.7.31", "12 września 2026", "12 September 2026",
      "Artykuł trafia tam, gdzie się zdarzył",
      "An article lands where the event happened",

@@ -1,6 +1,9 @@
 """Regresje: odwołanie alertu bałtyckiego i geograficzne ADS-B."""
 from datetime import datetime, timezone
 
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))
 from app import fusion
 from app.collectors import adsb, official_alerts, rss_media
 

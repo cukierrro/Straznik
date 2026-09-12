@@ -190,14 +190,18 @@ body.panel-open #bg-warning { display: none; }
    ograniczoną wysokość, a przewija się jej treść. Przyciski w osobnym rzędzie —
    wcześniej przy długim tekście ściskały go do kilku znaków. */
 #update-banner {
+  /* Wiersz z tekstem MUSI mieć minmax(0, 1fr): element siatki domyślnie nie
+     kurczy się poniżej swojej treści, więc dłuższy opis zmian wypychał
+     przyciski poza baner, zamiast się przewinąć (zgłoszone 12.09.2026). */
   display: grid; gap: 10px; grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto auto; overflow: hidden;
   width: 100%; max-width: 520px; margin: 0 auto;
   max-height: calc(100dvh - var(--topbar-h, 52px) - var(--tabbar-h) - var(--safe-b) - 96px);
   background: var(--panel, #151d2e); border: 1px solid var(--accent);
   border-radius: 12px; padding: 12px 14px;
   box-shadow: 0 14px 40px rgba(0,0,0,.5);
 }
-.upd-txt { max-height: min(44dvh, 340px); overflow-y: auto; padding-right: 2px; }
+.upd-txt { min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding-right: 4px; }
 .upd-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
 .upd-actions .chip { flex: 0 1 auto; }
 #update-banner.hidden { display: none; }

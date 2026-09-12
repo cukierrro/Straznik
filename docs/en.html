@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Strażnik 1.7.31 — user guide</title>
+<title>Strażnik 1.7.32 — user guide</title>
 <meta name="description" content="The current Strażnik user guide: Android installation and updates, alerts, maps, new object icons, history, languages and scoring. Screenshots from Pixel 7.">
 <link rel="canonical" href="https://cukierrro.github.io/Straznik/en.html">
 <link rel="alternate" hreflang="pl" href="https://cukierrro.github.io/Straznik/">
@@ -33,11 +33,11 @@
   <div class="languages" aria-label="Guide language"><a href="index.html" lang="pl" hreflang="pl">PL</a><a href="en.html" lang="en" aria-current="page">EN</a></div>
 </div></nav>
 <header class="hero"><div class="wrap hero-grid">
-  <div><div class="eyebrow">User guide · version 1.7.31</div>
+  <div><div class="eyebrow">User guide · version 1.7.32</div>
     <h1>The situation on a map.<br>The sources behind each signal.</h1>
     <p class="lead">Strażnik combines public information about airborne threats and displays a score for each Polish province. Available on Android and in your browser.</p>
     <div class="actions"><a class="button primary" href="https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk">↓ Download app</a><a class="button" href="https://straznik.eu">Open map</a></div>
-    <p class="fineprint">Guide for 1.7.31. Approximate-position card: 1.7.21, 11 September 2026. Captures of the current interface were made on 12 September 2026 on a Pixel 7 with Android 14 and <b>three-button</b> system navigation; older, unchanged screens are labelled individually. Tap any screenshot to open the full-size image.</p>
+    <p class="fineprint">Guide for 1.7.32. Approximate-position card: 1.7.21, 11 September 2026. Captures of the current interface were made on 12 September 2026 on a Pixel 7 with Android 14 and <b>three-button</b> system navigation; older, unchanged screens are labelled individually. Tap any screenshot to open the full-size image.</p>
   </div>
   <a class="shot-link" href="screens/start-en.jpg"><img src="screens/start-en.jpg" width="1080" height="2400" alt="Strażnik 1.7.23 on Pixel 7: English map labels, six green source indicators and the Map, Signals, History, More tab bar"></a>
 </div></header>
@@ -87,7 +87,7 @@
 
   <p>If the GitHub app intercepts the download link and stalls, open the link in your browser instead. A <a href="https://github.com/cukierrro/Straznik/raw/main/Straznik.apk">backup APK in the repository</a> is also available.</p>
   <div class="note"><b>Check which version your phone has.</b> Open <kbd>&#9881;</kbd> &rarr; the <kbd>App</kbd> tab &mdash; the installed number is under the &ldquo;App version&rdquo; heading.
-    The latest release is <b>1.7.31</b>, published on <b>12 September 2026</b>. If you see an older number, tap <kbd>&#11014; Check for updates</kbd> or download the APK above. The full list of changes per release is in the <a href="zmiany-en.html">changelog</a>.</div>
+    The latest release is <b>1.7.32</b>, published on <b>12 September 2026</b>. If you see an older number, tap <kbd>&#11014; Check for updates</kbd> or download the APK above. The full list of changes per release is in the <a href="zmiany-en.html">changelog</a>.</div>
   <div class="split">
     <div>
       <h3>Updating from inside the app</h3>
@@ -224,7 +224,7 @@
     <tr><td>Media</td><td>An airborne object plus an event adds 1 point. An unambiguous current operational report—such as an air alert, sirens, scrambled aircraft, interception or an object impact—adds 1.5 points. The phrase “airspace violation” alone adds 1 point. The entire RSS class is capped at 1.5, so articles alone cannot trigger yellow. Exercises, historical stories, legal aftermath and a repeated fresh RCB alert remain visible with a 0-point contribution; merely mentioning RCB does not suppress new information.</td><td>0 / 1 / 1.5 points; cap 1.5</td></tr>
     <tr><td>RCB / RSO</td><td>Qualifying published airborne-threat warnings. Source publication time can differ from SMS delivery time.</td><td>2 points, cap 2</td></tr>
     <tr><td>ADS-B</td><td>At least 3 aircraft and more than twice the baseline for the same time of day, collected over 7 days.</td><td>1 point, cap 1</td></tr>
-    <tr><td>PAŻP / PANSA</td><td>Rare ADHOC/R/NPZ/D zones from the ground to a flight level, with filters for routine and repeated designators. Activation alone does not prove a military threat.</td><td>0.5 points, cap 1</td></tr>
+    <tr><td>PAŻP / PANSA</td><td>Rare ADHOC/R/NPZ/D zones from the ground to a flight level, with filters for routine and repeated designators. Activation alone does not prove a military threat. In the north it weighs twice as much — <a href="#zone-scoring">why</a>.</td><td>0.5 points (north 1), cap 1</td></tr>
     <tr><td>Baltic media</td><td>LT/LV/EE incidents as context for Podlaskie and Warmian-Masurian. A recognised cancellation clears the same incident's contribution.</td><td>1 point</td></tr>
     <tr><td>Neighbouring airspace</td><td>Selected LT/EE restrictions and northern Romania (47°N and above). Latvian zones and official LV notices are observation-only, with no points.</td><td>0.3 points, cap 0.6</td></tr>
   </tbody></table></div>
@@ -268,6 +268,65 @@
   <h2>13. Privacy and sources</h2>
   <p>No account, advertising or behavioural analytics. “My places” profiles, names and one-time location points are stored locally; Android backup is disabled for the app. Exact locations are not sent to the Strażnik VPS or notification content. Province names and the device subscription identifier are handled by the push provider. The phone's location system may use system and network providers, so Strażnik does not claim that the position reading itself is entirely offline.</p>
   <p>The server and providers of maps, notifications, photos and data receive network requests and may keep ordinary technical logs. No in-app telemetry does not mean no network traffic. Downloaded server history is replayed from device memory; the built-in engine stores its own snapshots locally. Size depends on data volume and covers a rolling 12-hour window.</p>
+  <h3 id="zone-scoring">Which PAŻP zones score, and which do not</h3>
+  <p>An airspace zone is a piece of sky temporarily withdrawn from ordinary
+  traffic. The Polish Air Navigation Services Agency declares them every day in a
+  daily plan. <b>The overwhelming majority have nothing to do with a threat</b>:
+  they are military training, parachute jumps, gliding and reservations for
+  commercial drones. Measured on 12 September 2026: 50 zones over Poland met the
+  initial criteria, and 31 remained after civil aviation was filtered out. If
+  every one of them added points, the app would sit at yellow every day and stop
+  meaning anything.</p>
+  <div class="tw"><table><thead><tr><th>Zone type</th><th>What it usually means</th><th>Scores?</th></tr></thead><tbody>
+    <tr><td><b>D</b> — danger area</td><td>Activity hazardous to aircraft: live firing, military exercises.</td><td><b>Yes</b>, if it meets the three conditions below</td></tr>
+    <tr><td><b>R</b> — restricted area</td><td>Only aircraft with clearance may enter.</td><td><b>Yes</b>, on the same conditions</td></tr>
+    <tr><td><b>NPZ</b> — no-flight zone</td><td>Closed to air traffic.</td><td><b>Yes</b>, on the same conditions</td></tr>
+    <tr><td><b>ADHOC</b> — ad-hoc zone</td><td>Raised the same day, usually for a few hours.</td><td><b>Yes</b>, on the same conditions</td></tr>
+    <tr><td><b>TSA / TRA</b> — temporary segregated and reserved areas</td><td>Exercises and military flights planned in advance. They stand almost every day.</td><td><b>No</b> — shown on the map, but they add no points</td></tr>
+    <tr><td><b>ATZ</b> — aerodrome traffic zone</td><td>Ordinary traffic around an airfield.</td><td><b>No</b> — not even displayed</td></tr>
+    <tr><td>Zones marked <b>PJE, GLD, CLN, BSP, UAV</b></td><td>Parachuting, gliding, unmanned flights — civil and sport aviation.</td><td><b>No</b> — filtered out regardless of type</td></tr>
+  </tbody></table></div>
+  <p>A D, R, NPZ or ADHOC zone scores only when it meets <b>all three</b>
+  conditions at once:</p>
+  <ol>
+    <li><b>It reaches from the ground upwards</b> (GND–F###). A narrow band at
+      altitude is a military transit, not a piece of sky closed over people.</li>
+    <li><b>The same designator has not appeared in the last 7 days.</b> A zone
+      that returns every day is routine, even if it formally “activates” each
+      morning.</li>
+    <li><b>It lies over the eastern flank or the north.</b> In the remaining
+      provinces a zone is shown for information but adds no points.</li>
+  </ol>
+  <h3>Where this split came from</h3>
+  <p>Not from assumptions, but from measurement. For four days in August 2026 the
+  app <b>logged every zone activation without awarding any points</b>, purely to
+  see what the data actually contains. Of 799 activations, 413 started at ground
+  level, but most of those ended low and were routine; real ground-to-flight-level
+  closures numbered about a hundred. A separate three-day test showed that even
+  after that filter, six out of seven hits over the eastern flank were ordinary
+  background. Hence the third condition — the seven-day memory.</p>
+  <p>The weight is deliberately low (0.5 points against a yellow threshold of
+  2.0), because a zone activation is <b>the consequence of someone’s decision,
+  not an independent measurement of a threat</b>. The military also closes
+  airspace simply to have room for an exercise. A zone on its own never raises
+  the level — it has to meet a second, independent source.</p>
+  <h3>Why a zone weighs twice as much in the north</h3>
+  <p>NEPTUN, the layer that provides the most warning time, watches Ukraine. For
+  Pomerania and the Kaliningrad flank it yields <b>exactly zero points</b> — not
+  because those areas are safe, but because there is no data from there. What
+  remains: PAŻP zones, military traffic in ADS-B, media, RCB and neighbouring
+  airspace closures over the Baltic. That is why, from version 1.7.30, a zone
+  over Pomeranian, West Pomeranian, Warmian-Masurian and Kuyavian-Pomeranian
+  weighs 1 point instead of 0.5.</p>
+  <p>The safety rule is unchanged: <b>no single signal raises the level</b>.
+  Zone 1 point + elevated ADS-B traffic 1 point = 2 points, the yellow threshold.
+  Zone 1 point + an air incident reported by Lithuanian, Latvian or Estonian
+  media 1 point = 2 points as well. A zone alone is still 1 point and silence.</p>
+  <p>Every active zone — including those that do not score — is visible on the
+  map once you turn on the <kbd>zones</kbd> button. Tapping a zone explains what
+  it is, since when Strażnik has seen it active, and how long the current
+  reservation runs.</p>
+
   <p class="source-links">Data: <a href="https://neptun.in.ua">NEPTUN</a> · <a href="https://adsb.lol">adsb.lol</a> / adsb.fi and fallback providers · <a href="https://www.gov.pl/web/rcb">RCB</a> / RSO · <a href="https://airspace.pansa.pl">PAŻP</a> · regional and Baltic media · neighbouring airspace zones. Map: <a href="https://openfreemap.org">OpenFreeMap</a>, © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>. Aircraft photo providers and photographers are credited in the cards.</p>
 </section>
 </main>
