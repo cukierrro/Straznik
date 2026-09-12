@@ -1036,8 +1036,29 @@ function openThreatPopup(lngLat, p) {
         · ${UI.isEn ? "position uncertainty" : "niepewność pozycji"}: <b>±${p.uncertainty} km</b><br>
       ${p.heading != null ? `${UI.isEn ? "heading" : "kurs"}: ${Math.round(p.heading)}° (${compass(p.heading)}) · ` : ""}
       ${UI.isEn ? "distance from the Polish border" : "odległość od granicy PL"}: <b>${p.distance_text ?? ((p.dist_km ?? "?") + " km")}</b><br>
+      ${courseVerdictHTML(p)}
       ${p.eta || ""}
       <span style="color:#68758c">${UI.isEn ? "Data: NEPTUN — OSINT aggregator, not military radar" : "Dane: NEPTUN — agregator OSINT, nie radar wojskowy"}</span>`);
+}
+
+/* Werdykt kursu w karcie obiektu. Bez tego karta podawała same stopnie („kurs
+   252°"), a lista sygnałów mówiła „0 pkt, kurs 86° od kierunku na Polskę" — te same
+   dane, dwa różne wrażenia. Właściwości warstwy GL bywają tekstem, stąd rzutowania. */
+function courseVerdictHTML(p) {
+  const toward = p.toward_pl === true || p.toward_pl === "true";
+  const known = !(p.heading_known === false || p.heading_known === "false");
+  const off = p.course_off == null || p.course_off === "" ? null : Math.round(Number(p.course_off));
+  if (toward) {
+    return `<span style="color:#c0392b"><b>${UI.isEn ? "heading towards Poland" : "kurs na Polskę"}</b>${
+      off != null ? ` (${off}° ${UI.isEn ? "off the direction to the border" : "od kierunku na granicę"})` : ""}</span><br>`;
+  }
+  const why = !known
+    ? (UI.isEn ? "heading unknown" : "kurs nieznany")
+    : off != null
+      ? (UI.isEn ? `heading ${off}° away from the direction to Poland`
+                 : `kurs ${off}° od kierunku na Polskę`)
+      : (UI.isEn ? "not heading towards Poland" : "kurs nie prowadzi na Polskę");
+  return `<span style="color:#7a8699"><b>${UI.isEn ? "0 pts" : "0 pkt"}</b> — ${why}</span><br>`;
 }
 
 /* Karta samolotu w stylu airplanes.live: zdjęcie, kraj rejestracji, operator,
@@ -1270,6 +1291,11 @@ function animate(ts) {
         confidence: t.confidenceLevel || "?", uncertainty: t.uncertaintyKm ?? "?",
         opis: threatDesc(t), dist_km: t.pl_assessment?.dist_km,
         distance_text: threatDistanceText(t, t.pl_assessment?.dist_km),
+        // werdykt kursu jedzie razem ze znacznikiem, żeby karta obiektu mówiła
+        // to samo co lista sygnałów (zgłoszone 12.09.2026)
+        toward_pl: t.pl_assessment?.toward_pl === true,
+        heading_known: t.pl_assessment?.heading_known !== false,
+        course_off: courseOffsetDeg(t),
         eta: etaHtml(t) } });
     if (t.uncertaintyKm)
       unc.push({ type: "Feature", properties: { color: meta.color },
@@ -1667,6 +1693,20 @@ function sigHTML(s) {
   // widać, że obiekt bez kursu w ogóle jest brany pod uwagę
   const extra = [];
   if (d.dist_km != null) extra.push(`${threatDistanceText(signalPosition, d.dist_km)} ${UI.isEn ? "from the border" : "od granicy"}`);
+  /* Odległość w sygnale to stan Z CHWILI JEGO POWSTANIA — obiekt leci dalej i po
+     pół godzinie panel mówił „192,5 km", gdy na mapie ten sam dron był 130 km od
+     granicy (zgłoszone 12.09.2026). Dopisujemy bieżącą odległość, dopóki obiekt
+     jest jeszcze śledzony. W trybie historii tego nie robimy: tam panel należy do
+     wybranej chwili, a nie do teraz. */
+  const liveNow = !histMode && src === "neptun" && d.track_id != null
+    ? (state?.neptun?.threats || []).find(t => String(t.id) === String(d.track_id))
+    : null;
+  const nowKm = liveNow?.pl_assessment?.dist_km;
+  if (nowKm != null && d.dist_km != null && Math.abs(nowKm - d.dist_km) >= 5) {
+    const closer = nowKm < d.dist_km;
+    extra.push(`<b style="color:${closer ? "#ff9f43" : "var(--muted)"}">${
+      UI.isEn ? "now" : "teraz"} ${threatDistanceText(liveNow, nowKm)}</b>`);
+  }
   if (src === "neptun") {
     if (d.course === "unknown") extra.push(UI.isEn ? "unknown heading" : "kurs nieznany");
     else if (d.course === "estimated") extra.push(UI.isEn ? "heading estimated from movement" : "kurs szacowany z ruchu");
@@ -1732,7 +1772,7 @@ function sigHTML(s) {
       : esc(shownTitle)}</div>
     <div class="sig-bar"><i style="width:${share.toFixed(0)}%"></i></div>
     <div class="ts">${relTime(s.ts)} · ${UI.isEn ? "province" : "woj."} ${esc(UI.voiv(s.voivodeship))}${
-      extra.length ? " · " + extra.map(esc).join(" · ") : ""}${
+      extra.length ? " · " + extra.map(x => x.startsWith("<b") ? x : esc(x)).join(" · ") : ""}${
       faded ? ` · <span title="sygnał starzeje się w oknie 60 min i traci wagę">waga ${Math.round(w * 100)}%</span>` : ""}</div>
   </div>`;
 }
@@ -2623,6 +2663,9 @@ function showHistoryAt(idx) {
             : threatDesc(t),
           historicalOnly: !!t.historicalOnly, dist_km: t.pl_assessment?.dist_km,
           distance_text: threatDistanceText(t, t.pl_assessment?.dist_km),
+          toward_pl: t.pl_assessment?.toward_pl === true,
+          heading_known: t.pl_assessment?.heading_known !== false,
+          course_off: courseOffsetDeg(t),
           eta: etaHtml(t) } })) });
     map.getSource("trails")?.setData(emptyFC());
     map.getSource("uncertainty")?.setData(emptyFC());

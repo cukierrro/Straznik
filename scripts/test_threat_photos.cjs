@@ -22,4 +22,16 @@ for (const type of ['uav', 'recon', 'shahed', 'missile', 'cruise', 'kab', 'balli
   assert.ok(!context.html.includes('commons.wikimedia.org'));
 }
 assert.equal(context.photos.unknown, undefined);
-console.log('OK: 9 typów/aliasów, PNG AI, jawne oznaczenie ilustracji, brak zdjęć w kartach');
+
+// Werdykt kursu w karcie obiektu musi mówić to samo co lista sygnałów: obiekt
+// lecący w bok ma jawne „0 pkt" z powodem, a nie same stopnie kursu.
+context.openThreatPopup(null, { type: 'uav', toward_pl: false, heading_known: true, course_off: 86 });
+assert.ok(context.html.includes('0 pkt'), 'karta obiektu bez punktów musi pokazać 0 pkt');
+assert.ok(context.html.includes('86° od kierunku na Polskę'), 'i podać, o ile kurs mija Polskę');
+context.openThreatPopup(null, { type: 'uav', toward_pl: false, heading_known: false });
+assert.ok(context.html.includes('kurs nieznany'), 'nieznany kurs ma być nazwany wprost');
+context.openThreatPopup(null, { type: 'uav', toward_pl: true, course_off: 12 });
+assert.ok(context.html.includes('kurs na Polskę'), 'obiekt kursem na PL ma to napisane');
+assert.ok(!context.html.includes('0 pkt'), 'obiekt kursem na PL nie może się ogłaszać jako zerowy');
+
+console.log('OK: 9 typów/aliasów, PNG AI, jawne oznaczenie ilustracji, werdykt kursu w karcie');

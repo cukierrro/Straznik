@@ -4,6 +4,11 @@
 
 # Strażnik
 
+Wersja 1.7.28: karta obiektu podaje werdykt kursu („0 pkt — kurs 71° od kierunku
+na Polskę" albo „kurs na Polskę"), a wiersz sygnału dopisuje bieżącą odległość
+śledzonego obiektu — panel mówił „192,5 km", gdy ten sam dron był 130 km od granicy.
+Punktacja bez zmian. Szczegóły: `docs/RELEASE_1.7.28.md`.
+
 Wersja 1.7.27: obiekt widoczny na mapie, który nie wnosi punktów (leci w bok albo
 od nas), pokazuje się teraz w „Sygnałach" jako „Na mapie, ale bez punktów" wraz z
 powodem — wcześniej znikał z listy i wyglądało to na przeoczenie. Punktacja bez
@@ -65,7 +70,7 @@ wiarygodność ostrzeżenia.
 
 [Instrukcja po polsku](https://cukierrro.github.io/Straznik/) · [English user guide](https://cukierrro.github.io/Straznik/en.html)
 
-Instrukcja dla 1.7.27 opisuje „Moje miejsca”, rozdział alertów wojewódzkich i
+Instrukcja dla 1.7.28 opisuje „Moje miejsca”, rozdział alertów wojewódzkich i
 lokalnych obliczeń na pierwszym planie oraz bibliotekę fotografii PL/EN. Zrzuty
 otwierają się także w pełnym rozmiarze.
 

@@ -16,6 +16,17 @@ DOCS = ROOT / "docs"
 # (wersja, data PL, data EN, tytuł PL, tytuł EN, punkty PL, punkty EN, zrzuty)
 # Zrzut: (plik, alt PL, alt EN, podpis PL, podpis EN)
 RELEASES = [
+    ("1.7.28", "12 września 2026", "12 September 2026",
+     "Karta obiektu i sygnały mówią to samo",
+     "The object card and the signals agree",
+     ["Karta obiektu podawała same stopnie kursu; teraz ma werdykt — „0 pkt — kurs 71° od kierunku na Polskę” albo „kurs na Polskę” — czyli to samo, co lista sygnałów.",
+      "Sygnał zamrażał odległość z chwili powstania: panel mówił „192,5 km”, gdy ten sam dron był na mapie 130 km od granicy. Dopóki obiekt jest śledzony, wiersz dopisuje „teraz 130,0 km”.",
+      "Punktacja bez zmian. Przypomnienie reguły: pełna waga do ±50° od kierunku na granicę, liniowy spadek do zera przy ±70°, nieznany kurs ×0,5 i tylko do 150 km."],
+     ["The object card only gave the heading in degrees; it now carries the verdict — “0 pts — heading 71° away from the direction to Poland” or “heading towards Poland” — the same wording as the signal list.",
+      "A signal froze the distance from the moment it was raised: the panel said “192.5 km” while the same drone sat 130 km from the border on the map. While the object is still tracked, the row now appends “now 130.0 km”.",
+      "Scoring is unchanged. The rule, for the record: full weight up to ±50° off the direction to the border, a linear fall to zero at ±70°, unknown heading ×0.5 and only within 150 km."],
+     []),
+
     ("1.7.27", "12 września 2026", "12 September 2026",
      "Obiekt na mapie musi być widoczny na liście",
      "An object on the map has to appear in the list",
