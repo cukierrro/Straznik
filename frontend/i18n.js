@@ -98,14 +98,14 @@
       "Save up to 8 places and choose which provinces you want notifications for. Exact places remain on this device.",
       "Yellow (≥2 pts): attention sound and heads-up notification. Red (≥4 pts): modulated siren, vibration and a full-screen alert.",
       "The red siren continues until you acknowledge the alert.",
-      "The app checks for a newer release once a day. A dismissed non-critical update can be checked again here."
+      "The app checks for a newer release at every launch and when it returns to the foreground. A dismissed non-critical update can be checked again here."
     ] : [
       "Alarmy dla Twojego województwa przychodzą jako powiadomienie push — także gdy aplikacja jest zamknięta, ekran wygaszony albo telefon w uśpieniu.",
       "Alarm pełnoekranowy zapala ekran i pokazuje się nad blokadą. Android 14 i nowszy może cofnąć tę zgodę po aktualizacji, dlatego sprawdź ją osobiście.",
       "Zapisz do 8 miejsc i wybierz, dla których województw chcesz otrzymywać powiadomienia. Dokładne miejsca zostają na tym urządzeniu.",
       "Żółty poziom (≥2 pkt) — krótki sygnał uwagi i powiadomienie. Czerwony (≥4 pkt) — modulowana syrena, wibracja i alarm pełnoekranowy.",
       "Przy czerwonym poziomie syrena gra bez przerwy, aż potwierdzisz alarm przyciskiem na ekranie.",
-      "Aplikacja sama sprawdza raz na dobę, czy jest nowsze wydanie. Pominiętą aktualizację sprawdzisz ręcznie tym przyciskiem."
+      "Aplikacja sprawdza przy każdym uruchomieniu i powrocie na wierzch, czy jest nowsze wydanie. Pominiętą aktualizację sprawdzisz ręcznie tym przyciskiem."
     ]);
     labelLead("set-voiv", "Województwo", "Province");
     labelLead("set-lang", "Język interfejsu", "Interface language");
@@ -119,6 +119,9 @@
     button("btn-test-siren","▶ Test: syrena","▶ Test: siren");
     button("btn-test-alarm","▶ Test: pełny alarm","▶ Test: full alert");
     button("btn-update","⬆ Sprawdź aktualizacje","⬆ Check for updates");
+    const links = dlg.querySelectorAll("#more-links a");
+    if (links[0]) links[0].textContent = en ? "User guide ↗" : "Instrukcja użytkownika ↗";
+    if (links[1]) links[1].textContent = en ? "Support the author ☕" : "Wesprzyj autora ☕";
     button("set-save","Zapisz","Save");
     const cancel=dlg.querySelector('button[value="cancel"]'); if(cancel) cancel.textContent=en?"Cancel":"Anuluj";
     const summary=dlg.querySelector("summary"); if(summary) summary.textContent=en?"Advanced: shared backend":"Zaawansowane: wspólny backend";
@@ -174,10 +177,22 @@
     // nowa nawigacja 1.7.23: dolne zakładki, menu „Więcej", kadrowanie mapy
     setMany("#tabbar .tab-btn > span:not(.badge)", ["Map", "Signals", "History", "More"]);
     set("#more-sheet h3", "More");
-    setMany("#more-sheet .sheet-row span", ["Map legend", "3D view",
-      "Foreign aircraft (RU/BY)", "About and scoring", "User guide", "Support the author"]);
+    setMany("#more-sheet .sheet-row span", ["About and scoring", "User guide",
+      "Support the author"]);
     setMany("#map-actions .map-btn span", ["my region", "whole PL"]);
+    const live = document.getElementById("tb-live");
+    if (live) live.textContent = "▶ Back to live view";
+    set(".tb-mode", "⏱ HISTORY MODE");
     setMany("#settings .set-tab", ["Alerts", "My places", "Sound", "App"]);
+    // linki w zakładce „Aplikacja" są wyłączone z tłumaczenia zbiorczego (żeby nie
+    // skasować odnośników), więc podpisy ustawiamy osobno
+    setMany("#more-links a", ["User guide ↗", "Support the author ☕"]);
+    // atrybucja: nazwy własne zostają, opis źródła musi być po angielsku
+    const attr = document.getElementById("attr-text");
+    if (attr) attr.innerHTML = '<b>Data: <a href="https://neptun.in.ua" target="_blank" rel="noopener">NEPTUN</a></b>'
+      + ' (OSINT aggregator — not radar; always check confidence and ±km)'
+      + ' · ADS-B: adsb.lol / adsb.fi · Map: <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a>'
+      + ' © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OSM</a>';
     const moreClose = document.querySelector('#more-sheet button[value="cancel"]');
     if (moreClose) moreClose.textContent = "Close";
     set("#adsb-list + p", "Public transponder data (aircraft that choose to be visible) — this is NOT hostile-aircraft tracking.");
@@ -244,7 +259,7 @@
       "Save up to 8 places and choose which provinces you want notifications for. Exact places remain on this device.",
       "Yellow (≥2 pts): attention sound and heads-up notification. Red (≥4 pts): modulated siren, vibration and a full-screen alert.",
       "The red siren continues until you acknowledge the alert.",
-      "The app checks for a newer release once a day. A dismissed non-critical update can be checked again here."
+      "The app checks for a newer release at every launch and when it returns to the foreground. A dismissed non-critical update can be checked again here."
     ]);
     set("#places-dialog h2", "My places");
     const placesClose=document.getElementById("places-close"); if(placesClose)placesClose.setAttribute("aria-label","Close");

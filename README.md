@@ -4,6 +4,14 @@
 
 # Strażnik
 
+Wersja 1.7.23: przebudowana nawigacja — dolne zakładki Mapa / Sygnały / Historia /
+Więcej, pięć ikon w górnym pasku, jeden dolny stos komunikatów zamiast pięciu
+pływających ramek i okna dialogowe, które nie wchodzą na systemowy pasek nawigacji.
+Karta obiektu otwiera się jako miniatura w rogu z przyciskiem rozwinięcia, a zaznaczony
+obiekt ma na mapie biały pierścień. Ustawienia w czterech zakładkach, tryb historii
+nazwany wprost i większy suwak. Aktualizacje sprawdzane przy każdym uruchomieniu, a nie
+raz na dobę. Szczegóły: `docs/RELEASE_1.7.23.md`.
+
 Wersja 1.7.22: limit klasy źródła liczony po wygaszeniu wiekiem (świeży obiekt
 przy granicy nie wnosi już 0 pkt w dłuższym ataku), poziom przeliczany co 45 s
 także bez nowego sygnału i trwały po restarcie, push z terminem ważności i
@@ -32,7 +40,7 @@ wiarygodność ostrzeżenia.
 
 [Instrukcja po polsku](https://cukierrro.github.io/Straznik/) · [English user guide](https://cukierrro.github.io/Straznik/en.html)
 
-Instrukcja dla 1.7.22 opisuje „Moje miejsca”, rozdział alertów wojewódzkich i
+Instrukcja dla 1.7.23 opisuje „Moje miejsca”, rozdział alertów wojewódzkich i
 lokalnych obliczeń na pierwszym planie oraz bibliotekę fotografii PL/EN. Zrzuty
 otwierają się także w pełnym rozmiarze.
 

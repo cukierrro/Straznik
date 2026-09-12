@@ -4,7 +4,9 @@ const vm = require('node:vm');
 const assert = require('node:assert/strict');
 const root = path.resolve(__dirname, '..');
 const code = fs.readFileSync(path.join(root, 'frontend/app.js'), 'utf8');
-const context = { esc2: value => String(value), CONF_PL: {}, compass: () => '', showCard: html => { context.html = html; } };
+const context = { esc2: value => String(value), CONF_PL: {}, compass: () => '',
+  markSelected: () => {},            // podświetlenie na mapie — poza zakresem tego testu
+  showCard: html => { context.html = html; } };
 context.window = {};
 vm.createContext(context);
 vm.runInContext(code.slice(code.indexOf('const TYPE_META ='), code.indexOf('const threatLabelPL')) + '\nglobalThis.photos = THREAT_PHOTOS;', context);

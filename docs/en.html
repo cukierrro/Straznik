@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Strażnik 1.7.22 — user guide</title>
+<title>Strażnik 1.7.23 — user guide</title>
 <meta name="description" content="The current Strażnik user guide: Android installation and updates, alerts, maps, new object icons, history, languages and scoring. Screenshots from Pixel 7.">
 <link rel="canonical" href="https://cukierrro.github.io/Straznik/en.html">
 <link rel="alternate" hreflang="pl" href="https://cukierrro.github.io/Straznik/">
@@ -33,13 +33,13 @@
   <div class="languages" aria-label="Guide language"><a href="index.html" lang="pl" hreflang="pl">PL</a><a href="en.html" lang="en" aria-current="page">EN</a></div>
 </div></nav>
 <header class="hero"><div class="wrap hero-grid">
-  <div><div class="eyebrow">User guide · version 1.7.22</div>
+  <div><div class="eyebrow">User guide · version 1.7.23</div>
     <h1>The situation on a map.<br>The sources behind each signal.</h1>
     <p class="lead">Strażnik combines public information about airborne threats and displays a score for each Polish province. Available on Android and in your browser.</p>
     <div class="actions"><a class="button primary" href="https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk">↓ Download app</a><a class="button" href="https://straznik.eu">Open map</a></div>
-    <p class="fineprint">Guide for 1.7.22. Approximate-position card: 1.7.21, 11 September 2026. “My places”: 1.7.19, 9 September. Aircraft card: 1.7.18, 8 September. All captures were made on a Pixel 7 with Android 14; other unchanged screens are labelled individually. Tap any screenshot to open the full-size image.</p>
+    <p class="fineprint">Guide for 1.7.23. Approximate-position card: 1.7.21, 11 September 2026. Captures of the current interface were made on 12 September 2026 on a Pixel 7 with Android 14 and <b>three-button</b> system navigation; older, unchanged screens are labelled individually. Tap any screenshot to open the full-size image.</p>
   </div>
-  <a class="shot-link" href="screens/start-en.jpg"><img src="screens/start-en.jpg" width="1080" height="2400" alt="Strażnik 1.7.16 on Pixel 7: English map labels and six green source indicators"></a>
+  <a class="shot-link" href="screens/start-en.jpg"><img src="screens/start-en.jpg" width="1080" height="2400" alt="Strażnik 1.7.23 on Pixel 7: English map labels, six green source indicators and the Map, Signals, History, More tab bar"></a>
 </div></header>
 <main id="content" class="wrap">
 <section id="czym-jest">
@@ -57,21 +57,23 @@
     <li>Allow notifications, choose your province and check full-screen alert permission.</li>
   </ol>
   <p>If the GitHub app intercepts the download link and stalls, open the link in your browser instead. A <a href="https://github.com/cukierrro/Straznik/raw/main/Straznik.apk">backup APK in the repository</a> is also available.</p>
+  <div class="note"><b>Check which version your phone has.</b> Open <kbd>&#9881;</kbd> &rarr; the <kbd>App</kbd> tab &mdash; the installed number is under the &ldquo;App version&rdquo; heading.
+    The latest release is <b>1.7.23</b>, published on <b>12 September 2026</b>. If you see an older number, tap <kbd>&#11014; Check for updates</kbd> or download the APK above.</div>
   <div class="split">
     <div>
       <h3>Updating from inside the app</h3>
-      <p>Strażnik checks for a release once a day. The update prompt includes the version and a description of the changes. You can also use <kbd>⚙</kbd> → <kbd>Check for updates</kbd>.</p>
+      <p>Since 1.7.23 Strażnik checks for a release <b>at every launch</b> and whenever the app returns to the foreground (no more often than every 30 minutes). It used to check once a day, so a fix could wait almost a full day. The update prompt includes the version and a description of the changes. You can also use <kbd>⚙</kbd> → <kbd>App</kbd> → <kbd>Check for updates</kbd>.</p>
       <p>For a normal, non-critical update, choose <kbd>Later</kbd> (the updater may display <kbd>Później</kbd>) to dismiss it for the current session. If you choose to install, the app downloads the APK and checks its SHA-256, then Android asks you to confirm installation. Updating still downloads a file; you no longer need to find it manually.</p>
       <p>Install over the existing app without uninstalling to keep your settings. The published APK is a signed <b>release build</b>. Check notification and full-screen permissions after updating.</p>
     </div>
-    <figure><a class="shot-link" href="screens/updates-en.jpg"><img loading="lazy" src="screens/updates-en.jpg" width="1080" height="2400" alt="Strażnik 1.7.22 settings on Pixel 7: sound tests, app version and Check for updates, dialog scrolled to its buttons"></a><figcaption><b>Settings in 1.7.22.</b> The dialog is height-limited and scrolls all the way to its buttons — longer content used to be cut off. It shows the installed version and the manual update check.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/updates-en.jpg"><img loading="lazy" src="screens/updates-en.jpg" width="1080" height="2400" alt="App tab in 1.7.23 settings: interface language, installed version 1.7.23 and the Check for updates button"></a><figcaption><b>Settings → “App” tab in 1.7.23.</b> This is where you see which version is installed and look for a newer one manually. The dialog ends above the tab bar and scrolls all the way down.</figcaption></figure>
   </div>
 </section>
 <section id="konfiguracja">
   <h2>2. My places, language and permissions</h2>
   <div class="split">
     <div>
-      <p>Open <kbd>⚙</kbd> → <kbd>Open My places</kbd>. You can save up to 8 profiles, such as Home, Work and Trip. Each has a province and may optionally store a voluntary one-time location. Current notifications are routed by province.</p>
+      <p>Open <kbd>⚙</kbd> → the <kbd>My places</kbd> tab → <kbd>Open My places</kbd>. You can save up to 8 profiles, such as Home, Work and Trip. Each has a province and may optionally store a voluntary one-time location. Current notifications are routed by province.</p>
       <p><kbd>Watch alerts</kbd> creates a subscription for that province. Several places in one province create one subscription. Turning watching off does not delete the profile. The first saved place sets the map's initial region; an older single-province setting is migrated to a “Home” profile after updating.</p>
       <p>A one-time location is read only after you press its button and stores the point, accuracy and reading time. There is no background tracking or online address lookup. You can remove the point separately.</p>
       <p><b>Two operating levels:</b> while the app is closed, minimised or the screen is locked, the notification is province-level. After receiving it, open Strażnik and keep it in the foreground. For a saved exact location, the app calculates the distance to a visible object on the device. It shows an estimated arrival time only when actual speed is available and the heading leads towards that point; otherwise it clearly says that ETA cannot be estimated reliably.</p>
@@ -81,7 +83,7 @@
       <h3>Notifications</h3>
       <p>Check system notifications, alert channels and full-screen permission in settings. A shortcut to the app's battery optimisation settings is also available. Delivery and presentation depend on your phone's settings and restrictions.</p>
     </div>
-    <figure><a class="shot-link" href="screens/places-en.png"><img loading="lazy" src="screens/places-en.png" width="1080" height="2400" alt="My places in app 1.7.19: Home profile, a one-time exact location and province alert watching"></a><figcaption>The actual “My places” screen with a one-time Warsaw test point stored only in the emulator. Pixel 7, APK 1.7.19, 9 September 2026.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/places-en.png"><img loading="lazy" src="screens/places-en.png" width="1080" height="2400" alt="My places in 1.7.23: place name, scope, province and the watch-alerts switch; the dialog has margins and ends above the tab bar"></a><figcaption>“My places” in 1.7.23 — the dialog has margins and ends above the tab bar; it used to fill the screen edge to edge. Pixel 7, 12 September 2026.</figcaption></figure>
   </div>
 </section>
 <section id="mapa">
@@ -103,7 +105,7 @@
       <tr><td>Unidentified object</td><td>A grey diamond with a question mark.</td></tr>
     </tbody></table></div>
     <p><b>The circle around an object represents position uncertainty (±km).</b> A larger circle means a larger uncertain area, not a larger destructive range. A dashed line shows a trail only when the source provides positions suitable for movement observation. A point labelled “approximate report area” is not a route.</p></div>
-    <figure><a class="shot-link" href="screens/legend-en.jpg"><img loading="lazy" src="screens/legend-en.jpg" width="1080" height="2400" alt="Current legend with nine distinct NEPTUN icons, uncertainty circle, aircraft, helicopter and score thresholds"></a><figcaption>Current symbols in version 1.7.16. The helicopter row in this APK still has a Polish label.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/legend-en.jpg"><img loading="lazy" src="screens/legend-en.jpg" width="1080" height="2400" alt="Legend in 1.7.23 with nine distinct NEPTUN icons, uncertainty circle, aircraft, helicopter and score thresholds"></a><figcaption>Current symbols, APK 1.7.23. The first icon in the top bar opens the legend; the panel is height-limited and never covers the bottom messages.</figcaption></figure>
   </div>
   <h3 id="zdjecia">Object details and pictures</h3>
   <p>An object card shows its type, area, confirmations, confidence, position uncertainty, heading and distance from Poland. ETA appears only for a position suitable for that calculation. The source field <code>confirmed</code> may confirm the report rather than coordinate accuracy. If NEPTUN marks an area as approximate or Strażnik recognises a canonical locality-centre point, distance is rounded to tens of kilometres and the app does not move the marker artificially, draw an apparent route or show ETA. A locality may describe a report's direction or destination rather than the object's position. AI illustrations are reference images and must not be used to identify a model.</p>
@@ -111,7 +113,8 @@
   <p><b>Model photographs (1.7.19):</b> aircraft and helicopter cards use a local library of real photographs. Each is an example aircraft, not the tracked one; equipment and subvariant may differ. When the provider supplies a known type code without a variant description, the app now shows a reviewed family example instead of an empty area. An explicitly conflicting description still blocks the photo. The library now also includes the Boeing 737-800. Author, source and license remain visible below each photo.</p>
   <div class="shots">
     <figure><a class="shot-link" href="screens/approx-position-en.png"><img loading="lazy" src="screens/approx-position-en.png" width="1080" height="2400" alt="Lutsk locality-centre point recognised as an area position, without an exact distance, route or ETA"></a><figcaption><b>Recognised locality point in APK 1.7.21.</b> Isolated replay of a NEPTUN entry from 11 September 2026: source <code>confirmed</code>, but the coordinates match central Lutsk. This is a UI test, not a current object or alert.</figcaption></figure>
-    <figure><a class="shot-link" href="screens/aircraft-en.png"><img loading="lazy" src="screens/aircraft-en.png" width="1080" height="2400" alt="RCH5078 C-17 historical card in English, with a model example photograph, author, source and license"></a><figcaption>Actual observation of RCH5078; the photograph depicts another C-17. Pixel 7, APK 1.7.18, 8 September 2026. Scroll inside the card for more details.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/aircraft-en.png"><img loading="lazy" src="screens/aircraft-en.png" width="1080" height="2400" alt="Expanded aircraft card for ae0482, a KC-135R Stratotanker: example photograph, author, source, licence and full telemetry"></a><figcaption>Actual observation of ae0482; the photograph depicts another KC-135R. Pixel 7, APK 1.7.23. Scroll inside the card for more details.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/card-mini-en.jpg"><img loading="lazy" src="screens/card-mini-en.jpg" width="1080" height="2400" alt="Object card thumbnail in the bottom-left corner of the map, with a white ring around the selected aircraft"></a><figcaption><b>Card thumbnail (1.7.23).</b> Tapping an object opens a small tile in the corner instead of covering the map; the chevron expands it to the full card and ✕ closes it. The selected object gets a white ring on the map.</figcaption></figure>
     <figure><a class="shot-link" href="screens/object-en.jpg"><img loading="lazy" src="screens/object-en.jpg" width="1080" height="2400" alt="NEPTUN object card with a labelled reference illustration and observation details"></a><figcaption>Object details and a reference illustration, not a photograph of the tracked object.</figcaption></figure>
   </div>
 </section>
@@ -127,18 +130,18 @@
     <tr><td>⏱ / ◎ / ⤢</td><td>12-hour history / return to my region / the wider area.</td></tr>
     <tr><td>Download app / User guide</td><td>Website-only buttons; they are not displayed in the APK.</td></tr>
   </tbody></table></div>
-  <p>The signals panel no longer collapses after a few seconds. Close it with the cross or by tapping the map outside it. The legend and other panels also support outside clicks. In settings, use <kbd>Save</kbd> to confirm changes.</p>
+  <p>The signals panel no longer collapses after a few seconds. Close it with the cross, the <kbd>Map</kbd> tab or by tapping the map outside it. The legend and other panels also support outside clicks. In settings, use <kbd>Save</kbd> to confirm changes.</p>
 </section>
 <section id="panel">
   <h2>5. The signals panel</h2>
   <div class="split">
     <div>
-      <p><kbd>☰</kbd> opens the province cards. Tap a region to inspect the sources behind its score. Your region has an outline and a “my region” label. The panel includes signals from the 60-minute window, objects near the border and public military aviation observations.</p>
+      <p>The <kbd>Signals</kbd> tab in the bottom bar opens the province cards. Tap a region to inspect the sources behind its score. Your region has an outline and a “my region” label. The panel includes signals from the 60-minute window, objects near the border and public military aviation observations.</p>
       <p>Signals are ordered by their actual counted contribution. The displayed number reflects source caps and ageing; a crossed-out value explains why the full raw score was not counted. An article recognised as a repeat of a fresh official RCB alert, a historical report or an aftermath story remains visible but contributes 0 additional points and is labelled accordingly. Different IDs of the same type at an identical area point are treated within one window as updates of one uncertain event unless the source provides a credible object count.</p>
       <p>A <b>Spillover</b> entry explains a contribution from another province. Media titles link to their sources: check the original text and publication time.</p>
       <p><b>Cameras in the region</b> opens available views of the surroundings. These are ground cameras, not airborne-object detectors.</p>
     </div>
-    <figure><a class="shot-link" href="screens/panel-en.jpg"><img loading="lazy" src="screens/panel-en.jpg" width="1080" height="2400" alt="Current province panel with Podlaskie marked as my region and the signals list below"></a><figcaption>The actual calm state at capture time. Values change with incoming data.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/panel-en.jpg"><img loading="lazy" src="screens/panel-en.jpg" width="1080" height="2400" alt="Signals panel in 1.7.23: province cards with scores and the 60-minute signal list"></a><figcaption>The <kbd>Signals</kbd> tab opens this panel. The actual calm state at capture time; values change with incoming data.</figcaption></figure>
   </div>
 </section>
 <section id="historia">
@@ -150,13 +153,13 @@
     </div>
     <figure><a class="shot-link" href="screens/history-lubelskie-user.png"><img loading="lazy" src="screens/history-lubelskie-user.png" width="1440" height="3200" alt="Historical Lublin province: yellow level at 2.2 points, RCB (RSO) entry, NEPTUN map objects and history slider at 15:11, in Polish"></a><figcaption>User-supplied historical example: elevated attention in Lublin province and its contributing sources. Original Polish screenshot, with no content changes.</figcaption></figure>
   </div>
-  <p>Press <kbd>⏱</kbd>, then drag the slider left or right. The map and panel show the selected time rather than the live situation. The label gives the time and minutes in the past. <kbd>● LIVE / NA ŻYWO</kbd> returns to the current view (this button still has a Polish label in the captured APK).</p>
+  <p>Tap the <kbd>History</kbd> tab in the bottom bar, then drag the slider left or right. The bar names the mode outright: <b>⏱ HISTORY MODE</b>. The map and panel show the selected time rather than the live situation. The label gives the time and minutes in the past. <kbd>▶ Back to live view</kbd> returns to the current view. The slider in 1.7.23 is considerably larger: a 44 px touch area and a 28 px handle.</p>
   <p>A history bundle is downloaded to your device and scrolling uses that local buffer. Every finger movement does not make a separate server request. Snapshots are normally recorded every two minutes: this is playback of saved samples, not continuous radar footage. The available history depends on continuous recording and source availability.</p>
-  <p><b>Consistent aircraft time (1.7.17):</b> the map, aircraft list, <kbd>🛰</kbd> panel and aircraft details all follow the selected time. Later events cannot appear in an earlier view. <kbd>● LIVE</kbd> returns to current data.</p>
+  <p><b>Consistent aircraft time (1.7.17):</b> the map, aircraft list, foreign-aviation panel and aircraft details all follow the selected time. Later events cannot appear in an earlier view. <kbd>▶ Back to live view</kbd> returns to current data.</p>
   <p>A dimmed foreign aircraft is a <b>last recorded position</b> filling a gap between snapshots. It uses only an earlier journal entry, at most 2.5 minutes before the selected time. Details show the record time and explain that the aircraft is absent from the snapshot. “Disappeared” means missing from the available data, not a landing or shoot-down; its timestamp is not necessarily the last transponder emission time. Counters separate snapshot aircraft from last observations.</p>
   <p>The 🛰 panel downloads a small server journal covering the last 12 hours, including times when your app was closed. It merges local entries without duplicating matching transitions and excludes entries later than the selected time. Refreshes are limited to one request per minute, not one per slider movement. Journal unavailability and local fallback mode are explicitly labelled. These observations do not add points.</p>
   <div class="shots">
-    <figure><a class="shot-link" href="screens/history-map-en.png"><img loading="lazy" src="screens/history-map-en.png" width="1080" height="2400" alt="English history in 1.7.17 on Pixel 7, with slider and snapshot aircraft count"></a><figcaption>Real server history in APK 1.7.17 — 7 September 2026.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/history-map-en.png"><img loading="lazy" src="screens/history-map-en.png" width="1080" height="2400" alt="History mode in 1.7.23: HISTORY MODE heading, larger slider, Back to live view button and snapshot aircraft count"></a><figcaption>Real server history in APK 1.7.23 — 12 September 2026.</figcaption></figure>
     <figure><a class="shot-link" href="screens/history-watch-en.png"><img loading="lazy" src="screens/history-watch-en.png" width="1080" height="2400" alt="Foreign aircraft panel following the selected historical time, including journal status"></a><figcaption>The 🛰 panel follows the map time — Pixel 7, 1.7.17.</figcaption></figure>
   </div>
   <p>A signal can remain in the 60-minute list after an object disappears from the map. The list describes recorded events; the map shows positions available in a particular snapshot. NEPTUN removes an entry through a source message or replaces the active-object list; it does not provide the reason for removal. Disappearance does not prove interception, a crash or departure from the area. A new identifier at the same approximate point may be a renewed report rather than a new physical object. For some foreign aircraft, a faded last observation may appear, distinguished from a current position.</p>
@@ -173,7 +176,7 @@
     <tr><td>2 to below 4 points</td><td>Yellow “ELEVATED ATTENTION”: a short attention sound and a notification, which may appear as heads-up.</td></tr>
     <tr><td>4 points or more</td><td>Red “HIGH PRIORITY”: a siren, vibration and a full-screen alert when permissions and the system allow it. Acknowledging the alert silences it.</td></tr>
   </tbody></table></div>
-  <p><kbd>⚙</kbd> includes <kbd>Test: attention</kbd>, <kbd>Test: siren</kbd> and <kbd>Test: full alert</kbd>. These are local tests on your device; they do not confirm push delivery from the server. Version 1.7.15 increased the red siren's level. Actual loudness also depends on the phone and its audio settings.</p>
+  <p><kbd>⚙</kbd> → <kbd>Sound</kbd> includes <kbd>Test: attention</kbd>, <kbd>Test: siren</kbd> and <kbd>Test: full alert</kbd>. These are local tests on your device; they do not confirm push delivery from the server. Version 1.7.15 increased the red siren's level. Actual loudness also depends on the phone and its audio settings.</p>
   <div class="warn"><b>Check full-screen alerts on your own phone.</b> Without permission, a red alert may remain a notification. Check volume, channel settings, Do Not Disturb and battery restrictions too. Recheck permissions after an update.</div>
 </section>
 <section id="tlo">
@@ -229,7 +232,7 @@
 </section>
 <section id="zaawansowane">
   <h2>12. Your own server — optional</h2>
-  <p>A blank address under <kbd>⚙</kbd> → <kbd>Advanced: shared backend</kbd> selects the default Strażnik server. Enter your own address only if you operate a compatible backend and its notification services.</p>
+  <p>A blank address under <kbd>⚙</kbd> → <kbd>App</kbd> → <kbd>Advanced: shared backend</kbd> selects the default Strażnik server. Enter your own address only if you operate a compatible backend and its notification services.</p>
   <p><b>HTTPS with a system-trusted certificate is required.</b> External HTTP and manually installed certificates are not supported by the production APK. The app's internal localhost address is a separate technical exception. <a href="https://github.com/cukierrro/Straznik#readme">Backend setup is documented in the repository README</a>.</p>
 </section>
 <section id="prywatnosc">

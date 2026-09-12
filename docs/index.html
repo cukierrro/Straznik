@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Strażnik 1.7.22 — instrukcja użytkownika</title>
-<meta name="description" content="Aktualna instrukcja Strażnika: instalacja i aktualizacje Android, alarmy, mapa, nowe ikony, historia, języki i punktacja. Zrzuty z Pixela 7.">
+<title>Strażnik 1.7.23 — instrukcja użytkownika</title>
+<meta name="description" content="Aktualna instrukcja Strażnika 1.7.23: dolne zakładki, karta obiektu jako miniatura, instalacja i aktualizacje Android, alarmy, mapa, historia, języki i punktacja. Zrzuty z Pixela 7.">
 <link rel="canonical" href="https://cukierrro.github.io/Straznik/">
 <link rel="alternate" hreflang="pl" href="https://cukierrro.github.io/Straznik/">
 <link rel="alternate" hreflang="en" href="https://cukierrro.github.io/Straznik/en.html">
@@ -33,13 +33,13 @@
   <div class="languages" aria-label="Język instrukcji"><a href="index.html" lang="pl" aria-current="page">PL</a><a href="en.html" lang="en" hreflang="en">EN</a></div>
 </div></nav>
 <header class="hero"><div class="wrap hero-grid">
-  <div><div class="eyebrow">Instrukcja użytkownika · wersja 1.7.22</div>
+  <div><div class="eyebrow">Instrukcja użytkownika · wersja 1.7.23</div>
     <h1>Sytuacja na mapie.<br>Źródła za każdym sygnałem.</h1>
     <p class="lead">Strażnik łączy publiczne informacje o zagrożeniach powietrznych i pokazuje ich punktację dla polskich województw. Dostępny na Androidzie i w przeglądarce.</p>
     <div class="actions"><a class="button primary" href="https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk">↓ Pobierz aplikację</a><a class="button" href="https://straznik.eu">Otwórz mapę</a></div>
-    <p class="fineprint">Instrukcja dla 1.7.22. Karta pozycji przybliżonej: 1.7.21, 11 września 2026. „Moje miejsca”: 1.7.19, 9 września. Karta samolotu: 1.7.18, 8 września. Wszystkie zrzuty wykonano na Pixelu 7 z Androidem 14; pozostałe niezmienione ekrany opisano przy zrzutach. Dotknij zdjęcia, aby otworzyć je w pełnym rozmiarze.</p>
+    <p class="fineprint">Instrukcja dla 1.7.23. Karta pozycji przybliżonej: 1.7.21, 11 września 2026. Zrzuty aktualnego interfejsu wykonano 12 września 2026 na Pixelu 7 z Androidem 14 i <b>trzyprzyciskową</b> nawigacją systemową; starsze, niezmienione ekrany opisano przy zrzutach. Dotknij zdjęcia, aby otworzyć je w pełnym rozmiarze.</p>
   </div>
-  <a class="shot-link" href="screens/01_start.jpg"><img src="screens/01_start.jpg" width="1080" height="2400" alt="Strażnik 1.7.16 na Pixelu 7: mapa Polski i sześć zielonych diod źródeł"></a>
+  <a class="shot-link" href="screens/01_start.jpg"><img src="screens/01_start.jpg" width="1080" height="2400" alt="Strażnik 1.7.23 na Pixelu 7: mapa, sześć zielonych diod źródeł i dolne zakładki Mapa, Sygnały, Historia, Więcej"></a>
 </div></header>
 <main id="content" class="wrap">
 <section id="czym-jest">
@@ -57,21 +57,23 @@
     <li>Zezwól na powiadomienia, wybierz województwo i sprawdź zgodę na pełny ekran.</li>
   </ol>
   <p>Jeśli aplikacja GitHub przechwytuje link i pobieranie staje, otwórz link w przeglądarce. Dostępna jest też <a href="https://github.com/cukierrro/Straznik/raw/main/Straznik.apk">kopia APK w repozytorium</a>.</p>
+  <div class="note"><b>Sprawdź, jaką wersję masz w telefonie.</b> Otwórz <kbd>⚙</kbd> → zakładka <kbd>Aplikacja</kbd> — pod nagłówkiem „Wersja aplikacji” zobaczysz zainstalowany numer.
+    Najnowsze wydanie to <b>1.7.23</b> z dnia <b>12 września 2026</b>. Jeśli masz starszy numer, dotknij <kbd>⬆ Sprawdź aktualizacje</kbd> albo pobierz APK powyżej.</div>
   <div class="split">
     <div>
       <h3>Aktualizacja z poziomu aplikacji</h3>
-      <p>Strażnik sprawdza dostępność wydania raz na dobę. W oknie aktualizacji zobaczysz wersję i opis zmian. Możesz też wejść w <kbd>⚙</kbd> → <kbd>Sprawdź aktualizacje</kbd>.</p>
+      <p>Od 1.7.23 Strażnik sprawdza dostępność wydania <b>przy każdym uruchomieniu</b> i przy powrocie aplikacji na wierzch (nie częściej niż co 30 minut). Wcześniej sprawdzał raz na dobę, więc poprawka mogła czekać na użytkownika prawie dobę. W oknie aktualizacji zobaczysz wersję i opis zmian. Możesz też wejść w <kbd>⚙</kbd> → <kbd>Aplikacja</kbd> → <kbd>Sprawdź aktualizacje</kbd>.</p>
       <p>Przy zwykłej, niekrytycznej aktualizacji wybierz <kbd>Później</kbd>, aby zamknąć komunikat na bieżącą sesję. Gdy wybierzesz instalację, aplikacja pobierze APK i sprawdzi jego SHA-256, a Android poprosi o zatwierdzenie. Aktualizacja nadal wymaga pobrania pliku; nie musisz jednak szukać go ręcznie.</p>
       <p>Instaluj nowe wydanie na istniejące, bez odinstalowywania — zachowasz ustawienia. Publikowany plik jest podpisanym wydaniem <b>release</b>. Po aktualizacji sprawdź zgody na powiadomienia i pełny ekran.</p>
     </div>
-    <figure><a class="shot-link" href="screens/updates-pl.jpg"><img loading="lazy" src="screens/updates-pl.jpg" width="1080" height="2400" alt="Ustawienia 1.7.22 na Pixelu 7: testy dźwięków, wersja aplikacji i Sprawdź aktualizacje, okno przewijane do przycisków"></a><figcaption><b>Ustawienia w 1.7.22.</b> Okno ma ograniczoną wysokość i przewija się do końca — wcześniej dłuższa treść bywała ucinana. Widać numer zainstalowanej wersji i ręczne sprawdzanie aktualizacji.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/updates-pl.jpg"><img loading="lazy" src="screens/updates-pl.jpg" width="1080" height="2400" alt="Zakładka Aplikacja w ustawieniach 1.7.23: język interfejsu, zainstalowana wersja 1.7.23 i przycisk Sprawdź aktualizacje"></a><figcaption><b>Ustawienia → zakładka „Aplikacja” w 1.7.23.</b> Tu sprawdzisz, którą wersję masz zainstalowaną, i ręcznie poszukasz nowszej. Okno kończy się nad paskiem zakładek i przewija do końca.</figcaption></figure>
   </div>
 </section>
 <section id="konfiguracja">
   <h2>2. Moje miejsca, język i zgody</h2>
   <div class="split">
     <div>
-      <p>Otwórz <kbd>⚙</kbd> → <kbd>Otwórz Moje miejsca</kbd>. Możesz zapisać do 8 profili, np. Dom, Praca i Wyjazd. Dla każdego wybierasz województwo oraz opcjonalnie dobrowolną jednorazową lokalizację. Obecne powiadomienia są kierowane według województwa.</p>
+      <p>Otwórz <kbd>⚙</kbd> → zakładka <kbd>Moje miejsca</kbd> → <kbd>Otwórz Moje miejsca</kbd>. Możesz zapisać do 8 profili, np. Dom, Praca i Wyjazd. Dla każdego wybierasz województwo oraz opcjonalnie dobrowolną jednorazową lokalizację. Obecne powiadomienia są kierowane według województwa.</p>
       <p>Przełącznik <kbd>Obserwuj alerty</kbd> tworzy subskrypcję dla województwa. Kilka miejsc w tym samym regionie daje jedną subskrypcję. Wyłączenie obserwacji nie usuwa profilu. Pierwsze zapisane miejsce jest regionem startowym mapy; stary wybór województwa po aktualizacji zostaje przeniesiony do profilu „Dom”.</p>
       <p>Jednorazowa lokalizacja działa wyłącznie po dotknięciu przycisku i zapisuje punkt, dokładność oraz czas odczytu. Nie ma śledzenia w tle ani internetowego wyszukiwania adresów. Punkt można usunąć osobno.</p>
       <p><b>Dwa poziomy działania:</b> gdy aplikacja jest zamknięta, zminimalizowana albo ekran jest zablokowany, powiadomienie dotyczy województwa. Po jego otrzymaniu otwórz Strażnika i pozostaw go na pierwszym planie. Dla zapisanej dokładnej lokalizacji aplikacja obliczy na urządzeniu odległość do widocznego obiektu. Orientacyjny czas pokaże tylko wtedy, gdy zna rzeczywistą prędkość i kurs prowadzi w stronę punktu; w przeciwnym razie wyraźnie poda, że ETA nie można wiarygodnie oszacować.</p>
@@ -81,7 +83,7 @@
       <h3>Powiadomienia</h3>
       <p>W ustawieniach sprawdź powiadomienia systemowe, kanały alarmów i zgodę na alarm pełnoekranowy. Dostępny jest również skrót do wyłączenia optymalizacji baterii dla aplikacji. Działanie zależy od ustawień i ograniczeń telefonu.</p>
     </div>
-    <figure><a class="shot-link" href="screens/places-pl.png"><img loading="lazy" src="screens/places-pl.png" width="1080" height="2400" alt="Moje miejsca w aplikacji 1.7.19: profil Dom, jednorazowa dokładna lokalizacja i obserwacja alertów województwa"></a><figcaption>Rzeczywisty ekran „Moje miejsca” z testowym jednorazowym punktem w Warszawie, zapisanym tylko w emulatorze. Pixel 7, APK 1.7.19, 9 września 2026.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/places-pl.png"><img loading="lazy" src="screens/places-pl.png" width="1080" height="2400" alt="Moje miejsca w 1.7.23: nazwa miejsca, zakres, województwo i przełącznik obserwacji alertów; okno z marginesami nad paskiem zakładek"></a><figcaption>„Moje miejsca” w 1.7.23 — okno ma marginesy i kończy się nad paskiem zakładek; wcześniej zajmowało ekran od krawędzi do krawędzi. Pixel 7, 12 września 2026.</figcaption></figure>
   </div>
 </section>
 <section id="mapa">
@@ -103,7 +105,7 @@
       <tr><td>Obiekt nierozpoznany</td><td>Szary romb ze znakiem zapytania.</td></tr>
     </tbody></table></div>
     <p><b>Okrąg wokół obiektu oznacza niepewność pozycji (±km).</b> Większy okrąg oznacza większy obszar niepewności, nie większy zasięg rażenia. Przerywana linia pokazuje ślad tylko wtedy, gdy źródło przekazuje pozycje nadające się do obserwacji ruchu. Punkt oznaczony jako „przybliżony rejon zgłoszenia” nie jest trasą.</p></div>
-    <figure><a class="shot-link" href="screens/04_legenda.jpg"><img loading="lazy" src="screens/04_legenda.jpg" width="1080" height="2400" alt="Aktualna legenda: dziewięć odrębnych ikon NEPTUN, okrąg niepewności, samolot, śmigłowiec i progi punktowe"></a><figcaption>Aktualne symbole w aplikacji 1.7.16.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/04_legenda.jpg"><img loading="lazy" src="screens/04_legenda.jpg" width="1080" height="2400" alt="Legenda w 1.7.23: dziewięć odrębnych ikon NEPTUN, okrąg niepewności, samolot, śmigłowiec i progi punktowe"></a><figcaption>Aktualne symbole, APK 1.7.23. Legendę otwiera pierwsza ikona w górnym pasku; okno ma ograniczoną wysokość i nie wchodzi na dolne komunikaty.</figcaption></figure>
   </div>
   <h3 id="zdjecia">Podgląd obiektu i zdjęcia</h3>
   <p>Karta obiektu podaje typ, rejon, liczbę potwierdzeń, wiarygodność, niepewność pozycji, kurs i odległość od Polski. ETA pojawia się tylko dla pozycji nadającej się do takiego obliczenia. Pole źródłowe <code>confirmed</code> może potwierdzać meldunek, nie dokładność współrzędnych. Jeżeli NEPTUN oznaczy rejon jako przybliżony albo Strażnik rozpozna kanoniczny punkt środka miejscowości, odległość jest zaokrąglona do dziesiątek kilometrów, a aplikacja nie przesuwa sztucznie znacznika, nie rysuje pozornej trasy i nie pokazuje ETA. Nazwa miejscowości może opisywać kierunek lub cel raportu, a nie położenie obiektu. Ilustracje AI są poglądowe i nie służą do rozpoznawania modelu.</p>
@@ -112,7 +114,8 @@
   <div class="shots">
     <figure><a class="shot-link" href="screens/approx-position-pl.png"><img loading="lazy" src="screens/approx-position-pl.png" width="1080" height="2400" alt="Karta punktu środka Łucka rozpoznanego jako pozycja rejonowa, bez dokładnego dystansu, trasy i ETA"></a><figcaption><b>Rozpoznany punkt miejscowości w APK 1.7.21.</b> Odizolowany replay wpisu NEPTUN z 11 września 2026: źródłowe <code>confirmed</code>, ale współrzędne odpowiadają środkowi Łucka. To test interfejsu, nie bieżący obiekt ani alarm.</figcaption></figure>
     <figure><a class="shot-link" href="screens/object-pl.jpg"><img loading="lazy" src="screens/object-pl.jpg" width="1080" height="2400" alt="Karta drona z podpisaną ilustracją AI i parametrami obserwacji po polsku"></a><figcaption>Podgląd obiektu z ilustracją poglądową oraz informacjami ze źródła.</figcaption></figure>
-    <figure><a class="shot-link" href="screens/aircraft-pl.png"><img loading="lazy" src="screens/aircraft-pl.png" width="1080" height="2400" alt="RCH5078, C-17: polska karta historii z przykładową fotografią modelu, autorem, źródłem i licencją"></a><figcaption>Rzeczywista obserwacja RCH5078; fotografia przedstawia inny egzemplarz C-17. Pixel 7, APK 1.7.18, 8 września 2026. Kartę można przewijać.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/aircraft-pl.png"><img loading="lazy" src="screens/aircraft-pl.png" width="1080" height="2400" alt="Rozwinięta karta samolotu HERKY7 C-130J: fotografia przykładowego egzemplarza, autor, źródło, licencja i pełna telemetria"></a><figcaption>Rozwinięta karta obserwacji HERKY7; fotografia przedstawia inny egzemplarz C-130J. Pixel 7, APK 1.7.23. Kartę można przewijać.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/card-mini-pl.jpg"><img loading="lazy" src="screens/card-mini-pl.jpg" width="1080" height="2400" alt="Miniatura karty obiektu w lewym dolnym rogu mapy, z białym pierścieniem wokół zaznaczonego samolotu"></a><figcaption><b>Miniatura karty (1.7.23).</b> Po dotknięciu obiektu karta otwiera się jako mały kafelek w rogu i nie zasłania mapy; strzałka rozwija ją do pełnej karty, ✕ zamyka. Zaznaczony obiekt ma na mapie biały pierścień.</figcaption></figure>
   </div>
 </section>
 <section id="przyciski">
@@ -127,18 +130,18 @@
     <tr><td>⏱ / ◎ / ⤢</td><td>Historia 12 godzin / powrót do mojego regionu / cały obszar.</td></tr>
     <tr><td>Pobierz aplikację / Instrukcja</td><td>Przyciski dostępne na stronie WWW; nie są wyświetlane w APK.</td></tr>
   </tbody></table></div>
-  <p>Panel sygnałów nie zwija się po kilku sekundach. Zamkniesz go krzyżykiem lub dotknięciem mapy poza panelem. Legenda i pozostałe panele również obsługują kliknięcie poza swoim obszarem. W ustawieniach użyj <kbd>Zapisz</kbd>, aby zatwierdzić zmiany.</p>
+  <p>Panel sygnałów nie zwija się po kilku sekundach. Zamkniesz go krzyżykiem, zakładką <kbd>Mapa</kbd> lub dotknięciem mapy poza panelem. Legenda i pozostałe panele również obsługują kliknięcie poza swoim obszarem. W ustawieniach użyj <kbd>Zapisz</kbd>, aby zatwierdzić zmiany.</p>
 </section>
 <section id="panel">
   <h2>5. Panel sygnałów</h2>
   <div class="split">
     <div>
-      <p><kbd>☰</kbd> otwiera karty województw. Dotknij regionu, aby zobaczyć źródła jego wyniku. Twój region ma obwódkę i podpis „mój region”. Panel zawiera sygnały z okna 60 minut, obiekty blisko granicy oraz publiczne obserwacje lotnictwa wojskowego.</p>
+      <p>Zakładka <kbd>Sygnały</kbd> na dolnym pasku otwiera karty województw. Dotknij regionu, aby zobaczyć źródła jego wyniku. Twój region ma obwódkę i podpis „mój region”. Panel zawiera sygnały z okna 60 minut, obiekty blisko granicy oraz publiczne obserwacje lotnictwa wojskowego.</p>
       <p>Sygnały są uporządkowane według faktycznie zaliczonego wkładu. Widoczna liczba uwzględnia limity źródła i wygaszanie w czasie; przekreślona wartość wyjaśnia, dlaczego nie zaliczono pełnej punktacji. Artykuł rozpoznany jako powtórzenie świeżego Alertu RCB albo materiał historyczny lub opis następstw pozostaje widoczny, lecz ma 0 dodatkowych punktów i odpowiednią etykietę. Różne ID tego samego typu w identycznym punkcie rejonowym są w jednym oknie traktowane jako aktualizacje jednego niepewnego zdarzenia, chyba że źródło poda wiarygodną liczbę obiektów.</p>
       <p>Wpis <b>Przeniesienie / SPILLOVER</b> wyjaśnia wkład z innego województwa. Tytuł medialny prowadzi do źródła. Sprawdź jego treść i czas publikacji.</p>
       <p><b>Kamery w regionie</b> prowadzą do dostępnych podglądów otoczenia. To kamery naziemne, nie narzędzie wykrywania obiektów powietrznych.</p>
     </div>
-    <figure><a class="shot-link" href="screens/panel-pl.jpg"><img loading="lazy" src="screens/panel-pl.jpg" width="1080" height="2400" alt="Aktualny panel województw z wyróżnionym Podlaskiem jako moim regionem i listą sygnałów"></a><figcaption>Rzeczywisty spokojny stan podczas wykonywania zrzutu — wartości zmieniają się z danymi.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/panel-pl.jpg"><img loading="lazy" src="screens/panel-pl.jpg" width="1080" height="2400" alt="Panel sygnałów w 1.7.23: karty województw z punktacją i lista sygnałów z okna 60 minut"></a><figcaption>Panel otwiera zakładka <kbd>Sygnały</kbd> na dolnym pasku. Rzeczywisty spokojny stan podczas wykonywania zrzutu — wartości zmieniają się z danymi.</figcaption></figure>
   </div>
 </section>
 <section id="historia">
@@ -150,13 +153,13 @@
     </div>
     <figure><a class="shot-link" href="screens/history-lubelskie-user.png"><img loading="lazy" src="screens/history-lubelskie-user.png" width="1440" height="3200" alt="Historyczne Lubelskie: żółty poziom 2,2 pkt, wpis RCB (RSO), obiekty NEPTUN na mapie i suwak o 15:11"></a><figcaption>Przykład historyczny od użytkownika: podwyższona uwaga w Lubelskiem i rozbicie punktacji na źródła. Oryginalny zrzut, bez zmiany treści.</figcaption></figure>
   </div>
-  <p>Naciśnij <kbd>⏱</kbd> i przeciągaj suwak w lewo lub w prawo. Mapa oraz panel pokazują wybraną chwilę, nie bieżący stan. Etykieta podaje godzinę i liczbę minut wstecz. <kbd>● NA ŻYWO</kbd> przywraca aktualny widok.</p>
+  <p>Dotknij zakładki <kbd>Historia</kbd> na dolnym pasku i przeciągaj suwak w lewo lub w prawo. Pasek nazywa tryb wprost: <b>⏱ TRYB HISTORII</b>. Mapa oraz panel pokazują wybraną chwilę, nie bieżący stan. Etykieta podaje godzinę i liczbę minut wstecz. Przycisk <kbd>▶ Wróć do podglądu na żywo</kbd> przywraca aktualny widok. Suwak w 1.7.23 jest wyraźnie większy: 44 px pola dotyku i 28 px uchwytu.</p>
   <p>Pakiet historii pobierany jest na urządzenie, a przewijanie korzysta z lokalnego bufora. Każdy ruch palca nie wysyła osobnego zapytania do serwera. Migawki powstają zwykle co 2 minuty: to odtwarzanie zapisanych próbek, nie ciągłe nagranie radarowe. Długość dostępnej historii zależy od ciągłości zapisu i źródeł.</p>
-  <p><b>Spójny czas samolotów (1.7.17):</b> mapa, lista maszyn, panel <kbd>🛰</kbd> i szczegóły samolotu korzystają z tej samej wybranej chwili. Późniejsze zdarzenie nie może pojawić się we wcześniejszym widoku. Powrót <kbd>● NA ŻYWO</kbd> przywraca dane bieżące.</p>
+  <p><b>Spójny czas samolotów (1.7.17):</b> mapa, lista maszyn, panel obcego lotnictwa i szczegóły samolotu korzystają z tej samej wybranej chwili. Późniejsze zdarzenie nie może pojawić się we wcześniejszym widoku. Przycisk <kbd>▶ Wróć do podglądu na żywo</kbd> przywraca dane bieżące.</p>
   <p>Przygaszona obca maszyna to <b>ostatnia zapisana pozycja</b>, uzupełniająca lukę między migawkami. Pokazujemy ją tylko na podstawie wcześniejszego wpisu dziennika, nie starszego niż 2,5 minuty względem wybranej chwili. Karta podaje czas zapisu i zaznacza brak w migawce. Wpis „zniknął” opisuje utratę obecności w danych, nie lądowanie ani zestrzelenie; jego czas nie musi być czasem ostatniej emisji transpondera. Licznik rozdziela maszyny w migawce od ostatnich obserwacji.</p>
   <p>Panel 🛰 pobiera niewielki dziennik serwera z ostatnich 12 godzin, także z czasu, gdy aplikacja była zamknięta, i łączy go z lokalnymi wpisami bez powielania tych samych przejść. Wyświetla tylko wpisy do wybranej chwili. Odświeżanie jest ograniczone do najwyżej jednego zapytania na minutę, nie jest wykonywane przy każdym ruchu suwaka. Niedostępność dziennika lub lokalny tryb awaryjny są opisane w panelu. Te obserwacje nie dodają punktów.</p>
   <div class="shots">
-    <figure><a class="shot-link" href="screens/history-map-pl.png"><img loading="lazy" src="screens/history-map-pl.png" width="1080" height="2400" alt="Historia w 1.7.17 na Pixelu 7, suwak oraz licznik maszyn w migawce"></a><figcaption>Rzeczywista historia serwera, APK 1.7.17 — 7 września 2026.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/history-map-pl.png"><img loading="lazy" src="screens/history-map-pl.png" width="1080" height="2400" alt="Tryb historii w 1.7.23: nagłówek TRYB HISTORII, większy suwak, przycisk Wróć do podglądu na żywo i licznik maszyn w migawce"></a><figcaption>Rzeczywista historia serwera, APK 1.7.23 — 12 września 2026.</figcaption></figure>
     <figure><a class="shot-link" href="screens/history-watch-pl.png"><img loading="lazy" src="screens/history-watch-pl.png" width="1080" height="2400" alt="Panel obcych maszyn zsynchronizowany z wybranym czasem historii, ze statusem dziennika"></a><figcaption>Panel 🛰 pokazuje ten sam czas co mapa — Pixel 7, 1.7.17.</figcaption></figure>
   </div>
   <p>Sygnał w oknie 60 minut może pozostać na liście po zniknięciu obiektu z mapy. To różne rzeczy: lista opisuje zarejestrowane zdarzenia, mapa — pozycje dostępne w konkretnej migawce. NEPTUN usuwa wpis komunikatem źródłowym lub zastępuje listę aktywnych obiektów; sama przyczyna usunięcia nie jest przekazywana. Zniknięcie nie dowodzi zestrzelenia, rozbicia ani opuszczenia rejonu. Nowy identyfikator w tym samym przybliżonym punkcie może oznaczać ponowne zgłoszenie, nie nowy fizyczny obiekt. Dla części obcych maszyn aplikacja może pokazać przygaszoną ostatnią obserwację, odróżnioną od bieżącej pozycji.</p>
@@ -173,7 +176,7 @@
     <tr><td>Od 2 do poniżej 4 pkt</td><td>Żółty poziom „PODWYŻSZONA UWAGA”: krótki sygnał uwagi i powiadomienie, które może pojawić się jako heads-up.</td></tr>
     <tr><td>Od 4 pkt</td><td>Czerwony „WYSOKI PRIORYTET”: syrena, wibracja i alarm pełnoekranowy, jeśli system i zgody na to pozwalają. Potwierdzenie na ekranie wycisza alarm.</td></tr>
   </tbody></table></div>
-  <p>W <kbd>⚙</kbd> dostępne są <kbd>Test: uwaga</kbd>, <kbd>Test: syrena</kbd> oraz <kbd>Test: pełny alarm</kbd>. To testy lokalne na Twoim urządzeniu. Nie potwierdzają dostarczenia push z serwera. W 1.7.15 podniesiono poziom czerwonej syreny; rzeczywista głośność zależy również od telefonu i ustawień dźwięku.</p>
+  <p>W <kbd>⚙</kbd> → <kbd>Dźwięk</kbd> dostępne są <kbd>Test: uwaga</kbd>, <kbd>Test: syrena</kbd> oraz <kbd>Test: pełny alarm</kbd>. To testy lokalne na Twoim urządzeniu. Nie potwierdzają dostarczenia push z serwera. W 1.7.15 podniesiono poziom czerwonej syreny; rzeczywista głośność zależy również od telefonu i ustawień dźwięku.</p>
   <div class="warn"><b>Sprawdź pełny ekran na swoim telefonie.</b> Bez odpowiedniej zgody czerwony alert może być tylko powiadomieniem. Sprawdź również głośność, ustawienia kanałów, tryb Nie przeszkadzać i ograniczenia baterii. Ponów kontrolę po aktualizacji.</div>
 </section>
 <section id="tlo">
@@ -229,7 +232,7 @@
 </section>
 <section id="zaawansowane">
   <h2>12. Własny serwer — opcjonalnie</h2>
-  <p>Puste pole w <kbd>⚙</kbd> → <kbd>Zaawansowane: wspólny backend</kbd> oznacza domyślny serwer Strażnika. Własny adres podaj tylko wtedy, gdy sam utrzymujesz zgodny backend i jego powiadomienia.</p>
+  <p>Puste pole w <kbd>⚙</kbd> → <kbd>Aplikacja</kbd> → <kbd>Zaawansowane: wspólny backend</kbd> oznacza domyślny serwer Strażnika. Własny adres podaj tylko wtedy, gdy sam utrzymujesz zgodny backend i jego powiadomienia.</p>
   <p>Wymagany jest <b>HTTPS z certyfikatem zaufanym przez system</b>. Zewnętrzny HTTP i ręcznie doinstalowane certyfikaty nie są obsługiwane w produkcyjnym APK. Wewnętrzny adres localhost aplikacji jest osobnym wyjątkiem technicznym. <a href="https://github.com/cukierrro/Straznik#readme">Opis uruchomienia backendu znajduje się w README</a>.</p>
 </section>
 <section id="prywatnosc">

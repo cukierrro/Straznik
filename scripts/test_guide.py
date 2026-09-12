@@ -11,6 +11,8 @@ HISTORICAL = {
     "screens/32_alarm_pelnoekranowy.jpg": (720, 1600),
     "screens/history-lubelskie-user.png": (1440, 3200),
 }
+# liczba odrębnych zrzutów użytych w obu wersjach instrukcji
+EXPECTED_SHOTS = 25
 
 
 class Page(HTMLParser):
@@ -56,7 +58,7 @@ def main():
             fmt = "PNG" if path.endswith(".png") else "JPEG"
             assert shot.format == fmt and shot.size == HISTORICAL.get(path, (1080, 2400)), path
             shot.verify()
-    assert len(images) == 23 and set(HISTORICAL).issubset(images), images
+    assert len(images) == EXPECTED_SHOTS and set(HISTORICAL).issubset(images), images
     share = ROOT / "share-history-v1.jpg"
     assert share.read_bytes() == (ROOT.parent / "frontend/assets/share-history-v1.jpg").read_bytes()
     with Image.open(share) as card:
@@ -68,7 +70,7 @@ def main():
         assert f'property="og:image" content="{expected}"' in html
         assert f'name="twitter:image" content="{expected}"' in html
     print(f"OK: 2 languages, {len(pages['index.html'].sections)} matching sections, "
-          f"23 screenshots, local links, alt text and shared 1200x630 preview.")
+          f"{EXPECTED_SHOTS} screenshots, local links, alt text and shared 1200x630 preview.")
 
 
 if __name__ == "__main__":

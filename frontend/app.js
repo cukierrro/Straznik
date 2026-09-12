@@ -352,6 +352,12 @@ let voivGeo = null;   // GeoJSON województw (do GPS → województwo i do centr
 
 /* widok startowy: cała Polska + zachodnia Ukraina (kierunek nadlotu) */
 const FIT_VIEW = { center: [23.2, 50.7], zoom: 5.75 };
+/* Widok startowy = Polska i CAŁA Ukraina. Ramka geograficzna zamiast sztywnego
+   przybliżenia: na wąskim telefonie zoom 5.75 pokazywał pół Europy, a na tablecie
+   ucinał wschód Ukrainy. `fitBounds` dopasowuje kadr do rozmiaru ekranu, więc
+   „cała PL" zawsze wraca dokładnie do tego, co widać po uruchomieniu. */
+const FIT_BOUNDS = [[14.0, 44.2], [40.4, 55.1]];
+const FIT_PAD = 18;
 
 let state = null;          // ostatni stan z backendu
 let threatsReceivedAt = 0; // do dead-reckoningu
@@ -657,7 +663,7 @@ async function initMap() {
 
   map = new maplibregl.Map({
     container: "map", style,
-    center: FIT_VIEW.center, zoom: FIT_VIEW.zoom, pitch: 45, bearing: -8,
+    bounds: FIT_BOUNDS, fitBoundsOptions: { padding: FIT_PAD }, pitch: 45, bearing: -8,
     antialias: true, attributionControl: false, maxPitch: 70,
   });
 
@@ -761,6 +767,14 @@ async function initMap() {
         "circle-opacity": ["case", ["==", ["get", "historicalOnly"], true], 0.07, 0.16],
         "circle-stroke-color": ["get", "color"], "circle-stroke-opacity": 0.45,
         "circle-stroke-width": 1 } });
+    /* Zaznaczony obiekt: biały pierścień POD ikoną. Bez tego po dotknięciu
+       kilku dronów obok siebie nie było wiadomo, którego dotyczy karta. */
+    map.addLayer({ id: "threats-sel", type: "circle", source: "threats",
+      filter: ["==", ["get", "tid"], "__none__"],
+      paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"], 4, 15, 8, 26],
+        "circle-color": "rgba(0,0,0,0)",
+        "circle-stroke-color": "#ffffff", "circle-stroke-width": 2.5,
+        "circle-stroke-opacity": 0.95 } });
     map.addLayer({ id: "threats", type: "symbol", source: "threats",
       layout: { "icon-image": ["concat", "dart-", ["get", "type"]],
         "icon-size": ["interpolate", ["linear"], ["zoom"], 4, 0.5, 8, 0.85],
@@ -782,6 +796,12 @@ async function initMap() {
       paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"], 4, 10, 8, 20],
         "circle-color": "#ff4d5e", "circle-opacity": ["case", ["==", ["get", "historicalOnly"], true], 0.08, 0.18],
         "circle-stroke-color": "#ff4d5e", "circle-stroke-width": 1.6, "circle-stroke-opacity": 0.85 } });
+    map.addLayer({ id: "adsb-sel", type: "circle", source: "adsb",
+      filter: ["==", ["get", "hex"], "__none__"],
+      paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"], 4, 13, 8, 22],
+        "circle-color": "rgba(0,0,0,0)",
+        "circle-stroke-color": "#ffffff", "circle-stroke-width": 2.5,
+        "circle-stroke-opacity": 0.95 } });
     map.addLayer({ id: "adsb", type: "symbol", source: "adsb",
       layout: { "icon-image": ["case", ["==", ["get", "heli"], true], "heli", "plane"],
         "icon-size": 0.62,
@@ -929,17 +949,52 @@ function updateWatchBadge(n) {
 /* Stała karta obiektu (bottom-sheet) — zawsze w tym samym miejscu, zamiast dymka
    MapLibre przyczepionego do pozycji na mapie (ten skakał po ekranie, uciekał za
    krawędź i przesuwał się razem z obiektem). */
+/* Podświetlenie na mapie: biały pierścień pod ikoną wskazuje obiekt, którego
+   dotyczy otwarta karta. Bez tego przy kilku dronach obok siebie nie było
+   wiadomo, który został dotknięty. */
+function markSelected(kind, id) {
+  if (!mapReady) return;
+  const none = "__none__";
+  try {
+    map.setFilter("threats-sel", ["==", ["get", "tid"], kind === "threat" ? String(id ?? none) : none]);
+    map.setFilter("adsb-sel", ["==", ["get", "hex"], kind === "plane" ? String(id ?? none) : none]);
+  } catch {}
+}
+
 function showCard(html) {
   const body = document.getElementById("ac-card-body");
   if (!body) return;
   body.innerHTML = html;
-  document.getElementById("ac-card").classList.remove("hidden");
+  const card = document.getElementById("ac-card");
+  card.classList.remove("hidden");
+  card.scrollTop = 0;
+  applyCardSize();
 }
-function hideCard() { document.getElementById("ac-card")?.classList.add("hidden"); }
+function hideCard() {
+  document.getElementById("ac-card")?.classList.add("hidden");
+  markSelected(null, null);
+}
+
+/* Karta obiektu ma dwa rozmiary: miniatura w rogu (domyślnie — nie zasłania mapy)
+   i rozwinięta karta na niemal cały ekran. Wybór zostaje na urządzeniu. */
+function cardBig() { try { return localStorage.getItem("straznik_card_big") === "1"; } catch { return false; } }
+function applyCardSize() {
+  const card = document.getElementById("ac-card");
+  const btn = document.getElementById("ac-card-zoom");
+  if (!card) return;
+  const big = cardBig();
+  card.classList.toggle("big", big);
+  if (btn) {
+    const t = big ? (UI.isEn ? "Collapse card" : "Zwiń kartę")
+                  : (UI.isEn ? "Expand card" : "Rozwiń kartę");
+    btn.title = t; btn.setAttribute("aria-label", t);
+  }
+}
 
 /* dymki — wspólne dla kliknięcia w mapę i w pozycję listy */
 function openThreatPopup(lngLat, p) {
   if (!p) return;
+  markSelected("threat", p.tid);
   const meta0 = TYPE_META[p.type] || { label: p.type, color: "#8a93a6" };
   const meta = { ...meta0, label: UI.type(p.type, meta0.label) };
   const photo = THREAT_PHOTOS[p.type];
@@ -1014,6 +1069,7 @@ function planePopupHTML(p, heli, uid) {
 function openPlanePopup(lngLat, props) {
   const p = (histMode ? historyAdsbByHex : adsbByHex).get(props?.hex) || props;
   if (!p) return;
+  markSelected("plane", p.hex);
   const heli = p.heli != null ? p.heli : isHeli(p.cat, p.type, p.desc);
   const uid = "pp" + (++popupSeq);
   const timeNote = histMode ? `<div class="hist-banner">${UI.isEn ? "HISTORY VIEW" : "PODGLĄD HISTORII"} — ${watchClock(historyAdsbTime)}<br>${p.historicalOnly
@@ -1189,7 +1245,8 @@ function animate(ts) {
     const meta = TYPE_META[t.type] || { color: "#8a93a6" };
     const p = predict(t, now);
     pts.push({ type: "Feature", geometry: { type: "Point", coordinates: [p.lon, p.lat] },
-      properties: { type: TYPE_META[t.type] ? t.type : "unknown", heading: t.heading ?? 0,
+      properties: { tid: String(t.id ?? ""),
+        type: TYPE_META[t.type] ? t.type : "unknown", heading: t.heading ?? 0,
         color: meta.color,
         confidence: t.confidenceLevel || "?", uncertainty: t.uncertaintyKm ?? "?",
         opis: threatDesc(t), dist_km: t.pl_assessment?.dist_km,
@@ -1735,6 +1792,11 @@ document.getElementById("btn-watch")?.addEventListener("click", () => showWatch(
 document.getElementById("watch-close")?.addEventListener("click", () =>
   document.getElementById("watch").close());
 document.getElementById("ac-card-x")?.addEventListener("click", () => hideCard());
+document.getElementById("ac-card-zoom")?.addEventListener("click", () => {
+  try { localStorage.setItem("straznik_card_big", cardBig() ? "0" : "1"); } catch {}
+  applyCardSize();
+  document.getElementById("ac-card").scrollTop = 0;
+});
 
 /* ── alarm dźwiękowy przy poziomie WYSOKI ────────────────────────────────── */
 let lastMood = "none";
@@ -2037,17 +2099,30 @@ function voivAt(lon, lat) {
 }
 
 /* ── kamera ──────────────────────────────────────────────────────────────── */
+/* Jednolite przybliżenie dla KAŻDEGO województwa: `fitBounds` dawał inny plan dla
+   dużego mazowieckiego i małego opolskiego, więc „mój region" wyglądał za każdym
+   razem inaczej. Stały zoom = ten sam kadr niezależnie od regionu. */
+const VOIV_ZOOM = 7.15;
 function goHome(instant) {
   const name = myVoiv();
-  if (!name) return fitAll(instant);
+  if (!name) {
+    // Bez zapisanego miejsca przycisk robił to samo co „cała PL" i wyglądał na
+    // zepsuty — mówimy wprost, czego brakuje.
+    fitAll(instant);
+    toast(UI.isEn ? "Set your place first: Settings → My places"
+                  : "Najpierw ustaw miejsce: Ustawienia → Moje miejsca");
+    return;
+  }
   const f = featureFor(name);
   if (!f) return fitAll(instant);
-  map.fitBounds(bboxOf(f), { padding: 90, pitch: is3d ? 50 : 0,
-    duration: instant ? 0 : 900, maxZoom: 8.5 });
+  const [[minX, minY], [maxX, maxY]] = bboxOf(f);
+  map.easeTo({ center: [(minX + maxX) / 2, (minY + maxY) / 2], zoom: VOIV_ZOOM,
+    pitch: is3d ? 50 : 0, bearing: is3d ? -8 : 0, duration: instant ? 0 : 900 });
 }
 function fitAll(instant) {
-  map.easeTo({ ...FIT_VIEW, pitch: is3d ? 45 : 0, bearing: is3d ? -8 : 0,
-    duration: instant ? 0 : 900 });
+  if (!map) return;
+  map.fitBounds(FIT_BOUNDS, { padding: FIT_PAD, pitch: is3d ? 45 : 0,
+    bearing: is3d ? -8 : 0, duration: instant ? 0 : 900 });
 }
 
 /* ── przelot mapy do obiektu wybranego z listy ───────────────────────────── */
@@ -2409,7 +2484,8 @@ function showHistoryAt(idx) {
     map.getSource("threats")?.setData({ type: "FeatureCollection",
       features: historyThreats.filter(t => t.lat != null).map(t => ({ type: "Feature",
         geometry: { type: "Point", coordinates: [t.lon, t.lat] },
-        properties: { type: TYPE_META[t.type] ? t.type : "unknown", heading: t.heading ?? 0,
+        properties: { tid: String(t.id ?? ""),
+          type: TYPE_META[t.type] ? t.type : "unknown", heading: t.heading ?? 0,
           color: (TYPE_META[t.type] || {}).color || "#8a93a6",
           confidence: t.confidenceLevel || "?", uncertainty: t.uncertaintyKm ?? "?",
           opis: t.historicalOnly
@@ -2665,7 +2741,11 @@ async function refreshBgWarning() {
    się z pominięciem Play. */
 const UPDATE_CHECK = true;
 const UPDATE_API = DEFAULT_BACKEND + "/api/app-version";
-const UPDATE_EVERY_MS = 12 * 3600 * 1000;
+/* Sprawdzamy przy każdym uruchomieniu aplikacji i przy powrocie z tła, a nie
+   raz na dobę: wydania wychodzą nieregularnie, a poprawka w narzędziu
+   ostrzegawczym ma dotrzeć tego samego dnia. Odstęp poniżej ogranicza wyłącznie
+   powroty z tła, żeby przełączanie okien nie odpytywało serwera bez końca. */
+const UPDATE_EVERY_MS = 30 * 60 * 1000;
 // „Później” obowiązuje tylko do zamknięcia aplikacji/karty. Nie zapisujemy tego
 // w localStorage, więc następna sesja ponownie pokaże nadal aktualną wersję.
 const sessionSkippedUpdates = new Set();
@@ -2681,9 +2761,10 @@ function isNewer(remote, local) {
   return false;
 }
 
-/** `force` — sprawdzenie na żądanie z ustawień: pomija odstęp czasowy
- *  i wcześniejsze „nie przypominaj”, oraz melduje wynik również wtedy,
- *  gdy nowszej wersji nie ma. */
+/** `force` — sprawdzenie na żądanie z ustawień: pomija wcześniejsze
+ *  „nie przypominaj” i melduje wynik również wtedy, gdy nowszej wersji nie ma.
+ *  `throttled` — wywołanie z powrotu z tła: respektuje UPDATE_EVERY_MS.
+ *  Start aplikacji sprawdza zawsze, bez odstępu. */
 /* Komunikat trafia do okna ustawień, a nie do toasta: modalny <dialog> tworzy
    własną warstwę, nad którą zwykłe elementy się nie renderują — toast byłby
    pod spodem i użytkownik nie zobaczyłby żadnej odpowiedzi na kliknięcie. */
@@ -2693,11 +2774,11 @@ function updStatus(msg) {
   else toast(msg);
 }
 
-async function checkForUpdate(force = false) {
+async function checkForUpdate(force = false, throttled = false) {
   if (!UPDATE_CHECK || !IS_APP) return;
   try {
     const last = +(localStorage.getItem("straznik_upd_check") || 0);
-    if (!force && Date.now() - last < UPDATE_EVERY_MS) return;
+    if (throttled && !force && Date.now() - last < UPDATE_EVERY_MS) return;
     if (force) updStatus("Sprawdzam…");
     const s = await BG()?.status();
     const local = s?.appVersion;
@@ -2904,11 +2985,11 @@ refreshBell();
 document.getElementById("btn-3d").onclick = () => {
   is3d = !is3d;
   map?.easeTo({ pitch: is3d ? 45 : 0, bearing: is3d ? -8 : 0, duration: 700 });
-  // etykieta w wierszu menu; ikona zostaje nietknięta
-  const lbl = document.querySelector("#btn-3d .lbl");
-  if (lbl) lbl.textContent = is3d ? (UI.isEn ? "3D view" : "Widok 3D")
-                                  : (UI.isEn ? "2D view" : "Widok 2D");
-  document.getElementById("btn-3d").classList.toggle("active", is3d);
+  // ikona w pasku bez podpisu: stan niesie podświetlenie i tytuł
+  const b3 = document.getElementById("btn-3d");
+  b3.classList.toggle("active", is3d);
+  b3.title = is3d ? (UI.isEn ? "Switch to 2D view" : "Przełącz na widok 2D")
+                  : (UI.isEn ? "Switch to 3D view" : "Przełącz na widok 3D");
 };
 
 /* Dolne zakładki: „Mapa" jest stanem spoczynku — zamyka panel, historię i menu. */
@@ -2955,7 +3036,7 @@ const attrEl = document.getElementById("attribution");
 if (attrEl) {
   const mini = document.createElement("span");
   mini.className = "mini-label";
-  mini.textContent = "źródła ⓘ";
+  mini.textContent = UI.isEn ? "sources ⓘ" : "źródła ⓘ";
   attrEl.appendChild(mini);
   if (localStorage.getItem("straznik_attr_mini") === "1") attrEl.classList.add("mini");
   document.getElementById("attr-x")?.addEventListener("click", (e) => {
@@ -2963,11 +3044,18 @@ if (attrEl) {
     attrEl.classList.add("mini");
     try { localStorage.setItem("straznik_attr_mini", "1"); } catch {}
   });
-  attrEl.addEventListener("click", () => {
-    if (!attrEl.classList.contains("mini")) return;
+  attrEl.addEventListener("click", (e) => {
+    if (!attrEl.classList.contains("mini")) {
+      // rozwinięta atrybucja mieści jeden wiersz z wielokropkiem — dotknięcie
+      // otwiera „O aplikacji", gdzie jest pełna lista źródeł
+      if (e.target.closest("a")) return;
+      document.getElementById("about")?.showModal();
+      return;
+    }
     attrEl.classList.remove("mini");
     try { localStorage.removeItem("straznik_attr_mini"); } catch {}
   });
+  attrEl.style.cursor = "pointer";
 }
 
 /* ── dolne zakładki i menu „Więcej” ── */
@@ -3045,6 +3133,11 @@ if (!localStorage.getItem("straznik_onboarded")) {
 setInterval(() => { if (state) renderPanel(); }, 30000);  // odświeżaj "x min temu"
 setInterval(pollOnce, 60000);                              // siatka bezpieczeństwa
 setTimeout(checkForUpdate, 6000);   // po starcie, gdy mapa i dane są już w drodze
+// Powrót aplikacji na wierzch traktujemy jak kolejne otwarcie — z odstępem,
+// żeby krótkie przełączenie na inną aplikację nie odpytywało GitHuba za każdym razem.
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") checkForUpdate(false, true);
+});
 setTimeout(refreshBgWarning, 3500);
 setInterval(refreshBgWarning, 60000);
 
