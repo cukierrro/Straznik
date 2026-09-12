@@ -2106,9 +2106,11 @@ function voivAt(lon, lat) {
 /* Jednolite przybliżenie dla KAŻDEGO województwa: `fitBounds` dawał inny plan dla
    dużego mazowieckiego i małego opolskiego, więc „mój region" wyglądał za każdym
    razem inaczej. Stały zoom = ten sam kadr niezależnie od regionu. */
-/* Kadr „mój region": województwo z zapasem na sąsiadów i pas przygraniczny, a nie
-   sam obrys wypełniający ekran. */
-const VOIV_ZOOM = 6.6;
+/* Kadr „mój region": województwo w kontekście — cała Polska plus przygraniczne obwody
+   Ukrainy i Białorusi. Ciaśniejsze ustawienie (6,6 i wcześniej 7,15) wypełniało ekran
+   samym obrysem i nie było widać, skąd nadlatują obiekty. Wartość dobrana na Pixelu 7
+   pod zrzut zatwierdzony przez użytkownika. */
+const VOIV_ZOOM = 5.3;
 function goHome(instant) {
   const name = myVoiv();
   if (!name) {
