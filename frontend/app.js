@@ -788,58 +788,6 @@ function localiseMapLabels() {
   }
 }
 
-/* Granice państw wyraźnie, granice obwodów/landów cicho (sugestia czytelnika,
-   13.09.2026). Wcześniej styl bazowy dostawał jeden kolor i grubość dla
-   wszystkich linii administracyjnych — przerywane granice obwodów UA i BY
-   wyglądały jak granice państw, a wypełnienia krajów (kraje-fill) przykrywały
-   te linie od góry. Teraz: jasna linia państwa z ciemną obwódką pod spodem
-   (kontrast na każdym odcieniu kraju) i przeniesienie granic nad wypełnienia.
-   Wołać PO dodaniu kraje-fill, a PRZED warstwami Polski (pl-line ma być na wierzchu). */
-async function styleBorders() {
-  const isCountry = (id) => /boundary_country|admin[-_]?0|admin_country|country.*bound/i.test(id);
-  const borders = (map.getStyle().layers || [])
-    .filter(l => l.type === "line" && /boundar|admin/i.test(l.id));
-  for (const lyr of borders) {
-    try {
-      if (!isCountry(lyr.id)) {
-        map.setPaintProperty(lyr.id, "line-color", "#5d6a86");
-        map.setPaintProperty(lyr.id, "line-width", ["interpolate", ["linear"], ["zoom"], 4, 0.4, 8, 0.9]);
-        map.setPaintProperty(lyr.id, "line-opacity", 0.45);
-        map.moveLayer(lyr.id);
-        continue;
-      }
-      map.addLayer({ ...lyr, id: lyr.id + "-casing", paint: {
-        "line-color": "#05070c", "line-opacity": 0.85, "line-blur": 0.5,
-        "line-width": ["interpolate", ["linear"], ["zoom"], 3, 2.8, 7, 5] } });
-      map.setPaintProperty(lyr.id, "line-color", "#dbe5f7");
-      map.setPaintProperty(lyr.id, "line-width", ["interpolate", ["linear"], ["zoom"], 3, 1.1, 7, 2.0]);
-      map.setPaintProperty(lyr.id, "line-opacity", 0.95);
-      map.setPaintProperty(lyr.id, "line-blur", 0);
-      map.moveLayer(lyr.id);
-      // poniżej BORDER_OWN_MAXZOOM granice rysuje własna warstwa (niżej)
-      map.setLayerZoomRange(lyr.id + "-casing", Math.max(lyr.minzoom || 0, BORDER_OWN_MAXZOOM), 24);
-      map.setLayerZoomRange(lyr.id, Math.max(lyr.minzoom || 0, BORDER_OWN_MAXZOOM), 24);
-    } catch (e) { console.warn("granice", lyr.id, e); }
-  }
-  /* Po oddaleniu kafelki mapy bazowej są uproszczone: gubią odcinki granic, a filtr
-     stylu pomija granice sporne — stąd przerwy przy Krymie, na froncie i między
-     Białorusią a Ukrainą (zgłoszenie 13.09.2026). Do BORDER_OWN_MAXZOOM rysujemy
-     granice lądowe z Natural Earth 1:50 mln (assets/granice.geojson, widok polski:
-     Krym w Ukrainie), dalej zostają dokładne linie OpenStreetMap z mapy bazowej. */
-  try {
-    const gr = await (await fetch("assets/granice.geojson")).json();
-    map.addSource("granice", { type: "geojson", data: gr });
-    map.addLayer({ id: "granice-casing", type: "line", source: "granice", maxzoom: BORDER_OWN_MAXZOOM,
-      layout: { "line-join": "round", "line-cap": "round" },
-      paint: { "line-color": "#05070c", "line-opacity": 0.85, "line-blur": 0.5,
-        "line-width": ["interpolate", ["linear"], ["zoom"], 3, 2.8, 7, 5] } });
-    map.addLayer({ id: "granice-line", type: "line", source: "granice", maxzoom: BORDER_OWN_MAXZOOM,
-      layout: { "line-join": "round", "line-cap": "round" },
-      paint: { "line-color": "#dbe5f7", "line-opacity": 0.95,
-        "line-width": ["interpolate", ["linear"], ["zoom"], 3, 1.1, 7, 2.0] } });
-  } catch (e) { console.warn("granice własne", e); }
-}
-const BORDER_OWN_MAXZOOM = 5.5;
 
 async function initMap() {
   let style = FALLBACK_STYLE;
@@ -856,6 +804,9 @@ async function initMap() {
 
   map.on("load", async () => {
     localiseMapLabels();
+    // Granice państw: natywne linie stylu bazowego, bez podbarwiania. Wyraźniejsze
+    // obrysy z 1.7.41–1.7.42 wycofane 13.09.2026 (przy pochylonej mapie znikały
+    // odcinki granic) — wrócą po dopracowaniu.
     for (const [t, m] of Object.entries(TYPE_META)) map.addImage("dart-" + t, makeThreatImage(t, m.color));
     for (const [t, m] of Object.entries(TYPE_META))
       if (!NO_HEADING_TYPES.has(t)) map.addImage("dart-" + t + "-unk", makeThreatImage(t, m.color, true));
@@ -882,7 +833,6 @@ async function initMap() {
       paint: { "fill-color": ["match", ["get", "iso"],
           ...Object.entries(COUNTRY_COLORS).flat(), "#333"],
         "fill-opacity": countryOpacity } });
-    await styleBorders();
     /* Kontury krajów rysuje już styl bazowy (warstwy boundary). Własnej linii
        NIE dokładamy: wzdłuż granicy PL biegłaby obok linii województw i dawała
        efekt „podwójnego konturu". Zostaje samo wypełnienie (odcień kraju). */

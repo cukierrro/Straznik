@@ -16,6 +16,15 @@ DOCS = ROOT / "docs"
 # (wersja, data PL, data EN, tytuł PL, tytuł EN, punkty PL, punkty EN, zrzuty)
 # Zrzut: (plik, alt PL, alt EN, podpis PL, podpis EN)
 RELEASES = [
+    ("1.7.43", "13 września 2026", "13 September 2026",
+     "Granice państw w dotychczasowym wyglądzie",
+     "National borders back to their previous look",
+     ["Wyraźniejsze białe obrysy granic państw zostały czasowo zdjęte: przy pochylonej mapie znikały na nich odcinki. Mapa pokazuje granice tak jak mapa bazowa, a obrysy wrócą w najbliższej przyszłości — dopracowane.",
+      "Trasy obiektów i samolotów z 1.7.42 zostają bez zmian."],
+     ["The more visible white national border outlines have been temporarily removed: parts of them disappeared on the tilted map. The map shows borders as the base map draws them, and refined outlines will return in the near future.",
+      "Object and aircraft tracks from 1.7.42 stay unchanged."],
+     []),
+
     ("1.7.42", "13 września 2026", "13 September 2026",
      "Ciągłe granice po oddaleniu i widoczne trasy obiektów",
      "Continuous borders when zoomed out and visible object tracks",
