@@ -38,7 +38,9 @@ def threat_label_pl(threat_type: str) -> str:
 
 # stan: aktywne tracki wg id (dla frontendu i CLI)
 tracks: dict[str, dict] = {}
-status = {"connected": False, "mode": "ws", "last_msg": None, "error": None}
+status = {"connected": False, "mode": "ws", "last_msg": None, "error": None,
+          # D8: rekordy pominięte, bo rzuciły wyjątkiem (np. tekst zamiast liczby)
+          "bad_records": 0, "last_bad": None}
 
 # aktywne oficjalne alarmy powietrzne w obwodach UA (z ramek "alerts")
 alert_oblasts: set[str] = set()
@@ -501,15 +503,50 @@ async def _handle_threats(threats: list[dict], replace: bool, *,
     if replace:
         tracks.clear()
     for t in threats:
-        t = dict(t)
-        # Always overwrite this reserved field; the source cannot claim local receipt.
-        t["_receipt"] = {"received_at": received_iso, "transport": transport,
-                         "message_type": message_type, "source_message_ts": source_message_ts}
-        t = _evaluate(t)
-        tracks[t.get("id")] = t
-        await _maybe_signal(t)
+        # D8 (audyt 11.09.2026): jeden zepsuty obiekt („count": "dużo") rzucał
+        # wyjątek, który zamykał połączenie — a po ponownym połączeniu snapshot
+        # zawierał ten sam rekord, więc NEPTUN leżał, dopóki obiekt był aktywny.
+        # Zły rekord pomijamy i liczymy; reszta paczki idzie dalej.
+        try:
+            t = dict(t)
+            # Always overwrite this reserved field; the source cannot claim local receipt.
+            t["_receipt"] = {"received_at": received_iso, "transport": transport,
+                             "message_type": message_type, "source_message_ts": source_message_ts}
+            t = _evaluate(t)
+            tracks[t.get("id")] = t
+            await _maybe_signal(t)
+        except Exception as exc:                  # noqa: BLE001
+            _bad_record(t, exc)
     if fusion.on_state_change:
         asyncio.create_task(fusion.on_state_change())
+
+
+def _bad_record(record, exc: Exception) -> None:
+    status["bad_records"] = status.get("bad_records", 0) + 1
+    rid = record.get("id") if isinstance(record, dict) else None
+    status["last_bad"] = {"at": time.time(), "id": rid, "error": repr(exc)[:200]}
+    tracks.pop(rid, None) if rid is not None else None
+    log.warning("NEPTUN: pominięty rekord %r (%s)", rid, exc)
+
+
+async def _dispatch(env: dict, received_at: float) -> None:
+    etype = env.get("type")
+    data = env.get("data") or {}
+    if etype == "snapshot":
+        await _handle_threats(data.get("threats") or [], replace=True,
+                             received_at=received_at, transport="ws",
+                             message_type=etype, source_message_ts=env.get("ts"))
+    elif etype == "upsert":
+        await _handle_threats([data], replace=False,
+                             received_at=received_at, transport="ws",
+                             message_type=etype, source_message_ts=env.get("ts"))
+    elif etype == "remove":
+        tracks.pop((data or {}).get("id"), None)
+        if fusion.on_state_change:
+            asyncio.create_task(fusion.on_state_change())
+    elif etype == "alerts":
+        await _handle_alerts(data)
+    # heartbeat — ignorujemy
 
 
 async def _ws_loop():
@@ -528,23 +565,11 @@ async def _ws_loop():
                         env = json.loads(raw)
                     except json.JSONDecodeError:
                         continue
-                    etype = env.get("type")
-                    data = env.get("data") or {}
-                    if etype == "snapshot":
-                        await _handle_threats(data.get("threats") or [], replace=True,
-                                             received_at=status["last_msg"], transport="ws",
-                                             message_type=etype, source_message_ts=env.get("ts"))
-                    elif etype == "upsert":
-                        await _handle_threats([data], replace=False,
-                                             received_at=status["last_msg"], transport="ws",
-                                             message_type=etype, source_message_ts=env.get("ts"))
-                    elif etype == "remove":
-                        tracks.pop((data or {}).get("id"), None)
-                        if fusion.on_state_change:
-                            asyncio.create_task(fusion.on_state_change())
-                    elif etype == "alerts":
-                        await _handle_alerts(data)
-                    # heartbeat — ignorujemy
+                    try:
+                        await _dispatch(env, status["last_msg"])
+                    except Exception as exc:          # noqa: BLE001
+                        # D8: błąd obróbki jednej ramki nie może zerwać połączenia
+                        _bad_record(env.get("data") if isinstance(env, dict) else None, exc)
         except Exception as e:
             status.update(connected=False, error=str(e))
             # Kod 1013 / „server full” oznacza przeciążenie źródła. Natychmiastowe
@@ -574,12 +599,18 @@ async def _rest_fallback_once():
         log.warning("Neptun REST fallback błąd: %s", e)
 
 
+_end_task: asyncio.Task | None = None
+
+
 async def run():
+    global _end_task
     try:
         restore_episodes()
     except Exception as e:
         log.warning("odtwarzanie epizodów alarmów: %s", e)
-    asyncio.create_task(_end_loop())
+    # nadzorca (main._supervise) może wołać run() ponownie — pętla końców jedna
+    if _end_task is None or _end_task.done():
+        _end_task = asyncio.create_task(_end_loop())
     await _ws_loop()
 
 

@@ -145,68 +145,96 @@ def _still_active(item: dict) -> bool:
 
 
 async def _check(client: httpx.AsyncClient):
-    global _bootstrap
     try:
         r = await client.get(config.RSO_URL, headers={"User-Agent": UA},
                              follow_redirects=True)
         r.raise_for_status()
         data = r.json()
-        status.update(ok=True, last=time.time(), error=None)
     except Exception as e:
         status.update(ok=False, error=repr(e))
         return
+    # D2 (audyt 11.09.2026): „ok" było ustawiane PRZED obróbką, więc zmieniony
+    # format odpowiedzi albo błąd bazy zostawiał zieloną diodę przy martwym RSO.
+    # Teraz zielone dopiero po przeczytaniu całej listy.
+    try:
+        items = data.get("newses") if isinstance(data, dict) else None
+        if not isinstance(items, list):
+            raise ValueError(f"nieoczekiwany format odpowiedzi RSO: {type(data).__name__}")
+        await _process(items)
+    except Exception as e:
+        status.update(ok=False, error=f"obróbka: {e!r}")
+        log.exception("RSO: błąd obróbki odpowiedzi")
+        return
+    status.update(ok=True, last=time.time(), error=None)
 
-    items = data.get("newses") or []
+
+async def _process(items: list):
+    global _bootstrap
     active = 0
+    item_errors = 0
     for it in items:
-        text = f"{it.get('title','')} {it.get('shortcut','')} {it.get('content','')}"
-        headline = f"{it.get('title','')} {it.get('shortcut','')}"
-        if _is_rcb_air_cancellation(it):
-            await _ingest_clear(it)
-            continue
-        if not _is_rcb_air_alert(text, headline):
-            continue
-        active += 1
-        mid = str(it.get("id"))
-        if not _still_active(it):
-            continue
-        voivodeships = _voivs_for(it)
-        reference_new = False
-        for voiv in voivodeships:
-            key = f"rso:{mid}:{voiv}"
-            if key in _seen:
-                continue
-            _seen.add(key)
-            if not _bootstrap and not _issued_recently(it):
-                # Pierwszy przebieg: STARE alerty nie mają alarmować. Świeży alert
-                # (patrz _issued_recently) musi jednak zadziałać normalnie — alert
-                # wydany w czasie przestoju albo sekundę przed wdrożeniem dostawał
-                # 0 pkt i ten sam klucz deduplikacji, więc przepadał na zawsze,
-                # a RCB to jedyne źródło trafnych alarmów (audyt 11.09.2026).
-                fusion.db.add_signal("rcb", "rso_alert_seen", voiv, 0.0,
-                                     f"RCB/RSO (istniejący przy starcie): „{it.get('title','')[:110]}”",
-                                     {"rso_id": mid}, key)
-                reference_new = True
-                continue
-            title = it.get("shortcut") or it.get("title") or "Alert RCB"
-            inserted = await fusion.ingest(
-                source="rcb", event_type="rso_alert", voivodeship=voiv,
-                points=config.POINTS["rcb_alert"],
-                title=f"Alert RCB (RSO): „{title[:120]}”",
-                details={"rso_id": mid, "valid_from": it.get("valid_from"),
-                         "valid_to": it.get("valid_to")},
-                dedup_key=key,
-            )
-            reference_new = reference_new or inserted
-        if reference_new:
-            rcb_reference.capture(
-                source="rso", source_event_id=mid,
-                title=it.get("shortcut") or it.get("title") or "Alert RCB",
-                voivodeships=voivodeships, source_time_raw=it.get("valid_from"),
-                bootstrap=not _bootstrap,
-            )
+        try:
+            if await _process_item(it):
+                active += 1
+        except Exception as e:                    # noqa: BLE001
+            # jeden dziwny wpis nie może zablokować pozostałych alertów
+            item_errors += 1
+            log.warning("RSO: pominięty wpis %r: %s",
+                        it.get("id") if isinstance(it, dict) else it, e)
     status["active"] = active
+    status["item_errors"] = item_errors
     _bootstrap = True
+
+
+async def _process_item(it: dict) -> bool:
+    """Obsługuje jeden wpis RSO; True, gdy to aktywny alert powietrzny."""
+    text = f"{it.get('title','')} {it.get('shortcut','')} {it.get('content','')}"
+    headline = f"{it.get('title','')} {it.get('shortcut','')}"
+    if _is_rcb_air_cancellation(it):
+        await _ingest_clear(it)
+        return False
+    if not _is_rcb_air_alert(text, headline):
+        return False
+    mid = str(it.get("id"))
+    if not _still_active(it):
+        return True
+    voivodeships = _voivs_for(it)
+    reference_new = False
+    for voiv in voivodeships:
+        key = f"rso:{mid}:{voiv}"
+        if key in _seen:
+            continue
+        if not _bootstrap and not _issued_recently(it):
+            # Pierwszy przebieg: STARE alerty nie mają alarmować. Świeży alert
+            # (patrz _issued_recently) musi jednak zadziałać normalnie — alert
+            # wydany w czasie przestoju albo sekundę przed wdrożeniem dostawał
+            # 0 pkt i ten sam klucz deduplikacji, więc przepadał na zawsze,
+            # a RCB to jedyne źródło trafnych alarmów (audyt 11.09.2026).
+            fusion.db.add_signal("rcb", "rso_alert_seen", voiv, 0.0,
+                                 f"RCB/RSO (istniejący przy starcie): „{it.get('title','')[:110]}”",
+                                 {"rso_id": mid}, key)
+            _seen.add(key)   # dopiero po zapisie: błąd bazy = ponowna próba za minutę
+            reference_new = True
+            continue
+        title = it.get("shortcut") or it.get("title") or "Alert RCB"
+        inserted = await fusion.ingest(
+            source="rcb", event_type="rso_alert", voivodeship=voiv,
+            points=config.POINTS["rcb_alert"],
+            title=f"Alert RCB (RSO): „{title[:120]}”",
+            details={"rso_id": mid, "valid_from": it.get("valid_from"),
+                     "valid_to": it.get("valid_to")},
+            dedup_key=key,
+        )
+        _seen.add(key)
+        reference_new = reference_new or inserted
+    if reference_new:
+        rcb_reference.capture(
+            source="rso", source_event_id=mid,
+            title=it.get("shortcut") or it.get("title") or "Alert RCB",
+            voivodeships=voivodeships, source_time_raw=it.get("valid_from"),
+            bootstrap=not _bootstrap,
+        )
+    return True
 
 
 async def _ingest_clear(it: dict):
@@ -222,7 +250,6 @@ async def _ingest_clear(it: dict):
         key = f"rso-clear:{mid}:{voiv}"
         if key in _seen:
             continue
-        _seen.add(key)
         title = it.get("shortcut") or it.get("title") or "Odwołanie alertu RCB"
         await fusion.ingest(
             source="rcb", event_type="rso_clear", voivodeship=voiv, points=0.0,
@@ -231,10 +258,15 @@ async def _ingest_clear(it: dict):
                      "updated_at": it.get("updated_at")},
             dedup_key=key,
         )
+        _seen.add(key)
 
 
 async def run():
     async with httpx.AsyncClient(timeout=20) as client:
         while True:
-            await _check(client)
+            try:
+                await _check(client)
+            except Exception as e:                # noqa: BLE001
+                status.update(ok=False, error=f"pętla: {e!r}")
+                log.exception("RSO: nieoczekiwany błąd cyklu")
             await asyncio.sleep(config.RSO_INTERVAL)

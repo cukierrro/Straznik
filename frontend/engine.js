@@ -1331,7 +1331,6 @@ async function tickRss() {
 async function tickRcb() {
   try {
     const html = await httpGet("https://www.gov.pl/web/rcb");
-    markHealth("rcb", true);
     const re = /href="(\/web\/rcb\/[a-z0-9-]{8,})"[^>]*>([\s\S]*?)<\/a>/gi;
     let m, found = [];
     // Wszystkie linki: pierwsze 20 to samo menu nawigacji (E3, 13.09.2026).
@@ -1357,7 +1356,7 @@ async function tickRcb() {
     rcbBootstrapped = true;
     localStorage.setItem("eng_rcb_boot", "1");
     persist();
-  } catch { markHealth("rcb", false); }
+  } catch { /* gov.pl to tylko punkt odniesienia — dioda pokazuje RSO */ }
   emit();
 }
 
@@ -1433,7 +1432,8 @@ async function tickRso() {
     localStorage.setItem("eng_rso_boot", "1");
     localStorage.setItem("eng_rso_seen", JSON.stringify([...rsoSeen].slice(-200)));
     persist();
-  } catch { /* cicho: dioda RCB pokazuje stan scrapingu gov.pl, tu nie miesza */ }
+    markHealth("rcb", true);   // dioda „RCB/RSO" = stan RSO, jak na serwerze
+  } catch { markHealth("rcb", false); }
   emit();
 }
 

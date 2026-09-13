@@ -252,6 +252,16 @@ VOIV_NEIGHBORS = {
 }
 
 # ── Powiadomienia ─────────────────────────────────────────────────────────────
+# E4 (audyt 11.09.2026): 7 wysyłek z testów poszło na prawdziwe tematy województw.
+# Na prawdziwe tematy (voiv_*) wysyła WYŁĄCZNIE serwer z STRAZNIK_ENV=production;
+# każdy inny (kopia na PC, serwer testowy) dostaje przedrostek test_. Brak tej
+# zmiennej na VPS zgłasza /api/health/critical, więc nie przejdzie niezauważony.
+STRAZNIK_ENV = os.getenv("STRAZNIK_ENV", "development").strip().lower()
+PRODUCTION = STRAZNIK_ENV == "production"
+TEST_TOPIC_PREFIX = "test_"
+# D1: adres „sygnału życia” (np. Healthchecks.io). Serwer pinguje go co minutę
+# tylko wtedy, gdy krytyczne źródła naprawdę działają. Sekret — tylko w .env.
+HEALTHCHECK_PING_URL = os.getenv("HEALTHCHECK_PING_URL", "").strip()
 NTFY_ENABLED = os.getenv("NTFY_ENABLED", "true").lower() == "true"
 NTFY_SERVER = os.getenv("NTFY_SERVER", "https://ntfy.sh")
 NTFY_TOPIC = os.getenv("NTFY_TOPIC", "")                 # ustaw własny, trudny do zgadnięcia

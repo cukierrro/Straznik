@@ -9,8 +9,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import (app_updates, config, db, escalation_shadow, fusion, load_guard, notify,
-               public_cache, rcb_reference)
+from . import (app_updates, config, db, escalation_shadow, fusion, load_guard, monitoring,
+               notify, public_cache, rcb_reference)
 from .collectors import adsb, neighbours, neptun, official_alerts, pansa, rcb, rso, rss_media
 from .neptun_archive import source_metadata
 
@@ -75,9 +75,14 @@ def build_state() -> dict:
             # osobnego kolektora), więc ich zdrowie = połączenie Neptuna. Bez tego
             # pola dioda „Alarmy UA" świeciła na czerwono w trybie backendu.
             "ua_alerts": neptun.status["connected"],
-            "adsb": adsb.status["ok"],
-            "pansa": pansa.status["ok"],
-            "rcb": rcb.status["ok"],
+            # „ok" tylko przy świeżym sukcesie: sama flaga zostawała zielona,
+            # gdy pętla kolektora przestała się kręcić (audyt D2/C8).
+            "adsb": monitoring.fresh(adsb.status, config.ADSB_INTERVAL, 300),
+            "pansa": monitoring.fresh(pansa.status, config.PANSA_INTERVAL, 900),
+            # Dioda „RCB/RSO" pokazuje RSO — jedyne źródło trafnych alarmów. Do
+            # 13.09.2026 pokazywała kolektor strony gov.pl, który od E3 jest tylko
+            # punktem odniesienia (0 pkt); jego stan jest w /api/health jako rcb.
+            "rcb": monitoring.rso_fresh(),
             "rss": {u: st.get("ok", False) for u, st in rss_media.status["feeds"].items()},
             # Litwa/Łotwa/Estonia osobno: w oknie „Źródła” widać, że kanały
             # działają i kiedy był ostatni artykuł oraz ostatni alarm.
@@ -272,7 +277,21 @@ async def api_health():
                          "ws_max": WS_MAX_CLIENTS},
         "load_guard": load_guard.status,
         "backup": _backup_status(),
+        "critical": monitoring.critical_check(),
+        "tasks": monitoring.supervisor,
+        "heartbeat": monitoring.public_heartbeat(),
     }
+
+
+@app.get("/api/health/critical")
+async def api_health_critical():
+    """Dla monitoringu zewnętrznego: 503, gdy alarm może nie dotrzeć.
+
+    Osobny adres, bo /api/health sprawdza aplikacja przy starcie — kod 503 tam
+    przełączyłby wszystkich użytkowników na tryb awaryjny."""
+    result = monitoring.critical_check()
+    return JSONResponse(result, status_code=200 if result["ok"] else 503,
+                        headers={"Cache-Control": "no-store"})
 
 
 def _backup_status() -> dict:
@@ -367,14 +386,23 @@ async def startup():
     notify.init_fcm()
     fusion.on_level_change = notify.notify_level
     fusion.on_state_change = broadcast_state
-    for coro in (neptun.run(), rss_media.run(), rcb.run(), rso.run(), adsb.run(),
-                 pansa.run(), neighbours.run(), official_alerts.run(), snapshot_loop(),
-                 progression_shadow_loop(), level_loop(), state_loop(),
-                 load_guard.monitor(shed_websockets),
-                 public_cache.refresh_loop("bundle", public_cache.build_bundle_bytes, 60),
-                 public_cache.refresh_loop("timeline", public_cache.build_timeline, 60),
-                 public_cache.refresh_loop("zones", _zones_payload, 30, in_thread=False)):
-        asyncio.create_task(coro)
+    # Każde zadanie pod nadzorcą: wyjątek nie zatrzymuje go na zawsze (audyt D2).
+    jobs = {
+        "neptun": neptun.run, "rss": rss_media.run, "rcb_govpl": rcb.run, "rso": rso.run,
+        "adsb": adsb.run, "pansa": pansa.run, "neighbours": neighbours.run,
+        "official_alerts": official_alerts.run, "snapshots": snapshot_loop,
+        "progression_shadow": progression_shadow_loop, "levels": level_loop,
+        "state": state_loop, "heartbeat": monitoring.heartbeat_loop,
+        "load_guard": lambda: load_guard.monitor(shed_websockets),
+        "cache_bundle": lambda: public_cache.refresh_loop(
+            "bundle", public_cache.build_bundle_bytes, 60),
+        "cache_timeline": lambda: public_cache.refresh_loop(
+            "timeline", public_cache.build_timeline, 60),
+        "cache_zones": lambda: public_cache.refresh_loop(
+            "zones", _zones_payload, 30, in_thread=False),
+    }
+    for name, factory in jobs.items():
+        monitoring.start(name, factory)
     log.info("Strażnik wystartował — kolektory uruchomione")
 
 

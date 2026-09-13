@@ -31,7 +31,7 @@ QUEUE_WAIT_S = float(os.getenv("QUEUE_WAIT_S", "4"))
 
 # gotowe bajty z public_cache — tanie nawet pod presją pamięci
 CHEAP_PATHS = ("/api/state", "/api/history/bundle", "/api/history/timeline", "/api/zones",
-               "/api/app-version", "/api/push/", "/api/health")
+               "/api/app-version", "/api/push/", "/api/health", "/api/health/critical")
 
 status = {"level": 0, "sys_pct": None, "rss_mb": None, "inflight": 0, "queued": 0,
           "shed_total": 0, "since": None}

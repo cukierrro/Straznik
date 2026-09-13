@@ -2556,14 +2556,22 @@ const SOURCE_INFO = {
       + "its format and needs a fix.",
   },
   "RCB": {
-    co: "Komunikaty Rządowego Centrum Bezpieczeństwa z gov.pl — jedyne "
-      + "oficjalne źródło w tym zestawie.",
-    coEn: "Announcements from the Polish Government Centre for Security (RCB) on "
-      + "gov.pl — the only official source in this set.",
-    czerwona: "Strona gov.pl nie odpowiada albo zmieniła układ. "
-      + "Alerty RCB docierają wtedy tylko przez SMS-y systemowe.",
-    czerwonaEn: "The gov.pl page is not responding or has changed its layout. RCB "
-      + "alerts then reach you only through the system SMS service.",
+    co: "Oficjalne Alerty RCB z Regionalnego Systemu Ostrzegania (RSO) — te same "
+      + "komunikaty, które przychodzą SMS-em, z listą województw. Jedyne oficjalne "
+      + "źródło w tym zestawie i jedyne, które samo podnosi poziom alarmu. Dioda "
+      + "pokazuje, czy RSO odpowiedziało w ostatnich minutach. Strona gov.pl/rcb "
+      + "jest czytana tylko pomocniczo, bez punktów.",
+    coEn: "Official RCB alerts from the Regional Warning System (RSO) — the same "
+      + "messages that arrive by text, with the list of provinces. The only official "
+      + "source in this set and the only one that raises the alert level on its own. "
+      + "The light shows whether RSO has responded in the last few minutes. The "
+      + "gov.pl/rcb page is read only as a reference, without points.",
+    czerwona: "RSO nie odpowiada od kilku minut albo zwróciło dane, których nie da "
+      + "się odczytać. Strażnik nie zobaczy wtedy nowego Alertu RCB — alerty "
+      + "docierają nadal SMS-em z systemu RCB.",
+    czerwonaEn: "RSO has not responded for a few minutes, or returned data that "
+      + "cannot be read. Strażnik will not see a new RCB alert then — alerts still "
+      + "arrive by text from the RCB system.",
   },
   "PAŻP": {
     co: "Strefy przestrzeni powietrznej (AUP/UUP) z airspace.pansa.pl — "
@@ -2578,8 +2586,9 @@ const SOURCE_INFO = {
 };
 /* Podpis diody. Klucz zostaje polski (jest też kluczem SOURCE_INFO i stanu
    zdrowia), więc nazwę do wyświetlenia trzymamy osobno. */
-const SRC_TITLE_EN = { "Alarmy UA": "UA alerts" };
-const srcTitle = (name) => (UI.isEn && SRC_TITLE_EN[name]) || name;
+const SRC_TITLE_EN = { "Alarmy UA": "UA alerts", "RCB": "RCB/RSO" };
+const SRC_TITLE_PL = { "RCB": "RCB/RSO" };
+const srcTitle = (name) => (UI.isEn ? SRC_TITLE_EN[name] : SRC_TITLE_PL[name]) || name;
 
 function ledItems() {
   const h = state?.health || {};

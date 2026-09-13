@@ -1,5 +1,6 @@
 """Kanały powiadomień: ntfy, Telegram, Web Push (VAPID). Wszystkie best-effort."""
 import asyncio
+import time
 import base64
 import hashlib
 import json
@@ -19,7 +20,7 @@ _fcm_ready = False
 # Widoczny w /api/health: bez tego cicha awaria wysyłki (błąd Google, wygasłe
 # poświadczenia) nie dawała żadnego śladu — alarm po prostu nie docierał.
 fcm_status = {"ready": False, "last_ok": None, "last_error": None, "sent": 0,
-              "failed": 0}
+              "failed": 0, "last_ok_at": None, "last_error_at": None, "test_sent": 0}
 
 # Alarm jest ważny minuty, nie tygodnie. Domyślny TTL w FCM to 4 tygodnie, więc
 # telefon po nocy offline dostawał pełnoekranową syrenę o zdarzeniu sprzed godzin.
@@ -76,13 +77,22 @@ def _send_fcm_sync(topic: str, data: dict) -> str:
     return messaging.send(msg)
 
 
-async def send_fcm(voiv: str, level: str, score: float, reasons_text: str) -> bool:
+def fcm_topic(voiv: str, test: bool = False) -> str:
+    """Temat FCM. Prawdziwy (voiv_*) tylko na produkcji i nigdy dla testu (E4)."""
+    topic = config.voiv_topic(voiv)
+    if test or not config.PRODUCTION:
+        return config.TEST_TOPIC_PREFIX + topic
+    return topic
+
+
+async def send_fcm(voiv: str, level: str, score: float, reasons_text: str,
+                   test: bool = False) -> bool:
     """Zwraca True po udanej wysyłce. Ponawia, bo jedno chwilowe 503 od Google
     gubiło alarm bezpowrotnie — cooldown blokował kolejną próbę."""
     if not (config.FCM_ENABLED and _fcm_ready):
         return False
     from datetime import datetime, timezone
-    topic = config.voiv_topic(voiv)
+    topic = fcm_topic(voiv, test)
     sent_at = datetime.now(timezone.utc)
     data = {"voiv": voiv, "level": level, "score": str(score),
             "reasons": reasons_text or "",
@@ -95,7 +105,8 @@ async def send_fcm(voiv: str, level: str, score: float, reasons_text: str) -> bo
         try:
             mid = await asyncio.to_thread(_send_fcm_sync, topic, data)
             fcm_status.update(last_ok=sent_at.isoformat(timespec="seconds"),
-                              last_error=None, sent=fcm_status["sent"] + 1)
+                              last_ok_at=time.time(), last_error=None,
+                              sent=fcm_status["sent"] + 1)
             log.info("FCM → %s (%s pkt, próba %d): %s", topic, score, attempt, mid)
             return True
         except Exception as e:
@@ -103,7 +114,8 @@ async def send_fcm(voiv: str, level: str, score: float, reasons_text: str) -> bo
             log.warning("FCM błąd (%s, próba %d/%d): %s", topic, attempt, FCM_RETRIES, e)
             if attempt < FCM_RETRIES:
                 await asyncio.sleep(2 * attempt)
-    fcm_status.update(last_error=repr(last_error), failed=fcm_status["failed"] + 1)
+    fcm_status.update(last_error=repr(last_error), last_error_at=time.time(),
+                      failed=fcm_status["failed"] + 1)
     return False
 
 
@@ -281,6 +293,9 @@ async def notify_level(voiv: str, level: str, score: float, signals: list[dict])
         last_dt = datetime.fromisoformat(last)
         if datetime.now(timezone.utc) - last_dt < timedelta(minutes=config.NOTIFY_COOLDOWN_MIN):
             return
+    if is_test_alarm(signals) or not config.PRODUCTION:
+        await _deliver_test(voiv, level, score, signals)
+        return
     key = (voiv, level)
     if key in _inflight:          # okresowa reewaluacja nie może dublować wysyłki
         return
@@ -289,6 +304,23 @@ async def notify_level(voiv: str, level: str, score: float, signals: list[dict])
         await _deliver_level(voiv, level, score, signals)
     finally:
         _inflight.discard(key)
+
+
+def is_test_alarm(signals: list[dict]) -> bool:
+    """Czy do poziomu dokłada się choćby jeden sygnał testowy (E4)."""
+    return any(s.get("source") == "test" or (s.get("details") or {}).get("test")
+               for s in signals or [])
+
+
+async def _deliver_test(voiv: str, level: str, score: float, signals: list[dict]):
+    """Test nigdy nie dotyka prawdziwych odbiorców: tylko temat test_voiv_*,
+    bez Web Push, ntfy, Telegrama i bez zapisu cooldownu w dzienniku."""
+    from .fusion import breakdown_text
+    ok = await send_fcm(voiv, level, score, "[TEST] " + breakdown_text(signals), test=True)
+    if ok:
+        fcm_status["test_sent"] = fcm_status.get("test_sent", 0) + 1
+    log.warning("TEST (bez prawdziwych odbiorców): woj. %s %s %s pkt → %s, wysłano=%s",
+                voiv, level, score, fcm_topic(voiv, True), ok)
 
 
 async def _deliver_level(voiv: str, level: str, score: float, signals: list[dict]):
