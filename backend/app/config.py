@@ -832,6 +832,10 @@ BALTIC_CLEAR_KEYWORDS = [
 # Samo „cancelled” czy „(balta)” to za mało: 02.09.2026 „Second round of
 # Latvia's affordable housing programme cancelled” weszło jako odwołanie.
 # Odwołanie musi dotyczyć powietrza albo alarmu.
+# Relacja po fakcie („Dėl paskelbto oro pavojaus buvo stabdomi skrydžiai”) nie
+# jest ogłoszeniem alarmu — 13.09.2026 taki tytuł wszedł jako alarm pół godziny
+# po odwołaniu. Czas przeszły: LT „buvo”, LV „bija”, EE „oli”.
+BALTIC_ALERT_PAST_MARKERS = ["buvo", "bija", "oli"]
 BALTIC_CLEAR_CONTEXT = [
     "air", "drone", "uav", "oro", "pavoj", "gaisa", "apdraud", "õhu", "droon",
     "ohu", "oht", "alert", "alarm", "warning", "threat",

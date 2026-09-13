@@ -196,6 +196,7 @@ const BALTIC_COUNTRY_NAMES = {"LT": "Litwa", "LV": "Łotwa", "EE": "Estonia"};
 const BALTIC_ALERT_COUNTRY_WEIGHTS = {"LT": 1.0, "LV": 0.6, "EE": 0.4};
 /* Ogłoszony alarm dla ludności LT/LV/EE — sprawdzany przed listą incydentów. */
 const B_ALERT = ["oro pavoj", "oro pavojus", "(geltona)", "(raudona)", "geltonas signalas", "raudonas signalas", "įspėjimas dėl galimai fiksuoto drono", "gyventojams išsiųsti įspėjimai", "gaisa telpas apdraudējum", "apdraudējums gaisa telpā", "dzeltenās pakāpes brīdinājum", "oranžās pakāpes brīdinājum", "šūnu apraide", "õhuohu hoiatus", "võimalik õhuoht", "drooniohu hoiatus", "drooniohu teavitus", "ohuteavitus", "ee-alarm", "õhuoht", "air alert", "air raid", "airspace alert", "air hazard alert", "air threat alert", "air danger alert", "drone threat warning", "drone warning", "air threat warning"];
+const BALTIC_ALERT_PAST = ["buvo", "bija", "oli"];
 const BALTIC_CLEAR_CONTEXT = ["air", "drone", "uav", "oro", "pavoj", "gaisa", "apdraud", "õhu", "droon", "ohu", "oht", "alert", "alarm", "warning", "threat"];
 const BALTIC_CLEAR_MAX_AGE_MS = 360*60*1000;
 /* Incydent nad Bałtykiem dotyczy całego wybrzeża, nie tylko flanki wschodniej;
@@ -1150,7 +1151,7 @@ function balticIncidentKey(link, title, country) {
   return `${country}:fallback:${(h >>> 0).toString(16)}`;
 }
 /* Ten sam alarm w dwóch redakcjach to jedno zdarzenie (lustro rss_media). */
-const balticActive = new Map(), balticClearsSeen = new Set();
+const balticActive = new Map(), balticClearsSeen = new Set(), balticAlerted = new Set();
 const BALTIC_ACTIVE_MS = 3*3600*1000;
 async function tickRss() {
   for (const [url, defVoiv] of RSS_FEEDS) {
@@ -1205,11 +1206,11 @@ async function tickRss() {
         const incident = balticIncidentKey(it.link, it.title, country);
         if (BALTIC_CLEAR.some(k => text.includes(k))
             && BALTIC_CLEAR_CONTEXT.some(k => text.includes(k))) {
-          const keys = new Set([incident]);
-          const first = !balticClearsSeen.has(incident);
+          if (balticClearsSeen.has(incident)) continue;
           balticClearsSeen.add(incident);
-          const active = first ? balticActive.get(country) : null;
-          if (first) balticActive.delete(country);
+          const keys = new Set(balticAlerted.has(incident) ? [incident] : []);
+          const active = balticActive.get(country);
+          balticActive.delete(country);
           if (active && Date.now() - active.at < BALTIC_ACTIVE_MS) keys.add(active.key);
           for (const key of keys) for (const v of BALTIC_TARGETS)
             addSignal("media","baltic_clear",v,0,
@@ -1219,7 +1220,8 @@ async function tickRss() {
           continue;
         }
         if (age > MAX_AGE_MS) continue;
-        if (!B_EXCLUDE.some(k => text.includes(k))) {
+        const words = new Set(text.match(/[\p{L}\p{N}_]+/gu) || []);
+        if (!B_EXCLUDE.some(k => text.includes(k)) && !BALTIC_ALERT_PAST.some(k => words.has(k))) {
           const alertHits = B_ALERT.filter(k => text.includes(k));
           if (alertHits.length) {
             const active = balticActive.get(country);
@@ -1232,6 +1234,7 @@ async function tickRss() {
                 `Alarm powietrzny — ${BALTIC_COUNTRY_NAMES[country] || country}: „${it.title.slice(0,110)}”`,
                 {link:it.link, keywords:alertHits, country, incident_key:incident},
                 `baltic-alert:${incident}:${v}`);
+            balticAlerted.add(incident);
             continue;
           }
         }
@@ -1243,6 +1246,7 @@ async function tickRss() {
             `Media ${country}: „${it.title.slice(0,110)}”`,
             {link:it.link, country, incident_key:incident},
             `baltic:${it.link||it.title}:${v}`);
+        balticAlerted.add(incident);
       }
     } catch { markRss(url, false); }
   }

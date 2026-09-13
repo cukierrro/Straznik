@@ -54,6 +54,7 @@ def reset():
     zapis.clear()
     rm._baltic_active.clear()
     rm._baltic_clears_seen.clear()
+    rm._baltic_alerted.clear()
 
 
 LRT = "https://www.lrt.lt/naujienos/lietuvoje/2/2936222/"
@@ -112,6 +113,13 @@ ok(not rm._is_baltic_clear("second round of latvia's affordable housing programm
    "program mieszkaniowy odwołany — nie odwołanie alarmu")
 ok(rm._is_baltic_clear("airspace alert over in latvia's alūksne district"), "alarm LV zakończony")
 ok(rm._is_baltic_clear("lietuvoje oro pavojaus nebėra (balta)"), "LT (balta)")
+
+print("6b. relacja po fakcie i odwołanie bez alarmu nie zostawiają śladu")
+reset()
+asyncio.run(rm._baltic_entries([
+    wpis("Dėl paskelbto geltono oro pavojaus buvo stabdomi skrydžiai Vilniaus oro uoste", M15 + "-skrydziai", 27),
+    wpis("Lietuvoje oro pavojaus nebėra (balta)", LRT + "oro-pavojaus-nebera")], "15min", "LT", T0 + 1800))
+ok(not zapis, f"„buvo stabdomi” to nie alarm, a odwołanie bez alarmu nie dodaje wierszy ({len(zapis)})")
 
 print("7. incydent nadal za 1,0 (strefa PAŻP + Bałtyk = żółty na wybrzeżu)")
 reset()

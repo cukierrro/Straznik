@@ -59,6 +59,9 @@ def _is_baltic_alert(text: str) -> list[str]:
     tl = text.lower()
     if any(word in tl for word in config.BALTIC_EXCLUDE_KEYWORDS):
         return []
+    words = set(re.findall(r"\w+", tl))
+    if words & set(config.BALTIC_ALERT_PAST_MARKERS):
+        return []
     return [word for word in config.BALTIC_ALERT_KEYWORDS if word in tl]
 
 
@@ -68,6 +71,7 @@ baltic = {c: {"feeds_ok": 0, "feeds": 0, "newest_item": None, "last_alert": None
           for c in config.BALTIC_COUNTRY_NAMES}
 _baltic_active: dict[str, dict] = {}     # kraj -> {"incident_key", "at"}
 _baltic_clears_seen: set[str] = set()
+_baltic_alerted: set[str] = set()        # incident_key, za które coś przyznano
 BALTIC_ACTIVE_S = 3 * 3600
 
 
@@ -282,10 +286,15 @@ async def _baltic_entries(entries, url: str, country: str, now: float):
             # Aktywny alarm kraju gasi tylko PIERWSZE zobaczenie odwołania. Kanał
             # trzyma stare „(balta)” godzinami, a bez tego gasiłoby ono co minutę
             # każdy późniejszy, nowy alarm.
-            keys = {incident_key}
+            # Wpis odwołania powstaje tylko wtedy, gdy jest co odwołać: aktywny
+            # alarm kraju albo wcześniejszy sygnał o tym samym artykule. Inaczej
+            # każdy artykuł „oro pavojaus nebėra” dawał 4 puste wiersze w panelu.
             first_seen = incident_key not in _baltic_clears_seen
             _baltic_clears_seen.add(incident_key)
-            active = _baltic_active.pop(country, None) if first_seen else None
+            if not first_seen:
+                continue
+            keys = {incident_key} & _baltic_alerted
+            active = _baltic_active.pop(country, None)
             if active and now - active["at"] < BALTIC_ACTIVE_S:
                 keys.add(active["incident_key"])
                 baltic[country]["last_alert"] = {
@@ -325,6 +334,7 @@ async def _baltic_entries(entries, url: str, country: str, now: float):
                              "incident_key": incident_key, "feed": url},
                     dedup_key=f"baltic-alert:{incident_key}:{voiv}",
                 )
+            _baltic_alerted.add(incident_key)
             continue
         hits = match_keywords(text, config.BALTIC_CRITICAL_KEYWORDS,
                               config.BALTIC_AIR_KEYWORDS, config.BALTIC_EVENT_KEYWORDS,
@@ -342,6 +352,7 @@ async def _baltic_entries(entries, url: str, country: str, now: float):
                          "incident_key": incident_key},
                 dedup_key=f"baltic:{h}:{voiv}",
             )
+        _baltic_alerted.add(incident_key)
 
 
 def _baltic_summary() -> None:
