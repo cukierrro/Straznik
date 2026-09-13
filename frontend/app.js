@@ -2136,7 +2136,7 @@ function sigHTML(s) {
     <div class="sig-bar"><i style="width:${share.toFixed(0)}%"></i></div>
     <div class="ts">${relTime(s.ts)} · ${UI.isEn ? "province" : "woj."} ${esc(UI.voiv(s.voivodeship))}${
       extra.length ? " · " + extra.map(x => x.startsWith("<b") ? x : esc(x)).join(" · ") : ""}${
-      faded ? ` · <span title="sygnał starzeje się w oknie 60 min i traci wagę">waga ${Math.round(w * 100)}%</span>` : ""}</div>
+      faded ? ` · <span title="${UI.isEn ? "the signal ages within the 60-minute window and loses weight" : "sygnał starzeje się w oknie 60 min i traci wagę"}">${UI.isEn ? "weight" : "waga"} ${Math.round(w * 100)}%</span>` : ""}</div>
   </div>`;
 }
 
