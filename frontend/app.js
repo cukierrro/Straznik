@@ -2527,6 +2527,9 @@ function toast(msg, ms = 3800) {
   const el = document.getElementById("toast");
   el.innerHTML = msg;
   el.classList.remove("hidden");
+  // długie komunikaty (ścieżki w ustawieniach) wiszą kilkanaście sekund —
+  // dotknięcie zamyka je wcześniej
+  el.onclick = () => { clearTimeout(toastTimer); el.classList.add("hidden"); };
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.classList.add("hidden"), ms);
 }
@@ -2606,9 +2609,11 @@ async function enablePush() {
   const perm = await Notification.requestPermission();
   if (perm !== "granted") {
     // bez komunikatu dzwonek wyglądał, jakby nie reagował (zgłoszone 13.09.2026)
-    toast(UI.isEn
-      ? "🔕 The browser blocks notifications for straznik.eu. Allow them in the site settings (icon next to the address)."
-      : "🔕 Przeglądarka blokuje powiadomienia dla straznik.eu. Dopuść je w ustawieniach witryny (ikona obok adresu).", 7000);
+    toast((UI.isEn
+      ? "🔕 The browser blocks notifications for straznik.eu. To allow them, change Block to Allow here: "
+      : "🔕 Przeglądarka blokuje powiadomienia dla straznik.eu. Aby je dopuścić, zmień Blokuj na Zezwalaj tutaj: ")
+      + esc(browserNotifPath())
+      + `<br><span class="muted">${UI.isEn ? "Tap to close" : "Dotknij, aby zamknąć"}</span>`, 20000);
     return;
   }
   const reg = await navigator.serviceWorker.register("sw.js");
@@ -2634,6 +2639,35 @@ async function enablePush() {
    włączenia i wyłączenia. Wcześniej wyłączyć dało się je tylko w ustawieniach
    przeglądarki, a okno pisało nieprawdę, że w przeglądarce alarm widać wyłącznie
    przy otwartej karcie (13.09.2026: użytkowniczka nie wiedziała, jak to zatrzymać). */
+/* Konkretna ścieżka do uprawnień witryny w przeglądarce, którą ktoś właśnie
+   używa — ogólne „ikona obok adresu" nie wystarczało (prośba z 13.09.2026). */
+function browserNotifPath(isEn = UI.isEn) {
+  const ua = navigator.userAgent || "";
+  const site = location.host || "straznik.eu";
+  const android = /Android/i.test(ua), ios = /iPhone|iPad|iPod/i.test(ua);
+  const firefox = /Firefox|FxiOS/i.test(ua), edge = /Edg\//i.test(ua);
+  const samsung = /SamsungBrowser/i.test(ua);
+  const safari = /Safari/i.test(ua) && !/Chrome|CriOS|Edg|Firefox|FxiOS|SamsungBrowser/i.test(ua);
+  if (isEn) {
+    if (samsung) return `Samsung Internet: ☰ → Settings → Sites and downloads → Notifications → ${site} → off.`;
+    if (android && firefox) return `Firefox on Android: ⋮ → Settings → Site permissions → Notifications → ${site} → Blocked.`;
+    if (android) return `Chrome on Android: ⋮ → Settings → Site settings → Notifications → ${site} → Block.`;
+    if (ios) return `iPhone: Settings → Notifications → Strażnik (the site added to the Home Screen) → Allow Notifications off.`;
+    if (firefox) return `Firefox: the padlock icon next to the address → Connection secure → More information → Permissions → Send notifications → Block.`;
+    if (safari) return `Safari on Mac: Safari → Settings → Websites → Notifications → ${site} → Deny.`;
+    if (edge) return `Edge: the padlock icon next to the address → Permissions for this site → Notifications → Block.`;
+    return `Chrome: the site settings icon next to the address → Site settings → Notifications → Block.`;
+  }
+  if (samsung) return `Samsung Internet: ☰ → Ustawienia → Witryny i pobieranie → Powiadomienia → ${site} → wyłącz.`;
+  if (android && firefox) return `Firefox na Androidzie: ⋮ → Ustawienia → Uprawnienia witryn → Powiadomienia → ${site} → Zablokowane.`;
+  if (android) return `Chrome na Androidzie: ⋮ → Ustawienia → Ustawienia witryn → Powiadomienia → ${site} → Blokuj.`;
+  if (ios) return `iPhone: Ustawienia → Powiadomienia → Strażnik (strona dodana do ekranu początkowego) → wyłącz „Zezwalaj na powiadomienia”.`;
+  if (firefox) return `Firefox: kłódka obok adresu → Połączenie zabezpieczone → Więcej informacji → Uprawnienia → Wyświetlanie powiadomień → Blokuj.`;
+  if (safari) return `Safari na Macu: Safari → Ustawienia → Witryny → Powiadomienia → ${site} → Odmawiaj.`;
+  if (edge) return `Edge: kłódka obok adresu → Uprawnienia dla tej witryny → Powiadomienia → Blokuj.`;
+  return `Chrome: ikona ustawień witryny obok adresu → Ustawienia witryny → Powiadomienia → Blokuj.`;
+}
+
 async function browserPushSubscription() {
   if (!("serviceWorker" in navigator) || !("PushManager" in window)) return null;
   const reg = await navigator.serviceWorker.getRegistration();
@@ -2653,8 +2687,9 @@ async function refreshWebPushStatus(isEn = UI.isEn) {
     text = isEn ? "This browser does not support push notifications — alerts are visible only while the tab is open."
                 : "Ta przeglądarka nie obsługuje powiadomień push — alarm widać tylko przy otwartej karcie.";
   } else if (Notification.permission === "denied") {
-    text = isEn ? "Notifications for straznik.eu are blocked in this browser. To allow them, open the site settings (the icon next to the address)."
-                : "Powiadomienia dla straznik.eu są zablokowane w tej przeglądarce. Aby je dopuścić, otwórz ustawienia witryny (ikona obok adresu).";
+    text = (isEn ? "Notifications for straznik.eu are blocked in this browser. To allow them, change Block to Allow here: "
+                 : "Powiadomienia dla straznik.eu są zablokowane w tej przeglądarce. Aby je dopuścić, zmień Blokuj na Zezwalaj tutaj: ")
+      + browserNotifPath(isEn);
   } else {
     let sub = null;
     try { sub = Notification.permission === "granted" ? await browserPushSubscription() : null; } catch {}
@@ -2667,6 +2702,9 @@ async function refreshWebPushStatus(isEn = UI.isEn) {
       on.hidden = false;
       text = isEn ? "Push notifications are off. Alerts are visible only while the tab is open."
                   : "Powiadomienia push są wyłączone. Alarm widać tylko przy otwartej karcie.";
+      if (Notification.permission === "granted")
+        text += (isEn ? " The browser permission is still granted — to remove it too: "
+                      : " Pozwolenie przeglądarki wciąż jest nadane — aby usunąć i je: ") + browserNotifPath(isEn);
     }
   }
   if (info) info.textContent = text;
@@ -2690,11 +2728,12 @@ async function disableBrowserPush() {
   localStorage.setItem(NOTIF_KEY, "0");
   document.getElementById("btn-push").classList.remove("active");
   await refreshWebPushStatus();
-  toast(UI.isEn
-    ? "🔕 <b>Notifications turned off in this browser.</b><br>Strażnik will not send push here any more. "
-      + "The browser permission itself can be removed in the site settings (icon next to the address)."
-    : "🔕 <b>Powiadomienia w tej przeglądarce wyłączone.</b><br>Strażnik nie wyśle już tu push. "
-      + "Samo pozwolenie przeglądarki usuniesz w ustawieniach witryny (ikona obok adresu).", 7000);
+  toast((UI.isEn
+    ? "🔕 <b>Notifications turned off in this browser.</b><br>Strażnik will not send push here any more.<br>"
+      + "To also remove the browser permission: "
+    : "🔕 <b>Powiadomienia w tej przeglądarce wyłączone.</b><br>Strażnik nie wyśle już tu push.<br>"
+      + "Aby usunąć też samo pozwolenie przeglądarki: ") + esc(browserNotifPath())
+    + `<br><span class="muted">${UI.isEn ? "Tap to close" : "Dotknij, aby zamknąć"}</span>`, 20000);
 }
 
 async function syncBrowserPushRegion() {
