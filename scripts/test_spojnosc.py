@@ -158,9 +158,9 @@ def _oblasty(tekst, nazwa):
 
 
 sprawdz("UA_ALERT_OBLASTS", _oblasty(ENGINE, "engine.js"), _oblasty(CONFIG, "config.py"))
-sprawdz("UA_ALERT_RINGS",
-        _pary(r"UA_ALERT_RINGS = \[(.*?)\];", ENGINE, "pasy js"),
-        _pary(r"UA_ALERT_RINGS = \((.*?)\)\n", CONFIG, "pasy py"))
+sprawdz("UA_ALERT_CURVE",
+        _pary(r"UA_ALERT_CURVE = \[(.*?)\];", ENGINE, "krzywa UA js"),
+        _pary(r"UA_ALERT_CURVE = \((.*?)\)\n", CONFIG, "krzywa UA py"))
 
 # ── słowniki mediów: rozjazd = inne przypisanie artykułu na serwerze i w telefonie
 def _hasla_woj(tekst, wzorzec, nazwa):

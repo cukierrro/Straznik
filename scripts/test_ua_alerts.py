@@ -41,8 +41,12 @@ def main() -> None:
     # obwód przy granicy musi ważyć wyraźnie więcej niż drugi i trzeci pas
     lublin = config.UA_ALERT_OBLASTS
     assert w(lublin["Волинська"]["lubelskie"]) == 1.0
-    assert w(lublin["Рівненська"]["lubelskie"]) == 0.6
-    assert w(lublin["Житомирська"]["lubelskie"]) == 0.35
+    assert round(w(lublin["Рівненська"]["lubelskie"]), 2) == 0.62
+    assert round(w(lublin["Житомирська"]["lubelskie"]), 2) == 0.15
+    # 13.09.2026: dalekie obwody skalują się w dół płynnie, bez półek — obwód
+    # 70 km i 115 km nie mogą już ważyć tyle samo
+    assert w(70) > w(115) > w(160) > w(220) > w(280)
+    assert w(lublin["Житомирська"]["lubelskie"]) <= 0.5 * w(lublin["Рівненська"]["lubelskie"])
     # ten sam obwód może ważyć różnie dla dwóch województw (reakcja krzyżowa)
     assert w(lublin["Закарпатська"]["podkarpackie"]) > w(lublin["Закарпатська"]["lubelskie"])
     assert w(lublin["Волинська"]["lubelskie"]) > w(lublin["Волинська"]["podkarpackie"])

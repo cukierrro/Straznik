@@ -321,18 +321,25 @@ UA_ALERT_OBLASTS = {
     "Вінницька":         {"lubelskie": 280, "podkarpackie": 305},
 }
 
-# Pasy odległości: (do ilu km, mnożnik punktów). Alarm tuż za granicą znaczy dla
-# nas więcej niż alarm 300 km w głąb Ukrainy, a limit klasy (SOURCE_CAPS) i tak
-# nie pozwoli, by suma alarmów zastąpiła obiekt na mapie.
-UA_ALERT_RINGS = ((0, 1.0), (120, 0.6), (220, 0.35), (320, 0.2))
+# Krzywa odległości (km, mnożnik punktów), interpolowana LINIOWO jak
+# NEPTUN_DIST_CURVE. Do 13.09.2026 były półki ((0,1.0),(120,0.6),(220,0.35),
+# (320,0.2)): obwód rówieński 70 km i tarnopolski 115 km ważyły tyle samo, a
+# żytomierski 220 km — 0,35, czyli ponad jedną trzecią obwodu przygranicznego.
+# Pojedynczy daleki alarm dawał więcej niż dron 190 km od granicy. Teraz waga
+# spada płynnie i dalekie obwody ważą o połowę mniej; bliskie (50–70 km) prawie
+# bez zmian. Sprawdzone na historii od 02.08: te same powiadomienia, żółte przed
+# alertem RCB nie tracą wyprzedzenia (12.09 o 3 min, 13.09 bez zmian).
+UA_ALERT_CURVE = ((0, 1.0), (50, 0.7), (100, 0.5), (150, 0.3), (220, 0.15), (320, 0.08))
 
 
 def ua_alert_weight(distance_km: float) -> float:
     """Mnożnik punktów dla alarmu w obwodzie oddalonym o `distance_km`."""
-    for limit, weight in UA_ALERT_RINGS:
-        if distance_km <= limit:
-            return weight
-    return 0.0
+    if distance_km > UA_ALERT_CURVE[-1][0]:
+        return 0.0
+    for (km_a, w_a), (km_b, w_b) in zip(UA_ALERT_CURVE, UA_ALERT_CURVE[1:]):
+        if distance_km <= km_b:
+            return w_a + (w_b - w_a) * (max(distance_km, km_a) - km_a) / (km_b - km_a)
+    return UA_ALERT_CURVE[-1][1]
 
 
 # Nazwa obwodu w tytule sygnału po polsku — użytkownik nie ma czytać cyrylicy

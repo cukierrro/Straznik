@@ -122,10 +122,15 @@ const UA_ALERT_OBLASTS = {
   // 10.09.2026; alarm w tym obwodzie jest wskaźnikiem wyprzedzającym.
   "Житомирська":{lubelskie:220, podkarpackie:265},
   "Вінницька":{lubelskie:280, podkarpackie:305} };
-const UA_ALERT_RINGS = [[0,1.0],[120,0.6],[220,0.35],[320,0.2]];
+/* Krzywa odległości interpolowana liniowo — lustro config.UA_ALERT_CURVE. */
+const UA_ALERT_CURVE = [[0,1.0],[50,0.7],[100,0.5],[150,0.3],[220,0.15],[320,0.08]];
 function uaAlertWeight(km) {
-  for (const [limit, w] of UA_ALERT_RINGS) if (km <= limit) return w;
-  return 0;
+  if (km > UA_ALERT_CURVE[UA_ALERT_CURVE.length - 1][0]) return 0;
+  for (let i = 1; i < UA_ALERT_CURVE.length; i++) {
+    const [ka, wa] = UA_ALERT_CURVE[i - 1], [kb, wb] = UA_ALERT_CURVE[i];
+    if (km <= kb) return wa + (wb - wa) * (Math.max(km, ka) - ka) / (kb - ka);
+  }
+  return UA_ALERT_CURVE[UA_ALERT_CURVE.length - 1][1];
 }
 /* Nazwa obwodu po polsku w tytule sygnału — lustro config.UA_OBLAST_PL. */
 const UA_OBLAST_PL = { "Волинська":"wołyńskim", "Львівська":"lwowskim",
