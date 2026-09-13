@@ -89,6 +89,34 @@ def respond(request: Request, name: str) -> Response:
     return Response(blob.raw, media_type="application/json", headers=headers)
 
 
+class PageCacheHeaders:
+    """Nagłówki cache dla strony głównej (czysty ASGI, bez buforowania odpowiedzi).
+
+    Strona to kilkadziesiąt KB, ale przy fali wejść z Facebooka każde wejście
+    szło do VPS. Cloudflare trzyma ją 60 s; przeglądarka zawsze sprawdza na nowo
+    (max-age=0), więc nowe wydanie strony dociera najpóźniej po minucie."""
+
+    PATHS = ("/", "/index.html")
+    VALUE = b"public, max-age=0, s-maxage=60, stale-while-revalidate=300"
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http" or scope.get("path") not in self.PATHS:
+            return await self.app(scope, receive, send)
+
+        async def send_with_headers(message):
+            if message["type"] == "http.response.start" and message.get("status") == 200:
+                headers = [(k, v) for k, v in message.get("headers", [])
+                           if k.lower() != b"cache-control"]
+                headers.append((b"cache-control", self.VALUE))
+                message = {**message, "headers": headers}
+            await send(message)
+
+        await self.app(scope, receive, send_with_headers)
+
+
 # ── składanie ciężkich odpowiedzi (w wątku, poza pętlą zdarzeń) ──────────────
 def build_bundle_bytes(hours: int = 12) -> bytes:
     """Pełna historia sklejana z tekstu migawek zapisanego w bazie.

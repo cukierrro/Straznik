@@ -105,6 +105,27 @@ ok(asyncio.run(middleware("/api/state", 2)) == 200, "poziom 2: /api/state nadal 
 ok(asyncio.run(middleware("/app.js", 2)) == 200, "poziom 2: strona statyczna nadal 200")
 load_guard.status["level"] = 0
 
+print("4. strona główna w cache Cloudflare")
+
+
+async def page(path):
+    sent = []
+
+    async def app(scope, receive, send):
+        await send({"type": "http.response.start", "status": 200,
+                    "headers": [(b"content-type", b"text/html")]})
+
+    async def send(msg):
+        sent.append(msg)
+
+    await public_cache.PageCacheHeaders(app)({"type": "http", "path": path}, None, send)
+    return dict(sent[0]["headers"]).get(b"cache-control", b"")
+
+
+ok(b"s-maxage=60" in asyncio.run(page("/")) and b"max-age=0" in asyncio.run(page("/")),
+   "/ → 60 s w Cloudflare, przeglądarka sprawdza zawsze")
+ok(asyncio.run(page("/app.js")) == b"", "pliki z ?v= bez zmian (domyślny cache Cloudflare)")
+
 if bledy:
     print(f"\nBLEDY: {len(bledy)}")
     sys.exit(1)

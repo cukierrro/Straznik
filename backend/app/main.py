@@ -21,6 +21,7 @@ log = logging.getLogger("main")
 app = FastAPI(title="Strażnik", docs_url="/api/docs")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"],
                    allow_headers=["*"])
+app.add_middleware(public_cache.PageCacheHeaders)
 # ostatni dodany = pierwszy w kolejce: bezpiecznik odrzuca, zanim cokolwiek się policzy
 app.add_middleware(load_guard.GuardMiddleware)
 
