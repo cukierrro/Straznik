@@ -283,6 +283,8 @@ def _media_after_official_clear(media: dict, clears: list[dict],
     if gap > config.RSO_CLEAR_MEDIA_ECHO_MIN or any(i > last for i in active_issued):
         return None
     title = _fold_text(media.get("title", ""))
+    if any(m in title for m in config.RSO_CLEAR_NOT_ECHO_MARKERS):
+        return None
     if any(m in title for m in config.RSO_CLEAR_ECHO_MARKERS):
         return "after_clear"
     return None

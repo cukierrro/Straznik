@@ -145,6 +145,15 @@ dron = sig(12, "2026-09-13T05:39:57+00:00", "media", "media_keywords", "lubelski
            "Media: „Szczątki drona znalezione w polu pod Chełmem”")
 lub = fusion.accumulate([dron, odw], ref)["lubelskie"]
 ok(lub["score"] == 1.5, "artykuł o nowym zdarzeniu (bez słów o alarmie) liczy się dalej")
+# 13.09.2026 ok. 09:00: pierwsza wersja reguły wyzerowała te dwa tytuły, choć mogą
+# opisywać NOWE zdarzenia — „znów", obiekty i wybuchy wyłączają regułę echa
+ref_pozniej = datetime(2026, 9, 13, 5, 50, tzinfo=timezone.utc)
+for tytul in ("Media: „Na Lubelszczyźnie znów zawyły syreny alarmowe. Były zgłoszenia o wybuchach”",
+              "Media: „Atak dronów kilkaset metrów od granicy z Polską. Myśliwce wystraszyły mieszkańców”"):
+    nowe = sig(14, "2026-09-13T05:45:00+00:00", "media", "media_keywords", "lubelskie", 1.5, tytul)
+    lub = fusion.accumulate([nowe, odw], ref_pozniej)["lubelskie"]
+    ok(lub["score"] == 1.5 and not lub["signals"][0].get("official_clear"),
+       f"nie echo: {tytul[8:60]}…")
 pozno = {**syreny, "ts": "2026-09-13T09:30:00+00:00"}
 lub = fusion.accumulate([pozno, odw], datetime(2026, 9, 13, 9, 35, tzinfo=timezone.utc))["lubelskie"]
 ok(lub["score"] == 1.5, f"po {config.RSO_CLEAR_MEDIA_ECHO_MIN} min odwołanie przestaje działać")

@@ -462,11 +462,18 @@ MEDIA_SUMMARY_SOFT_KEYWORDS = [
     "nerwowy poranek", "nerwowa noc",
 ]
 
-# Po ODWOŁANIU alertu RCB/RSO w województwie artykuły o alarmie (syreny, alert,
-# poderwane lotnictwo) to relacja z tego, co już się skończyło — o ile w tym
-# czasie nie przyszedł nowy alert. Zerujemy je przez tyle minut po odwołaniu.
-RSO_CLEAR_MEDIA_ECHO_MIN = 360
-RSO_CLEAR_ECHO_MARKERS = ("syren", "alert", "alarm", "rcb", "poderwa", "mysliw")
+# Po ODWOŁANIU alertu RCB/RSO w województwie artykuły, które TYLKO relacjonują
+# alarm (syreny, alert), to opis tego, co już się skończyło — o ile w tym czasie
+# nie przyszedł nowy alert. Zerujemy je przez tyle minut po odwołaniu.
+RSO_CLEAR_MEDIA_ECHO_MIN = 240
+RSO_CLEAR_ECHO_MARKERS = ("syren", "alert", "alarm", "rcb")
+# …ale nie wtedy, gdy tytuł mówi o czymś NOWYM albo o obiekcie. Pierwsza wersja
+# (13.09.2026 rano) zerowała też „Na Lubelszczyźnie znów zawyły syreny. Były
+# zgłoszenia o wybuchach" i „Atak dronów kilkaset metrów od granicy z Polską.
+# Myśliwce wystraszyły mieszkańców" — to mogą być nowe zdarzenia, nie echo.
+RSO_CLEAR_NOT_ECHO_MARKERS = ("znow", "ponownie", "kolejn", "dron", "rakiet", "pocisk",
+                              "wybuch", "eksploz", "zestrzel", "spadl", "szczatk",
+                              "mysliw", "poderwa", "atak")
 
 # weto — konteksty, w których powyższe słowa nie oznaczają zagrożenia
 EXCLUDE_KEYWORDS = [

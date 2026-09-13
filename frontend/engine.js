@@ -37,8 +37,11 @@ const SPILLOVER_MIN_CONTRIB = 0.1, SPILLOVER_MAX_DEPTH = 5;
 const ALERT_OWN_MIN = 1.0, ALERT_HYSTERESIS = 0.5, ALERT_REPEAT_QUIET_MIN = 30;
 const ALERT_FRESH_NEPTUN_POINTS = 0.5;
 /* Po odwołaniu alertu RCB/RSO artykuły o alarmie to relacja z przeszłości. */
-const RSO_CLEAR_MEDIA_ECHO_MIN = 360;
-const RSO_CLEAR_ECHO_MARKERS = ["syren", "alert", "alarm", "rcb", "poderwa", "mysliw"];
+const RSO_CLEAR_MEDIA_ECHO_MIN = 240;
+const RSO_CLEAR_ECHO_MARKERS = ["syren", "alert", "alarm", "rcb"];
+/* Tytuł o czymś nowym albo o obiekcie nie jest echem (lustro config.py). */
+const RSO_CLEAR_NOT_ECHO_MARKERS = ["znow", "ponownie", "kolejn", "dron", "rakiet", "pocisk",
+  "wybuch", "eksploz", "zestrzel", "spadl", "szczatk", "mysliw", "poderwa", "atak"];
 const RCB_RELAY_WINDOW_MS = 45*60*1000;
 const RELAY_STOP = new Set(["alert","rcb","uwaga","media","woj","wojewodztwo",
   "sytuacja","monitorowana","terenie","teren","oraz","jest","przez","dla",
@@ -542,6 +545,7 @@ function mediaAfterOfficialClear(media, clears, activeIssued) {
   const last = Math.max(...clears.map(c => c.at));
   if ((t - last) / 60000 > RSO_CLEAR_MEDIA_ECHO_MIN || activeIssued.some(i => i > last)) return null;
   const title = fold(media.title || "");
+  if (RSO_CLEAR_NOT_ECHO_MARKERS.some(m => title.includes(m))) return null;
   return RSO_CLEAR_ECHO_MARKERS.some(m => title.includes(m)) ? "after_clear" : null;
 }
 
