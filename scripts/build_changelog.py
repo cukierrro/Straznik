@@ -16,6 +16,17 @@ DOCS = ROOT / "docs"
 # (wersja, data PL, data EN, tytuł PL, tytuł EN, punkty PL, punkty EN, zrzuty)
 # Zrzut: (plik, alt PL, alt EN, podpis PL, podpis EN)
 RELEASES = [
+    ("1.7.42", "13 września 2026", "13 September 2026",
+     "Ciągłe granice po oddaleniu i widoczne trasy obiektów",
+     "Continuous borders when zoomed out and visible object tracks",
+     ["Granice państw nie mają już przerw po oddaleniu mapy — także między Białorusią a Ukrainą, przy Krymie i na linii frontu.",
+      "Trasy obiektów i samolotów widać od razu po otwarciu aplikacji: serwer przesyła krótką historię pozycji.",
+      "Kierunek lotu korzysta też z trasy podawanej przez NEPTUN; linia trasy jest wyraźniejsza."],
+     ["National borders no longer break up when the map is zoomed out — including between Belarus and Ukraine, around Crimea and along the front line.",
+      "Object and aircraft tracks show right after opening the app: the server sends a short position history.",
+      "The heading line also uses the track reported by NEPTUN; the track line is more visible."],
+     []),
+
     ("1.7.41", "13 września 2026", "13 September 2026",
      "Pewniejsze alarmy, głośność syreny i trasy obiektów",
      "More reliable alerts, siren volume and object tracks",
