@@ -665,6 +665,7 @@ html[lang="en"] .list:empty::after { content: "— none —"; }
 .lg-row .lg-threat { width: 26px; height: 26px; }
 .lg-row .lg-threat canvas { display: block; width: 26px; height: 26px; }
 .lg-row .pulse-ic { width: 26px; height: 26px; flex: none; display: grid; place-items: center; }
+.lg-row .sq.oblast-ic { background: rgba(255,111,145,.22); border: 1.5px dashed #ff6f91; box-sizing: border-box; }
 .lg-row .pulse-ic::before { content: ""; width: 12px; height: 12px; border-radius: 50%;
   border: 2px solid #ff4d5e; animation: lg-pulse 1.6s linear infinite; }
 @keyframes lg-pulse { from { transform: scale(.8); opacity: .95; } to { transform: scale(1.9); opacity: 0; } }

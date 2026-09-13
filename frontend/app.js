@@ -889,6 +889,31 @@ async function initMap() {
         "fill-extrusion-base": ["get", "baseM"], "fill-extrusion-height": ["get", "topM"],
         "fill-extrusion-opacity": 0.34 } });
 
+    /* Obwody UA z alarmem powietrznym, który liczy się do punktów. Płaskie,
+       bardzo przezroczyste wypełnienie w odcieniu różu i przerywany kontur —
+       województwa są wypukłe (3D) i żółte/czerwone, strefy PAŻP liliowe, więc
+       obwód nie zlewa się z Polską. Granice z geoBoundaries (OpenStreetMap), czyli
+       z tego samego źródła co podkład i odległości w punktacji. Stan przez
+       feature-state: 1 MB geometrii ładujemy raz, a nie przy każdej zmianie. */
+    try {
+      const obwody = await (await fetch("assets/obwody-ua.geojson")).json();
+      map.addSource("obwody", { type: "geojson", data: obwody, promoteId: "oblast" });
+      const on = ["boolean", ["feature-state", "active"], false];
+      const w = ["coalesce", ["feature-state", "w"], 0];
+      map.addLayer({ id: "obwody-fill", type: "fill", source: "obwody",
+        paint: { "fill-color": OBLAST_COLOR,
+          "fill-opacity": ["case", on, ["+", 0.04, ["*", 0.08, w]], 0] } });
+      map.addLayer({ id: "obwody-line", type: "line", source: "obwody",
+        paint: { "line-color": OBLAST_COLOR, "line-width": 1.4, "line-dasharray": [3, 2],
+          "line-opacity": ["case", on, ["+", 0.35, ["*", 0.4, w]], 0] } });
+      map.on("click", "obwody-fill", (e) => {
+        const hit = map.queryRenderedFeatures(e.point, { layers: ["threats", "threats-glow", "adsb"] });
+        if (hit.length) return;
+        const p = e.features?.[0]?.properties;
+        if (p && oblastInfo.has(p.oblast)) openOblastCard(p);
+      });
+    } catch (err) { console.warn("obwody UA", err); }
+
     map.addSource("trails", { type: "geojson", data: emptyFC() });
     map.addLayer({ id: "trails", type: "line", source: "trails",
       paint: { "line-color": ["get", "color"], "line-width": 1.6, "line-opacity": 0.5,
@@ -1583,9 +1608,63 @@ function toggleFollow(hex) {
     : "Śledzenie wyłączone.");
 }
 
+/* ── alarmy obwodów UA na mapie ─────────────────────────────────────────────
+   Podświetlamy obwód, dopóki jego alarm daje punkty któremuś województwu —
+   te same sygnały co w panelu, więc mapa i lista mówią to samo. Alarm liczy się
+   do 60 min od ogłoszenia (serwer nie dostaje dziś jego zakończenia). */
+const OBLAST_COLOR = "#ff6f91";
+let oblastInfo = new Map();
+function oblastsFrom(sigs) {
+  const m = new Map();
+  for (const s of sigs || []) {
+    const k = s.source === "ua_alert" && s.details?.oblast;
+    if (!k || !((s.points || 0) > 0)) continue;
+    const e = m.get(k) || { w: 0, since: null, per: [] };
+    e.w = Math.max(e.w, Math.min(1, s.points));
+    if (!e.since || s.ts < e.since) e.since = s.ts;
+    e.per.push({ voiv: s.voivodeship, points: s.points, counted: s.counted_points,
+                 km: s.details.distance_km });
+    m.set(k, e);
+  }
+  return m;
+}
+function paintOblasts(sigs) {
+  if (!mapReady || !map.getSource("obwody")) return;
+  const next = oblastsFrom(sigs);
+  for (const k of new Set([...oblastInfo.keys(), ...next.keys()]))
+    map.setFeatureState({ source: "obwody", id: k },
+      { active: next.has(k), w: next.get(k)?.w || 0 });
+  oblastInfo = next;
+}
+function openOblastCard(p) {
+  const e = oblastInfo.get(p.oblast);
+  if (!e) return;
+  markSelected(null, null);
+  const en = UI.isEn;
+  const name = en ? `${p.en} oblast` : `Obwód ${p.pl}`;
+  const since = e.since ? new Date(e.since).toLocaleTimeString(en ? "en-GB" : "pl-PL",
+    { hour: "2-digit", minute: "2-digit" }) : "?";
+  const rows = e.per.sort((a, b) => b.points - a.points).map(r => {
+    const km = r.km == null ? "" : r.km <= 0 ? (en ? " (at the border)" : " (przy granicy)") : ` — ${r.km} km`;
+    const pts = Number(r.points).toFixed(2).replace(/0$/, "");
+    const counted = r.counted != null && Math.abs(r.counted - r.points) >= 0.01
+      ? ` <span style="color:#68758c">(${en ? "counted" : "wliczone"} ${en ? Number(r.counted).toFixed(1) : Number(r.counted).toFixed(1).replace(".", ",")} — ${en ? "class cap" : "limit klasy"})</span>` : "";
+    return `${en ? "" : "woj. "}${esc2(UI.voiv(r.voiv))}${km}: <b>+${UI.isEn ? pts : pts.replace(".", ",")} ${en ? "pt" : "pkt"}</b>${counted}`;
+  }).join("<br>");
+  showCard(`
+    <div class="zone-head"><b style="color:#b8325a">📢 ${esc2(name)}</b>
+      <span style="color:#8fa3c4">· ${en ? "air-raid alert" : "alarm powietrzny"}</span></div>
+    <span style="color:#8fa3c4">${en ? `Signal received at ${since}.` : `Sygnał odebrany o ${since}.`}</span><br>
+    ${rows}<br>
+    <span style="color:#68758c">${en
+      ? "Ukraine's civil defence declares the alert for the whole oblast. Its weight falls with the distance from the province (table in the user guide), and the whole class is capped at 1 pt. The highlight disappears when the alert stops counting — at most 60 minutes after it was received, because the end of an alert does not reach the server yet."
+      : "Alarm ogłasza ukraińska obrona cywilna dla całego obwodu. Waga maleje z odległością od województwa (tabela w instrukcji), a cała klasa ma limit 1 pkt. Podświetlenie znika, gdy alarm przestaje się liczyć — najpóźniej 60 minut po odebraniu, bo zakończenie alarmu nie dociera jeszcze do serwera."}</span>`, { big: true });
+}
+
 function updateVoivStates() {
   if (histMode) return;   // mapa pokazuje wtedy chwilę wybraną suwakiem
   const voivs = state?.fusion?.voivodeships || {};
+  paintOblasts(Object.values(voivs).flatMap(st => st.signals || []));
   for (const [name, st] of Object.entries(voivs)) {
     map.setFeatureState({ source: "voiv", id: name },
       { score: Math.min(st.score, 8), level: st.level, spill: spillRaised(st) });
@@ -3326,6 +3405,7 @@ function showHistoryAt(idx) {
     when.toLocaleTimeString(UI.isEn ? "en-GB" : "pl-PL", { hour: "2-digit", minute: "2-digit" })
     + (ageMin > 1 ? ` (−${ageMin} min)` : (UI.isEn ? " (now)" : " (teraz)"));
   const sigs = h?.signals || [];
+  paintOblasts(sigs);
   const threats = snap?.threats || [];
   const planes = [...(snap?.aircraft || [])];
   // ADS-B jest odpytywane częściej niż powstają migawki. Zdarzenie wejścia lub

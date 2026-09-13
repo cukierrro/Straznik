@@ -23,6 +23,7 @@
     "Rakieta balistyczna": "Ballistic missile", "Bomba kierowana KAB": "KAB guided bomb",
     "MiG-31K (nosiciel)": "MiG-31K (carrier)", "Obiekt nierozpoznany": "Unidentified object",
     "kurs nieznany — ikona nie jest obracana": "unknown heading — the icon is not rotated",
+    "obwód UA z alarmem powietrznym, który daje punkty": "Ukrainian oblast with an air-raid alert that adds points",
     "pulsujący pierścień — obiekt liczy się teraz do punktów": "pulsing ring — the object currently adds points",
     "okrąg = niepewność pozycji (±km)": "circle = position uncertainty (±km)",
     "przerywana linia = trasa przelotu": "dashed line = flight path",

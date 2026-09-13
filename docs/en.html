@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Strażnik 1.7.37 — user guide</title>
-<meta name="description" content="Strażnik 1.7.37 user guide: installation, My places, the map and PAŻP zones, the signals panel, history, alerts, browser notifications and scoring. Screenshots from the current version.">
+<title>Strażnik 1.7.38 — user guide</title>
+<meta name="description" content="Strażnik 1.7.38 user guide: installation, My places, the map and PAŻP zones, the signals panel, history, alerts, browser notifications and scoring. Screenshots from the current version.">
 <link rel="canonical" href="https://cukierrro.github.io/Straznik/en.html">
 <link rel="alternate" hreflang="pl" href="https://cukierrro.github.io/Straznik/">
 <link rel="alternate" hreflang="en" href="https://cukierrro.github.io/Straznik/en.html">
@@ -33,11 +33,11 @@
   <div class="languages" aria-label="Guide language"><a href="index.html" lang="pl" hreflang="pl">PL</a><a href="en.html" lang="en" aria-current="page">EN</a></div>
 </div></nav>
 <header class="hero"><div class="wrap hero-grid">
-  <div><div class="eyebrow">User guide · version 1.7.37</div>
+  <div><div class="eyebrow">User guide · version 1.7.38</div>
     <h1>The situation on a map.<br>The sources behind each signal.</h1>
     <p class="lead">Strażnik combines public information about airborne threats and shows a score for each Polish province. It runs on Android and in a web browser.</p>
     <div class="actions"><a class="button primary" href="https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk">↓ Download the app</a><a class="button" href="https://straznik.eu">Open the map</a></div>
-    <p class="fineprint">This guide describes only the current version, 1.7.37. All screenshots were taken on 13 September 2026 on a Pixel 7 with Android 14, using live data. What changed from release to release is in the <a href="zmiany-en.html">changelog</a>. Tap a screenshot to open it full size.</p>
+    <p class="fineprint">This guide describes only the current version, 1.7.38. All screenshots were taken on 13 September 2026 on a Pixel 7 with Android 14, using live data. What changed from release to release is in the <a href="zmiany-en.html">changelog</a>. Tap a screenshot to open it full size.</p>
   </div>
   <a class="shot-link" href="screens/1737/start-en.jpg"><img src="screens/1737/start-en.jpg" width="1080" height="2400" alt="Strażnik start screen: map of Poland and Ukraine, six green source indicators, icons at the top, the my region, zones and whole PL tiles, and the Map, Signals, History, More tabs"></a>
 </div></header>
@@ -75,9 +75,9 @@
       <h3>Updating from inside the app</h3>
       <p>Strażnik checks for a new release at every launch and whenever it returns to the foreground (at most every 30 minutes). The update window shows the version number and the list of changes. Manually: <kbd>⚙</kbd> → <kbd>App</kbd> → <kbd>⬆ Check for updates</kbd>.</p>
       <p>For an ordinary update you can choose <kbd>Later</kbd>. When you install, the app downloads the file, verifies its SHA-256 checksum and hands it to Android for confirmation. Install the new release over the old one — settings and My places are kept.</p>
-      <div class="note"><b>Which version do you have?</b> <kbd>⚙</kbd> → <kbd>App</kbd> tab → “Installed version”. The latest release is <b>1.7.37</b>. At the bottom of the tab are links to this guide, the changelog and supporting the author.</div>
+      <div class="note"><b>Which version do you have?</b> <kbd>⚙</kbd> → <kbd>App</kbd> tab → “Installed version”. The latest release is <b>1.7.38</b>. At the bottom of the tab are links to this guide, the changelog and supporting the author.</div>
     </div>
-    <figure><a class="shot-link" href="screens/1737/set-aplikacja-en.jpg"><img loading="lazy" src="screens/1737/set-aplikacja-en.jpg" width="1080" height="2400" alt="Settings, App tab: interface language English, installed version 1.7.37, Check for updates button, collapsed Advanced section and links to the user guide, changelog and support"></a><figcaption><kbd>⚙</kbd> → <kbd>App</kbd>: language, version, updates.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/1737/set-aplikacja-en.jpg"><img loading="lazy" src="screens/1737/set-aplikacja-en.jpg" width="1080" height="2400" alt="Settings, App tab: interface language English, installed version 1.7.38, Check for updates button, collapsed Advanced section and links to the user guide, changelog and support"></a><figcaption><kbd>⚙</kbd> → <kbd>App</kbd>: language, version, updates.</figcaption></figure>
   </div>
 </section>
 
@@ -151,17 +151,18 @@
         <tr><td>Unidentified object</td><td>grey diamond with a question mark</td></tr>
       </tbody></table></div>
       <p><b>Unknown heading:</b> the icon is not rotated and has a dashed white ring and a question mark — it does not indicate a direction. Only objects that currently add points to a province get a <b>pulsing red ring</b>; the others stay still.</p>
+      <p>A <b>pink-highlighted Ukrainian oblast</b> with a dashed outline has an air-raid alert that currently adds points to a province. Nearer oblasts are clearer, distant ones barely visible. Tapping the oblast shows when the signal arrived and how many points it gives to which province.</p>
       <p>The <b>circle around an object</b> is position uncertainty (±km), not a blast radius. The <b>dashed line</b> is the flight path — drawn only when the source gives positions suitable for tracking. Blue aircraft and helicopters are military aviation with a public ADS-B transponder.</p>
     </div>
-    <figure><a class="shot-link" href="screens/1737/legend-en.jpg"><img loading="lazy" src="screens/1737/legend-en.jpg" width="1080" height="2400" alt="Legend: nine NEPTUN object symbols, uncertainty circle, dashed flight path, military aircraft and helicopter, and province point thresholds"></a><figcaption>Legend — the first icon at the top.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/1737/legend-en.jpg"><img loading="lazy" src="screens/1737/legend-en.jpg" width="1080" height="2400" alt="Legend: nine NEPTUN object symbols, the unknown-heading symbol, the pulsing ring of an object that adds points, uncertainty circle, dashed flight path, military aircraft and helicopter"></a><figcaption>Legend — the first icon at the top.</figcaption></figure>
   </div>
   <h3 id="zdjecia">Object and aircraft cards</h3>
   <p>Tapping an object opens a <b>mini card</b> in the bottom-left corner and puts a white ring around the object on the map. The <kbd>⌃</kbd> arrow expands the card, <kbd>⌄</kbd> collapses it, <kbd>✕</kbd> closes it.</p>
   <p>A drone or missile card shows the type, reported area, number of confirmations, confidence, position uncertainty, heading and distance from the Polish border. Time to arrival (ETA) appears only for positions suitable for such a calculation. When the source marks the position as a report area, the card says “approximate report area — no confirmed route or arrival time” and the distance is an estimate. Object illustrations are AI-generated references and must not be used to identify a model.</p>
   <p>An aircraft or helicopter card shows the callsign, registration, country, model, role, altitude, speed and heading. The photo shows an <b>example aircraft</b> of that model — the author, source and licence are below it. <kbd>📍 follow track</kbd> draws the flight trail. The map does not show aircraft with the transponder switched off.</p>
   <div class="shots">
-    <figure><a class="shot-link" href="screens/1737/card-mini-en.jpg"><img loading="lazy" src="screens/1737/card-mini-en.jpg" width="1080" height="2400" alt="Mini drone card in the bottom-left corner of the map and a white ring around the selected object over Ukraine"></a><figcaption>Mini card and the selected object.</figcaption></figure>
-    <figure><a class="shot-link" href="screens/1737/object-en.jpg"><img loading="lazy" src="screens/1737/object-en.jpg" width="1080" height="2400" alt="Expanded FPV drone card: AI reference illustration, area Kherson, Kherson oblast, confirmations, confidence, position uncertainty, heading, distance from the Polish border and 0 points for an unknown heading"></a><figcaption>Expanded drone card.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/1737/card-mini-en.jpg"><img loading="lazy" src="screens/1737/card-mini-en.jpg" width="1080" height="2400" alt="Mini UAV card in the bottom-left corner of the map; in Zaporizhzhia oblast the selected drone with a red nose sits in a white ring next to an FPV drone"></a><figcaption>Mini card and the selected object.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/1737/object-en.jpg"><img loading="lazy" src="screens/1737/object-en.jpg" width="1080" height="2400" alt="Expanded UAV card: AI reference illustration, heading towards Kushuhum in Zaporizhzhia oblast, confirmations, confidence, position uncertainty, heading 353°, about 880 km from the Polish border, heading towards Poland 57° off the direction to the border and the approximate report area note"></a><figcaption>Expanded drone card.</figcaption></figure>
     <figure><a class="shot-link" href="screens/1737/aircraft-en.jpg"><img loading="lazy" src="screens/1737/aircraft-en.jpg" width="1080" height="2400" alt="Expanded card of helicopter MAI333, H135M from Romania: example photo with author and licence, role light helicopter, altitude, speed, heading and the follow track button"></a><figcaption>Aircraft card with an example photo.</figcaption></figure>
   </div>
 </section>
@@ -179,7 +180,7 @@
   </div>
   <div class="shots">
     <figure><a class="shot-link" href="screens/1737/zones-map-en.jpg"><img loading="lazy" src="screens/1737/zones-map-en.jpg" width="1080" height="2400" alt="Map framed on Lublin province with the zone layer on: purple outlines over eastern Poland and the zones tile highlighted"></a><figcaption>The zone layer over eastern Poland.</figcaption></figure>
-    <figure><a class="shot-link" href="screens/1737/legend2-en.jpg"><img loading="lazy" src="screens/1737/legend2-en.jpg" width="1080" height="2400" alt="Lower part of the legend: province colours including the dimmed neighbours-only colour, and colours of standing and recently activated zones with a note on scoring"></a><figcaption>Legend for provinces and zones.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/1737/legend2-en.jpg"><img loading="lazy" src="screens/1737/legend2-en.jpg" width="1080" height="2400" alt="Lower part of the legend: province colours including the dimmed neighbours-only colour, a pink Ukrainian oblast with an alert that adds points, and colours of standing and recently activated zones with a note on scoring"></a><figcaption>Legend for provinces and zones.</figcaption></figure>
   </div>
 </section>
 
@@ -280,7 +281,7 @@
   </tbody></table></div>
 
   <h3>Ukrainian oblast alerts — weight by distance</h3>
-  <p>The weight falls smoothly: at the border 1; 50 km 0.7; 100 km 0.5; 150 km 0.3; 220 km 0.15; 320 km 0.08. An oblast counts for both provinces, each by its own distance:</p>
+  <p>The weight falls smoothly: at the border 1; 50 km 0.7; 100 km 0.5; 150 km 0.3; 220 km 0.15; 320 km 0.08. An oblast counts for both provinces, each by its own distance. While the alert adds points, the oblast is gently highlighted on the map — for at most 60 minutes after it was received, because the end of an alert does not reach the server yet:</p>
   <div class="tw"><table><thead><tr><th>Oblast</th><th>Lublin: km</th><th>weight</th><th>Subcarpathian: km</th><th>weight</th></tr></thead><tbody>
     <tr><td>Lviv</td><td>0</td><td>1.00</td><td>0</td><td>1.00</td></tr>
     <tr><td>Volyn</td><td>0</td><td>1.00</td><td>55</td><td>0.68</td></tr>

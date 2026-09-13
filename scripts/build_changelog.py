@@ -16,6 +16,21 @@ DOCS = ROOT / "docs"
 # (wersja, data PL, data EN, tytuł PL, tytuł EN, punkty PL, punkty EN, zrzuty)
 # Zrzut: (plik, alt PL, alt EN, podpis PL, podpis EN)
 RELEASES = [
+    ("1.7.38", "13 września 2026", "13 September 2026",
+     "Czytelny kurs dronów, puls liczonych obiektów, obwody UA i Bałtyk",
+     "Readable drone heading, pulsing counted objects, UA oblasts and the Baltics",
+     ["BpSP ma czerwony dziób i czerwony grot przed nim. Obiekt bez znanego kursu nie jest już obracany dziobem na północ — każdy typ ma wtedy przerywaną obwódkę i znak zapytania. Dron rozpoznawczy jest biało-szary.",
+      "Obiekty, które w tej chwili dodają punkty któremuś województwu, pulsują czerwonym pierścieniem.",
+      "Obwód Ukrainy z alarmem powietrznym, który daje punkty, jest delikatnie podświetlony na różowo; dotknięcie pokazuje punkty dla województw.",
+      "Litwa, Łotwa i Estonia: nowe kanały (LRT, 15min, LSM, ERR). Ogłoszony tam alarm to ślad w panelu za 0,12–0,3 pkt; okno Źródła pokazuje stan kanałów, ostatni alarm i strefy.",
+      "Okno aktualizacji pokazuje pełną listę zmian. Karta drona podaje poprawne odchylenie kursu od kierunku na granicę."],
+     ["The UAV icon has a red nose and a red arrowhead ahead of it. An object without a known heading is no longer turned nose-north — every type then gets a dashed ring and a question mark. Reconnaissance drones are white-grey.",
+      "Objects that currently add points to a province pulse with a red ring.",
+      "A Ukrainian oblast with an air-raid alert that adds points is gently highlighted in pink; a tap shows the points for each province.",
+      "Lithuania, Latvia and Estonia: new feeds (LRT, 15min, LSM, ERR). An alert announced there is a trace in the panel worth 0.12–0.3; the Sources window shows feed status, the last alert and zones.",
+      "The update window shows the full list of changes. The drone card shows the correct heading offset from the direction to the border."],
+     []),
+
     ("1.7.37", "13 września 2026", "13 September 2026",
      "Media po przeczytaniu treści, bez marginesu alarmów, nowa instrukcja",
      "Media scored after reading the article, no alert margin, new guide",
