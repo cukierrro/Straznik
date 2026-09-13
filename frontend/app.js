@@ -2593,11 +2593,24 @@ async function enablePush() {
   if (standalone) return toggleBell();
   const base = apiBase(); if (!base) return openSettings(true);
   const voivodeships = Places?.observedVoivodeships(savedPlaces) || [];
-  if (!voivodeships.length) return openSettings(true);
+  if (!voivodeships.length) {
+    toast(UI.isEn ? "First choose a province in ⚙ → My places — notifications are sent per province."
+                  : "Najpierw wybierz województwo w ⚙ → Moje miejsca — powiadomienia idą według województwa.", 6000);
+    openSettings();
+    document.querySelector('#settings .set-tab[data-pane="miejsca"]')?.click();
+    return;
+  }
   if (!("serviceWorker" in navigator) || !("PushManager" in window))
-    return alert("Ta przeglądarka nie wspiera Web Push. Użyj ntfy/Telegrama.");
+    return toast(UI.isEn ? "This browser does not support push notifications."
+                         : "Ta przeglądarka nie obsługuje powiadomień push.", 6000);
   const perm = await Notification.requestPermission();
-  if (perm !== "granted") return;
+  if (perm !== "granted") {
+    // bez komunikatu dzwonek wyglądał, jakby nie reagował (zgłoszone 13.09.2026)
+    toast(UI.isEn
+      ? "🔕 The browser blocks notifications for straznik.eu. Allow them in the site settings (icon next to the address)."
+      : "🔕 Przeglądarka blokuje powiadomienia dla straznik.eu. Dopuść je w ustawieniach witryny (ikona obok adresu).", 7000);
+    return;
+  }
   const reg = await navigator.serviceWorker.register("sw.js");
   const { publicKey } = await (await fetch(base + "/api/push/key")).json();
   if (!publicKey) return alert("Backend nie ma skonfigurowanego Web Push.");
@@ -2611,6 +2624,77 @@ async function enablePush() {
     body: JSON.stringify({ ...sub.toJSON(), voivodeships }) });
   if (!saved.ok) throw new Error("Nie udało się zapisać subskrypcji Web Push");
   document.getElementById("btn-push").classList.add("active");
+  const names = voivodeships.map(v => UI.voiv(v)).join(", ");
+  toast(UI.isEn
+    ? `🔔 <b>Notifications on</b> for: ${esc(names)}.<br>They arrive even with the tab closed. To turn them off, tap the bell again.`
+    : `🔔 <b>Powiadomienia włączone</b> dla: ${esc(names)}.<br>Przyjdą też przy zamkniętej karcie. Aby je wyłączyć, dotknij dzwonka ponownie.`, 6000);
+}
+
+/* Strona WWW: stan powiadomień push w TEJ przeglądarce i przyciski do ich
+   włączenia i wyłączenia. Wcześniej wyłączyć dało się je tylko w ustawieniach
+   przeglądarki, a okno pisało nieprawdę, że w przeglądarce alarm widać wyłącznie
+   przy otwartej karcie (13.09.2026: użytkowniczka nie wiedziała, jak to zatrzymać). */
+async function browserPushSubscription() {
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) return null;
+  const reg = await navigator.serviceWorker.getRegistration();
+  return reg ? reg.pushManager.getSubscription() : null;
+}
+
+async function refreshWebPushStatus(isEn = UI.isEn) {
+  const info = document.getElementById("bg-status");
+  const on = document.getElementById("btn-web-push-on");
+  const off = document.getElementById("btn-web-push-off");
+  if (!on || !off) return;
+  on.hidden = off.hidden = true;
+  on.textContent = isEn ? "🔔 Turn on notifications in this browser" : "🔔 Włącz powiadomienia w tej przeglądarce";
+  off.textContent = isEn ? "🔕 Turn off notifications in this browser" : "🔕 Wyłącz powiadomienia w tej przeglądarce";
+  let text;
+  if (standalone || !("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
+    text = isEn ? "This browser does not support push notifications — alerts are visible only while the tab is open."
+                : "Ta przeglądarka nie obsługuje powiadomień push — alarm widać tylko przy otwartej karcie.";
+  } else if (Notification.permission === "denied") {
+    text = isEn ? "Notifications for straznik.eu are blocked in this browser. To allow them, open the site settings (the icon next to the address)."
+                : "Powiadomienia dla straznik.eu są zablokowane w tej przeglądarce. Aby je dopuścić, otwórz ustawienia witryny (ikona obok adresu).";
+  } else {
+    let sub = null;
+    try { sub = Notification.permission === "granted" ? await browserPushSubscription() : null; } catch {}
+    const regions = (Places?.observedVoivodeships(savedPlaces) || []).map(v => UI.voiv(v)).join(", ");
+    if (sub) {
+      off.hidden = false;
+      text = (isEn ? `Push notifications are on${regions ? " for: " + regions : ""}. They arrive even with the tab closed — one notification per alert.`
+                   : `Powiadomienia push są włączone${regions ? " dla: " + regions : ""}. Przychodzą także przy zamkniętej karcie — jedno powiadomienie na alarm.`);
+    } else {
+      on.hidden = false;
+      text = isEn ? "Push notifications are off. Alerts are visible only while the tab is open."
+                  : "Powiadomienia push są wyłączone. Alarm widać tylko przy otwartej karcie.";
+    }
+  }
+  if (info) info.textContent = text;
+}
+
+async function disableBrowserPush() {
+  const base = apiBase();
+  let sub = null;
+  try { sub = await browserPushSubscription(); } catch {}
+  if (sub) {
+    // najpierw serwer, żeby nie wysyłał już na ten adres; potem sama przeglądarka
+    if (base) {
+      try {
+        await fetch(base + "/api/push/unsubscribe", { method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ endpoint: sub.endpoint }) });
+      } catch {}
+    }
+    try { await sub.unsubscribe(); } catch {}
+  }
+  localStorage.setItem(NOTIF_KEY, "0");
+  document.getElementById("btn-push").classList.remove("active");
+  await refreshWebPushStatus();
+  toast(UI.isEn
+    ? "🔕 <b>Notifications turned off in this browser.</b><br>Strażnik will not send push here any more. "
+      + "The browser permission itself can be removed in the site settings (icon next to the address)."
+    : "🔕 <b>Powiadomienia w tej przeglądarce wyłączone.</b><br>Strażnik nie wyśle już tu push. "
+      + "Samo pozwolenie przeglądarki usuniesz w ustawieniach witryny (ikona obok adresu).", 7000);
 }
 
 async function syncBrowserPushRegion() {
@@ -3492,9 +3576,7 @@ async function refreshBgStatus(previewLang = UI.lang) {
   if (!plugin) {
     document.getElementById("btn-battery").style.display = "none";
     document.getElementById("btn-notif-settings").style.display = "none";
-    if (info) info.textContent = isEn
-      ? "Push notifications are available in the Android app (in a browser, alerts are visible only while the tab is open)."
-      : "Powiadomienia push działają w aplikacji na Androida (w przeglądarce alarm widać tylko przy otwartej karcie).";
+    await refreshWebPushStatus(isEn);
     return;
   }
   try {
@@ -3603,8 +3685,26 @@ document.getElementById("btn-fit").onclick = () => fitAll();
 document.getElementById("panel-x").onclick = () => setPanel(false);
 document.getElementById("disclaimer-x").onclick = () =>
   document.getElementById("disclaimer").classList.add("hidden");
-document.getElementById("btn-push").onclick = () =>
-  enablePush().catch(e => toast("Błąd: " + e));
+/* Dzwonek na stronie WWW: gdy push już działa, otwiera zakładkę „Alarmy" z przyciskiem
+   wyłączenia — wcześniej ponowne dotknięcie tylko jeszcze raz zapisywało subskrypcję. */
+document.getElementById("btn-push").onclick = async () => {
+  if (!IS_APP && !standalone) {
+    let sub = null;
+    try { sub = Notification.permission === "granted" ? await browserPushSubscription() : null; } catch {}
+    if (sub) {
+      openSettings();
+      document.querySelector('#settings .set-tab[data-pane="alarmy"]')?.click();
+      return;
+    }
+  }
+  enablePush().then(() => refreshWebPushStatus()).catch(e => toast("Błąd: " + e));
+};
+document.getElementById("btn-web-push-off")?.addEventListener("click", () =>
+  disableBrowserPush().catch(e => toast("Błąd: " + e)));
+document.getElementById("btn-web-push-on")?.addEventListener("click", () => {
+  localStorage.setItem(NOTIF_KEY, "1");
+  enablePush().then(() => refreshWebPushStatus()).catch(e => toast("Błąd: " + e));
+});
 refreshBell();
 document.getElementById("btn-3d").onclick = () => {
   is3d = !is3d;
