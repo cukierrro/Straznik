@@ -104,3 +104,15 @@ test('cancelled alert and echo articles score zero, newer alert stays', () => {
     title: 'Media: „Szczątki drona znalezione w polu pod Chełmem”' };
   assert.equal(Engine.accumulate([dron, clear], ref).lubelskie.score, 1);
 });
+
+test('article that was not read or describes an earlier event scores zero', () => {
+  const REF2 = Date.parse('2026-09-13T08:00:00Z');
+  const art = (id, article) => ({ ...sig(id, 'lubelskie', 'media', 1.0, { link: `https://example.test/${id}`, ...(article ? { article } : {}) },
+    '2026-09-13T07:50:00Z'), title: `Media: artykuł ${id}` });
+  assert.equal(Engine.accumulate([art(1, { status: 'fresh' })], REF2).lubelskie.score, 1);
+  assert.equal(Engine.accumulate([art(2, { status: 'past' })], REF2).lubelskie.score, 0);
+  const un = Engine.accumulate([art(3, { status: 'unreadable' })], REF2).lubelskie;
+  assert.equal(un.score, 0);
+  assert.equal(un.signals[0].article_status, 'unreadable');
+  assert.equal(Engine.accumulate([art(4)], REF2).lubelskie.score, 1);
+});

@@ -2001,7 +2001,9 @@ const UA_OBLAST_EN = { "Волинська": "Volyn", "Львівська": "Lvi
   "Хмельницька": "Khmelnytskyi", "Чернівецька": "Chernivtsi", "Вінницька": "Vinnytsia" };
 
 function sigHTML(s) {
-  const link = safeUrl(s.details?.link || s.details?.url);
+  // adres u redakcji znaleziony przez czytnik artykułów ma pierwszeństwo przed
+  // przekierowaniem Google News, które kończy się na stronie zgody Google
+  const link = safeUrl(s.details?.article?.url || s.details?.link || s.details?.url);
   const cp = s.counted_points ?? s.points;
   const w = s.weight;                       // waga wygaszania z accumulate (1,0 = świeży)
   // Rozróżniamy powody, dla których liczy się mniej niż nominał:
@@ -2015,6 +2017,10 @@ function sigHTML(s) {
   const retrospective = !!s.retrospective;
   // odwołanie RCB/RSO: sam odwołany alert albo artykuł, który go potem opisuje
   const officialClear = s.official_clear || "";
+  // wynik czytania całego artykułu (serwer): relacja z wcześniejszego zdarzenia
+  // albo artykuł, którego nie dało się przeczytać — widoczny, 0 pkt
+  const articleStatus = s.article_status || "";
+  const articleInfo = s.details?.article || {};
   const src = s.source || "";
   // udział względem progu żółtego (2 pkt) — od razu widać, czy to drobiazg,
   // czy sygnał, który sam niemal domyka alarm
@@ -2028,6 +2034,7 @@ function sigHTML(s) {
   // NEPTUN: odległość i pewność kursu wprost w wierszu — bez tego nie było
   // widać, że obiekt bez kursu w ogóle jest brany pod uwagę
   const extra = [];
+  if (s.article_status && s.details?.article?.reason) extra.push(String(s.details.article.reason));
   if (d.dist_km != null) extra.push(`${threatDistanceText(signalPosition, d.dist_km)} ${UI.isEn ? "from the border" : "od granicy"}`);
   /* Odległość w sygnale to stan Z CHWILI JEGO POWSTANIA — obiekt leci dalej i po
      pół godzinie panel mówił „192,5 km", gdy na mapie ten sam dron był 130 km od
@@ -2109,13 +2116,17 @@ function sigHTML(s) {
             ? (UI.isEn ? "historical report or aftermath — visible, with no threat points" : "materiał historyczny lub następstwa — widoczne, bez punktów zagrożenia")
           : officialClear
             ? (UI.isEn ? "RCB cancelled this alert — visible, with no threat points" : "RCB odwołało ten alert — widoczne, bez punktów zagrożenia")
+          : articleStatus
+            ? (UI.isEn ? "article checked in full — no points" : "sprawdzono cały artykuł — bez punktów")
           : (UI.isEn ? "above this source-class cap — excess points are not counted" : "ponad limit tej klasy źródła — nadwyżka nie liczy się do sumy")}"` : ""}>
         +${cp}${capped ? ` <s>${s.points}</s>` : ""}</span>
     </div>
     ${isFreshSignal(s) ? `<div class="sig-fresh">${UI.isEn ? "NEW" : "NOWY"}</div>` : ""}
     <div class="sig-title">${repeatedOfficial ? `<b>${UI.isEn ? "Repeated official alert:" : "Powtórzenie oficjalnego alertu:"}</b> ` : ""}${retrospective ? `<b>${UI.isEn ? "Historical report / aftermath:" : "Materiał historyczny / następstwa:"}</b> ` : ""}${
       officialClear === "alert" ? `<b>${UI.isEn ? "Cancelled by RCB:" : "Odwołany przez RCB:"}</b> `
-      : officialClear ? `<b>${UI.isEn ? "After RCB cancellation:" : "Po odwołaniu alertu RCB:"}</b> ` : ""}${link
+      : officialClear ? `<b>${UI.isEn ? "After RCB cancellation:" : "Po odwołaniu alertu RCB:"}</b> ` : ""}${
+      articleStatus === "past" ? `<b>${UI.isEn ? "Report on an earlier event:" : "Relacja z wcześniejszego zdarzenia:"}</b> `
+      : articleStatus === "unreadable" ? `<b>${UI.isEn ? "Article could not be read — no points:" : "Nie udało się przeczytać artykułu — bez punktów:"}</b> ` : ""}${link
       ? `<a href="${esc(link)}" target="_blank" rel="noopener">${esc(shownTitle)}</a>`
       : esc(shownTitle)}</div>
     <div class="sig-bar"><i style="width:${share.toFixed(0)}%"></i></div>

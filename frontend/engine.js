@@ -549,6 +549,14 @@ function mediaAfterOfficialClear(media, clears, activeIssued) {
   return RSO_CLEAR_ECHO_MARKERS.some(m => title.includes(m)) ? "after_clear" : null;
 }
 
+/* Lustro fusion._media_article_status: artykuł nieprzeczytany albo o dawnym
+   zdarzeniu jest widoczny, ale bez punktów. */
+function mediaArticleStatus(media) {
+  if (media.source !== "media" || media.event_type !== "media_keywords") return null;
+  const st = media.details?.article?.status;
+  return st === "past" || st === "unreadable" ? st : null;
+}
+
 function mediaRetrospective(media) {
   if (media.source !== "media" || media.event_type !== "media_keywords") return false;
   const title = fold(media.title || "");
@@ -631,12 +639,13 @@ function accumulate(sigs, refT) {
       || !!officialClear;
     const relayOf = mediaRelayOfOfficial(s, officials);
     const retrospective = mediaRetrospective(s);
+    const articleStatus = mediaArticleStatus(s);
     const ageMin = (ref - s.t) / 60000;
     const w = ageMin <= FULL_MIN ? 1
       : Math.max(0, 1 - (ageMin - FULL_MIN) / Math.max(WINDOW_MIN - FULL_MIN, 1));
-    const zeroed = superseded || cleared || relayOf || retrospective;
+    const zeroed = superseded || cleared || relayOf || retrospective || articleStatus;
     prepared.push({ s, w, counted: 0, weighted: zeroed ? 0 : s.points * w,
-                    cleared, relayOf, retrospective, officialClear });
+                    cleared, relayOf, retrospective, officialClear, articleStatus });
   }
   for (const e of [...prepared].sort((a, b) => b.weighted - a.weighted || a.s.t - b.s.t)) {
     const k = e.s.voivodeship + "|" + e.s.source;
@@ -659,7 +668,8 @@ function accumulate(sigs, refT) {
       weight: Math.round(e.w * 100) / 100, ...(e.cleared ? { cleared:true } : {}),
       ...(relayOf ? { duplicate_of_official: relayOf.details?.rso_id || relayOf.id || true } : {}),
       ...(e.retrospective ? { retrospective:true } : {}),
-      ...(e.officialClear ? { official_clear: e.officialClear } : {}) });
+      ...(e.officialClear ? { official_clear: e.officialClear } : {}),
+      ...(e.articleStatus ? { article_status: e.articleStatus } : {}) });
   }
   return per;
 }
@@ -1174,9 +1184,14 @@ async function tickRss() {
           continue;
         }
         for (const voiv of targets)
+          /* Serwer czyta cały artykuł przed przyznaniem punktów; tryb awaryjny
+             tego nie robi, więc artykuł jest widoczny z linkiem, ale bez punktów
+             (decyzja z 13.09.2026: bez przeczytania treści — 0 pkt). */
           addSignal("media","media_keywords",voiv,pts,
             `Media: „${it.title.slice(0,120)}”`,
-            {link:it.link, keywords:hits, level, voivodeships:voivs},
+            {link:it.link, keywords:hits, level, voivodeships:voivs,
+             article:{status:"unreadable", url:it.link,
+                      reason:"tryb awaryjny — aplikacja nie czyta treści artykułów"}},
             "media:" + (it.link || it.title) + ":" + voiv);
       }
     } catch { markRss(url, false); }

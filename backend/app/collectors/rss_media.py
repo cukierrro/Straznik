@@ -1,9 +1,9 @@
 """Warstwa 2c — media regionalne (RSS) per województwo.
 
-RSS jest źródłem pomocniczym: 1 pkt za obiekt+zdarzenie albo 1,5 pkt za
-jednoznaczną relację operacyjną. Limit całej klasy 1,5 pkt sprawia, że same
-artykuły nie osiągają żółtego progu. Wykluczamy m.in. ćwiczenia, historię i
-następstwa prawne.
+RSS jest źródłem pomocniczym: 0,5 pkt za obiekt+zdarzenie albo 1 pkt za
+jednoznaczną relację operacyjną, limit klasy 1 pkt. Punkty dostaje wyłącznie
+artykuł przeczytany w całości, który opisuje coś świeżego (article_reader).
+Wykluczamy m.in. ćwiczenia, historię i następstwa prawne.
 """
 import asyncio
 import calendar
@@ -12,12 +12,13 @@ import logging
 import re
 import time
 import unicodedata
+from datetime import datetime, timezone
 from urllib.parse import urlparse
 
 import feedparser
 import httpx
 
-from .. import config, fusion
+from .. import article_reader, config, fusion
 from ..textmatch import classify_level, match_keywords
 
 
@@ -201,6 +202,14 @@ async def _check_feed(client: httpx.AsyncClient, url: str, default_voiv: str | N
                     dedup_key=f"media-clear:{dedup}:{voiv}",
                 )
             continue
+        # Punkty tylko za artykuł PRZECZYTANY w całości i opisujący coś świeżego
+        # (article_reader). Relacja z wcześniejszego zdarzenia albo artykuł, którego
+        # nie da się przeczytać, zostaje w panelu z linkiem — fuzja liczy go za 0.
+        source = entry.get("source") or {}
+        published = (datetime.fromtimestamp(calendar.timegm(t), timezone.utc) if t else None)
+        article = await article_reader.read_article(
+            client, link, title, source.get("title", "") or publisher,
+            source.get("href", ""), published)
         # Województwo w kluczu deduplikacji: jeden artykuł o dwóch regionach ma
         # dać sygnał w każdym z nich, a nie zniknąć po pierwszym zapisie.
         for voiv in voivs:
@@ -209,7 +218,7 @@ async def _check_feed(client: httpx.AsyncClient, url: str, default_voiv: str | N
                 points=pts,
                 title=f"Media: „{title[:120]}”",
                 details={"link": link, "keywords": hits, "feed": url, "level": level,
-                         "voivodeships": voivs},
+                         "voivodeships": voivs, "article": article},
                 dedup_key=f"{dedup}:{voiv}",
             )
 

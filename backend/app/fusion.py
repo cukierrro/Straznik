@@ -104,6 +104,17 @@ def _media_relay_of_official(media: dict, officials: list[dict]) -> dict | None:
     return None
 
 
+def _media_article_status(media: dict) -> str | None:
+    """Wynik czytania artykułu, gdy odbiera punkty: "past" albo "unreadable".
+
+    Starsze wpisy (sprzed czytnika) nie mają pola `article` i liczą się jak
+    dotąd — zmiana nie przepisuje historii."""
+    if media.get("source") != "media" or media.get("event_type") != "media_keywords":
+        return None
+    st = ((media.get("details") or {}).get("article") or {}).get("status")
+    return st if st in ("past", "unreadable") else None
+
+
 def _media_retrospective(media: dict) -> bool:
     if media.get("source") != "media" or media.get("event_type") != "media_keywords":
         return False
@@ -399,13 +410,14 @@ def accumulate(signals: list[dict], ref: datetime | None = None) -> dict:
         cleared = cleared or bool(official_clear)
         relay_of = _media_relay_of_official(s, officials)
         retrospective = _media_retrospective(s)
+        article_status = _media_article_status(s)
         w = _age_weight(s["ts"], ref)
-        zeroed = bool(superseded or cleared or relay_of or retrospective)
+        zeroed = bool(superseded or cleared or relay_of or retrospective or article_status)
         prepared.append({
             "s": s, "voiv": voiv, "w": w, "counted": 0.0,
             "weighted": 0.0 if zeroed else s["points"] * w,
             "cleared": cleared, "relay_of": relay_of, "retrospective": retrospective,
-            "official_clear": official_clear,
+            "official_clear": official_clear, "article_status": article_status,
         })
 
     for e in sorted(prepared, key=lambda x: (-x["weighted"], x["s"]["ts"])):
@@ -435,7 +447,8 @@ def accumulate(signals: list[dict], ref: datetime | None = None) -> dict:
                  (relay_of.get("details") or {}).get("rso_id") or relay_of.get("id")}
                 if relay_of else {}),
              **({"retrospective": True} if e["retrospective"] else {}),
-             **({"official_clear": e["official_clear"]} if e["official_clear"] else {})})
+             **({"official_clear": e["official_clear"]} if e["official_clear"] else {}),
+             **({"article_status": e["article_status"]} if e["article_status"] else {})})
     return per_voiv
 
 
