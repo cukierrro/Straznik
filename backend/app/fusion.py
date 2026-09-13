@@ -15,7 +15,7 @@ from . import config, db
 log = logging.getLogger("fusion")
 
 # callbacki: notyfikacje i broadcast do frontendów (ustawiane w main)
-on_level_change = None   # async def (voiv, level, score, breakdown)
+on_level_change = None   # async def (voiv, level, score, breakdown, *, log_id)
 on_state_change = None   # async def ()
 
 _last_levels: dict[str, str] = {}
@@ -640,7 +640,10 @@ async def reevaluate():
             db.save_level(voiv, new_level)
         except Exception as e:
             log.warning("zapis poziomu %s: %s", voiv, e)
+        from . import alert_log
         if not (rising and on_level_change):
+            alert_log.record_transition(voiv, old_level, new_level, st,
+                                        "falling" if not rising else "no_channel")
             continue
         # Powrót na ten sam poziom krótko po powiadomieniu to zwykle to samo
         # zdarzenie po chwilowym spadku — aktualizujemy mapę, telefon milczy.
@@ -656,8 +659,11 @@ async def reevaluate():
                     and not _fresh_strong_signal(st["signals"], last)):
                 log.info("woj. %s: ponownie %s po %.0f min bez nowego mocnego źródła — "
                          "bez powiadomienia", voiv, new_level, age_min)
+                alert_log.record_transition(voiv, old_level, new_level, st, "quiet_repeat")
                 continue
-        asyncio.create_task(on_level_change(voiv, new_level, st["score"], st["signals"]))
+        log_id = alert_log.record_transition(voiv, old_level, new_level, st, "pending")
+        asyncio.create_task(on_level_change(voiv, new_level, st["score"], st["signals"],
+                                            log_id=log_id))
     if on_state_change:
         asyncio.create_task(on_state_change())
 

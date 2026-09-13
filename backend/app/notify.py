@@ -281,27 +281,32 @@ async def send_webpush(voiv: str, title: str, body: str, level: str):
 _inflight: set[tuple] = set()
 
 
-async def notify_level(voiv: str, level: str, score: float, signals: list[dict]):
+async def notify_level(voiv: str, level: str, score: float, signals: list[dict],
+                       log_id: int | None = None):
     """Wysyłka po przekroczeniu progu (rising edge) z cooldownem per woj./poziom.
 
     Cooldown zapisujemy DOPIERO po udanej wysyłce. Wcześniej zapis szedł przed
     wysyłką, więc jeden błąd sieci gubił alarm na cały okres cooldownu.
     """
     from datetime import datetime, timedelta, timezone
+    from . import alert_log
     last = db.last_notif(voiv, level)
     if last:
         last_dt = datetime.fromisoformat(last)
         if datetime.now(timezone.utc) - last_dt < timedelta(minutes=config.NOTIFY_COOLDOWN_MIN):
+            alert_log.record_delivery(log_id, "cooldown", {"last_notif": last})
             return
     if is_test_alarm(signals) or not config.PRODUCTION:
         await _deliver_test(voiv, level, score, signals)
+        alert_log.record_delivery(log_id, "test", {"topic": fcm_topic(voiv, True),
+                                                   "production": config.PRODUCTION})
         return
     key = (voiv, level)
     if key in _inflight:          # okresowa reewaluacja nie może dublować wysyłki
         return
     _inflight.add(key)
     try:
-        await _deliver_level(voiv, level, score, signals)
+        await _deliver_level(voiv, level, score, signals, log_id)
     finally:
         _inflight.discard(key)
 
@@ -323,7 +328,8 @@ async def _deliver_test(voiv: str, level: str, score: float, signals: list[dict]
                 voiv, level, score, fcm_topic(voiv, True), ok)
 
 
-async def _deliver_level(voiv: str, level: str, score: float, signals: list[dict]):
+async def _deliver_level(voiv: str, level: str, score: float, signals: list[dict],
+                         log_id: int | None = None):
     from .fusion import breakdown_text
     label = LEVEL_LABELS[level]
     reasons = breakdown_text(signals)
@@ -347,6 +353,16 @@ async def _deliver_level(voiv: str, level: str, score: float, signals: list[dict
     web_sent, fcm_ok = results[2], results[3]
     delivered = (fcm_ok is True) or (isinstance(web_sent, int) and web_sent > 0)
     channels_off = not (config.FCM_ENABLED or config.WEBPUSH_ENABLED)
+    from datetime import datetime, timezone
+    from . import alert_log
+    alert_log.record_delivery(log_id, "sent" if delivered else
+                              ("channels_off" if channels_off else "undelivered"), {
+        "at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "fcm": fcm_ok if isinstance(fcm_ok, bool) else repr(fcm_ok)[:200],
+        "fcm_topic": fcm_topic(voiv),
+        "webpush_sent": web_sent if isinstance(web_sent, int) else repr(web_sent)[:200],
+        "title": title,
+    })
     if delivered or channels_off:
         db.log_notif(voiv, level)
     else:

@@ -92,6 +92,23 @@ CREATE TABLE IF NOT EXISTS rcb_reference_events (
     UNIQUE(source, source_event_id)
 );
 CREATE INDEX IF NOT EXISTS idx_rcb_reference_detected ON rcb_reference_events(detected_at);
+-- G1 (audyt 11.09.2026): każda zmiana poziomu powiadomień ze składem punktów,
+-- decyzją i wynikiem doręczenia. notif_log zostaje — z niego liczy się cooldown.
+CREATE TABLE IF NOT EXISTS alert_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts TEXT NOT NULL,
+    voivodeship TEXT NOT NULL,
+    old_level TEXT NOT NULL,
+    new_level TEXT NOT NULL,
+    score REAL,
+    own_score REAL,
+    decision TEXT NOT NULL,        -- pending|sent|undelivered|cooldown|quiet_repeat|falling|test
+    composition TEXT NOT NULL,     -- JSON: skład punktów
+    rso_ids TEXT,                  -- JSON: powiązane alerty RSO
+    delivery TEXT,                 -- JSON: FCM, Web Push, czasy
+    version TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_alert_log_ts ON alert_log(ts);
 """
 
 
@@ -347,6 +364,43 @@ def last_notif(voiv: str, level: str):
             (voiv, level),
         ).fetchone()
     return row[0] if row else None
+
+
+def add_alert_log(*, voivodeship: str, old_level: str, new_level: str, score, own_score,
+                  decision: str, composition: list, rso_ids: list, version: str) -> int:
+    with _lock:
+        cur = _conn.execute(
+            "INSERT INTO alert_log (ts, voivodeship, old_level, new_level, score, own_score,"
+            " decision, composition, rso_ids, version) VALUES (?,?,?,?,?,?,?,?,?,?)",
+            (now_iso(), voivodeship, old_level, new_level, score, own_score, decision,
+             json.dumps(composition, ensure_ascii=False), json.dumps(rso_ids), version))
+        _conn.commit()
+        return cur.lastrowid
+
+
+def update_alert_log(log_id: int, decision: str, delivery: dict) -> None:
+    with _lock:
+        _conn.execute("UPDATE alert_log SET decision=?, delivery=? WHERE id=?",
+                      (decision, json.dumps(delivery, ensure_ascii=False), log_id))
+        _conn.commit()
+
+
+def alert_log_since(hours: int = 48) -> list[dict]:
+    cutoff = (datetime.now(timezone.utc) - timedelta(hours=hours)).isoformat(timespec="seconds")
+    with _lock:
+        rows = _conn.execute(
+            "SELECT id, ts, voivodeship, old_level, new_level, score, own_score, decision,"
+            " composition, rso_ids, delivery, version FROM alert_log WHERE ts >= ? ORDER BY ts",
+            (cutoff,)).fetchall()
+    keys = ("id", "ts", "voivodeship", "old_level", "new_level", "score", "own_score",
+            "decision", "composition", "rso_ids", "delivery", "version")
+    out = []
+    for r in rows:
+        d = dict(zip(keys, r))
+        for k in ("composition", "rso_ids", "delivery"):
+            d[k] = json.loads(d[k]) if d[k] else None
+        out.append(d)
+    return out
 
 
 def log_notif(voiv: str, level: str):

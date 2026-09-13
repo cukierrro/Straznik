@@ -9,8 +9,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import (app_updates, config, db, escalation_shadow, fusion, load_guard, monitoring,
-               notify, public_cache, rcb_reference)
+from . import (alert_log, app_updates, config, db, escalation_shadow, fusion, load_guard,
+               monitoring, notify, public_cache, rcb_reference)
 from .collectors import adsb, neighbours, neptun, official_alerts, pansa, rcb, rso, rss_media
 from .neptun_archive import source_metadata
 
@@ -427,7 +427,7 @@ async def snapshot_loop():
     await asyncio.sleep(45)      # poczekaj, aż kolektory się zapełnią
     while True:
         try:
-            db.add_snapshot({
+            snapshot = {
                 "threats": [
                     {**{k: t.get(k) for k in ("id", "type", "lat", "lon", "heading",
                                            "confidenceLevel", "uncertaintyKm", "region",
@@ -441,7 +441,10 @@ async def snapshot_loop():
                      "source_metadata": source_metadata(t)}
                     for t in neptun.tracks.values() if t.get("lat") is not None],
                 "aircraft": adsb.current_aircraft,
-            })
+            }
+            db.add_snapshot(snapshot)
+            # G1: to samo na 30 dni w osobnym, skompresowanym archiwum
+            await asyncio.to_thread(alert_log.archive_snapshot, snapshot)
         except Exception as e:
             log.warning("snapshot błąd: %s", e)
         await asyncio.sleep(120)
