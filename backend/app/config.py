@@ -201,6 +201,17 @@ SPILLOVER_MIN_SOURCE_SCORE = 2.0
 SPILLOVER_MIN_CONTRIBUTION = 0.1
 SPILLOVER_MAX_DEPTH = 5
 
+# ── Kiedy BUDZIMY TELEFON (fusion.alert_level) ───────────────────────────────
+# Kolor mapy liczy się z wyniku łącznego (własne + przeniesienie). Powiadomienie
+# wymaga punktów własnych i przeniesienie może domknąć najwyżej jeden stopień
+# ponad nie. Reguły sprawdzone 13.09.2026 na całej historii od 02.08: alerty RCB/RSO
+# bez zmian, znikają powtórki i żółte zbudowane z tego samego zdarzenia liczonego
+# dwa razy. Opis i przypadki: scripts/test_przeniesienia.py.
+ALERT_OWN_MIN = 1.0              # min. punktów własnych, by przeniesienie mogło alarmować
+ALERT_HYSTERESIS = 0.5           # poziom gaśnie dopiero tyle pod progiem
+ALERT_REPEAT_QUIET_MIN = 30      # powrót na ten sam poziom w tym czasie — bez powiadomienia…
+ALERT_FRESH_NEPTUN_POINTS = 0.5  # …chyba że doszedł alert RCB/RSO albo obiekt NEPTUN ≥ tyle
+
 VOIV_NEIGHBORS = {
     "dolnośląskie": ["lubuskie", "wielkopolskie", "opolskie"],
     "kujawsko-pomorskie": ["pomorskie", "warmińsko-mazurskie", "mazowieckie", "łódzkie",

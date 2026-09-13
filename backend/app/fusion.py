@@ -119,6 +119,56 @@ def level_for(score: float) -> str:
     return "none"
 
 
+_ORDER = ["none", "elevated", "high"]
+
+
+def _level_held(score: float, prev: str) -> str:
+    """Poziom z marginesem przy zejściu: utrzymany poziom gaśnie dopiero
+    ALERT_HYSTERESIS pod progiem. Wejście wyżej — bez ulgi."""
+    for lvl, th in (("high", config.THRESHOLD_HIGH), ("elevated", config.THRESHOLD_ELEVATED)):
+        margin = config.ALERT_HYSTERESIS if _ORDER.index(lvl) <= _ORDER.index(prev) else 0.0
+        if score >= th - margin:
+            return lvl
+    return "none"
+
+
+def alert_level(own: float, total: float, prev: str = "none") -> str:
+    """Poziom, który BUDZI TELEFON. Mapa nadal pokazuje `level` z wyniku łącznego.
+
+    1. Przeniesienie od sąsiadów może domknąć próg, ale tylko o jeden stopień
+       ponad poziom z punktów własnych: własny żółty + sąsiad → może być
+       czerwony; własne poniżej progu żółtego + sąsiad → najwyżej żółty.
+    2. Bez co najmniej ALERT_OWN_MIN punktów własnych przeniesienie nie wysyła
+       nic. Wcześniej wystarczało 0,05 pkt (dron 240 km od granicy), żeby
+       sąsiad dopchnął województwo do powiadomienia.
+    3. Margines przy zejściu (ALERT_HYSTERESIS). Bez niego wynik wahający się
+       wokół progu wysyłał ten sam alarm kilka razy: 13.09.2026 podkarpackie
+       spadło na 3 minuty do 3,87 i o 07:02 dostało drugi czerwony z tym samym
+       alertem RCB co o 06:44.
+    """
+    own, total = round(own, 1), round(total, 1)
+    own_min = config.ALERT_OWN_MIN * (0.5 if prev != "none" else 1.0)
+    if own < own_min:
+        return "none"
+    cap = min(len(_ORDER) - 1, _ORDER.index(_level_held(own, prev)) + 1)
+    return _ORDER[min(_ORDER.index(_level_held(total, prev)), cap)]
+
+
+def _fresh_strong_signal(signals: list[dict], since_iso: str) -> bool:
+    """Czy od ostatniego powiadomienia doszło nowe MOCNE źródło: alert RCB/RSO
+    albo obiekt NEPTUN o realnej wadze. Samo wahanie wyniku albo kolejny
+    artykuł o tym samym zdarzeniu nim nie jest."""
+    for s in signals:
+        if s.get("ts", "") <= since_iso or s.get("counted_points", 0) <= 0:
+            continue
+        if s.get("source") == "rcb":
+            return True
+        if (s.get("source") == "neptun"
+                and s.get("points", 0) >= config.ALERT_FRESH_NEPTUN_POINTS):
+            return True
+    return False
+
+
 LEVEL_LABELS = {
     "none": "BRAK SYGNAŁÓW",
     "elevated": "PODWYŻSZONA UWAGA",
@@ -150,6 +200,22 @@ def _cascade_targets(src: str) -> list[tuple[str, int]]:
     return out
 
 
+def _event_key(s: dict) -> tuple:
+    """Tożsamość zdarzenia NIEZALEŻNA od województwa.
+
+    Ten sam artykuł (link), alarm obwodu UA (oblast), kontekst bałtycki
+    (incident_key) czy strefa sąsiada (ident) trafia jako osobny wpis do każdego
+    województwa, którego dotyczy. Klucz pozwala rozpoznać, że to jedno zdarzenie.
+    """
+    d = s.get("details") or {}
+    for field in ("link", "incident_key", "oblast", "designator"):
+        if d.get(field):
+            return (s.get("source"), field, str(d[field]))
+    if d.get("ident"):
+        return (s.get("source"), "ident", f"{d.get('country')}:{d['ident']}")
+    return (s.get("source"), "id", str(s.get("id")))
+
+
 def _age_weight(ts: str, ref: datetime | None = None) -> float:
     """1.0 do FUSION_FULL_MIN, potem liniowy zjazd do 0 na końcu okna.
 
@@ -177,7 +243,7 @@ def accumulate(signals: list[dict], ref: datetime | None = None) -> dict:
     żywo dawały 1.0. NIE stosuje kaskady sąsiedzkiej — tę dokłada compute_state.
     """
     per_voiv: dict[str, dict] = {
-        v: {"score": 0.0, "signals": [], "_spillover_score": 0.0}
+        v: {"score": 0.0, "signals": [], "_spillover_score": 0.0, "_spill_parts": {}}
         for v in config.VOIVODESHIPS
     }
     per_source: dict[tuple, float] = {}
@@ -280,6 +346,10 @@ def accumulate(signals: list[dict], ref: datetime | None = None) -> dict:
         # został wydany osobno dla kilku regionów.
         if s.get("source") != "rcb":
             per_voiv[voiv]["_spillover_score"] += counted
+            if counted > 0:
+                parts = per_voiv[voiv]["_spill_parts"]
+                key = _event_key(s)
+                parts[key] = parts.get(key, 0.0) + counted
         per_voiv[voiv]["signals"].append(
             {**s, "counted_points": round(counted, 1), "weight": round(e["w"], 2),
              **({"cleared": True} if e["cleared"] else {}),
@@ -290,46 +360,76 @@ def accumulate(signals: list[dict], ref: datetime | None = None) -> dict:
     return per_voiv
 
 
-def compute_state() -> dict:
-    """Stan fuzji: per województwo suma punktów + lista sygnałów składowych."""
-    signals = db.signals_since(config.FUSION_WINDOW_MIN)
-    # limit klasy źródła + wygaszanie wiekiem — wspólne z rekonstrukcją historii
-    per_voiv = accumulate(signals)
-    # Propagacja kaskadowa: zdarzenie podnosi czujność najpierw u sąsiadów,
-    # potem — słabiej — u ich sąsiadów, aż wkład zejdzie poniżej progu. Region
-    # dostaje wkład po najkrótszej drodze od źródła, więc każde źródło liczy się
-    # tylko raz i kaskada nie może się zapętlić.
+def apply_spillover(per_voiv: dict, ref: datetime | None = None) -> dict:
+    """Dokłada do wyniku `accumulate` przeniesienia od sąsiadów (w miejscu).
+
+    Propagacja kaskadowa: zdarzenie podnosi czujność najpierw u sąsiadów,
+    potem — słabiej — u ich sąsiadów, aż wkład zejdzie poniżej progu. Region
+    dostaje wkład po najkrótszej drodze od źródła, a podstawą przeniesienia jest
+    wynik WŁASNY źródła, więc przeniesienie nigdy nie przenosi przeniesienia.
+
+    Wspólne dla fuzji na żywo i audytu referencji RCB — wcześniej audyt miał
+    własną kopię tej pętli, która rozjechałaby się przy pierwszej zmianie.
+    """
     base = {v: st.pop("_spillover_score", 0.0) for v, st in per_voiv.items()}
-    # Wynik WŁASNY — przed przeniesieniem od sąsiadów. Decyduje o tym, czy budzimy
-    # telefon: samo przeniesienie pokazujemy na mapie i w panelu, ale nie wysyłamy
-    # z niego powiadomienia. Bez tego jedno zdarzenie mnożyło się w kilka pushy,
-    # a 10.09.2026 trzy województwa bez ani jednego własnego sygnału dostały żółty
-    # (audyt 11.09.2026: mazowieckie miało nawet 5,2 = czerwony z dwóch sąsiadów).
+    parts = {v: st.pop("_spill_parts", {}) for v, st in per_voiv.items()}
+    # Zdarzenia, które województwo ma już BEZPOŚREDNIO. Jeden artykuł albo jeden
+    # alarm obwodu UA bywa przypisany do dwóch sąsiadów naraz; przed 13.09.2026
+    # liczył się wtedy w każdym z nich w całości i JESZCZE RAZ jako 40% przeniesienia
+    # od drugiego. Lubelskie i podkarpackie podbijały się tak wzajemnie tym samym
+    # materiałem (artykuł o alercie RCB 07:02 dawał lubelskiemu 1,0 + część z 1,0).
+    own_keys = {v: set(p) for v, p in parts.items()}
+    # Wynik WŁASNY — przed przeniesieniem od sąsiadów. Tylko on decyduje o tym,
+    # czy budzimy telefon: przeniesienie pokazujemy na mapie i w panelu, ale nie
+    # wysyłamy z niego powiadomienia. Bez tego jedno zdarzenie mnożyło się w kilka
+    # pushy (audyt 11.09.2026: mazowieckie 5,2 = czerwony z dwóch sąsiadów).
     for st in per_voiv.values():
         st["own_score"] = round(st["score"], 1)
-    now_iso = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        st["own_level"] = level_for(st["own_score"])
+    now_iso = (ref or datetime.now(timezone.utc)).isoformat(timespec="seconds")
     for src, score in base.items():
         if score < config.SPILLOVER_MIN_SOURCE_SCORE:
             continue
         for target, depth in _cascade_targets(src):
-            spill = round(score * config.SPILLOVER_FACTOR ** depth, 1)
+            shared = sum(pts for key, pts in parts[src].items() if key in own_keys[target])
+            effective = score - shared
+            if effective < config.SPILLOVER_MIN_SOURCE_SCORE:
+                continue
+            spill = round(effective * config.SPILLOVER_FACTOR ** depth, 1)
             if spill < config.SPILLOVER_MIN_CONTRIBUTION:
                 continue
             hop = "sąsiad" if depth == 1 else f"{depth}. krąg"
+            eff = round(effective, 1)
             per_voiv[target]["score"] += spill
             per_voiv[target]["signals"].append({
                 "id": f"spill-{src}-{target}", "ts": now_iso,
                 "source": "spillover", "event_type": "neighbour_spillover",
                 "voivodeship": target, "points": spill, "counted_points": spill,
-                "title": (f"Przeniesienie z woj. {src} ({score} pkt × "
-                          f"{config.SPILLOVER_FACTOR}^{depth}, {hop})"),
-                "details": {"from": src, "from_score": score, "depth": depth},
+                "title": (f"Przeniesienie z woj. {src} ({eff} pkt × "
+                          f"{config.SPILLOVER_FACTOR}^{depth}, {hop}"
+                          + (", bez zdarzeń wspólnych" if shared > 0 else "") + ")"),
+                "details": {"from": src, "from_score": eff, "depth": depth,
+                            **({"shared_excluded": round(shared, 2)} if shared > 0 else {})},
             })
-    for v, st in per_voiv.items():
+    for st in per_voiv.values():
         st["score"] = round(st["score"], 1)
         st["level"] = level_for(st["score"])
+    return per_voiv
+
+
+def compute_state(signals: list[dict] | None = None, ref: datetime | None = None) -> dict:
+    """Stan fuzji: per województwo suma punktów + lista sygnałów składowych.
+
+    `level` (z wyniku łącznego) jest do wyświetlania, `own_level` (bez
+    przeniesień) — do powiadomień. `signals`/`ref` służą odtwarzaniu przeszłej
+    chwili w testach; na żywo oba zostają puste.
+    """
+    if signals is None:
+        signals = db.signals_since(config.FUSION_WINDOW_MIN)
+    # limit klasy źródła + wygaszanie wiekiem — wspólne z rekonstrukcją historii
+    per_voiv = apply_spillover(accumulate(signals, ref), ref)
     return {
-        "ts": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "ts": (ref or datetime.now(timezone.utc)).isoformat(timespec="seconds"),
         "window_min": config.FUSION_WINDOW_MIN,
         "thresholds": {"elevated": config.THRESHOLD_ELEVATED, "high": config.THRESHOLD_HIGH},
         "voivodeships": per_voiv,
@@ -353,27 +453,39 @@ async def reevaluate():
     """
     state = compute_state()
     levels = _levels()
-    order = ["none", "elevated", "high"]
     for voiv, st in state["voivodeships"].items():
-        new_level = st["level"]
         old_level = levels.get(voiv, "none")
+        # Zapamiętany poziom to poziom POWIADOMIEŃ (alert_level), nie kolor mapy.
+        new_level = alert_level(st["own_score"], st["score"], old_level)
         if new_level == old_level:
+            if st["level"] != new_level and _ORDER.index(st["level"]) > _ORDER.index(new_level):
+                log.debug("woj. %s: na mapie %s (%s pkt, własne %s) — bez powiadomienia",
+                          voiv, st["level"], st["score"], st["own_score"])
             continue
-        rising = order.index(new_level) > order.index(old_level)
-        if rising and st.get("own_score", 0.0) <= 0:
-            # Poziom zbudowany WYŁĄCZNIE przeniesieniem od sąsiadów: zostaje widoczny
-            # w aplikacji, ale nie budzi telefonu. Poziomu też NIE zapisujemy, żeby
-            # późniejszy własny sygnał w tym województwie nadal wywołał alarm.
-            log.info("woj. %s: poziom %s (%s pkt) wyłącznie z przeniesienia — "
-                     "bez powiadomienia", voiv, new_level, st["score"])
-            continue
+        rising = _ORDER.index(new_level) > _ORDER.index(old_level)
         levels[voiv] = new_level
         try:
             db.save_level(voiv, new_level)
         except Exception as e:
             log.warning("zapis poziomu %s: %s", voiv, e)
-        if rising and on_level_change:
-            asyncio.create_task(on_level_change(voiv, new_level, st["score"], st["signals"]))
+        if not (rising and on_level_change):
+            continue
+        # Powrót na ten sam poziom krótko po powiadomieniu to zwykle to samo
+        # zdarzenie po chwilowym spadku — aktualizujemy mapę, telefon milczy.
+        # Nowy alert RCB/RSO albo nowy obiekt NEPTUN przełamuje tę ciszę.
+        try:
+            last = db.last_notif(voiv, new_level)
+        except Exception:
+            last = None
+        if last:
+            age_min = (datetime.now(timezone.utc)
+                       - datetime.fromisoformat(last)).total_seconds() / 60
+            if (age_min < config.ALERT_REPEAT_QUIET_MIN
+                    and not _fresh_strong_signal(st["signals"], last)):
+                log.info("woj. %s: ponownie %s po %.0f min bez nowego mocnego źródła — "
+                         "bez powiadomienia", voiv, new_level, age_min)
+                continue
+        asyncio.create_task(on_level_change(voiv, new_level, st["score"], st["signals"]))
     if on_state_change:
         asyncio.create_task(on_state_change())
 
