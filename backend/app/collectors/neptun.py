@@ -449,6 +449,73 @@ def _eta_single_source_shadow(t: dict, a: dict, sources: int, conf: str,
         log.debug("cień ETA: %s", exc)
 
 
+# A4 i A10 (audyt 11.09.2026) — TRYB CIENIA. Historia sygnałów nie pozwala ich
+# sprawdzić wstecz (sygnał zapisuje się tylko przy zmianie punktów, więc nie widać,
+# czy obiekt dalej leciał albo zawrócił). Zanim zmienią punktację, zapisujemy do
+# dziennika stealth, co by zrobiły; pełne migawki zbiera archiwum 30 dni.
+#   A4: trwające zagrożenie traci wagę po 30 min, bo sygnał się nie odnawia —
+#       „odnowiłbym", gdy obiekt nadal leci na PL, ostatni sygnał ma > 30 min,
+#       pozycja nie jest katalogowa/rejonowa i obiekt przesunął się o ≥ 2 km;
+#   A10: zawrócony obiekt trzyma wynik do godziny — „wyzerowałbym", gdy kurs
+#       z ruchu dwa razy z rzędu wskazuje od Polski.
+_signalled: dict[str, dict] = {}     # track_id -> ostatni zapisany sygnał (czas, pozycja, pkt)
+_away_streak: dict[str, int] = {}
+RENEW_AFTER_S = config.FUSION_FULL_MIN * 60
+TURNAWAY_STREAK = 2
+
+
+def _renewal_shadow(t: dict, a: dict, points: float, approximate: bool,
+                    now: float | None = None) -> None:
+    tid = t.get("id")
+    last = _signalled.get(tid)
+    if not last or approximate:
+        return
+    now = now or time.time()
+    if now - last["at"] < RENEW_AFTER_S:
+        return
+    moved = geo.haversine_km(last["lat"], last["lon"], t["lat"], t["lon"])
+    if moved < _MIN_MOVE_KM:
+        return
+    bucket = int((now - last["first"]) // RENEW_AFTER_S)
+    stealth.record("neptun_renew_shadow", f"{tid}:{bucket}", {
+        "track_id": tid, "type": t.get("type"), "voivodeship": a.get("border_voiv"),
+        "points": round(points, 2), "last_signal_age_min": round((now - last["at"]) / 60, 1),
+        "active_min": round((now - last["first"]) / 60, 1), "moved_km": round(moved, 1),
+        "dist_km": a.get("dist_km"), "lat": t.get("lat"), "lon": t.get("lon"),
+    }, now)
+
+
+def _turnaway_shadow(t: dict, now: float | None = None) -> None:
+    """Wołane dla każdej aktualizacji tracka (także gdy już nie leci na PL)."""
+    tid = t.get("id")
+    if tid not in _signalled:
+        return
+    a = t.get("pl_assessment") or {}
+    measured = t.get("heading_estimated") is not None
+    if measured and a.get("toward_pl") is False:
+        _away_streak[tid] = _away_streak.get(tid, 0) + 1
+    else:
+        _away_streak[tid] = 0
+        return
+    if _away_streak[tid] == TURNAWAY_STREAK:
+        last = _signalled[tid]
+        stealth.record("neptun_turnaway_shadow", f"{tid}:{int(last['at'])}", {
+            "track_id": tid, "type": t.get("type"), "voivodeship": last.get("voiv"),
+            "points_held": last.get("points"), "heading_estimated": t.get("heading_estimated"),
+            "dist_km": a.get("dist_km"), "lat": t.get("lat"), "lon": t.get("lon"),
+            "since_signal_min": round(((now or time.time()) - last["at"]) / 60, 1),
+        }, now)
+
+
+def _remember_signal(t: dict, a: dict, points: float, now: float | None = None) -> None:
+    now = now or time.time()
+    tid = t.get("id")
+    prev = _signalled.get(tid)
+    _signalled[tid] = {"at": now, "first": prev["first"] if prev else now,
+                       "lat": t.get("lat"), "lon": t.get("lon"),
+                       "points": round(points, 2), "voiv": a.get("border_voiv")}
+
+
 def _reconnect_wait(exc: Exception, backoff: float) -> tuple[float, float]:
     """(czas oczekiwania, następny backoff); 1013 dostaje 15–30 s jitteru."""
     overloaded = getattr(exc, "code", None) == 1013 or "server full" in str(exc).lower()
@@ -501,7 +568,11 @@ async def _maybe_signal(t: dict):
     # Poziom w kluczu deduplikacji: gdy obiekt się zbliży albo zyska potwierdzenia,
     # jego waga rośnie i sygnał ma prawo wejść ponownie z wyższą punktacją.
     tier = int(points * 2)
-    await fusion.ingest(
+    try:
+        _renewal_shadow(t, a, points, approximate)
+    except Exception as exc:                      # noqa: BLE001
+        log.debug("cień odnowienia: %s", exc)
+    inserted = await fusion.ingest(
         source="neptun", event_type="neptun_threat", voivodeship=a["border_voiv"],
         points=points, title=title,
         details={"track_id": t.get("id"), "type": ttype, "count": count,
@@ -533,6 +604,9 @@ async def _maybe_signal(t: dict):
                  "eta_voiv_min": _eta_per_voiv(t)},
         dedup_key=f"neptun:{t.get('id')}:t{tier}",
     )
+    if inserted or t.get("id") not in _signalled:
+        # po restarcie duplikat z bazy też ustawia punkt odniesienia (bez „first" sprzed restartu)
+        _remember_signal(t, a, points)
 
 
 async def _handle_threats(threats: list[dict], replace: bool, *,
@@ -556,12 +630,13 @@ async def _handle_threats(threats: list[dict], replace: bool, *,
                              "message_type": message_type, "source_message_ts": source_message_ts}
             t = _evaluate(t)
             tracks[t.get("id")] = t
+            _turnaway_shadow(t)
             await _maybe_signal(t)
         except Exception as exc:                  # noqa: BLE001
             _bad_record(t, exc)
     if replace:
         # pełny snapshot: zapominamy kotwice obiektów, których już nie ma
-        for cache in (_last_pos, _last_est):
+        for cache in (_last_pos, _last_est, _signalled, _away_streak):
             for tid in [k for k in cache if k not in tracks]:
                 cache.pop(tid, None)
     if fusion.on_state_change:

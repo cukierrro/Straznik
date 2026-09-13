@@ -51,6 +51,29 @@ rows = stealth.query("eta_single_source_shadow", 60)
 sprawdz([r["track_id"] for r in rows] == ["k1"] and rows[0]["would_be"] == "high",
         f"zapis tylko dla rakiety, 1 zgłoszenie, pewność ≥ średnia ({[r['track_id'] for r in rows]})")
 
+print("3. A4/A10 w trybie cienia: odnowienie i zawrócenie")
+neptun._signalled.clear(); neptun._away_streak.clear()
+t0 = 1_800_000_000.0
+tr = {"id": "s1", "type": "shahed", "lat": 50.9, "lon": 24.9}
+a = {"border_voiv": "lubelskie", "dist_km": 40, "toward_pl": True}
+neptun._remember_signal(tr, a, 1.9, now=t0)
+neptun._renewal_shadow({**tr, "lat": 50.9, "lon": 24.7}, a, 1.9, False, now=t0 + 600)
+neptun._renewal_shadow({**tr, "lat": 50.9, "lon": 24.9}, a, 1.9, False, now=t0 + 2000)
+neptun._renewal_shadow({**tr, "lat": 50.9, "lon": 24.7}, a, 1.9, True, now=t0 + 2000)
+neptun._renewal_shadow({**tr, "lat": 50.9, "lon": 24.7}, a, 1.9, False, now=t0 + 2000)
+ren = stealth.query("neptun_renew_shadow", 10**8)
+sprawdz(len(ren) == 1 and ren[0]["moved_km"] >= 2,
+        f"odnowienie tylko po 30 min, z ruchem ≥ 2 km i pozycją nierejonową ({len(ren)})")
+away = {**tr, "heading_estimated": 90.0, "pl_assessment": {"toward_pl": False, "dist_km": 45}}
+neptun._turnaway_shadow(away, now=t0 + 700)
+sprawdz(not stealth.query("neptun_turnaway_shadow", 10**8), "jeden odczyt od Polski to jeszcze nie zawrócenie")
+neptun._turnaway_shadow(away, now=t0 + 800)
+neptun._turnaway_shadow(away, now=t0 + 900)
+tw = stealth.query("neptun_turnaway_shadow", 10**8)
+sprawdz(len(tw) == 1 and tw[0]["points_held"] == 1.9, f"dwa kolejne odczyty = jeden zapis zawrócenia ({len(tw)})")
+neptun._turnaway_shadow({**tr, "heading": 90.0, "pl_assessment": {"toward_pl": False}}, now=t0 + 950)
+sprawdz(neptun._away_streak["s1"] == 0, "kurs z NEPTUN-a („kursem na”) nie liczy się jako zmierzony")
+
 stealth._conn and stealth._conn.close()
 if bledy:
     print(f"\nBLEDY: {len(bledy)}")
