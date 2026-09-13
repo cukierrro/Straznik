@@ -305,7 +305,8 @@
     const nsNote = document.getElementById("ns-note");
     if (nsNote) nsNote.innerHTML = "Off by default. The siren uses the Android <b>“Alarms”</b> volume (not “Ring” or “Media”). When switched on, Strażnik sets that volume to maximum during a red alert — also at night — and restores the previous volume when you silence the alert. Turn it off with the same switch.";
     set("#btn-sound-settings", "🔊 Android sound settings");
-    set("#btn-native-test", "▶ Test native alert (in 5 s)");
+    set("#btn-native-test", "▶ Test: red native (in 5 s)");
+    set("#btn-native-test-yellow", "▶ Test: yellow native (in 5 s)");
     set("#ns-test-note", "The test uses the real notification path: lock the screen within 5 seconds to check the alert above the lock screen. Silence it with the button on the alert screen or “Wycisz alarm” in the notification.");
     set("#trail-head", "Map: object tracks");
     const tn = document.getElementById("trail-neptun-label"); if (tn?.firstChild) tn.firstChild.nodeValue = "Drones and missiles (NEPTUN) ";

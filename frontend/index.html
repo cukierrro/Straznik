@@ -53,7 +53,7 @@ document.documentElement.classList.add(
 <link rel="icon" type="image/png" sizes="512x512" href="assets/icon-512.png">
 <link rel="apple-touch-icon" href="assets/icon-192.png">
 <link rel="stylesheet" href="assets/vendor/maplibre-gl.css">
-<link rel="stylesheet" href="style.css?v=1.7.40-6">
+<link rel="stylesheet" href="style.css?v=1.7.40-7">
 </head>
 <body>
 
@@ -608,7 +608,8 @@ document.documentElement.classList.add(
         głośność, gdy wyciszysz alarm. Wyłączysz to tym samym przełącznikiem.</div>
       <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
         <button type="button" id="btn-sound-settings" class="chip">🔊 Ustawienia dźwięku Androida</button>
-        <button type="button" id="btn-native-test" class="chip">▶ Test alarmu natywnego (za 5 s)</button>
+        <button type="button" id="btn-native-test" class="chip">▶ Test: czerwony natywny (za 5 s)</button>
+        <button type="button" id="btn-native-test-yellow" class="chip">▶ Test: żółty natywny (za 5 s)</button>
       </div>
       <div class="fineprint" id="ns-test-note">Test przechodzi prawdziwą drogą powiadomienia:
         zablokuj ekran w ciągu 5 sekund, żeby sprawdzić alarm nad blokadą. Wycisz go
@@ -702,11 +703,11 @@ document.documentElement.classList.add(
      Cloudflare, więc po każdym wydaniu wystarczy podbić ?v= i przeglądarki
      dostają nowe app.js/engine.js OD RAZU, bez ręcznego czyszczenia cache CF.
      Podbijaj ?v= razem z versionName w build.gradle. -->
-<script src="i18n.js?v=1.7.40-6"></script>
-<script src="engine.js?v=1.7.40-6"></script>
+<script src="i18n.js?v=1.7.40-7"></script>
+<script src="engine.js?v=1.7.40-7"></script>
 <script src="aircraft-photo-catalog.js?v=1.7.19"></script>
 <script src="aircraft-photos.js?v=1.7.19"></script>
 <script src="places.js?v=1.7.19-4"></script>
-<script src="app.js?v=1.7.40-6"></script>
+<script src="app.js?v=1.7.40-7"></script>
 </body>
 </html>

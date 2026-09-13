@@ -4271,13 +4271,15 @@ document.getElementById("set-force-volume")?.addEventListener("change", async (e
   refreshNativeSound();
 });
 document.getElementById("btn-sound-settings")?.addEventListener("click", () => BG()?.openSoundSettings?.());
-document.getElementById("btn-native-test")?.addEventListener("click", async () => {
+async function nativeTest(level) {
   const plugin = BG(); if (!plugin?.testNativeAlarm) return;
   document.getElementById("settings").close();
-  await plugin.testNativeAlarm({ level: "high", delayMs: 5000, voivodeship: myVoiv() || "lubelskie" });
+  await plugin.testNativeAlarm({ level, delayMs: 5000, voivodeship: myVoiv() || "lubelskie" });
   toast(UI.isEn ? "Test alert in 5 seconds — you can lock the screen now."
     : "Test alarmu za 5 sekund — możesz teraz zablokować ekran.", 5000);
-});
+}
+document.getElementById("btn-native-test")?.addEventListener("click", () => nativeTest("high"));
+document.getElementById("btn-native-test-yellow")?.addEventListener("click", () => nativeTest("elevated"));
 // po deklaracji BG (const) — wcześniej byłby błąd strefy martwej
 if (IS_APP) {
   try { BG()?.addListener?.("fcmAlarm", onForegroundPush); } catch (e) { console.warn("fcmAlarm", e); }
