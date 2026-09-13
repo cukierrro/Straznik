@@ -17,7 +17,7 @@ from datetime import datetime, timezone
 import httpx
 import websockets
 
-from .. import config, fusion, geo
+from .. import config, db, fusion, geo
 from ..neptun_archive import source_metadata
 
 log = logging.getLogger("neptun")
@@ -42,6 +42,11 @@ status = {"connected": False, "mode": "ws", "last_msg": None, "error": None}
 
 # aktywne oficjalne alarmy powietrzne w obwodach UA (z ramek "alerts")
 alert_oblasts: set[str] = set()
+# Epizody alarmów obwodów (wariant B2): obwód → {"episode": ISO początku}. Koniec
+# zapisujemy, gdy obwód zniknie z listy na UA_ALERT_END_GRACE_S przy działającym
+# połączeniu — chwilowy brak po zerwaniu połączenia nie może zgasić alarmu.
+_episodes: dict[str, dict] = {}
+_absent_since: dict[str, float] = {}
 
 
 _ALERT_LEVELS_OFF = {"none", "green", "off", "clear", "no", "false"}
@@ -85,35 +90,136 @@ def _alert_title(oblast: str, voiv: str, km: int) -> str:
     return f"Alarm powietrzny w obwodzie {name} (woj. {voiv} — {where})"
 
 
-async def _handle_alerts(data):
-    """Alarm w obwodzie po ukraińskiej stronie ⇒ punkty dla polskich województw,
-    tym mniejsze, im dalej od nich leży obwód (rising edge; oficjalny sygnał
-    ukraińskiej OC, słabszy niż konkretny track)."""
+def _active_alerts(data) -> dict[str, str | None]:
+    """Obwody z `config.UA_ALERT_OBLASTS` z aktywnym alarmem → najwcześniejsze `since`.
+
+    `since` to prawdziwy początek alarmu w rejonie (NEPTUN, ramka `alerts`); alarm
+    obwodu trwa od najwcześniejszego z jego aktywnych rejonów."""
+    out: dict[str, str | None] = {}
+    for field in ("oblasts", "raions"):
+        for item in (data or {}).get(field) or []:
+            if isinstance(item, str):
+                name, since = item, None
+            elif isinstance(item, dict):
+                if str(item.get("level") or "").lower() in _ALERT_LEVELS_OFF:
+                    continue
+                name = next((item[k] for k in ("oblast", "name", "region", "title", "key")
+                             if isinstance(item.get(k), str) and item[k]), "")
+                since = item.get("since") if isinstance(item.get("since"), str) else None
+            else:
+                continue
+            for oblast in config.UA_ALERT_OBLASTS:
+                if oblast in name:
+                    prev = out.get(oblast)
+                    out[oblast] = min(x for x in (prev, since) if x) if (prev or since) else None
+    return out
+
+
+def _iso(ts: float) -> str:
+    return datetime.fromtimestamp(ts, timezone.utc).isoformat(timespec="seconds")
+
+
+def _norm_since(since: str | None) -> str:
+    """`since` z NEPTUN-a (…Z, mikrosekundy) → ISO UTC do sekundy, jak `ts` sygnałów."""
+    try:
+        t = datetime.fromisoformat(str(since).replace("Z", "+00:00"))
+        return t.astimezone(timezone.utc).isoformat(timespec="seconds")
+    except Exception:
+        return _iso(time.time())
+
+
+async def _alert_start(oblast: str, episode: str):
+    for voiv, km in config.UA_ALERT_OBLASTS[oblast].items():
+        weight = config.ua_alert_weight(km)
+        if weight <= 0:
+            continue
+        await fusion.ingest(
+            # OSOBNA klasa źródła: w klasie „neptun" (limit 8,0) trzy obwody naraz
+            # dawały 3,0 pkt i żółty alarm bez obiektu na mapie (audyt 11.09.2026).
+            source="ua_alert", event_type="ua_alert_border", voivodeship=voiv,
+            points=round(config.POINTS["ua_alert_border"] * weight, 2),
+            title=_alert_title(oblast, voiv, km),
+            details={"oblast": oblast, "distance_km": km, "episode": episode},
+            # klucz epizodu: restart serwera w trakcie alarmu nie tworzy drugiego wpisu
+            dedup_key=f"neptun_alert:{oblast}:{voiv}:{episode}",
+        )
+
+
+async def _alert_end(oblast: str, episode: str, ended_at: float):
+    name = config.UA_OBLAST_PL.get(oblast, oblast)
+    for voiv, km in config.UA_ALERT_OBLASTS[oblast].items():
+        if config.ua_alert_weight(km) <= 0:
+            continue
+        await fusion.ingest(
+            source="ua_alert", event_type="ua_alert_end", voivodeship=voiv, points=0.0,
+            title=f"Koniec alarmu powietrznego w obwodzie {name} (woj. {voiv})",
+            details={"oblast": oblast, "episode": episode, "ended_at": _iso(ended_at)},
+            dedup_key=f"neptun_alert_end:{oblast}:{voiv}:{episode}",
+        )
+
+
+async def _finish_ended(now: float | None = None):
+    """Zamyka epizody, których obwód zniknął z listy na dłużej niż UA_ALERT_END_GRACE_S.
+    Tylko przy działającym połączeniu: bez niego nie wiemy, czy alarm się skończył."""
+    now = now or time.time()
+    if not status.get("connected"):
+        return
+    for oblast, gone_at in list(_absent_since.items()):
+        if now - gone_at < config.UA_ALERT_END_GRACE_S:
+            continue
+        _absent_since.pop(oblast, None)
+        ep = _episodes.pop(oblast, None)
+        if ep:
+            log.info("koniec alarmu w obwodzie %s (od %s)", oblast, ep["episode"])
+            await _alert_end(oblast, ep["episode"], gone_at)
+
+
+async def _handle_alerts(data, now: float | None = None):
+    """Pełna lista aktywnych alarmów z NEPTUN-a ⇒ początki i końce epizodów.
+
+    Alarm w obwodzie po ukraińskiej stronie daje punkty polskim województwom, tym
+    mniejsze, im dalej leży obwód; wiek liczy się od `since`, a koniec alarmu
+    od razu gasi punkty (fusion.ua_alert_factor)."""
     global alert_oblasts
-    names = _extract_oblast_names(data)
-    new_active = set()
-    for name in names:
-        for oblast, voivs in config.UA_ALERT_OBLASTS.items():
-            if oblast in name:
-                new_active.add(oblast)
-                if oblast not in alert_oblasts:
-                    hour_key = time.strftime("%Y-%m-%dT%H")
-                    for voiv, km in voivs.items():
-                        weight = config.ua_alert_weight(km)
-                        if weight <= 0:
-                            continue
-                        await fusion.ingest(
-                            # OSOBNA klasa źródła: w klasie „neptun" (limit 8,0)
-                            # trzy obwody naraz dawały 3,0 pkt i żółty alarm bez
-                            # ani jednego obiektu na mapie (audyt 11.09.2026).
-                            source="ua_alert", event_type="ua_alert_border",
-                            voivodeship=voiv,
-                            points=round(config.POINTS["ua_alert_border"] * weight, 2),
-                            title=_alert_title(oblast, voiv, km),
-                            details={"oblast": oblast, "distance_km": km},
-                            dedup_key=f"neptun_alert:{oblast}:{voiv}:{hour_key}",
-                        )
-    alert_oblasts = new_active
+    now = now or time.time()
+    active = _active_alerts(data)
+    for oblast, since in active.items():
+        _absent_since.pop(oblast, None)
+        if oblast not in _episodes:
+            episode = _norm_since(since)
+            _episodes[oblast] = {"episode": episode}
+            await _alert_start(oblast, episode)
+    for oblast in _episodes:
+        if oblast not in active:
+            _absent_since.setdefault(oblast, now)
+    alert_oblasts = set(active)
+    await _finish_ended(now)
+
+
+def restore_episodes(now: datetime | None = None):
+    """Po restarcie: otwarte epizody z bazy (start bez końca, młodsze niż UA_ALERT_MAX_MIN).
+    Pierwsza ramka `alerts` po połączeniu (NEPTUN wysyła ją od razu) potwierdzi,
+    które trwają; pozostałe zamknie _finish_ended po okresie łaski."""
+    rows = db.events_since(config.UA_ALERT_MAX_MIN, ("ua_alert_border", "ua_alert_end"))
+    ended = {((s.get("details") or {}).get("oblast"), (s.get("details") or {}).get("episode"))
+             for s in rows if s.get("event_type") == "ua_alert_end"}
+    for s in sorted(rows, key=lambda x: x.get("ts", "")):
+        d = s.get("details") or {}
+        if (s.get("event_type") == "ua_alert_border" and d.get("episode")
+                and d.get("oblast") in config.UA_ALERT_OBLASTS
+                and (d["oblast"], d["episode"]) not in ended):
+            _episodes[d["oblast"]] = {"episode": d["episode"]}
+    if _episodes:
+        log.info("otwarte epizody alarmów obwodów po restarcie: %s", _episodes)
+
+
+async def _end_loop():
+    while True:
+        await asyncio.sleep(30)
+        try:
+            await _finish_ended()
+        except Exception as e:
+            log.warning("koniec alarmów obwodów: %s", e)
 
 
 # Ostatnia znana pozycja tracka — do wyliczenia kursu, gdy NEPTUN go nie podaje.
@@ -469,6 +575,11 @@ async def _rest_fallback_once():
 
 
 async def run():
+    try:
+        restore_episodes()
+    except Exception as e:
+        log.warning("odtwarzanie epizodów alarmów: %s", e)
+    asyncio.create_task(_end_loop())
     await _ws_loop()
 
 

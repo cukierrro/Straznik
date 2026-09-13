@@ -135,6 +135,14 @@ def build_bundle_bytes(hours: int = 12) -> bytes:
         start = (datetime.fromisoformat(rows[0][0])
                  - timedelta(minutes=config.FUSION_WINDOW_MIN)).isoformat(timespec="seconds")
         signals = db.signals_between(start, rows[-1][0])
+        # Alarmy obwodów UA trwające w chwili pierwszej migawki zaczęły się wcześniej —
+        # klient potrzebuje ich startu, żeby liczyć je w historii (wariant B2).
+        long_start = (datetime.fromisoformat(rows[0][0]) - timedelta(
+            minutes=config.FUSION_WINDOW_MIN + config.UA_ALERT_MAX_MIN)).isoformat(timespec="seconds")
+        seen = {s["id"] for s in signals}
+        signals += [s for s in db.events_since_between(long_start, start, ("ua_alert_border",
+                                                                          "ua_alert_end"))
+                    if s["id"] not in seen]
     head = json.dumps({"hours": hours, "window_min": config.FUSION_WINDOW_MIN},
                       ensure_ascii=False, separators=(",", ":"))[:-1]
     tail = json.dumps({"signals": signals, "adsb_watch_events": db.adsb_watch_events(hours)},
@@ -155,8 +163,10 @@ def build_timeline(hours: int = 12) -> dict:
         return {"points": []}
     missing = [ts for ts in times if ts not in _timeline_points]
     if missing:
+        # trwające alarmy obwodów UA sięgają dalej niż okno (fusion.active_ua_alerts)
         start = (datetime.fromisoformat(missing[0])
-                 - timedelta(minutes=config.FUSION_WINDOW_MIN)).isoformat(timespec="seconds")
+                 - timedelta(minutes=config.FUSION_WINDOW_MIN + config.UA_ALERT_MAX_MIN)
+                 ).isoformat(timespec="seconds")
         parsed = []
         for s in db.signals_between(start, missing[-1]):
             try:
@@ -167,6 +177,9 @@ def build_timeline(hours: int = 12) -> dict:
             t = datetime.fromisoformat(ts)
             window_start = t - timedelta(minutes=config.FUSION_WINDOW_MIN)
             win = [s for sig_t, s in parsed if window_start <= sig_t <= t]
+            win += fusion.active_ua_alerts(
+                [s for sig_t, s in parsed if sig_t <= t
+                 and s.get("event_type") in ("ua_alert_border", "ua_alert_end")], t)
             per_voiv = fusion.accumulate(win, t)
             scores = {v: st["score"] for v, st in per_voiv.items() if st["score"] > 0}
             best = max(scores.values()) if scores else 0.0

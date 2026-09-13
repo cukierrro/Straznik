@@ -272,7 +272,7 @@
   <div class="tw"><table><thead><tr><th>Źródło</th><th>Co jest uwzględniane</th><th>Punkty / limit</th></tr></thead><tbody>
     <tr><td>NEPTUN — obiekty</td><td>Typ, liczba obiektów, odległość od granicy, kurs, wiarygodność, liczba potwierdzeń, stan obserwacji i jakość pozycji. Rejon zgłoszenia ×0,6, rozpoznany środek miejscowości ×0,5.</td><td>łącznie do 8</td></tr>
     <tr><td>RCB / RSO</td><td>Alert RCB o zagrożeniu z powietrza opublikowany w RSO. Liczy się 60 minut od wykrycia, niezależnie od daty ważności wpisu. Odwołanie w RSO od razu zeruje alert.</td><td>2, limit 2</td></tr>
-    <tr><td>Alarmy obwodów UA</td><td>Alarm powietrzny w obwodzie zachodniej Ukrainy; waga maleje z odległością (tabela niżej).</td><td>do 1, limit 1</td></tr>
+    <tr><td>Alarmy obwodów UA</td><td>Alarm powietrzny w obwodzie zachodniej Ukrainy; waga maleje z odległością (tabela niżej). Pierwsze 30 minut od początku alarmu w pełni, potem w połowie, dopóki trwa; koniec alarmu od razu zeruje punkty.</td><td>do 1, limit 1</td></tr>
     <tr><td>Media (RSS)</td><td>Obiekt powietrzny i zdarzenie: 0,5 pkt; jednoznaczna relacja operacyjna (syreny, alarm, poderwane lotnictwo, zestrzelenie): 1 pkt. <b>Serwer czyta cały artykuł</b>: relacja z wcześniejszego zdarzenia albo artykuł nieczytelny ma 0 pkt. Ćwiczenia, rocznice, sprawy sądowe i powtórzenia alertu RCB też 0.</td><td>0 / 0,5 / 1, limit 1</td></tr>
     <tr><td>ADS-B</td><td>Co najmniej 3 maszyny wojskowe i ponad dwukrotność zwykłego ruchu o tej porze (tło z 7 dni).</td><td>1, limit 1</td></tr>
     <tr><td>Strefy PAŻP</td><td>Tylko rzadkie strefy D, R, NPZ, ADHOC od ziemi nad wschodem lub północą (niżej).</td><td>0,5 (północ 1), limit 1</td></tr>
@@ -281,7 +281,7 @@
   </tbody></table></div>
 
   <h3>Alarmy obwodów UA — waga według odległości</h3>
-  <p>Waga maleje płynnie: przy granicy 1; 50 km 0,7; 100 km 0,5; 150 km 0,3; 220 km 0,15; 320 km 0,08. Obwód liczy się dla obu województw, każde według swojej odległości. Dopóki alarm daje punkty, obwód jest na mapie delikatnie podświetlony — najdłużej 60 minut od odebrania, bo zakończenie alarmu nie dociera jeszcze do serwera:</p>
+  <p>Waga maleje płynnie: przy granicy 1; 50 km 0,7; 100 km 0,5; 150 km 0,3; 220 km 0,15; 320 km 0,08. Obwód liczy się dla obu województw, każde według swojej odległości. Czas liczy się od prawdziwego początku alarmu: przez 30 minut pełna waga, dalej połowa, dopóki alarm trwa. Gdy obwód zniknie z listy alarmów na 3 minuty, alarm jest zakończony — punkty i podświetlenie znikają od razu, a panel pokazuje godzinę końca:</p>
   <div class="tw"><table><thead><tr><th>Obwód</th><th>Lubelskie: km</th><th>waga</th><th>Podkarpackie: km</th><th>waga</th></tr></thead><tbody>
     <tr><td>lwowski</td><td>0</td><td>1,00</td><td>0</td><td>1,00</td></tr>
     <tr><td>wołyński</td><td>0</td><td>1,00</td><td>55</td><td>0,68</td></tr>

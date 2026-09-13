@@ -8,7 +8,7 @@ import asyncio
 import logging
 import re
 import unicodedata
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from . import config, db
 
@@ -227,6 +227,71 @@ def _age_weight(ts: str, ref: datetime | None = None) -> float:
     return max(0.0, 1.0 - (age_min - config.FUSION_FULL_MIN) / span)
 
 
+def _parse_ts(value) -> datetime | None:
+    try:
+        t = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        return t if t.tzinfo else t.replace(tzinfo=timezone.utc)
+    except Exception:
+        return None
+
+
+def ua_alert_ends(signals: list[dict]) -> dict[tuple, datetime]:
+    """(województwo, obwód, epizod) → chwila końca alarmu (sygnał ua_alert_end)."""
+    ends: dict[tuple, datetime] = {}
+    for s in signals:
+        if s.get("event_type") != "ua_alert_end":
+            continue
+        d = s.get("details") or {}
+        at = _parse_ts(d.get("ended_at") or s.get("ts"))
+        key = (s.get("voivodeship"), d.get("oblast"), d.get("episode"))
+        if at and (key not in ends or at < ends[key]):
+            ends[key] = at
+    return ends
+
+
+def ua_alert_factor(s: dict, ends: dict, ref: datetime | None = None) -> tuple[float, datetime | None]:
+    """Waga alarmu obwodu UA w chwili `ref` (wariant B2) i ewentualny koniec.
+
+    Sygnały sprzed 13.09.2026 nie mają `episode` ani końca — liczą się po staremu
+    (wygaszanie wiekiem), inaczej każdy dawny alarm „trwałby” 12 godzin."""
+    d = s.get("details") or {}
+    episode = d.get("episode")
+    if not episode:
+        return _age_weight(s["ts"], ref), None
+    r = ref or datetime.now(timezone.utc)
+    end = ends.get((s.get("voivodeship"), d.get("oblast"), episode))
+    if end and end <= r:
+        return 0.0, end
+    start = _parse_ts(episode) or _parse_ts(s.get("ts")) or r
+    age_min = max(0.0, (r - start).total_seconds() / 60)
+    if age_min <= config.FUSION_FULL_MIN:
+        return 1.0, None
+    if age_min <= config.UA_ALERT_MAX_MIN:
+        return config.UA_ALERT_LONG_FACTOR, None
+    return 0.0, None
+
+
+def active_ua_alerts(candidates: list[dict], ref: datetime | None = None) -> list[dict]:
+    """Starty alarmów STARSZE niż okno fuzji, które w chwili `ref` wciąż trwają.
+
+    Okno fuzji ma 60 min, a alarm może trwać godzinami — bez tego trwający alarm
+    wypadałby z punktów i z mapy po godzinie."""
+    r = ref or datetime.now(timezone.utc)
+    window_start = r - timedelta(minutes=config.FUSION_WINDOW_MIN)
+    ends = ua_alert_ends([s for s in candidates if (_parse_ts(s.get("ts")) or r) <= r])
+    out = []
+    for s in candidates:
+        if s.get("event_type") != "ua_alert_border" or not (s.get("details") or {}).get("episode"):
+            continue
+        ts = _parse_ts(s.get("ts"))
+        if not ts or ts >= window_start or ts > r:
+            continue
+        w, end = ua_alert_factor(s, ends, r)
+        if w > 0 and end is None:
+            out.append(s)
+    return out
+
+
 def _is_official(s: dict) -> bool:
     return (s.get("source") == "rcb" and s.get("event_type") in {"rso_alert", "rcb_alert"}
             and s.get("points", 0) > 0)
@@ -299,6 +364,7 @@ def accumulate(signals: list[dict], ref: datetime | None = None) -> dict:
     }
     per_source: dict[tuple, float] = {}
     officials = [s for s in signals if _is_official(s)]
+    ua_ends = ua_alert_ends(signals)
 
     # Odwołanie alertu u sąsiada wygasza tylko wcześniejszy wpis tego samego
     # zdarzenia (stabilny incident_key z numeru artykułu). Sygnału nie kasujemy
@@ -394,13 +460,18 @@ def accumulate(signals: list[dict], ref: datetime | None = None) -> dict:
         relay_of = _media_relay_of_official(s, officials)
         retrospective = _media_retrospective(s)
         article_status = _media_article_status(s)
-        w = _age_weight(s["ts"], ref)
+        ua_end = None
+        if s.get("event_type") == "ua_alert_border":
+            w, ua_end = ua_alert_factor(s, ua_ends, ref)
+        else:
+            w = _age_weight(s["ts"], ref)
         zeroed = bool(superseded or cleared or relay_of or retrospective or article_status)
         prepared.append({
             "s": s, "voiv": voiv, "w": w, "counted": 0.0,
             "weighted": 0.0 if zeroed else s["points"] * w,
             "cleared": cleared, "relay_of": relay_of, "retrospective": retrospective,
             "official_clear": official_clear, "article_status": article_status,
+            "ua_end": ua_end,
         })
 
     for e in sorted(prepared, key=lambda x: (-x["weighted"], x["s"]["ts"])):
@@ -431,7 +502,8 @@ def accumulate(signals: list[dict], ref: datetime | None = None) -> dict:
                 if relay_of else {}),
              **({"retrospective": True} if e["retrospective"] else {}),
              **({"official_clear": e["official_clear"]} if e["official_clear"] else {}),
-             **({"article_status": e["article_status"]} if e["article_status"] else {})})
+             **({"article_status": e["article_status"]} if e["article_status"] else {}),
+             **({"alert_ended": e["ua_end"].isoformat(timespec="seconds")} if e["ua_end"] else {})})
     return per_voiv
 
 
@@ -511,6 +583,14 @@ def compute_state(signals: list[dict] | None = None, ref: datetime | None = None
                 if s.get("id") not in seen]
         except Exception as e:
             log.warning("odwołania RSO spoza okna: %s", e)
+        # Alarmy obwodów UA trwające dłużej niż okno fuzji (wariant B2).
+        try:
+            seen = {s.get("id") for s in signals}
+            signals = signals + [s for s in active_ua_alerts(db.events_since(
+                config.UA_ALERT_MAX_MIN + config.FUSION_WINDOW_MIN,
+                ("ua_alert_border", "ua_alert_end")), ref) if s.get("id") not in seen]
+        except Exception as e:
+            log.warning("trwające alarmy obwodów spoza okna: %s", e)
     # limit klasy źródła + wygaszanie wiekiem — wspólne z rekonstrukcją historii
     per_voiv = apply_spillover(accumulate(signals, ref), ref)
     levels = _levels()

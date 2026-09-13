@@ -212,6 +212,12 @@ async def api_history(at: str | None = None, hours: int = 12):
     except Exception:
         ref, start = None, end
     sigs = db.signals_between(start, end)
+    if ref is not None:
+        long_start = (ref - timedelta(minutes=config.FUSION_WINDOW_MIN + config.UA_ALERT_MAX_MIN)
+                      ).isoformat(timespec="seconds")
+        sigs += fusion.active_ua_alerts(
+            [s for s in db.signals_between(long_start, end)
+             if s.get("event_type") in ("ua_alert_border", "ua_alert_end")], ref)
     # ten sam limit klasy źródła co fuzja na żywo — bez tego historia sumowała
     # surowe punkty (np. 4 rutynowe strefy PAŻP = fałszywe 4.0 zamiast 1.0)
     per_voiv = fusion.accumulate(sigs, ref)

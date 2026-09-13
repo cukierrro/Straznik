@@ -344,6 +344,19 @@ UA_ALERT_OBLASTS = {
 # alertem RCB nie tracą wyprzedzenia (12.09 o 3 min, 13.09 bez zmian).
 UA_ALERT_CURVE = ((0, 1.0), (50, 0.7), (100, 0.5), (150, 0.3), (220, 0.15), (320, 0.08))
 
+# Czas trwania alarmu obwodu (decyzja 13.09.2026, wariant B2). NEPTUN przy każdej
+# zmianie wysyła PEŁNĄ listę aktywnych rejonów z polem `since` (prawdziwy początek
+# alarmu), a zaraz po połączeniu — listę bieżącą. Do tej pory liczyliśmy tylko
+# początek: 10-minutowy alarm dawał pełne punkty przez 30 min i gasł po 60, a
+# 3-godzinny znikał z punktów po godzinie, choć trwał.
+#   * pierwsze FUSION_FULL_MIN minut od `since` — pełna waga,
+#   * dalej, dopóki alarm trwa — UA_ALERT_LONG_FACTOR,
+#   * koniec alarmu (obwód znika z listy na UA_ALERT_END_GRACE_S) — od razu 0.
+# Bezpiecznik UA_ALERT_MAX_MIN: epizod bez odnotowanego końca nie liczy się dłużej.
+UA_ALERT_LONG_FACTOR = 0.5
+UA_ALERT_END_GRACE_S = 180
+UA_ALERT_MAX_MIN = 12 * 60
+
 
 def ua_alert_weight(distance_km: float) -> float:
     """Mnożnik punktów dla alarmu w obwodzie oddalonym o `distance_km`."""

@@ -44,7 +44,7 @@ assert.equal(ctx.historicalAdsbGhosts([serbia],[{hex:'152c29'}],stamp(56)).lengt
 assert.equal(ctx.historicalAdsbGhosts([serbia],[],Date.parse(serbia.ts)+150001).length,0);
 assert.equal(ctx.historicalAdsbGhosts([serbia],[],Date.parse(serbia.ts)+150000).length,1);
 const engine = fs.readFileSync('frontend/engine.js','utf8');
-vm.runInContext('const HISTORY_H=12, WINDOW_MIN=60; function accumulate(){return {}};'+
+vm.runInContext('const HISTORY_H=12, WINDOW_MIN=60; function accumulate(){return {}}; function activeUaAlerts(){return []};'+
   engine.slice(engine.indexOf('function historyFrom('),engine.indexOf('\nfunction history(atIso)')),ctx);
 const snaps=[{ts:new Date(stamp(54)).toISOString(),t:stamp(54)},{ts:new Date(stamp(52)).toISOString(),t:stamp(52)}];
 assert.equal(ctx.historyFrom(snaps,[],new Date(stamp(50)).toISOString()).snapshot,null);

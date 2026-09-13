@@ -272,7 +272,7 @@
   <div class="tw"><table><thead><tr><th>Source</th><th>What is taken into account</th><th>Points / cap</th></tr></thead><tbody>
     <tr><td>NEPTUN — objects</td><td>Type, number of objects, distance from the border, heading, confidence, number of confirmations, observation state and position quality. Report area ×0.6, recognised locality centre ×0.5.</td><td>up to 8 in total</td></tr>
     <tr><td>RCB / RSO</td><td>An Alert RCB about an airborne threat published in RSO. It counts for 60 minutes from detection, regardless of the entry's validity date. A cancellation in RSO zeroes the alert at once.</td><td>2, cap 2</td></tr>
-    <tr><td>Ukrainian oblast alerts</td><td>An air-raid alert in a western Ukrainian oblast; the weight falls with distance (table below).</td><td>up to 1, cap 1</td></tr>
+    <tr><td>Ukrainian oblast alerts</td><td>An air-raid alert in a western Ukrainian oblast; the weight falls with distance (table below). Full weight for the first 30 minutes of the alert, then half while it lasts; the end of the alert zeroes the points at once.</td><td>up to 1, cap 1</td></tr>
     <tr><td>Media (RSS)</td><td>Airborne object plus event: 0.5 pt; an unambiguous operational report (sirens, alert, scrambled aircraft, interception): 1 pt. <b>The server reads the whole article</b>: a report on an earlier event or an unreadable article scores 0. Exercises, anniversaries, court cases and restated RCB alerts also score 0.</td><td>0 / 0.5 / 1, cap 1</td></tr>
     <tr><td>ADS-B</td><td>At least 3 military aircraft and more than twice the usual traffic at that time of day (7-day baseline).</td><td>1, cap 1</td></tr>
     <tr><td>PAŻP zones</td><td>Only rare D, R, NPZ, ADHOC zones from the ground up over the east or the north (below).</td><td>0.5 (north 1), cap 1</td></tr>
@@ -281,7 +281,7 @@
   </tbody></table></div>
 
   <h3>Ukrainian oblast alerts — weight by distance</h3>
-  <p>The weight falls smoothly: at the border 1; 50 km 0.7; 100 km 0.5; 150 km 0.3; 220 km 0.15; 320 km 0.08. An oblast counts for both provinces, each by its own distance. While the alert adds points, the oblast is gently highlighted on the map — for at most 60 minutes after it was received, because the end of an alert does not reach the server yet:</p>
+  <p>The weight falls smoothly: at the border 1; 50 km 0.7; 100 km 0.5; 150 km 0.3; 220 km 0.15; 320 km 0.08. An oblast counts for both provinces, each by its own distance. Time counts from the real start of the alert: full weight for 30 minutes, then half while it lasts. When the oblast has been off the alert list for 3 minutes, the alert has ended — the points and the highlight disappear at once, and the panel shows the end time:</p>
   <div class="tw"><table><thead><tr><th>Oblast</th><th>Lublin: km</th><th>weight</th><th>Subcarpathian: km</th><th>weight</th></tr></thead><tbody>
     <tr><td>Lviv</td><td>0</td><td>1.00</td><td>0</td><td>1.00</td></tr>
     <tr><td>Volyn</td><td>0</td><td>1.00</td><td>55</td><td>0.68</td></tr>

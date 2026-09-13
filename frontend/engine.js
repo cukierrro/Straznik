@@ -126,6 +126,46 @@ const UA_ALERT_OBLASTS = {
   "Вінницька":{lubelskie:280, podkarpackie:305} };
 /* Krzywa odległości interpolowana liniowo — lustro config.UA_ALERT_CURVE. */
 const UA_ALERT_CURVE = [[0,1.0],[50,0.7],[100,0.5],[150,0.3],[220,0.15],[320,0.08]];
+/* Czas trwania alarmu obwodu — lustro config (wariant B2, 13.09.2026): pełna
+   waga przez FULL_MIN od prawdziwego początku (`since`), potem połowa, dopóki
+   alarm trwa; koniec (obwód znika z listy na 3 min) od razu gasi punkty. */
+const UA_ALERT_LONG_FACTOR = 0.5, UA_ALERT_END_GRACE_S = 180, UA_ALERT_MAX_MIN = 720;
+function uaAlertEnds(sigs) {
+  const ends = new Map();
+  for (const s of sigs) {
+    if (s.event_type !== "ua_alert_end") continue;
+    const at = Date.parse(s.details?.ended_at || "") || s.t || Date.parse(s.ts) || 0;
+    const k = `${s.voivodeship}|${s.details?.oblast}|${s.details?.episode}`;
+    if (!ends.has(k) || at < ends.get(k)) ends.set(k, at);
+  }
+  return ends;
+}
+/* [waga, koniec|null] — dawne sygnały bez epizodu liczą się po staremu. */
+function uaAlertFactor(s, ends, ref) {
+  const ep = s.details?.episode;
+  const st = s.t || Date.parse(s.ts) || 0;
+  if (!ep) {
+    const ageMin = (ref - st) / 60000;
+    return [ageMin <= FULL_MIN ? 1 : Math.max(0, 1 - (ageMin - FULL_MIN) / Math.max(WINDOW_MIN - FULL_MIN, 1)), null];
+  }
+  const end = ends.get(`${s.voivodeship}|${s.details?.oblast}|${ep}`);
+  if (end && end <= ref) return [0, end];
+  const ageMin = Math.max(0, (ref - (Date.parse(ep) || st)) / 60000);
+  if (ageMin <= FULL_MIN) return [1, null];
+  return [ageMin <= UA_ALERT_MAX_MIN ? UA_ALERT_LONG_FACTOR : 0, null];
+}
+/* Starty alarmów starsze niż okno fuzji, które w chwili `ref` wciąż trwają. */
+function activeUaAlerts(sigs, ref) {
+  const ends = uaAlertEnds(sigs.filter(x => (x.t || Date.parse(x.ts) || 0) <= ref));
+  const winStart = ref - WINDOW_MIN * 60000;
+  return sigs.filter(x => {
+    if (x.event_type !== "ua_alert_border" || !x.details?.episode) return false;
+    const t = x.t || Date.parse(x.ts) || 0;
+    if (t >= winStart || t > ref) return false;
+    const [w, end] = uaAlertFactor(x, ends, ref);
+    return w > 0 && end == null;
+  });
+}
 function uaAlertWeight(km) {
   if (km > UA_ALERT_CURVE[UA_ALERT_CURVE.length - 1][0]) return 0;
   for (let i = 1; i < UA_ALERT_CURVE.length; i++) {
@@ -567,6 +607,7 @@ function accumulate(sigs, refT) {
   const per = {}; VOIVODESHIPS.forEach(v => per[v] = { score: 0, signals: [], _spillover_score: 0, _spill_parts: {} });
   const perSource = {};
   const officials = sigs.filter(isOfficial);
+  const uaEnds = uaAlertEnds(sigs);
   /* Odwołania RCB/RSO (lustro fusion.accumulate). Wpis RSO bywa edytowany
      w miejscu: 13.09.2026 alert 23329799 zmienił się w odwołanie. */
   const rsoClears = new Map();
@@ -634,12 +675,16 @@ function accumulate(sigs, refT) {
     const relayOf = mediaRelayOfOfficial(s, officials);
     const retrospective = mediaRetrospective(s);
     const articleStatus = mediaArticleStatus(s);
-    const ageMin = (ref - s.t) / 60000;
-    const w = ageMin <= FULL_MIN ? 1
-      : Math.max(0, 1 - (ageMin - FULL_MIN) / Math.max(WINDOW_MIN - FULL_MIN, 1));
+    let w, uaEnd = null;
+    if (s.event_type === "ua_alert_border") [w, uaEnd] = uaAlertFactor(s, uaEnds, ref);
+    else {
+      const ageMin = (ref - s.t) / 60000;
+      w = ageMin <= FULL_MIN ? 1
+        : Math.max(0, 1 - (ageMin - FULL_MIN) / Math.max(WINDOW_MIN - FULL_MIN, 1));
+    }
     const zeroed = superseded || cleared || relayOf || retrospective || articleStatus;
     prepared.push({ s, w, counted: 0, weighted: zeroed ? 0 : s.points * w,
-                    cleared, relayOf, retrospective, officialClear, articleStatus });
+                    cleared, relayOf, retrospective, officialClear, articleStatus, uaEnd });
   }
   for (const e of [...prepared].sort((a, b) => b.weighted - a.weighted || a.s.t - b.s.t)) {
     const k = e.s.voivodeship + "|" + e.s.source;
@@ -663,7 +708,8 @@ function accumulate(sigs, refT) {
       ...(relayOf ? { duplicate_of_official: relayOf.details?.rso_id || relayOf.id || true } : {}),
       ...(e.retrospective ? { retrospective:true } : {}),
       ...(e.officialClear ? { official_clear: e.officialClear } : {}),
-      ...(e.articleStatus ? { article_status: e.articleStatus } : {}) });
+      ...(e.articleStatus ? { article_status: e.articleStatus } : {}),
+      ...(e.uaEnd ? { alert_ended: new Date(e.uaEnd).toISOString() } : {}) });
   }
   return per;
 }
@@ -671,8 +717,9 @@ function accumulate(sigs, refT) {
 function computeState() {
   const cut = Date.now() - WINDOW_MIN*60*1000;
   const clearCut = Date.now() - (RSO_CLEAR_MEDIA_ECHO_MIN + WINDOW_MIN)*60*1000;
+  const now = Date.now();
   return stateFrom(signals.filter(s => s.t >= cut
-    || (s.event_type === "rso_clear" && s.t >= clearCut)), Date.now());
+    || (s.event_type === "rso_clear" && s.t >= clearCut)).concat(activeUaAlerts(signals, now)), now);
 }
 
 /* Stan z podanej listy sygnałów w chwili `refT` — rdzeń computeState, osobno,
@@ -932,37 +979,62 @@ function neptunEval(t) {
   return t;
 }
 const ALERT_LEVELS_OFF = new Set(["none","green","off","clear","no","false"]);
+/* Epizody alarmów obwodów (lustro backendu): obwód → początek; koniec po
+   UA_ALERT_END_GRACE_S nieobecności na liście przy otwartym połączeniu. */
+const uaEpisodes = new Map(), uaAbsentSince = new Map();
+function uaFinishEnded(now = Date.now()) {
+  if (!ws || ws.readyState !== 1) return;
+  for (const [ob, gone] of [...uaAbsentSince]) {
+    if (now - gone < UA_ALERT_END_GRACE_S * 1000) continue;
+    uaAbsentSince.delete(ob);
+    const ep = uaEpisodes.get(ob); uaEpisodes.delete(ob);
+    if (!ep) continue;
+    for (const [v, km] of Object.entries(UA_ALERT_OBLASTS[ob] || {})) {
+      if (uaAlertWeight(km) <= 0) continue;
+      addSignal("ua_alert","ua_alert_end",v,0,
+        `Koniec alarmu powietrznego w obwodzie ${UA_OBLAST_PL[ob] || ob} (woj. ${v})`,
+        {oblast:ob, episode:ep, ended_at:new Date(gone).toISOString()},
+        `neptun_alert_end:${ob}:${v}:${ep}`);
+    }
+  }
+}
 function neptunAlerts(data) {
   // Obwody z aktywnym alarmem bierzemy z `oblasts` ORAZ `raions`: w `oblasts`
   // NEPTUN trzyma wyłącznie obwody okupowane (alarm od 2022), więc sam ten sygnał
   // nie zadziałał ani razu. Alarmy zachodniej Ukrainy przychodzą jako rejony,
   // z nazwą obwodu w polu `oblast` (audyt 11.09.2026 — lustro backendu).
-  const names = new Set();
+  const since = new Map();       // obwód → najwcześniejszy `since` aktywnych rejonów
   for (const field of ["oblasts","raions"])
     for (const it of (data?.[field]||[])) {
-      if (typeof it === "string") { names.add(it); continue; }
-      if (!it || ALERT_LEVELS_OFF.has(String(it.level||"").toLowerCase())) continue;
-      names.add(it.oblast || it.name || it.region || it.title || "");
-    }
-  const active = new Set();
-  for (const n of names) for (const [ob, voivs] of Object.entries(UA_ALERT_OBLASTS))
-    if (n.includes(ob)) {
-      active.add(ob);
-      if (!alertOblasts.has(ob)) {
-        const hk = new Date().toISOString().slice(0,13);
-        for (const [v, km] of Object.entries(voivs)) {
-          const w = uaAlertWeight(km);
-          if (w <= 0) continue;
-          const where = km <= 0 ? "przy granicy" : `${km} km`;
-          addSignal("ua_alert","ua_alert_border",v,
-            Math.round(POINTS.ua_alert_border * w * 100) / 100,
-            `Alarm powietrzny w obwodzie ${UA_OBLAST_PL[ob] || ob} (woj. ${v} — ${where})`,
-            {oblast:ob, distance_km:km},
-            `neptun_alert:${ob}:${v}:${hk}`);
-        }
+      let name, sin = null;
+      if (typeof it === "string") name = it;
+      else if (!it || ALERT_LEVELS_OFF.has(String(it.level||"").toLowerCase())) continue;
+      else { name = it.oblast || it.name || it.region || it.title || ""; sin = it.since || null; }
+      for (const ob of Object.keys(UA_ALERT_OBLASTS)) if (String(name).includes(ob)) {
+        const prev = since.get(ob);
+        since.set(ob, prev && sin ? (prev < sin ? prev : sin) : (prev || sin));
       }
     }
-  alertOblasts = active;
+  const now = Date.now();
+  for (const [ob, sin] of since) {
+    uaAbsentSince.delete(ob);
+    if (uaEpisodes.has(ob)) continue;
+    const ep = new Date(Date.parse(sin || "") || now).toISOString().replace(/\.\d{3}Z$/, "+00:00");
+    uaEpisodes.set(ob, ep);
+    for (const [v, km] of Object.entries(UA_ALERT_OBLASTS[ob])) {
+      const w = uaAlertWeight(km);
+      if (w <= 0) continue;
+      const where = km <= 0 ? "przy granicy" : `${km} km`;
+      addSignal("ua_alert","ua_alert_border",v,
+        Math.round(POINTS.ua_alert_border * w * 100) / 100,
+        `Alarm powietrzny w obwodzie ${UA_OBLAST_PL[ob] || ob} (woj. ${v} — ${where})`,
+        {oblast:ob, distance_km:km, episode:ep},
+        `neptun_alert:${ob}:${v}:${ep}`);
+    }
+  }
+  for (const ob of uaEpisodes.keys()) if (!since.has(ob) && !uaAbsentSince.has(ob)) uaAbsentSince.set(ob, now);
+  alertOblasts = new Set(since.keys());
+  uaFinishEnded(now);
 }
 /* Silnik da się ZATRZYMAĆ: gdy serwer wróci, przełączamy się na niego w locie,
    zamiast trzymać dwa źródła stanu naraz (i zamiast przeładowywać apkę pod
@@ -1533,7 +1605,8 @@ function historyFrom(snaps, sigs, atIso) {
   const start = end - WINDOW_MIN * 60000;
   // ten sam limit klasy źródła co fuzja na żywo (accumulate) — bez tego panel
   // historii sumował surowe punkty i pokazywał np. fałszywe 4.0 z 4 stref PAŻP
-  const per = accumulate(sigs.filter(s => s.t >= start && s.t <= end), end);
+  const per = accumulate(sigs.filter(s => s.t >= start && s.t <= end)
+    .concat(activeUaAlerts(sigs, end)), end);
   const scores = {};
   for (const [v, st] of Object.entries(per)) if (st.score > 0) scores[v] = Math.round(st.score * 10) / 10;
   const annotated = [].concat(...Object.values(per).map(st => st.signals)).sort((a, b) => b.t - a.t);
@@ -1550,7 +1623,7 @@ function timelineFrom(snaps, sigs) {
       const age = (s.t - sig.t) / 60000;
       return age >= 0 && age <= WINDOW_MIN;
     });
-    const per = accumulate(win, s.t);
+    const per = accumulate(win.concat(activeUaAlerts(sigs, s.t)), s.t);
     let best = 0, voiv = null;
     for (const [v, st] of Object.entries(per)) if (st.score > best) { best = st.score; voiv = v; }
     const score = Math.round(best * 10) / 10;
@@ -1589,6 +1662,7 @@ async function start(stateCb) {
                                        // pyta KAŻDY telefon osobno — nie obciążamy źródła
   tickPansa(); every(tickPansa, 300000);
   every(reevaluate, 30000);   // wygasanie okna bez nowych zdarzeń
+  every(() => uaFinishEnded(), 30000);   // koniec alarmów obwodów po okresie łaski
   later(saveSnapshot, 20000);
   every(saveSnapshot, 120000);
 }

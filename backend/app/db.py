@@ -161,6 +161,20 @@ def events_since(minutes: int, event_types: tuple[str, ...]) -> list[dict]:
              "details": json.loads(r[7]) if r[7] else {}} for r in rows]
 
 
+def events_since_between(start: str, end: str, event_types: tuple[str, ...]) -> list[dict]:
+    """Sygnały wybranych typów z przedziału [start, end) — do paczki historii."""
+    marks = ",".join("?" * len(event_types))
+    with _lock:
+        rows = _conn.execute(
+            "SELECT id, ts, source, event_type, voivodeship, points, title, details"
+            f" FROM signals WHERE ts >= ? AND ts < ? AND event_type IN ({marks}) ORDER BY ts DESC",
+            (start, end, *event_types),
+        ).fetchall()
+    return [{"id": r[0], "ts": r[1], "source": r[2], "event_type": r[3],
+             "voivodeship": r[4], "points": r[5], "title": r[6],
+             "details": json.loads(r[7]) if r[7] else {}} for r in rows]
+
+
 def recent_signals(limit: int = 200) -> list[dict]:
     with _lock:
         rows = _conn.execute(

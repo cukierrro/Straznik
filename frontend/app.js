@@ -1633,13 +1633,16 @@ let oblastInfo = new Map();
 function oblastsFrom(sigs) {
   const m = new Map();
   for (const s of sigs || []) {
-    const k = s.source === "ua_alert" && s.details?.oblast;
-    if (!k || !((s.points || 0) > 0)) continue;
+    const k = s.event_type === "ua_alert_border" && s.details?.oblast;
+    // zakończony alarm gaśnie od razu; trwający dłużej niż 30 min świeci słabiej
+    const weight = s.weight ?? 1;
+    if (!k || !((s.points || 0) > 0) || s.alert_ended || weight <= 0) continue;
     const e = m.get(k) || { w: 0, since: null, per: [] };
-    e.w = Math.max(e.w, Math.min(1, s.points));
-    if (!e.since || s.ts < e.since) e.since = s.ts;
-    e.per.push({ voiv: s.voivodeship, points: s.points, counted: s.counted_points,
-                 km: s.details.distance_km });
+    e.w = Math.max(e.w, Math.min(1, s.points * weight));
+    const since = s.details.episode || s.ts;
+    if (!e.since || since < e.since) e.since = since;
+    e.per.push({ voiv: s.voivodeship, points: s.points * weight, counted: s.counted_points,
+                 km: s.details.distance_km, half: weight < 1 });
     m.set(k, e);
   }
   return m;
@@ -1665,16 +1668,17 @@ function openOblastCard(p) {
     const pts = Number(r.points).toFixed(2).replace(/0$/, "");
     const counted = r.counted != null && Math.abs(r.counted - r.points) >= 0.01
       ? ` <span style="color:#68758c">(${en ? "counted" : "wliczone"} ${en ? Number(r.counted).toFixed(1) : Number(r.counted).toFixed(1).replace(".", ",")} — ${en ? "class cap" : "limit klasy"})</span>` : "";
-    return `${en ? "" : "woj. "}${esc2(UI.voiv(r.voiv))}${km}: <b>+${UI.isEn ? pts : pts.replace(".", ",")} ${en ? "pt" : "pkt"}</b>${counted}`;
+    const half = r.half ? ` <span style="color:#68758c">(${en ? "half weight — the alert has lasted over 30 min" : "połowa wagi — alarm trwa ponad 30 min"})</span>` : "";
+    return `${en ? "" : "woj. "}${esc2(UI.voiv(r.voiv))}${km}: <b>+${UI.isEn ? pts : pts.replace(".", ",")} ${en ? "pt" : "pkt"}</b>${half}${counted}`;
   }).join("<br>");
   showCard(`
     <div class="zone-head"><b style="color:#b8325a">📢 ${esc2(name)}</b>
       <span style="color:#8fa3c4">· ${en ? "air-raid alert" : "alarm powietrzny"}</span></div>
-    <span style="color:#8fa3c4">${en ? `Signal received at ${since}.` : `Sygnał odebrany o ${since}.`}</span><br>
+    <span style="color:#8fa3c4">${en ? `Alert in progress since ${since}.` : `Alarm trwa od ${since}.`}</span><br>
     ${rows}<br>
     <span style="color:#68758c">${en
-      ? "Ukraine's civil defence declares the alert for the whole oblast. Its weight falls with the distance from the province (table in the user guide), and the whole class is capped at 1 pt. The highlight disappears when the alert stops counting — at most 60 minutes after it was received, because the end of an alert does not reach the server yet."
-      : "Alarm ogłasza ukraińska obrona cywilna dla całego obwodu. Waga maleje z odległością od województwa (tabela w instrukcji), a cała klasa ma limit 1 pkt. Podświetlenie znika, gdy alarm przestaje się liczyć — najpóźniej 60 minut po odebraniu, bo zakończenie alarmu nie dociera jeszcze do serwera."}</span>`, { big: true });
+      ? "Ukraine's civil defence declares the alert for the whole oblast. Its weight falls with the distance from the province (table in the user guide), and the whole class is capped at 1 pt. For the first 30 minutes the alert counts in full, then at half weight while it lasts; when it ends, the points and the highlight disappear at once."
+      : "Alarm ogłasza ukraińska obrona cywilna dla całego obwodu. Waga maleje z odległością od województwa (tabela w instrukcji), a cała klasa ma limit 1 pkt. Przez pierwsze 30 minut alarm liczy się w pełni, potem w połowie, dopóki trwa; gdy się skończy, punkty i podświetlenie znikają od razu."}</span>`, { big: true });
 }
 
 function updateVoivStates() {
@@ -2330,6 +2334,20 @@ function sigHTML(s) {
     shownTitle = UI.isEn
       ? `Air-raid alert in ${ob} oblast${where ? ` (${voivName} — ${where})` : ""}`
       : `Alarm powietrzny w obwodzie ${ob}${where ? ` (woj. ${voivName} — ${where})` : ""}`;
+    // Czas trwania (wariant B2): koniec gasi punkty, po 30 min trwający alarm waży połowę.
+    const clock = (iso) => new Date(iso).toLocaleTimeString(UI.isEn ? "en-GB" : "pl-PL",
+      { hour: "2-digit", minute: "2-digit" });
+    if (s.alert_ended)
+      shownTitle += UI.isEn ? ` — ended at ${clock(s.alert_ended)}` : ` — zakończony o ${clock(s.alert_ended)}`;
+    else if (d.episode && (s.weight ?? 1) > 0 && (s.weight ?? 1) < 1)
+      shownTitle += UI.isEn ? ` — in progress since ${clock(d.episode)}, half weight`
+                            : ` — trwa od ${clock(d.episode)}, połowa wagi`;
+  } else if (s.event_type === "ua_alert_end" && d.oblast) {
+    const ob = UI.isEn ? (UA_OBLAST_EN[d.oblast] || d.oblast)
+                       : (UA_OBLAST_PL_UI[d.oblast] || d.oblast);
+    shownTitle = UI.isEn
+      ? `Air-raid alert in ${ob} oblast has ended (${UI.voiv(s.voivodeship)})`
+      : `Koniec alarmu powietrznego w obwodzie ${ob} (woj. ${UI.voiv(s.voivodeship)})`;
   } else if (s.event_type === "baltic_alert" && d.country) {
     // Alarm ogłoszony na Litwie, Łotwie albo w Estonii: prefiks piszemy sami,
     // cytat tytułu zostaje w oryginale.
