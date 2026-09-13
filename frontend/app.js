@@ -1842,8 +1842,12 @@ function renderPanel() {
   if (mine && f.voivodeships[mine]) {
     const st = f.voivodeships[mine];
     banner.className = "level-" + (spillRaised(st) ? "spill" : st.level);
+    // „brak sygnałów 1.9 pkt" przeczyło samo sobie (zgłoszone 13.09.2026) — przy
+    // punktach poniżej progu baner mówi to samo co karta województwa
     banner.innerHTML = `<b>${esc(UI.voiv(mine))}</b> — <span class="lvl">${
-      spillRaised(st) ? SPILL_LABEL : LEVEL_LABEL[st.level]}</span>
+      spillRaised(st) ? SPILL_LABEL
+      : st.level === "none" && st.score > 0 ? (UI.isEn ? "below threshold" : "poniżej progu")
+      : LEVEL_LABEL[st.level]}</span>
       <span class="muted">${st.score.toFixed(1)} ${UI.isEn ? "pts" : "pkt"}</span>`;
     banner.onclick = () => { setPanel(true); openCard(mine); };
   } else {
