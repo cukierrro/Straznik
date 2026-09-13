@@ -1,14 +1,16 @@
 """Strażnik — backend FastAPI: kolektory, fuzja, API, WebSocket, statyka frontendu."""
 import asyncio
 import logging
+import os
 import time
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import app_updates, config, db, escalation_shadow, fusion, notify, rcb_reference
+from . import (app_updates, config, db, escalation_shadow, fusion, load_guard, notify,
+               public_cache, rcb_reference)
 from .collectors import adsb, neighbours, neptun, official_alerts, pansa, rcb, rso, rss_media
 from .neptun_archive import source_metadata
 
@@ -19,11 +21,19 @@ log = logging.getLogger("main")
 app = FastAPI(title="Strażnik", docs_url="/api/docs")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"],
                    allow_headers=["*"])
+# ostatni dodany = pierwszy w kolejce: bezpiecznik odrzuca, zanim cokolwiek się policzy
+app.add_middleware(load_guard.GuardMiddleware)
 
 # ── WebSocket broadcast ──────────────────────────────────────────────────────
 _ws_clients: set[WebSocket] = set()
 _last_broadcast = 0.0
 _broadcast_pending = False
+_ws_message = ""          # gotowa ramka stanu — jedna serializacja dla wszystkich
+# Każde połączenie WebSocket to otwarte gniazdo i bufor w tym jednym procesie.
+# Powyżej limitu odmawiamy (kod 1013), a klient przechodzi na odpytywanie
+# /api/state, które jest gotowymi bajtami i może je trzymać Cloudflare.
+WS_MAX_CLIENTS = int(os.getenv("WS_MAX_CLIENTS", "3000"))
+WS_SEND_TIMEOUT_S = 3.0
 
 
 def _load_notice():
@@ -77,8 +87,28 @@ def build_state() -> dict:
     }
 
 
+def refresh_state() -> None:
+    """Stan liczony raz i od razu podawany wszystkim: /api/state i WebSocket."""
+    global _ws_message
+    blob = public_cache.make_blob(build_state())
+    public_cache.put("state", blob)
+    _ws_message = '{"type":"state","data":' + blob.raw.decode() + "}"
+
+
+async def _send(ws: WebSocket, message: str):
+    try:
+        await asyncio.wait_for(ws.send_text(message), WS_SEND_TIMEOUT_S)
+        return None
+    except Exception:
+        return ws
+
+
 async def broadcast_state():
-    """Throttling: max 1 broadcast / 2 s (Neptun potrafi słać dziesiątki upsertów)."""
+    """Throttling: max 1 broadcast / 2 s (Neptun potrafi słać dziesiątki upsertów).
+
+    Ramka jest serializowana raz, a wysyłka idzie równolegle z limitem czasu:
+    wcześniej każdy klient dostawał osobny json.dumps, po kolei, więc jeden wolny
+    telefon wstrzymywał wszystkich."""
     global _last_broadcast, _broadcast_pending
     if _broadcast_pending:
         return
@@ -88,28 +118,61 @@ async def broadcast_state():
         await asyncio.sleep(wait)
     _broadcast_pending = False
     _last_broadcast = time.time()
+    refresh_state()
     if not _ws_clients:
         return
-    state = build_state()
-    dead = []
-    for ws in list(_ws_clients):
+    message = _ws_message
+    clients = list(_ws_clients)
+    for i in range(0, len(clients), 500):
+        for dead in await asyncio.gather(*(_send(ws, message) for ws in clients[i:i + 500])):
+            if dead is not None:
+                _ws_clients.discard(dead)
+
+
+async def state_loop():
+    """Wynik maleje z wiekiem sygnałów także bez nowych zdarzeń."""
+    while True:
         try:
-            await ws.send_json({"type": "state", "data": state})
-        except Exception:
-            dead.append(ws)
-    for ws in dead:
+            refresh_state()
+        except Exception as e:
+            log.warning("stan: %s", e)
+        await asyncio.sleep(3)
+
+
+async def shed_websockets(fraction: float) -> None:
+    """Pod presją pamięci zamyka część połączeń (najpierw te najstarsze w zbiorze).
+    Klient dostaje 1013 i przechodzi na odpytywanie gotowego /api/state."""
+    victims = list(_ws_clients)[: int(len(_ws_clients) * fraction)]
+    for ws in victims:
         _ws_clients.discard(ws)
+    await asyncio.gather(*(_close(ws) for ws in victims))
+
+
+async def _close(ws: WebSocket) -> None:
+    try:
+        await asyncio.wait_for(ws.close(code=1013), 2)
+    except Exception:
+        pass
 
 
 @app.websocket("/ws")
 async def ws_endpoint(ws: WebSocket):
-    await ws.accept()
+    if len(_ws_clients) >= WS_MAX_CLIENTS or load_guard.refuse_websocket():
+        # 1013 = „spróbuj później”; klient przechodzi na odpytywanie /api/state
+        await ws.close(code=1013)
+        return
+    try:
+        await ws.accept()
+    except Exception:
+        return
     _ws_clients.add(ws)
     try:
-        await ws.send_json({"type": "state", "data": build_state()})
+        if not _ws_message:
+            refresh_state()
+        await ws.send_text(_ws_message)
         while True:
             await ws.receive_text()   # klient nic nie musi słać; trzymamy połączenie
-    except WebSocketDisconnect:
+    except (WebSocketDisconnect, RuntimeError):
         pass
     finally:
         _ws_clients.discard(ws)
@@ -117,8 +180,10 @@ async def ws_endpoint(ws: WebSocket):
 
 # ── REST API ─────────────────────────────────────────────────────────────────
 @app.get("/api/state")
-async def api_state():
-    return build_state()
+async def api_state(request: Request):
+    if public_cache.get("state") is None:
+        refresh_state()
+    return public_cache.respond(request, "state")
 
 
 @app.get("/api/signals")
@@ -157,58 +222,23 @@ async def api_history(at: str | None = None, hours: int = 12):
 
 
 @app.get("/api/history/timeline")
-async def api_timeline(hours: int = 12):
-    """Oś czasu: dla każdej migawki najwyższy wynik w kraju w tamtym momencie.
-
-    Potrzebne, żeby suwak historii mógł być pokolorowany poziomem zagrożenia,
-    a nie jednolitą barwą.
-    """
-    from datetime import datetime, timedelta
-    times = db.snapshot_times(hours)
-    if not times:
-        return {"points": []}
-    start = (datetime.fromisoformat(times[0])
-             - timedelta(minutes=config.FUSION_WINDOW_MIN)).isoformat(timespec="seconds")
-    signals = db.signals_between(start, times[-1])
-    parsed = []
-    for s in signals:
-        try:
-            parsed.append((datetime.fromisoformat(s["ts"]), s))
-        except Exception:
-            continue
-    out = []
-    for ts in times:
-        t = datetime.fromisoformat(ts)
-        window_start = t - timedelta(minutes=config.FUSION_WINDOW_MIN)
-        win = [s for sig_t, s in parsed if window_start <= sig_t <= t]
-        # ten sam limit klasy źródła co fuzja na żywo (inaczej suwak pokazywał
-        # fałszywy czerwony z rutynowych stref PAŻP)
-        per_voiv = fusion.accumulate(win, t)
-        scores = {v: st["score"] for v, st in per_voiv.items() if st["score"] > 0}
-        best = max(scores.values()) if scores else 0.0
-        top = max(scores, key=scores.get) if scores else None
-        out.append({"ts": ts, "score": round(best, 1), "voiv": top,
-                    "level": fusion.level_for(best)})
-    return {"points": out}
+async def api_timeline(request: Request):
+    """Oś czasu suwaka historii (najwyższy wynik w kraju dla każdej migawki).
+    Gotowa odpowiedź z public_cache, odświeżana co minutę."""
+    if public_cache.get("timeline") is None:
+        await public_cache.rebuild("timeline", public_cache.build_timeline)
+    return public_cache.respond(request, "timeline")
 
 
 @app.get("/api/history/bundle")
-async def api_history_bundle(hours: int = 12):
-    """Cała historia N h w JEDNYM pobraniu: migawki (pozycje obiektów/maszyn) +
-    surowe sygnały z okna. Klient trzyma to w pamięci i przewija suwak LOKALNIE —
-    zamiast wołać `/api/history?at=` przy każdej pozycji (co przy wielu użytkownikach
-    przewijających naraz mnożyło zapytania i obciążało serwer). Fuzję dla każdej
-    chwili klient liczy sam (ten sam `accumulate` co silnik wbudowany)."""
-    from datetime import datetime, timedelta
-    snaps = db.all_snapshots(hours)
-    signals = []
-    if snaps:
-        start = (datetime.fromisoformat(snaps[0]["ts"])
-                 - timedelta(minutes=config.FUSION_WINDOW_MIN)).isoformat(timespec="seconds")
-        signals = db.signals_between(start, snaps[-1]["ts"])
-    return {"hours": hours, "window_min": config.FUSION_WINDOW_MIN,
-            "snaps": snaps, "signals": signals,
-            "adsb_watch_events": db.adsb_watch_events(hours)}
+async def api_history_bundle(request: Request):
+    """Cała historia 12 h w JEDNYM pobraniu: migawki + surowe sygnały z okna.
+    Klient przewija suwak lokalnie. Paczka jest składana w tle co minutę
+    i podawana jako gotowe, skompresowane bajty (public_cache) — składanie przy
+    każdym wejściu zabiło serwer 13.09.2026 o 04:54."""
+    if public_cache.get("bundle") is None:
+        await public_cache.rebuild("bundle", public_cache.build_bundle_bytes)
+    return public_cache.respond(request, "bundle")
 
 
 @app.get("/api/adsb/watch")
@@ -231,17 +261,26 @@ async def api_health():
                    "fcm": notify.fcm_status},
         "progression_shadow": escalation_shadow.status,
         "rcb_reference": rcb_reference.status,
+        "public_cache": {**public_cache.status, "ws_clients": len(_ws_clients),
+                         "ws_max": WS_MAX_CLIENTS},
+        "load_guard": load_guard.status,
     }
 
 
 @app.get("/api/zones")
-async def api_zones():
+async def api_zones(request: Request):
     """Aktywne strefy PAŻP o charakterze wojskowym — WYŁĄCZNIE informacyjnie.
 
     Nie wchodzą do punktacji i nie wywołują powiadomień. Osobny endpoint, a nie
     część /api/state, bo geometria stref waży setki kilobajtów, a stan leci przez
     WebSocket co kilka sekund. Aplikacja pobiera to raz na kilka minut.
     """
+    if public_cache.get("zones") is None:
+        await public_cache.rebuild("zones", _zones_payload, in_thread=False)
+    return public_cache.respond(request, "zones")
+
+
+def _zones_payload() -> dict:
     return {"zones": pansa.zones_geojson(), "events": pansa.zone_events()}
 
 
@@ -310,7 +349,11 @@ async def startup():
     fusion.on_state_change = broadcast_state
     for coro in (neptun.run(), rss_media.run(), rcb.run(), rso.run(), adsb.run(),
                  pansa.run(), neighbours.run(), official_alerts.run(), snapshot_loop(),
-                 progression_shadow_loop(), level_loop()):
+                 progression_shadow_loop(), level_loop(), state_loop(),
+                 load_guard.monitor(shed_websockets),
+                 public_cache.refresh_loop("bundle", public_cache.build_bundle_bytes, 60),
+                 public_cache.refresh_loop("timeline", public_cache.build_timeline, 60),
+                 public_cache.refresh_loop("zones", _zones_payload, 30, in_thread=False)):
         asyncio.create_task(coro)
     log.info("Strażnik wystartował — kolektory uruchomione")
 

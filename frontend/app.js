@@ -450,6 +450,10 @@ let map, mapReady = false, is3d = true;
 /* ── połączenie z backendem ──────────────────────────────────────────────── */
 const connBadge = document.getElementById("conn-badge");
 let ws = null, wsRetry = 1;
+/* Serwer pod dużym ruchem odmawia WebSocketu kodem 1013 („spróbuj później”).
+   Wtedy odpytujemy gotowy /api/state co kilka sekund i wracamy do WebSocketu
+   dopiero po 1–2 minutach — zamiast szturmować serwer co sekundę. */
+let wsBusyUntil = 0, busyPoll = null;
 
 let standalone = false;
 async function connect() {
@@ -552,12 +556,19 @@ async function probeBackend(base) {
 function openBackendWs(base) {
   const wsUrl = base.replace(/^http/, "ws") + "/ws";
   try { ws = new WebSocket(wsUrl); } catch { return scheduleReconnect(); }
-  ws.onopen = () => { wsRetry = 1; connBadge.classList.add("hidden"); };
+  ws.onopen = () => {
+    wsRetry = 1; connBadge.classList.add("hidden");
+    if (busyPoll) { clearInterval(busyPoll); busyPoll = null; }
+  };
   ws.onmessage = (e) => {
     const env = JSON.parse(e.data);
     if (env.type === "state") applyState(env.data);
   };
-  ws.onclose = ws.onerror = () => scheduleReconnect();
+  ws.onclose = (e) => {
+    if (e && e.code === 1013) wsBusyUntil = Date.now() + 60000 + Math.random() * 60000;
+    scheduleReconnect();
+  };
+  ws.onerror = () => scheduleReconnect();
 }
 
 function scheduleReconnect() {
@@ -568,8 +579,13 @@ function scheduleReconnect() {
   const base = apiBase();
   // W trakcie sesji trzymamy się serwera (przy starcie potwierdził dostępność):
   // ponawiamy tylko WebSocket, bez przełączania na wbudowany silnik.
-  setTimeout(() => { if (!standalone && base) openBackendWs(base); },
-    Math.min(wsRetry * 1000, 15000));
+  // Losowe rozrzucenie opóźnienia: po restarcie serwera tysiące telefonów nie
+  // mogą wrócić w tej samej sekundzie (13.09.2026 szczyt 2700 zapytań/min).
+  const busy = wsBusyUntil > Date.now();
+  if (busy && !busyPoll) busyPoll = setInterval(pollOnce, 5000 + Math.random() * 3000);
+  const delay = busy ? wsBusyUntil - Date.now()
+    : Math.min(wsRetry * 1000, 15000) * (0.5 + Math.random());
+  setTimeout(() => { if (!standalone && base) openBackendWs(base); }, delay);
   wsRetry = Math.min(wsRetry * 2, 15);
   pollOnce();
 }

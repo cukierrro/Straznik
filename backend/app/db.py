@@ -251,6 +251,15 @@ def snapshot_times(hours: int = 12) -> list[str]:
     return [r[0] for r in rows]
 
 
+def snapshot_rows(hours: int = 12) -> list[tuple[str, str]]:
+    """Migawki jako surowy tekst JSON — do sklejenia paczki historii bez
+    rozpakowywania każdej migawki do obiektów Pythona (public_cache)."""
+    cutoff = (datetime.now(timezone.utc) - timedelta(hours=hours)).isoformat(timespec="seconds")
+    with _lock:
+        return _conn.execute("SELECT ts, payload FROM snapshots WHERE ts >= ? ORDER BY ts",
+                             (cutoff,)).fetchall()
+
+
 def all_snapshots(hours: int = 12) -> list[dict]:
     """Wszystkie migawki z ostatnich N h w JEDNYM zapytaniu — pod pobranie hurtem
     (`/api/history/bundle`), żeby klient przewijał historię lokalnie zamiast pytać
