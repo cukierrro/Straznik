@@ -41,8 +41,15 @@ Stan ostatniej kopii: `https://straznik.eu/api/health` → `backup`
 
 3. Sprawdzić `/api/health` i czy strona pokazuje mapę.
 
+`vapid.json` jest najważniejszy: bez tych samych kluczy żadna zapisana subskrypcja
+powiadomień w przeglądarce nie zadziała i każdy musiałby włączyć je od nowa.
+
+Na nowym VPS trzeba jeszcze sklonować repozytorium do `/opt/straznik`, utworzyć
+`backend/.venv`, wgrać `straznik.service` z kopii i ponownie skonfigurować tunel
+Cloudflare.
+
 Na Windows kopię rozpakowuje wbudowany tar (tar z Git Bash nie zna zstd):
-`C:\Windows\System32	ar.exe -xf straznik-RRRRMMDD-GGMM.tar.zst -C <katalog>`.
+`C:\Windows\System32\tar.exe -xf straznik-RRRRMMDD-GGMM.tar.zst -C <katalog>`.
 Odtworzenie sprawdzone 13.09.2026: `integrity_check` ok, 1088 sygnałów, 175 subskrypcji.
 
 Kopia na VPS działa z najniższym priorytetem (`nice`/`ionice`), żeby kompresja
@@ -54,10 +61,3 @@ Klucza podpisu aplikacji `android-app/android/straznik-release.jks` i haseł
 z `keystore.properties`. Leżą tylko na tym komputerze. Utrata klucza oznacza,
 że nie da się wydać aktualizacji istniejącym użytkownikom — trzymaj kopię
 w menedżerze haseł albo na dysku zewnętrznym.
-
-`vapid.json` jest najważniejszy: bez tych samych kluczy żadna zapisana subskrypcja
-powiadomień w przeglądarce nie zadziała i każdy musiałby włączyć je od nowa.
-
-Na nowym VPS trzeba jeszcze sklonować repozytorium do `/opt/straznik`, utworzyć
-`backend/.venv`, wgrać `straznik.service` z kopii i ponownie skonfigurować tunel
-Cloudflare.
