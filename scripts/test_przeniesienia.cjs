@@ -98,9 +98,9 @@ test('cancelled alert and echo articles score zero, newer alert stays', () => {
   const nowy = sig(11, 'lubelskie', 'rcb', 2.0, { rso_id: '23330500', valid_from: '2026-09-13 07:19:00' },
                    '2026-09-13T05:20:00Z');
   lub = Engine.accumulate([syreny, clear, nowy], ref).lubelskie;
-  assert.equal(lub.score, 3.5);
+  assert.equal(lub.score, 3);
 
   const dron = { ...sig(12, 'lubelskie', 'media', 1.5, {}, '2026-09-13T05:39:57Z'),
     title: 'Media: „Szczątki drona znalezione w polu pod Chełmem”' };
-  assert.equal(Engine.accumulate([dron, clear], ref).lubelskie.score, 1.5);
+  assert.equal(Engine.accumulate([dron, clear], ref).lubelskie.score, 1);
 });

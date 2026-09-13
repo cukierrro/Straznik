@@ -133,36 +133,35 @@ syreny = sig(10, "2026-09-13T05:39:57+00:00", "media", "media_keywords", "lubels
              "Media: „Alarm powietrzny na Lubelszczyźnie. W sześciu powiatach zawyły syreny - Kurier Lubelski”")
 ref = datetime(2026, 9, 13, 5, 46, tzinfo=timezone.utc)
 lub = fusion.accumulate([syreny], ref)["lubelskie"]
-ok(lub["score"] == 1.5, "bez odwołania artykuł liczy się 1,5")
+ok(lub["score"] == 1.0, "bez odwołania artykuł liczy się (do limitu mediów 1,0)")
 lub = fusion.accumulate([syreny, odw], ref)["lubelskie"]
 ok(lub["score"] == 0.0 and lub["signals"][0].get("official_clear") == "after_clear",
    "07:39 po odwołaniu z 04:58: 0 pkt, oznaczone jako po odwołaniu")
 nowy_alert = sig(11, "2026-09-13T05:20:00+00:00", "rcb", "rso_alert", "lubelskie", 2.0,
                  "Alert RCB (RSO): nowy", {"rso_id": "23330500", "valid_from": "2026-09-13 07:19:00"})
 lub = fusion.accumulate([syreny, odw, nowy_alert], ref)["lubelskie"]
-ok(lub["score"] == 3.5, "nowy alert po odwołaniu przywraca punkty artykułom")
+ok(lub["score"] == 3.0, "nowy alert po odwołaniu przywraca punkty artykułom")
 dron = sig(12, "2026-09-13T05:39:57+00:00", "media", "media_keywords", "lubelskie", 1.5,
            "Media: „Szczątki drona znalezione w polu pod Chełmem”")
 lub = fusion.accumulate([dron, odw], ref)["lubelskie"]
-ok(lub["score"] == 1.5, "artykuł o nowym zdarzeniu (bez słów o alarmie) liczy się dalej")
-# 13.09.2026 ok. 09:00: pierwsza wersja reguły wyzerowała te dwa tytuły, choć mogą
-# opisywać NOWE zdarzenia — „znów", obiekty i wybuchy wyłączają regułę echa
+ok(lub["score"] == 1.0, "artykuł o nowym zdarzeniu (bez słów o alarmie) liczy się dalej")
+# 13.09.2026: wyjątki na „znów" i wybuchy przepuściły ten tytuł i dały fałszywy
+# żółty o 10:01 — drugiego włączenia syren nie było. Reguła jest znowu bez wyjątków.
 ref_pozniej = datetime(2026, 9, 13, 5, 50, tzinfo=timezone.utc)
-for tytul in ("Media: „Na Lubelszczyźnie znów zawyły syreny alarmowe. Były zgłoszenia o wybuchach”",
-              "Media: „Atak dronów kilkaset metrów od granicy z Polską. Myśliwce wystraszyły mieszkańców”"):
-    nowe = sig(14, "2026-09-13T05:45:00+00:00", "media", "media_keywords", "lubelskie", 1.5, tytul)
-    lub = fusion.accumulate([nowe, odw], ref_pozniej)["lubelskie"]
-    ok(lub["score"] == 1.5 and not lub["signals"][0].get("official_clear"),
-       f"nie echo: {tytul[8:60]}…")
+nowe = sig(14, "2026-09-13T05:45:00+00:00", "media", "media_keywords", "lubelskie", 1.5,
+           "Media: „Na Lubelszczyźnie znów zawyły syreny alarmowe. Były zgłoszenia o wybuchach”")
+lub = fusion.accumulate([nowe, odw], ref_pozniej)["lubelskie"]
+ok(lub["score"] == 0.0 and lub["signals"][0].get("official_clear") == "after_clear",
+   "„znów zawyły syreny… wybuchy” po odwołaniu to nadal echo")
 pozno = {**syreny, "ts": "2026-09-13T09:30:00+00:00"}
 lub = fusion.accumulate([pozno, odw], datetime(2026, 9, 13, 9, 35, tzinfo=timezone.utc))["lubelskie"]
-ok(lub["score"] == 1.5, f"po {config.RSO_CLEAR_MEDIA_ECHO_MIN} min odwołanie przestaje działać")
+ok(lub["score"] == 1.0, f"po {config.RSO_CLEAR_MEDIA_ECHO_MIN} min odwołanie przestaje działać")
 wczesniej = {**syreny, "ts": "2026-09-13T02:30:00+00:00"}
 lub = fusion.accumulate([wczesniej, odw], datetime(2026, 9, 13, 3, 0, tzinfo=timezone.utc))["lubelskie"]
 ok(lub["score"] == 0.0, "artykuł sprzed odwołania gaśnie razem z alertem")
 podk = sig(13, "2026-09-13T05:39:57+00:00", "media", "media_keywords", "podkarpackie", 1.5,
            "Media: „Zawyły syreny w Przemyślu”")
-ok(fusion.accumulate([podk, odw], ref)["podkarpackie"]["score"] == 1.5,
+ok(fusion.accumulate([podk, odw], ref)["podkarpackie"]["score"] == 1.0,
    "odwołanie w lubelskim nie gasi innych województw")
 
 print("5. podsumowania minionego alarmu")

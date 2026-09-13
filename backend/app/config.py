@@ -158,15 +158,20 @@ POINTS = {
     # nie ma tam warstwy wyprzedzającej z NEPTUN-a. Nadal NIE domyka alarmu sama
     # (próg żółty 2,0) — musi spotkać się z drugim, niezależnym źródłem.
     "pansa_zone_north": 1.0,
-    "media_keywords": 1.0,     # OBIEKT+ZDARZENIE: sygnał pomocniczy wymagający
-                               # potwierdzenia przez inną klasę źródła.
-    "media_critical": 1.5,     # Jednoznaczna relacja operacyjna jest silniejsza,
-                               # ale nadal nie uruchamia żółtego wyłącznie z RSS.
+    # Media czytamy dziś tylko z tytułu i zajawki, a z nagłówka nie da się
+    # odróżnić nowego zdarzenia od relacji z poranka. 13.09.2026 artykuły
+    # o porannych syrenach dawały 1,5 pkt godzinami później i razem z alarmami
+    # obwodów UA domknęły fałszywy żółty dla lubelskiego (godz. 10.01). Dlatego
+    # media są tylko potwierdzeniem (pół punktu albo punkt, limit klasy jeden
+    # punkt). Na historii od 2 sierpnia żaden alert RCB ani RSO nie traci
+    # powiadomienia.
+    "media_keywords": 0.5,     # OBIEKT+ZDARZENIE: sygnał pomocniczy
+    "media_critical": 1.0,     # jednoznaczna relacja operacyjna
     "rcb_alert": 2.0,          # RCB (oficjalny) nadal może alarmować sam
     "ua_alert_border": 1.0,    # oficjalny alarm powietrzny w przygranicznym obwodzie UA
     "baltic_context": 1.0,     # incydent powietrzny wg mediów LT/LV/EE
     "neighbour_zone": 0.3,     # zamknięcie przestrzeni u sąsiada (RO/EE/LT/LV) —
-                               # sygnał POŚREDNI, niski: media 1,5 + sąsiad 0,3 = 1,8
+                               # sygnał POŚREDNI, niski: media 1,0 + sąsiad 0,3 = 1,3
                                # < próg 2,0, więc sam nie domyka alarmu ("bez flaszu")
 }
 
@@ -177,7 +182,7 @@ POINTS = {
 # Neptun ma limit wyższy niż pozostałe źródła, bo każdy track to osobny fizyczny
 # obiekt — ale nie nieograniczony: przy kilkudziesięciu obiektach suma i tak dawno
 # przekroczyła próg alarmu, a trzycyfrowa punktacja tylko psułaby czytelność skali.
-SOURCE_CAPS = {"media": 1.5, "rcb": 2.0, "adsb": 1.0, "pansa": 1.0, "neptun": 8.0,
+SOURCE_CAPS = {"media": 1.0, "rcb": 2.0, "adsb": 1.0, "pansa": 1.0, "neptun": 8.0,
                "neighbours": 0.6,   # sąsiedzi: nawet kilka zamknięć = drobny wkład
                # Alarmy obwodowe UA to JEDNA informacja („na zachodniej Ukrainie
                # trwa alarm"), nie kilka niezależnych potwierdzeń — inaczej Wołyń
@@ -467,13 +472,10 @@ MEDIA_SUMMARY_SOFT_KEYWORDS = [
 # nie przyszedł nowy alert. Zerujemy je przez tyle minut po odwołaniu.
 RSO_CLEAR_MEDIA_ECHO_MIN = 240
 RSO_CLEAR_ECHO_MARKERS = ("syren", "alert", "alarm", "rcb")
-# …ale nie wtedy, gdy tytuł mówi o czymś NOWYM albo o obiekcie. Pierwsza wersja
-# (13.09.2026 rano) zerowała też „Na Lubelszczyźnie znów zawyły syreny. Były
-# zgłoszenia o wybuchach" i „Atak dronów kilkaset metrów od granicy z Polską.
-# Myśliwce wystraszyły mieszkańców" — to mogą być nowe zdarzenia, nie echo.
-RSO_CLEAR_NOT_ECHO_MARKERS = ("znow", "ponownie", "kolejn", "dron", "rakiet", "pocisk",
-                              "wybuch", "eksploz", "zestrzel", "spadl", "szczatk",
-                              "mysliw", "poderwa", "atak")
+# Bez wyjątków na „znów" czy „wybuchy": 13.09.2026 wyjątki przepuściły „Na
+# Lubelszczyźnie znów zawyły syreny alarmowe. Były zgłoszenia o wybuchach" —
+# drugiego włączenia syren nie było, a artykuł dał fałszywy żółty o 10:01.
+RSO_CLEAR_NOT_ECHO_MARKERS = ()
 
 # weto — konteksty, w których powyższe słowa nie oznaczają zagrożenia
 EXCLUDE_KEYWORDS = [

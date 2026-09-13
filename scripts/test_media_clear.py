@@ -85,13 +85,13 @@ sprawdz(wynik["lubelskie"]["score"] == 0.0,
 # odwolanie STARSZE niz artykul nie moze go wygasic
 wynik = fusion.accumulate([sygnal("media_clear", 20, 0.0),
                            sygnal("media_keywords", 5, 1.5)], ref=teraz)
-sprawdz(wynik["lubelskie"]["score"] == 1.5,
+sprawdz(wynik["lubelskie"]["score"] == 1.0,
         f"odwolanie sprzed 20 min + swiezy artykul -> {wynik['lubelskie']['score']}")
 
 # odwolanie w jednym wojewodztwie nie dotyka innego
 wynik = fusion.accumulate([sygnal("media_keywords", 10, 1.5, "podkarpackie"),
                            sygnal("media_clear", 2, 0.0, "lubelskie")], ref=teraz)
-sprawdz(wynik["podkarpackie"]["score"] == 1.5,
+sprawdz(wynik["podkarpackie"]["score"] == 1.0,
         f"odwolanie w lubelskim nie rusza podkarpackiego -> {wynik['podkarpackie']['score']}")
 
 # odwolanie w mediach NIE wycisza oficjalnego alertu RCB

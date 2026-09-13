@@ -13,7 +13,7 @@ const Engine = (() => {
 const WINDOW_MIN = 60, FULL_MIN = 30, TH_ELEVATED = 2, TH_HIGH = 4, COOLDOWN_MIN = 10;
 const ETA_BUFFER_MIN = 2.5, ETA_ELEVATED_MIN = 10, ETA_HIGH_MIN = 5, ETA_MIN_SOURCES = 2;
 const HISTORY_H = 12;   // ile godzin trzymamy do przeglądania wstecz
-const POINTS = { neptun_high: 3, neptun_medlow: 1.5, media_keywords: 1, media_critical: 1.5,
+const POINTS = { neptun_high: 3, neptun_medlow: 1.5, media_keywords: 0.5, media_critical: 1,
                  adsb_spike: 1, rcb_alert: 2, ua_alert_border: 1, baltic_context: 1, pansa_zone: 0.5,
                  pansa_zone_north: 1 };
 // Neptun ma wyższy limit niż reszta (każdy track to osobny fizyczny obiekt),
@@ -21,7 +21,7 @@ const POINTS = { neptun_high: 3, neptun_medlow: 1.5, media_keywords: 1, media_cr
 // przekroczyła próg alarmu, a trzycyfrowa punktacja psułaby czytelność skali.
 // Alarmy obwodowe UA to JEDNA informacja, nie kilka niezależnych potwierdzeń:
 // bez własnego limitu trzy obwody naraz dawały 3,0 pkt i żółty bez żadnego obiektu.
-const SOURCE_CAPS = { media: 1.5, rcb: 2, adsb: 1, pansa: 1, neptun: 8, ua_alert: 1 };
+const SOURCE_CAPS = { media: 1, rcb: 2, adsb: 1, pansa: 1, neptun: 8, ua_alert: 1 };
 const VOIVODESHIPS = ["lubelskie","podkarpackie","podlaskie","mazowieckie","świętokrzyskie",
   "małopolskie","warmińsko-mazurskie","łódzkie","śląskie","kujawsko-pomorskie","pomorskie",
   "zachodniopomorskie","lubuskie","wielkopolskie","dolnośląskie","opolskie"];
@@ -39,9 +39,9 @@ const ALERT_FRESH_NEPTUN_POINTS = 0.5;
 /* Po odwołaniu alertu RCB/RSO artykuły o alarmie to relacja z przeszłości. */
 const RSO_CLEAR_MEDIA_ECHO_MIN = 240;
 const RSO_CLEAR_ECHO_MARKERS = ["syren", "alert", "alarm", "rcb"];
-/* Tytuł o czymś nowym albo o obiekcie nie jest echem (lustro config.py). */
-const RSO_CLEAR_NOT_ECHO_MARKERS = ["znow", "ponownie", "kolejn", "dron", "rakiet", "pocisk",
-  "wybuch", "eksploz", "zestrzel", "spadl", "szczatk", "mysliw", "poderwa", "atak"];
+/* Bez wyjątków — lustro config.RSO_CLEAR_NOT_ECHO_MARKERS (13.09.2026 wyjątki
+   przepuściły fałszywy żółty). Lista zostaje, żeby obie strony miały ten sam kształt. */
+const RSO_CLEAR_NOT_ECHO_MARKERS = [];
 const RCB_RELAY_WINDOW_MS = 45*60*1000;
 const RELAY_STOP = new Set(["alert","rcb","uwaga","media","woj","wojewodztwo",
   "sytuacja","monitorowana","terenie","teren","oraz","jest","przez","dla",

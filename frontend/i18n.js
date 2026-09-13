@@ -36,6 +36,7 @@
     "strefy": "zones",
     "0–1.9 pkt — spokojnie": "0–1.9 pts — calm", "≥ 2 pkt — podwyższona uwaga": "≥ 2 pts — elevated attention",
     "≥ 4 pkt — wysoki priorytet": "≥ 4 pts — high priority",
+    "+0,5–1": "+0.5–1",
     "przygaszony — kolor tylko od sąsiadów, bez alarmu": "dimmed — colour from neighbours only, no alert",
     "WYSOKI PRIORYTET": "HIGH PRIORITY", "PODWYŻSZONA UWAGA": "ELEVATED ATTENTION",
     "POTWIERDZAM — wycisz syrenę": "ACKNOWLEDGE — silence siren",

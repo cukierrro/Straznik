@@ -44,7 +44,7 @@ test('standalone does not suppress a distinct article that only mentions RCB', (
     details: {},
   };
   const state = Engine.accumulate([official, distinct], t('2026-09-10T04:30:00Z')).lubelskie;
-  assert.equal(state.score, 3.5);
+  assert.equal(state.score, 3);
   assert.equal(state.signals[1].duplicate_of_official, undefined);
 });
 
@@ -81,5 +81,5 @@ test('standalone media source cap cannot reach the yellow threshold', () => {
     title: `Media: niezależny artykuł ${id}`, details: {},
   }));
   const state = Engine.accumulate(articles, t('2026-09-11T06:10:00Z')).podlaskie;
-  assert.equal(state.score, 1.5);
+  assert.equal(state.score, 1);
 });

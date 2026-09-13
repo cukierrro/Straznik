@@ -47,7 +47,7 @@ def test_rcb_mention_with_new_information_is_not_suppressed():
         3, "2026-09-10T04:25:00+00:00", "media", "media_keywords", "lubelskie", 1.5,
         "Media: Rosja zaatakowała Kijów pociskami balistycznymi. Alert RCB dla Lubelszczyzny")
     state = fusion.accumulate([official_lub, distinct], REF)["lubelskie"]
-    assert state["score"] == 3.5
+    assert state["score"] == 3.0   # 2,0 RCB + media do limitu klasy 1,0
     assert "duplicate_of_official" not in state["signals"][1]
 
 
@@ -77,7 +77,7 @@ def test_independent_non_rcb_risk_can_still_spill():
         sig(6, "2026-09-10T04:20:00+00:00", "media", "media_keywords",
             "lubelskie", 1.5, "Niezależna relacja o naruszeniu przestrzeni"),
         sig(7, "2026-09-10T04:20:30+00:00", "neptun", "neptun_threat",
-            "lubelskie", 0.5, "Dron", {"track_id": "independent-1"}),
+            "lubelskie", 1.0, "Dron", {"track_id": "independent-1"}),   # media do limitu 1,0
     ]
     original = fusion.db.signals_since
     original_weight = fusion._age_weight
@@ -130,7 +130,7 @@ def test_media_source_cap_cannot_reach_yellow_threshold():
     state = fusion.accumulate(
         articles, datetime(2026, 9, 11, 6, 10, tzinfo=timezone.utc)
     )["podlaskie"]
-    assert state["score"] == 1.5
+    assert state["score"] == 1.0
     assert fusion.level_for(state["score"]) == "none"
 
 
