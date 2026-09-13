@@ -36,6 +36,7 @@
     "strefy": "zones",
     "0–1.9 pkt — spokojnie": "0–1.9 pts — calm", "≥ 2 pkt — podwyższona uwaga": "≥ 2 pts — elevated attention",
     "≥ 4 pkt — wysoki priorytet": "≥ 4 pts — high priority",
+    "przygaszony — kolor tylko od sąsiadów, bez alarmu": "dimmed — colour from neighbours only, no alert",
     "WYSOKI PRIORYTET": "HIGH PRIORITY", "PODWYŻSZONA UWAGA": "ELEVATED ATTENTION",
     "POTWIERDZAM — wycisz syrenę": "ACKNOWLEDGE — silence siren",
     "Moja lokalizacja": "My location", "Województwo": "Province", "Wykryj z GPS": "Detect with GPS",
@@ -196,8 +197,8 @@
     // kolejność kafelków na mapie: mój region → strefy → cała PL
     setMany("#map-actions .map-btn span", ["my region", "zones", "whole PL"]);
     const zoneNote = [...document.querySelectorAll("#legend .muted-row")].pop();
-    if (zoneNote) zoneNote.textContent = "zones add NO points — they are shown so you "
-      + "can see when and where a block of airspace is closed; tap a zone for details";
+    if (zoneNote) zoneNote.textContent = "the zone layer adds no points — only a rare D/R/NPZ/ADHOC "
+      + "zone from the ground up over the east or north scores; tap a zone for details";
     const live = document.getElementById("tb-live");
     if (live) live.textContent = "▶ Back to live view";
     set(".tb-mode", "⏱ HISTORY MODE");

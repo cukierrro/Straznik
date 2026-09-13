@@ -888,10 +888,19 @@ async function initMap() {
        województwa, a w sam kontur (1,5 px) nikt palcem nie trafi. */
     map.addLayer({ id: "strefy-hit", type: "fill", source: "strefy",
       paint: { "fill-color": "#000000", "fill-opacity": 0.001 } });
+    /* Strefy nakładają się na siebie, a mała strefa leży często w całości
+       wewnątrz dużej (np. nad Warszawą w EPTS550). Pierwsza trafiona była
+       zwykle ta duża, więc małej nie dało się otworzyć (zgłoszone 13.09.2026).
+       Otwieramy NAJMNIEJSZĄ pod palcem, a pozostałe podajemy w karcie. */
     map.on("click", "strefy-hit", (e) => {
       const hit = map.queryRenderedFeatures(e.point,
         { layers: ["threats", "threats-glow", "adsb"] });
-      if (!hit.length) openZoneCard(e.features?.[0]?.properties);
+      if (hit.length) return;
+      const names = [...new Set((e.features || []).map(f => f.properties?.designator).filter(Boolean))];
+      const full = names.map(n => (zonesData?.features || []).find(x => x.properties?.designator === n))
+        .filter(Boolean).sort((a, b) => zoneArea(a) - zoneArea(b));
+      if (!full.length) { openZoneCard(e.features?.[0]?.properties); return; }
+      openZoneCard(full[0].properties, full.slice(1).map(f => f.properties.designator));
     });
     map.on("mouseenter", "strefy-hit", () => map.getCanvas().style.cursor = "pointer");
     map.on("mouseleave", "strefy-hit", () => map.getCanvas().style.cursor = "");
@@ -1060,7 +1069,24 @@ function zoneSinceText(sinceEpochS) {
   return UI.isEn ? `${Math.round(h / 24)} days ago` : `${Math.round(h / 24)} dni temu`;
 }
 
-function openZoneCard(p) {
+/* Przybliżone pole strefy (stopnie² × cos szerokości) — tylko do porównania,
+   która z nałożonych stref jest mniejsza. Liczone z pełnej geometrii z
+   zonesData, bo geometria z warstwy mapy bywa przycięta do kafelka. */
+function zoneArea(f) {
+  const g = f?.geometry;
+  const polys = g?.type === "Polygon" ? [g.coordinates] : g?.type === "MultiPolygon" ? g.coordinates : [];
+  let area = 0;
+  for (const poly of polys) {
+    const ring = poly?.[0] || [];
+    let s = 0;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++)
+      s += ring[j][0] * ring[i][1] - ring[i][0] * ring[j][1];
+    area += Math.abs(s) / 2 * Math.cos(((ring[0]?.[1]) || 52) * Math.PI / 180);
+  }
+  return area || Infinity;
+}
+
+function openZoneCard(p, overlapping = []) {
   if (!p) return;
   markSelected(null, null);
   const en = UI.isEn;
@@ -1113,13 +1139,20 @@ function openZoneCard(p) {
     ${p.voiv ? `<button type="button" class="chip btn-zone-voiv" data-voiv="${esc2(p.voiv)}"
         style="margin:5px 0 6px">${en ? "Province" : "Województwo"}: ${esc2(UI.voiv(p.voiv))} ›</button><br>` : ""}
     ${p.remarks ? `<span style="color:#68758c">${en ? "PAŻP note" : "Adnotacja PAŻP"}: ${esc2(String(p.remarks))}</span><br>` : ""}
+    ${overlapping.length ? `<span style="color:#68758c">${en ? "Other zones at this spot" : "W tym miejscu są też"}:</span>
+      ${overlapping.map(d => `<button type="button" class="chip btn-zone-other" data-zone="${esc2(d)}"
+        style="margin:3px 4px 3px 0">${esc2(d)}</button>`).join("")}<br>` : ""}
     <span style="color:#68758c">${en
-      ? "This is information, not an alert. Zones add no points to the province level — closing airspace is a decision by the military, not an independent measurement of the threat. Source: PAŻP (AUP/UUP)."
-      : "To informacja, nie alarm. Strefy nie dodają punktów do poziomu województwa — zamknięcie nieba jest decyzją wojska, a nie niezależnym pomiarem zagrożenia. Źródło: PAŻP (AUP/UUP)."}</span>`, { big: true });
+      ? "This is information, not an alert. The zone layer itself adds no points — only a rare D, R, NPZ or ADHOC zone from the ground up over the eastern border or the north, not seen for 7 days, scores (0.5–1 pt) and then appears among the signals. Source: PAŻP (AUP/UUP)."
+      : "To informacja, nie alarm. Sama warstwa stref nie dodaje punktów — punktuje tylko rzadka strefa D, R, NPZ albo ADHOC od ziemi nad ścianą wschodnią lub północą, niewidziana od 7 dni (0,5–1 pkt), i wtedy pojawia się w sygnałach. Źródło: PAŻP (AUP/UUP)."}</span>`, { big: true });
 }
 
 /* Dotknięcie wnętrza dużej strefy trafia w strefę, nie w województwo — bez tego
    przycisku województwo w całości przykryte strefą byłoby na mapie nieklikalne. */
+document.addEventListener("click", (e) => {
+  const z = e.target.closest?.(".btn-zone-other");
+  if (z) { e.stopPropagation(); openZoneByName(z.dataset.zone); }
+});
 document.addEventListener("click", (e) => {
   const b = e.target.closest?.(".btn-zone-voiv");
   if (!b) return;
@@ -1719,11 +1752,19 @@ async function refreshWatchEvents() {
 function showWatch() { fillWatch(); document.getElementById("watch").showModal(); refreshWatchEvents(); }
 
 /* ── panel boczny ────────────────────────────────────────────────────────── */
+/* W trybie historii czas liczymy względem chwili wybranej suwakiem, nie teraz:
+   „5 h 18 min temu" przy sygnale z przewijanej migawki myliło (zgłoszone
+   13.09.2026). Obiekty z migawki nie mają pola updatedAt — wcześniej wychodziło
+   „NaN h NaN min temu". */
 function relTime(iso) {
-  const d = (Date.now() - new Date(iso).getTime()) / 60000;
-  if (d < 1) return UI.isEn ? "just now" : "przed chwilą";
-  if (d < 60) return `${Math.round(d)} min ${UI.isEn ? "ago" : "temu"}`;
-  return `${Math.floor(d / 60)} h ${Math.round(d % 60)} min ${UI.isEn ? "ago" : "temu"}`;
+  const t = new Date(iso).getTime();
+  const hist = histMode && historyAdsbTime != null;
+  if (!Number.isFinite(t)) return hist ? (UI.isEn ? "in this snapshot" : "w tej migawce") : "";
+  const d = ((hist ? historyAdsbTime : Date.now()) - t) / 60000;
+  const ago = hist ? (UI.isEn ? "earlier" : "wcześniej") : (UI.isEn ? "ago" : "temu");
+  if (d < 1) return hist ? (UI.isEn ? "at this moment" : "w tej chwili") : (UI.isEn ? "just now" : "przed chwilą");
+  if (d < 60) return `${Math.round(d)} min ${ago}`;
+  return `${Math.floor(d / 60)} h ${Math.round(d % 60)} min ${ago}`;
 }
 const esc = (s) => String(s ?? "").replace(/[<>&"]/g, c => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;" }[c]));
 const esc2 = esc;
@@ -3092,8 +3133,8 @@ function quickLabel(idx) {
   const when = new Date(ts);
   const ageMin = Math.round((Date.now() - when.getTime()) / 60000);
   document.getElementById("tb-label").textContent =
-    when.toLocaleTimeString("pl-PL", { hour: "2-digit", minute: "2-digit" })
-    + (ageMin > 1 ? ` (−${ageMin} min)` : " (teraz)");
+    when.toLocaleTimeString(UI.isEn ? "en-GB" : "pl-PL", { hour: "2-digit", minute: "2-digit" })
+    + (ageMin > 1 ? ` (−${ageMin} min)` : (UI.isEn ? " (now)" : " (teraz)"));
   document.getElementById("tb-slider").dataset.level = timelinePoints[idx]?.level || "none";
 }
 
