@@ -16,6 +16,19 @@ DOCS = ROOT / "docs"
 # (wersja, data PL, data EN, tytuł PL, tytuł EN, punkty PL, punkty EN, zrzuty)
 # Zrzut: (plik, alt PL, alt EN, podpis PL, podpis EN)
 RELEASES = [
+    ("1.7.39", "13 września 2026", "13 September 2026",
+     "Odporność na szczyty ruchu",
+     "Resilience to traffic peaks",
+     ["13 września o 04:54 serwer został zatrzymany przez brak pamięci w szczycie wejść i wstał po 5 sekundach. Stan, historia i strefy są teraz przygotowywane zawczasu i podawane przez Cloudflare, a serwer sam odrzuca nadmiar wejść na stronę, zanim zabraknie pamięci.",
+      "Po utracie połączenia aplikacja łączy się ponownie z losowym opóźnieniem, żeby tysiące telefonów nie wracały w tej samej sekundzie.",
+      "Gdy serwer jest przeciążony, aplikacja pobiera stan co kilka sekund zamiast stałego połączenia i po 1–2 minutach próbuje wrócić.",
+      "Powiadomienia i zbieranie danych działają niezależnie od ruchu na stronie."],
+     ["On 13 September at 04:54 the server was stopped for lack of memory during a traffic peak and came back after 5 seconds. State, history and zones are now prepared in advance and served through Cloudflare, and the server itself turns away excess website traffic before memory runs out.",
+      "After losing the connection, the app reconnects after a random delay so thousands of phones do not return in the same second.",
+      "When the server is overloaded, the app fetches the state every few seconds instead of keeping a live connection, and tries to return after 1–2 minutes.",
+      "Notifications and data collection work independently of website traffic."],
+     []),
+
     ("1.7.38", "13 września 2026", "13 September 2026",
      "Czytelny kurs dronów, puls liczonych obiektów, obwody UA i Bałtyk",
      "Readable drone heading, pulsing counted objects, UA oblasts and the Baltics",

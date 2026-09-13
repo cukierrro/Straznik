@@ -39,6 +39,16 @@
   <p class="fineprint">Wersję zainstalowaną na telefonie sprawdzisz w aplikacji: <kbd>⚙</kbd> → zakładka <kbd>Aplikacja</kbd> → „Wersja aplikacji”. Tam też jest przycisk <kbd>⬆ Sprawdź aktualizacje</kbd>.</p>
 </div></header>
 <main id="content" class="wrap">
+<section id="v1-7-39">
+  <h2>1.7.39 — Odporność na szczyty ruchu</h2>
+  <p class="fineprint">Wydanie 1.7.39 · 13 września 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.39">Pełny opis wydania</a></p>
+  <ul>
+    <li>13 września o 04:54 serwer został zatrzymany przez brak pamięci w szczycie wejść i wstał po 5 sekundach. Stan, historia i strefy są teraz przygotowywane zawczasu i podawane przez Cloudflare, a serwer sam odrzuca nadmiar wejść na stronę, zanim zabraknie pamięci.</li>
+    <li>Po utracie połączenia aplikacja łączy się ponownie z losowym opóźnieniem, żeby tysiące telefonów nie wracały w tej samej sekundzie.</li>
+    <li>Gdy serwer jest przeciążony, aplikacja pobiera stan co kilka sekund zamiast stałego połączenia i po 1–2 minutach próbuje wrócić.</li>
+    <li>Powiadomienia i zbieranie danych działają niezależnie od ruchu na stronie.</li>
+  </ul>
+</section>
 <section id="v1-7-38">
   <h2>1.7.38 — Czytelny kurs dronów, puls liczonych obiektów, obwody UA i Bałtyk</h2>
   <p class="fineprint">Wydanie 1.7.38 · 13 września 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.38">Pełny opis wydania</a></p>
