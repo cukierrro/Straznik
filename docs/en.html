@@ -274,7 +274,7 @@
     <tr><td>RCB / RSO</td><td>An Alert RCB about an airborne threat published in RSO. It counts for 60 minutes from detection, regardless of the entry's validity date. A cancellation in RSO zeroes the alert at once.</td><td>2, cap 2</td></tr>
     <tr><td>Ukrainian oblast alerts</td><td>An air-raid alert in a western Ukrainian oblast; the weight falls with distance (table below). Full weight for the first 30 minutes of the alert, then half while it lasts; the end of the alert zeroes the points at once.</td><td>up to 1, cap 1</td></tr>
     <tr><td>Media (RSS)</td><td>Airborne object plus event: 0.5 pt; an unambiguous operational report (sirens, alert, scrambled aircraft, interception): 1 pt. <b>The server reads the whole article</b>: a report on an earlier event or an unreadable article scores 0. Exercises, anniversaries, court cases and restated RCB alerts also score 0.</td><td>0 / 0.5 / 1, cap 1</td></tr>
-    <tr><td>ADS-B</td><td>At least 3 military aircraft and more than twice the usual traffic at that time of day (7-day baseline).</td><td>1, cap 1</td></tr>
+    <tr><td>ADS-B</td><td>At least 3 military aircraft and more than twice the usual traffic at that time of day (7-day baseline). Since 13 Sep 2026 informational only: over 41 days of data, increased traffic was routine flights.</td><td>0</td></tr>
     <tr><td>PAŻP zones</td><td>Only rare D, R, NPZ, ADHOC zones from the ground up over the east or the north (below).</td><td>0.5 (north 1), cap 1</td></tr>
     <tr><td>Baltic media</td><td>An airborne incident (airspace violation, shoot-down) in Lithuania, Latvia or Estonia: 1 pt. An <b>announced air-raid alert</b> for the public there is a trace in the panel: Lithuania 0.3, Latvia 0.18, Estonia 0.12. Feeds: LRT and 15min, LSM, ERR. A cancellation clears the contribution. Feed status and the last alert are in the Sources window (tap the indicators).</td><td>alert 0.12–0.3; incident 1</td></tr>
     <tr><td>Neighbouring airspace</td><td>Airspace closures in Lithuania, Estonia and northern Romania.</td><td>0.3, cap 0.6</td></tr>
@@ -321,7 +321,7 @@
     <tr><td>notes <b>PJE, GLD, CLN, BSP, UAV</b></td><td>parachutes, gliders, civilian drones</td><td>no — filtered out</td></tr>
   </tbody></table></div>
   <p>A D, R, NPZ or ADHOC zone scores only when it meets <b>all three</b> conditions: it reaches from the ground up, the same designator has not appeared in the last 7 days, and the zone lies over the eastern border or the north. The weight is low (0.5 points) because closing the sky is a military decision, not an independent measurement of a threat — a zone never raises the level on its own.</p>
-  <p><b>In the north a zone weighs 1 point.</b> NEPTUN watches Ukraine and gives nothing for Pomerania, West Pomerania, Warmia-Masuria and Kuyavia-Pomerania. What remains is zones, ADS-B, media, RCB and airspace closures by Baltic neighbours. The safety rule does not change: zone 1 pt + increased ADS-B traffic 1 pt = yellow threshold; a zone alone is still silence.</p>
+  <p><b>In the north a zone weighs 1 point.</b> NEPTUN watches Ukraine and gives nothing for Pomerania, West Pomerania, Warmia-Masuria and Kuyavia-Pomerania. What remains is zones, media (including a wave of reports about fighters scrambled over the Baltic), RCB and airspace closures by Baltic neighbours. The safety rule does not change: zone 1 pt + a media report or Baltic incident 1 pt = yellow threshold; a zone alone is still silence.</p>
 </section>
 
 <section id="problemy">

@@ -45,7 +45,10 @@ for nazwa, wartosc in (("strefa PAZP", pkt_pn),
     sprawdz(wartosc < zolty, f"{nazwa} {wartosc} < prog zolty {zolty}")
 
 print("3. dwa niezalezne sygnaly osiagaja prog")
-for a, b, opis in ((pkt_pn, config.POINTS["adsb_spike"], "strefa + ADS-B"),
+# E10 (13.09.2026): ADS-B bez punktów — para strefa + ADS-B już nie istnieje
+sprawdz(config.POINTS["adsb_spike"] == 0, "ADS-B tylko informacyjnie (0 pkt)")
+for a, b, opis in ((pkt_pn, config.POINTS["media_critical"], "strefa + relacja mediow"),
+                   (pkt_pn, config.POINTS["media_qra_wave"], "strefa + fala QRA polnoc"),
                    (pkt_pn, config.POINTS["baltic_context"], "strefa + Baltyk")):
     sprawdz(a + b >= zolty, f"{opis} = {a + b} >= {zolty}")
 

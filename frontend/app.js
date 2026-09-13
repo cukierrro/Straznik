@@ -2532,18 +2532,20 @@ const SOURCE_INFO = {
   },
   "ADS-B": {
     co: "Publiczne transpondery lotnicze (airplanes.live, w zapasie adsb.lol) — "
-      + "maszyny wojskowe nad Polską i regionem. Punktuje dopiero ruch dwukrotnie "
-      + "wyższy niż o tej samej porze doby w ostatnich 7 dniach. Karta samolotu "
-      + "pokazuje zdjęcie, kraj rejestracji i pełną telemetrię.",
+      + "maszyny wojskowe nad Polską i regionem. Warstwa jest informacyjna i nie daje "
+      + "punktów: w danych z 41 dni wzmożony ruch okazywał się rutynowymi lotami. "
+      + "Ruch ponad dwukrotnie wyższy niż zwykle o tej porze jest zaznaczany w panelu. "
+      + "Karta samolotu pokazuje zdjęcie, kraj rejestracji i pełną telemetrię.",
     coEn: "Public aircraft transponders (airplanes.live, with adsb.lol as a backup) "
-      + "— military aircraft over Poland and the region. It only scores when traffic "
-      + "is twice as heavy as at the same time of day over the last 7 days. The "
-      + "aircraft card shows a photograph, the country of registration and full "
-      + "telemetry.",
-    czerwona: "Serwisy ADS-B nie odpowiadają. Warstwa nie punktuje też przez "
-      + "pierwszy tydzień, zanim uzbiera się średnia do porównania.",
-    czerwonaEn: "The ADS-B services are not responding. The layer also scores "
-      + "nothing during the first week, before there is an average to compare with.",
+      + "— military aircraft over Poland and the region. The layer is informational and "
+      + "gives no points: over 41 days of data, increased traffic turned out to be "
+      + "routine flights. Traffic more than twice the usual level for that time is "
+      + "marked in the panel. The aircraft card shows a photograph, the country of "
+      + "registration and full telemetry.",
+    czerwona: "Serwisy ADS-B nie odpowiadają. Mapa nie pokaże wtedy lotnictwa "
+      + "wojskowego; na punktację to nie wpływa.",
+    czerwonaEn: "The ADS-B services are not responding. The map will not show military "
+      + "aviation then; scoring is not affected.",
   },
   "RSS": {
     co: "Media lokalne i ogólnopolskie — nagłówki o syrenach, alarmach "

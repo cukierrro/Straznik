@@ -152,7 +152,10 @@ NOTIFY_COOLDOWN_MIN = 10           # min. odstęp między powiadomieniami tego s
 POINTS = {
     "neptun_high": 3.0,
     "neptun_medlow": 1.5,
-    "adsb_spike": 1.0,
+    # E10 (audyt 11.09.2026, decyzja 13.09): w 41 dniach 27 skoków ruchu i same
+    # rutynowe loty — informacja na mapie i w dzienniku, bez punktów. Północ nadal
+    # domyka próg parą strefa + media / incydent bałtycki / fala QRA.
+    "adsb_spike": 0.0,
     "pansa_zone": 0.5,
     # Północ (patrz NORTH_VOIVODESHIPS): ta sama strefa waży dwa razy tyle, bo
     # nie ma tam warstwy wyprzedzającej z NEPTUN-a. Nadal NIE domyka alarmu sama
@@ -313,7 +316,7 @@ PRIORITY_VOIVODESHIPS = ["lubelskie", "podkarpackie", "podlaskie", "warmińsko-m
 
 # ── północ: Pomorze, Kaliningrad, Bałtyk ────────────────────────────────────
 # Tu nie ma NEPTUN-a (pokrywa Ukrainę), więc jedyne sygnały wyprzedzające to
-# strefy PAŻP, ruch ADS-B, media bałtyckie i zamknięcia u sąsiadów. Dlatego
+# strefy PAŻP, media (w tym fala QRA), media bałtyckie i zamknięcia u sąsiadów. Dlatego
 # strefa PAŻP punktuje także tutaj, a nie tylko na ścianie wschodniej.
 NORTH_VOIVODESHIPS = ["zachodniopomorskie", "pomorskie", "warmińsko-mazurskie",
                       "kujawsko-pomorskie"]

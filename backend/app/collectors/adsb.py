@@ -252,7 +252,7 @@ async def _tick(client: httpx.AsyncClient):
                 source="adsb", event_type="adsb_spike", voivodeship=voiv,
                 points=config.POINTS["adsb_spike"],
                 title=(f"ADS-B: {n} maszyn wojskowych nad woj. {voiv} "
-                       f"(baseline 7d: {baseline:.1f}) — {calls}"),
+                       f"(baseline 7d: {baseline:.1f}) — {calls} · informacyjnie, bez punktów"),
                 details={"count": n, "baseline": round(baseline, 2),
                          "aircraft": planes[:12]},
                 # jeden sygnał na województwo na godzinę

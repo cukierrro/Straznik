@@ -274,7 +274,7 @@
     <tr><td>RCB / RSO</td><td>Alert RCB o zagrożeniu z powietrza opublikowany w RSO. Liczy się 60 minut od wykrycia, niezależnie od daty ważności wpisu. Odwołanie w RSO od razu zeruje alert.</td><td>2, limit 2</td></tr>
     <tr><td>Alarmy obwodów UA</td><td>Alarm powietrzny w obwodzie zachodniej Ukrainy; waga maleje z odległością (tabela niżej). Pierwsze 30 minut od początku alarmu w pełni, potem w połowie, dopóki trwa; koniec alarmu od razu zeruje punkty.</td><td>do 1, limit 1</td></tr>
     <tr><td>Media (RSS)</td><td>Obiekt powietrzny i zdarzenie: 0,5 pkt; jednoznaczna relacja operacyjna (syreny, alarm, poderwane lotnictwo, zestrzelenie): 1 pkt. <b>Serwer czyta cały artykuł</b>: relacja z wcześniejszego zdarzenia albo artykuł nieczytelny ma 0 pkt. Ćwiczenia, rocznice, sprawy sądowe i powtórzenia alertu RCB też 0.</td><td>0 / 0,5 / 1, limit 1</td></tr>
-    <tr><td>ADS-B</td><td>Co najmniej 3 maszyny wojskowe i ponad dwukrotność zwykłego ruchu o tej porze (tło z 7 dni).</td><td>1, limit 1</td></tr>
+    <tr><td>ADS-B</td><td>Co najmniej 3 maszyny wojskowe i ponad dwukrotność zwykłego ruchu o tej porze (tło z 7 dni). Od 13.09.2026 tylko informacyjnie: w 41 dniach danych wzmożony ruch był rutynowymi lotami.</td><td>0</td></tr>
     <tr><td>Strefy PAŻP</td><td>Tylko rzadkie strefy D, R, NPZ, ADHOC od ziemi nad wschodem lub północą (niżej).</td><td>0,5 (północ 1), limit 1</td></tr>
     <tr><td>Media bałtyckie</td><td>Incydent powietrzny (naruszenie przestrzeni, zestrzelenie) na Litwie, Łotwie lub w Estonii: 1 pkt. <b>Ogłoszony alarm powietrzny</b> dla ludności tych krajów to ślad w panelu: Litwa 0,3, Łotwa 0,18, Estonia 0,12. Kanały: LRT i 15min, LSM, ERR. Odwołanie wygasza wkład. Stan kanałów i ostatni alarm są w oknie Źródła (dotknięcie diod).</td><td>alarm 0,12–0,3; incydent 1</td></tr>
     <tr><td>Strefy sąsiadów</td><td>Zamknięcia przestrzeni na Litwie, w Estonii i północnej Rumunii.</td><td>0,3, limit 0,6</td></tr>
@@ -321,7 +321,7 @@
     <tr><td>adnotacje <b>PJE, GLD, CLN, BSP, UAV</b></td><td>spadochrony, szybowce, drony cywilne</td><td>nie — odsiewane</td></tr>
   </tbody></table></div>
   <p>Strefa D, R, NPZ albo ADHOC punktuje tylko wtedy, gdy spełnia <b>wszystkie trzy</b> warunki: sięga od ziemi w górę, ten sam identyfikator nie pojawił się przez ostatnie 7 dni, a strefa leży nad ścianą wschodnią albo nad północą. Waga jest niska (0,5 pkt), bo zamknięcie nieba to decyzja wojska, a nie niezależny pomiar zagrożenia — strefa nigdy nie podniesie poziomu sama.</p>
-  <p><b>Na północy strefa waży 1 pkt.</b> NEPTUN obserwuje Ukrainę i dla Pomorza, zachodniopomorskiego, warmińsko-mazurskiego i kujawsko-pomorskiego nie daje nic. Zostają strefy, ADS-B, media, RCB i zamknięcia nieba u sąsiadów nad Bałtykiem. Zasada bezpieczeństwa się nie zmienia: strefa 1 pkt + wzmożony ruch ADS-B 1 pkt = próg żółty; sama strefa to wciąż cisza.</p>
+  <p><b>Na północy strefa waży 1 pkt.</b> NEPTUN obserwuje Ukrainę i dla Pomorza, zachodniopomorskiego, warmińsko-mazurskiego i kujawsko-pomorskiego nie daje nic. Zostają strefy, media (także fala doniesień o poderwaniu lotnictwa nad Bałtykiem), RCB i zamknięcia nieba u sąsiadów nad Bałtykiem. Zasada bezpieczeństwa się nie zmienia: strefa 1 pkt + relacja mediów albo incydent bałtycki 1 pkt = próg żółty; sama strefa to wciąż cisza.</p>
 </section>
 
 <section id="problemy">

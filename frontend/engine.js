@@ -14,7 +14,7 @@ const WINDOW_MIN = 60, FULL_MIN = 30, TH_ELEVATED = 2, TH_HIGH = 4, COOLDOWN_MIN
 const ETA_BUFFER_MIN = 2.5, ETA_ELEVATED_MIN = 10, ETA_HIGH_MIN = 5, ETA_MIN_SOURCES = 2;
 const HISTORY_H = 12;   // ile godzin trzymamy do przeglądania wstecz
 const POINTS = { neptun_high: 3, neptun_medlow: 1.5, media_keywords: 0.5, media_critical: 1,
-                 adsb_spike: 1, rcb_alert: 2, ua_alert_border: 1, baltic_context: 1, baltic_alert: 0.3, pansa_zone: 0.5,
+                 adsb_spike: 0, rcb_alert: 2, ua_alert_border: 1, baltic_context: 1, baltic_alert: 0.3, pansa_zone: 0.5,
                  pansa_zone_north: 1 };
 // Neptun ma wyższy limit niż reszta (każdy track to osobny fizyczny obiekt),
 // ale nie nieograniczony — przy kilkudziesięciu obiektach suma i tak dawno

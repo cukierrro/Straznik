@@ -239,9 +239,10 @@
     if (north) north.innerHTML = "<b>The north (Pomeranian, West Pomeranian, "
       + "Warmian-Masurian, Kuyavian-Pomeranian) is scored differently</b>, because "
       + "NEPTUN covers Ukraine and gives those provinces zero. What remains is PA\u017bP, "
-      + "ADS-B, Baltic media, RCB and neighbouring closures, so a PA\u017bP zone weighs 1 pt "
-      + "there instead of 0.5. None of these raises the level on its own: zone 1 + ADS-B "
-      + "activity 1 = 2 pts (yellow), zone 1 + Baltic incident 1 = 2 pts.";
+      + "media (including a wave of reports about fighters scrambled over the Baltic), "
+      + "Baltic media, RCB and neighbouring closures, so a PA\u017bP zone weighs 1 pt "
+      + "there instead of 0.5. None of these raises the level on its own: zone 1 + media "
+      + "report 1 = 2 pts (yellow), zone 1 + Baltic incident 1 = 2 pts.";
     set("#about .warn-box", "This is NOT an official warning system. It does not replace sirens, RCB or RSO alerts. In a real emergency, follow official channels. Strażnik provides an additional, potentially earlier signal — nothing more.");
     setMany("#about h3", ["How it works", "How NEPTUN object points are calculated", "Estimated arrival time", "Levels", "Where to find things", "What this app does NOT do"]);
     setMany("#about .about-tab:first-of-type tr td:nth-child(2)", [
@@ -249,7 +250,7 @@
       "Official alert in a Ukrainian region bordering Poland",
       "Local reports of sirens, explosions or airspace violations; one article alone cannot trigger an alert",
       "Official RCB alert from the Regional Warning System or a new gov.pl/RCB notice",
-      "Military aviation activity over twice the seven-day baseline for the same time of day",
+      "Military aviation activity over twice the seven-day baseline for the same time of day — informational only",
       "Rare ground-up ADHOC/R/NPZ/D zone; routine and repeating zones do not score. In the north it weighs twice as much, because NEPTUN does not reach there",
       "Air incident reported by Lithuanian, Latvian or Estonian media; an air-raid alert announced there is only a trace (Lithuania 0.3, Latvia 0.18, Estonia 0.12); an all-clear ends its contribution. It reaches the whole coast: Podlaskie, Warmian-Masurian and Pomeranian at full weight, West Pomeranian at half",
       "NATO neighbour airspace closure in northern Romania, Estonia or Lithuania — observational signal"
