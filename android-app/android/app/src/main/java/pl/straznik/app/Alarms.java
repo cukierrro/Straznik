@@ -153,24 +153,33 @@ class Alarms {
 
     static int notifId(int voiv) { return 2000 + voiv; }
 
-    // ── opcjonalna pełna głośność czerwonego alarmu ──────────────────────────────
-    // Domyślnie WYŁĄCZONA (decyzja 13.09.2026): włącza ją wyłącznie użytkownik
-    // w ustawieniach. Poprzednią głośność zapisujemy i przywracamy po wyciszeniu.
+    // ── głośność czerwonego alarmu ─────────────────────────────────────────────────
+    // Decyzja 13.09.2026: czerwony gra CO NAJMNIEJ na połowie głośności „Alarmy”
+    // (wyciszony do zera suwak nie może zagłuszyć syreny), a pełną głośność włącza
+    // wyłącznie użytkownik w ustawieniach. Żółtego to nie dotyczy. Poprzednią
+    // głośność zapisujemy i przywracamy po wyciszeniu alarmu.
 
     static boolean forceVolumeEnabled(Context ctx) {
         return prefs(ctx).getBoolean(KEY_FORCE_VOLUME, false);
     }
 
+    /** Docelowa głośność czerwonego: maksimum z opcją, inaczej co najmniej połowa. */
+    static int targetAlarmVolume(int cur, int max, boolean forceMax) {
+        if (forceMax) return max;
+        return Math.max(cur, (max + 1) / 2);
+    }
+
     static void raiseAlarmVolume(Context ctx) {
-        if (!forceVolumeEnabled(ctx)) return;
         try {
             AudioManager am = (AudioManager) ctx.getSystemService(Context.AUDIO_SERVICE);
             if (am == null) return;
             int max = am.getStreamMaxVolume(AudioManager.STREAM_ALARM);
             int cur = am.getStreamVolume(AudioManager.STREAM_ALARM);
+            int target = targetAlarmVolume(cur, max, forceVolumeEnabled(ctx));
+            if (target <= cur) return;
             SharedPreferences p = prefs(ctx);
             if (!p.contains(KEY_SAVED_VOLUME)) p.edit().putInt(KEY_SAVED_VOLUME, cur).apply();
-            if (cur < max) am.setStreamVolume(AudioManager.STREAM_ALARM, max, 0);
+            am.setStreamVolume(AudioManager.STREAM_ALARM, target, 0);
         } catch (Exception e) {
             Log.w(TAG, "podniesienie głośności alarmu", e);
         }

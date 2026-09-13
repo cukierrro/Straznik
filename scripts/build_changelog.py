@@ -16,6 +16,23 @@ DOCS = ROOT / "docs"
 # (wersja, data PL, data EN, tytuł PL, tytuł EN, punkty PL, punkty EN, zrzuty)
 # Zrzut: (plik, alt PL, alt EN, podpis PL, podpis EN)
 RELEASES = [
+    ("1.7.41", "13 września 2026", "13 September 2026",
+     "Pewniejsze alarmy, głośność syreny i trasy obiektów",
+     "More reliable alerts, siren volume and object tracks",
+     ["Otwarta aplikacja alarmuje dla każdego obserwowanego województwa, nie tylko pierwszego miejsca; push przy otwartej aplikacji już nie przepada.",
+      "Czerwona syrena gra w pętli do wyciszenia (przycisk na ekranie alarmu albo „Wycisz alarm” w powiadomieniu) i podnosi głośność „Alarmy” co najmniej do połowy. Opcja pełnej głośności — domyślnie wyłączona, tylko po świadomym włączeniu.",
+      "Żółty sygnał uwagi szanuje tryb cichy i Nie przeszkadzać. Powiadomienie opóźnione o ponad 10 minut przychodzi cicho z dopiskiem.",
+      "Alarmy docierają po restarcie telefonu przed odblokowaniem; subskrypcje województw są odnawiane i potwierdzane przy każdym starcie.",
+      "Trasy obiektów na mapie: osobno dla dronów i rakiet oraz samolotów — wyłączone, przebyta trasa albo trasa i kierunek lotu.",
+      "Natywne testy czerwonego i żółtego alarmu w ustawieniach, czytelniejszy alarm („co zrobić”, najbliższy obiekt), wyraźniejsze granice państw i dioda RCB/RSO."],
+     ["The open app alerts for every watched province, not only the first place; a push received while the app is open is no longer lost.",
+      "The red siren loops until silenced (the button on the alert screen or “Wycisz alarm” in the notification) and raises the “Alarms” volume to at least half. A full-volume option — off by default, only when deliberately switched on.",
+      "The yellow attention sound respects silent mode and Do Not Disturb. A notification delayed by more than 10 minutes arrives silently with a note.",
+      "Alerts arrive after a phone restart before unlocking; province subscriptions are renewed and confirmed at every start.",
+      "Object tracks on the map: separately for drones and missiles and for aircraft — off, flown track, or track and heading.",
+      "Native red and yellow alert tests in settings, a clearer alert (“what to do”, nearest object), more visible national borders and an RCB/RSO indicator."],
+     []),
+
     ("1.7.40", "13 września 2026", "13 September 2026",
      "Koniec i czas trwania alarmów w obwodach UA",
      "End and duration of Ukrainian oblast alerts",

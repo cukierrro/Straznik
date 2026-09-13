@@ -4144,9 +4144,6 @@ async function refreshBgStatus(previewLang = UI.lang) {
     if (s.topicsError)
       warn.push(isEn ? "⚠ Some alert subscriptions were not confirmed yet — keep the app open with internet for a moment."
         : "⚠ Część subskrypcji alarmów nie została jeszcze potwierdzona — zostaw aplikację chwilę otwartą z internetem.");
-    if (s.alarmVolume === 0)
-      warn.push(isEn ? "⚠ The Android “Alarms” volume is at zero — the red siren will be silent. See the Sound tab."
-        : "⚠ Suwak głośności „Alarmy” w Androidzie jest na zerze — syrena czerwonego alarmu będzie cicha. Zobacz zakładkę Dźwięk.");
     // Audyt B6: na tych nakładkach „wyczyść wszystko” działa jak wymuszone zatrzymanie
     if (/xiaomi|redmi|poco|huawei|honor|oppo|realme|vivo|oneplus|meizu|tecno|infinix/i.test(s.manufacturer || ""))
       warn.push(isEn ? `⚠ On ${esc(s.manufacturer)} phones, clearing the app from recent apps can block alerts until you open Strażnik again. Lock it in recent apps (padlock) and allow autostart.`

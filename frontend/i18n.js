@@ -303,7 +303,7 @@
     set("#ns-head", "Native alert and volume");
     set("#ns-label", "Red alert always at full volume");
     const nsNote = document.getElementById("ns-note");
-    if (nsNote) nsNote.innerHTML = "Off by default. The siren uses the Android <b>“Alarms”</b> volume (not “Ring” or “Media”). When switched on, Strażnik sets that volume to maximum during a red alert — also at night — and restores the previous volume when you silence the alert. Turn it off with the same switch.";
+    if (nsNote) nsNote.innerHTML = "The siren uses the Android <b>“Alarms”</b> volume (not “Ring” or “Media”). A red alert raises it to <b>at least half</b> so the siren is never silent. The option above is <b>off</b> by default — when switched on, a red alert sets the volume to maximum, also at night. Either way the previous volume returns when you silence the alert. The yellow attention sound uses your normal volume.";
     set("#btn-sound-settings", "🔊 Android sound settings");
     set("#btn-native-test", "▶ Test: red native (in 5 s)");
     set("#btn-native-test-yellow", "▶ Test: yellow native (in 5 s)");
