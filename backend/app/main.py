@@ -287,7 +287,7 @@ def _zones_payload() -> dict:
 
 @app.get("/api/app-version")
 async def api_app_version():
-    """Bezpieczne metadane APK. GitHub jest odpytywany najwyżej raz na 15 min,
+    """Bezpieczne metadane APK. GitHub jest odpytywany najwyżej raz na 5 min,
     niezależnie od liczby telefonów sprawdzających aktualizację."""
     try:
         return await app_updates.latest()

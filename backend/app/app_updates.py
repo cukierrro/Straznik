@@ -2,7 +2,7 @@
 
 GitHub bez tokenu daje 60 zapytań na godzinę NA ADRES IP, a VPS współdzieli adres z
 innymi. Dlatego:
-  * sukces jest trzymany w pamięci 15 min i zapisywany na dysk,
+  * sukces jest trzymany w pamięci 5 min i zapisywany na dysk,
   * po błędzie przez 5 min w ogóle nie pytamy GitHuba (inaczej każdy telefon dokładałby
     się do wyczerpanego limitu),
   * gdy GitHub odmawia, oddajemy OSTATNIE ZNANE metadane z flagą `stale` zamiast 503 —
@@ -26,7 +26,9 @@ from . import config
 log = logging.getLogger(__name__)
 
 LATEST_URL = "https://api.github.com/repos/cukierrro/Straznik/releases/latest"
-CACHE_SECONDS = 15 * 60
+# 5 min, nie 15: nowe wydanie ma być widoczne w telefonach krótko po publikacji
+# (13.09.2026 1.7.39 czekało kwadrans). Z tokenem to 12 zapytań na godzinę z 5000.
+CACHE_SECONDS = 5 * 60
 FAILURE_BACKOFF_S = 5 * 60
 STORE_PATH = Path(config.DATA_DIR) / "app_version.json"
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "").strip()
