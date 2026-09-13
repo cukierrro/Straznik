@@ -265,7 +265,20 @@ async def api_health():
         "public_cache": {**public_cache.status, "ws_clients": len(_ws_clients),
                          "ws_max": WS_MAX_CLIENTS},
         "load_guard": load_guard.status,
+        "backup": _backup_status(),
     }
+
+
+def _backup_status() -> dict:
+    """Ostatnia kopia zapasowa (scripts/backup_vps.py, co 6 h). `stale` = starsza niż 7 h."""
+    import json
+    from datetime import datetime, timezone
+    try:
+        st = json.loads((config.DATA_DIR / "backup_status.json").read_text(encoding="utf-8"))
+        age_h = (datetime.now(timezone.utc) - datetime.fromisoformat(st["at"])).total_seconds() / 3600
+        return {**st, "age_h": round(age_h, 1), "stale": age_h > 7}
+    except Exception:
+        return {"ok": False, "error": "brak kopii"}
 
 
 @app.get("/api/zones")
