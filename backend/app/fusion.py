@@ -373,7 +373,7 @@ def accumulate(signals: list[dict], ref: datetime | None = None) -> dict:
         superseded = bool(physical_id
                           and neptun_winners.get((voiv, physical_id)) is not s)
         incident = (details.get("incident_key")
-                    if s.get("event_type") == "baltic_context" else None)
+                    if s.get("event_type") in ("baltic_context", "baltic_alert") else None)
         clear_ts = baltic_clears.get((voiv, incident)) if incident else None
         cleared = bool(clear_ts and clear_ts >= s.get("ts", ""))
         # Odwołanie w mediach polskich nie ma wspólnego klucza zdarzenia z

@@ -170,6 +170,10 @@ POINTS = {
     "rcb_alert": 2.0,          # RCB (oficjalny) nadal może alarmować sam
     "ua_alert_border": 1.0,    # oficjalny alarm powietrzny w przygranicznym obwodzie UA
     "baltic_context": 1.0,     # incydent powietrzny wg mediów LT/LV/EE
+    # Ogłoszony alarm powietrzny na Litwie, Łotwie albo w Estonii (np. Wilno
+    # 13.09.2026). Zdarzenie jest daleko, więc to ślad w panelu i dziesiąte części
+    # punktu — mnożone jeszcze przez BALTIC_ALERT_COUNTRY_WEIGHTS i wagę celu.
+    "baltic_alert": 0.3,
     "neighbour_zone": 0.3,     # zamknięcie przestrzeni u sąsiada (RO/EE/LT/LV) —
                                # sygnał POŚREDNI, niski: media 1,0 + sąsiad 0,3 = 1,3
                                # < próg 2,0, więc sam nie domyka alarmu ("bez flaszu")
@@ -737,10 +741,41 @@ RSS_FEEDS = [
 # ── Media bałtyckie (LT/LV/EE) — kontekst dla północno-wschodniej ściany ─────
 # Incydent powietrzny u sąsiadów NATO nad Bałtykiem podnosi czujność dla
 # podlaskiego i warmińsko-mazurskiego (kierunek Kaliningrad/Białoruś).
+# Żaden z trzech krajów nie ma publicznego API alarmów (cell broadcast i aplikacje:
+# LT NKVC, LV „112 Latvija”, EE EE-ALARM), a strony wojska i służb publikują
+# komunikaty dopiero po fakcie. Najszybsze są kanały RSS mediów publicznych —
+# sprawdzone 13.09.2026 na alarmie w Wilnie. Po dwa kanały na kraj: gdy jeden
+# padnie albo przestanie podawać artykuły, drugi zostaje.
+# delfi.lt/rss/feeds/daily.xml przekierowuje dziś na listę nazw działów bez
+# artykułów — kolektor miał status „ok”, a Litwa była ślepa.
 BALTIC_FEEDS = [
-    ("https://news.err.ee/rss", "EE"),
+    ("https://www.lrt.lt/tema/oro-pavojus?rss", "LT"),   # temat „oro pavojus” LRT
+    ("https://www.15min.lt/rss", "LT"),
+    ("https://www.lsm.lv/rss/", "LV"),
     ("https://eng.lsm.lv/rss/", "LV"),
-    ("https://www.delfi.lt/rss/feeds/daily.xml", "LT"),
+    ("https://www.err.ee/rss", "EE"),
+    ("https://news.err.ee/rss", "EE"),
+]
+BALTIC_COUNTRY_NAMES = {"LT": "Litwa", "LV": "Łotwa", "EE": "Estonia"}
+# Im dalej od Polski, tym mniej: Wilno ~150 km od granicy, Łotwa ~300 km,
+# Estonia ~550 km.
+BALTIC_ALERT_COUNTRY_WEIGHTS = {"LT": 1.0, "LV": 0.6, "EE": 0.4}
+# Ogłoszenie alarmu dla ludności. Sprawdzane PRZED listą incydentów: artykuł
+# „tikėtinas oro pavojus” to alarm (0,3), a nie naruszenie przestrzeni (1,0).
+BALTIC_ALERT_KEYWORDS = [
+    # litewski
+    "oro pavoj", "oro pavojus", "(geltona)", "(raudona)", "geltonas signalas",
+    "raudonas signalas", "įspėjimas dėl galimai fiksuoto drono",
+    "gyventojams išsiųsti įspėjimai",
+    # łotewski
+    "gaisa telpas apdraudējum", "apdraudējums gaisa telpā",
+    "dzeltenās pakāpes brīdinājum", "oranžās pakāpes brīdinājum", "šūnu apraide",
+    # estoński
+    "õhuohu hoiatus", "võimalik õhuoht", "drooniohu hoiatus", "drooniohu teavitus",
+    "ohuteavitus", "ee-alarm", "õhuoht",
+    # angielski (eng.lsm.lv, news.err.ee, LRT English)
+    "air alert", "air raid", "airspace alert", "air hazard alert", "air threat alert",
+    "air danger alert", "drone threat warning", "drone warning", "air threat warning",
 ]
 # Incydent powietrzny nad Bałtykiem dotyczy całego wybrzeża, nie tylko flanki
 # wschodniej. Waga maleje z odległością od miejsca zdarzenia: podlaskie,
@@ -751,7 +786,7 @@ BALTIC_TARGET_WEIGHTS = {"podlaskie": 1.0, "warmińsko-mazurskie": 1.0,
 BALTIC_TARGET_VOIVS = list(BALTIC_TARGET_WEIGHTS)
 BALTIC_CRITICAL_KEYWORDS = [
     "airspace violation", "violated airspace", "airspace was violated",
-    "air raid", "airspace closed", "shot down a drone", "scrambled jets",
+    "airspace closed", "shot down a drone", "scrambled jets",
     "oro erdvės pažeid", "gaisa telpas pārkāp", "õhuruumi rikku",
 ]
 BALTIC_AIR_KEYWORDS = [
@@ -782,4 +817,26 @@ BALTIC_CLEAR_KEYWORDS = [
     "ohuhoiatus tühistati", "ohuteade lõpetati",
     # litewski
     "pavojus baigėsi", "oro pavojus baigėsi", "perspėjimas atšauktas",
+    "oro pavojus atšauktas", "oro pavojaus nebėra", "(balta)", "baltas signalas",
+    "buvo skelbiamas oro pavojus", "atšauktas tikėtinas oro pavojus",
+    # „Oro pavojus Lietuvoje atšauktas: …” — słowa rozdzielone, więc rdzeń
+    # (BALTIC_CLEAR_CONTEXT pilnuje, że chodzi o powietrze albo alarm)
+    "atšaukt", "atšauk", "lifted",
+    # łotewski — LSM zmienia tytuł tego samego artykułu na „Beidzies…”
+    "beidzies iespējamais gaisa telpas apdraudējums",
+    "beidzies gaisa telpas apdraudējums", "brīdinājums atsaukts",
+    # estoński
+    "õhuhoiatus võeti maha", "ohu möödumisest", "ohuteavitus lõpetati",
+    "drooniohtu ei tuvastatud",
 ]
+# Samo „cancelled” czy „(balta)” to za mało: 02.09.2026 „Second round of
+# Latvia's affordable housing programme cancelled” weszło jako odwołanie.
+# Odwołanie musi dotyczyć powietrza albo alarmu.
+BALTIC_CLEAR_CONTEXT = [
+    "air", "drone", "uav", "oro", "pavoj", "gaisa", "apdraud", "õhu", "droon",
+    "ohu", "oht", "alert", "alarm", "warning", "threat",
+]
+# Odwołanie przychodzi zwykle jako NOWY tytuł starego artykułu, a data
+# publikacji zostaje z chwili ogłoszenia (LRT: 13:08 → „nebėra (balta)” o 13:43).
+# Dla odwołań patrzymy więc dalej wstecz niż dla nowych doniesień.
+BALTIC_CLEAR_MAX_AGE_MIN = 6 * 60

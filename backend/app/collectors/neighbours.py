@@ -50,7 +50,13 @@ def _relaxed_tls() -> ssl.SSLContext:
 _RO_TLS = _relaxed_tls()
 
 log = logging.getLogger("neighbours")
-status = {"ok": False, "last": None, "error": "not started", "zones_now": 0}
+status = {"ok": False, "last": None, "error": "not started", "zones_now": 0,
+          # Podział na kraje i ostatnie nowe strefy — publicznie w /api/health
+          # i w oknie „Źródła”. Wcześniej był tylko w dzienniku serwera, więc
+          # pytania „czy Strażnik widział strefę wokół Wilna” nie dało się
+          # sprawdzić z zewnątrz (13.09.2026).
+          "by_country": {}, "recent_new": []}
+RECENT_NEW_S = 6 * 3600
 
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/126.0 Safari/537.36")
@@ -222,10 +228,19 @@ async def _tick(client: httpx.AsyncClient):
              ("| błędy: " + "; ".join(errs)) if errs else "")
 
     cur = set()
+    now = time.time()
+    recent = [r for r in status["recent_new"] if now - r["seen"] < RECENT_NEW_S]
     for z in zones:
         key = f"{z['country']}:{z['ident']}"
         cur.add(key)
         if _prev and key not in _prev:      # nowa aktywacja od poprzedniego obiegu
+            recent.insert(0, {"country": z["country"], "ident": z["ident"],
+                              "kind": z["kind"], "reason": z["reason"],
+                              "lower": z["lower"], "upper": z["upper"], "seen": now,
+                              "scored": bool(z["kind"] in _MEANINGFUL
+                                            and _COUNTRY_VOIVS.get(z["country"])
+                                            and (z["country"] != "RO"
+                                                 or (z.get("lat") or 0) >= _RO_NORTH))})
             log.info("SĄSIAD nowa: %s %s typ=%s powód=%s pułap=%s–%s %s",
                      z["country"], z["ident"], z["kind"], z["reason"],
                      z["lower"], z["upper"], z["note"])
@@ -246,7 +261,7 @@ async def _tick(client: httpx.AsyncClient):
                     )
     _prev = cur
     status.update(ok=not errs, last=time.time(), error="; ".join(errs) or None,
-                  zones_now=len(zones))
+                  zones_now=len(zones), by_country=per, recent_new=recent[:30])
 
 
 async def run():

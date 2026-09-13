@@ -2157,6 +2157,12 @@ function sigHTML(s) {
     shownTitle = UI.isEn
       ? `Air-raid alert in ${ob} oblast${where ? ` (${voivName} — ${where})` : ""}`
       : `Alarm powietrzny w obwodzie ${ob}${where ? ` (woj. ${voivName} — ${where})` : ""}`;
+  } else if (s.event_type === "baltic_alert" && d.country) {
+    // Alarm ogłoszony na Litwie, Łotwie albo w Estonii: prefiks piszemy sami,
+    // cytat tytułu zostaje w oryginale.
+    const quote = String(shownTitle || "").replace(/^[^„]*/, "");
+    shownTitle = `${UI.isEn ? "Air-raid alert" : "Alarm powietrzny"} — ${
+      (UI.isEn ? BALTIC_NAME_EN : BALTIC_NAME_PL)[d.country] || d.country}: ${quote}`;
   } else if (s.event_type === "neighbour_spillover" && d.from) {
     const factor = `${d.from_score} × 0.4^${d.depth}`;
     shownTitle = UI.isEn
@@ -2180,7 +2186,8 @@ function sigHTML(s) {
   }
   return `<div class="sig src-${esc(src)}">
     <div class="sig-head">
-      <span class="src">${SRC_ICON[src] || "•"} ${esc(SRC_LABEL[src] || src.toUpperCase())}</span>
+      <span class="src">${SRC_ICON[src] || "•"} ${esc(SRC_LABEL[src] || src.toUpperCase())}${
+        src === "media" && d.country ? " " + esc(d.country) : ""}</span>
       <span class="pts${capped ? " capped" : ""}"
         ${capped ? `title="${repeatedOfficial
           ? (UI.isEn ? "repeats an official alert — visible, with no extra points" : "powtarza oficjalny alert — widoczne, bez dodatkowych punktów")
@@ -2379,6 +2386,53 @@ function ledItems() {
   ];
 }
 
+/* Litwa, Łotwa, Estonia: nie mają osobnej diody (alarm tam jest daleko i daje
+   dziesiąte części punktu), ale okno „Źródła” pokazuje, że kanały działają,
+   kiedy przyszedł ostatni artykuł i ostatni alarm. */
+const BALTIC_NAME_PL = { LT: "Litwa", LV: "Łotwa", EE: "Estonia" };
+const BALTIC_NAME_EN = { LT: "Lithuania", LV: "Latvia", EE: "Estonia" };
+const BALTIC_FEEDS_TXT = { LT: "LRT (temat „oro pavojus”), 15min", LV: "LSM (LV, EN)", EE: "ERR (ET, EN)" };
+const BALTIC_ALERT_PTS = { LT: "0,3", LV: "0,18", EE: "0,12" };
+function agoSec(sec) {
+  const m = Math.max(0, Math.round((Date.now() / 1000 - sec) / 60));
+  if (m < 1) return UI.isEn ? "just now" : "przed chwilą";
+  if (m < 60) return `${m} min ${UI.isEn ? "ago" : "temu"}`;
+  return `${Math.floor(m / 60)} h ${m % 60} min ${UI.isEn ? "ago" : "temu"}`;
+}
+function balticRows() {
+  const b = state?.health?.baltic;
+  if (!b) return "";
+  const rows = ["LT", "LV", "EE"].filter(c => b[c]).map(c => {
+    const x = b[c], ok = x.feeds_ok > 0;
+    const name = (UI.isEn ? BALTIC_NAME_EN : BALTIC_NAME_PL)[c];
+    const stateTxt = ok ? (UI.isEn ? "working" : "działa") : (UI.isEn ? "not responding" : "nie odpowiada");
+    const newest = x.newest_item ? ` · ${UI.isEn ? "latest article" : "ostatni artykuł"} ${agoSec(x.newest_item)}` : "";
+    const zb = state?.health?.neighbour_zones;
+    const zNew = (zb?.recent_new || []).filter(z => z.country === c);
+    const zonesTxt = zb && zb.by_country?.[c] != null
+      ? `<br>${UI.isEn ? "Temporary airspace zones" : "Czasowe strefy przestrzeni"}: ${zb.by_country[c]}${
+          c === "LV" ? (UI.isEn ? " (routine drone zones, not scored)" : " (rutynowe strefy dronowe, bez punktów)") : ""}${
+          zNew.length ? ` · ${UI.isEn ? "new" : "nowe"}: ${zNew.slice(0, 3).map(z =>
+            `${esc(z.ident)} ${esc(z.kind)} ${agoSec(z.seen)}`).join(", ")}` : ""}`
+      : "";
+    const la = x.last_alert;
+    const alertTxt = la
+      ? `<br>${UI.isEn ? "Last alert" : "Ostatni alarm"} ${agoSec(la.at)}: „${esc(la.title)}”${la.cleared
+          ? ` — <b>${UI.isEn ? "cancelled" : "odwołany"}</b> ${agoSec(la.cleared_at)}` : ""}`
+      : `<br>${UI.isEn ? "No alert since the server started." : "Brak alarmu od uruchomienia serwera."}`;
+    return `<div class="src-row ${ok ? "ok" : "err"}">
+      <div class="src-head"><i></i><b>${esc(name)}</b>
+        <span class="src-state">${stateTxt} · ${x.feeds_ok}/${x.feeds} ${UI.isEn ? "feeds" : "kanałów"}${newest}</span></div>
+      <p class="src-what">${esc(BALTIC_FEEDS_TXT[c])}. ${UI.isEn
+        ? `An announced air-raid alert adds +${BALTIC_ALERT_PTS[c].replace(",", ".")} to podlaskie and warmińsko-mazurskie — a trace, never an alert in Poland on its own.`
+        : `Ogłoszony alarm powietrzny daje +${BALTIC_ALERT_PTS[c]} pkt dla podlaskiego i warmińsko-mazurskiego — ślad, sam nigdy nie alarmuje w Polsce.`}${alertTxt}${zonesTxt}</p>
+    </div>`;
+  }).join("");
+  return `<p class="fineprint" style="margin:12px 0 6px">${UI.isEn
+    ? "Baltic neighbours — no public alert API exists, so public media feeds are watched"
+    : "Sąsiedzi bałtyccy — brak publicznego API alarmów, więc śledzimy kanały mediów publicznych"}</p>${rows}`;
+}
+
 function renderLeds() {
   document.getElementById("status-leds").innerHTML = ledItems().map(([n, ok]) =>
     `<span class="led ${ok ? "ok" : "err"}"><i></i><span>${esc(srcTitle(n))}</span></span>`).join("");
@@ -2401,7 +2455,7 @@ function fillSources() {
     </div>`;
   }).join("");
   const anyErr = ledItems().some(([, ok]) => !ok);
-  document.getElementById("src-list").innerHTML = rows;
+  document.getElementById("src-list").innerHTML = rows + balticRows();
   document.getElementById("src-note").innerHTML = anyErr
     ? (UI.isEn
       ? "A red indicator does not mean the app has failed — the remaining sources "
@@ -3627,11 +3681,11 @@ function showUpdateBanner(rel, local) {
   const size = rel.size ? ` · ${(rel.size / 1048576).toFixed(1)} MB` : "";
   const fallbackChanges = String(rel.notes || "").split(/\r?\n/)
     .map(x => x.replace(/^\s*(?:[-*+]|•|\d+[.)])\s*/, "").replace(/[*_`~]/g, "").trim())
-    .filter(x => x && !x.startsWith("#") && !x.startsWith("<!--")).slice(0, 8);
-  // Osiem, nie trzy: opis zmian ma się zmieścić w całości, a pole tekstowe
-  // banera przewija się samo (patrz #update-banner w style.css).
+    .filter(x => x && !x.startsWith("#") && !x.startsWith("<!--")).slice(0, 40);
+  // Cała lista zmian, nie pierwsze osiem: pole tekstowe banera przewija się
+  // samo (patrz #update-banner w style.css), a 1.7.37 miało 10 punktów.
   const changes = (Array.isArray(rel.changes) ? rel.changes : fallbackChanges)
-    .map(x => String(x || "").trim()).filter(Boolean).slice(0, 8);
+    .map(x => String(x || "").trim()).filter(Boolean).slice(0, 40);
   const changesLabel = UI.isEn ? "What changes:" : "Co się zmienia:";
   const changesHtml = changes.length
     ? `<div class="upd-changes"><b>${changesLabel}</b><ul>${changes.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>`

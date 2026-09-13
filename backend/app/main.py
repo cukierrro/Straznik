@@ -68,6 +68,11 @@ def build_state() -> dict:
             "pansa": pansa.status["ok"],
             "rcb": rcb.status["ok"],
             "rss": {u: st.get("ok", False) for u, st in rss_media.status["feeds"].items()},
+            # Litwa/Łotwa/Estonia osobno: w oknie „Źródła” widać, że kanały
+            # działają i kiedy był ostatni artykuł oraz ostatni alarm.
+            "baltic": rss_media.baltic,
+            "neighbour_zones": {"by_country": neighbours.status.get("by_country", {}),
+                                "recent_new": neighbours.status.get("recent_new", [])[:12]},
         },
     }
 

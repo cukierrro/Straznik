@@ -14,7 +14,7 @@ const WINDOW_MIN = 60, FULL_MIN = 30, TH_ELEVATED = 2, TH_HIGH = 4, COOLDOWN_MIN
 const ETA_BUFFER_MIN = 2.5, ETA_ELEVATED_MIN = 10, ETA_HIGH_MIN = 5, ETA_MIN_SOURCES = 2;
 const HISTORY_H = 12;   // ile godzin trzymamy do przeglądania wstecz
 const POINTS = { neptun_high: 3, neptun_medlow: 1.5, media_keywords: 0.5, media_critical: 1,
-                 adsb_spike: 1, rcb_alert: 2, ua_alert_border: 1, baltic_context: 1, pansa_zone: 0.5,
+                 adsb_spike: 1, rcb_alert: 2, ua_alert_border: 1, baltic_context: 1, baltic_alert: 0.3, pansa_zone: 0.5,
                  pansa_zone_north: 1 };
 // Neptun ma wyższy limit niż reszta (każdy track to osobny fizyczny obiekt),
 // ale nie nieograniczony — przy kilkudziesięciu obiektach suma i tak dawno
@@ -146,9 +146,7 @@ const CRITICAL = ["alarm powietrzny","zagrożenie z powietrza","zawyły syreny",
 const AIR = ["dron","bezzałogow","bsp","shahed","geran","rakiet","pocisk","ch-101","kalibr","iskander","kab","bomb","myśliwc","mig-31","obiekt powietrzny","przestrzeni powietrznej","przestrzeń powietrzną","obrona powietrzna","obiekt latając","lancet","kindżał","kinżał","kh-101","kh-47","kh-59","amunicja krążąc","fpv","kamikadze","statek powietrzny","pocisk manewrując","pocisk balistyczn","hipersoniczn","f-16","f-35","su-24","su-34","su-35","tu-95","tu-160","mig-29","lotnictwo wojskow"];
 const EVENT = ["spadł","spadła","spadło","eksploz","wybuch","zestrzel","przechwyc","poderwan","naruszen","naruszył","naruszyła","wleciał","wtargn","uderzy","trafił","szczątki","atak","ostrzał","zawył","alarm","ewakuac","schron","zagrożeni","przekrocz","wtargnięci","detonac","runął","runęła","runęło","zestrzelen","przechwycen"];
 const EXCLUDE = ["ćwiczeni", "trening", "test syren", "próba syren", "próby syren", "głośna próba", "rocznic", "upamiętni", "minuta ciszy", "wymian", "modernizac", "przetarg", "inwestycj", "zakup", "montaż", "zamontow", "instalac", "rozbudow", "dofinansow", "dotacj", "planowan", "potrwa", "konserwac", "remont", "pojawią się", "powstan", "wdroż", "komunikat głosowy", "system ostrzegania będzie", "nowe syreny", "nowych syren", "pożar bloku", "pożar domu", "pożar mieszkania", "pożar lasu", "wypadek drogow", "kolizja", "lpr lądował", "śmigłowiec lpr", "utonię", "potrąc", "dachowa", "karambol", "zderzenie samochod", "pożar ciężarów", "pożar samochod", "pożar autobusu", "pożar cystern", "zapaliła się ciężarów", "zapalił się samoch", "zbiornik paliw", "wyciek paliw", "demograf", "przyrost naturaln", "liczba mieszkańc", "wyludnia", "tydzień po", "tygodnie po", "tygodni po", "dzień po", "dni po", "miesiąc po", "miesiące po", "miesięcy po", "rok po", "lata po", "lat po", "rok temu", "lata temu", "lat temu", "ubiegłym roku", "ubiegłego roku", "godzin po", "godziny po", "kalendarium", "przypominamy", "wspomina", "kulisy", "reportaż", "felieton", "czy na pewno", "co wiemy", "jak doszło", "śledztwo w sprawie", "śledztwo ws", "podsumowanie roku", "zawyły syreny?", "zawyła syrena?", "alarm powietrzny?", "co powinieneś zrobić", "co należy zrobić", "jak się zachować w razie", "co robić w razie", "co zrobić w razie", "poradnik bezpieczeństwa", "poznaj sygnały alarmowe", "co oznacza sygnał alarmowy", "film fabularn", "film dokumentaln", "serial", "premiera", "recenzja", "zwiastun", "gra wideo", "gry wideo", "powieść", "komiks", "cosplay", "spektakl", "1939", "1944", "1945", "ii wojn", "powstanie warszawsk", "rakieta kosmiczn", "rakieta nośn", "start rakiety", "spacex", "falcon", "starship", "misja kosmiczn", "kosmodrom", "odbudow", "ma być gotow", "rakieta tenisow", "rakietka", "rakiety śnieżn", "bomba atomow", "wybuchła afera", "pokaz dron", "dron rolnicz", "dron dostawcz", "wyścig dron", "nagranie z drona", "zdjęcia z drona", "zdjęcie z drona", "widok z drona", "wybiła godzina", "godzina \"w\"", "godzinie \"w\"", "godziny \"w\"", "oddali hołd", "oddał hołd", "oddano hołd", "hołd bohaterom", "hołd powstańcom", "uroczystoś", "próbny alarm", "alarm próbny", "próbnego alarmu", "próba syren alarmowych", "ogólnopolskie ćwiczenia", "są zarzuty", "usłyszał zarzut", "usłyszała zarzut", "usłyszeli zarzuty", "postawiono zarzut", "postawiono zarzuty", "zarzuty dla", "akt oskarżenia", "odpowie przed sądem", "stanął przed sądem", "stanęła przed sądem", "skazany za", "skazana za", "do zdarzenia miało dojść", "po nocnym alarmie", "po porannym alarmie", "po wieczornym alarmie", "po nocnym ataku", "po porannym ataku", "po nocnych alarmach", "alarm bombowy", "alarmy bombowe", "alarmu bombowego", "alarmów bombowych", "alarmie bombowym", "alarmem bombowym", "alarmów bombowych", "o podłożeniu ładunku", "podłożeniu bomby", "informacja o bombie", "niespokojny poranek", "niespokojna noc", "niespokojny wieczór", "niespokojne popołudnie", "niespokojna doba", "niespokojny dzień", "nerwowy poranek", "nerwowa noc"];
-const B_CRITICAL = ["airspace violation","violated airspace","airspace was violated","air raid",
-  "airspace closed","shot down a drone","scrambled jets","oro erdvės pažeid",
-  "gaisa telpas pārkāp","õhuruumi rikku"];
+const B_CRITICAL = ["airspace violation", "violated airspace", "airspace was violated", "airspace closed", "shot down a drone", "scrambled jets", "oro erdvės pažeid", "gaisa telpas pārkāp", "õhuruumi rikku"];
 const B_AIR = ["airspace","air space","drone","uav","missile","shahed","air defence","air defense",
   "oro erdv","bepilot","raket","gaisa telp","droon","õhuruum","military aircraft","fighter jet","jets"];
 const B_EVENT = ["violat","intercept","shot down","scrambl","incursion","crash","fell","explos",
@@ -192,21 +190,21 @@ const RSS_FEEDS = [
   // VOIV_KEYWORDS. Jedno zapytanie pokrywa pozostałe 12 województw, zamiast
   // dokładać po osobnym kanale na każde.
   ["https://news.google.com/rss/search?q=(%22alarm%20powietrzny%22%20OR%20%22zawy%C5%82y%20syreny%22%20OR%20%22naruszenie%20przestrzeni%20powietrznej%22%20OR%20%22zestrzelono%20dron%22)&hl=pl&gl=PL&ceid=PL:pl", null]];
-const BALTIC_FEEDS = [["https://news.err.ee/rss","EE"],["https://eng.lsm.lv/rss/","LV"],
-  ["https://www.delfi.lt/rss/feeds/daily.xml","LT"]];
+/* Lustro config.BALTIC_FEEDS: po dwa kanały na kraj (sprawdzone 13.09.2026). */
+const BALTIC_FEEDS = [["https://www.lrt.lt/tema/oro-pavojus?rss", "LT"], ["https://www.15min.lt/rss", "LT"], ["https://www.lsm.lv/rss/", "LV"], ["https://eng.lsm.lv/rss/", "LV"], ["https://www.err.ee/rss", "EE"], ["https://news.err.ee/rss", "EE"]];
+const BALTIC_COUNTRY_NAMES = {"LT": "Litwa", "LV": "Łotwa", "EE": "Estonia"};
+const BALTIC_ALERT_COUNTRY_WEIGHTS = {"LT": 1.0, "LV": 0.6, "EE": 0.4};
+/* Ogłoszony alarm dla ludności LT/LV/EE — sprawdzany przed listą incydentów. */
+const B_ALERT = ["oro pavoj", "oro pavojus", "(geltona)", "(raudona)", "geltonas signalas", "raudonas signalas", "įspėjimas dėl galimai fiksuoto drono", "gyventojams išsiųsti įspėjimai", "gaisa telpas apdraudējum", "apdraudējums gaisa telpā", "dzeltenās pakāpes brīdinājum", "oranžās pakāpes brīdinājum", "šūnu apraide", "õhuohu hoiatus", "võimalik õhuoht", "drooniohu hoiatus", "drooniohu teavitus", "ohuteavitus", "ee-alarm", "õhuoht", "air alert", "air raid", "airspace alert", "air hazard alert", "air threat alert", "air danger alert", "drone threat warning", "drone warning", "air threat warning"];
+const BALTIC_CLEAR_CONTEXT = ["air", "drone", "uav", "oro", "pavoj", "gaisa", "apdraud", "õhu", "droon", "ohu", "oht", "alert", "alarm", "warning", "threat"];
+const BALTIC_CLEAR_MAX_AGE_MS = 360*60*1000;
 /* Incydent nad Bałtykiem dotyczy całego wybrzeża, nie tylko flanki wschodniej;
    waga maleje z odległością od miejsca zdarzenia. Musi się zgadzać z
    config.BALTIC_TARGET_WEIGHTS — pilnuje tego scripts/test_spojnosc.py. */
 const BALTIC_TARGET_WEIGHTS = {"podlaskie":1, "warmińsko-mazurskie":1,
                                "pomorskie":1, "zachodniopomorskie":0.5};
 const BALTIC_TARGETS = Object.keys(BALTIC_TARGET_WEIGHTS);
-const BALTIC_CLEAR = ["alert over","alert is over","threat over","threat is over",
-  "warning over","warning is over","warning lifted","alert lifted","threat ended",
-  "threat has ended","danger has passed","all clear","no longer a threat","cancelled","canceled",
-  "apdraudējums noslēdzies","apdraudējums beidzies","brīdinājums atcelts","draudi beigušies",
-  "gaisa apdraudējums noslēdzies","oht on möödas","õhuoht on möödas","ohu lõpp",
-  "oht lõppenud","ohuhoiatus tühistati","ohuteade lõpetati","pavojus baigėsi",
-  "oro pavojus baigėsi","perspėjimas atšauktas"];
+const BALTIC_CLEAR = ["alert over", "alert is over", "threat over", "threat is over", "warning over", "warning is over", "warning lifted", "alert lifted", "threat ended", "threat has ended", "danger has passed", "all clear", "no longer a threat", "cancelled", "canceled", "apdraudējums noslēdzies", "apdraudējums beidzies", "brīdinājums atcelts", "draudi beigušies", "gaisa apdraudējums noslēdzies", "oht on möödas", "õhuoht on möödas", "ohu lõpp", "oht lõppenud", "ohuhoiatus tühistati", "ohuteade lõpetati", "pavojus baigėsi", "oro pavojus baigėsi", "perspėjimas atšauktas", "oro pavojus atšauktas", "oro pavojaus nebėra", "(balta)", "baltas signalas", "buvo skelbiamas oro pavojus", "atšauktas tikėtinas oro pavojus", "atšaukt", "atšauk", "lifted", "beidzies iespējamais gaisa telpas apdraudējums", "beidzies gaisa telpas apdraudējums", "brīdinājums atsaukts", "õhuhoiatus võeti maha", "ohu möödumisest", "ohuteavitus lõpetati", "drooniohtu ei tuvastatud"];
 const MAX_AGE_MS = 45*60*1000;
 
 /* ── stan ────────────────────────────────────────────────────────────────── */
@@ -620,7 +618,8 @@ function accumulate(sigs, refT) {
     const physicalId = trackId && (s.details?.physical_key || trackId);
     const superseded = !!physicalId
       && neptunWinners.get(s.voivodeship + "|" + physicalId) !== s;
-    const incident = s.event_type === "baltic_context" && s.details?.incident_key;
+    const incident = (s.event_type === "baltic_context" || s.event_type === "baltic_alert")
+      && s.details?.incident_key;
     const clearT = incident && balticClears.get(s.voivodeship + "|" + incident);
     const st = s.t || Date.parse(s.ts) || 0;
     const mediaClearT = s.source === "media" ? (mediaClears.get(s.voivodeship) || 0) : 0;
@@ -1150,6 +1149,9 @@ function balticIncidentKey(link, title, country) {
   for (let i=0; i<basis.length; i++) h = Math.imul(h ^ basis.charCodeAt(i), 16777619);
   return `${country}:fallback:${(h >>> 0).toString(16)}`;
 }
+/* Ten sam alarm w dwóch redakcjach to jedno zdarzenie (lustro rss_media). */
+const balticActive = new Map(), balticClearsSeen = new Set();
+const BALTIC_ACTIVE_MS = 3*3600*1000;
 async function tickRss() {
   for (const [url, defVoiv] of RSS_FEEDS) {
     try {
@@ -1193,19 +1195,45 @@ async function tickRss() {
   for (const [url, country] of BALTIC_FEEDS) {
     try {
       const items = parseFeed(await httpGet(url));
+      // 200 bez artykułów z datą to martwy kanał (delfi.lt po zmianie adresu)
+      if (!items.some(it => it.date)) { markRss(url, false); continue; }
       markRss(url, true);
-      for (const it of items.slice(0,30)) {
+      for (const it of items.slice(0,40)) {
         const age = it.date ? Date.now() - new Date(it.date).getTime() : 0;
-        if (age > MAX_AGE_MS) continue;
+        if (age > BALTIC_CLEAR_MAX_AGE_MS) continue;
         const text = (it.title + " " + it.desc).toLowerCase();
         const incident = balticIncidentKey(it.link, it.title, country);
-        if (BALTIC_CLEAR.some(k => text.includes(k))) {
-          for (const v of BALTIC_TARGETS)
+        if (BALTIC_CLEAR.some(k => text.includes(k))
+            && BALTIC_CLEAR_CONTEXT.some(k => text.includes(k))) {
+          const keys = new Set([incident]);
+          const first = !balticClearsSeen.has(incident);
+          balticClearsSeen.add(incident);
+          const active = first ? balticActive.get(country) : null;
+          if (first) balticActive.delete(country);
+          if (active && Date.now() - active.at < BALTIC_ACTIVE_MS) keys.add(active.key);
+          for (const key of keys) for (const v of BALTIC_TARGETS)
             addSignal("media","baltic_clear",v,0,
               `Media ${country}: odwołanie — „${it.title.slice(0,100)}”`,
-              {link:it.link, country, incident_key:incident, clear:true},
-              `baltic-clear:${incident}:${v}`);
+              {link:it.link, country, incident_key:key, clear:true},
+              `baltic-clear:${key}:${v}`);
           continue;
+        }
+        if (age > MAX_AGE_MS) continue;
+        if (!B_EXCLUDE.some(k => text.includes(k))) {
+          const alertHits = B_ALERT.filter(k => text.includes(k));
+          if (alertHits.length) {
+            const active = balticActive.get(country);
+            if (active && Date.now() - active.at < BALTIC_ACTIVE_MS && active.key !== incident) continue;
+            if (!active) balticActive.set(country, {key: incident, at: Date.now()});
+            const w = BALTIC_ALERT_COUNTRY_WEIGHTS[country] ?? 0.4;
+            for (const v of BALTIC_TARGETS)
+              addSignal("media","baltic_alert",v,
+                Math.round(POINTS.baltic_alert * w * (BALTIC_TARGET_WEIGHTS[v] ?? 1) * 100) / 100,
+                `Alarm powietrzny — ${BALTIC_COUNTRY_NAMES[country] || country}: „${it.title.slice(0,110)}”`,
+                {link:it.link, keywords:alertHits, country, incident_key:incident},
+                `baltic-alert:${incident}:${v}`);
+            continue;
+          }
         }
         const hits = matchKw(text, B_CRITICAL, B_AIR, B_EVENT, B_EXCLUDE);
         if (!hits.length) continue;
