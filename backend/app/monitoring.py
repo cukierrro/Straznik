@@ -104,7 +104,8 @@ async def heartbeat_loop() -> None:
     Brak pingu (pad usługi, VPS, sieci) zauważa usługa zewnętrzna sama. Adres
     zawiera sekret, więc nigdy nie trafia do logów ani do /api/health."""
     if not config.HEALTHCHECK_PING_URL:
-        return
+        # bez adresu nie ma czego pingować; zadanie czeka, żeby nadzorca go nie wznawiał
+        await asyncio.Event().wait()
     base = config.HEALTHCHECK_PING_URL.rstrip("/")
     async with httpx.AsyncClient(timeout=10) as client:
         while True:
