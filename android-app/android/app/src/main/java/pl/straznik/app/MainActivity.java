@@ -22,6 +22,22 @@ public class MainActivity extends BridgeActivity {
         // dostarcza FCM (patrz StraznikFcmService), więc nic tu nie uruchamiamy.
     }
 
-    @Override public void onResume() { super.onResume(); FOREGROUND = true; }
+    @Override public void onResume() {
+        super.onResume();
+        FOREGROUND = true;
+        // alarm wyciszony dotknięciem powiadomienia (bez „Wycisz”) zostawiał
+        // podniesioną głośność — przywracamy ją, gdy nie gra już żaden czerwony
+        if (!redAlarmActive()) Alarms.restoreAlarmVolume(this);
+    }
+
+    private boolean redAlarmActive() {
+        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.M) return false;
+        try {
+            android.app.NotificationManager nm = getSystemService(android.app.NotificationManager.class);
+            for (android.service.notification.StatusBarNotification sbn : nm.getActiveNotifications())
+                if ((sbn.getNotification().flags & android.app.Notification.FLAG_INSISTENT) != 0) return true;
+        } catch (Exception ignored) {}
+        return false;
+    }
     @Override public void onPause() { FOREGROUND = false; super.onPause(); }
 }

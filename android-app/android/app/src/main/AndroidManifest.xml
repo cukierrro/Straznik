@@ -42,13 +42,22 @@
 
         <!-- Push FCM: odbiera wiadomości `data` (temat voiv_<region>) także przy
              zamkniętej aplikacji i w Doze; dla czerwonego buduje pełnoekranowy alarm. -->
+        <!-- directBootAware (audyt B6): po nocnej aktualizacji z restartem telefon do
+             pierwszego odblokowania nie dostawał żadnych alarmów. -->
         <service
             android:name=".StraznikFcmService"
+            android:directBootAware="true"
             android:exported="false">
             <intent-filter>
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
             </intent-filter>
         </service>
+
+        <!-- „Wycisz alarm” z powiadomienia i odrzucenie czerwonego gestem -->
+        <receiver
+            android:name=".AlarmActionReceiver"
+            android:directBootAware="true"
+            android:exported="false" />
 
         <provider
             android:name="androidx.core.content.FileProvider"
@@ -75,6 +84,8 @@
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <!-- alarm czerwony wybudza ekran przy zablokowanym telefonie -->
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <!-- nowsze wersje Androida wymagają jawnej zgody na zapalanie ekranu wake lockiem (audyt B11) -->
+    <uses-permission android:name="android.permission.TURN_SCREEN_ON" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />

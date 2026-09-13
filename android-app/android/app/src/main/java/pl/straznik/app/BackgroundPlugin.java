@@ -2,6 +2,7 @@ package pl.straznik.app;
 
 import android.app.NotificationManager;
 import android.content.Context;
+import android.media.AudioManager;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
@@ -42,6 +43,33 @@ public class BackgroundPlugin extends Plugin {
     private static final String PREFS = "straznik_bg";
     private static final String KEY_HOME = "home_voiv";
     private static final String KEY_REGIONS = "observed_voivs";
+
+    /** Żywa instancja pluginu (WebView działa) — do przekazania pusha otwartej aplikacji. */
+    private static volatile BackgroundPlugin instance;
+
+    @Override
+    public void load() {
+        instance = this;
+    }
+
+    /**
+     * Audyt B1: aplikacja na wierzchu dostaje push jako zdarzenie „fcmAlarm” i sama
+     * pokazuje alarm dla KAŻDEGO obserwowanego województwa (z deduplikacją po
+     * event_id). Zwraca false, gdy WebView nie nasłuchuje — wtedy alarm pokazuje
+     * warstwa natywna, więc wiadomość nigdy nie przepada.
+     */
+    static boolean forwardAlarm(java.util.Map<String, String> data) {
+        BackgroundPlugin p = instance;
+        if (p == null || !p.hasListeners("fcmAlarm")) return false;
+        try {
+            JSObject ev = new JSObject();
+            for (java.util.Map.Entry<String, String> e : data.entrySet()) ev.put(e.getKey(), e.getValue());
+            p.notifyListeners("fcmAlarm", ev);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
 
     /**
      * Województwo wybrane w ustawieniach. Nazwa regionu wyznacza temat FCM
@@ -103,6 +131,17 @@ public class BackgroundPlugin extends Plugin {
      * wschodnią. Wywoływane przy starcie aplikacji i po każdej zmianie miejsc.
      */
     static void syncFcmSubscription(Context c) {
+        syncFcmSubscription(c, false);
+    }
+
+    /**
+     * Audyt B3: subskrypcje były różnicowe i zapisywane bez sprawdzenia wyniku, więc
+     * nowy token bez tematów albo nieudane zapisanie tematu dawały trwałą ciszę przy
+     * komunikacie „Powiadomienia gotowe”. Teraz przy każdym starcie zapisujemy
+     * WSZYSTKIE docelowe tematy (operacja idempotentna), a stan utrwalamy dopiero po
+     * potwierdzeniu przez FCM.
+     */
+    static void syncFcmSubscription(Context c, boolean forceAll) {
         java.util.Set<String> target = new java.util.HashSet<>();
         android.content.SharedPreferences bg = c.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         if (bg.contains(KEY_REGIONS)) {
@@ -119,8 +158,28 @@ public class BackgroundPlugin extends Plugin {
             p.getStringSet("topics", java.util.Collections.<String>emptySet()));
         FirebaseMessaging fm = FirebaseMessaging.getInstance();
         for (String t : current) if (!target.contains(t)) fm.unsubscribeFromTopic(t);
-        for (String t : target) if (!current.contains(t)) fm.subscribeToTopic(t);
-        p.edit().putStringSet("topics", target).apply();
+        final java.util.Set<String> confirmed = java.util.Collections.synchronizedSet(new java.util.HashSet<>());
+        final java.util.concurrent.atomic.AtomicInteger pending =
+            new java.util.concurrent.atomic.AtomicInteger(target.size());
+        if (target.isEmpty()) {
+            p.edit().putStringSet("topics", target).putLong("topics_ok_at", System.currentTimeMillis())
+                .putString("topics_error", "").apply();
+            return;
+        }
+        for (String t : target) {
+            fm.subscribeToTopic(t).addOnCompleteListener(task -> {
+                if (task.isSuccessful()) confirmed.add(t);
+                if (pending.decrementAndGet() == 0) {
+                    boolean all = confirmed.size() == target.size();
+                    android.content.SharedPreferences.Editor ed = p.edit()
+                        .putStringSet("topics", new java.util.HashSet<>(confirmed));
+                    if (all) ed.putLong("topics_ok_at", System.currentTimeMillis()).putString("topics_error", "");
+                    else ed.putString("topics_error", "nie potwierdzono " + (target.size() - confirmed.size())
+                        + " z " + target.size() + " tematów");
+                    ed.apply();
+                }
+            });
+        }
     }
 
     @PluginMethod
@@ -137,7 +196,55 @@ public class BackgroundPlugin extends Plugin {
             c.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_HOME, ""));
         ret.put("observedVoivodeships", new JSArray(c.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .getStringSet(KEY_REGIONS, java.util.Collections.<String>emptySet())));
+        android.content.SharedPreferences fcm = c.getSharedPreferences("straznik_fcm", Context.MODE_PRIVATE);
+        ret.put("topicsConfirmed", new JSArray(fcm.getStringSet("topics", java.util.Collections.<String>emptySet())));
+        ret.put("topicsOkAt", fcm.getLong("topics_ok_at", 0));
+        ret.put("topicsError", fcm.getString("topics_error", ""));
+        // głośność alarmów i stan kanału czerwonego — do podglądu w ustawieniach
+        try {
+            AudioManager am = (AudioManager) c.getSystemService(Context.AUDIO_SERVICE);
+            if (am != null) {
+                ret.put("alarmVolume", am.getStreamVolume(AudioManager.STREAM_ALARM));
+                ret.put("alarmVolumeMax", am.getStreamMaxVolume(AudioManager.STREAM_ALARM));
+            }
+        } catch (Exception ignored) {}
+        ret.put("forceMaxVolume", Alarms.forceVolumeEnabled(c));
+        ret.put("redChannelSound", Alarms.highChannelPlaysSound(c));
         call.resolve(ret);
+    }
+
+    /** Opcja „czerwony alarm zawsze na pełnej głośności” — tylko po świadomym włączeniu. */
+    @PluginMethod
+    public void setForceMaxVolume(PluginCall call) {
+        boolean enabled = Boolean.TRUE.equals(call.getBoolean("enabled", false));
+        Alarms.prefs(getContext()).edit().putBoolean(Alarms.KEY_FORCE_VOLUME, enabled).apply();
+        JSObject ret = new JSObject();
+        ret.put("forceMaxVolume", enabled);
+        call.resolve(ret);
+    }
+
+    /**
+     * Audyt B12: test przechodzi PRAWDZIWĄ ścieżką natywną (kanał, pełny ekran,
+     * pętla syreny, wyciszenie), a nie nakładką WebView. Opóźniony o kilka sekund,
+     * żeby dało się zablokować ekran i sprawdzić alarm nad blokadą.
+     */
+    @PluginMethod
+    public void testNativeAlarm(PluginCall call) {
+        String level = "elevated".equals(call.getString("level")) ? "elevated" : "high";
+        int delayMs = Math.max(0, Math.min(call.getInt("delayMs", 0), 30000));
+        String voivName = call.getString("voivodeship", Alarms.VOIVS[0]);
+        int voiv = 0;
+        for (int i = 0; i < Alarms.VOIVS.length; i++) if (Alarms.VOIVS[i].equals(voivName)) voiv = i;
+        final int v = voiv;
+        final Context c = getContext().getApplicationContext();
+        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+            Alarms.createChannels(c);
+            java.util.List<String> reasons = new java.util.ArrayList<>();
+            reasons.add("To jest test alarmu — nie ma zagrożenia.");
+            Alarms.postAlarm(c, v, level, "high".equals(level) ? 4.0 : 2.0, reasons,
+                "TEST: sprawdzenie dźwięku i ekranu alarmu", 0L, true);
+        }, delayMs);
+        call.resolve();
     }
 
     /** Wersja aplikacji — potrzebna, by porównać ją z najnowszym wydaniem. */
@@ -328,6 +435,17 @@ public class BackgroundPlugin extends Plugin {
                 c.startActivity(i);
             } catch (Exception ignored) {}
         }
+        call.resolve();
+    }
+
+    /** Systemowy ekran dźwięku — tam jest suwak „Alarmy”, którego używa syrena. */
+    @PluginMethod
+    public void openSoundSettings(PluginCall call) {
+        try {
+            Intent i = new Intent(Settings.ACTION_SOUND_SETTINGS);
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            getContext().startActivity(i);
+        } catch (Exception ignored) {}
         call.resolve();
     }
 

@@ -24,6 +24,7 @@
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 .native-app .web-only { display: none !important; }
+.web-app .app-only { display: none !important; }
 html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--text);
   font-family: "Segoe UI", system-ui, sans-serif; }
 
@@ -457,9 +458,16 @@ body.history-mode #my-banner { display: none; }
 .alarm-note { font-size: 11.5px; color: #ffd98a; line-height: 1.4;
   background: rgba(64,44,6,.5); border: 1px solid rgba(255,176,32,.4);
   border-radius: 9px; padding: 8px 10px; }
+.alarm-nearest { font-size: 13px; color: #e8edf7; margin-top: 10px; line-height: 1.4; }
+.alarm-todo { font-size: 13px; font-weight: 700; color: #fff; text-align: left;
+  background: rgba(214, 40, 57, .22); border-radius: 9px; padding: 8px 10px; margin: 0 0 10px; }
+dialog label.set-check { display: flex; gap: 10px; align-items: center; margin: 10px 0 6px;
+  color: var(--text); font-size: 14px; }
+dialog .set-check input { width: 20px; height: 20px; flex: 0 0 20px; margin: 0; padding: 0; }
+/* audyt C11: biały na #ff4d5e miał kontrast 3,24:1 (poniżej WCAG AA) */
 .alarm-btn {
   width: 100%; margin-top: 14px; padding: 15px 12px; border-radius: 12px;
-  border: 0; background: var(--red); color: #fff; font-size: 15px; font-weight: 700;
+  border: 0; background: #c81e30; color: #fff; font-size: 15px; font-weight: 700;
   letter-spacing: .04em; cursor: pointer;
 }
 .alarm-btn:hover { filter: brightness(1.1); }

@@ -86,6 +86,8 @@ dependencies {
     // BoM utrzymuje spójne wersje bibliotek Firebase.
     implementation platform('com.google.firebase:firebase-bom:33.7.0')
     implementation 'com.google.firebase:firebase-messaging'
+    // odbiór pushy przed pierwszym odblokowaniem po restarcie telefonu (audyt B6)
+    implementation 'com.google.firebase:firebase-messaging-directboot'
     testImplementation "junit:junit:$junitVersion"
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"

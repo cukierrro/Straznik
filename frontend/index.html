@@ -53,7 +53,7 @@ document.documentElement.classList.add(
 <link rel="icon" type="image/png" sizes="512x512" href="assets/icon-512.png">
 <link rel="apple-touch-icon" href="assets/icon-192.png">
 <link rel="stylesheet" href="assets/vendor/maplibre-gl.css">
-<link rel="stylesheet" href="style.css?v=1.7.40-5">
+<link rel="stylesheet" href="style.css?v=1.7.40-6">
 </head>
 <body>
 
@@ -308,7 +308,10 @@ document.documentElement.classList.add(
     <div class="alarm-level" id="alarm-level">WYSOKI PRIORYTET</div>
     <div class="alarm-voiv" id="alarm-voiv">—</div>
     <div class="alarm-score" id="alarm-score"></div>
+    <div class="alarm-nearest" id="alarm-nearest" hidden></div>
     <div class="alarm-signals" id="alarm-signals"></div>
+    <div class="alarm-todo" id="alarm-todo">Co zrobić: przejdź do schronu albo pomieszczenia
+      bez okien, z dala od szyb. Śledź komunikaty RCB i służb.</div>
     <p class="alarm-note">To sygnał NIEOFICJALNY. Sprawdź syreny, RCB i RSO —
       one są źródłem rozstrzygającym.</p>
     <button id="alarm-ack" class="alarm-btn">POTWIERDZAM — wycisz syrenę</button>
@@ -593,6 +596,24 @@ document.documentElement.classList.add(
     </div>
     <p class="fineprint">Przy czerwonym poziomie syrena gra <b>bez przerwy</b>,
     aż potwierdzisz alarm przyciskiem na ekranie.</p>
+
+    <div id="native-sound" class="app-only">
+      <h3 style="margin-top:16px" id="ns-head">Alarm natywny i głośność</h3>
+      <div class="fineprint" id="ns-volume"></div>
+      <label class="set-check"><input type="checkbox" id="set-force-volume">
+        <span id="ns-label">Czerwony alarm zawsze na pełnej głośności</span></label>
+      <div class="fineprint" id="ns-note">Domyślnie <b>wyłączone</b>. Syrena gra na suwaku
+        głośności <b>„Alarmy”</b> (nie „Dzwonek” ani „Multimedia”). Po włączeniu Strażnik przy
+        czerwonym alarmie ustawi ten suwak na maksimum — także w nocy — i przywróci poprzednią
+        głośność, gdy wyciszysz alarm. Wyłączysz to tym samym przełącznikiem.</div>
+      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+        <button type="button" id="btn-sound-settings" class="chip">🔊 Ustawienia dźwięku Androida</button>
+        <button type="button" id="btn-native-test" class="chip">▶ Test alarmu natywnego (za 5 s)</button>
+      </div>
+      <div class="fineprint" id="ns-test-note">Test przechodzi prawdziwą drogą powiadomienia:
+        zablokuj ekran w ciągu 5 sekund, żeby sprawdzić alarm nad blokadą. Wycisz go
+        przyciskiem na ekranie alarmu albo „Wycisz alarm” w powiadomieniu.</div>
+    </div>
     </section>
 
     <section class="set-pane" data-pane="aplikacja" role="tabpanel" hidden>
@@ -603,6 +624,26 @@ document.documentElement.classList.add(
         <option value="en">English</option>
       </select>
     </label>
+
+    <h3 style="margin-top:16px" id="trail-head">Mapa: trasy obiektów</h3>
+    <label id="trail-neptun-label">Drony i rakiety (NEPTUN)
+      <select id="set-trail-neptun">
+        <option value="off">Wyłączone</option>
+        <option value="trail">Przebyta trasa</option>
+        <option value="course">Trasa i kierunek lotu</option>
+      </select>
+    </label>
+    <label id="trail-adsb-label">Samoloty i śmigłowce (ADS-B)
+      <select id="set-trail-adsb">
+        <option value="off">Wyłączone (tylko śledzony samolot)</option>
+        <option value="trail">Przebyta trasa</option>
+        <option value="course">Trasa i kierunek lotu</option>
+      </select>
+    </label>
+    <div class="fineprint" id="trail-note">Kierunek to linia na 30 minut lotu drona albo rakiety
+      (15 minut samolotu) z kropkami co 5 minut. Dla obiektów NEPTUN rysujemy go
+      <b>tylko przy kursie zmierzonym z ruchu</b> — nie przy kursie domniemanym z nazwy celu
+      ani przy pozycji rejonowej. To szacunek przy niezmienionym kursie, nie prognoza.</div>
 
     <h3 style="margin-top:16px">Wersja aplikacji</h3>
     <p class="fineprint" id="app-version">—</p>
@@ -661,11 +702,11 @@ document.documentElement.classList.add(
      Cloudflare, więc po każdym wydaniu wystarczy podbić ?v= i przeglądarki
      dostają nowe app.js/engine.js OD RAZU, bez ręcznego czyszczenia cache CF.
      Podbijaj ?v= razem z versionName w build.gradle. -->
-<script src="i18n.js?v=1.7.40-5"></script>
-<script src="engine.js?v=1.7.40-5"></script>
+<script src="i18n.js?v=1.7.40-6"></script>
+<script src="engine.js?v=1.7.40-6"></script>
 <script src="aircraft-photo-catalog.js?v=1.7.19"></script>
 <script src="aircraft-photos.js?v=1.7.19"></script>
 <script src="places.js?v=1.7.19-4"></script>
-<script src="app.js?v=1.7.40-5"></script>
+<script src="app.js?v=1.7.40-6"></script>
 </body>
 </html>

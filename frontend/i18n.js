@@ -96,9 +96,12 @@
       if (el?.firstChild) el.firstChild.nodeValue=(en?eng:pl)+"\n      ";
     };
     // kolejność zgodna z zakładkami: Alarmy → Moje miejsca → Dźwięk → Aplikacja
-    many(":scope .set-pane > h3", en
+    many(":scope .set-pane > h3:not(#trail-head)", en
       ? ["Alerts while the app is closed","My places","Alert sounds","Interface language","App version"]
       : ["Alarmy przy zamkniętej aplikacji","Moje miejsca","Sygnały dźwiękowe","Język interfejsu","Wersja aplikacji"]);
+    // nagłówki dodane w 1.7.41 — po identyfikatorze, żeby nie przesuwać indeksów wyżej
+    button("trail-head", "Mapa: trasy obiektów", "Map: object tracks");
+    button("ns-head", "Alarm natywny i głośność", "Native alert and volume");
     many(":scope .set-tab", en
       ? ["Alerts","My places","Sound","App"] : ["Alarmy","Moje miejsca","Dźwięk","Aplikacja"]);
     many(":scope .set-pane > p.fineprint:not(#app-version):not(#upd-status):not(#more-links)", en ? [
@@ -297,6 +300,22 @@
       "The red siren continues until you acknowledge the alert.",
       "The app checks for a newer release at every launch and when it returns to the foreground. A dismissed non-critical update can be checked again here."
     ]);
+    set("#ns-head", "Native alert and volume");
+    set("#ns-label", "Red alert always at full volume");
+    const nsNote = document.getElementById("ns-note");
+    if (nsNote) nsNote.innerHTML = "Off by default. The siren uses the Android <b>“Alarms”</b> volume (not “Ring” or “Media”). When switched on, Strażnik sets that volume to maximum during a red alert — also at night — and restores the previous volume when you silence the alert. Turn it off with the same switch.";
+    set("#btn-sound-settings", "🔊 Android sound settings");
+    set("#btn-native-test", "▶ Test native alert (in 5 s)");
+    set("#ns-test-note", "The test uses the real notification path: lock the screen within 5 seconds to check the alert above the lock screen. Silence it with the button on the alert screen or “Wycisz alarm” in the notification.");
+    set("#trail-head", "Map: object tracks");
+    const tn = document.getElementById("trail-neptun-label"); if (tn?.firstChild) tn.firstChild.nodeValue = "Drones and missiles (NEPTUN) ";
+    const ta = document.getElementById("trail-adsb-label"); if (ta?.firstChild) ta.firstChild.nodeValue = "Aircraft and helicopters (ADS-B) ";
+    const tno = document.getElementById("set-trail-neptun")?.options;
+    if (tno) { tno[0].textContent = "Off"; tno[1].textContent = "Flown track"; tno[2].textContent = "Track and heading"; }
+    const tao = document.getElementById("set-trail-adsb")?.options;
+    if (tao) { tao[0].textContent = "Off (followed aircraft only)"; tao[1].textContent = "Flown track"; tao[2].textContent = "Track and heading"; }
+    const trailNote = document.getElementById("trail-note");
+    if (trailNote) trailNote.innerHTML = "The heading line covers 30 minutes of drone or missile flight (15 minutes for aircraft), with dots every 5 minutes. For NEPTUN objects it is drawn <b>only for a heading measured from movement</b> — not for a heading inferred from a target name or for an area position. It assumes an unchanged heading; it is not a forecast.";
     set("#places-dialog h2", "My places");
     const placesClose=document.getElementById("places-close"); if(placesClose)placesClose.setAttribute("aria-label","Close");
     set("#places-intro", "A saved place does not indicate your presence. Data remains on this device.");

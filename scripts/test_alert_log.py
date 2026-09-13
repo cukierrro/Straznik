@@ -28,7 +28,7 @@ def sprawdz(warunek, opis):
         bledy.append(opis)
 
 
-async def _fcm(voiv, level, score, reasons, test=False):
+async def _fcm(voiv, level, score, reasons, test=False, **kw):
     return True
 
 

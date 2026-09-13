@@ -85,8 +85,49 @@ def fcm_topic(voiv: str, test: bool = False) -> str:
     return topic
 
 
+def alarm_headline(signals: list[dict]) -> str:
+    """Pierwsza linia alarmu: CO i GDZIE (audyt B10).
+
+    Tytuł „PODWYŻSZONA UWAGA: woj. X (2.0 pkt)" z listą „[neptun] … (+x pkt)" nie
+    mówił człowiekowi wybudzonemu o 3:00, co leci i ile ma czasu."""
+    counted = [x for x in signals or [] if (x.get("counted_points") or 0) > 0]
+    counted.sort(key=lambda x: x.get("counted_points") or 0, reverse=True)
+    if any(x.get("event_type") == "rso_alert" for x in counted):
+        return "Oficjalny Alert RCB dla województwa"
+    for x in counted:
+        d = x.get("details") or {}
+        if x.get("source") == "neptun":
+            from .collectors.neptun import threat_label_pl
+            dist = d.get("distance_display_km") or d.get("dist_km")
+            line = f"{threat_label_pl(d.get('type'))} ok. {round(dist)} km od granicy" if dist else \
+                threat_label_pl(d.get("type"))
+            if d.get("eta_alarm") and d.get("eta_border_min") is not None:
+                line += f", dolot do granicy ok. {d['eta_border_min']} min"
+            return line
+        if x.get("event_type") == "ua_alert_border" and d.get("oblast"):
+            return f"Alarm powietrzny w obwodzie {d['oblast']} (Ukraina)"
+        if x.get("source") == "media":
+            return "Doniesienia mediów o zagrożeniu z powietrza"
+    return "Kilka sygnałów pomocniczych naraz"
+
+
+def reasons_split(signals: list[dict]) -> str:
+    """„Oficjalnie" osobno od „Wskaźniki" — oficjalny alert rozstrzyga, reszta nie."""
+    official, other = [], []
+    for x in signals or []:
+        pts = x.get("counted_points", x.get("points"))
+        line = f"• {x.get('title', '')} (+{pts} pkt)"
+        (official if x.get("event_type") == "rso_alert" and (pts or 0) > 0 else other).append(line)
+    parts = []
+    if official:
+        parts.append("Oficjalnie:\n" + "\n".join(official[:3]))
+    if other:
+        parts.append("Wskaźniki (nieoficjalne):\n" + "\n".join(other[:6]))
+    return "\n".join(parts)
+
+
 async def send_fcm(voiv: str, level: str, score: float, reasons_text: str,
-                   test: bool = False) -> bool:
+                   test: bool = False, headline: str = "") -> bool:
     """Zwraca True po udanej wysyłce. Ponawia, bo jedno chwilowe 503 od Google
     gubiło alarm bezpowrotnie — cooldown blokował kolejną próbę."""
     if not (config.FCM_ENABLED and _fcm_ready):
@@ -96,6 +137,7 @@ async def send_fcm(voiv: str, level: str, score: float, reasons_text: str,
     sent_at = datetime.now(timezone.utc)
     data = {"voiv": voiv, "level": level, "score": str(score),
             "reasons": reasons_text or "",
+            "headline": headline or "",
             # klient odrzuca/wycisza wiadomość starszą niż kilka minut i nie
             # pokazuje dwa razy tego samego zdarzenia
             "sent_at": sent_at.isoformat(timespec="seconds"),
@@ -330,16 +372,18 @@ async def _deliver_test(voiv: str, level: str, score: float, signals: list[dict]
 
 async def _deliver_level(voiv: str, level: str, score: float, signals: list[dict],
                          log_id: int | None = None):
-    from .fusion import breakdown_text
     label = LEVEL_LABELS[level]
-    reasons = breakdown_text(signals)
+    headline = alarm_headline(signals)
+    reasons = reasons_split(signals)
     eta_alarm = any((s.get("details") or {}).get("eta_alarm") for s in signals)
     eta_note = ("\nSzacunek czasu dolotu; dane źródłowe mogą być opóźnione o kilka minut."
                 if eta_alarm else "")
     reasons_for_push = reasons + eta_note
     title = f"{label}: woj. {voiv} ({score} pkt)"
-    body = (f"Suma sygnałów z ostatnich {config.FUSION_WINDOW_MIN} min: {score} pkt\n"
-            f"{reasons_for_push}\n"
+    todo = ("Co zrobić: przejdź do schronu lub pomieszczenia bez okien i śledź komunikaty RCB."
+            if level == "high" else "Co zrobić: zachowaj czujność i sprawdź komunikaty RCB.")
+    body = (f"{headline}\n"
+            f"{reasons_for_push}\n{todo}\n"
             f"NIEOFICJALNE źródło dodatkowe — w razie realnego zagrożenia "
             f"kieruj się syrenami/RCB/RSO.")
     ntfy_prio = "urgent" if level == "high" else "default"
@@ -347,7 +391,7 @@ async def _deliver_level(voiv: str, level: str, score: float, signals: list[dict
         send_ntfy(title, body, ntfy_prio),
         send_telegram(f"{'🚨' if level == 'high' else '⚠️'} {title}\n{body}"),
         send_webpush(voiv, title, body, level),
-        send_fcm(voiv, level, score, reasons_for_push),
+        send_fcm(voiv, level, score, reasons_for_push, headline=headline),
         return_exceptions=True,
     )
     web_sent, fcm_ok = results[2], results[3]

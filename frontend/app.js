@@ -411,7 +411,7 @@ function etaHtml(t) {
   const mine = (e.voiv != null && e.voivName)
     ? ` · ${UI.isEn ? "to" : "do woj."} ${esc2(UI.voiv(e.voivName))}: <b>${etaTxt(e.voiv)}</b>` : "";
   return `${UI.isEn ? "conservative time to the Polish border" : "konserwatywny czas dolotu do granicy PL"}: <b>${etaTxt(e.border)}</b>${mine}<br>`
-    + `<span style="color:#68758c">${UI.isEn ? `estimate at ${e.speed} km/h with unchanged heading; 2.5 min deducted for data delay — air defence not included` : `szacunek przy prędkości ${e.speed} km/h i utrzymaniu kursu; odjęto 2,5 min na opóźnienie danych — nie uwzględnia obrony powietrznej`}</span><br>`
+    + `<span style="color:#95a1b7">${UI.isEn ? `estimate at ${e.speed} km/h with unchanged heading; 2.5 min deducted for data delay — air defence not included` : `szacunek przy prędkości ${e.speed} km/h i utrzymaniu kursu; odjęto 2,5 min na opóźnienie danych — nie uwzględnia obrony powietrznej`}</span><br>`
     + localPlaceHtml(t);
 }
 
@@ -957,6 +957,16 @@ async function initMap() {
       paint: { "line-color": ["get", "color"], "line-width": 1.6, "line-opacity": 0.5,
                "line-dasharray": [1.5, 1.5] } });
 
+    // kierunek lotu (opcja w ustawieniach): linia i kropki co 5 min
+    map.addSource("course", { type: "geojson", data: emptyFC() });
+    map.addLayer({ id: "course-line", type: "line", source: "course",
+      filter: ["==", ["geometry-type"], "LineString"],
+      paint: { "line-color": ["get", "color"], "line-width": 1.5, "line-opacity": 0.8 } });
+    map.addLayer({ id: "course-ticks", type: "circle", source: "course",
+      filter: ["==", ["geometry-type"], "Point"],
+      paint: { "circle-radius": 2.6, "circle-color": ["get", "color"],
+               "circle-stroke-color": "#0b0f18", "circle-stroke-width": 1 } });
+
     map.addSource("uncertainty", { type: "geojson", data: emptyFC() });
     map.addLayer({ id: "uncertainty", type: "fill", source: "uncertainty",
       paint: { "fill-color": ["get", "color"], "fill-opacity": 0.10 } });
@@ -1003,6 +1013,14 @@ async function initMap() {
 
     // ślad śledzonej maszyny — pod ikonami samolotów, żeby ich nie zasłaniał
     map.addSource("adsb-trail", { type: "geojson", data: emptyFC() });
+    map.addSource("adsb-course", { type: "geojson", data: emptyFC() });
+    map.addLayer({ id: "adsb-course-line", type: "line", source: "adsb-course",
+      filter: ["==", ["geometry-type"], "LineString"],
+      paint: { "line-color": "#39c5ec", "line-width": 1.3, "line-opacity": 0.75 } });
+    map.addLayer({ id: "adsb-course-ticks", type: "circle", source: "adsb-course",
+      filter: ["==", ["geometry-type"], "Point"],
+      paint: { "circle-radius": 2.3, "circle-color": "#39c5ec",
+               "circle-stroke-color": "#0b0f18", "circle-stroke-width": 1 } });
     map.addLayer({ id: "adsb-trail", type: "line", source: "adsb-trail",
       paint: { "line-color": "#39c5ec", "line-width": 2, "line-opacity": 0.7,
         "line-dasharray": [2, 1.5] } });
@@ -1629,10 +1647,65 @@ function openPlanePopup(lngLat, props) {
 /* Ślad śledzonej maszyny + kamera podążająca za nią (jak „śledź samolot" u nich). */
 function drawFollowTrail() {
   const src = map.getSource("adsb-trail"); if (!src) return;
-  const arr = followHex ? adsbTrails.get(followHex) : null;
-  if (!arr || arr.length < 2) { src.setData(emptyFC()); return; }
-  src.setData({ type: "FeatureCollection", features: [{ type: "Feature", properties: {},
-    geometry: { type: "LineString", coordinates: arr.map(q => [q.lon, q.lat]) } }] });
+  const mode = trailMode("adsb");
+  const hexes = mode === "off" ? (followHex ? [followHex] : []) : [...adsbTrails.keys()];
+  const features = [];
+  for (const h of hexes) {
+    const arr = adsbTrails.get(h);
+    if (arr && arr.length >= 2) features.push({ type: "Feature", properties: {},
+      geometry: { type: "LineString", coordinates: arr.map(q => [q.lon, q.lat]) } });
+  }
+  src.setData({ type: "FeatureCollection", features });
+  // kierunek: kurs i prędkość z transpondera są zmierzone, więc linia na 15 min
+  const course = [];
+  if (mode === "course" && !histMode) {
+    for (const p of adsbByHex.values()) {
+      const kmh = ktToKmh(p.gs);
+      if (p.lat == null || p.track == null || !kmh || kmh < 60) continue;
+      course.push(...courseFeatures(p.lat, p.lon, p.track, kmh, 15, "#39c5ec"));
+    }
+  }
+  map.getSource("adsb-course")?.setData({ type: "FeatureCollection", features: course });
+}
+
+/* ── trasy i kierunek lotu (opcja, 3 stany; osobno NEPTUN i ADS-B) ─────────── */
+const TRAIL_KEYS = { neptun: "straznik_trail_neptun", adsb: "straznik_trail_adsb" };
+const TRAIL_DEFAULT = { neptun: "trail", adsb: "off" };
+function trailMode(kind) {
+  try {
+    const v = localStorage.getItem(TRAIL_KEYS[kind]);
+    return ["off", "trail", "course"].includes(v) ? v : TRAIL_DEFAULT[kind];
+  } catch { return TRAIL_DEFAULT[kind]; }
+}
+function movePoint(lat, lon, bearing, km) {
+  const r = bearing * Math.PI / 180;
+  const nlat = lat + (km / 110.57) * Math.cos(r);
+  return [lon + (km / (111.32 * Math.cos(nlat * Math.PI / 180))) * Math.sin(r), nlat];
+}
+/* Linia kierunku z kropkami co 5 min — zakłada niezmieniony kurs i prędkość. */
+function courseFeatures(lat, lon, bearing, kmh, minutes, color) {
+  const coords = [[lon, lat]], ticks = [];
+  for (let m = 5; m <= minutes; m += 5) {
+    const pt = movePoint(lat, lon, bearing, kmh * m / 60);
+    coords.push(pt);
+    ticks.push({ type: "Feature", properties: { color, min: m },
+      geometry: { type: "Point", coordinates: pt } });
+  }
+  return [{ type: "Feature", properties: { color },
+    geometry: { type: "LineString", coordinates: coords } }, ...ticks];
+}
+/* Kurs NEPTUN tylko ZMIERZONY z ruchu: serwer (heading_estimated) albo własny ślad
+   z przesunięciem ≥ 2 km. „Kursem na X” różnił się od faktycznego ruchu o medianę
+   90° (audyt C6/G3), więc nie rysujemy dla niego kierunku. */
+function measuredHeading(t) {
+  if (isApproxPosition(t)) return null;
+  if (t.heading_estimated != null) return +t.heading_estimated;
+  const arr = localTrails.get(t.id) || [];
+  if (arr.length < 2) return null;
+  const a = arr[0], b = arr[arr.length - 1];
+  const km = Math.hypot((b.lat - a.lat) * 110.57,
+    (b.lon - a.lon) * 111.32 * Math.cos(b.lat * Math.PI / 180));
+  return km >= 2 && Places?.bearingDeg ? Places.bearingDeg(a.lat, a.lon, b.lat, b.lon) : null;
 }
 function toggleFollow(hex) {
   followHex = followHex === hex ? null : hex;
@@ -1844,7 +1917,8 @@ function animate(ts) {
   lastAnim = ts;
   const now = Date.now();
   const threats = state.neptun?.threats || [];
-  const pts = [], trails = [], unc = [];
+  const pts = [], trails = [], unc = [], course = [];
+  const nMode = trailMode("neptun");
   for (const t of threats) {
     if (t.lat == null) continue;
     const meta = TYPE_META[t.type] || { color: "#8a93a6" };
@@ -1869,7 +1943,12 @@ function animate(ts) {
         geometry: { type: "Polygon", coordinates: circleCoords(p.lat, p.lon, t.uncertaintyKm) } });
     // ślad = to, co dało API + to, co sami zaobserwowaliśmy + pozycja bieżąca.
     // Dla przybliżonego rejonu nie łączymy kolejnych raportów w pozorną trasę.
-    if (isApproxPosition(t)) continue;
+    if (isApproxPosition(t) || nMode === "off") continue;
+    if (nMode === "course") {
+      const hdg = measuredHeading(t);
+      const kmh = measuredTrackSpeed(t) || TYPE_SPEED_KMH[t.type];
+      if (hdg != null && kmh) course.push(...courseFeatures(p.lat, p.lon, hdg, kmh, 30, meta.color));
+    }
     const seen = new Set();
     const coords = [];
     for (const q of [...cleanTrail(t), ...(localTrails.get(t.id) || []), { lat: p.lat, lon: p.lon }]) {
@@ -1883,6 +1962,7 @@ function animate(ts) {
   }
   map.getSource("threats")?.setData({ type: "FeatureCollection", features: pts });
   map.getSource("trails")?.setData({ type: "FeatureCollection", features: trails });
+  map.getSource("course")?.setData({ type: "FeatureCollection", features: course });
   map.getSource("uncertainty")?.setData({ type: "FeatureCollection", features: unc });
 }
 
@@ -2737,23 +2817,72 @@ let lastMood = "none";
 function updateAlarmMood() {
   const voivs = state?.fusion?.voivodeships || {};
   const mine = myVoiv();
-  // liczy się poziom mojego regionu; bez ustawionej lokalizacji — najwyższy w kraju
-  const level = mine && voivs[mine] ? alarmLevel(voivs[mine])
-    : Object.values(voivs).some(v => alarmLevel(v) === "high") ? "high"
-    : Object.values(voivs).some(v => alarmLevel(v) === "elevated") ? "elevated" : "none";
+  // Liczą się WSZYSTKIE obserwowane województwa (audyt B1: alarm dla rodziców
+  // w innym województwie nie grał, gdy aplikacja była otwarta). Bez zapisanych
+  // miejsc — najwyższy poziom w kraju, jak dotąd.
+  const watched = (Places?.observedVoivodeships(savedPlaces) || []).filter(v => voivs[v]);
+  const pool = watched.length ? watched : (mine && voivs[mine] ? [mine] : Object.keys(voivs));
   const order = ["none", "elevated", "high"];
+  const level = pool.reduce((best, v) =>
+    order.indexOf(alarmLevel(voivs[v])) > order.indexOf(best) ? alarmLevel(voivs[v]) : best, "none");
   if (order.indexOf(level) > order.indexOf(lastMood)) {
     if (level === "high") {
-      const voiv = mine && alarmLevel(voivs[mine]) === "high" ? mine
-        : Object.entries(voivs).find(([, v]) => alarmLevel(v) === "high")?.[0];
+      const voiv = mine && pool.includes(mine) && alarmLevel(voivs[mine]) === "high" ? mine
+        : pool.find(v => alarmLevel(voivs[v]) === "high");
       showAlarm(voiv, voivs[voiv]);   // ciągła syrena + popup do potwierdzenia
       // ostrzeżenie o nieoficjalnym źródle musi wrócić, gdy robi się poważnie
       document.getElementById("disclaimer").classList.remove("hidden");
     } else if (level === "elevated") {
-      attentionChime();
+      chimeOnce();
     }
   }
   lastMood = level;
+}
+
+let lastChimeAt = 0;
+function chimeOnce() {
+  if (Date.now() - lastChimeAt < 20000) return;   // push i stan mogą przyjść razem
+  lastChimeAt = Date.now();
+  attentionChime();
+}
+
+/* Push przekazany przez warstwę natywną, gdy aplikacja jest na wierzchu (audyt B1).
+   Deduplikacja po event_id: ten sam alarm może przyjść pushem i stanem z serwera. */
+const fcmSeen = new Set();
+function onForegroundPush(d) {
+  if (!d || !d.voiv || !d.level) return;
+  const id = d.event_id || `${d.voiv}|${d.level}|${d.sent_at || ""}`;
+  if (fcmSeen.has(id)) return;
+  fcmSeen.add(id);
+  const score = parseFloat(d.score) || 0;
+  const st = state?.fusion?.voivodeships?.[d.voiv];
+  if (d.level === "high") {
+    showAlarm(d.voiv, st && alarmLevel(st) === "high" ? st
+      : { score, signals: [], reasonsText: [d.headline, d.reasons].filter(Boolean).join("\n") });
+    document.getElementById("disclaimer").classList.remove("hidden");
+  } else {
+    chimeOnce();
+    toast(`⚠️ <b>${UI.isEn ? "Heightened attention" : "Podwyższona uwaga"}</b>: `
+      + `${UI.isEn ? "province" : "woj."} ${esc(UI.voiv(d.voiv))} (${score} ${UI.isEn ? "pts" : "pkt"})`, 9000);
+  }
+}
+
+/* Najbliższy obiekt i czas dolotu do województwa alarmu (audyt C11). */
+function nearestThreatLine(voiv) {
+  let best = null;
+  for (const t of state?.neptun?.threats || []) {
+    if (t.lat == null || isApproxPosition(t) || !t.pl_assessment?.toward_pl) continue;
+    const km = distToVoivKm(t.lat, t.lon, voiv);
+    if (km == null || (best && km >= best.km)) continue;
+    best = { t, km };
+  }
+  if (!best) return "";
+  const v = best.t.pl_assessment?.heading_known === false ? null
+    : (best.t.velocity?.speedKmh ?? trackSpeed(best.t));
+  const eta = v ? etaMin(best.km, v) : null;
+  const what = UI.type(best.t.type, (TYPE_META[best.t.type] || TYPE_META.unknown).label);
+  return `${UI.isEn ? "Nearest" : "Najbliżej"}: <b>${esc(what)}</b> · ${Math.round(best.km)} km`
+    + (eta != null ? ` · ${UI.isEn ? "about" : "ok."} ${etaTxt(eta)}` : "");
 }
 
 /* ── pełnoekranowy alarm z ręcznym potwierdzeniem ────────────────────────── */
@@ -2764,7 +2893,15 @@ function showAlarm(voiv, st) {
   document.getElementById("alarm-score").textContent =
     `${st.score.toFixed(1)} ${UI.isEn ? "pts in a" : "pkt w oknie"} ${state?.fusion?.window_min ?? 60} min ${UI.isEn ? "window" : ""}`;
   document.getElementById("alarm-signals").innerHTML =
-    sigList(st.signals, 5) || "";
+    sigList(st.signals, 5)
+    || (st.reasonsText ? st.reasonsText.split("\n").filter(Boolean).slice(0, 5)
+          .map(r => `<div>${esc(r)}</div>`).join("") : "");
+  const near = document.getElementById("alarm-nearest");
+  if (near) { const html = nearestThreatLine(voiv); near.innerHTML = html; near.hidden = !html; }
+  const todo = document.getElementById("alarm-todo");
+  if (todo) todo.textContent = UI.isEn
+    ? "What to do: go to a shelter or a room without windows, away from glass. Follow RCB and emergency service messages."
+    : "Co zrobić: przejdź do schronu albo pomieszczenia bez okien, z dala od szyb. Śledź komunikaty RCB i służb.";
   document.getElementById("alarm-time").textContent =
     (UI.isEn ? "alert at " : "alarm o ") + new Date().toLocaleTimeString(UI.isEn ? "en-GB" : "pl-PL");
   alarmOverlay.classList.remove("hidden");
@@ -3050,7 +3187,13 @@ async function refreshWebPushStatus(isEn = UI.isEn) {
   on.textContent = isEn ? "🔔 Turn on notifications in this browser" : "🔔 Włącz powiadomienia w tej przeglądarce";
   off.textContent = isEn ? "🔕 Turn off notifications in this browser" : "🔕 Wyłącz powiadomienia w tej przeglądarce";
   let text;
-  if (standalone || !("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
+  const iosBrowser = /iPhone|iPad|iPod/i.test(navigator.userAgent || "")
+    && !(window.matchMedia?.("(display-mode: standalone)")?.matches || navigator.standalone);
+  if (iosBrowser) {
+    // Audyt B9: iPhone dopuszcza push tylko dla strony dodanej do ekranu początkowego
+    text = isEn ? "On iPhone, notifications work only after adding Strażnik to the Home Screen: Share → Add to Home Screen, then open it from the icon and turn notifications on here."
+                : "Na iPhonie powiadomienia działają dopiero po dodaniu Strażnika do ekranu początkowego: Udostępnij → Do ekranu początk., potem otwórz go z ikony i włącz powiadomienia tutaj.";
+  } else if (standalone || !("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
     text = isEn ? "This browser does not support push notifications — alerts are visible only while the tab is open."
                 : "Ta przeglądarka nie obsługuje powiadomień push — alarm widać tylko przy otwartej karcie.";
   } else if (Notification.permission === "denied") {
@@ -3567,6 +3710,8 @@ function showHistoryAt(idx) {
           course_off: courseOffsetDeg(t),
           eta: etaHtml(t) } })) });
     map.getSource("trails")?.setData(emptyFC());
+    map.getSource("course")?.setData(emptyFC());
+    map.getSource("adsb-course")?.setData(emptyFC());
     map.getSource("uncertainty")?.setData(emptyFC());
     map.getSource("adsb")?.setData({ type: "FeatureCollection",
       features: planes.map(p => ({ type: "Feature",
@@ -3996,6 +4141,16 @@ async function refreshBgStatus(previewLang = UI.lang) {
     if (s.fullScreenAllowed === false)
       warn.push(isEn ? "⚠ Full-screen alert permission is missing — a red alert will not wake the screen. Enable it below."
         : "⚠ Brak zgody na alarm pełnoekranowy — czerwony alarm nie zapali wygaszonego ekranu. Włącz przyciskiem 🚨 poniżej.");
+    if (s.topicsError)
+      warn.push(isEn ? "⚠ Some alert subscriptions were not confirmed yet — keep the app open with internet for a moment."
+        : "⚠ Część subskrypcji alarmów nie została jeszcze potwierdzona — zostaw aplikację chwilę otwartą z internetem.");
+    if (s.alarmVolume === 0)
+      warn.push(isEn ? "⚠ The Android “Alarms” volume is at zero — the red siren will be silent. See the Sound tab."
+        : "⚠ Suwak głośności „Alarmy” w Androidzie jest na zerze — syrena czerwonego alarmu będzie cicha. Zobacz zakładkę Dźwięk.");
+    // Audyt B6: na tych nakładkach „wyczyść wszystko” działa jak wymuszone zatrzymanie
+    if (/xiaomi|redmi|poco|huawei|honor|oppo|realme|vivo|oneplus|meizu|tecno|infinix/i.test(s.manufacturer || ""))
+      warn.push(isEn ? `⚠ On ${esc(s.manufacturer)} phones, clearing the app from recent apps can block alerts until you open Strażnik again. Lock it in recent apps (padlock) and allow autostart.`
+        : `⚠ Na telefonach ${esc(s.manufacturer)} usunięcie aplikacji z listy ostatnich potrafi zablokować alarmy do ponownego otwarcia Strażnika. Zablokuj ją na liście ostatnich (kłódka) i zezwól na autostart.`);
     const verEl = document.getElementById("app-version");
     if (verEl) verEl.textContent = s.appVersion
       ? `${isEn ? "Installed version" : "Zainstalowana wersja"} ${s.appVersion}` : "";
@@ -4012,6 +4167,7 @@ async function refreshBgStatus(previewLang = UI.lang) {
         ? (isEn ? "🚨 Allow full-screen alerts" : "🚨 Zezwól na alarm pełnoekranowy")
         : (isEn ? "🚨 Check full-screen alert permission" : "🚨 Sprawdź zgodę na alarm pełnoekranowy");
     }
+    renderNativeSound(s, isEn);
     if (info) info.innerHTML = (warn.join("<br>")
       || (isEn ? "Notifications ready. Alerts for your region will arrive even while the app is closed."
         : "Powiadomienia gotowe. Alarmy dla Twojego regionu dotrą także przy zamkniętej aplikacji."))
@@ -4077,6 +4233,65 @@ document.getElementById("btn-update")?.addEventListener("click", async (e) => {
   e.target.disabled = false;
 });
 
+/* ── dźwięk natywny: podgląd głośności, opcja pełnej głośności, test ───────── */
+function renderNativeSound(s, isEn = UI.isEn) {
+  const vol = document.getElementById("ns-volume");
+  const box = document.getElementById("set-force-volume");
+  if (box) box.checked = !!s.forceMaxVolume;
+  if (!vol) return;
+  const pct = s.alarmVolumeMax ? Math.round(100 * (s.alarmVolume || 0) / s.alarmVolumeMax) : null;
+  const lines = [];
+  if (pct != null) lines.push(isEn ? `Android “Alarms” volume now: <b>${pct}%</b>.`
+    : `Głośność „Alarmy” w Androidzie: <b>${pct}%</b>.`);
+  if (s.redChannelSound === false) lines.push(isEn
+    ? "⚠ Sound for the red alert channel is off in notification settings."
+    : "⚠ Dźwięk kanału czerwonego alarmu jest wyłączony w ustawieniach powiadomień.");
+  vol.innerHTML = lines.join(" ");
+}
+async function refreshNativeSound() {
+  const plugin = BG(); if (!plugin) return;
+  try { renderNativeSound(await plugin.status()); } catch {}
+}
+document.getElementById("set-force-volume")?.addEventListener("change", async (e) => {
+  const plugin = BG(); if (!plugin) return;
+  const want = e.target.checked;
+  // świadoma zgoda: nie może wyć na maksa w nocy u kogoś, kto tego nie chce
+  if (want && !confirm(UI.isEn
+    ? "Turn on full volume for red alerts?\n\nDuring a red alert Strażnik will set the Android “Alarms” volume to maximum — also at night. The previous volume returns after you silence the alert. You can turn this off with the same switch."
+    : "Włączyć pełną głośność czerwonego alarmu?\n\nPrzy czerwonym alarmie Strażnik ustawi głośność „Alarmy” w Androidzie na maksimum — także w nocy. Poprzednia głośność wróci po wyciszeniu alarmu. Wyłączysz to tym samym przełącznikiem.")) {
+    e.target.checked = false;
+    return;
+  }
+  try {
+    await plugin.setForceMaxVolume({ enabled: want });
+    toast(want
+      ? (UI.isEn ? "🔊 Red alerts will play at full volume." : "🔊 Czerwony alarm zagra na pełnej głośności.")
+      : (UI.isEn ? "Red alerts use your current “Alarms” volume." : "Czerwony alarm użyje obecnej głośności „Alarmy”."));
+  } catch (err) { e.target.checked = !want; toast("Błąd: " + err); }
+  refreshNativeSound();
+});
+document.getElementById("btn-sound-settings")?.addEventListener("click", () => BG()?.openSoundSettings?.());
+document.getElementById("btn-native-test")?.addEventListener("click", async () => {
+  const plugin = BG(); if (!plugin?.testNativeAlarm) return;
+  document.getElementById("settings").close();
+  await plugin.testNativeAlarm({ level: "high", delayMs: 5000, voivodeship: myVoiv() || "lubelskie" });
+  toast(UI.isEn ? "Test alert in 5 seconds — you can lock the screen now."
+    : "Test alarmu za 5 sekund — możesz teraz zablokować ekran.", 5000);
+});
+// po deklaracji BG (const) — wcześniej byłby błąd strefy martwej
+if (IS_APP) {
+  try { BG()?.addListener?.("fcmAlarm", onForegroundPush); } catch (e) { console.warn("fcmAlarm", e); }
+}
+for (const kind of ["neptun", "adsb"]) {
+  const sel = document.getElementById(`set-trail-${kind}`);
+  if (!sel) continue;
+  sel.value = trailMode(kind);
+  sel.addEventListener("change", () => {
+    try { localStorage.setItem(TRAIL_KEYS[kind], sel.value); } catch {}
+    if (kind === "adsb" && mapReady) drawFollowTrail();
+  });
+}
+
 const aboutDlg = document.getElementById("about");
 document.getElementById("btn-about").onclick = () => aboutDlg.showModal();
 document.getElementById("about-close").onclick = () => aboutDlg.close();
@@ -4096,6 +4311,14 @@ document.getElementById("disclaimer-x").onclick = () =>
 /* Dzwonek na stronie WWW: gdy push już działa, otwiera zakładkę „Alarmy" z przyciskiem
    wyłączenia — wcześniej ponowne dotknięcie tylko jeszcze raz zapisywało subskrypcję. */
 document.getElementById("btn-push").onclick = async () => {
+  // Audyt B9: w APK dzwonek próbował Web Push (WebView go nie obsługuje), a jego
+  // „wyciszenie” nie wyłączało pushy FCM. Teraz otwiera prawdziwy stan powiadomień.
+  if (IS_APP && BG()) {
+    openSettings();
+    document.querySelector('#settings .set-tab[data-pane="alarmy"]')?.click();
+    refreshBgStatus();
+    return;
+  }
   if (!IS_APP && !standalone) {
     let sub = null;
     try { sub = Notification.permission === "granted" ? await browserPushSubscription() : null; } catch {}
@@ -4275,7 +4498,13 @@ setTimeout(checkForUpdate, 6000);   // po starcie, gdy mapa i dane są już w dr
 // Powrót aplikacji na wierzch traktujemy jak kolejne otwarcie — z odstępem,
 // żeby krótkie przełączenie na inną aplikację nie odpytywało GitHuba za każdym razem.
 document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "visible") checkForUpdate(false, true);
+  if (document.visibilityState !== "visible") return;
+  checkForUpdate(false, true);
+  // Audyt C11: po dotknięciu powiadomienia aplikacja pokazywała do minuty stary
+  // stan. Pobieramy go od razu i wznawiamy zerwane połączenie.
+  pollOnce();
+  if (!standalone && (!ws || ws.readyState > 1)) { const base = apiBase(); if (base) openBackendWs(base); }
+  if (IS_APP) refreshNativeSound();
 });
 setTimeout(refreshBgWarning, 3500);
 setInterval(refreshBgWarning, 60000);

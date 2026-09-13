@@ -122,7 +122,7 @@ config.PRODUCTION = True
 wyslane = {"fcm": [], "web": 0, "log": 0}
 
 
-async def _fcm(voiv, level, score, reasons, test=False):
+async def _fcm(voiv, level, score, reasons, test=False, **kw):
     wyslane["fcm"].append((voiv, test))
     return True
 

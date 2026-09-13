@@ -44,6 +44,8 @@ public class AlarmActivity extends Activity {
     static final String EXTRA_BODY = "body";
     static final String EXTRA_VOIV = "voiv";
     static final String EXTRA_SCORE = "score";
+    static final String EXTRA_VOIV_INDEX = "voiv_index";
+    static final String EXTRA_TEST = "test";
 
     // barwy i tempo migania przepisane z #alarm-overlay / @keyframes alarmflash
     // w frontend/style.css, żeby alarm w tle wyglądał jak w otwartej aplikacji
@@ -62,7 +64,10 @@ public class AlarmActivity extends Activity {
         super.onCreate(saved);
         wakeAndShowOverLockscreen();
         setContentView(buildUi());
-        startSiren();
+        // Syrenę gra powiadomienie czerwone w pętli (FLAG_INSISTENT). Własny
+        // odtwarzacz tylko wtedy, gdy użytkownik wyłączył dźwięk kanału albo
+        // powiadomienia — inaczej dwie syreny nakładały się (audyt B11).
+        if (!Alarms.highChannelPlaysSound(this)) startSiren();
         startVibration();
         startBlinking();
     }
@@ -128,7 +133,9 @@ public class AlarmActivity extends Activity {
             LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
 
         box.addView(text("⚠", 64, Color.parseColor("#ff4d5e"), true), lp(dp(8)));
-        box.addView(text("WYSOKI PRIORYTET", 26, Color.parseColor("#ff4d5e"), true), lp(dp(4)));
+        boolean test = in != null && in.getBooleanExtra(EXTRA_TEST, false);
+        box.addView(text(test ? "TEST — WYSOKI PRIORYTET" : "WYSOKI PRIORYTET", 26,
+            Color.parseColor("#ff4d5e"), true), lp(dp(4)));
         box.addView(text(voiv != null ? "woj. " + voiv : "", 22, Color.WHITE, true), lp(dp(2)));
         box.addView(text(score > 0 ? score + " pkt" : "", 16, Color.parseColor("#a9b4cc"), false), lp(dp(18)));
 
@@ -144,6 +151,13 @@ public class AlarmActivity extends Activity {
         scp.bottomMargin = dp(16);
         box.addView(sc, scp);
 
+        // Audyt B10: człowiek wybudzony w nocy ma wiedzieć, co zrobić — krótko.
+        TextView todo = text("Co zrobić: przejdź do schronu albo pomieszczenia bez okien, "
+            + "z dala od szyb. Śledź komunikaty RCB i służb.", 15, Color.WHITE, true);
+        todo.setPadding(dp(12), dp(10), dp(12), dp(10));
+        todo.setBackgroundColor(Color.parseColor("#2a1016"));
+        box.addView(todo, lp(dp(12)));
+
         TextView warn = text("To sygnał NIEOFICJALNY. Sprawdź syreny, RCB i RSO — "
             + "one są źródłem rozstrzygającym.", 13, Color.parseColor("#ffd98a"), false);
         warn.setPadding(dp(14), dp(12), dp(14), dp(12));
@@ -156,7 +170,7 @@ public class AlarmActivity extends Activity {
         ack.setTextSize(TypedValue.COMPLEX_UNIT_SP, 17);
         ack.setTypeface(Typeface.DEFAULT_BOLD);
         ack.setTextColor(Color.WHITE);
-        ack.setBackgroundColor(Color.parseColor("#ff4d5e"));
+        ack.setBackgroundColor(Color.parseColor("#c81e30"));   // kontrast z bielą ≥ 4,5:1 (audyt C11)
         ack.setPadding(dp(16), dp(18), dp(16), dp(18));
         ack.setOnClickListener(v -> finishAlarm());
         LinearLayout.LayoutParams ackp = new LinearLayout.LayoutParams(
@@ -172,6 +186,7 @@ public class AlarmActivity extends Activity {
         open.setBackgroundColor(Color.parseColor("#1a2338"));
         open.setOnClickListener(v -> {
             stopAlarmSignals();
+            silenceNotification();
             startActivity(new Intent(this, MainActivity.class)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP));
             finish();
@@ -241,7 +256,16 @@ public class AlarmActivity extends Activity {
 
     private void finishAlarm() {
         stopAlarmSignals();
+        silenceNotification();
         finish();
+    }
+
+    /** Wycisza pętlę syreny w powiadomieniu i przywraca głośność sprzed alarmu. */
+    private void silenceNotification() {
+        Intent in = getIntent();
+        int voiv = in != null ? in.getIntExtra(EXTRA_VOIV_INDEX, -1) : -1;
+        if (voiv >= 0) Alarms.silence(this, voiv);
+        else Alarms.restoreAlarmVolume(this);
     }
 
     /** Cofnięcie nie może wyciszyć alarmu — musi być świadome potwierdzenie. */
