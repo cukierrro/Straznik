@@ -744,7 +744,7 @@ function renderLegendThreatIcons() {
     const meta = TYPE_META[type] || TYPE_META.unknown;
     const canvas = document.createElement("canvas");
     canvas.width = canvas.height = 64;
-    canvas.getContext("2d").putImageData(makeThreatImage(type, meta.color), 0, 0);
+    canvas.getContext("2d").putImageData(makeThreatImage(type, meta.color, el.dataset.headingUnknown === "1"), 0, 0);
     el.replaceChildren(canvas);
   });
 }

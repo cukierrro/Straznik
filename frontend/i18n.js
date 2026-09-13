@@ -22,6 +22,8 @@
     "Dron rozpoznawczy": "Reconnaissance drone", "Rakieta manewrująca": "Cruise missile",
     "Rakieta balistyczna": "Ballistic missile", "Bomba kierowana KAB": "KAB guided bomb",
     "MiG-31K (nosiciel)": "MiG-31K (carrier)", "Obiekt nierozpoznany": "Unidentified object",
+    "kurs nieznany — ikona nie jest obracana": "unknown heading — the icon is not rotated",
+    "pulsujący pierścień — obiekt liczy się teraz do punktów": "pulsing ring — the object currently adds points",
     "okrąg = niepewność pozycji (±km)": "circle = position uncertainty (±km)",
     "przerywana linia = trasa przelotu": "dashed line = flight path",
     "samolot wojskowy (ADS-B, jawny transponder)": "military aircraft (ADS-B, public transponder)",

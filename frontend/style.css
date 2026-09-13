@@ -664,6 +664,11 @@ html[lang="en"] .list:empty::after { content: "— none —"; }
 .lg-row i { flex: none; display: inline-block; }
 .lg-row .lg-threat { width: 26px; height: 26px; }
 .lg-row .lg-threat canvas { display: block; width: 26px; height: 26px; }
+.lg-row .pulse-ic { width: 26px; height: 26px; flex: none; display: grid; place-items: center; }
+.lg-row .pulse-ic::before { content: ""; width: 12px; height: 12px; border-radius: 50%;
+  border: 2px solid #ff4d5e; animation: lg-pulse 1.6s linear infinite; }
+@keyframes lg-pulse { from { transform: scale(.8); opacity: .95; } to { transform: scale(1.9); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .lg-row .pulse-ic::before { animation: none; } }
 .lg-row .ring { width: 14px; height: 14px; border-radius: 50%;
   border: 1.5px solid var(--amber); opacity: .7; }
 .lg-row .trail { width: 16px; height: 0;
