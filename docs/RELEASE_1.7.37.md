@@ -1,14 +1,12 @@
 # Strażnik 1.7.37 — media po przeczytaniu treści, bez marginesu alarmów, nowa instrukcja
 
-- Serwer czyta cały artykuł, zanim przyzna punkty. Relacja z wcześniejszego zdarzenia albo artykuł, którego nie da się przeczytać, zostaje w panelu z linkiem, ale ma 0 pkt.
-- Media dają 0,5 lub 1 pkt, limit klasy 1 pkt.
+- Serwer czyta cały artykuł, zanim przyzna punkty. Relacja z wcześniejszego zdarzenia albo artykuł, którego nie da się przeczytać, zostaje w panelu z linkiem, ale ma 0 pkt. Media dają 0,5 lub 1 pkt, limit klasy 1 pkt.
 - Poziom powiadomień zawsze odpowiada bieżącym punktom; powtórka tego samego poziomu w ciągu 60 minut nie dzwoni bez nowego Alertu RCB.
 - Alarmy dalszych obwodów Ukrainy ważą mniej — waga maleje płynnie z odległością.
 - Strefy nałożone na siebie: dotyk otwiera najmniejszą, pozostałe są w karcie jako przyciski.
 - Historia: czas sygnałów liczy się od wybranej chwili, zniknęło „NaN h NaN min temu”.
 - Legenda opisuje przygaszony kolor od sąsiadów; baner regionu pisze „poniżej progu”.
-- Śmigłowiec ma na mapie własną ikonę z tarczą wirnika zamiast sylwetki samolotu.
-- Karta drona po angielsku podaje nazwy po angielsku („Shevchenkove, Kharkiv oblast”), nie polską transkrypcję.
+- Śmigłowiec ma na mapie własną ikonę z tarczą wirnika; karta drona po angielsku podaje nazwy po angielsku („Shevchenkove, Kharkiv oblast”).
 - Instrukcja napisana od nowa dla bieżącej wersji, z nowymi zrzutami PL i EN.
 
 ## Dlaczego

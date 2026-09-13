@@ -35,7 +35,9 @@ _cache: dict = {"at": 0.0, "data": None, "failed_at": 0.0}
 _lock = asyncio.Lock()
 
 
-MAX_CHANGE_ITEMS = 8
+# Cała pierwsza lista z notatek — okno aktualizacji przewija się samo.
+# Limit 8 ucinał 1.7.37 (10 punktów) w połowie; 40 to tylko bezpiecznik.
+MAX_CHANGE_ITEMS = 40
 MAX_CHANGE_LEN = 300
 
 

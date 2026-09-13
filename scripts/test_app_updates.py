@@ -31,6 +31,9 @@ def main():
     # Limit podniesiony z 3 do 8: okno aktualizacji ucinało opis w połowie.
     assert changes == ["Naprawiono historię.", "Dodano opis.", "Usprawniono alarmy.",
                        "Czwarty punkt."]
+    # Całe notatki, nie pierwsze osiem punktów (1.7.37 miało dziesięć).
+    dziesiec = _change_items("# 1.7.37\n" + "".join(f"- Punkt {i}.\n" for i in range(1, 11)))
+    assert len(dziesiec) == 10 and dziesiec[-1] == "Punkt 10.", dziesiec
 
     # Notatki bez listy: akapit zawinięty na kilku liniach MUSI wrócić jako całe
     # zdania. Wcześniej każda linia uchodziła za punkt i użytkownik widział trzy
