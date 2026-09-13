@@ -16,6 +16,19 @@ DOCS = ROOT / "docs"
 # (wersja, data PL, data EN, tytuł PL, tytuł EN, punkty PL, punkty EN, zrzuty)
 # Zrzut: (plik, alt PL, alt EN, podpis PL, podpis EN)
 RELEASES = [
+    ("1.7.40", "13 września 2026", "13 September 2026",
+     "Koniec i czas trwania alarmów w obwodach UA",
+     "End and duration of Ukrainian oblast alerts",
+     ["Koniec alarmu w obwodzie Ukrainy od razu zeruje jego punkty i gasi podświetlenie obwodu. Wcześniej 10-minutowy alarm liczył się jeszcze do godziny.",
+      "Długi alarm liczy się dalej: pełna waga przez pierwsze 30 minut od prawdziwego początku, potem połowa, dopóki trwa. Wcześniej alarm trwający kilka godzin znikał z punktów po godzinie.",
+      "Panel pokazuje godzinę końca alarmu albo „trwa od …, połowa wagi”, a karta obwodu — od kiedy trwa alarm.",
+      "Litwa, Łotwa i Estonia: kanały i ostatni alarm w oknie Źródła (od 1.7.38 na stronie, teraz także w aplikacji)."],
+     ["The end of an alert in a Ukrainian oblast zeroes its points and switches off the oblast highlight at once. Previously a 10-minute alert kept counting for up to an hour.",
+      "A long alert keeps counting: full weight for the first 30 minutes from its real start, then half while it lasts. Previously an alert lasting hours dropped out of the score after an hour.",
+      "The panel shows when the alert ended or “in progress since …, half weight”, and the oblast card shows when the alert started.",
+      "Lithuania, Latvia and Estonia: feeds and the last alert in the Sources window (on the website since 1.7.38, now in the app too)."],
+     []),
+
     ("1.7.39", "13 września 2026", "13 September 2026",
      "Odporność na szczyty ruchu",
      "Resilience to traffic peaks",
