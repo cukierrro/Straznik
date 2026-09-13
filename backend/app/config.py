@@ -213,9 +213,13 @@ SPILLOVER_MAX_DEPTH = 5
 # bez zmian, znikają powtórki i żółte zbudowane z tego samego zdarzenia liczonego
 # dwa razy. Opis i przypadki: scripts/test_przeniesienia.py.
 ALERT_OWN_MIN = 1.0              # min. punktów własnych, by przeniesienie mogło alarmować
-ALERT_HYSTERESIS = 0.5           # poziom gaśnie dopiero tyle pod progiem
-ALERT_REPEAT_QUIET_MIN = 30      # powrót na ten sam poziom w tym czasie — bez powiadomienia…
-ALERT_FRESH_NEPTUN_POINTS = 0.5  # …chyba że doszedł alert RCB/RSO albo obiekt NEPTUN ≥ tyle
+# Powrót na ten sam poziom w ciągu tylu minut od powiadomienia tylko zmienia mapę,
+# chyba że przyszedł NOWY alert RCB/RSO. Bez marginesu przy zejściu: poziom zawsze
+# odpowiada bieżącym punktom. Margines 0,5 (13.09.2026 rano) trzymał lubelskie na
+# żółtym przy 1,7 pkt, a wyjątek dla nowego obiektu NEPTUN przepuszczał powtórki
+# co kilka minut w trakcie ataku. Na historii od 02.08: 36 powiadomień zamiast 37,
+# każdy alert RCB/RSO nadal z powiadomieniem.
+ALERT_REPEAT_QUIET_MIN = 60
 
 VOIV_NEIGHBORS = {
     "dolnośląskie": ["lubuskie", "wielkopolskie", "opolskie"],

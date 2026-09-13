@@ -34,8 +34,7 @@ const SPILLOVER_MIN_CONTRIB = 0.1, SPILLOVER_MAX_DEPTH = 5;
 /* Kiedy BUDZIMY TELEFON — lustro config.ALERT_* i fusion.alert_level. Kolor mapy
    liczy się z wyniku łącznego, powiadomienie wymaga punktów własnych, a
    przeniesienie domyka najwyżej jeden stopień ponad nie (13.09.2026). */
-const ALERT_OWN_MIN = 1.0, ALERT_HYSTERESIS = 0.5, ALERT_REPEAT_QUIET_MIN = 30;
-const ALERT_FRESH_NEPTUN_POINTS = 0.5;
+const ALERT_OWN_MIN = 1.0, ALERT_REPEAT_QUIET_MIN = 60;   // bez marginesu przy zejściu
 /* Po odwołaniu alertu RCB/RSO artykuły o alarmie to relacja z przeszłości. */
 const RSO_CLEAR_MEDIA_ECHO_MIN = 240;
 const RSO_CLEAR_ECHO_MARKERS = ["syren", "alert", "alarm", "rcb"];
@@ -488,23 +487,18 @@ function mediaRelayOfOfficial(media, officials) {
 
 const MEDIA_RETROSPECTIVE_TITLE_MARKERS = ["rok temu", "lata temu", "lat temu", "sledztwo ws", "odbudow", "ma byc gotow", "wybila godzina", "godzina \"w\"", "godzinie \"w\"", "godziny \"w\"", "oddali hold", "oddal hold", "oddano hold", "hold bohaterom", "hold powstancom", "uroczystos", "probny alarm", "alarm probny", "probnego alarmu", "proba syren alarmowych", "ogolnopolskie cwiczenia", "sa zarzuty", "uslyszal zarzut", "uslyszala zarzut", "uslyszeli zarzuty", "postawiono zarzut", "postawiono zarzuty", "zarzuty dla", "akt oskarzenia", "odpowie przed sadem", "stanal przed sadem", "stanela przed sadem", "skazany za", "skazana za", "do zdarzenia mialo dojsc", "po nocnym alarmie", "po porannym alarmie", "po wieczornym alarmie", "po nocnym ataku", "po porannym ataku", "po nocnych alarmach"];
 const LEVEL_ORDER = ["none", "elevated", "high"];
-function levelHeld(score, prev) {
-  for (const [lvl, th] of [["high", TH_HIGH], ["elevated", TH_ELEVATED]]) {
-    const margin = LEVEL_ORDER.indexOf(lvl) <= LEVEL_ORDER.indexOf(prev) ? ALERT_HYSTERESIS : 0;
-    if (score >= th - margin) return lvl;
-  }
-  return "none";
-}
-/* Lustro fusion.alert_level: poziom, który budzi telefon. */
-function alertLevel(own, total, prev = "none") {
+const levelOf = (score) => score >= TH_HIGH ? "high" : score >= TH_ELEVATED ? "elevated" : "none";
+/* Lustro fusion.alert_level: poziom, który budzi telefon (bez marginesu przy zejściu). */
+function alertLevel(own, total) {
   own = Math.round(own * 10) / 10; total = Math.round(total * 10) / 10;
-  if (own < ALERT_OWN_MIN * (prev !== "none" ? 0.5 : 1)) return "none";
-  const cap = Math.min(2, LEVEL_ORDER.indexOf(levelHeld(own, prev)) + 1);
-  return LEVEL_ORDER[Math.min(LEVEL_ORDER.indexOf(levelHeld(total, prev)), cap)];
+  if (own < ALERT_OWN_MIN) return "none";
+  const cap = Math.min(2, LEVEL_ORDER.indexOf(levelOf(own)) + 1);
+  return LEVEL_ORDER[Math.min(LEVEL_ORDER.indexOf(levelOf(total)), cap)];
 }
+/* Ciszę po powiadomieniu przełamuje tylko nowy alert RCB/RSO (lustro fusion). */
 function freshStrongSignal(sigs, sinceMs) {
   return sigs.some(s => (s.t || Date.parse(s.ts) || 0) > sinceMs && (s.counted_points || 0) > 0
-    && (s.source === "rcb" || (s.source === "neptun" && s.points >= ALERT_FRESH_NEPTUN_POINTS)));
+    && s.source === "rcb");
 }
 /* Tożsamość zdarzenia niezależna od województwa (lustro fusion._event_key). */
 function eventKey(s) {
@@ -720,7 +714,7 @@ function stateFrom(sigs, refT) {
   for (const [v, st] of Object.entries(per)) {
     st.score = Math.round(st.score*10)/10;
     st.level = st.score >= TH_HIGH ? "high" : st.score >= TH_ELEVATED ? "elevated" : "none";
-    st.alert_level = alertLevel(st.own_score, st.score, lastLevels[v] || "none");
+    st.alert_level = alertLevel(st.own_score, st.score);
     st.spill_raised = LEVEL_ORDER.indexOf(st.level) > LEVEL_ORDER.indexOf(st.alert_level);
     st.signals.reverse();
   }

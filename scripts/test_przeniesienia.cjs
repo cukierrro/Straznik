@@ -63,10 +63,8 @@ test('alert level matches fusion.alert_level', () => {
   assert.equal(A(2.1, 4.0), 'high');
   assert.equal(A(2.0, 2.0), 'elevated');
   assert.equal(A(1.97, 1.97), 'elevated');
-  assert.equal(A(3.87, 3.87, 'high'), 'high');
-  assert.equal(A(3.4, 3.4, 'high'), 'elevated');
-  assert.equal(A(1.4, 1.4, 'elevated'), 'none');
-  assert.equal(A(3.87, 3.87, 'elevated'), 'elevated');
+  assert.equal(A(3.87, 3.87), 'elevated');
+  assert.equal(A(1.7, 1.7), 'none');
 });
 
 test('RSO cancellation recognised like rso.py', () => {

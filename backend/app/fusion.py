@@ -133,16 +133,6 @@ def level_for(score: float) -> str:
 _ORDER = ["none", "elevated", "high"]
 
 
-def _level_held(score: float, prev: str) -> str:
-    """Poziom z marginesem przy zejściu: utrzymany poziom gaśnie dopiero
-    ALERT_HYSTERESIS pod progiem. Wejście wyżej — bez ulgi."""
-    for lvl, th in (("high", config.THRESHOLD_HIGH), ("elevated", config.THRESHOLD_ELEVATED)):
-        margin = config.ALERT_HYSTERESIS if _ORDER.index(lvl) <= _ORDER.index(prev) else 0.0
-        if score >= th - margin:
-            return lvl
-    return "none"
-
-
 def alert_level(own: float, total: float, prev: str = "none") -> str:
     """Poziom, który BUDZI TELEFON. Mapa nadal pokazuje `level` z wyniku łącznego.
 
@@ -152,32 +142,25 @@ def alert_level(own: float, total: float, prev: str = "none") -> str:
     2. Bez co najmniej ALERT_OWN_MIN punktów własnych przeniesienie nie wysyła
        nic. Wcześniej wystarczało 0,05 pkt (dron 240 km od granicy), żeby
        sąsiad dopchnął województwo do powiadomienia.
-    3. Margines przy zejściu (ALERT_HYSTERESIS). Bez niego wynik wahający się
-       wokół progu wysyłał ten sam alarm kilka razy: 13.09.2026 podkarpackie
-       spadło na 3 minuty do 3,87 i o 07:02 dostało drugi czerwony z tym samym
-       alertem RCB co o 06:44.
+    Poziom nie ma marginesu przy zejściu — zawsze odpowiada bieżącym punktom.
+    Powtórki przy wahaniu wokół progu zatrzymuje reevaluate (ALERT_REPEAT_QUIET_MIN).
+    `prev` zostaje w sygnaturze dla zgodności wywołań.
     """
     own, total = round(own, 1), round(total, 1)
-    own_min = config.ALERT_OWN_MIN * (0.5 if prev != "none" else 1.0)
-    if own < own_min:
+    if own < config.ALERT_OWN_MIN:
         return "none"
-    cap = min(len(_ORDER) - 1, _ORDER.index(_level_held(own, prev)) + 1)
-    return _ORDER[min(_ORDER.index(_level_held(total, prev)), cap)]
+    cap = min(len(_ORDER) - 1, _ORDER.index(level_for(own)) + 1)
+    return _ORDER[min(_ORDER.index(level_for(total)), cap)]
 
 
 def _fresh_strong_signal(signals: list[dict], since_iso: str) -> bool:
-    """Czy od ostatniego powiadomienia doszło nowe MOCNE źródło: alert RCB/RSO
-    albo obiekt NEPTUN o realnej wadze. Samo wahanie wyniku albo kolejny
-    artykuł o tym samym zdarzeniu nim nie jest."""
-    for s in signals:
-        if s.get("ts", "") <= since_iso or s.get("counted_points", 0) <= 0:
-            continue
-        if s.get("source") == "rcb":
-            return True
-        if (s.get("source") == "neptun"
-                and s.get("points", 0) >= config.ALERT_FRESH_NEPTUN_POINTS):
-            return True
-    return False
+    """Czy od ostatniego powiadomienia przyszedł NOWY alert RCB/RSO.
+
+    Nowe obiekty NEPTUN już nie przełamują ciszy: w trakcie ataku pojawiają się
+    co minutę i przepuszczały powtórki co kilka minut (podkarpackie 13.09.2026:
+    czerwony o 06:44 i znów o 06:47)."""
+    return any(s.get("ts", "") > since_iso and s.get("counted_points", 0) > 0
+               and s.get("source") == "rcb" for s in signals)
 
 
 LEVEL_LABELS = {

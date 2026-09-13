@@ -83,12 +83,9 @@ ok(A(4.5, 4.5) == "high", "własny czerwony zawsze czerwony")
 ok(A(2.0, 2.0) == "elevated", "sam alert RCB (2,0) nadal daje żółty")
 ok(A(1.97, 1.97) == "elevated", "zaokrąglenie jak w wyniku: 1,97 → 2,0")
 
-# ── 3. margines przy zejściu ────────────────────────────────────────────────
-ok(A(3.87, 3.87, "high") == "high", "podkarpackie 07:00–07:02: 3,87 po czerwonym zostaje czerwone")
-ok(A(3.4, 3.4, "high") == "elevated", "poniżej 3,5 czerwony gaśnie")
-ok(A(1.6, 1.6, "elevated") == "elevated", "żółty trzyma się do 1,5")
-ok(A(1.4, 1.4, "elevated") == "none", "poniżej 1,5 żółty gaśnie")
-ok(A(3.87, 3.87, "elevated") == "elevated", "wejście na czerwony bez ulgi")
+# ── 3. bez marginesu: poziom zawsze odpowiada punktom ───────────────────────
+ok(A(3.87, 3.87, "high") == "elevated", "3,87 po czerwonym to żółty (powtórkę czerwonego wstrzyma cisza)")
+ok(A(1.7, 1.7, "elevated") == "none", "lubelskie 13.09 11:30: 1,7 pkt po żółtym to już brak alarmu")
 
 # ── 4. cicha powtórka i nowe mocne źródło ──────────────────────────────────
 ostatnie = "2026-09-13T04:44:14+00:00"
@@ -98,7 +95,7 @@ ok(not fusion._fresh_strong_signal(artykul, ostatnie),
 rcb = [{"source": "rcb", "ts": "2026-09-13T05:02:22+00:00", "counted_points": 2.0, "points": 2.0}]
 ok(fusion._fresh_strong_signal(rcb, ostatnie), "nowy alert RCB przełamuje ciszę")
 dron = [{"source": "neptun", "ts": "2026-09-13T05:02:22+00:00", "counted_points": 0.7, "points": 0.7}]
-ok(fusion._fresh_strong_signal(dron, ostatnie), "nowy obiekt NEPTUN przełamuje ciszę")
+ok(not fusion._fresh_strong_signal(dron, ostatnie), "nowy obiekt NEPTUN nie przełamuje ciszy (atak = drony co minutę)")
 stary = [{"source": "rcb", "ts": "2026-09-13T04:44:13+00:00", "counted_points": 2.0, "points": 2.0}]
 ok(not fusion._fresh_strong_signal(stary, ostatnie), "alert sprzed powiadomienia się nie liczy")
 
