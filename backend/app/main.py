@@ -17,8 +17,11 @@ from .neptun_archive import source_metadata
 logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s %(name)s %(levelname)s %(message)s")
 log = logging.getLogger("main")
+# D10 (audyt): httpx logował każde zapytanie kolektorów na INFO — szum w dzienniku
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
-app = FastAPI(title="Strażnik", docs_url="/api/docs")
+# Publiczna dokumentacja API nie jest potrzebna użytkownikom, a ułatwia nadużycia.
+app = FastAPI(title="Strażnik", docs_url=None, redoc_url=None, openapi_url=None)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"],
                    allow_headers=["*"])
 app.add_middleware(public_cache.PageCacheHeaders)
@@ -194,7 +197,8 @@ async def api_state(request: Request):
 
 @app.get("/api/signals")
 async def api_signals(limit: int = 100):
-    return {"signals": db.recent_signals(limit)}
+    # `limit=-1` zwracał całą tabelę (audyt D7/D10)
+    return {"signals": db.recent_signals(max(1, min(int(limit), 500)))}
 
 
 @app.get("/api/history")

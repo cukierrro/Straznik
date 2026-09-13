@@ -17,7 +17,7 @@ from datetime import datetime, timezone
 import httpx
 import websockets
 
-from .. import config, db, fusion, geo
+from .. import config, db, fusion, geo, stealth
 from ..neptun_archive import source_metadata
 
 log = logging.getLogger("neptun")
@@ -227,6 +227,9 @@ async def _end_loop():
 # Ostatnia znana pozycja tracka — do wyliczenia kursu, gdy NEPTUN go nie podaje.
 _last_pos: dict[str, tuple[float, float]] = {}
 _MIN_MOVE_KM = 2.0   # mniejsze przesunięcia to szum pozycji (±km niepewności)
+# ostatni kurs z ruchu: kolejne małe kroki (< 2 km) nie kasują go od razu
+_last_est: dict[str, tuple[float, float]] = {}
+_EST_KEEP_S = 600
 
 
 def _heading_of(t: dict) -> float | None:
@@ -242,7 +245,12 @@ def _heading_of(t: dict) -> float | None:
     if prev and geo.haversine_km(prev[0], prev[1], lat, lon) >= _MIN_MOVE_KM:
         est = geo.bearing_deg(prev[0], prev[1], lat, lon)
         t["heading_estimated"] = round(est, 1)
+        _last_est[tid] = (est, time.time())
         return est
+    kept = _last_est.get(tid)
+    if kept and time.time() - kept[1] <= _EST_KEEP_S:
+        t["heading_estimated"] = round(kept[0], 1)
+        return kept[0]
     return None
 
 
@@ -303,8 +311,14 @@ def _evaluate(t: dict) -> dict:
                           config.NEPTUN_HEADING_SOFT_DEG,
                           config.NEPTUN_UNKNOWN_HEADING_MULT,
                           config.NEPTUN_UNKNOWN_HEADING_MAX_KM)
-    if t.get("id") is not None:
-        _last_pos[t["id"]] = (lat, lon)
+    # A5 (audyt 11.09.2026): kotwica kursu przesuwa się dopiero po ruchu o co
+    # najmniej _MIN_MOVE_KM. Nadpisywana przy każdej aktualizacji nie pozwalała
+    # policzyć kursu z ruchu, gdy kolejne pozycje różniły się o mniej niż 2 km.
+    tid = t.get("id")
+    if tid is not None:
+        prev = _last_pos.get(tid)
+        if prev is None or geo.haversine_km(prev[0], prev[1], lat, lon) >= _MIN_MOVE_KM:
+            _last_pos[tid] = (lat, lon)
     t["pl_assessment"] = a
     region = t.get("region") or ""
     t["border_region"] = any(r in region for r in config.NEPTUN_BORDER_REGIONS)
@@ -408,6 +422,33 @@ def _eta_alarm_level(a: dict, sources: int, confidence: str,
     return None
 
 
+# A5 (audyt 11.09.2026), TRYB CIENIA: rakieta 45 km od granicy z jednym zgłoszeniem
+# ma dziś 0,5–0,9 pkt, bo alarm ETA wymaga dwóch zgłoszeń i znanego kursu — a rakiety
+# w danych NEPTUN-a nigdy nie mają kursu. Zanim dopuścimy żółty z jednego zgłoszenia,
+# zapisujemy (bez punktów), kiedy by zadziałał, i porównamy to z alertami RCB.
+ETA_SHADOW_TYPES = ("ballistic", "cruise", "missile", "mig31k")
+
+
+def _eta_single_source_shadow(t: dict, a: dict, sources: int, conf: str,
+                              eta_conservative: float | None, approximate: bool,
+                              eta_level: str | None) -> None:
+    ttype = (t.get("type") or "").lower()
+    if (eta_level or approximate or ttype not in ETA_SHADOW_TYPES or sources != 1
+            or conf not in config.NEPTUN_ETA_CONFIDENCE or eta_conservative is None
+            or eta_conservative > config.NEPTUN_ETA_ELEVATED_MIN):
+        return
+    level = "high" if eta_conservative <= config.NEPTUN_ETA_HIGH_MIN else "elevated"
+    try:
+        stealth.record("eta_single_source_shadow", f"{t.get('id')}:{level}", {
+            "track_id": t.get("id"), "type": ttype, "would_be": level,
+            "eta_conservative_min": round(eta_conservative, 1), "dist_km": a.get("dist_km"),
+            "voivodeship": a.get("border_voiv"), "confidence": conf,
+            "heading_known": a.get("heading_known"), "lat": t.get("lat"), "lon": t.get("lon"),
+        })
+    except Exception as exc:                      # noqa: BLE001
+        log.debug("cień ETA: %s", exc)
+
+
 def _reconnect_wait(exc: Exception, backoff: float) -> tuple[float, float]:
     """(czas oczekiwania, następny backoff); 1013 dostaje 15–30 s jitteru."""
     overloaded = getattr(exc, "code", None) == 1013 or "server full" in str(exc).lower()
@@ -441,6 +482,7 @@ async def _maybe_signal(t: dict):
     # track_id sprawia, że nie sumuje się on drugi raz ze zwykłą punktacją obiektu.
     eta_level = _eta_alarm_level(a, sources, conf, eta_conservative,
                                  approximate=approximate)
+    _eta_single_source_shadow(t, a, sources, conf, eta_conservative, approximate, eta_level)
     if eta_level == "high":
         points = max(points, config.THRESHOLD_HIGH)
     elif eta_level == "elevated":
@@ -517,6 +559,11 @@ async def _handle_threats(threats: list[dict], replace: bool, *,
             await _maybe_signal(t)
         except Exception as exc:                  # noqa: BLE001
             _bad_record(t, exc)
+    if replace:
+        # pełny snapshot: zapominamy kotwice obiektów, których już nie ma
+        for cache in (_last_pos, _last_est):
+            for tid in [k for k in cache if k not in tracks]:
+                cache.pop(tid, None)
     if fusion.on_state_change:
         asyncio.create_task(fusion.on_state_change())
 

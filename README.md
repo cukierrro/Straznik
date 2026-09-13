@@ -272,7 +272,7 @@ copy .env.example .env     # uzupełnij NTFY_TOPIC itd.
 py -m uvicorn app.main:app --host 0.0.0.0 --port 8600 --app-dir .
 ```
 
-Dashboard: `http://localhost:8600` · API: `/api/state`, `/api/health`, `/api/history/bundle`, `/api/docs`
+Dashboard: `http://localhost:8600` · API: `/api/state`, `/api/health`, `/api/history/bundle`, `/api/health/critical`
 
 > Produkcyjnie backend działa na VPS na porcie `40141`, wystawiony tunelem
 > Cloudflare pod `https://straznik.eu`. Push FCM wymaga klucza konta serwisowego
