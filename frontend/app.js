@@ -37,7 +37,8 @@ const TYPE_META = {
   ballistic:{ label: "Balistyczna",        color: "#ff2db0" },
   kab:      { label: "KAB",                color: "#ffd23b" },
   mig31k:   { label: "MiG-31K (nosiciel)", color: "#c06bff" },
-  recon:    { label: "Dron rozpoznawczy",  color: "#d7a84b" },
+  // biało-szary: po nowej sylwetce BpSP żółty rozpoznawczy za bardzo go przypominał
+  recon:    { label: "Dron rozpoznawczy",  color: "#c9d1dc" },
   unknown:  { label: "Obiekt powietrzny",  color: "#8a93a6" },
 };
 /* Ilustracje AI klas obiektów — nie zdjęcia ani wzorzec identyfikacji. */
@@ -603,6 +604,7 @@ function applyState(s) {
   threatsReceivedAt = Date.now();
   if (!standalone) srvRecord(s);   // nagrywaj żywy feed do bufora historii (RAM)
   recordTrails(s?.neptun?.threats || []);
+  refreshCountedTracks();
   renderLeds();
   updateAlarmMood();          // alarmy działają także w trybie przeglądania
   if (histMode) return;       // ale widok mapy/panelu zostaje na wybranym momencie
@@ -621,10 +623,12 @@ const FALLBACK_STYLE = {
            { id: "carto", type: "raster", source: "carto" }],
 };
 
-function makeThreatImage(type, color) {
-  const c = document.createElement("canvas"); c.width = c.height = 48;
+/* Obraz ma 64 px, a sylwetka tę samą skalę co dawniej w 48 px: zapas mieści
+   czerwony grot kursu przed dziobem BpSP. */
+function makeThreatImage(type, color, headingUnknown = false) {
+  const c = document.createElement("canvas"); c.width = c.height = 64;
   const x = c.getContext("2d");
-  x.translate(24, 24);
+  x.translate(32, 32);
   x.scale(.72, .72);           // współrzędne ikon: -30..30; nos zawsze na północ
   x.fillStyle = color; x.strokeStyle = "rgba(255,255,255,.9)";
   x.lineWidth = 2; x.lineJoin = "round"; x.lineCap = "round";
@@ -674,11 +678,35 @@ function makeThreatImage(type, color) {
       x.textBaseline = "middle"; x.shadowBlur = 0; x.fillText("?", 0, 1);
       break;
     case "uav": default:
-      path([[0,-29],[5,-7],[28,0],[5,6],[3,23],[-3,23],[-5,6],[-28,0],[-5,-7]]);
+      /* BpSP (13.09.2026): proste skrzydła, wcięty ogon i czerwony dziób, a przed
+         nim czerwony grot. Dawny symetryczny krzyżyk przy małym przybliżeniu nie
+         mówił, gdzie jest przód. Skrzydło nie jest deltą — to znak Shaheda. */
+      path(BPSP_BODY);
+      if (headingUnknown) break;           // bez kursu: bez czerwonego dzioba i grotu
+      x.shadowBlur = 0; x.fillStyle = BPSP_RED; x.strokeStyle = BPSP_RED; x.lineWidth = 1.5;
+      path([[0,-30],[4.5,-15],[-4.5,-15]]);
+      x.strokeStyle = "rgba(0,0,0,.55)"; x.lineWidth = 1.2;
+      path([[0,-44],[8,-34],[0,-37],[-8,-34]]);
       break;
   }
-  return x.getImageData(0, 0, 48, 48);
+  if (headingUnknown) {
+    /* Kurs nieznany — jednakowo dla każdego typu: sylwetka bez obrotu, przerywana
+       obwódka i znak zapytania. Dawniej obiekt bez kursu był obracany dziobem na
+       północ, jakby tam leciał. */
+    x.shadowBlur = 0; x.setLineDash([5, 4]); x.lineWidth = 2;
+    x.strokeStyle = "rgba(255,255,255,.85)";
+    x.beginPath(); x.arc(0, 0, 38, 0, Math.PI * 2); x.stroke(); x.setLineDash([]);
+    x.font = "bold 22px system-ui"; x.textAlign = "center"; x.textBaseline = "middle";
+    x.lineWidth = 3; x.strokeStyle = "rgba(255,255,255,.9)"; x.strokeText("?", 0, 2);
+    x.fillStyle = "#0b0f1a"; x.fillText("?", 0, 2);
+  }
+  return x.getImageData(0, 0, 64, 64);
 }
+/* Symetryczne znaki (FPV, obiekt nieznany) nie mają przodu — ich się nie obraca
+   i nie dostają wersji „kurs nieznany”. */
+const NO_HEADING_TYPES = new Set(["fpv", "unknown"]);
+const BPSP_RED = "#ff3b4f";
+const BPSP_BODY = [[0,-30],[5,-8],[27,2],[27,7],[5,7],[4,20],[9,27],[0,23],[-9,27],[-4,20],[-5,7],[-27,7],[-27,2],[-5,-8]];
 /* Śmigłowiec: tarcza wirnika (okrąg), kabina, długa belka ogonowa ze śmigłem
    ogonowym. Dawny symbol — sam krzyżyk wirnika na kadłubie — po obróceniu
    zgodnie z kursem wyglądał jak skrzydła samolotu (H135M rumuńskiej MAI,
@@ -715,7 +743,7 @@ function renderLegendThreatIcons() {
     const type = el.dataset.type;
     const meta = TYPE_META[type] || TYPE_META.unknown;
     const canvas = document.createElement("canvas");
-    canvas.width = canvas.height = 48;
+    canvas.width = canvas.height = 64;
     canvas.getContext("2d").putImageData(makeThreatImage(type, meta.color), 0, 0);
     el.replaceChildren(canvas);
   });
@@ -771,6 +799,8 @@ async function initMap() {
       }
     }
     for (const [t, m] of Object.entries(TYPE_META)) map.addImage("dart-" + t, makeThreatImage(t, m.color));
+    for (const [t, m] of Object.entries(TYPE_META))
+      if (!NO_HEADING_TYPES.has(t)) map.addImage("dart-" + t + "-unk", makeThreatImage(t, m.color, true));
     map.addImage("plane", makePlaneImage());
     map.addImage("heli", makeHeliImage());
 
@@ -878,6 +908,14 @@ async function initMap() {
         "circle-opacity": ["case", ["==", ["get", "historicalOnly"], true], 0.07, 0.16],
         "circle-stroke-color": ["get", "color"], "circle-stroke-opacity": 0.45,
         "circle-stroke-width": 1 } });
+    /* Puls: tylko obiekty, które w tej chwili wnoszą punkty do któregoś
+       województwa (counted_points > 0 w fuzji). Pozostałe drony stoją spokojnie,
+       więc wyróżnione naprawdę się odróżniają. Animację prowadzi pulseLoop. */
+    map.addLayer({ id: "threats-pulse", type: "circle", source: "threats",
+      filter: ["==", ["get", "counted"], true],
+      paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"], 4, 12, 8, 22],
+        "circle-color": "rgba(0,0,0,0)", "circle-stroke-color": "#ff4d5e",
+        "circle-stroke-width": 2.5, "circle-stroke-opacity": 0 } });
     /* Zaznaczony obiekt: biały pierścień POD ikoną. Bez tego po dotknięciu
        kilku dronów obok siebie nie było wiadomo, którego dotyczy karta. */
     map.addLayer({ id: "threats-sel", type: "circle", source: "threats",
@@ -887,9 +925,15 @@ async function initMap() {
         "circle-stroke-color": "#ffffff", "circle-stroke-width": 2.5,
         "circle-stroke-opacity": 0.95 } });
     map.addLayer({ id: "threats", type: "symbol", source: "threats",
-      layout: { "icon-image": ["concat", "dart-", ["get", "type"]],
-        "icon-size": ["interpolate", ["linear"], ["zoom"], 4, 0.5, 8, 0.85],
-        "icon-rotate": ["get", "heading"], "icon-rotation-alignment": "map",
+      layout: { "icon-image": ["case",
+          ["all", ["==", ["get", "hdg_unknown"], true],
+                 ["match", ["get", "type"], [...NO_HEADING_TYPES], false, true]],
+          ["concat", "dart-", ["get", "type"], "-unk"],
+          ["concat", "dart-", ["get", "type"]]],
+        // 64 px zamiast 48 — skala zmniejszona tak, żeby sylwetka miała dawny rozmiar
+        "icon-size": ["interpolate", ["linear"], ["zoom"], 4, 0.375, 8, 0.64],
+        "icon-rotate": ["case", ["==", ["get", "hdg_unknown"], true], 0, ["get", "heading"]],
+        "icon-rotation-alignment": "map",
         "icon-allow-overlap": true },
       paint: { "icon-opacity": ["case", ["==", ["get", "historicalOnly"], true], 0.48, 1] },
     });
@@ -1643,6 +1687,35 @@ function predict(t, nowMs) {
   return { lat, lon };
 }
 
+/* Identyfikatory obiektów NEPTUN, które teraz wnoszą punkty (lustro panelu
+   sygnałów: counted_points > 0). Zbiór liczony raz na stan, nie na klatkę. */
+let countedTracks = new Set();
+function refreshCountedTracks() {
+  const ids = new Set();
+  for (const st of Object.values(state?.fusion?.voivodeships || {}))
+    for (const s of st.signals || [])
+      if (s.source === "neptun" && (s.counted_points || 0) > 0 && s.details?.track_id != null)
+        ids.add(String(s.details.track_id));
+  countedTracks = ids;
+}
+const PULSE_MS = 1600;
+let lastPulse = 0;
+function pulseLoop(ts) {
+  requestAnimationFrame(pulseLoop);
+  // ~20 kl./s wystarcza; w tle, w historii i bez liczonych obiektów nic nie robimy
+  if (!mapReady || ts - lastPulse < 50) return;
+  lastPulse = ts;
+  if (document.hidden || histMode || !countedTracks.size) {
+    if (map.getLayer("threats-pulse")) map.setPaintProperty("threats-pulse", "circle-stroke-opacity", 0);
+    return;
+  }
+  const k = (ts % PULSE_MS) / PULSE_MS;
+  map.setPaintProperty("threats-pulse", "circle-radius",
+    ["interpolate", ["linear"], ["zoom"], 4, 11 + 12 * k, 8, 20 + 20 * k]);
+  map.setPaintProperty("threats-pulse", "circle-stroke-opacity", 0.9 * (1 - k));
+}
+requestAnimationFrame(pulseLoop);
+
 let lastAnim = 0;
 function animate(ts) {
   requestAnimationFrame(animate);
@@ -1658,6 +1731,7 @@ function animate(ts) {
     pts.push({ type: "Feature", geometry: { type: "Point", coordinates: [p.lon, p.lat] },
       properties: { tid: String(t.id ?? ""),
         type: TYPE_META[t.type] ? t.type : "unknown", heading: t.heading ?? 0,
+        hdg_unknown: t.heading == null || t.pl_assessment?.heading_known === false,
         color: meta.color,
         confidence: t.confidenceLevel || "?", uncertainty: t.uncertaintyKm ?? "?",
         opis: threatDesc(t), dist_km: t.pl_assessment?.dist_km,
@@ -1666,6 +1740,7 @@ function animate(ts) {
         // to samo co lista sygnałów (zgłoszone 12.09.2026)
         toward_pl: t.pl_assessment?.toward_pl === true,
         heading_known: t.pl_assessment?.heading_known !== false,
+        counted: countedTracks.has(String(t.id ?? "")),
         course_off: courseOffsetDeg(t),
         eta: etaHtml(t) } });
     if (t.uncertaintyKm)
@@ -1935,7 +2010,10 @@ const NEAR_LIST_KM = 250;
 function courseOffsetDeg(t) {
   const a = t.pl_assessment;
   if (!a || a.bearing_to_border == null || t.heading == null) return null;
-  return Math.round(Math.abs(((t.heading - a.bearing_to_border + 180) % 360) - 180));
+  // `%` w JS zachowuje znak: kurs 1° i azymut 298° dawały „297° od kierunku na
+  // granicę” zamiast 63° (karta drona pod Tokmakiem, 13.09.2026)
+  const diff = ((t.heading - a.bearing_to_border) % 360 + 540) % 360 - 180;
+  return Math.round(Math.abs(diff));
 }
 
 /* Obiekty blisko granicy, które NIE wnoszą punktów. Pokazujemy je razem z
@@ -3329,6 +3407,7 @@ function showHistoryAt(idx) {
         geometry: { type: "Point", coordinates: [t.lon, t.lat] },
         properties: { tid: String(t.id ?? ""),
           type: TYPE_META[t.type] ? t.type : "unknown", heading: t.heading ?? 0,
+          hdg_unknown: t.heading == null || t.pl_assessment?.heading_known === false,
           color: (TYPE_META[t.type] || {}).color || "#8a93a6",
           confidence: t.confidenceLevel || "?", uncertainty: t.uncertaintyKm ?? "?",
           opis: t.historicalOnly
