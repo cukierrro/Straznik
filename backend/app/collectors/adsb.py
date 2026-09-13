@@ -25,6 +25,10 @@ status = {"ok": False, "last": None, "error": None, "provider": config.ADSB_PROV
 
 # aktualne maszyny wojskowe nad PL-wschód (dla frontendu)
 current_aircraft: list[dict] = []
+# krótka historia pozycji per maszyna — opcja „trasy” na mapie; osobno od
+# current_aircraft, bo ta lista trafia do migawek historii (12 h)
+trails: dict[str, list] = {}
+TRAIL_MIN_KM, TRAIL_MAX_PTS, TRAIL_MAX_AGE_S = 0.5, 30, 30 * 60
 _watch_prev: dict[str, dict] | None = None
 
 
@@ -225,6 +229,17 @@ async def _tick(client: httpx.AsyncClient):
                 per_voiv[c["voivodeship"]].append(c)
             current.append(c)
     current_aircraft = current
+    now = time.time()
+    for c in current:
+        hexid = c.get("hex")
+        if not hexid:
+            continue
+        pts = [p for p in trails.get(hexid, []) if now - p["t"] <= TRAIL_MAX_AGE_S]
+        if not pts or geo.haversine_km(pts[-1]["lat"], pts[-1]["lon"], c["lat"], c["lon"]) >= TRAIL_MIN_KM:
+            pts.append({"lat": round(c["lat"], 4), "lon": round(c["lon"], 4), "t": int(now)})
+        trails[hexid] = pts[-TRAIL_MAX_PTS:]
+    for hexid in [h for h, pts in trails.items() if not pts or now - pts[-1]["t"] > TRAIL_MAX_AGE_S]:
+        trails.pop(hexid, None)
 
     # Rejestrujemy przejścia co minutę, niezależnie od migawki mapy co 2 min.
     # Pierwszy obieg po restarcie tylko ustanawia bazę, żeby nie tworzyć lawiny

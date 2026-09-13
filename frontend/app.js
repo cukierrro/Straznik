@@ -795,7 +795,7 @@ function localiseMapLabels() {
    te linie od góry. Teraz: jasna linia państwa z ciemną obwódką pod spodem
    (kontrast na każdym odcieniu kraju) i przeniesienie granic nad wypełnienia.
    Wołać PO dodaniu kraje-fill, a PRZED warstwami Polski (pl-line ma być na wierzchu). */
-function styleBorders() {
+async function styleBorders() {
   const isCountry = (id) => /boundary_country|admin[-_]?0|admin_country|country.*bound/i.test(id);
   const borders = (map.getStyle().layers || [])
     .filter(l => l.type === "line" && /boundar|admin/i.test(l.id));
@@ -816,9 +816,30 @@ function styleBorders() {
       map.setPaintProperty(lyr.id, "line-opacity", 0.95);
       map.setPaintProperty(lyr.id, "line-blur", 0);
       map.moveLayer(lyr.id);
+      // poniżej BORDER_OWN_MAXZOOM granice rysuje własna warstwa (niżej)
+      map.setLayerZoomRange(lyr.id + "-casing", Math.max(lyr.minzoom || 0, BORDER_OWN_MAXZOOM), 24);
+      map.setLayerZoomRange(lyr.id, Math.max(lyr.minzoom || 0, BORDER_OWN_MAXZOOM), 24);
     } catch (e) { console.warn("granice", lyr.id, e); }
   }
+  /* Po oddaleniu kafelki mapy bazowej są uproszczone: gubią odcinki granic, a filtr
+     stylu pomija granice sporne — stąd przerwy przy Krymie, na froncie i między
+     Białorusią a Ukrainą (zgłoszenie 13.09.2026). Do BORDER_OWN_MAXZOOM rysujemy
+     granice lądowe z Natural Earth 1:50 mln (assets/granice.geojson, widok polski:
+     Krym w Ukrainie), dalej zostają dokładne linie OpenStreetMap z mapy bazowej. */
+  try {
+    const gr = await (await fetch("assets/granice.geojson")).json();
+    map.addSource("granice", { type: "geojson", data: gr });
+    map.addLayer({ id: "granice-casing", type: "line", source: "granice", maxzoom: BORDER_OWN_MAXZOOM,
+      layout: { "line-join": "round", "line-cap": "round" },
+      paint: { "line-color": "#05070c", "line-opacity": 0.85, "line-blur": 0.5,
+        "line-width": ["interpolate", ["linear"], ["zoom"], 3, 2.8, 7, 5] } });
+    map.addLayer({ id: "granice-line", type: "line", source: "granice", maxzoom: BORDER_OWN_MAXZOOM,
+      layout: { "line-join": "round", "line-cap": "round" },
+      paint: { "line-color": "#dbe5f7", "line-opacity": 0.95,
+        "line-width": ["interpolate", ["linear"], ["zoom"], 3, 1.1, 7, 2.0] } });
+  } catch (e) { console.warn("granice własne", e); }
 }
+const BORDER_OWN_MAXZOOM = 5.5;
 
 async function initMap() {
   let style = FALLBACK_STYLE;
@@ -861,7 +882,7 @@ async function initMap() {
       paint: { "fill-color": ["match", ["get", "iso"],
           ...Object.entries(COUNTRY_COLORS).flat(), "#333"],
         "fill-opacity": countryOpacity } });
-    styleBorders();
+    await styleBorders();
     /* Kontury krajów rysuje już styl bazowy (warstwy boundary). Własnej linii
        NIE dokładamy: wzdłuż granicy PL biegłaby obok linii województw i dawała
        efekt „podwójnego konturu". Zostaje samo wypełnienie (odcień kraju). */
@@ -954,8 +975,8 @@ async function initMap() {
 
     map.addSource("trails", { type: "geojson", data: emptyFC() });
     map.addLayer({ id: "trails", type: "line", source: "trails",
-      paint: { "line-color": ["get", "color"], "line-width": 1.6, "line-opacity": 0.5,
-               "line-dasharray": [1.5, 1.5] } });
+      paint: { "line-color": ["get", "color"], "line-width": 2.2, "line-opacity": 0.8,
+               "line-dasharray": [1.5, 1.2] } });
 
     // kierunek lotu (opcja w ustawieniach): linia i kropki co 5 min
     map.addSource("course", { type: "geojson", data: emptyFC() });
@@ -1700,12 +1721,36 @@ function courseFeatures(lat, lon, bearing, kmh, minutes, color) {
 function measuredHeading(t) {
   if (isApproxPosition(t)) return null;
   if (t.heading_estimated != null) return +t.heading_estimated;
-  const arr = localTrails.get(t.id) || [];
-  if (arr.length < 2) return null;
-  const a = arr[0], b = arr[arr.length - 1];
-  const km = Math.hypot((b.lat - a.lat) * 110.57,
-    (b.lon - a.lon) * 111.32 * Math.cos(b.lat * Math.PI / 180));
-  return km >= 2 && Places?.bearingDeg ? Places.bearingDeg(a.lat, a.lon, b.lat, b.lon) : null;
+  const pts = trackPoints(t);
+  if (pts.length < 2 || !Places?.bearingDeg) return null;
+  const b = pts[pts.length - 1];
+  if (Date.now() - b.ms > 20 * 60000) return null;       // stary ślad to nie kurs
+  for (let i = pts.length - 2; i >= 0; i--) {
+    const a = pts[i];
+    if (kmBetween(a, b) >= 2) return Places.bearingDeg(a.lat, a.lon, b.lat, b.lon);
+  }
+  return null;
+}
+const kmBetween = (a, b) => Math.hypot((b.lat - a.lat) * 110.57,
+  (b.lon - a.lon) * 111.32 * Math.cos(b.lat * Math.PI / 180));
+/* Trasa z trzech źródeł: `trail` NEPTUN-a, krótka historia z serwera (dostępna od
+   razu po otwarciu aplikacji) i własny zapis. Posortowana w czasie, bez duplikatów. */
+const TRACK_MAX_AGE_MS = 45 * 60000;
+function trackPoints(t) {
+  if (isApproxPosition(t)) return [];
+  const now = Date.now(), all = [];
+  for (const q of cleanTrail(t)) all.push({ lat: q.lat, lon: q.lon, ms: Date.parse(q.t) || 0 });
+  for (const q of t.straznik_trail || []) all.push({ lat: q.lat, lon: q.lon, ms: (q.t || 0) * 1000 });
+  for (const q of localTrails.get(t.id) || []) all.push({ lat: q.lat, lon: q.lon, ms: q.t || 0 });
+  all.sort((x, y) => x.ms - y.ms);
+  const out = [];
+  for (const q of all) {
+    if (q.ms && now - q.ms > TRACK_MAX_AGE_MS) continue;
+    const last = out[out.length - 1];
+    if (last && kmBetween(last, q) < 0.3) continue;
+    out.push(q);
+  }
+  return out;
 }
 function toggleFollow(hex) {
   followHex = followHex === hex ? null : hex;
@@ -1949,13 +1994,9 @@ function animate(ts) {
       const kmh = measuredTrackSpeed(t) || TYPE_SPEED_KMH[t.type];
       if (hdg != null && kmh) course.push(...courseFeatures(p.lat, p.lon, hdg, kmh, 30, meta.color));
     }
-    const seen = new Set();
-    const coords = [];
-    for (const q of [...cleanTrail(t), ...(localTrails.get(t.id) || []), { lat: p.lat, lon: p.lon }]) {
-      const key = q.lat.toFixed(3) + "," + q.lon.toFixed(3);
-      if (seen.has(key)) continue;
-      seen.add(key); coords.push([q.lon, q.lat]);
-    }
+    const coords = trackPoints(t).map(q => [q.lon, q.lat]);
+    const lastC = coords[coords.length - 1];
+    if (!lastC || kmBetween({ lat: lastC[1], lon: lastC[0] }, p) >= 0.3) coords.push([p.lon, p.lat]);
     if (coords.length >= 2)
       trails.push({ type: "Feature", properties: { color: meta.color },
         geometry: { type: "LineString", coordinates: coords } });
@@ -1986,8 +2027,12 @@ function updateAdsb() {
         label: (p.callsign || p.hex) + (p.desc ? " · " + p.desc : ""),
         flag: c ? c.flag : "", area: p.area || "" });
     }
-    // własny zapis trasy (jak dla obiektów NEPTUN): dopisujemy realne przesunięcia
-    const arr = adsbTrails.get(p.hex) || [];
+    // własny zapis trasy (jak dla obiektów NEPTUN): dopisujemy realne przesunięcia;
+    // po otwarciu aplikacji zaczynamy od krótkiej historii z serwera
+    let arr = adsbTrails.get(p.hex) || [];
+    const srv = state?.adsb?.trails?.[p.hex];
+    if (srv && srv.length > arr.length)
+      arr = srv.map(q => ({ lat: q.lat, lon: q.lon, t: (q.t || 0) * 1000 }));
     const last = arr[arr.length - 1];
     if (!last || Math.hypot((p.lat - last.lat) * 110.57,
         (p.lon - last.lon) * 111.32 * Math.cos(p.lat * Math.PI / 180)) > 0.5) {

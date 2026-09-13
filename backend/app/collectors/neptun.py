@@ -230,6 +230,11 @@ _MIN_MOVE_KM = 2.0   # mniejsze przesunięcia to szum pozycji (±km niepewności
 # ostatni kurs z ruchu: kolejne małe kroki (< 2 km) nie kasują go od razu
 _last_est: dict[str, tuple[float, float]] = {}
 _EST_KEEP_S = 600
+# Krótka historia pozycji dla mapy (opcja „trasy obiektów”). Aplikacja zbierała
+# ślad dopiero od otwarcia, więc przez pierwsze minuty nie było czego rysować.
+# Nie trafia do migawek historii — tylko do stanu na żywo.
+_trail: dict[str, list] = {}
+TRAIL_MIN_KM, TRAIL_MAX_PTS, TRAIL_MAX_AGE_S = 0.7, 20, 45 * 60
 
 
 def _heading_of(t: dict) -> float | None:
@@ -319,6 +324,13 @@ def _evaluate(t: dict) -> dict:
         prev = _last_pos.get(tid)
         if prev is None or geo.haversine_km(prev[0], prev[1], lat, lon) >= _MIN_MOVE_KM:
             _last_pos[tid] = (lat, lon)
+        if not _is_approx_position(t):
+            now = time.time()
+            pts = [p for p in _trail.get(tid, []) if now - p["t"] <= TRAIL_MAX_AGE_S]
+            if not pts or geo.haversine_km(pts[-1]["lat"], pts[-1]["lon"], lat, lon) >= TRAIL_MIN_KM:
+                pts.append({"lat": round(lat, 4), "lon": round(lon, 4), "t": int(now)})
+            _trail[tid] = pts[-TRAIL_MAX_PTS:]
+            t["straznik_trail"] = _trail[tid]
     t["pl_assessment"] = a
     region = t.get("region") or ""
     t["border_region"] = any(r in region for r in config.NEPTUN_BORDER_REGIONS)
@@ -636,7 +648,7 @@ async def _handle_threats(threats: list[dict], replace: bool, *,
             _bad_record(t, exc)
     if replace:
         # pełny snapshot: zapominamy kotwice obiektów, których już nie ma
-        for cache in (_last_pos, _last_est, _signalled, _away_streak):
+        for cache in (_last_pos, _last_est, _signalled, _away_streak, _trail):
             for tid in [k for k in cache if k not in tracks]:
                 cache.pop(tid, None)
     if fusion.on_state_change:

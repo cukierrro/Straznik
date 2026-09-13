@@ -71,7 +71,8 @@ def build_state() -> dict:
         "fusion": fusion.compute_state(),
         "neptun": neptun.public_state(),
         "adsb": {"aircraft": adsb.current_aircraft,
-                 "counts": adsb.status["counts"], "baselines": adsb.status["baselines"]},
+                 "counts": adsb.status["counts"], "baselines": adsb.status["baselines"],
+                 "trails": adsb.trails},
         "health": {
             "neptun": neptun.status["connected"],
             # Alarmy obwodowe UA płyną tym samym WebSocketem co Neptun (nie ma
