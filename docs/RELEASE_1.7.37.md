@@ -7,6 +7,8 @@
 - Strefy nałożone na siebie: dotyk otwiera najmniejszą, pozostałe są w karcie jako przyciski.
 - Historia: czas sygnałów liczy się od wybranej chwili, zniknęło „NaN h NaN min temu”.
 - Legenda opisuje przygaszony kolor od sąsiadów; baner regionu pisze „poniżej progu”.
+- Śmigłowiec ma na mapie własną ikonę z tarczą wirnika zamiast sylwetki samolotu.
+- Karta drona po angielsku podaje nazwy po angielsku („Shevchenkove, Kharkiv oblast”), nie polską transkrypcję.
 - Instrukcja napisana od nowa dla bieżącej wersji, z nowymi zrzutami PL i EN.
 
 ## Dlaczego

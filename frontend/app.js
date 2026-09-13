@@ -193,10 +193,35 @@ const OBLAST_PL = {
   "Чернігівська": "czernihowski", "Харківська": "charkowski", "Донецька": "doniecki",
   "Луганська": "ługański", "Крим": "Krym", "Київ": "Kijów",
 };
+/* Rdzenie nazw obwodów — łapią też formy potoczne („Харківщина", „Прикарпаття"),
+   dla których pełna nazwa z OBLAST_PL nie pasowała i zostawała surowa
+   transliteracja. [rdzeń, polski przymiotnik, nazwa angielska] */
+const OBLAST_STEMS = [
+  ["Волин", "wołyński", "Volyn"], ["Львів", "lwowski", "Lviv"], ["Закарпат", "zakarpacki", "Zakarpattia"],
+  ["Рівнен", "rówieński", "Rivne"], ["Тернопіл", "tarnopolski", "Ternopil"],
+  ["Хмельниц", "chmielnicki", "Khmelnytskyi"], ["Хмельнич", "chmielnicki", "Khmelnytskyi"],
+  ["Івано-Франків", "iwanofrankiwski", "Ivano-Frankivsk"], ["Прикарпат", "iwanofrankiwski", "Ivano-Frankivsk"],
+  ["Чернівец", "czerniowiecki", "Chernivtsi"], ["Буковин", "czerniowiecki", "Chernivtsi"],
+  ["Житомир", "żytomierski", "Zhytomyr"], ["Вінниц", "winnicki", "Vinnytsia"], ["Віннич", "winnicki", "Vinnytsia"],
+  ["Київськ", "kijowski", "Kyiv"], ["Київщин", "kijowski", "Kyiv"],
+  ["Черкас", "czerkaski", "Cherkasy"], ["Черкащин", "czerkaski", "Cherkasy"],
+  ["Кіровоград", "kirowohradzki", "Kirovohrad"], ["Кропивниц", "kirowohradzki", "Kirovohrad"],
+  ["Одеськ", "odeski", "Odesa"], ["Одещин", "odeski", "Odesa"], ["Миколаїв", "mikołajowski", "Mykolaiv"],
+  ["Херсон", "chersoński", "Kherson"], ["Дніпропетров", "dniepropetrowski", "Dnipropetrovsk"],
+  ["Дніпровщин", "dniepropetrowski", "Dnipropetrovsk"], ["Запорізьк", "zaporoski", "Zaporizhzhia"],
+  ["Запоріжжя", "zaporoski", "Zaporizhzhia"], ["Полтав", "połtawski", "Poltava"],
+  ["Сумськ", "sumski", "Sumy"], ["Сумщин", "sumski", "Sumy"], ["Чернігів", "czernihowski", "Chernihiv"],
+  ["Харків", "charkowski", "Kharkiv"], ["Донец", "doniecki", "Donetsk"], ["Донеччин", "doniecki", "Donetsk"],
+  ["Луган", "ługański", "Luhansk"], ["Крим", "Krym", "Crimea"],
+];
 const oblastPL = (s) => {
   if (!s) return "";
-  for (const [ua, pl] of Object.entries(OBLAST_PL)) if (s.includes(ua)) return "obw. " + pl;
-  return translit(s);
+  if (!UI.isEn) for (const [ua, pl] of Object.entries(OBLAST_PL))
+    if (s.includes(ua) && ua !== "Київ") return "obw. " + pl;
+  for (const [stem, pl, en] of OBLAST_STEMS) if (s.includes(stem))
+    return UI.isEn ? (en === "Crimea" ? en : `${en} oblast`) : (pl === "Krym" ? pl : "obw. " + pl);
+  if (s.includes("Київ")) return UI.isEn ? "Kyiv" : "Kijów";
+  return placeName(s);
 };
 /* transliteracja ukraińskiej cyrylicy na polską łacinkę (nazwy miejscowości) */
 const TR = { "а":"a","б":"b","в":"w","г":"h","ґ":"g","д":"d","е":"e","є":"je","ж":"ż","з":"z",
@@ -214,11 +239,44 @@ function translit(s) {
   }
   return out;
 }
+/* Angielska transliteracja ukraińskiej cyrylicy (oficjalny system KMU 2010).
+   W wersji angielskiej karta pisała „Szewczenkowe (Charkiwszczyzna)" — polską
+   łacinką, nieczytelną dla anglojęzycznego odbiorcy (zgłoszone 13.09.2026). */
+const TR_EN = { "а":"a","б":"b","в":"v","г":"h","ґ":"g","д":"d","е":"e","є":"ie","ж":"zh","з":"z",
+  "и":"y","і":"i","ї":"i","й":"i","к":"k","л":"l","м":"m","н":"n","о":"o","п":"p","р":"r",
+  "с":"s","т":"t","у":"u","ф":"f","х":"kh","ц":"ts","ч":"ch","ш":"sh","щ":"shch","ь":"","ю":"iu",
+  "я":"ia","'":"", "’":"", "ʼ":"" };
+// na początku słowa: Є→Ye, Ї→Yi, Й→Y, Ю→Yu, Я→Ya
+const TR_EN_INITIAL = { "є":"ye","ї":"yi","й":"y","ю":"yu","я":"ya" };
+function translitEn(s) {
+  if (!s) return "";
+  let out = "", prevLetter = false;
+  for (const ch of s) {
+    const low = ch.toLowerCase();
+    let t = (!prevLetter && TR_EN_INITIAL[low]) || TR_EN[low];
+    const isLetter = /\p{L}/u.test(ch);
+    if (t === undefined) { out += ch; prevLetter = isLetter; continue; }
+    out += ch === low ? t : (t.charAt(0).toUpperCase() + t.slice(1));
+    prevLetter = isLetter;
+  }
+  return out;
+}
+/* Nazwa miejscowości w języku interfejsu; nazwa obwodu podana jako miejscowość
+   („Хмельницька область") idzie przez słownik obwodów. */
+function placeName(s) {
+  if (!s) return "";
+  if (s.trim() === "Київ") return UI.isEn ? "Kyiv" : "Kijów";
+  if (/област|щин/.test(s)) {
+    for (const [stem, pl, en] of OBLAST_STEMS) if (s.includes(stem))
+      return UI.isEn ? `${en} oblast` : "obw. " + pl;
+  }
+  return UI.isEn ? translitEn(s) : translit(s);
+}
 /* własny opis po polsku zamiast tłumaczenia ukraińskiego zdania */
 function threatDesc(t) {
   const meta = TYPE_META[t.type] || { label: t.type };
-  const where = [t.locality ? translit(t.locality) : null, oblastPL(t.region)]
-    .filter(Boolean).join(", ");
+  const where = [t.locality ? placeName(t.locality) : null, oblastPL(t.region)]
+    .filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).join(", ");
   const parts = [];
   if (where) parts.push(UI.isEn ? (t.destination ? `heading towards ${where}` : `area: ${where}`)
     : (t.destination ? `kursem na ${where}` : `rejon: ${where}`));
@@ -621,15 +679,22 @@ function makeThreatImage(type, color) {
   }
   return x.getImageData(0, 0, 48, 48);
 }
+/* Śmigłowiec: tarcza wirnika (okrąg), kabina, długa belka ogonowa ze śmigłem
+   ogonowym. Dawny symbol — sam krzyżyk wirnika na kadłubie — po obróceniu
+   zgodnie z kursem wyglądał jak skrzydła samolotu (H135M rumuńskiej MAI,
+   zgłoszone 13.09.2026). */
 function makeHeliImage() {
   const c = document.createElement("canvas"); c.width = c.height = 44;
-  const x = c.getContext("2d"); x.translate(22, 22);
+  const x = c.getContext("2d"); x.translate(22, 20);
   x.strokeStyle = "#39c5ec"; x.fillStyle = "#39c5ec";
-  x.shadowColor = "#39c5ec"; x.shadowBlur = 8;
-  x.beginPath(); x.ellipse(0, 2, 5, 10, 0, 0, 2 * Math.PI); x.fill();  // kadłub
-  x.beginPath(); x.rect(-1.5, 8, 3, 8); x.fill();                       // belka ogonowa
-  x.lineWidth = 2.5;                                                    // wirnik (X)
-  x.beginPath(); x.moveTo(-13, -11); x.lineTo(13, 15); x.moveTo(13, -11); x.lineTo(-13, 15); x.stroke();
+  x.shadowColor = "#39c5ec"; x.shadowBlur = 6;
+  x.beginPath(); x.ellipse(0, -1, 5, 8, 0, 0, 2 * Math.PI); x.fill();   // kabina, dziób na północ
+  x.beginPath(); x.rect(-1.3, 6, 2.6, 13); x.fill();                    // belka ogonowa
+  x.lineWidth = 2; x.beginPath(); x.moveTo(-5, 18); x.lineTo(5, 18); x.stroke();  // śmigło ogonowe
+  x.lineWidth = 1.6; x.globalAlpha = 0.75;
+  x.beginPath(); x.arc(0, -1, 15, 0, 2 * Math.PI); x.stroke();          // tarcza wirnika
+  x.globalAlpha = 1; x.lineWidth = 1.8;
+  x.beginPath(); x.moveTo(-11, -12); x.lineTo(11, 10); x.moveTo(11, -12); x.lineTo(-11, 10); x.stroke();
   return x.getImageData(0, 0, 44, 44);
 }
 function makePlaneImage() {
