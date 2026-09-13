@@ -16,6 +16,23 @@ DOCS = ROOT / "docs"
 # (wersja, data PL, data EN, tytuł PL, tytuł EN, punkty PL, punkty EN, zrzuty)
 # Zrzut: (plik, alt PL, alt EN, podpis PL, podpis EN)
 RELEASES = [
+    ("1.7.37", "13 września 2026", "13 September 2026",
+     "Media po przeczytaniu treści, bez marginesu alarmów, nowa instrukcja",
+     "Media scored after reading the article, no alert margin, new guide",
+     ["Serwer czyta cały artykuł, zanim przyzna punkty. Relacja z wcześniejszego zdarzenia albo artykuł, którego nie da się przeczytać, zostaje w panelu z linkiem, ale ma 0 pkt. Media dają 0,5 lub 1 pkt, limit 1 pkt.",
+      "Poziom powiadomień zawsze odpowiada bieżącym punktom. Powtórka tego samego poziomu w ciągu 60 minut nie dzwoni, chyba że przyjdzie nowy Alert RCB.",
+      "Alarmy dalszych obwodów Ukrainy ważą mniej — waga maleje płynnie z odległością.",
+      "Strefy nałożone na siebie: dotyk otwiera najmniejszą, a pozostałe są w karcie jako przyciski. W historii czas sygnałów liczy się od wybranej chwili.",
+      "Strona WWW: ikona Strażnika w karcie przeglądarki oraz wyłączanie powiadomień w ustawieniach, ze ścieżką do uprawnień przeglądarki.",
+      "Instrukcja napisana od nowa dla bieżącej wersji, z nowymi zrzutami po polsku i angielsku."],
+     ["The server reads the whole article before awarding points. A report on an earlier event, or an article that cannot be read, stays in the panel with its link but scores 0. Media add 0.5 or 1 point, capped at 1.",
+      "The notification level always matches the current points. Returning to the same level within 60 minutes does not ring unless a new Alert RCB arrives.",
+      "Alerts in more distant Ukrainian oblasts weigh less — the weight falls smoothly with distance.",
+      "Overlapping zones: a tap opens the smallest one and lists the others as buttons on the card. In history, signal times count from the chosen moment.",
+      "Website: the Strażnik icon in the browser tab, and turning notifications off in settings with the path to the browser permission.",
+      "The user guide was rewritten for the current version, with new screenshots in Polish and English."],
+     []),
+
     ("1.7.36", "13 września 2026", "13 September 2026",
      "Przeniesienia bez podwójnego liczenia, odwołania RCB",
      "Spillover without double counting, RCB cancellations",

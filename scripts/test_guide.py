@@ -6,13 +6,9 @@ from urllib.parse import unquote, urlsplit
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1] / "docs"
-HISTORICAL = {
-    "screens/30_alert_zolty_tlo.jpg": (1440, 3200),
-    "screens/32_alarm_pelnoekranowy.jpg": (720, 1600),
-    "screens/history-lubelskie-user.png": (1440, 3200),
-}
-# liczba odrębnych zrzutów użytych w obu wersjach instrukcji
-EXPECTED_SHOTS = 29
+HISTORICAL = {}   # instrukcja od 1.7.37 używa wyłącznie bieżących zrzutów
+# odrębne zrzuty: instrukcja 21 ekranów × PL/EN + 7 archiwalnych w historii zmian
+EXPECTED_SHOTS = 49
 
 
 class Page(HTMLParser):

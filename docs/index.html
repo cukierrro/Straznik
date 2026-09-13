@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Strażnik 1.7.36 — instrukcja użytkownika</title>
-<meta name="description" content="Aktualna instrukcja Strażnika 1.7.36: dolne zakładki, karta obiektu jako miniatura, instalacja i aktualizacje Android, alarmy, mapa, historia, języki i punktacja. Zrzuty z Pixela 7.">
+<title>Strażnik 1.7.37 — instrukcja użytkownika</title>
+<meta name="description" content="Instrukcja Strażnika 1.7.37: instalacja, Moje miejsca, mapa i strefy PAŻP, panel sygnałów, historia, alarmy, powiadomienia w przeglądarce i punktacja. Zrzuty z aktualnej wersji.">
 <link rel="canonical" href="https://cukierrro.github.io/Straznik/">
 <link rel="alternate" hreflang="pl" href="https://cukierrro.github.io/Straznik/">
 <link rel="alternate" hreflang="en" href="https://cukierrro.github.io/Straznik/en.html">
@@ -29,336 +29,325 @@
 <a class="skip" href="#content">Przejdź do treści</a>
 <nav aria-label="Nawigacja instrukcji"><div class="nav-in">
   <a class="brand" href="#top">STRAŻNIK</a>
-  <div class="nav-links"><a href="#instalacja">Instalacja</a><a href="#mapa">Mapa</a><a href="#panel">Sygnały</a><a href="#historia">Historia</a><a href="#alarm">Alarmy</a><a href="#punkty">Punktacja</a><a href="zmiany.html">Historia zmian</a></div>
+  <div class="nav-links"><a href="#instalacja">Instalacja</a><a href="#ekran">Ekran</a><a href="#mapa">Mapa</a><a href="#sygnaly">Sygnały</a><a href="#historia">Historia</a><a href="#alarmy">Alarmy</a><a href="#punkty">Punktacja</a><a href="zmiany.html">Historia zmian</a></div>
   <div class="languages" aria-label="Język instrukcji"><a href="index.html" lang="pl" aria-current="page">PL</a><a href="en.html" lang="en" hreflang="en">EN</a></div>
 </div></nav>
 <header class="hero"><div class="wrap hero-grid">
-  <div><div class="eyebrow">Instrukcja użytkownika · wersja 1.7.36</div>
+  <div><div class="eyebrow">Instrukcja użytkownika · wersja 1.7.37</div>
     <h1>Sytuacja na mapie.<br>Źródła za każdym sygnałem.</h1>
-    <p class="lead">Strażnik łączy publiczne informacje o zagrożeniach powietrznych i pokazuje ich punktację dla polskich województw. Dostępny na Androidzie i w przeglądarce.</p>
+    <p class="lead">Strażnik łączy publiczne informacje o zagrożeniach z powietrza i pokazuje ich punktację dla polskich województw. Działa na Androidzie i w przeglądarce.</p>
     <div class="actions"><a class="button primary" href="https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk">↓ Pobierz aplikację</a><a class="button" href="https://straznik.eu">Otwórz mapę</a></div>
-    <p class="fineprint">Instrukcja dla 1.7.36. Karta pozycji przybliżonej: 1.7.21, 11 września 2026. Zrzuty aktualnego interfejsu wykonano 12 września 2026 na Pixelu 7 z Androidem 14 i <b>trzyprzyciskową</b> nawigacją systemową; starsze, niezmienione ekrany opisano przy zrzutach. Dotknij zdjęcia, aby otworzyć je w pełnym rozmiarze.</p>
+    <p class="fineprint">Instrukcja opisuje wyłącznie bieżącą wersję 1.7.37. Wszystkie zrzuty wykonano 13 września 2026 na Pixelu 7 z Androidem 14, na żywych danych. Co zmieniało się w kolejnych wydaniach, znajdziesz w <a href="zmiany.html">historii zmian</a>. Dotknij zdjęcia, aby otworzyć je w pełnym rozmiarze.</p>
   </div>
-  <a class="shot-link" href="screens/01_start.jpg"><img src="screens/01_start.jpg" width="1080" height="2400" alt="Strażnik 1.7.23 na Pixelu 7: mapa, sześć zielonych diod źródeł i dolne zakładki Mapa, Sygnały, Historia, Więcej"></a>
+  <a class="shot-link" href="screens/1737/start-pl.jpg"><img src="screens/1737/start-pl.jpg" width="1080" height="2400" alt="Ekran startowy Strażnika: mapa Polski i Ukrainy, sześć zielonych diod źródeł, ikony u góry, kafelki mój region, strefy i cała PL oraz dolne zakładki Mapa, Sygnały, Historia, Więcej"></a>
 </div></header>
 <main id="content" class="wrap">
+
 <section id="czym-jest">
   <h2>Czym jest Strażnik</h2>
-  <p>Serwer zbiera dane i oblicza punktację, a aplikacja pokazuje mapę, źródła i historię. Android otrzymuje alarmy przez push. Nie potrzebujesz konta ani własnego serwera.</p>
-  <div class="warn"><strong>To nie jest oficjalny system ostrzegania.</strong> Strażnik uzupełnia syreny, Alert RCB i RSO. Nie gwarantuje wykrycia zagrożenia ani ostrzeżenia wcześniej niż oficjalne kanały. Jeśli dostaniesz Alert RCB lub usłyszysz syreny, kieruj się oficjalnymi instrukcjami również wtedy, gdy mapa jest spokojna.</div>
-  <p>Połączenie źródeł pomaga ocenić sytuację. Odpowiedni komunikat oficjalny albo wystarczająco poważny bliski obiekt mogą samodzielnie osiągnąć próg; same artykuły RSS nie mogą. Wynik jest wskaźnikiem aplikacji, a nie prawdopodobieństwem uderzenia.</p>
+  <p>Serwer zbiera dane z kilku publicznych źródeł, liczy punktację dla każdego województwa i wysyła powiadomienia. Aplikacja pokazuje mapę, źródła każdego punktu i historię ostatnich 12 godzin. Nie potrzebujesz konta ani własnego serwera.</p>
+  <div class="warn"><strong>To nie jest oficjalny system ostrzegania.</strong> Strażnik uzupełnia syreny, Alert RCB i RSO, ale ich nie zastępuje. Nie gwarantuje wykrycia zagrożenia ani ostrzeżenia wcześniejszego niż kanały oficjalne. Jeśli dostaniesz Alert RCB lub usłyszysz syreny, postępuj według oficjalnych instrukcji — także wtedy, gdy mapa jest spokojna.</div>
+  <p>Wynik jest wskaźnikiem aplikacji, a nie prawdopodobieństwem uderzenia. Żaden pojedynczy artykuł ani strefa nie podniesie poziomu sam — próg osiąga dopiero oficjalny komunikat, poważny obiekt blisko granicy albo kilka niezależnych źródeł naraz.</p>
 </section>
+
 <section id="instalacja">
-  <h2>1. Instalacja i kolejne aktualizacje</h2>
+  <h2>1. Instalacja i aktualizacje</h2>
   <ol>
     <li>Pobierz <a href="https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk">najnowszy Straznik.apk</a> na telefon z Androidem.</li>
-    <li>Otwórz plik w folderze <b>Pobrane</b>. Jeśli Android poprosi, zezwól tej przeglądarce lub menedżerowi plików na instalowanie aplikacji z tego źródła.</li>
-    <li>Zatwierdź instalację i uruchom Strażnika. Pozwól systemowi przeskanować plik; nie wyłączaj Play Protect.</li>
-    <li>Zezwól na powiadomienia, wybierz województwo i sprawdź zgodę na pełny ekran.</li>
+    <li>Otwórz plik z folderu <b>Pobrane</b>. Jeśli Android poprosi, zezwól przeglądarce lub menedżerowi plików na instalowanie aplikacji z tego źródła.</li>
+    <li>Zatwierdź instalację i uruchom Strażnika. Pozwól systemowi przeskanować plik — nie wyłączaj Play Protect.</li>
+    <li>Zezwól na powiadomienia i zapisz swoje województwo w <kbd>⚙</kbd> → <kbd>Moje miejsca</kbd>.</li>
   </ol>
   <h3 id="zgoda-instalacji">Zgoda „Instalowanie nieznanych aplikacji” — i jak ją cofnąć</h3>
-  <p>Strażnik nie jest w sklepie Google Play, więc plik APK otwiera się z <b>Pobranych</b>.
-  Android nie pozwoli go zainstalować, dopóki aplikacja, która ten plik otwiera —
-  najczęściej <b>Chrome</b>, czasem menedżer plików albo aplikacja GitHuba — nie dostanie
-  uprawnienia <b>Instalowanie nieznanych aplikacji</b>. Dlatego przeglądarka przerywa
-  instalację i przenosi Cię do ustawień systemowych z przełącznikiem
-  <kbd>Zezwalaj z tego źródła</kbd>. To normalny krok, nie błąd i nie oznaka, że coś
-  jest nie tak z plikiem.</p>
-  <p>Warto wiedzieć dwie rzeczy. Po pierwsze, to <b>nie</b> jest dawne globalne
-  „nieznane źródła” — uprawnienie dotyczy tylko tej jednej aplikacji, która otwiera plik,
-  i to jest bezpieczniejsze rozwiązanie. Po drugie, <b>zostaje włączone</b>: dopóki go nie
-  wyłączysz, ta przeglądarka może instalować aplikacje także później. Dlatego po
-  zainstalowaniu Strażnika warto wrócić do ustawień i przywrócić stan wyjściowy.</p>
-  <div class="note"><b>Jak cofnąć zgodę po instalacji.</b>
+  <p>Strażnika nie ma w Google Play, więc Android pozwoli go zainstalować dopiero wtedy, gdy aplikacja otwierająca plik — zwykle <b>Chrome</b> — dostanie uprawnienie <b>Instalowanie nieznanych aplikacji</b>. Przeglądarka przerywa wtedy instalację i przenosi Cię do przełącznika <kbd>Zezwalaj z tego źródła</kbd>. To normalny krok, nie błąd.</p>
+  <p>Uprawnienie dotyczy tylko tej jednej aplikacji, ale <b>zostaje włączone</b>, dopóki go nie wyłączysz. Dlatego po instalacji warto je cofnąć:</p>
+  <div class="note">
     <ol>
-      <li>Otwórz <kbd>Ustawienia</kbd> → <kbd>Aplikacje</kbd> → <kbd>Specjalny dostęp do aplikacji</kbd>
-        → <kbd>Instalowanie nieznanych aplikacji</kbd>.</li>
-      <li>Wybierz z listy aplikację, której użyłeś do otwarcia pliku (zwykle <b>Chrome</b>;
-        przy zgodzie włączonej zobaczysz przy niej podpis „Dozwolone”).</li>
+      <li><kbd>Ustawienia</kbd> → <kbd>Aplikacje</kbd> → <kbd>Specjalny dostęp do aplikacji</kbd> → <kbd>Instalowanie nieznanych aplikacji</kbd>.</li>
+      <li>Wybierz aplikację, którą otwierałeś plik (zwykle <b>Chrome</b>, oznaczoną „Dozwolone”).</li>
       <li>Wyłącz <kbd>Zezwalaj z tego źródła</kbd>.</li>
     </ol>
-    <p>Szybciej: w <kbd>Ustawieniach</kbd> użyj wyszukiwarki i wpisz <b>nieznanych</b>.
-    Można też przytrzymać ikonę przeglądarki → <kbd>Informacje o aplikacji</kbd> →
-    <kbd>Instalowanie nieznanych aplikacji</kbd>. Nazwy pozycji różnią się nieco między
-    Androidem 13, 14 i 15 oraz między producentami (Samsung, Xiaomi), ale ścieżka jest
-    ta sama.</p>
-    <p>Po wyłączeniu zgody Strażnik działa normalnie — uprawnienie jest potrzebne tylko
-    w chwili instalacji. Przy następnej aktualizacji Android poprosi o nie ponownie i to
-    jest właśnie bezpieczniejsze ustawienie: zgoda włączona na jedną instalację zamiast
-    na stałe. <b>Nie wyłączaj Play Protect</b> — skanuje plik przed instalacją i nie ma
-    nic wspólnego z tą zgodą.</p></div>
-
-  <p>Jeśli aplikacja GitHub przechwytuje link i pobieranie staje, otwórz link w przeglądarce. Dostępna jest też <a href="https://github.com/cukierrro/Straznik/raw/main/Straznik.apk">kopia APK w repozytorium</a>.</p>
-  <div class="note"><b>Sprawdź, jaką wersję masz w telefonie.</b> Otwórz <kbd>⚙</kbd> → zakładka <kbd>Aplikacja</kbd> — pod nagłówkiem „Wersja aplikacji” zobaczysz zainstalowany numer.
-    Najnowsze wydanie to <b>1.7.36</b> z dnia <b>13 września 2026</b>. Jeśli masz starszy numer, dotknij <kbd>⬆ Sprawdź aktualizacje</kbd> albo pobierz APK powyżej. Pełną listę zmian w każdym wydaniu znajdziesz w <a href="zmiany.html">historii zmian</a>.</div>
+    <p>Szybciej: w <kbd>Ustawieniach</kbd> wpisz w wyszukiwarce <b>nieznanych</b>. Nazwy pozycji różnią się nieco między wersjami Androida i producentami, ale ścieżka jest ta sama. Strażnik działa normalnie po cofnięciu zgody; przy następnej aktualizacji Android poprosi o nią ponownie.</p>
+  </div>
+  <p>Jeśli aplikacja GitHuba przechwytuje link i pobieranie staje, otwórz link w przeglądarce. Jest też <a href="https://github.com/cukierrro/Straznik/raw/main/Straznik.apk">kopia APK w repozytorium</a>.</p>
   <div class="split">
     <div>
       <h3>Aktualizacja z poziomu aplikacji</h3>
-      <p>Od 1.7.23 Strażnik sprawdza dostępność wydania <b>przy każdym uruchomieniu</b> i przy powrocie aplikacji na wierzch (nie częściej niż co 30 minut). Wcześniej sprawdzał raz na dobę, więc poprawka mogła czekać na użytkownika prawie dobę. W oknie aktualizacji zobaczysz wersję i opis zmian. Możesz też wejść w <kbd>⚙</kbd> → <kbd>Aplikacja</kbd> → <kbd>Sprawdź aktualizacje</kbd>.</p>
-      <p>Przy zwykłej, niekrytycznej aktualizacji wybierz <kbd>Później</kbd>, aby zamknąć komunikat na bieżącą sesję. Gdy wybierzesz instalację, aplikacja pobierze APK i sprawdzi jego SHA-256, a Android poprosi o zatwierdzenie. Aktualizacja nadal wymaga pobrania pliku; nie musisz jednak szukać go ręcznie.</p>
-      <p>Instaluj nowe wydanie na istniejące, bez odinstalowywania — zachowasz ustawienia. Co zmieniło się w każdej wersji, opisuje <a href="zmiany.html">historia zmian</a>. Publikowany plik jest podpisanym wydaniem <b>release</b>. Po aktualizacji sprawdź zgody na powiadomienia i pełny ekran.</p>
+      <p>Strażnik sprawdza nowe wydanie przy każdym uruchomieniu i przy powrocie na wierzch (nie częściej niż co 30 minut). Okno aktualizacji pokazuje numer wersji i listę zmian. Ręcznie: <kbd>⚙</kbd> → <kbd>Aplikacja</kbd> → <kbd>⬆ Sprawdź aktualizacje</kbd>.</p>
+      <p>Przy zwykłej aktualizacji możesz wybrać <kbd>Później</kbd>. Po wybraniu instalacji aplikacja pobiera plik, sprawdza jego sumę SHA-256 i przekazuje go Androidowi do zatwierdzenia. Instaluj nowe wydanie na istniejące — ustawienia i Moje miejsca zostają.</p>
+      <div class="note"><b>Która wersja jest u Ciebie?</b> <kbd>⚙</kbd> → zakładka <kbd>Aplikacja</kbd> → „Zainstalowana wersja”. Najnowsze wydanie to <b>1.7.37</b>. Na dole zakładki są odnośniki do tej instrukcji, historii zmian i wsparcia autora.</div>
     </div>
-    <figure><a class="shot-link" href="screens/updates-pl.jpg"><img loading="lazy" src="screens/updates-pl.jpg" width="1080" height="2400" alt="Zakładka Aplikacja w ustawieniach 1.7.24: język interfejsu, zainstalowana wersja 1.7.24, przycisk Sprawdź aktualizacje i odnośniki do instrukcji oraz historii zmian"></a><figcaption><b>Ustawienia → zakładka „Aplikacja” w 1.7.24.</b> Tu sprawdzisz, którą wersję masz zainstalowaną, i ręcznie poszukasz nowszej. Na dole są odnośniki do instrukcji, historii zmian i wsparcia autora.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/1737/set-aplikacja-pl.jpg"><img loading="lazy" src="screens/1737/set-aplikacja-pl.jpg" width="1080" height="2400" alt="Ustawienia, zakładka Aplikacja: język interfejsu, zainstalowana wersja 1.7.37, przycisk Sprawdź aktualizacje, rozwijane Zaawansowane i odnośniki do instrukcji, historii zmian i wsparcia autora"></a><figcaption><kbd>⚙</kbd> → <kbd>Aplikacja</kbd>: język, wersja, aktualizacje.</figcaption></figure>
   </div>
 </section>
-<section id="konfiguracja">
-  <h2>2. Moje miejsca, język i zgody</h2>
+
+<section id="pierwsze-kroki">
+  <h2>2. Pierwsze kroki: Moje miejsca, powiadomienia, język</h2>
   <div class="split">
     <div>
-      <p>Otwórz <kbd>⚙</kbd> → zakładka <kbd>Moje miejsca</kbd> → <kbd>Otwórz Moje miejsca</kbd>. Możesz zapisać do 8 profili, np. Dom, Praca i Wyjazd. Dla każdego wybierasz województwo oraz opcjonalnie dobrowolną jednorazową lokalizację. Obecne powiadomienia są kierowane według województwa.</p>
-      <p>Przełącznik <kbd>Obserwuj alerty</kbd> tworzy subskrypcję dla województwa. Kilka miejsc w tym samym regionie daje jedną subskrypcję. Wyłączenie obserwacji nie usuwa profilu. Pierwsze zapisane miejsce jest regionem startowym mapy; stary wybór województwa po aktualizacji zostaje przeniesiony do profilu „Dom”.</p>
-      <p>Jednorazowa lokalizacja działa wyłącznie po dotknięciu przycisku i zapisuje punkt, dokładność oraz czas odczytu. Nie ma śledzenia w tle ani internetowego wyszukiwania adresów. Punkt można usunąć osobno.</p>
-      <p><b>Dwa poziomy działania:</b> gdy aplikacja jest zamknięta, zminimalizowana albo ekran jest zablokowany, powiadomienie dotyczy województwa. Po jego otrzymaniu otwórz Strażnika i pozostaw go na pierwszym planie. Dla zapisanej dokładnej lokalizacji aplikacja obliczy na urządzeniu odległość do widocznego obiektu. Orientacyjny czas pokaże tylko wtedy, gdy zna rzeczywistą prędkość i kurs prowadzi w stronę punktu; w przeciwnym razie wyraźnie poda, że ETA nie można wiarygodnie oszacować.</p>
-      <p>To obliczenie nie jest osobnym alarmem odległościowym i nie działa niezawodnie w tle. Zakłada niezmienny kurs, może się zmienić wraz z nowymi danymi i nie zastępuje komunikatów RCB, RSO ani poleceń służb.</p>
-      <h3>Polski / English</h3>
-      <p>Wybór języka od razu zmienia podgląd ustawień. <kbd>Zapisz</kbd> zatwierdza wybór i odświeża aplikację; <kbd>Anuluj</kbd> zachowuje poprzedni język. Angielska wersja obejmuje interfejs, opisy obiektów i samolotów oraz nazwy na mapie. Gdy brak nazwy angielskiej, może pozostać nazwa źródłowa. Cytowane treści zewnętrznych komunikatów nie muszą być przetłumaczone.</p>
-      <h3>Powiadomienia</h3>
-      <p>W ustawieniach sprawdź powiadomienia systemowe, kanały alarmów i zgodę na alarm pełnoekranowy. Dostępny jest również skrót do wyłączenia optymalizacji baterii dla aplikacji. Działanie zależy od ustawień i ograniczeń telefonu.</p>
+      <h3>Moje miejsca</h3>
+      <p><kbd>⚙</kbd> → <kbd>Moje miejsca</kbd> → <kbd>📍 Otwórz Moje miejsca</kbd>. Zapiszesz do 8 miejsc, np. Dom, Praca, Wyjazd. Dla każdego wybierasz województwo i zaznaczasz <kbd>Obserwuj alerty dla tego województwa</kbd>. Powiadomienia przychodzą dla obserwowanych województw; kilka miejsc w tym samym województwie daje jedną subskrypcję. Pierwsze miejsce wyznacza „mój region” na mapie.</p>
+      <p>Zakres miejsca może być dokładny: po dotknięciu <kbd>◎ Pobierz pozycję jeden raz</kbd> aplikacja zapisuje jednorazowo punkt i jego dokładność. Nie ma śledzenia w tle. Przy otwartej aplikacji Strażnik policzy wtedy na telefonie odległość do widocznych obiektów. Powiadomienia i tak idą według województwa.</p>
+      <p>Dane miejsc zostają na urządzeniu — przycisk nazywa się <kbd>Zapisz na urządzeniu</kbd>.</p>
     </div>
-    <figure><a class="shot-link" href="screens/places-pl.png"><img loading="lazy" src="screens/places-pl.png" width="1080" height="2400" alt="Moje miejsca w 1.7.23: nazwa miejsca, zakres, województwo i przełącznik obserwacji alertów; okno z marginesami nad paskiem zakładek"></a><figcaption>„Moje miejsca” w 1.7.23 — okno ma marginesy i kończy się nad paskiem zakładek; wcześniej zajmowało ekran od krawędzi do krawędzi. Pixel 7, 12 września 2026.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/1737/places-pl.jpg"><img loading="lazy" src="screens/1737/places-pl.jpg" width="1080" height="2400" alt="Okno Moje miejsca: miejsce Dom, zakres Województwo, województwo lubelskie, zaznaczone Obserwuj alerty dla tego województwa, opis działania i przyciski Anuluj zmiany oraz Zapisz na urządzeniu"></a><figcaption>Miejsce „Dom” w lubelskim z obserwacją alertów.</figcaption></figure>
+  </div>
+  <div class="shots">
+    <figure><a class="shot-link" href="screens/1737/set-alarmy-pl.jpg"><img loading="lazy" src="screens/1737/set-alarmy-pl.jpg" width="1080" height="2400" alt="Ustawienia, zakładka Alarmy: stan Powiadomienia gotowe z regionem lubelskie oraz przyciski Ustawienia powiadomień, Sprawdź zgodę na alarm pełnoekranowy i Wyłącz oszczędzanie baterii"></a><figcaption><b>Alarmy</b>: stan powiadomień i skróty do ustawień Androida.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/1737/set-miejsca-pl.jpg"><img loading="lazy" src="screens/1737/set-miejsca-pl.jpg" width="1080" height="2400" alt="Ustawienia, zakładka Moje miejsca: 1 z 8 miejsc, obserwowane województwa lubelskie i przycisk Otwórz Moje miejsca"></a><figcaption><b>Moje miejsca</b>: podsumowanie i wejście do edycji.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/1737/set-dzwiek-pl.jpg"><img loading="lazy" src="screens/1737/set-dzwiek-pl.jpg" width="1080" height="2400" alt="Ustawienia, zakładka Dźwięk: opis sygnałów i przyciski Test: uwaga, Test: syrena oraz Test: pełny alarm"></a><figcaption><b>Dźwięk</b>: lokalne testy sygnałów.</figcaption></figure>
+  </div>
+  <h3>Zgody na Androidzie</h3>
+  <p>W zakładce <kbd>Alarmy</kbd> sprawdzisz, czy powiadomienia są gotowe i dla jakiego regionu. Trzy przyciski prowadzą wprost do ustawień systemu: <kbd>🔔 Ustawienia powiadomień</kbd>, <kbd>🚨 Sprawdź zgodę na alarm pełnoekranowy</kbd> i <kbd>🔋 Wyłącz oszczędzanie baterii</kbd>. Android 14 i nowszy potrafi cofnąć zgodę na pełny ekran po aktualizacji — sprawdź ją osobiście.</p>
+  <h3>Polski / English</h3>
+  <p><kbd>⚙</kbd> → <kbd>Aplikacja</kbd> → <kbd>Język interfejsu</kbd>. Okno ustawień od razu pokazuje podgląd; <kbd>Zapisz</kbd> przeładowuje aplikację w nowym języku, <kbd>Anuluj</kbd> zostawia poprzedni. Wersja angielska obejmuje interfejs, opisy obiektów i nazwy na mapie; cytowane komunikaty i tytuły artykułów pozostają w oryginale.</p>
+</section>
+
+<section id="ekran">
+  <h2>3. Ekran główny</h2>
+  <p>Układ ma cztery strefy: <b>pasek u góry</b>, <b>kafelki przy prawej krawędzi mapy</b>, <b>baner mojego regionu</b> nad dolnym paskiem i <b>zakładki na dole</b>.</p>
+  <div class="tw"><table><thead><tr><th>Element</th><th>Co robi</th></tr></thead><tbody>
+    <tr><td><b>STRAŻNIK</b> i sześć diod</td><td>Diody to źródła: NEPTUN, Alarmy UA, ADS-B, RSS, RCB, PAŻP. Zielona — źródło odpowiada, czerwona — nie odpowiada. Dotknięcie diod otwiera opis źródeł; dotknięcie nazwy — krótki opis aplikacji. Zielona dioda oznacza działające źródło, a nie brak zagrożenia.</td></tr>
+    <tr><td>Ikona suwaków</td><td><b>Legenda</b> symboli, kolorów województw i stref.</td></tr>
+    <tr><td>Ikona sześcianu</td><td><b>Widok 2D / 3D</b>. W 3D wysokość bryły województwa rośnie z liczbą punktów — także poniżej progu.</td></tr>
+    <tr><td>Ikona samolotu</td><td><b>Obce maszyny</b> nad wschodnią flanką (rozdział <a href="#obce-maszyny">8</a>).</td></tr>
+    <tr><td>Ikona dzwonka</td><td>Powiadomienia: w aplikacji — włączenie lub wyciszenie, na stronie WWW — powiadomienia w przeglądarce (rozdział <a href="#www">10</a>).</td></tr>
+    <tr><td>Ikona zębatki</td><td><b>Ustawienia</b>: Alarmy, Moje miejsca, Dźwięk, Aplikacja.</td></tr>
+    <tr><td><kbd>mój region</kbd></td><td>Kadruje mapę na pierwszym zapisanym miejscu.</td></tr>
+    <tr><td><kbd>strefy</kbd></td><td>Włącza i wyłącza warstwę stref PAŻP. Przygaszony kafelek — warstwa wyłączona.</td></tr>
+    <tr><td><kbd>cała PL</kbd></td><td>Pokazuje Polskę razem z Ukrainą.</td></tr>
+    <tr><td>Baner nad zakładkami</td><td>Twój region, jego poziom i punkty, np. „Lubelskie — poniżej progu 1,1 pkt”. Dotknięcie otwiera kartę województwa.</td></tr>
+    <tr><td><kbd>źródła ⓘ</kbd></td><td>Autorzy danych i mapy.</td></tr>
+    <tr><td>Zakładki <kbd>Mapa</kbd> <kbd>Sygnały</kbd> <kbd>Historia</kbd> <kbd>Więcej</kbd></td><td>Mapa wraca do widoku głównego; Sygnały otwiera panel; Historia przewija 12 godzin; Więcej — „O aplikacji i punktacja”, „Instrukcja użytkownika”, „Wesprzyj autora”.</td></tr>
+  </tbody></table></div>
+  <p>Przy starcie na dole pojawia się pasek „NIEOFICJALNE źródło dodatkowe…”. Możesz go zamknąć krzyżykiem — wraca przy alarmie. Panele i okna zamkniesz krzyżykiem, zakładką <kbd>Mapa</kbd> albo dotknięciem obok.</p>
+  <div class="shots">
+    <figure><a class="shot-link" href="screens/1737/sources-pl.jpg"><img loading="lazy" src="screens/1737/sources-pl.jpg" width="1080" height="2400" alt="Okno Źródła danych: każda dioda to jedno źródło; opis NEPTUN i Alarmy UA ze stanem działa"></a><figcaption>Dotknięcie diod: opis i stan każdego źródła.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/1737/more-pl.jpg"><img loading="lazy" src="screens/1737/more-pl.jpg" width="1080" height="2400" alt="Arkusz Więcej: O aplikacji i punktacja, Instrukcja użytkownika, Wesprzyj autora i przycisk Zamknij"></a><figcaption>Zakładka <kbd>Więcej</kbd>.</figcaption></figure>
   </div>
 </section>
+
 <section id="mapa">
-  <h2>3. Mapa i nowe ikony</h2>
-  <p>Przesuwaj mapę palcem, powiększaj dwoma palcami i dotykaj obiektów, aby otworzyć szczegóły. Kolor województwa odzwierciedla punktację: poniżej 2 pkt — niebieski, od 2 pkt — żółty, od 4 pkt — czerwony. W widoku 3D wysokość bryły rośnie z wynikiem.</p>
-  <p>Obiekty NEPTUN mają teraz różne <b>kształty</b>, nie tylko kolory. Samoloty i śmigłowce ADS-B zachowały swoje sylwetki. Legenda nie zawiera już osobnej sekcji odcieni państw.</p>
-  <div class="split">
-    <div><div class="tw"><table>
-      <caption>Biblioteka symboli obiektów NEPTUN</caption>
-      <thead><tr><th>Obiekt</th><th>Jak go rozpoznać</th></tr></thead><tbody>
-      <tr><td>Dron / BpSP</td><td>Żółta sylwetka płatowca.</td></tr>
-      <tr><td>Shahed</td><td>Pomarańczowe skrzydło delta.</td></tr>
-      <tr><td>FPV</td><td>Cztery wirniki; lokalny dron, bez punktów w tym modelu.</td></tr>
-      <tr><td>Dron rozpoznawczy</td><td>Jasna sylwetka z długimi skrzydłami.</td></tr>
-      <tr><td>Rakieta manewrująca</td><td>Czerwony korpus ze skrzydłami.</td></tr>
-      <tr><td>Rakieta balistyczna</td><td>Różowy, smukły grot z płomieniem.</td></tr>
-      <tr><td>KAB</td><td>Żółta sylwetka bomby kierowanej.</td></tr>
-      <tr><td>MiG-31K — nosiciel</td><td>Fioletowa sylwetka samolotu ze źródła NEPTUN.</td></tr>
-      <tr><td>Obiekt nierozpoznany</td><td>Szary romb ze znakiem zapytania.</td></tr>
-    </tbody></table></div>
-    <p><b>Okrąg wokół obiektu oznacza niepewność pozycji (±km).</b> Większy okrąg oznacza większy obszar niepewności, nie większy zasięg rażenia. Przerywana linia pokazuje ślad tylko wtedy, gdy źródło przekazuje pozycje nadające się do obserwacji ruchu. Punkt oznaczony jako „przybliżony rejon zgłoszenia” nie jest trasą.</p></div>
-    <figure><a class="shot-link" href="screens/04_legenda.jpg"><img loading="lazy" src="screens/04_legenda.jpg" width="1080" height="2400" alt="Legenda w 1.7.23: dziewięć odrębnych ikon NEPTUN, okrąg niepewności, samolot, śmigłowiec i progi punktowe"></a><figcaption>Aktualne symbole, APK 1.7.23. Legendę otwiera pierwsza ikona w górnym pasku; okno ma ograniczoną wysokość i nie wchodzi na dolne komunikaty.</figcaption></figure>
-  </div>
-  <h3 id="zdjecia">Podgląd obiektu i zdjęcia</h3>
-  <p>Karta obiektu podaje typ, rejon, liczbę potwierdzeń, wiarygodność, niepewność pozycji, kurs i odległość od Polski. ETA pojawia się tylko dla pozycji nadającej się do takiego obliczenia. Pole źródłowe <code>confirmed</code> może potwierdzać meldunek, nie dokładność współrzędnych. Jeżeli NEPTUN oznaczy rejon jako przybliżony albo Strażnik rozpozna kanoniczny punkt środka miejscowości, odległość jest zaokrąglona do dziesiątek kilometrów, a aplikacja nie przesuwa sztucznie znacznika, nie rysuje pozornej trasy i nie pokazuje ETA. Nazwa miejscowości może opisywać kierunek lub cel raportu, a nie położenie obiektu. Ilustracje AI są poglądowe i nie służą do rozpoznawania modelu.</p>
-  <p>Po dotknięciu samolotu ADS-B zobaczysz znak wywoławczy, rejestrację, kraj, model, przeznaczenie, wysokość, prędkość i kurs, zależnie od dostępnych danych. <kbd>Śledź trasę</kbd> pozwala obserwować zebrany ślad. Brak transpondera lub odbioru oznacza brak pozycji — mapa nie pokazuje wszystkich maszyn wojskowych.</p>
-  <p><b>Fotografie modeli (1.7.19):</b> karta samolotu lub śmigłowca korzysta z lokalnej biblioteki prawdziwych zdjęć. To przykładowy egzemplarz, nie śledzona maszyna; wyposażenie i podwariant mogą się różnić. Gdy dostawca podaje znany kod typu bez opisu wariantu, aplikacja pokazuje sprawdzony przykład rodziny zamiast pustego miejsca. Wyraźnie sprzeczny opis nadal blokuje zdjęcie. Biblioteka obejmuje też Boeing 737-800. Pod fotografią znajdziesz autora, źródło i licencję.</p>
-  <div class="shots">
-    <figure><a class="shot-link" href="screens/approx-position-pl.png"><img loading="lazy" src="screens/approx-position-pl.png" width="1080" height="2400" alt="Karta punktu środka Łucka rozpoznanego jako pozycja rejonowa, bez dokładnego dystansu, trasy i ETA"></a><figcaption><b>Rozpoznany punkt miejscowości w APK 1.7.21.</b> Odizolowany replay wpisu NEPTUN z 11 września 2026: źródłowe <code>confirmed</code>, ale współrzędne odpowiadają środkowi Łucka. To test interfejsu, nie bieżący obiekt ani alarm.</figcaption></figure>
-    <figure><a class="shot-link" href="screens/object-pl.jpg"><img loading="lazy" src="screens/object-pl.jpg" width="1080" height="2400" alt="Karta drona z podpisaną ilustracją AI i parametrami obserwacji po polsku"></a><figcaption>Podgląd obiektu z ilustracją poglądową oraz informacjami ze źródła.</figcaption></figure>
-    <figure><a class="shot-link" href="screens/aircraft-pl.png"><img loading="lazy" src="screens/aircraft-pl.png" width="1080" height="2400" alt="Rozwinięta karta samolotu HERKY7 C-130J: fotografia przykładowego egzemplarza, autor, źródło, licencja i pełna telemetria"></a><figcaption>Rozwinięta karta obserwacji HERKY7; fotografia przedstawia inny egzemplarz C-130J. Pixel 7, APK 1.7.23. Kartę można przewijać.</figcaption></figure>
-    <figure><a class="shot-link" href="screens/card-mini-pl.jpg"><img loading="lazy" src="screens/card-mini-pl.jpg" width="1080" height="2400" alt="Miniatura karty obiektu w lewym dolnym rogu mapy, z białym pierścieniem wokół zaznaczonego samolotu"></a><figcaption><b>Miniatura karty (1.7.23).</b> Po dotknięciu obiektu karta otwiera się jako mały kafelek w rogu i nie zasłania mapy; strzałka rozwija ją do pełnej karty, ✕ zamyka. Zaznaczony obiekt ma na mapie biały pierścień.</figcaption></figure>
-  </div>
-</section>
-<section id="przyciski">
-  <h2>4. Przyciski i zamykanie paneli</h2>
-  <p>Od wersji 1.7.23 układ ma trzy grupy: <b>pasek zakładek na dole</b>, <b>rząd ikon u góry</b> i <b>podpisane kafelki przy prawej krawędzi mapy</b>.</p>
-  <h3>Zakładki na dole ekranu</h3>
-  <div class="tw"><table><thead><tr><th>Zakładka</th><th>Działanie</th></tr></thead><tbody>
-    <tr><td><kbd>Mapa</kbd></td><td>Widok główny. Wraca do mapy z każdego panelu.</td></tr>
-    <tr><td><kbd>Sygnały</kbd></td><td>Karty województw z punktacją, lista sygnałów z okna 60 minut, obiekty przy granicy i lotnictwo wojskowe.</td></tr>
-    <tr><td><kbd>Historia</kbd></td><td>Przewijanie ostatnich 12 godzin suwakiem.</td></tr>
-    <tr><td><kbd>Więcej</kbd></td><td>Arkusz z trzema pozycjami: „O aplikacji i punktacja”, „Instrukcja użytkownika”, „Wesprzyj autora”.</td></tr>
-  </tbody></table></div>
-  <h3>Ikony u góry, po prawej</h3>
-  <p>Pięć ikon kreskowych, bez emoji, w tej kolejności:</p>
-  <div class="tw"><table><thead><tr><th>Ikona</th><th>Działanie</th></tr></thead><tbody>
-    <tr><td>suwaki</td><td><b>Legenda symboli</b> — znaczenie ikon obiektów, kolorów województw i stref.</td></tr>
-    <tr><td>sześcian</td><td><b>Widok 2D / 3D</b> — bryły województw albo płaska mapa.</td></tr>
-    <tr><td>samolot</td><td><b>Obce maszyny</b> nad wschodnią flanką (ADS-B) wraz z dziennikiem obserwacji.</td></tr>
-    <tr><td>dzwonek</td><td><b>Powiadomienia</b> — zgody i stan dostarczania alarmów.</td></tr>
-    <tr><td>zębatka</td><td><b>Ustawienia</b> — województwo, moje miejsca, dźwięk, język, wersja aplikacji.</td></tr>
-  </tbody></table></div>
-  <h3>Kafelki przy prawej krawędzi mapy</h3>
-  <p>Podpisane słowami, jeden pod drugim:</p>
-  <div class="tw"><table><thead><tr><th>Kafelek</th><th>Działanie</th></tr></thead><tbody>
-    <tr><td><kbd>mój region</kbd></td><td>Kadruje mapę na Twoim województwie.</td></tr>
-    <tr><td><kbd>strefy</kbd></td><td>Włącza i wyłącza warstwę stref PAŻP. Przygaszony kafelek oznacza warstwę wyłączoną. Szczegóły w rozdziale <a href="#strefy-punktacja">o strefach</a>.</td></tr>
-    <tr><td><kbd>cała PL</kbd></td><td>Pokazuje całą Polskę razem z Ukrainą.</td></tr>
-  </tbody></table></div>
-  <p>Na górnym pasku jest jeszcze nazwa <b>STRAŻNIK</b> z sześcioma diodami: NEPTUN, Alarmy UA, ADS-B, RSS, RCB i PAŻP. Zielona dioda oznacza dostępność warstwy, a nie potwierdzenie bezpieczeństwa; dotknięcie nazwy otwiera objaśnienie. Przyciski <b>Pobierz aplikację</b> i <b>Instrukcja</b> są tylko na stronie WWW — w aplikacji ich nie ma.</p>
-  <p>Panele nie zwijają się po kilku sekundach. Zamkniesz je krzyżykiem, zakładką <kbd>Mapa</kbd> albo dotknięciem poza panelem. W ustawieniach użyj <kbd>Zapisz</kbd>, aby zatwierdzić zmiany.</p>
-</section>
-<section id="panel">
-  <h2>5. Panel sygnałów</h2>
+  <h2>4. Mapa, obiekty i samoloty</h2>
   <div class="split">
     <div>
-      <p>Zakładka <kbd>Sygnały</kbd> na dolnym pasku otwiera karty województw. Dotknij regionu, aby zobaczyć źródła jego wyniku. Twój region ma obwódkę i podpis „mój region”. Panel zawiera sygnały z okna 60 minut, obiekty blisko granicy oraz publiczne obserwacje lotnictwa wojskowego.</p>
-      <p>Sygnały są uporządkowane według faktycznie zaliczonego wkładu. Widoczna liczba uwzględnia limity źródła i wygaszanie w czasie; przekreślona wartość wyjaśnia, dlaczego nie zaliczono pełnej punktacji. Artykuł rozpoznany jako powtórzenie świeżego Alertu RCB albo materiał historyczny lub opis następstw pozostaje widoczny, lecz ma 0 dodatkowych punktów i odpowiednią etykietę. Różne ID tego samego typu w identycznym punkcie rejonowym są w jednym oknie traktowane jako aktualizacje jednego niepewnego zdarzenia, chyba że źródło poda wiarygodną liczbę obiektów.</p>
-      <p>Wpis <b>Przeniesienie / SPILLOVER</b> wyjaśnia wkład z innego województwa. Tytuł medialny prowadzi do źródła. Sprawdź jego treść i czas publikacji.</p>
-      <p><b>Kamery w regionie</b> prowadzą do dostępnych podglądów otoczenia. To kamery naziemne, nie narzędzie wykrywania obiektów powietrznych.</p>
+      <p>Przesuwaj mapę palcem, powiększaj dwoma palcami i dotykaj obiektów. Kolor województwa pokazuje punkty z ostatnich 60 minut:</p>
+      <div class="tw"><table><thead><tr><th>Kolor</th><th>Znaczenie</th></tr></thead><tbody>
+        <tr><td>granatowy</td><td>0–1,9 pkt — spokojnie (poniżej progu)</td></tr>
+        <tr><td>żółty</td><td>od 2 pkt — podwyższona uwaga</td></tr>
+        <tr><td>czerwony</td><td>od 4 pkt — wysoki priorytet</td></tr>
+        <tr><td>przygaszony, oliwkowy</td><td>kolor wyłącznie od sąsiednich województw; karta ma kreskowaną ramkę i napis „podniesione przez sąsiedztwo · bez alarmu”. Taki kolor nie wysyła powiadomienia.</td></tr>
+      </tbody></table></div>
+      <p>Obiekty z NEPTUN-a nad Ukrainą mają osobne kształty — legenda pokazuje każdy z nich:</p>
+      <div class="tw"><table><thead><tr><th>Obiekt</th><th>Symbol</th></tr></thead><tbody>
+        <tr><td>Dron / BpSP</td><td>żółta sylwetka płatowca</td></tr>
+        <tr><td>Dron Shahed</td><td>pomarańczowe skrzydło delta</td></tr>
+        <tr><td>Dron FPV</td><td>cztery wirniki; lokalny, bez punktów</td></tr>
+        <tr><td>Dron rozpoznawczy</td><td>jasna sylwetka z długimi skrzydłami</td></tr>
+        <tr><td>Rakieta manewrująca</td><td>czerwony korpus ze skrzydłami</td></tr>
+        <tr><td>Rakieta balistyczna</td><td>różowy smukły grot</td></tr>
+        <tr><td>Bomba kierowana KAB</td><td>żółta sylwetka bomby</td></tr>
+        <tr><td>MiG-31K (nosiciel)</td><td>fioletowy samolot</td></tr>
+        <tr><td>Obiekt nierozpoznany</td><td>szary romb ze znakiem zapytania</td></tr>
+      </tbody></table></div>
+      <p><b>Okrąg wokół obiektu</b> to niepewność pozycji (±km), a nie zasięg rażenia. <b>Przerywana linia</b> to trasa przelotu — rysowana tylko wtedy, gdy źródło podaje pozycje nadające się do śledzenia. Niebieskie samoloty i śmigłowce to lotnictwo wojskowe z jawnym transponderem ADS-B.</p>
     </div>
-    <figure><a class="shot-link" href="screens/panel-pl.jpg"><img loading="lazy" src="screens/panel-pl.jpg" width="1080" height="2400" alt="Panel sygnałów w 1.7.23: karty województw z punktacją i lista sygnałów z okna 60 minut"></a><figcaption>Panel otwiera zakładka <kbd>Sygnały</kbd> na dolnym pasku. Rzeczywisty spokojny stan podczas wykonywania zrzutu — wartości zmieniają się z danymi.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/1737/legend-pl.jpg"><img loading="lazy" src="screens/1737/legend-pl.jpg" width="1080" height="2400" alt="Legenda: dziewięć symboli obiektów NEPTUN, okrąg niepewności, przerywana trasa, samolot i śmigłowiec wojskowy oraz progi punktowe województw"></a><figcaption>Legenda — pierwsza ikona u góry.</figcaption></figure>
+  </div>
+  <h3 id="zdjecia">Karta obiektu i samolotu</h3>
+  <p>Dotknięcie obiektu otwiera <b>miniaturę karty</b> w lewym dolnym rogu, a obiekt dostaje na mapie biały pierścień. Strzałka <kbd>⌃</kbd> rozwija kartę, <kbd>⌄</kbd> zwija, <kbd>✕</kbd> zamyka.</p>
+  <p>Karta drona lub rakiety podaje typ, rejon zgłoszenia, liczbę potwierdzeń, wiarygodność, niepewność pozycji, kurs i odległość od granicy Polski. Czas dolotu (ETA) pojawia się tylko dla pozycji nadającej się do takiego obliczenia. Gdy źródło oznaczy pozycję jako rejon zgłoszenia, karta pisze „przybliżony rejon zgłoszenia — brak potwierdzonej trasy i czasu dolotu”, a odległość jest szacunkiem. Ilustracje obiektów są poglądowe (AI) i nie służą do rozpoznawania modelu.</p>
+  <p>Karta samolotu lub śmigłowca pokazuje znak wywoławczy, rejestrację, kraj, model, przeznaczenie, wysokość, prędkość i kurs. Zdjęcie przedstawia <b>przykładowy egzemplarz</b> tego modelu — pod nim są autor, źródło i licencja. <kbd>📍 śledź trasę</kbd> rysuje ślad lotu. Mapa nie pokazuje maszyn z wyłączonym transponderem.</p>
+  <div class="shots">
+    <figure><a class="shot-link" href="screens/1737/card-mini-pl.jpg"><img loading="lazy" src="screens/1737/card-mini-pl.jpg" width="1080" height="2400" alt="Miniatura karty drona w lewym dolnym rogu mapy i biały pierścień wokół zaznaczonego obiektu nad Ukrainą"></a><figcaption>Miniatura karty i zaznaczony obiekt.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/1737/object-pl.jpg"><img loading="lazy" src="screens/1737/object-pl.jpg" width="1080" height="2400" alt="Rozwinięta karta drona: ilustracja poglądowa AI, kurs, potwierdzenia, wiarygodność, niepewność pozycji, odległość od granicy i oznaczenie przybliżonego rejonu zgłoszenia"></a><figcaption>Rozwinięta karta drona.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/1737/aircraft-pl.jpg"><img loading="lazy" src="screens/1737/aircraft-pl.jpg" width="1080" height="2400" alt="Rozwinięta karta samolotu Airbus A400M Atlas TUAF406: zdjęcie przykładowego egzemplarza z autorem i licencją, kraj Turcja, przeznaczenie, wysokość, prędkość, kurs i przycisk śledź trasę"></a><figcaption>Karta samolotu ze zdjęciem przykładowego egzemplarza.</figcaption></figure>
   </div>
 </section>
-<section id="historia">
-  <h2>6. Historia 12 godzin</h2>
+
+<section id="strefy">
+  <h2>5. Strefy PAŻP na mapie</h2>
   <div class="split">
-    <div><h3>Przykład: skąd wzięło się 2,2 pkt</h3>
-      <p>Na przekazanym przez użytkownika zrzucie Lubelskie ma żółty poziom, a panel pokazuje wkład komunikatu RCB (RSO) oraz obserwacji NEPTUN. Pasek na dole wskazuje cztery sygnały — nie wszystkie mieszczą się jednocześnie na widocznym fragmencie listy.</p>
-      <p>Etykieta <b>PODGLĄD HISTORII — 15:11 (−10 min)</b> oznacza odtwarzanie wcześniejszej chwili. To przykład historyczny, nie bieżący alert. Wartości na zrzucie nie są tabelą aktualnych wag ani dowodem czasu doręczenia powiadomienia.</p>
+    <div>
+      <p>Kafelek <kbd>strefy</kbd> pokazuje aktywne strefy przestrzeni powietrznej z planu dobowego Polskiej Agencji Żeglugi Powietrznej. Strefa, która stoi od dawna albo była już aktywna przy starcie obserwacji, ma spokojny fioletowy kontur. Strefa włączona niedawno, na oczach Strażnika, jest żółta i ma bryłę 3D.</p>
+      <p>Dotknięcie strefy otwiera jej opis: typ i jego znaczenie po polsku, od kiedy Strażnik ją widzi, <b>rezerwację do</b> (koniec dzisiejszego wpisu w planie dobowym — strefa bywa przedłużana) i pułap. Przycisk z nazwą województwa prowadzi do jego karty, bo region w całości przykryty strefą trudno dotknąć na mapie.</p>
+      <p><b>Strefy nakładające się na siebie:</b> dotknięcie otwiera najmniejszą strefę pod palcem, a pozostałe w tym miejscu są wymienione jako przyciski „W tym miejscu są też”.</p>
+      <p>Sama warstwa stref <b>nie dodaje punktów</b>. Punktuje tylko rzadka strefa typu D, R, NPZ albo ADHOC — zasady są w rozdziale <a href="#strefy-punktacja">o punktacji stref</a>.</p>
     </div>
-    <figure><a class="shot-link" href="screens/history-lubelskie-user.png"><img loading="lazy" src="screens/history-lubelskie-user.png" width="1440" height="3200" alt="Historyczne Lubelskie: żółty poziom 2,2 pkt, wpis RCB (RSO), obiekty NEPTUN na mapie i suwak o 15:11"></a><figcaption>Przykład historyczny od użytkownika: podwyższona uwaga w Lubelskiem i rozbicie punktacji na źródła. Oryginalny zrzut, bez zmiany treści.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/1737/zones-card-pl.jpg"><img loading="lazy" src="screens/1737/zones-card-pl.jpg" width="1080" height="2400" alt="Karta strefy EPTS551: strefa czasowo wydzielona TSA, opis, informacja że była aktywna przy starcie obserwacji, rezerwacja do 14.09 08:00, pułap F225–F315, przycisk Województwo lubelskie i uwaga o punktach"></a><figcaption>Karta strefy.</figcaption></figure>
   </div>
-  <p>Dotknij zakładki <kbd>Historia</kbd> na dolnym pasku i przeciągaj suwak w lewo lub w prawo. Pasek nazywa tryb wprost: <b>⏱ TRYB HISTORII</b>. Mapa oraz panel pokazują wybraną chwilę, nie bieżący stan. Etykieta podaje godzinę i liczbę minut wstecz. Przycisk <kbd>▶ Wróć do podglądu na żywo</kbd> przywraca aktualny widok. Suwak w 1.7.23 jest wyraźnie większy: 44 px pola dotyku i 28 px uchwytu.</p>
-  <p>Pakiet historii pobierany jest na urządzenie, a przewijanie korzysta z lokalnego bufora. Każdy ruch palca nie wysyła osobnego zapytania do serwera. Migawki powstają zwykle co 2 minuty: to odtwarzanie zapisanych próbek, nie ciągłe nagranie radarowe. Długość dostępnej historii zależy od ciągłości zapisu i źródeł.</p>
-  <p><b>Spójny czas samolotów (1.7.17):</b> mapa, lista maszyn, panel obcego lotnictwa i szczegóły samolotu korzystają z tej samej wybranej chwili. Późniejsze zdarzenie nie może pojawić się we wcześniejszym widoku. Przycisk <kbd>▶ Wróć do podglądu na żywo</kbd> przywraca dane bieżące.</p>
-  <p>Przygaszona obca maszyna to <b>ostatnia zapisana pozycja</b>, uzupełniająca lukę między migawkami. Pokazujemy ją tylko na podstawie wcześniejszego wpisu dziennika, nie starszego niż 2,5 minuty względem wybranej chwili. Karta podaje czas zapisu i zaznacza brak w migawce. Wpis „zniknął” opisuje utratę obecności w danych, nie lądowanie ani zestrzelenie; jego czas nie musi być czasem ostatniej emisji transpondera. Licznik rozdziela maszyny w migawce od ostatnich obserwacji.</p>
-  <p>Panel 🛰 pobiera niewielki dziennik serwera z ostatnich 12 godzin, także z czasu, gdy aplikacja była zamknięta, i łączy go z lokalnymi wpisami bez powielania tych samych przejść. Wyświetla tylko wpisy do wybranej chwili. Odświeżanie jest ograniczone do najwyżej jednego zapytania na minutę, nie jest wykonywane przy każdym ruchu suwaka. Niedostępność dziennika lub lokalny tryb awaryjny są opisane w panelu. Te obserwacje nie dodają punktów.</p>
   <div class="shots">
-    <figure><a class="shot-link" href="screens/history-map-pl.png"><img loading="lazy" src="screens/history-map-pl.png" width="1080" height="2400" alt="Tryb historii w 1.7.24: nagłówek TRYB HISTORII, większy suwak, przycisk Wróć do podglądu na żywo i licznik maszyn w migawce"></a><figcaption>Rzeczywista historia serwera, APK 1.7.24 — 12 września 2026. Wysokość paska nie zmienia się, gdy w oknie pojawi się sygnał.</figcaption></figure>
-    <figure><a class="shot-link" href="screens/history-watch-pl.png"><img loading="lazy" src="screens/history-watch-pl.png" width="1080" height="2400" alt="Panel obcych maszyn zsynchronizowany z wybranym czasem historii, ze statusem dziennika"></a><figcaption>Panel 🛰 pokazuje ten sam czas co mapa — Pixel 7, 1.7.17.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/1737/zones-map-pl.jpg"><img loading="lazy" src="screens/1737/zones-map-pl.jpg" width="1080" height="2400" alt="Mapa kadrowana na lubelskie z włączoną warstwą stref: fioletowe kontury nad wschodnią Polską i podświetlony kafelek strefy"></a><figcaption>Warstwa stref nad wschodnią Polską.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/1737/legend2-pl.jpg"><img loading="lazy" src="screens/1737/legend2-pl.jpg" width="1080" height="2400" alt="Dolna część legendy: kolory województw z przygaszonym kolorem od sąsiadów oraz kolory stref stałych i włączonych ostatnio z opisem punktacji"></a><figcaption>Legenda województw i stref.</figcaption></figure>
   </div>
-  <p>Sygnał w oknie 60 minut może pozostać na liście po zniknięciu obiektu z mapy. To różne rzeczy: lista opisuje zarejestrowane zdarzenia, mapa — pozycje dostępne w konkretnej migawce. NEPTUN usuwa wpis komunikatem źródłowym lub zastępuje listę aktywnych obiektów; sama przyczyna usunięcia nie jest przekazywana. Zniknięcie nie dowodzi zestrzelenia, rozbicia ani opuszczenia rejonu. Nowy identyfikator w tym samym przybliżonym punkcie może oznaczać ponowne zgłoszenie, nie nowy fizyczny obiekt. Dla części obcych maszyn aplikacja może pokazać przygaszoną ostatnią obserwację, odróżnioną od bieżącej pozycji.</p>
 </section>
-<section id="alarm">
-  <h2>7. Żółty i czerwony alarm</h2>
+
+<section id="sygnaly">
+  <h2>6. Panel sygnałów</h2>
+  <div class="split">
+    <div>
+      <p>Zakładka <kbd>Sygnały</kbd> otwiera karty województw. Twój region jest pierwszy i ma podpis „mój region”. Każda karta podaje punkty, poziom, podsumowanie „składa się z” (np. „0,6 ALARM UA”) i strefy PAŻP nad województwem. Dotknięcie karty rozwija listę sygnałów.</p>
+      <p>Każdy wiersz sygnału pokazuje źródło, wkład w punktach, tytuł (artykuł otwiera się jako link), wiek sygnału i jego wagę. Sygnał ma pełną wagę przez 30 minut, potem traci ją aż do zera w 60. minucie — dopisek „waga 64%” to właśnie to. <b>Przekreślona liczba</b> to wartość nominalna, której nie zaliczono, bo sygnał wygasa albo klasa źródła osiągnęła limit. Liczby w podsumowaniu są zaokrąglone osobno, dlatego ich suma może różnić się o 0,1 od wyniku.</p>
+      <p>Sygnał bez punktów zostaje widoczny z objaśnieniem:</p>
+      <ul>
+        <li><b>Powtórzenie oficjalnego alertu</b> — artykuł przepisujący świeży Alert RCB.</li>
+        <li><b>Materiał historyczny / następstwa</b> — rocznica, proces, odbudowa.</li>
+        <li><b>Odwołany przez RCB</b> i <b>Po odwołaniu alertu RCB</b> — alert, który RCB odwołało, i artykuły o nim.</li>
+        <li><b>Relacja z wcześniejszego zdarzenia</b> — serwer przeczytał artykuł, a treść opisuje coś sprzed ponad godziny.</li>
+        <li><b>Nie udało się przeczytać artykułu — bez punktów</b> — treści nie dało się pobrać; link zostaje.</li>
+      </ul>
+      <p>Wpis <b>SĄSIEDZTWO</b> to przeniesienie punktów z sąsiedniego województwa (rozdział <a href="#punkty">11</a>).</p>
+    </div>
+    <figure><a class="shot-link" href="screens/1737/panel-pl.jpg"><img loading="lazy" src="screens/1737/panel-pl.jpg" width="1080" height="2400" alt="Panel sygnałów: karta Lubelskie mój region 0,6 pkt poniżej progu, składa się z 0,6 ALARM UA, strefy PAŻP bez punktów, oraz karty Podkarpackie i Mazowieckie"></a><figcaption>Karty województw w spokojnej chwili.</figcaption></figure>
+  </div>
+  <p>Niżej panel ma dwie listy obserwacji bez punktów: <b>Obiekty ≤ 250 km od granicy</b> (NEPTUN) i <b>Lotnictwo wojskowe (ADS-B)</b> nad wschodnią Polską. To publiczne dane z transponderów, a nie namierzanie. W karcie województwa, jeśli są dostępne, znajdziesz też <kbd>📷 Kamery w regionie</kbd> — kamery drogowe, nie narzędzie do wykrywania obiektów.</p>
   <div class="shots">
-    <figure><a class="shot-link" href="screens/30_alert_zolty_tlo.jpg"><img loading="lazy" src="screens/30_alert_zolty_tlo.jpg" width="1440" height="3200" alt="Test żółtego poziomu: rozwinięte powiadomienie Androida PODWYŻSZONA UWAGA dla Lubelskiego, 2,4 pkt"></a><figcaption><b>Żółty poziom — powiadomienie systemowe.</b> Rozwinięty widok z opisem przyczyn. Archiwalny zrzut testowy z telefonu, z wcześniejszej wersji aplikacji; wygląd szuflady zależy od Androida i producenta.</figcaption></figure>
-    <figure><a class="shot-link" href="screens/32_alarm_pelnoekranowy.jpg"><img loading="lazy" src="screens/32_alarm_pelnoekranowy.jpg" width="720" height="1600" alt="Test czerwonego alarmu pełnoekranowego WYSOKI PRIORYTET z przyciskami potwierdzenia i otwarcia mapy"></a><figcaption><b>Czerwony poziom — alarm pełnoekranowy.</b> Potwierdzenie wycisza alarm; drugi przycisk otwiera mapę. Archiwalny zrzut testowy z wcześniejszej wersji, nie zrzut aktualnego APK 1.7.16.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/1737/panel-adsb-pl.jpg"><img loading="lazy" src="screens/1737/panel-adsb-pl.jpg" width="1080" height="2400" alt="Dolna część panelu: Obiekty do 250 km od granicy — brak, oraz lista Lotnictwo wojskowe ADS-B z maszynami C-17 Globemaster III i A400M Atlas"></a><figcaption>Obiekty przy granicy i lotnictwo wojskowe.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/1737/alarm-pl.jpg"><img loading="lazy" src="screens/1737/alarm-pl.jpg" width="1080" height="2400" alt="Ekran testowego alarmu WYSOKI PRIORYTET dla lubelskiego z listą sygnałów, w tym artykuły oznaczone Po odwołaniu alertu RCB z wkładem 0 pkt"></a><figcaption>Test pełnego alarmu z bieżącymi sygnałami regionu — widać oznaczenia „Po odwołaniu alertu RCB”.</figcaption></figure>
   </div>
-  <p class="fineprint">Te dwa obrazy dokumentują wcześniejsze testy, nie bieżące zagrożenie. Teksty, liczby i odległości na nich są przykładami testowymi, a nie aktualną tabelą punktacji. Zrzut nie oddaje dźwięku ani migania ekranu.</p>
-  <div class="tw"><table><thead><tr><th>Wynik</th><th>Sygnalizacja</th></tr></thead><tbody>
-    <tr><td>Poniżej 2 pkt</td><td>Informacje pozostają na mapie i w panelu, bez alarmu progowego.</td></tr>
-    <tr><td>Od 2 do poniżej 4 pkt</td><td>Żółty poziom „PODWYŻSZONA UWAGA”: krótki sygnał uwagi i powiadomienie, które może pojawić się jako heads-up.</td></tr>
-    <tr><td>Od 4 pkt</td><td>Czerwony „WYSOKI PRIORYTET”: syrena, wibracja i alarm pełnoekranowy, jeśli system i zgody na to pozwalają. Potwierdzenie na ekranie wycisza alarm.</td></tr>
-  </tbody></table></div>
-  <p>W <kbd>⚙</kbd> → <kbd>Dźwięk</kbd> dostępne są <kbd>Test: uwaga</kbd>, <kbd>Test: syrena</kbd> oraz <kbd>Test: pełny alarm</kbd>. To testy lokalne na Twoim urządzeniu. Nie potwierdzają dostarczenia push z serwera. W 1.7.15 podniesiono poziom czerwonej syreny; rzeczywista głośność zależy również od telefonu i ustawień dźwięku.</p>
-  <div class="warn"><b>Sprawdź pełny ekran na swoim telefonie.</b> Bez odpowiedniej zgody czerwony alert może być tylko powiadomieniem. Sprawdź również głośność, ustawienia kanałów, tryb Nie przeszkadzać i ograniczenia baterii. Ponów kontrolę po aktualizacji.</div>
 </section>
-<section id="tlo">
-  <h2>8. Push, strona WWW i tryb awaryjny</h2>
-  <p><b>Android:</b> serwer wysyła push przez Firebase dla wybranego województwa. Mechanizm jest przeznaczony do działania również przy zamkniętej aplikacji i zablokowanym ekranie. Wymaga łączności i poprawnej konfiguracji telefonu. „Wymuś zatrzymanie” w ustawieniach Androida może blokować odbiór do ponownego uruchomienia aplikacji. Nie ma już usługi „nasłuch aktywny”.</p>
-  <p><b>Przeglądarka:</b> sama zakładka z adresem nie włącza ostrzegania. Otwarta karta może pokazywać i odtwarzać alarmy; dźwięk wymaga interakcji użytkownika. Odbiór przy zamkniętej karcie wymaga oddzielnej zgody i subskrypcji Web Push oraz wsparcia przeglądarki i systemu. Web Push obejmuje tylko województwa włączone przełącznikiem <kbd>Obserwuj alerty</kbd>; po zmianie miejsc przypisanie odświeża się przy otwarciu strony. Zachowanie nie jest identyczne z natywnym pełnoekranowym alarmem Androida.</p>
-  <p><b>Awaria serwera:</b> po nieudanych próbach połączenia otwarta aplikacja uruchamia wbudowany silnik. Nadal potrzebuje internetu do źródeł. W obecnym kodzie sprawdza powrót serwera co minutę i po odzyskaniu połączenia zatrzymuje własne odpytywanie. W czasie aktywnego alarmu odkłada przełączenie. Tryb awaryjny nie zapewnia zastępczego całodobowego monitorowania po zamknięciu aplikacji.</p>
-  <p>Zapowiedź testów może pojawić się jako komunikat do potwierdzenia i zamknięcia. Sam komunikat nie jest dowodem działania ścieżki alarmowej.</p>
-</section>
-<section id="punkty">
-  <h2>9. Skąd biorą się punkty</h2>
-  <p>Podstawowe okno wynosi 60 minut. Przez pierwsze 30 minut sygnał zachowuje pełną wagę, następnie maleje ona liniowo do zera. Każda klasa źródła ma limit wkładu; kolejna obserwacja tego samego toru NEPTUN ani nowe ID w identycznym punkcie rejonowym nie są automatycznie sumowane jako nowy obiekt.</p>
-  <div class="tw"><table><thead><tr><th>Źródło</th><th>Co jest uwzględniane</th><th>Waga / limit</th></tr></thead><tbody>
-    <tr><td>NEPTUN — obiekty</td><td>Typ, liczba obiektów w zgłoszeniu, odległość od granicy, kurs, wiarygodność, potwierdzenia, stan obserwacji i jakość pozycji. Rejon źródłowy ma mnożnik ×0,6, a rozpoznany środek miejscowości ×0,5.</td><td>Łącznie maks. 8 pkt</td></tr>
-    <tr><td>Alarmy UA</td><td>Alarm w wybranych obwodach zachodniej Ukrainy. Waga maleje płynnie z odległością obwodu od województwa: przy granicy 1; 50 km 0,7; 100 km 0,5; 150 km 0,3; 220 km 0,15; 320 km 0,08.</td><td>do 1 pkt, limit klasy 1</td></tr>
-    <tr><td>Media</td><td>Obiekt powietrzny i zdarzenie dają 0,5 pkt. Jednoznaczna bieżąca relacja operacyjna — np. alarm powietrzny, syreny, poderwanie lotnictwa, zestrzelenie lub upadek obiektu — daje 1 pkt. Cała klasa RSS ma limit 1 pkt. Serwer czyta cały artykuł, zanim przyzna punkty: jeśli treść opisuje zdarzenie sprzed ponad godziny („przed godziną 4 rano”, „w nocy”), artykuł jest oznaczony jako relacja z wcześniejszego zdarzenia i ma 0 pkt. Artykuł, którego nie da się przeczytać (np. link Google News bez dostępu do strony redakcji), też ma 0 pkt i zostaje w panelu z linkiem. Ćwiczenia, materiały historyczne, następstwa prawne i powtórzenie świeżego Alertu RCB pozostają widoczne z wkładem 0 pkt; sama wzmianka o RCB nie zeruje nowej informacji.</td><td>0 / 0,5 / 1 pkt; limit 1</td></tr>
-    <tr><td>RCB / RSO</td><td>Odpowiednie opublikowane komunikaty o zagrożeniach powietrznych. Czas publikacji w źródle może różnić się od doręczenia SMS.</td><td>2 pkt, limit 2</td></tr>
-    <tr><td>ADS-B</td><td>Co najmniej 3 maszyny i ponad dwukrotność tła dla tej pory doby, zbieranego przez 7 dni.</td><td>1 pkt, limit 1</td></tr>
-    <tr><td>PAŻP</td><td>Rzadkie ADHOC/R/NPZ/D od ziemi do poziomu lotu; filtry rutyny i powtarzania designatorów. Sama aktywacja nie dowodzi zagrożenia militarnego. Na północy waży dwa razy tyle — <a href="#strefy-punktacja">dlaczego</a>.</td><td>0,5 pkt (północ 1), limit 1</td></tr>
-    <tr><td>Media bałtyckie</td><td>Incydenty LT/LV/EE jako kontekst dla Podlaskiego i Warmińsko-Mazurskiego. Rozpoznane odwołanie wygasza ten sam incydent.</td><td>1 pkt</td></tr>
-    <tr><td>Strefy sąsiadów</td><td>Wybrane restrykcje LT/EE i północnej Rumunii (od 47°N). Łotewskie strefy i oficjalne komunikaty LV są na etapie obserwacji bez punktów.</td><td>0,3 pkt, limit 0,6</td></tr>
-  </tbody></table></div>
-  <h3>Obiekty: płynna zależność od odległości</h3>
-  <p>Wagi typów: balistyczna 3,0; MiG-31K 2,6; manewrująca 2,4; KAB 1,8; Shahed 1,4; dron 1,1; rozpoznawczy 0,5; FPV 0. Waga jest mnożona m.in. przez pierwiastek z liczby obiektów i współczynniki jakości danych oraz kursu.</p>
-  <p>Odległość jest interpolowana płynnie przez punkty: <b>0 km ×1,7; 15 ×1,6; 45 ×1,3; 80 ×1,0; 110 ×0,7; 150 ×0,4; 200 ×0,25; 250 ×0,1</b>. Od 250 km zwykły wkład wynosi zero. Przy nieznanym kursie punktowanie jest ograniczone do bliskich obiektów i obniżone. Dla rakiet i MiG-31K do 60 km, z co najmniej dwoma potwierdzeniami, działa minimum 2 pkt skalowane współczynnikiem kursu.</p>
-  <h3>Czas dolotu</h3>
-  <p>Karta pokazuje szacunek do granicy Polski oraz do granicy wybranego województwa, nie do adresu użytkownika. ETA jest wyłączone, gdy NEPTUN oznaczy pozycję jako przybliżoną lub Strażnik rozpozna punkt środka miejscowości. Dla pozostałych pozycji aplikacja korzysta z prędkości źródłowej, gdy jest dostępna, albo typowej dla klasy. Odejmuje bufor 2,5 minuty wynikający z wcześniejszych pomiarów opóźnienia. Bufor nie pokrywa każdej możliwej zwłoki.</p>
-  <p>Aktualny mechanizm progowy ETA odnosi się do <b>granicy Polski</b>: tylko dla pozycji nieoznaczonej jako przybliżona, przy znanym kursie, co najmniej dwóch potwierdzeniach i średniej lub wysokiej wiarygodności może podnieść wkład obiektu do 2 pkt przy ≤10 min lub 4 pkt przy ≤5 min. Nie dolicza drugiego kompletu punktów za ten sam obiekt.</p>
-  <div class="warn">Czas dolotu to przybliżenie zakładające dalszy lot. Nie uwzględnia zestrzelenia, zmiany kursu ani pełnej niepewności danych. Nie traktuj go jako odliczania czasu na schronienie. Przy braku kursu aplikacja zaznacza ograniczenie estymacji.</div>
-  <h3>Przeniesienie na sąsiednie województwa</h3>
-  <p>Wynik co najmniej 2 pkt z sygnałów innych niż regionalny Alert RCB może wnosić 40% do pierwszego kręgu sąsiadów, 16% do drugiego itd., do limitów algorytmu. Oficjalny komunikat RCB/RSO nie jest przenoszony: jego obszar wskazał już nadawca, a ten sam komunikat może być wydany osobno dla kilku województw. To reguła kontekstu regionalnego, nie prognoza trasy obiektu. Wkład jest opisany w panelu.</p>
-  <p><b>To samo zdarzenie nie wraca przez przeniesienie.</b> Artykuł albo alarm obwodu UA przypisany do dwóch sąsiednich województw liczy się w każdym z nich w pełni, ale nie jest już doliczany drugi raz jako 40% od sąsiada. Wcześniej lubelskie i podkarpackie podbijały się tak nawzajem tym samym materiałem.</p>
-  <p><b>Kiedy przeniesienie może włączyć alarm.</b> Powiadomienie wymaga co najmniej <b>1 pkt własnych sygnałów</b> w Twoim województwie. Przeniesienie może wtedy domknąć próg, ale najwyżej o jeden stopień: własne punkty poniżej progu żółtego plus sąsiad dają co najwyżej <b>żółty</b>, a czerwony jest możliwy dopiero przy własnym żółtym.</p>
-  <p><b>Kolor tylko od sąsiadów wygląda inaczej.</b> Województwo, które ma kolor wyłącznie z przeniesień, jest na mapie przygaszone i niższe, a karta ma kreskowaną ramkę i napis „podniesione przez sąsiedztwo · bez alarmu”. Taki kolor nie włącza powiadomienia ani dźwięku w otwartej aplikacji.</p>
-  <p><b>Bez powtórek.</b> Poziom zawsze odpowiada bieżącym punktom. Gdy wynik spadnie i znów przekroczy ten sam próg w ciągu 60 minut od powiadomienia, zmienia się tylko mapa — telefon nie dzwoni drugi raz, chyba że w tym czasie przyszedł nowy alert RCB/RSO. Wejście na wyższy poziom (z żółtego na czerwony) powiadamia zawsze.</p>
-  <h3>Odwołanie alertu RCB</h3>
-  <p>Gdy RCB odwoła alert w RSO (także przez zmianę istniejącego wpisu), Strażnik przestaje liczyć ten alert i wcześniejsze artykuły o nim. Przez 4 godziny po odwołaniu artykuły, które tylko relacjonują syreny lub alert, w tym województwie są oznaczane jako „po odwołaniu alertu RCB” i nie dają punktów, chyba że RCB wyda nowy alert. Tytuły podsumowujące, np. „Niespokojny poranek…”, liczą się najwyżej za 1 pkt.</p>
-</section>
-<section id="nowosci">
-  <h2>10. Co obejmuje obecne wydanie</h2>
-  <div class="cards">
-    <div class="card"><h3>Polski i angielski</h3><p>Podgląd języka przed zapisaniem, angielskie opisy maszyn i geograficzne etykiety mapy.</p></div>
-    <div class="card"><h3>Rozpoznawalne ikony</h3><p>Oddzielne sylwetki dronów, rakiet, KAB i obiektów nieznanych, aktualna legenda i podpisane ilustracje poglądowe.</p></div>
-    <div class="card"><h3>Wygodniejsze sprawdzanie sytuacji</h3><p>Panel bez czasowego zwijania, szczegóły obiektów, lokalne przewijanie historii i obserwacje obcych maszyn.</p></div>
-    <div class="card"><h3>Aktualizacje i syrena</h3><p>Opis zmian w aktualizatorze, odłożenie niekrytycznej aktualizacji i zwiększony poziom czerwonej syreny.</p></div>
+
+<section id="historia">
+  <h2>7. Historia 12 godzin</h2>
+  <div class="split">
+    <div>
+      <p>Zakładka <kbd>Historia</kbd> włącza <b>⏱ TRYB HISTORII</b>. Pasek suwaka jest pokolorowany według poziomu w każdej chwili, więc od razu widać, kiedy coś się działo. Przeciągnij uchwyt: mapa, kolory, obiekty i samoloty pokazują wybraną chwilę, a etykieta podaje godzinę i liczbę minut wstecz. Pod suwakiem jest najwyżej oceniane województwo z tej chwili, liczba obiektów i maszyn w migawce oraz link „N sygnałów w oknie”, który otwiera panel z tamtą chwilą.</p>
+      <p>W trybie historii panel ma nagłówek <b>PODGLĄD HISTORII</b>, a czas sygnałów liczy się względem wybranej chwili („36 min wcześniej”). <kbd>▶ Wróć do podglądu na żywo</kbd> albo zakładka <kbd>Mapa</kbd> przywraca bieżący widok.</p>
+      <p>Historia jest pobierana raz na urządzenie, a przewijanie działa lokalnie, bez zapytań do serwera przy każdym ruchu palca. Migawki powstają zwykle co 2 minuty — to odtwarzanie zapisanych próbek, nie nagranie ciągłe.</p>
+    </div>
+    <figure><a class="shot-link" href="screens/1737/history-pl.jpg"><img loading="lazy" src="screens/1737/history-pl.jpg" width="1080" height="2400" alt="Tryb historii o 05:01: czerwone podkarpackie 4,8 pkt i żółte lubelskie w widoku 3D, pokolorowany suwak, przycisk Wróć do podglądu na żywo i link 26 sygnałów w oknie"></a><figcaption>Poranek 13 września 2026: podkarpackie czerwone po Alercie RCB.</figcaption></figure>
   </div>
-  <p>Pełna lista zmian: <a href="https://github.com/cukierrro/Straznik/releases">wydania na GitHubie</a>.</p>
+  <div class="shots">
+    <figure><a class="shot-link" href="screens/1737/history-panel-pl.jpg"><img loading="lazy" src="screens/1737/history-panel-pl.jpg" width="1080" height="2400" alt="Panel w trybie historii: nagłówek PODGLĄD HISTORII 05:01, karta Podkarpackie 4,8 pkt WYSOKI PRIORYTET z wkładem RCB plus 2 i NEPTUN plus 1,5"></a><figcaption>Rozbicie punktów w wybranej chwili.</figcaption></figure>
+  </div>
 </section>
-<section id="granice">
-  <h2>11. Ograniczenia i rozwiązywanie problemów</h2>
+
+<section id="obce-maszyny">
+  <h2>8. Obce maszyny nad wschodnią flanką</h2>
+  <div class="split">
+    <div>
+      <p>Ikona samolotu u góry otwiera listę wojskowych maszyn z rosyjską lub białoruską rejestracją, widocznych w publicznych danych ADS-B/MLAT nad wschodnią flanką. Panel ma dwie części: <b>w zasięgu teraz</b> i <b>dziennik — wleciały / zniknęły z zasięgu</b> z ostatnich 12 godzin, łącznie z czasem, gdy aplikacja była zamknięta.</p>
+      <p>W trybie historii panel pokazuje wybraną chwilę. Przygaszona maszyna na mapie to ostatnia zapisana pozycja sprzed najwyżej 2,5 minuty. „Zniknęła” oznacza utratę sygnału w danych, a nie lądowanie ani zestrzelenie. Te obserwacje nie dodają punktów, a pusta lista nie oznacza pustego nieba — wiele maszyn leci z wyłączonym transponderem.</p>
+    </div>
+    <figure><a class="shot-link" href="screens/1737/watch-pl.jpg"><img loading="lazy" src="screens/1737/watch-pl.jpg" width="1080" height="2400" alt="Okno Obce maszyny nad wschodnią flanką: opis, oznaczenie NA ŻYWO, sekcje W zasięgu teraz i Dziennik z informacją o braku maszyn"></a><figcaption>Obce maszyny — tu bez maszyn w zasięgu.</figcaption></figure>
+  </div>
+</section>
+
+<section id="alarmy">
+  <h2>9. Alarmy i powiadomienia</h2>
+  <div class="tw"><table><thead><tr><th>Poziom</th><th>Co się dzieje</th></tr></thead><tbody>
+    <tr><td>poniżej 2 pkt</td><td>Informacja na mapie i w panelu, bez powiadomienia.</td></tr>
+    <tr><td>żółty, od 2 pkt — PODWYŻSZONA UWAGA</td><td>Powiadomienie i krótki sygnał uwagi.</td></tr>
+    <tr><td>czerwony, od 4 pkt — WYSOKI PRIORYTET</td><td>Syrena, wibracja i alarm pełnoekranowy, jeśli system na to pozwala. Syrena gra, dopóki nie dotkniesz <kbd>POTWIERDZAM — wycisz syrenę</kbd>.</td></tr>
+  </tbody></table></div>
+  <h3>Kiedy telefon dzwoni, a kiedy nie</h3>
   <ul>
-    <li><b>Czerwona dioda:</b> jedna z warstw nie odpowiada lub zgłasza błąd. Pozostałe mogą działać. Sześć diod nie obejmuje osobnym wskaźnikiem każdego dodatkowego źródła.</li>
-    <li><b>Pusta mapa mimo działających sygnałów:</b> kafelki mapy są pobierane oddzielnie. Sprawdź połączenie, spróbuj innej sieci i uruchom aplikację ponownie. Antywirus lub proxy przechwytujące HTTPS może blokować te połączenia. Wydanie produkcyjne nie ufa certyfikatom dodanym przez użytkownika; dawna rada, że aplikacja ufa certyfikatowi Avasta, jest nieaktualna. Nie rozwiązuj tego przez stałe wyłączenie ochrony.</li>
-    <li><b>Brak push:</b> sprawdź region, zgody, kanały, łączność i czy aplikacja nie została wymuszenie zatrzymana. Test dźwięku w otwartej aplikacji nie sprawdza całego toru push.</li>
-    <li><b>Obiekt tylko na liście:</b> sygnał i aktualna pozycja mają różne okresy dostępności. Sprawdź godzinę, tryb historii oraz ostatnią obserwację.</li>
-    <li><b>Niepełny obraz:</b> NEPTUN jest agregatorem OSINT, ADS-B zależy od publicznych emisji i odbiorników, a komunikaty i RSS mogą pojawiać się z opóźnieniem. Brak danych lub punktów nie dowodzi braku zagrożenia.</li>
+    <li>Powiadomienie przychodzi tylko dla <b>obserwowanych województw</b> z Moich miejsc.</li>
+    <li>Województwo musi mieć co najmniej <b>1 pkt własnych sygnałów</b>. Kolor wyłącznie od sąsiadów nie dzwoni.</li>
+    <li>Przeniesienie od sąsiadów może domknąć próg najwyżej o jeden stopień: własne punkty poniżej żółtego plus sąsiad dają co najwyżej żółty.</li>
+    <li><b>Bez powtórek:</b> jeśli wynik spadnie i znów przekroczy ten sam próg w ciągu 60 minut od powiadomienia, zmienia się tylko mapa. Wyjątek: nowy Alert RCB/RSO. Wejście na wyższy poziom, z żółtego na czerwony, powiadamia zawsze.</li>
+    <li>W otwartej aplikacji dźwięk gra według tych samych zasad co powiadomienie, nie według koloru mapy.</li>
+  </ul>
+  <p>W <kbd>⚙</kbd> → <kbd>Dźwięk</kbd> są <kbd>▶ Test: uwaga</kbd>, <kbd>▶ Test: syrena</kbd> i <kbd>▶ Test: pełny alarm</kbd>. To testy lokalne — nie sprawdzają dostarczania powiadomień z serwera. Test pełnego alarmu pokazuje bieżące sygnały Twojego regionu, dlatego może wyświetlić niską liczbę punktów.</p>
+  <div class="warn"><b>Sprawdź swój telefon.</b> Bez zgody na pełny ekran czerwony alarm może być tylko zwykłym powiadomieniem. Sprawdź też głośność, kanały powiadomień, tryb Nie przeszkadzać i ograniczenia baterii — i ponów kontrolę po aktualizacji Androida.</div>
+  <p><b>Jak to działa technicznie:</b> serwer wysyła push przez Firebase dla każdego obserwowanego województwa, także przy zamkniętej aplikacji i zablokowanym ekranie. „Wymuś zatrzymanie” w ustawieniach Androida blokuje odbiór do ponownego uruchomienia aplikacji. <b>Tryb awaryjny:</b> gdy serwer nie odpowiada, otwarta aplikacja uruchamia wbudowany silnik i sama odpytuje źródła; co minutę sprawdza powrót serwera. Tryb awaryjny działa tylko przy otwartej aplikacji i nie czyta treści artykułów, więc media są wtedy na liście bez punktów.</p>
+</section>
+
+<section id="www">
+  <h2>10. Strona WWW i powiadomienia w przeglądarce</h2>
+  <p>Na <a href="https://straznik.eu">straznik.eu</a> działa ta sama mapa. Na górze są dodatkowo przyciski <b>Pobierz aplikację</b>, <b>Instrukcja</b> i <b>Postaw kawę</b>. W karcie przeglądarki widać ikonę Strażnika.</p>
+  <p><b>Powiadomienia w przeglądarce:</b> najpierw zapisz województwo w <kbd>⚙</kbd> → <kbd>Moje miejsca</kbd>, potem dotknij dzwonka i zezwól na powiadomienia. Przychodzą także przy zamkniętej karcie — po jednym na alarm, bez ciągłej syreny. Ciągła syrena z wibracją gra tylko w otwartej karcie przy czerwonym poziomie. Na iPhonie powiadomienia działają tylko dla strony dodanej do ekranu początkowego.</p>
+  <p><b>Wyłączanie:</b> dotknij dzwonka (albo <kbd>⚙</kbd> → <kbd>Alarmy</kbd>) i wybierz <kbd>🔕 Wyłącz powiadomienia w tej przeglądarce</kbd>. Strażnik usuwa wtedy subskrypcję na serwerze i w przeglądarce. Samo pozwolenie przeglądarki usuniesz w jej ustawieniach — komunikat podaje ścieżkę dla Twojej przeglądarki, np.:</p>
+  <div class="note">
+    <p><b>W każdej przeglądarce:</b> otwórz jej Ustawienia, w polu wyszukiwania wpisz „ustawienia witryn” (albo samo „witryn”) → Uprawnienia → odnajdź straznik.eu → Powiadomienia → Blokuj.</p>
+    <p><b>Chrome na Androidzie:</b> ⋮ → Ustawienia → Ustawienia witryn → Powiadomienia → straznik.eu → Blokuj.</p>
+  </div>
+</section>
+
+<section id="punkty">
+  <h2>11. Skąd biorą się punkty</h2>
+  <p>Punkty liczą się z okna 60 minut. Przez pierwsze 30 minut sygnał ma pełną wagę, potem traci ją liniowo do zera. Każda klasa źródła ma limit, więc wiele artykułów czy alarmów obwodów o tym samym nie sumuje się bez końca. Kolejna obserwacja tego samego obiektu NEPTUN nie jest liczona jako nowy obiekt.</p>
+  <div class="tw"><table><thead><tr><th>Źródło</th><th>Co jest uwzględniane</th><th>Punkty / limit</th></tr></thead><tbody>
+    <tr><td>NEPTUN — obiekty</td><td>Typ, liczba obiektów, odległość od granicy, kurs, wiarygodność, liczba potwierdzeń, stan obserwacji i jakość pozycji. Rejon zgłoszenia ×0,6, rozpoznany środek miejscowości ×0,5.</td><td>łącznie do 8</td></tr>
+    <tr><td>RCB / RSO</td><td>Alert RCB o zagrożeniu z powietrza opublikowany w RSO. Liczy się 60 minut od wykrycia, niezależnie od daty ważności wpisu. Odwołanie w RSO od razu zeruje alert.</td><td>2, limit 2</td></tr>
+    <tr><td>Alarmy obwodów UA</td><td>Alarm powietrzny w obwodzie zachodniej Ukrainy; waga maleje z odległością (tabela niżej).</td><td>do 1, limit 1</td></tr>
+    <tr><td>Media (RSS)</td><td>Obiekt powietrzny i zdarzenie: 0,5 pkt; jednoznaczna relacja operacyjna (syreny, alarm, poderwane lotnictwo, zestrzelenie): 1 pkt. <b>Serwer czyta cały artykuł</b>: relacja z wcześniejszego zdarzenia albo artykuł nieczytelny ma 0 pkt. Ćwiczenia, rocznice, sprawy sądowe i powtórzenia alertu RCB też 0.</td><td>0 / 0,5 / 1, limit 1</td></tr>
+    <tr><td>ADS-B</td><td>Co najmniej 3 maszyny wojskowe i ponad dwukrotność zwykłego ruchu o tej porze (tło z 7 dni).</td><td>1, limit 1</td></tr>
+    <tr><td>Strefy PAŻP</td><td>Tylko rzadkie strefy D, R, NPZ, ADHOC od ziemi nad wschodem lub północą (niżej).</td><td>0,5 (północ 1), limit 1</td></tr>
+    <tr><td>Media bałtyckie</td><td>Incydent powietrzny na Litwie, Łotwie lub w Estonii jako kontekst dla województw północno-wschodnich; odwołanie wygasza incydent.</td><td>do 1</td></tr>
+    <tr><td>Strefy sąsiadów</td><td>Zamknięcia przestrzeni na Litwie, w Estonii i północnej Rumunii.</td><td>0,3, limit 0,6</td></tr>
+  </tbody></table></div>
+
+  <h3>Alarmy obwodów UA — waga według odległości</h3>
+  <p>Waga maleje płynnie: przy granicy 1; 50 km 0,7; 100 km 0,5; 150 km 0,3; 220 km 0,15; 320 km 0,08. Obwód liczy się dla obu województw, każde według swojej odległości:</p>
+  <div class="tw"><table><thead><tr><th>Obwód</th><th>Lubelskie: km</th><th>waga</th><th>Podkarpackie: km</th><th>waga</th></tr></thead><tbody>
+    <tr><td>lwowski</td><td>0</td><td>1,00</td><td>0</td><td>1,00</td></tr>
+    <tr><td>wołyński</td><td>0</td><td>1,00</td><td>55</td><td>0,68</td></tr>
+    <tr><td>zakarpacki</td><td>135</td><td>0,36</td><td>0</td><td>1,00</td></tr>
+    <tr><td>iwanofrankowski</td><td>100</td><td>0,50</td><td>50</td><td>0,70</td></tr>
+    <tr><td>rówieński</td><td>70</td><td>0,62</td><td>110</td><td>0,46</td></tr>
+    <tr><td>tarnopolski</td><td>100</td><td>0,50</td><td>115</td><td>0,44</td></tr>
+    <tr><td>chmielnicki</td><td>160</td><td>0,28</td><td>190</td><td>0,21</td></tr>
+    <tr><td>czerniowiecki</td><td>225</td><td>0,15</td><td>180</td><td>0,24</td></tr>
+    <tr><td>żytomierski</td><td>220</td><td>0,15</td><td>265</td><td>0,12</td></tr>
+    <tr><td>winnicki</td><td>280</td><td>0,11</td><td>305</td><td>0,09</td></tr>
+  </tbody></table></div>
+  <p>Nawet alarm we wszystkich obwodach naraz daje najwyżej 1 pkt — alarmy obwodów to jedna informacja, nie kilka niezależnych potwierdzeń.</p>
+
+  <h3>Media: czytanie całego artykułu</h3>
+  <p>Tytuł bywa mylący: artykuł opublikowany o 9:46 z nagłówkiem o syrenach może opisywać noc. Dlatego serwer pobiera treść artykułu i szuka czasu zdarzenia — godziny („przed godziną 4 rano”, „o godz. 4.19”), słów „w nocy”, „przed świtem”, „wczoraj” czy innego dnia tygodnia. Jeśli zdarzenie było ponad godzinę przed publikacją, artykuł jest widoczny jako <b>relacja z wcześniejszego zdarzenia</b> i ma 0 pkt. Linki z Google News prowadzą do strony zgody Google, której serwer nie akceptuje — wtedy szuka tego samego artykułu w kanale RSS redakcji. Jeśli treści nie da się przeczytać, artykuł ma 0 pkt i zostaje w panelu z linkiem.</p>
+  <p>Po <b>odwołaniu alertu RCB</b> w danym województwie przez 4 godziny artykuły relacjonujące syreny lub alert mają 0 pkt, chyba że RCB wyda nowy alert. Tytuły podsumowujące, np. „Niespokojny poranek…”, liczą się najwyżej za 0,5 pkt.</p>
+
+  <h3>Obiekty NEPTUN i odległość</h3>
+  <p>Wagi typów: balistyczna 3,0; MiG-31K 2,6; manewrująca 2,4; KAB 1,8; Shahed 1,4; dron 1,1; rozpoznawczy 0,5; FPV 0. Waga jest mnożona m.in. przez pierwiastek z liczby obiektów i współczynniki jakości danych i kursu. Odległość od granicy działa płynnie: <b>0 km ×1,7; 15 ×1,6; 45 ×1,3; 80 ×1,0; 110 ×0,7; 150 ×0,4; 200 ×0,25; 250 ×0,1</b>; dalej 0. Przy nieznanym kursie punktowane są tylko obiekty bliskie, z obniżoną wagą. Rakieta lub MiG-31K do 60 km od granicy, z co najmniej dwoma potwierdzeniami, daje minimum 2 pkt.</p>
+  <h3>Czas dolotu</h3>
+  <p>Karta obiektu szacuje czas do granicy Polski i granicy wybranego województwa, nie do adresu. Liczy go z prędkości podanej przez źródło albo typowej dla klasy obiektu i odejmuje 2,5 minuty na opóźnienie danych. Dla pozycji przybliżonej ETA nie jest pokazywane. Przy znanym kursie, co najmniej dwóch potwierdzeniach i średniej lub wysokiej wiarygodności ETA ≤ 10 min podnosi wkład obiektu do 2 pkt, a ≤ 5 min — do 4 pkt.</p>
+  <div class="warn">Czas dolotu zakłada dalszy lot po tym samym kursie. Nie uwzględnia zestrzelenia ani zmiany kursu. Nie traktuj go jako odliczania czasu na schronienie.</div>
+
+  <h3>Przeniesienie na sąsiednie województwa</h3>
+  <p>Województwo z co najmniej 2 pkt z sygnałów innych niż regionalny Alert RCB przekazuje 40% sąsiadom, 16% kolejnemu kręgowi i tak dalej. Oficjalny alert RCB nie jest przenoszony — jego obszar wskazał nadawca. <b>To samo zdarzenie nie wraca przez przeniesienie:</b> artykuł albo alarm obwodu przypisany do dwóch sąsiednich województw liczy się w każdym w całości, ale nie jest doliczany drugi raz jako przeniesienie. Przeniesienie to kontekst regionalny, a nie prognoza trasy obiektu; kolor wyłącznie od sąsiadów jest przygaszony i nie dzwoni.</p>
+
+  <h3 id="strefy-punktacja">Które strefy PAŻP punktują</h3>
+  <p>PAŻP codziennie publikuje dziesiątki stref: szkolenia wojskowe, skoki spadochronowe, szybowce, drony komercyjne. Gdyby każda punktowała, mapa świeciłaby na żółto codziennie. Dlatego:</p>
+  <div class="tw"><table><thead><tr><th>Typ strefy</th><th>Znaczenie</th><th>Punktuje?</th></tr></thead><tbody>
+    <tr><td><b>D</b> — niebezpieczna</td><td>strzelania, ćwiczenia</td><td>tak, przy trzech warunkach niżej</td></tr>
+    <tr><td><b>R</b> — ograniczona</td><td>wejście tylko za zgodą</td><td>tak, przy tych samych warunkach</td></tr>
+    <tr><td><b>NPZ</b> — zakaz lotów</td><td>obszar zamknięty</td><td>tak, przy tych samych warunkach</td></tr>
+    <tr><td><b>ADHOC</b> — doraźna</td><td>powołana tego samego dnia</td><td>tak, przy tych samych warunkach</td></tr>
+    <tr><td><b>TSA / TRA</b></td><td>ćwiczenia planowane z wyprzedzeniem, niemal codziennie</td><td>nie — tylko na mapie</td></tr>
+    <tr><td><b>ATZ</b></td><td>zwykły ruch wokół lotniska</td><td>nie — nie jest pokazywana</td></tr>
+    <tr><td>adnotacje <b>PJE, GLD, CLN, BSP, UAV</b></td><td>spadochrony, szybowce, drony cywilne</td><td>nie — odsiewane</td></tr>
+  </tbody></table></div>
+  <p>Strefa D, R, NPZ albo ADHOC punktuje tylko wtedy, gdy spełnia <b>wszystkie trzy</b> warunki: sięga od ziemi w górę, ten sam identyfikator nie pojawił się przez ostatnie 7 dni, a strefa leży nad ścianą wschodnią albo nad północą. Waga jest niska (0,5 pkt), bo zamknięcie nieba to decyzja wojska, a nie niezależny pomiar zagrożenia — strefa nigdy nie podniesie poziomu sama.</p>
+  <p><b>Na północy strefa waży 1 pkt.</b> NEPTUN obserwuje Ukrainę i dla Pomorza, zachodniopomorskiego, warmińsko-mazurskiego i kujawsko-pomorskiego nie daje nic. Zostają strefy, ADS-B, media, RCB i zamknięcia nieba u sąsiadów nad Bałtykiem. Zasada bezpieczeństwa się nie zmienia: strefa 1 pkt + wzmożony ruch ADS-B 1 pkt = próg żółty; sama strefa to wciąż cisza.</p>
+</section>
+
+<section id="problemy">
+  <h2>12. Ograniczenia i rozwiązywanie problemów</h2>
+  <ul>
+    <li><b>Czerwona dioda</b> — jedno ze źródeł nie odpowiada. Pozostałe działają; fuzja ma wtedy mniej potwierdzeń.</li>
+    <li><b>Pusta mapa albo wszystkie diody czerwone</b> — sprawdź połączenie i inną sieć. Antywirus lub proxy, które przechwytują HTTPS, potrafią blokować połączenia aplikacji; nie wyłączaj ochrony na stałe, tylko sprawdź wyjątek dla straznik.eu.</li>
+    <li><b>Brak powiadomień</b> — sprawdź Moje miejsca (obserwowane województwo), zgody, kanały powiadomień, baterię i czy aplikacja nie została wymuszenie zatrzymana. Test dźwięku nie sprawdza drogi push z serwera.</li>
+    <li><b>Obiekt jest na liście, a nie ma go na mapie</b> — sygnał żyje w oknie 60 minut, a pozycja jest z bieżącej migawki. Zniknięcie obiektu nie dowodzi zestrzelenia.</li>
+    <li><b>Niepełny obraz</b> — NEPTUN jest agregatorem OSINT, a nie radarem; ADS-B widzi tylko jawne transpondery; komunikaty i artykuły mogą się spóźniać. Brak punktów nie dowodzi braku zagrożenia.</li>
   </ul>
 </section>
-<section id="zaawansowane">
-  <h2>12. Własny serwer — opcjonalnie</h2>
-  <p>Puste pole w <kbd>⚙</kbd> → <kbd>Aplikacja</kbd> → <kbd>Zaawansowane: wspólny backend</kbd> oznacza domyślny serwer Strażnika. Własny adres podaj tylko wtedy, gdy sam utrzymujesz zgodny backend i jego powiadomienia.</p>
-  <p>Wymagany jest <b>HTTPS z certyfikatem zaufanym przez system</b>. Zewnętrzny HTTP i ręcznie doinstalowane certyfikaty nie są obsługiwane w produkcyjnym APK. Wewnętrzny adres localhost aplikacji jest osobnym wyjątkiem technicznym. <a href="https://github.com/cukierrro/Straznik#readme">Opis uruchomienia backendu znajduje się w README</a>.</p>
+
+<section id="serwer">
+  <h2>13. Własny serwer — opcjonalnie</h2>
+  <p>Puste pole <kbd>⚙</kbd> → <kbd>Aplikacja</kbd> → <kbd>Zaawansowane: wspólny backend</kbd> oznacza domyślny serwer Strażnika. Własny adres wpisuj tylko wtedy, gdy sam utrzymujesz zgodny backend i jego powiadomienia. Wymagany jest HTTPS z certyfikatem zaufanym przez system. <a href="https://github.com/cukierrro/Straznik#readme">Opis uruchomienia backendu jest w README</a>.</p>
 </section>
+
 <section id="prywatnosc">
-  <h2>13. Prywatność i źródła</h2>
-  <p>Brak konta, reklam i analityki zachowania użytkownika. Profile „Moich miejsc”, nazwy, miasta, adresy i jednorazowe punkty lokalizacji zapisują się lokalnie; kopia zapasowa Androida dla aplikacji jest wyłączona. Na VPS Strażnika ani do treści powiadomień nie trafia dokładna lokalizacja. Do dostawcy push przekazywane są nazwy obserwowanych województw oraz identyfikator subskrypcji urządzenia. System lokalizacji telefonu może korzystać z dostawców systemowych i sieciowych, dlatego nie obiecujemy, że sam odczyt pozycji jest całkowicie offline.</p>
-  <p>Serwer i dostawcy map, powiadomień, zdjęć oraz danych otrzymują żądania sieciowe i mogą prowadzić zwykłe logi techniczne. Brak telemetrii aplikacji nie oznacza braku takiego ruchu. Historia serwerowa po pobraniu jest przewijana w pamięci urządzenia; tryb wbudowany zapisuje własne migawki lokalnie. Rozmiar zależy od liczby danych i obejmuje kroczące okno 12 godzin.</p>
-  <h3 id="strefy-punktacja">Które strefy PAŻP punktują, a które nie</h3>
-  <p>Strefa przestrzeni powietrznej to fragment nieba wyłączony na jakiś czas ze
-  zwykłego ruchu. Ogłasza je Polska Agencja Żeglugi Powietrznej — codziennie,
-  w planie dobowym. <b>Zdecydowana większość z nich nie ma nic wspólnego
-  z zagrożeniem</b>: to szkolenie wojskowe, skoki spadochronowe, loty szybowcowe
-  i rezerwacje dla dronów komercyjnych. Pomiar z 12 września 2026: nad Polską
-  stało wtedy 50 stref spełniających wstępne kryteria, a po odsianiu lotnictwa
-  cywilnego zostało 31. Gdyby każda z nich dokładała punkty, aplikacja
-  świeciłaby na żółto codziennie i przestałaby cokolwiek znaczyć.</p>
-  <div class="tw"><table><thead><tr><th>Typ strefy</th><th>Co zwykle oznacza</th><th>Punktuje?</th></tr></thead><tbody>
-    <tr><td><b>D</b> — strefa niebezpieczna</td><td>Działalność groźna dla lotnictwa: strzelania, ćwiczenia wojskowe.</td><td><b>Tak</b>, jeśli spełnia trzy warunki niżej</td></tr>
-    <tr><td><b>R</b> — strefa ograniczona</td><td>Wejść może tylko ten, kto ma zgodę.</td><td><b>Tak</b>, na tych samych warunkach</td></tr>
-    <tr><td><b>NPZ</b> — zakaz lotów</td><td>Obszar zamknięty dla ruchu lotniczego.</td><td><b>Tak</b>, na tych samych warunkach</td></tr>
-    <tr><td><b>ADHOC</b> — strefa doraźna</td><td>Powołana tego samego dnia, zwykle na kilka–kilkanaście godzin.</td><td><b>Tak</b>, na tych samych warunkach</td></tr>
-    <tr><td><b>TSA / TRA</b> — strefy czasowo wydzielone i rezerwowane</td><td>Ćwiczenia i loty wojskowe planowane z wyprzedzeniem. Stoją niemal codziennie.</td><td><b>Nie</b> — są pokazywane na mapie, ale nie dodają punktów</td></tr>
-    <tr><td><b>ATZ</b> — strefa ruchu lotniskowego</td><td>Zwykły ruch wokół lotniska.</td><td><b>Nie</b> — nie są nawet pokazywane</td></tr>
-    <tr><td>Strefy z adnotacją <b>PJE, GLD, CLN, BSP, UAV</b></td><td>Skoki spadochronowe, szybowce, loty bezzałogowe — lotnictwo cywilne i sportowe.</td><td><b>Nie</b> — odsiewane niezależnie od typu</td></tr>
-  </tbody></table></div>
-  <p>Strefa typu D, R, NPZ albo ADHOC punktuje dopiero wtedy, gdy spełnia
-  <b>wszystkie trzy</b> warunki naraz:</p>
-  <ol>
-    <li><b>Sięga od ziemi w górę</b> (GND–F###). Wąskie pasmo na dużej wysokości
-      to przelot wojskowy, a nie zamknięcie nieba nad ludźmi.</li>
-    <li><b>Ten sam identyfikator nie pojawił się przez ostatnie 7 dni.</b>
-      Strefa, która wraca codziennie, jest rutyną — nawet jeśli formalnie
-      „aktywuje się” każdego ranka.</li>
-    <li><b>Leży nad ścianą wschodnią albo nad północą.</b> W pozostałych
-      województwach strefa jest pokazywana informacyjnie, ale nie punktuje.</li>
-  </ol>
-  <div class="split">
-    <figure><a class="shot-link" href="screens/zones-map-pl.jpg"><img loading="lazy" src="screens/zones-map-pl.jpg" width="1080" height="2400" alt="Mapa Strażnika 1.7.35 z włączoną warstwą stref PAŻP: kontury stref rozłożone nad całą Polską i przycisk „strefy” w prawej kolumnie obok „mój region” i „cała PL”"></a><figcaption><b>Przycisk <kbd>strefy</kbd> włącza i wyłącza warstwę.</b> Strefy, których włączenia Strażnik nie widział — bo stoją od dawna albo były już aktywne przy starcie — mają spokojny kontur. Wypełnioną bryłę dostaje tylko strefa włączona na naszych oczach.</figcaption></figure>
-    <figure><a class="shot-link" href="screens/zones-card-pl.jpg"><img loading="lazy" src="screens/zones-card-pl.jpg" width="1080" height="2400" alt="Karta strefy EPTS545 w Strażniku: nazwa i typ strefy, wyjaśnienie po polsku, informacja że strefa była już aktywna przy starcie obserwacji, rezerwacja do 13.09 06:00, pułap F225–F315, przycisk przejścia do województwa i uwaga, że strefy nie dodają punktów"></a><figcaption><b>Dotknięcie strefy otwiera opis.</b> „Rezerwacja do” to koniec <i>dzisiejszej</i> rezerwacji, a nie strefy — PAŻP publikuje plan dobowy. Przycisk z nazwą województwa prowadzi do jego karty, bo region w całości przykryty strefą trudno dotknąć na mapie.</figcaption></figure>
-  </div>
-
-  <h3>Skąd wziął się taki podział</h3>
-  <p>Nie z założeń, tylko z pomiaru. Przez cztery dni sierpnia 2026 aplikacja
-  <b>logowała każdą aktywację strefy bez przyznawania punktów</b> — po to, żeby
-  zobaczyć, co się w tych danych naprawdę pojawia. Wyszło, że na 799 aktywacji
-  413 zaczynało się od ziemi, ale większość z nich kończyła się nisko i była
-  rutyną; realnych zamknięć „od ziemi do poziomu lotu” było około stu. Osobny
-  test trzydniowy pokazał, że nawet po tym filtrze sześć z siedmiu trafień nad
-  ścianą wschodnią to było zwykłe tło. Stąd trzeci warunek — pamięć siedmiu dni.</p>
-  <p>Waga jest celowo niska (0,5 pkt przy progu żółtym 2,0), bo aktywacja strefy
-  jest <b>skutkiem czyjejś decyzji, a nie niezależnym pomiarem zagrożenia</b>.
-  Wojsko zamyka niebo także wtedy, gdy chce mieć spokój na ćwiczenia. Sama strefa
-  nigdy nie podniesie poziomu — musi spotkać się z drugim, niezależnym źródłem.</p>
-  <h3>Dlaczego na północy strefa waży dwa razy tyle</h3>
-  <p>NEPTUN, czyli warstwa dająca najwięcej wyprzedzenia, obserwuje Ukrainę. Dla
-  Pomorza i sąsiedztwa Kaliningradu daje <b>dokładnie zero punktów</b> — nie
-  dlatego, że tam jest bezpiecznie, tylko dlatego, że nie ma stamtąd danych.
-  Zostają: strefy PAŻP, ruch lotnictwa wojskowego w ADS-B, media, RCB i
-  zamknięcia przestrzeni u sąsiadów nad Bałtykiem. Dlatego od wersji 1.7.30
-  strefa nad pomorskim, zachodniopomorskim, warmińsko-mazurskim i
-  kujawsko-pomorskim waży 1 pkt zamiast 0,5.</p>
-  <p>Zasada bezpieczeństwa zostaje bez zmian: <b>żaden pojedynczy sygnał nie
-  podnosi poziomu</b>. Strefa 1 pkt + wzmożony ruch ADS-B 1 pkt = 2 pkt, czyli
-  próg żółty. Strefa 1 pkt + incydent powietrzny w mediach litewskich, łotewskich
-  lub estońskich 1 pkt = również 2 pkt. Sama strefa to nadal tylko 1 pkt i cisza.</p>
-  <p>Wszystkie aktywne strefy — także te, które nie punktują — zobaczysz na mapie
-  po włączeniu przycisku <kbd>strefy</kbd>. Dotknięcie strefy opisuje, co to jest,
-  od kiedy Strażnik widzi ją włączoną i do kiedy ma obowiązywać.</p>
-
-  <p class="source-links">Dane: <a href="https://neptun.in.ua">NEPTUN</a> · <a href="https://adsb.lol">adsb.lol</a> / adsb.fi i dostawcy zapasowi · <a href="https://www.gov.pl/web/rcb">RCB</a> / RSO · <a href="https://airspace.pansa.pl">PAŻP</a> · media regionalne i bałtyckie · strefy sąsiadów. Mapa: <a href="https://openfreemap.org">OpenFreeMap</a>, © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>. Zdjęcia maszyn i ich autorzy są podpisani w podglądach.</p>
+  <h2>14. Prywatność i źródła</h2>
+  <p>Brak konta, reklam i analityki. Moje miejsca, nazwy i jednorazowe punkty lokalizacji zapisują się tylko na urządzeniu; kopia zapasowa Androida dla aplikacji jest wyłączona. Na serwer i do dostawcy powiadomień trafiają nazwy obserwowanych województw i identyfikator subskrypcji urządzenia — nigdy dokładna lokalizacja.</p>
+  <p>Serwer oraz dostawcy map, powiadomień, zdjęć i danych otrzymują zwykłe żądania sieciowe i mogą prowadzić logi techniczne. Przy czytaniu artykułów serwer pobiera strony redakcji tak jak zwykła przeglądarka, bez akceptowania zgód na pliki cookie.</p>
+  <p class="source-links">Dane: <a href="https://neptun.in.ua">NEPTUN</a> · <a href="https://adsb.lol">adsb.lol</a> / adsb.fi i dostawcy zapasowi · <a href="https://www.gov.pl/web/rcb">RCB</a> / RSO · <a href="https://airspace.pansa.pl">PAŻP</a> · media regionalne i bałtyckie · strefy sąsiadów. Mapa: <a href="https://openfreemap.org">OpenFreeMap</a>, © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>. Zdjęcia maszyn i ich autorzy są podpisani w kartach.</p>
 </section>
 </main>
 <footer><div class="wrap">
   <p><b>STRAŻNIK</b> — nieoficjalne źródło dodatkowe. Nie zastępuje syren, RCB ani RSO.</p>
-  <p><a href="https://github.com/cukierrro/Straznik">Kod źródłowy</a> · <a href="en.html" lang="en">English user guide</a> · <a href="https://buycoffee.to/cukierrro">Postaw kawę</a></p>
+  <p><a href="https://github.com/cukierrro/Straznik">Kod źródłowy</a> · <a href="zmiany.html">Historia zmian</a> · <a href="en.html" lang="en">English user guide</a> · <a href="https://buycoffee.to/cukierrro">Postaw kawę</a></p>
   <a class="back-top" href="#top">↑ Wróć na górę</a>
 </div></footer>
 </body>

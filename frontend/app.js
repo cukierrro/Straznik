@@ -1988,7 +1988,10 @@ function sigList(arr, limit) {
 
 /* Etykiety źródeł po polsku — „PANSA"/„NEIGHBOURS" nic nie mówiły użytkownikowi. */
 const SRC_LABEL = { neptun: "NEPTUN", media: "MEDIA", rcb: "RCB", adsb: "ADS-B",
-  pansa: "PAŻP", neighbours: "SĄSIEDZI", spillover: "SĄSIEDZTWO",
+  pansa: "PAŻP",
+  // w angielskim interfejsie polskie „SĄSIEDZTWO" zostawało nieprzetłumaczone
+  neighbours: UI.isEn ? "NEIGHBOUR ZONES" : "SĄSIEDZI",
+  spillover: UI.isEn ? "NEIGHBOURS" : "SĄSIEDZTWO",
   // osobna klasa od 1.7.22: oficjalny alarm powietrzny w przygranicznym obwodzie UA
   ua_alert: "ALARM UA", test: "TEST" };
 const SRC_ICON = { neptun: "🎯", media: "📰", rcb: "🚨", adsb: "✈", pansa: "🛑",
