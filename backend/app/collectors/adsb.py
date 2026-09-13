@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 
 import httpx
 
-from .. import config, db, fusion, geo
+from .. import config, db, fusion, geo, stealth
 
 log = logging.getLogger("adsb")
 status = {"ok": False, "last": None, "error": None, "provider": config.ADSB_PROVIDER,
@@ -209,6 +209,11 @@ async def _tick(client: httpx.AsyncClient):
         merged.setdefault(key, ac)
     ac_list = list(merged.values())
     status.update(ok=True, last=time.time(), error=None)
+    # Tryb stealth: trasy tankowców/AWACS/rozpoznania do analizy wzorców (bez punktów).
+    try:
+        stealth.observe_air_support(ac_list)
+    except Exception as exc:                      # noqa: BLE001
+        log.warning("stealth air_support: %s", exc)
 
     per_voiv: dict[str, list] = {v: [] for v in geo.VOIV_BBOX}
     global current_aircraft

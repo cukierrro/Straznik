@@ -79,7 +79,8 @@ def match_keywords(text: str, critical, air, event, exclude, soft=()) -> list[st
     return hits if ok else []
 
 
-def classify_level(text: str, critical, air, event, exclude, soft=()):
+def classify_level(text: str, critical, air, event, exclude, soft=(),
+                   weak_phrases=(), pair_words=(), pair_context=()):
     """Jak `classify`, ale rozróżnia SIŁĘ dopasowania — do zróżnicowanej wagi:
 
       "critical" → jednoznaczna relacja operacyjna („zawyły syreny",
@@ -87,6 +88,9 @@ def classify_level(text: str, critical, air, event, exclude, soft=()):
       "weak"     → tylko para OBIEKT+ZDARZENIE („dron” + „naruszył”) — 1 pkt,
                    wymaga potwierdzenia przez inną klasę źródła.
       None       → brak / weto.
+
+    `weak_phrases` to frazy słabe same w sobie („syreny wyły"), a `pair_words`
+    liczą się tylko razem z `pair_context` („alert RCB" + „atak").
 
     Zwraca (poziom|None, dopasowane_słowa)."""
     t = text.lower()
@@ -104,4 +108,12 @@ def classify_level(text: str, critical, air, event, exclude, soft=()):
     a, e = _hits(t, air), _hits(t, event)
     if a and e:
         return "weak", a[:2] + e[:2]
+    w = _hits(t, weak_phrases)
+    if w:
+        return "weak", w[:2]
+    p = _hits(t, pair_words)
+    if p:
+        c = _hits(t, pair_context)
+        if c:
+            return "weak", p[:1] + c[:1]
     return None, []

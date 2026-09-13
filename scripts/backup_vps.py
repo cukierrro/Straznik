@@ -107,6 +107,13 @@ def main() -> int:
             write_status(ok=False, at=now.isoformat(), error=f"integrity_check: {check}")
             print("BŁĄD: kopia bazy nie przeszła integrity_check:", check, file=sys.stderr)
             return 1
+        # Dziennik stealth (E3): osobna baza, ta sama spójna kopia przez API backup.
+        if (DATA / "obserwacje.db").exists():
+            src = sqlite3.connect(f"file:{DATA / 'obserwacje.db'}?mode=ro", uri=True)
+            dst = sqlite3.connect(work / "obserwacje.db")
+            src.backup(dst)
+            src.close()
+            dst.close()
         for f in FILES:
             if (DATA / f).exists():
                 shutil.copy2(DATA / f, work / f)

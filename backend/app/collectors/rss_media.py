@@ -18,8 +18,8 @@ from urllib.parse import urlparse
 import feedparser
 import httpx
 
-from .. import article_reader, config, fusion
-from ..textmatch import classify_level, match_keywords
+from .. import article_reader, config, fusion, stealth
+from ..textmatch import _hits, classify_level, match_keywords
 
 
 async def _get_with_retry(client: httpx.AsyncClient, url: str, tries: int = 2):
@@ -160,6 +160,21 @@ def _match_voivs(text: str) -> list[str]:
     return out
 
 
+_REGION_NEUTRAL = [re.compile(p, re.I | re.UNICODE) for p in config.REGION_NEUTRAL_PATTERNS]
+
+
+def _neutralize_places(text: str) -> str:
+    """Wycina nazwy miejsc, które nie umiejscawiają zdarzenia („Kijów–Warszawa")."""
+    for pattern in _REGION_NEUTRAL:
+        text = pattern.sub(" ", text)
+    return text
+
+
+def _clear_in_context(text: str) -> bool:
+    """Odwołanie zagrożenia z powietrza, także bez frazy alarmowej w tytule."""
+    return _is_media_clear(text) and bool(_hits(text.lower(), config.MEDIA_CLEAR_CONTEXT))
+
+
 def _strip_publisher(text: str, publisher: str) -> str:
     """Usuwa nazwę redakcji z tekstu poddawanego dopasowaniu.
 
@@ -174,6 +189,167 @@ def _strip_publisher(text: str, publisher: str) -> str:
     return out if out.strip() else text
 
 
+def _title_publisher(title: str) -> str:
+    """Google News dopisuje redakcję po „ - " na końcu tytułu."""
+    return title.rsplit(" - ", 1)[1].strip() if " - " in title else ""
+
+
+def _classify(text: str):
+    return classify_level(text, config.ALERT_CRITICAL_KEYWORDS,
+                          config.ALERT_AIR_KEYWORDS, config.ALERT_EVENT_KEYWORDS,
+                          config.EXCLUDE_KEYWORDS, config.SOFT_EXCLUDE_KEYWORDS,
+                          weak_phrases=config.MEDIA_WEAK_PHRASES,
+                          pair_words=config.RCB_HEADLINE_WORDS,
+                          pair_context=config.RCB_HEADLINE_CONTEXT)
+
+
+# ── Fala QRA ────────────────────────────────────────────────────────────────────
+QRA_RE = re.compile(
+    r"(?<!\w)(poderwa(ła|ło|li|ły|no|ne|ny|nie|nych)|podrywa|operuje (polskie )?lotnictwo|"
+    r"lotnictwo operuje|operowanie (polskiego |wojskowego )?lotnictwa|rozpoczęło (się )?operowanie|"
+    r"myśliwce w powietrzu|lotnictwo w powietrzu|uruchomiło lotnictwo)", re.I | re.UNICODE)
+QRA_AIR_RE = re.compile(r"myśliwc|samolot|lotnictw|f-16|f-35|f-15|mig|eurofighter|gripen|"
+                        r"dyżurn|operowani", re.I | re.UNICODE)
+
+_qra_articles: dict[str, dict] = {}      # klucz artykułu -> dane (w pamięci, 6 h)
+_qra_last_wave: dict[str, float] = {}    # grupa -> czas wykrycia fali
+_qra_restored = False
+
+
+def _norm_publisher(name: str) -> str:
+    n = _fold(name or "").strip()
+    # „Onet" i „Onet Wiadomości" to jedna redakcja
+    n = re.sub(r"(?<![a-z])(wiadomosci|wydarzenia|informacje|news|portal|serwis)(?![a-z])", " ", n)
+    n = re.sub(r"\.(pl|com|eu|info|net)$", "", n)
+    return re.sub(r"[^a-z0-9]+", "", n)
+
+
+def _qra_group(text: str) -> str:
+    """'north' | 'east' | 'foreign' — gdzie dzieje się poderwanie."""
+    tl = text.lower()
+    if _hits(tl, config.QRA_FOREIGN_STRONG):
+        return "foreign"
+    if _hits(tl, config.QRA_BALTIC_MARKERS):
+        return "north"
+    polish = bool(_hits(tl, config.QRA_POLISH_MARKERS)) or bool(_match_voivs(text))
+    if _mentions_abroad(text) and not polish:
+        return "foreign"
+    return "east"
+
+
+def _qra_observe(title: str, text: str, publisher: str, link: str, feed: str,
+                 pub_ts: float | None, now: float) -> None:
+    """Zapamiętuje artykuł o poderwaniu lotnictwa (także zagraniczny) i loguje stealth."""
+    if not QRA_RE.search(text) or not QRA_AIR_RE.search(text):
+        return
+    key = hashlib.sha1((link or title).encode()).hexdigest()[:16]
+    if key in _qra_articles:
+        return
+    art = {
+        "title": title[:200], "publisher": publisher, "pub_norm": _norm_publisher(publisher),
+        "link": link, "feed": feed, "pub_ts": pub_ts, "seen_ts": now,
+        "group": _qra_group(text),
+        "clear": _is_media_clear(text) or bool(re.search(r"zakończ|odwoł", text, re.I)),
+        "vetoed": _hits(text.lower(), config.EXCLUDE_KEYWORDS)[:3],
+    }
+    _qra_articles[key] = art
+    stealth.record("qra_article", key, {
+        **{k: v for k, v in art.items() if k not in ("pub_norm", "pub_ts", "seen_ts")},
+        "pub": stealth._iso(pub_ts) if pub_ts else None,
+        "seen": stealth._iso(now),
+        "delay_s": round(now - pub_ts) if pub_ts else None,
+    }, pub_ts or now)
+
+
+def _polish_count(n: int) -> str:
+    if n == 1:
+        return "1 redakcja"
+    if n % 10 in (2, 3, 4) and n % 100 not in (12, 13, 14):
+        return f"{n} redakcje"
+    return f"{n} redakcji"
+
+
+def _qra_restore() -> None:
+    """Po restarcie odtwarza okres karencji z dziennika, żeby fala nie wróciła."""
+    global _qra_restored
+    if _qra_restored:
+        return
+    _qra_restored = True
+    for row in stealth.query("qra_wave", config.QRA_WAVE_COOLDOWN_MIN):
+        try:
+            ts = datetime.fromisoformat(row["ts"]).timestamp()
+        except (KeyError, TypeError, ValueError):
+            continue
+        g = row.get("group")
+        if g and ts > _qra_last_wave.get(g, 0):
+            _qra_last_wave[g] = ts
+
+
+async def _qra_evaluate(now: float) -> list[dict]:
+    """Fala = co najmniej N różnych redakcji w oknie, świeże, bez odwołania.
+
+    Krajowa (wschód) i bałtycka (północ) dają sygnał mediów 1,0; zagraniczna
+    trafia wyłącznie do dziennika stealth."""
+    _qra_restore()
+    window = config.QRA_WAVE_WINDOW_MIN * 60
+    for k, a in list(_qra_articles.items()):
+        if now - a["seen_ts"] > 6 * 3600:
+            _qra_articles.pop(k, None)
+    fresh = [a for a in _qra_articles.values()
+             if a["pub_ts"] and -300 <= now - a["pub_ts"] <= window]
+    waves = []
+    for group in ("east", "north", "foreign"):
+        arts = sorted((a for a in fresh if a["group"] == group and not a["clear"]
+                       and not a["vetoed"] and a["pub_norm"]), key=lambda a: a["pub_ts"])
+        by_pub: dict[str, dict] = {}
+        for a in arts:
+            by_pub.setdefault(a["pub_norm"], a)
+        if len(by_pub) < config.QRA_WAVE_MIN_PUBLISHERS:
+            continue
+        latest_clear = max((a["pub_ts"] for a in fresh if a["clear"] and a["group"] == group),
+                           default=0)
+        if latest_clear and latest_clear >= arts[-1]["pub_ts"]:
+            continue
+        if now - _qra_last_wave.get(group, 0) < config.QRA_WAVE_COOLDOWN_MIN * 60:
+            continue
+        _qra_last_wave[group] = now
+        first = min(a["pub_ts"] for a in by_pub.values())
+        confirm = sorted(a["pub_ts"] for a in by_pub.values())[config.QRA_WAVE_MIN_PUBLISHERS - 1]
+        n = len(by_pub)
+        scored = group in config.QRA_WAVE_TARGETS
+        try:
+            support = stealth.air_support_summary(90)
+        except Exception:                          # noqa: BLE001
+            support = {}
+        wave = {
+            "group": group, "publishers": [a["publisher"] for a in by_pub.values()],
+            "count": n, "first_pub": stealth._iso(first), "confirm_pub": stealth._iso(confirm),
+            "detected": stealth._iso(now), "scored": scored,
+            "targets": config.QRA_WAVE_TARGETS.get(group, []),
+            "articles": [{"title": a["title"], "publisher": a["publisher"], "link": a["link"],
+                          "pub": stealth._iso(a["pub_ts"])} for a in by_pub.values()],
+            "air_support_90min": support,
+        }
+        stealth.record("qra_wave", f"{group}:{int(first)}", wave, now)
+        waves.append(wave)
+        log.info("fala QRA %s: %s (%s)", group, _polish_count(n), ", ".join(wave["publishers"]))
+        if not scored:
+            continue
+        where = "nad Bałtykiem " if group == "north" else ""
+        for voiv in config.QRA_WAVE_TARGETS[group]:
+            await fusion.ingest(
+                source="media", event_type="media_qra_wave", voivodeship=voiv,
+                points=config.POINTS["media_qra_wave"],
+                title=(f"Media: wojsko poderwało lotnictwo {where}— potwierdziły "
+                       f"{_polish_count(n)}"),
+                details={"qra_wave": True, "group": group, "publishers": wave["publishers"],
+                         "articles": wave["articles"], "first_pub": wave["first_pub"],
+                         "link": wave["articles"][0]["link"]},
+                dedup_key=f"qra-wave:{group}:{int(first)}:{voiv}",
+            )
+    return waves
+
+
 async def _check_feed(client: httpx.AsyncClient, url: str, default_voiv: str | None):
     st = status["feeds"].setdefault(url, {})
     r, err = await _get_with_retry(client, url)
@@ -182,39 +358,52 @@ async def _check_feed(client: httpx.AsyncClient, url: str, default_voiv: str | N
         return
     parsed = feedparser.parse(r.content)
     st.update(ok=True, last=time.time(), error=None)
+    feed_title = ((parsed.get("feed") or {}).get("title") or "").strip()
 
     now = time.time()
     for entry in parsed.entries[:30]:
         title = entry.get("title", "")
         summary = entry.get("summary", "") or entry.get("description", "")
-        publisher = ((entry.get("source") or {}) or {}).get("title") or ""
+        publisher = (((entry.get("source") or {}) or {}).get("title")
+                     or _title_publisher(title) or feed_title)
+        # Nazwa redakcji nie mówi, GDZIE się stało — wycinamy ją z każdego kanału
+        # (dopisek w tytule Google News i nazwa kanału redakcji lokalnej).
         text = _strip_publisher(f"{title} {summary}", publisher)
-        # wiek wpisu
+        if feed_title and feed_title != publisher:
+            text = _strip_publisher(text, feed_title)
+        link = entry.get("link", "")
         t = entry.get("published_parsed") or entry.get("updated_parsed")
-        if t and now - calendar.timegm(t) > MAX_AGE_S:
+        pub_ts = calendar.timegm(t) if t else None
+        # Fala QRA i dziennik stealth widzą też artykuły starsze i zagraniczne.
+        try:
+            _qra_observe(title, text, publisher, link, url, pub_ts, now)
+        except Exception as exc:                   # noqa: BLE001
+            log.warning("QRA: %s", exc)
+        # wiek wpisu
+        if pub_ts and now - pub_ts > MAX_AGE_S:
             continue
         # SIŁA trafienia decyduje o wadze: relacja operacyjna = 1,5, a słabsze
         # obiekt+zdarzenie = 1,0. Obie wartości wymagają innej klasy źródła.
-        level, hits = classify_level(text, config.ALERT_CRITICAL_KEYWORDS,
-                                     config.ALERT_AIR_KEYWORDS, config.ALERT_EVENT_KEYWORDS,
-                                     config.EXCLUDE_KEYWORDS,
-                                     config.SOFT_EXCLUDE_KEYWORDS)
-        if not level:
+        level, hits = _classify(text)
+        clear = _is_media_clear(text)
+        # Odwołanie bez frazy alarmowej („Zakończono operowanie lotnictwa") też
+        # wygasza — pod warunkiem kontekstu powietrznego i braku twardego weta.
+        if not level and not (clear and _clear_in_context(text)
+                              and not _hits(text.lower(), config.EXCLUDE_KEYWORDS)):
             continue
         pts = config.POINTS["media_critical"] if level == "critical" else config.POINTS["media_keywords"]
-        voivs = _match_voivs(text)
+        voivs = _match_voivs(_neutralize_places(text))
         if not voivs and default_voiv and not _mentions_abroad(text):
             # Domyślny region kanału jest DOMNIEMANIEM, nie faktem: stosujemy go
             # tylko wtedy, gdy tekst nie umiejscawia zdarzenia za granicą.
             voivs = [default_voiv]
         if not voivs:
             continue
-        link = entry.get("link", "")
         dedup = "media:" + hashlib.sha1((link or title).encode()).hexdigest()[:16]
         # Tekst mówiący, że jest PO wszystkim, nie jest dowodem zagrożenia.
         # Punkty 0 są celowe: wpis zostaje w historii i wygasza wcześniejsze
         # doniesienia medialne w tym województwie (patrz fusion.accumulate).
-        if _is_media_clear(text):
+        if clear:
             for voiv in voivs:
                 await fusion.ingest(
                     source="media", event_type="media_clear", voivodeship=voiv,
@@ -373,4 +562,8 @@ async def run():
                 return_exceptions=True,
             )
             _baltic_summary()
+            try:
+                await _qra_evaluate(time.time())
+            except Exception as exc:               # noqa: BLE001
+                log.warning("fala QRA: %s", exc)
             await asyncio.sleep(config.RSS_INTERVAL)

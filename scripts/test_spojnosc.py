@@ -86,7 +86,7 @@ sprawdz("SPILLOVER_MAX_DEPTH", num(r"SPILLOVER_MAX_DEPTH\s*=\s*(\d+)", ENGINE, "
 # Źródła wyłącznie backendowe (brak kolektora w standalone/engine.js) — nie
 # porównujemy ich w synchronie backend↔engine.
 _BACKEND_ONLY_CAPS = {"neighbours"}
-_BACKEND_ONLY_POINTS = {"neighbour_zone"}
+_BACKEND_ONLY_POINTS = {"neighbour_zone", "media_qra_wave"}
 
 # ── limity wkładu jednej klasy źródła (kluczowe: bez tego historia i fuzja
 #    sumowałyby surowe punkty, np. 4 rutynowe strefy PAŻP = fałszywe 4.0) ──────

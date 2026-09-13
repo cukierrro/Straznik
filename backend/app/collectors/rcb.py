@@ -2,8 +2,13 @@
 
 gov.pl nie wystawia działającego RSS dla RCB (przekierowanie na portal główny),
 więc parsujemy HTML listy wpisów. Przypisanie województwa: po słowach
-kluczowych w tytule; jeśli brak — sygnał ogólnokrajowy trafia do województw
-priorytetowych.
+kluczowych w tytule; jeśli brak — województwa priorytetowe.
+
+Od E3 (13.09.2026) to wyłącznie PUNKT ODNIESIENIA CZASOWEGO (0 pkt): prawdziwe
+alerty RCB przychodzą szybciej i z regionem przez RSO (rso.py). Wcześniej
+kolektor czytał tylko pierwsze 20 linków — a to samo menu nawigacji, więc
+komunikaty „Alert RCB - zagrożenie atakiem z powietrza" (pozycje 36+) nigdy nie
+były widziane.
 """
 import asyncio
 import hashlib
@@ -48,14 +53,16 @@ async def _check(client: httpx.AsyncClient):
         return
 
     found = []
+    seen_hrefs = set()
     for href, raw_title in LINK_RE.findall(r.text):
         title = TAG_RE.sub(" ", raw_title)
         title = re.sub(r"\s+", " ", title).strip()
-        if not title or len(title) < 8:
+        if not title or len(title) < 8 or href in seen_hrefs:
             continue
+        seen_hrefs.add(href)
         found.append((href, title))
 
-    for href, title in found[:20]:
+    for href, title in found:
         # ta sama reguła co media: słowo krytyczne albo para obiekt+zdarzenie
         if not match_keywords(title, config.ALERT_CRITICAL_KEYWORDS,
                               config.ALERT_AIR_KEYWORDS, config.ALERT_EVENT_KEYWORDS,
@@ -67,10 +74,10 @@ async def _check(client: httpx.AsyncClient):
         if _seen_bootstrap:
             for voiv in voivodeships:
                 inserted = await fusion.ingest(
-                    source="rcb", event_type="rcb_alert", voivodeship=voiv,
-                    points=config.POINTS["rcb_alert"],
-                    title=f"RCB: „{title[:120]}”",
-                    details={"url": f"https://www.gov.pl{href}"},
+                    source="rcb", event_type="rcb_govpl", voivodeship=voiv,
+                    points=0.0,
+                    title=f"RCB (gov.pl, odniesienie): „{title[:120]}”",
+                    details={"url": f"https://www.gov.pl{href}", "reference_only": True},
                     dedup_key=f"{dedup}:{voiv}",
                 )
                 reference_new = reference_new or inserted

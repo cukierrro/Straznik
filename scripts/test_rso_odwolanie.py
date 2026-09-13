@@ -165,11 +165,14 @@ ok(fusion.accumulate([podk, odw], ref)["podkarpackie"]["score"] == 1.0,
    "odwołanie w lubelskim nie gasi innych województw")
 
 print("5. podsumowania minionego alarmu")
+# E3 (13.09.2026): „niespokojna noc/poranek" przestało być wetem — ten sam tytuł
+# bywa relacją na żywo. Po odwołaniu gasi go odwołanie RSO (wyżej), a relację
+# z minionej nocy — article_reader po treści artykułu.
 lvl, _ = classify_level(
     "Niespokojny poranek na Lubelszczyźnie. W sześciu powiatach zawyły syreny, wojsko poderwało myśliwce",
     config.ALERT_CRITICAL_KEYWORDS, config.ALERT_AIR_KEYWORDS, config.ALERT_EVENT_KEYWORDS,
     config.EXCLUDE_KEYWORDS, config.SOFT_EXCLUDE_KEYWORDS)
-ok(lvl != "critical", f"„Niespokojny poranek…” nie jest już meldunkiem krytycznym ({lvl})")
+ok(lvl == "critical", f"„Niespokojny poranek…” w trakcie ataku to relacja operacyjna ({lvl})")
 
 if bledy:
     print(f"\nBLEDY: {len(bledy)}")

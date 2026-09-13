@@ -167,6 +167,7 @@ POINTS = {
     # powiadomienia.
     "media_keywords": 0.5,     # OBIEKT+ZDARZENIE: sygnał pomocniczy
     "media_critical": 1.0,     # jednoznaczna relacja operacyjna
+    "media_qra_wave": 1.0,     # fala QRA: kilka redakcji o poderwaniu lotnictwa (E3)
     "rcb_alert": 2.0,          # RCB (oficjalny) nadal może alarmować sam
     "ua_alert_border": 1.0,    # oficjalny alarm powietrzny w przygranicznym obwodzie UA
     "baltic_context": 1.0,     # incydent powietrzny wg mediów LT/LV/EE
@@ -400,6 +401,16 @@ ALERT_CRITICAL_KEYWORDS = [
     "zamknięta przestrzeń powietrzn", "operacja obrony powietrzn",
     "operację obrony powietrzn", "operacji obrony powietrzn",
     "poderwano f-16", "poderwano f-35", "poderwano samoloty",
+    # E3 (13.09.2026): strona czynna. 8.09 o 01:17 fala „Polska poderwała
+    # myśliwce" szła 65 min przed alertem RCB (02:22), a lista znała tylko
+    # „poderwano”. „Operuje lotnictwo” to formuła komunikatu DORSZ, „atakiem
+    # z powietrza” — standardowa treść alertu RCB cytowana w nagłówkach.
+    "poderwała myśliwce", "poderwała samoloty", "poderwała lotnictwo",
+    "poderwało myśliwce", "poderwało samoloty", "poderwało lotnictwo",
+    "poderwali myśliwce", "podrywa myśliwce", "podrywa samoloty", "podrywa lotnictwo",
+    "wojsko poderwało", "operuje lotnictwo", "operuje polskie lotnictwo",
+    "lotnictwo operuje", "rozpoczęło się operowanie", "rozpoczęło operowanie",
+    "atakiem z powietrza",
 ]
 # obiekt, który może zagrażać z powietrza
 ALERT_AIR_KEYWORDS = [
@@ -422,7 +433,26 @@ ALERT_EVENT_KEYWORDS = [
     "ewakuac", "schron", "zagrożeni",
     "przekrocz", "wtargnięci", "detonac", "runął", "runęła", "runęło",
     "zestrzelen", "przechwycen",
+    # E3: odmiany, których rdzenie wyżej nie łapały („eksplodował", „zaatakował")
+    "poderwał", "poderwało", "poderwali", "podrywa", "eksplod", "zaatak", "uderza",
 ]
+
+# E3: relacje, które same w sobie są słabym sygnałem (0,5), choć nie mają pary
+# OBIEKT+ZDARZENIE: syreny w stronie czynnej, zgłoszenia wybuchów, wstrzymany
+# ruch na lotnisku. Samo „syreny" dalej nie wystarcza — dlatego pełne frazy.
+MEDIA_WEAK_PHRASES = [
+    "syreny wyły", "rozległy się syreny", "usłyszeli syreny", "włączono syreny",
+    "uruchomiono syreny", "zgłoszenia o wybuch", "zgłoszenia o huk",
+    "wstrzymało operacje", "wstrzymano operacje", "wstrzymany ruch na lotnisku",
+    "zamknięto część polskiego nieba", "lotnictwo w powietrzu", "myśliwce w powietrzu",
+    "operowało lotnictwo",
+]
+# Nagłówek „alert RCB" jest słabym sygnałem tylko w kontekście powietrznym —
+# RCB wysyła też alerty o wodzie, upałach i powodziach.
+RCB_HEADLINE_WORDS = ["alert rcb", "alerty rcb", "alertu rcb", "rcb wydało alert",
+                      "rcb wysłało alert"]
+RCB_HEADLINE_CONTEXT = ["atak", "lotnictw", "obrony powietrznej", "myśliwc", "dron",
+                        "rakiet", "z powietrza", "powietrzn"]
 
 # Materiał o postępowaniu po zdarzeniu nie jest meldunkiem operacyjnym. Te
 # sformułowania mają pierwszeństwo przed AIR/EVENT i CRITICAL. Nie stosujemy
@@ -458,6 +488,15 @@ FOREIGN_PLACE_MARKERS = [
     "w szwecji", "szwecji", "w iranie", "iranu", "w izraelu", "izraela",
 ]
 
+# Nazwy miejsc, które w tekście NIE umiejscawiają zdarzenia: relacja pociągu
+# „Kijów–Warszawa" czy „loty do Warszawy wstrzymane" dawały mazowieckiemu punkty
+# za atak na Ukrainie (E3, 13.09.2026). Wycinamy je przed rozpoznaniem regionu.
+REGION_NEUTRAL_PATTERNS = [
+    r"(?:kij[oó]w|lw[oó]w|odes(?:sa|y)|wilno|mi[nń]sk|berlin|praga|wiede[nń])\s*[-–—]\s*warszaw\w*",
+    r"warszaw\w*\s*[-–—]\s*(?:kij[oó]w|lw[oó]w|odes(?:sa|y)|wilno|mi[nń]sk|berlin|praga|wiede[nń])",
+    r"(?<!\w)(?:do|z|ze)\s+warszawy(?!\w)",
+]
+
 MEDIA_NONCURRENT_KEYWORDS = [
     # Syreny na uroczystości i alarmy próbne. „Wybiła godzina W. Warszawa
     # stanęła, w mieście zawyły syreny" przechodziło bramkę i dawało
@@ -477,16 +516,16 @@ MEDIA_NONCURRENT_KEYWORDS = [
     # godziny po odwołaniu)
     "po nocnym alarmie", "po porannym alarmie", "po wieczornym alarmie",
     "po nocnym ataku", "po porannym ataku", "po nocnych alarmach",
+    # E3: zaprzeczenia, pomyłki i umorzenia („syreny nie zawyły", „fałszywy alarm")
+    "nie zawyły", "nie zawyła", "pomyłk", "omyłkow", "fałszywy alarm", "umorzył",
+    "umorzono", "przespał", "stado ptaków", "to ptaki", "wykrył ptaki",
+    # testy i zapowiedzi — czas przyszły to nie meldunek
+    "testy syren", "testy dron", "testuje", "testów", "rozpoczyna testy", "korytarz",
+    "zawyją", "rozlegną się", "zabrzmią", "przelecą", "polecą", "będą latać",
+    "dostaną alert", "wyją syreny",
 ]
-
-# Tytuły, które PODSUMOWUJĄ minione zdarzenie, ale bywają też relacją na bieżąco
-# („Niespokojna noc na Lubelszczyźnie. Syreny, poderwane myśliwce" w trakcie
-# ataku). Działają jak weto miękkie: fraza krytyczna spada z 1,5 do 1,0.
-MEDIA_SUMMARY_SOFT_KEYWORDS = [
-    "niespokojny poranek", "niespokojna noc", "niespokojny wieczór",
-    "niespokojne popołudnie", "niespokojna doba", "niespokojny dzień",
-    "nerwowy poranek", "nerwowa noc",
-]
+# „Niespokojna noc/poranek" nie jest już wetem (E3): podsumowanie nocy bywa
+# relacją na żywo, a o świeżości decyduje article_reader po treści artykułu.
 
 # Po ODWOŁANIU alertu RCB/RSO w województwie artykuły, które TYLKO relacjonują
 # alarm (syreny, alert), to opis tego, co już się skończyło — o ile w tym czasie
@@ -550,7 +589,6 @@ EXCLUDE_KEYWORDS = [
     # postępowania i następstwa prawne po wcześniejszym zdarzeniu
     *MEDIA_NONCURRENT_KEYWORDS,
     *BOMB_HOAX_KEYWORDS,
-    *MEDIA_SUMMARY_SOFT_KEYWORDS,
 ]
 
 # Kolejność ma znaczenie: dopasowanie kończy się na pierwszym trafieniu, więc
@@ -705,7 +743,6 @@ SOFT_EXCLUDE_KEYWORDS = [
     "co zrobić w razie", "jak się zachować w razie", "poradnik bezpieczeństwa",
     "poznaj sygnały alarmowe", "co oznacza sygnał alarmowy", "przypominamy",
     "potrwa", "jak doszło", "kulisy", "czy na pewno", "felieton", "reportaż",
-    *MEDIA_SUMMARY_SOFT_KEYWORDS,
 ]
 
 MEDIA_CLEAR_KEYWORDS = [
@@ -718,7 +755,13 @@ MEDIA_CLEAR_KEYWORDS = [
     "lotniska wznowiły", "lotnisko wznowiło", "odwołano ostrzeżenie",
     "ostrzeżenie odwołane", "alert odwołany", "alert rcb odwołany",
     "sytuacja wróciła do normy", "po zagrożeniu",
+    # E3
+    "odwołano alert", "odwołuje alert", "odwołało alert", "zakończyło się operowanie",
 ]
+# Odwołanie bez żadnej frazy alarmowej („Zakończono operowanie lotnictwa") też
+# ma wygaszać — byle dotyczyło zagrożenia z powietrza, a nie np. objazdu.
+MEDIA_CLEAR_CONTEXT = ["lotnictw", "operowani", "alert rcb", "alertu rcb", "syren",
+                       "dron", "rakiet", "powietrz", "myśliwc", "alarm"]
 
 # ── Kanały RSS (per województwo) ─────────────────────────────────────────────
 RSS_FEEDS = [
@@ -749,7 +792,32 @@ RSS_FEEDS = [
     # VOIV_KEYWORDS. Jedno zapytanie pokrywa pozostałe 12 województw, zamiast
     # dokładać po osobnym kanale na każde.
     ("https://news.google.com/rss/search?q=(%22alarm%20powietrzny%22%20OR%20%22zawy%C5%82y%20syreny%22%20OR%20%22naruszenie%20przestrzeni%20powietrznej%22%20OR%20%22zestrzelono%20dron%22)&hl=pl&gl=PL&ceid=PL:pl", None),
+    # E3: ogólnopolski nasłuch poderwań lotnictwa — materiał dla fali QRA.
+    ("https://news.google.com/rss/search?q=%28%22poderwa%C5%82a%20my%C5%9Bliwce%22%20OR%20%22poderwa%C5%82o%20my%C5%9Bliwce%22%20OR%20%22poderwano%20my%C5%9Bliwce%22%20OR%20%22poderwane%20my%C5%9Bliwce%22%20OR%20%22poderwa%C5%82a%20samoloty%22%20OR%20%22poderwano%20samoloty%22%20OR%20%22operuje%20lotnictwo%22%20OR%20%22operowanie%20lotnictwa%22%20OR%20%22wojsko%20poderwa%C5%82o%22%29&hl=pl&gl=PL&ceid=PL:pl", None),
 ]
+
+# ── Fala QRA (E3) ────────────────────────────────────────────────────────────
+# Pojedynczy artykuł „Polska poderwała myśliwce" bez regionu nie daje nic, ale
+# kilka RÓŻNYCH redakcji w krótkim czasie to niezależne potwierdzenie, że
+# lotnictwo operuje teraz. 8.09.2026 taka fala szła 65 min przed alertem RCB.
+QRA_WAVE_MIN_PUBLISHERS = 2
+QRA_WAVE_WINDOW_MIN = 30
+QRA_WAVE_COOLDOWN_MIN = 180       # fale ciągną się godzinami po zdarzeniu
+QRA_WAVE_TARGETS = {
+    "east": ["lubelskie", "podkarpackie"],
+    # poderwanie nad Bałtykiem to sygnał dla północy, nie wschodu
+    "north": ["pomorskie", "warmińsko-mazurskie", "zachodniopomorskie"],
+}
+QRA_BALTIC_MARKERS = ["bałtyk", "łeb", "kaliningrad", "królewc", "królewiec",
+                      "zatoce gdańskiej", "zatoki gdańskiej"]
+# Miejsca, które przesądzają o zagranicy nawet przy „polskie F-35" (Baltic Air
+# Policing nad Litwą to nie zdarzenie nad Polską).
+QRA_FOREIGN_STRONG = ["nad litwą", "nad łotwą", "nad estonią", "nad rumunią", "nad węgrami",
+                      "nad słowacją", "nad mołdawią", "nad morzem czarnym", "nad finlandią",
+                      "nad szwecją", "nad niemcami", "nad islandią", "korea", "korei", "japoni",
+                      "tajwan", "węgry poderwały", "rumunia poderwała", "litwa poderwała",
+                      "air policing", "baltic air policing"]
+QRA_POLISH_MARKERS = ["polsk", "polsce", "dorsz", "dowództwo operacyjne", "nad polską"]
 
 # ── Media bałtyckie (LT/LV/EE) — kontekst dla północno-wschodniej ściany ─────
 # Incydent powietrzny u sąsiadów NATO nad Bałtykiem podnosi czujność dla

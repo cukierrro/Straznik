@@ -182,10 +182,10 @@ const UA_OBLAST_PL = { "Волинська":"wołyńskim", "Львівська":
 /* Klasyfikacja: CRITICAL oznacza 1,5 pkt, para AIR + EVENT 1,0 pkt. Twardy
    limit RSS 1,5 sprawia, że same media nigdy nie osiągają żółtego progu 2,0.
    Lustrzana kopia backend/app/config.py — testy w scripts/test_textmatch.py. */
-const CRITICAL = ["alarm powietrzny","zagrożenie z powietrza","zawyły syreny","zawyła syrena","obiekt powietrzny spadł","niezidentyfikowany obiekt spadł","zestrzelono dron","zestrzelono rakiet","poderwano myśliwce","poderwano lotnictwo","schrony otwarte","zamknięto przestrzeń powietrzn","zamknięcie przestrzeni powietrzn","zamknięta przestrzeń powietrzn","operacja obrony powietrzn","operację obrony powietrzn","operacji obrony powietrzn","poderwano f-16","poderwano f-35","poderwano samoloty"];
-const AIR = ["dron","bezzałogow","bsp","shahed","geran","rakiet","pocisk","ch-101","kalibr","iskander","kab","bomb","myśliwc","mig-31","obiekt powietrzny","przestrzeni powietrznej","przestrzeń powietrzną","obrona powietrzna","obiekt latając","lancet","kindżał","kinżał","kh-101","kh-47","kh-59","amunicja krążąc","fpv","kamikadze","statek powietrzny","pocisk manewrując","pocisk balistyczn","hipersoniczn","f-16","f-35","su-24","su-34","su-35","tu-95","tu-160","mig-29","lotnictwo wojskow"];
-const EVENT = ["spadł","spadła","spadło","eksploz","wybuch","zestrzel","przechwyc","poderwan","naruszen","naruszył","naruszyła","wleciał","wtargn","uderzy","trafił","szczątki","atak","ostrzał","zawył","alarm","ewakuac","schron","zagrożeni","przekrocz","wtargnięci","detonac","runął","runęła","runęło","zestrzelen","przechwycen"];
-const EXCLUDE = ["ćwiczeni", "trening", "test syren", "próba syren", "próby syren", "głośna próba", "rocznic", "upamiętni", "minuta ciszy", "wymian", "modernizac", "przetarg", "inwestycj", "zakup", "montaż", "zamontow", "instalac", "rozbudow", "dofinansow", "dotacj", "planowan", "potrwa", "konserwac", "remont", "pojawią się", "powstan", "wdroż", "komunikat głosowy", "system ostrzegania będzie", "nowe syreny", "nowych syren", "pożar bloku", "pożar domu", "pożar mieszkania", "pożar lasu", "wypadek drogow", "kolizja", "lpr lądował", "śmigłowiec lpr", "utonię", "potrąc", "dachowa", "karambol", "zderzenie samochod", "pożar ciężarów", "pożar samochod", "pożar autobusu", "pożar cystern", "zapaliła się ciężarów", "zapalił się samoch", "zbiornik paliw", "wyciek paliw", "demograf", "przyrost naturaln", "liczba mieszkańc", "wyludnia", "tydzień po", "tygodnie po", "tygodni po", "dzień po", "dni po", "miesiąc po", "miesiące po", "miesięcy po", "rok po", "lata po", "lat po", "rok temu", "lata temu", "lat temu", "ubiegłym roku", "ubiegłego roku", "godzin po", "godziny po", "kalendarium", "przypominamy", "wspomina", "kulisy", "reportaż", "felieton", "czy na pewno", "co wiemy", "jak doszło", "śledztwo w sprawie", "śledztwo ws", "podsumowanie roku", "zawyły syreny?", "zawyła syrena?", "alarm powietrzny?", "co powinieneś zrobić", "co należy zrobić", "jak się zachować w razie", "co robić w razie", "co zrobić w razie", "poradnik bezpieczeństwa", "poznaj sygnały alarmowe", "co oznacza sygnał alarmowy", "film fabularn", "film dokumentaln", "serial", "premiera", "recenzja", "zwiastun", "gra wideo", "gry wideo", "powieść", "komiks", "cosplay", "spektakl", "1939", "1944", "1945", "ii wojn", "powstanie warszawsk", "rakieta kosmiczn", "rakieta nośn", "start rakiety", "spacex", "falcon", "starship", "misja kosmiczn", "kosmodrom", "odbudow", "ma być gotow", "rakieta tenisow", "rakietka", "rakiety śnieżn", "bomba atomow", "wybuchła afera", "pokaz dron", "dron rolnicz", "dron dostawcz", "wyścig dron", "nagranie z drona", "zdjęcia z drona", "zdjęcie z drona", "widok z drona", "wybiła godzina", "godzina \"w\"", "godzinie \"w\"", "godziny \"w\"", "oddali hołd", "oddał hołd", "oddano hołd", "hołd bohaterom", "hołd powstańcom", "uroczystoś", "próbny alarm", "alarm próbny", "próbnego alarmu", "próba syren alarmowych", "ogólnopolskie ćwiczenia", "są zarzuty", "usłyszał zarzut", "usłyszała zarzut", "usłyszeli zarzuty", "postawiono zarzut", "postawiono zarzuty", "zarzuty dla", "akt oskarżenia", "odpowie przed sądem", "stanął przed sądem", "stanęła przed sądem", "skazany za", "skazana za", "do zdarzenia miało dojść", "po nocnym alarmie", "po porannym alarmie", "po wieczornym alarmie", "po nocnym ataku", "po porannym ataku", "po nocnych alarmach", "alarm bombowy", "alarmy bombowe", "alarmu bombowego", "alarmów bombowych", "alarmie bombowym", "alarmem bombowym", "alarmów bombowych", "o podłożeniu ładunku", "podłożeniu bomby", "informacja o bombie", "niespokojny poranek", "niespokojna noc", "niespokojny wieczór", "niespokojne popołudnie", "niespokojna doba", "niespokojny dzień", "nerwowy poranek", "nerwowa noc"];
+const CRITICAL = ["alarm powietrzny", "zagrożenie z powietrza", "zawyły syreny", "zawyła syrena", "obiekt powietrzny spadł", "niezidentyfikowany obiekt spadł", "zestrzelono dron", "zestrzelono rakiet", "poderwano myśliwce", "poderwano lotnictwo", "schrony otwarte", "zamknięto przestrzeń powietrzn", "zamknięcie przestrzeni powietrzn", "zamknięta przestrzeń powietrzn", "operacja obrony powietrzn", "operację obrony powietrzn", "operacji obrony powietrzn", "poderwano f-16", "poderwano f-35", "poderwano samoloty", "poderwała myśliwce", "poderwała samoloty", "poderwała lotnictwo", "poderwało myśliwce", "poderwało samoloty", "poderwało lotnictwo", "poderwali myśliwce", "podrywa myśliwce", "podrywa samoloty", "podrywa lotnictwo", "wojsko poderwało", "operuje lotnictwo", "operuje polskie lotnictwo", "lotnictwo operuje", "rozpoczęło się operowanie", "rozpoczęło operowanie", "atakiem z powietrza"];
+const AIR = ["dron", "bezzałogow", "bsp", "shahed", "geran", "rakiet", "pocisk", "ch-101", "kalibr", "iskander", "kab", "bomb", "myśliwc", "mig-31", "obiekt powietrzny", "przestrzeni powietrznej", "przestrzeń powietrzną", "obrona powietrzna", "obiekt latając", "lancet", "kindżał", "kinżał", "kh-101", "kh-47", "kh-59", "amunicja krążąc", "fpv", "kamikadze", "statek powietrzny", "pocisk manewrując", "pocisk balistyczn", "hipersoniczn", "f-16", "f-35", "su-24", "su-34", "su-35", "tu-95", "tu-160", "mig-29", "lotnictwo wojskow"];
+const EVENT = ["spadł", "spadła", "spadło", "eksploz", "wybuch", "zestrzel", "przechwyc", "poderwan", "naruszen", "naruszył", "naruszyła", "wleciał", "wtargn", "uderzy", "trafił", "szczątki", "atak", "ostrzał", "zawył", "alarm", "ewakuac", "schron", "zagrożeni", "przekrocz", "wtargnięci", "detonac", "runął", "runęła", "runęło", "zestrzelen", "przechwycen", "poderwał", "poderwało", "poderwali", "podrywa", "eksplod", "zaatak", "uderza"];
+const EXCLUDE = ["ćwiczeni", "trening", "test syren", "próba syren", "próby syren", "głośna próba", "rocznic", "upamiętni", "minuta ciszy", "wymian", "modernizac", "przetarg", "inwestycj", "zakup", "montaż", "zamontow", "instalac", "rozbudow", "dofinansow", "dotacj", "planowan", "potrwa", "konserwac", "remont", "pojawią się", "powstan", "wdroż", "komunikat głosowy", "system ostrzegania będzie", "nowe syreny", "nowych syren", "pożar bloku", "pożar domu", "pożar mieszkania", "pożar lasu", "wypadek drogow", "kolizja", "lpr lądował", "śmigłowiec lpr", "utonię", "potrąc", "dachowa", "karambol", "zderzenie samochod", "pożar ciężarów", "pożar samochod", "pożar autobusu", "pożar cystern", "zapaliła się ciężarów", "zapalił się samoch", "zbiornik paliw", "wyciek paliw", "demograf", "przyrost naturaln", "liczba mieszkańc", "wyludnia", "tydzień po", "tygodnie po", "tygodni po", "dzień po", "dni po", "miesiąc po", "miesiące po", "miesięcy po", "rok po", "lata po", "lat po", "rok temu", "lata temu", "lat temu", "ubiegłym roku", "ubiegłego roku", "godzin po", "godziny po", "kalendarium", "przypominamy", "wspomina", "kulisy", "reportaż", "felieton", "czy na pewno", "co wiemy", "jak doszło", "śledztwo w sprawie", "śledztwo ws", "podsumowanie roku", "zawyły syreny?", "zawyła syrena?", "alarm powietrzny?", "co powinieneś zrobić", "co należy zrobić", "jak się zachować w razie", "co robić w razie", "co zrobić w razie", "poradnik bezpieczeństwa", "poznaj sygnały alarmowe", "co oznacza sygnał alarmowy", "film fabularn", "film dokumentaln", "serial", "premiera", "recenzja", "zwiastun", "gra wideo", "gry wideo", "powieść", "komiks", "cosplay", "spektakl", "1939", "1944", "1945", "ii wojn", "powstanie warszawsk", "rakieta kosmiczn", "rakieta nośn", "start rakiety", "spacex", "falcon", "starship", "misja kosmiczn", "kosmodrom", "odbudow", "ma być gotow", "rakieta tenisow", "rakietka", "rakiety śnieżn", "bomba atomow", "wybuchła afera", "pokaz dron", "dron rolnicz", "dron dostawcz", "wyścig dron", "nagranie z drona", "zdjęcia z drona", "zdjęcie z drona", "widok z drona", "wybiła godzina", "godzina \"w\"", "godzinie \"w\"", "godziny \"w\"", "oddali hołd", "oddał hołd", "oddano hołd", "hołd bohaterom", "hołd powstańcom", "uroczystoś", "próbny alarm", "alarm próbny", "próbnego alarmu", "próba syren alarmowych", "ogólnopolskie ćwiczenia", "są zarzuty", "usłyszał zarzut", "usłyszała zarzut", "usłyszeli zarzuty", "postawiono zarzut", "postawiono zarzuty", "zarzuty dla", "akt oskarżenia", "odpowie przed sądem", "stanął przed sądem", "stanęła przed sądem", "skazany za", "skazana za", "do zdarzenia miało dojść", "po nocnym alarmie", "po porannym alarmie", "po wieczornym alarmie", "po nocnym ataku", "po porannym ataku", "po nocnych alarmach", "nie zawyły", "nie zawyła", "pomyłk", "omyłkow", "fałszywy alarm", "umorzył", "umorzono", "przespał", "stado ptaków", "to ptaki", "wykrył ptaki", "testy syren", "testy dron", "testuje", "testów", "rozpoczyna testy", "korytarz", "zawyją", "rozlegną się", "zabrzmią", "przelecą", "polecą", "będą latać", "dostaną alert", "wyją syreny", "alarm bombowy", "alarmy bombowe", "alarmu bombowego", "alarmów bombowych", "alarmie bombowym", "alarmem bombowym", "alarmów bombowych", "o podłożeniu ładunku", "podłożeniu bomby", "informacja o bombie"];
 const B_CRITICAL = ["airspace violation", "violated airspace", "airspace was violated", "airspace closed", "shot down a drone", "scrambled jets", "oro erdvės pažeid", "gaisa telpas pārkāp", "õhuruumi rikku"];
 const B_AIR = ["airspace","air space","drone","uav","missile","shahed","air defence","air defense",
   "oro erdv","bepilot","raket","gaisa telp","droon","õhuruum","military aircraft","fighter jet","jets"];
@@ -364,7 +364,7 @@ function hasKeyword(text, keyword) {
 }
 /* Weta MIĘKKIE obniżają frazę krytyczną do zwykłej pary zamiast ją kasować —
    musi się zgadzać z config.SOFT_EXCLUDE_KEYWORDS. */
-const SOFT_EXCLUDE = ["co wiemy", "co należy zrobić", "co powinieneś zrobić", "co robić w razie", "co zrobić w razie", "jak się zachować w razie", "poradnik bezpieczeństwa", "poznaj sygnały alarmowe", "co oznacza sygnał alarmowy", "przypominamy", "potrwa", "jak doszło", "kulisy", "czy na pewno", "felieton", "reportaż", "niespokojny poranek", "niespokojna noc", "niespokojny wieczór", "niespokojne popołudnie", "niespokojna doba", "niespokojny dzień", "nerwowy poranek", "nerwowa noc"];
+const SOFT_EXCLUDE = ["co wiemy", "co należy zrobić", "co powinieneś zrobić", "co robić w razie", "co zrobić w razie", "jak się zachować w razie", "poradnik bezpieczeństwa", "poznaj sygnały alarmowe", "co oznacza sygnał alarmowy", "przypominamy", "potrwa", "jak doszło", "kulisy", "czy na pewno", "felieton", "reportaż"];
 function podzialWet(tl, exclude) {
   const miekkie = SOFT_EXCLUDE.filter(k => hasKeyword(tl, k));
   const zbior = new Set(miekkie);
@@ -384,6 +384,11 @@ function matchKw(text, critical, air, event, exclude) {
 /* Jak matchKw, ale zwraca SIŁĘ dopasowania (lustro textmatch.classify_level):
    "critical" = relacja operacyjna (1,5 pkt), "weak" = para obiekt+zdarzenie
    (1 pkt). Oba wymagają innej klasy źródła; null = brak/weto. */
+/* Słabe frazy samodzielne i „alert RCB" w kontekście powietrznym (E3) —
+   lustro config.MEDIA_WEAK_PHRASES / RCB_HEADLINE_WORDS / RCB_HEADLINE_CONTEXT. */
+const MEDIA_WEAK = ["syreny wyły", "rozległy się syreny", "usłyszeli syreny", "włączono syreny", "uruchomiono syreny", "zgłoszenia o wybuch", "zgłoszenia o huk", "wstrzymało operacje", "wstrzymano operacje", "wstrzymany ruch na lotnisku", "zamknięto część polskiego nieba", "lotnictwo w powietrzu", "myśliwce w powietrzu", "operowało lotnictwo"];
+const RCB_HEAD = ["alert rcb", "alerty rcb", "alertu rcb", "rcb wydało alert", "rcb wysłało alert"];
+const RCB_HEAD_CTX = ["atak", "lotnictw", "obrony powietrznej", "myśliwc", "dron", "rakiet", "z powietrza", "powietrzn"];
 function matchLevel(text, critical, air, event, exclude) {
   const tl = text.toLowerCase();
   const { twarde, miekkie } = podzialWet(tl, exclude);
@@ -393,6 +398,11 @@ function matchLevel(text, critical, air, event, exclude) {
   if (miekkie.length) return { level: null, hits: [] };
   const a = air.filter(k => hasKeyword(tl, k)), e = event.filter(k => hasKeyword(tl, k));
   if (a.length && e.length) return { level: "weak", hits: a.slice(0, 2).concat(e.slice(0, 2)) };
+  const w = MEDIA_WEAK.filter(k => hasKeyword(tl, k));
+  if (w.length) return { level: "weak", hits: w.slice(0, 2) };
+  const r = RCB_HEAD.filter(k => hasKeyword(tl, k));
+  const rc = r.length ? RCB_HEAD_CTX.filter(k => hasKeyword(tl, k)) : [];
+  if (rc.length) return { level: "weak", hits: [r[0], rc[0]] };
   return { level: null, hits: [] };
 }
 /* Małe litery bez znaków diakrytycznych — ł nie rozkłada się w NFD, stąd osobna
@@ -440,15 +450,7 @@ const mentionsAbroad = (text) => {
 
 /* Artykuł mówiący, że jest PO wszystkim, nie jest dowodem zagrożenia. Musi się
    zgadzać z config.MEDIA_CLEAR_KEYWORDS — pilnuje tego scripts/test_spojnosc.py. */
-const MEDIA_CLEAR = ["odwołano alarm","odwołanie alarmu","alarm odwołany","koniec alarmu",
-  "zakończono operowanie","zakończyło operowanie","zakończone operowanie",
-  "powróciły do standardowej","wrócił do standardowej","powrót do standardowej",
-  "zagrożenie minęło","zagrożenie minelo","niebezpieczeństwo minęło",
-  "zakończono działania","zakończyły się działania","zakończono operację",
-  "przestrzeń powietrzna została otwarta","wznowiono ruch lotniczy",
-  "lotniska wznowiły","lotnisko wznowiło","odwołano ostrzeżenie",
-  "ostrzeżenie odwołane","alert odwołany","alert rcb odwołany",
-  "sytuacja wróciła do normy","po zagrożeniu"];
+const MEDIA_CLEAR = ["odwołano alarm", "odwołanie alarmu", "alarm odwołany", "koniec alarmu", "zakończono operowanie", "zakończyło operowanie", "zakończone operowanie", "powróciły do standardowej", "wrócił do standardowej", "powrót do standardowej", "zagrożenie minęło", "zagrożenie minelo", "niebezpieczeństwo minęło", "zakończono działania", "zakończyły się działania", "zakończono operację", "przestrzeń powietrzna została otwarta", "wznowiono ruch lotniczy", "lotniska wznowiły", "lotnisko wznowiło", "odwołano ostrzeżenie", "ostrzeżenie odwołane", "alert odwołany", "alert rcb odwołany", "sytuacja wróciła do normy", "po zagrożeniu", "odwołano alert", "odwołuje alert", "odwołało alert", "zakończyło się operowanie"];
 const isMediaClear = (text) => {
   const t = fold(String(text).toLowerCase());
   return MEDIA_CLEAR.some(k => t.includes(fold(k)));
@@ -1332,9 +1334,11 @@ async function tickRcb() {
     markHealth("rcb", true);
     const re = /href="(\/web\/rcb\/[a-z0-9-]{8,})"[^>]*>([\s\S]*?)<\/a>/gi;
     let m, found = [];
-    while ((m = re.exec(html)) && found.length < 20) {
+    // Wszystkie linki: pierwsze 20 to samo menu nawigacji (E3, 13.09.2026).
+    const hrefs = new Set();
+    while ((m = re.exec(html))) {
       const title = m[2].replace(/<[^>]+>/g," ").replace(/\s+/g," ").trim();
-      if (title.length >= 8) found.push([m[1], title]);
+      if (title.length >= 8 && !hrefs.has(m[1])) { hrefs.add(m[1]); found.push([m[1], title]); }
     }
     for (const [href, title] of found) {
       // ta sama reguła co dla mediów: mocne słowo albo ≥2 słabe — pojedyncze
@@ -1346,8 +1350,9 @@ async function tickRcb() {
       const voivs = (() => { const v = matchVoiv(title);
         return v ? [v] : ["lubelskie","podkarpackie","podlaskie","warmińsko-mazurskie"]; })();
       for (const v of voivs)
-        addSignal("rcb","rcb_alert",v,POINTS.rcb_alert,`RCB: „${title.slice(0,120)}”`,
-          {url:"https://www.gov.pl"+href}, `rcb:${href}:${v}`);
+        // Tylko punkt odniesienia czasowego — prawdziwe alerty daje RSO niżej.
+        addSignal("rcb","rcb_govpl",v,0,`RCB (gov.pl, odniesienie): „${title.slice(0,120)}”`,
+          {url:"https://www.gov.pl"+href, reference_only:true}, `rcb:${href}:${v}`);
     }
     rcbBootstrapped = true;
     localStorage.setItem("eng_rcb_boot", "1");
