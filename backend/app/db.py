@@ -142,6 +142,25 @@ def signals_since(minutes: int) -> list[dict]:
     return out
 
 
+def events_since(minutes: int, event_types: tuple[str, ...]) -> list[dict]:
+    """Sygnały wybranych typów z dłuższego okresu niż okno fuzji.
+
+    Odwołanie alertu RCB działa dłużej niż 60 minut: artykuły opisujące
+    odwołany alarm przychodzą godzinami później (13.09.2026 Kurier Lubelski
+    o 07:39 o syrenach odwołanych o 04:58)."""
+    cutoff = (datetime.now(timezone.utc) - timedelta(minutes=minutes)).isoformat(timespec="seconds")
+    marks = ",".join("?" * len(event_types))
+    with _lock:
+        rows = _conn.execute(
+            "SELECT id, ts, source, event_type, voivodeship, points, title, details"
+            f" FROM signals WHERE ts >= ? AND event_type IN ({marks}) ORDER BY ts DESC",
+            (cutoff, *event_types),
+        ).fetchall()
+    return [{"id": r[0], "ts": r[1], "source": r[2], "event_type": r[3],
+             "voivodeship": r[4], "points": r[5], "title": r[6],
+             "details": json.loads(r[7]) if r[7] else {}} for r in rows]
+
+
 def recent_signals(limit: int = 200) -> list[dict]:
     with _lock:
         rows = _conn.execute(

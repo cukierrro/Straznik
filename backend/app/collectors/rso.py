@@ -10,7 +10,10 @@ RSO niesie MNÓSTWO komunikatów niezwiązanych z zagrożeniem powietrznym (burz
 IMGW, poziomy wód, drogi). Dlatego filtr jest wąski: komunikat musi być
 POCHODZENIA RCB (prefiks „UWAGA! UWAGA! UWAGA!" / „Alert RCB" / „SPO-") ORAZ mieć
 kontekst POWIETRZNY (atak powietrzny, dron, rakieta, naruszenie przestrzeni…).
-Komunikaty „zakończenie / brak zagrożenia" są pomijane (nie alarmujemy na odwołanie).
+Komunikat „zakończenie / odwołanie" nie alarmuje, ale jest zapisywany jako
+`rso_clear` (0 pkt): fuzja gasi nim odwołany alert i artykuły, które go potem
+tylko opisują. RSO potrafi zmienić istniejący wpis W MIEJSCU (ten sam id, nowa
+treść i `rso_alarm` = 2), więc odwołanie rozpoznajemy także po zmianie wpisu.
 """
 import asyncio
 import logging
@@ -71,6 +74,25 @@ def _is_rcb_air_alert(text: str, headline: str | None = None) -> bool:
     if any(w in head for w in RSO_END):
         return False
     return any(o in t for o in RSO_ORIGIN) and any(a in t for a in RSO_AIR)
+
+
+def _is_rcb_air_cancellation(it: dict) -> bool:
+    """Odwołanie zagrożenia z powietrza od RCB.
+
+    `rso_alarm` = "2" oznacza w RSO odwołanie (1 = alert, 0 = informacja). Pole
+    bywa puste w starszych wpisach, więc zapasowo patrzymy na tytuł i skrót.
+    13.09.2026 wpis 23329799 dla lubelskiego zmienił się o 04:58 na
+    „Odwołano zagrożenie atakiem z powietrza", a Strażnik liczył go dalej.
+    """
+    text = f"{it.get('title','')} {it.get('shortcut','')} {it.get('content','')}".lower()
+    if not (any(o in text for o in RSO_ORIGIN) and any(a in text for a in RSO_AIR)):
+        return False
+    if str(it.get("rso_alarm") or "").strip() == "2":
+        return True
+    head = f"{it.get('title','')} {it.get('shortcut','')}".lower()
+    for cont in RSO_CONTINUES:
+        head = head.replace(cont, " ")
+    return any(w in head for w in RSO_END)
 
 
 # slug_name z RSO (bez „ł"/diakrytyków?) → nasze nazwy województw
@@ -139,6 +161,9 @@ async def _check(client: httpx.AsyncClient):
     for it in items:
         text = f"{it.get('title','')} {it.get('shortcut','')} {it.get('content','')}"
         headline = f"{it.get('title','')} {it.get('shortcut','')}"
+        if _is_rcb_air_cancellation(it):
+            await _ingest_clear(it)
+            continue
         if not _is_rcb_air_alert(text, headline):
             continue
         active += 1
@@ -182,6 +207,30 @@ async def _check(client: httpx.AsyncClient):
             )
     status["active"] = active
     _bootstrap = True
+
+
+async def _ingest_clear(it: dict):
+    """Zapis odwołania (0 pkt). Także przy pierwszym obiegu po starcie: odwołanie
+    nie alarmuje, a bez niego alert sprzed restartu liczyłby się dalej. Fuzja
+    porównuje czasy wydania, więc stare odwołanie nie gasi nowszego alertu."""
+    if not _still_active(it):
+        return
+    mid = str(it.get("id"))
+    stamp = it.get("updated_at") or it.get("created_at") or it.get("valid_from")
+    cleared_at = rcb_reference.normalize_source_time(stamp)
+    for voiv in _voivs_for(it):
+        key = f"rso-clear:{mid}:{voiv}"
+        if key in _seen:
+            continue
+        _seen.add(key)
+        title = it.get("shortcut") or it.get("title") or "Odwołanie alertu RCB"
+        await fusion.ingest(
+            source="rcb", event_type="rso_clear", voivodeship=voiv, points=0.0,
+            title=f"RCB (RSO): odwołanie — „{title[:120]}”",
+            details={"rso_id": mid, "clear": True, "cleared_at": cleared_at,
+                     "updated_at": it.get("updated_at")},
+            dedup_key=key,
+        )
 
 
 async def run():

@@ -439,7 +439,27 @@ MEDIA_NONCURRENT_KEYWORDS = [
     "akt oskarżenia", "odpowie przed sądem", "stanął przed sądem",
     "stanęła przed sądem", "skazany za", "skazana za",
     "do zdarzenia miało dojść",
+    # podsumowania minionego alarmu (13.09.2026: „Niespokojny poranek na
+    # Lubelszczyźnie. W sześciu powiatach zawyły syreny…" dało 1,5 pkt trzy
+    # godziny po odwołaniu)
+    "po nocnym alarmie", "po porannym alarmie", "po wieczornym alarmie",
+    "po nocnym ataku", "po porannym ataku", "po nocnych alarmach",
 ]
+
+# Tytuły, które PODSUMOWUJĄ minione zdarzenie, ale bywają też relacją na bieżąco
+# („Niespokojna noc na Lubelszczyźnie. Syreny, poderwane myśliwce" w trakcie
+# ataku). Działają jak weto miękkie: fraza krytyczna spada z 1,5 do 1,0.
+MEDIA_SUMMARY_SOFT_KEYWORDS = [
+    "niespokojny poranek", "niespokojna noc", "niespokojny wieczór",
+    "niespokojne popołudnie", "niespokojna doba", "niespokojny dzień",
+    "nerwowy poranek", "nerwowa noc",
+]
+
+# Po ODWOŁANIU alertu RCB/RSO w województwie artykuły o alarmie (syreny, alert,
+# poderwane lotnictwo) to relacja z tego, co już się skończyło — o ile w tym
+# czasie nie przyszedł nowy alert. Zerujemy je przez tyle minut po odwołaniu.
+RSO_CLEAR_MEDIA_ECHO_MIN = 360
+RSO_CLEAR_ECHO_MARKERS = ("syren", "alert", "alarm", "rcb", "poderwa", "mysliw")
 
 # weto — konteksty, w których powyższe słowa nie oznaczają zagrożenia
 EXCLUDE_KEYWORDS = [
@@ -493,6 +513,7 @@ EXCLUDE_KEYWORDS = [
     # postępowania i następstwa prawne po wcześniejszym zdarzeniu
     *MEDIA_NONCURRENT_KEYWORDS,
     *BOMB_HOAX_KEYWORDS,
+    *MEDIA_SUMMARY_SOFT_KEYWORDS,
 ]
 
 # Kolejność ma znaczenie: dopasowanie kończy się na pierwszym trafieniu, więc
@@ -647,6 +668,7 @@ SOFT_EXCLUDE_KEYWORDS = [
     "co zrobić w razie", "jak się zachować w razie", "poradnik bezpieczeństwa",
     "poznaj sygnały alarmowe", "co oznacza sygnał alarmowy", "przypominamy",
     "potrwa", "jak doszło", "kulisy", "czy na pewno", "felieton", "reportaż",
+    *MEDIA_SUMMARY_SOFT_KEYWORDS,
 ]
 
 MEDIA_CLEAR_KEYWORDS = [

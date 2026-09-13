@@ -233,6 +233,61 @@ def _age_weight(ts: str, ref: datetime | None = None) -> float:
     return max(0.0, 1.0 - (age_min - config.FUSION_FULL_MIN) / span)
 
 
+def _is_official(s: dict) -> bool:
+    return (s.get("source") == "rcb" and s.get("event_type") in {"rso_alert", "rcb_alert"}
+            and s.get("points", 0) > 0)
+
+
+def _pl_local_to_utc(value) -> str | None:
+    """Czas RSO (lokalny PL, bez strefy) → ISO UTC w formacie znaczników sygnałów."""
+    try:
+        from zoneinfo import ZoneInfo
+        local = datetime.strptime(str(value)[:19], "%Y-%m-%d %H:%M:%S")
+        return (local.replace(tzinfo=ZoneInfo("Europe/Warsaw"))
+                .astimezone(timezone.utc).isoformat(timespec="seconds"))
+    except Exception:
+        return None
+
+
+def _issued_at(s: dict) -> str:
+    """Kiedy RCB wydało alert: `valid_from` z RSO, a bez niego chwila zapisu."""
+    return _pl_local_to_utc((s.get("details") or {}).get("valid_from")) or s.get("ts", "")
+
+
+def _official_cleared(s: dict, rso_clears: dict[str, list[dict]]) -> bool:
+    """Alert jest odwołany, gdy RSO odwołało TEN wpis (edycja w miejscu) albo
+    województwo dostało odwołanie wydane po nim. Nowszy alert zostaje w mocy."""
+    rso_id = str((s.get("details") or {}).get("rso_id") or "")
+    issued = _issued_at(s)
+    return any((rso_id and c["rso_id"] == rso_id) or issued <= c["at"]
+               for c in rso_clears.get(s.get("voivodeship"), []))
+
+
+def _media_after_official_clear(media: dict, clears: list[dict],
+                                active_issued: list[str]) -> str | None:
+    """Artykuł o alarmie w województwie, w którym RCB alarm odwołało.
+
+    Wcześniejsze doniesienia gasną razem z odwołaniem. Późniejsze, przez
+    RSO_CLEAR_MEDIA_ECHO_MIN, uznajemy za relację z tego, co się skończyło
+    (13.09.2026: „W sześciu powiatach zawyły syreny" o 07:39 po odwołaniu
+    o 04:58 dało 1,5 pkt) — chyba że w międzyczasie RCB wydało nowy alert.
+    """
+    ts = media.get("ts", "")
+    if any(c["at"] >= ts for c in clears):
+        return "before_clear"
+    last = max(c["at"] for c in clears)
+    try:
+        gap = (datetime.fromisoformat(ts) - datetime.fromisoformat(last)).total_seconds() / 60
+    except Exception:
+        return None
+    if gap > config.RSO_CLEAR_MEDIA_ECHO_MIN or any(i > last for i in active_issued):
+        return None
+    title = _fold_text(media.get("title", ""))
+    if any(m in title for m in config.RSO_CLEAR_ECHO_MARKERS):
+        return "after_clear"
+    return None
+
+
 def accumulate(signals: list[dict], ref: datetime | None = None) -> dict:
     """Per województwo {score, signals[]} z limitem klasy źródła (config.SOURCE_CAPS)
     i wygaszaniem wiekiem względem `ref`.
@@ -247,9 +302,7 @@ def accumulate(signals: list[dict], ref: datetime | None = None) -> dict:
         for v in config.VOIVODESHIPS
     }
     per_source: dict[tuple, float] = {}
-    officials = [s for s in signals if s.get("source") == "rcb"
-                 and s.get("event_type") in {"rso_alert", "rcb_alert"}
-                 and s.get("points", 0) > 0]
+    officials = [s for s in signals if _is_official(s)]
 
     # Odwołanie alertu u sąsiada wygasza tylko wcześniejszy wpis tego samego
     # zdarzenia (stabilny incident_key z numeru artykułu). Sygnału nie kasujemy
@@ -298,6 +351,21 @@ def accumulate(signals: list[dict], ref: datetime | None = None) -> dict:
         if v and s.get("ts", "") > media_clears.get(v, ""):
             media_clears[v] = s["ts"]
 
+    # Odwołania alertów RCB/RSO. Wpis RSO bywa edytowany W MIEJSCU: 13.09.2026
+    # alert 23329799 dla lubelskiego o 04:58 zmienił treść na „Odwołano
+    # zagrożenie atakiem z powietrza", a Strażnik liczył go dalej jako alert.
+    rso_clears: dict[str, list[dict]] = {}
+    for s in signals:
+        if s.get("event_type") != "rso_clear" or not s.get("voivodeship"):
+            continue
+        d = s.get("details") or {}
+        rso_clears.setdefault(s["voivodeship"], []).append(
+            {"at": d.get("cleared_at") or s.get("ts", ""), "rso_id": str(d.get("rso_id") or "")})
+    uncleared_officials: dict[str, list[str]] = {}
+    for s in officials:
+        if not _official_cleared(s, rso_clears):
+            uncleared_officials.setdefault(s.get("voivodeship"), []).append(_issued_at(s))
+
     prepared: list[dict] = []
     for s in sorted(signals, key=lambda x: x["ts"]):
         voiv = s.get("voivodeship")
@@ -320,6 +388,13 @@ def accumulate(signals: list[dict], ref: datetime | None = None) -> dict:
         if not cleared and s.get("source") == "media":
             mc = media_clears.get(voiv)
             cleared = bool(mc and mc >= s.get("ts", ""))
+        official_clear = None
+        if _is_official(s) and _official_cleared(s, rso_clears):
+            official_clear = "alert"
+        elif s.get("event_type") == "media_keywords" and rso_clears.get(voiv):
+            official_clear = _media_after_official_clear(
+                s, rso_clears[voiv], uncleared_officials.get(voiv, []))
+        cleared = cleared or bool(official_clear)
         relay_of = _media_relay_of_official(s, officials)
         retrospective = _media_retrospective(s)
         w = _age_weight(s["ts"], ref)
@@ -328,6 +403,7 @@ def accumulate(signals: list[dict], ref: datetime | None = None) -> dict:
             "s": s, "voiv": voiv, "w": w, "counted": 0.0,
             "weighted": 0.0 if zeroed else s["points"] * w,
             "cleared": cleared, "relay_of": relay_of, "retrospective": retrospective,
+            "official_clear": official_clear,
         })
 
     for e in sorted(prepared, key=lambda x: (-x["weighted"], x["s"]["ts"])):
@@ -356,7 +432,8 @@ def accumulate(signals: list[dict], ref: datetime | None = None) -> dict:
              **({"duplicate_of_official":
                  (relay_of.get("details") or {}).get("rso_id") or relay_of.get("id")}
                 if relay_of else {}),
-             **({"retrospective": True} if e["retrospective"] else {})})
+             **({"retrospective": True} if e["retrospective"] else {}),
+             **({"official_clear": e["official_clear"]} if e["official_clear"] else {})})
     return per_voiv
 
 
@@ -426,8 +503,25 @@ def compute_state(signals: list[dict] | None = None, ref: datetime | None = None
     """
     if signals is None:
         signals = db.signals_since(config.FUSION_WINDOW_MIN)
+    if getattr(db, "_conn", None) is not None:
+        # Odwołania RCB z dłuższego okresu: gaszą też artykuły, które opisują
+        # odwołany alarm godzinami później.
+        try:
+            seen = {s.get("id") for s in signals}
+            signals = signals + [s for s in db.events_since(
+                config.RSO_CLEAR_MEDIA_ECHO_MIN + config.FUSION_WINDOW_MIN, ("rso_clear",))
+                if s.get("id") not in seen]
+        except Exception as e:
+            log.warning("odwołania RSO spoza okna: %s", e)
     # limit klasy źródła + wygaszanie wiekiem — wspólne z rekonstrukcją historii
     per_voiv = apply_spillover(accumulate(signals, ref), ref)
+    levels = _levels()
+    for voiv, st in per_voiv.items():
+        # Kolor mapy podniesiony WYŁĄCZNIE przez sąsiadów (telefon w tym
+        # województwie nie dzwoni) — aplikacja rysuje go inaczej niż własny alarm,
+        # żeby żółte świętokrzyskie z samych przeniesień nie wyglądało jak alarm.
+        st["alert_level"] = alert_level(st["own_score"], st["score"], levels.get(voiv, "none"))
+        st["spill_raised"] = _ORDER.index(st["level"]) > _ORDER.index(st["alert_level"])
     return {
         "ts": (ref or datetime.now(timezone.utc)).isoformat(timespec="seconds"),
         "window_min": config.FUSION_WINDOW_MIN,
