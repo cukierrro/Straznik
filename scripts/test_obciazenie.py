@@ -125,6 +125,9 @@ async def page(path):
 ok(b"s-maxage=60" in asyncio.run(page("/")) and b"max-age=0" in asyncio.run(page("/")),
    "/ → 60 s w Cloudflare, przeglądarka sprawdza zawsze")
 ok(asyncio.run(page("/app.js")) == b"", "pliki z ?v= bez zmian (domyślny cache Cloudflare)")
+ok(b"s-maxage=3600" in asyncio.run(page("/assets/obwody-ua.geojson")),
+   "granice obwodów (1,1 MB) — godzina w Cloudflare")
+ok(asyncio.run(page("/assets/icon-192.png")) == b"", "obrazy bez zmian")
 
 if bledy:
     print(f"\nBLEDY: {len(bledy)}")

@@ -98,19 +98,31 @@ class PageCacheHeaders:
 
     PATHS = ("/", "/index.html")
     VALUE = b"public, max-age=0, s-maxage=60, stale-while-revalidate=300"
+    # Granice obwodów, województw i krajów (do 1,1 MB) szły z VPS przy każdym
+    # wejściu na stronę (13.09.2026). Zmieniają się tylko przy wdrożeniu, więc
+    # Cloudflare trzyma je godzinę, a przeglądarka 10 minut.
+    GEO_VALUE = b"public, max-age=600, s-maxage=3600, stale-while-revalidate=86400"
 
     def __init__(self, app):
         self.app = app
 
+    def _value(self, path: str) -> bytes | None:
+        if path in self.PATHS:
+            return self.VALUE
+        if path.startswith("/assets/") and path.endswith(".geojson"):
+            return self.GEO_VALUE
+        return None
+
     async def __call__(self, scope, receive, send):
-        if scope["type"] != "http" or scope.get("path") not in self.PATHS:
+        value = self._value(scope.get("path", "")) if scope["type"] == "http" else None
+        if value is None:
             return await self.app(scope, receive, send)
 
         async def send_with_headers(message):
             if message["type"] == "http.response.start" and message.get("status") == 200:
                 headers = [(k, v) for k, v in message.get("headers", [])
                            if k.lower() != b"cache-control"]
-                headers.append((b"cache-control", self.VALUE))
+                headers.append((b"cache-control", value))
                 message = {**message, "headers": headers}
             await send(message)
 
