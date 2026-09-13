@@ -2610,9 +2610,9 @@ async function enablePush() {
   if (perm !== "granted") {
     // bez komunikatu dzwonek wyglądał, jakby nie reagował (zgłoszone 13.09.2026)
     toast((UI.isEn
-      ? "🔕 The browser blocks notifications for straznik.eu. To allow them, change Block to Allow here: "
-      : "🔕 Przeglądarka blokuje powiadomienia dla straznik.eu. Aby je dopuścić, zmień Blokuj na Zezwalaj tutaj: ")
-      + esc(browserNotifPath())
+      ? "🔕 The browser blocks notifications for straznik.eu. To allow them: "
+      : "🔕 Przeglądarka blokuje powiadomienia dla straznik.eu. Aby je dopuścić: ")
+      + esc(browserNotifPath(UI.isEn, true))
       + `<br><span class="muted">${UI.isEn ? "Tap to close" : "Dotknij, aby zamknąć"}</span>`, 20000);
     return;
   }
@@ -2641,31 +2641,32 @@ async function enablePush() {
    przy otwartej karcie (13.09.2026: użytkowniczka nie wiedziała, jak to zatrzymać). */
 /* Konkretna ścieżka do uprawnień witryny w przeglądarce, którą ktoś właśnie
    używa — ogólne „ikona obok adresu" nie wystarczało (prośba z 13.09.2026). */
-function browserNotifPath(isEn = UI.isEn) {
+function browserNotifPath(isEn = UI.isEn, allow = false) {
   const ua = navigator.userAgent || "";
   const site = location.host || "straznik.eu";
   const android = /Android/i.test(ua), ios = /iPhone|iPad|iPod/i.test(ua);
   const firefox = /Firefox|FxiOS/i.test(ua), edge = /Edg\//i.test(ua);
   const samsung = /SamsungBrowser/i.test(ua);
   const safari = /Safari/i.test(ua) && !/Chrome|CriOS|Edg|Firefox|FxiOS|SamsungBrowser/i.test(ua);
-  if (isEn) {
-    if (samsung) return `Samsung Internet: ☰ → Settings → Sites and downloads → Notifications → ${site} → off.`;
-    if (android && firefox) return `Firefox on Android: ⋮ → Settings → Site permissions → Notifications → ${site} → Blocked.`;
-    if (android) return `Chrome on Android: ⋮ → Settings → Site settings → Notifications → ${site} → Block.`;
-    if (ios) return `iPhone: Settings → Notifications → Strażnik (the site added to the Home Screen) → Allow Notifications off.`;
-    if (firefox) return `Firefox: the padlock icon next to the address → Connection secure → More information → Permissions → Send notifications → Block.`;
-    if (safari) return `Safari on Mac: Safari → Settings → Websites → Notifications → ${site} → Deny.`;
-    if (edge) return `Edge: the padlock icon next to the address → Permissions for this site → Notifications → Block.`;
-    return `Chrome: the site settings icon next to the address → Site settings → Notifications → Block.`;
-  }
-  if (samsung) return `Samsung Internet: ☰ → Ustawienia → Witryny i pobieranie → Powiadomienia → ${site} → wyłącz.`;
-  if (android && firefox) return `Firefox na Androidzie: ⋮ → Ustawienia → Uprawnienia witryn → Powiadomienia → ${site} → Zablokowane.`;
-  if (android) return `Chrome na Androidzie: ⋮ → Ustawienia → Ustawienia witryn → Powiadomienia → ${site} → Blokuj.`;
-  if (ios) return `iPhone: Ustawienia → Powiadomienia → Strażnik (strona dodana do ekranu początkowego) → wyłącz „Zezwalaj na powiadomienia”.`;
-  if (firefox) return `Firefox: kłódka obok adresu → Połączenie zabezpieczone → Więcej informacji → Uprawnienia → Wyświetlanie powiadomień → Blokuj.`;
-  if (safari) return `Safari na Macu: Safari → Ustawienia → Witryny → Powiadomienia → ${site} → Odmawiaj.`;
-  if (edge) return `Edge: kłódka obok adresu → Uprawnienia dla tej witryny → Powiadomienia → Blokuj.`;
-  return `Chrome: ikona ustawień witryny obok adresu → Ustawienia witryny → Powiadomienia → Blokuj.`;
+  // [ścieżka, słowo przy blokowaniu, słowo przy dopuszczaniu]
+  const [path, block, permit] = isEn
+    ? samsung ? [`Samsung Internet: ☰ → Settings → Sites and downloads → Notifications → ${site}`, "off", "on"]
+      : android && firefox ? [`Firefox on Android: ⋮ → Settings → Site permissions → Notifications → ${site}`, "Blocked", "Allowed"]
+      : android ? [`Chrome on Android: ⋮ → Settings → Site settings → Notifications → ${site}`, "Block", "Allow"]
+      : ios ? ["iPhone: Settings → Notifications → Strażnik (the site added to the Home Screen) → Allow Notifications", "off", "on"]
+      : firefox ? ["Firefox: the padlock next to the address → Connection secure → More information → Permissions → Send notifications", "Block", "Allow"]
+      : safari ? [`Safari on Mac: Safari → Settings → Websites → Notifications → ${site}`, "Deny", "Allow"]
+      : edge ? ["Edge: the padlock next to the address → Permissions for this site → Notifications", "Block", "Allow"]
+      : ["Chrome: the site settings icon next to the address → Site settings → Notifications", "Block", "Allow"]
+    : samsung ? [`Samsung Internet: ☰ → Ustawienia → Witryny i pobieranie → Powiadomienia → ${site}`, "wyłącz", "włącz"]
+      : android && firefox ? [`Firefox na Androidzie: ⋮ → Ustawienia → Uprawnienia witryn → Powiadomienia → ${site}`, "Zablokowane", "Dozwolone"]
+      : android ? [`Chrome na Androidzie: ⋮ → Ustawienia → Ustawienia witryn → Powiadomienia → ${site}`, "Blokuj", "Zezwalaj"]
+      : ios ? ["iPhone: Ustawienia → Powiadomienia → Strażnik (strona dodana do ekranu początkowego) → „Zezwalaj na powiadomienia”", "wyłącz", "włącz"]
+      : firefox ? ["Firefox: kłódka obok adresu → Połączenie zabezpieczone → Więcej informacji → Uprawnienia → Wyświetlanie powiadomień", "Blokuj", "Zezwalaj"]
+      : safari ? [`Safari na Macu: Safari → Ustawienia → Witryny → Powiadomienia → ${site}`, "Odmawiaj", "Zezwalaj"]
+      : edge ? ["Edge: kłódka obok adresu → Uprawnienia dla tej witryny → Powiadomienia", "Blokuj", "Zezwalaj"]
+      : ["Chrome: ikona ustawień witryny obok adresu → Ustawienia witryny → Powiadomienia", "Blokuj", "Zezwalaj"];
+  return `${path} → ${allow ? permit : block}.`;
 }
 
 async function browserPushSubscription() {
@@ -2687,9 +2688,9 @@ async function refreshWebPushStatus(isEn = UI.isEn) {
     text = isEn ? "This browser does not support push notifications — alerts are visible only while the tab is open."
                 : "Ta przeglądarka nie obsługuje powiadomień push — alarm widać tylko przy otwartej karcie.";
   } else if (Notification.permission === "denied") {
-    text = (isEn ? "Notifications for straznik.eu are blocked in this browser. To allow them, change Block to Allow here: "
-                 : "Powiadomienia dla straznik.eu są zablokowane w tej przeglądarce. Aby je dopuścić, zmień Blokuj na Zezwalaj tutaj: ")
-      + browserNotifPath(isEn);
+    text = (isEn ? "Notifications for straznik.eu are blocked in this browser. To allow them: "
+                 : "Powiadomienia dla straznik.eu są zablokowane w tej przeglądarce. Aby je dopuścić: ")
+      + browserNotifPath(isEn, true);
   } else {
     let sub = null;
     try { sub = Notification.permission === "granted" ? await browserPushSubscription() : null; } catch {}
