@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Strażnik 1.7.35 — instrukcja użytkownika</title>
-<meta name="description" content="Aktualna instrukcja Strażnika 1.7.35: dolne zakładki, karta obiektu jako miniatura, instalacja i aktualizacje Android, alarmy, mapa, historia, języki i punktacja. Zrzuty z Pixela 7.">
+<title>Strażnik 1.7.36 — instrukcja użytkownika</title>
+<meta name="description" content="Aktualna instrukcja Strażnika 1.7.36: dolne zakładki, karta obiektu jako miniatura, instalacja i aktualizacje Android, alarmy, mapa, historia, języki i punktacja. Zrzuty z Pixela 7.">
 <link rel="canonical" href="https://cukierrro.github.io/Straznik/">
 <link rel="alternate" hreflang="pl" href="https://cukierrro.github.io/Straznik/">
 <link rel="alternate" hreflang="en" href="https://cukierrro.github.io/Straznik/en.html">
@@ -33,11 +33,11 @@
   <div class="languages" aria-label="Język instrukcji"><a href="index.html" lang="pl" aria-current="page">PL</a><a href="en.html" lang="en" hreflang="en">EN</a></div>
 </div></nav>
 <header class="hero"><div class="wrap hero-grid">
-  <div><div class="eyebrow">Instrukcja użytkownika · wersja 1.7.35</div>
+  <div><div class="eyebrow">Instrukcja użytkownika · wersja 1.7.36</div>
     <h1>Sytuacja na mapie.<br>Źródła za każdym sygnałem.</h1>
     <p class="lead">Strażnik łączy publiczne informacje o zagrożeniach powietrznych i pokazuje ich punktację dla polskich województw. Dostępny na Androidzie i w przeglądarce.</p>
     <div class="actions"><a class="button primary" href="https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk">↓ Pobierz aplikację</a><a class="button" href="https://straznik.eu">Otwórz mapę</a></div>
-    <p class="fineprint">Instrukcja dla 1.7.35. Karta pozycji przybliżonej: 1.7.21, 11 września 2026. Zrzuty aktualnego interfejsu wykonano 12 września 2026 na Pixelu 7 z Androidem 14 i <b>trzyprzyciskową</b> nawigacją systemową; starsze, niezmienione ekrany opisano przy zrzutach. Dotknij zdjęcia, aby otworzyć je w pełnym rozmiarze.</p>
+    <p class="fineprint">Instrukcja dla 1.7.36. Karta pozycji przybliżonej: 1.7.21, 11 września 2026. Zrzuty aktualnego interfejsu wykonano 12 września 2026 na Pixelu 7 z Androidem 14 i <b>trzyprzyciskową</b> nawigacją systemową; starsze, niezmienione ekrany opisano przy zrzutach. Dotknij zdjęcia, aby otworzyć je w pełnym rozmiarze.</p>
   </div>
   <a class="shot-link" href="screens/01_start.jpg"><img src="screens/01_start.jpg" width="1080" height="2400" alt="Strażnik 1.7.23 na Pixelu 7: mapa, sześć zielonych diod źródeł i dolne zakładki Mapa, Sygnały, Historia, Więcej"></a>
 </div></header>
@@ -90,7 +90,7 @@
 
   <p>Jeśli aplikacja GitHub przechwytuje link i pobieranie staje, otwórz link w przeglądarce. Dostępna jest też <a href="https://github.com/cukierrro/Straznik/raw/main/Straznik.apk">kopia APK w repozytorium</a>.</p>
   <div class="note"><b>Sprawdź, jaką wersję masz w telefonie.</b> Otwórz <kbd>⚙</kbd> → zakładka <kbd>Aplikacja</kbd> — pod nagłówkiem „Wersja aplikacji” zobaczysz zainstalowany numer.
-    Najnowsze wydanie to <b>1.7.35</b> z dnia <b>12 września 2026</b>. Jeśli masz starszy numer, dotknij <kbd>⬆ Sprawdź aktualizacje</kbd> albo pobierz APK powyżej. Pełną listę zmian w każdym wydaniu znajdziesz w <a href="zmiany.html">historii zmian</a>.</div>
+    Najnowsze wydanie to <b>1.7.36</b> z dnia <b>13 września 2026</b>. Jeśli masz starszy numer, dotknij <kbd>⬆ Sprawdź aktualizacje</kbd> albo pobierz APK powyżej. Pełną listę zmian w każdym wydaniu znajdziesz w <a href="zmiany.html">historii zmian</a>.</div>
   <div class="split">
     <div>
       <h3>Aktualizacja z poziomu aplikacji</h3>
@@ -255,7 +255,12 @@
   <div class="warn">Czas dolotu to przybliżenie zakładające dalszy lot. Nie uwzględnia zestrzelenia, zmiany kursu ani pełnej niepewności danych. Nie traktuj go jako odliczania czasu na schronienie. Przy braku kursu aplikacja zaznacza ograniczenie estymacji.</div>
   <h3>Przeniesienie na sąsiednie województwa</h3>
   <p>Wynik co najmniej 2 pkt z sygnałów innych niż regionalny Alert RCB może wnosić 40% do pierwszego kręgu sąsiadów, 16% do drugiego itd., do limitów algorytmu. Oficjalny komunikat RCB/RSO nie jest przenoszony: jego obszar wskazał już nadawca, a ten sam komunikat może być wydany osobno dla kilku województw. To reguła kontekstu regionalnego, nie prognoza trasy obiektu. Wkład jest opisany w panelu.</p>
-  <p><b>Samo przeniesienie nie wysyła powiadomienia.</b> Województwo, które nie ma ani jednego własnego sygnału, widzi podniesiony poziom na mapie i w panelu, ale telefon nie dzwoni — jedno zdarzenie u sąsiada nie ma budzić kilku regionów naraz. Powiadomienie rusza, gdy w Twoim województwie pojawi się własny sygnał.</p>
+  <p><b>To samo zdarzenie nie wraca przez przeniesienie.</b> Artykuł albo alarm obwodu UA przypisany do dwóch sąsiednich województw liczy się w każdym z nich w pełni, ale nie jest już doliczany drugi raz jako 40% od sąsiada. Wcześniej lubelskie i podkarpackie podbijały się tak nawzajem tym samym materiałem.</p>
+  <p><b>Kiedy przeniesienie może włączyć alarm.</b> Powiadomienie wymaga co najmniej <b>1 pkt własnych sygnałów</b> w Twoim województwie. Przeniesienie może wtedy domknąć próg, ale najwyżej o jeden stopień: własne punkty poniżej progu żółtego plus sąsiad dają co najwyżej <b>żółty</b>, a czerwony jest możliwy dopiero przy własnym żółtym.</p>
+  <p><b>Kolor tylko od sąsiadów wygląda inaczej.</b> Województwo, które ma kolor wyłącznie z przeniesień, jest na mapie przygaszone i niższe, a karta ma kreskowaną ramkę i napis „podniesione przez sąsiedztwo · bez alarmu”. Taki kolor nie włącza powiadomienia ani dźwięku w otwartej aplikacji.</p>
+  <p><b>Bez powtórek.</b> Poziom gaśnie dopiero 0,5 pkt poniżej progu (czerwony poniżej 3,5, żółty poniżej 1,5). Powrót na ten sam poziom w ciągu 30 minut od powiadomienia zmienia tylko mapę, chyba że w tym czasie przyszedł nowy alert RCB/RSO albo nowy obiekt NEPTUN.</p>
+  <h3>Odwołanie alertu RCB</h3>
+  <p>Gdy RCB odwoła alert w RSO (także przez zmianę istniejącego wpisu), Strażnik przestaje liczyć ten alert i wcześniejsze artykuły o nim. Przez 6 godzin po odwołaniu artykuły o syrenach i alarmie w tym województwie są oznaczane jako „po odwołaniu alertu RCB” i nie dają punktów, chyba że RCB wyda nowy alert. Tytuły podsumowujące, np. „Niespokojny poranek…”, liczą się najwyżej za 1 pkt.</p>
 </section>
 <section id="nowosci">
   <h2>10. Co obejmuje obecne wydanie</h2>

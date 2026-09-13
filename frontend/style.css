@@ -424,6 +424,9 @@ body.history-mode #my-banner { display: none; }
 #my-banner.level-elevated .lvl { color: var(--amber); }
 #my-banner.level-high .lvl { color: var(--red); }
 #my-banner.level-none .lvl { color: var(--muted); }
+/* kolor tylko od sąsiadów: kreskowana ramka i przygaszony opis, bez pulsowania */
+#my-banner.level-spill { border-left: 3px dashed rgba(255,176,32,.55); }
+#my-banner.level-spill .lvl { color: #c9a86a; }
 
 /* ── pełnoekranowy alarm (poziom czerwony) ── */
 #alarm-overlay {
@@ -569,6 +572,8 @@ html[lang="en"] .list:empty::after { content: "— none —"; }
 }
 .voiv-card.level-elevated { border-color: rgba(255,176,32,.65);
   box-shadow: inset 0 0 24px rgba(255,176,32,.07); }
+.voiv-card.level-spill { border: 1px dashed rgba(255,176,32,.45); }
+.level-spill .voiv-score, .level-spill .voiv-level { color: #c9a86a; }
 .voiv-card.level-high { border-color: rgba(255,77,94,.8);
   box-shadow: inset 0 0 26px rgba(255,77,94,.12); animation: cardpulse 1.6s infinite; }
 @keyframes cardpulse { 50% { box-shadow: inset 0 0 40px rgba(255,77,94,.22); } }

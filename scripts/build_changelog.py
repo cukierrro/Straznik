@@ -16,6 +16,21 @@ DOCS = ROOT / "docs"
 # (wersja, data PL, data EN, tytuł PL, tytuł EN, punkty PL, punkty EN, zrzuty)
 # Zrzut: (plik, alt PL, alt EN, podpis PL, podpis EN)
 RELEASES = [
+    ("1.7.36", "13 września 2026", "13 September 2026",
+     "Przeniesienia bez podwójnego liczenia, odwołania RCB",
+     "Spillover without double counting, RCB cancellations",
+     ["To samo zdarzenie (artykuł, alarm obwodu UA) przypisane do dwóch sąsiednich województw nie wraca już do sąsiada jako przeniesienie. Lubelskie i podkarpackie podbijały się tak nawzajem.",
+      "Przeniesienie może włączyć powiadomienie tylko przy co najmniej 1 pkt własnych i najwyżej o jeden stopień. Kolor z samych przeniesień jest na mapie przygaszony, a karta ma kreskowaną ramkę.",
+      "Dźwięk w otwartej aplikacji słucha poziomu alarmu, nie koloru mapy — województwo zabarwione przez sąsiadów już nie włącza syreny.",
+      "Poziom gaśnie 0,5 pkt pod progiem, a powrót na ten sam poziom w ciągu 30 min nie powtarza powiadomienia bez nowego alertu RCB albo obiektu NEPTUN.",
+      "Odwołanie alertu RCB w RSO (także zmianą istniejącego wpisu) gasi alert i artykuły, które go potem opisują."],
+     ["The same event (an article, a Ukrainian oblast alert) assigned to two neighbouring provinces no longer comes back to the neighbour as spillover. Lubelskie and podkarpackie were inflating each other this way.",
+      "Spillover can only trigger a notification with at least 1 point of own signals, and by one step at most. Colour from spillover alone is dimmed on the map and the card gets a dashed border.",
+      "The in-app sound follows the alert level, not the map colour — a province coloured by its neighbours no longer starts the siren.",
+      "A level drops 0.5 points below its threshold, and returning to the same level within 30 minutes does not repeat the notification without a new RCB alert or NEPTUN object.",
+      "An RCB cancellation in RSO (including an edit of the existing entry) clears the alert and the articles that describe it afterwards."],
+     []),
+
     ("1.7.35", "12 września 2026", "12 September 2026",
      "Zamknięcie karty strefy nie zamyka listy sygnałów",
      "Closing a zone card no longer closes the signal list",

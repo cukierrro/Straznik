@@ -76,6 +76,16 @@ const LEVEL_LABEL = UI.isEn
   ? { none: "no signals", elevated: "ELEVATED ATTENTION", high: "HIGH PRIORITY" }
   : { none: "brak sygnałów", elevated: "PODWYŻSZONA UWAGA", high: "WYSOKI PRIORYTET" };
 
+/* Poziom ALARMU (ten, który budzi telefon) i to, czy kolor mapy pochodzi wyłącznie
+   od sąsiadów. Serwer liczy `alert_level` od 13.09.2026; starszy serwer go nie ma,
+   więc wtedy zostaje dawne zachowanie. Żółte świętokrzyskie z samych przeniesień
+   wyglądało jak alarm i włączało dźwięk w otwartej aplikacji, choć telefon nie
+   dostał powiadomienia (zgłoszone 13.09.2026). */
+const alarmLevel = (st) => st?.alert_level ?? st?.level ?? "none";
+const spillRaised = (st) => !!st?.spill_raised;
+const SPILL_LABEL = UI.isEn ? "RAISED BY NEIGHBOURS · no alert here"
+                            : "PODNIESIONE PRZEZ SĄSIEDZTWO · bez alarmu";
+
 /* ── ADS-B: role maszyn wojskowych (kod typu ICAO → przeznaczenie) ───────── */
 const MIL_ROLES = {
   C30J: "transport taktyczny", C130: "transport taktyczny", C160: "transport taktyczny",
@@ -746,9 +756,15 @@ async function initMap() {
     map.addLayer({
       id: "voiv-extrude", type: "fill-extrusion", source: "voiv",
       paint: {
-        "fill-extrusion-color": ["match", ["coalesce", ["feature-state", "level"], "none"],
-          "high", "#ff4d5e", "elevated", "#ffb020", "#233252"],
-        "fill-extrusion-height": ["*", ["coalesce", ["feature-state", "score"], 0], 16000],
+        // Kolor z samych przeniesień jest przygaszony i niższy: to kontekst
+        // sąsiedztwa, nie alarm w tym województwie.
+        "fill-extrusion-color": ["case", ["boolean", ["feature-state", "spill"], false],
+          ["match", ["coalesce", ["feature-state", "level"], "none"],
+            "high", "#7d4f59", "elevated", "#7c6a45", "#233252"],
+          ["match", ["coalesce", ["feature-state", "level"], "none"],
+            "high", "#ff4d5e", "elevated", "#ffb020", "#233252"]],
+        "fill-extrusion-height": ["*", ["coalesce", ["feature-state", "score"], 0],
+          ["case", ["boolean", ["feature-state", "spill"], false], 7000, 16000]],
         "fill-extrusion-base": 0,
         "fill-extrusion-opacity": 0.55,
       },
@@ -1430,7 +1446,7 @@ function updateVoivStates() {
   const voivs = state?.fusion?.voivodeships || {};
   for (const [name, st] of Object.entries(voivs)) {
     map.setFeatureState({ source: "voiv", id: name },
-      { score: Math.min(st.score, 8), level: st.level });
+      { score: Math.min(st.score, 8), level: st.level, spill: spillRaised(st) });
   }
 }
 
@@ -1748,13 +1764,14 @@ function renderPanel() {
   const panelEl = document.getElementById("panel");
   const keepScroll = panelEl?.scrollTop || 0;
   document.getElementById("voiv-cards").innerHTML = show.map(([name, st]) => `
-    <div class="voiv-card level-${st.level}${name === mine ? " is-mine" : ""}${
+    <div class="voiv-card level-${spillRaised(st) ? "spill" : st.level}${name === mine ? " is-mine" : ""}${
       openVoivs.has(name) ? " open" : ""}" data-voiv="${esc(name)}">
       <div class="voiv-head">
         <span class="voiv-name">${esc(UI.voiv(name))}</span>
         <span class="voiv-score">${st.score.toFixed(1)} ${UI.isEn ? "pts" : "pkt"}</span>
       </div>
-      <div class="voiv-level">${st.level === "none" && st.score > 0
+      <div class="voiv-level">${spillRaised(st) ? SPILL_LABEL
+        : st.level === "none" && st.score > 0
         ? (UI.isEn ? "below threshold" : "poniżej progu") : LEVEL_LABEL[st.level]}
         <span class="muted">· ${UI.isEn ? "thresholds" : "progi"}: ≥${f.thresholds.elevated} ${UI.isEn ? "attention" : "uwaga"}, ≥${f.thresholds.high} ${UI.isEn ? "priority" : "priorytet"}</span></div>
       ${scoreBreakdown(st)}
@@ -1783,8 +1800,9 @@ function renderPanel() {
   const banner = document.getElementById("my-banner");
   if (mine && f.voivodeships[mine]) {
     const st = f.voivodeships[mine];
-    banner.className = "level-" + st.level;
-    banner.innerHTML = `<b>${esc(UI.voiv(mine))}</b> — <span class="lvl">${LEVEL_LABEL[st.level]}</span>
+    banner.className = "level-" + (spillRaised(st) ? "spill" : st.level);
+    banner.innerHTML = `<b>${esc(UI.voiv(mine))}</b> — <span class="lvl">${
+      spillRaised(st) ? SPILL_LABEL : LEVEL_LABEL[st.level]}</span>
       <span class="muted">${st.score.toFixed(1)} ${UI.isEn ? "pts" : "pkt"}</span>`;
     banner.onclick = () => { setPanel(true); openCard(mine); };
   } else {
@@ -1954,6 +1972,8 @@ function sigHTML(s) {
   const capped = cp < expected - 0.005;
   const repeatedOfficial = !!s.duplicate_of_official;
   const retrospective = !!s.retrospective;
+  // odwołanie RCB/RSO: sam odwołany alert albo artykuł, który go potem opisuje
+  const officialClear = s.official_clear || "";
   const src = s.source || "";
   // udział względem progu żółtego (2 pkt) — od razu widać, czy to drobiazg,
   // czy sygnał, który sam niemal domyka alarm
@@ -2046,11 +2066,15 @@ function sigHTML(s) {
           ? (UI.isEn ? "repeats an official alert — visible, with no extra points" : "powtarza oficjalny alert — widoczne, bez dodatkowych punktów")
           : retrospective
             ? (UI.isEn ? "historical report or aftermath — visible, with no threat points" : "materiał historyczny lub następstwa — widoczne, bez punktów zagrożenia")
+          : officialClear
+            ? (UI.isEn ? "RCB cancelled this alert — visible, with no threat points" : "RCB odwołało ten alert — widoczne, bez punktów zagrożenia")
           : (UI.isEn ? "above this source-class cap — excess points are not counted" : "ponad limit tej klasy źródła — nadwyżka nie liczy się do sumy")}"` : ""}>
         +${cp}${capped ? ` <s>${s.points}</s>` : ""}</span>
     </div>
     ${isFreshSignal(s) ? `<div class="sig-fresh">${UI.isEn ? "NEW" : "NOWY"}</div>` : ""}
-    <div class="sig-title">${repeatedOfficial ? `<b>${UI.isEn ? "Repeated official alert:" : "Powtórzenie oficjalnego alertu:"}</b> ` : ""}${retrospective ? `<b>${UI.isEn ? "Historical report / aftermath:" : "Materiał historyczny / następstwa:"}</b> ` : ""}${link
+    <div class="sig-title">${repeatedOfficial ? `<b>${UI.isEn ? "Repeated official alert:" : "Powtórzenie oficjalnego alertu:"}</b> ` : ""}${retrospective ? `<b>${UI.isEn ? "Historical report / aftermath:" : "Materiał historyczny / następstwa:"}</b> ` : ""}${
+      officialClear === "alert" ? `<b>${UI.isEn ? "Cancelled by RCB:" : "Odwołany przez RCB:"}</b> `
+      : officialClear ? `<b>${UI.isEn ? "After RCB cancellation:" : "Po odwołaniu alertu RCB:"}</b> ` : ""}${link
       ? `<a href="${esc(link)}" target="_blank" rel="noopener">${esc(shownTitle)}</a>`
       : esc(shownTitle)}</div>
     <div class="sig-bar"><i style="width:${share.toFixed(0)}%"></i></div>
@@ -2312,14 +2336,14 @@ function updateAlarmMood() {
   const voivs = state?.fusion?.voivodeships || {};
   const mine = myVoiv();
   // liczy się poziom mojego regionu; bez ustawionej lokalizacji — najwyższy w kraju
-  const level = mine && voivs[mine] ? voivs[mine].level
-    : Object.values(voivs).some(v => v.level === "high") ? "high"
-    : Object.values(voivs).some(v => v.level === "elevated") ? "elevated" : "none";
+  const level = mine && voivs[mine] ? alarmLevel(voivs[mine])
+    : Object.values(voivs).some(v => alarmLevel(v) === "high") ? "high"
+    : Object.values(voivs).some(v => alarmLevel(v) === "elevated") ? "elevated" : "none";
   const order = ["none", "elevated", "high"];
   if (order.indexOf(level) > order.indexOf(lastMood)) {
     if (level === "high") {
-      const voiv = mine && voivs[mine]?.level === "high" ? mine
-        : Object.entries(voivs).find(([, v]) => v.level === "high")?.[0];
+      const voiv = mine && alarmLevel(voivs[mine]) === "high" ? mine
+        : Object.entries(voivs).find(([, v]) => alarmLevel(v) === "high")?.[0];
       showAlarm(voiv, voivs[voiv]);   // ciągła syrena + popup do potwierdzenia
       // ostrzeżenie o nieoficjalnym źródle musi wrócić, gdy robi się poważnie
       document.getElementById("disclaimer").classList.remove("hidden");
@@ -3022,7 +3046,7 @@ function showHistoryAt(idx) {
     for (const v of ALL_VOIVS) {
       const sc = perVoiv[v] || 0;
       map.setFeatureState({ source: "voiv", id: v },
-        { score: Math.min(sc, 8), level: sc >= 4 ? "high" : sc >= 2 ? "elevated" : "none" });
+        { score: Math.min(sc, 8), level: sc >= 4 ? "high" : sc >= 2 ? "elevated" : "none", spill: false });
     }
   }
 

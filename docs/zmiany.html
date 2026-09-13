@@ -39,6 +39,17 @@
   <p class="fineprint">Wersję zainstalowaną na telefonie sprawdzisz w aplikacji: <kbd>⚙</kbd> → zakładka <kbd>Aplikacja</kbd> → „Wersja aplikacji”. Tam też jest przycisk <kbd>⬆ Sprawdź aktualizacje</kbd>.</p>
 </div></header>
 <main id="content" class="wrap">
+<section id="v1-7-36">
+  <h2>1.7.36 — Przeniesienia bez podwójnego liczenia, odwołania RCB</h2>
+  <p class="fineprint">Wydanie 1.7.36 · 13 września 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.36">Pełny opis wydania</a></p>
+  <ul>
+    <li>To samo zdarzenie (artykuł, alarm obwodu UA) przypisane do dwóch sąsiednich województw nie wraca już do sąsiada jako przeniesienie. Lubelskie i podkarpackie podbijały się tak nawzajem.</li>
+    <li>Przeniesienie może włączyć powiadomienie tylko przy co najmniej 1 pkt własnych i najwyżej o jeden stopień. Kolor z samych przeniesień jest na mapie przygaszony, a karta ma kreskowaną ramkę.</li>
+    <li>Dźwięk w otwartej aplikacji słucha poziomu alarmu, nie koloru mapy — województwo zabarwione przez sąsiadów już nie włącza syreny.</li>
+    <li>Poziom gaśnie 0,5 pkt pod progiem, a powrót na ten sam poziom w ciągu 30 min nie powtarza powiadomienia bez nowego alertu RCB albo obiektu NEPTUN.</li>
+    <li>Odwołanie alertu RCB w RSO (także zmianą istniejącego wpisu) gasi alert i artykuły, które go potem opisują.</li>
+  </ul>
+</section>
 <section id="v1-7-35">
   <h2>1.7.35 — Zamknięcie karty strefy nie zamyka listy sygnałów</h2>
   <p class="fineprint">Wydanie 1.7.35 · 12 września 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.35">Pełny opis wydania</a></p>

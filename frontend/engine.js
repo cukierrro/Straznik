@@ -31,6 +31,14 @@ const VOIVODESHIPS = ["lubelskie","podkarpackie","podlaskie","mazowieckie","świ
    podstawy: ich obszar wskazuje już oficjalny nadawca. */
 const SPILLOVER_FACTOR = 0.4, SPILLOVER_MIN = 2.0;
 const SPILLOVER_MIN_CONTRIB = 0.1, SPILLOVER_MAX_DEPTH = 5;
+/* Kiedy BUDZIMY TELEFON — lustro config.ALERT_* i fusion.alert_level. Kolor mapy
+   liczy się z wyniku łącznego, powiadomienie wymaga punktów własnych, a
+   przeniesienie domyka najwyżej jeden stopień ponad nie (13.09.2026). */
+const ALERT_OWN_MIN = 1.0, ALERT_HYSTERESIS = 0.5, ALERT_REPEAT_QUIET_MIN = 30;
+const ALERT_FRESH_NEPTUN_POINTS = 0.5;
+/* Po odwołaniu alertu RCB/RSO artykuły o alarmie to relacja z przeszłości. */
+const RSO_CLEAR_MEDIA_ECHO_MIN = 360;
+const RSO_CLEAR_ECHO_MARKERS = ["syren", "alert", "alarm", "rcb", "poderwa", "mysliw"];
 const RCB_RELAY_WINDOW_MS = 45*60*1000;
 const RELAY_STOP = new Set(["alert","rcb","uwaga","media","woj","wojewodztwo",
   "sytuacja","monitorowana","terenie","teren","oraz","jest","przez","dla",
@@ -130,7 +138,7 @@ const UA_OBLAST_PL = { "Волинська":"wołyńskim", "Львівська":
 const CRITICAL = ["alarm powietrzny","zagrożenie z powietrza","zawyły syreny","zawyła syrena","obiekt powietrzny spadł","niezidentyfikowany obiekt spadł","zestrzelono dron","zestrzelono rakiet","poderwano myśliwce","poderwano lotnictwo","schrony otwarte","zamknięto przestrzeń powietrzn","zamknięcie przestrzeni powietrzn","zamknięta przestrzeń powietrzn","operacja obrony powietrzn","operację obrony powietrzn","operacji obrony powietrzn","poderwano f-16","poderwano f-35","poderwano samoloty"];
 const AIR = ["dron","bezzałogow","bsp","shahed","geran","rakiet","pocisk","ch-101","kalibr","iskander","kab","bomb","myśliwc","mig-31","obiekt powietrzny","przestrzeni powietrznej","przestrzeń powietrzną","obrona powietrzna","obiekt latając","lancet","kindżał","kinżał","kh-101","kh-47","kh-59","amunicja krążąc","fpv","kamikadze","statek powietrzny","pocisk manewrując","pocisk balistyczn","hipersoniczn","f-16","f-35","su-24","su-34","su-35","tu-95","tu-160","mig-29","lotnictwo wojskow"];
 const EVENT = ["spadł","spadła","spadło","eksploz","wybuch","zestrzel","przechwyc","poderwan","naruszen","naruszył","naruszyła","wleciał","wtargn","uderzy","trafił","szczątki","atak","ostrzał","zawył","alarm","ewakuac","schron","zagrożeni","przekrocz","wtargnięci","detonac","runął","runęła","runęło","zestrzelen","przechwycen"];
-const EXCLUDE = ["ćwiczeni","trening","test syren","próba syren","próby syren","głośna próba","rocznic","upamiętni","minuta ciszy","wymian","modernizac","przetarg","inwestycj","zakup","montaż","zamontow","instalac","rozbudow","dofinansow","dotacj","planowan","potrwa","konserwac","remont","pojawią się","powstan","wdroż","komunikat głosowy","system ostrzegania będzie","nowe syreny","nowych syren","pożar bloku","pożar domu","pożar mieszkania","pożar lasu","wypadek drogow","kolizja","lpr lądował","śmigłowiec lpr","utonię","potrąc","dachowa","karambol","zderzenie samochod","pożar ciężarów","pożar samochod","pożar autobusu","pożar cystern","zapaliła się ciężarów","zapalił się samoch","zbiornik paliw","wyciek paliw","demograf","przyrost naturaln","liczba mieszkańc","wyludnia","tydzień po","tygodnie po","tygodni po","dzień po","dni po","miesiąc po","miesiące po","miesięcy po","rok po","lata po","lat po","rok temu","lata temu","lat temu","ubiegłym roku","ubiegłego roku","godzin po","godziny po","kalendarium","przypominamy","wspomina","kulisy","reportaż","felieton","czy na pewno","co wiemy","jak doszło","śledztwo w sprawie","śledztwo ws","podsumowanie roku","zawyły syreny?","zawyła syrena?","alarm powietrzny?","co powinieneś zrobić","co należy zrobić","jak się zachować w razie","co robić w razie","co zrobić w razie","poradnik bezpieczeństwa","poznaj sygnały alarmowe","co oznacza sygnał alarmowy","film fabularn","film dokumentaln","serial","premiera","recenzja","zwiastun","gra wideo","gry wideo","powieść","komiks","cosplay","spektakl","1939","1944","1945","ii wojn","powstanie warszawsk","rakieta kosmiczn","rakieta nośn","start rakiety","spacex","falcon","starship","misja kosmiczn","kosmodrom","odbudow","ma być gotow","rakieta tenisow","rakietka","rakiety śnieżn","bomba atomow","wybuchła afera","pokaz dron","dron rolnicz","dron dostawcz","wyścig dron","nagranie z drona","zdjęcia z drona","zdjęcie z drona","widok z drona","wybiła godzina","godzina \"w\"","godzinie \"w\"","godziny \"w\"","oddali hołd","oddał hołd","oddano hołd","hołd bohaterom","hołd powstańcom","uroczystoś","próbny alarm","alarm próbny","próbnego alarmu","próba syren alarmowych","ogólnopolskie ćwiczenia","są zarzuty","usłyszał zarzut","usłyszała zarzut","usłyszeli zarzuty","postawiono zarzut","postawiono zarzuty","zarzuty dla","akt oskarżenia","odpowie przed sądem","stanął przed sądem","stanęła przed sądem","skazany za","skazana za","do zdarzenia miało dojść","alarm bombowy","alarmy bombowe","alarmu bombowego","alarmów bombowych","alarmie bombowym","alarmem bombowym","alarmów bombowych","o podłożeniu ładunku","podłożeniu bomby","informacja o bombie"];
+const EXCLUDE = ["ćwiczeni", "trening", "test syren", "próba syren", "próby syren", "głośna próba", "rocznic", "upamiętni", "minuta ciszy", "wymian", "modernizac", "przetarg", "inwestycj", "zakup", "montaż", "zamontow", "instalac", "rozbudow", "dofinansow", "dotacj", "planowan", "potrwa", "konserwac", "remont", "pojawią się", "powstan", "wdroż", "komunikat głosowy", "system ostrzegania będzie", "nowe syreny", "nowych syren", "pożar bloku", "pożar domu", "pożar mieszkania", "pożar lasu", "wypadek drogow", "kolizja", "lpr lądował", "śmigłowiec lpr", "utonię", "potrąc", "dachowa", "karambol", "zderzenie samochod", "pożar ciężarów", "pożar samochod", "pożar autobusu", "pożar cystern", "zapaliła się ciężarów", "zapalił się samoch", "zbiornik paliw", "wyciek paliw", "demograf", "przyrost naturaln", "liczba mieszkańc", "wyludnia", "tydzień po", "tygodnie po", "tygodni po", "dzień po", "dni po", "miesiąc po", "miesiące po", "miesięcy po", "rok po", "lata po", "lat po", "rok temu", "lata temu", "lat temu", "ubiegłym roku", "ubiegłego roku", "godzin po", "godziny po", "kalendarium", "przypominamy", "wspomina", "kulisy", "reportaż", "felieton", "czy na pewno", "co wiemy", "jak doszło", "śledztwo w sprawie", "śledztwo ws", "podsumowanie roku", "zawyły syreny?", "zawyła syrena?", "alarm powietrzny?", "co powinieneś zrobić", "co należy zrobić", "jak się zachować w razie", "co robić w razie", "co zrobić w razie", "poradnik bezpieczeństwa", "poznaj sygnały alarmowe", "co oznacza sygnał alarmowy", "film fabularn", "film dokumentaln", "serial", "premiera", "recenzja", "zwiastun", "gra wideo", "gry wideo", "powieść", "komiks", "cosplay", "spektakl", "1939", "1944", "1945", "ii wojn", "powstanie warszawsk", "rakieta kosmiczn", "rakieta nośn", "start rakiety", "spacex", "falcon", "starship", "misja kosmiczn", "kosmodrom", "odbudow", "ma być gotow", "rakieta tenisow", "rakietka", "rakiety śnieżn", "bomba atomow", "wybuchła afera", "pokaz dron", "dron rolnicz", "dron dostawcz", "wyścig dron", "nagranie z drona", "zdjęcia z drona", "zdjęcie z drona", "widok z drona", "wybiła godzina", "godzina \"w\"", "godzinie \"w\"", "godziny \"w\"", "oddali hołd", "oddał hołd", "oddano hołd", "hołd bohaterom", "hołd powstańcom", "uroczystoś", "próbny alarm", "alarm próbny", "próbnego alarmu", "próba syren alarmowych", "ogólnopolskie ćwiczenia", "są zarzuty", "usłyszał zarzut", "usłyszała zarzut", "usłyszeli zarzuty", "postawiono zarzut", "postawiono zarzuty", "zarzuty dla", "akt oskarżenia", "odpowie przed sądem", "stanął przed sądem", "stanęła przed sądem", "skazany za", "skazana za", "do zdarzenia miało dojść", "po nocnym alarmie", "po porannym alarmie", "po wieczornym alarmie", "po nocnym ataku", "po porannym ataku", "po nocnych alarmach", "alarm bombowy", "alarmy bombowe", "alarmu bombowego", "alarmów bombowych", "alarmie bombowym", "alarmem bombowym", "alarmów bombowych", "o podłożeniu ładunku", "podłożeniu bomby", "informacja o bombie", "niespokojny poranek", "niespokojna noc", "niespokojny wieczór", "niespokojne popołudnie", "niespokojna doba", "niespokojny dzień", "nerwowy poranek", "nerwowa noc"];
 const B_CRITICAL = ["airspace violation","violated airspace","airspace was violated","air raid",
   "airspace closed","shot down a drone","scrambled jets","oro erdvės pažeid",
   "gaisa telpas pārkāp","õhuruumi rikku"];
@@ -310,7 +318,7 @@ function hasKeyword(text, keyword) {
 }
 /* Weta MIĘKKIE obniżają frazę krytyczną do zwykłej pary zamiast ją kasować —
    musi się zgadzać z config.SOFT_EXCLUDE_KEYWORDS. */
-const SOFT_EXCLUDE = ["co wiemy","co należy zrobić","co powinieneś zrobić","co robić w razie","co zrobić w razie","jak się zachować w razie","poradnik bezpieczeństwa","poznaj sygnały alarmowe","co oznacza sygnał alarmowy","przypominamy","potrwa","jak doszło","kulisy","czy na pewno","felieton","reportaż"];
+const SOFT_EXCLUDE = ["co wiemy", "co należy zrobić", "co powinieneś zrobić", "co robić w razie", "co zrobić w razie", "jak się zachować w razie", "poradnik bezpieczeństwa", "poznaj sygnały alarmowe", "co oznacza sygnał alarmowy", "przypominamy", "potrwa", "jak doszło", "kulisy", "czy na pewno", "felieton", "reportaż", "niespokojny poranek", "niespokojna noc", "niespokojny wieczór", "niespokojne popołudnie", "niespokojna doba", "niespokojny dzień", "nerwowy poranek", "nerwowa noc"];
 function podzialWet(tl, exclude) {
   const miekkie = SOFT_EXCLUDE.filter(k => hasKeyword(tl, k));
   const zbior = new Set(miekkie);
@@ -470,13 +478,68 @@ function mediaRelayOfOfficial(media, officials) {
   return null;
 }
 
-const MEDIA_RETROSPECTIVE_TITLE_MARKERS = [
-  "rok temu", "lata temu", "lat temu", "sledztwo ws", "odbudow", "ma byc gotow",
-  "sa zarzuty", "uslyszal zarzut", "uslyszala zarzut", "uslyszeli zarzuty",
-  "postawiono zarzut", "postawiono zarzuty", "zarzuty dla", "akt oskarzenia",
-  "odpowie przed sadem", "stanal przed sadem", "stanela przed sadem",
-  "skazany za", "skazana za", "do zdarzenia mialo dojsc",
-];
+const MEDIA_RETROSPECTIVE_TITLE_MARKERS = ["rok temu", "lata temu", "lat temu", "sledztwo ws", "odbudow", "ma byc gotow", "wybila godzina", "godzina \"w\"", "godzinie \"w\"", "godziny \"w\"", "oddali hold", "oddal hold", "oddano hold", "hold bohaterom", "hold powstancom", "uroczystos", "probny alarm", "alarm probny", "probnego alarmu", "proba syren alarmowych", "ogolnopolskie cwiczenia", "sa zarzuty", "uslyszal zarzut", "uslyszala zarzut", "uslyszeli zarzuty", "postawiono zarzut", "postawiono zarzuty", "zarzuty dla", "akt oskarzenia", "odpowie przed sadem", "stanal przed sadem", "stanela przed sadem", "skazany za", "skazana za", "do zdarzenia mialo dojsc", "po nocnym alarmie", "po porannym alarmie", "po wieczornym alarmie", "po nocnym ataku", "po porannym ataku", "po nocnych alarmach"];
+const LEVEL_ORDER = ["none", "elevated", "high"];
+function levelHeld(score, prev) {
+  for (const [lvl, th] of [["high", TH_HIGH], ["elevated", TH_ELEVATED]]) {
+    const margin = LEVEL_ORDER.indexOf(lvl) <= LEVEL_ORDER.indexOf(prev) ? ALERT_HYSTERESIS : 0;
+    if (score >= th - margin) return lvl;
+  }
+  return "none";
+}
+/* Lustro fusion.alert_level: poziom, który budzi telefon. */
+function alertLevel(own, total, prev = "none") {
+  own = Math.round(own * 10) / 10; total = Math.round(total * 10) / 10;
+  if (own < ALERT_OWN_MIN * (prev !== "none" ? 0.5 : 1)) return "none";
+  const cap = Math.min(2, LEVEL_ORDER.indexOf(levelHeld(own, prev)) + 1);
+  return LEVEL_ORDER[Math.min(LEVEL_ORDER.indexOf(levelHeld(total, prev)), cap)];
+}
+function freshStrongSignal(sigs, sinceMs) {
+  return sigs.some(s => (s.t || Date.parse(s.ts) || 0) > sinceMs && (s.counted_points || 0) > 0
+    && (s.source === "rcb" || (s.source === "neptun" && s.points >= ALERT_FRESH_NEPTUN_POINTS)));
+}
+/* Tożsamość zdarzenia niezależna od województwa (lustro fusion._event_key). */
+function eventKey(s) {
+  const d = s.details || {};
+  for (const f of ["link", "incident_key", "oblast", "designator"])
+    if (d[f]) return `${s.source}|${f}|${d[f]}`;
+  if (d.ident) return `${s.source}|ident|${d.country}:${d.ident}`;
+  return `${s.source}|id|${s.id ?? s.key ?? s.t}`;
+}
+function isOfficial(s) {
+  return s.source === "rcb" && ["rso_alert","rcb_alert"].includes(s.event_type) && s.points > 0;
+}
+/* Czas RSO jest lokalny polski bez strefy. */
+function plLocalToMs(value) {
+  const m = String(value || "").match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})/);
+  if (!m) return NaN;
+  const asUtc = Date.UTC(+m[1], m[2] - 1, +m[3], +m[4], +m[5], +m[6]);
+  let offsetMin = 120;
+  try {
+    const p = Object.fromEntries(new Intl.DateTimeFormat("en-US", { timeZone: "Europe/Warsaw",
+      hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit",
+      minute: "2-digit", second: "2-digit" }).formatToParts(new Date(asUtc)).map(x => [x.type, x.value]));
+    offsetMin = Math.round((Date.UTC(+p.year, p.month - 1, +p.day, +p.hour, +p.minute, +p.second) - asUtc) / 60000);
+  } catch {}
+  return asUtc - offsetMin * 60000;
+}
+function issuedAt(s) {
+  const v = plLocalToMs(s.details?.valid_from);
+  return Number.isFinite(v) ? v : (s.t || Date.parse(s.ts) || 0);
+}
+function officialCleared(s, rsoClears) {
+  const id = String(s.details?.rso_id ?? ""), issued = issuedAt(s);
+  return (rsoClears.get(s.voivodeship) || []).some(c => (id && c.rsoId === id) || issued <= c.at);
+}
+function mediaAfterOfficialClear(media, clears, activeIssued) {
+  const t = media.t || Date.parse(media.ts) || 0;
+  if (clears.some(c => c.at >= t)) return "before_clear";
+  const last = Math.max(...clears.map(c => c.at));
+  if ((t - last) / 60000 > RSO_CLEAR_MEDIA_ECHO_MIN || activeIssued.some(i => i > last)) return null;
+  const title = fold(media.title || "");
+  return RSO_CLEAR_ECHO_MARKERS.some(m => title.includes(m)) ? "after_clear" : null;
+}
+
 function mediaRetrospective(media) {
   if (media.source !== "media" || media.event_type !== "media_keywords") return false;
   const title = fold(media.title || "");
@@ -491,10 +554,23 @@ function mediaRetrospective(media) {
    Number.isFinite: jedna zła wartość punktów zatrułaby NaN-em całą sumę. */
 function accumulate(sigs, refT) {
   const ref = refT || Date.now();
-  const per = {}; VOIVODESHIPS.forEach(v => per[v] = { score: 0, signals: [], _spillover_score: 0 });
+  const per = {}; VOIVODESHIPS.forEach(v => per[v] = { score: 0, signals: [], _spillover_score: 0, _spill_parts: {} });
   const perSource = {};
-  const officials = sigs.filter(s => s.source === "rcb"
-    && ["rso_alert","rcb_alert"].includes(s.event_type) && s.points > 0);
+  const officials = sigs.filter(isOfficial);
+  /* Odwołania RCB/RSO (lustro fusion.accumulate). Wpis RSO bywa edytowany
+     w miejscu: 13.09.2026 alert 23329799 zmienił się w odwołanie. */
+  const rsoClears = new Map();
+  for (const s of sigs) {
+    if (s.event_type !== "rso_clear" || !s.voivodeship) continue;
+    const at = Date.parse(s.details?.cleared_at || "") || s.t || Date.parse(s.ts) || 0;
+    if (!rsoClears.has(s.voivodeship)) rsoClears.set(s.voivodeship, []);
+    rsoClears.get(s.voivodeship).push({ at, rsoId: String(s.details?.rso_id ?? "") });
+  }
+  const activeIssued = new Map();
+  for (const o of officials) if (!officialCleared(o, rsoClears)) {
+    if (!activeIssued.has(o.voivodeship)) activeIssued.set(o.voivodeship, []);
+    activeIssued.get(o.voivodeship).push(issuedAt(o));
+  }
   const balticClears = new Map();
   for (const s of sigs) {
     if (s.event_type !== "baltic_clear" || !s.details?.incident_key) continue;
@@ -537,7 +613,13 @@ function accumulate(sigs, refT) {
     const clearT = incident && balticClears.get(s.voivodeship + "|" + incident);
     const st = s.t || Date.parse(s.ts) || 0;
     const mediaClearT = s.source === "media" ? (mediaClears.get(s.voivodeship) || 0) : 0;
-    const cleared = (!!clearT && clearT >= st) || (mediaClearT > 0 && mediaClearT >= st);
+    let officialClear = null;
+    if (isOfficial(s) && officialCleared(s, rsoClears)) officialClear = "alert";
+    else if (s.event_type === "media_keywords" && rsoClears.has(s.voivodeship))
+      officialClear = mediaAfterOfficialClear(s, rsoClears.get(s.voivodeship),
+                                              activeIssued.get(s.voivodeship) || []);
+    const cleared = (!!clearT && clearT >= st) || (mediaClearT > 0 && mediaClearT >= st)
+      || !!officialClear;
     const relayOf = mediaRelayOfOfficial(s, officials);
     const retrospective = mediaRetrospective(s);
     const ageMin = (ref - s.t) / 60000;
@@ -545,7 +627,7 @@ function accumulate(sigs, refT) {
       : Math.max(0, 1 - (ageMin - FULL_MIN) / Math.max(WINDOW_MIN - FULL_MIN, 1));
     const zeroed = superseded || cleared || relayOf || retrospective;
     prepared.push({ s, w, counted: 0, weighted: zeroed ? 0 : s.points * w,
-                    cleared, relayOf, retrospective });
+                    cleared, relayOf, retrospective, officialClear });
   }
   for (const e of [...prepared].sort((a, b) => b.weighted - a.weighted || a.s.t - b.s.t)) {
     const k = e.s.voivodeship + "|" + e.s.source;
@@ -557,46 +639,73 @@ function accumulate(sigs, refT) {
   for (const e of prepared) {        // do wyniku i rozbicia — w kolejności czasu
     const { s, counted, relayOf } = e;
     per[s.voivodeship].score += counted;
-    if (s.source !== "rcb") per[s.voivodeship]._spillover_score += counted;
+    if (s.source !== "rcb") {
+      per[s.voivodeship]._spillover_score += counted;
+      if (counted > 0) {
+        const parts = per[s.voivodeship]._spill_parts, k = eventKey(s);
+        parts[k] = (parts[k] || 0) + counted;
+      }
+    }
     per[s.voivodeship].signals.push({ ...s, counted_points: Math.round(counted * 10) / 10,
       weight: Math.round(e.w * 100) / 100, ...(e.cleared ? { cleared:true } : {}),
       ...(relayOf ? { duplicate_of_official: relayOf.details?.rso_id || relayOf.id || true } : {}),
-      ...(e.retrospective ? { retrospective:true } : {}) });
+      ...(e.retrospective ? { retrospective:true } : {}),
+      ...(e.officialClear ? { official_clear: e.officialClear } : {}) });
   }
   return per;
 }
 
 function computeState() {
   const cut = Date.now() - WINDOW_MIN*60*1000;
+  const clearCut = Date.now() - (RSO_CLEAR_MEDIA_ECHO_MIN + WINDOW_MIN)*60*1000;
+  return stateFrom(signals.filter(s => s.t >= cut
+    || (s.event_type === "rso_clear" && s.t >= clearCut)), Date.now());
+}
+
+/* Stan z podanej listy sygnałów w chwili `refT` — rdzeń computeState, osobno,
+   żeby testy mogły odtworzyć przeszłą chwilę (lustro fusion.compute_state). */
+function stateFrom(sigs, refT) {
+  const ref = refT || Date.now();
   // limit klasy źródła + wygaszanie — wspólny rdzeń z rekonstrukcją historii
-  const per = accumulate(signals.filter(s => s.t >= cut));
+  const per = accumulate(sigs, ref);
   for (const v of VOIVODESHIPS) per[v].level = "none";
-  // propagacja kaskadowa do kolejnych kręgów sąsiedztwa (jak w backendzie)
-  const base = {}; for (const [v, st] of Object.entries(per)) {
+  const base = {}, parts = {};
+  for (const [v, st] of Object.entries(per)) {
     base[v] = st._spillover_score || 0; delete st._spillover_score;
-    // wynik WŁASNY (przed przeniesieniem) — tylko on może wywołać powiadomienie
+    parts[v] = st._spill_parts || {}; delete st._spill_parts;
     st.own_score = Math.round(st.score * 10) / 10;
   }
+  const nowIso = new Date(ref).toISOString();
   for (const [src, score] of Object.entries(base)) {
     if (score < SPILLOVER_MIN) continue;
     for (const [nb, depth] of cascadeTargets(src)) {
-      const spill = Math.round(score * Math.pow(SPILLOVER_FACTOR, depth) * 10) / 10;
+      /* Zdarzenie obecne u sąsiada BEZPOŚREDNIO nie wraca do niego przeniesieniem
+         (13.09.2026 lubelskie i podkarpackie podbijały się tym samym artykułem). */
+      const shared = Object.entries(parts[src]).reduce((a, [k, p]) => a + (k in parts[nb] ? p : 0), 0);
+      const effective = score - shared;
+      if (effective < SPILLOVER_MIN) continue;
+      const spill = Math.round(effective * Math.pow(SPILLOVER_FACTOR, depth) * 10) / 10;
       if (spill < SPILLOVER_MIN_CONTRIB) continue;
       const hop = depth === 1 ? "sąsiad" : `${depth}. krąg`;
+      const eff = Math.round(effective * 10) / 10;
       per[nb].score += spill;
-      per[nb].signals.push({ t: Date.now(), ts: new Date().toISOString(),
+      per[nb].signals.push({ t: ref, ts: nowIso,
         source: "spillover", event_type: "neighbour_spillover", voivodeship: nb,
         points: spill, counted_points: spill,
-        title: `Przeniesienie z woj. ${src} (${score} pkt × ${SPILLOVER_FACTOR}^${depth}, ${hop})`,
-        details: { from: src, from_score: score, depth } });
+        title: `Przeniesienie z woj. ${src} (${eff} pkt × ${SPILLOVER_FACTOR}^${depth}, ${hop}`
+          + (shared > 0 ? ", bez zdarzeń wspólnych)" : ")"),
+        details: { from: src, from_score: eff, depth,
+                   ...(shared > 0 ? { shared_excluded: Math.round(shared * 100) / 100 } : {}) } });
     }
   }
-  for (const st of Object.values(per)) {
+  for (const [v, st] of Object.entries(per)) {
     st.score = Math.round(st.score*10)/10;
     st.level = st.score >= TH_HIGH ? "high" : st.score >= TH_ELEVATED ? "elevated" : "none";
+    st.alert_level = alertLevel(st.own_score, st.score, lastLevels[v] || "none");
+    st.spill_raised = LEVEL_ORDER.indexOf(st.level) > LEVEL_ORDER.indexOf(st.alert_level);
     st.signals.reverse();
   }
-  return { ts: new Date().toISOString(), window_min: WINDOW_MIN,
+  return { ts: new Date(ref).toISOString(), window_min: WINDOW_MIN,
            thresholds: { elevated: TH_ELEVATED, high: TH_HIGH }, voivodeships: per };
 }
 
@@ -640,25 +749,24 @@ function reevaluate() {
   const st = computeState();
   for (const [voiv, s] of Object.entries(st.voivodeships)) {
     const prev = lastLevels[voiv] || "none";
-    if (s.level !== prev) {
-      const order = ["none","elevated","high"];
-      const rising = order.indexOf(s.level) > order.indexOf(prev);
-      // Poziom wyłącznie z przeniesienia od sąsiadów zostaje widoczny, ale nie
-      // budzi telefonu — i nie zapisujemy go, żeby własny sygnał nadal alarmował
-      // (lustro backend/app/fusion.py).
-      if (rising && (s.own_score || 0) <= 0) { continue; }
-      if (rising && shouldNotify(voiv)) {
-        const ck = voiv + "|" + s.level;
-        if (!lastNotif[ck] || Date.now() - lastNotif[ck] > COOLDOWN_MIN*60*1000) {
-          lastNotif[ck] = Date.now();
-          const brk = s.signals.slice(0,5).map(x => `• [${x.source}] ${x.title}`).join("\n");
-          notifyNative(`${LEVEL_LABELS[s.level]}: woj. ${voiv} (${s.score} pkt)`,
-            brk + "\nNIEOFICJALNE źródło — kieruj się syrenami/RCB/RSO.", s.level === "high");
-        }
-      }
-      lastLevels[voiv] = s.level;
-      persistLevels();
-    }
+    // poziom powiadomień (lustro fusion.reevaluate), nie kolor mapy
+    const level = s.alert_level;
+    if (level === prev) continue;
+    const rising = LEVEL_ORDER.indexOf(level) > LEVEL_ORDER.indexOf(prev);
+    lastLevels[voiv] = level;
+    persistLevels();
+    if (!rising || !shouldNotify(voiv)) continue;
+    const ck = voiv + "|" + level, last = lastNotif[ck];
+    // powrót na ten sam poziom krótko po powiadomieniu — bez dźwięku, chyba że
+    // doszedł nowy alert RCB/RSO albo obiekt NEPTUN
+    if (last && Date.now() - last < ALERT_REPEAT_QUIET_MIN*60*1000
+        && !freshStrongSignal(s.signals, last)) continue;
+    if (last && Date.now() - last < COOLDOWN_MIN*60*1000) continue;
+    lastNotif[ck] = Date.now();
+    persistLevels();
+    const brk = s.signals.slice(0,5).map(x => `• [${x.source}] ${x.title}`).join("\n");
+    notifyNative(`${LEVEL_LABELS[level]}: woj. ${voiv} (${s.score} pkt)`,
+      brk + "\nNIEOFICJALNE źródło — kieruj się syrenami/RCB/RSO.", level === "high");
   }
   emit();
 }
@@ -1147,14 +1255,24 @@ const RSO_END = ["zakończył","zakonczyl","zakończen","zakonczen","odwoł","od
 let rsoBootstrapped = localStorage.getItem("eng_rso_boot") === "1";
 const rsoSeen = new Set(JSON.parse(localStorage.getItem("eng_rso_seen") || "[]"));
 
+const RSO_CONTINUES = ["do odwołania","do odwolania","do czasu odwołania","do czasu odwolania",
+  "do czasu zakończenia","do czasu zakonczenia","aż do odwołania","az do odwolania"];
+/* Odwołanie: rso_alarm = 2 albo zwrot końca w tytule/skrócie (lustro rso.py). */
+function rsoIsCancellation(it) {
+  if (String(it.rso_alarm ?? "").trim() === "2") return true;
+  let head = `${it.title || ""} ${it.shortcut || ""}`.toLowerCase();
+  for (const c of RSO_CONTINUES) head = head.split(c).join(" ");
+  return RSO_END.some(w => head.includes(w));
+}
+
 async function tickRso() {
   try {
     const j = JSON.parse(await httpGet(RSO_URL));
     for (const it of (j.newses || [])) {
       const text = `${it.title || ""} ${it.shortcut || ""} ${it.content || ""}`.toLowerCase();
-      if (RSO_END.some(w => text.includes(w))) continue;
       if (!RSO_ORIGIN.some(w => text.includes(w))) continue;   // musi pochodzić od RCB
       if (!RSO_AIR.some(w => text.includes(w))) continue;      // …i dotyczyć powietrza
+      const cancelled = rsoIsCancellation(it);
       // pomiń wygasłe (valid_to jest w czasie lokalnym PL — tak też czyta je telefon)
       const vt = Date.parse(String(it.valid_to || "").replace(" ", "T"));
       if (isFinite(vt) && vt < Date.now() - 3600000) continue;
@@ -1165,13 +1283,23 @@ async function tickRso() {
       }
       if (!voivs.length) voivs.push("lubelskie","podkarpackie","podlaskie","warmińsko-mazurskie");
       for (const v of voivs) {
+        if (cancelled) {
+          /* Odwołanie (0 pkt) zapisujemy także przy pierwszym obiegu — fuzja
+             porównuje czasy wydania, więc nie zgasi nowszego alertu. */
+          addSignal("rcb", "rso_clear", v, 0,
+            `RCB (RSO): odwołanie — „${String(it.shortcut || it.title || "").slice(0,120)}”`,
+            { rso_id: String(it.id), clear: true, updated_at: it.updated_at,
+              cleared_at: new Date(plLocalToMs(it.updated_at || it.created_at || it.valid_from)
+                || Date.now()).toISOString() }, `rso-clear:${it.id}:${v}`);
+          continue;
+        }
         const key = `rso:${it.id}:${v}`;
         if (!rsoBootstrapped) { rsoSeen.add(key); continue; }   // istniejące przy starcie nie alarmują
         if (rsoSeen.has(key)) continue;
         rsoSeen.add(key);
         addSignal("rcb", "rso_alert", v, POINTS.rcb_alert,
           `Alert RCB (RSO): „${String(it.shortcut || it.title || "").slice(0,120)}”`,
-          { rso_id: it.id, valid_to: it.valid_to }, key);
+          { rso_id: String(it.id), valid_from: it.valid_from, valid_to: it.valid_to }, key);
       }
     }
     rsoBootstrapped = true;
@@ -1417,5 +1545,6 @@ async function start(stateCb) {
 
 // matchVoivs wystawiamy wyłącznie do testów zgodności z backendem
 // (scripts/test_voiv_match.cjs) — reszta aplikacji go nie używa.
-return { start, stop, history, timeline, historyFrom, timelineFrom, accumulate, matchVoivs };
+return { start, stop, history, timeline, historyFrom, timelineFrom, accumulate, matchVoivs,
+         stateFrom, alertLevel, rsoIsCancellation };
 })();

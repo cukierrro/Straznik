@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Strażnik 1.7.35 — user guide</title>
+<title>Strażnik 1.7.36 — user guide</title>
 <meta name="description" content="The current Strażnik user guide: Android installation and updates, alerts, maps, new object icons, history, languages and scoring. Screenshots from Pixel 7.">
 <link rel="canonical" href="https://cukierrro.github.io/Straznik/en.html">
 <link rel="alternate" hreflang="pl" href="https://cukierrro.github.io/Straznik/">
@@ -33,11 +33,11 @@
   <div class="languages" aria-label="Guide language"><a href="index.html" lang="pl" hreflang="pl">PL</a><a href="en.html" lang="en" aria-current="page">EN</a></div>
 </div></nav>
 <header class="hero"><div class="wrap hero-grid">
-  <div><div class="eyebrow">User guide · version 1.7.35</div>
+  <div><div class="eyebrow">User guide · version 1.7.36</div>
     <h1>The situation on a map.<br>The sources behind each signal.</h1>
     <p class="lead">Strażnik combines public information about airborne threats and displays a score for each Polish province. Available on Android and in your browser.</p>
     <div class="actions"><a class="button primary" href="https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk">↓ Download app</a><a class="button" href="https://straznik.eu">Open map</a></div>
-    <p class="fineprint">Guide for 1.7.35. Approximate-position card: 1.7.21, 11 September 2026. Captures of the current interface were made on 12 September 2026 on a Pixel 7 with Android 14 and <b>three-button</b> system navigation; older, unchanged screens are labelled individually. Tap any screenshot to open the full-size image.</p>
+    <p class="fineprint">Guide for 1.7.36. Approximate-position card: 1.7.21, 11 September 2026. Captures of the current interface were made on 12 September 2026 on a Pixel 7 with Android 14 and <b>three-button</b> system navigation; older, unchanged screens are labelled individually. Tap any screenshot to open the full-size image.</p>
   </div>
   <a class="shot-link" href="screens/start-en.jpg"><img src="screens/start-en.jpg" width="1080" height="2400" alt="Strażnik 1.7.23 on Pixel 7: English map labels, six green source indicators and the Map, Signals, History, More tab bar"></a>
 </div></header>
@@ -87,7 +87,7 @@
 
   <p>If the GitHub app intercepts the download link and stalls, open the link in your browser instead. A <a href="https://github.com/cukierrro/Straznik/raw/main/Straznik.apk">backup APK in the repository</a> is also available.</p>
   <div class="note"><b>Check which version your phone has.</b> Open <kbd>&#9881;</kbd> &rarr; the <kbd>App</kbd> tab &mdash; the installed number is under the &ldquo;App version&rdquo; heading.
-    The latest release is <b>1.7.35</b>, published on <b>12 September 2026</b>. If you see an older number, tap <kbd>&#11014; Check for updates</kbd> or download the APK above. The full list of changes per release is in the <a href="zmiany-en.html">changelog</a>.</div>
+    The latest release is <b>1.7.36</b>, published on <b>13 September 2026</b>. If you see an older number, tap <kbd>&#11014; Check for updates</kbd> or download the APK above. The full list of changes per release is in the <a href="zmiany-en.html">changelog</a>.</div>
   <div class="split">
     <div>
       <h3>Updating from inside the app</h3>
@@ -252,7 +252,12 @@
   <div class="warn">Arrival time is an approximation assuming continued flight. It does not account for interception, a change of course or the full uncertainty of the data. Do not treat it as a countdown of time available to seek shelter. If the heading is unavailable, the app indicates the estimation limitation.</div>
   <h3>Spillover to neighbouring provinces</h3>
   <p>A source province with at least 2 points from signals other than a regional RCB alert can contribute 40% to its first ring of neighbours, 16% to its second, and so on within the algorithm's limits. Official RCB/RSO notices are not propagated: the issuer already specifies their area, and the same notice may be issued separately for several provinces. This provides regional context; it does not predict an object's route. The panel explains each contribution.</p>
-  <p><b>Spillover alone never sends a notification.</b> A province with no signal of its own shows the raised level on the map and in the panel, but the phone stays silent — one event next door must not wake several regions at once. The notification fires once your own province records a signal of its own.</p>
+  <p><b>The same event does not come back through spillover.</b> An article or a Ukrainian oblast alert assigned to two neighbouring provinces counts fully in each of them, but is no longer added a second time as 40% from the neighbour. Previously lubelskie and podkarpackie inflated each other with the same material.</p>
+  <p><b>When spillover may trigger an alert.</b> A notification needs at least <b>1 point of your province's own signals</b>. Spillover can then close a threshold, but by one step at most: own points below the yellow threshold plus a neighbour give <b>yellow</b> at most, and red is only possible once your own points are yellow.</p>
+  <p><b>Colour from neighbours alone looks different.</b> A province coloured only by spillover is dimmed and lower on the map, and its card has a dashed border and the label “raised by neighbours · no alert here”. Such a colour triggers neither a notification nor the in-app sound.</p>
+  <p><b>No repeats.</b> A level only drops 0.5 points below its threshold (red below 3.5, yellow below 1.5). Returning to the same level within 30 minutes of a notification only updates the map, unless a new RCB/RSO alert or a new NEPTUN object arrived in the meantime.</p>
+  <h3>Cancelled RCB alert</h3>
+  <p>When RCB cancels an alert in RSO (including by editing the existing entry), Strażnik stops counting that alert and earlier articles about it. For 6 hours after the cancellation, articles about sirens or the alert in that province are marked “after RCB cancellation” and add no points, unless RCB issues a new alert. Summary headlines such as “A restless morning…” count for 1 point at most.</p>
 </section>
 <section id="nowosci">
   <h2>10. Features in the current release</h2>

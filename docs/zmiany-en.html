@@ -39,6 +39,17 @@
   <p class="fineprint">To see which version your phone has, open the app: <kbd>⚙</kbd> → the <kbd>App</kbd> tab → “App version”. The <kbd>⬆ Check for updates</kbd> button is right there too.</p>
 </div></header>
 <main id="content" class="wrap">
+<section id="v1-7-36">
+  <h2>1.7.36 — Spillover without double counting, RCB cancellations</h2>
+  <p class="fineprint">Release 1.7.36 · 13 September 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.36">Full release notes</a></p>
+  <ul>
+    <li>The same event (an article, a Ukrainian oblast alert) assigned to two neighbouring provinces no longer comes back to the neighbour as spillover. Lubelskie and podkarpackie were inflating each other this way.</li>
+    <li>Spillover can only trigger a notification with at least 1 point of own signals, and by one step at most. Colour from spillover alone is dimmed on the map and the card gets a dashed border.</li>
+    <li>The in-app sound follows the alert level, not the map colour — a province coloured by its neighbours no longer starts the siren.</li>
+    <li>A level drops 0.5 points below its threshold, and returning to the same level within 30 minutes does not repeat the notification without a new RCB alert or NEPTUN object.</li>
+    <li>An RCB cancellation in RSO (including an edit of the existing entry) clears the alert and the articles that describe it afterwards.</li>
+  </ul>
+</section>
 <section id="v1-7-35">
   <h2>1.7.35 — Closing a zone card no longer closes the signal list</h2>
   <p class="fineprint">Release 1.7.35 · 12 September 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.35">Full release notes</a></p>
