@@ -304,6 +304,37 @@ function isNationalThreat(t) {
   return !!t?.straznik_national || String(t?.id ?? "").startsWith(NATIONAL_ID_PREFIX)
     || NATIONAL_REGION_MARKERS.some(m => String(t?.region ?? "").toLowerCase().includes(m));
 }
+/* Tekst komunikatu. Sam „alarm dla całej Ukrainy” nie mówił, co to znaczy
+   (uwaga usera 14.09.2026) — dopisane, czym jest MiG-31K i czemu nie ma go na mapie. */
+function nationalText(t) {
+  const meta = TYPE_META[t.type] || TYPE_META.unknown;
+  const since = Date.parse(t.straznik_national?.since || "");
+  const time = Number.isFinite(since) ? new Date(since).toLocaleTimeString(
+    UI.isEn ? "en-GB" : "pl-PL", { hour: "2-digit", minute: "2-digit" }) : "";
+  const mig = t.type === "mig31k";
+  const head = (mig
+    ? (UI.isEn ? "MiG-31K airborne — air-raid alert across Ukraine" : "MiG-31K w powietrzu — alarm w całej Ukrainie")
+    : `${UI.type(t.type, meta.label)} — ${UI.isEn ? "air-raid alert across Ukraine" : "alarm w całej Ukrainie"}`)
+    + (time ? ` · ${UI.isEn ? "since" : "od"} ${time}` : "");
+  const body = mig
+    ? (UI.isEn
+      ? "The MiG-31K carries Kinzhal missiles, which can reach any part of Ukraine within minutes. That is why the take-off alone means an alert for the whole country. No source gives the aircraft's position, so it is not on the map. For Poland this is information about the situation, not a threat: it adds no points."
+      : "MiG-31K przenosi rakiety Kindżał, które w kilka minut mogą dolecieć w dowolne miejsce Ukrainy. Dlatego już sam start tego samolotu oznacza alarm dla całego kraju. Żadne źródło nie podaje, gdzie jest samolot, więc nie ma go na mapie. Dla Polski to informacja o sytuacji, nie zagrożenie: nie dolicza punktów.")
+    : (UI.isEn
+      ? "NEPTUN announced a threat for the whole country without the object's position, so it is not on the map. For Poland this is information about the situation, not a threat: it adds no points."
+      : "NEPTUN ogłosił zagrożenie dla całego kraju bez pozycji obiektu, więc nie ma go na mapie. Dla Polski to informacja o sytuacji, nie zagrożenie: nie dolicza punktów.");
+  const chip = mig ? "MiG-31K" : UI.type(t.type, meta.label);
+  return { head, body, chip, color: meta.color };
+}
+function openNationalInfo(t) {
+  const x = nationalText(t);
+  document.getElementById("national-info-head").textContent = x.head;
+  document.getElementById("national-info-body").textContent = x.body;
+  document.getElementById("national-info").showModal();
+}
+document.getElementById("national-info-close")?.addEventListener("click", () =>
+  document.getElementById("national-info").close());
+/* Na żywo: pełny komunikat nad paskiem województwa. */
 function renderNationalBanner(threats) {
   const el = document.getElementById("national-banner");
   if (!el) return;
@@ -311,17 +342,25 @@ function renderNationalBanner(threats) {
   if (!list.length) { el.className = "hidden"; el.innerHTML = ""; return; }
   el.className = "";
   el.innerHTML = list.map(t => {
-    const meta = TYPE_META[t.type] || TYPE_META.unknown;
-    const since = Date.parse(t.straznik_national?.since || "");
-    const time = Number.isFinite(since) ? new Date(since).toLocaleTimeString(
-      UI.isEn ? "en-GB" : "pl-PL", { hour: "2-digit", minute: "2-digit" }) : "";
-    const airborne = t.type === "mig31k" ? (UI.isEn ? "airborne, " : "w powietrzu, ") : "";
-    return `<div class="nat-row" style="--nat:${meta.color}"><b>${esc(UI.type(t.type, meta.label))}</b> — ${
-      airborne}${UI.isEn ? "nationwide alert for Ukraine" : "alarm dla całej Ukrainy"}${
-      time ? ` · ${UI.isEn ? "since" : "od"} ${time}` : ""}<br><span class="muted">${UI.isEn
-      ? "NEPTUN gives no position, so it is not drawn on the map and does not add points for Poland."
-      : "NEPTUN nie podaje pozycji, więc nie rysujemy go na mapie i nie dolicza punktów dla Polski."}</span></div>`;
+    const x = nationalText(t);
+    return `<div class="nat-row" style="--nat:${x.color}"><b>${esc(x.head)}</b><br><span class="muted">${
+      esc(x.body)}</span></div>`;
   }).join("");
+}
+/* W historii: tylko plakietka w nagłówku paska (stała wysokość — nic nie skacze
+   pod palcem), pełny tekst po dotknięciu. */
+function renderNationalChip(threats) {
+  const el = document.getElementById("tb-national");
+  if (!el) return;
+  const list = (threats || []).filter(isNationalThreat);
+  const key = list.map(t => t.id).join("|");
+  if (el.dataset.key === key) return;          // bez przebudowy DOM przy każdej klatce suwaka
+  el.dataset.key = key;
+  if (!list.length) { el.innerHTML = ""; return; }
+  const x = nationalText(list[0]);
+  el.innerHTML = `<button type="button" class="tb-nat" style="--nat:${x.color}" title="${esc(x.head)}">● ${
+    esc(x.chip)}${list.length > 1 ? ` +${list.length - 1}` : ""} ⓘ</button>`;
+  el.firstChild.onclick = () => openNationalInfo(list[0]);
 }
 const NEPTUN_LOCALITY_ANCHORS = [{ name:"Łuck", lat:50.7472, lon:25.3254 }];
 function geoDistanceKm(lat1, lon1, lat2, lon2) {
@@ -3655,7 +3694,7 @@ function showHistoryAt(idx) {
   paintOblasts(sigs);
   // alarmy ogólnokrajowe z tamtej chwili jako komunikat, nie obiekt na mapie
   const snapThreats = snap?.threats || [];
-  renderNationalBanner(snapThreats);
+  renderNationalChip(snapThreats);
   const threats = snapThreats.filter(t => !isNationalThreat(t));
   const planes = [...(snap?.aircraft || [])];
   // ADS-B jest odpytywane częściej niż powstają migawki. Zdarzenie wejścia lub

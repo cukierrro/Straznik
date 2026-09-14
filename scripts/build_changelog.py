@@ -16,6 +16,15 @@ DOCS = ROOT / "docs"
 # (wersja, data PL, data EN, tytuł PL, tytuł EN, punkty PL, punkty EN, zrzuty)
 # Zrzut: (plik, alt PL, alt EN, podpis PL, podpis EN)
 RELEASES = [
+    ("1.7.47", "14 września 2026", "14 September 2026",
+     "Jaśniejszy komunikat o MiG-31K i stabilny pasek historii",
+     "Clearer MiG-31K notice and a steady history bar",
+     ["Komunikat o starcie MiG-31K wyjaśnia, co oznacza: samolot przenosi rakiety Kindżał, więc sam start to alarm dla całej Ukrainy; położenia nie podaje żadne źródło, a dla Polski to informacja, nie zagrożenie.",
+      "W historii komunikat jest małą plakietką w nagłówku paska (pełny tekst po dotknięciu), więc pasek i przyciski mapy nie podskakują już spod palca podczas przewijania."],
+     ["The MiG-31K take-off notice explains what it means: the aircraft carries Kinzhal missiles, so the take-off alone is an alert for all of Ukraine; no source gives its position, and for Poland it is information, not a threat.",
+      "In history the notice is a small badge in the bar header (full text on tap), so the bar and map buttons no longer jump from under your finger while scrubbing."],
+     []),
+
     ("1.7.46", "14 września 2026", "14 September 2026",
      "Płynniejsza historia i start MiG-31K jako komunikat",
      "Smoother history and MiG-31K take-off as a notice",

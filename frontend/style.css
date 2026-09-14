@@ -358,8 +358,17 @@ dialog a:hover, dialog a:focus-visible { text-decoration: underline; }
 }
 #timebar.hidden { display: none !important; }
 .tb-row { display: flex; align-items: center; gap: 10px; }
-.tb-head { display: flex; align-items: baseline; justify-content: space-between;
-  gap: 10px; margin-bottom: 2px; }
+/* Stała wysokość nagłówka: plakietka alarmu ogólnokrajowego (#tb-national) pojawia
+   się i znika podczas przewijania i nie może zmieniać wysokości paska (14.09.2026
+   pasek i przyciski mapy podskakiwały spod palca). */
+.tb-head { display: flex; align-items: center; justify-content: space-between;
+  gap: 8px; margin-bottom: 2px; height: 20px; }
+#tb-national { flex: 0 1 auto; min-width: 0; display: flex; }
+.tb-nat { display: block; max-width: 100%; height: 18px; padding: 0 8px; box-sizing: border-box;
+  border: 1px solid var(--nat, #c06bff); border-radius: 999px; background: rgba(192,107,255,.12);
+  color: var(--text); font: 600 11px/16px "Segoe UI", system-ui, sans-serif;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+body.history-mode #national-banner { display: none; }
 .tb-mode { font: 700 10.5px/1 "Segoe UI", system-ui, sans-serif; letter-spacing: .1em;
   color: var(--amber); }
 #timebar #tb-label { font: 600 13px/1 "Segoe UI", system-ui, sans-serif; color: var(--text);
