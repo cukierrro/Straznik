@@ -16,6 +16,15 @@ DOCS = ROOT / "docs"
 # (wersja, data PL, data EN, tytuł PL, tytuł EN, punkty PL, punkty EN, zrzuty)
 # Zrzut: (plik, alt PL, alt EN, podpis PL, podpis EN)
 RELEASES = [
+    ("1.7.49", "14 września 2026", "14 September 2026",
+     "Mniej fałszywych sygnałów z mediów",
+     "Fewer false media signals",
+     ["Odnośniki do innych artykułów w opisie RSS („CZYTAJ: …”) nie są już brane za treść wpisu — artykuł o oszuście nie dostanie punktów za „atak dronów” z polecanego tekstu.",
+      "Miesiąc „września” nie jest już brany za miasto Września, więc daty nie przypisują artykułów do województwa wielkopolskiego."],
+     ["Links to other articles in RSS descriptions (“CZYTAJ: …”) are no longer read as the entry's content — a story about a fraudster no longer scores for a “drone attack” in a recommended headline.",
+      "The month “września” (September) is no longer mistaken for the town of Września, so dates no longer assign articles to Greater Poland."],
+     []),
+
     ("1.7.48", "14 września 2026", "14 September 2026",
      "Dokładniejsza granica, uczciwy czas dolotu i tryb awaryjny",
      "More accurate border, honest arrival times and emergency mode",
