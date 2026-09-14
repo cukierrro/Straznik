@@ -16,6 +16,17 @@ DOCS = ROOT / "docs"
 # (wersja, data PL, data EN, tytuł PL, tytuł EN, punkty PL, punkty EN, zrzuty)
 # Zrzut: (plik, alt PL, alt EN, podpis PL, podpis EN)
 RELEASES = [
+    ("1.7.44", "14 września 2026", "14 September 2026",
+     "Rezygnacja z alarmów, kierunek drona i poprawki mediów bałtyckich",
+     "Opting out of alerts, drone heading and Baltic media fixes",
+     ["Ostrzeżenie o zgodach na mapie ma krzyżyk, a w ⚙ → Alarmy można wyłączyć alarmy na tym telefonie i zostać przy samym podglądzie mapy.",
+      "Dziób ikony drona wskazuje kierunek zmierzony z ruchu — ten sam co trasa i linia kierunku; karta pokazuje, gdy NEPTUN podaje inny kurs.",
+      "Media z Litwy, Łotwy i Estonii: artykuł o alarmach (rozmowa, pytania) nie jest już alarmem, a atak na Ukrainie nie jest incydentem bałtyckim."],
+     ["The permission warning on the map has a close button, and ⚙ → Alerts lets you turn alerts off on this phone and keep only the map view.",
+      "The drone icon's nose shows the heading measured from movement — the same as the track and heading line; the card notes when NEPTUN reports a different heading.",
+      "Lithuanian, Latvian and Estonian media: an article about alerts (an interview, questions) is no longer an alert, and a strike in Ukraine is no longer a Baltic incident."],
+     []),
+
     ("1.7.43", "13 września 2026", "13 September 2026",
      "Granice państw w dotychczasowym wyglądzie",
      "National borders back to their previous look",
