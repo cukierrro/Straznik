@@ -2,10 +2,88 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "straznik",
+      "name": "straznik-preview",
       "runtimeExecutable": "py",
-      "runtimeArgs": ["-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8600", "--app-dir", "backend"],
-      "port": 8600
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8611",
+        "--directory",
+        "frontend"
+      ],
+      "port": 8611
+    },
+    {
+      "name": "pazp-podglad",
+      "runtimeExecutable": "py",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8612",
+        "--directory",
+        "podglad_panelu/pazp"
+      ],
+      "port": 8612
+    },
+    {
+      "name": "instrukcja",
+      "runtimeExecutable": "py",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8613",
+        "--directory",
+        "docs"
+      ],
+      "port": 8613
+    },
+    {
+      "name": "ikony-podglad",
+      "runtimeExecutable": "py",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8614",
+        "--directory",
+        "C:/Users/PC/AppData/Local/Temp/claude/C--Users-PC-Desktop-Stra-nik/5b5db3d3-e145-4492-961e-2e2f0785a56e/scratchpad"
+      ],
+      "port": 8614
+    },
+    {
+      "name": "odbior-zrzutow",
+      "runtimeExecutable": "py",
+      "runtimeArgs": [
+        "C:/Users/PC/AppData/Local/Temp/claude/C--Users-PC-Desktop-Stra-nik/5b5db3d3-e145-4492-961e-2e2f0785a56e/scratchpad/odbior.py"
+      ],
+      "port": 8615
+    },
+    {
+      "name": "grota-prototyp",
+      "runtimeExecutable": "py",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8620",
+        "--directory",
+        "C:/Users/PC/Desktop/Grota/app"
+      ],
+      "port": 8620
+    },
+    {
+      "name": "backend-lokalny",
+      "runtimeExecutable": "py",
+      "runtimeArgs": [
+        "-m",
+        "uvicorn",
+        "app.main:app",
+        "--app-dir",
+        "backend",
+        "--port",
+        "8700",
+        "--log-level",
+        "warning"
+      ],
+      "port": 8700
     }
   ]
 }

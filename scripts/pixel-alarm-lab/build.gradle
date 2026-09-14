@@ -1,0 +1,112 @@
+plugins { id 'com.android.application' version '8.13.0' }
+repositories { google(); mavenCentral() }
+
+// Separate, network-incapable APK. Never use production app/signing/Firebase.
+layout.buildDirectory.set(file('../../test-out/pixel-alarm-lab/build'))
+android {
+    namespace 'pl.straznik.offlinelab'
+    compileSdk 36
+    defaultConfig {
+        applicationId 'pl.straznik.offlinelab'
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName 'offline-test-1'
+    }
+    sourceSets.main.assets.srcDir(layout.buildDirectory.dir('generated/replay-assets'))
+}
+
+tasks.register('extractReadOnlyLogic') {
+    def appSource = file('../../frontend/app.js')
+    def engineSource = file('../../frontend/engine.js')
+    def archiveSource = file('../../test-out/audit-red-2026-09-08-history.json')
+    def realSource = file('../../test-out/real-replay-2026-09-08-history.json')
+    def liveSource = file('../../test-out/real-replay-2026-09-08-state.json')
+    inputs.files(appSource, engineSource, archiveSource, realSource, liveSource)
+    inputs.files(file('../../backend/app/neptun_archive.py'), file('../../backend/app/collectors/neptun.py'),
+        file('../../backend/app/main.py'), file('../check_neptun_archive_static.py'))
+    def generated = layout.buildDirectory.dir('generated/replay-assets')
+    outputs.dir(generated)
+    doLast {
+        def app = appSource.getText('UTF-8')
+        def engine = engineSource.getText('UTF-8')
+        def start = app.indexOf('function updateAlarmMood() {')
+        def end = app.indexOf('\n/* ── pełnoekranowy alarm', start)
+        def es = engine.indexOf('function reevaluate() {')
+        def ee = engine.indexOf('\n/* ── kolektor: Neptun', es)
+        if (start < 0 || end <= start || es < 0 || ee <= es) {
+            throw new GradleException('Cannot locate exact production functions; refusing guessed test.')
+        }
+        def out = generated.get().asFile
+        out.mkdirs()
+        def python = providers.gradleProperty('archiveAuditPython')
+            .orElse(providers.environmentVariable('STRAZNIK_AUDIT_PYTHON')).orElse('python').get()
+        // AST inspection only: Python does not import or execute any backend module.
+        def audit = new ProcessBuilder(python, file('../check_neptun_archive_static.py').absolutePath)
+            .directory(file('../..')).start()
+        def auditText = audit.inputStream.getText('UTF-8')
+        def auditError = audit.errorStream.getText('UTF-8')
+        if(audit.waitFor()!=0) throw new GradleException('Archive static audit failed: '+auditError)
+        def auditData = new groovy.json.JsonSlurper().parseText(auditText)
+        new File(out,'archive-schema.js').setText('const archiveSchema='
+            +groovy.json.JsonOutput.toJson(auditData)+';', 'UTF-8')
+        new File(out, 'production-logic.js').setText(
+            '// Exact extracted functions only. Dependencies are local recording stubs.\n'
+            + app.substring(start, end) + '\n' + engine.substring(es, ee), 'UTF-8')
+        def hash = java.security.MessageDigest.getInstance('SHA-256')
+            .digest(app.getBytes('UTF-8')).encodeHex().toString()
+        new File(out, 'source-id.js').setText("const sourceHash='${hash}';", 'UTF-8')
+        // Only pure scoring function and its literal configuration, never collectors.
+        def ac = engine.indexOf('function accumulate(sigs, refT) {')
+        def ace = engine.indexOf('\nfunction computeState()', ac)
+        def constants = ['WINDOW_MIN','SOURCE_CAPS','VOIVODESHIPS','RCB_RELAY_WINDOW_MS','RELAY_STOP'].collect { name ->
+            def matcher = (engine =~ /(?s)const ${name}\s*=.*?;/)
+            if (!matcher.find()) throw new GradleException("Missing literal config ${name}")
+            matcher.group()
+        }.join('\n')
+        def foldMatcher = (engine =~ /(?s)const fold\s*=.*?;/)
+        if (!foldMatcher.find()) throw new GradleException('Missing fold helper')
+        def helpersStart = engine.indexOf('function relayTokens(')
+        if (helpersStart < 0 || helpersStart >= ac) throw new GradleException('Missing accumulate helpers')
+        if (ac < 0 || ace <= ac) throw new GradleException('Missing pure accumulate function')
+        new File(out,'archive-scoring.js').setText('const ArchiveScoring=(()=>{\n'+constants+'\n'
+            +foldMatcher.group()+'\n'+engine.substring(helpersStart,ace)
+            +'\nreturn {accumulate,WINDOW_MIN};})();', 'UTF-8')
+        def archive = new groovy.json.JsonSlurper().parse(archiveSource, 'UTF-8')
+        def from = java.time.OffsetDateTime.parse('2026-09-08T03:30:00Z').toInstant()
+        def until = java.time.OffsetDateTime.parse('2026-09-08T04:45:00Z').toInstant()
+        def inWindow = { row ->
+            def time = java.time.OffsetDateTime.parse(row.ts).toInstant()
+            !time.isBefore(from) && !time.isAfter(until)
+        }
+        def subset = [signals:archive.signals.findAll(inWindow),
+            snaps:archive.snaps.findAll(inWindow).collect { s -> [ts:s.ts,threats:s.threats] },
+            sourceHash:java.security.MessageDigest.getInstance('SHA-256')
+                .digest(archiveSource.bytes).encodeHex().toString()]
+        new File(out,'archive-fixture.js').setText('const morningArchive='
+            +groovy.json.JsonOutput.toJson(subset)+';', 'UTF-8')
+        // Read-only copies only. This task never starts collectors or sends anything.
+        def later = new groovy.json.JsonSlurper().parse(realSource, 'UTF-8')
+        def live = new groovy.json.JsonSlurper().parse(liveSource, 'UTF-8')
+        def startDay = java.time.OffsetDateTime.parse('2026-09-08T00:30:00Z').toInstant()
+        def signalStart = startDay.minusSeconds(3600)
+        def mergedSnaps = [:], mergedSignals = [:]
+        [archive,later].each { part ->
+            part.snaps.each { s ->
+                if(!java.time.OffsetDateTime.parse(s.ts).toInstant().isBefore(startDay))
+                    mergedSnaps[s.ts] = [ts:s.ts,threats:s.threats]
+            }
+            part.signals.each { s ->
+                if(!java.time.OffsetDateTime.parse(s.ts).toInstant().isBefore(signalStart))
+                    mergedSignals[s.id.toString()] = s
+            }
+        }
+        def full = [snaps:mergedSnaps.values().sort { it.ts },signals:mergedSignals.values().sort { it.ts },
+            live:live.neptun.threats,liveAt:live.fusion.ts,
+            hashes:[archiveSource,realSource,liveSource].collect { f -> [name:f.name,
+                sha256:java.security.MessageDigest.getInstance('SHA-256').digest(f.bytes).encodeHex().toString()] }]
+        new File(out,'real-day-fixture.js').setText('const realDay='
+            +groovy.json.JsonOutput.toJson(full)+';', 'UTF-8')
+    }
+}
+tasks.named('preBuild').configure { dependsOn 'extractReadOnlyLogic' }

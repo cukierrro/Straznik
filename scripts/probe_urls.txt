@@ -1,0 +1,5 @@
+https://m.airspace.lv/rest/services/DRONES/SIGMA_drones/MapServer/0/query?where=1%3D1&outFields=*&f=json&resultRecordCount=2
+https://airspace.lv/rest/services/DRONES/SIGMA_drones/MapServer/0/query?where=1%3D1&outFields=*&f=json&resultRecordCount=2
+https://m.airspace.lv/mob/assets/config.prod.json
+https://ags.lgs.lv/rest/services?f=json
+https://m.airspace.lv/rest/services?f=json

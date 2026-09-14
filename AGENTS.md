@@ -1,5 +1,25 @@
 # Stałe zasady projektu Strażnik
 
+## Aktualne przekazanie — 2026-09-08 wieczór
+
+Najświeższy punkt wznowienia po zakończeniu dnia:
+`docs/WZNOWIENIE_2026-09-09.md`. Przeczytaj go przed dalszą pracą;
+nie zaczynaj biblioteki zdjęć ani prototypu miejsc od nowa.
+
+Stan prac i ograniczenia: `docs/STAN_PRAC_2026-09-08.md`.
+Oddzielna sesja dotycząca schronienia ma wyłącznie zbadać wykonalność:
+`docs/PROMPT_ANALIZA_SCHRONIENIA.md`. Nie wdrażać jej propozycji ani alarmów.
+Projektować lokalizacje użytkownika lokalnie na urządzeniu; bez przekazywania
+wybranych miejsc, adresów i GPS na VPS. Przepływy do dostawców zewnętrznych
+także wymagają jawnej analizy, nie obiecywać prywatności bez sprawdzenia.
+
+## Plan odłożonej pracy — 2026-09-08
+
+Przed wznowieniem prac nad eskalacją alarmów przeczytaj
+`docs/PLAN_POWROTU_2026-09-08.md`. Testy tylko offline na Pixelu;
+zatwierdzenie progów 2,5 / 3,0 / 3,5 nie stanowi zgody na produkcję.
+Nie wysyłaj alarmów testowych do użytkowników. Wdrożenie wymaga osobnej zgody.
+
 ## Instrukcja jest częścią wydania
 
 Ustalenie z użytkownikiem: każde wydanie z istotną zmianą funkcji, zachowania

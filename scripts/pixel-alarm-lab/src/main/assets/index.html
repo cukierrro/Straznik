@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="pl"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'none'; img-src 'none'; media-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
+<link rel="stylesheet" href="lab.css"><title>Strażnik — TEST OFFLINE</title></head>
+<body>
+<header>TEST OFFLINE · TYLKO TEN PIXEL</header>
+<main>
+<h1>Sytuacja narasta — test</h1>
+<section id="real-day-results">Odtworzenie rzeczywistych zapisów…</section>
+<section id="metadata-checks">Kontrola uzupełnienia archiwum…</section>
+<p class="muted">Osobna aplikacja bez internetu i push. Bez dźwięku. Nic nie trafia do użytkowników.</p>
+<section id="result">Sprawdzanie lokalnej logiki…</section>
+<p id="contract-checks" class="muted"></p>
+<p id="refinement-checks" class="muted"></p><p id="restart-checks" class="muted">Test trwałego zapisu: oczekuje na ponowne uruchomienie procesu.</p>
+<button id="archive-toggle">Pokaż poranek z archiwum</button>
+<section id="archive-view" hidden>
+<h2>Lubelskie · 08.09 · archiwum</h2>
+<p id="archive-checks"></p>
+<label for="archive-time">Chwila:</label><select id="archive-time">
+<option value="2026-09-08T06:34:02+02:00">06:34:02 — przed artykułem</option>
+<option value="2026-09-08T06:34:03+02:00" selected>06:34:03 — po artykule</option>
+<option value="2026-09-08T06:36:20+02:00">06:36:20 — ekran użytkownika</option>
+<option value="2026-09-08T06:39:00+02:00">06:39:00 — późniejszy stan</option>
+</select>
+<h3>Obecna punktacja</h3><p id="archive-current"></p>
+<h3>Wariant bez +1,5 za artykuł</h3><p id="archive-alternative"></p>
+<p class="muted">Wariant porównawczy, nie decyzja o wycięciu artykułu. Pełna strona była później aktualizowana; nie mamy dokładnej wersji RSS z 06:34.</p>
+<p id="archive-presence"></p>
+<p>Ślady pozostają w godzinnej pamięci. To nie znaczy, że wszystkie obiekty nadal są obecne. Brak czasu obserwacji w archiwalnym sygnale nie pozwala uznać go za świeży.</p>
+<p class="muted">Brak propagacji w tym odtworzonym oknie; test naliczenia, nie wysyłki.</p>
+</section>
+<div id="synthetic-view">
+<label for="scenario">Scenariusz:</label><select id="scenario"></select>
+<section><div class="muted">Lubelskie · scenariusz demonstracyjny</div>
+<div id="score">—</div><strong id="level"></strong>
+<p id="reason"></p><p id="action"></p>
+<button id="next">Następny krok</button><button id="reset" class="secondary">Od początku</button></section>
+<section><strong>Ślad decyzji (bez wysyłania)</strong><ol id="events"></ol></section>
+</div>
+<details><summary>Wyniki testów i ograniczenia</summary><ul id="checks"></ul>
+<p>Nowe reguły są wyłącznie prototypem: stopnie 2,5 / 3,0 / 3,5 zatwierdzono. Okno 5 minut i zbliżenie większe niż suma niepewności oraz 10 km to założenia testowe. Dane i tożsamości obiektów są syntetyczne, nie pobierane z serwera.</p>
+<p>Reset incydentu, trwała pamięć po restarcie i rozpoznawanie tego samego obiektu przy zmianie ID wymagają dalszego projektu. Nie włączamy tej logiki do aplikacji produkcyjnej.</p>
+<p>Testujemy dokładną funkcję zmiany poziomu z obecnego interfejsu i trybu standalone. Funkcje dźwięku i powiadomień zastąpiono zapisem decyzji. Nie uruchamiamy serwera, Firebase ani kolektorów.</p>
+<p>Scenariusze progów są syntetyczne. Osobny widok archiwum odtwarza naliczenie 4,3 pkt z poranka, ale nie potwierdza zasadności klasyfikacji artykułu ani pięciu odrębnych dronów. Nie jest to test dostarczenia FCM.</p>
+<p id="source" class="muted"></p></details>
+</main><div id="disclaimer" class="hidden"></div>
+<script src="source-id.js"></script><script src="stubs.js"></script>
+<script src="production-logic.js"></script><script src="lab.js"></script>
+<script src="escalation-prototype.js"></script><script src="escalation-tests.js"></script>
+<script src="archive-scoring.js"></script><script src="archive-fixture.js"></script>
+<script src="archive-replay.js"></script>
+<script src="observation-contract.js"></script><script src="observation-contract-tests.js"></script>
+<script src="track-guard.js"></script><script src="incident-session.js"></script><script src="refinement-tests.js"></script>
+<script src="real-day-fixture.js"></script><script src="real-day-replay.js"></script>
+<script src="archive-schema.js"></script><script src="archive-metadata-tests.js"></script>
+</body></html>
