@@ -36,8 +36,14 @@ Stan ostatniej kopii: `https://straznik.eu/api/health` → `backup`
    rm -f /opt/straznik/backend/data/straznik.db-wal /opt/straznik/backend/data/straznik.db-shm
    cp /tmp/odtw/straznik/{vapid.json,fcm-service-account.json,pansa_seen.json,zones_since.json,official_alerts_seen.json} /opt/straznik/backend/data/
    cp /tmp/odtw/straznik/.env /opt/straznik/backend/.env
+   chown root:straznik /opt/straznik/backend/.env && chmod 640 /opt/straznik/backend/.env
+   chmod 600 /opt/straznik/backend/data/vapid.json /opt/straznik/backend/data/fcm-service-account.json
    systemctl start straznik
    ```
+
+   Od 14.09.2026 usługa działa jako użytkownik `straznik` (audyt D9). Właściciela
+   plików w `data/` poprawia sama przy starcie (`ExecStartPre` w drop-inie), ale `.env`
+   leży poza `data/` i musi być czytelny dla grupy `straznik`.
 
 3. Sprawdzić `/api/health` i czy strona pokazuje mapę.
 
@@ -45,8 +51,11 @@ Stan ostatniej kopii: `https://straznik.eu/api/health` → `backup`
 powiadomień w przeglądarce nie zadziała i każdy musiałby włączyć je od nowa.
 
 Na nowym VPS trzeba jeszcze sklonować repozytorium do `/opt/straznik`, utworzyć
-`backend/.venv`, wgrać `straznik.service` z kopii i ponownie skonfigurować tunel
-Cloudflare.
+`backend/.venv`, wgrać `straznik.service` z kopii, utworzyć użytkownika
+(`useradd --system --no-create-home --home-dir /nonexistent --shell /usr/sbin/nologin straznik`),
+skopiować `scripts/systemd/straznik-d9-hardening.conf` do
+`/etc/systemd/system/straznik.service.d/d9-hardening.conf` (`systemctl daemon-reload`)
+i ponownie skonfigurować tunel Cloudflare.
 
 Na Windows kopię rozpakowuje wbudowany tar (tar z Git Bash nie zna zstd):
 `C:\Windows\System32\tar.exe -xf straznik-RRRRMMDD-GGMM.tar.zst -C <katalog>`.
