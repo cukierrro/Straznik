@@ -124,9 +124,11 @@ NEPTUN_BORDER_REGIONS = ("Волинська", "Львівська", "Закар
 # obiektem. Lustro: engine.js NEPTUN_NATIONAL_*.
 # Audyt G6: drony odrzutowe (Geran-3 / Shahed-238) — NEPTUN pisze w opisie
 # „Реактивний БпЛА”. Przelot 300–370 km/h, na końcowym odcinku 550–600 km/h
-# (wywiad UA). Do czasu dolotu i alarmu ETA gorszy przypadek. Lustro: engine.js.
+# (wywiad UA). Decyzja usera 14.09.2026: 450 km/h do czasu dolotu i alarmu ETA,
+# a przy prędkości zmierzonej z ruchu — max(zmierzona, 350). Lustro: engine.js.
 NEPTUN_JET_MARKERS = ("реактивн",)
-NEPTUN_JET_SPEED_KMH = 600.0
+NEPTUN_JET_SPEED_KMH = 450.0
+NEPTUN_JET_CRUISE_KMH = 350.0
 NEPTUN_NATIONAL_ID_PREFIX = "national-"
 NEPTUN_NATIONAL_REGION_MARKERS = ("загальнодержавн",)   # porównanie po lower()
 

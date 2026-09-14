@@ -48,8 +48,8 @@ def last_signal(tid):
 
 # Rakieta manewrująca ok. 40 km od granicy nad Wołyniem, kurs na zachód (na PL).
 LAT, LON = 51.0, 24.75
-a = geo.assess_threat(LAT, LON, 270, config.NEPTUN_HEADING_TOLERANCE, config.NEPTUN_HEADING_SOFT_DEG,
-                      config.NEPTUN_UNKNOWN_HEADING_MULT, config.NEPTUN_UNKNOWN_HEADING_MAX_KM)
+a = geo.assess_for_scoring(LAT, LON, 270, config.NEPTUN_HEADING_TOLERANCE, config.NEPTUN_HEADING_SOFT_DEG,
+                           config.NEPTUN_UNKNOWN_HEADING_MULT, config.NEPTUN_UNKNOWN_HEADING_MAX_KM)
 print(f"punkt testowy: {a['dist_km']} km od granicy, kurs na PL={a['toward_pl']}")
 BASE = {"type": "cruise", "lat": LAT, "lon": LON, "heading": 270, "confidenceLevel": "high",
         "sourceCount": 3, "positionQuality": "confirmed", "lifecycle": "confirmed", "status": "active"}
@@ -90,8 +90,15 @@ jet = {**drone, "id": "trk_g6_jet", "title": "Реактивний БпЛА",
        "explanationShort": "Реактивний БпЛА курсом на Луцьк."}
 slow = {**drone, "id": "trk_g6_slow", "title": "БпЛА"}
 sprawdz(neptun.is_jet(jet) and not neptun.is_jet(slow), "rozpoznanie „реактивн” w opisie")
-sprawdz(neptun._speed_of(jet) == config.NEPTUN_JET_SPEED_KMH and neptun._speed_of(slow) == 180,
-        f"prędkość: odrzutowy {neptun._speed_of(jet)}, zwykły {neptun._speed_of(slow)}")
+sprawdz(neptun._speed_of(jet) == 450 and neptun._speed_of(slow) == 180,
+        f"prędkość bez pomiaru: odrzutowy {neptun._speed_of(jet)}, zwykły {neptun._speed_of(slow)}")
+# 1,5° długości na 51°N ≈ 105 km w 10 min ≈ 630 km/h — dron przyspieszył
+fast = {**jet, "straznik_trail": [{"lat": 51.0, "lon": 26.5, "t": 0}, {"lat": 51.0, "lon": 25.0, "t": 600}]}
+crawl = {**jet, "straznik_trail": [{"lat": 51.0, "lon": 26.0, "t": 0}, {"lat": 51.0, "lon": 25.95, "t": 600}]}
+sprawdz(600 < neptun._speed_of(fast) < 660,
+        f"zmierzona szybka prędkość ma pierwszeństwo ({round(neptun._speed_of(fast))} km/h)")
+sprawdz(neptun._speed_of(crawl) == config.NEPTUN_JET_CRUISE_KMH,
+        f"wolny pomiar nie schodzi poniżej przelotowej ({neptun._speed_of(crawl)})")
 run([jet, slow])
 sj, ss = last_signal("trk_g6_jet"), last_signal("trk_g6_slow")
 sprawdz(sj and ss and sj["details"]["eta_border_min"] < ss["details"]["eta_border_min"],
@@ -102,4 +109,4 @@ sprawdz(sj and sj["details"]["jet"] is True, "sygnał oznaczony jako dron odrzut
 if bledy:
     print(f"\nBŁĘDY: {len(bledy)}")
     sys.exit(1)
-print("\nOK - kurs domniemany bez alarmu ETA, drony odrzutowe 600 km/h")
+print("\nOK - kurs domniemany bez alarmu ETA, drony odrzutowe 450 km/h lub zmierzona")

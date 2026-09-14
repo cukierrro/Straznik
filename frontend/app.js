@@ -390,6 +390,8 @@ function approxPositionNote(t) {
 }
 function threatDistanceText(t, km) {
   if (km == null) return "?";
+  // A2b: odległość liczona do konturu kraju — 0 znaczy „już nad Polską”
+  if (km === 0 || t?.pl_assessment?.inside_pl) return UI.isEn ? "over Poland" : "nad Polską";
   if (!isApproxPosition(t)) return `${km} km`;
   if (km < 10) return UI.isEn ? "less than 10 km (area estimate)" : "mniej niż 10 km (szacunek rejonowy)";
   const rounded = Math.round(km / 10) * 10;

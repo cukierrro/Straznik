@@ -322,15 +322,69 @@ function courseFactor(heading, brg, distKm){
   if (d >= HEADING_SOFT) return 0;
   return Math.round((HEADING_SOFT - d) / (HEADING_SOFT - HEADING_TOL) * 1000) / 1000;
 }
+/* Audyt A2b (lustro geo.assess_threat_outline_extent): odległość do KONTURU Polski
+   z wybrzeżem (0 nad Polską), kurs porównywany z całym wycinkiem kierunków, pod
+   którym obiekt widzi Polskę. Dane: pl-outline.js (scripts/build_pl_outline.py). */
+function inRing(lat, lon, ring) {
+  let inside = false;
+  for (let i = 0, n = ring.length; i < n; i++) {
+    const [y1, x1] = ring[i], [y2, x2] = ring[(i + 1) % n];
+    if ((y1 > lat) !== (y2 > lat) && lon < x1 + (lat - y1) * (x2 - x1) / (y2 - y1)) inside = !inside;
+  }
+  return inside;
+}
+/* Wybór odcinka w lokalnym rzucie płaskim, odległość po kuli (jak geo.nearest_outline_point). */
+function nearestOutline(lat, lon) {
+  const kx = Math.cos(rad(lat));
+  let best = null;
+  for (const ring of PL_OUTLINE.rings) {
+    for (let i = 0, n = ring.length; i < n; i++) {
+      const a = ring[i], b = ring[(i + 1) % n];
+      const ax = (a[1] - lon) * kx, ay = a[0] - lat;
+      const dx = (b[1] - a[1]) * kx, dy = b[0] - a[0], den = dx * dx + dy * dy;
+      const t = den === 0 ? 0 : Math.max(0, Math.min(1, -(ax * dx + ay * dy) / den));
+      const px = ax + dx * t, py = ay + dy * t, d2 = px * px + py * py;
+      if (!best || d2 < best[0]) best = [d2, a, b, t];
+    }
+  }
+  const [, a, b, t] = best;
+  const plat = a[0] + (b[0] - a[0]) * t, plon = a[1] + (b[1] - a[1]) * t;
+  return [haversine(lat, lon, plat, plon), plat, plon, PL_OUTLINE.voivs[t < 0.5 ? a[2] : b[2]]];
+}
+function bearingArc(lat, lon, points) {
+  const brgs = points.map(p => bearing(lat, lon, p[0], p[1])).sort((x, y) => x - y);
+  let gap = -1, at = 0;
+  for (let i = 0; i < brgs.length; i++) {
+    const g = ((brgs[(i + 1) % brgs.length] - brgs[i]) % 360 + 360) % 360;
+    if (g > gap) { gap = g; at = i; }
+  }
+  return [brgs[(at + 1) % brgs.length], (360 - gap) % 360];
+}
+/* Spoza otoczki wypukłej wycinek wyznaczają jej wierzchołki; wewnątrz — cały kontur. */
+function plBearingInterval(lat, lon) {
+  const arc = bearingArc(lat, lon, PL_OUTLINE.hull);
+  return arc[1] < 180 ? arc : bearingArc(lat, lon, PL_OUTLINE.rings.flat());
+}
+function courseFactorExtent(heading, interval, distKm) {
+  if (heading == null) return distKm <= UNKNOWN_HEADING_MAX_KM ? UNKNOWN_HEADING_MULT : 0;
+  const [start, width] = interval;
+  const off = ((heading - start) % 360 + 360) % 360;
+  const d = off <= width ? 0 : Math.min(off - width, 360 - off);
+  if (d <= HEADING_TOL) return 1;
+  if (d >= HEADING_SOFT) return 0;
+  return Math.round((HEADING_SOFT - d) / (HEADING_SOFT - HEADING_TOL) * 1000) / 1000;
+}
 function assess(lat,lon,heading){
-  let best=null;
-  for(const [bl,bo,v] of BORDER_POINTS){const d=haversine(lat,lon,bl,bo);
-    if(!best||d<best[0])best=[d,bl,bo,v];}
-  const brg=bearing(lat,lon,best[1],best[2]);
-  const dist=Math.round(best[0]*10)/10;
-  const cf=courseFactor(heading,brg,dist);
-  return {dist_km:dist, border_voiv:best[3], bearing_to_border:Math.round(brg),
-          course_factor:cf, heading_known:heading!=null, toward_pl:cf>0};
+  const [d, plat, plon, segVoiv] = nearestOutline(lat, lon);
+  if (PL_OUTLINE.rings.some(r => inRing(lat, lon, r)))
+    return {dist_km:0, border_voiv:(voivPolys && voivAtPoint(lon, lat)) || segVoiv, bearing_to_border:null,
+            course_factor:1, heading_known:heading!=null, toward_pl:true, inside_pl:true};
+  const dist = Math.round(d*10)/10;
+  const interval = plBearingInterval(lat, lon);
+  const cf = interval ? courseFactorExtent(heading, interval, dist)
+    : courseFactor(heading, bearing(lat, lon, plat, plon), dist);
+  return {dist_km:dist, border_voiv:segVoiv, bearing_to_border:Math.round(bearing(lat, lon, plat, plon)),
+          course_factor:cf, heading_known:heading!=null, toward_pl:cf>0, inside_pl:false};
 }
 function voivForPoint(lat,lon){
   let hits=[];
@@ -910,7 +964,7 @@ function headingOf(t) {
 const headingSourceOf = (t) => t.heading != null
   ? (t.presumptiveCourse === true ? "presumptive" : "reported")
   : (t.heading_estimated != null ? "measured" : "unknown");
-const JET_MARKERS = ["реактивн"], JET_SPEED_KMH = 600;
+const JET_MARKERS = ["реактивн"], JET_SPEED_KMH = 450;   // decyzja usera 14.09.2026
 const isJet = (t) => JET_MARKERS.some(m => `${t.title || ""} ${t.explanationShort || ""}`.toLowerCase().includes(m));
 /* Prędkość: ze źródła, a gdy brak — typowa dla klasy (NEPTUN jej nie podaje). */
 const TYPE_SPEED_KMH = { uav: 180, shahed: 180, fpv: 100, missile: 800, cruise: 800,
@@ -1731,5 +1785,5 @@ async function start(stateCb) {
 // matchVoivs wystawiamy wyłącznie do testów zgodności z backendem
 // (scripts/test_voiv_match.cjs) — reszta aplikacji go nie używa.
 return { start, stop, history, timeline, historyFrom, timelineFrom, accumulate, matchVoivs,
-         stateFrom, alertLevel, rsoIsCancellation };
+         stateFrom, alertLevel, rsoIsCancellation, assess };
 })();

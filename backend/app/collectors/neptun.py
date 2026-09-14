@@ -406,7 +406,7 @@ def _evaluate(t: dict) -> dict:
     t["heading_source"] = heading_source(t)
     if is_jet(t):
         t["straznik_jet"] = True
-    a = geo.assess_threat(lat, lon, heading, config.NEPTUN_HEADING_TOLERANCE,
+    a = geo.assess_for_scoring(lat, lon, heading, config.NEPTUN_HEADING_TOLERANCE,
                           config.NEPTUN_HEADING_SOFT_DEG,
                           config.NEPTUN_UNKNOWN_HEADING_MULT,
                           config.NEPTUN_UNKNOWN_HEADING_MAX_KM)
@@ -484,6 +484,19 @@ def score_threat(t: dict, dist_km: float, course_factor: float = 1.0) -> float:
     return round(points, 2)
 
 
+def _measured_speed(t: dict) -> float | None:
+    """Prędkość z dwóch ostatnich punktów śladu (ruch ≥ 0,7 km, odstęp ≥ 30 s)."""
+    pts = t.get("straznik_trail") or []
+    if len(pts) < 2:
+        return None
+    a, b = pts[-2], pts[-1]
+    dt_h = (b["t"] - a["t"]) / 3600
+    if dt_h < 30 / 3600:
+        return None
+    v = geo.haversine_km(a["lat"], a["lon"], b["lat"], b["lon"]) / dt_h
+    return v if 20 < v < 4000 else None
+
+
 def _speed_of(t: dict) -> float | None:
     """Prędkość obiektu: podana przez źródło, a gdy jej brak — typowa dla klasy.
     NEPTUN prędkości praktycznie nie podaje (sprawdzone na żywym API), więc
@@ -493,8 +506,12 @@ def _speed_of(t: dict) -> float | None:
     if isinstance(v, (int, float)) and v > 0:
         return float(v)
     if t.get("straznik_jet") or is_jet(t):
-        # Geran-3 przyspiesza do 550–600 km/h na końcowym odcinku, a to on liczy
-        # się przy granicy — do czasu dolotu i alarmu bierzemy gorszy przypadek
+        # Geran-3: przelot 300–370 km/h, na końcowym odcinku do 550–600 km/h.
+        # Decyzja usera 14.09.2026: 450 km/h, a gdy ruch w danych daje prędkość —
+        # większa z zmierzonej i przelotowej (dron, który naprawdę przyspieszył).
+        measured = _measured_speed(t)
+        if measured is not None:
+            return max(measured, config.NEPTUN_JET_CRUISE_KMH)
         return config.NEPTUN_JET_SPEED_KMH
     return config.NEPTUN_TYPE_SPEED_KMH.get((t.get("type") or "").lower())
 
@@ -664,7 +681,7 @@ async def _maybe_signal(t: dict):
     eta_a = a
     if course_src == "presumptive":
         moved = t.get("heading_movement")
-        eta_a = (geo.assess_threat(t["lat"], t["lon"], moved, config.NEPTUN_HEADING_TOLERANCE,
+        eta_a = (geo.assess_for_scoring(t["lat"], t["lon"], moved, config.NEPTUN_HEADING_TOLERANCE,
                                    config.NEPTUN_HEADING_SOFT_DEG,
                                    config.NEPTUN_UNKNOWN_HEADING_MULT,
                                    config.NEPTUN_UNKNOWN_HEADING_MAX_KM)
