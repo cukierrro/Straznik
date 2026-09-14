@@ -1501,7 +1501,7 @@ function openThreatPopup(lngLat, p) {
       ${p.opis ? esc2(p.opis) + "<br>" : ""}
       ${UI.isEn ? "confidence" : "wiarygodność"}: <b>${esc2(UI.confidence(p.confidence, CONF_PL[p.confidence] || p.confidence))}</b>
         · ${UI.isEn ? "position uncertainty" : "niepewność pozycji"}: <b>±${p.uncertainty} km</b><br>
-      ${p.heading != null ? `${UI.isEn ? "heading" : "kurs"}: ${Math.round(p.heading)}° (${compass(p.heading)}) · ` : ""}
+      ${p.heading != null && !p.hdg_unknown ? `${UI.isEn ? (p.heading_measured ? "heading from movement" : "heading") : (p.heading_measured ? "kurs z ruchu" : "kurs")}: ${Math.round(p.heading)}° (${compass(p.heading)})${p.heading_measured && p.heading_source != null && Math.abs(((p.heading - p.heading_source) % 360 + 540) % 360 - 180) > 45 ? ` <span style="color:#95a1b7">(${UI.isEn ? "NEPTUN reports" : "NEPTUN podaje"} ${Math.round(p.heading_source)}°)</span>` : ""} · ` : ""}
       ${UI.isEn ? "distance from the Polish border" : "odległość od granicy PL"}: <b>${p.distance_text ?? ((p.dist_km ?? "?") + " km")}</b><br>
       ${courseVerdictHTML(p)}
       ${p.eta || ""}
@@ -1865,7 +1865,7 @@ function trackSpeed(t) {
 function predict(t, nowMs) {
   let lat = t.lat, lon = t.lon;
   if (isApproxPosition(t)) return { lat, lon };
-  const hdg = t.velocity?.bearingDeg ?? t.heading;
+  const hdg = t.velocity?.bearingDeg ?? measuredHeading(t) ?? t.heading;
   const speed = t.velocity?.speedKmh ?? trackSpeed(t);
   if (speed && hdg != null) {
     const dth = Math.min((nowMs - threatsReceivedAt) / 3600000, 10 / 60);  // maks. 10 min
@@ -1918,10 +1918,17 @@ function animate(ts) {
     if (t.lat == null) continue;
     const meta = TYPE_META[t.type] || { color: "#8a93a6" };
     const p = predict(t, now);
+    // Zgłoszenie 14.09.2026: dziób ikony (kurs NEPTUN-a „kursem na X”) pokazywał
+    // w inną stronę niż trasa i linia kierunku liczone z ruchu. Kurs zmierzony
+    // z ruchu ma pierwszeństwo — ikona, przesuwanie i karta mówią to samo.
+    const mh = measuredHeading(t);
+    const shownHdg = mh ?? t.heading;
     pts.push({ type: "Feature", geometry: { type: "Point", coordinates: [p.lon, p.lat] },
       properties: { tid: String(t.id ?? ""),
-        type: TYPE_META[t.type] ? t.type : "unknown", heading: t.heading ?? 0,
-        hdg_unknown: t.heading == null || t.pl_assessment?.heading_known === false,
+        type: TYPE_META[t.type] ? t.type : "unknown", heading: shownHdg ?? 0,
+        hdg_unknown: mh == null && (t.heading == null || t.pl_assessment?.heading_known === false),
+        heading_measured: mh != null,
+        heading_source: t.heading ?? null,
         color: meta.color,
         confidence: t.confidenceLevel || "?", uncertainty: t.uncertaintyKm ?? "?",
         opis: threatDesc(t), dist_km: t.pl_assessment?.dist_km,
@@ -2820,7 +2827,7 @@ function updateAlarmMood() {
   const order = ["none", "elevated", "high"];
   const level = pool.reduce((best, v) =>
     order.indexOf(alarmLevel(voivs[v])) > order.indexOf(best) ? alarmLevel(voivs[v]) : best, "none");
-  if (order.indexOf(level) > order.indexOf(lastMood)) {
+  if (order.indexOf(level) > order.indexOf(lastMood) && !alertsOff()) {
     if (level === "high") {
       const voiv = mine && pool.includes(mine) && alarmLevel(voivs[mine]) === "high" ? mine
         : pool.find(v => alarmLevel(voivs[v]) === "high");
@@ -2845,7 +2852,7 @@ function chimeOnce() {
    Deduplikacja po event_id: ten sam alarm może przyjść pushem i stanem z serwera. */
 const fcmSeen = new Set();
 function onForegroundPush(d) {
-  if (!d || !d.voiv || !d.level) return;
+  if (!d || !d.voiv || !d.level || alertsOff()) return;
   const id = d.event_id || `${d.voiv}|${d.level}|${d.sent_at || ""}`;
   if (fcmSeen.has(id)) return;
   fcmSeen.add(id);
@@ -3789,8 +3796,12 @@ document.getElementById("tb-slider").addEventListener("change", (e) => {
 
 /* ── UI: ustawienia (moja lokalizacja), 3D, panel ────────────────────────── */
 const dlg = document.getElementById("settings");
+/* Rezygnacja z alarmów na tym telefonie (zgłoszenie 14.09.2026): mapa działa,
+   ale telefon wypisuje się ze wszystkich województw i nie pokazuje ostrzeżeń o zgodach. */
+const ALERTS_OFF_KEY = "straznik_alerts_off", BGWARN_HIDDEN_KEY = "straznik_bgwarn_hidden";
+function alertsOff() { try { return localStorage.getItem(ALERTS_OFF_KEY) === "1"; } catch { return false; } }
 function syncObservedRegions() {
-  const regions=Places?.observedVoivodeships(savedPlaces)||[];
+  const regions=alertsOff()?[]:(Places?.observedVoivodeships(savedPlaces)||[]);
   if(!IS_APP) syncBrowserPushRegion().catch(()=>{});
   const plugin=BG();
   if(plugin?.setObservedVoivodeships) return plugin.setObservedVoivodeships({voivodeships:regions});
@@ -3939,6 +3950,8 @@ async function refreshBgWarning() {
     // Alarmy dostarcza push (FCM). Ostrzegamy tylko o rzeczach, które go blokują:
     // brak zgody na powiadomienia, a dla czerwonego — brak zgody na pełny ekran
     // (Android potrafi ją cofnąć po aktualizacji).
+    // Zgłoszenie 14.09.2026: kto nie chce alarmów, nie mógł zamknąć tego banera.
+    if (alertsOff()) { el.classList.add("hidden"); return; }
     let msg = null, fix = "settings";
     if (!s.notificationsAllowed) {
       msg = UI.isEn ? "Notifications are blocked — alerts cannot arrive. Enable them in settings"
@@ -3949,9 +3962,18 @@ async function refreshBgWarning() {
       fix = "fullscreen";
     }
     if (!msg) { bgWarnStrikes = 0; el.classList.add("hidden"); return; }
+    const kind = fix === "fullscreen" ? "fullscreen" : "notifications";
+    try { if (localStorage.getItem(BGWARN_HIDDEN_KEY) === kind) { el.classList.add("hidden"); return; } } catch {}
     // problem musi utrzymać się przez dwa sprawdzenia z rzędu — mniej fałszywych alarmów
     if (++bgWarnStrikes < 2) { setTimeout(refreshBgWarning, 5000); return; }
-    el.innerHTML = `<span>⚠ ${esc(msg)}</span><button class="chip">${UI.isEn ? "Fix" : "Napraw"}</button>`;
+    el.innerHTML = `<span>⚠ ${esc(msg)}</span><button class="chip">${UI.isEn ? "Fix" : "Napraw"}</button>`
+      + `<button class="chip bgw-x" aria-label="${UI.isEn ? "Close" : "Zamknij"}" title="${UI.isEn ? "Close" : "Zamknij"}">✕</button>`;
+    el.querySelector(".bgw-x").onclick = () => {
+      try { localStorage.setItem(BGWARN_HIDDEN_KEY, kind); } catch {}
+      el.classList.add("hidden");
+      toast(UI.isEn ? "Warning hidden. You can turn alerts off or back on in ⚙ → Alerts."
+        : "Ostrzeżenie ukryte. Alarmy wyłączysz albo przywrócisz w ⚙ → Alarmy.", 6000);
+    };
     el.querySelector("button").onclick = fix === "fullscreen"
       ? () => { BG()?.requestFullScreenPermission(); setTimeout(refreshBgWarning, 1500); }
       : () => openSettings();
@@ -4160,6 +4182,9 @@ async function refreshBgStatus(previewLang = UI.lang) {
         : (isEn ? "🚨 Check full-screen alert permission" : "🚨 Sprawdź zgodę na alarm pełnoekranowy");
     }
     renderNativeSound(s, isEn);
+    if (alertsOff()) warn.splice(0, warn.length, isEn
+      ? "🔕 Alerts are turned off on this phone — no notifications will arrive. Uncheck the box below to turn them back on."
+      : "🔕 Alarmy są wyłączone na tym telefonie — powiadomienia nie przyjdą. Odznacz pole niżej, żeby je przywrócić.");
     if (info) info.innerHTML = (warn.join("<br>")
       || (isEn ? "Notifications ready. Alerts for your region will arrive even while the app is closed."
         : "Powiadomienia gotowe. Alarmy dla Twojego regionu dotrą także przy zamkniętej aplikacji."))
@@ -4243,6 +4268,27 @@ function renderNativeSound(s, isEn = UI.isEn) {
 async function refreshNativeSound() {
   const plugin = BG(); if (!plugin) return;
   try { renderNativeSound(await plugin.status()); } catch {}
+}
+const alertsOffBox = document.getElementById("set-alerts-off");
+if (alertsOffBox) {
+  alertsOffBox.checked = alertsOff();
+  alertsOffBox.addEventListener("change", async (e) => {
+    const off = e.target.checked;
+    if (off && !confirm(UI.isEn
+      ? "Turn off alerts on this phone?\n\nStrażnik will stop sending notifications to this phone and will not remind you about permissions. The map keeps working. You can turn alerts back on here."
+      : "Wyłączyć alarmy na tym telefonie?\n\nStrażnik przestanie wysyłać powiadomienia na ten telefon i nie będzie przypominał o zgodach. Mapa działa dalej. Alarmy włączysz z powrotem tutaj.")) {
+      e.target.checked = false;
+      return;
+    }
+    try {
+      if (off) localStorage.setItem(ALERTS_OFF_KEY, "1");
+      else { localStorage.removeItem(ALERTS_OFF_KEY); localStorage.removeItem(BGWARN_HIDDEN_KEY); }
+    } catch {}
+    try { await syncObservedRegions(); } catch {}
+    refreshBgStatus(); refreshBgWarning();
+    toast(off ? (UI.isEn ? "🔕 Alerts are off on this phone. The map keeps working." : "🔕 Alarmy wyłączone na tym telefonie. Mapa działa dalej.")
+      : (UI.isEn ? "🔔 Alerts are on again for your places." : "🔔 Alarmy znów włączone dla Twoich miejsc."), 6000);
+  });
 }
 document.getElementById("set-force-volume")?.addEventListener("change", async (e) => {
   const plugin = BG(); if (!plugin) return;

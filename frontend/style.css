@@ -179,6 +179,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   box-shadow: 0 8px 24px rgba(0,0,0,.4);
 }
 #bg-warning.hidden { display: none; }
+#bg-warning .bgw-x { min-width: 36px; padding: 4px 10px; }
 #bg-warning { flex-wrap: wrap; }          /* ten sam układ co pozostałe ramki */
 #bg-warning span { min-width: 0; line-height: 1.35; }
 #bg-warning .chip { flex: none; margin-left: auto; padding: 4px 10px; font-size: 11.5px; }

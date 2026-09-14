@@ -300,6 +300,7 @@
       "The red siren continues until you acknowledge the alert.",
       "The app checks for a newer release at every launch and when it returns to the foreground. A dismissed non-critical update can be checked again here."
     ]);
+    set("#alerts-off-label", "I don't want alerts on this phone — map view only");
     set("#ns-head", "Native alert and volume");
     set("#ns-label", "Red alert always at full volume");
     const nsNote = document.getElementById("ns-note");

@@ -501,7 +501,9 @@ async def _baltic_entries(entries, url: str, country: str, now: float):
             continue
         if age > MAX_AGE_S:
             continue
-        alert_hits = _is_baltic_alert(text)
+        title_l = title.lower()
+        alert_hits = ([] if any(m in f" {title_l}" for m in config.BALTIC_DISCUSSION_MARKERS)
+                      else _is_baltic_alert(title_l))
         if alert_hits:
             active = _baltic_active.get(country)
             if (active and now - active["at"] < BALTIC_ACTIVE_S
@@ -525,6 +527,8 @@ async def _baltic_entries(entries, url: str, country: str, now: float):
                 )
             _baltic_alerted.add(incident_key)
             continue
+        if any(m in title_l for m in config.BALTIC_FOREIGN_MARKERS):
+            continue          # zdarzenie poza krajami bałtyckimi
         hits = match_keywords(text, config.BALTIC_CRITICAL_KEYWORDS,
                               config.BALTIC_AIR_KEYWORDS, config.BALTIC_EVENT_KEYWORDS,
                               config.BALTIC_EXCLUDE_KEYWORDS)

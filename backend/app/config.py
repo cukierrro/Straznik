@@ -930,6 +930,20 @@ BALTIC_CLEAR_KEYWORDS = [
 # jest ogłoszeniem alarmu — 13.09.2026 taki tytuł wszedł jako alarm pół godziny
 # po odwołaniu. Czas przeszły: LT „buvo”, LV „bija”, EE „oli”.
 BALTIC_ALERT_PAST_MARKERS = ["buvo", "bija", "oli"]
+# Artykuł O alarmach to nie ogłoszenie alarmu. 14.09.2026 „Po klausimų apie gyventojų
+# perspėjimą, kariuomenės vadas sako, kad veikiama pagal išmėgintą sistemą” dostał
+# 0,3 pkt, bo „oro pavoj” było tylko w zajawce. Alarm rozpoznajemy odtąd po TYTULE,
+# a tytuł z rozmową, pytaniami czy krytyką odrzucamy.
+BALTIC_DISCUSSION_MARKERS = [
+    "klausim", " sako", "sakė", "kritik", "komentar", "interviu", "diskusij", "aiškina",
+    "says", "said", "questions", "criticism", "interview", "debate", "explains",
+    "saka", "jautājum", "skaidro", "ütles", "küsimus", "kriitik", "selgitab",
+]
+# Incydent bałtycki ma się dziać nad krajami bałtyckimi. 14.09.2026 „Train carrying
+# Estonian leaders crossed Ukraine border just before Russian drone strike” dało 1 pkt
+# czterem województwom, choć atak był na Ukrainie.
+BALTIC_FOREIGN_MARKERS = ["ukrain", "kyiv", "kiev", "kharkiv", "odesa", "lviv", "kijev",
+                          "kijiv", "ukrain"]
 BALTIC_CLEAR_CONTEXT = [
     "air", "drone", "uav", "oro", "pavoj", "gaisa", "apdraud", "õhu", "droon",
     "ohu", "oht", "alert", "alarm", "warning", "threat",

@@ -237,6 +237,9 @@ const BALTIC_ALERT_COUNTRY_WEIGHTS = {"LT": 1.0, "LV": 0.6, "EE": 0.4};
 /* Ogłoszony alarm dla ludności LT/LV/EE — sprawdzany przed listą incydentów. */
 const B_ALERT = ["oro pavoj", "oro pavojus", "(geltona)", "(raudona)", "geltonas signalas", "raudonas signalas", "įspėjimas dėl galimai fiksuoto drono", "gyventojams išsiųsti įspėjimai", "gaisa telpas apdraudējum", "apdraudējums gaisa telpā", "dzeltenās pakāpes brīdinājum", "oranžās pakāpes brīdinājum", "šūnu apraide", "õhuohu hoiatus", "võimalik õhuoht", "drooniohu hoiatus", "drooniohu teavitus", "ohuteavitus", "ee-alarm", "õhuoht", "air alert", "air raid", "airspace alert", "air hazard alert", "air threat alert", "air danger alert", "drone threat warning", "drone warning", "air threat warning"];
 const BALTIC_ALERT_PAST = ["buvo", "bija", "oli"];
+// lustro config.BALTIC_DISCUSSION_MARKERS / BALTIC_FOREIGN_MARKERS (14.09.2026)
+const BALTIC_DISCUSSION = ["klausim", " sako", "sakė", "kritik", "komentar", "interviu", "diskusij", "aiškina", "says", "said", "questions", "criticism", "interview", "debate", "explains", "saka", "jautājum", "skaidro", "ütles", "küsimus", "kriitik", "selgitab"];
+const BALTIC_FOREIGN = ["ukrain", "kyiv", "kiev", "kharkiv", "odesa", "lviv", "kijev", "kijiv"];
 const BALTIC_CLEAR_CONTEXT = ["air", "drone", "uav", "oro", "pavoj", "gaisa", "apdraud", "õhu", "droon", "ohu", "oht", "alert", "alarm", "warning", "threat"];
 const BALTIC_CLEAR_MAX_AGE_MS = 360*60*1000;
 /* Incydent nad Bałtykiem dotyczy całego wybrzeża, nie tylko flanki wschodniej;
@@ -1296,7 +1299,10 @@ async function tickRss() {
         if (age > MAX_AGE_MS) continue;
         const words = new Set(text.match(/[\p{L}\p{N}_]+/gu) || []);
         if (!B_EXCLUDE.some(k => text.includes(k)) && !BALTIC_ALERT_PAST.some(k => words.has(k))) {
-          const alertHits = B_ALERT.filter(k => text.includes(k));
+          // alarm tylko z TYTUŁU, bez artykułów-rozmów o alarmach
+          const titleL = " " + String(it.title || "").toLowerCase();
+          const alertHits = BALTIC_DISCUSSION.some(k => titleL.includes(k)) ? []
+            : B_ALERT.filter(k => titleL.includes(k));
           if (alertHits.length) {
             const active = balticActive.get(country);
             if (active && Date.now() - active.at < BALTIC_ACTIVE_MS && active.key !== incident) continue;
@@ -1312,6 +1318,7 @@ async function tickRss() {
             continue;
           }
         }
+        if (BALTIC_FOREIGN.some(k => String(it.title || "").toLowerCase().includes(k))) continue;
         const hits = matchKw(text, B_CRITICAL, B_AIR, B_EVENT, B_EXCLUDE);
         if (!hits.length) continue;
         for (const v of BALTIC_TARGETS)
