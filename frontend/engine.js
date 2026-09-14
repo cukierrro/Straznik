@@ -490,8 +490,13 @@ const fold = (s) => s.toLowerCase().normalize("NFD")
    trafienia zawarte w DŁUŻSZYM trafieniu innego województwa w tym samym miejscu
    (kolizje nazw: „Biała Podlaska" to lubelskie, „Chełmno" kujawsko-pomorskie).
    Porównujemy bez znaków diakrytycznych, bo część źródeł pisze bez ogonków. */
+/* Lustro config.REGION_NEUTRAL_PATTERNS (miesiąc „września/wrześniu” ≠ miasto
+   Września) i config.MEDIA_TEASER_PATTERNS (odnośniki „CZYTAJ: …” w opisie RSS). */
+const MONTH_NOT_PLACE = /(^|[^\p{L}])wrze[sś]ni(?:a|u)(?![\p{L}])/giu;
+const TEASER = /(^|[^\p{L}])(?:przeczytaj|czytaj|zobacz|posłuchaj|sprawdź)(?:\s+(?:także|też|również|więcej))?\s*:\s*[^\n–—]{0,220}/giu;
+const stripTeasers = (s) => String(s || "").replace(/&#8211;/g, "–").replace(/&#8212;/g, "—").replace(TEASER, "$1 ");
 const matchVoivs = (text) => {
-  const folded = fold(text.toLowerCase());
+  const folded = fold(String(text).replace(MONTH_NOT_PLACE, "$1 ").toLowerCase());
   const hits = [];
   for (const [v, keys] of Object.entries(VOIV_KEYWORDS))
     for (const k of keys) {
@@ -1337,7 +1342,7 @@ async function tickRss() {
       for (const it of items.slice(0,30)) {
         const age = it.date ? Date.now() - new Date(it.date).getTime() : 0;
         if (age > MAX_AGE_MS) continue;
-        const text = it.title + " " + it.desc;
+        const text = it.title + " " + stripTeasers(it.desc);
         // RSS jest wyłącznie wsparciem: relacja operacyjna = 1,5, a słabsze
         // obiekt+zdarzenie = 1,0. Limit całej klasy 1,5 blokuje alarm z samych mediów.
         const { level, hits } = matchLevel(text, CRITICAL, AIR, EVENT, EXCLUDE);

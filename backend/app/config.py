@@ -524,6 +524,16 @@ REGION_NEUTRAL_PATTERNS = [
     r"(?:kij[oó]w|lw[oó]w|odes(?:sa|y)|wilno|mi[nń]sk|berlin|praga|wiede[nń])\s*[-–—]\s*warszaw\w*",
     r"warszaw\w*\s*[-–—]\s*(?:kij[oó]w|lw[oó]w|odes(?:sa|y)|wilno|mi[nń]sk|berlin|praga|wiede[nń])",
     r"(?<!\w)(?:do|z|ze)\s+warszawy(?!\w)",
+    # Miesiąc, nie miasto Września (hasło „wrześni”): 14.09.2026 „na początku
+    # września” w artykule Radia Lublin dało wielkopolskiemu 0,5 pkt. Miasto łapie
+    # się dalej w formie „Wrześni” (we/z/do Wrześni). Lustro: engine.js.
+    r"(?<!\w)wrze[sś]ni(?:a|u)(?!\w)",
+]
+# Odnośniki do INNYCH artykułów w opisie RSS („CZYTAJ: Wzmożona czujność na granicy
+# po ataku dronów…”). 14.09.2026 dały artykułowi o oszuście słowa „dron” i „atak”.
+# Wycinamy od znacznika do końca linii, myślnika albo 220 znaków. Lustro: engine.js.
+MEDIA_TEASER_PATTERNS = [
+    r"(?<!\w)(?:przeczytaj|czytaj|zobacz|posłuchaj|sprawdź)(?:\s+(?:także|też|również|więcej))?\s*:\s*[^\n–—]{0,220}",
 ]
 
 MEDIA_NONCURRENT_KEYWORDS = [

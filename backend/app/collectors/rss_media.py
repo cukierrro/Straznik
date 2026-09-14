@@ -8,6 +8,7 @@ Wykluczamy m.in. ćwiczenia, historię i następstwa prawne.
 import asyncio
 import calendar
 import hashlib
+import html
 import logging
 import re
 import time
@@ -161,6 +162,17 @@ def _match_voivs(text: str) -> list[str]:
 
 
 _REGION_NEUTRAL = [re.compile(p, re.I | re.UNICODE) for p in config.REGION_NEUTRAL_PATTERNS]
+
+
+_TEASERS = [re.compile(p, re.I | re.UNICODE) for p in config.MEDIA_TEASER_PATTERNS]
+
+
+def _strip_teasers(summary: str) -> str:
+    """Opis RSS bez odnośników do innych artykułów („CZYTAJ: …”) i encji HTML."""
+    text = html.unescape(summary or "")
+    for pattern in _TEASERS:
+        text = pattern.sub(" ", text)
+    return text
 
 
 def _neutralize_places(text: str) -> str:
@@ -363,7 +375,7 @@ async def _check_feed(client: httpx.AsyncClient, url: str, default_voiv: str | N
     now = time.time()
     for entry in parsed.entries[:30]:
         title = entry.get("title", "")
-        summary = entry.get("summary", "") or entry.get("description", "")
+        summary = _strip_teasers(entry.get("summary", "") or entry.get("description", ""))
         publisher = (((entry.get("source") or {}) or {}).get("title")
                      or _title_publisher(title) or feed_title)
         # Nazwa redakcji nie mówi, GDZIE się stało — wycinamy ją z każdego kanału
