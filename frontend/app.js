@@ -892,10 +892,11 @@ async function initMap() {
       SVK: "#3f7040", CZE: "#7a5234", DEU: "#48566a",
       HUN: "#624080", ROU: "#2d6e70", MDA: "#8a4d62",
     };
-    // kraje.geojson: Natural Earth admin-1, kraje ze wspólnymi krawędziami
-    // (bez nakładek i szczelin), Krym w granicach Ukrainy. ?v= omija stary plik
-    // w cache Cloudflare i przeglądarki; podbijać przy zmianie danych.
-    const kraje = await (await fetch("assets/kraje.geojson?v=2")).json();
+    // kraje-v2.geojson: Natural Earth admin-1, kraje ze wspólnymi krawędziami
+    // (bez nakładek i szczelin), Krym w granicach Ukrainy. Wersja jest w NAZWIE
+    // pliku: Cloudflare przy .geojson pomija ?v= (14.09.2026 nowy plik doszedł
+    // dopiero po wygaśnięciu wpisu), więc przy zmianie danych → nowa nazwa.
+    const kraje = await (await fetch("assets/kraje-v2.geojson")).json();
     map.addSource("kraje", { type: "geojson", data: kraje });
     // Android WebView wyświetla ciemną mapę bardziej płasko niż przeglądarka
     // desktopowa, więc w aplikacji krycie jest trochę wyższe.

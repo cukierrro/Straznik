@@ -100,7 +100,9 @@ class PageCacheHeaders:
     VALUE = b"public, max-age=0, s-maxage=60, stale-while-revalidate=300"
     # Granice obwodów, województw i krajów (do 1,1 MB) szły z VPS przy każdym
     # wejściu na stronę (13.09.2026). Zmieniają się tylko przy wdrożeniu, więc
-    # Cloudflare trzyma je godzinę, a przeglądarka 10 minut.
+    # Cloudflare trzyma je godzinę, a przeglądarka 10 minut. Cloudflare pomija przy
+    # nich ?v= (sprawdzone 14.09.2026), więc zmienione dane = nowa nazwa pliku
+    # (np. kraje-v2.geojson), inaczej nowa wersja dojdzie dopiero po godzinie.
     GEO_VALUE = b"public, max-age=600, s-maxage=3600, stale-while-revalidate=86400"
 
     def __init__(self, app):
