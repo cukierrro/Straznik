@@ -144,14 +144,36 @@ def _still_active(item: dict) -> bool:
         return True
 
 
+# 14.09.2026 dwa razy (16:36, 18:01 UTC) TVP przekierowało zapytanie na własną
+# stronę błędu (302 → /StatusCode/400 → 404), a kilka sekund później odpowiadało
+# normalnie. Jedna ponowna próba łapie takie potknięcie w tym samym cyklu.
+FETCH_RETRY_DELAY_S = 5
+
+
+async def _fetch(client: httpx.AsyncClient):
+    for attempt in (1, 2):
+        try:
+            r = await client.get(config.RSO_URL, headers={"User-Agent": UA},
+                                 follow_redirects=True)
+            r.raise_for_status()
+            return r.json()
+        except Exception:
+            if attempt == 2:
+                raise
+            await asyncio.sleep(FETCH_RETRY_DELAY_S)
+
+
+def _fail(error: str) -> None:
+    # fail_streak: kolejne nieudane cykle; monitoring.rso_fresh zgłasza awarię
+    # dopiero od drugiego z rzędu, dioda i szczegóły pokazują błąd od razu
+    status.update(ok=False, error=error, fail_streak=status.get("fail_streak", 0) + 1)
+
+
 async def _check(client: httpx.AsyncClient):
     try:
-        r = await client.get(config.RSO_URL, headers={"User-Agent": UA},
-                             follow_redirects=True)
-        r.raise_for_status()
-        data = r.json()
+        data = await _fetch(client)
     except Exception as e:
-        status.update(ok=False, error=repr(e))
+        _fail(repr(e))
         return
     # D2 (audyt 11.09.2026): „ok" było ustawiane PRZED obróbką, więc zmieniony
     # format odpowiedzi albo błąd bazy zostawiał zieloną diodę przy martwym RSO.
@@ -162,10 +184,10 @@ async def _check(client: httpx.AsyncClient):
             raise ValueError(f"nieoczekiwany format odpowiedzi RSO: {type(data).__name__}")
         await _process(items)
     except Exception as e:
-        status.update(ok=False, error=f"obróbka: {e!r}")
+        _fail(f"obróbka: {e!r}")
         log.exception("RSO: błąd obróbki odpowiedzi")
         return
-    status.update(ok=True, last=time.time(), error=None)
+    status.update(ok=True, last=time.time(), error=None, fail_streak=0)
 
 
 async def _process(items: list):
@@ -267,6 +289,6 @@ async def run():
             try:
                 await _check(client)
             except Exception as e:                # noqa: BLE001
-                status.update(ok=False, error=f"pętla: {e!r}")
+                _fail(f"pętla: {e!r}")
                 log.exception("RSO: nieoczekiwany błąd cyklu")
             await asyncio.sleep(config.RSO_INTERVAL)

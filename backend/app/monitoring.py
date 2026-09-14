@@ -69,8 +69,20 @@ def fresh(st: dict, interval_s: float, minimum_s: float = 180, now: float | None
     return bool(st.get("ok") and last and now - last <= max(minimum_s, 3 * interval_s))
 
 
+RSO_FAIL_STREAK = 2
+
+
 def rso_fresh(now: float | None = None) -> bool:
-    return fresh(rso.status, config.RSO_INTERVAL, now=now)
+    """RSO działa, gdy ostatni sukces jest świeży i nie było 2 nieudanych cykli z rzędu.
+
+    Pojedyncze potknięcie TVP (14.09.2026: 302 na stronę błędu, po minucie znów
+    dobrze) dawało 503 w /api/health/critical i e-mail z UptimeRobot. Martwe RSO
+    nadal wychodzi po ~2 min (dwa cykle), a zatrzymana pętla — po upływie świeżości."""
+    now = now or time.time()
+    st = rso.status
+    last = st.get("last")
+    return bool(last and now - last <= max(180, 3 * config.RSO_INTERVAL)
+                and st.get("fail_streak", 0 if st.get("ok") else RSO_FAIL_STREAK) < RSO_FAIL_STREAK)
 
 
 def _iso(ts: float | None) -> str | None:

@@ -105,6 +105,35 @@ rso.status["last"] = time.time() - 600
 c = monitoring.critical_check()
 sprawdz(not c["ok"] and not c["checks"]["rso"]["ok"], "RSO sprzed 10 min = alarm dla autora")
 rso.status["last"] = time.time()
+
+
+class _FlakyClient:
+    """Pierwsze zapytanie jak 14.09.2026: 404 ze strony błędu TVP, potem dobrze."""
+    def __init__(self, fails):
+        self.fails = fails
+
+    async def get(self, *a, **k):
+        if self.fails > 0:
+            self.fails -= 1
+            raise RuntimeError("404 Not Found for https://komunikaty.tvp.pl/StatusCode/400")
+        return _Resp({"newses": []})
+
+
+rso.FETCH_RETRY_DELAY_S = 0
+rso.status.update(ok=True, last=time.time() - 60, error=None, fail_streak=0)
+asyncio.run(rso._check(_FlakyClient(1)))
+sprawdz(rso.status["ok"] and rso.status["fail_streak"] == 0,
+        "jedno potknięcie TVP naprawia ponowna próba w tym samym cyklu")
+asyncio.run(rso._check(_FlakyClient(2)))
+sprawdz(rso.status["ok"] is False and rso.status["fail_streak"] == 1
+        and monitoring.critical_check()["checks"]["rso"]["ok"],
+        "jeden nieudany cykl: dioda z błędem, ale critical jeszcze ok")
+asyncio.run(rso._check(_FlakyClient(2)))
+sprawdz(rso.status["fail_streak"] == 2 and not monitoring.critical_check()["checks"]["rso"]["ok"],
+        "dwa nieudane cykle z rzędu = RSO nie działa")
+asyncio.run(rso._check(_FlakyClient(0)))
+sprawdz(rso.status["fail_streak"] == 0 and monitoring.critical_check()["checks"]["rso"]["ok"],
+        "sukces zeruje licznik")
 notify.fcm_status["last_error_at"] = time.time() + 1
 sprawdz(not monitoring.critical_check()["checks"]["fcm"]["ok"], "ostatnia wysyłka FCM nieudana = nie ok")
 notify.fcm_status["last_error_at"] = None
