@@ -3458,14 +3458,14 @@ function srvMergeSignals(list) {
   srvSigs = srvSigs.filter(s => s.t >= cut);
 }
 
-/* Zapis żywego stanu do bufora: sygnały (od razu) + migawka pozycji co ~2 min. */
+/* Zapis żywego stanu do bufora: sygnały (od razu) + migawka pozycji co ~1 min. */
 function srvRecord(s) {
   const voivs = s?.fusion?.voivodeships || {};
   const flat = [];
   for (const st of Object.values(voivs)) for (const sig of (st.signals || [])) flat.push(sig);
   srvMergeSignals(flat);
   const now = Date.now();
-  if (now - _srvSnapT < 110000) return;             // migawki co ~2 min, jak w silniku offline
+  if (now - _srvSnapT < 55000) return;              // migawki co ~1 min, jak na serwerze
   _srvSnapT = now;
   const threats = (s?.neptun?.threats || []).filter(t => t.lat != null).map(t => ({
     id: t.id, type: t.type, lat: +(+t.lat).toFixed(3), lon: +(+t.lon).toFixed(3),
@@ -3578,8 +3578,8 @@ async function toggleHistory() {
   paintTimeline(fetchTimeline());
   if (!histTimes.length) {
     document.getElementById("tb-info").textContent =
-      UI.isEn ? "No saved history — snapshots are created every 2 minutes after startup."
-        : "Brak zapisanej historii — migawki powstają co 2 minuty od uruchomienia.";
+      UI.isEn ? "No saved history — snapshots are created every minute after startup."
+        : "Brak zapisanej historii — migawki powstają co minutę od uruchomienia.";
     bar.classList.remove("hidden");
     setTimeout(() => bar.classList.add("hidden"), 3500);
     return;
@@ -3640,7 +3640,7 @@ function showHistoryAt(idx) {
   hideCard();
   updateWatchBadge(planes.filter(p => p.foreign).length);
   if (document.getElementById("watch")?.open) fillWatch();
-  // Obiekt może pojawić się i zniknąć między migawkami (co 2 min), mimo że jego
+  // Obiekt może pojawić się i zniknąć między migawkami (co 1 min), mimo że jego
   // sygnał pozostaje w oknie 60 min. Pokazujemy wtedy zapisaną pozycję jako
   // półprzezroczysty ślad historyczny, a nie obiekt obecny w migawce.
   const snapTrackIds = new Set(threats.map(t => t.id).filter(Boolean));

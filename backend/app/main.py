@@ -428,31 +428,40 @@ async def level_loop():
 
 
 async def snapshot_loop():
-    """Migawka pozycji co 2 min — materiał do przeglądania 12 h wstecz."""
+    """Migawka pozycji co SNAPSHOT_INTERVAL_S (60 s) — materiał do przeglądania 12 h wstecz.
+
+    Krok 2 min dawał w historii widoczne skoki obiektów (decyzja usera 14.09.2026).
+    Historię rysuje jeden serwer dla wszystkich (paczka budowana raz w public_cache),
+    więc gęstsze migawki nie mnożą pracy per użytkownik."""
     await asyncio.sleep(45)      # poczekaj, aż kolektory się zapełnią
     while True:
+        started = time.monotonic()
         try:
-            snapshot = {
-                "threats": [
-                    {**{k: t.get(k) for k in ("id", "type", "lat", "lon", "heading",
-                                           "confidenceLevel", "uncertaintyKm", "region",
-                                           "locality", "sourceCount", "destination",
-                                           "positionQuality", "areaOnly",
-                                           "straznik_position",
-                                           # pl_assessment: bez tego karta w historii
-                                           # pokazywała „? km" (dist liczony live, ale
-                                           # nie persystowany do migawki)
-                                           "pl_assessment")},
-                     "source_metadata": source_metadata(t)}
-                    for t in neptun.tracks.values() if t.get("lat") is not None],
-                "aircraft": adsb.current_aircraft,
-            }
-            db.add_snapshot(snapshot)
-            # G1: to samo na 30 dni w osobnym, skompresowanym archiwum
-            await asyncio.to_thread(alert_log.archive_snapshot, snapshot)
+            threats = [
+                {**{k: t.get(k) for k in ("id", "type", "lat", "lon", "heading",
+                                       "confidenceLevel", "uncertaintyKm", "region",
+                                       "locality", "sourceCount", "destination",
+                                       "positionQuality", "areaOnly",
+                                       "straznik_position",
+                                       # pl_assessment: bez tego karta w historii
+                                       # pokazywała „? km" (dist liczony live, ale
+                                       # nie persystowany do migawki)
+                                       "pl_assessment")},
+                 "source_metadata": source_metadata(t)}
+                for t in neptun.tracks.values() if t.get("lat") is not None]
+            aircraft = adsb.current_aircraft
+            # 12 h do paczki historii bez source_metadata: to ponad połowa bajtów
+            # migawki, a klient ma positionQuality na wierzchu. Dzięki temu migawki
+            # co minutę ważą tyle, co wcześniej co dwie. Pełny zapis idzie do archiwum.
+            db.add_snapshot({"threats": [{k: v for k, v in t.items() if k != "source_metadata"}
+                                         for t in threats],
+                             "aircraft": aircraft})
+            # G1: pełna migawka na 30 dni w osobnym, skompresowanym archiwum
+            await asyncio.to_thread(alert_log.archive_snapshot,
+                                    {"threats": threats, "aircraft": aircraft})
         except Exception as e:
             log.warning("snapshot błąd: %s", e)
-        await asyncio.sleep(120)
+        await asyncio.sleep(max(1.0, config.SNAPSHOT_INTERVAL_S - (time.monotonic() - started)))
 
 
 async def progression_shadow_loop():

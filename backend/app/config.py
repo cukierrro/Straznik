@@ -137,6 +137,8 @@ RCB_URL = "https://www.gov.pl/web/rcb"
 RSO_URL = os.getenv("RSO_URL",
                     "https://komunikaty.tvp.pl/komunikatyxml/wszystkie/wszystkie/1?_format=json")
 RSO_INTERVAL = int(os.getenv("RSO_INTERVAL", "60"))   # alerty są czasokrytyczne
+# Migawki mapy do historii 12 h (main.snapshot_loop). 120 s dawało widoczne skoki.
+SNAPSHOT_INTERVAL_S = int(os.getenv("SNAPSHOT_INTERVAL_S", "60"))
 
 # ── Fuzja ─────────────────────────────────────────────────────────────────────
 # Okno sumowania: 60 min, ale z wygaszaniem — sygnał zachowuje pełną wagę przez
