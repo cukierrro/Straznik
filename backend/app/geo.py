@@ -106,6 +106,114 @@ def assess_threat(lat: float, lon: float, heading, tolerance_deg: float,
     }
 
 
+# ── audyt A2: odległość do KONTURU Polski (tryb analizy, jeszcze nie w punktacji) ──
+# 19 punktów powyżej zawyżało odległość przy granicy o 14–20 km, obiekt nad Polską
+# nie miał odległości 0, a granica morska nie istniała (Kaliningrad → Gdańsk: 0 pkt).
+# Włączenie do punktacji to osobna decyzja po przeliczeniu historii
+# (scripts/replay_granica_a2.py) — do tego czasu używają tego tylko analizy.
+from .pl_outline import PL_RINGS
+
+
+def _nearest_on_segment(lat, lon, a, b):
+    """Najbliższy punkt odcinka a–b (lat, lon) w lokalnym rzucie równoodległościowym."""
+    kx = math.cos(math.radians(lat))
+    ax, ay = (a[1] - lon) * kx, a[0] - lat
+    bx, by = (b[1] - lon) * kx, b[0] - lat
+    dx, dy = bx - ax, by - ay
+    den = dx * dx + dy * dy
+    t = 0.0 if den == 0 else max(0.0, min(1.0, -(ax * dx + ay * dy) / den))
+    return a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t
+
+
+def in_poland(lat: float, lon: float) -> bool:
+    return any(point_in_ring(lat, lon, ring) for ring in PL_RINGS)
+
+
+def nearest_outline_point(lat: float, lon: float):
+    """(dist_km, lat, lon) najbliższego punktu na konturze Polski; 0 nad Polską."""
+    best = None
+    for ring in PL_RINGS:
+        n = len(ring)
+        for i in range(n):
+            plat, plon = _nearest_on_segment(lat, lon, ring[i], ring[(i + 1) % n])
+            d = haversine_km(lat, lon, plat, plon)
+            if best is None or d < best[0]:
+                best = (d, plat, plon)
+    if in_poland(lat, lon):
+        return (0.0, best[1], best[2])
+    return best
+
+
+def pl_bearing_interval(lat: float, lon: float, max_km: float = 800.0):
+    """Wycinek kierunków (start, szerokość w stopniach), pod którym punkt „widzi”
+    kontur Polski — czy kurs obiektu trafia w kraj, a nie w najbliższy punkt granicy."""
+    brgs = sorted(bearing_deg(lat, lon, a, b) for ring in PL_RINGS for a, b in ring
+                  if haversine_km(lat, lon, a, b) <= max_km)
+    if not brgs:
+        return None
+    gaps = [((brgs[(i + 1) % len(brgs)] - brgs[i]) % 360.0, i) for i in range(len(brgs))]
+    gap, i = max(gaps)
+    start = brgs[(i + 1) % len(brgs)]
+    return start, (360.0 - gap) % 360.0
+
+
+def course_factor_extent(heading, interval, dist_km: float, tol: float, soft: float,
+                         unknown_mult: float, unknown_max_km: float) -> float:
+    """Jak course_factor, ale różnica kąta liczona do wycinka Polski (0 w środku)."""
+    if heading is None:
+        return unknown_mult if dist_km <= unknown_max_km else 0.0
+    start, width = interval
+    off = (float(heading) - start) % 360.0
+    d = 0.0 if off <= width else min(off - width, 360.0 - off)
+    if d <= tol:
+        return 1.0
+    if d >= soft:
+        return 0.0
+    return round((soft - d) / (soft - tol), 3)
+
+
+def assess_threat_outline_extent(lat: float, lon: float, heading, tolerance_deg: float,
+                                 soft_deg: float = 70.0, unknown_mult: float = 0.5,
+                                 unknown_max_km: float = 150.0):
+    """Wariant A2b: odległość do konturu, kurs do całego wycinka Polski."""
+    base = assess_threat_outline(lat, lon, heading, tolerance_deg, soft_deg,
+                                 unknown_mult, unknown_max_km)
+    if base["inside_pl"]:
+        return base
+    interval = pl_bearing_interval(lat, lon)
+    if interval is None:
+        return base
+    cf = course_factor_extent(heading, interval, base["dist_km"], tolerance_deg, soft_deg,
+                              unknown_mult, unknown_max_km)
+    return {**base, "course_factor": cf, "toward_pl": cf > 0}
+
+
+def nearest_voiv_to(lat: float, lon: float) -> str | None:
+    best = None
+    for voiv in VOIV_OUTLINE:
+        d = dist_to_voiv_km(lat, lon, voiv)
+        if d is not None and (best is None or d < best[0]):
+            best = (d, voiv)
+    return best[1] if best else None
+
+
+def assess_threat_outline(lat: float, lon: float, heading, tolerance_deg: float,
+                          soft_deg: float = 70.0, unknown_mult: float = 0.5,
+                          unknown_max_km: float = 150.0):
+    """Jak assess_threat, ale do konturu Polski. Nad Polską: odległość 0,
+    województwo z obrysu i pełna waga kursu (obiekt już jest nad krajem)."""
+    dist, plat, plon = nearest_outline_point(lat, lon)
+    if dist == 0.0:
+        return {"dist_km": 0.0, "border_voiv": nearest_voiv_to(lat, lon),
+                "bearing_to_border": None, "course_factor": 1.0,
+                "heading_known": heading is not None, "toward_pl": True, "inside_pl": True}
+    brg = bearing_deg(lat, lon, plat, plon)
+    cf = course_factor(heading, brg, dist, tolerance_deg, soft_deg, unknown_mult, unknown_max_km)
+    return {"dist_km": round(dist, 1), "border_voiv": nearest_voiv_to(plat, plon),
+            "bearing_to_border": round(brg, 1), "course_factor": cf,
+            "heading_known": heading is not None, "toward_pl": cf > 0, "inside_pl": False}
+
+
 # ── odległość do województwa i czas dolotu ───────────────────────────────────
 from .voiv_points import VOIV_OUTLINE
 

@@ -438,16 +438,22 @@ function etaInfo(t) {
   if (isApproxPosition(t)) return null;
   const a = t.pl_assessment;
   if (!a || !a.toward_pl || a.heading_known === false) return null;
-  const typical = TYPE_SPEED_KMH[t.type] || 0;
+  // G3: kurs „kursem na X” bez potwierdzenia ruchem nie daje czasu dolotu
+  if (isPresumedCourse(t) && measuredHeading(t) == null) return null;
+  const jet = isJetDrone(t);
+  const typical = jet ? JET_CRUISE_KMH : (TYPE_SPEED_KMH[t.type] || 0);
   const v = t.velocity?.speedKmh ?? (Math.max(measuredTrackSpeed(t) || 0, typical) || null);
   if (!v) return null;
+  // dron odrzutowy: dłuższy koniec przy prędkości przelotowej, krótszy przy
+  // maksymalnej z końcowego odcinka (G6)
+  const vLo = jet ? Math.max(v, JET_MAX_KMH) : v;
   const mine = myVoiv();
   const seen = Date.parse(t.confirmedAt || t.updatedAt || "");
   const refMs = histMode && historyAdsbTime != null ? historyAdsbTime : Date.now();
   const ageH = Number.isFinite(seen) ? Math.max(0, (refMs - seen) / 3600000) : 0;
   const slackKm = (Number(t.uncertaintyKm) || 0) + v * ageH;
   const range = (km) => km == null ? null
-    : { lo: etaMin(Math.max(0, km - slackKm), v), hi: etaMin(km, v) };
+    : { lo: etaMin(Math.max(0, km - slackKm), vLo), hi: etaMin(km, v) };
   const border = range(a.dist_km);
   const voiv = mine ? range(distToVoivKm(t.lat, t.lon, mine)) : null;
   return {
@@ -457,6 +463,11 @@ function etaInfo(t) {
     voivName: mine,
   };
 }
+/* G3/G6 — lustro neptun.heading_source i is_jet na serwerze */
+const isPresumedCourse = (t) => t?.heading != null && t?.presumptiveCourse === true;
+const JET_CRUISE_KMH = 350, JET_MAX_KMH = 600;
+const isJetDrone = (t) => !!t?.straznik_jet
+  || /реактивн/i.test(`${t?.title || ""} ${t?.explanationShort || ""}`);
 const etaTxt = (m) => m == null ? null : (m < 1 ? "<1 min" : `~${m} min`);
 const etaRangeTxt = (lo, hi) => (lo == null || hi == null || lo >= hi) ? etaTxt(hi)
   : `${lo}–${hi} min`;
@@ -499,12 +510,15 @@ function etaHtml(t) {
   if (!e || e.border == null) {
     const base = t.pl_assessment && t.pl_assessment.heading_known === false
       ? `<span style="color:#ffb020">${UI.isEn ? "unknown heading — arrival time is not estimated" : "kurs nieznany — czasu dolotu nie szacujemy"}</span><br>`
+      : isPresumedCourse(t) && t.pl_assessment?.toward_pl
+      ? `<span style="color:#ffb020">${UI.isEn ? "presumed heading towards a target, not confirmed by movement — arrival time is not estimated" : "kurs domniemany (na cel), niepotwierdzony ruchem — czasu dolotu nie szacujemy"}</span><br>`
       : "";
     return base + localPlaceHtml(t);
   }
   const mine = (e.voiv != null && e.voivName)
     ? ` · ${UI.isEn ? "to" : "do woj."} ${esc2(UI.voiv(e.voivName))}: <b>${etaRangeTxt(e.voivLo, e.voiv)}</b>` : "";
   return `${UI.isEn ? "conservative time to the Polish border" : "konserwatywny czas dolotu do granicy PL"}: <b>${etaRangeTxt(e.borderLo, e.border)}</b>${mine}<br>`
+    + (isJetDrone(t) ? `<span style="color:#95a1b7">${UI.isEn ? "jet drone: 350 km/h cruise, up to 600 km/h on the final leg" : "dron odrzutowy: przelot 350 km/h, na końcowym odcinku do 600 km/h"}</span><br>` : "")
     + `<span style="color:#95a1b7">${UI.isEn ? `estimate at ${e.speed} km/h with unchanged heading; the shorter time allows for position uncertainty and data age, 2.5 min deducted for data delay — air defence not included` : `szacunek przy prędkości ${e.speed} km/h i utrzymaniu kursu; krótszy czas uwzględnia niepewność pozycji i wiek danych, odjęto 2,5 min na opóźnienie — nie uwzględnia obrony powietrznej`}</span><br>`
     + localPlaceHtml(t);
 }
@@ -2539,13 +2553,17 @@ function sigHTML(s) {
   if (src === "neptun") {
     if (d.course === "unknown") extra.push(UI.isEn ? "unknown heading" : "kurs nieznany");
     else if (d.course === "estimated") extra.push(UI.isEn ? "heading estimated from movement" : "kurs szacowany z ruchu");
+    else if (d.course === "presumptive") extra.push(UI.isEn ? "presumed heading (towards a target)" : "kurs domniemany (na cel)");
+    if (d.jet) extra.push(UI.isEn ? "jet drone" : "dron odrzutowy");
   }
   if (d.source_count) extra.push(`${d.source_count} ${UI.isEn ? "conf." : "potw."}`);
   // czas dolotu policzony przy sygnale — dla regionu użytkownika, a gdy go brak,
   // to do granicy; „ile mam czasu" jest ważniejsze niż „ile to kilometrów"
   const mineV = myVoiv();
-  const etaV = agedEta(mineV && d.eta_voiv_min ? d.eta_voiv_min[mineV] : null, s.ts);
-  const etaB = agedEta(d.eta_border_min, s.ts);
+  // kurs domniemany (G3): czas dolotu byłby liczony w stronę celu, a nie ruchu
+  const presumed = d.course === "presumptive";
+  const etaV = presumed ? null : agedEta(mineV && d.eta_voiv_min ? d.eta_voiv_min[mineV] : null, s.ts);
+  const etaB = presumed ? null : agedEta(d.eta_border_min, s.ts);
   if (!signalApprox && etaV != null) extra.push(`⏱ ${etaTxt(etaV)} ${UI.isEn ? "to" : "do woj."} ${UI.voiv(mineV)}`);
   else if (!signalApprox && etaB != null) extra.push(`⏱ ${etaTxt(etaB)} ${UI.isEn ? "to border" : "do granicy"}`);
   let shownTitle = s.title;

@@ -122,6 +122,11 @@ NEPTUN_BORDER_REGIONS = ("Волинська", "Львівська", "Закар
 # kursu. To nie jest pozycja samolotu — pokazujemy komunikat, nie ikonę, i nie
 # liczymy odległości. Zgłoszony obiekt z własnym trk_* i obwodem zostaje zwykłym
 # obiektem. Lustro: engine.js NEPTUN_NATIONAL_*.
+# Audyt G6: drony odrzutowe (Geran-3 / Shahed-238) — NEPTUN pisze w opisie
+# „Реактивний БпЛА”. Przelot 300–370 km/h, na końcowym odcinku 550–600 km/h
+# (wywiad UA). Do czasu dolotu i alarmu ETA gorszy przypadek. Lustro: engine.js.
+NEPTUN_JET_MARKERS = ("реактивн",)
+NEPTUN_JET_SPEED_KMH = 600.0
 NEPTUN_NATIONAL_ID_PREFIX = "national-"
 NEPTUN_NATIONAL_REGION_MARKERS = ("загальнодержавн",)   # porównanie po lower()
 

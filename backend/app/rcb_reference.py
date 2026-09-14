@@ -55,19 +55,10 @@ def _score_timeline(frames: list[dict], score_signals: list[dict],
                 continue
             if window_start <= signal_time <= ref:
                 active.append(signal)
-        accumulated = fusion.accumulate(active, ref)
-        # Reproduce the same regional spillover used by live compute_state.
-        base = {voiv: state.get("_spillover_score", 0.0)
-                for voiv, state in accumulated.items()}
-        for source_region, score in base.items():
-            if score < config.SPILLOVER_MIN_SOURCE_SCORE:
-                continue
-            for target, depth in fusion._cascade_targets(source_region):
-                spill = round(score * config.SPILLOVER_FACTOR ** depth, 1)
-                if spill >= config.SPILLOVER_MIN_CONTRIBUTION:
-                    accumulated[target]["score"] += spill
+        # The same spillover as live compute_state (shared events excluded, round1).
+        accumulated = fusion.apply_spillover(fusion.accumulate(active, ref), ref)
         out.append({"ts": frame["ts"], "scores": {
-            voiv: round(accumulated.get(voiv, {}).get("score", 0.0), 1)
+            voiv: fusion.round1(accumulated.get(voiv, {}).get("score", 0.0))
             for voiv in voivodeships
         }})
     return out

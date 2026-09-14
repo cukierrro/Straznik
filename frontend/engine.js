@@ -891,16 +891,27 @@ function scoreThreat(t, distKm, courseFactorVal = 1) {
 
 /* Ostatnia pozycja tracka — kurs wyliczany z ruchu, gdy NEPTUN go nie podaje. */
 const lastPos = new Map();
-function headingOf(t) {
-  if (t.heading != null) return t.heading;
+function movementHeading(t) {
   const prev = lastPos.get(t.id);
   if (prev && haversine(prev[0], prev[1], t.lat, t.lon) >= 2) {
     const est = bearing(prev[0], prev[1], t.lat, t.lon);
-    t.heading_estimated = Math.round(est * 10) / 10;
+    t.heading_movement = Math.round(est * 10) / 10;
     return est;
   }
   return null;
 }
+function headingOf(t) {
+  const moved = movementHeading(t);
+  if (t.heading != null) return t.heading;
+  if (moved != null) { t.heading_estimated = Math.round(moved * 10) / 10; return moved; }
+  return null;
+}
+/* G3/G6 — lustro neptun.heading_source i neptun.is_jet */
+const headingSourceOf = (t) => t.heading != null
+  ? (t.presumptiveCourse === true ? "presumptive" : "reported")
+  : (t.heading_estimated != null ? "measured" : "unknown");
+const JET_MARKERS = ["реактивн"], JET_SPEED_KMH = 600;
+const isJet = (t) => JET_MARKERS.some(m => `${t.title || ""} ${t.explanationShort || ""}`.toLowerCase().includes(m));
 /* Prędkość: ze źródła, a gdy brak — typowa dla klasy (NEPTUN jej nie podaje). */
 const TYPE_SPEED_KMH = { uav: 180, shahed: 180, fpv: 100, missile: 800, cruise: 800,
   ballistic: 3000, kab: 900, mig31k: 900, recon: 180 };
@@ -920,7 +931,8 @@ const physicalKey = (t) => isApproxPosition(t)
   : `track:${t.id}`;
 const areaDistance = (km) => km < 10 ? "mniej niż 10 km"
   : `około ${Math.round(km / 10) * 10} km`;
-const speedOf = (t) => t.velocity?.speedKmh || TYPE_SPEED_KMH[(t.type || "").toLowerCase()] || null;
+const speedOf = (t) => t.velocity?.speedKmh || (isJet(t) ? JET_SPEED_KMH : null)
+  || TYPE_SPEED_KMH[(t.type || "").toLowerCase()] || null;
 const etaRawMinutes = (km, kmh) => (km == null || !kmh) ? null : Math.max(0, km / kmh * 60);
 const etaMinutes = (km, kmh) => {
   const raw = etaRawMinutes(km, kmh);
@@ -954,6 +966,8 @@ function neptunEval(t) {
   if (t.lat == null) return t;
   t.straznik_position = positionInfo(t);
   t.pl_assessment = assess(t.lat, t.lon, headingOf(t));
+  t.heading_source = headingSourceOf(t);
+  if (isJet(t)) t.straznik_jet = true;
   if (t.id != null) lastPos.set(t.id, [t.lat, t.lon]);
   const a = t.pl_assessment, ty = (t.type||"").toLowerCase();
   if (a.toward_pl) {
@@ -967,7 +981,11 @@ function neptunEval(t) {
       const etaConservative = etaRaw == null ? null : Math.max(0, etaRaw - ETA_BUFFER_MIN);
       const etaSafe = etaMinutes(a.dist_km, speed);
       let etaAlarm = null;
-      const etaEligible = !approx && a.heading_known && sources >= ETA_MIN_SOURCES
+      // G3: przy kursie domniemanym alarm ETA tylko z kursu z ruchu
+      const presumed = t.heading_source === "presumptive";
+      const etaA = !presumed ? a
+        : (t.heading_movement != null ? assess(t.lat, t.lon, t.heading_movement) : { heading_known: false });
+      const etaEligible = !approx && etaA.heading_known && etaA.toward_pl !== false && sources >= ETA_MIN_SOURCES
         && ["medium", "high"].includes(conf) && etaConservative != null;
       if (etaEligible && etaConservative <= ETA_HIGH_MIN) {
         etaAlarm = "high"; points = Math.max(points, TH_HIGH);
@@ -999,8 +1017,9 @@ function neptunEval(t) {
           eta_buffer_min: ETA_BUFFER_MIN,
           eta_alarm: etaAlarm,
           eta_voiv_min: etaPerVoiv(t),
-          course: a.heading_known ? "known"
+          course: presumed ? "presumptive" : a.heading_known ? "known"
                 : (t.heading_estimated != null ? "estimated" : "unknown"),
+          heading_source: t.heading_source, jet: !!t.straznik_jet,
           course_factor: a.course_factor },
         `neptun:${t.id}:t${tier}`);
     }

@@ -6,6 +6,7 @@ rozbicie, żeby użytkownik widział DLACZEGO wynik jest taki, a nie inny.
 """
 import asyncio
 import logging
+import math
 import re
 import unicodedata
 from datetime import datetime, timedelta, timezone
@@ -13,6 +14,14 @@ from datetime import datetime, timedelta, timezone
 from . import config, db
 
 log = logging.getLogger("fusion")
+
+
+def round1(x: float) -> float:
+    """Zaokrąglenie do 0,1 identyczne jak w engine.js (Math.round(x*10)/10).
+
+    Wbudowane round() zaokrąglało 1,95 do 1,9 („brak”), a aplikacja offline do
+    2,0 („uwaga”) — przy samym progu silniki dawały inny poziom (audyt C14)."""
+    return math.floor(x * 10 + 0.5) / 10
 
 # callbacki: notyfikacje i broadcast do frontendów (ustawiane w main)
 on_level_change = None   # async def (voiv, level, score, breakdown, *, log_id)
@@ -146,7 +155,7 @@ def alert_level(own: float, total: float, prev: str = "none") -> str:
     Powtórki przy wahaniu wokół progu zatrzymuje reevaluate (ALERT_REPEAT_QUIET_MIN).
     `prev` zostaje w sygnaturze dla zgodności wywołań.
     """
-    own, total = round(own, 1), round(total, 1)
+    own, total = round1(own), round1(total)
     if own < config.ALERT_OWN_MIN:
         return "none"
     cap = min(len(_ORDER) - 1, _ORDER.index(level_for(own)) + 1)
@@ -495,7 +504,7 @@ def accumulate(signals: list[dict], ref: datetime | None = None) -> dict:
                 key = _event_key(s)
                 parts[key] = parts.get(key, 0.0) + counted
         per_voiv[voiv]["signals"].append(
-            {**s, "counted_points": round(counted, 1), "weight": round(e["w"], 2),
+            {**s, "counted_points": round1(counted), "weight": round(e["w"], 2),
              **({"cleared": True} if e["cleared"] else {}),
              **({"duplicate_of_official":
                  (relay_of.get("details") or {}).get("rso_id") or relay_of.get("id")}
@@ -531,7 +540,7 @@ def apply_spillover(per_voiv: dict, ref: datetime | None = None) -> dict:
     # wysyłamy z niego powiadomienia. Bez tego jedno zdarzenie mnożyło się w kilka
     # pushy (audyt 11.09.2026: mazowieckie 5,2 = czerwony z dwóch sąsiadów).
     for st in per_voiv.values():
-        st["own_score"] = round(st["score"], 1)
+        st["own_score"] = round1(st["score"])
         st["own_level"] = level_for(st["own_score"])
     now_iso = (ref or datetime.now(timezone.utc)).isoformat(timespec="seconds")
     for src, score in base.items():
@@ -542,11 +551,11 @@ def apply_spillover(per_voiv: dict, ref: datetime | None = None) -> dict:
             effective = score - shared
             if effective < config.SPILLOVER_MIN_SOURCE_SCORE:
                 continue
-            spill = round(effective * config.SPILLOVER_FACTOR ** depth, 1)
+            spill = round1(effective * config.SPILLOVER_FACTOR ** depth)
             if spill < config.SPILLOVER_MIN_CONTRIBUTION:
                 continue
             hop = "sąsiad" if depth == 1 else f"{depth}. krąg"
-            eff = round(effective, 1)
+            eff = round1(effective)
             per_voiv[target]["score"] += spill
             per_voiv[target]["signals"].append({
                 "id": f"spill-{src}-{target}", "ts": now_iso,
@@ -559,7 +568,7 @@ def apply_spillover(per_voiv: dict, ref: datetime | None = None) -> dict:
                             **({"shared_excluded": round(shared, 2)} if shared > 0 else {})},
             })
     for st in per_voiv.values():
-        st["score"] = round(st["score"], 1)
+        st["score"] = round1(st["score"])
         st["level"] = level_for(st["score"])
     return per_voiv
 

@@ -237,26 +237,98 @@ _trail: dict[str, list] = {}
 TRAIL_MIN_KM, TRAIL_MAX_PTS, TRAIL_MAX_AGE_S = 0.7, 20, 45 * 60
 
 
+def _movement_heading(t: dict) -> float | None:
+    """Kurs z przesunięcia względem poprzedniej obserwacji tego samego obiektu
+    (kotwica po ruchu ≥ 2 km, pamięć 10 min). Liczony zawsze, także gdy NEPTUN
+    podaje własny kurs — alarm ETA potrzebuje kursu z ruchu (audyt G3)."""
+    tid, lat, lon = t.get("id"), t.get("lat"), t.get("lon")
+    prev = _last_pos.get(tid)
+    if prev and geo.haversine_km(prev[0], prev[1], lat, lon) >= _MIN_MOVE_KM:
+        est = geo.bearing_deg(prev[0], prev[1], lat, lon)
+        _last_est[tid] = (est, time.time())
+        t["heading_movement"] = round(est, 1)
+        return est
+    kept = _last_est.get(tid)
+    if kept and time.time() - kept[1] <= _EST_KEEP_S:
+        t["heading_movement"] = round(kept[0], 1)
+        return kept[0]
+    return None
+
+
 def _heading_of(t: dict) -> float | None:
     """Kurs z danych, a gdy go brak — wyliczony z przesunięcia względem
     poprzedniej obserwacji tego samego obiektu. NEPTUN często nie podaje
     `heading` (tak przepadła rakieta 130 km od granicy), a kierunek lotu da się
     odtworzyć z kolejnych pozycji — to samo robi UI, rysując ślad."""
     h = t.get("heading")
+    moved = _movement_heading(t)
     if h is not None:
         return h
-    tid, lat, lon = t.get("id"), t.get("lat"), t.get("lon")
-    prev = _last_pos.get(tid)
-    if prev and geo.haversine_km(prev[0], prev[1], lat, lon) >= _MIN_MOVE_KM:
-        est = geo.bearing_deg(prev[0], prev[1], lat, lon)
-        t["heading_estimated"] = round(est, 1)
-        _last_est[tid] = (est, time.time())
-        return est
-    kept = _last_est.get(tid)
-    if kept and time.time() - kept[1] <= _EST_KEEP_S:
-        t["heading_estimated"] = round(kept[0], 1)
-        return kept[0]
+    if moved is not None:
+        t["heading_estimated"] = round(moved, 1)
+        return moved
     return None
+
+
+def heading_source(t: dict) -> str:
+    """Skąd jest kurs: presumptive (NEPTUN „kursem na X”, pole presumptiveCourse),
+    reported (kurs podany przez źródło), measured (z ruchu), unknown.
+
+    Audyt G3: kurs domniemany różnił się od faktycznego ruchu o medianę 90°, a mimo
+    to uruchamiał alarm ETA. Punkty liczymy po staremu; alarm ETA tylko bez
+    domniemania albo przy kursie z ruchu."""
+    if t.get("heading") is not None:
+        return "presumptive" if t.get("presumptiveCourse") is True else "reported"
+    return "measured" if t.get("heading_estimated") is not None else "unknown"
+
+
+# Audyt G2, TRYB CIENIA: 74% sygnałów NEPTUN leżało we współrzędnych powtarzanych
+# przez różne obiekty i w różne dni (środek Sarn, Chmielnickiego) — to punkt
+# katalogowy miejscowości, a nie pomiar, ale dostaje pełną wagę, ETA i ślad.
+# Zanim zmienimy punktację, zapisujemy (bez punktów), które pozycje by się
+# zakwalifikowały. Pamięć tylko w procesie; kryterium dni liczy się od startu.
+_coord_seen: dict[str, dict] = {}
+_COORD_KEEP_S = 7 * 24 * 3600
+_COORD_MAX_KEYS = 5000
+
+
+def _catalog_point_shadow(t: dict, now: float | None = None) -> bool:
+    if is_national(t) or _is_approx_position(t):
+        return False
+    lat, lon, tid = t.get("lat"), t.get("lon"), t.get("id")
+    if not isinstance(lat, (int, float)) or not isinstance(lon, (int, float)) or tid is None:
+        return False
+    now = now or time.time()
+    key = f"{lat:.4f}:{lon:.4f}"
+    rec = _coord_seen.setdefault(key, {"ids": {}, "days": set(), "last": now})
+    rec["ids"][tid] = now
+    rec["days"].add(datetime.fromtimestamp(now, timezone.utc).date().isoformat())
+    rec["last"] = now
+    rec["ids"] = {i: ts for i, ts in rec["ids"].items() if now - ts <= _COORD_KEEP_S}
+    if len(_coord_seen) > _COORD_MAX_KEYS:
+        for old in sorted(_coord_seen, key=lambda k: _coord_seen[k]["last"])[:500]:
+            _coord_seen.pop(old, None)
+    if len(rec["ids"]) < 2 and len(rec["days"]) < 2:
+        return False
+    a = t.get("pl_assessment") or {}
+    try:
+        return stealth.record("catalog_point_shadow", f"{key}:{tid}", {
+            "track_id": tid, "type": t.get("type"), "lat": lat, "lon": lon,
+            "ids_same_point": len(rec["ids"]), "days_same_point": len(rec["days"]),
+            "region": t.get("region"), "locality": t.get("locality"),
+            "confidence": t.get("confidenceLevel"), "position_quality": t.get("positionQuality"),
+            "dist_km": a.get("dist_km"), "toward_pl": a.get("toward_pl"),
+            "would_be": "locality_center",
+        }, now)
+    except Exception as exc:                          # noqa: BLE001
+        log.debug("cień punktów katalogowych: %s", exc)
+        return False
+
+
+def is_jet(t: dict) -> bool:
+    """Dron odrzutowy (Geran-3 / Shahed-238) rozpoznany z opisu NEPTUN-a (audyt G6)."""
+    text = f"{t.get('title') or ''} {t.get('explanationShort') or ''}".lower()
+    return any(m in text for m in config.NEPTUN_JET_MARKERS)
 
 
 def _position_info(t: dict) -> dict:
@@ -331,6 +403,9 @@ def _evaluate(t: dict) -> dict:
         return t
     t["straznik_position"] = _position_info(t)
     heading = _heading_of(t)
+    t["heading_source"] = heading_source(t)
+    if is_jet(t):
+        t["straznik_jet"] = True
     a = geo.assess_threat(lat, lon, heading, config.NEPTUN_HEADING_TOLERANCE,
                           config.NEPTUN_HEADING_SOFT_DEG,
                           config.NEPTUN_UNKNOWN_HEADING_MULT,
@@ -417,6 +492,10 @@ def _speed_of(t: dict) -> float | None:
     v = (t.get("velocity") or {}).get("speedKmh")
     if isinstance(v, (int, float)) and v > 0:
         return float(v)
+    if t.get("straznik_jet") or is_jet(t):
+        # Geran-3 przyspiesza do 550–600 km/h na końcowym odcinku, a to on liczy
+        # się przy granicy — do czasu dolotu i alarmu bierzemy gorszy przypadek
+        return config.NEPTUN_JET_SPEED_KMH
     return config.NEPTUN_TYPE_SPEED_KMH.get((t.get("type") or "").lower())
 
 
@@ -440,8 +519,11 @@ def _eta_per_voiv(t: dict) -> dict:
 
 def _eta_alarm_level(a: dict, sources: int, confidence: str,
                      eta_safe: float | None, *, approximate: bool = False) -> str | None:
-    """Poziom ETA po wszystkich bezpiecznikach jakości danych."""
-    eligible = (not approximate and a.get("heading_known")
+    """Poziom ETA po wszystkich bezpiecznikach jakości danych.
+
+    `a` to ocena z kursem, któremu wierzymy dla alarmu: przy kursie domniemanym
+    (G3) — ocena z kursu z ruchu albo brak kursu."""
+    eligible = (not approximate and a.get("heading_known") and a.get("toward_pl", True)
                 and sources >= config.NEPTUN_ETA_MIN_SOURCES
                 and confidence in config.NEPTUN_ETA_CONFIDENCE and eta_safe is not None)
     if not eligible:
@@ -578,7 +660,16 @@ async def _maybe_signal(t: dict):
     # obiektu. Nie działa przy nieznanym kursie, pojedynczym zgłoszeniu ani niskiej
     # pewności. Punkty podnosimy najwyżej do progu danego alarmu; deduplikacja po
     # track_id sprawia, że nie sumuje się on drugi raz ze zwykłą punktacją obiektu.
-    eta_level = _eta_alarm_level(a, sources, conf, eta_conservative,
+    course_src = t.get("heading_source") or heading_source(t)
+    eta_a = a
+    if course_src == "presumptive":
+        moved = t.get("heading_movement")
+        eta_a = (geo.assess_threat(t["lat"], t["lon"], moved, config.NEPTUN_HEADING_TOLERANCE,
+                                   config.NEPTUN_HEADING_SOFT_DEG,
+                                   config.NEPTUN_UNKNOWN_HEADING_MULT,
+                                   config.NEPTUN_UNKNOWN_HEADING_MAX_KM)
+                 if moved is not None else {"heading_known": False})
+    eta_level = _eta_alarm_level(eta_a, sources, conf, eta_conservative,
                                  approximate=approximate)
     _eta_single_source_shadow(t, a, sources, conf, eta_conservative, approximate, eta_level)
     if eta_level == "high":
@@ -586,7 +677,8 @@ async def _maybe_signal(t: dict):
     elif eta_level == "elevated":
         points = max(points, config.THRESHOLD_ELEVATED)
     ile = f"{count}× " if count > 1 else ""
-    kurs_info = ("" if a.get("heading_known") else
+    kurs_info = (" [kurs domniemany — na cel]" if course_src == "presumptive"
+                 else "" if a.get("heading_known") else
                  (" [kurs szacowany z ruchu]" if t.get("heading_estimated") is not None
                   else " [kurs nieznany]"))
     eta_info = (f", konserwatywny czas dolotu ~{eta_safe} min" if eta_level else "")
@@ -621,8 +713,11 @@ async def _maybe_signal(t: dict):
                                          if approximate else a["dist_km"]),
                  "physical_key": _physical_key(t),
                  "dist_km": a["dist_km"], "region": t.get("region"),
-                 "course": ("known" if a.get("heading_known") else
+                 "course": ("presumptive" if course_src == "presumptive" else
+                            "known" if a.get("heading_known") else
                             "estimated" if t.get("heading_estimated") is not None else "unknown"),
+                 "heading_source": course_src,
+                 "jet": bool(t.get("straznik_jet")),
                  "course_factor": a.get("course_factor"),
                  # czas dolotu: do granicy PL i do KAŻDEGO województwa (użytkownicy
                  # wybierają różne regiony, a „130 km" znaczy co innego dla kogoś
@@ -661,6 +756,7 @@ async def _handle_threats(threats: list[dict], replace: bool, *,
                              "message_type": message_type, "source_message_ts": source_message_ts}
             t = _evaluate(t)
             tracks[t.get("id")] = t
+            _catalog_point_shadow(t)
             _turnaway_shadow(t)
             await _maybe_signal(t)
         except Exception as exc:                  # noqa: BLE001
