@@ -305,8 +305,27 @@ def _area_distance_label(km: float) -> str:
     return f"około {int(round(km / 10.0) * 10)} km"
 
 
+def is_national(t: dict) -> bool:
+    """Alarm ogólnokrajowy NEPTUN-a (np. „national-mig31k”), a nie obiekt z pozycją."""
+    if str(t.get("id") or "").startswith(config.NEPTUN_NATIONAL_ID_PREFIX):
+        return True
+    region = str(t.get("region") or "").lower()
+    return any(m in region for m in config.NEPTUN_NATIONAL_REGION_MARKERS)
+
+
 def _evaluate(t: dict) -> dict:
     """Dokleja do tracka ocenę względem granicy PL."""
+    if is_national(t):
+        # Punkt w środku Ukrainy jest umowny: bez oceny odległości, kursu, trasy,
+        # ETA i cieni. Brak pl_assessment zatrzymuje też _maybe_signal i tryb
+        # cienia progresji. 14.09.2026 „national-mig31k” stał 35 min na mapie
+        # jak samolot. Czas startu dla komunikatu w aplikacji.
+        t["straznik_national"] = {"since": t.get("confirmedAt") or t.get("createdAt")
+                                  or t.get("updatedAt")}
+        t["straznik_position"] = {"quality": "approx", "reason": "national_alert"}
+        t["pl_assessment"] = None
+        t["border_region"] = False
+        return t
     lat, lon = t.get("lat"), t.get("lon")
     if lat is None or lon is None:
         return t

@@ -426,6 +426,16 @@ body.history-mode #my-banner { display: none; }
 #my-banner.level-elevated .lvl { color: var(--amber); }
 #my-banner.level-high .lvl { color: var(--red); }
 #my-banner.level-none .lvl { color: var(--muted); }
+/* alarm ogólnokrajowy NEPTUN-a (np. start MiG-31K) — komunikat zamiast ikony;
+   widoczny także w historii, bo opisuje tamtą chwilę */
+#national-banner {
+  max-width: 100%;
+  background: var(--panel); border: 1px solid var(--panel-border); border-radius: 10px;
+  padding: 7px 11px; font-size: 12px; line-height: 1.35; backdrop-filter: blur(8px);
+  display: flex; flex-direction: column; gap: 6px;
+}
+#national-banner .nat-row { border-left: 3px solid var(--nat, #c06bff); padding-left: 8px; }
+#national-banner .muted { font-size: 11px; }
 /* kolor tylko od sąsiadów: kreskowana ramka i przygaszony opis, bez pulsowania */
 #my-banner.level-spill { border-left: 3px dashed rgba(255,176,32,.55); }
 #my-banner.level-spill .lvl { color: #c9a86a; }
@@ -785,6 +795,7 @@ dialog menu { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14
   /* panel wysunięty przykrywa dół ekranu — chowamy to, co by się nakładało,
      a atrybucja przenosi się do wnętrza panelu (patrz #panel-attrib) */
   body.panel-open #my-banner,
+  body.panel-open #national-banner,
   body.panel-open #attribution,
   body.panel-open #map-actions { display: none; }
   #panel-attrib { display: block; }

@@ -293,6 +293,36 @@ function positionQuality(t) {
     ?? t?.source_metadata?.source_fields?.positionQuality
     ?? "").toLowerCase();
 }
+/* Alarm ogólnokrajowy NEPTUN-a („national-mig31k”, region „Загальнодержавна
+   загроза”): umowny punkt w środku Ukrainy, nie pozycja samolotu. 14.09.2026
+   taki MiG-31K stał 35 min na mapie jak zawieszony obiekt. Pokazujemy go jako
+   komunikat (#national-banner), nie ikonę. Zgłoszony obiekt z własnym id i
+   obwodem zostaje zwykłym obiektem na mapie. Lustro: config.NEPTUN_NATIONAL_*.
+   straznik_national ustawia serwer; id/region obsługują starsze migawki. */
+const NATIONAL_ID_PREFIX = "national-", NATIONAL_REGION_MARKERS = ["загальнодержавн"];
+function isNationalThreat(t) {
+  return !!t?.straznik_national || String(t?.id ?? "").startsWith(NATIONAL_ID_PREFIX)
+    || NATIONAL_REGION_MARKERS.some(m => String(t?.region ?? "").toLowerCase().includes(m));
+}
+function renderNationalBanner(threats) {
+  const el = document.getElementById("national-banner");
+  if (!el) return;
+  const list = (threats || []).filter(isNationalThreat);
+  if (!list.length) { el.className = "hidden"; el.innerHTML = ""; return; }
+  el.className = "";
+  el.innerHTML = list.map(t => {
+    const meta = TYPE_META[t.type] || TYPE_META.unknown;
+    const since = Date.parse(t.straznik_national?.since || "");
+    const time = Number.isFinite(since) ? new Date(since).toLocaleTimeString(
+      UI.isEn ? "en-GB" : "pl-PL", { hour: "2-digit", minute: "2-digit" }) : "";
+    const airborne = t.type === "mig31k" ? (UI.isEn ? "airborne, " : "w powietrzu, ") : "";
+    return `<div class="nat-row" style="--nat:${meta.color}"><b>${esc(UI.type(t.type, meta.label))}</b> — ${
+      airborne}${UI.isEn ? "nationwide alert for Ukraine" : "alarm dla całej Ukrainy"}${
+      time ? ` · ${UI.isEn ? "since" : "od"} ${time}` : ""}<br><span class="muted">${UI.isEn
+      ? "NEPTUN gives no position, so it is not drawn on the map and does not add points for Poland."
+      : "NEPTUN nie podaje pozycji, więc nie rysujemy go na mapie i nie dolicza punktów dla Polski."}</span></div>`;
+  }).join("");
+}
 const NEPTUN_LOCALITY_ANCHORS = [{ name:"Łuck", lat:50.7472, lon:25.3254 }];
 function geoDistanceKm(lat1, lon1, lat2, lon2) {
   const rad = n => n * Math.PI / 180;
@@ -1919,7 +1949,7 @@ function animate(ts) {
   const pts = [], trails = [], unc = [], course = [];
   const nMode = trailMode("neptun");
   for (const t of threats) {
-    if (t.lat == null) continue;
+    if (t.lat == null || isNationalThreat(t)) continue;   // alarm ogólnokrajowy → komunikat
     const meta = TYPE_META[t.type] || { color: "#8a93a6" };
     const p = predict(t, now);
     // Zgłoszenie 14.09.2026: dziób ikony (kurs NEPTUN-a „kursem na X”) pokazywał
@@ -2201,6 +2231,7 @@ function renderPanel() {
     banner.className = "hidden";
     banner.innerHTML = "";
   }
+  if (!histMode) renderNationalBanner(state?.neptun?.threats);
 
   const sigs = [];
   for (const [name, st] of voivs) for (const s of st.signals) sigs.push(s);
@@ -3473,7 +3504,7 @@ function srvRecord(s) {
     region: t.region, locality: t.locality, sourceCount: t.sourceCount,
     destination: t.destination, positionQuality: positionQuality(t),
     areaOnly: t.areaOnly, straznik_position: positionInfo(t),
-    pl_assessment: t.pl_assessment }));
+    straznik_national: t.straznik_national, pl_assessment: t.pl_assessment }));
   const aircraft = (s?.adsb?.aircraft || []).map(a => ({ hex: a.hex, callsign: a.callsign,
     type: a.type, lat: +(+a.lat).toFixed(3), lon: +(+a.lon).toFixed(3), alt: a.alt, gs: a.gs,
     track: a.track, voivodeship: a.voivodeship, desc: a.desc, cat: a.cat,
@@ -3622,7 +3653,10 @@ function showHistoryAt(idx) {
     + (ageMin > 1 ? ` (−${ageMin} min)` : (UI.isEn ? " (now)" : " (teraz)"));
   const sigs = h?.signals || [];
   paintOblasts(sigs);
-  const threats = snap?.threats || [];
+  // alarmy ogólnokrajowe z tamtej chwili jako komunikat, nie obiekt na mapie
+  const snapThreats = snap?.threats || [];
+  renderNationalBanner(snapThreats);
+  const threats = snapThreats.filter(t => !isNationalThreat(t));
   const planes = [...(snap?.aircraft || [])];
   // ADS-B jest odpytywane częściej niż powstają migawki. Zdarzenie wejścia lub
   // wyjścia z ostatnią pozycją wypełnia dwuminutową lukę jako półprzezroczysty

@@ -92,6 +92,12 @@ const NEPTUN_SOURCE_MULT_MAX = 1.25;
 const NEPTUN_POSITION_MULT = { point: 1, source_approx: 0.6, locality_center: 0.5 };
 // Audytowalna lista potwierdzonych punktów katalogowych. Nie jest bazą miast.
 const NEPTUN_LOCALITY_ANCHORS = [{ name:"Łuck", lat:50.7472, lon:25.3254 }];
+/* Alarm ogólnokrajowy NEPTUN-a („national-mig31k”, region „Загальнодержавна
+   загроза”, umowny punkt w środku Ukrainy) — lustro config.NEPTUN_NATIONAL_*. */
+const NEPTUN_NATIONAL_ID_PREFIX = "national-";
+const NEPTUN_NATIONAL_REGION_MARKERS = ["загальнодержавн"];
+const isNationalThreat = (t) => String(t?.id ?? "").startsWith(NEPTUN_NATIONAL_ID_PREFIX)
+  || NEPTUN_NATIONAL_REGION_MARKERS.some(m => String(t?.region ?? "").toLowerCase().includes(m));
 const HEADING_TOL = 50;
 /* Waga kursu (lustro geo.course_factor): twarde cięcie na 50° gubiło obiekty tuż
    za progiem, a brak pola heading wyciszał nawet rakietę tuż przy granicy. */
@@ -927,6 +933,13 @@ function etaPerVoiv(t) {
 }
 
 function neptunEval(t) {
+  if (isNationalThreat(t)) {
+    // umowny punkt: bez odległości, kursu i punktów (jak neptun._evaluate na serwerze)
+    t.straznik_national = { since: t.confirmedAt || t.createdAt || t.updatedAt || null };
+    t.straznik_position = { quality: "approx", reason: "national_alert" };
+    t.pl_assessment = null;
+    return t;
+  }
   if (t.lat == null) return t;
   t.straznik_position = positionInfo(t);
   t.pl_assessment = assess(t.lat, t.lon, headingOf(t));
@@ -1584,7 +1597,7 @@ function saveSnapshot() {
         uncertaintyKm: t.uncertaintyKm, region: t.region, locality: t.locality,
         sourceCount: t.sourceCount, destination: t.destination,
         positionQuality: t.positionQuality, areaOnly: t.areaOnly,
-        straznik_position: t.straznik_position,
+        straznik_position: t.straznik_position, straznik_national: t.straznik_national,
         pl_assessment: t.pl_assessment })),
       aircraft: adsbAircraft.map(a => ({ hex: a.hex, callsign: a.callsign, type: a.type,
         lat: +a.lat.toFixed(3), lon: +a.lon.toFixed(3), alt: a.alt, gs: a.gs,

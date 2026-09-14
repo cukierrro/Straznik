@@ -443,6 +443,8 @@ async def snapshot_loop():
                                        "locality", "sourceCount", "destination",
                                        "positionQuality", "areaOnly",
                                        "straznik_position",
+                                       # alarm ogólnokrajowy → komunikat w historii
+                                       "straznik_national",
                                        # pl_assessment: bez tego karta w historii
                                        # pokazywała „? km" (dist liczony live, ale
                                        # nie persystowany do migawki)

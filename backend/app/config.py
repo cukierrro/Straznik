@@ -117,6 +117,13 @@ NEPTUN_ETA_MIN_SOURCES = 2
 NEPTUN_ETA_CONFIDENCE = ("medium", "high")
 # obwody graniczące z PL — obiekty stamtąd zawsze obserwujemy
 NEPTUN_BORDER_REGIONS = ("Волинська", "Львівська", "Закарпатська", "Рівненська")
+# Alarm ogólnokrajowy NEPTUN-a (np. start MiG-31K): id „national-mig31k”, region
+# „Загальнодержавна загроза” i stały punkt w środku Ukrainy (49,0 / 31,2) bez
+# kursu. To nie jest pozycja samolotu — pokazujemy komunikat, nie ikonę, i nie
+# liczymy odległości. Zgłoszony obiekt z własnym trk_* i obwodem zostaje zwykłym
+# obiektem. Lustro: engine.js NEPTUN_NATIONAL_*.
+NEPTUN_NATIONAL_ID_PREFIX = "national-"
+NEPTUN_NATIONAL_REGION_MARKERS = ("загальнодержавн",)   # porównanie po lower()
 
 # ── ADS-B ─────────────────────────────────────────────────────────────────────
 ADSB_PROVIDER = os.getenv("ADSB_PROVIDER", "adsb.lol")   # adsb.lol | adsb.fi | adsbx
