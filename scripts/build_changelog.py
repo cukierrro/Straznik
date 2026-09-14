@@ -16,6 +16,15 @@ DOCS = ROOT / "docs"
 # (wersja, data PL, data EN, tytuł PL, tytuł EN, punkty PL, punkty EN, zrzuty)
 # Zrzut: (plik, alt PL, alt EN, podpis PL, podpis EN)
 RELEASES = [
+    ("1.7.45", "14 września 2026", "14 September 2026",
+     "Wyraźne granice państw na mapie",
+     "Clear national borders on the map",
+     ["Kraje sąsiednie mają wyraźnie różne kolory, więc granice widać jako ciągły styk barw — bez przerw przy pochylonej i oddalonej mapie.",
+      "Krym jest zaznaczony w granicach Ukrainy, a sąsiednie kraje nie nachodzą już na siebie pasami (np. Litwa i Łotwa)."],
+     ["Neighbouring countries have clearly different colours, so borders show as a continuous colour edge — no gaps on a tilted or zoomed-out map.",
+      "Crimea is shown within Ukraine, and neighbouring countries no longer overlap in strips (e.g. Lithuania and Latvia)."],
+     []),
+
     ("1.7.44", "14 września 2026", "14 September 2026",
      "Rezygnacja z alarmów, kierunek drona i poprawki mediów bałtyckich",
      "Opting out of alerts, drone heading and Baltic media fixes",

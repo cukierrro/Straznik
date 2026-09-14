@@ -804,31 +804,35 @@ async function initMap() {
 
   map.on("load", async () => {
     localiseMapLabels();
-    // Granice państw: natywne linie stylu bazowego, bez podbarwiania. Wyraźniejsze
-    // obrysy z 1.7.41–1.7.42 wycofane 13.09.2026 (przy pochylonej mapie znikały
-    // odcinki granic) — wrócą po dopracowaniu.
+    // Granice państw: natywne linie stylu bazowego plus kontrastowe wypełnienia
+    // krajów (kraje-fill). Białe obrysy z 1.7.41–1.7.42 wycofane 13.09.2026, bo
+    // przy pochylonej mapie znikały odcinki granic.
     for (const [t, m] of Object.entries(TYPE_META)) map.addImage("dart-" + t, makeThreatImage(t, m.color));
     for (const [t, m] of Object.entries(TYPE_META))
       if (!NO_HEADING_TYPES.has(t)) map.addImage("dart-" + t + "-unk", makeThreatImage(t, m.color, true));
     map.addImage("plane", makePlaneImage());
     map.addImage("heli", makeHeliImage());
 
-    // Każdy kraj sąsiedni ma własny, ale dyskretny odcień. Przy szerokim
-    // widoku mocne wypełnienia ogromnych państw dominowały nad informacją
-    // alarmową, dlatego krycie rośnie łagodnie dopiero wraz ze zbliżeniem.
+    // Sąsiednie kraje mają wyraźnie różne barwy: granicę widać jako styk kolorów,
+    // bez osobnej linii. Linie przy pochylonej mapie traciły odcinki pod bryłami
+    // 3D (1.7.42), a wypełnienie leży płasko pod nimi i nie ma tego problemu.
+    // Barwy stonowane, żeby nie konkurowały z żółtym i czerwonym alarmu.
     const COUNTRY_COLORS = {
-      UKR: "#4a4030", BLR: "#4a2e33", RUS: "#3f2b3e",
-      LTU: "#2e4437", LVA: "#2e3f4a", EST: "#3b3350",
-      SVK: "#333d2e", CZE: "#3f3229", DEU: "#35393f",
-      HUN: "#3d3348", ROU: "#2f3c42", MDA: "#43392c",
+      UKR: "#7a6230", BLR: "#7a3340", RUS: "#503a5e",
+      LTU: "#2f7048", LVA: "#2d5f80", EST: "#7a6d34",
+      SVK: "#3f7040", CZE: "#7a5234", DEU: "#48566a",
+      HUN: "#624080", ROU: "#2d6e70", MDA: "#8a4d62",
     };
-    const kraje = await (await fetch("assets/kraje.geojson")).json();
+    // kraje.geojson: Natural Earth admin-1, kraje ze wspólnymi krawędziami
+    // (bez nakładek i szczelin), Krym w granicach Ukrainy. ?v= omija stary plik
+    // w cache Cloudflare i przeglądarki; podbijać przy zmianie danych.
+    const kraje = await (await fetch("assets/kraje.geojson?v=2")).json();
     map.addSource("kraje", { type: "geojson", data: kraje });
     // Android WebView wyświetla ciemną mapę bardziej płasko niż przeglądarka
-    // desktopowa. Wspólne, niskie krycie zlewało tam kraje w jeden odcień.
+    // desktopowa, więc w aplikacji krycie jest trochę wyższe.
     const countryOpacity = IS_APP
-      ? ["interpolate", ["linear"], ["zoom"], 3, 0.30, 6, 0.38, 9, 0.42]
-      : ["interpolate", ["linear"], ["zoom"], 3, 0.13, 6, 0.20, 9, 0.24];
+      ? ["interpolate", ["linear"], ["zoom"], 3, 0.46, 6, 0.52, 9, 0.55]
+      : ["interpolate", ["linear"], ["zoom"], 3, 0.42, 6, 0.48, 9, 0.50];
     map.addLayer({ id: "kraje-fill", type: "fill", source: "kraje",
       paint: { "fill-color": ["match", ["get", "iso"],
           ...Object.entries(COUNTRY_COLORS).flat(), "#333"],
