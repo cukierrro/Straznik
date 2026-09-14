@@ -16,6 +16,15 @@ DOCS = ROOT / "docs"
 # (wersja, data PL, data EN, tytuł PL, tytuł EN, punkty PL, punkty EN, zrzuty)
 # Zrzut: (plik, alt PL, alt EN, podpis PL, podpis EN)
 RELEASES = [
+    ("1.7.46", "14 września 2026", "14 September 2026",
+     "Płynniejsza historia i start MiG-31K jako komunikat",
+     "Smoother history and MiG-31K take-off as a notice",
+     ["Historia mapy ma migawki co minutę zamiast co dwie, więc przewijanie jest płynniejsze.",
+      "Start MiG-31K ogłoszony przez NEPTUN dla całej Ukrainy jest komunikatem nad paskiem województwa, a nie ikoną stojącą w środku Ukrainy. To alarm ogólnokrajowy bez pozycji samolotu i nie dolicza punktów; maszyna zgłoszona w konkretnym miejscu nadal jest na mapie."],
+     ["The map history has a snapshot every minute instead of every two, so scrubbing is smoother.",
+      "A MiG-31K take-off announced by NEPTUN for all of Ukraine is a notice above the province bar, not an icon parked in central Ukraine. It is a nationwide alert without an aircraft position and adds no points; an aircraft reported at a specific place is still on the map."],
+     []),
+
     ("1.7.45", "14 września 2026", "14 September 2026",
      "Wyraźne granice państw na mapie",
      "Clear national borders on the map",
