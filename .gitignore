@@ -29,3 +29,20 @@ notatki_wydania_*.json
 
 # Pobrana geometria ADM1 do scripts/ua_oblast_rings.py (~11 MB, odtwarzalna)
 scripts/.cache/
+
+# Prywatne — repozytorium jest publiczne, a docs/ to strona GitHub Pages (14.09.2026).
+# GROTA / moduł schronów: zamknięty moduł Pro, trafi do prywatnego repozytorium.
+etap2-lokalizacja-schronow/
+prototypes/
+docs/ANALIZA_MODULU_SCHRONIENIA.md
+docs/PROMPT_ANALIZA_SCHRONIENIA.md
+# Notatki przekazania sesji (opisują infrastrukturę VPS) i wewnętrzne notatki prac
+_current_sprint_state.md
+_architecture_global.md
+docs/PLAN_POWROTU_*.md
+docs/STAN_PRAC_*.md
+docs/TEST_RZECZYWISTE_DANE_*.md
+docs/WZNOWIENIE_*.md
+# Szkice postów i stare zrzuty podglądów
+post_fb.md
+podglad_panelu/
