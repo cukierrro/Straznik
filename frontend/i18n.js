@@ -105,14 +105,14 @@
     many(":scope .set-tab", en
       ? ["Alerts","My places","Sound","App"] : ["Alarmy","Moje miejsca","Dźwięk","Aplikacja"]);
     many(":scope .set-pane > p.fineprint:not(#app-version):not(#upd-status):not(#more-links)", en ? [
-      "Alerts for your province arrive as push notifications even when the app is closed or the phone is asleep. Full-screen permission is required for a red alert to wake the screen.",
+      "Alerts for your province arrive as push notifications even when the app is closed or the phone is asleep. Full-screen permission is required for a red alert to wake the screen. This needs the Strażnik server: in emergency mode (server unavailable) alerts arrive only while the app is open.",
       "A full-screen alert wakes the display and appears above the lock screen. Android 14 or later may revoke this permission after an update, so verify it manually.",
       "Save up to 8 places and choose which provinces you want notifications for. Exact places remain on this device.",
       "Yellow (≥2 pts): attention sound and heads-up notification. Red (≥4 pts): modulated siren, vibration and a full-screen alert.",
       "The red siren continues until you acknowledge the alert.",
       "The app checks for a newer release at every launch and when it returns to the foreground. A dismissed non-critical update can be checked again here."
     ] : [
-      "Alarmy dla Twojego województwa przychodzą jako powiadomienie push — także gdy aplikacja jest zamknięta, ekran wygaszony albo telefon w uśpieniu.",
+      "Alarmy dla Twojego województwa przychodzą jako powiadomienie push — także gdy aplikacja jest zamknięta, ekran wygaszony albo telefon w uśpieniu. Wymaga to działającego serwera: w trybie awaryjnym (serwer niedostępny) alarmy przychodzą tylko przy otwartej aplikacji.",
       "Alarm pełnoekranowy zapala ekran i pokazuje się nad blokadą. Android 14 i nowszy może cofnąć tę zgodę po aktualizacji, dlatego sprawdź ją osobiście.",
       "Zapisz do 8 miejsc i wybierz, dla których województw chcesz otrzymywać powiadomienia. Dokładne miejsca zostają na tym urządzeniu.",
       "Żółty poziom (≥2 pkt) — krótki sygnał uwagi i powiadomienie. Czerwony (≥4 pkt) — modulowana syrena, wibracja i alarm pełnoekranowy.",
@@ -234,7 +234,7 @@
       "Distance alone is misleading: 130 km may mean about 10 minutes for a cruise missile and about 45 minutes for a drone. When possible, Strażnik estimates time to the Polish border and to your province using reported, measured or class-typical speed.",
       "The estimate is conservative: 2.5 minutes are deducted for measured source delay. With a known or calculated heading, at least two confirmations and medium/high confidence, the model can raise yellow at ≤10 minutes and red at ≤5 minutes.",
       "This is an estimate, not a promise. It assumes unchanged speed and heading and does not account for air defence. No time is shown when heading is unknown. NEPTUN's ‘confirmed’ may confirm a report rather than coordinate accuracy. A recognised locality-centre point gets only a rounded area distance, with no route or ETA.",
-      "An eastern event also transfers 40% of its points to neighbouring provinces, providing earlier awareness farther west.",
+      "An eastern event also raises awareness in neighbouring provinces: a neighbour gets 40% of its points, the next ring 40% of that (16%) and so on, providing earlier awareness farther west. Transferred points alone do not send a notification.",
       "NEPTUN is an OSINT/crowdsourced aggregator, not radar, so confidence and position uncertainty are always shown. A new ID at the same locality-centre point does not prove a new physical object and is not automatically counted twice. ADS-B contains only public transponder emissions and cannot reveal aircraft flying dark.",
       "Data: NEPTUN · adsb.lol / airplanes.live · PAŻP · gov.pl/RCB · regional and Baltic media · neighbouring airspace sources · map © CARTO, © OpenStreetMap"
     ]);
@@ -247,6 +247,14 @@
       + "there instead of 0.5. None of these raises the level on its own: zone 1 + media "
       + "report 1 = 2 pts (yellow), zone 1 + Baltic incident 1 = 2 pts.";
     set("#about .warn-box", "This is NOT an official warning system. It does not replace sirens, RCB or RSO alerts. In a real emergency, follow official channels. Strażnik provides an additional, potentially earlier signal — nothing more.");
+    // stałe teksty z <b>, dlatego innerHTML (setMany ustawia textContent)
+    [
+      "<b>Ballistic missiles</b> (e.g. Iskander) fly for a few minutes — Strażnik cannot warn about them in advance. Sirens and the RCB Alert are what count.",
+      "<b>The Belarusian direction:</b> NEPTUN describes objects over Ukraine; over Belarus we see nothing. From that side only the RCB Alert and media remain.",
+      "<b>Kaliningrad and the Baltic:</b> no source on objects in the air — only Baltic media, neighbouring airspace zones and the RCB Alert.",
+      "<b>Low-flying missiles</b> without observer reports may not appear in the data at all.",
+      "<b>A MiG-31K take-off</b> and alerts for all of Ukraine are shown as information, not as an alert for Poland."
+    ].forEach((html, i) => { const li = document.querySelectorAll("#about-blind li")[i]; if (li) li.innerHTML = html; });
     setMany("#about h3", ["How it works", "How NEPTUN object points are calculated", "Estimated arrival time", "Levels", "Where to find things", "What this app does NOT do"]);
     setMany("#about .about-tab:first-of-type tr td:nth-child(2)", [
       "Object heading towards Poland — score depends on class, count, distance and independent confirmations",
@@ -293,7 +301,7 @@
       "Notification permission is required. For red alerts, full-screen alert permission is also recommended."
     ]);
     setMany("#settings .set-pane > p.fineprint:not(#app-version):not(#upd-status):not(#more-links)", [
-      "Alerts for your province arrive as push notifications even when the app is closed or the phone is asleep. Full-screen permission is required for a red alert to wake the screen.",
+      "Alerts for your province arrive as push notifications even when the app is closed or the phone is asleep. Full-screen permission is required for a red alert to wake the screen. This needs the Strażnik server: in emergency mode (server unavailable) alerts arrive only while the app is open.",
       "A full-screen alert wakes the display and appears above the lock screen. Android 14 or later may revoke this permission after an update, so verify it manually.",
       "Save up to 8 places and choose which provinces you want notifications for. Exact places remain on this device.",
       "Yellow (≥2 pts): attention sound and heads-up notification. Red (≥4 pts): modulated siren, vibration and a full-screen alert.",

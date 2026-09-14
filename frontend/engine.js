@@ -285,13 +285,24 @@ function persistLevels() {
   } catch {}
 }
 
+/* Audyt C13: przepełniony localStorage rzucał wyjątek w persist(), wołanym z
+   addSignal PRZED reevaluate() — przy dużym ataku gubiło to powiadomienie.
+   Zapis nigdy nie przerywa obróbki; przy braku miejsca najpierw oddajemy historię
+   mapy (najmniej ważna), potem próbujemy jeszcze raz. */
+function safeSet(key, value) {
+  try { localStorage.setItem(key, value); return true; }
+  catch {
+    try { localStorage.removeItem("eng_snaps"); localStorage.setItem(key, value); return true; }
+    catch (e) { console.warn("localStorage pełny:", key, e?.name); return false; }
+  }
+}
 function persist() {
   const cut = Date.now() - 24*3600*1000;
   signals = signals.filter(s => s.t > cut);
   for (const [k, t] of seenKeys) if (t < cut) seenKeys.delete(k);
-  localStorage.setItem("eng_signals", JSON.stringify(signals));
-  localStorage.setItem("eng_seen", JSON.stringify([...seenKeys]));
-  localStorage.setItem("eng_rcb_seen", JSON.stringify([...rcbSeen].slice(-200)));
+  safeSet("eng_signals", JSON.stringify(signals));
+  safeSet("eng_seen", JSON.stringify([...seenKeys]));
+  safeSet("eng_rcb_seen", JSON.stringify([...rcbSeen].slice(-200)));
 }
 
 /* ── geo ─────────────────────────────────────────────────────────────────── */
@@ -1201,8 +1212,10 @@ async function tickAdsb() {
           {count:planes.length}, `adsb:${v}:${new Date().toISOString().slice(0,13)}`);
       }
     }
-    localStorage.setItem("eng_adsb",
-      JSON.stringify(samples.filter(s => now - s[0] < 14*24*3600*1000)));
+    // baseline używa 7 dni, więc 14 dni tylko zajmowało miejsce (audyt C13);
+    // górny limit próbek chroni przed rozrostem przy długiej pracy offline
+    safeSet("eng_adsb",
+      JSON.stringify(samples.filter(s => now - s[0] < 7*24*3600*1000).slice(-40000)));
     markHealth("adsb", true);
   } catch (e) { markHealth("adsb", false); }
   emit();
@@ -1374,7 +1387,7 @@ async function tickRcb() {
           {url:"https://www.gov.pl"+href, reference_only:true}, `rcb:${href}:${v}`);
     }
     rcbBootstrapped = true;
-    localStorage.setItem("eng_rcb_boot", "1");
+    safeSet("eng_rcb_boot", "1");
     persist();
   } catch { /* gov.pl to tylko punkt odniesienia — dioda pokazuje RSO */ }
   emit();
@@ -1449,8 +1462,8 @@ async function tickRso() {
       }
     }
     rsoBootstrapped = true;
-    localStorage.setItem("eng_rso_boot", "1");
-    localStorage.setItem("eng_rso_seen", JSON.stringify([...rsoSeen].slice(-200)));
+    safeSet("eng_rso_boot", "1");
+    safeSet("eng_rso_seen", JSON.stringify([...rsoSeen].slice(-200)));
     persist();
     markHealth("rcb", true);   // dioda „RCB/RSO" = stan RSO, jak na serwerze
   } catch { markHealth("rcb", false); }
@@ -1628,14 +1641,18 @@ function historyFrom(snaps, sigs, atIso) {
   for (const s of snaps) if (s.t <= at && (!snap || s.t > snap.t)) snap = s;
   const end = snap ? snap.t : at;
   const start = end - WINDOW_MIN * 60000;
-  // ten sam limit klasy źródła co fuzja na żywo (accumulate) — bez tego panel
-  // historii sumował surowe punkty i pokazywał np. fałszywe 4.0 z 4 stref PAŻP
-  const per = accumulate(sigs.filter(s => s.t >= start && s.t <= end)
-    .concat(activeUaAlerts(sigs, end)), end);
-  const scores = {};
-  for (const [v, st] of Object.entries(per)) if (st.score > 0) scores[v] = Math.round(st.score * 10) / 10;
+  // Ten sam rdzeń co stan na żywo (stateFrom: limit klasy źródła, wygaszanie
+  // I przeniesienie od sąsiadów). Audyt A11/C10: samo accumulate pomijało
+  // przeniesienie, więc województwo zaalarmowane przez sąsiada miało w historii 0.
+  const per = stateFrom(sigs.filter(s => s.t >= start && s.t <= end)
+    .concat(activeUaAlerts(sigs, end)), end).voivodeships;
+  const scores = {}, spill = {};
+  for (const [v, st] of Object.entries(per)) {
+    if (st.score > 0) scores[v] = st.score;
+    if (st.spill_raised) spill[v] = true;   // kolor tylko z przeniesienia (jak na żywo)
+  }
   const annotated = [].concat(...Object.values(per).map(st => st.signals)).sort((a, b) => b.t - a.t);
-  return { times, at: atIso, snapshot: snap, signals: annotated, scores };
+  return { times, at: atIso, snapshot: snap, signals: annotated, scores, spill };
 }
 function history(atIso) {
   return historyFrom(JSON.parse(localStorage.getItem("eng_snaps") || "[]"), signals, atIso);
@@ -1648,7 +1665,7 @@ function timelineFrom(snaps, sigs) {
       const age = (s.t - sig.t) / 60000;
       return age >= 0 && age <= WINDOW_MIN;
     });
-    const per = accumulate(win.concat(activeUaAlerts(sigs, s.t)), s.t);
+    const per = stateFrom(win.concat(activeUaAlerts(sigs, s.t)), s.t).voivodeships;
     let best = 0, voiv = null;
     for (const [v, st] of Object.entries(per)) if (st.score > best) { best = st.score; voiv = v; }
     const score = Math.round(best * 10) / 10;

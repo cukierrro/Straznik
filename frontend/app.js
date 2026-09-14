@@ -430,21 +430,46 @@ const etaMin = (km, kmh) => (km == null || !kmh) ? null
   : Math.max(0, Math.floor(km / kmh * 60 - ETA_SOURCE_BUFFER_MIN));
 /* Czas pokazujemy TYLKO przy znanym kursie na PL — inaczej byłaby to liczba
    wzięta znikąd (obiekt może lecieć w przeciwną stronę). */
+/* Audyt G11/C3: pokazane ETA było dłuższe od najgorszego realnego przypadku
+   w 95% wystąpień. Teraz: prędkość = większa z zmierzonej i typowej (zaszumiony
+   ślad „24 km/h” dawał 247 min zamiast 30) oraz przedział, którego dolna granica
+   odejmuje niepewność pozycji i drogę przebytą od potwierdzenia w źródle. */
 function etaInfo(t) {
   if (isApproxPosition(t)) return null;
   const a = t.pl_assessment;
   if (!a || !a.toward_pl || a.heading_known === false) return null;
-  const v = t.velocity?.speedKmh ?? trackSpeed(t);
+  const typical = TYPE_SPEED_KMH[t.type] || 0;
+  const v = t.velocity?.speedKmh ?? (Math.max(measuredTrackSpeed(t) || 0, typical) || null);
   if (!v) return null;
   const mine = myVoiv();
+  const seen = Date.parse(t.confirmedAt || t.updatedAt || "");
+  const refMs = histMode && historyAdsbTime != null ? historyAdsbTime : Date.now();
+  const ageH = Number.isFinite(seen) ? Math.max(0, (refMs - seen) / 3600000) : 0;
+  const slackKm = (Number(t.uncertaintyKm) || 0) + v * ageH;
+  const range = (km) => km == null ? null
+    : { lo: etaMin(Math.max(0, km - slackKm), v), hi: etaMin(km, v) };
+  const border = range(a.dist_km);
+  const voiv = mine ? range(distToVoivKm(t.lat, t.lon, mine)) : null;
   return {
     speed: Math.round(v),
-    border: etaMin(a.dist_km, v),
-    voiv: mine ? etaMin(distToVoivKm(t.lat, t.lon, mine), v) : null,
+    border: border?.hi ?? null, borderLo: border?.lo ?? null,
+    voiv: voiv?.hi ?? null, voivLo: voiv?.lo ?? null,
     voivName: mine,
   };
 }
 const etaTxt = (m) => m == null ? null : (m < 1 ? "<1 min" : `~${m} min`);
+const etaRangeTxt = (lo, hi) => (lo == null || hi == null || lo >= hi) ? etaTxt(hi)
+  : `${lo}–${hi} min`;
+/* ETA zapisane w sygnale starzeje się: sygnał sprzed 40 min pokazywał „~8 min”.
+   Odejmujemy wiek sygnału, a po 15 min liczby nie pokazujemy wcale. */
+function agedEta(m, ts) {
+  if (m == null) return null;
+  const ref = histMode && historyAdsbTime != null ? historyAdsbTime : Date.now();
+  const ageMin = (ref - Date.parse(ts || "")) / 60000;
+  if (!Number.isFinite(ageMin)) return m;
+  if (ageMin > 15) return null;
+  return Math.max(0, Math.round(m - Math.max(0, ageMin)));
+}
 
 function localPlaceHtml(t) {
   if (histMode || t.historicalOnly || isApproxPosition(t) || !Places?.exactPoint) return "";
@@ -478,9 +503,9 @@ function etaHtml(t) {
     return base + localPlaceHtml(t);
   }
   const mine = (e.voiv != null && e.voivName)
-    ? ` · ${UI.isEn ? "to" : "do woj."} ${esc2(UI.voiv(e.voivName))}: <b>${etaTxt(e.voiv)}</b>` : "";
-  return `${UI.isEn ? "conservative time to the Polish border" : "konserwatywny czas dolotu do granicy PL"}: <b>${etaTxt(e.border)}</b>${mine}<br>`
-    + `<span style="color:#95a1b7">${UI.isEn ? `estimate at ${e.speed} km/h with unchanged heading; 2.5 min deducted for data delay — air defence not included` : `szacunek przy prędkości ${e.speed} km/h i utrzymaniu kursu; odjęto 2,5 min na opóźnienie danych — nie uwzględnia obrony powietrznej`}</span><br>`
+    ? ` · ${UI.isEn ? "to" : "do woj."} ${esc2(UI.voiv(e.voivName))}: <b>${etaRangeTxt(e.voivLo, e.voiv)}</b>` : "";
+  return `${UI.isEn ? "conservative time to the Polish border" : "konserwatywny czas dolotu do granicy PL"}: <b>${etaRangeTxt(e.borderLo, e.border)}</b>${mine}<br>`
+    + `<span style="color:#95a1b7">${UI.isEn ? `estimate at ${e.speed} km/h with unchanged heading; the shorter time allows for position uncertainty and data age, 2.5 min deducted for data delay — air defence not included` : `szacunek przy prędkości ${e.speed} km/h i utrzymaniu kursu; krótszy czas uwzględnia niepewność pozycji i wiek danych, odjęto 2,5 min na opóźnienie — nie uwzględnia obrony powietrznej`}</span><br>`
     + localPlaceHtml(t);
 }
 
@@ -559,7 +584,14 @@ async function connect() {
 function startStandalone() {
   // WBUDOWANY silnik: telefon/przeglądarka sam pobiera dane i liczy fuzję (engine.js).
   standalone = true;
-  connBadge.classList.add("hidden");
+  // Audyt C2: tryb awaryjny musi być widoczny — bez serwera nie ma pushy FCM,
+  // a silnik powiadamia tylko przy otwartej aplikacji. Wcześniej znacznik znikał.
+  connBadge.textContent = UI.isEn
+    ? "emergency mode — server unavailable, no alerts while the app is closed"
+    : "tryb awaryjny — serwer niedostępny, bez alarmów przy zamkniętej aplikacji";
+  connBadge.style.cursor = "pointer";
+  connBadge.onclick = () => showSources();
+  connBadge.classList.remove("hidden");
   Engine.start(applyState);
   // Odzysk: jeśli poszliśmy w standalone mimo ZNANEGO adresu serwera (np. brak
   // sieci w chwili otwarcia, a wróciła chwilę później), w tle sprawdzamy, czy
@@ -1855,6 +1887,17 @@ function updateVoivStates() {
   }
 }
 
+/* Audyt G10: NEPTUN przypisywał punktom katalogowym (centrum Kijowa, Łucka)
+   promień 4 km, a pozycja „przybliżona” to w praktyce rejon miejscowości. Dla
+   takich pozycji pokazujemy co najmniej 12 km — nie udajemy precyzji, której
+   nie ma. Tylko wyświetlanie; punktacja używa pól źródła bez zmian. */
+const APPROX_MIN_UNCERTAINTY_KM = 12;
+function shownUncertaintyKm(t) {
+  const raw = Number(t?.uncertaintyKm);
+  const km = Number.isFinite(raw) && raw > 0 ? raw : null;
+  if (isApproxPosition(t)) return Math.max(km ?? 0, APPROX_MIN_UNCERTAINTY_KM);
+  return km;
+}
 /* okrąg geograficzny (przybliżony) do wizualizacji uncertaintyKm */
 function circleCoords(lat, lon, km) {
   const out = [];
@@ -1935,15 +1978,22 @@ function trackSpeed(t) {
   return measuredTrackSpeed(t) ?? TYPE_SPEED_KMH[t.type] ?? null; // zapas mapy: prędkość typowa dla klasy
 }
 
-/* dead-reckoning między aktualizacjami serwera (jak predict() w SDK Neptuna) */
+/* Dead-reckoning między aktualizacjami — reguły SDK Neptuna (audyt G5). 92%
+   pozycji nie zmienia się między migawkami, a znacznik jechał prędkością typową
+   dla klasy i kursem „kursem na X” nawet 30 km. Teraz przesuwamy tylko przy
+   ZMIERZONEJ prędkości i kursie z ruchu, od chwili potwierdzenia w źródle,
+   najwyżej 18 km i nie dłużej niż 7 min (później dane uznajemy za nieaktualne). */
+const PREDICT_MAX_KM = 18, PREDICT_MAX_S = 420;
 function predict(t, nowMs) {
   let lat = t.lat, lon = t.lon;
   if (isApproxPosition(t)) return { lat, lon };
-  const hdg = t.velocity?.bearingDeg ?? measuredHeading(t) ?? t.heading;
-  const speed = t.velocity?.speedKmh ?? trackSpeed(t);
+  const hdg = t.velocity?.bearingDeg ?? measuredHeading(t);
+  const speed = t.velocity?.speedKmh ?? measuredTrackSpeed(t);
   if (speed && hdg != null) {
-    const dth = Math.min((nowMs - threatsReceivedAt) / 3600000, 10 / 60);  // maks. 10 min
-    const d = speed * dth;
+    const base = Date.parse(t.confirmedAt || t.updatedAt || "") || threatsReceivedAt;
+    const dts = Math.max(0, (nowMs - base) / 1000);
+    if (dts > PREDICT_MAX_S) return { lat, lon };
+    const d = Math.min(speed * dts / 3600, PREDICT_MAX_KM);
     lat += (d / 110.57) * Math.cos(hdg * Math.PI / 180);
     lon += (d / (111.32 * Math.cos(lat * Math.PI / 180))) * Math.sin(hdg * Math.PI / 180);
   }
@@ -2004,7 +2054,7 @@ function animate(ts) {
         heading_measured: mh != null,
         heading_source: t.heading ?? null,
         color: meta.color,
-        confidence: t.confidenceLevel || "?", uncertainty: t.uncertaintyKm ?? "?",
+        confidence: t.confidenceLevel || "?", uncertainty: shownUncertaintyKm(t) ?? "?",
         opis: threatDesc(t), dist_km: t.pl_assessment?.dist_km,
         distance_text: threatDistanceText(t, t.pl_assessment?.dist_km),
         // werdykt kursu jedzie razem ze znacznikiem, żeby karta obiektu mówiła
@@ -2014,9 +2064,10 @@ function animate(ts) {
         counted: countedTracks.has(String(t.id ?? "")),
         course_off: courseOffsetDeg(t),
         eta: etaHtml(t) } });
-    if (t.uncertaintyKm)
+    const uncKm = shownUncertaintyKm(t);
+    if (uncKm)
       unc.push({ type: "Feature", properties: { color: meta.color },
-        geometry: { type: "Polygon", coordinates: circleCoords(p.lat, p.lon, t.uncertaintyKm) } });
+        geometry: { type: "Polygon", coordinates: circleCoords(p.lat, p.lon, uncKm) } });
     // ślad = to, co dało API + to, co sami zaobserwowaliśmy + pozycja bieżąca.
     // Dla przybliżonego rejonu nie łączymy kolejnych raportów w pozorną trasę.
     if (isApproxPosition(t) || nMode === "off") continue;
@@ -2346,13 +2397,13 @@ function renderObservationLists(viewState) {
           : (a.toward_pl ? ` · <b style='color:#ff4d5e'>${UI.isEn ? "heading towards Poland" : "kurs na PL"}</b>` : "")}
       ${(() => { const e = etaInfo(t);
         return e && e.border != null
-          ? `<div class="meta eta-row">⏱ ${UI.isEn ? "to border" : "do granicy"} <b>${etaTxt(e.border)}</b>${
-              e.voiv != null ? ` · ${UI.isEn ? "to" : "do woj."} ${esc(UI.voiv(e.voivName))} <b>${etaTxt(e.voiv)}</b>` : ""}</div>`
+          ? `<div class="meta eta-row">⏱ ${UI.isEn ? "to border" : "do granicy"} <b>${etaRangeTxt(e.borderLo, e.border)}</b>${
+              e.voiv != null ? ` · ${UI.isEn ? "to" : "do woj."} ${esc(UI.voiv(e.voivName))} <b>${etaRangeTxt(e.voivLo, e.voiv)}</b>` : ""}</div>`
           : ""; })()}
       ${localPlaceHtml(t)}
       ${isApproxPosition(t) ? `<div class="meta">${approxPositionNote(t)}</div>` : ""}
       <div class="meta">${UI.isEn ? "confidence" : "wiarygodność"}: ${esc(UI.confidence(t.confidenceLevel, CONF_PL[t.confidenceLevel] || t.confidenceLevel))}
-        · ±${esc(t.uncertaintyKm)} km · ${esc(threatDesc(t))} · ${relTime(t.updatedAt)}</div>
+        · ±${esc(shownUncertaintyKm(t) ?? "?")} km · ${esc(threatDesc(t))} · ${relTime(t.updatedAt)}</div>
     </div>`;
   }).join("");
 
@@ -2493,9 +2544,10 @@ function sigHTML(s) {
   // czas dolotu policzony przy sygnale — dla regionu użytkownika, a gdy go brak,
   // to do granicy; „ile mam czasu" jest ważniejsze niż „ile to kilometrów"
   const mineV = myVoiv();
-  const etaV = mineV && d.eta_voiv_min ? d.eta_voiv_min[mineV] : null;
+  const etaV = agedEta(mineV && d.eta_voiv_min ? d.eta_voiv_min[mineV] : null, s.ts);
+  const etaB = agedEta(d.eta_border_min, s.ts);
   if (!signalApprox && etaV != null) extra.push(`⏱ ${etaTxt(etaV)} ${UI.isEn ? "to" : "do woj."} ${UI.voiv(mineV)}`);
-  else if (!signalApprox && d.eta_border_min != null) extra.push(`⏱ ${etaTxt(d.eta_border_min)} ${UI.isEn ? "to border" : "do granicy"}`);
+  else if (!signalApprox && etaB != null) extra.push(`⏱ ${etaTxt(etaB)} ${UI.isEn ? "to border" : "do granicy"}`);
   let shownTitle = s.title;
   // Tytuły, które PISZEMY SAMI (alarm obwodu UA, przeniesienie od sąsiada), muszą
   // iść za językiem interfejsu — serwer zapisuje je po polsku, więc w wersji
@@ -2716,13 +2768,13 @@ const SOURCE_INFO = {
   },
   "RCB": {
     co: "Oficjalne Alerty RCB z Regionalnego Systemu Ostrzegania (RSO) — te same "
-      + "komunikaty, które przychodzą SMS-em, z listą województw. Jedyne oficjalne "
-      + "źródło w tym zestawie i jedyne, które samo podnosi poziom alarmu. Dioda "
+      + "komunikaty, które przychodzą SMS-em, z listą województw. Najważniejsze "
+      + "oficjalne źródło w tym zestawie i jedyne, które samo podnosi poziom alarmu. Dioda "
       + "pokazuje, czy RSO odpowiedziało w ostatnich minutach. Strona gov.pl/rcb "
       + "jest czytana tylko pomocniczo, bez punktów.",
     coEn: "Official RCB alerts from the Regional Warning System (RSO) — the same "
-      + "messages that arrive by text, with the list of provinces. The only official "
-      + "source in this set and the only one that raises the alert level on its own. "
+      + "messages that arrive by text, with the list of provinces. The most important "
+      + "official source in this set and the only one that raises the alert level on its own. "
       + "The light shows whether RSO has responded in the last few minutes. The "
       + "gov.pl/rcb page is read only as a reference, without points.",
     czerwona: "RSO nie odpowiada od kilku minut albo zwróciło dane, których nie da "
@@ -3779,7 +3831,7 @@ function showHistoryAt(idx) {
           type: TYPE_META[t.type] ? t.type : "unknown", heading: t.heading ?? 0,
           hdg_unknown: t.heading == null || t.pl_assessment?.heading_known === false,
           color: (TYPE_META[t.type] || {}).color || "#8a93a6",
-          confidence: t.confidenceLevel || "?", uncertainty: t.uncertaintyKm ?? "?",
+          confidence: t.confidenceLevel || "?", uncertainty: shownUncertaintyKm(t) ?? "?",
           opis: t.historicalOnly
             ? `${threatLabelPL(t.type)} — ostatnia pozycja z sygnału; obiekt nie występował już w tej migawce`
             : threatDesc(t),
@@ -3804,7 +3856,8 @@ function showHistoryAt(idx) {
     for (const v of ALL_VOIVS) {
       const sc = perVoiv[v] || 0;
       map.setFeatureState({ source: "voiv", id: v },
-        { score: Math.min(sc, 8), level: sc >= 4 ? "high" : sc >= 2 ? "elevated" : "none", spill: false });
+        { score: Math.min(sc, 8), level: sc >= 4 ? "high" : sc >= 2 ? "elevated" : "none",
+          spill: !!h?.spill?.[v] });
     }
   }
 
@@ -4200,8 +4253,9 @@ function showUpdateBanner(rel, local) {
       }
       btn.disabled = true;
       btn.textContent = UI.isEn ? "Downloading…" : "Pobieram…";
-      progress.textContent = UI.isEn ? "Checking the signature and SHA-256…"
-                                     : "Sprawdzam podpis i sumę SHA-256…";
+      // aplikacja sprawdza sumę SHA-256 z wydania; podpis weryfikuje Android przy instalacji
+      progress.textContent = UI.isEn ? "Checking the SHA-256 checksum…"
+                                     : "Sprawdzam sumę kontrolną SHA-256…";
       await plugin.installUpdate({url: rel.url, sha256: rel.sha256});
       progress.textContent = UI.isEn ? "Confirm the install in the Android dialog."
                                      : "Potwierdź instalację w oknie Androida.";

@@ -230,7 +230,8 @@ async def api_history(at: str | None = None, hours: int = 12):
              if s.get("event_type") in ("ua_alert_border", "ua_alert_end")], ref)
     # ten sam limit klasy źródła co fuzja na żywo — bez tego historia sumowała
     # surowe punkty (np. 4 rutynowe strefy PAŻP = fałszywe 4.0 zamiast 1.0)
-    per_voiv = fusion.accumulate(sigs, ref)
+    # …i z przeniesieniem od sąsiadów, jak stan na żywo (audyt A11/C10)
+    per_voiv = fusion.apply_spillover(fusion.accumulate(sigs, ref), ref)
     scores = {v: round(st["score"], 1) for v, st in per_voiv.items() if st["score"] > 0}
     annotated = [sig for st in per_voiv.values() for sig in st["signals"]]
     annotated.sort(key=lambda s: s["ts"], reverse=True)

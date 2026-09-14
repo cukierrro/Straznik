@@ -194,7 +194,8 @@ def build_timeline(hours: int = 12) -> dict:
             win += fusion.active_ua_alerts(
                 [s for sig_t, s in parsed if sig_t <= t
                  and s.get("event_type") in ("ua_alert_border", "ua_alert_end")], t)
-            per_voiv = fusion.accumulate(win, t)
+            # z przeniesieniem od sąsiadów, jak stan na żywo (audyt A11/C10)
+            per_voiv = fusion.apply_spillover(fusion.accumulate(win, t), t)
             scores = {v: st["score"] for v, st in per_voiv.items() if st["score"] > 0}
             best = max(scores.values()) if scores else 0.0
             _timeline_points[ts] = {"ts": ts, "score": round(best, 1),

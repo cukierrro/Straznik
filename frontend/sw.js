@@ -16,8 +16,12 @@ self.addEventListener("fetch", (e) => {
   if (e.request.method !== "GET" || e.request.url.includes("/api/")) return;
   e.respondWith(
     fetch(e.request).then(r => {
-      const copy = r.clone();
-      caches.open(CACHE).then(c => c.put(e.request, copy)).catch(() => {});
+      // audyt C14: tylko udane odpowiedzi — zapisana strona błędu (404/503) była
+      // potem podawana offline zamiast ostatniej działającej wersji
+      if (r.ok) {
+        const copy = r.clone();
+        caches.open(CACHE).then(c => c.put(e.request, copy)).catch(() => {});
+      }
       return r;
     }).catch(() => caches.match(e.request))
   );
