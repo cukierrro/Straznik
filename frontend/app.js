@@ -1908,10 +1908,15 @@ function updateVoivStates() {
    takich pozycji pokazujemy co najmniej 12 km — nie udajemy precyzji, której
    nie ma. Tylko wyświetlanie; punktacja używa pól źródła bez zmian. */
 const APPROX_MIN_UNCERTAINTY_KM = 12;
+/* Audyt G8: rakiety, KAB i balistyka mają w danych NEPTUN pozycję przybliżoną
+   w 94–100% i nigdy kursu — to meldunek o rejonie, nie namiar. Pokazujemy szerszy
+   rejon (25 km), żeby punkt na mapie nie udawał miejsca, w którym leci pocisk. */
+const FAST_TYPES_AREA_KM = 25, FAST_TYPES = new Set(["missile", "cruise", "ballistic", "kab"]);
 function shownUncertaintyKm(t) {
   const raw = Number(t?.uncertaintyKm);
   const km = Number.isFinite(raw) && raw > 0 ? raw : null;
-  if (isApproxPosition(t)) return Math.max(km ?? 0, APPROX_MIN_UNCERTAINTY_KM);
+  if (isApproxPosition(t)) return Math.max(km ?? 0,
+    FAST_TYPES.has(t?.type) ? FAST_TYPES_AREA_KM : APPROX_MIN_UNCERTAINTY_KM);
   return km;
 }
 /* okrąg geograficzny (przybliżony) do wizualizacji uncertaintyKm */
@@ -1932,8 +1937,34 @@ function circleCoords(lat, lon, km) {
 const localTrails = new Map();   // id -> [{lat, lon, t}]
 const TRAIL_MIN_KM = 0.7, TRAIL_MAX_PTS = 60;
 
+/* Audyt G9: identyfikator NEPTUN żyje zwykle ~6 min, a ten sam fizyczny obiekt
+   wraca pod nowym id. Trasa urywała się przy każdej zmianie. Nowy obiekt tego
+   samego typu, który pojawia się do 10 min po zniknięciu poprzednika w zasięgu
+   „prędkość typowa × czas + niepewność + 10 km”, przejmuje jego trasę. Tylko
+   rysowanie — punkty i sygnały dalej liczą się po identyfikatorach źródła. */
+const endedTrails = new Map();   // id -> {type, pts, endedAt}
+const endedType = new Map();     // id -> ostatni znany typ (znikający obiekt nie ma go już w paczce)
+const TRAIL_JOIN_MS = 10 * 60000;
+function inheritTrail(t, now) {
+  let best = null;
+  for (const [id, e] of endedTrails) {
+    if (now - e.endedAt > TRAIL_JOIN_MS) { endedTrails.delete(id); continue; }
+    if (e.type !== t.type || !e.pts.length) continue;
+    const last = e.pts[e.pts.length - 1];
+    const km = Math.hypot((t.lat - last.lat) * 110.57,
+      (t.lon - last.lon) * 111.32 * Math.cos(t.lat * Math.PI / 180));
+    const reach = (TYPE_SPEED_KMH[t.type] || 180) * (now - e.endedAt) / 3600000
+      + (Number(t.uncertaintyKm) || 0) + 10;
+    if (km <= reach && (!best || km < best.km)) best = { id, km, pts: e.pts };
+  }
+  if (!best) return null;
+  endedTrails.delete(best.id);
+  return best.pts.slice(-TRAIL_MAX_PTS);
+}
+
 function recordTrails(threats) {
   const alive = new Set();
+  const now = Date.now();
   for (const t of threats) {
     if (t.lat == null || !t.id) continue;
     if (isApproxPosition(t)) {
@@ -1941,6 +1972,10 @@ function recordTrails(threats) {
       continue;
     }
     alive.add(t.id);
+    if (!localTrails.has(t.id)) {
+      const inherited = inheritTrail(t, now);
+      if (inherited) localTrails.set(t.id, inherited);
+    }
     const arr = localTrails.get(t.id) || [];
     const last = arr[arr.length - 1];
     const far = !last || Math.hypot((t.lat - last.lat) * 110.57,
@@ -1951,7 +1986,13 @@ function recordTrails(threats) {
       localTrails.set(t.id, arr);
     }
   }
-  for (const id of localTrails.keys()) if (!alive.has(id)) localTrails.delete(id);
+  const types = new Map(threats.map(t => [t.id, t.type]));
+  for (const [id, pts] of localTrails) if (!alive.has(id)) {
+    if (pts.length) endedTrails.set(id, { type: types.get(id) ?? endedType.get(id), pts, endedAt: now });
+    localTrails.delete(id);
+  }
+  for (const t of threats) if (t.id) endedType.set(t.id, t.type);
+  if (endedType.size > 2000) endedType.clear();
 }
 
 /* Ślad przelotu: Neptun powtarza w `trail` tę samą pozycję przy każdej

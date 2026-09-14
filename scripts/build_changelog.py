@@ -16,6 +16,23 @@ DOCS = ROOT / "docs"
 # (wersja, data PL, data EN, tytuł PL, tytuł EN, punkty PL, punkty EN, zrzuty)
 # Zrzut: (plik, alt PL, alt EN, podpis PL, podpis EN)
 RELEASES = [
+    ("1.7.48", "14 września 2026", "14 September 2026",
+     "Dokładniejsza granica, uczciwy czas dolotu i tryb awaryjny",
+     "More accurate border, honest arrival times and emergency mode",
+     ["Odległość obiektu liczymy do rzeczywistego konturu Polski, razem z wybrzeżem: obiekt nad Polską ma „nad Polską”, a kurs porównujemy z całym krajem, a nie z najbliższym punktem granicy.",
+      "Kurs „kursem na X” podany przez NEPTUN jako domniemany nie uruchamia już alarmu czasu dolotu, dopóki ruch obiektu go nie potwierdzi; drony odrzutowe (Geran-3) liczymy przy 450 km/h albo zmierzonej prędkości.",
+      "Czas dolotu w karcie to przedział uwzględniający niepewność pozycji i wiek danych; na liście sygnałów starzeje się razem z sygnałem.",
+      "Znaczniki nie jeżdżą po mapie bez zmierzonego ruchu, przybliżone pozycje mają szerszy okrąg, a trasa obiektu nie urywa się przy zmianie identyfikatora.",
+      "Historia pokazuje przeniesienia od sąsiednich województw, a tryb awaryjny ma stały znacznik, że bez serwera alarmy nie przyjdą przy zamkniętej aplikacji.",
+      "W „O aplikacji” nowa lista tego, czego system nie widzi: rakiety balistyczne, kierunek białoruski, Kaliningrad i Bałtyk."],
+     ["Object distance is measured to Poland's actual outline, including the coast: an object over Poland shows “over Poland”, and its heading is compared with the whole country, not the nearest border point.",
+      "A presumed NEPTUN heading (“towards X”) no longer triggers the arrival-time alert until the object's movement confirms it; jet drones (Geran-3) are counted at 450 km/h or their measured speed.",
+      "The card shows arrival time as a range that allows for position uncertainty and data age; in the signal list it ages with the signal.",
+      "Markers no longer drift without measured movement, approximate positions get a wider circle, and an object's track no longer breaks when its ID changes.",
+      "History includes transfers from neighbouring provinces, and emergency mode shows a permanent badge that alerts will not arrive while the app is closed without the server.",
+      "About now lists what the system cannot see: ballistic missiles, the Belarusian direction, Kaliningrad and the Baltic."],
+     []),
+
     ("1.7.47", "14 września 2026", "14 September 2026",
      "Jaśniejszy komunikat o MiG-31K i stabilny pasek historii",
      "Clearer MiG-31K notice and a steady history bar",

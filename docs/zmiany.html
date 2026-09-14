@@ -39,6 +39,18 @@
   <p class="fineprint">Wersję zainstalowaną na telefonie sprawdzisz w aplikacji: <kbd>⚙</kbd> → zakładka <kbd>Aplikacja</kbd> → „Wersja aplikacji”. Tam też jest przycisk <kbd>⬆ Sprawdź aktualizacje</kbd>.</p>
 </div></header>
 <main id="content" class="wrap">
+<section id="v1-7-48">
+  <h2>1.7.48 — Dokładniejsza granica, uczciwy czas dolotu i tryb awaryjny</h2>
+  <p class="fineprint">Wydanie 1.7.48 · 14 września 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.48">Pełny opis wydania</a></p>
+  <ul>
+    <li>Odległość obiektu liczymy do rzeczywistego konturu Polski, razem z wybrzeżem: obiekt nad Polską ma „nad Polską”, a kurs porównujemy z całym krajem, a nie z najbliższym punktem granicy.</li>
+    <li>Kurs „kursem na X” podany przez NEPTUN jako domniemany nie uruchamia już alarmu czasu dolotu, dopóki ruch obiektu go nie potwierdzi; drony odrzutowe (Geran-3) liczymy przy 450 km/h albo zmierzonej prędkości.</li>
+    <li>Czas dolotu w karcie to przedział uwzględniający niepewność pozycji i wiek danych; na liście sygnałów starzeje się razem z sygnałem.</li>
+    <li>Znaczniki nie jeżdżą po mapie bez zmierzonego ruchu, przybliżone pozycje mają szerszy okrąg, a trasa obiektu nie urywa się przy zmianie identyfikatora.</li>
+    <li>Historia pokazuje przeniesienia od sąsiednich województw, a tryb awaryjny ma stały znacznik, że bez serwera alarmy nie przyjdą przy zamkniętej aplikacji.</li>
+    <li>W „O aplikacji” nowa lista tego, czego system nie widzi: rakiety balistyczne, kierunek białoruski, Kaliningrad i Bałtyk.</li>
+  </ul>
+</section>
 <section id="v1-7-47">
   <h2>1.7.47 — Jaśniejszy komunikat o MiG-31K i stabilny pasek historii</h2>
   <p class="fineprint">Wydanie 1.7.47 · 14 września 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.47">Pełny opis wydania</a></p>
