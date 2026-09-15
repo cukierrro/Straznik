@@ -195,7 +195,32 @@ async def _handle_alerts(data, now: float | None = None):
         if oblast not in active:
             _absent_since.setdefault(oblast, now)
     alert_oblasts = set(active)
+    _set_alert_areas(data)
     await _finish_ended(now)
+
+
+# Wszystkie aktywne alarmy z ramki `alerts` (cała Ukraina, rejony i obwody) — tylko
+# do podświetlenia na mapie, BEZ punktów (decyzja usera 15.09.2026). Punktowane są
+# nadal wyłącznie obwody z config.UA_ALERT_OBLASTS przez _active_alerts.
+alert_areas: list[dict] = []
+
+
+def _set_alert_areas(data) -> None:
+    global alert_areas
+    out = []
+    for field, kind in (("raions", "raion"), ("oblasts", "oblast")):
+        for item in (data or {}).get(field) or []:
+            if not isinstance(item, dict):
+                continue
+            level = str(item.get("level") or "").lower()
+            if level in _ALERT_LEVELS_OFF:
+                continue
+            reasons = item.get("reasons") if isinstance(item.get("reasons"), list) else []
+            out.append({"w": kind, "k": str(item.get("key") or "")[:60],
+                        "n": str(item.get("name") or "")[:80], "o": str(item.get("oblast") or "")[:60],
+                        "l": level[:10], "s": item.get("since") if isinstance(item.get("since"), str) else None,
+                        "r": str(reasons[0])[:80] if reasons else ""})
+    alert_areas = out
 
 
 def restore_episodes(now: datetime | None = None):
@@ -890,4 +915,5 @@ def public_state() -> dict:
         "status": {k: status[k] for k in ("connected", "mode", "last_msg")},
         "threats": list(tracks.values()),
         "alert_oblasts": sorted(alert_oblasts),
+        "alert_areas": alert_areas,
     }
