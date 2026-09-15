@@ -484,6 +484,24 @@ body.history-mode #my-banner { display: none; }
 dialog label.set-check { display: flex; gap: 10px; align-items: center; margin: 10px 0 6px;
   color: var(--text); font-size: 14px; }
 dialog .set-check input { width: 20px; height: 20px; flex: 0 0 20px; margin: 0; padding: 0; }
+/* Suwak jak w ustawieniach Androida (15.09.2026). Prawdziwy checkbox zostaje (klawiatura,
+   czytniki ekranu, role="switch"), ale jest niewidoczny nad narysowanym torem. */
+dialog label.set-switch { position: relative; display: flex; align-items: center; gap: 12px;
+  justify-content: space-between; margin: 10px 0 6px; padding: 10px 12px; border-radius: 12px;
+  background: rgba(255,255,255,.04); border: 1px solid var(--panel-border); cursor: pointer; }
+dialog .set-switch .sw-text { display: flex; flex-direction: column; gap: 2px; min-width: 0;
+  font-size: 14px; color: var(--text); }
+dialog .set-switch .sw-text b { font-weight: 600; }
+dialog .set-switch .sw-text .muted { font-size: 12px; }
+dialog .set-switch input { position: absolute; opacity: 0; width: 52px; height: 30px; right: 12px;
+  margin: 0; cursor: pointer; }
+dialog .set-switch .sw-track { position: relative; flex: 0 0 52px; height: 30px; border-radius: 15px;
+  background: #3a4458; transition: background .15s; }
+dialog .set-switch .sw-track::after { content: ""; position: absolute; top: 3px; left: 3px; width: 24px;
+  height: 24px; border-radius: 50%; background: #c9d1dc; transition: transform .15s, background .15s; }
+dialog .set-switch input:checked + .sw-track { background: #2f6fd6; }
+dialog .set-switch input:checked + .sw-track::after { transform: translateX(22px); background: #fff; }
+dialog .set-switch input:focus-visible + .sw-track { outline: 2px solid var(--accent); outline-offset: 2px; }
 /* audyt C11: biały na #ff4d5e miał kontrast 3,24:1 (poniżej WCAG AA) */
 .alarm-btn {
   width: 100%; margin-top: 14px; padding: 15px 12px; border-radius: 12px;

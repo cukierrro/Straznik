@@ -16,6 +16,19 @@ DOCS = ROOT / "docs"
 # (wersja, data PL, data EN, tytuł PL, tytuł EN, punkty PL, punkty EN, zrzuty)
 # Zrzut: (plik, alt PL, alt EN, podpis PL, podpis EN)
 RELEASES = [
+    ("1.7.50", "15 września 2026", "15 September 2026",
+     "Suwak „Alarmy na tym telefonie” z potwierdzeniem",
+     "“Alerts on this phone” switch with confirmation",
+     ["Wyłączenie alarmów nie ginie już po zamknięciu aplikacji przez Androida — wcześniej po ponownym uruchomieniu telefon zapisywał się z powrotem do województwa.",
+      "Zamiast pola „Nie chcę alarmów” jest suwak „Alarmy na tym telefonie”, jak w ustawieniach Androida.",
+      "Po wyłączeniu telefon wypisuje się ze wszystkich województw, a status pokazuje, do ilu jest zapisany — z potwierdzeniem z Firebase. Nawet gdyby alarm dotarł przed wypisaniem, telefon go nie pokaże.",
+      "Przy wyłączonych alarmach testy dźwięku i alarmu nie udają już, że alarm zadziała, tylko mówią, jak włączyć alarmy."],
+     ["Turning alerts off is no longer lost when Android closes the app — previously the phone re-subscribed to its province on the next start.",
+      "The “I don't want alerts” box is now an “Alerts on this phone” switch, as in Android settings.",
+      "When switched off, the phone unsubscribes from every province and the status shows how many it is subscribed to, confirmed by Firebase. Even an alert that arrives before the unsubscription is not shown.",
+      "With alerts off, the sound and alert tests no longer pretend an alert would work; they say how to turn alerts on."],
+     []),
+
     ("1.7.49", "14 września 2026", "14 September 2026",
      "Mniej fałszywych sygnałów z mediów",
      "Fewer false media signals",

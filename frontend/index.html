@@ -53,7 +53,7 @@ document.documentElement.classList.add(
 <link rel="icon" type="image/png" sizes="512x512" href="assets/icon-512.png">
 <link rel="apple-touch-icon" href="assets/icon-192.png">
 <link rel="stylesheet" href="assets/vendor/maplibre-gl.css">
-<link rel="stylesheet" href="style.css?v=1.7.49-1">
+<link rel="stylesheet" href="style.css?v=1.7.50-1">
 </head>
 <body>
 
@@ -584,8 +584,13 @@ document.documentElement.classList.add(
     Wymaga to działającego serwera: w trybie awaryjnym (serwer niedostępny) alarmy
     przychodzą tylko przy otwartej aplikacji.</p>
     <div id="bg-status" class="fineprint"></div>
-    <label class="set-check app-only"><input type="checkbox" id="set-alerts-off">
-      <span id="alerts-off-label">Nie chcę alarmów na tym telefonie — tylko podgląd mapy</span></label>
+    <!-- Suwak zamiast pola wyboru (prośba usera 15.09.2026, jak w ustawieniach Androida).
+         Włączony = alarmy przychodzą; wyłączony = telefon wypisany ze wszystkich województw. -->
+    <label class="set-switch app-only" for="set-alerts-on">
+      <span class="sw-text"><b id="alerts-on-label">Alarmy na tym telefonie</b>
+        <span class="muted" id="alerts-on-note">Wyłącz, jeśli chcesz tylko oglądać mapę</span></span>
+      <input type="checkbox" role="switch" id="set-alerts-on" checked>
+      <span class="sw-track" aria-hidden="true"></span></label>
     <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
       <button type="button" id="btn-notif-settings" class="chip">🔔 Ustawienia powiadomień</button>
       <button type="button" id="btn-fullscreen" class="chip" style="display:none">🚨 Zgoda na alarm pełnoekranowy</button>
@@ -629,8 +634,10 @@ document.documentElement.classList.add(
     <div id="native-sound" class="app-only">
       <h3 style="margin-top:16px" id="ns-head">Alarm natywny i głośność</h3>
       <div class="fineprint" id="ns-volume"></div>
-      <label class="set-check"><input type="checkbox" id="set-force-volume">
-        <span id="ns-label">Czerwony alarm zawsze na pełnej głośności</span></label>
+      <label class="set-switch" for="set-force-volume">
+        <span class="sw-text"><b id="ns-label">Czerwony alarm zawsze na pełnej głośności</b></span>
+        <input type="checkbox" role="switch" id="set-force-volume">
+        <span class="sw-track" aria-hidden="true"></span></label>
       <div class="fineprint" id="ns-note">Syrena gra na suwaku głośności <b>„Alarmy”</b>
         (nie „Dzwonek” ani „Multimedia”). Czerwony alarm podnosi go <b>co najmniej do połowy</b>,
         żeby syrena nie była cicha. Opcja wyżej jest domyślnie <b>wyłączona</b> — po jej włączeniu
@@ -733,13 +740,13 @@ document.documentElement.classList.add(
      Cloudflare, więc po każdym wydaniu wystarczy podbić ?v= i przeglądarki
      dostają nowe app.js/engine.js OD RAZU, bez ręcznego czyszczenia cache CF.
      Podbijaj ?v= razem z versionName w build.gradle. -->
-<script src="i18n.js?v=1.7.49-1"></script>
+<script src="i18n.js?v=1.7.50-1"></script>
 <!-- kontur Polski dla engine.js (audyt A2b, scripts/build_pl_outline.py) -->
-<script src="pl-outline.js?v=1.7.49-1"></script>
-<script src="engine.js?v=1.7.49-1"></script>
+<script src="pl-outline.js?v=1.7.50-1"></script>
+<script src="engine.js?v=1.7.50-1"></script>
 <script src="aircraft-photo-catalog.js?v=1.7.19"></script>
 <script src="aircraft-photos.js?v=1.7.19"></script>
 <script src="places.js?v=1.7.19-4"></script>
-<script src="app.js?v=1.7.49-1"></script>
+<script src="app.js?v=1.7.50-1"></script>
 </body>
 </html>

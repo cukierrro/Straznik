@@ -55,6 +55,8 @@ class Alarms {
     // odblokowaniem (audyt B6): push po nocnym restarcie telefonu musi je odczytać.
     static final String PREFS = "straznik_native";
     static final String KEY_FORCE_VOLUME = "force_max_volume";
+    /** Użytkownik wyłączył „Alarmy na tym telefonie” — usługa FCM odrzuca alarmy. */
+    static final String KEY_ALERTS_OFF = "alerts_off";
     private static final String KEY_SAVED_VOLUME = "saved_alarm_volume";
 
     /**

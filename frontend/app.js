@@ -3996,7 +3996,8 @@ function syncObservedRegions() {
   const regions=alertsOff()?[]:(Places?.observedVoivodeships(savedPlaces)||[]);
   if(!IS_APP) syncBrowserPushRegion().catch(()=>{});
   const plugin=BG();
-  if(plugin?.setObservedVoivodeships) return plugin.setObservedVoivodeships({voivodeships:regions});
+  // alertsOff trafia też do usługi FCM (odrzuca alarmy, zanim wypisanie dotrze do Firebase)
+  if(plugin?.setObservedVoivodeships) return plugin.setObservedVoivodeships({voivodeships:regions, alertsOff:alertsOff()});
   return plugin?.setHomeVoivodeship?.({voivodeship:myVoiv()||""});
 }
 function renderPlacesSummary() {
@@ -4007,6 +4008,8 @@ function renderPlacesSummary() {
 }
 function openSettings() {
   UI.previewSettings?.(UI.lang || "pl");
+  const alertsBox = document.getElementById("set-alerts-on");
+  if (alertsBox) alertsBox.checked = !alertsOff();
   refreshBgStatus();
   const sel = document.getElementById("set-voiv");
   sel.innerHTML = `<option value="">— ${UI.isEn ? "not selected" : "nie wybrano"} —</option>` +
@@ -4375,12 +4378,24 @@ async function refreshBgStatus(previewLang = UI.lang) {
         : (isEn ? "🚨 Check full-screen alert permission" : "🚨 Sprawdź zgodę na alarm pełnoekranowy");
     }
     renderNativeSound(s, isEn);
+    // Stan subskrypcji potwierdzony przez Firebase — dowód, że wyłączenie działa
+    // (15.09.2026: sam przełącznik nic nie pokazywał, a test lokalny dalej grał).
+    const slug = v => "voiv_" + v.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/ł/g, "l");
+    const subscribed = ALL_VOIVS.filter(v => (s.topicsConfirmed || []).includes(slug(v)));
+    const subLine = s.topicsUnsubscribing
+      ? (isEn ? "⏳ Unsubscribing this phone from provinces…" : "⏳ Wypisywanie telefonu z województw…")
+      : subscribed.length
+      ? (isEn ? `Subscribed to alerts for: ${subscribed.map(v => esc(UI.voiv(v))).join(", ")} (confirmed by Firebase).`
+        : `Zapisany do alarmów dla: ${subscribed.map(v => esc(UI.voiv(v))).join(", ")} (potwierdzone przez Firebase).`)
+      : (isEn ? "This phone is not subscribed to any province (confirmed by Firebase)."
+        : "Telefon nie jest zapisany do żadnego województwa (potwierdzone przez Firebase).");
     if (alertsOff()) warn.splice(0, warn.length, isEn
-      ? "🔕 Alerts are turned off on this phone — no notifications will arrive. Uncheck the box below to turn them back on."
-      : "🔕 Alarmy są wyłączone na tym telefonie — powiadomienia nie przyjdą. Odznacz pole niżej, żeby je przywrócić.");
+      ? "🔕 Alerts are turned off on this phone — no alert notifications will arrive, even if the server sends one. Turn the switch below back on to restore them."
+      : "🔕 Alarmy są wyłączone na tym telefonie — powiadomienia o alarmach nie przyjdą, nawet gdyby serwer je wysłał. Włącz suwak niżej, żeby je przywrócić.");
     if (info) info.innerHTML = (warn.join("<br>")
       || (isEn ? "Notifications ready. Alerts for your region will arrive even while the app is closed."
         : "Powiadomienia gotowe. Alarmy dla Twojego regionu dotrą także przy zamkniętej aplikacji."))
+      + `<br>${subLine}`
       + `<br><span class="muted">Android ${s.sdk}, ${esc(s.manufacturer || "")}`
       + `${s.homeVoivodeship ? " · region: " + esc(UI.voiv(s.homeVoivodeship)) : ""}</span>`;
   } catch (e) { if (info) info.textContent = (isEn ? "Could not read status: " : "Nie udało się odczytać stanu: ") + e; }
@@ -4462,15 +4477,18 @@ async function refreshNativeSound() {
   const plugin = BG(); if (!plugin) return;
   try { renderNativeSound(await plugin.status()); } catch {}
 }
-const alertsOffBox = document.getElementById("set-alerts-off");
-if (alertsOffBox) {
-  alertsOffBox.checked = alertsOff();
-  alertsOffBox.addEventListener("change", async (e) => {
-    const off = e.target.checked;
+/* Suwak „Alarmy na tym telefonie” (15.09.2026 zamiast pola „Nie chcę alarmów”):
+   włączony = alarmy przychodzą. Stan wypisania pokazuje status nad suwakiem —
+   z potwierdzeniem z Firebase, a nie z samego zapisu w aplikacji. */
+const alertsOnBox = document.getElementById("set-alerts-on");
+if (alertsOnBox) {
+  alertsOnBox.checked = !alertsOff();
+  alertsOnBox.addEventListener("change", async (e) => {
+    const off = !e.target.checked;
     if (off && !confirm(UI.isEn
-      ? "Turn off alerts on this phone?\n\nStrażnik will stop sending notifications to this phone and will not remind you about permissions. The map keeps working. You can turn alerts back on here."
-      : "Wyłączyć alarmy na tym telefonie?\n\nStrażnik przestanie wysyłać powiadomienia na ten telefon i nie będzie przypominał o zgodach. Mapa działa dalej. Alarmy włączysz z powrotem tutaj.")) {
-      e.target.checked = false;
+      ? "Turn off alerts on this phone?\n\nThis phone will be unsubscribed from every province, so no alert notifications will arrive and Strażnik will not remind you about permissions. The map keeps working.\n\nAndroid notification permissions stay as they are — the app cannot change them; you can switch them off in system settings."
+      : "Wyłączyć alarmy na tym telefonie?\n\nTelefon zostanie wypisany ze wszystkich województw, więc powiadomienia o alarmach nie przyjdą, a Strażnik nie będzie przypominał o zgodach. Mapa działa dalej.\n\nZgody na powiadomienia w ustawieniach Androida zostają bez zmian — aplikacja nie może ich zmienić; wyłączysz je w ustawieniach systemu.")) {
+      e.target.checked = true;
       return;
     }
     try {
@@ -4479,6 +4497,8 @@ if (alertsOffBox) {
     } catch {}
     try { await syncObservedRegions(); } catch {}
     refreshBgStatus(); refreshBgWarning();
+    // potwierdzenie z Firebase przychodzi po chwili — odświeżamy status jeszcze dwa razy
+    setTimeout(() => refreshBgStatus(), 3000); setTimeout(() => refreshBgStatus(), 9000);
     toast(off ? (UI.isEn ? "🔕 Alerts are off on this phone. The map keeps working." : "🔕 Alarmy wyłączone na tym telefonie. Mapa działa dalej.")
       : (UI.isEn ? "🔔 Alerts are on again for your places." : "🔔 Alarmy znów włączone dla Twoich miejsc."), 6000);
   });
@@ -4502,8 +4522,19 @@ document.getElementById("set-force-volume")?.addEventListener("change", async (e
   refreshNativeSound();
 });
 document.getElementById("btn-sound-settings")?.addEventListener("click", () => BG()?.openSoundSettings?.());
+/* Przy wyłączonych alarmach test nie może udawać, że alarm zadziała (15.09.2026:
+   „test 5 s przechodzi”, choć telefon był wypisany — test jest lokalny, bez FCM). */
+function blockedByAlertsOff() {
+  if (!alertsOff()) return false;
+  // alert(), nie toast: toast chował się pod otwartym oknem ustawień (sprawdzone na emulatorze)
+  alert(UI.isEn
+    ? "🔕 Alerts are off on this phone, so no alert would arrive.\n\nTurn on “Alerts on this phone” in the Alerts tab to test."
+    : "🔕 Alarmy są wyłączone na tym telefonie, więc alarm by nie przyszedł.\n\nWłącz „Alarmy na tym telefonie” w zakładce Alarmy, żeby przetestować.");
+  return true;
+}
 async function nativeTest(level) {
   const plugin = BG(); if (!plugin?.testNativeAlarm) return;
+  if (blockedByAlertsOff()) return;
   document.getElementById("settings").close();
   await plugin.testNativeAlarm({ level, delayMs: 5000, voivodeship: myVoiv() || "lubelskie" });
   toast(UI.isEn ? "Test alert in 5 seconds — you can lock the screen now."
@@ -4528,9 +4559,10 @@ for (const kind of ["neptun", "adsb"]) {
 const aboutDlg = document.getElementById("about");
 document.getElementById("btn-about").onclick = () => aboutDlg.showModal();
 document.getElementById("about-close").onclick = () => aboutDlg.close();
-document.getElementById("btn-test-chime").onclick = () => attentionChime();
-document.getElementById("btn-test-siren").onclick = () => airRaidSiren(false);
+document.getElementById("btn-test-chime").onclick = () => { if (IS_APP && blockedByAlertsOff()) return; attentionChime(); };
+document.getElementById("btn-test-siren").onclick = () => { if (IS_APP && blockedByAlertsOff()) return; airRaidSiren(false); };
 document.getElementById("btn-test-alarm").onclick = () => {
+  if (IS_APP && blockedByAlertsOff()) return;
   document.getElementById("settings").close();
   const mine = myVoiv() || "lubelskie";
   showAlarm(mine, state?.fusion?.voivodeships?.[mine]
@@ -4747,6 +4779,23 @@ setInterval(refreshBgWarning, 60000);
    województwo we wcześniejszej wersji i po aktualizacji nie zajrzał do ustawień,
    miał pusty region — a wtedy telefon subskrybował tylko cztery tematy
    przygraniczne i nie dostawał pusha o własnym województwie. */
-setTimeout(() => syncObservedRegions(), 2500);
+/* Stan „Alarmy na tym telefonie” najpierw z pamięci natywnej: localStorage WebView
+   zapisuje się z opóźnieniem i przy zamknięciu aplikacji wyłączenie ginęło, a start
+   zapisywał telefon z powrotem do województwa (zgłoszenie 15.09.2026). Wersje do
+   1.7.49 nie miały flagi natywnej — wtedy przenosimy do niej stan z localStorage. */
+async function restoreAlertsOff() {
+  const plugin = IS_APP ? BG() : null;
+  if (!plugin?.status) return;
+  try {
+    const s = await plugin.status();
+    if (s.alertsOffSet) {
+      if (s.alertsOff) localStorage.setItem(ALERTS_OFF_KEY, "1");
+      else localStorage.removeItem(ALERTS_OFF_KEY);
+    }
+  } catch {}
+  const box = document.getElementById("set-alerts-on");
+  if (box) box.checked = !alertsOff();
+}
+setTimeout(async () => { await restoreAlertsOff(); syncObservedRegions(); }, 2500);
 if ("serviceWorker" in navigator && !IS_APP)
   navigator.serviceWorker.register("sw.js").catch(() => {});

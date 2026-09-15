@@ -32,6 +32,12 @@ public class StraznikFcmService extends FirebaseMessagingService {
         String voivName = data.get("voiv");
         String level = data.get("level");
         if (voivName == null || level == null) return;
+        // Użytkownik wyłączył alarmy na tym telefonie. Wypisanie z tematów FCM dociera
+        // z opóźnieniem (albo wcale bez internetu), więc sprawdzamy to także tutaj.
+        if (Alarms.prefs(this).getBoolean(Alarms.KEY_ALERTS_OFF, false)) {
+            Log.i(TAG, "alarmy wyłączone na tym telefonie — pomijam " + voivName + "/" + level);
+            return;
+        }
 
         int voiv = -1;
         for (int i = 0; i < Alarms.VOIVS.length; i++)

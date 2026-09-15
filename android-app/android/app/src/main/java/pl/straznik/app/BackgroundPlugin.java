@@ -101,7 +101,15 @@ public class BackgroundPlugin extends Plugin {
             }
         }
         getContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
-            .putString(KEY_HOME, home).putStringSet(KEY_REGIONS, regions).apply();
+            .putString(KEY_HOME, home).putStringSet(KEY_REGIONS, regions).commit();
+        // „Alarmy na tym telefonie” wyłączone (zgłoszenie 14–15.09.2026): flaga w pamięci
+        // dostępnej przed odblokowaniem, żeby usługa FCM odrzucała alarmy także wtedy,
+        // gdy wypisanie z tematu jeszcze nie dotarło do Firebase.
+        // commit(), nie apply(): localStorage WebView zapisuje się z opóźnieniem i ginął
+        // przy zamknięciu aplikacji (sprawdzone na emulatorze 15.09.2026) — ta flaga jest
+        // źródłem prawdy, więc musi być na dysku, zanim wrócimy do JS.
+        Alarms.prefs(getContext()).edit()
+            .putBoolean(Alarms.KEY_ALERTS_OFF, Boolean.TRUE.equals(call.getBoolean("alertsOff", false))).commit();
         syncFcmSubscription(getContext());
         call.resolve();
     }
@@ -157,15 +165,33 @@ public class BackgroundPlugin extends Plugin {
         java.util.Set<String> current = new java.util.HashSet<>(
             p.getStringSet("topics", java.util.Collections.<String>emptySet()));
         FirebaseMessaging fm = FirebaseMessaging.getInstance();
-        for (String t : current) if (!target.contains(t)) fm.unsubscribeFromTopic(t);
         final java.util.Set<String> confirmed = java.util.Collections.synchronizedSet(new java.util.HashSet<>());
         final java.util.concurrent.atomic.AtomicInteger pending =
             new java.util.concurrent.atomic.AtomicInteger(target.size());
         if (target.isEmpty()) {
-            p.edit().putStringSet("topics", target).putLong("topics_ok_at", System.currentTimeMillis())
-                .putString("topics_error", "").apply();
+            // Wypisujemy ze WSZYSTKICH województw, nie tylko z zapamiętanych: starsze
+            // wersje zapisywały tematy bez utrwalenia listy. Stan „0 tematów” zapisujemy
+            // dopiero po potwierdzeniu przez FCM — ustawienia pokazują wtedy prawdę.
+            final java.util.concurrent.atomic.AtomicInteger left =
+                new java.util.concurrent.atomic.AtomicInteger(Alarms.VOIVS.length);
+            final java.util.concurrent.atomic.AtomicInteger failed = new java.util.concurrent.atomic.AtomicInteger();
+            p.edit().putString("topics_error", "").putBoolean("topics_unsubscribing", true).apply();
+            for (String v : Alarms.VOIVS) {
+                fm.unsubscribeFromTopic(voivTopic(v)).addOnCompleteListener(task -> {
+                    if (!task.isSuccessful()) failed.incrementAndGet();
+                    if (left.decrementAndGet() == 0) {
+                        android.content.SharedPreferences.Editor ed = p.edit().putBoolean("topics_unsubscribing", false);
+                        if (failed.get() == 0)
+                            ed.putStringSet("topics", target).putLong("topics_ok_at", System.currentTimeMillis())
+                              .putString("topics_error", "");
+                        else ed.putString("topics_error", "nie potwierdzono wypisania z " + failed.get() + " tematów");
+                        ed.apply();
+                    }
+                });
+            }
             return;
         }
+        for (String t : current) if (!target.contains(t)) fm.unsubscribeFromTopic(t);
         for (String t : target) {
             fm.subscribeToTopic(t).addOnCompleteListener(task -> {
                 if (task.isSuccessful()) confirmed.add(t);
@@ -200,6 +226,10 @@ public class BackgroundPlugin extends Plugin {
         ret.put("topicsConfirmed", new JSArray(fcm.getStringSet("topics", java.util.Collections.<String>emptySet())));
         ret.put("topicsOkAt", fcm.getLong("topics_ok_at", 0));
         ret.put("topicsError", fcm.getString("topics_error", ""));
+        ret.put("topicsUnsubscribing", fcm.getBoolean("topics_unsubscribing", false));
+        ret.put("alertsOff", Alarms.prefs(c).getBoolean(Alarms.KEY_ALERTS_OFF, false));
+        // czy flaga była kiedykolwiek zapisana (wersje do 1.7.49 trzymały ją tylko w localStorage)
+        ret.put("alertsOffSet", Alarms.prefs(c).contains(Alarms.KEY_ALERTS_OFF));
         // głośność alarmów i stan kanału czerwonego — do podglądu w ustawieniach
         try {
             AudioManager am = (AudioManager) c.getSystemService(Context.AUDIO_SERVICE);
