@@ -214,7 +214,10 @@ POINTS = {
     "media_qra_wave": 1.0,     # fala QRA: kilka redakcji o poderwaniu lotnictwa (E3)
     "rcb_alert": 2.0,          # RCB (oficjalny) nadal może alarmować sam
     "ua_alert_border": 1.0,    # oficjalny alarm powietrzny w przygranicznym obwodzie UA
-    "baltic_context": 1.0,     # incydent powietrzny wg mediów LT/LV/EE
+    # Incydent powietrzny wg mediów LT/LV/EE. Było 1,0; decyzja usera 15.09.2026: media
+    # sąsiadów 0,2–0,5 pkt, bo po alarmie w Wilnie komentarze dawały 1,0 pkt przez cały
+    # dzień. Kilka dni obserwacji (stealth „baltic_media_decision”), potem korekta wag.
+    "baltic_context": 0.5,
     # Ogłoszony alarm powietrzny na Litwie, Łotwie albo w Estonii (np. Wilno
     # 13.09.2026). Zdarzenie jest daleko, więc to ślad w panelu i dziesiąte części
     # punktu — mnożone jeszcze przez BALTIC_ALERT_COUNTRY_WEIGHTS i wagę celu.
@@ -1018,3 +1021,22 @@ BALTIC_CLEAR_CONTEXT = [
 # publikacji zostaje z chwili ogłoszenia (LRT: 13:08 → „nebėra (balta)” o 13:43).
 # Dla odwołań patrzymy więc dalej wstecz niż dla nowych doniesień.
 BALTIC_CLEAR_MAX_AGE_MIN = 6 * 60
+# Alarm i incydent: tylko świeży wpis (15.09.2026 — ostrzej niż 45 min dla mediów PL)
+# i bez oznak, że zdarzenie było wcześniej. Czas przeszły dnia („vakar”, „sekmadienį”)
+# sprawdzamy po całych słowach tytułu i opisu, frazy angielskie po fragmencie.
+BALTIC_MAX_AGE_MIN = 30
+BALTIC_PAST_TIME_WORDS = [
+    "vakar", "užvakar", "praėjusią", "praėjusį", "sekmadienį", "pirmadienį", "antradienį",
+    "trečiadienį", "ketvirtadienį", "penktadienį", "šeštadienį", "savaitgalį",
+    "aizvakar", "pagājušajā", "pagājušo", "svētdien", "pirmdien", "otrdien", "trešdien",
+    "ceturtdien", "piektdien", "sestdien",
+    "eile", "üleeile", "möödunud", "pühapäeval", "esmaspäeval", "teisipäeval", "kolmapäeval",
+    "neljapäeval", "reedel", "laupäeval", "nädalavahetusel",
+    "yesterday",
+]
+BALTIC_PAST_TIME_PHRASES = ["last night", "last week", "on sunday", "on monday", "on tuesday",
+                            "on wednesday", "on thursday", "on friday", "on saturday",
+                            "over the weekend", "earlier this week", "nedēļas nogalē"]
+# Godzina zdarzenia w tekście („03.15 val.”, „plkst. 3:15”, „kell 3.15”, „at 03:15”)
+# starsza niż tyle minut od teraz (czas bałtycki) = relacja po fakcie.
+BALTIC_EVENT_TIME_MAX_MIN = 60

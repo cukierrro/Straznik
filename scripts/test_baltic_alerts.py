@@ -121,11 +121,29 @@ asyncio.run(rm._baltic_entries([
     wpis("Lietuvoje oro pavojaus nebėra (balta)", LRT + "oro-pavojaus-nebera")], "15min", "LT", T0 + 1800))
 ok(not zapis, f"„buvo stabdomi” to nie alarm, a odwołanie bez alarmu nie dodaje wierszy ({len(zapis)})")
 
-print("7. incydent nadal za 1,0 (strefa PAŻP + Bałtyk = żółty na wybrzeżu)")
+print("7. incydent za 0,5 (decyzja 15.09.2026: media sąsiadów 0,2–0,5)")
 reset()
 asyncio.run(rm._baltic_entries([wpis("Drone that was shot down in Latvia entered from Belarus",
                                      "https://eng.lsm.lv/article/x.a650000/")], "lsm", "LV", T0 + 60))
-ok(any(z["event_type"] == "baltic_context" and z["points"] == 1.0 for z in zapis), "incydent 1,0")
+ok(any(z["event_type"] == "baltic_context" and z["points"] == 0.5 for z in zapis), "incydent 0,5")
+
+print("7a. tylko świeże doniesienie o zdarzeniu teraz")
+reset()
+asyncio.run(rm._baltic_entries([wpis("Kaune paskelbtas oro pavojus (geltona)", LRT + "stary", 0)],
+                               "lrt", "LT", T0 + 35 * 60))
+ok(not zapis, f"wpis sprzed 35 min pominięty ({len(zapis)})")
+reset()
+asyncio.run(rm._baltic_entries([wpis("Vakar Vilniuje paskelbtas oro pavojus", LRT + "vakar")], "lrt", "LT", T0 + 60))
+ok(not zapis, "„vakar” (wczoraj) to relacja po fakcie")
+reset()
+# T0 = 13:08 w Wilnie; „11.20 val.” było prawie dwie godziny wcześniej
+asyncio.run(rm._baltic_entries([{**wpis("Vilniuje paskelbtas oro pavojus", LRT + "godzina"),
+                                 "summary": "Oro pavojus paskelbtas 11.20 val."}], "lrt", "LT", T0 + 60))
+ok(not zapis, "godzina zdarzenia sprzed 1 h w opisie = relacja po fakcie")
+reset()
+asyncio.run(rm._baltic_entries([{**wpis("Vilniuje paskelbtas oro pavojus", LRT + "swieze"),
+                                 "summary": "Oro pavojus paskelbtas 13.02 val."}], "lrt", "LT", T0 + 60))
+ok(any(z["event_type"] == "baltic_alert" for z in zapis), "godzina sprzed kilku minut — alarm liczy się")
 
 
 print("7b. komentarze po nocnym alarmie 14/15.09.2026 nie są alarmem ani incydentem")

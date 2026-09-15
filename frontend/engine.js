@@ -14,7 +14,7 @@ const WINDOW_MIN = 60, FULL_MIN = 30, TH_ELEVATED = 2, TH_HIGH = 4, COOLDOWN_MIN
 const ETA_BUFFER_MIN = 2.5, ETA_ELEVATED_MIN = 10, ETA_HIGH_MIN = 5, ETA_MIN_SOURCES = 2;
 const HISTORY_H = 12;   // ile godzin trzymamy do przeglądania wstecz
 const POINTS = { neptun_high: 3, neptun_medlow: 1.5, media_keywords: 0.5, media_critical: 1,
-                 adsb_spike: 0, rcb_alert: 2, ua_alert_border: 1, baltic_context: 1, baltic_alert: 0.3, pansa_zone: 0.5,
+                 adsb_spike: 0, rcb_alert: 2, ua_alert_border: 1, baltic_context: 0.5, baltic_alert: 0.3, pansa_zone: 0.5,
                  pansa_zone_north: 1 };
 // Neptun ma wyższy limit niż reszta (każdy track to osobny fizyczny obiekt),
 // ale nie nieograniczony — przy kilkudziesięciu obiektach suma i tak dawno
@@ -247,6 +247,32 @@ const BALTIC_ALERT_PAST = ["buvo", "bija", "oli"];
 const BALTIC_DISCUSSION = ["klausim", " sako", "sakė", "kritik", "komentar", "interviu", "diskusij", "aiškina", "says", "said", "questions", "criticism", "interview", "debate", "explains", "saka", "jautājum", "skaidro", "ütles", "küsimus", "kriitik", "selgitab",
   "neaišk", "nesutink", "įvertin", "reakcij", "neturėjome", "įstatym", "pasiruoš",
   "turime", "priemon", "ministras:", "ministrs:", "minister:", "a first for", "lessons", "pamok"];
+/* Świeżość doniesienia bałtyckiego — lustro rss_media._baltic_stale i config.BALTIC_*. */
+const BALTIC_MAX_AGE_MS = 30 * 60 * 1000, BALTIC_EVENT_TIME_MAX_MIN = 60;
+const BALTIC_PAST_TIME_WORDS = new Set(["vakar", "užvakar", "praėjusią", "praėjusį", "sekmadienį", "pirmadienį", "antradienį",
+  "trečiadienį", "ketvirtadienį", "penktadienį", "šeštadienį", "savaitgalį",
+  "aizvakar", "pagājušajā", "pagājušo", "svētdien", "pirmdien", "otrdien", "trešdien", "ceturtdien", "piektdien", "sestdien",
+  "eile", "üleeile", "möödunud", "pühapäeval", "esmaspäeval", "teisipäeval", "kolmapäeval", "neljapäeval", "reedel", "laupäeval", "nädalavahetusel",
+  "yesterday"]);
+const BALTIC_PAST_TIME_PHRASES = ["last night", "last week", "on sunday", "on monday", "on tuesday", "on wednesday",
+  "on thursday", "on friday", "on saturday", "over the weekend", "earlier this week", "nedēļas nogalē"];
+function balticStale(text, words, ageMs) {
+  if (ageMs > BALTIC_MAX_AGE_MS) return "age";
+  if ([...words].some(w => BALTIC_PAST_TIME_WORDS.has(w)) || BALTIC_PAST_TIME_PHRASES.some(p => text.includes(p))) return "past";
+  const nowParts = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Vilnius", hour: "2-digit", minute: "2-digit", hourCycle: "h23" })
+    .formatToParts(new Date());
+  const nowMin = +nowParts.find(p => p.type === "hour").value * 60 + +nowParts.find(p => p.type === "minute").value;
+  let found = 0, old = 0;
+  for (const m of text.matchAll(/(?:\b(\d{1,2})[:.](\d{2})\s*val\b)|(?:\b(?:plkst\.?|kell|at|apie)\s*(\d{1,2})[:.](\d{2})\b)/g)) {
+    const hh = +(m[1] ?? m[3]), mm = +(m[2] ?? m[4]);
+    if (hh > 23 || mm > 59) continue;
+    found++;
+    let diff = nowMin - (hh * 60 + mm);
+    if (diff < -10) diff += 1440;                    // godzina „z przyszłości” = wczoraj
+    if (diff > BALTIC_EVENT_TIME_MAX_MIN) old++;
+  }
+  return found && old === found ? "event-time" : null;
+}
 /* „Osoba: cytat” to wypowiedź, nie ogłoszenie alarmu — lustro rss_media._speaker_quote. */
 const balticSpeakerQuote = (titleL) => {
   const m = /^([^:–—]{2,40}):\s/.exec(titleL);
@@ -1423,6 +1449,7 @@ async function tickRss() {
         }
         if (age > MAX_AGE_MS) continue;
         const words = new Set(text.match(/[\p{L}\p{N}_]+/gu) || []);
+        if (balticStale(text, words, age)) continue;   // tylko zdarzenie „teraz” (15.09.2026)
         const titleL = " " + String(it.title || "").toLowerCase();
         const discussion = BALTIC_DISCUSSION.some(k => titleL.includes(k));
         if (!B_EXCLUDE.some(k => text.includes(k)) && !BALTIC_ALERT_PAST.some(k => words.has(k))) {

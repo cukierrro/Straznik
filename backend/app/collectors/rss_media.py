@@ -13,8 +13,9 @@ import logging
 import re
 import time
 import unicodedata
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from urllib.parse import urlparse
+from zoneinfo import ZoneInfo
 
 import feedparser
 import httpx
@@ -62,6 +63,46 @@ def _speaker_quote(title_l: str) -> bool:
     Vilniuje: …”) zostaje ogłoszeniem."""
     m = re.match(r"^([^:–—]{2,40}):\s", title_l)
     return bool(m and not any(w in m.group(1) for w in config.BALTIC_ALERT_KEYWORDS))
+
+
+_BALTIC_TZ = ZoneInfo("Europe/Vilnius")      # LT, LV i EE mają ten sam czas
+_BALTIC_TIME_RE = re.compile(
+    r"(?:\b(\d{1,2})[:.](\d{2})\s*val\b)|(?:\b(?:plkst\.?|kell|at|apie)\s*(\d{1,2})[:.](\d{2})\b)")
+
+
+def _baltic_stale(text: str, age: float, now: float) -> str | None:
+    """Powód, dla którego wpis to nie „teraz” — albo None, gdy jest świeży."""
+    if age > config.BALTIC_MAX_AGE_MIN * 60:
+        return f"wiek {int(age // 60)} min"
+    words = set(re.findall(r"\w+", text))
+    past = sorted(words & set(config.BALTIC_PAST_TIME_WORDS))
+    past += [p for p in config.BALTIC_PAST_TIME_PHRASES if p in text]
+    if past:
+        return "czas przeszły: " + ", ".join(past[:3])
+    local = datetime.fromtimestamp(now, _BALTIC_TZ)
+    olds, found = [], 0
+    for m in _BALTIC_TIME_RE.finditer(text):
+        hh, mm = (m.group(1), m.group(2)) if m.group(1) else (m.group(3), m.group(4))
+        if int(hh) > 23 or int(mm) > 59:
+            continue
+        found += 1
+        ev = local.replace(hour=int(hh), minute=int(mm), second=0, microsecond=0)
+        if ev > local + timedelta(minutes=10):       # godzina „z przyszłości” = wczoraj
+            ev -= timedelta(days=1)
+        if (local - ev).total_seconds() > config.BALTIC_EVENT_TIME_MAX_MIN * 60:
+            olds.append(f"{int(hh):02d}:{mm}")
+    if found and len(olds) == found:
+        return "godzina zdarzenia " + ", ".join(olds[:3])
+    return None
+
+
+def _baltic_decision(country: str, kind: str, stale: str | None, title: str, link: str,
+                     feed: str, age: float, now: float) -> None:
+    key = hashlib.sha1(f"{kind}|{link or title}".encode()).hexdigest()[:16]
+    stealth.record("baltic_media_decision", key, {
+        "country": country, "kind": kind, "decision": "skip" if stale else "signal",
+        "reason": stale, "title": title[:200], "link": link, "feed": feed,
+        "age_min": round(age / 60, 1)}, ts=now)
 
 
 def _is_baltic_alert(text: str) -> list[str]:
@@ -525,6 +566,20 @@ async def _baltic_entries(entries, url: str, country: str, now: float):
         discussion = any(m in f" {title_l}" for m in config.BALTIC_DISCUSSION_MARKERS)
         alert_hits = ([] if discussion or _speaker_quote(title_l)
                       else _is_baltic_alert(title_l))
+        hits = ([] if alert_hits or discussion
+                or any(m in title_l for m in config.BALTIC_FOREIGN_MARKERS)
+                else match_keywords(text, config.BALTIC_CRITICAL_KEYWORDS,
+                                    config.BALTIC_AIR_KEYWORDS, config.BALTIC_EVENT_KEYWORDS,
+                                    config.BALTIC_EXCLUDE_KEYWORDS))
+        if not (alert_hits or hits):
+            continue
+        # 15.09.2026: tylko świeże doniesienie o zdarzeniu teraz; każda decyzja do
+        # dziennika, żeby po kilku dniach dobrać wagi na danych, a nie na oko.
+        stale = _baltic_stale(text, age, now)
+        _baltic_decision(country, "alert" if alert_hits else "context", stale,
+                         title, link, url, age, now)
+        if stale:
+            continue
         if alert_hits:
             active = _baltic_active.get(country)
             if (active and now - active["at"] < BALTIC_ACTIVE_S
@@ -548,15 +603,8 @@ async def _baltic_entries(entries, url: str, country: str, now: float):
                 )
             _baltic_alerted.add(incident_key)
             continue
-        if any(m in title_l for m in config.BALTIC_FOREIGN_MARKERS):
-            continue          # zdarzenie poza krajami bałtyckimi
-        if discussion:
-            continue          # rozmowa o incydencie to nie incydent (15.09.2026: 1,0 pkt za komentarz)
-        hits = match_keywords(text, config.BALTIC_CRITICAL_KEYWORDS,
-                              config.BALTIC_AIR_KEYWORDS, config.BALTIC_EVENT_KEYWORDS,
-                              config.BALTIC_EXCLUDE_KEYWORDS)
-        if not hits:
-            continue
+        # tu zostają tylko incydenty: bez zagranicy (BALTIC_FOREIGN_MARKERS) i bez
+        # rozmów o incydencie (15.09.2026: 1,0 pkt za komentarz) — patrz `hits` wyżej
         h = hashlib.sha1((link or title).encode()).hexdigest()[:16]
         for voiv in config.BALTIC_TARGET_VOIVS:
             await fusion.ingest(

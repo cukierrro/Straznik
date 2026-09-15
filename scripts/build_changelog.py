@@ -16,6 +16,21 @@ DOCS = ROOT / "docs"
 # (wersja, data PL, data EN, tytuł PL, tytuł EN, punkty PL, punkty EN, zrzuty)
 # Zrzut: (plik, alt PL, alt EN, podpis PL, podpis EN)
 RELEASES = [
+    ("1.7.52", "15 września 2026", "15 September 2026",
+     "Alarmy u sąsiadów na mapie i ostrzejsze media bałtyckie",
+     "Neighbouring alerts on the map and stricter Baltic media",
+     ["Na mapie świecą rejony Ukrainy z alarmem powietrznym — czerwone i żółte, jak w NEPTUN-ie. To tylko podgląd: nie dolicza punktów. Po dotknięciu rejonu widać poziom, godzinę i powód.",
+      "Litwa, Łotwa i Estonia dostają czerwony odcień, gdy media tych krajów podają ogłoszony alarm, a nie ma jeszcze odwołania.",
+      "Media krajów bałtyckich ważą mniej: incydent 0,5 pkt zamiast 1. Liczy się tylko doniesienie z ostatnich 30 minut o zdarzeniu teraz — bez komentarzy („Minister: …”), relacji z wczoraj i artykułów z godziną zdarzenia sprzed ponad godziny.",
+      "Poranne podsumowania i publicystyka po nocnym alercie RCB („Nocny alert RCB…”, „Alert RCB zamiast ostrzegać…”) nie dają już punktów.",
+      "W legendzie jest nowa sekcja „Alarmy u sąsiadów (bez punktów)”."],
+     ["Ukrainian districts with an air-raid alert light up red or yellow, as in NEPTUN. It is a preview only and adds no points. Tap a district to see the level, start time and reason.",
+      "Lithuania, Latvia and Estonia get a red tint when their media report a declared alert that has not yet been lifted.",
+      "Baltic media weigh less: an incident is 0.5 pt instead of 1. Only a report from the last 30 minutes about something happening now counts — no commentary (“Minister: …”), no reports about yesterday and no articles whose event time is over an hour old.",
+      "Morning recaps and opinion pieces after a night RCB alert (“Nocny alert RCB…”, “Alert RCB zamiast ostrzegać…”) no longer add points.",
+      "The legend has a new section, “Alerts in neighbouring countries (no points)”."],
+     []),
+
     ("1.7.51", "15 września 2026", "15 September 2026",
      "Starsze telefony, duża czcionka i komunikat MiG-31K jak w NEPTUN-ie",
      "Older phones, large fonts and a MiG-31K notice matching NEPTUN",

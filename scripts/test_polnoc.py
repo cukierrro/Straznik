@@ -48,9 +48,13 @@ print("3. dwa niezalezne sygnaly osiagaja prog")
 # E10 (13.09.2026): ADS-B bez punktów — para strefa + ADS-B już nie istnieje
 sprawdz(config.POINTS["adsb_spike"] == 0, "ADS-B tylko informacyjnie (0 pkt)")
 for a, b, opis in ((pkt_pn, config.POINTS["media_critical"], "strefa + relacja mediow"),
-                   (pkt_pn, config.POINTS["media_qra_wave"], "strefa + fala QRA polnoc"),
-                   (pkt_pn, config.POINTS["baltic_context"], "strefa + Baltyk")):
+                   (pkt_pn, config.POINTS["media_qra_wave"], "strefa + fala QRA polnoc")):
     sprawdz(a + b >= zolty, f"{opis} = {a + b} >= {zolty}")
+# 15.09.2026 (decyzja usera): media krajow baltyckich 0,2-0,5 pkt — sama strefa
+# i incydent z mediow LT/LV/EE juz NIE daja zoltego; potrzebne trzecie zrodlo.
+sprawdz(pkt_pn + config.POINTS["baltic_context"] < zolty,
+        f"strefa + Baltyk = {pkt_pn + config.POINTS['baltic_context']} < {zolty} (media sasiadow 0,5)")
+sprawdz(0.2 <= config.POINTS["baltic_context"] <= 0.5, "incydent baltycki w przedziale 0,2-0,5")
 
 print("4. limit klasy nie pozwala zsumowac kilku stref")
 sprawdz(config.SOURCE_CAPS["pansa"] <= pkt_pn,
