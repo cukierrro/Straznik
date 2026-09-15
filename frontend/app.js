@@ -667,7 +667,7 @@ async function pingBackend(base) {
   try {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 4000);
-    const r = await fetch(base + "/api/health", { signal: ctrl.signal });
+    const r = await fetch(base + "/api/health", { signal: ctrl.signal, cache: "no-store" });
     clearTimeout(timer);
     return r.ok;
   } catch { return false; }
@@ -678,7 +678,7 @@ async function probeBackend(base) {
   try {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 4000);
-    const r = await fetch(base + "/api/state", { signal: ctrl.signal });
+    const r = await fetch(base + "/api/state", { signal: ctrl.signal, cache: "no-store" });
     clearTimeout(timer);
     if (r.ok) { applyState(await r.json()); return true; }
   } catch {}
@@ -724,7 +724,9 @@ function scheduleReconnect() {
 async function pollOnce() {
   const base = apiBase(); if (!base || standalone) return;
   try {
-    const r = await fetch(base + "/api/state");
+    // no-store: Cloudflare nadpisywał max-age=2 na 4 h i przeglądarka podawała stan
+    // sprzed kilkunastu minut na zmianę z WebSocketem — obiekty skakały (15.09.2026).
+    const r = await fetch(base + "/api/state", { cache: "no-store" });
     if (r.ok) applyState(await r.json());
   } catch {}
 }
@@ -1280,7 +1282,7 @@ async function refreshZones(force) {
   if (!base || standalone) return;
   zonesPending = true;
   try {
-    const r = await fetch(base + "/api/zones", { signal: AbortSignal.timeout(12000) });
+    const r = await fetch(base + "/api/zones", { signal: AbortSignal.timeout(12000), cache: "no-store" });
     if (!r.ok) throw new Error("zones unavailable");
     const j = await r.json();
     if (base !== apiBase() || standalone) return;   // serwer zmieniony w locie
@@ -2269,7 +2271,7 @@ async function refreshWatchEvents() {
   const base = apiBase(); if (!base) return;
   watchFetchAt = Date.now(); watchFetchPending = true; watchSyncState = "loading";
   try {
-    const r = await fetch(base + "/api/adsb/watch?hours=12", {signal: AbortSignal.timeout(12000)});
+    const r = await fetch(base + "/api/adsb/watch?hours=12", {signal: AbortSignal.timeout(12000), cache: "no-store"});
     if (!r.ok) throw new Error("watch journal unavailable");
     const j = await r.json();
     if (!Array.isArray(j.events)) throw new Error("invalid journal");
@@ -3688,7 +3690,7 @@ function srvRecord(s) {
 async function seedBundle() {
   const base = apiBase(); if (!base) return;
   try {
-    const r = await fetch(base + "/api/history/bundle?hours=12");
+    const r = await fetch(base + "/api/history/bundle?hours=12", { cache: "no-store" });
     if (!r.ok) return;
     const j = await r.json();
     srvMergeSignals((j.signals || []).map(s => ({ ...s, t: Date.parse(s.ts) })));
@@ -4247,7 +4249,7 @@ async function checkForUpdate(force = false, throttled = false) {
                                    : "Nie udało się odczytać wersji aplikacji.");
       return;
     }
-    const r = await fetch(UPDATE_API, { headers: { Accept: "application/vnd.github+json" } });
+    const r = await fetch(UPDATE_API, { headers: { Accept: "application/vnd.github+json" }, cache: "no-store" });
     if (!r.ok) {
       if (force) updStatus(UI.isEn ? "Could not check — try again later."
                                    : "Nie udało się sprawdzić — spróbuj później.");
