@@ -3941,7 +3941,7 @@ function showHistoryAt(idx) {
   const ageMin = Math.round((Date.now() - when.getTime()) / 60000);
   document.getElementById("tb-label").textContent =
     when.toLocaleTimeString(UI.isEn ? "en-GB" : "pl-PL", { hour: "2-digit", minute: "2-digit" })
-    + (ageMin > 1 ? ` (−${ageMin} min)` : (UI.isEn ? " (now)" : " (teraz)"));
+    + (ageMin > 1 ? ` (${histAgo(ageMin)})` : (UI.isEn ? " (now)" : " (teraz)"));
   const sigs = h?.signals || [];
   paintOblasts(sigs);
   paintCountryAlerts(sigs);
@@ -4070,10 +4070,15 @@ function showHistoryAt(idx) {
 /* Panel w trybie historii: karty województw i lista sygnałów z WYBRANEGO
    momentu, a nie z teraz. Bez tego karty pokazywałyby bieżącą punktację obok
    historycznej listy sygnałów — dwie różne chwile w jednym widoku. */
+/* „−357 min” czytało się źle na suwaku historii — od godziny wzwyż „−5 h 57 min”. */
+function histAgo(ageMin) {
+  const h = Math.floor(ageMin / 60), m = ageMin % 60;
+  return h ? `−${h} h${m ? ` ${m} min` : ""}` : `−${ageMin} min`;
+}
 function renderHistoryPanel(sigs, perVoiv, when, ageMin) {
   const banner = `<div class="hist-banner">${UI.isEn ? "HISTORY VIEW" : "PODGLĄD HISTORII"} —
     ${when.toLocaleTimeString(UI.isEn ? "en-GB" : "pl-PL", { hour: "2-digit", minute: "2-digit" })}
-    ${ageMin > 1 ? `(−${ageMin} min)` : (UI.isEn ? "(now)" : "(teraz)")}
+    ${ageMin > 1 ? `(${histAgo(ageMin)})` : (UI.isEn ? "(now)" : "(teraz)")}
     <span>${UI.isEn ? "data from the time selected on the slider, not live" : "dane sprzed chwili wybranej suwakiem, nie na żywo"}</span></div>`;
 
   const shown = Object.entries(perVoiv)
@@ -4106,7 +4111,7 @@ function quickLabel(idx) {
   const ageMin = Math.round((Date.now() - when.getTime()) / 60000);
   document.getElementById("tb-label").textContent =
     when.toLocaleTimeString(UI.isEn ? "en-GB" : "pl-PL", { hour: "2-digit", minute: "2-digit" })
-    + (ageMin > 1 ? ` (−${ageMin} min)` : (UI.isEn ? " (now)" : " (teraz)"));
+    + (ageMin > 1 ? ` (${histAgo(ageMin)})` : (UI.isEn ? " (now)" : " (teraz)"));
   document.getElementById("tb-slider").dataset.level = timelinePoints[idx]?.level || "none";
 }
 

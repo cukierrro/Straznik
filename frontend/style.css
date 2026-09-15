@@ -854,6 +854,13 @@ dialog menu { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14
   #panel-attrib { display: block; }
 }
 
+/* Niskie telefony (360×640): panel sygnałów w trybie historii miał ~300 px, bo resztę
+   zabierały pasek historii i ostrzeżenie. Przy otwartym panelu chowamy linię statystyk
+   paska (panel ma własny nagłówek chwili) i ostrzeżenie (wraca po zamknięciu panelu). */
+@media (max-width: 700px) and (max-height: 780px) {
+  body.panel-open #disclaimer, body.panel-open #tb-info { display: none; }
+}
+
 /* wąskie telefony: tekstowe przyciski zamieniamy na ikony, żeby wszystkie
    zmieściły się w jednym rzędzie */
 @media (max-width: 700px) {
