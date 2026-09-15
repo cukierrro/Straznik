@@ -11,7 +11,7 @@ from fastapi.staticfiles import StaticFiles
 
 from . import (alert_log, app_updates, config, db, escalation_shadow, fusion, load_guard,
                monitoring, notify, public_cache, rcb_reference)
-from .collectors import adsb, neighbours, neptun, official_alerts, pansa, rcb, rso, rss_media
+from .collectors import adsb, neighbours, neptun, official_alerts, pansa, rcb, ro_shadow, rso, rss_media
 from .neptun_archive import source_metadata
 
 logging.basicConfig(level=logging.INFO,
@@ -272,6 +272,7 @@ async def api_health():
         "rcb": rcb.status, "rso": rso.status, "rss": rss_media.status["feeds"],
         "neighbours": neighbours.status,
         "official_alerts": official_alerts.status,
+        "ro_shadow": ro_shadow.status,
         "notify": {"ntfy": config.NTFY_ENABLED and bool(config.NTFY_TOPIC),
                    "telegram": config.TELEGRAM_ENABLED,
                    "webpush": config.WEBPUSH_ENABLED,
@@ -396,7 +397,8 @@ async def startup():
     jobs = {
         "neptun": neptun.run, "rss": rss_media.run, "rcb_govpl": rcb.run, "rso": rso.run,
         "adsb": adsb.run, "pansa": pansa.run, "neighbours": neighbours.run,
-        "official_alerts": official_alerts.run, "snapshots": snapshot_loop,
+        "official_alerts": official_alerts.run, "ro_shadow": ro_shadow.run,
+        "snapshots": snapshot_loop,
         "progression_shadow": progression_shadow_loop, "levels": level_loop,
         "state": state_loop, "heartbeat": monitoring.heartbeat_loop,
         "load_guard": lambda: load_guard.monitor(shed_websockets),

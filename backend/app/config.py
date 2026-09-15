@@ -144,6 +144,31 @@ ADSB_MIN_COUNT = 3                 # ...i co najmniej tyle maszyn wojskowych
 PANSA_INTERVAL = int(os.getenv("PANSA_INTERVAL", "300"))
 RSS_INTERVAL = int(os.getenv("RSS_INTERVAL", "60"))
 OFFICIAL_ALERTS_INTERVAL = int(os.getenv("OFFICIAL_ALERTS_INTERVAL", "30"))
+# ── Rumunia w trybie cienia (collectors/ro_shadow.py, 15.09.2026) ────────────
+# Tylko zapis do obserwacje.db — bez punktów i bez mapy, dopóki nie zmierzymy,
+# jak szybko media podają RO-ALERT (komunikaty MApN dają godziny odniesienia).
+RO_SHADOW_INTERVAL = int(os.getenv("RO_SHADOW_INTERVAL", "120"))
+RO_SHADOW_FEEDS = [
+    "https://www.digi24.ro/rss", "https://www.hotnews.ro/rss", "https://stirileprotv.ro/rss",
+    "https://www.g4media.ro/feed", "https://www.news.ro/rss", "https://www.mediafax.ro/rss",
+]
+# Dopasowanie po fragmencie w tytule po zdjęciu znaków diakrytycznych (rss: ș → s).
+RO_SHADOW_ALERT_WORDS = ["ro-alert", "ro alert", "roalert", "alerta aeriana", "alerta de drone"]
+RO_SHADOW_DRONE_WORDS = ["dron", "tinta aeriana", "tinte aeriene"]
+RO_SHADOW_PLACE_WORDS = ["mapn", "f-16", "granit", "spatiul aerian", "teritoriul romaniei",
+                         "tulcea", "galati", "isaccea", "plauru", "chilia", "periprava",
+                         "delta dunarii", "sulina"]
+RO_SHADOW_CLEAR_WORDS = ["a incetat", "s-a incheiat", "incetarea alertei", "alerta s-a terminat"]
+# Relacja po fakcie (także w opisie RSS): nie świadczy o alarmie „teraz”.
+RO_SHADOW_RETRO_WORDS = ["in cursul noptii", "azi-noapte", "azi noapte", "noaptea trecuta", "ieri",
+                         "bilant", "resturi", "fragmente", "au fost gasite", "cautari", "ancheta",
+                         # statystyki („Numărul alertelor RO-Alert… a explodat”)
+                         "numarul", "cate mesaje", "cele mai multe", "de la inceputul"]
+# Tematy ogólne i drony w innych krajach.
+RO_SHADOW_DENY = ["recomand", "scoli", "scoala", "startup", "exercit", "achizit", "contract",
+                  "lege ", "legea", "proiect", "productie", "fabric", "antidron", "lituani",
+                  "letoni", "estoni", "poloni", "germani", "danemar", "norveg", "finland",
+                  "belgi", "olanda"]
 RCB_INTERVAL = int(os.getenv("RCB_INTERVAL", "120"))
 RCB_URL = "https://www.gov.pl/web/rcb"
 # RSO (Regionalny System Ostrzegania) przez TVP — realne alerty RCB/SPO (SMS-owe
