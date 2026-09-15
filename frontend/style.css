@@ -19,8 +19,14 @@
   --tabbar-h: 72px;
   /* Okna dialogowe centrujemy nad paskiem zakładek i nigdy nie pozwalamy im go
      dotknąć — inaczej „O aplikacji" kończyło się w połowie wiersza pod zakładkami. */
-  --dlg-max: calc(100dvh - var(--safe-t) - var(--tabbar-h) - var(--safe-b) - 28px);
+  /* `vh` najpierw: starszy WebView (Chrome < 108, np. Galaxy S10 15.09.2026) nie zna
+     `dvh`, zmienna robiła się nieważna, okna traciły limit wysokości i nie dało się
+     ich przewinąć ani dojść do przycisków. W aplikacji vh = dvh (brak paska adresu). */
+  --dlg-max: calc(100vh - var(--safe-t) - var(--tabbar-h) - var(--safe-b) - 28px);
   font-size: 15px;
+}
+@supports (height: 100dvh) {
+  :root { --dlg-max: calc(100dvh - var(--safe-t) - var(--tabbar-h) - var(--safe-b) - 28px); }
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 .native-app .web-only { display: none !important; }
@@ -89,7 +95,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   box-shadow: 0 8px 40px rgba(0,0,0,.55); font: 10px "Segoe UI", system-ui, sans-serif;
   line-height: 1.35; }
 /* rozwinięta karta — prawie cały ekran, jak przed 1.7.23 */
-#ac-card.big { right: 8px; width: auto; max-height: 74dvh; border-radius: 14px;
+#ac-card.big { right: 8px; width: auto; max-height: 74vh; max-height: 74dvh; border-radius: 14px;
   bottom: calc(var(--tabbar-h) + var(--safe-b) + var(--stack-h, 0px) + 12px);
   padding: 14px 16px 16px; font-size: 12.5px; line-height: 1.45; }
 /* w miniaturze zdjęcie jest tylko podglądem, nie połową karty */
@@ -204,6 +210,7 @@ body.panel-open #bg-warning { display: none; }
   display: grid; gap: 10px; grid-template-columns: minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr) auto auto; overflow: hidden;
   width: 100%; max-width: 520px; margin: 0 auto;
+  max-height: calc(100vh - var(--topbar-h, 52px) - var(--tabbar-h) - var(--safe-b) - 96px);
   max-height: calc(100dvh - var(--topbar-h, 52px) - var(--tabbar-h) - var(--safe-b) - 96px);
   background: var(--panel, #151d2e); border: 1px solid var(--accent);
   border-radius: 12px; padding: 12px 14px;
@@ -227,7 +234,7 @@ body.panel-open #bg-warning { display: none; }
 }
 #notice-banner.hidden { display: none; }
 /* dłuższy komunikat ma się zawijać i przewijać, a nie wychodzić poza ekran */
-#notice-banner { flex-wrap: wrap; max-height: min(40dvh, 300px); overflow-y: auto; }
+#notice-banner { flex-wrap: wrap; max-height: min(40vh, 300px); max-height: min(40dvh, 300px); overflow-y: auto; }
 #notice-banner span { min-width: 0; font-size: 13px; }
 #notice-banner .chip { flex: none; margin-left: auto; }
 .upd-txt { display: flex; flex-direction: column; line-height: 1.35; min-width: 0; }
@@ -339,10 +346,17 @@ dialog a:hover, dialog a:focus-visible { text-decoration: underline; }
 
 /* ── przyciski nawigacji mapy (jak w Mapach Google) ── */
 #map-actions {
-  position: fixed; right: 12px; z-index: 26; align-items: flex-end;
+  position: fixed; right: 12px; z-index: 26;
   bottom: calc(var(--tabbar-h) + var(--safe-b) + var(--stack-h, 0px) + 16px);
-  display: flex; flex-direction: column; gap: 8px;
+  /* Górna granica = dół paska. Gdy komunikaty zabiorą miejsce, przyciski przechodzą
+     do drugiej kolumny w lewo zamiast wchodzić na pasek (wrap-reverse zamienia
+     strony osi poprzecznej, stąd flex-start = prawa krawędź). */
+  top: calc(var(--topbar-bottom, 110px) + 10px);
+  display: flex; flex-direction: column; justify-content: flex-end;
+  flex-wrap: wrap-reverse; align-items: flex-start; align-content: flex-start;
+  gap: 8px; pointer-events: none;
 }
+#map-actions > * { pointer-events: auto; }
 .map-btn {
   width: 42px; height: 42px; border-radius: 50%; cursor: pointer;
   background: var(--panel); border: 1px solid var(--panel-border); color: var(--accent);
@@ -690,6 +704,7 @@ html[lang="en"] .list:empty::after { content: "— none —"; }
   padding: 10px 12px; backdrop-filter: blur(8px); font-size: 12px;
   /* Legenda kończy się nad dolnymi sekcjami: wcześniej sztywne 170 px nie
      wiedziało o pasku zakładek ani o stosie komunikatów i wchodziła na nie. */
+  max-height: calc(100vh - 74px - var(--tabbar-h) - var(--safe-b) - var(--stack-h, 0px));
   max-height: calc(100dvh - 74px - var(--tabbar-h) - var(--safe-b) - var(--stack-h, 0px));
   overflow-y: auto; overscroll-behavior: contain;
   /* Ostatni wiersz nie może kończyć się dokładnie na krawędzi — wyglądało to jak
@@ -778,6 +793,10 @@ dialog menu { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14
 /* ── lokalne profile „Moje miejsca” ── */
 .places-dialog { width:min(620px,96vw); max-height:var(--dlg-max); padding:0; overflow:hidden; }
 .places-dialog form { max-height:var(--dlg-max); overflow:auto; padding:20px; }
+/* Druga asekuracja: formularz przewija się wewnątrz okna nawet wtedy, gdy limit
+   wysokości nie zadziała — okno ma overflow:hidden, więc bez tego treść była ucinana. */
+.places-dialog[open] { display:flex; flex-direction:column; }
+.places-dialog[open] form { flex:1 1 auto; min-height:0; }
 .places-dialog [hidden] { display:none!important; }
 .places-head { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; }
 .places-head h2 { margin:3px 0 6px; font-size:26px; }

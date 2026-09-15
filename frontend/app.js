@@ -4663,6 +4663,16 @@ if (stackEl && window.ResizeObserver) {
   new ResizeObserver(setStackH).observe(stackEl);
   setStackH();
 }
+/* Dół górnego paska: kolumna przycisków mapy nie może na niego wejść (duża czcionka
+   systemowa + komunikat MiG-31K wypychały „mój region” na przyciski paska). */
+const topbarEl = document.getElementById("topbar");
+if (topbarEl && window.ResizeObserver) {
+  const setTopbarB = () => document.documentElement.style
+    .setProperty("--topbar-bottom", Math.round(topbarEl.getBoundingClientRect().bottom) + "px");
+  new ResizeObserver(setTopbarB).observe(topbarEl);
+  addEventListener("resize", setTopbarB);
+  setTopbarB();
+}
 
 /* ✕ przy atrybucji NIE usuwa jej — zwija do jednej plakietki. Widoczna atrybucja
    NEPTUN jest warunkiem korzystania z ich API, więc znika tylko z pola widzenia,
