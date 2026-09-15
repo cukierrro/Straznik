@@ -174,7 +174,7 @@
        "select an aircraft: model, role and operator"],
       ["zawsze sprawdzaj", "always check"], ["Mapa:", "Map:"]];
     for (const node of nodes) for (const [from,to] of fragments)
-      if (node.nodeValue.includes(from)) node.nodeValue = node.nodeValue.replaceAll(from,to);
+      if (node.nodeValue.includes(from)) node.nodeValue = node.nodeValue.split(from).join(to);
     const attrs = {
       "btn-download": ["title","Download the latest Strażnik app for Android"],
       "btn-instructions": ["title","Open the full Strażnik user guide"],

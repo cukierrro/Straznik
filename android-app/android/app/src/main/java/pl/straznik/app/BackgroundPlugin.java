@@ -175,7 +175,8 @@ public class BackgroundPlugin extends Plugin {
             final java.util.concurrent.atomic.AtomicInteger left =
                 new java.util.concurrent.atomic.AtomicInteger(Alarms.VOIVS.length);
             final java.util.concurrent.atomic.AtomicInteger failed = new java.util.concurrent.atomic.AtomicInteger();
-            p.edit().putString("topics_error", "").putBoolean("topics_unsubscribing", true).apply();
+            p.edit().putString("topics_error", "").putBoolean("topics_unsubscribing", true)
+                .putLong("topics_unsub_at", System.currentTimeMillis()).apply();
             for (String v : Alarms.VOIVS) {
                 fm.unsubscribeFromTopic(voivTopic(v)).addOnCompleteListener(task -> {
                     if (!task.isSuccessful()) failed.incrementAndGet();
@@ -226,7 +227,13 @@ public class BackgroundPlugin extends Plugin {
         ret.put("topicsConfirmed", new JSArray(fcm.getStringSet("topics", java.util.Collections.<String>emptySet())));
         ret.put("topicsOkAt", fcm.getLong("topics_ok_at", 0));
         ret.put("topicsError", fcm.getString("topics_error", ""));
-        ret.put("topicsUnsubscribing", fcm.getBoolean("topics_unsubscribing", false));
+        // Bez odpowiedzi FCM (brak Usług Google, proces zabity w trakcie) flaga zostawała
+        // na zawsze i ustawienia wisiały na „Wypisywanie…”. Po 2 min uznajemy, że się nie udało.
+        boolean unsub = fcm.getBoolean("topics_unsubscribing", false)
+            && System.currentTimeMillis() - fcm.getLong("topics_unsub_at", 0) < 120_000;
+        ret.put("topicsUnsubscribing", unsub);
+        if (fcm.getBoolean("topics_unsubscribing", false) && !unsub && fcm.getString("topics_error", "").isEmpty())
+            ret.put("topicsError", "Firebase nie potwierdził wypisania");
         ret.put("alertsOff", Alarms.prefs(c).getBoolean(Alarms.KEY_ALERTS_OFF, false));
         // czy flaga była kiedykolwiek zapisana (wersje do 1.7.49 trzymały ją tylko w localStorage)
         ret.put("alertsOffSet", Alarms.prefs(c).contains(Alarms.KEY_ALERTS_OFF));

@@ -16,6 +16,23 @@ DOCS = ROOT / "docs"
 # (wersja, data PL, data EN, tytuł PL, tytuł EN, punkty PL, punkty EN, zrzuty)
 # Zrzut: (plik, alt PL, alt EN, podpis PL, podpis EN)
 RELEASES = [
+    ("1.7.51", "15 września 2026", "15 September 2026",
+     "Starsze telefony, duża czcionka i komunikat MiG-31K jak w NEPTUN-ie",
+     "Older phones, large fonts and a MiG-31K notice matching NEPTUN",
+     ["Komunikat o starcie MiG-31K brzmi jak w NEPTUN-ie: „monitoring, nie alarm”, gdy Ukraina nie ogłosiła alarmu dla całego kraju. Wcześniej aplikacja zawsze pisała „alarm w całej Ukrainie”.",
+      "Na telefonach ze starszym silnikiem przeglądarki (np. Galaxy S10 bez aktualizacji WebView) okno „Moje miejsca” i inne okna znów się przewijają i widać w nich przyciski Zapisz i Anuluj.",
+      "Przy dużej czcionce systemowej i na małych ekranach zakładki ustawień nie są ucinane, przyciski mapy nie wchodzą na górny pasek (w razie potrzeby zostają same ikony), a panel sygnałów zaczyna się pod paskiem.",
+      "Strefy PAŻP i dziennik obcych maszyn ładują się także na starszych Androidach. Na zbyt starym silniku przeglądarki zamiast pustego ekranu jest instrukcja, co zaktualizować.",
+      "W przeglądarce obiekty nie przeskakują już między starym a aktualnym położeniem — stan z serwera nie jest brany z pamięci przeglądarki.",
+      "Ustawienia mówią wprost, gdy nie wybrano jeszcze województwa do alarmów, zamiast pokazywać „Wypisywanie telefonu z województw…”. Mapa dopasowuje się do zmiany rozmiaru ekranu w trakcie uruchamiania (tablety, podzielony ekran)."],
+     ["The MiG-31K take-off notice now matches NEPTUN: “monitoring, not an alert” when Ukraine has not declared a nationwide alert. Previously the app always said “alert across Ukraine”.",
+      "On phones with an older browser engine (e.g. a Galaxy S10 without WebView updates) My places and other dialogs scroll again and show the Save and Cancel buttons.",
+      "With a large system font and on small screens the settings tabs are no longer cut off, map buttons no longer overlap the top bar (icons only when needed), and the signals panel starts below the bar.",
+      "Airspace zones and the foreign aircraft log also load on older Android versions. On a browser engine that is too old, a screen explains what to update instead of staying blank.",
+      "In the browser, objects no longer jump between an old and the current position — the server state is no longer taken from the browser cache.",
+      "Settings say plainly when no province has been chosen for alerts yet, instead of “Unsubscribing this phone from provinces…”. The map adapts when the screen size changes during start-up (tablets, split screen)."],
+     []),
+
     ("1.7.50", "15 września 2026", "15 September 2026",
      "Suwak „Alarmy na tym telefonie” z potwierdzeniem",
      "“Alerts on this phone” switch with confirmation",

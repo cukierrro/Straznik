@@ -37,7 +37,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 /* Bez zaznaczania tekstu na mapie: przytrzymanie palca otwierało systemowe
    „Kopiuj / Udostępnij", co przy przeciąganiu mapy zdarzało się przypadkiem. */
 #map { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
-#map { position: absolute; inset: 0; }
+#map { position: absolute; top: 0; right: 0; bottom: 0; left: 0; }   /* inset: Chrome 87 */
 
 /* ── pasek górny ── */
 #topbar {
@@ -192,7 +192,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 body.panel-open #bg-warning { display: none; }
 
 .noscript-info {
-  position: fixed; inset: 70px 16px auto; z-index: 80; max-width: 720px;
+  position: fixed; top: 70px; right: 16px; left: 16px; z-index: 80; max-width: 720px;
   margin: 0 auto; padding: 20px; color: var(--text); background: var(--panel);
   border: 1px solid var(--panel-border); border-radius: 14px; line-height: 1.5;
 }
@@ -357,6 +357,13 @@ dialog a:hover, dialog a:focus-visible { text-decoration: underline; }
   gap: 8px; pointer-events: none;
 }
 #map-actions > * { pointer-events: auto; }
+/* Mało miejsca (mały ekran, duża czcionka, tryb historii): same ikony. Gdy nie
+   zmieści się nawet jedna ikona — chowamy przyciski, zamiast kłaść je na pasek. */
+#map-actions.compact .map-btn { min-width: 0; padding: 9px; gap: 0; }
+#map-actions.compact .map-btn span { display: none; }
+#map-actions.no-room { visibility: hidden; }
+.places-dialog form::-webkit-scrollbar-corner, dialog::-webkit-scrollbar-corner,
+.places-dialog form::-webkit-resizer, dialog::-webkit-resizer { background: transparent; }
 .map-btn {
   width: 42px; height: 42px; border-radius: 50%; cursor: pointer;
   background: var(--panel); border: 1px solid var(--panel-border); color: var(--accent);
@@ -465,7 +472,7 @@ body.history-mode #my-banner { display: none; }
 
 /* ── pełnoekranowy alarm (poziom czerwony) ── */
 #alarm-overlay {
-  position: fixed; inset: 0; z-index: 90; display: flex; align-items: center;
+  position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 90; display: flex; align-items: center;
   justify-content: center; padding: 18px;
   background: rgba(20, 0, 4, .72); backdrop-filter: blur(4px);
   animation: alarmflash 1.1s infinite;
@@ -861,7 +868,10 @@ dialog menu { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14
   .icon-btn { width: 34px; height: 34px; border-radius: 10px; }
   .icon-btn svg { width: 18px; height: 18px; }
   .top-actions { gap: 4px; }
-  #panel { left: 10px; width: auto; top: auto; height: 52vh; }
+  #panel { left: 10px; width: auto; top: auto; height: 52vh;
+    /* przy wysokim stosie komunikatów panel wchodził na górny pasek (✕ pod ⚙) */
+    max-height: calc(100vh - var(--topbar-bottom, 110px) - 8px - var(--tabbar-h) - var(--safe-b)
+      - var(--stack-h, 0px) - 14px); }
   #panel.collapsed { transform: translateY(calc(100% + 60px)); }
   #attribution { font-size: 10px; }
 
@@ -1003,16 +1013,18 @@ body.panel-open #bottom-stack > #update-banner:not(.critical) { display: none; }
 
 /* ── zakładki w Ustawieniach ── */
 .set-tabs {
-  display: flex; gap: 5px; padding-bottom: 10px; margin: 0 0 12px;
+  /* wrap: przy dużej czcionce systemowej na wąskim ekranie nazwy były ucinane do
+     „Alar…”, „Dźw…” (Android 12, 360 px, czcionka 130%) — wtedy drugi rząd */
+  display: flex; flex-wrap: wrap; gap: 5px; padding-bottom: 10px; margin: 0 0 12px;
 }
 .set-tabs::-webkit-scrollbar { display: none; }
 .set-tab {
   /* cztery zakładki mają zmieścić się w jednym rzędzie na telefonie — przy
      większym odstępie „Aplikacja" wychodziła poza okno i trzeba było przewijać */
-  flex: 1 1 auto; min-width: 0; padding: 8px 6px; border-radius: 999px; cursor: pointer;
+  flex: 1 1 auto; padding: 8px 6px; border-radius: 999px; cursor: pointer;
   border: 1px solid var(--line-strong, rgba(120,150,210,.3)); background: transparent;
   color: var(--muted); font: 600 11.5px/1 "Segoe UI", system-ui, sans-serif;
-  white-space: nowrap; text-overflow: ellipsis; overflow: hidden;
+  white-space: nowrap;
 }
 .set-tab:hover { color: var(--text); }
 .set-tab.active { background: rgba(91,140,255,.16); border-color: var(--accent); color: var(--text); }

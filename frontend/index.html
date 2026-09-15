@@ -46,6 +46,22 @@ document.documentElement.classList.add(
   location.protocol === "capacitor:" || location.protocol === "file:" || window.Capacitor
     ? "native-app" : "web-app"
 );
+/* Za stary silnik przeglądarki (np. Android bez aktualizacji „Android System WebView”)
+   nie wczyta app.js i zostałby pusty ekran. Wtedy mówimy wprost, co zaktualizować. */
+var STRAZNIK_OLD_ENGINE = false;
+try { new Function("var a = null; return a?.b ?? 1"); } catch (e) { STRAZNIK_OLD_ENGINE = true; }
+if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function () {
+  var d = document.createElement("div");
+  d.setAttribute("role", "alert");
+  d.style.cssText = "position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;background:#0b0f1a;color:#e8eefc;padding:28px 22px;font:16px/1.5 sans-serif;overflow:auto";
+  var app = document.documentElement.className.indexOf("native-app") >= 0;
+  d.innerHTML = "<h2 style=\"margin:0 0 12px\">Strażnik nie może się uruchomić</h2>" +
+    "<p>Silnik przeglądarki w tym telefonie jest za stary. " + (app
+      ? "Zaktualizuj w Sklepie Play aplikacje <b>Android System WebView</b> i <b>Chrome</b>, a potem uruchom Strażnika ponownie."
+      : "Zaktualizuj przeglądarkę (np. Chrome) i odśwież stronę.") + "</p>" +
+    "<p style=\"color:#9fb0cf\">Bez tej aktualizacji nie działa mapa ani ustawienia alarmów — nie polegaj na Strażniku, dopóki jej nie zrobisz.</p>";
+  document.body.appendChild(d);
+});
 </script>
 <link rel="manifest" href="manifest.json">
 <!-- ikona w karcie przeglądarki — ta sama co w aplikacji (wcześniej był domyślny globus) -->
@@ -53,7 +69,7 @@ document.documentElement.classList.add(
 <link rel="icon" type="image/png" sizes="512x512" href="assets/icon-512.png">
 <link rel="apple-touch-icon" href="assets/icon-192.png">
 <link rel="stylesheet" href="assets/vendor/maplibre-gl.css">
-<link rel="stylesheet" href="style.css?v=1.7.50-2">
+<link rel="stylesheet" href="style.css?v=1.7.51-1">
 </head>
 <body>
 
@@ -740,13 +756,13 @@ document.documentElement.classList.add(
      Cloudflare, więc po każdym wydaniu wystarczy podbić ?v= i przeglądarki
      dostają nowe app.js/engine.js OD RAZU, bez ręcznego czyszczenia cache CF.
      Podbijaj ?v= razem z versionName w build.gradle. -->
-<script src="i18n.js?v=1.7.50-1"></script>
+<script src="i18n.js?v=1.7.51-1"></script>
 <!-- kontur Polski dla engine.js (audyt A2b, scripts/build_pl_outline.py) -->
-<script src="pl-outline.js?v=1.7.50-1"></script>
-<script src="engine.js?v=1.7.50-1"></script>
+<script src="pl-outline.js?v=1.7.51-1"></script>
+<script src="engine.js?v=1.7.51-1"></script>
 <script src="aircraft-photo-catalog.js?v=1.7.19"></script>
 <script src="aircraft-photos.js?v=1.7.19"></script>
 <script src="places.js?v=1.7.19-4"></script>
-<script src="app.js?v=1.7.50-4"></script>
+<script src="app.js?v=1.7.51-1"></script>
 </body>
 </html>

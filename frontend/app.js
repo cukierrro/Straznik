@@ -10,6 +10,12 @@ const IS_APP = location.protocol === "capacitor:" || location.protocol === "file
 // aplikacji aktualizacje obsługuje osobny mechanizm w Ustawieniach.
 if (IS_APP) document.querySelectorAll(".web-only").forEach(el => { el.hidden = true; });
 const DEFAULT_BACKEND = "https://straznik.eu";   // serwer fuzji Strażnika (VPS przez Cloudflare)
+/* Starszy WebView (Android bez aktualizacji, 15.09.2026 audyt): AbortSignal.timeout
+   jest od Chrome 103 — bez niego nie ładowały się strefy PAŻP ani dziennik ADS-B. */
+function timeoutSignal(ms) {
+  if (typeof AbortSignal !== "undefined" && AbortSignal.timeout) return AbortSignal.timeout(ms);
+  const c = new AbortController(); setTimeout(() => c.abort(), ms); return c.signal;
+}
 function validBackendUrl(value) {
   try {
     const u = new URL(value);
@@ -895,7 +901,7 @@ function renderLegendThreatIcons() {
     const canvas = document.createElement("canvas");
     canvas.width = canvas.height = 64;
     canvas.getContext("2d").putImageData(makeThreatImage(type, meta.color, el.dataset.headingUnknown === "1"), 0, 0);
-    el.replaceChildren(canvas);
+    el.textContent = ""; el.appendChild(canvas);   // replaceChildren: Chrome 86
   });
 }
 renderLegendThreatIcons();
@@ -935,6 +941,10 @@ async function initMap() {
     bounds: FIT_BOUNDS, fitBoundsOptions: { padding: FIT_PAD }, pitch: 45, bearing: -8,
     antialias: true, attributionControl: false, maxPitch: 70,
   });
+  // Zmiana rozmiaru okna w trakcie tworzenia mapy (obrót, podzielony ekran, składany
+  // telefon) zostawiała płótno w starym rozmiarze — na tablecie mapa była czarna poza
+  // paskiem u góry. MapLibre słucha tylko zdarzenia resize okna, więc pilnujemy kontenera.
+  if (window.ResizeObserver) new ResizeObserver(() => map.resize()).observe(map.getContainer());
 
   map.on("load", async () => {
     localiseMapLabels();
@@ -1282,7 +1292,7 @@ async function refreshZones(force) {
   if (!base || standalone) return;
   zonesPending = true;
   try {
-    const r = await fetch(base + "/api/zones", { signal: AbortSignal.timeout(12000), cache: "no-store" });
+    const r = await fetch(base + "/api/zones", { signal: timeoutSignal(12000), cache: "no-store" });
     if (!r.ok) throw new Error("zones unavailable");
     const j = await r.json();
     if (base !== apiBase() || standalone) return;   // serwer zmieniony w locie
@@ -2271,7 +2281,7 @@ async function refreshWatchEvents() {
   const base = apiBase(); if (!base) return;
   watchFetchAt = Date.now(); watchFetchPending = true; watchSyncState = "loading";
   try {
-    const r = await fetch(base + "/api/adsb/watch?hours=12", {signal: AbortSignal.timeout(12000), cache: "no-store"});
+    const r = await fetch(base + "/api/adsb/watch?hours=12", {signal: timeoutSignal(12000), cache: "no-store"});
     if (!r.ok) throw new Error("watch journal unavailable");
     const j = await r.json();
     if (!Array.isArray(j.events)) throw new Error("invalid journal");
@@ -3597,7 +3607,7 @@ async function showCameras(voiv) {
   // grupowanie po miejscowości, żeby dało się szybko znaleźć swoją okolicę
   const groupBy = (arr) => {
     const by = {};
-    for (const c of arr) (by[c.city] ||= []).push(c);
+    for (const c of arr) (by[c.city] = by[c.city] || []).push(c);   // bez ||= (Chrome 85)
     return Object.entries(by).map(([city, cams]) =>
       `<div class="cam-city">${esc(city)}</div>
        <div class="cam-grid">${cams.map(tile).join("")}</div>`).join("");
@@ -4399,7 +4409,13 @@ async function refreshBgStatus(previewLang = UI.lang) {
     // (15.09.2026: sam przełącznik nic nie pokazywał, a test lokalny dalej grał).
     const slug = v => "voiv_" + v.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/ł/g, "l");
     const subscribed = ALL_VOIVS.filter(v => (s.topicsConfirmed || []).includes(slug(v)));
-    const subLine = s.topicsUnsubscribing
+    // Świeża instalacja bez żadnego obserwowanego województwa też wypisuje z tematów —
+    // „Wypisywanie…” wyglądało wtedy jak błąd, a użytkownik nie wiedział, co zrobić.
+    const noRegion = !alertsOff() && !(s.observedVoivodeships || []).length && !s.homeVoivodeship;
+    const subLine = noRegion && !subscribed.length
+      ? (isEn ? "No province is selected for alerts yet — add a place with “Watch alerts” on in the My places tab."
+        : "Nie wybrano jeszcze województwa do alarmów — dodaj miejsce z włączonym „Obserwuj alerty” w zakładce Moje miejsca.")
+      : s.topicsUnsubscribing
       ? (isEn ? "⏳ Unsubscribing this phone from provinces…" : "⏳ Wypisywanie telefonu z województw…")
       : subscribed.length
       ? (isEn ? `Subscribed to alerts for: ${subscribed.map(v => esc(UI.voiv(v))).join(", ")} (confirmed by Firebase).`
@@ -4410,6 +4426,7 @@ async function refreshBgStatus(previewLang = UI.lang) {
       ? "🔕 Alerts are turned off on this phone — no alert notifications will arrive, even if the server sends one. Turn the switch below back on to restore them."
       : "🔕 Alarmy są wyłączone na tym telefonie — powiadomienia o alarmach nie przyjdą, nawet gdyby serwer je wysłał. Włącz suwak niżej, żeby je przywrócić.");
     if (info) info.innerHTML = (warn.join("<br>")
+      || (noRegion && !subscribed.length ? (isEn ? "Notifications are allowed." : "Powiadomienia są dozwolone.") : "")
       || (isEn ? "Notifications ready. Alerts for your region will arrive even while the app is closed."
         : "Powiadomienia gotowe. Alarmy dla Twojego regionu dotrą także przy zamkniętej aplikacji."))
       + `<br>${subLine}`
@@ -4648,6 +4665,7 @@ function setPanel(open) {
   document.getElementById("btn-panel").classList.toggle("active", open);
   document.body.classList.toggle("panel-open", open);
   syncTabs();
+  requestAnimationFrame(fitMapActions);   // po zamknięciu panelu przyciski wracają
 }
 document.getElementById("btn-panel").onclick = () =>
   setPanel(document.getElementById("panel").classList.contains("collapsed"));
@@ -4658,10 +4676,25 @@ document.getElementById("btn-legend").onclick = () => {
 
 /* Panel i przyciski mapy muszą wiedzieć, ile miejsca zajmuje dolny stos —
    inaczej pasek zastrzeżenia zasłaniał nagłówek listy sygnałów. */
+/* Przyciski mapy: pełne kafelki, jeśli się mieszczą; inaczej same ikony; bez miejsca
+   nawet na ikonę — ukryte (Android 12, 360×640, czcionka 130%, tryb historii). */
+function fitMapActions() {
+  const box = document.getElementById("map-actions");
+  if (!box) return;
+  box.classList.remove("compact", "no-room");
+  const room = box.clientHeight;
+  if (!room) return;                                  // ukryty (panel otwarty)
+  const need = el => [...el.children].reduce((h, c) => h + c.offsetHeight + 8, -8);
+  if (need(box) <= room) return;
+  box.classList.add("compact");
+  const one = box.firstElementChild?.offsetHeight || 0;
+  if (one > room) box.classList.add("no-room");
+}
+addEventListener("resize", () => requestAnimationFrame(fitMapActions));
 const stackEl = document.getElementById("bottom-stack");
 if (stackEl && window.ResizeObserver) {
-  const setStackH = () => document.documentElement.style
-    .setProperty("--stack-h", stackEl.offsetHeight + "px");
+  const setStackH = () => { document.documentElement.style
+    .setProperty("--stack-h", stackEl.offsetHeight + "px"); requestAnimationFrame(fitMapActions); };
   new ResizeObserver(setStackH).observe(stackEl);
   setStackH();
 }
@@ -4669,8 +4702,9 @@ if (stackEl && window.ResizeObserver) {
    systemowa + komunikat MiG-31K wypychały „mój region” na przyciski paska). */
 const topbarEl = document.getElementById("topbar");
 if (topbarEl && window.ResizeObserver) {
-  const setTopbarB = () => document.documentElement.style
+  const setTopbarB = () => { document.documentElement.style
     .setProperty("--topbar-bottom", Math.round(topbarEl.getBoundingClientRect().bottom) + "px");
+    requestAnimationFrame(fitMapActions); };
   new ResizeObserver(setTopbarB).observe(topbarEl);
   addEventListener("resize", setTopbarB);
   setTopbarB();
