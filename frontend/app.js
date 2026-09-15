@@ -972,7 +972,7 @@ async function initMap() {
     // pliku: Cloudflare przy .geojson pomija ?v= (14.09.2026 nowy plik doszedł
     // dopiero po wygaśnięciu wpisu), więc przy zmianie danych → nowa nazwa.
     const kraje = await (await fetch("assets/kraje-v2.geojson")).json();
-    map.addSource("kraje", { type: "geojson", data: kraje });
+    map.addSource("kraje", { type: "geojson", data: kraje, promoteId: "iso" });
     // Android WebView wyświetla ciemną mapę bardziej płasko niż przeglądarka
     // desktopowa, więc w aplikacji krycie jest trochę wyższe.
     const countryOpacity = IS_APP
@@ -982,6 +982,13 @@ async function initMap() {
       paint: { "fill-color": ["match", ["get", "iso"],
           ...Object.entries(COUNTRY_COLORS).flat(), "#333"],
         "fill-opacity": countryOpacity } });
+    // Alarm powietrzny w kraju sąsiednim (na razie LT/LV/EE z mediów) — bez punktów.
+    map.addLayer({ id: "kraje-alert", type: "fill", source: "kraje",
+      paint: { "fill-color": "#ff4d5e",
+        "fill-opacity": ["case", ["boolean", ["feature-state", "alert"], false], 0.22, 0] } });
+    map.addLayer({ id: "kraje-alert-line", type: "line", source: "kraje",
+      paint: { "line-color": "#ff4d5e", "line-width": 1.2, "line-dasharray": [2, 2],
+        "line-opacity": ["case", ["boolean", ["feature-state", "alert"], false], 0.7, 0] } });
     /* Kontury krajów rysuje już styl bazowy (warstwy boundary). Własnej linii
        NIE dokładamy: wzdłuż granicy PL biegłaby obok linii województw i dawała
        efekt „podwójnego konturu". Zostaje samo wypełnienie (odcień kraju). */
@@ -1053,6 +1060,33 @@ async function initMap() {
        obwód nie zlewa się z Polską. Granice z geoBoundaries (OpenStreetMap), czyli
        z tego samego źródła co podkład i odległości w punktacji. Stan przez
        feature-state: 1 MB geometrii ładujemy raz, a nie przy każdej zmianie. */
+    /* Alarmy w całej Ukrainie co do rejonu (NEPTUN) — TYLKO do obserwacji, bez punktów
+       (decyzja usera 15.09.2026). Pod warstwą obwodów punktowanych, żeby ich różowy
+       obrys był na wierzchu. Kraje bałtyckie podświetlamy przez feature-state „kraje”. */
+    try {
+      const rejony = await (await fetch("assets/rejony-ua-v1.geojson")).json();
+      for (const f of rejony.features)
+        (raionsByOblast[f.properties.o] = raionsByOblast[f.properties.o] || []).push(f.properties.k);
+      map.addSource("rejony", { type: "geojson", data: rejony, promoteId: "k" });
+      const lvl = ["coalesce", ["feature-state", "alert"], ""];
+      const col = ["match", lvl, "red", "#ff4d5e", "#ffb020"];
+      map.addLayer({ id: "rejony-alert-fill", type: "fill", source: "rejony",
+        paint: { "fill-color": col,
+          "fill-opacity": ["match", lvl, "red", 0.2, "yellow", 0.16, 0] } });
+      map.addLayer({ id: "rejony-alert-line", type: "line", source: "rejony",
+        paint: { "line-color": col, "line-width": 0.8,
+          "line-opacity": ["match", lvl, "red", 0.45, "yellow", 0.4, 0] } });
+      map.on("click", "rejony-alert-fill", (e) => {
+        const hit = map.queryRenderedFeatures(e.point,
+          { layers: ["threats", "threats-glow", "adsb", "obwody-fill"].filter(l => map.getLayer(l)) })
+          // obwody-fill ma geometrię zawsze — ustępujemy tylko obwodowi z punktowanym alarmem
+          .filter(f => f.layer.id !== "obwody-fill" || oblastInfo.has(f.properties?.oblast));
+        if (hit.length) return;
+        const k = e.features?.[0]?.properties?.k;
+        if (k && raionAlertInfo.has(k)) openRaionAlert(raionAlertInfo.get(k), e.lngLat);
+      });
+      paintRaionAlerts(histMode ? [] : state?.neptun?.alert_areas);
+    } catch (err) { console.warn("rejony UA", err); }
     try {
       const obwody = await (await fetch("assets/obwody-ua.geojson")).json();
       map.addSource("obwody", { type: "geojson", data: obwody, promoteId: "oblast" });
@@ -1894,6 +1928,80 @@ function paintOblasts(sigs) {
       { active: next.has(k), w: next.get(k)?.w || 0 });
   oblastInfo = next;
 }
+
+/* ── alarmy u sąsiadów tylko do obserwacji (bez punktów, 15.09.2026) ── */
+let raionsByOblast = {};           // obwód (ukr., bez „область”) → klucze rejonów z mapy
+let raionAlertInfo = new Map();    // klucz rejonu → wpis alarmu NEPTUN-a
+let countryAlerts = new Set();     // ISO3 krajów z trwającym alarmem
+const UA_LATIN = { а:"a",б:"b",в:"v",г:"h",ґ:"g",д:"d",е:"e",є:"ie",ж:"zh",з:"z",и:"y",і:"i",ї:"i",й:"i",
+  к:"k",л:"l",м:"m",н:"n",о:"o",п:"p",р:"r",с:"s",т:"t",у:"u",ф:"f",х:"kh",ц:"ts",ч:"ch",ш:"sh",
+  щ:"shch",ь:"",ю:"iu",я:"ia" };
+const UA_LATIN_INITIAL = { є:"ye", ї:"yi", й:"y", ю:"yu", я:"ya" };
+// Rejony przemianowane w 2024 r. (NEPTUN ma nowe nazwy, granice z 2022 — stare) i
+// odmienna pisownia w źródle granic.
+const RAION_ALIAS = { zviahelskyi:"novohradvolynskyi", volodymyrskyi:"volodymyrvolynskyi",
+  sheptytskyi:"chervonohradskyi", berestynskyi:"krasnohradskyi", samarivskyi:"novomoskovskyi",
+  kerchenskyi:"kerchynskyi" };
+/* Ukraińska nazwa rejonu → klucz jak w rejony-ua-v1.geojson (transliteracja urzędowa). */
+function raionKey(name) {
+  const words = String(name || "").toLowerCase().replace(/[’ʼ'`]/g, "")
+    .replace(/\s*(район|р-н)\s*$/, "").replace(/зг/g, "zgh").split(/[\s-]+/);
+  const k = words.map(w => [...w].map((ch, i) =>
+    (i === 0 && UA_LATIN_INITIAL[ch]) || (UA_LATIN[ch] ?? ch)).join("")).join("").replace(/[^a-z]/g, "");
+  return RAION_ALIAS[k] || k;
+}
+const oblastShort = s => String(s || "").replace(/^м\.\s*/, "").replace(/\s+область$/i, "").trim();
+function paintRaionAlerts(areas) {
+  if (!mapReady || !map.getSource("rejony")) return;
+  const next = new Map();
+  const rank = { red: 2, yellow: 1 };
+  const put = (k, a) => { const prev = next.get(k);
+    if (!prev || (rank[a.l] || 0) > (rank[prev.l] || 0)) next.set(k, a); };
+  for (const a of areas || []) {
+    if (a.w === "oblast") {
+      for (const k of raionsByOblast[oblastShort(a.n)] || raionsByOblast[oblastShort(a.o)] || []) put(k, a);
+    } else {
+      const k = raionKey(a.k || a.n);
+      if ((raionsByOblast[oblastShort(a.o)] || []).includes(k)) put(k, a);
+      else if (!paintRaionAlerts.warned?.has(k)) {
+        (paintRaionAlerts.warned = paintRaionAlerts.warned || new Set()).add(k);
+        console.warn("Strażnik: rejon bez granic na mapie", a.n, a.o, k);
+      }
+    }
+  }
+  for (const k of new Set([...raionAlertInfo.keys(), ...next.keys()]))
+    map.setFeatureState({ source: "rejony", id: k }, { alert: next.get(k)?.l === "red" ? "red"
+      : next.has(k) ? "yellow" : "" });
+  raionAlertInfo = next;
+}
+function openRaionAlert(a) {
+  markSelected(null, null);
+  const en = UI.isEn;
+  const since = Date.parse(a.s || "");
+  const t = Number.isFinite(since) ? new Date(since).toLocaleTimeString(en ? "en-GB" : "pl-PL",
+    { hour: "2-digit", minute: "2-digit" }) : "?";
+  const where = a.w === "oblast" ? a.n : `${a.n}${a.o ? " · " + a.o : ""}`;
+  const lvl = a.l === "red" ? (en ? "red level" : "poziom czerwony") : (en ? "yellow level" : "poziom żółty");
+  showCard(`
+    <div class="zone-head"><b style="color:${a.l === "red" ? "#ff6b78" : "#ffc04d"}">📢 ${esc2(where)}</b>
+      <span style="color:#8fa3c4">· ${en ? "air-raid alert in Ukraine" : "alarm powietrzny w Ukrainie"}</span></div>
+    <span style="color:#8fa3c4">${en ? `Since ${t} · ${lvl}` : `Od ${t} · ${lvl}`}${a.r ? " · " + esc2(a.r) : ""}</span><br>
+    <span style="color:#68758c">${en
+      ? "Shown for information only — it adds no points. Points come only from alerts in the oblasts near Poland (pink outline). Source: NEPTUN."
+      : "Tylko do obserwacji — nie dolicza punktów. Punkty dają wyłącznie alarmy w obwodach blisko Polski (różowy obrys). Źródło: NEPTUN."}</span>`);
+}
+const BALTIC_ISO3 = { LT: "LTU", LV: "LVA", EE: "EST" };
+function paintCountryAlerts(sigs) {
+  if (!mapReady || !map.getSource("kraje")) return;
+  const next = new Set();
+  for (const s of sigs || []) {
+    const iso = s.event_type === "baltic_alert" && BALTIC_ISO3[s.details?.country];
+    if (iso && !s.cleared && (s.weight ?? 1) > 0) next.add(iso);
+  }
+  for (const iso of new Set([...countryAlerts, ...next]))
+    map.setFeatureState({ source: "kraje", id: iso }, { alert: next.has(iso) });
+  countryAlerts = next;
+}
 function openOblastCard(p) {
   const e = oblastInfo.get(p.oblast);
   if (!e) return;
@@ -1923,7 +2031,10 @@ function openOblastCard(p) {
 function updateVoivStates() {
   if (histMode) return;   // mapa pokazuje wtedy chwilę wybraną suwakiem
   const voivs = state?.fusion?.voivodeships || {};
-  paintOblasts(Object.values(voivs).flatMap(st => st.signals || []));
+  const allSigs = Object.values(voivs).flatMap(st => st.signals || []);
+  paintOblasts(allSigs);
+  paintCountryAlerts(allSigs);
+  paintRaionAlerts(state?.neptun?.alert_areas);
   for (const [name, st] of Object.entries(voivs)) {
     map.setFeatureState({ source: "voiv", id: name },
       { score: Math.min(st.score, 8), level: st.level, spill: spillRaised(st) });
@@ -3833,6 +3944,9 @@ function showHistoryAt(idx) {
     + (ageMin > 1 ? ` (−${ageMin} min)` : (UI.isEn ? " (now)" : " (teraz)"));
   const sigs = h?.signals || [];
   paintOblasts(sigs);
+  paintCountryAlerts(sigs);
+  // alarmów rejonów nie ma w migawkach — w historii nie udajemy, że trwały wtedy
+  paintRaionAlerts([]);
   // alarmy ogólnokrajowe z tamtej chwili jako komunikat, nie obiekt na mapie
   const snapThreats = snap?.threats || [];
   renderNationalChip(snapThreats);

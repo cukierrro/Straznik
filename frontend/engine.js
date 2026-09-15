@@ -260,6 +260,7 @@ const MAX_AGE_MS = 45*60*1000;
 /* ── stan ────────────────────────────────────────────────────────────────── */
 const tracks = new Map();          // Neptun tracks
 let alertOblasts = new Set();
+let alertAreas = [];               // wszystkie alarmy NEPTUN-a — tylko do mapy
 let adsbAircraft = [];
 const health = { neptun:false, adsb:false, rcb:false, rss:{}, pansa:false };
 let onState = null, ws = null, wsRetry = 1, wsRetryPending = false;
@@ -1141,6 +1142,19 @@ function neptunAlerts(data) {
   }
   for (const ob of uaEpisodes.keys()) if (!since.has(ob) && !uaAbsentSince.has(ob)) uaAbsentSince.set(ob, now);
   alertOblasts = new Set(since.keys());
+  // Wszystkie alarmy (cała Ukraina) do podświetlenia na mapie, bez punktów — lustro
+  // neptun._set_alert_areas.
+  alertAreas = [];
+  for (const [field, kind] of [["raions","raion"],["oblasts","oblast"]])
+    for (const it of (data?.[field]||[])) {
+      if (!it || typeof it !== "object") continue;
+      const level = String(it.level||"").toLowerCase();
+      if (ALERT_LEVELS_OFF.has(level)) continue;
+      alertAreas.push({ w: kind, k: String(it.key||"").slice(0,60), n: String(it.name||"").slice(0,80),
+        o: String(it.oblast||"").slice(0,60), l: level.slice(0,10),
+        s: typeof it.since === "string" ? it.since : null,
+        r: Array.isArray(it.reasons) && it.reasons.length ? String(it.reasons[0]).slice(0,80) : "" });
+    }
   uaFinishEnded(now);
 }
 /* Silnik da się ZATRZYMAĆ: gdy serwer wróci, przełączamy się na niego w locie,
@@ -1667,7 +1681,7 @@ function emit() {
     onState({
       fusion: computeState(),
       neptun: { status: { connected: health.neptun, mode: "app-ws" },
-        threats: [...tracks.values()], alert_oblasts: [...alertOblasts] },
+        threats: [...tracks.values()], alert_oblasts: [...alertOblasts], alert_areas: alertAreas },
       adsb: { aircraft: adsbAircraft, counts: {}, baselines: {} },
       // ua_alerts nie jest osobnym kolektorem po stronie aplikacji: alarmy
       // obwodowe przychodzą WebSocketem Neptuna (transport = health.neptun).
