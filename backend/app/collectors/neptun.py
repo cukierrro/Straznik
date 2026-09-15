@@ -394,6 +394,10 @@ def _evaluate(t: dict) -> dict:
         # jak samolot. Czas startu dla komunikatu w aplikacji.
         t["straznik_national"] = {"since": t.get("confirmedAt") or t.get("createdAt")
                                   or t.get("updatedAt")}
+        # „advisory”: NEPTUN pokazuje start jako „моніторинг, не тривога” — bez alarmu
+        # dla całego kraju (15.09.2026 aplikacja pisała wtedy „alarm w całej Ukrainie”).
+        if "advisory" in t:
+            t["straznik_national"]["advisory"] = bool(t.get("advisory"))
         t["straznik_position"] = {"quality": "approx", "reason": "national_alert"}
         t["pl_assessment"] = None
         t["border_region"] = False

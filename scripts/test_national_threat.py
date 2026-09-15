@@ -50,6 +50,12 @@ assert nat["pl_assessment"] is None
 assert "straznik_trail" not in nat
 assert not any(s["details"]["track_id"] == "national-mig31k" for s in ingested), "alarm ogólnokrajowy dał punkty"
 
+# 15.09.2026: NEPTUN oznacza start jako „моніторинг, не тривога” polem advisory.
+ADVISORY = {**NATIONAL, "id": "national-mig31k-adv", "advisory": True}
+asyncio.run(neptun._handle_threats([dict(ADVISORY)], replace=False))
+assert neptun.tracks["national-mig31k-adv"]["straznik_national"] == {
+    "since": "2026-09-14T16:22:33Z", "advisory": True}
+
 real = neptun.tracks["trk_00999001"]
 assert "straznik_national" not in real
 assert real["pl_assessment"] and real["pl_assessment"]["dist_km"] < 150

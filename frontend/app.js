@@ -312,17 +312,32 @@ function nationalText(t) {
   const time = Number.isFinite(since) ? new Date(since).toLocaleTimeString(
     UI.isEn ? "en-GB" : "pl-PL", { hour: "2-digit", minute: "2-digit" }) : "";
   const mig = t.type === "mig31k";
-  const head = (mig
-    ? (UI.isEn ? "MiG-31K airborne — air-raid alert across Ukraine" : "MiG-31K w powietrzu — alarm w całej Ukrainie")
-    : `${UI.type(t.type, meta.label)} — ${UI.isEn ? "air-raid alert across Ukraine" : "alarm w całej Ukrainie"}`)
-    + (time ? ` · ${UI.isEn ? "since" : "od"} ${time}` : "");
-  const body = mig
-    ? (UI.isEn
-      ? "The MiG-31K carries Kinzhal missiles, which can reach any part of Ukraine within minutes. That is why the take-off alone means an alert for the whole country. No source gives the aircraft's position, so it is not on the map. For Poland this is information about the situation, not a threat: it adds no points."
-      : "MiG-31K przenosi rakiety Kindżał, które w kilka minut mogą dolecieć w dowolne miejsce Ukrainy. Dlatego już sam start tego samolotu oznacza alarm dla całego kraju. Żadne źródło nie podaje, gdzie jest samolot, więc nie ma go na mapie. Dla Polski to informacja o sytuacji, nie zagrożenie: nie dolicza punktów.")
-    : (UI.isEn
-      ? "NEPTUN announced a threat for the whole country without the object's position, so it is not on the map. For Poland this is information about the situation, not a threat: it adds no points."
-      : "NEPTUN ogłosił zagrożenie dla całego kraju bez pozycji obiektu, więc nie ma go na mapie. Dla Polski to informacja o sytuacji, nie zagrożenie: nie dolicza punktów.");
+  /* 15.09.2026 NEPTUN pokazał start jako „моніторинг, не тривога” (pole advisory),
+     a my pisaliśmy „alarm w całej Ukrainie”. Alarm tylko przy advisory === false;
+     brak pola (starsze migawki) = tekst bez twierdzenia o alarmie. */
+  const adv = t.straznik_national?.advisory ?? t.advisory;
+  const kind = adv === true ? "watch" : adv === false ? "alarm" : "unknown";
+  // Brzmienie jak w komunikacie NEPTUN-a („Зліт МіГ-31К · моніторинг, не тривога”).
+  const tail = {
+    watch: UI.isEn ? "monitoring, not an alert" : "monitoring, nie alarm",
+    alarm: UI.isEn ? "alert across Ukraine" : "alarm w całej Ukrainie",
+    unknown: "" }[kind];
+  const name = mig ? (UI.isEn ? "MiG-31K take-off" : "Start MiG-31K") : UI.type(t.type, meta.label);
+  const head = name + (tail ? ` — ${tail}` : "") + (time ? ` · ${UI.isEn ? "since" : "od"} ${time}` : "");
+  const what = mig ? (UI.isEn
+    ? "A MiG-31K take-off has been recorded — the carrier of Kinzhal missiles. "
+    : "Zarejestrowano start MiG-31K — nosiciela rakiet Kindżał. ") : "";
+  const status = {
+    watch: UI.isEn
+      ? "The alert has not been declared across the whole of Ukraine — alerts apply in individual regions. This is a risk warning, not a signal to take shelter. "
+      : "Alarmu nie ogłoszono w całej Ukrainie — obowiązują alarmy w poszczególnych obwodach. To ostrzeżenie o ryzyku, a nie sygnał, by się ukryć. ",
+    alarm: UI.isEn
+      ? "An alert has been declared across the whole of Ukraine. "
+      : "Alarm ogłoszono w całej Ukrainie. ",
+    unknown: "" }[kind];
+  const body = what + status + (UI.isEn
+    ? "The position is unknown, so it is not on the map. For Poland: no points added."
+    : "Pozycja nie jest znana, więc nie ma go na mapie. Dla Polski: nie dolicza punktów.");
   const chip = mig ? "MiG-31K" : UI.type(t.type, meta.label);
   return { head, body, chip, color: meta.color };
 }
