@@ -128,6 +128,24 @@ asyncio.run(rm._baltic_entries([wpis("Drone that was shot down in Latvia entered
 ok(any(z["event_type"] == "baltic_context" and z["points"] == 1.0 for z in zapis), "incydent 1,0")
 
 
+print("7b. komentarze po nocnym alarmie 14/15.09.2026 nie są alarmem ani incydentem")
+reset()
+asyncio.run(rm._baltic_entries([
+    wpis("KOP vadas: neturėjome pakankamai informacijos apie grėsmę skelbti oro pavojui sekmadienį paryčiais", LRT + "kop-vadas"),
+    wpis("Reakciją į oro pavojų teigiamai įvertinęs Kumpis: pagaliau ir mes turim savo numuštą droną", LRT + "kumpis"),
+    wpis("Gaižauskas: nesutinku su nė vienu žodžiu, kad esame pasiruošę atremti oro pavojų", LRT + "gaizauskas"),
+    wpis("Oro pavojus naktį: neaišku, ar būtų atrakintos visos priedangos, o įstatyme atsakymo nėra", LRT + "priedangos"),
+    wpis("Juozas Olekas: turime visą spektrą priemonių naikinti oro erdvės pažeidėjus", LRT + "olekas"),
+], "lrt", "LT", T0 + 60))
+asyncio.run(rm._baltic_entries([wpis("Estonian minister: Lithuania drone downing a first for NATO Baltic mission",
+                                     "https://news.err.ee/1610000000/x")], "err", "EE", T0 + 60))
+ok(not zapis, f"6 komentarzy bez sygnałów ({[(z['event_type'], z['title'][:40]) for z in zapis][:4]})")
+reset()
+asyncio.run(rm._baltic_entries([wpis("Oro pavojus Vilniuje: gyventojams išsiųsti įspėjimai", LRT + "vilniuje")],
+                               "lrt", "LT", T0 + 60))
+ok(any(z["event_type"] == "baltic_alert" for z in zapis), "„Oro pavojus Vilniuje: …” nadal jest ogłoszeniem")
+
+
 class Odp:
     def __init__(self, tresc):
         self.content = tresc

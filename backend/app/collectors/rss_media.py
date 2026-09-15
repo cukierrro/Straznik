@@ -56,6 +56,14 @@ def _is_baltic_clear(text: str) -> bool:
             and any(word in tl for word in config.BALTIC_CLEAR_CONTEXT))
 
 
+def _speaker_quote(title_l: str) -> bool:
+    """Tytuł „Osoba: cytat” („KOP vadas: neturėjome…”, „Gaižauskas: nesutinku…”) to
+    wypowiedź o alarmie, nie jego ogłoszenie. Przedrostek z hasłem alarmu („Oro pavojus
+    Vilniuje: …”) zostaje ogłoszeniem."""
+    m = re.match(r"^([^:–—]{2,40}):\s", title_l)
+    return bool(m and not any(w in m.group(1) for w in config.BALTIC_ALERT_KEYWORDS))
+
+
 def _is_baltic_alert(text: str) -> list[str]:
     tl = text.lower()
     if any(word in tl for word in config.BALTIC_EXCLUDE_KEYWORDS):
@@ -244,7 +252,7 @@ def _qra_group(text: str) -> str:
     if _hits(tl, config.QRA_BALTIC_MARKERS):
         return "north"
     polish = bool(_hits(tl, config.QRA_POLISH_MARKERS)) or bool(_match_voivs(text))
-    if _mentions_abroad(text) and not polish:
+    if (_mentions_abroad(text) or _hits(tl, config.QRA_NATO_MARKERS)) and not polish:
         return "foreign"
     return "east"
 
@@ -514,7 +522,8 @@ async def _baltic_entries(entries, url: str, country: str, now: float):
         if age > MAX_AGE_S:
             continue
         title_l = title.lower()
-        alert_hits = ([] if any(m in f" {title_l}" for m in config.BALTIC_DISCUSSION_MARKERS)
+        discussion = any(m in f" {title_l}" for m in config.BALTIC_DISCUSSION_MARKERS)
+        alert_hits = ([] if discussion or _speaker_quote(title_l)
                       else _is_baltic_alert(title_l))
         if alert_hits:
             active = _baltic_active.get(country)
@@ -541,6 +550,8 @@ async def _baltic_entries(entries, url: str, country: str, now: float):
             continue
         if any(m in title_l for m in config.BALTIC_FOREIGN_MARKERS):
             continue          # zdarzenie poza krajami bałtyckimi
+        if discussion:
+            continue          # rozmowa o incydencie to nie incydent (15.09.2026: 1,0 pkt za komentarz)
         hits = match_keywords(text, config.BALTIC_CRITICAL_KEYWORDS,
                               config.BALTIC_AIR_KEYWORDS, config.BALTIC_EVENT_KEYWORDS,
                               config.BALTIC_EXCLUDE_KEYWORDS)

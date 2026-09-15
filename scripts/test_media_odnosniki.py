@@ -48,6 +48,18 @@ sprawdz(rss_media._match_voivs(rss_media._neutralize_places("Pożar we Wrześni,
 sprawdz("wielkopolskie" not in rss_media._match_voivs(rss_media._neutralize_places("14 września we wrześniu 2026")),
         "daty z września nie wskazują województwa")
 
+print("Relacja i publicystyka po nocnym alercie RCB (15.09.2026) nie dają punktów")
+from app import fusion  # noqa: E402
+for t in ["Nocny alert RCB na wschodzie Polski. Wojsko poderwało lotnictwo, przestrzeń powietrzna nie została naruszona",
+          "Alert RCB zamiast ostrzegać, usypia czujność? Co nie działa w systemie alarmowym?",
+          "Poderwane myśliwce i pilny alert RCB nad Polską. Wojsko zakończyło operację. Znamy szczegóły nocnego incydentu"]:
+    lvl, _ = rss_media._classify(t)
+    retro = fusion._media_retrospective({"source": "media", "event_type": "media_keywords", "title": f"Media: „{t}”"})
+    sprawdz(lvl is None and retro, f"bez punktów: {t[:60]} (klasyfikacja={lvl}, retro={retro})")
+live = fusion._media_retrospective({"source": "media", "event_type": "media_keywords",
+                                     "title": "Media: „Atak Rosji na Ukrainę. Poderwano polskie lotnictwo”"})
+sprawdz(not live, "relacja na żywo „Poderwano polskie lotnictwo” (01:00) nie jest relacją po fakcie")
+
 if bledy:
     print(f"\nBŁĘDY: {len(bledy)}")
     sys.exit(1)

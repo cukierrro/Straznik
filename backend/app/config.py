@@ -587,6 +587,10 @@ MEDIA_NONCURRENT_KEYWORDS = [
     "testy syren", "testy dron", "testuje", "testów", "rozpoczyna testy", "korytarz",
     "zawyją", "rozlegną się", "zabrzmią", "przelecą", "polecą", "będą latać",
     "dostaną alert", "wyją syreny",
+    # 15.09.2026: poranna relacja i publicystyka po nocnym alercie RCB dały po 1,0 pkt
+    # („Nocny alert RCB na wschodzie Polski… przestrzeń powietrzna nie została naruszona”,
+    # „Alert RCB zamiast ostrzegać, usypia czujność? Co nie działa w systemie alarmowym?”)
+    "nocny alert", "nocnego alertu", "nie została naruszona", "zakończyło operację", "znamy szczegóły", "usypia czujność", "co nie działa w systemie",
 ]
 # „Niespokojna noc/poranek" nie jest już wetem (E3): podsumowanie nocy bywa
 # relacją na żywo, a o świeżości decyduje article_reader po treści artykułu.
@@ -882,6 +886,11 @@ QRA_FOREIGN_STRONG = ["nad litwą", "nad łotwą", "nad estonią", "nad rumunią
                       "tajwan", "węgry poderwały", "rumunia poderwała", "litwa poderwała",
                       "air policing", "baltic air policing"]
 QRA_POLISH_MARKERS = ["polsk", "polsce", "dorsz", "dowództwo operacyjne", "nad polską"]
+# Poderwanie przypisane NATO bez słowa o Polsce to zwykle misja nad krajami bałtyckimi.
+# 15.09.2026 „NATO poderwało myśliwce i otworzyło ogień. Myśliwce zestrzeliły obcą
+# maszynę” (Litwa) trafiło do grupy „east” — dwie takie redakcje dałyby fałszywą falę.
+QRA_NATO_MARKERS = ["nato poderwało", "nato poderwał", "myśliwce nato", "samoloty nato",
+                    "lotnictwo nato", "nato zestrzel"]
 
 # ── Media bałtyckie (LT/LV/EE) — kontekst dla północno-wschodniej ściany ─────
 # Incydent powietrzny u sąsiadów NATO nad Bałtykiem podnosi czujność dla
@@ -989,6 +998,12 @@ BALTIC_DISCUSSION_MARKERS = [
     "klausim", " sako", "sakė", "kritik", "komentar", "interviu", "diskusij", "aiškina",
     "says", "said", "questions", "criticism", "interview", "debate", "explains",
     "saka", "jautājum", "skaidro", "ütles", "küsimus", "kriitik", "selgitab",
+    # 14–15.09.2026: komentarze po nocnym alarmie na Litwie dawały 0,3 i 1,0 pkt
+    # („Gaižauskas: nesutinku…”, „Oro pavojus naktį: neaišku, ar būtų atrakintos
+    # priedangos”, „Juozas Olekas: turime visą spektrą priemonių”, „Estonian minister: …”)
+    "neaišk", "nesutink", "įvertin", "reakcij", "neturėjome", "įstatym", "pasiruoš",
+    # „ministerija:” (komunikat resortu o incydencie) zostaje — tylko osoba ministra
+    "turime", "priemon", "ministras:", "ministrs:", "minister:", "a first for", "lessons", "pamok",
 ]
 # Incydent bałtycki ma się dziać nad krajami bałtyckimi. 14.09.2026 „Train carrying
 # Estonian leaders crossed Ukraine border just before Russian drone strike” dało 1 pkt

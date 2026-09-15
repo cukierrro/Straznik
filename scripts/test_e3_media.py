@@ -105,6 +105,10 @@ for tekst, oczek in [
     ("NATO poderwało myśliwce nad Litwą. Polskie F-35 w akcji", "foreign"),
     ("Korea Południowa poderwała myśliwce", "foreign"),
     ("Poderwano myśliwce w Rumunii", "foreign"),
+    # 15.09.2026: bez słowa o kraju, a chodziło o Litwę
+    ("Pilne. NATO poderwało myśliwce i otworzyło ogień. Myśliwce zestrzeliły obcą maszynę", "foreign"),
+    ("Atak Rosji na Ukrainę. Poderwano polskie lotnictwo", "east"),
+    ("NATO i polskie myśliwce poderwane w nocy nad Lubelszczyzną", "east"),
 ]:
     sprawdz(rss_media._qra_group(tekst) == oczek, f"{oczek}: {tekst} -> {rss_media._qra_group(tekst)}")
 
