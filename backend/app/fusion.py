@@ -8,6 +8,7 @@ import asyncio
 import logging
 import math
 import re
+import time
 import unicodedata
 from datetime import datetime, timedelta, timezone
 
@@ -160,6 +161,38 @@ def alert_level(own: float, total: float, prev: str = "none") -> str:
         return "none"
     cap = min(len(_ORDER) - 1, _ORDER.index(level_for(own)) + 1)
     return _ORDER[min(_ORDER.index(level_for(total)), cap)]
+
+
+# (klucz, poziom) → ostatnia chwila, gdy punkty sięgały progu tego poziomu
+_qualified_at: dict[tuple[str, str], float] = {}
+
+
+def hold_level(key: str, computed: str, now: float, clear_at: float | None = None) -> str:
+    """Poziom nie spada przez LEVEL_HOLD_MIN od chwili, gdy ostatnio sięgał progu.
+
+    16.09.2026 podkarpackie skakało co kilka minut: żółty 07:12 → brak 07:16 →
+    czerwony 07:19 → żółty 07:21 → czerwony 07:29 → żółty 07:36 → czerwony 07:38,
+    bo wynik wahał się wokół 2,0 i 4,0. Margines punktowy (0,5) wycofano 13.09, bo
+    trzymał żółty przy 1,7 pkt bez końca — tu trzymamy CZASOWO, więc po 10 min
+    poziom znów odpowiada punktom. Odwołanie RCB/RSO po ostatnim przekroczeniu
+    zdejmuje podtrzymanie od razu. Wzrost zawsze natychmiast."""
+    idx = _ORDER.index(computed)
+    for lvl in ("elevated", "high"):
+        if _ORDER.index(lvl) <= idx:
+            _qualified_at[(key, lvl)] = now
+    for lvl in ("high", "elevated"):
+        if _ORDER.index(lvl) <= idx:
+            break
+        q = _qualified_at.get((key, lvl))
+        if q and now - q < config.LEVEL_HOLD_MIN * 60 and not (clear_at and clear_at >= q):
+            return lvl
+    return computed
+
+
+def _last_clear_ts(signals: list[dict]) -> float | None:
+    ts = [_parse_ts(s.get("ts")) for s in signals if s.get("event_type") == "rso_clear"]
+    ts = [t for t in ts if t]
+    return max(ts).timestamp() if ts else None
 
 
 def _fresh_strong_signal(signals: list[dict], since_iso: str) -> bool:
@@ -580,6 +613,7 @@ def compute_state(signals: list[dict] | None = None, ref: datetime | None = None
     przeniesień) — do powiadomień. `signals`/`ref` służą odtwarzaniu przeszłej
     chwili w testach; na żywo oba zostają puste.
     """
+    live = signals is None and ref is None     # podtrzymanie poziomu tylko na żywo
     if signals is None:
         signals = db.signals_since(config.FUSION_WINDOW_MIN)
     if getattr(db, "_conn", None) is not None:
@@ -603,11 +637,18 @@ def compute_state(signals: list[dict] | None = None, ref: datetime | None = None
     # limit klasy źródła + wygaszanie wiekiem — wspólne z rekonstrukcją historii
     per_voiv = apply_spillover(accumulate(signals, ref), ref)
     levels = _levels()
+    now = time.time()
     for voiv, st in per_voiv.items():
         # Kolor mapy podniesiony WYŁĄCZNIE przez sąsiadów (telefon w tym
         # województwie nie dzwoni) — aplikacja rysuje go inaczej niż własny alarm,
         # żeby żółte świętokrzyskie z samych przeniesień nie wyglądało jak alarm.
         st["alert_level"] = alert_level(st["own_score"], st["score"], levels.get(voiv, "none"))
+        if live:
+            clear_at = _last_clear_ts([s for s in signals if s.get("voivodeship") == voiv])
+            st["alert_level"] = hold_level(f"alert:{voiv}", st["alert_level"], now, clear_at)
+            st["level"] = hold_level(f"map:{voiv}", st["level"], now, clear_at)
+            if _ORDER.index(st["alert_level"]) > _ORDER.index(st["level"]):
+                st["level"] = st["alert_level"]
         st["spill_raised"] = _ORDER.index(st["level"]) > _ORDER.index(st["alert_level"])
     return {
         "ts": (ref or datetime.now(timezone.utc)).isoformat(timespec="seconds"),
@@ -636,8 +677,9 @@ async def reevaluate():
     levels = _levels()
     for voiv, st in state["voivodeships"].items():
         old_level = levels.get(voiv, "none")
-        # Zapamiętany poziom to poziom POWIADOMIEŃ (alert_level), nie kolor mapy.
-        new_level = alert_level(st["own_score"], st["score"], old_level)
+        # Zapamiętany poziom to poziom POWIADOMIEŃ (alert_level), nie kolor mapy —
+        # z compute_state, razem z podtrzymaniem (hold_level), a nie liczony od nowa.
+        new_level = st["alert_level"]
         if new_level == old_level:
             if st["level"] != new_level and _ORDER.index(st["level"]) > _ORDER.index(new_level):
                 log.debug("woj. %s: na mapie %s (%s pkt, własne %s) — bez powiadomienia",

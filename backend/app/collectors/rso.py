@@ -209,6 +209,32 @@ async def _process(items: list):
     _bootstrap = True
 
 
+# Etap alertu RCB po treści — TYLKO do obserwacji (decyzja usera 16.09.2026). Zwroty
+# z alertów 20.08–16.09.2026; nieznane brzmienie trafia do dziennika jako „unknown”,
+# żeby wyłapać zmiany formatu, zanim etap wpłynie na punktację.
+STAGE_CLEAR = ("zakończył się", "zakonczyl sie", "odwołano", "odwolano", "brak zagrożenia",
+               "brak zagrozenia")
+STAGE_ACTION = ("udaj się w bezpieczne miejsce", "udaj sie w bezpieczne miejsce",
+                "zagrożenie atakiem z powietrza", "zagrozenie atakiem z powietrza", "schron",
+                "ukryj się", "ukryj sie", "pozostań w domu", "pozostan w domu",
+                "stosuj się do poleceń", "stosuj sie do polecen")
+STAGE_MONITOR = ("sytuacja jest monitorowana", "operuje polskie lotnictwo", "śledź komunikaty",
+                 "sledz komunikaty", "oczekuj dalszych komunikatów", "oczekuj dalszych komunikatow",
+                 "zachowaj czujność", "zachowaj czujnosc", "trwa zmasowany")
+
+
+def alert_stage(text: str, rso_alarm=None) -> str:
+    """'clear' | 'action' (etap 2) | 'monitor' (etap 1) | 'unknown'."""
+    t = (text or "").lower()
+    if str(rso_alarm or "").strip() == "2" or any(w in t for w in STAGE_CLEAR):
+        return "clear"
+    if any(w in t for w in STAGE_ACTION):
+        return "action"
+    if any(w in t for w in STAGE_MONITOR):
+        return "monitor"
+    return "unknown"
+
+
 def _record_text(it: dict, kind: str) -> None:
     """Każda NOWA wersja treści alertu RCB w RSO do dziennika (bez punktów).
 
@@ -218,8 +244,13 @@ def _record_text(it: dict, kind: str) -> None:
     treść przepadała, zostawał tylko ucięty tytuł sygnału."""
     content = f"{it.get('title','')}\n{it.get('shortcut','')}\n{it.get('content','')}"
     digest = hashlib.sha1(content.encode()).hexdigest()[:12]
+    stage = alert_stage(content, it.get("rso_alarm"))
+    if stage == "unknown":
+        log.warning("RSO: nierozpoznany etap alertu RCB (id %s): %s", it.get("id"),
+                    content.replace("\n", " | ")[:200])
     stealth.record("rso_message", f"{it.get('id')}:{digest}", {
-        "kind": kind, "rso_id": it.get("id"), "rso_alarm": it.get("rso_alarm"),
+        "kind": kind, "stage": stage, "uwaga_count": content.upper().count("UWAGA"),
+        "rso_id": it.get("id"), "rso_alarm": it.get("rso_alarm"),
         "title": (it.get("title") or "")[:300], "shortcut": (it.get("shortcut") or "")[:500],
         "content": (it.get("content") or "")[:2000],
         "valid_from": it.get("valid_from"), "valid_to": it.get("valid_to"),

@@ -279,6 +279,11 @@ ALERT_OWN_MIN = 1.0              # min. punktów własnych, by przeniesienie mog
 # co kilka minut w trakcie ataku. Na historii od 02.08: 36 powiadomień zamiast 37,
 # każdy alert RCB/RSO nadal z powiadomieniem.
 ALERT_REPEAT_QUIET_MIN = 60
+# Podtrzymanie poziomu (mapa i powiadomienia) po ostatnim przekroczeniu progu —
+# koniec migotania żółty/czerwony przy wyniku wahającym się wokół progu (16.09.2026).
+# Czasowe, nie punktowe: po tylu minutach poziom znów odpowiada punktom. Odwołanie
+# RCB/RSO zdejmuje je od razu (fusion.hold_level).
+LEVEL_HOLD_MIN = 10
 
 VOIV_NEIGHBORS = {
     "dolnośląskie": ["lubuskie", "wielkopolskie", "opolskie"],

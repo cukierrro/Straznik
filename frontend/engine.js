@@ -833,8 +833,33 @@ function computeState() {
   const cut = Date.now() - WINDOW_MIN*60*1000;
   const clearCut = Date.now() - (RSO_CLEAR_MEDIA_ECHO_MIN + WINDOW_MIN)*60*1000;
   const now = Date.now();
-  return stateFrom(signals.filter(s => s.t >= cut
-    || (s.event_type === "rso_clear" && s.t >= clearCut)).concat(activeUaAlerts(signals, now)), now);
+  const sigs = signals.filter(s => s.t >= cut
+    || (s.event_type === "rso_clear" && s.t >= clearCut)).concat(activeUaAlerts(signals, now));
+  const state = stateFrom(sigs, now);
+  // podtrzymanie poziomu tylko na żywo (historia liczy się ze stateFrom bez niego)
+  for (const [v, st] of Object.entries(state.voivodeships)) {
+    const clears = sigs.filter(s => s.event_type === "rso_clear" && s.voivodeship === v).map(s => s.t);
+    const clearAt = clears.length ? Math.max(...clears) : null;
+    st.alert_level = holdLevel("alert:" + v, st.alert_level, now, clearAt);
+    st.level = holdLevel("map:" + v, st.level, now, clearAt);
+    if (LEVEL_ORDER.indexOf(st.alert_level) > LEVEL_ORDER.indexOf(st.level)) st.level = st.alert_level;
+    st.spill_raised = LEVEL_ORDER.indexOf(st.level) > LEVEL_ORDER.indexOf(st.alert_level);
+  }
+  return state;
+}
+/* Lustro fusion.hold_level: poziom nie spada przez LEVEL_HOLD_MIN od ostatniego
+   przekroczenia progu; odwołanie RSO po nim zdejmuje podtrzymanie (16.09.2026). */
+const LEVEL_HOLD_MIN = 10;
+const qualifiedAt = new Map();
+function holdLevel(key, computed, now, clearAt) {
+  const idx = LEVEL_ORDER.indexOf(computed);
+  for (const lvl of ["elevated", "high"]) if (LEVEL_ORDER.indexOf(lvl) <= idx) qualifiedAt.set(key + "|" + lvl, now);
+  for (const lvl of ["high", "elevated"]) {
+    if (LEVEL_ORDER.indexOf(lvl) <= idx) break;
+    const q = qualifiedAt.get(key + "|" + lvl);
+    if (q && now - q < LEVEL_HOLD_MIN * 60000 && !(clearAt && clearAt >= q)) return lvl;
+  }
+  return computed;
 }
 
 /* Stan z podanej listy sygnałów w chwili `refT` — rdzeń computeState, osobno,
