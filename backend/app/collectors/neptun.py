@@ -39,6 +39,8 @@ def threat_label_pl(threat_type: str) -> str:
 # stan: aktywne tracki wg id (dla frontendu i CLI)
 tracks: dict[str, dict] = {}
 status = {"connected": False, "mode": "ws", "last_msg": None, "error": None,
+          # ostatnie potwierdzenie z REST, że cisza na gnieździe to brak zdarzeń, nie awaria
+          "last_alive": None, "silence_probe": None,
           # D8: rekordy pominięte, bo rzuciły wyjątkiem (np. tekst zamiast liczby)
           "bad_records": 0, "last_bad": None}
 
@@ -854,7 +856,17 @@ async def _ws_loop():
                 status.update(connected=True, mode="ws", error=None)
                 log.info("Neptun WS połączony")
                 backoff = 1
-                async for raw in ws:
+                while True:
+                    # 15.09.2026 21:29–22:10 UTC NEPTUN nie wysłał przez otwarte gniazdo
+                    # ani jednej ramki (także heartbeatu) — monitoring uznał go za martwego
+                    # i UptimeRobot/Healthchecks słały „down”. Cisza → pytamy REST: jeśli
+                    # ma nowsze dane, gniazdo wisi i łączymy od nowa; jeśli nie, źródło żyje.
+                    try:
+                        raw = await asyncio.wait_for(ws.recv(), timeout=config.NEPTUN_SILENCE_PROBE_S)
+                    except asyncio.TimeoutError:
+                        if await _silence_probe():
+                            raise ConnectionError("cisza WebSocketu, a REST ma nowsze dane")
+                        continue
                     status["last_msg"] = time.time()
                     try:
                         env = json.loads(raw)
@@ -875,6 +887,53 @@ async def _ws_loop():
             log.warning("Neptun WS rozłączony (%s), reconnect za %.1fs", e, wait)
             await _rest_fallback_once()
             await asyncio.sleep(wait)
+
+
+def _epoch(value) -> float | None:
+    try:
+        return datetime.fromisoformat(str(value).replace("Z", "+00:00")).timestamp()
+    except (TypeError, ValueError):
+        return None
+
+
+def ws_stale(rest_threats: list[dict], known: dict[str, dict], slack_s: float = 30) -> bool:
+    """Czy REST zna zagrożenia, których gniazdo nie dostarczyło (nowy id albo świeższy updatedAt)."""
+    for t in rest_threats:
+        tid = t.get("id")
+        if not tid:
+            continue
+        if tid not in known:
+            return True
+        rest_upd, our_upd = _epoch(t.get("updatedAt")), _epoch(known[tid].get("updatedAt"))
+        if rest_upd and (not our_upd or rest_upd - our_upd > slack_s):
+            return True
+    return False
+
+
+async def _silence_probe() -> bool:
+    """Po ciszy na gnieździe: True, gdy gniazdo jest nieaktualne (dane z REST już wczytane)."""
+    now = time.time()
+    try:
+        async with httpx.AsyncClient(timeout=15) as c:
+            r = await c.get(config.NEPTUN_REST_URL)
+            r.raise_for_status()
+            data = r.json()
+    except Exception as e:                       # noqa: BLE001
+        status["silence_probe"] = {"at": now, "ok": False, "error": repr(e)[:160]}
+        log.warning("Neptun: cisza na WS i REST nie odpowiada: %r", e)
+        return False
+    threats = data.get("threats") or []
+    stale = ws_stale(threats, tracks)
+    status["silence_probe"] = {"at": now, "ok": True, "stale": stale, "rest_threats": len(threats)}
+    if stale:
+        log.warning("Neptun: WS milczy, a REST ma nowsze dane (%d zagrożeń) — wczytuję REST i łączę ponownie",
+                    len(threats))
+        await _handle_threats(threats, replace=True, received_at=time.time(), transport="rest",
+                              message_type="snapshot", source_message_ts=data.get("serverTime"))
+        status["last_msg"] = time.time()
+    else:
+        status["last_alive"] = now               # źródło żyje, po prostu nie ma czego wysłać
+    return stale
 
 
 async def _rest_fallback_once():

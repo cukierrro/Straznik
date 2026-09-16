@@ -96,8 +96,12 @@ def critical_check(now: float | None = None) -> dict:
     checks["rso"] = {"ok": rso_fresh(now), "last": _iso(rso.status.get("last")),
                      "error": rso.status.get("error")}
     last_msg = neptun.status.get("last_msg")
-    checks["neptun"] = {"ok": bool(last_msg and now - last_msg <= NEPTUN_SILENCE_S),
-                        "connected": neptun.status.get("connected"), "last_msg": _iso(last_msg)}
+    # Cisza potwierdzona przez REST („nic nowego”) to działające źródło — 15.09.2026 nocą
+    # NEPTUN milczał 40 min bez heartbeatu i monitoring zgłaszał fałszywą awarię.
+    last_alive = max(last_msg or 0, neptun.status.get("last_alive") or 0) or None
+    checks["neptun"] = {"ok": bool(last_alive and now - last_alive <= NEPTUN_SILENCE_S),
+                        "connected": neptun.status.get("connected"), "last_msg": _iso(last_msg),
+                        "last_alive": _iso(neptun.status.get("last_alive"))}
     if config.FCM_ENABLED:
         fs = notify.fcm_status
         failing = bool(fs.get("last_error_at") and

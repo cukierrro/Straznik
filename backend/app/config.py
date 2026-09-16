@@ -28,6 +28,9 @@ NEPTUN_BASE = "https://neptun.in.ua"
 NEPTUN_WS_URL = "wss://neptun.in.ua/api/v1/stream"
 NEPTUN_REST_URL = f"{NEPTUN_BASE}/api/v1/threats"
 NEPTUN_REST_INTERVAL = 10          # s; REST tylko jako fallback gdy WS padnie
+# Po tylu sekundach bez ramki na gnieździe pytamy REST, czy to cisza, czy zawieszenie.
+# Mniej niż monitoring.NEPTUN_SILENCE_S (180 s), żeby spokojna noc nie dawała „down”.
+NEPTUN_SILENCE_PROBE_S = 120
 # ── Punktacja obiektów NEPTUN ────────────────────────────────────────────────
 # Zamiast jednej stawki za „obiekt kursem na PL” liczymy iloczyn czynników,
 # bo zagrożenie zależy od tego CO leci, ILE tego jest, JAK BLISKO jest i JAK
