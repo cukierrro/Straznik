@@ -17,7 +17,7 @@ from datetime import datetime, timezone
 import httpx
 import websockets
 
-from .. import config, db, fusion, geo, stealth
+from .. import by_entry_shadow, config, db, fusion, geo, stealth
 from ..neptun_archive import source_metadata
 
 log = logging.getLogger("neptun")
@@ -790,6 +790,7 @@ async def _handle_threats(threats: list[dict], replace: bool, *,
     received_iso = datetime.fromtimestamp(
         time.time() if received_at is None else received_at, timezone.utc,
     ).isoformat(timespec="milliseconds")
+    before = set(tracks) if replace else set()
     if replace:
         tracks.clear()
     for t in threats:
@@ -806,9 +807,12 @@ async def _handle_threats(threats: list[dict], replace: bool, *,
             tracks[t.get("id")] = t
             _catalog_point_shadow(t)
             _turnaway_shadow(t)
+            by_entry_shadow.observe(t)
             await _maybe_signal(t)
         except Exception as exc:                  # noqa: BLE001
             _bad_record(t, exc)
+    for tid in before - set(tracks):
+        by_entry_shadow.removed(tid)
     if replace:
         # pełny snapshot: zapominamy kotwice obiektów, których już nie ma
         for cache in (_last_pos, _last_est, _signalled, _away_streak, _trail):
@@ -838,7 +842,9 @@ async def _dispatch(env: dict, received_at: float) -> None:
                              received_at=received_at, transport="ws",
                              message_type=etype, source_message_ts=env.get("ts"))
     elif etype == "remove":
-        tracks.pop((data or {}).get("id"), None)
+        rid = (data or {}).get("id")
+        tracks.pop(rid, None)
+        by_entry_shadow.removed(rid)
         if fusion.on_state_change:
             asyncio.create_task(fusion.on_state_change())
     elif etype == "alerts":

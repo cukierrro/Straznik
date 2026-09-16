@@ -176,6 +176,43 @@ RO_SHADOW_DENY = ["recomand", "scoli", "scoala", "startup", "exercit", "achizit"
                   # portów („vor fi protejate împotriva dronelor”) zapisane jako alarm „teraz”
                   "moldov", "chisinau", "zelensk", "vor fi protejat", "protejate impotriva",
                   "sistem de protectie", "va fi dotat", "vor fi dotate"]
+# ── Białoruś w trybie cienia (by_entry_shadow.py + collectors/by_media_shadow.py, 16.09.2026) ──
+# Tylko zapis do obserwacje.db. Media na uchodźstwie wybrane przez usera: Zerkalo, Nasza Niwa,
+# Biełsat (Nexta odpada). Publiczne podglądy t.me/s i RSS — bez logowania i bez bota.
+BY_SHADOW_INTERVAL = int(os.getenv("BY_SHADOW_INTERVAL", "120"))
+BY_SHADOW_TELEGRAM = ["zerkalo_io", "nashaniva", "belsat"]
+BY_SHADOW_FEEDS = ["https://news.zerkalo.io/rss/all.rss"]
+# Dopasowanie po fragmencie, małe litery, ё → е; formy rosyjskie i białoruskie.
+BY_SHADOW_DRONE_WORDS = ["дрон", "беспилот", "бяспілот", "беспілот", "бпла", "шахед", "герань",
+                         "гербер", "воздушный шар", "воздушные шар", "воздушных шар",
+                         "паветраны шар", "паветраныя шар", "метеозонд", "метэазонд",
+                         "воздушная тревога", "паветраная трывога", "нарушение воздушного",
+                         "парушэнне паветранай"]
+# Białoruś jako miejsce lotu — nie samo słowo „Беларусь” (stopka Zerkalo: „из Беларуси — с VPN”).
+BY_SHADOW_BELARUS_WORDS = ["в беларусь", "в белоруссию", "у беларусь", "над беларус", "над белорус",
+                           "в беларуси", "у беларусі", "в небе беларус", "у небе беларус",
+                           "пространство беларус", "пространство белорус", "прастору беларус",
+                           "территорию беларус", "территории беларус", "тэрыторыю беларус",
+                           "тэрыторыі беларус", "из беларуси", "з беларусі", "со стороны беларус",
+                           "з боку беларус", "с территории беларус", "з тэрыторыі беларус",
+                           "беларусской пво", "беларускай спа", "беларусские пво", "над рб"]
+BY_SHADOW_WEST_PLACES = ["брест", "брэст", "гродн", "кобрин", "кобрын", "волковыск", "ваўкавыск",
+                         "пружан", "жабинк", "жабінк", "малорит", "маларыт", "каменец", "камянец",
+                         "ивацевич", "івацэвіч", "барановичи", "баранавіч", "лида", "лідзе"]
+BY_SHADOW_PLACES = BY_SHADOW_WEST_PLACES + [
+    "гомел", "мозыр", "мазыр", "пинск", "пінск", "лунинец", "лунінец", "слуцк", "светлогорск",
+    "светлагорск", "речиц", "рэчыц", "калинкович", "калінкавіч", "житкович", "жыткавіч", "столин",
+    "столін", "ельск", "наровл", "нароўл", "хойник", "хойнік", "брагин", "брагін", "лельчиц",
+    "лельчыц", "мачулищ", "мачуліш", "минск", "мінск"]
+BY_SHADOW_POLAND_WORDS = ["польш", "польск"]
+BY_SHADOW_LITHUANIA_WORDS = ["литв", "літв", "литовск", "літоўск"]
+# Relacja po fakcie — tylko tag do analizy, nie odrzucamy.
+BY_SHADOW_RETRO_WORDS = ["вчера", "учора", "за сутки", "за суткі", "итоги", "вынікі", "за месяц",
+                         "что известно", "што вядома", "разбираем", "разбіраем", "в прошлом",
+                         "мінулым", "год назад", "год таму", "сколько", "колькі"]
+# Tematy bez zagrożenia z powietrza: produkcja, wystawy, rolnictwo, sport.
+BY_SHADOW_DENY = ["выставк", "выстаўк", "производств", "вытворчас", "агродрон", "сельскохоз",
+                  "сельскагас", "чемпионат", "чэмпіянат", "дрон-рейс", "фестивал", "фестывал"]
 RCB_INTERVAL = int(os.getenv("RCB_INTERVAL", "120"))
 RCB_URL = "https://www.gov.pl/web/rcb"
 # RSO (Regionalny System Ostrzegania) przez TVP — realne alerty RCB/SPO (SMS-owe
