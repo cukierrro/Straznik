@@ -171,7 +171,11 @@ RO_SHADOW_RETRO_WORDS = ["in cursul noptii", "azi-noapte", "azi noapte", "noapte
 RO_SHADOW_DENY = ["recomand", "scoli", "scoala", "startup", "exercit", "achizit", "contract",
                   "lege ", "legea", "proiect", "productie", "fabric", "antidron", "lituani",
                   "letoni", "estoni", "poloni", "germani", "danemar", "norveg", "finland",
-                  "belgi", "olanda"]
+                  "belgi", "olanda",
+                  # 16.09.2026: 4× „Zelenski: Rusia a atacat Moldova cu drone” i plan ochrony
+                  # portów („vor fi protejate împotriva dronelor”) zapisane jako alarm „teraz”
+                  "moldov", "chisinau", "zelensk", "vor fi protejat", "protejate impotriva",
+                  "sistem de protectie", "va fi dotat", "vor fi dotate"]
 RCB_INTERVAL = int(os.getenv("RCB_INTERVAL", "120"))
 RCB_URL = "https://www.gov.pl/web/rcb"
 # RSO (Regionalny System Ostrzegania) przez TVP — realne alerty RCB/SPO (SMS-owe
@@ -596,7 +600,7 @@ MEDIA_NONCURRENT_KEYWORDS = [
     # 15.09.2026: poranna relacja i publicystyka po nocnym alercie RCB dały po 1,0 pkt
     # („Nocny alert RCB na wschodzie Polski… przestrzeń powietrzna nie została naruszona”,
     # „Alert RCB zamiast ostrzegać, usypia czujność? Co nie działa w systemie alarmowym?”)
-    "nocny alert", "nocnego alertu", "nie została naruszona", "zakończyło operację", "znamy szczegóły", "usypia czujność", "co nie działa w systemie",
+    "nocny alert", "nocnego alertu", "nie została naruszona", "zakończyło operację", "znamy szczegóły", "usypia czujność", "co nie działa w systemie", "zakończyło działania",
 ]
 # „Niespokojna noc/poranek" nie jest już wetem (E3): podsumowanie nocy bywa
 # relacją na żywo, a o świeżości decyduje article_reader po treści artykułu.

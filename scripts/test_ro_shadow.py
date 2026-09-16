@@ -50,7 +50,11 @@ for t in ["Școlile din România primesc recomandări speciale în cazul alertel
           "Avioane NATO au doborât o dronă deasupra Lituaniei",
           "Un startup american a dezvăluit drona „low-cost” care să înlocuiască MQ-9 Reaper",
           "Baze devastate, drone distruse și tot mai puține rachete",
-          "Recomandările DSU pentru școli în cazul incidentelor cu drone"]:
+          "Recomandările DSU pentru școli în cazul incidentelor cu drone",
+          # 16.09.2026 — zapisane w cieniu jako „start”, a nie dotyczyły alarmu w Rumunii
+          "Zelenski la CBS: „Rusia a atacat intenționat Moldova cu drone în timp ce avionul meu era aici”",
+          "Volodimir Zelenski: Drone rusești au atacat de două ori spațiul aerian al Moldovei în timp ce eram în tranzit",
+          "Porturile militare Constanţa, Mangalia, Tulcea şi Brăila vor fi protejate împotriva dronelor aeriene printr-un sistem"]:
     sprawdz(faza(t) is None, f"pominięte: {t[:70]} ({faza(t)})")
 
 print("4. Godziny z komunikatu MApN (15.09.2026)")
