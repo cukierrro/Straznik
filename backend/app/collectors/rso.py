@@ -16,13 +16,14 @@ tylko opisują. RSO potrafi zmienić istniejący wpis W MIEJSCU (ten sam id, now
 treść i `rso_alarm` = 2), więc odwołanie rozpoznajemy także po zmianie wpisu.
 """
 import asyncio
+import hashlib
 import logging
 import time
 import unicodedata
 
 import httpx
 
-from .. import config, fusion, rcb_reference
+from .. import config, fusion, rcb_reference, stealth
 
 log = logging.getLogger("rso")
 status = {"ok": False, "last": None, "error": None, "active": 0}
@@ -208,15 +209,37 @@ async def _process(items: list):
     _bootstrap = True
 
 
+def _record_text(it: dict, kind: str) -> None:
+    """Każda NOWA wersja treści alertu RCB w RSO do dziennika (bez punktów).
+
+    16.09.2026 (prośba usera): zanim treść alertu wpłynie na punktację („sytuacja
+    monitorowana” vs „schroń się”), trzeba znać wszystkie warianty. RSO zmienia wpis
+    w miejscu (ten sam id), a kanał TVP usuwa wygasłe alerty — bez tego zapisu pełna
+    treść przepadała, zostawał tylko ucięty tytuł sygnału."""
+    content = f"{it.get('title','')}\n{it.get('shortcut','')}\n{it.get('content','')}"
+    digest = hashlib.sha1(content.encode()).hexdigest()[:12]
+    stealth.record("rso_message", f"{it.get('id')}:{digest}", {
+        "kind": kind, "rso_id": it.get("id"), "rso_alarm": it.get("rso_alarm"),
+        "title": (it.get("title") or "")[:300], "shortcut": (it.get("shortcut") or "")[:500],
+        "content": (it.get("content") or "")[:2000],
+        "valid_from": it.get("valid_from"), "valid_to": it.get("valid_to"),
+        "created_at": it.get("created_at"), "updated_at": it.get("updated_at"),
+        "provinces": [p.get("name") for p in (it.get("provinces") or {}).values()
+                      if isinstance(p, dict)],
+    })
+
+
 async def _process_item(it: dict) -> bool:
     """Obsługuje jeden wpis RSO; True, gdy to aktywny alert powietrzny."""
     text = f"{it.get('title','')} {it.get('shortcut','')} {it.get('content','')}"
     headline = f"{it.get('title','')} {it.get('shortcut','')}"
     if _is_rcb_air_cancellation(it):
+        _record_text(it, "clear")
         await _ingest_clear(it)
         return False
     if not _is_rcb_air_alert(text, headline):
         return False
+    _record_text(it, "alert")
     mid = str(it.get("id"))
     if not _still_active(it):
         return True
