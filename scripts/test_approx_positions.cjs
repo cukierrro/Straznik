@@ -17,7 +17,7 @@ assert.match(app, /function cleanTrail\(t\) \{\s*if \(isApproxPosition\(t\)\) re
 assert.match(app, /isApproxPosition\(t\) \|\| !Places\?\.exactPoint/);
 assert.match(app, /positionQuality: d\.position_quality/);
 
-assert.match(engine, /const etaEligible = !approx && a\.heading_known/);
+assert.match(engine, /const etaEligible = !approx && \w+\.heading_known/);
 assert.match(engine, /NEPTUN_POSITION_MULT/);
 assert.match(engine, /physical_key: physicalKey\(t\)/);
 assert.match(engine, /const speed = approx \? null : speedOf\(t\)/);

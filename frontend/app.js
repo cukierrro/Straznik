@@ -2224,6 +2224,39 @@ function pulseLoop(ts) {
 }
 requestAnimationFrame(pulseLoop);
 
+/* Płynne przejście między meldunkami (1.7.53). Od 1.7.48 nie przesuwamy obiektu
+   „na zapas” typową prędkością i domniemanym kursem (ikona odlatywała tam, gdzie drona
+   nie było), więc bez tego stał do następnego meldunku i przeskakiwał — zgłoszenie
+   użytkownika 16.09.2026 „drony stoją”. Teraz po nowej pozycji z NEPTUN-a ikona
+   przejeżdża do niej przez GLIDE_MS po odcinku między dwoma prawdziwymi meldunkami:
+   ruch jest widoczny, ale nigdy nie wyprzedza źródła. */
+const GLIDE_MS = 45000, GLIDE_MAX_KM = 80;
+const glides = new Map();   // id → { lat, lon (ostatni meldunek), dLat, dLon, start, shownLat, shownLon }
+function glidePosition(t, target, now) {
+  const id = String(t.id ?? "");
+  const g = glides.get(id);
+  if (!g) {
+    glides.set(id, { lat: t.lat, lon: t.lon, dLat: 0, dLon: 0, start: 0, shownLat: target.lat, shownLon: target.lon, seen: now });
+    return { ...target, gliding: false };
+  }
+  if (g.lat !== t.lat || g.lon !== t.lon) {           // nowy meldunek
+    // po powrocie z tła lub z historii ikona od razu stoi w miejscu meldunku,
+    // zamiast dojeżdżać ze starej pozycji
+    const fresh = now - g.seen < 5000;
+    const jump = kmBetween({ lat: g.shownLat, lon: g.shownLon }, target);
+    const glide = fresh && jump <= GLIDE_MAX_KM;
+    Object.assign(g, { lat: t.lat, lon: t.lon, start: glide ? now : 0,
+      dLat: glide ? g.shownLat - target.lat : 0,
+      dLon: glide ? g.shownLon - target.lon : 0 });
+  }
+  g.seen = now;
+  const k = g.start ? Math.min(1, (now - g.start) / GLIDE_MS) : 1;
+  const left = 1 - (k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2);   // ease-in-out
+  const pos = { lat: target.lat + g.dLat * left, lon: target.lon + g.dLon * left, gliding: left > 0.001 };
+  g.shownLat = pos.lat; g.shownLon = pos.lon;
+  return pos;
+}
+
 let lastAnim = 0;
 function animate(ts) {
   requestAnimationFrame(animate);
@@ -2233,10 +2266,12 @@ function animate(ts) {
   const threats = state.neptun?.threats || [];
   const pts = [], trails = [], unc = [], course = [];
   const nMode = trailMode("neptun");
+  const present = new Set();
   for (const t of threats) {
     if (t.lat == null || isNationalThreat(t)) continue;   // alarm ogólnokrajowy → komunikat
     const meta = TYPE_META[t.type] || { color: "#8a93a6" };
-    const p = predict(t, now);
+    present.add(String(t.id ?? ""));
+    const p = glidePosition(t, predict(t, now), now);
     // Zgłoszenie 14.09.2026: dziób ikony (kurs NEPTUN-a „kursem na X”) pokazywał
     // w inną stronę niż trasa i linia kierunku liczone z ruchu. Kurs zmierzony
     // z ruchu ma pierwszeństwo — ikona, przesuwanie i karta mówią to samo.
@@ -2272,12 +2307,17 @@ function animate(ts) {
       if (hdg != null && kmh) course.push(...courseFeatures(p.lat, p.lon, hdg, kmh, 30, meta.color));
     }
     const coords = trackPoints(t).map(q => [q.lon, q.lat]);
+    // w trakcie przejścia linia kończy się na ikonie, a nie na nowym meldunku przed nią
+    if (p.gliding && coords.length
+        && kmBetween({ lat: coords[coords.length - 1][1], lon: coords[coords.length - 1][0] },
+                     { lat: t.lat, lon: t.lon }) < 0.3) coords.pop();
     const lastC = coords[coords.length - 1];
     if (!lastC || kmBetween({ lat: lastC[1], lon: lastC[0] }, p) >= 0.3) coords.push([p.lon, p.lat]);
     if (coords.length >= 2)
       trails.push({ type: "Feature", properties: { color: meta.color },
         geometry: { type: "LineString", coordinates: coords } });
   }
+  for (const id of glides.keys()) if (!present.has(id)) glides.delete(id);
   map.getSource("threats")?.setData({ type: "FeatureCollection", features: pts });
   map.getSource("trails")?.setData({ type: "FeatureCollection", features: trails });
   map.getSource("course")?.setData({ type: "FeatureCollection", features: course });

@@ -16,6 +16,21 @@ DOCS = ROOT / "docs"
 # (wersja, data PL, data EN, tytuł PL, tytuł EN, punkty PL, punkty EN, zrzuty)
 # Zrzut: (plik, alt PL, alt EN, podpis PL, podpis EN)
 RELEASES = [
+    ("1.7.53", "16 września 2026", "16 September 2026",
+     "Drony znów się ruszają, kolory alarmów nie migają",
+     "Drones move again, alert colours no longer flicker",
+     ["Dlaczego ikony stały: do wersji 1.7.47 aplikacja przesuwała drona „na zapas” — typową prędkością dla jego rodzaju i kursem domniemanym, gdy NEPTUN go nie podawał. Audyt w 1.7.48 pokazał, że ikona odlatywała wtedy tam, gdzie drona nie było, czasem kilkanaście kilometrów dalej albo w złą stronę, więc to wyłączyliśmy. Skutek uboczny: dron bez zmierzonej prędkości stał do następnego meldunku i przeskakiwał.",
+      "Co teraz: po każdym nowym meldunku NEPTUN-a ikona płynnie przejeżdża ze starej pozycji do nowej przez 45 sekund, a linia trasy kończy się na ikonie.",
+      "Czym to się różni od dawnego ruchu: ikona jedzie tylko po odcinku między dwiema prawdziwymi pozycjami — nigdy nie wyprzedza źródła i nie zgaduje dalszego lotu. W trakcie przejazdu jest do 45 s za meldunkiem, a po nim stoi dokładnie w miejscu meldunku. Skoki ponad 80 km i meldunki po powrocie do aplikacji pokazujemy od razu. Obiekty ze zmierzoną prędkością i kursem przesuwają się jak dotąd (do 18 km, do 7 min). Punkty i alarmy liczymy, jak wcześniej, z meldunków, nie z pozycji ikony.",
+      "Kolor województwa (żółty, czerwony) trzyma się 10 minut od ostatniego przekroczenia progu. 16.09 podkarpackie zmieniło kolor 7 razy w pół godziny — teraz byłyby 2 zmiany. Wzrost poziomu jest natychmiastowy, a odwołanie alertu RCB zdejmuje go od razu.",
+      "W historii czas wstecz wygląda jak „−5 h 57 min”, a na niskich ekranach panel historii ma więcej miejsca. Artykuły o tym, że lotnictwo zakończyło działania, nie dają punktów."],
+     ["Why icons stood still: up to 1.7.47 the app moved a drone ahead of its reports — at a speed typical for its kind and along a presumed heading when NEPTUN gave none. The 1.7.48 audit showed that the icon then flew to where no drone was, sometimes a dozen kilometres further or the wrong way, so we turned it off. Side effect: a drone without a measured speed stood still until the next report and then jumped.",
+      "What now: after each new NEPTUN report the icon glides smoothly from the old position to the new one over 45 seconds, and the track line ends at the icon.",
+      "How this differs from the old movement: the icon only travels along the segment between two real positions — it never gets ahead of the source and never guesses the further flight. While gliding it is up to 45 s behind the report, and afterwards it sits exactly at the reported position. Jumps over 80 km and reports received after returning to the app are shown at once. Objects with a measured speed and heading move as before (up to 18 km, up to 7 min). Points and alerts are still computed from reports, not from the icon position.",
+      "A province colour (yellow, red) is held for 10 minutes after the score last reached its threshold. On 16.09 podkarpackie changed colour 7 times in half an hour — now it would be 2 changes. Raising the level is immediate, and an RCB alert cancellation drops it at once.",
+      "History shows the time offset as “−5 h 57 min”, and on short screens the history panel has more room. Articles saying that aircraft have ended operations no longer add points."],
+     []),
+
     ("1.7.52", "15 września 2026", "15 September 2026",
      "Alarmy u sąsiadów na mapie i ostrzejsze media bałtyckie",
      "Neighbouring alerts on the map and stricter Baltic media",

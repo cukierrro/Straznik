@@ -39,6 +39,17 @@
   <p class="fineprint">Wersję zainstalowaną na telefonie sprawdzisz w aplikacji: <kbd>⚙</kbd> → zakładka <kbd>Aplikacja</kbd> → „Wersja aplikacji”. Tam też jest przycisk <kbd>⬆ Sprawdź aktualizacje</kbd>.</p>
 </div></header>
 <main id="content" class="wrap">
+<section id="v1-7-53">
+  <h2>1.7.53 — Drony znów się ruszają, kolory alarmów nie migają</h2>
+  <p class="fineprint">Wydanie 1.7.53 · 16 września 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.53">Pełny opis wydania</a></p>
+  <ul>
+    <li>Dlaczego ikony stały: do wersji 1.7.47 aplikacja przesuwała drona „na zapas” — typową prędkością dla jego rodzaju i kursem domniemanym, gdy NEPTUN go nie podawał. Audyt w 1.7.48 pokazał, że ikona odlatywała wtedy tam, gdzie drona nie było, czasem kilkanaście kilometrów dalej albo w złą stronę, więc to wyłączyliśmy. Skutek uboczny: dron bez zmierzonej prędkości stał do następnego meldunku i przeskakiwał.</li>
+    <li>Co teraz: po każdym nowym meldunku NEPTUN-a ikona płynnie przejeżdża ze starej pozycji do nowej przez 45 sekund, a linia trasy kończy się na ikonie.</li>
+    <li>Czym to się różni od dawnego ruchu: ikona jedzie tylko po odcinku między dwiema prawdziwymi pozycjami — nigdy nie wyprzedza źródła i nie zgaduje dalszego lotu. W trakcie przejazdu jest do 45 s za meldunkiem, a po nim stoi dokładnie w miejscu meldunku. Skoki ponad 80 km i meldunki po powrocie do aplikacji pokazujemy od razu. Obiekty ze zmierzoną prędkością i kursem przesuwają się jak dotąd (do 18 km, do 7 min). Punkty i alarmy liczymy, jak wcześniej, z meldunków, nie z pozycji ikony.</li>
+    <li>Kolor województwa (żółty, czerwony) trzyma się 10 minut od ostatniego przekroczenia progu. 16.09 podkarpackie zmieniło kolor 7 razy w pół godziny — teraz byłyby 2 zmiany. Wzrost poziomu jest natychmiastowy, a odwołanie alertu RCB zdejmuje go od razu.</li>
+    <li>W historii czas wstecz wygląda jak „−5 h 57 min”, a na niskich ekranach panel historii ma więcej miejsca. Artykuły o tym, że lotnictwo zakończyło działania, nie dają punktów.</li>
+  </ul>
+</section>
 <section id="v1-7-52">
   <h2>1.7.52 — Alarmy u sąsiadów na mapie i ostrzejsze media bałtyckie</h2>
   <p class="fineprint">Wydanie 1.7.52 · 15 września 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.52">Pełny opis wydania</a></p>

@@ -18,7 +18,7 @@ async function main() {
     pingBackend: async () => reachable,
     openBackendWs: () => calls.push('ws'), pollOnce: () => calls.push('poll'),
     document: {getElementById: () => ({classList: {contains: () => !alarm}})},
-    validBackendUrl: () => true
+    validBackendUrl: () => true, UI: {isEn: false}
   });
   vm.runInContext('let standalone=false, srvSnaps=[], srvSigs=[], srvSeeded=false;\n' +
     extract('async function connect()', '/* Lekki ping serwera'), c);
