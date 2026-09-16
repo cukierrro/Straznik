@@ -365,6 +365,8 @@ TELEGRAM_ENABLED = os.getenv("TELEGRAM_ENABLED", "false").lower() == "true"
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
 WEBPUSH_ENABLED = os.getenv("WEBPUSH_ENABLED", "true").lower() == "true"
+# Górny limit subskrypcji Web Push (16.09.2026: ~200 prawdziwych) — ochrona przed zalewem.
+PUSH_SUBS_MAX = int(os.getenv("PUSH_SUBS_MAX", "20000"))
 VAPID_CONTACT = os.getenv("VAPID_CONTACT", "mailto:noweartykuly@gmail.com")
 
 # ── FCM (push do aplikacji Android; tematy per województwo) ────────────────────

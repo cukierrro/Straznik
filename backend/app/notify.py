@@ -1,6 +1,7 @@
 """Kanały powiadomień: ntfy, Telegram, Web Push (VAPID). Wszystkie best-effort."""
 import asyncio
 import time
+from concurrent.futures import ThreadPoolExecutor
 import base64
 import hashlib
 import json
@@ -26,6 +27,11 @@ fcm_status = {"ready": False, "last_ok": None, "last_error": None, "sent": 0,
 # telefon po nocy offline dostawał pełnoekranową syrenę o zdarzeniu sprzed godzin.
 FCM_TTL_S = 900
 FCM_RETRIES = 3
+# Audyt bezpieczeństwa 16.09.2026: FCM i Web Push dzieliły domyślną pulę wątków, więc
+# zalew (fałszywych) subskrypcji Web Push kolejkował wysyłkę alarmu do aplikacji.
+# FCM ma własną pulę, a Web Push idzie najwyżej po WEBPUSH_CONCURRENCY naraz.
+_fcm_pool = ThreadPoolExecutor(max_workers=4, thread_name_prefix="fcm")
+WEBPUSH_CONCURRENCY = 16
 
 _WEBPUSH_HOSTS = {"fcm.googleapis.com", "web.push.apple.com"}
 _WEBPUSH_HOST_SUFFIXES = (".push.services.mozilla.com", ".notify.windows.com")
@@ -145,7 +151,7 @@ async def send_fcm(voiv: str, level: str, score: float, reasons_text: str,
     last_error = None
     for attempt in range(1, FCM_RETRIES + 1):
         try:
-            mid = await asyncio.to_thread(_send_fcm_sync, topic, data)
+            mid = await asyncio.get_running_loop().run_in_executor(_fcm_pool, _send_fcm_sync, topic, data)
             fcm_status.update(last_ok=sent_at.isoformat(timespec="seconds"),
                               last_ok_at=time.time(), last_error=None,
                               sent=fcm_status["sent"] + 1)
@@ -301,10 +307,14 @@ async def send_webpush(voiv: str, title: str, body: str, level: str):
     if not (config.WEBPUSH_ENABLED and _vapid):
         return
     payload = json.dumps({"title": title, "body": body, "level": level}, ensure_ascii=False)
-    subs = db.all_push_subs(voiv)
-    results = await asyncio.gather(
-        *[asyncio.to_thread(_send_webpush_sync, s, payload) for s in subs],
-        return_exceptions=True)
+    subs = await asyncio.to_thread(db.all_push_subs, voiv)
+    gate = asyncio.Semaphore(WEBPUSH_CONCURRENCY)
+
+    async def one(sub):
+        async with gate:
+            return await asyncio.to_thread(_send_webpush_sync, sub, payload)
+
+    results = await asyncio.gather(*[one(s) for s in subs], return_exceptions=True)
     sent = sum(isinstance(r, dict) and r.get("status") == "sent" for r in results)
     removable = [r for r in results if isinstance(r, dict)
                  and (r.get("status") == "expired"

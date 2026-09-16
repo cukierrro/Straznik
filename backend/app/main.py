@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from . import (alert_log, app_updates, by_entry_shadow, config, db, escalation_shadow, fusion, load_guard,
-               monitoring, notify, public_cache, rcb_reference)
+               monitoring, notify, public_cache, rcb_reference, request_limits)
 from .collectors import adsb, by_media_shadow, neighbours, neptun, official_alerts, pansa, rcb, ro_shadow, rso, rss_media
 from .neptun_archive import source_metadata
 
@@ -27,6 +27,8 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"],
 app.add_middleware(public_cache.PageCacheHeaders)
 # ostatni dodany = pierwszy w kolejce: bezpiecznik odrzuca, zanim cokolwiek się policzy
 app.add_middleware(load_guard.GuardMiddleware)
+# jeszcze wcześniej: za duża treść i zalew subskrypcji odpadają przed kolejką (audyt 16.09)
+app.add_middleware(request_limits.RequestLimits)
 
 # ── WebSocket broadcast ──────────────────────────────────────────────────────
 _ws_clients: set[WebSocket] = set()
@@ -181,7 +183,10 @@ async def ws_endpoint(ws: WebSocket):
             refresh_state()
         await ws.send_text(_ws_message)
         while True:
-            await ws.receive_text()   # klient nic nie musi słać; trzymamy połączenie
+            # klient nic nie wysyła; każda wiadomość od niego to nadużycie (audyt 16.09)
+            await ws.receive_text()
+            await _close(ws)
+            break
     except (WebSocketDisconnect, RuntimeError):
         pass
     finally:
@@ -208,9 +213,15 @@ async def api_history(at: str | None = None, hours: int = 12):
 
     Bez parametru `at` zwraca tylko listę dostępnych znaczników czasu.
     """
-    times = db.snapshot_times(hours)
+    hours = max(1, min(int(hours), 12))       # hours=10**10 dawało OverflowError (audyt 16.09)
     if at is None:
-        return {"times": times, "hours": hours}
+        return {"times": await asyncio.to_thread(db.snapshot_times, hours), "hours": hours}
+    # liczenie historii w wątku: losowe `at` omija cache i blokowało pętlę z kolektorami
+    return await asyncio.to_thread(_history_at, at, hours)
+
+
+def _history_at(at: str, hours: int) -> dict:
+    times = db.snapshot_times(hours)
     snap = db.snapshot_at(at)
     if snap is None:
         return {"times": times, "at": at, "snapshot": None, "signals": []}
@@ -275,6 +286,7 @@ async def api_health():
         "ro_shadow": ro_shadow.status,
         "by_media_shadow": by_media_shadow.status,
         "by_entry_shadow": by_entry_shadow.status,
+        "request_limits": request_limits.status,
         "notify": {"ntfy": config.NTFY_ENABLED and bool(config.NTFY_TOPIC),
                    "telegram": config.TELEGRAM_ENABLED,
                    "webpush": config.WEBPUSH_ENABLED,
@@ -358,6 +370,10 @@ async def push_subscribe(sub: dict):
         return JSONResponse({"error": "bad subscription"}, status_code=400)
     clean_sub = {key: sub[key] for key in ("endpoint", "expirationTime", "keys")
                  if key in sub}
+    if (db.count_push_subs() >= config.PUSH_SUBS_MAX
+            and not db.push_sub_exists(clean_sub.get("endpoint", ""))):
+        log.warning("Web Push: limit %d subskrypcji — nowa odrzucona", config.PUSH_SUBS_MAX)
+        return JSONResponse({"error": "subscription limit"}, status_code=503)
     db.add_push_sub(clean_sub, voivodeships)
     return {"ok": True}
 

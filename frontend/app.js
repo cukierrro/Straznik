@@ -1746,7 +1746,7 @@ function planePopupHTML(p, heli, uid) {
       ${row(UI.isEn ? "wind" : "wiatr", (p.ws != null && p.wd != null) ? `${ktToKmh(p.ws)} km/h ${UI.isEn ? "from" : "z"} ${Math.round(p.wd)}° (${compass(p.wd)})` : "")}
       ${row("temp.", p.oat != null ? `${Math.round(p.oat)} °C` : "")}
       ${row(UI.isEn ? "nav modes" : "tryby nav", nav ? esc2(nav) : "")}
-      ${row(UI.isEn ? "signal" : "sygnał", `${esc2(p.source || "ADS-B")}${p.rssi != null ? ` · ${p.rssi} dBFS` : ""}${p.messages != null ? ` · ${p.messages} msg/s` : ""}`)}
+      ${row(UI.isEn ? "signal" : "sygnał", `${esc2(p.source || "ADS-B")}${Number.isFinite(+p.rssi) && p.rssi !== null ? ` · ${+p.rssi} dBFS` : ""}${Number.isFinite(+p.messages) && p.messages !== null ? ` · ${+p.messages} msg/s` : ""}`)}
     </table>
     <button class="btn-follow chip" style="font-size:11px;padding:3px 8px;margin-bottom:4px">${followHex === p.hex
       ? (UI.isEn ? "■ stop tracking" : "■ przestań śledzić") : (UI.isEn ? "📍 follow track" : "📍 śledź trasę")}</button>
@@ -2469,7 +2469,7 @@ function relTime(iso) {
   if (d < 60) return `${Math.round(d)} min ${ago}`;
   return `${Math.floor(d / 60)} h ${Math.round(d % 60)} min ${ago}`;
 }
-const esc = (s) => String(s ?? "").replace(/[<>&"]/g, c => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;" }[c]));
+const esc = (s) => String(s ?? "").replace(/[<>&"']/g, c => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&#39;" }[c]));
 const esc2 = esc;
 /* Adres z kanału RSS to treść z zewnątrz, a `esc` zamienia tylko znaki HTML —
    sam schemat przepuszczał. Dopuszczamy wyłącznie http(s), żeby „javascript:"
@@ -2762,14 +2762,14 @@ function sigHTML(s) {
   const nowKm = liveNow?.pl_assessment?.dist_km;
   if (nowKm != null && d.dist_km != null && Math.abs(nowKm - d.dist_km) >= 5) {
     const closer = nowKm < d.dist_km;
-    extra.push(`<b style="color:${closer ? "#ff9f43" : "var(--muted)"}">${
-      UI.isEn ? "now" : "teraz"} ${threatDistanceText(liveNow, nowKm)}</b>`);
+    extra.push({ html: `<b style="color:${closer ? "#ff9f43" : "var(--muted)"}">${
+      UI.isEn ? "now" : "teraz"} ${esc(threatDistanceText(liveNow, nowKm))}</b>` });
   } else if (tracksNow && !liveNow) {
     /* Obiekt zniknął z bieżącej migawki NEPTUN-a, a sygnał żyje jeszcze w oknie
        60 min. Bez tej adnotacji panel pokazywał odległość obiektu, którego nie ma
        już na mapie — „śledzenie i sygnały muszą być spójne" (zgłoszone 12.09.2026). */
-    extra.push(`<b style="color:var(--muted)">${
-      UI.isEn ? "no longer tracked" : "nieśledzony na mapie"}</b>`);
+    extra.push({ html: `<b style="color:var(--muted)">${
+      UI.isEn ? "no longer tracked" : "nieśledzony na mapie"}</b>` });
   }
   if (src === "neptun") {
     if (d.course === "unknown") extra.push(UI.isEn ? "unknown heading" : "kurs nieznany");
@@ -2871,7 +2871,7 @@ function sigHTML(s) {
       : esc(shownTitle)}</div>
     <div class="sig-bar"><i style="width:${share.toFixed(0)}%"></i></div>
     <div class="ts">${relTime(s.ts)} · ${UI.isEn ? "province" : "woj."} ${esc(UI.voiv(s.voivodeship))}${
-      extra.length ? " · " + extra.map(x => x.startsWith("<b") ? x : esc(x)).join(" · ") : ""}${
+      extra.length ? " · " + extra.map(x => typeof x === "object" ? x.html : esc(x)).join(" · ") : ""}${
       faded ? ` · <span title="${UI.isEn ? "the signal ages within the 60-minute window and loses weight" : "sygnał starzeje się w oknie 60 min i traci wagę"}">${UI.isEn ? "weight" : "waga"} ${Math.round(w * 100)}%</span>` : ""}</div>
   </div>`;
 }

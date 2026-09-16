@@ -342,9 +342,24 @@ def remove_push_sub(endpoint: str):
         _conn.commit()
 
 
+def count_push_subs() -> int:
+    with _lock:
+        return _conn.execute("SELECT count(*) FROM push_subs").fetchone()[0]
+
+
+def push_sub_exists(endpoint: str) -> bool:
+    with _lock:
+        return _conn.execute("SELECT 1 FROM push_subs WHERE endpoint=?", (endpoint,)).fetchone() is not None
+
+
 def all_push_subs(voivodeship: str | None = None) -> list[dict]:
     with _lock:
-        rows = _conn.execute("SELECT sub_json FROM push_subs").fetchall()
+        if voivodeship is None:
+            rows = _conn.execute("SELECT sub_json FROM push_subs").fetchall()
+        else:
+            # wstępny filtr w SQL (nazwa w cudzysłowie: „pomorskie” ≠ „zachodniopomorskie”)
+            rows = _conn.execute("SELECT sub_json FROM push_subs WHERE instr(sub_json, ?) > 0",
+                                 (json.dumps(voivodeship),)).fetchall()
     out = []
     for row in rows:
         sub = json.loads(row[0])
