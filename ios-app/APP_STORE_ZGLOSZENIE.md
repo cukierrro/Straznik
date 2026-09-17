@@ -88,10 +88,27 @@ przygotowania z `frontend/i18n.js`, który ma już tłumaczenia opisów.
 
 | Pole | Wartość | Uwaga |
 |---|---|---|
-| Support URL | `https://cukierrro.github.io/Straznik/` | Apple wymaga, żeby prowadził do realnego kontaktu — **dopisać na stronie sposób kontaktu** (np. „zgłoszenia przez Issues na GitHubie” z linkiem). |
-| Privacy Policy URL | `https://cukierrro.github.io/Straznik/#prywatnosc` albo nowa `…/prywatnosc.html` | **Wymagane dla każdej aplikacji**, także darmowej. Propozycja osobnej strony: `POTRZEBNE_ZMIANY_WSPOLNE.md`, B2b. |
-| Marketing URL | puste albo `https://straznik.eu` | Opcjonalne. **Uwaga:** strona główna ma przycisk kawy — bezpieczniej zostawić puste. |
+| Support URL | **`https://cukierrro.pl/#kontakt`** | Decyzja użytkownika 17.09. Spełnia wymóg Apple („musi prowadzić do realnego kontaktu”): formularz, e-mail, miasto. |
+| Privacy Policy URL | nowa strona przy instrukcji, np. `https://cukierrro.github.io/Straznik/prywatnosc.html` | **Wymagane dla każdej aplikacji.** Strona osobista autora nie ma polityki prywatności. Treść do przygotowania: `POTRZEBNE_ZMIANY_WSPOLNE.md`, B2b. |
+| Marketing URL | **puste** | Strona główna straznik.eu ma przycisk kawy — nie podajemy jej w metadanych. |
 | Copyright | `2026 cukierrro` | |
+
+**Przycisk „Postaw kawę” na stronie pomocy — ocena ryzyka.** Strona
+`cukierrro.pl` ma link do buycoffee, ale:
+- zakaz Apple (3.1.1(a)) dotyczy **przycisków i linków w aplikacji**, a adres
+  pomocy jest metadaną na stronie produktu w App Store, nie elementem aplikacji;
+- to ogólna strona autora (kilka projektów, książki, publikacje), a wsparcie
+  dotyczy autora, nie funkcji Strażnika;
+- adres pomocy musi prowadzić do realnego kontaktu — ta strona to spełnia,
+  strona instrukcji nie.
+
+Ryzyko oceniam jako **małe, ale nie zerowe** (recenzent może zajrzeć). Gdyby
+Apple to zakwestionowało, plan B: dopisać sekcję kontaktu do instrukcji Strażnika
+(bez kawy) i podmienić adres pomocy — zmiana metadanej, bez nowego builda.
+
+Na stronie `cukierrro.pl` widoczne są imię, nazwisko i miasto autora — te dane
+są już publiczne niezależnie od App Store, który i tak pokaże imię i nazwisko
+jako sprzedawcę (konto osoby prywatnej).
 
 ---
 
