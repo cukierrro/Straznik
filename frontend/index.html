@@ -79,6 +79,11 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
     <div>
       <h1 class="brand-name">STRAŻNIK</h1>
       <div class="brand-sub">fuzja sygnałów · wschodnia Polska</div>
+      <!-- 17.09.2026: Mikrus przekazał Strażnikowi serwer; zgodnie z ich prośbą informacja
+           o hostingu z linkiem do ich strony (logo z ich strony z logotypami, biały tekst) -->
+      <a class="brand-host" href="https://mikr.us" target="_blank" rel="noopener"
+         aria-label="Strażnik jest hostowany na Mikrusie — otwórz stronę Mikrusa"><img
+         src="assets/mikrus-logo.svg" alt="" width="44" height="7"><span>hostowane na Mikrusie ↗</span></a>
     </div>
     <div class="brand-info" role="tooltip">
       <b>Strażnik</b> — nieoficjalny system wczesnego ostrzegania. Łączy sygnały
@@ -86,6 +91,12 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
       ocenę zagrożenia z powietrza dla województw, ze szczególną uwagą na wschodnią
       Polskę. Źródło <b>dodatkowe</b> — nie zastępuje syren, RCB ani RSO.
       <a href="https://github.com/cukierrro/Straznik" target="_blank" rel="noopener">Kod źródłowy na GitHub ↗</a>
+      <div class="brand-info-host">
+        <img src="assets/mikrus-logo.svg" alt="Mikrus" width="74" height="12">
+        <p>Serwer Strażnika zapewnia <b>Mikrus</b> — polskie serwery VPS dla pasjonatów.
+        Dziękujemy za wsparcie projektu!</p>
+        <a href="https://mikr.us" target="_blank" rel="noopener">Strona Mikrusa ↗</a>
+      </div>
     </div>
   </div>
   <div id="status-leds" title="Status źródeł danych — dotknij po szczegóły"
@@ -526,7 +537,8 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
     <!-- DIV, nie <p>: tłumaczenia akapitów idą po indeksie (i18n.js #about .about-body > p) -->
     <div class="fineprint" id="about-license">© 2026 cukierrro · wszelkie prawa zastrzeżone ·
       <a href="https://github.com/cukierrro/Straznik/blob/main/LICENSE" target="_blank" rel="noopener">licencja</a> · licencje składników:
-      <a href="https://github.com/cukierrro/Straznik/blob/main/NOTICE" target="_blank" rel="noopener">NOTICE</a></div>
+      <a href="https://github.com/cukierrro/Straznik/blob/main/NOTICE" target="_blank" rel="noopener">NOTICE</a>
+      · serwer: <a href="https://mikr.us" target="_blank" rel="noopener">hostowane na Mikrusie ↗</a></div>
 
     <div class="about-actions">
       <a class="chip coffee" href="https://buycoffee.to/cukierrro" target="_blank"

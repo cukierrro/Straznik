@@ -56,6 +56,18 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 @keyframes pulse { 50% { box-shadow: 0 0 22px var(--accent); } }
 .brand-name { margin: 0; line-height: normal; font-weight: 700; letter-spacing: .22em; font-size: 15px; }
 .brand-sub { font-size: 10.5px; color: var(--muted); letter-spacing: .06em; }
+/* informacja o hostingu (Mikrus) — widoczna także na telefonie, gdy .brand-sub jest ukryty */
+.brand-host { display: flex; align-items: center; gap: 5px; margin-top: 2px; width: max-content;
+  font: 500 10px/1.2 "Segoe UI", system-ui, sans-serif; letter-spacing: .02em;
+  color: var(--muted); text-decoration: none; }
+.brand-host img { height: 8px; width: auto; display: block; }
+/* W aplikacji linia pod „STRAŻNIK” podnosiła cały wiersz z diodami. Tam wychodzi poza
+   przepływ (absolute) pod markę, w dwóch liniach: logo, pod nim podpis ze strzałką —
+   wiersz nagłówka zostaje jak przed dodaniem. Na stronie www zostaje w jednej linii. */
+.native-app .brand-host { position: absolute; top: calc(100% + 3px); left: 24px;
+  flex-direction: column; align-items: flex-start; gap: 3px; margin-top: 0; }
+.native-app .brand-host img { height: 11px; }
+.brand-host:hover, .brand-host:focus-visible { color: var(--text); }
 
 /* Popover WYŁĄCZNIE po najechaniu myszą na „Strażnik" (desktop) — nie na stałe.
    Mostek ::before wypełnia odstęp, żeby dało się przejechać do klikalnego linku
@@ -76,6 +88,11 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 .brand-info b { color: #eaf0fb; }
 .brand-info a { display: inline-block; margin-top: 10px; color: #7fb4ff; font-weight: 600; text-decoration: none; }
 .brand-info a:hover { text-decoration: underline; }
+/* podziękowanie dla Mikrusa (hosting od 17.09.2026) — oddzielone od opisu aplikacji */
+.brand-info-host { margin-top: 12px; padding-top: 11px; border-top: 1px solid rgba(159,193,255,.18); }
+.brand-info-host img { display: block; height: 12px; width: auto; }
+.brand-info-host p { margin: 7px 0 0; }
+.brand-info-host a { margin-top: 6px; }
 /* Desktop: hover pokazuje popup. Na dotyku hover „przykleja się" i popup nie
    znikał, zasłaniając UI — tam sterujemy klasą .brand-open (tap otwiera, tap
    poza / Escape zamyka; patrz app.js). */

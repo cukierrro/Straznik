@@ -19,5 +19,9 @@ Zdjęcia
 - Zdjęcia samolotów (frontend/aircraft-photo-catalog.js) — licencje podane przy
   każdym zdjęciu (m.in. CC BY, CC BY-SA, CC0, domena publiczna)
 
+Znaki towarowe
+- Logo Mikrus (frontend/assets/mikrus-logo.svg) — znak Mikrusa, użyty zgodnie z ich
+  zgodą na wzmianki o Mikrusie (strona z logotypami Mikrusa); hosting serwera Strażnika
+
 Dane
 - Źródła danych i wymagana atrybucja: sekcja „Dane i atrybucja” w README.md

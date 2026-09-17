@@ -198,7 +198,16 @@
     const setMany = (sel, values) => document.querySelectorAll(sel).forEach((el,i) => {
       if (values[i] != null) el.textContent = values[i];
     });
-    set(".brand-info", "Strażnik is an unofficial early-warning system. It combines NEPTUN, ADS-B, PAŻP, RCB, media and Ukrainian regional alerts into one air-threat assessment for Polish provinces. It is an additional source and does not replace sirens, RCB or RSO alerts.");
+    // innerHTML, bo w okienku są odnośniki (GitHub, Mikrus) — textContent je kasował
+    const brandInfo = document.querySelector(".brand-info");
+    if (brandInfo) brandInfo.innerHTML = "<b>Strażnik</b> is an unofficial early-warning system. It combines NEPTUN, "
+      + "ADS-B, PAŻP, RCB, media and Ukrainian regional alerts into one air-threat assessment for Polish provinces. "
+      + "It is an <b>additional</b> source and does not replace sirens, RCB or RSO alerts. "
+      + '<a href="https://github.com/cukierrro/Straznik" target="_blank" rel="noopener">Source code on GitHub ↗</a>'
+      + '<div class="brand-info-host"><img src="assets/mikrus-logo.svg" alt="Mikrus" width="74" height="12">'
+      + "<p>Strażnik's server is provided by <b>Mikrus</b> — Polish VPS hosting for enthusiasts. "
+      + "Thank you for supporting the project!</p>"
+      + '<a href="https://mikr.us" target="_blank" rel="noopener">Mikrus website ↗</a></div>';
     set("#disclaimer span", "UNOFFICIAL additional source — it does not replace sirens, RCB or RSO alerts. In a real emergency, follow official instructions.");
     // nowa nawigacja 1.7.23: dolne zakładki, menu „Więcej", kadrowanie mapy
     setMany("#tabbar .tab-btn > span:not(.badge)", ["Map", "Signals", "History", "More"]);
@@ -256,7 +265,11 @@
     const lic = document.getElementById("about-license");
     if (lic) lic.innerHTML = '© 2026 cukierrro · all rights reserved · '
       + '<a href="https://github.com/cukierrro/Straznik/blob/main/LICENSE" target="_blank" rel="noopener">licence</a> · third-party licences: '
-      + '<a href="https://github.com/cukierrro/Straznik/blob/main/NOTICE" target="_blank" rel="noopener">NOTICE</a>';
+      + '<a href="https://github.com/cukierrro/Straznik/blob/main/NOTICE" target="_blank" rel="noopener">NOTICE</a>'
+      + ' · server: <a href="https://mikr.us" target="_blank" rel="noopener">hosted on Mikrus ↗</a>';
+    const host = document.querySelector(".brand-host");
+    if (host) { host.querySelector("span").textContent = "hosted on Mikrus ↗";
+      host.setAttribute("aria-label", "Strażnik is hosted on Mikrus — open the Mikrus website"); }
     set("#about .warn-box", "This is NOT an official warning system. It does not replace sirens, RCB or RSO alerts. In a real emergency, follow official channels. Strażnik provides an additional, potentially earlier signal — nothing more.");
     // stałe teksty z <b>, dlatego innerHTML (setMany ustawia textContent)
     [
