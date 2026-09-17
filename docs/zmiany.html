@@ -39,6 +39,15 @@
   <p class="fineprint">Wersję zainstalowaną na telefonie sprawdzisz w aplikacji: <kbd>⚙</kbd> → zakładka <kbd>Aplikacja</kbd> → „Wersja aplikacji”. Tam też jest przycisk <kbd>⬆ Sprawdź aktualizacje</kbd>.</p>
 </div></header>
 <main id="content" class="wrap">
+<section id="v1-7-59">
+  <h2>1.7.59 — Lżejsze połączenie na żywo</h2>
+  <p class="fineprint">Wydanie 1.7.59 · 17 września 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.59">Pełny opis wydania</a></p>
+  <ul>
+    <li>Serwer wysyłał dotąd każdemu telefonowi cały stan mapy (ok. 55 KB) przy każdej zmianie i kompresował go osobno dla każdego połączenia. Pomiar z 17 września: rozesłanie do 1281 telefonów zajmowało prawie sekundę i blokowało w tym czasie serwer — stąd zacięcia i komunikat o dużym ruchu podczas syren.</li>
+    <li>Teraz przez połączenie na żywo idzie krótki sygnał „zmieniło się” (ok. 50 bajtów), a aplikacja pobiera stan mapy z pamięci podręcznej Cloudflare. Rozesłanie sygnału do tysiąca telefonów zajmuje 5 milisekund zamiast sekundy, a pobranie stanu w większości przypadków nie obciąża już serwera.</li>
+    <li>Dla Ciebie nic się nie zmienia: mapa odświeża się tak samo, pierwszy stan przychodzi od razu po połączeniu, a alarmy i powiadomienia idą osobną drogą i działają bez zmian. Limit jednoczesnych połączeń wzrósł do 15 000.</li>
+  </ul>
+</section>
 <section id="v1-7-58">
   <h2>1.7.58 — Nowy serwer od Mikrusa</h2>
   <p class="fineprint">Wydanie 1.7.58 · 17 września 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.58">Pełny opis wydania</a></p>

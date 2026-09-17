@@ -16,6 +16,17 @@ DOCS = ROOT / "docs"
 # (wersja, data PL, data EN, tytuł PL, tytuł EN, punkty PL, punkty EN, zrzuty)
 # Zrzut: (plik, alt PL, alt EN, podpis PL, podpis EN)
 RELEASES = [
+    ("1.7.59", "17 września 2026", "17 September 2026",
+     "Lżejsze połączenie na żywo",
+     "A lighter live connection",
+     ["Serwer wysyłał dotąd każdemu telefonowi cały stan mapy (ok. 55 KB) przy każdej zmianie i kompresował go osobno dla każdego połączenia. Pomiar z 17 września: rozesłanie do 1281 telefonów zajmowało prawie sekundę i blokowało w tym czasie serwer — stąd zacięcia i komunikat o dużym ruchu podczas syren.",
+      "Teraz przez połączenie na żywo idzie krótki sygnał „zmieniło się” (ok. 50 bajtów), a aplikacja pobiera stan mapy z pamięci podręcznej Cloudflare. Rozesłanie sygnału do tysiąca telefonów zajmuje 5 milisekund zamiast sekundy, a pobranie stanu w większości przypadków nie obciąża już serwera.",
+      "Dla Ciebie nic się nie zmienia: mapa odświeża się tak samo, pierwszy stan przychodzi od razu po połączeniu, a alarmy i powiadomienia idą osobną drogą i działają bez zmian. Limit jednoczesnych połączeń wzrósł do 15 000."],
+     ["Until now the server sent every phone the whole map state (about 55 KB) on each change and compressed it separately for each connection. Measured on 17 September: a fan-out to 1281 phones took almost a second and blocked the server meanwhile — this is what caused the stalls and the heavy-traffic notice during the sirens.",
+      "Now the live connection carries a short “changed” signal (about 50 bytes) and the app fetches the map state from Cloudflare's edge cache. Sending that signal to a thousand phones takes 5 milliseconds instead of a second, and fetching the state mostly no longer touches the server.",
+      "Nothing changes for you: the map refreshes as before, the first state arrives immediately after connecting, and alerts and notifications travel a separate path and work unchanged. The live-connection limit is now 15,000."],
+     []),
+
     ("1.7.58", "17 września 2026", "17 September 2026",
      "Nowy serwer od Mikrusa",
      "A new server from Mikrus",
