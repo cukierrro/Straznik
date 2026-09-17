@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Strażnik — polityka prywatności</title>
+<meta name="description" content="Polityka prywatności Strażnika: brak kont, reklam i analityki. Co zostaje na urządzeniu, co widzi serwer i jakie usługi zewnętrzne biorą udział w przesyłaniu danych.">
+<link rel="canonical" href="https://cukierrro.github.io/Straznik/prywatnosc.html">
+<link rel="alternate" hreflang="pl" href="https://cukierrro.github.io/Straznik/prywatnosc.html">
+<link rel="alternate" hreflang="en" href="https://cukierrro.github.io/Straznik/prywatnosc-en.html">
+<link rel="alternate" hreflang="x-default" href="https://cukierrro.github.io/Straznik/prywatnosc.html">
+<link rel="icon" href="ikona.png">
+<link rel="stylesheet" href="guide.css">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://cukierrro.github.io/Straznik/prywatnosc.html">
+<meta property="og:title" content="Strażnik — polityka prywatności">
+<meta property="og:description" content="Brak kont, reklam i analityki. Dokładnie opisane, co zostaje na urządzeniu, a co trafia na serwer.">
+<meta property="og:locale" content="pl_PL">
+<meta property="og:locale:alternate" content="en_GB">
+</head>
+<body id="top">
+<a class="skip" href="#content">Przejdź do treści</a>
+<nav aria-label="Nawigacja instrukcji"><div class="nav-in">
+  <a class="brand" href="index.html">STRAŻNIK</a>
+  <div class="nav-links"><a href="index.html">Instrukcja</a><a href="#urzadzenie">Urządzenie</a><a href="#powiadomienia">Powiadomienia</a><a href="#serwer">Serwer</a><a href="#uslugi">Usługi zewnętrzne</a><a href="#prawa">Twoje prawa</a><a href="zmiany.html">Historia zmian</a></div>
+  <div class="languages" aria-label="Język strony"><a href="prywatnosc.html" lang="pl" aria-current="page">PL</a><a href="prywatnosc-en.html" lang="en" hreflang="en">EN</a></div>
+</div></nav>
+
+<header class="hero"><div class="wrap">
+  <div class="eyebrow">Polityka prywatności · obowiązuje od 17 września 2026</div>
+  <h1>Nie zbieramy danych o Tobie.</h1>
+  <p class="lead">Strażnik nie ma kont, logowania, reklam ani analityki. Nie prosimy o imię, adres e-mail ani numer telefonu — i ich nie mamy. Ta strona opisuje dokładnie, co zostaje na Twoim urządzeniu, co widzi nasz serwer i kto jeszcze bierze udział w przesyłaniu danych.</p>
+  <p class="fineprint">Dotyczy aplikacji Strażnik na Androida i iOS oraz strony <a href="https://straznik.eu">straznik.eu</a>. Za projekt i dane odpowiada jego autor; kontakt przez <a href="https://github.com/cukierrro/Straznik/issues">zgłoszenie w repozytorium</a>.</p>
+</div></header>
+<main id="content" class="wrap">
+
+<section id="skrot">
+  <h2>W skrócie</h2>
+  <ul>
+    <li><b>Brak konta i logowania.</b> Aplikacja działa od razu po instalacji.</li>
+    <li><b>Brak reklam, analityki i narzędzi śledzących.</b> Nie ma tu Google Analytics, pikseli reklamowych ani żadnego zewnętrznego SDK zbierającego statystyki.</li>
+    <li><b>Twoja lokalizacja nie opuszcza urządzenia.</b> Nigdy jej nie wysyłamy ani nie przechowujemy.</li>
+    <li><b>Powiadomienia idą do województw, nie do osób.</b> Nie wiemy, kto je dostaje.</li>
+    <li><b>Nie sprzedajemy i nie udostępniamy danych</b> nikomu w celach marketingowych. Nie ma czego sprzedawać.</li>
+  </ul>
+</section>
+
+<section id="urzadzenie">
+  <h2>1. Co zostaje tylko na Twoim urządzeniu</h2>
+  <p>W pamięci aplikacji (przeglądarkowy <kbd>localStorage</kbd>) zapisują się wyłącznie Twoje ustawienia:</p>
+  <ul>
+    <li><b>Moje miejsca</b> — nazwy i współrzędne punktów, które sam dodałeś;</li>
+    <li>wybrane województwa do powiadomień, język, ustawienia mapy i dźwięku;</li>
+    <li>bufor historii z ostatnich 12 godzin, pobrany z serwera, żeby przewijanie działało płynnie.</li>
+  </ul>
+  <p>Te dane nie są wysyłane na nasz serwer ani nigdzie indziej. W aplikacji na Androida <b>kopia zapasowa systemu jest wyłączona</b> (<kbd>allowBackup=false</kbd>), więc nie trafiają też na Dysk Google. Usuwasz je w całości, odinstalowując aplikację lub czyszcząc jej dane w ustawieniach systemu; w przeglądarce — czyszcząc dane witryny.</p>
+</section>
+
+<section id="lokalizacja">
+  <h2>2. Lokalizacja</h2>
+  <p>Uprawnienie do lokalizacji jest <b>opcjonalne</b>. Służy wyłącznie do jednorazowego wstawienia punktu „tu jestem” przy dodawaniu miejsca i do wyśrodkowania mapy. Współrzędne zostają na urządzeniu — nie wysyłamy ich na serwer, nie zapisujemy u siebie i nie przekazujemy nikomu. Możesz odmówić i wskazać miejsce ręcznie na mapie; aplikacja działa wtedy tak samo.</p>
+  <p>Powiadomienia nie zależą od GPS-u. Województwa wybierasz z listy i to jedyna informacja o tym, co obserwujesz.</p>
+</section>
+
+<section id="powiadomienia">
+  <h2>3. Powiadomienia</h2>
+  <h3>Aplikacja na Androida i iOS</h3>
+  <p>Aplikacja zapisuje się w usłudze Firebase Cloud Messaging (Google) na <b>„temat” odpowiadający województwu</b>, na przykład <kbd>voiv_lubelskie</kbd>. Alarm wysyłamy do tematu, a nie do konkretnych urządzeń. Na naszym serwerze <b>nie ma listy urządzeń ani ich identyfikatorów (tokenów)</b> — nie wiemy, ile telefonów obserwuje dane województwo ani które to telefony. Pośrednikiem jest Google, które przetwarza identyfikator instalacji aplikacji zgodnie z własną polityką prywatności.</p>
+  <h3>Powiadomienia w przeglądarce</h3>
+  <p>Jeśli włączysz powiadomienia na stronie, przeglądarka nadaje <b>adres punktu push</b> (adres usługi Google, Mozilli lub Apple wraz z kluczami szyfrującymi). Ten adres i wybrane województwo zapisujemy w bazie na serwerze — inaczej nie da się wysłać powiadomienia. To <b>jedyne dane powiązane z konkretną przeglądarką</b>, jakie u siebie trzymamy. Adres nie zawiera imienia, adresu e-mail ani lokalizacji i nie pozwala nam ustalić, kim jesteś.</p>
+  <p>Wpis znika, gdy wyłączysz powiadomienia w aplikacji albo w ustawieniach przeglądarki, a także wtedy, gdy dostawca push zgłosi, że subskrypcja wygasła.</p>
+</section>
+
+<section id="serwer">
+  <h2>4. Co widzi i zapisuje serwer</h2>
+  <p>Ruch do serwera przechodzi przez sieć Cloudflare, która widzi adres IP i chroni usługę przed przeciążeniem (zgodnie z własną polityką). Na naszym serwerze:</p>
+  <ul>
+    <li><b>dziennik dostępu jest wyłączony</b> — adresy IP i otwierane adresy nie są zapisywane na dysku;</li>
+    <li>adres IP jest używany <b>tylko chwilowo, w pamięci</b>, do limitu zapytań, żeby jeden nadawca nie zablokował usługi wszystkim. Nie trafia do bazy ani do kopii zapasowych;</li>
+    <li>w bazie są <b>dane o zagrożeniach, nie o ludziach</b>: sygnały ze źródeł publicznych, migawki stanu mapy z ostatnich <b>12 godzin</b>, archiwum pozycji lotniczych ADS-B z <b>14 dni</b> oraz dziennik wysłanych alarmów (województwo, poziom, godzina). Żaden z tych wpisów nie jest powiązany z użytkownikiem.</li>
+  </ul>
+  <p>Kopie zapasowe bazy powstają co sześć godzin i są zaszyfrowane. Zawierają subskrypcje powiadomień w przeglądarce z punktu 3 — innych danych o użytkownikach w bazie nie ma.</p>
+</section>
+
+<section id="uslugi">
+  <h2>5. Usługi zewnętrzne</h2>
+  <p>Każda z nich widzi zwykłe żądanie sieciowe z Twoim adresem IP, bo inaczej nie dałoby się przesłać danych. Nie przekazujemy im niczego więcej:</p>
+  <ul>
+    <li><b>Mikrus</b> — hosting serwera Strażnika;</li>
+    <li><b>Cloudflare</b> — tunel, ochrona i przyspieszenie ruchu do serwera;</li>
+    <li><b>Google Firebase</b> — dostarczanie powiadomień do aplikacji;</li>
+    <li><b>GitHub</b> — pobieranie aplikacji, sprawdzanie aktualizacji i ta strona (GitHub Pages);</li>
+    <li><b>OpenFreeMap</b> i <b>CARTO</b> — kafelki mapy, na danych OpenStreetMap.</li>
+  </ul>
+  <p>Zdjęcia i grafiki obiektów są zapisane w samej aplikacji — nie pobieramy ich z zewnętrznych serwisów. Strony redakcji odczytuje nasz serwer, nie Twój telefon. Link do artykułu otwierasz już w swojej przeglądarce i od tego momentu obowiązują zasady danej redakcji.</p>
+</section>
+
+<section id="uprawnienia">
+  <h2>6. Uprawnienia aplikacji</h2>
+  <ul>
+    <li><b>Powiadomienia</b> — żeby pokazać alarm.</li>
+    <li><b>Lokalizacja (opcjonalnie)</b> — jednorazowy punkt „tu jestem”, patrz punkt 2.</li>
+    <li><b>Internet i stan sieci</b> — pobieranie stanu mapy i wykrywanie utraty połączenia.</li>
+    <li><b>Instalowanie pakietów</b> — instalacja aktualizacji pobranej z GitHuba (Android, poza sklepem Play).</li>
+    <li><b>Wyłączenie optymalizacji baterii, wybudzenie ekranu i alarm pełnoekranowy</b> — żeby alarm dotarł, gdy telefon śpi.</li>
+    <li><b>Wibracje</b> — sygnał alarmu.</li>
+  </ul>
+  <p>Aplikacja nie prosi o dostęp do kontaktów, zdjęć, plików, mikrofonu ani aparatu.</p>
+</section>
+
+<section id="prawa">
+  <h2>7. Twoje prawa i kontakt</h2>
+  <p>Nie prowadzimy kont, więc nie mamy zbioru, w którym moglibyśmy Cię odnaleźć. Jedyne dane związane z urządzeniem — subskrypcję powiadomień w przeglądarce — usuwasz sam, wyłączając powiadomienia. Pozostałe ustawienia znikają po odinstalowaniu aplikacji lub wyczyszczeniu jej danych.</p>
+  <p>Jeśli chcesz zapytać o przetwarzanie danych, zgłosić żądanie usunięcia albo zwrócić uwagę na błąd w tej polityce, napisz przez <a href="https://github.com/cukierrro/Straznik/issues">zgłoszenie w repozytorium projektu</a>.</p>
+  <p>Aplikacja nie jest kierowana do dzieci i nie pyta o wiek.</p>
+</section>
+
+<section id="zmiany">
+  <h2>8. Zmiany tej polityki</h2>
+  <p>Zmiany opisujemy w <a href="zmiany.html">historii zmian</a> razem z wydaniem, którego dotyczą. Data u góry strony mówi, od kiedy obowiązuje bieżąca wersja.</p>
+</section>
+</main>
+<footer><div class="wrap">
+  <p><b>STRAŻNIK</b> — nieoficjalne źródło dodatkowe. Nie zastępuje syren, RCB ani RSO.</p>
+  <p><a href="index.html">Instrukcja</a> · <a href="https://github.com/cukierrro/Straznik">Kod źródłowy</a> · <a href="zmiany.html">Historia zmian</a> · <a href="prywatnosc-en.html" lang="en">Privacy policy in English</a></p>
+  <p>Serwer: <a href="https://mikr.us">hostowane na Mikrusie</a> — dziękujemy za wsparcie projektu.</p>
+  <a class="back-top" href="#top">↑ Wróć na górę</a>
+</div></footer>
+</body>
+</html>
