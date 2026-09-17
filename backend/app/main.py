@@ -51,6 +51,10 @@ _ws_clients: set[WebSocket] = set()
 _last_broadcast = 0.0
 _broadcast_pending = False
 _ws_message = ""          # gotowa ramka stanu — jedna serializacja dla wszystkich
+# pomiar rozsyłki (17.09.2026): ile trwa i ile bajtów idzie do klientów — bez tego
+# nie wiadomo, czy zacięcia pętli biorą się z kompresji per klient, czy skądinąd
+broadcast_stats = {"count": 0, "clients": 0, "bytes": 0, "last_ms": 0, "max_ms": 0,
+                   "build_ms": 0, "max_build_ms": 0, "sum_ms": 0.0, "frame_bytes": 0}
 # Każde połączenie WebSocket to otwarte gniazdo i bufor w tym jednym procesie.
 # Powyżej limitu odmawiamy (kod 1013), a klient przechodzi na odpytywanie
 # /api/state, które jest gotowymi bajtami i trzyma je Cloudflare.
@@ -150,15 +154,26 @@ async def broadcast_state():
         await asyncio.sleep(wait)
     _broadcast_pending = False
     _last_broadcast = time.time()
+    t0 = time.monotonic()
     refresh_state()
+    build_ms = round((time.monotonic() - t0) * 1000)
+    broadcast_stats["build_ms"] = build_ms
+    broadcast_stats["max_build_ms"] = max(broadcast_stats["max_build_ms"], build_ms)
     if not _ws_clients:
         return
     message = _ws_message
     clients = list(_ws_clients)
+    t1 = time.monotonic()
     for i in range(0, len(clients), 500):
         for dead in await asyncio.gather(*(_send(ws, message) for ws in clients[i:i + 500])):
             if dead is not None:
                 _ws_clients.discard(dead)
+    ms = (time.monotonic() - t1) * 1000
+    broadcast_stats.update(count=broadcast_stats["count"] + 1, clients=len(clients),
+                           frame_bytes=len(message.encode()),
+                           bytes=broadcast_stats["bytes"] + len(clients) * len(message.encode()),
+                           last_ms=round(ms), max_ms=max(broadcast_stats["max_ms"], round(ms)),
+                           sum_ms=broadcast_stats["sum_ms"] + ms)
 
 
 async def state_loop():
@@ -337,6 +352,10 @@ async def api_health(request: Request):
         "public_cache": {**public_cache.status, "ws_clients": len(_ws_clients),
                          "ws_max": WS_MAX_CLIENTS},
         "load_guard": load_guard.status,
+        "broadcast": dict(broadcast_stats,
+                          avg_ms=round(broadcast_stats["sum_ms"] / broadcast_stats["count"], 1)
+                          if broadcast_stats["count"] else 0,
+                          mb_total=round(broadcast_stats["bytes"] / 1048576, 1)),
         "backup": _backup_status(),
         "critical": monitoring.critical_check(),
         "tasks": monitoring.supervisor,
