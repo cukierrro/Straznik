@@ -213,21 +213,37 @@ Dodać klasę `no-ios` do:
 - `index.html:532` `.chip.coffee` „Postaw kawę autorowi” w oknie „O aplikacji”
 - `index.html:775` link „Wesprzyj autora ☕” w zakładce Aplikacja
 
-W aplikacji **zostają** neutralne linki (bez słów o wsparciu): „Instrukcja
-użytkownika ↗” (`index.html:247`, `773`) i — do dodania — „Strona Strażnika ↗”.
+W aplikacji **zostaje** jeden neutralny link (bez słów o wsparciu):
+„Instrukcja użytkownika ↗” (`index.html:247`, `773`). **Nie dodajemy** linku do
+strony głównej straznik.eu — ona ma przycisk kawy, więc link z aplikacji byłby
+tym samym problemem (decyzja użytkownika 17.09).
 
 Test: w buildzie iOS `document.querySelectorAll('a[href*="buycoffee"]')` —
 wszystkie mają `offsetParent === null`; żaden widoczny tekst w aplikacji nie
 zawiera „kaw”, „wesprzyj”, „donate”, „buycoffee”.
 
-### B2b. Strona docelowa linku z aplikacji (`docs/`, GitHub Pages)
-Recenzenci Apple otwierają linki z aplikacji. Jeśli „Instrukcja użytkownika”
-prowadzi na stronę z widocznym przyciskiem „Wesprzyj autora”, link może zostać
-uznany za obejście płatności (3.1.1(a)). Zalecenie: **na stronie instrukcji
-linkowanej z aplikacji nie pokazywać przycisku kawy** (może zostać na stronie
-głównej Strażnika i w pozostałych miejscach `docs/`), albo dać osobny adres
-instrukcji dla aplikacji. Do decyzji użytkownika — dotyczy `docs/`, którego ta
-sesja nie zmienia.
+### B2b. Strona instrukcji bez przycisku kawy (`docs/`, GitHub Pages)
+**Decyzja użytkownika 17.09:** przycisk „Postaw kawę” **znika ze strony
+instrukcji**, zostaje na stronie głównej straznik.eu (i w wersji na Androida
+oraz w przeglądarce). Powód: recenzenci Apple otwierają linki z aplikacji, a
+zachęta do zapłaty na stronie docelowej może być uznana za obejście zakupów
+w aplikacji (3.1.1(a)).
+
+Do zmiany — stopka sekcji „Prywatność i źródła”:
+- `docs/index.html:356` — usunąć `<a href="https://buycoffee.to/cukierrro">Postaw kawę</a>`
+  (razem z poprzedzającym separatorem „ · ”)
+- `docs/en.html:356` — to samo dla „Buy a coffee”
+
+Sprawdzić też, czy kawy nie ma w nagłówku/menu instrukcji ani na `zmiany.html`
+i `zmiany-en.html` (na 17.09 nie znalazłem tam linków buycoffee).
+
+**Przy okazji, potrzebne do App Store:** Apple wymaga adresu **polityki
+prywatności**. Dziś jest sekcja 14 „Prywatność i źródła” w instrukcji
+(`docs/index.html#prywatnosc`) — wystarczy jako adres, ale czytelniejsza byłaby
+osobna, krótka strona `docs/prywatnosc.html` (te same treści: brak konta,
+reklam i analityki; na serwer i do dostawcy powiadomień idą tylko nazwy
+województw i identyfikator subskrypcji; dokładna lokalizacja zostaje
+w telefonie). Do decyzji użytkownika i sesji głównej.
 
 ### B3. Wersja aplikacji i aktualizacje
 Plugin iOS **celowo zwraca pusty `appVersion`** — dzięki temu `checkForUpdate()`

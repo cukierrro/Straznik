@@ -150,8 +150,8 @@ TestFlight bez Maca.
 
 ## Krok 9. Pierwszy build
 
-Gałąź `ios` z projektem jest gotowa lokalnie. Po Twojej zgodzie Claude ją wypchnie
-(sam `main` zostaje nietknięty). Potem:
+Gałąź `ios` z projektem jest już na GitHubie (`main` nietknięty), a pierwsze
+sprawdzenie kompilacji w chmurze przeszło (Xcode 26.6). Po dodaniu sekretów:
 
 1. GitHub → **Actions** → **iOS — build i TestFlight** → ostatnie uruchomienie.
 2. Bez sekretów workflow robi tylko **sprawdzenie kompilacji** (zielone = kod
