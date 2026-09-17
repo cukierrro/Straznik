@@ -167,7 +167,19 @@ async def _fetch(client: httpx.AsyncClient):
 def _fail(error: str) -> None:
     # fail_streak: kolejne nieudane cykle; monitoring.rso_fresh zgłasza awarię
     # dopiero od drugiego z rzędu, dioda i szczegóły pokazują błąd od razu
-    status.update(ok=False, error=error, fail_streak=status.get("fail_streak", 0) + 1)
+    streak = status.get("fail_streak", 0) + 1
+    status.update(ok=False, error=error, fail_streak=streak)
+    # 17.09.2026 RSO padało przy syrenach, a w dzienniku nie było śladu — monitoring
+    # zgłaszał awarię, której nie dało się potem odtworzyć. Logujemy początek awarii
+    # i co 10. nieudany cykl, bez zalewania dziennika co minutę.
+    if streak in (1, 2) or streak % 10 == 0:
+        log.warning("RSO: nieudany cykl %d z rzędu: %s", streak, error[:200])
+
+
+def _recovered() -> None:
+    streak = status.get("fail_streak", 0)
+    if streak:
+        log.warning("RSO: znów działa po %d nieudanych cyklach", streak)
 
 
 async def _check(client: httpx.AsyncClient):
@@ -188,6 +200,7 @@ async def _check(client: httpx.AsyncClient):
         _fail(f"obróbka: {e!r}")
         log.exception("RSO: błąd obróbki odpowiedzi")
         return
+    _recovered()
     status.update(ok=True, last=time.time(), error=None, fail_streak=0)
 
 

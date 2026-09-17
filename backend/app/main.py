@@ -20,6 +20,22 @@ log = logging.getLogger("main")
 # D10 (audyt): httpx logował każde zapytanie kolektorów na INFO — szum w dzienniku
 logging.getLogger("httpx").setLevel(logging.WARNING)
 
+
+class _QuietWebSocketLog(logging.Filter):
+    """17.09.2026: uvicorn logował każde otwarcie i odmowę WebSocketu na INFO —
+    ~1 mln linii na godzinę przy syrenach, 0,5 GB pamięci podręcznej dziennika.
+    Ostrzeżenia i błędy przechodzą bez zmian."""
+    NOISE = ("connection open", "connection closed", "connection rejected")
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        if record.levelno > logging.INFO:
+            return True
+        msg = record.getMessage()
+        return not (msg.startswith(self.NOISE) or '"WebSocket ' in msg)
+
+
+logging.getLogger("uvicorn.error").addFilter(_QuietWebSocketLog())
+
 # Publiczna dokumentacja API nie jest potrzebna użytkownikom, a ułatwia nadużycia.
 app = FastAPI(title="Strażnik", docs_url=None, redoc_url=None, openapi_url=None)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"],
@@ -37,8 +53,11 @@ _broadcast_pending = False
 _ws_message = ""          # gotowa ramka stanu — jedna serializacja dla wszystkich
 # Każde połączenie WebSocket to otwarte gniazdo i bufor w tym jednym procesie.
 # Powyżej limitu odmawiamy (kod 1013), a klient przechodzi na odpytywanie
-# /api/state, które jest gotowymi bajtami i może je trzymać Cloudflare.
-WS_MAX_CLIENTS = int(os.getenv("WS_MAX_CLIENTS", "3000"))
+# /api/state, które jest gotowymi bajtami i trzyma je Cloudflare.
+# 17.09.2026: 3000 zapełniło się przy syrenach w Lublinie, a proces miał 660 MB
+# z 2,5 GB. Twardy limit wyżej; właściwą granicą są pamięć i opóźnienie pętli
+# (load_guard.refuse_websocket).
+WS_MAX_CLIENTS = int(os.getenv("WS_MAX_CLIENTS", "6000"))
 WS_SEND_TIMEOUT_S = 3.0
 
 
@@ -169,13 +188,17 @@ async def _close(ws: WebSocket) -> None:
 
 @app.websocket("/ws")
 async def ws_endpoint(ws: WebSocket):
-    if len(_ws_clients) >= WS_MAX_CLIENTS or load_guard.refuse_websocket():
-        # 1013 = „spróbuj później”; klient przechodzi na odpytywanie /api/state
-        await ws.close(code=1013)
-        return
+    busy = len(_ws_clients) >= WS_MAX_CLIENTS or load_guard.refuse_websocket()
     try:
         await ws.accept()
     except Exception:
+        return
+    if busy:
+        # 1013 = „spróbuj później”; klient przechodzi na odpytywanie /api/state.
+        # Najpierw accept(): zamknięcie przed nim uvicorn zamienia na HTTP 403, klient
+        # nie widzi 1013 i ponawia co kilka sekund (17.09.2026: ~230 prób/s przez 2 h).
+        load_guard.status["ws_refused"] += 1
+        await _close(ws)
         return
     _ws_clients.add(ws)
     try:

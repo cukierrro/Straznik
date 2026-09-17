@@ -11,7 +11,10 @@ i wysyłka powiadomień. Dlatego pamięć pilnujemy SAMI, zanim zrobi to jądro:
 * poziom 2 — VPS ≥ 85% albo proces ≥ 1,1 × SHED_RSS_MB: działa już tylko to,
   co jest gotowymi bajtami (stan, historia, strefy, wersja aplikacji, push),
 * niezależnie od pamięci: najwyżej MAX_INFLIGHT zapytań naraz; kolejne czekają
-  w kolejce do QUEUE_WAIT_S, a potem dostają 503 zamiast rosnąć w pamięci.
+  w kolejce do QUEUE_WAIT_S, a potem dostają 503 zamiast rosnąć w pamięci,
+* opóźnienie pętli zdarzeń (17.09.2026): to jeden proces na jednym rdzeniu —
+  gdy pętla nie nadąża, spóźniają się też kolektory i powiadomienia. Wtedy nie
+  przyjmujemy NOWYCH WebSocketów (klient odpytuje gotowy /api/state z Cloudflare).
 
 Kolektory, fuzja, pętla poziomów i powiadomienia nie przechodzą przez żadną
 z tych bramek — działają w tle, niezależnie od ruchu na stronie.
@@ -28,13 +31,19 @@ SHED_SYS_PCT_HARD = float(os.getenv("SHED_SYS_PCT_HARD", "85"))
 SHED_RSS_MB = float(os.getenv("SHED_RSS_MB", "2200"))       # MemoryMax usługi: 2560 MB
 MAX_INFLIGHT = int(os.getenv("MAX_INFLIGHT", "600"))
 QUEUE_WAIT_S = float(os.getenv("QUEUE_WAIT_S", "4"))
+# opóźnienie pętli: odmowa nowych WebSocketów po 2 próbkach z rzędu powyżej progu,
+# powrót dopiero poniżej LAG_CLEAR_S (histereza — bez migotania co 2 s)
+LAG_REFUSE_S = float(os.getenv("WS_LAG_REFUSE_S", "0.5"))
+LAG_CLEAR_S = float(os.getenv("WS_LAG_CLEAR_S", "0.2"))
 
 # gotowe bajty z public_cache — tanie nawet pod presją pamięci
 CHEAP_PATHS = ("/api/state", "/api/history/bundle", "/api/history/timeline", "/api/zones",
                "/api/app-version", "/api/push/", "/api/health", "/api/health/critical")
 
 status = {"level": 0, "sys_pct": None, "rss_mb": None, "inflight": 0, "queued": 0,
-          "shed_total": 0, "since": None}
+          "shed_total": 0, "since": None, "loop_lag_ms": 0, "lag_high": False,
+          "ws_refused": 0}
+_lag_over = 0
 _slots = asyncio.Semaphore(MAX_INFLIGHT)
 
 
@@ -66,6 +75,23 @@ def level_for(sys_pct: float | None, rss_mb: float | None) -> int:
     return 0
 
 
+def update_lag(lag_s: float) -> bool:
+    """Zapisuje opóźnienie pętli i zwraca, czy odmawiać nowych WebSocketów."""
+    global _lag_over
+    status["loop_lag_ms"] = round(max(0.0, lag_s) * 1000)
+    if lag_s >= LAG_REFUSE_S:
+        _lag_over += 1
+        if _lag_over >= 2 and not status["lag_high"]:
+            status["lag_high"] = True
+            log.warning("pętla zdarzeń nie nadąża (%.2f s) — nowe WebSockety odsyłane na odpytywanie", lag_s)
+    else:
+        _lag_over = 0
+        if status["lag_high"] and lag_s < LAG_CLEAR_S:
+            status["lag_high"] = False
+            log.warning("pętla zdarzeń nadąża (%.2f s) — WebSockety znów przyjmowane", lag_s)
+    return status["lag_high"]
+
+
 async def monitor(shed_websockets):
     """`shed_websockets(fraction)` zamyka część otwartych WebSocketów."""
     while True:
@@ -83,11 +109,13 @@ async def monitor(shed_websockets):
                 await shed_websockets(0.2 if lvl == 1 else 0.5)
             except Exception as e:
                 log.warning("zamykanie WebSocketów: %s", e)
+        before = time.monotonic()
         await asyncio.sleep(2)
+        update_lag(time.monotonic() - before - 2)
 
 
 def refuse_websocket() -> bool:
-    return status["level"] >= 1
+    return status["level"] >= 1 or status["lag_high"]
 
 
 def _cheap(path: str) -> bool:

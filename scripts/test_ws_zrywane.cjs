@@ -6,10 +6,10 @@ const assert = require('node:assert/strict');
 const src = fs.readFileSync(require('node:path').join(__dirname, '../frontend/app.js'), 'utf8');
 const cut = (a, b) => src.slice(src.indexOf(a), src.indexOf(b, src.indexOf(a)));
 
-function simulate(lifetimeMs) {
+function simulate(lifetimeMs, mode = 'open') {
   let now = 0, seq = 0;
   const timers = [];
-  const counts = { ws: 0, poll: 0 };
+  const counts = { ws: 0, poll: 0, badge: '' };
   const ctx = {
     console, Math, Date: { now: () => now },
     setTimeout: (fn, ms) => { const id = ++seq; timers.push({ id, at: now + (ms || 0), fn }); return id; },
@@ -17,14 +17,18 @@ function simulate(lifetimeMs) {
     setInterval: (fn, ms) => { const id = ++seq; const tick = () => { fn(); timers.push({ id, at: now + ms, fn: tick }); };
                                timers.push({ id, at: now + ms, fn: tick }); return id; },
     clearInterval: (id) => { for (let i = timers.length - 1; i >= 0; i--) if (timers[i].id === id) timers.splice(i, 1); },
-    connBadge: { textContent: '', classList: { add() {}, remove() {} } },
+    connBadge: { set textContent(v) { counts.badge = v; }, get textContent() { return counts.badge; },
+                 classList: { add() {}, remove() {} } },
     UI: { isEn: false }, apiBase: () => 'https://straznik.eu', applyState() {},
     pollOnce: () => { counts.poll++; },
     WebSocket: class {
       constructor() {
         counts.ws++;
         ctx.setTimeout(() => {
+          // serwer z pełnym limitem: dawniej 403 przed otwarciem, teraz otwarcie i 1013
+          if (mode === 'reject') return this.onerror && this.onerror({});
           this.onopen && this.onopen();
+          if (mode === '1013') return this.onclose && this.onclose({ code: 1013 });
           if (lifetimeMs != null) ctx.setTimeout(() => this.onclose && this.onclose({ code: 1006 }), lifetimeMs);
         }, 200);
       }
@@ -54,3 +58,15 @@ assert.ok(broken.ws <= 20, `zrywane: najwyżej ~20 prób WS w 10 min (było ${br
 assert.ok(broken.poll <= 150, `zrywane: odpytywanie co kilka sekund, nie co sekundę (${broken.poll})`);
 assert.ok(broken.poll >= 60, `zrywane: mapa dalej się odświeża (${broken.poll} odpytań)`);
 console.log('OK: zrywany WebSocket przechodzi na odpytywanie, bez szturmu na serwer');
+
+// 17.09.2026, syreny w Lublinie: limit 3000 pełny, serwer odmawiał przed otwarciem (HTTP 403)
+const rejected = simulate(null, 'reject');
+const busy = simulate(null, '1013');
+console.log('odmowa przed otwarciem:', rejected, '| 1013 po otwarciu:', busy);
+assert.ok(rejected.ws <= 40, `odmowa przed otwarciem: bez szturmu (${rejected.ws} prób w 10 min; przed poprawką ~70)`);
+assert.ok(rejected.poll >= 60, `odmowa przed otwarciem: mapa odświeżana odpytywaniem (${rejected.poll})`);
+assert.ok(busy.ws <= 12, `1013: próba WebSocketu co 1–2 min (${busy.ws})`);
+assert.ok(busy.poll >= 60, `1013: odpytywanie co kilka sekund (${busy.poll})`);
+for (const [name, c] of [['odmowa', rejected], ['1013', busy]])
+  assert.match(c.badge, /duży ruch/, `${name}: napis „duży ruch”, nie „brak połączenia” (${c.badge})`);
+console.log('OK: zajęty serwer = odpytywanie i napis „duży ruch”, bez straszenia awarią');

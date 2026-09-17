@@ -592,6 +592,21 @@ let wsBusyUntil = 0, busyPoll = null;
    na odpytywanie co kilka sekund i próbujemy WebSocketu co 5 min. */
 const WS_STABLE_MS = 30000, WS_SHORT_LIMIT = 3, WS_FALLBACK_MS = 5 * 60000;
 let wsOpenedAt = 0, wsShortLived = 0, wsStableTimer = null;
+/* 17.09.2026 (syreny w Lublinie): serwer z pełnym limitem odmawiał połączenia, zanim
+   je przyjął — przeglądarka widziała błąd zamiast 1013, a apka przez 2 h pokazywała
+   „brak połączenia” i ponawiała co kilka sekund. Po 3 nieudanych próbach z rzędu
+   traktujemy serwer jak zajęty: odpytujemy /api/state i nie straszymy użytkownika. */
+const WS_BUSY_MS = 60000;
+let wsFailedOpens = 0;
+function showConnLost() {
+  connBadge.textContent = UI.isEn ? "server connection lost — retrying…" : "brak połączenia z serwerem — ponawiam…";
+  connBadge.classList.remove("hidden");
+}
+function showBusyPolling() {
+  connBadge.textContent = UI.isEn ? "heavy traffic — map refreshes every few seconds"
+                                  : "duży ruch — mapa odświeżana co kilka sekund";
+  connBadge.classList.remove("hidden");
+}
 
 let standalone = false;
 async function connect() {
@@ -703,10 +718,11 @@ function openBackendWs(base) {
   try { ws = new WebSocket(wsUrl); } catch { return scheduleReconnect(); }
   ws.onopen = () => {
     wsOpenedAt = Date.now();
+    wsFailedOpens = 0;
     connBadge.classList.add("hidden");
     if (busyPoll) { clearInterval(busyPoll); busyPoll = null; }
     clearTimeout(wsStableTimer);
-    wsStableTimer = setTimeout(() => { wsRetry = 1; wsShortLived = 0; }, WS_STABLE_MS);
+    wsStableTimer = setTimeout(() => { wsRetry = 1; wsShortLived = 0; wsBusyUntil = 0; }, WS_STABLE_MS);
   };
   ws.onmessage = (e) => {
     const env = JSON.parse(e.data);
@@ -714,12 +730,16 @@ function openBackendWs(base) {
   };
   ws.onclose = ws.onerror = (e) => {
     clearTimeout(wsStableTimer);
-    if (e && e.code === 1013) wsBusyUntil = Date.now() + 60000 + Math.random() * 60000;
+    if (e && e.code === 1013) wsBusyUntil = Date.now() + WS_BUSY_MS * (1 + Math.random());
     else if (wsOpenedAt && Date.now() - wsOpenedAt < WS_STABLE_MS
              && ++wsShortLived >= WS_SHORT_LIMIT) {
       // połączenie jest zrywane (np. serwer pośredniczący w sieci firmowej) — odpytujemy
       wsBusyUntil = Date.now() + WS_FALLBACK_MS * (0.8 + Math.random() * 0.4);
       wsShortLived = 0;
+    } else if (!wsOpenedAt && ++wsFailedOpens >= WS_SHORT_LIMIT) {
+      // połączenie odrzucane przed otwarciem — serwer zajęty albo chwilowo bez sieci
+      wsBusyUntil = Date.now() + WS_BUSY_MS * (1 + Math.random());
+      wsFailedOpens = 0;
     }
     wsOpenedAt = 0;
     scheduleReconnect();
@@ -729,14 +749,16 @@ function openBackendWs(base) {
 function scheduleReconnect() {
   if (standalone) return;   // w trybie wbudowanym nie ma czego wznawiać
   if (ws) { ws.onclose = ws.onerror = null; try { ws.close(); } catch {} ws = null; }
-  connBadge.textContent = UI.isEn ? "server connection lost — retrying…" : "brak połączenia z serwerem — ponawiam…";
-  connBadge.classList.remove("hidden");
   const base = apiBase();
   // W trakcie sesji trzymamy się serwera (przy starcie potwierdził dostępność):
   // ponawiamy tylko WebSocket, bez przełączania na wbudowany silnik.
   // Losowe rozrzucenie opóźnienia: po restarcie serwera tysiące telefonów nie
   // mogą wrócić w tej samej sekundzie (13.09.2026 szczyt 2700 zapytań/min).
   const busy = wsBusyUntil > Date.now();
+  // zajęty serwer to nie awaria: dane dalej płyną z /api/state (pollOnce zmieni
+  // napis na „brak połączenia”, jeśli i to zawiedzie). wsBusyUntil zeruje dopiero
+  // 30 s stabilnego połączenia, więc kolejne próby po okresie „zajęty” nie migają awarią.
+  if (wsBusyUntil) showBusyPolling(); else showConnLost();
   if (busy && !busyPoll) busyPoll = setInterval(pollOnce, 5000 + Math.random() * 3000);
   const delay = busy ? wsBusyUntil - Date.now()
     : Math.min(wsRetry * 1000, 15000) * (0.5 + Math.random());
@@ -750,8 +772,12 @@ async function pollOnce() {
     // no-store: Cloudflare nadpisywał max-age=2 na 4 h i przeglądarka podawała stan
     // sprzed kilkunastu minut na zmianę z WebSocketem — obiekty skakały (15.09.2026).
     const r = await fetch(base + "/api/state", { cache: "no-store" });
-    if (r.ok) applyState(await r.json());
-  } catch {}
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    applyState(await r.json());
+    if (wsBusyUntil && !(ws && ws.readyState === 1)) showBusyPolling();
+  } catch {
+    if (wsBusyUntil) showConnLost();
+  }
 }
 
 /* Komunikat administracyjny z serwera (np. zapowiedź okna testowego). Apka tylko
