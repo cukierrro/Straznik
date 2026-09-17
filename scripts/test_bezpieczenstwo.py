@@ -140,6 +140,16 @@ src = (ROOT / "backend" / "app" / "notify.py").read_text(encoding="utf-8")
 sprawdz("run_in_executor(_fcm_pool, _send_fcm_sync" in src and "asyncio.Semaphore(WEBPUSH_CONCURRENCY)" in src,
         "FCM we własnej puli wątków, Web Push z ograniczoną współbieżnością")
 
+# 11. aktualizator APK: tylko wydania repozytorium, pakiet i certyfikat podpisu (1.7.54;
+#     na emulatorze: wersja release → instalator, wersja debug → „Podpis … nie zgadza się”)
+java = (ROOT / "android-app" / "android" / "app" / "src" / "main" / "java" / "pl" / "straznik" / "app"
+        / "BackgroundPlugin.java").read_text(encoding="utf-8")
+sprawdz('RELEASE_PATH = "/cukierrro/Straznik/releases/download/"' in java
+        and '"straznik.eu".equals(host)' not in java
+        and "String problem = signatureProblem(apk);" in java
+        and "own.equals(downloaded.packageName)" in java and "have.equals(got)" in java,
+        "aktualizator sprawdza adres wydania, pakiet i certyfikat podpisu przed instalacją")
+
 app_js = (ROOT / "frontend" / "app.js").read_text(encoding="utf-8")
 sprawdz('"\'": "&#39;"' in app_js, "esc zamienia apostrof")
 sprawdz('x.startsWith("<b")' not in app_js and 'typeof x === "object" ? x.html : esc(x)' in app_js,

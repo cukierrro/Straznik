@@ -251,6 +251,10 @@
       + "there instead of 0.5. None of these raises the level on its own: zone 1 + media "
       + "report 1 = 2 pts (yellow); zone 1 + Baltic incident 0.5 = 1.5 pts — neighbouring "
       + "media are not enough on their own.";
+    const lic = document.getElementById("about-license");
+    if (lic) lic.innerHTML = '© 2026 cukierrro · all rights reserved · '
+      + '<a href="https://github.com/cukierrro/Straznik/blob/main/LICENSE" target="_blank" rel="noopener">licence</a> · third-party licences: '
+      + '<a href="https://github.com/cukierrro/Straznik/blob/main/NOTICE" target="_blank" rel="noopener">NOTICE</a>';
     set("#about .warn-box", "This is NOT an official warning system. It does not replace sirens, RCB or RSO alerts. In a real emergency, follow official channels. Strażnik provides an additional, potentially earlier signal — nothing more.");
     // stałe teksty z <b>, dlatego innerHTML (setMany ustawia textContent)
     [

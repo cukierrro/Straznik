@@ -4503,9 +4503,9 @@ function showUpdateBanner(rel, local) {
       }
       btn.disabled = true;
       btn.textContent = UI.isEn ? "Downloading…" : "Pobieram…";
-      // aplikacja sprawdza sumę SHA-256 z wydania; podpis weryfikuje Android przy instalacji
-      progress.textContent = UI.isEn ? "Checking the SHA-256 checksum…"
-                                     : "Sprawdzam sumę kontrolną SHA-256…";
+      // aplikacja sprawdza sumę SHA-256 z wydania, pakiet i certyfikat podpisu (audyt 16.09.2026)
+      progress.textContent = UI.isEn ? "Checking the SHA-256 checksum and signature…"
+                                     : "Sprawdzam sumę kontrolną SHA-256 i podpis…";
       await plugin.installUpdate({url: rel.url, sha256: rel.sha256});
       progress.textContent = UI.isEn ? "Confirm the install in the Android dialog."
                                      : "Potwierdź instalację w oknie Androida.";

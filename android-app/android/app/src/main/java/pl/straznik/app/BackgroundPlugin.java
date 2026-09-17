@@ -4,6 +4,9 @@ import android.app.NotificationManager;
 import android.content.Context;
 import android.media.AudioManager;
 import android.content.Intent;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
+import android.content.pm.Signature;
 import android.net.Uri;
 import android.os.Build;
 import android.os.PowerManager;
@@ -26,7 +29,10 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.security.MessageDigest;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Locale;
+import java.util.Set;
 
 /**
  * Most JS ↔ warstwa natywna: stan powiadomień, subskrypcja tematu FCM regionu,
@@ -323,9 +329,15 @@ public class BackgroundPlugin extends Plugin {
         }
     }
 
-    /** Pobiera APK do prywatnego cache, sprawdza SHA-256 i dopiero wtedy otwiera
-     * systemowy instalator. Host wejściowy jest ograniczony do domen projektu;
-     * przekierowania GitHuba są dozwolone przez HTTPS. */
+    /** Pobiera APK do prywatnego cache, sprawdza SHA-256, pakiet i certyfikat podpisu,
+     * i dopiero wtedy otwiera systemowy instalator. Adres jest ograniczony do wydań
+     * repozytorium na GitHubie; przekierowania GitHuba są dozwolone przez HTTPS.
+     *
+     * Audyt bezpieczeństwa 16.09.2026: adres i sumę SHA-256 podaje ten sam serwer, więc
+     * przejęty serwer mógł podsunąć dowolny plik z pasującą sumą. Android sam odrzuci
+     * aktualizację podpisaną innym kluczem, ale APK z INNĄ nazwą pakietu zainstalowałby
+     * jako nową aplikację. Dlatego pobrany plik musi mieć nasz pakiet i ten sam
+     * certyfikat podpisu co zainstalowany Strażnik. */
     @PluginMethod
     public void installUpdate(PluginCall call) {
         String rawUrl = call.getString("url");
@@ -337,7 +349,8 @@ public class BackgroundPlugin extends Plugin {
         try {
             URL parsed = new URL(rawUrl);
             String host = parsed.getHost().toLowerCase(Locale.ROOT);
-            if (!"github.com".equals(host) && !"straznik.eu".equals(host)
+            if (!"github.com".equals(host)
+                    || !parsed.getPath().startsWith(RELEASE_PATH)
                     || !"https".equalsIgnoreCase(parsed.getProtocol())) {
                 call.reject("Niedozwolone źródło aktualizacji");
                 return;
@@ -380,6 +393,11 @@ public class BackgroundPlugin extends Plugin {
                     apk.delete();
                     throw new SecurityException("Suma SHA-256 nie zgadza się");
                 }
+                String problem = signatureProblem(apk);
+                if (problem != null) {
+                    apk.delete();
+                    throw new SecurityException(problem);
+                }
                 getActivity().runOnUiThread(() -> {
                     try {
                         Uri uri = FileProvider.getUriForFile(getContext(),
@@ -399,6 +417,48 @@ public class BackgroundPlugin extends Plugin {
                 call.reject("Pobieranie aktualizacji nie powiodło się: " + e.getMessage(), e);
             }
         }, "straznik-updater").start();
+    }
+
+    static final String RELEASE_PATH = "/cukierrro/Straznik/releases/download/";
+
+    /** null, gdy pobrany APK to Strażnik podpisany tym samym certyfikatem co ta instalacja. */
+    @SuppressWarnings("deprecation")
+    private String signatureProblem(File apk) {
+        try {
+            PackageManager pm = getContext().getPackageManager();
+            String own = getContext().getPackageName();
+            int flags = Build.VERSION.SDK_INT >= 28
+                ? PackageManager.GET_SIGNING_CERTIFICATES : PackageManager.GET_SIGNATURES;
+            PackageInfo downloaded = pm.getPackageArchiveInfo(apk.getAbsolutePath(), flags);
+            if (downloaded == null) return "Plik aktualizacji nie jest poprawnym APK";
+            if (!own.equals(downloaded.packageName))
+                return "Plik aktualizacji jest inną aplikacją (" + downloaded.packageName + ")";
+            Set<String> have = certDigests(pm.getPackageInfo(own, flags));
+            Set<String> got = certDigests(downloaded);
+            if (have.isEmpty() || !have.equals(got))
+                return "Podpis aktualizacji nie zgadza się z zainstalowaną aplikacją";
+            return null;
+        } catch (Exception e) {
+            return "Nie udało się sprawdzić podpisu aktualizacji: " + e.getMessage();
+        }
+    }
+
+    @SuppressWarnings("deprecation")
+    private static Set<String> certDigests(PackageInfo info) throws Exception {
+        Signature[] sigs;
+        if (Build.VERSION.SDK_INT >= 28) {
+            if (info.signingInfo == null) return new HashSet<>();
+            sigs = info.signingInfo.hasMultipleSigners()
+                ? info.signingInfo.getApkContentsSigners()
+                : info.signingInfo.getSigningCertificateHistory();
+        } else {
+            sigs = info.signatures;
+        }
+        Set<String> out = new HashSet<>();
+        if (sigs == null) return out;
+        MessageDigest md = MessageDigest.getInstance("SHA-256");
+        for (Signature s : sigs) out.add(Arrays.toString(md.digest(s.toByteArray())));
+        return out;
     }
 
     /**

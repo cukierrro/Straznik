@@ -265,6 +265,8 @@ point-in-polygon na centroidzie strefy.
 
 ## Uruchomienie backendu (Windows)
 
+> Instrukcje w tej sekcji służą autorowi i posiadaczom licencji. Samodzielne uruchamianie lub rozpowszechnianie Strażnika wymaga licencji autora (zob. [Licencja](#licencja)).
+
 ```bash
 cd backend
 py -m pip install -r requirements.txt
@@ -350,6 +352,8 @@ niekwalifikujące się do pomiaru wyprzedzenia. Dane referencyjne są zachowywan
 
 ## Podpisywanie wydania
 
+> Instrukcje w tej sekcji służą autorowi i posiadaczom licencji. Samodzielne uruchamianie lub rozpowszechnianie Strażnika wymaga licencji autora (zob. [Licencja](#licencja)).
+
 Każde APK musi być podpisane, a Android przyjmie aktualizację tylko wtedy, gdy
 jest podpisana **tym samym kluczem** co wersja już zainstalowana. Buildy debug
 używają klucza `debug.keystore` o publicznie znanym haśle (`android`), który
@@ -401,6 +405,8 @@ podpisany** — to celowe, żeby wydanie nigdy nie wyszło z kluczem debug.
 > użytkownika. Samo zaktualizowanie serwera nie zmienia jego zabezpieczeń.
 
 ## Przebudowa APK
+
+> Instrukcje w tej sekcji służą autorowi i posiadaczom licencji. Samodzielne uruchamianie lub rozpowszechnianie Strażnika wymaga licencji autora (zob. [Licencja](#licencja)).
 
 ```bash
 cd android-app

@@ -39,6 +39,16 @@
   <p class="fineprint">To see which version your phone has, open the app: <kbd>⚙</kbd> → the <kbd>App</kbd> tab → “App version”. The <kbd>⬆ Check for updates</kbd> button is right there too.</p>
 </div></header>
 <main id="content" class="wrap">
+<section id="v1-7-54">
+  <h2>1.7.54 — Safer updates and a new licence</h2>
+  <p class="fineprint">Release 1.7.54 · 17 September 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.54">Full release notes</a></p>
+  <ul>
+    <li>In-app updates download the file only from Strażnik releases on GitHub and, before installing, check not only the checksum but also that the file is Strażnik signed with the same key as the version on your phone. A forged file is rejected before the Android installer opens.</li>
+    <li>From this version the code is under an “all rights reserved” licence; versions up to 1.7.53 stay under MIT. You can still download and use the app for free. The About dialog links to the licence and to third-party licences (NOTICE).</li>
+    <li>Alert notifications quote an article title only from known newsrooms and from feeds configured directly; other reports are shown as “Media report” and the full title is visible in the app. An outside site can no longer put its own text into an alert.</li>
+    <li>Security fixes after an audit: content from external sources in the signals panel and aircraft card is escaped more strictly, and the server rejects oversized requests and floods of notification sign-ups.</li>
+  </ul>
+</section>
 <section id="v1-7-53">
   <h2>1.7.53 — Drones move again, alert colours no longer flicker</h2>
   <p class="fineprint">Release 1.7.53 · 16 September 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.53">Full release notes</a></p>

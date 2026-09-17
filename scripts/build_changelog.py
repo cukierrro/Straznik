@@ -16,6 +16,19 @@ DOCS = ROOT / "docs"
 # (wersja, data PL, data EN, tytuł PL, tytuł EN, punkty PL, punkty EN, zrzuty)
 # Zrzut: (plik, alt PL, alt EN, podpis PL, podpis EN)
 RELEASES = [
+    ("1.7.54", "17 września 2026", "17 September 2026",
+     "Bezpieczniejsze aktualizacje i nowa licencja",
+     "Safer updates and a new licence",
+     ["Aktualizacja z poziomu aplikacji pobiera plik tylko z wydań Strażnika na GitHubie i przed instalacją sprawdza nie tylko sumę kontrolną, ale też to, że plik jest Strażnikiem podpisanym tym samym kluczem co wersja na telefonie. Podrobiony plik zostanie odrzucony, zanim otworzy się instalator Androida.",
+      "Od tej wersji kod jest objęty licencją „wszelkie prawa zastrzeżone”; wersje do 1.7.53 pozostają na MIT. Aplikację nadal pobierasz i używasz bezpłatnie. W oknie „O aplikacji” są linki do licencji i do licencji składników (NOTICE).",
+      "W powiadomieniu o alarmie tytuł artykułu pojawia się tylko od znanych redakcji i z kanałów wpisanych na stałe; inne doniesienia są opisane jako „Doniesienie medialne”, a pełny tytuł widać w aplikacji. Obca strona nie może już wstawić swojego tekstu do alarmu.",
+      "Poprawki bezpieczeństwa po audycie: treści z zewnętrznych źródeł w panelu sygnałów i w karcie samolotu są dokładniej zabezpieczone, a serwer odrzuca zbyt duże zapytania i zalew zapisów do powiadomień."],
+     ["In-app updates download the file only from Strażnik releases on GitHub and, before installing, check not only the checksum but also that the file is Strażnik signed with the same key as the version on your phone. A forged file is rejected before the Android installer opens.",
+      "From this version the code is under an “all rights reserved” licence; versions up to 1.7.53 stay under MIT. You can still download and use the app for free. The About dialog links to the licence and to third-party licences (NOTICE).",
+      "Alert notifications quote an article title only from known newsrooms and from feeds configured directly; other reports are shown as “Media report” and the full title is visible in the app. An outside site can no longer put its own text into an alert.",
+      "Security fixes after an audit: content from external sources in the signals panel and aircraft card is escaped more strictly, and the server rejects oversized requests and floods of notification sign-ups."],
+     []),
+
     ("1.7.53", "16 września 2026", "16 September 2026",
      "Drony znów się ruszają, kolory alarmów nie migają",
      "Drones move again, alert colours no longer flicker",
