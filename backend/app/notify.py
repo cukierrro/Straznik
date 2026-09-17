@@ -117,12 +117,38 @@ def alarm_headline(signals: list[dict]) -> str:
     return "Kilka sygnałów pomocniczych naraz"
 
 
+_TRUSTED_NORM: set[str] | None = None
+
+
+def quotable_title(signal: dict) -> bool:
+    """Czy tytuł sygnału można dosłownie wstawić do powiadomienia.
+
+    Sygnały medialne z wyników Google News (dowolne strony) tylko od redakcji
+    z config.MEDIA_PUSH_TRUSTED_PUBLISHERS; kanały RSS wpisane w konfiguracji
+    bezpośrednio (redakcje lokalne, LRT/LSM/ERR) i tytuły budowane przez nas
+    (fala QRA, alarmy UA, NEPTUN, RSO) — zawsze."""
+    global _TRUSTED_NORM
+    if signal.get("source") != "media" or signal.get("event_type") == "media_qra_wave":
+        return True
+    d = signal.get("details") or {}
+    feed = d.get("feed") or ""
+    if feed and "news.google." not in feed:
+        return True
+    if signal.get("event_type", "").startswith("baltic_"):
+        return True
+    from .collectors.rss_media import _norm_publisher
+    if _TRUSTED_NORM is None:
+        _TRUSTED_NORM = {_norm_publisher(p) for p in config.MEDIA_PUSH_TRUSTED_PUBLISHERS}
+    return bool(d.get("publisher")) and _norm_publisher(d["publisher"]) in _TRUSTED_NORM
+
+
 def reasons_split(signals: list[dict]) -> str:
     """„Oficjalnie" osobno od „Wskaźniki" — oficjalny alert rozstrzyga, reszta nie."""
     official, other = [], []
     for x in signals or []:
         pts = x.get("counted_points", x.get("points"))
-        line = f"• {x.get('title', '')} (+{pts} pkt)"
+        title = x.get("title", "") if quotable_title(x) else "Doniesienie medialne"
+        line = f"• {title} (+{pts} pkt)"
         (official if x.get("event_type") == "rso_alert" and (pts or 0) > 0 else other).append(line)
     parts = []
     if official:

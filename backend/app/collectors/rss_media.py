@@ -469,7 +469,7 @@ async def _check_feed(client: httpx.AsyncClient, url: str, default_voiv: str | N
                 await fusion.ingest(
                     source="media", event_type="media_clear", voivodeship=voiv,
                     points=0.0, title=f"Media: odwołanie — „{title[:110]}”",
-                    details={"link": link, "clear": True},
+                    details={"link": link, "clear": True, "feed": url, "publisher": publisher},
                     dedup_key=f"media-clear:{dedup}:{voiv}",
                 )
             continue
@@ -489,7 +489,7 @@ async def _check_feed(client: httpx.AsyncClient, url: str, default_voiv: str | N
                 points=pts,
                 title=f"Media: „{title[:120]}”",
                 details={"link": link, "keywords": hits, "feed": url, "level": level,
-                         "voivodeships": voivs, "article": article},
+                         "voivodeships": voivs, "article": article, "publisher": publisher},
                 dedup_key=f"{dedup}:{voiv}",
             )
 

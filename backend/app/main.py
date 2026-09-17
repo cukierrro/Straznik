@@ -276,8 +276,24 @@ async def api_adsb_watch(hours: int = 12):
     return {"events": db.adsb_watch_events(max(1, min(hours, 12)))}
 
 
+def _is_local(request: Request) -> bool:
+    """Zapytanie z samego serwera (curl po SSH, watchdog), a nie z internetu.
+
+    Tunel Cloudflare też łączy się z 127.0.0.1, ale zawsze dokleja CF-Connecting-IP —
+    po tym nagłówku odróżniamy ruch publiczny (klient nie może go usunąć)."""
+    host = request.client.host if request.client else ""
+    return host in ("127.0.0.1", "::1") and "cf-connecting-ip" not in request.headers
+
+
 @app.get("/api/health")
-async def api_health():
+async def api_health(request: Request):
+    """Publicznie tylko {"ok": true} — aplikacja sprawdza sam kod odpowiedzi.
+
+    Audyt bezpieczeństwa 16.09.2026: pełny stan (błędy kolektorów, RAM, liczba
+    połączeń, kopie zapasowe) ułatwiał rozpoznanie i zgranie ataku z przeciążeniem.
+    Szczegóły są dostępne tylko z samego serwera: curl http://127.0.0.1:40141/api/health."""
+    if not _is_local(request):
+        return JSONResponse({"ok": True}, headers={"Cache-Control": "no-store"})
     return {
         "neptun": neptun.status, "adsb": adsb.status, "pansa": pansa.status,
         "rcb": rcb.status, "rso": rso.status, "rss": rss_media.status["feeds"],
@@ -305,12 +321,16 @@ async def api_health():
 
 
 @app.get("/api/health/critical")
-async def api_health_critical():
+async def api_health_critical(request: Request):
     """Dla monitoringu zewnętrznego: 503, gdy alarm może nie dotrzeć.
 
     Osobny adres, bo /api/health sprawdza aplikacja przy starcie — kod 503 tam
-    przełączyłby wszystkich użytkowników na tryb awaryjny."""
+    przełączyłby wszystkich użytkowników na tryb awaryjny. Publicznie tylko ok
+    poszczególnych kontroli, bez treści błędów (audyt 16.09.2026)."""
     result = monitoring.critical_check()
+    if not _is_local(request):
+        result = {"ok": result["ok"], "at": result.get("at"),
+                  "checks": {k: {"ok": v.get("ok")} for k, v in result["checks"].items()}}
     return JSONResponse(result, status_code=200 if result["ok"] else 503,
                         headers={"Cache-Control": "no-store"})
 

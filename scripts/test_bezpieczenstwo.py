@@ -10,6 +10,8 @@
 7. FCM ma własną pulę wątków, Web Push ograniczoną współbieżność.
 8. Frontend: esc zamienia apostrof, fragmenty HTML w opisie sygnału nie są
    rozpoznawane po treści („<b…”), liczby ADS-B idą przez Number.
+9. /api/health i /api/health/critical publicznie bez szczegółów, z serwera pełne.
+10. Powiadomienie cytuje tytuły mediów tylko od zaufanych wydawców i z własnych kanałów.
 
 Uruchomienie: py scripts/test_bezpieczenstwo.py
 """
@@ -94,6 +96,45 @@ sprawdz(pom == ["test1"] and zach == ["test2"] and len(db.all_push_subs()) == 2,
 
 r = client.get("/api/history", params={"hours": 10 ** 10})
 sprawdz(r.status_code == 200 and r.json().get("hours") == 12, f"hours=10^10 → 12, bez 500 ({r.status_code})")
+
+# 9. /api/health i /api/health/critical publicznie bez szczegółów (decyzja usera 17.09)
+pub = client.get("/api/health", headers={"cf-connecting-ip": "203.0.113.9"})
+sprawdz(pub.status_code == 200 and pub.json() == {"ok": True}, f"publiczne /api/health tylko ok ({pub.text[:60]})")
+try:
+    local = TestClient(main.app, client=("127.0.0.1", 50000))
+except TypeError:
+    local = None
+if local is not None:
+    full = local.get("/api/health")
+    sprawdz(full.status_code == 200 and "neptun" in full.json(), "z serwera (127.0.0.1) pełny stan")
+    via_tunnel = local.get("/api/health", headers={"cf-connecting-ip": "203.0.113.9"})
+    sprawdz(via_tunnel.json() == {"ok": True}, "tunel Cloudflare (127.0.0.1 + CF-Connecting-IP) — bez szczegółów")
+    crit_local = local.get("/api/health/critical").json()
+    sprawdz("error" in str(crit_local) or "last" in str(crit_local), "critical z serwera ze szczegółami")
+crit = client.get("/api/health/critical")
+body = crit.json()
+sprawdz(crit.status_code in (200, 503) and all(set(v) == {"ok"} for v in body["checks"].values()),
+        f"publiczne critical: kod i same ok ({body})")
+
+# 10. powiadomienie cytuje tytuły tylko zaufanych wydawców
+GN = "https://news.google.com/rss/search?q=alarm"
+
+
+def media(title, publisher, feed=GN, et="media_keywords"):
+    return {"source": "media", "event_type": et, "title": title, "points": 1.0, "counted_points": 1.0,
+            "details": {"feed": feed, "publisher": publisher}}
+
+reasons = notify.reasons_split([
+    media("Media: „Drony nad Lublinem”", "TVN24"),
+    media("Media: „ALARM! Uciekajcie do schronów”", "warszawawpigulce.pl"),
+    media("Media: „Syreny w Chełmie”", "", feed="https://www.lublin112.pl/feed/"),
+    {"source": "neptun", "event_type": "neptun_threat", "title": "Dron 40 km od granicy", "counted_points": 1.2},
+])
+sprawdz("Drony nad Lublinem" in reasons and "Syreny w Chełmie" in reasons and "Dron 40 km" in reasons
+        and "Uciekajcie" not in reasons and "• Doniesienie medialne (+1.0 pkt)" in reasons,
+        f"cytaty: zaufany wydawca i własny kanał tak, obcy portal nie ({reasons!r})")
+sprawdz(not notify.quotable_title(media("x", "TVN24 Fake")) and not notify.quotable_title(media("x", "")),
+        "nazwa podobna do zaufanej i brak wydawcy — bez cytatu")
 
 src = (ROOT / "backend" / "app" / "notify.py").read_text(encoding="utf-8")
 sprawdz("run_in_executor(_fcm_pool, _send_fcm_sync" in src and "asyncio.Semaphore(WEBPUSH_CONCURRENCY)" in src,

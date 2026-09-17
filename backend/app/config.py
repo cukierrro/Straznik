@@ -886,6 +886,29 @@ MEDIA_CLEAR_CONTEXT = ["lotnictw", "operowani", "alert rcb", "alertu rcb", "syre
                        "dron", "rakiet", "powietrz", "myśliwc", "alarm"]
 
 # ── Kanały RSS (per województwo) ─────────────────────────────────────────────
+# ── Kogo cytujemy w treści powiadomienia (audyt bezpieczeństwa 16.09.2026) ──────
+# Zapytania Google News zbierają artykuły z dowolnych stron. Tytuł z takiego wyniku
+# trafiał dosłownie do powiadomienia o prawdziwym alarmie, więc obcy portal mógł
+# wstawić swój tekst do alarmu. Decyzja usera 17.09: cytujemy tylko redakcje
+# z tej listy (agencja, nadawcy publiczni i komercyjni, ogólnopolskie dzienniki,
+# tygodniki i portale oraz redakcje regionalne) i kanały RSS wpisane w RSS_FEEDS
+# bezpośrednio. Inne doniesienia są w powiadomieniu jako „Doniesienie medialne”,
+# a pełny tytuł zostaje w aplikacji. Porównanie po nazwie znormalizowanej
+# (rss_media._norm_publisher), dokładne — bez dopasowania fragmentu.
+MEDIA_PUSH_TRUSTED_PUBLISHERS = [
+    "PAP", "Polska Agencja Prasowa", "TVP Info", "TVP3", "Polskie Radio", "Polskie Radio 24",
+    "TVN24", "Polsat News", "PolsatNews.pl", "RMF24", "RMF FM", "Radio Zet", "Radio Lublin",
+    "Radio Olsztyn", "Radio Białystok", "Radio Gdańsk", "Radio Szczecin", "Radio Rzeszów",
+    "Rzeczpospolita", "Gazeta Wyborcza", "Wyborcza.pl", "lublin.wyborcza.pl", "Gazeta",
+    "Gazeta.pl", "Gazeta Prawna", "gazetaprawna.pl", "Dziennik.pl", "wiadomosci.dziennik.pl",
+    "Wiadomości Onet", "Onet", "wiadomosci.onet.pl", "Interia", "Interia Wydarzenia",
+    "WP Wiadomości", "Wirtualna Polska", "Wprost", "Do Rzeczy", "Niezależna", "Tysol.pl",
+    "Zero.pl", "Portal Obronny", "Portal Samorządowy", "Defence24", "Dziennik Wschodni",
+    "Kurier Lubelski", "Lublin112", "Nowiny24", "Super Nowości", "Kurier Poranny",
+    "Gazeta Współczesna", "Gazeta Olsztyńska", "wm.pl", "Trojmiasto.pl", "Dziennik Bałtycki",
+    "Głos Szczeciński", "gs24.pl", "Dziennik Polski", "Gazeta Krakowska",
+]
+
 RSS_FEEDS = [
     # (url, województwo domyślne | None => wykryj po słowach kluczowych)
     #
