@@ -16,6 +16,17 @@ DOCS = ROOT / "docs"
 # (wersja, data PL, data EN, tytuł PL, tytuł EN, punkty PL, punkty EN, zrzuty)
 # Zrzut: (plik, alt PL, alt EN, podpis PL, podpis EN)
 RELEASES = [
+    ("1.7.58", "17 września 2026", "17 September 2026",
+     "Nowy serwer od Mikrusa",
+     "A new server from Mikrus",
+     ["Od 17 września Strażnik działa na osobnym serwerze, który przekazał projektowi Mikrus. Wcześniej dzielił dwa rdzenie procesora z innymi projektami; przeniesienie trwało niespełna minutę i nie zmieniło adresu strony ani działania powiadomień.",
+      "Pod napisem STRAŻNIK jest teraz logo Mikrusa i link „hostowane na Mikrusie”, a w okienku po dotknięciu nazwy aplikacji — krótkie podziękowanie z linkiem do strony Mikrusa. Ta sama informacja jest w oknie „O aplikacji”, w stopce instrukcji i w README.",
+      "W wersji angielskiej okienko po dotknięciu nazwy aplikacji znów ma link do kodu źródłowego na GitHubie."],
+     ["Since 17 September Strażnik runs on its own server, provided to the project by Mikrus. Before, it shared two CPU cores with other projects; the move took under a minute and changed neither the website address nor how notifications work.",
+      "Under the STRAŻNIK name there is now the Mikrus logo and a “hosted on Mikrus” link, and the popover shown after tapping the app name has a short thank-you with a link to the Mikrus website. The same note is in the About window, the user guide footer and the README.",
+      "In English, the popover shown after tapping the app name has its GitHub source code link back."],
+     []),
+
     ("1.7.57", "17 września 2026", "17 September 2026",
      "Przyciski przewijania historii i działający przycisk „wstecz”",
      "History scroll buttons and a working back button",
