@@ -585,6 +585,13 @@ let ws = null, wsRetry = 1;
    Wtedy odpytujemy gotowy /api/state co kilka sekund i wracamy do WebSocketu
    dopiero po 1–2 minutach — zamiast szturmować serwer co sekundę. */
 let wsBusyUntil = 0, busyPoll = null;
+/* 17.09.2026: sieć firmowa (jeden adres, ~250 tys. zapytań na dobę) zrywała WebSocket
+   zaraz po połączeniu, a onopen zerował licznik ponowień — każda karta łączyła się
+   od nowa co ~1 s i za każdym razem pobierała /api/state. Licznik zerujemy dopiero
+   po 30 s stabilnego połączenia, a po 3 krótkich połączeniach z rzędu przechodzimy
+   na odpytywanie co kilka sekund i próbujemy WebSocketu co 5 min. */
+const WS_STABLE_MS = 30000, WS_SHORT_LIMIT = 3, WS_FALLBACK_MS = 5 * 60000;
+let wsOpenedAt = 0, wsShortLived = 0, wsStableTimer = null;
 
 let standalone = false;
 async function connect() {
@@ -695,18 +702,28 @@ function openBackendWs(base) {
   const wsUrl = base.replace(/^http/, "ws") + "/ws";
   try { ws = new WebSocket(wsUrl); } catch { return scheduleReconnect(); }
   ws.onopen = () => {
-    wsRetry = 1; connBadge.classList.add("hidden");
+    wsOpenedAt = Date.now();
+    connBadge.classList.add("hidden");
     if (busyPoll) { clearInterval(busyPoll); busyPoll = null; }
+    clearTimeout(wsStableTimer);
+    wsStableTimer = setTimeout(() => { wsRetry = 1; wsShortLived = 0; }, WS_STABLE_MS);
   };
   ws.onmessage = (e) => {
     const env = JSON.parse(e.data);
     if (env.type === "state") applyState(env.data);
   };
-  ws.onclose = (e) => {
+  ws.onclose = ws.onerror = (e) => {
+    clearTimeout(wsStableTimer);
     if (e && e.code === 1013) wsBusyUntil = Date.now() + 60000 + Math.random() * 60000;
+    else if (wsOpenedAt && Date.now() - wsOpenedAt < WS_STABLE_MS
+             && ++wsShortLived >= WS_SHORT_LIMIT) {
+      // połączenie jest zrywane (np. serwer pośredniczący w sieci firmowej) — odpytujemy
+      wsBusyUntil = Date.now() + WS_FALLBACK_MS * (0.8 + Math.random() * 0.4);
+      wsShortLived = 0;
+    }
+    wsOpenedAt = 0;
     scheduleReconnect();
   };
-  ws.onerror = () => scheduleReconnect();
 }
 
 function scheduleReconnect() {
