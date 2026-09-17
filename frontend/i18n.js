@@ -304,6 +304,14 @@
     setMany("#watch .watch-h", ["In range now", "Log — entered / disappeared from range"]);
     set("#watch > p", "Military aircraft with Russian or Belarusian registration visible in public ADS-B/MLAT data over and around the eastern flank. In history, this panel follows the selected time. This observes transponder emissions; it is not radar tracking and is not an alert. Missing data does not imply empty airspace.");
     set("#cameras > p:first-of-type", "Public city and tourism cameras. Previews refresh every 30 seconds. Cameras show the ground, not the sky; they only provide additional context.");
+    set("#fs-check h2", "Full-screen alert");
+    set("#fs-check .about-sub", "check the permission after an update");
+    setMany("#fs-check .about-body > p", [
+      "Android 14 and later may turn this permission off when an app from outside the Play Store is updated. Without it a red alert will not wake the locked screen — you will only get a regular notification.",
+      "We will open system settings: allow full-screen notifications for Strażnik and come back to the app."
+    ]);
+    set("#fs-check-skip", "Not now");
+    set("#fs-check-open", "Check permission");
     set("#onboard-bg .about-sub", "receive warnings even when you are not looking at your phone");
     setMany("#onboard-bg .about-body > p", [
       "Strażnik is useful only if it can warn you before you open it. Alerts for your region arrive as push notifications, even when the app is closed and the screen is off.",

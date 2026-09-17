@@ -4639,6 +4639,34 @@ async function maybeOfferBackground() {
   document.getElementById("onboard-bg")?.showModal();
 }
 
+/* 17.09.2026: po aktualizacji do 1.7.54 zgoda na alarm pełnoekranowy była wyłączona,
+   a aplikacja nic nie pokazała — canUseFullScreenIntent() bywa optymistyczne, baner
+   pojawiał się dopiero po dwóch sprawdzeniach i raz zamknięty nie wracał. Po każdej
+   aktualizacji na Androidzie 14+ prosimy więc raz o sprawdzenie zgody, niezależnie od
+   odczytu, i przywracamy baner ostrzeżeń. Świeża instalacja przechodzi onboarding. */
+const FS_CHECK_KEY = "straznik_fs_checked_version";
+async function maybeCheckFullScreenAfterUpdate() {
+  const plugin = BG();
+  if (!plugin || alertsOff()) return;
+  let s;
+  try { s = await plugin.status(); } catch { return; }
+  if ((s.sdk || 0) < 34 || !s.appVersion) return;
+  let seen = null;
+  try { seen = localStorage.getItem(FS_CHECK_KEY); } catch { return; }
+  if (seen === s.appVersion || !localStorage.getItem("straznik_bg_offered")) return;
+  if (document.querySelector("dialog[open]")) return;   // spróbujemy przy następnym sprawdzeniu
+  localStorage.setItem(FS_CHECK_KEY, s.appVersion);
+  try { localStorage.removeItem(BGWARN_HIDDEN_KEY); } catch {}
+  document.getElementById("fs-check")?.showModal();
+}
+document.getElementById("fs-check-open")?.addEventListener("click", async () => {
+  document.getElementById("fs-check").close();
+  await BG()?.requestFullScreenPermission();
+  setTimeout(() => { refreshBgStatus(); refreshBgWarning(); }, 1500);
+});
+document.getElementById("fs-check-skip")?.addEventListener("click", () =>
+  document.getElementById("fs-check").close());
+
 async function runOnboarding() {
   aboutDlg.showModal();
   await dialogClosed(aboutDlg);
@@ -5010,6 +5038,8 @@ document.addEventListener("visibilitychange", () => {
 });
 setTimeout(refreshBgWarning, 3500);
 setInterval(refreshBgWarning, 60000);
+setTimeout(maybeCheckFullScreenAfterUpdate, 5000);
+setInterval(maybeCheckFullScreenAfterUpdate, 60000);
 
 /* Region trzeba podać warstwie natywnej przy KAŻDYM starcie, nie tylko przy
    zapisie ustawień — od niego zależy subskrypcja tematu FCM. Kto wybrał

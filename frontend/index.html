@@ -589,6 +589,28 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
   </div>
 </dialog>
 
+<!-- 17.09.2026: po aktualizacji Android wyłączył zgodę, a aplikacja tego nie pokazała -->
+<dialog id="fs-check">
+  <div class="about-body" style="max-height:none">
+    <div class="about-head">
+      <div class="about-logo"></div>
+      <div>
+        <h2 style="font-size:17px;letter-spacing:.06em">Alarm pełnoekranowy</h2>
+        <p class="about-sub">sprawdź zgodę po aktualizacji</p>
+      </div>
+    </div>
+    <p>Android 14 i nowszy potrafi <b>wyłączyć tę zgodę przy aktualizacji</b> aplikacji
+    spoza Sklepu Play. Bez niej czerwony alarm <b>nie zapali wygaszonego ekranu</b> —
+    zobaczysz tylko zwykłe powiadomienie.</p>
+    <p class="fineprint">Otworzymy ustawienia systemu: włącz zgodę na powiadomienia
+    pełnoekranowe dla Strażnika i wróć do aplikacji.</p>
+    <div class="about-actions">
+      <button id="fs-check-skip" class="chip">Nie teraz</button>
+      <button id="fs-check-open" class="chip primary">Sprawdź zgodę</button>
+    </div>
+  </div>
+</dialog>
+
 <dialog id="settings">
   <form method="dialog">
     <!-- Cztery zakładki zamiast jednej długiej listy: żeby dojść do wersji aplikacji,
