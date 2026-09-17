@@ -39,6 +39,15 @@
   <p class="fineprint">Wersję zainstalowaną na telefonie sprawdzisz w aplikacji: <kbd>⚙</kbd> → zakładka <kbd>Aplikacja</kbd> → „Wersja aplikacji”. Tam też jest przycisk <kbd>⬆ Sprawdź aktualizacje</kbd>.</p>
 </div></header>
 <main id="content" class="wrap">
+<section id="v1-7-56">
+  <h2>1.7.56 — Duży ruch zamiast „brak połączenia”</h2>
+  <p class="fineprint">Wydanie 1.7.56 · 17 września 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.56">Pełny opis wydania</a></p>
+  <ul>
+    <li>Podczas syren w Lublinie i Rzeszowie 17 września z serwerem łączyło się naraz więcej osób, niż pozwalał limit połączeń na żywo. Serwer działał, a mapa się odświeżała, ale aplikacja przez około dwie godziny pokazywała „brak połączenia z serwerem” i co kilka sekund próbowała połączyć się od nowa.</li>
+    <li>Teraz, gdy serwer jest zajęty, aplikacja pokazuje „duży ruch — mapa odświeżana co kilka sekund”, pobiera stan mapy co 5–8 sekund i próbuje połączenia na żywo co 1–2 minuty. Napis „brak połączenia” pojawia się tylko wtedy, gdy nie da się pobrać nawet stanu mapy.</li>
+    <li>Po stronie serwera limit połączeń na żywo wzrósł z 3000 do 10 000, a nadmiarowi użytkownicy dostają czytelny sygnał „zajęty” zamiast odmowy. Te zmiany działają już na stronie internetowej. Powiadomienia i alarmy nie zależą od połączenia na żywo — przychodzą przez usługę powiadomień Androida.</li>
+  </ul>
+</section>
 <section id="v1-7-55">
   <h2>1.7.55 — Przypomnienie o alarmie pełnoekranowym i stabilniejsze połączenie</h2>
   <p class="fineprint">Wydanie 1.7.55 · 17 września 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.55">Pełny opis wydania</a></p>

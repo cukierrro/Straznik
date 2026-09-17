@@ -39,6 +39,15 @@
   <p class="fineprint">To see which version your phone has, open the app: <kbd>⚙</kbd> → the <kbd>App</kbd> tab → “App version”. The <kbd>⬆ Check for updates</kbd> button is right there too.</p>
 </div></header>
 <main id="content" class="wrap">
+<section id="v1-7-56">
+  <h2>1.7.56 — “Heavy traffic” instead of “connection lost”</h2>
+  <p class="fineprint">Release 1.7.56 · 17 September 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.56">Full release notes</a></p>
+  <ul>
+    <li>During the sirens in Lublin and Rzeszów on 17 September more people connected at once than the live-connection limit allowed. The server kept working and the map kept refreshing, but for about two hours the app showed “server connection lost” and retried every few seconds.</li>
+    <li>Now, when the server is busy, the app shows “heavy traffic — map refreshes every few seconds”, fetches the map state every 5–8 seconds and retries the live connection every 1–2 minutes. “Connection lost” appears only when even the map state cannot be fetched.</li>
+    <li>On the server the live-connection limit went up from 3000 to 10,000, and extra users get a clear “busy” signal instead of a refusal. These changes already work on the website. Notifications and alerts do not depend on the live connection — they arrive through Android’s notification service.</li>
+  </ul>
+</section>
 <section id="v1-7-55">
   <h2>1.7.55 — Full-screen alert reminder and a steadier connection</h2>
   <p class="fineprint">Release 1.7.55 · 17 September 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.55">Full release notes</a></p>

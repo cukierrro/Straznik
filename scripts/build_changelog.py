@@ -16,6 +16,17 @@ DOCS = ROOT / "docs"
 # (wersja, data PL, data EN, tytuł PL, tytuł EN, punkty PL, punkty EN, zrzuty)
 # Zrzut: (plik, alt PL, alt EN, podpis PL, podpis EN)
 RELEASES = [
+    ("1.7.56", "17 września 2026", "17 September 2026",
+     "Duży ruch zamiast „brak połączenia”",
+     "“Heavy traffic” instead of “connection lost”",
+     ["Podczas syren w Lublinie i Rzeszowie 17 września z serwerem łączyło się naraz więcej osób, niż pozwalał limit połączeń na żywo. Serwer działał, a mapa się odświeżała, ale aplikacja przez około dwie godziny pokazywała „brak połączenia z serwerem” i co kilka sekund próbowała połączyć się od nowa.",
+      "Teraz, gdy serwer jest zajęty, aplikacja pokazuje „duży ruch — mapa odświeżana co kilka sekund”, pobiera stan mapy co 5–8 sekund i próbuje połączenia na żywo co 1–2 minuty. Napis „brak połączenia” pojawia się tylko wtedy, gdy nie da się pobrać nawet stanu mapy.",
+      "Po stronie serwera limit połączeń na żywo wzrósł z 3000 do 10 000, a nadmiarowi użytkownicy dostają czytelny sygnał „zajęty” zamiast odmowy. Te zmiany działają już na stronie internetowej. Powiadomienia i alarmy nie zależą od połączenia na żywo — przychodzą przez usługę powiadomień Androida."],
+     ["During the sirens in Lublin and Rzeszów on 17 September more people connected at once than the live-connection limit allowed. The server kept working and the map kept refreshing, but for about two hours the app showed “server connection lost” and retried every few seconds.",
+      "Now, when the server is busy, the app shows “heavy traffic — map refreshes every few seconds”, fetches the map state every 5–8 seconds and retries the live connection every 1–2 minutes. “Connection lost” appears only when even the map state cannot be fetched.",
+      "On the server the live-connection limit went up from 3000 to 10,000, and extra users get a clear “busy” signal instead of a refusal. These changes already work on the website. Notifications and alerts do not depend on the live connection — they arrive through Android’s notification service."],
+     []),
+
     ("1.7.55", "17 września 2026", "17 September 2026",
      "Przypomnienie o alarmie pełnoekranowym i stabilniejsze połączenie",
      "Full-screen alert reminder and a steadier connection",
