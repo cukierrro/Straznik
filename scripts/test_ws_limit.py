@@ -46,7 +46,9 @@ def sprawdz(warunek, opis):
 
 
 print("1–2. limit połączeń")
-sprawdz(main.WS_MAX_CLIENTS >= 6000, f"twardy limit podniesiony z 3000 ({main.WS_MAX_CLIENTS})")
+sprawdz(main.WS_MAX_CLIENTS == 10000, f"twardy limit 10 000 zamiast 3000 ({main.WS_MAX_CLIENTS})")
+sprawdz(load_guard.SHED_SYS_PCT == 80 and load_guard.SHED_SYS_PCT_HARD == 90
+        and load_guard.SHED_RSS_MB * 1.1 < 2900, "bezpiecznik: 80%/90% VPS, poziom 2 procesu poniżej MemoryHigh")
 with client.websocket_connect("/ws") as ws:
     msg = ws.receive_text()
 sprawdz(msg.startswith('{"type":"state"'), "poniżej limitu: stan od razu po połączeniu")

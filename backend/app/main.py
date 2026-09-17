@@ -55,9 +55,10 @@ _ws_message = ""          # gotowa ramka stanu — jedna serializacja dla wszyst
 # Powyżej limitu odmawiamy (kod 1013), a klient przechodzi na odpytywanie
 # /api/state, które jest gotowymi bajtami i trzyma je Cloudflare.
 # 17.09.2026: 3000 zapełniło się przy syrenach w Lublinie, a proces miał 660 MB
-# z 2,5 GB. Twardy limit wyżej; właściwą granicą są pamięć i opóźnienie pętli
+# z 2,5 GB; 6000 po wdrożeniu zapełniło się w minutę przy 777 MB i ~20% rdzenia.
+# Twardy limit wyżej; właściwą granicą są pamięć i opóźnienie pętli
 # (load_guard.refuse_websocket).
-WS_MAX_CLIENTS = int(os.getenv("WS_MAX_CLIENTS", "6000"))
+WS_MAX_CLIENTS = int(os.getenv("WS_MAX_CLIENTS", "10000"))
 WS_SEND_TIMEOUT_S = 3.0
 
 

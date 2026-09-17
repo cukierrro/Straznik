@@ -5,10 +5,10 @@ w szczycie ruchu. Zabity proces to nie tylko strona: to także kolektory, fuzja
 i wysyłka powiadomień. Dlatego pamięć pilnujemy SAMI, zanim zrobi to jądro:
 
 * co 2 s czytamy /proc/meminfo (RAM całego VPS) i /proc/self/status (RSS procesu),
-* poziom 1 — VPS ≥ 70% RAM albo proces ≥ SHED_RSS_MB: nie przyjmujemy nowych
+* poziom 1 — VPS ≥ 80% RAM albo proces ≥ SHED_RSS_MB: nie przyjmujemy nowych
   WebSocketów, zamykamy część istniejących (klient przechodzi na odpytywanie
   gotowego /api/state), dynamiczne zapytania dostają 503 z Retry-After,
-* poziom 2 — VPS ≥ 85% albo proces ≥ 1,1 × SHED_RSS_MB: działa już tylko to,
+* poziom 2 — VPS ≥ 90% albo proces ≥ 1,1 × SHED_RSS_MB: działa już tylko to,
   co jest gotowymi bajtami (stan, historia, strefy, wersja aplikacji, push),
 * niezależnie od pamięci: najwyżej MAX_INFLIGHT zapytań naraz; kolejne czekają
   w kolejce do QUEUE_WAIT_S, a potem dostają 503 zamiast rosnąć w pamięci,
@@ -26,9 +26,11 @@ import time
 
 log = logging.getLogger("load_guard")
 
-SHED_SYS_PCT = float(os.getenv("SHED_SYS_PCT", "70"))
-SHED_SYS_PCT_HARD = float(os.getenv("SHED_SYS_PCT_HARD", "85"))
-SHED_RSS_MB = float(os.getenv("SHED_RSS_MB", "2200"))       # MemoryMax usługi: 2560 MB
+SHED_SYS_PCT = float(os.getenv("SHED_SYS_PCT", "80"))
+SHED_SYS_PCT_HARD = float(os.getenv("SHED_SYS_PCT_HARD", "90"))
+# 17.09.2026: usługa ma 3 GB (scripts/systemd/straznik-memory.conf); poziom 2 = 2860 MB,
+# poniżej MemoryHigh 2900 MB, więc bezpiecznik działa, zanim jądro zacznie dławić proces
+SHED_RSS_MB = float(os.getenv("SHED_RSS_MB", "2600"))
 MAX_INFLIGHT = int(os.getenv("MAX_INFLIGHT", "600"))
 QUEUE_WAIT_S = float(os.getenv("QUEUE_WAIT_S", "4"))
 # opóźnienie pętli: odmowa nowych WebSocketów po 2 próbkach z rzędu powyżej progu,
