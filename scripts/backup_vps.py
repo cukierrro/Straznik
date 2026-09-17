@@ -18,8 +18,16 @@ Przechowywanie (warstwowe, liczone od najnowszej kopii):
   * jedna na tydzień przez 90 dni,
   * jedna na miesiąc przez 365 dni.
 
+Sekrety (audyt bezpieczeństwa 16.09.2026): vapid.json, fcm-service-account.json,
+.env i plik usługi trafiają do kopii jako `sekrety.tar.gpg`, zaszyfrowane kluczem
+publicznym z /opt/straznik/kopie-klucz-publiczny.asc. Klucz prywatny jest tylko u
+autora (nie na VPS), więc ani przejęta kopia na komputerze, ani kopia pobrana z
+serwera nie daje klucza FCM, którym da się wysłać fałszywy alarm. Baza i pliki stanu
+zostają nieszyfrowane — da się je odtworzyć bez klucza. Brak pliku klucza publicznego
+= sekrety jawnym tekstem jak dotąd i `secrets_encrypted: false` w statusie.
+
 Każda kopia jest sprawdzana (PRAGMA integrity_check) przed spakowaniem. Wynik
-trafia do data/backup_status.json — pokazuje go /api/health.
+trafia do data/backup_status.json — pokazuje go /api/health (tylko z serwera).
 
 Uruchomienie ręczne:  python3 /opt/straznik/scripts/backup_vps.py
 """
@@ -38,10 +46,11 @@ from pathlib import Path
 ROOT = Path("/opt/straznik")
 DATA = ROOT / "backend" / "data"
 DEST = Path(os.getenv("STRAZNIK_BACKUP_DIR", "/var/backups/straznik"))
-STATUS = DATA / "backup_status.json"
-FILES = ["vapid.json", "fcm-service-account.json", "pansa_seen.json", "zones_since.json",
-         "official_alerts_seen.json", "notice.json"]
-EXTRA = [ROOT / "backend" / ".env", Path("/etc/systemd/system/straznik.service")]
+STATUS = Path(os.getenv("STRAZNIK_BACKUP_STATUS", str(DATA / "backup_status.json")))
+FILES = ["pansa_seen.json", "zones_since.json", "official_alerts_seen.json", "notice.json"]
+SECRETS = [DATA / "vapid.json", DATA / "fcm-service-account.json", ROOT / "backend" / ".env",
+           Path("/etc/systemd/system/straznik.service")]
+RECIPIENT = Path(os.getenv("STRAZNIK_BACKUP_RECIPIENT", str(ROOT / "kopie-klucz-publiczny.asc")))
 PREFIX = "straznik-"
 SUFFIX = ".tar.zst"
 
@@ -117,11 +126,25 @@ def main() -> int:
         for f in FILES:
             if (DATA / f).exists():
                 shutil.copy2(DATA / f, work / f)
-        for p in EXTRA:
-            if p.exists():
+        secrets = [p for p in SECRETS if p.exists()]
+        encrypted = RECIPIENT.exists()
+        if encrypted:
+            plain = Path(tmp) / "sekrety.tar"
+            with tarfile.open(plain, "w") as tar:
+                for p in secrets:
+                    tar.add(p, arcname=p.name)
+            gnupg_home = Path(tmp) / "gnupg"
+            gnupg_home.mkdir(mode=0o700)
+            subprocess.run(["gpg", "--homedir", str(gnupg_home), "--batch", "--yes", "--quiet",
+                            "--trust-model", "always", "--recipient-file", str(RECIPIENT),
+                            "--output", str(work / "sekrety.tar.gpg"), "--encrypt", str(plain)],
+                           check=True)
+            plain.unlink()
+        else:
+            for p in secrets:
                 shutil.copy2(p, work / p.name)
         (work / "MANIFEST.json").write_text(json.dumps(
-            {"created": now.isoformat(), "counts": counts,
+            {"created": now.isoformat(), "counts": counts, "secrets_encrypted": encrypted,
              "files": sorted(x.name for x in work.iterdir())}, ensure_ascii=False, indent=1),
             encoding="utf-8")
         tar_path = Path(tmp) / "kopia.tar"
@@ -142,6 +165,7 @@ def main() -> int:
             removed += 1
     size = (DEST / name).stat().st_size
     write_status(ok=True, at=now.isoformat(), file=name, size=size, counts=counts,
+                 secrets_encrypted=encrypted,
                  kept=len(keep), removed=removed, took_s=round(time.time() - t0, 1))
     print(f"OK {name} {size / 1048576:.1f} MB, zostaje {len(keep)}, usunięto {removed}, "
           f"{counts}")

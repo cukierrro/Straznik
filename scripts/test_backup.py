@@ -39,6 +39,15 @@ ok(b.stamp_of("straznik-zly.tar.zst") is None and "obcy.txt" not in b.keep_set([
    "obce pliki nie są liczone")
 ok(b.keep_set(names[:1], now) == {names[0]}, "pojedyncza kopia zostaje")
 
+# Sekrety tylko w sekrety.tar.gpg, gdy jest klucz publiczny (audyt 16.09.2026; próba na VPS 17.09:
+# 4 pliki w archiwum gpg, bez klucza prywatnego nie do odczytania)
+secret_names = {p.name for p in b.SECRETS}
+ok(secret_names == {"vapid.json", "fcm-service-account.json", ".env", "straznik.service"}
+   and not secret_names & set(b.FILES), "klucze VAPID/FCM, .env i usługa są na liście sekretów, nie jawnych plików")
+src = (Path(__file__).resolve().parent / "backup_vps.py").read_text(encoding="utf-8")
+ok('"--recipient-file", str(RECIPIENT)' in src and '"sekrety.tar.gpg"' in src and "plain.unlink()" in src,
+   "sekrety szyfrowane kluczem publicznym, jawny tar usuwany przed spakowaniem")
+
 if bledy:
     print(f"\nBLEDY: {len(bledy)}")
     sys.exit(1)
