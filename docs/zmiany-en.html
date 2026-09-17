@@ -39,6 +39,16 @@
   <p class="fineprint">To see which version your phone has, open the app: <kbd>⚙</kbd> → the <kbd>App</kbd> tab → “App version”. The <kbd>⬆ Check for updates</kbd> button is right there too.</p>
 </div></header>
 <main id="content" class="wrap">
+<section id="v1-7-57">
+  <h2>1.7.57 — History scroll buttons and a working back button</h2>
+  <p class="fineprint">Release 1.7.57 · 17 September 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.57">Full release notes</a></p>
+  <ul>
+    <li>The history slider now has a row of nine buttons below it: start (−12 h), previous alert, −10 and −1 minutes, play and pause, +1 and +10 minutes, next alert and end. Holding ±1 and ±10 keeps scrolling, and the ×1 button in the header switches playback speed to ×2 and ×4. Before, about 720 snapshots sat on a few centimetres of slider and a specific minute was hard to hit.</li>
+    <li>Alert jumps go to the start of the previous or next period with an elevated or high level. Steps follow snapshot times, so after a gap when the app was closed a button jumps across the gap instead of standing still.</li>
+    <li>The full-width “Back to live view” button has been replaced by a small “SWITCH TO LIVE” frame next to “HISTORY VIEW”. The bar covers less of the map.</li>
+    <li>The Android system back button first closes whatever is open: the settings window, an object card, the legend, history view or the signals panel. Only on the plain map does it send the app to the background. Before, it minimised the app straight away. During a red alert back closes nothing, so an accidental tap cannot silence it.</li>
+  </ul>
+</section>
 <section id="v1-7-56">
   <h2>1.7.56 — “Heavy traffic” instead of “connection lost”</h2>
   <p class="fineprint">Release 1.7.56 · 17 September 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.56">Full release notes</a></p>

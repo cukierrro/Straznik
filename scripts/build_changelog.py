@@ -16,6 +16,19 @@ DOCS = ROOT / "docs"
 # (wersja, data PL, data EN, tytuł PL, tytuł EN, punkty PL, punkty EN, zrzuty)
 # Zrzut: (plik, alt PL, alt EN, podpis PL, podpis EN)
 RELEASES = [
+    ("1.7.57", "17 września 2026", "17 September 2026",
+     "Przyciski przewijania historii i działający przycisk „wstecz”",
+     "History scroll buttons and a working back button",
+     ["Pod suwakiem historii jest teraz rząd dziewięciu przycisków: początek (−12 h), poprzedni alarm, −10 i −1 minut, odtwarzanie i pauza, +1 i +10 minut, następny alarm oraz koniec. Przytrzymanie ±1 i ±10 przewija dalej, a przycisk ×1 w nagłówku zmienia prędkość odtwarzania na ×2 i ×4. Dotąd było ok. 720 migawek na kilku centymetrach suwaka i trudno było trafić w konkretną minutę.",
+      "Skoki do alarmów przenoszą na początek poprzedniego albo następnego okresu z poziomem podwyższonym lub wysokim. Kroki liczą się po czasie migawek, więc po przerwie w działaniu aplikacji przycisk przeskakuje dziurę, zamiast stać w miejscu.",
+      "Pełnej szerokości przycisk „Wróć do podglądu na żywo” zastąpiła mała ramka „ZMIEŃ NA ŻYWO” obok napisu „PODGLĄD HISTORII”. Pasek zajmuje mniej miejsca na mapie.",
+      "Systemowy przycisk „wstecz” na Androidzie najpierw zamyka to, co jest otwarte: okno ustawień, kartę obiektu, legendę, tryb historii albo panel sygnałów. Dopiero na samej mapie chowa aplikację. Wcześniej od razu ją minimalizował. Podczas czerwonego alarmu „wstecz” niczego nie zamyka, żeby przypadkowe dotknięcie go nie uciszyło."],
+     ["The history slider now has a row of nine buttons below it: start (−12 h), previous alert, −10 and −1 minutes, play and pause, +1 and +10 minutes, next alert and end. Holding ±1 and ±10 keeps scrolling, and the ×1 button in the header switches playback speed to ×2 and ×4. Before, about 720 snapshots sat on a few centimetres of slider and a specific minute was hard to hit.",
+      "Alert jumps go to the start of the previous or next period with an elevated or high level. Steps follow snapshot times, so after a gap when the app was closed a button jumps across the gap instead of standing still.",
+      "The full-width “Back to live view” button has been replaced by a small “SWITCH TO LIVE” frame next to “HISTORY VIEW”. The bar covers less of the map.",
+      "The Android system back button first closes whatever is open: the settings window, an object card, the legend, history view or the signals panel. Only on the plain map does it send the app to the background. Before, it minimised the app straight away. During a red alert back closes nothing, so an accidental tap cannot silence it."],
+     []),
+
     ("1.7.56", "17 września 2026", "17 September 2026",
      "Duży ruch zamiast „brak połączenia”",
      "“Heavy traffic” instead of “connection lost”",
