@@ -200,8 +200,30 @@ architektury i prywatności).
 ## 7. Decyzje użytkownika (17.09.2026)
 1. `GoogleService-Info.plist` → **GitHub Secrets** (`IOS_GOOGLE_SERVICE_INFO_PLIST_BASE64`),
    nie w repo; klucz API iOS ograniczony w Google Cloud do `pl.straznik.app`.
-2. `.github/workflows/ios.yml` → **tak, tylko na gałęzi `ios`**.
+2. `.github/workflows/ios.yml` → **tak, tylko na gałęzi `ios`**. Gałąź wypchnięta
+   17.09; pierwszy build w chmurze: Xcode 26.6, **BUILD SUCCEEDED**.
 3. `npm install` w `ios-app/` → **tak** (99 pakietów, 27 MB, `node_modules` poza gitem).
 4. Zakres → **etap 1**; Critical Alerts, Notification Service Extension, AlarmKit po testach.
-5. Otwarte: nazwa w App Store; żółty alarm `active` czy `time-sensitive`;
-   status handlowca (DSA); publiczne imię i nazwisko sprzedawcy (konto Individual).
+5. **Wieczór 17.09 — kierunek: pełna aplikacja w App Store, konto z deklaracją
+   „to nie jest konto handlowca”.** Droga „strona dodana do ekranu początkowego”
+   **odrzucona**: kilka osób sprawdzało i powiadomienia im nie przychodziły
+   (znane ograniczenia Web Push na iOS). Wracamy więc do natywnej aplikacji
+   z tej gałęzi.
+6. **Wsparcie autora w wersji z App Store:** żadnego przycisku ani linku
+   nazwanego „kawa”/„wesprzyj” w aplikacji (zasada 3.1.1(a)). W aplikacji
+   zostają neutralne linki: „Instrukcja użytkownika ↗” i „Strona Strażnika ↗”;
+   wsparcie jest na stronie. Zalecenie: strona, do której linkuje aplikacja,
+   **nie pokazuje przycisku kawy** — inaczej recenzent może uznać link za
+   obejście płatności.
+7. Otwarte: nazwa w App Store; żółty alarm `active` czy `time-sensitive`;
+   publiczne imię i nazwisko sprzedawcy (konto Individual — nie da się ukryć
+   bez konta firmowego z D-U-N-S).
+
+## 8. Co dalej (stan 17.09 wieczór)
+1. Użytkownik: Apple Developer Program (99 USD/rok), App ID, klucz APNs → Firebase,
+   klucz App Store Connect API, 5 sekretów w GitHubie — `INSTRUKCJA_KONTA_APPLE.md`.
+2. Sesja główna: zmiana A (blok `apns`) i B (ukrycia + teksty) —
+   `POTRZEBNE_ZMIANY_WSPOLNE.md`.
+3. Ta sesja po sekretach: build do TestFlight, test pushy na temat testowy,
+   potem przygotowanie zgłoszenia do App Store (zrzuty, opis, prywatność,
+   argumenty przeciw zasadzie 4.2 „opakowana strona”) i wniosek o Critical Alerts.

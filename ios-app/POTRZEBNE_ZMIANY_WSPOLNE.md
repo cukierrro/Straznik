@@ -202,15 +202,32 @@ const IS_IOS = IS_APP && window.Capacitor?.getPlatform?.() === "ios";
 (`window.Capacitor` jest wstrzykiwany na iOS przed skryptami strony.)
 
 ### B2. „Postaw kawę” ukryte na iOS — zasady App Store 3.1.1 / 3.1.1(a)
-Apple: napiwek dla autora tylko przez zakup w aplikacji; poza USA zakaz
-przycisków i linków do innych płatności. Dodać klasę `no-ios` do:
+Decyzja użytkownika z 17.09: iOS idzie do App Store jako konto **niehandlowca**,
+a wsparcie autora zostaje **tylko na stronie**. Apple zabrania w aplikacji
+przycisków, linków i zachęt do płatności poza zakupem w aplikacji — dotyczy to
+także **nazwy** linku („Wesprzyj autora”, „Postaw kawę”).
+
+Dodać klasę `no-ios` do:
 - `index.html:102` `#btn-coffee` (ma już `web-only`, dopisać dla porządku)
 - `index.html:250` `.sheet-row` „Wesprzyj autora” w menu „Więcej”
 - `index.html:532` `.chip.coffee` „Postaw kawę autorowi” w oknie „O aplikacji”
 - `index.html:775` link „Wesprzyj autora ☕” w zakładce Aplikacja
 
+W aplikacji **zostają** neutralne linki (bez słów o wsparciu): „Instrukcja
+użytkownika ↗” (`index.html:247`, `773`) i — do dodania — „Strona Strażnika ↗”.
+
 Test: w buildzie iOS `document.querySelectorAll('a[href*="buycoffee"]')` —
-wszystkie mają `offsetParent === null`.
+wszystkie mają `offsetParent === null`; żaden widoczny tekst w aplikacji nie
+zawiera „kaw”, „wesprzyj”, „donate”, „buycoffee”.
+
+### B2b. Strona docelowa linku z aplikacji (`docs/`, GitHub Pages)
+Recenzenci Apple otwierają linki z aplikacji. Jeśli „Instrukcja użytkownika”
+prowadzi na stronę z widocznym przyciskiem „Wesprzyj autora”, link może zostać
+uznany za obejście płatności (3.1.1(a)). Zalecenie: **na stronie instrukcji
+linkowanej z aplikacji nie pokazywać przycisku kawy** (może zostać na stronie
+głównej Strażnika i w pozostałych miejscach `docs/`), albo dać osobny adres
+instrukcji dla aplikacji. Do decyzji użytkownika — dotyczy `docs/`, którego ta
+sesja nie zmienia.
 
 ### B3. Wersja aplikacji i aktualizacje
 Plugin iOS **celowo zwraca pusty `appVersion`** — dzięki temu `checkForUpdate()`

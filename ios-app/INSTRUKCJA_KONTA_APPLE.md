@@ -20,11 +20,21 @@ Szacowany czas: ok. 1–2 godziny rozłożone na 1–3 dni (Apple zatwierdza kon
    pokazuje w App Store jako sprzedawcę **prawdziwe imię i nazwisko** z konta —
    nie „cukierrro”. Ukryć nazwisko można tylko kontem firmowym (wymaga numeru
    D-U-N-S i działalności). TestFlight też pokazuje testerom nazwę konta.
-3. **Status handlowca (UE, DSA):** przed publikacją w App Store w UE trzeba
-   zadeklarować, czy jesteś „trader”. Handlowiec = adres, telefon i e-mail
-   **publicznie**. Darmowa aplikacja bez zarobku to według Apple zwykle „nie
-   handlowiec” — decyzja należy do Ciebie (to etap App Store, nie TestFlight).
-4. **Weryfikacja tożsamości:** Apple może poprosić o skan dowodu w aplikacji
+3. **Status handlowca (UE, DSA) — decyzja z 17.09: „to NIE jest konto handlowca”.**
+   Wtedy **nie podajesz** adresu, telefonu ani e-maila do publikacji i nic z nich
+   nie jest widoczne. Apple pokaże użytkownikom w UE informację, że „prawa
+   konsumenta wynikające z przepisów o ochronie konsumentów nie mają
+   zastosowania” do umowy między Tobą a nimi. Deklarację wybierasz przy
+   pierwszym zgłoszeniu aplikacji (App Store Connect → aplikacja → zgodność).
+   Gdybyś kiedyś zaczął zarabiać w aplikacji, status trzeba zmienić na
+   handlowca — a wtedy adres (może być skrzynka pocztowa z dokumentem),
+   telefon i e-mail stają się **publiczne**.
+4. **Bez wsparcia autora w aplikacji.** Apple zabrania przycisków i linków do
+   płatności poza zakupem w aplikacji — także samej nazwy „Wesprzyj autora”.
+   W wersji z App Store przycisk kawy jest ukryty; zostają neutralne linki do
+   instrukcji i strony. Zalecenie: strona linkowana z aplikacji też nie
+   pokazuje przycisku kawy (patrz `POTRZEBNE_ZMIANY_WSPOLNE.md`, B2b).
+5. **Weryfikacja tożsamości:** Apple może poprosić o skan dowodu w aplikacji
    **Apple Developer** na iPhonie/iPadzie. Jeśli tak — trzeba na chwilę pożyczyć
    urządzenie (logujesz się tam swoim kontem, potem się wylogowujesz).
 
