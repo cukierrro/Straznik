@@ -79,12 +79,21 @@ load_guard.status["lag_high"] = False
 sprawdz(code == 1013, f"pętla nie nadąża: nowy WebSocket → 1013 ({code})")
 
 print("3. opóźnienie pętli")
-load_guard._lag_over = 0
-sprawdz(load_guard.update_lag(0.9) is False, "jedna próbka 0,9 s nie odcina (np. przebudowa stanu)")
-sprawdz(load_guard.update_lag(0.8) is True, "dwie próbki z rzędu ≥ 0,5 s → odmowa nowych WebSocketów")
+load_guard._lag_over = load_guard._lag_calm = 0
+load_guard.status["lag_high"] = False
+# 17.09.2026 na produkcji: zacięcia 0,5–1,3 s co kilka minut przy rozsyłaniu stanu
+spikes = [0.55, 1.03, 0.0, 0.84, 0.84, 0.0, 1.30, 0.04, 0.0, 1.01, 0.02, 0.77, 0.0]
+sprawdz(not any(load_guard.update_lag(x) for x in spikes),
+        "pojedyncze i podwójne zacięcia 0,5–1,3 s (jak 17.09) NIE odcinają nowych WebSocketów")
+sprawdz(load_guard.status["lag_spikes"] == 7 and load_guard.status["lag_max_ms"] == 1300,
+        f"zacięcia policzone do obserwacji ({load_guard.status['lag_spikes']}, max {load_guard.status['lag_max_ms']} ms)")
+sprawdz([load_guard.update_lag(1.2) for _ in range(4)] == [False, False, False, True],
+        "4 próbki z rzędu ≥ 1 s (trwałe przeciążenie) → odmowa nowych WebSocketów")
 sprawdz(load_guard.refuse_websocket(), "refuse_websocket widzi opóźnienie")
-sprawdz(load_guard.update_lag(0.3) is True, "0,3 s: jeszcze bez powrotu (histereza)")
-sprawdz(load_guard.update_lag(0.05) is False, "0,05 s → znów przyjmujemy")
+sprawdz([load_guard.update_lag(0.05), load_guard.update_lag(0.6), load_guard.update_lag(0.05),
+         load_guard.update_lag(0.05)] == [True, True, True, True],
+        "powrót dopiero po 3 spokojnych próbkach z rzędu (0,6 s zeruje licznik)")
+sprawdz(load_guard.update_lag(0.05) is False, "trzecia spokojna próbka → znów przyjmujemy")
 sprawdz(load_guard.status["loop_lag_ms"] == 50, f"opóźnienie w ms w statusie ({load_guard.status['loop_lag_ms']})")
 
 print("4. dziennik bez szumu WebSocketów")

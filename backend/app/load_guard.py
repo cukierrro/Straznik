@@ -33,10 +33,16 @@ SHED_SYS_PCT_HARD = float(os.getenv("SHED_SYS_PCT_HARD", "90"))
 SHED_RSS_MB = float(os.getenv("SHED_RSS_MB", "2600"))
 MAX_INFLIGHT = int(os.getenv("MAX_INFLIGHT", "600"))
 QUEUE_WAIT_S = float(os.getenv("QUEUE_WAIT_S", "4"))
-# opóźnienie pętli: odmowa nowych WebSocketów po 2 próbkach z rzędu powyżej progu,
-# powrót dopiero poniżej LAG_CLEAR_S (histereza — bez migotania co 2 s)
-LAG_REFUSE_S = float(os.getenv("WS_LAG_REFUSE_S", "0.5"))
-LAG_CLEAR_S = float(os.getenv("WS_LAG_CLEAR_S", "0.2"))
+# opóźnienie pętli: odmowa nowych WebSocketów dopiero przy TRWAŁYM przeciążeniu
+# (LAG_SAMPLES próbek z rzędu ≥ LAG_REFUSE_S, czyli kilkanaście sekund), powrót po
+# LAG_CLEAR_SAMPLES spokojnych próbkach poniżej LAG_CLEAR_S.
+# 17.09.2026: pierwsza wersja (2 próbki ≥ 0,5 s) łapała zwykłe zacięcia 0,5–1,3 s co
+# kilka minut przy rozsyłaniu stanu do ~3000 połączeń — telefon łączący się akurat
+# wtedy dostawał 1013 i przez 1–2 min pokazywał „duży ruch” (508 odmów w 26 min).
+LAG_REFUSE_S = float(os.getenv("WS_LAG_REFUSE_S", "1.0"))
+LAG_SAMPLES = int(os.getenv("WS_LAG_SAMPLES", "4"))
+LAG_CLEAR_S = float(os.getenv("WS_LAG_CLEAR_S", "0.3"))
+LAG_CLEAR_SAMPLES = int(os.getenv("WS_LAG_CLEAR_SAMPLES", "3"))
 
 # gotowe bajty z public_cache — tanie nawet pod presją pamięci
 CHEAP_PATHS = ("/api/state", "/api/history/bundle", "/api/history/timeline", "/api/zones",
@@ -44,8 +50,9 @@ CHEAP_PATHS = ("/api/state", "/api/history/bundle", "/api/history/timeline", "/a
 
 status = {"level": 0, "sys_pct": None, "rss_mb": None, "inflight": 0, "queued": 0,
           "shed_total": 0, "since": None, "loop_lag_ms": 0, "lag_high": False,
-          "ws_refused": 0}
+          "ws_refused": 0, "lag_spikes": 0, "lag_max_ms": 0}
 _lag_over = 0
+_lag_calm = 0
 _slots = asyncio.Semaphore(MAX_INFLIGHT)
 
 
@@ -79,17 +86,26 @@ def level_for(sys_pct: float | None, rss_mb: float | None) -> int:
 
 def update_lag(lag_s: float) -> bool:
     """Zapisuje opóźnienie pętli i zwraca, czy odmawiać nowych WebSocketów."""
-    global _lag_over
-    status["loop_lag_ms"] = round(max(0.0, lag_s) * 1000)
+    global _lag_over, _lag_calm
+    ms = round(max(0.0, lag_s) * 1000)
+    status["loop_lag_ms"] = ms
+    status["lag_max_ms"] = max(status["lag_max_ms"], ms)
+    if lag_s >= 0.5:
+        status["lag_spikes"] += 1          # do obserwacji: ile zacięć bez odmawiania
     if lag_s >= LAG_REFUSE_S:
         _lag_over += 1
-        if _lag_over >= 2 and not status["lag_high"]:
+        _lag_calm = 0
+        if _lag_over >= LAG_SAMPLES and not status["lag_high"]:
             status["lag_high"] = True
-            log.warning("pętla zdarzeń nie nadąża (%.2f s) — nowe WebSockety odsyłane na odpytywanie", lag_s)
-    else:
-        _lag_over = 0
-        if status["lag_high"] and lag_s < LAG_CLEAR_S:
+            log.warning("pętla zdarzeń nie nadąża od %d próbek (%.2f s) — nowe WebSockety odsyłane "
+                        "na odpytywanie", _lag_over, lag_s)
+        return status["lag_high"]
+    _lag_over = 0
+    if status["lag_high"]:
+        _lag_calm = _lag_calm + 1 if lag_s < LAG_CLEAR_S else 0
+        if _lag_calm >= LAG_CLEAR_SAMPLES:
             status["lag_high"] = False
+            _lag_calm = 0
             log.warning("pętla zdarzeń nadąża (%.2f s) — WebSockety znów przyjmowane", lag_s)
     return status["lag_high"]
 
