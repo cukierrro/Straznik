@@ -3,7 +3,7 @@
 
 Wcześniej skrypty logowały się na roota hasłem z pliku .env innego projektu i
 przyjmowały dowolny klucz hosta (AutoAddPolicy). Teraz:
-- klucz prywatny ~/.ssh/straznik_vps (albo STRAZNIK_VPS_KEY), bez agenta i bez hasła,
+- klucz prywatny ~/.ssh/straznik_ruth121 (albo STRAZNIK_VPS_KEY), bez agenta i bez hasła,
 - klucz hosta musi zgadzać się z ~/.ssh/known_hosts (RejectPolicy) — podmieniony
   serwer albo atak MITM kończy się błędem zamiast wysłaniem poleceń.
 """
@@ -12,10 +12,13 @@ from pathlib import Path
 
 import paramiko
 
-HOST = os.getenv("STRAZNIK_VPS_HOST", "robert154.mikrus.xyz")
-PORT = int(os.getenv("STRAZNIK_VPS_PORT", "10154"))
+# 17.09.2026 Strażnik przeniesiony z robert154 (Mikrus 4.1, wspólny z innymi projektami)
+# na własny serwer ruth121 (Mikrus 4.2 od Mikrusa). Stary: STRAZNIK_VPS_HOST=robert154.mikrus.xyz,
+# STRAZNIK_VPS_PORT=10154, STRAZNIK_VPS_KEY=~/.ssh/straznik_vps.
+HOST = os.getenv("STRAZNIK_VPS_HOST", "ruth121.mikrus.xyz")
+PORT = int(os.getenv("STRAZNIK_VPS_PORT", "10121"))
 USER = os.getenv("STRAZNIK_VPS_USER", "root")
-KEY = Path(os.getenv("STRAZNIK_VPS_KEY", str(Path.home() / ".ssh" / "straznik_vps")))
+KEY = Path(os.getenv("STRAZNIK_VPS_KEY", str(Path.home() / ".ssh" / "straznik_ruth121")))
 KNOWN_HOSTS = Path.home() / ".ssh" / "known_hosts"
 
 
