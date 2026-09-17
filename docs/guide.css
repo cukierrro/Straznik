@@ -7,6 +7,9 @@
 .shot-link::before{content:"";position:absolute;right:-5px;top:19%;height:7%;width:4px;border-radius:0 3px 3px 0;background:linear-gradient(#687384,#252c37);box-shadow:0 50px 0 #394453;pointer-events:none}
 .shot-link::after{content:"";position:absolute;left:50%;top:13px;width:8px;height:8px;transform:translateX(-50%);border-radius:50%;background:#040810;box-shadow:inset 0 0 0 2px #161e2b;pointer-events:none}
 .hero .shot-link{transform:perspective(1400px) rotateY(-12deg) rotateZ(2deg)}
+/* informacja o hostingu (Mikrus) w naglowku instrukcji, tak jak na stronie i w aplikacji */
+.host-note{display:flex;align-items:center;gap:10px;margin:18px 0 0;color:var(--muted);font-size:14px}
+.host-note img{height:14px;width:auto;border:0;border-radius:0}
 .shot-link img,.hero .shot-link img,.split .shot-link img,.shots .shot-link img{display:block;width:100%;max-width:none;border:2px solid #05080e;border-radius:22px;margin:0}
 .shot-link:hover,.shot-link:focus-visible{transform:perspective(1400px) rotateY(0) rotateZ(0)}
 @media(max-width:700px){.shot-link{max-width:280px;transform:perspective(1400px) rotateY(-5deg) rotateZ(-1deg)}.hero .shot-link{max-width:250px;transform:perspective(1400px) rotateY(-7deg) rotateZ(1deg)}}
