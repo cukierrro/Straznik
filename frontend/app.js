@@ -713,8 +713,29 @@ async function probeBackend(base) {
   return false;
 }
 
+/* Tryb sygnału (1.7.59): przez WebSocket idzie samo „zmieniło się" z ETagiem, a stan
+   mapy pobieramy z /api/state, które Cloudflare trzyma w pamięci na brzegu. Serwer
+   wysyłał wcześniej każdemu cały stan (~39 KB): rozesłanie do 1595 połączeń zajmowało
+   średnio 1,07 s, bo kompresja liczy się osobno dla każdego klienta (pomiar 17.09.2026).
+   Pierwszą ramką po połączeniu nadal jest pełny stan, więc mapa jest od razu. */
+let lastTickEtag = null, tickBusy = false, tickPending = null;
+async function fetchStateTick(etag) {
+  if (etag && etag === lastTickEtag) return;     // ten sam stan — nie pobieramy drugi raz
+  if (tickBusy) { tickPending = etag; return; }  // jedno pobranie naraz
+  tickBusy = true;
+  const base = apiBase();
+  try {
+    const r = await fetch(base + "/api/state", { cache: "no-store" });
+    if (r.ok) { lastTickEtag = etag; applyState(await r.json()); }
+  } catch {} finally {
+    tickBusy = false;
+    const next = tickPending; tickPending = null;
+    if (next && next !== lastTickEtag) fetchStateTick(next);
+  }
+}
+
 function openBackendWs(base) {
-  const wsUrl = base.replace(/^http/, "ws") + "/ws";
+  const wsUrl = base.replace(/^http/, "ws") + "/ws?v=2";
   try { ws = new WebSocket(wsUrl); } catch { return scheduleReconnect(); }
   ws.onopen = () => {
     wsOpenedAt = Date.now();
@@ -726,7 +747,8 @@ function openBackendWs(base) {
   };
   ws.onmessage = (e) => {
     const env = JSON.parse(e.data);
-    if (env.type === "state") applyState(env.data);
+    if (env.type === "state") { lastTickEtag = null; applyState(env.data); }
+    else if (env.type === "tick") fetchStateTick(env.etag);
   };
   ws.onclose = ws.onerror = (e) => {
     clearTimeout(wsStableTimer);

@@ -12,6 +12,7 @@
 
 Uruchomienie: py scripts/test_ws_limit.py
 """
+import json
 import logging
 import sys
 import tempfile
@@ -46,7 +47,7 @@ def sprawdz(warunek, opis):
 
 
 print("1–2. limit połączeń")
-sprawdz(main.WS_MAX_CLIENTS == 10000, f"twardy limit 10 000 zamiast 3000 ({main.WS_MAX_CLIENTS})")
+sprawdz(main.WS_MAX_CLIENTS >= 15000, f"twardy limit podniesiony ({main.WS_MAX_CLIENTS})")
 sprawdz(load_guard.SHED_SYS_PCT == 80 and load_guard.SHED_SYS_PCT_HARD == 90
         and load_guard.SHED_RSS_MB * 1.1 < 2900, "bezpiecznik: 80%/90% VPS, poziom 2 procesu poniżej MemoryHigh")
 with client.websocket_connect("/ws") as ws:
@@ -77,6 +78,26 @@ except WebSocketDisconnect as e:
     code = e.code
 load_guard.status["lag_high"] = False
 sprawdz(code == 1013, f"pętla nie nadąża: nowy WebSocket → 1013 ({code})")
+
+print("2b. tryb sygnału (/ws?v=2)")
+from app import public_cache  # noqa: E402
+
+with client.websocket_connect("/ws?v=2") as ws:
+    first = ws.receive_text()
+    sprawdz(first.startswith('{"type":"state"'), "w trybie sygnału pierwsza ramka to pełny stan")
+    sprawdz(len(main._ws_tick_clients) == 1 and not main._ws_clients,
+            f"klient trafia do puli sygnałowej ({len(main._ws_tick_clients)}/{len(main._ws_clients)})")
+sprawdz(not main._ws_tick_clients, "po rozłączeniu pula sygnałowa pusta")
+main.refresh_state()
+etag = public_cache.get("state").etag
+sprawdz(main._ws_tick == '{"type":"tick","etag":' + json.dumps(etag) + "}",
+        f"ramka sygnału ma ETag stanu ({main._ws_tick[:60]})")
+sprawdz(len(main._ws_tick) < 100 and len(main._ws_message) > 1000,
+        f"sygnał {len(main._ws_tick)} B wobec pełnego stanu {len(main._ws_message)} B")
+# /api/health ze szczegółami tylko z samego serwera (audyt 16.09)
+local = TestClient(main.app, client=("127.0.0.1", 50000)).get("/api/health").json()
+sprawdz(local["public_cache"]["ws_tick"] == 0 and local["public_cache"]["ws_max"] >= 15000,
+        "liczba połączeń sygnałowych i limit widoczne w /api/health")
 
 print("3. opóźnienie pętli")
 load_guard._lag_over = load_guard._lag_calm = 0

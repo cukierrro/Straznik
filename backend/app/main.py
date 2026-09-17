@@ -1,5 +1,6 @@
 """Strażnik — backend FastAPI: kolektory, fuzja, API, WebSocket, statyka frontendu."""
 import asyncio
+import json
 import logging
 import os
 import time
@@ -48,13 +49,22 @@ app.add_middleware(request_limits.RequestLimits)
 
 # ── WebSocket broadcast ──────────────────────────────────────────────────────
 _ws_clients: set[WebSocket] = set()
+# Klienci w trybie sygnału (od 1.7.59, /ws?v=2): zamiast całego stanu (~39 KB)
+# dostają ~70 B „zmieniło się" z ETagiem i pobierają stan z /api/state, który
+# Cloudflare trzyma w pamięci na brzegu. 17.09.2026 pomiar: rozsyłka pełnego stanu
+# do 1595 połączeń trwała średnio 1,07 s (kompresja liczona osobno dla każdego
+# klienta) — przy 6000 nie zdążyłaby przed następną.
+_ws_tick_clients: set[WebSocket] = set()
 _last_broadcast = 0.0
 _broadcast_pending = False
 _ws_message = ""          # gotowa ramka stanu — jedna serializacja dla wszystkich
+_ws_tick = ""             # krótka ramka „zmieniło się" z ETagiem stanu
 # pomiar rozsyłki (17.09.2026): ile trwa i ile bajtów idzie do klientów — bez tego
 # nie wiadomo, czy zacięcia pętli biorą się z kompresji per klient, czy skądinąd
 broadcast_stats = {"count": 0, "clients": 0, "bytes": 0, "last_ms": 0, "max_ms": 0,
-                   "build_ms": 0, "max_build_ms": 0, "sum_ms": 0.0, "frame_bytes": 0}
+                   "build_ms": 0, "max_build_ms": 0, "sum_ms": 0.0, "frame_bytes": 0,
+                   "tick_clients": 0, "tick_last_ms": 0, "tick_max_ms": 0, "tick_sum_ms": 0.0,
+                   "tick_count": 0}
 # Każde połączenie WebSocket to otwarte gniazdo i bufor w tym jednym procesie.
 # Powyżej limitu odmawiamy (kod 1013), a klient przechodzi na odpytywanie
 # /api/state, które jest gotowymi bajtami i trzyma je Cloudflare.
@@ -62,7 +72,7 @@ broadcast_stats = {"count": 0, "clients": 0, "bytes": 0, "last_ms": 0, "max_ms":
 # z 2,5 GB; 6000 po wdrożeniu zapełniło się w minutę przy 777 MB i ~20% rdzenia.
 # Twardy limit wyżej; właściwą granicą są pamięć i opóźnienie pętli
 # (load_guard.refuse_websocket).
-WS_MAX_CLIENTS = int(os.getenv("WS_MAX_CLIENTS", "10000"))
+WS_MAX_CLIENTS = int(os.getenv("WS_MAX_CLIENTS", "15000"))
 WS_SEND_TIMEOUT_S = 3.0
 
 
@@ -125,9 +135,10 @@ def build_state() -> dict:
 
 def refresh_state() -> None:
     """Stan liczony raz i od razu podawany wszystkim: /api/state i WebSocket."""
-    global _ws_message
+    global _ws_message, _ws_tick
     blob = public_cache.make_blob(build_state())
     public_cache.put("state", blob)
+    _ws_tick = '{"type":"tick","etag":' + json.dumps(blob.etag) + "}"
     _ws_message = '{"type":"state","data":' + blob.raw.decode() + "}"
 
 
@@ -159,6 +170,8 @@ async def broadcast_state():
     build_ms = round((time.monotonic() - t0) * 1000)
     broadcast_stats["build_ms"] = build_ms
     broadcast_stats["max_build_ms"] = max(broadcast_stats["max_build_ms"], build_ms)
+    # najpierw krótki sygnał: dociera od razu, nie czeka na rozesłanie pełnego stanu
+    await broadcast_tick()
     if not _ws_clients:
         return
     message = _ws_message
@@ -186,13 +199,35 @@ async def state_loop():
         await asyncio.sleep(3)
 
 
+async def broadcast_tick() -> None:
+    """Klientom w trybie sygnału wysyłamy samą informację, że stan się zmienił."""
+    clients = list(_ws_tick_clients)
+    if not clients:
+        return
+    tick = _ws_tick
+    t0 = time.monotonic()
+    for i in range(0, len(clients), 1000):
+        for dead in await asyncio.gather(*(_send(ws, tick) for ws in clients[i:i + 1000])):
+            if dead is not None:
+                _ws_tick_clients.discard(dead)
+    ms = (time.monotonic() - t0) * 1000
+    broadcast_stats.update(tick_clients=len(clients), tick_last_ms=round(ms),
+                           tick_max_ms=max(broadcast_stats["tick_max_ms"], round(ms)),
+                           tick_sum_ms=broadcast_stats["tick_sum_ms"] + ms,
+                           tick_count=broadcast_stats["tick_count"] + 1)
+
+
 async def shed_websockets(fraction: float) -> None:
     """Pod presją pamięci zamyka część połączeń (najpierw te najstarsze w zbiorze).
     Klient dostaje 1013 i przechodzi na odpytywanie gotowego /api/state."""
+    # najpierw klienci z pełnym stanem: to oni kosztują najwięcej
     victims = list(_ws_clients)[: int(len(_ws_clients) * fraction)]
     for ws in victims:
         _ws_clients.discard(ws)
-    await asyncio.gather(*(_close(ws) for ws in victims))
+    tick_victims = list(_ws_tick_clients)[: int(len(_ws_tick_clients) * fraction)]
+    for ws in tick_victims:
+        _ws_tick_clients.discard(ws)
+    await asyncio.gather(*(_close(ws) for ws in victims + tick_victims))
 
 
 async def _close(ws: WebSocket) -> None:
@@ -204,7 +239,9 @@ async def _close(ws: WebSocket) -> None:
 
 @app.websocket("/ws")
 async def ws_endpoint(ws: WebSocket):
-    busy = len(_ws_clients) >= WS_MAX_CLIENTS or load_guard.refuse_websocket()
+    tick_mode = ws.query_params.get("v") == "2"
+    busy = (len(_ws_clients) + len(_ws_tick_clients) >= WS_MAX_CLIENTS
+            or load_guard.refuse_websocket())
     try:
         await ws.accept()
     except Exception:
@@ -216,10 +253,12 @@ async def ws_endpoint(ws: WebSocket):
         load_guard.status["ws_refused"] += 1
         await _close(ws)
         return
-    _ws_clients.add(ws)
+    pool = _ws_tick_clients if tick_mode else _ws_clients
+    pool.add(ws)
     try:
         if not _ws_message:
             refresh_state()
+        # pierwszy stan zawsze w całości — klient ma dane od razu, bez dodatkowego zapytania
         await ws.send_text(_ws_message)
         while True:
             # klient nic nie wysyła; każda wiadomość od niego to nadużycie (audyt 16.09)
@@ -229,7 +268,7 @@ async def ws_endpoint(ws: WebSocket):
     except (WebSocketDisconnect, RuntimeError):
         pass
     finally:
-        _ws_clients.discard(ws)
+        pool.discard(ws)
 
 
 # ── REST API ─────────────────────────────────────────────────────────────────
@@ -350,12 +389,14 @@ async def api_health(request: Request):
         "progression_shadow": escalation_shadow.status,
         "rcb_reference": rcb_reference.status,
         "public_cache": {**public_cache.status, "ws_clients": len(_ws_clients),
-                         "ws_max": WS_MAX_CLIENTS},
+                         "ws_tick": len(_ws_tick_clients), "ws_max": WS_MAX_CLIENTS},
         "load_guard": load_guard.status,
         "broadcast": dict(broadcast_stats,
                           avg_ms=round(broadcast_stats["sum_ms"] / broadcast_stats["count"], 1)
                           if broadcast_stats["count"] else 0,
-                          mb_total=round(broadcast_stats["bytes"] / 1048576, 1)),
+                          mb_total=round(broadcast_stats["bytes"] / 1048576, 1),
+                          tick_avg_ms=round(broadcast_stats["tick_sum_ms"] / broadcast_stats["tick_count"], 1)
+                          if broadcast_stats["tick_count"] else 0),
         "backup": _backup_status(),
         "critical": monitoring.critical_check(),
         "tasks": monitoring.supervisor,
