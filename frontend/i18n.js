@@ -211,8 +211,10 @@
     if (zoneNote) zoneNote.textContent = "the zone layer adds no points — only a rare D/R/NPZ/ADHOC "
       + "zone from the ground up over the east or north scores; tap a zone for details";
     const live = document.getElementById("tb-live");
-    if (live) live.textContent = "▶ Back to live view";
-    set(".tb-mode", "⏱ HISTORY MODE");
+    if (live) { live.innerHTML = "SWITCH<br>TO LIVE"; live.title = "Back to live view";
+      live.setAttribute("aria-label", "Back to live view"); }
+    const mode = document.querySelector(".tb-mode .tb-two");
+    if (mode) mode.innerHTML = "HISTORY<br>VIEW";
     setMany("#settings .set-tab", ["Alerts", "My places", "Sound", "App"]);
     // linki w zakładce „Aplikacja" są wyłączone z tłumaczenia zbiorczego (żeby nie
     // skasować odnośników), więc podpisy ustawiamy osobno

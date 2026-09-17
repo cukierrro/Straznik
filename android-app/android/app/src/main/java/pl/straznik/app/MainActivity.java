@@ -2,6 +2,8 @@ package pl.straznik.app;
 
 import android.os.Bundle;
 
+import androidx.activity.OnBackPressedCallback;
+
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
@@ -20,6 +22,22 @@ public class MainActivity extends BridgeActivity {
         BackgroundPlugin.syncFcmSubscription(this);
         // Usługa pierwszoplanowa w tle WYCOFANA — alarmy przy zamkniętej aplikacji
         // dostarcza FCM (patrz StraznikFcmService), więc nic tu nie uruchamiamy.
+
+        // Systemowe „wstecz” (17.09.2026): wcześniej od razu minimalizowało aplikację,
+        // nawet z otwartymi ustawieniami. Najpierw pytamy stronę (window.straznikBack),
+        // czy ma co zamknąć; dopiero gdy nie — aplikacja idzie w tło jak dotąd.
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override public void handleOnBackPressed() {
+                if (getBridge() == null || getBridge().getWebView() == null) {
+                    moveTaskToBack(true);
+                    return;
+                }
+                getBridge().getWebView().evaluateJavascript(
+                    "(function(){try{return !!(window.straznikBack&&window.straznikBack());}"
+                        + "catch(e){return false;}})()",
+                    value -> { if (!"true".equals(value)) moveTaskToBack(true); });
+            }
+        });
     }
 
     @Override public void onResume() {

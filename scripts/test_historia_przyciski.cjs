@@ -1,0 +1,104 @@
+// Przyciski paska historii i systemowe „wstecz” (1.7.57, 17.09.2026).
+// Uruchomienie: node scripts/test_historia_przyciski.cjs
+const fs = require('node:fs');
+const vm = require('node:vm');
+const path = require('node:path');
+const assert = require('node:assert/strict');
+const src = fs.readFileSync(path.join(__dirname, '../frontend/app.js'), 'utf8');
+const html = fs.readFileSync(path.join(__dirname, '../frontend/index.html'), 'utf8');
+const cut = (a, b) => {
+  const i = src.indexOf(a);
+  assert.ok(i >= 0, `brak fragmentu: ${a}`);
+  return src.slice(i, src.indexOf(b, i));
+};
+
+// ── 1. krok po czasie migawek i skoki do alarmów ──
+const T0 = Date.parse('2026-09-17T08:00:00Z');
+const min = (m) => new Date(T0 + m * 60000).toISOString();
+// migawki co minutę, z dziurą 20 min (aplikacja była zamknięta) między 10 a 30
+const minutes = [...Array(11).keys()].concat([...Array(20).keys()].map(i => 30 + i));
+const levels = minutes.map(m => (m >= 5 && m <= 7) || (m >= 35 && m <= 36) ? 'elevated'
+  : m === 40 ? 'high' : 'none');
+const ctx = { histTimes: minutes.map(min), timelinePoints: levels.map(level => ({ level })) };
+vm.createContext(ctx);
+vm.runInContext(cut('function histStepIdx', 'function syncTbControls'), ctx);
+const at = (m) => minutes.indexOf(m);
+
+assert.equal(ctx.histStepIdx(at(3), 1), at(4), '+1 min: następna migawka');
+assert.equal(ctx.histStepIdx(at(3), -1), at(2), '−1 min: poprzednia migawka');
+assert.equal(ctx.histStepIdx(at(10), 1), at(30), '+1 przez dziurę: pierwsza migawka po przerwie');
+assert.equal(ctx.histStepIdx(at(30), -1), at(10), '−1 przez dziurę: ostatnia przed przerwą');
+assert.equal(ctx.histStepIdx(at(2), 10), at(30), '+10 z 08:02 → pierwsza migawka ≥ 08:12, czyli po przerwie');
+assert.equal(ctx.histStepIdx(at(45), -10), at(35), '−10 w ciągłym odcinku');
+assert.equal(ctx.histStepIdx(at(49), 10), at(49), '+10 na końcu zostaje na końcu');
+assert.equal(ctx.histStepIdx(0, -10), 0, '−10 na początku zostaje na początku');
+
+assert.deepEqual([...ctx.alarmStarts()], [at(5), at(35), at(40)], 'początki alarmów: 08:05, 08:35 i osobny 08:40 (przerwa 08:37–39)');
+assert.equal(ctx.prevAlarmIdx(at(46)), at(40), 'poprzedni alarm z 08:46 → 08:40');
+assert.equal(ctx.prevAlarmIdx(at(39)), at(35), 'poprzedni alarm z 08:39 → 08:35');
+assert.equal(ctx.prevAlarmIdx(at(6)), at(5), 'w środku alarmu „poprzedni” wraca na jego początek');
+assert.equal(ctx.prevAlarmIdx(at(5)), -1, 'przed pierwszym alarmem nie ma poprzedniego');
+assert.equal(ctx.nextAlarmIdx(at(0)), at(5), 'następny alarm z 08:00 → 08:05');
+assert.equal(ctx.nextAlarmIdx(at(35)), at(40), 'następny po 08:35 → 08:40');
+assert.equal(ctx.nextAlarmIdx(at(40)), -1, 'po ostatnim alarmie nie ma następnego');
+console.log('OK: kroki po czasie migawek (także przez dziurę) i skoki do alarmów');
+
+// ── 2. układ: 9 przycisków, ZMIEŃ NA ŻYWO w nagłówku, bez pełnej szerokości ──
+const acts = [...html.matchAll(/class="tb-btn[^"]*" data-act="([a-z0-9-]+)"/g)].map(m => m[1]);
+assert.deepEqual(acts, ['start', 'prev-alarm', 'back10', 'back1', 'play', 'fwd1', 'fwd10', 'next-alarm', 'end'],
+  'dziewięć przycisków w ustalonej kolejności');
+const head = html.slice(html.indexOf('<div class="tb-head">'), html.indexOf('<div class="tb-row">'));
+assert.match(head, /id="tb-live"[^>]*>ZMIEŃ<br>NA ŻYWO</, '„ZMIEŃ NA ŻYWO” w nagłówku, w dwóch liniach');
+assert.match(head, /PODGLĄD<br>HISTORII/, '„PODGLĄD HISTORII” w dwóch liniach');
+assert.match(head, /id="tb-speed"/, 'wybór prędkości w nagłówku');
+assert.ok(!/chip primary">▶ Wróć do podglądu/.test(html), 'stary przycisk na całą szerokość usunięty');
+console.log('OK: układ paska historii');
+
+// ── 3. systemowe „wstecz”: od wierzchu do mapy ──
+function backCtx(state) {
+  const cls = (hidden) => ({ contains: (c) => c === 'hidden' ? hidden : c === 'collapsed' ? hidden : false });
+  const calls = [];
+  const els = {
+    'alarm-overlay': { classList: cls(!state.alarm) },
+    'ac-card': { classList: cls(!state.card) },
+    legend: { classList: cls(!state.legend) },
+    panel: { classList: cls(!state.panel) },
+    'btn-legend': { click: () => { calls.push('legend'); state.legend = false; } },
+  };
+  const dialogs = (state.dialogs || []).map(name => ({
+    name, dispatchEvent: () => !state.preventCancel, close() { calls.push('close:' + name); },
+  }));
+  const c = {
+    calls, Event: class { constructor(t, o) { this.type = t; Object.assign(this, o); } },
+    window: {}, histMode: !!state.hist,
+    exitHistory: () => calls.push('exitHistory'), hideCard: () => calls.push('hideCard'),
+    setPanel: (open) => calls.push('setPanel:' + open),
+    document: {
+      getElementById: (id) => els[id],
+      querySelectorAll: (sel) => sel === 'dialog[open]' ? dialogs : [],
+      querySelector: (sel) => sel === '.brand-open' && state.brand
+        ? { classList: { remove: () => calls.push('brand') } } : null,
+    },
+  };
+  vm.createContext(c);
+  vm.runInContext(cut('window.straznikBack = function', '\n};') + '\n};', c);
+  return c;
+}
+const back = (state) => { const c = backCtx(state); const r = c.window.straznikBack(); return [r, c.calls]; };
+assert.deepEqual(back({}), [false, []], 'sama mapa: false → aplikacja idzie w tło');
+assert.deepEqual(back({ dialogs: ['settings', 'places-dialog'], hist: true }), [true, ['close:places-dialog']],
+  'najpierw zamyka okno leżące na wierzchu, nie tryb historii');
+assert.deepEqual(back({ dialogs: ['onboard-bg'], preventCancel: true }), [true, []],
+  'okno blokujące zamknięcie (cancel.preventDefault) zostaje, aplikacja nie idzie w tło');
+assert.deepEqual(back({ card: true, hist: true }), [true, ['hideCard']], 'karta obiektu przed historią');
+assert.deepEqual(back({ legend: true }), [true, ['legend']], 'legenda');
+assert.deepEqual(back({ hist: true, panel: true }), [true, ['exitHistory']], 'tryb historii');
+assert.deepEqual(back({ panel: true }), [true, ['setPanel:false']], 'panel sygnałów');
+assert.deepEqual(back({ alarm: true, dialogs: ['settings'] }), [true, []],
+  'czerwony alarm: „wstecz” nic nie zamyka i nie chowa aplikacji');
+const java = fs.readFileSync(path.join(__dirname,
+  '../android-app/android/app/src/main/java/pl/straznik/app/MainActivity.java'), 'utf8');
+assert.match(java, /OnBackPressedCallback/, 'MainActivity przechwytuje „wstecz”');
+assert.match(java, /window\.straznikBack/, 'i pyta stronę');
+assert.match(java, /moveTaskToBack\(true\)/, 'bez niczego do zamknięcia aplikacja idzie w tło jak dotąd');
+console.log('OK: systemowe „wstecz” zamyka od wierzchu, na mapie chowa aplikację');

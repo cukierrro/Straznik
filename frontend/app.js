@@ -3997,11 +3997,14 @@ async function toggleHistory() {
   slider.value = String(histTimes.length - 1);
   document.getElementById("btn-history").classList.add("active");
   syncTabs();
+  labelTbControls();
+  syncTbControls(histTimes.length - 1);
   showHistoryAt(histTimes.length - 1);
   refreshWatchEvents(); // one small journal request, never one per slider movement
 }
 
 function exitHistory() {
+  stopHistPlay();
   if (_scrubRaf) { cancelAnimationFrame(_scrubRaf); _scrubRaf = 0; }
   histMode = false;
   historyAdsbByHex.clear(); historyAdsbTime = null; hideCard();
@@ -4196,6 +4199,7 @@ function quickLabel(idx) {
     when.toLocaleTimeString(UI.isEn ? "en-GB" : "pl-PL", { hour: "2-digit", minute: "2-digit" })
     + (ageMin > 1 ? ` (${histAgo(ageMin)})` : (UI.isEn ? " (now)" : " (teraz)"));
   document.getElementById("tb-slider").dataset.level = timelinePoints[idx]?.level || "none";
+  syncTbControls(idx);
 }
 
 /* Przewijanie suwaka: dane są LOKALNE (bufor w RAM), więc render jest szybki i
@@ -4209,7 +4213,130 @@ function scrubTo(idx) {
   if (_scrubRaf) return;
   _scrubRaf = requestAnimationFrame(() => { _scrubRaf = 0; showHistoryAt(_scrubIdx); });
 }
-document.getElementById("tb-slider").addEventListener("input", (e) => scrubTo(+e.target.value));
+document.getElementById("tb-slider").addEventListener("input", (e) => { stopHistPlay(); scrubTo(+e.target.value); });
+
+/* ── przyciski przewijania historii (17.09.2026) ─────────────────────────────
+   Krok liczymy po czasie migawek, nie po indeksie: migawki bywają co minutę,
+   ale po przerwie w działaniu aplikacji między nimi jest dziura. Skok do alarmu
+   = początek najbliższego okresu z poziomem podwyższonym albo wysokim. */
+const TB_LABELS = {
+  pl: { start: ["−12 h", "Początek historii (12 godzin wstecz)"],
+        "prev-alarm": ["alarm", "Poprzedni alarm"], back10: ["−10", "10 minut wstecz"],
+        back1: ["−1", "1 minuta wstecz (przytrzymaj, aby przewijać)"],
+        play: ["", "Odtwarzaj / pauza"], fwd1: ["+1", "1 minuta do przodu (przytrzymaj, aby przewijać)"],
+        fwd10: ["+10", "10 minut do przodu"], "next-alarm": ["alarm", "Następny alarm"],
+        end: ["koniec", "Najnowsza migawka"], group: "Sterowanie historią", speed: "Prędkość odtwarzania" },
+  en: { start: ["−12 h", "Start of history (12 hours back)"],
+        "prev-alarm": ["alert", "Previous alert"], back10: ["−10", "10 minutes back"],
+        back1: ["−1", "1 minute back (hold to keep scrolling)"],
+        play: ["", "Play / pause"], fwd1: ["+1", "1 minute forward (hold to keep scrolling)"],
+        fwd10: ["+10", "10 minutes forward"], "next-alarm": ["alert", "Next alert"],
+        end: ["end", "Latest snapshot"], group: "History controls", speed: "Playback speed" },
+};
+function labelTbControls() {
+  const L = TB_LABELS[UI.isEn ? "en" : "pl"];
+  document.getElementById("tb-controls").setAttribute("aria-label", L.group);
+  for (const b of document.querySelectorAll("#tb-controls .tb-btn")) {
+    const [caption, title] = L[b.dataset.act];
+    b.querySelector("small").textContent = caption;
+    b.title = title; b.setAttribute("aria-label", title);
+  }
+  const sp = document.getElementById("tb-speed");
+  sp.title = L.speed; sp.setAttribute("aria-label", `${L.speed}: ×${histSpeed}`);
+}
+function histIdx() { return +document.getElementById("tb-slider").value || 0; }
+function histGo(idx) {
+  const last = histTimes.length - 1;
+  if (last < 0) return;
+  idx = Math.max(0, Math.min(last, idx));
+  document.getElementById("tb-slider").value = String(idx);
+  scrubTo(idx);
+}
+/* indeks migawki o `minutes` od bieżącej (co najmniej jedna migawka dalej) */
+function histStepIdx(idx, minutes) {
+  const t = Date.parse(histTimes[idx]) + minutes * 60000;
+  if (minutes > 0) {
+    for (let i = idx + 1; i < histTimes.length; i++) if (Date.parse(histTimes[i]) >= t - 1000) return i;
+    return histTimes.length - 1;
+  }
+  for (let i = idx - 1; i >= 0; i--) if (Date.parse(histTimes[i]) <= t + 1000) return i;
+  return 0;
+}
+function alarmStarts() {
+  const lv = (i) => timelinePoints[i]?.level && timelinePoints[i].level !== "none";
+  const out = [];
+  for (let i = 0; i < timelinePoints.length; i++) if (lv(i) && !lv(i - 1)) out.push(i);
+  return out;
+}
+function prevAlarmIdx(idx) { const s = alarmStarts().filter(i => i < idx); return s.length ? s[s.length - 1] : -1; }
+function nextAlarmIdx(idx) { return alarmStarts().find(i => i > idx) ?? -1; }
+function syncTbControls(idx) {
+  const last = histTimes.length - 1;
+  for (const b of document.querySelectorAll("#tb-controls .tb-btn")) {
+    const a = b.dataset.act;
+    b.disabled = (["start", "back10", "back1"].includes(a) && idx <= 0)
+      || (["end", "fwd10", "fwd1"].includes(a) && idx >= last)
+      || (a === "prev-alarm" && prevAlarmIdx(idx) < 0)
+      || (a === "next-alarm" && nextAlarmIdx(idx) < 0);
+  }
+}
+let histPlayTimer = null, histSpeed = 1;
+const HIST_PLAY_MS = 500;       // ×1: minuta historii na pół sekundy
+function stopHistPlay() {
+  if (histPlayTimer) { clearInterval(histPlayTimer); histPlayTimer = null; }
+  document.querySelector('#tb-controls [data-act="play"]')?.classList.remove("playing");
+}
+function startHistPlay() {
+  stopHistPlay();
+  if (histIdx() >= histTimes.length - 1) histGo(0);      // z końca odtwarzamy od początku
+  document.querySelector('#tb-controls [data-act="play"]').classList.add("playing");
+  histPlayTimer = setInterval(() => {
+    const idx = histIdx();
+    if (!histMode || idx >= histTimes.length - 1) return stopHistPlay();
+    histGo(histStepIdx(idx, 1));
+  }, HIST_PLAY_MS / histSpeed);
+}
+function tbAction(act) {
+  const idx = histIdx();
+  if (act === "play") return histPlayTimer ? stopHistPlay() : startHistPlay();
+  stopHistPlay();
+  const target = act === "start" ? 0
+    : act === "end" ? histTimes.length - 1
+    : act === "back1" ? histStepIdx(idx, -1) : act === "fwd1" ? histStepIdx(idx, 1)
+    : act === "back10" ? histStepIdx(idx, -10) : act === "fwd10" ? histStepIdx(idx, 10)
+    : act === "prev-alarm" ? prevAlarmIdx(idx) : act === "next-alarm" ? nextAlarmIdx(idx) : -1;
+  if (target >= 0) histGo(target);
+}
+/* Przytrzymanie ±1 i ±10 przewija dalej. Pierwszy krok od razu na pointerdown,
+   powtarzanie po 400 ms co 120 ms; klik z klawiatury (detail 0) idzie przez click. */
+(() => {
+  let holdTimer = null, repeatTimer = null, pressedAct = null;
+  const REPEAT = ["back1", "fwd1", "back10", "fwd10"];
+  const release = () => { clearTimeout(holdTimer); clearInterval(repeatTimer); holdTimer = repeatTimer = null; };
+  const ctl = document.getElementById("tb-controls");
+  ctl.addEventListener("pointerdown", (e) => {
+    const b = e.target.closest(".tb-btn");
+    if (!b || b.disabled || !REPEAT.includes(b.dataset.act)) return;
+    pressedAct = b.dataset.act;
+    tbAction(pressedAct);
+    release();
+    holdTimer = setTimeout(() => { repeatTimer = setInterval(() => tbAction(pressedAct), 120); }, 400);
+  });
+  for (const ev of ["pointerup", "pointercancel", "pointerleave"]) ctl.addEventListener(ev, release);
+  ctl.addEventListener("click", (e) => {
+    const b = e.target.closest(".tb-btn");
+    if (!b || b.disabled) return;
+    if (REPEAT.includes(b.dataset.act) && e.detail !== 0) return;   // obsłużone w pointerdown
+    tbAction(b.dataset.act);
+  });
+  document.getElementById("tb-speed").addEventListener("click", () => {
+    histSpeed = histSpeed === 1 ? 2 : histSpeed === 2 ? 4 : 1;
+    const sp = document.getElementById("tb-speed");
+    sp.textContent = `×${histSpeed}`;
+    sp.setAttribute("aria-label", `${TB_LABELS[UI.isEn ? "en" : "pl"].speed}: ×${histSpeed}`);
+    if (histPlayTimer) startHistPlay();
+  });
+})();
 document.getElementById("tb-slider").addEventListener("change", (e) => {
   if (_scrubRaf) { cancelAnimationFrame(_scrubRaf); _scrubRaf = 0; }
   showHistoryAt(+e.target.value);
@@ -4899,6 +5026,30 @@ function setPanel(open) {
 }
 document.getElementById("btn-panel").onclick = () =>
   setPanel(document.getElementById("panel").classList.contains("collapsed"));
+
+/* Systemowy przycisk „wstecz” na Androidzie (17.09.2026). MainActivity pyta tę
+   funkcję; true = coś zamknięte, false = nic do zamknięcia, aplikacja idzie w tło.
+   Kolejność: od tego, co leży na wierzchu, do mapy. Czerwonego alarmu „wstecz”
+   nie zamyka — do tego służą przyciski alarmu, przypadkowe dotknięcie nie może go uciszyć. */
+window.straznikBack = function () {
+  if (!document.getElementById("alarm-overlay")?.classList.contains("hidden")) return true;
+  const open = [...document.querySelectorAll("dialog[open]")];
+  if (open.length) {
+    const d = open[open.length - 1];          // okno otwarte z innego leży później w DOM
+    if (d.dispatchEvent(new Event("cancel", { cancelable: true }))) d.close();
+    return true;
+  }
+  const card = document.getElementById("ac-card");
+  if (card && !card.classList.contains("hidden")) { hideCard(); return true; }
+  const brand = document.querySelector(".brand-open");
+  if (brand) { brand.classList.remove("brand-open"); return true; }
+  if (!document.getElementById("legend")?.classList.contains("hidden")) {
+    document.getElementById("btn-legend").click(); return true;
+  }
+  if (histMode) { exitHistory(); return true; }
+  if (!document.getElementById("panel").classList.contains("collapsed")) { setPanel(false); return true; }
+  return false;
+};
 document.getElementById("btn-legend").onclick = () => {
   document.getElementById("legend").classList.toggle("hidden");
   document.getElementById("btn-legend").classList.toggle("active");

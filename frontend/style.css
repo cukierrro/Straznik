@@ -382,19 +382,29 @@ dialog a:hover, dialog a:focus-visible { text-decoration: underline; }
 /* Stała wysokość nagłówka: plakietka alarmu ogólnokrajowego (#tb-national) pojawia
    się i znika podczas przewijania i nie może zmieniać wysokości paska (14.09.2026
    pasek i przyciski mapy podskakiwały spod palca). */
-.tb-head { display: flex; align-items: center; justify-content: space-between;
-  gap: 8px; margin-bottom: 2px; height: 20px; }
+/* 17.09.2026: nazwa trybu i „ZMIEŃ NA ŻYWO” w dwóch liniach, żeby długa godzina
+   („09:35 (−3 h 54 min)”) i prędkość mieściły się w jednym rzędzie */
+.tb-head { display: flex; align-items: center; gap: 6px; margin-bottom: 2px; height: 30px; }
+/* nazwa trybu i „NA ŻYWO” po lewej, prędkość i godzina dosunięte do prawej */
+.tb-head #tb-national:not(:empty) { margin-left: auto; }
+.tb-head #tb-national:not(:empty) + .tb-speed { margin-left: 0; }
 #tb-national { flex: 0 1 auto; min-width: 0; display: flex; }
 .tb-nat { display: block; max-width: 100%; height: 18px; padding: 0 8px; box-sizing: border-box;
   border: 1px solid var(--nat, #c06bff); border-radius: 999px; background: rgba(192,107,255,.12);
   color: var(--text); font: 600 11px/16px "Segoe UI", system-ui, sans-serif;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
 body.history-mode #national-banner { display: none; }
-.tb-mode { font: 700 10.5px/1 "Segoe UI", system-ui, sans-serif; letter-spacing: .1em;
-  color: var(--amber); }
+.tb-mode { font: 700 10.5px/1.15 "Segoe UI", system-ui, sans-serif; letter-spacing: .1em;
+  color: var(--amber); display: flex; align-items: center; gap: 5px; flex: none; white-space: nowrap; }
+.tb-mode .tb-ico { font-size: 13px; letter-spacing: 0; }
 #timebar #tb-label { font: 600 13px/1 "Segoe UI", system-ui, sans-serif; color: var(--text);
-  font-variant-numeric: tabular-nums; }
-#timebar #tb-live { width: 100%; margin-top: 4px; justify-content: center; }
+  font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* „NA ŻYWO”: ta sama czcionka co nazwa trybu, minimalistyczna ramka */
+.tb-live { flex: none; padding: 2px 7px; border-radius: 5px; text-align: center;
+  border: 1px solid rgba(91,140,255,.55); background: transparent; color: var(--accent);
+  font: 700 10.5px/1.15 "Segoe UI", system-ui, sans-serif; letter-spacing: .08em; cursor: pointer;
+  white-space: nowrap; }
+.tb-live:active { background: rgba(91,140,255,.2); }
 /* suwak historii: tło toru = poziom zagrożenia w czasie (zmienna --tl),
    kolor uchwytu = poziom w wybranym momencie */
 #tb-slider {
@@ -429,7 +439,29 @@ body.history-mode #national-banner { display: none; }
 #tb-slider[data-level="high"]::-moz-range-thumb { border-color: var(--red); }
 #tb-label { font-size: 12px; font-variant-numeric: tabular-nums; min-width: 96px;
   text-align: right; }
-#tb-live.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+/* przyciski przewijania historii: dziewięć równych kwadratów w jednym rzędzie */
+.tb-controls { display: flex; justify-content: space-between; gap: 4px; margin-top: 2px; }
+.tb-btn { flex: 1 1 0; min-width: 0; max-width: 46px; height: auto; aspect-ratio: 1 / 1; padding: 2px 0 1px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+  background: rgba(120,150,210,.08); border: 1px solid var(--panel-border); border-radius: 9px;
+  color: var(--text); cursor: pointer; touch-action: manipulation;
+  -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
+@supports not (aspect-ratio: 1 / 1) { .tb-btn { height: 38px; } }
+.tb-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.2;
+  stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.tb-btn svg .fill { fill: currentColor; stroke-width: 1.5; }
+.tb-btn small { font: 600 9px/1 "Segoe UI", system-ui, sans-serif; color: var(--muted);
+  white-space: nowrap; overflow: hidden; max-width: 100%; }
+.tb-btn:active:not(:disabled) { background: rgba(91,140,255,.28); border-color: var(--accent); }
+.tb-btn:disabled { opacity: .35; cursor: default; }
+.tb-btn.alarm { color: var(--amber); }
+.tb-btn.play { background: var(--accent); border-color: var(--accent); color: #fff; }
+.tb-btn.play small { color: rgba(255,255,255,.85); }
+.tb-btn.play .ico-pause, .tb-btn.play.playing .ico-play { display: none; }
+.tb-btn.play.playing .ico-pause { display: inline; }
+.tb-speed { flex: none; margin-left: auto; height: 18px; padding: 0 8px; border-radius: 999px;
+  border: 1px solid var(--panel-border); background: rgba(120,150,210,.08); color: var(--text);
+  font: 700 11px/16px "Segoe UI", system-ui, sans-serif; cursor: pointer; }
 /* Stała wysokość dwóch wierszy: gdy w oknie pojawiał się sygnał, dochodziła druga
    linijka i cały pasek historii podskakiwał w górę pod palcem. Rezerwujemy miejsce
    od razu, więc pasek stoi w jednym miejscu niezależnie od treści. */
