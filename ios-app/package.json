@@ -1,0 +1,18 @@
+{
+  "name": "straznik-ios",
+  "version": "1.7.57",
+  "description": "Strażnik — wersja na iPhone (Capacitor iOS)",
+  "private": true,
+  "license": "SEE LICENSE IN ../LICENSE",
+  "scripts": {
+    "www": "node skrypty/przygotuj.mjs",
+    "sync": "node skrypty/przygotuj.mjs && cap sync ios"
+  },
+  "dependencies": {
+    "@capacitor/cli": "8.5.2",
+    "@capacitor/core": "8.5.2",
+    "@capacitor/ios": "8.5.2",
+    "@capacitor/local-notifications": "8.3.1",
+    "straznik-background": "file:straznik-background"
+  }
+}

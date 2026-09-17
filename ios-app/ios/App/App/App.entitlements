@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Push (APNs). Przy eksporcie do App Store / TestFlight Xcode sam zmienia
+	     wartość na „production”. -->
+	<key>aps-environment</key>
+	<string>development</string>
+	<!-- Powiadomienia Time Sensitive: czerwony alarm przebija tryb Skupienia
+	     i podsumowanie powiadomień. Nie wymaga wniosku do Apple. -->
+	<key>com.apple.developer.usernotifications.time-sensitive</key>
+	<true/>
+	<!-- Critical Alerts (przebija wyciszenie) dopiero po zgodzie Apple — etap 2:
+	<key>com.apple.developer.usernotifications.critical-alerts</key>
+	<true/>
+	-->
+</dict>
+</plist>

@@ -1,0 +1,12 @@
+{
+  "name": "straznik-background",
+  "version": "1.0.0",
+  "description": "Strażnik — natywny most iOS: tematy FCM województw, stan zgód, test alarmu",
+  "private": true,
+  "license": "SEE LICENSE IN ../../LICENSE",
+  "capacitor": {
+    "ios": {
+      "src": "ios"
+    }
+  }
+}

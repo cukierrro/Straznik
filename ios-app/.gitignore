@@ -1,0 +1,25 @@
+# Kopia frontend/ robiona skryptem przed każdym buildem (jak android-app/www)
+www/
+node_modules/
+
+# Wyniki builda Xcode / Swift Package Manager
+ios/App/build/
+ios/App/DerivedData/
+ios/App/Pods/
+ios/**/xcuserdata/
+.build/
+*.xcarchive
+*.ipa
+
+# Repozytorium jest PUBLICZNE. Konfiguracja Firebase dla iOS i wszystko, co
+# służy do podpisu, trafia do builda z GitHub Secrets — nigdy do gita.
+GoogleService-Info.plist
+*.p8
+*.p12
+*.cer
+*.mobileprovision
+*.provisionprofile
+
+# Dźwięki kopiowane z android-app/.../res/raw przez skrypty/przygotuj.mjs
+ios/App/App/alarm_syrena.wav
+ios/App/App/alert_uwaga.wav

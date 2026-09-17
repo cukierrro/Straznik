@@ -55,7 +55,7 @@ ekranu i bez gwarancji, że przebije wyciszony telefon.
 ios-app/
   package.json            Capacitor 8 (core, cli, ios, local-notifications)
   capacitor.config.json   appId pl.straznik.app, webDir www
-  skrypty/kopiuj_www.mjs  kopia frontend/ → www (ta sama lista plików co 1_buduj_i_testuj.bat)
+  skrypty/przygotuj.mjs   kopia frontend/ → www i dźwięków alarmu → ios/App/App
   straznik-background/    lokalny plugin Capacitor (Swift + Package.swift z FirebaseMessaging)
   ios/                    projekt Xcode wygenerowany przez `npx cap add ios`
   PLAN_IOS.md, INSTRUKCJA_*.md, POTRZEBNE_ZMIANY_WSPOLNE.md
@@ -74,16 +74,17 @@ ręcznej edycji pliku projektu, który łatwo zepsuć bez Maca.
 | Metoda | iOS |
 |---|---|
 | `setObservedVoivodeships`, `setHomeVoivodeship` | **tak** — subskrypcja tematów FCM `voiv_*`, ta sama zamiana polskich znaków co w Javie, stan potwierdzony przez Firebase, flaga `alertsOff` w `UserDefaults` |
-| `status` | **tak** — zgoda na powiadomienia, tematy potwierdzone, błędy, wersja; pola Androidowe z bezpiecznymi wartościami (`sdk: 0`, `fullScreenAllowed: true`, `batteryUnrestricted: true`) + `platform: "ios"`, `osVersion`, `timeSensitiveAllowed`, `criticalAllowed` |
+| `status` | **tak** — zgoda na powiadomienia, tematy potwierdzone, błędy; `appVersion` celowo pusty (żeby app.js nie proponował APK), wersja w `iosAppVersion`; pola Androidowe z bezpiecznymi wartościami (`sdk: 0`, `fullScreenAllowed: true`, `batteryUnrestricted: true`) + `platform: "ios"`, `osVersion`, `timeSensitiveAllowed`, `criticalAllowed` |
 | `openNotificationSettings`, `openSoundSettings` | **tak** — ekran ustawień Strażnika w iOS |
 | `testNativeAlarm` | **tak** — lokalne powiadomienie za 5 s z dźwiękiem syreny, poziom Time Sensitive (sprawdza prawdziwą drogę powiadomienia) |
 | zdarzenie `fcmAlarm` | **tak** — gdy aplikacja jest na wierzchu, push trafia do WebView (jak na Androidzie) zamiast banera |
-| `setForceMaxVolume` | nieobsługiwane (zapisuje, ale nic nie robi; `status` zwraca `forceMaxVolume: false`) |
+| `setForceMaxVolume` | nieobsługiwane — zwraca `forceMaxVolume: false, supported: false` |
 | `canInstallUpdates`, `requestInstallPermission`, `installUpdate` | nieobsługiwane — `reject("UNSUPPORTED")`, `allowed: false` |
 | `requestFullScreenPermission`, `requestBatteryExemption` | nieobsługiwane — `resolve()` bez działania |
 
 Rejestracja pushy: `FirebaseApp.configure()` + `registerForRemoteNotifications()`;
-token APNs przekazuje Firebase automatycznie (tzw. swizzling, domyślnie włączony).
+token APNs przekazuje do Firebase sam plugin (`FirebaseAppDelegateProxyEnabled = NO`,
+bez podmiany metod AppDelegate — przewidywalniej).
 Pushe przy otwartej aplikacji odbieramy przez router powiadomień Capacitora
 (tak robi oficjalny plugin `@capacitor/push-notifications`), więc nie kłócimy się
 z `LocalNotifications`.
@@ -140,17 +141,24 @@ Codemagic: niepotrzebny, dopóki GitHub Actions jest darmowy.
 
 ## 5. Etapy
 
-**Etap 1 — TestFlight (cel tej sesji)**
+**Etap 1 — TestFlight (cel tej sesji)** — stan 17.09.2026
 1. ✅ Rozpoznanie, ten plan.
-2. Szkielet `ios-app/` + skrypt kopiujący `www` + `npx cap add ios`.
-3. Plugin Swift (tabela 3.2), dźwięki, `Info.plist` (opis zgody, szyfrowanie
-   „tylko HTTPS”), `PrivacyInfo.xcprivacy` (UserDefaults), uprawnienia
-   Push + Time Sensitive.
-4. Workflow `.github/workflows/ios.yml` na gałęzi `ios` (za zgodą).
-5. `INSTRUKCJA_KONTA_APPLE.md` — krok po kroku dla użytkownika.
-6. `POTRZEBNE_ZMIANY_WSPOLNE.md` — backend (`apns`) i frontend (ukrycia, teksty).
-7. Tryb testowy: build TestFlight zapisuje się **dodatkowo** do tematów
-   `test_voiv_*`, żeby dało się testować push bez alarmu dla ludzi.
+2. ✅ Szkielet `ios-app/` (Capacitor 8.5.2, SPM) + `skrypty/przygotuj.mjs`
+   (kopia `frontend/` i dźwięków) + `npx cap add ios` — wygenerowany na Windowsie.
+3. ✅ Plugin Swift `straznik-background/` (tabela 3.2), dźwięki, `Info.plist`
+   (lokalizacja, szyfrowanie, ciemny motyw), `PrivacyInfo.xcprivacy`,
+   `App.entitlements` (Push + Time Sensitive), iOS 16+, tylko iPhone, ikona 1024
+   i ekran startowy z rysunku Androida. **Nieskompilowane** — Windows nie ma
+   Xcode; pierwsza kompilacja = tryb „sprawdzenie” w GitHub Actions.
+4. ✅ `.github/workflows/ios.yml` na gałęzi `ios` (zgoda 17.09): bez sekretów
+   kompilacja bez podpisu, z sekretami podpis w chmurze + TestFlight.
+5. ✅ `INSTRUKCJA_KONTA_APPLE.md` (w tym ograniczenie klucza API iOS w Google
+   Cloud do `pl.straznik.app` — prośba użytkownika).
+6. ✅ `POTRZEBNE_ZMIANY_WSPOLNE.md` — backend (`apns`) i frontend.
+7. ✅ Tryb testowy: build TestFlight/debug zapisuje się dodatkowo do `test_voiv_*`.
+8. ⏳ Push gałęzi `ios` (po zgodzie) → wynik kompilacji → poprawki.
+9. ⏳ Konta Apple/Firebase i sekrety (użytkownik) → pierwszy build w TestFlight.
+10. ⏳ Zmiana A w backendzie (sesja główna) → test pushy na temat testowy.
 
 **Etap 2 — po pierwszych testach na iPhonach**
 - Wniosek o Critical Alerts (tekst wniosku przygotuję).
@@ -189,8 +197,11 @@ architektury i prywatności).
 
 ---
 
-## 7. Otwarte decyzje użytkownika
-1. `GoogleService-Info.plist` (Firebase iOS): w gicie jak Android czy w GitHub Secrets?
-2. Zgoda na nowy plik `.github/workflows/ios.yml` (na gałęzi `ios`).
-3. Zgoda na `npm install` w `ios-app/` (Capacitor + pakiety, rzędu kilkudziesięciu MB).
-4. Nazwa w App Store („Strażnik” może być zajęta — sprawdzi się przy zakładaniu aplikacji).
+## 7. Decyzje użytkownika (17.09.2026)
+1. `GoogleService-Info.plist` → **GitHub Secrets** (`IOS_GOOGLE_SERVICE_INFO_PLIST_BASE64`),
+   nie w repo; klucz API iOS ograniczony w Google Cloud do `pl.straznik.app`.
+2. `.github/workflows/ios.yml` → **tak, tylko na gałęzi `ios`**.
+3. `npm install` w `ios-app/` → **tak** (99 pakietów, 27 MB, `node_modules` poza gitem).
+4. Zakres → **etap 1**; Critical Alerts, Notification Service Extension, AlarmKit po testach.
+5. Otwarte: nazwa w App Store; żółty alarm `active` czy `time-sensitive`;
+   status handlowca (DSA); publiczne imię i nazwisko sprzedawcy (konto Individual).

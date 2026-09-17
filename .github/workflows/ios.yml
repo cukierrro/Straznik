@@ -1,0 +1,192 @@
+# Strażnik na iPhone — build w chmurze (macOS) i wysyłka do TestFlight.
+#
+# Uruchamia się TYLKO po wypchnięciu gałęzi `ios` (zmiany w ios-app/ lub frontend/).
+# Nie dotyczy Androida, backendu ani strony — ma własny katalog ios-app/.
+#
+# Dwa tryby, wybierane automatycznie:
+#   • SPRAWDZENIE — brak sekretów Apple: kompiluje aplikację bez podpisu, żeby
+#     wiedzieć, że kod się buduje. Nic nie trafia do Apple. Działa od razu.
+#   • TESTFLIGHT — są wszystkie sekrety: podpis w chmurze Apple i wysyłka do
+#     App Store Connect (build pojawia się w TestFlight po kilkunastu minutach).
+#
+# Sekrety (Settings → Secrets and variables → Actions), instrukcja w
+# ios-app/INSTRUKCJA_KONTA_APPLE.md:
+#   APPLE_TEAM_ID                          identyfikator zespołu (10 znaków)
+#   ASC_KEY_ID, ASC_ISSUER_ID              klucz App Store Connect API (rola Admin)
+#   ASC_KEY_P8_BASE64                      plik AuthKey_XXXX.p8 zakodowany base64
+#   IOS_GOOGLE_SERVICE_INFO_PLIST_BASE64   GoogleService-Info.plist zakodowany base64
+#
+# Bezpieczeństwo (repo jest publiczne): sekrety nie są dostępne dla pull requestów
+# z forków, a ten workflow w ogóle nie reaguje na pull requesty. Nic nie jest
+# wypisywane do logu; pliki z kluczami są usuwane na końcu.
+
+name: iOS — build i TestFlight
+
+on:
+  push:
+    branches: [ios]
+    paths:
+      - "ios-app/**"
+      - "frontend/**"
+      - ".github/workflows/ios.yml"
+  # Przycisk „Run workflow” GitHub pokazuje dopiero, gdy ten plik jest też na main.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-build
+  cancel-in-progress: false
+
+jobs:
+  ios:
+    if: github.repository == 'cukierrro/Straznik'
+    runs-on: macos-26
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: ios-app
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Wersja Xcode
+        run: |
+          xcodebuild -version
+          major=$(xcodebuild -version | awk 'NR==1{split($2,v,"."); print v[1]}')
+          # Apple od 28.04.2026 przyjmuje tylko buildy z Xcode 26+ (iOS 26 SDK)
+          if [ "$major" -lt 26 ]; then echo "::error::Potrzebny Xcode 26 lub nowszy"; exit 1; fi
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ios-app/package-lock.json
+
+      - name: Tryb (sprawdzenie czy TestFlight)
+        id: mode
+        env:
+          TEAM: ${{ secrets.APPLE_TEAM_ID }}
+          KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ISSUER: ${{ secrets.ASC_ISSUER_ID }}
+          KEY_P8: ${{ secrets.ASC_KEY_P8_BASE64 }}
+          GSI: ${{ secrets.IOS_GOOGLE_SERVICE_INFO_PLIST_BASE64 }}
+        run: |
+          if [ -n "$TEAM" ] && [ -n "$KEY_ID" ] && [ -n "$ISSUER" ] && [ -n "$KEY_P8" ] && [ -n "$GSI" ]; then
+            echo "mode=testflight" >> "$GITHUB_OUTPUT"
+            echo "Tryb: TESTFLIGHT (podpis i wysyłka do App Store Connect)"
+          else
+            echo "mode=check" >> "$GITHUB_OUTPUT"
+            echo "Tryb: SPRAWDZENIE (brak sekretów Apple — tylko kompilacja bez podpisu)"
+          fi
+
+      - name: Zależności npm
+        run: npm ci --no-audit --no-fund
+
+      - name: Konfiguracja Firebase
+        env:
+          GSI: ${{ secrets.IOS_GOOGLE_SERVICE_INFO_PLIST_BASE64 }}
+        run: |
+          target=ios/App/App/GoogleService-Info.plist
+          if [ "${{ steps.mode.outputs.mode }}" = "testflight" ]; then
+            printf '%s' "$GSI" | base64 --decode > "$target"
+            plutil -lint "$target" >/dev/null || { echo "::error::Sekret IOS_GOOGLE_SERVICE_INFO_PLIST_BASE64 nie jest poprawnym plikiem plist"; exit 1; }
+            bundle=$(/usr/libexec/PlistBuddy -c 'Print :BUNDLE_ID' "$target")
+            if [ "$bundle" != "pl.straznik.app" ]; then echo "::error::GoogleService-Info.plist jest dla innej aplikacji (BUNDLE_ID)"; exit 1; fi
+          else
+            # Atrapa TYLKO do kompilacji — taki build nie jest nigdzie wysyłany.
+            cat > "$target" <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict><key>BUNDLE_ID</key><string>pl.straznik.app</string></dict></plist>
+          PLIST
+          fi
+
+      - name: Kopia frontendu i cap sync
+        run: npm run sync
+
+      - name: Pamięć podręczna pakietów Swift (Firebase)
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/spm
+          key: spm-${{ hashFiles('ios-app/straznik-background/Package.swift', 'ios-app/ios/App/CapApp-SPM/Package.swift') }}
+
+      - name: Kompilacja bez podpisu (sprawdzenie)
+        if: steps.mode.outputs.mode == 'check'
+        run: |
+          set -o pipefail
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release \
+            -destination 'generic/platform=iOS' -clonedSourcePackagesDirPath "$RUNNER_TEMP/spm" \
+            CODE_SIGNING_ALLOWED=NO build 2>&1 | tee "$RUNNER_TEMP/xcodebuild.log" | grep -E "error:|warning: .*Straznik|BUILD (SUCCEEDED|FAILED)" || true
+          grep -q "BUILD SUCCEEDED" "$RUNNER_TEMP/xcodebuild.log"
+
+      - name: Archiwum podpisane w chmurze Apple
+        if: steps.mode.outputs.mode == 'testflight'
+        env:
+          TEAM: ${{ secrets.APPLE_TEAM_ID }}
+          KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ISSUER: ${{ secrets.ASC_ISSUER_ID }}
+          KEY_P8: ${{ secrets.ASC_KEY_P8_BASE64 }}
+        run: |
+          set -o pipefail
+          key="$RUNNER_TEMP/AuthKey_$KEY_ID.p8"
+          printf '%s' "$KEY_P8" | base64 --decode > "$key"
+          chmod 600 "$key"
+          # Numer builda rośnie z czasem (rrMMddGGmm) — Apple wymaga unikalnego numeru
+          build=$(date -u +%y%m%d%H%M)
+          version=$(node -p "require('./package.json').version")
+          echo "Wersja $version, build $build"
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release \
+            -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/Straznik.xcarchive" \
+            -clonedSourcePackagesDirPath "$RUNNER_TEMP/spm" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$key" -authenticationKeyID "$KEY_ID" -authenticationKeyIssuerID "$ISSUER" \
+            DEVELOPMENT_TEAM="$TEAM" MARKETING_VERSION="$version" CURRENT_PROJECT_VERSION="$build" \
+            archive 2>&1 | tee "$RUNNER_TEMP/xcodebuild.log" | grep -E "error:|ARCHIVE (SUCCEEDED|FAILED)" || true
+          grep -q "ARCHIVE SUCCEEDED" "$RUNNER_TEMP/xcodebuild.log"
+
+      - name: Wysyłka do TestFlight
+        if: steps.mode.outputs.mode == 'testflight'
+        env:
+          TEAM: ${{ secrets.APPLE_TEAM_ID }}
+          KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ISSUER: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          set -o pipefail
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
+            <key>teamID</key><string>$TEAM</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>uploadSymbols</key><true/>
+            <key>manageAppVersionAndBuildNumber</key><false/>
+          </dict>
+          </plist>
+          PLIST
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/Straznik.xcarchive" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" -exportPath "$RUNNER_TEMP/export" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$RUNNER_TEMP/AuthKey_$KEY_ID.p8" -authenticationKeyID "$KEY_ID" -authenticationKeyIssuerID "$ISSUER" \
+            2>&1 | tee "$RUNNER_TEMP/export.log" | grep -E "error:|EXPORT (SUCCEEDED|FAILED)|Upload" || true
+          grep -q "EXPORT SUCCEEDED" "$RUNNER_TEMP/export.log"
+          echo "Wysłano. Build pojawi się w App Store Connect → TestFlight po przetworzeniu (zwykle 5–30 min)."
+
+      - name: Log kompilacji (przy błędzie)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcodebuild-log
+          path: |
+            ${{ runner.temp }}/xcodebuild.log
+            ${{ runner.temp }}/export.log
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Sprzątanie kluczy
+        if: always()
+        run: rm -f "$RUNNER_TEMP"/AuthKey_*.p8 ios/App/App/GoogleService-Info.plist
