@@ -39,6 +39,15 @@
   <p class="fineprint">To see which version your phone has, open the app: <kbd>⚙</kbd> → the <kbd>App</kbd> tab → “App version”. The <kbd>⬆ Check for updates</kbd> button is right there too.</p>
 </div></header>
 <main id="content" class="wrap">
+<section id="v1-7-55">
+  <h2>1.7.55 — Full-screen alert reminder and a steadier connection</h2>
+  <p class="fineprint">Release 1.7.55 · 17 September 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.55">Full release notes</a></p>
+  <ul>
+    <li>After every update on Android 14 and later the app shows a one-time “Full-screen alert — check the permission after an update” dialog. Android may turn this permission off when an app from outside the Play Store is updated, and without it a red alert will not wake the locked screen. The “Check permission” button opens the right system toggle. The dialog appears on the next updates, from 1.7.55 onwards.</li>
+    <li>Previously the app could miss this: Android can report the permission as granted when it is not, and the warning banner, once closed, never came back. After an update the banner shows again.</li>
+    <li>When a network (e.g. a corporate one) drops the live connection right after it opens, the app and the website no longer reconnect every second. After three short connections they fetch the state every few seconds and retry the live connection about every 5 minutes. The map keeps refreshing and the server is not flooded.</li>
+  </ul>
+</section>
 <section id="v1-7-54">
   <h2>1.7.54 — Safer updates and a new licence</h2>
   <p class="fineprint">Release 1.7.54 · 17 September 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.54">Full release notes</a></p>

@@ -16,6 +16,17 @@ DOCS = ROOT / "docs"
 # (wersja, data PL, data EN, tytuł PL, tytuł EN, punkty PL, punkty EN, zrzuty)
 # Zrzut: (plik, alt PL, alt EN, podpis PL, podpis EN)
 RELEASES = [
+    ("1.7.55", "17 września 2026", "17 September 2026",
+     "Przypomnienie o alarmie pełnoekranowym i stabilniejsze połączenie",
+     "Full-screen alert reminder and a steadier connection",
+     ["Po każdej aktualizacji na Androidzie 14 i nowszym aplikacja raz pokazuje okno „Alarm pełnoekranowy — sprawdź zgodę po aktualizacji”. Android potrafi wyłączyć tę zgodę przy aktualizacji aplikacji spoza Sklepu Play, a bez niej czerwony alarm nie zapali wygaszonego ekranu. Przycisk „Sprawdź zgodę” otwiera właściwy przełącznik w ustawieniach. Okno pojawi się przy następnych aktualizacjach, od 1.7.55 do kolejnej wersji.",
+      "Wcześniej aplikacja mogła tego nie zauważyć: Android bywa optymistyczny i zgłasza zgodę jako włączoną, a pasek z ostrzeżeniem, raz zamknięty, już nie wracał. Teraz po aktualizacji pasek znów się pokazuje.",
+      "Gdy sieć (np. firmowa) zrywa połączenie na żywo zaraz po jego nawiązaniu, aplikacja i strona nie łączą się już ponownie co sekundę. Po trzech krótkich połączeniach przechodzą na pobieranie stanu co kilka sekund i próbują połączenia na żywo co około 5 minut. Mapa dalej się odświeża, a serwer nie jest zasypywany zapytaniami."],
+     ["After every update on Android 14 and later the app shows a one-time “Full-screen alert — check the permission after an update” dialog. Android may turn this permission off when an app from outside the Play Store is updated, and without it a red alert will not wake the locked screen. The “Check permission” button opens the right system toggle. The dialog appears on the next updates, from 1.7.55 onwards.",
+      "Previously the app could miss this: Android can report the permission as granted when it is not, and the warning banner, once closed, never came back. After an update the banner shows again.",
+      "When a network (e.g. a corporate one) drops the live connection right after it opens, the app and the website no longer reconnect every second. After three short connections they fetch the state every few seconds and retry the live connection about every 5 minutes. The map keeps refreshing and the server is not flooded."],
+     []),
+
     ("1.7.54", "17 września 2026", "17 September 2026",
      "Bezpieczniejsze aktualizacje i nowa licencja",
      "Safer updates and a new licence",

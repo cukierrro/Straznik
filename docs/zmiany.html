@@ -39,6 +39,15 @@
   <p class="fineprint">Wersję zainstalowaną na telefonie sprawdzisz w aplikacji: <kbd>⚙</kbd> → zakładka <kbd>Aplikacja</kbd> → „Wersja aplikacji”. Tam też jest przycisk <kbd>⬆ Sprawdź aktualizacje</kbd>.</p>
 </div></header>
 <main id="content" class="wrap">
+<section id="v1-7-55">
+  <h2>1.7.55 — Przypomnienie o alarmie pełnoekranowym i stabilniejsze połączenie</h2>
+  <p class="fineprint">Wydanie 1.7.55 · 17 września 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.55">Pełny opis wydania</a></p>
+  <ul>
+    <li>Po każdej aktualizacji na Androidzie 14 i nowszym aplikacja raz pokazuje okno „Alarm pełnoekranowy — sprawdź zgodę po aktualizacji”. Android potrafi wyłączyć tę zgodę przy aktualizacji aplikacji spoza Sklepu Play, a bez niej czerwony alarm nie zapali wygaszonego ekranu. Przycisk „Sprawdź zgodę” otwiera właściwy przełącznik w ustawieniach. Okno pojawi się przy następnych aktualizacjach, od 1.7.55 do kolejnej wersji.</li>
+    <li>Wcześniej aplikacja mogła tego nie zauważyć: Android bywa optymistyczny i zgłasza zgodę jako włączoną, a pasek z ostrzeżeniem, raz zamknięty, już nie wracał. Teraz po aktualizacji pasek znów się pokazuje.</li>
+    <li>Gdy sieć (np. firmowa) zrywa połączenie na żywo zaraz po jego nawiązaniu, aplikacja i strona nie łączą się już ponownie co sekundę. Po trzech krótkich połączeniach przechodzą na pobieranie stanu co kilka sekund i próbują połączenia na żywo co około 5 minut. Mapa dalej się odświeża, a serwer nie jest zasypywany zapytaniami.</li>
+  </ul>
+</section>
 <section id="v1-7-54">
   <h2>1.7.54 — Bezpieczniejsze aktualizacje i nowa licencja</h2>
   <p class="fineprint">Wydanie 1.7.54 · 17 września 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.54">Pełny opis wydania</a></p>
