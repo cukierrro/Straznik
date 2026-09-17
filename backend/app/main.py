@@ -59,6 +59,9 @@ _last_broadcast = 0.0
 _broadcast_pending = False
 _ws_message = ""          # gotowa ramka stanu — jedna serializacja dla wszystkich
 _ws_tick = ""             # krótka ramka „zmieniło się" z ETagiem stanu
+# Ile połączeń i jak krótko żyją: komunikat „brak połączenia" pokazuje się po zerwaniu,
+# więc bez tych liczb nie wiadomo, czy ludzie widzą go sporadycznie, czy stale (17.09.2026).
+ws_life = {"accepted": 0, "closed": 0, "short_30s": 0, "short_5min": 0, "sum_s": 0.0}
 # pomiar rozsyłki (17.09.2026): ile trwa i ile bajtów idzie do klientów — bez tego
 # nie wiadomo, czy zacięcia pętli biorą się z kompresji per klient, czy skądinąd
 broadcast_stats = {"count": 0, "clients": 0, "bytes": 0, "last_ms": 0, "max_ms": 0,
@@ -255,6 +258,8 @@ async def ws_endpoint(ws: WebSocket):
         return
     pool = _ws_tick_clients if tick_mode else _ws_clients
     pool.add(ws)
+    ws_life["accepted"] += 1
+    opened = time.monotonic()
     try:
         if not _ws_message:
             refresh_state()
@@ -269,6 +274,13 @@ async def ws_endpoint(ws: WebSocket):
         pass
     finally:
         pool.discard(ws)
+        lived = time.monotonic() - opened
+        ws_life["closed"] += 1
+        ws_life["sum_s"] += lived
+        if lived < 30:
+            ws_life["short_30s"] += 1
+        elif lived < 300:
+            ws_life["short_5min"] += 1
 
 
 # ── REST API ─────────────────────────────────────────────────────────────────
@@ -391,6 +403,8 @@ async def api_health(request: Request):
         "public_cache": {**public_cache.status, "ws_clients": len(_ws_clients),
                          "ws_tick": len(_ws_tick_clients), "ws_max": WS_MAX_CLIENTS},
         "load_guard": load_guard.status,
+        "ws_life": dict(ws_life, avg_s=round(ws_life["sum_s"] / ws_life["closed"])
+                        if ws_life["closed"] else 0),
         "broadcast": dict(broadcast_stats,
                           avg_ms=round(broadcast_stats["sum_ms"] / broadcast_stats["count"], 1)
                           if broadcast_stats["count"] else 0,

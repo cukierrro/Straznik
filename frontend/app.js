@@ -598,11 +598,22 @@ let wsOpenedAt = 0, wsShortLived = 0, wsStableTimer = null;
    traktujemy serwer jak zajęty: odpytujemy /api/state i nie straszymy użytkownika. */
 const WS_BUSY_MS = 60000;
 let wsFailedOpens = 0;
+/* Krótkie zerwanie (przejazd tunelem, zmiana sieci) trwa sekundy i wracało samo,
+   a komunikat zdążył mignąć i straszył. Pokazujemy go dopiero, gdy połączenia nie
+   ma dłużej niż CONN_LOST_DELAY_MS. */
+const CONN_LOST_DELAY_MS = 6000;
+let connLostTimer = null;
 function showConnLost() {
-  connBadge.textContent = UI.isEn ? "server connection lost — retrying…" : "brak połączenia z serwerem — ponawiam…";
-  connBadge.classList.remove("hidden");
+  if (connLostTimer || !connBadge.classList.contains("hidden")) return;
+  connLostTimer = setTimeout(() => {
+    connLostTimer = null;
+    connBadge.textContent = UI.isEn ? "server connection lost — retrying…" : "brak połączenia z serwerem — ponawiam…";
+    connBadge.classList.remove("hidden");
+  }, CONN_LOST_DELAY_MS);
 }
+function clearConnLostTimer() { clearTimeout(connLostTimer); connLostTimer = null; }
 function showBusyPolling() {
+  clearConnLostTimer();
   connBadge.textContent = UI.isEn ? "heavy traffic — map refreshes every few seconds"
                                   : "duży ruch — mapa odświeżana co kilka sekund";
   connBadge.classList.remove("hidden");
@@ -740,6 +751,7 @@ function openBackendWs(base) {
   ws.onopen = () => {
     wsOpenedAt = Date.now();
     wsFailedOpens = 0;
+    clearConnLostTimer();
     connBadge.classList.add("hidden");
     if (busyPoll) { clearInterval(busyPoll); busyPoll = null; }
     clearTimeout(wsStableTimer);
@@ -981,11 +993,12 @@ const MAP_STYLES = [
 
 /* Etykiety mapy zgodne z językiem interfejsu. Kafelki OpenMapTiles niosą
    name:pl/name:en; gdy tłumaczenia brak, zachowujemy nazwę łacińską lub źródłową. */
+const OWN_LABEL_LAYERS = new Set(["threats", "threats-age", "adsb", "adsb-label"]);
 function localiseMapLabels() {
   const field = ["coalesce", ["get", UI.isEn ? "name:en" : "name:pl"],
     ["get", "name:latin"], ["get", "name"]];
   for (const lyr of map.getStyle().layers || []) {
-    if (lyr.type !== "symbol") continue;
+    if (lyr.type !== "symbol" || OWN_LABEL_LAYERS.has(lyr.id)) continue;   // nasze podpisy zostają
     try {
       if (map.getLayoutProperty(lyr.id, "text-field") !== undefined)
         map.setLayoutProperty(lyr.id, "text-field", field);
@@ -1197,7 +1210,8 @@ async function initMap() {
     map.addLayer({ id: "threats-glow", type: "circle", source: "threats",
       paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"], 4, 10, 8, 18],
         "circle-color": ["get", "color"],
-        "circle-opacity": ["case", ["==", ["get", "historicalOnly"], true], 0.07, 0.16],
+        "circle-opacity": ["case", ["==", ["get", "historicalOnly"], true], 0.07,
+          ["interpolate", ["linear"], ["get", "age_min"], 10, 0.16, 60, 0.06]],
         "circle-stroke-color": ["get", "color"], "circle-stroke-opacity": 0.45,
         "circle-stroke-width": 1 } });
     /* Puls: tylko obiekty, które w tej chwili wnoszą punkty do któregoś
@@ -1227,8 +1241,20 @@ async function initMap() {
         "icon-rotate": ["case", ["==", ["get", "hdg_unknown"], true], 0, ["get", "heading"]],
         "icon-rotation-alignment": "map",
         "icon-allow-overlap": true },
-      paint: { "icon-opacity": ["case", ["==", ["get", "historicalOnly"], true], 0.48, 1] },
+      /* Wiek meldunku (17.09.2026): NEPTUN to zgłoszenia ludzi, nie radar — obiekt
+         stoi w miejscu, dopóki ktoś go znowu nie zgłosi. Stary meldunek blednie,
+         żeby nie wyglądał jak świeża, pewna pozycja. */
+      paint: { "icon-opacity": ["case", ["==", ["get", "historicalOnly"], true], 0.48,
+        ["interpolate", ["linear"], ["get", "age_min"], 10, 1, 60, 0.4]] },
     });
+    // podpis z wiekiem meldunku pod ikoną — dopiero gdy zrobił się stary
+    map.addLayer({ id: "threats-age", type: "symbol", source: "threats",
+      filter: [">=", ["get", "age_min"], 5],
+      layout: { "text-field": ["get", "age_label"], "text-size": 10,
+        "text-offset": [0, 1.35], "text-anchor": "top", "text-optional": true,
+        "text-font": ["Noto Sans Regular"] },
+      paint: { "text-color": "#95a1b7", "text-halo-color": "#0b0f1a", "text-halo-width": 1.1,
+        "text-opacity": ["interpolate", ["linear"], ["zoom"], 4, 0, 5, 1] } });
 
     // ślad śledzonej maszyny — pod ikonami samolotów, żeby ich nie zasłaniał
     map.addSource("adsb-trail", { type: "geojson", data: emptyFC() });
@@ -1751,6 +1777,8 @@ function openThreatPopup(lngLat, p) {
         · ${UI.isEn ? "position uncertainty" : "niepewność pozycji"}: <b>±${p.uncertainty} km</b><br>
       ${p.heading != null && !p.hdg_unknown ? `${UI.isEn ? (p.heading_measured ? "heading from movement" : "heading") : (p.heading_measured ? "kurs z ruchu" : "kurs")}: ${Math.round(p.heading)}° (${compass(p.heading)})${p.heading_measured && p.heading_source != null && Math.abs(((p.heading - p.heading_source) % 360 + 540) % 360 - 180) > 45 ? ` <span style="color:#95a1b7">(${UI.isEn ? "NEPTUN reports" : "NEPTUN podaje"} ${Math.round(p.heading_source)}°)</span>` : ""} · ` : ""}
       ${UI.isEn ? "distance from the Polish border" : "odległość od granicy PL"}: <b>${p.distance_text ?? ((p.dist_km ?? "?") + " km")}</b><br>
+      ${UI.isEn ? "last report" : "ostatni meldunek"}: <b>${ageAgoText(p.age_min)}</b>${Number(p.age_min) >= 15
+        ? ` <span style="color:#95a1b7">${UI.isEn ? "— the object may have moved on since" : "— obiekt mógł się od tego czasu przemieścić"}</span>` : ""}<br>
       ${courseVerdictHTML(p)}
       ${p.eta || ""}
       <span style="color:#68758c">${UI.isEn ? "Data: NEPTUN — OSINT aggregator, not military radar" : "Dane: NEPTUN — agregator OSINT, nie radar wojskowy"}</span>`);
@@ -2244,6 +2272,23 @@ function trackSpeed(t) {
    ZMIERZONEJ prędkości i kursie z ruchu, od chwili potwierdzenia w źródle,
    najwyżej 18 km i nie dłużej niż 7 min (później dane uznajemy za nieaktualne). */
 const PREDICT_MAX_KM = 18, PREDICT_MAX_S = 420;
+/* Ile minut od ostatniego meldunku o obiekcie (NEPTUN potwierdza zgłoszeniami). */
+function threatAgeMin(t, nowMs) {
+  const seen = Date.parse(t.confirmedAt || t.updatedAt || "");
+  if (!seen) return 0;
+  return Math.max(0, Math.round((nowMs - seen) / 60000));
+}
+function ageAgoText(min) {
+  const m = Number(min);
+  if (!Number.isFinite(m) || m < 1) return UI.isEn ? "just now" : "przed chwilą";
+  return ageLabel(m) + (UI.isEn ? " ago" : " temu");
+}
+function ageLabel(min) {
+  if (min < 60) return `${min} min`;
+  const h = Math.floor(min / 60), m = min % 60;
+  return m ? `${h} h ${m} min` : `${h} h`;
+}
+
 function predict(t, nowMs) {
   let lat = t.lat, lon = t.lon;
   if (isApproxPosition(t)) return { lat, lon };
@@ -2342,6 +2387,7 @@ function animate(ts) {
     // z ruchu ma pierwszeństwo — ikona, przesuwanie i karta mówią to samo.
     const mh = measuredHeading(t);
     const shownHdg = mh ?? t.heading;
+    const ageMin = threatAgeMin(t, now);
     pts.push({ type: "Feature", geometry: { type: "Point", coordinates: [p.lon, p.lat] },
       properties: { tid: String(t.id ?? ""),
         type: TYPE_META[t.type] ? t.type : "unknown", heading: shownHdg ?? 0,
@@ -2357,6 +2403,7 @@ function animate(ts) {
         toward_pl: t.pl_assessment?.toward_pl === true,
         heading_known: t.pl_assessment?.heading_known !== false,
         counted: countedTracks.has(String(t.id ?? "")),
+        age_min: ageMin, age_label: ageLabel(ageMin),
         course_off: courseOffsetDeg(t),
         eta: etaHtml(t) } });
     const uncKm = shownUncertaintyKm(t);
