@@ -576,9 +576,17 @@ techniczne.
 
 ## Licencja
 
-[MIT](LICENSE) — możesz używać, zmieniać i rozpowszechniać kod, zachowując
-informację o autorstwie. Oprogramowanie jest udostępniane „tak jak jest",
-bez gwarancji: to nieoficjalne źródło dodatkowe, nie system ratunkowy.
+Od wersji 1.7.54: **wszelkie prawa zastrzeżone** ([LICENSE](LICENSE)). Aplikację możesz
+bezpłatnie pobierać i używać, a kod czytać i zgłaszać do niego uwagi. Kopiowanie kodu,
+wydawanie zmienionych wersji albo udostępnianie funkcji aplikacji innym wymaga pisemnej
+licencji od autora — dotyczy to także firm, organizacji i instytucji publicznych.
+Licencje dla firm i instytucji: zgłoszenie (Issue) w repozytorium.
+
+Wersje do 1.7.53 włącznie pozostają na licencji MIT. Biblioteki, mapy, zdjęcia i dane
+innych podmiotów mają własne licencje — zob. [NOTICE](NOTICE).
+
+Oprogramowanie jest udostępniane „tak jak jest", bez gwarancji: to nieoficjalne źródło
+dodatkowe, nie system ratunkowy.
 
 ## Dane i atrybucja
 

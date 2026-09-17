@@ -1,21 +1,85 @@
-MIT License
+Strażnik — zasady korzystania z kodu i aplikacji
+(obowiązują od wersji 1.7.54)
 
-Copyright (c) 2026 cukierrro
+Copyright © 2026 cukierrro. Wszelkie prawa zastrzeżone.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+1. ZAKRES
+   Wersje do 1.7.53 włącznie zostały udostępnione na licencji MIT i na tej licencji
+   pozostają. Poniższe zasady obejmują kod i inne materiały autora dodane lub zmienione
+   po wydaniu wersji 1.7.53.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+2. CO WOLNO BEZ PYTANIA
+   a) pobierać, instalować i używać oficjalnych wydań aplikacji — publikowanych przez
+      autora w tym repozytorium, na stronie projektu lub w sklepach z aplikacjami —
+      bezpłatnie, na własnych urządzeniach;
+   b) czytać kod źródłowy, aby sprawdzić, jak działa aplikacja, oraz zgłaszać błędy
+      i propozycje zmian;
+   c) oglądać repozytorium i tworzyć jego fork w serwisie GitHub w zakresie, w jakim
+      wymaga tego regulamin GitHub.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+3. CO WYMAGA PISEMNEJ LICENCJI OD AUTORA
+   Bez względu na to, czy robi to osoba prywatna, firma, organizacja, samorząd czy
+   instytucja państwowa, i czy odpłatnie, czy nieodpłatnie:
+   a) kopiowanie kodu, w całości lub w części, do innych projektów;
+   b) zmienianie kodu i rozpowszechnianie zmienionych wersji;
+   c) rozpowszechnianie aplikacji lub jej części pod inną nazwą albo innymi kanałami
+      niż oficjalne;
+   d) udostępnianie funkcji aplikacji innym jako usługi (strona internetowa, serwer,
+      aplikacja wykonana na zlecenie);
+   e) wykorzystanie kodu do stworzenia aplikacji o tym samym lub podobnym przeznaczeniu.
+
+4. LICENCJE I PRZENIESIENIE PRAW
+   Autor może udzielić licencji — także odpłatnej, dla firm i instytucji — albo przenieść
+   prawa na podstawie odrębnej, pisemnej umowy. Kontakt: zgłoszenie (Issue)
+   w repozytorium projektu.
+
+5. POPRAWKI OD INNYCH OSÓB
+   Zgłaszając poprawkę (pull request) lub inny wkład, zgadzasz się, że autor może go
+   wykorzystać w aplikacji i udzielać na niego licencji innym, także odpłatnie.
+
+6. SKŁADNIKI I DANE INNYCH PODMIOTÓW
+   Biblioteki, dane, mapy i zdjęcia pochodzące od innych podmiotów podlegają własnym
+   licencjom, wymienionym w pliku NOTICE. Te zasady ich nie zmieniają.
+
+7. BRAK GWARANCJI
+   Aplikacja jest udostępniana „tak jak jest”, bez żadnych gwarancji. To nieoficjalne,
+   dodatkowe źródło informacji, a nie system ratunkowy ani ostrzegawczy państwa.
+   W zakresie dozwolonym przez prawo autor nie odpowiada za szkody wynikłe z korzystania
+   z aplikacji lub z braku możliwości korzystania z niej.
+
+8. PRZEPISY PRAWA
+   Zasady te nie ograniczają uprawnień, których nie można wyłączyć na mocy
+   obowiązujących przepisów prawa.
+
+--------------------------------------------------------------------------------
+
+Strażnik — terms for the code and the app (English translation)
+(apply from version 1.7.54; the Polish version prevails)
+
+Copyright © 2026 cukierrro. All rights reserved.
+
+1. Versions up to and including 1.7.53 were released under the MIT License and remain
+   under it. These terms cover code and other material by the author added or changed
+   after release 1.7.53.
+2. Without asking you may: (a) download, install and use official releases of the app
+   free of charge on your own devices; (b) read the source code to check how the app
+   works and report bugs or suggest changes; (c) view and fork the repository on GitHub
+   to the extent required by GitHub's terms.
+3. A written licence from the author is required — whether you are an individual,
+   a company, an organisation, a local or national government body, and whether paid
+   or free — to: (a) copy the code, in whole or in part, into other projects; (b) modify
+   the code and distribute modified versions; (c) distribute the app or its parts under
+   another name or through channels other than the official ones; (d) provide the app's
+   functions to others as a service; (e) use the code to create an app with the same or
+   a similar purpose.
+4. The author may grant licences, including paid licences for companies and
+   institutions, or transfer rights under a separate written agreement. Contact:
+   an Issue in the project repository.
+5. By submitting a contribution you agree that the author may use it in the app and
+   license it to others, including for a fee.
+6. Third-party libraries, data, maps and photos remain under their own licences, listed
+   in NOTICE.
+7. Provided "as is", without warranty of any kind. An unofficial, supplementary source
+   of information, not an emergency or state warning system. To the extent permitted by
+   law the author is not liable for any damages.
+8. These terms do not limit rights that cannot be excluded under applicable law.

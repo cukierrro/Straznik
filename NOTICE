@@ -1,0 +1,23 @@
+Strażnik — składniki i dane innych podmiotów
+
+Zasady z pliku LICENSE dotyczą wyłącznie kodu i materiałów autora. Poniższe
+składniki i dane pozostają na licencjach ich właścicieli.
+
+Biblioteki
+- MapLibre GL JS (frontend/assets/vendor) — licencja BSD-3-Clause
+- Capacitor (@capacitor/*, aplikacja Android) — licencja MIT
+- Biblioteki serwera (backend/requirements.txt: FastAPI, Uvicorn, HTTPX, websockets,
+  feedparser, pywebpush, firebase-admin, python-dotenv, truststore i ich zależności)
+  — licencje ich autorów (MIT, BSD, Apache-2.0)
+
+Mapy i granice
+- OpenStreetMap — © współtwórcy OpenStreetMap, ODbL
+- Podkład mapy OpenFreeMap / OpenMapTiles, CARTO — zgodnie z ich warunkami
+- Granice krajów Natural Earth — domena publiczna
+
+Zdjęcia
+- Zdjęcia samolotów (frontend/aircraft-photo-catalog.js) — licencje podane przy
+  każdym zdjęciu (m.in. CC BY, CC BY-SA, CC0, domena publiczna)
+
+Dane
+- Źródła danych i wymagana atrybucja: sekcja „Dane i atrybucja” w README.md

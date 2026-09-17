@@ -8,7 +8,8 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "SEE LICENSE IN ../LICENSE",
+  "private": true,
   "type": "commonjs",
   "dependencies": {
     "@capacitor/android": "^8.4.2",
