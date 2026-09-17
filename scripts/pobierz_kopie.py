@@ -16,15 +16,12 @@ Użycie:  py scripts/pobierz_kopie.py [katalog]
 """
 import io
 import json
-import re
 import sys
 import time
 from pathlib import Path
 
-import paramiko
+import vps_ssh
 
-ENV = Path(r"C:\Users\PC\Desktop\ZSP6 pliki\ZSP6_pliki_link\api\.env")
-HOST, PORT, USER = "robert154.mikrus.xyz", 10154, "root"
 REMOTE = "/var/backups/straznik"
 LOCAL = Path(sys.argv[1]) if len(sys.argv) > 1 else Path.home() / "Documents" / "Straznik-kopie"
 LOG = LOCAL / "pobieranie.log"
@@ -38,18 +35,8 @@ def log(msg: str):
         f.write(line + "\n")
 
 
-def password() -> str:
-    for line in io.open(ENV, encoding="utf-8", errors="ignore"):
-        m = re.match(r"\s*VPS_PASSWORD\s*=\s*(.+?)\s*$", line)
-        if m:
-            return m.group(1).strip().strip('"').strip("'")
-    raise SystemExit("brak VPS_PASSWORD w .env")
-
-
 def main() -> int:
-    cli = paramiko.SSHClient()
-    cli.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    cli.connect(HOST, port=PORT, username=USER, password=password(), timeout=30)
+    cli = vps_ssh.connect()   # klucz + przypięty klucz hosta, bez hasła
     sftp = cli.open_sftp()
     try:
         remote = {a.filename: a.st_size for a in sftp.listdir_attr(REMOTE)

@@ -17,12 +17,9 @@ import json
 import re
 import sys
 import time
-from pathlib import Path
 
-import paramiko
+import vps_ssh
 
-ENV = Path(r"C:\Users\PC\Desktop\ZSP6 pliki\ZSP6_pliki_link\api\.env")
-HOST, PORT, USER = "robert154.mikrus.xyz", 10154, "root"
 
 REMOTE_WRITE = r'''
 import re, sys
@@ -40,23 +37,13 @@ print("zapisano")
 '''
 
 
-def password() -> str:
-    for line in io.open(ENV, encoding="utf-8", errors="ignore"):
-        m = re.match(r"\s*VPS_PASSWORD\s*=\s*(.+?)\s*$", line)
-        if m:
-            return m.group(1).strip().strip('"').strip("'")
-    raise SystemExit("brak VPS_PASSWORD w .env")
-
-
 def main() -> int:
     url = getpass.getpass("Wklej adres pingu z Healthchecks.io (nie będzie widoczny) i Enter: ").strip()
     if url and not re.fullmatch(r"https://hc-ping\.com/[A-Za-z0-9/_-]+", url):
         print("To nie wygląda na adres pingu (powinien zaczynać się od https://hc-ping.com/). Przerywam.")
         return 1
 
-    cli = paramiko.SSHClient()
-    cli.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    cli.connect(HOST, port=PORT, username=USER, password=password(), timeout=30)
+    cli = vps_ssh.connect()   # klucz + przypięty klucz hosta, bez hasła
 
     def run(cmd: str, stdin_text: str | None = None, timeout: int = 60) -> str:
         i, o, e = cli.exec_command(cmd, timeout=timeout)
