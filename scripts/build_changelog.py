@@ -16,6 +16,17 @@ DOCS = ROOT / "docs"
 # (wersja, data PL, data EN, tytuł PL, tytuł EN, punkty PL, punkty EN, zrzuty)
 # Zrzut: (plik, alt PL, alt EN, podpis PL, podpis EN)
 RELEASES = [
+    ("1.7.60", "17 września 2026", "17 September 2026",
+     "Widać, jak stary jest meldunek",
+     "You can see how old each report is",
+     ["Pod ikoną drona albo rakiety pojawia się wiek ostatniego meldunku, np. „7 min”, a sama ikona stopniowo blednie: od dziesięciu minut do godziny. Karta obiektu ma teraz linię „ostatni meldunek”, a przy meldunku starszym niż kwadrans dopisek, że obiekt mógł się od tego czasu przemieścić.",
+      "Po co: NEPTUN zbiera zgłoszenia ludzi, nie odczyty radaru. Obiekt stoi w tym samym miejscu, dopóki ktoś nie zgłosi go ponownie, a czasem kolejnego zgłoszenia nie ma wcale. Pomiar z 17 września: w ciągu dziesięciu minut pozycję zmienił jeden obiekt z czternastu. Nieruchoma ikona to brak nowych zgłoszeń, a nie zawieszona mapa.",
+      "Komunikat „brak połączenia z serwerem” pokazuje się dopiero po sześciu sekundach bez połączenia. Wcześniej migał także wtedy, gdy telefon wracał z tła i połączenie wracało po sekundzie."],
+     ["Under a drone or missile icon there is now the age of the last report, for example “7 min”, and the icon fades gradually between ten minutes and an hour. The object card has a “last report” line and, past a quarter of an hour, adds that the object may have moved on since.",
+      "Why: NEPTUN collects human reports, not radar returns. An object stays where it was until someone reports it again, and sometimes no further report arrives. Measured on 17 September: one object out of fourteen changed position within ten minutes. A motionless icon means no new reports, not a frozen map.",
+      "The “server connection lost” notice now waits six seconds. Before, it also flashed when the phone came back from the background and the connection returned within a second."],
+     []),
+
     ("1.7.59", "17 września 2026", "17 September 2026",
      "Lżejsze połączenie na żywo",
      "A lighter live connection",
