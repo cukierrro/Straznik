@@ -347,6 +347,39 @@ z podtytułem „Nieoficjalna mapa zagrożeń”.
 3. **Nowy build** po tych zmianach i wybranie go w sekcji „Build”.
 4. Opcjonalnie: podnieść ocenę wieku do 13+ („Override to Higher Age Rating”),
    jeśli 9+ wydaje się za niskie dla treści o zagrożeniach.
+
+---
+
+## 11. Prawa do treści osób trzecich — sprawdzone 18.09.2026
+
+W App Store Connect zadeklarowano: **„Yes, it contains, shows, or accesses
+third-party content, and I have the necessary rights”**. Podstawy:
+
+| Źródło | Stan |
+|---|---|
+| RCB, RSO | komunikaty urzędowe — polskie prawo autorskie nie obejmuje materiałów urzędowych |
+| PAŻP, ADS-B | fakty (strefy, pozycje), nie utwory |
+| Media | pokazujemy tytuł + link do wydawcy, bez treści artykułu |
+| OpenFreeMap / OpenStreetMap | wymagana atrybucja — jest w stopce mapy |
+| **NEPTUN** | **`https://neptun.in.ua/api-terms` (akt. 9.07.2026): API bezpłatne, bez klucza, użycie komercyjne dozwolone**, pod trzema warunkami (niżej) |
+| Zdjęcia maszyn | 61 zdjęć z Wikimedia Commons: CC BY-SA 2.0/3.0/4.0, CC BY, CC0, domena publiczna, OGL v1.0; aplikacja pokazuje autora, licencję i link do źródła (`app.js` ~1827) |
+
+### Warunki NEPTUN-a i jak je spełniamy
+1. **Widoczny link do NEPTUN-a** przy mapie/danych — jest: pasek „Dane: NEPTUN”
+   z odnośnikiem do `neptun.in.ua` (widać go na zrzutach do sklepu). ✔
+2. **Nie częściej niż raz na 5 s po REST**, a najlepiej WebSocket — backend trzyma
+   WebSocket, REST tylko awaryjnie co 10 s (`config.NEPTUN_REST_INTERVAL`);
+   tryb awaryjny w aplikacji też łączy się po WebSocket. ✔
+3. **Jasna informacja, że to nie oficjalny system, i odesłanie do oficjalnych
+   syren** — disclaimer w aplikacji, w opisie i w każdym powiadomieniu. ✔
+
+Pozostałe zapisy NEPTUN-a: tylko odczyt (GET/WS) — tak działamy; brak gwarancji;
+nazwa i logo NEPTUN nie są przekazywane razem z danymi — używamy wyłącznie nazwy
+jako atrybucji, bez logo. Kontakt do projektu: bot pomocy na Telegramie
+(strona `neptun.in.ua/contact`); brak adresu e-mail i podmiotu prawnego.
+
+**Ocena wieku po zmianie 18.09:** 13+ (172 kraje), 12+ Wietnam i Korea,
+A14 Brazylia — podniesione ręcznie z wyliczonego 9+.
 ## Źródła wymagań (sprawdzone 17.09.2026)
 - Screenshot specifications — developer.apple.com/help/app-store-connect/reference/screenshot-specifications
 - App information / Platform version information (limity pól) — developer.apple.com/help/app-store-connect
