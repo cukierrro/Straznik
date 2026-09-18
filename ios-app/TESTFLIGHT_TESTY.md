@@ -127,6 +127,8 @@ Testerka: Karolina (grupa „Testerzy”, build 2609181725).
 | To samo przy wyciszonym telefonie | wibracja + baner, **bez dźwięku** (ograniczenie iOS) |
 | To samo w trybie **Sen** | **nic nie dotarło** do odblokowania telefonu |
 | Przełącznik „pełna głośność czerwonego alarmu” | wraca na wyłączony (iOS nie pozwala) |
+| Tryby Skupienia po dopuszczeniu Strażnika w Ustawieniach | alarm **dochodzi we wszystkich trybach** |
+| Test alarmu przy aplikacji **wyrzuconej z listy ostatnich** | **działa** — powiadomienie przychodzi mimo zamkniętej aplikacji |
 
 **Wniosek 1 — do instrukcji i do aplikacji:** żeby alarm przebił tryb Skupienia,
 użytkownik musi mieć włączone „Powiadomienia czasowo zależne” dla Strażnika
@@ -134,6 +136,11 @@ użytkownik musi mieć włączone „Powiadomienia czasowo zależne” dla Stra�
 Skupienia (Ustawienia → Skupienie → Sen → Aplikacje). Bez tego iOS wstrzymuje
 powiadomienie do odblokowania telefonu. Aplikacja umie to wykryć — zmiana B4
 w `POTRZEBNE_ZMIANY_WSPOLNE.md`.
+
+**Wniosek 1a — do instrukcji użytkownika (docs) i ekranu „O aplikacji”:** dopuszczenie
+Strażnika w trybach Skupienia trzeba wykonać **ręcznie raz**; testerka musiała to
+zrobić sama, zanim alarm zaczął przechodzić. Bez tego iOS wstrzymuje powiadomienie
+do odblokowania telefonu. Do opisania prostym językiem, ze ścieżką klikania.
 
 **Wniosek 2 — mocniejszy argument do wniosku o Critical Alerts:** bez tego
 uprawnienia nocny alarm przy wyciszonym telefonie jest bezgłośny. Warto dopisać
