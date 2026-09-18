@@ -12,7 +12,8 @@ from fastapi.staticfiles import StaticFiles
 
 from . import (alert_log, app_updates, by_entry_shadow, config, db, escalation_shadow, fusion, load_guard,
                monitoring, notify, public_cache, rcb_reference, request_limits)
-from .collectors import adsb, by_media_shadow, neighbours, neptun, official_alerts, pansa, rcb, ro_shadow, rso, rss_media
+from .collectors import (adsb, by_media_shadow, mapa_ua_shadow, neighbours, neptun,
+                         official_alerts, pansa, rcb, ro_shadow, rso, rss_media)
 from .neptun_archive import source_metadata
 
 logging.basicConfig(level=logging.INFO,
@@ -391,6 +392,7 @@ async def api_health(request: Request):
         "official_alerts": official_alerts.status,
         "ro_shadow": ro_shadow.status,
         "by_media_shadow": by_media_shadow.status,
+        "mapa_ua_shadow": mapa_ua_shadow.status,
         "by_entry_shadow": by_entry_shadow.status,
         "request_limits": request_limits.status,
         "notify": {"ntfy": config.NTFY_ENABLED and bool(config.NTFY_TOPIC),
@@ -535,6 +537,7 @@ async def startup():
         "adsb": adsb.run, "pansa": pansa.run, "neighbours": neighbours.run,
         "official_alerts": official_alerts.run, "ro_shadow": ro_shadow.run,
         "by_media_shadow": by_media_shadow.run,
+        "mapa_ua_shadow": mapa_ua_shadow.run,
         "snapshots": snapshot_loop,
         "progression_shadow": progression_shadow_loop, "levels": level_loop,
         "state": state_loop, "heartbeat": monitoring.heartbeat_loop,
