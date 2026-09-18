@@ -9,7 +9,7 @@ Androidzie.
 **Formularz:** developer.apple.com/contact/request/notifications-critical-alerts-entitlement
 (wymaga zalogowania na konto Apple Developer).
 
-**Kiedy wysłać:** najlepiej **po** pierwszym buildzie w TestFlight — Apple często
+**Kiedy wysłać:** **teraz** — build 1.7.57 (2609181725) jest w TestFlight od 18.09.2026, a Apple zwykle pyta o działającą wersję. Wcześniej planowaliśmy wysłać po pierwszym buildzie — Apple często
 pyta o działającą wersję i konto testera. Wniosek można złożyć raz i ponowić.
 
 **Szanse:** niepewne. Apple przyznaje to uprawnienie głównie aplikacjom
@@ -39,6 +39,15 @@ bez zgody nie przejdzie podpisu i przeglądu.
 > OSINT reports of drones and missiles over Ukraine, and regional media reports.
 > The app states clearly, on the first screen and in every alert, that it is an
 > unofficial additional source and does not replace sirens, RCB or RSO.
+>
+> **What we measured on a real iPhone (18 September 2026)**
+> The app is already on TestFlight and a tester went through the notification
+> paths. With the ringer on, the red alert arrives on the Lock Screen with our
+> siren, including inside Focus modes once the app is allowed there. With the
+> ringer switched to silent, the same alert is delivered **without any sound** —
+> only a banner and a vibration. For a night-time air-raid warning that is the
+> difference between waking up and sleeping through it, and it is the one gap we
+> cannot close with Time Sensitive notifications.
 >
 > **Why we need Critical Alerts**
 > Poland has repeatedly been affected by airborne incidents: drones and missile
@@ -95,3 +104,22 @@ Najczęstsze pytania i nasze odpowiedzi (do użycia w korespondencji):
 | Czy jesteście służbą albo współpracujecie z rządem? | Nie. Aplikacja jest nieoficjalna i tak się przedstawia. Korzysta z publicznych komunikatów RCB/RSO i publicznych danych o przestrzeni powietrznej. |
 | Jak zapobiegacie fałszywym alarmom? | Wymagana suma punktów z kilku niezależnych źródeł, limity punktów na klasę źródła, wygaszanie starych sygnałów, odstęp 10 minut, dziennik alarmów. Zasady opisane publicznie w instrukcji. |
 | Konto testowe? | Nie ma kont. Wystarczy wybrać województwo w Ustawieniach; w aplikacji jest przycisk „Test: czerwony natywny”, który pokazuje prawdziwe powiadomienie. |
+
+---
+
+## Jak wysłać (krok po kroku)
+
+1. Zaloguj się na developer.apple.com i otwórz formularz:
+   `https://developer.apple.com/contact/request/notifications-critical-alerts-entitlement/`
+2. Wypełnij: App Name **Strażnik: alarm powietrzny**, Bundle ID **pl.straznik.app**,
+   Apple ID aplikacji **6813563009**, platforma iOS.
+3. W polu opisu wklej tekst z sekcji „Treść wniosku” powyżej (po angielsku).
+4. Jeśli formularz pyta o wersję do sprawdzenia — podaj, że aplikacja jest
+   w TestFlight i możesz dodać recenzenta jako testera.
+5. Odpowiedź przychodzi mailem; bywa, że po kilku tygodniach. Do tego czasu
+   **nie włączamy** `critical` ani w `App.entitlements`, ani na serwerze —
+   build z tym uprawnieniem bez zgody nie przejdzie podpisu.
+
+Jeśli Apple odmówi: zostaje Time Sensitive (działa, potwierdzone na urządzeniu)
+plus jasna informacja w instrukcji, że przy wyciszonym telefonie alarm będzie
+tylko wibracją i banerem.
