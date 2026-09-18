@@ -106,6 +106,9 @@ copy /y "%REPO%\frontend\i18n.js" "%APP%\www\i18n.js" >nul
 copy /y "%REPO%\frontend\aircraft-photo-catalog.js" "%APP%\www\aircraft-photo-catalog.js" >nul
 copy /y "%REPO%\frontend\aircraft-photos.js" "%APP%\www\aircraft-photos.js" >nul
 copy /y "%REPO%\frontend\places.js" "%APP%\www\places.js" >nul
+rem 18.09.2026: kontur Polski i manifest byly pomijane - APK wozil stary ksztalt granicy (zgloszone przez sesje iOS)
+copy /y "%REPO%\frontend\pl-outline.js" "%APP%\www\pl-outline.js" >nul
+copy /y "%REPO%\frontend\manifest.json" "%APP%\www\manifest.json" >nul
 xcopy /e /y /q "%REPO%\frontend\assets" "%APP%\www\assets\" >nul
 pushd "%APP%"
 call npx cap sync android > "%OUT%\3_capsync.txt" 2>&1

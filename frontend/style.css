@@ -30,6 +30,9 @@
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 .native-app .web-only { display: none !important; }
+/* iPhone: zasady App Store zabraniają linków do płatności poza aplikacją (3.1.1a),
+   a przełączniki głośności i pełnego ekranu nie mają tam odpowiednika w systemie. */
+.ios-app .no-ios, .ios-app .android-only { display: none !important; }
 .web-app .app-only { display: none !important; }
 html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--text);
   font-family: "Segoe UI", system-ui, sans-serif; }

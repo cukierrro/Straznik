@@ -26,6 +26,9 @@ fcm_status = {"ready": False, "last_ok": None, "last_error": None, "sent": 0,
 # Alarm jest ważny minuty, nie tygodnie. Domyślny TTL w FCM to 4 tygodnie, więc
 # telefon po nocy offline dostawał pełnoekranową syrenę o zdarzeniu sprzed godzin.
 FCM_TTL_S = 900
+# iOS: ładunek APNs ma twardy limit 4096 bajtów, a FCM wkłada do niego także całe
+# `data`. Powiadomienie iPhone'a budujemy z zapasem i przycinamy powody.
+APNS_PAYLOAD_BUDGET = 3700
 FCM_RETRIES = 3
 # Audyt bezpieczeństwa 16.09.2026: FCM i Web Push dzieliły domyślną pulę wątków, więc
 # zalew (fałszywych) subskrypcji Web Push kolejkował wysyłkę alarmu do aplikacji.
@@ -59,6 +62,74 @@ def init_fcm():
         log.warning("FCM init błąd: %s", e)
 
 
+def _apns_config(topic: str, data: dict):
+    """Powiadomienie dla iPhone'a — Android ten blok ignoruje.
+
+    Android dostaje wiadomość data-only i sam buduje alarm (StraznikFcmService).
+    Na iOS data-only przy zamkniętej aplikacji nie wyświetla niczego i nie budzi
+    aplikacji, więc tytuł, treść i dźwięk musi podać serwer. Tekst jak w
+    Alarms.postAlarm na Androidzie. Zwraca None, gdy `data` jest tak duże, że
+    ładunek nie zmieściłby się w limicie — wtedy wysyłamy wiadomość bez bloku
+    iOS, żeby nie stracić alarmu na Androidzie.
+    """
+    from firebase_admin import messaging
+
+    def size(value) -> int:
+        return len(json.dumps(value, ensure_ascii=False).encode())
+
+    level = data.get("level", "")
+    high = level == "high"
+    title = (("TEST — " if topic.startswith(config.TEST_TOPIC_PREFIX) else "")
+             + f"{LEVEL_LABELS.get(level, level)}: woj. {data.get('voiv', '')}"
+               f" ({data.get('score', '')} pkt)")
+    tail = [("Co zrobić: przejdź do schronu lub pomieszczenia bez okien i śledź komunikaty RCB."
+             if high else "Co zrobić: zachowaj czujność i sprawdź komunikaty RCB."),
+            "NIEOFICJALNE źródło — kieruj się syrenami, RCB i RSO."]
+    # ~400 bajtów na klucze aps, dźwięk, thread-id i identyfikatory dokładane przez FCM
+    used = size(data) + size(title) + size("\n".join(tail)) + 400
+    if used > APNS_PAYLOAD_BUDGET:
+        log.warning("FCM %s: data %d B — pomijam blok iOS, żeby nie stracić wysyłki",
+                    topic, size(data))
+        return None
+    lines = []
+    reasons = [x.strip() for x in (data.get("reasons") or "").split("\n") if x.strip()][:4]
+    for line in ([data["headline"]] if data.get("headline") else []) + reasons:
+        if used + size(line) > APNS_PAYLOAD_BUDGET:
+            break
+        lines.append(line)
+        used += size(line)
+    return messaging.APNSConfig(
+        headers={
+            "apns-priority": "10",                                 # natychmiast
+            "apns-push-type": "alert",
+            "apns-expiration": str(int(time.time()) + FCM_TTL_S),   # jak ttl Androida
+            "apns-collapse-id": topic,                             # jak collapse_key
+        },
+        payload=messaging.APNSPayload(aps=messaging.Aps(
+            alert=messaging.ApsAlert(title=title, body="\n".join(lines + tail)),
+            # dźwięki dołączone do aplikacji iOS (kopie res/raw z Androida)
+            sound="alarm_syrena.wav" if high else "alert_uwaga.wav",
+            thread_id=topic,
+            # firebase-admin 7.5 nie ma pola interruption_level — idzie przez custom_data.
+            # Czerwony jako „time-sensitive" przebija tryb Skupienia, żółty jako
+            # „active" nie budzi w nocy (decyzja 18.09.2026).
+            custom_data={
+                "interruption-level": "time-sensitive" if high else "active",
+                "relevance-score": 1.0 if high else 0.6,
+            },
+        )),
+    )
+
+
+def _apns_safe(topic: str, data: dict):
+    """_apns_config, ale żaden jego błąd nie przewraca wysyłki na Androida."""
+    try:
+        return _apns_config(topic, data)
+    except Exception as exc:                      # noqa: BLE001
+        log.warning("FCM %s: blok iOS pominięty (%r)", topic, exc)
+        return None
+
+
 def _send_fcm_sync(topic: str, data: dict) -> str:
     from datetime import timedelta
     from firebase_admin import messaging
@@ -79,6 +150,9 @@ def _send_fcm_sync(topic: str, data: dict) -> str:
             collapse_key=topic,
             direct_boot_ok=True,
         ),
+        # tylko iPhone: FCM wysyła ten blok wyłącznie na iOS. Błąd w budowaniu
+        # powiadomienia iOS nie może zabrać alarmu Androidowi — stąd osłona.
+        apns=_apns_safe(topic, data),
     )
     return messaging.send(msg)
 

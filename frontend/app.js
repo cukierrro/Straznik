@@ -9,6 +9,10 @@ const IS_APP = location.protocol === "capacitor:" || location.protocol === "file
 // Przycisk instalacyjny jest przeznaczony dla strony WWW. W zainstalowanej
 // aplikacji aktualizacje obsługuje osobny mechanizm w Ustawieniach.
 if (IS_APP) document.querySelectorAll(".web-only").forEach(el => { el.hidden = true; });
+/* iPhone: brak APK i aktualizacji spoza App Store, brak sterowania głośnością,
+   brak linków do wsparcia autora (App Store 3.1.1a). Klasę ios-app ustawia
+   index.html jeszcze przed pierwszym renderem. */
+const IS_IOS = IS_APP && window.Capacitor?.getPlatform?.() === "ios";
 const DEFAULT_BACKEND = "https://straznik.eu";   // serwer fuzji Strażnika (VPS przez Cloudflare)
 /* Starszy WebView (Android bez aktualizacji, 15.09.2026 audyt): AbortSignal.timeout
    jest od Chrome 103 — bez niego nie ładowały się strefy PAŻP ani dziennik ADS-B. */
@@ -4779,6 +4783,13 @@ async function refreshBgStatus(previewLang = UI.lang) {
     if (s.fullScreenAllowed === false)
       warn.push(isEn ? "⚠ Full-screen alert permission is missing — a red alert will not wake the screen. Enable it below."
         : "⚠ Brak zgody na alarm pełnoekranowy — czerwony alarm nie zapali wygaszonego ekranu. Włącz przyciskiem 🚨 poniżej.");
+    /* Potwierdzone na iPhonie 18.09.2026: w trybie Sen czerwony alarm nie dotarł
+       do odblokowania telefonu, dopóki Strażnik nie został dopuszczony w
+       Ustawienia → Skupienie → Sen → Aplikacje. iOS wymaga zgody na powiadomienia
+       czasowo zależne osobno dla aplikacji i osobno dla trybu Skupienia. */
+    if (s.platform === "ios" && s.notificationsAllowed && s.timeSensitiveAllowed === false)
+      warn.push(isEn ? "⚠ “Time Sensitive Notifications” are off for Strażnik — a red alert may stay silent in Focus mode. Settings → Strażnik → Notifications."
+        : "⚠ „Powiadomienia czasowo zależne” są wyłączone dla Strażnika — czerwony alarm może nie przebić trybu Skupienia. Ustawienia → Strażnik → Powiadomienia.");
     if (s.topicsError)
       warn.push(isEn ? "⚠ Some alert subscriptions were not confirmed yet — keep the app open with internet for a moment."
         : "⚠ Część subskrypcji alarmów nie została jeszcze potwierdzona — zostaw aplikację chwilę otwartą z internetem.");
@@ -4787,10 +4798,13 @@ async function refreshBgStatus(previewLang = UI.lang) {
       warn.push(isEn ? `⚠ On ${esc(s.manufacturer)} phones, clearing the app from recent apps can block alerts until you open Strażnik again. Lock it in recent apps (padlock) and allow autostart.`
         : `⚠ Na telefonach ${esc(s.manufacturer)} usunięcie aplikacji z listy ostatnich potrafi zablokować alarmy do ponownego otwarcia Strażnika. Zablokuj ją na liście ostatnich (kłódka) i zezwól na autostart.`);
     const verEl = document.getElementById("app-version");
-    if (verEl) verEl.textContent = s.appVersion
-      ? `${isEn ? "Installed version" : "Zainstalowana wersja"} ${s.appVersion}` : "";
+    // iOS celowo zwraca pusty appVersion, żeby aplikacja nie proponowała APK
+    // (Apple odrzuca aktualizacje spoza App Store) — wersję podaje iosAppVersion.
+    const wersja = s.appVersion || s.iosAppVersion;
+    if (verEl) verEl.textContent = wersja
+      ? `${isEn ? "Installed version" : "Zainstalowana wersja"} ${wersja}` : "";
     const updBtn = document.getElementById("btn-update");
-    if (updBtn) updBtn.style.display = UPDATE_CHECK ? "" : "none";
+    if (updBtn) updBtn.style.display = UPDATE_CHECK && !IS_IOS ? "" : "none";
     /* canUseFullScreenIntent() bywa optymistyczne (zwraca „dozwolone", choć system
        i tak odrzuca alarm), a po aktualizacji zgoda potrafi się cofnąć — dlatego na
        Androidzie 14+ przycisk pokazujemy ZAWSZE, żeby dało się ją sprawdzić i włączyć. */
@@ -4828,7 +4842,8 @@ async function refreshBgStatus(previewLang = UI.lang) {
       || (isEn ? "Notifications ready. Alerts for your region will arrive even while the app is closed."
         : "Powiadomienia gotowe. Alarmy dla Twojego regionu dotrą także przy zamkniętej aplikacji."))
       + `<br>${subLine}`
-      + `<br><span class="muted">Android ${s.sdk}, ${esc(s.manufacturer || "")}`
+      + `<br><span class="muted">${s.platform === "ios" ? `iOS ${esc(s.osVersion || "")}`
+        : `Android ${s.sdk}, ${esc(s.manufacturer || "")}`}`
       + `${s.homeVoivodeship ? " · region: " + esc(UI.voiv(s.homeVoivodeship)) : ""}</span>`;
   } catch (e) { if (info) info.textContent = (isEn ? "Could not read status: " : "Nie udało się odczytać stanu: ") + e; }
 }
@@ -4996,7 +5011,12 @@ async function nativeTest(level) {
   const plugin = BG(); if (!plugin?.testNativeAlarm) return;
   if (blockedByAlertsOff()) return;
   document.getElementById("settings").close();
-  await plugin.testNativeAlarm({ level, delayMs: 5000, voivodeship: myVoiv() || "lubelskie" });
+  // iOS zwraca {scheduled:false, reason:"denied"} przy zablokowanych powiadomieniach;
+  // bez tego toast obiecywał alarm, który nigdy nie przyszedł. Android zwraca undefined.
+  const r = await plugin.testNativeAlarm({ level, delayMs: 5000, voivodeship: myVoiv() || "lubelskie" });
+  if (r && r.scheduled === false)
+    return toast(UI.isEn ? "Notifications are blocked — enable them in Settings → Strażnik → Notifications."
+      : "Powiadomienia są zablokowane — włącz je w Ustawienia → Strażnik → Powiadomienia.", 6000);
   toast(UI.isEn ? "Test alert in 5 seconds — you can lock the screen now."
     : "Test alarmu za 5 sekund — możesz teraz zablokować ekran.", 5000);
 }
