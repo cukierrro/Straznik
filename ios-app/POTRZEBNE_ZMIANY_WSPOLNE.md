@@ -266,10 +266,25 @@ if (s.platform === "ios" && s.notificationsAllowed && s.timeSensitiveAllowed ===
     : "⚠ „Powiadomienia czasowo zależne” są wyłączone dla Strażnika — czerwony alarm może nie przebić trybu Skupienia. Ustawienia → Strażnik → Powiadomienia.");
 ```
 
+**Potwierdzone na urządzeniu (18.09.2026, iPhone testerki, build 2609181725):**
+ostrzeżenie o „Powiadomieniach czasowo zależnych” jest **potrzebne i pilne**.
+Test czerwonego alarmu zadziałał na zablokowanym ekranie z włączonym dzwonkiem,
+na wyciszeniu dał wibrację i baner bez dźwięku, a **w trybie Sen nie dotarło nic
+do odblokowania telefonu**. Powód: iOS dopuszcza powiadomienia czasowo zależne
+dopiero po zgodzie — per aplikacja (Ustawienia → Powiadomienia → Strażnik) i per
+tryb Skupienia (Ustawienia → Skupienie → Sen → Aplikacje). Plugin już zwraca
+`timeSensitiveAllowed`, więc aplikacja może to wykryć i podpowiedzieć ustawienie.
+
 ### B5. Elementy tylko dla Androida — klasa `android-only` + CSS `.ios-app .android-only {display:none!important}`
 - `#btn-battery` (🔋 oszczędzanie baterii), `#btn-fullscreen`, `#fs-check` (dialog)
 - w `#native-sound`: przełącznik `set-force-volume`, `#ns-volume`, `#btn-sound-settings`
   („Ustawienia dźwięku Androida”), akapit `#ns-note`
+**Potwierdzone na urządzeniu (18.09.2026):** przełącznik „Czerwony alarm zawsze na
+pełnej głośności” po włączeniu **sam wraca na wyłączony** — plugin zgłasza
+`supported: false`, bo iOS nie pozwala aplikacji zmieniać głośności. Dla testerki
+wyglądało to na usterkę, więc ukrycie tego przełącznika na iOS jest pilniejsze
+niż resztą tej listy.
+
 - **zostają** `#btn-native-test` i `#btn-native-test-yellow` — na iOS działają
   (lokalne powiadomienie z syreną za 5 s)
 

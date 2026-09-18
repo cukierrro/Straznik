@@ -113,3 +113,35 @@ Zgłoszenia najlepiej zrzutem ekranu, z modelem telefonu i wersją iOS. Dzięki!
       prawdziwego alarmu; warto mieć przed rozdaniem publicznego linku.
 - [ ] Dane kontaktowe do przeglądu (imię, nazwisko, telefon, e-mail) — Apple
       używa ich tylko do kontaktu, **nie są publiczne**.
+
+---
+
+## 5. Wyniki pierwszego testu na iPhonie (18.09.2026)
+
+Testerka: Karolina (grupa „Testerzy”, build 2609181725).
+
+| Co | Wynik |
+|---|---|
+| Instalacja z TestFlight, wybór województwa | **działa** |
+| Test czerwonego alarmu, ekran zablokowany, dzwonek włączony | **działa, z dźwiękiem syreny** |
+| To samo przy wyciszonym telefonie | wibracja + baner, **bez dźwięku** (ograniczenie iOS) |
+| To samo w trybie **Sen** | **nic nie dotarło** do odblokowania telefonu |
+| Przełącznik „pełna głośność czerwonego alarmu” | wraca na wyłączony (iOS nie pozwala) |
+
+**Wniosek 1 — do instrukcji i do aplikacji:** żeby alarm przebił tryb Skupienia,
+użytkownik musi mieć włączone „Powiadomienia czasowo zależne” dla Strażnika
+(Ustawienia → Powiadomienia → Strażnik) oraz dopuścić aplikację w danym trybie
+Skupienia (Ustawienia → Skupienie → Sen → Aplikacje). Bez tego iOS wstrzymuje
+powiadomienie do odblokowania telefonu. Aplikacja umie to wykryć — zmiana B4
+w `POTRZEBNE_ZMIANY_WSPOLNE.md`.
+
+**Wniosek 2 — mocniejszy argument do wniosku o Critical Alerts:** bez tego
+uprawnienia nocny alarm przy wyciszonym telefonie jest bezgłośny. Warto dopisać
+ten wynik do wniosku (`WNIOSEK_CRITICAL_ALERTS.md`).
+
+**Stan Test Information (18.09.2026):** wypełnione i zapisane — opis wersji
+testowej (polski), e-mail do opinii, adres polityki prywatności, dane kontaktowe
+do przeglądu (imię, nazwisko, telefon, e-mail) i notatki dla recenzenta po
+angielsku. Marketing URL i umowa licencyjna celowo puste. „Sign-in required”
+odznaczone. Pułapka: dopóki numer telefonu był pusty, App Store Connect nie
+zapisywał notatek dla recenzenta („another field is invalid”).
