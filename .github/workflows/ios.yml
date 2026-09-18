@@ -121,6 +121,53 @@ jobs:
             CODE_SIGNING_ALLOWED=NO build 2>&1 | tee "$RUNNER_TEMP/xcodebuild.log" | grep -E "error:|warning: .*Straznik|BUILD (SUCCEEDED|FAILED)" || true
           grep -q "BUILD SUCCEEDED" "$RUNNER_TEMP/xcodebuild.log"
 
+      - name: Sprawdzenie klucza App Store Connect
+        if: steps.mode.outputs.mode == 'testflight'
+        env:
+          KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ISSUER: ${{ secrets.ASC_ISSUER_ID }}
+          KEY_P8: ${{ secrets.ASC_KEY_P8_BASE64 }}
+          TEAM: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          # Diagnostyka 18.09: archiwum padało na „401 for appstoreconnect.apple.com”.
+          # Ten krok sprawdza same poświadczenia i mówi wprost, które pole jest złe.
+          # Nie wypisuje żadnych sekretów — tylko długości i wynik zapytania.
+          key="$RUNNER_TEMP/asc.p8"
+          printf '%s' "$KEY_P8" | base64 --decode > "$key" 2>/dev/null || { echo "::error::ASC_KEY_P8_BASE64 nie jest poprawnym base64"; exit 1; }
+          head -1 "$key" | grep -q "BEGIN PRIVATE KEY" || { echo "::error::ASC_KEY_P8_BASE64 nie zawiera klucza .p8 (brak nagłówka BEGIN PRIVATE KEY)"; exit 1; }
+          echo "Klucz .p8: $(wc -c < "$key") bajtów, nagłówek OK"
+          kid=$(printf '%s' "$KEY_ID" | tr -d '[:space:]'); iss=$(printf '%s' "$ISSUER" | tr -d '[:space:]'); team=$(printf '%s' "$TEAM" | tr -d '[:space:]')
+          echo "Długości: Key ID ${#kid} (ma być 10), Issuer ID ${#iss} (ma być 36), Team ID ${#team} (ma być 10)"
+          [ ${#kid} -eq 10 ] || echo "::warning::ASC_KEY_ID ma ${#kid} znaków, a powinien 10 — to identyfikator z nazwy pliku AuthKey_XXXXXXXXXX.p8"
+          [ ${#iss} -eq 36 ] || echo "::warning::ASC_ISSUER_ID ma ${#iss} znaków, a powinien 36 (format z kreskami, jak 1a2b3c4d-...)"
+          [ ${#team} -eq 10 ] || echo "::warning::APPLE_TEAM_ID ma ${#team} znaków, a powinien 10"
+          python3 -m pip install --quiet --disable-pip-version-check pyjwt cryptography
+          KEYPATH="$key" KID="$kid" ISS="$iss" python3 - <<'PY'
+          import json, os, time, urllib.error, urllib.request
+          import jwt
+          token = jwt.encode(
+              {"iss": os.environ["ISS"], "aud": "appstoreconnect-v1", "exp": int(time.time()) + 300},
+              open(os.environ["KEYPATH"]).read(), algorithm="ES256",
+              headers={"kid": os.environ["KID"], "typ": "JWT"})
+          req = urllib.request.Request("https://api.appstoreconnect.apple.com/v1/apps?limit=200",
+                                       headers={"Authorization": "Bearer " + token})
+          try:
+              with urllib.request.urlopen(req, timeout=30) as r:
+                  apps = json.load(r).get("data", [])
+              print("Poświadczenia działają (HTTP 200). Aplikacje na koncie:")
+              for a in apps:
+                  print("  -", a["attributes"]["bundleId"], "|", a["attributes"]["name"])
+              if not any(a["attributes"]["bundleId"] == "pl.straznik.app" for a in apps):
+                  print("::error::Klucz działa, ale konto nie ma aplikacji pl.straznik.app — sprawdź Bundle ID w App Store Connect")
+                  raise SystemExit(1)
+          except urllib.error.HTTPError as e:
+              body = e.read().decode()[:400]
+              print("::error::App Store Connect odrzucił poświadczenia: HTTP", e.code, body)
+              if e.code == 401:
+                  print("::error::401 = klucz, Key ID i Issuer ID nie pasują do siebie. Najczęściej: w ASC_KEY_P8_BASE64 jest klucz APNs zamiast klucza App Store Connect API, albo Key ID pochodzi z innego klucza.")
+              raise SystemExit(1)
+          PY
+
       - name: Archiwum podpisane w chmurze Apple
         if: steps.mode.outputs.mode == 'testflight'
         env:
