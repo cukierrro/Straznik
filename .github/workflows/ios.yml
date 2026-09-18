@@ -182,7 +182,6 @@ jobs:
           key="$RUNNER_TEMP/AuthKey_$KEY_ID.p8"
           printf '%s' "$KEY_P8" | base64 --decode > "$key"
           chmod 600 "$key"
-          # CODE_SIGN_IDENTITY: szablon Capacitora ustawia „iPhone Developer”, a wtedy
           # Xcode szuka profilu deweloperskiego i kończy błędem „Your team has no devices”
           # (18.09.2026). Do TestFlight trzeba podpisu dystrybucyjnego — bez urządzeń.
           # Numer builda rośnie z czasem (rrMMddGGmm) — Apple wymaga unikalnego numeru
@@ -195,7 +194,6 @@ jobs:
             -allowProvisioningUpdates \
             -authenticationKeyPath "$key" -authenticationKeyID "$KEY_ID" -authenticationKeyIssuerID "$ISSUER" \
             DEVELOPMENT_TEAM="$TEAM" MARKETING_VERSION="$version" CURRENT_PROJECT_VERSION="$build" \
-            CODE_SIGN_IDENTITY="Apple Distribution" CODE_SIGN_STYLE=Automatic \
             archive 2>&1 | tee "$RUNNER_TEMP/xcodebuild.log" | grep -E "error:|ARCHIVE (SUCCEEDED|FAILED)" || true
           grep -q "ARCHIVE SUCCEEDED" "$RUNNER_TEMP/xcodebuild.log"
 
