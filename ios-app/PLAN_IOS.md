@@ -139,6 +139,26 @@ Codemagic: niepotrzebny, dopóki GitHub Actions jest darmowy.
 
 ---
 
+
+### 4.1 Podpis w chmurze — co naprawdę działa (18.09.2026)
+Pierwszy build z podpisem wymagał czterech poprawek. Zapisane, żeby nie szukać drugi raz:
+1. **Key ID i Issuer ID muszą pasować do klucza** — 401 `NOT_AUTHORIZED` z App Store
+   Connect mówi tylko „nie znaleziono profilu”. Dlatego workflow ma krok
+   *Sprawdzenie klucza App Store Connect*: buduje token, pyta `/v1/apps` i wypisuje
+   aplikacje na koncie (bez pokazywania sekretów).
+2. **PEP 668** na macOS 26 — `pip install` do Pythona systemowego jest zablokowany,
+   więc krok sprawdzający używa `python3 -m venv`.
+3. **`CODE_SIGN_IDENTITY = "iPhone Developer"`** z szablonu Capacitora usunięty
+   z `project.pbxproj`; ręczne nadpisanie na „Apple Distribution” daje z kolei
+   `conflicting provisioning settings`.
+4. **`aps-environment`** w `App.entitlements` ustawione na `production`.
+5. **Archiwum bez podpisu** (`CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO`),
+   podpis dystrybucyjny nadaje `-exportArchive` z `-allowProvisioningUpdates`.
+   Inaczej Xcode żąda profilu deweloperskiego, a ten wymaga zarejestrowanego
+   urządzenia („Your team has no devices”) — konto ich nie ma i nie musi mieć.
+
+Wynik: **1.7.57 build 2609181648** w TestFlight (Ready to Submit), 18.09.2026,
+czas budowania ok. 5 minut.
 ## 5. Etapy
 
 **Etap 1 — TestFlight (cel tej sesji)** — stan 17.09.2026
