@@ -294,3 +294,9 @@ albo `== "sandboxReceipt" || brak`). Odwrócony warunek jest bezpieczny tylko
 dopóki nie ma nas w sklepie: gdyby w wersji sklepowej iOS nie podał paragonu,
 ten telefon zapisałby się na tematy testowe i dostałby nasz push testowy.
 Alarmu dla prawdziwych województw to nie dotyczy — tam nic nie wysyłamy.
+
+**Sprawdzian przed wysyłką (do odhaczenia, nie do pominięcia):** wersja
+przeznaczona do App Store **nie może** zapisywać się na `test_voiv_*`. Sposób
+sprawdzenia bez sklepu: w kompilacji Release z paragonem `receipt` pole
+`testTopics` w `status()` musi być fałszem, a wiersz z wersją iOS — bez dopisku
+`· test:`. Dopóki tego nie potwierdzimy, nie wysyłamy aplikacji do przeglądu.
