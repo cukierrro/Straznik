@@ -1214,8 +1214,10 @@ async function initMap() {
     map.addLayer({ id: "threats-glow", type: "circle", source: "threats",
       paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"], 4, 10, 8, 18],
         "circle-color": ["get", "color"],
+        // coalesce: migawka bez wieku dawała null → wyrażenie się wywracało,
+        // a MapLibre rysowało domyślną pełną krycie (żółty krążek zamiast poświaty)
         "circle-opacity": ["case", ["==", ["get", "historicalOnly"], true], 0.07,
-          ["interpolate", ["linear"], ["get", "age_min"], 10, 0.16, 60, 0.06]],
+          ["interpolate", ["linear"], ["coalesce", ["get", "age_min"], 0], 10, 0.16, 60, 0.06]],
         "circle-stroke-color": ["get", "color"], "circle-stroke-opacity": 0.45,
         "circle-stroke-width": 1 } });
     /* Puls: tylko obiekty, które w tej chwili wnoszą punkty do któregoś
@@ -1249,11 +1251,11 @@ async function initMap() {
          stoi w miejscu, dopóki ktoś go znowu nie zgłosi. Stary meldunek blednie,
          żeby nie wyglądał jak świeża, pewna pozycja. */
       paint: { "icon-opacity": ["case", ["==", ["get", "historicalOnly"], true], 0.48,
-        ["interpolate", ["linear"], ["get", "age_min"], 10, 1, 60, 0.4]] },
+        ["interpolate", ["linear"], ["coalesce", ["get", "age_min"], 0], 10, 1, 60, 0.4]] },
     });
     // podpis z wiekiem meldunku pod ikoną — dopiero gdy zrobił się stary
     map.addLayer({ id: "threats-age", type: "symbol", source: "threats",
-      filter: [">=", ["get", "age_min"], 5],
+      filter: [">=", ["coalesce", ["get", "age_min"], 0], 5],
       layout: { "text-field": ["get", "age_label"], "text-size": 10,
         "text-offset": [0, 1.35], "text-anchor": "top", "text-optional": true,
         "text-font": ["Noto Sans Regular"] },
@@ -4089,6 +4091,14 @@ function exitHistory() {
   if (document.getElementById("watch")?.open) fillWatch();
 }
 
+/* Wiek meldunku z migawki: backend zapisuje `age_min` od 18.09.2026, a duchy
+   z sygnałów liczą go z własnego znacznika czasu. Brak danych = 0 (obiekt jak
+   świeży), bo w historii nie zgadujemy, jak stary był meldunek. */
+function snapAgeMin(t) {
+  const m = Number(t?.age_min);
+  return Number.isFinite(m) && m > 0 ? Math.round(m) : 0;
+}
+
 function showHistoryAt(idx) {
   if (!histMode) return;
   const ts = histTimes[idx];
@@ -4142,6 +4152,7 @@ function showHistoryAt(idx) {
   const historyThreats = threats.concat([...ghostByTrack.values()].map(s => {
     const d = s.details || {};
     return { id: d.track_id, type: d.type || "unknown", lat: d.lat, lon: d.lon,
+      age_min: Math.max(0, Math.round((when.getTime() - Date.parse(s.ts)) / 60000)),
       heading: d.heading, confidenceLevel: d.confidence,
       uncertaintyKm: d.uncertainty_km, sourceCount: d.source_count,
       region: d.region, positionQuality: d.position_quality
@@ -4197,6 +4208,9 @@ function showHistoryAt(idx) {
             ? `${threatLabelPL(t.type)} — ostatnia pozycja z sygnału; obiekt nie występował już w tej migawce`
             : threatDesc(t),
           historicalOnly: !!t.historicalOnly, dist_km: t.pl_assessment?.dist_km,
+          // wiek meldunku zapisany w migawce (starsze migawki go nie mają — wtedy 0,
+          // czyli obiekt rysuje się jak świeży, bez podpisu z wiekiem)
+          age_min: snapAgeMin(t), age_label: ageLabel(snapAgeMin(t)),
           distance_text: threatDistanceText(t, t.pl_assessment?.dist_km),
           toward_pl: t.pl_assessment?.toward_pl === true,
           heading_known: t.pl_assessment?.heading_known !== false,

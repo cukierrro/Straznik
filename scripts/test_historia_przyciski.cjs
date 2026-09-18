@@ -142,4 +142,24 @@ assert.ok(layers, 'warstwa z podpisem wieku istnieje');
 assert.match(src, /OWN_LABEL_LAYERS[\s\S]{0,120}threats-age/, 'podpis wieku wyłączony z tłumaczenia etykiet mapy');
 assert.match(src, /icon-opacity[\s\S]{0,200}age_min/, 'ikona blednie z wiekiem meldunku');
 console.log('OK: wiek meldunku - podpis, wygaszanie i tekst w karcie');
+
+// ── 6. historia zna wiek meldunku (18.09.2026) ──
+// Migawki nie mają confirmedAt, więc znaczniki w historii szły bez `age_min`.
+// MapLibre dostawał null w interpolacji, wywracał wyrażenie i rysował domyślne
+// pełne krycie: zamiast poświaty pod ikoną robił się pełny żółty krążek.
+const histWiek = {};
+vm.createContext(histWiek);
+vm.runInContext(cut('function snapAgeMin', String.fromCharCode(10) + 'function showHistoryAt'), histWiek);
+assert.equal(histWiek.snapAgeMin({ age_min: 12 }), 12, 'wiek z migawki brany wprost');
+assert.equal(histWiek.snapAgeMin({}), 0, 'stara migawka bez wieku = obiekt jak świeży');
+assert.equal(histWiek.snapAgeMin({ age_min: -3 }), 0, 'ujemny wiek nie wygasza ikony');
+for (const wyr of [/circle-opacity[\s\S]{0,260}coalesce.{0,30}age_min/,
+                   /icon-opacity[\s\S]{0,200}coalesce.{0,30}age_min/,
+                   /filter: \[">=", \["coalesce", \["get", "age_min"\], 0\], 5\]/])
+  assert.match(src, wyr, 'brak wieku nie wywraca wyrażenia warstwy');
+assert.match(src, /historyThreats[\s\S]{0,4000}age_min: snapAgeMin\(t\)/,
+  'znaczniki w historii niosą wiek meldunku');
+assert.match(src, /age_min: Math\.max\(0, Math\.round\(\(when\.getTime\(\) - Date\.parse\(s\.ts\)\)/,
+  'duch z sygnału liczy wiek względem oglądanej chwili');
+console.log('OK: historia rysuje wiek meldunku zamiast pełnych krążków');
 })();
