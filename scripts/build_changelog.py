@@ -709,7 +709,7 @@ HEAD = """<!DOCTYPE html>
 FOOT = """</main>
 <footer><div class="wrap">
   <p><b>STRAŻNIK</b> — {footer_note}</p>
-  <p><a href="https://github.com/cukierrro/Straznik">{src}</a> · <a href="{guide}">{guide_link}</a> · <a href="{other}" lang="{other_lang}">{other_label}</a> · <a href="https://buycoffee.to/cukierrro">{coffee}</a></p>
+  <p><a href="https://github.com/cukierrro/Straznik">{src}</a> · <a href="{guide}">{guide_link}</a> · <a href="{other}" lang="{other_lang}">{other_label}</a></p>
   <p>{host}</p>
   <a class="back-top" href="#top">{back}</a>
 </div></footer>
@@ -736,7 +736,7 @@ TEXTS = {
         download="↓ Pobierz najnowsze APK",
         fineprint="Wersję zainstalowaną na telefonie sprawdzisz w aplikacji: <kbd>⚙</kbd> → zakładka <kbd>Aplikacja</kbd> → „Wersja aplikacji”. Tam też jest przycisk <kbd>⬆ Sprawdź aktualizacje</kbd>.",
         footer_note="nieoficjalne źródło dodatkowe. Nie zastępuje syren, RCB ani RSO.",
-        src="Kod źródłowy", coffee="Postaw kawę", back="↑ Wróć na górę",
+        src="Kod źródłowy", back="↑ Wróć na górę",
         host='Serwer: <a href="https://mikr.us">hostowane na Mikrusie</a> — dziękujemy za wsparcie projektu.',
         details="Pełny opis wydania", release_word="Wydanie",
     ),
@@ -758,7 +758,7 @@ TEXTS = {
         download="↓ Download the latest APK",
         fineprint="To see which version your phone has, open the app: <kbd>⚙</kbd> → the <kbd>App</kbd> tab → “App version”. The <kbd>⬆ Check for updates</kbd> button is right there too.",
         footer_note="an unofficial additional source. It does not replace sirens, RCB or RSO.",
-        src="Source code", coffee="Buy a coffee", back="↑ Back to top",
+        src="Source code", back="↑ Back to top",
         host='Server: <a href="https://mikr.us">hosted on Mikrus</a> — thank you for supporting the project.',
         details="Full release notes", release_word="Release",
     ),
