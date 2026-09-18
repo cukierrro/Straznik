@@ -65,7 +65,7 @@ def _apns_config(topic: str, data: dict):
         headers={
             "apns-priority": "10",                         # natychmiast (wymaga alertu)
             "apns-push-type": "alert",
-            "apns-expiration": str(int(time.time()) + FCM_TTL_S),  # jak ttl Androida
+            "apns-expiration": str(int(time.time()) + APNS_TTL_S),  # 600 s, krócej niż Android
             "apns-collapse-id": topic,                     # jak collapse_key Androida
         },
         payload=messaging.APNSPayload(aps=messaging.Aps(
@@ -274,6 +274,19 @@ do odblokowania telefonu**. Powód: iOS dopuszcza powiadomienia czasowo zależne
 dopiero po zgodzie — per aplikacja (Ustawienia → Powiadomienia → Strażnik) i per
 tryb Skupienia (Ustawienia → Skupienie → Sen → Aplikacje). Plugin już zwraca
 `timeSensitiveAllowed`, więc aplikacja może to wykryć i podpowiedzieć ustawienie.
+
+**Zmiana wdrożona 18.09.2026 (`9295695`, sesja główna):** `apns-expiration` to
+teraz `now + 600 s`, a nie `now + FCM_TTL_S` (900 s). Powód jest po stronie iOS:
+Android czyta `sent_at` i spóźniony alarm pokazuje **cicho**, z dopiskiem
+„opóźnione o X min”, a iPhone rysuje baner z ładunku wyrenderowanego w chwili
+wysyłki — nie da się go po fakcie ściszyć ani opisać. Wiadomość sprzed kwadransa
+zawyłaby syreną jak świeża. Krótsza ważność znaczy: iPhone dostanie alarm
+aktualny albo żaden. Ttl Androida zostaje 15 minut, bo on umie zdegradować.
+
+Uwaga dla nas: kontrola `sent_at` w pluginie iOS (`isStale`) **nie blokuje**
+wyświetlenia — działa tylko w `willPresent`, czyli przy aplikacji na wierzchu,
+i decyduje wyłącznie o tym, czy zdarzenie trafi do `app.js`, czy do zwykłego
+banera. Jedyną realną barierą dla spóźnionej wiadomości jest `apns-expiration`.
 
 ### B5. Elementy tylko dla Androida — klasa `android-only` + CSS `.ios-app .android-only {display:none!important}`
 - `#btn-battery` (🔋 oszczędzanie baterii), `#btn-fullscreen`, `#fs-check` (dialog)
