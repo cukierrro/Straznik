@@ -310,6 +310,43 @@ z podtytułem „Nieoficjalna mapa zagrożeń”.
 - [ ] Notatki dla recenzenta z sekcji 6 wklejone.
 - [ ] Wersja i numer builda z TestFlight wybrane w zgłoszeniu.
 
+
+---
+
+## 10. Co jest już wypełnione w App Store Connect (18.09.2026)
+
+| Miejsce | Stan |
+|---|---|
+| Nazwa | **Strażnik: alarm powietrzny** |
+| Podtytuł | **Nieoficjalna mapa zagrożeń** |
+| Kategoria | **Utilities** (bez dodatkowej; do zmiany, jeśli wolisz Weather) |
+| Tekst promocyjny, opis, słowa kluczowe | wpisane (opis po polsku, 1335 znaków; słowa kluczowe 90 B) |
+| Zrzuty ekranu | **6 szt., 1284×2778** (6,5″ — Apple przeskaluje na pozostałe rozmiary) |
+| Support URL | `https://cukierrro.pl/#kontakt` |
+| Marketing URL | puste (celowo — kawa na stronie głównej) |
+| Wersja / Copyright | 1.7.57 / `2026 cukierrro` |
+| Ocena wieku | ankieta wypełniona → **9+** globalnie (12+ Wietnam, 10 Brazylia) |
+| Informacja o prywatności | **opublikowana**: Device ID + Other Diagnostic Data + Coarse Location, wszystkie „App Functionality”, **niepowiązane z tożsamością, bez śledzenia** |
+| Polityka prywatności | `https://cukierrro.github.io/Straznik/#prywatnosc` (docelowo osobna strona) |
+| Cena | **darmowa**, 175 krajów |
+| Dane dla recenzenta | imię, nazwisko, telefon, e-mail + notatki po angielsku (z argumentami przeciw 4.2.2) |
+| „Sign-in required” | odznaczone (aplikacja nie ma kont) |
+| Publikacja po zatwierdzeniu | **ręczna** — aplikacja nie pojawi się w sklepie bez Twojego kliknięcia |
+| Test Information (TestFlight) | wypełnione, patrz `TESTFLIGHT_TESTY.md` |
+| Status handlowca (DSA) | zadeklarowany przez użytkownika: **nie handlowiec** |
+
+### Zostało do zrobienia przed wysłaniem do przeglądu
+1. **Content Rights** (App Information → Content Rights): Apple pyta, czy
+   aplikacja pokazuje treści osób trzecich. Strażnik pokazuje tytuły mediów
+   i dane publiczne — to oświadczenie prawne, **decyzja użytkownika**, nie moja.
+2. **Zmiany w kodzie wspólnym** (sesja główna): B2 (kawa ukryta na iOS),
+   B4 (ostrzeżenie o „Powiadomieniach czasowo zależnych” — test u testerki
+   pokazał, że bez nich tryb Sen wstrzymuje alarm), B5 (ukryć przełącznik
+   głośności i przyciski Androidowe), B2b (kawa ze strony instrukcji),
+   A (blok `apns` na serwerze).
+3. **Nowy build** po tych zmianach i wybranie go w sekcji „Build”.
+4. Opcjonalnie: podnieść ocenę wieku do 13+ („Override to Higher Age Rating”),
+   jeśli 9+ wydaje się za niskie dla treści o zagrożeniach.
 ## Źródła wymagań (sprawdzone 17.09.2026)
 - Screenshot specifications — developer.apple.com/help/app-store-connect/reference/screenshot-specifications
 - App information / Platform version information (limity pól) — developer.apple.com/help/app-store-connect
