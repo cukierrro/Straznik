@@ -860,8 +860,12 @@ dialog menu { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14
 .places-head { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; }
 .places-head h2 { margin:3px 0 6px; font-size:26px; }
 .places-head .eyebrow { color:var(--muted); font-size:10px; letter-spacing:.18em; }
-.places-tabs { display:flex; gap:7px; margin:16px 0 10px; overflow-x:auto; padding-bottom:5px; }
-.places-tabs button { white-space:nowrap; }
+/* Zgłoszone z testów 18.09.2026: przy 3–4 miejscach na wąskim ekranie rząd
+   zakładek przewijał się w bok, a iOS nie rysuje paska przewijania — zapisane
+   miejsca po prostu znikały za krawędzią. Zawijamy je do kolejnych wierszy,
+   a długie nazwy skracamy wielokropkiem. */
+.places-tabs { display:flex; flex-wrap:wrap; gap:7px; margin:16px 0 10px; padding-bottom:5px; }
+.places-tabs button { max-width:46vw; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .places-tabs button.active { color:#fff; border-color:var(--accent); background:#243c6e; }
 .places-dialog label { margin-top:14px; }
 .places-dialog small { display:block; margin-top:5px; color:var(--muted); }
@@ -882,7 +886,10 @@ dialog menu { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14
   .places-dialog { width: calc(100vw - 20px); height: auto; max-height: var(--dlg-max);
     border-radius: 16px; border: 1px solid var(--panel-border); }
   .places-dialog form { max-height: var(--dlg-max); padding:16px; }
-  .places-actions { grid-template-columns:1fr 1fr; margin-left:-18px; margin-right:-18px; }
+  /* -18 px przy 16-piksełowym marginesie formularza wystawało o 2 px poza okno
+     i dokładało poziome przewijanie (zgłoszone z testów 18.09.2026). */
+  .places-actions { grid-template-columns:1fr 1fr; margin-left:-16px; margin-right:-16px;
+    padding-left:16px; padding-right:16px; }
   .places-actions span { display:none; }
 }
 

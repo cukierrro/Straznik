@@ -8,3 +8,16 @@ test('keeps one-time GPS only for GPS precision',()=>{const a=Places.clean({name
 test('calculates exact-point distance locally and ETA only on a matching course',()=>{const place=Places.clean({name:'Dom',precision:'gps',region:'lubelskie',gps:{lat:52,lon:22,accuracy:10}});const toward=Places.exactPoint(place,{lat:51,lon:22,heading:0},600);assert.ok(toward.distanceKm>111&&toward.distanceKm<112);assert.equal(toward.etaMin,8);assert.equal(Places.exactPoint(place,{lat:51,lon:22,heading:180},600).reason,'course');});
 test('does not invent an exact-point ETA without heading or measured speed',()=>{const place={gps:{lat:52,lon:22}};assert.equal(Places.exactPoint(place,{lat:51,lon:22},600).reason,'heading');assert.equal(Places.exactPoint(place,{lat:51,lon:22,heading:0},null).reason,'speed');});
 test('rejects missing and out-of-range coordinates',()=>{assert.equal(Places.clean({name:'P',precision:'gps',region:'lubelskie',gps:{lat:null,lon:null}}).gps,null);assert.equal(Places.exactPoint({gps:{lat:52,lon:22}},{lat:null,lon:null,heading:0},600),null);assert.equal(Places.clean({name:'P',precision:'gps',region:'lubelskie',gps:{lat:95,lon:22}}).gps,null);});
+// Wąski ekran (iPhone 375 px, zgłoszone z testów 18.09.2026): rząd zakładek
+// przewijał się w bok, a iOS nie rysuje paska — przy 4+ miejscach użytkownik
+// przestawał je widzieć. Zakładki mają się zawijać, a stopka okna mieścić.
+test('place tabs wrap instead of scrolling out of sight', () => {
+  const css = require('node:fs').readFileSync(require('node:path').join(__dirname, '../frontend/style.css'), 'utf8');
+  const tabs = css.match(/\.places-tabs \{[^}]*\}/)[0];
+  assert.match(tabs, /flex-wrap:\s*wrap/, 'zakładki zawijają się do kolejnych wierszy');
+  assert.doesNotMatch(tabs, /overflow-x:\s*auto/, 'bez poziomego przewijania, którego na iOS nie widać');
+  assert.match(css.match(/\.places-tabs button \{[^}]*\}/)[0], /text-overflow:\s*ellipsis/,
+    'długa nazwa miejsca skraca się wielokropkiem');
+  const mobile = css.match(/\.places-dialog form \{ max-height: var\(--dlg-max\); padding:16px; \}[\s\S]{0,400}?\.places-actions \{[^}]*\}/)[0];
+  assert.match(mobile, /margin-left:-16px/, 'stopka okna nie wystaje poza formularz (16 px marginesu)');
+});
