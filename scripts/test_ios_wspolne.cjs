@@ -45,6 +45,11 @@ for (const id of ['btn-native-test', 'btn-native-test-yellow']) {
   sprawdz(tag && !/android-only/.test(tag), `#${id} zostaje — na iOS działa`);
 }
 
+sprawdz(/@supports \(-webkit-touch-callout: none\)[^}]*\{[\s\S]{0,200}input, select, textarea \{ font-size: 16px/.test(css),
+  'pola formularzy mają 16 px na iOS — mniejsze pole przybliża cały ekran i nie da się tego cofnąć');
+sprawdz(!/maximum-scale|user-scalable=no/.test(html),
+  'nie blokujemy powiększania strony — to psuje dostępność');
+
 console.log('4. Wersja, aktualizacje i ostrzeżenia');
 sprawdz(/s\.appVersion \|\| s\.iosAppVersion/.test(app), 'wersja iOS brana z iosAppVersion');
 sprawdz(/updBtn\.style\.display = UPDATE_CHECK && !IS_IOS/.test(app),
@@ -68,8 +73,8 @@ sprawdz(R('docs/index.html').includes('prywatnosc.html'),
 console.log('6. Android bez zmian');
 sprawdz(/direct_boot_ok=True/.test(R('backend/app/notify.py')),
   'wiadomość dla Androida nadal data-only z direct_boot_ok');
-sprawdz(/apns=_apns_config\(topic, data\)/.test(R('backend/app/notify.py')),
-  'blok apns dołączony do wiadomości FCM');
+sprawdz(/apns=_apns_safe\(topic, data\)/.test(R('backend/app/notify.py')),
+  'blok apns dołączony do wiadomości FCM przez osłonę, która nie zabierze alarmu Androidowi');
 sprawdz(R('1_buduj_i_testuj.bat').includes('pl-outline.js"'),
   'build APK kopiuje kontur Polski');
 

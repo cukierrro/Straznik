@@ -657,6 +657,15 @@ dialog .set-switch input:focus-visible + .sw-track { outline: 2px solid var(--ac
 
 dialog select { width: 100%; margin-top: 6px; padding: 8px 10px; border-radius: 8px;
   border: 1px solid var(--panel-border); background: #0b0f1a; color: var(--text); }
+/* iPhone przybliża całą stronę, gdy dotknięte pole ma mniej niż 16 px, i sam tego
+   nie cofa. W aplikacji nie ma paska adresu, więc użytkownik zostaje z powiększonym
+   widokiem — testerka 18.09.2026 musiała zamknąć aplikację po zmianie miejsca.
+   `-webkit-touch-callout` mają tylko Safari i WKWebView, więc łapie to też stronę
+   otwartą na iPhonie, a Androida i komputera nie rusza. NIE zamykamy powiększania
+   w meta viewport: to psuje dostępność i Apple tego odradza. */
+@supports (-webkit-touch-callout: none) {
+  input, select, textarea { font-size: 16px; }
+}
 .voiv-card.is-mine { box-shadow: 0 0 0 1px var(--accent) inset; }
 .voiv-card.is-mine .voiv-name::after { content: " · mój region"; color: var(--accent);
   font-size: 10px; letter-spacing: .05em; text-transform: none; }
