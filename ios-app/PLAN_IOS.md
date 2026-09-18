@@ -253,3 +253,44 @@ architektury i prywatności).
 3. Ta sesja po sekretach: build do TestFlight, test pushy na temat testowy,
    potem przygotowanie zgłoszenia do App Store (zrzuty, opis, prywatność,
    argumenty przeciw zasadzie 4.2 „opakowana strona”) i wniosek o Critical Alerts.
+
+---
+
+## Tematy testowe — jak aplikacja poznaje, że jest wersją testową
+
+**Po co to jest:** wersja z TestFlight zapisuje się dodatkowo do tematów
+`test_voiv_*`, żeby dało się wysłać prawdziwy push bez budzenia użytkowników
+Androida na `voiv_*`. Wersja z App Store nie może ich subskrybować.
+
+**Co poszło nie tak (18.09.2026):** push na `test_voiv_lubelskie` nie dotarł do
+testerki. Sesja główna odtworzyła ładunek na serwerze — blok `apns` był
+kompletny (911 B przy limicie 4096, nagłówki i `interruption-level` na miejscu),
+więc wiadomość nie poszła jako „cicha”. Telefon miał potwierdzoną subskrypcję,
+ale **tylko** `voiv_lubelskie` — a tego na ekranie nie widać, bo aplikacja
+wyświetla nazwy województw, nie surowe tematy. Jedynym niesprawdzonym ogniwem
+zostało wykrywanie wersji testowej w `StraznikBackgroundPlugin.swift`.
+
+**Jak to działało:** `Bundle.main.appStoreReceiptURL?.lastPathComponent ==
+"sandboxReceipt"`. Warunek pozytywny: cokolwiek innego (puste, inna nazwa)
+oznacza „to nie jest test” i tematy testowe po cichu znikają. `appStoreReceiptURL`
+jest wycofywane w nowszych wersjach iOS, więc to założenie przestaje być pewne.
+
+**Jak działa teraz:** odwrócony warunek — testem jest wszystko poza paragonem
+z App Store (`receiptName != "receipt"`). Dodatkowo wersja testowa dopisuje do
+pola `osVersion` (ten sam wiersz, w którym aplikacja pokazuje wersję iOS)
+listę potwierdzonych tematów testowych i nazwę paragonu, np.:
+
+```
+iOS 18.6 · test: test_voiv_lubelskie · sandboxReceipt
+```
+
+Dzięki temu wystarczy zrzut ekranu z Ustawienia → Alarmy, żeby rozstrzygnąć
+pytanie „czy telefon jest zapisany na temat testowy”, bez zmian we wspólnym
+kodzie (`frontend/app.js` należy do sesji głównej).
+
+**Do zrobienia przed wysyłką do App Store:** gdy poznamy prawdziwą wartość
+paragonu z urządzenia, wrócić do warunku pozytywnego (`== "sandboxReceipt"`
+albo `== "sandboxReceipt" || brak`). Odwrócony warunek jest bezpieczny tylko
+dopóki nie ma nas w sklepie: gdyby w wersji sklepowej iOS nie podał paragonu,
+ten telefon zapisałby się na tematy testowe i dostałby nasz push testowy.
+Alarmu dla prawdziwych województw to nie dotyczy — tam nic nie wysyłamy.

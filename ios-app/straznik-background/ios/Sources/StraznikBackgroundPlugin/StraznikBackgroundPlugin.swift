@@ -147,6 +147,13 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
         return "voiv_" + String(name.lowercased().map { ascii[$0] ?? $0 })
     }
 
+    /// Nazwa pliku paragonu: `sandboxReceipt` = TestFlight/sandbox,
+    /// `receipt` = App Store, `brak` = iOS nie podał adresu. Pokazujemy ją
+    /// w diagnostyce, bo 18.09.2026 to była jedyna niesprawdzona wartość.
+    static var receiptName: String {
+        Bundle.main.appStoreReceiptURL?.lastPathComponent ?? "brak"
+    }
+
     /// Build z TestFlight (albo debug) zapisuje się DODATKOWO do tematów testowych,
     /// żeby push dało się sprawdzić bez wysyłania alarmu do prawdziwych użytkowników.
     /// Wersja z App Store nigdy ich nie subskrybuje.
@@ -154,7 +161,16 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
         #if DEBUG
         return true
         #else
-        return Bundle.main.appStoreReceiptURL?.lastPathComponent == "sandboxReceipt"
+        // 18.09.2026: push na temat testowy nie dotarł, choć serwer wysłał
+        // poprawną wiadomość, a telefon miał potwierdzoną subskrypcję
+        // `voiv_lubelskie`. Warunek pozytywny (`== "sandboxReceipt"`) po cichu
+        // wyłącza tematy testowe, gdy `appStoreReceiptURL` jest puste albo ma
+        // inną nazwę — a tak bywa na nowych wersjach iOS, gdzie ta właściwość
+        // jest wycofywana. Odwracamy domyślną odpowiedź: testem jest wszystko
+        // poza paragonem z App Store. Po odczytaniu prawdziwej wartości
+        // z urządzenia (diagnostyka w `osVersion`) wracamy do warunku
+        // pozytywnego — patrz PLAN_IOS.md, sekcja o tematach testowych.
+        return receiptName != "receipt"
         #endif
     }
 
@@ -302,9 +318,23 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
             topicsError = "Firebase nie potwierdził wypisania"
         }
 
+        // Diagnostyka wersji testowej: aplikacja pokazuje listę tematów tylko dla
+        // województw (`voiv_*`), więc z ekranu nie da się poznać, czy telefon jest
+        // zapisany na temat testowy. Dopisujemy to do wiersza z wersją iOS, który
+        // app.js i tak wyświetla — dzięki temu wystarczy zrzut ekranu od testerki,
+        // bez zmian we wspólnym kodzie. W wersji z App Store ten dopisek nie
+        // powstaje, bo `isTestBuild` jest wtedy fałszem.
+        var osLine = osVersion
+        if Self.isTestBuild {
+            let zapisane = defaults.stringArray(forKey: Key.topics) ?? []
+            let testowe = zapisane.filter { $0.hasPrefix(Self.testTopicPrefix) }
+            osLine += " · test: " + (testowe.isEmpty ? "brak tematów" : testowe.joined(separator: ", "))
+            osLine += " · " + Self.receiptName
+        }
+
         return [
             "platform": "ios",
-            "osVersion": osVersion,
+            "osVersion": osLine,
             "manufacturer": "Apple",
             // Pola Androida z wartościami, przy których app.js nie pokazuje
             // ostrzeżeń niemających sensu na iPhonie (pełny ekran, bateria).
