@@ -13,8 +13,7 @@ o Critical Alerts (`WNIOSEK_CRITICAL_ALERTS.md`).
 
 | Pole | Limit | Propozycja | Długość |
 |---|---|---|---|
-| Nazwa | 30 znaków | **Strażnik** | 8 |
-| Nazwa zapasowa (gdy zajęta) | 30 | **Strażnik: alarm powietrzny** | 26 |
+| Nazwa | 30 znaków | **Strażnik: alarm powietrzny** ← użyta 18.09 (samo „Strażnik” było zajęte w App Store) | 26 |
 | Podtytuł | 30 znaków | **Nieoficjalna mapa zagrożeń** | 26 |
 | Podtytuł zapasowy | 30 | Nieoficjalne wczesne alarmy | 27 |
 | Słowa kluczowe | **100 bajtów** (nie znaków!) | `alarm powietrzny,dron,rakieta,RCB,RSO,syrena,ostrzeganie,zagrozenia,alerty,mapa,obrona` | 86 B |

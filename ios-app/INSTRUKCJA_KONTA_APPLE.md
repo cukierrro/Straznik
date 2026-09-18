@@ -105,7 +105,7 @@ developer.apple.com → **Certificates, Identifiers & Profiles** → **Identifie
 appstoreconnect.apple.com → **Apps** → **+** → **New App**
 
 - Platform: **iOS**
-- Name: `Strażnik` (jeśli zajęta: np. `Strażnik – mapa zagrożeń`)
+- Name: **`Strażnik: alarm powietrzny`** (utworzone 18.09; samo „Strażnik” zajęte)
 - Primary language: **Polish**
 - Bundle ID: `pl.straznik.app`
 - SKU: `straznik-ios`
@@ -123,6 +123,10 @@ TestFlight bez Maca.
    (Admin jest potrzebny, żeby Apple sam wystawił certyfikat dystrybucyjny
    w chmurze. Ten klucz ma duże uprawnienia — trzymaj go tylko w GitHub Secrets.)
 3. **Download** `AuthKey_YYYYYYYYYY.p8` (**tylko raz**) → poza repo.
+   Uwaga: przy pierwszym wejściu App Store Connect pokazuje „Permission is
+   required to access the App Store Connect API” i przycisk **Request Access** —
+   trzeba go kliknąć raz (bezpłatne, dla właściciela konta), zakładka
+   **Team Keys** pojawia się dopiero potem.
 4. Zapisz **Key ID** (w wierszu klucza) i **Issuer ID** (nad tabelą).
 
 ## Krok 8. Sekrety w GitHubie
