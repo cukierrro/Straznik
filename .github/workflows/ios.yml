@@ -27,14 +27,12 @@ on:
     branches: [ios]
     paths:
       - "ios-app/**"
+      # Zmiana w samych dokumentach nie jest nową wersją aplikacji — 18.09.2026
+      # trzy commity z plikami .md wysłały trzy buildy do TestFlight.
+      - "!ios-app/**/*.md"
+      - "!ios-app/zrzuty/**"
       - "frontend/**"
       - ".github/workflows/ios.yml"
-    paths-ignore:
-      # Zmiana w dokumentach nie jest nową wersją aplikacji — 18.09.2026
-      # trzy commity z plikami .md wysłały trzy buildy do TestFlight.
-      - "ios-app/**/*.md"
-      - "ios-app/zrzuty/**"
-  # Przycisk „Run workflow” GitHub pokazuje dopiero, gdy ten plik jest też na main.
   workflow_dispatch:
 
 permissions:
