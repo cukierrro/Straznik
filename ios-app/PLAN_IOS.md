@@ -156,9 +156,15 @@ Codemagic: niepotrzebny, dopóki GitHub Actions jest darmowy.
    Cloud do `pl.straznik.app` — prośba użytkownika).
 6. ✅ `POTRZEBNE_ZMIANY_WSPOLNE.md` — backend (`apns`) i frontend.
 7. ✅ Tryb testowy: build TestFlight/debug zapisuje się dodatkowo do `test_voiv_*`.
-8. ⏳ Push gałęzi `ios` (po zgodzie) → wynik kompilacji → poprawki.
-9. ⏳ Konta Apple/Firebase i sekrety (użytkownik) → pierwszy build w TestFlight.
-10. ⏳ Zmiana A w backendzie (sesja główna) → test pushy na temat testowy.
+8. ✅ Push gałęzi `ios` 17.09 → kompilacja w chmurze OK (Xcode 26.6).
+9. ✅ 18.09 (użytkownik): Apple Developer Program opłacony i aktywny, App ID
+   `pl.straznik.app` z Push + Time Sensitive, klucz APNs wgrany do Firebase
+   (development i production), aplikacja iOS w Firebase, klucz API iOS w Google
+   Cloud ograniczony do `pl.straznik.app`, aplikacja w App Store Connect pod nazwą
+   **Strażnik: alarm powietrzny** (samo „Strażnik” zajęte), klucz App Store
+   Connect API (Admin) i **5 sekretów w GitHubie**.
+10. ⏳ Pierwszy build z podpisem → TestFlight → test na iPhonie.
+11. ⏳ Zmiana A w backendzie (sesja główna) → test pushy na temat testowy.
 
 **Etap 2 — po pierwszych testach na iPhonach**
 - Wniosek o Critical Alerts (tekst wniosku przygotuję).
