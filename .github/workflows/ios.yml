@@ -141,8 +141,10 @@ jobs:
           [ ${#kid} -eq 10 ] || echo "::warning::ASC_KEY_ID ma ${#kid} znaków, a powinien 10 — to identyfikator z nazwy pliku AuthKey_XXXXXXXXXX.p8"
           [ ${#iss} -eq 36 ] || echo "::warning::ASC_ISSUER_ID ma ${#iss} znaków, a powinien 36 (format z kreskami, jak 1a2b3c4d-...)"
           [ ${#team} -eq 10 ] || echo "::warning::APPLE_TEAM_ID ma ${#team} znaków, a powinien 10"
-          python3 -m pip install --quiet --disable-pip-version-check pyjwt cryptography
-          KEYPATH="$key" KID="$kid" ISS="$iss" python3 - <<'PY'
+          # macOS 26 blokuje instalację do Pythona systemowego (PEP 668) — własne środowisko
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install --quiet --disable-pip-version-check pyjwt cryptography
+          KEYPATH="$key" KID="$kid" ISS="$iss" "$RUNNER_TEMP/venv/bin/python" - <<'PY'
           import json, os, time, urllib.error, urllib.request
           import jwt
           token = jwt.encode(
