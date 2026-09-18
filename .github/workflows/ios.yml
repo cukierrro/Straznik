@@ -182,8 +182,9 @@ jobs:
           key="$RUNNER_TEMP/AuthKey_$KEY_ID.p8"
           printf '%s' "$KEY_P8" | base64 --decode > "$key"
           chmod 600 "$key"
-          # Xcode szuka profilu deweloperskiego i kończy błędem „Your team has no devices”
-          # (18.09.2026). Do TestFlight trzeba podpisu dystrybucyjnego — bez urządzeń.
+          # Archiwum BEZ podpisu: podpis automatyczny prosił Apple o profil deweloperski,
+          # a ten wymaga zarejestrowanego urządzenia („Your team has no devices”, 18.09.2026).
+          # Certyfikat dystrybucyjny nadaje dopiero eksport, w następnym kroku.
           # Numer builda rośnie z czasem (rrMMddGGmm) — Apple wymaga unikalnego numeru
           build=$(date -u +%y%m%d%H%M)
           version=$(node -p "require('./package.json').version")
@@ -191,8 +192,7 @@ jobs:
           xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release \
             -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/Straznik.xcarchive" \
             -clonedSourcePackagesDirPath "$RUNNER_TEMP/spm" \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "$key" -authenticationKeyID "$KEY_ID" -authenticationKeyIssuerID "$ISSUER" \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
             DEVELOPMENT_TEAM="$TEAM" MARKETING_VERSION="$version" CURRENT_PROJECT_VERSION="$build" \
             archive 2>&1 | tee "$RUNNER_TEMP/xcodebuild.log" | grep -E "error:|ARCHIVE (SUCCEEDED|FAILED)" || true
           grep -q "ARCHIVE SUCCEEDED" "$RUNNER_TEMP/xcodebuild.log"
