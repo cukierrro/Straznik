@@ -9,8 +9,9 @@ Androidzie.
 **Formularz:** developer.apple.com/contact/request/notifications-critical-alerts-entitlement
 (wymaga zalogowania na konto Apple Developer).
 
-**Kiedy wysłać:** **teraz** — build 1.7.57 (2609181725) jest w TestFlight od 18.09.2026, a Apple zwykle pyta o działającą wersję. Wcześniej planowaliśmy wysłać po pierwszym buildzie — Apple często
-pyta o działającą wersję i konto testera. Wniosek można złożyć raz i ponowić.
+**Kiedy wysłać:** **można już teraz.** Build 1.7.57 (2609181725) jest w TestFlight
+od 18.09.2026, a Apple zwykle pyta o działającą wersję i konto testera.
+Wniosek można złożyć raz i w razie odmowy ponowić.
 
 **Szanse:** niepewne. Apple przyznaje to uprawnienie głównie aplikacjom
 medycznym, bezpieczeństwa publicznego i domowego, zwykle instytucjom. Strażnik
@@ -26,7 +27,7 @@ bez zgody nie przejdzie podpisu i przeglądu.
 
 ## Treść wniosku (do wklejenia w formularz, po angielsku)
 
-> **App name:** Strażnik
+> **App name:** Strażnik: alarm powietrzny (Apple ID 6813563009)
 > **Bundle ID:** pl.straznik.app
 > **Category:** Weather / Utilities (public safety information)
 >
