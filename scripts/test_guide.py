@@ -7,6 +7,8 @@ from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1] / "docs"
 HISTORICAL = {}   # instrukcja od 1.7.37 używa wyłącznie bieżących zrzutów
+# nie-zrzuty (logo hostingu): własny rozmiar i nie liczą się do puli zrzutów
+OTHER_IMAGES = {"mikrus-logo.svg": (86, 14)}
 # odrębne zrzuty: instrukcja 21 ekranów × PL/EN + 7 archiwalnych w historii zmian
 EXPECTED_SHOTS = 49
 
@@ -30,9 +32,11 @@ class Page(HTMLParser):
                 self.refs.append(attrs[name])
         if tag == "img":
             assert attrs.get("alt", "").strip(), (self.path, "missing alt")
-            expected = HISTORICAL.get(attrs["src"], (1080, 2400))
+            src = attrs["src"]
+            expected = OTHER_IMAGES.get(src) or HISTORICAL.get(src, (1080, 2400))
             assert (int(attrs.get("width", 0)), int(attrs.get("height", 0))) == expected
-            self.images.append(attrs["src"])
+            if src not in OTHER_IMAGES:
+                self.images.append(src)
 
 
 def main():

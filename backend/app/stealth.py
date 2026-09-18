@@ -21,7 +21,7 @@ log = logging.getLogger("stealth")
 DB_PATH = config.DATA_DIR / "obserwacje.db"
 
 # Ile trzymamy: próbki tras są liczne, artykuły i fale — rzadkie i cenne.
-RETENTION_DAYS = {"air_support": 180}
+RETENTION_DAYS = {"air_support": 180, "mapa_report": 30, "mapa_tick": 30}
 DEFAULT_RETENTION_DAYS = 730
 
 _lock = threading.Lock()

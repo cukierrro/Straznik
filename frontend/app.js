@@ -9,6 +9,10 @@ const IS_APP = location.protocol === "capacitor:" || location.protocol === "file
 // Przycisk instalacyjny jest przeznaczony dla strony WWW. W zainstalowanej
 // aplikacji aktualizacje obsługuje osobny mechanizm w Ustawieniach.
 if (IS_APP) document.querySelectorAll(".web-only").forEach(el => { el.hidden = true; });
+/* iPhone: brak APK i aktualizacji spoza App Store, brak sterowania głośnością,
+   brak linków do wsparcia autora (App Store 3.1.1a). Klasę ios-app ustawia
+   index.html jeszcze przed pierwszym renderem. */
+const IS_IOS = IS_APP && window.Capacitor?.getPlatform?.() === "ios";
 const DEFAULT_BACKEND = "https://straznik.eu";   // serwer fuzji Strażnika (VPS przez Cloudflare)
 /* Starszy WebView (Android bez aktualizacji, 15.09.2026 audyt): AbortSignal.timeout
    jest od Chrome 103 — bez niego nie ładowały się strefy PAŻP ani dziennik ADS-B. */
@@ -598,11 +602,22 @@ let wsOpenedAt = 0, wsShortLived = 0, wsStableTimer = null;
    traktujemy serwer jak zajęty: odpytujemy /api/state i nie straszymy użytkownika. */
 const WS_BUSY_MS = 60000;
 let wsFailedOpens = 0;
+/* Krótkie zerwanie (przejazd tunelem, zmiana sieci) trwa sekundy i wracało samo,
+   a komunikat zdążył mignąć i straszył. Pokazujemy go dopiero, gdy połączenia nie
+   ma dłużej niż CONN_LOST_DELAY_MS. */
+const CONN_LOST_DELAY_MS = 6000;
+let connLostTimer = null;
 function showConnLost() {
-  connBadge.textContent = UI.isEn ? "server connection lost — retrying…" : "brak połączenia z serwerem — ponawiam…";
-  connBadge.classList.remove("hidden");
+  if (connLostTimer || !connBadge.classList.contains("hidden")) return;
+  connLostTimer = setTimeout(() => {
+    connLostTimer = null;
+    connBadge.textContent = UI.isEn ? "server connection lost — retrying…" : "brak połączenia z serwerem — ponawiam…";
+    connBadge.classList.remove("hidden");
+  }, CONN_LOST_DELAY_MS);
 }
+function clearConnLostTimer() { clearTimeout(connLostTimer); connLostTimer = null; }
 function showBusyPolling() {
+  clearConnLostTimer();
   connBadge.textContent = UI.isEn ? "heavy traffic — map refreshes every few seconds"
                                   : "duży ruch — mapa odświeżana co kilka sekund";
   connBadge.classList.remove("hidden");
@@ -713,12 +728,34 @@ async function probeBackend(base) {
   return false;
 }
 
+/* Tryb sygnału (1.7.59): przez WebSocket idzie samo „zmieniło się" z ETagiem, a stan
+   mapy pobieramy z /api/state, które Cloudflare trzyma w pamięci na brzegu. Serwer
+   wysyłał wcześniej każdemu cały stan (~39 KB): rozesłanie do 1595 połączeń zajmowało
+   średnio 1,07 s, bo kompresja liczy się osobno dla każdego klienta (pomiar 17.09.2026).
+   Pierwszą ramką po połączeniu nadal jest pełny stan, więc mapa jest od razu. */
+let lastTickEtag = null, tickBusy = false, tickPending = null;
+async function fetchStateTick(etag) {
+  if (etag && etag === lastTickEtag) return;     // ten sam stan — nie pobieramy drugi raz
+  if (tickBusy) { tickPending = etag; return; }  // jedno pobranie naraz
+  tickBusy = true;
+  const base = apiBase();
+  try {
+    const r = await fetch(base + "/api/state", { cache: "no-store" });
+    if (r.ok) { lastTickEtag = etag; applyState(await r.json()); }
+  } catch {} finally {
+    tickBusy = false;
+    const next = tickPending; tickPending = null;
+    if (next && next !== lastTickEtag) fetchStateTick(next);
+  }
+}
+
 function openBackendWs(base) {
-  const wsUrl = base.replace(/^http/, "ws") + "/ws";
+  const wsUrl = base.replace(/^http/, "ws") + "/ws?v=2";
   try { ws = new WebSocket(wsUrl); } catch { return scheduleReconnect(); }
   ws.onopen = () => {
     wsOpenedAt = Date.now();
     wsFailedOpens = 0;
+    clearConnLostTimer();
     connBadge.classList.add("hidden");
     if (busyPoll) { clearInterval(busyPoll); busyPoll = null; }
     clearTimeout(wsStableTimer);
@@ -726,7 +763,8 @@ function openBackendWs(base) {
   };
   ws.onmessage = (e) => {
     const env = JSON.parse(e.data);
-    if (env.type === "state") applyState(env.data);
+    if (env.type === "state") { lastTickEtag = null; applyState(env.data); }
+    else if (env.type === "tick") fetchStateTick(env.etag);
   };
   ws.onclose = ws.onerror = (e) => {
     clearTimeout(wsStableTimer);
@@ -959,11 +997,12 @@ const MAP_STYLES = [
 
 /* Etykiety mapy zgodne z językiem interfejsu. Kafelki OpenMapTiles niosą
    name:pl/name:en; gdy tłumaczenia brak, zachowujemy nazwę łacińską lub źródłową. */
+const OWN_LABEL_LAYERS = new Set(["threats", "threats-age", "adsb", "adsb-label"]);
 function localiseMapLabels() {
   const field = ["coalesce", ["get", UI.isEn ? "name:en" : "name:pl"],
     ["get", "name:latin"], ["get", "name"]];
   for (const lyr of map.getStyle().layers || []) {
-    if (lyr.type !== "symbol") continue;
+    if (lyr.type !== "symbol" || OWN_LABEL_LAYERS.has(lyr.id)) continue;   // nasze podpisy zostają
     try {
       if (map.getLayoutProperty(lyr.id, "text-field") !== undefined)
         map.setLayoutProperty(lyr.id, "text-field", field);
@@ -1175,7 +1214,8 @@ async function initMap() {
     map.addLayer({ id: "threats-glow", type: "circle", source: "threats",
       paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"], 4, 10, 8, 18],
         "circle-color": ["get", "color"],
-        "circle-opacity": ["case", ["==", ["get", "historicalOnly"], true], 0.07, 0.16],
+        "circle-opacity": ["case", ["==", ["get", "historicalOnly"], true], 0.07,
+          ["interpolate", ["linear"], ["get", "age_min"], 10, 0.16, 60, 0.06]],
         "circle-stroke-color": ["get", "color"], "circle-stroke-opacity": 0.45,
         "circle-stroke-width": 1 } });
     /* Puls: tylko obiekty, które w tej chwili wnoszą punkty do któregoś
@@ -1205,8 +1245,20 @@ async function initMap() {
         "icon-rotate": ["case", ["==", ["get", "hdg_unknown"], true], 0, ["get", "heading"]],
         "icon-rotation-alignment": "map",
         "icon-allow-overlap": true },
-      paint: { "icon-opacity": ["case", ["==", ["get", "historicalOnly"], true], 0.48, 1] },
+      /* Wiek meldunku (17.09.2026): NEPTUN to zgłoszenia ludzi, nie radar — obiekt
+         stoi w miejscu, dopóki ktoś go znowu nie zgłosi. Stary meldunek blednie,
+         żeby nie wyglądał jak świeża, pewna pozycja. */
+      paint: { "icon-opacity": ["case", ["==", ["get", "historicalOnly"], true], 0.48,
+        ["interpolate", ["linear"], ["get", "age_min"], 10, 1, 60, 0.4]] },
     });
+    // podpis z wiekiem meldunku pod ikoną — dopiero gdy zrobił się stary
+    map.addLayer({ id: "threats-age", type: "symbol", source: "threats",
+      filter: [">=", ["get", "age_min"], 5],
+      layout: { "text-field": ["get", "age_label"], "text-size": 10,
+        "text-offset": [0, 1.35], "text-anchor": "top", "text-optional": true,
+        "text-font": ["Noto Sans Regular"] },
+      paint: { "text-color": "#95a1b7", "text-halo-color": "#0b0f1a", "text-halo-width": 1.1,
+        "text-opacity": ["interpolate", ["linear"], ["zoom"], 4, 0, 5, 1] } });
 
     // ślad śledzonej maszyny — pod ikonami samolotów, żeby ich nie zasłaniał
     map.addSource("adsb-trail", { type: "geojson", data: emptyFC() });
@@ -1729,6 +1781,8 @@ function openThreatPopup(lngLat, p) {
         · ${UI.isEn ? "position uncertainty" : "niepewność pozycji"}: <b>±${p.uncertainty} km</b><br>
       ${p.heading != null && !p.hdg_unknown ? `${UI.isEn ? (p.heading_measured ? "heading from movement" : "heading") : (p.heading_measured ? "kurs z ruchu" : "kurs")}: ${Math.round(p.heading)}° (${compass(p.heading)})${p.heading_measured && p.heading_source != null && Math.abs(((p.heading - p.heading_source) % 360 + 540) % 360 - 180) > 45 ? ` <span style="color:#95a1b7">(${UI.isEn ? "NEPTUN reports" : "NEPTUN podaje"} ${Math.round(p.heading_source)}°)</span>` : ""} · ` : ""}
       ${UI.isEn ? "distance from the Polish border" : "odległość od granicy PL"}: <b>${p.distance_text ?? ((p.dist_km ?? "?") + " km")}</b><br>
+      ${UI.isEn ? "last report" : "ostatni meldunek"}: <b>${ageAgoText(p.age_min)}</b>${Number(p.age_min) >= 15
+        ? ` <span style="color:#95a1b7">${UI.isEn ? "— the object may have moved on since" : "— obiekt mógł się od tego czasu przemieścić"}</span>` : ""}<br>
       ${courseVerdictHTML(p)}
       ${p.eta || ""}
       <span style="color:#68758c">${UI.isEn ? "Data: NEPTUN — OSINT aggregator, not military radar" : "Dane: NEPTUN — agregator OSINT, nie radar wojskowy"}</span>`);
@@ -2222,6 +2276,23 @@ function trackSpeed(t) {
    ZMIERZONEJ prędkości i kursie z ruchu, od chwili potwierdzenia w źródle,
    najwyżej 18 km i nie dłużej niż 7 min (później dane uznajemy za nieaktualne). */
 const PREDICT_MAX_KM = 18, PREDICT_MAX_S = 420;
+/* Ile minut od ostatniego meldunku o obiekcie (NEPTUN potwierdza zgłoszeniami). */
+function threatAgeMin(t, nowMs) {
+  const seen = Date.parse(t.confirmedAt || t.updatedAt || "");
+  if (!seen) return 0;
+  return Math.max(0, Math.round((nowMs - seen) / 60000));
+}
+function ageAgoText(min) {
+  const m = Number(min);
+  if (!Number.isFinite(m) || m < 1) return UI.isEn ? "just now" : "przed chwilą";
+  return ageLabel(m) + (UI.isEn ? " ago" : " temu");
+}
+function ageLabel(min) {
+  if (min < 60) return `${min} min`;
+  const h = Math.floor(min / 60), m = min % 60;
+  return m ? `${h} h ${m} min` : `${h} h`;
+}
+
 function predict(t, nowMs) {
   let lat = t.lat, lon = t.lon;
   if (isApproxPosition(t)) return { lat, lon };
@@ -2320,6 +2391,7 @@ function animate(ts) {
     // z ruchu ma pierwszeństwo — ikona, przesuwanie i karta mówią to samo.
     const mh = measuredHeading(t);
     const shownHdg = mh ?? t.heading;
+    const ageMin = threatAgeMin(t, now);
     pts.push({ type: "Feature", geometry: { type: "Point", coordinates: [p.lon, p.lat] },
       properties: { tid: String(t.id ?? ""),
         type: TYPE_META[t.type] ? t.type : "unknown", heading: shownHdg ?? 0,
@@ -2335,6 +2407,7 @@ function animate(ts) {
         toward_pl: t.pl_assessment?.toward_pl === true,
         heading_known: t.pl_assessment?.heading_known !== false,
         counted: countedTracks.has(String(t.id ?? "")),
+        age_min: ageMin, age_label: ageLabel(ageMin),
         course_off: courseOffsetDeg(t),
         eta: etaHtml(t) } });
     const uncKm = shownUncertaintyKm(t);
@@ -4710,6 +4783,13 @@ async function refreshBgStatus(previewLang = UI.lang) {
     if (s.fullScreenAllowed === false)
       warn.push(isEn ? "⚠ Full-screen alert permission is missing — a red alert will not wake the screen. Enable it below."
         : "⚠ Brak zgody na alarm pełnoekranowy — czerwony alarm nie zapali wygaszonego ekranu. Włącz przyciskiem 🚨 poniżej.");
+    /* Potwierdzone na iPhonie 18.09.2026: w trybie Sen czerwony alarm nie dotarł
+       do odblokowania telefonu, dopóki Strażnik nie został dopuszczony w
+       Ustawienia → Skupienie → Sen → Aplikacje. iOS wymaga zgody na powiadomienia
+       czasowo zależne osobno dla aplikacji i osobno dla trybu Skupienia. */
+    if (s.platform === "ios" && s.notificationsAllowed && s.timeSensitiveAllowed === false)
+      warn.push(isEn ? "⚠ “Time Sensitive Notifications” are off for Strażnik — a red alert may stay silent in Focus mode. Settings → Strażnik → Notifications."
+        : "⚠ „Powiadomienia czasowo zależne” są wyłączone dla Strażnika — czerwony alarm może nie przebić trybu Skupienia. Ustawienia → Strażnik → Powiadomienia.");
     if (s.topicsError)
       warn.push(isEn ? "⚠ Some alert subscriptions were not confirmed yet — keep the app open with internet for a moment."
         : "⚠ Część subskrypcji alarmów nie została jeszcze potwierdzona — zostaw aplikację chwilę otwartą z internetem.");
@@ -4718,10 +4798,13 @@ async function refreshBgStatus(previewLang = UI.lang) {
       warn.push(isEn ? `⚠ On ${esc(s.manufacturer)} phones, clearing the app from recent apps can block alerts until you open Strażnik again. Lock it in recent apps (padlock) and allow autostart.`
         : `⚠ Na telefonach ${esc(s.manufacturer)} usunięcie aplikacji z listy ostatnich potrafi zablokować alarmy do ponownego otwarcia Strażnika. Zablokuj ją na liście ostatnich (kłódka) i zezwól na autostart.`);
     const verEl = document.getElementById("app-version");
-    if (verEl) verEl.textContent = s.appVersion
-      ? `${isEn ? "Installed version" : "Zainstalowana wersja"} ${s.appVersion}` : "";
+    // iOS celowo zwraca pusty appVersion, żeby aplikacja nie proponowała APK
+    // (Apple odrzuca aktualizacje spoza App Store) — wersję podaje iosAppVersion.
+    const wersja = s.appVersion || s.iosAppVersion;
+    if (verEl) verEl.textContent = wersja
+      ? `${isEn ? "Installed version" : "Zainstalowana wersja"} ${wersja}` : "";
     const updBtn = document.getElementById("btn-update");
-    if (updBtn) updBtn.style.display = UPDATE_CHECK ? "" : "none";
+    if (updBtn) updBtn.style.display = UPDATE_CHECK && !IS_IOS ? "" : "none";
     /* canUseFullScreenIntent() bywa optymistyczne (zwraca „dozwolone", choć system
        i tak odrzuca alarm), a po aktualizacji zgoda potrafi się cofnąć — dlatego na
        Androidzie 14+ przycisk pokazujemy ZAWSZE, żeby dało się ją sprawdzić i włączyć. */
@@ -4759,7 +4842,8 @@ async function refreshBgStatus(previewLang = UI.lang) {
       || (isEn ? "Notifications ready. Alerts for your region will arrive even while the app is closed."
         : "Powiadomienia gotowe. Alarmy dla Twojego regionu dotrą także przy zamkniętej aplikacji."))
       + `<br>${subLine}`
-      + `<br><span class="muted">Android ${s.sdk}, ${esc(s.manufacturer || "")}`
+      + `<br><span class="muted">${s.platform === "ios" ? `iOS ${esc(s.osVersion || "")}`
+        : `Android ${s.sdk}, ${esc(s.manufacturer || "")}`}`
       + `${s.homeVoivodeship ? " · region: " + esc(UI.voiv(s.homeVoivodeship)) : ""}</span>`;
   } catch (e) { if (info) info.textContent = (isEn ? "Could not read status: " : "Nie udało się odczytać stanu: ") + e; }
 }
@@ -4927,7 +5011,12 @@ async function nativeTest(level) {
   const plugin = BG(); if (!plugin?.testNativeAlarm) return;
   if (blockedByAlertsOff()) return;
   document.getElementById("settings").close();
-  await plugin.testNativeAlarm({ level, delayMs: 5000, voivodeship: myVoiv() || "lubelskie" });
+  // iOS zwraca {scheduled:false, reason:"denied"} przy zablokowanych powiadomieniach;
+  // bez tego toast obiecywał alarm, który nigdy nie przyszedł. Android zwraca undefined.
+  const r = await plugin.testNativeAlarm({ level, delayMs: 5000, voivodeship: myVoiv() || "lubelskie" });
+  if (r && r.scheduled === false)
+    return toast(UI.isEn ? "Notifications are blocked — enable them in Settings → Strażnik → Notifications."
+      : "Powiadomienia są zablokowane — włącz je w Ustawienia → Strażnik → Powiadomienia.", 6000);
   toast(UI.isEn ? "Test alert in 5 seconds — you can lock the screen now."
     : "Test alarmu za 5 sekund — możesz teraz zablokować ekran.", 5000);
 }

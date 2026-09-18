@@ -39,6 +39,33 @@
   <p class="fineprint">Wersję zainstalowaną na telefonie sprawdzisz w aplikacji: <kbd>⚙</kbd> → zakładka <kbd>Aplikacja</kbd> → „Wersja aplikacji”. Tam też jest przycisk <kbd>⬆ Sprawdź aktualizacje</kbd>.</p>
 </div></header>
 <main id="content" class="wrap">
+<section id="v1-7-60">
+  <h2>1.7.60 — Widać, jak stary jest meldunek</h2>
+  <p class="fineprint">Wydanie 1.7.60 · 17 września 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.60">Pełny opis wydania</a></p>
+  <ul>
+    <li>Pod ikoną drona albo rakiety pojawia się wiek ostatniego meldunku, np. „7 min”, a sama ikona stopniowo blednie: od dziesięciu minut do godziny. Karta obiektu ma teraz linię „ostatni meldunek”, a przy meldunku starszym niż kwadrans dopisek, że obiekt mógł się od tego czasu przemieścić.</li>
+    <li>Po co: NEPTUN zbiera zgłoszenia ludzi, nie odczyty radaru. Obiekt stoi w tym samym miejscu, dopóki ktoś nie zgłosi go ponownie, a czasem kolejnego zgłoszenia nie ma wcale. Pomiar z 17 września: w ciągu dziesięciu minut pozycję zmienił jeden obiekt z czternastu. Nieruchoma ikona to brak nowych zgłoszeń, a nie zawieszona mapa.</li>
+    <li>Komunikat „brak połączenia z serwerem” pokazuje się dopiero po sześciu sekundach bez połączenia. Wcześniej migał także wtedy, gdy telefon wracał z tła i połączenie wracało po sekundzie.</li>
+  </ul>
+</section>
+<section id="v1-7-59">
+  <h2>1.7.59 — Lżejsze połączenie na żywo</h2>
+  <p class="fineprint">Wydanie 1.7.59 · 17 września 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.59">Pełny opis wydania</a></p>
+  <ul>
+    <li>Serwer wysyłał dotąd każdemu telefonowi cały stan mapy (ok. 55 KB) przy każdej zmianie i kompresował go osobno dla każdego połączenia. Pomiar z 17 września: rozesłanie do 1281 telefonów zajmowało prawie sekundę i blokowało w tym czasie serwer — stąd zacięcia i komunikat o dużym ruchu podczas syren.</li>
+    <li>Teraz przez połączenie na żywo idzie krótki sygnał „zmieniło się” (ok. 50 bajtów), a aplikacja pobiera stan mapy z pamięci podręcznej Cloudflare. Rozesłanie sygnału do tysiąca telefonów zajmuje 5 milisekund zamiast sekundy, a pobranie stanu w większości przypadków nie obciąża już serwera.</li>
+    <li>Dla Ciebie nic się nie zmienia: mapa odświeża się tak samo, pierwszy stan przychodzi od razu po połączeniu, a alarmy i powiadomienia idą osobną drogą i działają bez zmian. Limit jednoczesnych połączeń wzrósł do 15 000.</li>
+  </ul>
+</section>
+<section id="v1-7-58">
+  <h2>1.7.58 — Nowy serwer od Mikrusa</h2>
+  <p class="fineprint">Wydanie 1.7.58 · 17 września 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.58">Pełny opis wydania</a></p>
+  <ul>
+    <li>Od 17 września Strażnik działa na osobnym serwerze, który przekazał projektowi Mikrus. Wcześniej dzielił dwa rdzenie procesora z innymi projektami; przeniesienie trwało niespełna minutę i nie zmieniło adresu strony ani działania powiadomień.</li>
+    <li>Pod napisem STRAŻNIK jest teraz logo Mikrusa i link „hostowane na Mikrusie”, a w okienku po dotknięciu nazwy aplikacji — krótkie podziękowanie z linkiem do strony Mikrusa. Ta sama informacja jest w oknie „O aplikacji”, w stopce instrukcji i w README.</li>
+    <li>W wersji angielskiej okienko po dotknięciu nazwy aplikacji znów ma link do kodu źródłowego na GitHubie.</li>
+  </ul>
+</section>
 <section id="v1-7-57">
   <h2>1.7.57 — Przyciski przewijania historii i działający przycisk „wstecz”</h2>
   <p class="fineprint">Wydanie 1.7.57 · 17 września 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.57">Pełny opis wydania</a></p>
@@ -514,7 +541,8 @@
 </main>
 <footer><div class="wrap">
   <p><b>STRAŻNIK</b> — nieoficjalne źródło dodatkowe. Nie zastępuje syren, RCB ani RSO.</p>
-  <p><a href="https://github.com/cukierrro/Straznik">Kod źródłowy</a> · <a href="index.html">Instrukcja użytkownika</a> · <a href="zmiany-en.html" lang="en">English changelog</a> · <a href="https://buycoffee.to/cukierrro">Postaw kawę</a></p>
+  <p><a href="https://github.com/cukierrro/Straznik">Kod źródłowy</a> · <a href="index.html">Instrukcja użytkownika</a> · <a href="zmiany-en.html" lang="en">English changelog</a></p>
+  <p>Serwer: <a href="https://mikr.us">hostowane na Mikrusie</a> — dziękujemy za wsparcie projektu.</p>
   <a class="back-top" href="#top">↑ Wróć na górę</a>
 </div></footer>
 </body>

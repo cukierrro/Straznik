@@ -31,7 +31,9 @@ SHED_SYS_PCT_HARD = float(os.getenv("SHED_SYS_PCT_HARD", "90"))
 # 17.09.2026: usługa ma 3 GB (scripts/systemd/straznik-memory.conf); poziom 2 = 2860 MB,
 # poniżej MemoryHigh 2900 MB, więc bezpiecznik działa, zanim jądro zacznie dławić proces
 SHED_RSS_MB = float(os.getenv("SHED_RSS_MB", "2600"))
-MAX_INFLIGHT = int(os.getenv("MAX_INFLIGHT", "600"))
+# 17.09.2026: serwer tylko dla Strażnika (ruth121, 16 GB) i stan mapy to gotowe bajty
+# z pamięci — kolejka może być dłuższa, zanim zacznie oddawać 503
+MAX_INFLIGHT = int(os.getenv("MAX_INFLIGHT", "1200"))
 QUEUE_WAIT_S = float(os.getenv("QUEUE_WAIT_S", "4"))
 # opóźnienie pętli: odmowa nowych WebSocketów dopiero przy TRWAŁYM przeciążeniu
 # (LAG_SAMPLES próbek z rzędu ≥ LAG_REFUSE_S, czyli kilkanaście sekund), powrót po

@@ -54,7 +54,7 @@ od 17.09 zwraca tylko `{"ok": true}`). Log na VPS:
    gpg -d sekrety.tar.gpg > sekrety.tar      # zapyta o hasło klucza „Straznik kopie”
    ```
 
-   wgrać `sekrety.tar` na VPS do `/tmp/odtw/` (np. `scp -P 10154`), a po odtworzeniu usunąć
+   wgrać `sekrety.tar` na VPS do `/tmp/odtw/` (np. `scp -P 10121` na ruth121), a po odtworzeniu usunąć
    go z obu miejsc. Na VPS:
 
    ```bash

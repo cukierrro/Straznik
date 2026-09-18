@@ -102,3 +102,44 @@ assert.match(java, /OnBackPressedCallback/, 'MainActivity przechwytuje „wstecz
 assert.match(java, /window\.straznikBack/, 'i pyta stronę');
 assert.match(java, /moveTaskToBack\(true\)/, 'bez niczego do zamknięcia aplikacja idzie w tło jak dotąd');
 console.log('OK: systemowe „wstecz” zamyka od wierzchu, na mapie chowa aplikację');
+
+// ── 4. tryb sygnału: WebSocket „zmieniło się" + stan z pamięci Cloudflare ──
+assert.match(src, /\/ws\?v=2/, 'klient łączy się w trybie sygnału (/ws?v=2)');
+const tickCtx = {
+  console, applyState: (s) => tickCtx.applied.push(s), applied: [], fetched: [],
+  apiBase: () => 'https://straznik.eu',
+  fetch: async (url) => { tickCtx.fetched.push(url); return { ok: true, json: async () => ({ n: tickCtx.fetched.length }) }; },
+};
+vm.createContext(tickCtx);
+vm.runInContext(cut('let lastTickEtag = null', '\nfunction openBackendWs'), tickCtx);
+(async () => {
+  await tickCtx.fetchStateTick('"a"');
+  await tickCtx.fetchStateTick('"a"');            // ten sam ETag — bez drugiego pobrania
+  await tickCtx.fetchStateTick('"b"');
+  assert.deepEqual(tickCtx.fetched, ['https://straznik.eu/api/state', 'https://straznik.eu/api/state'],
+    'pobranie stanu tylko przy nowym ETagu');
+  assert.equal(tickCtx.applied.length, 2, 'każde pobranie trafia do mapy');
+  console.log('OK: sygnał pobiera stan raz na zmianę, a nie przy każdej ramce');
+
+// ── 5. wiek meldunku: podpis pod ikoną i wygaszanie ──
+const wiek = { UI: { isEn: false } };
+vm.createContext(wiek);
+vm.runInContext(cut('function threatAgeMin', String.fromCharCode(10) + 'function predict'), wiek);
+const T = Date.UTC(2026, 8, 17, 20, 0, 0);
+assert.equal(wiek.threatAgeMin({ updatedAt: new Date(T - 7 * 60000).toISOString() }, T), 7, 'wiek liczony z updatedAt');
+assert.equal(wiek.threatAgeMin({ confirmedAt: new Date(T - 90 * 60000).toISOString(), updatedAt: new Date(T).toISOString() }, T), 90,
+  'confirmedAt ma pierwszeństwo nad updatedAt');
+assert.equal(wiek.threatAgeMin({}, T), 0, 'brak czasu = 0, bez wygaszania');
+assert.equal(wiek.ageLabel(7), '7 min');
+assert.equal(wiek.ageLabel(65), '1 h 5 min');
+assert.equal(wiek.ageLabel(120), '2 h');
+assert.equal(wiek.ageAgoText(0), 'przed chwilą');
+assert.equal(wiek.ageAgoText(7), '7 min temu');
+wiek.UI.isEn = true;
+assert.equal(wiek.ageAgoText(7), '7 min ago');
+const layers = html.includes('threats-age') || src.includes('threats-age');
+assert.ok(layers, 'warstwa z podpisem wieku istnieje');
+assert.match(src, /OWN_LABEL_LAYERS[\s\S]{0,120}threats-age/, 'podpis wieku wyłączony z tłumaczenia etykiet mapy');
+assert.match(src, /icon-opacity[\s\S]{0,200}age_min/, 'ikona blednie z wiekiem meldunku');
+console.log('OK: wiek meldunku - podpis, wygaszanie i tekst w karcie');
+})();

@@ -39,6 +39,33 @@
   <p class="fineprint">To see which version your phone has, open the app: <kbd>⚙</kbd> → the <kbd>App</kbd> tab → “App version”. The <kbd>⬆ Check for updates</kbd> button is right there too.</p>
 </div></header>
 <main id="content" class="wrap">
+<section id="v1-7-60">
+  <h2>1.7.60 — You can see how old each report is</h2>
+  <p class="fineprint">Release 1.7.60 · 17 September 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.60">Full release notes</a></p>
+  <ul>
+    <li>Under a drone or missile icon there is now the age of the last report, for example “7 min”, and the icon fades gradually between ten minutes and an hour. The object card has a “last report” line and, past a quarter of an hour, adds that the object may have moved on since.</li>
+    <li>Why: NEPTUN collects human reports, not radar returns. An object stays where it was until someone reports it again, and sometimes no further report arrives. Measured on 17 September: one object out of fourteen changed position within ten minutes. A motionless icon means no new reports, not a frozen map.</li>
+    <li>The “server connection lost” notice now waits six seconds. Before, it also flashed when the phone came back from the background and the connection returned within a second.</li>
+  </ul>
+</section>
+<section id="v1-7-59">
+  <h2>1.7.59 — A lighter live connection</h2>
+  <p class="fineprint">Release 1.7.59 · 17 September 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.59">Full release notes</a></p>
+  <ul>
+    <li>Until now the server sent every phone the whole map state (about 55 KB) on each change and compressed it separately for each connection. Measured on 17 September: a fan-out to 1281 phones took almost a second and blocked the server meanwhile — this is what caused the stalls and the heavy-traffic notice during the sirens.</li>
+    <li>Now the live connection carries a short “changed” signal (about 50 bytes) and the app fetches the map state from Cloudflare's edge cache. Sending that signal to a thousand phones takes 5 milliseconds instead of a second, and fetching the state mostly no longer touches the server.</li>
+    <li>Nothing changes for you: the map refreshes as before, the first state arrives immediately after connecting, and alerts and notifications travel a separate path and work unchanged. The live-connection limit is now 15,000.</li>
+  </ul>
+</section>
+<section id="v1-7-58">
+  <h2>1.7.58 — A new server from Mikrus</h2>
+  <p class="fineprint">Release 1.7.58 · 17 September 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.58">Full release notes</a></p>
+  <ul>
+    <li>Since 17 September Strażnik runs on its own server, provided to the project by Mikrus. Before, it shared two CPU cores with other projects; the move took under a minute and changed neither the website address nor how notifications work.</li>
+    <li>Under the STRAŻNIK name there is now the Mikrus logo and a “hosted on Mikrus” link, and the popover shown after tapping the app name has a short thank-you with a link to the Mikrus website. The same note is in the About window, the user guide footer and the README.</li>
+    <li>In English, the popover shown after tapping the app name has its GitHub source code link back.</li>
+  </ul>
+</section>
 <section id="v1-7-57">
   <h2>1.7.57 — History scroll buttons and a working back button</h2>
   <p class="fineprint">Release 1.7.57 · 17 September 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.57">Full release notes</a></p>
@@ -514,7 +541,8 @@
 </main>
 <footer><div class="wrap">
   <p><b>STRAŻNIK</b> — an unofficial additional source. It does not replace sirens, RCB or RSO.</p>
-  <p><a href="https://github.com/cukierrro/Straznik">Source code</a> · <a href="en.html">User guide</a> · <a href="zmiany.html" lang="pl">Polska wersja</a> · <a href="https://buycoffee.to/cukierrro">Buy a coffee</a></p>
+  <p><a href="https://github.com/cukierrro/Straznik">Source code</a> · <a href="en.html">User guide</a> · <a href="zmiany.html" lang="pl">Polska wersja</a></p>
+  <p>Server: <a href="https://mikr.us">hosted on Mikrus</a> — thank you for supporting the project.</p>
   <a class="back-top" href="#top">↑ Back to top</a>
 </div></footer>
 </body>

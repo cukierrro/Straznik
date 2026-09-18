@@ -4,6 +4,8 @@
 
 # Strażnik
 
+Serwer: **hostowane na [Mikrusie](https://mikr.us)** — dziękujemy za wsparcie projektu.
+
 Wersja 1.7.34: weto „dni po” trafiało w środek słowa „wschodni powiat” i kasowało
 prawdziwy meldunek o poderwaniu lotnictwa. Hasła mają teraz granicę słowa, a weta
 dzielą się na twarde (ćwiczenia, rocznice — kasują wszystko) i miękkie (omówienia —
@@ -595,6 +597,8 @@ Oprogramowanie jest udostępniane „tak jak jest", bez gwarancji: to nieoficjal
 dodatkowe, nie system ratunkowy.
 
 ## Dane i atrybucja
+
+Hosting serwera: [Mikrus](https://mikr.us) (od 17.09.2026 serwer przekazany przez Mikrusa na potrzeby projektu).
 
 [NEPTUN](https://neptun.in.ua) (agregator OSINT; obiekty i alarmy obwodów UA) ·
 adsb.lol · airspace.pansa.pl · gov.pl/RCB · media regionalne i bałtyckie ·

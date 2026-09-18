@@ -46,6 +46,10 @@ document.documentElement.classList.add(
   location.protocol === "capacitor:" || location.protocol === "file:" || window.Capacitor
     ? "native-app" : "web-app"
 );
+/* iPhone: część rzeczy z Androida (głośność, pełny ekran, APK) tam nie działa,
+   a linki do wsparcia autora łamią zasady App Store — ukrywa je klasa ios-app. */
+if (window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform() === "ios")
+  document.documentElement.classList.add("ios-app");
 /* Za stary silnik przeglądarki (np. Android bez aktualizacji „Android System WebView”)
    nie wczyta app.js i zostałby pusty ekran. Wtedy mówimy wprost, co zaktualizować. */
 var STRAZNIK_OLD_ENGINE = false;
@@ -69,7 +73,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <link rel="icon" type="image/png" sizes="512x512" href="assets/icon-512.png">
 <link rel="apple-touch-icon" href="assets/icon-192.png">
 <link rel="stylesheet" href="assets/vendor/maplibre-gl.css">
-<link rel="stylesheet" href="style.css?v=1.7.57-1">
+<link rel="stylesheet" href="style.css?v=1.7.60-1">
 </head>
 <body>
 
@@ -79,6 +83,11 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
     <div>
       <h1 class="brand-name">STRAŻNIK</h1>
       <div class="brand-sub">fuzja sygnałów · wschodnia Polska</div>
+      <!-- 17.09.2026: Mikrus przekazał Strażnikowi serwer; zgodnie z ich prośbą informacja
+           o hostingu z linkiem do ich strony (logo z ich strony z logotypami, biały tekst) -->
+      <a class="brand-host" href="https://mikr.us" target="_blank" rel="noopener"
+         aria-label="Strażnik jest hostowany na Mikrusie — otwórz stronę Mikrusa"><img
+         src="assets/mikrus-logo.svg" alt="" width="44" height="7"><span>hostowane na Mikrusie ↗</span></a>
     </div>
     <div class="brand-info" role="tooltip">
       <b>Strażnik</b> — nieoficjalny system wczesnego ostrzegania. Łączy sygnały
@@ -86,6 +95,12 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
       ocenę zagrożenia z powietrza dla województw, ze szczególną uwagą na wschodnią
       Polskę. Źródło <b>dodatkowe</b> — nie zastępuje syren, RCB ani RSO.
       <a href="https://github.com/cukierrro/Straznik" target="_blank" rel="noopener">Kod źródłowy na GitHub ↗</a>
+      <div class="brand-info-host">
+        <img src="assets/mikrus-logo.svg" alt="Mikrus" width="74" height="12">
+        <p>Serwer Strażnika zapewnia <b>Mikrus</b> — polskie serwery VPS dla pasjonatów.
+        Dziękujemy za wsparcie projektu!</p>
+        <a href="https://mikr.us" target="_blank" rel="noopener">Strona Mikrusa ↗</a>
+      </div>
     </div>
   </div>
   <div id="status-leds" title="Status źródeł danych — dotknij po szczegóły"
@@ -99,7 +114,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
        href="https://cukierrro.github.io/Straznik/" target="_blank" rel="noopener"
        title="Otwórz pełną instrukcję aplikacji Strażnik"
        aria-label="Otwórz pełną instrukcję aplikacji Strażnik">📖 Instrukcja</a>
-    <a id="btn-coffee" class="chip coffee web-only" href="https://buycoffee.to/cukierrro"
+    <a id="btn-coffee" class="chip coffee web-only no-ios" href="https://buycoffee.to/cukierrro"
        target="_blank" rel="noopener"
        title="Postaw kawę dla cukierrro na buycoffee.to">☕ Postaw kawę</a>
     <!-- Na pasku zostają tylko dwie rzeczy: stan powiadomień i ustawienia.
@@ -247,7 +262,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
     <a class="sheet-row" href="https://cukierrro.github.io/Straznik/" target="_blank" rel="noopener">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5h9l5 5v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-14a1 1 0 0 1 1-1z"/><path d="M14 4.5v5h5M8 13h8M8 16.5h5"/></svg>
       <span>Instrukcja użytkownika</span></a>
-    <a class="sheet-row" href="https://buycoffee.to/cukierrro" target="_blank" rel="noopener">
+    <a class="sheet-row no-ios" href="https://buycoffee.to/cukierrro" target="_blank" rel="noopener">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 8h11v5.5a4 4 0 0 1-4 4H8.5a4 4 0 0 1-4-4z"/><path d="M15.5 9.5h2a2.5 2.5 0 0 1 0 5h-2M6 5V3.4M9.5 5V3.4M13 5V3.4"/></svg>
       <span>Wesprzyj autora</span></a>
   </div>
@@ -526,10 +541,11 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
     <!-- DIV, nie <p>: tłumaczenia akapitów idą po indeksie (i18n.js #about .about-body > p) -->
     <div class="fineprint" id="about-license">© 2026 cukierrro · wszelkie prawa zastrzeżone ·
       <a href="https://github.com/cukierrro/Straznik/blob/main/LICENSE" target="_blank" rel="noopener">licencja</a> · licencje składników:
-      <a href="https://github.com/cukierrro/Straznik/blob/main/NOTICE" target="_blank" rel="noopener">NOTICE</a></div>
+      <a href="https://github.com/cukierrro/Straznik/blob/main/NOTICE" target="_blank" rel="noopener">NOTICE</a>
+      · serwer: <a href="https://mikr.us" target="_blank" rel="noopener">hostowane na Mikrusie ↗</a></div>
 
     <div class="about-actions">
-      <a class="chip coffee" href="https://buycoffee.to/cukierrro" target="_blank"
+      <a class="chip coffee no-ios" href="https://buycoffee.to/cukierrro" target="_blank"
          rel="noopener">☕ Postaw kawę autorowi</a>
       <button id="about-close" class="chip primary">Rozumiem, zaczynajmy</button>
     </div>
@@ -608,7 +624,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 </dialog>
 
 <!-- 17.09.2026: po aktualizacji Android wyłączył zgodę, a aplikacja tego nie pokazała -->
-<dialog id="fs-check">
+<dialog id="fs-check" class="android-only">
   <div class="about-body" style="max-height:none">
     <div class="about-head">
       <div class="about-logo"></div>
@@ -659,8 +675,8 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
       <span class="sw-track" aria-hidden="true"></span></label>
     <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
       <button type="button" id="btn-notif-settings" class="chip">🔔 Ustawienia powiadomień</button>
-      <button type="button" id="btn-fullscreen" class="chip" style="display:none">🚨 Zgoda na alarm pełnoekranowy</button>
-      <button type="button" id="btn-battery" class="chip">🔋 Wyłącz oszczędzanie baterii</button>
+      <button type="button" id="btn-fullscreen" class="chip android-only" style="display:none">🚨 Zgoda na alarm pełnoekranowy</button>
+      <button type="button" id="btn-battery" class="chip android-only">🔋 Wyłącz oszczędzanie baterii</button>
       <button type="button" id="btn-web-push-on" class="chip primary" hidden>🔔 Włącz powiadomienia w tej przeglądarce</button>
       <button type="button" id="btn-web-push-off" class="chip" hidden>🔕 Wyłącz powiadomienia w tej przeglądarce</button>
     </div>
@@ -699,18 +715,18 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 
     <div id="native-sound" class="app-only">
       <h3 style="margin-top:16px" id="ns-head">Alarm natywny i głośność</h3>
-      <div class="fineprint" id="ns-volume"></div>
-      <label class="set-switch" for="set-force-volume">
+      <div class="fineprint android-only" id="ns-volume"></div>
+      <label class="set-switch android-only" for="set-force-volume">
         <span class="sw-text"><b id="ns-label">Czerwony alarm zawsze na pełnej głośności</b></span>
         <input type="checkbox" role="switch" id="set-force-volume">
         <span class="sw-track" aria-hidden="true"></span></label>
-      <div class="fineprint" id="ns-note">Syrena gra na suwaku głośności <b>„Alarmy”</b>
+      <div class="fineprint android-only" id="ns-note">Syrena gra na suwaku głośności <b>„Alarmy”</b>
         (nie „Dzwonek” ani „Multimedia”). Czerwony alarm podnosi go <b>co najmniej do połowy</b>,
         żeby syrena nie była cicha. Opcja wyżej jest domyślnie <b>wyłączona</b> — po jej włączeniu
         czerwony alarm ustawi suwak na maksimum, także w nocy. W obu przypadkach poprzednia
         głośność wraca, gdy wyciszysz alarm. Żółty sygnał uwagi gra na zwykłej głośności.</div>
       <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
-        <button type="button" id="btn-sound-settings" class="chip">🔊 Ustawienia dźwięku Androida</button>
+        <button type="button" id="btn-sound-settings" class="chip android-only">🔊 Ustawienia dźwięku Androida</button>
         <button type="button" id="btn-native-test" class="chip">▶ Test: czerwony natywny (za 5 s)</button>
         <button type="button" id="btn-native-test-yellow" class="chip">▶ Test: żółty natywny (za 5 s)</button>
       </div>
@@ -772,7 +788,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
     <p class="fineprint" id="more-links" style="margin-top:14px">
       <a href="https://cukierrro.github.io/Straznik/" target="_blank" rel="noopener">Instrukcja użytkownika ↗</a>
       <a href="https://cukierrro.github.io/Straznik/zmiany.html" target="_blank" rel="noopener">Historia zmian ↗</a>
-      <a href="https://buycoffee.to/cukierrro" target="_blank" rel="noopener">Wesprzyj autora ☕</a>
+      <a class="no-ios" href="https://buycoffee.to/cukierrro" target="_blank" rel="noopener">Wesprzyj autora ☕</a>
     </p>
     </section>
     <menu>
@@ -806,13 +822,13 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
      Cloudflare, więc po każdym wydaniu wystarczy podbić ?v= i przeglądarki
      dostają nowe app.js/engine.js OD RAZU, bez ręcznego czyszczenia cache CF.
      Podbijaj ?v= razem z versionName w build.gradle. -->
-<script src="i18n.js?v=1.7.57-1"></script>
+<script src="i18n.js?v=1.7.60-1"></script>
 <!-- kontur Polski dla engine.js (audyt A2b, scripts/build_pl_outline.py) -->
-<script src="pl-outline.js?v=1.7.57-1"></script>
-<script src="engine.js?v=1.7.57-1"></script>
+<script src="pl-outline.js?v=1.7.60-1"></script>
+<script src="engine.js?v=1.7.60-1"></script>
 <script src="aircraft-photo-catalog.js?v=1.7.19"></script>
 <script src="aircraft-photos.js?v=1.7.19"></script>
 <script src="places.js?v=1.7.19-4"></script>
-<script src="app.js?v=1.7.57-1"></script>
+<script src="app.js?v=1.7.60-1"></script>
 </body>
 </html>

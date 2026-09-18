@@ -213,6 +213,18 @@ BY_SHADOW_RETRO_WORDS = ["вчера", "учора", "за сутки", "за с
 # Tematy bez zagrożenia z powietrza: produkcja, wystawy, rolnictwo, sport.
 BY_SHADOW_DENY = ["выставк", "выстаўк", "производств", "вытворчас", "агродрон", "сельскохоз",
                   "сельскагас", "чемпионат", "чэмпіянат", "дрон-рейс", "фестивал", "фестывал"]
+# ── mapa.ua w trybie cienia (collectors/mapa_ua_shadow.py, 18.09.2026) ───────
+# Drugi agregator zagrożeń nad Ukrainą (parsowanie Telegrama modelem językowym,
+# dorysowane trasy). Trzy doby samego zbierania danych do porównania z NEPTUN-em,
+# bez punktów i bez mapy — decyzja usera z 18.09. Po MAPA_SHADOW_UNTIL kolektor
+# przestaje odpytywać cudzy serwer.
+MAPA_SHADOW_INTERVAL = int(os.getenv("MAPA_SHADOW_INTERVAL", "120"))
+MAPA_SHADOW_URL = os.getenv("MAPA_SHADOW_URL", "https://mapa.ua/api/v1/current")
+MAPA_SHADOW_UNTIL = os.getenv("MAPA_SHADOW_UNTIL", "2026-09-22T00:00:00+02:00")
+# Świeży meldunek: u nich obiekt bywa „aktywny" 4 h po ostatnim zgłoszeniu.
+MAPA_SHADOW_FRESH_S = int(os.getenv("MAPA_SHADOW_FRESH_S", "900"))
+MAPA_SHADOW_MATCH_KM = float(os.getenv("MAPA_SHADOW_MATCH_KM", "25"))
+MAPA_SHADOW_NEAR_PL_KM = float(os.getenv("MAPA_SHADOW_NEAR_PL_KM", "300"))
 RCB_INTERVAL = int(os.getenv("RCB_INTERVAL", "120"))
 RCB_URL = "https://www.gov.pl/web/rcb"
 # RSO (Regionalny System Ostrzegania) przez TVP — realne alerty RCB/SPO (SMS-owe

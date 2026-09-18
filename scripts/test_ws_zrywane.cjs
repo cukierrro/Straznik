@@ -18,7 +18,9 @@ function simulate(lifetimeMs, mode = 'open') {
                                timers.push({ id, at: now + ms, fn: tick }); return id; },
     clearInterval: (id) => { for (let i = timers.length - 1; i >= 0; i--) if (timers[i].id === id) timers.splice(i, 1); },
     connBadge: { set textContent(v) { counts.badge = v; }, get textContent() { return counts.badge; },
-                 classList: { add() {}, remove() {} } },
+                 hidden: true,
+                 classList: { add() { ctx.connBadge.hidden = true; }, remove() { ctx.connBadge.hidden = false; },
+                              contains: (c) => c === 'hidden' && ctx.connBadge.hidden } },
     UI: { isEn: false }, apiBase: () => 'https://straznik.eu', applyState() {},
     pollOnce: () => { counts.poll++; },
     WebSocket: class {

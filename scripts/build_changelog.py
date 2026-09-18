@@ -16,6 +16,39 @@ DOCS = ROOT / "docs"
 # (wersja, data PL, data EN, tytuł PL, tytuł EN, punkty PL, punkty EN, zrzuty)
 # Zrzut: (plik, alt PL, alt EN, podpis PL, podpis EN)
 RELEASES = [
+    ("1.7.60", "17 września 2026", "17 September 2026",
+     "Widać, jak stary jest meldunek",
+     "You can see how old each report is",
+     ["Pod ikoną drona albo rakiety pojawia się wiek ostatniego meldunku, np. „7 min”, a sama ikona stopniowo blednie: od dziesięciu minut do godziny. Karta obiektu ma teraz linię „ostatni meldunek”, a przy meldunku starszym niż kwadrans dopisek, że obiekt mógł się od tego czasu przemieścić.",
+      "Po co: NEPTUN zbiera zgłoszenia ludzi, nie odczyty radaru. Obiekt stoi w tym samym miejscu, dopóki ktoś nie zgłosi go ponownie, a czasem kolejnego zgłoszenia nie ma wcale. Pomiar z 17 września: w ciągu dziesięciu minut pozycję zmienił jeden obiekt z czternastu. Nieruchoma ikona to brak nowych zgłoszeń, a nie zawieszona mapa.",
+      "Komunikat „brak połączenia z serwerem” pokazuje się dopiero po sześciu sekundach bez połączenia. Wcześniej migał także wtedy, gdy telefon wracał z tła i połączenie wracało po sekundzie."],
+     ["Under a drone or missile icon there is now the age of the last report, for example “7 min”, and the icon fades gradually between ten minutes and an hour. The object card has a “last report” line and, past a quarter of an hour, adds that the object may have moved on since.",
+      "Why: NEPTUN collects human reports, not radar returns. An object stays where it was until someone reports it again, and sometimes no further report arrives. Measured on 17 September: one object out of fourteen changed position within ten minutes. A motionless icon means no new reports, not a frozen map.",
+      "The “server connection lost” notice now waits six seconds. Before, it also flashed when the phone came back from the background and the connection returned within a second."],
+     []),
+
+    ("1.7.59", "17 września 2026", "17 September 2026",
+     "Lżejsze połączenie na żywo",
+     "A lighter live connection",
+     ["Serwer wysyłał dotąd każdemu telefonowi cały stan mapy (ok. 55 KB) przy każdej zmianie i kompresował go osobno dla każdego połączenia. Pomiar z 17 września: rozesłanie do 1281 telefonów zajmowało prawie sekundę i blokowało w tym czasie serwer — stąd zacięcia i komunikat o dużym ruchu podczas syren.",
+      "Teraz przez połączenie na żywo idzie krótki sygnał „zmieniło się” (ok. 50 bajtów), a aplikacja pobiera stan mapy z pamięci podręcznej Cloudflare. Rozesłanie sygnału do tysiąca telefonów zajmuje 5 milisekund zamiast sekundy, a pobranie stanu w większości przypadków nie obciąża już serwera.",
+      "Dla Ciebie nic się nie zmienia: mapa odświeża się tak samo, pierwszy stan przychodzi od razu po połączeniu, a alarmy i powiadomienia idą osobną drogą i działają bez zmian. Limit jednoczesnych połączeń wzrósł do 15 000."],
+     ["Until now the server sent every phone the whole map state (about 55 KB) on each change and compressed it separately for each connection. Measured on 17 September: a fan-out to 1281 phones took almost a second and blocked the server meanwhile — this is what caused the stalls and the heavy-traffic notice during the sirens.",
+      "Now the live connection carries a short “changed” signal (about 50 bytes) and the app fetches the map state from Cloudflare's edge cache. Sending that signal to a thousand phones takes 5 milliseconds instead of a second, and fetching the state mostly no longer touches the server.",
+      "Nothing changes for you: the map refreshes as before, the first state arrives immediately after connecting, and alerts and notifications travel a separate path and work unchanged. The live-connection limit is now 15,000."],
+     []),
+
+    ("1.7.58", "17 września 2026", "17 September 2026",
+     "Nowy serwer od Mikrusa",
+     "A new server from Mikrus",
+     ["Od 17 września Strażnik działa na osobnym serwerze, który przekazał projektowi Mikrus. Wcześniej dzielił dwa rdzenie procesora z innymi projektami; przeniesienie trwało niespełna minutę i nie zmieniło adresu strony ani działania powiadomień.",
+      "Pod napisem STRAŻNIK jest teraz logo Mikrusa i link „hostowane na Mikrusie”, a w okienku po dotknięciu nazwy aplikacji — krótkie podziękowanie z linkiem do strony Mikrusa. Ta sama informacja jest w oknie „O aplikacji”, w stopce instrukcji i w README.",
+      "W wersji angielskiej okienko po dotknięciu nazwy aplikacji znów ma link do kodu źródłowego na GitHubie."],
+     ["Since 17 September Strażnik runs on its own server, provided to the project by Mikrus. Before, it shared two CPU cores with other projects; the move took under a minute and changed neither the website address nor how notifications work.",
+      "Under the STRAŻNIK name there is now the Mikrus logo and a “hosted on Mikrus” link, and the popover shown after tapping the app name has a short thank-you with a link to the Mikrus website. The same note is in the About window, the user guide footer and the README.",
+      "In English, the popover shown after tapping the app name has its GitHub source code link back."],
+     []),
+
     ("1.7.57", "17 września 2026", "17 September 2026",
      "Przyciski przewijania historii i działający przycisk „wstecz”",
      "History scroll buttons and a working back button",
@@ -676,7 +709,8 @@ HEAD = """<!DOCTYPE html>
 FOOT = """</main>
 <footer><div class="wrap">
   <p><b>STRAŻNIK</b> — {footer_note}</p>
-  <p><a href="https://github.com/cukierrro/Straznik">{src}</a> · <a href="{guide}">{guide_link}</a> · <a href="{other}" lang="{other_lang}">{other_label}</a> · <a href="https://buycoffee.to/cukierrro">{coffee}</a></p>
+  <p><a href="https://github.com/cukierrro/Straznik">{src}</a> · <a href="{guide}">{guide_link}</a> · <a href="{other}" lang="{other_lang}">{other_label}</a></p>
+  <p>{host}</p>
   <a class="back-top" href="#top">{back}</a>
 </div></footer>
 </body>
@@ -702,7 +736,8 @@ TEXTS = {
         download="↓ Pobierz najnowsze APK",
         fineprint="Wersję zainstalowaną na telefonie sprawdzisz w aplikacji: <kbd>⚙</kbd> → zakładka <kbd>Aplikacja</kbd> → „Wersja aplikacji”. Tam też jest przycisk <kbd>⬆ Sprawdź aktualizacje</kbd>.",
         footer_note="nieoficjalne źródło dodatkowe. Nie zastępuje syren, RCB ani RSO.",
-        src="Kod źródłowy", coffee="Postaw kawę", back="↑ Wróć na górę",
+        src="Kod źródłowy", back="↑ Wróć na górę",
+        host='Serwer: <a href="https://mikr.us">hostowane na Mikrusie</a> — dziękujemy za wsparcie projektu.',
         details="Pełny opis wydania", release_word="Wydanie",
     ),
     "en": dict(
@@ -723,7 +758,8 @@ TEXTS = {
         download="↓ Download the latest APK",
         fineprint="To see which version your phone has, open the app: <kbd>⚙</kbd> → the <kbd>App</kbd> tab → “App version”. The <kbd>⬆ Check for updates</kbd> button is right there too.",
         footer_note="an unofficial additional source. It does not replace sirens, RCB or RSO.",
-        src="Source code", coffee="Buy a coffee", back="↑ Back to top",
+        src="Source code", back="↑ Back to top",
+        host='Server: <a href="https://mikr.us">hosted on Mikrus</a> — thank you for supporting the project.',
         details="Full release notes", release_word="Release",
     ),
 }

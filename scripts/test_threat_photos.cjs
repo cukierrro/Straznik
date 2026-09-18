@@ -10,6 +10,8 @@ const context = { esc2: value => String(value), CONF_PL: {}, compass: () => '',
 context.window = {};
 vm.createContext(context);
 vm.runInContext(code.slice(code.indexOf('const TYPE_META ='), code.indexOf('const threatLabelPL')) + '\nglobalThis.photos = THREAT_PHOTOS;', context);
+// wiek meldunku w karcie obiektu korzysta z ageAgoText/ageLabel
+vm.runInContext(code.slice(code.indexOf('function ageAgoText('), code.indexOf('function predict(')), context);
 vm.runInContext(code.slice(code.indexOf('function openThreatPopup('), code.indexOf('/* Karta samolotu')), context);
 for (const type of ['uav', 'recon', 'shahed', 'missile', 'cruise', 'kab', 'ballistic', 'fpv', 'mig31k']) {
   const photo = context.photos[type];

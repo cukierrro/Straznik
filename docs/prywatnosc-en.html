@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Strażnik — privacy policy</title>
+<meta name="description" content="Strażnik privacy policy: no accounts, no ads, no analytics. What stays on your device, what the server sees and which third parties are involved in delivering the data.">
+<link rel="canonical" href="https://cukierrro.github.io/Straznik/prywatnosc-en.html">
+<link rel="alternate" hreflang="pl" href="https://cukierrro.github.io/Straznik/prywatnosc.html">
+<link rel="alternate" hreflang="en" href="https://cukierrro.github.io/Straznik/prywatnosc-en.html">
+<link rel="alternate" hreflang="x-default" href="https://cukierrro.github.io/Straznik/prywatnosc.html">
+<link rel="icon" href="ikona.png">
+<link rel="stylesheet" href="guide.css">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://cukierrro.github.io/Straznik/prywatnosc-en.html">
+<meta property="og:title" content="Strażnik — privacy policy">
+<meta property="og:description" content="No accounts, no ads, no analytics. Exactly what stays on your device and what reaches the server.">
+<meta property="og:locale" content="en_GB">
+<meta property="og:locale:alternate" content="pl_PL">
+</head>
+<body id="top">
+<a class="skip" href="#content">Skip to content</a>
+<nav aria-label="Guide navigation"><div class="nav-in">
+  <a class="brand" href="en.html">STRAŻNIK</a>
+  <div class="nav-links"><a href="en.html">User guide</a><a href="#device">Device</a><a href="#notifications">Notifications</a><a href="#server">Server</a><a href="#services">Third parties</a><a href="#rights">Your rights</a><a href="zmiany-en.html">Changelog</a></div>
+  <div class="languages" aria-label="Page language"><a href="prywatnosc.html" lang="pl" hreflang="pl">PL</a><a href="prywatnosc-en.html" lang="en" aria-current="page">EN</a></div>
+</div></nav>
+
+<header class="hero"><div class="wrap">
+  <div class="eyebrow">Privacy policy · in force since 17 September 2026</div>
+  <h1>We do not collect data about you.</h1>
+  <p class="lead">Strażnik has no accounts, no sign-in, no ads and no analytics. We never ask for your name, e-mail address or phone number — and we do not have them. This page describes exactly what stays on your device, what our server sees and who else is involved in delivering the data.</p>
+  <p class="fineprint">Applies to the Strażnik app for Android and iOS and to <a href="https://straznik.eu">straznik.eu</a>. The project and its data are the responsibility of its author; contact through <a href="https://github.com/cukierrro/Straznik/issues">an issue in the repository</a>.</p>
+</div></header>
+<main id="content" class="wrap">
+
+<section id="summary">
+  <h2>In short</h2>
+  <ul>
+    <li><b>No account, no sign-in.</b> The app works straight after installation.</li>
+    <li><b>No ads, no analytics, no tracking tools.</b> There is no Google Analytics, no advertising pixel and no third-party statistics SDK.</li>
+    <li><b>Your location never leaves the device.</b> We neither send nor store it.</li>
+    <li><b>Notifications go to provinces, not to people.</b> We do not know who receives them.</li>
+    <li><b>We do not sell or share data</b> with anyone for marketing. There is nothing to sell.</li>
+  </ul>
+</section>
+
+<section id="device">
+  <h2>1. What stays on your device only</h2>
+  <p>The app's storage (the browser's <kbd>localStorage</kbd>) holds your settings and nothing else:</p>
+  <ul>
+    <li><b>My places</b> — the names and coordinates of the points you added yourself;</li>
+    <li>the provinces you watch, the language, map and sound settings;</li>
+    <li>the buffer of the last 12 hours of history, fetched from the server so that scrubbing stays smooth.</li>
+  </ul>
+  <p>None of this is sent to our server or anywhere else. On Android, <b>system backup is disabled for the app</b> (<kbd>allowBackup=false</kbd>), so it does not reach Google Drive either. You remove all of it by uninstalling the app or clearing its data in system settings; in a browser, by clearing the site data.</p>
+</section>
+
+<section id="location">
+  <h2>2. Location</h2>
+  <p>The location permission is <b>optional</b>. It is used only to drop a one-off “I am here” point when you add a place, and to centre the map. The coordinates stay on the device — we do not send them to the server, do not store them and do not pass them to anyone. You can decline and pick the place on the map by hand; the app works exactly the same.</p>
+  <p>Notifications do not depend on GPS. You pick provinces from a list, and that is the only information about what you watch.</p>
+</section>
+
+<section id="notifications">
+  <h2>3. Notifications</h2>
+  <h3>Android and iOS app</h3>
+  <p>The app subscribes in Firebase Cloud Messaging (Google) to a <b>“topic” that corresponds to a province</b>, for example <kbd>voiv_lubelskie</kbd>. We send the alert to the topic, not to individual devices. Our server holds <b>no list of devices and no device identifiers (tokens)</b> — we do not know how many phones watch a given province, or which ones. Google acts as the carrier and processes the app installation identifier under its own privacy policy.</p>
+  <h3>Notifications in a browser</h3>
+  <p>If you enable notifications on the website, the browser issues a <b>push endpoint</b> (an address at Google, Mozilla or Apple, together with encryption keys). We store that address and the chosen province in the server database — otherwise a notification cannot be delivered. This is the <b>only data tied to a particular browser</b> that we keep. The address contains no name, e-mail address or location, and does not let us work out who you are.</p>
+  <p>The entry disappears when you turn notifications off in the app or in browser settings, and also when the push provider reports that the subscription has expired.</p>
+</section>
+
+<section id="server">
+  <h2>4. What the server sees and stores</h2>
+  <p>Traffic to the server passes through Cloudflare, which sees the IP address and protects the service against overload (under its own policy). On our server:</p>
+  <ul>
+    <li><b>the access log is switched off</b> — IP addresses and requested paths are not written to disk;</li>
+    <li>the IP address is used <b>only briefly, in memory</b>, for request limits, so that a single sender cannot take the service down for everyone. It does not reach the database or the backups;</li>
+    <li>the database holds <b>data about threats, not about people</b>: signals from public sources, snapshots of the map from the last <b>12 hours</b>, an archive of ADS-B aircraft positions for <b>14 days</b>, and a log of alerts sent (province, level, time). None of these entries is linked to a user.</li>
+  </ul>
+  <p>Database backups are made every six hours and are encrypted. They contain the browser push subscriptions from section 3 — there is no other user data in the database.</p>
+</section>
+
+<section id="services">
+  <h2>5. Third parties</h2>
+  <p>Each of them sees an ordinary network request carrying your IP address, because otherwise the data could not be delivered. We pass them nothing beyond that:</p>
+  <ul>
+    <li><b>Mikrus</b> — hosting of the Strażnik server;</li>
+    <li><b>Cloudflare</b> — tunnel, protection and acceleration of traffic to the server;</li>
+    <li><b>Google Firebase</b> — delivery of notifications to the app;</li>
+    <li><b>GitHub</b> — app downloads, update checks and this page (GitHub Pages);</li>
+    <li><b>OpenFreeMap</b> and <b>CARTO</b> — map tiles, based on OpenStreetMap data.</li>
+  </ul>
+  <p>Object photos and illustrations are bundled inside the app — we do not fetch them from outside services. Publishers' pages are read by our server, not by your phone. You open an article link in your own browser, and from that point the publisher's own rules apply.</p>
+</section>
+
+<section id="permissions">
+  <h2>6. App permissions</h2>
+  <ul>
+    <li><b>Notifications</b> — to show the alert.</li>
+    <li><b>Location (optional)</b> — the one-off “I am here” point, see section 2.</li>
+    <li><b>Internet and network state</b> — fetching the map state and detecting a lost connection.</li>
+    <li><b>Installing packages</b> — installing an update downloaded from GitHub (Android, outside the Play Store).</li>
+    <li><b>Battery optimisation exemption, waking the screen and full-screen alert</b> — so that the alert arrives while the phone sleeps.</li>
+    <li><b>Vibration</b> — the alert signal.</li>
+  </ul>
+  <p>The app does not ask for access to contacts, photos, files, the microphone or the camera.</p>
+</section>
+
+<section id="rights">
+  <h2>7. Your rights and contact</h2>
+  <p>There are no accounts, so there is no record in which we could find you. The only device-related data — a browser push subscription — you delete yourself by turning notifications off. The remaining settings disappear when you uninstall the app or clear its data.</p>
+  <p>If you want to ask about data processing, request deletion, or point out a mistake in this policy, write through <a href="https://github.com/cukierrro/Straznik/issues">an issue in the project repository</a>.</p>
+  <p>The app is not directed at children and does not ask for age.</p>
+</section>
+
+<section id="changes">
+  <h2>8. Changes to this policy</h2>
+  <p>Changes are described in the <a href="zmiany-en.html">changelog</a> together with the release they belong to. The date at the top of this page says when the current version came into force.</p>
+</section>
+</main>
+<footer><div class="wrap">
+  <p><b>STRAŻNIK</b> — an unofficial supplementary source. It does not replace sirens, RCB or RSO.</p>
+  <p><a href="en.html">User guide</a> · <a href="https://github.com/cukierrro/Straznik">Source code</a> · <a href="zmiany-en.html">Changelog</a> · <a href="prywatnosc.html" lang="pl">Polityka prywatności po polsku</a></p>
+  <p>Server: <a href="https://mikr.us">hosted on Mikrus</a> — thank you for supporting the project.</p>
+  <a class="back-top" href="#top">↑ Back to top</a>
+</div></footer>
+</body>
+</html>
