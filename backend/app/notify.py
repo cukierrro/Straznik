@@ -29,6 +29,10 @@ FCM_TTL_S = 900
 # iOS: ładunek APNs ma twardy limit 4096 bajtów, a FCM wkłada do niego także całe
 # `data`. Powiadomienie iPhone'a budujemy z zapasem i przycinamy powody.
 APNS_PAYLOAD_BUDGET = 3700
+# Ile czasu APNs ma próbować dostarczyć alarm. Tyle samo, ile Androidowy próg
+# „spóźnione" (Alarms.STALE_AFTER_MS = 10 min): iPhone nie umie pokazać starej
+# wiadomości ciszej, więc lepiej, żeby jej nie dostał wcale.
+APNS_EXPIRATION_S = 600
 FCM_RETRIES = 3
 # Audyt bezpieczeństwa 16.09.2026: FCM i Web Push dzieliły domyślną pulę wątków, więc
 # zalew (fałszywych) subskrypcji Web Push kolejkował wysyłkę alarmu do aplikacji.
@@ -102,7 +106,12 @@ def _apns_config(topic: str, data: dict):
         headers={
             "apns-priority": "10",                                 # natychmiast
             "apns-push-type": "alert",
-            "apns-expiration": str(int(time.time()) + FCM_TTL_S),   # jak ttl Androida
+            # Krócej niż ttl Androida (15 min) i równo z jego progiem „spóźnione".
+            # Android spóźnioną wiadomość pokazuje cicho i dopisuje „— opóźnione o X min"
+            # (Alarms.postAlarm), bo buduje powiadomienie sam. Na iOS baner rysuje system
+            # z gotowego ładunku, więc wiadomość sprzed kwadransa zawyłaby syreną jak
+            # świeża. Dlatego po dziesięciu minutach APNs ma ją po prostu skasować.
+            "apns-expiration": str(int(time.time()) + APNS_EXPIRATION_S),
             "apns-collapse-id": topic,                             # jak collapse_key
         },
         payload=messaging.APNSPayload(aps=messaging.Aps(

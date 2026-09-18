@@ -11,6 +11,7 @@ Wymaga firebase-admin (jest na serwerze). Uruchomienie: python3 scripts/test_fcm
 """
 import json
 import sys
+import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -71,6 +72,9 @@ sprawdz(DANE["headline"] in aps["alert"]["body"], "pierwsza linia alarmu: co i g
 sprawdz(m["apns"]["headers"]["apns-collapse-id"] == "voiv_swietokrzyskie",
         "kolejny stan województwa zastępuje poprzedni")
 sprawdz(m["apns"]["headers"]["apns-push-type"] == "alert", "typ alert, priorytet 10")
+waznosc = int(m["apns"]["headers"]["apns-expiration"]) - int(time.time())
+sprawdz(590 <= waznosc <= 600,
+        f"APNs przestaje próbować po 10 minutach, jak próg spóźnienia na Androidzie ({waznosc} s)")
 sprawdz(bajty_apns(m) <= 4096, f"ładunek mieści się w limicie APNs ({bajty_apns(m)} B)")
 
 print("3. Żółty i temat testowy")
