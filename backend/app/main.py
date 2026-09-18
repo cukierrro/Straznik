@@ -570,6 +570,19 @@ async def level_loop():
         await asyncio.sleep(45)
 
 
+def _track_age_min(t: dict, now: float | None = None) -> int | None:
+    """Ile minut temu źródło potwierdziło ten obiekt (None, gdy nie wiadomo)."""
+    from datetime import datetime
+    seen = t.get("confirmedAt") or t.get("updatedAt")
+    if not seen:
+        return None
+    try:
+        ts = datetime.fromisoformat(str(seen).replace("Z", "+00:00")).timestamp()
+    except ValueError:
+        return None
+    return max(0, round(((now or time.time()) - ts) / 60))
+
+
 async def snapshot_loop():
     """Migawka pozycji co SNAPSHOT_INTERVAL_S (60 s) — materiał do przeglądania 12 h wstecz.
 
@@ -592,7 +605,13 @@ async def snapshot_loop():
                                        # pokazywała „? km" (dist liczony live, ale
                                        # nie persystowany do migawki)
                                        "pl_assessment")},
-                 "source_metadata": source_metadata(t)}
+                 "source_metadata": source_metadata(t),
+                 # Wiek meldunku w tamtej chwili (18.09.2026). Migawka nie ma
+                 # confirmedAt, więc bez tego historia nie wiedziała, jak stary
+                 # był obiekt — ikony rysowały się bez wygaszania, a warstwa
+                 # poświaty dostawała null zamiast liczby. Minuty zamiast znacznika
+                 # czasu: kilka bajtów na obiekt zamiast kilkudziesięciu.
+                 "age_min": _track_age_min(t)}
                 for t in neptun.tracks.values() if t.get("lat") is not None]
             aircraft = adsb.current_aircraft
             # 12 h do paczki historii bez source_metadata: to ponad połowa bajtów
