@@ -152,3 +152,53 @@ do przeglądu (imię, nazwisko, telefon, e-mail) i notatki dla recenzenta po
 angielsku. Marketing URL i umowa licencyjna celowo puste. „Sign-in required”
 odznaczone. Pułapka: dopóki numer telefonu był pusty, App Store Connect nie
 zapisywał notatek dla recenzenta („another field is invalid”).
+
+---
+
+## 6. Push z serwera nie dotarł — co się okazało (18.09.2026, wieczór)
+
+**Co wysłaliśmy:** o 21:23:30 sesja główna wysłała prawdziwy push na temat
+testowy `test_voiv_lubelskie` (poziom wysoki, 4,5 pkt, syrena, „czasowo
+zależne”, priorytet 10). Firebase przyjął wiadomość i zwrócił jej numer.
+**Na iPhonie nie pojawiło się nic.**
+
+**Co sprawdziliśmy po kolei:**
+
+| Ogniwo | Wynik |
+|---|---|
+| Zgoda na powiadomienia, dźwięk, ekran blokady | działa — test lokalny gra |
+| Token APNs, klucz w Firebase | działa — bez tego nie byłoby potwierdzenia subskrypcji |
+| Blok `apns` w wiadomości | **poprawny** — odtworzony na serwerze: 911 B przy limicie 4096, komplet nagłówków |
+| Wiadomość „cicha” (bez bloku iOS) | wykluczone — klucze wiadomości: `android`, `apns`, `data`, `topic` |
+| Subskrypcja tematu **testowego** | **jedyne ogniwo bez dowodu** |
+
+**Przyczyna (błąd po naszej stronie):** aplikacja rozpoznawała wersję testową
+po nazwie pliku paragonu (`sandboxReceipt`). To warunek pozytywny — jeśli iOS
+nie poda adresu paragonu (a ta właściwość jest w nowych wersjach wycofywana),
+aplikacja uznaje, że nie jest testem, i **po cichu nie zapisuje się na tematy
+testowe**. Z ekranu tego nie widać, bo Ustawienia pokazują nazwy województw,
+a nie surowe tematy — potwierdzone „lubelskie” dotyczy tematu produkcyjnego
+`voiv_lubelskie`, na który celowo nic nie wysyłamy.
+
+**Poprawka (build 1.7.61 / 2609182012):**
+1. Odwrócony warunek — testem jest wszystko poza paragonem z App Store.
+2. Diagnostyka w Ustawienia → Alarmy: wiersz z wersją iOS pokazuje teraz
+   w wersjach testowych, na jakie tematy testowe telefon jest zapisany.
+
+### Co ma zrobić tester po aktualizacji
+
+1. Zaktualizować Strażnika w TestFlight do builda **2609182012**.
+2. **Otworzyć aplikację i chwilę poczekać** przy włączonym internecie —
+   zapis na tematy dzieje się przy starcie.
+3. Ustawienia (⚙) → zakładka **Alarmy** → zrzut ekranu całego wiersza
+   z wersją iOS (szary tekst pod informacją o subskrypcji).
+
+**Jak czytać wynik:**
+
+| Co widać | Co to znaczy |
+|---|---|
+| `iOS 18.x · test: test_voiv_lubelskie · sandboxReceipt` | wszystko gra — prosimy o powtórkę wysyłki |
+| `iOS 18.x · test: brak tematów · …` | telefon nie zapisał się na temat testowy; nazwa na końcu mówi dlaczego |
+| sam `iOS 18.x`, bez dopisku | aplikacja nie uznaje się za wersję testową — poprawka nie zadziałała |
+
+Dopisek pojawia się **tylko w wersjach testowych**. Wersja z App Store go nie ma.
