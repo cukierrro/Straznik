@@ -33,7 +33,9 @@ from . import neptun
 
 log = logging.getLogger("mapa_ua_shadow")
 
-UA = "Straznik/1.0 (+https://straznik.eu; porównanie danych, tryb cienia)"
+# Nagłówek musi być czystym ASCII — httpx koduje nagłówki latin-1, polskie znaki
+# wywalały każde zapytanie (18.09.2026).
+UA = "Straznik/1.0 (+https://straznik.eu; data comparison, shadow mode)"
 
 status = {"ok": None, "last": None, "error": None, "finished": False,
           "until": config.MAPA_SHADOW_UNTIL, "ticks": 0, "reports": 0, "summary": {}}
