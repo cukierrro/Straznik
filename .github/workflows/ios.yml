@@ -173,7 +173,34 @@ jobs:
               raise SystemExit(1)
           PY
 
-      - name: Archiwum podpisane w chmurze Apple
+      # Uprawnienia (`aps-environment`) wchodzą do aplikacji przy podpisywaniu.
+      # Podpis w chmurze Apple robi się dopiero przy eksporcie i ustala je sam —
+      # powiadomienia pomijał, więc buildy nie odbierały alarmów (19.09.2026).
+      # Bierzemy więc od Apple własny certyfikat i profil na czas budowania;
+      # ostatni krok oddaje je z powrotem.
+      - name: Certyfikat i profil do podpisu
+        id: podpis
+        if: steps.mode.outputs.mode == 'testflight'
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_PATH: ${{ runner.temp }}/asc.p8
+        run: |
+          set -o pipefail
+          "$RUNNER_TEMP/venv/bin/python" skrypty/podpis_apple.py --przygotuj
+          kc="$RUNNER_TEMP/straznik.keychain-db"
+          haslo=$(cat "$RUNNER_TEMP/podpis.haslo")
+          security create-keychain -p "$haslo" "$kc"
+          security set-keychain-settings -lut 21600 "$kc"
+          security unlock-keychain -p "$haslo" "$kc"
+          security import "$RUNNER_TEMP/podpis.p12" -k "$kc" -P "$haslo" -T /usr/bin/codesign -T /usr/bin/security
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$haslo" "$kc" >/dev/null
+          # Bez dopisania do listy keychainów xcodebuild nie zobaczy certyfikatu.
+          security list-keychains -d user -s "$kc" $(security list-keychains -d user | tr -d '"')
+          echo "=== tożsamości do podpisu ==="
+          security find-identity -v -p codesigning "$kc"
+
+      - name: Archiwum podpisane certyfikatem
         if: steps.mode.outputs.mode == 'testflight'
         env:
           TEAM: ${{ secrets.APPLE_TEAM_ID }}
@@ -189,13 +216,10 @@ jobs:
           # powiadomienia czasowo zależne) wchodzą do aplikacji wyłącznie przy
           # podpisywaniu — archiwum bez podpisu dawało build, który wygląda na sprawny,
           # a nie odbiera żadnego alarmu (zmierzone 19.09.2026 na dwóch iPhone'ach).
-          # Archiwum bez podpisu — każdy inny wariant odpadł (19.09.2026, po jednym
-          # przebiegu CI na próbę): podpis automatem żąda profilu deweloperskiego,
-          # a ten wymaga zarejestrowanego urządzenia; wskazanie certyfikatu kłóci się
-          # z trybem automatycznym; certyfikatu nie ma w keychainie, bo podpis dzieje
-          # się po stronie Apple przy eksporcie; podpis zastępczy (ad hoc) jest
-          # zabroniony dla SDK iOS 26. Uprawnienia wpisujemy więc do archiwum ręcznie
-          # — patrz krok niżej.
+          # Archiwum podpisane certyfikatem z poprzedniego kroku. Tryb ręczny,
+          # certyfikat i nazwa profilu siedzą w pbxproj (ustawienia z wiersza poleceń
+          # rozlewają się na pakiety Firebase i kończą się „conflicting provisioning
+          # settings”).
           # Numer builda rośnie z czasem (rrMMddGGmm) — Apple wymaga unikalnego numeru
           build=$(date -u +%y%m%d%H%M)
           version=$(node -p "require('./package.json').version")
@@ -203,33 +227,12 @@ jobs:
           xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release \
             -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/Straznik.xcarchive" \
             -clonedSourcePackagesDirPath "$RUNNER_TEMP/spm" \
-            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
+            OTHER_CODE_SIGN_FLAGS="--keychain=$RUNNER_TEMP/straznik.keychain-db" \
             DEVELOPMENT_TEAM="$TEAM" MARKETING_VERSION="$version" CURRENT_PROJECT_VERSION="$build" \
             archive 2>&1 | tee "$RUNNER_TEMP/xcodebuild.log" | grep -E "error:|ARCHIVE (SUCCEEDED|FAILED)" || true
           grep -q "ARCHIVE SUCCEEDED" "$RUNNER_TEMP/xcodebuild.log"
-          # Uprawnienia wchodzą do aplikacji przy podpisywaniu, a nasze archiwum jest
-          # bez podpisu — eksport nie ma więc skąd ich wziąć i podpisuje bez `aps-environment`.
-          # Wpisujemy je w dwa miejsca, z których Xcode je czyta: plik `.xcent` obok
-          # aplikacji i `ApplicationProperties` w Info.plist archiwum.
-          arch="$RUNNER_TEMP/Straznik.xcarchive"
-          app="$arch/Products/Applications/App.app"
-          xcent="$app/archived-expanded-entitlements.xcent"
-          cp ios/App/App/App.entitlements "$xcent"
-          /usr/libexec/PlistBuddy -c "Add :application-identifier string $TEAM.pl.straznik.app" "$xcent"
-          /usr/libexec/PlistBuddy -c "Add :com.apple.developer.team-identifier string $TEAM" "$xcent"
-          /usr/libexec/PlistBuddy -c "Add :get-task-allow bool false" "$xcent"
-          /usr/libexec/PlistBuddy -c "Add :beta-reports-active bool true" "$xcent"
-          plutil -convert xml1 "$xcent"
-          echo "=== Info.plist archiwum przed zmianą ==="
-          plutil -p "$arch/Info.plist"
-          /usr/libexec/PlistBuddy -c "Delete :ApplicationProperties:Entitlements" "$arch/Info.plist" 2>/dev/null || true
-          /usr/libexec/PlistBuddy -c "Merge $xcent :ApplicationProperties:Entitlements" "$arch/Info.plist" 2>/dev/null \
-            || /usr/libexec/PlistBuddy -c "Add :ApplicationProperties:Entitlements dict" "$arch/Info.plist"
-          /usr/libexec/PlistBuddy -c "Merge $xcent :ApplicationProperties:Entitlements" "$arch/Info.plist" 2>/dev/null || true
-          /usr/libexec/PlistBuddy -c "Add :ApplicationProperties:SigningIdentity string Apple Distribution" "$arch/Info.plist" 2>/dev/null || true
-          echo "=== Info.plist archiwum po zmianie ==="
-          plutil -p "$arch/Info.plist"
-
+          echo "=== uprawnienia w podpisanym archiwum ==="
+          codesign -d --entitlements :- "$RUNNER_TEMP/Straznik.xcarchive/Products/Applications/App.app" 2>/dev/null || true
       # Bramka: aplikacja bez `aps-environment` wygląda na sprawną (mapa, historia,
       # lokalny test alarmu działają), a po cichu nie odbiera żadnego alarmu z serwera.
       # Taki build trafił do testerów 18.09 i kosztował nas dobę szukania nie tam,
@@ -240,59 +243,10 @@ jobs:
           TEAM: ${{ secrets.APPLE_TEAM_ID }}
           KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ISSUER: ${{ secrets.ASC_ISSUER_ID }}
+          PROFIL: ${{ steps.podpis.outputs.profil_nazwa }}
         run: |
           set -o pipefail
-          eksport() {   # $1 = plik ustawień, $2 = katalog wyjściowy
-            rm -rf "$2"
-            xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/Straznik.xcarchive" \
-              -exportOptionsPlist "$1" -exportPath "$2" \
-              -allowProvisioningUpdates \
-              -authenticationKeyPath "$RUNNER_TEMP/AuthKey_$KEY_ID.p8" -authenticationKeyID "$KEY_ID" -authenticationKeyIssuerID "$ISSUER" \
-              2>&1 | tee "$RUNNER_TEMP/check.log" | grep -E "error:|EXPORT (SUCCEEDED|FAILED)" || true
-            grep -q "EXPORT SUCCEEDED" "$RUNNER_TEMP/check.log"
-          }
-          uprawnienia() {  # $1 = katalog z .ipa; wypisuje uprawnienia podpisanej aplikacji
-            rm -rf "$RUNNER_TEMP/ipa"
-            unzip -q "$(ls "$1"/*.ipa | head -1)" -d "$RUNNER_TEMP/ipa"
-            codesign -d --entitlements :- "$(ls -d "$RUNNER_TEMP/ipa/Payload"/*.app | head -1)" 2>/dev/null
-          }
-
-          cat > "$RUNNER_TEMP/ExportAuto.plist" <<PLIST
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-            <key>method</key><string>app-store-connect</string>
-            <key>destination</key><string>export</string>
-            <key>teamID</key><string>$TEAM</string>
-            <key>signingStyle</key><string>automatic</string>
-            <key>manageAppVersionAndBuildNumber</key><false/>
-          </dict>
-          </plist>
-          PLIST
-          eksport "$RUNNER_TEMP/ExportAuto.plist" "$RUNNER_TEMP/check"
-          uprawnienia "$RUNNER_TEMP/check" > "$RUNNER_TEMP/ent.txt"
-          echo "=== uprawnienia po podpisie automatycznym ==="; cat "$RUNNER_TEMP/ent.txt"
-          cp "$RUNNER_TEMP/ExportAuto.plist" "$RUNNER_TEMP/ExportGood.plist"
-
-          if ! grep -q "aps-environment" "$RUNNER_TEMP/ent.txt"; then
-            echo "Podpis automatyczny zgubił uprawnienia — próbuję z profilem wskazanym wprost."
-            echo "=== tożsamości do podpisu ==="; security find-identity -v -p codesigning || true
-            echo "=== pobrane profile ==="
-            profil=""
-            for f in "$HOME/Library/MobileDevice/Provisioning Profiles"/*.mobileprovision; do
-              [ -e "$f" ] || continue
-              plist=$(security cms -D -i "$f" 2>/dev/null) || continue
-              printf '%s' "$plist" > "$RUNNER_TEMP/prof.plist"
-              nazwa=$(plutil -extract Name raw -o - "$RUNNER_TEMP/prof.plist" 2>/dev/null) || continue
-              appid=$(plutil -extract Entitlements.application-identifier raw -o - "$RUNNER_TEMP/prof.plist" 2>/dev/null || echo "")
-              aps=$(plutil -extract Entitlements.aps-environment raw -o - "$RUNNER_TEMP/prof.plist" 2>/dev/null || echo "brak")
-              echo "  $nazwa | $appid | aps=$aps"
-              if [ "$appid" = "$TEAM.pl.straznik.app" ] && [ "$aps" != "brak" ]; then profil="$nazwa"; fi
-            done
-            [ -n "$profil" ] || { echo "::error::Nie znalazłem profilu z uprawnieniem push dla pl.straznik.app"; exit 1; }
-            echo "Używam profilu: $profil"
-            cat > "$RUNNER_TEMP/ExportManual.plist" <<PLIST
+          cat > "$RUNNER_TEMP/ExportGood.plist" <<PLIST
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
@@ -303,17 +257,21 @@ jobs:
             <key>signingStyle</key><string>manual</string>
             <key>signingCertificate</key><string>Apple Distribution</string>
             <key>provisioningProfiles</key>
-            <dict><key>pl.straznik.app</key><string>$profil</string></dict>
+            <dict><key>pl.straznik.app</key><string>$PROFIL</string></dict>
             <key>manageAppVersionAndBuildNumber</key><false/>
           </dict>
           </plist>
           PLIST
-            eksport "$RUNNER_TEMP/ExportManual.plist" "$RUNNER_TEMP/check"
-            uprawnienia "$RUNNER_TEMP/check" > "$RUNNER_TEMP/ent.txt"
-            echo "=== uprawnienia po podpisie ze wskazanym profilem ==="; cat "$RUNNER_TEMP/ent.txt"
-            cp "$RUNNER_TEMP/ExportManual.plist" "$RUNNER_TEMP/ExportGood.plist"
-          fi
-
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/Straznik.xcarchive" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportGood.plist" -exportPath "$RUNNER_TEMP/check" \
+            -authenticationKeyPath "$RUNNER_TEMP/asc.p8" -authenticationKeyID "$KEY_ID" -authenticationKeyIssuerID "$ISSUER" \
+            OTHER_CODE_SIGN_FLAGS="--keychain=$RUNNER_TEMP/straznik.keychain-db" \
+            2>&1 | tee "$RUNNER_TEMP/check.log" | grep -E "error:|EXPORT (SUCCEEDED|FAILED)" || true
+          grep -q "EXPORT SUCCEEDED" "$RUNNER_TEMP/check.log"
+          unzip -q "$(ls "$RUNNER_TEMP/check"/*.ipa | head -1)" -d "$RUNNER_TEMP/ipa"
+          app=$(ls -d "$RUNNER_TEMP/ipa/Payload"/*.app | head -1)
+          echo "=== uprawnienia PODPISANEJ aplikacji ==="
+          codesign -d --entitlements :- "$app" 2>/dev/null | tee "$RUNNER_TEMP/ent.txt"
           grep -q "aps-environment" "$RUNNER_TEMP/ent.txt" \
             || { echo "::error::Podpisany build NIE ma uprawnienia aps-environment — telefon nie dostanie tokenu APNs i żaden alarm nie dojdzie"; exit 1; }
           grep -q "time-sensitive" "$RUNNER_TEMP/ent.txt" \
@@ -331,11 +289,11 @@ jobs:
           # Osobny zestaw ustawień mógłby podpisać inaczej i znów zgubić `aps-environment`.
           sed 's|<string>export</string>|<string>upload</string>|' "$RUNNER_TEMP/ExportGood.plist" > "$RUNNER_TEMP/ExportOptions.plist"
           plutil -insert uploadSymbols -bool true "$RUNNER_TEMP/ExportOptions.plist" 2>/dev/null || true
+          export OTHER_CODE_SIGN_FLAGS="--keychain=$RUNNER_TEMP/straznik.keychain-db"
           plutil -p "$RUNNER_TEMP/ExportOptions.plist"
           xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/Straznik.xcarchive" \
             -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" -exportPath "$RUNNER_TEMP/export" \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "$RUNNER_TEMP/AuthKey_$KEY_ID.p8" -authenticationKeyID "$KEY_ID" -authenticationKeyIssuerID "$ISSUER" \
+            -authenticationKeyPath "$RUNNER_TEMP/asc.p8" -authenticationKeyID "$KEY_ID" -authenticationKeyIssuerID "$ISSUER" \
             2>&1 | tee "$RUNNER_TEMP/export.log" | grep -E "error:|EXPORT (SUCCEEDED|FAILED)|Upload" || true
           grep -q "EXPORT SUCCEEDED" "$RUNNER_TEMP/export.log"
           echo "Wysłano. Build pojawi się w App Store Connect → TestFlight po przetworzeniu (zwykle 5–30 min)."
@@ -351,6 +309,19 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
+      # Oddajemy to, co pożyczyliśmy od Apple: certyfikat i profil znikają z konta,
+      # żeby nie zajmowały miejsca w limicie i nie zostawały po nieudanych przebiegach.
+      - name: Oddanie certyfikatu i profilu
+        if: always() && steps.podpis.outcome == 'success'
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_PATH: ${{ runner.temp }}/asc.p8
+          CERT_ID: ${{ steps.podpis.outputs.cert_id }}
+          PROFIL_ID: ${{ steps.podpis.outputs.profil_id }}
+        run: |
+          "$RUNNER_TEMP/venv/bin/python" skrypty/podpis_apple.py --sprzatanie || true
+          security delete-keychain "$RUNNER_TEMP/straznik.keychain-db" 2>/dev/null || true
       - name: Sprzątanie kluczy
         if: always()
-        run: rm -f "$RUNNER_TEMP"/AuthKey_*.p8 ios/App/App/GoogleService-Info.plist
+        run: rm -f "$RUNNER_TEMP"/AuthKey_*.p8 "$RUNNER_TEMP"/asc.p8 "$RUNNER_TEMP"/podpis.* ios/App/App/GoogleService-Info.plist
