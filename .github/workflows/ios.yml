@@ -189,13 +189,13 @@ jobs:
           # powiadomienia czasowo zależne) wchodzą do aplikacji wyłącznie przy
           # podpisywaniu — archiwum bez podpisu dawało build, który wygląda na sprawny,
           # a nie odbiera żadnego alarmu (zmierzone 19.09.2026 na dwóch iPhone'ach).
-          # Podpis prawdziwym certyfikatem odpada na tym etapie: automatyczny żąda
-          # profilu deweloperskiego (a ten wymaga zarejestrowanego urządzenia, 18 i 19.09),
-          # a wskazanie certyfikatu wprost kłóci się z trybem automatycznym. Certyfikatu
-          # nie ma też w keychainie — podpis dzieje się po stronie Apple, dopiero przy
-          # eksporcie. Dlatego archiwum podpisujemy podpisem zastępczym (`-`): on niczego
-          # nie uwierzytelnia, ale WPISUJE uprawnienia do pliku, a eksport podpisuje
-          # wszystko od nowa i te uprawnienia zachowuje.
+          # Archiwum bez podpisu — każdy inny wariant odpadł (19.09.2026, po jednym
+          # przebiegu CI na próbę): podpis automatem żąda profilu deweloperskiego,
+          # a ten wymaga zarejestrowanego urządzenia; wskazanie certyfikatu kłóci się
+          # z trybem automatycznym; certyfikatu nie ma w keychainie, bo podpis dzieje
+          # się po stronie Apple przy eksporcie; podpis zastępczy (ad hoc) jest
+          # zabroniony dla SDK iOS 26. Uprawnienia wpisujemy więc do archiwum ręcznie
+          # — patrz krok niżej.
           # Numer builda rośnie z czasem (rrMMddGGmm) — Apple wymaga unikalnego numeru
           build=$(date -u +%y%m%d%H%M)
           version=$(node -p "require('./package.json').version")
@@ -203,16 +203,32 @@ jobs:
           xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release \
             -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/Straznik.xcarchive" \
             -clonedSourcePackagesDirPath "$RUNNER_TEMP/spm" \
-            CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- PROVISIONING_PROFILE_SPECIFIER='' \
-            CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
             DEVELOPMENT_TEAM="$TEAM" MARKETING_VERSION="$version" CURRENT_PROJECT_VERSION="$build" \
             archive 2>&1 | tee "$RUNNER_TEMP/xcodebuild.log" | grep -E "error:|ARCHIVE (SUCCEEDED|FAILED)" || true
           grep -q "ARCHIVE SUCCEEDED" "$RUNNER_TEMP/xcodebuild.log"
-          # Podpisane archiwum ma własny `archived-expanded-entitlements.xcent`;
-          # dopisywanie go ręcznie nic nie dawało — eksport i tak go ignorował.
-          echo "=== uprawnienia w archiwum ==="
-          plutil -p "$RUNNER_TEMP/Straznik.xcarchive/Products/Applications/App.app/archived-expanded-entitlements.xcent" || echo "brak pliku"
-          codesign -d --entitlements :- "$RUNNER_TEMP/Straznik.xcarchive/Products/Applications/App.app" 2>/dev/null || true
+          # Uprawnienia wchodzą do aplikacji przy podpisywaniu, a nasze archiwum jest
+          # bez podpisu — eksport nie ma więc skąd ich wziąć i podpisuje bez `aps-environment`.
+          # Wpisujemy je w dwa miejsca, z których Xcode je czyta: plik `.xcent` obok
+          # aplikacji i `ApplicationProperties` w Info.plist archiwum.
+          arch="$RUNNER_TEMP/Straznik.xcarchive"
+          app="$arch/Products/Applications/App.app"
+          xcent="$app/archived-expanded-entitlements.xcent"
+          cp ios/App/App/App.entitlements "$xcent"
+          /usr/libexec/PlistBuddy -c "Add :application-identifier string $TEAM.pl.straznik.app" "$xcent"
+          /usr/libexec/PlistBuddy -c "Add :com.apple.developer.team-identifier string $TEAM" "$xcent"
+          /usr/libexec/PlistBuddy -c "Add :get-task-allow bool false" "$xcent"
+          /usr/libexec/PlistBuddy -c "Add :beta-reports-active bool true" "$xcent"
+          plutil -convert xml1 "$xcent"
+          echo "=== Info.plist archiwum przed zmianą ==="
+          plutil -p "$arch/Info.plist"
+          /usr/libexec/PlistBuddy -c "Delete :ApplicationProperties:Entitlements" "$arch/Info.plist" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Merge $xcent :ApplicationProperties:Entitlements" "$arch/Info.plist" 2>/dev/null \
+            || /usr/libexec/PlistBuddy -c "Add :ApplicationProperties:Entitlements dict" "$arch/Info.plist"
+          /usr/libexec/PlistBuddy -c "Merge $xcent :ApplicationProperties:Entitlements" "$arch/Info.plist" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :ApplicationProperties:SigningIdentity string Apple Distribution" "$arch/Info.plist" 2>/dev/null || true
+          echo "=== Info.plist archiwum po zmianie ==="
+          plutil -p "$arch/Info.plist"
 
       # Bramka: aplikacja bez `aps-environment` wygląda na sprawną (mapa, historia,
       # lokalny test alarmu działają), a po cichu nie odbiera żadnego alarmu z serwera.
