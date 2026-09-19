@@ -302,28 +302,107 @@ niż resztą tej listy.
   (lokalne powiadomienie z syreną za 5 s)
 
 ### B6. Teksty z „Androidem” / „pełnym ekranem” — wariant iOS
-Miejsca: `index.html` sekcja `data-pane="alarmy"` (akapit o usłudze w tle
-i o alarmie pełnoekranowym), `#onboard-bg` (drugi akapit „Dla czerwonego
-alarmu warto też włączyć zgodę na alarm pełnoekranowy”), `data-pane="dzwiek"`
-(„z pełnym ekranem i syreną dla czerwonego”), `#ns-test-note`,
-odpowiedniki w `i18n.js` (l. 113, 120, 312, 324, 335–336), `app.js:3488`
-(„ustawieniach Androida”). Proponowany tekst iOS (PL):
 
-> Na iPhonie czerwony alarm przychodzi jako **powiadomienie z syreną**
-> oznaczone jako „czasowo zależne” — przebija tryb Skupienia, ale **nie
-> zapala pełnego ekranu i nie gra w kółko**, a przy wyciszonym telefonie może
-> być cichy (Apple nie pozwala zwykłym aplikacjom na więcej). Sprawdź
-> przyciskiem „Test: czerwony natywny” przy zablokowanym ekranie.
+**Stan: gotowe do wprowadzenia (19.09.2026).** Teksty poniżej opisują zachowanie
+**zmierzone na dwóch iPhone'ach**, a nie przewidywane: alarm dociera w 3 sekundy,
+iOS oznacza go jako „PILNE”, widać go nad blokadą, gra nasza syrena — raz, nie
+w pętli. Przy wyciszonym dzwonku jest tylko wibracja i baner. W trybie Skupienia
+przechodzi dopiero po ręcznym dopuszczeniu aplikacji (potwierdzone u testerki).
 
-EN:
-> On iPhone a red alert arrives as a **notification with a siren**, marked
-> Time Sensitive — it breaks through Focus, but it **does not take over the
-> screen or repeat**, and it may be silent when the phone is muted (Apple does
-> not allow regular apps more). Check it with “Test: native red” on a locked screen.
+Dlaczego to pilne: te teksty **są dziś widoczne na iPhonie** (zrzut z zakładki
+Alarmy: „Android 14 i nowszy może cofnąć tę zgodę…”). Recenzent App Store czyta
+je przy ocenie, a nasze główne ryzyko odrzucenia to zarzut 4.2.2 — „aplikacja
+z innej platformy”. Dla użytkownika opisują funkcję, której na iOS nie ma.
 
-Opis „O aplikacji” (`index.html:377`: „aplikacja na Androida może wysyłać
-powiadomienia”) → „aplikacja na Androida i iPhone'a…” dopiero po publikacji w App Store.
+#### 1. `index.html` — ekran powitalny `#onboard-bg`, drugi akapit (ok. l. 616)
 
+Android (zostaje): „Poprosimy tylko o zgodę na powiadomienia. Dla czerwonego alarmu
+warto też włączyć zgodę na alarm pełnoekranowy (zapala ekran nad blokadą) — zrobisz
+to jednym przyciskiem w Ustawieniach.”
+
+**iOS:**
+> Poprosimy tylko o zgodę na powiadomienia. Żeby czerwony alarm odezwał się w nocy,
+> zostaw włączone „Powiadomienia czasowo zależne” i dopuść Strażnika w trybie Sen
+> (Ustawienia → Skupienie → Sen → Aplikacje).
+
+**EN:**
+> We only ask for notification permission. So that a red alert can reach you at
+> night, keep “Time Sensitive Notifications” on and allow Strażnik in your Sleep
+> focus (Settings → Focus → Sleep → Apps).
+
+#### 2. `index.html` — zakładka Alarmy, akapit wstępny (ok. l. 661)
+
+Usunąć dla iOS zdanie o usłudze w tle i o zgodzie na alarm pełnoekranowy:
+
+**iOS:**
+> Alarmy dla Twojego województwa przychodzą jako **powiadomienie push** — także gdy
+> aplikacja jest zamknięta, ekran zablokowany albo telefon w uśpieniu. Serwer
+> Strażnika wysyła sygnał prosto na telefon; wystarczy zgoda na powiadomienia.
+> Wymaga to działającego serwera: w trybie awaryjnym (serwer niedostępny) alarmy
+> przychodzą tylko przy otwartej aplikacji.
+
+**EN:**
+> Alerts for your province arrive as a **push notification** — also when the app is
+> closed, the screen is locked or the phone is asleep. The Strażnik server sends the
+> signal straight to the phone; notification permission is all that is needed. This
+> needs a working server: in fallback mode (server unreachable) alerts only arrive
+> while the app is open.
+
+#### 3. `index.html` — akapit o alarmie pełnoekranowym (ok. l. 683–690) — NAJWAŻNIEJSZY
+
+Cały akapit o Androidzie 14, zgodzie i oszczędzaniu baterii **zastąpić na iOS**:
+
+**iOS:**
+> Na iPhonie czerwony alarm przychodzi jako powiadomienie oznaczone **„PILNE”**:
+> pokazuje się nad blokadą i gra syreną. **Nie zapala pełnego ekranu i nie powtarza
+> dźwięku** — iOS na to nie pozwala zwykłym aplikacjom. Przy **wyciszonym dzwonku**
+> alarm będzie bezgłośny: zostanie wibracja i baner.
+>
+> Żeby przeszedł także w nocy, sprawdź dwie rzeczy: **Ustawienia → Powiadomienia →
+> Strażnik → „Powiadomienia czasowo zależne”** oraz **Ustawienia → Skupienie → Sen →
+> Aplikacje → dopuść Strażnika**. Bez tego iOS wstrzymuje alarm do odblokowania
+> telefonu.
+
+**EN:**
+> On iPhone a red alert arrives as a notification marked **“Urgent”**: it appears
+> over the lock screen and plays our siren. It **does not take over the screen and
+> does not repeat the sound** — iOS does not allow regular apps to do that. With the
+> **ringer muted** the alert is silent: a vibration and a banner, nothing more.
+>
+> For it to reach you at night, check two settings: **Settings → Notifications →
+> Strażnik → “Time Sensitive Notifications”** and **Settings → Focus → Sleep → Apps
+> → allow Strażnik**. Without them iOS holds the alert until you unlock the phone.
+
+#### 4. `index.html` — zakładka Dźwięk (ok. l. 707)
+
+„…jako powiadomienie push (z pełnym ekranem i syreną dla czerwonego).”
+**iOS:** „…jako powiadomienie push (z syreną dla czerwonego).”
+**EN iOS:** “…as a push notification (with the siren for red).”
+
+#### 5. `app.js:3563` — komunikat o wyłączonych powiadomieniach
+
+„Włącz je w ustawieniach **Androida** (⚙ → Ustawienia powiadomień).”
+**iOS:** „Włącz je w Ustawieniach **iPhone'a** (⚙ → Ustawienia powiadomień).”
+
+#### 6. `app.js:4979` — potwierdzenie przy wyłączaniu alarmów
+
+„Zgody na powiadomienia w ustawieniach **Androida** zostają bez zmian…”
+**iOS:** „Zgody na powiadomienia w Ustawieniach **iPhone'a** zostają bez zmian…”
+
+#### 7. `index.html:377` — ekran „O aplikacji”
+
+„aplikacja na Androida może wysyłać powiadomienia” → **„aplikacja na Androida
+i iPhone'a…”**. Dopiero **po** pojawieniu się w App Store — wcześniej byłoby to
+nieprawdą dla czytelnika strony.
+
+#### Czego NIE zmieniamy
+
+Przycisk „Zgoda na alarm pełnoekranowy” i „Wyłącz oszczędzanie baterii” mają już
+`android-only` i na iOS się nie pokazują (B5, zrobione). Ostrzeżenia o wygasłej
+zgodzie na pełny ekran nie pojawiają się, bo plugin iOS zwraca
+`fullScreenAllowed: true` — to celowe, nie przeoczenie.
+
+Odpowiedniki EN w `i18n.js` (l. 113, 120, 312, 324, 335–336) — te same zmiany.
 ### B7. Wynik testu natywnego bez zgody
 `app.js` `nativeTest()`: plugin iOS zwraca `{scheduled:false, reason:"denied"}`,
 gdy powiadomienia są zablokowane. Dziś toast „Test alarmu za 5 sekund” pokaże się
