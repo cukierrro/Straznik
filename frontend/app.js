@@ -835,6 +835,64 @@ function showNotice(n) {
   };
 }
 
+/* ── Stan alarmu dla modułu GROTA (19.09.2026) ────────────────────────────────
+   GROTA pokazuje drogę do schronienia i musi wiedzieć dwie rzeczy: ile zostało
+   czasu i czy poziom opiera się na czymś twardym. Zamiast dawać jej surowe
+   sygnały do własnych obliczeń, podajemy gotowe wartości — policzone dokładnie
+   tak, jak liczy je interfejs Strażnika. Dwa ekrany tej samej aplikacji nie mogą
+   pokazywać różnych czasów.
+
+   `etaVoivMin` — minimum z sygnałów PO `agedEta` (odjęty wiek, null powyżej 15 min)
+   i BEZ kursów domniemanych (audyt G3: czas liczony w stronę przypuszczalnego celu,
+   a nie faktycznego ruchu). Gdy nie ma czego podać, jest `null` — GROTA mówi wtedy
+   wprost, że nie zna czasu, zamiast zgadywać z odległości.
+
+   `hard` — czy poziom UTRZYMAŁBY SIĘ bez źródeł miękkich, czyli czy suma punktów
+   z klas twardych (`rcb` = oficjalny alert RCB/RSO dla Polski, `neptun` = obiekt
+   w powietrzu) sama sięga progu tego poziomu. Media mają dziś limit klasy 1,0 pkt
+   i nie podniosą poziomu same, a wszystkie sześć czerwonych w dzienniku od 15.09
+   miało alert RCB — ale to bezpiecznik na przyszłe zmiany wag, nie opis dzisiaj.
+   `ua_alert` celowo jest MIĘKKIE: alarm w obwodzie ukraińskim jest oficjalny, ale
+   mówi o zagrożeniu nad Ukrainą. Zanim powiemy komuś „idź do schronu", chcemy
+   czegoś mierzalnego nad Polską. Przy `hard: false` GROTA pokazuje mapę i kierunki,
+   ale nie wzywa do schronienia. */
+const HARD_SOURCES = new Set(["rcb", "neptun"]);
+let _alertPayload = "";
+
+function buildAlertContract() {
+  const mine = myVoiv();
+  const st = mine ? state?.fusion?.voivodeships?.[mine] : null;
+  if (!st) return null;
+  const level = st.alert_level || st.level || "none";
+  const sigs = st.signals || [];
+  let etaVoivMin = null, etaBorderMin = null, hardSum = 0;
+  for (const s of sigs) {
+    const d = s.details || {};
+    if (HARD_SOURCES.has(s.source)) hardSum += s.counted_points ?? 0;
+    if (d.course === "presumptive") continue;        // kurs domniemany — bez czasu
+    const v = agedEta(d.eta_voiv_min ? d.eta_voiv_min[mine] : null, s.ts);
+    const b = agedEta(d.eta_border_min, s.ts);
+    if (v != null) etaVoivMin = etaVoivMin == null ? v : Math.min(etaVoivMin, v);
+    if (b != null) etaBorderMin = etaBorderMin == null ? b : Math.min(etaBorderMin, b);
+  }
+  const prog = level === "high" ? (state?.fusion?.thresholds?.high ?? 4)
+             : level === "elevated" ? (state?.fusion?.thresholds?.elevated ?? 2) : 0;
+  return { level, voiv: mine, etaVoivMin, etaBorderMin,
+           hard: level !== "none" && hardSum >= prog - 1e-9,
+           ts: state?.fusion?.ts || new Date().toISOString() };
+}
+
+/* Publikujemy przy każdej zmianie stanu; zdarzenie leci tylko, gdy coś naprawdę
+   się zmieniło, żeby moduł nie przeliczał progów przy każdej ramce. */
+function publishAlertContract() {
+  const next = buildAlertContract();
+  window.straznikAlert = next;
+  const odcisk = JSON.stringify(next);
+  if (odcisk === _alertPayload) return;
+  _alertPayload = odcisk;
+  window.dispatchEvent(new CustomEvent("straznik:alert", { detail: next }));
+}
+
 function applyState(s) {
   state = s;
   showNotice(s?.notice);
@@ -844,6 +902,7 @@ function applyState(s) {
   refreshCountedTracks();
   renderLeds();
   updateAlarmMood();          // alarmy działają także w trybie przeglądania
+  publishAlertContract();     // stan alarmu dla modułu GROTA — także w historii
   if (histMode) return;       // ale widok mapy/panelu zostaje na wybranym momencie
   renderPanel();
   if (mapReady) { updateVoivStates(); updateAdsb(); }
