@@ -283,3 +283,35 @@ to znalezisko.
 Nie ma potrzeby czekać na prawdziwy alarm — czerwony poziom zdarza się kilka razy
 w roku. Od tego jest temat testowy. Nie testujemy też przycisku „pełna głośność”
 (ukryty na iOS) ani alarmu pełnoekranowego (iOS na to nie pozwala).
+
+---
+
+## 8. Pułapka: tester w grupie, a TestFlight prosi o kod (19.09.2026)
+
+**Objaw:** drugi tester (Adrian) przyjął zaproszenie do konta, miał poprawną
+rolę i był w grupie „Testerzy”, a aplikacja TestFlight na jego iPhonie
+pokazywała ekran „Wszystko gotowe — deweloper musi zaprosić Cię do testowania…
+stuknij w łącze w e-mailu lub podaj kod”. Żadnego kodu dla testerów
+wewnętrznych nie ma i nie da się go wygenerować.
+
+**Co nie było przyczyną** (sprawdzone po kolei): Apple ID na telefonie zgadzało
+się co do znaku z adresem w App Store Connect; rola Marketing została podniesiona
+do Developer bez skutku; usunięcie z grupy i dodanie ponownie (dwa razy) też nic
+nie dało.
+
+**Prawdziwa przyczyna:** Apple nigdy nie wystawiło mu zaproszenia do buildów
+w tej grupie. Widać to w dwóch miejscach:
+
+| Gdzie | Co pokazuje |
+|---|---|
+| Lista testerów w grupie | `No Builds Available` zamiast `Invited` |
+| Wiersz builda w „iOS Builds” | **INVITES = 1**, choć w grupie były dwie osoby |
+
+**Rozwiązanie:** założyć **nową grupę wewnętrzną** (z zaznaczoną automatyczną
+dystrybucją) i dodać do niej testera. Status od razu zmienił się na **„Invited”**,
+a aplikacja pojawiła się w TestFlight na telefonie.
+
+**Zasada na przyszłość:** po dodaniu nowego testera sprawdzić jego status
+w grupie. `Invited` = wszystko gra. `No Builds Available` = zaproszenie nie
+wyszło; nie tracić czasu na maile, role i Apple ID, tylko od razu przenieść
+go do nowej grupy.
