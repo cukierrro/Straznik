@@ -83,9 +83,12 @@ def _apns_config(topic: str, data: dict):
 
     level = data.get("level", "")
     high = level == "high"
+    # Krócej niż tytuł Androida: iPhone przycina go do jednej linii, a na zrzucie
+    # z 19.09.2026 („TEST — WYSOKI PRIORYTET: woj. lubelski…”) ucięło się właśnie
+    # województwo — czyli najważniejsze słowo. Bez „woj.” i bez punktów w tytule
+    # nazwa regionu mieści się zawsze; punkty otwierają treść.
     title = (("TEST — " if topic.startswith(config.TEST_TOPIC_PREFIX) else "")
-             + f"{LEVEL_LABELS.get(level, level)}: woj. {data.get('voiv', '')}"
-               f" ({data.get('score', '')} pkt)")
+             + f"{LEVEL_LABELS.get(level, level)}: {data.get('voiv', '')}")
     tail = [("Co zrobić: przejdź do schronu lub pomieszczenia bez okien i śledź komunikaty RCB."
              if high else "Co zrobić: zachowaj czujność i sprawdź komunikaty RCB."),
             "NIEOFICJALNE źródło — kieruj się syrenami, RCB i RSO."]
@@ -97,7 +100,11 @@ def _apns_config(topic: str, data: dict):
         return None
     lines = []
     reasons = [x.strip() for x in (data.get("reasons") or "").split("\n") if x.strip()][:4]
-    for line in ([data["headline"]] if data.get("headline") else []) + reasons:
+    # punkty otwierają treść, skoro zeszły z tytułu
+    czolo = f"{data.get('score', '')} pkt"
+    if data.get("headline"):
+        czolo += f" — {data['headline']}"
+    for line in [czolo] + reasons:
         if used + size(line) > APNS_PAYLOAD_BUDGET:
             break
         lines.append(line)
