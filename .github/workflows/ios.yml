@@ -185,9 +185,13 @@ jobs:
           key="$RUNNER_TEMP/AuthKey_$KEY_ID.p8"
           printf '%s' "$KEY_P8" | base64 --decode > "$key"
           chmod 600 "$key"
-          # Archiwum BEZ podpisu: podpis automatyczny prosił Apple o profil deweloperski,
-          # a ten wymaga zarejestrowanego urządzenia („Your team has no devices”, 18.09.2026).
-          # Certyfikat dystrybucyjny nadaje dopiero eksport, w następnym kroku.
+          # Archiwum Z podpisem w chmurze. Uprawnienia (`aps-environment`,
+          # powiadomienia czasowo zależne) wchodzą do aplikacji wyłącznie przy
+          # podpisywaniu — archiwum bez podpisu dawało build, który wygląda na sprawny,
+          # a nie odbiera żadnego alarmu (zmierzone 19.09.2026 na dwóch iPhone'ach).
+          # 18.09 podpis archiwum żądał profilu deweloperskiego („Your team has no
+          # devices”), bo projekt wymuszał `CODE_SIGN_IDENTITY = "iPhone Developer"`;
+          # ta linia jest już usunięta z pbxproj.
           # Numer builda rośnie z czasem (rrMMddGGmm) — Apple wymaga unikalnego numeru
           build=$(date -u +%y%m%d%H%M)
           version=$(node -p "require('./package.json').version")
@@ -195,24 +199,17 @@ jobs:
           xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release \
             -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/Straznik.xcarchive" \
             -clonedSourcePackagesDirPath "$RUNNER_TEMP/spm" \
-            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$key" -authenticationKeyID "$KEY_ID" -authenticationKeyIssuerID "$ISSUER" \
+            CODE_SIGN_STYLE=Automatic \
             DEVELOPMENT_TEAM="$TEAM" MARKETING_VERSION="$version" CURRENT_PROJECT_VERSION="$build" \
             archive 2>&1 | tee "$RUNNER_TEMP/xcodebuild.log" | grep -E "error:|ARCHIVE (SUCCEEDED|FAILED)" || true
           grep -q "ARCHIVE SUCCEEDED" "$RUNNER_TEMP/xcodebuild.log"
-          # Archiwum bez podpisu nie ma `archived-expanded-entitlements.xcent`,
-          # a eksport bierze z niego uprawnienia. Bez tego pliku podpisana
-          # aplikacja traci `aps-environment` i iPhone nie dostaje tokenu APNs
-          # (zmierzone 19.09.2026 na dwóch telefonach: „APNs: nie”).
-          app="$RUNNER_TEMP/Straznik.xcarchive/Products/Applications/App.app"
-          xcent="$app/archived-expanded-entitlements.xcent"
-          cp ios/App/App/App.entitlements "$xcent"
-          /usr/libexec/PlistBuddy -c "Add :application-identifier string $TEAM.pl.straznik.app" "$xcent"
-          /usr/libexec/PlistBuddy -c "Add :com.apple.developer.team-identifier string $TEAM" "$xcent"
-          /usr/libexec/PlistBuddy -c "Add :get-task-allow bool false" "$xcent"
-          /usr/libexec/PlistBuddy -c "Add :beta-reports-active bool true" "$xcent"
-          plutil -convert xml1 "$xcent"
-          echo "=== uprawnienia dopisane do archiwum ==="
-          plutil -p "$xcent"
+          # Podpisane archiwum ma własny `archived-expanded-entitlements.xcent`;
+          # dopisywanie go ręcznie nic nie dawało — eksport i tak go ignorował.
+          echo "=== uprawnienia w archiwum ==="
+          plutil -p "$RUNNER_TEMP/Straznik.xcarchive/Products/Applications/App.app/archived-expanded-entitlements.xcent" || echo "brak pliku"
+          codesign -d --entitlements :- "$RUNNER_TEMP/Straznik.xcarchive/Products/Applications/App.app" 2>/dev/null || true
 
       # Bramka: aplikacja bez `aps-environment` wygląda na sprawną (mapa, historia,
       # lokalny test alarmu działają), a po cichu nie odbiera żadnego alarmu z serwera.
