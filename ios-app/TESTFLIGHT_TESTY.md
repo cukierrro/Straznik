@@ -380,7 +380,7 @@ identyfikator `…5570727948032231207`.
 | **Czas dostarczenia** | **3 sekundy** (wysyłka 15:39:26, telefon 15:39:29) — pierwszy pomiar drogi serwer → Firebase → APNs → iPhone |
 | Oznaczenie „PILNE” na powiadomieniu | jest — `interruption-level: time-sensitive` działa, alarm ma prawo przebić tryb Skupienia |
 | Widoczność na zablokowanym ekranie | pełna: nagłówek + pierwsza linia powodów |
-| Dźwięk | **nadal niesprawdzony** — testerka miała wyciszony dzwonek (ikona na pasku stanu) |
+| Dźwięk | **nasza syrena** — potwierdzone przez Adriana (miał włączony dzwonek) |
 
 **Usterka wyłapana ze zrzutu:** tytuł ucinał się na nazwie województwa („TEST —
 WYSOKI PRIORYTET: woj. lubelski…”). iOS mieści tytuł w jednej linii, więc alarm
@@ -388,12 +388,11 @@ tracił jedyne słowo, dla którego istnieje. Poprawione przez sesję główną
 (`999faa6`): tytuł na iOS to „WYSOKI PRIORYTET: lubelskie”, punkty przeniesione
 na początek treści. Android bez zmian — buduje tytuł sam i nie ma tego limitu.
 
-**Nadal niesprawdzone:** czy push gra **naszą syreną**, czy domyślnym dźwiękiem
-iOS. Przy wyciszonym dzwonku tego nie słychać, a przy niezgodnej nazwie pliku iOS
-po cichu podstawia swój dźwięk. Lokalny test gra syreną, ale to inna ścieżka.
-Sesja główna sprawdziła swoją stronę: nazwa w ładunku zgadza się z plikiem, oba
-dźwięki są w Copy Bundle Resources, format mieści się w wymaganiach APNs.
-Do sprawdzenia jedną wysyłką przy włączonym dzwonku i zablokowanym ekranie.
+### Łańcuch potwierdzony w całości
+
+Serwer → Firebase → APNs → zablokowany iPhone przy **zamkniętej** aplikacji:
+powiadomienie dociera w 3 sekundy, jest oznaczone jako pilne, widać je na ekranie
+blokady i **gra naszą syreną**. Nic w tej drodze nie zostało już nieprzetestowane.
 
 **Do instrukcji dla użytkowników (ograniczenia iOS, nie usterki):** przy wyciszonym
 dzwonku alarm jest bezgłośny (wibracja i baner), a syrena gra **raz**, nie w pętli
