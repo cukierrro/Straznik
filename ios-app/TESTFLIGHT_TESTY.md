@@ -311,10 +311,19 @@ w tej grupie. Widać to w dwóch miejscach:
 dystrybucją) i dodać do niej testera. Status od razu zmienił się na **„Invited”**,
 a aplikacja pojawiła się w TestFlight na telefonie.
 
-**Zasada na przyszłość:** po dodaniu nowego testera sprawdzić jego status
-w grupie. `Invited` = wszystko gra. `No Builds Available` = zaproszenie nie
-wyszło; nie tracić czasu na maile, role i Apple ID, tylko od razu przenieść
-go do nowej grupy.
+**Zasada na przyszłość (doprecyzowana po trzecim testerze):** po dodaniu nowego
+testera sprawdzić jego status w grupie. `Invited` = wszystko gra.
+`No Builds Available` = zaproszenie nie wyszło.
+
+Przepis, który zadziałał dwa razy na dwa:
+1. rola **Developer** w Users and Access (Marketing nie wystarcza — trzeci tester
+   z Marketingiem dostawał `No Builds Available` nawet w świeżej grupie),
+2. **dopiero potem** założyć **nową** grupę wewnętrzną i dodać do niej testera.
+
+Kolejność ma znaczenie. Grupa założona, gdy tester miał jeszcze Marketing, zostaje
+w zepsutym stanie — zmiana roli i ponowne dodanie do **tej samej** grupy niczego nie
+naprawiły. Stąd u nas grupy „Testerzy 2” (Adrian) i „Testerzy 4” (Raingold);
+„Testerzy 3” to pusty relikt tej pomyłki.
 
 ---
 
