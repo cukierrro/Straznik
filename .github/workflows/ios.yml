@@ -199,6 +199,66 @@ jobs:
             DEVELOPMENT_TEAM="$TEAM" MARKETING_VERSION="$version" CURRENT_PROJECT_VERSION="$build" \
             archive 2>&1 | tee "$RUNNER_TEMP/xcodebuild.log" | grep -E "error:|ARCHIVE (SUCCEEDED|FAILED)" || true
           grep -q "ARCHIVE SUCCEEDED" "$RUNNER_TEMP/xcodebuild.log"
+          # Archiwum bez podpisu nie ma `archived-expanded-entitlements.xcent`,
+          # a eksport bierze z niego uprawnienia. Bez tego pliku podpisana
+          # aplikacja traci `aps-environment` i iPhone nie dostaje tokenu APNs
+          # (zmierzone 19.09.2026 na dwóch telefonach: „APNs: nie”).
+          app="$RUNNER_TEMP/Straznik.xcarchive/Products/Applications/App.app"
+          xcent="$app/archived-expanded-entitlements.xcent"
+          cp ios/App/App/App.entitlements "$xcent"
+          /usr/libexec/PlistBuddy -c "Add :application-identifier string $TEAM.pl.straznik.app" "$xcent"
+          /usr/libexec/PlistBuddy -c "Add :com.apple.developer.team-identifier string $TEAM" "$xcent"
+          /usr/libexec/PlistBuddy -c "Add :get-task-allow bool false" "$xcent"
+          /usr/libexec/PlistBuddy -c "Add :beta-reports-active bool true" "$xcent"
+          plutil -convert xml1 "$xcent"
+          echo "=== uprawnienia dopisane do archiwum ==="
+          plutil -p "$xcent"
+
+      # Bramka: aplikacja bez `aps-environment` wygląda na sprawną (mapa, historia,
+      # lokalny test alarmu działają), a po cichu nie odbiera żadnego alarmu z serwera.
+      # Taki build nie może trafić do testerów ani do sklepu — 19.09.2026 trafił.
+      - name: Sprawdzenie uprawnień push w podpisanym pliku
+        if: steps.mode.outputs.mode == 'testflight'
+        env:
+          TEAM: ${{ secrets.APPLE_TEAM_ID }}
+          KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ISSUER: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          set -o pipefail
+          cat > "$RUNNER_TEMP/ExportCheck.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>export</string>
+            <key>teamID</key><string>$TEAM</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>manageAppVersionAndBuildNumber</key><false/>
+          </dict>
+          </plist>
+          PLIST
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/Straznik.xcarchive" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportCheck.plist" -exportPath "$RUNNER_TEMP/check" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$RUNNER_TEMP/AuthKey_$KEY_ID.p8" -authenticationKeyID "$KEY_ID" -authenticationKeyIssuerID "$ISSUER" \
+            2>&1 | tee "$RUNNER_TEMP/check.log" | grep -E "error:|EXPORT (SUCCEEDED|FAILED)" || true
+          grep -q "EXPORT SUCCEEDED" "$RUNNER_TEMP/check.log"
+          ipa=$(ls "$RUNNER_TEMP/check"/*.ipa | head -1)
+          unzip -q "$ipa" -d "$RUNNER_TEMP/ipa"
+          app=$(ls -d "$RUNNER_TEMP/ipa/Payload"/*.app | head -1)
+          echo "=== uprawnienia PODPISANEJ aplikacji ==="
+          codesign -d --entitlements :- "$app" 2>/dev/null | tee "$RUNNER_TEMP/ent.txt"
+          if [ -f "$app/embedded.mobileprovision" ]; then
+            echo "=== profil w paczce ==="
+            security cms -D -i "$app/embedded.mobileprovision" 2>/dev/null \
+              | grep -A1 -E "aps-environment|application-identifier" || true
+          fi
+          grep -q "aps-environment" "$RUNNER_TEMP/ent.txt" \
+            || { echo "::error::Podpisany build NIE ma uprawnienia aps-environment — telefon nie dostanie tokenu APNs i żaden alarm nie dojdzie"; exit 1; }
+          grep -q "time-sensitive" "$RUNNER_TEMP/ent.txt" \
+            || echo "::warning::Brak uprawnienia time-sensitive — czerwony alarm nie przebije trybu Skupienia"
+          echo "Uprawnienia push obecne w podpisanym pliku."
 
       - name: Wysyłka do TestFlight
         if: steps.mode.outputs.mode == 'testflight'
