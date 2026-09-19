@@ -61,6 +61,23 @@ sprawdz(/s\.platform === "ios" \? `iOS \$\{esc\(s\.osVersion/.test(app),
 sprawdz(/r\.scheduled === false/.test(app),
   'test natywny nie obiecuje alarmu, gdy powiadomienia są zablokowane');
 
+console.log('4b. Teksty w wariancie iOS (B6)');
+const i18n = R('frontend/i18n.js');
+for (const id of ['onboard-bg-ios', 'alarmy-intro-ios', 'alarm-ios-note', 'dzwiek-ios-note']) {
+  const tag = (html.match(new RegExp('<[^>]*id="' + id + '"[^>]*>')) || [''])[0];
+  sprawdz(/class="[^"]*ios-only/.test(tag), '#' + id + ' pokazuje się tylko na iPhonie');
+  sprawdz(i18n.includes('"#' + id + '"') || i18n.includes('"' + id + '"'), '#' + id + ' ma wersję angielską');
+}
+sprawdz(/\.ios-only \{ display: none !important; \}/.test(css), 'wariant iOS ukryty poza aplikacją na iPhonie');
+// Tłumaczenia jadą po kolejności akapitów — wariant iOS musi z tych selektorów wypaść,
+// inaczej angielskie teksty trafiłyby o jeden akapit za daleko.
+sprawdz((i18n.match(/p\.fineprint:not\(#app-version\):not\(#upd-status\):not\(#more-links\):not\(\.ios-only\)/g) || []).length === 2,
+  'oba selektory pozycyjne akapitów pomijają wariant iOS');
+sprawdz(/#onboard-bg \.about-body > p:not\(\.ios-only\)/.test(i18n),
+  'ekran powitalny też pomija wariant iOS');
+sprawdz(/IS_IOS \? "iPhone'a" : "Androida"/.test(app),
+  'komunikat o ustawieniach systemu zna obie platformy');
+
 console.log('5. Instrukcja bez zachęty do zapłaty');
 for (const p of ['docs/index.html', 'docs/en.html', 'docs/zmiany.html', 'docs/zmiany-en.html']) {
   sprawdz(!R(p).includes('buycoffee'), `${p} bez linku do kawy`);

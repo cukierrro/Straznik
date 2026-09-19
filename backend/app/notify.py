@@ -29,6 +29,10 @@ FCM_TTL_S = 900
 # iOS: ładunek APNs ma twardy limit 4096 bajtów, a FCM wkłada do niego także całe
 # `data`. Powiadomienie iPhone'a budujemy z zapasem i przycinamy powody.
 APNS_PAYLOAD_BUDGET = 3700
+# Ile czasu APNs ma próbować dostarczyć alarm. Tyle samo, ile Androidowy próg
+# „spóźnione" (Alarms.STALE_AFTER_MS = 10 min): iPhone nie umie pokazać starej
+# wiadomości ciszej, więc lepiej, żeby jej nie dostał wcale.
+APNS_EXPIRATION_S = 600
 FCM_RETRIES = 3
 # Audyt bezpieczeństwa 16.09.2026: FCM i Web Push dzieliły domyślną pulę wątków, więc
 # zalew (fałszywych) subskrypcji Web Push kolejkował wysyłkę alarmu do aplikacji.
@@ -79,9 +83,12 @@ def _apns_config(topic: str, data: dict):
 
     level = data.get("level", "")
     high = level == "high"
+    # Krócej niż tytuł Androida: iPhone przycina go do jednej linii, a na zrzucie
+    # z 19.09.2026 („TEST — WYSOKI PRIORYTET: woj. lubelski…”) ucięło się właśnie
+    # województwo — czyli najważniejsze słowo. Bez „woj.” i bez punktów w tytule
+    # nazwa regionu mieści się zawsze; punkty otwierają treść.
     title = (("TEST — " if topic.startswith(config.TEST_TOPIC_PREFIX) else "")
-             + f"{LEVEL_LABELS.get(level, level)}: woj. {data.get('voiv', '')}"
-               f" ({data.get('score', '')} pkt)")
+             + f"{LEVEL_LABELS.get(level, level)}: {data.get('voiv', '')}")
     tail = [("Co zrobić: przejdź do schronu lub pomieszczenia bez okien i śledź komunikaty RCB."
              if high else "Co zrobić: zachowaj czujność i sprawdź komunikaty RCB."),
             "NIEOFICJALNE źródło — kieruj się syrenami, RCB i RSO."]
@@ -93,7 +100,11 @@ def _apns_config(topic: str, data: dict):
         return None
     lines = []
     reasons = [x.strip() for x in (data.get("reasons") or "").split("\n") if x.strip()][:4]
-    for line in ([data["headline"]] if data.get("headline") else []) + reasons:
+    # punkty otwierają treść, skoro zeszły z tytułu
+    czolo = f"{data.get('score', '')} pkt"
+    if data.get("headline"):
+        czolo += f" — {data['headline']}"
+    for line in [czolo] + reasons:
         if used + size(line) > APNS_PAYLOAD_BUDGET:
             break
         lines.append(line)
@@ -102,7 +113,12 @@ def _apns_config(topic: str, data: dict):
         headers={
             "apns-priority": "10",                                 # natychmiast
             "apns-push-type": "alert",
-            "apns-expiration": str(int(time.time()) + FCM_TTL_S),   # jak ttl Androida
+            # Krócej niż ttl Androida (15 min) i równo z jego progiem „spóźnione".
+            # Android spóźnioną wiadomość pokazuje cicho i dopisuje „— opóźnione o X min"
+            # (Alarms.postAlarm), bo buduje powiadomienie sam. Na iOS baner rysuje system
+            # z gotowego ładunku, więc wiadomość sprzed kwadransa zawyłaby syreną jak
+            # świeża. Dlatego po dziesięciu minutach APNs ma ją po prostu skasować.
+            "apns-expiration": str(int(time.time()) + APNS_EXPIRATION_S),
             "apns-collapse-id": topic,                             # jak collapse_key
         },
         payload=messaging.APNSPayload(aps=messaging.Aps(

@@ -105,10 +105,21 @@
       : ["Alarmy przy zamkniętej aplikacji","Moje miejsca","Sygnały dźwiękowe","Język interfejsu","Wersja aplikacji"]);
     // nagłówki dodane w 1.7.41 — po identyfikatorze, żeby nie przesuwać indeksów wyżej
     button("trail-head", "Mapa: trasy obiektów", "Map: object tracks");
+    // Warianty iOS stoją poza selektorami pozycyjnymi (klasa .ios-only), więc
+    // w podglądzie języka ustawiamy je po identyfikatorze.
+    button("alarmy-intro-ios",
+      "Alarmy dla Twojego województwa przychodzą jako powiadomienie push — także gdy aplikacja jest zamknięta, ekran zablokowany albo telefon w uśpieniu. Serwer Strażnika wysyła sygnał prosto na telefon; wystarczy zgoda na powiadomienia. Wymaga to działającego serwera: w trybie awaryjnym (serwer niedostępny) alarmy przychodzą tylko przy otwartej aplikacji.",
+      "Alerts for your province arrive as a push notification — also when the app is closed, the screen is locked or the phone is asleep. The Strażnik server sends the signal straight to the phone; notification permission is all that is needed. This needs a working server: in fallback mode (server unreachable) alerts only arrive while the app is open.");
+    button("alarm-ios-note",
+      "Na iPhonie czerwony alarm przychodzi jako powiadomienie oznaczone „PILNE”: pokazuje się nad blokadą i gra syreną. Nie zapala pełnego ekranu i nie powtarza dźwięku — iOS nie pozwala na to zwykłym aplikacjom. Przy wyciszonym dzwonku alarm będzie bezgłośny: zostanie wibracja i baner. Żeby przeszedł także w nocy, sprawdź dwie rzeczy: Ustawienia → Powiadomienia → Strażnik → „Powiadomienia czasowo zależne” oraz Ustawienia → Skupienie → Sen → Aplikacje → dopuść Strażnika. Bez tego iOS wstrzymuje alarm do odblokowania telefonu.",
+      "On iPhone a red alert arrives as a notification marked “Urgent”: it appears over the lock screen and plays our siren. It does not take over the screen and does not repeat the sound — iOS does not allow regular apps to do that. With the ringer muted the alert is silent: a vibration and a banner, nothing more. For it to reach you at night, check two settings: Settings → Notifications → Strażnik → “Time Sensitive Notifications” and Settings → Focus → Sleep → Apps → allow Strażnik. Without them iOS holds the alert until you unlock the phone.");
+    button("dzwiek-ios-note",
+      "Żółty poziom (≥2 pkt) — krótki sygnał uwagi i powiadomienie wyskakujące na ekranie. Czerwony (≥4 pkt) — modulowana syrena alarmu powietrznego + wibracja. Odtwarzane, gdy aplikacja jest otwarta; przy zamkniętej aplikacji alarm przychodzi jako powiadomienie push (z syreną dla czerwonego).",
+      "Yellow (≥2 pts): attention sound and heads-up notification. Red (≥4 pts): modulated air-raid siren and vibration. Played while the app is open; with the app closed the alert arrives as a push notification (with the siren for red).");
     button("ns-head", "Alarm natywny i głośność", "Native alert and volume");
     many(":scope .set-tab", en
       ? ["Alerts","My places","Sound","App"] : ["Alarmy","Moje miejsca","Dźwięk","Aplikacja"]);
-    many(":scope .set-pane > p.fineprint:not(#app-version):not(#upd-status):not(#more-links)", en ? [
+    many(":scope .set-pane > p.fineprint:not(#app-version):not(#upd-status):not(#more-links):not(.ios-only)", en ? [
       "Alerts for your province arrive as push notifications even when the app is closed or the phone is asleep. Full-screen permission is required for a red alert to wake the screen. This needs the Strażnik server: in emergency mode (server unavailable) alerts arrive only while the app is open.",
       "A full-screen alert wakes the display and appears above the lock screen. Android 14 or later may revoke this permission after an update, so verify it manually.",
       "Save up to 8 places and choose which provinces you want notifications for. Exact places remain on this device.",
@@ -328,11 +339,16 @@
     set("#fs-check-skip", "Not now");
     set("#fs-check-open", "Check permission");
     set("#onboard-bg .about-sub", "receive warnings even when you are not looking at your phone");
-    setMany("#onboard-bg .about-body > p", [
+    // Teksty pokazywane tylko w aplikacji na iPhone'a (klasa .ios-only w index.html)
+    set("#onboard-bg-ios", "We only ask for notification permission. So that a red alert can reach you at night, keep “Time Sensitive Notifications” on and allow Strażnik in your Sleep focus (Settings → Focus → Sleep → Apps).");
+    set("#alarmy-intro-ios", "Alerts for your province arrive as a push notification — also when the app is closed, the screen is locked or the phone is asleep. The Strażnik server sends the signal straight to the phone; notification permission is all that is needed. This needs a working server: in fallback mode (server unreachable) alerts only arrive while the app is open.");
+    set("#alarm-ios-note", "On iPhone a red alert arrives as a notification marked “Urgent”: it appears over the lock screen and plays our siren. It does not take over the screen and does not repeat the sound — iOS does not allow regular apps to do that. With the ringer muted the alert is silent: a vibration and a banner, nothing more. For it to reach you at night, check two settings: Settings → Notifications → Strażnik → “Time Sensitive Notifications” and Settings → Focus → Sleep → Apps → allow Strażnik. Without them iOS holds the alert until you unlock the phone.");
+    set("#dzwiek-ios-note", "Yellow (≥2 pts): attention sound and heads-up notification. Red (≥4 pts): modulated air-raid siren and vibration. Played while the app is open; with the app closed the alert arrives as a push notification (with the siren for red).");
+    setMany("#onboard-bg .about-body > p:not(.ios-only)", [
       "Strażnik is useful only if it can warn you before you open it. Alerts for your region arrive as push notifications, even when the app is closed and the screen is off.",
       "Notification permission is required. For red alerts, full-screen alert permission is also recommended."
     ]);
-    setMany("#settings .set-pane > p.fineprint:not(#app-version):not(#upd-status):not(#more-links)", [
+    setMany("#settings .set-pane > p.fineprint:not(#app-version):not(#upd-status):not(#more-links):not(.ios-only)", [
       "Alerts for your province arrive as push notifications even when the app is closed or the phone is asleep. Full-screen permission is required for a red alert to wake the screen. This needs the Strażnik server: in emergency mode (server unavailable) alerts arrive only while the app is open.",
       "A full-screen alert wakes the display and appears above the lock screen. Android 14 or later may revoke this permission after an update, so verify it manually.",
       "Save up to 8 places and choose which provinces you want notifications for. Exact places remain on this device.",

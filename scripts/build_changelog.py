@@ -16,6 +16,17 @@ DOCS = ROOT / "docs"
 # (wersja, data PL, data EN, tytuł PL, tytuł EN, punkty PL, punkty EN, zrzuty)
 # Zrzut: (plik, alt PL, alt EN, podpis PL, podpis EN)
 RELEASES = [
+    ("1.7.61", "18 września 2026", "18 September 2026",
+     "Trzy poprawki zgłoszone z telefonów",
+     "Three fixes reported from phones",
+     ["Historia znowu pokazuje obiekty tak jak mapa na żywo. Po poprzednim wydaniu zamiast ikony drona bywał pełny żółty krążek — wiek meldunku, który wygasza ikonę, nie docierał do zapisanych migawek, a bez niego rysowanie wywracało się na domyślne ustawienia.",
+      "W oknie „Moje miejsca” widać wszystkie zapisane miejsca naraz. Przy czterech i więcej rząd zakładek przewijał się w bok i na wąskim ekranie miejsca po prostu znikały za krawędzią; teraz zawijają się do kolejnych wierszy, a długie nazwy kończą się wielokropkiem.",
+      "Na iPhonie dotknięcie pola formularza nie powiększa już całego ekranu — pola mają wymagane 16 punktów. Na Androidzie ta zmiana nic nie zmienia."],
+     ["History shows objects the way the live map does again. Since the previous release a drone icon could turn into a solid yellow disc: the report age that fades an icon never reached the stored snapshots, and without it the drawing fell back to its defaults.",
+      "The My places window shows every saved place at once. With four or more the tab row scrolled sideways and, on a narrow screen, places simply vanished past the edge; they now wrap onto further lines and long names end in an ellipsis.",
+      "On iPhone, touching a form field no longer magnifies the whole screen — fields now use the required 16 points. On Android nothing changes."],
+     []),
+
     ("1.7.60", "17 września 2026", "17 September 2026",
      "Widać, jak stary jest meldunek",
      "You can see how old each report is",

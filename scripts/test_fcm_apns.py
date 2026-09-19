@@ -11,6 +11,7 @@ Wymaga firebase-admin (jest na serwerze). Uruchomienie: python3 scripts/test_fcm
 """
 import json
 import sys
+import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -62,8 +63,11 @@ sprawdz(m["android"]["priority"] == "high", "wysoki priorytet Androida zachowany
 
 print("2. Czerwony alarm na iPhonie")
 aps = m["apns"]["payload"]["aps"]
-sprawdz(aps["alert"]["title"].startswith("WYSOKI PRIORYTET: woj. świętokrzyskie"),
-        "tytuł jak na Androidzie")
+sprawdz(aps["alert"]["title"] == "WYSOKI PRIORYTET: świętokrzyskie",
+        "tytuł krótki — iPhone ucina długi i gubi właśnie nazwę województwa")
+dlugosc = len(aps["alert"]["title"])
+sprawdz(dlugosc <= 40, f"tytuł mieści się w linii ({dlugosc} znaków)")
+sprawdz(aps["alert"]["body"].startswith("4.5 pkt — "), "punkty otwierają treść")
 sprawdz(aps["sound"] == "alarm_syrena.wav", "syrena dla czerwonego")
 sprawdz(aps["interruption-level"] == "time-sensitive", "czerwony przebija tryb Skupienia")
 sprawdz("NIEOFICJALNE" in aps["alert"]["body"], "zastrzeżenie o nieoficjalnym źródle w treści")
@@ -71,12 +75,15 @@ sprawdz(DANE["headline"] in aps["alert"]["body"], "pierwsza linia alarmu: co i g
 sprawdz(m["apns"]["headers"]["apns-collapse-id"] == "voiv_swietokrzyskie",
         "kolejny stan województwa zastępuje poprzedni")
 sprawdz(m["apns"]["headers"]["apns-push-type"] == "alert", "typ alert, priorytet 10")
+waznosc = int(m["apns"]["headers"]["apns-expiration"]) - int(time.time())
+sprawdz(590 <= waznosc <= 600,
+        f"APNs przestaje próbować po 10 minutach, jak próg spóźnienia na Androidzie ({waznosc} s)")
 sprawdz(bajty_apns(m) <= 4096, f"ładunek mieści się w limicie APNs ({bajty_apns(m)} B)")
 
 print("3. Żółty i temat testowy")
 t = zakodowana("test_voiv_lubelskie", dict(DANE, voiv="lubelskie", level="elevated"))
 taps = t["apns"]["payload"]["aps"]
-sprawdz(taps["alert"]["title"].startswith("TEST — PODWYŻSZONA UWAGA"), "test oznaczony w tytule")
+sprawdz(taps["alert"]["title"] == "TEST — PODWYŻSZONA UWAGA: lubelskie", "test oznaczony w tytule")
 sprawdz(taps["interruption-level"] == "active", "żółty nie budzi w trybie Skupienia")
 sprawdz(taps["sound"] == "alert_uwaga.wav", "spokojniejszy dźwięk dla żółtego")
 

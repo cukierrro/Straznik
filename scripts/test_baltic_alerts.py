@@ -169,6 +169,39 @@ class Odp:
         self.content = tresc
 
 
+print("7c. alarm ogłoszony za granicą nie jest alarmem u sąsiada (19.09.2026)")
+reset()
+# Prawdziwy tytuł z 15min.lt, 19.09.2026 14:14 — alarm w stolicy Arabii Saudyjskiej.
+# Zapalił Litwę na czerwono i dał 0,3 pkt podlaskiemu, warmińsko-mazurskiemu i
+# pomorskiemu, bo sprawdzenie zagranicy obejmowało tylko incydenty, nie alarmy.
+poprzedni_alarm = rm.baltic["LT"]["last_alert"]
+asyncio.run(rm._baltic_entries([wpis(
+    "Saudo Arabijos sostinėje paskelbtas pirmasis oro pavojus po kovų Jemene atsinaujinimo",
+    M15 + "-saudo")], "15min", "LT", T0 + 120))
+ok(not zapis, f"alarm w Rijadzie bez punktów dla Polski ({len(zapis)} sygnałów)")
+ok(poprzedni_alarm == rm.baltic["LT"]["last_alert"], "i bez nowego wpisu „ostatni alarm” w oknie Źródła")
+
+reset()
+asyncio.run(rm._baltic_entries([wpis(
+    "Oro pavojus Vilniuje ir Trakuose dėl smūgių Ukrainoje", M15 + "-vilnius-ua")],
+    "15min", "LT", T0 + 120))
+ok(any(z["event_type"] == "baltic_alert" for z in zapis),
+   "alarm nad Wilnem z zagranicznym kontekstem nadal się liczy")
+
+reset()
+asyncio.run(rm._baltic_entries([wpis(
+    "Izraelis paskelbė oro pavojų po raketų atakos", M15 + "-izrael")], "15min", "LT", T0 + 120))
+ok(not zapis, "alarm w Izraelu też nie punktuje")
+
+reset()
+rm.baltic["EE"]["last_alert"] = None
+# ERR i samorządy piszą „anti õhuhäire” — hasła brakowało do 19.09.2026
+asyncio.run(rm._baltic_entries([wpis(
+    "Öösel anti Eestis õhuhäire, Tallinnas kostis sireene", M15 + "-tallinn")], "15min", "EE", T0 + 120))
+ok(any(z["event_type"] == "baltic_alert" for z in zapis),
+   "estoński alarm bez wzmianki o zagranicy przechodzi")
+
+
 print("8. kanał bez artykułów to nie „ok”")
 rm._get_with_retry = lambda *_a, **_k: asyncio.sleep(0, result=(Odp(b"<rss><channel><item><title>Dienos naujienos</title></item></channel></rss>"), None))
 asyncio.run(rm._check_baltic_feed(None, "https://dead.example/rss", "LT"))

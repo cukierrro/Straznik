@@ -33,6 +33,12 @@
 /* iPhone: zasady App Store zabraniają linków do płatności poza aplikacją (3.1.1a),
    a przełączniki głośności i pełnego ekranu nie mają tam odpowiednika w systemie. */
 .ios-app .no-ios, .ios-app .android-only { display: none !important; }
+/* Teksty o zgodzie na pełny ekran, usłudze w tle i ustawieniach Androida opisują
+   funkcje, których na iPhonie nie ma. Wariant iOS stoi obok w HTML i pokazuje się
+   tylko tam — dzięki temu tłumaczenia i układ zostają wspólne. */
+.ios-only { display: none !important; }
+.ios-app p.ios-only { display: block !important; }
+.ios-app span.ios-only { display: inline !important; }
 .web-app .app-only { display: none !important; }
 html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--text);
   font-family: "Segoe UI", system-ui, sans-serif; }

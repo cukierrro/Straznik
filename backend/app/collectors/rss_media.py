@@ -105,6 +105,20 @@ def _baltic_decision(country: str, kind: str, stale: str | None, title: str, lin
         "age_min": round(age / 60, 1)}, ts=now)
 
 
+def _baltic_abroad(title: str, country: str) -> bool:
+    """Czy tytuł mówi o alarmie GDZIE INDZIEJ niż w tym kraju bałtyckim.
+
+    Sprawdzenie zagranicy działało dotąd tylko dla incydentów; alarm przechodził
+    po samym słowie kluczowym, więc litewska relacja o alarmie w Rijadzie liczyła
+    się jak alarm nad Litwą (19.09.2026). Tytuł, który obok zagranicy wymienia
+    miejsce w kraju, zostaje — to nasz alarm z zagranicznym kontekstem.
+    """
+    tl = title.lower()
+    if not any(m in tl for m in config.BALTIC_FOREIGN_MARKERS):
+        return False
+    return not any(m in tl for m in config.BALTIC_LOCAL_MARKERS.get(country, ()))
+
+
 def _is_baltic_alert(text: str) -> list[str]:
     tl = text.lower()
     if any(word in tl for word in config.BALTIC_EXCLUDE_KEYWORDS):
@@ -566,6 +580,9 @@ async def _baltic_entries(entries, url: str, country: str, now: float):
         discussion = any(m in f" {title_l}" for m in config.BALTIC_DISCUSSION_MARKERS)
         alert_hits = ([] if discussion or _speaker_quote(title_l)
                       else _is_baltic_alert(title_l))
+        if alert_hits and _baltic_abroad(title_l, country):
+            _baltic_decision(country, "alert", "zagranica", title, link, url, age, now)
+            alert_hits = []
         hits = ([] if alert_hits or discussion
                 or any(m in title_l for m in config.BALTIC_FOREIGN_MARKERS)
                 else match_keywords(text, config.BALTIC_CRITICAL_KEYWORDS,
