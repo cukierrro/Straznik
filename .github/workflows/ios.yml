@@ -312,7 +312,8 @@ jobs:
       # Oddajemy to, co pożyczyliśmy od Apple: certyfikat i profil znikają z konta,
       # żeby nie zajmowały miejsca w limicie i nie zostawały po nieudanych przebiegach.
       - name: Oddanie certyfikatu i profilu
-        if: always() && steps.podpis.outcome == 'success'
+        # Także po nieudanym kroku: certyfikat bywa już utworzony, gdy coś padnie później.
+        if: always() && steps.podpis.outputs.cert_id != ''
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}

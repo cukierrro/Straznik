@@ -68,8 +68,18 @@ def api(sciezka: str, metoda: str = "GET", dane: dict | None = None) -> dict:
         raise SystemExit(f"App Store Connect: HTTP {e.code} przy {metoda} {sciezka}\n{tresc}")
 
 
+def narzedzie_openssl() -> str:
+    """Systemowy openssl (LibreSSL) przed ewentualnym z Homebrew.
+
+    Ma znaczenie przy pakowaniu .p12: OpenSSL 3 domyślnie szyfruje algorytmami,
+    których pęk kluczy macOS nie czyta („MAC verification failed during PKCS12
+    import” — 19.09.2026). LibreSSL pakuje po staremu i system to przyjmuje.
+    """
+    return "/usr/bin/openssl" if pathlib.Path("/usr/bin/openssl").exists() else "openssl"
+
+
 def openssl(*args: str, wejscie: bytes | None = None) -> None:
-    wynik = subprocess.run(["openssl", *args], input=wejscie, capture_output=True)
+    wynik = subprocess.run([narzedzie_openssl(), *args], input=wejscie, capture_output=True)
     if wynik.returncode != 0:
         raise SystemExit("openssl " + args[0] + ": " + wynik.stderr.decode(errors="replace"))
 
@@ -148,8 +158,12 @@ def przygotuj() -> None:
     openssl("x509", "-inform", "DER", "-in", str(cer), "-out", str(pem))
 
     haslo = base64.b64encode(os.urandom(18)).decode()
+    # Algorytmy wskazane wprost: pęk kluczy macOS nie przyjmuje domyślnych
+    # ustawień OpenSSL 3, a na maszynie budującej bywają oba narzędzia.
     openssl("pkcs12", "-export", "-inkey", str(klucz), "-in", str(pem),
-            "-out", str(p12), "-name", "Straznik CI", "-passout", "pass:" + haslo)
+            "-out", str(p12), "-name", "Straznik CI",
+            "-keypbe", "PBE-SHA1-3DES", "-certpbe", "PBE-SHA1-3DES", "-macalg", "sha1",
+            "-passout", "pass:" + haslo)
     wypisz("p12", str(p12))
     # Hasło idzie do pliku, nie do wyjścia kroku: wyjścia trafiają do podsumowania
     # przebiegu, a repozytorium jest publiczne.
