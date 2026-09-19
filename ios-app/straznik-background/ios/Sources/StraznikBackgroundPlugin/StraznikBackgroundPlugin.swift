@@ -355,6 +355,10 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
                 osLine += " · Firebase: nie"
             }
             osLine += " · zapis: " + (defaults.string(forKey: Key.syncState) ?? "nie zaczęty")
+            // `topicsError` niesie m.in. powód odmowy rejestracji push z iOS,
+            // ale app.js zamienia go na jedno ogólne zdanie o niepotwierdzonych
+            // subskrypcjach. W wersji testowej pokazujemy oryginał.
+            if !topicsError.isEmpty { osLine += " · błąd: " + topicsError }
             osLine += " · " + Self.receiptName
         }
 
