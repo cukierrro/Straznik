@@ -16,6 +16,17 @@ DOCS = ROOT / "docs"
 # (wersja, data PL, data EN, tytuł PL, tytuł EN, punkty PL, punkty EN, zrzuty)
 # Zrzut: (plik, alt PL, alt EN, podpis PL, podpis EN)
 RELEASES = [
+    ("1.7.62", "19 września 2026", "19 September 2026",
+     "Historia nie gubi już godzin spędzonych w tle",
+     "History no longer loses the hours spent in the background",
+     ["Gdy aplikacja była zminimalizowana, historia zostawiała pustą lukę — suwak przeskakiwał przez cały czas, w którym telefon jej nie pokazywał. Teraz aplikacja zauważa przerwę w nagrywaniu i przy wejściu w historię dociąga brakujący okres z serwera; jeśli wrócisz do niej z otwartym paskiem historii, oś uzupełnia się od razu.",
+      "Dane na serwerze były przez cały czas kompletne — brakowało ich tylko w pamięci aplikacji.",
+      "Na mapie nie zapali się już sąsiedni kraj, gdy jego media piszą o alarmie powietrznym gdzie indziej na świecie. Litwa 19 września świeciła na czerwono przez relację o alarmie w stolicy Arabii Saudyjskiej."],
+     ["When the app was minimised, history left an empty hole: the slider jumped across the whole time the phone was not showing it. The app now notices the interruption and pulls the missing period from the server when you open history; if you return while the history bar is open, the timeline fills in on the spot.",
+      "The data on the server was complete the whole time — it was only missing from the app's own memory.",
+      "A neighbouring country no longer lights up on the map when its media report an air alert somewhere else in the world. On 19 September Lithuania turned red because of a story about an alert in the capital of Saudi Arabia."],
+     []),
+
     ("1.7.61", "18 września 2026", "18 September 2026",
      "Trzy poprawki zgłoszone z telefonów",
      "Three fixes reported from phones",
