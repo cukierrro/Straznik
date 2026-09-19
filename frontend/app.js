@@ -3920,6 +3920,12 @@ let histTimes = [], histMode = false;
    go, a nic się nie kumuluje. Fuzję dla każdej chwili liczy lokalnie ten sam
    `accumulate` co silnik offline (Engine.historyFrom/timelineFrom). */
 let srvSnaps = [], srvSigs = [], srvAdsbEvents = [], srvSeeded = false, _srvSnapT = 0;
+/* Dziura w buforze: aplikacja w tle nic nie nagrywa (system zamraża WebView), a po
+   powrocie dopisuje migawkę z bieżącą godziną. Sam wiek najnowszej migawki niczego
+   wtedy nie zdradza — historia wygląda na świeżą, a w środku brakuje całego okresu
+   (zgłoszone 19.09.2026: przeskok ok. 19:25 i brak danych do 20:25). Zapamiętujemy
+   przerwę i przy wejściu w historię dociągamy paczkę z serwera. */
+let _srvHole = false;
 const HIST_MS = 12 * 3600 * 1000;
 const _sigKey = (s) => (s.source || "") + "|" + (s.ts || "") + "|" + (s.voivodeship || "") + "|" + (s.title || "");
 
@@ -3947,6 +3953,7 @@ function srvRecord(s) {
   srvMergeSignals(flat);
   const now = Date.now();
   if (now - _srvSnapT < 55000) return;              // migawki co ~1 min, jak na serwerze
+  if (_srvSnapT && now - _srvSnapT > 3 * 60000) _srvHole = true;   // wypadły co najmniej dwie
   _srvSnapT = now;
   const threats = (s?.neptun?.threats || []).filter(t => t.lat != null).map(t => ({
     id: t.id, type: t.type, lat: +(+t.lat).toFixed(3), lon: +(+t.lon).toFixed(3),
@@ -3983,10 +3990,11 @@ async function seedBundle() {
     watchSyncState = "ok";
     srvSnaps.sort((a, b) => a.t - b.t);
     srvSeeded = true;
+    _srvHole = false;
   } catch {}
 }
 function needSeed() {
-  if (!srvSeeded) return true;
+  if (!srvSeeded || _srvHole) return true;
   const newest = srvSnaps.length ? srvSnaps[srvSnaps.length - 1].t : 0;
   return (Date.now() - newest) > 5 * 60 * 1000;   // luka (np. milczący WS) → dociągnij świeże
 }
@@ -5316,6 +5324,14 @@ document.addEventListener("visibilitychange", () => {
   pollOnce();
   if (!standalone && (!ws || ws.readyState > 1)) { const base = apiBase(); if (base) openBackendWs(base); }
   if (IS_APP) refreshNativeSound();
+  // W historii dziurę widać od razu na suwaku, więc uzupełniamy ją bez czekania
+  // na kolejne wejście w tryb historii.
+  if (histMode && !standalone && needSeed()) seedBundle().then(() => {
+    const h = fetchHistory();
+    histTimes = h?.times || [];
+    paintTimeline(fetchTimeline());
+    syncTbControls(histIdx());
+  });
 });
 setTimeout(refreshBgWarning, 3500);
 setInterval(refreshBgWarning, 60000);
