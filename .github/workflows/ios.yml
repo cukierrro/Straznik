@@ -216,7 +216,8 @@ jobs:
 
       # Bramka: aplikacja bez `aps-environment` wygląda na sprawną (mapa, historia,
       # lokalny test alarmu działają), a po cichu nie odbiera żadnego alarmu z serwera.
-      # Taki build nie może trafić do testerów ani do sklepu — 19.09.2026 trafił.
+      # Taki build trafił do testerów 18.09 i kosztował nas dobę szukania nie tam,
+      # gdzie trzeba — dlatego sprawdzamy PODPISANY plik, a nie nasze intencje.
       - name: Sprawdzenie uprawnień push w podpisanym pliku
         if: steps.mode.outputs.mode == 'testflight'
         env:
@@ -225,7 +226,22 @@ jobs:
           ISSUER: ${{ secrets.ASC_ISSUER_ID }}
         run: |
           set -o pipefail
-          cat > "$RUNNER_TEMP/ExportCheck.plist" <<PLIST
+          eksport() {   # $1 = plik ustawień, $2 = katalog wyjściowy
+            rm -rf "$2"
+            xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/Straznik.xcarchive" \
+              -exportOptionsPlist "$1" -exportPath "$2" \
+              -allowProvisioningUpdates \
+              -authenticationKeyPath "$RUNNER_TEMP/AuthKey_$KEY_ID.p8" -authenticationKeyID "$KEY_ID" -authenticationKeyIssuerID "$ISSUER" \
+              2>&1 | tee "$RUNNER_TEMP/check.log" | grep -E "error:|EXPORT (SUCCEEDED|FAILED)" || true
+            grep -q "EXPORT SUCCEEDED" "$RUNNER_TEMP/check.log"
+          }
+          uprawnienia() {  # $1 = katalog z .ipa; wypisuje uprawnienia podpisanej aplikacji
+            rm -rf "$RUNNER_TEMP/ipa"
+            unzip -q "$(ls "$1"/*.ipa | head -1)" -d "$RUNNER_TEMP/ipa"
+            codesign -d --entitlements :- "$(ls -d "$RUNNER_TEMP/ipa/Payload"/*.app | head -1)" 2>/dev/null
+          }
+
+          cat > "$RUNNER_TEMP/ExportAuto.plist" <<PLIST
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
@@ -238,28 +254,55 @@ jobs:
           </dict>
           </plist>
           PLIST
-          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/Straznik.xcarchive" \
-            -exportOptionsPlist "$RUNNER_TEMP/ExportCheck.plist" -exportPath "$RUNNER_TEMP/check" \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "$RUNNER_TEMP/AuthKey_$KEY_ID.p8" -authenticationKeyID "$KEY_ID" -authenticationKeyIssuerID "$ISSUER" \
-            2>&1 | tee "$RUNNER_TEMP/check.log" | grep -E "error:|EXPORT (SUCCEEDED|FAILED)" || true
-          grep -q "EXPORT SUCCEEDED" "$RUNNER_TEMP/check.log"
-          ipa=$(ls "$RUNNER_TEMP/check"/*.ipa | head -1)
-          unzip -q "$ipa" -d "$RUNNER_TEMP/ipa"
-          app=$(ls -d "$RUNNER_TEMP/ipa/Payload"/*.app | head -1)
-          echo "=== uprawnienia PODPISANEJ aplikacji ==="
-          codesign -d --entitlements :- "$app" 2>/dev/null | tee "$RUNNER_TEMP/ent.txt"
-          if [ -f "$app/embedded.mobileprovision" ]; then
-            echo "=== profil w paczce ==="
-            security cms -D -i "$app/embedded.mobileprovision" 2>/dev/null \
-              | grep -A1 -E "aps-environment|application-identifier" || true
+          eksport "$RUNNER_TEMP/ExportAuto.plist" "$RUNNER_TEMP/check"
+          uprawnienia "$RUNNER_TEMP/check" > "$RUNNER_TEMP/ent.txt"
+          echo "=== uprawnienia po podpisie automatycznym ==="; cat "$RUNNER_TEMP/ent.txt"
+          cp "$RUNNER_TEMP/ExportAuto.plist" "$RUNNER_TEMP/ExportGood.plist"
+
+          if ! grep -q "aps-environment" "$RUNNER_TEMP/ent.txt"; then
+            echo "Podpis automatyczny zgubił uprawnienia — próbuję z profilem wskazanym wprost."
+            echo "=== tożsamości do podpisu ==="; security find-identity -v -p codesigning || true
+            echo "=== pobrane profile ==="
+            profil=""
+            for f in "$HOME/Library/MobileDevice/Provisioning Profiles"/*.mobileprovision; do
+              [ -e "$f" ] || continue
+              plist=$(security cms -D -i "$f" 2>/dev/null) || continue
+              printf '%s' "$plist" > "$RUNNER_TEMP/prof.plist"
+              nazwa=$(plutil -extract Name raw -o - "$RUNNER_TEMP/prof.plist" 2>/dev/null) || continue
+              appid=$(plutil -extract Entitlements.application-identifier raw -o - "$RUNNER_TEMP/prof.plist" 2>/dev/null || echo "")
+              aps=$(plutil -extract Entitlements.aps-environment raw -o - "$RUNNER_TEMP/prof.plist" 2>/dev/null || echo "brak")
+              echo "  $nazwa | $appid | aps=$aps"
+              if [ "$appid" = "$TEAM.pl.straznik.app" ] && [ "$aps" != "brak" ]; then profil="$nazwa"; fi
+            done
+            [ -n "$profil" ] || { echo "::error::Nie znalazłem profilu z uprawnieniem push dla pl.straznik.app"; exit 1; }
+            echo "Używam profilu: $profil"
+            cat > "$RUNNER_TEMP/ExportManual.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>export</string>
+            <key>teamID</key><string>$TEAM</string>
+            <key>signingStyle</key><string>manual</string>
+            <key>signingCertificate</key><string>Apple Distribution</string>
+            <key>provisioningProfiles</key>
+            <dict><key>pl.straznik.app</key><string>$profil</string></dict>
+            <key>manageAppVersionAndBuildNumber</key><false/>
+          </dict>
+          </plist>
+          PLIST
+            eksport "$RUNNER_TEMP/ExportManual.plist" "$RUNNER_TEMP/check"
+            uprawnienia "$RUNNER_TEMP/check" > "$RUNNER_TEMP/ent.txt"
+            echo "=== uprawnienia po podpisie ze wskazanym profilem ==="; cat "$RUNNER_TEMP/ent.txt"
+            cp "$RUNNER_TEMP/ExportManual.plist" "$RUNNER_TEMP/ExportGood.plist"
           fi
+
           grep -q "aps-environment" "$RUNNER_TEMP/ent.txt" \
             || { echo "::error::Podpisany build NIE ma uprawnienia aps-environment — telefon nie dostanie tokenu APNs i żaden alarm nie dojdzie"; exit 1; }
           grep -q "time-sensitive" "$RUNNER_TEMP/ent.txt" \
             || echo "::warning::Brak uprawnienia time-sensitive — czerwony alarm nie przebije trybu Skupienia"
           echo "Uprawnienia push obecne w podpisanym pliku."
-
       - name: Wysyłka do TestFlight
         if: steps.mode.outputs.mode == 'testflight'
         env:
@@ -268,20 +311,11 @@ jobs:
           ISSUER: ${{ secrets.ASC_ISSUER_ID }}
         run: |
           set -o pipefail
-          cat > "$RUNNER_TEMP/ExportOptions.plist" <<PLIST
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-            <key>method</key><string>app-store-connect</string>
-            <key>destination</key><string>upload</string>
-            <key>teamID</key><string>$TEAM</string>
-            <key>signingStyle</key><string>automatic</string>
-            <key>uploadSymbols</key><true/>
-            <key>manageAppVersionAndBuildNumber</key><false/>
-          </dict>
-          </plist>
-          PLIST
+          # Wysyłamy z ustawieniami, które przed chwilą dały plik z uprawnieniem push.
+          # Osobny zestaw ustawień mógłby podpisać inaczej i znów zgubić `aps-environment`.
+          sed 's|<string>export</string>|<string>upload</string>|' "$RUNNER_TEMP/ExportGood.plist" > "$RUNNER_TEMP/ExportOptions.plist"
+          plutil -insert uploadSymbols -bool true "$RUNNER_TEMP/ExportOptions.plist" 2>/dev/null || true
+          plutil -p "$RUNNER_TEMP/ExportOptions.plist"
           xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/Straznik.xcarchive" \
             -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" -exportPath "$RUNNER_TEMP/export" \
             -allowProvisioningUpdates \
