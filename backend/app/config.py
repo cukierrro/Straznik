@@ -1016,6 +1016,9 @@ BALTIC_ALERT_KEYWORDS = [
     # estoński
     "õhuohu hoiatus", "võimalik õhuoht", "drooniohu hoiatus", "drooniohu teavitus",
     "ohuteavitus", "ee-alarm", "õhuoht",
+    # 19.09.2026: ERR i samorządy piszą o nocnym alarmie wprost „anti õhuhäire”
+    # („Öösel anti Eestis õhuhäire”) — bez tego hasła taki tytuł przechodził bokiem
+    "õhuhäire", "ohuhäire",
     # angielski (eng.lsm.lv, news.err.ee, LRT English)
     "air alert", "air raid", "airspace alert", "air hazard alert", "air threat alert",
     "air danger alert", "drone threat warning", "drone warning", "air threat warning",
@@ -1071,6 +1074,8 @@ BALTIC_CLEAR_KEYWORDS = [
     # estoński
     "õhuhoiatus võeti maha", "ohu möödumisest", "ohuteavitus lõpetati",
     "drooniohtu ei tuvastatud",
+    # Kaitsevägi ogłasza koniec słowami „häire lõpp” (kriis.ee, 19.09.2026)
+    "häire lõpp", "häire on lõppenud", "õhuhäire lõppes",
 ]
 # Samo „cancelled” czy „(balta)” to za mało: 02.09.2026 „Second round of
 # Latvia's affordable housing programme cancelled” weszło jako odwołanie.
@@ -1097,8 +1102,35 @@ BALTIC_DISCUSSION_MARKERS = [
 # Incydent bałtycki ma się dziać nad krajami bałtyckimi. 14.09.2026 „Train carrying
 # Estonian leaders crossed Ukraine border just before Russian drone strike” dało 1 pkt
 # czterem województwom, choć atak był na Ukrainie.
-BALTIC_FOREIGN_MARKERS = ["ukrain", "kyiv", "kiev", "kharkiv", "odesa", "lviv", "kijev",
-                          "kijiv", "ukrain"]
+BALTIC_FOREIGN_MARKERS = [
+    "ukrain", "kyiv", "kiev", "kharkiv", "odesa", "lviv", "kijev", "kijiv",
+    # 19.09.2026: „Saudo Arabijos sostinėje paskelbtas pirmasis oro pavojus po kovų
+    # Jemene atsinaujinimo” (15min.lt) zapaliło Litwę na czerwono i dało 0,3 pkt
+    # czterem województwom — litewska redakcja pisała o alarmie w Rijadzie.
+    "saudo arabij", "saudi arab", "saūda arāb", "saudi araabia", "rijad", "riyadh",
+    "jemen", "yemen", "jeemen", "hutl", "houthi",
+    "izrael", "israel", "iisrael", "tel avi", "jeruzal", "jerusalem", "gaza", "gazos",
+    "palestin", "iran", "irān", "teheran", "tehran",
+    "libanas", "libanā", "lebanon", "sirij", "syria", "süüria", "damask",
+    "maskv", "moscow", "moskva", "peterburg", "rostov", "krasnodar", "soči", "sotši",
+    # alarm w Polsce opisujemy z RCB i RSO, a nie z litewskiej relacji o nim
+    "lenkij", "polij", "poola", "poland",
+]
+# Wyjątek od powyższego: tytuł mówiący i o zagranicy, i o miejscu w kraju
+# bałtyckim, to zwykle nasz alarm z zagranicznym kontekstem („Oro pavojus
+# Vilniuje dėl smūgių Ukrainoje”). Stolice, większe miasta i formy nazwy kraju.
+BALTIC_LOCAL_MARKERS = {
+    "LT": ["lietuv", "vilni", "kaun", "klaipėd", "klaiped", "šiauli", "siauli",
+           "panevėž", "paneve", "alytu", "marijampol", "utena", "telšia", "telsia",
+           "taurag", "druskinink", "visagin", "kybart", "šalčinink", "salcinink",
+           "trak", "elektrėn", "elektren", "jonav", "mažeiki", "mazeiki"],
+    "LV": ["latvij", "latvia", "rīg", "riga", "daugavpil", "liepāj", "liepaj",
+           "ventspil", "jelgav", "rēzekn", "rezekn", "jūrmal", "jurmal", "valmier",
+           "ludz", "kārsav", "karsav", "jēkabpil", "jekabpil"],
+    "EE": ["eesti", "estonia", "tallinn", "tartu", "narva", "pärnu", "parnu",
+           "kohtla", "jõhvi", "johvi", "võru", "voru", "valga", "viljandi",
+           "kuressaare", "saarema", "hiiumaa", "haapsalu", "rakvere"],
+}
 BALTIC_CLEAR_CONTEXT = [
     "air", "drone", "uav", "oro", "pavoj", "gaisa", "apdraud", "õhu", "droon",
     "ohu", "oht", "alert", "alarm", "warning", "threat",
