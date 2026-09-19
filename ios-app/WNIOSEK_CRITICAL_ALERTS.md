@@ -9,7 +9,17 @@ przesunął przełącznik wyciszenia.
 **Formularz:** developer.apple.com/contact/request/notifications-critical-alerts-entitlement
 (wymaga zalogowania na konto Apple Developer).
 
-**Kiedy wysłać:** **można teraz.** Od 19.09.2026 mamy działającą wersję w TestFlight
+**WYSŁANY 19.09.2026, numer zgłoszenia `442YB6VV2L`.** Odpowiedź przyjdzie mailem
+na cukierrro@gmail.com; bywa, że po kilku tygodniach. Do tego czasu **nie włączamy**
+`critical` ani w `App.entitlements`, ani na serwerze — build z tym uprawnieniem bez
+zgody nie przejdzie podpisu, a bramka w workflow i tak by go zatrzymała.
+
+W formularzu: rodzaj aplikacji **Personal Safety and Security** (nie „Public Safety”,
+bo ta kategoria kojarzy się z instytucjami, a my jesteśmy źródłem nieoficjalnym),
+częstotliwość **rzadko**, treść jak w sekcjach poniżej, rozbita na trzy pola formularza:
+opis aplikacji, rodzaj powiadomień krytycznych i uzasadnienie.
+
+**Kiedy wysłać (historycznie):** **można było od razu.** Od 19.09.2026 mamy działającą wersję w TestFlight
 i pomiary z dwóch iPhone'ów — Apple zwykle pyta właśnie o to. Wniosek można złożyć
 raz i w razie odmowy ponowić.
 
