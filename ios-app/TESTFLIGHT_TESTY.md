@@ -370,7 +370,7 @@ identyfikator `…5570727948032231207`.
 | Co | Wynik |
 |---|---|
 | Karolina (iPhone 15 Pro Max, iOS 26.6.1) | **alarm dotarł** przy zamkniętej aplikacji; wibracja bez dźwięku — miała wyciszony dzwonek |
-| Adrian (iPhone 14 Pro Max, iOS 26.6.2) | brak odpowiedzi; telefon był prawie rozładowany |
+| Adrian (iPhone 14 Pro Max, iOS 26.6.2) | **alarm dotarł** — ta sama wysyłka, inny telefon i inna wersja iOS |
 | Diagnostyka przed wysyłką (oboje) | `APNs: tak · FCM: tak · zapis: gotowe`, tematy testowe potwierdzone |
 
 **Nadal niesprawdzone:** czy push gra **naszą syreną**, czy domyślnym dźwiękiem
