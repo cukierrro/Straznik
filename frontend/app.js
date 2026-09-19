@@ -5185,6 +5185,8 @@ function syncTabs() {
   }
   document.getElementById("btn-panel")?.setAttribute("aria-pressed", String(panelOpen));
   document.getElementById("btn-history")?.setAttribute("aria-pressed", String(histOn));
+  // widok modułu jest osobnym ekranem — zakładka, która przejmuje ekran, go zamyka
+  if ((panelOpen || histOn) && window.GrotaWidok?.widoczny) ukryjGrote();
 }
 
 function setPanel(open) {
@@ -5291,12 +5293,30 @@ if (attrEl) {
   attrEl.style.cursor = "pointer";
 }
 
+/* ── moduł schronienia (GROTA) ───────────────────────────────────────────────
+   Strażnik mówi, że jest zagrożenie; GROTA pokazuje, dokąd iść. Moduł żyje
+   w osobnych plikach (`frontend/grota/`) i wczytuje się przy pierwszym wejściu,
+   żeby nie opóźniać startu aplikacji alarmowej. Gdy go nie ma — nic się nie
+   dzieje, bo wszystkie wywołania są opcjonalne. */
+function otworzGrote() {
+  if (!window.GrotaWidok) return;
+  setPanel(false);
+  if (moreSheet?.open) moreSheet.close();
+  if (document.body.classList.contains("history-mode")) toggleHistory();
+  window.GrotaWidok.otworz();
+}
+/* Każde przejście gdzie indziej zatrzymuje mapę modułu — bez tego jej renderowanie
+   zjadałoby procesor w tle, obok mapy Strażnika. */
+function ukryjGrote() { window.GrotaWidok?.ukryj(); }
+
 /* ── dolne zakładki i menu „Więcej” ── */
 const moreSheet = document.getElementById("more-sheet");
+document.getElementById("btn-grota")?.addEventListener("click", otworzGrote);
 document.getElementById("tab-more")?.addEventListener("click", () => {
   if (moreSheet?.open) moreSheet.close(); else moreSheet?.showModal();
 });
 document.getElementById("tab-map")?.addEventListener("click", () => {
+  ukryjGrote();
   setPanel(false);
   if (moreSheet?.open) moreSheet.close();
   if (document.body.classList.contains("history-mode")) toggleHistory();
