@@ -3560,7 +3560,8 @@ async function toggleBell() {
   }
   if (perm === "denied") {
     toast("⚠️ System blokuje powiadomienia dla Strażnika.<br>"
-        + "Włącz je w ustawieniach Androida (⚙ → Ustawienia powiadomień).", 6000);
+        + (IS_IOS ? "Włącz je w Ustawieniach iPhone'a (⚙ → Ustawienia powiadomień)."
+                  : "Włącz je w ustawieniach Androida (⚙ → Ustawienia powiadomień)."), 6000);
     await refreshBell();
     return;
   }
@@ -4975,8 +4976,8 @@ if (alertsOnBox) {
   alertsOnBox.addEventListener("change", async (e) => {
     const off = !e.target.checked;
     if (off && !confirm(UI.isEn
-      ? "Turn off alerts on this phone?\n\nThis phone will be unsubscribed from every province, so no alert notifications will arrive and Strażnik will not remind you about permissions. The map keeps working.\n\nAndroid notification permissions stay as they are — the app cannot change them; you can switch them off in system settings."
-      : "Wyłączyć alarmy na tym telefonie?\n\nTelefon zostanie wypisany ze wszystkich województw, więc powiadomienia o alarmach nie przyjdą, a Strażnik nie będzie przypominał o zgodach. Mapa działa dalej.\n\nZgody na powiadomienia w ustawieniach Androida zostają bez zmian — aplikacja nie może ich zmienić; wyłączysz je w ustawieniach systemu.")) {
+      ? `Turn off alerts on this phone?\n\nThis phone will be unsubscribed from every province, so no alert notifications will arrive and Strażnik will not remind you about permissions. The map keeps working.\n\n${IS_IOS ? "iPhone" : "Android"} notification permissions stay as they are — the app cannot change them; you can switch them off in system settings.`
+      : `Wyłączyć alarmy na tym telefonie?\n\nTelefon zostanie wypisany ze wszystkich województw, więc powiadomienia o alarmach nie przyjdą, a Strażnik nie będzie przypominał o zgodach. Mapa działa dalej.\n\nZgody na powiadomienia w ustawieniach ${IS_IOS ? "iPhone'a" : "Androida"} zostają bez zmian — aplikacja nie może ich zmienić; wyłączysz je w ustawieniach systemu.`)) {
       e.target.checked = true;
       return;
     }

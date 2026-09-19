@@ -73,7 +73,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <link rel="icon" type="image/png" sizes="512x512" href="assets/icon-512.png">
 <link rel="apple-touch-icon" href="assets/icon-192.png">
 <link rel="stylesheet" href="assets/vendor/maplibre-gl.css">
-<link rel="stylesheet" href="style.css?v=1.7.61-1">
+<link rel="stylesheet" href="style.css?v=1.7.61-2">
 </head>
 <body>
 
@@ -613,9 +613,12 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
     aplikację. Alarmy dla Twojego regionu przychodzą jako <b>powiadomienie push</b> —
     także przy zamkniętej aplikacji i wygaszonym ekranie. Serwer Strażnika wysyła je
     prosto na telefon, bez usługi działającej w tle.</p>
-    <p class="fineprint">Poprosimy tylko o zgodę na powiadomienia. Dla czerwonego alarmu
+    <p class="fineprint android-only">Poprosimy tylko o zgodę na powiadomienia. Dla czerwonego alarmu
     warto też włączyć zgodę na alarm pełnoekranowy (zapala ekran nad blokadą) — zrobisz
     to jednym przyciskiem w Ustawieniach.</p>
+    <p class="fineprint ios-only" id="onboard-bg-ios">Poprosimy tylko o zgodę na powiadomienia.
+    Żeby czerwony alarm odezwał się w nocy, zostaw włączone „Powiadomienia czasowo zależne”
+    i dopuść Strażnika w trybie Sen (Ustawienia → Skupienie → Sen → Aplikacje).</p>
     <div class="about-actions">
       <button id="onboard-bg-skip" class="chip">Nie teraz</button>
       <button id="onboard-bg-enable" class="chip primary">Włącz powiadomienia</button>
@@ -658,13 +661,18 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 
     <section class="set-pane" data-pane="alarmy" role="tabpanel">
     <h3>Alarmy przy zamkniętej aplikacji</h3>
-    <p class="fineprint">Alarmy dla Twojego województwa przychodzą jako
+    <p class="fineprint android-only">Alarmy dla Twojego województwa przychodzą jako
     <b>powiadomienie push</b> — także gdy aplikacja jest zamknięta, ekran wygaszony
     albo telefon w uśpieniu. Serwer Strażnika wysyła sygnał prosto na telefon, więc
     <b>nie trzeba już usługi działającej w tle</b> (Android i tak ją ubijał). Wystarczy
     zgoda na powiadomienia, a dla czerwonego alarmu — zgoda na alarm pełnoekranowy.
     Wymaga to działającego serwera: w trybie awaryjnym (serwer niedostępny) alarmy
     przychodzą tylko przy otwartej aplikacji.</p>
+    <p class="fineprint ios-only" id="alarmy-intro-ios">Alarmy dla Twojego województwa
+    przychodzą jako <b>powiadomienie push</b> — także gdy aplikacja jest zamknięta, ekran
+    zablokowany albo telefon w uśpieniu. Serwer Strażnika wysyła sygnał prosto na telefon;
+    wystarczy zgoda na powiadomienia. Wymaga to działającego serwera: w trybie awaryjnym
+    (serwer niedostępny) alarmy przychodzą tylko przy otwartej aplikacji.</p>
     <div id="bg-status" class="fineprint"></div>
     <!-- Suwak zamiast pola wyboru (prośba usera 15.09.2026, jak w ustawieniach Androida).
          Włączony = alarmy przychodzą; wyłączony = telefon wypisany ze wszystkich województw. -->
@@ -680,7 +688,14 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
       <button type="button" id="btn-web-push-on" class="chip primary" hidden>🔔 Włącz powiadomienia w tej przeglądarce</button>
       <button type="button" id="btn-web-push-off" class="chip" hidden>🔕 Wyłącz powiadomienia w tej przeglądarce</button>
     </div>
-    <p class="fineprint">Alarm pełnoekranowy zapala ekran i pokazuje się nad blokadą,
+    <p class="fineprint ios-only" id="alarm-ios-note">Na iPhonie czerwony alarm przychodzi
+    jako powiadomienie oznaczone <b>„PILNE”</b>: pokazuje się nad blokadą i gra syreną.
+    <b>Nie zapala pełnego ekranu i nie powtarza dźwięku</b> — iOS nie pozwala na to zwykłym
+    aplikacjom. Przy <b>wyciszonym dzwonku</b> alarm będzie bezgłośny: zostanie wibracja i baner.
+    Żeby przeszedł także w nocy, sprawdź dwie rzeczy: <b>Ustawienia → Powiadomienia → Strażnik
+    → „Powiadomienia czasowo zależne”</b> oraz <b>Ustawienia → Skupienie → Sen → Aplikacje →
+    dopuść Strażnika</b>. Bez tego iOS wstrzymuje alarm do odblokowania telefonu.</p>
+    <p class="fineprint android-only">Alarm pełnoekranowy zapala ekran i pokazuje się nad blokadą,
     tak jak połączenie przychodzące. Android 14 i nowszy domyślnie odbiera tę zgodę
     aplikacjom innym niż budzik i telefon, a <b>po każdej aktualizacji potrafi ją
     cofnąć</b> — bez niej czerwony alarm przy wygaszonym ekranie będzie tylko
@@ -700,11 +715,15 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 
     <section class="set-pane" data-pane="dzwiek" role="tabpanel" hidden>
     <h3>Sygnały dźwiękowe</h3>
-    <p class="fineprint">Żółty poziom (≥2 pkt) — krótki sygnał uwagi i powiadomienie
+    <p class="fineprint android-only">Żółty poziom (≥2 pkt) — krótki sygnał uwagi i powiadomienie
     wyskakujące na ekranie (heads-up).
     Czerwony (≥4 pkt) — modulowana syrena alarmu powietrznego + wibracja.
     Odtwarzane, gdy aplikacja jest otwarta; przy zamkniętej aplikacji alarm przychodzi
     jako powiadomienie push (z pełnym ekranem i syreną dla czerwonego).</p>
+    <p class="fineprint ios-only" id="dzwiek-ios-note">Żółty poziom (≥2 pkt) — krótki sygnał uwagi
+    i powiadomienie wyskakujące na ekranie. Czerwony (≥4 pkt) — modulowana syrena alarmu
+    powietrznego + wibracja. Odtwarzane, gdy aplikacja jest otwarta; przy zamkniętej aplikacji
+    alarm przychodzi jako powiadomienie push (z syreną dla czerwonego).</p>
     <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
       <button type="button" id="btn-test-chime" class="chip">▶ Test: uwaga</button>
       <button type="button" id="btn-test-siren" class="chip">▶ Test: syrena</button>
@@ -822,13 +841,13 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
      Cloudflare, więc po każdym wydaniu wystarczy podbić ?v= i przeglądarki
      dostają nowe app.js/engine.js OD RAZU, bez ręcznego czyszczenia cache CF.
      Podbijaj ?v= razem z versionName w build.gradle. -->
-<script src="i18n.js?v=1.7.61-1"></script>
+<script src="i18n.js?v=1.7.61-2"></script>
 <!-- kontur Polski dla engine.js (audyt A2b, scripts/build_pl_outline.py) -->
-<script src="pl-outline.js?v=1.7.61-1"></script>
-<script src="engine.js?v=1.7.61-1"></script>
+<script src="pl-outline.js?v=1.7.61-2"></script>
+<script src="engine.js?v=1.7.61-2"></script>
 <script src="aircraft-photo-catalog.js?v=1.7.19"></script>
 <script src="aircraft-photos.js?v=1.7.19"></script>
 <script src="places.js?v=1.7.19-4"></script>
-<script src="app.js?v=1.7.61-1"></script>
+<script src="app.js?v=1.7.61-2"></script>
 </body>
 </html>
