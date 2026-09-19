@@ -162,4 +162,47 @@ assert.match(src, /historyThreats[\s\S]{0,4000}age_min: snapAgeMin\(t\)/,
 assert.match(src, /age_min: Math\.max\(0, Math\.round\(\(when\.getTime\(\) - Date\.parse\(s\.ts\)\)/,
   'duch z sygnału liczy wiek względem oglądanej chwili');
 console.log('OK: historia rysuje wiek meldunku zamiast pełnych krążków');
+
+// ── 7. dziura w buforze, gdy aplikacja była w tle (19.09.2026) ──
+// System zamraża WebView, więc nic się nie nagrywa; po powrocie aplikacja dopisuje
+// migawkę z bieżącą godziną i bufor WYGLĄDA na świeży, choć w środku brakuje godziny.
+// Zgłoszone z telefonu: przeskok ok. 19:25 i brak danych do 20:25.
+const buf = {
+  console, positionQuality: () => null, positionInfo: () => null,
+  watchSyncState: '', fetch: () => { throw new Error('bez sieci w teście'); },
+  apiBase: () => '', Engine: {},
+};
+let ZEGAR = Date.UTC(2026, 8, 19, 17, 0, 0);
+function FakeDate(x) { return new Date(x); }
+FakeDate.now = () => ZEGAR;
+FakeDate.parse = Date.parse;
+buf.Date = FakeDate;
+vm.createContext(buf);
+vm.runInContext(cut('let srvSnaps = []', String.fromCharCode(10) + '/* Historia lokalnie'), buf);
+
+const stan = { fusion: { voivodeships: {} }, neptun: { threats: [] }, adsb: { aircraft: [] } };
+vm.runInContext('srvSeeded = true', buf);      // po seedzie z serwera
+buf.srvRecord(stan);                        // pierwsza migawka
+ZEGAR += 60000;
+buf.srvRecord(stan);                        // druga, minutę później
+const ile = () => vm.runInContext('srvSnaps.length', buf);
+assert.equal(ile(), 2, 'nagrywa migawkę co minutę');
+assert.equal(buf.needSeed(), false, 'ciągły zapis nie wymaga dociągania');
+
+ZEGAR += 60 * 60000;                        // godzina w tle — nic się nie nagrało
+buf.srvRecord(stan);                        // powrót na wierzch: migawka „teraz”
+assert.equal(ile(), 3, 'po powrocie dopisuje bieżącą migawkę');
+assert.equal(buf.needSeed(), true,
+  'dziura po tle wymusza dociągnięcie paczki, choć najnowsza migawka jest świeża');
+
+// Po udanym seedzie flaga znika — inaczej każde wejście w historię ciągnęłoby 270 kB.
+vm.runInContext('srvSnaps.push({ts:"2026-09-19T18:01:00+00:00", t: Date.now()})', buf);
+vm.runInContext('srvSeeded = true; _srvHole = false;', buf);
+assert.equal(buf.needSeed(), false, 'po dociągnięciu paczki nie powtarzamy pobrania');
+
+// Sama pauza krótsza niż dwie migawki (np. chwilowy brak sieci) nie jest dziurą.
+ZEGAR += 2 * 60000;
+buf.srvRecord(stan);
+assert.equal(buf.needSeed(), false, 'dwuminutowa przerwa mieści się w tolerancji');
+console.log('OK: powrót z tła uzupełnia historię zamiast zostawiać dziurę');
 })();
