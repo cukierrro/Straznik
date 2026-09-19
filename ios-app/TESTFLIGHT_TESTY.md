@@ -315,3 +315,65 @@ a aplikacja pojawiła się w TestFlight na telefonie.
 w grupie. `Invited` = wszystko gra. `No Builds Available` = zaproszenie nie
 wyszło; nie tracić czasu na maile, role i Apple ID, tylko od razu przenieść
 go do nowej grupy.
+
+---
+
+## 9. Dlaczego push nie działał — i pierwszy udany alarm (19.09.2026)
+
+**Przyczyna, po dobie szukania:** podpisana aplikacja nie miała uprawnienia
+`aps-environment`. iPhone nie dostawał więc tokenu APNs, Firebase nie miał czego
+zapisać na tematy, a alarmy z serwera leciały w próżnię. **Każdy build od 18.09
+był pod tym względem martwy** — i nic tego nie zdradzało: mapa, historia, sygnały
+i lokalny test syreny działały normalnie.
+
+Komunikat, który to rozstrzygnął (z telefonu testerki, po dodaniu diagnostyki):
+
+```
+błąd: iOS nie zarejestrował powiadomień push: nie znaleziono ważnego ciągu
+uprawnienia „aps-environment” dla aplikacji
+```
+
+**Skąd się wzięło:** uprawnienia wchodzą do aplikacji wyłącznie przy podpisywaniu,
+a archiwum budowaliśmy **bez podpisu** — to było obejście problemu z 18.09, gdy
+podpis automatyczny żądał profilu deweloperskiego, a ten wymaga zarejestrowanego
+urządzenia. Obejście rozwiązało budowanie i po cichu odebrało aplikacji jej
+główną funkcję.
+
+### Co po kolei odpadło (każde jednym przebiegiem CI)
+
+| Próba | Dlaczego nie |
+|---|---|
+| Dopisanie `archived-expanded-entitlements.xcent` do archiwum | eksport go zignorował |
+| Wpisanie uprawnień do `Info.plist` archiwum | to samo |
+| Wskazanie profilu wprost przy eksporcie | „0 valid identities”, katalog profili pusty — podpis dzieje się po stronie Apple |
+| Podpis archiwum trybem automatycznym | żąda profilu deweloperskiego → „Your team has no devices” |
+| Podpis archiwum ze wskazanym certyfikatem | „conflicting provisioning settings” |
+| Podpis zastępczy (ad hoc) | „Ad Hoc code signing is not allowed with SDK iOS 26.5” |
+
+### Rozwiązanie
+
+Build bierze z App Store Connect **własny certyfikat dystrybucyjny i profil**
+(`skrypty/podpis_apple.py`), podpisuje nimi archiwum i oddaje jedno i drugie
+w ostatnim kroku — także gdy build padnie. Ustawienia podpisu siedzą w pbxproj,
+bo przekazane z wiersza poleceń rozlewają się na pakiety Firebase.
+
+**Bramka, która zostaje na stałe:** krok „Sprawdzenie uprawnień push w podpisanym
+pliku” rozpakowuje gotowy plik i zatrzymuje build, jeśli nie ma w nim
+`aps-environment`. Ostrzega też przy braku `time-sensitive`. Ta usterka jest zbyt
+cicha, żeby polegać na pamięci.
+
+### Pierwszy udany alarm z serwera
+
+Build **1.7.61 (2609191307)**. Wysyłka **15:35:09** na `test_voiv_lubelskie`,
+identyfikator `…5570727948032231207`.
+
+| Co | Wynik |
+|---|---|
+| Karolina (iPhone 15 Pro Max, iOS 26.6.1) | **alarm dotarł** przy zamkniętej aplikacji; wibracja bez dźwięku — miała wyciszony dzwonek |
+| Adrian (iPhone 14 Pro Max, iOS 26.6.2) | brak odpowiedzi; telefon był prawie rozładowany |
+| Diagnostyka przed wysyłką (oboje) | `APNs: tak · FCM: tak · zapis: gotowe`, tematy testowe potwierdzone |
+
+**Nadal niesprawdzone:** czy push gra **naszą syreną**, czy domyślnym dźwiękiem
+iOS. Przy wyciszonym dzwonku tego nie słychać, a przy niezgodnej nazwie pliku iOS
+po cichu podstawia swój dźwięk. Lokalny test gra syreną, ale to inna ścieżka.
+Do sprawdzenia jedną wysyłką przy włączonym dzwonku i zablokowanym ekranie.
