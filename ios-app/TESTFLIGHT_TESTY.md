@@ -202,3 +202,84 @@ a nie surowe tematy — potwierdzone „lubelskie” dotyczy tematu produkcyjneg
 | sam `iOS 18.x`, bez dopisku | aplikacja nie uznaje się za wersję testową — poprawka nie zadziałała |
 
 Dopisek pojawia się **tylko w wersjach testowych**. Wersja z App Store go nie ma.
+
+---
+
+## 7. Schemat testów (od 19.09.2026, dwoje testerów)
+
+Testerzy: **Karolina** (iPhone 15 Pro Max, iOS 26.6.1, lubelskie, aktualizuje
+z poprzednich wersji) i **Adrian** (świeża instalacja od razu z poprawką).
+Ta różnica jest celowa: jeśli wynik będzie inny u każdego z nich, problem leży
+w aktualizacji, a nie w kodzie.
+
+Kolejność jest ważna — każdy etap zakłada, że poprzedni wyszedł. Nie robimy
+wszystkiego naraz, bo przy błędzie nie wiadomo, który element zawiódł.
+
+### Etap 0 — diagnostyka tematu testowego (blokuje resztę)
+
+| Krok | Oczekiwany wynik |
+|---|---|
+| Zaktualizować/zainstalować build **2609182012** | wersja widoczna w TestFlight |
+| Dodać miejsce z włączonym „Obserwuj alerty” | województwo wybrane |
+| Otworzyć aplikację i odczekać ~15 s z internetem | zapis na tematy się wykonuje przy starcie |
+| Ustawienia → Alarmy → **zrzut ekranu** | w szarym wierszu widać `test: test_voiv_<województwo>` |
+
+Bez tego zrzutu nie wysyłamy pusha — inaczej znów nie będziemy wiedzieć,
+czy milczy telefon, czy serwer.
+
+### Etap 1 — prawdziwy push z serwera (wymaga zgody użytkownika)
+
+Wysyła sesja główna, na temat **testowy**, nigdy na `voiv_*`. Warunki: tester
+nie śpi, ma zasięg, dzwonek włączony. Ważność wiadomości to 10 minut.
+
+| Stan telefonu | Oczekiwany wynik |
+|---|---|
+| Aplikacja otwarta na wierzchu | alarm przejmuje ekran w aplikacji |
+| Aplikacja w tle (inna apka na wierzchu) | baner + syrena |
+| Aplikacja **wyrzucona** z listy ostatnich, ekran zablokowany | baner na ekranie blokady + syrena |
+
+Do przysłania: zrzut ekranu blokady i godzina z dokładnością do minuty
+(porównujemy z czasem wysyłki).
+
+### Etap 2 — warunki, w których iOS wycisza
+
+| Warunek | Oczekiwany wynik |
+|---|---|
+| Tryb **Sen**, Strażnik dopuszczony w Ustawienia → Skupienie → Sen → Aplikacje | alarm dochodzi |
+| Tryb Sen **bez** dopuszczenia aplikacji | wstrzymane do odblokowania — **to nie błąd** |
+| „Powiadomienia czasowo zależne” wyłączone dla Strażnika | aplikacja pokazuje ostrzeżenie w Alarmach |
+| Dzwonek wyciszony przełącznikiem | wibracja i baner, **bez dźwięku** — ograniczenie iOS |
+
+### Etap 3 — trwałość (najważniejsze dla prawdziwego alarmu)
+
+| Krok | Oczekiwany wynik |
+|---|---|
+| Przeżyć noc bez otwierania aplikacji, rano zajrzeć w Alarmy | subskrypcja nadal potwierdzona |
+| Zrestartować telefon, nie otwierać aplikacji, poprosić o push | alarm dochodzi |
+| Dwa województwa naraz | oba w wierszu „Zapisany do alarmów dla…” |
+| Suwak „Alarmy na tym telefonie” → wyłącz | „Telefon nie jest zapisany…” (potwierdzone przez Firebase) |
+| Suwak z powrotem → włącz | subskrypcja wraca |
+
+### Etap 4 — układ ekranu i zwykłe używanie
+
+| Co | Na co patrzeć |
+|---|---|
+| Moje miejsca: dodać 4–5 miejsc, zmieniać je | zakładki zawijają się, nic nie ucieka poza ekran |
+| Wpisywanie nazwy miejsca | ekran **nie powiększa się** (naprawione w 1.7.61) |
+| Historia: suwak, „alarm”, „−10”, „+10” | wiek wpisów zgodny z zegarem, mapa płynna |
+| Sygnały | rozbicie punktów, polskie nazwy źródeł |
+| Mapa | obrót, przybliżanie, dotknięcie obiektu, „mój region” |
+| Wycięcie i pasek u dołu | nic nie jest zasłonięte |
+| Ustawienia iOS → Ekran → większy tekst | nic się nie rozjeżdża |
+
+### Etap 5 — po dobie
+
+Bateria (Ustawienia → Bateria → Strażnik), transfer danych, TestFlight → Crashes.
+Aplikacja nie ma usługi w tle, więc zużycie powinno być znikome — jeśli nie jest,
+to znalezisko.
+
+### Czego testerzy NIE muszą robić
+
+Nie ma potrzeby czekać na prawdziwy alarm — czerwony poziom zdarza się kilka razy
+w roku. Od tego jest temat testowy. Nie testujemy też przycisku „pełna głośność”
+(ukryty na iOS) ani alarmu pełnoekranowego (iOS na to nie pozwala).
