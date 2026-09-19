@@ -61,6 +61,8 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
         static let topicsError = "straznik_fcm_topics_error"
         static let unsubscribing = "straznik_fcm_unsubscribing"
         static let unsubAt = "straznik_fcm_unsub_at"
+        /// Na czym stanęła ostatnia próba zapisu na tematy — tylko do diagnostyki.
+        static let syncState = "straznik_fcm_sync_state"
     }
 
     private let defaults = UserDefaults.standard
@@ -161,16 +163,12 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
         #if DEBUG
         return true
         #else
-        // 18.09.2026: push na temat testowy nie dotarł, choć serwer wysłał
-        // poprawną wiadomość, a telefon miał potwierdzoną subskrypcję
-        // `voiv_lubelskie`. Warunek pozytywny (`== "sandboxReceipt"`) po cichu
-        // wyłącza tematy testowe, gdy `appStoreReceiptURL` jest puste albo ma
-        // inną nazwę — a tak bywa na nowych wersjach iOS, gdzie ta właściwość
-        // jest wycofywana. Odwracamy domyślną odpowiedź: testem jest wszystko
-        // poza paragonem z App Store. Po odczytaniu prawdziwej wartości
-        // z urządzenia (diagnostyka w `osVersion`) wracamy do warunku
-        // pozytywnego — patrz PLAN_IOS.md, sekcja o tematach testowych.
-        return receiptName != "receipt"
+        // 19.09.2026, zmierzone na iPhonie z TestFlight (iOS 26.6.2): paragon
+        // nazywa się `sandboxReceipt`, więc warunek pozytywny jest poprawny.
+        // Dzień wcześniej odwróciliśmy go z ostrożności, podejrzewając, że to on
+        // wycisza tematy testowe — diagnostyka pokazała, że nie. Wracamy do wersji
+        // bezpiecznej dla sklepu: wersja z App Store nigdy nie ma tu prawdy.
+        return receiptName == "sandboxReceipt"
         #endif
     }
 
@@ -195,10 +193,15 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
     /// tematy (operacja idempotentna), a stan utrwalamy dopiero po potwierdzeniu
     /// przez Firebase. Ustawienia pokazują więc prawdę, a nie zamiar.
     private func syncTopics() {
-        guard firebaseReady else { return }
+        guard firebaseReady else {
+            defaults.set("brak Firebase", forKey: Key.syncState)
+            return
+        }
         guard Messaging.messaging().apnsToken != nil else {
             // Firebase na iOS nie wyda tokenu FCM bez tokenu APNs — wrócimy tu
-            // z didRegisterForRemote.
+            // z didRegisterForRemote. Do 19.09.2026 to wyjście było nieme i nie
+            // dało się odróżnić „jeszcze nie zdążył” od „nigdy nie dostanie”.
+            defaults.set("czekam na token APNs", forKey: Key.syncState)
             return
         }
         syncGeneration += 1
@@ -241,10 +244,20 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
             messaging.unsubscribe(fromTopic: topic)
         }
         var confirmed = Set<String>()
+        // Treść błędu z Firebase była do tej pory wyrzucana — zostawała sama
+        // liczba. Przy temacie testowym, który milczał, to za mało.
+        var firstError = ""
+        defaults.set("zapisuję \(target.count) tematów", forKey: Key.syncState)
         for topic in target {
             group.enter()
             messaging.subscribe(toTopic: topic) { error in
-                if error == nil { lock.lock(); confirmed.insert(topic); lock.unlock() }
+                lock.lock()
+                if let error {
+                    if firstError.isEmpty { firstError = "\(topic): \(error.localizedDescription)" }
+                } else {
+                    confirmed.insert(topic)
+                }
+                lock.unlock()
                 group.leave()
             }
         }
@@ -254,9 +267,13 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
             if confirmed.count == target.count {
                 self.defaults.set(Self.nowMs, forKey: Key.topicsOkAt)
                 self.defaults.set("", forKey: Key.topicsError)
+                self.defaults.set("gotowe", forKey: Key.syncState)
             } else {
-                self.defaults.set("nie potwierdzono \(target.count - confirmed.count) z \(target.count) tematów",
+                let brak = target.count - confirmed.count
+                let opis = firstError.isEmpty ? "" : " (\(firstError))"
+                self.defaults.set("nie potwierdzono \(brak) z \(target.count) tematów" + opis,
                                   forKey: Key.topicsError)
+                self.defaults.set("błąd: \(brak) z \(target.count)" + opis, forKey: Key.syncState)
             }
         }
     }
@@ -329,6 +346,15 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
             let zapisane = defaults.stringArray(forKey: Key.topics) ?? []
             let testowe = zapisane.filter { $0.hasPrefix(Self.testTopicPrefix) }
             osLine += " · test: " + (testowe.isEmpty ? "brak tematów" : testowe.joined(separator: ", "))
+            // Bez tego widać tylko wynik, a nie miejsce, w którym zapis staje:
+            // brak tokenu APNs wygląda identycznie jak odrzucony temat.
+            osLine += " · APNs: " + (apnsRegistered ? "tak" : "nie")
+            if firebaseReady {
+                osLine += " · FCM: " + (Messaging.messaging().fcmToken == nil ? "nie" : "tak")
+            } else {
+                osLine += " · Firebase: nie"
+            }
+            osLine += " · zapis: " + (defaults.string(forKey: Key.syncState) ?? "nie zaczęty")
             osLine += " · " + Self.receiptName
         }
 

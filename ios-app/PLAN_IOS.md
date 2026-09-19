@@ -275,27 +275,29 @@ zostało wykrywanie wersji testowej w `StraznikBackgroundPlugin.swift`.
 oznacza „to nie jest test” i tematy testowe po cichu znikają. `appStoreReceiptURL`
 jest wycofywane w nowszych wersjach iOS, więc to założenie przestaje być pewne.
 
-**Jak działa teraz:** odwrócony warunek — testem jest wszystko poza paragonem
-z App Store (`receiptName != "receipt"`). Dodatkowo wersja testowa dopisuje do
-pola `osVersion` (ten sam wiersz, w którym aplikacja pokazuje wersję iOS)
-listę potwierdzonych tematów testowych i nazwę paragonu, np.:
+**Jak działa teraz (19.09.2026, po pomiarze):** warunek pozytywny wrócił
+(`receiptName == "sandboxReceipt"`), bo diagnostyka na iPhonie z TestFlight
+(iOS 26.6.2) pokazała, że paragon nazywa się dokładnie `sandboxReceipt`.
+**Hipoteza z 18.09 była błędna** — to nie wykrywanie wersji testowej wyciszyło
+tematy. Odwrócony warunek istniał tylko jedną dobę, z ostrożności.
+
+Wersja testowa dopisuje do pola `osVersion` (wiersz, w którym aplikacja pokazuje
+wersję iOS) stan zapisu na tematy — po to, żeby nie zgadywać, na czym staje:
 
 ```
-iOS 18.6 · test: test_voiv_lubelskie · sandboxReceipt
+iOS 26.6.2 · test: test_voiv_lubelskie · APNs: tak · FCM: tak · zapis: gotowe · sandboxReceipt
 ```
 
-Dzięki temu wystarczy zrzut ekranu z Ustawienia → Alarmy, żeby rozstrzygnąć
-pytanie „czy telefon jest zapisany na temat testowy”, bez zmian we wspólnym
-kodzie (`frontend/app.js` należy do sesji głównej).
+Pola: lista potwierdzonych tematów testowych, obecność tokenu APNs, obecność
+tokenu FCM, stan ostatniej próby zapisu (`czekam na token APNs`, `zapisuję N
+tematów`, `gotowe`, `błąd: N z M (treść błędu z Firebase)`) i nazwa paragonu.
+Treść błędu z Firebase była wcześniej wyrzucana — zostawała sama liczba.
 
-**Do zrobienia przed wysyłką do App Store:** gdy poznamy prawdziwą wartość
-paragonu z urządzenia, wrócić do warunku pozytywnego (`== "sandboxReceipt"`
-albo `== "sandboxReceipt" || brak`). Odwrócony warunek jest bezpieczny tylko
-dopóki nie ma nas w sklepie: gdyby w wersji sklepowej iOS nie podał paragonu,
-ten telefon zapisałby się na tematy testowe i dostałby nasz push testowy.
-Alarmu dla prawdziwych województw to nie dotyczy — tam nic nie wysyłamy.
+Dzięki temu zrzut ekranu od testera odróżnia trzy różne awarie, które wyglądają
+tak samo: brak tokenu APNs, odrzucenie tematu przez Firebase i poprawny zapis,
+przy którym milczy dopiero dostawa.
 
-**Sprawdzian przed wysyłką (do odhaczenia, nie do pominięcia):** wersja
+**Sprawdzian przed wysyłką (dalej obowiązuje):** wersja
 przeznaczona do App Store **nie może** zapisywać się na `test_voiv_*`. Sposób
 sprawdzenia bez sklepu: w kompilacji Release z paragonem `receipt` pole
 `testTopics` w `status()` musi być fałszem, a wiersz z wersją iOS — bez dopisku
