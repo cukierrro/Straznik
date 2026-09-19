@@ -191,7 +191,9 @@ jobs:
           # a nie odbiera żadnego alarmu (zmierzone 19.09.2026 na dwóch iPhone'ach).
           # 18.09 podpis archiwum żądał profilu deweloperskiego („Your team has no
           # devices”), bo projekt wymuszał `CODE_SIGN_IDENTITY = "iPhone Developer"`;
-          # ta linia jest już usunięta z pbxproj.
+          # ta linia jest już usunięta z pbxproj. Bez wskazania certyfikatu Apple
+          # dalej prosi o profil deweloperski (a ten wymaga urządzenia), dlatego
+          # mówimy wprost: podpis dystrybucyjny, który urządzeń nie potrzebuje.
           # Numer builda rośnie z czasem (rrMMddGGmm) — Apple wymaga unikalnego numeru
           build=$(date -u +%y%m%d%H%M)
           version=$(node -p "require('./package.json').version")
@@ -201,7 +203,7 @@ jobs:
             -clonedSourcePackagesDirPath "$RUNNER_TEMP/spm" \
             -allowProvisioningUpdates \
             -authenticationKeyPath "$key" -authenticationKeyID "$KEY_ID" -authenticationKeyIssuerID "$ISSUER" \
-            CODE_SIGN_STYLE=Automatic \
+            CODE_SIGN_STYLE=Automatic 'CODE_SIGN_IDENTITY=Apple Distribution' \
             DEVELOPMENT_TEAM="$TEAM" MARKETING_VERSION="$version" CURRENT_PROJECT_VERSION="$build" \
             archive 2>&1 | tee "$RUNNER_TEMP/xcodebuild.log" | grep -E "error:|ARCHIVE (SUCCEEDED|FAILED)" || true
           grep -q "ARCHIVE SUCCEEDED" "$RUNNER_TEMP/xcodebuild.log"
