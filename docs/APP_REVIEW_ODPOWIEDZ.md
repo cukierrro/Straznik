@@ -5,9 +5,9 @@ historię w App Store, więc recenzent prosi o komplet informacji. Tę samą tre
 wkleić w dwa miejsca: jako odpowiedź w App Review i w pole **Notes** w sekcji
 *App Review Information* (żeby przy kolejnych wydaniach już o to nie pytali).
 
-**Czeka na jedną rzecz:** adres nagrania ekranu z fizycznego iPhone'a (punkt 1).
-Scenariusz nagrania dla testerów jest osobno; gotowy plik położymy na naszym serwerze,
-żeby recenzent otwierał go jednym kliknięciem, bez logowania.
+**Nagranie user dołącza sam do odpowiedzi w App Store Connect.** Gdyby plik okazał się
+za duży na załącznik, położymy go na naszym serwerze pod prostym adresem (bez logowania)
+i podmienimy jedno zdanie w punkcie 1.
 
 Fakty w tekście są sprawdzone w kodzie 20.09.2026: źródła danych, brak kont i płatności,
 lokalizacja wyłącznie opcjonalna przy zapisywaniu miejsca, zastrzeżenie o nieoficjalności
@@ -22,8 +22,8 @@ non-commercial public-safety application for Poland, published by an individual 
 
 **1. Screen recording**
 
-A screen recording captured on a physical iPhone running the latest iOS is available here:
-`<ADRES NAGRANIA — UZUPEŁNIĆ>`
+A screen recording captured on a physical iPhone running the latest iOS is attached to this
+message.
 
 The recording begins with launching the app from the home screen and shows the typical user
 flow: granting notification permission, the live map, the signal list, the 12-hour history
@@ -134,3 +134,43 @@ published here:
 
 Please let us know if anything above needs to be expanded — we will provide whatever else is
 useful to complete the review.
+
+
+---
+
+## Krótsza wersja do pola **Notes** (App Review Information)
+
+Apple prosi, żeby te same informacje trafiły też do Notes — wtedy przy kolejnych wydaniach
+recenzent ma je od razu i nie pyta ponownie. Pole jest krótkie, więc poniżej skrót.
+
+Strażnik is a free, non-commercial early-warning app about air threats over Poland, published
+by an individual developer.
+
+NO LOGIN: the app has no accounts, no registration and no login. Everything is available
+immediately after install. There is no user-generated content, no in-app purchase, no
+subscription and no advertising.
+
+HOW TO REVIEW: launch the app, accept the notification permission, and the map opens. When
+nothing is happening the map is deliberately calm — that is the app's normal state. To see how
+it behaves during an actual event, open the bottom tab "Historia" (History) and drag the slider
+back over the last 12 hours. The "Sygnały" (Signals) tab lists the evidence currently scored.
+"Więcej" (More) → "Ustawienia" (Settings) holds notification regions, saved places, alarm sound
+and app info.
+
+PERMISSIONS: notifications are the only permission needed. Location is optional, offered only
+when saving a place from the current position, and the coordinates never leave the device.
+
+EXTERNAL SERVICES: our own backend (straznik.eu); OpenFreeMap map tiles (CARTO as fallback);
+APNs addressed through Firebase Cloud Messaging. Server-side public data sources: NEPTUN
+(neptun.in.ua), public ADS-B networks (adsb.lol, airplanes.live, opendata.adsb.fi), PANSA
+airspace data, Polish government RCB/RSO warning feeds, public media RSS, and public feeds from
+Estonia, Lithuania, Latvia and Romania. No authentication services, no payment processors, no AI
+services.
+
+NOT AN OFFICIAL SERVICE: the app is independent and unaffiliated with any government body, and
+says so inside the app — it does not replace sirens, RCB alerts or the RSO system. All data
+sources are public. Map data © OpenStreetMap contributors (ODbL), attributed in the map view.
+
+NO REGIONAL DIFFERENCES: identical features and content for every user; interface in Polish and
+English. No data collection, no analytics, no tracking. Privacy policy:
+https://cukierrro.github.io/Straznik/prywatnosc-en.html
