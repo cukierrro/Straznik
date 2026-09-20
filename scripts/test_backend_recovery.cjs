@@ -16,7 +16,7 @@ async function main() {
     setInterval: fn => {tick = fn; return 1;}, clearInterval: () => calls.push('clear'),
     probeBackend: async () => {calls.push('probe'); return reachable;},
     pingBackend: async () => reachable,
-    openBackendWs: () => calls.push('ws'), pollOnce: () => calls.push('poll'),
+    startPolling: () => calls.push('poll'), pollOnce: () => calls.push('poll'),
     document: {getElementById: () => ({classList: {contains: () => !alarm}})},
     validBackendUrl: () => true, UI: {isEn: false}
   });
@@ -32,7 +32,7 @@ async function main() {
   assert.equal(calls.includes('stop'), false, 'Do not interrupt an alarm');
   alarm = false;
   await tick();
-  assert.deepEqual(calls.slice(-4), ['clear', 'stop', 'ws', 'poll']);
+  assert.deepEqual(calls.slice(-3), ['clear', 'stop', 'poll']);   // 20.09: odpytywanie zamiast gniazda
   assert.equal(vm.runInContext('standalone', c), false);
   console.log('OK: four retries, fallback, offline retry, alarm guard, stop engine before reconnect');
 }

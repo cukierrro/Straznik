@@ -1,5 +1,6 @@
 """Strażnik — backend FastAPI: kolektory, fuzja, API, WebSocket, statyka frontendu."""
 import asyncio
+import hashlib
 import json
 import logging
 import os
@@ -7,7 +8,7 @@ import time
 
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from . import (alert_log, app_updates, by_entry_shadow, config, db, escalation_shadow, fusion, load_guard,
@@ -40,8 +41,12 @@ logging.getLogger("uvicorn.error").addFilter(_QuietWebSocketLog())
 
 # Publiczna dokumentacja API nie jest potrzebna użytkownikom, a ułatwia nadużycia.
 app = FastAPI(title="Strażnik", docs_url=None, redoc_url=None, openapi_url=None)
+# expose_headers: bez tego aplikacja (inne źródło niż serwer) NIE WIDZI nagłówka
+# ETag, więc nie może odpytywać warunkowo i za każdym razem ściąga cały stan.
+# Przeglądarka udostępnia skryptowi tylko kilka nagłówków, a ETag nie jest jednym
+# z nich (20.09.2026, przy przejściu z WebSocketu na odpytywanie).
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"],
-                   allow_headers=["*"])
+                   allow_headers=["*"], expose_headers=["ETag"])
 app.add_middleware(public_cache.PageCacheHeaders)
 # ostatni dodany = pierwszy w kolejce: bezpiecznik odrzuca, zanim cokolwiek się policzy
 app.add_middleware(load_guard.GuardMiddleware)
@@ -137,10 +142,41 @@ def build_state() -> dict:
     }
 
 
+# Odcisk stanu BEZ pól, które tykają same z siebie: `fusion.ts` i znacznik ostatniej
+# wiadomości NEPTUN-a. Bez tego /api/state dostawał nowy ETag co kilka sekund, choć
+# mapa się nie zmieniała — każde warunkowe zapytanie ściągało wtedy pełne 28 KB
+# zamiast dostać „304" (pomiar 20.09.2026: 15 pełnych odpowiedzi i jedna 304 na
+# 75 sekund). Przy odpytywaniu zamiast WebSocketu to ta różnica decyduje o ruchu.
+_state_fingerprint = ""
+_state_built_at = 0.0
+_state_ts = ""            # `fusion.ts` obecnego stanu = wersja dla klientów
+STATE_MAX_AGE_S = 60      # mimo wszystko odświeżamy co minutę, żeby `ts` nie odpłynął
+
+
 def refresh_state() -> None:
     """Stan liczony raz i od razu podawany wszystkim: /api/state i WebSocket."""
-    global _ws_message, _ws_tick
-    blob = public_cache.make_blob(build_state())
+    global _ws_message, _ws_tick, _state_fingerprint, _state_built_at, _state_ts
+    payload = build_state()
+    fus = payload.get("fusion") or {}
+    nep = (payload.get("neptun") or {}).get("status") or {}
+    ts, last_msg = fus.get("ts"), nep.get("last_msg")
+    if ts is not None:
+        fus["ts"] = ""
+    if last_msg is not None:
+        nep["last_msg"] = 0
+    probe = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode()
+    odcisk = hashlib.blake2b(probe, digest_size=10).hexdigest()
+    swiezy = time.time() - _state_built_at < STATE_MAX_AGE_S
+    if odcisk == _state_fingerprint and swiezy and public_cache.get("state") is not None:
+        return                      # nic istotnego się nie zmieniło — ETag zostaje
+    if ts is not None:
+        fus["ts"] = ts
+    if last_msg is not None:
+        nep["last_msg"] = last_msg
+    _state_fingerprint = odcisk
+    _state_built_at = time.time()
+    _state_ts = str(fus.get("ts") or "")
+    blob = public_cache.make_blob(payload)
     public_cache.put("state", blob)
     _ws_tick = '{"type":"tick","etag":' + json.dumps(blob.etag) + "}"
     _ws_message = '{"type":"state","data":' + blob.raw.decode() + "}"
@@ -285,10 +321,28 @@ async def ws_endpoint(ws: WebSocket):
 
 
 # ── REST API ─────────────────────────────────────────────────────────────────
+NIC_NOWEGO = b'{"unchanged":true}'
+
+
 @app.get("/api/state")
-async def api_state(request: Request):
+async def api_state(request: Request, v: str | None = None):
+    """Stan mapy albo krótkie „nic nowego", gdy klient ma już tę wersję.
+
+    Znacznik wersji (`v`) to `fusion.ts` z ostatnio pobranego stanu. Można byłoby
+    użyć samego ETagu i odpowiedzi 304, ale aplikacja na telefonie przepuszcza
+    zapytania przez warstwę natywną Capacitora (CapacitorHttp omija CORS) i ta
+    gubi semantykę zapytań warunkowych — 20.09.2026 na emulatorze co kilkadziesiąt
+    sekund migał komunikat „brak połączenia", choć dane płynęły. Zwykłe 200 z
+    dwudziestoma bajtami treści działa tak samo na każdym kliencie, a Cloudflare
+    cache'uje je pod kluczem z `v`: wszyscy pytają o tę samą wersję, więc to jeden
+    wpis w pamięci brzegu, nie jeden na użytkownika.
+    """
     if public_cache.get("state") is None:
         refresh_state()
+    if v and v == _state_ts:
+        return Response(NIC_NOWEGO, media_type="application/json",
+                        headers={"Cache-Control": "public, max-age=2, s-maxage=2, "
+                                                  "stale-while-revalidate=30"})
     return public_cache.respond(request, "state")
 
 
