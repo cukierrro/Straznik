@@ -84,6 +84,18 @@
         "warning"
       ],
       "port": 8700
+    },
+    {
+      "name": "podglad-odpytywanie",
+      "runtimeExecutable": "py",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8616",
+        "--directory",
+        "C:/Users/PC/Desktop/Straznik-poll/frontend"
+      ],
+      "port": 8616
     }
   ]
 }

@@ -599,7 +599,7 @@ const POLL_ALARM_MS = 2000;     // trwa alarm — patrzymy uważniej
 const POLL_CALM_MS = 5000;      // spokój — stan i tak zmienia się rzadziej
 const POLL_BUSY_MS = 10000;     // serwer prosi o przerwę (503)
 const POLL_LOST_MS = 12000;     // tyle bez odpowiedzi = pokazujemy „brak połączenia"
-let pollTimer = null, pollEtag = null, pollBusyFlag = false;
+let pollTimer = null, pollVer = null, pollBusyFlag = false;
 let pollInFlight = false, pollLastOk = 0;
 /* Krótkie zerwanie (przejazd tunelem, zmiana sieci) trwa sekundy i wracało samo,
    a komunikat zdążył mignąć i straszył. Pokazujemy go dopiero, gdy połączenia nie
@@ -752,22 +752,26 @@ async function pollState() {
   try {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 8000);
+    // Wersję stanu (`fusion.ts`) niesiemy w adresie, a nie w nagłówku warunkowym:
+    // w aplikacji zapytania idą przez warstwę natywną Capacitora, która gubi
+    // semantykę „304" — 20.09.2026 migał wtedy komunikat o braku połączenia, choć
+    // dane płynęły. Serwer odpowiada wtedy dwudziestoma bajtami „nic nowego",
+    // a Cloudflare trzyma tę odpowiedź na brzegu pod kluczem z wersją.
     // no-store: Cloudflare nadpisywał max-age=2 na 4 h i przeglądarka podawała stan
-    // sprzed kilkunastu minut — obiekty skakały (15.09.2026). ETag niesiemy sami.
-    const r = await fetch(base + "/api/state", {
-      cache: "no-store", signal: ctrl.signal,
-      headers: pollEtag ? { "If-None-Match": pollEtag } : undefined,
-    });
+    // sprzed kilkunastu minut — obiekty skakały (15.09.2026).
+    const adres = base + "/api/state" + (pollVer ? "?v=" + encodeURIComponent(pollVer) : "");
+    const r = await fetch(adres, { cache: "no-store", signal: ctrl.signal });
     clearTimeout(timer);
     if (r.status === 503) {                    // serwer zrzuca ruch (load_guard)
       pollBusyFlag = true;
       showBusyPolling();
-    } else if (r.status === 304) {             // nic nowego — najtańsza odpowiedź
-      pollOk();
     } else if (r.ok) {
-      pollEtag = r.headers.get("ETag") || null;
+      const dane = await r.json();
       pollOk();
-      applyState(await r.json());
+      if (!dane?.unchanged) {                  // pełny stan = nowa wersja
+        pollVer = dane?.fusion?.ts || null;
+        applyState(dane);
+      }
     } else {
       throw new Error("HTTP " + r.status);
     }
@@ -789,11 +793,13 @@ function pollOk() {
 /* Start odpytywania: pierwsze pytanie natychmiast, żeby mapa była od razu. */
 function startPolling() {
   pollLastOk = Date.now();
-  pollEtag = null;
+  pollVer = null;
   pollState();
 }
 
-function pollOnce() { pollEtag = null; return pollState(); }
+/* Wymuszone pobranie pełnego stanu (powrót aplikacji na wierzch, powrót z trybu
+   wbudowanego) — bez wersji, więc serwer nie odpowie „nic nowego". */
+function pollOnce() { pollVer = null; return pollState(); }
 
 /* Komunikat administracyjny z serwera (np. zapowiedź okna testowego). Apka tylko
    GO WYŚWIETLA — żadnych danych zwrotnych (bez telemetrii). Zamknięcie zapamiętujemy

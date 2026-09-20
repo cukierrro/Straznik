@@ -8,7 +8,7 @@ import time
 
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from . import (alert_log, app_updates, by_entry_shadow, config, db, escalation_shadow, fusion, load_guard,
@@ -149,12 +149,13 @@ def build_state() -> dict:
 # 75 sekund). Przy odpytywaniu zamiast WebSocketu to ta różnica decyduje o ruchu.
 _state_fingerprint = ""
 _state_built_at = 0.0
+_state_ts = ""            # `fusion.ts` obecnego stanu = wersja dla klientów
 STATE_MAX_AGE_S = 60      # mimo wszystko odświeżamy co minutę, żeby `ts` nie odpłynął
 
 
 def refresh_state() -> None:
     """Stan liczony raz i od razu podawany wszystkim: /api/state i WebSocket."""
-    global _ws_message, _ws_tick, _state_fingerprint, _state_built_at
+    global _ws_message, _ws_tick, _state_fingerprint, _state_built_at, _state_ts
     payload = build_state()
     fus = payload.get("fusion") or {}
     nep = (payload.get("neptun") or {}).get("status") or {}
@@ -174,6 +175,7 @@ def refresh_state() -> None:
         nep["last_msg"] = last_msg
     _state_fingerprint = odcisk
     _state_built_at = time.time()
+    _state_ts = str(fus.get("ts") or "")
     blob = public_cache.make_blob(payload)
     public_cache.put("state", blob)
     _ws_tick = '{"type":"tick","etag":' + json.dumps(blob.etag) + "}"
@@ -319,10 +321,28 @@ async def ws_endpoint(ws: WebSocket):
 
 
 # ── REST API ─────────────────────────────────────────────────────────────────
+NIC_NOWEGO = b'{"unchanged":true}'
+
+
 @app.get("/api/state")
-async def api_state(request: Request):
+async def api_state(request: Request, v: str | None = None):
+    """Stan mapy albo krótkie „nic nowego", gdy klient ma już tę wersję.
+
+    Znacznik wersji (`v`) to `fusion.ts` z ostatnio pobranego stanu. Można byłoby
+    użyć samego ETagu i odpowiedzi 304, ale aplikacja na telefonie przepuszcza
+    zapytania przez warstwę natywną Capacitora (CapacitorHttp omija CORS) i ta
+    gubi semantykę zapytań warunkowych — 20.09.2026 na emulatorze co kilkadziesiąt
+    sekund migał komunikat „brak połączenia", choć dane płynęły. Zwykłe 200 z
+    dwudziestoma bajtami treści działa tak samo na każdym kliencie, a Cloudflare
+    cache'uje je pod kluczem z `v`: wszyscy pytają o tę samą wersję, więc to jeden
+    wpis w pamięci brzegu, nie jeden na użytkownika.
+    """
     if public_cache.get("state") is None:
         refresh_state()
+    if v and v == _state_ts:
+        return Response(NIC_NOWEGO, media_type="application/json",
+                        headers={"Cache-Control": "public, max-age=2, s-maxage=2, "
+                                                  "stale-while-revalidate=30"})
     return public_cache.respond(request, "state")
 
 

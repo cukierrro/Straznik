@@ -14,7 +14,7 @@ function symulacja({ minuty = 10, alarm = false, tryb = 'ok', widoczna = true } 
   let now = 0, seq = 0;
   const timers = [];
   const licznik = { zapytan: 0, pelnych: 0, applied: 0, badge: '', etagi: [] };
-  let etag = '"a"';
+  let etag = '2026-09-20T06:00:00+00:00';
   const ctx = {
     console, Math, AbortController: class { constructor() { this.signal = {}; } abort() {} },
     Date: { now: () => now },
@@ -28,14 +28,16 @@ function symulacja({ minuty = 10, alarm = false, tryb = 'ok', widoczna = true } 
     state: { fusion: { voivodeships: { lubelskie: { alert_level: alarm ? 'high' : 'none' } } } },
     applyState: () => { licznik.applied++; },
     connBadge: { classList: { add: () => { licznik.badge = ''; }, remove: () => {}, contains: () => licznik.badge === '' } },
-    fetch: async (url, opcje) => {
+    fetch: async (url) => {
       licznik.zapytan++;
-      licznik.etagi.push(opcje?.headers?.['If-None-Match'] ?? null);
+      const wersja = /[?&]v=([^&]*)/.exec(String(url));
+      licznik.etagi.push(wersja ? decodeURIComponent(wersja[1]) : null);
       if (tryb === 'padl') throw new Error('brak sieci');
       if (tryb === 'zajety') return { status: 503, ok: false };
-      if (opcje?.headers?.['If-None-Match'] === etag) return { status: 304, ok: false };
+      if (wersja && decodeURIComponent(wersja[1]) === etag)
+        return { status: 200, ok: true, json: async () => ({ unchanged: true }) };
       licznik.pelnych++;
-      return { status: 200, ok: true, headers: { get: () => etag }, json: async () => ({}) };
+      return { status: 200, ok: true, json: async () => ({ fusion: { ts: etag } }) };
     },
   };
   vm.createContext(ctx);
@@ -71,10 +73,10 @@ const alarm = await symulacja({ alarm: true });
 console.log(`   spokój: ${spokoj.zapytan} zapytań, ${spokoj.pelnych} pełnych | alarm: ${alarm.zapytan} zapytań, ${alarm.pelnych} pełnych`);
 sprawdz(spokoj.zapytan >= 100 && spokoj.zapytan <= 130, `spokój ≈ co 5 s (${spokoj.zapytan} w 10 min)`);
 sprawdz(alarm.zapytan >= 250 && alarm.zapytan <= 310, `alarm ≈ co 2 s (${alarm.zapytan} w 10 min)`);
-sprawdz(spokoj.pelnych === 1, `stan pobrany raz, reszta to 304 (${spokoj.pelnych})`);
+sprawdz(spokoj.pelnych === 1, `stan pobrany raz, reszta to „nic nowego" (${spokoj.pelnych})`);
 sprawdz(spokoj.applied === 1, 'niezmieniony stan nie przerysowuje mapy');
 sprawdz(spokoj.etagi.filter(e => e).length >= spokoj.zapytan - 1,
-  'każde kolejne zapytanie niesie If-None-Match');
+  'każde kolejne zapytanie niesie wersję stanu');
 
 console.log('2. Zajęty serwer to nie awaria');
 const zajety = await symulacja({ tryb: 'zajety' });
@@ -94,7 +96,7 @@ sprawdz(tlo.zapytan === 0, `aplikacja w tle nie odpytuje serwera (${tlo.zapytan}
 console.log('5. Po stronie kodu nie ma już gniazda');
 sprawdz(!/new WebSocket\(/.test(src), 'klient nie otwiera WebSocketu');
 sprawdz(!/\/ws\?v=2/.test(src), 'i nie zna już adresu gniazda');
-sprawdz(/If-None-Match/.test(src), 'zapytania są warunkowe');
+sprawdz(/api\/state" \+ \(pollVer/.test(src) || /\?v=/.test(src), 'zapytania niosą wersję stanu');
 
 console.log();
 if (bledy.length) {
