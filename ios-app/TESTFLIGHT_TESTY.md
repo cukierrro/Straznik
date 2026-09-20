@@ -406,3 +406,30 @@ blokady i **gra naszą syreną**. Nic w tej drodze nie zostało już nieprzetest
 **Do instrukcji dla użytkowników (ograniczenia iOS, nie usterki):** przy wyciszonym
 dzwonku alarm jest bezgłośny (wibracja i baner), a syrena gra **raz**, nie w pętli
 jak na Androidzie.
+
+---
+
+## 10. Odpytywanie zamiast stałego połączenia — sprawdzone na iPhonie (20.09.2026)
+
+Od 1.7.63 aplikacja nie trzyma gniazda WebSocket, tylko pyta serwer o stan
+(2 s przy alarmie, 5 s przy spokoju) i przy braku zmian dostaje krótkie
+„nic nowego”. Powód: przy stałym połączeniu obciążenie serwera rosło liniowo
+z liczbą użytkowników, najgorzej w czasie alarmu.
+
+**Czego się baliśmy:** na Androidzie warstwa natywna Capacitora gubiła odpowiedź
+„nic się nie zmieniło” i migał pasek „brak połączenia z serwerem” mimo płynących
+danych. To ta sama warstwa na obu platformach, więc iOS był realnie zagrożony.
+
+**Wynik na urządzeniu** (iPhone 14 Pro Max, iOS 26.6.2, build 1.7.63 / 2609200633):
+
+| Co | Wynik |
+|---|---|
+| Pasek „brak połączenia” przy otwartej aplikacji (2 min) | **nie pojawił się ani razu** |
+| Aktualność danych po powrocie z tła | natychmiastowa |
+| Płynność odświeżania mapy | bez zarzutu |
+| Przewijanie historii | działa |
+| Zapis miejsca i województwa **po nocy** | zachowany (sprawdzone przed aktualizacją) |
+
+Zadziałało, bo sesja główna przeniosła wersję stanu do adresu zapytania zamiast
+zostawiać ją w nagłówku. Gdyby została w nagłówku, iOS najpewniej zachowałby się
+jak Android.
