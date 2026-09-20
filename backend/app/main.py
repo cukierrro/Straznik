@@ -86,7 +86,7 @@ WS_MAX_CLIENTS = int(os.getenv("WS_MAX_CLIENTS", "15000"))
 WS_SEND_TIMEOUT_S = 3.0
 
 
-def _load_notice():
+def _load_notice(plik: str = "notice.json"):
     """Komunikat administracyjny (np. zapowiedź testu) z pliku data/notice.json,
     edytowalny na VPS bez restartu. Kształt: {"id","text","until"(opcj. ISO)}.
     Apka tylko WYŚWIETLA go i pozwala zamknąć — ZERO danych zwrotnych (bez
@@ -95,7 +95,7 @@ def _load_notice():
     import json
     from datetime import datetime, timezone
     try:
-        n = json.loads((config.DATA_DIR / "notice.json").read_text(encoding="utf-8"))
+        n = json.loads((config.DATA_DIR / plik).read_text(encoding="utf-8"))
         if not n.get("id") or not n.get("text"):
             return None
         until = n.get("until")
@@ -181,6 +181,20 @@ def refresh_state() -> None:
     public_cache.put("state", blob)
     _ws_tick = '{"type":"tick","etag":' + json.dumps(blob.etag) + "}"
     _ws_message = '{"type":"state","data":' + blob.raw.decode() + "}"
+    # Komunikat wyłącznie do starych wersji aplikacji.
+    #
+    # Gniazdo otwierają dziś tylko wydania ≤1.7.62 — od 1.7.63 telefon odpytuje
+    # i tu nigdy nie zajrzy. To jedyny kanał, który trafia do nich i pomija
+    # wszystkich pozostałych: gdyby ten sam tekst wsadzić do `data/notice.json`,
+    # „zaktualizuj aplikację" zobaczyłoby też kilkaset osób, które właśnie to
+    # zrobiły. Paczka dla przeglądarek i nowych telefonów zostaje nietknięta, więc
+    # brzeg dalej podaje wszystkim te same bajty.
+    stare = _load_notice("notice-stare-wersje.json")
+    if stare:
+        payload["notice"] = stare
+        _ws_message = ('{"type":"state","data":'
+                       + json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
+                       + "}")
 
 
 async def _send(ws: WebSocket, message: str):
