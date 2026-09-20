@@ -134,6 +134,10 @@ class StaticCacheHeaders:
     NONE = b"no-cache"
     EXT = (".js", ".css", ".png", ".jpg", ".jpeg", ".svg", ".webp", ".woff2",
            ".json", ".geojson", ".ico", ".webmanifest")
+    # Paczki map Groty: nazwa niesie wersję obszaru, treść pod tym adresem się nie
+    # zmienia, a ważą po 100 MB. Bez długiego cache każdy telefon ciągnąłby je od nas
+    # — z nim pierwszy pobierający w regionie grzeje brzeg, a reszta bierze stamtąd.
+    PACZKI = "/grota/paczki/"
 
     def __init__(self, app):
         self.app = app
@@ -142,10 +146,13 @@ class StaticCacheHeaders:
         if scope["type"] != "http":
             return await self.app(scope, receive, send)
         sciezka = scope.get("path", "")
-        if not sciezka.endswith(self.EXT):
+        paczka = sciezka.startswith(self.PACZKI)
+        if not paczka and not sciezka.endswith(self.EXT):
             return await self.app(scope, receive, send)
         if sciezka.endswith("sw.js"):
             wartosc = self.NONE
+        elif paczka:
+            wartosc = self.LONG
         else:
             wartosc = self.LONG if b"v=" in scope.get("query_string", b"") else self.SHORT
 
