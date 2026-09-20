@@ -584,24 +584,23 @@ let map, mapReady = false, is3d = true;
 
 /* ── połączenie z backendem ──────────────────────────────────────────────── */
 const connBadge = document.getElementById("conn-badge");
-let ws = null, wsRetry = 1;
-/* Serwer pod dużym ruchem odmawia WebSocketu kodem 1013 („spróbuj później”).
-   Wtedy odpytujemy gotowy /api/state co kilka sekund i wracamy do WebSocketu
-   dopiero po 1–2 minutach — zamiast szturmować serwer co sekundę. */
-let wsBusyUntil = 0, busyPoll = null;
-/* 17.09.2026: sieć firmowa (jeden adres, ~250 tys. zapytań na dobę) zrywała WebSocket
-   zaraz po połączeniu, a onopen zerował licznik ponowień — każda karta łączyła się
-   od nowa co ~1 s i za każdym razem pobierała /api/state. Licznik zerujemy dopiero
-   po 30 s stabilnego połączenia, a po 3 krótkich połączeniach z rzędu przechodzimy
-   na odpytywanie co kilka sekund i próbujemy WebSocketu co 5 min. */
-const WS_STABLE_MS = 30000, WS_SHORT_LIMIT = 3, WS_FALLBACK_MS = 5 * 60000;
-let wsOpenedAt = 0, wsShortLived = 0, wsStableTimer = null;
-/* 17.09.2026 (syreny w Lublinie): serwer z pełnym limitem odmawiał połączenia, zanim
-   je przyjął — przeglądarka widziała błąd zamiast 1013, a apka przez 2 h pokazywała
-   „brak połączenia” i ponawiała co kilka sekund. Po 3 nieudanych próbach z rzędu
-   traktujemy serwer jak zajęty: odpytujemy /api/state i nie straszymy użytkownika. */
-const WS_BUSY_MS = 60000;
-let wsFailedOpens = 0;
+/* Odpytywanie zamiast gniazda (20.09.2026, po analizie hostingu). Do 1.7.62 każdy
+   telefon trzymał WebSocket do naszego serwera — przy 530 telefonach to 530 gniazd
+   w jednym procesie, a zużycie rosło liniowo z liczbą ludzi. Teraz pytamy o
+   /api/state z nagłówkiem If-None-Match: gdy nic się nie zmieniło, odpowiada
+   Cloudflare ze swojego brzegu („304", kilkaset bajtów) i nasz serwer o tym pytaniu
+   nawet nie wie. Do origin idzie najwyżej jedna kopia stanu na 2 s na centrum danych,
+   niezależnie od tego, czy patrzy 500 osób, czy 50 000.
+
+   Stan zmienia się średnio co 17 s (pomiar 20.09.2026), więc pytanie co 2–5 s nie
+   gubi niczego, a właściwy alarm przy zamkniętej aplikacji i tak idzie powiadomieniem
+   push. Serwer nadal obsługuje WebSocket dla starszych wersji aplikacji. */
+const POLL_ALARM_MS = 2000;     // trwa alarm — patrzymy uważniej
+const POLL_CALM_MS = 5000;      // spokój — stan i tak zmienia się rzadziej
+const POLL_BUSY_MS = 10000;     // serwer prosi o przerwę (503)
+const POLL_LOST_MS = 12000;     // tyle bez odpowiedzi = pokazujemy „brak połączenia"
+let pollTimer = null, pollEtag = null, pollBusyFlag = false;
+let pollInFlight = false, pollLastOk = 0;
 /* Krótkie zerwanie (przejazd tunelem, zmiana sieci) trwa sekundy i wracało samo,
    a komunikat zdążył mignąć i straszył. Pokazujemy go dopiero, gdy połączenia nie
    ma dłużej niż CONN_LOST_DELAY_MS. */
@@ -648,7 +647,7 @@ async function connect() {
   // wbudowany, tylko po ~kilkunastu sekundach zamiast po czterech.
   connBadge.textContent = "łączenie…"; connBadge.classList.remove("hidden");
   for (let attempt = 1; attempt <= 4; attempt++) {
-    if (await probeBackend(base)) return openBackendWs(base);
+    if (await probeBackend(base)) return startPolling();
     if (attempt < 4) await new Promise(r => setTimeout(r, attempt * 1500));
   }
   console.warn("Strażnik: serwer niedostępny po kilku próbach — tryb wbudowany (standalone).");
@@ -700,8 +699,7 @@ function switchToBackend(base) {
   connBadge.onclick = null;
   connBadge.textContent = "łączenie…";
   connBadge.classList.remove("hidden");
-  openBackendWs(base);
-  pollOnce();          // natychmiast pokaż stan z serwera, nie czekaj na pierwszą ramkę WS
+  startPolling();      // natychmiast pokaż stan z serwera
 }
 
 /* Lekki ping serwera do odzysku ze standalone: sam sprawdza dostępność
@@ -728,95 +726,74 @@ async function probeBackend(base) {
   return false;
 }
 
-/* Tryb sygnału (1.7.59): przez WebSocket idzie samo „zmieniło się" z ETagiem, a stan
-   mapy pobieramy z /api/state, które Cloudflare trzyma w pamięci na brzegu. Serwer
-   wysyłał wcześniej każdemu cały stan (~39 KB): rozesłanie do 1595 połączeń zajmowało
-   średnio 1,07 s, bo kompresja liczy się osobno dla każdego klienta (pomiar 17.09.2026).
-   Pierwszą ramką po połączeniu nadal jest pełny stan, więc mapa jest od razu. */
-let lastTickEtag = null, tickBusy = false, tickPending = null;
-async function fetchStateTick(etag) {
-  if (etag && etag === lastTickEtag) return;     // ten sam stan — nie pobieramy drugi raz
-  if (tickBusy) { tickPending = etag; return; }  // jedno pobranie naraz
-  tickBusy = true;
-  const base = apiBase();
-  try {
-    const r = await fetch(base + "/api/state", { cache: "no-store" });
-    if (r.ok) { lastTickEtag = etag; applyState(await r.json()); }
-  } catch {} finally {
-    tickBusy = false;
-    const next = tickPending; tickPending = null;
-    if (next && next !== lastTickEtag) fetchStateTick(next);
-  }
+/* Odpytywanie: jedno zapytanie naraz, odstęp zależny od sytuacji. Zwrot 304 znaczy
+   „nic nowego" i kosztuje kilkaset bajtów; 503 to prośba serwera o przerwę. */
+function pollDelay() {
+  if (pollBusyFlag) return POLL_BUSY_MS;
+  const voivs = state?.fusion?.voivodeships || {};
+  const mine = myVoiv();
+  const alarm = (mine && voivs[mine]?.alert_level && voivs[mine].alert_level !== "none")
+    || Object.values(voivs).some(v => v.alert_level === "high");
+  return alarm ? POLL_ALARM_MS : POLL_CALM_MS;
 }
 
-function openBackendWs(base) {
-  const wsUrl = base.replace(/^http/, "ws") + "/ws?v=2";
-  try { ws = new WebSocket(wsUrl); } catch { return scheduleReconnect(); }
-  ws.onopen = () => {
-    wsOpenedAt = Date.now();
-    wsFailedOpens = 0;
-    clearConnLostTimer();
-    connBadge.classList.add("hidden");
-    if (busyPoll) { clearInterval(busyPoll); busyPoll = null; }
-    clearTimeout(wsStableTimer);
-    wsStableTimer = setTimeout(() => { wsRetry = 1; wsShortLived = 0; wsBusyUntil = 0; }, WS_STABLE_MS);
-  };
-  ws.onmessage = (e) => {
-    const env = JSON.parse(e.data);
-    if (env.type === "state") { lastTickEtag = null; applyState(env.data); }
-    else if (env.type === "tick") fetchStateTick(env.etag);
-  };
-  ws.onclose = ws.onerror = (e) => {
-    clearTimeout(wsStableTimer);
-    if (e && e.code === 1013) wsBusyUntil = Date.now() + WS_BUSY_MS * (1 + Math.random());
-    else if (wsOpenedAt && Date.now() - wsOpenedAt < WS_STABLE_MS
-             && ++wsShortLived >= WS_SHORT_LIMIT) {
-      // połączenie jest zrywane (np. serwer pośredniczący w sieci firmowej) — odpytujemy
-      wsBusyUntil = Date.now() + WS_FALLBACK_MS * (0.8 + Math.random() * 0.4);
-      wsShortLived = 0;
-    } else if (!wsOpenedAt && ++wsFailedOpens >= WS_SHORT_LIMIT) {
-      // połączenie odrzucane przed otwarciem — serwer zajęty albo chwilowo bez sieci
-      wsBusyUntil = Date.now() + WS_BUSY_MS * (1 + Math.random());
-      wsFailedOpens = 0;
-    }
-    wsOpenedAt = 0;
-    scheduleReconnect();
-  };
+function schedulePoll(delay) {
+  clearTimeout(pollTimer);
+  if (standalone) return;
+  pollTimer = setTimeout(pollState, delay ?? pollDelay());
 }
 
-function scheduleReconnect() {
-  if (standalone) return;   // w trybie wbudowanym nie ma czego wznawiać
-  if (ws) { ws.onclose = ws.onerror = null; try { ws.close(); } catch {} ws = null; }
-  const base = apiBase();
-  // W trakcie sesji trzymamy się serwera (przy starcie potwierdził dostępność):
-  // ponawiamy tylko WebSocket, bez przełączania na wbudowany silnik.
-  // Losowe rozrzucenie opóźnienia: po restarcie serwera tysiące telefonów nie
-  // mogą wrócić w tej samej sekundzie (13.09.2026 szczyt 2700 zapytań/min).
-  const busy = wsBusyUntil > Date.now();
-  // zajęty serwer to nie awaria: dane dalej płyną z /api/state (pollOnce zmieni
-  // napis na „brak połączenia”, jeśli i to zawiedzie). wsBusyUntil zeruje dopiero
-  // 30 s stabilnego połączenia, więc kolejne próby po okresie „zajęty” nie migają awarią.
-  if (wsBusyUntil) showBusyPolling(); else showConnLost();
-  if (busy && !busyPoll) busyPoll = setInterval(pollOnce, 5000 + Math.random() * 3000);
-  const delay = busy ? wsBusyUntil - Date.now()
-    : Math.min(wsRetry * 1000, 15000) * (0.5 + Math.random());
-  setTimeout(() => { if (!standalone && base) openBackendWs(base); }, delay);
-  wsRetry = Math.min(wsRetry * 2, 15);
-  pollOnce();
-}
-async function pollOnce() {
-  const base = apiBase(); if (!base || standalone) return;
+async function pollState() {
+  if (standalone || pollInFlight) return;
+  const base = apiBase(); if (!base) return;
+  // W tle system i tak zamraża stronę; po powrocie pytamy od razu (visibilitychange).
+  if (document.hidden) return schedulePoll(POLL_CALM_MS);
+  pollInFlight = true;
   try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 8000);
     // no-store: Cloudflare nadpisywał max-age=2 na 4 h i przeglądarka podawała stan
-    // sprzed kilkunastu minut na zmianę z WebSocketem — obiekty skakały (15.09.2026).
-    const r = await fetch(base + "/api/state", { cache: "no-store" });
-    if (!r.ok) throw new Error("HTTP " + r.status);
-    applyState(await r.json());
-    if (wsBusyUntil && !(ws && ws.readyState === 1)) showBusyPolling();
+    // sprzed kilkunastu minut — obiekty skakały (15.09.2026). ETag niesiemy sami.
+    const r = await fetch(base + "/api/state", {
+      cache: "no-store", signal: ctrl.signal,
+      headers: pollEtag ? { "If-None-Match": pollEtag } : undefined,
+    });
+    clearTimeout(timer);
+    if (r.status === 503) {                    // serwer zrzuca ruch (load_guard)
+      pollBusyFlag = true;
+      showBusyPolling();
+    } else if (r.status === 304) {             // nic nowego — najtańsza odpowiedź
+      pollOk();
+    } else if (r.ok) {
+      pollEtag = r.headers.get("ETag") || null;
+      pollOk();
+      applyState(await r.json());
+    } else {
+      throw new Error("HTTP " + r.status);
+    }
   } catch {
-    if (wsBusyUntil) showConnLost();
+    if (Date.now() - pollLastOk > POLL_LOST_MS) showConnLost();
+  } finally {
+    pollInFlight = false;
+    schedulePoll();
   }
 }
+
+function pollOk() {
+  pollLastOk = Date.now();
+  if (pollBusyFlag) { pollBusyFlag = false; }
+  clearConnLostTimer();
+  connBadge.classList.add("hidden");
+}
+
+/* Start odpytywania: pierwsze pytanie natychmiast, żeby mapa była od razu. */
+function startPolling() {
+  pollLastOk = Date.now();
+  pollEtag = null;
+  pollState();
+}
+
+function pollOnce() { pollEtag = null; return pollState(); }
 
 /* Komunikat administracyjny z serwera (np. zapowiedź okna testowego). Apka tylko
    GO WYŚWIETLA — żadnych danych zwrotnych (bez telemetrii). Zamknięcie zapamiętujemy
@@ -5312,7 +5289,7 @@ if (!localStorage.getItem("straznik_onboarded")) {
 }
 setInterval(() => { if (state) renderPanel(); }, 30000);  // odświeżaj "x min temu"
 setInterval(() => refreshZones(), 60000);   // strefy: własny TTL 4 min w środku
-setInterval(pollOnce, 60000);                              // siatka bezpieczeństwa
+setInterval(pollState, 60000);   // siatka bezpieczeństwa, gdyby zegar odpytywania padł
 setTimeout(checkForUpdate, 6000);   // po starcie, gdy mapa i dane są już w drodze
 // Powrót aplikacji na wierzch traktujemy jak kolejne otwarcie — z odstępem,
 // żeby krótkie przełączenie na inną aplikację nie odpytywało GitHuba za każdym razem.
@@ -5321,8 +5298,7 @@ document.addEventListener("visibilitychange", () => {
   checkForUpdate(false, true);
   // Audyt C11: po dotknięciu powiadomienia aplikacja pokazywała do minuty stary
   // stan. Pobieramy go od razu i wznawiamy zerwane połączenie.
-  pollOnce();
-  if (!standalone && (!ws || ws.readyState > 1)) { const base = apiBase(); if (base) openBackendWs(base); }
+  pollOnce();          // świeży stan od razu, bez czekania na kolejny obieg
   if (IS_APP) refreshNativeSound();
   // W historii dziurę widać od razu na suwaku, więc uzupełniamy ją bez czekania
   // na kolejne wejście w tryb historii.
