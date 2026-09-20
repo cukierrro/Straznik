@@ -67,6 +67,8 @@ sprawdz((ws["data"].get("notice") or {}).get("id") == GOTOWY["id"],
         "stare wersje dostają ją przez gniazdo")
 tresc = ws["data"]["notice"]["text"]
 sprawdz("Sprawdź aktualizacje" in tresc, "kieruje do przycisku w aplikacji")
+sprawdz("straci połączenie" in tresc and "25 września" in tresc,
+        "uprzedza datą, a nie odcina bez słowa — kanał jeszcze działa, więc ostrzeżenie ma gdzie dotrzeć")
 sprawdz("odzysk" not in tresc and "odinstal" not in tresc.lower(),
         "NIE każe odinstalowywać — to skasowałoby zapisane miejsca i ustawienia")
 sprawdz("instaluje się na starej" in tresc,
@@ -82,7 +84,7 @@ print("3. Zwykły komunikat dla wszystkich działa jak dotąd")
                                   encoding="utf-8")
 rest, ws = odswiez()
 sprawdz((rest.get("notice") or {}).get("id") == "test-syren", "trafia do wszystkich")
-sprawdz((ws["data"]["notice"] or {}).get("id") == "aktualizacja-1763",
+sprawdz((ws["data"]["notice"] or {}).get("id") == GOTOWY["id"],
         "a stare wersje widzą swój — komunikat dla nich ma pierwszeństwo")
 
 print("4. Wygasanie po terminie zostało nietknięte")
