@@ -388,3 +388,25 @@ A14 Brazylia — podniesione ręcznie z wyliczonego 9+.
 - Age ratings values and definitions — developer.apple.com/help/app-store-connect/reference/app-information/age-ratings-values-and-definitions
 - App Review Guidelines (4.2, 4.2.2, 4.2.3, 2.3.x, 4.5.4, 5.2.1, 5.2.2), ostatnia aktualizacja 8.06.2026 — developer.apple.com/app-store/review/guidelines
 - DSA trader requirements — developer.apple.com/help/app-store-connect/manage-compliance-information/manage-european-union-digital-services-act-trader-requirements
+
+---
+
+## 12. ZGŁOSZONE DO PRZEGLĄDU (20.09.2026)
+
+Wersja **1.7.63**, build **2609200633**, status **Waiting for Review**,
+publikacja **ręczna** — aplikacja nie pojawi się w sklepie bez kliknięcia
+użytkownika, nawet po zatwierdzeniu.
+
+**Co było potwierdzone na urządzeniach przed zgłoszeniem** (dwa iPhone'y, iOS 26.6.1
+i 26.6.2): alarm z serwera przy zamkniętej aplikacji w 3 sekundy, z syreną,
+nad ekranem blokady, oznaczony „PILNE”; odpytywanie serwera bez fałszywych
+rozłączeń; zapis do alarmów przetrwał noc; teksty w wariancie iOS.
+
+**Uzgodnione z sesją główną przed wysłaniem:** brak zmian w toku dla wspólnego
+kodu, backend stabilny (błędy tunelu spadły do zera na 2,14 mln żądań), adres
+polityki prywatności bez zmian. Na czas przeglądu wdrożenia wstrzymane poza
+awaryjnymi — recenzent trafiający w restart serwera zobaczyłby tryb awaryjny.
+
+**Czego się spodziewamy:** odpowiedź zwykle w 1–2 dni. Najbardziej prawdopodobny
+zarzut to **4.2.2** („aplikacja z innej platformy”); odpowiedzi w sekcji 9 tego
+dokumentu, a po zmianie tekstów (B6) aplikacja nie mówi już nigdzie o Androidzie.
