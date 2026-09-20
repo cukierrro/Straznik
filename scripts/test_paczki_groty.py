@@ -59,7 +59,9 @@ def naglowek(sciezka: str, query: bytes = b"") -> str:
 print("1. Paczki Groty mają leżeć w telefonie i na brzegu jak najdłużej")
 cc = naglowek("/grota/paczki/mazowieckie-1.bin")
 sprawdz("immutable" in cc and "31536000" in cc, f"paczka województwa: {cc or 'BRAK NAGŁÓWKA'}")
-sprawdz("immutable" in naglowek("/grota/paczki/spis.bin"), "spis części też")
+spis = naglowek("/grota/paczki/spis.bin")
+sprawdz("immutable" not in spis and "max-age=120" in spis,
+        f"ale spis części żyje krótko — to on decyduje, co telefon pobierze: {spis}")
 sprawdz("immutable" in naglowek("/grota/paczki/opolskie-1.bin", b"cokolwiek=1"),
         "również, gdy ktoś dopisze cokolwiek do adresu")
 

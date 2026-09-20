@@ -138,6 +138,12 @@ class StaticCacheHeaders:
     # zmienia, a ważą po 100 MB. Bez długiego cache każdy telefon ciągnąłby je od nas
     # — z nim pierwszy pobierający w regionie grzeje brzeg, a reszta bierze stamtąd.
     PACZKI = "/grota/paczki/"
+    # Spis części jest wyjątkiem od wieczności paczek. Waży kilkadziesiąt kilobajtów,
+    # a decyduje, co telefon w ogóle pobierze — gdyby i on leżał rok, każda poprawka
+    # wymagałaby wersjonowania dwóch rzeczy naraz i ktoś trałby na nowy spis ze starymi
+    # paczkami. Kilka minut wystarczy, a kosztuje tyle co nic.
+    SPIS = "spis.bin"
+    KROTKO = b"public, max-age=120, stale-while-revalidate=600"
 
     def __init__(self, app):
         self.app = app
@@ -152,7 +158,7 @@ class StaticCacheHeaders:
         if sciezka.endswith("sw.js"):
             wartosc = self.NONE
         elif paczka:
-            wartosc = self.LONG
+            wartosc = self.KROTKO if sciezka.endswith(self.SPIS) else self.LONG
         else:
             wartosc = self.LONG if b"v=" in scope.get("query_string", b"") else self.SHORT
 
