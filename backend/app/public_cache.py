@@ -85,7 +85,7 @@ def get(name: str) -> Blob | None:
 
 
 def respond(request: Request, name: str) -> Response:
-    blob = _blobs.get(name)
+    blob = get(name)          # nie `_blobs`: na readerze paczka leży w pamięci współdzielonej
     if blob is None:
         return Response(b'{"error":"warming up"}', status_code=503, media_type="application/json",
                         headers={"Retry-After": "3", "Cache-Control": "no-store"})
