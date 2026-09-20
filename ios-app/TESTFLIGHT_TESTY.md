@@ -433,3 +433,17 @@ danych. To ta sama warstwa na obu platformach, więc iOS był realnie zagrożony
 Zadziałało, bo sesja główna przeniosła wersję stanu do adresu zapytania zamiast
 zostawiać ją w nagłówku. Gdyby została w nagłówku, iOS najpewniej zachowałby się
 jak Android.
+
+**Drugi tester na tej samej wersji (20.09, 12:34)** — iPhone 15 Pro Max, iOS 26.6.1,
+build 1.7.63 / 2609200633, czyli dokładnie ten zgłoszony do App Store:
+
+| Co | Wynik |
+|---|---|
+| Diagnostyka | `APNs: tak · FCM: tak · zapis: gotowe` |
+| Subskrypcje | lubelskie, mazowieckie, podkarpackie + trzy tematy testowe |
+| Zapis po nocy, aktualizacji i przebudowie serwera | odtworzony poprawnie |
+| Nowe teksty iOS na ekranie | mieszczą się w całości, bez ucinania |
+| Ślady po Androidzie w tekstach | brak |
+
+Ten ostatni wiersz jest ważny dla przeglądu: to ten sam ekran, który zobaczy
+recenzent Apple, a największym ryzykiem jest u nas zarzut 4.2.2.
