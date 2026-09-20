@@ -326,6 +326,29 @@ async def ws_endpoint(ws: WebSocket):
 
 # ── REST API ─────────────────────────────────────────────────────────────────
 NIC_NOWEGO = b'{"unchanged":true}'
+_wersja_readera = ("", "")        # (etag paczki, wersja stanu) — parsowanie raz na zmianę
+
+
+def _wersja_stanu() -> str:
+    """Wersja stanu dla klienta (`fusion.ts`).
+
+    Writer zna ją z liczenia. Reader niczego nie liczy, więc czyta ją z gotowych
+    bajtów — raz na nową paczkę, nie raz na zapytanie. Bez tego reader odsyłałby
+    pełny stan każdemu pytającemu i cały zysk z odpytywania by przepadł.
+    """
+    global _wersja_readera
+    if config.IS_WRITER:
+        return _state_ts
+    blob = public_cache.get("state")
+    if blob is None:
+        return ""
+    if _wersja_readera[0] != blob.etag:
+        try:
+            ts = json.loads(blob.raw).get("fusion", {}).get("ts")
+        except (ValueError, AttributeError):
+            ts = None
+        _wersja_readera = (blob.etag, str(ts or ""))
+    return _wersja_readera[1]
 
 
 @app.get("/api/state")
@@ -343,7 +366,7 @@ async def api_state(request: Request, v: str | None = None):
     """
     if public_cache.get("state") is None and config.IS_WRITER:
         refresh_state()
-    if v and v == _state_ts:
+    if v and v == _wersja_stanu():
         return Response(NIC_NOWEGO, media_type="application/json",
                         headers={"Cache-Control": "public, max-age=2, s-maxage=2, "
                                                   "stale-while-revalidate=30"})
