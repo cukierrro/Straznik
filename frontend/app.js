@@ -599,7 +599,7 @@ const POLL_ALARM_MS = 2000;     // trwa alarm — patrzymy uważniej
 const POLL_CALM_MS = 5000;      // spokój — stan i tak zmienia się rzadziej
 const POLL_BUSY_MS = 10000;     // serwer prosi o przerwę (503)
 const POLL_LOST_MS = 12000;     // tyle bez odpowiedzi = pokazujemy „brak połączenia"
-let pollTimer = null, pollVer = null, pollBusyFlag = false;
+let pollTimer = null, pollVer = null, pollEtag = null, pollBusyFlag = false;
 let pollInFlight = false, pollLastOk = 0;
 /* Krótkie zerwanie (przejazd tunelem, zmiana sieci) trwa sekundy i wracało samo,
    a komunikat zdążył mignąć i straszył. Pokazujemy go dopiero, gdy połączenia nie
@@ -759,17 +759,26 @@ async function pollState() {
     // a Cloudflare trzyma tę odpowiedź na brzegu pod kluczem z wersją.
     // no-store: Cloudflare nadpisywał max-age=2 na 4 h i przeglądarka podawała stan
     // sprzed kilkunastu minut — obiekty skakały (15.09.2026).
+    // Dwie drogi do tej samej odpowiedzi „nic nowego", bo każda działa gdzie indziej:
+    // parametr v rozumie nasz serwer (i Cloudflare, gdy klucz cache obejmuje parametry),
+    // a nagłówek If-None-Match obsługuje sam brzeg Cloudflare, oddając 304 bez pytania nas.
     const adres = base + "/api/state" + (pollVer ? "?v=" + encodeURIComponent(pollVer) : "");
-    const r = await fetch(adres, { cache: "no-store", signal: ctrl.signal });
+    const r = await fetch(adres, {
+      cache: "no-store", signal: ctrl.signal,
+      headers: pollEtag ? { "If-None-Match": pollEtag } : undefined,
+    });
     clearTimeout(timer);
     if (r.status === 503) {                    // serwer zrzuca ruch (load_guard)
       pollBusyFlag = true;
       showBusyPolling();
+    } else if (r.status === 304) {             // brzeg Cloudflare: nic nowego
+      pollOk();
     } else if (r.ok) {
       const dane = await r.json();
       pollOk();
       if (!dane?.unchanged) {                  // pełny stan = nowa wersja
         pollVer = dane?.fusion?.ts || null;
+        try { pollEtag = r.headers?.get?.("ETag") || null; } catch { pollEtag = null; }
         applyState(dane);
       }
     } else {
@@ -793,13 +802,13 @@ function pollOk() {
 /* Start odpytywania: pierwsze pytanie natychmiast, żeby mapa była od razu. */
 function startPolling() {
   pollLastOk = Date.now();
-  pollVer = null;
+  pollVer = null; pollEtag = null;
   pollState();
 }
 
 /* Wymuszone pobranie pełnego stanu (powrót aplikacji na wierzch, powrót z trybu
    wbudowanego) — bez wersji, więc serwer nie odpowie „nic nowego". */
-function pollOnce() { pollVer = null; return pollState(); }
+function pollOnce() { pollVer = null; pollEtag = null; return pollState(); }
 
 /* Komunikat administracyjny z serwera (np. zapowiedź okna testowego). Apka tylko
    GO WYŚWIETLA — żadnych danych zwrotnych (bez telemetrii). Zamknięcie zapamiętujemy
