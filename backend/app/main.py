@@ -1,5 +1,6 @@
 """Strażnik — backend FastAPI: kolektory, fuzja, API, WebSocket, statyka frontendu."""
 import asyncio
+import hashlib
 import json
 import logging
 import os
@@ -141,10 +142,39 @@ def build_state() -> dict:
     }
 
 
+# Odcisk stanu BEZ pól, które tykają same z siebie: `fusion.ts` i znacznik ostatniej
+# wiadomości NEPTUN-a. Bez tego /api/state dostawał nowy ETag co kilka sekund, choć
+# mapa się nie zmieniała — każde warunkowe zapytanie ściągało wtedy pełne 28 KB
+# zamiast dostać „304" (pomiar 20.09.2026: 15 pełnych odpowiedzi i jedna 304 na
+# 75 sekund). Przy odpytywaniu zamiast WebSocketu to ta różnica decyduje o ruchu.
+_state_fingerprint = ""
+_state_built_at = 0.0
+STATE_MAX_AGE_S = 60      # mimo wszystko odświeżamy co minutę, żeby `ts` nie odpłynął
+
+
 def refresh_state() -> None:
     """Stan liczony raz i od razu podawany wszystkim: /api/state i WebSocket."""
-    global _ws_message, _ws_tick
-    blob = public_cache.make_blob(build_state())
+    global _ws_message, _ws_tick, _state_fingerprint, _state_built_at
+    payload = build_state()
+    fus = payload.get("fusion") or {}
+    nep = (payload.get("neptun") or {}).get("status") or {}
+    ts, last_msg = fus.get("ts"), nep.get("last_msg")
+    if ts is not None:
+        fus["ts"] = ""
+    if last_msg is not None:
+        nep["last_msg"] = 0
+    probe = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode()
+    odcisk = hashlib.blake2b(probe, digest_size=10).hexdigest()
+    swiezy = time.time() - _state_built_at < STATE_MAX_AGE_S
+    if odcisk == _state_fingerprint and swiezy and public_cache.get("state") is not None:
+        return                      # nic istotnego się nie zmieniło — ETag zostaje
+    if ts is not None:
+        fus["ts"] = ts
+    if last_msg is not None:
+        nep["last_msg"] = last_msg
+    _state_fingerprint = odcisk
+    _state_built_at = time.time()
+    blob = public_cache.make_blob(payload)
     public_cache.put("state", blob)
     _ws_tick = '{"type":"tick","etag":' + json.dumps(blob.etag) + "}"
     _ws_message = '{"type":"state","data":' + blob.raw.decode() + "}"
