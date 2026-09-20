@@ -56,17 +56,26 @@ sprawdz(rest.get("notice") is None, "paczka dla nowych wersji bez komunikatu")
 sprawdz(ws["type"] == "state" and ws["data"].get("notice") is None, "ramka gniazda też bez komunikatu")
 
 print("2. Komunikat dla starych wersji trafia TYLKO do gniazda")
-(DANE / "notice-stare-wersje.json").write_text(json.dumps({
-    "id": "aktualizacja-1763",
-    "text": "Masz starszą wersję Strażnika. Otwórz Więcej → Sprawdź aktualizacje."}),
-    encoding="utf-8")
+# Bierzemy dokładnie ten plik, który pójdzie na serwer — test sprawdza treść, nie atrapę.
+GOTOWY = json.loads((ROOT / "docs/notice-stare-wersje.json").read_text(encoding="utf-8"))
+(DANE / "notice-stare-wersje.json").write_text(json.dumps(GOTOWY, ensure_ascii=False),
+                                               encoding="utf-8")
 rest, ws = odswiez()
 sprawdz(rest.get("notice") is None,
         "przeglądarki i telefony z 1.7.63+ NIE widzą prośby o aktualizację")
-sprawdz((ws["data"].get("notice") or {}).get("id") == "aktualizacja-1763",
+sprawdz((ws["data"].get("notice") or {}).get("id") == GOTOWY["id"],
         "stare wersje dostają ją przez gniazdo")
-sprawdz("Sprawdź aktualizacje" in (ws["data"]["notice"]["text"]),
-        "z treścią, która kieruje do przycisku w aplikacji")
+tresc = ws["data"]["notice"]["text"]
+sprawdz("Sprawdź aktualizacje" in tresc, "kieruje do przycisku w aplikacji")
+sprawdz("odzysk" not in tresc and "odinstal" not in tresc.lower(),
+        "NIE każe odinstalowywać — to skasowałoby zapisane miejsca i ustawienia")
+sprawdz("instaluje się na starej" in tresc,
+        "mówi wprost, że ustawienia zostają (ludzie boją się stracić miejsca)")
+sprawdz("przeglądarce" in tresc,
+        "ma zdanie dla kart z zapamiętaną starą stroną — im wystarczy odświeżenie")
+from datetime import datetime, timezone  # noqa: E402
+sprawdz(datetime.fromisoformat(GOTOWY["until"]) > datetime.now(timezone.utc),
+        f"ma termin wygaśnięcia w przyszłości ({GOTOWY['until'][:10]})")
 
 print("3. Zwykły komunikat dla wszystkich działa jak dotąd")
 (DANE / "notice.json").write_text(json.dumps({"id": "test-syren", "text": "Jutro próba syren."}),
