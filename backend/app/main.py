@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
-from . import (alert_log, app_updates, by_entry_shadow, config, db, escalation_shadow, fusion, load_guard,
+from . import (alert_log, app_updates, blob_store, by_entry_shadow, config, db, escalation_shadow, fusion, load_guard,
                monitoring, notify, public_cache, rcb_reference, request_limits)
 from .collectors import (adsb, by_media_shadow, mapa_ua_shadow, neighbours, neptun,
                          official_alerts, pansa, rcb, ro_shadow, rso, rss_media)
@@ -281,7 +281,10 @@ async def _close(ws: WebSocket) -> None:
 @app.websocket("/ws")
 async def ws_endpoint(ws: WebSocket):
     tick_mode = ws.query_params.get("v") == "2"
-    busy = (len(_ws_clients) + len(_ws_tick_clients) >= WS_MAX_CLIENTS
+    # Reader nie ma skąd brać ramek (stan liczy writer), więc grzecznie odmawia
+    # kodem 1013 — starsze wersje aplikacji przechodzą wtedy na odpytywanie.
+    busy = (not config.IS_WRITER
+            or len(_ws_clients) + len(_ws_tick_clients) >= WS_MAX_CLIENTS
             or load_guard.refuse_websocket())
     try:
         await ws.accept()
@@ -338,7 +341,7 @@ async def api_state(request: Request, v: str | None = None):
     cache'uje je pod kluczem z `v`: wszyscy pytają o tę samą wersję, więc to jeden
     wpis w pamięci brzegu, nie jeden na użytkownika.
     """
-    if public_cache.get("state") is None:
+    if public_cache.get("state") is None and config.IS_WRITER:
         refresh_state()
     if v and v == _state_ts:
         return Response(NIC_NOWEGO, media_type="application/json",
@@ -400,7 +403,7 @@ def _history_at(at: str, hours: int) -> dict:
 async def api_timeline(request: Request):
     """Oś czasu suwaka historii (najwyższy wynik w kraju dla każdej migawki).
     Gotowa odpowiedź z public_cache, odświeżana co minutę."""
-    if public_cache.get("timeline") is None:
+    if public_cache.get("timeline") is None and config.IS_WRITER:
         await public_cache.rebuild("timeline", public_cache.build_timeline)
     return public_cache.respond(request, "timeline")
 
@@ -411,7 +414,7 @@ async def api_history_bundle(request: Request):
     Klient przewija suwak lokalnie. Paczka jest składana w tle co minutę
     i podawana jako gotowe, skompresowane bajty (public_cache) — składanie przy
     każdym wejściu zabiło serwer 13.09.2026 o 04:54."""
-    if public_cache.get("bundle") is None:
+    if public_cache.get("bundle") is None and config.IS_WRITER:
         await public_cache.rebuild("bundle", public_cache.build_bundle_bytes)
     return public_cache.respond(request, "bundle")
 
@@ -440,7 +443,21 @@ async def api_health(request: Request):
     Szczegóły są dostępne tylko z samego serwera: curl http://127.0.0.1:40141/api/health."""
     if not _is_local(request):
         return JSONResponse({"ok": True}, headers={"Cache-Control": "no-store"})
+    if config.ROLE == "reader":
+        # Reader nie ma kolektorów — bierze ich stan z pliku writera i dokłada swój.
+        writer = blob_store.wczytaj_health() or {}
+        wiek = blob_store.wiek_s("state")
+        return {**writer, "rola": "reader",
+                "reader": {"load_guard": load_guard.status,
+                           "public_cache": public_cache.status,
+                           "blob_store": blob_store.status,
+                           "wiek_stanu_s": None if wiek is None else round(wiek, 1)}}
+    return _health_payload()
+
+
+def _health_payload() -> dict:
     return {
+        "rola": config.ROLE,
         "neptun": neptun.status, "adsb": adsb.status, "pansa": pansa.status,
         "rcb": rcb.status, "rso": rso.status, "rss": rss_media.status["feeds"],
         "neighbours": neighbours.status,
@@ -510,7 +527,7 @@ async def api_zones(request: Request):
     część /api/state, bo geometria stref waży setki kilobajtów, a stan leci przez
     WebSocket co kilka sekund. Aplikacja pobiera to raz na kilka minut.
     """
-    if public_cache.get("zones") is None:
+    if public_cache.get("zones") is None and config.IS_WRITER:
         await public_cache.rebuild("zones", _zones_payload, in_thread=False)
     return public_cache.respond(request, "zones")
 
@@ -582,6 +599,13 @@ async def test_signal(body: dict):
 @app.on_event("startup")
 async def startup():
     db.init()
+    if not config.IS_WRITER:
+        # READER: nie zbiera, nie liczy, nie alarmuje. Podaje gotowe bajty, które
+        # writer odkłada do pamięci współdzielonej. Jedyne zadanie własne to
+        # bezpiecznik obciążenia — reader też może dostać falę zapytań.
+        monitoring.start("load_guard", lambda: load_guard.monitor(shed_websockets))
+        log.info("Strażnik wystartował jako READER — bez kolektorów i bez powiadomień")
+        return
     notify.init_vapid()
     notify.init_fcm()
     fusion.on_level_change = notify.notify_level
@@ -604,9 +628,22 @@ async def startup():
         "cache_zones": lambda: public_cache.refresh_loop(
             "zones", _zones_payload, 30, in_thread=False),
     }
+    if config.ROLE == "writer":
+        # stan kolektorów wędruje do readera tą samą drogą co dane mapy
+        jobs["health_blob"] = health_blob_loop
     for name, factory in jobs.items():
         monitoring.start(name, factory)
-    log.info("Strażnik wystartował — kolektory uruchomione")
+    log.info("Strażnik wystartował (rola: %s) — kolektory uruchomione", config.ROLE)
+
+
+async def health_blob_loop():
+    """Writer odkłada swój stan zdrowia dla readera (ten sam plik w RAM)."""
+    while True:
+        try:
+            blob_store.zapisz_health(_health_payload())
+        except Exception as e:                        # noqa: BLE001
+            log.warning("health blob: %s", e)
+        await asyncio.sleep(5)
 
 
 async def level_loop():

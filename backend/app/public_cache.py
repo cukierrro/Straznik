@@ -63,9 +63,24 @@ def make_blob(payload: bytes | str | dict | list) -> Blob:
 def put(name: str, blob: Blob) -> None:
     _blobs[name] = blob
     status["builds"][name] = {"at": round(blob.built), "raw": len(blob.raw), "gz": len(blob.gz)}
+    # writer oddaje gotowe bajty czytającym procesom (plik w RAM, podmiana atomowa)
+    if config.ROLE == "writer":
+        from . import blob_store
+        blob_store.zapisz(name, blob.raw, blob.gz, blob.etag)
 
 
 def get(name: str) -> Blob | None:
+    if config.ROLE == "reader":
+        from . import blob_store
+        dane = blob_store.wczytaj(name)
+        if dane is None:
+            return None
+        gotowy = _blobs.get(name)
+        if gotowy is not None and gotowy.etag == dane["etag"]:
+            return gotowy                      # ten sam stan — bez ponownego składania
+        blob = Blob(raw=dane["raw"], gz=dane["gz"], etag=dane["etag"], built=dane["built"])
+        _blobs[name] = blob
+        return blob
     return _blobs.get(name)
 
 
