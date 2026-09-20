@@ -48,6 +48,7 @@ app = FastAPI(title="Strażnik", docs_url=None, redoc_url=None, openapi_url=None
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"],
                    allow_headers=["*"], expose_headers=["ETag"])
 app.add_middleware(public_cache.PageCacheHeaders)
+app.add_middleware(public_cache.StaticCacheHeaders)
 # ostatni dodany = pierwszy w kolejce: bezpiecznik odrzuca, zanim cokolwiek się policzy
 app.add_middleware(load_guard.GuardMiddleware)
 # jeszcze wcześniej: za duża treść i zalew subskrypcji odpadają przed kolejką (audyt 16.09)

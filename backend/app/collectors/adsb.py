@@ -253,9 +253,10 @@ async def _tick(client: httpx.AsyncClient):
     _watch_prev = watch_now
 
     hour_key = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H")
+    # jeden zapis na wszystkie województwa zamiast szesnastu (audyt 20.09.2026)
+    db.add_adsb_samples([(voiv, len(planes)) for voiv, planes in per_voiv.items()])
     for voiv, planes in per_voiv.items():
         n = len(planes)
-        db.add_adsb_sample(voiv, n)
         baseline = db.adsb_baseline(voiv, config.ADSB_BASELINE_DAYS)
         status["counts"][voiv] = n
         status["baselines"][voiv] = round(baseline, 2)

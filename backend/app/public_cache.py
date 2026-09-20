@@ -89,6 +89,52 @@ def respond(request: Request, name: str) -> Response:
     return Response(blob.raw, media_type="application/json", headers=headers)
 
 
+class StaticCacheHeaders:
+    """Cache dla plików statycznych (czysty ASGI, bez buforowania odpowiedzi).
+
+    Audyt Mikrusa 20.09.2026: origin nie wysyłał żadnego `Cache-Control` na
+    `app.js`, `style.css`, obrazki i czcionki. Cloudflare cache'ował je po swojemu
+    (widać HIT), ale PRZEGLĄDARKA dostawała odpowiedź bez wskazówki i przy każdym
+    otwarciu pytała serwer ponownie.
+
+    Adres z `?v=` niesie wersję wydania — taki plik nigdy nie zmienia treści pod
+    tym samym adresem, więc może leżeć w pamięci telefonu rok („immutable"). Plik
+    bez wersji (np. ikona z manifestu) dostaje dobę i pozwolenie na użycie starej
+    kopii w tle. `sw.js` NIE może być cache'owany długo — to on decyduje o
+    aktualizacji reszty.
+    """
+
+    LONG = b"public, max-age=31536000, immutable"
+    SHORT = b"public, max-age=86400, stale-while-revalidate=604800"
+    NONE = b"no-cache"
+    EXT = (".js", ".css", ".png", ".jpg", ".jpeg", ".svg", ".webp", ".woff2",
+           ".json", ".geojson", ".ico", ".webmanifest")
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            return await self.app(scope, receive, send)
+        sciezka = scope.get("path", "")
+        if not sciezka.endswith(self.EXT):
+            return await self.app(scope, receive, send)
+        if sciezka.endswith("sw.js"):
+            wartosc = self.NONE
+        else:
+            wartosc = self.LONG if b"v=" in scope.get("query_string", b"") else self.SHORT
+
+        async def wyslij(message):
+            if message["type"] == "http.response.start":
+                naglowki = [(k, v) for k, v in message.get("headers", [])
+                            if k.lower() != b"cache-control"]
+                naglowki.append((b"cache-control", wartosc))
+                message = {**message, "headers": naglowki}
+            await send(message)
+
+        await self.app(scope, receive, wyslij)
+
+
 class PageCacheHeaders:
     """Nagłówki cache dla strony głównej (czysty ASGI, bez buforowania odpowiedzi).
 
