@@ -60,17 +60,42 @@ def make_blob(payload: bytes | str | dict | list) -> Blob:
     return Blob(raw=raw, gz=gzip.compress(raw, compresslevel=6), etag=etag, built=time.time())
 
 
+STAN_PRZETERMINOWANY_S = 180      # writer odświeża stan najrzadziej co 60 s (STATE_MAX_AGE_S)
+
+
 def put(name: str, blob: Blob) -> None:
     _blobs[name] = blob
     status["builds"][name] = {"at": round(blob.built), "raw": len(blob.raw), "gz": len(blob.gz)}
+    # writer oddaje gotowe bajty czytającym procesom (plik w RAM, podmiana atomowa)
+    if config.ROLE == "writer":
+        from . import blob_store
+        blob_store.zapisz(name, blob.raw, blob.gz, blob.etag)
 
 
 def get(name: str) -> Blob | None:
+    if config.ROLE == "reader":
+        from . import blob_store
+        dane = blob_store.wczytaj(name)
+        if dane is None:
+            return None
+        if name == "state" and time.time() - dane["built"] > STAN_PRZETERMINOWANY_S:
+            # Writer milczy. Podanie starego stanu jako bieżącego byłoby groźniejsze
+            # niż cisza: telefon pokazałby spokojną mapę sprzed pół godziny i nie miałby
+            # skąd wiedzieć, że patrzy w przeszłość. Lepiej 503 — aplikacja wtedy mówi
+            # „brak połączenia" i przechodzi na własne źródła, dokładnie jak dziś przy
+            # padniętym serwerze. Krótkie przerwy (wdrożenie, restart) mieszczą się w progu.
+            return None
+        gotowy = _blobs.get(name)
+        if gotowy is not None and gotowy.etag == dane["etag"]:
+            return gotowy                      # ten sam stan — bez ponownego składania
+        blob = Blob(raw=dane["raw"], gz=dane["gz"], etag=dane["etag"], built=dane["built"])
+        _blobs[name] = blob
+        return blob
     return _blobs.get(name)
 
 
 def respond(request: Request, name: str) -> Response:
-    blob = _blobs.get(name)
+    blob = get(name)          # nie `_blobs`: na readerze paczka leży w pamięci współdzielonej
     if blob is None:
         return Response(b'{"error":"warming up"}', status_code=503, media_type="application/json",
                         headers={"Retry-After": "3", "Cache-Control": "no-store"})

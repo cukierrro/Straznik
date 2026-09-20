@@ -12,7 +12,10 @@ truststore.inject_into_ssl()
 
 BASE_DIR = Path(__file__).resolve().parent.parent          # backend/
 PROJECT_DIR = BASE_DIR.parent                              # katalog projektu
-DATA_DIR = BASE_DIR / "data"
+# Katalog danych da się przestawić zmienną środowiskową — próbne uruchomienie
+# (np. rozbicie na writera i readera) pracuje wtedy na KOPII bazy i nie dotyka
+# produkcyjnej. Domyślnie bez zmian.
+DATA_DIR = Path(os.getenv("STRAZNIK_DATA_DIR", str(BASE_DIR / "data")))
 FRONTEND_DIR = PROJECT_DIR / "frontend"
 
 load_dotenv(BASE_DIR / ".env")
@@ -20,6 +23,18 @@ load_dotenv(BASE_DIR / ".env")
 DB_PATH = DATA_DIR / "straznik.db"
 VAPID_PATH = DATA_DIR / "vapid.json"
 
+# Rola procesu (rozbicie z audytu Mikrusa, 20.09.2026):
+#   "all"    — jak dotąd: jeden proces robi wszystko (domyślnie, produkcja),
+#   "writer" — zbiera dane, liczy, zapisuje i WYSYŁA ALARMY; nie obsługuje ludzi,
+#   "reader" — podaje gotowe bajty telefonom; nie liczy i nie alarmuje NIGDY.
+# Powiadomienia wychodzą wyłącznie z writera — dwa procesy wysyłałyby je podwójnie.
+ROLE = os.getenv("STRAZNIK_ROLE", "all").lower()
+IS_WRITER = ROLE in ("all", "writer")
+IS_READER = ROLE in ("all", "reader")
+# Tryb próby: proces liczy i serwuje ze swojej kopii bazy, ale NIE odpytuje źródeł
+# (nie dubluje ruchu produkcji pod limitami ADS-B) i NIE wysyła powiadomień
+# (nikt nie dostanie alarmu z testowego procesu). Produkcja tego nie ustawia.
+PROBA = os.getenv("STRAZNIK_PROBA", "") in ("1", "true", "yes")
 HOST = os.getenv("HOST", "0.0.0.0")
 PORT = int(os.getenv("PORT", "8600"))
 

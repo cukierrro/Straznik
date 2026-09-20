@@ -1,9 +1,14 @@
 const fs = require('node:fs');
 const vm = require('node:vm');
 const assert = require('node:assert/strict');
-const js = fs.readFileSync('frontend/app.js', 'utf8');
+// Windows wymienia zakończenia linii przy pobraniu z gita, a wycinek niżej kończy się
+// na pustej linii — bez tej normalizacji granica nie pasowała, test wciągał pół app.js
+// razem z kodem interfejsu i wywalał się na `document`. Na Linuksie przechodził, tu nie.
+const js = fs.readFileSync('frontend/app.js', 'utf8').replace(/\r\n/g, '\n');
 const start = js.indexOf('function historicalAdsbGhosts');
 const end = js.indexOf('\n\n/* Kolorowanie osi czasu', start);
+assert.ok(start >= 0 && end > start,
+  'Nie znaleziono granic wycinka w app.js — popraw znaczniki w teście, a nie kod aplikacji');
 const ctx = vm.createContext({Date, Map, Set, Math});
 vm.runInContext(js.slice(start, end), ctx);
 const now = Date.parse('2026-09-05T08:00:00Z');
