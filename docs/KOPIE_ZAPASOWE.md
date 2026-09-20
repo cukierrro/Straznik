@@ -14,8 +14,20 @@ przez 90 dni, jedna miesięcznie przez rok — około 57 kopii po kilka MB.
 
 W kopii: spójna baza `straznik.db` (sprawdzona `PRAGMA integrity_check`),
 `obserwacje.db`, pliki stanu stref i alertów, `MANIFEST.json` z liczbą sygnałów
-i subskrypcji oraz **`sekrety.tar.gpg`** — zaszyfrowane `vapid.json`,
-`fcm-service-account.json`, `.env` i plik usługi systemd.
+i subskrypcji oraz **`sekrety.tar.gpg`** — zaszyfrowany **cały układ serwera**:
+
+- `vapid.json`, `fcm-service-account.json`, `backend/.env`,
+- obie usługi (`straznik.service`, `straznik-reader.service`), tunel
+  (`straznik-tunnel.service`) i dozorca (`straznik-watchdog.service` + `.timer`),
+- nakładki z `/etc/systemd/system/straznik.service.d/` — w tym `rola.conf`, który
+  decyduje, że główny proces jest **writerem**,
+- `cloudflared-config.yml` (kierowanie po ścieżkach) i poświadczenia tunelu,
+- `cron-straznik-backup`, czyli harmonogram samych kopii.
+
+Do 20.09.2026 był tu **jeden** plik usługi. Po rozbiciu na dwa procesy sama baza nie
+wystarcza: odtworzona leżałaby na maszynie, do której nikt nie trafi, bo domena nie
+wie, dokąd kierować. Odtwarzanie ma być przepisaniem plików, nie składaniem układu
+z pamięci.
 
 **Szyfrowanie sekretów (od 17.09.2026, audyt bezpieczeństwa).** Kopia sekretów jest
 szyfrowana kluczem publicznym `/opt/straznik/kopie-klucz-publiczny.asc`. Klucz
@@ -39,7 +51,7 @@ od 17.09 zwraca tylko `{"ok": true}`). Log na VPS:
 2. Na VPS:
 
    ```bash
-   systemctl stop straznik
+   systemctl stop straznik straznik-reader
    mkdir -p /tmp/odtw && tar --zstd -xf /var/backups/straznik/straznik-RRRRMMDD-GGMM.tar.zst -C /tmp/odtw
    cat /tmp/odtw/straznik/MANIFEST.json
    cp /tmp/odtw/straznik/straznik.db /opt/straznik/backend/data/straznik.db
@@ -63,14 +75,36 @@ od 17.09 zwraca tylko `{"ok": true}`). Log na VPS:
    cp /tmp/odtw/straznik/.env /opt/straznik/backend/.env
    chown root:straznik /opt/straznik/backend/.env && chmod 640 /opt/straznik/backend/.env
    chmod 600 /opt/straznik/backend/data/vapid.json /opt/straznik/backend/data/fcm-service-account.json
-   systemctl start straznik
+   systemctl start straznik straznik-reader
+   ```
+
+   Gdy odtwarzasz na **pustej maszynie**, z tej samej paczki wgraj też układ usług
+   (nazwy w archiwum są spłaszczone, stąd `--`):
+
+   ```bash
+   cp /tmp/odtw/straznik/straznik.service /tmp/odtw/straznik/straznik-reader.service       /tmp/odtw/straznik/straznik-tunnel.service /tmp/odtw/straznik/straznik-watchdog.*       /etc/systemd/system/
+   mkdir -p /etc/systemd/system/straznik.service.d
+   for f in /tmp/odtw/straznik/straznik.service.d--*; do
+       cp "$f" "/etc/systemd/system/straznik.service.d/${f##*--}"
+   done
+   mkdir -p /etc/cloudflared-straznik /root/.cloudflared
+   cp /tmp/odtw/straznik/cloudflared-config.yml /etc/cloudflared-straznik/config.yml
+   for f in /tmp/odtw/straznik/cloudflared-poswiadczenia-*; do
+       cp "$f" "/root/.cloudflared/${f##*poswiadczenia-}"
+   done
+   chmod 600 /root/.cloudflared/*.json
+   cp /tmp/odtw/straznik/cron-straznik-backup /etc/cron.d/straznik-backup
+   systemctl daemon-reload && systemctl enable --now straznik straznik-reader straznik-tunnel straznik-watchdog.timer
    ```
 
    Od 14.09.2026 usługa działa jako użytkownik `straznik` (audyt D9). Właściciela
    plików w `data/` poprawia sama przy starcie (`ExecStartPre` w drop-inie), ale `.env`
    leży poza `data/` i musi być czytelny dla grupy `straznik`.
 
-3. Sprawdzić `/api/health` i czy strona pokazuje mapę.
+3. Sprawdzić `/api/health` (u **writera**, port 40141) i czy strona pokazuje mapę.
+   Od rozbicia 20.09.2026 stronę podaje reader z portu 40142, a tunel kieruje do
+   writera tylko `^/ws$`, `^/api/push/` i `^/api/health` — jeśli po odtworzeniu zapis
+   na powiadomienia albo monitoring zwracają dziwne rzeczy, sprawdź najpierw te ścieżki.
 
 `vapid.json` jest najważniejszy: bez tych samych kluczy żadna zapisana subskrypcja
 powiadomień w przeglądarce nie zadziała i każdy musiałby włączyć je od nowa.
@@ -93,6 +127,10 @@ prywatnego trzymaj poza tym komputerem (menedżer haseł albo pendrive).
 Na Windows kopię rozpakowuje wbudowany tar (tar z Git Bash nie zna zstd):
 `C:\Windows\System32\tar.exe -xf straznik-RRRRMMDD-GGMM.tar.zst -C <katalog>`.
 Odtworzenie sprawdzone 13.09.2026: `integrity_check` ok, 1088 sygnałów, 175 subskrypcji.
+Sprawdzone ponownie 20.09.2026 z najnowszej kopii: `integrity_check` ok, liczby z bazy
+zgodne z `MANIFEST.json` co do sztuki (1811 sygnałów, 1298 subskrypcji, 718 migawek),
+dane aktualne na moment kopii. Zaszyfrowana paczka sekretów rozpakowana kluczem
+tymczasowym — 14 plików, cały układ; produkcyjne kopie nietknięte.
 
 Kopia na VPS działa z najniższym priorytetem (`nice`/`ionice`), żeby kompresja
 nie konkurowała z serwerem w trakcie ataku.
