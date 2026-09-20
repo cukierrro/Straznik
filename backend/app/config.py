@@ -20,6 +20,10 @@ FRONTEND_DIR = PROJECT_DIR / "frontend"
 
 load_dotenv(BASE_DIR / ".env")
 
+# Paczki map Groty (ok. 2 GB) — poza katalogiem repozytorium, żeby `git clean`
+# przy wdrożeniu ich nie skasował. Brak katalogu = Grota bez map offline.
+GROTA_PACZKI_DIR = Path(os.getenv("STRAZNIK_GROTA_PACZKI",
+                                  "/var/lib/straznik/grota-paczki"))
 DB_PATH = DATA_DIR / "straznik.db"
 VAPID_PATH = DATA_DIR / "vapid.json"
 

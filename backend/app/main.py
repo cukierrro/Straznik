@@ -784,5 +784,20 @@ async def progression_shadow_loop():
         await asyncio.sleep(120)
 
 
+# Paczki map Groty — około 2 GB, poza katalogiem repozytorium.
+#
+# Kusiłoby położyć je w `frontend/`, bo wtedy nie trzeba nic montować. Ale ten
+# katalog jest kopią roboczą gita na serwerze: dwa gigabajty nieznanych plików
+# śmieciłyby w `git status`, a jedno nieuważne `git clean -fd` przy wdrożeniu
+# skasowałoby je wszystkie. Leżą więc osobno i są montowane wprost.
+#
+# Montowane tylko, gdy katalog istnieje — na maszynie bez paczek (i w testach)
+# nic się nie zmienia.
+if config.GROTA_PACZKI_DIR.is_dir():
+    app.mount("/grota/paczki",
+              StaticFiles(directory=config.GROTA_PACZKI_DIR),
+              name="grota-paczki")
+    log.info("Paczki map Groty podawane z %s", config.GROTA_PACZKI_DIR)
+
 # statyka frontendu (montowana na końcu, żeby nie przykryć /api i /ws)
 app.mount("/", StaticFiles(directory=config.FRONTEND_DIR, html=True), name="frontend")
