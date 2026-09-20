@@ -31,6 +31,10 @@ VAPID_PATH = DATA_DIR / "vapid.json"
 ROLE = os.getenv("STRAZNIK_ROLE", "all").lower()
 IS_WRITER = ROLE in ("all", "writer")
 IS_READER = ROLE in ("all", "reader")
+# Tryb próby: proces liczy i serwuje ze swojej kopii bazy, ale NIE odpytuje źródeł
+# (nie dubluje ruchu produkcji pod limitami ADS-B) i NIE wysyła powiadomień
+# (nikt nie dostanie alarmu z testowego procesu). Produkcja tego nie ustawia.
+PROBA = os.getenv("STRAZNIK_PROBA", "") in ("1", "true", "yes")
 HOST = os.getenv("HOST", "0.0.0.0")
 PORT = int(os.getenv("PORT", "8600"))
 

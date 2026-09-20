@@ -606,9 +606,12 @@ async def startup():
         monitoring.start("load_guard", lambda: load_guard.monitor(shed_websockets))
         log.info("Strażnik wystartował jako READER — bez kolektorów i bez powiadomień")
         return
-    notify.init_vapid()
-    notify.init_fcm()
-    fusion.on_level_change = notify.notify_level
+    if config.PROBA:
+        log.warning("TRYB PRÓBY — bez kolektorów i bez powiadomień (kopia bazy)")
+    else:
+        notify.init_vapid()
+        notify.init_fcm()
+        fusion.on_level_change = notify.notify_level
     fusion.on_state_change = broadcast_state
     # Każde zadanie pod nadzorcą: wyjątek nie zatrzymuje go na zawsze (audyt D2).
     jobs = {
@@ -628,6 +631,11 @@ async def startup():
         "cache_zones": lambda: public_cache.refresh_loop(
             "zones", _zones_payload, 30, in_thread=False),
     }
+    if config.PROBA:
+        # zostają tylko zadania liczące i składające bajty — nic nie wychodzi na świat
+        zostaw = {"snapshots", "levels", "state", "heartbeat", "load_guard",
+                  "cache_bundle", "cache_timeline", "cache_zones"}
+        jobs = {k: v for k, v in jobs.items() if k in zostaw}
     if config.ROLE == "writer":
         # stan kolektorów wędruje do readera tą samą drogą co dane mapy
         jobs["health_blob"] = health_blob_loop
