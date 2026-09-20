@@ -60,6 +60,9 @@ def make_blob(payload: bytes | str | dict | list) -> Blob:
     return Blob(raw=raw, gz=gzip.compress(raw, compresslevel=6), etag=etag, built=time.time())
 
 
+STAN_PRZETERMINOWANY_S = 180      # writer odświeża stan najrzadziej co 60 s (STATE_MAX_AGE_S)
+
+
 def put(name: str, blob: Blob) -> None:
     _blobs[name] = blob
     status["builds"][name] = {"at": round(blob.built), "raw": len(blob.raw), "gz": len(blob.gz)}
@@ -74,6 +77,13 @@ def get(name: str) -> Blob | None:
         from . import blob_store
         dane = blob_store.wczytaj(name)
         if dane is None:
+            return None
+        if name == "state" and time.time() - dane["built"] > STAN_PRZETERMINOWANY_S:
+            # Writer milczy. Podanie starego stanu jako bieżącego byłoby groźniejsze
+            # niż cisza: telefon pokazałby spokojną mapę sprzed pół godziny i nie miałby
+            # skąd wiedzieć, że patrzy w przeszłość. Lepiej 503 — aplikacja wtedy mówi
+            # „brak połączenia" i przechodzi na własne źródła, dokładnie jak dziś przy
+            # padniętym serwerze. Krótkie przerwy (wdrożenie, restart) mieszczą się w progu.
             return None
         gotowy = _blobs.get(name)
         if gotowy is not None and gotowy.etag == dane["etag"]:

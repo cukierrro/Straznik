@@ -72,8 +72,24 @@ cache_src = (ROOT / "backend/app/public_cache.py").read_text(encoding="utf-8")
 sprawdz('if config.ROLE == "writer"' in cache_src, "writer odkłada każdą gotową paczkę dla readera")
 sprawdz('if config.ROLE == "reader"' in cache_src, "reader bierze paczki z pamięci współdzielonej")
 
-print("5. Domyślnie nic się nie zmienia")
-from app import config  # noqa: E402
+print("5. Milczący writer — reader nie udaje, że ma świeży stan")
+import time  # noqa: E402
+
+from app import config, public_cache  # noqa: E402
+
+config.ROLE = "reader"
+blob_store.zapisz("state", b'{"fusion":{"ts":"C"}}', b"gz-C", '"etag-C"')
+sprawdz(public_cache.get("state") is not None, "świeży stan reader podaje")
+stary = blob_store.wczytaj("state")
+stary["built"] = time.time() - (public_cache.STAN_PRZETERMINOWANY_S + 30)
+blob_store._cache["state"] = (blob_store._sciezka("state").stat().st_mtime, stary)
+sprawdz(public_cache.get("state") is None,
+        f"stan starszy niż {public_cache.STAN_PRZETERMINOWANY_S} s = „nie mam”, nie stara mapa jako bieżąca")
+sprawdz(public_cache.STAN_PRZETERMINOWANY_S >= 120,
+        "próg z zapasem na restart writera — krótkie wdrożenie nie miga banerem")
+config.ROLE = "all"
+
+print("6. Domyślnie nic się nie zmienia")
 sprawdz(config.ROLE == "all", f"bez zmiennej środowiskowej rola to „all” ({config.ROLE})")
 sprawdz(config.IS_WRITER and config.IS_READER, "czyli jeden proces robi wszystko, jak dotąd")
 
