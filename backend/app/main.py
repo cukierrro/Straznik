@@ -40,8 +40,12 @@ logging.getLogger("uvicorn.error").addFilter(_QuietWebSocketLog())
 
 # Publiczna dokumentacja API nie jest potrzebna użytkownikom, a ułatwia nadużycia.
 app = FastAPI(title="Strażnik", docs_url=None, redoc_url=None, openapi_url=None)
+# expose_headers: bez tego aplikacja (inne źródło niż serwer) NIE WIDZI nagłówka
+# ETag, więc nie może odpytywać warunkowo i za każdym razem ściąga cały stan.
+# Przeglądarka udostępnia skryptowi tylko kilka nagłówków, a ETag nie jest jednym
+# z nich (20.09.2026, przy przejściu z WebSocketu na odpytywanie).
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"],
-                   allow_headers=["*"])
+                   allow_headers=["*"], expose_headers=["ETag"])
 app.add_middleware(public_cache.PageCacheHeaders)
 # ostatni dodany = pierwszy w kolejce: bezpiecznik odrzuca, zanim cokolwiek się policzy
 app.add_middleware(load_guard.GuardMiddleware)
