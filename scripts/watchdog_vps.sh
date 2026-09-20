@@ -13,11 +13,20 @@ pilnuj() {
 
     systemctl is-active --quiet "$usluga" || return 0
 
-    # świeżo uruchomiona usługa ma 2 min na rozgrzanie
-    since_us=$(systemctl show "$usluga" -p ActiveEnterTimestampMonotonic --value)
-    uptime_s=$(cut -d' ' -f1 /proc/uptime | cut -d. -f1)
-    age=$(( uptime_s - since_us / 1000000 ))
-    [ "$age" -lt 120 ] && { rm -f "$stan"; return 0; }
+    # Świeżo uruchomiona usługa ma 2 min na rozgrzanie.
+    #
+    # Liczymy to zegarem ściennym, nie monotonicznym. VPS jest kontenerem: zegar
+    # monotoniczny systemd idzie od startu GOSPODARZA (47 dni), a /proc/uptime
+    # pokazuje kontener (2,8 dnia). Różnica wychodziła ujemna, więc dozorca zawsze
+    # sądził, że usługa dopiero wstaje, i NIGDY nikogo nie podniósł — od 17.09 był
+    # ozdobą. Wyszło dopiero przy próbie na atrapie 20.09.
+    od=$(date -d "$(systemctl show "$usluga" -p ActiveEnterTimestamp --value)" +%s 2>/dev/null)
+    # gdy daty nie da się odczytać, uznajemy usługę za rozgrzaną: lepiej zrestartować
+    # zdrową usługę o jeden raz za dużo niż nie restartować jej nigdy
+    if [ -n "$od" ]; then
+        age=$(( $(date +%s) - od ))
+        [ "$age" -lt 120 ] && { rm -f "$stan"; return 0; }
+    fi
 
     if curl -fsS -m 10 -o /dev/null "$url"; then
         rm -f "$stan"
