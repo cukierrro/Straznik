@@ -16,6 +16,17 @@ DOCS = ROOT / "docs"
 # (wersja, data PL, data EN, tytuł PL, tytuł EN, punkty PL, punkty EN, zrzuty)
 # Zrzut: (plik, alt PL, alt EN, podpis PL, podpis EN)
 RELEASES = [
+    ("1.7.64", "21 września 2026", "21 September 2026",
+     "Aktualizacja działa na Androidzie 9 i 10",
+     "Updates work on Android 9 and 10",
+     ["Na telefonach z Androidem 9 i 10 aktualizacja z aplikacji kończyła się błędem „Podpis aktualizacji nie zgadza się z zainstalowaną aplikacją”. Podpis był w porządku — wszystkie wydania są podpisane tym samym kluczem. To aplikacja źle go odczytywała: Android 9 i 10 podają certyfikat pobranego pliku tylko przy starszym sposobie pytania. Naprawione.",
+      "Jeśli masz Androida 9 lub 10 i wersję od 1.7.54 do 1.7.63, tę jedną aktualizację zainstaluj ręcznie: pobierz Straznik.apk w przeglądarce ze strony wydań na GitHubie i otwórz plik. Instaluje się na starej wersji, ustawienia i miejsca zostają. Kolejne aktualizacje zadziałają już z aplikacji.",
+      "Bezpieczeństwo bez zmian: aplikacja nadal sprawdza sumę kontrolną i certyfikat każdej aktualizacji, zanim ją zainstaluje."],
+     ["On phones with Android 9 and 10, updating from inside the app ended with the error “The update signature does not match the installed app”. The signature was fine — every release is signed with the same key. The app was reading it wrongly: Android 9 and 10 only report the certificate of a downloaded file when asked the older way. Fixed.",
+      "If you have Android 9 or 10 and a version from 1.7.54 to 1.7.63, install this one update by hand: download Straznik.apk in your browser from the GitHub releases page and open the file. It installs over the old version and your settings and places stay. Later updates will work from inside the app again.",
+      "Security is unchanged: the app still checks the checksum and the certificate of every update before installing it."],
+     []),
+
     ("1.7.63", "20 września 2026", "20 September 2026",
      "Mniej pracy dla serwera przy tej samej mapie",
      "Less work for the server, the same map",

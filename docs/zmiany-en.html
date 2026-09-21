@@ -39,6 +39,15 @@
   <p class="fineprint">To see which version your phone has, open the app: <kbd>⚙</kbd> → the <kbd>App</kbd> tab → “App version”. The <kbd>⬆ Check for updates</kbd> button is right there too.</p>
 </div></header>
 <main id="content" class="wrap">
+<section id="v1-7-64">
+  <h2>1.7.64 — Updates work on Android 9 and 10</h2>
+  <p class="fineprint">Release 1.7.64 · 21 September 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.64">Full release notes</a></p>
+  <ul>
+    <li>On phones with Android 9 and 10, updating from inside the app ended with the error “The update signature does not match the installed app”. The signature was fine — every release is signed with the same key. The app was reading it wrongly: Android 9 and 10 only report the certificate of a downloaded file when asked the older way. Fixed.</li>
+    <li>If you have Android 9 or 10 and a version from 1.7.54 to 1.7.63, install this one update by hand: download Straznik.apk in your browser from the GitHub releases page and open the file. It installs over the old version and your settings and places stay. Later updates will work from inside the app again.</li>
+    <li>Security is unchanged: the app still checks the checksum and the certificate of every update before installing it.</li>
+  </ul>
+</section>
 <section id="v1-7-63">
   <h2>1.7.63 — Less work for the server, the same map</h2>
   <p class="fineprint">Release 1.7.63 · 20 September 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.63">Full release notes</a></p>
