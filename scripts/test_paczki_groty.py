@@ -35,6 +35,26 @@ def sprawdz(warunek, opis):
         bledy.append(opis)
 
 
+def naglowki(sciezka: str, metoda: str = "GET") -> dict:
+    """Wszystkie nagłówki odpowiedzi spod tego adresu (bez nagłówka Origin w zapytaniu)."""
+    zebrane = {}
+
+    async def aplikacja(scope, receive, send):
+        await send({"type": "http.response.start", "status": 200, "headers": [(b"x", b"1")]})
+
+    async def send(message):
+        if message["type"] == "http.response.start":
+            for k, v in message["headers"]:
+                zebrane[k.decode().lower()] = v.decode()
+
+    async def biegnij():
+        mw = StaticCacheHeaders(aplikacja)
+        await mw({"type": "http", "path": sciezka, "query_string": b"", "method": metoda}, None, send)
+
+    asyncio.run(biegnij())
+    return zebrane
+
+
 def naglowek(sciezka: str, query: bytes = b"") -> str:
     """Jaki Cache-Control dostanie odpowiedź spod tego adresu."""
     zebrane = {}
@@ -64,6 +84,19 @@ sprawdz("immutable" not in spis and "max-age=120" in spis,
         f"ale spis części żyje krótko — to on decyduje, co telefon pobierze: {spis}")
 sprawdz("immutable" in naglowek("/grota/paczki/opolskie-1.bin", b"cokolwiek=1"),
         "również, gdy ktoś dopisze cokolwiek do adresu")
+
+print("1b. CORS paczek — stały, bo Cloudflare trzyma jedną kopię na rok")
+h = naglowki("/grota/paczki/opolskie-1.bin")
+sprawdz(h.get("access-control-allow-origin") == "*",
+        "paczka ma Access-Control-Allow-Origin NAWET bez Origin w zapytaniu — inaczej zapamiętana kopia nie miałaby CORS")
+sprawdz("Content-Range" in h.get("access-control-expose-headers", ""),
+        "telefon może odczytać Content-Range i sprawdzić długość paczki ze spisem")
+sprawdz(naglowki("/grota/paczki/spis.bin").get("access-control-allow-origin") == "*", "spis też")
+o = naglowki("/grota/paczki/opolskie-1.bin", "OPTIONS")
+sprawdz(o.get("cache-control") == "no-store",
+        f"zapytanie wstępne NIE dostaje wieczności paczki ({o.get('cache-control')})")
+sprawdz("access-control-allow-origin" not in naglowki("/app.js"),
+        "reszta serwisu bez stałych nagłówków CORS — tam decyduje ogólny CORSMiddleware")
 
 print("2. Reszta serwisu bez zmian")
 sprawdz(naglowek("/app.js", b"v=1.7.63") == "public, max-age=31536000, immutable",

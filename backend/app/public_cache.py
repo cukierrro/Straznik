@@ -144,6 +144,18 @@ class StaticCacheHeaders:
     # paczkami. Kilka minut wystarczy, a kosztuje tyle co nic.
     SPIS = "spis.bin"
     KROTKO = b"public, max-age=120, stale-while-revalidate=600"
+    # CORS paczek (21.09.2026, prośba sesji Groty): WebView pyta z `http(s)://localhost`
+    # i pobiera zakresami, a telefon sprawdza z `Content-Range`, czy paczka ma długość
+    # zgodną ze spisem. Ogólny CORSMiddleware dokłada nagłówki TYLKO do zapytań z
+    # `Origin` — a Cloudflare trzyma jedną kopię na rok. Jeśli pierwsze pobranie przyszło
+    # bez `Origin`, zapamiętana kopia nie miałaby CORS wcale i telefon by ją odrzucił.
+    # Dlatego tu nagłówki są stałe, na każdej odpowiedzi — gwiazdka jest bezpieczna,
+    # bo paczki są publiczne i bez ciasteczek.
+    CORS_PACZEK = [
+        (b"access-control-allow-origin", b"*"),
+        (b"access-control-expose-headers", b"Content-Range, Content-Length, Accept-Ranges, ETag"),
+    ]
+    CORS_NAZWY = {b"access-control-allow-origin", b"access-control-expose-headers"}
 
     def __init__(self, app):
         self.app = app
@@ -155,8 +167,13 @@ class StaticCacheHeaders:
         paczka = sciezka.startswith(self.PACZKI)
         if not paczka and not sciezka.endswith(self.EXT):
             return await self.app(scope, receive, send)
+        opcje = scope.get("method") == "OPTIONS"
         if sciezka.endswith("sw.js"):
             wartosc = self.NONE
+        elif paczka and opcje:
+            # Odpowiedź na zapytanie wstępne nie może dostać wieczności paczki —
+            # zabetonowałaby nagłówki CORS. Przeglądarka trzyma ją wg Access-Control-Max-Age.
+            wartosc = b"no-store"
         elif paczka:
             wartosc = self.KROTKO if sciezka.endswith(self.SPIS) else self.LONG
         else:
@@ -164,9 +181,12 @@ class StaticCacheHeaders:
 
         async def wyslij(message):
             if message["type"] == "http.response.start":
+                pomin = {b"cache-control"} | (self.CORS_NAZWY if paczka else set())
                 naglowki = [(k, v) for k, v in message.get("headers", [])
-                            if k.lower() != b"cache-control"]
+                            if k.lower() not in pomin]
                 naglowki.append((b"cache-control", wartosc))
+                if paczka:
+                    naglowki.extend(self.CORS_PACZEK)
                 message = {**message, "headers": naglowki}
             await send(message)
 
