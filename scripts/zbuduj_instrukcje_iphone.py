@@ -299,8 +299,13 @@ EN = dict(
 
 def zbuduj(c):
     html = (DOCS / c["plik_zrodlo"]).read_text(encoding="utf-8")
+    # numer wersji Androida zmienia się z każdym wydaniem — wzorce nagłówka piszemy dla 1.7.64
+    # i podstawiamy bieżący numer z tytułu instrukcji
+    m = re.search(r"<title>Strażnik (\d+\.\d+\.\d+) —", html)
+    if not m:
+        sys.exit("Nie odczytałem wersji z tytułu instrukcji dla Androida")
     for stare, nowe in c["head"]:
-        html = zamien(html, stare, nowe, "nagłówek")
+        html = zamien(html, stare.replace("1.7.64", m.group(1)), nowe, "nagłówek")
     html = zamien(html, *c["nav_jezyki"], "przełącznik języka")
     html = zamien(html, *c["nav_android"], "odnośnik do drugiej instrukcji")
     html = wytnij(html, r'(?<=<header class="hero"><div class="wrap hero-grid">).*?(?=</div></header>)',
