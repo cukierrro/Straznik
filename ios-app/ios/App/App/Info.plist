@@ -78,11 +78,5 @@
 	<string>Dark</string>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
-	<key>NSAlarmKitUsageDescription</key>
-	<string>Strażnik może włączyć alarm, żeby czerwony alarm powietrzny było słychać także przy wyciszonym telefonie.</string>
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>remote-notification</string>
-	</array>
 </dict>
 </plist>

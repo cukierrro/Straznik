@@ -34,12 +34,7 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
         CAPPluginMethod(name: "requestFullScreenPermission", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "requestBatteryExemption", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "openSoundSettings", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "openNotificationSettings", returnType: CAPPluginReturnPromise),
-        // PRÓBA AlarmKit (21.09.2026) — tylko w wersji testowej, zob. AlarmKitProba.swift
-        CAPPluginMethod(name: "alarmKitStan", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "alarmKitZgoda", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "alarmKitTest", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "alarmKitPrzelacz", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "openNotificationSettings", returnType: CAPPluginReturnPromise)
     ]
 
     /// Ta sama lista i kolejność co `Alarms.VOIVS` (Android), `config.VOIVODESHIPS`
@@ -451,54 +446,6 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
                 schedule()
             }
         }
-    }
-
-    // MARK: - PRÓBA AlarmKit (tylko wersja testowa)
-
-    @objc func alarmKitStan(_ call: CAPPluginCall) {
-        var out = AlarmKitProba.stan()
-        out["testowa"] = Self.isTestBuild
-        call.resolve(out)
-    }
-
-    @objc func alarmKitZgoda(_ call: CAPPluginCall) {
-        guard Self.isTestBuild else { return call.reject("tylko w wersji testowej") }
-        #if canImport(AlarmKit)
-        if #available(iOS 26.0, *) {
-            Task { let stan = await AlarmKitProba.poprosOZgode(); call.resolve(["zgoda": stan]) }
-            return
-        }
-        #endif
-        call.resolve(["zgoda": "unavailable"])
-    }
-
-    /// Test z pierwszego planu: alarm za kilka sekund. Sprawdza samo przebicie
-    /// wyciszenia — zablokuj telefon i przestaw przełącznik na cichy.
-    @objc func alarmKitTest(_ call: CAPPluginCall) {
-        guard Self.isTestBuild else { return call.reject("tylko w wersji testowej") }
-        let za = Double(max(3, min(call.getInt("delaySec") ?? 10, 120)))
-        #if canImport(AlarmKit)
-        if #available(iOS 26.0, *) {
-            Task {
-                do {
-                    try await AlarmKitProba.zadzwon(tytul: "TEST Strażnika — alarm przy wyciszonym telefonie", zaSekund: za)
-                    AlarmKitProba.zapiszSlad("test z aplikacji: alarm za \(Int(za)) s")
-                    call.resolve(["scheduled": true])
-                } catch {
-                    AlarmKitProba.zapiszSlad("test z aplikacji: BŁĄD \(error.localizedDescription)")
-                    call.resolve(["scheduled": false, "reason": error.localizedDescription])
-                }
-            }
-            return
-        }
-        #endif
-        call.resolve(["scheduled": false, "reason": "iOS starszy niż 26"])
-    }
-
-    @objc func alarmKitPrzelacz(_ call: CAPPluginCall) {
-        guard Self.isTestBuild else { return call.reject("tylko w wersji testowej") }
-        defaults.set(call.getBool("on") ?? false, forKey: AlarmKitProba.kluczWlaczona)
-        call.resolve(["wlaczona": AlarmKitProba.wlaczona])
     }
 
     // MARK: - metody tylko dla Androida

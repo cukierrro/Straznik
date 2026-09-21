@@ -4507,42 +4507,9 @@ function openSettings() {
   const langSel = document.getElementById("set-lang"); if (langSel) langSel.value = UI.lang || "pl";
   document.getElementById("set-api").value = localStorage.getItem("straznik_api") || "";
   renderPlacesSummary();
-  odswiezProbeAlarmKit();
   dlg.showModal();
 }
 document.getElementById("btn-settings").onclick = () => openSettings();
-
-/* PRÓBA AlarmKit (21.09.2026) — tylko wersja testowa na iOS 26+ (wtyczka odpowiada
-   `testowa` i `dostepna`); w wersji ze sklepu sekcja zostaje ukryta. */
-async function odswiezProbeAlarmKit() {
-  const box = document.getElementById("proba-alarmkit");
-  const plugin = BG();
-  if (!box || !IS_IOS || !plugin?.alarmKitStan) return;
-  try {
-    const s = await plugin.alarmKitStan();
-    box.hidden = !(s.testowa && s.dostepna);
-    if (box.hidden) return;
-    document.getElementById("set-ak-proba").checked = !!s.wlaczona;
-    document.getElementById("ak-stan").textContent =
-      `zgoda: ${s.zgoda} · tło podłączone: ${s.tlo ? "tak" : "NIE"}
-ostatnia próba: ${s.ostatni || "—"}`;
-  } catch { box.hidden = true; }
-}
-document.getElementById("btn-ak-zgoda")?.addEventListener("click", async () => {
-  try { const r = await BG().alarmKitZgoda(); toast("Zgoda na alarmy: " + r.zgoda, 4000); } catch (e) { toast(String(e), 5000); }
-  odswiezProbeAlarmKit();
-});
-document.getElementById("btn-ak-test")?.addEventListener("click", async () => {
-  try {
-    const r = await BG().alarmKitTest({ delaySec: 10 });
-    toast(r.scheduled ? "Alarm za 10 s — przestaw przełącznik na cichy i zablokuj ekran." : "Nie zaplanowano: " + r.reason, 6000);
-  } catch (e) { toast(String(e), 5000); }
-  setTimeout(odswiezProbeAlarmKit, 500);
-});
-document.getElementById("set-ak-proba")?.addEventListener("change", async (e) => {
-  try { await BG().alarmKitPrzelacz({ on: e.target.checked }); } catch (err) { toast(String(err), 5000); }
-  odswiezProbeAlarmKit();
-});
 
 /* Zakładki w Ustawieniach: jedna długa lista zamieniona na cztery sekcje.
    Zmiana zakładki przewija okno na górę, żeby nowa sekcja zaczynała się od
