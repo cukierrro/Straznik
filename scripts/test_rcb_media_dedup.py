@@ -134,6 +134,42 @@ def test_media_source_cap_cannot_reach_yellow_threshold():
     assert fusion.level_for(state["score"]) == "none"
 
 
+# 21.09.2026: aktywny alert dla lubelskiego i trzy doniesienia o tym samym — 3,8 pkt przy pustej mapie
+ALERT_2109 = sig(
+    20, "2026-09-21T19:55:28+00:00", "rcb", "rso_alert", "lubelskie", 2.0,
+    "Alert RCB (RSO): „UWAGA! Rosyjski atak powietrzny na terenie Ukrainy. Sytuacja jest monitorowana. "
+    "W przestrzeni RP operuje polskie lotnict”", {"rso_id": "23354051"})   # ucięty jak w bazie (120 znaków)
+REF_2109 = datetime(2026, 9, 21, 20, 0, tzinfo=timezone.utc)
+
+
+def test_2109_echo_without_rcb_words_and_qra_wave_score_zero():
+    dowodztwo = sig(21, "2026-09-21T19:43:49+00:00", "media", "media_keywords", "lubelskie", 1.0,
+                    "Media: „Rosyjski atak powietrzny na Ukrainę. Polskie lotnictwo rozpoczęło "
+                    "działania, obrona powietrzna w gotowości”")
+    qra = sig(22, "2026-09-21T19:43:49+00:00", "media", "media_qra_wave", "lubelskie", 1.0,
+              "Media: wojsko poderwało lotnictwo — potwierdziły 2 redakcje")
+    radio = sig(23, "2026-09-21T19:42:35+00:00", "media", "media_keywords", "lubelskie", 1.0,
+                "Media: „„Rosyjski atak powietrzny na terenie Ukrainy”. Alert RCB w Lubelskiem!”")
+    state = fusion.accumulate([ALERT_2109, dowodztwo, qra, radio], REF_2109)["lubelskie"]
+    assert state["score"] == 2.0, state["score"]
+    media = [s for s in state["signals"] if s["source"] == "media"]
+    assert all(s.get("duplicate_of_official") == "23354051" for s in media)
+
+
+def test_2109_article_with_more_than_the_alert_still_counts():
+    dron = sig(24, "2026-09-21T19:50:00+00:00", "media", "media_keywords", "lubelskie", 1.0,
+               "Media: Rosyjski atak powietrzny. Dron nad Lubelszczyzną, polskie lotnictwo w powietrzu")
+    state = fusion.accumulate([ALERT_2109, dron], REF_2109)["lubelskie"]
+    assert state["score"] == 3.0, state["score"]
+    assert "duplicate_of_official" not in state["signals"][1]
+
+
+def test_2109_qra_wave_without_official_alert_still_counts():
+    qra = sig(25, "2026-09-21T19:43:49+00:00", "media", "media_qra_wave", "lubelskie", 1.0,
+              "Media: wojsko poderwało lotnictwo — potwierdziły 2 redakcje")
+    assert fusion.accumulate([qra], REF_2109)["lubelskie"]["score"] == 1.0
+
+
 if __name__ == "__main__":
     test_relay_is_visible_but_scores_zero()
     test_rcb_mention_with_new_information_is_not_suppressed()
@@ -142,4 +178,7 @@ if __name__ == "__main__":
     test_stored_wyryki_retrospective_is_visible_but_scores_zero()
     test_stored_podlaskie_legal_followup_is_visible_but_scores_zero()
     test_media_source_cap_cannot_reach_yellow_threshold()
-    print("OK: 7 regresji RCB/media, materiałów historycznych i propagacji")
+    test_2109_echo_without_rcb_words_and_qra_wave_score_zero()
+    test_2109_article_with_more_than_the_alert_still_counts()
+    test_2109_qra_wave_without_official_alert_still_counts()
+    print("OK: 10 regresji RCB/media, materiałów historycznych i propagacji")

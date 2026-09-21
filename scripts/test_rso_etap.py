@@ -38,8 +38,8 @@ PRZYPADKI = [
 for tekst, oczek in PRZYPADKI:
     wynik = rso.alert_stage(tekst)
     sprawdz(wynik == oczek, f"{oczek:8} ← {tekst[:80]} ({wynik})")
-sprawdz(rso.alert_stage("Rosyjski atak powietrzny na terenie Ukrainy.", rso_alarm="2") == "clear",
-        "rso_alarm=2 to odwołanie niezależnie od treści")
+sprawdz(rso.alert_stage("UWAGA! Rosyjski atak powietrzny na terenie Ukrainy. Sytuacja jest monitorowana.", rso_alarm="2") == "monitor",
+        "rso_alarm=2 NIE jest odwołaniem — decyduje treść (21.09.2026, alert 23354051)")
 
 if bledy:
     print(f"\n{len(bledy)} błędów")

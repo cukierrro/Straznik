@@ -623,17 +623,40 @@ function relayTokens(value) {
   return new Set(fold(String(value || "")).match(/[a-z0-9]+/g)?.filter(
     w => w.length >= 4 && !RELAY_STOP.has(w)) || []);
 }
+/* Lustro fusion._RELAY_ESCALATION_MARKERS i _media_relay_of_official (21.09.2026):
+   artykuł bez „alert RCB”, który powtarza treść alertu, i fala QRA przy alercie
+   mówiącym o lotnictwie nie dają drugich punktów za tę samą informację. */
+const RELAY_ESCALATION_MARKERS = ["dron nad", "drony nad", "dronow nad", "nad polsk", "nad lubel",
+  "nad podkarp", "narusz", "wlecia", "zestrzel", "eksploz", "wybuch", "spadl", "spadly", "szczatk", "syren"];
+function relayStems(value) {
+  return new Set([...relayTokens(value)].map(w => w.slice(0, 5)));
+}
 function mediaRelayOfOfficial(media, officials) {
-  if (media.source !== "media" || media.event_type !== "media_keywords"
-      || !fold(media.title || "").includes("alert rcb")) return null;
-  const mt = relayTokens(media.title);
-  for (const official of officials) {
-    if (official.voivodeship !== media.voivodeship) continue;
-    const apart = Math.abs((media.t || Date.parse(media.ts))
-      - (official.t || Date.parse(official.ts)));
-    if (!Number.isFinite(apart) || apart > RCB_RELAY_WINDOW_MS) continue;
-    const ot = relayTokens(official.title), shared = [...mt].filter(w => ot.has(w));
-    if (shared.length >= 4 && shared.length / Math.max(1, Math.min(mt.size, ot.size)) >= 0.45)
+  if (media.source !== "media") return null;
+  const kind = media.event_type;
+  if (kind !== "media_keywords" && kind !== "media_qra_wave") return null;
+  const folded = fold(media.title || "");
+  const close = officials.filter(o => {
+    if (o.voivodeship !== media.voivodeship) return false;
+    const apart = Math.abs((media.t || Date.parse(media.ts)) - (o.t || Date.parse(o.ts)));
+    return Number.isFinite(apart) && apart <= RCB_RELAY_WINDOW_MS;
+  });
+  if (kind === "media_qra_wave")
+    return close.find(o => fold(o.title || "").includes("lotnict")) || null;
+  if (folded.includes("alert rcb")) {
+    const mt = relayTokens(media.title);
+    for (const official of close) {
+      const ot = relayTokens(official.title), shared = [...mt].filter(w => ot.has(w));
+      if (shared.length >= 4 && shared.length / Math.max(1, Math.min(mt.size, ot.size)) >= 0.45)
+        return official;
+    }
+    return null;
+  }
+  if (RELAY_ESCALATION_MARKERS.some(m => folded.includes(m))) return null;
+  const ms = relayStems(media.title);
+  for (const official of close) {
+    const os = relayStems(official.title), shared = [...ms].filter(w => os.has(w));
+    if (shared.length >= 4 && shared.length / Math.max(1, Math.min(ms.size, os.size)) >= 0.5)
       return official;
   }
   return null;

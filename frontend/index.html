@@ -82,7 +82,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <link rel="icon" type="image/png" sizes="512x512" href="assets/icon-512.png">
 <link rel="apple-touch-icon" href="assets/icon-192.png">
 <link rel="stylesheet" href="assets/vendor/maplibre-gl.css">
-<link rel="stylesheet" href="style.css?v=1.7.65">
+<link rel="stylesheet" href="style.css?v=1.7.66">
 </head>
 <body>
 
@@ -172,6 +172,11 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
      zakładek. Ikony z podpisami, bo trzy ciemne kółka z symbolami ⏱ ◎ ⤢ były
      nieczytelne, zwłaszcza na jasnym tle mapy. -->
 <div id="map-actions">
+  <!-- Chowanie kafelków (21.09.2026, próba): zjeżdżają za prawą krawędź, zostaje pasek z ikonami. -->
+  <button id="btn-tiles" class="map-toggle" type="button" aria-expanded="true"
+          aria-controls="map-actions" title="Schowaj przyciski mapy">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+  </button>
   <button id="btn-home" class="map-btn" title="Wróć do mojego regionu">
     <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.4"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3"/></svg>
     <span>mój region</span>
@@ -873,14 +878,14 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
      Cloudflare, więc po każdym wydaniu wystarczy podbić ?v= i przeglądarki
      dostają nowe app.js/engine.js OD RAZU, bez ręcznego czyszczenia cache CF.
      Podbijaj ?v= razem z versionName w build.gradle. -->
-<script src="i18n.js?v=1.7.65.1"></script>
+<script src="i18n.js?v=1.7.66"></script>
 <!-- kontur Polski dla engine.js (audyt A2b, scripts/build_pl_outline.py) -->
-<script src="pl-outline.js?v=1.7.65"></script>
-<script src="engine.js?v=1.7.65"></script>
+<script src="pl-outline.js?v=1.7.66"></script>
+<script src="engine.js?v=1.7.66"></script>
 <script src="aircraft-photo-catalog.js?v=1.7.19"></script>
 <script src="aircraft-photos.js?v=1.7.19"></script>
 <script src="places.js?v=1.7.19-4"></script>
-<script src="app.js?v=1.7.65"></script>
+<script src="app.js?v=1.7.66"></script>
 <script>
 /* Instrukcja pasująca do telefonu i języka (21.09.2026). iPhone ma osobną, bo alarmy,
    zgody i aktualizacje działają tam inaczej. Tu, a nie w app.js: index.html nie jest

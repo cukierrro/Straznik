@@ -1084,6 +1084,23 @@ body.panel-open #bottom-stack > #update-banner:not(.critical) { display: none; }
 #map-actions .map-btn[aria-pressed="false"] { opacity: .48; }
 #map-actions .map-btn[aria-pressed="false"]:hover { opacity: .8; }
 
+/* Chowane kafelki (21.09.2026, próba). Schowane: same ikony, wysunięte za prawą
+   krawędź — widać pasek szerokości ~20 px; dotknięcie paska albo strzałki wysuwa. */
+#map-actions .map-toggle {
+  /* 44 px — minimalny wygodny cel pod palec; znak duży i gruby, żeby był widoczny na mapie */
+  width: 44px; height: 44px; padding: 0; border-radius: 50%;
+  display: grid; place-items: center; cursor: pointer;
+  background: rgba(13,18,32,.9); color: var(--text);
+  border: 1px solid var(--line-strong, rgba(120,150,210,.3));
+}
+#map-actions .map-toggle svg { width: 26px; height: 26px; fill: none; stroke: currentColor;
+  stroke-width: 2.8; stroke-linecap: round; stroke-linejoin: round; transition: transform .25s; }
+#map-actions .map-btn { transition: transform .25s ease, opacity .25s ease; }
+#map-actions.schowane .map-btn { min-width: 0; padding: 9px; gap: 0;
+  transform: translateX(calc(100% - 8px)); opacity: .75; }
+#map-actions.schowane .map-btn span { display: none; }
+#map-actions.schowane .map-toggle svg { transform: rotate(180deg); }
+
 /* ── arkusz „Więcej” ── */
 .sheet { width: min(460px, 94vw); padding: 16px 16px calc(16px + var(--safe-b)); }
 .sheet h3 { margin-bottom: 12px; }
