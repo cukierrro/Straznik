@@ -83,3 +83,29 @@ test('standalone media source cap cannot reach the yellow threshold', () => {
   const state = Engine.accumulate(articles, t('2026-09-11T06:10:00Z')).podlaskie;
   assert.equal(state.score, 1);
 });
+
+// 21.09.2026 — lustro testów Pythona: powtórzenia alertu bez „alert RCB” i fala QRA
+const alert2109 = {
+  id: 20, t: t('2026-09-21T19:55:28Z'), ts: '2026-09-21T19:55:28Z',
+  source: 'rcb', event_type: 'rso_alert', voivodeship: 'lubelskie', points: 2,
+  title: 'Alert RCB (RSO): „UWAGA! Rosyjski atak powietrzny na terenie Ukrainy. Sytuacja jest monitorowana. W przestrzeni RP operuje polskie lotnict”',  // ucięty jak w bazie
+  details: {rso_id: '23354051'},
+};
+const m2109 = (id, ts, kind, title) => ({id, t: t(ts), ts, source: 'media', event_type: kind,
+  voivodeship: 'lubelskie', points: 1, title, details: {}});
+
+test('standalone 21.09: echoes of the alert and the QRA wave add nothing', () => {
+  const state = Engine.accumulate([alert2109,
+    m2109(21, '2026-09-21T19:43:49Z', 'media_keywords', 'Media: „Rosyjski atak powietrzny na Ukrainę. Polskie lotnictwo rozpoczęło działania, obrona powietrzna w gotowości”'),
+    m2109(22, '2026-09-21T19:43:49Z', 'media_qra_wave', 'Media: wojsko poderwało lotnictwo — potwierdziły 2 redakcje'),
+    m2109(23, '2026-09-21T19:42:35Z', 'media_keywords', 'Media: „„Rosyjski atak powietrzny na terenie Ukrainy”. Alert RCB w Lubelskiem!”'),
+  ], t('2026-09-21T20:00:00Z')).lubelskie;
+  assert.equal(state.score, 2);
+});
+
+test('standalone 21.09: an article with more than the alert still counts', () => {
+  const state = Engine.accumulate([alert2109,
+    m2109(24, '2026-09-21T19:50:00Z', 'media_keywords', 'Media: Rosyjski atak powietrzny. Dron nad Lubelszczyzną, polskie lotnictwo w powietrzu'),
+  ], t('2026-09-21T20:00:00Z')).lubelskie;
+  assert.equal(state.score, 3);
+});

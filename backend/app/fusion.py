@@ -89,27 +89,60 @@ def _minutes_apart(a: dict, b: dict) -> float:
         return float("inf")
 
 
+# Artykuł, który mówi o czymś PONAD treść alertu — liczy się zawsze (21.09.2026).
+_RELAY_ESCALATION_MARKERS = (
+    "dron nad", "drony nad", "dronow nad", "nad polsk", "nad lubel", "nad podkarp",
+    "narusz", "wlecia", "zestrzel", "eksploz", "wybuch", "spadl", "spadly", "szczatk",
+    "syren",
+)
+
+
+def _relay_stems(value: str) -> set[str]:
+    """Rdzenie słów (5 liter): „Ukrainę”/„Ukrainy”, „powietrzny”/„powietrzna” to jedno."""
+    return {w[:5] for w in _relay_tokens(value)}
+
+
 def _media_relay_of_official(media: dict, officials: list[dict]) -> dict | None:
     """Wykrywa artykuł, który tylko relacjonuje świeży Alert RCB.
 
     Sama wzmianka o RCB nie wystarcza: wymagamy tego samego województwa,
     bliskiego czasu oraz wyraźnego podobieństwa treści. Artykuł zostaje w
     rozbiciu, ale nie udaje niezależnego potwierdzenia.
+
+    21.09.2026: przy aktywnym alercie dla lubelskiego (2 pkt) media dały drugie
+    1,0 pkt za tę samą treść — „Rosyjski atak powietrzny na Ukrainę. Polskie
+    lotnictwo rozpoczęło działania…” i „wojsko poderwało lotnictwo”, choć alert
+    mówi wprost „W przestrzeni RP operuje polskie lotnictwo”. Wynik 3,8 przy pustej
+    mapie. Dlatego powtórzeniem jest też artykuł BEZ słów „alert RCB”, jeśli ma
+    prawie tę samą treść (rdzenie słów) i nie mówi o niczym ponad alert, a fala QRA
+    — gdy alert sam mówi o lotnictwie.
     """
-    if media.get("source") != "media" or media.get("event_type") != "media_keywords":
+    if media.get("source") != "media":
+        return None
+    kind = media.get("event_type")
+    if kind not in ("media_keywords", "media_qra_wave"):
         return None
     folded = _fold_text(media.get("title", ""))
-    if "alert rcb" not in folded:
+    close = [o for o in officials
+             if o.get("voivodeship") == media.get("voivodeship")
+             and _minutes_apart(media, o) <= _RCB_RELAY_WINDOW_MIN]
+    if kind == "media_qra_wave":
+        return next((o for o in close if "lotnict" in _fold_text(o.get("title", ""))), None)
+    if "alert rcb" in folded:
+        mt = _relay_tokens(media.get("title", ""))
+        for official in close:
+            ot = _relay_tokens(official.get("title", ""))
+            shared = mt & ot
+            if len(shared) >= 4 and len(shared) / max(1, min(len(mt), len(ot))) >= 0.45:
+                return official
         return None
-    mt = _relay_tokens(media.get("title", ""))
-    for official in officials:
-        if official.get("voivodeship") != media.get("voivodeship"):
-            continue
-        if _minutes_apart(media, official) > _RCB_RELAY_WINDOW_MIN:
-            continue
-        ot = _relay_tokens(official.get("title", ""))
-        shared = mt & ot
-        if len(shared) >= 4 and len(shared) / max(1, min(len(mt), len(ot))) >= 0.45:
+    if any(m in folded for m in _RELAY_ESCALATION_MARKERS):
+        return None
+    ms = _relay_stems(media.get("title", ""))
+    for official in close:
+        os_ = _relay_stems(official.get("title", ""))
+        shared = ms & os_
+        if len(shared) >= 4 and len(shared) / max(1, min(len(ms), len(os_))) >= 0.5:
             return official
     return None
 
