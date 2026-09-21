@@ -360,13 +360,20 @@
       S.points = await unpackPoints(meta);
       delete meta.punkty;
       S.points.forEach((p) => S.byId.set(p.id, p));
+      /* Podzbiory liczone, zanim punkty doszły, są puste — bez wyczyszczenia filtr „Prowadź do punktów”
+         pokazywał „brak w pobliżu” przy każdym rodzaju dostępu, choć punkt był kilkaset metrów dalej
+         (test alarmu na emulatorze: pozycja ustaliła się szybciej niż punkty). */
+      subsetCache.clear();
+      watpliwychIle = null;
       S.dataError = null;
     } catch (err) {
       if (attempt < 3) { await new Promise((ok) => setTimeout(ok, 1500 * attempt)); return loadData(attempt + 1); }
       S.dataError = "Nie udało się wczytać punktów schronienia. Zasady i listy „Przygotuj się” działają bez nich.";
     }
-    // ktoś zdążył nacisnąć TERAZ, zanim punkty się wczytały — liczymy wynik od razu po wczytaniu
-    if (S.points.length && S.userPos && S.tab === "teraz") computeLive();
+    /* Ktoś zdążył nacisnąć TERAZ (albo wszedł z alarmu), zanim punkty się wczytały — liczymy wynik od razu
+       po wczytaniu, razem z trasą do pierwszej propozycji. Bez fitLive() zostawał sam szacunek z linii prostej
+       (znalezione testem alarmu na emulatorze: pozycja ustaliła się szybciej niż punkty i trasy nie było). */
+    if (S.points.length && S.userPos && S.tab === "teraz") { computeLive(); fitLive(); }
     render();
   }
   let dataReady = loadData();
@@ -662,10 +669,21 @@
   const celPunkt = () => (S.cel ? { id: "cel", lat: S.cel.lat, lon: S.cel.lon, adres: S.cel.label } : null);
   const punktCelu = (id) => (id === "cel" ? celPunkt() : S.byId.get(id));
 
+  /* Przy znanym czasie do zagrożenia trasa mówi to samo co komunikat na ekranie: czerwona — nie zdążysz,
+     zielona — zdążysz. Liczymy z czasu tej samej trasy, który pokazują ostrzeżenie i karta, więc kolor
+     i słowa nie mogą się rozjechać. Bez czasu (nie ma alarmu albo Strażnik go nie podaje) trasa ma kolor
+     środka transportu albo nagranej trasy, jak dotąd. */
+  const KOLOR_NIE_ZDAZYSZ = "#dc2626", KOLOR_ZDAZYSZ = "#16a34a";
+  function kolorTrasy(R) {
+    const eta = S.etaMin;
+    if (eta != null && R.durMin != null && !R.loading && !R.failed) return R.durMin > eta ? KOLOR_NIE_ZDAZYSZ : KOLOR_ZDAZYSZ;
+    return R.own ? OWN_COLOR : MODE_COLORS[R.mode];
+  }
+
   function routeGeojson() {
     const R = S.route, from = R?.from || S.userPos, p = R && punktCelu(R.id);
     if (!R || !from || !p) return { type: "FeatureCollection", features: [] };
-    const line = (coords, kind) => ({ type: "Feature", geometry: { type: "LineString", coordinates: coords }, properties: { kind, color: R.own ? OWN_COLOR : MODE_COLORS[R.mode] } });
+    const line = (coords, kind) => ({ type: "Feature", geometry: { type: "LineString", coordinates: coords }, properties: { kind, color: kolorTrasy(R) } });
     // linia prosta przerywana zawsze pokazuje kierunek do celu; trasa (gdy jest) idzie wzdłuż dróg i ścieżek z mapy
     const straight = line([[from.lon, from.lat], [p.lon, p.lat]], "prosta");
     return { type: "FeatureCollection", features: R.coords ? [straight, line(R.coords, "trasa")] : [straight] };
@@ -1256,7 +1274,7 @@ Zmienić położenie?`);
     return `<div class="card main-opt">
       <div class="muted small">${recznie ? "Wybrane przez Ciebie miejsce schronienia" : "Najbliższe sprawdzone miejsce schronienia"}</div>
       <div class="big-addr">${esc(p.adres)}</div>
-      <div class="row"><b>${fmtDist(c.distM)}</b><span>· ${estText(c.estMin)}</span><span class="badge b${esc(p.dostep)}">${esc(acc.label)}</span></div>
+      ${(() => { const d = dojscie(c); return `<div class="row"><b>${fmtDist(d.distM)}</b><span>· ${d.zTrasy ? `ok. ${d.min} min trasą` : estText(c.estMin)}</span><span class="badge b${esc(p.dostep)}">${esc(acc.label)}</span></div>`; })()}
       ${objectLine(p)}
       ${routeInfo(p)}
       <a class="btn go" target="_blank" rel="noopener" href="${esc(C.directionsUrl(p, S.mode, navOrigin()))}">PROWADŹ ➜</a>
@@ -1356,14 +1374,17 @@ Zmienić położenie?`);
      nie podaje go wcale) i pomija obiekty o domniemanym kursie. Gdyby Grota wzięła surowe minimum
      z sygnałów, sąsiednie ekrany tej samej aplikacji pokazywałyby różne minuty — a to najgorszy
      rodzaj niezgodności w chwili alarmu. Brak wartości znaczy „nie wiadomo” i tak to mówimy. */
-  function przyjmijAlarm(a) {
+  function przyjmijAlarm(a, rysuj = true) {
     const bylAlarm = !!S.alarm;
     S.alarm = a && typeof a === "object" ? a : null;
     if (S.alarm) S.etaMin = Number.isFinite(S.alarm.etaVoivMin) ? S.alarm.etaVoivMin : null;
     else if (bylAlarm) S.etaMin = null;    // alarm odwołany — nie zostawiamy po nim czasu na ekranie
-    render();
+    if (rysuj) { drawRoute(); render(); }  // kolor trasy idzie za czasem do zagrożenia
   }
-  if (window.straznikAlert) przyjmijAlarm(window.straznikAlert);
+  /* Alarm, który trwał już przed wejściem do Groty (wejście z przycisku „Gdzie się schronić”), przyjmujemy
+     bez rysowania — reszta Groty jeszcze nie jest gotowa, a render() w tym miejscu wywracał cały start
+     (znalezione testem alarmu na emulatorze: Grota zostawała na „Wczytuję punkty… 98%”). Rysuje koniec startu. */
+  if (window.straznikAlert) przyjmijAlarm(window.straznikAlert, false);
   window.addEventListener("straznik:alert", (e) => przyjmijAlarm(e.detail || window.straznikAlert));
 
   const zeStraznika = () => !!S.alarm;
@@ -1643,21 +1664,41 @@ Zmienić położenie?`);
 
   /* Dwie liczby, które muszą być identyczne w komunikacie na górze ekranu i w pasku na dole:
      czas dojścia do najbliższego schronienia i czas do zagrożenia z alarmu Strażnika. */
-  function liczbyCzasu() {
-    const o = S.live?.options?.[0], eta = S.etaMin;
-    return o && o.estMin != null && eta != null ? { dojscie: o.estMin, eta } : null;
+  /* Czas dojścia do punktu: z wyznaczonej trasy, gdy już jest (także z Twojej nagranej), a do tego czasu
+     szacunek z odległości. Na jednym ekranie nie może być dwóch różnych minut — test alarmu na emulatorze
+     pokazał „ok. 7 min (szacunek)” i „Trasa 767 m · ok. 10 min” na tej samej karcie, a ostrzeżenie liczyło
+     z 7. Trasa po ulicach bywa dużo dłuższa niż linia prosta, więc szacunek potrafi powiedzieć „zdążysz”,
+     gdy prawdziwa droga mówi „nie zdążysz”. */
+  function dojscie(c) {
+    const R = S.route;
+    if (c && R && R.id === c.p.id && !R.loading && !R.failed && R.durMin != null) return { min: R.durMin, distM: R.distM, zTrasy: true };
+    return { min: c ? c.estMin : null, distM: c ? c.distM : null, zTrasy: false };
   }
 
-  const zdanieCzasu = (p) => `dojście ok. ${p.dojscie} min, zagrożenie za ${p.eta} min`;
+  // Czy według najlepszej wiedzy (trasa, a bez niej szacunek) nie zdążysz do pierwszej propozycji.
+  function nieZdazysz() {
+    const o = S.live?.options?.[0], eta = S.etaMin, d = dojscie(o);
+    return !!o && eta != null && d.min != null && d.min > eta;
+  }
+
+  function liczbyCzasu() {
+    const o = S.live?.options?.[0], eta = S.etaMin, d = dojscie(o);
+    return o && d.min != null && eta != null ? { dojscie: d.min, eta, zTrasy: d.zTrasy } : null;
+  }
+
+  const zdanieCzasu = (p) => `dojście ${p.zTrasy ? "trasą " : ""}ok. ${p.dojscie} min, zagrożenie za ${p.eta} min`;
 
   function simBox() {
     const L = S.live, o = L?.options?.[0], eta = S.etaMin;
+    // W Strażniku bez alarmu nie ma czego pokazywać — symulacja czasu to narzędzie prototypu, nie dla ludzi
+    if (MODUL && !alarmTrwa()) return "";
     let result = "";
     if (eta != null) {
       if (!L) result = `<p class="small sim">Najpierw ustal pozycję (przycisk TERAZ, adres albo „Jestem w”) — wtedy symulacja porówna czas dojścia z czasem do zagrożenia.</p>`;
       else if (!o) result = "";
-      else if (L.tooFar) result = `<div class="warn-box small"><b>Według szacunku nie zdążysz:</b> ${zdanieCzasu({ dojscie: o.estMin, eta })}. Na górze ekranu są zasady z poradnika na taką sytuację.</div>`;
-      else result = `<p class="small trust-ok">Według szacunku zdążysz: ${zdanieCzasu({ dojscie: o.estMin, eta })}. To szacunek, nie gwarancja.</p>`;
+      else if (dojscie(o).min == null) result = "";
+      else if (nieZdazysz()) result = `<div class="warn-box small"><b>Według szacunku nie zdążysz:</b> ${zdanieCzasu(liczbyCzasu())}. Na górze ekranu są zasady z poradnika na taką sytuację.</div>`;
+      else result = `<p class="small trust-ok">Według szacunku zdążysz: ${zdanieCzasu(liczbyCzasu())}. To szacunek, nie gwarancja.</p>`;
     }
     if (alarmTrwa()) {
       const a = S.alarm;
@@ -1698,7 +1739,7 @@ Zmienić położenie?`);
     } else if (S.live) {
       const L = S.live;
       const here = S.userPos && S.places.find((pl) => C.distanceM(pl.lat, pl.lon, S.userPos.lat, S.userPos.lon) <= 300);
-      const late = L.tooFar === true;
+      const late = nieZdazysz();
       body = posLine() + (S.coarse && !S.posLabel ? `<p class="sim">${esc(`Pozycja przybliżona (${fmtAcc(S.userPos.acc)}) — wynik może dotyczyć innego miejsca.`)}</p>` : "")
         + skadSzukam()
         + (late ? `<div class="warn-box"><b>Według szacunku nie zdążysz: ${(() => { const p = liczbyCzasu();
@@ -2350,8 +2391,9 @@ Zmienić położenie?`);
     } else if (act === "eta") {
       S.etaMin = b.dataset.val === "" ? null : Number(b.dataset.val);
       if (S.live) computeLive();
+      drawRoute();
       render();
-      if (S.live?.tooFar) panel.scrollTo({ top: 0, behavior: "smooth" });
+      if (nieZdazysz()) panel.scrollTo({ top: 0, behavior: "smooth" });
     } else if (act === "place-mode") {
       const pl = S.places.find((x) => x.id === b.dataset.id); if (pl) { pl.mode = b.dataset.mode; savePlaces(); render(); }
     } else if (act === "toggle-shelter") {
@@ -2486,14 +2528,25 @@ Zmienić położenie?`);
     if (zwalniacPunkty()) zwolnijPunkty();
   }
 
+  /* Wejście do Groty w trakcie alarmu (z przycisku „Gdzie się schronić” albo z „Więcej”) prowadzi prosto do
+     TERAZ i od razu ustala pozycję — człowiek w tej chwili pyta tylko o to, dokąd iść. Bez alarmu Grota
+     otwiera się tam, gdzie ją zostawiono. */
+  function naAlarmTeraz() {
+    if (!alarmTrwa()) return;
+    if (S.tab !== "teraz") S.tab = "teraz";
+    if (!S.locating && (!S.userPos || Date.now() - (S.userPosAt || 0) > 120000)) runLive();
+    else if (S.userPos && !S.live) { computeLive(); fitLive(); }
+  }
+
   function pokaz() {
-    if (mapaJest()) { map.resize(); render(); return; }
+    if (mapaJest()) { map.resize(); naAlarmTeraz(); render(); return; }
     if (punktyZwolnione) {
       punktyZwolnione = false;
       setLoadMsg("Wczytuję punkty schronienia…");
       dataReady = loadData();         // po wczytaniu sam przeliczy wynik „Teraz”, jeśli jest otwarty
     }
     utworzMape();
+    naAlarmTeraz();
     map.once("load", () => {
       drawPlaces();
       if (S.userPos) setUserPos(S.userPos, false);
