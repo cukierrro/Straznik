@@ -82,7 +82,7 @@ PL = dict(
 <section id="instalacja">
   <h2>1. Instalacja i aktualizacje</h2>
   <ol>
-    <li>Otwórz <a href="{APP_STORE}"><b>Strażnika w App Store</b></a> albo wyszukaj w App Store „Strażnik alarm powietrzny”. Aplikacja jest dostępna w polskim App Store.</li>
+    <li>Otwórz <a href="{APP_STORE}"><b>Strażnika w App Store</b></a> albo wyszukaj w App Store „Strażnik alarm powietrzny”. Aplikacja jest dostępna w App Store w Polsce, Niemczech i Wielkiej Brytanii, na Litwie, Łotwie, w Estonii i na Ukrainie.</li>
     <li>Naciśnij <kbd>Pobierz</kbd> i potwierdź tak jak każdą inną aplikację. Strażnik jest bezpłatny i nie ma zakupów w aplikacji.</li>
     <li>Przy pierwszym uruchomieniu zezwól na powiadomienia — bez tej zgody alarm nie dotrze przy zamkniętej aplikacji.</li>
     <li>Zapisz swoje województwo w <kbd>⚙</kbd> → <kbd>Moje miejsca</kbd> i zaznacz <kbd>Obserwuj alerty dla tego województwa</kbd>.</li>
@@ -209,7 +209,7 @@ EN = dict(
 <section id="instalacja">
   <h2>1. Installation and updates</h2>
   <ol>
-    <li>Open <a href="{APP_STORE}"><b>Strażnik on the App Store</b></a> or search the App Store for “Strażnik alarm powietrzny”. The app is available in the Polish App Store.</li>
+    <li>Open <a href="{APP_STORE}"><b>Strażnik on the App Store</b></a> or search the App Store for “Strażnik alarm powietrzny”. The app is available on the App Store in Poland, Germany, the United Kingdom, Lithuania, Latvia, Estonia and Ukraine.</li>
     <li>Tap <kbd>Get</kbd> and confirm as with any other app. Strażnik is free and has no in-app purchases.</li>
     <li>On first launch, allow notifications — without them an alert cannot reach you while the app is closed.</li>
     <li>Save your province in <kbd>⚙</kbd> → <kbd>My places</kbd> and tick <kbd>Watch alerts for this province</kbd>.</li>
