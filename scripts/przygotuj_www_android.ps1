@@ -1,4 +1,4 @@
-# Przygotowanie www/ dla Androida: interfejs z frontend/ + moduł GROTA z grota/.
+﻿# Przygotowanie www/ dla Androida: interfejs z frontend/ + moduł GROTA z grota/.
 #
 # Kolejność ma znaczenie: robocopy /MIR usuwa z celu wszystko, czego nie ma w źródle,
 # więc GROTA idzie DRUGA — inaczej lustro frontend/ skasowałoby ją przy każdym

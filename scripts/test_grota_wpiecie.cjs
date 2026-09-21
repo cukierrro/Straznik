@@ -63,6 +63,15 @@ sprawdz(/grotaLadowanie = null; throw e;/.test(js), "nieudane wczytanie można p
 sprawdz(/toast\(UI\.isEn \? "Shelter finder is not available/.test(js),
   "brak modułu = komunikat, a nie pusty ekran");
 
+console.log("5. Systemowe „wstecz” (uzgodnione 21.09.2026)");
+const wstecz = js.slice(js.indexOf("window.straznikBack = function"), js.indexOf("window.straznikBack = function") + 1600);
+const poz = (s) => wstecz.indexOf(s);
+sprawdz(poz("alarm-overlay") >= 0 && poz("dialog[open]") > poz("alarm-overlay") &&
+        poz("window.Grota?.widoczny") > poz("dialog[open]") && poz("ac-card") > poz("window.Grota?.widoczny"),
+  "kolejność: alarm → okna Strażnika → Grota → karta/historia/panel");
+sprawdz(/if \(!window\.Grota\.wstecz\?\.\(\)\) ukryjGrote\(\);\s*\n\s*return true;/.test(wstecz),
+  "Grota najpierw cofa sama, przy false wracamy do Strażnika; starszy moduł bez wstecz() też się zamyka");
+
 console.log();
 if (bledy) { console.log("BŁĘDY:", bledy); process.exit(1); }
 console.log("OK: Grota tylko z kliknięcia, ta sama tarcza, tylko w aplikacji, ładowana na żądanie.");

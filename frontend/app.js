@@ -5234,6 +5234,12 @@ window.straznikBack = function () {
     if (d.dispatchEvent(new Event("cancel", { cancelable: true }))) d.close();
     return true;
   }
+  // Grota leży nad mapą na cały ekran: najpierw cofa własne kroki (karta, zakładka),
+  // a gdy nie ma już czego — wracamy do Strażnika. Bez wstecz() (starszy moduł) po prostu zamyka.
+  if (window.Grota?.widoczny) {
+    if (!window.Grota.wstecz?.()) ukryjGrote();
+    return true;
+  }
   const card = document.getElementById("ac-card");
   if (card && !card.classList.contains("hidden")) { hideCard(); return true; }
   const brand = document.querySelector(".brand-open");
