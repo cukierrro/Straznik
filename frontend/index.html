@@ -13,7 +13,7 @@
 <meta property="og:locale" content="pl_PL">
 <meta property="og:url" content="https://straznik.eu/">
 <meta property="og:title" content="Strażnik — mapa zagrożeń powietrznych i alerty dla Polski">
-<meta property="og:description" content="Mapa na żywo i nieoficjalne wczesne ostrzeganie. Strażnik łączy NEPTUN, RCB, RSO, PAŻP, ADS-B i media. Darmowa aplikacja na Androida, bez reklam i konta.">
+<meta property="og:description" content="Mapa na żywo i nieoficjalne wczesne ostrzeganie. Strażnik łączy NEPTUN, RCB, RSO, PAŻP, ADS-B i media. Darmowa aplikacja na Androida i iPhone'a, bez reklam i konta.">
 <meta property="og:image" content="https://straznik.eu/assets/share-panel-v2.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -21,7 +21,7 @@
 <meta property="og:image:alt" content="Strażnik — mapa, sygnały i powiadomienia; telefon z panelem sygnałów i punktacją województw">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Strażnik — mapa zagrożeń powietrznych dla Polski">
-<meta name="twitter:description" content="Nieoficjalne wczesne ostrzeganie łączące wiele niezależnych źródeł. Mapa na żywo i bezpłatna aplikacja na Androida.">
+<meta name="twitter:description" content="Nieoficjalne wczesne ostrzeganie łączące wiele niezależnych źródeł. Mapa na żywo i bezpłatna aplikacja na Androida i iPhone'a.">
 <meta name="twitter:image" content="https://straznik.eu/assets/share-panel-v2.jpg">
 <script type="application/ld+json">
 {
@@ -31,7 +31,7 @@
   "url": "https://straznik.eu/",
   "description": "Nieoficjalna mapa zagrożeń powietrznych i system wczesnego ostrzegania dla Polski.",
   "applicationCategory": "UtilitiesApplication",
-  "operatingSystem": "Android, Web",
+  "operatingSystem": "Android, iOS, Web",
   "isAccessibleForFree": true,
   "offers": { "@type": "Offer", "price": "0", "priceCurrency": "PLN" },
   "downloadUrl": "https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk",
@@ -403,7 +403,8 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
     <p>Strażnik to nieoficjalna <b>mapa zagrożeń powietrznych dla Polski</b>.
       Zestawia informacje o dronach i rakietach nad Ukrainą z alertami RCB i RSO,
       strefami PAŻP, ruchem ADS-B oraz doniesieniami medialnymi. Mapa działa na
-      żywo w przeglądarce, a aplikacja na Androida może wysyłać powiadomienia.</p>
+      żywo w przeglądarce, a aplikacje na Androida i iPhone'a wysyłają powiadomienia
+      o alarmach, także przy zamkniętej aplikacji.</p>
 
     <div class="warn-box">
       To <b>NIE jest</b> oficjalny system ostrzegania. Nie zastępuje syren,
@@ -855,7 +856,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
      Cloudflare, więc po każdym wydaniu wystarczy podbić ?v= i przeglądarki
      dostają nowe app.js/engine.js OD RAZU, bez ręcznego czyszczenia cache CF.
      Podbijaj ?v= razem z versionName w build.gradle. -->
-<script src="i18n.js?v=1.7.64.1"></script>
+<script src="i18n.js?v=1.7.64.2"></script>
 <!-- kontur Polski dla engine.js (audyt A2b, scripts/build_pl_outline.py) -->
 <script src="pl-outline.js?v=1.7.64"></script>
 <script src="engine.js?v=1.7.64"></script>
