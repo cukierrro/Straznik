@@ -661,7 +661,9 @@
   }
 
   /* ---------- wstępna trasa ---------- */
-  const MODE_COLORS = { walking: "#16a34a", bicycling: "#0891b2", driving: "#2563eb" };
+  /* Zieleń i czerwień trasy są zarezerwowane dla „zdążysz / nie zdążysz” (kolorTrasy). Pieszo było kiedyś
+     zielone — przy alarmie ze źródeł pośrednich wyglądało to jak „zdążysz”, choć Grota niczego nie porównywała. */
+  const MODE_COLORS = { walking: "#9333ea", bicycling: "#0891b2", driving: "#2563eb" };
   const OWN_COLOR = "#ea580c";   // trasa nagrana przez użytkownika
 
   /* Celem trasy może być punkt PSP albo miejsce umówione przez użytkownika („cel”) —
@@ -674,7 +676,20 @@
      i słowa nie mogą się rozjechać. Bez czasu (nie ma alarmu albo Strażnik go nie podaje) trasa ma kolor
      środka transportu albo nagranej trasy, jak dotąd. */
   const KOLOR_NIE_ZDAZYSZ = "#dc2626", KOLOR_ZDAZYSZ = "#16a34a";
+  /* Porównujemy czas dojścia z czasem do zagrożenia tylko wtedy, gdy alarm stoi na źródłach twardych
+     (RCB/RSO, obiekt w powietrzu) — albo w prototypie bez Strażnika, gdzie czas ustawia się ręcznie. Przy
+     sygnałach pośrednich (decyzja usera 21.09): zwykły kolor trasy i żadnego „zdążysz / nie zdążysz”,
+     bo czerwień przy niepotwierdzonym alarmie działa jak alarm. */
+  const porownujCzas = () => S.etaMin != null && (!alarmTrwa() || S.alarm.hard !== false);
+
+  /* Czas do zagrożenia Strażnik liczy z obiektów, które SAM widzi (NEPTUN i inne źródła). Alert RCB może
+     dotyczyć zagrożenia, którego Strażnik nie widzi — np. wojsko ma coś na radarze, a NEPTUN nie. Wtedy
+     realny czas bywa krótszy niż ten na ekranie. Mówimy to przy każdym porównaniu czasu. */
+  const UWAGA_WIDOCZNE = `Czas do zagrożenia to wyliczenie z zagrożeń widocznych w Strażniku. Alert RCB może dotyczyć czegoś,
+    czego Strażnik nie widzi — wtedy realnie jest mniej czasu. Gdy przyszedł alert RCB albo słychać syreny, nie licz minut: działaj według komunikatu.`;
+
   function kolorTrasy(R) {
+    if (!porownujCzas()) return R.own ? OWN_COLOR : MODE_COLORS[R.mode];
     const eta = S.etaMin;
     if (eta != null && R.durMin != null && !R.loading && !R.failed) return R.durMin > eta ? KOLOR_NIE_ZDAZYSZ : KOLOR_ZDAZYSZ;
     return R.own ? OWN_COLOR : MODE_COLORS[R.mode];
@@ -1427,7 +1442,7 @@ Zmienić położenie?`);
     const pieszo = C.estimateMin(distM, "walking");
     const autem = C.estimateMin(distM, "driving");
     const estMin = R?.durMin ?? C.estimateMin(distM, S.mode);
-    const eta = S.etaMin;
+    const eta = porownujCzas() ? S.etaMin : null;
     let poziom = null;
     if (eta != null) {
       if (autem != null && autem > eta) poziom = "twardy";           // nawet samochodem nie zdążysz
@@ -1467,6 +1482,7 @@ Zmienić położenie?`);
         ${o.pozaMapa ? `<p class="small">To miejsce jest <b>poza pobraną mapą</b> — bez internetu zobaczysz tam sam kierunek i odległość.</p>` : ""}
         ${alarmTrwa() && o.eta == null ? `<p class="small">Strażnik nie podaje teraz czasu do zagrożenia (sygnały są za stare albo kurs jest niepewny), więc Grota go nie zgaduje — porównaj sam z komunikatami służb.</p>` : ""}
         ${ZASTRZEZENIE}
+        ${alarmTrwa() && o.eta != null ? `<p class="small muted">${UWAGA_WIDOCZNE}</p>` : ""}
         <button class="btn ghost" data-act="cel-kroki">${I("book-open")}${S.celKroki ? "Schowaj kroki" : "Co robić teraz"}</button>
         ${S.celKroki ? rule("P-NIE-ZDAZE", true) + rule("P-POZA-DOMEM", true) + (o.poziom === "mieszany" ? rule("P-AUTO") : "") : ""}
       </div>` : "";
@@ -1677,11 +1693,13 @@ Zmienić położenie?`);
 
   // Czy według najlepszej wiedzy (trasa, a bez niej szacunek) nie zdążysz do pierwszej propozycji.
   function nieZdazysz() {
+    if (!porownujCzas()) return false;
     const o = S.live?.options?.[0], eta = S.etaMin, d = dojscie(o);
     return !!o && eta != null && d.min != null && d.min > eta;
   }
 
   function liczbyCzasu() {
+    if (!porownujCzas()) return null;
     const o = S.live?.options?.[0], eta = S.etaMin, d = dojscie(o);
     return o && d.min != null && eta != null ? { dojscie: d.min, eta, zTrasy: d.zTrasy } : null;
   }
@@ -1693,19 +1711,21 @@ Zmienić położenie?`);
     // W Strażniku bez alarmu nie ma czego pokazywać — symulacja czasu to narzędzie prototypu, nie dla ludzi
     if (MODUL && !alarmTrwa()) return "";
     let result = "";
-    if (eta != null) {
+    if (porownujCzas()) {
       if (!L) result = `<p class="small sim">Najpierw ustal pozycję (przycisk TERAZ, adres albo „Jestem w”) — wtedy symulacja porówna czas dojścia z czasem do zagrożenia.</p>`;
       else if (!o) result = "";
       else if (dojscie(o).min == null) result = "";
       else if (nieZdazysz()) result = `<div class="warn-box small"><b>Według szacunku nie zdążysz:</b> ${zdanieCzasu(liczbyCzasu())}. Na górze ekranu są zasady z poradnika na taką sytuację.</div>`;
       else result = `<p class="small trust-ok">Według szacunku zdążysz: ${zdanieCzasu(liczbyCzasu())}. To szacunek, nie gwarancja.</p>`;
+      if (result && alarmTrwa()) result += `<p class="small muted">${UWAGA_WIDOCZNE}</p>`;
     }
     if (alarmTrwa()) {
       const a = S.alarm;
       return `<div class="card sim-box">
         <div class="row"><b class="grow">Czas z alarmu Strażnika</b>${a.voiv ? `<span class="badge">${esc(a.voiv)}</span>` : ""}</div>
         <p class="small">${a.etaVoivMin != null
-          ? `Zagrożenie za <b>${a.etaVoivMin} min</b> — ta sama wartość, którą pokazuje Strażnik.`
+          ? `Zagrożenie za <b>${a.etaVoivMin} min</b> — ta sama wartość, którą pokazuje Strażnik.${a.hard === false
+              ? " Alarm opiera się na źródłach pośrednich, więc Grota nie porównuje go z czasem dojścia." : ""}`
           : "Strażnik nie podaje teraz czasu do zagrożenia. Grota go nie zgaduje — pokazuje odległości i kierunek."}</p>
         ${result}
       </div>`;
@@ -1744,7 +1764,8 @@ Zmienić położenie?`);
         + skadSzukam()
         + (late ? `<div class="warn-box"><b>Według szacunku nie zdążysz: ${(() => { const p = liczbyCzasu();
             return p ? zdanieCzasu(p) : "zagrożenie może być bliżej niż czas dojścia"; })()}.</b>
-            <span class="small">To szacunek Groty, nie gwarancja — te same minuty pokazuje pasek na dole ekranu.</span></div>${rule("P-NIE-ZDAZE", true)}` : "")
+            <span class="small">To szacunek Groty, nie gwarancja — te same minuty pokazuje pasek na dole ekranu.</span>
+            ${alarmTrwa() ? `<p class="small">${UWAGA_WIDOCZNE}</p>` : ""}</div>${rule("P-NIE-ZDAZE", true)}` : "")
         + (here && here.spot ? spotCard(here, late) : "")
         + (late ? rule("P-POZA-DOMEM", true) : "")
         + modeButtons()
