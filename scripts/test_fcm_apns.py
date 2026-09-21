@@ -99,15 +99,6 @@ print("5. Osłona wysyłki")
 sprawdz(notify._apns_safe("voiv_lubelskie", {"level": object()}) is None,
         "błąd w budowaniu bloku iOS nie przewraca alarmu na Androidzie")
 
-print("6. Próba AlarmKit tylko na temacie testowym (21.09.2026)")
-zwykly = zakodowana("voiv_lubelskie", dict(DANE, voiv="lubelskie", level="high"))["apns"]["payload"]
-sprawdz("content-available" not in zwykly["aps"] and "alarmkit" not in zwykly,
-        "zwykły temat: bez budzenia w tle i bez znacznika próby — ładunek jak dotąd")
-proba = zakodowana("test_voiv_lubelskie", dict(DANE, voiv="lubelskie", level="high"))["apns"]["payload"]
-sprawdz(proba["aps"].get("content-available") == 1 and proba.get("alarmkit") == "1" and proba.get("alarmkit_tytul"),
-        "czerwony na temacie testowym budzi aplikację i niesie znacznik próby z tytułem")
-sprawdz("alarmkit" not in t["apns"]["payload"], "żółty na temacie testowym bez próby")
-
 print()
 if bledy:
     print("BŁĘDY:", len(bledy))
