@@ -768,6 +768,23 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
         zablokuj ekran w ciągu 5 sekund, żeby sprawdzić alarm nad blokadą. Wycisz go
         przyciskiem na ekranie alarmu albo „Wycisz alarm” w powiadomieniu.</div>
     </div>
+    <!-- PRÓBA AlarmKit (21.09.2026): widoczna tylko w wersji testowej na iOS 26+,
+         pokazuje ją app.js po odpowiedzi wtyczki (alarmKitStan). Bez tłumaczenia — to narzędzie testerów. -->
+    <div id="proba-alarmkit" hidden style="margin-top:16px;border:1px dashed #b58a2a;border-radius:10px;padding:10px 12px">
+      <h3 style="margin:0 0 6px">PRÓBA: alarm przy wyciszonym telefonie</h3>
+      <div class="fineprint">Tylko wersja testowa. Alarm z AlarmKit (iOS 26) przebija przełącznik
+        wyciszenia i Skupienie. 1) Zgoda na alarmy. 2) Test z aplikacji: przestaw przełącznik na cichy,
+        zablokuj ekran. 3) Włącz próbę z serwera — alarm przyjdzie przy teście wysłanym przez sesję główną.</div>
+      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+        <button type="button" id="btn-ak-zgoda" class="chip">🔔 Zgoda na alarmy</button>
+        <button type="button" id="btn-ak-test" class="chip">▶ Test: alarm za 10 s</button>
+      </div>
+      <label class="set-switch" for="set-ak-proba" style="margin-top:8px">
+        <span class="sw-text"><b>Próba: alarm z serwera przez AlarmKit</b></span>
+        <input type="checkbox" role="switch" id="set-ak-proba">
+        <span class="sw-track" aria-hidden="true"></span></label>
+      <div class="fineprint" id="ak-stan" style="white-space:pre-line"></div>
+    </div>
     </section>
 
     <section class="set-pane" data-pane="aplikacja" role="tabpanel" hidden>

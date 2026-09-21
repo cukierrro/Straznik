@@ -1,5 +1,8 @@
 import UIKit
 import Capacitor
+#if canImport(StraznikBackgroundPlugin)
+import StraznikBackgroundPlugin
+#endif
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -7,7 +10,26 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+        #if canImport(StraznikBackgroundPlugin)
+        AlarmKitProba.oznaczDelegata()
+        #endif
         return true
+    }
+
+    // PRÓBA AlarmKit (21.09.2026): serwer dokleja `content-available` i `alarmkit=1`
+    // tylko do tematów testowych. iOS budzi wtedy aplikację (także zamkniętą, w tle)
+    // na ~30 s — sprawdzamy, czy w tym czasie da się zaplanować alarm przebijający
+    // wyciszenie. Zwykłe powiadomienia idą dalej bez zmian: baner i dźwięk rysuje system.
+    func application(_ application: UIApplication,
+                     didReceiveRemoteNotification userInfo: [AnyHashable: Any],
+                     fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
+        #if canImport(StraznikBackgroundPlugin)
+        let droga = application.applicationState == .active ? "push (aplikacja otwarta)" : "push w tle"
+        if AlarmKitProba.obsluzPowiadomienie(userInfo, droga: droga, gotowe: { completionHandler(.newData) }) {
+            return
+        }
+        #endif
+        completionHandler(.noData)
     }
 
     // Token APNs → plugin StraznikBackground (przekazuje go do Firebase i zapisuje
