@@ -5222,6 +5222,30 @@ function fitMapActions() {
   if (one > room) box.classList.add("no-room");
 }
 addEventListener("resize", () => requestAnimationFrame(fitMapActions));
+
+/* Chowane kafelki mapy (21.09.2026, próba): strzałka chowa je za prawą krawędź,
+   dotknięcie paska albo strzałki wysuwa. Wybór zostaje na tym urządzeniu. */
+(function kafelkiChowane() {
+  const box = document.getElementById("map-actions");
+  const btn = document.getElementById("btn-tiles");
+  if (!box || !btn) return;
+  const ustaw = (schowane) => {
+    box.classList.toggle("schowane", schowane);
+    btn.setAttribute("aria-expanded", String(!schowane));
+    btn.title = schowane ? (UI.isEn ? "Show map buttons" : "Pokaż przyciski mapy")
+                         : (UI.isEn ? "Hide map buttons" : "Schowaj przyciski mapy");
+    try { localStorage.setItem("straznik_kafelki_schowane", schowane ? "1" : "0"); } catch {}
+  };
+  let start = false;
+  try { start = localStorage.getItem("straznik_kafelki_schowane") === "1"; } catch {}
+  ustaw(start);
+  btn.addEventListener("click", () => ustaw(!box.classList.contains("schowane")));
+  // Schowany kafelek najpierw się wysuwa — dotknięcie paska nie może od razu przesunąć mapy.
+  box.addEventListener("click", (e) => {
+    if (!box.classList.contains("schowane") || e.target.closest("#btn-tiles")) return;
+    if (e.target.closest(".map-btn")) { e.stopPropagation(); e.preventDefault(); ustaw(false); }
+  }, true);
+})();
 const stackEl = document.getElementById("bottom-stack");
 if (stackEl && window.ResizeObserver) {
   const setStackH = () => { document.documentElement.style

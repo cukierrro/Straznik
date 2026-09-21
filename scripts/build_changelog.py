@@ -16,6 +16,17 @@ DOCS = ROOT / "docs"
 # (wersja, data PL, data EN, tytuł PL, tytuł EN, punkty PL, punkty EN, zrzuty)
 # Zrzut: (plik, alt PL, alt EN, podpis PL, podpis EN)
 RELEASES = [
+    ("1.7.66", "21 września 2026", "21 September 2026",
+     "Chowane przyciski mapy i poprawki alertów RCB",
+     "Collapsible map buttons and RCB alert fixes",
+     ["Przyciski „mój region”, „strefy” i „cała PL” można schować strzałką nad nimi — zjeżdżają za prawą krawędź i zostaje wąski pasek. Dotknięcie paska albo strzałki wysuwa je z powrotem. Aplikacja pamięta wybór.",
+      "Aktywny Alert RCB nie jest już brany za odwołany. 21 września alert dla lubelskiego miał w systemie RSO oznaczenie, które Strażnik błędnie czytał jako odwołanie — alert nie dawał punktów. Odwołanie rozpoznajemy teraz wyłącznie po treści komunikatu.",
+      "Artykuły, które tylko powtarzają treść Alertu RCB („Polskie lotnictwo rozpoczęło działania”, „wojsko poderwało lotnictwo”), nie dodają drugich punktów za tę samą informację. Artykuł o czymś więcej — dron nad Polską, naruszenie przestrzeni, wybuch — liczy się dalej normalnie."],
+     ["The “my region”, “zones” and “whole PL” buttons can be tucked away with the arrow above them — they slide past the right edge, leaving a narrow strip. Tapping the strip or the arrow brings them back. The app remembers your choice.",
+      "An active RCB alert is no longer taken for a cancellation. On 21 September the alert for Lublin province carried an RSO flag that Strażnik wrongly read as a cancellation, so it scored nothing. Cancellations are now recognised by the message text only.",
+      "Articles that only repeat the RCB alert (“Polish aviation has started operations”, “the military scrambled aircraft”) no longer add a second score for the same information. An article reporting more — a drone over Poland, an airspace violation, a blast — still counts normally."],
+     []),
+
     ("1.7.65", "21 września 2026", "21 September 2026",
      "Pasek u góry nie wchodzi pod zegar; pusta mapa z wyjaśnieniem",
      "Top bar clear of the clock; an explained empty map",
