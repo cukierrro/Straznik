@@ -46,6 +46,15 @@ document.documentElement.classList.add(
   location.protocol === "capacitor:" || location.protocol === "file:" || window.Capacitor
     ? "native-app" : "web-app"
 );
+/* Który przycisk pobierania pokazać na wąskim ekranie telefonu: tylko ten dla jego
+   systemu (dwa naraz zawijały pasek do drugiego rzędu). iPad zgłasza się jak Mac,
+   więc rozpoznajemy go po ekranie dotykowym. Nieznany system widzi oba. */
+(function () {
+  var ua = navigator.userAgent || "";
+  var ios = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+  if (ios) document.documentElement.classList.add("ua-ios");
+  else if (/Android/.test(ua)) document.documentElement.classList.add("ua-android");
+})();
 /* iPhone: część rzeczy z Androida (głośność, pełny ekran, APK) tam nie działa,
    a linki do wsparcia autora łamią zasady App Store — ukrywa je klasa ios-app. */
 if (window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform() === "ios")
@@ -109,7 +118,11 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
     <a id="btn-download" class="chip download web-only"
        href="https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk"
        title="Pobierz najnowszą wersję aplikacji Strażnik na Androida"
-       aria-label="Pobierz najnowszą wersję aplikacji Strażnik na Androida">⬇ Pobierz aplikację</a>
+       aria-label="Pobierz najnowszą wersję aplikacji Strażnik na Androida">⬇ Pobierz na Androida</a>
+    <a id="btn-ios" class="chip download ios web-only"
+       href="https://apps.apple.com/pl/app/id6813563009" target="_blank" rel="noopener"
+       title="Pobierz aplikację Strażnik na iPhone'a z App Store"
+       aria-label="Pobierz aplikację Strażnik na iPhone'a z App Store">⬇ Pobierz na iOS</a>
     <a id="btn-instructions" class="chip instructions web-only"
        href="https://cukierrro.github.io/Straznik/" target="_blank" rel="noopener"
        title="Otwórz pełną instrukcję aplikacji Strażnik"
@@ -149,7 +162,8 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
       RCB i RSO, strefami PAŻP, ruchem ADS-B oraz doniesieniami medialnymi.</p>
     <p>Do wyświetlenia mapy na żywo potrzebna jest obsługa JavaScript.
       <a href="https://cukierrro.github.io/Straznik/">Przeczytaj instrukcję</a> lub
-      <a href="https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk">pobierz aplikację na Androida</a>.</p>
+      pobierz aplikację <a href="https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk">na Androida</a>
+      lub <a href="https://apps.apple.com/pl/app/id6813563009">na iPhone'a (App Store)</a>.</p>
     <p><b>To źródło dodatkowe.</b> Nie zastępuje syren, Alertu RCB, RSO ani komunikatów służb.</p>
   </main>
 </noscript>

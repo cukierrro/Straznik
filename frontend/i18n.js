@@ -9,6 +9,7 @@
   const EN = {
     "fuzja sygnałów · wschodnia Polska": "signal fusion · eastern Poland",
     "Pobierz aplikację": "Download app", "⬇ Pobierz aplikację": "⬇ Download app",
+    "⬇ Pobierz na Androida": "⬇ Get it for Android", "⬇ Pobierz na iOS": "⬇ Get it for iOS",
     "Instrukcja": "User guide", "📖 Instrukcja": "📖 User guide",
     "Postaw kawę": "Buy me a coffee", "☕ Postaw kawę": "☕ Buy me a coffee", "Legenda": "Legend",
     "☕ Postaw kawę autorowi": "☕ Buy the author a coffee", "Bałtyk": "Baltic",
@@ -192,6 +193,7 @@
       if (node.nodeValue.includes(from)) node.nodeValue = node.nodeValue.split(from).join(to);
     const attrs = {
       "btn-download": ["title","Download the latest Strażnik app for Android"],
+      "btn-ios": ["title","Get the Strażnik app for iPhone on the App Store"],
       "btn-instructions": ["title","Open the full Strażnik user guide"],
       "btn-about": ["title","About Strażnik — what it is and how it works"],
       "btn-legend": ["title","Symbol legend"], "btn-settings": ["title","My location and settings"],

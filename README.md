@@ -109,7 +109,7 @@ Instrukcja dla 1.7.34 opisuje „Moje miejsca”, rozdział alertów wojewódzki
 lokalnych obliczeń na pierwszym planie oraz bibliotekę fotografii PL/EN. Zrzuty
 otwierają się także w pełnym rozmiarze.
 
-[⬇ Pobierz APK](https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk) · [☕ Postaw kawę](https://buycoffee.to/cukierrro)
+[⬇ Pobierz na Androida (APK)](https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk) · [⬇ Pobierz na iOS (App Store)](https://apps.apple.com/pl/app/id6813563009) · [☕ Postaw kawę](https://buycoffee.to/cukierrro)
 
 </div>
 
