@@ -185,6 +185,10 @@ jobs:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_PATH: ${{ runner.temp }}/asc.p8
+          # Trwały certyfikat dystrybucyjny (od 21.09.2026) — patrz podpis_apple.py.
+          STALY_P12_BASE64: ${{ secrets.IOS_DIST_P12_BASE64 }}
+          STALY_P12_HASLO: ${{ secrets.IOS_DIST_P12_PASSWORD }}
+          STALY_CERT_ID: ${{ secrets.IOS_DIST_CERT_ID }}
         run: |
           set -o pipefail
           "$RUNNER_TEMP/venv/bin/python" skrypty/podpis_apple.py --przygotuj
@@ -309,20 +313,13 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
-      # Oddajemy to, co pożyczyliśmy od Apple: certyfikat i profil znikają z konta,
-      # żeby nie zajmowały miejsca w limicie i nie zostawały po nieudanych przebiegach.
-      - name: Oddanie certyfikatu i profilu
-        # Także po nieudanym kroku: certyfikat bywa już utworzony, gdy coś padnie później.
-        if: always() && steps.podpis.outputs.cert_id != ''
-        env:
-          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
-          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
-          ASC_KEY_PATH: ${{ runner.temp }}/asc.p8
-          CERT_ID: ${{ steps.podpis.outputs.cert_id }}
-          PROFIL_ID: ${{ steps.podpis.outputs.profil_id }}
-        run: |
-          "$RUNNER_TEMP/venv/bin/python" skrypty/podpis_apple.py --sprzatanie || true
-          security delete-keychain "$RUNNER_TEMP/straznik.keychain-db" 2>/dev/null || true
+      # 21.09.2026: tu był krok „Oddanie certyfikatu i profilu”, który po każdym budowaniu
+      # wycofywał certyfikat użyty do podpisu. Wycofany certyfikat unieważnia podpis —
+      # build 1.7.63 dostał przez to ITMS-90035 przy zgłoszeniu do App Store. Certyfikat
+      # jest teraz trwały i zostaje; z maszyny znika tylko pęk kluczy.
+      - name: Usunięcie pęku kluczy
+        if: always()
+        run: security delete-keychain "$RUNNER_TEMP/straznik.keychain-db" 2>/dev/null || true
       - name: Sprzątanie kluczy
         if: always()
         run: rm -f "$RUNNER_TEMP"/AuthKey_*.p8 "$RUNNER_TEMP"/asc.p8 "$RUNNER_TEMP"/podpis.* ios/App/App/GoogleService-Info.plist
