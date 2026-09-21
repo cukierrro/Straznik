@@ -1,0 +1,81 @@
+name: iOS — trwały certyfikat dystrybucyjny (jednorazowo)
+
+# 21.09.2026: build 1.7.63 dostał od Apple ITMS-90035 „Invalid Signature”, bo główny
+# przepływ WYCOFYWAŁ po każdym budowaniu certyfikat, którym właśnie podpisał aplikację.
+# Wycofany certyfikat unieważnia podpis — a przegląd sprawdza go ponownie przy zgłoszeniu.
+#
+# Ten przepływ tworzy JEDEN trwały certyfikat z wniosku (CSR), który przygotowano poza
+# GitHubem. Klucz prywatny nigdy tu nie trafia: CSR jest publiczny, certyfikat też.
+# Z kluczem łączy się je lokalnie w .p12 i dopiero ten plik idzie do sekretów.
+# Niczego nie wycofuje — w tym cały sens.
+
+on:
+  workflow_dispatch:
+    inputs:
+      csr_base64:
+        description: "Wniosek CSR (PEM) zakodowany base64"
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  certyfikat:
+    if: github.repository == 'cukierrro/Straznik'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Utworzenie certyfikatu z wniosku
+        env:
+          KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ISSUER: ${{ secrets.ASC_ISSUER_ID }}
+          KEY_P8: ${{ secrets.ASC_KEY_P8_BASE64 }}
+          CSR_B64: ${{ inputs.csr_base64 }}
+        run: |
+          set -eo pipefail
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install --quiet pyjwt cryptography
+          printf '%s' "$KEY_P8" | base64 --decode > "$RUNNER_TEMP/asc.p8"
+          chmod 600 "$RUNNER_TEMP/asc.p8"
+          "$RUNNER_TEMP/venv/bin/python" - <<'PY'
+          import base64, json, os, time, urllib.request, urllib.error
+          import jwt
+          klucz = open(os.path.join(os.environ["RUNNER_TEMP"], "asc.p8")).read()
+          teraz = int(time.time())
+          token = jwt.encode({"iss": os.environ["ISSUER"], "iat": teraz, "exp": teraz + 900,
+                              "aud": "appstoreconnect-v1"}, klucz, algorithm="ES256",
+                             headers={"kid": os.environ["KEY_ID"], "typ": "JWT"})
+          def api(sciezka, metoda="GET", dane=None):
+              req = urllib.request.Request("https://api.appstoreconnect.apple.com" + sciezka,
+                                           data=json.dumps(dane).encode() if dane else None,
+                                           method=metoda)
+              req.add_header("Authorization", "Bearer " + token)
+              if dane:
+                  req.add_header("Content-Type", "application/json")
+              try:
+                  with urllib.request.urlopen(req, timeout=60) as r:
+                      return json.loads(r.read() or b"{}")
+              except urllib.error.HTTPError as e:
+                  raise SystemExit(f"HTTP {e.code}: {e.read().decode(errors='replace')}")
+          istniejace = api("/v1/certificates?filter[certificateType]=DISTRIBUTION&limit=200")["data"]
+          print("Certyfikaty dystrybucyjne na koncie przed utworzeniem:", len(istniejace))
+          for c in istniejace:
+              print("  -", c["id"], c["attributes"].get("displayName"), "do", c["attributes"].get("expirationDate"))
+          csr = base64.b64decode(os.environ["CSR_B64"]).decode()
+          cert = api("/v1/certificates", "POST", {"data": {"type": "certificates",
+              "attributes": {"certificateType": "DISTRIBUTION", "csrContent": csr}}})["data"]
+          print("UTWORZONO:", cert["id"], cert["attributes"].get("displayName"),
+                "ważny do", cert["attributes"].get("expirationDate"))
+          out = os.path.join(os.environ["RUNNER_TEMP"], "wynik")
+          os.makedirs(out, exist_ok=True)
+          open(os.path.join(out, "certyfikat.cer"), "wb").write(
+              base64.b64decode(cert["attributes"]["certificateContent"]))
+          open(os.path.join(out, "certyfikat_id.txt"), "w").write(cert["id"])
+          PY
+          rm -f "$RUNNER_TEMP/asc.p8"
+      - name: Certyfikat (publiczny) do pobrania
+        uses: actions/upload-artifact@v4
+        with:
+          name: certyfikat-publiczny
+          path: ${{ runner.temp }}/wynik/
+          retention-days: 1
