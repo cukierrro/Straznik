@@ -345,6 +345,7 @@
     <li><b>The alert arrived without sound</b> — most often the ringer is silenced with the switch on the side of the phone, or a Focus mode is on without Strażnik allowed. See the “Check your iPhone” box in chapter <a href="#alarmy">9</a>.</li>
     <li><b>The alert arrived only after unlocking</b> — “Time Sensitive Notifications” are off, or Strażnik is not allowed in Sleep.</li>
     <li><b>After changing phones</b> — install Strażnik from the App Store and save your places again; My places do not move between phones.</li>
+    <li><b>Green indicators, working buttons, but an empty map</b> (in Safari too) — the iPhone blocks map drawing (WebGL). Most often it is <b>Lockdown Mode</b>: Settings → Privacy &amp; Security → Lockdown Mode → Configure Web Browsing → exclude Strażnik, and straznik.eu in Safari. If Lockdown Mode is off, check Settings → Apps → Safari → Advanced → Feature Flags → WebGL. Alerts and notifications work without the map.</li>
     <li><b>An object is in the list but not on the map</b> — a signal lives in the 60-minute window, while positions come from the current snapshot. An object disappearing does not prove it was shot down.</li>
     <li><b>An incomplete picture</b> — NEPTUN is an OSINT aggregator, not a radar; ADS-B sees only public transponders; messages and articles can be late. No points does not prove there is no threat.</li>
   </ul>

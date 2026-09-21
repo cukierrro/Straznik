@@ -162,7 +162,8 @@ PL = dict(
                     "<li><b>Brak powiadomień</b> — sprawdź Moje miejsca (obserwowane województwo), suwak <kbd>Alarmy na tym telefonie</kbd> i Ustawienia → Powiadomienia → Strażnik. Test dźwięku nie sprawdza drogi push z serwera.</li>\n"
                     "    <li><b>Alarm przyszedł bez dźwięku</b> — najczęściej dzwonek jest wyciszony przełącznikiem z boku telefonu albo działa tryb Skupienia bez dopuszczonego Strażnika. Zob. ramkę „Sprawdź swojego iPhone'a” w rozdziale <a href=\"#alarmy\">9</a>.</li>\n"
                     "    <li><b>Alarm przyszedł dopiero po odblokowaniu</b> — wyłączone „Powiadomienia czasowo zależne” albo Strażnik niedopuszczony w trybie Sen.</li>\n"
-                    "    <li><b>Po wymianie telefonu</b> — zainstaluj Strażnika z App Store i zapisz miejsca na nowo; Moje miejsca nie przechodzą między telefonami.</li>"),
+                    "    <li><b>Po wymianie telefonu</b> — zainstaluj Strażnika z App Store i zapisz miejsca na nowo; Moje miejsca nie przechodzą między telefonami.</li>\n"
+                    "    <li><b>Diody zielone, przyciski działają, a mapa jest pusta</b> (także w Safari) — iPhone blokuje rysowanie map (WebGL). Najczęściej to <b>Tryb blokady</b>: Ustawienia → Prywatność i ochrona → Tryb blokady → Konfiguruj przeglądanie → wyklucz Strażnika, a w Safari także straznik.eu. Jeśli Tryb blokady jest wyłączony, sprawdź Ustawienia → Aplikacje → Safari → Zaawansowane → Flagi funkcji → WebGL. Alarmy i powiadomienia działają także bez mapy.</li>"),
     prywatnosc=("zapisują się tylko na urządzeniu; kopia zapasowa Androida dla aplikacji jest wyłączona.",
                 "zapisują się tylko na urządzeniu."),
     stopka=('<a href="en.html" lang="en">English user guide</a>',
@@ -287,7 +288,8 @@ EN = dict(
                     "<li><b>No notifications</b> — check My places (watched province), the <kbd>Alerts on this phone</kbd> switch and Settings → Notifications → Strażnik. A sound test does not check the push path from the server.</li>\n"
                     "    <li><b>The alert arrived without sound</b> — most often the ringer is silenced with the switch on the side of the phone, or a Focus mode is on without Strażnik allowed. See the “Check your iPhone” box in chapter <a href=\"#alarmy\">9</a>.</li>\n"
                     "    <li><b>The alert arrived only after unlocking</b> — “Time Sensitive Notifications” are off, or Strażnik is not allowed in Sleep.</li>\n"
-                    "    <li><b>After changing phones</b> — install Strażnik from the App Store and save your places again; My places do not move between phones.</li>"),
+                    "    <li><b>After changing phones</b> — install Strażnik from the App Store and save your places again; My places do not move between phones.</li>\n"
+                    "    <li><b>Green indicators, working buttons, but an empty map</b> (in Safari too) — the iPhone blocks map drawing (WebGL). Most often it is <b>Lockdown Mode</b>: Settings → Privacy &amp; Security → Lockdown Mode → Configure Web Browsing → exclude Strażnik, and straznik.eu in Safari. If Lockdown Mode is off, check Settings → Apps → Safari → Advanced → Feature Flags → WebGL. Alerts and notifications work without the map.</li>"),
     prywatnosc=("are stored only on the device; Android backup is disabled for the app.",
                 "are stored only on the device."),
     stopka=('<a href="index.html" lang="pl">Instrukcja po polsku</a>',
