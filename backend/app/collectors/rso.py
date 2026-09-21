@@ -13,7 +13,7 @@ kontekst POWIETRZNY (atak powietrzny, dron, rakieta, naruszenie przestrzeni…).
 Komunikat „zakończenie / odwołanie" nie alarmuje, ale jest zapisywany jako
 `rso_clear` (0 pkt): fuzja gasi nim odwołany alert i artykuły, które go potem
 tylko opisują. RSO potrafi zmienić istniejący wpis W MIEJSCU (ten sam id, nowa
-treść i `rso_alarm` = 2), więc odwołanie rozpoznajemy także po zmianie wpisu.
+treść), więc odwołanie rozpoznajemy także po zmianie wpisu — zawsze po TREŚCI.
 """
 import asyncio
 import hashlib
@@ -80,16 +80,20 @@ def _is_rcb_air_alert(text: str, headline: str | None = None) -> bool:
 def _is_rcb_air_cancellation(it: dict) -> bool:
     """Odwołanie zagrożenia z powietrza od RCB.
 
-    `rso_alarm` = "2" oznacza w RSO odwołanie (1 = alert, 0 = informacja). Pole
-    bywa puste w starszych wpisach, więc zapasowo patrzymy na tytuł i skrót.
-    13.09.2026 wpis 23329799 dla lubelskiego zmienił się o 04:58 na
-    „Odwołano zagrożenie atakiem z powietrza", a Strażnik liczył go dalej.
+    Rozpoznajemy WYŁĄCZNIE po treści (tytuł i skrót). 13.09.2026 wpis 23329799 dla
+    lubelskiego zmienił się o 04:58 na „Odwołano zagrożenie atakiem z powietrza",
+    a Strażnik liczył go dalej.
+
+    Pole `rso_alarm` NIE oznacza odwołania (błędne założenie z 13.09): to stopień
+    ostrzeżenia. 21.09.2026 aktywny Alert RCB 23354051 dla lubelskiego („Sytuacja jest
+    monitorowana… Oczekuj dalszych komunikatów”, ważny 21:34–23:59) miał `rso_alarm` = 2
+    i został wzięty za odwołanie — artykuły o nim zgasły, a alert nie dał punktów.
+    W tym samym czasie `rso_alarm` = 2 miały burze, wezbrania rzek i „woda niezdatna
+    do spożycia”, a 13.09 odwołanie miało 2, a alert 1.
     """
     text = f"{it.get('title','')} {it.get('shortcut','')} {it.get('content','')}".lower()
     if not (any(o in text for o in RSO_ORIGIN) and any(a in text for a in RSO_AIR)):
         return False
-    if str(it.get("rso_alarm") or "").strip() == "2":
-        return True
     head = f"{it.get('title','')} {it.get('shortcut','')}".lower()
     for cont in RSO_CONTINUES:
         head = head.replace(cont, " ")
@@ -239,7 +243,8 @@ STAGE_MONITOR = ("sytuacja jest monitorowana", "operuje polskie lotnictwo", "śl
 def alert_stage(text: str, rso_alarm=None) -> str:
     """'clear' | 'action' (etap 2) | 'monitor' (etap 1) | 'unknown'."""
     t = (text or "").lower()
-    if str(rso_alarm or "").strip() == "2" or any(w in t for w in STAGE_CLEAR):
+    # rso_alarm celowo pomijamy — to stopień ostrzeżenia, nie odwołanie (21.09.2026)
+    if any(w in t for w in STAGE_CLEAR):
         return "clear"
     if any(w in t for w in STAGE_ACTION):
         return "action"

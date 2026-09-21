@@ -59,6 +59,19 @@ bez_pola = {**ODWOLANY, "rso_alarm": ""}
 ok(rso._is_rcb_air_cancellation(bez_pola), "bez rso_alarm rozpoznaje po tytule")
 trwa = {**ALERT, "rso_alarm": "", "shortcut": "Alert obowiązuje do odwołania."}
 ok(not rso._is_rcb_air_cancellation(trwa), "„do odwołania” to trwający alert")
+# 21.09.2026: aktywny alert z rso_alarm=2 był brany za odwołanie
+ALERT_2109 = {
+    "id": "23354051", "title": "Alert RCB",
+    "shortcut": "UWAGA! Rosyjski atak powietrzny na terenie Ukrainy. Sytuacja jest monitorowana. "
+                "W przestrzeni RP operuje polskie lotnictwo. Oczekuj dalszych",
+    "content": "UWAGA! Rosyjski atak powietrzny na terenie Ukrainy. Sytuacja jest monitorowana. "
+               "W przestrzeni RP operuje polskie lotnictwo. Oczekuj dalszych",
+    "rso_alarm": "2", "valid_from": "2026-09-21 21:34:00", "valid_to": "2026-09-21 23:59:00",
+    "created_at": "2026-09-21 21:36:13", "updated_at": "2026-09-21 21:36:13",
+    "provinces": {"3": {"id": "3", "name": "Lubelskie", "slug_name": "lubelskie"}},
+}
+ok(not rso._is_rcb_air_cancellation(ALERT_2109), "alert 23354051 z rso_alarm=2 to AKTYWNY alert, nie odwołanie")
+ok(rso._is_rcb_air_cancellation({**ODWOLANY, "rso_alarm": "1"}), "odwołanie rozpoznane po treści niezależnie od rso_alarm")
 
 print("2. kolektor zapisuje odwołanie wpisu, który już znał")
 zapisane = []
