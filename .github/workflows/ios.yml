@@ -186,8 +186,7 @@ jobs:
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_PATH: ${{ runner.temp }}/asc.p8
           # Trwały certyfikat dystrybucyjny (od 21.09.2026) — patrz podpis_apple.py.
-          STALY_P12_BASE64: ${{ secrets.IOS_DIST_P12_BASE64 }}
-          STALY_P12_HASLO: ${{ secrets.IOS_DIST_P12_PASSWORD }}
+          STALY_KLUCZ_BASE64: ${{ secrets.IOS_DIST_KEY_PEM_BASE64 }}
           STALY_CERT_ID: ${{ secrets.IOS_DIST_CERT_ID }}
         run: |
           set -o pipefail

@@ -14,15 +14,15 @@ Do tego przy wyczerpanym limicie skrypt kasował najstarszy certyfikat, więc KA
 nowe budowanie w trakcie przeglądu unieważniało build czekający na przegląd.
 
 Teraz certyfikat jest jeden, trwały (utworzony przepływem `ios-certyfikat.yml` z
-wniosku przygotowanego poza GitHubem), a jego .p12 leży w sekretach:
-`IOS_DIST_P12_BASE64`, `IOS_DIST_P12_PASSWORD`, `IOS_DIST_CERT_ID`. Skrypt tylko go
+wniosku przygotowanego poza GitHubem), a jego klucz leży w sekretach:
+`IOS_DIST_KEY_PEM_BASE64` (klucz prywatny) i `IOS_DIST_CERT_ID`. Skrypt tylko go
 używa. Profil App Store jest wykorzystywany ponownie, póki wskazuje ten certyfikat.
 Nie ma tu już żadnej ścieżki, która wycofuje certyfikat — i ma jej nie być.
 
 Wymaga: pyjwt, cryptography (instalowane w venv w workflow).
 
 Użycie:
-    python podpis_apple.py --przygotuj   # .p12 z sekretu + profil App Store
+    python podpis_apple.py --przygotuj   # .p12 z klucza z sekretu + profil App Store
     python podpis_apple.py --sprzatanie  # nic nie wycofuje (zostawione dla zgodności)
 """
 
@@ -33,6 +33,7 @@ import base64
 import json
 import os
 import pathlib
+import subprocess
 import sys
 import time
 import urllib.error
@@ -73,6 +74,25 @@ def api(sciezka: str, metoda: str = "GET", dane: dict | None = None) -> dict:
     except urllib.error.HTTPError as e:
         tresc = e.read().decode(errors="replace")
         raise SystemExit(f"App Store Connect: HTTP {e.code} przy {metoda} {sciezka}\n{tresc}")
+
+
+def narzedzie_openssl() -> str:
+    """Systemowy openssl (LibreSSL) przed ewentualnym z Homebrew.
+
+    Ma znaczenie przy pakowaniu .p12: OpenSSL 3 domyślnie szyfruje algorytmami,
+    których pęk kluczy macOS nie czyta („MAC verification failed during PKCS12
+    import” — 19.09.2026). LibreSSL pakuje po staremu i system to przyjmuje.
+    21.09.2026 ten sam błąd dał .p12 złożony na Windowsie w OpenSSL 3.5, mimo
+    jawnie podanych starszych algorytmów — dlatego pakiet składa się TUTAJ, na
+    maszynie z macOS, a w sekretach leży tylko klucz prywatny (zwykły tekst PEM).
+    """
+    return "/usr/bin/openssl" if pathlib.Path("/usr/bin/openssl").exists() else "openssl"
+
+
+def openssl(*args: str) -> None:
+    wynik = subprocess.run([narzedzie_openssl(), *args], capture_output=True)
+    if wynik.returncode != 0:
+        raise SystemExit("openssl " + args[0] + ": " + wynik.stderr.decode(errors="replace"))
 
 
 def wypisz(klucz: str, wartosc: str) -> None:
@@ -133,28 +153,45 @@ def profil_dla(cert_id: str) -> dict:
 
 def przygotuj() -> None:
     katalog = pathlib.Path(os.environ["RUNNER_TEMP"])
+    klucz = katalog / "podpis.key"
+    cer = katalog / "podpis.cer"
+    pem = katalog / "podpis.pem"
     p12 = katalog / "podpis.p12"
     haslo_plik = katalog / "podpis.haslo"
 
-    p12_b64 = os.environ.get("STALY_P12_BASE64", "").strip()
-    haslo = os.environ.get("STALY_P12_HASLO", "")
+    klucz_b64 = os.environ.get("STALY_KLUCZ_BASE64", "").strip()
     cert_id = os.environ.get("STALY_CERT_ID", "").strip()
-    if not (p12_b64 and haslo and cert_id):
+    if not (klucz_b64 and cert_id):
         # Celowo bez powrotu do starego trybu. On tworzył i wycofywał certyfikat, co
         # unieważnia build w przeglądzie — lepiej przerwać budowanie niż wysłać plik,
         # który Apple odrzuci dopiero przy zgłoszeniu (ITMS-90035, 21.09.2026).
         raise SystemExit(
-            "Brak trwałego certyfikatu w sekretach (IOS_DIST_P12_BASE64, "
-            "IOS_DIST_P12_PASSWORD, IOS_DIST_CERT_ID). Utwórz go przepływem "
-            "ios-certyfikat.yml — NIE twórz certyfikatu na czas budowania.")
+            "Brak trwałego certyfikatu w sekretach (IOS_DIST_KEY_PEM_BASE64, "
+            "IOS_DIST_CERT_ID). Utwórz go przepływem ios-certyfikat.yml — NIE twórz "
+            "certyfikatu na czas budowania.")
 
-    p12.write_bytes(base64.b64decode(p12_b64))
+    klucz.write_bytes(base64.b64decode(klucz_b64))
+    klucz.chmod(0o600)
+    # Certyfikat jest publiczny — bierzemy go z Apple, nie z sekretu. Przy okazji to
+    # sprawdzenie, że nadal istnieje: wycofany dałby tu błąd zamiast złego podpisu.
+    cert = api(f"/v1/certificates/{cert_id}")["data"]
+    print("Podpis trwałym certyfikatem", cert_id,
+          cert["attributes"].get("displayName"), "ważny do",
+          cert["attributes"].get("expirationDate"))
+    cer.write_bytes(base64.b64decode(cert["attributes"]["certificateContent"]))
+    openssl("x509", "-inform", "DER", "-in", str(cer), "-out", str(pem))
+
+    haslo = base64.b64encode(os.urandom(18)).decode()
+    openssl("pkcs12", "-export", "-inkey", str(klucz), "-in", str(pem),
+            "-out", str(p12), "-name", "Straznik Distribution",
+            "-keypbe", "PBE-SHA1-3DES", "-certpbe", "PBE-SHA1-3DES", "-macalg", "sha1",
+            "-passout", "pass:" + haslo)
+    klucz.unlink()
+    wypisz("p12", str(p12))
+    # Hasło do pliku, nie do wyjścia kroku: wyjścia trafiają do podsumowania przebiegu,
+    # a repozytorium jest publiczne.
     haslo_plik.write_text(haslo, encoding="utf-8")
     haslo_plik.chmod(0o600)
-    wypisz("p12", str(p12))
-    # `cert_id` celowo NIE trafia do wyjść kroku: po nim krok sprzątania rozpoznawał
-    # certyfikat „pożyczony” i go wycofywał.
-    print("Podpis trwałym certyfikatem", cert_id)
 
     profil = profil_dla(cert_id)
     wypisz("profil_nazwa", NAZWA_PROFILU)
