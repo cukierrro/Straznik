@@ -73,6 +73,8 @@ sprawdz("odzysk" not in tresc and "odinstal" not in tresc.lower(),
         "NIE każe odinstalowywać — to skasowałoby zapisane miejsca i ustawienia")
 sprawdz("instaluje się na starej" in tresc,
         "mówi wprost, że ustawienia zostają (ludzie boją się stracić miejsca)")
+sprawdz("straznik.eu/pobierz" in tresc,
+        "podaje krótki adres do ręcznej instalacji — stare wersje nie umieją pokazać klikalnego linku")
 sprawdz("przeglądarce" in tresc,
         "ma zdanie dla kart z zapamiętaną starą stroną — im wystarczy odświeżenie")
 from datetime import datetime, timezone  # noqa: E402

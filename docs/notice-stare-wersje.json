@@ -1,5 +1,5 @@
 {
-  "id": "odciecie-2509",
-  "text": "Od 25 września ta wersja straci połączenie z serwerem Strażnika i zostanie na słabszych, własnych źródłach. Zaktualizuj: Ustawienia → Aplikacja → „⬆ Sprawdź aktualizacje”. Nowa wersja instaluje się na starej, ustawienia i miejsca zostają. W przeglądarce wystarczy odświeżyć stronę.",
+  "id": "odciecie-2509-pobierz",
+  "text": "Od 25 września ta wersja straci połączenie z serwerem Strażnika i zostanie na słabszych, własnych źródłach. Zaktualizuj: Ustawienia → Aplikacja → „⬆ Sprawdź aktualizacje”. Jeśli wyskoczy błąd „podpis się nie zgadza” (Android 9 i 10), wpisz w przeglądarce telefonu straznik.eu/pobierz i otwórz pobrany plik — nowa wersja instaluje się na starej, ustawienia i miejsca zostają. Jeśli korzystasz ze strony w przeglądarce, wystarczy ją odświeżyć.",
   "until": "2026-09-26T12:00:00+02:00"
 }

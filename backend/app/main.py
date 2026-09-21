@@ -8,7 +8,7 @@ import time
 
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from . import (alert_log, app_updates, blob_store, by_entry_shadow, config, db, escalation_shadow, fusion, load_guard,
@@ -571,6 +571,25 @@ async def api_zones(request: Request):
 
 def _zones_payload() -> dict:
     return {"zones": pansa.zones_geojson(), "events": pansa.zone_events()}
+
+
+NAJNOWSZA_PACZKA = "https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk"
+
+
+@app.get("/pobierz")
+async def pobierz():
+    """Krótki adres do ręcznej instalacji: straznik.eu/pobierz.
+
+    Stare wersje nie potrafią pokazać klikalnego odnośnika — ich pasek komunikatu to
+    sam tekst, a jedyny przycisk w okienku aktualizacji uruchamia wbudowany aktualizator,
+    który na Androidzie 9 i 10 odrzucał każdą paczkę (naprawione w 1.7.64). Tym ludziom
+    zostaje wpisanie adresu w przeglądarce, więc ma być krótki i do zapamiętania.
+
+    Przekierowanie, nie plik: 24 MB idzie z GitHuba, nie przez nasz tunel, a adres zawsze
+    wskazuje najnowsze wydanie. Bez cache, żeby po nowym wydaniu nie prowadził do starego.
+    """
+    return RedirectResponse(NAJNOWSZA_PACZKA, status_code=302,
+                            headers={"Cache-Control": "no-store"})
 
 
 @app.get("/api/app-version")
