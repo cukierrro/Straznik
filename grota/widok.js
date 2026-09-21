@@ -12,7 +12,7 @@
   if (window.Grota) return;
 
   const BAZA = "grota/";
-  const WERSJA = "1f3e4d1f3f";                 // podmieniane przy eksporcie — świeże pliki po aktualizacji aplikacji
+  const WERSJA = "ae1ce40753";                 // podmieniane przy eksporcie — świeże pliki po aktualizacji aplikacji
   const SKRYPTY = ["ikony.js", "poradnik.js", "grota-core.js", "trasa-lokalna.js", "vendor/fflate.min.js", "offline.js", "grota.js"];
 
   // Szkielet widoku — ten sam układ co samodzielna Grota, plus powrót do Strażnika w nagłówku.

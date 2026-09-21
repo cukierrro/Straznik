@@ -20,7 +20,8 @@
 #grota-widok .g-tabs button[data-tab="alarm"].on { background: var(--red); border-color: var(--red); color: #fff; }
 #grota-widok .g-body { flex: 1; display: grid; grid-template-columns: 1fr 400px; min-height: 0; }
 #grota-widok .map-wrap { position: relative; min-height: 0; }
-#grota-widok #g-map { position: absolute; inset: 0; }
+/* bez `inset` — zna go dopiero Chrome 87, a minimum Strażnika to 80 (na 80–86 mapa miałaby zerowy rozmiar) */
+#grota-widok #g-map { position: absolute; top: 0; right: 0; bottom: 0; left: 0; }
 #grota-widok #g-panel { background: var(--panel); border-left: 1px solid var(--line); overflow-y: auto; padding: 14px; }
 @media (max-width: 760px) {
   #grota-widok .g-body { grid-template-columns: 1fr; grid-template-rows: minmax(0, 38fr) minmax(0, 62fr); overflow: hidden; }

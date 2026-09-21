@@ -365,6 +365,8 @@
       if (attempt < 3) { await new Promise((ok) => setTimeout(ok, 1500 * attempt)); return loadData(attempt + 1); }
       S.dataError = "Nie udało się wczytać punktów schronienia. Zasady i listy „Przygotuj się” działają bez nich.";
     }
+    // ktoś zdążył nacisnąć TERAZ, zanim punkty się wczytały — liczymy wynik od razu po wczytaniu
+    if (S.points.length && S.userPos && S.tab === "teraz") computeLive();
     render();
   }
   let dataReady = loadData();
@@ -1708,6 +1710,9 @@ Zmienić położenie?`);
         + liveFilterBar()
         + (S.mode === "driving" ? rule("P-AUTO") : "")
         + (L.options.length ? mainOption(L.options[0])
+          // Punkty jeszcze się wczytują (pierwsze wejście albo powrót na słabszym telefonie) — nie wolno wtedy
+          // powiedzieć „brak punktów w pobliżu”, bo przy alarmie ktoś uwierzy i nie będzie szukał dalej.
+          : !S.points.length ? `<p class="sim">Wczytuję punkty schronienia — za chwilę pokażę najbliższe. Zasady niżej działają już teraz.</p>`
           : S.liveFilter.dostep.length ? `<p class="sim">Brak punktów spełniających filtr w pobliżu. Zaznacz więcej rodzajów powyżej.</p>`
           : `<p class="sim">Nie zaznaczono żadnego rodzaju dostępu — zaznacz co najmniej jeden powyżej.</p>`)
         + (L.closerDoubtful?.length ? `<div class="card"><p class="small muted">Bliżej jest ${plural(L.closerDoubtful.length, "punkt", "punkty", "punktów")} o wątpliwym położeniu (najbliższy ${fmtDist(L.closerDoubtful[0].distM)}) — Grota do nich nie prowadzi, bo szpilka stoi obok budynku albo w innym miejscu niż adres.</p>${notkaOBledach()}</div>` : "")
@@ -2486,9 +2491,7 @@ Zmienić położenie?`);
     if (punktyZwolnione) {
       punktyZwolnione = false;
       setLoadMsg("Wczytuję punkty schronienia…");
-      dataReady = loadData();
-      // wynik „Teraz” liczył się na punktach, których już nie ma — po wczytaniu liczymy go od nowa
-      dataReady.then(() => { if (S.userPos && S.tab === "teraz") { computeLive(); render(); } });
+      dataReady = loadData();         // po wczytaniu sam przeliczy wynik „Teraz”, jeśli jest otwarty
     }
     utworzMape();
     map.once("load", () => {
