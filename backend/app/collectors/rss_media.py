@@ -184,7 +184,7 @@ def _is_media_clear(text: str) -> bool:
     return any(_fold(k) in tl for k in config.MEDIA_CLEAR_KEYWORDS)
 
 
-def _match_voivs(text: str) -> list[str]:
+def _match_voivs(text: str, regions_only: bool = False) -> list[str]:
     """WSZYSTKIE województwa wymienione w tekście, w kolejności wystąpienia.
 
     Do 1.7.28 zwracaliśmy jedno — to z najdłuższym trafionym hasłem. Reguła
@@ -212,16 +212,45 @@ def _match_voivs(text: str) -> list[str]:
                 # tak samo „bełkot"→Ełk i „topole"→Opole. Hasła są rdzeniami
                 # odmian („podlask", „chełm"), więc obcinamy tylko lewą stronę.
                 if start == 0 or not (tl[start - 1].isalnum() or tl[start - 1] == "-"):
-                    hits.append((start, start + len(kf), voiv))
+                    hits.append((start, start + len(kf), voiv, _is_region_keyword(voiv, kf)))
                 start = tl.find(kf, start + 1)
     out: list[str] = []
-    for start, end, voiv in sorted(hits):
+    for start, end, voiv, region in sorted(hits):
         covered = any(other != voiv and o_start <= start and end <= o_end
                       and (o_end - o_start) > (end - start)
-                      for o_start, o_end, other in hits)
-        if not covered and voiv not in out:
+                      for o_start, o_end, other, _ in hits)
+        if not covered and voiv not in out and (region or not regions_only):
             out.append(voiv)
     return out
+
+
+# Nazwy REGIONÓW (nie miast): rdzeń nazwy województwa albo potoczna nazwa krainy.
+_REGION_EXTRA = ("lubelszczy", "podkarpaci", "mazowsz", "pomorz", "malopolsk", "wielkopolsk",
+                 "podlasi", "warmi", "mazur", "kujaw", "opolszczy", "dolny slask", "dolnym slask",
+                 "dolnego slask", "dolnoslaz", "slask", "swietokrzy", "lubusk", "zachodniopomor",
+                 "lodzk")
+
+
+def _is_region_keyword(voiv: str, folded_kw: str) -> bool:
+    return (folded_kw.startswith(_fold(voiv)[:6])
+            or any(folded_kw.startswith(e) for e in _REGION_EXTRA))
+
+
+def _article_voivs(title: str, text: str) -> list[str]:
+    """Województwa artykułu (21.09.2026).
+
+    Gdy TYTUŁ wskazuje województwo („Alert RCB w Lubelskiem!”), z opisu dokładamy
+    tylko regiony nazwane wprost („…i podkarpackiego”, „na Opolszczyźnie”), a nie
+    pojedyncze miasta. Opisy RSS Radia Lublin zawierały zapowiedzi innych artykułów
+    („Wrocławskie sparingi Startu Lublin”) — alert dla lubelskiego dostawał po 1 pkt
+    także w opolskim i dolnośląskim (21.09 i 13.09). Bez województwa w tytule
+    działa jak dotąd: cały tekst, łącznie z miastami.
+    """
+    in_title = _match_voivs(_neutralize_places(title))
+    if not in_title:
+        return _match_voivs(_neutralize_places(text))
+    extra = _match_voivs(_neutralize_places(text), regions_only=True)
+    return in_title + [v for v in extra if v not in in_title]
 
 
 _REGION_NEUTRAL = [re.compile(p, re.I | re.UNICODE) for p in config.REGION_NEUTRAL_PATTERNS]
@@ -467,7 +496,7 @@ async def _check_feed(client: httpx.AsyncClient, url: str, default_voiv: str | N
                               and not _hits(text.lower(), config.EXCLUDE_KEYWORDS)):
             continue
         pts = config.POINTS["media_critical"] if level == "critical" else config.POINTS["media_keywords"]
-        voivs = _match_voivs(_neutralize_places(text))
+        voivs = _article_voivs(_strip_publisher(title, publisher), text)
         if not voivs and default_voiv and not _mentions_abroad(text):
             # Domyślny region kanału jest DOMNIEMANIEM, nie faktem: stosujemy go
             # tylko wtedy, gdy tekst nie umiejscawia zdarzenia za granicą.
