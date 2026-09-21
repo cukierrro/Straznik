@@ -9,6 +9,7 @@
   const EN = {
     "fuzja sygnałów · wschodnia Polska": "signal fusion · eastern Poland",
     "Pobierz aplikację": "Download app", "⬇ Pobierz aplikację": "⬇ Download app",
+    "⬇ Pobierz na Androida": "⬇ Get it for Android", "⬇ Pobierz na iOS": "⬇ Get it for iOS",
     "Instrukcja": "User guide", "📖 Instrukcja": "📖 User guide",
     "Postaw kawę": "Buy me a coffee", "☕ Postaw kawę": "☕ Buy me a coffee", "Legenda": "Legend",
     "☕ Postaw kawę autorowi": "☕ Buy the author a coffee", "Bałtyk": "Baltic",
@@ -111,8 +112,8 @@
       "Alarmy dla Twojego województwa przychodzą jako powiadomienie push — także gdy aplikacja jest zamknięta, ekran zablokowany albo telefon w uśpieniu. Serwer Strażnika wysyła sygnał prosto na telefon; wystarczy zgoda na powiadomienia. Wymaga to działającego serwera: w trybie awaryjnym (serwer niedostępny) alarmy przychodzą tylko przy otwartej aplikacji.",
       "Alerts for your province arrive as a push notification — also when the app is closed, the screen is locked or the phone is asleep. The Strażnik server sends the signal straight to the phone; notification permission is all that is needed. This needs a working server: in fallback mode (server unreachable) alerts only arrive while the app is open.");
     button("alarm-ios-note",
-      "Na iPhonie czerwony alarm przychodzi jako powiadomienie oznaczone „PILNE”: pokazuje się nad blokadą i gra syreną. Nie zapala pełnego ekranu i nie powtarza dźwięku — iOS nie pozwala na to zwykłym aplikacjom. Przy wyciszonym dzwonku alarm będzie bezgłośny: zostanie wibracja i baner. Żeby przeszedł także w nocy, sprawdź dwie rzeczy: Ustawienia → Powiadomienia → Strażnik → „Powiadomienia czasowo zależne” oraz Ustawienia → Skupienie → Sen → Aplikacje → dopuść Strażnika. Bez tego iOS wstrzymuje alarm do odblokowania telefonu.",
-      "On iPhone a red alert arrives as a notification marked “Urgent”: it appears over the lock screen and plays our siren. It does not take over the screen and does not repeat the sound — iOS does not allow regular apps to do that. With the ringer muted the alert is silent: a vibration and a banner, nothing more. For it to reach you at night, check two settings: Settings → Notifications → Strażnik → “Time Sensitive Notifications” and Settings → Focus → Sleep → Apps → allow Strażnik. Without them iOS holds the alert until you unlock the phone.");
+      "Na iPhonie czerwony alarm przychodzi jako powiadomienie oznaczone „PILNE”: pokazuje się nad blokadą i gra syreną. Nie zapala pełnego ekranu i nie powtarza dźwięku — iOS nie pozwala na to zwykłym aplikacjom. Przy wyciszonym dzwonku alarm będzie bezgłośny: zostanie baner i wibracja — o ile w Ustawienia → Dźwięki i haptyka → Haptyka nie jest wybrane „Nie odtwarzaj w trybie cichym”. Żeby przeszedł także w nocy, sprawdź dwie rzeczy: Ustawienia → Powiadomienia → Strażnik → „Powiadomienia czasowo zależne” oraz Ustawienia → Skupienie → Sen → Aplikacje → dopuść Strażnika. Bez tego iOS wstrzymuje alarm do odblokowania telefonu.",
+      "On iPhone a red alert arrives as a notification marked “Urgent”: it appears over the lock screen and plays our siren. It does not take over the screen and does not repeat the sound — iOS does not allow regular apps to do that. With the ringer muted the alert is silent: a banner and a vibration — as long as Settings → Sounds & Haptics → Haptics is not set to “Don’t Play in Silent Mode”. For it to reach you at night, check two settings: Settings → Notifications → Strażnik → “Time Sensitive Notifications” and Settings → Focus → Sleep → Apps → allow Strażnik. Without them iOS holds the alert until you unlock the phone.");
     button("dzwiek-ios-note",
       "Żółty poziom (≥2 pkt) — krótki sygnał uwagi i powiadomienie wyskakujące na ekranie. Czerwony (≥4 pkt) — modulowana syrena alarmu powietrznego + wibracja. Odtwarzane, gdy aplikacja jest otwarta; przy zamkniętej aplikacji alarm przychodzi jako powiadomienie push (z syreną dla czerwonego).",
       "Yellow (≥2 pts): attention sound and heads-up notification. Red (≥4 pts): modulated air-raid siren and vibration. Played while the app is open; with the app closed the alert arrives as a push notification (with the siren for red).");
@@ -192,6 +193,7 @@
       if (node.nodeValue.includes(from)) node.nodeValue = node.nodeValue.split(from).join(to);
     const attrs = {
       "btn-download": ["title","Download the latest Strażnik app for Android"],
+      "btn-ios": ["title","Get the Strażnik app for iPhone on the App Store"],
       "btn-instructions": ["title","Open the full Strażnik user guide"],
       "btn-about": ["title","About Strażnik — what it is and how it works"],
       "btn-legend": ["title","Symbol legend"], "btn-settings": ["title","My location and settings"],
@@ -253,7 +255,7 @@
     set("#alarm-overlay .alarm-note", "This is an UNOFFICIAL signal. Check sirens, RCB and RSO alerts — official channels are authoritative.");
     set("#about .about-sub", "unofficial fusion of air-threat signals");
     setMany("#about .about-body > p", [
-      "Strażnik is an unofficial air-threat map for Poland. It combines reports of drones and missiles over Ukraine with RCB and RSO alerts, PAŻP airspace zones, ADS-B traffic and media reports. The map works live in a browser; the Android app can also send notifications.",
+      "Strażnik is an unofficial air-threat map for Poland. It combines reports of drones and missiles over Ukraine with RCB and RSO alerts, PAŻP airspace zones, ADS-B traffic and media reports. The map works live in a browser, and the Android and iPhone apps send alert notifications, even when the app is closed.",
       "No single signal proves that a threat exists. The app assigns points to several independent indicators and totals them over a 60-minute window for each province. A signal has full weight for 30 minutes, then fades linearly to zero. The resulting total determines the level, and the full breakdown is always visible.",
       "One Shahed 80 km from the border is different from six Shaheds 50 km away, while a short-range FPV drone does not threaten Poland. The score combines object class, count, distance, confidence and position quality.",
       "The model was checked against documented incidents. A mass border violation or a missile immediately next to the border crosses an alert threshold; routine activity over western Ukraine stays below it. NEPTUN contribution is capped at 8 points.",
@@ -342,7 +344,7 @@
     // Teksty pokazywane tylko w aplikacji na iPhone'a (klasa .ios-only w index.html)
     set("#onboard-bg-ios", "We only ask for notification permission. So that a red alert can reach you at night, keep “Time Sensitive Notifications” on and allow Strażnik in your Sleep focus (Settings → Focus → Sleep → Apps).");
     set("#alarmy-intro-ios", "Alerts for your province arrive as a push notification — also when the app is closed, the screen is locked or the phone is asleep. The Strażnik server sends the signal straight to the phone; notification permission is all that is needed. This needs a working server: in fallback mode (server unreachable) alerts only arrive while the app is open.");
-    set("#alarm-ios-note", "On iPhone a red alert arrives as a notification marked “Urgent”: it appears over the lock screen and plays our siren. It does not take over the screen and does not repeat the sound — iOS does not allow regular apps to do that. With the ringer muted the alert is silent: a vibration and a banner, nothing more. For it to reach you at night, check two settings: Settings → Notifications → Strażnik → “Time Sensitive Notifications” and Settings → Focus → Sleep → Apps → allow Strażnik. Without them iOS holds the alert until you unlock the phone.");
+    set("#alarm-ios-note", "On iPhone a red alert arrives as a notification marked “Urgent”: it appears over the lock screen and plays our siren. It does not take over the screen and does not repeat the sound — iOS does not allow regular apps to do that. With the ringer muted the alert is silent: a banner and a vibration — as long as Settings → Sounds & Haptics → Haptics is not set to “Don’t Play in Silent Mode”. For it to reach you at night, check two settings: Settings → Notifications → Strażnik → “Time Sensitive Notifications” and Settings → Focus → Sleep → Apps → allow Strażnik. Without them iOS holds the alert until you unlock the phone.");
     set("#dzwiek-ios-note", "Yellow (≥2 pts): attention sound and heads-up notification. Red (≥4 pts): modulated air-raid siren and vibration. Played while the app is open; with the app closed the alert arrives as a push notification (with the siren for red).");
     setMany("#onboard-bg .about-body > p:not(.ios-only)", [
       "Strażnik is useful only if it can warn you before you open it. Alerts for your region arrive as push notifications, even when the app is closed and the screen is off.",

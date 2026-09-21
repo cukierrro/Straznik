@@ -429,7 +429,15 @@ public class BackgroundPlugin extends Plugin {
             String own = getContext().getPackageName();
             int flags = Build.VERSION.SDK_INT >= 28
                 ? PackageManager.GET_SIGNING_CERTIFICATES : PackageManager.GET_SIGNATURES;
-            PackageInfo downloaded = pm.getPackageArchiveInfo(apk.getAbsolutePath(), flags);
+            // Android 9 i 10 czytają certyfikaty z PLIKU APK tylko przy GET_SIGNATURES —
+            // w getPackageArchiveInfo stoi tam `if ((flags & GET_SIGNATURES) != 0)
+            // collectCertificates(...)`, a sama GET_SIGNING_CERTIFICATES zostawia signingInfo
+            // puste. Poprawił to dopiero Android 11. Bez tej flagi każdy telefon z Androidem
+            // 9 lub 10 porównywał prawdziwy certyfikat z pustym zbiorem i odrzucał każdą
+            // aktualizację jako „podpis się nie zgadza" (zgłoszenie z Huawei P20 Pro, 21.09.2026).
+            int archiveFlags = Build.VERSION.SDK_INT >= 28
+                ? flags | PackageManager.GET_SIGNATURES : flags;
+            PackageInfo downloaded = pm.getPackageArchiveInfo(apk.getAbsolutePath(), archiveFlags);
             if (downloaded == null) return "Plik aktualizacji nie jest poprawnym APK";
             if (!own.equals(downloaded.packageName))
                 return "Plik aktualizacji jest inną aplikacją (" + downloaded.packageName + ")";
@@ -446,12 +454,13 @@ public class BackgroundPlugin extends Plugin {
     @SuppressWarnings("deprecation")
     private static Set<String> certDigests(PackageInfo info) throws Exception {
         Signature[] sigs;
-        if (Build.VERSION.SDK_INT >= 28) {
-            if (info.signingInfo == null) return new HashSet<>();
+        if (Build.VERSION.SDK_INT >= 28 && info.signingInfo != null) {
             sigs = info.signingInfo.hasMultipleSigners()
                 ? info.signingInfo.getApkContentsSigners()
                 : info.signingInfo.getSigningCertificateHistory();
         } else {
+            // Starsze Androidy, a na 9/10 także pobrany plik, gdyby producent zostawił
+            // signingInfo puste mimo GET_SIGNATURES — wtedy certyfikat jest tutaj.
             sigs = info.signatures;
         }
         Set<String> out = new HashSet<>();

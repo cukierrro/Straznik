@@ -48,8 +48,41 @@ DATA = ROOT / "backend" / "data"
 DEST = Path(os.getenv("STRAZNIK_BACKUP_DIR", "/var/backups/straznik"))
 STATUS = Path(os.getenv("STRAZNIK_BACKUP_STATUS", str(DATA / "backup_status.json")))
 FILES = ["pansa_seen.json", "zones_since.json", "official_alerts_seen.json", "notice.json"]
-SECRETS = [DATA / "vapid.json", DATA / "fcm-service-account.json", ROOT / "backend" / ".env",
-           Path("/etc/systemd/system/straznik.service")]
+
+
+def _sekrety() -> list[tuple[Path, str]]:
+    """Pliki, bez których nie da się postawić Strażnika od zera.
+
+    Do 20.09.2026 był tu jeden plik usługi. Po rozbiciu na writera i readera serwer
+    to już układ: dwie usługi, nakładka z rolą, tunel z kierowaniem po ścieżkach i jego
+    poświadczenia — bez nich odtworzona baza leży na maszynie, do której nikt nie
+    trafi, bo domena nie wie, dokąd kierować. Odtwarzanie ma być przepisaniem plików,
+    a nie odtwarzaniem z pamięci, jak to było składane.
+
+    Wszystko to trafia do zaszyfrowanej części: poświadczenia tunelu pozwalają
+    podszyć się pod straznik.eu, a klucz FCM — wysłać fałszywy alarm na wszystkie
+    telefony. Nazwy w archiwum są spłaszczone, więc muszą być rozróżnialne.
+    """
+    pary: list[tuple[Path, str]] = []
+
+    def dodaj(sciezka: Path, nazwa: str | None = None) -> None:
+        if sciezka.exists():
+            pary.append((sciezka, nazwa or sciezka.name))
+
+    dodaj(DATA / "vapid.json")
+    dodaj(DATA / "fcm-service-account.json")
+    dodaj(ROOT / "backend" / ".env")
+    for usluga in ("straznik.service", "straznik-reader.service", "straznik-tunnel.service",
+                   "straznik-watchdog.service", "straznik-watchdog.timer"):
+        dodaj(Path("/etc/systemd/system") / usluga)
+    for nakladka in sorted(Path("/etc/systemd/system/straznik.service.d").glob("*.conf")):
+        dodaj(nakladka, "straznik.service.d--" + nakladka.name)
+    dodaj(Path("/etc/cloudflared-straznik/config.yml"), "cloudflared-config.yml")
+    for pos in sorted(Path("/root/.cloudflared").glob("*.json")):
+        dodaj(pos, "cloudflared-poswiadczenia-" + pos.name)
+    dodaj(Path("/etc/cron.d/straznik-backup"), "cron-straznik-backup")
+    return pary
+
 RECIPIENT = Path(os.getenv("STRAZNIK_BACKUP_RECIPIENT", str(ROOT / "kopie-klucz-publiczny.asc")))
 PREFIX = "straznik-"
 SUFFIX = ".tar.zst"
@@ -126,13 +159,13 @@ def main() -> int:
         for f in FILES:
             if (DATA / f).exists():
                 shutil.copy2(DATA / f, work / f)
-        secrets = [p for p in SECRETS if p.exists()]
+        secrets = _sekrety()
         encrypted = RECIPIENT.exists()
         if encrypted:
             plain = Path(tmp) / "sekrety.tar"
             with tarfile.open(plain, "w") as tar:
-                for p in secrets:
-                    tar.add(p, arcname=p.name)
+                for sciezka, nazwa in secrets:
+                    tar.add(sciezka, arcname=nazwa)
             gnupg_home = Path(tmp) / "gnupg"
             gnupg_home.mkdir(mode=0o700)
             subprocess.run(["gpg", "--homedir", str(gnupg_home), "--batch", "--yes", "--quiet",
@@ -141,8 +174,8 @@ def main() -> int:
                            check=True)
             plain.unlink()
         else:
-            for p in secrets:
-                shutil.copy2(p, work / p.name)
+            for sciezka, nazwa in secrets:
+                shutil.copy2(sciezka, work / nazwa)
         (work / "MANIFEST.json").write_text(json.dumps(
             {"created": now.isoformat(), "counts": counts, "secrets_encrypted": encrypted,
              "files": sorted(x.name for x in work.iterdir())}, ensure_ascii=False, indent=1),

@@ -1003,18 +1003,64 @@ function localiseMapLabels() {
 }
 
 
+/* Mapa rysuje się przez WebGL. Bez niego MapLibre rzucał wyjątkiem i zostawał pusty,
+   granatowy ekran z działającymi diodami i przyciskami — czytelnik z iPhone'em (21.09.2026)
+   miał tak w aplikacji i w Safari. Na iPhonie winny bywa Tryb blokady, który wyłącza
+   WebGL w przeglądarce i w aplikacjach. Zamiast pustki mówimy wprost, co zrobić. */
+function webglDostepny() {
+  try {
+    const c = document.createElement("canvas");
+    return !!(c.getContext("webgl2") || c.getContext("webgl"));
+  } catch { return false; }
+}
+
+function pokazBrakMapy(blad) {
+  const box = document.getElementById("map");
+  if (!box || document.getElementById("map-niedostepna")) return;
+  const ios = IS_IOS || document.documentElement.classList.contains("ua-ios");
+  const en = UI.isEn;
+  const rada = ios
+    ? (en ? "On iPhone this is usually <b>Lockdown Mode</b>, which switches off map drawing (WebGL) in Safari and in apps. "
+          + "Settings → Privacy &amp; Security → Lockdown Mode → Configure Web Browsing → exclude Strażnik "
+          + "(and straznik.eu in Safari). If Lockdown Mode is off, check Settings → Apps → Safari → Advanced → Feature Flags → WebGL."
+          : "Na iPhonie to zwykle <b>Tryb blokady</b> — wyłącza rysowanie map (WebGL) w Safari i w aplikacjach. "
+          + "Ustawienia → Prywatność i ochrona → Tryb blokady → Konfiguruj przeglądanie → wyklucz Strażnika "
+          + "(a w Safari także straznik.eu). Jeśli Tryb blokady jest wyłączony, sprawdź Ustawienia → Aplikacje → Safari → "
+          + "Zaawansowane → Flagi funkcji → WebGL.")
+    : (en ? "Turn on hardware acceleration in the browser settings, update the browser, or try another one."
+          : "Włącz przyspieszenie sprzętowe w ustawieniach przeglądarki, zaktualizuj ją albo spróbuj innej.");
+  const d = document.createElement("div");
+  d.id = "map-niedostepna";
+  d.setAttribute("role", "alert");
+  // prawy margines na kafelki „mój region / strefy / cała PL”, dolny na pasek i zakładki
+  d.style.cssText = "position:absolute;top:0;left:0;right:0;bottom:0;display:flex;align-items:flex-start;"
+    + "justify-content:center;padding:84px 104px 150px 18px;overflow:auto;color:#dbe4f5;font-size:14px;line-height:1.5";
+  d.innerHTML = `<div style="max-width:440px"><div style="font-size:28px">🗺️</div><p><b>${en
+    ? "The map cannot be drawn on this device" : "Na tym urządzeniu nie da się narysować mapy"}</b></p><p>${en
+    ? "Alerts, the signals panel and history still work — only the map is missing, because the system blocks WebGL."
+    : "Alarmy, panel sygnałów i historia działają — brakuje tylko mapy, bo system blokuje WebGL."}</p><p class="muted">${rada}</p></div>`;
+  box.appendChild(d);
+  if (blad) console.warn("Mapa niedostępna:", blad);
+}
+
 async function initMap() {
+  if (!webglDostepny()) { pokazBrakMapy(); return; }
   let style = FALLBACK_STYLE;
   for (const url of MAP_STYLES) {
     try { const r = await fetch(url, { method: "HEAD" }); if (r.ok) { style = url; break; } }
     catch {}
   }
 
-  map = new maplibregl.Map({
-    container: "map", style,
-    bounds: FIT_BOUNDS, fitBoundsOptions: { padding: FIT_PAD }, pitch: 45, bearing: -8,
-    antialias: true, attributionControl: false, maxPitch: 70,
-  });
+  try {
+    map = new maplibregl.Map({
+      container: "map", style,
+      bounds: FIT_BOUNDS, fitBoundsOptions: { padding: FIT_PAD }, pitch: 45, bearing: -8,
+      antialias: true, attributionControl: false, maxPitch: 70,
+    });
+  } catch (e) {
+    // WebGL bywa zgłaszany jako dostępny, a kontekst i tak się nie tworzy (np. zablokowany GPU)
+    pokazBrakMapy(e); return;
+  }
   // Zmiana rozmiaru okna w trakcie tworzenia mapy (obrót, podzielony ekran, składany
   // telefon) zostawiała płótno w starym rozmiarze — na tablecie mapa była czarna poza
   // paskiem u góry. MapLibre słucha tylko zdarzenia resize okna, więc pilnujemy kontenera.

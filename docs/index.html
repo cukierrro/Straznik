@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Strażnik 1.7.63 — instrukcja użytkownika</title>
-<meta name="description" content="Instrukcja Strażnika 1.7.63: instalacja, Moje miejsca, mapa i strefy PAŻP, panel sygnałów, historia, alarmy, powiadomienia w przeglądarce i punktacja. Zrzuty z aktualnej wersji.">
+<title>Strażnik 1.7.65 — instrukcja użytkownika</title>
+<meta name="description" content="Instrukcja Strażnika 1.7.65: instalacja, Moje miejsca, mapa i strefy PAŻP, panel sygnałów, historia, alarmy, powiadomienia w przeglądarce i punktacja. Zrzuty z aktualnej wersji.">
 <link rel="canonical" href="https://cukierrro.github.io/Straznik/">
 <link rel="alternate" hreflang="pl" href="https://cukierrro.github.io/Straznik/">
 <link rel="alternate" hreflang="en" href="https://cukierrro.github.io/Straznik/en.html">
@@ -29,15 +29,16 @@
 <a class="skip" href="#content">Przejdź do treści</a>
 <nav aria-label="Nawigacja instrukcji"><div class="nav-in">
   <a class="brand" href="#top">STRAŻNIK</a>
-  <div class="nav-links"><a href="#instalacja">Instalacja</a><a href="#ekran">Ekran</a><a href="#mapa">Mapa</a><a href="#sygnaly">Sygnały</a><a href="#historia">Historia</a><a href="#alarmy">Alarmy</a><a href="#punkty">Punktacja</a><a href="zmiany.html">Historia zmian</a><a href="prywatnosc.html">Prywatność</a></div>
+  <div class="nav-links"><a href="#instalacja">Instalacja</a><a href="#ekran">Ekran</a><a href="#mapa">Mapa</a><a href="#sygnaly">Sygnały</a><a href="#historia">Historia</a><a href="#alarmy">Alarmy</a><a href="#punkty">Punktacja</a><a href="iphone.html">iPhone</a><a href="zmiany.html">Historia zmian</a><a href="prywatnosc.html">Prywatność</a></div>
   <div class="languages" aria-label="Język instrukcji"><a href="index.html" lang="pl" aria-current="page">PL</a><a href="en.html" lang="en" hreflang="en">EN</a></div>
 </div></nav>
 <header class="hero"><div class="wrap hero-grid">
-  <div><div class="eyebrow">Instrukcja użytkownika · wersja 1.7.63</div>
+  <div><div class="eyebrow">Instrukcja użytkownika · wersja 1.7.65</div>
     <h1>Sytuacja na mapie.<br>Źródła za każdym sygnałem.</h1>
-    <p class="lead">Strażnik łączy publiczne informacje o zagrożeniach z powietrza i pokazuje ich punktację dla polskich województw. Działa na Androidzie i w przeglądarce.</p>
-    <div class="actions"><a class="button primary" href="https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk">↓ Pobierz aplikację</a><a class="button" href="https://straznik.eu">Otwórz mapę</a></div>
-    <p class="fineprint">Instrukcja opisuje wyłącznie bieżącą wersję 1.7.63. Wszystkie zrzuty wykonano 13 września 2026 na Pixelu 7 z Androidem 14, na żywych danych. Co zmieniało się w kolejnych wydaniach, znajdziesz w <a href="zmiany.html">historii zmian</a>. Dotknij zdjęcia, aby otworzyć je w pełnym rozmiarze.</p>
+    <p class="lead">Strażnik łączy publiczne informacje o zagrożeniach z powietrza i pokazuje ich punktację dla polskich województw. Działa na Androidzie, na iPhonie i w przeglądarce.</p>
+    <div class="actions"><a class="button primary" href="https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk">↓ Pobierz na Androida</a><a class="button primary" href="https://apps.apple.com/pl/app/id6813563009">↓ Pobierz na iOS</a><a class="button" href="https://straznik.eu">Otwórz mapę</a></div>
+    <p class="fineprint">Instrukcja opisuje wyłącznie bieżącą wersję 1.7.65. Wszystkie zrzuty wykonano 13 września 2026 na Pixelu 7 z Androidem 14, na żywych danych. Co zmieniało się w kolejnych wydaniach, znajdziesz w <a href="zmiany.html">historii zmian</a>. Dotknij zdjęcia, aby otworzyć je w pełnym rozmiarze.</p>
+    <p class="fineprint"><b>Masz iPhone'a?</b> Alarmy, zgody i aktualizacje działają tam inaczej — przeczytaj <a href="iphone.html">instrukcję dla iPhone'a</a>.</p>
     <p class="host-note"><img src="mikrus-logo.svg" alt="Mikrus" width="86" height="14">
       Serwer Strażnika zapewnia <a href="https://mikr.us">Mikrus</a> — dziękujemy za wsparcie projektu.</p>
   </div>
@@ -55,6 +56,7 @@
 <section id="instalacja">
   <h2>1. Instalacja i aktualizacje</h2>
   <ol>
+    <li><b>iPhone:</b> pobierz Strażnika z <a href="https://apps.apple.com/pl/app/id6813563009">App Store</a> i przeczytaj <a href="iphone.html">instrukcję dla iPhone'a</a> — poniższe kroki dotyczą tylko Androida.</li>
     <li>Pobierz <a href="https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk">najnowszy Straznik.apk</a> na telefon z Androidem.</li>
     <li>Otwórz plik z folderu <b>Pobrane</b>. Jeśli Android poprosi, zezwól przeglądarce lub menedżerowi plików na instalowanie aplikacji z tego źródła.</li>
     <li>Zatwierdź instalację i uruchom Strażnika. Pozwól systemowi przeskanować plik — nie wyłączaj Play Protect.</li>
@@ -77,9 +79,9 @@
       <h3>Aktualizacja z poziomu aplikacji</h3>
       <p>Strażnik sprawdza nowe wydanie przy każdym uruchomieniu i przy powrocie na wierzch (nie częściej niż co 30 minut). Okno aktualizacji pokazuje numer wersji i listę zmian. Ręcznie: <kbd>⚙</kbd> → <kbd>Aplikacja</kbd> → <kbd>⬆ Sprawdź aktualizacje</kbd>.</p>
       <p>Przy zwykłej aktualizacji możesz wybrać <kbd>Później</kbd>. Po wybraniu instalacji aplikacja pobiera plik, sprawdza jego sumę SHA-256 i przekazuje go Androidowi do zatwierdzenia. Instaluj nowe wydanie na istniejące — ustawienia i Moje miejsca zostają.</p>
-      <div class="note"><b>Która wersja jest u Ciebie?</b> <kbd>⚙</kbd> → zakładka <kbd>Aplikacja</kbd> → „Zainstalowana wersja”. Najnowsze wydanie to <b>1.7.63</b>. Na dole zakładki są odnośniki do tej instrukcji, historii zmian i wsparcia autora.</div>
+      <div class="note"><b>Która wersja jest u Ciebie?</b> <kbd>⚙</kbd> → zakładka <kbd>Aplikacja</kbd> → „Zainstalowana wersja”. Najnowsze wydanie to <b>1.7.65</b>. Na dole zakładki są odnośniki do tej instrukcji, historii zmian i wsparcia autora.</div>
     </div>
-    <figure><a class="shot-link" href="screens/1737/set-aplikacja-pl.jpg"><img loading="lazy" src="screens/1737/set-aplikacja-pl.jpg" width="1080" height="2400" alt="Ustawienia, zakładka Aplikacja: język interfejsu, zainstalowana wersja 1.7.63, przycisk Sprawdź aktualizacje, rozwijane Zaawansowane i odnośniki do instrukcji, historii zmian i wsparcia autora"></a><figcaption><kbd>⚙</kbd> → <kbd>Aplikacja</kbd>: język, wersja, aktualizacje.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/1737/set-aplikacja-pl.jpg"><img loading="lazy" src="screens/1737/set-aplikacja-pl.jpg" width="1080" height="2400" alt="Ustawienia, zakładka Aplikacja: język interfejsu, zainstalowana wersja 1.7.65, przycisk Sprawdź aktualizacje, rozwijane Zaawansowane i odnośniki do instrukcji, historii zmian i wsparcia autora"></a><figcaption><kbd>⚙</kbd> → <kbd>Aplikacja</kbd>: język, wersja, aktualizacje.</figcaption></figure>
   </div>
 </section>
 
@@ -266,6 +268,7 @@
   <p>Syrena gra na suwaku <b>„Alarmy”</b> w Androidzie, a nie „Dzwonek” czy „Multimedia”. Czerwony alarm podnosi ten suwak co najmniej do połowy. Przełącznik <kbd>Czerwony alarm zawsze na pełnej głośności</kbd> jest domyślnie wyłączony; po jego świadomym włączeniu (aplikacja pyta o potwierdzenie) syrena gra na maksimum, także w nocy. Obecny poziom suwaka widać w tej samej zakładce, a <kbd>🔊 Ustawienia dźwięku Androida</kbd> prowadzi do suwaków systemu. Dzwonek u góry ekranu otwiera w aplikacji stan powiadomień.</p>
   <div class="warn"><b>Sprawdź swój telefon.</b> Bez zgody na pełny ekran czerwony alarm może być tylko zwykłym powiadomieniem. Sprawdź też głośność, kanały powiadomień, tryb Nie przeszkadzać i ograniczenia baterii — i ponów kontrolę po aktualizacji Androida.</div>
   <p><b>Jak to działa technicznie:</b> serwer wysyła push przez Firebase dla każdego obserwowanego województwa, także przy zamkniętej aplikacji i zablokowanym ekranie. Alarmy docierają też po nocnym restarcie telefonu, zanim go odblokujesz. „Wymuś zatrzymanie” w ustawieniach Androida — a na części telefonów Xiaomi, Huawei czy Oppo także usunięcie aplikacji z listy ostatnich — blokuje odbiór do ponownego uruchomienia aplikacji; ustawienia ostrzegają o tym na takich telefonach. <b>Tryb awaryjny:</b> gdy serwer nie odpowiada, otwarta aplikacja uruchamia wbudowany silnik i sama odpytuje źródła; co minutę sprawdza powrót serwera. Tryb awaryjny działa tylko przy otwartej aplikacji i nie czyta treści artykułów, więc media są wtedy na liście bez punktów.</p>
+  <p id="iphone"><b>Na iPhonie</b> alarm działa inaczej: bez pełnego ekranu, syrena gra raz, a wyciszony dzwonek ją wycisza. Szczegóły i ustawienia, które trzeba sprawdzić, są w <a href="iphone.html#alarmy">instrukcji dla iPhone'a</a>.</p>
 </section>
 
 <section id="www">

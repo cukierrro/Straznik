@@ -13,8 +13,13 @@
      nawigacji (te są znacznie wyższe). Wszystko, co przyklejone do dolnej
      krawędzi, musi ją doliczyć — inaczej przyciski Androida zasłaniają
      suwak historii, atrybucję i przyciski mapy. */
-  --safe-b: env(safe-area-inset-bottom, 0px);
-  --safe-t: env(safe-area-inset-top, 0px);
+  /* Większa z dwóch wartości (21.09.2026): na części nowych Androidów (POCO F9 Ultra,
+     HyperOS) WebView podaje var(--safe-t) = 0 i pasek u góry wchodził pod
+     zegar i ikony powiadomień. Capacitor mierzy paski systemu sam i wstrzykuje
+     --safe-area-inset-*; tam, gdzie env działa, obie liczby są równe — nic się nie zmienia.
+     Na stronie WWW i na iPhonie zmiennej Capacitora nie ma, więc zostaje env. */
+  --safe-b: max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px));
+  --safe-t: max(env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px));
   /* wysokość dolnego paska zakładek — odsuwa panel, kartę obiektu i stos komunikatów */
   --tabbar-h: 72px;
   /* Okna dialogowe centrujemy nad paskiem zakładek i nigdy nie pozwalamy im go
@@ -53,7 +58,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   position: fixed; top: 0; left: 0; right: 0; z-index: 30;
   display: flex; align-items: center; gap: 14px;
   /* pasek systemowy Androida/iOS — bez tego treść chowa się pod statusbarem */
-  padding: calc(8px + env(safe-area-inset-top)) 14px 8px;
+  padding: calc(8px + var(--safe-t)) 14px 8px;
   background: linear-gradient(180deg, rgba(8,11,20,.94), rgba(8,11,20,.75) 80%, transparent);
   pointer-events: none;
 }
@@ -251,7 +256,7 @@ body.panel-open #bg-warning { display: none; }
 /* Komunikat administracyjny (np. zapowiedź testu) — u góry, kolor info, do zamknięcia. */
 #notice-banner {
   position: fixed; left: 50%; transform: translateX(-50%);
-  top: calc(64px + env(safe-area-inset-top)); z-index: 70;
+  top: calc(64px + var(--safe-t)); z-index: 70;
   display: flex; align-items: center; gap: 10px;
   max-width: min(560px, 94vw);
   background: var(--panel, #151d2e); border: 1px solid #4a86d8;
@@ -303,6 +308,9 @@ body.panel-open #update-banner:not(.critical) { display: none; }
   border-color: rgba(119,235,171,.55); font-weight: 700; text-decoration: none;
   box-shadow: 0 3px 14px rgba(61,220,132,.18); }
 .chip.download:hover { border-color: #9af0bd; filter: brightness(1.08); }
+.chip.download.ios { background: linear-gradient(135deg, #2f4f8f, #4a78c9);
+  border-color: rgba(150,190,255,.55); box-shadow: 0 3px 14px rgba(74,120,201,.2); }
+.chip.download.ios:hover { border-color: #b8d2ff; }
 .chip.instructions { color: #dbe8ff; border-color: rgba(127,180,255,.38);
   background: rgba(40,67,112,.5); font-weight: 600; text-decoration: none; }
 .chip.instructions:hover { border-color: #7fb4ff; background: rgba(50,82,136,.68); }
@@ -348,7 +356,7 @@ dialog a:hover, dialog a:focus-visible { text-decoration: underline; }
 
 /* ── panel boczny (wysuwany) ── */
 #panel {
-  position: fixed; top: calc(54px + env(safe-area-inset-top)); right: 10px;
+  position: fixed; top: calc(54px + var(--safe-t)); right: 10px;
   bottom: calc(var(--tabbar-h) + var(--safe-b) + var(--stack-h, 0px) + 14px); z-index: 25;
   width: 340px; overflow-y: auto; scrollbar-width: thin;
   display: flex; flex-direction: column; gap: 12px;
@@ -542,7 +550,7 @@ body.history-mode #my-banner { display: none; }
 .alarm-box {
   width: min(460px, 96vw); max-height: 92vh; overflow-y: auto; text-align: center;
   background: #16111a; border: 2px solid var(--red); border-radius: 16px;
-  padding: 20px 18px calc(18px + env(safe-area-inset-bottom));
+  padding: 20px 18px calc(18px + var(--safe-b));
   box-shadow: 0 0 60px rgba(255, 77, 94, .35);
 }
 .alarm-icon { font-size: 44px; line-height: 1; color: var(--red);
@@ -772,7 +780,7 @@ html[lang="en"] .list:empty::after { content: "— none —"; }
 
 /* ── legenda ── */
 #legend {
-  position: fixed; left: 10px; top: calc(60px + env(safe-area-inset-top));
+  position: fixed; left: 10px; top: calc(60px + var(--safe-t));
   z-index: 26; width: 250px;
   background: var(--panel); border: 1px solid var(--panel-border); border-radius: 12px;
   padding: 10px 12px; backdrop-filter: blur(8px); font-size: 12px;
@@ -814,7 +822,7 @@ html[lang="en"] .list:empty::after { content: "— none —"; }
 .lg-row .sq { width: 12px; height: 12px; border-radius: 3px; background: var(--c); }
 .muted-row { color: var(--muted); font-size: 10.5px; line-height: 1.35; }
 
-#conn-badge { position: fixed; top: calc(60px + env(safe-area-inset-top)); left: 12px; z-index: 40;
+#conn-badge { position: fixed; top: calc(60px + var(--safe-t)); left: 12px; z-index: 40;
   background: rgba(64,44,6,.9); color: var(--amber); font-size: 11px;
   border: 1px solid var(--amber); border-radius: 8px; padding: 4px 10px; }
 .hidden { display: none !important; }
@@ -846,7 +854,7 @@ dialog { margin: auto; background: #121828; color: var(--text); border: 1px soli
   bottom: calc(var(--tabbar-h) + var(--safe-b));
   border-radius: 14px; padding: 18px; width: min(420px, 92vw);
   max-height: var(--dlg-max); overflow-y: auto; overscroll-behavior: contain;
-  padding-bottom: calc(18px + env(safe-area-inset-bottom));
+  padding-bottom: calc(18px + var(--safe-b));
   box-shadow: 0 24px 60px rgba(0,0,0,.55); }
 dialog::backdrop { background: rgba(0,0,0,.55); }
 /* cienki, ciemny pasek przewijania — jaśniejszy domyślny rozjeżdżał się z panelem */
@@ -892,7 +900,7 @@ dialog menu { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14
 #place-gps-row { margin-top:15px; }
 #place-gps-status { margin:8px 0 0; }
 .text-button { border:0; background:none; color:#8db5ff; padding:7px 0; cursor:pointer; }
-.places-actions { position:sticky; bottom:-20px; display:grid; grid-template-columns:auto 1fr auto auto; gap:8px; align-items:center; margin:20px -20px -20px; padding:13px 20px calc(13px + env(safe-area-inset-bottom)); border-top:1px solid var(--panel-border); background:#121828; }
+.places-actions { position:sticky; bottom:-20px; display:grid; grid-template-columns:auto 1fr auto auto; gap:8px; align-items:center; margin:20px -20px -20px; padding:13px 20px calc(13px + var(--safe-b)); border-top:1px solid var(--panel-border); background:#121828; }
 .chip.danger { color:#ff9aa4; border-color:#743743; }
 #place-feedback:not(:empty) { margin-top:12px; padding:9px; border:1px solid #375e82; border-radius:8px; background:#122437; color:#b8d8f7; }
 @media(max-width:600px){
@@ -959,8 +967,10 @@ dialog menu { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14
 
   #legend { width: 210px; font-size: 11px; }
   /* na wąskim ekranie sam kubek — pełny napis nie mieści się w pasku */
-  .chip.download { font-size: 0; padding: 5px 8px; }
-  .chip.download::before { content: "⬇"; font-size: 15px; }
+  .chip.download { font-size: 0; padding: 5px; }
+  .chip.download::before { content: "⬇ Android"; font-size: 11px; letter-spacing: -.2px; }
+  .chip.download.ios::before { content: "⬇ iOS"; }
+  .ua-ios #btn-download, .ua-android #btn-ios { display: none; }
   .chip.instructions { font-size: 0; padding: 5px 8px; }
   .chip.instructions::before { content: "📖"; font-size: 14px; }
   .chip.coffee { font-size: 0; padding: 5px 8px; }
@@ -1111,3 +1121,9 @@ body.panel-open #bottom-stack > #update-banner:not(.critical) { display: none; }
 .set-tab.active { background: rgba(91,140,255,.16); border-color: var(--accent); color: var(--text); }
 .set-pane[hidden] { display: none; }
 .set-pane > h3:first-child { margin-top: 0; }
+
+/* Najwęższe telefony (360 px i mniej): „⬇ Android” zawijał pasek do drugiego rzędu.
+   Tam przycisk i tak jest tylko jeden — ten dla systemu telefonu — więc wystarczy strzałka. */
+@media (max-width: 365px) {
+  .ua-android .chip.download::before { content: "⬇"; font-size: 15px; letter-spacing: 0; }
+}

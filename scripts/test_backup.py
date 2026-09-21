@@ -39,11 +39,22 @@ ok(b.stamp_of("straznik-zly.tar.zst") is None and "obcy.txt" not in b.keep_set([
    "obce pliki nie są liczone")
 ok(b.keep_set(names[:1], now) == {names[0]}, "pojedyncza kopia zostaje")
 
-# Sekrety tylko w sekrety.tar.gpg, gdy jest klucz publiczny (audyt 16.09.2026; próba na VPS 17.09:
-# 4 pliki w archiwum gpg, bez klucza prywatnego nie do odczytania)
-secret_names = {p.name for p in b.SECRETS}
-ok(secret_names == {"vapid.json", "fcm-service-account.json", ".env", "straznik.service"}
-   and not secret_names & set(b.FILES), "klucze VAPID/FCM, .env i usługa są na liście sekretów, nie jawnych plików")
+# Sekrety tylko w sekrety.tar.gpg, gdy jest klucz publiczny (audyt 16.09.2026; próba na VPS 17.09).
+# Od 20.09.2026 to cały układ serwera, nie jeden plik usługi: po rozbiciu na writera i
+# readera sama baza nie wystarcza — bez usług, nakładek i tunelu nikt by do niej nie trafił.
+# `_sekrety()` bierze tylko pliki, które istnieją; tu udajemy serwer, żeby sprawdzić listę.
+from unittest import mock
+with mock.patch.object(Path, "exists", lambda self: True),      mock.patch.object(Path, "glob", lambda self, wzor: [self / ("przyklad" + wzor.lstrip("*"))]):
+    secret_names = {nazwa for _, nazwa in b._sekrety()}
+oczekiwane = {"vapid.json", "fcm-service-account.json", ".env",
+              "straznik.service", "straznik-reader.service", "straznik-tunnel.service",
+              "straznik-watchdog.service", "straznik-watchdog.timer",
+              "straznik.service.d--przyklad.conf", "cloudflared-config.yml",
+              "cloudflared-poswiadczenia-przyklad.json", "cron-straznik-backup"}
+ok(secret_names == oczekiwane and not secret_names & set(b.FILES),
+   "w zaszyfrowanej paczce cały układ serwera: klucze, .env, obie usługi, nakładki, tunel, dozorca, harmonogram")
+if secret_names != oczekiwane:
+    print("   brakuje:", sorted(oczekiwane - secret_names), "| nadmiarowe:", sorted(secret_names - oczekiwane))
 src = (Path(__file__).resolve().parent / "backup_vps.py").read_text(encoding="utf-8")
 ok('"--recipient-file", str(RECIPIENT)' in src and '"sekrety.tar.gpg"' in src and "plain.unlink()" in src,
    "sekrety szyfrowane kluczem publicznym, jawny tar usuwany przed spakowaniem")
