@@ -5,6 +5,7 @@ asyncio.to_thread nie są konieczne przy tej skali (pojedyncze inserty)."""
 import json
 import sqlite3
 import threading
+import time
 from datetime import datetime, timedelta, timezone
 
 from . import config
@@ -119,8 +120,17 @@ def now_iso() -> str:
 def init():
     global _conn
     config.DATA_DIR.mkdir(parents=True, exist_ok=True)
-    _conn = sqlite3.connect(config.DB_PATH, check_same_thread=False)
+    _conn = sqlite3.connect(config.DB_PATH, check_same_thread=False, timeout=10)
+    # Audyt Mikrusa 20.09.2026: jechaliśmy na domyślnych ustawieniach. WAL mieliśmy,
+    # reszta to pamięć podręczna i tryb zapisu — przy bazie 26 MB mieści się w RAM,
+    # a `synchronous=NORMAL` w trybie WAL nie grozi utratą danych przy awarii
+    # aplikacji (tylko przy nagłym zaniku zasilania, i to ostatnich sekund).
     _conn.execute("PRAGMA journal_mode=WAL")
+    _conn.execute("PRAGMA synchronous=NORMAL")
+    _conn.execute("PRAGMA cache_size=-65536")      # 64 MB
+    _conn.execute("PRAGMA mmap_size=268435456")    # 256 MB
+    _conn.execute("PRAGMA busy_timeout=10000")
+    _conn.execute("PRAGMA temp_store=MEMORY")
     _conn.executescript(SCHEMA)
     _conn.commit()
 
@@ -205,14 +215,34 @@ def recent_signals(limit: int = 200) -> list[dict]:
     } for r in rows]
 
 
-def add_adsb_sample(voiv: str, count: int):
+_adsb_prune_at = 0.0
+
+
+def add_adsb_samples(probki: list[tuple[str, int]]) -> None:
+    """Próbki wszystkich województw jednym zapisem.
+
+    Audyt Mikrusa 20.09.2026: każde województwo miało własny INSERT, własne
+    przeszukanie tabeli w poszukiwaniu starych wpisów i własny commit — szesnaście
+    zapisów na dysk tam, gdzie wystarczy jeden. Sprzątanie starszych niż 14 dni nie
+    musi chodzić co obieg; raz na godzinę wystarczy, bo i tak usuwa te same wiersze.
+    """
+    global _adsb_prune_at
+    if not probki:
+        return
+    ts = now_iso()
     with _lock:
-        _conn.execute("INSERT INTO adsb_samples (ts, voivodeship, mil_count) VALUES (?,?,?)",
-                      (now_iso(), voiv, count))
-        # sprzątanie starszych niż 14 dni
-        cutoff = (datetime.now(timezone.utc) - timedelta(days=14)).isoformat(timespec="seconds")
-        _conn.execute("DELETE FROM adsb_samples WHERE ts < ?", (cutoff,))
+        _conn.executemany("INSERT INTO adsb_samples (ts, voivodeship, mil_count) VALUES (?,?,?)",
+                          [(ts, voiv, count) for voiv, count in probki])
+        teraz = time.time()
+        if teraz - _adsb_prune_at > 3600:
+            _adsb_prune_at = teraz
+            cutoff = (datetime.now(timezone.utc) - timedelta(days=14)).isoformat(timespec="seconds")
+            _conn.execute("DELETE FROM adsb_samples WHERE ts < ?", (cutoff,))
         _conn.commit()
+
+
+def add_adsb_sample(voiv: str, count: int):
+    add_adsb_samples([(voiv, count)])
 
 
 def adsb_baseline(voiv: str, days: int) -> float:

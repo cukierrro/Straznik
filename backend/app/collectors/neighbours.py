@@ -194,6 +194,14 @@ _prev: set[str] = set()
 
 
 async def _tick(client: httpx.AsyncClient):
+    """Strefy sąsiadów. Pobranie idzie przez `await`, ale PRZETWARZANIE do wątku.
+
+    Łotwa oddaje cztery warstwy po kilkaset stref (20.09.2026: 809 łącznie) i
+    przerobienie ich w pętli zdarzeń zatrzymywało ją do 3,2 s — co 10 minut, przez
+    całą dobę. W tym czasie writer nie robi nic innego: ani nie przyjmuje meldunku
+    z NEPTUN-a, ani nie wysyła powiadomienia. Przy alarmie to jest dokładnie ten czas,
+    którego nie chcemy oddać mapie stref nad Bałtykiem.
+    """
     global _prev
     zones: list[dict] = []
     errs = []
@@ -202,13 +210,15 @@ async def _tick(client: httpx.AsyncClient):
     try:
         async with httpx.AsyncClient(timeout=30, verify=_RO_TLS,
                                      follow_redirects=True) as ro:
-            zones += _parse_ro(await _get(ro, RO_AUP))
+            dane_ro = await _get(ro, RO_AUP)
+            zones += await asyncio.to_thread(_parse_ro, dane_ro)
     except Exception as e:
         errs.append(f"RO:{e}")
 
     for name, url in (("EE", EE_UAS), ("LT", LT_UAS)):
         try:
-            zones += _parse_ed269(await _get(client, url), name)
+            dane = await _get(client, url)
+            zones += await asyncio.to_thread(_parse_ed269, dane, name)
         except Exception as e:
             errs.append(f"{name}:{e}")
 
@@ -216,7 +226,7 @@ async def _tick(client: httpx.AsyncClient):
         for n in (0, 1, 2, 3):
             data = await _get(client, LV_PROXY + LV_LAYER.format(n=n),
                               headers={"Referer": "https://m.airspace.lv/mob/"})
-            zones += _parse_lv(data.get("features", []))
+            zones += await asyncio.to_thread(_parse_lv, data.get("features", []))
     except Exception as e:
         errs.append(f"LV:{e}")
 

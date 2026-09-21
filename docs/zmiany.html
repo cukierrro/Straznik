@@ -39,6 +39,24 @@
   <p class="fineprint">Wersję zainstalowaną na telefonie sprawdzisz w aplikacji: <kbd>⚙</kbd> → zakładka <kbd>Aplikacja</kbd> → „Wersja aplikacji”. Tam też jest przycisk <kbd>⬆ Sprawdź aktualizacje</kbd>.</p>
 </div></header>
 <main id="content" class="wrap">
+<section id="v1-7-64">
+  <h2>1.7.64 — Aktualizacja działa na Androidzie 9 i 10</h2>
+  <p class="fineprint">Wydanie 1.7.64 · 21 września 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.64">Pełny opis wydania</a></p>
+  <ul>
+    <li>Na telefonach z Androidem 9 i 10 aktualizacja z aplikacji kończyła się błędem „Podpis aktualizacji nie zgadza się z zainstalowaną aplikacją”. Podpis był w porządku — wszystkie wydania są podpisane tym samym kluczem. To aplikacja źle go odczytywała: Android 9 i 10 podają certyfikat pobranego pliku tylko przy starszym sposobie pytania. Naprawione.</li>
+    <li>Jeśli masz Androida 9 lub 10 i wersję od 1.7.54 do 1.7.63, tę jedną aktualizację zainstaluj ręcznie: pobierz Straznik.apk w przeglądarce ze strony wydań na GitHubie i otwórz plik. Instaluje się na starej wersji, ustawienia i miejsca zostają. Kolejne aktualizacje zadziałają już z aplikacji.</li>
+    <li>Bezpieczeństwo bez zmian: aplikacja nadal sprawdza sumę kontrolną i certyfikat każdej aktualizacji, zanim ją zainstaluje.</li>
+  </ul>
+</section>
+<section id="v1-7-63">
+  <h2>1.7.63 — Mniej pracy dla serwera przy tej samej mapie</h2>
+  <p class="fineprint">Wydanie 1.7.63 · 20 września 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.63">Pełny opis wydania</a></p>
+  <ul>
+    <li>Aplikacja nie trzyma już stałego połączenia z serwerem. Zamiast tego pyta o stan i dostaje krótką odpowiedź „nic nowego”, gdy nic się nie zmieniło — tę odpowiedź daje sieć Cloudflare, a nasz serwer w ogóle się o to pytanie nie dowiaduje.</li>
+    <li>Po co: przy stałych połączeniach każdy telefon zajmował osobne gniazdo na serwerze i zużycie rosło z liczbą osób. Teraz serwer wydaje jeden stan na kilka sekund niezależnie od tego, czy patrzy pięćset osób, czy pięćdziesiąt tysięcy — a przy syrenach patrzą wszyscy naraz.</li>
+    <li>Dla Ciebie zmienia się tyle, że mapa odświeża się co dwie sekundy w czasie alarmu i co pięć, gdy jest spokojnie. Alarm przy zamkniętej aplikacji przychodzi jak dotąd powiadomieniem.</li>
+  </ul>
+</section>
 <section id="v1-7-62">
   <h2>1.7.62 — Historia nie gubi już godzin spędzonych w tle</h2>
   <p class="fineprint">Wydanie 1.7.62 · 19 września 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.62">Pełny opis wydania</a></p>

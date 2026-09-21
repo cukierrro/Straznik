@@ -60,17 +60,42 @@ def make_blob(payload: bytes | str | dict | list) -> Blob:
     return Blob(raw=raw, gz=gzip.compress(raw, compresslevel=6), etag=etag, built=time.time())
 
 
+STAN_PRZETERMINOWANY_S = 180      # writer odświeża stan najrzadziej co 60 s (STATE_MAX_AGE_S)
+
+
 def put(name: str, blob: Blob) -> None:
     _blobs[name] = blob
     status["builds"][name] = {"at": round(blob.built), "raw": len(blob.raw), "gz": len(blob.gz)}
+    # writer oddaje gotowe bajty czytającym procesom (plik w RAM, podmiana atomowa)
+    if config.ROLE == "writer":
+        from . import blob_store
+        blob_store.zapisz(name, blob.raw, blob.gz, blob.etag)
 
 
 def get(name: str) -> Blob | None:
+    if config.ROLE == "reader":
+        from . import blob_store
+        dane = blob_store.wczytaj(name)
+        if dane is None:
+            return None
+        if name == "state" and time.time() - dane["built"] > STAN_PRZETERMINOWANY_S:
+            # Writer milczy. Podanie starego stanu jako bieżącego byłoby groźniejsze
+            # niż cisza: telefon pokazałby spokojną mapę sprzed pół godziny i nie miałby
+            # skąd wiedzieć, że patrzy w przeszłość. Lepiej 503 — aplikacja wtedy mówi
+            # „brak połączenia" i przechodzi na własne źródła, dokładnie jak dziś przy
+            # padniętym serwerze. Krótkie przerwy (wdrożenie, restart) mieszczą się w progu.
+            return None
+        gotowy = _blobs.get(name)
+        if gotowy is not None and gotowy.etag == dane["etag"]:
+            return gotowy                      # ten sam stan — bez ponownego składania
+        blob = Blob(raw=dane["raw"], gz=dane["gz"], etag=dane["etag"], built=dane["built"])
+        _blobs[name] = blob
+        return blob
     return _blobs.get(name)
 
 
 def respond(request: Request, name: str) -> Response:
-    blob = _blobs.get(name)
+    blob = get(name)          # nie `_blobs`: na readerze paczka leży w pamięci współdzielonej
     if blob is None:
         return Response(b'{"error":"warming up"}', status_code=503, media_type="application/json",
                         headers={"Retry-After": "3", "Cache-Control": "no-store"})
@@ -87,6 +112,65 @@ def respond(request: Request, name: str) -> Response:
         headers["Content-Encoding"] = "gzip"
         return Response(blob.gz, media_type="application/json", headers=headers)
     return Response(blob.raw, media_type="application/json", headers=headers)
+
+
+class StaticCacheHeaders:
+    """Cache dla plików statycznych (czysty ASGI, bez buforowania odpowiedzi).
+
+    Audyt Mikrusa 20.09.2026: origin nie wysyłał żadnego `Cache-Control` na
+    `app.js`, `style.css`, obrazki i czcionki. Cloudflare cache'ował je po swojemu
+    (widać HIT), ale PRZEGLĄDARKA dostawała odpowiedź bez wskazówki i przy każdym
+    otwarciu pytała serwer ponownie.
+
+    Adres z `?v=` niesie wersję wydania — taki plik nigdy nie zmienia treści pod
+    tym samym adresem, więc może leżeć w pamięci telefonu rok („immutable"). Plik
+    bez wersji (np. ikona z manifestu) dostaje dobę i pozwolenie na użycie starej
+    kopii w tle. `sw.js` NIE może być cache'owany długo — to on decyduje o
+    aktualizacji reszty.
+    """
+
+    LONG = b"public, max-age=31536000, immutable"
+    SHORT = b"public, max-age=86400, stale-while-revalidate=604800"
+    NONE = b"no-cache"
+    EXT = (".js", ".css", ".png", ".jpg", ".jpeg", ".svg", ".webp", ".woff2",
+           ".json", ".geojson", ".ico", ".webmanifest")
+    # Paczki map Groty: nazwa niesie wersję obszaru, treść pod tym adresem się nie
+    # zmienia, a ważą po 100 MB. Bez długiego cache każdy telefon ciągnąłby je od nas
+    # — z nim pierwszy pobierający w regionie grzeje brzeg, a reszta bierze stamtąd.
+    PACZKI = "/grota/paczki/"
+    # Spis części jest wyjątkiem od wieczności paczek. Waży kilkadziesiąt kilobajtów,
+    # a decyduje, co telefon w ogóle pobierze — gdyby i on leżał rok, każda poprawka
+    # wymagałaby wersjonowania dwóch rzeczy naraz i ktoś trałby na nowy spis ze starymi
+    # paczkami. Kilka minut wystarczy, a kosztuje tyle co nic.
+    SPIS = "spis.bin"
+    KROTKO = b"public, max-age=120, stale-while-revalidate=600"
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            return await self.app(scope, receive, send)
+        sciezka = scope.get("path", "")
+        paczka = sciezka.startswith(self.PACZKI)
+        if not paczka and not sciezka.endswith(self.EXT):
+            return await self.app(scope, receive, send)
+        if sciezka.endswith("sw.js"):
+            wartosc = self.NONE
+        elif paczka:
+            wartosc = self.KROTKO if sciezka.endswith(self.SPIS) else self.LONG
+        else:
+            wartosc = self.LONG if b"v=" in scope.get("query_string", b"") else self.SHORT
+
+        async def wyslij(message):
+            if message["type"] == "http.response.start":
+                naglowki = [(k, v) for k, v in message.get("headers", [])
+                            if k.lower() != b"cache-control"]
+                naglowki.append((b"cache-control", wartosc))
+                message = {**message, "headers": naglowki}
+            await send(message)
+
+        await self.app(scope, receive, wyslij)
 
 
 class PageCacheHeaders:

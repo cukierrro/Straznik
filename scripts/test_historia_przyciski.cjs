@@ -103,23 +103,12 @@ assert.match(java, /window\.straznikBack/, 'i pyta stronę');
 assert.match(java, /moveTaskToBack\(true\)/, 'bez niczego do zamknięcia aplikacja idzie w tło jak dotąd');
 console.log('OK: systemowe „wstecz” zamyka od wierzchu, na mapie chowa aplikację');
 
-// ── 4. tryb sygnału: WebSocket „zmieniło się" + stan z pamięci Cloudflare ──
-assert.match(src, /\/ws\?v=2/, 'klient łączy się w trybie sygnału (/ws?v=2)');
-const tickCtx = {
-  console, applyState: (s) => tickCtx.applied.push(s), applied: [], fetched: [],
-  apiBase: () => 'https://straznik.eu',
-  fetch: async (url) => { tickCtx.fetched.push(url); return { ok: true, json: async () => ({ n: tickCtx.fetched.length }) }; },
-};
-vm.createContext(tickCtx);
-vm.runInContext(cut('let lastTickEtag = null', '\nfunction openBackendWs'), tickCtx);
-(async () => {
-  await tickCtx.fetchStateTick('"a"');
-  await tickCtx.fetchStateTick('"a"');            // ten sam ETag — bez drugiego pobrania
-  await tickCtx.fetchStateTick('"b"');
-  assert.deepEqual(tickCtx.fetched, ['https://straznik.eu/api/state', 'https://straznik.eu/api/state'],
-    'pobranie stanu tylko przy nowym ETagu');
-  assert.equal(tickCtx.applied.length, 2, 'każde pobranie trafia do mapy');
-  console.log('OK: sygnał pobiera stan raz na zmianę, a nie przy każdej ramce');
+// ── 4. odpytywanie zamiast gniazda (20.09.2026) ──
+// Szczegóły w scripts/test_odpytywanie.cjs; tutaj pilnujemy tylko, że historia
+// nie wróciła do WebSocketu i że stan pobieramy warunkowo.
+assert.ok(!/new WebSocket\(/.test(src), 'klient nie otwiera już gniazda');
+assert.match(src, /If-None-Match/, 'stan pobierany warunkowo (304 zamiast pełnej odpowiedzi)');
+console.log('OK: stan z serwera bierzemy odpytywaniem warunkowym');
 
 // ── 5. wiek meldunku: podpis pod ikoną i wygaszanie ──
 const wiek = { UI: { isEn: false } };
@@ -205,4 +194,3 @@ ZEGAR += 2 * 60000;
 buf.srvRecord(stan);
 assert.equal(buf.needSeed(), false, 'dwuminutowa przerwa mieści się w tolerancji');
 console.log('OK: powrót z tła uzupełnia historię zamiast zostawiać dziurę');
-})();

@@ -1,5 +1,6 @@
 """Strażnik — backend FastAPI: kolektory, fuzja, API, WebSocket, statyka frontendu."""
 import asyncio
+import hashlib
 import json
 import logging
 import os
@@ -7,10 +8,10 @@ import time
 
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 
-from . import (alert_log, app_updates, by_entry_shadow, config, db, escalation_shadow, fusion, load_guard,
+from . import (alert_log, app_updates, blob_store, by_entry_shadow, config, db, escalation_shadow, fusion, load_guard,
                monitoring, notify, public_cache, rcb_reference, request_limits)
 from .collectors import (adsb, by_media_shadow, mapa_ua_shadow, neighbours, neptun,
                          official_alerts, pansa, rcb, ro_shadow, rso, rss_media)
@@ -40,9 +41,14 @@ logging.getLogger("uvicorn.error").addFilter(_QuietWebSocketLog())
 
 # Publiczna dokumentacja API nie jest potrzebna użytkownikom, a ułatwia nadużycia.
 app = FastAPI(title="Strażnik", docs_url=None, redoc_url=None, openapi_url=None)
+# expose_headers: bez tego aplikacja (inne źródło niż serwer) NIE WIDZI nagłówka
+# ETag, więc nie może odpytywać warunkowo i za każdym razem ściąga cały stan.
+# Przeglądarka udostępnia skryptowi tylko kilka nagłówków, a ETag nie jest jednym
+# z nich (20.09.2026, przy przejściu z WebSocketu na odpytywanie).
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"],
-                   allow_headers=["*"])
+                   allow_headers=["*"], expose_headers=["ETag"])
 app.add_middleware(public_cache.PageCacheHeaders)
+app.add_middleware(public_cache.StaticCacheHeaders)
 # ostatni dodany = pierwszy w kolejce: bezpiecznik odrzuca, zanim cokolwiek się policzy
 app.add_middleware(load_guard.GuardMiddleware)
 # jeszcze wcześniej: za duża treść i zalew subskrypcji odpadają przed kolejką (audyt 16.09)
@@ -80,7 +86,7 @@ WS_MAX_CLIENTS = int(os.getenv("WS_MAX_CLIENTS", "15000"))
 WS_SEND_TIMEOUT_S = 3.0
 
 
-def _load_notice():
+def _load_notice(plik: str = "notice.json"):
     """Komunikat administracyjny (np. zapowiedź testu) z pliku data/notice.json,
     edytowalny na VPS bez restartu. Kształt: {"id","text","until"(opcj. ISO)}.
     Apka tylko WYŚWIETLA go i pozwala zamknąć — ZERO danych zwrotnych (bez
@@ -89,7 +95,7 @@ def _load_notice():
     import json
     from datetime import datetime, timezone
     try:
-        n = json.loads((config.DATA_DIR / "notice.json").read_text(encoding="utf-8"))
+        n = json.loads((config.DATA_DIR / plik).read_text(encoding="utf-8"))
         if not n.get("id") or not n.get("text"):
             return None
         until = n.get("until")
@@ -137,13 +143,58 @@ def build_state() -> dict:
     }
 
 
+# Odcisk stanu BEZ pól, które tykają same z siebie: `fusion.ts` i znacznik ostatniej
+# wiadomości NEPTUN-a. Bez tego /api/state dostawał nowy ETag co kilka sekund, choć
+# mapa się nie zmieniała — każde warunkowe zapytanie ściągało wtedy pełne 28 KB
+# zamiast dostać „304" (pomiar 20.09.2026: 15 pełnych odpowiedzi i jedna 304 na
+# 75 sekund). Przy odpytywaniu zamiast WebSocketu to ta różnica decyduje o ruchu.
+_state_fingerprint = ""
+_state_built_at = 0.0
+_state_ts = ""            # `fusion.ts` obecnego stanu = wersja dla klientów
+STATE_MAX_AGE_S = 60      # mimo wszystko odświeżamy co minutę, żeby `ts` nie odpłynął
+
+
 def refresh_state() -> None:
     """Stan liczony raz i od razu podawany wszystkim: /api/state i WebSocket."""
-    global _ws_message, _ws_tick
-    blob = public_cache.make_blob(build_state())
+    global _ws_message, _ws_tick, _state_fingerprint, _state_built_at, _state_ts
+    payload = build_state()
+    fus = payload.get("fusion") or {}
+    nep = (payload.get("neptun") or {}).get("status") or {}
+    ts, last_msg = fus.get("ts"), nep.get("last_msg")
+    if ts is not None:
+        fus["ts"] = ""
+    if last_msg is not None:
+        nep["last_msg"] = 0
+    probe = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode()
+    odcisk = hashlib.blake2b(probe, digest_size=10).hexdigest()
+    swiezy = time.time() - _state_built_at < STATE_MAX_AGE_S
+    if odcisk == _state_fingerprint and swiezy and public_cache.get("state") is not None:
+        return                      # nic istotnego się nie zmieniło — ETag zostaje
+    if ts is not None:
+        fus["ts"] = ts
+    if last_msg is not None:
+        nep["last_msg"] = last_msg
+    _state_fingerprint = odcisk
+    _state_built_at = time.time()
+    _state_ts = str(fus.get("ts") or "")
+    blob = public_cache.make_blob(payload)
     public_cache.put("state", blob)
     _ws_tick = '{"type":"tick","etag":' + json.dumps(blob.etag) + "}"
     _ws_message = '{"type":"state","data":' + blob.raw.decode() + "}"
+    # Komunikat wyłącznie do starych wersji aplikacji.
+    #
+    # Gniazdo otwierają dziś tylko wydania ≤1.7.62 — od 1.7.63 telefon odpytuje
+    # i tu nigdy nie zajrzy. To jedyny kanał, który trafia do nich i pomija
+    # wszystkich pozostałych: gdyby ten sam tekst wsadzić do `data/notice.json`,
+    # „zaktualizuj aplikację" zobaczyłoby też kilkaset osób, które właśnie to
+    # zrobiły. Paczka dla przeglądarek i nowych telefonów zostaje nietknięta, więc
+    # brzeg dalej podaje wszystkim te same bajty.
+    stare = _load_notice("notice-stare-wersje.json")
+    if stare:
+        payload["notice"] = stare
+        _ws_message = ('{"type":"state","data":'
+                       + json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
+                       + "}")
 
 
 async def _send(ws: WebSocket, message: str):
@@ -244,7 +295,10 @@ async def _close(ws: WebSocket) -> None:
 @app.websocket("/ws")
 async def ws_endpoint(ws: WebSocket):
     tick_mode = ws.query_params.get("v") == "2"
-    busy = (len(_ws_clients) + len(_ws_tick_clients) >= WS_MAX_CLIENTS
+    # Reader nie ma skąd brać ramek (stan liczy writer), więc grzecznie odmawia
+    # kodem 1013 — starsze wersje aplikacji przechodzą wtedy na odpytywanie.
+    busy = (not config.IS_WRITER
+            or len(_ws_clients) + len(_ws_tick_clients) >= WS_MAX_CLIENTS
             or load_guard.refuse_websocket())
     try:
         await ws.accept()
@@ -285,10 +339,51 @@ async def ws_endpoint(ws: WebSocket):
 
 
 # ── REST API ─────────────────────────────────────────────────────────────────
+NIC_NOWEGO = b'{"unchanged":true}'
+_wersja_readera = ("", "")        # (etag paczki, wersja stanu) — parsowanie raz na zmianę
+
+
+def _wersja_stanu() -> str:
+    """Wersja stanu dla klienta (`fusion.ts`).
+
+    Writer zna ją z liczenia. Reader niczego nie liczy, więc czyta ją z gotowych
+    bajtów — raz na nową paczkę, nie raz na zapytanie. Bez tego reader odsyłałby
+    pełny stan każdemu pytającemu i cały zysk z odpytywania by przepadł.
+    """
+    global _wersja_readera
+    if config.IS_WRITER:
+        return _state_ts
+    blob = public_cache.get("state")
+    if blob is None:
+        return ""
+    if _wersja_readera[0] != blob.etag:
+        try:
+            ts = json.loads(blob.raw).get("fusion", {}).get("ts")
+        except (ValueError, AttributeError):
+            ts = None
+        _wersja_readera = (blob.etag, str(ts or ""))
+    return _wersja_readera[1]
+
+
 @app.get("/api/state")
-async def api_state(request: Request):
-    if public_cache.get("state") is None:
+async def api_state(request: Request, v: str | None = None):
+    """Stan mapy albo krótkie „nic nowego", gdy klient ma już tę wersję.
+
+    Znacznik wersji (`v`) to `fusion.ts` z ostatnio pobranego stanu. Można byłoby
+    użyć samego ETagu i odpowiedzi 304, ale aplikacja na telefonie przepuszcza
+    zapytania przez warstwę natywną Capacitora (CapacitorHttp omija CORS) i ta
+    gubi semantykę zapytań warunkowych — 20.09.2026 na emulatorze co kilkadziesiąt
+    sekund migał komunikat „brak połączenia", choć dane płynęły. Zwykłe 200 z
+    dwudziestoma bajtami treści działa tak samo na każdym kliencie, a Cloudflare
+    cache'uje je pod kluczem z `v`: wszyscy pytają o tę samą wersję, więc to jeden
+    wpis w pamięci brzegu, nie jeden na użytkownika.
+    """
+    if public_cache.get("state") is None and config.IS_WRITER:
         refresh_state()
+    if v and v == _wersja_stanu():
+        return Response(NIC_NOWEGO, media_type="application/json",
+                        headers={"Cache-Control": "public, max-age=2, s-maxage=2, "
+                                                  "stale-while-revalidate=30"})
     return public_cache.respond(request, "state")
 
 
@@ -345,7 +440,7 @@ def _history_at(at: str, hours: int) -> dict:
 async def api_timeline(request: Request):
     """Oś czasu suwaka historii (najwyższy wynik w kraju dla każdej migawki).
     Gotowa odpowiedź z public_cache, odświeżana co minutę."""
-    if public_cache.get("timeline") is None:
+    if public_cache.get("timeline") is None and config.IS_WRITER:
         await public_cache.rebuild("timeline", public_cache.build_timeline)
     return public_cache.respond(request, "timeline")
 
@@ -356,7 +451,7 @@ async def api_history_bundle(request: Request):
     Klient przewija suwak lokalnie. Paczka jest składana w tle co minutę
     i podawana jako gotowe, skompresowane bajty (public_cache) — składanie przy
     każdym wejściu zabiło serwer 13.09.2026 o 04:54."""
-    if public_cache.get("bundle") is None:
+    if public_cache.get("bundle") is None and config.IS_WRITER:
         await public_cache.rebuild("bundle", public_cache.build_bundle_bytes)
     return public_cache.respond(request, "bundle")
 
@@ -385,7 +480,21 @@ async def api_health(request: Request):
     Szczegóły są dostępne tylko z samego serwera: curl http://127.0.0.1:40141/api/health."""
     if not _is_local(request):
         return JSONResponse({"ok": True}, headers={"Cache-Control": "no-store"})
+    if config.ROLE == "reader":
+        # Reader nie ma kolektorów — bierze ich stan z pliku writera i dokłada swój.
+        writer = blob_store.wczytaj_health() or {}
+        wiek = blob_store.wiek_s("state")
+        return {**writer, "rola": "reader",
+                "reader": {"load_guard": load_guard.status,
+                           "public_cache": public_cache.status,
+                           "blob_store": blob_store.status,
+                           "wiek_stanu_s": None if wiek is None else round(wiek, 1)}}
+    return _health_payload()
+
+
+def _health_payload() -> dict:
     return {
+        "rola": config.ROLE,
         "neptun": neptun.status, "adsb": adsb.status, "pansa": pansa.status,
         "rcb": rcb.status, "rso": rso.status, "rss": rss_media.status["feeds"],
         "neighbours": neighbours.status,
@@ -455,13 +564,32 @@ async def api_zones(request: Request):
     część /api/state, bo geometria stref waży setki kilobajtów, a stan leci przez
     WebSocket co kilka sekund. Aplikacja pobiera to raz na kilka minut.
     """
-    if public_cache.get("zones") is None:
+    if public_cache.get("zones") is None and config.IS_WRITER:
         await public_cache.rebuild("zones", _zones_payload, in_thread=False)
     return public_cache.respond(request, "zones")
 
 
 def _zones_payload() -> dict:
     return {"zones": pansa.zones_geojson(), "events": pansa.zone_events()}
+
+
+NAJNOWSZA_PACZKA = "https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk"
+
+
+@app.get("/pobierz")
+async def pobierz():
+    """Krótki adres do ręcznej instalacji: straznik.eu/pobierz.
+
+    Stare wersje nie potrafią pokazać klikalnego odnośnika — ich pasek komunikatu to
+    sam tekst, a jedyny przycisk w okienku aktualizacji uruchamia wbudowany aktualizator,
+    który na Androidzie 9 i 10 odrzucał każdą paczkę (naprawione w 1.7.64). Tym ludziom
+    zostaje wpisanie adresu w przeglądarce, więc ma być krótki i do zapamiętania.
+
+    Przekierowanie, nie plik: 24 MB idzie z GitHuba, nie przez nasz tunel, a adres zawsze
+    wskazuje najnowsze wydanie. Bez cache, żeby po nowym wydaniu nie prowadził do starego.
+    """
+    return RedirectResponse(NAJNOWSZA_PACZKA, status_code=302,
+                            headers={"Cache-Control": "no-store"})
 
 
 @app.get("/api/app-version")
@@ -527,9 +655,19 @@ async def test_signal(body: dict):
 @app.on_event("startup")
 async def startup():
     db.init()
-    notify.init_vapid()
-    notify.init_fcm()
-    fusion.on_level_change = notify.notify_level
+    if not config.IS_WRITER:
+        # READER: nie zbiera, nie liczy, nie alarmuje. Podaje gotowe bajty, które
+        # writer odkłada do pamięci współdzielonej. Jedyne zadanie własne to
+        # bezpiecznik obciążenia — reader też może dostać falę zapytań.
+        monitoring.start("load_guard", lambda: load_guard.monitor(shed_websockets))
+        log.info("Strażnik wystartował jako READER — bez kolektorów i bez powiadomień")
+        return
+    if config.PROBA:
+        log.warning("TRYB PRÓBY — bez kolektorów i bez powiadomień (kopia bazy)")
+    else:
+        notify.init_vapid()
+        notify.init_fcm()
+        fusion.on_level_change = notify.notify_level
     fusion.on_state_change = broadcast_state
     # Każde zadanie pod nadzorcą: wyjątek nie zatrzymuje go na zawsze (audyt D2).
     jobs = {
@@ -549,9 +687,27 @@ async def startup():
         "cache_zones": lambda: public_cache.refresh_loop(
             "zones", _zones_payload, 30, in_thread=False),
     }
+    if config.PROBA:
+        # zostają tylko zadania liczące i składające bajty — nic nie wychodzi na świat
+        zostaw = {"snapshots", "levels", "state", "heartbeat", "load_guard",
+                  "cache_bundle", "cache_timeline", "cache_zones"}
+        jobs = {k: v for k, v in jobs.items() if k in zostaw}
+    if config.ROLE == "writer":
+        # stan kolektorów wędruje do readera tą samą drogą co dane mapy
+        jobs["health_blob"] = health_blob_loop
     for name, factory in jobs.items():
         monitoring.start(name, factory)
-    log.info("Strażnik wystartował — kolektory uruchomione")
+    log.info("Strażnik wystartował (rola: %s) — kolektory uruchomione", config.ROLE)
+
+
+async def health_blob_loop():
+    """Writer odkłada swój stan zdrowia dla readera (ten sam plik w RAM)."""
+    while True:
+        try:
+            blob_store.zapisz_health(_health_payload())
+        except Exception as e:                        # noqa: BLE001
+            log.warning("health blob: %s", e)
+        await asyncio.sleep(5)
 
 
 async def level_loop():
@@ -646,6 +802,21 @@ async def progression_shadow_loop():
             log.exception("tryb cienia progresji: błąd")
         await asyncio.sleep(120)
 
+
+# Paczki map Groty — około 2 GB, poza katalogiem repozytorium.
+#
+# Kusiłoby położyć je w `frontend/`, bo wtedy nie trzeba nic montować. Ale ten
+# katalog jest kopią roboczą gita na serwerze: dwa gigabajty nieznanych plików
+# śmieciłyby w `git status`, a jedno nieuważne `git clean -fd` przy wdrożeniu
+# skasowałoby je wszystkie. Leżą więc osobno i są montowane wprost.
+#
+# Montowane tylko, gdy katalog istnieje — na maszynie bez paczek (i w testach)
+# nic się nie zmienia.
+if config.GROTA_PACZKI_DIR.is_dir():
+    app.mount("/grota/paczki",
+              StaticFiles(directory=config.GROTA_PACZKI_DIR),
+              name="grota-paczki")
+    log.info("Paczki map Groty podawane z %s", config.GROTA_PACZKI_DIR)
 
 # statyka frontendu (montowana na końcu, żeby nie przykryć /api i /ws)
 app.mount("/", StaticFiles(directory=config.FRONTEND_DIR, html=True), name="frontend")

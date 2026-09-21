@@ -16,6 +16,28 @@ DOCS = ROOT / "docs"
 # (wersja, data PL, data EN, tytuł PL, tytuł EN, punkty PL, punkty EN, zrzuty)
 # Zrzut: (plik, alt PL, alt EN, podpis PL, podpis EN)
 RELEASES = [
+    ("1.7.64", "21 września 2026", "21 September 2026",
+     "Aktualizacja działa na Androidzie 9 i 10",
+     "Updates work on Android 9 and 10",
+     ["Na telefonach z Androidem 9 i 10 aktualizacja z aplikacji kończyła się błędem „Podpis aktualizacji nie zgadza się z zainstalowaną aplikacją”. Podpis był w porządku — wszystkie wydania są podpisane tym samym kluczem. To aplikacja źle go odczytywała: Android 9 i 10 podają certyfikat pobranego pliku tylko przy starszym sposobie pytania. Naprawione.",
+      "Jeśli masz Androida 9 lub 10 i wersję od 1.7.54 do 1.7.63, tę jedną aktualizację zainstaluj ręcznie: pobierz Straznik.apk w przeglądarce ze strony wydań na GitHubie i otwórz plik. Instaluje się na starej wersji, ustawienia i miejsca zostają. Kolejne aktualizacje zadziałają już z aplikacji.",
+      "Bezpieczeństwo bez zmian: aplikacja nadal sprawdza sumę kontrolną i certyfikat każdej aktualizacji, zanim ją zainstaluje."],
+     ["On phones with Android 9 and 10, updating from inside the app ended with the error “The update signature does not match the installed app”. The signature was fine — every release is signed with the same key. The app was reading it wrongly: Android 9 and 10 only report the certificate of a downloaded file when asked the older way. Fixed.",
+      "If you have Android 9 or 10 and a version from 1.7.54 to 1.7.63, install this one update by hand: download Straznik.apk in your browser from the GitHub releases page and open the file. It installs over the old version and your settings and places stay. Later updates will work from inside the app again.",
+      "Security is unchanged: the app still checks the checksum and the certificate of every update before installing it."],
+     []),
+
+    ("1.7.63", "20 września 2026", "20 September 2026",
+     "Mniej pracy dla serwera przy tej samej mapie",
+     "Less work for the server, the same map",
+     ["Aplikacja nie trzyma już stałego połączenia z serwerem. Zamiast tego pyta o stan i dostaje krótką odpowiedź „nic nowego”, gdy nic się nie zmieniło — tę odpowiedź daje sieć Cloudflare, a nasz serwer w ogóle się o to pytanie nie dowiaduje.",
+      "Po co: przy stałych połączeniach każdy telefon zajmował osobne gniazdo na serwerze i zużycie rosło z liczbą osób. Teraz serwer wydaje jeden stan na kilka sekund niezależnie od tego, czy patrzy pięćset osób, czy pięćdziesiąt tysięcy — a przy syrenach patrzą wszyscy naraz.",
+      "Dla Ciebie zmienia się tyle, że mapa odświeża się co dwie sekundy w czasie alarmu i co pięć, gdy jest spokojnie. Alarm przy zamkniętej aplikacji przychodzi jak dotąd powiadomieniem."],
+     ["The app no longer keeps a permanent connection to the server. It asks for the state instead and gets a short “nothing new” when nothing has changed — that answer comes from the Cloudflare network, and our server never even learns about the question.",
+      "Why: with permanent connections every phone occupied its own socket on the server and the load grew with the number of people. The server now serves one state every few seconds whether five hundred people are watching or fifty thousand — and during sirens everyone watches at once.",
+      "For you the only change is that the map refreshes every two seconds during an alert and every five when things are calm. An alert reaching a closed app still arrives as a notification."],
+     []),
+
     ("1.7.62", "19 września 2026", "19 September 2026",
      "Historia nie gubi już godzin spędzonych w tle",
      "History no longer loses the hours spent in the background",
