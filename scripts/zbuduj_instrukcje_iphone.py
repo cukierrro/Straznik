@@ -121,7 +121,7 @@ PL = dict(
       <ul>
         <li><b>Brak pełnego ekranu.</b> Na Androidzie czerwony alarm zapala ekran i zasłania blokadę. Na iPhonie jest to wyraźne powiadomienie na blokadzie.</li>
         <li><b>Syrena gra raz.</b> Na Androidzie gra w pętli, aż potwierdzisz. Na iPhonie — jeden raz przy powiadomieniu. W pętli gra tylko wtedy, gdy aplikacja jest otwarta na ekranie; wyciszysz ją wtedy przyciskiem <kbd>POTWIERDZAM — wycisz syrenę</kbd>.</li>
-        <li><b>Wyciszony dzwonek = cisza.</b> Gdy przełącznik z boku telefonu (albo przycisk czynności) jest na wyciszeniu, alarm jest bezgłośny — zostaje wibracja i baner. Wyciszenie mogą przebić tylko tzw. alarmy krytyczne (Critical Alerts), na które Apple wydaje osobną zgodę. <b>Złożyliśmy wniosek do Apple</b>; do czasu decyzji zostaw dzwonek włączony, jeśli chcesz słyszeć syrenę.</li>
+        <li><b>Wyciszony dzwonek = cisza.</b> Gdy przełącznik z boku telefonu (albo przycisk czynności) jest na wyciszeniu, alarm jest bezgłośny — zostaje baner i wibracja (jeśli w Ustawienia → Dźwięki i haptyka → Haptyka nie wybrano „Nie odtwarzaj w trybie cichym”). Wyciszenie mogą przebić tylko tzw. alarmy krytyczne (Critical Alerts), na które Apple wydaje osobną zgodę. <b>Złożyliśmy wniosek do Apple</b>; do czasu decyzji zostaw dzwonek włączony, jeśli chcesz słyszeć syrenę.</li>
         <li><b>Brak suwaka głośności alarmu.</b> Syrena gra na głośności dzwonka i powiadomień iPhone'a — ustawisz ją przyciskami głośności albo w Ustawieniach → Dźwięki i haptyka.</li>
         <li><b>Tryb Skupienia i Sen.</b> iOS wymaga osobnej zgody na „powiadomienia czasowo zależne” — dla aplikacji i dla każdego trybu Skupienia. Bez niej alarm poczeka do odblokowania telefonu.</li>
       </ul>
@@ -130,7 +130,7 @@ PL = dict(
   </div>
   <div class="warn"><b>Sprawdź swojego iPhone'a.</b> Od tych czterech rzeczy zależy, czy usłyszysz czerwony alarm w nocy:
     <ol>
-      <li><b>Dzwonek włączony</b> — przełącznik z boku telefonu nie na wyciszeniu.</li>
+      <li><b>Dzwonek włączony</b> — przełącznik z boku telefonu nie na wyciszeniu. Jeśli czasem wyciszasz telefon, ustaw <b>Ustawienia → Dźwięki i haptyka → Haptyka → „Zawsze odtwarzaj”</b> (albo „Odtwarzaj w trybie cichym”) — wtedy wyciszony iPhone przynajmniej zawibruje.</li>
       <li><b>Powiadomienia dozwolone:</b> Ustawienia → Powiadomienia → Strażnik → „Zezwalaj na powiadomienia”.</li>
       <li><b>„Powiadomienia czasowo zależne” włączone</b> — w tym samym miejscu.</li>
       <li><b>Strażnik dopuszczony w trybie Sen:</b> Ustawienia → Skupienie → Sen → Aplikacje → dodaj Strażnika. Jeśli używasz też innych trybów Skupienia (np. Praca), dopuść go i tam.</li>
@@ -248,7 +248,7 @@ EN = dict(
       <ul>
         <li><b>No full screen.</b> On Android a red alert wakes the screen and covers the lock screen. On iPhone it is a prominent notification on the lock screen.</li>
         <li><b>The siren plays once.</b> On Android it loops until you confirm. On iPhone it plays once with the notification. It loops only while the app is open on screen; silence it then with <kbd>CONFIRM — silence the siren</kbd>.</li>
-        <li><b>Silenced ringer = silence.</b> When the switch on the side of the phone (or the Action button) is set to silent, the alert is silent — you get the vibration and the banner. Only so-called Critical Alerts can break through silent mode, and Apple grants them separately. <b>We have applied to Apple</b>; until they decide, keep the ringer on if you want to hear the siren.</li>
+        <li><b>Silenced ringer = silence.</b> When the switch on the side of the phone (or the Action button) is set to silent, the alert is silent — you get the banner and the vibration (unless Settings → Sounds &amp; Haptics → Haptics is set to “Don’t Play in Silent Mode”). Only so-called Critical Alerts can break through silent mode, and Apple grants them separately. <b>We have applied to Apple</b>; until they decide, keep the ringer on if you want to hear the siren.</li>
         <li><b>No alert-volume slider.</b> The siren plays at the iPhone's ringer and alert volume — set it with the volume buttons or in Settings → Sounds &amp; Haptics.</li>
         <li><b>Focus and Sleep.</b> iOS needs a separate permission for “Time Sensitive Notifications” — for the app and for each Focus mode. Without it the alert waits until you unlock the phone.</li>
       </ul>
@@ -257,7 +257,7 @@ EN = dict(
   </div>
   <div class="warn"><b>Check your iPhone.</b> These four things decide whether you hear a red alert at night:
     <ol>
-      <li><b>Ringer on</b> — the switch on the side of the phone is not on silent.</li>
+      <li><b>Ringer on</b> — the switch on the side of the phone is not on silent. If you sometimes silence the phone, set <b>Settings → Sounds &amp; Haptics → Haptics → “Always Play”</b> (or “Play in Silent Mode”) — then a silenced iPhone at least vibrates.</li>
       <li><b>Notifications allowed:</b> Settings → Notifications → Strażnik → “Allow Notifications”.</li>
       <li><b>“Time Sensitive Notifications” on</b> — in the same place.</li>
       <li><b>Strażnik allowed in Sleep:</b> Settings → Focus → Sleep → Apps → add Strażnik. If you use other Focus modes (e.g. Work), allow it there too.</li>
