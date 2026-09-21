@@ -588,6 +588,21 @@ dialog .set-switch input:focus-visible + .sw-track { outline: 2px solid var(--ac
   letter-spacing: .04em; cursor: pointer;
 }
 .alarm-btn:hover { filter: brightness(1.1); }
+/* Wybór po potwierdzeniu alarmu (21.09.2026). Duże pola do dotknięcia — to ekran,
+   na który człowiek patrzy w stresie, często jedną ręką. Schronienie na górze
+   i wyróżnione, bo to jedyna czynność, która coś zmienia w jego sytuacji. */
+.alarm-choices { display: grid; gap: 10px; margin-top: 14px; }
+.alarm-choices[hidden] { display: none; }
+.alarm-choice {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  min-height: 52px; padding: 12px; border-radius: 12px; cursor: pointer;
+  border: 1px solid rgba(255,255,255,.22); background: rgba(255,255,255,.06);
+  color: #fff; font-size: 15px; font-weight: 600;
+}
+.alarm-choice.primary { background: #c81e30; border-color: #c81e30; font-weight: 700; }
+.alarm-choice svg { width: 22px; height: 22px; flex: none; fill: none; stroke: currentColor;
+  stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.alarm-choice:hover { filter: brightness(1.12); }
 .alarm-time { font-size: 10.5px; color: var(--muted); margin-top: 8px; }
 
 /* ── przycisk buycoffee ── */

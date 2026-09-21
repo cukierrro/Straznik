@@ -3441,14 +3441,44 @@ function showAlarm(voiv, st) {
     : "Co zrobić: przejdź do schronu albo pomieszczenia bez okien, z dala od szyb. Śledź komunikaty RCB i służb.";
   document.getElementById("alarm-time").textContent =
     (UI.isEn ? "alert at " : "alarm o ") + new Date().toLocaleTimeString(UI.isEn ? "en-GB" : "pl-PL");
+  alarmWyborReset();
   alarmOverlay.classList.remove("hidden");
   airRaidSiren(true);          // ciągła — milknie dopiero po potwierdzeniu
 }
-document.getElementById("alarm-ack").onclick = () => {
-  stopSiren();
+
+/* Po potwierdzeniu alarmu: wybór zamiast natychmiastowego zamknięcia ekranu.
+   Decyzja usera 20.09.2026 — aplikacja NIGDY sama nie przejmuje ekranu Grotą:
+   człowiek patrzy właśnie na zagrożenie i sam wybiera, dokąd dalej. Przycisk
+   schronienia jest tylko w aplikacji (klasa app-only), na stronie go nie ma. */
+const alarmAck = document.getElementById("alarm-ack");
+const alarmWybor = document.getElementById("alarm-choices");
+function alarmWyborReset() {
+  alarmAck.hidden = false;
+  if (alarmWybor) alarmWybor.hidden = true;
+  const t = (id, pl, en) => { const el = document.getElementById(id); if (el) el.lastChild.textContent = UI.isEn ? en : pl; };
+  t("alarm-grota", "Gdzie się schronić", "Where to shelter");
+  t("alarm-map", "Obserwuj mapę", "Watch the map");
+  t("alarm-safe", "Jestem bezpieczny", "I am safe");
+}
+function zamknijAlarm() {
   alarmOverlay.classList.add("hidden");
-  setPanel(true);
+  alarmWyborReset();
+}
+alarmAck.onclick = () => {
+  stopSiren();
+  if (!alarmWybor) { zamknijAlarm(); setPanel(true); return; }
+  alarmAck.hidden = true;
+  alarmWybor.hidden = false;
 };
+document.getElementById("alarm-map")?.addEventListener("click", () => {
+  zamknijAlarm();
+  setPanel(false);             // sama mapa, bez panelu na wierzchu
+});
+document.getElementById("alarm-safe")?.addEventListener("click", zamknijAlarm);
+document.getElementById("alarm-grota")?.addEventListener("click", () => {
+  zamknijAlarm();
+  otworzGrote();
+});
 
 let audioCtx = null;
 function ctx() {
@@ -5178,7 +5208,7 @@ function syncTabs() {
   document.getElementById("btn-panel")?.setAttribute("aria-pressed", String(panelOpen));
   document.getElementById("btn-history")?.setAttribute("aria-pressed", String(histOn));
   // widok modułu jest osobnym ekranem — zakładka, która przejmuje ekran, go zamyka
-  if ((panelOpen || histOn) && window.GrotaWidok?.widoczny) ukryjGrote();
+  if ((panelOpen || histOn) && window.Grota?.widoczny) ukryjGrote();
 }
 
 function setPanel(open) {
@@ -5286,20 +5316,46 @@ if (attrEl) {
 }
 
 /* ── moduł schronienia (GROTA) ───────────────────────────────────────────────
-   Strażnik mówi, że jest zagrożenie; GROTA pokazuje, dokąd iść. Moduł żyje
-   w osobnych plikach (`frontend/grota/`) i wczytuje się przy pierwszym wejściu,
-   żeby nie opóźniać startu aplikacji alarmowej. Gdy go nie ma — nic się nie
-   dzieje, bo wszystkie wywołania są opcjonalne. */
-function otworzGrote() {
-  if (!window.GrotaWidok) return;
+   Strażnik mówi, że jest zagrożenie; GROTA pokazuje, dokąd iść.
+
+   Interfejs uzgodniony z sesją Groty 21.09.2026: globalny `window.Grota` z
+   `otworz()`, `ukryj()` i getterem `widoczny` — zwykłe skrypty, bez modułów ES.
+   `grota/widok.js` jest jedynym punktem wejścia i sam dociąga resztę swoich plików.
+
+   Wczytujemy go dopiero przy pierwszym wejściu: to kilkaset KB kodu i 11 MB punktów,
+   a aplikacja alarmowa ma startować natychmiast. Pliki są tylko w aplikacji —
+   strona ich nie ma, więc tam przycisku nie widać (app-only), a gdyby ktoś jednak
+   wywołał otwarcie, dostanie komunikat zamiast pustego ekranu. */
+let grotaLadowanie = null;
+function wczytajGrote() {
+  if (window.Grota) return Promise.resolve(window.Grota);
+  if (!grotaLadowanie) {
+    grotaLadowanie = new Promise((ok, zle) => {
+      const s = document.createElement("script");
+      s.src = "grota/widok.js";
+      s.onload = () => (window.Grota ? ok(window.Grota)
+                                     : zle(new Error("grota/widok.js nie wystawił window.Grota")));
+      s.onerror = () => zle(new Error("nie udało się wczytać grota/widok.js"));
+      document.head.appendChild(s);
+    }).catch(e => { grotaLadowanie = null; throw e; });   // pozwól spróbować ponownie
+  }
+  return grotaLadowanie;
+}
+async function otworzGrote() {
   setPanel(false);
   if (moreSheet?.open) moreSheet.close();
   if (document.body.classList.contains("history-mode")) toggleHistory();
-  window.GrotaWidok.otworz();
+  try {
+    (await wczytajGrote()).otworz();
+  } catch (e) {
+    console.warn("GROTA:", e);
+    toast(UI.isEn ? "Shelter finder is not available in this version."
+                  : "Wyszukiwanie schronień nie jest dostępne w tej wersji.");
+  }
 }
 /* Każde przejście gdzie indziej zatrzymuje mapę modułu — bez tego jej renderowanie
    zjadałoby procesor w tle, obok mapy Strażnika. */
-function ukryjGrote() { window.GrotaWidok?.ukryj(); }
+function ukryjGrote() { window.Grota?.ukryj(); }
 
 /* ── dolne zakładki i menu „Więcej” ── */
 const moreSheet = document.getElementById("more-sheet");
