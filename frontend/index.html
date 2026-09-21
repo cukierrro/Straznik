@@ -863,5 +863,19 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <script src="aircraft-photos.js?v=1.7.19"></script>
 <script src="places.js?v=1.7.19-4"></script>
 <script src="app.js?v=1.7.64"></script>
+<script>
+/* Instrukcja pasująca do telefonu i języka (21.09.2026). iPhone ma osobną, bo alarmy,
+   zgody i aktualizacje działają tam inaczej. Tu, a nie w app.js: index.html nie jest
+   trzymany w Cloudflare, więc zmiana dociera bez podbijania wersji skryptów. */
+(function () {
+  var root = document.documentElement.classList;
+  var ios = root.contains("ios-app") || root.contains("ua-ios");
+  var en = !!(window.I18N && window.I18N.isEn);
+  var page = ios ? (en ? "iphone-en.html" : "iphone.html") : (en ? "en.html" : "");
+  if (!page) return;
+  var links = document.querySelectorAll('a[href="https://cukierrro.github.io/Straznik/"]');
+  for (var i = 0; i < links.length; i++) links[i].href = "https://cukierrro.github.io/Straznik/" + page;
+})();
+</script>
 </body>
 </html>

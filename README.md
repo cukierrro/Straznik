@@ -111,6 +111,8 @@ otwierają się także w pełnym rozmiarze.
 
 [⬇ Pobierz na Androida (APK)](https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk) · [⬇ Pobierz na iOS (App Store)](https://apps.apple.com/pl/app/id6813563009) · [☕ Postaw kawę](https://buycoffee.to/cukierrro)
 
+📖 Instrukcja: [Android](https://cukierrro.github.io/Straznik/) · [iPhone](https://cukierrro.github.io/Straznik/iphone.html) · [English (Android)](https://cukierrro.github.io/Straznik/en.html) · [English (iPhone)](https://cukierrro.github.io/Straznik/iphone-en.html)
+
 </div>
 
 > [!WARNING]
