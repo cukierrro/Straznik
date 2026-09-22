@@ -5,6 +5,19 @@
             <certificates src="system" />
         </trust-anchors>
     </base-config>
+    <!-- GROTA: zdjęcia z góry (ortofotomapa GUGiK). Serwer mapy.geoportal.gov.pl wysyła łańcuch kończący się
+         na nowszym „Certum Trusted Root CA” bez certyfikatu pośredniego do starego „Certum Trusted Network CA”,
+         a Android starszy niż 14 nowszego korzenia nie zna — zdjęcie nie wczytywało się wcale (sprawdzone na
+         Androidzie 12, 22.09.2026). Dokładamy ten jeden korzeń TYLKO dla tej domeny, obok systemowych.
+         Plik: res/raw/certum_trusted_root_ca.pem, SHA-256 FE:76:96:57:38:55:77:3E:37:A9:5E:7A:D4:D9:CC:96:
+         C3:01:57:C1:5D:31:76:5B:A9:B1:57:04:E1:AE:78:FD, ważny do 16.03.2043 (ten sam co w zbiorze Mozilli). -->
+    <domain-config>
+        <domain includeSubdomains="false">mapy.geoportal.gov.pl</domain>
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="@raw/certum_trusted_root_ca" />
+        </trust-anchors>
+    </domain-config>
     <!-- Virtual Capacitor origin only; preserve existing localStorage. -->
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="false">localhost</domain>

@@ -1032,6 +1032,50 @@ Zmienić położenie?`);
     }).join("")}</div></div>`;
   }
 
+  /* ---------- zdjęcie z góry (ortofotomapa GUGiK) ----------
+     Usługa GUGiK zawodzi na dwa sposoby (22.09.2026): StandardResolution część zapytań zbywa 404 (losowo, zależnie
+     od serwera za równoważeniem ruchu), a HighResolution odpowiada, ale po 5–20 s. Dlatego: do PROB_ORTO szybkich
+     prób StandardResolution (każda z innym adresem, żeby nie dostać zapamiętanego 404), potem jedna próba
+     HighResolution z limitem czasu. Adres, który zadziałał, zapamiętujemy dla punktu — panel jest przerysowywany
+     często i bez tego każde przerysowanie zaczynałoby próby od nowa. Warunki usługi wykluczają pobieranie hurtowe
+     i kolekcjonowanie obrazów: to wciąż jedno zdjęcie oglądane przez człowieka, niczego nie zapisujemy.
+     Starsze Androidy nie znały korzenia certyfikatu serwera — to naprawia network_security_config w aplikacji. */
+  const PROB_ORTO = 5, LIMIT_WOLNEGO_MS = 25000;
+  const ortoDziala = new Map();                  // id punktu → adres, który się wczytał
+  const ortoPadlo = new Set();                   // id punktów, dla których wszystkie próby zawiodły (do końca sesji)
+
+  function zdjecieZGory(p, podpis) {
+    const blad = ortoPadlo.has(p.id);
+    const src = ortoDziala.get(p.id) || C.orthoUrl(p);
+    return `<figure class="ortho${blad ? " err" : ""}" data-orto="${esc(p.id)}">${blad ? "" : `<img loading="lazy" alt="Zdjęcie z góry okolicy punktu" src="${esc(src)}" data-proba="0">`}<span class="ortho-dot"></span>
+      <figcaption>${esc(podpis)}</figcaption></figure>`;
+  }
+
+  function ortoNastepnaProba(img) {
+    const fig = img.closest("figure.ortho"), id = fig?.dataset.orto, p = id && S.byId.get(id);
+    if (!p) return;
+    const proba = Number(img.dataset.proba || 0) + 1;
+    img.dataset.proba = String(proba);
+    if (proba < PROB_ORTO) { img.src = C.orthoUrl(p, { proba }); return; }
+    if (proba === PROB_ORTO) {
+      img.src = C.orthoUrl(p, { proba, wolny: true });
+      // wolny serwer nie może trzymać karty w nieskończoność — po limicie uznajemy, że zdjęcia nie ma
+      setTimeout(() => { if (img.isConnected && !img.complete) { img.removeAttribute("src"); ortoNastepnaProba(img); } }, LIMIT_WOLNEGO_MS);
+      return;
+    }
+    ortoPadlo.add(id);
+    fig.classList.add("err");
+  }
+
+  // Zdarzenia load/error obrazków nie bąbelkują — łapiemy je w fazie przechwytywania na panelu.
+  panel.addEventListener("error", (e) => { if (e.target.matches?.("figure.ortho img")) ortoNastepnaProba(e.target); }, true);
+  panel.addEventListener("load", (e) => {
+    const img = e.target;
+    if (!img.matches?.("figure.ortho img")) return;
+    const id = img.closest("figure.ortho").dataset.orto;
+    if (id && img.naturalWidth) ortoDziala.set(id, img.currentSrc || img.src);
+  }, true);
+
   function shelterCard(p, o = {}) {
     const acc = C.ACCESS[p.dostep] || C.ACCESS.nieznany;
     const t = C.trustLabel(p);
@@ -1050,8 +1094,7 @@ Zmienić położenie?`);
       ${dist != null ? `<p>${fmtDist(dist)} ${o.origin || (!S.userPos && o.distFrom) ? "od miejsca" : "od Ciebie"} · ${esc(C.MODES[mode].label.toLowerCase())}: ${estText(C.estimateMin(dist, mode))}</p>` : ""}
       <p class="small trust-${t.level}">${esc(t.text)}</p>
       ${C.flagMessages(p).length ? notkaOBledach() : ""}
-      ${o.photo === false ? "" : `<figure class="ortho"><img loading="lazy" alt="Zdjęcie z góry okolicy punktu" src="${esc(C.orthoUrl(p))}" onerror="this.closest('figure').classList.add('err')"><span class="ortho-dot"></span>
-        <figcaption>Zdjęcie z góry, ok. 140 m szerokości · punkt w środku · ortofotomapa GUGiK</figcaption></figure>`}
+      ${o.photo === false ? "" : zdjecieZGory(p, "Zdjęcie z góry, ok. 140 m szerokości · punkt w środku · ortofotomapa GUGiK")}
       <div class="row">
         <a class="btn" target="_blank" rel="noopener" href="${esc(C.directionsUrl(p, mode, o.origin || navOrigin()))}">${o.origin ? "Przećwicz trasę" : "Prowadź"}</a>
         <a class="btn ghost" target="_blank" rel="noopener" href="${esc(svUrl(p))}">Street View</a>
@@ -1301,8 +1344,7 @@ Zmienić położenie?`);
       ${objectLine(p)}
       ${routeInfo(p)}
       <a class="btn go" target="_blank" rel="noopener" href="${esc(C.directionsUrl(p, S.mode, navOrigin()))}">PROWADŹ ➜</a>
-      <figure class="ortho"><img loading="lazy" alt="Zdjęcie z góry okolicy punktu" src="${esc(C.orthoUrl(p))}" onerror="this.closest('figure').classList.add('err')"><span class="ortho-dot"></span>
-        <figcaption>Zdjęcie z góry · punkt w środku · ortofotomapa GUGiK</figcaption></figure>
+      ${zdjecieZGory(p, "Zdjęcie z góry · punkt w środku · ortofotomapa GUGiK")}
       <p class="small muted">${esc(acc.note)} <span class="trust-${t.level}">${esc(t.text)}</span></p>
       ${C.flagMessages(p).length ? notkaOBledach() : ""}
       <div class="row"><a class="btn ghost" target="_blank" rel="noopener" href="${esc(svUrl(p))}">Street View</a>
