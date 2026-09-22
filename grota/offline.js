@@ -88,14 +88,36 @@
 
   /* ---------- kafelki na żywo, gdy nie ma ich w telefonie ---------- */
 
-  let zrodloOFM = null;
+  /* Adres kafelków OpenFreeMap zmienia się z każdym wydaniem planety (…/planet/20260913_164504_pt/{z}/{x}/{y}.pbf),
+     więc bierzemy go z TileJSON stylu. Ten przychodzi asynchronicznie, a MapLibre prosi o kafelki od razu
+     po ustawieniu stylu — zwłaszcza gdy styl jest z pamięci telefonu i ustawia się natychmiast. Kafelek, który
+     w tym czasie dostał pustą odpowiedź, zostawał pusty do końca (22.09.2026). Dlatego zSieci czeka na adres
+     (najwyżej kilka sekund), a ostatni znany adres pamiętamy w telefonie na następne uruchomienie. */
+  let zrodloOFM = null, zrodloOczekiwane = null;
   let udajeBrakSieci = false;
   const ustawUdawanie = (v) => { udajeBrakSieci = !!v; };
   const udaje = () => udajeBrakSieci;
-  function ustawZrodloOFM(szablon) { zrodloOFM = szablon; }
+  function ustawZrodloOFM(szablon) {
+    if (szablon && typeof szablon.then === "function") {
+      zrodloOczekiwane = szablon.then((s) => { if (s) ustawZrodloOFM(s); return s; }).catch(() => null);
+      return;
+    }
+    if (!szablon || szablon.startsWith("grota:")) return;
+    zrodloOFM = szablon;
+    zapisz(SKLEP_META, "adres:kafelki", szablon).catch(() => {});
+  }
+  async function adresKafelkow() {
+    if (zrodloOFM) return zrodloOFM;
+    if (zrodloOczekiwane) await Promise.race([zrodloOczekiwane, new Promise((ok) => setTimeout(ok, 5000))]);
+    if (zrodloOFM) return zrodloOFM;
+    const zapamietany = await czytaj(SKLEP_META, "adres:kafelki").catch(() => null);
+    return zapamietany || null;
+  }
 
   async function zSieci(z, x, y) {
-    if (udajeBrakSieci || !zrodloOFM) return null;
+    if (udajeBrakSieci) return null;
+    const zrodloOFM = await adresKafelkow();
+    if (!zrodloOFM) return null;
     try {
       const r = await fetch(zrodloOFM.replace("{z}", z).replace("{x}", x).replace("{y}", y));
       if (r.status === 204) return pusty();          // obszar bez danych — nie ma czego szukać dalej
@@ -414,11 +436,21 @@
         const zwykly = await czytaj(SKLEP, klucz.replace("@2x", ""));
         if (zwykly) return { data: zwykly };
       }
-      const adres = await czytaj(SKLEP_META, `adres:${klucz}`);
+      /* Czcionki: paczka zapisuje tylko zakresy znaków 0–255 i 256–511 (łacina z polskimi literami). Wystarczy
+         jedna nazwa z innym znakiem („ – albo cyrylica), żeby MapLibre poprosił o dalszy zakres — a błąd przy
+         czcionce odrzuca CAŁY kafelek, razem z ulicami i budynkami. Po pobraniu paczki mapa poza nią nie miała
+         ulic nawet z internetem (22.09.2026). Dlatego każdy zakres składamy z szablonu czcionek stylu, a gdy nie
+         da się go pobrać — oddajemy pusty zestaw: brakujące znaki nie wyświetlą się, ale kafelek tak. */
+      let adres = await czytaj(SKLEP_META, `adres:${klucz}`);
+      if (!adres && rodzaj === "glyph") {
+        const szablon = await czytaj(SKLEP_META, "adres:glyphs").catch(() => null);
+        if (szablon) adres = szablon.replace("{fontstack}", reszta[0]).replace("{range}", reszta[1]);
+      }
       if (adres && !udajeBrakSieci) {
         try { const r = await fetch(adres); if (r.ok) return { data: await r.arrayBuffer() }; } catch { /* brak sieci */ }
       }
-      // Pusta odpowiedź zatrzymuje wczytywanie stylu — błąd MapLibre pomija i rysuje mapę bez tego elementu.
+      if (rodzaj === "glyph") return { data: pusty() };
+      // Sprite: błąd MapLibre pomija i rysuje mapę bez ikon (pusta odpowiedź zatrzymałaby wczytywanie stylu).
       throw new Error(`brak zasobu ${klucz}`);
     }
     throw new Error("nieznany zasób " + url);
