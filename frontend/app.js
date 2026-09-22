@@ -888,9 +888,24 @@ function publishAlertContract() {
   window.dispatchEvent(new CustomEvent("straznik:alert", { detail: next }));
 }
 
+/* Wyłącznik GROTY z serwera (data/wylaczniki.json). Tylko stan z serwera go zmienia —
+   tryb awaryjny liczy stan sam i nie ma tego pola, więc zostaje ostatnia znana
+   wartość z pamięci telefonu. Brak pola = włączona. */
+function grotaWylaczona() {
+  try { return localStorage.getItem("straznik_grota_off") === "1"; } catch { return false; }
+}
+function applySwitches(w) {
+  if (!w || typeof w !== "object") return;
+  const off = w.grota === false;
+  try { off ? localStorage.setItem("straznik_grota_off", "1") : localStorage.removeItem("straznik_grota_off"); } catch {}
+  document.documentElement.classList.toggle("grota-off", off);
+  if (off && window.Grota?.widoczny) ukryjGrote();
+}
+
 function applyState(s) {
   state = s;
   showNotice(s?.notice);
+  applySwitches(s?.wylaczniki);
   threatsReceivedAt = Date.now();
   if (!standalone) srvRecord(s);   // nagrywaj żywy feed do bufora historii (RAM)
   recordTrails(s?.neptun?.threats || []);
@@ -5495,6 +5510,7 @@ function wczytajGrote() {
   return grotaLadowanie;
 }
 async function otworzGrote(opcje) {
+  if (grotaWylaczona()) return;
   setPanel(false);
   if (moreSheet?.open) moreSheet.close();
   if (document.body.classList.contains("history-mode")) toggleHistory();
@@ -5510,7 +5526,7 @@ async function otworzGrote(opcje) {
    pierwsze otwarcie na telefonie 2 GB trwało 14 s, po przygotowaniu ~0,1 s.
    Tylko w aplikacji (strona nie ma plików Groty) i bez błędów na zewnątrz. */
 function przygotujGrote() {
-  if (!document.documentElement.classList.contains("native-app")) return;
+  if (!document.documentElement.classList.contains("native-app") || grotaWylaczona()) return;
   wczytajGrote().then(g => g.przygotuj?.()).catch(e => console.warn("GROTA przygotuj:", e));
 }
 /* Każde przejście gdzie indziej zatrzymuje mapę modułu — bez tego jej renderowanie
@@ -5520,6 +5536,7 @@ function ukryjGrote() { window.Grota?.ukryj(); }
 /* ── dolne zakładki i menu „Więcej” ── */
 const moreSheet = document.getElementById("more-sheet");
 document.getElementById("btn-grota")?.addEventListener("click", () => otworzGrote());
+document.documentElement.classList.toggle("grota-off", grotaWylaczona());   // ostatnia znana wartość, zanim przyjdzie stan
 document.getElementById("tab-more")?.addEventListener("click", () => {
   if (moreSheet?.open) moreSheet.close(); else moreSheet?.showModal();
 });

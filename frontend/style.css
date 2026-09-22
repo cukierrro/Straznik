@@ -45,6 +45,8 @@
 .ios-app p.ios-only { display: block !important; }
 .ios-app span.ios-only { display: inline !important; }
 .web-app .app-only { display: none !important; }
+/* GROTA wyłączona z serwera (data/wylaczniki.json) — alarm zostaje bez przycisku */
+.grota-off #btn-grota, .grota-off #alarm-grota { display: none !important; }
 html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--text);
   font-family: "Segoe UI", system-ui, sans-serif; }
 

@@ -31,7 +31,7 @@ const wKliknieciach = [...js.matchAll(/addEventListener\("click",\s*\(\) => otwo
 sprawdz(wywolania === 2 && wKliknieciach === 2,
   "Grota otwiera się tylko z kliknięcia człowieka (przycisk w alarmie lub w „Więcej”)");
 sprawdz(/airRaidSiren\(true\);[^\n]*\n\s*przygotujGrote\(\);/.test(js) &&
-        /function przygotujGrote\(\) \{\s*\n\s*if \(!document\.documentElement\.classList\.contains\("native-app"\)\) return;/.test(js),
+        /function przygotujGrote\(\) \{\s*\n\s*if \(!document\.documentElement\.classList\.contains\("native-app"\)[^\n]*\) return;/.test(js),
   "przy alarmie Grota tylko wczytuje się w tle (i tylko w aplikacji)");
 sprawdz(/alarmAck\.hidden = true;\s*\n\s*alarmWybor\.hidden = false;/.test(js),
   "potwierdzenie alarmu pokazuje wybór zamiast zamykać ekran");
@@ -65,6 +65,15 @@ sprawdz(!/<script[^>]+grota\//.test(html), "index.html nie wczytuje Groty przy s
 sprawdz(/grotaLadowanie = null; throw e;/.test(js), "nieudane wczytanie można ponowić");
 sprawdz(/toast\(UI\.isEn \? "Shelter finder is not available/.test(js),
   "brak modułu = komunikat, a nie pusty ekran");
+
+console.log("4b. Wyłącznik z serwera (22.09.2026)");
+sprawdz(/function applySwitches[\s\S]{0,400}"grota-off"/.test(js) && /applySwitches\(s\?\.wylaczniki\)/.test(js),
+  "stan z serwera może schować Grotę");
+sprawdz(/\.grota-off #btn-grota, \.grota-off #alarm-grota \{ display: none/.test(css),
+  "wyłączona Grota znika z „Więcej” i z ekranu alarmu");
+sprawdz(/async function otworzGrote\(opcje\) \{\s*\n\s*if \(grotaWylaczona\(\)\) return;/.test(js) &&
+        /"native-app"\) \|\| grotaWylaczona\(\)\) return;/.test(js),
+  "wyłączona Grota ani się nie otwiera, ani nie wczytuje w tle");
 
 console.log("5. Systemowe „wstecz” (uzgodnione 21.09.2026)");
 const wstecz = js.slice(js.indexOf("window.straznikBack = function"), js.indexOf("window.straznikBack = function") + 1600);
