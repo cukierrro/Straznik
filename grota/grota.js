@@ -910,7 +910,13 @@
     }
   }
 
-  const GEO_HELP = {
+  /* W Strażniku Grota jest w aplikacji na telefonie — wskazówki o kłódce przy adresie strony i o Windows
+     (z samodzielnej wersji przeglądarkowej) nic by tam nie mówiły. */
+  const GEO_HELP = MODUL ? {
+    1: "Brak zgody na lokalizację. Włącz ją w ustawieniach telefonu: Aplikacje → Strażnik → Uprawnienia → Lokalizacja. Możesz też wybrać, gdzie jesteś, poniżej.",
+    2: "Telefon nie ustalił pozycji. Sprawdź, czy lokalizacja jest włączona (szybkie ustawienia u góry ekranu), albo wybierz, gdzie jesteś, poniżej.",
+    3: "Ustalanie pozycji trwało zbyt długo. Spróbuj jeszcze raz albo wskaż miejsce na mapie.",
+  } : {
     1: "Brak zgody na lokalizację. Kliknij ikonę kłódki przy adresie strony i zezwól na lokalizację. Na komputerze z Windows sprawdź też: Ustawienia → Prywatność i zabezpieczenia → Lokalizacja (włączona, także dla przeglądarki).",
     2: "Urządzenie nie ustaliło pozycji. Komputer bez GPS korzysta z sieci Wi-Fi — sprawdź, czy lokalizacja jest włączona w systemie.",
     3: "Ustalanie pozycji trwało zbyt długo. Spróbuj jeszcze raz albo wskaż miejsce na mapie.",
@@ -1874,7 +1880,8 @@ Zmienić położenie?`);
       każdym piszemy, co stoi najbliżej szpilki i jak daleko — żeby w terenie szukać budynku, a nie kropki na mapie.</p>
       <p>Jeśli widzisz punkt postawiony w złym miejscu, zgłoś to gminie albo komendzie PSP, która przekazuje dane do zbioru —
       poprawka u źródła naprawia go we wszystkich aplikacjach naraz.</p>
-      <p>Czas dojścia to szacunek z odległości w linii prostej. Dokładną trasę i czas pokazuje Google Maps.</p>
+      <p>Czas dojścia to szacunek: zanim trasa się wyznaczy — z odległości w linii prostej, potem z trasy po drogach
+      i ścieżkach (bez korków i utrudnień). Nie jest gwarancją.</p>
       <h3>Źródła</h3>
       <p class="small">Zasady i listy kontrolne: ${esc(P.SOURCE.authors)}, „${esc(P.SOURCE.title)}”, ${esc(P.SOURCE.edition)}, <a href="${esc(P.SOURCE.url)}" target="_blank" rel="noopener">wersja internetowa na gov.pl</a>, licencja <a href="${esc(P.SOURCE.licenseUrl)}" target="_blank" rel="noopener">${esc(P.SOURCE.license)}</a>. ${esc(P.SOURCE.note)}</p>
       <p class="small">${esc(S.meta?.zrodlo || "Komenda Główna PSP, dane.gov.pl, CC BY 4.0")}; dane z ${esc(S.meta?.data_danych || "")}. Kontrola budynków: ${esc(S.meta?.kontrola_budynkow || "OpenStreetMap, ODbL")}. Mapa: OpenFreeMap, © OpenStreetMap. Zdjęcia z góry: ortofotomapa GUGiK (usługa WMS, pobierana na bieżąco, bez zapisywania). Biblioteka mapy: MapLibre (BSD).</p>
