@@ -580,7 +580,10 @@ const FIT_PAD = 18;
 
 let state = null;          // ostatni stan z backendu
 let threatsReceivedAt = 0; // do dead-reckoningu
-let map, mapReady = false, is3d = true;
+let map, mapReady = false;
+/* Widok 2D/3D zapamiętany na urządzeniu (22.09.2026): część osób woli 2D i musiała
+   przełączać go przy każdym uruchomieniu. Domyślnie 3D, jak dotąd. */
+let is3d = (() => { try { return localStorage.getItem("straznik_widok") !== "2d"; } catch { return true; } })();
 
 /* ── połączenie z backendem ──────────────────────────────────────────────── */
 const connBadge = document.getElementById("conn-badge");
@@ -1014,11 +1017,12 @@ function webglDostepny() {
   } catch { return false; }
 }
 
-function pokazBrakMapy(blad) {
+function pokazBrakMapy(blad, niewczytana = false) {
   const box = document.getElementById("map");
   if (!box || document.getElementById("map-niedostepna")) return;
   const ios = IS_IOS || document.documentElement.classList.contains("ua-ios");
   const en = UI.isEn;
+  if (niewczytana) return pokazNiewczytanaMape(box, blad, en);
   const rada = ios
     ? (en ? "On iPhone this is usually <b>Lockdown Mode</b>, which switches off map drawing (WebGL) in Safari and in apps. "
           + "Settings → Privacy &amp; Security → Lockdown Mode → Configure Web Browsing → exclude Strażnik "
@@ -1043,6 +1047,28 @@ function pokazBrakMapy(blad) {
   if (blad) console.warn("Mapa niedostępna:", blad);
 }
 
+/* Mapa, która się nie wczytała (22.09.2026): czytelnik z iPhone'em miał pustą mapę
+   w aplikacji i w Safari mimo WebGL i wyłączonego Trybu blokady. Województwa rysujemy
+   dopiero po wczytaniu stylu mapy, więc gdy styl albo kafelki są blokowane (bloker
+   treści, filtr DNS, VPN) — nie ma nic. Po 20 s bez wczytania mówimy to wprost i
+   pokazujemy techniczny powód do zrzutu ekranu. */
+function pokazNiewczytanaMape(box, blad, en) {
+  const d = document.createElement("div");
+  d.id = "map-niedostepna";
+  d.setAttribute("role", "alert");
+  d.style.cssText = "position:absolute;top:0;left:0;right:0;bottom:0;display:flex;align-items:flex-start;"
+    + "justify-content:center;padding:84px 104px 150px 18px;overflow:auto;color:#dbe4f5;font-size:14px;line-height:1.5";
+  const tech = String(blad || "brak odpowiedzi").slice(0, 300);
+  d.innerHTML = `<div style="max-width:440px"><div style="font-size:28px">🗺️</div><p><b>${en
+    ? "The map did not load" : "Mapa się nie wczytała"}</b></p><p>${en
+    ? "Alerts, the signals panel and history still work. The map tiles come from an outside map server — something on this device or network is blocking them."
+    : "Alarmy, panel sygnałów i historia działają. Kafelki mapy pochodzą z zewnętrznego serwera map — coś na tym urządzeniu albo w sieci je blokuje."}</p><p class="muted">${en
+    ? "Most often: a content or ad blocker, a DNS filter (AdGuard, NextDNS), a VPN or iCloud Private Relay. Try turning it off for a moment, or switch between Wi-Fi and mobile data."
+    : "Najczęściej: bloker treści lub reklam, filtr DNS (AdGuard, NextDNS), VPN albo Prywatny przekaźnik iCloud. Spróbuj na chwilę go wyłączyć albo przełączyć się między Wi-Fi a danymi komórkowymi."}</p><p class="muted" style="font-size:12px">${en
+    ? "Technical detail" : "Szczegół techniczny"}: ${esc(tech)}</p></div>`;
+  box.appendChild(d);
+}
+
 async function initMap() {
   if (!webglDostepny()) { pokazBrakMapy(); return; }
   let style = FALLBACK_STYLE;
@@ -1054,13 +1080,22 @@ async function initMap() {
   try {
     map = new maplibregl.Map({
       container: "map", style,
-      bounds: FIT_BOUNDS, fitBoundsOptions: { padding: FIT_PAD }, pitch: 45, bearing: -8,
+      bounds: FIT_BOUNDS, fitBoundsOptions: { padding: FIT_PAD }, pitch: is3d ? 45 : 0, bearing: is3d ? -8 : 0,
       antialias: true, attributionControl: false, maxPitch: 70,
     });
   } catch (e) {
     // WebGL bywa zgłaszany jako dostępny, a kontekst i tak się nie tworzy (np. zablokowany GPU)
     pokazBrakMapy(e); return;
   }
+  const bledyMapy = [];
+  map.on("error", (e) => {
+    const m = e?.error?.message || e?.error?.status || e?.error || "błąd";
+    if (bledyMapy.length < 4 && !bledyMapy.includes(String(m))) bledyMapy.push(String(m));
+  });
+  setTimeout(() => {
+    if (!mapReady) pokazBrakMapy(`styl: ${typeof style === "string" ? style.replace(/^https?:\/\//, "") : "zapasowy"}`
+      + (bledyMapy.length ? " · " + bledyMapy.join(" · ") : " · brak odpowiedzi"), true);
+  }, 20000);
   // Zmiana rozmiaru okna w trakcie tworzenia mapy (obrót, podzielony ekran, składany
   // telefon) zostawiała płótno w starym rozmiarze — na tablecie mapa była czarna poza
   // paskiem u góry. MapLibre słucha tylko zdarzenia resize okna, więc pilnujemy kontenera.
@@ -1397,6 +1432,8 @@ async function initMap() {
         "line-blur": 0.4 } });
 
     mapReady = true;
+    // komunikat „mapa się nie wczytała” mógł wyskoczyć, gdy start trwał dłużej (np. aplikacja w tle)
+    document.getElementById("map-niedostepna")?.remove();
     syncZonesButton();
     refreshZones(true);
     if (state) { updateVoivStates(); updateAdsb(); }
@@ -5143,15 +5180,21 @@ document.getElementById("btn-web-push-on")?.addEventListener("click", () => {
   enablePush().then(() => refreshWebPushStatus()).catch(e => toast("Błąd: " + e));
 });
 refreshBell();
-document.getElementById("btn-3d").onclick = () => {
-  is3d = !is3d;
-  map?.easeTo({ pitch: is3d ? 45 : 0, bearing: is3d ? -8 : 0, duration: 700 });
+function pokazStan3d() {
   // ikona w pasku bez podpisu: stan niesie podświetlenie i tytuł
   const b3 = document.getElementById("btn-3d");
+  if (!b3) return;
   b3.classList.toggle("active", is3d);
   b3.title = is3d ? (UI.isEn ? "Switch to 2D view" : "Przełącz na widok 2D")
                   : (UI.isEn ? "Switch to 3D view" : "Przełącz na widok 3D");
+}
+document.getElementById("btn-3d").onclick = () => {
+  is3d = !is3d;
+  try { localStorage.setItem("straznik_widok", is3d ? "3d" : "2d"); } catch {}
+  map?.easeTo({ pitch: is3d ? 45 : 0, bearing: is3d ? -8 : 0, duration: 700 });
+  pokazStan3d();
 };
+pokazStan3d();
 
 /* Dolne zakładki: „Mapa" jest stanem spoczynku — zamyka panel, historię i menu. */
 function syncTabs() {

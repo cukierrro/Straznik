@@ -109,11 +109,6 @@ def _apns_config(topic: str, data: dict):
             break
         lines.append(line)
         used += size(line)
-    # PRÓBA AlarmKit (21.09.2026): tylko czerwony poziom na temacie testowym budzi
-    # aplikację w tle (`content-available`) i niesie znacznik `alarmkit` — sprawdzamy,
-    # czy iPhone zdąży wtedy zaplanować alarm przebijający wyciszenie. Zwykłych
-    # tematów to nie dotyczy: ich ładunek zostaje bajt w bajt taki jak dotąd.
-    proba = high and topic.startswith("test_")
     return messaging.APNSConfig(
         headers={
             "apns-priority": "10",                                 # natychmiast
@@ -138,8 +133,7 @@ def _apns_config(topic: str, data: dict):
                 "interruption-level": "time-sensitive" if high else "active",
                 "relevance-score": 1.0 if high else 0.6,
             },
-            content_available=True if proba else None,
-        ), **({"alarmkit": "1", "alarmkit_tytul": title} if proba else {})),
+        )),
     )
 
 
