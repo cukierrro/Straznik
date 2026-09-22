@@ -57,6 +57,8 @@ final class Widgets {
     static final double NEAR_MAX_KM = 400;
     static final int JOB_ID = 0x5717;
     static final long PERIOD_MS = 30 * 60 * 1000L;
+    static final String NO_WATCHED_HINT =
+        "Dotknij i dodaj miejsce z „Obserwuj alerty”";
 
     // pamięć dostępna przed pierwszym odblokowaniem — push po nocnym restarcie też odświeża widżet
     private static final String KEY_STATE = "widget_state";
@@ -386,8 +388,10 @@ final class Widgets {
         if (!wide) {
             if (watched.isEmpty()) {
                 applyTone(c, rv, 4, false);
-                rv.setTextViewText(R.id.w_name, "Strażnik");
-                rv.setTextViewText(R.id.w_level, "Wybierz województwo w aplikacji");
+                // pusty kafelek nic by nie mówił — mówimy, co zrobić
+                rv.setTextViewText(R.id.w_name, "Brak miejsc");
+                rv.setInt(R.id.w_level, "setMaxLines", 5);
+                rv.setTextViewText(R.id.w_level, NO_WATCHED_HINT);
                 rv.setViewVisibility(R.id.w_points, View.GONE);
                 rv.setTextViewText(R.id.w_foot, "Źródło nieoficjalne · to nie jest alarm");
                 return rv;
@@ -396,6 +400,8 @@ final class Widgets {
             if (st == null) { r.label = "ładowanie…"; r.points = "–"; r.tone = 4; }
             applyTone(c, rv, r.tone, true);
             rv.setTextViewText(R.id.w_name, r.name);
+            // launcher może nałożyć zmiany na istniejący widok — cofamy 5 wierszy podpowiedzi
+            rv.setInt(R.id.w_level, "setMaxLines", 2);
             // przy małej wysokości albo dużej czcionce punkty idą do wiersza poziomu
             boolean roomy = hDp >= 150 * Math.max(1f, font);
             rv.setViewVisibility(R.id.w_points, roomy ? View.VISIBLE : View.GONE);
@@ -432,7 +438,7 @@ final class Widgets {
         if (watched.isEmpty()) {
             rv.setViewVisibility(R.id.w_row1, View.VISIBLE);
             rv.setImageViewResource(R.id.w_dot1, DOT[4]);
-            rv.setTextViewText(R.id.w_name1, "Wybierz województwo w aplikacji");
+            rv.setTextViewText(R.id.w_name1, "Brak obserwowanych województw");
             rv.setTextViewText(R.id.w_pts1, "");
             rv.setTextViewText(R.id.w_lvl1, "");
             worst = 4;
@@ -440,7 +446,7 @@ final class Widgets {
         if (stale) worst = 4;
         applyTone(c, rv, worst, false);
         String near = st == null ? "" : st.optString("near", "");
-        rv.setTextViewText(R.id.w_near, st == null ? ""
+        rv.setTextViewText(R.id.w_near, watched.isEmpty() ? NO_WATCHED_HINT : st == null ? ""
             : near.isEmpty() ? "Brak obiektów lecących w stronę Polski (do " + (int) NEAR_MAX_KM + " km)" : near);
         rv.setViewVisibility(R.id.w_near, stale ? View.GONE : View.VISIBLE);
         return rv;
