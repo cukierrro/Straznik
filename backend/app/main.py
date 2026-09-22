@@ -111,9 +111,26 @@ def _load_notice(plik: str = "notice.json"):
         return None
 
 
+# Wyłączniki funkcji z serwera (22.09.2026, przed wydaniem GROTY): gdyby nowa funkcja
+# psuła coś u ludzi, chowamy ją wszystkim bez aktualizacji aplikacji. Plik
+# data/wylaczniki.json, np. {"grota": false}, zmieniany na VPS bez restartu.
+# Tylko znane klucze i tylko wartości logiczne — brak pliku = wszystko włączone.
+WYLACZNIKI = ("grota",)
+
+
+def _load_switches(plik: str = "wylaczniki.json") -> dict:
+    import json
+    try:
+        d = json.loads((config.DATA_DIR / plik).read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    return {k: d[k] for k in WYLACZNIKI if isinstance(d, dict) and isinstance(d.get(k), bool)}
+
+
 def build_state() -> dict:
     return {
         "notice": _load_notice(),
+        "wylaczniki": _load_switches(),
         "fusion": fusion.compute_state(),
         "neptun": neptun.public_state(),
         "adsb": {"aircraft": adsb.current_aircraft,
