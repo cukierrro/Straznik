@@ -75,6 +75,12 @@ sprawdz(/async function otworzGrote\(opcje\) \{\s*\n\s*if \(grotaWylaczona\(\)\)
         /"native-app"\) \|\| grotaWylaczona\(\)\) return;/.test(js),
   "wyłączona Grota ani się nie otwiera, ani nie wczytuje w tle");
 
+console.log("4c. Menu „More” po angielsku (22.09.2026)");
+const i18n = fs.readFileSync(path.join(root, "frontend/i18n.js"), "utf8");
+sprawdz(/set\("#btn-grota span", "Shelter — nearest"\)/.test(i18n) &&
+        /setMany\("#more-sheet \.sheet-row:not\(#btn-grota\) span"/.test(i18n),
+  "wpis GROTY tłumaczony po id, reszta bez niego — kolejność nie przesuwa podpisów");
+
 console.log("5. Systemowe „wstecz” (uzgodnione 21.09.2026)");
 const wstecz = js.slice(js.indexOf("window.straznikBack = function"), js.indexOf("window.straznikBack = function") + 1600);
 const poz = (s) => wstecz.indexOf(s);
