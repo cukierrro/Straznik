@@ -28,6 +28,29 @@ public class StraznikFcmService extends FirebaseMessagingService {
     public void onMessageReceived(RemoteMessage remoteMessage) {
         Map<String, String> data = remoteMessage.getData();
         if (data.isEmpty()) return;
+        try {
+            deliverAlarm(data);
+        } finally {
+            // widżet po alarmie, nigdy przed nim: pobranie stanu trwa sekundy
+            updateWidget(data);
+        }
+    }
+
+    /** Widżet pokazuje stan także przy wyłączonych alarmach — to nie jest alarm. */
+    private void updateWidget(Map<String, String> data) {
+        try {
+            String voiv = data.get("voiv"), level = data.get("level");
+            if (voiv == null || level == null) return;
+            double score = 0;
+            try { score = Double.parseDouble(data.get("score")); } catch (Exception ignored) {}
+            Widgets.onPush(this, voiv.toLowerCase(Locale.ROOT), level, score,
+                Widgets.parseTs(data.get("sent_at")));
+        } catch (Exception e) {
+            Log.w(TAG, "widżet po pushu", e);
+        }
+    }
+
+    private void deliverAlarm(Map<String, String> data) {
 
         String voivName = data.get("voiv");
         String level = data.get("level");

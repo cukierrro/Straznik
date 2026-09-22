@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Widżet na ekranie głównym — motyw jasny (ciemny w values-night). -->
+<resources>
+    <color name="widget_bg">#FBFCFE</color>
+    <color name="widget_bg_elevated">#FFF7E6</color>
+    <color name="widget_bg_high">#FFEFF1</color>
+    <color name="widget_text">#101522</color>
+    <color name="widget_text_muted">#5C6679</color>
+    <color name="widget_divider">#1F7C8AA5</color>
+    <color name="widget_green">#2BB673</color>
+    <color name="widget_amber">#FFB020</color>
+    <color name="widget_red">#FF4D5E</color>
+    <color name="widget_grey">#8A94A8</color>
+    <color name="widget_spill">#80FFB020</color>
+    <color name="widget_elevated_text">#9A5E00</color>
+    <color name="widget_high_text">#C8142A</color>
+    <color name="widget_spill_text">#7D6128</color>
+    <color name="widget_brand">#5B8CFF</color>
+</resources>

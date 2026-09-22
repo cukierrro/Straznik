@@ -46,9 +46,9 @@ import java.util.Set;
 public class BackgroundPlugin extends Plugin {
 
     /** Prefs współdzielone z resztą warstwy natywnej — trzymamy tu wybrany region. */
-    private static final String PREFS = "straznik_bg";
-    private static final String KEY_HOME = "home_voiv";
-    private static final String KEY_REGIONS = "observed_voivs";
+    static final String PREFS = "straznik_bg";
+    static final String KEY_HOME = "home_voiv";
+    static final String KEY_REGIONS = "observed_voivs";
 
     /** Żywa instancja pluginu (WebView działa) — do przekazania pusha otwartej aplikacji. */
     private static volatile BackgroundPlugin instance;
@@ -89,6 +89,8 @@ public class BackgroundPlugin extends Plugin {
         getContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
             .putString(KEY_HOME, v == null ? "" : v).putStringSet(KEY_REGIONS, regions).apply();
         syncFcmSubscription(getContext());
+        // widżet pokazuje obserwowane województwa — inna lista, inny widżet
+        if (Widgets.anyPlaced(getContext())) Widgets.refreshAsync(getContext(), null);
         call.resolve();
     }
 
@@ -117,6 +119,8 @@ public class BackgroundPlugin extends Plugin {
         Alarms.prefs(getContext()).edit()
             .putBoolean(Alarms.KEY_ALERTS_OFF, Boolean.TRUE.equals(call.getBoolean("alertsOff", false))).commit();
         syncFcmSubscription(getContext());
+        // widżet pokazuje obserwowane województwa — inna lista, inny widżet
+        if (Widgets.anyPlaced(getContext())) Widgets.refreshAsync(getContext(), null);
         call.resolve();
     }
 

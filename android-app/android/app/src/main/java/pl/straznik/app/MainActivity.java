@@ -62,4 +62,10 @@ public class MainActivity extends BridgeActivity {
         return false;
     }
     @Override public void onPause() { FOREGROUND = false; super.onPause(); }
+
+    @Override public void onStop() {
+        super.onStop();
+        // po wyjściu z aplikacji widżet na ekranie głównym ma świeży stan (304, gdy bez zmian)
+        if (Widgets.anyPlaced(this)) Widgets.refreshAsync(this, null);
+    }
 }

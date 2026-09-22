@@ -59,6 +59,35 @@
             android:directBootAware="true"
             android:exported="false" />
 
+        <!-- Widżety na ekranie głównym: STAN, nie alarm (Widgets). Odświeża push FCM
+             i WidgetRefreshJob co ~30 min — bez usługi w tle. -->
+        <receiver
+            android:name=".StraznikWidgetSmall"
+            android:exported="false"
+            android:label="@string/widget_small_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_small_info" />
+        </receiver>
+        <receiver
+            android:name=".StraznikWidgetWide"
+            android:exported="false"
+            android:label="@string/widget_wide_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_wide_info" />
+        </receiver>
+        <service
+            android:name=".WidgetRefreshJob"
+            android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -92,6 +121,8 @@
          a alarm przepada w profilu DND z wyłączonym wyjątkiem dla alarmów. -->
     <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- odświeżanie widżetu przetrwa restart telefonu (JobInfo.setPersisted) -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 </manifest>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_small_label">Strażnik — moje województwo</string>
+    <string name="widget_wide_label">Strażnik — obserwowane województwa</string>
+    <string name="widget_small_desc">Stan pierwszego obserwowanego województwa. Nieoficjalne źródło — alarmem jest powiadomienie z syreną.</string>
+    <string name="widget_wide_desc">Do trzech obserwowanych województw i najbliższy obiekt lecący w stronę Polski. Nieoficjalne źródło — to nie jest alarm.</string>
+    <string name="widget_wide_title">Strażnik · obserwowane</string>
+    <string name="widget_loading">ładowanie…</string>
+    <string name="widget_pts">pkt</string>
+    <string name="widget_foot">Źródło nieoficjalne · alarmem jest syrena w powiadomieniu</string>
+</resources>

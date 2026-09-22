@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- pusty żółty pierścień: kolor mapy podniesiony przez sąsiadów, bez alarmu -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
+    <stroke android:width="2dp" android:color="@color/widget_amber" />
+    <size android:width="10dp" android:height="10dp" />
+</shape>
