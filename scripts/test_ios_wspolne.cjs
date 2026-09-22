@@ -47,8 +47,13 @@ for (const id of ['btn-native-test', 'btn-native-test-yellow']) {
 
 sprawdz(/@supports \(-webkit-touch-callout: none\)[^}]*\{[\s\S]{0,200}input, select, textarea \{ font-size: 16px/.test(css),
   'pola formularzy mają 16 px na iOS — mniejsze pole przybliża cały ekran i nie da się tego cofnąć');
-sprawdz(!/maximum-scale|user-scalable=no/.test(html),
-  'nie blokujemy powiększania strony — to psuje dostępność');
+// Strona WWW nie blokuje powiększania (dostępność). Aplikacja blokuje je od 1.7.72 (czytelnik przypadkiem
+// powiększał cały interfejs dwoma palcami), bo tam systemowe Powiększenie/Lupa Androida i iOS działa dalej.
+const metaViewport = (html.match(/<meta name="viewport" content="([^"]+)"/) || [])[1] || '';
+sprawdz(!/maximum-scale|user-scalable=no/.test(metaViewport),
+  'strona WWW nie blokuje powiększania — to psuje dostępność');
+sprawdz(/if \(document\.documentElement\.classList\.contains\("native-app"\)\)\s*\n\s*document\.querySelector\('meta\[name="viewport"\]'\)\?\.setAttribute\("content",\s*\n\s*"[^"]*user-scalable=no/.test(html),
+  'blokada powiększania tylko w aplikacji');
 
 console.log('4. Wersja, aktualizacje i ostrzeżenia');
 sprawdz(/s\.appVersion \|\| s\.iosAppVersion/.test(app), 'wersja iOS brana z iosAppVersion');
