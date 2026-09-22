@@ -623,7 +623,9 @@ async def _baltic_entries(entries, url: str, country: str, now: float):
         if age > MAX_AGE_S:
             continue
         title_l = title.lower()
-        discussion = any(m in f" {title_l}" for m in config.BALTIC_DISCUSSION_MARKERS)
+        # tytuł-pytanie („ko trūksta…?”) to publicystyka, nie ogłoszenie alarmu (22.09.2026)
+        discussion = (any(m in f" {title_l}" for m in config.BALTIC_DISCUSSION_MARKERS)
+                      or title_l.rstrip().endswith("?"))
         alert_hits = ([] if discussion or _speaker_quote(title_l)
                       else _is_baltic_alert(title_l))
         if alert_hits and _baltic_abroad(title_l, country):

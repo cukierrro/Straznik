@@ -157,7 +157,10 @@ asyncio.run(rm._baltic_entries([
 ], "lrt", "LT", T0 + 60))
 asyncio.run(rm._baltic_entries([wpis("Estonian minister: Lithuania drone downing a first for NATO Baltic mission",
                                      "https://news.err.ee/1610000000/x")], "err", "EE", T0 + 60))
-ok(not zapis, f"6 komentarzy bez sygnałów ({[(z['event_type'], z['title'][:40]) for z in zapis][:4]})")
+asyncio.run(rm._baltic_entries([wpis(
+    "Tartu mokyklas oro pavojui ruošia praktiškai: ko trūksta Lietuvos mokyklų pasirengimui?",
+    M15 + "-tartu")], "15min", "LT", T0 + 60))
+ok(not zapis, f"7 komentarzy bez sygnałów ({[(z['event_type'], z['title'][:40]) for z in zapis][:4]})")
 reset()
 asyncio.run(rm._baltic_entries([wpis("Oro pavojus Vilniuje: gyventojams išsiųsti įspėjimai", LRT + "vilniuje")],
                                "lrt", "LT", T0 + 60))

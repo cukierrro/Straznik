@@ -246,7 +246,8 @@ const BALTIC_ALERT_PAST = ["buvo", "bija", "oli"];
 // lustro config.BALTIC_DISCUSSION_MARKERS / BALTIC_FOREIGN_MARKERS (14.09.2026)
 const BALTIC_DISCUSSION = ["klausim", " sako", "sakė", "kritik", "komentar", "interviu", "diskusij", "aiškina", "says", "said", "questions", "criticism", "interview", "debate", "explains", "saka", "jautājum", "skaidro", "ütles", "küsimus", "kriitik", "selgitab",
   "neaišk", "nesutink", "įvertin", "reakcij", "neturėjome", "įstatym", "pasiruoš",
-  "turime", "priemon", "ministras:", "ministrs:", "minister:", "a first for", "lessons", "pamok"];
+  "turime", "priemon", "ministras:", "ministrs:", "minister:", "a first for", "lessons", "pamok",
+  "ruošia", "ruošias", "pasireng", "gatavīb", "sagatavo", "valmisolek", "ettevalmist", "preparedness", "prepare"];
 /* Świeżość doniesienia bałtyckiego — lustro rss_media._baltic_stale i config.BALTIC_*. */
 const BALTIC_MAX_AGE_MS = 30 * 60 * 1000, BALTIC_EVENT_TIME_MAX_MIN = 60;
 const BALTIC_PAST_TIME_WORDS = new Set(["vakar", "užvakar", "praėjusią", "praėjusį", "sekmadienį", "pirmadienį", "antradienį",
@@ -1499,7 +1500,8 @@ async function tickRss() {
         const words = new Set(text.match(/[\p{L}\p{N}_]+/gu) || []);
         if (balticStale(text, words, age)) continue;   // tylko zdarzenie „teraz” (15.09.2026)
         const titleL = " " + String(it.title || "").toLowerCase();
-        const discussion = BALTIC_DISCUSSION.some(k => titleL.includes(k));
+        // tytuł-pytanie („ko trūksta…?”) to publicystyka, nie ogłoszenie alarmu (22.09.2026)
+        const discussion = BALTIC_DISCUSSION.some(k => titleL.includes(k)) || titleL.trim().endsWith("?");
         if (!B_EXCLUDE.some(k => text.includes(k)) && !BALTIC_ALERT_PAST.some(k => words.has(k))) {
           // alarm tylko z TYTUŁU, bez artykułów-rozmów o alarmach
           const alertHits = discussion || balticSpeakerQuote(titleL.trim()) ? []
