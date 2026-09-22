@@ -47,9 +47,11 @@ for nazwa, wartosc in (("strefa PAZP", pkt_pn),
 print("3. dwa niezalezne sygnaly osiagaja prog")
 # E10 (13.09.2026): ADS-B bez punktów — para strefa + ADS-B już nie istnieje
 sprawdz(config.POINTS["adsb_spike"] == 0, "ADS-B tylko informacyjnie (0 pkt)")
-for a, b, opis in ((pkt_pn, config.POINTS["media_critical"], "strefa + relacja mediow"),
-                   (pkt_pn, config.POINTS["media_qra_wave"], "strefa + fala QRA polnoc")):
+for a, b, opis in ((pkt_pn, config.POINTS["media_critical"], "strefa + relacja mediow"),):
     sprawdz(a + b >= zolty, f"{opis} = {a + b} >= {zolty}")
+# 22.09.2026 (decyzja usera): fala QRA 0 pkt — 0 z 3 fal przed Alertem RCB. Na północy
+# do żółtego prowadzi dalej strefa + relacja mediów; sama fala już niczego nie dokłada.
+sprawdz(config.POINTS["media_qra_wave"] == 0, "fala QRA tylko informacyjnie (0 pkt)")
 # 15.09.2026 (decyzja usera): media krajow baltyckich 0,2-0,5 pkt — sama strefa
 # i incydent z mediow LT/LV/EE juz NIE daja zoltego; potrzebne trzecie zrodlo.
 sprawdz(pkt_pn + config.POINTS["baltic_context"] < zolty,

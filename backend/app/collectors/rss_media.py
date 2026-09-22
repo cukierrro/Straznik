@@ -561,6 +561,23 @@ async def _check_baltic_feed(client: httpx.AsyncClient, url: str, country: str):
     await _baltic_entries(parsed.entries[:40], url, country, now)
 
 
+# Kraj, o którym MÓWI tytuł (22.09.2026): portal litewski opisujący alarm na Łotwie
+# był liczony jako alarm litewski (waga 0,3 zamiast 0,18). Nazwy w językach LT/LV/EE,
+# angielskim, rosyjskim i polskim — dopasowanie po rdzeniu, bez wielkich liter.
+_BALTIC_COUNTRY_MARKERS = {
+    "LT": ("lietuv", "lithuan", "leedu", "литв", "litw"),
+    "LV": ("latvij", "läti", "latvia", "латви", "łotw", "lotw"),
+    "EE": ("estij", "igaunij", "eesti", "estonia", "эстон", "estoni"),
+}
+
+
+def _baltic_named_country(title_l: str, feed_country: str) -> str:
+    """Kraj z tytułu, gdy tytuł wprost nazywa JEDEN inny kraj bałtycki; inaczej kraj kanału."""
+    named = {c for c, marks in _BALTIC_COUNTRY_MARKERS.items() if any(m in title_l for m in marks)}
+    others = named - {feed_country}
+    return next(iter(others)) if len(others) == 1 and feed_country not in named else feed_country
+
+
 async def _baltic_entries(entries, url: str, country: str, now: float):
     for entry in entries:
         title = entry.get("title", "")
@@ -635,16 +652,17 @@ async def _baltic_entries(entries, url: str, country: str, now: float):
                 _baltic_active[country] = {"incident_key": incident_key, "at": now}
                 baltic[country]["last_alert"] = {"title": title[:160], "at": now,
                                                  "link": link, "incident_key": incident_key}
-            weight = config.BALTIC_ALERT_COUNTRY_WEIGHTS.get(country, 0.4)
-            name = config.BALTIC_COUNTRY_NAMES.get(country, country)
+            where = _baltic_named_country(title_l, country)
+            weight = config.BALTIC_ALERT_COUNTRY_WEIGHTS.get(where, 0.4)
+            name = config.BALTIC_COUNTRY_NAMES.get(where, where)
             for voiv in config.BALTIC_TARGET_VOIVS:
                 await fusion.ingest(
                     source="media", event_type="baltic_alert", voivodeship=voiv,
                     points=round(config.POINTS["baltic_alert"] * weight
                                  * config.BALTIC_TARGET_WEIGHTS.get(voiv, 1.0), 2),
                     title=f"Alarm powietrzny — {name}: „{title[:110]}”",
-                    details={"link": link, "keywords": alert_hits, "country": country,
-                             "incident_key": incident_key, "feed": url},
+                    details={"link": link, "keywords": alert_hits, "country": where,
+                             "feed_country": country, "incident_key": incident_key, "feed": url},
                     dedup_key=f"baltic-alert:{incident_key}:{voiv}",
                 )
             _baltic_alerted.add(incident_key)

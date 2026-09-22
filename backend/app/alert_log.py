@@ -13,6 +13,7 @@ import json
 import logging
 import sqlite3
 import subprocess
+from pathlib import Path
 import threading
 import time
 import zlib
@@ -28,6 +29,23 @@ MAX_SIGNALS = 25
 
 
 def _version() -> str:
+    """Skrót commita wprost z plików .git (22.09.2026). Usługa działa jako `straznik`,
+    a repozytorium należy do roota — `git rev-parse` odmawiał („dubious ownership”)
+    i wszystkie wpisy dziennika miały wersję „?”. Czytanie plików nie ma tego problemu."""
+    try:
+        git = Path(config.PROJECT_DIR) / ".git"
+        head = (git / "HEAD").read_text(encoding="utf-8").strip()
+        if not head.startswith("ref:"):
+            return head[:7] or "?"
+        ref = head.split(":", 1)[1].strip()
+        loose = git / ref
+        if loose.exists():
+            return loose.read_text(encoding="utf-8").strip()[:7] or "?"
+        for line in (git / "packed-refs").read_text(encoding="utf-8").splitlines():
+            if line.endswith(" " + ref):
+                return line.split(" ", 1)[0][:7]
+    except Exception:                              # noqa: BLE001
+        pass
     try:
         return subprocess.run(["git", "-C", str(config.PROJECT_DIR), "rev-parse", "--short", "HEAD"],
                               capture_output=True, text=True, timeout=5).stdout.strip() or "?"
