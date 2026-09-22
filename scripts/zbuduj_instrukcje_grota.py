@@ -355,8 +355,7 @@ EN = dict(
   <p>GROTA only guides you to points with a <b>verified location</b>. If a point with a doubtful location (a pin on a lawn, not on a building) is closer, GROTA mentions it under the suggestion but does not guide you there.</p>
   <h3>Will I make it? — an alert with a time</h3>
   <p>When Strażnik knows the time until the threat (e.g. an object heading for your province), GROTA compares it with the time to get there. If by the estimate you will not make it, you see <b>“By the estimate you won't make it”</b> and the route turns red. Then follow the Safety Guide advice shown with it: stay in the building, away from windows, by load-bearing walls, on the lowest floor.</p>
-  {shots(fig("g07-teraz-alarm", "NOW during an alert: red box By the estimate you won't make it", "Red box: you won't make it."),
-         fig("g08-teraz-alarm-czas", "Card Time from Strażnik's alert: threat in 2 min, Lublin province, with a note that it is an estimate", "“Time from Strażnik's alert”."))}
+  {shots(fig("g08-teraz-alarm-czas", "Card Time from Strażnik's alert: threat in 2 min, Lublin province, with a note that it is an estimate", "“Time from Strażnik's alert”."))}
   <div class="tw"><table><thead><tr><th>Route colour</th><th>Meaning</th></tr></thead><tbody>
     <tr><td>green</td><td>by the estimate you will make it</td></tr>
     <tr><td>red</td><td>by the estimate you won't make it</td></tr>
@@ -563,8 +562,7 @@ UK = dict(
   <p>GROTA веде лише до пунктів з <b>перевіреним розташуванням</b>. Якщо ближче є пункт із сумнівним розташуванням (шпилька на газоні, а не на будівлі), GROTA пише про нього під пропозицією, але не веде до нього.</p>
   <h3>Чи встигну? — тривога з часом</h3>
   <p>Коли Strażnik знає час до загрози (наприклад, об'єкт летить у бік вашого воєводства), GROTA порівнює його з часом дороги. Якщо за оцінкою ви не встигаєте, з'являється <b>«За оцінкою ви не встигнете»</b>, а маршрут стає червоним. Тоді дійте за порадами з «Порадника безпеки», які показано поруч: залишайтеся в будівлі, подалі від вікон, біля несучих стін, на найнижчому поверсі.</p>
-  {shots(fig("g07-teraz-alarm", "ЗАРАЗ під час тривоги: червона рамка За оцінкою ви не встигнете", "Червона рамка: не встигнете."),
-         fig("g08-teraz-alarm-czas", "Картка Час із тривоги Strażnik: загроза за 2 хв, Люблінське воєводство, з приміткою, що це оцінка", "«Час із тривоги Strażnik»."))}
+  {shots(fig("g08-teraz-alarm-czas", "Картка Час із тривоги Strażnik: загроза за 2 хв, Люблінське воєводство, з приміткою, що це оцінка", "«Час із тривоги Strażnik»."))}
   <div class="tw"><table><thead><tr><th>Колір маршруту</th><th>Що означає</th></tr></thead><tbody>
     <tr><td>зелений</td><td>за оцінкою встигнете</td></tr>
     <tr><td>червоний</td><td>за оцінкою не встигнете</td></tr>

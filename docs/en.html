@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Strażnik 1.7.70 — user guide</title>
-<meta name="description" content="Strażnik 1.7.70 user guide: installation, My places, the map and PAŻP zones, the signals panel, history, alerts, browser notifications and scoring. Screenshots from the current version.">
+<title>Strażnik 1.7.72 — user guide</title>
+<meta name="description" content="Strażnik 1.7.72 user guide: installation, My places, the map and PAŻP zones, the signals panel, history, alerts, browser notifications and scoring. Screenshots from the current version.">
 <link rel="canonical" href="https://cukierrro.github.io/Straznik/en.html">
 <link rel="alternate" hreflang="pl" href="https://cukierrro.github.io/Straznik/">
 <link rel="alternate" hreflang="en" href="https://cukierrro.github.io/Straznik/en.html">
@@ -33,11 +33,11 @@
   <div class="languages" aria-label="Guide language"><a href="index.html" lang="pl" hreflang="pl">PL</a><a href="en.html" lang="en" aria-current="page">EN</a></div>
 </div></nav>
 <header class="hero"><div class="wrap hero-grid">
-  <div><div class="eyebrow">User guide · version 1.7.70</div>
+  <div><div class="eyebrow">User guide · version 1.7.72</div>
     <h1>The situation on a map.<br>The sources behind each signal.</h1>
     <p class="lead">Strażnik combines public information about airborne threats and shows a score for each Polish province. It runs on Android, on iPhone and in a web browser.</p>
     <div class="actions"><a class="button primary" href="https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk">↓ Get it for Android</a><a class="button primary" href="https://apps.apple.com/pl/app/id6813563009">↓ Get it for iOS</a><a class="button" href="https://straznik.eu">Open the map</a></div>
-    <p class="fineprint">This guide describes only the current version, 1.7.70. All screenshots were taken on 13 September 2026 on a Pixel 7 with Android 14, using live data. What changed from release to release is in the <a href="zmiany-en.html">changelog</a>. Tap a screenshot to open it full size.</p>
+    <p class="fineprint">This guide describes only the current version, 1.7.72. All screenshots were taken on 13 September 2026 on a Pixel 7 with Android 14, using live data. What changed from release to release is in the <a href="zmiany-en.html">changelog</a>. Tap a screenshot to open it full size.</p>
     <p class="fineprint"><b>Using an iPhone?</b> Alerts, permissions and updates work differently there — read the <a href="iphone-en.html">iPhone guide</a>.</p>
     <p class="host-note"><img src="mikrus-logo.svg" alt="Mikrus" width="86" height="14">
       Strażnik’s server is provided by <a href="https://mikr.us">Mikrus</a> — thank you for supporting the project.</p>
@@ -79,9 +79,9 @@
       <h3>Updating from inside the app</h3>
       <p>Strażnik checks for a new release at every launch and whenever it returns to the foreground (at most every 30 minutes). The update window shows the version number and the list of changes. Manually: <kbd>⚙</kbd> → <kbd>App</kbd> → <kbd>⬆ Check for updates</kbd>.</p>
       <p>For an ordinary update you can choose <kbd>Later</kbd>. When you install, the app downloads the file, verifies its SHA-256 checksum and hands it to Android for confirmation. Install the new release over the old one — settings and My places are kept.</p>
-      <div class="note"><b>Which version do you have?</b> <kbd>⚙</kbd> → <kbd>App</kbd> tab → “Installed version”. The latest release is <b>1.7.70</b>. At the bottom of the tab are links to this guide, the changelog and supporting the author.</div>
+      <div class="note"><b>Which version do you have?</b> <kbd>⚙</kbd> → <kbd>App</kbd> tab → “Installed version”. The latest release is <b>1.7.72</b>. At the bottom of the tab are links to this guide, the changelog and supporting the author.</div>
     </div>
-    <figure><a class="shot-link" href="screens/1737/set-aplikacja-en.jpg"><img loading="lazy" src="screens/1737/set-aplikacja-en.jpg" width="1080" height="2400" alt="Settings, App tab: interface language English, installed version 1.7.70, Check for updates button, collapsed Advanced section and links to the user guide, changelog and support"></a><figcaption><kbd>⚙</kbd> → <kbd>App</kbd>: language, version, updates.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/1737/set-aplikacja-en.jpg"><img loading="lazy" src="screens/1737/set-aplikacja-en.jpg" width="1080" height="2400" alt="Settings, App tab: interface language English, installed version 1.7.72, Check for updates button, collapsed Advanced section and links to the user guide, changelog and support"></a><figcaption><kbd>⚙</kbd> → <kbd>App</kbd>: language, version, updates.</figcaption></figure>
   </div>
 </section>
 
@@ -269,7 +269,7 @@
   <div class="warn"><b>Check your phone.</b> Without full-screen permission a red alert may be only an ordinary notification. Also check the volume, notification channels, Do Not Disturb and battery restrictions — and check again after an Android update.</div>
   <p><b>How it works technically:</b> the server sends push notifications through Firebase for every watched province, also when the app is closed and the screen is locked. Alerts also arrive after an overnight phone restart, before you unlock it. “Force stop” in Android settings — and on some Xiaomi, Huawei or Oppo phones also clearing the app from recent apps — blocks delivery until the app is opened again; settings warn about this on such phones. <b>Fallback mode:</b> when the server does not respond, the open app starts a built-in engine and polls the sources itself; it checks every minute whether the server is back. Fallback mode works only while the app is open and does not read article texts, so media are listed without points.</p>
   <h3 id="grota">Where to shelter — GROTA</h3>
-  <div class="note"><b>📘 <a href="grota-en.html">The full GROTA guide →</a></b> Every feature step by step, with screenshots: the TERAZ (now) screen during an alert, the map and filters, your places, the offline map, preparation checklists and common questions.</div>
+  <div class="note"><b>📘 <a href="grota-en.html">The full GROTA guide →</a></b> (<a href="grota-uk.html" lang="uk">українською</a>) Every feature step by step, with screenshots: the TERAZ (now) screen during an alert, the map and filters, your places, the offline map, preparation checklists and common questions.</div>
   <p>After you tap <kbd>ACKNOWLEDGE — silence siren</kbd> the siren stops and the alert screen shows three buttons: <kbd>Where to shelter</kbd>, <kbd>Watch the map</kbd> and <kbd>I am safe</kbd>. Strażnik never switches the screen on its own — you choose.</p>
   <p><kbd>Where to shelter</kbd> opens the <b>GROTA</b> module straight on the <b>TERAZ</b> (now) tab: it finds your position and shows the nearest shelter points from the public list of Poland's State Fire Service (dane.gov.pl) — open around the clock, open at set hours and “on request” — with the distance and a route on foot, by bike or by car. GROTA starts loading in the background as soon as the alert appears, so it opens at once after you acknowledge. Outside an alert, open it from <kbd>More</kbd> → <kbd>Shelter — nearest (in Polish)</kbd>; it also has the Map, Places, Prepare and Rules tabs.</p>
   <ul>

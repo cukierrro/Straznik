@@ -16,6 +16,21 @@ DOCS = ROOT / "docs"
 # (wersja, data PL, data EN, tytuł PL, tytuł EN, punkty PL, punkty EN, zrzuty)
 # Zrzut: (plik, alt PL, alt EN, podpis PL, podpis EN)
 RELEASES = [
+    ("1.7.72", "22 września 2026", "22 September 2026",
+     "GROTA po angielsku i ukraińsku; mapa poza pobranym obszarem naprawiona",
+     "GROTA in English and Ukrainian; the map outside a downloaded area fixed",
+     ["GROTA mówi po angielsku i ukraińsku. Język wybierzesz w Zasady → „Język · Language · Мова”; domyślnie GROTA bierze język Strażnika, a gdy go nie ustawiono — język telefonu. Cytaty z „Poradnika bezpieczeństwa” są naszym tłumaczeniem, adresy zostają po polsku. Pełna instrukcja GROTY jest też po ukraińsku.",
+      "Po pobraniu mapy offline jednego województwa mapa GROTY poza nim traciła ulice i budynki, nawet z internetem. Już ich nie traci — wystarczy aktualizacja, bez ponownego pobierania mapy.",
+      "Rozwinięte sekcje w GROCIE (np. „Skąd biorą się przesunięte punkty?”) nie zwijają się same po kilku sekundach.",
+      "Aplikacji nie da się już przypadkiem powiększyć dwoma palcami ani podwójnym dotknięciem. Mapa przybliża się tak jak dotąd, a systemowe powiększenie Androida działa.",
+      "W wersji angielskiej menu „More” miało przesunięte podpisy (przy GROCIE stało „About and scoring”). Poprawione."],
+     ["GROTA speaks English and Ukrainian. Choose the language in Rules → “Język · Language · Мова”; by default GROTA follows Strażnik's language, and if none is set — the phone's. Quotes from the Safety Guide are our translation; addresses stay in Polish. The full GROTA guide is also in Ukrainian.",
+      "After downloading an offline map of one province, GROTA's map lost streets and buildings outside it, even online. Not any more — the update is enough, no need to download the map again.",
+      "Expanded sections in GROTA (e.g. “Why are some points misplaced?”) no longer collapse by themselves after a few seconds.",
+      "The app can no longer be zoomed by accident with two fingers or a double tap. The map zooms as before, and Android's system magnification still works.",
+      "In English the “More” menu had shifted labels (GROTA read “About and scoring”). Fixed."],
+     []),
+
     ("1.7.70", "22 września 2026", "22 September 2026",
      "GROTA: zdjęcie z góry działa znowu, także na starszych Androidach",
      "GROTA: the aerial photo works again, on older Androids too",
