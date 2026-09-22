@@ -1161,7 +1161,7 @@
         ${recBlock(o.notePlace, p)}` : ""}
       ${dist != null ? `<p>${o.origin || (!S.userPos && o.distFrom) ? T("{d} od miejsca", { d: fmtDist(dist) }) : T("{d} od Ciebie", { d: fmtDist(dist) })} · ${esc(trybNazwa(mode).toLowerCase())}: ${estText(C.estimateMin(dist, mode))}</p>` : ""}
       <p class="small trust-${t.level}">${esc(t.text)}</p>
-      ${C.flagMessages(p).length ? notkaOBledach() : ""}
+      ${C.flagMessages(p).length ? notkaOBledach("bledy-karta") : ""}
       ${o.photo === false ? "" : zdjecieZGory(p, "Zdjęcie z góry, ok. 140 m szerokości · punkt w środku · ortofotomapa GUGiK")}
       <div class="row">
         <a class="btn" target="_blank" rel="noopener" href="${esc(C.directionsUrl(p, mode, o.origin || navOrigin()))}">${o.origin ? T("Przećwicz trasę") : T("Prowadź")}</a>
@@ -1191,8 +1191,20 @@
     return watpliwychIle;
   }
 
-  function notkaOBledach(otwarta = false) {
-    return `<details class="bledy small"${otwarta ? " open" : ""}>
+  /* Rozwijane sekcje (<details>) pamiętają, czy są otwarte. Panel jest przerysowywany w całości przy każdej
+     zmianie stanu — pozycja, trasa, alarm, wczytanie mapy — i bez tego sekcja zwijała się sama po kilku
+     sekundach, choć człowiek jej nie dotknął (zgłoszenie usera 22.09). Zwija się tylko po dotknięciu. */
+  const otwarteSekcje = new Set();
+  const rozwin = (klucz) => ` data-sekcja="${klucz}"${otwarteSekcje.has(klucz) ? " open" : ""}`;
+  // zdarzenie toggle nie bąbelkuje — łapiemy je w fazie przechwytywania
+  panel.addEventListener("toggle", (e) => {
+    const k = e.target.dataset?.sekcja;
+    if (!k) return;
+    if (e.target.open) otwarteSekcje.add(k); else otwarteSekcje.delete(k);
+  }, true);
+
+  function notkaOBledach(klucz) {
+    return `<details class="bledy small"${rozwin(klucz)}>
       <summary>${T("Skąd biorą się przesunięte punkty?")}</summary>
       <p>${T("Adresy i współrzędne pochodzą z publicznego zbioru Komendy Głównej PSP — tego samego, z którego korzystają inne aplikacje i serwisy. {ile} z {wszystkie} punktów ma oznaczone wątpliwe położenie: najczęściej szpilka stoi obok budynku — na podwórku, parkingu albo trawniku — rzadziej wskazuje miejsce poza miejscowością z adresu albo w innej gminie. <b>To błąd w danych źródłowych</b> i w tym, jak są dalej przetwarzane — nie w Grocie.",
         { ile: J.liczba(ileWatpliwych()), wszystkie: J.liczba(S.points.length) })}</p>
@@ -1222,7 +1234,7 @@
         <i style="background:${ACCESS_COLORS[k]}"></i><span>${T(label)}</span><small>${fmt(c.dostep[k])}</small></button>`).join("")}</div>
       <div class="filter-row">${TRUST_ITEMS.map(([k, label, color]) => `<button type="button" class="fchip${F.trust.includes(k) ? " on" : ""}" data-act="filter" data-group="trust" data-val="${k}" aria-pressed="${F.trust.includes(k)}">
         <i class="ring" style="border-color:${color}"></i><span>${T(label)}</span><small>${fmt(c.trust[k])}</small></button>`).join("")}</div>
-      ${notkaOBledach()}
+      ${notkaOBledach("bledy-filtr")}
       <div class="filter-head filter-sub"><span class="small muted">${T("Rodzaj budynku (wg OpenStreetMap)")}</span>
         <button type="button" class="chip${F.grupy ? "" : " on"}" data-act="filter-groups-all" aria-pressed="${!F.grupy}">${T("Pokaż wszystkie")}</button></div>
       <div class="type-row">${TYPE_GROUPS.map(([k, label, icon]) => `<button type="button" class="tchip${gr.includes(k) ? " on" : ""}" data-act="filter-group" data-val="${k}" aria-pressed="${gr.includes(k)}" title="${esc(T(label))}">
@@ -1408,7 +1420,7 @@
       <a class="btn go" target="_blank" rel="noopener" href="${esc(C.directionsUrl(p, S.mode, navOrigin()))}">${T("PROWADŹ ➜")}</a>
       ${zdjecieZGory(p, "Zdjęcie z góry · punkt w środku · ortofotomapa GUGiK")}
       <p class="small muted">${esc(acc.note && T(acc.note))} <span class="trust-${t.level}">${esc(t.text)}</span></p>
-      ${C.flagMessages(p).length ? notkaOBledach() : ""}
+      ${C.flagMessages(p).length ? notkaOBledach("bledy-propozycja") : ""}
       <div class="row"><a class="btn ghost" target="_blank" rel="noopener" href="${esc(svUrl(p))}">Street View</a>
         <button class="btn ghost" data-act="show-on-map" data-id="${esc(p.id)}">${T("Pokaż na mapie")}</button></div>
     </div>`;
@@ -1896,7 +1908,7 @@
           : !S.points.length ? `<p class="sim">${T("Wczytuję punkty schronienia — za chwilę pokażę najbliższe. Zasady niżej działają już teraz.")}</p>`
           : S.liveFilter.dostep.length ? `<p class="sim">${T("Brak punktów spełniających filtr w pobliżu. Zaznacz więcej rodzajów powyżej.")}</p>`
           : `<p class="sim">${T("Nie zaznaczono żadnego rodzaju dostępu — zaznacz co najmniej jeden powyżej.")}</p>`)
-        + (L.closerDoubtful?.length ? `<div class="card"><p class="small muted">${T("Bliżej jest {ile} o wątpliwym położeniu (najbliższy {d}) — Grota do nich nie prowadzi, bo szpilka stoi obok budynku albo w innym miejscu niż adres.", { ile: plural(L.closerDoubtful.length, "punkt", "punkty", "punktów"), d: fmtDist(L.closerDoubtful[0].distM) })}</p>${notkaOBledach()}</div>` : "")
+        + (L.closerDoubtful?.length ? `<div class="card"><p class="small muted">${T("Bliżej jest {ile} o wątpliwym położeniu (najbliższy {d}) — Grota do nich nie prowadzi, bo szpilka stoi obok budynku albo w innym miejscu niż adres.", { ile: plural(L.closerDoubtful.length, "punkt", "punkty", "punktów"), d: fmtDist(L.closerDoubtful[0].distM) })}</p>${notkaOBledach("bledy-blizej")}</div>` : "")
         + (L.options.length > 1 ? `<h3>${T("Inne opcje")}</h3>${L.options.slice(1).map(otherOption).join("")}` : "")
         + celCard()
 ;
@@ -1908,7 +1920,7 @@
     }
     return `${wzywacDoSchronienia() ? rule("P-ALARM", true) : notkaOZrodle()}
       ${body}
-      <details class="card"><summary>${T("Pamiętaj — zasady z poradnika")}</summary>${rule("P-POWIETRZE")}${rule("P-OTWARTY-TEREN")}${rule("P-NIE-WYCHODZ")}${rule("P-EWAKUACJA")}</details>
+      <details class="card"${rozwin("zasady-teraz")}><summary>${T("Pamiętaj — zasady z poradnika")}</summary>${rule("P-POWIETRZE")}${rule("P-OTWARTY-TEREN")}${rule("P-NIE-WYCHODZ")}${rule("P-EWAKUACJA")}</details>
       ${simBox()}`;
   }
 
