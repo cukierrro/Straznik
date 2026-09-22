@@ -7,6 +7,7 @@
      i przycisk „wstecz” obsługuje Strażnik. Samodzielnie (podgląd, testowe APK) obie wartości są puste. */
   const BAZA = window.GROTA_BAZA || "";
   const MODUL = !!window.GROTA_MODUL;
+  const NA_IOS = (() => { try { return window.Capacitor?.getPlatform?.() === "ios"; } catch { return false; } })();
   const I = window.GrotaIcons.icon;
   const PLACES_KEY = "grota_miejsca", MODE_KEY = "grota_srodek", PREP_KEY = "grota_przygotuj", THEME_KEY = "grota_mapa", INFO_KEY = "grota_info_schrony", CEL_KEY = "grota_cel", FILTER_KEY = "grota_filtr2", LIVE_FILTER_KEY = "grota_filtr_teraz2", PICK_FILTER_KEY = "grota_filtr_miejsca2";
 
@@ -911,8 +912,13 @@
   }
 
   /* W Strażniku Grota jest w aplikacji na telefonie — wskazówki o kłódce przy adresie strony i o Windows
-     (z samodzielnej wersji przeglądarkowej) nic by tam nie mówiły. */
-  const GEO_HELP = MODUL ? {
+     (z samodzielnej wersji przeglądarkowej) nic by tam nie mówiły. Droga do ustawień jest inna na Androidzie
+     i na iPhonie, więc wybieramy ją po platformie z Capacitora. */
+  const GEO_HELP = MODUL && NA_IOS ? {
+    1: "Brak zgody na lokalizację. Włącz ją w Ustawieniach iPhone'a: Ustawienia → Strażnik → Lokalizacja → „Podczas używania aplikacji”. Możesz też wybrać, gdzie jesteś, poniżej.",
+    2: "Telefon nie ustalił pozycji. Sprawdź, czy usługi lokalizacji są włączone (Ustawienia → Prywatność i ochrona → Usługi lokalizacji), albo wybierz, gdzie jesteś, poniżej.",
+    3: "Ustalanie pozycji trwało zbyt długo. Spróbuj jeszcze raz albo wskaż miejsce na mapie.",
+  } : MODUL ? {
     1: "Brak zgody na lokalizację. Włącz ją w ustawieniach telefonu: Aplikacje → Strażnik → Uprawnienia → Lokalizacja. Możesz też wybrać, gdzie jesteś, poniżej.",
     2: "Telefon nie ustalił pozycji. Sprawdź, czy lokalizacja jest włączona (szybkie ustawienia u góry ekranu), albo wybierz, gdzie jesteś, poniżej.",
     3: "Ustalanie pozycji trwało zbyt długo. Spróbuj jeszcze raz albo wskaż miejsce na mapie.",
@@ -1903,7 +1909,7 @@ Zmienić położenie?`);
 
       <h3>Twoje dane</h3>
       <p>Miejsca, notatki, nagrane trasy i ustawienia zapisują się <b>tylko w pamięci tego urządzenia</b>. Autor aplikacji
-      ich nie widzi i nigdzie nie wysyła. Kopia zapasowa Androida może przenieść je na Twoje konto Google.</p>
+      ich nie widzi i nigdzie nie wysyła. ${NA_IOS ? "Kopia zapasowa iCloud może przenieść je na Twoje konto Apple." : "Kopia zapasowa Androida może przenieść je na Twoje konto Google."}</p>
       <p>Co opuszcza telefon i kiedy: wpisany adres trafia do wyszukiwarki GUGiK; przy wyznaczaniu trasy Twoja pozycja i cel
       idą do serwera tras FOSSGIS; współrzędne punktu do usługi zdjęć GUGiK; oglądany fragment mapy do OpenFreeMap;
       po naciśnięciu „Prowadź” albo „Street View” — do Google. Bez tych czynności nic nie wychodzi z telefonu.</p>
