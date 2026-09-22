@@ -16,6 +16,15 @@ DOCS = ROOT / "docs"
 # (wersja, data PL, data EN, tytuł PL, tytuł EN, punkty PL, punkty EN, zrzuty)
 # Zrzut: (plik, alt PL, alt EN, podpis PL, podpis EN)
 RELEASES = [
+    ("1.7.67", "22 września 2026", "22 September 2026",
+     "Zapamiętany widok 2D/3D i wyjaśnienie, gdy mapa się nie wczyta",
+     "2D/3D view remembered, and an explanation when the map does not load",
+     ["Aplikacja pamięta wybrany widok mapy — 2D albo 3D. Kto woli płaską mapę, nie musi jej przełączać przy każdym uruchomieniu.",
+      "Jeśli mapa nie wczyta się w 20 sekund, zamiast pustego ekranu pojawia się wyjaśnienie: alarmy działają, a coś na telefonie albo w sieci blokuje serwer map (bloker reklam, filtr DNS, VPN). Komunikat podaje też szczegół techniczny do zrzutu ekranu."],
+     ["The app remembers your map view — 2D or 3D. If you prefer the flat map, you no longer have to switch it on every launch.",
+      "If the map does not load within 20 seconds, an explanation replaces the empty screen: alerts still work, and something on the phone or network is blocking the map server (ad blocker, DNS filter, VPN). It also shows a technical detail for a screenshot."],
+     []),
+
     ("1.7.66", "21 września 2026", "21 September 2026",
      "Chowane przyciski mapy i poprawki alertów RCB",
      "Collapsible map buttons and RCB alert fixes",
