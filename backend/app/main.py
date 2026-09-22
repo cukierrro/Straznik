@@ -13,8 +13,8 @@ from fastapi.staticfiles import StaticFiles
 
 from . import (alert_log, app_updates, blob_store, by_entry_shadow, config, db, escalation_shadow, fusion, load_guard,
                monitoring, notify, public_cache, rcb_reference, request_limits)
-from .collectors import (adsb, by_media_shadow, mapa_ua_shadow, neighbours, neptun,
-                         official_alerts, pansa, rcb, ro_shadow, rso, rss_media)
+from .collectors import (adsb, neighbours, neptun,
+                         official_alerts, pansa, rcb, rso, rss_media)
 from .neptun_archive import source_metadata
 
 logging.basicConfig(level=logging.INFO,
@@ -111,9 +111,26 @@ def _load_notice(plik: str = "notice.json"):
         return None
 
 
+# Wyłączniki funkcji z serwera (22.09.2026, przed wydaniem GROTY): gdyby nowa funkcja
+# psuła coś u ludzi, chowamy ją wszystkim bez aktualizacji aplikacji. Plik
+# data/wylaczniki.json, np. {"grota": false}, zmieniany na VPS bez restartu.
+# Tylko znane klucze i tylko wartości logiczne — brak pliku = wszystko włączone.
+WYLACZNIKI = ("grota",)
+
+
+def _load_switches(plik: str = "wylaczniki.json") -> dict:
+    import json
+    try:
+        d = json.loads((config.DATA_DIR / plik).read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    return {k: d[k] for k in WYLACZNIKI if isinstance(d, dict) and isinstance(d.get(k), bool)}
+
+
 def build_state() -> dict:
     return {
         "notice": _load_notice(),
+        "wylaczniki": _load_switches(),
         "fusion": fusion.compute_state(),
         "neptun": neptun.public_state(),
         "adsb": {"aircraft": adsb.current_aircraft,
@@ -499,9 +516,6 @@ def _health_payload() -> dict:
         "rcb": rcb.status, "rso": rso.status, "rss": rss_media.status["feeds"],
         "neighbours": neighbours.status,
         "official_alerts": official_alerts.status,
-        "ro_shadow": ro_shadow.status,
-        "by_media_shadow": by_media_shadow.status,
-        "mapa_ua_shadow": mapa_ua_shadow.status,
         "by_entry_shadow": by_entry_shadow.status,
         "request_limits": request_limits.status,
         "notify": {"ntfy": config.NTFY_ENABLED and bool(config.NTFY_TOPIC),
@@ -673,11 +687,9 @@ async def startup():
     jobs = {
         "neptun": neptun.run, "rss": rss_media.run, "rcb_govpl": rcb.run, "rso": rso.run,
         "adsb": adsb.run, "pansa": pansa.run, "neighbours": neighbours.run,
-        "official_alerts": official_alerts.run, "ro_shadow": ro_shadow.run,
-        "by_media_shadow": by_media_shadow.run,
-        "mapa_ua_shadow": mapa_ua_shadow.run,
+        "official_alerts": official_alerts.run,
         "snapshots": snapshot_loop,
-        "progression_shadow": progression_shadow_loop, "levels": level_loop,
+        "levels": level_loop,
         "state": state_loop, "heartbeat": monitoring.heartbeat_loop,
         "load_guard": lambda: load_guard.monitor(shed_websockets),
         "cache_bundle": lambda: public_cache.refresh_loop(
@@ -687,6 +699,12 @@ async def startup():
         "cache_zones": lambda: public_cache.refresh_loop(
             "zones", _zones_payload, 30, in_thread=False),
     }
+    # Pasma progresji: wyłączone 22.09.2026. Zadanie, które kończy się od razu, nadzorca
+    # wznawiał co kilka sekund (błędy w logu) — więc nie uruchamiamy go wcale.
+    if config.ESCALATION_SHADOW_ENABLED:
+        jobs["progression_shadow"] = progression_shadow_loop
+    else:
+        escalation_shadow.status.update(enabled=False, mode="disabled")
     if config.PROBA:
         # zostają tylko zadania liczące i składające bajty — nic nie wychodzi na świat
         zostaw = {"snapshots", "levels", "state", "heartbeat", "load_guard",

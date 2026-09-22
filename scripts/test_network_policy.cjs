@@ -11,8 +11,14 @@ assert.equal(config.android.allowMixedContent, false);
 const xml = read('android-app/android/app/src/main/res/xml/network_security_config.xml');
 assert.match(xml, /base-config cleartextTrafficPermitted="false"/);
 assert.doesNotMatch(xml, /src="user"/);
-assert.equal((xml.match(/<domain /g) || []).length, 1);
+// Dwie domeny: localhost (źródło Capacitora) i — od 1.7.70 — mapy.geoportal.gov.pl z jednym
+// dodatkowym korzeniem Certum dla zdjęć z góry w GROCIE. Nic więcej, bez podkatalogów i bez cleartextu.
+assert.equal((xml.match(/<domain /g) || []).length, 2);
 assert.match(xml, /<domain includeSubdomains="false">localhost<\/domain>/);
+const geo = xml.slice(xml.indexOf('mapy.geoportal.gov.pl') - 80, xml.indexOf('</domain-config>', xml.indexOf('mapy.geoportal.gov.pl')));
+assert.match(geo, /<domain-config>\s*<domain includeSubdomains="false">mapy\.geoportal\.gov\.pl<\/domain>/);
+assert.doesNotMatch(geo, /cleartextTrafficPermitted="true"/);
+assert.deepEqual(geo.match(/src="[^"]+"/g), ['src="system"', 'src="@raw/certum_trusted_root_ca"']);
 const js = read('frontend/app.js');
 const fn = js.slice(js.indexOf('function validBackendUrl'), js.indexOf('function apiBase'));
 const context = vm.createContext({URL});

@@ -830,15 +830,89 @@ function showNotice(n) {
   };
 }
 
+/* ── Stan alarmu dla modułu GROTA (19.09.2026) ────────────────────────────────
+   GROTA pokazuje drogę do schronienia i musi wiedzieć dwie rzeczy: ile zostało
+   czasu i czy poziom opiera się na czymś twardym. Zamiast dawać jej surowe
+   sygnały do własnych obliczeń, podajemy gotowe wartości — policzone dokładnie
+   tak, jak liczy je interfejs Strażnika. Dwa ekrany tej samej aplikacji nie mogą
+   pokazywać różnych czasów.
+
+   `etaVoivMin` — minimum z sygnałów PO `agedEta` (odjęty wiek, null powyżej 15 min)
+   i BEZ kursów domniemanych (audyt G3: czas liczony w stronę przypuszczalnego celu,
+   a nie faktycznego ruchu). Gdy nie ma czego podać, jest `null` — GROTA mówi wtedy
+   wprost, że nie zna czasu, zamiast zgadywać z odległości.
+
+   `hard` — czy poziom UTRZYMAŁBY SIĘ bez źródeł miękkich, czyli czy suma punktów
+   z klas twardych (`rcb` = oficjalny alert RCB/RSO dla Polski, `neptun` = obiekt
+   w powietrzu) sama sięga progu tego poziomu. Media mają dziś limit klasy 1,0 pkt
+   i nie podniosą poziomu same, a wszystkie sześć czerwonych w dzienniku od 15.09
+   miało alert RCB — ale to bezpiecznik na przyszłe zmiany wag, nie opis dzisiaj.
+   `ua_alert` celowo jest MIĘKKIE: alarm w obwodzie ukraińskim jest oficjalny, ale
+   mówi o zagrożeniu nad Ukrainą. Zanim powiemy komuś „idź do schronu", chcemy
+   czegoś mierzalnego nad Polską. Przy `hard: false` GROTA pokazuje mapę i kierunki,
+   ale nie wzywa do schronienia. */
+const HARD_SOURCES = new Set(["rcb", "neptun"]);
+let _alertPayload = "";
+
+function buildAlertContract() {
+  const mine = myVoiv();
+  const st = mine ? state?.fusion?.voivodeships?.[mine] : null;
+  if (!st) return null;
+  const level = st.alert_level || st.level || "none";
+  const sigs = st.signals || [];
+  let etaVoivMin = null, etaBorderMin = null, hardSum = 0;
+  for (const s of sigs) {
+    const d = s.details || {};
+    if (HARD_SOURCES.has(s.source)) hardSum += s.counted_points ?? 0;
+    if (d.course === "presumptive") continue;        // kurs domniemany — bez czasu
+    const v = agedEta(d.eta_voiv_min ? d.eta_voiv_min[mine] : null, s.ts);
+    const b = agedEta(d.eta_border_min, s.ts);
+    if (v != null) etaVoivMin = etaVoivMin == null ? v : Math.min(etaVoivMin, v);
+    if (b != null) etaBorderMin = etaBorderMin == null ? b : Math.min(etaBorderMin, b);
+  }
+  const prog = level === "high" ? (state?.fusion?.thresholds?.high ?? 4)
+             : level === "elevated" ? (state?.fusion?.thresholds?.elevated ?? 2) : 0;
+  return { level, voiv: mine, etaVoivMin, etaBorderMin,
+           hard: level !== "none" && hardSum >= prog - 1e-9,
+           ts: state?.fusion?.ts || new Date().toISOString() };
+}
+
+/* Publikujemy przy każdej zmianie stanu; zdarzenie leci tylko, gdy coś naprawdę
+   się zmieniło, żeby moduł nie przeliczał progów przy każdej ramce. */
+function publishAlertContract() {
+  const next = buildAlertContract();
+  window.straznikAlert = next;
+  const odcisk = JSON.stringify(next);
+  if (odcisk === _alertPayload) return;
+  _alertPayload = odcisk;
+  window.dispatchEvent(new CustomEvent("straznik:alert", { detail: next }));
+}
+
+/* Wyłącznik GROTY z serwera (data/wylaczniki.json). Tylko stan z serwera go zmienia —
+   tryb awaryjny liczy stan sam i nie ma tego pola, więc zostaje ostatnia znana
+   wartość z pamięci telefonu. Brak pola = włączona. */
+function grotaWylaczona() {
+  try { return localStorage.getItem("straznik_grota_off") === "1"; } catch { return false; }
+}
+function applySwitches(w) {
+  if (!w || typeof w !== "object") return;
+  const off = w.grota === false;
+  try { off ? localStorage.setItem("straznik_grota_off", "1") : localStorage.removeItem("straznik_grota_off"); } catch {}
+  document.documentElement.classList.toggle("grota-off", off);
+  if (off && window.Grota?.widoczny) ukryjGrote();
+}
+
 function applyState(s) {
   state = s;
   showNotice(s?.notice);
+  applySwitches(s?.wylaczniki);
   threatsReceivedAt = Date.now();
   if (!standalone) srvRecord(s);   // nagrywaj żywy feed do bufora historii (RAM)
   recordTrails(s?.neptun?.threats || []);
   refreshCountedTracks();
   renderLeds();
   updateAlarmMood();          // alarmy działają także w trybie przeglądania
+  publishAlertContract();     // stan alarmu dla modułu GROTA — także w historii
   if (histMode) return;       // ale widok mapy/panelu zostaje na wybranym momencie
   renderPanel();
   if (mapReady) { updateVoivStates(); updateAdsb(); }
@@ -1144,6 +1218,13 @@ async function initMap() {
     map.addLayer({ id: "kraje-alert-line", type: "line", source: "kraje",
       paint: { "line-color": "#ff4d5e", "line-width": 1.2, "line-dasharray": [2, 2],
         "line-opacity": ["case", ["boolean", ["feature-state", "alert"], false], 0.7, 0] } });
+    map.on("click", "kraje-alert", (e) => {
+      const hit = map.queryRenderedFeatures(e.point,
+        { layers: ["threats", "threats-glow", "adsb", "strefy-hit"].filter(l => map.getLayer(l)) });
+      if (hit.length) return;   // obiekt albo strefa w tym kraju ma pierwszeństwo
+      const iso = e.features?.[0]?.properties?.iso;
+      if (countryAlerts.has(iso)) openCountryAlert(countryAlerts.get(iso));
+    });
     /* Kontury krajów rysuje już styl bazowy (warstwy boundary). Własnej linii
        NIE dokładamy: wzdłuż granicy PL biegłaby obok linii województw i dawała
        efekt „podwójnego konturu". Zostaje samo wypełnienie (odcień kraju). */
@@ -2106,7 +2187,7 @@ function paintOblasts(sigs) {
 /* ── alarmy u sąsiadów tylko do obserwacji (bez punktów, 15.09.2026) ── */
 let raionsByOblast = {};           // obwód (ukr., bez „область”) → klucze rejonów z mapy
 let raionAlertInfo = new Map();    // klucz rejonu → wpis alarmu NEPTUN-a
-let countryAlerts = new Set();     // ISO3 krajów z trwającym alarmem
+let countryAlerts = new Map();     // ISO3 kraju z trwającym alarmem -> opis do karty
 const UA_LATIN = { а:"a",б:"b",в:"v",г:"h",ґ:"g",д:"d",е:"e",є:"ie",ж:"zh",з:"z",и:"y",і:"i",ї:"i",й:"i",
   к:"k",л:"l",м:"m",н:"n",о:"o",п:"p",р:"r",с:"s",т:"t",у:"u",ф:"f",х:"kh",ц:"ts",ч:"ch",ш:"sh",
   щ:"shch",ь:"",ю:"iu",я:"ia" };
@@ -2167,14 +2248,40 @@ function openRaionAlert(a) {
 const BALTIC_ISO3 = { LT: "LTU", LV: "LVA", EE: "EST" };
 function paintCountryAlerts(sigs) {
   if (!mapReady || !map.getSource("kraje")) return;
-  const next = new Set();
+  const next = new Map();
   for (const s of sigs || []) {
     const iso = s.event_type === "baltic_alert" && BALTIC_ISO3[s.details?.country];
-    if (iso && !s.cleared && (s.weight ?? 1) > 0) next.add(iso);
+    if (!iso || s.cleared || (s.weight ?? 1) <= 0) continue;
+    const e = next.get(iso) || { country: s.details.country, per: [], since: s.ts, sig: s };
+    e.per.push({ voiv: s.voivodeship, points: Number(s.points) || 0 });
+    if (s.ts < e.since) { e.since = s.ts; e.sig = s; }
+    next.set(iso, e);
   }
-  for (const iso of new Set([...countryAlerts, ...next]))
+  for (const iso of new Set([...countryAlerts.keys(), ...next.keys()]))
     map.setFeatureState({ source: "kraje", id: iso }, { alert: next.has(iso) });
   countryAlerts = next;
+}
+/* Karta podświetlonej Litwy, Łotwy albo Estonii — jak karta obwodu UA (22.09.2026). */
+function openCountryAlert(e) {
+  markSelected(null, null);
+  const en = UI.isEn;
+  const name = (en ? BALTIC_NAME_EN : BALTIC_NAME_PL)[e.country] || e.country;
+  const since = new Date(e.since).toLocaleTimeString(en ? "en-GB" : "pl-PL",
+    { hour: "2-digit", minute: "2-digit" });
+  const quote = String(e.sig.title || "").replace(/^[^„]*/, "");
+  const link = safeUrl(e.sig.details?.link);
+  const art = link ? `<a href="${esc(link)}" target="_blank" rel="noopener">${esc2(quote)}</a>` : esc2(quote);
+  const num = (v) => en ? Number(v).toFixed(2).replace(/0$/, "") : Number(v).toFixed(2).replace(/0$/, "").replace(".", ",");
+  const rows = e.per.sort((a, b) => b.points - a.points).map(r =>
+    `${en ? "" : "woj. "}${esc2(UI.voiv(r.voiv))}: <b>+${num(r.points)} ${en ? "pt" : "pkt"}</b>`).join("<br>");
+  showCard(`
+    <div class="zone-head"><b style="color:#ff6b78">📢 ${esc2(name)}</b>
+      <span style="color:#8fa3c4">· ${en ? "air-raid alert (media report)" : "alarm powietrzny (doniesienie mediów)"}</span></div>
+    <span style="color:#8fa3c4">${en ? `Reported at ${since}:` : `Doniesienie z ${since}:`}</span> ${art}<br>
+    ${rows}<br>
+    <span style="color:#68758c">${en
+      ? "The Baltic states have no public alert feed, so Strażnik reads their news portals and counts only a fresh headline announcing the alert. The weight falls with distance: Lithuania 0.3 pt, Latvia 0.18, Estonia 0.12 (half of that for West Pomerania). An article about the alert ending clears the highlight."
+      : "Kraje bałtyckie nie mają publicznego kanału alarmów, więc Strażnik czyta ich portale informacyjne i liczy tylko świeży tytuł ogłaszający alarm. Waga maleje z odległością: Litwa 0,3 pkt, Łotwa 0,18, Estonia 0,12 (zachodniopomorskie połowę). Artykuł o odwołaniu alarmu gasi podświetlenie."}</span>`);
 }
 function openOblastCard(p) {
   const e = oblastInfo.get(p.oblast);
@@ -3465,14 +3572,45 @@ function showAlarm(voiv, st) {
     : "Co zrobić: przejdź do schronu albo pomieszczenia bez okien, z dala od szyb. Śledź komunikaty RCB i służb.";
   document.getElementById("alarm-time").textContent =
     (UI.isEn ? "alert at " : "alarm o ") + new Date().toLocaleTimeString(UI.isEn ? "en-GB" : "pl-PL");
+  alarmWyborReset();
   alarmOverlay.classList.remove("hidden");
   airRaidSiren(true);          // ciągła — milknie dopiero po potwierdzeniu
+  przygotujGrote();            // tylko wczytanie w tle; ekranu nie przejmuje
 }
-document.getElementById("alarm-ack").onclick = () => {
-  stopSiren();
+
+/* Po potwierdzeniu alarmu: wybór zamiast natychmiastowego zamknięcia ekranu.
+   Decyzja usera 20.09.2026 — aplikacja NIGDY sama nie przejmuje ekranu Grotą:
+   człowiek patrzy właśnie na zagrożenie i sam wybiera, dokąd dalej. Przycisk
+   schronienia jest tylko w aplikacji (klasa app-only), na stronie go nie ma. */
+const alarmAck = document.getElementById("alarm-ack");
+const alarmWybor = document.getElementById("alarm-choices");
+function alarmWyborReset() {
+  alarmAck.hidden = false;
+  if (alarmWybor) alarmWybor.hidden = true;
+  const t = (id, pl, en) => { const el = document.getElementById(id); if (el) el.lastChild.textContent = UI.isEn ? en : pl; };
+  t("alarm-grota", "Gdzie się schronić", "Where to shelter");
+  t("alarm-map", "Obserwuj mapę", "Watch the map");
+  t("alarm-safe", "Jestem bezpieczny", "I am safe");
+}
+function zamknijAlarm() {
   alarmOverlay.classList.add("hidden");
-  setPanel(true);
+  alarmWyborReset();
+}
+alarmAck.onclick = () => {
+  stopSiren();
+  if (!alarmWybor) { zamknijAlarm(); setPanel(true); return; }
+  alarmAck.hidden = true;
+  alarmWybor.hidden = false;
 };
+document.getElementById("alarm-map")?.addEventListener("click", () => {
+  zamknijAlarm();
+  setPanel(false);             // sama mapa, bez panelu na wierzchu
+});
+document.getElementById("alarm-safe")?.addEventListener("click", zamknijAlarm);
+document.getElementById("alarm-grota")?.addEventListener("click", () => {
+  zamknijAlarm();
+  otworzGrote({ zakladka: "teraz" });   // z alarmu od razu TERAZ (decyzja usera 22.09.2026)
+});
 
 let audioCtx = null;
 function ctx() {
@@ -5207,6 +5345,8 @@ function syncTabs() {
   }
   document.getElementById("btn-panel")?.setAttribute("aria-pressed", String(panelOpen));
   document.getElementById("btn-history")?.setAttribute("aria-pressed", String(histOn));
+  // widok modułu jest osobnym ekranem — zakładka, która przejmuje ekran, go zamyka
+  if ((panelOpen || histOn) && window.Grota?.widoczny) ukryjGrote();
 }
 
 function setPanel(open) {
@@ -5230,6 +5370,12 @@ window.straznikBack = function () {
   if (open.length) {
     const d = open[open.length - 1];          // okno otwarte z innego leży później w DOM
     if (d.dispatchEvent(new Event("cancel", { cancelable: true }))) d.close();
+    return true;
+  }
+  // Grota leży nad mapą na cały ekran: najpierw cofa własne kroki (karta, zakładka),
+  // a gdy nie ma już czego — wracamy do Strażnika. Bez wstecz() (starszy moduł) po prostu zamyka.
+  if (window.Grota?.widoczny) {
+    if (!window.Grota.wstecz?.()) ukryjGrote();
     return true;
   }
   const card = document.getElementById("ac-card");
@@ -5337,12 +5483,65 @@ if (attrEl) {
   attrEl.style.cursor = "pointer";
 }
 
+/* ── moduł schronienia (GROTA) ───────────────────────────────────────────────
+   Strażnik mówi, że jest zagrożenie; GROTA pokazuje, dokąd iść.
+
+   Interfejs uzgodniony z sesją Groty 21.09.2026: globalny `window.Grota` z
+   `otworz()`, `ukryj()` i getterem `widoczny` — zwykłe skrypty, bez modułów ES.
+   `grota/widok.js` jest jedynym punktem wejścia i sam dociąga resztę swoich plików.
+
+   Wczytujemy go dopiero przy pierwszym wejściu: to kilkaset KB kodu i 11 MB punktów,
+   a aplikacja alarmowa ma startować natychmiast. Pliki są tylko w aplikacji —
+   strona ich nie ma, więc tam przycisku nie widać (app-only), a gdyby ktoś jednak
+   wywołał otwarcie, dostanie komunikat zamiast pustego ekranu. */
+let grotaLadowanie = null;
+function wczytajGrote() {
+  if (window.Grota) return Promise.resolve(window.Grota);
+  if (!grotaLadowanie) {
+    grotaLadowanie = new Promise((ok, zle) => {
+      const s = document.createElement("script");
+      s.src = "grota/widok.js";
+      s.onload = () => (window.Grota ? ok(window.Grota)
+                                     : zle(new Error("grota/widok.js nie wystawił window.Grota")));
+      s.onerror = () => zle(new Error("nie udało się wczytać grota/widok.js"));
+      document.head.appendChild(s);
+    }).catch(e => { grotaLadowanie = null; throw e; });   // pozwól spróbować ponownie
+  }
+  return grotaLadowanie;
+}
+async function otworzGrote(opcje) {
+  if (grotaWylaczona()) return;
+  setPanel(false);
+  if (moreSheet?.open) moreSheet.close();
+  if (document.body.classList.contains("history-mode")) toggleHistory();
+  try {
+    (await wczytajGrote()).otworz(opcje);
+  } catch (e) {
+    console.warn("GROTA:", e);
+    toast(UI.isEn ? "Shelter finder is not available in this version."
+                  : "Wyszukiwanie schronień nie jest dostępne w tej wersji.");
+  }
+}
+/* Przy alarmie wczytujemy moduł i punkty w tle, zanim człowiek potwierdzi alarm:
+   pierwsze otwarcie na telefonie 2 GB trwało 14 s, po przygotowaniu ~0,1 s.
+   Tylko w aplikacji (strona nie ma plików Groty) i bez błędów na zewnątrz. */
+function przygotujGrote() {
+  if (!document.documentElement.classList.contains("native-app") || grotaWylaczona()) return;
+  wczytajGrote().then(g => g.przygotuj?.()).catch(e => console.warn("GROTA przygotuj:", e));
+}
+/* Każde przejście gdzie indziej zatrzymuje mapę modułu — bez tego jej renderowanie
+   zjadałoby procesor w tle, obok mapy Strażnika. */
+function ukryjGrote() { window.Grota?.ukryj(); }
+
 /* ── dolne zakładki i menu „Więcej” ── */
 const moreSheet = document.getElementById("more-sheet");
+document.getElementById("btn-grota")?.addEventListener("click", () => otworzGrote());
+document.documentElement.classList.toggle("grota-off", grotaWylaczona());   // ostatnia znana wartość, zanim przyjdzie stan
 document.getElementById("tab-more")?.addEventListener("click", () => {
   if (moreSheet?.open) moreSheet.close(); else moreSheet?.showModal();
 });
 document.getElementById("tab-map")?.addEventListener("click", () => {
+  ukryjGrote();
   setPanel(false);
   if (moreSheet?.open) moreSheet.close();
   if (document.body.classList.contains("history-mode")) toggleHistory();

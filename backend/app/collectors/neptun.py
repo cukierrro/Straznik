@@ -309,47 +309,12 @@ def heading_source(t: dict) -> str:
     return "measured" if t.get("heading_estimated") is not None else "unknown"
 
 
-# Audyt G2, TRYB CIENIA: 74% sygnałów NEPTUN leżało we współrzędnych powtarzanych
-# przez różne obiekty i w różne dni (środek Sarn, Chmielnickiego) — to punkt
-# katalogowy miejscowości, a nie pomiar, ale dostaje pełną wagę, ETA i ślad.
-# Zanim zmienimy punktację, zapisujemy (bez punktów), które pozycje by się
-# zakwalifikowały. Pamięć tylko w procesie; kryterium dni liczy się od startu.
-_coord_seen: dict[str, dict] = {}
-_COORD_KEEP_S = 7 * 24 * 3600
-_COORD_MAX_KEYS = 5000
-
-
-def _catalog_point_shadow(t: dict, now: float | None = None) -> bool:
-    if is_national(t) or _is_approx_position(t):
-        return False
-    lat, lon, tid = t.get("lat"), t.get("lon"), t.get("id")
-    if not isinstance(lat, (int, float)) or not isinstance(lon, (int, float)) or tid is None:
-        return False
-    now = now or time.time()
-    key = f"{lat:.4f}:{lon:.4f}"
-    rec = _coord_seen.setdefault(key, {"ids": {}, "days": set(), "last": now})
-    rec["ids"][tid] = now
-    rec["days"].add(datetime.fromtimestamp(now, timezone.utc).date().isoformat())
-    rec["last"] = now
-    rec["ids"] = {i: ts for i, ts in rec["ids"].items() if now - ts <= _COORD_KEEP_S}
-    if len(_coord_seen) > _COORD_MAX_KEYS:
-        for old in sorted(_coord_seen, key=lambda k: _coord_seen[k]["last"])[:500]:
-            _coord_seen.pop(old, None)
-    if len(rec["ids"]) < 2 and len(rec["days"]) < 2:
-        return False
-    a = t.get("pl_assessment") or {}
-    try:
-        return stealth.record("catalog_point_shadow", f"{key}:{tid}", {
-            "track_id": tid, "type": t.get("type"), "lat": lat, "lon": lon,
-            "ids_same_point": len(rec["ids"]), "days_same_point": len(rec["days"]),
-            "region": t.get("region"), "locality": t.get("locality"),
-            "confidence": t.get("confidenceLevel"), "position_quality": t.get("positionQuality"),
-            "dist_km": a.get("dist_km"), "toward_pl": a.get("toward_pl"),
-            "would_be": "locality_center",
-        }, now)
-    except Exception as exc:                          # noqa: BLE001
-        log.debug("cień punktów katalogowych: %s", exc)
-        return False
+# Audyt G2 (punkty katalogowe miejscowości) — tryb cienia WYŁĄCZONY 22.09.2026:
+# 2000 wpisów w 8 dni, najbliższy 180 km od PL (tracki przy granicy mają pozycje
+# rejonowe, wykluczane wcześniej). Po kilku godzinach pracy słownik dochodził do
+# 5000 kluczy i przy KAŻDEJ aktualizacji tracka sortował je wszystkie — zacięcia
+# pętli po 3–7 s co ~70 s, rosnące z czasem działania procesu. Dane zostają
+# w obserwacje.db (kind `catalog_point_shadow`).
 
 
 def is_jet(t: dict) -> bool:
@@ -805,7 +770,6 @@ async def _handle_threats(threats: list[dict], replace: bool, *,
                              "message_type": message_type, "source_message_ts": source_message_ts}
             t = _evaluate(t)
             tracks[t.get("id")] = t
-            _catalog_point_shadow(t)
             _turnaway_shadow(t)
             by_entry_shadow.observe(t)
             await _maybe_signal(t)

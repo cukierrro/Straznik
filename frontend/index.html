@@ -82,7 +82,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <link rel="icon" type="image/png" sizes="512x512" href="assets/icon-512.png">
 <link rel="apple-touch-icon" href="assets/icon-192.png">
 <link rel="stylesheet" href="assets/vendor/maplibre-gl.css">
-<link rel="stylesheet" href="style.css?v=1.7.66">
+<link rel="stylesheet" href="style.css?v=1.7.70">
 </head>
 <body>
 
@@ -272,9 +272,21 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
   </button>
 </nav>
 
+<!-- Schronienie (GROTA): pusty pojemnik. Modułu NIE wczytujemy przy starcie —
+     to 800 KB kodu i 11 MB punktów, a Strażnik ma się uruchamiać natychmiast.
+     `grota/widok.js` dociąga się przy pierwszym wejściu. Pliki leżą w katalogu
+     `grota/` w korzeniu repo i trafiają do www/ WYŁĄCZNIE przy budowaniu Androida
+     i iOS — strona straznik.eu ich nie ma (decyzja usera: GROTY nie ma w WWW). -->
+<section id="grota-widok" class="app-only" hidden></section>
+
 <dialog id="more-sheet" class="sheet">
   <h3>Więcej</h3>
   <div class="sheet-list">
+    <!-- Ta sama tarcza co zakładka TERAZ w Grocie (decyzja usera 20.09): człowiek widzi
+         w Strażniku ikonę, którą potem zobaczy w module. -->
+    <button type="button" id="btn-grota" class="sheet-row app-only">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+      <span>Schronienie — gdzie najbliżej</span></button>
     <button type="button" id="btn-about" class="sheet-row">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.3 2.4c-.6.2-.9.8-.9 1.4v.4"/><path d="M12 16.8h.01"/></svg>
       <span>O aplikacji i punktacja</span></button>
@@ -391,6 +403,16 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
     <p class="alarm-note">To sygnał NIEOFICJALNY. Sprawdź syreny, RCB i RSO —
       one są źródłem rozstrzygającym.</p>
     <button id="alarm-ack" class="alarm-btn">POTWIERDZAM — wycisz syrenę</button>
+    <!-- Po potwierdzeniu: wybór zamiast zamykania ekranu. Aplikacja NIGDY sama nie
+         przejmuje ekranu Grotą (decyzja usera 20.09) — człowiek patrzy na zagrożenie
+         i sam decyduje, dokąd dalej. -->
+    <div class="alarm-choices" id="alarm-choices" hidden>
+      <button type="button" id="alarm-grota" class="alarm-choice primary app-only">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+        <span>Gdzie się schronić</span></button>
+      <button type="button" id="alarm-map" class="alarm-choice">Obserwuj mapę</button>
+      <button type="button" id="alarm-safe" class="alarm-choice">Jestem bezpieczny</button>
+    </div>
     <div class="alarm-time" id="alarm-time"></div>
   </div>
 </div>
@@ -861,14 +883,14 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
      Cloudflare, więc po każdym wydaniu wystarczy podbić ?v= i przeglądarki
      dostają nowe app.js/engine.js OD RAZU, bez ręcznego czyszczenia cache CF.
      Podbijaj ?v= razem z versionName w build.gradle. -->
-<script src="i18n.js?v=1.7.66"></script>
+<script src="i18n.js?v=1.7.70"></script>
 <!-- kontur Polski dla engine.js (audyt A2b, scripts/build_pl_outline.py) -->
-<script src="pl-outline.js?v=1.7.66"></script>
-<script src="engine.js?v=1.7.66"></script>
+<script src="pl-outline.js?v=1.7.70"></script>
+<script src="engine.js?v=1.7.70"></script>
 <script src="aircraft-photo-catalog.js?v=1.7.19"></script>
 <script src="aircraft-photos.js?v=1.7.19"></script>
 <script src="places.js?v=1.7.19-4"></script>
-<script src="app.js?v=1.7.66.1"></script>
+<script src="app.js?v=1.7.70"></script>
 <script>
 /* Instrukcja pasująca do telefonu i języka (21.09.2026). iPhone ma osobną, bo alarmy,
    zgody i aktualizacje działają tam inaczej. Tu, a nie w app.js: index.html nie jest

@@ -39,6 +39,34 @@
   <p class="fineprint">Wersję zainstalowaną na telefonie sprawdzisz w aplikacji: <kbd>⚙</kbd> → zakładka <kbd>Aplikacja</kbd> → „Wersja aplikacji”. Tam też jest przycisk <kbd>⬆ Sprawdź aktualizacje</kbd>.</p>
 </div></header>
 <main id="content" class="wrap">
+<section id="v1-7-70">
+  <h2>1.7.70 — GROTA: zdjęcie z góry działa znowu, także na starszych Androidach</h2>
+  <p class="fineprint">Wydanie 1.7.70 · 22 września 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.70">Pełny opis wydania</a></p>
+  <ul>
+    <li>Zdjęcie z góry na karcie punktu schronienia znowu się wyświetla. W 1.7.68 nie pokazywało się nikomu, bo usługa ortofotomapy GUGiK zmieniła sposób działania. GROTA próbuje teraz kilka razy i w razie potrzeby sięga po zapasową wersję usługi.</li>
+    <li>Na Androidzie starszym niż 14 zdjęcie nie wczytywało się w ogóle: telefon nie ufał certyfikatowi serwera Geoportalu. Aplikacja zna teraz ten certyfikat — tylko dla tego jednego serwera.</li>
+    <li>Komunikaty o braku zgody na lokalizację mówią, gdzie ją włączyć w telefonie (Aplikacje → Strażnik → Uprawnienia → Lokalizacja), zamiast odsyłać do ustawień przeglądarki.</li>
+    <li>Nowa, pełna instrukcja GROTY ze zrzutami wszystkich funkcji — po polsku i po angielsku.</li>
+  </ul>
+</section>
+<section id="v1-7-68">
+  <h2>1.7.68 — GROTA — gdzie się schronić; klikalne alarmy na Litwie, Łotwie i w Estonii</h2>
+  <p class="fineprint">Wydanie 1.7.68 · 22 września 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.68">Pełny opis wydania</a></p>
+  <ul>
+    <li>Po potwierdzeniu alarmu ekran pokazuje trzy przyciski: „Gdzie się schronić”, „Obserwuj mapę” i „Jestem bezpieczny”. Strażnik nigdy sam nie przełącza ekranu — wybierasz Ty.</li>
+    <li>„Gdzie się schronić” otwiera nowy moduł GROTA od razu na zakładce TERAZ: najbliższe punkty schronienia z publicznego wykazu PSP, z odległością i trasą. Moduł wczytuje się w tle już w chwili alarmu, więc otwiera się natychmiast. Poza alarmem: Więcej → „Schronienie — gdzie najbliżej”. Wykaz działa bez internetu; na razie tylko po polsku i tylko na Androidzie.</li>
+    <li>Podświetlona na mapie Litwa, Łotwa albo Estonia otwiera po dotknięciu kartę — jak obwód w Ukrainie: tytuł artykułu z odnośnikiem, godzina i punkty dla województw.</li>
+    <li>Artykuły o przygotowaniach do alarmów i tytuły-pytania z mediów bałtyckich nie są już brane za ogłoszenie alarmu. 22 września tekst o ćwiczeniach w szkołach w Tartu zapalił Litwę na czerwono.</li>
+  </ul>
+</section>
+<section id="v1-7-67">
+  <h2>1.7.67 — Zapamiętany widok 2D/3D i wyjaśnienie, gdy mapa się nie wczyta</h2>
+  <p class="fineprint">Wydanie 1.7.67 · 22 września 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.67">Pełny opis wydania</a></p>
+  <ul>
+    <li>Aplikacja pamięta wybrany widok mapy — 2D albo 3D. Kto woli płaską mapę, nie musi jej przełączać przy każdym uruchomieniu.</li>
+    <li>Jeśli mapa nie wczyta się w 20 sekund, zamiast pustego ekranu pojawia się wyjaśnienie: alarmy działają, a coś na telefonie albo w sieci blokuje serwer map (bloker reklam, filtr DNS, VPN). Komunikat podaje też szczegół techniczny do zrzutu ekranu.</li>
+  </ul>
+</section>
 <section id="v1-7-66">
   <h2>1.7.66 — Chowane przyciski mapy i poprawki alertów RCB</h2>
   <p class="fineprint">Wydanie 1.7.66 · 21 września 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.66">Pełny opis wydania</a></p>

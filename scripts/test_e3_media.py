@@ -156,7 +156,7 @@ waves = fala(now)
 sprawdz(len(waves) == 1 and waves[0]["group"] == "east", "dwie redakcje w 30 min = fala wschodnia")
 sprawdz(sorted(w["voivodeship"] for w in wywolania) == ["lubelskie", "podkarpackie"],
         f"punkty dla lubelskiego i podkarpackiego ({[w['voivodeship'] for w in wywolania]})")
-sprawdz(all(w["points"] == 1.0 and w["event_type"] == "media_qra_wave" for w in wywolania),
+sprawdz(all(w["points"] == config.POINTS["media_qra_wave"] and w["event_type"] == "media_qra_wave" for w in wywolania),
         "sygnał mediów 1,0")
 sprawdz("potwierdziły 2 redakcje" in (wywolania[0]["title"] if wywolania else ""),
         "tytuł z liczbą redakcji")

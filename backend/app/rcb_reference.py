@@ -151,7 +151,8 @@ def capture(*, source: str, source_event_id: str, title: str,
                          "last_map_frame": frames[-1]["ts"] if frames else None},
             "signals_before": signals,
             "shadow_events_before": shadow,
-            "map_frames_before": frames,
+            # Pełne klatki mapy (110–775 KB na alert, 24% bazy) już tu nie trafiają —
+            # te same migawki są w archiwum.db przez 30 dni; zostaje oś wyniku i liczba klatek.
             "score_timeline": timeline,
             "lead_analysis": _lead_analysis(timeline, shadow,
                                              sorted(set(voivodeships)),

@@ -22,7 +22,11 @@ z tych bramek — działają w tle, niezależnie od ruchu na stronie.
 import asyncio
 import logging
 import os
+import sys
+import threading
 import time
+import traceback
+from pathlib import Path
 
 log = logging.getLogger("load_guard")
 
@@ -112,8 +116,58 @@ def update_lag(lag_s: float) -> bool:
     return status["lag_high"]
 
 
+# ── Rejestrator zacięć pętli (22.09.2026) ─────────────────────────────────────
+# Licznik pokazywał zacięcia pętli co ~70 s po 3–7 s (serwer nie odpowiadał wtedy
+# nawet na /api/health), ale nie mówił, KTO blokuje. Osobny wątek patrzy na „bicie
+# serca” pętli; gdy stoi dłużej niż STALL_S, zapisuje stos głównego wątku — dokładnie
+# funkcję, która trzyma pętlę. Jeden wpis na zacięcie, z czasem trwania na końcu.
+STALL_S = float(os.getenv("LOOP_STALL_LOG_S", "1.5"))
+_beat = time.monotonic()
+_stalls: list[dict] = []          # ostatnie zacięcia, do /api/health
+status["stalls"] = _stalls
+
+
+async def _heartbeat():
+    global _beat
+    while True:
+        _beat = time.monotonic()
+        await asyncio.sleep(0.25)
+
+
+def _stall_watcher(main_ident: int):
+    reported = None
+    stall_from = 0.0
+    while True:
+        time.sleep(0.25)
+        beat = _beat
+        stuck = time.monotonic() - beat
+        if stuck >= STALL_S and reported is None:
+            stall_from = beat
+            frame = sys._current_frames().get(main_ident)
+            stack = traceback.extract_stack(frame) if frame else []
+            ours = [f for f in stack if "/app/" in f.filename.replace("\\", "/")] or stack
+            where = " ← ".join(f"{Path(f.filename).name}:{f.lineno} {f.name}" for f in reversed(ours[-4:]))
+            reported = {"at": time.strftime("%H:%M:%S", time.gmtime()), "where": where,
+                        "top": (f"{Path(stack[-1].filename).name}:{stack[-1].lineno} {stack[-1].name}"
+                                if stack else "?")}
+        elif stuck < STALL_S and reported is not None:
+            reported["s"] = round(beat - stall_from, 1)     # pierwsze bicie po zacięciu
+            _stalls.append(reported)
+            del _stalls[:-20]
+            log.warning("zacięcie pętli %.1f s: %s | na szczycie: %s",
+                        reported["s"], reported["where"], reported["top"])
+            reported = None
+
+
+def start_stall_watcher() -> None:
+    threading.Thread(target=_stall_watcher, args=(threading.main_thread().ident,),
+                     name="stall-watcher", daemon=True).start()
+
+
 async def monitor(shed_websockets):
     """`shed_websockets(fraction)` zamyka część otwartych WebSocketów."""
+    start_stall_watcher()
+    asyncio.get_running_loop().create_task(_heartbeat())
     while True:
         sys_pct, rss = _meminfo()
         lvl = level_for(sys_pct, rss)

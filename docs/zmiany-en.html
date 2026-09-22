@@ -39,6 +39,34 @@
   <p class="fineprint">To see which version your phone has, open the app: <kbd>⚙</kbd> → the <kbd>App</kbd> tab → “App version”. The <kbd>⬆ Check for updates</kbd> button is right there too.</p>
 </div></header>
 <main id="content" class="wrap">
+<section id="v1-7-70">
+  <h2>1.7.70 — GROTA: the aerial photo works again, on older Androids too</h2>
+  <p class="fineprint">Release 1.7.70 · 22 September 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.70">Full release notes</a></p>
+  <ul>
+    <li>The aerial photo on a shelter's card shows again. In 1.7.68 it did not appear for anyone, because GUGiK's orthophoto service changed how it works. GROTA now retries and, if needed, uses the service's backup version.</li>
+    <li>On Android older than 14 the photo never loaded: the phone did not trust the Geoportal server's certificate. The app now knows that certificate — for that one server only.</li>
+    <li>Messages about a missing location permission say where to turn it on in the phone (Apps → Strażnik → Permissions → Location) instead of pointing to browser settings.</li>
+    <li>A new, full GROTA guide with screenshots of every feature — in Polish and English.</li>
+  </ul>
+</section>
+<section id="v1-7-68">
+  <h2>1.7.68 — GROTA — where to shelter; clickable alerts in Lithuania, Latvia and Estonia</h2>
+  <p class="fineprint">Release 1.7.68 · 22 September 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.68">Full release notes</a></p>
+  <ul>
+    <li>After you acknowledge an alert, the screen shows three buttons: “Where to shelter”, “Watch the map” and “I am safe”. Strażnik never switches the screen on its own — you choose.</li>
+    <li>“Where to shelter” opens the new GROTA module straight on the TERAZ (now) tab: the nearest shelter points from the Fire Service's public list, with distance and route. It starts loading in the background as soon as the alert appears, so it opens at once. Outside an alert: More → “Shelter — nearest”. The list works offline; for now it is in Polish only and on Android only.</li>
+    <li>Lithuania, Latvia or Estonia highlighted on the map now open a card when tapped — like a Ukrainian oblast: the article headline with a link, the time and the points for each province.</li>
+    <li>Articles about preparing for alerts and question headlines from Baltic media are no longer taken for an alert announcement. On 22 September a piece about school drills in Tartu lit Lithuania red.</li>
+  </ul>
+</section>
+<section id="v1-7-67">
+  <h2>1.7.67 — 2D/3D view remembered, and an explanation when the map does not load</h2>
+  <p class="fineprint">Release 1.7.67 · 22 September 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.67">Full release notes</a></p>
+  <ul>
+    <li>The app remembers your map view — 2D or 3D. If you prefer the flat map, you no longer have to switch it on every launch.</li>
+    <li>If the map does not load within 20 seconds, an explanation replaces the empty screen: alerts still work, and something on the phone or network is blocking the map server (ad blocker, DNS filter, VPN). It also shows a technical detail for a screenshot.</li>
+  </ul>
+</section>
 <section id="v1-7-66">
   <h2>1.7.66 — Collapsible map buttons and RCB alert fixes</h2>
   <p class="fineprint">Release 1.7.66 · 21 September 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.66">Full release notes</a></p>

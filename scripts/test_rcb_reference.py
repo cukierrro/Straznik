@@ -62,7 +62,7 @@ def main():
         check("delivery time is explicitly unknown",
               payload["timing"]["delivery_time_known"] is False)
         check("exact 30-minute map history retained",
-              len(payload["map_frames_before"]) == 3)
+              "map_frames_before" not in payload and payload["coverage"]["map_frame_count"] == 3)
         check("old signal excluded and recent signal retained",
               [s["title"] for s in payload["signals_before"]] == ["recent"])
         check("score timeline reconstructed", len(payload["score_timeline"]) == 3)
