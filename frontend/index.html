@@ -46,6 +46,13 @@ document.documentElement.classList.add(
   location.protocol === "capacitor:" || location.protocol === "file:" || window.Capacitor
     ? "native-app" : "web-app"
 );
+/* W aplikacji strona nie powiększa się dwoma palcami ani podwójnym dotknięciem — czytelnik
+   (22.09.2026) przypadkiem powiększał cały interfejs jak w przeglądarce. Mapa przybliża się
+   dalej, bo obsługuje gesty sama. Na stronie WWW powiększanie zostaje (dostępność), a duży
+   tekst w aplikacji daje systemowy rozmiar czcionki. */
+if (document.documentElement.classList.contains("native-app"))
+  document.querySelector('meta[name="viewport"]')?.setAttribute("content",
+    "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover");
 /* Który przycisk pobierania pokazać na wąskim ekranie telefonu: tylko ten dla jego
    systemu (dwa naraz zawijały pasek do drugiego rzędu). iPad zgłasza się jak Mac,
    więc rozpoznajemy go po ekranie dotykowym. Nieznany system widzi oba. */
