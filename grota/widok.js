@@ -16,7 +16,7 @@
   if (window.Grota) return;
 
   const BAZA = "grota/";
-  const WERSJA = "40d40244e2";                 // podmieniane przy eksporcie — świeże pliki po aktualizacji aplikacji
+  const WERSJA = "3ac813d82f";                 // podmieniane przy eksporcie — świeże pliki po aktualizacji aplikacji
   const SKRYPTY = ["ikony.js", "poradnik.js", "grota-core.js", "trasa-lokalna.js", "vendor/fflate.min.js", "offline.js", "grota.js"];
 
   // Szkielet widoku — ten sam układ co samodzielna Grota, plus powrót do Strażnika w nagłówku.
@@ -100,8 +100,14 @@
       if (!p) throw new Error("brak pojemnika #grota-widok");
       chceOtwarte = true;
       if (!webviewWystarczy()) {
-        p.innerHTML = '<div class="grota-za-stary"><p><b>Wyszukiwanie schronień wymaga nowszej wersji przeglądarki systemowej (Android System WebView).</b></p>'
-          + "<p>Zaktualizuj ją w Sklepie Play i otwórz Grotę jeszcze raz. Alarmy Strażnika działają bez zmian.</p>"
+        // Na iPhonie przeglądarka systemowa idzie razem z iOS — tam jedyną drogą jest aktualizacja systemu.
+        const ios = (function () { try { return window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform() === "ios"; } catch (e) { return false; } })();
+        p.innerHTML = '<div class="grota-za-stary">'
+          + (ios
+            ? "<p><b>Wyszukiwanie schronień wymaga nowszej wersji iOS.</b></p>"
+              + "<p>Zaktualizuj system (Ustawienia → Ogólne → Uaktualnienia) i otwórz Grotę jeszcze raz. Alarmy Strażnika działają bez zmian.</p>"
+            : "<p><b>Wyszukiwanie schronień wymaga nowszej wersji przeglądarki systemowej (Android System WebView).</b></p>"
+              + "<p>Zaktualizuj ją w Sklepie Play i otwórz Grotę jeszcze raz. Alarmy Strażnika działają bez zmian.</p>")
           + '<button type="button" data-grota="powrot">Wróć do Strażnika</button></div>';
         p.onclick = function (e) { if (e.target.closest('[data-grota="powrot"]')) window.Grota.ukryj(); };
         p.hidden = false; widoczny = true;
