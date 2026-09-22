@@ -26,10 +26,13 @@ const TARCZA = "M20 13c0 5-3.5 7.5-7.66 8.95";   // ścieżka shield-alert z iko
 console.log("1. Alarm nie przejmuje ekranu");
 const pokazAlarm = js.slice(js.indexOf("airRaidSiren(true);") - 400, js.indexOf("airRaidSiren(true);") + 60);
 sprawdz(!/otworzGrote\(/.test(pokazAlarm), "pokazanie alarmu nie otwiera Groty");
-const wywolania = [...js.matchAll(/(?<!function )otworzGrote\(\)/g)].length;   // bez samej definicji
-const wKliknieciach = [...js.matchAll(/addEventListener\("click",\s*otworzGrote\)|zamknijAlarm\(\);\s*\n\s*otworzGrote\(\);/g)].length;
-sprawdz(wywolania === 1 && wKliknieciach >= 1,
+const wywolania = [...js.matchAll(/(?<!function )otworzGrote\(/g)].length;   // bez samej definicji
+const wKliknieciach = [...js.matchAll(/addEventListener\("click",\s*\(\) => otworzGrote\(\)\)|zamknijAlarm\(\);\s*\n\s*otworzGrote\(\{ zakladka: "teraz" \}\);/g)].length;
+sprawdz(wywolania === 2 && wKliknieciach === 2,
   "Grota otwiera się tylko z kliknięcia człowieka (przycisk w alarmie lub w „Więcej”)");
+sprawdz(/airRaidSiren\(true\);[^\n]*\n\s*przygotujGrote\(\);/.test(js) &&
+        /function przygotujGrote\(\) \{\s*\n\s*if \(!document\.documentElement\.classList\.contains\("native-app"\)\) return;/.test(js),
+  "przy alarmie Grota tylko wczytuje się w tle (i tylko w aplikacji)");
 sprawdz(/alarmAck\.hidden = true;\s*\n\s*alarmWybor\.hidden = false;/.test(js),
   "potwierdzenie alarmu pokazuje wybór zamiast zamykać ekran");
 for (const id of ["alarm-grota", "alarm-map", "alarm-safe"]) {

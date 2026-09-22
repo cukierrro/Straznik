@@ -3560,6 +3560,7 @@ function showAlarm(voiv, st) {
   alarmWyborReset();
   alarmOverlay.classList.remove("hidden");
   airRaidSiren(true);          // ciągła — milknie dopiero po potwierdzeniu
+  przygotujGrote();            // tylko wczytanie w tle; ekranu nie przejmuje
 }
 
 /* Po potwierdzeniu alarmu: wybór zamiast natychmiastowego zamknięcia ekranu.
@@ -3593,7 +3594,7 @@ document.getElementById("alarm-map")?.addEventListener("click", () => {
 document.getElementById("alarm-safe")?.addEventListener("click", zamknijAlarm);
 document.getElementById("alarm-grota")?.addEventListener("click", () => {
   zamknijAlarm();
-  otworzGrote();
+  otworzGrote({ zakladka: "teraz" });   // z alarmu od razu TERAZ (decyzja usera 22.09.2026)
 });
 
 let audioCtx = null;
@@ -5493,17 +5494,24 @@ function wczytajGrote() {
   }
   return grotaLadowanie;
 }
-async function otworzGrote() {
+async function otworzGrote(opcje) {
   setPanel(false);
   if (moreSheet?.open) moreSheet.close();
   if (document.body.classList.contains("history-mode")) toggleHistory();
   try {
-    (await wczytajGrote()).otworz();
+    (await wczytajGrote()).otworz(opcje);
   } catch (e) {
     console.warn("GROTA:", e);
     toast(UI.isEn ? "Shelter finder is not available in this version."
                   : "Wyszukiwanie schronień nie jest dostępne w tej wersji.");
   }
+}
+/* Przy alarmie wczytujemy moduł i punkty w tle, zanim człowiek potwierdzi alarm:
+   pierwsze otwarcie na telefonie 2 GB trwało 14 s, po przygotowaniu ~0,1 s.
+   Tylko w aplikacji (strona nie ma plików Groty) i bez błędów na zewnątrz. */
+function przygotujGrote() {
+  if (!document.documentElement.classList.contains("native-app")) return;
+  wczytajGrote().then(g => g.przygotuj?.()).catch(e => console.warn("GROTA przygotuj:", e));
 }
 /* Każde przejście gdzie indziej zatrzymuje mapę modułu — bez tego jej renderowanie
    zjadałoby procesor w tle, obok mapy Strażnika. */
@@ -5511,7 +5519,7 @@ function ukryjGrote() { window.Grota?.ukryj(); }
 
 /* ── dolne zakładki i menu „Więcej” ── */
 const moreSheet = document.getElementById("more-sheet");
-document.getElementById("btn-grota")?.addEventListener("click", otworzGrote);
+document.getElementById("btn-grota")?.addEventListener("click", () => otworzGrote());
 document.getElementById("tab-more")?.addEventListener("click", () => {
   if (moreSheet?.open) moreSheet.close(); else moreSheet?.showModal();
 });
