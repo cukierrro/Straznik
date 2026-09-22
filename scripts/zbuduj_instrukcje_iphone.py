@@ -330,6 +330,9 @@ def zbuduj(c):
     html = zamien(html, *c["www_iphone"], "powiadomienia strony na iPhonie")
     html = zamien(html, *c["problemy_stare"], "brak powiadomień")
     html = zamien(html, *c["prywatnosc"], "kopia zapasowa")
+    # GROTA jest na razie tylko na Androidzie — zdanie o trasie nie dotyczy iPhone'a
+    html = wytnij(html, r" (?:Wyjątek to trasa w GROCIE|The exception is a route in GROTA)[^<]*<a [^>]*>[^<]*</a>\)\.",
+                  "", "trasa GROTY w prywatności")
     html = zamien(html, *c["stopka"], "stopka")
     # ślady instrukcji Androida, które nie mają sensu na iPhonie (celowe wzmianki
     # „na iPhonie nie ma zgody na alarm pełnoekranowy” są w tekstach wyżej i nie są tu łapane)

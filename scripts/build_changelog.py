@@ -16,6 +16,19 @@ DOCS = ROOT / "docs"
 # (wersja, data PL, data EN, tytuł PL, tytuł EN, punkty PL, punkty EN, zrzuty)
 # Zrzut: (plik, alt PL, alt EN, podpis PL, podpis EN)
 RELEASES = [
+    ("1.7.68", "22 września 2026", "22 September 2026",
+     "GROTA — gdzie się schronić; klikalne alarmy na Litwie, Łotwie i w Estonii",
+     "GROTA — where to shelter; clickable alerts in Lithuania, Latvia and Estonia",
+     ["Po potwierdzeniu alarmu ekran pokazuje trzy przyciski: „Gdzie się schronić”, „Obserwuj mapę” i „Jestem bezpieczny”. Strażnik nigdy sam nie przełącza ekranu — wybierasz Ty.",
+      "„Gdzie się schronić” otwiera nowy moduł GROTA od razu na zakładce TERAZ: najbliższe punkty schronienia z publicznego wykazu PSP, z odległością i trasą. Moduł wczytuje się w tle już w chwili alarmu, więc otwiera się natychmiast. Poza alarmem: Więcej → „Schronienie — gdzie najbliżej”. Wykaz działa bez internetu; na razie tylko po polsku i tylko na Androidzie.",
+      "Podświetlona na mapie Litwa, Łotwa albo Estonia otwiera po dotknięciu kartę — jak obwód w Ukrainie: tytuł artykułu z odnośnikiem, godzina i punkty dla województw.",
+      "Artykuły o przygotowaniach do alarmów i tytuły-pytania z mediów bałtyckich nie są już brane za ogłoszenie alarmu. 22 września tekst o ćwiczeniach w szkołach w Tartu zapalił Litwę na czerwono."],
+     ["After you acknowledge an alert, the screen shows three buttons: “Where to shelter”, “Watch the map” and “I am safe”. Strażnik never switches the screen on its own — you choose.",
+      "“Where to shelter” opens the new GROTA module straight on the TERAZ (now) tab: the nearest shelter points from the Fire Service's public list, with distance and route. It starts loading in the background as soon as the alert appears, so it opens at once. Outside an alert: More → “Shelter — nearest”. The list works offline; for now it is in Polish only and on Android only.",
+      "Lithuania, Latvia or Estonia highlighted on the map now open a card when tapped — like a Ukrainian oblast: the article headline with a link, the time and the points for each province.",
+      "Articles about preparing for alerts and question headlines from Baltic media are no longer taken for an alert announcement. On 22 September a piece about school drills in Tartu lit Lithuania red."],
+     []),
+
     ("1.7.67", "22 września 2026", "22 September 2026",
      "Zapamiętany widok 2D/3D i wyjaśnienie, gdy mapa się nie wczyta",
      "2D/3D view remembered, and an explanation when the map does not load",

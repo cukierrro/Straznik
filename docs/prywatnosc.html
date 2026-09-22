@@ -27,7 +27,7 @@
 </div></nav>
 
 <header class="hero"><div class="wrap">
-  <div class="eyebrow">Polityka prywatności · obowiązuje od 17 września 2026</div>
+  <div class="eyebrow">Polityka prywatności · obowiązuje od 22 września 2026</div>
   <h1>Nie zbieramy danych o Tobie.</h1>
   <p class="lead">Strażnik nie ma kont, logowania, reklam ani analityki. Nie prosimy o imię, adres e-mail ani numer telefonu — i ich nie mamy. Ta strona opisuje dokładnie, co zostaje na Twoim urządzeniu, co widzi nasz serwer i kto jeszcze bierze udział w przesyłaniu danych.</p>
   <p class="fineprint">Dotyczy aplikacji Strażnik na Androida i iOS oraz strony <a href="https://straznik.eu">straznik.eu</a>. Za projekt i dane odpowiada jego autor; kontakt przez <a href="https://github.com/cukierrro/Straznik/issues">zgłoszenie w repozytorium</a>.</p>
@@ -39,7 +39,7 @@
   <ul>
     <li><b>Brak konta i logowania.</b> Aplikacja działa od razu po instalacji.</li>
     <li><b>Brak reklam, analityki i narzędzi śledzących.</b> Nie ma tu Google Analytics, pikseli reklamowych ani żadnego zewnętrznego SDK zbierającego statystyki.</li>
-    <li><b>Twoja lokalizacja nie opuszcza urządzenia.</b> Nigdy jej nie wysyłamy ani nie przechowujemy.</li>
+    <li><b>Twoja lokalizacja nie trafia na nasz serwer.</b> Nigdy jej nie przechowujemy. Jedyny wyjątek to trasa do schronienia w GROTA: pozycja i cel idą wtedy do publicznego serwera tras (punkt 2).</li>
     <li><b>Powiadomienia idą do województw, nie do osób.</b> Nie wiemy, kto je dostaje.</li>
     <li><b>Nie sprzedajemy i nie udostępniamy danych</b> nikomu w celach marketingowych. Nie ma czego sprzedawać.</li>
   </ul>
@@ -60,6 +60,16 @@
   <h2>2. Lokalizacja</h2>
   <p>Uprawnienie do lokalizacji jest <b>opcjonalne</b>. Służy wyłącznie do jednorazowego wstawienia punktu „tu jestem” przy dodawaniu miejsca i do wyśrodkowania mapy. Współrzędne zostają na urządzeniu — nie wysyłamy ich na serwer, nie zapisujemy u siebie i nie przekazujemy nikomu. Możesz odmówić i wskazać miejsce ręcznie na mapie; aplikacja działa wtedy tak samo.</p>
   <p>Powiadomienia nie zależą od GPS-u. Województwa wybierasz z listy i to jedyna informacja o tym, co obserwujesz.</p>
+  <h3>GROTA — gdzie się schronić (aplikacja na Androida)</h3>
+  <p>GROTA używa lokalizacji, żeby wskazać najbliższe punkty schronienia. Wykaz punktów i wyszukiwanie najbliższego działają <b>na telefonie</b>, bez wysyłania pozycji. Poza telefon trafia tylko to:</p>
+  <ul>
+    <li><b>trasa na mapie</b> — pozycja początkowa i wybrany punkt idą do publicznego serwera tras <b>FOSSGIS</b> (OSRM na danych OpenStreetMap), który zwraca przebieg drogi. Bez internetu GROTA pokazuje odległość w linii prostej i nic nie wysyła;</li>
+    <li><b>wyszukiwanie adresu</b> — wpisany adres idzie do usługi geokodowania <b>GUGiK</b>, dopiero po naciśnięciu „Szukaj”;</li>
+    <li><b>zdjęcia z góry</b> — fragmenty ortofotomapy pobierane z <b>Geoportalu (GUGiK)</b> dla oglądanego obszaru;</li>
+    <li><b>paczki danych</b> — pliki z punktami dla województwa pobierane z naszego serwera; sama nazwa pliku mówi tylko, o które województwo chodzi;</li>
+    <li><b>Google Maps</b> — tylko jeśli sam dotkniesz przycisku nawigacji; od tej chwili obowiązują zasady Google.</li>
+  </ul>
+  <p>Zapisane w GROCIE miejsca i ustawienia zostają na urządzeniu, tak jak Moje miejsca Strażnika.</p>
 </section>
 
 <section id="powiadomienia">
@@ -90,7 +100,8 @@
     <li><b>Cloudflare</b> — tunel, ochrona i przyspieszenie ruchu do serwera;</li>
     <li><b>Google Firebase</b> — dostarczanie powiadomień do aplikacji;</li>
     <li><b>GitHub</b> — pobieranie aplikacji, sprawdzanie aktualizacji i ta strona (GitHub Pages);</li>
-    <li><b>OpenFreeMap</b> i <b>CARTO</b> — kafelki mapy, na danych OpenStreetMap.</li>
+    <li><b>OpenFreeMap</b> i <b>CARTO</b> — kafelki mapy, na danych OpenStreetMap;</li>
+    <li><b>FOSSGIS</b> (serwer tras OSRM) i <b>GUGiK</b> (geokodowanie adresów, ortofotomapa) — tylko w GROCIE, zob. punkt 2.</li>
   </ul>
   <p>Zdjęcia i grafiki obiektów są zapisane w samej aplikacji — nie pobieramy ich z zewnętrznych serwisów. Strony redakcji odczytuje nasz serwer, nie Twój telefon. Link do artykułu otwierasz już w swojej przeglądarce i od tego momentu obowiązują zasady danej redakcji.</p>
 </section>

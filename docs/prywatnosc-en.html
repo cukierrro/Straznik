@@ -27,7 +27,7 @@
 </div></nav>
 
 <header class="hero"><div class="wrap">
-  <div class="eyebrow">Privacy policy · in force since 17 September 2026</div>
+  <div class="eyebrow">Privacy policy · in force since 22 September 2026</div>
   <h1>We do not collect data about you.</h1>
   <p class="lead">Strażnik has no accounts, no sign-in, no ads and no analytics. We never ask for your name, e-mail address or phone number — and we do not have them. This page describes exactly what stays on your device, what our server sees and who else is involved in delivering the data.</p>
   <p class="fineprint">Applies to the Strażnik app for Android and iOS and to <a href="https://straznik.eu">straznik.eu</a>. The project and its data are the responsibility of its author; contact through <a href="https://github.com/cukierrro/Straznik/issues">an issue in the repository</a>.</p>
@@ -39,7 +39,7 @@
   <ul>
     <li><b>No account, no sign-in.</b> The app works straight after installation.</li>
     <li><b>No ads, no analytics, no tracking tools.</b> There is no Google Analytics, no advertising pixel and no third-party statistics SDK.</li>
-    <li><b>Your location never leaves the device.</b> We neither send nor store it.</li>
+    <li><b>Your location never reaches our server.</b> We never store it. The one exception is a route to shelter in GROTA: the position and destination then go to a public routing server (section 2).</li>
     <li><b>Notifications go to provinces, not to people.</b> We do not know who receives them.</li>
     <li><b>We do not sell or share data</b> with anyone for marketing. There is nothing to sell.</li>
   </ul>
@@ -60,6 +60,16 @@
   <h2>2. Location</h2>
   <p>The location permission is <b>optional</b>. It is used only to drop a one-off “I am here” point when you add a place, and to centre the map. The coordinates stay on the device — we do not send them to the server, do not store them and do not pass them to anyone. You can decline and pick the place on the map by hand; the app works exactly the same.</p>
   <p>Notifications do not depend on GPS. You pick provinces from a list, and that is the only information about what you watch.</p>
+  <h3>GROTA — where to shelter (Android app)</h3>
+  <p>GROTA uses your location to show the nearest shelter points. The list of points and the search for the nearest one run <b>on the phone</b>, without sending the position. Only this leaves the phone:</p>
+  <ul>
+    <li><b>the route on the map</b> — the start position and the chosen point go to the public <b>FOSSGIS</b> routing server (OSRM on OpenStreetMap data), which returns the path. Offline, GROTA shows the straight-line distance and sends nothing;</li>
+    <li><b>address search</b> — the typed address goes to the <b>GUGiK</b> geocoding service, only after you press “Search”;</li>
+    <li><b>aerial photos</b> — orthophoto tiles for the area you view, from <b>Geoportal (GUGiK)</b>;</li>
+    <li><b>data packages</b> — the shelter files for a province, downloaded from our server; the file name only says which province;</li>
+    <li><b>Google Maps</b> — only if you tap the navigation button yourself; Google's terms apply from then on.</li>
+  </ul>
+  <p>Places and settings saved in GROTA stay on the device, like Strażnik's My places.</p>
 </section>
 
 <section id="notifications">
@@ -90,7 +100,8 @@
     <li><b>Cloudflare</b> — tunnel, protection and acceleration of traffic to the server;</li>
     <li><b>Google Firebase</b> — delivery of notifications to the app;</li>
     <li><b>GitHub</b> — app downloads, update checks and this page (GitHub Pages);</li>
-    <li><b>OpenFreeMap</b> and <b>CARTO</b> — map tiles, based on OpenStreetMap data.</li>
+    <li><b>OpenFreeMap</b> and <b>CARTO</b> — map tiles, based on OpenStreetMap data;</li>
+    <li><b>FOSSGIS</b> (OSRM routing server) and <b>GUGiK</b> (address geocoding, orthophoto) — in GROTA only, see section 2.</li>
   </ul>
   <p>Object photos and illustrations are bundled inside the app — we do not fetch them from outside services. Publishers' pages are read by our server, not by your phone. You open an article link in your own browser, and from that point the publisher's own rules apply.</p>
 </section>
