@@ -16,6 +16,19 @@ DOCS = ROOT / "docs"
 # (wersja, data PL, data EN, tytuł PL, tytuł EN, punkty PL, punkty EN, zrzuty)
 # Zrzut: (plik, alt PL, alt EN, podpis PL, podpis EN)
 RELEASES = [
+    ("1.7.70", "22 września 2026", "22 September 2026",
+     "GROTA: zdjęcie z góry działa znowu, także na starszych Androidach",
+     "GROTA: the aerial photo works again, on older Androids too",
+     ["Zdjęcie z góry na karcie punktu schronienia znowu się wyświetla. W 1.7.68 nie pokazywało się nikomu, bo usługa ortofotomapy GUGiK zmieniła sposób działania. GROTA próbuje teraz kilka razy i w razie potrzeby sięga po zapasową wersję usługi.",
+      "Na Androidzie starszym niż 14 zdjęcie nie wczytywało się w ogóle: telefon nie ufał certyfikatowi serwera Geoportalu. Aplikacja zna teraz ten certyfikat — tylko dla tego jednego serwera.",
+      "Komunikaty o braku zgody na lokalizację mówią, gdzie ją włączyć w telefonie (Aplikacje → Strażnik → Uprawnienia → Lokalizacja), zamiast odsyłać do ustawień przeglądarki.",
+      "Nowa, pełna instrukcja GROTY ze zrzutami wszystkich funkcji — po polsku i po angielsku."],
+     ["The aerial photo on a shelter's card shows again. In 1.7.68 it did not appear for anyone, because GUGiK's orthophoto service changed how it works. GROTA now retries and, if needed, uses the service's backup version.",
+      "On Android older than 14 the photo never loaded: the phone did not trust the Geoportal server's certificate. The app now knows that certificate — for that one server only.",
+      "Messages about a missing location permission say where to turn it on in the phone (Apps → Strażnik → Permissions → Location) instead of pointing to browser settings.",
+      "A new, full GROTA guide with screenshots of every feature — in Polish and English."],
+     []),
+
     ("1.7.68", "22 września 2026", "22 September 2026",
      "GROTA — gdzie się schronić; klikalne alarmy na Litwie, Łotwie i w Estonii",
      "GROTA — where to shelter; clickable alerts in Lithuania, Latvia and Estonia",

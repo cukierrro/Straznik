@@ -14,7 +14,8 @@ Uruchomienie:  py scripts/zbuduj_instrukcje_grota.py
 from pathlib import Path
 
 DOCS = Path(__file__).resolve().parent.parent / "docs"
-WERSJA = "1.7.68"
+WERSJA = "1.7.70"
+WERSJA_ZRZUTOW = "1.7.68"
 APK = "https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk"
 
 
@@ -87,7 +88,7 @@ PL = dict(
     <h1>GROTA — gdzie się schronić</h1>
     <p class="lead">GROTA to część aplikacji Strażnik. Przy alarmie pokazuje <b>najbliższe miejsca schronienia</b> z publicznego wykazu Państwowej Straży Pożarnej i prowadzi do nich. Zawczasu pomaga zapisać schronienia przy domu, pracy i szkole, pobrać mapę na wypadek braku internetu i przygotować się według „Poradnika bezpieczeństwa”.</p>
     <div class="actions"><a class="button primary" href="{APK}">↓ Pobierz Strażnika na Androida</a><a class="button" href="index.html">Instrukcja Strażnika</a></div>
-    <p class="fineprint">Zrzuty zrobiono 22 września 2026 w Strażniku {WERSJA}, z pozycją na Starym Mieście w Lublinie. Adresy na zrzutach pochodzą z publicznego wykazu PSP. GROTA jest na razie <b>tylko na Androidzie i tylko po polsku</b> — wersje angielska i ukraińska oraz iPhone są w przygotowaniu. Dotknij zdjęcia, aby otworzyć je w pełnym rozmiarze.</p>
+    <p class="fineprint">Zrzuty zrobiono 22 września 2026 w Strażniku {WERSJA_ZRZUTOW}, z pozycją na Starym Mieście w Lublinie. Adresy na zrzutach pochodzą z publicznego wykazu PSP. GROTA jest na razie <b>tylko na Androidzie i tylko po polsku</b> — wersje angielska i ukraińska oraz iPhone są w przygotowaniu. Dotknij zdjęcia, aby otworzyć je w pełnym rozmiarze.</p>
   </div>
   <a class="shot-link" href="screens/grota/g04-teraz-propozycja.jpg"><img src="screens/grota/g04-teraz-propozycja.jpg" width="720" height="1560" alt="Ekran TERAZ w GROCIE: mapa Starego Miasta w Lublinie z trasą od „Tu jesteś” do celu, a pod nią karta „Najbliższe sprawdzone miejsce schronienia — ul. Złota 2, Lublin, 218 m, ok. 3 min trasą” i duży zielony przycisk PROWADŹ"></a>
 """,
@@ -234,7 +235,7 @@ PL = dict(
   <h3><kbd>PROWADŹ</kbd> nic nie robi.</h3>
   <p>Brak Google Maps albo internetu. Użyj <kbd>Narysuj trasę tutaj, na mapie Groty</kbd> na karcie punktu.</p>
   <h3>Nie widać zdjęcia z góry.</h3>
-  <p>W wersji 1.7.68 zdjęcie z góry się nie wyświetla: GUGiK zmienił adres usługi. Poprawka będzie w najbliższej aktualizacji, także dla starszych telefonów z Androidem. Na zrzutach w tej instrukcji widać, jak karta wygląda po poprawce.</p>
+  <p>Zdjęcie pobiera się na bieżąco z Geoportalu GUGiK, który bywa wolny — czasem trwa to kilkanaście sekund. Bez internetu zdjęcia nie ma. W wersji 1.7.68 nie wyświetlało się wcale (GUGiK zmienił usługę); od <b>1.7.70</b> działa, także na starszych Androidach — zaktualizuj aplikację.</p>
   <h3>Skąd GROTA wie, ile mam czasu? Dlaczego czasem nie ma „zdążysz / nie zdążysz”?</h3>
   <p>Z alarmu Strażnika — z zagrożeń, które Strażnik widzi. Gdy alarm opiera się tylko na źródłach pośrednich albo Strażnik nie zna czasu, GROTA nie ocenia i nie ponagla. Alert RCB może dotyczyć czegoś, czego Strażnik nie widzi, więc przy alercie RCB albo syrenach nie licz minut.</p>
   <h3>Jestem za granicą albo przy granicy.</h3>
@@ -285,7 +286,7 @@ EN = dict(
     <h1>GROTA — where to shelter</h1>
     <p class="lead">GROTA is part of the Strażnik app. During an alert it shows the <b>nearest shelter points</b> from the public list of Poland's State Fire Service (PSP) and guides you there. In advance, it helps you save shelters near your home, work and school, download a map for when there is no internet, and prepare following the government's “Safety Guide”.</p>
     <div class="actions"><a class="button primary" href="{APK}">↓ Get Strażnik for Android</a><a class="button" href="en.html">Strażnik user guide</a></div>
-    <p class="fineprint"><b>GROTA's screens are in Polish only for now</b> — English and Ukrainian versions are on the way. This guide gives every Polish label in the form <kbd>Polish</kbd> (English), so you can find the right button without speaking Polish. Screenshots: 22 September 2026, Strażnik {WERSJA}, position in Lublin's Old Town; addresses come from the public PSP list. GROTA is Android only for now; iPhone will follow. Tap a screenshot to open it full size.</p>
+    <p class="fineprint"><b>GROTA's screens are in Polish only for now</b> — English and Ukrainian versions are on the way. This guide gives every Polish label in the form <kbd>Polish</kbd> (English), so you can find the right button without speaking Polish. Screenshots: 22 September 2026, Strażnik {WERSJA_ZRZUTOW}, position in Lublin's Old Town; addresses come from the public PSP list. GROTA is Android only for now; iPhone will follow. Tap a screenshot to open it full size.</p>
   </div>
   <a class="shot-link" href="screens/grota/g04-teraz-propozycja.jpg"><img src="screens/grota/g04-teraz-propozycja.jpg" width="720" height="1560" alt="GROTA's TERAZ (now) screen: a map of Lublin's Old Town with a route from “Tu jesteś” (you are here) to the destination, and below it the card for the nearest checked shelter — ul. Złota 2, Lublin, 218 m, about 3 min — with a big green PROWADŹ (navigate) button"></a>
 """,
@@ -432,7 +433,7 @@ EN = dict(
   <h3><kbd>PROWADŹ</kbd> does nothing.</h3>
   <p>No Google Maps or no internet. Use <kbd>Narysuj trasę tutaj, na mapie Groty</kbd> (draw the route on GROTA's map) on the point card.</p>
   <h3>The aerial photo does not show.</h3>
-  <p>In version 1.7.68 the aerial photo does not appear: the GUGiK service changed its address. The fix comes in the next update, including older Android phones. The screenshots in this guide show how the card looks after the fix.</p>
+  <p>The photo is loaded live from GUGiK's Geoportal, which can be slow — sometimes it takes over ten seconds. Offline there is no photo. In version 1.7.68 it did not appear at all (GUGiK changed the service); from <b>1.7.70</b> it works, on older Android phones too — update the app.</p>
   <h3>How does GROTA know how much time I have? Why is “make it / won't make it” sometimes missing?</h3>
   <p>From Strażnik's alert — from the threats Strażnik can see. When the alert rests only on indirect sources or Strażnik does not know the time, GROTA does not judge or urge. An RCB alert may concern something Strażnik cannot see, so with an RCB alert or sirens, don't count minutes.</p>
   <h3>I am abroad or by the border.</h3>
