@@ -84,6 +84,8 @@
       jezyk = j;
       try { localStorage.setItem("grota_lang", j); } catch { /* prywatne okno */ }
       try { document.documentElement && global.GrotaJezyk.przetlumaczStale(document); } catch { /* bez DOM */ }
+      // grota.js odświeża resztę (panel, mapa, znaczniki) — bez względu na to, kto zmienił język
+      try { global.dispatchEvent(new CustomEvent("grota:jezyk", { detail: j })); } catch { /* bez DOM */ }
     },
     t, tn, liczba, ulamek,
     przetlumaczStale(korzen) {

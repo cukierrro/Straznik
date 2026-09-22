@@ -870,8 +870,13 @@
   /* Zmiana języka w locie, bez przeładowania (w Strażniku przeładowanie strony zabrałoby i jego stan):
      panel rysuje się od nowa z T(), a napisy poza panelem — zakładki, znaczniki na mapie, pasek bez internetu,
      nazwy miejscowości na mapie — odświeżamy tu. */
-  function zmienJezyk(j) {
-    J.ustaw(j);
+  /* Zmiana języka: przycisk w Zasadach woła J.ustaw(), a J.ustaw() ogłasza zdarzenie „grota:jezyk”. Odświeżamy
+     wszystko w odpowiedzi na zdarzenie — także gdy język zmienił ktoś z zewnątrz (Strażnik, testy): wcześniej
+     taka zmiana przestawiała panel, ale nazwy na mapie zostawały w poprzednim języku do ponownego otwarcia. */
+  function zmienJezyk(j) { J.ustaw(j); }
+  window.addEventListener("grota:jezyk", () => odswiezJezyk());
+
+  function odswiezJezyk() {
     root.lang = J.jezyk;
     J.przetlumaczStale(root);
     const tag = (m) => m?.getElement().querySelector(".map-tag");
