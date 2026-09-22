@@ -226,7 +226,10 @@
     // nowa nawigacja 1.7.23: dolne zakładki, menu „Więcej", kadrowanie mapy
     setMany("#tabbar .tab-btn > span:not(.badge)", ["Map", "Signals", "History", "More"]);
     set("#more-sheet h3", "More");
-    setMany("#more-sheet .sheet-row span", ["About and scoring", "User guide",
+    // GROTA po identyfikatorze, reszta bez niej: tłumaczenie po kolejności przesunęło się o jeden,
+    // gdy w 1.7.68 na górze doszedł wpis GROTY („About and scoring” stało przy GROCIE).
+    set("#btn-grota span", "Shelter — nearest");
+    setMany("#more-sheet .sheet-row:not(#btn-grota) span", ["About and scoring", "User guide",
       "Support the author"]);
     // kolejność kafelków na mapie: mój region → strefy → cała PL
     setMany("#map-actions .map-btn span", ["my region", "zones", "whole PL"]);
