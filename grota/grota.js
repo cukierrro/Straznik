@@ -9,6 +9,8 @@
   const MODUL = !!window.GROTA_MODUL;
   const NA_IOS = (() => { try { return window.Capacitor?.getPlatform?.() === "ios"; } catch { return false; } })();
   const I = window.GrotaIcons.icon;
+  // Tłumaczenia (jezyk.js): T(polski tekst, zmienne), TN(liczba, formy liczby mnogiej po polsku)
+  const J = window.GrotaJezyk, T = J.t, TN = J.tn;
   const PLACES_KEY = "grota_miejsca", MODE_KEY = "grota_srodek", PREP_KEY = "grota_przygotuj", THEME_KEY = "grota_mapa", INFO_KEY = "grota_info_schrony", CEL_KEY = "grota_cel", FILTER_KEY = "grota_filtr2", LIVE_FILTER_KEY = "grota_filtr_teraz2", PICK_FILTER_KEY = "grota_filtr_miejsca2";
 
   // Wygląd rodzajów miejsc (etykiety są w poradnik.js). Kolory rozróżnialne także przy daltonizmie czerwono-zielonym.
@@ -52,6 +54,8 @@
      zapisane, przechodzą tam, gdzie to ma sens — jednoślad na samochód, reszta na pieszo. */
   const STARE_TRYBY = { twowheeler: "driving", transit: "walking" };
   const trybOK = (m) => (C.MODES[m] ? m : STARE_TRYBY[m] || "walking");
+  const trybNazwa = (m) => T(C.MODES[m]?.label || "");
+  const trybKrotko = (m) => T((C.MODES[m]?.label || "").split(" /")[0]);
 
   const S = {
     points: [], byId: new Map(), meta: null,
@@ -109,12 +113,10 @@
   function readLS(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } }
   function writeLS(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-  const fmtDist = (m) => (m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(m < 10000 ? 1 : 0).replace(".", ",")} km`);
-  const plural = (n, one, few, many) => {
-    const t = n % 10, h = n % 100;
-    return `${n} ${n === 1 ? one : t >= 2 && t <= 4 && (h < 12 || h > 14) ? few : many}`;
-  };
-  const estText =(min) => (min == null ? "czas: sprawdź w Google Maps" : `ok. ${min} min (szacunek)`);
+  // jednostki też się tłumaczą (po ukraińsku „м”, „км”, „хв”)
+  const fmtDist = (m) => (m < 1000 ? T("{x} m", { x: Math.round(m) }) : T("{x} km", { x: J.ulamek(m / 1000, m < 10000 ? 1 : 0) }));
+  const plural = TN;
+  const estText = (min) => (min == null ? T("czas: sprawdź w Google Maps") : T("ok. {m} min (szacunek)", { m: min }));
 
   /* ---------- mapa ---------- */
   /* Dane map i tras pochodzą z OpenStreetMap (ODbL), więc podpis jest wymagany zawsze:
@@ -122,7 +124,7 @@
      dzieło pochodne z OSM — stąd osobna wzmianka. */
   const PODPIS_OSM = `© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>`;
   const PODPIS_MAPY = `<a href="https://openfreemap.org/" target="_blank" rel="noopener">OpenFreeMap</a> · <a href="https://openmaptiles.org/" target="_blank" rel="noopener">OpenMapTiles</a> · ${PODPIS_OSM}`;
-  const PODPIS_TRAS = `trasy i punkty: ${PODPIS_OSM} · schronienia: KG PSP, CC BY 4.0`;
+  const PODPIS_TRAS = () => T("trasy i punkty: {osm} · schronienia: KG PSP, CC BY 4.0", { osm: PODPIS_OSM });
 
   const O = window.GrotaOffline;
   O.rejestruj(maplibregl);
@@ -182,7 +184,7 @@
       queryRenderedFeatures: () => [], querySourceFeatures: () => [],
     })[k] || (() => undefined),
   });
-  let map = MAPA_ATRAPA;
+  let map = MAPA_ATRAPA, atrybucja = null;
   const mapaJest = () => map !== MAPA_ATRAPA;
   const podpiecia = [];
   const przyMapie = (fn) => { podpiecia.push(fn); if (mapaJest()) fn(map); };
@@ -212,7 +214,8 @@
     styleTimeout = setTimeout(() => { if (mapaJest() && !map.style?.stylesheet) useOfflineMap(); }, 12000);
     map.once("style.load", () => clearTimeout(styleTimeout));
     // podpis zawsze, niezależnie od tego, czy styl przyszedł z sieci, z pamięci, czy jest uproszczony
-    map.addControl(new maplibregl.AttributionControl({ compact: true, customAttribution: PODPIS_TRAS }), "bottom-left");
+    atrybucja = new maplibregl.AttributionControl({ compact: true, customAttribution: PODPIS_TRAS() });
+    map.addControl(atrybucja, "bottom-left");
     for (const fn of podpiecia) fn(map);
   }
 
@@ -222,12 +225,12 @@
   function showOfflineBanner() {
     const noNet = navigator.onLine === false;
     offlineBanner.hidden = !mapOffline && !noNet;
-    const tip = "Punkty, Twoje miejsca i nagrane trasy działają. Wyszukiwarka adresów, wstępne trasy i zdjęcia z góry wrócą z siecią.";
+    const tip = esc(T("Punkty, Twoje miejsca i nagrane trasy działają. Wyszukiwarka adresów, wstępne trasy i zdjęcia z góry wrócą z siecią."));
     const udaje = O.udaje();
     offlineBanner.hidden = !mapOffline && !noNet && !udaje;
     offlineBanner.innerHTML = mapOffline
-      ? `<span title="${tip}">Bez internetu · mapa uproszczona</span><button type="button" data-map="retry">Odśwież</button>`
-      : (noNet || udaje) ? `<span title="${tip}">${udaje ? "Test bez internetu" : "Bez internetu"} · mapa z pamięci telefonu</span>${udaje ? `<button type="button" data-map="koniec-testu">Zakończ test</button>` : ""}` : "";
+      ? `<span title="${tip}">${T("Bez internetu · mapa uproszczona")}</span><button type="button" data-map="retry">${T("Odśwież")}</button>`
+      : (noNet || udaje) ? `<span title="${tip}">${udaje ? T("Test bez internetu · mapa z pamięci telefonu") : T("Bez internetu · mapa z pamięci telefonu")}</span>${udaje ? `<button type="button" data-map="koniec-testu">${T("Zakończ test")}</button>` : ""}` : "";
   }
   // W trakcie przełączania stylu mapa jest „niewczytana” i sypie błędami — bez tej blokady wpadała w pętlę setStyle.
   let styleSwitching = false;
@@ -307,11 +310,14 @@
   const CHUNK = 4000;
   const yieldToUI = () => new Promise((ok) => setTimeout(ok, 0));
 
-  function setLoadMsg(text) {
+  // Komunikat na mapie trzymamy jako klucz i zmienne — po zmianie języka rysuje się od nowa w nowym języku.
+  let loadMsg = null;
+  function setLoadMsg(klucz, zmienne) {
+    loadMsg = klucz ? { klucz, zmienne } : null;
     const el = document.getElementById("map-load");
     if (!el) return;
-    el.hidden = !text;
-    if (text) el.textContent = text;
+    el.hidden = !klucz;
+    if (klucz) el.textContent = T(klucz, zmienne);
   }
 
   async function geojson() {
@@ -324,7 +330,7 @@
       counts.grupa[gr] = (counts.grupa[gr] || 0) + 1;
       features[i] = { type: "Feature", geometry: { type: "Point", coordinates: [p.lon, p.lat] }, properties: { id: p.id, dostep: p.dostep, watpliwy: t, grupa: gr } };
       if (i % CHUNK === CHUNK - 1) {
-        setLoadMsg(`Przygotowuję mapę… ${Math.round((100 * i) / S.points.length)}%`);
+        setLoadMsg("Przygotowuję mapę… {p}%", { p: Math.round((100 * i) / S.points.length) });
         await yieldToUI();
       }
     }
@@ -395,7 +401,7 @@
         obok: m.typy && r[13] != null ? m.typy[r[13]] : null, obok_m: r[14] ?? null,
       };
       if (i % CHUNK === CHUNK - 1) {
-        setLoadMsg(`Wczytuję punkty… ${Math.round((100 * i) / rows.length)}%`);
+        setLoadMsg("Wczytuję punkty… {p}%", { p: Math.round((100 * i) / rows.length) });
         await yieldToUI();
       }
     }
@@ -413,7 +419,28 @@
     }
   })();
 
+  /* Napisy stałe z szablonu (index.html, w Strażniku grota/widok.js) — zakładki, podtytuł, przyciski mapy.
+     Oznaczamy je tu, a nie w dwóch szablonach: polski tekst z szablonu staje się kluczem tłumaczenia. */
+  function oznaczStale() {
+    root.querySelectorAll("button[data-tab], .g-brand small, .g-powrot span").forEach((el) => {
+      if (el.dataset.t) return;
+      const tekst = [...el.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent).join("").trim();
+      if (!tekst) return;
+      [...el.childNodes].filter((n) => n.nodeType === 3).forEach((n) => n.remove());
+      const s = document.createElement("span"); s.dataset.tTekst = ""; s.textContent = tekst;
+      el.appendChild(s); el.dataset.t = tekst;
+    });
+    const powrot = root.querySelector(".g-powrot[aria-label]");
+    if (powrot && !powrot.dataset.tAria) powrot.dataset.tAria = powrot.getAttribute("aria-label");
+    root.querySelectorAll(".map-btn[title]").forEach((el) => {
+      if (!el.dataset.tTitle) el.dataset.tTitle = el.title;
+      if (!el.dataset.tAria && el.getAttribute("aria-label")) el.dataset.tAria = el.getAttribute("aria-label");
+    });
+  }
   root.querySelectorAll("[data-icon]").forEach((el) => el.insertAdjacentHTML("afterbegin", I(el.dataset.icon)));
+  oznaczStale();
+  root.lang = J.jezyk;
+  J.przetlumaczStale(root);
   const themeBtn = document.getElementById("btn-theme");
   const setThemeIcon = () => { themeBtn.innerHTML = I(S.theme === "jasna" ? "moon" : "sun"); };
   setThemeIcon();
@@ -432,15 +459,19 @@
     if (e.target.closest(".maplibregl-ctrl-attrib-button")) attribTouchedAt = Date.now();
   }, true));
   const attribObserver = new MutationObserver(foldAttribution);
+  const pilnujPodpisu = () => root.querySelectorAll(".maplibregl-ctrl-attrib").forEach((el) => attribObserver.observe(el, { attributes: true, attributeFilter: ["class"] }));
   przyMapie((m) => {
-    root.querySelectorAll(".maplibregl-ctrl-attrib").forEach((el) => attribObserver.observe(el, { attributes: true, attributeFilter: ["class"] }));
+    pilnujPodpisu();
     m.on("load", foldAttribution);
   });
 
   /* Nazwy na mapie po polsku (jak w Strażniku): kafelki OpenMapTiles niosą name:pl.
      Zmieniamy tylko etykiety oparte na nazwie — numery dróg (ref) zostają. */
   function localiseLabels() {
-    const field = ["coalesce", ["get", "name:pl"], ["get", "name:latin"], ["get", "name"]];
+    // nazwy miejscowości w języku interfejsu, a gdy ich brak — polska (po ukraińsku bez zapisu łacińskiego)
+    const field = J.jezyk === "uk" ? ["coalesce", ["get", "name:uk"], ["get", "name:pl"], ["get", "name"]]
+      : J.jezyk === "en" ? ["coalesce", ["get", "name:en"], ["get", "name:pl"], ["get", "name:latin"], ["get", "name"]]
+      : ["coalesce", ["get", "name:pl"], ["get", "name:latin"], ["get", "name"]];
     for (const lyr of map.getStyle().layers || []) {
       if (lyr.type !== "symbol") continue;
       const tf = map.getLayoutProperty(lyr.id, "text-field");
@@ -545,7 +576,7 @@
      W przeglądarce nagrywanie działa tylko przy włączonym ekranie (Wake Lock, jeśli dostępny). */
   const recBar = document.getElementById("rec-bar");
   const REC_MAX_ACC = 35;       // gorsze odczyty pomijamy
-  const fmtDur = (sec) => (sec < 60 ? `${Math.round(sec)} s` : `${Math.floor(sec / 60)} min ${String(Math.floor(sec % 60)).padStart(2, "0")} s`);
+  const fmtDur = (sec) => (sec < 60 ? T("{s} s", { s: Math.round(sec) }) : T("{m} min {s} s", { m: Math.floor(sec / 60), s: String(Math.floor(sec % 60)).padStart(2, "0") }));
   const fmtClock = (sec) => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, "0")}`;
   const localDate = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
   const fmtDate = (iso) => iso.split("-").reverse().join(".");
@@ -563,21 +594,22 @@
     if (!R) { recBar.innerHTML = ""; return; }
     const pl = S.places.find((x) => x.id === R.placeId), p = S.byId.get(R.shelterId);
     const toGoal = R.last && p ? C.distanceM(R.last.lat, R.last.lon, p.lat, p.lon) : null;
-    recBar.innerHTML = `<div class="rec-head"><span class="rec-dot"></span><b>Nagrywam trasę</b>
+    recBar.innerHTML = `<div class="rec-head"><span class="rec-dot"></span><b>${T("Nagrywam trasę")}</b>
         <span class="small muted rec-where">${esc(pl?.name || "")} → ${esc(p?.adres || "")}</span></div>
       <div class="rec-stats"><span>${I("timer")}${fmtClock((Date.now() - R.startedAt) / 1000)}</span><span>${I("footprints")}${fmtDist(R.distM)}</span>
-        <span>${R.lastAcc == null ? "czekam na GPS…" : `GPS ±${Math.round(R.lastAcc)} m`}</span>${toGoal != null ? `<span>do celu ${fmtDist(toGoal)}</span>` : ""}</div>
-      ${R.error ? `<p class="small rec-warn">${esc(R.error)}</p>`
-        : R.lastAcc > REC_MAX_ACC ? `<p class="small rec-warn">Słaby sygnał GPS — punkty pomijam, dopóki dokładność nie będzie lepsza niż ${REC_MAX_ACC} m.</p>` : ""}
-      <div class="row"><button class="btn" data-rec="save">${I("save")}Zakończ i zapisz</button><button class="btn ghost" data-rec="cancel">Anuluj</button></div>`;
+        <span>${R.lastAcc == null ? T("czekam na GPS…") : `GPS ${fmtAcc(R.lastAcc)}`}</span>${toGoal != null ? `<span>${T("do celu {d}", { d: fmtDist(toGoal) })}</span>` : ""}</div>
+      ${R.error ? `<p class="small rec-warn">${esc(T(R.error))}</p>`
+        : R.lastAcc > REC_MAX_ACC ? `<p class="small rec-warn">${T("Słaby sygnał GPS — punkty pomijam, dopóki dokładność nie będzie lepsza niż {m} m.", { m: REC_MAX_ACC })}</p>` : ""}
+      <div class="row"><button class="btn" data-rec="save">${I("save")}${T("Zakończ i zapisz")}</button><button class="btn ghost" data-rec="cancel">${T("Anuluj")}</button></div>`;
   }
 
   async function recStart(placeId, shelterId) {
     const pl = S.places.find((x) => x.id === placeId), p = S.byId.get(shelterId);
     if (S.rec || !pl || !p) return;
-    if (!window.isSecureContext || !navigator.geolocation) { alert("Nagrywanie trasy wymaga lokalizacji (strona https albo localhost)."); return; }
-    if (!confirm(`Nagrywanie trasy z „${pl.name}” do: ${p.adres}.\n\nIdź tak, jak szedłbyś w czasie alarmu — najkrótszą bezpieczną drogą, którą znasz. `
-      + `W przeglądarce nagrywanie działa tylko przy włączonym ekranie.\n\nZacząć?`)) return;
+    if (!window.isSecureContext || !navigator.geolocation) { alert(T("Nagrywanie trasy wymaga lokalizacji (strona https albo localhost).")); return; }
+    if (!confirm(T("Nagrywanie trasy z „{n}” do: {a}.", { n: pl.name, a: p.adres }) + "\n\n"
+      + T("Idź tak, jak szedłbyś w czasie alarmu — najkrótszą bezpieczną drogą, którą znasz. Nagrywanie działa tylko przy włączonym ekranie.")
+      + "\n\n" + T("Zacząć?"))) return;
     const R = S.rec = { placeId, shelterId, mode: pl.mode, startedAt: Date.now(), coords: [], distM: 0, last: null, lastAcc: null, error: null };
     R.watchId = navigator.geolocation.watchPosition(recPoint, recError, { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 });
     R.timer = setInterval(renderRecBar, 1000);
@@ -607,7 +639,7 @@
 
   function recError(e) {
     if (!S.rec) return;
-    S.rec.error = e.code === 1 ? GEO_HELP[1] : "Chwilowo brak pozycji GPS — nagrywanie trwa.";
+    S.rec.error = e.code === 1 ? GEO_HELP[1] : "Chwilowo brak pozycji GPS — nagrywanie trwa.";   // tłumaczone przy rysowaniu
     renderRecBar();
   }
 
@@ -625,13 +657,13 @@
     const R = S.rec; if (!R) return;
     const pl = S.places.find((x) => x.id === R.placeId), p = S.byId.get(R.shelterId);
     if (R.coords.length < 2 || R.distM < 20) {
-      if (confirm("Nagrano za mało drogi, żeby zapisać trasę. Przerwać nagrywanie?")) { recStop(); render(); }
+      if (confirm(T("Nagrano za mało drogi, żeby zapisać trasę. Przerwać nagrywanie?"))) { recStop(); render(); }
       return;
     }
     const start = R.coords[0], end = R.coords[R.coords.length - 1];
     const startGap = C.distanceM(start[1], start[0], pl.lat, pl.lon), endGap = C.distanceM(end[1], end[0], p.lat, p.lon);
-    const warn = [startGap > 150 ? `początek jest ${fmtDist(startGap)} od miejsca „${pl.name}”` : "", endGap > 100 ? `koniec jest ${fmtDist(endGap)} od schronienia` : ""].filter(Boolean);
-    if (warn.length && !confirm(`Uwaga: ${warn.join(", ")}. Zapisać trasę mimo to?`)) return;
+    const warn = [startGap > 150 ? T("początek jest {d} od miejsca „{n}”", { d: fmtDist(startGap), n: pl.name }) : "", endGap > 100 ? T("koniec jest {d} od schronienia", { d: fmtDist(endGap) }) : ""].filter(Boolean);
+    if (warn.length && !confirm(T("Uwaga: {w}. Zapisać trasę mimo to?", { w: warn.join(", ") }))) return;
     recStop();
     const coords = C.simplifyLine(R.coords, 3);
     pl.routes = { ...(pl.routes || {}), [R.shelterId]: {
@@ -644,22 +676,22 @@
   recBar.addEventListener("click", (e) => {
     const b = e.target.closest("[data-rec]"); if (!b) return;
     if (b.dataset.rec === "save") recSave();
-    else if (confirm("Przerwać nagrywanie bez zapisu?")) { recStop(); render(); }
+    else if (confirm(T("Przerwać nagrywanie bez zapisu?"))) { recStop(); render(); }
   });
 
   function recBlock(pl, p) {
     const own = pl.routes?.[p.id];
     if (S.rec && S.rec.placeId === pl.id && S.rec.shelterId === p.id)
-      return `<p class="small rec-warn">${I("circle-dot")} Trwa nagrywanie tej trasy — pasek nagrywania jest na mapie.</p>`;
+      return `<p class="small rec-warn">${I("circle-dot")} ${T("Trwa nagrywanie tej trasy — pasek nagrywania jest na mapie.")}</p>`;
     const ids = `data-place="${esc(pl.id)}" data-id="${esc(p.id)}"`;
     return `<div class="own-route">
-      ${own ? `<p class="route-info own">${I("footprints")}<span><b>Twoja trasa: ${fmtDist(own.distM)} · ${fmtDur(own.durSec)}</b>
-          <span class="small muted">nagrana ${esc(fmtDate(own.date))} · ${esc((C.MODES[own.mode]?.label || "").toLowerCase())} · w alarmie Grota pokaże ją zamiast wyliczonej</span></span></p>`
-        : `<p class="small muted">Przejdź tę drogę na próbę i nagraj ją. W alarmie Grota pokaże Twoją sprawdzoną trasę zamiast wyliczonej — także skróty, których nie ma w mapach.</p>`}
+      ${own ? `<p class="route-info own">${I("footprints")}<span><b>${T("Twoja trasa: {d} · {t}", { d: fmtDist(own.distM), t: fmtDur(own.durSec) })}</b>
+          <span class="small muted">${T("nagrana {data} · {tryb} · w alarmie Grota pokaże ją zamiast wyliczonej", { data: esc(fmtDate(own.date)), tryb: esc(trybNazwa(own.mode).toLowerCase()) })}</span></span></p>`
+        : `<p class="small muted">${T("Przejdź tę drogę na próbę i nagraj ją. W alarmie Grota pokaże Twoją sprawdzoną trasę zamiast wyliczonej — także skróty, których nie ma w mapach.")}</p>`}
       <div class="row">
-        ${own ? `<button class="btn ghost" data-act="rec-show" ${ids}>${I("eye")}Pokaż na mapie</button>` : ""}
-        <button class="btn${own ? " ghost" : ""}" data-act="rec-start" ${ids}${S.rec ? " disabled" : ""}>${I("circle-dot")}${own ? "Nagraj ponownie" : "Nagraj swoją trasę"}</button>
-        ${own ? `<button class="btn ghost danger-ghost icon-only" data-act="rec-del" ${ids} title="Usuń nagraną trasę" aria-label="Usuń nagraną trasę">${I("trash-2")}</button>` : ""}
+        ${own ? `<button class="btn ghost" data-act="rec-show" ${ids}>${I("eye")}${T("Pokaż na mapie")}</button>` : ""}
+        <button class="btn${own ? " ghost" : ""}" data-act="rec-start" ${ids}${S.rec ? " disabled" : ""}>${I("circle-dot")}${own ? T("Nagraj ponownie") : T("Nagraj swoją trasę")}</button>
+        ${own ? `<button class="btn ghost danger-ghost icon-only" data-act="rec-del" ${ids} title="${T("Usuń nagraną trasę")}" aria-label="${T("Usuń nagraną trasę")}">${I("trash-2")}</button>` : ""}
       </div></div>`;
   }
 
@@ -688,8 +720,7 @@
   /* Czas do zagrożenia Strażnik liczy z obiektów, które SAM widzi (NEPTUN i inne źródła). Alert RCB może
      dotyczyć zagrożenia, którego Strażnik nie widzi — np. wojsko ma coś na radarze, a NEPTUN nie. Wtedy
      realny czas bywa krótszy niż ten na ekranie. Mówimy to przy każdym porównaniu czasu. */
-  const UWAGA_WIDOCZNE = `Czas do zagrożenia to wyliczenie z zagrożeń widocznych w Strażniku. Alert RCB może dotyczyć czegoś,
-    czego Strażnik nie widzi — wtedy realnie jest mniej czasu. Gdy przyszedł alert RCB albo słychać syreny, nie licz minut: działaj według komunikatu.`;
+  const uwagaWidoczne = () => T("Czas do zagrożenia to wyliczenie z zagrożeń widocznych w Strażniku. Alert RCB może dotyczyć czegoś, czego Strażnik nie widzi — wtedy realnie jest mniej czasu. Gdy przyszedł alert RCB albo słychać syreny, nie licz minut: działaj według komunikatu.");
 
   function kolorTrasy(R) {
     if (!porownujCzas()) return R.own ? OWN_COLOR : MODE_COLORS[R.mode];
@@ -715,7 +746,7 @@
     if (!p || !mapaJest()) { goalMarker?.remove(); return; }
     if (!goalMarker) {
       const el = document.createElement("div"); el.className = "goal";
-      el.innerHTML = `<span class="map-tag goal-tag">Cel</span>`;
+      el.innerHTML = `<span class="map-tag goal-tag">${T("Cel")}</span>`;
       goalMarker = new maplibregl.Marker({ element: el });
     }
     goalMarker.setLngLat([p.lon, p.lat]).addTo(map);
@@ -772,16 +803,16 @@
   function routeInfo(p) {
     const R = S.route;
     if (!R || R.id !== p.id) return "";
-    if (R.own) return `<p class="route-info own">${I("footprints")}<span><b>Twoja nagrana trasa ${fmtDist(R.distM)} · ${fmtDur(R.own.durSec)}</b>
-      <span class="small muted">przećwiczona ${esc(fmtDate(R.own.date))} (${esc((C.MODES[R.own.mode]?.label || "").toLowerCase())}) · pomarańczowa linia na mapie</span></span></p>`;
-    if (R.loading) return `<p class="small muted route-info">${I("route")}Wyznaczam wstępną trasę…</p>`;
-    if (R.lokalna) return `<p class="route-info">${I("route")}<span><b>Trasa ${fmtDist(R.distM)} · ok. ${R.durMin} min</b>
-      <span class="small muted">policzona z mapy w telefonie — bez internetu, więc przybliżona</span></span></p>`;
+    if (R.own) return `<p class="route-info own">${I("footprints")}<span><b>${T("Twoja nagrana trasa {d} · {t}", { d: fmtDist(R.distM), t: fmtDur(R.own.durSec) })}</b>
+      <span class="small muted">${T("przećwiczona {data} ({tryb}) · pomarańczowa linia na mapie", { data: esc(fmtDate(R.own.date)), tryb: esc(trybNazwa(R.own.mode).toLowerCase()) })}</span></span></p>`;
+    if (R.loading) return `<p class="small muted route-info">${I("route")}${T("Wyznaczam wstępną trasę…")}</p>`;
+    if (R.lokalna) return `<p class="route-info">${I("route")}<span><b>${T("Trasa {d} · ok. {m} min", { d: fmtDist(R.distM), m: R.durMin })}</b>
+      <span class="small muted">${T("policzona z mapy w telefonie — bez internetu, więc przybliżona")}</span></span></p>`;
     if (R.failed) return `<p class="small muted route-info">${I("route")}${navigator.onLine === false || O.udaje()
-      ? "Bez internetu nie da się wyznaczyć trasy po ulicach, a w pobranej mapie nie ma tu połączenia. Na mapie kierunek i odległość w linii prostej."
-      : "Nie udało się wyznaczyć trasy (brak sieci?). Na mapie linia prosta — trasę pokaże Google Maps."}</p>`;
-    return `<p class="route-info">${I("route")}<span><b>Trasa ${fmtDist(R.distM)} · ok. ${R.durMin} min</b>
-      <span class="small muted">po drogach i ścieżkach z mapy, bez korków i utrudnień · linia przerywana: kierunek w linii prostej · © OpenStreetMap, serwer tras FOSSGIS</span></span></p>`;
+      ? T("Bez internetu nie da się wyznaczyć trasy po ulicach, a w pobranej mapie nie ma tu połączenia. Na mapie kierunek i odległość w linii prostej.")
+      : T("Nie udało się wyznaczyć trasy (brak sieci?). Na mapie linia prosta — trasę pokaże Google Maps.")}</p>`;
+    return `<p class="route-info">${I("route")}<span><b>${T("Trasa {d} · ok. {m} min", { d: fmtDist(R.distM), m: R.durMin })}</b>
+      <span class="small muted">${T("po drogach i ścieżkach z mapy, bez korków i utrudnień · linia przerywana: kierunek w linii prostej · © OpenStreetMap, serwer tras FOSSGIS")}</span></span></p>`;
   }
 
   przyMapie((m) => m.on("load", addLayers));
@@ -833,12 +864,36 @@
     return { type: "Feature", geometry: { type: "Polygon", coordinates: [pts] }, properties: {} };
   }
 
+  /* Zmiana języka w locie, bez przeładowania (w Strażniku przeładowanie strony zabrałoby i jego stan):
+     panel rysuje się od nowa z T(), a napisy poza panelem — zakładki, znaczniki na mapie, pasek bez internetu,
+     nazwy miejscowości na mapie — odświeżamy tu. */
+  function zmienJezyk(j) {
+    J.ustaw(j);
+    root.lang = J.jezyk;
+    J.przetlumaczStale(root);
+    const tag = (m) => m?.getElement().querySelector(".map-tag");
+    if (tag(userMarker)) tag(userMarker).textContent = T("Tu jesteś");
+    if (tag(goalMarker)) tag(goalMarker).textContent = T("Cel");
+    if (mapaJest() && stylGotowy()) localiseLabels();
+    // podpis mapy ma stały tekst, podany przy tworzeniu kontrolki — wymieniamy ją na nową
+    if (mapaJest() && atrybucja) {
+      map.removeControl(atrybucja);
+      atrybucja = new maplibregl.AttributionControl({ compact: true, customAttribution: PODPIS_TRAS() });
+      map.addControl(atrybucja, "bottom-left");
+      pilnujPodpisu(); foldAttribution();
+    }
+    if (loadMsg) setLoadMsg(loadMsg.klucz, loadMsg.zmienne);
+    showOfflineBanner();
+    renderRecBar();
+    render();
+  }
+
   function setUserPos(pos, fly = true) {
     S.userPos = pos;
     S.coarse = pos.acc != null && pos.acc > COARSE_M;
     if (!userMarker) {
       const el = document.createElement("div"); el.className = "pin";
-      el.innerHTML = `<span class="map-tag me">Tu jesteś</span>`;
+      el.innerHTML = `<span class="map-tag me">${T("Tu jesteś")}</span>`;
       userMarker = new maplibregl.Marker({ element: el });
     }
     if (!mapaJest()) return;               // Grota zamknięta — pozycja zapamiętana, narysujemy ją przy powrocie
@@ -862,8 +917,10 @@
     }
   }
 
-  const fmtAcc = (m) => (m >= 1000 ? `±${Math.round(m / 1000)} km` : `±${Math.round(m)} m`);
-  const COARSE_TEXT = (acc) => `Pozycja jest bardzo przybliżona (${fmtAcc(acc)}). Na komputerze bez GPS i Wi-Fi przeglądarka zgaduje miejsce z adresu internetowego — często wychodzi np. Warszawa. Wskaż swoje miejsce na mapie albo wybierz, gdzie jesteś.`;
+  const fmtAcc = (m) => (m >= 1000 ? "±" + T("{x} km", { x: Math.round(m / 1000) }) : "±" + T("{x} m", { x: Math.round(m) }));
+  const COARSE_TEXT = (acc) => MODUL
+    ? T("Pozycja jest bardzo przybliżona ({acc}). Wskaż swoje miejsce na mapie albo wybierz, gdzie jesteś.", { acc: fmtAcc(acc) })
+    : T("Pozycja jest bardzo przybliżona ({acc}). Na komputerze bez GPS i Wi-Fi przeglądarka zgaduje miejsce z adresu internetowego — często wychodzi np. Warszawa. Wskaż swoje miejsce na mapie albo wybierz, gdzie jesteś.", { acc: fmtAcc(acc) });
 
   function drawPlaces() {
     placeMarkers.forEach((m) => m.remove());
@@ -947,15 +1004,12 @@
       const najblizsze = Math.min(...wTyle.map((id) => {
         const p = S.byId.get(id); return C.distanceM(pos.lat, pos.lon, p.lat, p.lon);
       }));
-      const zgoda = confirm(`Nowe położenie miejsca „${pl.name}” jest daleko od zapisanych tu schronień `
-        + `(najbliższe ${fmtDist(najblizsze)} stąd).
-
-`
-        + `${ile === 1 ? "To schronienie zostanie usunięte" : `Zapisane schronienia (${ile}) zostaną usunięte`} z tego miejsca`
-        + `${ileTras ? `, razem z ${ileTras === 1 ? "nagraną trasą" : `nagranymi trasami (${ileTras})`}` : ""}. `
-        + `Punkty zostają na mapie — do nowego adresu wybierzesz schronienia na nowo.
-
-Zmienić położenie?`);
+      const zgoda = confirm(T("Nowe położenie miejsca „{n}” jest daleko od zapisanych tu schronień (najbliższe {d} stąd).", { n: pl.name, d: fmtDist(najblizsze) })
+        + "\n\n"
+        + (ile === 1 ? T("To schronienie zostanie usunięte z tego miejsca") : T("Zapisane schronienia ({n}) zostaną usunięte z tego miejsca", { n: ile }))
+        + (ileTras ? (ileTras === 1 ? T(", razem z nagraną trasą") : T(", razem z nagranymi trasami ({n})", { n: ileTras })) : "") + ". "
+        + T("Punkty zostają na mapie — do nowego adresu wybierzesz schronienia na nowo.")
+        + "\n\n" + T("Zmienić położenie?"));
       if (!zgoda) { render(); return; }
       pl.shelters = pl.shelters.filter((id) => !wTyle.includes(id));
       if (pl.routes) for (const id of wTyle) delete pl.routes[id];
@@ -980,7 +1034,7 @@ Zmienić położenie?`);
 
   function addPlace(name, pos, kind, extra = {}) {
     const k = kind || guessKind(name);
-    const pl = { id: "m" + Date.now(), name: name || P.PLACE_KINDS[k].label, kind: k, spot: "", spotChecked: false, lat: pos.lat, lon: pos.lon, mode: S.mode, shelters: [], ...extra };
+    const pl = { id: "m" + Date.now(), name: name || T(P.PLACE_KINDS[k].label), kind: k, spot: "", spotChecked: false, lat: pos.lat, lon: pos.lon, mode: S.mode, shelters: [], ...extra };
     S.places.push(pl); S.openPlace = pl.id; S.editPlace = null; S.adding = null; S.newName = ""; savePlaces(); S.tab = "miejsca";
     map.flyTo({ center: [pos.lon, pos.lat], zoom: 14 });
   }
@@ -994,20 +1048,28 @@ Zmienić położenie?`);
 
   function rule(id, alert = false, wSekcji = false) {
     const r = C.RULES[id];
-    const naglowek = wSekcji && r.temat
-      ? esc(duzaLitera(r.temat))
-      : `${esc(r.title)}${r.temat ? ` <span class="rule-temat">— ${esc(r.temat)}</span>` : ""}`;
+    const temat = r.temat && T(r.temat);
+    const naglowek = wSekcji && temat
+      ? esc(duzaLitera(temat))
+      : `${esc(T(r.title))}${temat ? ` <span class="rule-temat">— ${esc(temat)}</span>` : ""}`;
     return `<div class="rule${alert ? " alert" : ""}" style="--rc:${RULE_COLORS[r.slug] || "var(--accent)"}">
-      <b>${naglowek}</b>„${esc(r.text)}”
-      <div class="src"><a href="${esc(P.url(r.slug))}" target="_blank" rel="noopener">„Poradnik bezpieczeństwa”, s. ${esc(r.page)}</a></div></div>`;
+      <b>${naglowek}</b>${esc(T("„{tekst}”", { tekst: T(r.text) }))}
+      <div class="src">${zrodloPoradnika(r.slug, r.page)}</div></div>`;
+  }
+
+  /* Odnośnik do Poradnika pod cytatem. W języku innym niż polski dopisujemy, że cytat to nasze tłumaczenie —
+     oficjalny Poradnik jest tylko po polsku i odnośnik prowadzi do polskiego oryginału. */
+  function zrodloPoradnika(slug, page) {
+    return `<a href="${esc(P.url(slug))}" target="_blank" rel="noopener">${esc(T("„Poradnik bezpieczeństwa”, s. {s}", { s: page }))}</a>`
+      + (J.jezyk === "pl" ? "" : ` <span class="tl-nasze">· ${esc(T("tłumaczenie nasze, oryginał po polsku"))}</span>`);
   }
 
   // Miejsce w budynku zapisane przez użytkownika — jego własna notatka, nie zalecenie Groty.
   function spotCard(pl, alert = false) {
     if (!pl.spot) return "";
-    return `<div class="card${alert ? " sel" : ""}"><b>${esc(pl.name)}: moje miejsce w budynku</b>
+    return `<div class="card${alert ? " sel" : ""}"><b>${esc(T("{n}: moje miejsce w budynku", { n: pl.name }))}</b>
       <p>${esc(pl.spot)}</p>
-      <p class="small ${pl.spotChecked ? "trust-ok" : "trust-uwaga"}">${pl.spotChecked ? "Sprawdzone przez Ciebie." : "Jeszcze nie sprawdzone na miejscu."}</p></div>`;
+      <p class="small ${pl.spotChecked ? "trust-ok" : "trust-uwaga"}">${pl.spotChecked ? T("Sprawdzone przez Ciebie.") : T("Jeszcze nie sprawdzone na miejscu.")}</p></div>`;
   }
 
   /* Trzy poziomy zamiast samej liczby: czerwony, póki listy praktycznie nie ma, żółty w trakcie,
@@ -1020,20 +1082,20 @@ Zmienić położenie?`);
     const done = L.items.filter((_, i) => S.prep[`${id}:${i}`]).length;
     const open = compact || S.openList === id;
     return `<div class="card lista-${poziomListy(done, L.items.length)}${open && !compact ? " sel" : ""}">
-      <div class="row"><b class="grow">${esc(L.title)}</b><span class="badge lista-licznik">${done}/${L.items.length}</span>
-        ${compact ? "" : `<button class="btn ghost" data-act="toggle-list" data-id="${esc(id)}">${open ? "Zwiń" : "Otwórz"}</button>`}</div>
-      ${open ? `${L.intro ? `<p class="small muted">„${esc(L.intro)}”</p>` : ""}
-        ${L.items.map((t, i) => `<label class="chk chk-lista" style="margin:6px 0"><input type="checkbox" data-act="prep" data-key="${esc(id)}:${i}"${S.prep[`${id}:${i}`] ? " checked" : ""}><span>„${esc(t)}”</span></label>`).join("")}
-        <div class="src small muted"><a href="${esc(P.url(L.slug))}" target="_blank" rel="noopener">„Poradnik bezpieczeństwa”, s. ${esc(L.page)}</a></div>` : ""}
+      <div class="row"><b class="grow">${esc(T(L.title))}</b><span class="badge lista-licznik">${done}/${L.items.length}</span>
+        ${compact ? "" : `<button class="btn ghost" data-act="toggle-list" data-id="${esc(id)}">${open ? T("Zwiń") : T("Otwórz")}</button>`}</div>
+      ${open ? `${L.intro ? `<p class="small muted">${esc(T("„{tekst}”", { tekst: T(L.intro) }))}</p>` : ""}
+        ${L.items.map((t, i) => `<label class="chk chk-lista" style="margin:6px 0"><input type="checkbox" data-act="prep" data-key="${esc(id)}:${i}"${S.prep[`${id}:${i}`] ? " checked" : ""}><span>${esc(T("„{tekst}”", { tekst: T(t) }))}</span></label>`).join("")}
+        <div class="src small muted">${zrodloPoradnika(L.slug, L.page)}</div>` : ""}
     </div>`;
   }
 
 
   function addToPlace(p) {
     if (!S.places.length) return "";
-    return `<div class="add-to"><span class="small muted">Zapisz jako schronienie dla:</span><div class="chips">${S.places.map((pl) => {
+    return `<div class="add-to"><span class="small muted">${T("Zapisz jako schronienie dla:")}</span><div class="chips">${S.places.map((pl) => {
       const has = pl.shelters.includes(p.id), full = !has && pl.shelters.length >= 3;
-      return `<button type="button" class="chip${has ? " on" : ""}" data-act="toggle-shelter" data-place="${esc(pl.id)}" data-id="${esc(p.id)}"${full ? " disabled title=\"To miejsce ma już 3 schronienia\"" : ""}>
+      return `<button type="button" class="chip${has ? " on" : ""}" data-act="toggle-shelter" data-place="${esc(pl.id)}" data-id="${esc(p.id)}"${full ? ` disabled title="${esc(T("To miejsce ma już 3 schronienia"))}"` : ""}>
         ${kindBadge(pl.kind, "sm")}${esc(pl.name)}${has ? I("check", "chip-check") : ""}</button>`;
     }).join("")}</div></div>`;
   }
@@ -1053,8 +1115,8 @@ Zmienić położenie?`);
   function zdjecieZGory(p, podpis) {
     const blad = ortoPadlo.has(p.id);
     const src = ortoDziala.get(p.id) || C.orthoUrl(p);
-    return `<figure class="ortho${blad ? " err" : ""}" data-orto="${esc(p.id)}">${blad ? "" : `<img loading="lazy" alt="Zdjęcie z góry okolicy punktu" src="${esc(src)}" data-proba="0">`}<span class="ortho-dot"></span>
-      <figcaption>${esc(podpis)}</figcaption></figure>`;
+    return `<figure class="ortho${blad ? " err" : ""}" data-orto="${esc(p.id)}">${blad ? "" : `<img loading="lazy" alt="${esc(T("Zdjęcie z góry okolicy punktu"))}" src="${esc(src)}" data-proba="0">`}<span class="ortho-dot"></span>
+      <figcaption><span class="ortho-err">${esc(T("Zdjęcie z góry niedostępne (brak sieci albo usługa GUGiK nie odpowiada)."))} </span>${esc(T(podpis))}</figcaption></figure>`;
   }
 
   function ortoNastepnaProba(img) {
@@ -1089,28 +1151,27 @@ Zmienić położenie?`);
     const from = o.origin || S.userPos || o.distFrom;
     const dist = from ? C.distanceM(from.lat, from.lon, p.lat, p.lon) : null;
     return `<div class="card${o.sel ? " sel" : ""}">
-      <div class="row"><div class="grow"><b>${esc(p.adres)}</b><div class="muted small">gm. ${esc(p.gmina)} · ${esc(p.id)}</div></div>
+      <div class="row"><div class="grow"><b>${esc(p.adres)}</b><div class="muted small">${esc(T("gm. {g}", { g: p.gmina }))} · ${esc(p.id)}</div></div>
         ${o.num ? `<span class="badge">${o.num}</span>` : ""}</div>
       ${objectLine(p)}
-      <p><span class="badge b${esc(p.dostep)}">${esc(acc.label)}</span> <span class="muted small">${esc(acc.note)}</span></p>
-      ${o.notePlace ? `<label class="small muted" for="note-${esc(o.notePlace.id)}-${esc(p.id)}">${I("key-round")} Jak wejść — godziny, kto otwiera, kontakt do zarządcy (Twoja notatka) ${saveState(`note-${o.notePlace.id}-${p.id}`)}</label>
+      <p><span class="badge b${esc(p.dostep)}">${esc(T(acc.label))}</span> <span class="muted small">${esc(acc.note && T(acc.note))}</span></p>
+      ${o.notePlace ? `<label class="small muted" for="note-${esc(o.notePlace.id)}-${esc(p.id)}">${I("key-round")} ${T("Jak wejść — godziny, kto otwiera, kontakt do zarządcy (Twoja notatka)")} ${saveState(`note-${o.notePlace.id}-${p.id}`)}</label>
         <textarea id="note-${esc(o.notePlace.id)}-${esc(p.id)}" data-note-place="${esc(o.notePlace.id)}" data-note-id="${esc(p.id)}" rows="2" style="width:100%"
-          placeholder="np. administrator osiedla, tel. …; otwarte 7–15">${esc(o.notePlace.access?.[p.id] || "")}</textarea>
+          placeholder="${esc(T("np. administrator osiedla, tel. …; otwarte 7–15"))}">${esc(o.notePlace.access?.[p.id] || "")}</textarea>
         ${recBlock(o.notePlace, p)}` : ""}
-      ${dist != null ? `<p>${fmtDist(dist)} ${o.origin || (!S.userPos && o.distFrom) ? "od miejsca" : "od Ciebie"} · ${esc(C.MODES[mode].label.toLowerCase())}: ${estText(C.estimateMin(dist, mode))}</p>` : ""}
+      ${dist != null ? `<p>${o.origin || (!S.userPos && o.distFrom) ? T("{d} od miejsca", { d: fmtDist(dist) }) : T("{d} od Ciebie", { d: fmtDist(dist) })} · ${esc(trybNazwa(mode).toLowerCase())}: ${estText(C.estimateMin(dist, mode))}</p>` : ""}
       <p class="small trust-${t.level}">${esc(t.text)}</p>
       ${C.flagMessages(p).length ? notkaOBledach() : ""}
       ${o.photo === false ? "" : zdjecieZGory(p, "Zdjęcie z góry, ok. 140 m szerokości · punkt w środku · ortofotomapa GUGiK")}
       <div class="row">
-        <a class="btn" target="_blank" rel="noopener" href="${esc(C.directionsUrl(p, mode, o.origin || navOrigin()))}">${o.origin ? "Przećwicz trasę" : "Prowadź"}</a>
+        <a class="btn" target="_blank" rel="noopener" href="${esc(C.directionsUrl(p, mode, o.origin || navOrigin()))}">${o.origin ? T("Przećwicz trasę") : T("Prowadź")}</a>
         <a class="btn ghost" target="_blank" rel="noopener" href="${esc(svUrl(p))}">Street View</a>
         ${o.extra || ""}
       </div>
       ${o.trasa ? `<button class="btn ghost szeroki" data-act="rysuj-trase" data-id="${esc(p.id)}"${S.rysujeTrase ? " disabled" : ""}>
-          ${I("route")}${S.rysujeTrase ? "Ustalam pozycję…" : "Narysuj trasę tutaj, na mapie Groty"}</button>
-        <p class="small muted">„Prowadź" otwiera nawigację w telefonie. Bez internetu albo bez tej aplikacji nawigacja nie ruszy —
-          wtedy ten guzik rysuje trasę orientacyjną na mapie Groty, z tego, co telefon ma u siebie.</p>
-        ${S.trasaBlad ? `<p class="sim">${esc(S.trasaBlad)}</p>` : ""}
+          ${I("route")}${S.rysujeTrase ? T("Ustalam pozycję…") : T("Narysuj trasę tutaj, na mapie Groty")}</button>
+        <p class="small muted">${T("„Prowadź\" otwiera nawigację w telefonie. Bez internetu albo bez tej aplikacji nawigacja nie ruszy — wtedy ten guzik rysuje trasę orientacyjną na mapie Groty, z tego, co telefon ma u siebie.")}</p>
+        ${S.trasaBlad ? `<p class="sim">${esc(T(S.trasaBlad))}</p>` : ""}
         ${routeInfo(p)}` : ""}
       ${o.after || ""}
     </div>`;
@@ -1131,15 +1192,11 @@ Zmienić położenie?`);
   }
 
   function notkaOBledach(otwarta = false) {
-    const ile = `${ileWatpliwych().toLocaleString("pl-PL")} z ${S.points.length.toLocaleString("pl-PL")}`;
     return `<details class="bledy small"${otwarta ? " open" : ""}>
-      <summary>Skąd biorą się przesunięte punkty?</summary>
-      <p>Adresy i współrzędne pochodzą z publicznego zbioru Komendy Głównej PSP — tego samego, z którego korzystają
-      inne aplikacje i serwisy. ${ile} punktów ma oznaczone wątpliwe położenie: najczęściej szpilka stoi obok budynku —
-      na podwórku, parkingu albo trawniku — rzadziej wskazuje miejsce poza miejscowością z adresu albo w innej gminie.
-      <b>To błąd w danych źródłowych</b> i w tym, jak są dalej przetwarzane — nie w Grocie.</p>
-      <p>Grota takich punktów nie przesuwa po cichu ani nie ukrywa: oznacza je obwódką, nie poleca jako pierwszych
-      i pisze, co stoi najbliżej szpilki. Szukaj w terenie tego budynku, nie samej szpilki.</p>
+      <summary>${T("Skąd biorą się przesunięte punkty?")}</summary>
+      <p>${T("Adresy i współrzędne pochodzą z publicznego zbioru Komendy Głównej PSP — tego samego, z którego korzystają inne aplikacje i serwisy. {ile} z {wszystkie} punktów ma oznaczone wątpliwe położenie: najczęściej szpilka stoi obok budynku — na podwórku, parkingu albo trawniku — rzadziej wskazuje miejsce poza miejscowością z adresu albo w innej gminie. <b>To błąd w danych źródłowych</b> i w tym, jak są dalej przetwarzane — nie w Grocie.",
+        { ile: J.liczba(ileWatpliwych()), wszystkie: J.liczba(S.points.length) })}</p>
+      <p>${T("Grota takich punktów nie przesuwa po cichu ani nie ukrywa: oznacza je obwódką, nie poleca jako pierwszych i pisze, co stoi najbliżej szpilki. Szukaj w terenie tego budynku, nie samej szpilki.")}</p>
     </details>`;
   }
 
@@ -1148,7 +1205,7 @@ Zmienić położenie?`);
     const F = S.filter, gr = activeGroups(F.grupy);
     const all = F.dostep.length === ACCESS_ITEMS.length && F.trust.length === TRUST_ITEMS.length && gr.length === ALL_GROUPS.length;
     const vis = all ? S.points.length : visibleCount();
-    return `<span class="small muted">${vis.toLocaleString("pl-PL")} pkt · ${esc(C.MODES[S.mode].label.split(" /")[0].toLowerCase())}</span>`;
+    return `<span class="small muted">${T("{n} pkt", { n: J.liczba(vis) })} · ${esc(trybKrotko(S.mode).toLowerCase())}</span>`;
   }
 
   function legendFilter() {
@@ -1156,22 +1213,22 @@ Zmienić położenie?`);
     const all = F.dostep.length === 3 && F.trust.length === 3 && !F.grupy;
     const topAll = F.dostep.length === 3 && F.trust.length === 3;
     const gr = activeGroups();
-    const fmt = (x) => (x || 0).toLocaleString("pl-PL");
+    const fmt = (x) => J.liczba(x || 0);
     const vis = visibleCount();
     return `<div class="filter">
-      <div class="filter-head"><span class="small muted">Pokaż na mapie</span>
-        <button type="button" class="chip${topAll ? " on" : ""}" data-act="filter-all" aria-pressed="${topAll}">Pokaż wszystkie</button></div>
+      <div class="filter-head"><span class="small muted">${T("Pokaż na mapie")}</span>
+        <button type="button" class="chip${topAll ? " on" : ""}" data-act="filter-all" aria-pressed="${topAll}">${T("Pokaż wszystkie")}</button></div>
       <div class="filter-row">${ACCESS_ITEMS.map(([k, label]) => `<button type="button" class="fchip${F.dostep.includes(k) ? " on" : ""}" data-act="filter" data-group="dostep" data-val="${k}" aria-pressed="${F.dostep.includes(k)}">
-        <i style="background:${ACCESS_COLORS[k]}"></i><span>${label}</span><small>${fmt(c.dostep[k])}</small></button>`).join("")}</div>
+        <i style="background:${ACCESS_COLORS[k]}"></i><span>${T(label)}</span><small>${fmt(c.dostep[k])}</small></button>`).join("")}</div>
       <div class="filter-row">${TRUST_ITEMS.map(([k, label, color]) => `<button type="button" class="fchip${F.trust.includes(k) ? " on" : ""}" data-act="filter" data-group="trust" data-val="${k}" aria-pressed="${F.trust.includes(k)}">
-        <i class="ring" style="border-color:${color}"></i><span>${label}</span><small>${fmt(c.trust[k])}</small></button>`).join("")}</div>
+        <i class="ring" style="border-color:${color}"></i><span>${T(label)}</span><small>${fmt(c.trust[k])}</small></button>`).join("")}</div>
       ${notkaOBledach()}
-      <div class="filter-head filter-sub"><span class="small muted">Rodzaj budynku (wg OpenStreetMap)</span>
-        <button type="button" class="chip${F.grupy ? "" : " on"}" data-act="filter-groups-all" aria-pressed="${!F.grupy}">Pokaż wszystkie</button></div>
-      <div class="type-row">${TYPE_GROUPS.map(([k, label, icon]) => `<button type="button" class="tchip${gr.includes(k) ? " on" : ""}" data-act="filter-group" data-val="${k}" aria-pressed="${gr.includes(k)}" title="${esc(label)}">
-        ${I(icon)}<span>${esc(label)}</span><small>${fmt(c.grupa[k])}</small></button>`).join("")}</div>
-      <p class="small muted">Każdy przycisk włącza lub wyłącza swoją grupę. „Pokaż wszystkie” zaznacza wszystko, a naciśnięte ponownie — odznacza.</p>
-      <p class="small muted">${all ? "Widać wszystkie punkty." : vis ? `Widać ${fmt(vis)} z ${fmt(S.points.length)} punktów.` : "<b>Nic nie jest zaznaczone — mapa nie pokazuje żadnego punktu.</b>"} Filtr dotyczy tylko mapy — „Teraz” zawsze szuka wśród wszystkich sprawdzonych punktów.</p>
+      <div class="filter-head filter-sub"><span class="small muted">${T("Rodzaj budynku (wg OpenStreetMap)")}</span>
+        <button type="button" class="chip${F.grupy ? "" : " on"}" data-act="filter-groups-all" aria-pressed="${!F.grupy}">${T("Pokaż wszystkie")}</button></div>
+      <div class="type-row">${TYPE_GROUPS.map(([k, label, icon]) => `<button type="button" class="tchip${gr.includes(k) ? " on" : ""}" data-act="filter-group" data-val="${k}" aria-pressed="${gr.includes(k)}" title="${esc(T(label))}">
+        ${I(icon)}<span>${esc(T(label))}</span><small>${fmt(c.grupa[k])}</small></button>`).join("")}</div>
+      <p class="small muted">${T("Każdy przycisk włącza lub wyłącza swoją grupę. „Pokaż wszystkie” zaznacza wszystko, a naciśnięte ponownie — odznacza.")}</p>
+      <p class="small muted">${all ? T("Widać wszystkie punkty.") : vis ? T("Widać {n} z {wszystkie} punktów.", { n: fmt(vis), wszystkie: fmt(S.points.length) }) : `<b>${T("Nic nie jest zaznaczone — mapa nie pokazuje żadnego punktu.")}</b>`} ${T("Filtr dotyczy tylko mapy — „Teraz” zawsze szuka wśród wszystkich sprawdzonych punktów.")}</p>
     </div>`;
   }
 
@@ -1179,27 +1236,26 @@ Zmienić położenie?`);
     const p = S.selectedId && S.byId.get(S.selectedId);
     const n = S.points.length;
     return `${p ? `<div class="sel-point">
-        <div class="row"><b class="grow">Wybrany punkt</b>
-          <button class="btn ghost place-btn icon-only" data-act="clear-sel" title="Zamknij" aria-label="Zamknij kartę punktu">${I("x")}</button></div>
+        <div class="row"><b class="grow">${T("Wybrany punkt")}</b>
+          <button class="btn ghost place-btn icon-only" data-act="clear-sel" title="${T("Zamknij")}" aria-label="${T("Zamknij kartę punktu")}">${I("x")}</button></div>
         ${shelterCard(p, { sel: true, trasa: true, after: addToPlace(p) })}
       </div>` : ""}
-      ${S.dataError ? `<p class="sim">${esc(S.dataError)}</p>` : ""}
+      ${S.dataError ? `<p class="sim">${esc(T(S.dataError))}</p>` : ""}
       ${S.infoSchrony ? `<div class="card info-card">
-        <div class="row"><b class="grow">Czemu nie ma tu „schronów”?</b>
-          <button class="btn ghost place-btn icon-only" data-act="info-off" title="Zamknij" aria-label="Zamknij informację">${I("x")}</button></div>
-        <p class="small">Publiczne dane PSP nie rozróżniają schronu, ukrycia i miejsca doraźnego schronienia — pełna ewidencja (CEOZO)
-        z mocy ustawy nie jest informacją publiczną.</p>
-        <button class="btn ghost" data-act="info-more">${I("book-open")}Wyjaśnienie i źródła</button>
+        <div class="row"><b class="grow">${T("Czemu nie ma tu „schronów”?")}</b>
+          <button class="btn ghost place-btn icon-only" data-act="info-off" title="${T("Zamknij")}" aria-label="${T("Zamknij informację")}">${I("x")}</button></div>
+        <p class="small">${T("Publiczne dane PSP nie rozróżniają schronu, ukrycia i miejsca doraźnego schronienia — pełna ewidencja (CEOZO) z mocy ustawy nie jest informacją publiczną.")}</p>
+        <button class="btn ghost" data-act="info-more">${I("book-open")}${T("Wyjaśnienie i źródła")}</button>
       </div>` : ""}
       <div class="row map-bar">
         <button type="button" class="btn ghost grow map-tools-btn" data-act="map-tools" aria-expanded="${S.mapToolsOpen}">
-          ${I("sliders-horizontal")}<span class="grow">Filtry i widok</span>${filterSummary()}${I(S.mapToolsOpen ? "chevron-up" : "chevron-down")}</button>
+          ${I("sliders-horizontal")}<span class="grow">${T("Filtry i widok")}</span>${filterSummary()}${I(S.mapToolsOpen ? "chevron-up" : "chevron-down")}</button>
       </div>
       ${S.mapToolsOpen ? `${n ? legendFilter() : ""}
-        <h3>Środek transportu</h3>${modeButtons()}
+        <h3>${T("Środek transportu")}</h3>${modeButtons()}
         ${S.mode === "driving" ? rule("P-AUTO") : ""}
-        <p class="muted small">Źródło: ${esc(S.meta?.zrodlo || "")}; dane z ${esc(S.meta?.data_danych || "")}. Dane nie zawierają liczby miejsc ani rodzaju obiektu (schron / ukrycie / miejsce doraźne).</p>`
-        : `<p class="muted small">${n ? "Dotknij punktu na mapie — jego karta pojawi się tutaj." : "Wczytuję dane…"}</p>`}`;
+        <p class="muted small">${T("Źródło: {zrodlo}; dane z {data}. Dane nie zawierają liczby miejsc ani rodzaju obiektu (schron / ukrycie / miejsce doraźne).", { zrodlo: esc(T(S.meta?.zrodlo || "")), data: esc(S.meta?.data_danych || "") })}</p>`
+        : `<p class="muted small">${n ? T("Dotknij punktu na mapie — jego karta pojawi się tutaj.") : T("Wczytuję dane…")}</p>`}`;
   }
 
   /* Pola tekstowe zapisują się same: pół sekundy po ostatnim znaku i w chwili opuszczenia pola.
@@ -1207,11 +1263,11 @@ Zmienić położenie?`);
      sąsiedniego pola wyboru. Potwierdzeniem jest wskaźnik przy nagłówku. */
   function saveState(field) {
     const f = S.savedFlash;
-    return `<span class="save-state" id="st-${esc(field)}">${f && f.field === field && Date.now() - f.at < 4000 ? `${I("check")}Zapisano` : ""}</span>`;
+    return `<span class="save-state" id="st-${esc(field)}">${f && f.field === field && Date.now() - f.at < 4000 ? `${I("check")}${T("Zapisano")}` : ""}</span>`;
   }
 
   function placeSummary(pl, saved) {
-    return `${esc(P.PLACE_KINDS[pl.kind]?.label || "")} · schronienia: ${saved.length}/3${pl.routes && Object.keys(pl.routes).length ? ` · nagrane trasy: ${Object.keys(pl.routes).length}` : ""} · ${esc(C.MODES[pl.mode].label)}`;
+    return `${esc(T(P.PLACE_KINDS[pl.kind]?.label || ""))} · ${T("schronienia: {n}/3", { n: saved.length })}${pl.routes && Object.keys(pl.routes).length ? ` · ${T("nagrane trasy: {n}", { n: Object.keys(pl.routes).length })}` : ""} · ${esc(trybNazwa(pl.mode))}`;
   }
 
   // Szczegóły miejsca (po dotknięciu kafla): wszystko, co zapisano — bez wchodzenia w edycję.
@@ -1219,30 +1275,30 @@ Zmienić położenie?`);
     const F = S.pickFilter;
     const near = C.nearest(pointsFor(F.dostep, F.grupy), pl.lat, pl.lon, { limit: 8, mode: pl.mode });
     const byAccess = nearestByAccess(pl.lat, pl.lon, F.grupy, pl.mode);
-    const where = pl.addr ? esc(pl.addr) : "wskazane na mapie";
+    const where = pl.addr ? esc(pl.addr) : T("wskazane na mapie");
     return `<div class="place-details">
       <dl class="kv">
-        <dt>Położenie</dt><dd>${where}${pl.approx ? ` <span class="trust-uwaga small">(przybliżone — popraw w „Edytuj”)</span>` : ""}</dd>
-        <dt>Moje miejsce w budynku</dt><dd>${pl.spot ? `${esc(pl.spot)} <span class="small ${pl.spotChecked ? "trust-ok" : "trust-uwaga"}">${pl.spotChecked ? "· sprawdzone" : "· jeszcze nie sprawdzone"}</span>` : `<span class="muted">nie zapisano</span>`}</dd>
-        <dt>Środek transportu</dt><dd>${esc(C.MODES[pl.mode].label)}</dd>
+        <dt>${T("Położenie")}</dt><dd>${where}${pl.approx ? ` <span class="trust-uwaga small">${T("(przybliżone — popraw w „Edytuj”)")}</span>` : ""}</dd>
+        <dt>${T("Moje miejsce w budynku")}</dt><dd>${pl.spot ? `${esc(pl.spot)} <span class="small ${pl.spotChecked ? "trust-ok" : "trust-uwaga"}">${pl.spotChecked ? T("· sprawdzone") : T("· jeszcze nie sprawdzone")}</span>` : `<span class="muted">${T("nie zapisano")}</span>`}</dd>
+        <dt>${T("Środek transportu")}</dt><dd>${esc(trybNazwa(pl.mode))}</dd>
       </dl>
       <div class="row">
-        <button class="btn ghost" data-act="edit-place" data-id="${esc(pl.id)}">${I("pencil")}Edytuj dane miejsca</button>
-        <button class="btn ghost" data-act="place-on-map" data-id="${esc(pl.id)}">${I("map-pin")}Pokaż na mapie</button></div>
+        <button class="btn ghost" data-act="edit-place" data-id="${esc(pl.id)}">${I("pencil")}${T("Edytuj dane miejsca")}</button>
+        <button class="btn ghost" data-act="place-on-map" data-id="${esc(pl.id)}">${I("map-pin")}${T("Pokaż na mapie")}</button></div>
 
-      <h3>Moje miejsca schronienia (${saved.length}/3)</h3>
-      ${saved.length ? saved.map((p) => shelterCard(p, { origin: pl, mode: pl.mode, notePlace: pl, extra: `<button class="btn ghost" data-act="unsave" data-place="${esc(pl.id)}" data-id="${esc(p.id)}">Usuń z listy</button>` })).join("")
-        : `<p class="muted">Wybierz do trzech poniżej i przećwicz drogę — poradnik zaleca iść „ustaloną wcześniej drogą” (s. 34).</p>`}
+      <h3>${T("Moje miejsca schronienia ({n}/3)", { n: saved.length })}</h3>
+      ${saved.length ? saved.map((p) => shelterCard(p, { origin: pl, mode: pl.mode, notePlace: pl, extra: `<button class="btn ghost" data-act="unsave" data-place="${esc(pl.id)}" data-id="${esc(p.id)}">${T("Usuń z listy")}</button>` })).join("")
+        : `<p class="muted">${T("Wybierz do trzech poniżej i przećwicz drogę — poradnik zaleca iść „ustaloną wcześniej drogą” (s. 34).")}</p>`}
 
-      <h3>Wybierz miejsca schronienia</h3>
+      <h3>${T("Wybierz miejsca schronienia")}</h3>
       ${accessFilterBar({ F, near: byAccess, prefix: "pf", typesOpen: S.pickTypesOpen, title: "Pokaż punkty",
         note: "Filtr włączony — lista pokazuje tylko zaznaczone punkty. Odległości przy przyciskach liczone są od tego miejsca." })}
       ${near.length ? near.map((c) => {
         const t = C.trustLabel(c.p), has = pl.shelters.includes(c.p.id);
         return `<label class="chk card pick${has ? " sel" : ""}"><input type="checkbox" data-act="save" data-place="${esc(pl.id)}" data-id="${esc(c.p.id)}"${has ? " checked" : ""}${!has && pl.shelters.length >= 3 ? " disabled" : ""}>
-          <span class="grow"><b>${esc(c.p.adres)}</b><br><span class="small">${fmtDist(c.distM)} · ${estText(c.estMin)} · <span class="badge b${esc(c.p.dostep)}">${esc(C.ACCESS[c.p.dostep].label)}</span>${c.p.obiekt && c.p.obiekt.kod !== "budynek" ? ` · ${esc(c.p.obiekt.nazwa || c.p.obiekt.etykieta)}` : ""}</span>
+          <span class="grow"><b>${esc(c.p.adres)}</b><br><span class="small">${fmtDist(c.distM)} · ${estText(c.estMin)} · <span class="badge b${esc(c.p.dostep)}">${esc(T(C.ACCESS[c.p.dostep].label))}</span>${c.p.obiekt && c.p.obiekt.kod !== "budynek" ? ` · ${esc(c.p.obiekt.nazwa || T(c.p.obiekt.etykieta))}` : ""}</span>
           <br><span class="small trust-${t.level}">${esc(t.text)}</span></span></label>`;
-      }).join("") : `<p class="sim">Brak punktów spełniających filtr w pobliżu. Zaznacz więcej rodzajów powyżej.</p>`}
+      }).join("") : `<p class="sim">${T("Brak punktów spełniających filtr w pobliżu. Zaznacz więcej rodzajów powyżej.")}</p>`}
     </div>`;
   }
 
@@ -1250,26 +1306,26 @@ Zmienić położenie?`);
   function placeEdit(pl) {
     const id = esc(pl.id);
     return `<div class="place-details">
-      <h3>Nazwa ${saveState(`place-name-${pl.id}`)}</h3>
+      <h3>${T("Nazwa")} ${saveState(`place-name-${pl.id}`)}</h3>
       <input type="text" id="place-name-${id}" data-autosave value="${esc(pl.name)}" style="width:100%" enterkeyhint="done">
-      <h3>Położenie</h3>
-      ${pl.approx ? `<p class="sim">Położenie przybliżone${pl.addr ? ` („${esc(pl.addr)}”)` : ""} — wpisz dokładny adres albo wskaż budynek na mapie.</p>`
+      <h3>${T("Położenie")}</h3>
+      ${pl.approx ? `<p class="sim">${pl.addr ? T("Położenie przybliżone („{a}”) — wpisz dokładny adres albo wskaż budynek na mapie.", { a: esc(pl.addr) }) : T("Położenie przybliżone — wpisz dokładny adres albo wskaż budynek na mapie.")}</p>`
         : pl.addr ? `<p class="small muted">${I("map-pin")} ${esc(pl.addr)}</p>` : ""}
       ${addrBox("Nowy adres", "edit")}
       <div class="row" style="margin-top:6px">
-        <button class="btn ghost" data-act="place-move-gps" data-id="${id}">${I("locate-fixed")}Moja pozycja</button>
-        <button class="btn ghost" data-act="place-move-map" data-id="${id}">${I("map-pin")}Wskaż na mapie</button></div>
-      ${S.pick?.purpose === "move" && S.pick.id === pl.id ? `<p class="sim">Kliknij na mapie nowe położenie miejsca „${esc(pl.name)}”.</p>` : ""}
-      <h3>Rodzaj miejsca</h3>
+        <button class="btn ghost" data-act="place-move-gps" data-id="${id}">${I("locate-fixed")}${T("Moja pozycja")}</button>
+        <button class="btn ghost" data-act="place-move-map" data-id="${id}">${I("map-pin")}${T("Wskaż na mapie")}</button></div>
+      ${S.pick?.purpose === "move" && S.pick.id === pl.id ? `<p class="sim">${T("Kliknij na mapie nowe położenie miejsca „{n}”.", { n: esc(pl.name) })}</p>` : ""}
+      <h3>${T("Rodzaj miejsca")}</h3>
       ${kindPicker(pl.kind, `data-act="place-kind" data-id="${id}"`)}
-      <h3>Moje miejsce w tym budynku ${saveState(`place-spot-${pl.id}`)}</h3>
+      <h3>${T("Moje miejsce w tym budynku")} ${saveState(`place-spot-${pl.id}`)}</h3>
       ${P.PLACE_KINDS[pl.kind]?.rule ? rule(P.PLACE_KINDS[pl.kind].rule) : rule("P-POZA-DOMEM")}
-      <textarea id="place-spot-${id}" data-autosave rows="2" style="width:100%" placeholder="Twoja notatka, np. „korytarz na parterze, bez okien”">${esc(pl.spot)}</textarea>
-      <label class="chk small"><input type="checkbox" id="place-spotok-${id}"${pl.spotChecked ? " checked" : ""}> Sprawdziłem to miejsce na miejscu</label>
+      <textarea id="place-spot-${id}" data-autosave rows="2" style="width:100%" placeholder="${esc(T("Twoja notatka, np. „korytarz na parterze, bez okien”"))}">${esc(pl.spot)}</textarea>
+      <label class="chk small"><input type="checkbox" id="place-spotok-${id}"${pl.spotChecked ? " checked" : ""}> ${T("Sprawdziłem to miejsce na miejscu")}</label>
       ${P.PLACE_KINDS[pl.kind]?.checklist ? checklist(P.PLACE_KINDS[pl.kind].checklist, true) : ""}
-      <h3>Środek transportu z tego miejsca</h3>${modeButtons(pl.mode, pl.id)}
+      <h3>${T("Środek transportu z tego miejsca")}</h3>${modeButtons(pl.mode, pl.id)}
       ${pl.mode === "driving" ? rule("P-AUTO") : ""}
-      <div class="row" style="margin-top:12px"><button class="btn" data-act="edit-done" data-id="${id}">${I("check")}Gotowe</button></div>
+      <div class="row" style="margin-top:12px"><button class="btn" data-act="edit-done" data-id="${id}">${I("check")}${T("Gotowe")}</button></div>
     </div>`;
   }
 
@@ -1279,36 +1335,36 @@ Zmienić położenie?`);
       const saved = pl.shelters.map((id) => S.byId.get(id)).filter(Boolean);
       return `<div class="card place-card${open ? " sel" : ""}" data-id="${esc(pl.id)}">
         <div class="row place-head">${S.places.length > 1 ? `<button type="button" class="drag-handle" data-id="${esc(pl.id)}"
-            title="Przeciągnij, aby zmienić kolejność" aria-label="Zmień kolejność: ${esc(pl.name)} (strzałki w górę i w dół)">${I("grip-vertical")}</button>` : ""}
+            title="${esc(T("Przeciągnij, aby zmienić kolejność"))}" aria-label="${esc(T("Zmień kolejność: {n} (strzałki w górę i w dół)", { n: pl.name }))}">${I("grip-vertical")}</button>` : ""}
           <button type="button" class="place-open grow" data-act="open-place" data-id="${esc(pl.id)}" aria-expanded="${open}">
             ${kindBadge(pl.kind, "lg")}<span class="grow"><b>${esc(pl.name)}</b><span class="small muted">${placeSummary(pl, saved)}</span></span>${I(open ? "chevron-up" : "chevron-down")}</button>
-          <button class="btn ${edit ? "" : "ghost "}place-btn icon-only" data-act="edit-place" data-id="${esc(pl.id)}" title="Edytuj" aria-label="Edytuj ${esc(pl.name)}">${I("pencil")}</button>
-          <button class="btn ghost place-btn danger-ghost icon-only" data-act="del-place" data-id="${esc(pl.id)}" title="Usuń miejsce" aria-label="Usuń miejsce ${esc(pl.name)}">${I("trash-2")}</button></div>
+          <button class="btn ${edit ? "" : "ghost "}place-btn icon-only" data-act="edit-place" data-id="${esc(pl.id)}" title="${esc(T("Edytuj"))}" aria-label="${esc(T("Edytuj {n}", { n: pl.name }))}">${I("pencil")}</button>
+          <button class="btn ghost place-btn danger-ghost icon-only" data-act="del-place" data-id="${esc(pl.id)}" title="${esc(T("Usuń miejsce"))}" aria-label="${esc(T("Usuń miejsce {n}", { n: pl.name }))}">${I("trash-2")}</button></div>
         ${open ? (edit ? placeEdit(pl) : placeDetails(pl, saved)) : ""}
       </div>`;
     }).join("");
     const used = new Set(S.places.map((pl) => pl.kind));
     const A = S.adding;
-    return `<h2>Moje stałe miejsca</h2>
+    return `<h2>${T("Moje stałe miejsca")}</h2>
       ${rule("P-DEKALOG")}
-      <p class="muted small">Miejsca są zapisywane tylko na tym urządzeniu. Dotknij miejsca, aby zobaczyć szczegóły.${S.places.length > 1 ? " Kolejność zmienisz, przeciągając kafel za uchwyt ⋮⋮." : ""}</p>
-      ${list ? `<div class="place-list">${list}</div>` : `<p class="muted">Nie masz jeszcze zapisanych miejsc — dodaj dom, pracę albo szkołę dziecka poniżej.</p>`}
+      <p class="muted small">${T("Miejsca są zapisywane tylko na tym urządzeniu. Dotknij miejsca, aby zobaczyć szczegóły.")}${S.places.length > 1 ? " " + T("Kolejność zmienisz, przeciągając kafel za uchwyt ⋮⋮.") : ""}</p>
+      ${list ? `<div class="place-list">${list}</div>` : `<p class="muted">${T("Nie masz jeszcze zapisanych miejsc — dodaj dom, pracę albo szkołę dziecka poniżej.")}</p>`}
       <div class="card add-place">
-        <h3>Dodaj miejsce</h3>
-        <p class="small muted">Wybierz rodzaj. Pełny kolor — takie miejsce już masz.</p>
+        <h3>${T("Dodaj miejsce")}</h3>
+        <p class="small muted">${T("Wybierz rodzaj. Pełny kolor — takie miejsce już masz.")}</p>
         <div class="kinds add">${Object.entries(P.PLACE_KINDS).map(([k, v]) =>
-          `<button type="button" data-act="add-kind" data-kind="${k}" class="${used.has(k) ? "used" : ""}${A === k ? " on" : ""}" style="--kc:${kindLook(k).color}" aria-expanded="${A === k}">${kindBadge(k)}<span>${esc(v.label)}</span></button>`).join("")}</div>
+          `<button type="button" data-act="add-kind" data-kind="${k}" class="${used.has(k) ? "used" : ""}${A === k ? " on" : ""}" style="--kc:${kindLook(k).color}" aria-expanded="${A === k}">${kindBadge(k)}<span>${esc(T(v.label))}</span></button>`).join("")}</div>
         ${A ? `<div class="add-form">
-          <h3>Nowe miejsce: ${esc(P.PLACE_KINDS[A].label)}</h3>
-          <label class="small muted" for="new-place-name">Nazwa</label>
-          <div class="row"><input type="text" id="new-place-name" placeholder="${esc(P.PLACE_KINDS[A].label)}" value="${esc(S.newName)}" class="grow"></div>
+          <h3>${T("Nowe miejsce: {rodzaj}", { rodzaj: esc(T(P.PLACE_KINDS[A].label)) })}</h3>
+          <label class="small muted" for="new-place-name">${T("Nazwa")}</label>
+          <div class="row"><input type="text" id="new-place-name" placeholder="${esc(T(P.PLACE_KINDS[A].label))}" value="${esc(S.newName)}" class="grow"></div>
           ${addrBox("Adres miejsca", "place")}
-          <p class="small muted" style="margin:8px 0 4px">albo</p>
+          <p class="small muted" style="margin:8px 0 4px">${T("albo")}</p>
           <div class="row">
-            <button class="btn ghost" data-act="place-gps">${I("locate-fixed")}Moja pozycja</button>
-            <button class="btn ghost" data-act="place-map">${I("map-pin")}Wskaż na mapie</button>
-            <button class="btn ghost" data-act="add-cancel">Anuluj</button></div>
-          ${S.pick?.purpose === "place" ? `<p class="sim">Kliknij na mapie położenie miejsca „${esc(S.pick.name || P.PLACE_KINDS[S.pick.kind || "inne"].label)}”.</p>` : ""}
+            <button class="btn ghost" data-act="place-gps">${I("locate-fixed")}${T("Moja pozycja")}</button>
+            <button class="btn ghost" data-act="place-map">${I("map-pin")}${T("Wskaż na mapie")}</button>
+            <button class="btn ghost" data-act="add-cancel">${T("Anuluj")}</button></div>
+          ${S.pick?.purpose === "place" ? `<p class="sim">${T("Kliknij na mapie położenie miejsca „{n}”.", { n: esc(S.pick.name || T(P.PLACE_KINDS[S.pick.kind || "inne"].label)) })}</p>` : ""}
         </div>` : ""}
       </div>`;
   }
@@ -1317,14 +1373,14 @@ Zmienić położenie?`);
 
   function kindPicker(current, attrs) {
     return `<div class="kinds">${Object.entries(P.PLACE_KINDS).map(([k, v]) =>
-      `<button type="button" ${attrs} data-kind="${k}" class="${k === current ? "on" : ""}" style="--kc:${kindLook(k).color}">${kindBadge(k)}<span>${esc(v.label)}</span></button>`).join("")}</div>`;
+      `<button type="button" ${attrs} data-kind="${k}" class="${k === current ? "on" : ""}" style="--kc:${kindLook(k).color}">${kindBadge(k)}<span>${esc(T(v.label))}</span></button>`).join("")}</div>`;
   }
 
   // placeId: wybór dla zapisanego miejsca; bez niego — ustawienie ogólne (Teraz, Mapa)
   function modeButtons(current = S.mode, placeId = null) {
     const attrs = placeId ? `data-act="place-mode" data-id="${esc(placeId)}"` : `data-act="mode"`;
-    return `<div class="seg" role="radiogroup" aria-label="Środek transportu">${Object.entries(C.MODES).map(([k, m]) =>
-      `<button type="button" ${attrs} data-mode="${k}" class="${k === current ? "on" : ""}" role="radio" aria-checked="${k === current}" title="${esc(m.label)}">${I(MODE_ICONS[k])}<span>${esc(m.label.split(" /")[0])}</span></button>`).join("")}</div>`;
+    return `<div class="seg" role="radiogroup" aria-label="${esc(T("Środek transportu"))}">${Object.keys(C.MODES).map((k) =>
+      `<button type="button" ${attrs} data-mode="${k}" class="${k === current ? "on" : ""}" role="radio" aria-checked="${k === current}" title="${esc(trybNazwa(k))}">${I(MODE_ICONS[k])}<span>${esc(trybKrotko(k))}</span></button>`).join("")}</div>`;
   }
 
   /* Start trasy w Google Maps. Gdy pozycja pochodzi z GPS — bez punktu startowego (Google Maps użyje
@@ -1344,17 +1400,17 @@ Zmienić położenie?`);
     const p = c.p, acc = C.ACCESS[p.dostep] || C.ACCESS.nieznany, t = C.trustLabel(p);
     const recznie = S.wybraneRecznie === p.id;
     return `<div class="card main-opt">
-      <div class="muted small">${recznie ? "Wybrane przez Ciebie miejsce schronienia" : "Najbliższe sprawdzone miejsce schronienia"}</div>
+      <div class="muted small">${recznie ? T("Wybrane przez Ciebie miejsce schronienia") : T("Najbliższe sprawdzone miejsce schronienia")}</div>
       <div class="big-addr">${esc(p.adres)}</div>
-      ${(() => { const d = dojscie(c); return `<div class="row"><b>${fmtDist(d.distM)}</b><span>· ${d.zTrasy ? `ok. ${d.min} min trasą` : estText(c.estMin)}</span><span class="badge b${esc(p.dostep)}">${esc(acc.label)}</span></div>`; })()}
+      ${(() => { const d = dojscie(c); return `<div class="row"><b>${fmtDist(d.distM)}</b><span>· ${d.zTrasy ? T("ok. {m} min trasą", { m: d.min }) : estText(c.estMin)}</span><span class="badge b${esc(p.dostep)}">${esc(T(acc.label))}</span></div>`; })()}
       ${objectLine(p)}
       ${routeInfo(p)}
-      <a class="btn go" target="_blank" rel="noopener" href="${esc(C.directionsUrl(p, S.mode, navOrigin()))}">PROWADŹ ➜</a>
+      <a class="btn go" target="_blank" rel="noopener" href="${esc(C.directionsUrl(p, S.mode, navOrigin()))}">${T("PROWADŹ ➜")}</a>
       ${zdjecieZGory(p, "Zdjęcie z góry · punkt w środku · ortofotomapa GUGiK")}
-      <p class="small muted">${esc(acc.note)} <span class="trust-${t.level}">${esc(t.text)}</span></p>
+      <p class="small muted">${esc(acc.note && T(acc.note))} <span class="trust-${t.level}">${esc(t.text)}</span></p>
       ${C.flagMessages(p).length ? notkaOBledach() : ""}
       <div class="row"><a class="btn ghost" target="_blank" rel="noopener" href="${esc(svUrl(p))}">Street View</a>
-        <button class="btn ghost" data-act="show-on-map" data-id="${esc(p.id)}">Pokaż na mapie</button></div>
+        <button class="btn ghost" data-act="show-on-map" data-id="${esc(p.id)}">${T("Pokaż na mapie")}</button></div>
     </div>`;
   }
 
@@ -1363,10 +1419,10 @@ Zmienić położenie?`);
     const on = S.route?.id === p.id;
     return `<div class="card other-opt${on ? " sel" : ""}"><div class="row">
       <button type="button" class="opt-open grow" data-act="wybierz-opcje" data-id="${esc(p.id)}"
-        aria-label="Wybierz to miejsce: ${esc(p.adres)}">
+        aria-label="${esc(T("Wybierz to miejsce: {a}", { a: p.adres }))}">
         <span class="badge">${i + 2}</span>
-        <span class="grow"><b>${esc(p.adres)}</b><span class="small muted">${fmtDist(c.distM)} · ${estText(c.estMin)} · ${esc(acc.label)}${p.obiekt && p.obiekt.kod !== "budynek" ? ` · ${esc(p.obiekt.etykieta)}` : ""}</span></span></button>
-      <a class="btn" target="_blank" rel="noopener" href="${esc(C.directionsUrl(p, S.mode, navOrigin()))}">Prowadź</a></div>
+        <span class="grow"><b>${esc(p.adres)}</b><span class="small muted">${fmtDist(c.distM)} · ${estText(c.estMin)} · ${esc(T(acc.label))}${p.obiekt && p.obiekt.kod !== "budynek" ? ` · ${esc(T(p.obiekt.etykieta))}` : ""}</span></span></button>
+      <a class="btn" target="_blank" rel="noopener" href="${esc(C.directionsUrl(p, S.mode, navOrigin()))}">${T("Prowadź")}</a></div>
       ${on ? routeInfo(p) : ""}</div>`;
   }
 
@@ -1375,13 +1431,13 @@ Zmienić położenie?`);
     const o = p.obiekt;
     if (!o || (o.kod === "budynek" && !o.nazwa)) return "";     // „jakiś budynek” nic nie mówi — nie zaśmiecamy karty
     const named = o.nazwa && o.nazwa !== p.adres;
-    return `<p class="obj-line">${I(o.ikona || "building")}<span><b>${esc(named ? o.nazwa : o.etykieta)}</b>
-      <span class="small muted">${named ? `${esc(o.etykieta)} · ` : ""}wg OpenStreetMap</span></span></p>`;
+    return `<p class="obj-line">${I(o.ikona || "building")}<span><b>${esc(named ? o.nazwa : T(o.etykieta))}</b>
+      <span class="small muted">${named ? `${esc(T(o.etykieta))} · ` : ""}${T("wg OpenStreetMap")}</span></span></p>`;
   }
 
   function placeChips() {
     if (!S.places.length) return "";
-    return `<div class="chips"><span class="small muted">Jestem w:</span>${S.places.map((pl) =>
+    return `<div class="chips"><span class="small muted">${T("Jestem w:")}</span>${S.places.map((pl) =>
       `<button class="chip" data-act="at-place" data-id="${esc(pl.id)}">${kindBadge(pl.kind, "sm")}${esc(pl.name)}</button>`).join("")}</div>`;
   }
 
@@ -1390,8 +1446,8 @@ Zmienić położenie?`);
   function skadSzukam() {
     return `<div class="skad">
       <div class="row">
-        <button class="btn ghost" data-act="retry-locate">${I("locate-fixed")}Pozycja z GPS</button>
-        <button class="btn ghost" data-act="addr-toggle">${I("search")}Wpisz adres</button>
+        <button class="btn ghost" data-act="retry-locate">${I("locate-fixed")}${T("Pozycja z GPS")}</button>
+        <button class="btn ghost" data-act="addr-toggle">${I("search")}${T("Wpisz adres")}</button>
       </div>
       ${placeChips()}
       ${S.addrOpen ? addrBox() : ""}
@@ -1407,22 +1463,23 @@ Zmienić położenie?`);
     const results = A.items ? (A.items.length
       ? `<div class="addr-list">${A.items.map((it, i) => `<button class="addr-item" data-act="addr-pick" data-ctx="${ctx}" data-i="${i}">${I(it.source === "gugik" && it.acc <= 25 ? "map-pin" : "map")}
           <span class="grow"><b>${esc(it.label)}</b><span class="small muted">${esc(it.detail || "")}</span></span></button>`).join("")}</div>`
-      : `<p class="small muted">Nic nie znalazłem. Spróbuj: „Miejscowość, ulica numer” albo samą miejscowość.</p>`) : "";
-    const note = A.offline ? `<p class="sim">Brak połączenia z wyszukiwarką adresów. Pokazuję miejscowości zapisane w aplikacji — pozycja to środek miejscowości.</p>`
-      : A.notFound && A.items?.length ? `<p class="sim">Nie znalazłem tego adresu ani ulicy. Miejscowości o tej nazwie — to tylko środek miejscowości${ctx === "live" ? "" : ", po wyborze popraw położenie na mapie"}:</p>`
-      : A.approx && A.items?.length ? `<p class="sim">Dokładnego adresu nie ma w bazie adresów (np. numer mieszkania albo litera). Wyniki są przybliżone${ctx === "live" ? "" : " — po wyborze popraw położenie na mapie"}.</p>` : "";
-    return `<form class="addr" data-form="addr" data-ctx="${ctx}"><label class="small muted" for="addr-q-${ctx}">${esc(title)}</label>
+      : `<p class="small muted">${T("Nic nie znalazłem. Spróbuj: „Miejscowość, ulica numer” albo samą miejscowość.")}</p>`) : "";
+    const note = A.offline ? `<p class="sim">${T("Brak połączenia z wyszukiwarką adresów. Pokazuję miejscowości zapisane w aplikacji — pozycja to środek miejscowości.")}</p>`
+      : A.notFound && A.items?.length ? `<p class="sim">${ctx === "live" ? T("Nie znalazłem tego adresu ani ulicy. Miejscowości o tej nazwie — to tylko środek miejscowości:") : T("Nie znalazłem tego adresu ani ulicy. Miejscowości o tej nazwie — to tylko środek miejscowości, po wyborze popraw położenie na mapie:")}</p>`
+      : A.approx && A.items?.length ? `<p class="sim">${ctx === "live" ? T("Dokładnego adresu nie ma w bazie adresów (np. numer mieszkania albo litera). Wyniki są przybliżone.") : T("Dokładnego adresu nie ma w bazie adresów (np. numer mieszkania albo litera). Wyniki są przybliżone — po wyborze popraw położenie na mapie.")}</p>` : "";
+    return `<form class="addr" data-form="addr" data-ctx="${ctx}"><label class="small muted" for="addr-q-${ctx}">${esc(T(title))}</label>
       <div class="row"><input type="text" id="addr-q-${ctx}" data-ctx="${ctx}" class="grow addr-q" autocomplete="street-address" enterkeyhint="search"
-        placeholder="np. Warszawa, Marszałkowska 100 · Zalesie Górne" value="${esc(A.q)}">
-        <button class="btn" type="submit"${A.loading ? " disabled" : ""}>${I("search")}${A.loading ? "Szukam…" : "Szukaj"}</button></div>
+        placeholder="${esc(T("np. Warszawa, Marszałkowska 100 · Zalesie Górne"))}" value="${esc(A.q)}">
+        <button class="btn" type="submit"${A.loading ? " disabled" : ""}>${I("search")}${A.loading ? T("Szukam…") : T("Szukaj")}</button></div>
       ${note}${results}</form>`;
   }
 
   function posLine() {
     if (!S.userPos) return "";
-    const what = S.posLabel ? esc(S.posLabel) : `GPS${S.userPos.acc ? ` ${fmtAcc(S.userPos.acc)}` : ""}`;
-    return `<div class="pos-row"><p class="small muted pos-line">${I("navigation")}Szukam od: <b>${what}</b></p>
-      <button type="button" class="btn ghost close-live" data-act="live-close">${I("x")}Zakończ</button></div>`;
+    // posLabel bywa stałym napisem („punkt wskazany na mapie”) albo nazwą czy adresem — T() tłumaczy tylko to pierwsze
+    const what = S.posLabel ? esc(T(S.posLabel)) : `GPS${S.userPos.acc ? ` ${fmtAcc(S.userPos.acc)}` : ""}`;
+    return `<div class="pos-row"><p class="small muted pos-line">${I("navigation")}${T("Szukam od:")} <b>${what}</b></p>
+      <button type="button" class="btn ghost close-live" data-act="live-close">${I("x")}${T("Zakończ")}</button></div>`;
   }
 
   // „Zakończ”: czyści pozycję, trasę i cel z mapy — wraca do zwykłej mapy.
@@ -1470,10 +1527,8 @@ Zmienić położenie?`);
 
   function notkaOZrodle() {
     if (!alarmTrwa() || S.alarm.hard !== false) return "";
-    return `<div class="card"><b>Poziom alarmu opiera się na źródłach pośrednich</b>
-      <p class="small">Nie ma teraz oficjalnego alertu RCB ani obiektu w powietrzu nad Polską. Grota pokazuje mapę,
-      odległości i kierunki, ale <b>nie wzywa do schronienia</b> — kieruj się komunikatami służb, a jeśli ich nie ma,
-      potraktuj to jako sygnał do uważności, nie do biegu.</p></div>`;
+    return `<div class="card"><b>${T("Poziom alarmu opiera się na źródłach pośrednich")}</b>
+      <p class="small">${T("Nie ma teraz oficjalnego alertu RCB ani obiektu w powietrzu nad Polską. Grota pokazuje mapę, odległości i kierunki, ale <b>nie wzywa do schronienia</b> — kieruj się komunikatami służb, a jeśli ich nie ma, potraktuj to jako sygnał do uważności, nie do biegu.")}</p></div>`;
   }
 
   /* Dwa progi ostrzeżenia o odległym celu:
@@ -1507,11 +1562,9 @@ Zmienić położenie?`);
     return { distM, estMin, pieszo, autem, eta, poziom, pozaMapa: celPozaMapa };
   }
 
-  const czasy = (o) => `pieszo ok. ${o.pieszo} min · samochodem ok. ${o.autem} min`;
+  const czasy = (o) => T("pieszo ok. {p} min · samochodem ok. {s} min", { p: o.pieszo, s: o.autem });
 
-  const ZASTRZEZENIE = `<p class="small muted">To wyliczenie Groty, <b>nieoficjalne</b> — nie zastępuje komunikatów służb.
-    Kieruj się w pierwszej kolejności oficjalnymi komunikatami (Alert RCB, RSO, radio, polecenia służb).
-    Jeśli ich nie ma, potraktuj to jako podpowiedź.</p>`;
+  const zastrzezenie = () => `<p class="small muted">${T("To wyliczenie Groty, <b>nieoficjalne</b> — nie zastępuje komunikatów służb. Kieruj się w pierwszej kolejności oficjalnymi komunikatami (Alert RCB, RSO, radio, polecenia służb). Jeśli ich nie ma, potraktuj to jako podpowiedź.")}</p>`;
 
   function celCard() {
     if (S.cel) {
@@ -1520,49 +1573,49 @@ Zmienić położenie?`);
     }
     if (!S.cel) {
       return `<div class="card">
-        <div class="row"><b class="grow">Umówione miejsce</b>
-          <button class="btn ghost" data-act="cel-open">${I(S.celOpen ? "x" : "map-pin")}${S.celOpen ? "Schowaj" : "Wskaż miejsce"}</button></div>
-        <p class="small muted">Jeśli umówiliście się z bliskimi na konkretne miejsce, wpisz je — Grota poprowadzi tam tak samo jak do schronienia i powie, czy zdążysz.</p>
+        <div class="row"><b class="grow">${T("Umówione miejsce")}</b>
+          <button class="btn ghost" data-act="cel-open">${I(S.celOpen ? "x" : "map-pin")}${S.celOpen ? T("Schowaj") : T("Wskaż miejsce")}</button></div>
+        <p class="small muted">${T("Jeśli umówiliście się z bliskimi na konkretne miejsce, wpisz je — Grota poprowadzi tam tak samo jak do schronienia i powie, czy zdążysz.")}</p>
         ${S.celOpen ? addrBox("Adres albo miejscowość miejsca spotkania", "cel") +
-          `<button class="btn ghost" data-act="cel-map">${I("map")}Wskaż na mapie</button>` : ""}
+          `<button class="btn ghost" data-act="cel-map">${I("map")}${T("Wskaż na mapie")}</button>` : ""}
       </div>`;
     }
     const o = celOcena(), R = S.route?.id === "cel" ? S.route : null;
     const ostrzezenie = (o?.poziom || (o?.pozaMapa && S.stanMap?.paczki?.length)) && !S.celWarnClosed ? `<div class="warn-box${o.poziom === "twardy" ? "" : " miekki"}">
         <div class="row"><b class="grow">${o.poziom === "twardy"
-          ? `To miejsce jest za daleko — ${czasy(o)}, a zagrożenie za ${o.eta} min.`
-          : o.poziom === "mieszany" ? `Pieszo nie zdążysz — ok. ${o.pieszo} min przy zagrożeniu za ${o.eta} min. Samochodem ok. ${o.autem} min.`
-          : o.poziom === "miekki" ? `To daleko — ${czasy(o)}. Sprawdź, czy zdążysz.`
-          : `To miejsce jest poza pobraną mapą.`}</b>
-          <button class="btn ghost place-btn icon-only" data-act="cel-warn-close" title="Zamknij" aria-label="Zamknij ostrzeżenie">${I("x")}</button></div>
-        ${o.pozaMapa ? `<p class="small">To miejsce jest <b>poza pobraną mapą</b> — bez internetu zobaczysz tam sam kierunek i odległość.</p>` : ""}
-        ${alarmTrwa() && o.eta == null ? `<p class="small">Strażnik nie podaje teraz czasu do zagrożenia (sygnały są za stare albo kurs jest niepewny), więc Grota go nie zgaduje — porównaj sam z komunikatami służb.</p>` : ""}
-        ${ZASTRZEZENIE}
-        ${alarmTrwa() && o.eta != null ? `<p class="small muted">${UWAGA_WIDOCZNE}</p>` : ""}
-        <button class="btn ghost" data-act="cel-kroki">${I("book-open")}${S.celKroki ? "Schowaj kroki" : "Co robić teraz"}</button>
+          ? T("To miejsce jest za daleko — {czasy}, a zagrożenie za {eta} min.", { czasy: czasy(o), eta: o.eta })
+          : o.poziom === "mieszany" ? T("Pieszo nie zdążysz — ok. {p} min przy zagrożeniu za {eta} min. Samochodem ok. {s} min.", { p: o.pieszo, eta: o.eta, s: o.autem })
+          : o.poziom === "miekki" ? T("To daleko — {czasy}. Sprawdź, czy zdążysz.", { czasy: czasy(o) })
+          : T("To miejsce jest poza pobraną mapą.")}</b>
+          <button class="btn ghost place-btn icon-only" data-act="cel-warn-close" title="${T("Zamknij")}" aria-label="${T("Zamknij ostrzeżenie")}">${I("x")}</button></div>
+        ${o.pozaMapa ? `<p class="small">${T("To miejsce jest <b>poza pobraną mapą</b> — bez internetu zobaczysz tam sam kierunek i odległość.")}</p>` : ""}
+        ${alarmTrwa() && o.eta == null ? `<p class="small">${T("Strażnik nie podaje teraz czasu do zagrożenia (sygnały są za stare albo kurs jest niepewny), więc Grota go nie zgaduje — porównaj sam z komunikatami służb.")}</p>` : ""}
+        ${zastrzezenie()}
+        ${alarmTrwa() && o.eta != null ? `<p class="small muted">${uwagaWidoczne()}</p>` : ""}
+        <button class="btn ghost" data-act="cel-kroki">${I("book-open")}${S.celKroki ? T("Schowaj kroki") : T("Co robić teraz")}</button>
         ${S.celKroki ? rule("P-NIE-ZDAZE", true) + rule("P-POZA-DOMEM", true) + (o.poziom === "mieszany" ? rule("P-AUTO") : "") : ""}
       </div>` : "";
     return `<div class="card sel">
-      <div class="row"><b class="grow">Umówione miejsce</b>
-        <button class="btn ghost place-btn" data-act="cel-clear">${I("trash-2")}Usuń</button></div>
-      <p class="cel-adres">${I("map-pin")}<span>${esc(S.cel.label)}</span></p>
-      ${o ? `<div class="row"><b>${fmtDist(o.distM)}</b><span class="small">· ${esc(czasy(o))}</span></div>` : `<p class="small muted">Ustal swoją pozycję, żeby poznać odległość.</p>`}
+      <div class="row"><b class="grow">${T("Umówione miejsce")}</b>
+        <button class="btn ghost place-btn" data-act="cel-clear">${I("trash-2")}${T("Usuń")}</button></div>
+      <p class="cel-adres">${I("map-pin")}<span>${esc(T(S.cel.label))}</span></p>
+      ${o ? `<div class="row"><b>${fmtDist(o.distM)}</b><span class="small">· ${esc(czasy(o))}</span></div>` : `<p class="small muted">${T("Ustal swoją pozycję, żeby poznać odległość.")}</p>`}
       ${ostrzezenie}
-      ${R?.loading ? `<p class="small muted route-info">${I("route")}Wyznaczam wstępną trasę…</p>` : ""}
+      ${R?.loading ? `<p class="small muted route-info">${I("route")}${T("Wyznaczam wstępną trasę…")}</p>` : ""}
       ${R && !R.loading && R.failed ? `<p class="small muted route-info">${I("route")}${navigator.onLine === false || O.udaje()
-        ? "Bez internetu i bez połączenia w pobranej mapie — na mapie kierunek i odległość w linii prostej."
-        : "Nie udało się wyznaczyć trasy (brak sieci?). Na mapie linia prosta."}</p>` : ""}
-      ${R && !R.loading && !R.failed && R.coords ? `<p class="route-info">${I("route")}<b>Trasa ${fmtDist(R.distM)} · ok. ${R.durMin} min</b>${R.lokalna ? ` <span class="small muted">— z mapy w telefonie</span>` : ""}</p>` : ""}
+        ? T("Bez internetu i bez połączenia w pobranej mapie — na mapie kierunek i odległość w linii prostej.")
+        : T("Nie udało się wyznaczyć trasy (brak sieci?). Na mapie linia prosta.")}</p>` : ""}
+      ${R && !R.loading && !R.failed && R.coords ? `<p class="route-info">${I("route")}<b>${T("Trasa {d} · ok. {m} min", { d: fmtDist(R.distM), m: R.durMin })}</b>${R.lokalna ? ` <span class="small muted">${T("— z mapy w telefonie")}</span>` : ""}</p>` : ""}
       <div class="row">
-        <button class="btn ghost" data-act="cel-route"${S.userPos ? "" : " disabled"}>${I("route")}Pokaż trasę</button>
-        <a class="btn" href="${esc(C.directionsUrl(S.cel, S.mode, S.userPos))}" target="_blank" rel="noopener">${I("navigation")}Prowadź</a>
+        <button class="btn ghost" data-act="cel-route"${S.userPos ? "" : " disabled"}>${I("route")}${T("Pokaż trasę")}</button>
+        <a class="btn" href="${esc(C.directionsUrl(S.cel, S.mode, S.userPos))}" target="_blank" rel="noopener">${I("navigation")}${T("Prowadź")}</a>
       </div>
     </div>`;
   }
 
   /* ---------- mapy offline ---------- */
 
-  const mb = (x) => (x >= 1000 ? `${(x / 1000).toFixed(1).replace(".", ",")} GB` : x < 10 ? `${x.toFixed(1).replace(".", ",")} MB` : `${Math.round(x)} MB`);
+  const mb = (x) => (x >= 1000 ? T("{x} GB", { x: J.ulamek(x / 1000) }) : T("{x} MB", { x: x < 10 ? J.ulamek(x) : Math.round(x) }));
 
   function punktPaczki() {
     if (S.paczka.zPunktu === "pozycja") return S.userPos;
@@ -1586,12 +1639,14 @@ Zmienić położenie?`);
     if (W.rodzaj === "promien") {
       const p = punktPaczki();
       if (!p) return null;
-      const skad = W.zPunktu === "pozycja" ? "Twojej pozycji" : (S.places.find((x) => x.id === W.zPunktu)?.name || "miejsca");
-      return { id: `promien:${p.lat.toFixed(3)},${p.lon.toFixed(3)}:${W.promienKm}`, nazwa: `${W.promienKm} km wokół ${skad}`,
+      const miejsce = S.places.find((x) => x.id === W.zPunktu)?.name;
+      const nazwa = W.zPunktu === "pozycja" ? T("{km} km wokół Twojej pozycji", { km: W.promienKm })
+        : miejsce ? T("{km} km wokół: {n}", { km: W.promienKm, n: miejsce }) : T("{km} km wokół miejsca", { km: W.promienKm });
+      return { id: `promien:${p.lat.toFixed(3)},${p.lon.toFixed(3)}:${W.promienKm}`, nazwa,
         opcje: { obszary: null, komorki: O.komorkiPromien(p.lat, p.lon, W.promienKm), trasy } };
     }
-    if (W.rodzaj === "woj") return W.woj ? { id: `woj:${W.woj}`, nazwa: `województwo ${W.woj}`, opcje: { obszary: [W.woj], komorki: null, trasy } } : null;
-    return { id: "polska", nazwa: "cała Polska", opcje: { obszary: null, komorki: null, trasy } };
+    if (W.rodzaj === "woj") return W.woj ? { id: `woj:${W.woj}`, nazwa: T("województwo {w}", { w: W.woj }), opcje: { obszary: [W.woj], komorki: null, trasy } } : null;
+    return { id: "polska", nazwa: T("cała Polska"), opcje: { obszary: null, komorki: null, trasy } };
   }
 
   const dostepneObszary = () => (S.spis ? Object.keys(S.spis.obszary).sort((a, b) => a.localeCompare(b, "pl")) : []);
@@ -1604,7 +1659,7 @@ Zmienić położenie?`);
 
   async function pobierzPaczke() {
     const w = wyborPaczki();
-    if (!w) { S.pobieranie = { blad: "Najpierw ustal pozycję albo wybierz zapisane miejsce." }; render(); return; }
+    if (!w) { S.pobieranie = { blad: "Najpierw ustal pozycję albo wybierz zapisane miejsce." }; render(); return; }   // tłumaczone przy rysowaniu
     S.pobranieWynik = null;
     S.pobieranie = { zrobione: 0, razem: 0, etykieta: w.nazwa, etap: "spis" }; render();
     try {
@@ -1643,94 +1698,93 @@ Zmienić położenie?`);
      Obie są dokładne: liczone ze spisu paczek, a nie z szacunku na kafelek. */
   function rozmiarPaczki(plan) {
     if (!plan.czesci.length) return "";
-    const rozbicie = plan.trasy ? ` (mapa ${mb(plan.mapa / 1e6)} + trasy ${mb(plan.graf / 1e6)})` : "";
-    return `<p class="small muted"><b>pobierze ${mb(plan.bajty / 1e6)}</b>${rozbicie} · zajmie w telefonie ok. ${mb(plan.zajmie / 1e6)}.
-      To, co już masz w telefonie, nie pobierze się drugi raz.</p>`;
+    const rozbicie = plan.trasy ? " " + T("(mapa {m} + trasy {t})", { m: mb(plan.mapa / 1e6), t: mb(plan.graf / 1e6) }) : "";
+    return `<p class="small muted"><b>${T("pobierze {x}", { x: mb(plan.bajty / 1e6) })}</b>${rozbicie} · ${T("zajmie w telefonie ok. {x}.", { x: mb(plan.zajmie / 1e6) })}
+      ${T("To, co już masz w telefonie, nie pobierze się drugi raz.")}</p>`;
   }
 
   function paczkiCard() {
     const st = S.stanMap, pob = S.pobieranie, W = S.paczka;
     if (!S.spis && !S.spisBlad && !S.spisLaduje && !O.udaje()) wczytajSpis();
     const maPaczki = st?.paczki?.length;
-    const lista = maPaczki ? st.paczki.map((x) => `<li>${esc(x.nazwa)}${x.trasy === false ? " (sama mapa)" : ""} — ${mb((x.bajtow || 0) / 1e6)}, ${esc(x.data)}</li>`).join("") : "";
-    const opcja = (rodzaj, etykieta) => `<button type="button" class="chip${W.rodzaj === rodzaj ? " on" : ""}" data-act="paczka-rodzaj" data-val="${rodzaj}">${etykieta}</button>`;
+    const lista = maPaczki ? st.paczki.map((x) => `<li>${esc(x.nazwa)}${x.trasy === false ? " " + T("(sama mapa)") : ""} — ${mb((x.bajtow || 0) / 1e6)}, ${esc(x.data)}</li>`).join("") : "";
+    const opcja = (rodzaj, etykieta) => `<button type="button" class="chip${W.rodzaj === rodzaj ? " on" : ""}" data-act="paczka-rodzaj" data-val="${rodzaj}">${T(etykieta)}</button>`;
     const obszary = dostepneObszary();
     const w = S.spis ? wyborPaczki() : null;
     const plan = w ? O.planuj(S.spis, w.opcje) : null;
     let wybor = "";
     if (S.spisLaduje && !S.spis) {
-      wybor = `<p class="small muted">Sprawdzam, jakie mapy są do pobrania…</p>`;
+      wybor = `<p class="small muted">${T("Sprawdzam, jakie mapy są do pobrania…")}</p>`;
     } else if (!S.spis) {
-      wybor = `<p class="sim">${esc(S.spisBlad || "Bez internetu nie sprawdzę, jakie mapy są do pobrania.")}</p>
-        <button class="btn ghost" data-act="paczka-spis">${I("refresh-cw")}Spróbuj ponownie</button>`;
+      wybor = `<p class="sim">${esc(T(S.spisBlad || "Bez internetu nie sprawdzę, jakie mapy są do pobrania."))}</p>
+        <button class="btn ghost" data-act="paczka-spis">${I("refresh-cw")}${T("Spróbuj ponownie")}</button>`;
     } else if (W.rodzaj === "promien") {
       wybor = `<div class="chips">${[25, 50, 75].map((r) => `<button type="button" class="chip${W.promienKm === r ? " on" : ""}" data-act="paczka-promien" data-val="${r}">${r} km</button>`).join("")}</div>
-        <label class="small muted" for="paczka-punkt">Wokół czego</label>
+        <label class="small muted" for="paczka-punkt">${T("Wokół czego")}</label>
         <select id="paczka-punkt" data-sel="paczka-punkt">
-          <option value="pozycja"${W.zPunktu === "pozycja" ? " selected" : ""}>mojej pozycji${S.userPos ? "" : " (najpierw ustal pozycję)"}</option>
-          ${S.places.map((pl) => `<option value="${esc(pl.id)}"${W.zPunktu === pl.id ? " selected" : ""}>${esc(pl.name || P.PLACE_KINDS?.[pl.kind]?.label || "miejsce")}</option>`).join("")}
+          <option value="pozycja"${W.zPunktu === "pozycja" ? " selected" : ""}>${S.userPos ? T("mojej pozycji") : T("mojej pozycji (najpierw ustal pozycję)")}</option>
+          ${S.places.map((pl) => `<option value="${esc(pl.id)}"${W.zPunktu === pl.id ? " selected" : ""}>${esc(pl.name || T(P.PLACE_KINDS?.[pl.kind]?.label || "miejsce"))}</option>`).join("")}
         </select>
         ${plan ? (plan.czesci.length ? rozmiarPaczki(plan)
-          : `<p class="sim">Dla tego miejsca nie ma jeszcze mapy do pobrania. Na razie dostępne: ${esc(obszary.join(", "))}.</p>`) : ""}
+          : `<p class="sim">${T("Dla tego miejsca nie ma jeszcze mapy do pobrania. Na razie dostępne: {lista}.", { lista: esc(obszary.join(", ")) })}</p>`) : ""}
         ${W.zPunktu === "pozycja" && !S.userPos ? `<div class="row">
-            <button class="btn ghost" data-act="paczka-gps"${S.locatingPaczka ? " disabled" : ""}>${I("locate-fixed")}${S.locatingPaczka ? "Ustalam…" : "Ustal pozycję"}</button>
-            <button class="btn ghost" data-act="paczka-mapa">${I("map")}Wskaż na mapie</button></div>
-          <p class="small muted">Albo wybierz wyżej jedno z zapisanych miejsc.</p>` : ""}
-        ${S.paczkaBlad ? `<p class="sim">${esc(S.paczkaBlad)}</p>` : ""}`;
+            <button class="btn ghost" data-act="paczka-gps"${S.locatingPaczka ? " disabled" : ""}>${I("locate-fixed")}${S.locatingPaczka ? T("Ustalam…") : T("Ustal pozycję")}</button>
+            <button class="btn ghost" data-act="paczka-mapa">${I("map")}${T("Wskaż na mapie")}</button></div>
+          <p class="small muted">${T("Albo wybierz wyżej jedno z zapisanych miejsc.")}</p>` : ""}
+        ${S.paczkaBlad ? `<p class="sim">${esc(T(S.paczkaBlad))}</p>` : ""}`;
     } else if (W.rodzaj === "woj") {
       const wszystkie = 16;
-      wybor = `<label class="small muted" for="paczka-woj">Województwo</label>
-        <select id="paczka-woj" data-sel="paczka-woj"><option value="">— wybierz —</option>
+      wybor = `<label class="small muted" for="paczka-woj">${T("Województwo")}</label>
+        <select id="paczka-woj" data-sel="paczka-woj"><option value="">${T("— wybierz —")}</option>
           ${obszary.map((n) => `<option value="${esc(n)}"${W.woj === n ? " selected" : ""}>${esc(n)} — ${mb(S.spis.obszary[n].bajty / 1e6)}</option>`).join("")}</select>
-        ${obszary.length < wszystkie ? `<p class="small muted">Na razie do pobrania: ${obszary.length} z ${wszystkie} województw. Pozostałe dochodzą.</p>` : ""}
+        ${obszary.length < wszystkie ? `<p class="small muted">${T("Na razie do pobrania: {n} z {w} województw. Pozostałe dochodzą.", { n: obszary.length, w: wszystkie })}</p>` : ""}
         ${plan ? rozmiarPaczki(plan) : ""}`;
     } else {
       wybor = `${plan ? rozmiarPaczki(plan) : ""}
-        <p class="sim">Pobieraj całą Polskę tylko przez wifi i tylko wtedy, gdy masz tyle wolnego miejsca w telefonie.</p>
-        ${obszary.length < 16 ? `<p class="small muted">Na razie w paczkach: ${esc(obszary.join(", "))}.</p>` : ""}`;
+        <p class="sim">${T("Pobieraj całą Polskę tylko przez wifi i tylko wtedy, gdy masz tyle wolnego miejsca w telefonie.")}</p>
+        ${obszary.length < 16 ? `<p class="small muted">${T("Na razie w paczkach: {lista}.", { lista: esc(obszary.join(", ")) })}</p>` : ""}`;
     }
     const procent = pob && pob.razem ? Math.round((100 * pob.zrobione) / pob.razem) : 0;
     const wynik = !pob && S.pobranieWynik ? (() => {
       const r = S.pobranieWynik;
-      if (r.anulowane) return `<p class="small muted">Przerwane. To, co zdążyło się pobrać, zostaje w telefonie — następna próba dobierze tylko resztę.</p>`;
-      return `<p class="small trust-ok">Pobrano ${mb((r.pobrane || 0) / 1e6)}: ${plural(r.kafelkow || 0, "kafelek", "kafelki", "kafelków")} mapy${r.trasy
-        ? ` i dane do tras dla ${plural(r.komorekGrafu || 0, "obszaru", "obszarów", "obszarów")}` : ""}.${!r.pobrane ? " Wszystko było już w telefonie." : ""}</p>`;
+      if (r.anulowane) return `<p class="small muted">${T("Przerwane. To, co zdążyło się pobrać, zostaje w telefonie — następna próba dobierze tylko resztę.")}</p>`;
+      const kafelki = plural(r.kafelkow || 0, "kafelek mapy", "kafelki mapy", "kafelków mapy");
+      return `<p class="small trust-ok">${r.trasy
+        ? T("Pobrano {mb}: {kafelki} i dane do tras dla {obszary}.", { mb: mb((r.pobrane || 0) / 1e6), kafelki, obszary: plural(r.komorekGrafu || 0, "obszaru", "obszarów", "obszarów") })
+        : T("Pobrano {mb}: {kafelki}.", { mb: mb((r.pobrane || 0) / 1e6), kafelki })}${!r.pobrane ? " " + T("Wszystko było już w telefonie.") : ""}</p>`;
     })() : "";
+    const styl = S.zasoby && (S.zasoby.styl.jasny && S.zasoby.styl.ciemny ? T("oba motywy") : S.zasoby.styl.jasny || S.zasoby.styl.ciemny ? T("jeden motyw") : T("brak"));
     return `<div class="card${maPaczki ? " sel" : ""}">
-      <div class="row"><b class="grow">Mapa offline${maPaczki ? " ✓" : ""}</b>
-        ${maPaczki ? `<button class="btn ghost place-btn" data-act="mapy-usun">${I("trash-2")}Usuń</button>` : ""}</div>
+      <div class="row"><b class="grow">${T("Mapa offline")}${maPaczki ? " ✓" : ""}</b>
+        ${maPaczki ? `<button class="btn ghost place-btn" data-act="mapy-usun">${I("trash-2")}${T("Usuń")}</button>` : ""}</div>
       ${maPaczki
-        ? `<p class="small">Pobrane: <b>${plural(st.kafelkow, "element", "elementy", "elementów")} mapy</b>${S.zasoby
-            ? ` · styl mapy: ${S.zasoby.styl.jasny && S.zasoby.styl.ciemny ? "oba motywy" : S.zasoby.styl.jasny || S.zasoby.styl.ciemny ? "jeden motyw" : "brak"} · ${S.zasoby.trasy ? `dane do tras: ${plural(S.zasoby.trasy, "obszar", "obszary", "obszarów")}` : "<b>bez danych do tras</b>"}` : ""}</p><ul class="small muted">${lista}</ul>`
-        : `<p class="small muted">Przy alarmie sieć bywa przeciążona. Mapa pobrana wcześniej działa bez internetu — punkty schronienia i odległości działają zawsze, offline dochodzą do nich ulice.</p>
-           <p class="small muted"><b>Mapa offline to też miejsce dla innych.</b> W czasie alarmu z Groty korzystają tysiące osób naraz, a serwer jest jeden. Każdy, kto ma mapę w telefonie, zwalnia łącze komuś, kto nie zdążył jej pobrać.</p>
+        ? `<p class="small">${T("Pobrane:")} <b>${plural(st.kafelkow, "element mapy", "elementy mapy", "elementów mapy")}</b>${S.zasoby
+            ? ` · ${T("styl mapy: {s}", { s: styl })} · ${S.zasoby.trasy ? T("dane do tras: {n}", { n: plural(S.zasoby.trasy, "obszar", "obszary", "obszarów") }) : `<b>${T("bez danych do tras")}</b>`}` : ""}</p><ul class="small muted">${lista}</ul>`
+        : `<p class="small muted">${T("Przy alarmie sieć bywa przeciążona. Mapa pobrana wcześniej działa bez internetu — punkty schronienia i odległości działają zawsze, offline dochodzą do nich ulice.")}</p>
+           <p class="small muted">${T("<b>Mapa offline to też miejsce dla innych.</b> W czasie alarmu z Groty korzystają tysiące osób naraz, a serwer jest jeden. Każdy, kto ma mapę w telefonie, zwalnia łącze komuś, kto nie zdążył jej pobrać.")}</p>
            ${rule("P-AUTO")}`}
       <div class="chips">${opcja("promien", "Wokół miejsca")}${opcja("woj", "Województwo")}${opcja("polska", "Cała Polska")}</div>
       ${wybor}
-      <h3>Co pobrać</h3>
+      <h3>${T("Co pobrać")}</h3>
       <div class="chips">
-        <button type="button" class="chip${W.zestaw === "trasy" ? " on" : ""}" data-act="paczka-zestaw" data-val="trasy">Mapa i trasy</button>
-        <button type="button" class="chip${W.zestaw === "mapa" ? " on" : ""}" data-act="paczka-zestaw" data-val="mapa">Sama mapa</button>
+        <button type="button" class="chip${W.zestaw === "trasy" ? " on" : ""}" data-act="paczka-zestaw" data-val="trasy">${T("Mapa i trasy")}</button>
+        <button type="button" class="chip${W.zestaw === "mapa" ? " on" : ""}" data-act="paczka-zestaw" data-val="mapa">${T("Sama mapa")}</button>
       </div>
       ${W.zestaw === "trasy"
-        ? `<p class="small muted"><b>Mapa i trasy.</b> Bez internetu Grota poprowadzi Cię ulicami i chodnikami do schronienia
-             albo do umówionego miejsca. To jedyny wariant, który działa poza miastem: sama mapa ma jakąś trzecią część ścieżek,
-             więc bez danych do tras na wsi zwykle nie ma z czego policzyć drogi.</p>`
-        : `<p class="small muted"><b>Sama mapa — mniejsza paczka.</b> Zobaczysz mapę, punkty schronienia i odległości,
-             ale bez internetu Grota <b>nie wyznaczy trasy</b> — pokaże kierunek w linii prostej i budynki po drodze.
-             W mieście to zwykle wystarcza, na wsi bywa za mało.</p>`}
-      ${pob?.blad ? `<p class="sim">${esc(pob.blad)}</p>` : ""}
+        ? `<p class="small muted">${T("<b>Mapa i trasy.</b> Bez internetu Grota poprowadzi Cię ulicami i chodnikami do schronienia albo do umówionego miejsca. To jedyny wariant, który działa poza miastem: sama mapa ma jakąś trzecią część ścieżek, więc bez danych do tras na wsi zwykle nie ma z czego policzyć drogi.")}</p>`
+        : `<p class="small muted">${T("<b>Sama mapa — mniejsza paczka.</b> Zobaczysz mapę, punkty schronienia i odległości, ale bez internetu Grota <b>nie wyznaczy trasy</b> — pokaże kierunek w linii prostej i budynki po drodze. W mieście to zwykle wystarcza, na wsi bywa za mało.")}</p>`}
+      ${pob?.blad ? `<p class="sim">${esc(T(pob.blad))}</p>` : ""}
       ${wynik}
       ${pob && !pob.blad
-        ? `<p class="small">${pob.przerywam ? "Przerywam…"
-             : pob.etap === "spis" ? "Sprawdzam, co jest do pobrania…"
-             : pob.etap === "styl" ? "Pobieram wygląd mapy (kolory, ikony, napisy)…"
-             : `Pobieram „${esc(pob.etykieta)}”: ${mb((pob.zrobione || 0) / 1e6)} z ${mb((pob.razem || 0) / 1e6)}`}</p>
+        ? `<p class="small">${pob.przerywam ? T("Przerywam…")
+             : pob.etap === "spis" ? T("Sprawdzam, co jest do pobrania…")
+             : pob.etap === "styl" ? T("Pobieram wygląd mapy (kolory, ikony, napisy)…")
+             : T("Pobieram „{n}”: {x} z {razem}", { n: esc(pob.etykieta), x: mb((pob.zrobione || 0) / 1e6), razem: mb((pob.razem || 0) / 1e6) })}</p>
            <div class="pasek"><i style="width:${procent}%"></i></div>
-           <p class="small muted">Możesz zamknąć tę kartę, ale nie aplikację. Po zerwaniu połączenia pobieranie samo spróbuje jeszcze raz.</p>
-           <button class="btn ghost" data-act="paczka-anuluj">Przerwij</button>`
-        : `<div class="row"><button class="btn" data-act="paczka-pobierz"${plan && plan.czesci.length ? "" : " disabled"}>${I("map")}Pobierz mapę</button>
-             <button class="btn ghost" data-act="test-offline">${I("timer")}Sprawdź bez internetu</button></div>`}
+           <p class="small muted">${T("Możesz zamknąć tę kartę, ale nie aplikację. Po zerwaniu połączenia pobieranie samo spróbuje jeszcze raz.")}</p>
+           <button class="btn ghost" data-act="paczka-anuluj">${T("Przerwij")}</button>`
+        : `<div class="row"><button class="btn" data-act="paczka-pobierz"${plan && plan.czesci.length ? "" : " disabled"}>${I("map")}${T("Pobierz mapę")}</button>
+             <button class="btn ghost" data-act="test-offline">${I("timer")}${T("Sprawdź bez internetu")}</button></div>`}
     </div>`;
   }
 
@@ -1760,7 +1814,9 @@ Zmienić położenie?`);
     return o && d.min != null && eta != null ? { dojscie: d.min, eta, zTrasy: d.zTrasy } : null;
   }
 
-  const zdanieCzasu = (p) => `dojście ${p.zTrasy ? "trasą " : ""}ok. ${p.dojscie} min, zagrożenie za ${p.eta} min`;
+  const zdanieCzasu = (p) => p.zTrasy
+    ? T("dojście trasą ok. {d} min, zagrożenie za {eta} min", { d: p.dojscie, eta: p.eta })
+    : T("dojście ok. {d} min, zagrożenie za {eta} min", { d: p.dojscie, eta: p.eta });
 
   function simBox() {
     const L = S.live, o = L?.options?.[0], eta = S.etaMin;
@@ -1768,29 +1824,29 @@ Zmienić położenie?`);
     if (MODUL && !alarmTrwa()) return "";
     let result = "";
     if (porownujCzas()) {
-      if (!L) result = `<p class="small sim">Najpierw ustal pozycję (przycisk TERAZ, adres albo „Jestem w”) — wtedy symulacja porówna czas dojścia z czasem do zagrożenia.</p>`;
+      if (!L) result = `<p class="small sim">${T("Najpierw ustal pozycję (przycisk TERAZ, adres albo „Jestem w”) — wtedy symulacja porówna czas dojścia z czasem do zagrożenia.")}</p>`;
       else if (!o) result = "";
       else if (dojscie(o).min == null) result = "";
-      else if (nieZdazysz()) result = `<div class="warn-box small"><b>Według szacunku nie zdążysz:</b> ${zdanieCzasu(liczbyCzasu())}. Na górze ekranu są zasady z poradnika na taką sytuację.</div>`;
-      else result = `<p class="small trust-ok">Według szacunku zdążysz: ${zdanieCzasu(liczbyCzasu())}. To szacunek, nie gwarancja.</p>`;
-      if (result && alarmTrwa()) result += `<p class="small muted">${UWAGA_WIDOCZNE}</p>`;
+      else if (nieZdazysz()) result = `<div class="warn-box small"><b>${T("Według szacunku nie zdążysz:")}</b> ${zdanieCzasu(liczbyCzasu())}. ${T("Na górze ekranu są zasady z poradnika na taką sytuację.")}</div>`;
+      else result = `<p class="small trust-ok">${T("Według szacunku zdążysz: {zdanie}. To szacunek, nie gwarancja.", { zdanie: zdanieCzasu(liczbyCzasu()) })}</p>`;
+      if (result && alarmTrwa()) result += `<p class="small muted">${uwagaWidoczne()}</p>`;
     }
     if (alarmTrwa()) {
       const a = S.alarm;
       return `<div class="card sim-box">
-        <div class="row"><b class="grow">Czas z alarmu Strażnika</b>${a.voiv ? `<span class="badge">${esc(a.voiv)}</span>` : ""}</div>
+        <div class="row"><b class="grow">${T("Czas z alarmu Strażnika")}</b>${a.voiv ? `<span class="badge">${esc(a.voiv)}</span>` : ""}</div>
         <p class="small">${a.etaVoivMin != null
-          ? `Zagrożenie za <b>${a.etaVoivMin} min</b> — ta sama wartość, którą pokazuje Strażnik.${a.hard === false
-              ? " Alarm opiera się na źródłach pośrednich, więc Grota nie porównuje go z czasem dojścia." : ""}`
-          : "Strażnik nie podaje teraz czasu do zagrożenia. Grota go nie zgaduje — pokazuje odległości i kierunek."}</p>
+          ? T("Zagrożenie za <b>{eta} min</b> — ta sama wartość, którą pokazuje Strażnik.", { eta: a.etaVoivMin }) + (a.hard === false
+              ? " " + T("Alarm opiera się na źródłach pośrednich, więc Grota nie porównuje go z czasem dojścia.") : "")
+          : T("Strażnik nie podaje teraz czasu do zagrożenia. Grota go nie zgaduje — pokazuje odległości i kierunek.")}</p>
         ${result}
       </div>`;
     }
     return `<div class="card sim-box">
-      <div class="row"><b class="grow">Symulacja ostrzeżenia Strażnika</b><span class="badge">prototyp</span></div>
-      <p class="small muted">Po połączeniu ze Strażnikiem czas przyjdzie z alarmu. Grota porówna go z czasem dojścia — jeśli nie zdążysz, zamiast prowadzić pokaże zasady z „Poradnika” (s. 29). Wybierz, za ile minut zagrożenie:</p>
+      <div class="row"><b class="grow">${T("Symulacja ostrzeżenia Strażnika")}</b><span class="badge">${T("prototyp")}</span></div>
+      <p class="small muted">${T("Po połączeniu ze Strażnikiem czas przyjdzie z alarmu. Grota porówna go z czasem dojścia — jeśli nie zdążysz, zamiast prowadzić pokaże zasady z „Poradnika” (s. 29). Wybierz, za ile minut zagrożenie:")}</p>
       <div class="chips">${[null, 2, 5, 10, 15, 30].map((v) =>
-        `<button type="button" class="chip${eta === v ? " on" : ""}" data-act="eta" data-val="${v ?? ""}">${v == null ? "brak" : `${v} min`}</button>`).join("")}</div>
+        `<button type="button" class="chip${eta === v ? " on" : ""}" data-act="eta" data-val="${v ?? ""}">${v == null ? T("brak") : T("{m} min", { m: v })}</button>`).join("")}</div>
       ${result}
     </div>`;
   }
@@ -1798,38 +1854,37 @@ Zmienić położenie?`);
   function viewTeraz() {
     let body;
     if (S.locating) {
-      body = `<div class="card"><b>Ustalam Twoją pozycję…</b><p class="small muted">Nie chcesz czekać? Wybierz, gdzie jesteś:</p>${placeChips()}
+      body = `<div class="card"><b>${T("Ustalam Twoją pozycję…")}</b><p class="small muted">${T("Nie chcesz czekać? Wybierz, gdzie jesteś:")}</p>${placeChips()}
         ${addrBox("albo wpisz adres / miejscowość")}
-        <button class="btn ghost" data-act="live-map">Wskaż na mapie</button></div>`;
+        <button class="btn ghost" data-act="live-map">${T("Wskaż na mapie")}</button></div>`;
     } else if (S.pick?.purpose === "live") {
-      body = `<p class="sim">Dotknij mapy w miejscu, w którym jesteś.</p>`;
+      body = `<p class="sim">${T("Dotknij mapy w miejscu, w którym jesteś.")}</p>`;
     } else if (S.liveError) {
-      body = `<div class="card"><p class="sim">${esc(S.liveError)}</p>${placeChips()}
+      body = `<div class="card"><p class="sim">${esc(T(S.liveError))}</p>${placeChips()}
         ${addrBox()}
-        <div class="row" style="margin-top:8px"><button class="btn" data-act="live-map">Wskaż na mapie</button><button class="btn ghost" data-act="retry-locate">Spróbuj ponownie</button></div></div>`;
+        <div class="row" style="margin-top:8px"><button class="btn" data-act="live-map">${T("Wskaż na mapie")}</button><button class="btn ghost" data-act="retry-locate">${T("Spróbuj ponownie")}</button></div></div>`;
     } else if (S.live && S.live.pozaZasiegiem) {
-      body = posLine() + `<div class="card"><p><b>Jesteś poza zasięgiem danych Groty.</b></p>
-        <p class="small">${S.posLabel ? "Wybrane miejsce leży" : "Według pozycji z telefonu jesteś"} poza Polską. Grota zna miejsca
-        schronienia tylko w Polsce — najbliższe jest ${fmtDist(S.live.pozaZasiegiem)} stąd, więc nie wyznacza trasy.
-        Poza Polską stosuj się do komunikatów tamtejszych służb.</p>
-        <p class="small muted">Jesteś w Polsce, tuż przy granicy? Telefon mógł podać złą pozycję — wybierz, gdzie jesteś:</p>${placeChips()}
+      body = posLine() + `<div class="card"><p><b>${T("Jesteś poza zasięgiem danych Groty.")}</b></p>
+        <p class="small">${S.posLabel ? T("Wybrane miejsce leży poza Polską.") : T("Według pozycji z telefonu jesteś poza Polską.")}
+        ${T("Grota zna miejsca schronienia tylko w Polsce — najbliższe jest {d} stąd, więc nie wyznacza trasy. Poza Polską stosuj się do komunikatów tamtejszych służb.", { d: fmtDist(S.live.pozaZasiegiem) })}</p>
+        <p class="small muted">${T("Jesteś w Polsce, tuż przy granicy? Telefon mógł podać złą pozycję — wybierz, gdzie jesteś:")}</p>${placeChips()}
         ${addrBox()}
-        <div class="row" style="margin-top:8px"><button class="btn" data-act="live-map">Wskaż na mapie</button><button class="btn ghost" data-act="retry-locate">Spróbuj ponownie</button></div></div>`;
+        <div class="row" style="margin-top:8px"><button class="btn" data-act="live-map">${T("Wskaż na mapie")}</button><button class="btn ghost" data-act="retry-locate">${T("Spróbuj ponownie")}</button></div></div>`;
     } else if (S.live && S.coarse && !S.coarseOk) {
       body = `<div class="card"><p class="sim">${esc(COARSE_TEXT(S.userPos.acc))}</p>${placeChips()}
         ${addrBox()}
-        <div class="row" style="margin-top:8px"><button class="btn" data-act="live-map">Wskaż na mapie</button>
-        <button class="btn ghost" data-act="coarse-ok">Pokaż mimo to</button></div></div>`;
+        <div class="row" style="margin-top:8px"><button class="btn" data-act="live-map">${T("Wskaż na mapie")}</button>
+        <button class="btn ghost" data-act="coarse-ok">${T("Pokaż mimo to")}</button></div></div>`;
     } else if (S.live) {
       const L = S.live;
       const here = S.userPos && S.places.find((pl) => C.distanceM(pl.lat, pl.lon, S.userPos.lat, S.userPos.lon) <= 300);
       const late = nieZdazysz();
-      body = posLine() + (S.coarse && !S.posLabel ? `<p class="sim">${esc(`Pozycja przybliżona (${fmtAcc(S.userPos.acc)}) — wynik może dotyczyć innego miejsca.`)}</p>` : "")
+      body = posLine() + (S.coarse && !S.posLabel ? `<p class="sim">${esc(T("Pozycja przybliżona ({acc}) — wynik może dotyczyć innego miejsca.", { acc: fmtAcc(S.userPos.acc) }))}</p>` : "")
         + skadSzukam()
-        + (late ? `<div class="warn-box"><b>Według szacunku nie zdążysz: ${(() => { const p = liczbyCzasu();
-            return p ? zdanieCzasu(p) : "zagrożenie może być bliżej niż czas dojścia"; })()}.</b>
-            <span class="small">To szacunek Groty, nie gwarancja — te same minuty pokazuje pasek na dole ekranu.</span>
-            ${alarmTrwa() ? `<p class="small">${UWAGA_WIDOCZNE}</p>` : ""}</div>${rule("P-NIE-ZDAZE", true)}` : "")
+        + (late ? `<div class="warn-box"><b>${T("Według szacunku nie zdążysz:")} ${(() => { const p = liczbyCzasu();
+            return p ? zdanieCzasu(p) : T("zagrożenie może być bliżej niż czas dojścia"); })()}.</b>
+            <span class="small">${T("To szacunek Groty, nie gwarancja — te same minuty pokazuje pasek na dole ekranu.")}</span>
+            ${alarmTrwa() ? `<p class="small">${uwagaWidoczne()}</p>` : ""}</div>${rule("P-NIE-ZDAZE", true)}` : "")
         + (here && here.spot ? spotCard(here, late) : "")
         + (late ? rule("P-POZA-DOMEM", true) : "")
         + modeButtons()
@@ -1838,35 +1893,35 @@ Zmienić położenie?`);
         + (L.options.length ? mainOption(L.options[0])
           // Punkty jeszcze się wczytują (pierwsze wejście albo powrót na słabszym telefonie) — nie wolno wtedy
           // powiedzieć „brak punktów w pobliżu”, bo przy alarmie ktoś uwierzy i nie będzie szukał dalej.
-          : !S.points.length ? `<p class="sim">Wczytuję punkty schronienia — za chwilę pokażę najbliższe. Zasady niżej działają już teraz.</p>`
-          : S.liveFilter.dostep.length ? `<p class="sim">Brak punktów spełniających filtr w pobliżu. Zaznacz więcej rodzajów powyżej.</p>`
-          : `<p class="sim">Nie zaznaczono żadnego rodzaju dostępu — zaznacz co najmniej jeden powyżej.</p>`)
-        + (L.closerDoubtful?.length ? `<div class="card"><p class="small muted">Bliżej jest ${plural(L.closerDoubtful.length, "punkt", "punkty", "punktów")} o wątpliwym położeniu (najbliższy ${fmtDist(L.closerDoubtful[0].distM)}) — Grota do nich nie prowadzi, bo szpilka stoi obok budynku albo w innym miejscu niż adres.</p>${notkaOBledach()}</div>` : "")
-        + (L.options.length > 1 ? `<h3>Inne opcje</h3>${L.options.slice(1).map(otherOption).join("")}` : "")
+          : !S.points.length ? `<p class="sim">${T("Wczytuję punkty schronienia — za chwilę pokażę najbliższe. Zasady niżej działają już teraz.")}</p>`
+          : S.liveFilter.dostep.length ? `<p class="sim">${T("Brak punktów spełniających filtr w pobliżu. Zaznacz więcej rodzajów powyżej.")}</p>`
+          : `<p class="sim">${T("Nie zaznaczono żadnego rodzaju dostępu — zaznacz co najmniej jeden powyżej.")}</p>`)
+        + (L.closerDoubtful?.length ? `<div class="card"><p class="small muted">${T("Bliżej jest {ile} o wątpliwym położeniu (najbliższy {d}) — Grota do nich nie prowadzi, bo szpilka stoi obok budynku albo w innym miejscu niż adres.", { ile: plural(L.closerDoubtful.length, "punkt", "punkty", "punktów"), d: fmtDist(L.closerDoubtful[0].distM) })}</p>${notkaOBledach()}</div>` : "")
+        + (L.options.length > 1 ? `<h3>${T("Inne opcje")}</h3>${L.options.slice(1).map(otherOption).join("")}` : "")
         + celCard()
 ;
     } else {
-      body = `<button class="btn huge red" data-act="teraz">GDZIE SIĘ SCHRONIĆ TERAZ</button>
-        <p class="small muted">Ustalę Twoją pozycję i wskażę najbliższe sprawdzone miejsce schronienia. Trasę poprowadzi Google Maps.</p>${placeChips()}
+      body = `<button class="btn huge red" data-act="teraz">${T("GDZIE SIĘ SCHRONIĆ TERAZ")}</button>
+        <p class="small muted">${T("Ustalę Twoją pozycję i wskażę najbliższe sprawdzone miejsce schronienia. Trasę poprowadzi Google Maps.")}</p>${placeChips()}
         ${addrBox("GPS nie działa? Wpisz adres albo miejscowość")}
         ${celCard()}`;
     }
     return `${wzywacDoSchronienia() ? rule("P-ALARM", true) : notkaOZrodle()}
       ${body}
-      <details class="card"><summary>Pamiętaj — zasady z poradnika</summary>${rule("P-POWIETRZE")}${rule("P-OTWARTY-TEREN")}${rule("P-NIE-WYCHODZ")}${rule("P-EWAKUACJA")}</details>
+      <details class="card"><summary>${T("Pamiętaj — zasady z poradnika")}</summary>${rule("P-POWIETRZE")}${rule("P-OTWARTY-TEREN")}${rule("P-NIE-WYCHODZ")}${rule("P-EWAKUACJA")}</details>
       ${simBox()}`;
   }
 
   function viewPrzygotuj() {
     const total = P.CHECKLISTS.reduce((n, L) => n + L.items.length, 0);
     const done = Object.values(S.prep).filter(Boolean).length;
-    return `<div class="row view-head"><h2 class="grow">Przygotuj się</h2>
-        <button class="btn ghost place-btn" data-act="close-view">${I("x")}Zamknij</button></div>
+    return `<div class="row view-head"><h2 class="grow">${T("Przygotuj się")}</h2>
+        <button class="btn ghost place-btn" data-act="close-view">${I("x")}${T("Zamknij")}</button></div>
       ${paczkiCard()}
-      <p>Listy są cytatem z „Poradnika bezpieczeństwa”. Zaznaczaj, co już masz — postęp zostaje tylko na tym urządzeniu.</p>
-      <p class="muted small">Zrobione: ${done} z ${total}.</p>
+      <p>${T("Listy są cytatem z „Poradnika bezpieczeństwa”. Zaznaczaj, co już masz — postęp zostaje tylko na tym urządzeniu.")}</p>
+      <p class="muted small">${T("Zrobione: {n} z {razem}.", { n: done, razem: total })}</p>
       ${rule("P-DOM")}
-      <p class="small">${S.places.length ? "Miejsce w budynku dla domu, pracy i szkoły zapiszesz w zakładce „Moje miejsca”." : "Dodaj dom, pracę lub szkołę w zakładce „Moje miejsca” — zapiszesz tam też swoje miejsce w budynku."}</p>
+      <p class="small">${S.places.length ? T("Miejsce w budynku dla domu, pracy i szkoły zapiszesz w zakładce „Moje miejsca”.") : T("Dodaj dom, pracę lub szkołę w zakładce „Moje miejsca” — zapiszesz tam też swoje miejsce w budynku.")}</p>
       ${P.CHECKLISTS.map((L) => checklist(L.id)).join("")}`;
   }
 
@@ -1879,64 +1934,61 @@ Zmienić położenie?`);
     ["plan-na-kryzys", "Plan na kryzys"],
   ];
 
+  const link = (href, tekst) => `<a href="${href}" target="_blank" rel="noopener">${tekst}</a>`;
+
+  /* Wybór języka. Napis nad przyciskami jest we wszystkich trzech językach naraz — ktoś, kto przypadkiem
+     przełączył na nieznany sobie język, musi móc wrócić bez czytania. */
+  function wyborJezyka() {
+    return `<div class="card jezyki"><b>Język · Language · Мова</b>
+      <div class="chips">${J.JEZYKI.map((j) => `<button type="button" class="chip${J.jezyk === j ? " on" : ""}" data-act="jezyk" data-val="${j}" lang="${j}">${J.NAZWY[j]}</button>`).join("")}</div>
+      ${J.jezyk === "pl" ? "" : `<p class="small muted">${T("Grota jest przetłumaczona przez autora aplikacji. Cytaty z „Poradnika bezpieczeństwa” to nasze tłumaczenie — oficjalny Poradnik jest tylko po polsku, a odnośniki prowadzą do polskiego oryginału. Adresy i nazwy miejsc zostają po polsku, tak jak na tabliczkach.")}</p>`}
+    </div>`;
+  }
+
   function viewZasady() {
     const ids = Object.keys(C.RULES);
-    return `<div class="row view-head"><h2 class="grow">Zasady Groty</h2>
-        <button class="btn ghost place-btn" data-act="close-view">${I("x")}Zamknij</button></div>
-      <p>Grota nie tworzy własnych procedur. Każde zalecenie pochodzi z „Poradnika bezpieczeństwa” (Rząd RP, nr publikacji 1/2025) i ma numer strony.
-      Nazwy rozdziałów są z poradnika, podtytuły dodaliśmy sami, żeby odróżnić zalecenia z tego samego rozdziału.</p>
+    return `<div class="row view-head"><h2 class="grow">${T("Zasady Groty")}</h2>
+        <button class="btn ghost place-btn" data-act="close-view">${I("x")}${T("Zamknij")}</button></div>
+      ${wyborJezyka()}
+      <p>${T("Grota nie tworzy własnych procedur. Każde zalecenie pochodzi z „Poradnika bezpieczeństwa” (Rząd RP, nr publikacji 1/2025) i ma numer strony. Nazwy rozdziałów są z poradnika, podtytuły dodaliśmy sami, żeby odróżnić zalecenia z tego samego rozdziału.")}</p>
       ${RULE_SECTIONS.map(([slug, label]) => {
         const grupa = ids.filter((id) => C.RULES[id].slug === slug);
-        return grupa.length ? `<h3 class="rule-section" style="--rc:${RULE_COLORS[slug]}">${esc(label)}</h3>${grupa.map((id) => rule(id, false, true)).join("")}` : "";
+        return grupa.length ? `<h3 class="rule-section" style="--rc:${RULE_COLORS[slug]}">${esc(T(label))}</h3>${grupa.map((id) => rule(id, false, true)).join("")}` : "";
       }).join("")}
-      <h3>Czego poradnik nie określa</h3>
-      <p>Poradnik nie podaje progu minut, po którym nie zdążysz dojść do schronienia, ani nie wskazuje środka transportu na czas ataku. Grota tego nie dopowiada: pokazuje szacunki i cytuje zasady.</p>
-      <h3>Dlaczego w Grocie nie ma „schronów”</h3>
-      <p>Inwentaryzacja Państwowej Straży Pożarnej z lat 2022–2023 wykazała w Polsce 1 903 schrony, 8 719 ukryć
-      i 224 113 miejsc doraźnego schronienia. Publiczny zbiór „Punkty schronienia w Polsce”, na którym opiera się Grota,
-      <b>nie rozróżnia tych kategorii</b> — wszystkie rekordy mają ten sam rodzaj.</p>
-      <p>Pełne dane, w tym rodzaj obiektu, pojemność i stan techniczny, trafiają do Centralnej Ewidencji Obiektów
-      Zbiorowej Ochrony (CEOZO), którą prowadzi Komendant Główny PSP. Zgodnie z <a href="https://lexlege.pl/ochr-ludn-i-oc/art-113/" target="_blank" rel="noopener">art. 113 ustawy o ochronie ludności i obronie cywilnej</a>
-      dane z tej ewidencji <b>nie są informacją publiczną</b>, a część z nich ma klauzulę „zastrzeżone”.
-      <a href="https://lexlege.pl/ochr-ludn-i-oc/art-114/" target="_blank" rel="noopener">Art. 114</a> przewiduje do wiadomości publicznej
-      tylko ogólne dane dla województw i powiatów oraz informowanie o położeniu obiektów.</p>
-      <p>Dlatego Grota pokazuje punkty schronienia bez etykiety „schron”. Oznaczanie ich na podstawie map społecznościowych
-      byłoby zgadywaniem: obiekty opisane w OpenStreetMap jako bunkry to w większości fortyfikacje z wojen i ruiny.
-      Jeśli PSP udostępni rodzaj obiektu, dodamy go razem z datą weryfikacji.</p>
-      <p class="small">Źródła: <a href="https://isap.sejm.gov.pl/isap.nsf/DocDetails.xsp?id=WDU20240001907" target="_blank" rel="noopener">ustawa z 5.12.2024 o ochronie ludności i obronie cywilnej</a> ·
-      <a href="https://isap.sejm.gov.pl/isap.nsf/DocDetails.xsp?id=WDU20250000922" target="_blank" rel="noopener">rozporządzenie MSWiA z 7.07.2025 o CEOZO</a> ·
-      <a href="https://dane.gov.pl/pl/dataset/28058" target="_blank" rel="noopener">zbiór „Punkty schronienia w Polsce” na dane.gov.pl</a>.</p>
+      <h3>${T("Czego poradnik nie określa")}</h3>
+      <p>${T("Poradnik nie podaje progu minut, po którym nie zdążysz dojść do schronienia, ani nie wskazuje środka transportu na czas ataku. Grota tego nie dopowiada: pokazuje szacunki i cytuje zasady.")}</p>
+      <h3>${T("Dlaczego w Grocie nie ma „schronów”")}</h3>
+      <p>${T("Inwentaryzacja Państwowej Straży Pożarnej z lat 2022–2023 wykazała w Polsce 1 903 schrony, 8 719 ukryć i 224 113 miejsc doraźnego schronienia. Publiczny zbiór „Punkty schronienia w Polsce”, na którym opiera się Grota, <b>nie rozróżnia tych kategorii</b> — wszystkie rekordy mają ten sam rodzaj.")}</p>
+      <p>${T("Pełne dane, w tym rodzaj obiektu, pojemność i stan techniczny, trafiają do Centralnej Ewidencji Obiektów Zbiorowej Ochrony (CEOZO), którą prowadzi Komendant Główny PSP. Zgodnie z {a113} dane z tej ewidencji <b>nie są informacją publiczną</b>, a część z nich ma klauzulę „zastrzeżone”. {a114} przewiduje do wiadomości publicznej tylko ogólne dane dla województw i powiatów oraz informowanie o położeniu obiektów.", {
+        a113: link("https://lexlege.pl/ochr-ludn-i-oc/art-113/", T("art. 113 ustawy o ochronie ludności i obronie cywilnej")),
+        a114: link("https://lexlege.pl/ochr-ludn-i-oc/art-114/", T("Art. 114")) })}</p>
+      <p>${T("Dlatego Grota pokazuje punkty schronienia bez etykiety „schron”. Oznaczanie ich na podstawie map społecznościowych byłoby zgadywaniem: obiekty opisane w OpenStreetMap jako bunkry to w większości fortyfikacje z wojen i ruiny. Jeśli PSP udostępni rodzaj obiektu, dodamy go razem z datą weryfikacji.")}</p>
+      <p class="small">${T("Źródła:")} ${link("https://isap.sejm.gov.pl/isap.nsf/DocDetails.xsp?id=WDU20240001907", T("ustawa z 5.12.2024 o ochronie ludności i obronie cywilnej"))} ·
+      ${link("https://isap.sejm.gov.pl/isap.nsf/DocDetails.xsp?id=WDU20250000922", T("rozporządzenie MSWiA z 7.07.2025 o CEOZO"))} ·
+      ${link("https://dane.gov.pl/pl/dataset/28058", T("zbiór „Punkty schronienia w Polsce” na dane.gov.pl"))}.</p>
 
-      <h3>Twoje dane</h3>
-      <p>Miejsca, notatki, nagrane trasy i ustawienia zapisują się <b>tylko w pamięci tego urządzenia</b>. Autor aplikacji
-      ich nie widzi i nigdzie nie wysyła. ${NA_IOS ? "Kopia zapasowa iCloud może przenieść je na Twoje konto Apple." : "Kopia zapasowa Androida może przenieść je na Twoje konto Google."}</p>
-      <p>Co opuszcza telefon i kiedy: wpisany adres trafia do wyszukiwarki GUGiK; przy wyznaczaniu trasy Twoja pozycja i cel
-      idą do serwera tras FOSSGIS; współrzędne punktu do usługi zdjęć GUGiK; oglądany fragment mapy do OpenFreeMap;
-      po naciśnięciu „Prowadź” albo „Street View” — do Google. Bez tych czynności nic nie wychodzi z telefonu.</p>
+      <h3>${T("Twoje dane")}</h3>
+      <p>${T("Miejsca, notatki, nagrane trasy i ustawienia zapisują się <b>tylko w pamięci tego urządzenia</b>. Autor aplikacji ich nie widzi i nigdzie nie wysyła.")} ${NA_IOS ? T("Kopia zapasowa iCloud może przenieść je na Twoje konto Apple.") : T("Kopia zapasowa Androida może przenieść je na Twoje konto Google.")}</p>
+      <p>${T("Co opuszcza telefon i kiedy: wpisany adres trafia do wyszukiwarki GUGiK; przy wyznaczaniu trasy Twoja pozycja i cel idą do serwera tras FOSSGIS; współrzędne punktu do usługi zdjęć GUGiK; oglądany fragment mapy do OpenFreeMap; po naciśnięciu „Prowadź” albo „Street View” — do Google. Bez tych czynności nic nie wychodzi z telefonu.")}</p>
 
-      <h3>Ograniczenia danych</h3>
-      <p>Publiczny zbiór PSP nie podaje rodzaju obiektu, liczby miejsc ani tego, czy obiekt jest teraz otwarty. „Na żądanie” oznacza, że ktoś musi go otworzyć.</p>
-      <p>Położenie sprawdzamy automatycznie: czy punkt stoi na budynku, czy zgadza się z adresem, czy leży we właściwej gminie i województwie. Punkty wątpliwe (czerwona obwódka) nie są polecane jako pierwsze; „do sprawdzenia” (żółta) to drobniejsze rozbieżności. To nie jest kontrola obiektu przez urząd.</p>
-      <h3>Przesunięte szpilki — błąd źródła, nie Groty</h3>
-      <p>W publicznym zbiorze PSP część punktów ma współrzędne postawione obok budynku, którego dotyczą. Sprawdziliśmy to
-      na danych z całej Polski: <b>1075 punktów</b> (1,3%) nie stoi na żadnym budynku. Przy 657 z nich budynek jest w promieniu 30 m
-      (najczęściej blok — szpilka wylądowała na podwórku, parkingu albo trawniku), przy 252 w 30–60 m, przy 115 w 60–150 m,
-      a <b>51 punktów nie ma żadnego budynku w promieniu 150 m</b> — tam szpilka wskazuje pole, las albo miejsce poza
-      miejscowością z adresu.</p>
-      <p>To błąd danych źródłowych i ich dalszego przetwarzania, nie Groty. Nie przesuwamy punktów po cichu, bo nie mamy
-      czym potwierdzić, gdzie naprawdę jest schronienie. Zamiast tego: oznaczamy je, nie polecamy jako pierwszych i przy
-      każdym piszemy, co stoi najbliżej szpilki i jak daleko — żeby w terenie szukać budynku, a nie kropki na mapie.</p>
-      <p>Jeśli widzisz punkt postawiony w złym miejscu, zgłoś to gminie albo komendzie PSP, która przekazuje dane do zbioru —
-      poprawka u źródła naprawia go we wszystkich aplikacjach naraz.</p>
-      <p>Czas dojścia to szacunek: zanim trasa się wyznaczy — z odległości w linii prostej, potem z trasy po drogach
-      i ścieżkach (bez korków i utrudnień). Nie jest gwarancją.</p>
-      <h3>Źródła</h3>
-      <p class="small">Zasady i listy kontrolne: ${esc(P.SOURCE.authors)}, „${esc(P.SOURCE.title)}”, ${esc(P.SOURCE.edition)}, <a href="${esc(P.SOURCE.url)}" target="_blank" rel="noopener">wersja internetowa na gov.pl</a>, licencja <a href="${esc(P.SOURCE.licenseUrl)}" target="_blank" rel="noopener">${esc(P.SOURCE.license)}</a>. ${esc(P.SOURCE.note)}</p>
-      <p class="small">${esc(S.meta?.zrodlo || "Komenda Główna PSP, dane.gov.pl, CC BY 4.0")}; dane z ${esc(S.meta?.data_danych || "")}. Kontrola budynków: ${esc(S.meta?.kontrola_budynkow || "OpenStreetMap, ODbL")}. Mapa: OpenFreeMap, © OpenStreetMap. Zdjęcia z góry: ortofotomapa GUGiK (usługa WMS, pobierana na bieżąco, bez zapisywania). Biblioteka mapy: MapLibre (BSD).</p>
-      <p class="small">Wyszukiwanie adresów: usługa geokodowania GUGiK (zapytanie wysyłane dopiero po naciśnięciu „Szukaj”). Spis miejscowości do wyszukiwania bez internetu: OpenStreetMap (© współtwórcy OSM, ODbL). Ikony: Lucide (licencja ISC).</p>
-      <p class="small">Wstępna trasa na mapie: serwer tras FOSSGIS (OSRM, dane © współtwórcy OpenStreetMap) — pozycja i cel są wysyłane do tego serwera; trasa nie uwzględnia korków ani utrudnień. <a href="https://www.openstreetmap.org/fixthemap" target="_blank" rel="noopener">Popraw mapę</a>. Rodzaj budynku (szkoła, blok, parking podziemny…): OpenStreetMap, nie dane PSP.</p>
-      <h3>„W określonych godzinach” i „na żądanie”</h3>
-      <p>Według komunikatów PSP i samorządów o aplikacji „Gdzie się ukryć”: obiekty z godzinami są dostępne w czasie pracy placówki lub obecności obsługi, a obiekty „na żądanie” są zamknięte (np. piwnice bloków, garaże wspólnot) i w razie zagrożenia powinni je otworzyć zarządcy lub mieszkańcy w ramach wzajemnej pomocy. Publiczne dane nie podają godzin ani kontaktu — zapytaj zarządcę budynku zawczasu i zapisz odpowiedź przy swoim miejscu schronienia.</p>`;
+      <h3>${T("Ograniczenia danych")}</h3>
+      <p>${T("Publiczny zbiór PSP nie podaje rodzaju obiektu, liczby miejsc ani tego, czy obiekt jest teraz otwarty. „Na żądanie” oznacza, że ktoś musi go otworzyć.")}</p>
+      <p>${T("Położenie sprawdzamy automatycznie: czy punkt stoi na budynku, czy zgadza się z adresem, czy leży we właściwej gminie i województwie. Punkty wątpliwe (czerwona obwódka) nie są polecane jako pierwsze; „do sprawdzenia” (żółta) to drobniejsze rozbieżności. To nie jest kontrola obiektu przez urząd.")}</p>
+      <h3>${T("Przesunięte szpilki — błąd źródła, nie Groty")}</h3>
+      <p>${T("W publicznym zbiorze PSP część punktów ma współrzędne postawione obok budynku, którego dotyczą. Sprawdziliśmy to na danych z całej Polski: <b>1075 punktów</b> (1,3%) nie stoi na żadnym budynku. Przy 657 z nich budynek jest w promieniu 30 m (najczęściej blok — szpilka wylądowała na podwórku, parkingu albo trawniku), przy 252 w 30–60 m, przy 115 w 60–150 m, a <b>51 punktów nie ma żadnego budynku w promieniu 150 m</b> — tam szpilka wskazuje pole, las albo miejsce poza miejscowością z adresu.")}</p>
+      <p>${T("To błąd danych źródłowych i ich dalszego przetwarzania, nie Groty. Nie przesuwamy punktów po cichu, bo nie mamy czym potwierdzić, gdzie naprawdę jest schronienie. Zamiast tego: oznaczamy je, nie polecamy jako pierwszych i przy każdym piszemy, co stoi najbliżej szpilki i jak daleko — żeby w terenie szukać budynku, a nie kropki na mapie.")}</p>
+      <p>${T("Jeśli widzisz punkt postawiony w złym miejscu, zgłoś to gminie albo komendzie PSP, która przekazuje dane do zbioru — poprawka u źródła naprawia go we wszystkich aplikacjach naraz.")}</p>
+      <p>${T("Czas dojścia to szacunek: zanim trasa się wyznaczy — z odległości w linii prostej, potem z trasy po drogach i ścieżkach (bez korków i utrudnień). Nie jest gwarancją.")}</p>
+      <h3>${T("Źródła")}</h3>
+      <p class="small">${T("Zasady i listy kontrolne: {autorzy}, „{tytul}”, {wydanie}, {wersja}, licencja {licencja}.", {
+        autorzy: esc(P.SOURCE.authors), tytul: esc(P.SOURCE.title), wydanie: esc(T(P.SOURCE.edition)),
+        wersja: link(esc(P.SOURCE.url), T("wersja internetowa na gov.pl")), licencja: link(esc(P.SOURCE.licenseUrl), esc(P.SOURCE.license)) })} ${esc(T(P.SOURCE.note))}</p>
+      <p class="small">${T("{zrodlo}; dane z {data}. Kontrola budynków: {kontrola}. Mapa: OpenFreeMap, © OpenStreetMap. Zdjęcia z góry: ortofotomapa GUGiK (usługa WMS, pobierana na bieżąco, bez zapisywania). Biblioteka mapy: MapLibre (BSD).", {
+        zrodlo: esc(T(S.meta?.zrodlo || "Komenda Główna PSP, dane.gov.pl, CC BY 4.0")), data: esc(S.meta?.data_danych || ""), kontrola: esc(S.meta?.kontrola_budynkow || "OpenStreetMap, ODbL") })}</p>
+      <p class="small">${T("Wyszukiwanie adresów: usługa geokodowania GUGiK (zapytanie wysyłane dopiero po naciśnięciu „Szukaj”). Spis miejscowości do wyszukiwania bez internetu: OpenStreetMap (© współtwórcy OSM, ODbL). Ikony: Lucide (licencja ISC).")}</p>
+      <p class="small">${T("Wstępna trasa na mapie: serwer tras FOSSGIS (OSRM, dane © współtwórcy OpenStreetMap) — pozycja i cel są wysyłane do tego serwera; trasa nie uwzględnia korków ani utrudnień.")} ${link("https://www.openstreetmap.org/fixthemap", T("Popraw mapę"))}. ${T("Rodzaj budynku (szkoła, blok, parking podziemny…): OpenStreetMap, nie dane PSP.")}</p>
+      <h3>${T("„W określonych godzinach” i „na żądanie”")}</h3>
+      <p>${T("Według komunikatów PSP i samorządów o aplikacji „Gdzie się ukryć”: obiekty z godzinami są dostępne w czasie pracy placówki lub obecności obsługi, a obiekty „na żądanie” są zamknięte (np. piwnice bloków, garaże wspólnot) i w razie zagrożenia powinni je otworzyć zarządcy lub mieszkańcy w ramach wzajemnej pomocy. Publiczne dane nie podają godzin ani kontaktu — zapytaj zarządcę budynku zawczasu i zapisz odpowiedź przy swoim miejscu schronienia.")}</p>`;
   }
 
   let ostatniaZakladka = null;
@@ -2125,24 +2177,24 @@ Zmienić położenie?`);
     const gr = activeGroups(F.grupy);
     const allAccess = F.dostep.length === ACCESS_ITEMS.length, allTypes = gr.length === ALL_GROUPS.length;
     return `<div class="live-filter">
-      <div class="filter-head"><span class="small muted">${esc(o.title)}</span>
-        <button type="button" class="chip${allAccess ? " on" : ""}" data-act="${px}-all" aria-pressed="${allAccess}">Pokaż wszystkie</button></div>
+      <div class="filter-head"><span class="small muted">${esc(T(o.title))}</span>
+        <button type="button" class="chip${allAccess ? " on" : ""}" data-act="${px}-all" aria-pressed="${allAccess}">${T("Pokaż wszystkie")}</button></div>
       <div class="filter-row">${ACCESS_ITEMS.map(([k, label]) => {
         const c = near[k], on = F.dostep.includes(k);
         return `<button type="button" class="fchip${on ? " on" : ""}" data-act="${px}" data-val="${k}" aria-pressed="${on}">
-          <i style="background:${ACCESS_COLORS[k]}"></i><span>${label}</span><small>${c ? `${fmtDist(c.distM)}${c.estMin ? ` · ${c.estMin} min` : ""}` : "brak w pobliżu"}</small></button>`;
+          <i style="background:${ACCESS_COLORS[k]}"></i><span>${T(label)}</span><small>${c ? `${fmtDist(c.distM)}${c.estMin ? ` · ${T("{m} min", { m: c.estMin })}` : ""}` : T("brak w pobliżu")}</small></button>`;
       }).join("")}</div>
       ${o.typesOpen ? "" : `<div class="type-row skrot">${skrotRodzajow(gr).map(([k, label, icon]) =>
         `<button type="button" class="tchip${gr.includes(k) ? " on" : ""}" data-act="${px}-group" data-val="${k}" aria-pressed="${gr.includes(k)}">
-          ${I(icon)}<span>${esc(label)}</span></button>`).join("")}</div>`}
+          ${I(icon)}<span>${esc(T(label))}</span></button>`).join("")}</div>`}
       <button type="button" class="btn ghost szeroki" data-act="${px}-types" aria-expanded="${o.typesOpen}">
-        ${I(o.typesOpen ? "chevron-up" : "chevron-down")}Rodzaj budynku: ${allTypes ? "wszystkie" : `${gr.length} z ${ALL_GROUPS.length}`}</button>
-      ${o.typesOpen ? `<div class="filter-head filter-sub"><span class="small muted">Rodzaj budynku (wg OpenStreetMap)</span>
-          <button type="button" class="chip${allTypes ? " on" : ""}" data-act="${px}-groups-all" aria-pressed="${allTypes}">Pokaż wszystkie</button></div>
+        ${I(o.typesOpen ? "chevron-up" : "chevron-down")}${allTypes ? T("Rodzaj budynku: wszystkie") : T("Rodzaj budynku: {n} z {w}", { n: gr.length, w: ALL_GROUPS.length })}</button>
+      ${o.typesOpen ? `<div class="filter-head filter-sub"><span class="small muted">${T("Rodzaj budynku (wg OpenStreetMap)")}</span>
+          <button type="button" class="chip${allTypes ? " on" : ""}" data-act="${px}-groups-all" aria-pressed="${allTypes}">${T("Pokaż wszystkie")}</button></div>
         <div class="type-row">${TYPE_GROUPS.map(([k, label, icon]) => `<button type="button" class="tchip${gr.includes(k) ? " on" : ""}" data-act="${px}-group" data-val="${k}" aria-pressed="${gr.includes(k)}">
-          ${I(icon)}<span>${esc(label)}</span></button>`).join("")}</div>` : ""}
-      ${o.always ? `<p class="small muted">${esc(o.always)}</p>` : ""}
-      ${!allAccess || !allTypes ? `<p class="small sim">${esc(o.note)}</p>` : ""}
+          ${I(icon)}<span>${esc(T(label))}</span></button>`).join("")}</div>` : ""}
+      ${o.always ? `<p class="small muted">${esc(T(o.always))}</p>` : ""}
+      ${!allAccess || !allTypes ? `<p class="small sim">${esc(T(o.note))}</p>` : ""}
     </div>`;
   }
 
@@ -2386,7 +2438,7 @@ Zmienić położenie?`);
     clearTimeout(saveTimer); savePlaces();
     S.savedFlash = { field: id, at: Date.now() };
     const st = document.getElementById(`st-${id}`);
-    if (st) st.innerHTML = `${I("check")}Zapisano`;
+    if (st) st.innerHTML = `${I("check")}${T("Zapisano")}`;
     return true;
   }
 
@@ -2394,7 +2446,7 @@ Zmienić położenie?`);
     const el = e.target;
     if (!(el.hasAttribute("data-autosave") || el.dataset.notePlace)) return;
     const st = document.getElementById(`st-${el.id}`);
-    if (st) st.textContent = "zapisuję…";
+    if (st) st.textContent = T("zapisuję…");
     clearTimeout(saveTimer);
     saveTimer = setTimeout(() => commitField(el), 500);
   });
@@ -2439,7 +2491,7 @@ Zmienić położenie?`);
     } else if (act === "place-move-gps") {
       const pl = S.places.find((x) => x.id === b.dataset.id); if (!pl) return;
       try { const pos = await locate(); movePlace(pl, pos, { addr: "", approx: pos.acc > 300 }); }
-      catch (err) { alert(err.message + " Wpisz adres albo wskaż miejsce na mapie."); }
+      catch (err) { alert(T(err.message) + " " + T("Wpisz adres albo wskaż miejsce na mapie.")); }
     } else if (act === "place-move-map") {
       S.pick = { purpose: "move", id: b.dataset.id }; map.getCanvas().style.cursor = "crosshair"; render();
     } else if (act === "rec-start") {
@@ -2449,7 +2501,7 @@ Zmienić położenie?`);
       if (pl) { showOwnRoute(pl, b.dataset.id); render(); document.getElementById("g-map").scrollIntoView({ behavior: "smooth" }); }
     } else if (act === "rec-del") {
       const pl = S.places.find((x) => x.id === b.dataset.place);
-      if (!pl?.routes?.[b.dataset.id] || !confirm("Usunąć nagraną trasę?")) return;
+      if (!pl?.routes?.[b.dataset.id] || !confirm(T("Usunąć nagraną trasę?"))) return;
       delete pl.routes[b.dataset.id];
       if (S.route?.own && S.route.id === b.dataset.id) { S.route = null; drawRoute(); }
       savePlaces(); render();
@@ -2464,7 +2516,7 @@ Zmienić położenie?`);
       if (!S.userPos) {
         S.rysujeTrase = true; render();
         try { setUserPos(await locate(), false); S.posLabel = null; S.userPosAt = Date.now(); }
-        catch (e) { S.trasaBlad = `${e.message} Możesz też ustalić pozycję na ekranie TERAZ albo wskazać ją na mapie.`; }
+        catch (e) { S.trasaBlad = `${T(e.message)} ${T("Możesz też ustalić pozycję na ekranie TERAZ albo wskazać ją na mapie.")}`; }
         S.rysujeTrase = false;
       }
       if (S.userPos) showRoute(b.dataset.id);
@@ -2503,6 +2555,8 @@ Zmienić położenie?`);
       const it = S.addrCel.items?.[Number(b.dataset.i)]; if (!it) return;
       S.addrCel = { q: "" }; S.celOpen = false;
       ustawCel({ lat: it.lat, lon: it.lon, label: it.label });
+    } else if (act === "jezyk") {
+      zmienJezyk(b.dataset.val);
     } else if (act === "info-off") {
       S.infoSchrony = false; writeLS(INFO_KEY, true); render();
     } else if (act === "info-more") {
@@ -2519,7 +2573,7 @@ Zmienić położenie?`);
     } else if (act === "addr-pick") {
       const it = S.addr.items?.[Number(b.dataset.i)]; if (!it) return;
       S.addr = { q: "" };
-      useManualPos({ lat: it.lat, lon: it.lon, acc: it.acc }, `${it.label}${it.detail && it.source === "spis" ? ` (${it.detail})` : ""} — ${ADDR_SRC[it.source]}`);
+      useManualPos({ lat: it.lat, lon: it.lon, acc: it.acc }, `${it.label}${it.detail && it.source === "spis" ? ` (${it.detail})` : ""} — ${T(ADDR_SRC[it.source])}`);
     } else if (act === "addr-toggle") {
       S.addrOpen = !S.addrOpen; render();
       if (S.addrOpen) document.getElementById("addr-q")?.focus();
@@ -2600,14 +2654,14 @@ Zmienić położenie?`);
       if (pl) { pl.shelters = pl.shelters.filter((id) => id !== b.dataset.id); if (pl.routes) delete pl.routes[b.dataset.id]; savePlaces(); render(); }
     } else if (act === "del-place") {
       const pl = S.places.find((x) => x.id === b.dataset.id);
-      if (!pl || !confirm(`Usunąć miejsce „${pl.name}” razem z zapisanymi schronieniami i notatkami?`)) return;
+      if (!pl || !confirm(T("Usunąć miejsce „{n}” razem z zapisanymi schronieniami i notatkami?", { n: pl.name }))) return;
       S.places = S.places.filter((x) => x.id !== pl.id);
       if (S.openPlace === pl.id) S.openPlace = null;
       savePlaces(); render();
     } else if (act === "place-gps") {
       const name = document.getElementById("new-place-name").value.trim();
       try { const pos = await locate(); addPlace(name, pos, S.adding); map.flyTo({ center: [pos.lon, pos.lat], zoom: 14 }); }
-      catch (err) { alert(err.message + " Wskaż miejsce na mapie."); }
+      catch (err) { alert(T(err.message) + " " + T("Wskaż miejsce na mapie.")); }
       render();
     } else if (act === "place-map") {
       S.pick = { purpose: "place", name: document.getElementById("new-place-name").value.trim(), kind: S.adding };
@@ -2623,7 +2677,7 @@ Zmienić położenie?`);
       if (S.userPos && (keep || S.live?.options[0])) showRoute(keep && S.live?.options.some((o) => o.p.id === keep) ? keep : S.live?.options[0]?.p.id || keep);
     } else if (act === "at-place") {
       const pl = S.places.find((x) => x.id === b.dataset.id); if (!pl) return;
-      useManualPos({ lat: pl.lat, lon: pl.lon }, `zapisane miejsce „${pl.name}”`);
+      useManualPos({ lat: pl.lat, lon: pl.lon }, T("zapisane miejsce „{n}”", { n: pl.name }));
     } else if (act === "coarse-ok") {
       S.coarseOk = true; render();
     } else if (act === "show-on-map") {

@@ -76,7 +76,9 @@
   border: 3px solid #fff; box-shadow: 0 0 0 2px var(--red), 0 0 8px rgba(0,0,0,.6); pointer-events: none; }
 #grota-widok figure.ortho figcaption { font-size: 11px; color: var(--muted); padding: 4px 8px; }
 #grota-widok figure.ortho.err img, #grota-widok figure.ortho.err .ortho-dot { display: none; }
-#grota-widok figure.ortho.err figcaption::before { content: "Zdjęcie z góry niedostępne (brak sieci albo usługa GUGiK nie odpowiada). "; }
+/* tekst błędu jest w HTML (grota.js, zdjecieZGory), bo musi się tłumaczyć — CSS go tylko pokazuje */
+#grota-widok figure.ortho .ortho-err { display: none; }
+#grota-widok figure.ortho.err .ortho-err { display: inline; }
 
 /* ---- nawigacja i tryb „Teraz” ---- */
 #grota-widok .g-tabs button.danger { background: var(--red); border-color: var(--red); color: #fff; font-weight: 700; }

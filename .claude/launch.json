@@ -96,6 +96,26 @@
         "C:/Users/PC/Desktop/Straznik-poll/frontend"
       ],
       "port": 8616
+    },
+    {
+      "name": "grota-app-node",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "C:/Users/PC/AppData/Local/Temp/claude/C--Users-PC-Desktop-Stra-nik/5b5db3d3-e145-4492-961e-2e2f0785a56e/scratchpad/serwer_statyczny.cjs",
+        "C:/Users/PC/Desktop/Grota/app",
+        "8627"
+      ],
+      "port": 8627
+    },
+    {
+      "name": "grota-modul-test",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "C:/Users/PC/AppData/Local/Temp/claude/C--Users-PC-Desktop-Stra-nik/5b5db3d3-e145-4492-961e-2e2f0785a56e/scratchpad/serwer_statyczny.cjs",
+        "C:/Users/PC/AppData/Local/Temp/claude/C--Users-PC-Desktop-Stra-nik/5b5db3d3-e145-4492-961e-2e2f0785a56e/scratchpad/wt-scalenie",
+        "8626"
+      ],
+      "port": 8626
     }
   ]
 }

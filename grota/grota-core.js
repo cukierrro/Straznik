@@ -5,6 +5,11 @@
 
   const DETOUR = 1.3; // droga jest dłuższa niż linia prosta — szacunek, nie trasa
 
+  /* Tłumaczenia (jezyk.js). Etykiety w MODES i ACCESS zostają po polsku — tłumaczy je interfejs przy rysowaniu,
+     bo są kluczami; tu tłumaczymy tylko zdania składane z danych punktu (oznaczenia, ocena położenia, adresy). */
+  const J = global.GrotaJezyk;
+  const T = (s, v) => (J ? J.t(s, v) : s.replace(/\{(\w+)\}/g, (m, k) => (v && v[k] != null ? String(v[k]) : m)));
+
   const MODES = {
     walking:    { label: "Pieszo",            kmh: 5,    gmaps: "walking" },
     bicycling:  { label: "Rower / hulajnoga", kmh: 15,   gmaps: "bicycling" },
@@ -54,23 +59,23 @@
   }
 
   function flagMessages(p) {
-    const km = (m) => (m / 1000).toFixed(1).replace(".", ",");
+    const km = (m) => (J ? J.ulamek(m / 1000) : (m / 1000).toFixed(1).replace(".", ","));
     const msg = [];
     for (const f of p.flagi) {
       if (f === "daleko_od_budynku") {
         // „najbliżej blok mieszkalny, 24 m" mówi człowiekowi w terenie więcej niż sama odległość
-        const co = p.obok ? p.obok.etykieta.toLowerCase() : "budynek";
+        const co = p.obok ? T(p.obok.etykieta).toLowerCase() : T("budynek");
         const ile = Math.round(p.obok_m ?? p.budynek_m ?? 0);
-        msg.push(p.budynek_m == null ? "nie ma żadnego budynku w promieniu 150 m — współrzędne są prawdopodobnie błędne"
-          : ile <= 60 ? `szpilka stoi obok budynku, nie na nim — najbliżej ${co}, ${ile} m stąd`
-          : `szpilka nie stoi przy żadnym budynku — najbliższy (${co}) jest ${ile} m stąd`);
+        msg.push(p.budynek_m == null ? T("nie ma żadnego budynku w promieniu 150 m — współrzędne są prawdopodobnie błędne")
+          : ile <= 60 ? T("szpilka stoi obok budynku, nie na nim — najbliżej {co}, {m} m stąd", { co, m: ile })
+          : T("szpilka nie stoi przy żadnym budynku — najbliższy ({co}) jest {m} m stąd", { co, m: ile }));
       }
-      else if (f === "inne_woj") msg.push("punkt leży w innym województwie niż podane w danych");
-      else if (f === "inna_gmina") msg.push(`dane podają gminę ${p.gmina}, a punkt leży w: ${p.gmina_z_polozenia || "innej gminie"}`);
-      else if (f === "adres_daleko") msg.push(`adres z danych jest ${km(p.adres_m)} km od punktu`);
-      else if (f === "adres_rozbiezny") msg.push(`adres z danych jest ${Math.round(p.adres_m)} m od punktu — sprawdź na miejscu`);
-      else if (f === "daleko_od_miejscowosci") msg.push(`miejscowość o tej nazwie jest ${km(p.miejscowosc_km * 1000)} km dalej (nazwy bywają powtarzalne)`);
-      else if (f === "gmina_nieznana") msg.push("dane PSP nie podają gminy");
+      else if (f === "inne_woj") msg.push(T("punkt leży w innym województwie niż podane w danych"));
+      else if (f === "inna_gmina") msg.push(T("dane podają gminę {g}, a punkt leży w: {gdzie}", { g: p.gmina, gdzie: p.gmina_z_polozenia || T("innej gminie") }));
+      else if (f === "adres_daleko") msg.push(T("adres z danych jest {km} km od punktu", { km: km(p.adres_m) }));
+      else if (f === "adres_rozbiezny") msg.push(T("adres z danych jest {m} m od punktu — sprawdź na miejscu", { m: Math.round(p.adres_m) }));
+      else if (f === "daleko_od_miejscowosci") msg.push(T("miejscowość o tej nazwie jest {km} km dalej (nazwy bywają powtarzalne)", { km: km(p.miejscowosc_km * 1000) }));
+      else if (f === "gmina_nieznana") msg.push(T("dane PSP nie podają gminy"));
     }
     return msg;
   }
@@ -274,11 +279,14 @@
 
   function trustLabel(p) {
     const msg = flagMessages(p);
-    if (isDoubtful(p)) return { level: "watpliwe", text: "Położenie wątpliwe: " + msg.join("; ") + "." };
-    if (msg.length) return { level: "uwaga", text: "Do sprawdzenia: " + msg.join("; ") + "." };
-    const where = p.budynek_m === 0 ? "stoi na budynku" : `${Math.round(p.budynek_m)} m od budynku`;
-    const adr = p.adres_m != null && p.adres_m <= 150 ? ", zgadza się z adresem" : "";
-    return { level: "ok", text: `Położenie sprawdzone automatycznie: punkt ${where}${adr}.` };
+    if (isDoubtful(p)) return { level: "watpliwe", text: T("Położenie wątpliwe: {co}.", { co: msg.join("; ") }) };
+    if (msg.length) return { level: "uwaga", text: T("Do sprawdzenia: {co}.", { co: msg.join("; ") }) };
+    const naBudynku = p.budynek_m === 0, zAdresem = p.adres_m != null && p.adres_m <= 150;
+    const text = naBudynku
+      ? (zAdresem ? T("Położenie sprawdzone automatycznie: punkt stoi na budynku, zgadza się z adresem.") : T("Położenie sprawdzone automatycznie: punkt stoi na budynku."))
+      : (zAdresem ? T("Położenie sprawdzone automatycznie: punkt {m} m od budynku, zgadza się z adresem.", { m: Math.round(p.budynek_m) })
+        : T("Położenie sprawdzone automatycznie: punkt {m} m od budynku.", { m: Math.round(p.budynek_m) }));
+    return { level: "ok", text };
   }
 
   /* ---------- „Gdzie jestem”, gdy GPS nie działa ---------- */
@@ -305,7 +313,7 @@
     const d = (m) => (ref ? distanceM(ref.lat, ref.lon, m.lat, m.lon) : 0);
     const by = (a, b) => (ref ? d(a) - d(b) : KIND_RANK[a.kind] - KIND_RANK[b.kind]);
     return [...exact.sort(by), ...prefix.sort(by)].slice(0, limit).map((m) => ({
-      label: m.name, detail: `${m.kindLabel}, gm. ${m.gmina}`, lat: m.lat, lon: m.lon, acc: KIND_ACC[m.kind] || 1000, kind: m.kind, source: "spis" }));
+      label: m.name, detail: `${T(m.kindLabel)}, ${T("gm. {g}", { g: m.gmina })}`, lat: m.lat, lon: m.lon, acc: KIND_ACC[m.kind] || 1000, kind: m.kind, source: "spis" }));
   }
 
   /* Warianty zapytania dla wyszukiwarki GUGiK. Oczekuje „Miejscowość, ulica numer” i polskich znaków
@@ -345,10 +353,10 @@
   function uugItems(d, ref) {
     const res = Object.values(d.results || {}).filter((x) => x.x && x.y);
     const items = res.map((x) => {
-      const label = d.type === "address" ? `${x.street ? `${x.street} ${x.number}` : `nr ${x.number}`}, ${x.city}`
+      const label = d.type === "address" ? `${x.street ? `${x.street} ${x.number}` : T("nr {n}", { n: x.number })}, ${x.city}`
         : d.type === "street" ? `${x.street}, ${x.city}` : x.city;
-      const detail = d.type === "city" ? [x.commune && `gm. ${x.commune}`, x.county && `pow. ${x.county}`, x.voivodeship].filter(Boolean).join(", ")
-        : d.type === "street" ? "cała ulica — pozycja przybliżona" : (x.code || "");
+      const detail = d.type === "city" ? [x.commune && T("gm. {g}", { g: x.commune }), x.county && T("pow. {p}", { p: x.county }), x.voivodeship].filter(Boolean).join(", ")
+        : d.type === "street" ? T("cała ulica — pozycja przybliżona") : (x.code || "");
       return { label, detail, lat: Number(x.y), lon: Number(x.x), acc: UUG_ACC[d.type] || 1000, source: "gugik" };
     });
     // adresy i ulice GUGiK zwraca od najlepiej dopasowanego; miejscowości o tej samej nazwie — od najbliższej
@@ -392,7 +400,7 @@
         catch { continue; }            // zapora serwera czasem odrzuca nietypowe zapytanie stroną HTML — próbujemy następny wariant
         let items = uugItems(d, ref);
         if (v.approx === "numer" && d.type === "address")
-          items = items.map((it) => ({ ...it, acc: 80, detail: `${it.detail} · tego numeru nie ma w bazie adresów — sprawdź położenie na mapie`.replace(/^ · /, "") }));
+          items = items.map((it) => ({ ...it, acc: 80, detail: `${it.detail} · ${T("tego numeru nie ma w bazie adresów — sprawdź położenie na mapie")}`.replace(/^ · /, "") }));
         // GUGiK nie zna dzielnic jako miejscowości („Mokotów” to dla niego wieś w gminie Klwów) — dokładamy je ze spisu
         if (d.type === "city") findLocalities(idx, v.city, ref).filter((x) => x.kind === "d").forEach((x) => items.unshift(x));
         if (items.length) return { items: items.slice(0, 8), offline: false, notFound: false, approx: d.type !== "address" || !!v.approx };

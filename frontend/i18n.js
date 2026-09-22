@@ -48,7 +48,7 @@
     "przygaszony — kolor tylko od sąsiadów, bez alarmu": "dimmed — colour from neighbours only, no alert",
     "WYSOKI PRIORYTET": "HIGH PRIORITY", "PODWYŻSZONA UWAGA": "ELEVATED ATTENTION",
     "POTWIERDZAM — wycisz syrenę": "ACKNOWLEDGE — silence siren",
-    "Schronienie — gdzie najbliżej": "Shelter — nearest (in Polish)",
+    "Schronienie — gdzie najbliżej": "Shelter — nearest",
     "Moja lokalizacja": "My location", "Województwo": "Province", "Wykryj z GPS": "Detect with GPS",
     "Alarmy przy zamkniętej aplikacji": "Alerts while the app is closed",
     "Ustawienia powiadomień": "Notification settings", "Zgoda na alarm pełnoekranowy": "Full-screen alert permission",
