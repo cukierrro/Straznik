@@ -1,7 +1,11 @@
 /* GROTA jako moduł Strażnika — jedyny punkt wejścia (kontrakt: grota/README.md).
 
    Strażnik wstawia <script src="grota/widok.js"> dopiero przy pierwszym wejściu i woła:
-     window.Grota.otworz()   — pokazuje moduł; przy pierwszym razie dociąga resztę plików,
+     window.Grota.otworz()   — pokazuje moduł; przy pierwszym razie dociąga resztę plików;
+                               otworz({ zakladka: "teraz" }) otwiera od razu ekran TERAZ (wejście z alarmu),
+     window.Grota.przygotuj() — wczytuje moduł i punkty w tle, bez pokazywania i bez mapy (przy alarmie,
+                               żeby „Gdzie się schronić” otwierało się od razu); można wołać wiele razy,
+                               nigdy nie rzuca — zwraca Promise<boolean>: true, gdy punkty są gotowe,
      window.Grota.ukryj()    — chowa moduł i zdejmuje jego mapę (punkty i stan zostają w pamięci),
      window.Grota.widoczny   — czy moduł jest teraz na ekranie,
      window.Grota.wstecz()   — jeden krok „wstecz” wewnątrz Groty; false, gdy nie ma już czego cofać
@@ -12,7 +16,7 @@
   if (window.Grota) return;
 
   const BAZA = "grota/";
-  const WERSJA = "d525d327a5";                 // podmieniane przy eksporcie — świeże pliki po aktualizacji aplikacji
+  const WERSJA = "23bfd950cf";                 // podmieniane przy eksporcie — świeże pliki po aktualizacji aplikacji
   const SKRYPTY = ["ikony.js", "poradnik.js", "grota-core.js", "trasa-lokalna.js", "vendor/fflate.min.js", "offline.js", "grota.js"];
 
   // Szkielet widoku — ten sam układ co samodzielna Grota, plus powrót do Strażnika w nagłówku.
@@ -70,7 +74,7 @@
     document.head.appendChild(l);
   }
 
-  function przygotuj() {
+  function wczytaj() {
     if (!wczytywanie) {
       wczytywanie = (async function () {
         const p = pojemnik();
@@ -91,7 +95,7 @@
   }
 
   window.Grota = {
-    async otworz() {
+    async otworz(opcje) {
       const p = pojemnik();
       if (!p) throw new Error("brak pojemnika #grota-widok");
       chceOtwarte = true;
@@ -105,9 +109,18 @@
       }
       // pokazujemy od razu — pierwsze wczytanie trwa chwilę, a mapa MapLibre potrzebuje widocznego pojemnika
       p.hidden = false; widoczny = true;
-      await przygotuj();
+      await wczytaj();
       if (!chceOtwarte) { p.hidden = true; widoczny = false; return; }   // w międzyczasie ktoś zamknął
-      window.GrotaModul.pokaz();
+      window.GrotaModul.pokaz(opcje);
+    },
+    async przygotuj() {
+      try {
+        if (!pojemnik() || !webviewWystarczy()) return false;
+        await wczytaj();
+        return await window.GrotaModul.przygotuj();
+      } catch (e) {
+        return false;
+      }
     },
     ukryj() {
       chceOtwarte = false;
