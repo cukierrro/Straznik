@@ -682,7 +682,7 @@
      (RCB/RSO, obiekt w powietrzu) — albo w prototypie bez Strażnika, gdzie czas ustawia się ręcznie. Przy
      sygnałach pośrednich (decyzja usera 21.09): zwykły kolor trasy i żadnego „zdążysz / nie zdążysz”,
      bo czerwień przy niepotwierdzonym alarmie działa jak alarm. */
-  const porownujCzas = () => S.etaMin != null && (!alarmTrwa() || S.alarm.hard !== false);
+  const porownujCzas = () => S.etaMin != null && (!alarmTrwa() || S.alarm.hard !== false) && !S.live?.pozaZasiegiem;
 
   /* Czas do zagrożenia Strażnik liczy z obiektów, które SAM widzi (NEPTUN i inne źródła). Alert RCB może
      dotyczyć zagrożenia, którego Strażnik nie widzi — np. wojsko ma coś na radarze, a NEPTUN nie. Wtedy
@@ -1753,6 +1753,13 @@ Zmienić położenie?`);
       body = `<div class="card"><p class="sim">${esc(S.liveError)}</p>${placeChips()}
         ${addrBox()}
         <div class="row" style="margin-top:8px"><button class="btn" data-act="live-map">Wskaż na mapie</button><button class="btn ghost" data-act="retry-locate">Spróbuj ponownie</button></div></div>`;
+    } else if (S.live && S.live.pozaZasiegiem) {
+      body = posLine() + `<div class="card"><p><b>Jesteś poza zasięgiem danych Groty.</b></p>
+        <p class="small">Grota zna miejsca schronienia tylko w Polsce, a najbliższe jest ${fmtDist(S.live.pozaZasiegiem)} stąd.
+        Poza Polską stosuj się do komunikatów tamtejszych służb.</p>
+        <p class="small muted">Jeśli jesteś w Polsce, telefon podaje złą pozycję — wybierz, gdzie jesteś:</p>${placeChips()}
+        ${addrBox()}
+        <div class="row" style="margin-top:8px"><button class="btn" data-act="live-map">Wskaż na mapie</button><button class="btn ghost" data-act="retry-locate">Spróbuj ponownie</button></div></div>`;
     } else if (S.live && S.coarse && !S.coarseOk) {
       body = `<div class="card"><p class="sim">${esc(COARSE_TEXT(S.userPos.acc))}</p>${placeChips()}
         ${addrBox()}
@@ -1926,9 +1933,24 @@ Zmienić położenie?`);
     if (!S.userPos) return;
     const { lat, lon } = S.userPos, F = S.liveFilter;
     S.live = C.liveBest(pointsFor(F.dostep, F.grupy), lat, lon, { mode: S.mode, etaMin: S.etaMin });
+    S.live.pozaZasiegiem = pozaZasiegiem(lat, lon, S.live);
     S.wybraneRecznie = null;          // nowa pozycja albo inny filtr — pierwszy jest znów ten najbliższy
     // ile trzeba iść do najbliższego sprawdzonego punktu każdego rodzaju — żeby świadomie wybrać „dalej, ale całodobowo”
     S.liveNear = nearestByAccess(lat, lon, F.grupy, S.mode);
+  }
+
+  /* Grota zna tylko punkty w Polsce. Kto jest za granicą (albo telefon podaje fałszywą pozycję — emulator
+     stoi domyślnie w Kalifornii), dostawał linię przez ocean: „9029 km · 140855 min”. Powyżej 50 km do
+     najbliższego punktu z całego wykazu, bez względu na filtr, mówimy wprost, że to poza zasięgiem danych.
+     W Polsce, przy 85 tys. punktów, najbliższy jest zawsze dużo bliżej. Zwraca odległość albo null. */
+  const ZASIEG_M = 50000;
+  function pozaZasiegiem(lat, lon, L) {
+    if (!S.points.length) return null;
+    const pierwszy = L.options[0]?.distM;
+    if (pierwszy != null && pierwszy <= ZASIEG_M) return null;
+    let min = Infinity;
+    for (const p of S.points) { const d = C.distanceM(lat, lon, p.lat, p.lon); if (d < min) min = d; }
+    return min > ZASIEG_M ? min : null;
   }
 
   /* Pierwsza karta to domyślnie punkt najbliższy, ale wybór należy do człowieka: bywa zamknięty,
@@ -2053,6 +2075,11 @@ Zmienić położenie?`);
 
   function fitLive() {
     if (!S.live || !S.userPos) return;
+    if (S.live.pozaZasiegiem) {
+      S.selectedId = null; S.route = null; drawRoute();
+      map.flyTo({ center: [S.userPos.lon, S.userPos.lat], zoom: 6, duration: 600 });
+      return;
+    }
     const b = new maplibregl.LngLatBounds([S.userPos.lon, S.userPos.lat], [S.userPos.lon, S.userPos.lat]);
     S.live.options.slice(0, 3).forEach((c) => b.extend([c.p.lon, c.p.lat]));
     map.fitBounds(b, { padding: fitPadding(), maxZoom: 16, duration: 600 });
