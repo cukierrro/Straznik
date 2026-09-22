@@ -6,6 +6,15 @@
 	<string>$(CAPACITOR_DEBUG)</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>pl</string>
+	<!-- Języki, które aplikacja deklaruje. Bez tej listy WKWebView zwraca w
+	     navigator.language język APLIKACJI (tu: sam polski), a nie telefonu — GROTA
+	     zostawałaby po polsku na ukraińskim i angielskim iPhonie (22.09.2026). -->
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>pl</string>
+		<string>en</string>
+		<string>uk</string>
+	</array>
 	<key>CFBundleDisplayName</key>
         <string>Strażnik</string>
 	<key>CFBundleExecutable</key>
