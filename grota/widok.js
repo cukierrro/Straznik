@@ -2,7 +2,7 @@
 
    Strażnik wstawia <script src="grota/widok.js"> dopiero przy pierwszym wejściu i woła:
      window.Grota.otworz()   — pokazuje moduł; przy pierwszym razie dociąga resztę plików;
-                               otworz({ zakladka: "teraz" }) otwiera od razu ekran TERAZ (wejście z alarmu),
+                               otworz({ zakladka: "teraz" }) otwiera od razu ekran TERAZ (wejście z alarmu); bez zakładki zawsze Mapa,
      window.Grota.przygotuj() — wczytuje moduł i punkty w tle, bez pokazywania i bez mapy (przy alarmie,
                                żeby „Gdzie się schronić” otwierało się od razu); można wołać wiele razy,
                                nigdy nie rzuca — zwraca Promise<boolean>: true, gdy punkty są gotowe,
@@ -16,7 +16,7 @@
   if (window.Grota) return;
 
   const BAZA = "grota/";
-  const WERSJA = "23bfd950cf";                 // podmieniane przy eksporcie — świeże pliki po aktualizacji aplikacji
+  const WERSJA = "bcccb8517a";                 // podmieniane przy eksporcie — świeże pliki po aktualizacji aplikacji
   const SKRYPTY = ["ikony.js", "poradnik.js", "grota-core.js", "trasa-lokalna.js", "vendor/fflate.min.js", "offline.js", "grota.js"];
 
   // Szkielet widoku — ten sam układ co samodzielna Grota, plus powrót do Strażnika w nagłówku.
