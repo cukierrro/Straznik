@@ -694,12 +694,23 @@ def _baltic_summary() -> None:
         st["newest_item"] = max(newest) if newest else None
 
 
+async def _rozlozone(opoznienie: float, zadanie):
+    await asyncio.sleep(opoznienie)
+    return await zadanie
+
+
 async def run():
-    async with httpx.AsyncClient(timeout=20) as client:
+    # 22.09.2026: pętla zdarzeń stawała na 1,5–2,8 s co minutę, zawsze w ssl.do_handshake
+    # pod _get_with_retry. Domyślnie httpx zamyka bezczynne połączenie po 5 s, więc co cykl
+    # (60 s) 17 kanałów zestawiało TLS od nowa — i to naraz. Połączenia trzymamy dłużej niż
+    # jeden cykl, a start zapytań rozkładamy o 0,4 s, żeby uzgodnienia TLS nie szły jednym blokiem.
+    limity = httpx.Limits(keepalive_expiry=config.RSS_INTERVAL + 60)
+    async with httpx.AsyncClient(timeout=20, limits=limity) as client:
         while True:
+            zadania = [_check_feed(client, url, voiv) for url, voiv in config.RSS_FEEDS]
+            zadania += [_check_baltic_feed(client, url, c) for url, c in config.BALTIC_FEEDS]
             await asyncio.gather(
-                *[_check_feed(client, url, voiv) for url, voiv in config.RSS_FEEDS],
-                *[_check_baltic_feed(client, url, c) for url, c in config.BALTIC_FEEDS],
+                *[_rozlozone(i * 0.4, z) for i, z in enumerate(zadania)],
                 return_exceptions=True,
             )
             _baltic_summary()
