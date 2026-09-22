@@ -830,6 +830,64 @@ function showNotice(n) {
   };
 }
 
+/* ── Stan alarmu dla modułu GROTA (19.09.2026) ────────────────────────────────
+   GROTA pokazuje drogę do schronienia i musi wiedzieć dwie rzeczy: ile zostało
+   czasu i czy poziom opiera się na czymś twardym. Zamiast dawać jej surowe
+   sygnały do własnych obliczeń, podajemy gotowe wartości — policzone dokładnie
+   tak, jak liczy je interfejs Strażnika. Dwa ekrany tej samej aplikacji nie mogą
+   pokazywać różnych czasów.
+
+   `etaVoivMin` — minimum z sygnałów PO `agedEta` (odjęty wiek, null powyżej 15 min)
+   i BEZ kursów domniemanych (audyt G3: czas liczony w stronę przypuszczalnego celu,
+   a nie faktycznego ruchu). Gdy nie ma czego podać, jest `null` — GROTA mówi wtedy
+   wprost, że nie zna czasu, zamiast zgadywać z odległości.
+
+   `hard` — czy poziom UTRZYMAŁBY SIĘ bez źródeł miękkich, czyli czy suma punktów
+   z klas twardych (`rcb` = oficjalny alert RCB/RSO dla Polski, `neptun` = obiekt
+   w powietrzu) sama sięga progu tego poziomu. Media mają dziś limit klasy 1,0 pkt
+   i nie podniosą poziomu same, a wszystkie sześć czerwonych w dzienniku od 15.09
+   miało alert RCB — ale to bezpiecznik na przyszłe zmiany wag, nie opis dzisiaj.
+   `ua_alert` celowo jest MIĘKKIE: alarm w obwodzie ukraińskim jest oficjalny, ale
+   mówi o zagrożeniu nad Ukrainą. Zanim powiemy komuś „idź do schronu", chcemy
+   czegoś mierzalnego nad Polską. Przy `hard: false` GROTA pokazuje mapę i kierunki,
+   ale nie wzywa do schronienia. */
+const HARD_SOURCES = new Set(["rcb", "neptun"]);
+let _alertPayload = "";
+
+function buildAlertContract() {
+  const mine = myVoiv();
+  const st = mine ? state?.fusion?.voivodeships?.[mine] : null;
+  if (!st) return null;
+  const level = st.alert_level || st.level || "none";
+  const sigs = st.signals || [];
+  let etaVoivMin = null, etaBorderMin = null, hardSum = 0;
+  for (const s of sigs) {
+    const d = s.details || {};
+    if (HARD_SOURCES.has(s.source)) hardSum += s.counted_points ?? 0;
+    if (d.course === "presumptive") continue;        // kurs domniemany — bez czasu
+    const v = agedEta(d.eta_voiv_min ? d.eta_voiv_min[mine] : null, s.ts);
+    const b = agedEta(d.eta_border_min, s.ts);
+    if (v != null) etaVoivMin = etaVoivMin == null ? v : Math.min(etaVoivMin, v);
+    if (b != null) etaBorderMin = etaBorderMin == null ? b : Math.min(etaBorderMin, b);
+  }
+  const prog = level === "high" ? (state?.fusion?.thresholds?.high ?? 4)
+             : level === "elevated" ? (state?.fusion?.thresholds?.elevated ?? 2) : 0;
+  return { level, voiv: mine, etaVoivMin, etaBorderMin,
+           hard: level !== "none" && hardSum >= prog - 1e-9,
+           ts: state?.fusion?.ts || new Date().toISOString() };
+}
+
+/* Publikujemy przy każdej zmianie stanu; zdarzenie leci tylko, gdy coś naprawdę
+   się zmieniło, żeby moduł nie przeliczał progów przy każdej ramce. */
+function publishAlertContract() {
+  const next = buildAlertContract();
+  window.straznikAlert = next;
+  const odcisk = JSON.stringify(next);
+  if (odcisk === _alertPayload) return;
+  _alertPayload = odcisk;
+  window.dispatchEvent(new CustomEvent("straznik:alert", { detail: next }));
+}
+
 function applyState(s) {
   state = s;
   showNotice(s?.notice);
@@ -839,6 +897,7 @@ function applyState(s) {
   refreshCountedTracks();
   renderLeds();
   updateAlarmMood();          // alarmy działają także w trybie przeglądania
+  publishAlertContract();     // stan alarmu dla modułu GROTA — także w historii
   if (histMode) return;       // ale widok mapy/panelu zostaje na wybranym momencie
   renderPanel();
   if (mapReady) { updateVoivStates(); updateAdsb(); }
@@ -3465,14 +3524,44 @@ function showAlarm(voiv, st) {
     : "Co zrobić: przejdź do schronu albo pomieszczenia bez okien, z dala od szyb. Śledź komunikaty RCB i służb.";
   document.getElementById("alarm-time").textContent =
     (UI.isEn ? "alert at " : "alarm o ") + new Date().toLocaleTimeString(UI.isEn ? "en-GB" : "pl-PL");
+  alarmWyborReset();
   alarmOverlay.classList.remove("hidden");
   airRaidSiren(true);          // ciągła — milknie dopiero po potwierdzeniu
 }
-document.getElementById("alarm-ack").onclick = () => {
-  stopSiren();
+
+/* Po potwierdzeniu alarmu: wybór zamiast natychmiastowego zamknięcia ekranu.
+   Decyzja usera 20.09.2026 — aplikacja NIGDY sama nie przejmuje ekranu Grotą:
+   człowiek patrzy właśnie na zagrożenie i sam wybiera, dokąd dalej. Przycisk
+   schronienia jest tylko w aplikacji (klasa app-only), na stronie go nie ma. */
+const alarmAck = document.getElementById("alarm-ack");
+const alarmWybor = document.getElementById("alarm-choices");
+function alarmWyborReset() {
+  alarmAck.hidden = false;
+  if (alarmWybor) alarmWybor.hidden = true;
+  const t = (id, pl, en) => { const el = document.getElementById(id); if (el) el.lastChild.textContent = UI.isEn ? en : pl; };
+  t("alarm-grota", "Gdzie się schronić", "Where to shelter");
+  t("alarm-map", "Obserwuj mapę", "Watch the map");
+  t("alarm-safe", "Jestem bezpieczny", "I am safe");
+}
+function zamknijAlarm() {
   alarmOverlay.classList.add("hidden");
-  setPanel(true);
+  alarmWyborReset();
+}
+alarmAck.onclick = () => {
+  stopSiren();
+  if (!alarmWybor) { zamknijAlarm(); setPanel(true); return; }
+  alarmAck.hidden = true;
+  alarmWybor.hidden = false;
 };
+document.getElementById("alarm-map")?.addEventListener("click", () => {
+  zamknijAlarm();
+  setPanel(false);             // sama mapa, bez panelu na wierzchu
+});
+document.getElementById("alarm-safe")?.addEventListener("click", zamknijAlarm);
+document.getElementById("alarm-grota")?.addEventListener("click", () => {
+  zamknijAlarm();
+  otworzGrote();
+});
 
 let audioCtx = null;
 function ctx() {
@@ -5207,6 +5296,8 @@ function syncTabs() {
   }
   document.getElementById("btn-panel")?.setAttribute("aria-pressed", String(panelOpen));
   document.getElementById("btn-history")?.setAttribute("aria-pressed", String(histOn));
+  // widok modułu jest osobnym ekranem — zakładka, która przejmuje ekran, go zamyka
+  if ((panelOpen || histOn) && window.Grota?.widoczny) ukryjGrote();
 }
 
 function setPanel(open) {
@@ -5230,6 +5321,12 @@ window.straznikBack = function () {
   if (open.length) {
     const d = open[open.length - 1];          // okno otwarte z innego leży później w DOM
     if (d.dispatchEvent(new Event("cancel", { cancelable: true }))) d.close();
+    return true;
+  }
+  // Grota leży nad mapą na cały ekran: najpierw cofa własne kroki (karta, zakładka),
+  // a gdy nie ma już czego — wracamy do Strażnika. Bez wstecz() (starszy moduł) po prostu zamyka.
+  if (window.Grota?.widoczny) {
+    if (!window.Grota.wstecz?.()) ukryjGrote();
     return true;
   }
   const card = document.getElementById("ac-card");
@@ -5337,12 +5434,56 @@ if (attrEl) {
   attrEl.style.cursor = "pointer";
 }
 
+/* ── moduł schronienia (GROTA) ───────────────────────────────────────────────
+   Strażnik mówi, że jest zagrożenie; GROTA pokazuje, dokąd iść.
+
+   Interfejs uzgodniony z sesją Groty 21.09.2026: globalny `window.Grota` z
+   `otworz()`, `ukryj()` i getterem `widoczny` — zwykłe skrypty, bez modułów ES.
+   `grota/widok.js` jest jedynym punktem wejścia i sam dociąga resztę swoich plików.
+
+   Wczytujemy go dopiero przy pierwszym wejściu: to kilkaset KB kodu i 11 MB punktów,
+   a aplikacja alarmowa ma startować natychmiast. Pliki są tylko w aplikacji —
+   strona ich nie ma, więc tam przycisku nie widać (app-only), a gdyby ktoś jednak
+   wywołał otwarcie, dostanie komunikat zamiast pustego ekranu. */
+let grotaLadowanie = null;
+function wczytajGrote() {
+  if (window.Grota) return Promise.resolve(window.Grota);
+  if (!grotaLadowanie) {
+    grotaLadowanie = new Promise((ok, zle) => {
+      const s = document.createElement("script");
+      s.src = "grota/widok.js";
+      s.onload = () => (window.Grota ? ok(window.Grota)
+                                     : zle(new Error("grota/widok.js nie wystawił window.Grota")));
+      s.onerror = () => zle(new Error("nie udało się wczytać grota/widok.js"));
+      document.head.appendChild(s);
+    }).catch(e => { grotaLadowanie = null; throw e; });   // pozwól spróbować ponownie
+  }
+  return grotaLadowanie;
+}
+async function otworzGrote() {
+  setPanel(false);
+  if (moreSheet?.open) moreSheet.close();
+  if (document.body.classList.contains("history-mode")) toggleHistory();
+  try {
+    (await wczytajGrote()).otworz();
+  } catch (e) {
+    console.warn("GROTA:", e);
+    toast(UI.isEn ? "Shelter finder is not available in this version."
+                  : "Wyszukiwanie schronień nie jest dostępne w tej wersji.");
+  }
+}
+/* Każde przejście gdzie indziej zatrzymuje mapę modułu — bez tego jej renderowanie
+   zjadałoby procesor w tle, obok mapy Strażnika. */
+function ukryjGrote() { window.Grota?.ukryj(); }
+
 /* ── dolne zakładki i menu „Więcej” ── */
 const moreSheet = document.getElementById("more-sheet");
+document.getElementById("btn-grota")?.addEventListener("click", otworzGrote);
 document.getElementById("tab-more")?.addEventListener("click", () => {
   if (moreSheet?.open) moreSheet.close(); else moreSheet?.showModal();
 });
 document.getElementById("tab-map")?.addEventListener("click", () => {
+  ukryjGrote();
   setPanel(false);
   if (moreSheet?.open) moreSheet.close();
   if (document.body.classList.contains("history-mode")) toggleHistory();
