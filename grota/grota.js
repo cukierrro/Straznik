@@ -146,8 +146,9 @@
     const s = JSON.parse(JSON.stringify(styl));
     const zr = s.sources?.openmaptiles;
     if (zr) {
+      // adres kafelków z TileJSON przychodzi asynchronicznie — offline.js czeka na niego przy pierwszych kafelkach
       if (zr.tiles?.[0]) O.ustawZrodloOFM(zr.tiles[0]);
-      else if (zr.url) fetch(zr.url).then((r) => r.json()).then((tj) => tj.tiles?.[0] && O.ustawZrodloOFM(tj.tiles[0])).catch(() => {});
+      else if (zr.url) O.ustawZrodloOFM(fetch(zr.url).then((r) => r.json()).then((tj) => tj.tiles?.[0] || null));
       // klucz z wartością undefined wywraca walidację stylu i MapLibre po cichu przerywa wczytywanie
       s.sources.openmaptiles = { type: "vector", tiles: ["grota://kafelek/{z}/{x}/{y}"], minzoom: 0, maxzoom: zr.maxzoom || 14 };
       /* Atrybucja MUSI zostać: ODbL wymaga jej wszędzie tam, gdzie pokazujemy dane OSM, także
@@ -162,6 +163,8 @@
     }
     if (s.glyphs) {
       const szablon = s.glyphs;
+      // szablon czcionek dla zakresów znaków, których paczka nie ma (offline.js, zrodlo)
+      if (!szablon.startsWith("grota:")) O.zapiszMeta("adres:glyphs", szablon);
       (s.layers || []).forEach((l) => {
         const f = l.layout?.["text-font"];
         if (Array.isArray(f) && f.length) for (const zakres of ["0-255", "256-511"])
