@@ -1203,6 +1203,13 @@ async function initMap() {
     map.addLayer({ id: "kraje-alert-line", type: "line", source: "kraje",
       paint: { "line-color": "#ff4d5e", "line-width": 1.2, "line-dasharray": [2, 2],
         "line-opacity": ["case", ["boolean", ["feature-state", "alert"], false], 0.7, 0] } });
+    map.on("click", "kraje-alert", (e) => {
+      const hit = map.queryRenderedFeatures(e.point,
+        { layers: ["threats", "threats-glow", "adsb", "strefy-hit"].filter(l => map.getLayer(l)) });
+      if (hit.length) return;   // obiekt albo strefa w tym kraju ma pierwszeństwo
+      const iso = e.features?.[0]?.properties?.iso;
+      if (countryAlerts.has(iso)) openCountryAlert(countryAlerts.get(iso));
+    });
     /* Kontury krajów rysuje już styl bazowy (warstwy boundary). Własnej linii
        NIE dokładamy: wzdłuż granicy PL biegłaby obok linii województw i dawała
        efekt „podwójnego konturu". Zostaje samo wypełnienie (odcień kraju). */
@@ -2165,7 +2172,7 @@ function paintOblasts(sigs) {
 /* ── alarmy u sąsiadów tylko do obserwacji (bez punktów, 15.09.2026) ── */
 let raionsByOblast = {};           // obwód (ukr., bez „область”) → klucze rejonów z mapy
 let raionAlertInfo = new Map();    // klucz rejonu → wpis alarmu NEPTUN-a
-let countryAlerts = new Set();     // ISO3 krajów z trwającym alarmem
+let countryAlerts = new Map();     // ISO3 kraju z trwającym alarmem -> opis do karty
 const UA_LATIN = { а:"a",б:"b",в:"v",г:"h",ґ:"g",д:"d",е:"e",є:"ie",ж:"zh",з:"z",и:"y",і:"i",ї:"i",й:"i",
   к:"k",л:"l",м:"m",н:"n",о:"o",п:"p",р:"r",с:"s",т:"t",у:"u",ф:"f",х:"kh",ц:"ts",ч:"ch",ш:"sh",
   щ:"shch",ь:"",ю:"iu",я:"ia" };
@@ -2226,14 +2233,40 @@ function openRaionAlert(a) {
 const BALTIC_ISO3 = { LT: "LTU", LV: "LVA", EE: "EST" };
 function paintCountryAlerts(sigs) {
   if (!mapReady || !map.getSource("kraje")) return;
-  const next = new Set();
+  const next = new Map();
   for (const s of sigs || []) {
     const iso = s.event_type === "baltic_alert" && BALTIC_ISO3[s.details?.country];
-    if (iso && !s.cleared && (s.weight ?? 1) > 0) next.add(iso);
+    if (!iso || s.cleared || (s.weight ?? 1) <= 0) continue;
+    const e = next.get(iso) || { country: s.details.country, per: [], since: s.ts, sig: s };
+    e.per.push({ voiv: s.voivodeship, points: Number(s.points) || 0 });
+    if (s.ts < e.since) { e.since = s.ts; e.sig = s; }
+    next.set(iso, e);
   }
-  for (const iso of new Set([...countryAlerts, ...next]))
+  for (const iso of new Set([...countryAlerts.keys(), ...next.keys()]))
     map.setFeatureState({ source: "kraje", id: iso }, { alert: next.has(iso) });
   countryAlerts = next;
+}
+/* Karta podświetlonej Litwy, Łotwy albo Estonii — jak karta obwodu UA (22.09.2026). */
+function openCountryAlert(e) {
+  markSelected(null, null);
+  const en = UI.isEn;
+  const name = (en ? BALTIC_NAME_EN : BALTIC_NAME_PL)[e.country] || e.country;
+  const since = new Date(e.since).toLocaleTimeString(en ? "en-GB" : "pl-PL",
+    { hour: "2-digit", minute: "2-digit" });
+  const quote = String(e.sig.title || "").replace(/^[^„]*/, "");
+  const link = safeUrl(e.sig.details?.link);
+  const art = link ? `<a href="${esc(link)}" target="_blank" rel="noopener">${esc2(quote)}</a>` : esc2(quote);
+  const num = (v) => en ? Number(v).toFixed(2).replace(/0$/, "") : Number(v).toFixed(2).replace(/0$/, "").replace(".", ",");
+  const rows = e.per.sort((a, b) => b.points - a.points).map(r =>
+    `${en ? "" : "woj. "}${esc2(UI.voiv(r.voiv))}: <b>+${num(r.points)} ${en ? "pt" : "pkt"}</b>`).join("<br>");
+  showCard(`
+    <div class="zone-head"><b style="color:#ff6b78">📢 ${esc2(name)}</b>
+      <span style="color:#8fa3c4">· ${en ? "air-raid alert (media report)" : "alarm powietrzny (doniesienie mediów)"}</span></div>
+    <span style="color:#8fa3c4">${en ? `Reported at ${since}:` : `Doniesienie z ${since}:`}</span> ${art}<br>
+    ${rows}<br>
+    <span style="color:#68758c">${en
+      ? "The Baltic states have no public alert feed, so Strażnik reads their news portals and counts only a fresh headline announcing the alert. The weight falls with distance: Lithuania 0.3 pt, Latvia 0.18, Estonia 0.12 (half of that for West Pomerania). An article about the alert ending clears the highlight."
+      : "Kraje bałtyckie nie mają publicznego kanału alarmów, więc Strażnik czyta ich portale informacyjne i liczy tylko świeży tytuł ogłaszający alarm. Waga maleje z odległością: Litwa 0,3 pkt, Łotwa 0,18, Estonia 0,12 (zachodniopomorskie połowę). Artykuł o odwołaniu alarmu gasi podświetlenie."}</span>`);
 }
 function openOblastCard(p) {
   const e = oblastInfo.get(p.oblast);

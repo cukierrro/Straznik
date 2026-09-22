@@ -1044,6 +1044,10 @@ BALTIC_DISCUSSION_MARKERS = [
     "neaišk", "nesutink", "įvertin", "reakcij", "neturėjome", "įstatym", "pasiruoš",
     # „ministerija:” (komunikat resortu o incydencie) zostaje — tylko osoba ministra
     "turime", "priemon", "ministras:", "ministrs:", "minister:", "a first for", "lessons", "pamok",
+    # 22.09.2026 „Tartu mokyklas oro pavojui ruošia praktiškai: ko trūksta Lietuvos mokyklų
+    # pasirengimui?” (15min.lt) zapaliło Litwę na czerwono — to tekst o przygotowaniach.
+    "ruošia", "ruošias", "pasireng", "gatavīb", "sagatavo", "valmisolek", "ettevalmist",
+    "preparedness", "prepare",
 ]
 # Incydent bałtycki ma się dziać nad krajami bałtyckimi. 14.09.2026 „Train carrying
 # Estonian leaders crossed Ukraine border just before Russian drone strike” dało 1 pkt
