@@ -672,7 +672,7 @@ async def startup():
         "adsb": adsb.run, "pansa": pansa.run, "neighbours": neighbours.run,
         "official_alerts": official_alerts.run,
         "snapshots": snapshot_loop,
-        "progression_shadow": progression_shadow_loop, "levels": level_loop,
+        "levels": level_loop,
         "state": state_loop, "heartbeat": monitoring.heartbeat_loop,
         "load_guard": lambda: load_guard.monitor(shed_websockets),
         "cache_bundle": lambda: public_cache.refresh_loop(
@@ -682,6 +682,12 @@ async def startup():
         "cache_zones": lambda: public_cache.refresh_loop(
             "zones", _zones_payload, 30, in_thread=False),
     }
+    # Pasma progresji: wyłączone 22.09.2026. Zadanie, które kończy się od razu, nadzorca
+    # wznawiał co kilka sekund (błędy w logu) — więc nie uruchamiamy go wcale.
+    if config.ESCALATION_SHADOW_ENABLED:
+        jobs["progression_shadow"] = progression_shadow_loop
+    else:
+        escalation_shadow.status.update(enabled=False, mode="disabled")
     if config.PROBA:
         # zostają tylko zadania liczące i składające bajty — nic nie wychodzi na świat
         zostaw = {"snapshots", "levels", "state", "heartbeat", "load_guard",
