@@ -206,7 +206,13 @@
   /* Ortofotomapa GUGiK (WMS). Warunki usługi: bez opłat i bez ograniczeń, z wyłączeniem automatycznego
      pobierania i kolekcjonowania obrazów — dlatego obraz jest pobierany na żywo, gdy użytkownik go ogląda,
      i nigdy nie jest zapisywany ani pobierany hurtem. */
+  /* Dwa adresy tej samej ortofotomapy (22.09.2026, zmierzone curl-em):
+     - StandardResolution odpowiada szybko (0,2–1 s), ale za równoważeniem ruchu część serwerów zwraca 404
+       — ok. 2/3 zapytań bez ciasteczka. Każda próba trafia losowo, więc kilka szybkich prób zwykle wystarcza;
+     - HighResolution daje ten sam obraz za każdym razem, ale po 5–20 s (bywa i ponad 30).
+     Stąd kolejność: kilka prób StandardResolution, na końcu jedna HighResolution (grota.js, zdjecieZGory). */
   const ORTO_WMS = "https://mapy.geoportal.gov.pl/wss/service/PZGIK/ORTO/WMS/StandardResolution";
+  const ORTO_WMS_WOLNY = "https://mapy.geoportal.gov.pl/wss/service/PZGIK/ORTO/WMS/HighResolution";
 
   function mercator(lat, lon) {
     const R = 6378137, x = R * lon * Math.PI / 180;
@@ -214,14 +220,16 @@
     return [x, y];
   }
 
-  function orthoUrl(p, width = 480, height = 300, halfWidthM = 70) {
+  // proba: numer próby (dopisywany do adresu, żeby przeglądarka nie podała zapamiętanego 404); wolny: HighResolution
+  function orthoUrl(p, { width = 480, height = 300, halfWidthM = 70, proba = 0, wolny = false } = {}) {
     const [x, y] = mercator(p.lat, p.lon);
     const k = 1 / Math.cos(p.lat * Math.PI / 180);          // metry terenowe → metry Merkatora
     const hx = halfWidthM * k, hy = hx * height / width;
     const q = new URLSearchParams({ SERVICE: "WMS", REQUEST: "GetMap", VERSION: "1.3.0", LAYERS: "Raster", STYLES: "",
       CRS: "EPSG:3857", BBOX: [x - hx, y - hy, x + hx, y + hy].map((v) => v.toFixed(1)).join(","),
       WIDTH: String(width), HEIGHT: String(height), FORMAT: "image/jpeg" });
-    return `${ORTO_WMS}?${q}`;
+    if (proba) q.set("_p", String(proba));
+    return `${wolny ? ORTO_WMS_WOLNY : ORTO_WMS}?${q}`;
   }
 
   /* Warstwy kafelków z tej usługi na mapie NIE używamy: serwer GUGiK odrzuca (404) żądania kafelków
