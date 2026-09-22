@@ -331,6 +331,7 @@ def zbuduj(c):
     html = zamien(html, *c["problemy_stare"], "brak powiadomień")
     html = zamien(html, *c["prywatnosc"], "kopia zapasowa")
     # GROTA jest na razie tylko na Androidzie — zdanie o trasie nie dotyczy iPhone'a
+    html = wytnij(html, r'<a href="grota(?:-en)?\.html">GROTA</a>', "", "GROTA w menu")
     html = wytnij(html, r" (?:Wyjątek to trasa w GROCIE|The exception is a route in GROTA)[^<]*<a [^>]*>[^<]*</a>\)\.",
                   "", "trasa GROTY w prywatności")
     html = zamien(html, *c["stopka"], "stopka")
