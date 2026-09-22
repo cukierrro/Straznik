@@ -2552,13 +2552,7 @@ Zmienić położenie?`);
     if (zwalniacPunkty()) zwolnijPunkty();
   }
 
-  /* Wejście do Groty w trakcie alarmu (z przycisku „Gdzie się schronić” albo z „Więcej”) prowadzi prosto do
-     TERAZ i od razu ustala pozycję — człowiek w tej chwili pyta tylko o to, dokąd iść. Bez alarmu Grota
-     otwiera się tam, gdzie ją zostawiono. */
-  function naAlarmTeraz() {
-    if (alarmTrwa()) doTeraz();
-  }
-
+  // Ekran TERAZ z od razu ustalaną pozycją — człowiek wchodzący z alarmu pyta tylko o to, dokąd iść.
   function doTeraz() {
     if (S.tab !== "teraz") S.tab = "teraz";
     if (!S.locating && (!S.userPos || Date.now() - (S.userPosAt || 0) > 120000)) runLive();
@@ -2566,13 +2560,12 @@ Zmienić położenie?`);
   }
 
   /* Grota otwierana z przycisku przy alarmie dostaje { zakladka: "teraz" } — w stresie o jedno dotknięcie mniej.
-     Bez zakładki: w trakcie alarmu TERAZ, poza alarmem tam, gdzie Grotę zostawiono. */
+     Bez zakładki (wejście z „Więcej”) zawsze Mapa, także w trakcie alarmu — decyzja usera 22.09. */
   const ZAKLADKI = ["mapa", "miejsca", "teraz", "przygotuj", "zasady"];
   function wybierzZakladke(opcje) {
     const z = opcje && opcje.zakladka;
     if (z === "teraz") doTeraz();
-    else if (ZAKLADKI.includes(z)) S.tab = z;
-    else naAlarmTeraz();
+    else S.tab = ZAKLADKI.includes(z) ? z : "mapa";
   }
 
   let widocznyModul = false, zwolnienieTimer = null;
