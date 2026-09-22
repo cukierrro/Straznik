@@ -11,6 +11,8 @@
    WebView (w testach mamy urządzenia z WebView 69, a minimum aplikacji to Chrome 80). */
 (function (global) {
   "use strict";
+  // komunikaty dla człowieka tłumaczy jezyk.js; bez niego (testy w Node) zostaje polski
+  const T = (s, v) => (global.GrotaJezyk ? global.GrotaJezyk.t(s, v) : s.replace(/\{(\w+)\}/g, (m, k) => (v && v[k] != null ? String(v[k]) : m)));
 
   const BAZA = "grota-mapa", WERSJA = 1, SKLEP = "kafelki", SKLEP_META = "meta";
   const PACZKI_KEY = "grota_paczki";
@@ -164,11 +166,11 @@
 
   async function spis(wymus = false) {
     if (!wymus && spisPamiec && Date.now() - spisCzas < SPIS_WAZNY) return spisPamiec;
-    if (udajeBrakSieci) throw new Error("Bez internetu nie sprawdzę, jakie mapy są do pobrania.");
+    if (udajeBrakSieci) throw new Error(T("Bez internetu nie sprawdzę, jakie mapy są do pobrania."));
     const r = await pobierzZLimitem(`${PACZKI_URL}/spis.bin`, { cache: "no-cache" }, 15000);
-    if (!r.ok) throw new Error(`Serwer map nie podał spisu (kod ${r.status}).`);
+    if (!r.ok) throw new Error(T("Serwer map nie podał spisu (kod {k}).", { k: r.status }));
     const s = JSON.parse(await r.text());
-    if (s.format !== "GROTA-SPIS") throw new Error("Serwer map podał spis w nieznanym formacie.");
+    if (s.format !== "GROTA-SPIS") throw new Error(T("Serwer map podał spis w nieznanym formacie."));
     spisPamiec = s; spisCzas = Date.now();
     return s;
   }
@@ -257,12 +259,12 @@
       if (trwa?.anulowane) throw new Przerwane();
       try {
         const r = await pobierzZLimitem(url, { headers: { Range: `bytes=${od}-${doBajtu}` } }, CZAS_KAWALKA);
-        if (r.status !== 206) throw new Error(r.status === 200 ? "serwer nie obsługuje pobierania zakresami" : `kod ${r.status}`);
+        if (r.status !== 206) throw new Error(r.status === 200 ? T("serwer nie obsługuje pobierania zakresami") : T("kod {k}", { k: r.status }));
         const cr = r.headers.get("Content-Range");
         const calosc = cr && Number(cr.split("/")[1]);
-        if (dlugoscPliku && calosc && calosc !== dlugoscPliku) throw new Error("paczka na serwerze nie zgadza się ze spisem");
+        if (dlugoscPliku && calosc && calosc !== dlugoscPliku) throw new Error(T("paczka na serwerze nie zgadza się ze spisem"));
         const b = new Uint8Array(await r.arrayBuffer());
-        if (b.length !== doBajtu - od + 1) throw new Error("niepełny kawałek");
+        if (b.length !== doBajtu - od + 1) throw new Error(T("niepełny kawałek"));
         return b;
       } catch (e) {
         if (trwa?.anulowane) throw new Przerwane();
@@ -271,14 +273,14 @@
         await czekaj(1000 * 2 ** proba);
       }
     }
-    throw new Error(`Nie udało się pobrać fragmentu mapy (${ostatni?.message || "brak połączenia"}).`);
+    throw new Error(T("Nie udało się pobrać fragmentu mapy ({powod}).", { powod: ostatni?.message || T("brak połączenia") }));
   }
 
   // Nagłówek części: znacznik, długość, spis wpisów. Zwykle mieści się w pierwszych 256 KB.
   async function naglowek(url, dlugoscPliku) {
     const poczatek = await zakres(url, 0, Math.min(262143, dlugoscPliku - 1), dlugoscPliku);
     const znak = String.fromCharCode(...poczatek.subarray(0, 4));
-    if (znak !== "GRP1") throw new Error("Paczka na serwerze ma nieznany format.");
+    if (znak !== "GRP1") throw new Error(T("Paczka na serwerze ma nieznany format."));
     const n = new DataView(poczatek.buffer, poczatek.byteOffset).getUint32(4, true);
     const tekst = 8 + n <= poczatek.length ? poczatek.subarray(8, 8 + n) : await zakres(url, 8, 8 + n - 1, dlugoscPliku);
     return { h: JSON.parse(new TextDecoder().decode(tekst)), dane: 8 + n };
@@ -329,7 +331,7 @@
           for (let proba = 0; proba < 2 && !pary; proba++) {
             const b = await zakres(url, dane + g.start, dane + g.koniec - 1, w.c.bajty);
             try { pary = g.wpisy.map((e) => [e.klucz, rozpakuj(b.subarray(e.off - g.start, e.off - g.start + e.len))]); }
-            catch (err) { if (proba) throw new Error("Pobrany fragment mapy jest uszkodzony — spróbuj jeszcze raz."); }
+            catch (err) { if (proba) throw new Error(T("Pobrany fragment mapy jest uszkodzony — spróbuj jeszcze raz.")); }
           }
           await zapiszWiele(SKLEP, pary);
           for (const [, v] of pary) zajete += v.byteLength;
