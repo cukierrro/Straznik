@@ -72,7 +72,7 @@
 	<false/>
 	<!-- „Moje miejsca” → „Pobierz pozycję jeden raz”: województwo i czas dolotu do miejsca, liczone w telefonie. -->
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Strażnik odczytuje pozycję jeden raz, gdy dotkniesz „Pobierz pozycję jeden raz” w Moich miejscach — żeby ustalić województwo i liczyć odległość zagrożeń od tego miejsca. Pozycja zostaje tylko w telefonie.</string>
+	<string>Strażnik odczytuje pozycję tylko wtedy, gdy o to poprosisz: w Moich miejscach — żeby ustalić województwo i liczyć odległość zagrożeń — oraz w GROCIE, żeby wskazać najbliższe schronienia i drogę do nich. Do wyznaczenia trasy pozycja jest wysyłana do serwera tras; nie przechowujemy jej.</string>
 	<!-- Interfejs Strażnika jest ciemny — jasny pasek statusu. -->
 	<key>UIUserInterfaceStyle</key>
 	<string>Dark</string>

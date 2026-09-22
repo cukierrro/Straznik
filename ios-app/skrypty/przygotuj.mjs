@@ -1,5 +1,6 @@
 // Przygotowanie builda iOS: kopiuje wspólne pliki do ios-app, nic w nich nie zmieniając.
 //   1. frontend/            → ios-app/www            (warstwa webowa, jak android-app/www)
+//   1a. grota/              → ios-app/www/grota      (moduł schronień — tylko w aplikacjach, NIE na stronie)
 //   2. dźwięki alarmu        → ios-app/ios/App/App     (powiadomienie iOS musi mieć plik w paczce aplikacji)
 //   3. sprawdza, czy jest GoogleService-Info.plist (w chmurze wpisuje go workflow z GitHub Secrets)
 // Działa tak samo na Windows i na macOS (runner GitHub Actions). Uruchom: npm run www
@@ -39,6 +40,21 @@ for (const name of readdirSync(frontend)) {
   n++;
 }
 console.log(`www: skopiowano ${n} pozycji z frontend/`);
+
+// GROTA siedzi w grota/ w korzeniu repozytorium, nie w frontend/, bo strona WWW
+// jej nie ma. Kopiujemy ją DRUGĄ, jak scripts/przygotuj_www_android.ps1 na Androidzie,
+// bez README.md. Bez tego przyciski GROTY pokazują „Wyszukiwanie schronień nie jest
+// dostępne”. Brak modułu nie jest błędem — build ma wtedy sam frontend.
+const grota = join(repo, "grota");
+if (existsSync(join(grota, "widok.js"))) {
+  cpSync(grota, join(www, "grota"), {
+    recursive: true,
+    filter: (src) => !src.endsWith("README.md"),
+  });
+  console.log("www: dołączono moduł GROTA → www/grota");
+} else {
+  console.log("www: bez GROTY (brak grota/widok.js)");
+}
 
 for (const sound of SOUNDS) {
   const src = join(soundsSrc, sound);
