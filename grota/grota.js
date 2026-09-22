@@ -259,7 +259,9 @@
     if (e.target.closest("[data-map=koniec-testu]")) testBezSieci(false);
   });
   showOfflineBanner();
-  utworzMape();
+  /* W Strażniku mapę tworzy dopiero pokaz(): moduł bywa wczytywany w tle, zanim ktokolwiek go otworzy
+     (Grota.przygotuj() przy alarmie), a niewidoczna mapa to tylko zajęta pamięć. */
+  if (!MODUL) utworzMape();
   let userMarker = null, placeMarkers = [], pickDoneAt = 0;
 
   // Kolory dostępności czytelne na jasnym i ciemnym podkładzie (legenda w viewMapa korzysta z tych samych).
@@ -2529,6 +2531,7 @@ Zmienić położenie?`);
   }
 
   function schowaj() {
+    widocznyModul = false;
     if (!mapaJest()) return;
     const c = map.getCenter();
     widokMapy = { center: [c.lng, c.lat], zoom: map.getZoom() };
@@ -2553,21 +2556,38 @@ Zmienić położenie?`);
      TERAZ i od razu ustala pozycję — człowiek w tej chwili pyta tylko o to, dokąd iść. Bez alarmu Grota
      otwiera się tam, gdzie ją zostawiono. */
   function naAlarmTeraz() {
-    if (!alarmTrwa()) return;
+    if (alarmTrwa()) doTeraz();
+  }
+
+  function doTeraz() {
     if (S.tab !== "teraz") S.tab = "teraz";
     if (!S.locating && (!S.userPos || Date.now() - (S.userPosAt || 0) > 120000)) runLive();
     else if (S.userPos && !S.live) { computeLive(); fitLive(); }
   }
 
-  function pokaz() {
-    if (mapaJest()) { map.resize(); naAlarmTeraz(); render(); return; }
+  /* Grota otwierana z przycisku przy alarmie dostaje { zakladka: "teraz" } — w stresie o jedno dotknięcie mniej.
+     Bez zakładki: w trakcie alarmu TERAZ, poza alarmem tam, gdzie Grotę zostawiono. */
+  const ZAKLADKI = ["mapa", "miejsca", "teraz", "przygotuj", "zasady"];
+  function wybierzZakladke(opcje) {
+    const z = opcje && opcje.zakladka;
+    if (z === "teraz") doTeraz();
+    else if (ZAKLADKI.includes(z)) S.tab = z;
+    else naAlarmTeraz();
+  }
+
+  let widocznyModul = false, zwolnienieTimer = null;
+
+  function pokaz(opcje) {
+    widocznyModul = true;
+    clearTimeout(zwolnienieTimer);
+    if (mapaJest()) { map.resize(); wybierzZakladke(opcje); render(); return; }
     if (punktyZwolnione) {
       punktyZwolnione = false;
       setLoadMsg("Wczytuję punkty schronienia…");
       dataReady = loadData();         // po wczytaniu sam przeliczy wynik „Teraz”, jeśli jest otwarty
     }
     utworzMape();
-    naAlarmTeraz();
+    wybierzZakladke(opcje);
     map.once("load", () => {
       drawPlaces();
       if (S.userPos) setUserPos(S.userPos, false);
@@ -2577,10 +2597,29 @@ Zmienić położenie?`);
     render();
   }
 
+  /* Wczytanie w tle, gdy przychodzi alarm (Grota.przygotuj() w widok.js): punkty mają być gotowe, zanim
+     człowiek dotknie „Gdzie się schronić” — zmierzone na emulatorze z 2 GB: pierwsze wejście 14 s, kolejne
+     ok. 8 s, bo na słabym telefonie punkty są zwalniane. Bez mapy i bez pokazywania czegokolwiek. Jeśli po
+     5 minutach nikt Groty nie otworzył, słaby telefon znów je zwalnia — ta sama zasada co przy schowaj(). */
+  const PRZYGOTOWANE_MS = 5 * 60 * 1000;
+  function przygotuj() {
+    if (punktyZwolnione) {
+      punktyZwolnione = false;
+      dataReady = loadData();
+    }
+    if (!widocznyModul && zwalniacPunkty()) {
+      clearTimeout(zwolnienieTimer);
+      zwolnienieTimer = setTimeout(() => {
+        if (!widocznyModul && S.points.length) zwolnijPunkty();
+      }, PRZYGOTOWANE_MS);
+    }
+    return dataReady.then(() => S.points.length > 0, () => false);
+  }
+
   render();
   odswiezStanMap();          // ile map jest już w telefonie — potrzebne w „Przygotuj” i przy ocenie celu
   sprawdzCelWMapie();
-  window.GrotaModul = { pokaz, schowaj, wstecz: wsteczKrok };
+  window.GrotaModul = { pokaz, schowaj, przygotuj, wstecz: wsteczKrok };
   // do testów w podglądzie i na emulatorze — w Strażniku publicznym interfejsem jest window.Grota z widok.js
   window.GrotaDebug = { state: S, get map() { return map; }, select, render, runLive, offline: O };
 })();
