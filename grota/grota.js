@@ -1755,9 +1755,10 @@ Zmienić położenie?`);
         <div class="row" style="margin-top:8px"><button class="btn" data-act="live-map">Wskaż na mapie</button><button class="btn ghost" data-act="retry-locate">Spróbuj ponownie</button></div></div>`;
     } else if (S.live && S.live.pozaZasiegiem) {
       body = posLine() + `<div class="card"><p><b>Jesteś poza zasięgiem danych Groty.</b></p>
-        <p class="small">Grota zna miejsca schronienia tylko w Polsce, a najbliższe jest ${fmtDist(S.live.pozaZasiegiem)} stąd.
+        <p class="small">${S.posLabel ? "Wybrane miejsce leży" : "Według pozycji z telefonu jesteś"} poza Polską. Grota zna miejsca
+        schronienia tylko w Polsce — najbliższe jest ${fmtDist(S.live.pozaZasiegiem)} stąd, więc nie wyznacza trasy.
         Poza Polską stosuj się do komunikatów tamtejszych służb.</p>
-        <p class="small muted">Jeśli jesteś w Polsce, telefon podaje złą pozycję — wybierz, gdzie jesteś:</p>${placeChips()}
+        <p class="small muted">Jesteś w Polsce, tuż przy granicy? Telefon mógł podać złą pozycję — wybierz, gdzie jesteś:</p>${placeChips()}
         ${addrBox()}
         <div class="row" style="margin-top:8px"><button class="btn" data-act="live-map">Wskaż na mapie</button><button class="btn ghost" data-act="retry-locate">Spróbuj ponownie</button></div></div>`;
     } else if (S.live && S.coarse && !S.coarseOk) {
@@ -1940,17 +1941,79 @@ Zmienić położenie?`);
   }
 
   /* Grota zna tylko punkty w Polsce. Kto jest za granicą (albo telefon podaje fałszywą pozycję — emulator
-     stoi domyślnie w Kalifornii), dostawał linię przez ocean: „9029 km · 140855 min”. Powyżej 50 km do
-     najbliższego punktu z całego wykazu, bez względu na filtr, mówimy wprost, że to poza zasięgiem danych.
-     W Polsce, przy 85 tys. punktów, najbliższy jest zawsze dużo bliżej. Zwraca odległość albo null. */
-  const ZASIEG_M = 50000;
-  function pozaZasiegiem(lat, lon, L) {
-    if (!S.points.length) return null;
-    const pierwszy = L.options[0]?.distM;
-    if (pierwszy != null && pierwszy <= ZASIEG_M) return null;
+     stoi domyślnie w Kalifornii), dostawał linię przez ocean: „9029 km · 140855 min”. Rozstrzyga granica
+     Polski (decyzja usera 22.09: Frankfurt nad Odrą nie dostaje trasy, choć Słubice są kilometr dalej):
+     kontur z 16 województw, ten sam co warstwa na mapie.
+     - Tolerancja na błąd odbiornika: tyle, ile podaje sam telefon, najwyżej 1 km. Dobry GPS (kilkanaście
+       metrów) nie przerzuci Frankfurtu do Polski, a pozycja przybliżona przy granicy nie odetnie Słubic.
+     - Morze i plaże: kontur biegnie uproszczoną linią brzegu (plaża w Sopocie wypada poza nim), więc punkt
+       na północ od wybrzeża między granicą z Niemcami na Uznamie a Mierzeją Wiślaną liczymy jako Polskę.
+     - Zanim kontur się wczyta: najbliższy punkt z całego wykazu dalej niż 50 km.
+     Zwraca odległość do najbliższego punktu schronienia, gdy pozycja jest poza zasięgiem, albo null. */
+  const ZASIEG_M = 50000, TOLERANCJA_MAX_M = 1000;
+  let granicaPL = null;                                   // [[pierścień zewnętrzny, ...dziury], ...]
+  (async function wczytajGranice(proba = 1) {
+    try {
+      const r = await fetch(BAZA + "data/granice/wojewodztwa.geojson");
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const g = await r.json(), wielokaty = [];
+      for (const f of g.features) {
+        const G = f.geometry;
+        for (const w of G.type === "Polygon" ? [G.coordinates] : G.coordinates) wielokaty.push(w);
+      }
+      granicaPL = wielokaty;
+      if (S.live && S.userPos) { computeLive(); fitLive(); render(); }
+    } catch {
+      if (proba < 3) setTimeout(() => wczytajGranice(proba + 1), 3000 * proba);
+    }
+  })();
+
+  function wPierscieniu(x, y, r) {
+    let w = false;
+    for (let i = 0, j = r.length - 1; i < r.length; j = i++) {
+      const [xi, yi] = r[i], [xj, yj] = r[j];
+      if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) w = !w;
+    }
+    return w;
+  }
+  const wPolsce = (lon, lat) => granicaPL.some((w) => wPierscieniu(lon, lat, w[0]) && !w.slice(1).some((d) => wPierscieniu(lon, lat, d)));
+
+  function odGranicyM(lon, lat) {
+    const kx = Math.cos((lat * Math.PI) / 180) * 111320, ky = 110540;
+    let min = Infinity;
+    for (const w of granicaPL) for (const r of w) for (let i = 1; i < r.length; i++) {
+      const ax = (r[i - 1][0] - lon) * kx, ay = (r[i - 1][1] - lat) * ky, dx = (r[i][0] - lon) * kx - ax, dy = (r[i][1] - lat) * ky - ay;
+      const t = Math.max(0, Math.min(1, -(ax * dx + ay * dy) / (dx * dx + dy * dy || 1)));
+      min = Math.min(min, Math.hypot(ax + t * dx, ay + t * dy));
+    }
+    return min;
+  }
+
+  // Na północ od polskiego wybrzeża: kilka do kilkudziesięciu kilometrów na południe zaczyna się ląd w konturze.
+  function naMorzuPrzyPolsce(lon, lat) {
+    if (lon < 14.235 || lon > 19.63 || lat < 53.9) return false;
+    for (let km = 1; km <= 40; km++) if (wPolsce(lon, lat - km / 111)) return true;
+    return false;
+  }
+
+  function najblizszyPunktM(lat, lon) {
     let min = Infinity;
     for (const p of S.points) { const d = C.distanceM(lat, lon, p.lat, p.lon); if (d < min) min = d; }
-    return min > ZASIEG_M ? min : null;
+    return min;
+  }
+
+  function pozaZasiegiem(lat, lon, L) {
+    if (!S.points.length) return null;
+    if (!granicaPL) {
+      const pierwszy = L.options[0]?.distM;
+      if (pierwszy != null && pierwszy <= ZASIEG_M) return null;
+      const min = najblizszyPunktM(lat, lon);
+      return min > ZASIEG_M ? min : null;
+    }
+    if (wPolsce(lon, lat) || naMorzuPrzyPolsce(lon, lat)) return null;
+    const tolerancja = S.posLabel ? 0 : Math.min(S.userPos?.acc || 0, TOLERANCJA_MAX_M);
+    if (tolerancja && odGranicyM(lon, lat) <= tolerancja) return null;
+    return najblizszyPunktM(lat, lon);
   }
 
   /* Pierwsza karta to domyślnie punkt najbliższy, ale wybór należy do człowieka: bywa zamknięty,
