@@ -16,6 +16,21 @@ DOCS = ROOT / "docs"
 # (wersja, data PL, data EN, tytuł PL, tytuł EN, punkty PL, punkty EN, zrzuty)
 # Zrzut: (plik, alt PL, alt EN, podpis PL, podpis EN)
 RELEASES = [
+    ("1.7.76", "24 września 2026", "24 September 2026",
+     "Strażnik po ukraińsku",
+     "Strażnik speaks Ukrainian",
+     ["Cała aplikacja mówi po ukraińsku: ⚙ → Aplikacja → Język interfejsu → „Українська”. Tłumaczenie obejmuje ekrany, karty obiektów, panel sygnałów, historię, alarmy, Moje miejsca i opisy źródeł — nie tylko przyciski.",
+      "Nazwy ukraińskich miejscowości i obwodów zostają w oryginale, bez transliteracji, a etykiety na mapie przechodzą na ukraińskie. Liczby zapisujemy z przecinkiem, tak jak po polsku.",
+      "GROTA idzie teraz za językiem Strażnika także dla ukraińskiego; własny wybór w jej zakładce Zasady nadal ma pierwszeństwo.",
+      "Instrukcja użytkownika jest też po ukraińsku, z przełącznikiem PL/EN/UA w nagłówku.",
+      "Przy okazji poprawione braki w wersji angielskiej: ekran alarmu („Co zrobić…”, trzy przyciski wyboru), tytuł i notka okna kamer, nagłówek „Alarmy push” i opis własnego serwera pokazywały się po polsku."],
+     ["The whole app speaks Ukrainian: ⚙ → App → Interface language → “Українська”. The translation covers screens, object cards, the signals panel, history, alerts, My places and the source descriptions — not just buttons.",
+      "Ukrainian place and oblast names stay in the original, without transliteration, and map labels switch to Ukrainian. Numbers keep the comma, as in Polish.",
+      "GROTA now follows Strażnik’s language for Ukrainian too; its own choice in the Rules tab still takes precedence.",
+      "The user guide is available in Ukrainian as well, with a PL/EN/UA switch in the header.",
+      "Along the way, gaps in the English version were fixed: the alert screen (“What to do…”, the three choice buttons), the camera window title and note, the “Push alerts” heading and the own-server description were showing in Polish."],
+     []),
+
     ("1.7.74", "23 września 2026", "23 September 2026",
      "Czerwony alarm wymaga potwierdzenia; Alert RCB liczony według treści",
      "Red alert now needs a confirmation; RCB alerts scored by their wording",
