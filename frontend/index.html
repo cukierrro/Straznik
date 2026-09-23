@@ -294,6 +294,11 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
     <button type="button" id="btn-grota" class="sheet-row app-only">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
       <span>Schronienie — gdzie najbliżej</span></button>
+    <!-- Strona nie ma GROTY (moduł jest w aplikacjach). Bez tego wiersza znikała
+         bez śladu i czytelnicy szukali jej w ustawieniach — zgłoszenie z 23.09.2026. -->
+    <a class="sheet-row web-only" id="btn-grota-web" href="https://cukierrro.github.io/Straznik/#grota" target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+      <span>Schronienie — w aplikacji na telefon</span></a>
     <button type="button" id="btn-about" class="sheet-row">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.3 2.4c-.6.2-.9.8-.9 1.4v.4"/><path d="M12 16.8h.01"/></svg>
       <span>O aplikacji i punktacja</span></button>
@@ -847,13 +852,20 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
       <b>tylko przy kursie zmierzonym z ruchu</b> — nie przy kursie domniemanym z nazwy celu
       ani przy pozycji rejonowej. To szacunek przy niezmienionym kursie, nie prognoza.</div>
 
-    <h3 style="margin-top:16px">Wersja aplikacji</h3>
-    <p class="fineprint" id="app-version">—</p>
-    <button type="button" id="btn-update" class="chip">⬆ Sprawdź aktualizacje</button>
-    <p class="fineprint" id="upd-status"></p>
-    <p class="fineprint">Aplikacja nie pochodzi ze sklepu, więc sama sprawdza
+    <h3 style="margin-top:16px" class="app-only">Wersja aplikacji</h3>
+    <p class="fineprint app-only" id="app-version">—</p>
+    <button type="button" id="btn-update" class="chip app-only">⬆ Sprawdź aktualizacje</button>
+    <p class="fineprint app-only" id="upd-status"></p>
+    <p class="fineprint app-only">Aplikacja nie pochodzi ze sklepu, więc sama sprawdza
     przy każdym uruchomieniu i powrocie na wierzch, czy jest nowsze wydanie.
     Jeśli pominiesz powiadomienie, sprawdzisz ręcznie tym przyciskiem.</p>
+    <!-- Na stronie nie ma czego aktualizować; przycisk „Sprawdź aktualizacje" wisiał tu
+         i milczał po dotknięciu (zgłoszenie czytelnika z 23.09.2026). -->
+    <h3 style="margin-top:16px" class="web-only">Wersja</h3>
+    <p class="fineprint web-only" id="www-wersja">Ta strona zawsze działa w najnowszej wersji —
+    nie trzeba jej aktualizować. Wersja na telefon ma dodatkowo alarmy przy zamkniętej
+    aplikacji i moduł <b>GROTA</b> (najbliższe schronienie). Pobierzesz ją przyciskami
+    <b>↓ Android</b> i <b>↓ iOS</b> u góry ekranu.</p>
 
     <details style="margin-top:14px">
       <summary class="fineprint" style="cursor:pointer">Zaawansowane: wspólny backend</summary>

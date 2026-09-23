@@ -78,8 +78,15 @@ sprawdz(/async function otworzGrote\(opcje\) \{\s*\n\s*if \(grotaWylaczona\(\)\)
 console.log("4c. Menu „More” po angielsku (22.09.2026)");
 const i18n = fs.readFileSync(path.join(root, "frontend/i18n.js"), "utf8");
 sprawdz(/set\("#btn-grota span", "Shelter — nearest"\)/.test(i18n) &&
-        /setMany\("#more-sheet \.sheet-row:not\(#btn-grota\) span"/.test(i18n),
-  "wpis GROTY tłumaczony po id, reszta bez niego — kolejność nie przesuwa podpisów");
+        /set\("#btn-grota-web span", "Shelter — in the phone app"\)/.test(i18n) &&
+        /setMany\("#more-sheet \.sheet-row:not\(#btn-grota\):not\(#btn-grota-web\) span"/.test(i18n),
+  "oba wpisy GROTY tłumaczone po id, reszta bez nich — kolejność nie przesuwa podpisów");
+// Strona WWW nie ma modułu, więc zamiast pustego miejsca pokazuje, gdzie go szukać
+// (czytelnik 23.09.2026 szukał schronienia na stronie i w ustawieniach).
+sprawdz(/<a class="sheet-row web-only" id="btn-grota-web"/.test(html),
+  "na stronie wiersz kieruje do aplikacji zamiast znikać bez słowa");
+sprawdz(/id="btn-update" class="chip app-only"/.test(html) && /id="www-wersja"/.test(html),
+  "przycisk aktualizacji APK tylko w aplikacji; strona mówi, że jest zawsze aktualna");
 
 console.log("5. Systemowe „wstecz” (uzgodnione 21.09.2026)");
 const wstecz = js.slice(js.indexOf("window.straznikBack = function"), js.indexOf("window.straznikBack = function") + 1600);
