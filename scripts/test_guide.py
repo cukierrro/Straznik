@@ -1,4 +1,4 @@
-"""Check the bilingual static guide, local links and current screenshot assets."""
+"""Check the PL/EN/UK static guide, local links and current screenshot assets."""
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
@@ -41,8 +41,10 @@ class Page(HTMLParser):
 
 def main():
     pages = {name: Page(ROOT / name)
-             for name in ("index.html", "en.html", "zmiany.html", "zmiany-en.html")}
+             for name in ("index.html", "en.html", "uk.html", "zmiany.html", "zmiany-en.html")}
+    # trzy języki instrukcji: polski (źródło), angielski, ukraiński (od 23.09.2026)
     assert pages["index.html"].sections == pages["en.html"].sections
+    assert pages["index.html"].sections == pages["uk.html"].sections
     # historia zmian: te same wydania w obu językach, każde z własną sekcją
     assert pages["zmiany.html"].sections == pages["zmiany-en.html"].sections
     assert len(pages["zmiany.html"].sections) >= 12, pages["zmiany.html"].sections
@@ -69,11 +71,12 @@ def main():
         assert card.format == "JPEG" and card.size == (1200, 630)
     for file, expected in [(ROOT / "index.html", "https://cukierrro.github.io/Straznik/share-panel-v2.jpg"),
                            (ROOT / "en.html", "https://cukierrro.github.io/Straznik/share-panel-v2.jpg"),
+                           (ROOT / "uk.html", "https://cukierrro.github.io/Straznik/share-panel-v2.jpg"),
                            (ROOT.parent / "frontend/index.html", "https://straznik.eu/assets/share-panel-v2.jpg")]:
         html = file.read_text(encoding="utf-8")
         assert f'property="og:image" content="{expected}"' in html
         assert f'name="twitter:image" content="{expected}"' in html
-    print(f"OK: 2 languages, {len(pages['index.html'].sections)} matching sections, "
+    print(f"OK: 3 languages, {len(pages['index.html'].sections)} matching sections, "
           f"{EXPECTED_SHOTS} screenshots, local links, alt text and shared 1200x630 preview.")
 
 
