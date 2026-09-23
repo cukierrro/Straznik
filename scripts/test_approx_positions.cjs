@@ -20,7 +20,11 @@ assert.match(app, /positionQuality: d\.position_quality/);
 assert.match(engine, /const etaEligible = !approx && \w+\.heading_known/);
 assert.match(engine, /NEPTUN_POSITION_MULT/);
 assert.match(engine, /physical_key: physicalKey\(t\)/);
-assert.match(engine, /const speed = approx \? null : speedOf\(t\)/);
+// 23.09.2026 (decyzja usera): czas dolotu liczymy TAKŻE dla pozycji rejonowej — bez niego
+// klucz czerwonego alarmu nie miałby danych (sześć z siedmiu obiektów 23.09 było rejonowych).
+// Sam ALARM z ETA nadal wymaga pozycji dokładnej — pilnuje tego etaEligible wyżej.
+assert.match(engine, /const speed = speedOf\(t\), etaRaw/);
+assert.match(engine, /eta_approx: approx/);
 assert.match(engine, /position_quality: t\.positionQuality/);
 // Parametr cache musi rosnąć z każdym wydaniem (Cloudflare trzyma /app.js 4 h),
 // ale test nie może przypinać się do konkretnego numeru — sprawdzamy sam wzorzec.

@@ -664,7 +664,11 @@ async def _maybe_signal(t: dict):
     conf = (t.get("confidenceLevel") or "low").lower()
     sources = max(int(t.get("sourceCount") or 1), 1)
     approximate = _is_approx_position(t)
-    speed = None if approximate else _speed_of(t)
+    # Czas dolotu liczymy TAKŻE dla pozycji rejonowej (decyzja usera 23.09.2026).
+    # Wcześniej sześć z siedmiu obiektów w poranek 23.09 nie miało go w ogóle, więc
+    # klucz czerwonego alarmu nie miałby się o co oprzeć. Pozycja rejonowa zostaje
+    # oznaczona (`eta_approx`), a alarm ETA nadal jej nie podnosi — patrz _eta_alarm_level.
+    speed = _speed_of(t)
     eta_raw = geo.eta_raw_minutes(a["dist_km"], speed)
     eta_conservative = (max(0.0, eta_raw - config.NEPTUN_ETA_BUFFER_MIN)
                         if eta_raw is not None else None)
@@ -736,6 +740,7 @@ async def _maybe_signal(t: dict):
                  # wybierają różne regiony, a „130 km" znaczy co innego dla kogoś
                  # przy granicy niż dla kogoś w centrum kraju)
                  "speed_kmh": speed,
+                 "eta_approx": approximate,
                  "eta_raw_border_min": round(eta_raw, 1) if eta_raw is not None else None,
                  "eta_border_min": eta_safe,
                  "eta_buffer_min": config.NEPTUN_ETA_BUFFER_MIN,

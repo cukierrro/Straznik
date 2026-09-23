@@ -236,6 +236,12 @@ def _is_region_keyword(voiv: str, folded_kw: str) -> bool:
             or any(folded_kw.startswith(e) for e in _REGION_EXTRA))
 
 
+def _gdzie_indziej(title: str) -> bool:
+    """Czy TYTUŁ umiejscawia zdarzenie poza regionem kanału (morze, inny kraniec Polski)."""
+    t = (title or "").lower()
+    return any(m in t for m in config.MEDIA_ELSEWHERE_MARKERS)
+
+
 def _article_voivs(title: str, text: str) -> list[str]:
     """Województwa artykułu (21.09.2026).
 
@@ -497,9 +503,12 @@ async def _check_feed(client: httpx.AsyncClient, url: str, default_voiv: str | N
             continue
         pts = config.POINTS["media_critical"] if level == "critical" else config.POINTS["media_keywords"]
         voivs = _article_voivs(_strip_publisher(title, publisher), text)
-        if not voivs and default_voiv and not _mentions_abroad(text):
+        if not voivs and default_voiv and not _mentions_abroad(text) and not _gdzie_indziej(title):
             # Domyślny region kanału jest DOMNIEMANIEM, nie faktem: stosujemy go
-            # tylko wtedy, gdy tekst nie umiejscawia zdarzenia za granicą.
+            # tylko wtedy, gdy tekst nie umiejscawia zdarzenia za granicą ANI
+            # w innej części Polski (23.09.2026: „Polskie myśliwce przechwyciły
+            # rosyjski Ił-20 nad Bałtykiem" z lubelskiego portalu dało 0,5 pkt
+            # lubelskiemu, choć zdarzenie było 500 km dalej).
             voivs = [default_voiv]
         if not voivs:
             continue
