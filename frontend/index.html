@@ -339,7 +339,9 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 </div>
 
 <aside id="panel" class="collapsed">
-  <button id="panel-x" title="Zamknij panel">✕</button>
+  <button id="panel-x" type="button" title="Zamknij panel" aria-label="Zamknij panel">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+  </button>
   <section id="voiv-cards"></section>
   <section>
     <h2>Sygnały <span class="muted">(okno <span id="window-min">30</span> min)</span></h2>

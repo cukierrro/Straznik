@@ -3511,7 +3511,7 @@ document.getElementById("ac-card-zoom")?.addEventListener("click", () => {
   if (card) card.dataset.forceBig = "";
   try { localStorage.setItem("straznik_card_big", big ? "0" : "1"); } catch {}
   applyCardSize();
-  document.getElementById("ac-card").scrollTop = 0;
+  document.getElementById("ac-card-body").scrollTop = 0;
 });
 
 /* ── alarm dźwiękowy przy poziomie WYSOKI ────────────────────────────────── */

@@ -612,7 +612,11 @@
       "btn-about": ["title","About Strażnik — what it is and how it works"],
       "btn-legend": ["title","Symbol legend"], "btn-settings": ["title","My location and settings"],
       "btn-panel": ["title","Signal panel"], "btn-history": ["title","12-hour history"],
-      "btn-home": ["title","Return to my region"], "btn-fit": ["title","Show all of Poland and Ukraine"]
+      "btn-home": ["title","Return to my region"], "btn-fit": ["title","Show all of Poland and Ukraine"],
+      // zgłoszenie #1 z GitHuba: te trzy podpowiedzi zostawały po polsku
+      "btn-3d": ["title","Switch between 2D and 3D view"],
+      "btn-watch": ["title","Foreign (RU/BY) aircraft over the eastern flank"],
+      "btn-push": ["title","Notifications"]
     };
     for (const [id, [a,v]] of Object.entries(attrs)) {
       const el = document.getElementById(id); if (!el) continue;
@@ -859,6 +863,9 @@
     "#status-leds": ["title", "Стан джерел даних — торкніться, щоб побачити деталі"],
     ".brand": ["aria-label", "Про Strażnika"],
     "#tb-live": ["title", "Повернутися до перегляду наживо"],
+    "#btn-3d": ["title", "Перемкнути вигляд 2D/3D"],
+    "#btn-watch": ["title", "Чужі літаки (РФ/РБ) над східним флангом"],
+    "#btn-push": ["title", "Сповіщення"],
   };
 
   function ukrainize(root) {
