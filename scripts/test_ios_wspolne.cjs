@@ -66,6 +66,19 @@ sprawdz(/s\.platform === "ios" \? `iOS \$\{esc\(s\.osVersion/.test(app),
 sprawdz(/r\.scheduled === false/.test(app),
   'test natywny nie obiecuje alarmu, gdy powiadomienia są zablokowane');
 
+console.log('4a-bis. Sesja audio przy syrenie (23.09.2026)');
+// iPhone wycisza dzwiek WebView przelacznikiem dzwonka (domyslne soloAmbient),
+// wiec na czas syreny natywna czesc dostaje sygnal do ustawienia kategorii playback.
+// Zolty sygnal uwagi celowo tego nie robi — nie ma przebijac wyciszenia.
+sprawdz(/function sesjaAudioAlarmu\(wlacz\)[\s\S]{0,60}if \(!IS_IOS\) return;/.test(app),
+  'sesjaAudioAlarmu dziala tylko na iPhonie');
+sprawdz(/stopSiren\(\);[\s\S]{0,20}sesjaAudioAlarmu\(true\);/.test(app),
+  'syrena prosi o sesje audio przed startem');
+sprawdz((app.match(/sesjaAudioAlarmu\(false\)/g) || []).length === 2,
+  'sesja zwalniana i po wyciszeniu, i po tescie');
+sprawdz(/BG\(\)\?\.dzwiekAlarmu\?\.\(\{ wlacz \}\)/.test(app),
+  'wywolanie idzie przez wtyczke natywna, opcjonalnie — bez niej nic sie nie dzieje');
+
 console.log('4b. Teksty w wariancie iOS (B6)');
 const i18n = R('frontend/i18n.js');
 for (const id of ['onboard-bg-ios', 'alarmy-intro-ios', 'alarm-ios-note', 'dzwiek-ios-note']) {
