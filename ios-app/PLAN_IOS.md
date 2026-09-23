@@ -94,6 +94,19 @@ z `LocalNotifications`.
 aplikacji iOS (limit Apple dla dźwięku powiadomienia: 30 s). Pliki pochodzą
 z `scripts/build_sounds.py` — nie zmieniamy ich.
 
+**Sesja audio a wyciszony dzwonek (23.09.2026).** Aplikacja długo nie ruszała
+`AVAudioSession`, więc WKWebView grał syrenę w domyślnej kategorii `soloAmbient`,
+którą przełącznik na boku telefonu ucisza. Czytelnik na iOS 26.7 zgłosił, że
+„syrena nie działa” — dotyczyło to obu testów dźwięku i czerwonego alarmu przy
+otwartej aplikacji. Plugin ma teraz `dzwiekAlarmu({wlacz})`: na czas syreny
+kategoria `playback` (gra mimo wyciszenia), po syrenie sesja wraca do innych
+aplikacji. Wywołania są w `app.js` (`sesjaAudioAlarmu`), żółty sygnał uwagi
+celowo zostaje przy domyślnej. Dźwięku samego **powiadomienia push** to nie
+zmienia — wyciszony telefon nadal go nie zagra, na to trzeba Critical Alerts
+(wniosek `442YB6VV2L`). Do sprawdzenia na urządzeniu z wyciszonym dzwonkiem:
+„▶ Test: syrena”, „▶ Test: pełny alarm”, a potem muzyka w innej aplikacji —
+powinna wrócić sama po zakończeniu syreny.
+
 ### 3.4 Serwer (propozycja, nie wdrażam)
 Blok `apns` w `notify.py`: tytuł i treść jak w `Alarms.postAlarm` na Androidzie,
 `sound` syrena/sygnał, czerwony `time-sensitive` (po zgodzie Apple — `critical`),
