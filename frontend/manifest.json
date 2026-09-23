@@ -1,6 +1,6 @@
 {
   "name": "Strażnik — mapa zagrożeń i wczesne ostrzeganie",
-  "short_name": "Strażnik",
+  "short_name": "Strażnik (strona)",
   "description": "Nieoficjalna mapa zagrożeń powietrznych i wczesne ostrzeganie dla Polski. Nie zastępuje syren, RCB ani RSO.",
   "start_url": "./",
   "display": "standalone",

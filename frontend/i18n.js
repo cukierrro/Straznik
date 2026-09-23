@@ -319,6 +319,9 @@
     "Map": "Мапа", "Signals": "Сигнали", "History": "Історія", "More": "Ще",
     "Shelter — nearest": "Укриття — де найближче",
     "Shelter — in the phone app": "Укриття — у застосунку на телефон",
+    "This is a shortcut to the website, not the app. Alerts while the window is closed and shelter (GROTA) are in the phone app.":
+      "Це ярлик до сайту, а не застосунок. Тривоги при закритому вікні й укриття (GROTA) є в застосунку на телефон.",
+    "↓ Get the app": "↓ Завантажити застосунок",
     "This page always runs the current version — there is nothing to update. The phone version adds alerts while the app is closed and the GROTA module (nearest shelter). Get it with the ↓ Android and ↓ iOS buttons at the top of the screen.":
       "Ця сторінка завжди працює в найновішій версії — оновлювати її не треба. Версія на телефон додає тривоги при закритому застосунку і модуль GROTA (найближче укриття). Завантажите її кнопками ↓ Android та ↓ iOS угорі екрана.",
     "About and scoring": "Про застосунок і бали",
@@ -642,6 +645,8 @@
     set("#btn-grota-web span", "Shelter — in the phone app");
     setMany("#more-sheet .sheet-row:not(#btn-grota):not(#btn-grota-web) span", ["About and scoring", "User guide",
       "Support the author"]);
+    set("#skrot-www-tekst", "This is a shortcut to the website, not the app. Alerts while the window is closed and shelter (GROTA) are in the phone app.");
+    set("#skrot-www-pobierz", "↓ Get the app");
     set("#www-wersja", "This page always runs the current version — there is nothing to update. The phone version adds alerts while the app is closed and the GROTA module (nearest shelter). Get it with the ↓ Android and ↓ iOS buttons at the top of the screen.");
     // kolejność kafelków na mapie: mój region → strefy → cała PL
     setMany("#map-actions .map-btn span", ["my region", "zones", "whole PL"]);

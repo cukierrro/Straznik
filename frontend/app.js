@@ -5006,6 +5006,24 @@ function showUpdateBanner(rel, local) {
   };
 }
 
+/* Skrót do strony na ekranie telefonu (WebAPK) niczym się nie różni od aplikacji:
+   ta sama ikona, ta sama nazwa, brak paska adresu. Czytelnik z 23.09.2026 przez to
+   szukał w nim GROTY i przycisku aktualizacji. W skrócie mówimy wprost, co to jest. */
+(function paskSkrotu() {
+  if (IS_APP) return;
+  const stoi = window.matchMedia?.("(display-mode: standalone)")?.matches || window.navigator.standalone;
+  const android = /Android/i.test(navigator.userAgent || "");
+  if (!stoi || !android) return;
+  try { if (localStorage.getItem("straznik_skrot_ukryty") === "1") return; } catch {}
+  const pasek = document.getElementById("skrot-www");
+  if (!pasek) return;
+  pasek.hidden = false;
+  document.getElementById("skrot-www-x")?.addEventListener("click", () => {
+    pasek.hidden = true;
+    try { localStorage.setItem("straznik_skrot_ukryty", "1"); } catch {}
+  });
+})();
+
 /* ── nasłuch w tle (natywna usługa Androida) ─────────────────────────────── */
 const BG = () => window.Capacitor?.Plugins?.StraznikBackground || null;
 
