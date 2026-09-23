@@ -1830,9 +1830,12 @@ async function acPhoto(plane) {
   return window.AircraftPhotos?.select(plane, window.AircraftPhotoCatalog) || null;
 }
 
+/* Prędkość nad ziemią podajemy w km/h, bo tak myśli większość czytelników, ale
+   w nawiasie zostawiamy węzły ze źródła — czytelnik z 23.09.2026 porównywał nasz
+   odczyt z serwisem lotniczym i nie miał jak sprawdzić, czy przeliczyliśmy. */
 function speedRow(p) {
   const parts = [];
-  if (p.gs != null) parts.push(`${ktToKmh(p.gs)} km/h`);
+  if (p.gs != null) parts.push(`${ktToKmh(p.gs)} km/h (${Math.round(p.gs)} kt)`);
   if (p.mach != null) parts.push(`Ma ${(+p.mach).toFixed(2)}`);
   return parts.join(" · ");
 }
