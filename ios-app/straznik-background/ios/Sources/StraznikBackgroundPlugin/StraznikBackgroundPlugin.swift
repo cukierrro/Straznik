@@ -1,5 +1,6 @@
 import Foundation
 import UIKit
+import AVFoundation
 import UserNotifications
 import Capacitor
 import FirebaseCore
@@ -28,6 +29,7 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
         CAPPluginMethod(name: "status", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "setForceMaxVolume", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "testNativeAlarm", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "dzwiekAlarmu", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "canInstallUpdates", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "requestInstallPermission", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "installUpdate", returnType: CAPPluginReturnPromise),
@@ -68,6 +70,8 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
     private let defaults = UserDefaults.standard
     private var firebaseReady = false
     private var apnsRegistered = false
+    /// Czy trzymamy sesję audio przełączoną na czas alarmu (patrz `dzwiekAlarmu`).
+    private var sesjaAlarmuWlaczona = false
     /// Wynik starszej synchronizacji nie może nadpisać nowszej (szybkie zmiany miejsc).
     private var syncGeneration = 0
 
@@ -83,6 +87,12 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
                            name: .capacitorDidRegisterForRemoteNotifications, object: nil)
         center.addObserver(self, selector: #selector(didFailToRegisterForRemote(_:)),
                            name: .capacitorDidFailToRegisterForRemoteNotifications, object: nil)
+
+        // Gdy aplikacja idzie w tło w trakcie syreny, iOS i tak ucisza nasz dźwięk
+        // (nie mamy trybu audio w tle). Oddajemy wtedy sesję, żeby muzyka innych
+        // aplikacji wróciła sama.
+        center.addObserver(self, selector: #selector(poszloWTlo),
+                           name: UIApplication.didEnterBackgroundNotification, object: nil)
 
         configureFirebase()
         // Token APNs dostajemy także bez zgody na powiadomienia — zgoda decyduje
@@ -445,6 +455,51 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
             default:
                 schedule()
             }
+        }
+    }
+
+    // MARK: - dźwięk alarmu (sesja audio)
+
+    /// Bez tego syrena w aplikacji milczy przy wyciszonym dzwonku: domyślna kategoria
+    /// sesji audio (`soloAmbient`) jest z założenia cichnąca od przełącznika na boku
+    /// telefonu. Na czas alarmu przełączamy się na `playback`, która gra mimo
+    /// wyciszenia, a po alarmie oddajemy sesję innym aplikacjom.
+    ///
+    /// To NIE dotyczy dźwięku powiadomienia push — ten wciąż podlega wyciszeniu
+    /// i wymagałby uprawnienia Critical Alerts od Apple (wniosek 442YB6VV2L).
+    @objc func dzwiekAlarmu(_ call: CAPPluginCall) {
+        let wlacz = call.getBool("wlacz") ?? false
+        DispatchQueue.main.async {
+            let blad = self.ustawSesjeAlarmu(wlacz)
+            call.resolve(["active": self.sesjaAlarmuWlaczona,
+                          "error": blad ?? ""])
+        }
+    }
+
+    @objc private func poszloWTlo() {
+        if sesjaAlarmuWlaczona { _ = ustawSesjeAlarmu(false) }
+    }
+
+    /// Zwraca opis błędu albo `nil`. Nieudana zmiana sesji nie może przerwać alarmu —
+    /// powiadomienie systemowe i tak zagra, a mapa ma działać dalej.
+    @discardableResult
+    private func ustawSesjeAlarmu(_ wlacz: Bool) -> String? {
+        let sesja = AVAudioSession.sharedInstance()
+        do {
+            if wlacz {
+                guard !sesjaAlarmuWlaczona else { return nil }
+                try sesja.setCategory(.playback, mode: .default)
+                try sesja.setActive(true)
+                sesjaAlarmuWlaczona = true
+            } else {
+                guard sesjaAlarmuWlaczona else { return nil }
+                sesjaAlarmuWlaczona = false
+                try sesja.setActive(false, options: .notifyOthersOnDeactivation)
+            }
+            return nil
+        } catch {
+            sesjaAlarmuWlaczona = wlacz ? false : sesjaAlarmuWlaczona
+            return error.localizedDescription
         }
     }
 
