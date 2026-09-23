@@ -15,7 +15,7 @@ from pathlib import Path
 
 DOCS = Path(__file__).resolve().parent.parent / "docs"
 APP_STORE = "https://apps.apple.com/pl/app/id6813563009"
-WERSJA_IOS = "1.7.63"
+WERSJA_IOS = "1.7.72"
 
 
 def sekcja(html, ident, nowa):
@@ -113,7 +113,7 @@ PL = dict(
   <div class="tw"><table><thead><tr><th>Poziom</th><th>Co się dzieje na iPhonie</th></tr></thead><tbody>
     <tr><td>poniżej 2 pkt</td><td>Informacja na mapie i w panelu, bez powiadomienia.</td></tr>
     <tr><td>żółty, od 2 pkt — PODWYŻSZONA UWAGA</td><td>Zwykłe powiadomienie z krótkim sygnałem uwagi. Szanuje wyciszony dzwonek i tryb Skupienia.</td></tr>
-    <tr><td>czerwony, od 4 pkt — WYSOKI PRIORYTET</td><td>Powiadomienie oznaczone <b>„PILNE”</b> (czasowo zależne): pokazuje się nad blokadą i gra syreną <b>jeden raz</b>, z wibracją. Przebija tryb Skupienia, jeśli na to pozwolisz (ramka niżej). <b>Nie zapala pełnego ekranu i nie powtarza syreny w pętli</b> — iOS nie pozwala na to zwykłym aplikacjom. Dotknięcie powiadomienia otwiera Strażnika na ekranie alarmu.</td></tr>
+    <tr><td>czerwony, od 4 pkt <b>i z potwierdzeniem</b> — WYSOKI PRIORYTET</td><td>Powiadomienie oznaczone <b>„PILNE”</b> (czasowo zależne): pokazuje się nad blokadą i gra syreną <b>jeden raz</b>, z wibracją. Przebija tryb Skupienia, jeśli na to pozwolisz (ramka niżej). <b>Nie zapala pełnego ekranu i nie powtarza syreny w pętli</b> — iOS nie pozwala na to zwykłym aplikacjom. Dotknięcie powiadomienia otwiera Strażnika na ekranie alarmu.</td></tr>
   </tbody></table></div>
   <div class="split">
     <div>
@@ -136,6 +136,10 @@ PL = dict(
       <li><b>Strażnik dopuszczony w trybie Sen:</b> Ustawienia → Skupienie → Sen → Aplikacje → dodaj Strażnika. Jeśli używasz też innych trybów Skupienia (np. Praca), dopuść go i tam.</li>
     </ol>
     Sprawdź to ponownie po aktualizacji iOS.</div>
+  <h3 id="grota">Gdzie się schronić — GROTA</h3>
+  <p>Po dotknięciu <kbd>POTWIERDZAM — wycisz syrenę</kbd> ekran alarmu pokazuje trzy przyciski: <kbd>Gdzie się schronić</kbd>, <kbd>Obserwuj mapę</kbd> i <kbd>Jestem bezpieczny</kbd>. Strażnik nigdy sam nie przełącza ekranu — wybierasz Ty. <kbd>Gdzie się schronić</kbd> otwiera moduł <b>GROTA</b> od razu na zakładce TERAZ: najbliższe miejsca schronienia z publicznego wykazu Państwowej Straży Pożarnej, z odległością i trasą. Poza alarmem wejdziesz do niej z <kbd>Więcej</kbd> → <kbd>Schronienie — gdzie najbliżej</kbd>.</p>
+  <p>Przy pierwszym otwarciu iPhone zapyta o dostęp do położenia — wybierz „Podczas korzystania z aplikacji”. Bez zgody GROTA też działa: miejsce wskazujesz sam (zapisane miejsce, adres albo punkt na mapie). Wykaz miejsc i szukanie najbliższego działają bez internetu; trasa po drogach wymaga sieci albo paczki pobranej wcześniej w zakładce <kbd>Przygotuj</kbd>. GROTA mówi po polsku, angielsku i ukraińsku — język wybierzesz w jej zakładce <kbd>Zasady</kbd>.</p>
+  <div class="note"><b>📘 <a href="grota.html">Pełna instrukcja GROTY →</a></b> Wszystkie funkcje ze zrzutami; dostępna też po <a href="grota-uk.html" lang="uk">ukraińsku</a> i <a href="grota-en.html" lang="en">angielsku</a>. Zrzuty w tamtej instrukcji pochodzą z Androida — na iPhonie ekrany wyglądają tak samo, różni się tylko pytanie o położenie i systemowy przycisk wstecz.</div>
   <h3>Kiedy telefon dzwoni, a kiedy nie</h3>
   <ul>
     <li>Powiadomienie przychodzi tylko dla <b>obserwowanych województw</b> z Moich miejsc.</li>
@@ -240,7 +244,7 @@ EN = dict(
   <div class="tw"><table><thead><tr><th>Level</th><th>What happens on iPhone</th></tr></thead><tbody>
     <tr><td>below 2 pts</td><td>Shown on the map and in the panel, no notification.</td></tr>
     <tr><td>yellow, from 2 pts — ELEVATED ATTENTION</td><td>An ordinary notification with a short attention tone. It respects the silenced ringer and Focus modes.</td></tr>
-    <tr><td>red, from 4 pts — HIGH PRIORITY</td><td>A notification marked <b>“Urgent”</b> (Time Sensitive): it appears on the lock screen and plays the siren <b>once</b>, with vibration. It breaks through a Focus mode if you allow it (box below). <b>It does not take over the full screen and does not loop the siren</b> — iOS does not allow ordinary apps to do that. Tapping the notification opens Strażnik on the alert screen.</td></tr>
+    <tr><td>red, from 4 pts <b>and with a confirmation</b> — HIGH PRIORITY</td><td>A notification marked <b>“Urgent”</b> (Time Sensitive): it appears on the lock screen and plays the siren <b>once</b>, with vibration. It breaks through a Focus mode if you allow it (box below). <b>It does not take over the full screen and does not loop the siren</b> — iOS does not allow ordinary apps to do that. Tapping the notification opens Strażnik on the alert screen.</td></tr>
   </tbody></table></div>
   <div class="split">
     <div>
@@ -263,6 +267,10 @@ EN = dict(
       <li><b>Strażnik allowed in Sleep:</b> Settings → Focus → Sleep → Apps → add Strażnik. If you use other Focus modes (e.g. Work), allow it there too.</li>
     </ol>
     Check again after an iOS update.</div>
+  <h3 id="grota">Where to shelter — GROTA</h3>
+  <p>After you tap <kbd>ACKNOWLEDGE — silence the siren</kbd> the alert screen shows three buttons: <kbd>Where to shelter</kbd>, <kbd>Watch the map</kbd> and <kbd>I am safe</kbd>. Strażnik never switches the screen on its own — you choose. <kbd>Where to shelter</kbd> opens the <b>GROTA</b> module straight on its NOW tab: the nearest shelter places from the public register of Poland’s State Fire Service, with the distance and a route. Outside an alert you reach it from <kbd>More</kbd> → <kbd>Shelter — nearest</kbd>.</p>
+  <p>The first time, the iPhone asks for location access — choose “While Using the App”. GROTA works without it too: you point out the place yourself (a saved place, an address or a point on the map). The register and the nearest-place search work offline; a road route needs the network or a package downloaded earlier in the <kbd>Przygotuj</kbd> (prepare) tab. GROTA speaks English, Ukrainian and Polish — pick the language in its <kbd>Zasady</kbd> (rules) tab.</p>
+  <div class="note"><b>📘 <a href="grota-en.html">The full GROTA guide →</a></b> Every feature with screenshots; also in <a href="grota-uk.html" lang="uk">Ukrainian</a> and <a href="grota.html" lang="pl">Polish</a>. Its screenshots come from Android — on an iPhone the screens look the same; only the location prompt and the system back button differ.</div>
   <h3>When the phone sounds and when it does not</h3>
   <ul>
     <li>A notification arrives only for <b>watched provinces</b> from My places.</li>
@@ -330,10 +338,8 @@ def zbuduj(c):
     html = zamien(html, *c["www_iphone"], "powiadomienia strony na iPhonie")
     html = zamien(html, *c["problemy_stare"], "brak powiadomień")
     html = zamien(html, *c["prywatnosc"], "kopia zapasowa")
-    # GROTA jest na razie tylko na Androidzie — zdanie o trasie nie dotyczy iPhone'a
-    html = wytnij(html, r'<a href="grota(?:-en)?\.html">GROTA</a>', "", "GROTA w menu")
-    html = wytnij(html, r" (?:Wyjątek to trasa w GROCIE|The exception is a route in GROTA)[^<]*<a [^>]*>[^<]*</a>\)\.",
-                  "", "trasa GROTY w prywatności")
+    # GROTA działa na iPhonie od wydania 1.7.72 (App Store, 23.09.2026) — nic tu nie wycinamy:
+    # zostaje i wpis w menu, i zdanie o trasie w rozdziale o prywatności.
     html = zamien(html, *c["stopka"], "stopka")
     # ślady instrukcji Androida, które nie mają sensu na iPhonie (celowe wzmianki
     # „na iPhonie nie ma zgody na alarm pełnoekranowy” są w tekstach wyżej i nie są tu łapane)
