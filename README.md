@@ -128,8 +128,10 @@ otwierają się także w pełnym rozmiarze.
 Aplikacja zbiera sygnały z kilku niezależnych źródeł, przydziela im punkty
 i sumuje w oknie 60 minut (pełna waga przez 30 minut, potem liniowe wygaszanie)
 osobno dla każdego województwa. Przy **≥ 2 pkt**
-włącza podwyższoną uwagę (sygnał uwagi i powiadomienie), przy **≥ 4 pkt** — głośny alarm
-z syreną. UI zawsze pokazuje pełne rozbicie: które sygnały, skąd, ile punktów.
+włącza podwyższoną uwagę (sygnał uwagi i powiadomienie). Głośny alarm z syreną wymaga
+**≥ 4 pkt ORAZ potwierdzenia**: Alertu RCB o treści „znajdź bezpieczne miejsce" albo
+obiektu uderzeniowego kursem na Polskę ≤ 15 minut od granicy (albo ≤ 50 km).
+Sama suma punktów z sygnałów pośrednich nie zapala czerwonego (zmiana 23.09.2026). UI zawsze pokazuje pełne rozbicie: które sygnały, skąd, ile punktów.
 
 | Sygnał | Warunek | Punkty |
 |---|---|---|

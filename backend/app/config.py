@@ -68,7 +68,8 @@ NEPTUN_TYPE_WEIGHTS = {
     "kab":       1.8,   # bomba kierowana: krótki zasięg, ale groźna przy granicy
     "shahed":    1.4,   # wolny, nadlatuje masowo
     "uav":       1.1,
-    "recon":     0.5,   # rozpoznanie samo nie atakuje, ale poprzedza uderzenie
+    "recon":     0.15,  # rozpoznanie samo nie atakuje (decyzja usera 23.09.2026: było 0,5 —
+                        # trzy takie drony dokładały 0,27 pkt do fałszywego czerwonego)
     "fpv":       0.0,   # zasięg kilkunastu km — dla Polski nieistotny
 }
 # Krzywa odległości od granicy PL (km → mnożnik), interpolowana LINIOWO.
@@ -185,6 +186,45 @@ SNAPSHOT_INTERVAL_S = int(os.getenv("SNAPSHOT_INTERVAL_S", "60"))
 # pojedyncze zdarzenie samo nie utrzymuje alarmu.
 FUSION_WINDOW_MIN = 60
 FUSION_FULL_MIN = 30
+# --- Alert RCB ma od 17.09.2026 trzy poziomy treści (potwierdzone na gov.pl/rcb
+# i w Sejmie). Do 23.09 każdy ważył tyle samo (2,0), więc alert „sytuacja jest
+# monitorowana" — czyli najniższy z trzech — wchodził w skład wszystkich siedmiu
+# czerwonych alarmów w historii. Poziom rozpoznajemy po treści, nie po liczbie
+# „UWAGA!": siedem alertów NAJNIŻSZEGO poziomu miało w bazie potrójne „UWAGA!".
+RCB_LEVEL_MARKERS = {
+    3: ("znajdź bezpieczne miejsce", "zagrożenie atakiem z powietrza"),
+    2: ("zmasowany",),
+}
+RCB_LEVEL_POINTS = {1: 1.5, 2: 3.0, 3: 4.5}
+
+# --- Klucz czerwonego alarmu (decyzja usera 23.09.2026) ---
+# Sama suma punktów nie wystarcza: RCB 2,0 + obwody UA 1,0 + media 1,0 + strefa 1,0
+# dawało 5,0 pkt i "WYSOKI PRIORYTET" przy pustej mapie. Czerwony wymaga teraz
+# ALBO alertu RCB poziomu 3 (państwo mówi „znajdź bezpieczne miejsce"), ALBO
+# realnego obiektu uderzeniowego kursem na Polskę: dolot ≤ 15 min albo ≤ 50 km.
+# 50 km to bezpiecznik na wypadek drona odrzutowego (Geran-3/4), którego NEPTUN
+# nie opisał jako odrzutowy — przy 450 km/h to niecałe 7 minut.
+# Gdy RCB obniży stopień (np. po „znajdź bezpieczne miejsce" przychodzi „sytuacja jest
+# monitorowana"), mocniejszy alert NIE jest odwołany — ale ma zgasnąć szybko, a nie
+# trzymać pełnej wagi przez całe okno fuzji (decyzja usera 23.09.2026).
+RCB_DOWNGRADE_FADE_MIN = 10.0
+
+RED_GATE_ETA_MIN = 15.0
+RED_GATE_KM = 50.0
+# Fala obiektów: kilka niezależnych obiektów lecących jednocześnie w naszą stronę
+# to przesłanka sama w sobie, niezależna od tego, jak słaby jest każdy z osobna.
+# 23.09.2026 żółty zapalił się 8 min przed Alertem RCB tylko dzięki dwóm dronom
+# ROZPOZNAWCZYM (2 × 0,08 pkt) — po obniżeniu ich wagi do 0,15 to wyprzedzenie by
+# przepadło. Fala jest rzadka: w całej historii od 1.09 wystąpiła 4 razy (13, 15,
+# 17 i 23.09) i za każdym razem przy realnym zdarzeniu.
+NEPTUN_WAVE_MIN = 3                # ile różnych obiektów naraz
+NEPTUN_WAVE_KM = 150.0             # liczone tylko bliżej niż tyle od granicy
+NEPTUN_WAVE_WINDOW_MIN = 15
+NEPTUN_WAVE_POINTS = 0.5
+
+RED_GATE_MAX_AGE_MIN = 25          # meldunek starszy niż 25 min nie otwiera czerwonego
+RED_GATE_TYPES = ("ballistic", "mig31k", "cruise", "missile", "kab", "shahed", "uav")
+
 THRESHOLD_ELEVATED = 2.0           # "PODWYŻSZONA UWAGA"
 THRESHOLD_HIGH = 4.0               # "WYSOKI PRIORYTET"
 NOTIFY_COOLDOWN_MIN = 10           # min. odstęp między powiadomieniami tego samego poziomu/woj.
@@ -236,7 +276,8 @@ POINTS = {
 # Neptun ma limit wyższy niż pozostałe źródła, bo każdy track to osobny fizyczny
 # obiekt — ale nie nieograniczony: przy kilkudziesięciu obiektach suma i tak dawno
 # przekroczyła próg alarmu, a trzycyfrowa punktacja tylko psułaby czytelność skali.
-SOURCE_CAPS = {"media": 1.0, "rcb": 2.0, "adsb": 1.0, "pansa": 1.0, "neptun": 8.0,
+SOURCE_CAPS = {"media": 1.0, "rcb": 4.5,   # 4,5 = alert RCB poziomu 3 („znajdź bezpieczne miejsce”, 23.09.2026)
+                "adsb": 1.0, "pansa": 1.0, "neptun": 8.0,
                "neighbours": 0.6,   # sąsiedzi: nawet kilka zamknięć = drobny wkład
                # Alarmy obwodowe UA to JEDNA informacja („na zachodniej Ukrainie
                # trwa alarm"), nie kilka niezależnych potwierdzeń — inaczej Wołyń
@@ -557,6 +598,12 @@ FOREIGN_PLACE_MARKERS = [
 # Nazwy miejsc, które w tekście NIE umiejscawiają zdarzenia: relacja pociągu
 # „Kijów–Warszawa" czy „loty do Warszawy wstrzymane" dawały mazowieckiemu punkty
 # za atak na Ukrainie (E3, 13.09.2026). Wycinamy je przed rozpoznaniem regionu.
+# Zdarzenie opisane przez regionalny portal, ale rozgrywające się gdzie indziej
+# (23.09.2026: Ił-20 nad Bałtykiem w lubelskim portalu = 0,5 pkt dla lubelskiego).
+# Przy tych słowach w tytule NIE dokładamy domyślnego regionu kanału.
+MEDIA_ELSEWHERE_MARKERS = ("bałtyk", "bałtyckim", "bałtyku", "nad morzem", "wybrzeż",
+                           "mierzej", "zalew wiślany", "kaliningrad", "królewiec")
+
 REGION_NEUTRAL_PATTERNS = [
     r"(?:kij[oó]w|lw[oó]w|odes(?:sa|y)|wilno|mi[nń]sk|berlin|praga|wiede[nń])\s*[-–—]\s*warszaw\w*",
     r"warszaw\w*\s*[-–—]\s*(?:kij[oó]w|lw[oó]w|odes(?:sa|y)|wilno|mi[nń]sk|berlin|praga|wiede[nń])",

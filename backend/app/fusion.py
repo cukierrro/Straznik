@@ -129,11 +129,19 @@ def _media_relay_of_official(media: dict, officials: list[dict]) -> dict | None:
     if kind == "media_qra_wave":
         return next((o for o in close if "lotnict" in _fold_text(o.get("title", ""))), None)
     if "alert rcb" in folded:
-        mt = _relay_tokens(media.get("title", ""))
+        # 23.09.2026: „Alert RCB w województwie lubelskim. Polskie lotnictwo operuje
+        # w przestrzeni powietrznej" dało 1,0 pkt obok alertu (2,0) — porównanie
+        # słów znalazło tylko dwa wspólne („operuje", „przestrzeni"), bo alert pisze
+        # „polskie lotnictwo", a artykuł „lotnictwo operuje". Od teraz sam tytuł
+        # z „Alert RCB", ten sam region i 45 minut wystarczą; artykuł mówiący
+        # o czymś WIĘCEJ niż alert zostaje niezależnym sygnałem (markery niżej).
+        if any(m in folded for m in _RELAY_ESCALATION_MARKERS):
+            return None
+        ms = _relay_stems(media.get("title", ""))
         for official in close:
-            ot = _relay_tokens(official.get("title", ""))
-            shared = mt & ot
-            if len(shared) >= 4 and len(shared) / max(1, min(len(mt), len(ot))) >= 0.45:
+            os_ = _relay_stems(official.get("title", ""))
+            shared = ms & os_
+            if len(shared) >= 3 and len(shared) / max(1, min(len(ms), len(os_))) >= 0.3:
                 return official
         return None
     if any(m in folded for m in _RELAY_ESCALATION_MARKERS):
@@ -458,6 +466,18 @@ def accumulate(signals: list[dict], ref: datetime | None = None) -> dict:
     # obiektu, nie nowym obiektem. Dla pozycji rejonowej korzystamy z
     # `physical_key`, więc także nowe ID w identycznym punkcie miejscowości nie
     # udaje automatycznie kolejnego drona. Do wyniku wybieramy najmocniejszy wpis.
+    # Alerty RCB w jednym województwie NIE sumują się (23.09.2026 — trzy poziomy treści).
+    # Bieżącą ocenę państwa opisuje NAJNOWSZY alert i to on wyznacza poziom. Gdy poprzedni
+    # był mocniejszy, jego nadwyżka gaśnie przez RCB_DOWNGRADE_FADE_MIN: punktacja schodzi
+    # płynnie do poziomu nowego komunikatu, zamiast spadać do zera albo trzymać się starego.
+    rcb_winners: dict[str, dict] = {}
+    for s in signals:
+        if s.get("event_type") not in ("rso_alert", "rcb_alert") or not s.get("voivodeship"):
+            continue
+        prev = rcb_winners.get(s["voivodeship"])
+        if prev is None or (s.get("ts") or "") > (prev.get("ts") or ""):
+            rcb_winners[s["voivodeship"]] = s
+
     neptun_winners: dict[tuple, dict] = {}
     for s in signals:
         if s.get("source") != "neptun":
@@ -503,6 +523,20 @@ def accumulate(signals: list[dict], ref: datetime | None = None) -> dict:
         if not _official_cleared(s, rso_clears):
             uncleared_officials.setdefault(s.get("voivodeship"), []).append(_issued_at(s))
 
+    # Nadwyżka po obniżeniu stopnia: starszy, MOCNIEJSZY alert dopłaca różnicę, która
+    # gaśnie liniowo przez RCB_DOWNGRADE_FADE_MIN. Po tym czasie zostaje sam nowy poziom.
+    rcb_residual: dict[str, dict] = {}
+    for voiv, nowy in rcb_winners.items():
+        nowy_ts = _parse_ts(nowy.get("ts"))
+        mocniejsze = [x for x in signals
+                      if x.get("event_type") in ("rso_alert", "rcb_alert")
+                      and x.get("voivodeship") == voiv and x is not nowy
+                      and x["points"] > nowy["points"]
+                      and (x.get("ts") or "") < (nowy.get("ts") or "")]
+        if mocniejsze and nowy_ts is not None:
+            rcb_residual[voiv] = {"od": nowy_ts, "nowe_pkt": nowy["points"],
+                                  "stary": max(mocniejsze, key=lambda x: x["points"])}
+
     prepared: list[dict] = []
     for s in sorted(signals, key=lambda x: x["ts"]):
         voiv = s.get("voivodeship")
@@ -513,6 +547,8 @@ def accumulate(signals: list[dict], ref: datetime | None = None) -> dict:
         physical_id = ((details.get("physical_key") or track_id) if track_id else None)
         superseded = bool(physical_id
                           and neptun_winners.get((voiv, physical_id)) is not s)
+        if s.get("event_type") in ("rso_alert", "rcb_alert"):
+            superseded = superseded or rcb_winners.get(voiv) is not s
         incident = (details.get("incident_key")
                     if s.get("event_type") in ("baltic_context", "baltic_alert") else None)
         clear_ts = baltic_clears.get((voiv, incident)) if incident else None
@@ -540,6 +576,14 @@ def accumulate(signals: list[dict], ref: datetime | None = None) -> dict:
             w, ua_end = ua_alert_factor(s, ua_ends, ref)
         else:
             w = _age_weight(s["ts"], ref)
+        if s.get("event_type") in ("rso_alert", "rcb_alert"):
+            res = rcb_residual.get(voiv)
+            if res and res["stary"] is s:
+                minely = ((ref or datetime.now(timezone.utc)) - res["od"]).total_seconds() / 60
+                zanik = max(0.0, 1.0 - minely / config.RCB_DOWNGRADE_FADE_MIN)
+                nadwyzka = max(0.0, s["points"] * zanik - res["nowe_pkt"])
+                w = min(w, nadwyzka / s["points"] if s["points"] else 0.0)
+                superseded = False
         zeroed = bool(superseded or cleared or relay_of or retrospective or article_status)
         prepared.append({
             "s": s, "voiv": voiv, "w": w, "counted": 0.0,
@@ -556,6 +600,40 @@ def accumulate(signals: list[dict], ref: datetime | None = None) -> dict:
         e["counted"] = (e["weighted"] if cap is None
                         else max(0.0, min(cap - already, e["weighted"])))
         per_source[key] = already + e["counted"]
+
+    # Fala obiektów (23.09.2026): kilka różnych obiektów kursem na Polskę w krótkim
+    # oknie. Liczymy TORY, nie meldunki, żeby powtórzenia tego samego obiektu nie
+    # robiły fali. Sygnał jest syntetyczny — widać go w panelu i w historii.
+    teraz = ref or datetime.now(timezone.utc)
+    fale: dict[str, list] = {}
+    for e in prepared:
+        s_ = e["s"]
+        if s_.get("source") != "neptun" or e["weighted"] <= 0:
+            continue
+        d = s_.get("details") or {}
+        km = d.get("dist_km")
+        ts = _parse_ts(s_.get("ts"))
+        if km is None or km > config.NEPTUN_WAVE_KM or ts is None:
+            continue
+        if (teraz - ts).total_seconds() > config.NEPTUN_WAVE_WINDOW_MIN * 60:
+            continue
+        fale.setdefault(e["voiv"], []).append((d.get("physical_key") or d.get("track_id") or s_.get("id"), ts))
+    for voiv, obiekty in fale.items():
+        ile = len({k for k, _ in obiekty})
+        if ile < config.NEPTUN_WAVE_MIN:
+            continue
+        ostatni = max(ts for _, ts in obiekty)
+        per_voiv[voiv]["score"] += config.NEPTUN_WAVE_POINTS
+        per_voiv[voiv]["_spillover_score"] += config.NEPTUN_WAVE_POINTS
+        per_voiv[voiv]["signals"].append({
+            "source": "neptun", "event_type": "neptun_wave", "voivodeship": voiv,
+            "ts": ostatni.isoformat(timespec="seconds"),
+            "points": config.NEPTUN_WAVE_POINTS,
+            "counted_points": config.NEPTUN_WAVE_POINTS, "weight": 1.0,
+            "title": f"Fala obiektów: {ile} obiekty kursem na Polskę w {config.NEPTUN_WAVE_WINDOW_MIN} min "
+                     f"(bliżej niż {int(config.NEPTUN_WAVE_KM)} km)",
+            "details": {"count": ile, "wave": True},
+        })
 
     for e in prepared:          # do wyniku i rozbicia — w kolejności czasu
         s, voiv, counted, relay_of = e["s"], e["voiv"], e["counted"], e["relay_of"]
@@ -639,6 +717,54 @@ def apply_spillover(per_voiv: dict, ref: datetime | None = None) -> dict:
     return per_voiv
 
 
+def rcb_level_of(s: dict) -> int:
+    """Poziom alertu RCB: z zapisanego pola, a dla starszych wpisów z treści."""
+    lvl = (s.get("details") or {}).get("rcb_level")
+    if isinstance(lvl, int):
+        return lvl
+    t = (s.get("title") or "").lower()
+    for poziom in (3, 2):
+        if any(m in t for m in config.RCB_LEVEL_MARKERS[poziom]):
+            return poziom
+    return 1
+
+
+def red_key(signals: list[dict], ref: datetime | None = None) -> dict | None:
+    """Czy wolno zapalić czerwony — i dlaczego (decyzja usera 23.09.2026).
+
+    Suma punktów nie wystarcza, bo pośrednie sygnały (alert RCB o monitorowaniu,
+    alarmy obwodów UA, media, strefy) potrafią zsumować się do 5 pkt przy pustej
+    mapie — tak powstało wszystkie siedem czerwonych alarmów do 23.09.2026.
+    Czerwony wymaga jednego z dwóch: oficjalnego wezwania do schronienia albo
+    obiektu uderzeniowego, który leci na Polskę i jest blisko.
+    """
+    teraz = ref or datetime.now(timezone.utc)
+    najnowszy = None
+    for s in signals:
+        if s.get("event_type") in ("rso_alert", "rcb_alert") and s.get("counted_points", 1) is not None:
+            if najnowszy is None or (s.get("ts") or "") > (najnowszy.get("ts") or ""):
+                najnowszy = s
+    # Liczy się BIEŻĄCA ocena państwa: gdy RCB obniżyło stopień, stary alert 3. poziomu
+    # dopłaca jeszcze zanikającą nadwyżkę punktów, ale nie trzyma już czerwonego.
+    if najnowszy is not None and rcb_level_of(najnowszy) == 3:
+        return {"powod": "rcb3", "opis": "Alert RCB: znajdź bezpieczne miejsce"}
+    for s in signals:
+        if s.get("source") != "neptun":
+            continue
+        ts = _parse_ts(s.get("ts"))
+        if ts is None or (teraz - ts).total_seconds() > config.RED_GATE_MAX_AGE_MIN * 60:
+            continue
+        d = s.get("details") or {}
+        if (d.get("type") or "").lower() not in config.RED_GATE_TYPES:
+            continue
+        eta, km = d.get("eta_border_min"), d.get("dist_km")
+        if eta is not None and eta <= config.RED_GATE_ETA_MIN:
+            return {"powod": "eta", "opis": f"obiekt {int(eta)} min od granicy", "eta_min": eta, "km": km}
+        if km is not None and km <= config.RED_GATE_KM:
+            return {"powod": "blisko", "opis": f"obiekt {round(km)} km od granicy", "eta_min": eta, "km": km}
+    return None
+
+
 def compute_state(signals: list[dict] | None = None, ref: datetime | None = None) -> dict:
     """Stan fuzji: per województwo suma punktów + lista sygnałów składowych.
 
@@ -676,6 +802,14 @@ def compute_state(signals: list[dict] | None = None, ref: datetime | None = None
         # województwie nie dzwoni) — aplikacja rysuje go inaczej niż własny alarm,
         # żeby żółte świętokrzyskie z samych przeniesień nie wyglądało jak alarm.
         st["alert_level"] = alert_level(st["own_score"], st["score"], levels.get(voiv, "none"))
+        # Czerwony tylko z kluczem: oficjalne wezwanie do schronienia albo bliski obiekt.
+        klucz = red_key(st["signals"], ref) if "high" in (st["level"], st["alert_level"]) else None
+        st["red_key"] = klucz
+        if not klucz:
+            if st["level"] == "high":
+                st["level"] = "elevated"
+            if st["alert_level"] == "high":
+                st["alert_level"] = "elevated"
         if live:
             clear_at = _last_clear_ts([s for s in signals if s.get("voivodeship") == voiv])
             st["alert_level"] = hold_level(f"alert:{voiv}", st["alert_level"], now, clear_at)

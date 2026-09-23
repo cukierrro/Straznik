@@ -97,8 +97,23 @@ sprawdz("SOURCE_CAPS", slownik(r"SOURCE_CAPS = \{(.*?)\}", ENGINE, "SOURCE_CAPS 
          if k not in _BACKEND_ONLY_CAPS})
 
 # ── punkty za sygnał ─────────────────────────────────────────────────────────
+# 23.09.2026: poziomy alertu RCB, klucz czerwonego alarmu i fala obiektów muszą być
+# takie same po obu stronach — inaczej tryb awaryjny zapalałby czerwony inaczej niż serwer.
+sprawdz("RCB_LEVEL_POINTS", slownik(r"const RCB_LEVEL_POINTS = \{(.*?)\}", ENGINE, "poziomy js"),
+        slownik(r"RCB_LEVEL_POINTS = \{(.*?)\}", CONFIG, "poziomy py"))
+sprawdz("klucz czerwonego: ETA", num(r"RED_GATE_ETA_MIN = ([\d.]+)", ENGINE, "eta js"),
+        num(r"RED_GATE_ETA_MIN = ([\d.]+)", CONFIG, "eta py"))
+sprawdz("klucz czerwonego: km", num(r"RED_GATE_KM = ([\d.]+)", ENGINE, "km js"),
+        num(r"RED_GATE_KM = ([\d.]+)", CONFIG, "km py"))
+sprawdz("fala: liczba obiektów", num(r"WAVE_MIN = ([\d.]+)", ENGINE, "fala js"),
+        num(r"NEPTUN_WAVE_MIN = ([\d.]+)", CONFIG, "fala py"))
+sprawdz("fala: punkty", num(r"WAVE_POINTS = ([\d.]+)", ENGINE, "fala pkt js"),
+        num(r"NEPTUN_WAVE_POINTS = ([\d.]+)", CONFIG, "fala pkt py"))
+sprawdz("fala: zasięg km", num(r"WAVE_KM = ([\d.]+)", ENGINE, "fala km js"),
+        num(r"NEPTUN_WAVE_KM = ([\d.]+)", CONFIG, "fala km py"))
+
 sprawdz("POINTS", slownik(r"const POINTS = \{(.*?)\}", ENGINE, "POINTS js"),
-        {k: v for k, v in slownik(r"POINTS = \{(.*?)\}", CONFIG, "POINTS py").items()
+        {k: v for k, v in slownik(r"\nPOINTS = \{(.*?)\n\}", CONFIG, "POINTS py").items()
          if k not in _BACKEND_ONLY_POINTS})
 
 # ── kolejność województw (kaskada i indeksowanie zależą od kolejności) ────────
@@ -113,7 +128,7 @@ sprawdz("PRIORITY", sorted(lista(r"const PRIORITY_VOIVS = \[(.*?)\]", ENGINE, "p
 # Nawet wiele artykułów może opisywać jedno zdarzenie lub przepisywać tę samą
 # depeszę. Żółty wymaga sygnału z innej klasy (RCB/RSO, NEPTUN, ADS-B, PAŻP…).
 _th = num(r"THRESHOLD_ELEVATED\s*=\s*([\d.]+)", CONFIG, "próg elevated")
-_media_pts = slownik(r"POINTS = \{(.*?)\}", CONFIG, "POINTS py").get("media_keywords")
+_media_pts = slownik(r"\nPOINTS = \{(.*?)\n\}", CONFIG, "POINTS py").get("media_keywords")
 _media_cap = slownik(r"SOURCE_CAPS = \{(.*?)\}", CONFIG, "SOURCE_CAPS py").get("media")
 if _th is not None and _media_pts is not None and _media_pts >= _th:
     bledy.append(f"media_keywords={_media_pts} ≥ próg {_th}: samotny artykuł "

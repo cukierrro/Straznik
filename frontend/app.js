@@ -83,6 +83,15 @@ const threatLabelPL = (type) => {
   const key = String(type || "").toLowerCase();
   return UI.type(key, (TYPE_META[key] || TYPE_META.unknown).label);
 };
+/* Czerwony wymaga potwierdzenia (23.09.2026): obiektu ≤15 min od granicy albo Alertu
+   RCB „znajdź bezpieczne miejsce". Przy 4+ pkt bez potwierdzenia mówimy o tym wprost —
+   inaczej liczba na ekranie przeczyłaby progowi z instrukcji. */
+function bezPotwierdzenia(st) {
+  if (!st || st.red_key || st.score < 4 || st.level === "high") return "";
+  return `<span class="muted"> · ${UI.isEn
+    ? "no confirming object — stays yellow"
+    : "brak potwierdzenia obiektem — zostaje żółty"}</span>`;
+}
 const LEVEL_LABEL = UI.isEn
   ? { none: "no signals", elevated: "ELEVATED ATTENTION", high: "HIGH PRIORITY" }
   : { none: "brak sygnałów", elevated: "PODWYŻSZONA UWAGA", high: "WYSOKI PRIORYTET" };
@@ -873,7 +882,10 @@ function buildAlertContract() {
   const prog = level === "high" ? (state?.fusion?.thresholds?.high ?? 4)
              : level === "elevated" ? (state?.fusion?.thresholds?.elevated ?? 2) : 0;
   return { level, voiv: mine, etaVoivMin, etaBorderMin,
-           hard: level !== "none" && hardSum >= prog - 1e-9,
+           // Czerwony ma od 23.09.2026 twardy klucz (Alert RCB „znajdź bezpieczne miejsce"
+           // albo obiekt ≤15 min od granicy), więc dla „high" pytamy wprost o niego.
+           hard: level === "high" ? !!st.red_key
+                                  : (level !== "none" && hardSum >= prog - 1e-9),
            ts: state?.fusion?.ts || new Date().toISOString() };
 }
 
@@ -2851,7 +2863,7 @@ function renderPanel() {
       spillRaised(st) ? SPILL_LABEL
       : st.level === "none" && st.score > 0 ? (UI.isEn ? "below threshold" : "poniżej progu")
       : LEVEL_LABEL[st.level]}</span>
-      <span class="muted">${st.score.toFixed(1)} ${UI.isEn ? "pts" : "pkt"}</span>`;
+      <span class="muted">${st.score.toFixed(1)} ${UI.isEn ? "pts" : "pkt"}</span>${bezPotwierdzenia(st)}`;
     banner.onclick = () => { setPanel(true); openCard(mine); };
   } else {
     banner.className = "hidden";

@@ -27,11 +27,16 @@ const sygnal = (source, counted, extra = {}) => ({
   details: { eta_voiv_min: extra.etaVoiv ? { lubelskie: extra.etaVoiv } : null,
              eta_border_min: extra.etaBorder ?? null, course: extra.kurs ?? null },
 });
-const stan = (level, sygnaly) => ({
+const stan = (level, sygnaly, redKey) => ({
   fusion: { ts: iso(0), thresholds: { elevated: 2, high: 4 },
-            voivodeships: { lubelskie: { alert_level: level, level, signals: sygnaly } } },
+            voivodeships: { lubelskie: { alert_level: level, level, signals: sygnaly,
+                                         red_key: redKey ?? null } } },
 });
-const licz = (level, sygnaly) => { ctx.state = stan(level, sygnaly); return ctx.buildAlertContract(); };
+// Od 23.09.2026 czerwony ma klucz (Alert RCB „znajdź bezpieczne miejsce" albo obiekt
+// ≤15 min od granicy) — kontrakt `hard` pyta wprost o niego, a nie o sumę punktów.
+const KLUCZ = { powod: 'eta', opis: 'obiekt 12 min od granicy' };
+const licz = (level, sygnaly, redKey = null) =>
+  { ctx.state = stan(level, sygnaly, redKey); return ctx.buildAlertContract(); };
 
 const bledy = [];
 function sprawdz(warunek, opis) {
@@ -51,8 +56,10 @@ k = licz('high', [sygnal('neptun', 2.0, { etaVoiv: 30 }), sygnal('neptun', 2.0, 
 sprawdz(k.etaVoivMin === 7, 'z kilku obiektów bierzemy najkrótszy czas');
 
 console.log('2. hard = poziom utrzymuje się bez źródeł miękkich');
+k = licz('high', [sygnal('rcb', 2.0), sygnal('neptun', 2.0)], KLUCZ);
+sprawdz(k.hard === true, 'czerwony z kluczem = wezwanie do schronienia');
 k = licz('high', [sygnal('rcb', 2.0), sygnal('neptun', 2.0)]);
-sprawdz(k.hard === true, 'RCB + obiekty sięgają progu czerwonego same');
+sprawdz(k.hard === false, 'czerwony bez klucza nie wzywa do schronienia');
 k = licz('high', [sygnal('rcb', 2.0), sygnal('media', 1.0), sygnal('ua_alert', 1.0)]);
 sprawdz(k.hard === false, 'czerwony trzymający się na mediach i alarmie obwodu to NIE hard');
 k = licz('elevated', [sygnal('rcb', 2.0)]);

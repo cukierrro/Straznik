@@ -13,6 +13,22 @@ const Engine = (() => {
 const WINDOW_MIN = 60, FULL_MIN = 30, TH_ELEVATED = 2, TH_HIGH = 4, COOLDOWN_MIN = 10;
 const ETA_BUFFER_MIN = 2.5, ETA_ELEVATED_MIN = 10, ETA_HIGH_MIN = 5, ETA_MIN_SOURCES = 2;
 const HISTORY_H = 12;   // ile godzin trzymamy do przeglądania wstecz
+/* Alert RCB ma od 17.09.2026 trzy poziomy treści — lustro config.RCB_LEVEL_* (23.09.2026).
+   Liczba „UWAGA!" nie rozstrzyga: alerty poziomu 1 też mają potrójne „UWAGA!". */
+const RCB_LEVEL_MARKERS = { 3: ["znajdź bezpieczne miejsce", "zagrożenie atakiem z powietrza"], 2: ["zmasowany"] };
+const RCB_LEVEL_POINTS = { 1: 1.5, 2: 3, 3: 4.5 };
+function rcbLevel(text) {
+  const t = String(text || "").toLowerCase();
+  for (const lvl of [3, 2]) if (RCB_LEVEL_MARKERS[lvl].some(m => t.includes(m))) return lvl;
+  return 1;
+}
+/* Klucz czerwonego alarmu — lustro config.RED_GATE_* i fusion.red_key (23.09.2026).
+   Sama suma nie wystarcza: pośrednie sygnały dawały 5 pkt przy pustej mapie. */
+const RED_GATE_ETA_MIN = 15, RED_GATE_KM = 50, RED_GATE_MAX_AGE_MS = 25*60*1000;
+const RCB_DOWNGRADE_FADE_MIN = 10;   // lustro config.RCB_DOWNGRADE_FADE_MIN
+const RED_GATE_TYPES = new Set(["ballistic", "mig31k", "cruise", "missile", "kab", "shahed", "uav"]);
+/* Fala obiektów — lustro config.NEPTUN_WAVE_* */
+const WAVE_MIN = 3, WAVE_KM = 150, WAVE_WINDOW_MS = 15*60*1000, WAVE_POINTS = 0.5;
 const POINTS = { neptun_high: 3, neptun_medlow: 1.5, media_keywords: 0.5, media_critical: 1,
                  adsb_spike: 0, rcb_alert: 2, ua_alert_border: 1, baltic_context: 0.5, baltic_alert: 0.3, pansa_zone: 0.5,
                  pansa_zone_north: 1 };
@@ -21,7 +37,7 @@ const POINTS = { neptun_high: 3, neptun_medlow: 1.5, media_keywords: 0.5, media_
 // przekroczyła próg alarmu, a trzycyfrowa punktacja psułaby czytelność skali.
 // Alarmy obwodowe UA to JEDNA informacja, nie kilka niezależnych potwierdzeń:
 // bez własnego limitu trzy obwody naraz dawały 3,0 pkt i żółty bez żadnego obiektu.
-const SOURCE_CAPS = { media: 1, rcb: 2, adsb: 1, pansa: 1, neptun: 8, ua_alert: 1 };
+const SOURCE_CAPS = { media: 1, rcb: 4.5,   /* 4,5 = alert RCB poziomu 3 (23.09.2026) */ adsb: 1, pansa: 1, neptun: 8, ua_alert: 1 };
 const VOIVODESHIPS = ["lubelskie","podkarpackie","podlaskie","mazowieckie","świętokrzyskie",
   "małopolskie","warmińsko-mazurskie","łódzkie","śląskie","kujawsko-pomorskie","pomorskie",
   "zachodniopomorskie","lubuskie","wielkopolskie","dolnośląskie","opolskie"];
@@ -68,7 +84,7 @@ const NEIGHBORS = {
    jest obserwacja, więc zamiast jednej stawki liczymy iloczyn czynników. */
 const NEPTUN_TYPE_WEIGHTS = {
   ballistic: 3.0, mig31k: 2.6, cruise: 2.4, missile: 2.4,
-  kab: 1.8, shahed: 1.4, uav: 1.1, recon: 0.5, fpv: 0.0,
+  kab: 1.8, shahed: 1.4, uav: 1.1, recon: 0.15, fpv: 0.0,   // recon 0,5 → 0,15 (23.09.2026)
 };
 const NEPTUN_TYPE_LABELS_PL = {
   uav:"Dron / BpSP", shahed:"Dron Shahed", fpv:"Dron FPV (lokalny)",
@@ -645,10 +661,13 @@ function mediaRelayOfOfficial(media, officials) {
   if (kind === "media_qra_wave")
     return close.find(o => fold(o.title || "").includes("lotnict")) || null;
   if (folded.includes("alert rcb")) {
-    const mt = relayTokens(media.title);
+    // 23.09.2026: „Alert RCB w województwie lubelskim. Polskie lotnictwo operuje…" miało
+    // z alertem tylko dwa wspólne słowa i dostało 1,0 pkt obok jego 2,0.
+    if (RELAY_ESCALATION_MARKERS.some(m => folded.includes(m))) return null;
+    const ms = relayStems(media.title);
     for (const official of close) {
-      const ot = relayTokens(official.title), shared = [...mt].filter(w => ot.has(w));
-      if (shared.length >= 4 && shared.length / Math.max(1, Math.min(mt.size, ot.size)) >= 0.45)
+      const os = relayStems(official.title), shared = [...ms].filter(w => os.has(w));
+      if (shared.length >= 3 && shared.length / Math.max(1, Math.min(ms.size, os.size)) >= 0.3)
         return official;
     }
     return null;
@@ -777,6 +796,23 @@ function accumulate(sigs, refT) {
     const t = s.t || Date.parse(s.ts) || 0;
     if (t > (mediaClears.get(s.voivodeship) || 0)) mediaClears.set(s.voivodeship, t);
   }
+  /* Alerty RCB nie sumują się (lustro fusion.accumulate, 23.09.2026): bieżącą ocenę
+     państwa opisuje NAJNOWSZY alert. Gdy poprzedni był mocniejszy, jego nadwyżka gaśnie
+     przez RCB_DOWNGRADE_FADE_MIN — punktacja schodzi płynnie do nowego poziomu. */
+  const rcbWinners = new Map(), rcbResidual = new Map();
+  for (const s of sigs) {
+    if (s.event_type !== "rso_alert" && s.event_type !== "rcb_alert") continue;
+    const prev = rcbWinners.get(s.voivodeship);
+    if (!prev || (s.t || Date.parse(s.ts)) > (prev.t || Date.parse(prev.ts))) rcbWinners.set(s.voivodeship, s);
+  }
+  for (const [voiv, nowy] of rcbWinners) {
+    const mocniejsze = sigs.filter(x => (x.event_type === "rso_alert" || x.event_type === "rcb_alert")
+      && x.voivodeship === voiv && x !== nowy && x.points > nowy.points
+      && (x.t || Date.parse(x.ts)) < (nowy.t || Date.parse(nowy.ts)));
+    if (mocniejsze.length)
+      rcbResidual.set(voiv, { od: nowy.t || Date.parse(nowy.ts), nowePkt: nowy.points,
+        stary: mocniejsze.reduce((a, b) => (b.points > a.points ? b : a)) });
+  }
   const neptunWinners = new Map();
   for (const s of sigs) {
     const trackId = s.source === "neptun" && s.details?.track_id;
@@ -797,8 +833,12 @@ function accumulate(sigs, refT) {
     if (!(s.voivodeship in per) || !Number.isFinite(s.points) || s.points <= 0) continue;
     const trackId = s.source === "neptun" && s.details?.track_id;
     const physicalId = trackId && (s.details?.physical_key || trackId);
-    const superseded = !!physicalId
-      && neptunWinners.get(s.voivodeship + "|" + physicalId) !== s;
+    const rcbRes = rcbResidual.get(s.voivodeship);
+    const rcbNadwyzka = !!rcbRes && rcbRes.stary === s;
+    const superseded = (!!physicalId
+      && neptunWinners.get(s.voivodeship + "|" + physicalId) !== s)
+      || ((s.event_type === "rso_alert" || s.event_type === "rcb_alert")
+          && rcbWinners.get(s.voivodeship) !== s && !rcbNadwyzka);
     const incident = (s.event_type === "baltic_context" || s.event_type === "baltic_alert")
       && s.details?.incident_key;
     const clearT = incident && balticClears.get(s.voivodeship + "|" + incident);
@@ -820,6 +860,12 @@ function accumulate(sigs, refT) {
       const ageMin = (ref - s.t) / 60000;
       w = ageMin <= FULL_MIN ? 1
         : Math.max(0, 1 - (ageMin - FULL_MIN) / Math.max(WINDOW_MIN - FULL_MIN, 1));
+    }
+    if (rcbNadwyzka) {
+      const minely = (ref - rcbRes.od) / 60000;
+      const zanik = Math.max(0, 1 - minely / RCB_DOWNGRADE_FADE_MIN);
+      const nadwyzka = Math.max(0, s.points * zanik - rcbRes.nowePkt);
+      w = Math.min(w, s.points ? nadwyzka / s.points : 0);
     }
     const zeroed = superseded || cleared || relayOf || retrospective || articleStatus;
     prepared.push({ s, w, counted: 0, weighted: zeroed ? 0 : s.points * w,
@@ -851,6 +897,31 @@ function accumulate(sigs, refT) {
       ...(e.uaEnd ? { alert_ended: new Date(e.uaEnd).toISOString() } : {}) });
   }
   return per;
+}
+
+/* Lustro fusion.red_key (23.09.2026). */
+function redKey(sigs, ref) {
+  // Liczy się BIEŻĄCA ocena państwa: po obniżeniu stopnia stary alert dopłaca jeszcze
+  // zanikającą nadwyżkę punktów, ale nie trzyma już czerwonego.
+  let najnowszy = null;
+  for (const s of sigs)
+    if ((s.event_type === "rso_alert" || s.event_type === "rcb_alert")
+        && (!najnowszy || (s.t || Date.parse(s.ts)) > (najnowszy.t || Date.parse(najnowszy.ts))))
+      najnowszy = s;
+  if (najnowszy && (najnowszy.details?.rcb_level || rcbLevel(najnowszy.title)) === 3)
+    return { powod: "rcb3", opis: "Alert RCB: znajdź bezpieczne miejsce" };
+  for (const s of sigs) {
+    if (s.source !== "neptun") continue;
+    const t = s.t || Date.parse(s.ts);
+    if (!Number.isFinite(t) || ref - t > RED_GATE_MAX_AGE_MS) continue;
+    const d = s.details || {};
+    if (!RED_GATE_TYPES.has(String(d.type || "").toLowerCase())) continue;
+    if (d.eta_border_min != null && d.eta_border_min <= RED_GATE_ETA_MIN)
+      return { powod: "eta", opis: `obiekt ${Math.round(d.eta_border_min)} min od granicy`, eta_min: d.eta_border_min, km: d.dist_km };
+    if (d.dist_km != null && d.dist_km <= RED_GATE_KM)
+      return { powod: "blisko", opis: `obiekt ${Math.round(d.dist_km)} km od granicy`, eta_min: d.eta_border_min, km: d.dist_km };
+  }
+  return null;
 }
 
 function computeState() {
@@ -922,10 +993,35 @@ function stateFrom(sigs, refT) {
                    ...(shared > 0 ? { shared_excluded: Math.round(shared * 100) / 100 } : {}) } });
     }
   }
+  // Fala obiektów: kilka RÓŻNYCH torów kursem na Polskę w 15 min (lustro fusion.accumulate)
+  for (const [v, st] of Object.entries(per)) {
+    const tory = new Set();
+    let ostatni = 0;
+    for (const s of st.signals) {
+      if (s.source !== "neptun" || !(s.counted_points > 0)) continue;
+      const km = s.details?.dist_km, t = s.t || Date.parse(s.ts);
+      if (!(km <= WAVE_KM) || !Number.isFinite(t) || ref - t > WAVE_WINDOW_MS) continue;
+      tory.add(s.details?.physical_key || s.details?.track_id || s.id);
+      ostatni = Math.max(ostatni, t);
+    }
+    if (tory.size >= WAVE_MIN) {
+      st.score += WAVE_POINTS;
+      st.signals.push({ t: ostatni, ts: new Date(ostatni).toISOString(), source: "neptun",
+        event_type: "neptun_wave", voivodeship: v, points: WAVE_POINTS, counted_points: WAVE_POINTS,
+        weight: 1, title: `Fala obiektów: ${tory.size} obiekty kursem na Polskę w 15 min (bliżej niż ${WAVE_KM} km)`,
+        details: { count: tory.size, wave: true } });
+    }
+  }
   for (const [v, st] of Object.entries(per)) {
     st.score = Math.round(st.score*10)/10;
     st.level = st.score >= TH_HIGH ? "high" : st.score >= TH_ELEVATED ? "elevated" : "none";
     st.alert_level = alertLevel(st.own_score, st.score);
+    // Czerwony wymaga klucza: alert RCB „znajdź bezpieczne miejsce" albo bliski obiekt.
+    st.red_key = (st.level === "high" || st.alert_level === "high") ? redKey(st.signals, ref) : null;
+    if (!st.red_key) {
+      if (st.level === "high") st.level = "elevated";
+      if (st.alert_level === "high") st.alert_level = "elevated";
+    }
     st.spill_raised = LEVEL_ORDER.indexOf(st.level) > LEVEL_ORDER.indexOf(st.alert_level);
     st.signals.reverse();
   }
@@ -1119,7 +1215,7 @@ function neptunEval(t) {
       const conf = (t.confidenceLevel||"low").toLowerCase();
       const sources = Math.max(parseInt(t.sourceCount) || 1, 1);
       const approx = isApproxPosition(t);
-      const speed = approx ? null : speedOf(t), etaRaw = etaRawMinutes(a.dist_km, speed);
+      const speed = speedOf(t), etaRaw = etaRawMinutes(a.dist_km, speed);   // także dla pozycji rejonowej (23.09.2026)
       const etaConservative = etaRaw == null ? null : Math.max(0, etaRaw - ETA_BUFFER_MIN);
       const etaSafe = etaMinutes(a.dist_km, speed);
       let etaAlarm = null;
@@ -1154,6 +1250,7 @@ function neptunEval(t) {
           // czas dolotu (lustro backendu): do granicy oraz do każdego woj. —
           // panel pokazuje ten dla regionu wybranego przez użytkownika
           speed_kmh: speed,
+          eta_approx: approx,
           eta_raw_border_min: etaRaw == null ? null : Math.round(etaRaw * 10) / 10,
           eta_border_min: etaSafe,
           eta_buffer_min: ETA_BUFFER_MIN,
@@ -1634,9 +1731,11 @@ async function tickRso() {
         if (!rsoBootstrapped) { rsoSeen.add(key); continue; }   // istniejące przy starcie nie alarmują
         if (rsoSeen.has(key)) continue;
         rsoSeen.add(key);
-        addSignal("rcb", "rso_alert", v, POINTS.rcb_alert,
-          `Alert RCB (RSO): „${String(it.shortcut || it.title || "").slice(0,120)}”`,
-          { rso_id: String(it.id), valid_from: it.valid_from, valid_to: it.valid_to }, key);
+        const tresc = String(it.shortcut || it.title || "");
+        const poziom = rcbLevel(tresc + " " + String(it.description || ""));
+        addSignal("rcb", "rso_alert", v, RCB_LEVEL_POINTS[poziom],
+          `Alert RCB (RSO): „${tresc.slice(0,120)}”`,
+          { rso_id: String(it.id), valid_from: it.valid_from, valid_to: it.valid_to, rcb_level: poziom }, key);
       }
     }
     rsoBootstrapped = true;

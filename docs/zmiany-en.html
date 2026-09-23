@@ -39,6 +39,29 @@
   <p class="fineprint">To see which version your phone has, open the app: <kbd>⚙</kbd> → the <kbd>App</kbd> tab → “App version”. The <kbd>⬆ Check for updates</kbd> button is right there too.</p>
 </div></header>
 <main id="content" class="wrap">
+<section id="v1-7-74">
+  <h2>1.7.74 — Red alert now needs a confirmation; RCB alerts scored by their wording</h2>
+  <p class="fineprint">Release 1.7.74 · 23 September 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.74">Full release notes</a></p>
+  <ul>
+    <li>A red alert no longer follows from the score alone. Besides 4 points it needs a confirmation: an RCB alert saying “find a safe place”, or a real strike object heading at Poland — 15 minutes from the border or closer than 50 km. Reconnaissance drones and media reports alone do not open red. With 4 points and no confirmation the province stays yellow, and the app says so on the card.</li>
+    <li>Since 17 September RCB distinguishes three kinds of message, and Strażnik scores them separately: “the situation is being monitored” 1.5 pts, “a massive attack is under way… react to alarm signals” 3 pts, “threat of an air attack, find a safe place” 4.5 pts. A later alert does not add to the earlier one: the current one counts, and the surplus of a stronger one fades within 10 minutes.</li>
+    <li>An article repeating the wording of an RCB alert no longer adds a second score — previously a different inflection of one word was enough to treat it as independent confirmation.</li>
+    <li>A report about an event over the Baltic no longer scores a province just because a local outlet wrote about it.</li>
+    <li>Reconnaissance drones weigh 0.15 instead of 0.5 pts. In exchange, three different objects heading at Poland within 15 minutes (closer than 150 km) add 0.5 pts together — so yellow still fires before the RCB alert.</li>
+    <li>Time to the border is now computed for area-only positions too, so the red-alert condition has something to stand on.</li>
+  </ul>
+</section>
+<section id="v1-7-72">
+  <h2>1.7.72 — GROTA in English and Ukrainian; the map outside a downloaded area fixed</h2>
+  <p class="fineprint">Release 1.7.72 · 22 September 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.72">Full release notes</a></p>
+  <ul>
+    <li>GROTA speaks English and Ukrainian. Choose the language in Rules → “Język · Language · Мова”; by default GROTA follows Strażnik's language, and if none is set — the phone's. Quotes from the Safety Guide are our translation; addresses stay in Polish. The full GROTA guide is also in Ukrainian.</li>
+    <li>After downloading an offline map of one province, GROTA's map lost streets and buildings outside it, even online. Not any more — the update is enough, no need to download the map again.</li>
+    <li>Expanded sections in GROTA (e.g. “Why are some points misplaced?”) no longer collapse by themselves after a few seconds.</li>
+    <li>The app can no longer be zoomed by accident with two fingers or a double tap. The map zooms as before, and Android's system magnification still works.</li>
+    <li>In English the “More” menu had shifted labels (GROTA read “About and scoring”). Fixed.</li>
+  </ul>
+</section>
 <section id="v1-7-70">
   <h2>1.7.70 — GROTA: the aerial photo works again, on older Androids too</h2>
   <p class="fineprint">Release 1.7.70 · 22 September 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.70">Full release notes</a></p>

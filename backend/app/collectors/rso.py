@@ -155,6 +155,19 @@ def _still_active(item: dict) -> bool:
 FETCH_RETRY_DELAY_S = 5
 
 
+def rcb_level(text: str) -> int:
+    """Poziom alertu RCB z jego treści: 1 informacja, 2 czujność, 3 szukaj schronienia.
+
+    RCB rozdzieliło komunikaty 17.09.2026 (potwierdzone na gov.pl/web/rcb i w Sejmie).
+    Liczba „UWAGA!" NIE rozstrzyga — alerty poziomu 1 też mają potrójne „UWAGA!".
+    """
+    t = (text or "").lower()
+    for poziom in (3, 2):
+        if any(m in t for m in config.RCB_LEVEL_MARKERS[poziom]):
+            return poziom
+    return 1
+
+
 async def _fetch(client: httpx.AsyncClient):
     for attempt in (1, 2):
         try:
@@ -311,12 +324,13 @@ async def _process_item(it: dict) -> bool:
             reference_new = True
             continue
         title = it.get("shortcut") or it.get("title") or "Alert RCB"
+        poziom = rcb_level(f"{title} {it.get('description') or ''}")
         inserted = await fusion.ingest(
             source="rcb", event_type="rso_alert", voivodeship=voiv,
-            points=config.POINTS["rcb_alert"],
+            points=config.RCB_LEVEL_POINTS[poziom],
             title=f"Alert RCB (RSO): „{title[:120]}”",
             details={"rso_id": mid, "valid_from": it.get("valid_from"),
-                     "valid_to": it.get("valid_to")},
+                     "valid_to": it.get("valid_to"), "rcb_level": poziom},
             dedup_key=key,
         )
         _seen.add(key)

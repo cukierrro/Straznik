@@ -89,7 +89,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <link rel="icon" type="image/png" sizes="512x512" href="assets/icon-512.png">
 <link rel="apple-touch-icon" href="assets/icon-192.png">
 <link rel="stylesheet" href="assets/vendor/maplibre-gl.css">
-<link rel="stylesheet" href="style.css?v=1.7.72">
+<link rel="stylesheet" href="style.css?v=1.7.74">
 </head>
 <body>
 
@@ -381,7 +381,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
   <div class="lg-group">Województwa (suma pkt z 60 min)</div>
   <div class="lg-row"><i class="sq" style="--c:#233252"></i> 0–1.9 pkt — spokojnie</div>
   <div class="lg-row"><i class="sq" style="--c:#ffb020"></i> ≥ 2 pkt — podwyższona uwaga</div>
-  <div class="lg-row"><i class="sq" style="--c:#ff4d5e"></i> ≥ 4 pkt — wysoki priorytet</div>
+  <div class="lg-row"><i class="sq" style="--c:#ff4d5e"></i> ≥ 4 pkt + potwierdzenie — wysoki priorytet</div>
   <div class="lg-row"><i class="sq" style="--c:#7c6a45"></i> przygaszony — kolor tylko od sąsiadów, bez alarmu</div>
   <div class="lg-row"><i class="sq oblast-ic"></i> obwód UA z alarmem powietrznym, który daje punkty</div>
   <div class="lg-group">Alarmy u sąsiadów (bez punktów)</div>
@@ -464,7 +464,10 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
         dopiero potwierdzenie</td><td class="pts">+0,5–1</td></tr>
       <tr><td><b>RCB</b></td><td>oficjalny <b>Alert RCB</b> (ten sam, który przychodzi
         SMS-em — czytany z Regionalnego Systemu Ostrzegania) albo nowy komunikat
-        RCB na gov.pl</td><td class="pts">+2</td></tr>
+        RCB na gov.pl. Od 17.09.2026 RCB wysyła <b>trzy rodzaje</b> komunikatu i tyle samo
+        ważą u nas: „sytuacja jest monitorowana” 1,5 · „trwa zmasowany atak… reaguj na
+        sygnały alarmowe” 3 · „zagrożenie atakiem z powietrza, znajdź bezpieczne miejsce”
+        4,5. Kolejny alert nie sumuje się z poprzednim — liczy się bieżący</td><td class="pts">+1,5<br>+3<br>+4,5</td></tr>
       <tr><td><b>ADS-B</b></td><td>ruch lotnictwa wojskowego ponad dwukrotnie
         wyższy niż o tej samej porze doby w ostatnich 7 dniach — tylko informacyjnie</td><td class="pts">0</td></tr>
       <tr><td><b>PAŻP</b></td><td>rzadka strefa ADHOC/R/NPZ/D od ziemi w górę;
@@ -496,12 +499,15 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
     zagraża Polsce w ogóle. Dlatego punkty to iloczyn czterech czynników:</p>
     <table class="about-tab">
       <tr><td><b>Co leci</b></td><td>rakieta balistyczna 3,0 · MiG-31K 2,6 ·
-        manewrująca 2,4 · KAB 1,8 · Shahed 1,4 · dron 1,1 · zwiadowczy 0,5 ·
+        manewrująca 2,4 · KAB 1,8 · Shahed 1,4 · dron 1,1 · zwiadowczy 0,15 ·
         FPV 0 (nie punktuje)</td></tr>
       <tr><td><b>Ile</b></td><td>pierwiastek z liczby obiektów — cztery sztuki
         ważą dwa razy tyle co jedna, ale nie cztery razy</td></tr>
       <tr><td><b>Jak blisko</b></td><td>&lt;30 km ×1,6 · &lt;60 km ×1,3 ·
         &lt;100 km ×1,0 · &lt;150 km ×0,55 · &lt;250 km ×0,25 · dalej 0</td></tr>
+      <tr><td><b>Fala</b></td><td>trzy różne obiekty kursem na Polskę w 15 minut,
+        bliżej niż 150 km, dokładają wspólnie 0,5 pkt — kilka obiektów naraz znaczy
+        więcej niż każdy z osobna</td></tr>
       <tr><td><b>Jak pewnie</b></td><td>wiarygodność (wysoka ×1,0, średnia ×0,6,
         niska ×0,35), liczba niezależnych zgłoszeń (jedno ×0,7, pięć i więcej ×1,25)
         oraz status obserwacji</td></tr>
@@ -539,8 +545,15 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
       <b>≥ 2 pkt — PODWYŻSZONA UWAGA:</b> region na żółto, krótki sygnał
       dźwiękowy i powiadomienie, które wyskakuje na ekranie.</div>
     <div class="lvl-row"><i class="sq" style="--c:#ff4d5e"></i>
-      <b>≥ 4 pkt — WYSOKI PRIORYTET:</b> region na czerwono, modulowana syrena
-      alarmu powietrznego z wibracją, głośne powiadomienie.</div>
+      <b>≥ 4 pkt i potwierdzenie — WYSOKI PRIORYTET:</b> region na czerwono,
+      modulowana syrena alarmu powietrznego z wibracją, głośne powiadomienie.</div>
+    <div class="fineprint about-note"><b>Same 4 pkt nie wystarczą.</b> Czerwony wymaga
+    potwierdzenia: albo Alertu RCB o treści „znajdź bezpieczne miejsce”, albo realnego
+    obiektu uderzeniowego kursem na Polskę — bliżej niż 15 minut lotu albo 50 km od
+    granicy. Drony zwiadowcze i same doniesienia nie otwierają czerwonego. Gdy region
+    ma 4 pkt bez potwierdzenia, zostaje żółty, a Strażnik pisze o tym wprost na karcie.
+    Zasada obowiązuje od 23.09.2026: wcześniej sam Alert RCB o monitorowaniu sytuacji
+    razem z alarmami obwodów UA i mediami potrafił zapalić czerwony przy pustej mapie.</div>
     <p class="fineprint">Zdarzenie na wschodzie podnosi też czujność sąsiednich
     województw: sąsiad dostaje 40% punktów, kolejny krąg 40% z tego (16%) i tak
     dalej, więc regiony centralne i zachodnie dostają wyprzedzenie, zanim coś
@@ -766,11 +779,11 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
     <h3>Sygnały dźwiękowe</h3>
     <p class="fineprint android-only">Żółty poziom (≥2 pkt) — krótki sygnał uwagi i powiadomienie
     wyskakujące na ekranie (heads-up).
-    Czerwony (≥4 pkt) — modulowana syrena alarmu powietrznego + wibracja.
+    Czerwony (≥4 pkt z potwierdzeniem) — modulowana syrena alarmu powietrznego + wibracja.
     Odtwarzane, gdy aplikacja jest otwarta; przy zamkniętej aplikacji alarm przychodzi
     jako powiadomienie push (z pełnym ekranem i syreną dla czerwonego).</p>
     <p class="fineprint ios-only" id="dzwiek-ios-note">Żółty poziom (≥2 pkt) — krótki sygnał uwagi
-    i powiadomienie wyskakujące na ekranie. Czerwony (≥4 pkt) — modulowana syrena alarmu
+    i powiadomienie wyskakujące na ekranie. Czerwony (≥4 pkt z potwierdzeniem) — modulowana syrena alarmu
     powietrznego + wibracja. Odtwarzane, gdy aplikacja jest otwarta; przy zamkniętej aplikacji
     alarm przychodzi jako powiadomienie push (z syreną dla czerwonego).</p>
     <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
@@ -890,14 +903,14 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
      Cloudflare, więc po każdym wydaniu wystarczy podbić ?v= i przeglądarki
      dostają nowe app.js/engine.js OD RAZU, bez ręcznego czyszczenia cache CF.
      Podbijaj ?v= razem z versionName w build.gradle. -->
-<script src="i18n.js?v=1.7.72"></script>
+<script src="i18n.js?v=1.7.74"></script>
 <!-- kontur Polski dla engine.js (audyt A2b, scripts/build_pl_outline.py) -->
-<script src="pl-outline.js?v=1.7.72"></script>
-<script src="engine.js?v=1.7.72"></script>
+<script src="pl-outline.js?v=1.7.74"></script>
+<script src="engine.js?v=1.7.74"></script>
 <script src="aircraft-photo-catalog.js?v=1.7.19"></script>
 <script src="aircraft-photos.js?v=1.7.19"></script>
 <script src="places.js?v=1.7.19-4"></script>
-<script src="app.js?v=1.7.72"></script>
+<script src="app.js?v=1.7.74"></script>
 <script>
 /* Instrukcja pasująca do telefonu i języka (21.09.2026). iPhone ma osobną, bo alarmy,
    zgody i aktualizacje działają tam inaczej. Tu, a nie w app.js: index.html nie jest
