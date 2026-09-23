@@ -63,7 +63,7 @@ sprawdz(!/GrotaWidok/.test(js), "żadnych odwołań do starej nazwy GrotaWidok")
 sprawdz(/s\.src = "grota\/widok\.js"/.test(js), "jeden punkt wejścia: grota/widok.js");
 sprawdz(!/<script[^>]+grota\//.test(html), "index.html nie wczytuje Groty przy starcie");
 sprawdz(/grotaLadowanie = null; throw e;/.test(js), "nieudane wczytanie można ponowić");
-sprawdz(/toast\(UI\.isEn \? "Shelter finder is not available/.test(js),
+sprawdz(/toast\(UI\.t\("Wyszukiwanie schronień nie jest dostępne/.test(js),
   "brak modułu = komunikat, a nie pusty ekran");
 
 console.log("4b. Wyłącznik z serwera (22.09.2026)");

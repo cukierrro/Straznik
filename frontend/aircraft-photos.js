@@ -24,9 +24,11 @@
     return {...photo};
   }
   function caption(photo, language) {
-    return language === 'en'
-      ? `Example aircraft: ${photo.model}. Not the tracked aircraft; equipment and subvariant may differ.`
-      : `Przykładowy egzemplarz: ${photo.model}. Nie jest to śledzona maszyna; wyposażenie i podwariant mogą się różnić.`;
+    if (language === 'en')
+      return `Example aircraft: ${photo.model}. Not the tracked aircraft; equipment and subvariant may differ.`;
+    if (language === 'uk')
+      return `Приклад машини: ${photo.model}. Це не відстежуваний літак; обладнання та підваріант можуть відрізнятися.`;
+    return `Przykładowy egzemplarz: ${photo.model}. Nie jest to śledzona maszyna; wyposażenie i podwariant mogą się różnić.`;
   }
   const api = {select, caption};
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

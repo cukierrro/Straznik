@@ -3,11 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Strażnik 1.7.74 — user guide</title>
-<meta name="description" content="Strażnik 1.7.74 user guide: installation, My places, the map and PAŻP zones, the signals panel, history, alerts, browser notifications and scoring. Screenshots from the current version.">
+<title>Strażnik 1.7.76 — user guide</title>
+<meta name="description" content="Strażnik 1.7.76 user guide: installation, My places, the map and PAŻP zones, the signals panel, history, alerts, browser notifications and scoring. Screenshots from the current version.">
 <link rel="canonical" href="https://cukierrro.github.io/Straznik/en.html">
 <link rel="alternate" hreflang="pl" href="https://cukierrro.github.io/Straznik/">
 <link rel="alternate" hreflang="en" href="https://cukierrro.github.io/Straznik/en.html">
+<link rel="alternate" hreflang="uk" href="https://cukierrro.github.io/Straznik/uk.html">
 <link rel="alternate" hreflang="x-default" href="https://cukierrro.github.io/Straznik/">
 <link rel="icon" href="ikona.png">
 <link rel="stylesheet" href="guide.css">
@@ -30,14 +31,14 @@
 <nav aria-label="Guide navigation"><div class="nav-in">
   <a class="brand" href="#top">STRAŻNIK</a>
   <div class="nav-links"><a href="#instalacja">Install</a><a href="#ekran">Screen</a><a href="#mapa">Map</a><a href="#sygnaly">Signals</a><a href="#historia">History</a><a href="#alarmy">Alerts</a><a href="grota-en.html">GROTA</a><a href="#punkty">Scoring</a><a href="iphone-en.html">iPhone</a><a href="zmiany-en.html">Changelog</a><a href="prywatnosc-en.html">Privacy</a></div>
-  <div class="languages" aria-label="Guide language"><a href="index.html" lang="pl" hreflang="pl">PL</a><a href="en.html" lang="en" aria-current="page">EN</a></div>
+  <div class="languages" aria-label="Guide language"><a href="index.html" lang="pl" hreflang="pl">PL</a><a href="en.html" lang="en" aria-current="page">EN</a><a href="uk.html" lang="uk" hreflang="uk">UA</a></div>
 </div></nav>
 <header class="hero"><div class="wrap hero-grid">
-  <div><div class="eyebrow">User guide · version 1.7.74</div>
+  <div><div class="eyebrow">User guide · version 1.7.76</div>
     <h1>The situation on a map.<br>The sources behind each signal.</h1>
     <p class="lead">Strażnik combines public information about airborne threats and shows a score for each Polish province. It runs on Android, on iPhone and in a web browser.</p>
     <div class="actions"><a class="button primary" href="https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk">↓ Get it for Android</a><a class="button primary" href="https://apps.apple.com/pl/app/id6813563009">↓ Get it for iOS</a><a class="button" href="https://straznik.eu">Open the map</a></div>
-    <p class="fineprint">This guide describes only the current version, 1.7.74. All screenshots were taken on 13 September 2026 on a Pixel 7 with Android 14, using live data. What changed from release to release is in the <a href="zmiany-en.html">changelog</a>. Tap a screenshot to open it full size.</p>
+    <p class="fineprint">This guide describes only the current version, 1.7.76. All screenshots were taken on 13 September 2026 on a Pixel 7 with Android 14, using live data. What changed from release to release is in the <a href="zmiany-en.html">changelog</a>. Tap a screenshot to open it full size.</p>
     <p class="fineprint"><b>Using an iPhone?</b> Alerts, permissions and updates work differently there — read the <a href="iphone-en.html">iPhone guide</a>.</p>
     <p class="host-note"><img src="mikrus-logo.svg" alt="Mikrus" width="86" height="14">
       Strażnik’s server is provided by <a href="https://mikr.us">Mikrus</a> — thank you for supporting the project.</p>
@@ -79,7 +80,7 @@
       <h3>Updating from inside the app</h3>
       <p>Strażnik checks for a new release at every launch and whenever it returns to the foreground (at most every 30 minutes). The update window shows the version number and the list of changes. Manually: <kbd>⚙</kbd> → <kbd>App</kbd> → <kbd>⬆ Check for updates</kbd>.</p>
       <p>For an ordinary update you can choose <kbd>Later</kbd>. When you install, the app downloads the file, verifies its SHA-256 checksum and hands it to Android for confirmation. Install the new release over the old one — settings and My places are kept.</p>
-      <div class="note"><b>Which version do you have?</b> <kbd>⚙</kbd> → <kbd>App</kbd> tab → “Installed version”. The latest release is <b>1.7.74</b>. At the bottom of the tab are links to this guide, the changelog and supporting the author.</div>
+      <div class="note"><b>Which version do you have?</b> <kbd>⚙</kbd> → <kbd>App</kbd> tab → “Installed version”. The latest release is <b>1.7.76</b>. At the bottom of the tab are links to this guide, the changelog and supporting the author.</div>
     </div>
     <figure><a class="shot-link" href="screens/1737/set-aplikacja-en.jpg"><img loading="lazy" src="screens/1737/set-aplikacja-en.jpg" width="1080" height="2400" alt="Settings, App tab: interface language English, installed version 1.7.74, Check for updates button, collapsed Advanced section and links to the user guide, changelog and support"></a><figcaption><kbd>⚙</kbd> → <kbd>App</kbd>: language, version, updates.</figcaption></figure>
   </div>
@@ -276,7 +277,7 @@
     <li>The list of points and the nearest-point search work <b>offline</b>. A road route needs the internet; without it you see the straight-line distance.</li>
     <li>GROTA covers Poland only. Outside the border it shows a message instead of a route and lets you set the place by hand.</li>
     <li>It is a list of places, not a guarantee: points open “at set hours” or “on request” may be locked. Ask the building manager in advance.</li>
-    <li>For now GROTA is in the Android app only, and <b>in Polish only</b> — English and Ukrainian will follow. It is not on the website.</li>
+    <li>GROTA speaks Polish, English and Ukrainian — pick the language in its <kbd>Zasady</kbd> (rules) tab. It is in the Android and iPhone apps; it is not on the website.</li>
   </ul>
   <p id="iphone"><b>On iPhone</b> alerts work differently: no full screen, the siren plays once, and a silenced ringer silences it. The details and the settings to check are in the <a href="iphone-en.html#alarmy">iPhone guide</a>.</p>
 </section>
@@ -386,7 +387,7 @@
 </main>
 <footer><div class="wrap">
   <p><b>STRAŻNIK</b> — an unofficial supplementary source. It does not replace sirens, RCB or RSO.</p>
-  <p><a href="https://github.com/cukierrro/Straznik">Source code</a> · <a href="https://github.com/cukierrro/Straznik/blob/main/LICENSE">Licence: all rights reserved (from 1.7.54)</a> · <a href="zmiany-en.html">Changelog</a> · <a href="prywatnosc-en.html">Privacy policy</a> · <a href="index.html" lang="pl">Instrukcja po polsku</a></p>
+  <p><a href="https://github.com/cukierrro/Straznik">Source code</a> · <a href="https://github.com/cukierrro/Straznik/blob/main/LICENSE">Licence: all rights reserved (from 1.7.54)</a> · <a href="zmiany-en.html">Changelog</a> · <a href="prywatnosc-en.html">Privacy policy</a> · <a href="index.html" lang="pl">Instrukcja po polsku</a> · <a href="uk.html" lang="uk">Інструкція українською</a></p>
   <p>Server: <a href="https://mikr.us">hosted on Mikrus</a> — thank you for supporting the project.</p>
   <a class="back-top" href="#top">↑ Back to top</a>
 </div></footer>

@@ -7,10 +7,10 @@
 
    Który język:
    1. wybrany w Grocie (Zasady → Język) — localStorage `grota_lang`,
-   2. język Strażnika (`straznik_lang`: dziś tylko pl/en),
+   2. język Strażnika (`straznik_lang`: pl/en/uk — ukraiński doszedł 23.09.2026),
    3. język telefonu: uk/ru-UA → ukraiński, inny niż polski → angielski,
    4. polski.
-   Strażnik nie ma (jeszcze) ukraińskiego, dlatego Grota ma własny wybór — inaczej ukraiński byłby nieosiągalny. */
+   Własny wybór w Grocie zostaje: ktoś może chcieć Strażnika po polsku, a Groty po ukraińsku. */
 (function (global) {
   "use strict";
   const JEZYKI = ["pl", "en", "uk"];
@@ -23,8 +23,7 @@
     const wlasny = czytaj("grota_lang");
     if (JEZYKI.includes(wlasny)) return wlasny;
     const straznik = czytaj("straznik_lang");
-    if (straznik === "en") return "en";
-    if (straznik === "pl") return "pl";
+    if (JEZYKI.includes(straznik)) return straznik;
     const tel = (navigator.languages && navigator.languages[0]) || navigator.language || "pl";
     if (/^pl/i.test(tel)) return "pl";
     if (/^uk/i.test(tel) || /-UA$/i.test(tel)) return "uk";
@@ -84,6 +83,8 @@
       jezyk = j;
       try { localStorage.setItem("grota_lang", j); } catch { /* prywatne okno */ }
       try { document.documentElement && global.GrotaJezyk.przetlumaczStale(document); } catch { /* bez DOM */ }
+      // grota.js odświeża resztę (panel, mapa, znaczniki) — bez względu na to, kto zmienił język
+      try { global.dispatchEvent(new CustomEvent("grota:jezyk", { detail: j })); } catch { /* bez DOM */ }
     },
     t, tn, liczba, ulamek,
     przetlumaczStale(korzen) {
