@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Strażnik 1.7.72 — user guide</title>
-<meta name="description" content="Strażnik 1.7.72 user guide: installation, My places, the map and PAŻP zones, the signals panel, history, alerts, browser notifications and scoring. Screenshots from the current version.">
+<title>Strażnik 1.7.74 — user guide</title>
+<meta name="description" content="Strażnik 1.7.74 user guide: installation, My places, the map and PAŻP zones, the signals panel, history, alerts, browser notifications and scoring. Screenshots from the current version.">
 <link rel="canonical" href="https://cukierrro.github.io/Straznik/en.html">
 <link rel="alternate" hreflang="pl" href="https://cukierrro.github.io/Straznik/">
 <link rel="alternate" hreflang="en" href="https://cukierrro.github.io/Straznik/en.html">
@@ -33,11 +33,11 @@
   <div class="languages" aria-label="Guide language"><a href="index.html" lang="pl" hreflang="pl">PL</a><a href="en.html" lang="en" aria-current="page">EN</a></div>
 </div></nav>
 <header class="hero"><div class="wrap hero-grid">
-  <div><div class="eyebrow">User guide · version 1.7.72</div>
+  <div><div class="eyebrow">User guide · version 1.7.74</div>
     <h1>The situation on a map.<br>The sources behind each signal.</h1>
     <p class="lead">Strażnik combines public information about airborne threats and shows a score for each Polish province. It runs on Android, on iPhone and in a web browser.</p>
     <div class="actions"><a class="button primary" href="https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk">↓ Get it for Android</a><a class="button primary" href="https://apps.apple.com/pl/app/id6813563009">↓ Get it for iOS</a><a class="button" href="https://straznik.eu">Open the map</a></div>
-    <p class="fineprint">This guide describes only the current version, 1.7.72. All screenshots were taken on 13 September 2026 on a Pixel 7 with Android 14, using live data. What changed from release to release is in the <a href="zmiany-en.html">changelog</a>. Tap a screenshot to open it full size.</p>
+    <p class="fineprint">This guide describes only the current version, 1.7.74. All screenshots were taken on 13 September 2026 on a Pixel 7 with Android 14, using live data. What changed from release to release is in the <a href="zmiany-en.html">changelog</a>. Tap a screenshot to open it full size.</p>
     <p class="fineprint"><b>Using an iPhone?</b> Alerts, permissions and updates work differently there — read the <a href="iphone-en.html">iPhone guide</a>.</p>
     <p class="host-note"><img src="mikrus-logo.svg" alt="Mikrus" width="86" height="14">
       Strażnik’s server is provided by <a href="https://mikr.us">Mikrus</a> — thank you for supporting the project.</p>
@@ -79,9 +79,9 @@
       <h3>Updating from inside the app</h3>
       <p>Strażnik checks for a new release at every launch and whenever it returns to the foreground (at most every 30 minutes). The update window shows the version number and the list of changes. Manually: <kbd>⚙</kbd> → <kbd>App</kbd> → <kbd>⬆ Check for updates</kbd>.</p>
       <p>For an ordinary update you can choose <kbd>Later</kbd>. When you install, the app downloads the file, verifies its SHA-256 checksum and hands it to Android for confirmation. Install the new release over the old one — settings and My places are kept.</p>
-      <div class="note"><b>Which version do you have?</b> <kbd>⚙</kbd> → <kbd>App</kbd> tab → “Installed version”. The latest release is <b>1.7.72</b>. At the bottom of the tab are links to this guide, the changelog and supporting the author.</div>
+      <div class="note"><b>Which version do you have?</b> <kbd>⚙</kbd> → <kbd>App</kbd> tab → “Installed version”. The latest release is <b>1.7.74</b>. At the bottom of the tab are links to this guide, the changelog and supporting the author.</div>
     </div>
-    <figure><a class="shot-link" href="screens/1737/set-aplikacja-en.jpg"><img loading="lazy" src="screens/1737/set-aplikacja-en.jpg" width="1080" height="2400" alt="Settings, App tab: interface language English, installed version 1.7.72, Check for updates button, collapsed Advanced section and links to the user guide, changelog and support"></a><figcaption><kbd>⚙</kbd> → <kbd>App</kbd>: language, version, updates.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/1737/set-aplikacja-en.jpg"><img loading="lazy" src="screens/1737/set-aplikacja-en.jpg" width="1080" height="2400" alt="Settings, App tab: interface language English, installed version 1.7.74, Check for updates button, collapsed Advanced section and links to the user guide, changelog and support"></a><figcaption><kbd>⚙</kbd> → <kbd>App</kbd>: language, version, updates.</figcaption></figure>
   </div>
 </section>
 
@@ -139,7 +139,7 @@
       <div class="tw"><table><thead><tr><th>Colour</th><th>Meaning</th></tr></thead><tbody>
         <tr><td>navy</td><td>0–1.9 pts — calm (below threshold)</td></tr>
         <tr><td>yellow</td><td>from 2 pts — elevated attention</td></tr>
-        <tr><td>red</td><td>from 4 pts — high priority</td></tr>
+        <tr><td>red</td><td>from 4 pts <b>and a confirmation</b> — high priority (chapter 11)</td></tr>
         <tr><td>dimmed, olive</td><td>colour from neighbouring provinces only; the card has a dashed border and says “raised by neighbours · no alert here”. Such a colour sends no notification.</td></tr>
       </tbody></table></div>
       <p>NEPTUN objects over Ukraine have distinct shapes — the legend shows each one:</p>
@@ -252,7 +252,7 @@
   <div class="tw"><table><thead><tr><th>Level</th><th>What happens</th></tr></thead><tbody>
     <tr><td>below 2 pts</td><td>Information on the map and in the panel, no notification.</td></tr>
     <tr><td>yellow, from 2 pts — ELEVATED ATTENTION</td><td>A notification and a short attention sound at normal notification volume. It respects silent mode and Do Not Disturb.</td></tr>
-    <tr><td>red, from 4 pts — HIGH PRIORITY</td><td>Siren, vibration and a full-screen alert where the system allows it. The siren loops until you tap <kbd>ACKNOWLEDGE</kbd> on the alert screen or <kbd>Wycisz alarm</kbd> in the notification. The “Alarms” volume is raised to at least half; with the full-volume option on — to maximum. The previous volume returns after silencing.</td></tr>
+    <tr><td>red, from 4 pts <b>and a confirmation</b> — HIGH PRIORITY</td><td>Siren, vibration and a full-screen alert where the system allows it. The siren loops until you tap <kbd>ACKNOWLEDGE</kbd> on the alert screen or <kbd>Wycisz alarm</kbd> in the notification. The “Alarms” volume is raised to at least half; with the full-volume option on — to maximum. The previous volume returns after silencing.</td></tr>
   </tbody></table></div>
   <h3>When the phone rings and when it does not</h3>
   <ul>
@@ -297,7 +297,7 @@
   <p>Points count over a 60-minute window. For the first 30 minutes a signal keeps full weight, then loses it linearly to zero. Every source class has a cap, so many articles or oblast alerts about the same thing do not add up without limit. A repeated observation of the same NEPTUN object is not counted as a new object.</p>
   <div class="tw"><table><thead><tr><th>Source</th><th>What is taken into account</th><th>Points / cap</th></tr></thead><tbody>
     <tr><td>NEPTUN — objects</td><td>Type, number of objects, distance from the border, heading, confidence, number of confirmations, observation state and position quality. Report area ×0.6, recognised locality centre ×0.5.</td><td>up to 8 in total</td></tr>
-    <tr><td>RCB / RSO</td><td>An Alert RCB about an airborne threat published in RSO. It counts for 60 minutes from detection, regardless of the entry's validity date. A cancellation in RSO zeroes the alert at once.</td><td>2, cap 2</td></tr>
+    <tr><td>RCB / RSO</td><td>An Alert RCB about an airborne threat published in RSO. It counts for 60 minutes from detection, regardless of the entry's validity date. A cancellation in RSO zeroes the alert at once. Since 17.09.2026 RCB sends three kinds of message and they weigh accordingly: “the situation is being monitored” 1.5; “a massive attack is under way… react to alarm signals” 3; “threat of an air attack, find a safe place” 4.5. A later alert does not add to the earlier one: the current one counts, and the surplus of a stronger one fades within 10 minutes.</td><td>1.5 / 3 / 4.5, cap 4.5</td></tr>
     <tr><td>Ukrainian oblast alerts</td><td>An air-raid alert in a western Ukrainian oblast; the weight falls with distance (table below). Full weight for the first 30 minutes of the alert, then half while it lasts; the end of the alert zeroes the points at once.</td><td>up to 1, cap 1</td></tr>
     <tr><td>Media (RSS)</td><td>Airborne object plus event: 0.5 pt; an unambiguous operational report (sirens, alert, scrambled aircraft, interception): 1 pt. <b>The server reads the whole article</b>: a report on an earlier event or an unreadable article scores 0. Exercises, anniversaries, court cases and restated RCB alerts also score 0.</td><td>0 / 0.5 / 1, cap 1</td></tr>
     <tr><td>ADS-B</td><td>At least 3 military aircraft and more than twice the usual traffic at that time of day (7-day baseline). Since 13 Sep 2026 informational only: over 41 days of data, increased traffic was routine flights.</td><td>0</td></tr>
@@ -327,11 +327,21 @@
   <p>After an <b>RCB alert is cancelled</b> in a province, articles reporting the sirens or the alert score 0 for 4 hours, unless RCB issues a new alert. Summary headlines such as “A restless morning…” count for 0.5 points at most.</p>
 
   <h3>NEPTUN objects and distance</h3>
-  <p>Type weights: ballistic 3.0; MiG-31K 2.6; cruise 2.4; KAB 1.8; Shahed 1.4; drone 1.1; reconnaissance 0.5; FPV 0. The weight is multiplied by, among other things, the square root of the number of objects and factors for data quality and heading. Distance from the border works smoothly: <b>0 km ×1.7; 15 ×1.6; 45 ×1.3; 80 ×1.0; 110 ×0.7; 150 ×0.4; 200 ×0.25; 250 ×0.1</b>; beyond that 0. With an unknown heading only close objects score, at reduced weight. A missile or MiG-31K within 60 km of the border with at least two confirmations gives at least 2 points.</p>
+  <p>Type weights: ballistic 3.0; MiG-31K 2.6; cruise 2.4; KAB 1.8; Shahed 1.4; drone 1.1; reconnaissance 0.15; FPV 0. The weight is multiplied by, among other things, the square root of the number of objects and factors for data quality and heading. Distance from the border works smoothly: <b>0 km ×1.7; 15 ×1.6; 45 ×1.3; 80 ×1.0; 110 ×0.7; 150 ×0.4; 200 ×0.25; 250 ×0.1</b>; beyond that 0. With an unknown heading only close objects score, at reduced weight. A missile or MiG-31K within 60 km of the border with at least two confirmations gives at least 2 points.</p>
   <h3>Time to arrival</h3>
   <p>The object card estimates the time to the Polish border and to the border of the chosen province, not to an address. It uses the speed given by the source or a typical speed for the object class and subtracts 2.5 minutes for data delay. ETA is not shown for approximate positions. With a known heading, at least two confirmations and medium or high confidence, an ETA of ≤ 10 min raises the object's contribution to 2 points, and ≤ 5 min to 4 points.</p>
   <div class="warn">Time to arrival assumes the object keeps flying on the same heading. It does not account for interception or a change of course. Do not treat it as a countdown to reach shelter.</div>
 
+  <h3>When red is raised</h3>
+  <p><b>4 points alone are not enough.</b> Since 23 September 2026 red also needs a <b>confirmation</b> — one of two:</p>
+  <ul>
+    <li><b>An RCB alert saying “find a safe place”</b> — the highest of the three levels RCB has used since 17 September. Such an alert raises red on its own, because the state is explicitly telling people to take shelter.</li>
+    <li><b>A real strike object heading at Poland</b> — a missile, Shahed, guided bomb or combat drone whose time to the border is <b>15 minutes or less</b>, or which is closer than <b>50 km</b>. The second condition is a safeguard for a jet drone (Geran-3/4) that the source did not describe as jet-powered — for it, 50 km is under 7 minutes.</li>
+  </ul>
+  <p>The time is computed from the speed typical for the object class, so the threshold converts itself: a propeller drone about 45 km, a jet drone about 110 km, a cruise missile about 200 km. <b>Reconnaissance drones are not a confirmation</b> — they do not strike.</p>
+  <p>Without a confirmation the province stays yellow even at 5 points, and Strażnik says so on the card: “no confirming object — stays yellow”. Why: until 23 September an RCB alert about a monitored situation, together with Ukrainian oblast alarms and media reports, could turn a province red although nothing on the map was closer than 80 km. On the data since 1 September the new rule keeps red in two cases out of eight — those where an object was 15 minutes from the border.</p>
+  <h3>A wave of objects</h3>
+  <p>Three different objects heading towards Poland within 15 minutes and closer than 150 km add <b>0.5 pt</b> together. Several objects at once mean more than each on its own, and repeated reports about the same object do not make a wave. Since 1 September a wave occurred four times, every time during a real event.</p>
   <h3>Spillover to neighbouring provinces</h3>
   <p>A province with at least 2 points from signals other than a regional Alert RCB passes 40% to its neighbours, 16% to the next ring, and so on. An official RCB alert is not passed on — its area was set by the issuer. <b>The same event does not come back through spillover:</b> an article or an oblast alert assigned to two neighbouring provinces counts fully in each, but is not added a second time as spillover. Spillover is regional context, not a forecast of an object's route; colour from neighbours alone is dimmed and does not ring.</p>
 

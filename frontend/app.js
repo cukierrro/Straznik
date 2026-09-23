@@ -882,7 +882,10 @@ function buildAlertContract() {
   const prog = level === "high" ? (state?.fusion?.thresholds?.high ?? 4)
              : level === "elevated" ? (state?.fusion?.thresholds?.elevated ?? 2) : 0;
   return { level, voiv: mine, etaVoivMin, etaBorderMin,
-           hard: level !== "none" && hardSum >= prog - 1e-9,
+           // Czerwony ma od 23.09.2026 twardy klucz (Alert RCB „znajdź bezpieczne miejsce"
+           // albo obiekt ≤15 min od granicy), więc dla „high" pytamy wprost o niego.
+           hard: level === "high" ? !!st.red_key
+                                  : (level !== "none" && hardSum >= prog - 1e-9),
            ts: state?.fusion?.ts || new Date().toISOString() };
 }
 

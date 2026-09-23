@@ -117,7 +117,7 @@
       <div class="tw"><table><thead><tr><th>Colour</th><th>Meaning</th></tr></thead><tbody>
         <tr><td>navy</td><td>0–1.9 pts — calm (below threshold)</td></tr>
         <tr><td>yellow</td><td>from 2 pts — elevated attention</td></tr>
-        <tr><td>red</td><td>from 4 pts — high priority</td></tr>
+        <tr><td>red</td><td>from 4 pts <b>and a confirmation</b> — high priority (chapter 11)</td></tr>
         <tr><td>dimmed, olive</td><td>colour from neighbouring provinces only; the card has a dashed border and says “raised by neighbours · no alert here”. Such a colour sends no notification.</td></tr>
       </tbody></table></div>
       <p>NEPTUN objects over Ukraine have distinct shapes — the legend shows each one:</p>
@@ -283,7 +283,7 @@
   <p>Points count over a 60-minute window. For the first 30 minutes a signal keeps full weight, then loses it linearly to zero. Every source class has a cap, so many articles or oblast alerts about the same thing do not add up without limit. A repeated observation of the same NEPTUN object is not counted as a new object.</p>
   <div class="tw"><table><thead><tr><th>Source</th><th>What is taken into account</th><th>Points / cap</th></tr></thead><tbody>
     <tr><td>NEPTUN — objects</td><td>Type, number of objects, distance from the border, heading, confidence, number of confirmations, observation state and position quality. Report area ×0.6, recognised locality centre ×0.5.</td><td>up to 8 in total</td></tr>
-    <tr><td>RCB / RSO</td><td>An Alert RCB about an airborne threat published in RSO. It counts for 60 minutes from detection, regardless of the entry's validity date. A cancellation in RSO zeroes the alert at once.</td><td>2, cap 2</td></tr>
+    <tr><td>RCB / RSO</td><td>An Alert RCB about an airborne threat published in RSO. It counts for 60 minutes from detection, regardless of the entry's validity date. A cancellation in RSO zeroes the alert at once. Since 17.09.2026 RCB sends three kinds of message and they weigh accordingly: “the situation is being monitored” 1.5; “a massive attack is under way… react to alarm signals” 3; “threat of an air attack, find a safe place” 4.5. A later alert does not add to the earlier one: the current one counts, and the surplus of a stronger one fades within 10 minutes.</td><td>1.5 / 3 / 4.5, cap 4.5</td></tr>
     <tr><td>Ukrainian oblast alerts</td><td>An air-raid alert in a western Ukrainian oblast; the weight falls with distance (table below). Full weight for the first 30 minutes of the alert, then half while it lasts; the end of the alert zeroes the points at once.</td><td>up to 1, cap 1</td></tr>
     <tr><td>Media (RSS)</td><td>Airborne object plus event: 0.5 pt; an unambiguous operational report (sirens, alert, scrambled aircraft, interception): 1 pt. <b>The server reads the whole article</b>: a report on an earlier event or an unreadable article scores 0. Exercises, anniversaries, court cases and restated RCB alerts also score 0.</td><td>0 / 0.5 / 1, cap 1</td></tr>
     <tr><td>ADS-B</td><td>At least 3 military aircraft and more than twice the usual traffic at that time of day (7-day baseline). Since 13 Sep 2026 informational only: over 41 days of data, increased traffic was routine flights.</td><td>0</td></tr>
@@ -313,11 +313,21 @@
   <p>After an <b>RCB alert is cancelled</b> in a province, articles reporting the sirens or the alert score 0 for 4 hours, unless RCB issues a new alert. Summary headlines such as “A restless morning…” count for 0.5 points at most.</p>
 
   <h3>NEPTUN objects and distance</h3>
-  <p>Type weights: ballistic 3.0; MiG-31K 2.6; cruise 2.4; KAB 1.8; Shahed 1.4; drone 1.1; reconnaissance 0.5; FPV 0. The weight is multiplied by, among other things, the square root of the number of objects and factors for data quality and heading. Distance from the border works smoothly: <b>0 km ×1.7; 15 ×1.6; 45 ×1.3; 80 ×1.0; 110 ×0.7; 150 ×0.4; 200 ×0.25; 250 ×0.1</b>; beyond that 0. With an unknown heading only close objects score, at reduced weight. A missile or MiG-31K within 60 km of the border with at least two confirmations gives at least 2 points.</p>
+  <p>Type weights: ballistic 3.0; MiG-31K 2.6; cruise 2.4; KAB 1.8; Shahed 1.4; drone 1.1; reconnaissance 0.15; FPV 0. The weight is multiplied by, among other things, the square root of the number of objects and factors for data quality and heading. Distance from the border works smoothly: <b>0 km ×1.7; 15 ×1.6; 45 ×1.3; 80 ×1.0; 110 ×0.7; 150 ×0.4; 200 ×0.25; 250 ×0.1</b>; beyond that 0. With an unknown heading only close objects score, at reduced weight. A missile or MiG-31K within 60 km of the border with at least two confirmations gives at least 2 points.</p>
   <h3>Time to arrival</h3>
   <p>The object card estimates the time to the Polish border and to the border of the chosen province, not to an address. It uses the speed given by the source or a typical speed for the object class and subtracts 2.5 minutes for data delay. ETA is not shown for approximate positions. With a known heading, at least two confirmations and medium or high confidence, an ETA of ≤ 10 min raises the object's contribution to 2 points, and ≤ 5 min to 4 points.</p>
   <div class="warn">Time to arrival assumes the object keeps flying on the same heading. It does not account for interception or a change of course. Do not treat it as a countdown to reach shelter.</div>
 
+  <h3>When red is raised</h3>
+  <p><b>4 points alone are not enough.</b> Since 23 September 2026 red also needs a <b>confirmation</b> — one of two:</p>
+  <ul>
+    <li><b>An RCB alert saying “find a safe place”</b> — the highest of the three levels RCB has used since 17 September. Such an alert raises red on its own, because the state is explicitly telling people to take shelter.</li>
+    <li><b>A real strike object heading at Poland</b> — a missile, Shahed, guided bomb or combat drone whose time to the border is <b>15 minutes or less</b>, or which is closer than <b>50 km</b>. The second condition is a safeguard for a jet drone (Geran-3/4) that the source did not describe as jet-powered — for it, 50 km is under 7 minutes.</li>
+  </ul>
+  <p>The time is computed from the speed typical for the object class, so the threshold converts itself: a propeller drone about 45 km, a jet drone about 110 km, a cruise missile about 200 km. <b>Reconnaissance drones are not a confirmation</b> — they do not strike.</p>
+  <p>Without a confirmation the province stays yellow even at 5 points, and Strażnik says so on the card: “no confirming object — stays yellow”. Why: until 23 September an RCB alert about a monitored situation, together with Ukrainian oblast alarms and media reports, could turn a province red although nothing on the map was closer than 80 km. On the data since 1 September the new rule keeps red in two cases out of eight — those where an object was 15 minutes from the border.</p>
+  <h3>A wave of objects</h3>
+  <p>Three different objects heading towards Poland within 15 minutes and closer than 150 km add <b>0.5 pt</b> together. Several objects at once mean more than each on its own, and repeated reports about the same object do not make a wave. Since 1 September a wave occurred four times, every time during a real event.</p>
   <h3>Spillover to neighbouring provinces</h3>
   <p>A province with at least 2 points from signals other than a regional Alert RCB passes 40% to its neighbours, 16% to the next ring, and so on. An official RCB alert is not passed on — its area was set by the issuer. <b>The same event does not come back through spillover:</b> an article or an oblast alert assigned to two neighbouring provinces counts fully in each, but is not added a second time as spillover. Spillover is regional context, not a forecast of an object's route; colour from neighbours alone is dimmed and does not ring.</p>
 

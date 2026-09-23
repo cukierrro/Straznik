@@ -117,7 +117,7 @@
       <div class="tw"><table><thead><tr><th>Kolor</th><th>Znaczenie</th></tr></thead><tbody>
         <tr><td>granatowy</td><td>0–1,9 pkt — spokojnie (poniżej progu)</td></tr>
         <tr><td>żółty</td><td>od 2 pkt — podwyższona uwaga</td></tr>
-        <tr><td>czerwony</td><td>od 4 pkt — wysoki priorytet</td></tr>
+        <tr><td>czerwony</td><td>od 4 pkt <b>i potwierdzenie</b> — wysoki priorytet (rozdział 11)</td></tr>
         <tr><td>przygaszony, oliwkowy</td><td>kolor wyłącznie od sąsiednich województw; karta ma kreskowaną ramkę i napis „podniesione przez sąsiedztwo · bez alarmu”. Taki kolor nie wysyła powiadomienia.</td></tr>
       </tbody></table></div>
       <p>Obiekty z NEPTUN-a nad Ukrainą mają osobne kształty — legenda pokazuje każdy z nich:</p>
@@ -283,7 +283,7 @@
   <p>Punkty liczą się z okna 60 minut. Przez pierwsze 30 minut sygnał ma pełną wagę, potem traci ją liniowo do zera. Każda klasa źródła ma limit, więc wiele artykułów czy alarmów obwodów o tym samym nie sumuje się bez końca. Kolejna obserwacja tego samego obiektu NEPTUN nie jest liczona jako nowy obiekt.</p>
   <div class="tw"><table><thead><tr><th>Źródło</th><th>Co jest uwzględniane</th><th>Punkty / limit</th></tr></thead><tbody>
     <tr><td>NEPTUN — obiekty</td><td>Typ, liczba obiektów, odległość od granicy, kurs, wiarygodność, liczba potwierdzeń, stan obserwacji i jakość pozycji. Rejon zgłoszenia ×0,6, rozpoznany środek miejscowości ×0,5.</td><td>łącznie do 8</td></tr>
-    <tr><td>RCB / RSO</td><td>Alert RCB o zagrożeniu z powietrza opublikowany w RSO. Liczy się 60 minut od wykrycia, niezależnie od daty ważności wpisu. Odwołanie w RSO od razu zeruje alert.</td><td>2, limit 2</td></tr>
+    <tr><td>RCB / RSO</td><td>Alert RCB o zagrożeniu z powietrza opublikowany w RSO. Liczy się 60 minut od wykrycia, niezależnie od daty ważności wpisu. Odwołanie w RSO od razu zeruje alert. Od 17.09.2026 RCB wysyła trzy rodzaje komunikatu i tyle samo ważą: „sytuacja jest monitorowana” 1,5; „trwa zmasowany atak… reaguj na sygnały alarmowe” 3; „zagrożenie atakiem z powietrza, znajdź bezpieczne miejsce” 4,5. Kolejny alert nie sumuje się z poprzednim: liczy się bieżący, a nadwyżka mocniejszego gaśnie w 10 minut.</td><td>1,5 / 3 / 4,5, limit 4,5</td></tr>
     <tr><td>Alarmy obwodów UA</td><td>Alarm powietrzny w obwodzie zachodniej Ukrainy; waga maleje z odległością (tabela niżej). Pierwsze 30 minut od początku alarmu w pełni, potem w połowie, dopóki trwa; koniec alarmu od razu zeruje punkty.</td><td>do 1, limit 1</td></tr>
     <tr><td>Media (RSS)</td><td>Obiekt powietrzny i zdarzenie: 0,5 pkt; jednoznaczna relacja operacyjna (syreny, alarm, poderwane lotnictwo, zestrzelenie): 1 pkt. <b>Serwer czyta cały artykuł</b>: relacja z wcześniejszego zdarzenia albo artykuł nieczytelny ma 0 pkt. Ćwiczenia, rocznice, sprawy sądowe i powtórzenia alertu RCB też 0.</td><td>0 / 0,5 / 1, limit 1</td></tr>
     <tr><td>ADS-B</td><td>Co najmniej 3 maszyny wojskowe i ponad dwukrotność zwykłego ruchu o tej porze (tło z 7 dni). Od 13.09.2026 tylko informacyjnie: w 41 dniach danych wzmożony ruch był rutynowymi lotami.</td><td>0</td></tr>
@@ -313,11 +313,21 @@
   <p>Po <b>odwołaniu alertu RCB</b> w danym województwie przez 4 godziny artykuły relacjonujące syreny lub alert mają 0 pkt, chyba że RCB wyda nowy alert. Tytuły podsumowujące, np. „Niespokojny poranek…”, liczą się najwyżej za 0,5 pkt.</p>
 
   <h3>Obiekty NEPTUN i odległość</h3>
-  <p>Wagi typów: balistyczna 3,0; MiG-31K 2,6; manewrująca 2,4; KAB 1,8; Shahed 1,4; dron 1,1; rozpoznawczy 0,5; FPV 0. Waga jest mnożona m.in. przez pierwiastek z liczby obiektów i współczynniki jakości danych i kursu. Odległość od granicy działa płynnie: <b>0 km ×1,7; 15 ×1,6; 45 ×1,3; 80 ×1,0; 110 ×0,7; 150 ×0,4; 200 ×0,25; 250 ×0,1</b>; dalej 0. Przy nieznanym kursie punktowane są tylko obiekty bliskie, z obniżoną wagą. Rakieta lub MiG-31K do 60 km od granicy, z co najmniej dwoma potwierdzeniami, daje minimum 2 pkt.</p>
+  <p>Wagi typów: balistyczna 3,0; MiG-31K 2,6; manewrująca 2,4; KAB 1,8; Shahed 1,4; dron 1,1; rozpoznawczy 0,15; FPV 0. Waga jest mnożona m.in. przez pierwiastek z liczby obiektów i współczynniki jakości danych i kursu. Odległość od granicy działa płynnie: <b>0 km ×1,7; 15 ×1,6; 45 ×1,3; 80 ×1,0; 110 ×0,7; 150 ×0,4; 200 ×0,25; 250 ×0,1</b>; dalej 0. Przy nieznanym kursie punktowane są tylko obiekty bliskie, z obniżoną wagą. Rakieta lub MiG-31K do 60 km od granicy, z co najmniej dwoma potwierdzeniami, daje minimum 2 pkt.</p>
   <h3>Czas dolotu</h3>
-  <p>Karta obiektu szacuje czas do granicy Polski i granicy wybranego województwa, nie do adresu. Liczy go z prędkości podanej przez źródło albo typowej dla klasy obiektu i odejmuje 2,5 minuty na opóźnienie danych. Dla pozycji przybliżonej ETA nie jest pokazywane. Przy znanym kursie, co najmniej dwóch potwierdzeniach i średniej lub wysokiej wiarygodności ETA ≤ 10 min podnosi wkład obiektu do 2 pkt, a ≤ 5 min — do 4 pkt.</p>
+  <p>Karta obiektu szacuje czas do granicy Polski i granicy wybranego województwa, nie do adresu. Liczy go z prędkości podanej przez źródło albo typowej dla klasy obiektu i odejmuje 2,5 minuty na opóźnienie danych. Dla pozycji przybliżonej ETA nie jest pokazywane na karcie, ale jest liczone wewnętrznie — używa go warunek czerwonego alarmu (niżej). Przy znanym kursie, co najmniej dwóch potwierdzeniach i średniej lub wysokiej wiarygodności ETA ≤ 10 min podnosi wkład obiektu do 2 pkt, a ≤ 5 min — do 4 pkt.</p>
   <div class="warn">Czas dolotu zakłada dalszy lot po tym samym kursie. Nie uwzględnia zestrzelenia ani zmiany kursu. Nie traktuj go jako odliczania czasu na schronienie.</div>
 
+  <h3>Kiedy zapala się czerwony</h3>
+  <p><b>Same 4 punkty nie wystarczą.</b> Od 23 września 2026 czerwony wymaga jeszcze <b>potwierdzenia</b>, czyli jednego z dwóch:</p>
+  <ul>
+    <li><b>Alert RCB o treści „znajdź bezpieczne miejsce”</b> — najwyższy z trzech poziomów, którymi RCB rozróżnia komunikaty od 17 września. Taki alert zapala czerwony sam, bo państwo wprost wzywa do schronienia.</li>
+    <li><b>Realny obiekt uderzeniowy kursem na Polskę</b> — rakieta, Shahed, KAB albo dron bojowy, którego czas dolotu do granicy wynosi <b>15 minut lub mniej</b>, albo który jest bliżej niż <b>50 km</b>. Drugi warunek jest bezpiecznikiem na wypadek drona odrzutowego (Geran-3/4), którego źródło nie opisało jako odrzutowy — dla niego 50 km to niecałe 7 minut.</li>
+  </ul>
+  <p>Czas dolotu liczy się z prędkości typowej dla klasy obiektu, więc próg sam się przelicza: dron śmigłowy około 45 km, odrzutowy około 110 km, rakieta manewrująca około 200 km. <b>Drony rozpoznawcze nie są potwierdzeniem</b> — one nie atakują.</p>
+  <p>Bez potwierdzenia region zostaje żółty, nawet przy 5 punktach, a Strażnik pisze o tym wprost na karcie: „brak potwierdzenia obiektem — zostaje żółty”. Powód zmiany: do 23 września Alert RCB o monitorowaniu sytuacji razem z alarmami obwodów Ukrainy i doniesieniami mediów potrafił zapalić czerwony, choć na mapie nie było nic bliżej niż 80 km. Na danych od 1 września nowa reguła zostawia czerwony w dwóch przypadkach z ośmiu — tych, w których obiekt był 15 minut od granicy.</p>
+  <h3>Fala obiektów</h3>
+  <p>Trzy różne obiekty lecące w stronę Polski w ciągu 15 minut i bliżej niż 150 km dokładają wspólnie <b>0,5 pkt</b>. Kilka obiektów naraz znaczy więcej niż każdy z osobna, a pojedyncze meldunki o tym samym obiekcie fali nie tworzą. Od 1 września fala wystąpiła cztery razy i za każdym razem przy realnym zdarzeniu.</p>
   <h3>Przeniesienie na sąsiednie województwa</h3>
   <p>Województwo z co najmniej 2 pkt z sygnałów innych niż regionalny Alert RCB przekazuje 40% sąsiadom, 16% kolejnemu kręgowi i tak dalej. Oficjalny alert RCB nie jest przenoszony — jego obszar wskazał nadawca. <b>To samo zdarzenie nie wraca przez przeniesienie:</b> artykuł albo alarm obwodu przypisany do dwóch sąsiednich województw liczy się w każdym w całości, ale nie jest doliczany drugi raz jako przeniesienie. Przeniesienie to kontekst regionalny, a nie prognoza trasy obiektu; kolor wyłącznie od sąsiadów jest przygaszony i nie dzwoni.</p>
 

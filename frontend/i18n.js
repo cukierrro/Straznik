@@ -43,7 +43,7 @@
     "strefa włączona ostatnio (D / R / ADHOC / TSA)": "recently activated zone (D / R / ADHOC / TSA)",
     "strefy": "zones",
     "0–1.9 pkt — spokojnie": "0–1.9 pts — calm", "≥ 2 pkt — podwyższona uwaga": "≥ 2 pts — elevated attention",
-    "≥ 4 pkt — wysoki priorytet": "≥ 4 pts — high priority",
+    "≥ 4 pkt + potwierdzenie — wysoki priorytet": "≥ 4 pts + confirmation — high priority",
     "+0,5–1": "+0.5–1", "alarm +0,3": "alert +0.3", "+0,5": "+0.5",
     "przygaszony — kolor tylko od sąsiadów, bez alarmu": "dimmed — colour from neighbours only, no alert",
     "WYSOKI PRIORYTET": "HIGH PRIORITY", "PODWYŻSZONA UWAGA": "ELEVATED ATTENTION",
@@ -270,7 +270,15 @@
       "NEPTUN is an OSINT/crowdsourced aggregator, not radar, so confidence and position uncertainty are always shown. A new ID at the same locality-centre point does not prove a new physical object and is not automatically counted twice. ADS-B contains only public transponder emissions and cannot reveal aircraft flying dark.",
       "Data: NEPTUN · adsb.lol / airplanes.live · PAŻP · gov.pl/RCB · regional and Baltic media · neighbouring airspace sources · map © CARTO, © OpenStreetMap"
     ]);
-    const north = document.querySelector("#about .about-note");
+    const [north, redNote] = document.querySelectorAll("#about .about-note");
+    if (redNote) redNote.innerHTML = "<b>4 pts alone are not enough.</b> Red needs a "
+      + "confirmation: either an RCB alert saying “find a safe place”, or a real "
+      + "strike object heading at Poland — less than 15 minutes of flight away or closer "
+      + "than 50 km to the border. Reconnaissance drones and reports alone do not open red. "
+      + "When a region has 4 pts without a confirmation it stays yellow, and Strażnik "
+      + "says so on the card. The rule applies from 23.09.2026: before that an RCB alert "
+      + "about a monitored situation together with Ukrainian oblast alarms and the media "
+      + "could turn a region red with an empty map.";
     if (north) north.innerHTML = "<b>The north (Pomeranian, West Pomeranian, "
       + "Warmian-Masurian, Kuyavian-Pomeranian) is scored differently</b>, because "
       + "NEPTUN covers Ukraine and gives those provinces zero. What remains is PA\u017bP, "
@@ -301,23 +309,24 @@
       "Object heading towards Poland — score depends on class, count, distance and independent confirmations",
       "Official alert in a Ukrainian region bordering Poland",
       "Local reports of sirens, explosions or airspace violations; one article alone cannot trigger an alert",
-      "Official RCB alert from the Regional Warning System or a new gov.pl/RCB notice",
+      "Official RCB alert from the Regional Warning System or a new gov.pl/RCB notice. Since 17.09.2026 RCB sends three kinds of message and they weigh accordingly: “the situation is being monitored” 1.5 · “a massive attack is under way… react to alarm signals” 3 · “threat of an air attack, find a safe place” 4.5. A later alert does not add to the earlier one — the current one counts",
       "Military aviation activity over twice the seven-day baseline for the same time of day — informational only",
       "Rare ground-up ADHOC/R/NPZ/D zone; routine and repeating zones do not score. In the north it weighs twice as much, because NEPTUN does not reach there",
       "Air incident reported by Lithuanian, Latvian or Estonian media; an air-raid alert announced there is only a trace (Lithuania 0.3, Latvia 0.18, Estonia 0.12); an all-clear ends its contribution. Only a report from the last 30 minutes about something happening now counts — commentary and after-the-fact reports do not. It reaches the whole coast: Podlaskie, Warmian-Masurian and Pomeranian at full weight, West Pomeranian at half",
       "NATO neighbour airspace closure in northern Romania, Estonia or Lithuania — observational signal"
     ]);
-    setMany("#about .about-tab:nth-of-type(2) tr td:first-child", ["Object class", "Count", "Distance", "Confidence", "Position quality"]);
+    setMany("#about .about-tab:nth-of-type(2) tr td:first-child", ["Object class", "Count", "Distance", "Wave", "Confidence", "Position quality"]);
     setMany("#about .about-tab:nth-of-type(2) tr td:nth-child(2)", [
-      "ballistic missile 3.0 · MiG-31K 2.6 · cruise missile 2.4 · KAB 1.8 · Shahed 1.4 · drone 1.1 · reconnaissance 0.5 · FPV 0",
+      "ballistic missile 3.0 · MiG-31K 2.6 · cruise missile 2.4 · KAB 1.8 · Shahed 1.4 · drone 1.1 · reconnaissance 0.15 · FPV 0",
       "square root of object count — four objects weigh twice as much as one, not four times as much",
       "<30 km ×1.6 · <60 km ×1.3 · <100 km ×1.0 · <150 km ×0.55 · <250 km ×0.25 · farther 0",
+      "three different objects heading at Poland within 15 minutes and closer than 150 km add 0.5 pt together — several objects at once mean more than each on its own",
       "confidence, independent report count and observation status",
       "source point ×1.0 · source-reported area ×0.6 · recognised locality centre ×0.5; area positions cannot trigger ETA thresholds"
     ]);
     setMany("#about .lvl-row", [
       "≥ 2 pts — ELEVATED ATTENTION: yellow region, short attention sound and heads-up notification.",
-      "≥ 4 pts — HIGH PRIORITY: red region, modulated air-raid siren, vibration and loud notification."
+      "≥ 4 pts and a confirmation — HIGH PRIORITY: red region, modulated air-raid siren, vibration and loud notification."
     ]);
     setMany("#about .about-list li", [
       "☰ Panel — province scores, signal timeline, nearby objects and military aviation.",

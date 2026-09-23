@@ -39,6 +39,18 @@
   <p class="fineprint">Wersję zainstalowaną na telefonie sprawdzisz w aplikacji: <kbd>⚙</kbd> → zakładka <kbd>Aplikacja</kbd> → „Wersja aplikacji”. Tam też jest przycisk <kbd>⬆ Sprawdź aktualizacje</kbd>.</p>
 </div></header>
 <main id="content" class="wrap">
+<section id="v1-7-74">
+  <h2>1.7.74 — Czerwony alarm wymaga potwierdzenia; Alert RCB liczony według treści</h2>
+  <p class="fineprint">Wydanie 1.7.74 · 23 września 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.74">Pełny opis wydania</a></p>
+  <ul>
+    <li>Czerwony alarm nie wynika już z samej sumy punktów. Oprócz 4 pkt wymaga potwierdzenia: Alertu RCB o treści „znajdź bezpieczne miejsce” albo realnego obiektu uderzeniowego kursem na Polskę — 15 minut od granicy albo bliżej niż 50 km. Drony rozpoznawcze i same doniesienia mediów nie otwierają czerwonego. Gdy region ma 4 pkt bez potwierdzenia, zostaje żółty i aplikacja pisze o tym na karcie.</li>
+    <li>RCB rozróżnia od 17 września trzy rodzaje komunikatu i Strażnik liczy je osobno: „sytuacja jest monitorowana” 1,5 pkt, „trwa zmasowany atak… reaguj na sygnały alarmowe” 3 pkt, „zagrożenie atakiem z powietrza, znajdź bezpieczne miejsce” 4,5 pkt. Kolejny alert nie sumuje się z poprzednim: liczy się bieżący, a nadwyżka mocniejszego gaśnie w 10 minut.</li>
+    <li>Artykuł, który powtarza treść Alertu RCB, nie dokłada już drugich punktów — wcześniej wystarczyło inne odmienienie słowa, żeby uznać go za niezależne potwierdzenie.</li>
+    <li>Doniesienie o zdarzeniu nad Bałtykiem nie punktuje już województwa tylko dlatego, że napisał o nim tamtejszy portal.</li>
+    <li>Drony rozpoznawcze ważą 0,15 zamiast 0,5 pkt. W zamian trzy różne obiekty lecące na Polskę w 15 minut (bliżej niż 150 km) dokładają wspólnie 0,5 pkt — dzięki temu żółty nadal zapala się przed Alertem RCB.</li>
+    <li>Czas dolotu liczony jest także dla pozycji rejonowych, więc warunek czerwonego alarmu ma na czym się oprzeć.</li>
+  </ul>
+</section>
 <section id="v1-7-72">
   <h2>1.7.72 — GROTA po angielsku i ukraińsku; mapa poza pobranym obszarem naprawiona</h2>
   <p class="fineprint">Wydanie 1.7.72 · 22 września 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.72">Pełny opis wydania</a></p>
