@@ -63,7 +63,7 @@ const THREAT_PHOTOS = {
   mig31k: { file: "mig31k-ai.png" },
   cruise: { file: "missile-ai.png" },
 };
-const UI = window.I18N || { isEn:false, tr:s=>s, voiv:s=>s, type:(k,s)=>s, confidence:(k,s)=>s };
+const UI = window.I18N || { isEn:false, isUk:false, t:(pl)=>pl, tr:s=>s, voiv:s=>s, type:(k,s)=>s, confidence:(k,s)=>s };
 
 /* <dialog>.showModal() ustawia fokus na pierwszym elemencie, do którego można trafić
    klawiaturą. Gdy leży on niżej (lista źródeł zaczyna się od odnośników), przeglądarka
@@ -88,13 +88,12 @@ const threatLabelPL = (type) => {
    inaczej liczba na ekranie przeczyłaby progowi z instrukcji. */
 function bezPotwierdzenia(st) {
   if (!st || st.red_key || st.score < 4 || st.level === "high") return "";
-  return `<span class="muted"> · ${UI.isEn
-    ? "no confirming object — stays yellow"
-    : "brak potwierdzenia obiektem — zostaje żółty"}</span>`;
+  return `<span class="muted"> · ${UI.t("brak potwierdzenia obiektem — zostaje żółty", "no confirming object — stays yellow", "немає підтвердження об'єктом — лишається жовтий")}</span>`;
 }
-const LEVEL_LABEL = UI.isEn
-  ? { none: "no signals", elevated: "ELEVATED ATTENTION", high: "HIGH PRIORITY" }
-  : { none: "brak sygnałów", elevated: "PODWYŻSZONA UWAGA", high: "WYSOKI PRIORYTET" };
+const LEVEL_LABEL = UI.t(
+  { none: "brak sygnałów", elevated: "PODWYŻSZONA UWAGA", high: "WYSOKI PRIORYTET" },
+  { none: "no signals", elevated: "ELEVATED ATTENTION", high: "HIGH PRIORITY" },
+  { none: "немає сигналів", elevated: "ПІДВИЩЕНА УВАГА", high: "ВИСОКИЙ ПРІОРИТЕТ" });
 
 /* Poziom ALARMU (ten, który budzi telefon) i to, czy kolor mapy pochodzi wyłącznie
    od sąsiadów. Serwer liczy `alert_level` od 13.09.2026; starszy serwer go nie ma,
@@ -103,8 +102,7 @@ const LEVEL_LABEL = UI.isEn
    dostał powiadomienia (zgłoszone 13.09.2026). */
 const alarmLevel = (st) => st?.alert_level ?? st?.level ?? "none";
 const spillRaised = (st) => !!st?.spill_raised;
-const SPILL_LABEL = UI.isEn ? "RAISED BY NEIGHBOURS · no alert here"
-                            : "PODNIESIONE PRZEZ SĄSIEDZTWO · bez alarmu";
+const SPILL_LABEL = UI.t("PODNIESIONE PRZEZ SĄSIEDZTWO · bez alarmu", "RAISED BY NEIGHBOURS · no alert here", "ПІДНЯТО СУСІДСТВОМ · без тривоги");
 
 /* ── ADS-B: role maszyn wojskowych (kod typu ICAO → przeznaczenie) ───────── */
 const MIL_ROLES = {
@@ -155,7 +153,32 @@ const ROLE_EN = {
   "patrolowy morski":"maritime patrol", "dron rozpoznawczy":"reconnaissance drone", "śmigłowiec wielozadaniowy":"multirole helicopter",
   "śmigłowiec szturmowy":"attack helicopter", "śmigłowiec transportowy":"transport helicopter", "śmigłowiec":"helicopter"
 };
-const roleText = role => UI.isEn ? (ROLE_EN[role] || role) : role;
+const ROLE_UK = {
+  "transport taktyczny":"тактичний транспорт", "lekki transport / patrol (Bryza)":"легкий транспорт / патруль (Bryza)",
+  "transport strategiczny (Atlas)":"стратегічний транспорт (Atlas)", "transport strategiczny (Globemaster)":"стратегічний транспорт (Globemaster)",
+  "transport ciężki (Galaxy)":"важкий транспорт (Galaxy)", "transport ciężki":"важкий транспорт",
+  "latający tankowiec (KC-135)":"повітряний танкер (KC-135)", "latający tankowiec (Pegasus)":"повітряний танкер (Pegasus)",
+  "tankowiec / transport (MRTT)":"танкер / транспорт (MRTT)", "AWACS — wczesne ostrzeganie":"AWACS — раннє попередження",
+  "wczesne ostrzeganie (Wedgetail)":"раннє попередження (Wedgetail)", "myśliwiec wielozadaniowy":"багатоцільовий винищувач",
+  "myśliwiec 5. gen. (Lightning II)":"винищувач 5-го покоління (Lightning II)", "myśliwiec przewagi powietrznej":"винищувач переваги в повітрі",
+  "myśliwiec (Eurofighter Typhoon)":"винищувач (Eurofighter Typhoon)", "myśliwiec (Rafale)":"винищувач (Rafale)",
+  "myśliwiec (Gripen)":"винищувач (Gripen)", "myśliwiec (MiG-29)":"винищувач (МіГ-29)",
+  "myśliwsko-bombowy (Su-22)":"винищувач-бомбардувальник (Су-22)",
+  "patrolowy morski (Poseidon)":"морський патрульний (Poseidon)", "dron rozpoznawczy (Phoenix)":"розвідувальний дрон (Phoenix)",
+  "dron rozpoznawczy (Global Hawk)":"розвідувальний дрон (Global Hawk)", "dron rozpoznawczo-uderzeniowy (Reaper)":"розвідувально-ударний дрон (Reaper)",
+  "rozpoznanie / łącznikowy":"розвідка / зв\u2019язок", "rozpoznanie specjalne":"спеціальна розвідка", "rozpoznanie / VIP":"розвідка / VIP",
+  "VIP / sztabowy":"VIP / штабний", "szkolno-treningowy (Texan II)":"навчально-тренувальний (Texan II)",
+  "szkolno-bojowy (Albatros)":"навчально-бойовий (Albatros)",
+  "śmigłowiec wielozadaniowy (Black Hawk)":"багатоцільовий гелікоптер (Black Hawk)", "śmigłowiec szturmowy (Apache)":"ударний гелікоптер (Apache)",
+  "śmigłowiec transportowy (Chinook)":"транспортний гелікоптер (Chinook)", "śmigłowiec transportowy (Mi-8)":"транспортний гелікоптер (Мі-8)",
+  "śmigłowiec transportowy (Mi-17)":"транспортний гелікоптер (Мі-17)", "śmigłowiec szturmowy (Mi-24)":"ударний гелікоптер (Мі-24)",
+  "śmigłowiec wielozadaniowy (Sokół)":"багатоцільовий гелікоптер (Sokół)", "śmigłowiec lekki":"легкий гелікоптер",
+  "śmigłowiec (Caracal)":"гелікоптер (Caracal)", "śmigłowiec (Super Puma)":"гелікоптер (Super Puma)", "śmigłowiec (AW139)":"гелікоптер (AW139)",
+  "latający tankowiec":"повітряний танкер", "myśliwiec":"винищувач", "transport strategiczny":"стратегічний транспорт",
+  "patrolowy morski":"морський патрульний", "dron rozpoznawczy":"розвідувальний дрон", "śmigłowiec wielozadaniowy":"багатоцільовий гелікоптер",
+  "śmigłowiec szturmowy":"ударний гелікоптер", "śmigłowiec transportowy":"транспортний гелікоптер", "śmigłowiec":"гелікоптер"
+};
+const roleText = role => UI.t(role, ROLE_EN[role] || role, ROLE_UK[role] || ROLE_EN[role] || role);
 // pełne nazwy modeli — adsb.lol często nie zwraca pola desc
 const MIL_NAMES = {
   C30J: "C-130J Super Hercules", C130: "C-130 Hercules", C160: "C-160 Transall",
@@ -175,7 +198,7 @@ const MIL_NAMES = {
   MI24: "Mi-24", W3: "PZL W-3 Sokół", EC35: "H135M", H145: "H145M",
   H225: "H225M Caracal", AS32: "AS332 Super Puma", A109: "AW109", A139: "AW139",
 };
-const acName = (type, desc) => desc || MIL_NAMES[type] || type || (UI.isEn ? "unknown type" : "typ nieznany");
+const acName = (type, desc) => desc || MIL_NAMES[type] || type || (UI.t("typ nieznany", "unknown type", "тип невідомий"));
 const ROLE_FALLBACK = [
   [/hercules|transall|spartan|casa/i, "transport taktyczny"],
   [/stratotanker|extender|mrtt|pegasus/i, "latający tankowiec"],
@@ -235,12 +258,13 @@ const OBLAST_STEMS = [
   ["Луган", "ługański", "Luhansk"], ["Крим", "Krym", "Crimea"],
 ];
 const oblastPL = (s) => {
+  if (UI.isUk) return (s || "").trim();   // zrodlo podaje juz po ukrainsku
   if (!s) return "";
   if (!UI.isEn) for (const [ua, pl] of Object.entries(OBLAST_PL))
     if (s.includes(ua) && ua !== "Київ") return "obw. " + pl;
   for (const [stem, pl, en] of OBLAST_STEMS) if (s.includes(stem))
     return UI.isEn ? (en === "Crimea" ? en : `${en} oblast`) : (pl === "Krym" ? pl : "obw. " + pl);
-  if (s.includes("Київ")) return UI.isEn ? "Kyiv" : "Kijów";
+  if (s.includes("Київ")) return UI.t("Kijów", "Kyiv", "Київ");
   return placeName(s);
 };
 /* transliteracja ukraińskiej cyrylicy na polską łacinkę (nazwy miejscowości) */
@@ -285,7 +309,8 @@ function translitEn(s) {
    („Хмельницька область") idzie przez słownik obwodów. */
 function placeName(s) {
   if (!s) return "";
-  if (s.trim() === "Київ") return UI.isEn ? "Kyiv" : "Kijów";
+  if (UI.isUk) return s.trim();           // nazwa ukrainska zostaje w oryginale
+  if (s.trim() === "Київ") return UI.t("Kijów", "Kyiv", "Київ");
   if (/област|щин/.test(s)) {
     for (const [stem, pl, en] of OBLAST_STEMS) if (s.includes(stem))
       return UI.isEn ? `${en} oblast` : "obw. " + pl;
@@ -298,9 +323,10 @@ function threatDesc(t) {
   const where = [t.locality ? placeName(t.locality) : null, oblastPL(t.region)]
     .filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).join(", ");
   const parts = [];
-  if (where) parts.push(UI.isEn ? (t.destination ? `heading towards ${where}` : `area: ${where}`)
-    : (t.destination ? `kursem na ${where}` : `rejon: ${where}`));
-  if (t.sourceCount) parts.push(UI.isEn ? `confirmations: ${t.sourceCount}` : `potwierdzeń: ${t.sourceCount}`);
+  if (where) parts.push(t.destination
+    ? UI.t(`kursem na ${where}`, `heading towards ${where}`, `курсом на ${where}`)
+    : UI.t(`rejon: ${where}`, `area: ${where}`, `район: ${where}`));
+  if (t.sourceCount) parts.push(UI.t(`potwierdzeń: ${t.sourceCount}`, `confirmations: ${t.sourceCount}`, `підтверджень: ${t.sourceCount}`));
   return parts.join(" · ") || UI.type(t.type, meta.label);
 }
 
@@ -329,7 +355,7 @@ function nationalText(t) {
   const meta = TYPE_META[t.type] || TYPE_META.unknown;
   const since = Date.parse(t.straznik_national?.since || "");
   const time = Number.isFinite(since) ? new Date(since).toLocaleTimeString(
-    UI.isEn ? "en-GB" : "pl-PL", { hour: "2-digit", minute: "2-digit" }) : "";
+    UI.t("pl-PL", "en-GB", "uk-UA"), { hour: "2-digit", minute: "2-digit" }) : "";
   const mig = t.type === "mig31k";
   /* 15.09.2026 NEPTUN pokazał start jako „моніторинг, не тривога” (pole advisory),
      a my pisaliśmy „alarm w całej Ukrainie”. Alarm tylko przy advisory === false;
@@ -338,25 +364,17 @@ function nationalText(t) {
   const kind = adv === true ? "watch" : adv === false ? "alarm" : "unknown";
   // Brzmienie jak w komunikacie NEPTUN-a („Зліт МіГ-31К · моніторинг, не тривога”).
   const tail = {
-    watch: UI.isEn ? "monitoring, not an alert" : "monitoring, nie alarm",
-    alarm: UI.isEn ? "alert across Ukraine" : "alarm w całej Ukrainie",
+    watch: UI.t("monitoring, nie alarm", "monitoring, not an alert", "моніторинг, а не тривога"),
+    alarm: UI.t("alarm w całej Ukrainie", "alert across Ukraine", "тривога по всій Україні"),
     unknown: "" }[kind];
-  const name = mig ? (UI.isEn ? "MiG-31K take-off" : "Start MiG-31K") : UI.type(t.type, meta.label);
-  const head = name + (tail ? ` — ${tail}` : "") + (time ? ` · ${UI.isEn ? "since" : "od"} ${time}` : "");
-  const what = mig ? (UI.isEn
-    ? "A MiG-31K take-off has been recorded — the carrier of Kinzhal missiles. "
-    : "Zarejestrowano start MiG-31K — nosiciela rakiet Kindżał. ") : "";
+  const name = mig ? (UI.t("Start MiG-31K", "MiG-31K take-off", "Зліт МіГ-31К")) : UI.type(t.type, meta.label);
+  const head = name + (tail ? ` — ${tail}` : "") + (time ? ` · ${UI.t("od", "since", "від")} ${time}` : "");
+  const what = mig ? (UI.t("Zarejestrowano start MiG-31K — nosiciela rakiet Kindżał. ", "A MiG-31K take-off has been recorded — the carrier of Kinzhal missiles. ", "Зафіксовано зліт МіГ-31К — носія ракет «Кинджал». ")) : "";
   const status = {
-    watch: UI.isEn
-      ? "The alert has not been declared across the whole of Ukraine — alerts apply in individual regions. This is a risk warning, not a signal to take shelter. "
-      : "Alarmu nie ogłoszono w całej Ukrainie — obowiązują alarmy w poszczególnych obwodach. To ostrzeżenie o ryzyku, a nie sygnał, by się ukryć. ",
-    alarm: UI.isEn
-      ? "An alert has been declared across the whole of Ukraine. "
-      : "Alarm ogłoszono w całej Ukrainie. ",
+    watch: UI.t("Alarmu nie ogłoszono w całej Ukrainie — obowiązują alarmy w poszczególnych obwodach. To ostrzeżenie o ryzyku, a nie sygnał, by się ukryć. ", "The alert has not been declared across the whole of Ukraine — alerts apply in individual regions. This is a risk warning, not a signal to take shelter. ", "Тривогу не оголошено по всій Україні — діють тривоги в окремих областях. Це попередження про ризик, а не сигнал ховатися. "),
+    alarm: UI.t("Alarm ogłoszono w całej Ukrainie. ", "An alert has been declared across the whole of Ukraine. ", "Тривогу оголошено по всій Україні. "),
     unknown: "" }[kind];
-  const body = what + status + (UI.isEn
-    ? "The position is unknown, so it is not on the map. For Poland: no points added."
-    : "Pozycja nie jest znana, więc nie ma go na mapie. Dla Polski: nie dolicza punktów.");
+  const body = what + status + (UI.t("Pozycja nie jest znana, więc nie ma go na mapie. Dla Polski: nie dolicza punktów.", "The position is unknown, so it is not on the map. For Poland: no points added.", "Позиція невідома, тому його немає на мапі. Для Польщі: балів не додає."));
   const chip = mig ? "MiG-31K" : UI.type(t.type, meta.label);
   return { head, body, chip, color: meta.color };
 }
@@ -417,19 +435,18 @@ function isApproxPosition(t) { return positionInfo(t).quality === "approx"; }
 function approxPositionNote(t) {
   const locality = positionInfo(t).reason === "locality_center";
   const heading = locality
-    ? (UI.isEn ? "locality centre used as a reference point, not a measured object position"
-               : "środek miejscowości użyty jako punkt odniesienia, nie zmierzona pozycja obiektu")
-    : (UI.isEn ? "approximate report area" : "przybliżony rejon zgłoszenia");
-  return `<span style="color:#ffb020"><b>${heading}</b> — ${UI.isEn ? "no confirmed route or arrival time" : "brak potwierdzonej trasy i czasu dolotu"}</span>`;
+    ? (UI.t("środek miejscowości użyty jako punkt odniesienia, nie zmierzona pozycja obiektu", "locality centre used as a reference point, not a measured object position", "центр населеного пункту використано як орієнтир, а не виміряна позиція об'єкта"))
+    : (UI.t("przybliżony rejon zgłoszenia", "approximate report area", "приблизний район повідомлення"));
+  return `<span style="color:#ffb020"><b>${heading}</b> — ${UI.t("brak potwierdzonej trasy i czasu dolotu", "no confirmed route or arrival time", "немає підтвердженого маршруту й часу підльоту")}</span>`;
 }
 function threatDistanceText(t, km) {
   if (km == null) return "?";
   // A2b: odległość liczona do konturu kraju — 0 znaczy „już nad Polską”
-  if (km === 0 || t?.pl_assessment?.inside_pl) return UI.isEn ? "over Poland" : "nad Polską";
+  if (km === 0 || t?.pl_assessment?.inside_pl) return UI.t("nad Polską", "over Poland", "над Польщею");
   if (!isApproxPosition(t)) return `${km} km`;
-  if (km < 10) return UI.isEn ? "less than 10 km (area estimate)" : "mniej niż 10 km (szacunek rejonowy)";
+  if (km < 10) return UI.t("mniej niż 10 km (szacunek rejonowy)", "less than 10 km (area estimate)", "менш ніж 10 км (оцінка по району)");
   const rounded = Math.round(km / 10) * 10;
-  return UI.isEn ? `about ${rounded} km (area estimate)` : `około ${rounded} km (szacunek rejonowy)`;
+  return UI.t(`około ${rounded} km (szacunek rejonowy)`, `about ${rounded} km (area estimate)`, `близько ${rounded} км (оцінка по району)`);
 }
 
 /* ── czas dolotu ─────────────────────────────────────────────────────────────
@@ -529,12 +546,12 @@ function localPlaceHtml(t) {
     const distance = info.distanceKm < 10 ? info.distanceKm.toFixed(1) : Math.round(info.distanceKm);
     let detail;
     if (info.etaMin != null) detail = ` · ⏱ <b>${etaTxt(info.etaMin)}</b>`;
-    else if (info.reason === "course") detail = ` · <span style="color:#ffb020">${UI.isEn ? "not heading towards this point" : "kurs nie prowadzi do tego punktu"}</span>`;
-    else detail = ` · <span style="color:#ffb020">${UI.isEn ? "ETA unavailable — insufficient heading or speed data" : "brak ETA — za mało danych o kursie lub prędkości"}</span>`;
+    else if (info.reason === "course") detail = ` · <span style="color:#ffb020">${UI.t("kurs nie prowadzi do tego punktu", "not heading towards this point", "курс не веде до цієї точки")}</span>`;
+    else detail = ` · <span style="color:#ffb020">${UI.t("brak ETA — za mało danych o kursie lub prędkości", "ETA unavailable — insufficient heading or speed data", "немає ETA — замало даних про курс або швидкість")}</span>`;
     return `<div><b>${esc2(place.name)}</b>: ${distance} km${detail}</div>`;
   }).filter(Boolean).join("");
   if (!rows) return "";
-  return `<div class="local-place-eta"><div>${UI.isEn ? "To saved exact locations" : "Do zapisanych dokładnych lokalizacji"}</div>${rows}<small>${UI.isEn ? "calculated only on this device while the app is in the foreground; ETA assumes unchanged heading and deducts 2.5 min for data delay" : "liczone tylko na tym urządzeniu, gdy aplikacja jest na pierwszym planie; ETA zakłada niezmienny kurs i odejmuje 2,5 min na opóźnienie danych"}</small></div>`;
+  return `<div class="local-place-eta"><div>${UI.t("Do zapisanych dokładnych lokalizacji", "To saved exact locations", "До збережених точних місць")}</div>${rows}<small>${UI.t("liczone tylko na tym urządzeniu, gdy aplikacja jest na pierwszym planie; ETA zakłada niezmienny kurs i odejmuje 2,5 min na opóźnienie danych", "calculated only on this device while the app is in the foreground; ETA assumes unchanged heading and deducts 2.5 min for data delay", "рахується лише на цьому пристрої, коли застосунок на передньому плані; ETA припускає незмінний курс і віднімає 2,5 хв на затримку даних")}</small></div>`;
 }
 
 /* Wiersz „czas dolotu" do karty obiektu. Świadomie piszemy „przy tej prędkości",
@@ -545,28 +562,30 @@ function etaHtml(t) {
   const e = etaInfo(t);
   if (!e || e.border == null) {
     const base = t.pl_assessment && t.pl_assessment.heading_known === false
-      ? `<span style="color:#ffb020">${UI.isEn ? "unknown heading — arrival time is not estimated" : "kurs nieznany — czasu dolotu nie szacujemy"}</span><br>`
+      ? `<span style="color:#ffb020">${UI.t("kurs nieznany — czasu dolotu nie szacujemy", "unknown heading — arrival time is not estimated", "курс невідомий — часу підльоту не оцінюємо")}</span><br>`
       : isPresumedCourse(t) && t.pl_assessment?.toward_pl
-      ? `<span style="color:#ffb020">${UI.isEn ? "presumed heading towards a target, not confirmed by movement — arrival time is not estimated" : "kurs domniemany (na cel), niepotwierdzony ruchem — czasu dolotu nie szacujemy"}</span><br>`
+      ? `<span style="color:#ffb020">${UI.t("kurs domniemany (na cel), niepotwierdzony ruchem — czasu dolotu nie szacujemy", "presumed heading towards a target, not confirmed by movement — arrival time is not estimated", "курс припущений (на ціль), не підтверджений рухом — часу підльоту не оцінюємо")}</span><br>`
       : "";
     return base + localPlaceHtml(t);
   }
   const mine = (e.voiv != null && e.voivName)
-    ? ` · ${UI.isEn ? "to" : "do woj."} ${esc2(UI.voiv(e.voivName))}: <b>${etaRangeTxt(e.voivLo, e.voiv)}</b>` : "";
-  return `${UI.isEn ? "conservative time to the Polish border" : "konserwatywny czas dolotu do granicy PL"}: <b>${etaRangeTxt(e.borderLo, e.border)}</b>${mine}<br>`
-    + (isJetDrone(t) ? `<span style="color:#95a1b7">${UI.isEn ? "jet drone: 350 km/h cruise, up to 600 km/h on the final leg" : "dron odrzutowy: przelot 350 km/h, na końcowym odcinku do 600 km/h"}</span><br>` : "")
-    + `<span style="color:#95a1b7">${UI.isEn ? `estimate at ${e.speed} km/h with unchanged heading; the shorter time allows for position uncertainty and data age, 2.5 min deducted for data delay — air defence not included` : `szacunek przy prędkości ${e.speed} km/h i utrzymaniu kursu; krótszy czas uwzględnia niepewność pozycji i wiek danych, odjęto 2,5 min na opóźnienie — nie uwzględnia obrony powietrznej`}</span><br>`
+    ? ` · ${UI.t("do woj.", "to", "до воєв.")} ${esc2(UI.voiv(e.voivName))}: <b>${etaRangeTxt(e.voivLo, e.voiv)}</b>` : "";
+  return `${UI.t("konserwatywny czas dolotu do granicy PL", "conservative time to the Polish border", "консервативний час підльоту до кордону Польщі")}: <b>${etaRangeTxt(e.borderLo, e.border)}</b>${mine}<br>`
+    + (isJetDrone(t) ? `<span style="color:#95a1b7">${UI.t("dron odrzutowy: przelot 350 km/h, na końcowym odcinku do 600 km/h", "jet drone: 350 km/h cruise, up to 600 km/h on the final leg", "реактивний дрон: політ 350 км/год, на кінцевому відрізку до 600 км/год")}</span><br>` : "")
+    + `<span style="color:#95a1b7">${UI.t(`szacunek przy prędkości ${e.speed} km/h i utrzymaniu kursu; krótszy czas uwzględnia niepewność pozycji i wiek danych, odjęto 2,5 min na opóźnienie — nie uwzględnia obrony powietrznej`, `estimate at ${e.speed} km/h with unchanged heading; the shorter time allows for position uncertainty and data age, 2.5 min deducted for data delay — air defence not included`, `оцінка за швидкості ${e.speed} км/год і збереження курсу; коротший час враховує невизначеність позиції та вік даних, віднято 2,5 хв на затримку — не враховує протиповітряної оборони`)}</span><br>`
     + localPlaceHtml(t);
 }
 
-const COMPASS = UI.isEn ? ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
-  : ["płn.", "płn.-wsch.", "wsch.", "płd.-wsch.", "płd.", "płd.-zach.", "zach.", "płn.-zach."];
+const COMPASS = UI.t(
+  ["płn.", "płn.-wsch.", "wsch.", "płd.-wsch.", "płd.", "płd.-zach.", "zach.", "płn.-zach."],
+  ["N", "NE", "E", "SE", "S", "SW", "W", "NW"],
+  ["пн.", "пн.-сх.", "сх.", "пд.-сх.", "пд.", "пд.-зх.", "зх.", "пн.-зх."]);
 const compass = (deg) => deg == null ? "" : COMPASS[Math.round(((deg % 360) + 360) % 360 / 45) % 8];
 const ftToM = (ft) => typeof ft === "number" ? Math.round(ft * 0.3048) : null;
 const ktToKmh = (kt) => typeof kt === "number" ? Math.round(kt * 1.852) : null;
 // alt_baro bywa stringiem "ground" (maszyna na płycie lotniska)
-const altText = (alt) => alt === "ground" ? (UI.isEn ? "on the ground" : "na ziemi")
-  : typeof alt === "number" ? `${alt} ft (${ftToM(alt)} m)` : (UI.isEn ? "altitude unavailable" : "wysokość b.d.");
+const altText = (alt) => alt === "ground" ? (UI.t("na ziemi", "on the ground", "на землі"))
+  : typeof alt === "number" ? `${alt} ft (${ftToM(alt)} m)` : (UI.t("wysokość b.d.", "altitude unavailable", "висота н/д"));
 const PRIORITY = ["lubelskie", "podkarpackie", "podlaskie", "warmińsko-mazurskie"];
 const ALL_VOIVS = ["dolnośląskie","kujawsko-pomorskie","lubelskie","lubuskie","łódzkie",
   "małopolskie","mazowieckie","opolskie","podkarpackie","podlaskie","pomorskie","śląskie",
@@ -622,15 +641,14 @@ function showConnLost() {
   if (connLostTimer || !connBadge.classList.contains("hidden")) return;
   connLostTimer = setTimeout(() => {
     connLostTimer = null;
-    connBadge.textContent = UI.isEn ? "server connection lost — retrying…" : "brak połączenia z serwerem — ponawiam…";
+    connBadge.textContent = UI.t("brak połączenia z serwerem — ponawiam…", "server connection lost — retrying…", "немає зв'язку із сервером — повторюю…");
     connBadge.classList.remove("hidden");
   }, CONN_LOST_DELAY_MS);
 }
 function clearConnLostTimer() { clearTimeout(connLostTimer); connLostTimer = null; }
 function showBusyPolling() {
   clearConnLostTimer();
-  connBadge.textContent = UI.isEn ? "heavy traffic — map refreshes every few seconds"
-                                  : "duży ruch — mapa odświeżana co kilka sekund";
+  connBadge.textContent = UI.t("duży ruch — mapa odświeżana co kilka sekund", "heavy traffic — map refreshes every few seconds", "великий трафік — мапа оновлюється кожні кілька секунд");
   connBadge.classList.remove("hidden");
 }
 
@@ -671,9 +689,7 @@ function startStandalone() {
   standalone = true;
   // Audyt C2: tryb awaryjny musi być widoczny — bez serwera nie ma pushy FCM,
   // a silnik powiadamia tylko przy otwartej aplikacji. Wcześniej znacznik znikał.
-  connBadge.textContent = UI.isEn
-    ? "emergency mode — server unavailable, no alerts while the app is closed"
-    : "tryb awaryjny — serwer niedostępny, bez alarmów przy zamkniętej aplikacji";
+  connBadge.textContent = UI.t("tryb awaryjny — serwer niedostępny, bez alarmów przy zamkniętej aplikacji", "emergency mode — server unavailable, no alerts while the app is closed", "аварійний режим — сервер недоступний, без тривог при закритому застосунку");
   connBadge.style.cursor = "pointer";
   connBadge.onclick = () => showSources();
   connBadge.classList.remove("hidden");
@@ -1080,7 +1096,7 @@ const MAP_STYLES = [
    name:pl/name:en; gdy tłumaczenia brak, zachowujemy nazwę łacińską lub źródłową. */
 const OWN_LABEL_LAYERS = new Set(["threats", "threats-age", "adsb", "adsb-label"]);
 function localiseMapLabels() {
-  const field = ["coalesce", ["get", UI.isEn ? "name:en" : "name:pl"],
+  const field = ["coalesce", ["get", UI.t("name:pl", "name:en", "name:uk")],
     ["get", "name:latin"], ["get", "name"]];
   for (const lyr of map.getStyle().layers || []) {
     if (lyr.type !== "symbol" || OWN_LABEL_LAYERS.has(lyr.id)) continue;   // nasze podpisy zostają
@@ -1107,28 +1123,22 @@ function pokazBrakMapy(blad, niewczytana = false) {
   const box = document.getElementById("map");
   if (!box || document.getElementById("map-niedostepna")) return;
   const ios = IS_IOS || document.documentElement.classList.contains("ua-ios");
-  const en = UI.isEn;
-  if (niewczytana) return pokazNiewczytanaMape(box, blad, en);
+  if (niewczytana) return pokazNiewczytanaMape(box, blad);
   const rada = ios
-    ? (en ? "On iPhone this is usually <b>Lockdown Mode</b>, which switches off map drawing (WebGL) in Safari and in apps. "
+    ? (UI.t("Na iPhonie to zwykle <b>Tryb blokady</b> — wyłącza rysowanie map (WebGL) w Safari i w aplikacjach. ", "On iPhone this is usually <b>Lockdown Mode</b>, which switches off map drawing (WebGL) in Safari and in apps. "
           + "Settings → Privacy &amp; Security → Lockdown Mode → Configure Web Browsing → exclude Strażnik "
-          + "(and straznik.eu in Safari). If Lockdown Mode is off, check Settings → Apps → Safari → Advanced → Feature Flags → WebGL."
-          : "Na iPhonie to zwykle <b>Tryb blokady</b> — wyłącza rysowanie map (WebGL) w Safari i w aplikacjach. "
+          + "(and straznik.eu in Safari). If Lockdown Mode is off, check Settings → Apps → Safari → Advanced → Feature Flags → WebGL.", "На iPhone це зазвичай <b>Режим блокування</b> — він вимикає малювання мап (WebGL) у Safari і в застосунках. ")
           + "Ustawienia → Prywatność i ochrona → Tryb blokady → Konfiguruj przeglądanie → wyklucz Strażnika "
           + "(a w Safari także straznik.eu). Jeśli Tryb blokady jest wyłączony, sprawdź Ustawienia → Aplikacje → Safari → "
           + "Zaawansowane → Flagi funkcji → WebGL.")
-    : (en ? "Turn on hardware acceleration in the browser settings, update the browser, or try another one."
-          : "Włącz przyspieszenie sprzętowe w ustawieniach przeglądarki, zaktualizuj ją albo spróbuj innej.");
+    : (UI.t("Włącz przyspieszenie sprzętowe w ustawieniach przeglądarki, zaktualizuj ją albo spróbuj innej.", "Turn on hardware acceleration in the browser settings, update the browser, or try another one.", "Увімкніть апаратне прискорення в налаштуваннях браузера, оновіть його або спробуйте інший."));
   const d = document.createElement("div");
   d.id = "map-niedostepna";
   d.setAttribute("role", "alert");
   // prawy margines na kafelki „mój region / strefy / cała PL”, dolny na pasek i zakładki
   d.style.cssText = "position:absolute;top:0;left:0;right:0;bottom:0;display:flex;align-items:flex-start;"
     + "justify-content:center;padding:84px 104px 150px 18px;overflow:auto;color:#dbe4f5;font-size:14px;line-height:1.5";
-  d.innerHTML = `<div style="max-width:440px"><div style="font-size:28px">🗺️</div><p><b>${en
-    ? "The map cannot be drawn on this device" : "Na tym urządzeniu nie da się narysować mapy"}</b></p><p>${en
-    ? "Alerts, the signals panel and history still work — only the map is missing, because the system blocks WebGL."
-    : "Alarmy, panel sygnałów i historia działają — brakuje tylko mapy, bo system blokuje WebGL."}</p><p class="muted">${rada}</p></div>`;
+  d.innerHTML = `<div style="max-width:440px"><div style="font-size:28px">🗺️</div><p><b>${UI.t("Na tym urządzeniu nie da się narysować mapy", "The map cannot be drawn on this device", "На цьому пристрої не вдається намалювати мапу")}</b></p><p>${UI.t("Alarmy, panel sygnałów i historia działają — brakuje tylko mapy, bo system blokuje WebGL.", "Alerts, the signals panel and history still work — only the map is missing, because the system blocks WebGL.", "Тривоги, панель сигналів та історія працюють — бракує лише мапи, бо система блокує WebGL.")}</p><p class="muted">${rada}</p></div>`;
   box.appendChild(d);
   if (blad) console.warn("Mapa niedostępna:", blad);
 }
@@ -1138,20 +1148,14 @@ function pokazBrakMapy(blad, niewczytana = false) {
    dopiero po wczytaniu stylu mapy, więc gdy styl albo kafelki są blokowane (bloker
    treści, filtr DNS, VPN) — nie ma nic. Po 20 s bez wczytania mówimy to wprost i
    pokazujemy techniczny powód do zrzutu ekranu. */
-function pokazNiewczytanaMape(box, blad, en) {
+function pokazNiewczytanaMape(box, blad) {
   const d = document.createElement("div");
   d.id = "map-niedostepna";
   d.setAttribute("role", "alert");
   d.style.cssText = "position:absolute;top:0;left:0;right:0;bottom:0;display:flex;align-items:flex-start;"
     + "justify-content:center;padding:84px 104px 150px 18px;overflow:auto;color:#dbe4f5;font-size:14px;line-height:1.5";
   const tech = String(blad || "brak odpowiedzi").slice(0, 300);
-  d.innerHTML = `<div style="max-width:440px"><div style="font-size:28px">🗺️</div><p><b>${en
-    ? "The map did not load" : "Mapa się nie wczytała"}</b></p><p>${en
-    ? "Alerts, the signals panel and history still work. The map tiles come from an outside map server — something on this device or network is blocking them."
-    : "Alarmy, panel sygnałów i historia działają. Kafelki mapy pochodzą z zewnętrznego serwera map — coś na tym urządzeniu albo w sieci je blokuje."}</p><p class="muted">${en
-    ? "Most often: a content or ad blocker, a DNS filter (AdGuard, NextDNS), a VPN or iCloud Private Relay. Try turning it off for a moment, or switch between Wi-Fi and mobile data."
-    : "Najczęściej: bloker treści lub reklam, filtr DNS (AdGuard, NextDNS), VPN albo Prywatny przekaźnik iCloud. Spróbuj na chwilę go wyłączyć albo przełączyć się między Wi-Fi a danymi komórkowymi."}</p><p class="muted" style="font-size:12px">${en
-    ? "Technical detail" : "Szczegół techniczny"}: ${esc(tech)}</p></div>`;
+  d.innerHTML = `<div style="max-width:440px"><div style="font-size:28px">🗺️</div><p><b>${UI.t("Mapa się nie wczytała", "The map did not load", "Мапа не завантажилася")}</b></p><p>${UI.t("Alarmy, panel sygnałów i historia działają. Kafelki mapy pochodzą z zewnętrznego serwera map — coś na tym urządzeniu albo w sieci je blokuje.", "Alerts, the signals panel and history still work. The map tiles come from an outside map server — something on this device or network is blocking them.", "Тривоги, панель сигналів та історія працюють. Плитки мапи надходять із зовнішнього сервера мап — щось на цьому пристрої або в мережі їх блокує.")}</p><p class="muted">${UI.t("Najczęściej: bloker treści lub reklam, filtr DNS (AdGuard, NextDNS), VPN albo Prywatny przekaźnik iCloud. Spróbuj na chwilę go wyłączyć albo przełączyć się między Wi-Fi a danymi komórkowymi.", "Most often: a content or ad blocker, a DNS filter (AdGuard, NextDNS), a VPN or iCloud Private Relay. Try turning it off for a moment, or switch between Wi-Fi and mobile data.", "Найчастіше: блокувальник вмісту чи реклами, DNS-фільтр (AdGuard, NextDNS), VPN або Приватний вузол iCloud. Спробуйте на хвилину його вимкнути або перемкнутися між Wi-Fi і мобільними даними.")}</p><p class="muted" style="font-size:12px">${UI.t("Szczegół techniczny", "Technical detail", "Технічна деталь")}: ${esc(tech)}</p></div>`;
   box.appendChild(d);
 }
 
@@ -1575,9 +1579,9 @@ function zoneAltM(v) {
 function zoneAltText(v) {
   const t = String(v == null ? "" : v).trim().toUpperCase();
   if (!t) return "?";
-  if (t === "GND" || t === "SFC") return UI.isEn ? "ground" : "ziemia";
+  if (t === "GND" || t === "SFC") return UI.t("ziemia", "ground", "земля");
   const m = zoneAltM(t);
-  return m ? `${t} (${(m / 1000).toFixed(1).replace(".", UI.isEn ? "." : ",")} km)` : t;
+  return m ? `${t} (${(m / 1000).toFixed(1).replace(".", UI.t(",", ".", ","))} km)` : t;
 }
 
 async function refreshZones(force) {
@@ -1628,54 +1632,59 @@ function syncZonesButton() {
   b.style.display = (standalone || !apiBase()) ? "none" : "";
   const on = zonesOn();
   b.setAttribute("aria-pressed", on ? "true" : "false");
-  const t = on ? (UI.isEn ? "Hide PAŻP zones" : "Ukryj strefy PAŻP")
-               : (UI.isEn ? "Show PAŻP zones" : "Pokaż strefy PAŻP");
+  const t = on ? (UI.t("Ukryj strefy PAŻP", "Hide PAŻP zones", "Сховати зони PAŻP"))
+               : (UI.t("Pokaż strefy PAŻP", "Show PAŻP zones", "Показати зони PAŻP"));
   b.title = t; b.setAttribute("aria-label", t);
   const label = b.querySelector("span");
-  if (label) label.textContent = UI.isEn ? "zones" : "strefy";
+  if (label) label.textContent = UI.t("strefy", "zones", "зони");
 }
 
 /* ── karta strefy: po ludzku, bez żargonu lotniczego ─────────────────────── */
 const ZONE_KIND = {
-  D:     ["strefa niebezpieczna (D)", "danger area (D)"],
-  R:     ["strefa ograniczona (R)", "restricted area (R)"],
-  P:     ["strefa zakazana (P)", "prohibited area (P)"],
-  NPZ:   ["strefa zakazu lotów (NPZ)", "no-flight zone (NPZ)"],
-  ADHOC: ["strefa doraźna (ADHOC)", "ad-hoc zone (ADHOC)"],
-  TSA:   ["strefa czasowo wydzielona (TSA)", "temporary segregated area (TSA)"],
-  TRA:   ["strefa czasowo rezerwowana (TRA)", "temporary reserved area (TRA)"],
-  MRT:   ["trasa lotów wojskowych (MRT)", "military training route (MRT)"],
+  D:     ["strefa niebezpieczna (D)", "danger area (D)", "небезпечна зона (D)"],
+  R:     ["strefa ograniczona (R)", "restricted area (R)", "зона обмежень (R)"],
+  P:     ["strefa zakazana (P)", "prohibited area (P)", "заборонена зона (P)"],
+  NPZ:   ["strefa zakazu lotów (NPZ)", "no-flight zone (NPZ)", "зона заборони польотів (NPZ)"],
+  ADHOC: ["strefa doraźna (ADHOC)", "ad-hoc zone (ADHOC)", "тимчасова зона (ADHOC)"],
+  TSA:   ["strefa czasowo wydzielona (TSA)", "temporary segregated area (TSA)", "тимчасово виділена зона (TSA)"],
+  TRA:   ["strefa czasowo rezerwowana (TRA)", "temporary reserved area (TRA)", "тимчасово зарезервована зона (TRA)"],
+  MRT:   ["trasa lotów wojskowych (MRT)", "military training route (MRT)", "маршрут військових польотів (MRT)"],
 };
 const ZONE_MEANING = {
   D: ["Nad tym obszarem odbywa się działalność niebezpieczna dla lotnictwa — najczęściej strzelania albo ćwiczenia wojskowe.",
-      "Activity hazardous to aircraft takes place here — usually live firing or military exercises."],
+      "Activity hazardous to aircraft takes place here — usually live firing or military exercises.",
+      "Над цією територією відбувається небезпечна для авіації діяльність — найчастіше стрільби або військові навчання."],
   R: ["Loty w tym obszarze są ograniczone: wejść może tylko ten, kto ma zgodę.",
-      "Flights here are restricted: only aircraft with clearance may enter."],
-  P: ["Loty w tym obszarze są zakazane.", "Flights here are prohibited."],
+      "Flights here are restricted: only aircraft with clearance may enter.",
+      "Польоти тут обмежені: увійти може лише той, хто має дозвіл."],
+  P: ["Loty w tym obszarze są zakazane.", "Flights here are prohibited.", "Польоти в цій зоні заборонені."],
   NPZ: ["Zakaz lotów — obszar zamknięty dla ruchu lotniczego.",
-        "No-flight zone — the area is closed to air traffic."],
+        "No-flight zone — the area is closed to air traffic.",
+        "Заборона польотів — простір закритий для авіаційного руху."],
   ADHOC: ["Strefa powołana doraźnie, zwykle na kilka–kilkanaście godzin, decyzją podjętą tego samego dnia.",
-          "A zone raised at short notice, usually for a few hours, on a same-day decision."],
+          "A zone raised at short notice, usually for a few hours, on a same-day decision.",
+          "Зона, створена нашвидкуруч, зазвичай на кілька годин, рішенням того самого дня."],
   TSA: ["Kawałek nieba wydzielony na czas ćwiczeń lub lotów wojskowych — na ten czas zwykły ruch go omija.",
-        "A block of airspace segregated for military training or operations — ordinary traffic routes around it."],
+        "A block of airspace segregated for military training or operations — ordinary traffic routes around it.",
+        "Ділянка неба, виділена на час навчань або військових польотів — звичайний рух її тоді обходить."],
   TRA: ["Kawałek nieba zarezerwowany czasowo, najczęściej na loty wojskowe.",
-        "A block of airspace reserved temporarily, most often for military flights."],
+        "A block of airspace reserved temporarily, most often for military flights.",
+        "Ділянка неба, зарезервована тимчасово, найчастіше для військових польотів."],
 };
 
 function zoneClock(iso) {
   const t = Date.parse(iso);
   if (isNaN(t)) return "?";
-  return new Date(t).toLocaleString(UI.isEn ? "en-GB" : "pl-PL",
+  return new Date(t).toLocaleString(UI.t("pl-PL", "en-GB", "uk-UA"),
     { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 }
 function zoneSinceText(sinceEpochS) {
   const t = Number(sinceEpochS) * 1000;
   if (!t || isNaN(t)) return "";
   const h = (Date.now() - t) / 3600000;
-  if (h < 1) return UI.isEn ? `${Math.max(1, Math.round(h * 60))} min ago`
-                            : `${Math.max(1, Math.round(h * 60))} min temu`;
-  if (h < 48) return UI.isEn ? `${Math.round(h)} h ago` : `${Math.round(h)} godz. temu`;
-  return UI.isEn ? `${Math.round(h / 24)} days ago` : `${Math.round(h / 24)} dni temu`;
+  if (h < 1) return UI.t(`${Math.max(1, Math.round(h * 60))} min temu`, `${Math.max(1, Math.round(h * 60))} min ago`, `${Math.max(1, Math.round(h * 60))} хв тому`);
+  if (h < 48) return UI.t(`${Math.round(h)} godz. temu`, `${Math.round(h)} h ago`, `${Math.round(h)} год тому`);
+  return UI.t(`${Math.round(h / 24)} dni temu`, `${Math.round(h / 24)} days ago`, `${Math.round(h / 24)} дн. тому`);
 }
 
 /* Przybliżone pole strefy (stopnie² × cos szerokości) — tylko do porównania,
@@ -1698,19 +1707,16 @@ function zoneArea(f) {
 function openZoneCard(p, overlapping = []) {
   if (!p) return;
   markSelected(null, null);
-  const en = UI.isEn;
   const type = String(p.type || "").toUpperCase();
-  const kind = (ZONE_KIND[type] || [type, type])[en ? 1 : 0];
+  const kind = UI.t(...(ZONE_KIND[type] || [type, type, type]));
   const standing = p.standing === true || p.standing === "true";
   const zastana = p.atBoot === true || p.atBoot === "true";
-  let meaning = (ZONE_MEANING[type] || ["", ""])[en ? 1 : 0];
+  let meaning = UI.t(...(ZONE_MEANING[type] || ["", "", ""]));
   /* Strefa doraźna, która stoi tygodniami, przestaje być doraźna — opis „zwykle
      na kilka godzin" kłóciłby się z wierszem o tym, że to stan (np. EPR134 nad
      pasem przygranicznym, przedłużana od 10.09.2026). */
   if (standing && type === "ADHOC")
-    meaning = en
-      ? "A zone raised by an administrative decision. This one keeps being extended, so it stays up for weeks rather than hours."
-      : "Strefa powołana decyzją administracyjną. Ta akurat jest przedłużana, więc stoi tygodniami, a nie godzinami.";
+    meaning = UI.t("Strefa powołana decyzją administracyjną. Ta akurat jest przedłużana, więc stoi tygodniami, a nie godzinami.", "A zone raised by an administrative decision. This one keeps being extended, so it stays up for weeks rather than hours.", "Зону створено адміністративним рішенням. Цю конкретну продовжують, тож вона стоїть тижнями, а не годинами.");
   /* Karta ma BIAŁE tło (#ac-card), a kolory z mapy są na nie za jasne: surowy
      amber #ffb020 daje kontrast 1,83:1, czyli poniżej każdego progu czytelności.
      Wersje tekstowe tych samych barw trzymają ~5,8:1. Predykat ten sam co na
@@ -1721,39 +1727,32 @@ function openZoneCard(p, overlapping = []) {
      strefę codziennie od 06:00 UTC, więc startDate kłamałby o świeżości. */
   const since = zoneSinceText(p.since);
   const time = standing
-    ? (en ? `This zone has been standing here for a long time — it is a state, not a new event.`
-          : `Ta strefa stoi tu od dłuższego czasu — to stan, nie nowe zdarzenie.`)
+    ? (UI.t(`Ta strefa stoi tu od dłuższego czasu — to stan, nie nowe zdarzenie.`, `This zone has been standing here for a long time — it is a state, not a new event.`, `Ця зона стоїть тут уже давно — це стан, а не нова подія.`))
     : (p.atBoot === true || p.atBoot === "true")
-      ? (en ? "The zone was already active when Strażnik started watching — it may have been switched on earlier."
-            : "Strefa była już aktywna, gdy Strażnik zaczął obserwację — mogła zostać włączona wcześniej.")
-      : (en ? `Strażnik saw it switch on ${since || "recently"}.`
-            : `Strażnik zobaczył jej włączenie ${since || "niedawno"}.`);
+      ? (UI.t("Strefa była już aktywna, gdy Strażnik zaczął obserwację — mogła zostać włączona wcześniej.", "The zone was already active when Strażnik started watching — it may have been switched on earlier.", "Зона вже була активна, коли Strażnik почав спостереження — її могли ввімкнути раніше."))
+      : (UI.t(`Strażnik zobaczył jej włączenie ${since || "niedawno"}.`, `Strażnik saw it switch on ${since || "recently"}.`, `Strażnik побачив її ввімкнення ${since || "нещодавно"}.`));
   /* PAŻP publikuje plan DOBOWY: pole „koniec" to koniec dzisiejszej rezerwacji,
      a nie koniec strefy. EPR134 nad pasem przygranicznym jest powołana NOTAM-em
      do grudnia 2026, a feed podawał dla niej 13.09 — karta obiecywała zniesienie,
      którego nie będzie (zgłoszone 12.09.2026). Nie nazywamy tego końcem strefy. */
   const untilRaw = zoneClock(p.end);
   const until = untilRaw === "?" ? ""
-    : `${en ? "Reserved until" : "Rezerwacja do"}: <b>${esc2(untilRaw)}</b>
-       <span style="color:#68758c">${en
-         ? "(end of today’s slot — PAŻP publishes day by day and a zone can be renewed)"
-         : "(koniec dzisiejszej rezerwacji — PAŻP publikuje plan dobowy, strefa bywa przedłużana)"}</span><br>`;
+    : `${UI.t("Rezerwacja do", "Reserved until", "Резервація до")}: <b>${esc2(untilRaw)}</b>
+       <span style="color:#68758c">${UI.t("(koniec dzisiejszej rezerwacji — PAŻP publikuje plan dobowy, strefa bywa przedłużana)", "(end of today’s slot — PAŻP publishes day by day and a zone can be renewed)", "(кінець сьогоднішньої резервації — PAŻP публікує добовий план, зону часто продовжують)")}</span><br>`;
   showCard(`
     <div class="zone-head"><b style="color:${color}">▦ ${esc2(String(p.designator || "—"))}</b>
       <span style="color:#8fa3c4">· ${esc2(kind)}</span></div>
     ${meaning ? `<span>${esc2(meaning)}</span><br>` : ""}
     <span style="color:#8fa3c4">${esc2(time)}</span><br>
     ${until}
-    ${en ? "Altitude band" : "Pułap"}: <b>${esc2(zoneAltText(p.lower))} – ${esc2(zoneAltText(p.upper))}</b><br>
+    ${UI.t("Pułap", "Altitude band", "Стеля")}: <b>${esc2(zoneAltText(p.lower))} – ${esc2(zoneAltText(p.upper))}</b><br>
     ${p.voiv ? `<button type="button" class="chip btn-zone-voiv" data-voiv="${esc2(p.voiv)}"
-        style="margin:5px 0 6px">${en ? "Province" : "Województwo"}: ${esc2(UI.voiv(p.voiv))} ›</button><br>` : ""}
-    ${p.remarks ? `<span style="color:#68758c">${en ? "PAŻP note" : "Adnotacja PAŻP"}: ${esc2(String(p.remarks))}</span><br>` : ""}
-    ${overlapping.length ? `<span style="color:#68758c">${en ? "Other zones at this spot" : "W tym miejscu są też"}:</span>
+        style="margin:5px 0 6px">${UI.t("Województwo", "Province", "Воєводство")}: ${esc2(UI.voiv(p.voiv))} ›</button><br>` : ""}
+    ${p.remarks ? `<span style="color:#68758c">${UI.t("Adnotacja PAŻP", "PAŻP note", "Примітка PAŻP")}: ${esc2(String(p.remarks))}</span><br>` : ""}
+    ${overlapping.length ? `<span style="color:#68758c">${UI.t("W tym miejscu są też", "Other zones at this spot", "У цьому місці є також")}:</span>
       ${overlapping.map(d => `<button type="button" class="chip btn-zone-other" data-zone="${esc2(d)}"
         style="margin:3px 4px 3px 0">${esc2(d)}</button>`).join("")}<br>` : ""}
-    <span style="color:#68758c">${en
-      ? "This is information, not an alert. The zone layer itself adds no points — only a rare D, R, NPZ or ADHOC zone from the ground up over the eastern border or the north, not seen for 7 days, scores (0.5–1 pt) and then appears among the signals. Source: PAŻP (AUP/UUP)."
-      : "To informacja, nie alarm. Sama warstwa stref nie dodaje punktów — punktuje tylko rzadka strefa D, R, NPZ albo ADHOC od ziemi nad ścianą wschodnią lub północą, niewidziana od 7 dni (0,5–1 pkt), i wtedy pojawia się w sygnałach. Źródło: PAŻP (AUP/UUP)."}</span>`, { big: true });
+    <span style="color:#68758c">${UI.t("To informacja, nie alarm. Sama warstwa stref nie dodaje punktów — punktuje tylko rzadka strefa D, R, NPZ albo ADHOC od ziemi nad ścianą wschodnią lub północą, niewidziana od 7 dni (0,5–1 pkt), i wtedy pojawia się w sygnałach. Źródło: PAŻP (AUP/UUP).", "This is information, not an alert. The zone layer itself adds no points — only a rare D, R, NPZ or ADHOC zone from the ground up over the eastern border or the north, not seen for 7 days, scores (0.5–1 pt) and then appears among the signals. Source: PAŻP (AUP/UUP).", "Це інформація, а не тривога. Сам шар зон балів не додає — бали дає лише рідкісна зона D, R, NPZ або ADHOC від землі над східною стіною чи північчю, не бачена 7 днів (0,5–1 бала), і тоді вона з'являється в сигналах. Джерело: PAŻP (AUP/UUP).")}</span>`, { big: true });
 }
 
 /* Dotknięcie wnętrza dużej strefy trafia w strefę, nie w województwo — bez tego
@@ -1816,7 +1815,14 @@ const COUNTRY_EN = { "Polska":"Poland", "Rosja":"Russia", "Białoruś":"Belarus"
   "Szwecja":"Sweden", "Finlandia":"Finland", "Austria":"Austria", "Grecja":"Greece",
   "Portugalia":"Portugal", "Szwajcaria":"Switzerland", "Turcja":"Türkiye",
   "USA":"United States", "Kanada":"Canada", "Australia":"Australia" };
-const countryText = name => UI.isEn ? (COUNTRY_EN[name] || name) : name;
+const COUNTRY_UK = { "Polska":"Польща", "Rosja":"Росія", "Białoruś":"Білорусь", "Niemcy":"Німеччина",
+  "Francja":"Франція", "Wielka Brytania":"Велика Британія", "Włochy":"Італія", "Hiszpania":"Іспанія",
+  "Czechy":"Чехія", "Słowacja":"Словаччина", "Węgry":"Угорщина", "Rumunia":"Румунія",
+  "Litwa":"Литва", "Łotwa":"Латвія", "Estonia":"Естонія", "Ukraina":"Україна",
+  "Holandia":"Нідерланди", "Belgia":"Бельгія", "Dania":"Данія", "Norwegia":"Норвегія",
+  "Szwecja":"Швеція", "Finlandia":"Фінляндія", "Austria":"Австрія", "Grecja":"Греція",
+};
+const countryText = name => UI.t(name, COUNTRY_EN[name] || name, COUNTRY_UK[name] || COUNTRY_EN[name] || name);
 
 /* Biblioteka modelu: lokalna, bez API wyszukującego po powtarzalnych numerach.
    Brak potwierdzonego wariantu oznacza brak fotografii, nie podobną maszynę. */
@@ -1833,7 +1839,7 @@ function speedRow(p) {
 function headingRow(p) {
   const t = p.track != null ? `${Math.round(p.track)}° (${compass(p.track)})` : null;
   const mh = p.mag_heading != null ? `mag. ${Math.round(p.mag_heading)}°` : null;
-  return [t, mh].filter(Boolean).join(" · ") || (UI.isEn ? "unavailable" : "b.d.");
+  return [t, mh].filter(Boolean).join(" · ") || (UI.t("b.d.", "unavailable", "н/д"));
 }
 
 /* ── warstwa obserwacyjna: obce (RU/BY) maszyny nad wschodnią flanką ──────── */
@@ -1919,8 +1925,8 @@ function applyCardSize(force) {
   const big = card.dataset.forceBig === "1" || cardBig();
   card.classList.toggle("big", big);
   if (btn) {
-    const t = big ? (UI.isEn ? "Collapse card" : "Zwiń kartę")
-                  : (UI.isEn ? "Expand card" : "Rozwiń kartę");
+    const t = big ? (UI.t("Zwiń kartę", "Collapse card", "Згорнути картку"))
+                  : (UI.t("Rozwiń kartę", "Expand card", "Розгорнути картку"));
     btn.title = t; btn.setAttribute("aria-label", t);
   }
 }
@@ -1935,27 +1941,27 @@ function openThreatPopup(lngLat, p) {
   const fallbackType = p.type === "cruise" ? "missile" : p.type;
   const img = p.type ? (photo
     ? `<div class="thr-photo" style="margin:-2px 0 6px"><img src="assets/threats/${esc2(photo.file)}"
-        alt="${UI.isEn ? "AI illustration" : "Ilustracja AI"}: ${esc2(meta.label)} — ${UI.isEn ? "not the tracked object" : "nie śledzony obiekt"}" loading="lazy"
+        alt="${UI.t("Ilustracja AI", "AI illustration", "Ілюстрація ШІ")}: ${esc2(meta.label)} — ${UI.t("nie śledzony obiekt", "not the tracked object", "не відстежуваний об'єкт")}" loading="lazy"
         onerror="this.closest('.thr-photo').hidden=true">
-        <div class="thr-photo-note"><strong>${UI.isEn ? "Reference illustration generated by AI." : "Ilustracja poglądowa wygenerowana przez AI."}</strong><br>
-          ${UI.isEn ? "It does not depict the tracked object. It may contain simplifications and must not be used to identify a model." : "Nie przedstawia śledzonego obiektu. Może zawierać uproszczenia; nie służy do identyfikacji modelu."}</div></div>`
+        <div class="thr-photo-note"><strong>${UI.t("Ilustracja poglądowa wygenerowana przez AI.", "Reference illustration generated by AI.", "Оглядова ілюстрація, згенерована ШІ.")}</strong><br>
+          ${UI.t("Nie przedstawia śledzonego obiektu. Może zawierać uproszczenia; nie służy do identyfikacji modelu.", "It does not depict the tracked object. It may contain simplifications and must not be used to identify a model.", "Не зображує відстежуваного об'єкта. Може містити спрощення; не служить для визначення моделі.")}</div></div>`
     : `<div class="thr-photo" style="margin:-2px 0 6px"><img src="assets/threats/${esc2(fallbackType)}.svg"
         alt="Grafika poglądowa typu ${esc2(meta.label)}"
         onerror="this.closest('.thr-photo').style.display='none'">
-        <div class="thr-photo-note">${UI.isEn ? "type reference — not this object" : "grafika poglądowa typu — nie tego obiektu"}</div></div>`)
+        <div class="thr-photo-note">${UI.t("grafika poglądowa typu — nie tego obiektu", "type reference — not this object", "оглядове зображення типу — не цього об'єкта")}</div></div>`)
     : "";
   showCard(`${img}
       <b style="color:${meta.color};filter:brightness(.75)">◆ ${meta.label}</b><br>
       ${p.opis ? esc2(p.opis) + "<br>" : ""}
-      ${UI.isEn ? "confidence" : "wiarygodność"}: <b>${esc2(UI.confidence(p.confidence, CONF_PL[p.confidence] || p.confidence))}</b>
-        · ${UI.isEn ? "position uncertainty" : "niepewność pozycji"}: <b>±${p.uncertainty} km</b><br>
-      ${p.heading != null && !p.hdg_unknown ? `${UI.isEn ? (p.heading_measured ? "heading from movement" : "heading") : (p.heading_measured ? "kurs z ruchu" : "kurs")}: ${Math.round(p.heading)}° (${compass(p.heading)})${p.heading_measured && p.heading_source != null && Math.abs(((p.heading - p.heading_source) % 360 + 540) % 360 - 180) > 45 ? ` <span style="color:#95a1b7">(${UI.isEn ? "NEPTUN reports" : "NEPTUN podaje"} ${Math.round(p.heading_source)}°)</span>` : ""} · ` : ""}
-      ${UI.isEn ? "distance from the Polish border" : "odległość od granicy PL"}: <b>${p.distance_text ?? ((p.dist_km ?? "?") + " km")}</b><br>
-      ${UI.isEn ? "last report" : "ostatni meldunek"}: <b>${ageAgoText(p.age_min)}</b>${Number(p.age_min) >= 15
-        ? ` <span style="color:#95a1b7">${UI.isEn ? "— the object may have moved on since" : "— obiekt mógł się od tego czasu przemieścić"}</span>` : ""}<br>
+      ${UI.t("wiarygodność", "confidence", "достовірність")}: <b>${esc2(UI.confidence(p.confidence, CONF_PL[p.confidence] || p.confidence))}</b>
+        · ${UI.t("niepewność pozycji", "position uncertainty", "невизначеність позиції")}: <b>±${p.uncertainty} km</b><br>
+      ${p.heading != null && !p.hdg_unknown ? `${p.heading_measured ? UI.t("kurs z ruchu", "heading from movement", "курс із руху") : UI.t("kurs", "heading", "курс")}: ${Math.round(p.heading)}° (${compass(p.heading)})${p.heading_measured && p.heading_source != null && Math.abs(((p.heading - p.heading_source) % 360 + 540) % 360 - 180) > 45 ? ` <span style="color:#95a1b7">(${UI.t("NEPTUN podaje", "NEPTUN reports", "NEPTUN повідомляє")} ${Math.round(p.heading_source)}°)</span>` : ""} · ` : ""}
+      ${UI.t("odległość od granicy PL", "distance from the Polish border", "відстань від кордону Польщі")}: <b>${p.distance_text ?? ((p.dist_km ?? "?") + " km")}</b><br>
+      ${UI.t("ostatni meldunek", "last report", "останнє повідомлення")}: <b>${ageAgoText(p.age_min)}</b>${Number(p.age_min) >= 15
+        ? ` <span style="color:#95a1b7">${UI.t("— obiekt mógł się od tego czasu przemieścić", "— the object may have moved on since", " — відтоді об'єкт міг переміститися")}</span>` : ""}<br>
       ${courseVerdictHTML(p)}
       ${p.eta || ""}
-      <span style="color:#68758c">${UI.isEn ? "Data: NEPTUN — OSINT aggregator, not military radar" : "Dane: NEPTUN — agregator OSINT, nie radar wojskowy"}</span>`);
+      <span style="color:#68758c">${UI.t("Dane: NEPTUN — agregator OSINT, nie radar wojskowy", "Data: NEPTUN — OSINT aggregator, not military radar", "Дані: NEPTUN — агрегатор OSINT, а не військовий радар")}</span>`);
 }
 
 /* Werdykt kursu w karcie obiektu. Bez tego karta podawała same stopnie („kurs
@@ -1966,16 +1972,15 @@ function courseVerdictHTML(p) {
   const known = !(p.heading_known === false || p.heading_known === "false");
   const off = p.course_off == null || p.course_off === "" ? null : Math.round(Number(p.course_off));
   if (toward) {
-    return `<span style="color:#c0392b"><b>${UI.isEn ? "heading towards Poland" : "kurs na Polskę"}</b>${
-      off != null ? ` (${off}° ${UI.isEn ? "off the direction to the border" : "od kierunku na granicę"})` : ""}</span><br>`;
+    return `<span style="color:#c0392b"><b>${UI.t("kurs na Polskę", "heading towards Poland", "курс на Польщу")}</b>${
+      off != null ? ` (${off}° ${UI.t("od kierunku na granicę", "off the direction to the border", "від напрямку на кордон")})` : ""}</span><br>`;
   }
   const why = !known
-    ? (UI.isEn ? "heading unknown" : "kurs nieznany")
+    ? (UI.t("kurs nieznany", "heading unknown", "курс невідомий"))
     : off != null
-      ? (UI.isEn ? `heading ${off}° away from the direction to Poland`
-                 : `kurs ${off}° od kierunku na Polskę`)
-      : (UI.isEn ? "not heading towards Poland" : "kurs nie prowadzi na Polskę");
-  return `<span style="color:#7a8699"><b>${UI.isEn ? "0 pts" : "0 pkt"}</b> — ${why}</span><br>`;
+      ? (UI.t(`kurs ${off}° od kierunku na Polskę`, `heading ${off}° away from the direction to Poland`, `курс ${off}° від напрямку на Польщу`))
+      : (UI.t("kurs nie prowadzi na Polskę", "not heading towards Poland", "курс не веде на Польщу"));
+  return `<span style="color:#7a8699"><b>${UI.t("0 pkt", "0 pts", "0 бал.")}</b> — ${why}</span><br>`;
 }
 
 /* Karta samolotu w stylu airplanes.live: zdjęcie, kraj rejestracji, operator,
@@ -1986,9 +1991,9 @@ function planePopupHTML(p, heli, uid) {
   const role = acRole(p.type, p.desc);
   const vr = typeof p.vr === "number" ? p.vr : (p.vr != null ? +p.vr : null);
   const vrTxt = vr == null ? "" : vr > 100 ? ` · ↑ ${vr} ft/min`
-    : vr < -100 ? ` · ↓ ${Math.abs(vr)} ft/min` : (UI.isEn ? " · level flight" : " · lot poziomy");
+    : vr < -100 ? ` · ↓ ${Math.abs(vr)} ft/min` : (UI.t(" · lot poziomy", " · level flight", " · горизонтальний політ"));
   const mil = (p.dbflags & 1)
-    ? `<span style="background:#7a1d2b;color:#fff;border-radius:4px;padding:1px 5px;font-size:10px">${UI.isEn ? "MILITARY" : "WOJSKOWY"}</span> ` : "";
+    ? `<span style="background:#7a1d2b;color:#fff;border-radius:4px;padding:1px 5px;font-size:10px">${UI.t("WOJSKOWY", "MILITARY", "ВІЙСЬКОВИЙ")}</span> ` : "";
   const nav = Array.isArray(p.nav_modes) ? p.nav_modes.join(", ") : (p.nav_modes || "");
   const geom = p.alt_geom != null && p.alt_geom !== p.alt
     ? ` <span style="color:#68758c">(geom. ${ftToM(p.alt_geom)} m)</span>` : "";
@@ -1999,27 +2004,25 @@ function planePopupHTML(p, heli, uid) {
       <img id="${uid}" alt="" style="width:100%;max-height:220px;object-fit:contain;border-radius:6px;display:block">
       <div class="ph-cr" style="font-size:10px;color:#68758c;margin-top:2px"></div>
     </div>
-    <div id="${uid}-missing" style="font-size:10px;color:#68758c;margin-bottom:6px">${UI.isEn ? "No verified photo for this model/variant." : "Brak zweryfikowanego zdjęcia tego modelu/wariantu."}</div>
+    <div id="${uid}-missing" style="font-size:10px;color:#68758c;margin-bottom:6px">${UI.t("Brak zweryfikowanego zdjęcia tego modelu/wariantu.", "No verified photo for this model/variant.", "Немає перевіреного фото цієї моделі/варіанта.")}</div>
     <b style="font-size:13.5px">${heli ? "🚁" : "✈"} ${esc2(p.callsign || p.hex || "?")}</b>
-      ${p.reg ? ` · ${UI.isEn ? "reg." : "rej."} ${esc2(p.reg)}` : ""}<br>
+      ${p.reg ? ` · ${UI.t("rej.", "reg.", "реєстр.")} ${esc2(p.reg)}` : ""}<br>
     ${mil}${c ? `${c.flag} ${esc2(countryText(c.name))} · ` : ""}<b>${esc2(acName(p.type, p.desc))}</b>${p.year ? ` (${esc2(p.year)})` : ""}<br>
-    ${role ? `${UI.isEn ? "role" : "przeznaczenie"}: <b>${esc2(roleText(role))}</b><br>` : ""}
-    ${p.op ? `${UI.isEn ? "operator" : "operator"}: <b>${esc2(p.op)}</b><br>` : ""}
+    ${role ? `${UI.t("przeznaczenie", "role", "призначення")}: <b>${esc2(roleText(role))}</b><br>` : ""}
+    ${p.op ? `${UI.t("operator", "operator", "оператор")}: <b>${esc2(p.op)}</b><br>` : ""}
     <table style="margin:5px 0;border-collapse:collapse">
-      ${row(UI.isEn ? "altitude" : "wysokość", altText(p.alt) + geom + vrTxt.replace(" · ", "&nbsp; "))}
-      ${row(UI.isEn ? "speed" : "prędkość", speedRow(p))}
-      ${row(UI.isEn ? "heading" : "kurs", headingRow(p))}
+      ${row(UI.t("wysokość", "altitude", "висота"), altText(p.alt) + geom + vrTxt.replace(" · ", "&nbsp; "))}
+      ${row(UI.t("prędkość", "speed", "швидкість"), speedRow(p))}
+      ${row(UI.t("kurs", "heading", "курс"), headingRow(p))}
       ${row("squawk", p.squawk ? esc2(p.squawk) : "")}
-      ${row(UI.isEn ? "wind" : "wiatr", (p.ws != null && p.wd != null) ? `${ktToKmh(p.ws)} km/h ${UI.isEn ? "from" : "z"} ${Math.round(p.wd)}° (${compass(p.wd)})` : "")}
+      ${row(UI.t("wiatr", "wind", "вітер"), (p.ws != null && p.wd != null) ? `${ktToKmh(p.ws)} km/h ${UI.t("z", "from", "з")} ${Math.round(p.wd)}° (${compass(p.wd)})` : "")}
       ${row("temp.", p.oat != null ? `${Math.round(p.oat)} °C` : "")}
-      ${row(UI.isEn ? "nav modes" : "tryby nav", nav ? esc2(nav) : "")}
-      ${row(UI.isEn ? "signal" : "sygnał", `${esc2(p.source || "ADS-B")}${Number.isFinite(+p.rssi) && p.rssi !== null ? ` · ${+p.rssi} dBFS` : ""}${Number.isFinite(+p.messages) && p.messages !== null ? ` · ${+p.messages} msg/s` : ""}`)}
+      ${row(UI.t("tryby nav", "nav modes", "режими навігації"), nav ? esc2(nav) : "")}
+      ${row(UI.t("sygnał", "signal", "сигнал"), `${esc2(p.source || "ADS-B")}${Number.isFinite(+p.rssi) && p.rssi !== null ? ` · ${+p.rssi} dBFS` : ""}${Number.isFinite(+p.messages) && p.messages !== null ? ` · ${+p.messages} msg/s` : ""}`)}
     </table>
     <button class="btn-follow chip" style="font-size:11px;padding:3px 8px;margin-bottom:4px">${followHex === p.hex
-      ? (UI.isEn ? "■ stop tracking" : "■ przestań śledzić") : (UI.isEn ? "📍 follow track" : "📍 śledź trasę")}</button>
-    <div style="color:#68758c;font-size:11px">${UI.isEn
-      ? "public ADS-B/MLAT transponder — emitted position, not active tracking. Telemetry: ADS-B providers. Model photo: local library; source and license above."
-      : "publiczny transponder ADS-B/MLAT — pozycja emisji, nie namierzanie. Telemetria: dostawcy ADS-B. Zdjęcie modelu: biblioteka lokalna; źródło i licencja powyżej."}</div>
+      ? (UI.t("■ przestań śledzić", "■ stop tracking", "■ припинити стеження")) : (UI.t("📍 śledź trasę", "📍 follow track", "📍 стежити за шляхом"))}</button>
+    <div style="color:#68758c;font-size:11px">${UI.t("publiczny transponder ADS-B/MLAT — pozycja emisji, nie namierzanie. Telemetria: dostawcy ADS-B. Zdjęcie modelu: biblioteka lokalna; źródło i licencja powyżej.", "public ADS-B/MLAT transponder — emitted position, not active tracking. Telemetry: ADS-B providers. Model photo: local library; source and license above.", "відкритий транспондер ADS-B/MLAT — позиція випромінювання, а не радарне стеження. Телеметрія: постачальники ADS-B. Фото моделі: локальна бібліотека; джерело й ліцензія вище.")}</div>
   </div>`;
 }
 
@@ -2029,9 +2032,9 @@ function openPlanePopup(lngLat, props) {
   markSelected("plane", p.hex);
   const heli = p.heli != null ? p.heli : isHeli(p.cat, p.type, p.desc);
   const uid = "pp" + (++popupSeq);
-  const timeNote = histMode ? `<div class="hist-banner">${UI.isEn ? "HISTORY VIEW" : "PODGLĄD HISTORII"} — ${watchClock(historyAdsbTime)}<br>${p.historicalOnly
-    ? (UI.isEn ? "Last observation" : "Ostatnia obserwacja") + " " + watchClock(p.observedAt) + (UI.isEn ? " — no position in this snapshot" : " — brak pozycji w tej migawce")
-    : (UI.isEn ? "Position recorded in the selected snapshot" : "Pozycja zapisana w wybranej migawce")}</div>` : "";
+  const timeNote = histMode ? `<div class="hist-banner">${UI.t("PODGLĄD HISTORII", "HISTORY VIEW", "ПЕРЕГЛЯД ІСТОРІЇ")} — ${watchClock(historyAdsbTime)}<br>${p.historicalOnly
+    ? (UI.t("Ostatnia obserwacja", "Last observation", "Останнє спостереження")) + " " + watchClock(p.observedAt) + (UI.t(" — brak pozycji w tej migawce", " — no position in this snapshot", " — немає позиції в цьому знімку"))
+    : (UI.t("Pozycja zapisana w wybranej migawce", "Position recorded in the selected snapshot", "Позиція, збережена в обраному знімку"))}</div>` : "";
   showCard(timeNote + planePopupHTML(p, heli, uid));
   if (histMode) document.querySelector("#ac-card .btn-follow")?.remove();
   document.querySelector("#ac-card .btn-follow")
@@ -2046,15 +2049,15 @@ function openPlanePopup(lngLat, props) {
       img.alt = ph.model;
       const cr = box.querySelector(".ph-cr");
       if (cr) {
-        cr.textContent = window.AircraftPhotos.caption(ph, UI.isEn ? "en" : "pl");
+        cr.textContent = window.AircraftPhotos.caption(ph, UI.t("pl", "en", "uk"));
         cr.append(document.createElement("br"), document.createTextNode("📷 " + ph.author + " · "));
-        for (const [label, url] of [[UI.isEn ? "Source" : "Źródło", ph.sourceUrl], [ph.license, ph.licenseUrl]]) {
+        for (const [label, url] of [[UI.t("Źródło", "Source", "Джерело"), ph.sourceUrl], [ph.license, ph.licenseUrl]]) {
           const a = document.createElement("a"); a.textContent = label; a.href = url; a.target = "_blank"; a.rel = "noopener noreferrer";
           cr.append(a, document.createTextNode(" · "));
         }
         cr.append(document.createTextNode(ph.sourceCrop
-          ? (UI.isEn ? "Source crop; no further retouching." : "Kadrowanie źródłowe; bez dodatkowego retuszu.")
-          : (UI.isEn ? "Source thumbnail; no retouching." : "Miniatura źródłowa; bez retuszu.")));
+          ? (UI.t("Kadrowanie źródłowe; bez dodatkowego retuszu.", "Source crop; no further retouching.", "Кадрування з оригіналу; без додаткового ретушування."))
+          : (UI.t("Miniatura źródłowa; bez retuszu.", "Source thumbnail; no retouching.", "Мініатюра з оригіналу; без ретушування."))));
       }
       // Pierwsze żądanie nowego pliku mogło zostać zapamiętane przez CDN jako
       // 404 przed wdrożeniem. Osobny klucz wersji omija ten ujemny cache.
@@ -2243,19 +2246,16 @@ function paintRaionAlerts(areas) {
 }
 function openRaionAlert(a) {
   markSelected(null, null);
-  const en = UI.isEn;
   const since = Date.parse(a.s || "");
-  const t = Number.isFinite(since) ? new Date(since).toLocaleTimeString(en ? "en-GB" : "pl-PL",
+  const t = Number.isFinite(since) ? new Date(since).toLocaleTimeString(UI.t("pl-PL", "en-GB", "uk-UA"),
     { hour: "2-digit", minute: "2-digit" }) : "?";
   const where = a.w === "oblast" ? a.n : `${a.n}${a.o ? " · " + a.o : ""}`;
-  const lvl = a.l === "red" ? (en ? "red level" : "poziom czerwony") : (en ? "yellow level" : "poziom żółty");
+  const lvl = a.l === "red" ? (UI.t("poziom czerwony", "red level", "червоний рівень")) : (UI.t("poziom żółty", "yellow level", "жовтий рівень"));
   showCard(`
     <div class="zone-head"><b style="color:${a.l === "red" ? "#ff6b78" : "#ffc04d"}">📢 ${esc2(where)}</b>
-      <span style="color:#8fa3c4">· ${en ? "air-raid alert in Ukraine" : "alarm powietrzny w Ukrainie"}</span></div>
-    <span style="color:#8fa3c4">${en ? `Since ${t} · ${lvl}` : `Od ${t} · ${lvl}`}${a.r ? " · " + esc2(a.r) : ""}</span><br>
-    <span style="color:#68758c">${en
-      ? "Shown for information only — it adds no points. Points come only from alerts in the oblasts near Poland (pink outline). Source: NEPTUN."
-      : "Tylko do obserwacji — nie dolicza punktów. Punkty dają wyłącznie alarmy w obwodach blisko Polski (różowy obrys). Źródło: NEPTUN."}</span>`);
+      <span style="color:#8fa3c4">· ${UI.t("alarm powietrzny w Ukrainie", "air-raid alert in Ukraine", "повітряна тривога в Україні")}</span></div>
+    <span style="color:#8fa3c4">${UI.t(`Od ${t} · ${lvl}`, `Since ${t} · ${lvl}`, `Від ${t} · ${lvl}`)}${a.r ? " · " + esc2(a.r) : ""}</span><br>
+    <span style="color:#68758c">${UI.t("Tylko do obserwacji — nie dolicza punktów. Punkty dają wyłącznie alarmy w obwodach blisko Polski (różowy obrys). Źródło: NEPTUN.", "Shown for information only — it adds no points. Points come only from alerts in the oblasts near Poland (pink outline). Source: NEPTUN.", "Лише для спостереження — балів не додає. Бали дають тільки тривоги в областях поблизу Польщі (рожевий контур). Джерело: NEPTUN.")}</span>`);
 }
 const BALTIC_ISO3 = { LT: "LTU", LV: "LVA", EE: "EST" };
 function paintCountryAlerts(sigs) {
@@ -2276,49 +2276,44 @@ function paintCountryAlerts(sigs) {
 /* Karta podświetlonej Litwy, Łotwy albo Estonii — jak karta obwodu UA (22.09.2026). */
 function openCountryAlert(e) {
   markSelected(null, null);
-  const en = UI.isEn;
-  const name = (en ? BALTIC_NAME_EN : BALTIC_NAME_PL)[e.country] || e.country;
-  const since = new Date(e.since).toLocaleTimeString(en ? "en-GB" : "pl-PL",
+  const name = balticName(e.country);
+  const since = new Date(e.since).toLocaleTimeString(UI.t("pl-PL", "en-GB", "uk-UA"),
     { hour: "2-digit", minute: "2-digit" });
   const quote = String(e.sig.title || "").replace(/^[^„]*/, "");
   const link = safeUrl(e.sig.details?.link);
   const art = link ? `<a href="${esc(link)}" target="_blank" rel="noopener">${esc2(quote)}</a>` : esc2(quote);
   const num = (v) => en ? Number(v).toFixed(2).replace(/0$/, "") : Number(v).toFixed(2).replace(/0$/, "").replace(".", ",");
   const rows = e.per.sort((a, b) => b.points - a.points).map(r =>
-    `${en ? "" : "woj. "}${esc2(UI.voiv(r.voiv))}: <b>+${num(r.points)} ${en ? "pt" : "pkt"}</b>`).join("<br>");
+    `${UI.t("woj. ", "", "воєв. ")}${esc2(UI.voiv(r.voiv))}: <b>+${num(r.points)} ${UI.t("pkt", "pt", "бал.")}</b>`).join("<br>");
   showCard(`
     <div class="zone-head"><b style="color:#ff6b78">📢 ${esc2(name)}</b>
-      <span style="color:#8fa3c4">· ${en ? "air-raid alert (media report)" : "alarm powietrzny (doniesienie mediów)"}</span></div>
-    <span style="color:#8fa3c4">${en ? `Reported at ${since}:` : `Doniesienie z ${since}:`}</span> ${art}<br>
+      <span style="color:#8fa3c4">· ${UI.t("alarm powietrzny (doniesienie mediów)", "air-raid alert (media report)", "повітряна тривога (за повідомленнями ЗМІ)")}</span></div>
+    <span style="color:#8fa3c4">${UI.t(`Doniesienie z ${since}:`, `Reported at ${since}:`, `Повідомлення від ${since}:`)}</span> ${art}<br>
     ${rows}<br>
-    <span style="color:#68758c">${en
-      ? "The Baltic states have no public alert feed, so Strażnik reads their news portals and counts only a fresh headline announcing the alert. The weight falls with distance: Lithuania 0.3 pt, Latvia 0.18, Estonia 0.12 (half of that for West Pomerania). An article about the alert ending clears the highlight."
-      : "Kraje bałtyckie nie mają publicznego kanału alarmów, więc Strażnik czyta ich portale informacyjne i liczy tylko świeży tytuł ogłaszający alarm. Waga maleje z odległością: Litwa 0,3 pkt, Łotwa 0,18, Estonia 0,12 (zachodniopomorskie połowę). Artykuł o odwołaniu alarmu gasi podświetlenie."}</span>`);
+    <span style="color:#68758c">${UI.t("Kraje bałtyckie nie mają publicznego kanału alarmów, więc Strażnik czyta ich portale informacyjne i liczy tylko świeży tytuł ogłaszający alarm. Waga maleje z odległością: Litwa 0,3 pkt, Łotwa 0,18, Estonia 0,12 (zachodniopomorskie połowę). Artykuł o odwołaniu alarmu gasi podświetlenie.", "The Baltic states have no public alert feed, so Strażnik reads their news portals and counts only a fresh headline announcing the alert. The weight falls with distance: Lithuania 0.3 pt, Latvia 0.18, Estonia 0.12 (half of that for West Pomerania). An article about the alert ending clears the highlight.", "Країни Балтії не мають відкритого каналу тривог, тому Strażnik читає їхні інформаційні портали й рахує лише свіжий заголовок, що оголошує тривогу. Вага спадає з відстанню: Литва 0,3 бала, Латвія 0,18, Естонія 0,12 (Західнопоморське — половину). Стаття про відбій гасить підсвічення.")}</span>`);
 }
 function openOblastCard(p) {
   const e = oblastInfo.get(p.oblast);
   if (!e) return;
   markSelected(null, null);
   const en = UI.isEn;
-  const name = en ? `${p.en} oblast` : `Obwód ${p.pl}`;
-  const since = e.since ? new Date(e.since).toLocaleTimeString(en ? "en-GB" : "pl-PL",
+  const name = UI.t(`Obwód ${p.pl}`, `${p.en} oblast`, `Область ${p.pl}`);
+  const since = e.since ? new Date(e.since).toLocaleTimeString(UI.t("pl-PL", "en-GB", "uk-UA"),
     { hour: "2-digit", minute: "2-digit" }) : "?";
   const rows = e.per.sort((a, b) => b.points - a.points).map(r => {
-    const km = r.km == null ? "" : r.km <= 0 ? (en ? " (at the border)" : " (przy granicy)") : ` — ${r.km} km`;
+    const km = r.km == null ? "" : r.km <= 0 ? (UI.t(" (przy granicy)", " (at the border)", " (біля кордону)")) : ` — ${r.km} km`;
     const pts = Number(r.points).toFixed(2).replace(/0$/, "");
     const counted = r.counted != null && Math.abs(r.counted - r.points) >= 0.01
-      ? ` <span style="color:#68758c">(${en ? "counted" : "wliczone"} ${en ? Number(r.counted).toFixed(1) : Number(r.counted).toFixed(1).replace(".", ",")} — ${en ? "class cap" : "limit klasy"})</span>` : "";
-    const half = r.half ? ` <span style="color:#68758c">(${en ? "half weight — the alert has lasted over 30 min" : "połowa wagi — alarm trwa ponad 30 min"})</span>` : "";
-    return `${en ? "" : "woj. "}${esc2(UI.voiv(r.voiv))}${km}: <b>+${UI.isEn ? pts : pts.replace(".", ",")} ${en ? "pt" : "pkt"}</b>${half}${counted}`;
+      ? ` <span style="color:#68758c">(${UI.t("wliczone", "counted", "враховано")} ${en ? Number(r.counted).toFixed(1) : Number(r.counted).toFixed(1).replace(".", ",")} — ${UI.t("limit klasy", "class cap", "ліміт класу")})</span>` : "";
+    const half = r.half ? ` <span style="color:#68758c">(${UI.t("połowa wagi — alarm trwa ponad 30 min", "half weight — the alert has lasted over 30 min", "половина ваги — тривога триває понад 30 хв")})</span>` : "";
+    return `${UI.t("woj. ", "", "воєв. ")}${esc2(UI.voiv(r.voiv))}${km}: <b>+${UI.isEn ? pts : pts.replace(".", ",")} ${UI.t("pkt", "pt", "бал.")}</b>${half}${counted}`;
   }).join("<br>");
   showCard(`
     <div class="zone-head"><b style="color:#b8325a">📢 ${esc2(name)}</b>
-      <span style="color:#8fa3c4">· ${en ? "air-raid alert" : "alarm powietrzny"}</span></div>
-    <span style="color:#8fa3c4">${en ? `Alert in progress since ${since}.` : `Alarm trwa od ${since}.`}</span><br>
+      <span style="color:#8fa3c4">· ${UI.t("alarm powietrzny", "air-raid alert", "повітряна тривога")}</span></div>
+    <span style="color:#8fa3c4">${UI.t(`Alarm trwa od ${since}.`, `Alert in progress since ${since}.`, `Тривога триває від ${since}.`)}</span><br>
     ${rows}<br>
-    <span style="color:#68758c">${en
-      ? "Ukraine's civil defence declares the alert for the whole oblast. Its weight falls with the distance from the province (table in the user guide), and the whole class is capped at 1 pt. For the first 30 minutes the alert counts in full, then at half weight while it lasts; when it ends, the points and the highlight disappear at once."
-      : "Alarm ogłasza ukraińska obrona cywilna dla całego obwodu. Waga maleje z odległością od województwa (tabela w instrukcji), a cała klasa ma limit 1 pkt. Przez pierwsze 30 minut alarm liczy się w pełni, potem w połowie, dopóki trwa; gdy się skończy, punkty i podświetlenie znikają od razu."}</span>`, { big: true });
+    <span style="color:#68758c">${UI.t("Alarm ogłasza ukraińska obrona cywilna dla całego obwodu. Waga maleje z odległością od województwa (tabela w instrukcji), a cała klasa ma limit 1 pkt. Przez pierwsze 30 minut alarm liczy się w pełni, potem w połowie, dopóki trwa; gdy się skończy, punkty i podświetlenie znikają od razu.", "Ukraine's civil defence declares the alert for the whole oblast. Its weight falls with the distance from the province (table in the user guide), and the whole class is capped at 1 pt. For the first 30 minutes the alert counts in full, then at half weight while it lasts; when it ends, the points and the highlight disappear at once.", "Тривогу оголошує українська цивільна оборона для всієї області. Вага спадає з відстанню від воєводства (таблиця в інструкції), а весь клас має ліміт 1 бал. Перші 30 хвилин тривога рахується повністю, потім наполовину, доки триває; коли вона закінчується, бали й підсвічення зникають одразу.")}</span>`, { big: true });
 }
 
 function updateVoivStates() {
@@ -2480,13 +2475,15 @@ function threatAgeMin(t, nowMs) {
 }
 function ageAgoText(min) {
   const m = Number(min);
-  if (!Number.isFinite(m) || m < 1) return UI.isEn ? "just now" : "przed chwilą";
-  return ageLabel(m) + (UI.isEn ? " ago" : " temu");
+  if (!Number.isFinite(m) || m < 1) return UI.t("przed chwilą", "just now", "щойно");
+  return ageLabel(m) + (UI.t(" temu", " ago", " тому"));
 }
 function ageLabel(min) {
-  if (min < 60) return `${min} min`;
+  // jednostki też są językowe: ukraiński pisze „хв" i „год"
+  const jm = UI.t("min", "min", "хв"), jg = UI.t("h", "h", "год");
+  if (min < 60) return `${min} ${jm}`;
   const h = Math.floor(min / 60), m = min % 60;
-  return m ? `${h} h ${m} min` : `${h} h`;
+  return m ? `${h} ${jg} ${m} ${jm}` : `${h} ${jg}`;
 }
 
 function predict(t, nowMs) {
@@ -2700,34 +2697,32 @@ function fillWatch() {
     .sort((a, b) => (a.area || "zz").localeCompare(b.area || "zz"));
   const events = mergedWatchEvents(standalone ? [] : srvAdsbEvents, watchEvents, at);
   document.getElementById("watch-time").textContent = histMode
-    ? `${UI.isEn ? "HISTORY VIEW" : "PODGLĄD HISTORII"} — ${watchClock(at)}`
-    : (UI.isEn ? "LIVE — current observations" : "NA ŻYWO — bieżące obserwacje");
+    ? `${UI.t("PODGLĄD HISTORII", "HISTORY VIEW", "ПЕРЕГЛЯД ІСТОРІЇ")} — ${watchClock(at)}`
+    : (UI.t("NA ŻYWO — bieżące obserwacje", "LIVE — current observations", "НАЖИВО — поточні спостереження"));
   document.getElementById("watch-scope").textContent = histMode
-    ? (UI.isEn ? "Aircraft in the snapshot and earlier last observations" : "Maszyny w migawce i wcześniejsze ostatnie obserwacje")
-    : (UI.isEn ? "Currently in range" : "W zasięgu teraz");
+    ? (UI.t("Maszyny w migawce i wcześniejsze ostatnie obserwacje", "Aircraft in the snapshot and earlier last observations", "Машини у знімку й раніші останні спостереження"))
+    : (UI.t("W zasięgu teraz", "Currently in range", "Зараз у зоні"));
   document.getElementById("watch-sync").textContent = standalone
-    ? (UI.isEn ? "Fallback: local journal only." : "Tryb awaryjny: wyłącznie dziennik lokalny.")
+    ? (UI.t("Tryb awaryjny: wyłącznie dziennik lokalny.", "Fallback: local journal only.", "Аварійний режим: лише локальний журнал."))
     : watchSyncState === "error"
-      ? (UI.isEn ? "Server journal unavailable — showing available cached/local entries." : "Dziennik serwera niedostępny — pokazano dostępne wpisy z pamięci i lokalne.")
+      ? (UI.t("Dziennik serwera niedostępny — pokazano dostępne wpisy z pamięci i lokalne.", "Server journal unavailable — showing available cached/local entries.", "Журнал сервера недоступний — показано доступні записи з пам'яті та локальні."))
       : watchSyncState === "loading"
-        ? (UI.isEn ? "Loading server journal…" : "Pobieranie dziennika serwera…")
-        : (UI.isEn ? "Server and local journal · last 12 hours · entries no later than the displayed time" : "Dziennik serwera i lokalny · ostatnie 12 godzin · wpisy nie późniejsze niż wyświetlany czas");
+        ? (UI.t("Pobieranie dziennika serwera…", "Loading server journal…", "Завантаження журналу сервера…"))
+        : (UI.t("Dziennik serwera i lokalny · ostatnie 12 godzin · wpisy nie późniejsze niż wyświetlany czas", "Server and local journal · last 12 hours · entries no later than the displayed time", "Журнал сервера й локальний · останні 12 годин · записи не пізніші за показаний час"));
   document.getElementById("watch-current").innerHTML = cur.length ? cur.map(p => {
     const c = hexCountry(p.hex);
     return `<div class="watch-row clickable" data-hex="${esc(p.hex)}" data-lat="${p.lat}" data-lon="${p.lon}" data-kind="plane">
-      <b>${c ? c.flag + " " : ""}${esc(p.callsign || p.hex)}</b>${p.reg ? ` · ${UI.isEn ? "reg." : "rej."} ` + esc(p.reg) : ""}
-      <div class="meta">${esc(acName(p.type, p.desc))}${p.area ? ` · ${UI.isEn ? "over" : "nad"}: <b>` + esc(p.area) + "</b>" : ""}
+      <b>${c ? c.flag + " " : ""}${esc(p.callsign || p.hex)}</b>${p.reg ? ` · ${UI.t("rej.", "reg.", "реєстр.")} ` + esc(p.reg) : ""}
+      <div class="meta">${esc(acName(p.type, p.desc))}${p.area ? ` · ${UI.t("nad", "over", "над")}: <b>` + esc(p.area) + "</b>" : ""}
         ${p.alt != null ? " · " + esc(altText(p.alt)) : ""}</div>
-        ${p.historicalOnly ? `<div class="fineprint">${UI.isEn ? "Last observation" : "Ostatnia obserwacja"} ${watchClock(p.observedAt)} — ${UI.isEn ? "not in snapshot" : "brak w migawce"}</div>` : ""}</div>`;
-  }).join("") : `<div class="fineprint">${UI.isEn
-    ? "No RU/BY aircraft with a position in this view. No data does not imply an empty airspace."
-    : "Brak maszyn RU/BY z pozycją w tym widoku. Brak danych nie oznacza braku maszyn w powietrzu."}</div>`;
+        ${p.historicalOnly ? `<div class="fineprint">${UI.t("Ostatnia obserwacja", "Last observation", "Останнє спостереження")} ${watchClock(p.observedAt)} — ${UI.t("brak w migawce", "not in snapshot", "немає у знімку")}</div>` : ""}</div>`;
+  }).join("") : `<div class="fineprint">${UI.t("Brak maszyn RU/BY z pozycją w tym widoku. Brak danych nie oznacza braku maszyn w powietrzu.", "No RU/BY aircraft with a position in this view. No data does not imply an empty airspace.", "Немає машин РФ/РБ з позицією в цьому виді. Відсутність даних не означає, що в повітрі їх немає.")}</div>`;
   document.getElementById("watch-events").innerHTML = events.length ? events.map(e =>
     `<div class="watch-ev"><span class="${e.kind === "enter" ? "ev-in" : "ev-out"}">${e.kind === "enter"
-      ? (UI.isEn ? "▲ in range" : "▲ w zasięgu") : (UI.isEn ? "▼ disappeared" : "▼ zniknął")}</span>
+      ? (UI.t("▲ w zasięgu", "▲ in range", "▲ у зоні")) : (UI.t("▼ zniknął", "▼ disappeared", "▼ зник"))}</span>
       ${e.flag ? e.flag + " " : ""}${esc(e.callsign || e.label || e.reg || e.hex)}${e.reg && e.reg !== (e.callsign || e.label || e.reg || e.hex) ? " · " + esc(e.reg) : ""}${e.area ? " · " + esc(e.area) : ""}
-      <span class="ts">${watchClock(e.t)} · ${Math.max(0, Math.floor((at - e.t) / 60000))} min ${UI.isEn ? "before displayed time" : "przed wyświetlanym czasem"}</span></div>`).join("")
-    : `<div class="fineprint">${UI.isEn ? "No recorded events before the displayed time." : "Brak zapisanych zdarzeń przed wyświetlanym czasem."}</div>`;
+      <span class="ts">${watchClock(e.t)} · ${Math.max(0, Math.floor((at - e.t) / 60000))} min ${UI.t("przed wyświetlanym czasem", "before displayed time", "перед показаним часом")}</span></div>`).join("")
+    : `<div class="fineprint">${UI.t("Brak zapisanych zdarzeń przed wyświetlanym czasem.", "No recorded events before the displayed time.", "Немає записаних подій перед показаним часом.")}</div>`;
   document.querySelectorAll("#watch-current .watch-row").forEach(el =>
     el.addEventListener("click", () => {
       const p = cur.find(p => p.hex === el.dataset.hex);
@@ -2736,7 +2731,7 @@ function fillWatch() {
     }));
 }
 function watchClock(t) {
-  return new Date(t).toLocaleTimeString(UI.isEn ? "en-GB" : "pl-PL", {hour:"2-digit",minute:"2-digit",second:"2-digit"});
+  return new Date(t).toLocaleTimeString(UI.t("pl-PL", "en-GB", "uk-UA"), {hour:"2-digit",minute:"2-digit",second:"2-digit"});
 }
 let watchSyncState = "loading", watchFetchAt = 0, watchFetchPending = false;
 async function refreshWatchEvents() {
@@ -2774,10 +2769,10 @@ function showWatch() { fillWatch(); document.getElementById("watch").showModal()
 function relTime(iso) {
   const t = new Date(iso).getTime();
   const hist = histMode && historyAdsbTime != null;
-  if (!Number.isFinite(t)) return hist ? (UI.isEn ? "in this snapshot" : "w tej migawce") : "";
+  if (!Number.isFinite(t)) return hist ? (UI.t("w tej migawce", "in this snapshot", "у цьому знімку")) : "";
   const d = ((hist ? historyAdsbTime : Date.now()) - t) / 60000;
-  const ago = hist ? (UI.isEn ? "earlier" : "wcześniej") : (UI.isEn ? "ago" : "temu");
-  if (d < 1) return hist ? (UI.isEn ? "at this moment" : "w tej chwili") : (UI.isEn ? "just now" : "przed chwilą");
+  const ago = hist ? (UI.t("wcześniej", "earlier", "раніше")) : (UI.t("temu", "ago", "тому"));
+  if (d < 1) return hist ? (UI.t("w tej chwili", "at this moment", "цієї миті")) : (UI.t("przed chwilą", "just now", "щойно"));
   if (d < 60) return `${Math.round(d)} min ${ago}`;
   return `${Math.floor(d / 60)} h ${Math.round(d % 60)} min ${ago}`;
 }
@@ -2824,19 +2819,19 @@ function renderPanel() {
       openVoivs.has(name) ? " open" : ""}" data-voiv="${esc(name)}">
       <div class="voiv-head">
         <span class="voiv-name">${esc(UI.voiv(name))}</span>
-        <span class="voiv-score">${st.score.toFixed(1)} ${UI.isEn ? "pts" : "pkt"}</span>
+        <span class="voiv-score">${st.score.toFixed(1)} ${UI.t("pkt", "pts", "бал.")}</span>
       </div>
       <div class="voiv-level">${spillRaised(st) ? SPILL_LABEL
         : st.level === "none" && st.score > 0
-        ? (UI.isEn ? "below threshold" : "poniżej progu") : LEVEL_LABEL[st.level]}
-        <span class="muted">· ${UI.isEn ? "thresholds" : "progi"}: ≥${f.thresholds.elevated} ${UI.isEn ? "attention" : "uwaga"}, ≥${f.thresholds.high} ${UI.isEn ? "priority" : "priorytet"}</span></div>
+        ? (UI.t("poniżej progu", "below threshold", "нижче порога")) : LEVEL_LABEL[st.level]}
+        <span class="muted">· ${UI.t("progi", "thresholds", "пороги")}: ≥${f.thresholds.elevated} ${UI.t("uwaga", "attention", "увага")}, ≥${f.thresholds.high} ${UI.t("priorytet", "priority", "пріоритет")}</span></div>
       ${scoreBreakdown(st)}
       ${zonesRowHTML(name)}
       <div class="voiv-breakdown">${st.signals.length
         ? sigList(st.signals)
-        : `<div class="fineprint">${UI.isEn ? "no signals in the window" : "brak sygnałów w oknie"}</div>`}
+        : `<div class="fineprint">${UI.t("brak sygnałów w oknie", "no signals in the window", "у вікні немає сигналів")}</div>`}
         ${camIndex?.has(name)
-          ? `<button class="chip btn-cams" data-voiv="${esc(name)}">📷 ${UI.isEn ? "Cameras in the region" : "Kamery w regionie"}
+          ? `<button class="chip btn-cams" data-voiv="${esc(name)}">📷 ${UI.t("Kamery w regionie", "Cameras in the region", "Камери в регіоні")}
                (${camData[name].filter(c => c.outdoor !== false).length})</button>`
           : ""}</div>
     </div>`).join("");
@@ -2861,9 +2856,9 @@ function renderPanel() {
     // punktach poniżej progu baner mówi to samo co karta województwa
     banner.innerHTML = `<b>${esc(UI.voiv(mine))}</b> — <span class="lvl">${
       spillRaised(st) ? SPILL_LABEL
-      : st.level === "none" && st.score > 0 ? (UI.isEn ? "below threshold" : "poniżej progu")
+      : st.level === "none" && st.score > 0 ? (UI.t("poniżej progu", "below threshold", "нижче порога"))
       : LEVEL_LABEL[st.level]}</span>
-      <span class="muted">${st.score.toFixed(1)} ${UI.isEn ? "pts" : "pkt"}</span>${bezPotwierdzenia(st)}`;
+      <span class="muted">${st.score.toFixed(1)} ${UI.t("pkt", "pts", "бал.")}</span>${bezPotwierdzenia(st)}`;
     banner.onclick = () => { setPanel(true); openCard(mine); };
   } else {
     banner.className = "hidden";
@@ -2902,26 +2897,22 @@ function unscoredHTML(viewState) {
                  && t.pl_assessment.toward_pl === false)
     .sort((a, b) => a.pl_assessment.dist_km - b.pl_assessment.dist_km);
   if (!rows.length) return "";
-  const head = `<div class="unscored-head">${UI.isEn
-    ? `On the map, but scoring 0 pts (${rows.length})`
-    : `Na mapie, ale bez punktów (${rows.length})`}</div>`;
+  const head = `<div class="unscored-head">${UI.t(`Na mapie, ale bez punktów (${rows.length})`, `On the map, but scoring 0 pts (${rows.length})`, `На мапі, але без балів (${rows.length})`)}</div>`;
   return head + rows.map(t => {
     const a = t.pl_assessment;
     const m = TYPE_META[t.type] || { label: t.type, color: "#8a93a6" };
     const off = courseOffsetDeg(t);
     const why = a.heading_known === false
-      ? (UI.isEn ? "heading unknown — not counted as approaching"
-                 : "kurs nieznany — nie liczymy jako zbliżający się")
+      ? (UI.t("kurs nieznany — nie liczymy jako zbliżający się", "heading unknown — not counted as approaching", "курс невідомий — не рахуємо як наближення"))
       : off != null
-        ? (UI.isEn ? `heading ${off}° away from the direction to Poland`
-                   : `kurs ${off}° od kierunku na Polskę`)
-        : (UI.isEn ? "not heading towards Poland" : "kurs nie prowadzi na Polskę");
+        ? (UI.t(`kurs ${off}° od kierunku na Polskę`, `heading ${off}° away from the direction to Poland`, `курс ${off}° від напрямку на Польщу`))
+        : (UI.t("kurs nie prowadzi na Polskę", "not heading towards Poland", "курс не веде на Польщу"));
     return `<div class="threat-row clickable unscored" data-lat="${t.lat}" data-lon="${t.lon}"
       data-kind="threat" data-id="${esc(t.id)}">
       <b style="color:${m.color}">${esc(UI.type(t.type, m.label))}</b>
-      — ${threatDistanceText(t, a.dist_km)} ${UI.isEn ? "from the border" : "od granicy"}
-      <span class="zero">0 ${UI.isEn ? "pts" : "pkt"}</span>
-      <div class="meta">${esc(why)} · ${UI.isEn ? "confidence" : "wiarygodność"}: ${
+      — ${threatDistanceText(t, a.dist_km)} ${UI.t("od granicy", "from the border", "від кордону")}
+      <span class="zero">0 ${UI.t("pkt", "pts", "бал.")}</span>
+      <div class="meta">${esc(why)} · ${UI.t("wiarygodność", "confidence", "достовірність")}: ${
         esc(UI.confidence(t.confidenceLevel, CONF_PL[t.confidenceLevel] || t.confidenceLevel))
       } · ${relTime(t.updatedAt)}</div>
     </div>`;
@@ -2938,18 +2929,18 @@ function renderObservationLists(viewState) {
     return `<div class="threat-row clickable" data-lat="${t.lat}" data-lon="${t.lon}"
       data-kind="threat" data-id="${esc(t.id)}">
       <b style="color:${m.color}">${esc(UI.type(t.type, m.label))}</b>
-      — ${threatDistanceText(t, a.dist_km)} ${UI.isEn ? "from the border" : "od granicy"} (${esc(UI.voiv(a.border_voiv))})${
+      — ${threatDistanceText(t, a.dist_km)} ${UI.t("od granicy", "from the border", "від кордону")} (${esc(UI.voiv(a.border_voiv))})${
         a.heading_known === false
-          ? ` · <b style='color:#ffb020'>${UI.isEn ? "unknown heading" : "kurs nieznany"}</b>`
-          : (a.toward_pl ? ` · <b style='color:#ff4d5e'>${UI.isEn ? "heading towards Poland" : "kurs na PL"}</b>` : "")}
+          ? ` · <b style='color:#ffb020'>${UI.t("kurs nieznany", "unknown heading", "курс невідомий")}</b>`
+          : (a.toward_pl ? ` · <b style='color:#ff4d5e'>${UI.t("kurs na PL", "heading towards Poland", "курс на Польщу")}</b>` : "")}
       ${(() => { const e = etaInfo(t);
         return e && e.border != null
-          ? `<div class="meta eta-row">⏱ ${UI.isEn ? "to border" : "do granicy"} <b>${etaRangeTxt(e.borderLo, e.border)}</b>${
-              e.voiv != null ? ` · ${UI.isEn ? "to" : "do woj."} ${esc(UI.voiv(e.voivName))} <b>${etaRangeTxt(e.voivLo, e.voiv)}</b>` : ""}</div>`
+          ? `<div class="meta eta-row">⏱ ${UI.t("do granicy", "to border", "до кордону")} <b>${etaRangeTxt(e.borderLo, e.border)}</b>${
+              e.voiv != null ? ` · ${UI.t("do woj.", "to", "до воєв.")} ${esc(UI.voiv(e.voivName))} <b>${etaRangeTxt(e.voivLo, e.voiv)}</b>` : ""}</div>`
           : ""; })()}
       ${localPlaceHtml(t)}
       ${isApproxPosition(t) ? `<div class="meta">${approxPositionNote(t)}</div>` : ""}
-      <div class="meta">${UI.isEn ? "confidence" : "wiarygodność"}: ${esc(UI.confidence(t.confidenceLevel, CONF_PL[t.confidenceLevel] || t.confidenceLevel))}
+      <div class="meta">${UI.t("wiarygodność", "confidence", "достовірність")}: ${esc(UI.confidence(t.confidenceLevel, CONF_PL[t.confidenceLevel] || t.confidenceLevel))}
         · ±${esc(shownUncertaintyKm(t) ?? "?")} km · ${esc(threatDesc(t))} · ${relTime(t.updatedAt)}</div>
     </div>`;
   }).join("");
@@ -2966,14 +2957,14 @@ function renderObservationLists(viewState) {
       ${esc(acName(p.type, p.desc))}${p.year ? ` <span class="meta">(${esc(p.year)})</span>` : ""}
       ${role ? `<div style="color:#9fd8ec;font-size:11px">${esc(roleText(role))}</div>` : ""}
       <div class="meta">
-        ${UI.isEn ? "province" : "woj."} ${esc(UI.voiv(p.voivodeship))}
+        ${UI.t("woj.", "province", "воєв.")} ${esc(UI.voiv(p.voivodeship))}
         · ${altText(p.alt)}
         ${vr ? (vr > 100 ? " ↑" : vr < -100 ? " ↓" : "") : ""}
         ${p.gs != null ? ` · ${ktToKmh(p.gs)} km/h` : ""}
-        ${p.track != null ? ` · ${UI.isEn ? "heading" : "kurs"} ${Math.round(p.track)}° (${compass(p.track)})` : ""}
+        ${p.track != null ? ` · ${UI.t("kurs", "heading", "курс")} ${Math.round(p.track)}° (${compass(p.track)})` : ""}
       </div>
-      <div class="meta">${p.reg ? (UI.isEn ? "reg. " : "rej. ") + esc(p.reg) : ""}${p.op ? " · " + esc(p.op) : ""}</div>
-      ${p.historicalOnly ? `<div class="fineprint">${UI.isEn ? "Last observation" : "Ostatnia obserwacja"} ${watchClock(p.observedAt)} — ${UI.isEn ? "not in snapshot" : "brak w migawce"}</div>` : ""}
+      <div class="meta">${p.reg ? (UI.t("rej. ", "reg. ", "реєстр. ")) + esc(p.reg) : ""}${p.op ? " · " + esc(p.op) : ""}</div>
+      ${p.historicalOnly ? `<div class="fineprint">${UI.t("Ostatnia obserwacja", "Last observation", "Останнє спостереження")} ${watchClock(p.observedAt)} — ${UI.t("brak w migawce", "not in snapshot", "немає у знімку")}</div>` : ""}
     </div>`;
   }).join("");
 
@@ -3009,8 +3000,8 @@ function sigList(arr, limit) {
 const SRC_LABEL = { neptun: "NEPTUN", media: "MEDIA", rcb: "RCB", adsb: "ADS-B",
   pansa: "PAŻP",
   // w angielskim interfejsie polskie „SĄSIEDZTWO" zostawało nieprzetłumaczone
-  neighbours: UI.isEn ? "NEIGHBOUR ZONES" : "SĄSIEDZI",
-  spillover: UI.isEn ? "NEIGHBOURS" : "SĄSIEDZTWO",
+  neighbours: UI.t("SĄSIEDZI", "NEIGHBOUR ZONES", "СУСІДИ"),
+  spillover: UI.t("SĄSIEDZTWO", "NEIGHBOURS", "СУСІДСТВО"),
   // osobna klasa od 1.7.22: oficjalny alarm powietrzny w przygranicznym obwodzie UA
   ua_alert: "ALARM UA", test: "TEST" };
 const SRC_ICON = { neptun: "🎯", media: "📰", rcb: "🚨", adsb: "✈", pansa: "🛑",
@@ -3061,7 +3052,7 @@ function sigHTML(s) {
   // widać, że obiekt bez kursu w ogóle jest brany pod uwagę
   const extra = [];
   if (s.article_status && s.details?.article?.reason) extra.push(String(s.details.article.reason));
-  if (d.dist_km != null) extra.push(`${threatDistanceText(signalPosition, d.dist_km)} ${UI.isEn ? "from the border" : "od granicy"}`);
+  if (d.dist_km != null) extra.push(`${threatDistanceText(signalPosition, d.dist_km)} ${UI.t("od granicy", "from the border", "від кордону")}`);
   /* Odległość w sygnale to stan Z CHWILI JEGO POWSTANIA — obiekt leci dalej i po
      pół godzinie panel mówił „192,5 km", gdy na mapie ten sam dron był 130 km od
      granicy (zgłoszone 12.09.2026). Dopisujemy bieżącą odległość, dopóki obiekt
@@ -3075,21 +3066,21 @@ function sigHTML(s) {
   if (nowKm != null && d.dist_km != null && Math.abs(nowKm - d.dist_km) >= 5) {
     const closer = nowKm < d.dist_km;
     extra.push({ html: `<b style="color:${closer ? "#ff9f43" : "var(--muted)"}">${
-      UI.isEn ? "now" : "teraz"} ${esc(threatDistanceText(liveNow, nowKm))}</b>` });
+      UI.t("teraz", "now", "зараз")} ${esc(threatDistanceText(liveNow, nowKm))}</b>` });
   } else if (tracksNow && !liveNow) {
     /* Obiekt zniknął z bieżącej migawki NEPTUN-a, a sygnał żyje jeszcze w oknie
        60 min. Bez tej adnotacji panel pokazywał odległość obiektu, którego nie ma
        już na mapie — „śledzenie i sygnały muszą być spójne" (zgłoszone 12.09.2026). */
     extra.push({ html: `<b style="color:var(--muted)">${
-      UI.isEn ? "no longer tracked" : "nieśledzony na mapie"}</b>` });
+      UI.t("nieśledzony na mapie", "no longer tracked", "не відстежується на мапі")}</b>` });
   }
   if (src === "neptun") {
-    if (d.course === "unknown") extra.push(UI.isEn ? "unknown heading" : "kurs nieznany");
-    else if (d.course === "estimated") extra.push(UI.isEn ? "heading estimated from movement" : "kurs szacowany z ruchu");
-    else if (d.course === "presumptive") extra.push(UI.isEn ? "presumed heading (towards a target)" : "kurs domniemany (na cel)");
-    if (d.jet) extra.push(UI.isEn ? "jet drone" : "dron odrzutowy");
+    if (d.course === "unknown") extra.push(UI.t("kurs nieznany", "unknown heading", "курс невідомий"));
+    else if (d.course === "estimated") extra.push(UI.t("kurs szacowany z ruchu", "heading estimated from movement", "курс оцінено з руху"));
+    else if (d.course === "presumptive") extra.push(UI.t("kurs domniemany (na cel)", "presumed heading (towards a target)", "курс припущений (на ціль)"));
+    if (d.jet) extra.push(UI.t("dron odrzutowy", "jet drone", "реактивний дрон"));
   }
-  if (d.source_count) extra.push(`${d.source_count} ${UI.isEn ? "conf." : "potw."}`);
+  if (d.source_count) extra.push(`${d.source_count} ${UI.t("potw.", "conf.", "підтв.")}`);
   // czas dolotu policzony przy sygnale — dla regionu użytkownika, a gdy go brak,
   // to do granicy; „ile mam czasu" jest ważniejsze niż „ile to kilometrów"
   const mineV = myVoiv();
@@ -3097,50 +3088,43 @@ function sigHTML(s) {
   const presumed = d.course === "presumptive";
   const etaV = presumed ? null : agedEta(mineV && d.eta_voiv_min ? d.eta_voiv_min[mineV] : null, s.ts);
   const etaB = presumed ? null : agedEta(d.eta_border_min, s.ts);
-  if (!signalApprox && etaV != null) extra.push(`⏱ ${etaTxt(etaV)} ${UI.isEn ? "to" : "do woj."} ${UI.voiv(mineV)}`);
-  else if (!signalApprox && etaB != null) extra.push(`⏱ ${etaTxt(etaB)} ${UI.isEn ? "to border" : "do granicy"}`);
+  if (!signalApprox && etaV != null) extra.push(`⏱ ${etaTxt(etaV)} ${UI.t("do woj.", "to", "до воєв.")} ${UI.voiv(mineV)}`);
+  else if (!signalApprox && etaB != null) extra.push(`⏱ ${etaTxt(etaB)} ${UI.t("do granicy", "to border", "до кордону")}`);
   let shownTitle = s.title;
   // Tytuły, które PISZEMY SAMI (alarm obwodu UA, przeniesienie od sąsiada), muszą
   // iść za językiem interfejsu — serwer zapisuje je po polsku, więc w wersji
   // angielskiej zostawały polskie. Cytaty ze źródeł (NEPTUN, RCB, media) zostają
   // w oryginale, bo to przytoczenie cudzej treści.
   if (s.event_type === "ua_alert_border" && d.oblast) {
-    const ob = UI.isEn ? (UA_OBLAST_EN[d.oblast] || d.oblast)
-                       : (UA_OBLAST_PL_UI[d.oblast] || d.oblast);
+    const ob = UI.t(UA_OBLAST_PL_UI[d.oblast] || d.oblast, UA_OBLAST_EN[d.oblast] || d.oblast,
+                    `${d.oblast} область`);
     // Odległość obwodu od województwa mówi, dlaczego ten alarm waży tyle, ile waży.
     // Wcześniej każdy obwód — także oddalony o 200 km — ogłaszał się jako graniczący.
     const km = d.distance_km;
     const where = km == null ? null
-      : km <= 0 ? (UI.isEn ? "at the border" : "przy granicy") : `${km} km`;
+      : km <= 0 ? (UI.t("przy granicy", "at the border", "біля кордону")) : `${km} km`;
     const voivName = UI.voiv(s.voivodeship);
-    shownTitle = UI.isEn
-      ? `Air-raid alert in ${ob} oblast${where ? ` (${voivName} — ${where})` : ""}`
-      : `Alarm powietrzny w obwodzie ${ob}${where ? ` (woj. ${voivName} — ${where})` : ""}`;
+    shownTitle = UI.t(`Alarm powietrzny w obwodzie ${ob}${where ? ` (woj. ${voivName} — ${where})` : ""}`, `Air-raid alert in ${ob} oblast${where ? ` (${voivName} — ${where})` : ""}`, `Повітряна тривога: ${ob}${where ? ` (воєв. ${voivName} — ${where})` : ""}`);
     // Czas trwania (wariant B2): koniec gasi punkty, po 30 min trwający alarm waży połowę.
-    const clock = (iso) => new Date(iso).toLocaleTimeString(UI.isEn ? "en-GB" : "pl-PL",
+    const clock = (iso) => new Date(iso).toLocaleTimeString(UI.t("pl-PL", "en-GB", "uk-UA"),
       { hour: "2-digit", minute: "2-digit" });
     if (s.alert_ended)
-      shownTitle += UI.isEn ? ` — ended at ${clock(s.alert_ended)}` : ` — zakończony o ${clock(s.alert_ended)}`;
+      shownTitle += UI.t(` — zakończony o ${clock(s.alert_ended)}`, ` — ended at ${clock(s.alert_ended)}`, ` — завершено о ${clock(s.alert_ended)}`);
     else if (d.episode && (s.weight ?? 1) > 0 && (s.weight ?? 1) < 1)
-      shownTitle += UI.isEn ? ` — in progress since ${clock(d.episode)}, half weight`
-                            : ` — trwa od ${clock(d.episode)}, połowa wagi`;
+      shownTitle += UI.t(` — trwa od ${clock(d.episode)}, połowa wagi`, ` — in progress since ${clock(d.episode)}, half weight`, ` — триває від ${clock(d.episode)}, половина ваги`);
   } else if (s.event_type === "ua_alert_end" && d.oblast) {
-    const ob = UI.isEn ? (UA_OBLAST_EN[d.oblast] || d.oblast)
-                       : (UA_OBLAST_PL_UI[d.oblast] || d.oblast);
-    shownTitle = UI.isEn
-      ? `Air-raid alert in ${ob} oblast has ended (${UI.voiv(s.voivodeship)})`
-      : `Koniec alarmu powietrznego w obwodzie ${ob} (woj. ${UI.voiv(s.voivodeship)})`;
+    const ob = UI.t(UA_OBLAST_PL_UI[d.oblast] || d.oblast, UA_OBLAST_EN[d.oblast] || d.oblast,
+                    `${d.oblast} область`);
+    shownTitle = UI.t(`Koniec alarmu powietrznego w obwodzie ${ob} (woj. ${UI.voiv(s.voivodeship)})`, `Air-raid alert in ${ob} oblast has ended (${UI.voiv(s.voivodeship)})`, `Відбій повітряної тривоги: ${ob} (воєв. ${UI.voiv(s.voivodeship)})`);
   } else if (s.event_type === "baltic_alert" && d.country) {
     // Alarm ogłoszony na Litwie, Łotwie albo w Estonii: prefiks piszemy sami,
     // cytat tytułu zostaje w oryginale.
     const quote = String(shownTitle || "").replace(/^[^„]*/, "");
-    shownTitle = `${UI.isEn ? "Air-raid alert" : "Alarm powietrzny"} — ${
-      (UI.isEn ? BALTIC_NAME_EN : BALTIC_NAME_PL)[d.country] || d.country}: ${quote}`;
+    shownTitle = `${UI.t("Alarm powietrzny", "Air-raid alert", "Повітряна тривога")} — ${
+      balticName(d.country)}: ${quote}`;
   } else if (s.event_type === "neighbour_spillover" && d.from) {
     const factor = `${d.from_score} × 0.4^${d.depth}`;
-    shownTitle = UI.isEn
-      ? `Carried over from ${UI.voiv(d.from)} (${factor})`
-      : `Przeniesienie z woj. ${UI.voiv(d.from)} (${factor})`;
+    shownTitle = UI.t(`Przeniesienie z woj. ${UI.voiv(d.from)} (${factor})`, `Carried over from ${UI.voiv(d.from)} (${factor})`, `Перенесення з воєв. ${UI.voiv(d.from)} (${factor})`);
   }
   // Polonizujemy także stare wpisy zapisane już w bazie, korzystając ze
   // stabilnego details.type zamiast ukraińskiego/rosyjskiego tytułu źródła.
@@ -3151,10 +3135,14 @@ function sigHTML(s) {
     shownTitle = signalApprox && d.dist_km != null
       ? prefix + threatLabelPL(d.type) + ` kursem na granicę PL, ${threatDistanceText(signalPosition, d.dist_km)}`
       : prefix + threatLabelPL(d.type) + (at >= 0 ? String(shownTitle).slice(at) : "");
-    if (UI.isEn) {
+    if (!UI.isEn && !UI.isUk) { /* polski tytul zostaje taki, jak zbudowany wyzej */ }
+    else {
       const count = (Number(d.count) || 1) > 1 ? `${Number(d.count)}× ` : "";
       shownTitle = count + threatLabelPL(d.type)
-        + (d.dist_km != null ? ` heading towards the Polish border, ${threatDistanceText(signalPosition, d.dist_km)}` : "");
+        + (d.dist_km != null
+          ? UI.t("", ` heading towards the Polish border, ${threatDistanceText(signalPosition, d.dist_km)}`,
+                 ` курсом на кордон Польщі, ${threatDistanceText(signalPosition, d.dist_km)}`)
+          : "");
     }
   }
   return `<div class="sig src-${esc(src)}">
@@ -3163,28 +3151,28 @@ function sigHTML(s) {
         src === "media" && d.country ? " " + esc(d.country) : ""}</span>
       <span class="pts${capped ? " capped" : ""}"
         ${capped ? `title="${repeatedOfficial
-          ? (UI.isEn ? "repeats an official alert — visible, with no extra points" : "powtarza oficjalny alert — widoczne, bez dodatkowych punktów")
+          ? (UI.t("powtarza oficjalny alert — widoczne, bez dodatkowych punktów", "repeats an official alert — visible, with no extra points", "повторює офіційну тривогу — видно, без додаткових балів"))
           : retrospective
-            ? (UI.isEn ? "historical report or aftermath — visible, with no threat points" : "materiał historyczny lub następstwa — widoczne, bez punktów zagrożenia")
+            ? (UI.t("materiał historyczny lub następstwa — widoczne, bez punktów zagrożenia", "historical report or aftermath — visible, with no threat points", "історичний матеріал або наслідки — видно, без балів загрози"))
           : officialClear
-            ? (UI.isEn ? "RCB cancelled this alert — visible, with no threat points" : "RCB odwołało ten alert — widoczne, bez punktów zagrożenia")
+            ? (UI.t("RCB odwołało ten alert — widoczne, bez punktów zagrożenia", "RCB cancelled this alert — visible, with no threat points", "RCB скасувало цю тривогу — видно, без балів загрози"))
           : articleStatus
-            ? (UI.isEn ? "article checked in full — no points" : "sprawdzono cały artykuł — bez punktów")
-          : (UI.isEn ? "above this source-class cap — excess points are not counted" : "ponad limit tej klasy źródła — nadwyżka nie liczy się do sumy")}"` : ""}>
+            ? (UI.t("sprawdzono cały artykuł — bez punktów", "article checked in full — no points", "перевірено всю статтю — без балів"))
+          : (UI.t("ponad limit tej klasy źródła — nadwyżka nie liczy się do sumy", "above this source-class cap — excess points are not counted", "понад ліміт цього класу джерела — надлишок не рахується до суми"))}"` : ""}>
         +${cp}${capped ? ` <s>${s.points}</s>` : ""}</span>
     </div>
-    ${isFreshSignal(s) ? `<div class="sig-fresh">${UI.isEn ? "NEW" : "NOWY"}</div>` : ""}
-    <div class="sig-title">${repeatedOfficial ? `<b>${UI.isEn ? "Repeated official alert:" : "Powtórzenie oficjalnego alertu:"}</b> ` : ""}${retrospective ? `<b>${UI.isEn ? "Historical report / aftermath:" : "Materiał historyczny / następstwa:"}</b> ` : ""}${
-      officialClear === "alert" ? `<b>${UI.isEn ? "Cancelled by RCB:" : "Odwołany przez RCB:"}</b> `
-      : officialClear ? `<b>${UI.isEn ? "After RCB cancellation:" : "Po odwołaniu alertu RCB:"}</b> ` : ""}${
-      articleStatus === "past" ? `<b>${UI.isEn ? "Report on an earlier event:" : "Relacja z wcześniejszego zdarzenia:"}</b> `
-      : articleStatus === "unreadable" ? `<b>${UI.isEn ? "Article could not be read — no points:" : "Nie udało się przeczytać artykułu — bez punktów:"}</b> ` : ""}${link
+    ${isFreshSignal(s) ? `<div class="sig-fresh">${UI.t("NOWY", "NEW", "НОВЕ")}</div>` : ""}
+    <div class="sig-title">${repeatedOfficial ? `<b>${UI.t("Powtórzenie oficjalnego alertu:", "Repeated official alert:", "Повторення офіційної тривоги:")}</b> ` : ""}${retrospective ? `<b>${UI.t("Materiał historyczny / następstwa:", "Historical report / aftermath:", "Історичний матеріал / наслідки:")}</b> ` : ""}${
+      officialClear === "alert" ? `<b>${UI.t("Odwołany przez RCB:", "Cancelled by RCB:", "Скасовано RCB:")}</b> `
+      : officialClear ? `<b>${UI.t("Po odwołaniu alertu RCB:", "After RCB cancellation:", "Після скасування тривоги RCB:")}</b> ` : ""}${
+      articleStatus === "past" ? `<b>${UI.t("Relacja z wcześniejszego zdarzenia:", "Report on an earlier event:", "Репортаж про попередню подію:")}</b> `
+      : articleStatus === "unreadable" ? `<b>${UI.t("Nie udało się przeczytać artykułu — bez punktów:", "Article could not be read — no points:", "Не вдалося прочитати статтю — без балів:")}</b> ` : ""}${link
       ? `<a href="${esc(link)}" target="_blank" rel="noopener">${esc(shownTitle)}</a>`
       : esc(shownTitle)}</div>
     <div class="sig-bar"><i style="width:${share.toFixed(0)}%"></i></div>
-    <div class="ts">${relTime(s.ts)} · ${UI.isEn ? "province" : "woj."} ${esc(UI.voiv(s.voivodeship))}${
+    <div class="ts">${relTime(s.ts)} · ${UI.t("woj.", "province", "воєв.")} ${esc(UI.voiv(s.voivodeship))}${
       extra.length ? " · " + extra.map(x => typeof x === "object" ? x.html : esc(x)).join(" · ") : ""}${
-      faded ? ` · <span title="${UI.isEn ? "the signal ages within the 60-minute window and loses weight" : "sygnał starzeje się w oknie 60 min i traci wagę"}">${UI.isEn ? "weight" : "waga"} ${Math.round(w * 100)}%</span>` : ""}</div>
+      faded ? ` · <span title="${UI.t("sygnał starzeje się w oknie 60 min i traci wagę", "the signal ages within the 60-minute window and loses weight", "сигнал старіє у вікні 60 хв і втрачає вагу")}">${UI.t("waga", "weight", "вага")} ${Math.round(w * 100)}%</span>` : ""}</div>
   </div>`;
 }
 
@@ -3205,11 +3193,12 @@ function scoreBreakdown(st) {
     .map(([src, v]) => `${v.toFixed(1)} ${SRC_LABEL[src] || src.toUpperCase()}`);
   if (!parts.length) return "";
   const zeroNote = zeros
-    ? ` · ${zeros} ${UI.isEn ? (zeros === 1 ? "signal adds nothing" : "signals add nothing")
-                             : (zeros === 1 ? "sygnał bez wkładu" : "sygnałów bez wkładu")}`
-      + ` (${UI.isEn ? "faded or over the source-class cap" : "wygaszone albo ponad limit klasy"})`
+    ? ` · ${zeros} ${zeros === 1
+        ? UI.t("sygnał bez wkładu", "signal adds nothing", "сигнал без внеску")
+        : UI.t("sygnałów bez wkładu", "signals add nothing", "сигналів без внеску")}`
+      + ` (${UI.t("wygaszone albo ponad limit klasy", "faded or over the source-class cap", "згашене або понад ліміт класу")})`
     : "";
-  return `<div class="voiv-sum">${UI.isEn ? "adds up to" : "składa się z"}: ${
+  return `<div class="voiv-sum">${UI.t("składa się z", "adds up to", "складається з")}: ${
     parts.join(" + ")}${zeroNote}</div>`;
 }
 
@@ -3226,8 +3215,8 @@ function zonesRowHTML(name) {
   if (!z.length) return "";
   const chips = z.map(p => `<button class="chip btn-zone" data-zone="${esc(String(p.designator))}"
       >${esc(String(p.designator))}</button>`).join(" ");
-  return `<div class="voiv-zones fineprint">${UI.isEn ? "PAŻP zones" : "Strefy PAŻP"}
-    <span class="muted">(${UI.isEn ? "no points" : "bez punktów"})</span>: ${chips}</div>`;
+  return `<div class="voiv-zones fineprint">${UI.t("Strefy PAŻP", "PAŻP zones", "Зони PAŻP")}
+    <span class="muted">(${UI.t("bez punktów", "no points", "без балів")})</span>: ${chips}</div>`;
 }
 function openZoneByName(designator) {
   const f = (zonesData?.features || []).find(x => x.properties?.designator === designator);
@@ -3265,8 +3254,12 @@ const SOURCE_INFO = {
       + "coordinates; recognised locality points are shown and scored as areas.",
     czerwona: "Zerwane połączenie z serwerem NEPTUN albo brak internetu. "
       + "Aplikacja próbuje ponownie co minutę.",
-    czerwonaEn: "The connection to the NEPTUN server dropped, or there is no "
-      + "internet access. The app retries every minute.",
+    coUk: "Агрегатор OSINT з України — повітряні об\u2019єкти (дрони, ракети, КАБ) "
+      + "курсом на кордон Польщі. Головне джерело випередження. Поле «confirmed» може "
+      + "підтверджувати повідомлення, а не точність координат; розпізнані точки населених "
+      + "пунктів показуємо й оцінюємо як районні.",
+    czerwonaUk: "Обірвано з\u2019єднання із сервером NEPTUN або немає інтернету. "
+      + "Застосунок повторює спробу щохвилини.",
   },
   "Alarmy UA": {
     co: "Oficjalne alarmy powietrzne w zachodnich obwodach Ukrainy — sygnał "
@@ -3286,6 +3279,14 @@ const SOURCE_INFO = {
     czerwona: "Połączenie NEPTUN nie potwierdza w tej chwili alarmów obwodowych. "
       + "Alarm w obwodzie UA może wtedy nie być pokazany na żywo — sprawdź "
       + "połączenie z internetem.",
+    coUk: "Офіційні повітряні тривоги в західних областях України — сигнал випередження. "
+      + "Вага залежить від відстані області до воєводства: при кордоні (Волинська, Львівська, "
+      + "Закарпатська) рахується повністю, дальші (Рівненська, Тернопільська, Івано-Франківська, "
+      + "Хмельницька, Чернівецька, Житомирська, Вінницька) — пропорційно менше. Вони надходять "
+      + "з\u2019єднанням NEPTUN (WebSocket у застосунку або через сервер). При закритому застосунку "
+      + "тривога вашого регіону приходить окремо push-сповіщенням.",
+    czerwonaUk: "З\u2019єднання NEPTUN зараз не підтверджує обласних тривог. Тривогу в області "
+      + "України може бути не показано наживо — перевірте з\u2019єднання з інтернетом.",
     czerwonaEn: "The NEPTUN connection is not confirming oblast alerts right now. "
       + "An alert in a Ukrainian oblast may then not be shown live — check your "
       + "internet connection.",
@@ -3304,6 +3305,12 @@ const SOURCE_INFO = {
       + "registration and full telemetry.",
     czerwona: "Serwisy ADS-B nie odpowiadają. Mapa nie pokaże wtedy lotnictwa "
       + "wojskowego; na punktację to nie wpływa.",
+    coUk: "Відкриті авіаційні транспондери (airplanes.live, у запасі adsb.lol) — військові "
+      + "машини над Польщею й регіоном. Шар інформативний і балів не дає: у даних за 41 день "
+      + "посилений рух виявлявся рутинними польотами. Рух, удвічі вищий за звичайний о цій порі, "
+      + "позначаємо в панелі. Картка літака показує фото, країну реєстрації й повну телеметрію.",
+    czerwonaUk: "Сервіси ADS-B не відповідають. Мапа тоді не покаже військової авіації; "
+      + "на бали це не впливає.",
     czerwonaEn: "The ADS-B services are not responding. The map will not show military "
       + "aviation then; scoring is not affected.",
   },
@@ -3314,6 +3321,10 @@ const SOURCE_INFO = {
       + "violations.",
     czerwona: "Żaden kanał nie odpowiedział. Zwykle chwilowe; bywa też, "
       + "że serwis zmienił format i wymaga poprawki.",
+    coUk: "Місцеві та загальнонаціональні ЗМІ — заголовки про сирени, тривоги й порушення "
+      + "повітряного простору.",
+    czerwonaUk: "Жоден канал не відповів. Зазвичай тимчасово; буває й так, що сайт змінив "
+      + "формат і потрібна правка.",
     czerwonaEn: "No feed responded. Usually temporary; sometimes a site has changed "
       + "its format and needs a fix.",
   },
@@ -3331,6 +3342,12 @@ const SOURCE_INFO = {
     czerwona: "RSO nie odpowiada od kilku minut albo zwróciło dane, których nie da "
       + "się odczytać. Strażnik nie zobaczy wtedy nowego Alertu RCB — alerty "
       + "docierają nadal SMS-em z systemu RCB.",
+    coUk: "Офіційні Alert RCB із Регіональної системи оповіщення (RSO) — ті самі повідомлення, "
+      + "що приходять SMS-ом, зі списком воєводств. Найважливіше офіційне джерело в цьому наборі "
+      + "і єдине, яке само піднімає рівень тривоги. Діода показує, чи RSO відповіло за останні "
+      + "хвилини. Сторінку gov.pl/rcb читаємо лише допоміжно, без балів.",
+    czerwonaUk: "RSO не відповідає кілька хвилин або повернуло дані, яких не вдається прочитати. "
+      + "Strażnik тоді не побачить нового Alert RCB — самі алерти й далі приходять SMS-ом із системи RCB.",
     czerwonaEn: "RSO has not responded for a few minutes, or returned data that "
       + "cannot be read. Strażnik will not see a new RCB alert then — alerts still "
       + "arrive by text from the RCB system.",
@@ -3342,6 +3359,10 @@ const SOURCE_INFO = {
       + "over the region is a supporting signal.",
     czerwona: "Serwis PAŻP nie odpowiada. W trybie wbudowanym ta warstwa "
       + "bywa niedostępna — wtedy pozostałe źródła działają normalnie.",
+    coUk: "Зони повітряного простору (AUP/UUP) з airspace.pansa.pl — щойно активована зона "
+      + "над регіоном є допоміжним сигналом.",
+    czerwonaUk: "Сервіс PAŻP не відповідає. У вбудованому режимі цей шар буває недоступним — "
+      + "решта джерел тоді працює нормально.",
     czerwonaEn: "The PAŻP service is not responding. In built-in mode this layer is "
       + "sometimes unavailable — the remaining sources keep working normally.",
   },
@@ -3350,7 +3371,9 @@ const SOURCE_INFO = {
    zdrowia), więc nazwę do wyświetlenia trzymamy osobno. */
 const SRC_TITLE_EN = { "Alarmy UA": "UA alerts", "RCB": "RCB/RSO" };
 const SRC_TITLE_PL = { "RCB": "RCB/RSO" };
-const srcTitle = (name) => (UI.isEn ? SRC_TITLE_EN[name] : SRC_TITLE_PL[name]) || name;
+const SRC_TITLE_UK = { "Alarmy UA": "Тривоги UA", "RCB": "RCB/RSO", "Bałtyk": "Балтика",
+  "Sąsiedzi": "Сусіди", "Media": "ЗМІ" };
+const srcTitle = (name) => UI.t(SRC_TITLE_PL[name], SRC_TITLE_EN[name], SRC_TITLE_UK[name]) || name;
 
 function ledItems() {
   const h = state?.health || {};
@@ -3364,7 +3387,7 @@ function ledItems() {
     ["Alarmy UA", !!h.ua_alerts, ""],
     ["ADS-B", !!h.adsb, ""],
     ["RSS", rssOk, rssFeeds.length
-      ? `${rssFeeds.filter(Boolean).length}/${rssFeeds.length} ${UI.isEn ? "feeds" : "kanałów"}` : ""],
+      ? `${rssFeeds.filter(Boolean).length}/${rssFeeds.length} ${UI.t("kanałów", "feeds", "каналів")}` : ""],
     ["RCB", !!h.rcb, ""],
     ["PAŻP", !!h.pansa, ""],
   ];
@@ -3375,46 +3398,44 @@ function ledItems() {
    kiedy przyszedł ostatni artykuł i ostatni alarm. */
 const BALTIC_NAME_PL = { LT: "Litwa", LV: "Łotwa", EE: "Estonia" };
 const BALTIC_NAME_EN = { LT: "Lithuania", LV: "Latvia", EE: "Estonia" };
+const BALTIC_NAME_UK = { LT: "Литва", LV: "Латвія", EE: "Естонія" };
+const balticName = (c) => UI.t(BALTIC_NAME_PL[c], BALTIC_NAME_EN[c], BALTIC_NAME_UK[c]) || c;
 const BALTIC_FEEDS_TXT = { LT: "LRT (temat „oro pavojus”), 15min", LV: "LSM (LV, EN)", EE: "ERR (ET, EN)" };
 const BALTIC_ALERT_PTS = { LT: "0,3", LV: "0,18", EE: "0,12" };
 function agoSec(sec) {
   const m = Math.max(0, Math.round((Date.now() / 1000 - sec) / 60));
-  if (m < 1) return UI.isEn ? "just now" : "przed chwilą";
-  if (m < 60) return `${m} min ${UI.isEn ? "ago" : "temu"}`;
-  return `${Math.floor(m / 60)} h ${m % 60} min ${UI.isEn ? "ago" : "temu"}`;
+  if (m < 1) return UI.t("przed chwilą", "just now", "щойно");
+  if (m < 60) return `${m} min ${UI.t("temu", "ago", "тому")}`;
+  return `${Math.floor(m / 60)} h ${m % 60} min ${UI.t("temu", "ago", "тому")}`;
 }
 function balticRows() {
   const b = state?.health?.baltic;
   if (!b) return "";
   const rows = ["LT", "LV", "EE"].filter(c => b[c]).map(c => {
     const x = b[c], ok = x.feeds_ok > 0;
-    const name = (UI.isEn ? BALTIC_NAME_EN : BALTIC_NAME_PL)[c];
-    const stateTxt = ok ? (UI.isEn ? "working" : "działa") : (UI.isEn ? "not responding" : "nie odpowiada");
-    const newest = x.newest_item ? ` · ${UI.isEn ? "latest article" : "ostatni artykuł"} ${agoSec(x.newest_item)}` : "";
+    const name = balticName(c);
+    const stateTxt = ok ? (UI.t("działa", "working", "працює")) : (UI.t("nie odpowiada", "not responding", "не відповідає"));
+    const newest = x.newest_item ? ` · ${UI.t("ostatni artykuł", "latest article", "остання стаття")} ${agoSec(x.newest_item)}` : "";
     const zb = state?.health?.neighbour_zones;
     const zNew = (zb?.recent_new || []).filter(z => z.country === c);
     const zonesTxt = zb && zb.by_country?.[c] != null
-      ? `<br>${UI.isEn ? "Temporary airspace zones" : "Czasowe strefy przestrzeni"}: ${zb.by_country[c]}${
-          c === "LV" ? (UI.isEn ? " (routine drone zones, not scored)" : " (rutynowe strefy dronowe, bez punktów)") : ""}${
-          zNew.length ? ` · ${UI.isEn ? "new" : "nowe"}: ${zNew.slice(0, 3).map(z =>
+      ? `<br>${UI.t("Czasowe strefy przestrzeni", "Temporary airspace zones", "Тимчасові зони простору")}: ${zb.by_country[c]}${
+          c === "LV" ? (UI.t(" (rutynowe strefy dronowe, bez punktów)", " (routine drone zones, not scored)", " (рутинні дронові зони, без балів)")) : ""}${
+          zNew.length ? ` · ${UI.t("nowe", "new", "нові")}: ${zNew.slice(0, 3).map(z =>
             `${esc(z.ident)} ${esc(z.kind)} ${agoSec(z.seen)}`).join(", ")}` : ""}`
       : "";
     const la = x.last_alert;
     const alertTxt = la
-      ? `<br>${UI.isEn ? "Last alert" : "Ostatni alarm"} ${agoSec(la.at)}: „${esc(la.title)}”${la.cleared
-          ? ` — <b>${UI.isEn ? "cancelled" : "odwołany"}</b> ${agoSec(la.cleared_at)}` : ""}`
-      : `<br>${UI.isEn ? "No alert since the server started." : "Brak alarmu od uruchomienia serwera."}`;
+      ? `<br>${UI.t("Ostatni alarm", "Last alert", "Остання тривога")} ${agoSec(la.at)}: „${esc(la.title)}”${la.cleared
+          ? ` — <b>${UI.t("odwołany", "cancelled", "скасовано")}</b> ${agoSec(la.cleared_at)}` : ""}`
+      : `<br>${UI.t("Brak alarmu od uruchomienia serwera.", "No alert since the server started.", "Тривог не було від запуску сервера.")}`;
     return `<div class="src-row ${ok ? "ok" : "err"}">
       <div class="src-head"><i></i><b>${esc(name)}</b>
-        <span class="src-state">${stateTxt} · ${x.feeds_ok}/${x.feeds} ${UI.isEn ? "feeds" : "kanałów"}${newest}</span></div>
-      <p class="src-what">${esc(BALTIC_FEEDS_TXT[c])}. ${UI.isEn
-        ? `An announced air-raid alert adds +${BALTIC_ALERT_PTS[c].replace(",", ".")} to podlaskie and warmińsko-mazurskie — a trace, never an alert in Poland on its own.`
-        : `Ogłoszony alarm powietrzny daje +${BALTIC_ALERT_PTS[c]} pkt dla podlaskiego i warmińsko-mazurskiego — ślad, sam nigdy nie alarmuje w Polsce.`}${alertTxt}${zonesTxt}</p>
+        <span class="src-state">${stateTxt} · ${x.feeds_ok}/${x.feeds} ${UI.t("kanałów", "feeds", "каналів")}${newest}</span></div>
+      <p class="src-what">${esc(BALTIC_FEEDS_TXT[c])}. ${UI.t(`Ogłoszony alarm powietrzny daje +${BALTIC_ALERT_PTS[c]} pkt dla podlaskiego i warmińsko-mazurskiego — ślad, sam nigdy nie alarmuje w Polsce.`, `An announced air-raid alert adds +${BALTIC_ALERT_PTS[c].replace(",", ".")} to podlaskie and warmińsko-mazurskie — a trace, never an alert in Poland on its own.`, `Оголошена повітряна тривога дає +${BALTIC_ALERT_PTS[c]} бала для Підляського і Вармінсько-Мазурського — це лише слід, сам він у Польщі тривоги не вмикає.`)}${alertTxt}${zonesTxt}</p>
     </div>`;
   }).join("");
-  return `<p class="fineprint" style="margin:12px 0 6px">${UI.isEn
-    ? "Baltic neighbours — no public alert API exists, so public media feeds are watched"
-    : "Sąsiedzi bałtyccy — brak publicznego API alarmów, więc śledzimy kanały mediów publicznych"}</p>${rows}`;
+  return `<p class="fineprint" style="margin:12px 0 6px">${UI.t("Sąsiedzi bałtyccy — brak publicznego API alarmów, więc śledzimy kanały mediów publicznych", "Baltic neighbours — no public alert API exists, so public media feeds are watched", "Балтійські сусіди — немає відкритого API тривог, тому стежимо за каналами суспільних мовників")}</p>${rows}`;
 }
 
 function renderLeds() {
@@ -3428,27 +3449,25 @@ function renderLeds() {
 function fillSources() {
   const rows = ledItems().map(([name, ok, extra]) => {
     const info = SOURCE_INFO[name] || {};
-    const what = (UI.isEn ? info.coEn : info.co) || info.co || "";
-    const why = (UI.isEn ? info.czerwonaEn : info.czerwona) || info.czerwona || "";
+    const what = UI.t(info.co, info.coEn, info.coUk) || info.co || "";
+    const why = UI.t(info.czerwona, info.czerwonaEn, info.czerwonaUk) || info.czerwona || "";
     return `<div class="src-row ${ok ? "ok" : "err"}">
       <div class="src-head"><i></i><b>${esc(srcTitle(name))}</b>
-        <span class="src-state">${ok ? (UI.isEn ? "working" : "działa")
-          : (UI.isEn ? "not responding" : "nie odpowiada")}${extra ? " · " + esc(extra) : ""}</span></div>
+        <span class="src-state">${ok ? (UI.t("działa", "working", "працює"))
+          : (UI.t("nie odpowiada", "not responding", "не відповідає"))}${extra ? " · " + esc(extra) : ""}</span></div>
       <p class="src-what">${what}</p>
-      ${ok ? "" : `<p class="src-why">${UI.isEn ? "Why it is red" : "Dlaczego czerwona"}: ${why}</p>`}
+      ${ok ? "" : `<p class="src-why">${UI.t("Dlaczego czerwona", "Why it is red", "Чому червона")}: ${why}</p>`}
     </div>`;
   }).join("");
   const anyErr = ledItems().some(([, ok]) => !ok);
   document.getElementById("src-list").innerHTML = rows + balticRows();
   document.getElementById("src-note").innerHTML = anyErr
-    ? (UI.isEn
-      ? "A red indicator does not mean the app has failed — the remaining sources "
+    ? (UI.t("Czerwona dioda nie oznacza awarii aplikacji — pozostałe źródła liczą się ", "A red indicator does not mean the app has failed — the remaining sources "
         + "keep counting, and the fusion needs several of them to agree anyway. If "
-        + "every indicator is red, check your internet connection."
-      : "Czerwona dioda nie oznacza awarii aplikacji — pozostałe źródła liczą się "
+        + "every indicator is red, check your internet connection.", "Червона діода не означає збою застосунку — решта джерел рахується ")
         + "dalej, a fuzja i tak wymaga zgodności kilku z nich. Jeśli czerwone są "
         + "wszystkie, sprawdź połączenie z internetem.")
-    : (UI.isEn ? "Every source is responding." : "Wszystkie źródła odpowiadają.");
+    : (UI.t("Wszystkie źródła odpowiadają.", "Every source is responding.", "Усі джерела відповідають."));
 }
 
 function showSources() {
@@ -3542,8 +3561,8 @@ function onForegroundPush(d) {
     document.getElementById("disclaimer").classList.remove("hidden");
   } else {
     chimeOnce();
-    toast(`⚠️ <b>${UI.isEn ? "Heightened attention" : "Podwyższona uwaga"}</b>: `
-      + `${UI.isEn ? "province" : "woj."} ${esc(UI.voiv(d.voiv))} (${score} ${UI.isEn ? "pts" : "pkt"})`, 9000);
+    toast(`⚠️ <b>${UI.t("Podwyższona uwaga", "Heightened attention", "Підвищена увага")}</b>: `
+      + `${UI.t("woj.", "province", "воєв.")} ${esc(UI.voiv(d.voiv))} (${score} ${UI.t("pkt", "pts", "бал.")})`, 9000);
   }
 }
 
@@ -3561,17 +3580,17 @@ function nearestThreatLine(voiv) {
     : (best.t.velocity?.speedKmh ?? trackSpeed(best.t));
   const eta = v ? etaMin(best.km, v) : null;
   const what = UI.type(best.t.type, (TYPE_META[best.t.type] || TYPE_META.unknown).label);
-  return `${UI.isEn ? "Nearest" : "Najbliżej"}: <b>${esc(what)}</b> · ${Math.round(best.km)} km`
-    + (eta != null ? ` · ${UI.isEn ? "about" : "ok."} ${etaTxt(eta)}` : "");
+  return `${UI.t("Najbliżej", "Nearest", "Найближче")}: <b>${esc(what)}</b> · ${Math.round(best.km)} km`
+    + (eta != null ? ` · ${UI.t("ok.", "about", "бл.")} ${etaTxt(eta)}` : "");
 }
 
 /* ── pełnoekranowy alarm z ręcznym potwierdzeniem ────────────────────────── */
 const alarmOverlay = document.getElementById("alarm-overlay");
 function showAlarm(voiv, st) {
   if (!voiv || !st) return;
-  document.getElementById("alarm-voiv").textContent = (UI.isEn ? "province " : "woj. ") + UI.voiv(voiv);
+  document.getElementById("alarm-voiv").textContent = (UI.t("woj. ", "province ", "воєв. ")) + UI.voiv(voiv);
   document.getElementById("alarm-score").textContent =
-    `${st.score.toFixed(1)} ${UI.isEn ? "pts in a" : "pkt w oknie"} ${state?.fusion?.window_min ?? 60} min ${UI.isEn ? "window" : ""}`;
+    `${st.score.toFixed(1)} ${UI.t("pkt w oknie", "pts in a", "балів у вікні")} ${state?.fusion?.window_min ?? 60} min ${UI.t("", "window", "")}`;
   document.getElementById("alarm-signals").innerHTML =
     sigList(st.signals, 5)
     || (st.reasonsText ? st.reasonsText.split("\n").filter(Boolean).slice(0, 5)
@@ -3579,11 +3598,9 @@ function showAlarm(voiv, st) {
   const near = document.getElementById("alarm-nearest");
   if (near) { const html = nearestThreatLine(voiv); near.innerHTML = html; near.hidden = !html; }
   const todo = document.getElementById("alarm-todo");
-  if (todo) todo.textContent = UI.isEn
-    ? "What to do: go to a shelter or a room without windows, away from glass. Follow RCB and emergency service messages."
-    : "Co zrobić: przejdź do schronu albo pomieszczenia bez okien, z dala od szyb. Śledź komunikaty RCB i służb.";
+  if (todo) todo.textContent = UI.t("Co zrobić: przejdź do schronu albo pomieszczenia bez okien, z dala od szyb. Śledź komunikaty RCB i służb.", "What to do: go to a shelter or a room without windows, away from glass. Follow RCB and emergency service messages.", "Що робити: перейдіть в укриття або в кімнату без вікон, подалі від скла. Стежте за повідомленнями RCB і служб.");
   document.getElementById("alarm-time").textContent =
-    (UI.isEn ? "alert at " : "alarm o ") + new Date().toLocaleTimeString(UI.isEn ? "en-GB" : "pl-PL");
+    (UI.t("alarm o ", "alert at ", "тривога о ")) + new Date().toLocaleTimeString(UI.t("pl-PL", "en-GB", "uk-UA"));
   alarmWyborReset();
   alarmOverlay.classList.remove("hidden");
   airRaidSiren(true);          // ciągła — milknie dopiero po potwierdzeniu
@@ -3599,9 +3616,9 @@ const alarmWybor = document.getElementById("alarm-choices");
 function alarmWyborReset() {
   alarmAck.hidden = false;
   if (alarmWybor) alarmWybor.hidden = true;
-  const t = (id, pl, en) => { const el = document.getElementById(id); if (el) el.lastChild.textContent = UI.isEn ? en : pl; };
-  t("alarm-grota", "Gdzie się schronić", "Where to shelter");
-  t("alarm-map", "Obserwuj mapę", "Watch the map");
+  const t = (id, pl, en, uk) => { const el = document.getElementById(id); if (el) el.lastChild.textContent = UI.t(pl, en, uk); };
+  t("alarm-grota", "Gdzie się schronić", "Where to shelter", "Де сховатися");
+  t("alarm-map", "Obserwuj mapę", "Watch the map", "Спостерігати за мапою");
   t("alarm-safe", "Jestem bezpieczny", "I am safe");
 }
 function zamknijAlarm() {
@@ -3807,23 +3824,19 @@ async function enablePush() {
   const base = apiBase(); if (!base) return openSettings(true);
   const voivodeships = Places?.observedVoivodeships(savedPlaces) || [];
   if (!voivodeships.length) {
-    toast(UI.isEn ? "First choose a province in ⚙ → My places — notifications are sent per province."
-                  : "Najpierw wybierz województwo w ⚙ → Moje miejsca — powiadomienia idą według województwa.", 6000);
+    toast(UI.t("Najpierw wybierz województwo w ⚙ → Moje miejsca — powiadomienia idą według województwa.", "First choose a province in ⚙ → My places — notifications are sent per province.", "Спершу виберіть воєводство в ⚙ → Мої місця — сповіщення йдуть за воєводством."), 6000);
     openSettings();
     document.querySelector('#settings .set-tab[data-pane="miejsca"]')?.click();
     return;
   }
   if (!("serviceWorker" in navigator) || !("PushManager" in window))
-    return toast(UI.isEn ? "This browser does not support push notifications."
-                         : "Ta przeglądarka nie obsługuje powiadomień push.", 6000);
+    return toast(UI.t("Ta przeglądarka nie obsługuje powiadomień push.", "This browser does not support push notifications.", "Цей браузер не підтримує push-сповіщень."), 6000);
   const perm = await Notification.requestPermission();
   if (perm !== "granted") {
     // bez komunikatu dzwonek wyglądał, jakby nie reagował (zgłoszone 13.09.2026)
-    toast((UI.isEn
-      ? "🔕 The browser blocks notifications for straznik.eu. To allow them: "
-      : "🔕 Przeglądarka blokuje powiadomienia dla straznik.eu. Aby je dopuścić: ")
-      + esc(browserNotifPath(UI.isEn, true))
-      + `<br><span class="muted">${UI.isEn ? "Tap to close" : "Dotknij, aby zamknąć"}</span>`, 20000);
+    toast((UI.t("🔕 Przeglądarka blokuje powiadomienia dla straznik.eu. Aby je dopuścić: ", "🔕 The browser blocks notifications for straznik.eu. To allow them: ", "🔕 Браузер блокує сповіщення для straznik.eu. Щоб їх дозволити: "))
+      + esc(browserNotifPath(UI.lang, true))
+      + `<br><span class="muted">${UI.t("Dotknij, aby zamknąć", "Tap to close", "Торкніться, щоб закрити")}</span>`, 20000);
     return;
   }
   const reg = await navigator.serviceWorker.register("sw.js");
@@ -3840,9 +3853,7 @@ async function enablePush() {
   if (!saved.ok) throw new Error("Nie udało się zapisać subskrypcji Web Push");
   document.getElementById("btn-push").classList.add("active");
   const names = voivodeships.map(v => UI.voiv(v)).join(", ");
-  toast(UI.isEn
-    ? `🔔 <b>Notifications on</b> for: ${esc(names)}.<br>They arrive even with the tab closed. To turn them off, tap the bell again.`
-    : `🔔 <b>Powiadomienia włączone</b> dla: ${esc(names)}.<br>Przyjdą też przy zamkniętej karcie. Aby je wyłączyć, dotknij dzwonka ponownie.`, 6000);
+  toast(UI.t(`🔔 <b>Powiadomienia włączone</b> dla: ${esc(names)}.<br>Przyjdą też przy zamkniętej karcie. Aby je wyłączyć, dotknij dzwonka ponownie.`, `🔔 <b>Notifications on</b> for: ${esc(names)}.<br>They arrive even with the tab closed. To turn them off, tap the bell again.`, `🔔 <b>Сповіщення увімкнено</b> для: ${esc(names)}.<br>Вони приходитимуть і при закритій вкладці. Щоб вимкнути, торкніться дзвіночка ще раз.`), 6000);
 }
 
 /* Strona WWW: stan powiadomień push w TEJ przeglądarce i przyciski do ich
@@ -3851,7 +3862,9 @@ async function enablePush() {
    przy otwartej karcie (13.09.2026: użytkowniczka nie wiedziała, jak to zatrzymać). */
 /* Konkretna ścieżka do uprawnień witryny w przeglądarce, którą ktoś właśnie
    używa — ogólne „ikona obok adresu" nie wystarczało (prośba z 13.09.2026). */
-function browserNotifPath(isEn = UI.isEn, allow = false) {
+function browserNotifPath(jezyk = UI.lang, allow = false) {
+  const isEn = jezyk === "en", isUk = jezyk === "uk";
+  const T = (pl, en, uk) => jezyk === "pl" ? pl : jezyk === "uk" ? (uk !== undefined ? uk : en) : en;
   const ua = navigator.userAgent || "";
   const site = location.host || "straznik.eu";
   const android = /Android/i.test(ua), ios = /iPhone|iPad|iPod/i.test(ua);
@@ -3859,7 +3872,16 @@ function browserNotifPath(isEn = UI.isEn, allow = false) {
   const samsung = /SamsungBrowser/i.test(ua);
   const safari = /Safari/i.test(ua) && !/Chrome|CriOS|Edg|Firefox|FxiOS|SamsungBrowser/i.test(ua);
   // [ścieżka, słowo przy blokowaniu, słowo przy dopuszczaniu]
-  const [path, block, permit] = isEn
+  const [path, block, permit] = isUk
+    ? samsung ? [`Samsung Internet: ☰ → Налаштування → Сайти й завантаження → Сповіщення → ${site}`, "вимкнути", "увімкнути"]
+      : android && firefox ? [`Firefox на Android: ⋮ → Налаштування → Дозволи сайтів → Сповіщення → ${site}`, "Заблоковано", "Дозволено"]
+      : android ? [`Chrome на Android: ⋮ → Налаштування → Налаштування сайтів → Сповіщення → ${site}`, "Блокувати", "Дозволити"]
+      : ios ? ["iPhone: Налаштування → Сповіщення → Strażnik (сайт, доданий на екран «Початок») → «Дозволити сповіщення»", "вимкнути", "увімкнути"]
+      : firefox ? ["Firefox: замочок біля адреси → З\u2019єднання захищене → Докладніше → Дозволи → Показ сповіщень", "Блокувати", "Дозволити"]
+      : safari ? [`Safari на Mac: Safari → Налаштування → Веб-сайти → Сповіщення → ${site}`, "Відхиляти", "Дозволяти"]
+      : edge ? ["Edge: замочок біля адреси → Дозволи для цього сайту → Сповіщення", "Блокувати", "Дозволити"]
+      : ["Chrome: іконка налаштувань сайту біля адреси → Налаштування сайту → Сповіщення", "Блокувати", "Дозволити"]
+    : isEn
     ? samsung ? [`Samsung Internet: ☰ → Settings → Sites and downloads → Notifications → ${site}`, "off", "on"]
       : android && firefox ? [`Firefox on Android: ⋮ → Settings → Site permissions → Notifications → ${site}`, "Blocked", "Allowed"]
       : android ? [`Chrome on Android: ⋮ → Settings → Site settings → Notifications → ${site}`, "Block", "Allow"]
@@ -3878,9 +3900,7 @@ function browserNotifPath(isEn = UI.isEn, allow = false) {
       : ["Chrome: ikona ustawień witryny obok adresu → Ustawienia witryny → Powiadomienia", "Blokuj", "Zezwalaj"];
   // Ścieżka uniwersalna (podpowiedź użytkownika z 13.09.2026): w każdej przeglądarce
   // da się wyszukać „ustawienia witryn" w jej ustawieniach, nawet gdy nie rozpoznamy nazwy.
-  const any = isEn
-    ? `In any browser: open its Settings, type “site settings” (or “site”) in the search field → Permissions → find ${site} → Notifications → ${allow ? "Allow" : "Block"}.`
-    : `W każdej przeglądarce: otwórz jej Ustawienia, w polu wyszukiwania wpisz „ustawienia witryn” (albo samo „witryn”) → Uprawnienia → odnajdź ${site} → Powiadomienia → ${allow ? "Zezwalaj" : "Blokuj"}.`;
+  const any = T(`W każdej przeglądarce: otwórz jej Ustawienia, w polu wyszukiwania wpisz „ustawienia witryn” (albo samo „witryn”) → Uprawnienia → odnajdź ${site} → Powiadomienia → ${allow ? "Zezwalaj" : "Blokuj"}.`, `In any browser: open its Settings, type “site settings” (or “site”) in the search field → Permissions → find ${site} → Notifications → ${allow ? "Allow" : "Block"}.`, `У будь-якому браузері: відкрийте його Налаштування, у полі пошуку введіть «налаштування сайтів» (або просто «сайт») → Дозволи → знайдіть ${site} → Сповіщення → ${allow ? "Дозволити" : "Блокувати"}.`);
   return `${path} → ${allow ? permit : block}. ${any}`;
 }
 
@@ -3890,43 +3910,38 @@ async function browserPushSubscription() {
   return reg ? reg.pushManager.getSubscription() : null;
 }
 
-async function refreshWebPushStatus(isEn = UI.isEn) {
+async function refreshWebPushStatus(jezyk = UI.lang) {
+  const T = (pl, en, uk) => jezyk === "pl" ? pl : jezyk === "uk" ? (uk !== undefined ? uk : en) : en;
   const info = document.getElementById("bg-status");
   const on = document.getElementById("btn-web-push-on");
   const off = document.getElementById("btn-web-push-off");
   if (!on || !off) return;
   on.hidden = off.hidden = true;
-  on.textContent = isEn ? "🔔 Turn on notifications in this browser" : "🔔 Włącz powiadomienia w tej przeglądarce";
-  off.textContent = isEn ? "🔕 Turn off notifications in this browser" : "🔕 Wyłącz powiadomienia w tej przeglądarce";
+  on.textContent = T("🔔 Włącz powiadomienia w tej przeglądarce", "🔔 Turn on notifications in this browser", "🔔 Увімкнути сповіщення в цьому браузері");
+  off.textContent = T("🔕 Wyłącz powiadomienia w tej przeglądarce", "🔕 Turn off notifications in this browser", "🔕 Вимкнути сповіщення в цьому браузері");
   let text;
   const iosBrowser = /iPhone|iPad|iPod/i.test(navigator.userAgent || "")
     && !(window.matchMedia?.("(display-mode: standalone)")?.matches || navigator.standalone);
   if (iosBrowser) {
     // Audyt B9: iPhone dopuszcza push tylko dla strony dodanej do ekranu początkowego
-    text = isEn ? "On iPhone, notifications work only after adding Strażnik to the Home Screen: Share → Add to Home Screen, then open it from the icon and turn notifications on here."
-                : "Na iPhonie powiadomienia działają dopiero po dodaniu Strażnika do ekranu początkowego: Udostępnij → Do ekranu początk., potem otwórz go z ikony i włącz powiadomienia tutaj.";
+    text = T("Na iPhonie powiadomienia działają dopiero po dodaniu Strażnika do ekranu początkowego: Udostępnij → Do ekranu początk., potem otwórz go z ikony i włącz powiadomienia tutaj.", "On iPhone, notifications work only after adding Strażnik to the Home Screen: Share → Add to Home Screen, then open it from the icon and turn notifications on here.", "На iPhone сповіщення працюють лише після додавання Strażnika на екран «Початок»: Поділитися → На екран «Початок», потім відкрийте його з іконки й увімкніть сповіщення тут.");
   } else if (standalone || !("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
-    text = isEn ? "This browser does not support push notifications — alerts are visible only while the tab is open."
-                : "Ta przeglądarka nie obsługuje powiadomień push — alarm widać tylko przy otwartej karcie.";
+    text = T("Ta przeglądarka nie obsługuje powiadomień push — alarm widać tylko przy otwartej karcie.", "This browser does not support push notifications — alerts are visible only while the tab is open.", "Цей браузер не підтримує push-сповіщень — тривогу видно лише при відкритій вкладці.");
   } else if (Notification.permission === "denied") {
-    text = (isEn ? "Notifications for straznik.eu are blocked in this browser. To allow them: "
-                 : "Powiadomienia dla straznik.eu są zablokowane w tej przeglądarce. Aby je dopuścić: ")
-      + browserNotifPath(isEn, true);
+    text = (T("Powiadomienia dla straznik.eu są zablokowane w tej przeglądarce. Aby je dopuścić: ", "Notifications for straznik.eu are blocked in this browser. To allow them: ", "Сповіщення для straznik.eu заблоковані в цьому браузері. Щоб їх дозволити: "))
+      + browserNotifPath(jezyk, true);
   } else {
     let sub = null;
     try { sub = Notification.permission === "granted" ? await browserPushSubscription() : null; } catch {}
     const regions = (Places?.observedVoivodeships(savedPlaces) || []).map(v => UI.voiv(v)).join(", ");
     if (sub) {
       off.hidden = false;
-      text = (isEn ? `Push notifications are on${regions ? " for: " + regions : ""}. They arrive even with the tab closed — one notification per alert.`
-                   : `Powiadomienia push są włączone${regions ? " dla: " + regions : ""}. Przychodzą także przy zamkniętej karcie — jedno powiadomienie na alarm.`);
+      text = (T(`Powiadomienia push są włączone${regions ? " dla: " + regions : ""}. Przychodzą także przy zamkniętej karcie — jedno powiadomienie na alarm.`, `Push notifications are on${regions ? " for: " + regions : ""}. They arrive even with the tab closed — one notification per alert.`, `Push-сповіщення увімкнено${regions ? " для: " + regions : ""}. Вони приходять і при закритій вкладці — одне сповіщення на тривогу.`));
     } else {
       on.hidden = false;
-      text = isEn ? "Push notifications are off. Alerts are visible only while the tab is open."
-                  : "Powiadomienia push są wyłączone. Alarm widać tylko przy otwartej karcie.";
+      text = T("Powiadomienia push są wyłączone. Alarm widać tylko przy otwartej karcie.", "Push notifications are off. Alerts are visible only while the tab is open.", "Push-сповіщення вимкнено. Тривогу видно лише при відкритій вкладці.");
       if (Notification.permission === "granted")
-        text += (isEn ? " The browser permission is still granted — to remove it too: "
-                      : " Pozwolenie przeglądarki wciąż jest nadane — aby usunąć i je: ") + browserNotifPath(isEn);
+        text += (T(" Pozwolenie przeglądarki wciąż jest nadane — aby usunąć i je: ", " The browser permission is still granted — to remove it too: ", " Дозвіл браузера досі наданий — щоб зняти і його: ")) + browserNotifPath(jezyk);
     }
   }
   if (info) info.textContent = text;
@@ -3950,12 +3965,10 @@ async function disableBrowserPush() {
   localStorage.setItem(NOTIF_KEY, "0");
   document.getElementById("btn-push").classList.remove("active");
   await refreshWebPushStatus();
-  toast((UI.isEn
-    ? "🔕 <b>Notifications turned off in this browser.</b><br>Strażnik will not send push here any more.<br>"
-      + "To also remove the browser permission: "
-    : "🔕 <b>Powiadomienia w tej przeglądarce wyłączone.</b><br>Strażnik nie wyśle już tu push.<br>"
+  toast((UI.t("🔕 <b>Powiadomienia w tej przeglądarce wyłączone.</b><br>Strażnik nie wyśle już tu push.<br>", "🔕 <b>Notifications turned off in this browser.</b><br>Strażnik will not send push here any more.<br>"
+      + "To also remove the browser permission: ", "🔕 <b>Сповіщення в цьому браузері вимкнено.</b><br>Strażnik більше не надішле сюди push.<br>")
       + "Aby usunąć też samo pozwolenie przeglądarki: ") + esc(browserNotifPath())
-    + `<br><span class="muted">${UI.isEn ? "Tap to close" : "Dotknij, aby zamknąć"}</span>`, 20000);
+    + `<br><span class="muted">${UI.t("Dotknij, aby zamknąć", "Tap to close", "Торкніться, щоб закрити")}</span>`, 20000);
 }
 
 async function syncBrowserPushRegion() {
@@ -4031,8 +4044,7 @@ function goHome(instant) {
     // Bez zapisanego miejsca przycisk robił to samo co „cała PL" i wyglądał na
     // zepsuty — mówimy wprost, czego brakuje.
     fitAll(instant);
-    toast(UI.isEn ? "Set your place first: Settings → My places"
-                  : "Najpierw ustaw miejsce: Ustawienia → Moje miejsca");
+    toast(UI.t("Najpierw ustaw miejsce: Ustawienia → Moje miejsca", "Set your place first: Settings → My places", "Спершу вкажіть місце: Налаштування → Мої місця"));
     return;
   }
   const f = featureFor(name);
@@ -4292,8 +4304,7 @@ async function toggleHistory() {
   paintTimeline(fetchTimeline());
   if (!histTimes.length) {
     document.getElementById("tb-info").textContent =
-      UI.isEn ? "No saved history — snapshots are created every minute after startup."
-        : "Brak zapisanej historii — migawki powstają co minutę od uruchomienia.";
+      UI.t("Brak zapisanej historii — migawki powstają co minutę od uruchomienia.", "No saved history — snapshots are created every minute after startup.", "Немає збереженої історії — знімки створюються щохвилини від запуску.");
     bar.classList.remove("hidden");
     setTimeout(() => bar.classList.add("hidden"), 3500);
     return;
@@ -4343,8 +4354,8 @@ function showHistoryAt(idx) {
   const when = new Date(snap?.ts || ts);
   const ageMin = Math.round((Date.now() - when.getTime()) / 60000);
   document.getElementById("tb-label").textContent =
-    when.toLocaleTimeString(UI.isEn ? "en-GB" : "pl-PL", { hour: "2-digit", minute: "2-digit" })
-    + (ageMin > 1 ? ` (${histAgo(ageMin)})` : (UI.isEn ? " (now)" : " (teraz)"));
+    when.toLocaleTimeString(UI.t("pl-PL", "en-GB", "uk-UA"), { hour: "2-digit", minute: "2-digit" })
+    + (ageMin > 1 ? ` (${histAgo(ageMin)})` : (UI.t(" (teraz)", " (now)", " (зараз)")));
   const sigs = h?.signals || [];
   paintOblasts(sigs);
   paintCountryAlerts(sigs);
@@ -4416,13 +4427,13 @@ function showHistoryAt(idx) {
     (tp && tp.score > 0
       ? `<b style="color:${tp.level === "high" ? "var(--red)"
           : tp.level === "elevated" ? "var(--amber)" : "var(--muted)"}">`
-        + `${tp.score} ${UI.isEn ? "pts" : "pkt"}${tp.voiv ? ` · ${UI.isEn ? "province" : "woj."} ` + esc(UI.voiv(tp.voiv)) : ""}</b> · `
+        + `${tp.score} ${UI.t("pkt", "pts", "бал.")}${tp.voiv ? ` · ${UI.t("woj.", "province", "воєв.")} ` + esc(UI.voiv(tp.voiv)) : ""}</b> · `
       : "")
-    + `${threats.length} ${UI.isEn ? "objects" : "obiektów"} · ${planes.filter(p => !p.historicalOnly).length} ${UI.isEn ? "aircraft in snapshot" : "maszyn w migawce"}`
-    + (planes.some(p => p.historicalOnly) ? ` + ${planes.filter(p => p.historicalOnly).length} ${UI.isEn ? "last observations" : "ostatnich obserwacji"}` : "") + " · "
+    + `${threats.length} ${UI.t("obiektów", "objects", "об'єктів")} · ${planes.filter(p => !p.historicalOnly).length} ${UI.t("maszyn w migawce", "aircraft in snapshot", "машин у знімку")}`
+    + (planes.some(p => p.historicalOnly) ? ` + ${planes.filter(p => p.historicalOnly).length} ${UI.t("ostatnich obserwacji", "last observations", "останніх спостережень")}` : "") + " · "
     + (sigs.length
-      ? `<button id="tb-sigs" class="linklike">${sigs.length} ${UI.isEn ? "signals in the window" : "sygnałów w oknie"} ↗</button>`
-      : (UI.isEn ? "no signals in the window" : "brak sygnałów w oknie"));
+      ? `<button id="tb-sigs" class="linklike">${sigs.length} ${UI.t("sygnałów w oknie", "signals in the window", "сигналів у вікні")} ↗</button>`
+      : (UI.t("brak sygnałów w oknie", "no signals in the window", "у вікні немає сигналів")));
   document.getElementById("tb-sigs")?.addEventListener("click", () => setPanel(true));
 
   if (mapReady) {   // dane lokalne (bufor w RAM) → mapę odświeżamy też podczas
@@ -4483,10 +4494,10 @@ function histAgo(ageMin) {
   return h ? `−${h} h${m ? ` ${m} min` : ""}` : `−${ageMin} min`;
 }
 function renderHistoryPanel(sigs, perVoiv, when, ageMin) {
-  const banner = `<div class="hist-banner">${UI.isEn ? "HISTORY VIEW" : "PODGLĄD HISTORII"} —
-    ${when.toLocaleTimeString(UI.isEn ? "en-GB" : "pl-PL", { hour: "2-digit", minute: "2-digit" })}
-    ${ageMin > 1 ? `(${histAgo(ageMin)})` : (UI.isEn ? "(now)" : "(teraz)")}
-    <span>${UI.isEn ? "data from the time selected on the slider, not live" : "dane sprzed chwili wybranej suwakiem, nie na żywo"}</span></div>`;
+  const banner = `<div class="hist-banner">${UI.t("PODGLĄD HISTORII", "HISTORY VIEW", "ПЕРЕГЛЯД ІСТОРІЇ")} —
+    ${when.toLocaleTimeString(UI.t("pl-PL", "en-GB", "uk-UA"), { hour: "2-digit", minute: "2-digit" })}
+    ${ageMin > 1 ? `(${histAgo(ageMin)})` : (UI.t("(teraz)", "(now)", "(зараз)"))}
+    <span>${UI.t("dane sprzed chwili wybranej suwakiem, nie na żywo", "data from the time selected on the slider, not live", "дані з моменту, обраного повзунком, а не наживо")}</span></div>`;
 
   const shown = Object.entries(perVoiv)
     .filter(([, sc]) => sc > 0)
@@ -4496,15 +4507,15 @@ function renderHistoryPanel(sigs, perVoiv, when, ageMin) {
     const own = sigs.filter(s => s.voivodeship === name);
     return `<div class="voiv-card level-${lvl} open">
       <div class="voiv-head"><span class="voiv-name">${esc(UI.voiv(name))}</span>
-        <span class="voiv-score">${(Math.round(sc * 10) / 10).toFixed(1)} ${UI.isEn ? "pts" : "pkt"}</span></div>
-      <div class="voiv-level">${lvl === "none" ? (UI.isEn ? "below threshold" : "poniżej progu") : LEVEL_LABEL[lvl]}</div>
+        <span class="voiv-score">${(Math.round(sc * 10) / 10).toFixed(1)} ${UI.t("pkt", "pts", "бал.")}</span></div>
+      <div class="voiv-level">${lvl === "none" ? (UI.t("poniżej progu", "below threshold", "нижче порога")) : LEVEL_LABEL[lvl]}</div>
       <div class="voiv-breakdown">${sigList(own)}</div></div>`;
   }).join("");
 
   document.getElementById("voiv-cards").innerHTML = banner +
-    (cards || `<div class="fineprint">${UI.isEn ? "No province had points at this time." : "W tej chwili żadne województwo nie miało punktów."}</div>`);
+    (cards || `<div class="fineprint">${UI.t("W tej chwili żadne województwo nie miało punktów.", "No province had points at this time.", "Цієї миті жодне воєводство не мало балів.")}</div>`);
   document.getElementById("signal-list").innerHTML =
-    sigList(sigs) || `<div class="fineprint">${UI.isEn ? "no signals in this window" : "brak sygnałów w tym oknie"}</div>`;
+    sigList(sigs) || `<div class="fineprint">${UI.t("brak sygnałów w tym oknie", "no signals in this window", "у цьому вікні немає сигналів")}</div>`;
 }
 
 document.getElementById("btn-history").onclick = () => toggleHistory();
@@ -4517,8 +4528,8 @@ function quickLabel(idx) {
   const when = new Date(ts);
   const ageMin = Math.round((Date.now() - when.getTime()) / 60000);
   document.getElementById("tb-label").textContent =
-    when.toLocaleTimeString(UI.isEn ? "en-GB" : "pl-PL", { hour: "2-digit", minute: "2-digit" })
-    + (ageMin > 1 ? ` (${histAgo(ageMin)})` : (UI.isEn ? " (now)" : " (teraz)"));
+    when.toLocaleTimeString(UI.t("pl-PL", "en-GB", "uk-UA"), { hour: "2-digit", minute: "2-digit" })
+    + (ageMin > 1 ? ` (${histAgo(ageMin)})` : (UI.t(" (teraz)", " (now)", " (зараз)")));
   document.getElementById("tb-slider").dataset.level = timelinePoints[idx]?.level || "none";
   syncTbControls(idx);
 }
@@ -4547,6 +4558,12 @@ const TB_LABELS = {
         play: ["", "Odtwarzaj / pauza"], fwd1: ["+1", "1 minuta do przodu (przytrzymaj, aby przewijać)"],
         fwd10: ["+10", "10 minut do przodu"], "next-alarm": ["alarm", "Następny alarm"],
         end: ["koniec", "Najnowsza migawka"], group: "Sterowanie historią", speed: "Prędkość odtwarzania" },
+  uk: { start: ["−12 год", "Початок історії (12 годин тому)"],
+        "prev-alarm": ["тривога", "Попередня тривога"], back10: ["−10", "10 хвилин назад"],
+        back1: ["−1", "1 хвилина назад (утримуйте, щоб прокручувати)"],
+        play: ["", "Відтворення / пауза"], fwd1: ["+1", "1 хвилина вперед (утримуйте, щоб прокручувати)"],
+        fwd10: ["+10", "10 хвилин вперед"], "next-alarm": ["тривога", "Наступна тривога"],
+        end: ["кінець", "Найновіший знімок"], group: "Керування історією", speed: "Швидкість відтворення" },
   en: { start: ["−12 h", "Start of history (12 hours back)"],
         "prev-alarm": ["alert", "Previous alert"], back10: ["−10", "10 minutes back"],
         back1: ["−1", "1 minute back (hold to keep scrolling)"],
@@ -4555,7 +4572,7 @@ const TB_LABELS = {
         end: ["end", "Latest snapshot"], group: "History controls", speed: "Playback speed" },
 };
 function labelTbControls() {
-  const L = TB_LABELS[UI.isEn ? "en" : "pl"];
+  const L = TB_LABELS[UI.t("pl", "en", "uk")];
   document.getElementById("tb-controls").setAttribute("aria-label", L.group);
   for (const b of document.querySelectorAll("#tb-controls .tb-btn")) {
     const [caption, title] = L[b.dataset.act];
@@ -4654,7 +4671,7 @@ function tbAction(act) {
     histSpeed = histSpeed === 1 ? 2 : histSpeed === 2 ? 4 : 1;
     const sp = document.getElementById("tb-speed");
     sp.textContent = `×${histSpeed}`;
-    sp.setAttribute("aria-label", `${TB_LABELS[UI.isEn ? "en" : "pl"].speed}: ×${histSpeed}`);
+    sp.setAttribute("aria-label", `${TB_LABELS[UI.t("pl", "en", "uk")].speed}: ×${histSpeed}`);
     if (histPlayTimer) startHistPlay();
   });
 })();
@@ -4679,9 +4696,9 @@ function syncObservedRegions() {
 }
 function renderPlacesSummary() {
   const el=document.getElementById("places-summary"); if(!el)return;
-  if(!savedPlaces.length){el.textContent=UI.isEn?"No saved places yet.":"Nie zapisano jeszcze żadnego miejsca.";return;}
+  if(!savedPlaces.length){el.textContent=UI.t("Nie zapisano jeszcze żadnego miejsca.", "No saved places yet.", "Ще не збережено жодного місця.");return;}
   const watched=Places.observedVoivodeships(savedPlaces).map(v=>UI.voiv(v));
-  el.textContent=(UI.isEn?`${savedPlaces.length}/8 places. Watched provinces: `:`${savedPlaces.length}/8 miejsc. Obserwowane województwa: `)+(watched.join(", ")||(UI.isEn?"none":"brak"));
+  el.textContent=(UI.t(`${savedPlaces.length}/8 miejsc. Obserwowane województwa: `, `${savedPlaces.length}/8 places. Watched provinces: `, `${savedPlaces.length}/8 місць. Відстежувані воєводства: `))+(watched.join(", ")||(UI.t("brak", "none", "немає")));
 }
 function openSettings() {
   UI.previewSettings?.(UI.lang || "pl");
@@ -4689,7 +4706,7 @@ function openSettings() {
   if (alertsBox) alertsBox.checked = !alertsOff();
   refreshBgStatus();
   const sel = document.getElementById("set-voiv");
-  sel.innerHTML = `<option value="">— ${UI.isEn ? "not selected" : "nie wybrano"} —</option>` +
+  sel.innerHTML = `<option value="">— ${UI.t("nie wybrano", "not selected", "не вибрано")} —</option>` +
     ALL_VOIVS.map(v => `<option value="${esc(v)}"${v === myVoiv() ? " selected" : ""}>${esc(UI.voiv(v))}</option>`).join("");
   const langSel = document.getElementById("set-lang"); if (langSel) langSel.value = UI.lang || "pl";
   document.getElementById("set-api").value = localStorage.getItem("straznik_api") || "";
@@ -4744,7 +4761,7 @@ document.getElementById("set-save").onclick = (event) => {
 const placesDlg=document.getElementById("places-dialog");
 let placeDraft=null, placeSnapshot="";
 const placeEl=id=>document.getElementById(id);
-const placeText=(pl,en)=>UI.isEn?en:pl;
+const placeText=(pl,en,uk)=>UI.t(pl,en,uk);
 function draftFromForm(){return Places.clean({id:placeEl("place-id").value,name:placeEl("place-name").value,precision:placeEl("place-precision").value,region:placeEl("place-region").value,gps:placeDraft?.gps||null,alerts:placeEl("place-alerts").checked});}
 function placeDirty(){return placeSnapshot&&JSON.stringify(draftFromForm())!==placeSnapshot;}
 function fillPlace(place){
@@ -4755,12 +4772,12 @@ function fillPlace(place){
 }
 function renderPlaceTabs(){
   placeEl("places-tabs").innerHTML=savedPlaces.map(p=>`<button type="button" class="chip${p.id===placeDraft?.id?' active':''}" data-id="${esc(p.id)}">${esc(p.name)}</button>`).join("");
-  placeEl("places-tabs").querySelectorAll("button").forEach(b=>b.onclick=()=>{if(placeDirty()&&!confirm(placeText("Odrzucić niezapisane zmiany?","Discard unsaved changes?")))return;fillPlace(savedPlaces.find(p=>p.id===b.dataset.id));});
+  placeEl("places-tabs").querySelectorAll("button").forEach(b=>b.onclick=()=>{if(placeDirty()&&!confirm(placeText("Odrzucić niezapisane zmiany?","Discard unsaved changes?","Скасувати незбережені зміни?")))return;fillPlace(savedPlaces.find(p=>p.id===b.dataset.id));});
 }
 function renderPlacePrecision(){
   const precision=placeEl("place-precision").value;
   placeEl("place-gps-row").hidden=precision!=='gps';
-  const gps=placeDraft?.gps; placeEl("place-gps-status").textContent=gps?`${placeText("Zapisano jednorazowo","Saved once")}: ${gps.lat.toFixed(5)}, ${gps.lon.toFixed(5)} · ±${Math.round(gps.accuracy)} m · ${new Date(gps.capturedAt).toLocaleString(UI.isEn?"en-GB":"pl-PL")}`:placeText("Lokalizacja jest wyłączona.","Location is off."); placeEl("place-gps-remove").hidden=!gps;
+  const gps=placeDraft?.gps; placeEl("place-gps-status").textContent=gps?`${placeText("Zapisano jednorazowo","Saved once","Збережено одноразово")}: ${gps.lat.toFixed(5)}, ${gps.lon.toFixed(5)} · ±${Math.round(gps.accuracy)} m · ${new Date(gps.capturedAt).toLocaleString(UI.t("pl-PL", "en-GB", "uk-UA"))}`:placeText("Lokalizacja jest wyłączona.","Location is off.","Місцеперебування вимкнено."); placeEl("place-gps-remove").hidden=!gps;
 }
 function openPlaces(){
   savedPlaces=Places.migrate(localStorage); placeEl("place-region").innerHTML=ALL_VOIVS.map(v=>`<option value="${esc(v)}">${esc(UI.voiv(v))}</option>`).join("");
@@ -4773,13 +4790,13 @@ function backToPlacesTab(){
   openSettings();
   document.querySelector('#settings .set-tab[data-pane="miejsca"]')?.click();
 }
-placeEl("places-close").onclick=()=>{if(!placeDirty()||confirm(placeText("Odrzucić niezapisane zmiany?","Discard unsaved changes?"))){placesDlg.close();backToPlacesTab();}};
-placeEl("place-add").onclick=()=>{if(savedPlaces.length>=8)return alert(placeText("Możesz zapisać maksymalnie 8 miejsc.","You can save up to 8 places."));if(placeDirty()&&!confirm(placeText("Odrzucić niezapisane zmiany?","Discard unsaved changes?")))return;fillPlace({id:crypto.randomUUID?.()||String(Date.now()),name:"",precision:"region",region:myVoiv()||"lubelskie",alerts:false});};
+placeEl("places-close").onclick=()=>{if(!placeDirty()||confirm(placeText("Odrzucić niezapisane zmiany?","Discard unsaved changes?","Скасувати незбережені зміни?"))){placesDlg.close();backToPlacesTab();}};
+placeEl("place-add").onclick=()=>{if(savedPlaces.length>=8)return alert(placeText("Możesz zapisać maksymalnie 8 miejsc.","You can save up to 8 places.","Можна зберегти щонайбільше 8 місць."));if(placeDirty()&&!confirm(placeText("Odrzucić niezapisane zmiany?","Discard unsaved changes?","Скасувати незбережені зміни?")))return;fillPlace({id:crypto.randomUUID?.()||String(Date.now()),name:"",precision:"region",region:myVoiv()||"lubelskie",alerts:false});};
 placeEl("place-precision").onchange=()=>{placeDraft={...placeDraft,precision:placeEl("place-precision").value,gps:placeEl("place-precision").value==='gps'?placeDraft?.gps:null};renderPlacePrecision();};
 placeEl("place-gps").onclick=()=>{
-  if(!navigator.geolocation)return alert(placeText("Brak dostępu do lokalizacji w tym środowisku.","Location is unavailable in this environment."));
-  placeEl("place-gps-status").textContent=placeText("Oczekiwanie na zgodę i jednorazowy odczyt…","Waiting for permission and a one-time reading…");
-  navigator.geolocation.getCurrentPosition(pos=>{const region=voivAt(pos.coords.longitude,pos.coords.latitude);if(!region)return alert(placeText("Pozycja jest poza granicami Polski.","The position is outside Poland."));placeDraft={...placeDraft,region,gps:{lat:pos.coords.latitude,lon:pos.coords.longitude,accuracy:pos.coords.accuracy,capturedAt:new Date().toISOString()}};placeEl("place-region").value=region;renderPlacePrecision();},err=>{placeEl("place-gps-status").textContent=placeText("Nie udało się pobrać pozycji: ","Could not read the position: ")+err.message;},{enableHighAccuracy:true,timeout:15000,maximumAge:0});
+  if(!navigator.geolocation)return alert(placeText("Brak dostępu do lokalizacji w tym środowisku.","Location is unavailable in this environment.","Доступу до місцеперебування в цьому середовищі немає."));
+  placeEl("place-gps-status").textContent=placeText("Oczekiwanie na zgodę i jednorazowy odczyt…","Waiting for permission and a one-time reading…","Очікую на дозвіл і одноразове зчитування…");
+  navigator.geolocation.getCurrentPosition(pos=>{const region=voivAt(pos.coords.longitude,pos.coords.latitude);if(!region)return alert(placeText("Pozycja jest poza granicami Polski.","The position is outside Poland.","Позиція поза межами Польщі."));placeDraft={...placeDraft,region,gps:{lat:pos.coords.latitude,lon:pos.coords.longitude,accuracy:pos.coords.accuracy,capturedAt:new Date().toISOString()}};placeEl("place-region").value=region;renderPlacePrecision();},err=>{placeEl("place-gps-status").textContent=placeText("Nie udało się pobrać pozycji: ","Could not read the position: ","Не вдалося зчитати позицію: ")+err.message;},{enableHighAccuracy:true,timeout:15000,maximumAge:0});
 };
 placeEl("place-gps-remove").onclick=()=>{placeDraft={...placeDraft,gps:null};renderPlacePrecision();};
 placeEl("place-cancel").onclick=()=>{const saved=savedPlaces.find(p=>p.id===placeDraft?.id);if(saved)fillPlace(saved);else placesDlg.close();};
@@ -4826,11 +4843,9 @@ async function refreshBgWarning() {
     if (alertsOff()) { el.classList.add("hidden"); return; }
     let msg = null, fix = "settings";
     if (!s.notificationsAllowed) {
-      msg = UI.isEn ? "Notifications are blocked — alerts cannot arrive. Enable them in settings"
-        : "Powiadomienia zablokowane — alarm nie dotrze. Włącz je w ustawieniach";
+      msg = UI.t("Powiadomienia zablokowane — alarm nie dotrze. Włącz je w ustawieniach", "Notifications are blocked — alerts cannot arrive. Enable them in settings", "Сповіщення заблоковано — тривога не дійде. Увімкніть їх у налаштуваннях");
     } else if (s.fullScreenAllowed === false) {
-      msg = UI.isEn ? "Full-screen alert permission expired — a red alert will not wake the locked screen"
-        : "Zgoda na alarm pełnoekranowy wygasła — czerwony alarm nie zapali ekranu z blokady";
+      msg = UI.t("Zgoda na alarm pełnoekranowy wygasła — czerwony alarm nie zapali ekranu z blokady", "Full-screen alert permission expired — a red alert will not wake the locked screen", "Дозвіл на повноекранну тривогу минув — червона тривога не ввімкне екран із блокування");
       fix = "fullscreen";
     }
     if (!msg) { bgWarnStrikes = 0; el.classList.add("hidden"); return; }
@@ -4838,13 +4853,12 @@ async function refreshBgWarning() {
     try { if (localStorage.getItem(BGWARN_HIDDEN_KEY) === kind) { el.classList.add("hidden"); return; } } catch {}
     // problem musi utrzymać się przez dwa sprawdzenia z rzędu — mniej fałszywych alarmów
     if (++bgWarnStrikes < 2) { setTimeout(refreshBgWarning, 5000); return; }
-    el.innerHTML = `<span>⚠ ${esc(msg)}</span><button class="chip">${UI.isEn ? "Fix" : "Napraw"}</button>`
-      + `<button class="chip bgw-x" aria-label="${UI.isEn ? "Close" : "Zamknij"}" title="${UI.isEn ? "Close" : "Zamknij"}">✕</button>`;
+    el.innerHTML = `<span>⚠ ${esc(msg)}</span><button class="chip">${UI.t("Napraw", "Fix", "Виправити")}</button>`
+      + `<button class="chip bgw-x" aria-label="${UI.t("Zamknij", "Close", "Закрити")}" title="${UI.t("Zamknij", "Close", "Закрити")}">✕</button>`;
     el.querySelector(".bgw-x").onclick = () => {
       try { localStorage.setItem(BGWARN_HIDDEN_KEY, kind); } catch {}
       el.classList.add("hidden");
-      toast(UI.isEn ? "Warning hidden. You can turn alerts off or back on in ⚙ → Alerts."
-        : "Ostrzeżenie ukryte. Alarmy wyłączysz albo przywrócisz w ⚙ → Alarmy.", 6000);
+      toast(UI.t("Ostrzeżenie ukryte. Alarmy wyłączysz albo przywrócisz w ⚙ → Alarmy.", "Warning hidden. You can turn alerts off or back on in ⚙ → Alerts.", "Попередження приховано. Тривоги вимкнете або повернете в ⚙ → Тривоги."), 6000);
     };
     el.querySelector("button").onclick = fix === "fullscreen"
       ? () => { BG()?.requestFullScreenPermission(); setTimeout(refreshBgWarning, 1500); }
@@ -4901,37 +4915,31 @@ async function checkForUpdate(force = false, throttled = false) {
   try {
     const last = +(localStorage.getItem("straznik_upd_check") || 0);
     if (throttled && !force && Date.now() - last < UPDATE_EVERY_MS) return;
-    if (force) updStatus(UI.isEn ? "Checking…" : "Sprawdzam…");
+    if (force) updStatus(UI.t("Sprawdzam…", "Checking…", "Перевіряю…"));
     const s = await BG()?.status();
     const local = s?.appVersion;
     if (!local) {
-      if (force) updStatus(UI.isEn ? "Could not read the app version."
-                                   : "Nie udało się odczytać wersji aplikacji.");
+      if (force) updStatus(UI.t("Nie udało się odczytać wersji aplikacji.", "Could not read the app version.", "Не вдалося прочитати версію застосунку."));
       return;
     }
     const r = await fetch(UPDATE_API, { headers: { Accept: "application/vnd.github+json" }, cache: "no-store" });
     if (!r.ok) {
-      if (force) updStatus(UI.isEn ? "Could not check — try again later."
-                                   : "Nie udało się sprawdzić — spróbuj później.");
+      if (force) updStatus(UI.t("Nie udało się sprawdzić — spróbuj później.", "Could not check — try again later.", "Не вдалося перевірити — спробуйте пізніше."));
       return;
     }
     const rel = await r.json();
     localStorage.setItem("straznik_upd_check", String(Date.now()));
     if (!isNewer(rel.version, local)) {
-      if (force) updStatus(UI.isEn ? `You have the latest version (${local}).`
-                                   : `Masz najnowszą wersję (${local}).`);
+      if (force) updStatus(UI.t(`Masz najnowszą wersję (${local}).`, `You have the latest version (${local}).`, `У вас найновіша версія (${local}).`));
       return;
     }
     if (!force && !rel.critical && sessionSkippedUpdates.has(rel.version)) return;
     showUpdateBanner(rel, local);
     if (force) {
-      updStatus(UI.isEn
-        ? `Version ${rel.version} is available — close settings to update.`
-        : `Jest nowsza wersja ${rel.version} — zamknij ustawienia, żeby zaktualizować.`);
+      updStatus(UI.t(`Jest nowsza wersja ${rel.version} — zamknij ustawienia, żeby zaktualizować.`, `Version ${rel.version} is available — close settings to update.`, `Є новіша версія ${rel.version} — закрийте налаштування, щоб оновити.`));
     }
   } catch {
-    if (force) updStatus(UI.isEn ? "No connection — try again later."
-                                 : "Brak połączenia — spróbuj później.");
+    if (force) updStatus(UI.t("Brak połączenia — spróbuj później.", "No connection — try again later.", "Немає з'єднання — спробуйте пізніше."));
   }
 }
 
@@ -4946,28 +4954,22 @@ function showUpdateBanner(rel, local) {
   // samo (patrz #update-banner w style.css), a 1.7.37 miało 10 punktów.
   const changes = (Array.isArray(rel.changes) ? rel.changes : fallbackChanges)
     .map(x => String(x || "").trim()).filter(Boolean).slice(0, 40);
-  const changesLabel = UI.isEn ? "What changes:" : "Co się zmienia:";
+  const changesLabel = UI.t("Co się zmienia:", "What changes:", "Що змінюється:");
   const changesHtml = changes.length
     ? `<div class="upd-changes"><b>${changesLabel}</b><ul>${changes.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>`
-    : `<div class="upd-changes"><b>${changesLabel}</b> ${UI.isEn
-        ? "operational fixes and updated app data."
-        : "poprawki działania i aktualizacja danych aplikacji."}</div>`;
+    : `<div class="upd-changes"><b>${changesLabel}</b> ${UI.t("poprawki działania i aktualizacja danych aplikacji.", "operational fixes and updated app data.", "виправлення роботи й оновлення даних застосунку.")}</div>`;
   el.classList.toggle("critical", !!rel.critical);
   // Przyciski i status w osobnych rzędach — w jednym wierszu z tekstem ściskały go
   // przy dłuższej liście zmian, a status znikał poza przewijanym obszarem.
-  const title = UI.isEn
-    ? `${rel.critical ? "Required" : "Available"} version ${esc(ver)}`
-    : `${rel.critical ? "Wymagana" : "Dostępna"} wersja ${esc(ver)}`;
-  const have = UI.isEn
-    ? `you have ${esc(local)}${esc(size)} · Android will confirm the install`
-    : `masz ${esc(local)}${esc(size)} · instalację potwierdzi Android`;
+  const title = UI.t(`${rel.critical ? "Wymagana" : "Dostępna"} wersja ${esc(ver)}`, `${rel.critical ? "Required" : "Available"} version ${esc(ver)}`, `${rel.critical ? "Потрібна" : "Доступна"} версія ${esc(ver)}`);
+  const have = UI.t(`masz ${esc(local)}${esc(size)} · instalację potwierdzi Android`, `you have ${esc(local)}${esc(size)} · Android will confirm the install`, `у вас ${esc(local)}${esc(size)} · установлення підтвердить Android`);
   el.innerHTML = `<div class="upd-txt"><b>${title}</b>
       <span>${have}</span>
       ${changesHtml}</div>
     <span id="upd-progress"></span>
     <div class="upd-actions">
-      <button class="chip primary" id="upd-install">${UI.isEn ? "Update" : "Aktualizuj"}</button>
-      ${rel.critical ? "" : `<button class="chip" id="upd-later">${UI.isEn ? "Later" : "Później"}</button>`}
+      <button class="chip primary" id="upd-install">${UI.t("Aktualizuj", "Update", "Оновити")}</button>
+      ${rel.critical ? "" : `<button class="chip" id="upd-later">${UI.t("Później", "Later", "Пізніше")}</button>`}
     </div>`;
   el.classList.remove("hidden");
   document.getElementById("upd-later")?.addEventListener("click", () => {
@@ -4979,28 +4981,23 @@ function showUpdateBanner(rel, local) {
     const progress = document.getElementById("upd-progress");
     const plugin = BG();
     if (!plugin?.installUpdate) {
-      progress.textContent = UI.isEn ? "The updater needs a newer version of the app."
-                                     : "Aktualizator wymaga nowszej wersji aplikacji.";
+      progress.textContent = UI.t("Aktualizator wymaga nowszej wersji aplikacji.", "The updater needs a newer version of the app.", "Оновлювач потребує новішої версії застосунку.");
       return;
     }
     try {
       const perm = await plugin.canInstallUpdates();
       if (!perm?.allowed) {
         await plugin.requestInstallPermission();
-        progress.textContent = UI.isEn
-          ? "Allow “Install from this source”, come back and tap Update again."
-          : "Włącz zgodę „Zezwalaj z tego źródła”, wróć i dotknij Aktualizuj ponownie.";
+        progress.textContent = UI.t("Włącz zgodę „Zezwalaj z tego źródła”, wróć i dotknij Aktualizuj ponownie.", "Allow “Install from this source”, come back and tap Update again.", "Увімкніть дозвіл «Дозволити з цього джерела», поверніться й торкніться «Оновити» ще раз.");
         return;
       }
       btn.disabled = true;
-      btn.textContent = UI.isEn ? "Downloading…" : "Pobieram…";
+      btn.textContent = UI.t("Pobieram…", "Downloading…", "Завантажую…");
       // aplikacja sprawdza sumę SHA-256 z wydania, pakiet i certyfikat podpisu (audyt 16.09.2026)
-      progress.textContent = UI.isEn ? "Checking the SHA-256 checksum and signature…"
-                                     : "Sprawdzam sumę kontrolną SHA-256 i podpis…";
+      progress.textContent = UI.t("Sprawdzam sumę kontrolną SHA-256 i podpis…", "Checking the SHA-256 checksum and signature…", "Перевіряю контрольну суму SHA-256 і підпис…");
       await plugin.installUpdate({url: rel.url, sha256: rel.sha256});
-      progress.textContent = UI.isEn ? "Confirm the install in the Android dialog."
-                                     : "Potwierdź instalację w oknie Androida.";
-      btn.textContent = UI.isEn ? "Installer opened" : "Instalator otwarty";
+      progress.textContent = UI.t("Potwierdź instalację w oknie Androida.", "Confirm the install in the Android dialog.", "Підтвердіть установлення у вікні Android.");
+      btn.textContent = UI.t("Instalator otwarty", "Installer opened", "Інсталятор відкрито");
     } catch (error) {
       btn.disabled = false;
       btn.textContent = "Spróbuj ponownie";
@@ -5013,44 +5010,41 @@ function showUpdateBanner(rel, local) {
 const BG = () => window.Capacitor?.Plugins?.StraznikBackground || null;
 
 async function refreshBgStatus(previewLang = UI.lang) {
-  const isEn = previewLang === "en";
+  // Podglad w ustawieniach pokazuje wybrany jezyk jeszcze przed zapisem, dlatego
+  // teksty w tym oknie skladamy przez lokalne T, a nie przez UI.t (jezyk zapisany).
+  const T = (pl, en, uk) => previewLang === "pl" ? pl : previewLang === "uk" ? (uk !== undefined ? uk : en) : en;
   const plugin = BG();
   const info = document.getElementById("bg-status");
   if (!plugin) {
     document.getElementById("btn-battery").style.display = "none";
     document.getElementById("btn-notif-settings").style.display = "none";
-    await refreshWebPushStatus(isEn);
+    await refreshWebPushStatus(previewLang);
     return;
   }
   try {
     const s = await plugin.status();
     const warn = [];
     if (!s.notificationsAllowed)
-      warn.push(isEn ? "⚠ Notifications are blocked in system settings — alerts cannot arrive."
-        : "⚠ Powiadomienia są zablokowane w ustawieniach systemu — bez nich alarm nie dotrze.");
+      warn.push(T("⚠ Powiadomienia są zablokowane w ustawieniach systemu — bez nich alarm nie dotrze.", "⚠ Notifications are blocked in system settings — alerts cannot arrive.", "⚠ Сповіщення заблоковані в налаштуваннях системи — без них тривога не дійде."));
     if (s.fullScreenAllowed === false)
-      warn.push(isEn ? "⚠ Full-screen alert permission is missing — a red alert will not wake the screen. Enable it below."
-        : "⚠ Brak zgody na alarm pełnoekranowy — czerwony alarm nie zapali wygaszonego ekranu. Włącz przyciskiem 🚨 poniżej.");
+      warn.push(T("⚠ Brak zgody na alarm pełnoekranowy — czerwony alarm nie zapali wygaszonego ekranu. Włącz przyciskiem 🚨 poniżej.", "⚠ Full-screen alert permission is missing — a red alert will not wake the screen. Enable it below.", "⚠ Немає дозволу на повноекранну тривогу — червона тривога не ввімкне згаслого екрана. Увімкніть кнопкою 🚨 нижче."));
     /* Potwierdzone na iPhonie 18.09.2026: w trybie Sen czerwony alarm nie dotarł
        do odblokowania telefonu, dopóki Strażnik nie został dopuszczony w
        Ustawienia → Skupienie → Sen → Aplikacje. iOS wymaga zgody na powiadomienia
        czasowo zależne osobno dla aplikacji i osobno dla trybu Skupienia. */
     if (s.platform === "ios" && s.notificationsAllowed && s.timeSensitiveAllowed === false)
-      warn.push(isEn ? "⚠ “Time Sensitive Notifications” are off for Strażnik — a red alert may stay silent in Focus mode. Settings → Strażnik → Notifications."
-        : "⚠ „Powiadomienia czasowo zależne” są wyłączone dla Strażnika — czerwony alarm może nie przebić trybu Skupienia. Ustawienia → Strażnik → Powiadomienia.");
+      warn.push(T("⚠ „Powiadomienia czasowo zależne” są wyłączone dla Strażnika — czerwony alarm może nie przebić trybu Skupienia. Ustawienia → Strażnik → Powiadomienia.", "⚠ “Time Sensitive Notifications” are off for Strażnik — a red alert may stay silent in Focus mode. Settings → Strażnik → Notifications.", "⚠ «Сповіщення з урахуванням часу» вимкнені для Strażnika — червона тривога може не пробити режим Фокусування. Налаштування → Strażnik → Сповіщення."));
     if (s.topicsError)
-      warn.push(isEn ? "⚠ Some alert subscriptions were not confirmed yet — keep the app open with internet for a moment."
-        : "⚠ Część subskrypcji alarmów nie została jeszcze potwierdzona — zostaw aplikację chwilę otwartą z internetem.");
+      warn.push(T("⚠ Część subskrypcji alarmów nie została jeszcze potwierdzona — zostaw aplikację chwilę otwartą z internetem.", "⚠ Some alert subscriptions were not confirmed yet — keep the app open with internet for a moment.", "⚠ Частину підписок на тривоги ще не підтверджено — залиште застосунок ненадовго відкритим з інтернетом."));
     // Audyt B6: na tych nakładkach „wyczyść wszystko” działa jak wymuszone zatrzymanie
     if (/xiaomi|redmi|poco|huawei|honor|oppo|realme|vivo|oneplus|meizu|tecno|infinix/i.test(s.manufacturer || ""))
-      warn.push(isEn ? `⚠ On ${esc(s.manufacturer)} phones, clearing the app from recent apps can block alerts until you open Strażnik again. Lock it in recent apps (padlock) and allow autostart.`
-        : `⚠ Na telefonach ${esc(s.manufacturer)} usunięcie aplikacji z listy ostatnich potrafi zablokować alarmy do ponownego otwarcia Strażnika. Zablokuj ją na liście ostatnich (kłódka) i zezwól na autostart.`);
+      warn.push(T(`⚠ Na telefonach ${esc(s.manufacturer)} usunięcie aplikacji z listy ostatnich potrafi zablokować alarmy do ponownego otwarcia Strażnika. Zablokuj ją na liście ostatnich (kłódka) i zezwól na autostart.`, `⚠ On ${esc(s.manufacturer)} phones, clearing the app from recent apps can block alerts until you open Strażnik again. Lock it in recent apps (padlock) and allow autostart.`, `⚠ На телефонах ${esc(s.manufacturer)} видалення застосунку зі списку останніх може заблокувати тривоги до повторного відкриття Strażnika. Закріпіть його у списку останніх (замочок) і дозвольте автозапуск.`));
     const verEl = document.getElementById("app-version");
     // iOS celowo zwraca pusty appVersion, żeby aplikacja nie proponowała APK
     // (Apple odrzuca aktualizacje spoza App Store) — wersję podaje iosAppVersion.
     const wersja = s.appVersion || s.iosAppVersion;
     if (verEl) verEl.textContent = wersja
-      ? `${isEn ? "Installed version" : "Zainstalowana wersja"} ${wersja}` : "";
+      ? `${T("Zainstalowana wersja", "Installed version", "Встановлена версія")} ${wersja}` : "";
     const updBtn = document.getElementById("btn-update");
     if (updBtn) updBtn.style.display = UPDATE_CHECK && !IS_IOS ? "" : "none";
     /* canUseFullScreenIntent() bywa optymistyczne (zwraca „dozwolone", choć system
@@ -5061,10 +5055,10 @@ async function refreshBgStatus(previewLang = UI.lang) {
       const mayBeBlocked = (s.sdk || 0) >= 34;
       fsBtn.style.display = mayBeBlocked ? "" : "none";
       fsBtn.textContent = s.fullScreenAllowed === false
-        ? (isEn ? "🚨 Allow full-screen alerts" : "🚨 Zezwól na alarm pełnoekranowy")
-        : (isEn ? "🚨 Check full-screen alert permission" : "🚨 Sprawdź zgodę na alarm pełnoekranowy");
+        ? (T("🚨 Zezwól na alarm pełnoekranowy", "🚨 Allow full-screen alerts", "🚨 Дозволити повноекранну тривогу"))
+        : (T("🚨 Sprawdź zgodę na alarm pełnoekranowy", "🚨 Check full-screen alert permission", "🚨 Перевірити дозвіл на повноекранну тривогу"));
     }
-    renderNativeSound(s, isEn);
+    renderNativeSound(s, previewLang);
     // Stan subskrypcji potwierdzony przez Firebase — dowód, że wyłączenie działa
     // (15.09.2026: sam przełącznik nic nie pokazywał, a test lokalny dalej grał).
     const slug = v => "voiv_" + v.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/ł/g, "l");
@@ -5073,27 +5067,21 @@ async function refreshBgStatus(previewLang = UI.lang) {
     // „Wypisywanie…” wyglądało wtedy jak błąd, a użytkownik nie wiedział, co zrobić.
     const noRegion = !alertsOff() && !(s.observedVoivodeships || []).length && !s.homeVoivodeship;
     const subLine = noRegion && !subscribed.length
-      ? (isEn ? "No province is selected for alerts yet — add a place with “Watch alerts” on in the My places tab."
-        : "Nie wybrano jeszcze województwa do alarmów — dodaj miejsce z włączonym „Obserwuj alerty” w zakładce Moje miejsca.")
+      ? (T("Nie wybrano jeszcze województwa do alarmów — dodaj miejsce z włączonym „Obserwuj alerty” w zakładce Moje miejsca.", "No province is selected for alerts yet — add a place with “Watch alerts” on in the My places tab.", "Ще не вибрано воєводства для тривог — додайте місце з увімкненим «Стежити за тривогами» у вкладці Мої місця."))
       : s.topicsUnsubscribing
-      ? (isEn ? "⏳ Unsubscribing this phone from provinces…" : "⏳ Wypisywanie telefonu z województw…")
+      ? (T("⏳ Wypisywanie telefonu z województw…", "⏳ Unsubscribing this phone from provinces…", "⏳ Відписування телефону від воєводств…"))
       : subscribed.length
-      ? (isEn ? `Subscribed to alerts for: ${subscribed.map(v => esc(UI.voiv(v))).join(", ")} (confirmed by Firebase).`
-        : `Zapisany do alarmów dla: ${subscribed.map(v => esc(UI.voiv(v))).join(", ")} (potwierdzone przez Firebase).`)
-      : (isEn ? "This phone is not subscribed to any province (confirmed by Firebase)."
-        : "Telefon nie jest zapisany do żadnego województwa (potwierdzone przez Firebase).");
-    if (alertsOff()) warn.splice(0, warn.length, isEn
-      ? "🔕 Alerts are turned off on this phone — no alert notifications will arrive, even if the server sends one. Turn the switch below back on to restore them."
-      : "🔕 Alarmy są wyłączone na tym telefonie — powiadomienia o alarmach nie przyjdą, nawet gdyby serwer je wysłał. Włącz suwak niżej, żeby je przywrócić.");
+      ? (T(`Zapisany do alarmów dla: ${subscribed.map(v => esc(UI.voiv(v))).join(", ")} (potwierdzone przez Firebase).`, `Subscribed to alerts for: ${subscribed.map(v => esc(UI.voiv(v))).join(", ")} (confirmed by Firebase).`, `Записано на тривоги для: ${subscribed.map(v => esc(UI.voiv(v))).join(", ")} (підтверджено Firebase).`))
+      : (T("Telefon nie jest zapisany do żadnego województwa (potwierdzone przez Firebase).", "This phone is not subscribed to any province (confirmed by Firebase).", "Телефон не записаний на жодне воєводство (підтверджено Firebase)."));
+    if (alertsOff()) warn.splice(0, warn.length, T("🔕 Alarmy są wyłączone na tym telefonie — powiadomienia o alarmach nie przyjdą, nawet gdyby serwer je wysłał. Włącz suwak niżej, żeby je przywrócić.", "🔕 Alerts are turned off on this phone — no alert notifications will arrive, even if the server sends one. Turn the switch below back on to restore them.", "🔕 Тривоги вимкнено на цьому телефоні — сповіщення про тривоги не прийдуть, навіть якби сервер їх надіслав. Увімкніть перемикач нижче, щоб їх повернути."));
     if (info) info.innerHTML = (warn.join("<br>")
-      || (noRegion && !subscribed.length ? (isEn ? "Notifications are allowed." : "Powiadomienia są dozwolone.") : "")
-      || (isEn ? "Notifications ready. Alerts for your region will arrive even while the app is closed."
-        : "Powiadomienia gotowe. Alarmy dla Twojego regionu dotrą także przy zamkniętej aplikacji."))
+      || (noRegion && !subscribed.length ? (T("Powiadomienia są dozwolone.", "Notifications are allowed.", "Сповіщення дозволені.")) : "")
+      || (T("Powiadomienia gotowe. Alarmy dla Twojego regionu dotrą także przy zamkniętej aplikacji.", "Notifications ready. Alerts for your region will arrive even while the app is closed.", "Сповіщення готові. Тривоги для вашого регіону дійдуть також при закритому застосунку.")))
       + `<br>${subLine}`
       + `<br><span class="muted">${s.platform === "ios" ? `iOS ${esc(s.osVersion || "")}`
         : `Android ${s.sdk}, ${esc(s.manufacturer || "")}`}`
       + `${s.homeVoivodeship ? " · region: " + esc(UI.voiv(s.homeVoivodeship)) : ""}</span>`;
-  } catch (e) { if (info) info.textContent = (isEn ? "Could not read status: " : "Nie udało się odczytać stanu: ") + e; }
+  } catch (e) { if (info) info.textContent = (T("Nie udało się odczytać stanu: ", "Could not read status: ", "Не вдалося прочитати стан: ")) + e; }
 }
 
 /* Przygotowanie alarmów push: zgoda na powiadomienia i subskrypcja tematu regionu
@@ -5182,18 +5170,16 @@ document.getElementById("btn-update")?.addEventListener("click", async (e) => {
 });
 
 /* ── dźwięk natywny: podgląd głośności, opcja pełnej głośności, test ───────── */
-function renderNativeSound(s, isEn = UI.isEn) {
+function renderNativeSound(s, jezyk = UI.lang) {
+  const T = (pl, en, uk) => jezyk === "pl" ? pl : jezyk === "uk" ? (uk !== undefined ? uk : en) : en;
   const vol = document.getElementById("ns-volume");
   const box = document.getElementById("set-force-volume");
   if (box) box.checked = !!s.forceMaxVolume;
   if (!vol) return;
   const pct = s.alarmVolumeMax ? Math.round(100 * (s.alarmVolume || 0) / s.alarmVolumeMax) : null;
   const lines = [];
-  if (pct != null) lines.push(isEn ? `Android “Alarms” volume now: <b>${pct}%</b>.`
-    : `Głośność „Alarmy” w Androidzie: <b>${pct}%</b>.`);
-  if (s.redChannelSound === false) lines.push(isEn
-    ? "⚠ Sound for the red alert channel is off in notification settings."
-    : "⚠ Dźwięk kanału czerwonego alarmu jest wyłączony w ustawieniach powiadomień.");
+  if (pct != null) lines.push(T(`Głośność „Alarmy” w Androidzie: <b>${pct}%</b>.`, `Android “Alarms” volume now: <b>${pct}%</b>.`, `Гучність «Будильники» в Android: <b>${pct}%</b>.`));
+  if (s.redChannelSound === false) lines.push(T("⚠ Dźwięk kanału czerwonego alarmu jest wyłączony w ustawieniach powiadomień.", "⚠ Sound for the red alert channel is off in notification settings.", "⚠ Звук каналу червоної тривоги вимкнено в налаштуваннях сповіщень."));
   vol.innerHTML = lines.join(" ");
 }
 async function refreshNativeSound() {
@@ -5208,9 +5194,7 @@ if (alertsOnBox) {
   alertsOnBox.checked = !alertsOff();
   alertsOnBox.addEventListener("change", async (e) => {
     const off = !e.target.checked;
-    if (off && !confirm(UI.isEn
-      ? `Turn off alerts on this phone?\n\nThis phone will be unsubscribed from every province, so no alert notifications will arrive and Strażnik will not remind you about permissions. The map keeps working.\n\n${IS_IOS ? "iPhone" : "Android"} notification permissions stay as they are — the app cannot change them; you can switch them off in system settings.`
-      : `Wyłączyć alarmy na tym telefonie?\n\nTelefon zostanie wypisany ze wszystkich województw, więc powiadomienia o alarmach nie przyjdą, a Strażnik nie będzie przypominał o zgodach. Mapa działa dalej.\n\nZgody na powiadomienia w ustawieniach ${IS_IOS ? "iPhone'a" : "Androida"} zostają bez zmian — aplikacja nie może ich zmienić; wyłączysz je w ustawieniach systemu.`)) {
+    if (off && !confirm(UI.t(`Wyłączyć alarmy na tym telefonie?\n\nTelefon zostanie wypisany ze wszystkich województw, więc powiadomienia o alarmach nie przyjdą, a Strażnik nie będzie przypominał o zgodach. Mapa działa dalej.\n\nZgody na powiadomienia w ustawieniach ${IS_IOS ? "iPhone'a" : "Androida"} zostają bez zmian — aplikacja nie może ich zmienić; wyłączysz je w ustawieniach systemu.`, `Turn off alerts on this phone?\n\nThis phone will be unsubscribed from every province, so no alert notifications will arrive and Strażnik will not remind you about permissions. The map keeps working.\n\n${IS_IOS ? "iPhone" : "Android"} notification permissions stay as they are — the app cannot change them; you can switch them off in system settings.`, `Вимкнути тривоги на цьому телефоні?\n\nТелефон буде відписано від усіх воєводств, тож сповіщення про тривоги не приходитимуть, а Strażnik не нагадуватиме про дозволи. Мапа працює далі.\n\nДозволи на сповіщення в налаштуваннях ${IS_IOS ? "iPhone" : "Android"} лишаються без змін — застосунок не може їх змінити; вимкнете їх у налаштуваннях системи.`))) {
       e.target.checked = true;
       return;
     }
@@ -5222,25 +5206,23 @@ if (alertsOnBox) {
     refreshBgStatus(); refreshBgWarning();
     // potwierdzenie z Firebase przychodzi po chwili — odświeżamy status jeszcze dwa razy
     setTimeout(() => refreshBgStatus(), 3000); setTimeout(() => refreshBgStatus(), 9000);
-    toast(off ? (UI.isEn ? "🔕 Alerts are off on this phone. The map keeps working." : "🔕 Alarmy wyłączone na tym telefonie. Mapa działa dalej.")
-      : (UI.isEn ? "🔔 Alerts are on again for your places." : "🔔 Alarmy znów włączone dla Twoich miejsc."), 6000);
+    toast(off ? (UI.t("🔕 Alarmy wyłączone na tym telefonie. Mapa działa dalej.", "🔕 Alerts are off on this phone. The map keeps working.", "🔕 Тривоги вимкнено на цьому телефоні. Мапа працює далі."))
+      : (UI.t("🔔 Alarmy znów włączone dla Twoich miejsc.", "🔔 Alerts are on again for your places.", "🔔 Тривоги знову ввімкнено для ваших місць.")), 6000);
   });
 }
 document.getElementById("set-force-volume")?.addEventListener("change", async (e) => {
   const plugin = BG(); if (!plugin) return;
   const want = e.target.checked;
   // świadoma zgoda: nie może wyć na maksa w nocy u kogoś, kto tego nie chce
-  if (want && !confirm(UI.isEn
-    ? "Turn on full volume for red alerts?\n\nDuring a red alert Strażnik will set the Android “Alarms” volume to maximum — also at night. The previous volume returns after you silence the alert. You can turn this off with the same switch."
-    : "Włączyć pełną głośność czerwonego alarmu?\n\nPrzy czerwonym alarmie Strażnik ustawi głośność „Alarmy” w Androidzie na maksimum — także w nocy. Poprzednia głośność wróci po wyciszeniu alarmu. Wyłączysz to tym samym przełącznikiem.")) {
+  if (want && !confirm(UI.t("Włączyć pełną głośność czerwonego alarmu?\n\nPrzy czerwonym alarmie Strażnik ustawi głośność „Alarmy” w Androidzie na maksimum — także w nocy. Poprzednia głośność wróci po wyciszeniu alarmu. Wyłączysz to tym samym przełącznikiem.", "Turn on full volume for red alerts?\n\nDuring a red alert Strażnik will set the Android “Alarms” volume to maximum — also at night. The previous volume returns after you silence the alert. You can turn this off with the same switch.", "Увімкнути повну гучність червоної тривоги?\n\nПри червоній тривозі Strażnik встановить гучність «Будильники» в Android на максимум — також уночі. Попередня гучність повернеться після вимкнення тривоги. Вимкнете це тим самим перемикачем."))) {
     e.target.checked = false;
     return;
   }
   try {
     await plugin.setForceMaxVolume({ enabled: want });
     toast(want
-      ? (UI.isEn ? "🔊 Red alerts will play at full volume." : "🔊 Czerwony alarm zagra na pełnej głośności.")
-      : (UI.isEn ? "Red alerts use your current “Alarms” volume." : "Czerwony alarm użyje obecnej głośności „Alarmy”."));
+      ? (UI.t("🔊 Czerwony alarm zagra na pełnej głośności.", "🔊 Red alerts will play at full volume.", "🔊 Червона тривога звучатиме на повній гучності."))
+      : (UI.t("Czerwony alarm użyje obecnej głośności „Alarmy”.", "Red alerts use your current “Alarms” volume.", "Червона тривога використає поточну гучність «Будильники».")));
   } catch (err) { e.target.checked = !want; toast("Błąd: " + err); }
   refreshNativeSound();
 });
@@ -5250,9 +5232,7 @@ document.getElementById("btn-sound-settings")?.addEventListener("click", () => B
 function blockedByAlertsOff() {
   if (!alertsOff()) return false;
   // alert(), nie toast: toast chował się pod otwartym oknem ustawień (sprawdzone na emulatorze)
-  alert(UI.isEn
-    ? "🔕 Alerts are off on this phone, so no alert would arrive.\n\nTurn on “Alerts on this phone” in the Alerts tab to test."
-    : "🔕 Alarmy są wyłączone na tym telefonie, więc alarm by nie przyszedł.\n\nWłącz „Alarmy na tym telefonie” w zakładce Alarmy, żeby przetestować.");
+  alert(UI.t("🔕 Alarmy są wyłączone na tym telefonie, więc alarm by nie przyszedł.\n\nWłącz „Alarmy na tym telefonie” w zakładce Alarmy, żeby przetestować.", "🔕 Alerts are off on this phone, so no alert would arrive.\n\nTurn on “Alerts on this phone” in the Alerts tab to test.", "🔕 Тривоги вимкнено на цьому телефоні, тож тривога не прийшла б.\n\nУвімкніть «Тривоги на цьому телефоні» у вкладці Тривоги, щоб протестувати."));
   return true;
 }
 async function nativeTest(level) {
@@ -5263,10 +5243,8 @@ async function nativeTest(level) {
   // bez tego toast obiecywał alarm, który nigdy nie przyszedł. Android zwraca undefined.
   const r = await plugin.testNativeAlarm({ level, delayMs: 5000, voivodeship: myVoiv() || "lubelskie" });
   if (r && r.scheduled === false)
-    return toast(UI.isEn ? "Notifications are blocked — enable them in Settings → Strażnik → Notifications."
-      : "Powiadomienia są zablokowane — włącz je w Ustawienia → Strażnik → Powiadomienia.", 6000);
-  toast(UI.isEn ? "Test alert in 5 seconds — you can lock the screen now."
-    : "Test alarmu za 5 sekund — możesz teraz zablokować ekran.", 5000);
+    return toast(UI.t("Powiadomienia są zablokowane — włącz je w Ustawienia → Strażnik → Powiadomienia.", "Notifications are blocked — enable them in Settings → Strażnik → Notifications.", "Сповіщення заблоковано — увімкніть їх у Налаштування → Strażnik → Сповіщення."), 6000);
+  toast(UI.t("Test alarmu za 5 sekund — możesz teraz zablokować ekran.", "Test alert in 5 seconds — you can lock the screen now.", "Тест тривоги за 5 секунд — можете зараз заблокувати екран."), 5000);
 }
 document.getElementById("btn-native-test")?.addEventListener("click", () => nativeTest("high"));
 document.getElementById("btn-native-test-yellow")?.addEventListener("click", () => nativeTest("elevated"));
@@ -5335,8 +5313,8 @@ function pokazStan3d() {
   const b3 = document.getElementById("btn-3d");
   if (!b3) return;
   b3.classList.toggle("active", is3d);
-  b3.title = is3d ? (UI.isEn ? "Switch to 2D view" : "Przełącz na widok 2D")
-                  : (UI.isEn ? "Switch to 3D view" : "Przełącz na widok 3D");
+  b3.title = is3d ? (UI.t("Przełącz na widok 2D", "Switch to 2D view", "Перемкнути на вигляд 2D"))
+                  : (UI.t("Przełącz na widok 3D", "Switch to 3D view", "Перемкнути на вигляд 3D"));
 }
 document.getElementById("btn-3d").onclick = () => {
   is3d = !is3d;
@@ -5433,8 +5411,8 @@ addEventListener("resize", () => requestAnimationFrame(fitMapActions));
   const ustaw = (schowane) => {
     box.classList.toggle("schowane", schowane);
     btn.setAttribute("aria-expanded", String(!schowane));
-    btn.title = schowane ? (UI.isEn ? "Show map buttons" : "Pokaż przyciski mapy")
-                         : (UI.isEn ? "Hide map buttons" : "Schowaj przyciski mapy");
+    btn.title = schowane ? (UI.t("Pokaż przyciski mapy", "Show map buttons", "Показати кнопки мапи"))
+                         : (UI.t("Schowaj przyciski mapy", "Hide map buttons", "Сховати кнопки мапи"));
     try { localStorage.setItem("straznik_kafelki_schowane", schowane ? "1" : "0"); } catch {}
   };
   let start = false;
@@ -5473,7 +5451,7 @@ const attrEl = document.getElementById("attribution");
 if (attrEl) {
   const mini = document.createElement("span");
   mini.className = "mini-label";
-  mini.textContent = UI.isEn ? "sources ⓘ" : "źródła ⓘ";
+  mini.textContent = UI.t("źródła ⓘ", "sources ⓘ", "джерела ⓘ");
   attrEl.appendChild(mini);
   if (localStorage.getItem("straznik_attr_mini") === "1") attrEl.classList.add("mini");
   document.getElementById("attr-x")?.addEventListener("click", (e) => {
@@ -5530,8 +5508,7 @@ async function otworzGrote(opcje) {
     (await wczytajGrote()).otworz(opcje);
   } catch (e) {
     console.warn("GROTA:", e);
-    toast(UI.isEn ? "Shelter finder is not available in this version."
-                  : "Wyszukiwanie schronień nie jest dostępne w tej wersji.");
+    toast(UI.t("Wyszukiwanie schronień nie jest dostępne w tej wersji.", "Shelter finder is not available in this version.", "Пошук укриттів недоступний у цій версії."));
   }
 }
 /* Przy alarmie wczytujemy moduł i punkty w tle, zanim człowiek potwierdzi alarm:

@@ -22,7 +22,7 @@ function symulacja({ minuty = 10, alarm = false, tryb = 'ok', widoczna = true } 
     clearTimeout: (id) => { const i = timers.findIndex(t => t.id === id); if (i >= 0) timers.splice(i, 1); },
     setInterval: () => 0, clearInterval: () => {},
     document: { get hidden() { return !widoczna; } },
-    UI: { isEn: false },
+    UI: { isEn: false, isUk: false, t: (pl) => pl },
     apiBase: () => 'https://straznik.eu',
     myVoiv: () => 'lubelskie',
     state: { fusion: { voivodeships: { lubelskie: { alert_level: alarm ? 'high' : 'none' } } } },

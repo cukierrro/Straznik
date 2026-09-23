@@ -52,6 +52,13 @@
     "Schronienie — gdzie najbliżej": "Shelter — nearest",
     "Moja lokalizacja": "My location", "Województwo": "Province", "Wykryj z GPS": "Detect with GPS",
     "Moje miejsca": "My places", "📍 Otwórz Moje miejsca": "📍 Open My places",
+    "Nie zapisano jeszcze żadnego miejsca.": "No saved places yet.",
+    "Lokalizacja jest wyłączona.": "Location is off.",
+    "🔔 Włącz powiadomienia w tej przeglądarce": "🔔 Turn on notifications in this browser",
+    "🔕 Wyłącz powiadomienia w tej przeglądarce": "🔕 Turn off notifications in this browser",
+    "🚨 Zgoda na alarm pełnoekranowy": "🚨 Check full-screen alert permission",
+    "◎ Pobierz pozycję jeden raz": "◎ Read location once",
+    "Usuń zapisaną pozycję": "Remove saved position",
     "Alarmy przy zamkniętej aplikacji": "Alerts while the app is closed",
     "Ustawienia powiadomień": "Notification settings", "Zgoda na alarm pełnoekranowy": "Full-screen alert permission",
     "Wyłącz oszczędzanie baterii": "Disable battery optimisation", "Sygnały dźwiękowe": "Alert sounds",
@@ -133,6 +140,13 @@
     "Schronienie — gdzie najbliżej": "Укриття — де найближче",
     "Moja lokalizacja": "Моє місцеперебування", "Województwo": "Воєводство", "Wykryj z GPS": "Визначити за GPS",
     "Moje miejsca": "Мої місця", "📍 Otwórz Moje miejsca": "📍 Відкрити Мої місця",
+    "Nie zapisano jeszcze żadnego miejsca.": "Ще не збережено жодного місця.",
+    "Lokalizacja jest wyłączona.": "Місцеперебування вимкнено.",
+    "🔔 Włącz powiadomienia w tej przeglądarce": "🔔 Увімкнути сповіщення в цьому браузері",
+    "🔕 Wyłącz powiadomienia w tej przeglądarce": "🔕 Вимкнути сповіщення в цьому браузері",
+    "🚨 Zgoda na alarm pełnoekranowy": "🚨 Перевірити дозвіл на повноекранну тривогу",
+    "◎ Pobierz pozycję jeden raz": "◎ Зчитати місцеперебування один раз",
+    "Usuń zapisaną pozycję": "Видалити збережену позицію",
     "Alarmy przy zamkniętej aplikacji": "Тривоги, коли застосунок закритий",
     "Ustawienia powiadomień": "Налаштування сповіщень", "Zgoda na alarm pełnoekranowy": "Дозвіл на повноекранну тривогу",
     "Wyłącz oszczędzanie baterii": "Вимкнути економію батареї", "Sygnały dźwiękowe": "Звукові сигнали",
@@ -185,6 +199,13 @@
   function confidence(s, fallback) {
     if (lang === "pl") return fallback || s;
     return (lang === "uk" ? CONF_UK[s] || CONF_EN[s] : CONF_EN[s]) || fallback || s;
+  }
+  // Trzy warianty w jednym miejscu — dla tekstow skladanych w app.js.
+  // Brak ukrainskiego (trzeci argument pominiety) spada na angielski.
+  function t(pl, en, uk) {
+    if (lang === "pl") return pl;
+    if (lang === "uk") return uk !== undefined ? uk : en;
+    return en;
   }
   function set(next) {
     localStorage.setItem("straznik_lang", JEZYKI.includes(next) ? next : "pl");
@@ -923,6 +944,6 @@
     if (langLabel?.firstChild) langLabel.firstChild.nodeValue = "Мова інтерфейсу\n      ";
   }
 
-  window.I18N = { get lang(){ return lang; }, get isEn(){ return lang === "en"; }, tr, voiv, type, confidence, set, previewSettings, translateStatic };
+  window.I18N = { get lang(){ return lang; }, get isEn(){ return lang === "en"; }, get isUk(){ return lang === "uk"; }, t, tr, voiv, type, confidence, set, previewSettings, translateStatic };
   document.addEventListener("DOMContentLoaded", () => translateStatic(document.body), { once:true });
 })();

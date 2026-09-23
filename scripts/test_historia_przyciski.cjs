@@ -111,7 +111,9 @@ assert.match(src, /If-None-Match/, 'stan pobierany warunkowo (304 zamiast pełne
 console.log('OK: stan z serwera bierzemy odpytywaniem warunkowym');
 
 // ── 5. wiek meldunku: podpis pod ikoną i wygaszanie ──
-const wiek = { UI: { isEn: false } };
+const UI_STUB = { lang: "pl", isEn: false, isUk: false,
+  t: (pl, en, uk) => UI_STUB.lang === "en" ? en : UI_STUB.lang === "uk" ? (uk !== undefined ? uk : en) : pl };
+const wiek = { UI: UI_STUB };
 vm.createContext(wiek);
 vm.runInContext(cut('function threatAgeMin', String.fromCharCode(10) + 'function predict'), wiek);
 const T = Date.UTC(2026, 8, 17, 20, 0, 0);
@@ -124,8 +126,11 @@ assert.equal(wiek.ageLabel(65), '1 h 5 min');
 assert.equal(wiek.ageLabel(120), '2 h');
 assert.equal(wiek.ageAgoText(0), 'przed chwilą');
 assert.equal(wiek.ageAgoText(7), '7 min temu');
-wiek.UI.isEn = true;
+wiek.UI.lang = "en"; wiek.UI.isEn = true;
 assert.equal(wiek.ageAgoText(7), '7 min ago');
+wiek.UI.lang = "uk"; wiek.UI.isEn = false;
+assert.equal(wiek.ageAgoText(7), '7 хв тому', 'wariant ukrainski');
+wiek.UI.lang = "pl";
 const layers = html.includes('threats-age') || src.includes('threats-age');
 assert.ok(layers, 'warstwa z podpisem wieku istnieje');
 assert.match(src, /OWN_LABEL_LAYERS[\s\S]{0,120}threats-age/, 'podpis wieku wyłączony z tłumaczenia etykiet mapy');
