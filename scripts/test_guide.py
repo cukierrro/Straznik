@@ -9,8 +9,10 @@ ROOT = Path(__file__).resolve().parents[1] / "docs"
 HISTORICAL = {}   # instrukcja od 1.7.37 używa wyłącznie bieżących zrzutów
 # nie-zrzuty (logo hostingu): własny rozmiar i nie liczą się do puli zrzutów
 OTHER_IMAGES = {"mikrus-logo.svg": (86, 14)}
-# odrębne zrzuty: instrukcja 21 ekranów × PL/EN + 7 archiwalnych w historii zmian
-EXPECTED_SHOTS = 49
+# odrębne zrzuty: instrukcja 21 ekranów × PL/EN, 14 ekranów po ukraińsku
+# (reszta ukraińskich czeka na moment, gdy na mapie będzie co pokazać)
+# + 7 archiwalnych w historii zmian
+EXPECTED_SHOTS = 63
 
 
 class Page(HTMLParser):

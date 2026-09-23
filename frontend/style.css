@@ -319,6 +319,24 @@ body.panel-open #update-banner:not(.critical) { display: none; }
   background: rgba(40,67,112,.5); font-weight: 600; text-decoration: none; }
 .chip.instructions:hover { border-color: #7fb4ff; background: rgba(50,82,136,.68); }
 
+/* ── pasek „to skrót do strony" (tylko w skrócie WebAPK na Androidzie) ── */
+#skrot-www {
+  position: fixed; left: 8px; right: 8px; top: 96px; z-index: 60;
+  display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+  padding: 10px 12px; border-radius: 12px; font-size: 13px; line-height: 1.35;
+  background: #17223a; color: #dce6ff; border: 1px solid #2f4470;
+  box-shadow: 0 10px 30px rgba(0,0,0,.45);
+}
+#skrot-www[hidden] { display: none !important; }
+#skrot-www a {
+  color: #0b0f1a; background: #7fb2ff; border-radius: 999px;
+  padding: 6px 12px; text-decoration: none; font-weight: 600; white-space: nowrap;
+}
+#skrot-www button {
+  margin-left: auto; background: none; border: 0; color: #9fb0cf;
+  font-size: 16px; cursor: pointer; padding: 2px 6px;
+}
+
 /* ── disclaimer ── */
 #disclaimer {
   position: relative; border-radius: 10px;

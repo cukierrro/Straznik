@@ -3691,9 +3691,22 @@ function scheduleSirenSweeps(o, fromTime, cycles) {
   return fromTime + cycles * (SIREN_UP + SIREN_DOWN);
 }
 
+/* iPhone wycisza dźwięk WebView przełącznikiem dzwonka, bo domyślna kategoria sesji
+   audio to soloAmbient — przy wyciszonym telefonie milczały także testy syreny
+   i alarm przy otwartej aplikacji (zgłoszenie czytelnika, iOS 26.7, 23.09.2026).
+   Na czas syreny prosimy natywną część o kategorię playback i zwalniamy ją po
+   wyciszeniu; żółty sygnał uwagi celowo zostaje przy domyślnej, żeby nie przebijał
+   wyciszenia i nie przerywał muzyki bez powodu. Android i przeglądarka: bez efektu.
+   Dźwięku samego powiadomienia push to nie zmienia — na to trzeba Critical Alerts. */
+function sesjaAudioAlarmu(wlacz) {
+  if (!IS_IOS) return;
+  try { BG()?.dzwiekAlarmu?.({ wlacz }); } catch {}
+}
+
 function airRaidSiren(continuous = true) {
   try {
     stopSiren();
+    sesjaAudioAlarmu(true);
     const c = ctx(), t0 = c.currentTime;
     const o = c.createOscillator(), g = c.createGain(), filt = c.createBiquadFilter();
     filt.type = "lowpass"; filt.frequency.value = 2200;
@@ -3722,7 +3735,7 @@ function airRaidSiren(continuous = true) {
       g.gain.setValueAtTime(SIREN_GAIN, t0 + total - 0.6);
       g.gain.exponentialRampToValueAtTime(0.0001, t0 + total);
       o.stop(t0 + total + 0.1);
-      setTimeout(() => { sirenNodes = null; }, total * 1000 + 200);
+      setTimeout(() => { sirenNodes = null; sesjaAudioAlarmu(false); }, total * 1000 + 200);
       if (navigator.vibrate) navigator.vibrate([700, 300, 700]);
     }
   } catch {}
@@ -3742,6 +3755,7 @@ function stopSiren() {
     } catch {}
     sirenNodes = null;
   }
+  sesjaAudioAlarmu(false);
 }
 // przeglądarki blokują dźwięk do pierwszej interakcji — odblokuj przy kliknięciu
 window.addEventListener("pointerdown", () => { try { ctx(); } catch {} }, { once: true });
@@ -5005,6 +5019,24 @@ function showUpdateBanner(rel, local) {
     }
   };
 }
+
+/* Skrót do strony na ekranie telefonu (WebAPK) niczym się nie różni od aplikacji:
+   ta sama ikona, ta sama nazwa, brak paska adresu. Czytelnik z 23.09.2026 przez to
+   szukał w nim GROTY i przycisku aktualizacji. W skrócie mówimy wprost, co to jest. */
+(function paskSkrotu() {
+  if (IS_APP) return;
+  const stoi = window.matchMedia?.("(display-mode: standalone)")?.matches || window.navigator.standalone;
+  const android = /Android/i.test(navigator.userAgent || "");
+  if (!stoi || !android) return;
+  try { if (localStorage.getItem("straznik_skrot_ukryty") === "1") return; } catch {}
+  const pasek = document.getElementById("skrot-www");
+  if (!pasek) return;
+  pasek.hidden = false;
+  document.getElementById("skrot-www-x")?.addEventListener("click", () => {
+    pasek.hidden = true;
+    try { localStorage.setItem("straznik_skrot_ukryty", "1"); } catch {}
+  });
+})();
 
 /* ── nasłuch w tle (natywna usługa Androida) ─────────────────────────────── */
 const BG = () => window.Capacitor?.Plugins?.StraznikBackground || null;
