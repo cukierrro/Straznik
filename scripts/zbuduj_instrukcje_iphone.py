@@ -86,7 +86,7 @@ PL = dict(
     <li>Naciśnij <kbd>Pobierz</kbd> i potwierdź tak jak każdą inną aplikację. Strażnik jest bezpłatny i nie ma zakupów w aplikacji.</li>
     <li>Przy pierwszym uruchomieniu zezwól na powiadomienia — bez tej zgody alarm nie dotrze przy zamkniętej aplikacji.</li>
     <li>Zapisz swoje województwo w <kbd>⚙</kbd> → <kbd>Moje miejsca</kbd> i zaznacz <kbd>Obserwuj alerty dla tego województwa</kbd>.</li>
-    <li>Wykonaj cztery kroki z ramki „Sprawdź swojego iPhone'a” w rozdziale <a href="#alarmy">9</a> — od nich zależy, czy usłyszysz alarm w nocy.</li>
+    <li>Wykonaj pięć kroków z ramki „Sprawdź swojego iPhone'a” w rozdziale <a href="#alarmy">9</a> — od nich zależy, czy usłyszysz alarm w nocy.</li>
   </ol>
   <h3>Aktualizacje</h3>
   <p>Na iPhonie aktualizacje przychodzą <b>przez App Store</b>, jak w każdej aplikacji — Strażnik nie pobiera plików sam i nie ma przycisku „Sprawdź aktualizacje”. Jeśli masz wyłączone automatyczne aktualizacje, wejdź w App Store → swoje konto (ikona u góry) → lista aktualizacji. Wersja na iPhone'a może mieć inny numer niż na Androidzie: każde wydanie przechodzi przegląd Apple, więc czasem pojawia się później.</p>
@@ -128,12 +128,13 @@ PL = dict(
     </div>
     {fig("screens/ios/6-alarm.jpg", "Ekran alarmu w otwartej aplikacji na iPhonie: WYSOKI PRIORYTET, woj. lubelskie, lista sygnałów NEPTUN, wskazówka co zrobić i przycisk POTWIERDZAM — wycisz syrenę", "Ekran alarmu, gdy aplikacja jest otwarta.")}
   </div>
-  <div class="warn"><b>Sprawdź swojego iPhone'a.</b> Od tych czterech rzeczy zależy, czy usłyszysz czerwony alarm w nocy:
+  <div class="warn"><b>Sprawdź swojego iPhone'a.</b> Od tych pięciu rzeczy zależy, czy usłyszysz czerwony alarm w nocy:
     <ol>
       <li><b>Dzwonek włączony i głośny</b> — przełącznik z boku telefonu nie na wyciszeniu, a suwak „Dzwonek i alerty” (Ustawienia → Dźwięki i haptyka) wysoko; syrena gra na tej głośności. Jeśli czasem wyciszasz telefon, ustaw <b>Ustawienia → Dźwięki i haptyka → Haptyka → „Zawsze odtwarzaj”</b> (albo „Odtwarzaj w trybie cichym”) — wtedy wyciszony iPhone przynajmniej zawibruje.</li>
       <li><b>Powiadomienia dozwolone:</b> Ustawienia → Powiadomienia → Strażnik → „Zezwalaj na powiadomienia”.</li>
       <li><b>„Powiadomienia czasowo zależne” włączone</b> — w tym samym miejscu.</li>
       <li><b>Strażnik dopuszczony w trybie Sen:</b> Ustawienia → Skupienie → Sen → Aplikacje → dodaj Strażnika. Jeśli używasz też innych trybów Skupienia (np. Praca), dopuść go i tam.</li>
+      <li><b>Masz Apple Watch?</b> Sprawdź <kbd>Ustawienia → Powiadomienia → Strażnik → Przekazywanie</kbd>. Gdy zegarek jest na ręce i odblokowany, a iPhone zablokowany, alarm trafia <b>na zegarek, a telefon milczy</b> — tak działa iOS i nie da się tego obejść z poziomu aplikacji. Albo wyłącz tu przekazywanie (wtedy alarm zawsze gra w telefonie), albo zostaw je włączone i upewnij się, że sam zegarek nie jest wyciszony, a haptyka jest wyraźna (Watch → Dźwięki i haptyka).</li>
     </ol>
     Sprawdź to ponownie po aktualizacji iOS.</div>
   <h3 id="grota">Gdzie się schronić — GROTA</h3>
@@ -259,12 +260,13 @@ EN = dict(
     </div>
     {fig("screens/ios/6-alarm.jpg", "Alert screen in the open app on iPhone (Polish interface): HIGH PRIORITY, Lublin province, list of NEPTUN signals, what to do and the CONFIRM — silence the siren button", "The alert screen while the app is open (Polish interface).")}
   </div>
-  <div class="warn"><b>Check your iPhone.</b> These four things decide whether you hear a red alert at night:
+  <div class="warn"><b>Check your iPhone.</b> These five things decide whether you hear a red alert at night:
     <ol>
       <li><b>Ringer on and loud</b> — the side switch is not on silent and the “Ringtone and Alerts” slider (Settings → Sounds &amp; Haptics) is high; the siren plays at that volume. If you sometimes silence the phone, set <b>Settings → Sounds &amp; Haptics → Haptics → “Always Play”</b> (or “Play in Silent Mode”) — then a silenced iPhone at least vibrates.</li>
       <li><b>Notifications allowed:</b> Settings → Notifications → Strażnik → “Allow Notifications”.</li>
       <li><b>“Time Sensitive Notifications” on</b> — in the same place.</li>
       <li><b>Strażnik allowed in Sleep:</b> Settings → Focus → Sleep → Apps → add Strażnik. If you use other Focus modes (e.g. Work), allow it there too.</li>
+      <li><b>Wearing an Apple Watch?</b> Check <kbd>Settings → Notifications → Strażnik → Forwarding</kbd>. When the watch is on your wrist and unlocked while the iPhone is locked, the alert goes <b>to the watch and the phone stays silent</b> — that is how iOS works and no app can override it. Either turn forwarding off here (the alert then always sounds on the phone), or leave it on and make sure the watch itself is not silenced and its haptics are prominent (Watch → Sounds &amp; Haptics).</li>
     </ol>
     Check again after an iOS update.</div>
   <h3 id="grota">Where to shelter — GROTA</h3>
