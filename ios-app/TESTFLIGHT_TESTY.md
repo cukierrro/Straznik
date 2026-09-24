@@ -447,3 +447,22 @@ build 1.7.63 / 2609200633, czyli dokładnie ten zgłoszony do App Store:
 
 Ten ostatni wiersz jest ważny dla przeglądu: to ten sam ekran, który zobaczy
 recenzent Apple, a największym ryzykiem jest u nas zarzut 4.2.2.
+
+## 11. Co sprawdzić w buildzie 1.7.78 (24.09.2026)
+
+Trzy rzeczy naraz, wszystkie wymagają telefonu — z Windowsa nie da się ich
+zmierzyć. Jeśli któraś nie wyjdzie, wynik jest wart tyle samo co sukces:
+proszę zapisać dokładnie, co się stało.
+
+| Co dotknąć | Czego oczekujemy | Jeśli inaczej |
+|---|---|---|
+| ⚙ → O aplikacji → odnośnik **NEPTUN** | otwiera się Safari na neptun.in.ua | zrzut wiersza „Wersja iOS” z ⚙ → Aplikacja: dopisek `link:` mówi, czy dotknięcie w ogóle doszło do części natywnej |
+| Tamże: licencja, NOTICE, „hostowane na Mikrusie” | j.w., każdy w Safari | j.w. |
+| **Wyciszony dzwonek** (przełącznik na boku) → ⚙ → Dźwięk → „▶ Test: syrena” | syrena słychać mimo wyciszenia | zapisać, czy cisza całkowita, czy sama wibracja |
+| Muzyka w innej aplikacji → test syreny → koniec syreny | muzyka wraca sama, bez dotykania telefonu | zapisać, czy trzeba było wznowić ręcznie |
+| Żółty sygnał uwagi przy wyciszonym dzwonku | **celowo cichy** — tak ma być | — |
+| Powiadomienie push z serwera (przy okazji prawdziwego alarmu) | godzina na początku treści („10:54 · …”) mieści się na banerze | zrzut banera |
+
+Czego ten build **nie** naprawia: dźwięku samego powiadomienia push przy
+wyciszonym telefonie. To wymaga zgody Apple na Critical Alerts (wniosek
+`442YB6VV2L`, bez odpowiedzi). Wyciszony iPhone pokaże baner i zawibruje.

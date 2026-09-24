@@ -107,6 +107,18 @@ zmienia — wyciszony telefon nadal go nie zagra, na to trzeba Critical Alerts
 „▶ Test: syrena”, „▶ Test: pełny alarm”, a potem muzyka w innej aplikacji —
 powinna wrócić sama po zakończeniu syreny.
 
+**Odnośniki zewnętrzne (24.09.2026).** Zgłoszenie czytelnika: w oknie
+„O aplikacji” dotknięcie odnośnika NEPTUN nie otwiera niczego (Android działa).
+Capacitor 8.5.2 ma własną obsługę (`WebViewDelegationHandler`), ale w
+`decidePolicyFor` otwiera adres tylko przy `windowScene.activationState ==
+.foregroundActive`, a nawigację i tak anuluje — gdy warunek nie wyjdzie,
+kliknięcie ginie bez śladu. Wtyczki mają pierwszeństwo (`shouldOverrideLoad`),
+więc plugin bierze odnośniki zewnętrzne na siebie: kliknięcie w odnośnik albo
+próba nowego okna, `http(s)`, host spoza aplikacji → Safari. Żadnej zmiany we
+wspólnym `frontend/` to nie wymaga. Jeśli kliknięcie ginie wcześniej, w stronie,
+poprawka nic nie da — dlatego wersja testowa dopisuje do diagnostyki ostatni
+odnośnik widziany przez część natywną (`link:` w wierszu wersji iOS).
+
 ### 3.4 Serwer (propozycja, nie wdrażam)
 Blok `apns` w `notify.py`: tytuł i treść jak w `Alarms.postAlarm` na Androidzie,
 `sound` syrena/sygnał, czerwony `time-sensitive` (po zgodzie Apple — `critical`),
