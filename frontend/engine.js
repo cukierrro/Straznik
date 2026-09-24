@@ -1038,7 +1038,11 @@ async function notifyNative(title, body, high) {
       // starcie i nie pokazywało się z właściwym dźwiękiem ani jako heads-up
       await LN.schedule({ notifications: [{ id: Date.now() % 2147483647, title, body,
         schedule: { at: new Date(Date.now() + 200) },
-        channelId: high ? "straznik-high-v3" : "straznik-info-v3" }] });
+        // identyfikatory muszą być te z Alarms.CH_HIGH / CH_INFO — pilnuje tego
+        // scripts/test_tematy_fcm.py. Żółty stał na „straznik-info-v3", a ten kanał
+        // od 13.09.2026 (bc4e57b) jest KASOWANY przy starcie: Android odrzucał
+        // powiadomienie i tryb wbudowany w ogóle nie sygnalizował żółtego poziomu.
+        channelId: high ? "straznik-high-v3" : "straznik-info-v4" }] });
       return;
     } catch (e) { console.warn("LocalNotifications:", e); }
   }
