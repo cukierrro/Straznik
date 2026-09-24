@@ -3,6 +3,7 @@ import UIKit
 import AVFoundation
 import UserNotifications
 import Capacitor
+import WebKit
 import FirebaseCore
 import FirebaseMessaging
 
@@ -70,6 +71,9 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
     private let defaults = UserDefaults.standard
     private var firebaseReady = false
     private var apnsRegistered = false
+    /// Ostatni odnośnik zewnętrzny przepuszczony przez `shouldOverrideLoad` —
+    /// wyłącznie do diagnostyki wersji testowej (patrz `statusData`).
+    private var ostatniLink = ""
     /// Czy trzymamy sesję audio przełączoną na czas alarmu (patrz `dzwiekAlarmu`).
     private var sesjaAlarmuWlaczona = false
     /// Wynik starszej synchronizacji nie może nadpisać nowszej (szybkie zmiany miejsc).
@@ -369,6 +373,9 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
             // ale app.js zamienia go na jedno ogólne zdanie o niepotwierdzonych
             // subskrypcjach. W wersji testowej pokazujemy oryginał.
             if !topicsError.isEmpty { osLine += " · błąd: " + topicsError }
+            // Czy dotknięcie odnośnika w ogóle dochodzi do części natywnej: pusto
+            // znaczy, że kliknięcie ginie jeszcze w stronie, a nie przy otwieraniu.
+            osLine += " · link: " + (ostatniLink.isEmpty ? "brak" : ostatniLink)
             osLine += " · " + Self.receiptName
         }
 
@@ -456,6 +463,37 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
                 schedule()
             }
         }
+    }
+
+    // MARK: - odnośniki zewnętrzne
+
+    /// Czytelnik zgłosił (iOS 26, 23.09.2026), że w oknie „O aplikacji” dotknięcie
+    /// odnośnika NEPTUN nie otwiera niczego — na Androidzie działa. Capacitor ma
+    /// własną obsługę takich odnośników, ale otwiera je tylko wtedy, gdy uzna okno
+    /// aplikacji za aktywne (`windowScene.activationState`), a przy `target="_blank"`
+    /// nawigacja bywa cofana bez śladu. Wtyczki dostają pierwszeństwo przed tą
+    /// obsługą, więc bierzemy odnośniki zewnętrzne na siebie: `true` = „nie ładuj
+    /// tego w aplikacji”, a adres otwieramy w Safari.
+    ///
+    /// Świadomie wąsko: tylko kliknięcie w odnośnik albo próba otwarcia nowego okna,
+    /// tylko `http(s)` i tylko adres spoza aplikacji. Wszystko inne (`capacitor://`,
+    /// `about:blank`, `tel:`, `mailto:`, ładowanie własnych plików) zostawiamy
+    /// Capacitorowi — zwracamy `nil`, czyli „nie mam zdania”.
+    override public func shouldOverrideLoad(_ navigationAction: WKNavigationAction) -> NSNumber? {
+        let noweOkno = navigationAction.targetFrame == nil
+        guard navigationAction.navigationType == .linkActivated || noweOkno,
+              let url = navigationAction.request.url,
+              let scheme = url.scheme?.lowercased(),
+              scheme == "http" || scheme == "https",
+              let host = url.host?.lowercased(),
+              host != "localhost" else { return nil }
+
+        DispatchQueue.main.async {
+            UIApplication.shared.open(url, options: [:]) { [weak self] otwarte in
+                self?.ostatniLink = host + (otwarte ? " ok" : " nie otwarte")
+            }
+        }
+        return NSNumber(value: true)
     }
 
     // MARK: - dźwięk alarmu (sesja audio)
