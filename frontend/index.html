@@ -810,6 +810,17 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
     <p class="fineprint">Przy czerwonym poziomie syrena gra <b>bez przerwy</b>,
     aż potwierdzisz alarm przyciskiem na ekranie.</p>
 
+    <div id="yellow-volume">
+      <h3 style="margin-top:16px" id="yv-head">Głośność sygnału uwagi (żółty)</h3>
+      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+        <button type="button" id="yv-normal" class="chip" data-poziom="normal">Normalny</button>
+        <button type="button" id="yv-quiet" class="chip" data-poziom="quiet">Ciszej</button>
+        <button type="button" id="yv-silent" class="chip" data-poziom="silent">Bez dźwięku</button>
+      </div>
+      <div class="fineprint" id="yv-note">Dotyczy wyłącznie <b>żółtego</b> sygnału uwagi.
+        Czerwony alarm gra zawsze tak samo. „Bez dźwięku” zostawia baner i wibrację.</div>
+    </div>
+
     <div id="native-sound" class="app-only">
       <h3 style="margin-top:16px" id="ns-head">Alarm natywny i głośność</h3>
       <div class="fineprint android-only" id="ns-volume"></div>
@@ -821,7 +832,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
         (nie „Dzwonek” ani „Multimedia”). Czerwony alarm podnosi go <b>co najmniej do połowy</b>,
         żeby syrena nie była cicha. Opcja wyżej jest domyślnie <b>wyłączona</b> — po jej włączeniu
         czerwony alarm ustawi suwak na maksimum, także w nocy. W obu przypadkach poprzednia
-        głośność wraca, gdy wyciszysz alarm. Żółty sygnał uwagi gra na zwykłej głośności.</div>
+        głośność wraca, gdy wyciszysz alarm. Żółty sygnał uwagi gra na zwykłej głośności powiadomień i ma własne ustawienie wyżej.</div>
       <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
         <button type="button" id="btn-sound-settings" class="chip android-only">🔊 Ustawienia dźwięku Androida</button>
         <button type="button" id="btn-native-test" class="chip">▶ Test: czerwony natywny (za 5 s)</button>

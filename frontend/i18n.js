@@ -243,6 +243,16 @@
       "Żółty poziom (≥2 pkt) — krótki sygnał uwagi i powiadomienie wyskakujące na ekranie. Czerwony (≥4 pkt) — modulowana syrena alarmu powietrznego + wibracja. Odtwarzane, gdy aplikacja jest otwarta; przy zamkniętej aplikacji alarm przychodzi jako powiadomienie push (z syreną dla czerwonego).",
       "Yellow (≥2 pts): attention sound and heads-up notification. Red (≥4 pts): modulated air-raid siren and vibration. Played while the app is open; with the app closed the alert arrives as a push notification (with the siren for red).");
     button("ns-head", "Alarm natywny i głośność", "Native alert and volume");
+    button("yv-head", "Głośność sygnału uwagi (żółty)", "Attention sound volume (yellow)");
+    button("yv-normal", "Normalny", "Normal");
+    button("yv-quiet", "Ciszej", "Quieter");
+    button("yv-silent", "Bez dźwięku", "No sound");
+    {
+      const yv = document.getElementById("yv-note");
+      if (yv) yv.innerHTML = en
+        ? "Applies to the <b>yellow</b> attention sound only. The red alert always sounds the same. “No sound” keeps the banner and the vibration."
+        : "Dotyczy wyłącznie <b>żółtego</b> sygnału uwagi. Czerwony alarm gra zawsze tak samo. „Bez dźwięku” zostawia baner i wibrację.";
+    }
     many(":scope .set-tab", en
       ? ["Alerts","My places","Sound","App"] : ["Alarmy","Moje miejsca","Dźwięk","Aplikacja"]);
     many(":scope .set-pane > p.fineprint:not(#app-version):not(#upd-status):not(#more-links):not(.ios-only)", en ? [
@@ -520,6 +530,12 @@
     "▶ Test: siren": "▶ Тест: сирена",
     "▶ Test: full alert": "▶ Тест: повна тривога",
     "The red siren continues until you acknowledge the alert.": "При червоному рівні сирена грає безперервно, доки ви не підтвердите тривогу.",
+    "Attention sound volume (yellow)": "Гучність сигналу уваги (жовтий)",
+    "Normal": "Звичайна",
+    "Quieter": "Тихіше",
+    "No sound": "Без звуку",
+    "Applies to the yellow attention sound only. The red alert always sounds the same. “No sound” keeps the banner and the vibration.":
+      "Стосується лише жовтого сигналу уваги. Червона тривога звучить завжди однаково. «Без звуку» залишає банер і вібрацію.",
     "Native alert and volume": "Системна тривога і гучність",
     "Red alert always at full volume": "Червона тривога завжди на повній гучності",
     "🔊 Android sound settings": "🔊 Налаштування звуку Android",
@@ -806,10 +822,16 @@
     ]);
     set("#alerts-on-label", "Alerts on this phone");
     set("#alerts-on-note", "Turn off if you only want to view the map");
+    set("#yv-head", "Attention sound volume (yellow)");
+    set("#yv-normal", "Normal");
+    set("#yv-quiet", "Quieter");
+    set("#yv-silent", "No sound");
+    const yvNote = document.getElementById("yv-note");
+    if (yvNote) yvNote.innerHTML = "Applies to the <b>yellow</b> attention sound only. The red alert always sounds the same. “No sound” keeps the banner and the vibration.";
     set("#ns-head", "Native alert and volume");
     set("#ns-label", "Red alert always at full volume");
     const nsNote = document.getElementById("ns-note");
-    if (nsNote) nsNote.innerHTML = "The siren uses the Android <b>“Alarms”</b> volume (not “Ring” or “Media”). A red alert raises it to <b>at least half</b> so the siren is never silent. The option above is <b>off</b> by default — when switched on, a red alert sets the volume to maximum, also at night. Either way the previous volume returns when you silence the alert. The yellow attention sound uses your normal volume.";
+    if (nsNote) nsNote.innerHTML = "The siren uses the Android <b>“Alarms”</b> volume (not “Ring” or “Media”). A red alert raises it to <b>at least half</b> so the siren is never silent. The option above is <b>off</b> by default — when switched on, a red alert sets the volume to maximum, also at night. Either way the previous volume returns when you silence the alert. The yellow attention sound uses your normal notification volume and has its own setting above.";
     set("#btn-sound-settings", "🔊 Android sound settings");
     set("#btn-native-test", "▶ Test: red native (in 5 s)");
     set("#btn-native-test-yellow", "▶ Test: yellow native (in 5 s)");
@@ -941,7 +963,7 @@
       + "чи «Медіа»). Червона тривога піднімає її <b>щонайменше до половини</b>, щоб сирена ніколи не була "
       + "беззвучною. Параметр вище типово <b>вимкнено</b> — якщо його увімкнути, червона тривога встановить "
       + "максимальну гучність, також уночі. У кожному разі попередня гучність повертається, коли ви вимкнете "
-      + "тривогу. Жовтий сигнал уваги звучить зі звичайною гучністю.";
+      + "тривогу. Жовтий сигнал уваги звучить зі звичайною гучністю сповіщень і має власне налаштування вище.";
     const trailNoteUk = document.getElementById("trail-note");
     if (trailNoteUk) trailNoteUk.innerHTML = "Лінія курсу охоплює 30 хвилин лету дрона чи ракети (15 хвилин для "
       + "літаків), з точками кожні 5 хвилин. Для об’єктів NEPTUN вона малюється <b>лише для курсу, виміряного "

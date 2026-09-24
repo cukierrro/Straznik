@@ -1029,6 +1029,18 @@ function stateFrom(sigs, refT) {
            thresholds: { elevated: TH_ELEVATED, high: TH_HIGH }, voivodeships: per };
 }
 
+/* Wybór cichszego sygnału uwagi żyje po stronie natywnej (SharedPreferences),
+   bo powiadomienia z serwera składa Alarms.java. Tryb wbudowany nie ma do nich
+   dostępu, więc app.js odkłada tę samą decyzję do localStorage. */
+function kanalZoltego() {
+  try {
+    const v = localStorage.getItem("straznik_zolty_poziom");
+    if (v === "quiet") return "straznik-info-cicho-v1";
+    if (v === "silent") return "straznik-info-cisza-v1";
+  } catch {}
+  return "straznik-info-v4";
+}
+
 async function notifyNative(title, body, high) {
   const LN = window.Capacitor?.Plugins?.LocalNotifications;
   if (LN) {
@@ -1038,11 +1050,11 @@ async function notifyNative(title, body, high) {
       // starcie i nie pokazywało się z właściwym dźwiękiem ani jako heads-up
       await LN.schedule({ notifications: [{ id: Date.now() % 2147483647, title, body,
         schedule: { at: new Date(Date.now() + 200) },
-        // identyfikatory muszą być te z Alarms.CH_HIGH / CH_INFO — pilnuje tego
-        // scripts/test_tematy_fcm.py. Żółty stał na „straznik-info-v3", a ten kanał
-        // od 13.09.2026 (bc4e57b) jest KASOWANY przy starcie: Android odrzucał
-        // powiadomienie i tryb wbudowany w ogóle nie sygnalizował żółtego poziomu.
-        channelId: high ? "straznik-high-v3" : "straznik-info-v4" }] });
+        // identyfikatory muszą być te z Alarms.CH_HIGH / CH_INFO / CH_INFO_QUIET —
+        // pilnuje tego scripts/test_tematy_fcm.py. Żółty stał na „straznik-info-v3",
+        // a ten kanał od 13.09.2026 (bc4e57b) jest KASOWANY przy starcie: Android
+        // odrzucał powiadomienie i tryb wbudowany nie sygnalizował żółtego poziomu.
+        channelId: high ? "straznik-high-v3" : kanalZoltego() }] });
       return;
     } catch (e) { console.warn("LocalNotifications:", e); }
   }

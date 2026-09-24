@@ -253,6 +253,23 @@ public class BackgroundPlugin extends Plugin {
         } catch (Exception ignored) {}
         ret.put("forceMaxVolume", Alarms.forceVolumeEnabled(c));
         ret.put("redChannelSound", Alarms.highChannelPlaysSound(c));
+        ret.put("yellowLevel", Alarms.yellowLevel(c));
+        call.resolve(ret);
+    }
+
+    /**
+     * Głośność żółtego sygnału uwagi: „normal”, „quiet” albo „silent”. Android nie
+     * pozwala ustawić głośności pojedynczego powiadomienia, więc wybór sprowadza się
+     * do kanału z innym plikiem. Czerwonego alarmu to nie dotyka.
+     */
+    @PluginMethod
+    public void setYellowLevel(PluginCall call) {
+        String level = call.getString("level", "normal");
+        Context c = getContext();
+        Alarms.prefs(c).edit().putString(Alarms.KEY_YELLOW_LEVEL, level).apply();
+        Alarms.createChannels(c);
+        JSObject ret = new JSObject();
+        ret.put("yellowLevel", Alarms.yellowLevel(c));
         call.resolve(ret);
     }
 
