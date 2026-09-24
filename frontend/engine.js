@@ -1715,11 +1715,19 @@ const rsoSeen = new Set(JSON.parse(localStorage.getItem("eng_rso_seen") || "[]")
 const RSO_CONTINUES = ["do odwołania","do odwolania","do czasu odwołania","do czasu odwolania",
   "do czasu zakończenia","do czasu zakonczenia","aż do odwołania","az do odwolania"];
 /* Odwołanie: rso_alarm = 2 albo zwrot końca w tytule/skrócie (lustro rso.py). */
+/* Lustro rso.py::_is_rcb_air_cancellation. Dwie poprawki z 24.09.2026:
+
+   1. `rso_alarm == "2"` NIE oznacza odwołania. Serwer porzucił to założenie
+      21.09, bo aktywny Alert RCB 23354051 dla lubelskiego („Sytuacja jest
+      monitorowana…") miał rso_alarm = 2 i został wzięty za odwołanie — tryb
+      wbudowany wyciszyłby w ten sposób żywy alarm. Tu zostało nieprzeniesione.
+   2. Odwołania szukamy w CAŁEJ treści, razem z `content`. Wpis 23362253 (24.09)
+      miał title = shortcut = „Alert RCB", a całe odwołanie siedziało w `content` —
+      i dostało 1,5 pkt jako nowy alert. */
 function rsoIsCancellation(it) {
-  if (String(it.rso_alarm ?? "").trim() === "2") return true;
-  let head = `${it.title || ""} ${it.shortcut || ""}`.toLowerCase();
-  for (const c of RSO_CONTINUES) head = head.split(c).join(" ");
-  return RSO_END.some(w => head.includes(w));
+  let text = `${it.title || ""} ${it.shortcut || ""} ${it.content || ""}`.toLowerCase();
+  for (const c of RSO_CONTINUES) text = text.split(c).join(" ");
+  return RSO_END.some(w => text.includes(w));
 }
 
 async function tickRso() {

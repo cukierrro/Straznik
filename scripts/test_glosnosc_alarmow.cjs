@@ -11,6 +11,11 @@
 //   * zgaszony ekran — pliki WAV z res/raw (żółty na strumieniu powiadomień,
 //     czerwony na strumieniu alarmów, więc tam wyrównane; patrz build_sounds.py).
 //
+// UWAGA: od 24.09.2026 iPhone wychodzi spod tej hierarchii — syrenę odtwarza tam
+// część natywna (alarm_syrena.wav przez AVAudioPlayer), a nie Web Audio, żeby
+// przebić przełącznik wyciszenia. Poniższe porównanie dotyczy Androida i strony.
+// Żółty sygnał uwagi zostaje w Web Audio na wszystkich platformach.
+//
 // Uruchomienie: node scripts/test_glosnosc_alarmow.cjs
 const test = require('node:test');
 const assert = require('node:assert/strict');

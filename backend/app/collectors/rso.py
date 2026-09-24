@@ -80,9 +80,19 @@ def _is_rcb_air_alert(text: str, headline: str | None = None) -> bool:
 def _is_rcb_air_cancellation(it: dict) -> bool:
     """Odwołanie zagrożenia z powietrza od RCB.
 
-    Rozpoznajemy WYŁĄCZNIE po treści (tytuł i skrót). 13.09.2026 wpis 23329799 dla
-    lubelskiego zmienił się o 04:58 na „Odwołano zagrożenie atakiem z powietrza",
-    a Strażnik liczył go dalej.
+    Rozpoznajemy WYŁĄCZNIE po treści — po CAŁEJ, razem z polem `content`.
+    13.09.2026 wpis 23329799 dla lubelskiego zmienił się o 04:58 na „Odwołano
+    zagrożenie atakiem z powietrza", a Strażnik liczył go dalej.
+
+    24.09.2026 (zgłoszenie usera) okazało się, że czytanie samego tytułu i skrótu
+    nie wystarcza: wpis 23362253 dla lubelskiego miał `title` = `shortcut` =
+    „Alert RCB", a całe odwołanie („UWAGA! Zakończył się atak powietrzny na
+    Ukrainę. Brak zagrożenia na terenie Polski.") siedziało w `content`. Sprawdzenie
+    pochodzenia i kontekstu powietrznego czytało `content`, a sprawdzenie odwołania
+    już nie — więc odwołanie dostało 1,5 pkt jako nowy alert. Tego samego dnia
+    przepadło tak samo odwołanie o 05:01. Odtworzenie 12 zapisanych treści RSO
+    (`obserwacje.db`, od 16.09): przed poprawką 10/12 zgodnych z treścią, po — 12/12,
+    bez ani jednego alertu wziętego omyłkowo za odwołanie.
 
     Pole `rso_alarm` NIE oznacza odwołania (błędne założenie z 13.09): to stopień
     ostrzeżenia. 21.09.2026 aktywny Alert RCB 23354051 dla lubelskiego („Sytuacja jest
@@ -95,9 +105,23 @@ def _is_rcb_air_cancellation(it: dict) -> bool:
     if not (any(o in text for o in RSO_ORIGIN) and any(a in text for a in RSO_AIR)):
         return False
     head = f"{it.get('title','')} {it.get('shortcut','')}".lower()
-    for cont in RSO_CONTINUES:
+    for cont in RSO_CONTINUES:      # zwroty TRWAJĄCEGO alertu, nie jego końca
+        text = text.replace(cont, " ")
         head = head.replace(cont, " ")
-    return any(w in head for w in RSO_END)
+    if any(w in head for w in RSO_END):
+        return True
+    if not any(w in text for w in RSO_END):
+        return False
+    # Odwołanie widoczne TYLKO w `content`. Tak wyglądał wpis 23362253 (24.09) i to
+    # jest przypadek, dla którego poszerzyliśmy sprawdzenie. Ale audyt 11.09.2026
+    # ostrzegał, że treść prawdziwego alertu bywa długa i potrafi zawierać rdzeń
+    # „odwoł"/„zakończ" niewinnie — a odwołanie jest sprawdzane PRZED alertem, więc
+    # pomyłka wyciszyłaby żywy alarm. Na 12 zapisanych treściach RSO takiego
+    # przypadku nie było; zapisujemy każdy do dziennika, żeby pierwszy wyszedł na
+    # jaw od razu, a nie po cichu.
+    log.warning("RSO: odwołanie rozpoznane wyłącznie z `content` (id %s): %s",
+                it.get("id"), text.replace("\n", " | ")[:300])
+    return True
 
 
 # slug_name z RSO (bez „ł"/diakrytyków?) → nasze nazwy województw

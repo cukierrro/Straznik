@@ -68,13 +68,26 @@ test('alert level matches fusion.alert_level', () => {
 });
 
 test('RSO cancellation recognised like rso.py', () => {
-  assert.equal(Engine.rsoIsCancellation({ rso_alarm: '2', title: 'ALERT RCB', shortcut: '' }), true);
+  // rso_alarm NIE oznacza odwołania — serwer porzucił to założenie 21.09.2026, bo
+  // AKTYWNY Alert RCB 23354051 („Sytuacja jest monitorowana…") miał rso_alarm = 2.
+  // Tryb wbudowany trzymał starą regułę i wyciszyłby na niej żywy alarm.
+  assert.equal(Engine.rsoIsCancellation({ rso_alarm: '2', title: 'ALERT RCB',
+    shortcut: 'UWAGA! Rosyjski atak powietrzny na terenie Ukrainy. Sytuacja jest monitorowana.' }), false);
   assert.equal(Engine.rsoIsCancellation({ rso_alarm: '', title: 'ALERT RCB',
     shortcut: 'UWAGA! Odwołano zagrożenie atakiem z powietrza.' }), true);
   assert.equal(Engine.rsoIsCancellation({ rso_alarm: '', title: 'ALERT RCB',
     shortcut: 'Alert obowiązuje do odwołania.' }), false);
   assert.equal(Engine.rsoIsCancellation({ rso_alarm: '1', title: 'ALERT RCB-ZAGROŻENIE Z POWIETRZA',
     shortcut: 'Rosyjski atak powietrzny na terenie Ukrainy.' }), false);
+  // PRAWDZIWY wpis 23362253 z 24.09.2026, 15:01: tytuł i skrót to samo „Alert RCB",
+  // całe odwołanie w `content`. Dostał 1,5 pkt jako nowy alert (zgłoszenie usera).
+  assert.equal(Engine.rsoIsCancellation({ rso_alarm: '0', title: 'Alert RCB', shortcut: 'Alert RCB',
+    content: 'UWAGA! Zakończył się atak powietrzny na Ukrainę. Brak zagrożenia na terenie Polski.' }), true);
+  // …i prawdziwy AKTYWNY alert z tego samego dnia, 08:40 — treść długa, z listą
+  // powiatów; nie wolno jej wziąć za odwołanie.
+  assert.equal(Engine.rsoIsCancellation({ rso_alarm: '0', title: 'ALERT RCB-ZAGROŻENIE Z POWIETRZA',
+    shortcut: 'UWAGA! UWAGA! UWAGA! Rosyjski atak powietrzny na terenie Ukrainy. Sytuacja jest monitorowana. W przestrzeni RP operuje polskie lotnictwo. Śledź komunikaty.',
+    content: 'Szanowni Państwo, zgodnie z decyzją dyrektora RCB, do użytkowników sieci telefonii komórkowych w powiatach na terenie województw(a): LUBELSKIEGO: puławski, opolski, Lublin… wysłano Alert RCB o treści: UWAGA! UWAGA! UWAGA! Rosyjski atak powietrzny na terenie Ukrainy. Sytuacja jest monitorowana.' }), false);
 });
 
 test('cancelled alert and echo articles score zero, newer alert stays', () => {
