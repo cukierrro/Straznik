@@ -105,9 +105,9 @@ wiarygodność ostrzeżenia.
 
 [Instrukcja po polsku](https://cukierrro.github.io/Straznik/) · [English user guide](https://cukierrro.github.io/Straznik/en.html) · [Інструкція українською](https://cukierrro.github.io/Straznik/uk.html)
 
-Instrukcja dla 1.7.34 opisuje „Moje miejsca”, rozdział alertów wojewódzkich i
-lokalnych obliczeń na pierwszym planie oraz bibliotekę fotografii PL/EN. Zrzuty
-otwierają się także w pełnym rozmiarze.
+Instrukcja dla 1.7.79 opisuje „Moje miejsca”, rozdział alertów wojewódzkich
+i lokalnych obliczeń na pierwszym planie, regulację głośności żółtego sygnału
+oraz bibliotekę fotografii PL/EN/UA. Zrzuty otwierają się w pełnym rozmiarze.
 
 [⬇ Pobierz na Androida (APK)](https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk) · [⬇ Pobierz na iOS (App Store)](https://apps.apple.com/pl/app/id6813563009) · [☕ Postaw kawę](https://buycoffee.to/cukierrro)
 
