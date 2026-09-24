@@ -4459,6 +4459,13 @@ function showHistoryAt(idx) {
       if (s.voivodeship) perVoiv[s.voivodeship] =
         (perVoiv[s.voivodeship] || 0) + (s.counted_points ?? s.points ?? 0);
   }
+  /* Poziom województwa bierzemy Z OCENY SILNIKA (h.levels), a nie z progu
+     punktowego. Od 1.7.74 czerwony wymaga klucza, więc 4+ pkt bez klucza to
+     ŻÓŁTY — licząc z samych punktów historia malowała województwo na czerwono
+     i pisała „WYSOKI PRIORYTET" tam, gdzie aplikacja pokazywała wtedy żółty
+     (zgłoszenie czytelnika 24.09.2026). Zapas na starsze dane bez `levels`. */
+  const poziomHist = (v, sc) => h?.levels?.[v]
+    || (sc >= 4 ? "high" : sc >= 2 ? "elevated" : "none");
   // poziom w wybranym momencie — kolor kciuka suwaka i podsumowanie
   const tp = timelinePoints[idx];
   const slider = document.getElementById("tb-slider");
@@ -4518,12 +4525,11 @@ function showHistoryAt(idx) {
     for (const v of ALL_VOIVS) {
       const sc = perVoiv[v] || 0;
       map.setFeatureState({ source: "voiv", id: v },
-        { score: Math.min(sc, 8), level: sc >= 4 ? "high" : sc >= 2 ? "elevated" : "none",
-          spill: !!h?.spill?.[v] });
+        { score: Math.min(sc, 8), level: poziomHist(v, sc), spill: !!h?.spill?.[v] });
     }
   }
 
-  renderHistoryPanel(sigs, perVoiv, when, ageMin);
+  renderHistoryPanel(sigs, perVoiv, when, ageMin, poziomHist);
   renderObservationLists({neptun:{threats}, adsb:{aircraft:planes}});
 }
 
@@ -4535,7 +4541,8 @@ function histAgo(ageMin) {
   const h = Math.floor(ageMin / 60), m = ageMin % 60;
   return h ? `−${h} h${m ? ` ${m} min` : ""}` : `−${ageMin} min`;
 }
-function renderHistoryPanel(sigs, perVoiv, when, ageMin) {
+function renderHistoryPanel(sigs, perVoiv, when, ageMin,
+                            poziom = (v, sc) => sc >= 4 ? "high" : sc >= 2 ? "elevated" : "none") {
   const banner = `<div class="hist-banner">${UI.t("PODGLĄD HISTORII", "HISTORY VIEW", "ПЕРЕГЛЯД ІСТОРІЇ")} —
     ${when.toLocaleTimeString(UI.t("pl-PL", "en-GB", "uk-UA"), { hour: "2-digit", minute: "2-digit" })}
     ${ageMin > 1 ? `(${histAgo(ageMin)})` : (UI.t("(teraz)", "(now)", "(зараз)"))}
@@ -4545,7 +4552,7 @@ function renderHistoryPanel(sigs, perVoiv, when, ageMin) {
     .filter(([, sc]) => sc > 0)
     .sort((a, b) => b[1] - a[1]);
   const cards = shown.map(([name, sc]) => {
-    const lvl = sc >= 4 ? "high" : sc >= 2 ? "elevated" : "none";
+    const lvl = poziom(name, sc);
     const own = sigs.filter(s => s.voivodeship === name);
     return `<div class="voiv-card level-${lvl} open">
       <div class="voiv-head"><span class="voiv-name">${esc(UI.voiv(name))}</span>

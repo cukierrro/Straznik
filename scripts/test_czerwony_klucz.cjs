@@ -151,3 +151,20 @@ test('pasek historii pokazuje czerwień, gdy klucz JEST', () => {
   const [punkt] = Engine.timelineFrom(snaps, [alertSchronienie]);
   assert.equal(punkt.level, 'high', 'alert „znajdź bezpieczne miejsce” to czerwony także na pasku');
 });
+
+test('historia oddaje poziom województwa, nie tylko punkty (zgłoszenie 24.09.2026)', () => {
+  // Bez tego mapa w trybie historii malowała województwo na CZERWONO, a karta
+  // pisała „WYSOKI PRIORYTET”, choć w tamtej chwili aplikacja pokazywała żółty.
+  const sygnaly = [alertMonitorowana, obwodyUA, dron(10, 84, 28, '05'), dron(11, 91, 30, '06'),
+                   dron(12, 118, 39, '13'), dron(13, 104, 34, '05')];
+  const snaps = [{ t: REF, ts: new Date(REF).toISOString() }];
+  const h = Engine.historyFrom(snaps, sygnaly, new Date(REF).toISOString());
+  assert.ok(h.scores.lubelskie >= 4, `suma miała przekroczyć 4 pkt, jest ${h.scores.lubelskie}`);
+  assert.equal(h.levels.lubelskie, 'elevated', 'historia ma pokazać żółty, tak jak mapa na żywo');
+});
+
+test('historia pokazuje czerwień województwa, gdy klucz JEST', () => {
+  const snaps = [{ t: REF, ts: new Date(REF).toISOString() }];
+  const h = Engine.historyFrom(snaps, [alertSchronienie], new Date(REF).toISOString());
+  assert.equal(h.levels.lubelskie, 'high');
+});
