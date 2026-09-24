@@ -492,3 +492,24 @@ w pętli, `AVAudioPlayer` + kategoria `playback` — tak robią aplikacje alarmo
 i to udokumentowanie ignoruje przełącznik wyciszenia). Wymaga zmiany we wspólnym
 `frontend/`: na iOS strona nie odtwarza własnej syreny, żeby przy niewyciszonym
 telefonie nie grały dwie naraz. Czeka na decyzję użytkownika.
+
+## 12. Syrena natywna — DZIAŁA (build 2609241504, 24.09.2026)
+
+Potwierdzone na iPhonie przez testera, przy **wyciszonym dzwonku**:
+
+| Co sprawdzone | Wynik |
+|---|---|
+| ⚙ → Dźwięk → „▶ Test: syrena” przy wyciszeniu | **słychać** — poprzednio cisza |
+| Muzyka w innej aplikacji po syrenie | wraca sama, od razu |
+| Przycisk „🌙 Alarm mimo Nie przeszkadzać” na iPhonie | nie pokazuje się (i dobrze) |
+| Powiadomienie systemowe nad blokadą przy wyciszeniu | **nadal bez dźwięku** |
+
+Ostatni wiersz nie jest usterką i nie da się go naprawić po naszej stronie:
+dźwięk samego powiadomienia push przy wyciszonym telefonie wymaga uprawnienia
+Critical Alerts. Wniosek `442YB6VV2L` ma w panelu Apple status **Submitted**
+(developer.apple.com → Identifiers → Straznik → Capability Requests — to jedyne
+miejsce, gdzie widać zmianę; maila o przyjęciu wniosku Apple nie wysyła).
+
+Czyli dziś na wyciszonym iPhonie: alarm przy **otwartej aplikacji** zagra syreną,
+alarm przy **zablokowanym ekranie** da baner i wibrację bez dźwięku. To warto
+napisać wprost w instrukcji dla iPhone'a.
