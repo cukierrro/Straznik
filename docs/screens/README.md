@@ -97,3 +97,14 @@ cropping or replacing any screen content.
 Clicking a screen opens the original image without that shell. Perspective
 does not change the stored screenshot. Some labels in the English APK are
 still Polish; guide captions explicitly note this instead of retouching them.
+
+The settings captures `set-alarmy-*.jpg`, `set-dzwiek-*.jpg` and
+`set-aplikacja-*.jpg` (pl/en/uk) were replaced on 24 September 2026: 1080 × 2400
+screenshots of the **signed** release 1.7.78 (code 107) on a Pixel 7 emulator
+with Android 14, taken through the app's own interface in each language. They
+show a fresh installation, so the Alerts tab states that no province has been
+chosen yet — that is the real state of the app, not a staged one. The Sound tab
+shows the new "Attention sound volume (yellow)" section and the Alerts tab the
+optional "Alert despite Do Not Disturb" button, which the app displays only
+while that permission is missing. No public test alerts were sent; the local
+alarm tests used during the same session are not part of these captures.

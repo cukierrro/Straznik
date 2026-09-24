@@ -66,6 +66,21 @@ def init_fcm():
         log.warning("FCM init błąd: %s", e)
 
 
+def _godzina(sent_at) -> str:
+    """„HH:MM · " z czasu wysyłki, w strefie warszawskiej. Pusto, gdy czasu nie ma
+    albo nie da się go odczytać — powiadomienie ma wyjść nawet wtedy."""
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    try:
+        dt = datetime.fromisoformat(str(sent_at))
+    except (TypeError, ValueError):
+        return ""
+    try:
+        return dt.astimezone(ZoneInfo("Europe/Warsaw")).strftime("%H:%M") + " · "
+    except Exception:                                  # noqa: BLE001
+        return ""
+
+
 def _apns_config(topic: str, data: dict):
     """Powiadomienie dla iPhone'a — Android ten blok ignoruje.
 
@@ -100,8 +115,11 @@ def _apns_config(topic: str, data: dict):
         return None
     lines = []
     reasons = [x.strip() for x in (data.get("reasons") or "").split("\n") if x.strip()][:4]
-    # punkty otwierają treść, skoro zeszły z tytułu
-    czolo = f"{data.get('score', '')} pkt"
+    # punkty otwierają treść, skoro zeszły z tytułu; przed nimi GODZINA WYSYŁKI
+    # (prośba użytkownika 24.09.2026). iPhone pokazuje własny znacznik czasu dopiero
+    # w Centrum powiadomień — na banerze nie widać go wcale, a przy spóźnionym pushu
+    # liczy się moment, w którym serwer stwierdził zagrożenie, nie moment dotarcia.
+    czolo = f"{_godzina(data.get('sent_at'))}{data.get('score', '')} pkt"
     if data.get("headline"):
         czolo += f" — {data['headline']}"
     for line in [czolo] + reasons:
@@ -188,7 +206,7 @@ def alarm_headline(signals: list[dict]) -> str:
     mówił człowiekowi wybudzonemu o 3:00, co leci i ile ma czasu."""
     counted = [x for x in signals or [] if (x.get("counted_points") or 0) > 0]
     counted.sort(key=lambda x: x.get("counted_points") or 0, reverse=True)
-    if any(x.get("event_type") == "rso_alert" for x in counted):
+    if any(x.get("event_type") in ("rso_alert", "rcb_alert") for x in counted):
         return "Oficjalny Alert RCB dla województwa"
     for x in counted:
         d = x.get("details") or {}
@@ -239,7 +257,8 @@ def reasons_split(signals: list[dict]) -> str:
         pts = x.get("counted_points", x.get("points"))
         title = x.get("title", "") if quotable_title(x) else "Doniesienie medialne"
         line = f"• {title} (+{pts} pkt)"
-        (official if x.get("event_type") == "rso_alert" and (pts or 0) > 0 else other).append(line)
+        (official if x.get("event_type") in ("rso_alert", "rcb_alert") and (pts or 0) > 0
+         else other).append(line)
     parts = []
     if official:
         parts.append("Oficjalnie:\n" + "\n".join(official[:3]))

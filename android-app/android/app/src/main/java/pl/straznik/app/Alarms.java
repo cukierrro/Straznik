@@ -36,6 +36,11 @@ class Alarms {
     // v4 (audyt B7): żółty gra jako zdarzenie powiadomienia, a nie alarm — szanuje
     // tryb cichy i Nie przeszkadzać. Budzić przez DND ma wyłącznie czerwony.
     static final String CH_INFO = "straznik-info-v4";
+    // Ten sam żółty o ~10 dB ciszej i wariant zupełnie bez dźwięku. Androida nie da
+    // się poprosić o głośność pojedynczego powiadomienia — regulacja jest możliwa
+    // WYŁĄCZNIE przez wybór kanału (zgłoszenia czytelników: żółty budzi w nocy).
+    static final String CH_INFO_QUIET = "straznik-info-cicho-v1";
+    static final String CH_INFO_SILENT = "straznik-info-cisza-v1";
     // bez dźwięku: alarm potwierdzony, wiadomość opóźniona, powtórzenie
     static final String CH_QUIET = "straznik-quiet-v1";
     // stare kanały do sprzątnięcia: dawne wersje z systemowymi dźwiękami oraz
@@ -55,6 +60,8 @@ class Alarms {
     // odblokowaniem (audyt B6): push po nocnym restarcie telefonu musi je odczytać.
     static final String PREFS = "straznik_native";
     static final String KEY_FORCE_VOLUME = "force_max_volume";
+    /** Głośność żółtego wybrana przez użytkownika: „normal”, „quiet” albo „silent”. */
+    static final String KEY_YELLOW_LEVEL = "yellow_level";
     /** Użytkownik wyłączył „Alarmy na tym telefonie” — usługa FCM odrzuca alarmy. */
     static final String KEY_ALERTS_OFF = "alerts_off";
     private static final String KEY_SAVED_VOLUME = "saved_alarm_volume";
@@ -108,6 +115,28 @@ class Alarms {
         info.setSound(soundUri(ctx, R.raw.alert_uwaga), eventAttrs);
         nm.createNotificationChannel(info);
 
+        // Kanał tworzymy zawsze, nie dopiero po włączeniu opcji: kanał raz utworzony
+        // ignoruje zmiany dźwięku, więc lepiej, żeby istniał od początku i miał
+        // własne, zapamiętane ustawienia użytkownika.
+        NotificationChannel quietInfo = new NotificationChannel(CH_INFO_QUIET,
+            "Podwyższona uwaga — ciszej (żółty)", NotificationManager.IMPORTANCE_HIGH);
+        quietInfo.setDescription("Ten sam sygnał uwagi, około dziesięć razy ciszej");
+        quietInfo.enableVibration(true);
+        quietInfo.setVibrationPattern(new long[]{0, 220, 120, 220});
+        quietInfo.setSound(soundUri(ctx, R.raw.alert_uwaga_cicho), eventAttrs);
+        nm.createNotificationChannel(quietInfo);
+
+        // Bez dźwięku, ale nadal IMPORTANCE_HIGH: baner ma wyskoczyć, telefon zawibrować.
+        // CH_QUIET się do tego nie nadaje — ma niską ważność (tylko szuflada) i służy
+        // czemu innemu, a wspólny kanał odebrałby możliwość osobnego ustawienia obu.
+        NotificationChannel silentInfo = new NotificationChannel(CH_INFO_SILENT,
+            "Podwyższona uwaga — bez dźwięku (żółty)", NotificationManager.IMPORTANCE_HIGH);
+        silentInfo.setDescription("Sygnał uwagi tylko jako baner i wibracja");
+        silentInfo.enableVibration(true);
+        silentInfo.setVibrationPattern(new long[]{0, 220, 120, 220});
+        silentInfo.setSound(null, null);
+        nm.createNotificationChannel(silentInfo);
+
         NotificationChannel high = new NotificationChannel(CH_HIGH,
             "Wysoki priorytet (czerwony)", NotificationManager.IMPORTANCE_HIGH);
         high.setDescription("Alarm — przebija tryb cichy, jeśli na to zezwolisz");
@@ -124,6 +153,17 @@ class Alarms {
         quiet.setSound(null, null);
         quiet.enableVibration(false);
         nm.createNotificationChannel(quiet);
+    }
+
+    /** „HH:mm" z czasu wysyłki serwera; pusty napis, gdy czas nieznany (sentAtMs = 0). */
+    static String godzina(long sentAtMs) {
+        if (sentAtMs <= 0) return "";
+        try {
+            return new java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
+                .format(new java.util.Date(sentAtMs));
+        } catch (Exception e) {
+            return "";
+        }
     }
 
     static Uri soundUri(Context ctx, int resId) {
@@ -163,6 +203,21 @@ class Alarms {
 
     static boolean forceVolumeEnabled(Context ctx) {
         return prefs(ctx).getBoolean(KEY_FORCE_VOLUME, false);
+    }
+
+    /** Wybrana głośność żółtego; nieznana wartość znaczy „normal”. */
+    static String yellowLevel(Context ctx) {
+        String v = prefs(ctx).getString(KEY_YELLOW_LEVEL, "normal");
+        return ("quiet".equals(v) || "silent".equals(v)) ? v : "normal";
+    }
+
+    /** Kanał żółtego zależnie od ustawienia użytkownika. Czerwonego to nie dotyczy. */
+    static String infoChannel(Context ctx) {
+        switch (yellowLevel(ctx)) {
+            case "quiet":  return CH_INFO_QUIET;
+            case "silent": return CH_INFO_SILENT;
+            default:       return CH_INFO;
+        }
     }
 
     /** Docelowa głośność czerwonego: maksimum z opcją, inaczej co najmniej połowa. */
@@ -264,6 +319,11 @@ class Alarms {
             + (high ? "WYSOKI PRIORYTET" : "PODWYŻSZONA UWAGA")
             + ": woj. " + voivName + " (" + score + " pkt)";
         if (stale) title = title + " — opóźnione o " + (ageMs / 60000) + " min";
+        // Godzina WYSYŁKI, nie dotarcia: przy spóźnionym pushu to dwie różne rzeczy,
+        // a liczy się ta, o której serwer stwierdził zagrożenie (prośba użytkownika
+        // 24.09.2026). Stoi na początku treści — i w zwiniętym, i w rozwiniętym
+        // powiadomieniu — bo zwinięte pokazuje wyłącznie `firstLine`.
+        String czas = godzina(sentAtMs);
         StringBuilder body = new StringBuilder();
         if (headline != null && !headline.isEmpty()) body.append(headline).append('\n');
         for (int i = 0; i < Math.min(reasons.size(), 4); i++) body.append(reasons.get(i)).append('\n');
@@ -273,6 +333,10 @@ class Alarms {
         body.append("NIEOFICJALNE źródło — kieruj się syrenami, RCB i RSO.");
         String firstLine = headline != null && !headline.isEmpty() ? headline
             : (reasons.isEmpty() ? "" : reasons.get(0));
+        if (!czas.isEmpty()) {
+            firstLine = czas + " · " + firstLine;
+            body.insert(0, czas + " · ");
+        }
         Last.put(voiv, title, body.toString());
 
         NotificationManager nm = (NotificationManager) ctx.getSystemService(Context.NOTIFICATION_SERVICE);
@@ -302,16 +366,20 @@ class Alarms {
                 .putExtra(AlarmActivity.EXTRA_VOIV, voivName)
                 .putExtra(AlarmActivity.EXTRA_VOIV_INDEX, voiv)
                 .putExtra(AlarmActivity.EXTRA_TEST, test)
-                .putExtra(AlarmActivity.EXTRA_SCORE, score),
+                .putExtra(AlarmActivity.EXTRA_SCORE, score)
+                .putExtra(AlarmActivity.EXTRA_SENT_AT, sentAtMs),
             PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
-        Notification.Builder b = builder(ctx, high ? CH_HIGH : CH_INFO);
+        Notification.Builder b = builder(ctx, high ? CH_HIGH : infoChannel(ctx));
         b.setContentTitle(title)
          .setContentText(firstLine)
          .setStyle(new Notification.BigTextStyle().bigText(body.toString()))
          .setSmallIcon(android.R.drawable.ic_dialog_alert)
          .setContentIntent(openApp(ctx))
          .setAutoCancel(true);
+        // Zegarek w rogu powiadomienia też ma pokazywać czas WYSYŁKI. Bez tego
+        // Android wpisuje moment dotarcia, więc spóźniony push wyglądał na świeży.
+        if (sentAtMs > 0) b.setWhen(sentAtMs).setShowWhen(true);
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
             b.setPriority(high ? Notification.PRIORITY_MAX : Notification.PRIORITY_DEFAULT);
             b.setDefaults(Notification.DEFAULT_VIBRATE | Notification.DEFAULT_SOUND);

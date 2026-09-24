@@ -1830,9 +1830,12 @@ async function acPhoto(plane) {
   return window.AircraftPhotos?.select(plane, window.AircraftPhotoCatalog) || null;
 }
 
+/* Prędkość nad ziemią podajemy w km/h, bo tak myśli większość czytelników, ale
+   w nawiasie zostawiamy węzły ze źródła — czytelnik z 23.09.2026 porównywał nasz
+   odczyt z serwisem lotniczym i nie miał jak sprawdzić, czy przeliczyliśmy. */
 function speedRow(p) {
   const parts = [];
-  if (p.gs != null) parts.push(`${ktToKmh(p.gs)} km/h`);
+  if (p.gs != null) parts.push(`${ktToKmh(p.gs)} km/h (${Math.round(p.gs)} kt)`);
   if (p.mach != null) parts.push(`Ma ${(+p.mach).toFixed(2)}`);
   return parts.join(" · ");
 }
@@ -3332,20 +3335,23 @@ const SOURCE_INFO = {
     co: "Oficjalne Alerty RCB z Regionalnego Systemu Ostrzegania (RSO) — te same "
       + "komunikaty, które przychodzą SMS-em, z listą województw. Najważniejsze "
       + "oficjalne źródło w tym zestawie i jedyne, które samo podnosi poziom alarmu. Dioda "
-      + "pokazuje, czy RSO odpowiedziało w ostatnich minutach. Strona gov.pl/rcb "
-      + "jest czytana tylko pomocniczo, bez punktów.",
+      + "pokazuje, czy RSO odpowiedziało w ostatnich minutach. Czytamy też treść "
+      + "komunikatu dnia na stronie gov.pl/rcb: RSO niesie czasem tylko część "
+      + "odbiorców alertu, więc brakujące województwa dobieramy stamtąd.",
     coEn: "Official RCB alerts from the Regional Warning System (RSO) — the same "
       + "messages that arrive by text, with the list of provinces. The most important "
       + "official source in this set and the only one that raises the alert level on its own. "
-      + "The light shows whether RSO has responded in the last few minutes. The "
-      + "gov.pl/rcb page is read only as a reference, without points.",
+      + "The light shows whether RSO has responded in the last few minutes. We also read "
+      + "the text of the day's message on gov.pl/rcb: RSO sometimes carries only part of "
+      + "the alert's recipients, so the missing provinces are taken from there.",
     czerwona: "RSO nie odpowiada od kilku minut albo zwróciło dane, których nie da "
       + "się odczytać. Strażnik nie zobaczy wtedy nowego Alertu RCB — alerty "
       + "docierają nadal SMS-em z systemu RCB.",
     coUk: "Офіційні Alert RCB із Регіональної системи оповіщення (RSO) — ті самі повідомлення, "
       + "що приходять SMS-ом, зі списком воєводств. Найважливіше офіційне джерело в цьому наборі "
       + "і єдине, яке само піднімає рівень тривоги. Діода показує, чи RSO відповіло за останні "
-      + "хвилини. Сторінку gov.pl/rcb читаємо лише допоміжно, без балів.",
+      + "хвилини. Читаємо також текст повідомлення дня на сторінці gov.pl/rcb: RSO іноді "
+      + "передає лише частину отримувачів алерту, тож воєводства, яких бракує, беремо звідти.",
     czerwonaUk: "RSO не відповідає кілька хвилин або повернуло дані, яких не вдається прочитати. "
       + "Strażnik тоді не побачить нового Alert RCB — самі алерти й далі приходять SMS-ом із системи RCB.",
     czerwonaEn: "RSO has not responded for a few minutes, or returned data that "
@@ -3508,7 +3514,7 @@ document.getElementById("ac-card-zoom")?.addEventListener("click", () => {
   if (card) card.dataset.forceBig = "";
   try { localStorage.setItem("straznik_card_big", big ? "0" : "1"); } catch {}
   applyCardSize();
-  document.getElementById("ac-card").scrollTop = 0;
+  document.getElementById("ac-card-body").scrollTop = 0;
 });
 
 /* ── alarm dźwiękowy przy poziomie WYSOKI ────────────────────────────────── */
@@ -3649,10 +3655,31 @@ function ctx() {
 }
 
 /* żółty poziom — wyrazisty dwutonowy sygnał uwagi (jak gong ostrzegawczy):
-   dwa naprzemienne tony w trzech powtórzeniach, wyraźnie głośniejsze niż zwykły
-   „ping", ale wciąż bez charakteru alarmu. */
+   dwa naprzemienne tony w trzech powtórzeniach, słyszalne, ale bez charakteru alarmu.
+
+   Wzmocnienie 0,20 zamiast dawnego 0,55. Pomiar z 24.09.2026: przy 0,55 sygnał
+   uwagi miał −5,8 dBFS RMS, a syrena alarmu −10,1 — czyli ŻÓŁTY BYŁ O 4 dB
+   GŁOŚNIEJSZY OD CZERWONEGO, choć w otwartej aplikacji oba grają na tym samym
+   strumieniu multimediów. Fala prostokątna 740/988 Hz trafia przy tym harmonicznymi
+   w najczulszy zakres słuchu, więc różnica była słyszalnie jeszcze większa.
+   0,20 stawia żółty ok. 4,5 dB POD syreną. Pilnuje tego scripts/test_glosnosc_alarmow.cjs.
+   Poziomy plików dla powiadomień są inne i celowo — patrz scripts/build_sounds.py. */
+const CHIME_GAIN = 0.20, CHIME_OCTAVE_MIX = 0.35;
+/* Trzy stopnie z ustawień: „ciszej" to −10 dB (tyle samo, co cichszy kanał
+   powiadomień), „bez dźwięku" zostawia sam baner i wibrację. */
+const CHIME_LEVELS = { normal: 1, quiet: 0.32, silent: 0 };
+function chimeLevel() {
+  try {
+    const v = localStorage.getItem("straznik_zolty_poziom");
+    if (v && Object.prototype.hasOwnProperty.call(CHIME_LEVELS, v)) return v;
+  } catch {}
+  return "normal";
+}
 function attentionChime() {
   try {
+    const mnoznik = CHIME_LEVELS[chimeLevel()];
+    if (!mnoznik) { if (navigator.vibrate) navigator.vibrate([220, 120, 220]); return; }
+    const szczyt = CHIME_GAIN * mnoznik;
     const c = ctx(), t0 = c.currentTime;
     const SEQ = [740, 988, 740, 988, 740, 988];   // fis2 ↔ h2
     const DUR = 0.34, GAP = 0.06;
@@ -3661,11 +3688,11 @@ function attentionChime() {
       const o = c.createOscillator(), o2 = c.createOscillator(), g = c.createGain();
       o.type = "square"; o2.type = "sine";
       o.frequency.value = f; o2.frequency.value = f * 2;   // oktawa dla ostrości
-      const g2 = c.createGain(); g2.gain.value = 0.35;
+      const g2 = c.createGain(); g2.gain.value = CHIME_OCTAVE_MIX;
       o.connect(g); o2.connect(g2); g2.connect(g); g.connect(c.destination);
       g.gain.setValueAtTime(0.0001, s);
-      g.gain.exponentialRampToValueAtTime(0.55, s + 0.015);
-      g.gain.setValueAtTime(0.55, s + DUR - 0.08);
+      g.gain.exponentialRampToValueAtTime(szczyt, s + 0.015);
+      g.gain.setValueAtTime(szczyt, s + DUR - 0.08);
       g.gain.exponentialRampToValueAtTime(0.0001, s + DUR);
       o.start(s); o.stop(s + DUR); o2.start(s); o2.stop(s + DUR);
     });
@@ -3678,8 +3705,9 @@ function attentionChime() {
    tak jak prawdziwy sygnał „ogłoszenie alarmu" nie milknie sam z siebie. */
 let sirenNodes = null, sirenTimer = null, vibrateTimer = null;
 const SIREN_UP = 2.0, SIREN_DOWN = 2.0, SIREN_LO = 380, SIREN_HI = 860;
-// Żółty gong osiąga ok. 0,55 z dodatkową harmoniczną. Dawne 0,40 sprawiało,
-// że alarm czerwony był wyraźnie cichszy mimo wyższego priorytetu.
+// 0,62 daje −10,1 dBFS RMS. Sygnał uwagi stoi wyraźnie niżej (CHIME_GAIN) —
+// odwrotna kolejność była błędem wykrytym pomiarem 24.09.2026. Czerwonego nie
+// ściszamy; hierarchię pilnuje scripts/test_glosnosc_alarmow.cjs.
 const SIREN_GAIN = 0.62;
 
 function scheduleSirenSweeps(o, fromTime, cycles) {
@@ -5090,6 +5118,16 @@ async function refreshBgStatus(previewLang = UI.lang) {
         ? (T("🚨 Zezwól na alarm pełnoekranowy", "🚨 Allow full-screen alerts", "🚨 Дозволити повноекранну тривогу"))
         : (T("🚨 Sprawdź zgodę na alarm pełnoekranowy", "🚨 Check full-screen alert permission", "🚨 Перевірити дозвіл на повноекранну тривогу"));
     }
+    /* Dostęp do zasad Nie przeszkadzać. Przycisk pokazujemy tylko wtedy, gdy zgody
+       NIE MA — po jej przyznaniu nie ma czego klikać, a dodatkowy przycisk w tym
+       miejscu tylko odwracałby uwagę od zgody na pełny ekran, która jest ważniejsza. */
+    const dndBtn = document.getElementById("btn-dnd-access");
+    if (dndBtn) {
+      const brak = IS_APP && !IS_IOS && s.dndAccess === false;
+      dndBtn.style.display = brak ? "" : "none";
+      dndBtn.textContent = T("🌙 Alarm mimo Nie przeszkadzać",
+        "🌙 Alert despite Do Not Disturb", "🌙 Тривога попри «Не турбувати»");
+    }
     renderNativeSound(s, previewLang);
     // Stan subskrypcji potwierdzony przez Firebase — dowód, że wyłączenie działa
     // (15.09.2026: sam przełącznik nic nie pokazywał, a test lokalny dalej grał).
@@ -5195,6 +5233,9 @@ document.getElementById("btn-notif-settings")?.addEventListener("click", () =>
 document.getElementById("btn-fullscreen")?.addEventListener("click", async () => {
   await BG()?.requestFullScreenPermission(); setTimeout(refreshBgStatus, 800);
 });
+document.getElementById("btn-dnd-access")?.addEventListener("click", async () => {
+  await BG()?.requestDndAccess?.(); setTimeout(refreshBgStatus, 800);
+});
 document.getElementById("btn-update")?.addEventListener("click", async (e) => {
   e.target.disabled = true;
   await checkForUpdate(true);
@@ -5216,8 +5257,34 @@ function renderNativeSound(s, jezyk = UI.lang) {
 }
 async function refreshNativeSound() {
   const plugin = BG(); if (!plugin) return;
-  try { renderNativeSound(await plugin.status()); } catch {}
+  try {
+    const s = await plugin.status();
+    renderNativeSound(s);
+    // Prawdę o ustawieniu trzyma strona natywna (powiadomienia z serwera składa
+    // Alarms.java). localStorage to tylko kopia dla otwartej aplikacji i trybu
+    // wbudowanego — przy starcie wyrównujemy ją do natywnej.
+    if (s.yellowLevel) { try { localStorage.setItem("straznik_zolty_poziom", s.yellowLevel); } catch {} }
+    renderYellowLevel();
+  } catch {}
 }
+
+/* ── głośność żółtego sygnału uwagi ───────────────────────────────────────── */
+function renderYellowLevel() {
+  const wybrany = chimeLevel();
+  for (const b of document.querySelectorAll("#yellow-volume .chip"))
+    b.classList.toggle("active", b.dataset.poziom === wybrany);
+}
+for (const b of document.querySelectorAll("#yellow-volume .chip")) {
+  b.addEventListener("click", async () => {
+    const poziom = b.dataset.poziom;
+    try { localStorage.setItem("straznik_zolty_poziom", poziom); } catch {}
+    renderYellowLevel();
+    // zapis natywny decyduje o kanale powiadomienia przy zgaszonym ekranie
+    try { await BG()?.setYellowLevel?.({ level: poziom }); } catch {}
+    if (poziom !== "silent" && !(IS_APP && blockedByAlertsOff())) attentionChime();
+  });
+}
+renderYellowLevel();
 /* Suwak „Alarmy na tym telefonie” (15.09.2026 zamiast pola „Nie chcę alarmów”):
    włączony = alarmy przychodzą. Stan wypisania pokazuje status nad suwakiem —
    z potwierdzeniem z Firebase, a nie z samego zapisu w aplikacji. */

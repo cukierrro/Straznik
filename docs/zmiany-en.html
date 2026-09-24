@@ -39,6 +39,20 @@
   <p class="fineprint">To see which version your phone has, open the app: <kbd>⚙</kbd> → the <kbd>App</kbd> tab → “App version”. The <kbd>⬆ Check for updates</kbd> button is right there too.</p>
 </div></header>
 <main id="content" class="wrap">
+<section id="v1-7-78">
+  <h2>1.7.78 — A quieter yellow signal, and RCB alerts read from the message itself</h2>
+  <p class="fineprint">Release 1.7.78 · 24 September 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.78">Full release notes</a></p>
+  <ul>
+    <li>The yellow attention signal was louder than the red alert siren — a measurement showed a 4 dB gap in yellow's favour. It now sits clearly below the siren. The red alert was not made quieter.</li>
+    <li>New setting ⚙ → Sound → “Attention sound volume (yellow)”: Normal, Quieter (about ten times quieter) or No sound (the banner and the vibration remain). On Android it works with the screen off too; on iPhone only inside the open app, because the system picks the volume of a push notification.</li>
+    <li>The guide now says what Do Not Disturb actually does — measured on a Pixel 7: ordinary Do Not Disturb silences yellow while red gets through. But “Total silence” also silences the red alert and the app cannot work around it. Leave the “Alarms” exception on as well.</li>
+    <li>For people who turned that exception off there is an optional 🌙 “Alert despite Do Not Disturb” button: red then shows full screen, though without sound.</li>
+    <li>RCB alerts are now also read from the message text on gov.pl, not only from RSO. RSO sometimes carries only part of the recipients — podkarpackie was lost on 17 and 24 September. Fallback mode does the same now.</li>
+    <li>An alert notification now starts with the time it was SENT (“10:54 · …”); the same time appears in the notification's own clock and on the full-screen alert. With a delayed push that differs from the arrival time, and the first one is what matters. On iPhone the server adds the time.</li>
+    <li>The history bar showed a red alert where the level had actually been yellow — it derived the level from the score alone, while since 1.7.74 red requires a key. It now takes the level from the same assessment that colours the map.</li>
+    <li>Fixed: fallback mode did not signal the yellow level at all (the notification went to a channel deleted at startup). Aircraft cards show the speed in km/h and in knots. The object card buttons no longer drift while scrolling, and the panel close button matches the rest of the app.</li>
+  </ul>
+</section>
 <section id="v1-7-76">
   <h2>1.7.76 — Strażnik speaks Ukrainian</h2>
   <p class="fineprint">Release 1.7.76 · 24 September 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.76">Full release notes</a></p>

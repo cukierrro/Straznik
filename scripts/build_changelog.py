@@ -16,6 +16,27 @@ DOCS = ROOT / "docs"
 # (wersja, data PL, data EN, tytuł PL, tytuł EN, punkty PL, punkty EN, zrzuty)
 # Zrzut: (plik, alt PL, alt EN, podpis PL, podpis EN)
 RELEASES = [
+    ("1.7.78", "24 września 2026", "24 September 2026",
+     "Cichszy żółty sygnał i alert RCB czytany z treści",
+     "A quieter yellow signal, and RCB alerts read from the message itself",
+     ["Żółty sygnał uwagi był głośniejszy od syreny czerwonego alarmu — pomiar pokazał różnicę 4 dB na korzyść żółtego. Teraz stoi wyraźnie pod syreną. Czerwonego alarmu nie ściszyliśmy.",
+      "Nowe ustawienie ⚙ → Dźwięk → „Głośność sygnału uwagi (żółty)”: Normalny, Ciszej (około dziesięć razy ciszej) albo Bez dźwięku (zostaje baner i wibracja). Na Androidzie działa także przy zgaszonym ekranie; na iPhonie tylko w otwartej aplikacji, bo głośność powiadomienia push wybiera system.",
+      "Instrukcja mówi teraz, co naprawdę robi tryb Nie przeszkadzać — sprawdzone pomiarem na Pixelu 7: zwykłe Nie przeszkadzać wycisza żółty, a czerwony przez nie przechodzi. Ale „Całkowita cisza” wycisza także czerwony alarm i aplikacja nie może tego obejść. Zostaw też włączony wyjątek „Alarmy”.",
+      "Dla osób, które ten wyjątek wyłączyły, doszedł opcjonalny przycisk 🌙 „Alarm mimo Nie przeszkadzać”: czerwony pokaże się wtedy na pełnym ekranie, choć bez dźwięku.",
+      "Alert RCB jest czytany także z treści komunikatu na gov.pl, nie tylko z RSO. RSO niesie czasem tylko część odbiorców — 17 i 24 września przepadło woj. podkarpackie. Tryb awaryjny robi teraz to samo.",
+      "Powiadomienie o alarmie zaczyna się teraz od godziny WYSYŁKI („10:54 · …”), tę samą godzinę pokazuje zegarek w rogu powiadomienia i ekran pełnoekranowego alarmu. Przy spóźnionym pushu to co innego niż godzina dotarcia, a liczy się ta pierwsza. Na iPhonie godzinę dokłada serwer.",
+      "Pasek historii pokazywał czerwony alarm tam, gdzie w rzeczywistości był żółty — liczył poziom z samej sumy punktów, a od 1.7.74 czerwony wymaga klucza. Teraz bierze poziom stąd, co kolor mapy.",
+      "Naprawione: tryb awaryjny w ogóle nie sygnalizował żółtego poziomu (powiadomienie szło na kanał kasowany przy starcie). Karta maszyny pokazuje prędkość w km/h i w węzłach. Przyciski karty obiektu nie odjeżdżają przy przewijaniu, a krzyżyk panelu ma jeden styl z resztą aplikacji."],
+     ["The yellow attention signal was louder than the red alert siren — a measurement showed a 4 dB gap in yellow's favour. It now sits clearly below the siren. The red alert was not made quieter.",
+      "New setting ⚙ → Sound → “Attention sound volume (yellow)”: Normal, Quieter (about ten times quieter) or No sound (the banner and the vibration remain). On Android it works with the screen off too; on iPhone only inside the open app, because the system picks the volume of a push notification.",
+      "The guide now says what Do Not Disturb actually does — measured on a Pixel 7: ordinary Do Not Disturb silences yellow while red gets through. But “Total silence” also silences the red alert and the app cannot work around it. Leave the “Alarms” exception on as well.",
+      "For people who turned that exception off there is an optional 🌙 “Alert despite Do Not Disturb” button: red then shows full screen, though without sound.",
+      "RCB alerts are now also read from the message text on gov.pl, not only from RSO. RSO sometimes carries only part of the recipients — podkarpackie was lost on 17 and 24 September. Fallback mode does the same now.",
+      "An alert notification now starts with the time it was SENT (“10:54 · …”); the same time appears in the notification's own clock and on the full-screen alert. With a delayed push that differs from the arrival time, and the first one is what matters. On iPhone the server adds the time.",
+      "The history bar showed a red alert where the level had actually been yellow — it derived the level from the score alone, while since 1.7.74 red requires a key. It now takes the level from the same assessment that colours the map.",
+      "Fixed: fallback mode did not signal the yellow level at all (the notification went to a channel deleted at startup). Aircraft cards show the speed in km/h and in knots. The object card buttons no longer drift while scrolling, and the panel close button matches the rest of the app."],
+     []),
+
     ("1.7.76", "24 września 2026", "24 September 2026",
      "Strażnik po ukraińsku",
      "Strażnik speaks Ukrainian",

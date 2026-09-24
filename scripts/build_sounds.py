@@ -4,17 +4,31 @@ Aplikacja w otwartym stanie syntetyzuje dźwięki w Web Audio (frontend/app.js).
 Usługa w tle nie ma WebView, więc te same sygnały muszą istnieć jako pliki:
 kanały powiadomień i pełnoekranowy alarm (AlarmActivity) odtwarzają je z res/raw.
 
-Parametry są celowo przepisane 1:1 z app.js — jeśli zmienisz brzmienie tam,
-uruchom ten skrypt ponownie, żeby tło nie rozjechało się z pierwszym planem:
+Kształt fali, częstotliwości i czasy są przepisane z app.js — jeśli zmienisz
+brzmienie tam, uruchom ten skrypt ponownie:
 
     py scripts/build_sounds.py
 
-Wynik: android-app/android/app/src/main/res/raw/{alert_uwaga,alarm_syrena}.wav
+POZIOMY są celowo INNE niż w app.js i to nie jest rozjazd do naprawienia
+(pomiary 24.09.2026, scripts/test_glosnosc_alarmow.cjs pilnuje obu światów):
+
+* W otwartej aplikacji żółty i czerwony grają obok siebie na strumieniu
+  MULTIMEDIÓW, więc liczy się ich wzajemna proporcja — sygnał uwagi musi być
+  słyszalnie cichszy od syreny. Dlatego app.js ma własne wzmocnienia.
+* W tle nikt ich nie porównuje: żółty gra na strumieniu POWIADOMIEŃ, a czerwony
+  na strumieniu ALARMÓW, podbitym do co najmniej połowy. Każdy jest oceniany
+  względem innych dźwięków swojego strumienia, więc oba pliki są wyrównane
+  (ok. −9 dBFS) i tak zostaje.
+
+Wynik: android-app/android/app/src/main/res/raw/
+       {alert_uwaga, alert_uwaga_cicho, alarm_syrena}.wav
 """
 from __future__ import annotations
 
+import io
 import math
 import struct
+import sys
 import wave
 from pathlib import Path
 
@@ -25,6 +39,9 @@ RAW = Path(__file__).resolve().parent.parent / "android-app/android/app/src/main
 CHIME_SEQ = [740, 988, 740, 988, 740, 988]   # fis2 ↔ h2
 CHIME_DUR, CHIME_GAP = 0.34, 0.06
 CHIME_PEAK, CHIME_OCTAVE_MIX = 0.55, 0.35
+# Wariant „ciszej" dla osobnego kanału powiadomień: ten sam sygnał, o ~10 dB niżej.
+# Dla kogoś, kogo żółty budzi w nocy, a kto nie chce wyciszać go zupełnie.
+CHIME_QUIET_FACTOR = 0.32
 
 # ── czerwony poziom: airRaidSiren() w app.js ─────────────────────────────────
 SIREN_LO, SIREN_HI = 380.0, 860.0
@@ -99,20 +116,40 @@ def siren() -> list[float]:
     return out
 
 
-def write_wav(path: Path, samples: list[float]) -> None:
+def write_wav(path: Path, samples: list[float], nadpisz: bool = False) -> bool:
+    """Zapisuje plik. Gdy istniejący RÓŻNI SIĘ od wyliczonego, domyślnie go NIE rusza.
+
+    Powód (24.09.2026): wydany `alarm_syrena.wav` ma szczyt 0,679, a z obecnych
+    stałych wychodzi 0,59 — plik i generator rozjechały się kiedyś i nikt tego nie
+    zauważył. Ciche nadpisanie zmieniłoby brzmienie CZERWONEGO alarmu przy okazji
+    zupełnie innej poprawki. Podmiana sygnału to osobna, świadoma decyzja:
+    `py scripts/build_sounds.py --nadpisz`.
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
     frames = bytearray()
     for s in samples:
         v = int(max(-1.0, min(1.0, s)) * 32767)
         frames += struct.pack("<h", v)
-    with wave.open(str(path), "wb") as w:
+    buf = io.BytesIO()
+    with wave.open(buf, "wb") as w:
         w.setnchannels(1)
         w.setsampwidth(2)
         w.setframerate(SR)
         w.writeframes(bytes(frames))
+    nowy = buf.getvalue()
+    if path.exists() and path.read_bytes() != nowy and not nadpisz:
+        print(f"{path.name}: POMINIĘTY — wydany plik różni się od wyliczonego. "
+              f"Podmień świadomie: --nadpisz")
+        return False
+    path.write_bytes(nowy)
     print(f"{path.name}: {len(samples)/SR:.2f} s, {path.stat().st_size/1024:.0f} KB")
+    return True
 
 
 if __name__ == "__main__":
-    write_wav(RAW / "alert_uwaga.wav", chime())
-    write_wav(RAW / "alarm_syrena.wav", siren())
+    nadpisz = "--nadpisz" in sys.argv
+    dzwonek = chime()
+    write_wav(RAW / "alert_uwaga.wav", dzwonek, nadpisz)
+    write_wav(RAW / "alert_uwaga_cicho.wav",
+              [s * CHIME_QUIET_FACTOR for s in dzwonek], nadpisz)
+    write_wav(RAW / "alarm_syrena.wav", siren(), nadpisz)

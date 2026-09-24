@@ -43,6 +43,10 @@ public class MainActivity extends BridgeActivity {
     @Override public void onResume() {
         super.onResume();
         FOREGROUND = true;
+        // Powrót z systemowych ustawień: użytkownik mógł właśnie przyznać dostęp do
+        // trybu Nie przeszkadzać, a setBypassDnd na kanale czerwonego zadziała dopiero
+        // przy kolejnym createChannels. Bez tego zgoda nie robiłaby nic do restartu.
+        Alarms.createChannels(this);
         // alarm wyciszony dotknięciem powiadomienia (bez „Wycisz”) zostawiał
         // podniesioną głośność — przywracamy ją, gdy nie gra już żaden czerwony
         if (!redAlarmActive()) Alarms.restoreAlarmVolume(this);

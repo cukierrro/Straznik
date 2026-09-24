@@ -57,7 +57,25 @@ sprawdz(all(notify.fcm_topic(v) == config.voiv_topic(v) for v in config.VOIVODES
 sprawdz(all(notify.fcm_topic(v, True).startswith(config.TEST_TOPIC_PREFIX) for v in config.VOIVODESHIPS),
         "test: test_voiv_*")
 
-print("4. pola wiadomości czytane przez aplikację")
+print("4. kanały powiadomień: tryb wbudowany a strona natywna")
+# Kanał raz utworzony ignoruje zmiany dźwięku, więc podmiana sygnału wymaga nowego
+# identyfikatora, a stary trafia na listę do skasowania. Silnik wbudowany podaje te
+# identyfikatory z palca: 13.09.2026 kanał żółtego poszedł na v4, a engine.js został
+# przy v3 — czyli przy kanale KASOWANYM przy starcie. Android odrzuca wtedy
+# powiadomienie bez śladu w aplikacji i tryb awaryjny milczy na żółtym poziomie.
+kanaly_java = dict(re.findall(r'static final String (CH_\w+) = "([^"]+)"', alarms))
+m = re.search(r"CH_LEGACY = \{(.*?)\};", alarms, re.S)
+legacy = set(re.findall(r'"([^"]+)"', m.group(1))) if m else set()
+engine = (ROOT / "frontend/engine.js").read_text(encoding="utf-8")
+uzywane = set(re.findall(r'"(straznik-[a-z0-9-]+)"', engine))
+sprawdz(bool(uzywane), f"engine.js podaje kanały: {', '.join(sorted(uzywane)) or 'brak'}")
+for kanal in sorted(uzywane):
+    sprawdz(kanal in kanaly_java.values(), f"„{kanal}” istnieje w Alarms.java")
+    sprawdz(kanal not in legacy, f"„{kanal}” nie jest kanałem kasowanym przy starcie")
+sprawdz(kanaly_java.get("CH_HIGH") in uzywane and kanaly_java.get("CH_INFO") in uzywane,
+        "silnik używa obu kanałów alarmowych: czerwonego i żółtego")
+
+print("5. pola wiadomości czytane przez aplikację")
 fcm = (JAVA / "StraznikFcmService.java").read_text(encoding="utf-8")
 serwer = (ROOT / "backend/app/notify.py").read_text(encoding="utf-8")
 for pole in ("voiv", "level", "score", "reasons", "sent_at", "headline"):

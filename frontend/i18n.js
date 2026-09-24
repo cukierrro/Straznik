@@ -214,6 +214,24 @@
     location.reload();
   }
 
+  /* Opis zgody na przebicie trybu Nie przeszkadzać. Trzymany raz, bo używa go
+     zarówno podgląd języka, jak i pełne przełączenie na angielski. */
+  const DND_NOTE_PL = "Tryb <b>Nie przeszkadzać</b> domyślnie przepuszcza alarmy, więc czerwony "
+    + "przechodzi przez niego bez żadnych zgód, a żółty zostaje wyciszony — to zwykle jest dokładnie "
+    + "to, o co chodzi w nocy. Jeśli jednak wyłączysz w wyjątkach Nie przeszkadzać pozycję "
+    + "<b>Alarmy</b>, czerwony przestanie się pokazywać. Przycisk 🌙 pozwala to naprawić: po "
+    + "przyznaniu <b>dostępu do trybu Nie przeszkadzać</b> alarm pokaże się na pełnym ekranie i "
+    + "zapali ekran także wtedy. <b>Dźwięku to nie przywróci</b> — system trzyma wtedy głośność "
+    + "alarmów wyciszoną — a tryb <b>„Całkowita cisza”</b> blokuje alarm niezależnie od tej zgody. "
+    + "Zgoda jest dobrowolna i możesz ją w każdej chwili cofnąć.";
+  const DND_NOTE_EN = "<b>Do Not Disturb</b> allows alarms by default, so a red alert gets through "
+    + "it without any extra permission while yellow is silenced — at night that is usually exactly "
+    + "what you want. If you do turn <b>Alarms</b> off in the Do Not Disturb exceptions, red stops "
+    + "appearing. The 🌙 button fixes that: once you grant <b>Do Not Disturb access</b>, the alert "
+    + "shows full screen and wakes the display even then. <b>It does not bring the sound back</b> — "
+    + "the system keeps the alarm volume muted — and <b>“Total silence”</b> blocks the alert "
+    + "regardless of this permission. The permission is optional and you can withdraw it at any time.";
+
   function previewSettings(next) {
     const en = next !== "pl", dlg = document.getElementById("settings");
     if (!dlg) return;
@@ -243,9 +261,19 @@
       "Żółty poziom (≥2 pkt) — krótki sygnał uwagi i powiadomienie wyskakujące na ekranie. Czerwony (≥4 pkt) — modulowana syrena alarmu powietrznego + wibracja. Odtwarzane, gdy aplikacja jest otwarta; przy zamkniętej aplikacji alarm przychodzi jako powiadomienie push (z syreną dla czerwonego).",
       "Yellow (≥2 pts): attention sound and heads-up notification. Red (≥4 pts): modulated air-raid siren and vibration. Played while the app is open; with the app closed the alert arrives as a push notification (with the siren for red).");
     button("ns-head", "Alarm natywny i głośność", "Native alert and volume");
+    button("yv-head", "Głośność sygnału uwagi (żółty)", "Attention sound volume (yellow)");
+    button("yv-normal", "Normalny", "Normal");
+    button("yv-quiet", "Ciszej", "Quieter");
+    button("yv-silent", "Bez dźwięku", "No sound");
+    {
+      const yv = document.getElementById("yv-note");
+      if (yv) yv.innerHTML = en
+        ? "Applies to the <b>yellow</b> attention sound only. The red alert always sounds the same. “No sound” keeps the banner and the vibration."
+        : "Dotyczy wyłącznie <b>żółtego</b> sygnału uwagi. Czerwony alarm gra zawsze tak samo. „Bez dźwięku” zostawia baner i wibrację.";
+    }
     many(":scope .set-tab", en
       ? ["Alerts","My places","Sound","App"] : ["Alarmy","Moje miejsca","Dźwięk","Aplikacja"]);
-    many(":scope .set-pane > p.fineprint:not(#app-version):not(#upd-status):not(#more-links):not(.ios-only)", en ? [
+    many(":scope .set-pane > p.fineprint:not(#app-version):not(#upd-status):not(#more-links):not(#dnd-note):not(.ios-only)", en ? [
       "Alerts for your province arrive as push notifications even when the app is closed or the phone is asleep. Full-screen permission is required for a red alert to wake the screen. This needs the Strażnik server: in emergency mode (server unavailable) alerts arrive only while the app is open.",
       "A full-screen alert wakes the display and appears above the lock screen. Android 14 or later may revoke this permission after an update, so verify it manually.",
       "Save up to 8 places and choose which provinces you want notifications for. Exact places remain on this device.",
@@ -269,6 +297,8 @@
     button("btn-places","📍 Otwórz Moje miejsca","📍 Open My places");
     button("btn-notif-settings","🔔 Ustawienia powiadomień","🔔 Notification settings");
     button("btn-battery","🔋 Wyłącz oszczędzanie baterii","🔋 Disable battery optimisation");
+    button("btn-dnd-access","🌙 Alarm mimo Nie przeszkadzać","🌙 Alert despite Do Not Disturb");
+    { const el = document.getElementById("dnd-note"); if (el) el.innerHTML = en ? DND_NOTE_EN : DND_NOTE_PL; }
     button("btn-test-chime","▶ Test: uwaga","▶ Test: attention");
     button("btn-test-siren","▶ Test: syrena","▶ Test: siren");
     button("btn-test-alarm","▶ Test: pełny alarm","▶ Test: full alert");
@@ -503,6 +533,7 @@
     "Turn off if you only want to view the map": "Вимкніть, якщо хочете лише дивитися мапу",
     "🔔 Notification settings": "🔔 Налаштування сповіщень",
     "🔋 Disable battery optimisation": "🔋 Вимкнути економію батареї",
+    "🌙 Alert despite Do Not Disturb": "🌙 Тривога попри «Не турбувати»",
     "🚨 Allow full-screen alerts": "🚨 Дозволити повноекранні тривоги",
     "🚨 Check full-screen alert permission": "🚨 Перевірити дозвіл на повноекранну тривогу",
     "On iPhone a red alert arrives as a notification marked “Urgent”: it appears over the lock screen and plays our siren. It does not take over the screen and does not repeat the sound — iOS does not allow regular apps to do that. With the ringer muted the alert is silent: a banner and a vibration — as long as Settings → Sounds & Haptics → Haptics is not set to “Don’t Play in Silent Mode”. For it to reach you at night, check two settings: Settings → Notifications → Strażnik → “Time Sensitive Notifications” and Settings → Focus → Sleep → Apps → allow Strażnik. Without them iOS holds the alert until you unlock the phone.":
@@ -520,6 +551,12 @@
     "▶ Test: siren": "▶ Тест: сирена",
     "▶ Test: full alert": "▶ Тест: повна тривога",
     "The red siren continues until you acknowledge the alert.": "При червоному рівні сирена грає безперервно, доки ви не підтвердите тривогу.",
+    "Attention sound volume (yellow)": "Гучність сигналу уваги (жовтий)",
+    "Normal": "Звичайна",
+    "Quieter": "Тихіше",
+    "No sound": "Без звуку",
+    "Applies to the yellow attention sound only. The red alert always sounds the same. “No sound” keeps the banner and the vibration.":
+      "Стосується лише жовтого сигналу уваги. Червона тривога звучить завжди однаково. «Без звуку» залишає банер і вібрацію.",
     "Native alert and volume": "Системна тривога і гучність",
     "Red alert always at full volume": "Червона тривога завжди на повній гучності",
     "🔊 Android sound settings": "🔊 Налаштування звуку Android",
@@ -612,7 +649,11 @@
       "btn-about": ["title","About Strażnik — what it is and how it works"],
       "btn-legend": ["title","Symbol legend"], "btn-settings": ["title","My location and settings"],
       "btn-panel": ["title","Signal panel"], "btn-history": ["title","12-hour history"],
-      "btn-home": ["title","Return to my region"], "btn-fit": ["title","Show all of Poland and Ukraine"]
+      "btn-home": ["title","Return to my region"], "btn-fit": ["title","Show all of Poland and Ukraine"],
+      // zgłoszenie #1 z GitHuba: te trzy podpowiedzi zostawały po polsku
+      "btn-3d": ["title","Switch between 2D and 3D view"],
+      "btn-watch": ["title","Foreign (RU/BY) aircraft over the eastern flank"],
+      "btn-push": ["title","Notifications"]
     };
     for (const [id, [a,v]] of Object.entries(attrs)) {
       const el = document.getElementById(id); if (!el) continue;
@@ -792,7 +833,7 @@
       "Strażnik is useful only if it can warn you before you open it. Alerts for your region arrive as push notifications, even when the app is closed and the screen is off.",
       "Notification permission is required. For red alerts, full-screen alert permission is also recommended."
     ]);
-    setMany("#settings .set-pane > p.fineprint:not(#app-version):not(#upd-status):not(#more-links):not(.ios-only)", [
+    setMany("#settings .set-pane > p.fineprint:not(#app-version):not(#upd-status):not(#more-links):not(#dnd-note):not(.ios-only)", [
       "Alerts for your province arrive as push notifications even when the app is closed or the phone is asleep. Full-screen permission is required for a red alert to wake the screen. This needs the Strażnik server: in emergency mode (server unavailable) alerts arrive only while the app is open.",
       "A full-screen alert wakes the display and appears above the lock screen. Android 14 or later may revoke this permission after an update, so verify it manually.",
       "Save up to 8 places and choose which provinces you want notifications for. Exact places remain on this device.",
@@ -802,10 +843,19 @@
     ]);
     set("#alerts-on-label", "Alerts on this phone");
     set("#alerts-on-note", "Turn off if you only want to view the map");
+    set("#btn-dnd-access", "🌙 Alert despite Do Not Disturb");
+    const dndNote = document.getElementById("dnd-note");
+    if (dndNote) dndNote.innerHTML = DND_NOTE_EN;
+    set("#yv-head", "Attention sound volume (yellow)");
+    set("#yv-normal", "Normal");
+    set("#yv-quiet", "Quieter");
+    set("#yv-silent", "No sound");
+    const yvNote = document.getElementById("yv-note");
+    if (yvNote) yvNote.innerHTML = "Applies to the <b>yellow</b> attention sound only. The red alert always sounds the same. “No sound” keeps the banner and the vibration.";
     set("#ns-head", "Native alert and volume");
     set("#ns-label", "Red alert always at full volume");
     const nsNote = document.getElementById("ns-note");
-    if (nsNote) nsNote.innerHTML = "The siren uses the Android <b>“Alarms”</b> volume (not “Ring” or “Media”). A red alert raises it to <b>at least half</b> so the siren is never silent. The option above is <b>off</b> by default — when switched on, a red alert sets the volume to maximum, also at night. Either way the previous volume returns when you silence the alert. The yellow attention sound uses your normal volume.";
+    if (nsNote) nsNote.innerHTML = "The siren uses the Android <b>“Alarms”</b> volume (not “Ring” or “Media”). A red alert raises it to <b>at least half</b> so the siren is never silent. The option above is <b>off</b> by default — when switched on, a red alert sets the volume to maximum, also at night. Either way the previous volume returns when you silence the alert. The yellow attention sound uses your normal notification volume and has its own setting above.";
     set("#btn-sound-settings", "🔊 Android sound settings");
     set("#btn-native-test", "▶ Test: red native (in 5 s)");
     set("#btn-native-test-yellow", "▶ Test: yellow native (in 5 s)");
@@ -859,6 +909,9 @@
     "#status-leds": ["title", "Стан джерел даних — торкніться, щоб побачити деталі"],
     ".brand": ["aria-label", "Про Strażnika"],
     "#tb-live": ["title", "Повернутися до перегляду наживо"],
+    "#btn-3d": ["title", "Перемкнути вигляд 2D/3D"],
+    "#btn-watch": ["title", "Чужі літаки (РФ/РБ) над східним флангом"],
+    "#btn-push": ["title", "Сповіщення"],
   };
 
   function ukrainize(root) {
@@ -929,12 +982,21 @@
     const hostUk = document.querySelector(".brand-host");
     if (hostUk) { hostUk.querySelector("span").textContent = "хостинг: Mikrus ↗";
       hostUk.setAttribute("aria-label", "Strażnik працює на Mikrus — відкрити сайт Mikrus"); }
+    const dndNoteUk = document.getElementById("dnd-note");
+    if (dndNoteUk) dndNoteUk.innerHTML = "Режим <b>«Не турбувати»</b> типово пропускає будильники, "
+      + "тож червона тривога проходить крізь нього без жодних дозволів, а жовтий сигнал стишується — "
+      + "уночі це зазвичай саме те, що потрібно. Але якщо ви вимкнете у винятках «Не турбувати» пункт "
+      + "<b>«Будильники»</b>, червона тривога перестане з’являтися. Кнопка 🌙 це виправляє: після "
+      + "надання <b>доступу до режиму «Не турбувати»</b> тривога покажеться на весь екран і засвітить "
+      + "екран навіть тоді. <b>Звук це не поверне</b> — система тримає гучність будильників вимкненою — "
+      + "а режим <b>«Повна тиша»</b> блокує тривогу незалежно від цього дозволу. Дозвіл добровільний, "
+      + "його можна будь-коли скасувати.";
     const nsNoteUk = document.getElementById("ns-note");
     if (nsNoteUk) nsNoteUk.innerHTML = "Сирена використовує гучність Android <b>«Будильники»</b> (а не «Дзвінок» "
       + "чи «Медіа»). Червона тривога піднімає її <b>щонайменше до половини</b>, щоб сирена ніколи не була "
       + "беззвучною. Параметр вище типово <b>вимкнено</b> — якщо його увімкнути, червона тривога встановить "
       + "максимальну гучність, також уночі. У кожному разі попередня гучність повертається, коли ви вимкнете "
-      + "тривогу. Жовтий сигнал уваги звучить зі звичайною гучністю.";
+      + "тривогу. Жовтий сигнал уваги звучить зі звичайною гучністю сповіщень і має власне налаштування вище.";
     const trailNoteUk = document.getElementById("trail-note");
     if (trailNoteUk) trailNoteUk.innerHTML = "Лінія курсу охоплює 30 хвилин лету дрона чи ракети (15 хвилин для "
       + "літаків), з точками кожні 5 хвилин. Для об’єктів NEPTUN вона малюється <b>лише для курсу, виміряного "

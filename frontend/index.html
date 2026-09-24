@@ -89,7 +89,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <link rel="icon" type="image/png" sizes="512x512" href="assets/icon-512.png">
 <link rel="apple-touch-icon" href="assets/icon-192.png">
 <link rel="stylesheet" href="assets/vendor/maplibre-gl.css">
-<link rel="stylesheet" href="style.css?v=1.7.76c">
+<link rel="stylesheet" href="style.css?v=1.7.78a">
 </head>
 <body>
 
@@ -339,7 +339,9 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 </div>
 
 <aside id="panel" class="collapsed">
-  <button id="panel-x" title="Zamknij panel">✕</button>
+  <button id="panel-x" type="button" title="Zamknij panel" aria-label="Zamknij panel">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+  </button>
   <section id="voiv-cards"></section>
   <section>
     <h2>Sygnały <span class="muted">(okno <span id="window-min">30</span> min)</span></h2>
@@ -761,6 +763,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
       <button type="button" id="btn-notif-settings" class="chip">🔔 Ustawienia powiadomień</button>
       <button type="button" id="btn-fullscreen" class="chip android-only" style="display:none">🚨 Zgoda na alarm pełnoekranowy</button>
       <button type="button" id="btn-battery" class="chip android-only">🔋 Wyłącz oszczędzanie baterii</button>
+      <button type="button" id="btn-dnd-access" class="chip android-only" style="display:none">🌙 Alarm mimo Nie przeszkadzać</button>
       <button type="button" id="btn-web-push-on" class="chip primary" hidden>🔔 Włącz powiadomienia w tej przeglądarce</button>
       <button type="button" id="btn-web-push-off" class="chip" hidden>🔕 Wyłącz powiadomienia w tej przeglądarce</button>
     </div>
@@ -778,6 +781,14 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
     powiadomieniem. Dlatego <b>sprawdź przełącznik osobiście</b>: przycisk 🚨 otwiera
     dokładnie ten ekran. Zgoda na wyłączenie oszczędzania baterii nie jest wymagana
     (push i tak dociera), ale na agresywnych nakładkach zwiększa pewność.</p>
+    <p class="fineprint android-only" id="dnd-note">Tryb <b>Nie przeszkadzać</b> domyślnie przepuszcza
+    alarmy, więc czerwony przechodzi przez niego bez żadnych zgód, a żółty zostaje wyciszony —
+    to zwykle jest dokładnie to, o co chodzi w nocy. Jeśli jednak wyłączysz w wyjątkach
+    Nie przeszkadzać pozycję <b>Alarmy</b>, czerwony przestanie się pokazywać. Przycisk
+    🌙 pozwala to naprawić: po przyznaniu <b>dostępu do trybu Nie przeszkadzać</b> alarm
+    pokaże się na pełnym ekranie i zapali ekran także wtedy. <b>Dźwięku to nie przywróci</b> —
+    system trzyma wtedy głośność alarmów wyciszoną — a tryb <b>„Całkowita cisza”</b> blokuje
+    alarm niezależnie od tej zgody. Zgoda jest dobrowolna i możesz ją w każdej chwili cofnąć.</p>
     </section>
 
     <section class="set-pane" data-pane="miejsca" role="tabpanel" hidden>
@@ -808,6 +819,17 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
     <p class="fineprint">Przy czerwonym poziomie syrena gra <b>bez przerwy</b>,
     aż potwierdzisz alarm przyciskiem na ekranie.</p>
 
+    <div id="yellow-volume">
+      <h3 style="margin-top:16px" id="yv-head">Głośność sygnału uwagi (żółty)</h3>
+      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+        <button type="button" id="yv-normal" class="chip" data-poziom="normal">Normalny</button>
+        <button type="button" id="yv-quiet" class="chip" data-poziom="quiet">Ciszej</button>
+        <button type="button" id="yv-silent" class="chip" data-poziom="silent">Bez dźwięku</button>
+      </div>
+      <div class="fineprint" id="yv-note">Dotyczy wyłącznie <b>żółtego</b> sygnału uwagi.
+        Czerwony alarm gra zawsze tak samo. „Bez dźwięku” zostawia baner i wibrację.</div>
+    </div>
+
     <div id="native-sound" class="app-only">
       <h3 style="margin-top:16px" id="ns-head">Alarm natywny i głośność</h3>
       <div class="fineprint android-only" id="ns-volume"></div>
@@ -819,7 +841,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
         (nie „Dzwonek” ani „Multimedia”). Czerwony alarm podnosi go <b>co najmniej do połowy</b>,
         żeby syrena nie była cicha. Opcja wyżej jest domyślnie <b>wyłączona</b> — po jej włączeniu
         czerwony alarm ustawi suwak na maksimum, także w nocy. W obu przypadkach poprzednia
-        głośność wraca, gdy wyciszysz alarm. Żółty sygnał uwagi gra na zwykłej głośności.</div>
+        głośność wraca, gdy wyciszysz alarm. Żółty sygnał uwagi gra na zwykłej głośności powiadomień i ma własne ustawienie wyżej.</div>
       <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
         <button type="button" id="btn-sound-settings" class="chip android-only">🔊 Ustawienia dźwięku Androida</button>
         <button type="button" id="btn-native-test" class="chip">▶ Test: czerwony natywny (za 5 s)</button>
@@ -925,14 +947,14 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
      Cloudflare, więc po każdym wydaniu wystarczy podbić ?v= i przeglądarki
      dostają nowe app.js/engine.js OD RAZU, bez ręcznego czyszczenia cache CF.
      Podbijaj ?v= razem z versionName w build.gradle. -->
-<script src="i18n.js?v=1.7.76c"></script>
+<script src="i18n.js?v=1.7.78a"></script>
 <!-- kontur Polski dla engine.js (audyt A2b, scripts/build_pl_outline.py) -->
-<script src="pl-outline.js?v=1.7.76c"></script>
-<script src="engine.js?v=1.7.76c"></script>
+<script src="pl-outline.js?v=1.7.78a"></script>
+<script src="engine.js?v=1.7.78a"></script>
 <script src="aircraft-photo-catalog.js?v=1.7.19"></script>
 <script src="aircraft-photos.js?v=1.7.19"></script>
 <script src="places.js?v=1.7.19-4"></script>
-<script src="app.js?v=1.7.76c"></script>
+<script src="app.js?v=1.7.78a"></script>
 <script>
 /* Instrukcja pasująca do telefonu i języka (21.09.2026). iPhone ma osobną, bo alarmy,
    zgody i aktualizacje działają tam inaczej. Tu, a nie w app.js: index.html nie jest

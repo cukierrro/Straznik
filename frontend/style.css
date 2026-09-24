@@ -122,10 +122,13 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 #status-leds:hover { background: rgba(255,255,255,.06); }
 
 /* ── stała karta obiektu (samolot / obiekt) — bottom-sheet ── */
+/* Przewija się ciało karty, nie cała karta: przyciski „zwiń" i „zamknij" leżą
+   w niej absolutnie i przy przewijaniu całości uciekały w górę (zgłoszenie
+   czytelnika 23.09.2026). Teraz zostają w rogu niezależnie od treści. */
 #ac-card { position: fixed; left: 8px; right: auto; z-index: 1200;
   width: min(172px, calc(100vw - 16px));
   bottom: calc(var(--tabbar-h) + var(--safe-b) + var(--stack-h, 0px) + 6px);
-  max-height: 152px; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  max-height: 152px; display: flex; flex-direction: column; overflow: hidden;
   background: #fff; color: #16202f; border-radius: 12px; padding: 8px 10px 9px;
   box-shadow: 0 8px 40px rgba(0,0,0,.55); font: 10px "Segoe UI", system-ui, sans-serif;
   line-height: 1.35; }
@@ -145,6 +148,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 .zone-head { padding-right: 78px; margin-bottom: 1px; }
 #ac-card:not(.big) .zone-head { padding-right: 56px; }
 #ac-card.hidden { display: none; }
+#ac-card-body { overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
 #ac-card-tools { position: absolute; top: 6px; right: 6px; z-index: 2;
   display: flex; gap: 5px; }
 #ac-card:not(.big) #ac-card-x, #ac-card:not(.big) #ac-card-zoom { width: 24px; height: 24px; }
@@ -389,15 +393,21 @@ dialog a:hover, dialog a:focus-visible { text-decoration: underline; }
   pointer-events: none; }
 /* Zamykanie panelu: wyraźny, okrągły cel dotyku z ramką i tłem — wcześniej goły
    znak × zlewał się z mapą i wyglądał jak niedokończony element. */
+/* Ten sam krzyżyk co na karcie obiektu: ikona SVG zamiast znaku tekstowego,
+   który w różnych krojach siedział krzywo i wyglądał jak doklejony. Odstęp od
+   krawędzi, żeby nie wchodził na zaokrąglenie panelu (uwaga czytelnika 23.09.2026). */
 #panel-x {
-  position: sticky; top: 0; align-self: flex-end; z-index: 3;
+  position: sticky; top: 6px; align-self: flex-end; z-index: 3;
+  margin: 0 6px 2px auto;
   display: flex; align-items: center; justify-content: center;
   width: 34px; height: 34px; border-radius: 50%; cursor: pointer;
   background: rgba(20,28,46,.96); border: 1px solid var(--line-strong, rgba(120,150,210,.3));
-  color: var(--text); font-size: 15px; line-height: 1;
+  color: var(--text); line-height: 1; padding: 0;
   box-shadow: 0 4px 14px rgba(0,0,0,.45);
   transition: background .15s, border-color .15s;
 }
+#panel-x svg { width: 16px; height: 16px; fill: none; stroke: currentColor;
+  stroke-width: 2.2; stroke-linecap: round; }
 #panel-x:hover { background: rgba(36,48,74,.98); border-color: var(--accent); }
 
 /* ── przyciski nawigacji mapy (jak w Mapach Google) ── */

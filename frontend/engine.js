@@ -1029,6 +1029,18 @@ function stateFrom(sigs, refT) {
            thresholds: { elevated: TH_ELEVATED, high: TH_HIGH }, voivodeships: per };
 }
 
+/* Wybór cichszego sygnału uwagi żyje po stronie natywnej (SharedPreferences),
+   bo powiadomienia z serwera składa Alarms.java. Tryb wbudowany nie ma do nich
+   dostępu, więc app.js odkłada tę samą decyzję do localStorage. */
+function kanalZoltego() {
+  try {
+    const v = localStorage.getItem("straznik_zolty_poziom");
+    if (v === "quiet") return "straznik-info-cicho-v1";
+    if (v === "silent") return "straznik-info-cisza-v1";
+  } catch {}
+  return "straznik-info-v4";
+}
+
 async function notifyNative(title, body, high) {
   const LN = window.Capacitor?.Plugins?.LocalNotifications;
   if (LN) {
@@ -1038,7 +1050,11 @@ async function notifyNative(title, body, high) {
       // starcie i nie pokazywało się z właściwym dźwiękiem ani jako heads-up
       await LN.schedule({ notifications: [{ id: Date.now() % 2147483647, title, body,
         schedule: { at: new Date(Date.now() + 200) },
-        channelId: high ? "straznik-high-v3" : "straznik-info-v3" }] });
+        // identyfikatory muszą być te z Alarms.CH_HIGH / CH_INFO / CH_INFO_QUIET —
+        // pilnuje tego scripts/test_tematy_fcm.py. Żółty stał na „straznik-info-v3",
+        // a ten kanał od 13.09.2026 (bc4e57b) jest KASOWANY przy starcie: Android
+        // odrzucał powiadomienie i tryb wbudowany nie sygnalizował żółtego poziomu.
+        channelId: high ? "straznik-high-v3" : kanalZoltego() }] });
       return;
     } catch (e) { console.warn("LocalNotifications:", e); }
   }
@@ -1647,10 +1663,15 @@ async function tickRcb() {
       const title = m[2].replace(/<[^>]+>/g," ").replace(/\s+/g," ").trim();
       if (title.length >= 8 && !hrefs.has(m[1])) { hrefs.add(m[1]); found.push([m[1], title]); }
     }
+    const doPrzeczytania = [];
     for (const [href, title] of found) {
       // ta sama reguła co dla mediów: mocne słowo albo ≥2 słabe — pojedyncze
       // "alarm" łapało statyczną podstronę "Stopnie alarmowe"
       if (!matchKw(title, CRITICAL, AIR, EVENT, EXCLUDE).length) continue;
+      // Artykuł dnia czytamy w KAŻDYM obiegu — także gdy link widzieliśmy już
+      // wcześniej: RCB dopisuje kolejne wysyłki („Aktualizacja!”) do tego samego
+      // wpisu. Starsze wpisy odpadają, gdy raz poznamy ich datę.
+      if ((rcbArtykuly.get(href) ?? dzisPL()) === dzisPL()) doPrzeczytania.push([href, title]);
       if (!rcbBootstrapped) { rcbSeen.add(href); continue; }
       if (rcbSeen.has(href)) continue;
       rcbSeen.add(href);
@@ -1664,6 +1685,8 @@ async function tickRcb() {
     rcbBootstrapped = true;
     safeSet("eng_rcb_boot", "1");
     persist();
+    for (const [href, title] of doPrzeczytania.slice(0, ARTYKULY_NA_CYKL))
+      await czytajArtykulRcb(href, title);
   } catch { /* gov.pl to tylko punkt odniesienia — dioda pokazuje RSO */ }
   emit();
 }
@@ -1745,6 +1768,192 @@ async function tickRso() {
     markHealth("rcb", true);   // dioda „RCB/RSO" = stan RSO, jak na serwerze
   } catch { markHealth("rcb", false); }
   emit();
+}
+
+/* ── treść artykułu RCB z gov.pl (lustro backend/collectors/rcb.py, 24.09.2026) ─
+   RSO/TVP niesie czasem tylko CZĘŚĆ odbiorców alertu: 24.09 komunikat poszedł
+   „do odbiorców na terenie woj. podkarpackiego i lubelskiego", a punktowało się
+   samo lubelskie; 17.09 tak samo przepadło podkarpackie. Serwer czyta od 24.09
+   treść artykułu dnia i dokłada brakujące województwa — tryb wbudowany działa
+   wtedy, gdy serwera NIE MA, więc bez tego zostawałby z tą samą dziurą.
+
+   Koszt jest mały: artykuł to ~7 kB po kompresji (24 kB tekstu), pobierany tylko
+   wtedy, gdy na liście jest powietrzny wpis z bieżącego dnia — w spokojny dzień
+   ani jednego żądania ponad dotychczasową listę komunikatów. */
+const ARTYKULY_NA_CYKL = 2;        // ile artykułów dnia otwieramy w jednym obiegu
+const ZAKRES_ZNAKOW_RCB = 260;     // ile znaków po „wysłany" czytamy jako listę odbiorców
+const BLOK_SEP_RCB = /-{5,}/;
+const CYTAT_RCB = /[„"]([^”"]{25,600})[”"]/g;
+const NAWIAS_RCB = /\([^)]*\)/g;
+const DATA_RCB = /\b(\d{2})\.(\d{2})\.(20\d{2})\b/;
+/* gov.pl podaje encje HTML — bez ich rozwinięcia „&bdquo;…&rdquo;" nie jest
+   cudzysłowem i treść alertu nie zostaje w ogóle znaleziona. Lista pokrywa to,
+   czym RCB faktycznie pisze (&quot; &oacute; &nbsp; &ndash; &mdash; &bdquo; &rdquo;)
+   plus zapis liczbowy; nieznana encja zostaje tekstem, więc nic nie wybucha.
+   Nie używamy DOMParser ani textarea: ten sam kod ma działać w teście node. */
+const ENCJE_RCB = { quot: '"', apos: "'", amp: "&", lt: "<", gt: ">", nbsp: " ",
+  bdquo: "„", rdquo: "”", ldquo: "“", sbquo: "‚", lsquo: "‘", rsquo: "’",
+  ndash: "–", mdash: "—", hellip: "…", oacute: "ó", Oacute: "Ó" };
+function odkodujEncje(s) {
+  return String(s || "").replace(/&(#x?[0-9a-fA-F]+|[a-zA-Z][a-zA-Z0-9]{1,10});/g, (m, g) => {
+    if (g[0] === "#") {
+      const n = (g[1] === "x" || g[1] === "X") ? parseInt(g.slice(2), 16) : parseInt(g.slice(1), 10);
+      return Number.isFinite(n) && n > 0 && n <= 0x10ffff ? String.fromCodePoint(n) : m;
+    }
+    return Object.prototype.hasOwnProperty.call(ENCJE_RCB, g) ? ENCJE_RCB[g] : m;
+  });
+}
+/* Sam wpis: od tytułu do bloku danych strony. Bez tego cudzysłowy z zajawek
+   innych komunikatów i daty z menu trafiałyby do parsera jako treść alertu. */
+function tekstArtykuluRcb(strona, tytul) {
+  let c = String(strona || "").replace(/<(script|style)[^>]*>[\s\S]*?<\/\1>/gi, " ");
+  c = odkodujEncje(c.replace(/<[^>]+>/g, " ").replace(/\s+/g, " "));
+  const i = c.indexOf(tytul), j = c.indexOf('{"register"');
+  return c.slice(Math.max(i, 0), j > i ? j : c.length).slice(0, 8000);
+}
+function dataArtykuluRcb(tekst) {
+  const m = DATA_RCB.exec(String(tekst || ""));
+  return m ? `${m[3]}-${m[2]}-${m[1]}` : "";
+}
+/* Data w Warszawie, nie w strefie telefonu — artykuł jest datowany po polsku. */
+function dzisPL() {
+  try {
+    const p = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Warsaw",
+      year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date());
+    const g = (t) => (p.find(x => x.type === t) || {}).value || "";
+    const d = `${g("year")}-${g("month")}-${g("day")}`;
+    if (d.length === 10) return d;
+  } catch {}
+  const n = new Date();
+  return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}-${String(n.getDate()).padStart(2, "0")}`;
+}
+/* Rdzenie nazw do dopasowania w odmianie („lubelskiego", „podkarpackiego").
+   Od najdłuższych, żeby „dolnośląskiego" nie wpadło jako „śląskie". */
+const VOIV_RDZENIE = VOIVODESHIPS.map(v => {
+  const r0 = fold(v), r = r0.endsWith("ie") ? r0.slice(0, -2) : r0;
+  return [v, r.includes("-") ? [r, r.replace(/-/g, " ")] : [r]];
+}).sort((a, b) => b[1][0].length - a[1][0].length);
+
+/* Odbiorcy z jednego bloku artykułu. Nawiasy wycinamy, bo RCB wylicza w nich
+   POWIATY: „województwa lubelskiego (powiaty: puławski, opolski, …)" dokładało
+   woj. opolskie (21.09.2026). */
+function wojewodztwaAlertu(blok) {
+  const t = fold(blok).replace(NAWIAS_RCB, " ");
+  const m = /wyslany/.exec(t);
+  if (!m) return [];
+  let zakres = t.slice(m.index, m.index + ZAKRES_ZNAKOW_RCB);
+  const out = [];
+  for (const [nazwa, warianty] of VOIV_RDZENIE)
+    for (const r of warianty)
+      if (zakres.includes(r)) { out.push(nazwa); zakres = zakres.split(r).join("·"); break; }
+  return out;
+}
+const RCB_AIR_FOLD = RSO_AIR.map(fold);
+const RCB_END_FOLD = RSO_END.map(fold);
+const RCB_CONT_FOLD = RSO_CONTINUES.map(fold);
+function czyOdwolanieRcb(tresc) {
+  let t = fold(tresc);
+  for (const c of RCB_CONT_FOLD) t = t.split(c).join(" ");   // „obowiązuje do odwołania" trwa
+  return RCB_END_FOLD.some(w => t.includes(w));
+}
+/* Bloki artykułu od najnowszego (NAJNOWSZY NA GÓRZE), rozdzielone linią myślników. */
+function meldunkiArtykulu(tekst) {
+  const out = [];
+  for (const blok of String(tekst || "").split(BLOK_SEP_RCB)) {
+    CYTAT_RCB.lastIndex = 0;
+    const cytaty = [...blok.matchAll(CYTAT_RCB)].map(m => m[1]);
+    if (!cytaty.length) continue;
+    const tresc = cytaty.reduce((a, b) => b.length > a.length ? b : a);  // w bloku bywa krótki cytat z nagłówka
+    if (!RCB_AIR_FOLD.some(a => fold(tresc).includes(a))) continue;
+    out.push({ tresc: tresc.trim(), wojewodztwa: wojewodztwaAlertu(blok),
+               odwolanie: czyOdwolanieRcb(tresc), poziom: rcbLevel(tresc) });
+  }
+  return out;
+}
+/* Pierwszy blok z odbiorcami — pod warunkiem, że niesie tę samą treść co lead.
+   Lead bywa samym cytatem, a zdanie „Alert RCB został wysłany…" stoi dopiero przy
+   jego powtórzeniu niżej. Gdy treść się różni, blok jest starszy. */
+function najnowszyMeldunek(lista) {
+  if (!lista.length) return null;
+  const lead = lista[0];
+  if (lead.wojewodztwa.length) return lead;
+  for (const m of lista.slice(1))
+    if (m.wojewodztwa.length && fold(m.tresc) === fold(lead.tresc)) return m;
+  return null;
+}
+/* Województwa z żywym alertem RSO i najwyższym jego poziomem — dla nich artykuł
+   nie dokłada nic, bo ten sam komunikat mamy już z szybszego źródła. */
+function rsoPokrycie() {
+  const cut = Date.now() - WINDOW_MIN * 60000;
+  const out = new Map();
+  for (const s of signals) {
+    if ((s.t || 0) < cut || s.source !== "rcb" || s.event_type !== "rso_alert"
+        || !(s.points > 0) || !s.voivodeship) continue;
+    const lvl = Number.isInteger(s.details?.rcb_level) ? s.details.rcb_level : 1;
+    out.set(s.voivodeship, Math.max(out.get(s.voivodeship) || 0, lvl));
+  }
+  return out;
+}
+function kluczMeldunku(s) {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619);
+  return "rcb-art:" + (h >>> 0).toString(16);
+}
+// artykuły przeczytane w tym uruchomieniu: href → data wpisu („2026-09-24" albo "")
+const rcbArtykuly = new Map();
+const rcbMeldunki = new Set();
+// …i te, które zastaliśmy przy pierwszym otwarciu: mogą być sprzed godzin, więc
+// punktują dopiero przy żywym alercie RSO, a odwołania z nich nie biorą
+const rcbZastane = new Set();
+
+async function czytajArtykulRcb(href, tytul) {
+  const url = "https://www.gov.pl" + href;
+  const znany = rcbArtykuly.has(href);          // czytaliśmy go już w tym uruchomieniu
+  let tekst;
+  try { tekst = tekstArtykuluRcb(await httpGet(url), tytul); }
+  catch { return; }                             // artykuł to dodatek; dioda pokazuje RSO
+  const dzien = dataArtykuluRcb(tekst);
+  rcbArtykuly.set(href, dzien);
+  if (dzien !== dzisPL()) return;               // historia: sama lista, bez punktów
+  const m = najnowszyMeldunek(meldunkiArtykulu(tekst));
+  if (!m) return;
+  const klucz = kluczMeldunku(`${href}|${m.tresc}|${m.wojewodztwa.join(",")}|${m.odwolanie}`);
+  if (rcbMeldunki.has(klucz)) return;
+  if (!znany) rcbZastane.add(klucz);
+  const zastany = rcbZastane.has(klucz);
+  const pokrycie = rsoPokrycie();
+
+  if (m.odwolanie) {
+    // Odwołanie gasi alert, więc bierzemy je tylko wtedy, gdy POJAWIŁO SIĘ przy nas.
+    // Zastane przy pierwszym otwarciu może być starsze od trwającego alertu.
+    if (zastany) return;
+    rcbMeldunki.add(klucz);
+    for (const v of m.wojewodztwa)
+      addSignal("rcb", "rso_clear", v, 0,
+        `RCB (gov.pl): odwołanie — „${m.tresc.slice(0,110)}”`,
+        { url, clear: true, cleared_at: new Date().toISOString(), govpl: true },
+        `${klucz}:${v}`);
+    return;
+  }
+
+  const poziom = m.poziom;
+  const brakujace = m.wojewodztwa.filter(v => (pokrycie.get(v) || 0) < poziom);
+  // Meldunek zastany przy pierwszym otwarciu bywa sprzed godzin. Punktuje dopiero,
+  // gdy RSO ma żywy alert — wtedy wiadomo, że komunikat trwa. Sprawdzamy w każdym
+  // obiegu, bo alert RSO może wejść chwilę po starcie aplikacji.
+  if (zastany && !pokrycie.size) {
+    for (const v of brakujace)
+      addSignal("rcb", "rcb_art_seen", v, 0,
+        `RCB (gov.pl, bez żywego alertu RSO): „${m.tresc.slice(0,110)}”`,
+        { url, rcb_level: poziom }, `${klucz}:seen:${v}`);
+    return;
+  }
+  rcbMeldunki.add(klucz);
+  for (const v of brakujace)
+    addSignal("rcb", "rcb_alert", v, RCB_LEVEL_POINTS[poziom],
+      `Alert RCB (gov.pl): „${m.tresc.slice(0,110)}”`,
+      { url, rcb_level: poziom, govpl: true, wojewodztwa: m.wojewodztwa },
+      `${klucz}:${v}`);
 }
 
 /* ── kolektor: PAŻP (AUP/UUP — publiczny GeoJSON mapy airspace.pansa.pl) ── */
@@ -1943,11 +2152,20 @@ function timelineFrom(snaps, sigs) {
       return age >= 0 && age <= WINDOW_MIN;
     });
     const per = stateFrom(win.concat(activeUaAlerts(sigs, s.t)), s.t).voivodeships;
-    let best = 0, voiv = null;
-    for (const [v, st] of Object.entries(per)) if (st.score > best) { best = st.score; voiv = v; }
-    const score = Math.round(best * 10) / 10;
-    return { ts: s.ts, score, voiv,
-      level: score >= TH_HIGH ? "high" : score >= TH_ELEVATED ? "elevated" : "none" };
+    /* Poziom bierzemy Z OCENY województwa, a nie z progu punktowego. Od 1.7.74
+       czerwony wymaga KLUCZA (alert RCB „znajdź bezpieczne miejsce” albo bliski
+       obiekt), więc 4+ pkt bez klucza to na mapie ŻÓŁTY — a pasek historii malował
+       wtedy czerwień i pokazywał alarm, którego nie było (zgłoszenie czytelnika).
+       Wybieramy najwyższy poziom, a przy równym poziomie najwyższy wynik. */
+    const RANGA = { none: 0, elevated: 1, high: 2 };
+    let best = 0, voiv = null, level = "none";
+    for (const [v, st] of Object.entries(per)) {
+      const lvl = st.level || "none";
+      if (RANGA[lvl] > RANGA[level] || (RANGA[lvl] === RANGA[level] && st.score > best)) {
+        best = st.score; voiv = v; level = lvl;
+      }
+    }
+    return { ts: s.ts, score: Math.round(best * 10) / 10, voiv, level };
   });
 }
 function timeline() {
@@ -1987,7 +2205,10 @@ async function start(stateCb) {
 }
 
 // matchVoivs wystawiamy wyłącznie do testów zgodności z backendem
-// (scripts/test_voiv_match.cjs) — reszta aplikacji go nie używa.
+// (scripts/test_voiv_match.cjs) — reszta aplikacji go nie używa. Tak samo
+// `rcbArtykul`: kolektor i parser treści z gov.pl dla scripts/test_rcb_artykul.cjs.
 return { start, stop, history, timeline, historyFrom, timelineFrom, accumulate, matchVoivs,
-         stateFrom, alertLevel, rsoIsCancellation, assess };
+         stateFrom, alertLevel, rsoIsCancellation, assess,
+         rcbArtykul: { tickRcb, tekstArtykuluRcb, dataArtykuluRcb, wojewodztwaAlertu,
+                       czyOdwolanieRcb, meldunkiArtykulu, najnowszyMeldunek } };
 })();
