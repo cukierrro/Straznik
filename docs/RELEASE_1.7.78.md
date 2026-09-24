@@ -73,6 +73,17 @@ a działa właśnie wtedy, gdy serwer jest nieosiągalny. Parser przeniesiony 1:
 i sprawdzony na czterech prawdziwych artykułach: wynik co do znaku identyczny
 z serwerem. Koszt to ~7 kB po kompresji, tylko w dni z powietrznym komunikatem.
 
+## Pasek historii pokazywał czerwony alarm tam, gdzie był żółty
+
+Zgłoszenie czytelnika. Pasek pod mapą liczył poziom z samej sumy punktów, a od
+1.7.74 czerwony wymaga **klucza**: alertu RCB „znajdź bezpieczne miejsce" albo
+realnego obiektu uderzeniowego blisko granicy. Bez klucza 4+ pkt to na mapie
+**żółty** — a pasek malował wtedy czerwień i sugerował alarm, którego nigdy nie
+było. Poranek 23 września wyglądał na nim jak czerwony alarm.
+
+Poziom bierze się teraz z tej samej oceny, która maluje mapę. Dotyczy obu
+ścieżek — pasek liczy się w aplikacji także dla danych z serwera.
+
 ## Naprawione po drodze
 
 * **Tryb awaryjny w ogóle nie sygnalizował żółtego poziomu.** Od 13.09 kanał
