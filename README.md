@@ -605,6 +605,6 @@ dodatkowe, nie system ratunkowy.
 Hosting serwera: [Mikrus](https://mikr.us) (od 17.09.2026 serwer przekazany przez Mikrusa na potrzeby projektu).
 
 [NEPTUN](https://neptun.in.ua) (agregator OSINT; obiekty i alarmy obwodów UA) ·
-adsb.lol · airspace.pansa.pl · gov.pl/RCB · media regionalne i bałtyckie ·
+adsb.lol / opendata.adsb.fi (w trybie awaryjnym też airplanes.live) · airspace.pansa.pl · gov.pl/RCB · media regionalne i bałtyckie ·
 kamery worldcam.pl ·
 mapa © [CARTO](https://carto.com/attributions), © [OpenStreetMap](https://www.openstreetmap.org/copyright)

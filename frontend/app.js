@@ -3295,21 +3295,24 @@ const SOURCE_INFO = {
       + "internet connection.",
   },
   "ADS-B": {
-    co: "Publiczne transpondery lotnicze (airplanes.live, w zapasie adsb.lol) — "
-      + "maszyny wojskowe nad Polską i regionem. Warstwa jest informacyjna i nie daje "
+    co: "Publiczne transpondery lotnicze — maszyny wojskowe nad Polską i regionem. "
+      + "Serwer pyta adsb.lol, a gdy nie odpowiada — opendata.adsb.fi. W trybie awaryjnym, "
+      + "gdy telefon liczy sam, dochodzi jeszcze airplanes.live. Warstwa jest informacyjna i nie daje "
       + "punktów: w danych z 41 dni wzmożony ruch okazywał się rutynowymi lotami. "
       + "Ruch ponad dwukrotnie wyższy niż zwykle o tej porze jest zaznaczany w panelu. "
       + "Karta samolotu pokazuje zdjęcie, kraj rejestracji i pełną telemetrię.",
-    coEn: "Public aircraft transponders (airplanes.live, with adsb.lol as a backup) "
-      + "— military aircraft over Poland and the region. The layer is informational and "
+    coEn: "Public aircraft transponders — military aircraft over Poland and the region. "
+      + "The server queries adsb.lol and falls back to opendata.adsb.fi. In emergency mode, "
+      + "when the phone scores on its own, airplanes.live is queried as well. The layer is informational and "
       + "gives no points: over 41 days of data, increased traffic turned out to be "
       + "routine flights. Traffic more than twice the usual level for that time is "
       + "marked in the panel. The aircraft card shows a photograph, the country of "
       + "registration and full telemetry.",
     czerwona: "Serwisy ADS-B nie odpowiadają. Mapa nie pokaże wtedy lotnictwa "
       + "wojskowego; na punktację to nie wpływa.",
-    coUk: "Відкриті авіаційні транспондери (airplanes.live, у запасі adsb.lol) — військові "
-      + "машини над Польщею й регіоном. Шар інформативний і балів не дає: у даних за 41 день "
+    coUk: "Відкриті авіаційні транспондери — військові машини над Польщею й регіоном. "
+      + "Сервер опитує adsb.lol, а коли той не відповідає — opendata.adsb.fi. В аварійному "
+      + "режимі, коли телефон рахує сам, додається ще airplanes.live. Шар інформативний і балів не дає: у даних за 41 день "
       + "посилений рух виявлявся рутинними польотами. Рух, удвічі вищий за звичайний о цій порі, "
       + "позначаємо в панелі. Картка літака показує фото, країну реєстрації й повну телеметрію.",
     czerwonaUk: "Сервіси ADS-B не відповідають. Мапа тоді не покаже військової авіації; "
