@@ -763,6 +763,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
       <button type="button" id="btn-notif-settings" class="chip">🔔 Ustawienia powiadomień</button>
       <button type="button" id="btn-fullscreen" class="chip android-only" style="display:none">🚨 Zgoda na alarm pełnoekranowy</button>
       <button type="button" id="btn-battery" class="chip android-only">🔋 Wyłącz oszczędzanie baterii</button>
+      <button type="button" id="btn-dnd-access" class="chip android-only" style="display:none">🌙 Alarm mimo Nie przeszkadzać</button>
       <button type="button" id="btn-web-push-on" class="chip primary" hidden>🔔 Włącz powiadomienia w tej przeglądarce</button>
       <button type="button" id="btn-web-push-off" class="chip" hidden>🔕 Wyłącz powiadomienia w tej przeglądarce</button>
     </div>
@@ -780,6 +781,14 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
     powiadomieniem. Dlatego <b>sprawdź przełącznik osobiście</b>: przycisk 🚨 otwiera
     dokładnie ten ekran. Zgoda na wyłączenie oszczędzania baterii nie jest wymagana
     (push i tak dociera), ale na agresywnych nakładkach zwiększa pewność.</p>
+    <p class="fineprint android-only" id="dnd-note">Tryb <b>Nie przeszkadzać</b> domyślnie przepuszcza
+    alarmy, więc czerwony przechodzi przez niego bez żadnych zgód, a żółty zostaje wyciszony —
+    to zwykle jest dokładnie to, o co chodzi w nocy. Jeśli jednak wyłączysz w wyjątkach
+    Nie przeszkadzać pozycję <b>Alarmy</b>, czerwony przestanie się pokazywać. Przycisk
+    🌙 pozwala to naprawić: po przyznaniu <b>dostępu do trybu Nie przeszkadzać</b> alarm
+    pokaże się na pełnym ekranie i zapali ekran także wtedy. <b>Dźwięku to nie przywróci</b> —
+    system trzyma wtedy głośność alarmów wyciszoną — a tryb <b>„Całkowita cisza”</b> blokuje
+    alarm niezależnie od tej zgody. Zgoda jest dobrowolna i możesz ją w każdej chwili cofnąć.</p>
     </section>
 
     <section class="set-pane" data-pane="miejsca" role="tabpanel" hidden>

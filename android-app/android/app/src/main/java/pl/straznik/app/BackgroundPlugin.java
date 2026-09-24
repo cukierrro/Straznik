@@ -222,6 +222,7 @@ public class BackgroundPlugin extends Plugin {
         ret.put("batteryUnrestricted", isIgnoringBattery(c));
         ret.put("notificationsAllowed", notificationsAllowed(c));
         ret.put("fullScreenAllowed", fullScreenAllowed(c));
+        ret.put("dndAccess", dndAccessGranted(c));
         ret.put("sdk", Build.VERSION.SDK_INT);
         ret.put("manufacturer", Build.MANUFACTURER);
         ret.put("appVersion", appVersion(c));
@@ -492,6 +493,44 @@ public class BackgroundPlugin extends Plugin {
      * bez tej zgody czerwony alarm przy wygaszonym ekranie nie zapali ekranu,
      * a zostanie zwykłym powiadomieniem.
      */
+    /**
+     * Czy system pozwala Strażnikowi przebić tryb Nie przeszkadzać.
+     *
+     * Bez tej zgody wywołanie {@code setBypassDnd(true)} na kanale czerwonego jest
+     * po cichu ignorowane (zmierzone na Pixel 7 / Android 14: kanał zostaje z
+     * {@code mBypassDnd=false}). Przy DOMYŚLNYM Nie przeszkadzać nie ma to znaczenia,
+     * bo alarm przechodzi dzięki kategorii CATEGORY_ALARM. Znaczenie ma dopiero wtedy,
+     * gdy użytkownik wyłączy w wyjątkach DND pozycję „Alarmy”: wtedy bez zgody alarm
+     * przepada w całości, a ze zgodą pokazuje się pełnoekranowo i zapala ekran.
+     * DŹWIĘKU to nie przywraca — strumień alarmów jest wtedy wyciszony przez system —
+     * a przy „Całkowitej ciszy” nie pomaga w ogóle.
+     */
+    private boolean dndAccessGranted(Context c) {
+        NotificationManager nm = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
+        try {
+            return nm != null && nm.isNotificationPolicyAccessGranted();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /** Systemowy ekran „Dostęp do trybu Nie przeszkadzać”. Zgoda jest dobrowolna. */
+    @PluginMethod
+    public void requestDndAccess(PluginCall call) {
+        Context c = getContext();
+        try {
+            Intent i = new Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS);
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            c.startActivity(i);
+        } catch (Exception ignored) {}
+        // Po powrocie z ustawień kanał musi dostać bypass — inaczej zgoda nic nie zmieni,
+        // bo flagę ustawia dopiero createChannels().
+        Alarms.createChannels(c);
+        JSObject ret = new JSObject();
+        ret.put("dndAccess", dndAccessGranted(c));
+        call.resolve(ret);
+    }
+
     private boolean fullScreenAllowed(Context c) {
         if (Build.VERSION.SDK_INT < 34) return true;
         NotificationManager nm = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);

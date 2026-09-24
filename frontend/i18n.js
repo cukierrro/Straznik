@@ -214,6 +214,24 @@
     location.reload();
   }
 
+  /* Opis zgody na przebicie trybu Nie przeszkadzać. Trzymany raz, bo używa go
+     zarówno podgląd języka, jak i pełne przełączenie na angielski. */
+  const DND_NOTE_PL = "Tryb <b>Nie przeszkadzać</b> domyślnie przepuszcza alarmy, więc czerwony "
+    + "przechodzi przez niego bez żadnych zgód, a żółty zostaje wyciszony — to zwykle jest dokładnie "
+    + "to, o co chodzi w nocy. Jeśli jednak wyłączysz w wyjątkach Nie przeszkadzać pozycję "
+    + "<b>Alarmy</b>, czerwony przestanie się pokazywać. Przycisk 🌙 pozwala to naprawić: po "
+    + "przyznaniu <b>dostępu do trybu Nie przeszkadzać</b> alarm pokaże się na pełnym ekranie i "
+    + "zapali ekran także wtedy. <b>Dźwięku to nie przywróci</b> — system trzyma wtedy głośność "
+    + "alarmów wyciszoną — a tryb <b>„Całkowita cisza”</b> blokuje alarm niezależnie od tej zgody. "
+    + "Zgoda jest dobrowolna i możesz ją w każdej chwili cofnąć.";
+  const DND_NOTE_EN = "<b>Do Not Disturb</b> allows alarms by default, so a red alert gets through "
+    + "it without any extra permission while yellow is silenced — at night that is usually exactly "
+    + "what you want. If you do turn <b>Alarms</b> off in the Do Not Disturb exceptions, red stops "
+    + "appearing. The 🌙 button fixes that: once you grant <b>Do Not Disturb access</b>, the alert "
+    + "shows full screen and wakes the display even then. <b>It does not bring the sound back</b> — "
+    + "the system keeps the alarm volume muted — and <b>“Total silence”</b> blocks the alert "
+    + "regardless of this permission. The permission is optional and you can withdraw it at any time.";
+
   function previewSettings(next) {
     const en = next !== "pl", dlg = document.getElementById("settings");
     if (!dlg) return;
@@ -279,6 +297,8 @@
     button("btn-places","📍 Otwórz Moje miejsca","📍 Open My places");
     button("btn-notif-settings","🔔 Ustawienia powiadomień","🔔 Notification settings");
     button("btn-battery","🔋 Wyłącz oszczędzanie baterii","🔋 Disable battery optimisation");
+    button("btn-dnd-access","🌙 Alarm mimo Nie przeszkadzać","🌙 Alert despite Do Not Disturb");
+    { const el = document.getElementById("dnd-note"); if (el) el.innerHTML = en ? DND_NOTE_EN : DND_NOTE_PL; }
     button("btn-test-chime","▶ Test: uwaga","▶ Test: attention");
     button("btn-test-siren","▶ Test: syrena","▶ Test: siren");
     button("btn-test-alarm","▶ Test: pełny alarm","▶ Test: full alert");
@@ -513,6 +533,7 @@
     "Turn off if you only want to view the map": "Вимкніть, якщо хочете лише дивитися мапу",
     "🔔 Notification settings": "🔔 Налаштування сповіщень",
     "🔋 Disable battery optimisation": "🔋 Вимкнути економію батареї",
+    "🌙 Alert despite Do Not Disturb": "🌙 Тривога попри «Не турбувати»",
     "🚨 Allow full-screen alerts": "🚨 Дозволити повноекранні тривоги",
     "🚨 Check full-screen alert permission": "🚨 Перевірити дозвіл на повноекранну тривогу",
     "On iPhone a red alert arrives as a notification marked “Urgent”: it appears over the lock screen and plays our siren. It does not take over the screen and does not repeat the sound — iOS does not allow regular apps to do that. With the ringer muted the alert is silent: a banner and a vibration — as long as Settings → Sounds & Haptics → Haptics is not set to “Don’t Play in Silent Mode”. For it to reach you at night, check two settings: Settings → Notifications → Strażnik → “Time Sensitive Notifications” and Settings → Focus → Sleep → Apps → allow Strażnik. Without them iOS holds the alert until you unlock the phone.":
@@ -822,6 +843,9 @@
     ]);
     set("#alerts-on-label", "Alerts on this phone");
     set("#alerts-on-note", "Turn off if you only want to view the map");
+    set("#btn-dnd-access", "🌙 Alert despite Do Not Disturb");
+    const dndNote = document.getElementById("dnd-note");
+    if (dndNote) dndNote.innerHTML = DND_NOTE_EN;
     set("#yv-head", "Attention sound volume (yellow)");
     set("#yv-normal", "Normal");
     set("#yv-quiet", "Quieter");
@@ -958,6 +982,15 @@
     const hostUk = document.querySelector(".brand-host");
     if (hostUk) { hostUk.querySelector("span").textContent = "хостинг: Mikrus ↗";
       hostUk.setAttribute("aria-label", "Strażnik працює на Mikrus — відкрити сайт Mikrus"); }
+    const dndNoteUk = document.getElementById("dnd-note");
+    if (dndNoteUk) dndNoteUk.innerHTML = "Режим <b>«Не турбувати»</b> типово пропускає будильники, "
+      + "тож червона тривога проходить крізь нього без жодних дозволів, а жовтий сигнал стишується — "
+      + "уночі це зазвичай саме те, що потрібно. Але якщо ви вимкнете у винятках «Не турбувати» пункт "
+      + "<b>«Будильники»</b>, червона тривога перестане з’являтися. Кнопка 🌙 це виправляє: після "
+      + "надання <b>доступу до режиму «Не турбувати»</b> тривога покажеться на весь екран і засвітить "
+      + "екран навіть тоді. <b>Звук це не поверне</b> — система тримає гучність будильників вимкненою — "
+      + "а режим <b>«Повна тиша»</b> блокує тривогу незалежно від цього дозволу. Дозвіл добровільний, "
+      + "його можна будь-коли скасувати.";
     const nsNoteUk = document.getElementById("ns-note");
     if (nsNoteUk) nsNoteUk.innerHTML = "Сирена використовує гучність Android <b>«Будильники»</b> (а не «Дзвінок» "
       + "чи «Медіа»). Червона тривога піднімає її <b>щонайменше до половини</b>, щоб сирена ніколи не була "

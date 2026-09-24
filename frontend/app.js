@@ -5118,6 +5118,16 @@ async function refreshBgStatus(previewLang = UI.lang) {
         ? (T("🚨 Zezwól na alarm pełnoekranowy", "🚨 Allow full-screen alerts", "🚨 Дозволити повноекранну тривогу"))
         : (T("🚨 Sprawdź zgodę na alarm pełnoekranowy", "🚨 Check full-screen alert permission", "🚨 Перевірити дозвіл на повноекранну тривогу"));
     }
+    /* Dostęp do zasad Nie przeszkadzać. Przycisk pokazujemy tylko wtedy, gdy zgody
+       NIE MA — po jej przyznaniu nie ma czego klikać, a dodatkowy przycisk w tym
+       miejscu tylko odwracałby uwagę od zgody na pełny ekran, która jest ważniejsza. */
+    const dndBtn = document.getElementById("btn-dnd-access");
+    if (dndBtn) {
+      const brak = IS_APP && !IS_IOS && s.dndAccess === false;
+      dndBtn.style.display = brak ? "" : "none";
+      dndBtn.textContent = T("🌙 Alarm mimo Nie przeszkadzać",
+        "🌙 Alert despite Do Not Disturb", "🌙 Тривога попри «Не турбувати»");
+    }
     renderNativeSound(s, previewLang);
     // Stan subskrypcji potwierdzony przez Firebase — dowód, że wyłączenie działa
     // (15.09.2026: sam przełącznik nic nie pokazywał, a test lokalny dalej grał).
@@ -5222,6 +5232,9 @@ document.getElementById("btn-notif-settings")?.addEventListener("click", () =>
   BG()?.openNotificationSettings());
 document.getElementById("btn-fullscreen")?.addEventListener("click", async () => {
   await BG()?.requestFullScreenPermission(); setTimeout(refreshBgStatus, 800);
+});
+document.getElementById("btn-dnd-access")?.addEventListener("click", async () => {
+  await BG()?.requestDndAccess?.(); setTimeout(refreshBgStatus, 800);
 });
 document.getElementById("btn-update")?.addEventListener("click", async (e) => {
   e.target.disabled = true;
