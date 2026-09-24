@@ -3738,34 +3738,52 @@ function airRaidSiren(continuous = true) {
   try {
     stopSiren();
     sesjaAudioAlarmu(true);
-    const c = ctx(), t0 = c.currentTime;
-    const o = c.createOscillator(), g = c.createGain(), filt = c.createBiquadFilter();
-    filt.type = "lowpass"; filt.frequency.value = 2200;
-    o.type = "sawtooth";
-    o.connect(filt); filt.connect(g); g.connect(c.destination);
-    o.frequency.setValueAtTime(SIREN_LO, t0);
-    let until = scheduleSirenSweeps(o, t0, 3);
-    g.gain.setValueAtTime(0.0001, t0);
-    g.gain.exponentialRampToValueAtTime(SIREN_GAIN, t0 + 0.3);
-    o.start(t0);
-    sirenNodes = { o, g, c };
+    const total = 3 * (SIREN_UP + SIREN_DOWN);
+    /* Na iPhonie syrenę odtwarza CZĘŚĆ NATYWNA (24.09.2026): `dzwiekAlarmu({wlacz:true})`
+       puszcza w pętli alarm_syrena.wav przez AVAudioPlayer w kategorii `playback`, co
+       — inaczej niż Web Audio — przebija przełącznik wyciszenia. Strona nie tworzy tu
+       wtedy własnych oscylatorów, bo przy NIEwyciszonym telefonie grałyby dwie syreny
+       naraz. Prośba i pomiar od sesji iOS; wcześniejsza próba sterowania sesją audio
+       z wtyczki nie działała, bo dla Web Audio w WKWebView robi to WebKit.
+       Żółtego sygnału uwagi to nie dotyczy — zostaje w stronie i ma podlegać wyciszeniu. */
+    let o = null, g = null, c = null, t0 = 0, until = 0;
+    if (!IS_IOS) {
+      c = ctx(); t0 = c.currentTime;
+      o = c.createOscillator(); g = c.createGain();
+      const filt = c.createBiquadFilter();
+      filt.type = "lowpass"; filt.frequency.value = 2200;
+      o.type = "sawtooth";
+      o.connect(filt); filt.connect(g); g.connect(c.destination);
+      o.frequency.setValueAtTime(SIREN_LO, t0);
+      until = scheduleSirenSweeps(o, t0, 3);
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(SIREN_GAIN, t0 + 0.3);
+      o.start(t0);
+      sirenNodes = { o, g, c };
+    }
 
     if (continuous) {
-      // dokładaj kolejne cykle, zanim zaplanowane się skończą
-      sirenTimer = setInterval(() => {
-        if (!sirenNodes) return;
-        until = scheduleSirenSweeps(o, Math.max(until, c.currentTime), 3);
-      }, (SIREN_UP + SIREN_DOWN) * 2500);
+      // dokładaj kolejne cykle, zanim zaplanowane się skończą (na iOS pętlą zajmuje
+      // się strona natywna, więc nie ma czego dokładać)
+      if (!IS_IOS) {
+        sirenTimer = setInterval(() => {
+          if (!sirenNodes) return;
+          until = scheduleSirenSweeps(o, Math.max(until, c.currentTime), 3);
+        }, (SIREN_UP + SIREN_DOWN) * 2500);
+      }
       if (navigator.vibrate) {
         const pulse = () => navigator.vibrate([700, 300, 700, 300, 900]);
         pulse(); vibrateTimer = setInterval(pulse, 4000);
       }
     } else {
       // tryb testowy — wycisz po trzech cyklach
-      const total = 3 * (SIREN_UP + SIREN_DOWN);
-      g.gain.setValueAtTime(SIREN_GAIN, t0 + total - 0.6);
-      g.gain.exponentialRampToValueAtTime(0.0001, t0 + total);
-      o.stop(t0 + total + 0.1);
+      if (!IS_IOS) {
+        g.gain.setValueAtTime(SIREN_GAIN, t0 + total - 0.6);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + total);
+        o.stop(t0 + total + 0.1);
+      }
+      // Na iOS ten timeout jest JEDYNYM, co kończy test: natywna syrena gra w pętli
+      // do polecenia „wyłącz", więc bez niego test nie skończyłby się sam.
       setTimeout(() => { sirenNodes = null; sesjaAudioAlarmu(false); }, total * 1000 + 200);
       if (navigator.vibrate) navigator.vibrate([700, 300, 700]);
     }
@@ -3786,6 +3804,8 @@ function stopSiren() {
     } catch {}
     sirenNodes = null;
   }
+  // POZA warunkiem: na iPhonie `sirenNodes` nigdy nie powstaje (syrenę gra część
+  // natywna), a to wywołanie jest jedynym, co ją zatrzymuje i oddaje sesję audio.
   sesjaAudioAlarmu(false);
 }
 // przeglądarki blokują dźwięk do pierwszej interakcji — odblokuj przy kliknięciu
