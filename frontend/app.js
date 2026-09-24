@@ -3335,20 +3335,23 @@ const SOURCE_INFO = {
     co: "Oficjalne Alerty RCB z Regionalnego Systemu Ostrzegania (RSO) — te same "
       + "komunikaty, które przychodzą SMS-em, z listą województw. Najważniejsze "
       + "oficjalne źródło w tym zestawie i jedyne, które samo podnosi poziom alarmu. Dioda "
-      + "pokazuje, czy RSO odpowiedziało w ostatnich minutach. Strona gov.pl/rcb "
-      + "jest czytana tylko pomocniczo, bez punktów.",
+      + "pokazuje, czy RSO odpowiedziało w ostatnich minutach. Czytamy też treść "
+      + "komunikatu dnia na stronie gov.pl/rcb: RSO niesie czasem tylko część "
+      + "odbiorców alertu, więc brakujące województwa dobieramy stamtąd.",
     coEn: "Official RCB alerts from the Regional Warning System (RSO) — the same "
       + "messages that arrive by text, with the list of provinces. The most important "
       + "official source in this set and the only one that raises the alert level on its own. "
-      + "The light shows whether RSO has responded in the last few minutes. The "
-      + "gov.pl/rcb page is read only as a reference, without points.",
+      + "The light shows whether RSO has responded in the last few minutes. We also read "
+      + "the text of the day's message on gov.pl/rcb: RSO sometimes carries only part of "
+      + "the alert's recipients, so the missing provinces are taken from there.",
     czerwona: "RSO nie odpowiada od kilku minut albo zwróciło dane, których nie da "
       + "się odczytać. Strażnik nie zobaczy wtedy nowego Alertu RCB — alerty "
       + "docierają nadal SMS-em z systemu RCB.",
     coUk: "Офіційні Alert RCB із Регіональної системи оповіщення (RSO) — ті самі повідомлення, "
       + "що приходять SMS-ом, зі списком воєводств. Найважливіше офіційне джерело в цьому наборі "
       + "і єдине, яке само піднімає рівень тривоги. Діода показує, чи RSO відповіло за останні "
-      + "хвилини. Сторінку gov.pl/rcb читаємо лише допоміжно, без балів.",
+      + "хвилини. Читаємо також текст повідомлення дня на сторінці gov.pl/rcb: RSO іноді "
+      + "передає лише частину отримувачів алерту, тож воєводства, яких бракує, беремо звідти.",
     czerwonaUk: "RSO не відповідає кілька хвилин або повернуло дані, яких не вдається прочитати. "
       + "Strażnik тоді не побачить нового Alert RCB — самі алерти й далі приходять SMS-ом із системи RCB.",
     czerwonaEn: "RSO has not responded for a few minutes, or returned data that "

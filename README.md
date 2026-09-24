@@ -138,7 +138,7 @@ Sama suma punktów z sygnałów pośrednich nie zapala czerwonego (zmiana 23.09.
 | **NEPTUN** | obiekt kursem na granicę PL — punktacja zależna od typu, liczby, odległości i liczby potwierdzeń (niżej) | **0–8** |
 | **NEPTUN** | oficjalny alarm powietrzny w obwodzie UA graniczącym z PL | **+1** |
 | **Media/RSS** | obiekt + zdarzenie: 1 pkt; jednoznaczna bieżąca relacja operacyjna: 1,5 pkt; historia, ćwiczenia i następstwa prawne: 0 pkt. Całe RSS ma limit 1,5 pkt i samo nie alarmuje | **0 / +1 / +1,5** |
-| **RCB** | nowy komunikat na gov.pl/web/rcb | **+2** |
+| **RCB / RSO** | Alert RCB o zagrożeniu z powietrza — waga zależna od treści: „sytuacja jest monitorowana” 1,5; „trwa zmasowany atak” 3; „znajdź bezpieczne miejsce” 4,5. Źródłem jest RSO, a treść komunikatu dnia na gov.pl/web/rcb dokłada województwa, których RSO nie przekazało; sama lista wpisów gov.pl to tylko punkt odniesienia w czasie (0 pkt) | **+1,5 / +3 / +4,5** |
 | **ADS-B** | ≥3 maszyny wojskowe nad województwem i >2× baseline **z tej samej pory doby** z 7 dni | **+1** |
 | **PAŻP** | rzadka strefa ADHOC/R/NPZ/D obejmująca całą kolumnę od ziemi w górę; TRA/TSA/MRT/ATZ i designatory powtarzane w ciągu 7 dni nie punktują | **+0,5** |
 | **Media LT/LV/EE** | incydent powietrzny wg mediów bałtyckich → podlaskie + warmińsko-mazurskie; komunikat kończący wygasza wkład tego samego zdarzenia | **+1** |
