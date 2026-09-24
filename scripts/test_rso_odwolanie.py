@@ -73,6 +73,37 @@ ALERT_2109 = {
 ok(not rso._is_rcb_air_cancellation(ALERT_2109), "alert 23354051 z rso_alarm=2 to AKTYWNY alert, nie odwołanie")
 ok(rso._is_rcb_air_cancellation({**ODWOLANY, "rso_alarm": "1"}), "odwołanie rozpoznane po treści niezależnie od rso_alarm")
 
+# PRAWDZIWY wpis 23362253 z 24.09.2026, 15:01 (zgłoszenie usera): tytuł i skrót to
+# samo „Alert RCB", a całe odwołanie siedzi w `content`. Sprawdzenie pochodzenia
+# czytało `content`, sprawdzenie odwołania — już nie, więc odwołanie dostało 1,5 pkt
+# jako nowy alert. Tego samego dnia tak samo przepadło odwołanie o 05:01.
+TYLKO_CONTENT = {"id": "23362253", "rso_alarm": "0",
+                 "title": "Alert RCB", "shortcut": "Alert RCB",
+                 "content": "UWAGA! Zakończył się atak powietrzny na Ukrainę. "
+                            "Brak zagrożenia na terenie Polski."}
+ok(rso._is_rcb_air_cancellation(TYLKO_CONTENT), "odwołanie wyłącznie w `content` (23362253, 24.09.2026)")
+
+# …a prawdziwy AKTYWNY alert z tego samego dnia (08:40) ma długą treść z listą
+# powiatów i NIE może zostać wzięty za odwołanie — odwołanie sprawdzamy PRZED
+# alertem, więc pomyłka w tę stronę wyciszyłaby żywy alarm.
+AKTYWNY_2409 = {"id": "23361411", "rso_alarm": "0",
+                "title": "ALERT RCB-ZAGROŻENIE Z POWIETRZA",
+                "shortcut": "UWAGA! UWAGA! UWAGA! Rosyjski atak powietrzny na terenie Ukrainy. "
+                            "Sytuacja jest monitorowana. W przestrzeni RP operuje polskie "
+                            "lotnictwo. Śledź komunikaty.",
+                "content": "Szanowni Państwo, zgodnie z decyzją dyrektora RCB, do użytkowników "
+                           "sieci telefonii komórkowych w powiatach na terenie województw(a): "
+                           "LUBELSKIEGO: puławski, opolski, Lublin, lubelski, kraśnicki… "
+                           "PODKARPACKIEGO: Tarnobrzeg, tarnobrzeski… wysłano Alert RCB o treści: "
+                           "UWAGA! UWAGA! UWAGA! Rosyjski atak powietrzny na terenie Ukrainy. "
+                           "Sytuacja jest monitorowana. Wiadomość wysłano również po angielsku."}
+ok(not rso._is_rcb_air_cancellation(AKTYWNY_2409), "długa treść aktywnego alertu to nie odwołanie")
+
+# Zwrot o trwaniu alertu schowany w treści też nie może go wyłączyć.
+TRWA_W_CONTENT = {"id": "x", "rso_alarm": "0", "title": "Alert RCB", "shortcut": "Alert RCB",
+                  "content": "UWAGA! Rosyjski atak powietrzny. Alert obowiązuje do odwołania."}
+ok(not rso._is_rcb_air_cancellation(TRWA_W_CONTENT), "„do odwołania” w treści to trwający alert")
+
 print("2. kolektor zapisuje odwołanie wpisu, który już znał")
 zapisane = []
 
