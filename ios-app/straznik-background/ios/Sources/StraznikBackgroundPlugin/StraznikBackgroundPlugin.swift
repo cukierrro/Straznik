@@ -74,6 +74,13 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
     /// Ostatni odnośnik zewnętrzny przepuszczony przez `shouldOverrideLoad` —
     /// wyłącznie do diagnostyki wersji testowej (patrz `statusData`).
     private var ostatniLink = ""
+    /// Odtwarzacz syreny (iOS gra ją natywnie — Web Audio w WKWebView milczy
+    /// przy wyciszonym dzwonku, zmierzone na iPhonie 24.09.2026).
+    private var syrena: AVAudioPlayer?
+    /// Bezpiecznik: syrena bez polecenia „wyłącz” nie gra w nieskończoność.
+    private var syrenaStoper: Timer?
+    /// Ostatni wynik uruchomienia syreny — diagnostyka wersji testowej.
+    private var syrenaStan = "nie grała"
     /// Czy trzymamy sesję audio przełączoną na czas alarmu (patrz `dzwiekAlarmu`).
     private var sesjaAlarmuWlaczona = false
     /// Wynik starszej synchronizacji nie może nadpisać nowszej (szybkie zmiany miejsc).
@@ -376,6 +383,7 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
             // Czy dotknięcie odnośnika w ogóle dochodzi do części natywnej: pusto
             // znaczy, że kliknięcie ginie jeszcze w stronie, a nie przy otwieraniu.
             osLine += " · link: " + (ostatniLink.isEmpty ? "brak" : ostatniLink)
+            osLine += " · syrena: " + syrenaStan
             osLine += " · " + Self.receiptName
         }
 
@@ -498,10 +506,17 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
 
     // MARK: - dźwięk alarmu (sesja audio)
 
-    /// Bez tego syrena w aplikacji milczy przy wyciszonym dzwonku: domyślna kategoria
-    /// sesji audio (`soloAmbient`) jest z założenia cichnąca od przełącznika na boku
-    /// telefonu. Na czas alarmu przełączamy się na `playback`, która gra mimo
-    /// wyciszenia, a po alarmie oddajemy sesję innym aplikacjom.
+    /// Na iPhonie syrenę odtwarza część natywna, nie strona. Powód zmierzony
+    /// na urządzeniu (24.09.2026): sama kategoria `playback` ustawiona z wtyczki
+    /// nie dociera do Web Audio w WKWebView — przy wyciszonym dzwonku syrena
+    /// dalej milczała. Dowód: muzyka w innej aplikacji ściszała się i wracała
+    /// przy OBU poziomach, także przy żółtym, który o sesję nigdy nie prosi —
+    /// czyli sesją steruje WebKit. `AVAudioPlayer` w kategorii `playback` gra
+    /// mimo przełącznika wyciszenia, tak jak w aplikacjach alarmowych.
+    ///
+    /// Wymaga tego, żeby `app.js` na iOS NIE tworzył własnej syreny — inaczej
+    /// przy niewyciszonym telefonie grałyby dwie naraz. Żółtego sygnału uwagi
+    /// to nie dotyczy: zostaje w stronie i celowo podlega wyciszeniu.
     ///
     /// To NIE dotyczy dźwięku powiadomienia push — ten wciąż podlega wyciszeniu
     /// i wymagałby uprawnienia Critical Alerts od Apple (wniosek 442YB6VV2L).
@@ -510,12 +525,51 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
         DispatchQueue.main.async {
             let blad = self.ustawSesjeAlarmu(wlacz)
             call.resolve(["active": self.sesjaAlarmuWlaczona,
+                          "gra": self.syrena?.isPlaying ?? false,
                           "error": blad ?? ""])
         }
     }
 
     @objc private func poszloWTlo() {
         if sesjaAlarmuWlaczona { _ = ustawSesjeAlarmu(false) }
+    }
+
+    /// Ten sam plik, który gra w powiadomieniu (8 s), puszczany w kółko —
+    /// alarm powietrzny nie milknie sam z siebie, milknie na polecenie ze strony.
+    /// Bezpiecznik 10 minut jest na wypadek, gdyby polecenie „wyłącz” nigdy nie
+    /// przyszło (przeładowanie strony, błąd w JS): telefon ma nie zostać z syreną
+    /// bez końca i bez przycisku.
+    private func wlaczSyrene() -> String? {
+        if syrena?.isPlaying == true { return nil }
+        guard let plik = Bundle.main.url(forResource: "alarm_syrena", withExtension: "wav") else {
+            syrenaStan = "brak pliku alarm_syrena.wav"
+            return syrenaStan
+        }
+        do {
+            let odtwarzacz = try AVAudioPlayer(contentsOf: plik)
+            odtwarzacz.numberOfLoops = -1
+            odtwarzacz.volume = 1.0
+            odtwarzacz.prepareToPlay()
+            odtwarzacz.play()
+            syrena = odtwarzacz
+            syrenaStoper?.invalidate()
+            syrenaStoper = Timer.scheduledTimer(withTimeInterval: 600, repeats: false) { [weak self] _ in
+                self?.zatrzymajSyrene()
+            }
+            syrenaStan = "gra"
+            return nil
+        } catch {
+            syrenaStan = "błąd: " + error.localizedDescription
+            return error.localizedDescription
+        }
+    }
+
+    private func zatrzymajSyrene() {
+        syrenaStoper?.invalidate()
+        syrenaStoper = nil
+        syrena?.stop()
+        syrena = nil
+        if syrenaStan == "gra" { syrenaStan = "zatrzymana" }
     }
 
     /// Zwraca opis błędu albo `nil`. Nieudana zmiana sesji nie może przerwać alarmu —
@@ -525,15 +579,17 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
         let sesja = AVAudioSession.sharedInstance()
         do {
             if wlacz {
-                guard !sesjaAlarmuWlaczona else { return nil }
-                try sesja.setCategory(.playback, mode: .default)
-                try sesja.setActive(true)
-                sesjaAlarmuWlaczona = true
-            } else {
-                guard sesjaAlarmuWlaczona else { return nil }
-                sesjaAlarmuWlaczona = false
-                try sesja.setActive(false, options: .notifyOthersOnDeactivation)
+                if !sesjaAlarmuWlaczona {
+                    try sesja.setCategory(.playback, mode: .default)
+                    try sesja.setActive(true)
+                    sesjaAlarmuWlaczona = true
+                }
+                return wlaczSyrene()
             }
+            zatrzymajSyrene()
+            guard sesjaAlarmuWlaczona else { return nil }
+            sesjaAlarmuWlaczona = false
+            try sesja.setActive(false, options: .notifyOthersOnDeactivation)
             return nil
         } catch {
             sesjaAlarmuWlaczona = wlacz ? false : sesjaAlarmuWlaczona
