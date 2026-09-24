@@ -450,6 +450,12 @@ recenzent Apple, a największym ryzykiem jest u nas zarzut 4.2.2.
 
 ## 11. Co sprawdzić w buildzie 1.7.78 (24.09.2026)
 
+Build **2609241349** (1.7.78), wysłany 24.09.2026 o 15:53 czasu polskiego.
+Uprawnienia w podpisanym pliku potwierdzone przez bramkę CI:
+`aps-environment: production` i `time-sensitive`. Zawiera: przejęcie odnośników
+zewnętrznych, sesję audio syreny, kolory w trybie historii, nową atrybucję ADS-B
+i głośność żółtego sygnału.
+
 Trzy rzeczy naraz, wszystkie wymagają telefonu — z Windowsa nie da się ich
 zmierzyć. Jeśli któraś nie wyjdzie, wynik jest wart tyle samo co sukces:
 proszę zapisać dokładnie, co się stało.
