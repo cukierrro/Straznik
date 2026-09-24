@@ -39,6 +39,18 @@
   <p class="fineprint">Wersję zainstalowaną na telefonie sprawdzisz w aplikacji: <kbd>⚙</kbd> → zakładka <kbd>Aplikacja</kbd> → „Wersja aplikacji”. Tam też jest przycisk <kbd>⬆ Sprawdź aktualizacje</kbd>.</p>
 </div></header>
 <main id="content" class="wrap">
+<section id="v1-7-78">
+  <h2>1.7.78 — Cichszy żółty sygnał i alert RCB czytany z treści</h2>
+  <p class="fineprint">Wydanie 1.7.78 · 24 września 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.78">Pełny opis wydania</a></p>
+  <ul>
+    <li>Żółty sygnał uwagi był głośniejszy od syreny czerwonego alarmu — pomiar pokazał różnicę 4 dB na korzyść żółtego. Teraz stoi wyraźnie pod syreną. Czerwonego alarmu nie ściszyliśmy.</li>
+    <li>Nowe ustawienie ⚙ → Dźwięk → „Głośność sygnału uwagi (żółty)”: Normalny, Ciszej (około dziesięć razy ciszej) albo Bez dźwięku (zostaje baner i wibracja). Na Androidzie działa także przy zgaszonym ekranie; na iPhonie tylko w otwartej aplikacji, bo głośność powiadomienia push wybiera system.</li>
+    <li>Instrukcja mówi teraz, co naprawdę robi tryb Nie przeszkadzać — sprawdzone pomiarem na Pixelu 7: zwykłe Nie przeszkadzać wycisza żółty, a czerwony przez nie przechodzi. Ale „Całkowita cisza” wycisza także czerwony alarm i aplikacja nie może tego obejść. Zostaw też włączony wyjątek „Alarmy”.</li>
+    <li>Dla osób, które ten wyjątek wyłączyły, doszedł opcjonalny przycisk 🌙 „Alarm mimo Nie przeszkadzać”: czerwony pokaże się wtedy na pełnym ekranie, choć bez dźwięku.</li>
+    <li>Alert RCB jest czytany także z treści komunikatu na gov.pl, nie tylko z RSO. RSO niesie czasem tylko część odbiorców — 17 i 24 września przepadło woj. podkarpackie. Tryb awaryjny robi teraz to samo.</li>
+    <li>Naprawione: tryb awaryjny w ogóle nie sygnalizował żółtego poziomu (powiadomienie szło na kanał kasowany przy starcie). Karta maszyny pokazuje prędkość w km/h i w węzłach. Przyciski karty obiektu nie odjeżdżają przy przewijaniu, a krzyżyk panelu ma jeden styl z resztą aplikacji.</li>
+  </ul>
+</section>
 <section id="v1-7-76">
   <h2>1.7.76 — Strażnik po ukraińsku</h2>
   <p class="fineprint">Wydanie 1.7.76 · 24 września 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.76">Pełny opis wydania</a></p>

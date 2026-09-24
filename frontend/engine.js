@@ -2152,11 +2152,20 @@ function timelineFrom(snaps, sigs) {
       return age >= 0 && age <= WINDOW_MIN;
     });
     const per = stateFrom(win.concat(activeUaAlerts(sigs, s.t)), s.t).voivodeships;
-    let best = 0, voiv = null;
-    for (const [v, st] of Object.entries(per)) if (st.score > best) { best = st.score; voiv = v; }
-    const score = Math.round(best * 10) / 10;
-    return { ts: s.ts, score, voiv,
-      level: score >= TH_HIGH ? "high" : score >= TH_ELEVATED ? "elevated" : "none" };
+    /* Poziom bierzemy Z OCENY województwa, a nie z progu punktowego. Od 1.7.74
+       czerwony wymaga KLUCZA (alert RCB „znajdź bezpieczne miejsce” albo bliski
+       obiekt), więc 4+ pkt bez klucza to na mapie ŻÓŁTY — a pasek historii malował
+       wtedy czerwień i pokazywał alarm, którego nie było (zgłoszenie czytelnika).
+       Wybieramy najwyższy poziom, a przy równym poziomie najwyższy wynik. */
+    const RANGA = { none: 0, elevated: 1, high: 2 };
+    let best = 0, voiv = null, level = "none";
+    for (const [v, st] of Object.entries(per)) {
+      const lvl = st.level || "none";
+      if (RANGA[lvl] > RANGA[level] || (RANGA[lvl] === RANGA[level] && st.score > best)) {
+        best = st.score; voiv = v; level = lvl;
+      }
+    }
+    return { ts: s.ts, score: Math.round(best * 10) / 10, voiv, level };
   });
 }
 function timeline() {

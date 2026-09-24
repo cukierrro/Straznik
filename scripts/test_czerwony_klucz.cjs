@@ -134,3 +134,20 @@ test('po obniżeniu stopnia punktacja schodzi płynnie do nowego poziomu', () =>
   assert.ok(wChwili(5).score < 3 && wChwili(5).score > 1.5, `po 5 min ma być między 1,5 a 3, jest ${wChwili(5).score}`);
   assert.equal(wChwili(11).score, 1.5, 'po 10 minutach zostaje sam poziom nowego alertu');
 });
+
+test('pasek historii nie maluje czerwieni bez klucza (zgłoszenie 24.09.2026)', () => {
+  // Ten sam poranek 23.09: ponad 4 pkt, ale bez klucza — mapa pokazywała ŻÓŁTY,
+  // a pasek historii malował czerwony i sugerował alarm, którego nie było.
+  const sygnaly = [alertMonitorowana, obwodyUA, dron(10, 84, 28, '05'), dron(11, 91, 30, '06'),
+                   dron(12, 118, 39, '13'), dron(13, 104, 34, '05')];
+  const snaps = [{ t: REF, ts: new Date(REF).toISOString() }];
+  const [punkt] = Engine.timelineFrom(snaps, sygnaly);
+  assert.ok(punkt.score >= 4, `suma miała przekroczyć 4 pkt, jest ${punkt.score}`);
+  assert.equal(punkt.level, 'elevated', 'pasek ma pokazać żółty, tak jak mapa');
+});
+
+test('pasek historii pokazuje czerwień, gdy klucz JEST', () => {
+  const snaps = [{ t: REF, ts: new Date(REF).toISOString() }];
+  const [punkt] = Engine.timelineFrom(snaps, [alertSchronienie]);
+  assert.equal(punkt.level, 'high', 'alert „znajdź bezpieczne miejsce” to czerwony także na pasku');
+});
