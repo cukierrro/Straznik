@@ -410,3 +410,28 @@ awaryjnymi — recenzent trafiający w restart serwera zobaczyłby tryb awaryjny
 **Czego się spodziewamy:** odpowiedź zwykle w 1–2 dni. Najbardziej prawdopodobny
 zarzut to **4.2.2** („aplikacja z innej platformy”); odpowiedzi w sekcji 9 tego
 dokumentu, a po zmianie tekstów (B6) aplikacja nie mówi już nigdzie o Androidzie.
+
+## 13. Zgłoszenie 1.7.79 (24.09.2026, 19:43)
+
+Build **2609241724**, wersja **1.7.79**, status po zgłoszeniu: *Waiting for Review*.
+Publikacja **automatyczna po zatwierdzeniu**, bez rozłożenia w czasie, ocena
+aplikacji zachowana. Zrzuty i opis przeniesione z 1.7.76 (nie zmieniał się ani
+układ ekranów, ani opis aplikacji).
+
+Wydanie cięte ze **wspólnego commita `3b3508d`** — ten sam kod co APK 1.7.79.
+Powód wspólnego numeru: po wydaniu APK 1.7.78 weszły cztery zmiany widoczne dla
+użytkownika, więc „1.7.78” znaczyło co innego na Androidzie, a co innego w buildzie
+iOS. Zasada na przyszłość: numer opisuje kod, nie platformę; jeśli któraś platforma
+pominie numer, nie wraca do niego później z inną zawartością.
+
+Co w tym wydaniu po stronie iOS (obie rzeczy zmierzone na urządzeniu, nie założone):
+
+* **odnośniki zewnętrzne** działają — przejęte przez `shouldOverrideLoad` w pluginie;
+* **syrena gra przy wyciszonym dzwonku** przy otwartej aplikacji — odtwarzana
+  natywnie (`AVAudioPlayer`, kategoria `playback`), strona na iOS własnej nie tworzy.
+
+Czego to wydanie **nie** zmienia: dźwięku powiadomienia push przy wyciszonym
+telefonie (wymaga Critical Alerts, wniosek `442YB6VV2L`, status *Submitted*).
+
+Odłożone na następną aktualizację (decyzja użytkownika): podgląd zmiany języka
+nie odświeża etykiet sekcji „Mapa: trasy obiektów” przed zapisem.
