@@ -73,6 +73,25 @@ a działa właśnie wtedy, gdy serwer jest nieosiągalny. Parser przeniesiony 1:
 i sprawdzony na czterech prawdziwych artykułach: wynik co do znaku identyczny
 z serwerem. Koszt to ~7 kB po kompresji, tylko w dni z powietrznym komunikatem.
 
+## Godzina w powiadomieniu
+
+Powiadomienie i ekran alarmu pokazują teraz **godzinę wysyłki** — tę, o której
+serwer stwierdził zagrożenie, a nie tę, o której wiadomość dotarła. Przy
+spóźnionym pushu to dwie różne rzeczy, a liczy się pierwsza.
+
+* Treść powiadomienia zaczyna się od `10:54 · …` — widać ją i w zwiniętym,
+  i w rozwiniętym powiadomieniu.
+* Zegarek w rogu powiadomienia też pokazuje czas wysyłki; wcześniej Android
+  wpisywał tam moment dotarcia, więc spóźniony alarm wyglądał na świeży.
+* Ekran pełnoekranowego alarmu, który nie pokazywał żadnej godziny, ma teraz
+  podpis `4,0 pkt · godz. 10:54`.
+* Na iPhonie godzina otwiera treść powiadomienia. Tę część wysyła serwer, więc
+  pojawi się po wdrożeniu backendu, niezależnie od aktualizacji aplikacji.
+* Gdy serwer nie poda czasu wysyłki, godziny po prostu nie ma — nic nie zgadujemy.
+
+Test `▶ Test: czerwony natywny` przekazuje teraz czas wysyłki jak prawdziwy push,
+żeby dało się tę godzinę sprawdzić.
+
 ## Pasek historii pokazywał czerwony alarm tam, gdzie był żółty
 
 Zgłoszenie czytelnika. Pasek pod mapą liczył poziom z samej sumy punktów, a od

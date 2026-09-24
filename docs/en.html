@@ -263,6 +263,7 @@
     <li><b>No repeats:</b> if the score drops and crosses the same threshold again within 60 minutes of a notification, only the map changes. Exception: a new Alert RCB/RSO. Moving up a level, from yellow to red, always notifies.</li>
     <li>In the open app, sound follows the same rules as notifications, not the map colour — for <b>every watched province</b>, not only the first place.</li>
     <li>A notification delayed by more than 10 minutes (for example after coverage returns) is shown silently with “delayed by … min”.</li>
+    <li>The notification text starts with the <b>time it was sent</b> (“10:54 · …”) — the moment the server judged there was a threat, not the moment the message arrived. The same time appears in the notification's own clock and on the full-screen alert.</li>
   </ul>
   <p><kbd>⚙</kbd> → <kbd>Sound</kbd> offers <kbd>▶ Test: attention</kbd>, <kbd>▶ Test: siren</kbd> and <kbd>▶ Test: full alert</kbd>. These tests run inside the app window. The Android app also has <kbd>▶ Test: red native</kbd> and <kbd>▶ Test: yellow native</kbd>: after 5 seconds a real notification with the siren or attention sound arrives, so you can lock the screen and check the alert above the lock screen. No test checks push delivery from the server.</p>
   <h3>Red alert volume</h3>

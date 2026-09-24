@@ -46,6 +46,8 @@ public class AlarmActivity extends Activity {
     static final String EXTRA_SCORE = "score";
     static final String EXTRA_VOIV_INDEX = "voiv_index";
     static final String EXTRA_TEST = "test";
+    /** Czas wysyłki z serwera (ms). Ekran alarmu nie pokazywał żadnej godziny. */
+    static final String EXTRA_SENT_AT = "sent_at";
 
     // barwy i tempo migania przepisane z #alarm-overlay / @keyframes alarmflash
     // w frontend/style.css, żeby alarm w tle wyglądał jak w otwartej aplikacji
@@ -137,7 +139,10 @@ public class AlarmActivity extends Activity {
         box.addView(text(test ? "TEST — WYSOKI PRIORYTET" : "WYSOKI PRIORYTET", 26,
             Color.parseColor("#ff4d5e"), true), lp(dp(4)));
         box.addView(text(voiv != null ? "woj. " + voiv : "", 22, Color.WHITE, true), lp(dp(2)));
-        box.addView(text(score > 0 ? score + " pkt" : "", 16, Color.parseColor("#a9b4cc"), false), lp(dp(18)));
+        String czas = Alarms.godzina(in != null ? in.getLongExtra(EXTRA_SENT_AT, 0L) : 0L);
+        String podpis = (score > 0 ? score + " pkt" : "")
+            + (czas.isEmpty() ? "" : (score > 0 ? " · " : "") + "godz. " + czas);
+        box.addView(text(podpis, 16, Color.parseColor("#a9b4cc"), false), lp(dp(18)));
 
         if (title != null && !title.isEmpty())
             box.addView(text(title, 15, Color.parseColor("#e8edf7"), false), lp(dp(10)));

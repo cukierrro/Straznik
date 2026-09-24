@@ -302,8 +302,11 @@ public class BackgroundPlugin extends Plugin {
             Alarms.createChannels(c);
             java.util.List<String> reasons = new java.util.ArrayList<>();
             reasons.add("To jest test alarmu — nie ma zagrożenia.");
+            // Czas wysyłki jak w prawdziwym pushu — inaczej test nie pokazywałby
+            // godziny, którą od 1.7.78 wypisujemy na początku treści i na ekranie
+            // alarmu, więc nie dałoby się jej sprawdzić tą drogą.
             Alarms.postAlarm(c, v, level, "high".equals(level) ? 4.0 : 2.0, reasons,
-                "TEST: sprawdzenie dźwięku i ekranu alarmu", 0L, true);
+                "TEST: sprawdzenie dźwięku i ekranu alarmu", System.currentTimeMillis(), true);
         }, delayMs);
         call.resolve();
     }

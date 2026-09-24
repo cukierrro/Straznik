@@ -155,6 +155,17 @@ class Alarms {
         nm.createNotificationChannel(quiet);
     }
 
+    /** „HH:mm" z czasu wysyłki serwera; pusty napis, gdy czas nieznany (sentAtMs = 0). */
+    static String godzina(long sentAtMs) {
+        if (sentAtMs <= 0) return "";
+        try {
+            return new java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
+                .format(new java.util.Date(sentAtMs));
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
     static Uri soundUri(Context ctx, int resId) {
         return Uri.parse("android.resource://" + ctx.getPackageName() + "/" + resId);
     }
@@ -308,6 +319,11 @@ class Alarms {
             + (high ? "WYSOKI PRIORYTET" : "PODWYŻSZONA UWAGA")
             + ": woj. " + voivName + " (" + score + " pkt)";
         if (stale) title = title + " — opóźnione o " + (ageMs / 60000) + " min";
+        // Godzina WYSYŁKI, nie dotarcia: przy spóźnionym pushu to dwie różne rzeczy,
+        // a liczy się ta, o której serwer stwierdził zagrożenie (prośba użytkownika
+        // 24.09.2026). Stoi na początku treści — i w zwiniętym, i w rozwiniętym
+        // powiadomieniu — bo zwinięte pokazuje wyłącznie `firstLine`.
+        String czas = godzina(sentAtMs);
         StringBuilder body = new StringBuilder();
         if (headline != null && !headline.isEmpty()) body.append(headline).append('\n');
         for (int i = 0; i < Math.min(reasons.size(), 4); i++) body.append(reasons.get(i)).append('\n');
@@ -317,6 +333,10 @@ class Alarms {
         body.append("NIEOFICJALNE źródło — kieruj się syrenami, RCB i RSO.");
         String firstLine = headline != null && !headline.isEmpty() ? headline
             : (reasons.isEmpty() ? "" : reasons.get(0));
+        if (!czas.isEmpty()) {
+            firstLine = czas + " · " + firstLine;
+            body.insert(0, czas + " · ");
+        }
         Last.put(voiv, title, body.toString());
 
         NotificationManager nm = (NotificationManager) ctx.getSystemService(Context.NOTIFICATION_SERVICE);
@@ -346,7 +366,8 @@ class Alarms {
                 .putExtra(AlarmActivity.EXTRA_VOIV, voivName)
                 .putExtra(AlarmActivity.EXTRA_VOIV_INDEX, voiv)
                 .putExtra(AlarmActivity.EXTRA_TEST, test)
-                .putExtra(AlarmActivity.EXTRA_SCORE, score),
+                .putExtra(AlarmActivity.EXTRA_SCORE, score)
+                .putExtra(AlarmActivity.EXTRA_SENT_AT, sentAtMs),
             PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
         Notification.Builder b = builder(ctx, high ? CH_HIGH : infoChannel(ctx));
@@ -356,6 +377,9 @@ class Alarms {
          .setSmallIcon(android.R.drawable.ic_dialog_alert)
          .setContentIntent(openApp(ctx))
          .setAutoCancel(true);
+        // Zegarek w rogu powiadomienia też ma pokazywać czas WYSYŁKI. Bez tego
+        // Android wpisuje moment dotarcia, więc spóźniony push wyglądał na świeży.
+        if (sentAtMs > 0) b.setWhen(sentAtMs).setShowWhen(true);
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
             b.setPriority(high ? Notification.PRIORITY_MAX : Notification.PRIORITY_DEFAULT);
             b.setDefaults(Notification.DEFAULT_VIBRATE | Notification.DEFAULT_SOUND);
