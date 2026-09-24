@@ -3295,21 +3295,24 @@ const SOURCE_INFO = {
       + "internet connection.",
   },
   "ADS-B": {
-    co: "Publiczne transpondery lotnicze (airplanes.live, w zapasie adsb.lol) — "
-      + "maszyny wojskowe nad Polską i regionem. Warstwa jest informacyjna i nie daje "
+    co: "Publiczne transpondery lotnicze — maszyny wojskowe nad Polską i regionem. "
+      + "Serwer pyta adsb.lol, a gdy nie odpowiada — opendata.adsb.fi. W trybie awaryjnym, "
+      + "gdy telefon liczy sam, dochodzi jeszcze airplanes.live. Warstwa jest informacyjna i nie daje "
       + "punktów: w danych z 41 dni wzmożony ruch okazywał się rutynowymi lotami. "
       + "Ruch ponad dwukrotnie wyższy niż zwykle o tej porze jest zaznaczany w panelu. "
       + "Karta samolotu pokazuje zdjęcie, kraj rejestracji i pełną telemetrię.",
-    coEn: "Public aircraft transponders (airplanes.live, with adsb.lol as a backup) "
-      + "— military aircraft over Poland and the region. The layer is informational and "
+    coEn: "Public aircraft transponders — military aircraft over Poland and the region. "
+      + "The server queries adsb.lol and falls back to opendata.adsb.fi. In emergency mode, "
+      + "when the phone scores on its own, airplanes.live is queried as well. The layer is informational and "
       + "gives no points: over 41 days of data, increased traffic turned out to be "
       + "routine flights. Traffic more than twice the usual level for that time is "
       + "marked in the panel. The aircraft card shows a photograph, the country of "
       + "registration and full telemetry.",
     czerwona: "Serwisy ADS-B nie odpowiadają. Mapa nie pokaże wtedy lotnictwa "
       + "wojskowego; na punktację to nie wpływa.",
-    coUk: "Відкриті авіаційні транспондери (airplanes.live, у запасі adsb.lol) — військові "
-      + "машини над Польщею й регіоном. Шар інформативний і балів не дає: у даних за 41 день "
+    coUk: "Відкриті авіаційні транспондери — військові машини над Польщею й регіоном. "
+      + "Сервер опитує adsb.lol, а коли той не відповідає — opendata.adsb.fi. В аварійному "
+      + "режимі, коли телефон рахує сам, додається ще airplanes.live. Шар інформативний і балів не дає: у даних за 41 день "
       + "посилений рух виявлявся рутинними польотами. Рух, удвічі вищий за звичайний о цій порі, "
       + "позначаємо в панелі. Картка літака показує фото, країну реєстрації й повну телеметрію.",
     czerwonaUk: "Сервіси ADS-B не відповідають. Мапа тоді не покаже військової авіації; "
@@ -4459,6 +4462,13 @@ function showHistoryAt(idx) {
       if (s.voivodeship) perVoiv[s.voivodeship] =
         (perVoiv[s.voivodeship] || 0) + (s.counted_points ?? s.points ?? 0);
   }
+  /* Poziom województwa bierzemy Z OCENY SILNIKA (h.levels), a nie z progu
+     punktowego. Od 1.7.74 czerwony wymaga klucza, więc 4+ pkt bez klucza to
+     ŻÓŁTY — licząc z samych punktów historia malowała województwo na czerwono
+     i pisała „WYSOKI PRIORYTET" tam, gdzie aplikacja pokazywała wtedy żółty
+     (zgłoszenie czytelnika 24.09.2026). Zapas na starsze dane bez `levels`. */
+  const poziomHist = (v, sc) => h?.levels?.[v]
+    || (sc >= 4 ? "high" : sc >= 2 ? "elevated" : "none");
   // poziom w wybranym momencie — kolor kciuka suwaka i podsumowanie
   const tp = timelinePoints[idx];
   const slider = document.getElementById("tb-slider");
@@ -4518,12 +4528,11 @@ function showHistoryAt(idx) {
     for (const v of ALL_VOIVS) {
       const sc = perVoiv[v] || 0;
       map.setFeatureState({ source: "voiv", id: v },
-        { score: Math.min(sc, 8), level: sc >= 4 ? "high" : sc >= 2 ? "elevated" : "none",
-          spill: !!h?.spill?.[v] });
+        { score: Math.min(sc, 8), level: poziomHist(v, sc), spill: !!h?.spill?.[v] });
     }
   }
 
-  renderHistoryPanel(sigs, perVoiv, when, ageMin);
+  renderHistoryPanel(sigs, perVoiv, when, ageMin, poziomHist);
   renderObservationLists({neptun:{threats}, adsb:{aircraft:planes}});
 }
 
@@ -4535,7 +4544,8 @@ function histAgo(ageMin) {
   const h = Math.floor(ageMin / 60), m = ageMin % 60;
   return h ? `−${h} h${m ? ` ${m} min` : ""}` : `−${ageMin} min`;
 }
-function renderHistoryPanel(sigs, perVoiv, when, ageMin) {
+function renderHistoryPanel(sigs, perVoiv, when, ageMin,
+                            poziom = (v, sc) => sc >= 4 ? "high" : sc >= 2 ? "elevated" : "none") {
   const banner = `<div class="hist-banner">${UI.t("PODGLĄD HISTORII", "HISTORY VIEW", "ПЕРЕГЛЯД ІСТОРІЇ")} —
     ${when.toLocaleTimeString(UI.t("pl-PL", "en-GB", "uk-UA"), { hour: "2-digit", minute: "2-digit" })}
     ${ageMin > 1 ? `(${histAgo(ageMin)})` : (UI.t("(teraz)", "(now)", "(зараз)"))}
@@ -4545,7 +4555,7 @@ function renderHistoryPanel(sigs, perVoiv, when, ageMin) {
     .filter(([, sc]) => sc > 0)
     .sort((a, b) => b[1] - a[1]);
   const cards = shown.map(([name, sc]) => {
-    const lvl = sc >= 4 ? "high" : sc >= 2 ? "elevated" : "none";
+    const lvl = poziom(name, sc);
     const own = sigs.filter(s => s.voivodeship === name);
     return `<div class="voiv-card level-${lvl} open">
       <div class="voiv-head"><span class="voiv-name">${esc(UI.voiv(name))}</span>

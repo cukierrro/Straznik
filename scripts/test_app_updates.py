@@ -49,6 +49,36 @@ def main():
     mieszane = _change_items("Wstęp jednym zdaniem.\n\n- Punkt pierwszy.\n- Punkt drugi.\n")
     assert mieszane == ["Punkt pierwszy.", "Punkt drugi."], mieszane
 
+    # ZAWINIĘTY PUNKT LISTY to nadal ten sam punkt, nie koniec listy. Notatki
+    # 1.7.78 były łamane na ~85 znakach i okno aktualizacji pokazało JEDEN punkt
+    # urwany w połowie zdania — zgłoszone przez użytkownika 24.09.2026.
+    zawiniete = _change_items(
+        "### Nagłówek\n\n"
+        "- zwykłe **Nie przeszkadzać wycisza żółty, a czerwony przez nie przechodzi** —\n"
+        "  syrena gra, ekran się zapala, alarm pokazuje się nad blokadą;\n"
+        "- drugi punkt, też zawinięty\n"
+        "na linii bez wcięcia;\n")
+    assert zawiniete == [
+        "zwykłe Nie przeszkadzać wycisza żółty, a czerwony przez nie przechodzi — "
+        "syrena gra, ekran się zapala, alarm pokazuje się nad blokadą;",
+        "drugi punkt, też zawinięty na linii bez wcięcia;"], zawiniete
+
+    # Jawny blok streszczenia wygrywa z „pierwszą listą w notatkach”. W 1.7.78
+    # pierwszą listą był poboczny wątek, a najważniejsze zmiany stały w akapitach.
+    jawne = _change_items(
+        "**Nagłówek wydania.**\n\n"
+        "<!-- zmiany -->\n"
+        "- Ciszej można ustawić żółty sygnał.\n"
+        "- Godzina wysyłki w powiadomieniu.\n"
+        "<!-- /zmiany -->\n\n"
+        "### Poboczny wątek\n\n- Tego już nie pokazujemy.\n")
+    assert jawne == ["Ciszej można ustawić żółty sygnał.",
+                     "Godzina wysyłki w powiadomieniu."], jawne
+
+    # Znacznik krytycznej aktualizacji nie koliduje z blokiem streszczenia.
+    oba = _change_items("<!-- critical-update -->\n<!-- zmiany -->\n- Pilna poprawka.\n<!-- /zmiany -->\n")
+    assert oba == ["Pilna poprawka."], oba
+
     try:
         _release_data({"tag_name": "v1.0.0", "assets": []})
         raise AssertionError("brak APK powinien zostać odrzucony")

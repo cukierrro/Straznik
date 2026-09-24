@@ -2132,13 +2132,18 @@ function historyFrom(snaps, sigs, atIso) {
   // przeniesienie, więc województwo zaalarmowane przez sąsiada miało w historii 0.
   const per = stateFrom(sigs.filter(s => s.t >= start && s.t <= end)
     .concat(activeUaAlerts(sigs, end)), end).voivodeships;
-  const scores = {}, spill = {};
+  const scores = {}, spill = {}, levels = {};
   for (const [v, st] of Object.entries(per)) {
     if (st.score > 0) scores[v] = st.score;
     if (st.spill_raised) spill[v] = true;   // kolor tylko z przeniesienia (jak na żywo)
+    /* Poziom MUSI iść z oceny, nie z progu punktowego. Od 1.7.74 czerwony wymaga
+       klucza, więc 4+ pkt bez klucza to żółty — a historia, licząc sama z `scores`,
+       malowała województwo na czerwono i pisała „WYSOKI PRIORYTET” tam, gdzie
+       aplikacja pokazywała wtedy żółty (zgłoszenie czytelnika 24.09.2026). */
+    if (st.level && st.level !== "none") levels[v] = st.level;
   }
   const annotated = [].concat(...Object.values(per).map(st => st.signals)).sort((a, b) => b.t - a.t);
-  return { times, at: atIso, snapshot: snap, signals: annotated, scores, spill };
+  return { times, at: atIso, snapshot: snap, signals: annotated, scores, spill, levels };
 }
 function history(atIso) {
   return historyFrom(JSON.parse(localStorage.getItem("eng_snaps") || "[]"), signals, atIso);

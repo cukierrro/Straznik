@@ -490,8 +490,8 @@
     "What this app does NOT do": "Чого цей застосунок НЕ робить",
     "NEPTUN is an OSINT/crowdsourced aggregator, not radar, so confidence and position uncertainty are always shown. A new ID at the same locality-centre point does not prove a new physical object and is not automatically counted twice. ADS-B contains only public transponder emissions and cannot reveal aircraft flying dark.":
       "NEPTUN — агрегатор OSINT і повідомлень людей, а не радар, тому ми завжди показуємо достовірність і невизначеність позиції. Новий ідентифікатор у тій самій точці центру населеного пункту не доводить появи нового фізичного об’єкта і не рахується автоматично вдруге. ADS-B містить лише відкриті сигнали транспондерів і не покаже літаків, які летять без них.",
-    "Data: NEPTUN · adsb.lol / airplanes.live · PAŻP · gov.pl/RCB · regional and Baltic media · neighbouring airspace sources · map © CARTO, © OpenStreetMap":
-      "Дані: NEPTUN · adsb.lol / airplanes.live · PAŻP · gov.pl/RCB · регіональні та балтійські ЗМІ · джерела про повітряний простір сусідів · мапа © CARTO, © OpenStreetMap",
+    "Data: NEPTUN · adsb.lol / adsb.fi · PAŻP · gov.pl/RCB · regional and Baltic media · neighbouring airspace sources · map © CARTO, © OpenStreetMap":
+      "Дані: NEPTUN · adsb.lol / adsb.fi · PAŻP · gov.pl/RCB · регіональні та балтійські ЗМІ · джерела про повітряний простір сусідів · мапа © CARTO, © OpenStreetMap",
     "I understand — continue": "Зрозуміло — далі",
     "Data sources": "Джерела даних",
     "Each LED at the top represents one data source. Fusion relies on agreement between several sources, so one unavailable source reduces confirmation rather than disabling warnings.":
@@ -738,7 +738,7 @@
       "This is an estimate, not a promise. It assumes unchanged speed and heading and does not account for air defence. No time is shown when heading is unknown. NEPTUN's ‘confirmed’ may confirm a report rather than coordinate accuracy. A recognised locality-centre point gets only a rounded area distance, with no route or ETA.",
       "An eastern event also raises awareness in neighbouring provinces: a neighbour gets 40% of its points, the next ring 40% of that (16%) and so on, providing earlier awareness farther west. Transferred points alone do not send a notification.",
       "NEPTUN is an OSINT/crowdsourced aggregator, not radar, so confidence and position uncertainty are always shown. A new ID at the same locality-centre point does not prove a new physical object and is not automatically counted twice. ADS-B contains only public transponder emissions and cannot reveal aircraft flying dark.",
-      "Data: NEPTUN · adsb.lol / airplanes.live · PAŻP · gov.pl/RCB · regional and Baltic media · neighbouring airspace sources · map © CARTO, © OpenStreetMap"
+      "Data: NEPTUN · adsb.lol / adsb.fi · PAŻP · gov.pl/RCB · regional and Baltic media · neighbouring airspace sources · map © CARTO, © OpenStreetMap"
     ]);
     const [north, redNote] = document.querySelectorAll("#about .about-note");
     if (redNote) redNote.innerHTML = "<b>4 pts alone are not enough.</b> Red needs a "
