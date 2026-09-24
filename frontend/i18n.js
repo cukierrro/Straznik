@@ -273,7 +273,7 @@
     }
     many(":scope .set-tab", en
       ? ["Alerts","My places","Sound","App"] : ["Alarmy","Moje miejsca","Dźwięk","Aplikacja"]);
-    many(":scope .set-pane > p.fineprint:not(#app-version):not(#upd-status):not(#more-links):not(.ios-only)", en ? [
+    many(":scope .set-pane > p.fineprint:not(#app-version):not(#upd-status):not(#more-links):not(#dnd-note):not(.ios-only)", en ? [
       "Alerts for your province arrive as push notifications even when the app is closed or the phone is asleep. Full-screen permission is required for a red alert to wake the screen. This needs the Strażnik server: in emergency mode (server unavailable) alerts arrive only while the app is open.",
       "A full-screen alert wakes the display and appears above the lock screen. Android 14 or later may revoke this permission after an update, so verify it manually.",
       "Save up to 8 places and choose which provinces you want notifications for. Exact places remain on this device.",
@@ -833,7 +833,7 @@
       "Strażnik is useful only if it can warn you before you open it. Alerts for your region arrive as push notifications, even when the app is closed and the screen is off.",
       "Notification permission is required. For red alerts, full-screen alert permission is also recommended."
     ]);
-    setMany("#settings .set-pane > p.fineprint:not(#app-version):not(#upd-status):not(#more-links):not(.ios-only)", [
+    setMany("#settings .set-pane > p.fineprint:not(#app-version):not(#upd-status):not(#more-links):not(#dnd-note):not(.ios-only)", [
       "Alerts for your province arrive as push notifications even when the app is closed or the phone is asleep. Full-screen permission is required for a red alert to wake the screen. This needs the Strażnik server: in emergency mode (server unavailable) alerts arrive only while the app is open.",
       "A full-screen alert wakes the display and appears above the lock screen. Android 14 or later may revoke this permission after an update, so verify it manually.",
       "Save up to 8 places and choose which provinces you want notifications for. Exact places remain on this device.",

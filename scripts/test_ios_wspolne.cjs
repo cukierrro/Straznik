@@ -89,8 +89,15 @@ for (const id of ['onboard-bg-ios', 'alarmy-intro-ios', 'alarm-ios-note', 'dzwie
 sprawdz(/\.ios-only \{ display: none !important; \}/.test(css), 'wariant iOS ukryty poza aplikacją na iPhonie');
 // Tłumaczenia jadą po kolejności akapitów — wariant iOS musi z tych selektorów wypaść,
 // inaczej angielskie teksty trafiłyby o jeden akapit za daleko.
-sprawdz((i18n.match(/p\.fineprint:not\(#app-version\):not\(#upd-status\):not\(#more-links\):not\(\.ios-only\)/g) || []).length === 2,
-  'oba selektory pozycyjne akapitów pomijają wariant iOS');
+// Wyjątków przybywa (24.09.2026 doszedł #dnd-note), więc nie porównujemy całego
+// łańcucha — sprawdzamy, że OBA selektory mają komplet wymaganych :not(...).
+// Kolejność akapitów pilnuje osobno scripts/test_ustawienia_tlumaczenia.cjs.
+{
+  const sel = i18n.match(/p\.fineprint(?::not\([^)]*\))+/g) || [];
+  const wymagane = ['.ios-only', '#app-version', '#upd-status', '#more-links'];
+  sprawdz(sel.length === 2 && sel.every(s => wymagane.every(w => s.includes(`:not(${w})`))),
+    'oba selektory pozycyjne akapitów pomijają wariant iOS i akapity tłumaczone osobno');
+}
 sprawdz(/#onboard-bg \.about-body > p:not\(\.ios-only\)/.test(i18n),
   'ekran powitalny też pomija wariant iOS');
 sprawdz(/IS_IOS \? "iPhone'a" : "Androida"/.test(app),
