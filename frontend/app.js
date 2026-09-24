@@ -3734,6 +3734,22 @@ function sesjaAudioAlarmu(wlacz) {
   try { BG()?.dzwiekAlarmu?.({ wlacz }); } catch {}
 }
 
+/* NIE DA SIĘ sprawdzić z góry, czy część natywna ma `dzwiekAlarmu`, a więc nie
+   da się tu postawić zabezpieczenia „jak nie ma natywnej, zagraj z Web Audio".
+   Capacitor 8 podstawia pod `Plugins.StraznikBackground` proxy, którego handler
+   `get` zwraca `createPluginMethodWrapper(prop)` dla DOWOLNEJ nazwy
+   (@capacitor/core 8.4.2, dist/index.cjs.js ~l. 161), więc
+   `typeof BG().dzwiekAlarmu === "function"` jest prawdą także wtedy, gdy metody
+   natywnie nie ma — wywołanie kończy się dopiero odrzuconą obietnicą.
+   Próbowaliśmy takiego strażnika 24.09.2026 i był martwy; nie dokładaj go
+   ponownie. Jedyny wiarygodny sygnał to WYNIK wywołania (odrzucenie albo
+   `gra: false` przy `wlacz: true`) — zrobienie z tego awaryjnego powrotu do
+   Web Audio wymaga przebudowy `airRaidSiren` na tor asynchroniczny i testu na
+   urządzeniu, więc nie robimy tego przy okazji wydania.
+   Ryzyko realne tylko wtedy, gdy ktoś zbuduje iOS z tym frontendem, a bez
+   metody natywnej — wtedy alarm w aplikacji byłby BEZ DŹWIĘKU. Warunek do
+   sprawdzenia po stronie sesji iOS przed każdym zgłoszeniem do Apple. */
+
 function airRaidSiren(continuous = true) {
   try {
     stopSiren();
@@ -3747,7 +3763,8 @@ function airRaidSiren(continuous = true) {
        z wtyczki nie działała, bo dla Web Audio w WKWebView robi to WebKit.
        Żółtego sygnału uwagi to nie dotyczy — zostaje w stronie i ma podlegać wyciszeniu. */
     let o = null, g = null, c = null, t0 = 0, until = 0;
-    if (!IS_IOS) {
+    const webAudio = !IS_IOS;
+    if (webAudio) {
       c = ctx(); t0 = c.currentTime;
       o = c.createOscillator(); g = c.createGain();
       const filt = c.createBiquadFilter();
@@ -3765,7 +3782,7 @@ function airRaidSiren(continuous = true) {
     if (continuous) {
       // dokładaj kolejne cykle, zanim zaplanowane się skończą (na iOS pętlą zajmuje
       // się strona natywna, więc nie ma czego dokładać)
-      if (!IS_IOS) {
+      if (webAudio) {
         sirenTimer = setInterval(() => {
           if (!sirenNodes) return;
           until = scheduleSirenSweeps(o, Math.max(until, c.currentTime), 3);
@@ -3777,7 +3794,7 @@ function airRaidSiren(continuous = true) {
       }
     } else {
       // tryb testowy — wycisz po trzech cyklach
-      if (!IS_IOS) {
+      if (webAudio) {
         g.gain.setValueAtTime(SIREN_GAIN, t0 + total - 0.6);
         g.gain.exponentialRampToValueAtTime(0.0001, t0 + total);
         o.stop(t0 + total + 0.1);

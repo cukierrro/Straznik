@@ -15,6 +15,13 @@
 //   * tryb testowy sam się kończy na obu — na iOS ten timeout jest jedynym, co
 //     zatrzymuje natywną pętlę, i musi trwać tyle samo co dotąd.
 //
+// Czego ten test NIE sprawdza i sprawdzić nie może: czy część natywna naprawdę
+// ma metodę `dzwiekAlarmu`. Capacitor 8 podstawia pod `Plugins.X` proxy zwracające
+// funkcję dla dowolnej nazwy, więc żaden warunek `typeof … === "function"` tego nie
+// wykryje — próba takiego strażnika 24.09.2026 była martwym kodem i została
+// wycofana. Build iOS bez metody natywnej dałby alarm BEZ DŹWIĘKU; to warunek do
+// sprawdzenia po stronie sesji iOS przed zgłoszeniem, nie tutaj.
+//
 // Uruchomienie: node scripts/test_syrena_ios.cjs
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -63,8 +70,11 @@ function uruchom({ ios, tryb }) {
     },
     sesjaAudioAlarmu: (w) => log.push('sesja:' + w),
     scheduleSirenSweeps: (_o, od, cykli) => od + cykli * 4,
+    BG: () => ({ dzwiekAlarmu: () => {} }),
   });
-  vm.runInContext(`${funkcja('airRaidSiren')}\n${funkcja('stopSiren')}`, ctxKontekst);
+  vm.runInContext(
+    `${funkcja('airRaidSiren')}\n${funkcja('stopSiren')}`,
+    ctxKontekst);
   vm.runInContext(`airRaidSiren(${tryb === 'ciagly'})`, ctxKontekst);
   return { log, stan: () => ctxKontekst.sirenNodes };
 }
