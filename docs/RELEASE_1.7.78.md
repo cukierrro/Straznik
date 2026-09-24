@@ -120,8 +120,12 @@ Poziom bierze się teraz z tej samej oceny, która maluje mapę. Dotyczy obu
 * **Podpowiedzi przycisków** 2D/3D, obcych maszyn i powiadomień zostawały po
   polsku w wersji angielskiej (zgłoszenie #1 z GitHuba). Dodane tłumaczenia
   angielskie i ukraińskie.
-* **Syrena na iPhonie** prosi teraz o sesję audio odblokowującą wyciszenie
-  dzwonkiem. Żółty sygnał celowo tego nie robi, żeby nie przebijał wyciszenia.
+* **Syrena na iPhonie** dostała prośbę o sesję audio, która miała odblokować
+  wyciszenie dzwonkiem. **Sprawdzone na urządzeniu 24.09: nie działa.** Muzyka
+  w innej aplikacji ścisza się przy OBU poziomach — także przy żółtym, który
+  o zmianę sesji w ogóle nie prosi — więc sesją audio dla Web Audio steruje tam
+  WebKit, nie my. Przy wyciszonym dzwonku syrena na iPhonie nadal milczy;
+  rozwiązanie po stronie natywnej jest w przygotowaniu. Nie polegaj na tym.
 * **Skrót do strony na ekranie głównym** nazywa się „Strażnik (strona)"
   i mówi, skąd wziąć aplikację — wcześniej był nie do odróżnienia od APK.
 * **Instrukcja iPhone'a** ostrzega o przekazywaniu alarmu na Apple Watch.
