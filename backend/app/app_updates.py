@@ -52,15 +52,30 @@ def _clean_markdown(line: str) -> str:
 def _change_items(body: str) -> list[str]:
     """Punkty do pokazania w oknie aktualizacji.
 
-    Kolejność: najpierw PIERWSZY blok listy w notatkach (to jest streszczenie
-    wydania), a dopiero gdy listy nie ma nigdzie — pierwszy akapit złożony
-    z powrotem w całe zdania.
+    Kolejność:
+    1. blok `<!-- zmiany -->` … `<!-- /zmiany -->`, jeśli notatki go mają — to
+       jest streszczenie napisane WPROST pod okienko na telefonie;
+    2. pierwszy blok listy w notatkach;
+    3. gdy listy nie ma nigdzie — pierwszy akapit złożony w całe zdania.
 
-    Wcześniej każda linia tekstu uchodziła za punkt, a notatki wydania są
-    zawijane na ~85 znakach — jeden akapit rozpadał się na trzy urwane w połowie
-    zdania „punkty" i dokładnie to widział użytkownik w 1.7.30.
+    Dwie pułapki, obie widziane na żywo:
+    * notatki są zawijane na ~85 znakach. Kiedyś rozbijało to AKAPIT na trzy
+      urwane „punkty" (1.7.30), a do 1.7.78 zawinięcie PUNKTU listy kończyło
+      całą listę — wydanie pokazywało jeden punkt urwany w połowie zdania;
+    * „pierwszy blok listy" nie zawsze jest streszczeniem. W 1.7.78 pierwszą
+      listą był poboczny wątek o trybie Nie przeszkadzać, a najważniejsze zmiany
+      opisywały akapity wyżej. Dlatego blok `<!-- zmiany -->` ma pierwszeństwo.
     """
     clean = body.replace("<!-- critical-update -->", "")
+    # Jawne streszczenie wygrywa z jakąkolwiek heurystyką: autor notatek zaznacza
+    # dokładnie te punkty, które ma zobaczyć użytkownik przy aktualizacji.
+    # Notatki na GitHubie są dłuższe i inaczej ułożone niż to, co mieści się
+    # w okienku na telefonie — zgadywanie „pierwszy blok listy to streszczenie"
+    # zawiodło przy 1.7.78, gdzie pierwsza lista opisywała poboczny wątek.
+    jawne = re.search(r"<!--\s*zmiany\s*-->(.*?)<!--\s*/zmiany\s*-->", clean,
+                      re.S | re.I)
+    if jawne:
+        clean = jawne.group(1)
     punkty: list[str] = []
     akapit: list[str] = []
     w_liscie = False
@@ -77,13 +92,19 @@ def _change_items(body: str) -> list[str]:
             w_liscie = True
             tekst = _clean_markdown(re.sub(r"^(?:[-*+]|•|\d+[.)])\s+", "", line))
             if tekst and tekst not in punkty:
-                punkty.append(tekst[:MAX_CHANGE_LEN])
+                punkty.append(tekst)
             if len(punkty) == MAX_CHANGE_ITEMS:
                 break
         elif w_liscie:
-            break                  # zwykły tekst po liście kończy blok
+            # Zawinięcie punktu, nie koniec listy. Notatki łamiemy na ~85 znakach,
+            # więc punkt „- zwykłe Nie przeszkadzać…" miał ciąg dalszy w następnym
+            # wierszu — parser brał go za zwykły tekst i kończył listę. W efekcie
+            # 1.7.78 pokazywało JEDEN punkt, urwany w połowie zdania. Wcięcie nie
+            # rozstrzyga: część notatek nie wcina kontynuacji wcale.
+            punkty[-1] = f"{punkty[-1]} {_clean_markdown(line)}".strip()
         elif not akapit_zamkniety:
             akapit.append(_clean_markdown(line))
+    punkty = [x[:MAX_CHANGE_LEN] for x in punkty]
     if punkty:
         return punkty
     tekst = " ".join(x for x in akapit if x).strip()
