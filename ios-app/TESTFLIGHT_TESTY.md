@@ -472,3 +472,23 @@ proszę zapisać dokładnie, co się stało.
 Czego ten build **nie** naprawia: dźwięku samego powiadomienia push przy
 wyciszonym telefonie. To wymaga zgody Apple na Critical Alerts (wniosek
 `442YB6VV2L`, bez odpowiedzi). Wyciszony iPhone pokaże baner i zawibruje.
+
+### Wynik testu na iPhonie (Adrian, 24.09.2026 ok. 16:20)
+
+**Odnośniki zewnętrzne — DZIAŁAJĄ.** Dotknięcie „NEPTUN” w oknie „O aplikacji”
+otwiera stronę. Przejęcie odnośników przez `shouldOverrideLoad` załatwia sprawę;
+diagnostyka `link:` nie była potrzebna.
+
+**Syrena przy wyciszonym dzwonku — NADAL CISZA.** Sesja audio ustawiana przez
+plugin nie dociera do dźwięku odtwarzanego przez stronę. Dowód nie z teorii,
+tylko z obserwacji testera: muzyka w innej aplikacji ścisza się na czas sygnału
+i wraca **przy obu poziomach** — również przy żółtym, który o zmianę sesji
+w ogóle nie prosi. Skoro oba zachowują się identycznie, sesją steruje WebKit,
+a nie my. Wniosek: `AVAudioSession` ustawiana z pluginu jest dla Web Audio
+w WKWebView bezskuteczna i tą drogą się tego nie zrobi.
+
+Droga, która zostaje: syrenę na iOS odtwarza część natywna (`alarm_syrena.wav`
+w pętli, `AVAudioPlayer` + kategoria `playback` — tak robią aplikacje alarmowe
+i to udokumentowanie ignoruje przełącznik wyciszenia). Wymaga zmiany we wspólnym
+`frontend/`: na iOS strona nie odtwarza własnej syreny, żeby przy niewyciszonym
+telefonie nie grały dwie naraz. Czeka na decyzję użytkownika.
