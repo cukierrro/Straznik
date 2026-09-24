@@ -188,7 +188,7 @@ def alarm_headline(signals: list[dict]) -> str:
     mówił człowiekowi wybudzonemu o 3:00, co leci i ile ma czasu."""
     counted = [x for x in signals or [] if (x.get("counted_points") or 0) > 0]
     counted.sort(key=lambda x: x.get("counted_points") or 0, reverse=True)
-    if any(x.get("event_type") == "rso_alert" for x in counted):
+    if any(x.get("event_type") in ("rso_alert", "rcb_alert") for x in counted):
         return "Oficjalny Alert RCB dla województwa"
     for x in counted:
         d = x.get("details") or {}
@@ -239,7 +239,8 @@ def reasons_split(signals: list[dict]) -> str:
         pts = x.get("counted_points", x.get("points"))
         title = x.get("title", "") if quotable_title(x) else "Doniesienie medialne"
         line = f"• {title} (+{pts} pkt)"
-        (official if x.get("event_type") == "rso_alert" and (pts or 0) > 0 else other).append(line)
+        (official if x.get("event_type") in ("rso_alert", "rcb_alert") and (pts or 0) > 0
+         else other).append(line)
     parts = []
     if official:
         parts.append("Oficjalnie:\n" + "\n".join(official[:3]))
