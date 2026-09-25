@@ -2,6 +2,8 @@
   --bg: #0b0d12; --panel: #141821; --panel2: #1b2130; --line: #2a3142;
   --fg: #e8ecf3; --muted: #95a1b7; --accent: #7c9cff;
   --ok: #3ecf8e; --warn: #f5b942; --bad: #ff6b6b; --red: #c81e30;
+  /* Odnośniki w treści: domyślny niebieski przeglądarki (#0000EE) jest na ciemnym tle nieczytelny. */
+  --link: #9dc1ff; --link-src: #b6c4da;
 }
 #grota-widok, #grota-widok * { box-sizing: border-box; }
 #grota-widok, #grota-widok { margin: 0; height: 100%; background: var(--bg); color: var(--fg);
@@ -68,7 +70,19 @@
 #grota-widok .legend span { display: inline-flex; align-items: center; gap: 6px; margin-right: 10px; font-size: 12px; color: var(--muted); }
 #grota-widok .legend i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
 #grota-widok .pin { width: 16px; height: 16px; border-radius: 50%; border: 3px solid #fff; background: var(--red); box-shadow: 0 0 0 2px var(--red); }
-#grota-widok .rule .src a, #grota-widok .src a { color: var(--muted); }
+/* Ikony w treści: ten sam zestaw i rozmiar co w menu, tylko przygaszone, żeby nie konkurowały z tekstem */
+#grota-widok .lista-ic, #grota-widok .sekcja-ic { width: 18px; height: 18px; flex: none; color: var(--rc, var(--accent)); }
+#grota-widok .poz-ic { width: 16px; height: 16px; flex: none; color: var(--muted); margin-right: 2px; }
+#grota-widok .rule-section { display: flex; align-items: center; gap: 8px; }
+#grota-widok details.warunki { margin: 8px 0; }
+#grota-widok details.warunki > summary { cursor: pointer; color: var(--fg); }
+#grota-widok .warunki-lista { list-style: none; margin: 8px 0; padding: 0; display: grid; gap: 6px; }
+#grota-widok .warunki-lista li { display: flex; align-items: flex-start; gap: 8px; }
+
+/* Wszystkie odnośniki w treści — bez przycisków, które mają własne tło */
+#grota-widok a:not(.btn) { color: var(--link); text-decoration: underline; text-underline-offset: 2px; }
+#grota-widok a:not(.btn):active { color: #ffffff; }
+#grota-widok .rule .src a, #grota-widok .src a { color: var(--link-src); }
 #grota-widok textarea { background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 8px; padding: 8px; font: inherit; }
 #grota-widok figure.ortho { position: relative; margin: 8px 0; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); background: var(--bg); }
 #grota-widok figure.ortho img { display: block; width: 100%; aspect-ratio: 480 / 300; object-fit: cover; }
