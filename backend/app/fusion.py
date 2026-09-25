@@ -12,7 +12,7 @@ import time
 import unicodedata
 from datetime import datetime, timedelta, timezone
 
-from . import config, db
+from . import config, db, stealth
 
 log = logging.getLogger("fusion")
 
@@ -572,9 +572,27 @@ def accumulate(signals: list[dict], ref: datetime | None = None) -> dict:
         d = s.get("details") or {}
         wpis = {"at": d.get("cleared_at") or s.get("ts", ""), "rso_id": str(d.get("rso_id") or "")}
         # Odwołanie ogólnokrajowe gasi alert wszędzie, nie tylko tam, gdzie RSO je wpisało.
-        gdzie = config.VOIVODESHIPS if _clear_krajowe(s) else (s["voivodeship"],)
+        krajowe = _clear_krajowe(s)
+        gdzie = config.VOIVODESHIPS if krajowe else (s["voivodeship"],)
         for voiv in gdzie:
             rso_clears.setdefault(voiv, []).append(dict(wpis))
+        if not krajowe:
+            # Odwołanie bez słów o całej Polsce zostawiamy przy jego województwie —
+            # 13.09.2026 podkarpackie miało wtedy własny alert i zaraz dostało
+            # kolejny, więc rozsyłanie mogłoby wyciszyć trwający alarm. Ale czy RCB
+            # NAPRAWDĘ odwołuje wojewódzko, wiedzą tylko ludzie, do których poszedł
+            # SMS. Zapisujemy więc każdy taki przypadek razem z województwami,
+            # które zostają z alertem — żeby następnym razem dało się o to zapytać
+            # od razu, a nie odtwarzać po tygodniu z nieistniejących już wiadomości.
+            inne = sorted({o.get("voivodeship") for o in officials
+                           if o.get("voivodeship") != s["voivodeship"]
+                           and _issued_at(o) <= wpis["at"]} - {None})
+            if inne:
+                stealth.record("odwolanie_wojewodzkie", str(wpis["rso_id"] or s.get("ts")), {
+                    "odwolanie_dla": s["voivodeship"], "o": wpis["at"],
+                    "tresc": (s.get("title") or "")[:200],
+                    "zostaja_z_alertem": inne,
+                })
     uncleared_officials: dict[str, list[str]] = {}
     for s in officials:
         if not _official_cleared(s, rso_clears):
