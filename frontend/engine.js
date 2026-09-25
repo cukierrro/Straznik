@@ -1789,7 +1789,11 @@ async function tickRso() {
    wtedy, gdy na liście jest powietrzny wpis z bieżącego dnia — w spokojny dzień
    ani jednego żądania ponad dotychczasową listę komunikatów. */
 const ARTYKULY_NA_CYKL = 2;        // ile artykułów dnia otwieramy w jednym obiegu
-const ZAKRES_ZNAKOW_RCB = 260;     // ile znaków po „wysłany" czytamy jako listę odbiorców
+/* Kotwica listy odbiorców i jej zakres — 1:1 z backend/app/collectors/rcb.py.
+   Samo „wysłany" nie wystarczało: RCB pisze też „zostały wysłane" i „wysłano",
+   a liczby mnogiej używa właśnie przy alercie dla KILKU województw — wtedy blok
+   przepadał bez punktów. 260 znaków ucinało też długie listy (16 nazw to ~290). */
+const ZAKRES_ZNAKOW_RCB = 600;
 const BLOK_SEP_RCB = /-{5,}/;
 const CYTAT_RCB = /[„"]([^”"]{25,600})[”"]/g;
 const NAWIAS_RCB = /\([^)]*\)/g;
@@ -1847,7 +1851,7 @@ const VOIV_RDZENIE = VOIVODESHIPS.map(v => {
    woj. opolskie (21.09.2026). */
 function wojewodztwaAlertu(blok) {
   const t = fold(blok).replace(NAWIAS_RCB, " ");
-  const m = /wyslany/.exec(t);
+  const m = /wyslan|odbiorc/.exec(t);
   if (!m) return [];
   let zakres = t.slice(m.index, m.index + ZAKRES_ZNAKOW_RCB);
   const out = [];

@@ -236,6 +236,40 @@ def _last_clear_ts(signals: list[dict]) -> float | None:
     return max(ts).timestamp() if ts else None
 
 
+def rcb_nieodwolane(zdarzenia: list[dict], ref: datetime | None = None) -> dict[str, dict]:
+    """Województwa, w których alert RCB trwa, bo nikt go nie odwołał.
+
+    Alert RCB obowiązuje DO ODWOŁANIA, a odwołanie potrafi przyjść po wielu
+    godzinach — 24/25.09.2026 alert dla podkarpackiego wyszedł o 22:01, a RCB
+    odwołało go dopiero około 05:00. Nasze sygnały wygasają po oknie fuzji, więc
+    przez te kilka godzin mapa wyglądała spokojnie, choć oficjalnie alert stał.
+    Zwracamy więc czas ostatniego nieodwołanego alertu, żeby powiedzieć to wprost.
+
+    To informacja, nie punkty: Strażnik punktuje to, co widzi, a tutaj nie widzi
+    nic nowego — wie tylko, że odwołanie nie przyszło.
+    """
+    r = ref or datetime.now(timezone.utc)
+    alerty: dict[str, datetime] = {}
+    odwolania: dict[str, datetime] = {}
+    for z in zdarzenia:
+        voiv, ts = z.get("voivodeship"), _parse_ts(z.get("ts"))
+        if not voiv or not ts or ts > r:
+            continue
+        typ = z.get("event_type")
+        if typ in ("rso_alert", "rcb_alert") and (z.get("points") or 0) > 0:
+            if ts > alerty.get(voiv, ts - timedelta(seconds=1)):
+                alerty[voiv] = ts
+        elif typ == "rso_clear":
+            if ts > odwolania.get(voiv, ts - timedelta(seconds=1)):
+                odwolania[voiv] = ts
+    out: dict[str, dict] = {}
+    for voiv, ts in alerty.items():
+        if voiv in odwolania and odwolania[voiv] >= ts:
+            continue
+        out[voiv] = {"od": ts, "minut": int((r - ts).total_seconds() // 60)}
+    return out
+
+
 def _fresh_strong_signal(signals: list[dict], since_iso: str) -> bool:
     """Czy od ostatniego powiadomienia przyszedł NOWY alert RCB/RSO.
 
@@ -817,6 +851,32 @@ def compute_state(signals: list[dict] | None = None, ref: datetime | None = None
             if _ORDER.index(st["alert_level"]) > _ORDER.index(st["level"]):
                 st["level"] = st["alert_level"]
         st["spill_raised"] = _ORDER.index(st["level"]) > _ORDER.index(st["alert_level"])
+
+    # Alert RCB bez odwołania — dopisywany PO całej punktacji i po ustaleniu
+    # poziomów, żeby nie mógł na nie wpłynąć. Zero punktów: Strażnik punktuje to,
+    # co widzi, a tutaj tylko przypomina, że oficjalny alert nadal obowiązuje.
+    if getattr(db, "_conn", None) is not None:
+        try:
+            trwajace = rcb_nieodwolane(db.events_since(
+                config.RCB_NIEODWOLANY_MAX_MIN,
+                ("rso_alert", "rcb_alert", "rso_clear")), ref)
+            for voiv, info in trwajace.items():
+                st = per_voiv.get(voiv)
+                if st is None:
+                    continue
+                st["rcb_nieodwolany"] = {"od": info["od"].isoformat(timespec="seconds"),
+                                         "minut": info["minut"]}
+                st["signals"].append({
+                    "source": "rcb", "event_type": "rcb_bez_odwolania", "voivodeship": voiv,
+                    "ts": info["od"].isoformat(timespec="seconds"),
+                    "points": 0.0, "counted_points": 0.0, "weight": 0.0,
+                    "title": "Alert RCB nie został jeszcze odwołany",
+                    "details": {"od": info["od"].isoformat(timespec="seconds"),
+                                "minut": info["minut"], "informacyjny": True},
+                })
+        except Exception as e:
+            log.warning("nieodwołane alerty RCB: %s", e)
+
     return {
         "ts": (ref or datetime.now(timezone.utc)).isoformat(timespec="seconds"),
         "window_min": config.FUSION_WINDOW_MIN,

@@ -77,8 +77,16 @@ BLOK_SEP = re.compile(r"-{5,}")
 CYTAT_RE = re.compile(r"[„\"]([^”\"]{25,600})[”\"]")
 NAWIAS_RE = re.compile(r"\([^)]*\)")
 DATA_RE = re.compile(r"\b(\d{2})\.(\d{2})\.(20\d{2})\b")
-WYSYLKA_RE = re.compile(r"wyslany")
-ZAKRES_ZNAKOW = 260          # ile znaków po słowie „wysłany" czytamy jako listę odbiorców
+# Kotwica listy odbiorców. Samo „wysłany" NIE wystarczało: RCB pisze też
+# „zostały wysłane" i „wysłano", a liczby mnogiej używa właśnie wtedy, gdy alert
+# idzie do KILKU województw. Wtedy nie znajdowaliśmy ani jednego województwa
+# i cały blok przepadał — alert bez punktów, po cichu. Dlatego rdzeń „wyslan"
+# i zapasowo „odbiorc" („do odbiorców na terenie …"), niezależne od czasownika.
+WYSYLKA_RE = re.compile(r"wyslan|odbiorc")
+# 16 nazw w dopełniaczu to ~290 znaków — przy 260 ostatnie województwo z listy
+# wypadało. Blok opisuje JEDNĄ wysyłkę, więc szerszy zakres nie wciąga cudzych
+# odbiorców; artykuł jest wcześniej dzielony na bloki po linii myślników.
+ZAKRES_ZNAKOW = 600
 ARTYKULY_NA_CYKL = 2         # ile artykułów z bieżącego dnia otwieramy w jednym obiegu
 
 AIR_FOLD = tuple(_fold(a) for a in RSO_AIR)
