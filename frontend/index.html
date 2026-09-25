@@ -62,6 +62,11 @@ if (document.documentElement.classList.contains("native-app"))
   if (ios) document.documentElement.classList.add("ua-ios");
   else if (/Android/.test(ua)) document.documentElement.classList.add("ua-android");
 })();
+</script>
+<!-- Kanał dystrybucji (github / play). Musi być przed pierwszym renderem,
+     żeby wersja sklepowa nie mrugnęła odnośnikiem do zbiórki. -->
+<script src="wariant.js?v=1.7.79a"></script>
+<script>
 /* iPhone: część rzeczy z Androida (głośność, pełny ekran, APK) tam nie działa,
    a linki do wsparcia autora łamią zasady App Store — ukrywa je klasa ios-app. */
 if (window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform() === "ios")
@@ -89,7 +94,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <link rel="icon" type="image/png" sizes="512x512" href="assets/icon-512.png">
 <link rel="apple-touch-icon" href="assets/icon-192.png">
 <link rel="stylesheet" href="assets/vendor/maplibre-gl.css">
-<link rel="stylesheet" href="style.css?v=1.7.79">
+<link rel="stylesheet" href="style.css?v=1.7.79a">
 </head>
 <body>
 
@@ -134,7 +139,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
        href="https://cukierrro.github.io/Straznik/" target="_blank" rel="noopener"
        title="Otwórz pełną instrukcję aplikacji Strażnik"
        aria-label="Otwórz pełną instrukcję aplikacji Strażnik">📖 Instrukcja</a>
-    <a id="btn-coffee" class="chip coffee web-only no-ios" href="https://buycoffee.to/cukierrro"
+    <a id="btn-coffee" class="chip coffee web-only no-ios no-sklep" href="https://buycoffee.to/cukierrro"
        target="_blank" rel="noopener"
        title="Postaw kawę dla cukierrro na buycoffee.to">☕ Postaw kawę</a>
     <!-- Na pasku zostają tylko dwie rzeczy: stan powiadomień i ustawienia.
@@ -314,7 +319,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
     <a class="sheet-row" href="https://cukierrro.github.io/Straznik/" target="_blank" rel="noopener">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5h9l5 5v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-14a1 1 0 0 1 1-1z"/><path d="M14 4.5v5h5M8 13h8M8 16.5h5"/></svg>
       <span>Instrukcja użytkownika</span></a>
-    <a class="sheet-row no-ios" href="https://buycoffee.to/cukierrro" target="_blank" rel="noopener">
+    <a class="sheet-row no-ios no-sklep" href="https://buycoffee.to/cukierrro" target="_blank" rel="noopener">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 8h11v5.5a4 4 0 0 1-4 4H8.5a4 4 0 0 1-4-4z"/><path d="M15.5 9.5h2a2.5 2.5 0 0 1 0 5h-2M6 5V3.4M9.5 5V3.4M13 5V3.4"/></svg>
       <span>Wesprzyj autora</span></a>
   </div>
@@ -623,7 +628,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
       · serwer: <a href="https://mikr.us" target="_blank" rel="noopener">hostowane na Mikrusie ↗</a></div>
 
     <div class="about-actions">
-      <a class="chip coffee no-ios" href="https://buycoffee.to/cukierrro" target="_blank"
+      <a class="chip coffee no-ios no-sklep" href="https://buycoffee.to/cukierrro" target="_blank"
          rel="noopener">☕ Postaw kawę autorowi</a>
       <button id="about-close" class="chip primary">Rozumiem, zaczynajmy</button>
     </div>
@@ -913,7 +918,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
     <p class="fineprint" id="more-links" style="margin-top:14px">
       <a href="https://cukierrro.github.io/Straznik/" target="_blank" rel="noopener">Instrukcja użytkownika ↗</a>
       <a href="https://cukierrro.github.io/Straznik/zmiany.html" target="_blank" rel="noopener">Historia zmian ↗</a>
-      <a class="no-ios" href="https://buycoffee.to/cukierrro" target="_blank" rel="noopener">Wesprzyj autora ☕</a>
+      <a class="no-ios no-sklep" href="https://buycoffee.to/cukierrro" target="_blank" rel="noopener">Wesprzyj autora ☕</a>
     </p>
     </section>
     <menu>
@@ -954,7 +959,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <script src="aircraft-photo-catalog.js?v=1.7.19"></script>
 <script src="aircraft-photos.js?v=1.7.79"></script>
 <script src="places.js?v=1.7.19-4"></script>
-<script src="app.js?v=1.7.79"></script>
+<script src="app.js?v=1.7.79a"></script>
 <script>
 /* Instrukcja pasująca do telefonu i języka (21.09.2026). iPhone ma osobną, bo alarmy,
    zgody i aktualizacje działają tam inaczej. Tu, a nie w app.js: index.html nie jest

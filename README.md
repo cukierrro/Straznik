@@ -393,10 +393,10 @@ cd android-app/android
 JAVA_HOME="C:/Program Files/Android/Android Studio/jbr" ./gradlew assembleRelease
 ```
 
-Wynik: `app/build/outputs/apk/release/app-release.apk`. Weryfikacja podpisu:
+Wynik: `app/build/outputs/apk/github/release/app-github-release.apk`. Weryfikacja podpisu:
 
 ```bash
-"$ANDROID_HOME/build-tools/37.0.0/apksigner" verify --print-certs -v app/build/outputs/apk/release/app-release.apk
+"$ANDROID_HOME/build-tools/37.0.0/apksigner" verify --print-certs -v app/build/outputs/apk/github/release/app-github-release.apk
 ```
 
 Bez `keystore.properties` build wydania nadal się wykona, ale APK **nie zostanie
@@ -421,7 +421,7 @@ npx cap sync android
 cd android && JAVA_HOME="C:/Program Files/Android/Android Studio/jbr" ./gradlew assembleRelease
 ```
 
-Wynik: `android-app/android/app/build/outputs/apk/release/app-release.apk`.
+Wynik: `android-app/android/app/build/outputs/apk/github/release/app-github-release.apk`.
 Po testach i sprawdzeniu podpisu wydania kopiujemy go jako `Straznik.apk`.
 Nigdy nie publikujemy `app-debug.apk` jako wydania. Przed publikacją sprawdź
 `apksigner verify --print-certs`, brak `debuggable` oraz skompilowaną konfigurację

@@ -38,6 +38,8 @@
 /* iPhone: zasady App Store zabraniają linków do płatności poza aplikacją (3.1.1a),
    a przełączniki głośności i pełnego ekranu nie mają tam odpowiednika w systemie. */
 .ios-app .no-ios, .ios-app .android-only { display: none !important; }
+/* Wydanie z Google Play: bez odnośników do zbiórki poza sklepem. */
+.sklep-app .no-sklep { display: none !important; }
 /* Teksty o zgodzie na pełny ekran, usłudze w tle i ustawieniach Androida opisują
    funkcje, których na iPhonie nie ma. Wariant iOS stoi obok w HTML i pokazuje się
    tylko tam — dzięki temu tłumaczenia i układ zostają wspólne. */

@@ -41,6 +41,18 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    /* Dwa kanały dystrybucji. `github` to dotychczasowe wydanie z aktualizatorem,
+       `play` jest pozbawiony wszystkiego, czego zabrania regulamin sklepu:
+       uprawnienia REQUEST_INSTALL_PACKAGES (src/play/AndroidManifest.xml),
+       sprawdzania aktualizacji i odnośników do zbiórki (src/play/assets/public/
+       wariant.js). Rozdzielenie na warianty zamiast ręcznej edycji przed wysyłką:
+       pomyłka tutaj kończy się zdjęciem aplikacji ze sklepu. */
+    flavorDimensions "kanal"
+    productFlavors {
+        github { dimension "kanal" }
+        play   { dimension "kanal" }
+    }
+
     signingConfigs {
         release {
             if (keystoreProps.containsKey("storeFile")) {

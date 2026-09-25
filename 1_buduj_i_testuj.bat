@@ -108,6 +108,7 @@ copy /y "%REPO%\frontend\aircraft-photos.js" "%APP%\www\aircraft-photos.js" >nul
 copy /y "%REPO%\frontend\places.js" "%APP%\www\places.js" >nul
 rem 18.09.2026: kontur Polski i manifest byly pomijane - APK wozil stary ksztalt granicy (zgloszone przez sesje iOS)
 copy /y "%REPO%\frontend\pl-outline.js" "%APP%\www\pl-outline.js" >nul
+copy /y "%REPO%\frontend\wariant.js" "%APP%\www\wariant.js" >nul
 copy /y "%REPO%\frontend\manifest.json" "%APP%\www\manifest.json" >nul
 xcopy /e /y /q "%REPO%\frontend\assets" "%APP%\www\assets\" >nul
 pushd "%APP%"
@@ -131,7 +132,7 @@ if not "%BUILDERR%"=="0" (
   powershell -NoProfile -Command "Get-Content '%OUT%\4_gradle.txt' -Tail 40"
   goto :koniec
 )
-set "APK=%ANDROID%\app\build\outputs\apk\release\app-release.apk"
+set "APK=%ANDROID%\app\build\outputs\apk\github\release\app-github-release.apk"
 if not exist "%APK%" (
   echo   BLAD - nie ma pliku APK
   goto :koniec

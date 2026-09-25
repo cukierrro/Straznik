@@ -13,6 +13,9 @@ if (IS_APP) document.querySelectorAll(".web-only").forEach(el => { el.hidden = t
    brak linków do wsparcia autora (App Store 3.1.1a). Klasę ios-app ustawia
    index.html jeszcze przed pierwszym renderem. */
 const IS_IOS = IS_APP && window.Capacitor?.getPlatform?.() === "ios";
+/* Wydanie z Google Play nie może aktualizować się samo ani prowadzić do zbiórki
+   poza sklepem. Kanał ustawia wariant.js — patrz komentarz w tym pliku. */
+const SKLEP = window.STRAZNIK_KANAL === "play";
 const DEFAULT_BACKEND = "https://straznik.eu";   // serwer fuzji Strażnika (VPS przez Cloudflare)
 /* Starszy WebView (Android bez aktualizacji, 15.09.2026 audyt): AbortSignal.timeout
    jest od Chrome 103 — bez niego nie ładowały się strefy PAŻP ani dziennik ADS-B. */
@@ -3098,6 +3101,18 @@ function sigHTML(s) {
   // iść za językiem interfejsu — serwer zapisuje je po polsku, więc w wersji
   // angielskiej zostawały polskie. Cytaty ze źródeł (NEPTUN, RCB, media) zostają
   // w oryginale, bo to przytoczenie cudzej treści.
+  /* Alert RCB obowiązuje do odwołania, a odwołanie potrafi przyjść po godzinach
+     (24/25.09.2026: alert o 22:01, odwołanie ok. 05:00). Nasze sygnały dawno
+     wygasają i mapa wygląda spokojnie — ten wpis mówi wprost, że oficjalnie
+     alert nadal stoi. Zero punktów: Strażnik punktuje to, co widzi. */
+  if (s.event_type === "rcb_bez_odwolania") {
+    const od = new Date(d.od).toLocaleTimeString(UI.t("pl-PL", "en-GB", "uk-UA"),
+      { hour: "2-digit", minute: "2-digit" });
+    shownTitle = UI.t(
+      `Alert RCB z godz. ${od} nie został jeszcze odwołany`,
+      `The RCB alert issued at ${od} has not been cancelled yet`,
+      `Тривогу RCB, оголошену о ${od}, ще не скасовано`);
+  }
   if (s.event_type === "ua_alert_border" && d.oblast) {
     const ob = UI.t(UA_OBLAST_PL_UI[d.oblast] || d.oblast, UA_OBLAST_EN[d.oblast] || d.oblast,
                     `${d.oblast} область`);
@@ -4961,10 +4976,10 @@ async function refreshBgWarning() {
    wyszła nowsza wersja — inaczej użytkownik zostaje z wersją sprzed miesięcy,
    nieświadomy poprawek w czymś, co ma go ostrzegać.
 
-   UWAGA: gdyby aplikacja kiedyś trafiła do Google Play, to sprawdzanie trzeba
-   wyłączyć (UPDATE_CHECK = false) — regulamin sklepu zabrania aktualizowania
-   się z pominięciem Play. */
-const UPDATE_CHECK = true;
+   W wydaniu dla Google Play jest wyłączone: regulamin sklepu zabrania
+   aktualizowania się z pominięciem Play. Decyduje `wariant.js`, nie ręczna
+   edycja tej linii — patrz `scripts/test_wariant_sklepowy.cjs`. */
+const UPDATE_CHECK = !SKLEP;
 const UPDATE_API = DEFAULT_BACKEND + "/api/app-version";
 /* Sprawdzamy przy każdym uruchomieniu aplikacji i przy powrocie z tła, a nie
    raz na dobę: wydania wychodzą nieregularnie, a poprawka w narzędziu
