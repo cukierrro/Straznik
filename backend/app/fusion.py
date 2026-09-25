@@ -260,8 +260,12 @@ def rcb_nieodwolane(zdarzenia: list[dict], ref: datetime | None = None) -> dict[
             if ts > alerty.get(voiv, ts - timedelta(seconds=1)):
                 alerty[voiv] = ts
         elif typ == "rso_clear":
-            if ts > odwolania.get(voiv, ts - timedelta(seconds=1)):
-                odwolania[voiv] = ts
+            # Odwołanie ogólnokrajowe liczy się dla KAŻDEGO województwa — inaczej
+            # mówilibyśmy „nie odwołano" tam, gdzie RCB wysłało SMS o końcu
+            # zagrożenia, a RSO wpisało tylko jedno województwo.
+            for w in (config.VOIVODESHIPS if _clear_krajowe(z) else (voiv,)):
+                if ts > odwolania.get(w, ts - timedelta(seconds=1)):
+                    odwolania[w] = ts
     out: dict[str, dict] = {}
     for voiv, ts in alerty.items():
         if voiv in odwolania and odwolania[voiv] >= ts:
@@ -430,6 +434,22 @@ def _issued_at(s: dict) -> str:
     return _pl_local_to_utc((s.get("details") or {}).get("valid_from")) or s.get("ts", "")
 
 
+def _clear_krajowe(s: dict) -> bool:
+    """Czy to odwołanie mówi o CAŁEJ POLSCE, a nie o jednym województwie.
+
+    RSO tagguje taki komunikat jednym województwem, choć RCB rozsyła go do
+    wszystkich, które dostały alert. 24/25.09.2026 czytelniczka z Podkarpacia
+    pokazała SMS-y: alert o 21:45 i odwołanie o 05:35 — a RSO w obu wpisach
+    podało wyłącznie lubelskie. Bez tego alert wisiałby w województwie, w którym
+    RCB już ogłosiło koniec zagrożenia.
+    """
+    if s.get("event_type") != "rso_clear":
+        return False
+    d = s.get("details") or {}
+    t = _fold_text(f"{s.get('title', '')} {d.get('tresc', '')} {d.get('content', '')}")
+    return any(m in t for m in config.RSO_CLEAR_KRAJOWE)
+
+
 def _official_cleared(s: dict, rso_clears: dict[str, list[dict]]) -> bool:
     """Alert jest odwołany, gdy RSO odwołało TEN wpis (edycja w miejscu) albo
     województwo dostało odwołanie wydane po nim. Nowszy alert zostaje w mocy."""
@@ -550,8 +570,11 @@ def accumulate(signals: list[dict], ref: datetime | None = None) -> dict:
         if s.get("event_type") != "rso_clear" or not s.get("voivodeship"):
             continue
         d = s.get("details") or {}
-        rso_clears.setdefault(s["voivodeship"], []).append(
-            {"at": d.get("cleared_at") or s.get("ts", ""), "rso_id": str(d.get("rso_id") or "")})
+        wpis = {"at": d.get("cleared_at") or s.get("ts", ""), "rso_id": str(d.get("rso_id") or "")}
+        # Odwołanie ogólnokrajowe gasi alert wszędzie, nie tylko tam, gdzie RSO je wpisało.
+        gdzie = config.VOIVODESHIPS if _clear_krajowe(s) else (s["voivodeship"],)
+        for voiv in gdzie:
+            rso_clears.setdefault(voiv, []).append(dict(wpis))
     uncleared_officials: dict[str, list[str]] = {}
     for s in officials:
         if not _official_cleared(s, rso_clears):
@@ -845,7 +868,8 @@ def compute_state(signals: list[dict] | None = None, ref: datetime | None = None
             if st["alert_level"] == "high":
                 st["alert_level"] = "elevated"
         if live:
-            clear_at = _last_clear_ts([s for s in signals if s.get("voivodeship") == voiv])
+            clear_at = _last_clear_ts([s for s in signals
+                                       if s.get("voivodeship") == voiv or _clear_krajowe(s)])
             st["alert_level"] = hold_level(f"alert:{voiv}", st["alert_level"], now, clear_at)
             st["level"] = hold_level(f"map:{voiv}", st["level"], now, clear_at)
             if _ORDER.index(st["alert_level"]) > _ORDER.index(st["level"]):
