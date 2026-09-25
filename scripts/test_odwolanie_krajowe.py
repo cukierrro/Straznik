@@ -12,9 +12,19 @@ lubelskiego i o 05:42 dla podkarpackiego. Czyli RCB wysyła je wszystkim,
 tylko RSO rozbija to na osobne wpisy, czasem z opóźnieniem, a czasem
 (24/25.09) drugiego wpisu nie ma wcale.
 
-Ostrożność: odwołanie BEZ takiej treści („Odwołano zagrożenie atakiem
-z powietrza. Śledź komunikaty.", 13.09.2026) zostaje przypisane do swojego
-województwa — nie zgadujemy zasięgu tam, gdzie komunikat go nie podaje.
+Ostrożność NIE jest tu przesadą — 13.09.2026 pokazuje, że odwołania bywają
+naprawdę wojewódzkie. Tamtego dnia wpis RSO 23329799 (alert dla lubelskiego)
+został PRZEROBIONY W MIEJSCU na „UWAGA! UWAGA! UWAGA! Odwołano zagrożenie
+atakiem z powietrza. Śledź komunikaty." — i w tej samej chwili podkarpackie
+miało własny alert 23329800 ważny jeszcze przez półtorej godziny, a o 06:41
+dostało KOLEJNY (23329983). Rozesłanie tamtego odwołania po wszystkich
+województwach wyciszyłoby podkarpackie w trakcie trwającego alertu.
+
+Dlatego rozstrzyga TREŚĆ, a nie forma wpisu: „przerobiony alert" to nie to samo
+co „odwołanie wojewódzkie" — z czterech odwołań o treści ogólnokrajowej trzy
+też były przeróbkami pojedynczego wpisu (16.09 podkarpackie, 23.09 lubelskie).
+Gdyby kiedyś RCB napisało odwołanie ogólnokrajowe bez słów o Polsce, zgasimy
+tylko jedno województwo — czyli pomylimy się w bezpieczną stronę.
 
 Uruchomienie: python scripts/test_odwolanie_krajowe.py
 """
