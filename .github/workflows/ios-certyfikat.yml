@@ -34,7 +34,10 @@ jobs:
         run: |
           set -eo pipefail
           python3 -m venv "$RUNNER_TEMP/venv"
-          "$RUNNER_TEMP/venv/bin/pip" install --quiet pyjwt cryptography
+          # Wersje przypięte (audyt 26.09.2026): ten krok ma w zmiennych klucz
+          # App Store Connect, więc nie może pobierać „najnowszego, co akurat jest”.
+          # Te same wersje co w backend/requirements.lock — sprawdzone w bazie OSV.
+          "$RUNNER_TEMP/venv/bin/pip" install --quiet "PyJWT==2.13.0" "cryptography==50.0.0"
           printf '%s' "$KEY_P8" | base64 --decode > "$RUNNER_TEMP/asc.p8"
           chmod 600 "$RUNNER_TEMP/asc.p8"
           "$RUNNER_TEMP/venv/bin/python" - <<'PY'

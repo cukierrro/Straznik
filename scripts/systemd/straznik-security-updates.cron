@@ -1,0 +1,14 @@
+# Strażnik (ruth121) — codzienne poprawki bezpieczeństwa, audyt 26.09.2026.
+# Na VPS: /etc/cron.d/straznik-security-updates (właściciel root, prawa 644).
+#
+# Mikrus ma w obrazie zamaskowane unattended-upgrades.service i timery apt-daily —
+# nie odblokowujemy tego, co dostawca świadomie wyłączył, tylko wołamy
+# unattended-upgrade z crona. Instaluje wyłącznie źródła bezpieczeństwa Ubuntu
+# (domyślne Allowed-Origins), bez restartu maszyny.
+# Usługi systemowe restartuje po nim needrestart, ale Strażnik jest z tego
+# WYŁĄCZONY (/etc/needrestart/conf.d/straznik.conf): łatka biblioteki o 3:30
+# nie może przerwać toru alarmu. Strażnik dostaje nowe biblioteki przy
+# najbliższym wdrożeniu.
+SHELL=/bin/sh
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+30 3 * * * root flock -n /run/straznik-security-updates.lock sh -c 'apt-get update -qq && DEBIAN_FRONTEND=noninteractive unattended-upgrade' >>/var/log/straznik-security-updates.log 2>&1
