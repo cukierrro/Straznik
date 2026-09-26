@@ -149,7 +149,7 @@ final class WidgetMap {
            zjeżdżanie Polski w bok). Ziemia to płaszczyzna oglądana z góry pod
            kątem: to, co dalej, jest mniejsze i bliżej horyzontu. `dBlisko` i
            `dDaleko` to odległości do dolnej i górnej krawędzi kadru. */
-        private static final float D_BLISKO = 1f, D_DALEKO = 2.15f;
+        private static final float D_BLISKO = 1f, D_DALEKO = 1.7f;
         private float staleC, horyzont;
 
         void przygotuj() {
@@ -200,10 +200,12 @@ final class WidgetMap {
         double cos = Math.cos(Math.toRadians((k.lat0 + k.lat1) / 2));
         double rozpietosc = (k.lat1 - k.lat0) * ((double) w / h) / cos;
         if (przechylona) {
-            // przy przechyleniu dolna krawędź jest bliżej, więc obejmuje mniej terenu;
-            // poszerzamy kadr, żeby Polska nie wyszła poza kafelek
-            rozpietosc *= 1.35;
-            k.lat0 -= (k.lat1 - k.lat0) * 0.10;
+            // Przy przechyleniu dół kafelka jest bliżej (obejmuje mniej terenu), a góra
+            // ucieka do horyzontu. Żeby Polska nie wylądowała w ściśniętej górnej części,
+            // przesuwamy okno na północ i lekko je poszerzamy.
+            rozpietosc *= 1.2;
+            k.lat0 += 0.7; k.lat1 += 1.1;
+            cel += 0.05;            // Polska odrobinę dalej od panelu
         }
         k.lon0 = srodekLon - rozpietosc * cel;
         k.lon1 = k.lon0 + rozpietosc;
