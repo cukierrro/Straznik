@@ -2002,6 +2002,13 @@
     </div>`;
   }
 
+  // data zbioru PSP w zapisie 21.09.2026 — cyfry są takie same we wszystkich trzech językach
+  function dataDanych() {
+    const d = S.meta?.data_danych || "";
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d);
+    return m ? `${m[3]}.${m[2]}.${m[1]}` : d;
+  }
+
   function viewZasady() {
     const ids = Object.keys(C.RULES);
     return `<div class="row view-head"><h2 class="grow">${T("Zasady Groty")}</h2>
@@ -2031,6 +2038,10 @@
       <p>${T("Miejsca, notatki, nagrane trasy i ustawienia zapisują się <b>tylko w pamięci tego urządzenia</b>. Autor aplikacji ich nie widzi i nigdzie nie wysyła.")} ${NA_IOS ? T("Kopia zapasowa iCloud może przenieść je na Twoje konto Apple.") : T("Kopia zapasowa Androida może przenieść je na Twoje konto Google.")}</p>
       <p>${T("Co opuszcza telefon i kiedy: wpisany adres trafia do wyszukiwarki GUGiK; przy wyznaczaniu trasy Twoja pozycja i cel idą do serwera tras FOSSGIS; współrzędne punktu do usługi zdjęć GUGiK; oglądany fragment mapy do OpenFreeMap; po naciśnięciu „Prowadź” albo „Street View” — do Google. Bez tych czynności nic nie wychodzi z telefonu.")}</p>
 
+      <h3>${T("Z kiedy są punkty")}</h3>
+      <p>${T("Punkty schronienia pochodzą z publicznego wykazu Komendy Głównej PSP — <b>stan na {data}</b>. W tej wersji aplikacji jest ich {ile}; wykaz jest wpisany w aplikację i działa bez internetu.", {
+        data: esc(dataDanych()), ile: J.liczba(S.points.length) })}</p>
+      <p>${T("Wykaz się zmienia: obiekty dochodzą, znikają, dostają poprawione współrzędne. Grota nie dociąga go w tle — nowszy wykaz dostajesz razem z aktualizacją aplikacji. Jeśli data powyżej jest stara, sprawdź, czy nie ma nowszej wersji Groty.")}</p>
       <h3>${T("Ograniczenia danych")}</h3>
       <p>${T("Publiczny zbiór PSP nie podaje rodzaju obiektu, liczby miejsc ani tego, czy obiekt jest teraz otwarty. „Na żądanie” oznacza, że ktoś musi go otworzyć.")}</p>
       <p>${T("Położenie sprawdzamy automatycznie: czy punkt stoi na budynku, czy zgadza się z adresem, czy leży we właściwej gminie i województwie. Punkty wątpliwe (czerwona obwódka) nie są polecane jako pierwsze; „do sprawdzenia” (żółta) to drobniejsze rozbieżności. To nie jest kontrola obiektu przez urząd.")}</p>
