@@ -6,6 +6,13 @@
 
 Serwer: **hostowane na [Mikrusie](https://mikr.us)** — dziękujemy za wsparcie projektu.
 
+Wersja 1.7.80: alert RCB wysłany do kilku województw naraz przepadał bez śladu —
+listę odbiorców rozpoznawaliśmy po jednej formie słowa, a RCB używa innej właśnie
+przy kilku województwach. Alert wiszący godzinami bez odwołania jest teraz widoczny
+wprost (bez punktów), odwołanie „brak zagrożenia na terenie Polski” gasi wszystkie
+województwa, pozycja z MLAT nie udaje ADS-B, a wykaz punktów schronienia jest ze
+stanu z 21 września (86 388 miejsc). Szczegóły: `docs/RELEASE_1.7.80.md`.
+
 Wersja 1.7.79: odwołanie alarmu przez RCB nie jest już liczone jako alarm, a kolor
 województwa w historii bierze się z poziomu alarmu, nie z samych punktów. Pierwsze
 wydanie cięte z jednego commita dla Androida i iPhone'a. Szczegóły: `docs/RELEASE_1.7.79.md`.
@@ -62,11 +69,6 @@ nic nie nagrywa, więc po powrocie dociąga brakujący okres z serwera. Szczegó
 Wersja 1.7.61: poprawki zgłoszone z telefonów po 1.7.60 — w historii zamiast ikony obiektu
 potrafił pojawić się pełny żółty krążek, bo migawki nie zapisywały wieku meldunku.
 Szczegóły: `docs/RELEASE_1.7.61.md`.
-
-Wersja 1.7.60: widać, jak stary jest meldunek — wiek pod ikoną po pięciu minutach, ikony
-blednące z upływem godziny i linia „ostatni meldunek” na karcie obiektu. NEPTUN zbiera
-zgłoszenia ludzi, nie odczyty radaru, więc nieruchoma ikona oznacza brak nowych zgłoszeń,
-a nie zawieszoną mapę. Szczegóły: `docs/RELEASE_1.7.60.md`.
 
 Notatki wszystkich wcześniejszych wydań leżą w katalogu [`docs/`](docs) jako pliki
 `RELEASE_*.md`.

@@ -39,6 +39,30 @@
   <p class="fineprint">Wersję zainstalowaną na telefonie sprawdzisz w aplikacji: <kbd>⚙</kbd> → zakładka <kbd>Aplikacja</kbd> → „Wersja aplikacji”. Tam też jest przycisk <kbd>⬆ Sprawdź aktualizacje</kbd>.</p>
 </div></header>
 <main id="content" class="wrap">
+<section id="v1-7-80">
+  <h2>1.7.80 — Alert RCB dla kilku województw już nie przepada</h2>
+  <p class="fineprint">Wydanie 1.7.80 · 26 września 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.80">Pełny opis wydania</a></p>
+  <ul>
+    <li>Alert RCB wysłany do kilku województw naraz przepadał bez śladu i nie dawał punktów żadnemu z nich. Powód: listę odbiorców rozpoznawaliśmy po słowie „wysłany”, a RCB przy kilku województwach pisze „zostały wysłane”.</li>
+    <li>Gdy alert RCB wisi godzinami bez odwołania, Strażnik mówi to wprost zamiast pokazywać spokojną mapę. Taki wpis nie dodaje punktów i znika po dwunastu godzinach.</li>
+    <li>Odwołanie o treści „brak zagrożenia na terenie Polski” gasi alert we wszystkich województwach, a nie tylko w tym jednym, które podało RSO.</li>
+    <li>Pozycja policzona przez naziemne odbiorniki (MLAT) nie jest już podawana za ADS-B, a ikona maszyny nie przeskakuje kilkudziesięciu kilometrów i nie wraca.</li>
+    <li>Schronienie: wykaz punktów PSP zaktualizowany do stanu z 21 września — 86 388 miejsc. Zasady mówią teraz, z kiedy są dane i że wykaz nie dociąga się w tle.</li>
+    <li>Schronienie: doszły zasady z rządowej „Instrukcji reagowania” i lista tego, co sprawdzić, zanim schowasz się w piwnicy albo garażu.</li>
+    <li>Podgląd zmiany języka w ustawieniach obejmuje wreszcie sekcję „Mapa: trasy obiektów”.</li>
+  </ul>
+</section>
+<section id="v1-7-79">
+  <h2>1.7.79 — Odwołanie alarmu nie punktuje jak alarm</h2>
+  <p class="fineprint">Wydanie 1.7.79 · 24 września 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.79">Pełny opis wydania</a></p>
+  <ul>
+    <li>Odwołanie alarmu przez RCB nie jest już liczone jako alarm. Zdarzyło się to dwa razy 24 września.</li>
+    <li>Kolor województwa w historii bierze się z poziomu alarmu, a nie z samych punktów — czerwony pokazuje się tylko tam, gdzie alarm naprawdę był czerwony.</li>
+    <li>Okno „co się zmieniło” pokazuje całą listę zmian zamiast jednego urwanego punktu.</li>
+    <li>Opis źródeł danych o samolotach mówi teraz, skąd naprawdę pochodzą.</li>
+    <li>Na iPhonie syrena gra przy otwartej aplikacji także wtedy, gdy dzwonek jest wyciszony przełącznikiem.</li>
+  </ul>
+</section>
 <section id="v1-7-78">
   <h2>1.7.78 — Cichszy żółty sygnał i alert RCB czytany z treści</h2>
   <p class="fineprint">Wydanie 1.7.78 · 24 września 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.78">Pełny opis wydania</a></p>
