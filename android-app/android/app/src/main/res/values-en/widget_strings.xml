@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- English widget texts. Wording follows the app's English UI: the widget shows
+     state, the siren notification is the alarm. -->
+<resources>
+    <string name="widget_small_label">Strażnik — my province</string>
+    <string name="widget_wide_label">Strażnik — watched provinces</string>
+    <string name="widget_small_desc">State of the first watched province. Unofficial source. The widget does not alert — the notification with the siren does.</string>
+    <string name="widget_wide_desc">Up to three watched provinces and the nearest object heading for Poland. Unofficial source. The widget does not alert — the notification with the siren does.</string>
+    <string name="widget_wide_title">Strażnik · watched</string>
+    <string name="widget_map_wide_label">Strażnik — map (wide)</string>
+    <string name="widget_map_tall_label">Strażnik — map (large)</string>
+    <string name="widget_map_wide_desc">Map with province levels and objects heading for Poland, next to the list of watched ones. Unofficial source. The widget does not alert — the notification with the siren does.</string>
+    <string name="widget_map_tall_desc">Larger map with province levels, alerts in Ukrainian oblasts and objects. Unofficial source. The widget does not alert — the notification with the siren does.</string>
+
+    <string name="widget_loading">loading…</string>
+    <string name="widget_pts">pts</string>
+    <string name="widget_foot">Unofficial source · the widget does not alert, the notification does</string>
+    <string name="widget_foot_short">Unofficial source · the widget does not alert</string>
+    <string name="widget_stale">Data from %1$s — may be out of date. Open the app.</string>
+    <string name="widget_zoom">zoomed in</string>
+
+    <string name="widget_no_places">No places</string>
+    <string name="widget_no_places_wide">No watched provinces</string>
+    <string name="widget_no_places_hint">Tap and add a place with “Watch alerts”</string>
+    <string name="widget_tap_to_choose">Tap to choose your places</string>
+
+    <string name="widget_level_none">no signals</string>
+    <string name="widget_level_below">below threshold</string>
+    <string name="widget_level_elevated">ELEVATED ATTENTION</string>
+    <string name="widget_level_high">HIGH PRIORITY</string>
+    <string name="widget_level_spill">from neighbours · no alert</string>
+    <string name="widget_level_nodata">no data</string>
+    <string name="widget_level_none_short">calm</string>
+    <string name="widget_level_elevated_short">ELEVATED</string>
+    <string name="widget_level_high_short">HIGH</string>
+    <string name="widget_level_spill_short">from neighbours</string>
+
+    <string name="widget_nearest">Nearest: %1$s · %2$d km from the border</string>
+    <string name="widget_nearest_voiv">Nearest: %1$s · %2$d km from the border (%3$s)</string>
+    <string name="widget_nearest_over_pl">Nearest: %1$s · over Poland</string>
+    <string name="widget_none_within">No object is closer than %1$d km from the border</string>
+
+    <string name="widget_type_shahed">Shahed drone</string>
+    <string name="widget_type_uav">drone</string>
+    <string name="widget_type_fpv">FPV drone</string>
+    <string name="widget_type_recon">reconnaissance drone</string>
+    <string name="widget_type_missile">cruise missile</string>
+    <string name="widget_type_ballistic">ballistic missile</string>
+    <string name="widget_type_kab">KAB guided bomb</string>
+    <string name="widget_type_mig31k">MiG-31K</string>
+    <string name="widget_type_unknown">air object</string>
+</resources>

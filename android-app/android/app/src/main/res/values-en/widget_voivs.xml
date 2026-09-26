@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Province names in the order of Alarms.VOIVS, matching the app's English UI. -->
+<resources>
+    <string-array name="widget_voivs">
+        <item>Lublin</item>
+        <item>Subcarpathian</item>
+        <item>Podlaskie</item>
+        <item>Masovian</item>
+        <item>Świętokrzyskie</item>
+        <item>Lesser Poland</item>
+        <item>Warmian-Masurian</item>
+        <item>Łódź</item>
+        <item>Silesian</item>
+        <item>Kuyavian-Pomeranian</item>
+        <item>Pomeranian</item>
+        <item>West Pomeranian</item>
+        <item>Lubusz</item>
+        <item>Greater Poland</item>
+        <item>Lower Silesian</item>
+        <item>Opole</item>
+    </string-array>
+</resources>

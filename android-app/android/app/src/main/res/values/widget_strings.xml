@@ -1,15 +1,53 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Teksty widżetu. Polski jest domyślny (values/), angielski w values-en,
+     ukraiński w values-uk. Widżet NIE idzie za językiem systemu — bierze język
+     wybrany w aplikacji, którą podaje BackgroundPlugin.setMapView (Widgets.jezyk). -->
 <resources>
     <string name="widget_small_label">Strażnik — moje województwo</string>
     <string name="widget_wide_label">Strażnik — obserwowane województwa</string>
     <string name="widget_small_desc">Stan pierwszego obserwowanego województwa. Nieoficjalne źródło. Widżet nie alarmuje — ostrzega powiadomienie z syreną.</string>
     <string name="widget_wide_desc">Do trzech obserwowanych województw i najbliższy obiekt lecący w stronę Polski. Nieoficjalne źródło. Widżet nie alarmuje — ostrzega powiadomienie z syreną.</string>
     <string name="widget_wide_title">Strażnik · obserwowane</string>
-    <string name="widget_loading">ładowanie…</string>
-    <string name="widget_pts">pkt</string>
-    <string name="widget_foot">Źródło nieoficjalne · widżet nie alarmuje, ostrzega powiadomienie</string>
     <string name="widget_map_wide_label">Strażnik — mapa (szeroki)</string>
     <string name="widget_map_tall_label">Strażnik — mapa (duża)</string>
     <string name="widget_map_wide_desc">Mapa z poziomami województw i obiektami lecącymi w stronę Polski, obok lista obserwowanych. Nieoficjalne źródło. Widżet nie alarmuje — ostrzega powiadomienie z syreną.</string>
     <string name="widget_map_tall_desc">Większa mapa z poziomami województw, alarmami w obwodach Ukrainy i obiektami. Nieoficjalne źródło. Widżet nie alarmuje — ostrzega powiadomienie z syreną.</string>
+
+    <string name="widget_loading">ładowanie…</string>
+    <string name="widget_pts">pkt</string>
+    <string name="widget_foot">Źródło nieoficjalne · widżet nie alarmuje, ostrzega powiadomienie</string>
+    <string name="widget_foot_short">Źródło nieoficjalne · widżet nie alarmuje</string>
+    <string name="widget_stale">Dane z %1$s — mogą być nieaktualne. Otwórz aplikację.</string>
+    <string name="widget_zoom">zbliżenie</string>
+
+    <string name="widget_no_places">Brak miejsc</string>
+    <string name="widget_no_places_wide">Brak obserwowanych województw</string>
+    <string name="widget_no_places_hint">Dotknij i dodaj miejsce z „Obserwuj alerty”</string>
+    <string name="widget_tap_to_choose">Dotknij, żeby wybrać miejsca</string>
+
+    <string name="widget_level_none">brak sygnałów</string>
+    <string name="widget_level_below">poniżej progu</string>
+    <string name="widget_level_elevated">PODWYŻSZONA UWAGA</string>
+    <string name="widget_level_high">WYSOKI PRIORYTET</string>
+    <string name="widget_level_spill">od sąsiadów · bez alarmu</string>
+    <string name="widget_level_nodata">brak danych</string>
+    <string name="widget_level_none_short">spokój</string>
+    <string name="widget_level_elevated_short">PODWYŻSZONA</string>
+    <string name="widget_level_high_short">WYSOKI</string>
+    <string name="widget_level_spill_short">od sąsiadów</string>
+
+    <string name="widget_nearest">Najbliżej: %1$s · %2$d km od granicy</string>
+    <string name="widget_nearest_voiv">Najbliżej: %1$s · %2$d km od granicy (%3$s)</string>
+    <string name="widget_nearest_over_pl">Najbliżej: %1$s · nad Polską</string>
+    <string name="widget_none_within">Żaden obiekt nie jest bliżej niż %1$d km od granicy</string>
+
+    <string name="widget_type_shahed">dron typu Shahed</string>
+    <string name="widget_type_uav">dron</string>
+    <string name="widget_type_fpv">dron FPV</string>
+    <string name="widget_type_recon">dron rozpoznawczy</string>
+    <string name="widget_type_missile">rakieta manewrująca</string>
+    <string name="widget_type_ballistic">rakieta balistyczna</string>
+    <string name="widget_type_kab">bomba KAB</string>
+    <string name="widget_type_mig31k">MiG-31K</string>
+    <string name="widget_type_unknown">obiekt powietrzny</string>
 </resources>

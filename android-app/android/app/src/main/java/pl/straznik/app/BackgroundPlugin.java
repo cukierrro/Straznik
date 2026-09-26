@@ -132,7 +132,11 @@ public class BackgroundPlugin extends Plugin {
     @PluginMethod
     public void setMapView(PluginCall call) {
         boolean trzyD = Boolean.TRUE.equals(call.getBoolean("is3d", true));
-        Alarms.prefs(getContext()).edit().putBoolean(Alarms.KEY_MAP_3D, trzyD).apply();
+        String jezyk = call.getString("lang", "pl");
+        if (!"en".equals(jezyk) && !"uk".equals(jezyk)) jezyk = "pl";
+        Alarms.prefs(getContext()).edit()
+            .putBoolean(Alarms.KEY_MAP_3D, trzyD)
+            .putString(Alarms.KEY_LANG, jezyk).apply();
         if (Widgets.anyPlaced(getContext())) Widgets.redrawAll(getContext());
         call.resolve();
     }

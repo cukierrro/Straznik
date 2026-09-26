@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Nazwy województw w kolejności Alarms.VOIVS. Widżet bierze je po indeksie,
+     więc kolejność MUSI się zgadzać z tą listą (i z config.VOIVODESHIPS). -->
+<resources>
+    <string-array name="widget_voivs">
+        <item>lubelskie</item>
+        <item>podkarpackie</item>
+        <item>podlaskie</item>
+        <item>mazowieckie</item>
+        <item>świętokrzyskie</item>
+        <item>małopolskie</item>
+        <item>warmińsko-mazurskie</item>
+        <item>łódzkie</item>
+        <item>śląskie</item>
+        <item>kujawsko-pomorskie</item>
+        <item>pomorskie</item>
+        <item>zachodniopomorskie</item>
+        <item>lubuskie</item>
+        <item>wielkopolskie</item>
+        <item>dolnośląskie</item>
+        <item>opolskie</item>
+    </string-array>
+</resources>

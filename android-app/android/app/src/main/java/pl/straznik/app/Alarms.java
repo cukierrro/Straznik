@@ -67,6 +67,8 @@ class Alarms {
     private static final String KEY_SAVED_VOLUME = "saved_alarm_volume";
     /** Widok mapy wybrany w aplikacji (3D = przechylona) — widżet rysuje tak samo. */
     static final String KEY_MAP_3D = "map_3d";
+    /** Język wybrany w aplikacji (pl/en/uk) — widżet pisze nim, nie językiem systemu. */
+    static final String KEY_LANG = "app_lang";
 
     /**
      * Wszystkie 16 województw — ta sama lista i kolejność co config.VOIVODESHIPS

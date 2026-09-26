@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Українські тексти віджета. Формулювання як в українському інтерфейсі застосунку:
+     віджет показує стан, тривогу подає сповіщення із сиреною. -->
+<resources>
+    <string name="widget_small_label">Strażnik — моє воєводство</string>
+    <string name="widget_wide_label">Strażnik — воєводства, за якими стежите</string>
+    <string name="widget_small_desc">Стан першого воєводства, за яким стежите. Неофіційне джерело. Віджет не подає тривогу — це робить сповіщення із сиреною.</string>
+    <string name="widget_wide_desc">До трьох воєводств, за якими стежите, і найближчий об’єкт, що прямує до Польщі. Неофіційне джерело. Віджет не подає тривогу — це робить сповіщення із сиреною.</string>
+    <string name="widget_wide_title">Strażnik · стежу</string>
+    <string name="widget_map_wide_label">Strażnik — мапа (широка)</string>
+    <string name="widget_map_tall_label">Strażnik — мапа (велика)</string>
+    <string name="widget_map_wide_desc">Мапа з рівнями воєводств і об’єктами, що прямують до Польщі, поруч список воєводств, за якими стежите. Неофіційне джерело. Віджет не подає тривогу — це робить сповіщення із сиреною.</string>
+    <string name="widget_map_tall_desc">Більша мапа з рівнями воєводств, тривогами в областях України та об’єктами. Неофіційне джерело. Віджет не подає тривогу — це робить сповіщення із сиреною.</string>
+
+    <string name="widget_loading">завантаження…</string>
+    <string name="widget_pts">б.</string>
+    <string name="widget_foot">Неофіційне джерело · віджет не подає тривогу, це робить сповіщення</string>
+    <string name="widget_foot_short">Неофіційне джерело · віджет не подає тривогу</string>
+    <string name="widget_stale">Дані від %1$s — можуть бути застарілі. Відкрийте застосунок.</string>
+    <string name="widget_zoom">наближення</string>
+
+    <string name="widget_no_places">Немає місць</string>
+    <string name="widget_no_places_wide">Немає воєводств, за якими стежите</string>
+    <string name="widget_no_places_hint">Торкніться й додайте місце з «Стежити за тривогами»</string>
+    <string name="widget_tap_to_choose">Торкніться, щоб обрати місця</string>
+
+    <string name="widget_level_none">немає сигналів</string>
+    <string name="widget_level_below">нижче порогу</string>
+    <string name="widget_level_elevated">ПІДВИЩЕНА УВАГА</string>
+    <string name="widget_level_high">ВИСОКИЙ ПРІОРИТЕТ</string>
+    <string name="widget_level_spill">від сусідів · без тривоги</string>
+    <string name="widget_level_nodata">немає даних</string>
+    <string name="widget_level_none_short">спокійно</string>
+    <string name="widget_level_elevated_short">ПІДВИЩЕНА</string>
+    <string name="widget_level_high_short">ВИСОКИЙ</string>
+    <string name="widget_level_spill_short">від сусідів</string>
+
+    <string name="widget_nearest">Найближче: %1$s · %2$d км від кордону</string>
+    <string name="widget_nearest_voiv">Найближче: %1$s · %2$d км від кордону (%3$s)</string>
+    <string name="widget_nearest_over_pl">Найближче: %1$s · над Польщею</string>
+    <string name="widget_none_within">Жоден об’єкт не ближче ніж %1$d км від кордону</string>
+
+    <string name="widget_type_shahed">дрон типу Shahed</string>
+    <string name="widget_type_uav">дрон</string>
+    <string name="widget_type_fpv">FPV-дрон</string>
+    <string name="widget_type_recon">розвідувальний дрон</string>
+    <string name="widget_type_missile">крилата ракета</string>
+    <string name="widget_type_ballistic">балістична ракета</string>
+    <string name="widget_type_kab">КАБ</string>
+    <string name="widget_type_mig31k">MiG-31K</string>
+    <string name="widget_type_unknown">повітряний об’єкт</string>
+</resources>

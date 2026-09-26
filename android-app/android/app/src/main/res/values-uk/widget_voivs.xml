@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Назви воєводств у порядку Alarms.VOIVS, як в українському інтерфейсі застосунку. -->
+<resources>
+    <string-array name="widget_voivs">
+        <item>Люблінське</item>
+        <item>Підкарпатське</item>
+        <item>Підляське</item>
+        <item>Мазовецьке</item>
+        <item>Свентокшиське</item>
+        <item>Малопольське</item>
+        <item>Вармінсько-Мазурське</item>
+        <item>Лодзьке</item>
+        <item>Сілезьке</item>
+        <item>Куявсько-Поморське</item>
+        <item>Поморське</item>
+        <item>Західнопоморське</item>
+        <item>Любуське</item>
+        <item>Великопольське</item>
+        <item>Нижньосілезьке</item>
+        <item>Опольське</item>
+    </string-array>
+</resources>

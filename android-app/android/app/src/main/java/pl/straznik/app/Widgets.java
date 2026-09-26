@@ -60,8 +60,6 @@ final class Widgets {
     static final int MAX_OBIEKTOW = 60;
     static final int JOB_ID = 0x5717;
     static final long PERIOD_MS = 30 * 60 * 1000L;
-    static final String NO_WATCHED_HINT =
-        "Dotknij i dodaj miejsce z „Obserwuj alerty”";
 
     // pamięć dostępna przed pierwszym odblokowaniem — push po nocnym restarcie też odświeża widżet
     private static final String KEY_STATE = "widget_state";
@@ -256,10 +254,14 @@ final class Widgets {
         return out;
     }
 
-    /** Najbliższy obiekt z NEPTUN-a lecący w stronę Polski, liczony od granicy (jak serwer). */
-    static String nearest(JSONObject neptun) {
+    /**
+     * Najbliższy obiekt z NEPTUN-a lecący w stronę Polski, liczony od granicy (jak serwer).
+     * Zwraca dane, nie gotowy napis: język bierze się z aplikacji i może się zmienić
+     * między pobraniem stanu a narysowaniem kafelka.
+     */
+    static JSONObject nearest(JSONObject neptun) throws org.json.JSONException {
         JSONArray threats = neptun == null ? null : neptun.optJSONArray("threats");
-        if (threats == null) return "";
+        if (threats == null) return null;
         JSONObject best = null;
         double bestKm = Double.MAX_VALUE;
         for (int i = 0; i < threats.length(); i++) {
@@ -275,26 +277,37 @@ final class Widgets {
             best = t;
             bestKm = km;
         }
-        if (best == null) return "";
+        if (best == null) return null;
         JSONObject a = best.optJSONObject("pl_assessment");
-        String what = typeLabel(best.optString("type", "unknown"));
-        if (bestKm <= 0) return "Najbliżej: " + what + " · nad Polską";
-        String voiv = a == null ? "" : a.optString("border_voiv", "");
-        return "Najbliżej: " + what + " · " + Math.round(bestKm) + " km od granicy"
-            + (voiv.isEmpty() ? "" : " (" + voiv + ")");
+        JSONObject out = new JSONObject();
+        out.put("t", best.optString("type", "unknown"));
+        out.put("km", (int) Math.round(bestKm));
+        if (a != null) out.put("v", a.optString("border_voiv", ""));
+        return out;
     }
 
-    static String typeLabel(String type) {
-        switch (type) {
-            case "shahed": return "dron typu Shahed";
-            case "uav": return "dron";
-            case "fpv": return "dron FPV";
-            case "recon": return "dron rozpoznawczy";
-            case "missile": case "cruise": return "rakieta manewrująca";
-            case "ballistic": return "rakieta balistyczna";
-            case "kab": return "bomba KAB";
-            case "mig31k": return "MiG-31K";
-            default: return "obiekt powietrzny";
+    /** Linijka „Najbliżej…" w języku aplikacji albo informacja, że nic nie jest blisko. */
+    static String tekstNajblizszego(Context t, JSONObject near) {
+        if (near == null) return t.getString(R.string.widget_none_within, (int) NEAR_MAX_KM);
+        String co = t.getString(typeLabel(near.optString("t", "")));
+        int km = near.optInt("km", -1);
+        if (km <= 0) return t.getString(R.string.widget_nearest_over_pl, co);
+        String voiv = near.optString("v", "");
+        return voiv.isEmpty() ? t.getString(R.string.widget_nearest, co, km)
+            : t.getString(R.string.widget_nearest_voiv, co, km, nazwaWoj(t, voiv));
+    }
+
+    static int typeLabel(String type) {
+        switch (type == null ? "" : type) {
+            case "shahed": return R.string.widget_type_shahed;
+            case "uav": return R.string.widget_type_uav;
+            case "fpv": return R.string.widget_type_fpv;
+            case "recon": return R.string.widget_type_recon;
+            case "missile": case "cruise": return R.string.widget_type_missile;
+            case "ballistic": return R.string.widget_type_ballistic;
+            case "kab": return R.string.widget_type_kab;
+            case "mig31k": return R.string.widget_type_mig31k;
+            default: return R.string.widget_type_unknown;
         }
     }
 
@@ -376,9 +389,10 @@ final class Widgets {
         for (int id : ids(c, StraznikWidgetMapTall.class)) m.updateAppWidget(id, buildMap(c, m, id));
     }
 
-    /** Widok stanu jednego województwa. */
+    /** Widok stanu jednego województwa. Teksty jako zasoby — widżet mówi językiem aplikacji. */
     static final class Row {
-        String name, label, points;
+        String name, points;
+        int labelRes, shortRes;
         int tone;       // 0 zielony, 1 żółty, 2 czerwony, 3 od sąsiadów, 4 nieaktualne
     }
 
@@ -389,12 +403,19 @@ final class Widgets {
         r.points = String.format(new Locale("pl", "PL"), "%.1f", score);
         String alert = v == null ? "none" : v.optString("alert", "none");
         String level = v == null ? "none" : v.optString("level", "none");
-        if (v == null) { r.tone = 4; r.label = "brak danych"; r.points = "–"; }
-        else if ("high".equals(alert)) { r.tone = 2; r.label = "WYSOKI PRIORYTET"; }
-        else if ("elevated".equals(alert)) { r.tone = 1; r.label = "PODWYŻSZONA UWAGA"; }
-        else if (rank(level) > 0) { r.tone = 3; r.label = "od sąsiadów · bez alarmu"; }
-        else if (score > 0) { r.tone = 0; r.label = "poniżej progu"; }
-        else { r.tone = 0; r.label = "brak sygnałów"; }
+        if (v == null) {
+            r.tone = 4; r.labelRes = R.string.widget_level_nodata; r.shortRes = r.labelRes; r.points = "–";
+        } else if ("high".equals(alert)) {
+            r.tone = 2; r.labelRes = R.string.widget_level_high; r.shortRes = R.string.widget_level_high_short;
+        } else if ("elevated".equals(alert)) {
+            r.tone = 1; r.labelRes = R.string.widget_level_elevated; r.shortRes = R.string.widget_level_elevated_short;
+        } else if (rank(level) > 0) {
+            r.tone = 3; r.labelRes = R.string.widget_level_spill; r.shortRes = R.string.widget_level_spill_short;
+        } else if (score > 0) {
+            r.tone = 0; r.labelRes = R.string.widget_level_below; r.shortRes = r.labelRes;
+        } else {
+            r.tone = 0; r.labelRes = R.string.widget_level_none; r.shortRes = R.string.widget_level_none_short;
+        }
         if (stale && v != null) r.tone = 4;
         return r;
     }
@@ -405,6 +426,33 @@ final class Widgets {
     /** Kolory etykiet na ciemnej mapie (inne niż na jasnym kafelku 2×2). */
     private static final int[] MAP_LABEL_COLOR = {R.color.widget_map_muted, R.color.widget_map_elevated,
         R.color.widget_map_high, R.color.widget_map_spill, R.color.widget_map_muted};
+
+    /**
+     * Kontekst z językiem wybranym w aplikacji. Widżet NIE idzie za językiem systemu:
+     * Strażnik ma własny przełącznik (pl/en/uk), a język trafia tu przez
+     * BackgroundPlugin.setMapView razem z widokiem 2D/3D.
+     */
+    static Context teksty(Context c) {
+        String jezyk = "pl";
+        try { jezyk = Alarms.prefs(c).getString(Alarms.KEY_LANG, "pl"); } catch (Exception ignored) {}
+        // Także dla polskiego wymuszamy lokalizację: bez tego na telefonie z angielskim
+        // systemem kafelek brał values-en, choć aplikacja jest po polsku (Pixel 7, 27.09.2026).
+        android.content.res.Configuration cfg =
+            new android.content.res.Configuration(c.getResources().getConfiguration());
+        cfg.setLocale(new Locale(jezyk));
+        return c.createConfigurationContext(cfg);
+    }
+
+    /** Nazwa województwa w języku aplikacji — po indeksie w Alarms.VOIVS. */
+    static String nazwaWoj(Context t, String kanoniczna) {
+        for (int i = 0; i < Alarms.VOIVS.length; i++) {
+            if (Alarms.VOIVS[i].equals(kanoniczna)) {
+                String[] nazwy = t.getResources().getStringArray(R.array.widget_voivs);
+                if (i < nazwy.length) return nazwy[i];
+            }
+        }
+        return kanoniczna;
+    }
 
     /** Ostatni zapisany stan albo null, gdy nic jeszcze nie pobrano. */
     static JSONObject zapisanyStan(Context c) {
@@ -444,6 +492,7 @@ final class Widgets {
         RemoteViews rv = new RemoteViews(c.getPackageName(), R.layout.widget_small_map);
         rv.setOnClickPendingIntent(R.id.w_root, openApp(c));
 
+        Context t = teksty(c);
         JSONObject st = zapisanyStan(c);
         long ts = st == null ? 0 : st.optLong("ts", 0);
         boolean stale = ts > 0 && System.currentTimeMillis() - ts > STALE_AFTER_MS;
@@ -469,24 +518,24 @@ final class Widgets {
         if (mapa != null) rv.setImageViewBitmap(R.id.w_map, mapa);
 
         rv.setTextViewText(R.id.w_foot, stale
-            ? "Dane z " + time + " — mogą być nieaktualne. Otwórz aplikację."
-            : "Źródło nieoficjalne · widżet nie alarmuje, ostrzega powiadomienie");
+            ? t.getString(R.string.widget_stale, time)
+            : t.getString(R.string.widget_foot));
 
         if (watched.isEmpty()) {
             // pusty kafelek nic by nie mówił — mówimy, co zrobić
             rv.setImageViewResource(R.id.w_dot, DOT[4]);
-            rv.setTextViewText(R.id.w_name, "Brak miejsc");
+            rv.setTextViewText(R.id.w_name, t.getString(R.string.widget_no_places));
             rv.setInt(R.id.w_level, "setMaxLines", 5);
-            rv.setTextViewText(R.id.w_level, NO_WATCHED_HINT);
+            rv.setTextViewText(R.id.w_level, t.getString(R.string.widget_no_places_hint));
             rv.setViewVisibility(R.id.w_points, View.GONE);
-            rv.setTextViewText(R.id.w_foot, "Źródło nieoficjalne · widżet nie alarmuje");
+            rv.setTextViewText(R.id.w_foot, t.getString(R.string.widget_foot_short));
             return rv;
         }
 
         Row r = row(watched.get(0), voivs == null ? null : voivs.optJSONObject(watched.get(0)), stale);
-        if (st == null) { r.label = "ładowanie…"; r.points = "–"; r.tone = 4; }
+        if (st == null) { r.labelRes = R.string.widget_loading; r.shortRes = r.labelRes; r.points = "–"; r.tone = 4; }
         rv.setImageViewResource(R.id.w_dot, DOT[r.tone]);
-        rv.setTextViewText(R.id.w_name, r.name);
+        rv.setTextViewText(R.id.w_name, nazwaWoj(t, r.name));
         rv.setInt(R.id.w_level, "setMaxLines", 2);   // cofamy 5 wierszy podpowiedzi
         setColor(c, rv, R.id.w_level, MAP_LABEL_COLOR[r.tone]);
         // przy niskim kafelku albo dużej czcionce punkty idą do wiersza poziomu
@@ -495,8 +544,8 @@ final class Widgets {
         rv.setTextViewText(R.id.w_points_num, r.points);
         boolean krotko = !roomy || font > 1.1f;
         rv.setTextViewText(R.id.w_level, roomy || r.points.equals("–")
-            ? (krotko ? shortLabel(r) : r.label)
-            : shortLabel(r) + " · " + r.points + " pkt");
+            ? t.getString(krotko ? r.shortRes : r.labelRes)
+            : t.getString(r.shortRes) + " · " + r.points + " " + t.getString(R.string.widget_pts));
         return rv;
     }
 
@@ -509,6 +558,7 @@ final class Widgets {
         RemoteViews rv = new RemoteViews(c.getPackageName(), R.layout.widget_map);
         rv.setOnClickPendingIntent(R.id.w_root, openApp(c));
 
+        Context t = teksty(c);
         JSONObject st = zapisanyStan(c);
         long ts = st == null ? 0 : st.optLong("ts", 0);
         boolean stale = ts > 0 && System.currentTimeMillis() - ts > STALE_AFTER_MS;
@@ -535,22 +585,22 @@ final class Widgets {
                 continue;
             }
             Row r = row(watched.get(i), voivs == null ? null : voivs.optJSONObject(watched.get(i)), stale);
-            if (st == null) { r.label = "ładowanie…"; r.points = "–"; r.tone = 4; }
+            if (st == null) { r.labelRes = R.string.widget_loading; r.shortRes = r.labelRes; r.points = "–"; r.tone = 4; }
             rv.setViewVisibility(rowIds[i], View.VISIBLE);
             rv.setViewVisibility(subIds[i], View.VISIBLE);
             rv.setImageViewResource(dotIds[i], DOT[r.tone]);
-            rv.setTextViewText(nameIds[i], r.name);
+            rv.setTextViewText(nameIds[i], nazwaWoj(t, r.name));
             rv.setTextViewText(ptsIds[i], r.points);
-            rv.setTextViewText(subIds[i], shortLabels ? shortLabel(r) : r.label);
+            rv.setTextViewText(subIds[i], t.getString(shortLabels ? r.shortRes : r.labelRes));
             setColor(c, rv, subIds[i], MAP_LABEL_COLOR[r.tone]);
         }
         if (watched.isEmpty()) {
             rv.setViewVisibility(R.id.w_row1, View.VISIBLE);
             rv.setViewVisibility(R.id.w_sub1, View.VISIBLE);
             rv.setImageViewResource(R.id.w_dot1, DOT[4]);
-            rv.setTextViewText(R.id.w_name1, "Brak miejsc");
+            rv.setTextViewText(R.id.w_name1, t.getString(R.string.widget_no_places_wide));
             rv.setTextViewText(R.id.w_pts1, "");
-            rv.setTextViewText(R.id.w_sub1, NO_WATCHED_HINT);
+            rv.setTextViewText(R.id.w_sub1, t.getString(R.string.widget_no_places_hint));
             setColor(c, rv, R.id.w_sub1, R.color.widget_map_muted);
         }
 
@@ -571,26 +621,16 @@ final class Widgets {
         JSONArray obiekty = st == null ? null : st.optJSONArray("obj");
         boolean blisko = WidgetMap.blisko(obiekty);
         // dopisek tylko przy zbliżeniu: wtedy kadr różni się od zwykłego i warto to powiedzieć
-        rv.setTextViewText(R.id.w_time, time.isEmpty() ? "—" : time + (blisko && mapa != null ? " · zbliżenie" : ""));
+        rv.setTextViewText(R.id.w_time, time.isEmpty() ? "—"
+            : time + (blisko && mapa != null ? " · " + t.getString(R.string.widget_zoom) : ""));
 
-        String near = st == null ? "" : st.optString("near", "");
-        rv.setTextViewText(R.id.w_near, watched.isEmpty() ? "Dotknij, żeby wybrać miejsca"
-            : st == null ? "Ładowanie…"
-            : near.isEmpty() ? "Żaden obiekt nie jest bliżej niż " + (int) NEAR_MAX_KM + " km od granicy" : near);
+        rv.setTextViewText(R.id.w_near, watched.isEmpty() ? t.getString(R.string.widget_tap_to_choose)
+            : st == null ? t.getString(R.string.widget_loading)
+            : tekstNajblizszego(t, st.optJSONObject("near")));
         rv.setTextViewText(R.id.w_foot, stale
-            ? "Dane z " + time + " — mogą być nieaktualne. Otwórz aplikację."
-            : "Źródło nieoficjalne · widżet nie alarmuje, ostrzega powiadomienie");
+            ? t.getString(R.string.widget_stale, time)
+            : t.getString(R.string.widget_foot));
         return rv;
-    }
-
-    static String shortLabel(Row r) {
-        switch (r.label) {
-            case "WYSOKI PRIORYTET": return "WYSOKI";
-            case "PODWYŻSZONA UWAGA": return "PODWYŻSZONA";
-            case "od sąsiadów · bez alarmu": return "od sąsiadów";
-            case "brak sygnałów": return "spokój";
-            default: return r.label;
-        }
     }
 
     /**

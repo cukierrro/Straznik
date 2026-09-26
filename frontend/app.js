@@ -5554,7 +5554,9 @@ function pokazStan3d() {
    Metody nie da się sprawdzić z góry (patrz komentarz przy dzwiekAlarmu) —
    liczy się tylko wynik, a starsza wersja natywna po prostu odrzuci wywołanie. */
 function syncWidokMapy() {
-  try { BG()?.setMapView?.({ is3d })?.catch?.(() => {}); } catch {}
+  // język idzie tą samą drogą co widok: widżet rysuje się natywnie i nie widzi
+  // localStorage, a zmiana języka w aplikacji i tak przeładowuje stronę
+  try { BG()?.setMapView?.({ is3d, lang: UI.lang })?.catch?.(() => {}); } catch {}
 }
 document.getElementById("btn-3d").onclick = () => {
   is3d = !is3d;
