@@ -1410,6 +1410,32 @@ const ADSB_MIL_PREFIXES = ["NATO","MMF","REDEYE","BART","OSY","PLF","HKY","VIPER
 const ADSB_MIL_TYPES = new Set(["F16","F15","F18","FA18","F35","EUFI","RFAL","JAS39",
   "MIR2","M2K","SU27","SU30","SU35","MIG29","MIG31","A10","B1","B2","B52",
   "E3CF","E3TF","A400","C130","C17","KC135","ATLA"]);
+/* Skok niemożliwy dla maszyny = trzymamy ostatnią przyjętą pozycję. Ta sama reguła
+   i te same progi co w `_hold_impossible_jump` w backend/app/collectors/adsb.py —
+   tryb bez serwera nie może rysować czego innego niż tryb z serwerem. Powód:
+   25.09.2026 pozycje z MLAT-u odskakiwały o 80 km (5232 km/h), ikona przeskakiwała
+   w podlaskie i wracała, a odcinki trafiały do trasy jako prawdziwy przelot.
+   Kotwicy nie odświeżamy w trakcie trzymania, więc dopuszczalny dystans rośnie
+   z czasem; ADSB_JUMP_HOLD_MAX_S to bezpiecznik, gdy nieaktualna jest kotwica. */
+const ADSB_JUMP_MAX_KMH = 1800, ADSB_JUMP_HOLD_MAX_S = 300, ADSB_ANCHOR_MAX_S = 30 * 60;
+const adsbLastPos = new Map();
+function adsbHoldJump(a, now) {
+  if (!a.hex || a.lat == null || a.lon == null) return a;
+  for (const [hex, q] of adsbLastPos)
+    if ((now - q.t) / 1000 > ADSB_ANCHOR_MAX_S) adsbLastPos.delete(hex);
+  const prev = adsbLastPos.get(a.hex);
+  if (prev) {
+    const dt = (now - prev.t) / 1000;
+    if (dt > 0 && dt <= ADSB_ANCHOR_MAX_S) {
+      const kmh = haversine(prev.lat, prev.lon, a.lat, a.lon) / dt * 3600;
+      if (kmh > ADSB_JUMP_MAX_KMH && dt < ADSB_JUMP_HOLD_MAX_S)
+        return { ...a, lat: prev.lat, lon: prev.lon, _straznik_position_held: true };
+    }
+  }
+  adsbLastPos.set(a.hex, { lat: a.lat, lon: a.lon, t: now });
+  return a;
+}
+
 function looksMilitaryAdsb(a) {
   if ((Number(a.dbFlags)||0) & 1) return true;
   const call = String(a.flight||"").trim().toUpperCase();
@@ -1456,10 +1482,12 @@ async function tickAdsb() {
       }
     }
     const ac = [...merged.values()];
+    const teraz = Date.now();
     const per = {}; Object.keys(VOIV_BBOX).forEach(v => per[v] = []);
     adsbAircraft = [];
-    for (const a of ac) {
-      if (a.lat == null) continue;
+    for (const surowy of ac) {
+      if (surowy.lat == null) continue;
+      const a = adsbHoldJump(surowy, teraz);
       const v = voivForPoint(a.lat, a.lon);
       // Punktujemy tylko województwa priorytetowe, ale POKAZUJEMY całą wschodnią
       // flankę: Bałtyk, Kaliningrad, Białoruś, kraje bałtyckie (LT/LV/EE), Ukrainę
@@ -1477,6 +1505,7 @@ async function tickAdsb() {
                   nav_alt:a.nav_altitude_mcp, wd:a.wd, ws:a.ws, oat:a.oat, tat:a.tat,
                   rssi:a.rssi, messages:a.messages, seen:a.seen, version:a.version,
                   source:(a.mlat&&a.mlat.length)?"MLAT":(a.tisb&&a.tisb.length)?"TIS-B":"ADS-B",
+                  held:a._straznik_position_held||undefined,
                   detection:a._straznik_detection||"mil_registry" };
       if (v && per[v]) per[v].push(p);
       adsbAircraft.push(p);
@@ -2219,8 +2248,11 @@ async function start(stateCb) {
 
 // matchVoivs wystawiamy wyłącznie do testów zgodności z backendem
 // (scripts/test_voiv_match.cjs) — reszta aplikacji go nie używa. Tak samo
-// `rcbArtykul`: kolektor i parser treści z gov.pl dla scripts/test_rcb_artykul.cjs.
+// `rcbArtykul`: kolektor i parser treści z gov.pl dla scripts/test_rcb_artykul.cjs,
+// oraz `adsbHoldJump`: strażnik niemożliwych skoków dla scripts/test_skok_pozycji.cjs,
+// który sprawdza, że tryb bez serwera trzyma pozycję tak samo jak backend.
 return { start, stop, history, timeline, historyFrom, timelineFrom, accumulate, matchVoivs,
+         adsbHoldJump,
          stateFrom, alertLevel, rsoIsCancellation, assess,
          rcbArtykul: { tickRcb, tekstArtykuluRcb, dataArtykuluRcb, wojewodztwaAlertu,
                        czyOdwolanieRcb, meldunkiArtykulu, najnowszyMeldunek } };
