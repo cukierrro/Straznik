@@ -72,7 +72,20 @@ for i, t in enumerate(p.tresci, 1):
 
 print("\n2. script-src bez furtek")
 sprawdz("'unsafe-inline'" not in script_src, "bez 'unsafe-inline'")
-sprawdz("'unsafe-eval'" not in script_src, "bez 'unsafe-eval'")
+# 'unsafe-eval' jest dopuszczony WYŁĄCZNIE dla testu wieku przeglądarki
+# (index.html: new Function("… a?.b ?? 1")). Bez niego 26.09.2026 każda
+# przeglądarka dostała ekran „silnik jest za stary”. Pilnujemy, żeby to był
+# jedyny eval w kodzie — drugi zamieniłby tę zgodę w realną furtkę.
+import re  # noqa: E402
+EVAL = re.compile(r"new Function\s*\(|(?<![\w.])eval\s*\(|set(?:Timeout|Interval)\s*\(\s*[\"'`]")
+wystapienia = []
+for plik in sorted((ROOT / "frontend").glob("*.js")) + [ROOT / "frontend" / "index.html"]:
+    for nr, linia in enumerate(plik.read_text(encoding="utf-8").splitlines(), 1):
+        if EVAL.search(linia):
+            wystapienia.append((plik.name, nr, linia.strip()))
+sprawdz(len(wystapienia) == 1 and wystapienia[0][0] == "index.html" and "a?.b ?? 1" in wystapienia[0][2],
+        f"jedyny eval w frontendzie to test wieku przeglądarki (znaleziono: {[(p, n) for p, n, _ in wystapienia]})")
+sprawdz("'unsafe-eval'" in script_src, "'unsafe-eval' jest (bez niego test wieku zgłasza stary silnik)")
 sprawdz("https:" not in script_src and "*" not in script_src, "bez obcych domen dla skryptów")
 sprawdz("object-src 'none'" in pol and "base-uri 'self'" in pol, "object-src none i base-uri self")
 

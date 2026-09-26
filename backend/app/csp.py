@@ -7,7 +7,8 @@ dociągniętego z obcej domeny.
 
 Co chroni, a czego świadomie nie:
 - `script-src` jest ciasny: tylko nasze pliki i CZTERY skrypty wpisane w index.html,
-  wpuszczone po skrócie SHA-256. Bez 'unsafe-inline' i bez 'unsafe-eval'.
+  wpuszczone po skrócie SHA-256. Bez 'unsafe-inline'. 'unsafe-eval' dopuszczony
+  wyłącznie z powodu testu wieku przeglądarki — uzasadnienie przy polityka().
 - Obrazy, połączenia i czcionki są szerokie (`https:`). Strona łączy się z kafelkami
   mapy, zdjęciami z Wikimedii, kamerami i źródłami trybu awaryjnego; zamknięta lista
   po cichu odcięłaby któreś z nich. Przed XSS chroni `script-src`, nie te dyrektywy.
@@ -53,7 +54,15 @@ def skroty(html: str) -> list[str]:
 def polityka(html: str) -> str:
     return "; ".join([
         "default-src 'self'",
-        "script-src " + " ".join(["'self'"] + skroty(html)),
+        # 'unsafe-eval' TYLKO dla testu wieku przeglądarki w index.html:
+        # `new Function("… a?.b ?? 1")` sprawdza, czy silnik zna nowszą składnię,
+        # a bez tej zgody rzuca wyjątek i KAŻDA przeglądarka dostaje ekran „silnik
+        # jest za stary” (stało się na produkcji 26.09.2026 przez ~3 min w trybie
+        # enforce). To jedyny eval w naszym kodzie i ma stały tekst; wstrzyknięty
+        # skrypt i tak nie ruszy, bo 'unsafe-inline' dalej jest zabroniony.
+        # scripts/test_csp.py pilnuje, żeby nie pojawił się drugi eval.
+        # Do usunięcia, gdy test składni trafi do osobnego pliku .js.
+        "script-src " + " ".join(["'self'", "'unsafe-eval'"] + skroty(html)),
         "object-src 'none'",
         "base-uri 'self'",
         "frame-ancestors 'self'",
