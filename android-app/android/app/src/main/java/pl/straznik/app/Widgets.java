@@ -316,6 +316,9 @@ final class Widgets {
      */
     static void onPush(Context c, String voiv, String level, double score, long sentAtMs) {
         if (!anyPlaced(c)) return;
+        // do stanu wpisujemy tylko znane województwa i znane poziomy: push jest z naszego
+        // serwera, ale stan widżetu nie ma powodu przyjmować czegokolwiek innego
+        if (!znaneWojewodztwo(voiv) || rank(level) == 0) return;
         try {
             SharedPreferences p = Alarms.prefs(c);
             JSONObject st = new JSONObject(p.getString(KEY_STATE, "{}"));
@@ -337,6 +340,11 @@ final class Widgets {
         }
         redrawAll(c);
         refreshNow(c);
+    }
+
+    static boolean znaneWojewodztwo(String nazwa) {
+        for (String v : Alarms.VOIVS) if (v.equals(nazwa)) return true;
+        return false;
     }
 
     static int rank(String level) {
