@@ -6,6 +6,15 @@
 
 Serwer: **hostowane na [Mikrusie](https://mikr.us)** — dziękujemy za wsparcie projektu.
 
+Wersja 1.7.81: alarm da się odczytać czytnikiem ekranu. Ekran alarmu jest oknem
+`alertdialog` — czytnik przerywa to, co czyta, i podaje poziom oraz województwo,
+a tabulator krąży po jego przyciskach zamiast schodzić na zasłoniętą mapę.
+Wzrost poziomu do żółtego i powrót do zwykłego czytnik ogłasza sam, z nazwą
+województwa. Systemowe „ogranicz ruch” wyłącza wszystkie pulsujące elementy. Przy
+okazji okno aktualizacji nie wchodzi już pod górny pasek, a wiersz źródeł na mapie
+przewija się palcem. To pierwszy krok w stronę dostępności, a nie ogłoszenie, że
+aplikacja jest dostępna. Szczegóły: `docs/RELEASE_1.7.81.md`.
+
 Wersja 1.7.80: alert RCB wysłany do kilku województw naraz przepadał bez śladu —
 listę odbiorców rozpoznawaliśmy po jednej formie słowa, a RCB używa innej właśnie
 przy kilku województwach. Alert wiszący godzinami bez odwołania jest teraz widoczny
@@ -65,10 +74,6 @@ niezależnie od liczby telefonów. Szczegóły: `docs/RELEASE_1.7.63.md`.
 Wersja 1.7.62: historia nie gubi już godzin spędzonych w tle — zminimalizowana aplikacja
 nic nie nagrywa, więc po powrocie dociąga brakujący okres z serwera. Szczegóły:
 `docs/RELEASE_1.7.62.md`.
-
-Wersja 1.7.61: poprawki zgłoszone z telefonów po 1.7.60 — w historii zamiast ikony obiektu
-potrafił pojawić się pełny żółty krążek, bo migawki nie zapisywały wieku meldunku.
-Szczegóły: `docs/RELEASE_1.7.61.md`.
 
 Notatki wszystkich wcześniejszych wydań leżą w katalogu [`docs/`](docs) jako pliki
 `RELEASE_*.md`.

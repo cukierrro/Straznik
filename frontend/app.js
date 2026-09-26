@@ -2825,10 +2825,10 @@ function renderPanel() {
   document.getElementById("voiv-cards").innerHTML = show.map(([name, st]) => `
     <div class="voiv-card level-${spillRaised(st) ? "spill" : st.level}${name === mine ? " is-mine" : ""}${
       openVoivs.has(name) ? " open" : ""}" data-voiv="${esc(name)}">
-      <div class="voiv-head">
+      <button type="button" class="voiv-head" aria-expanded="${openVoivs.has(name)}">
         <span class="voiv-name">${esc(UI.voiv(name))}</span>
         <span class="voiv-score">${st.score.toFixed(1)} ${UI.t("pkt", "pts", "бал.")}</span>
-      </div>
+      </button>
       <div class="voiv-level">${spillRaised(st) ? SPILL_LABEL
         : st.level === "none" && st.score > 0
         ? (UI.t("poniżej progu", "below threshold", "нижче порога")) : LEVEL_LABEL[st.level]}
@@ -2843,11 +2843,16 @@ function renderPanel() {
                (${camData[name].filter(c => c.outdoor !== false).length})</button>`
           : ""}</div>
     </div>`).join("");
+  /* Klik dalej łapiemy na całej karcie — dotykowo tak jest wygodniej i tak było
+     dotąd. Nagłówek jest przyciskiem tylko po to, żeby dało się tu dojść
+     klawiszem Tab: naciśnięcie Enter albo spacji wywołuje zwykły klik, który
+     bąbelkuje do karty, więc obsługa jest jedna, nie dwie. */
   document.querySelectorAll(".voiv-card").forEach(el =>
     el.addEventListener("click", () => {
       const open = el.classList.toggle("open");
       const name = el.dataset.voiv;
       if (open) openVoivs.add(name); else openVoivs.delete(name);
+      el.querySelector(".voiv-head")?.setAttribute("aria-expanded", String(open));
     }));
   if (panelEl && keepScroll) panelEl.scrollTop = keepScroll;
   document.querySelectorAll(".btn-cams").forEach(el =>
@@ -3559,7 +3564,25 @@ function updateAlarmMood() {
       document.getElementById("disclaimer").classList.remove("hidden");
     } else if (level === "elevated") {
       chimeOnce();
+      /* Żółty poziom nie otwiera ekranu alarmu. Widać go na karcie i banerze,
+         ale czytnik ekranu nie ogłaszał zmiany — osoba niewidoma słyszała tylko
+         krótki sygnał, bez informacji, co i gdzie. Teraz czytnik przerywa
+         i mówi, co i gdzie. (To pomoc dla niewidomych; osoba głucha widziała
+         te sygnały od zawsze, a mowa czytnika i tak jej nie dotyczy.) */
+      const voiv = pool.find(v => alarmLevel(voivs[v]) === "elevated");
+      powiedz(a11yAlert, UI.t(
+        `Uwaga: podniesiony poziom zagrożenia, ${voiv ? UI.voiv(voiv) : ""}.`,
+        `Attention: raised threat level, ${voiv ? UI.voiv(voiv) : ""}.`,
+        `Увага: підвищений рівень загрози, ${voiv ? UI.voiv(voiv) : ""}.`));
     }
+  } else if (level === "none" && lastMood !== "none" && !alertsOff()) {
+    /* Spadek poziomu to NIE to samo co oficjalne odwołanie alarmu przez RCB —
+       tu po prostu wygasły nasze sygnały. Mówimy dokładnie to i nic więcej,
+       żeby nikt nie wyszedł ze schronienia na podstawie naszego wyliczenia. */
+    powiedz(a11yAlert, UI.t(
+      "Poziom zagrożenia wrócił do zwykłego. To nie jest oficjalne odwołanie alarmu.",
+      "The threat level is back to normal. This is not an official all-clear.",
+      "Рівень загрози повернувся до звичайного. Це не офіційне скасування тривоги."));
   }
   lastMood = level;
 }
@@ -3612,6 +3635,45 @@ function nearestThreatLine(voiv) {
 
 /* ── pełnoekranowy alarm z ręcznym potwierdzeniem ────────────────────────── */
 const alarmOverlay = document.getElementById("alarm-overlay");
+
+/* ── Czytnik ekranu ────────────────────────────────────────────────────────
+   Dwa niewidoczne pola z `aria-live` w index.html. Wpisanie do nich tekstu
+   każe czytnikowi go przeczytać. Ten sam tekst dwa razy pod rząd zostałby
+   pominięty (czytnik widzi niezmienioną treść), dlatego najpierw czyścimy. */
+const a11yAlert = document.getElementById("a11y-alert");
+const a11yInfo = document.getElementById("a11y-info");
+function powiedz(el, tekst) {
+  if (!el || !tekst) return;
+  el.textContent = "";
+  setTimeout(() => { el.textContent = tekst; }, 60);
+}
+
+/* Fokus przy ekranie alarmu. Bez tego czytnik zostaje tam, gdzie był przed
+   alarmem — czyli na mapie pod spodem, której i tak nie widać. */
+let fokusPrzedAlarmem = null;
+function alarmFokus() {
+  fokusPrzedAlarmem = document.activeElement;
+  alarmOverlay.querySelector(".alarm-box")?.focus();
+}
+function alarmFokusPowrot() {
+  if (fokusPrzedAlarmem && document.contains(fokusPrzedAlarmem)) {
+    try { fokusPrzedAlarmem.focus(); } catch {}
+  }
+  fokusPrzedAlarmem = null;
+}
+/* Dopóki alarm jest na wierzchu, Tab krąży po jego przyciskach i nie schodzi
+   na zasłoniętą mapę. Inaczej człowiek obsługujący telefon klawiaturą albo
+   przełącznikiem „wypada" z alarmu w nic. */
+document.addEventListener("keydown", e => {
+  if (e.key !== "Tab" || alarmOverlay.classList.contains("hidden")) return;
+  const pola = [...alarmOverlay.querySelectorAll("button, [href], [tabindex]:not([tabindex='-1'])")]
+    .filter(el => !el.disabled && el.offsetParent !== null);
+  if (!pola.length) return;
+  const pierwszy = pola[0], ostatni = pola[pola.length - 1];
+  if (e.shiftKey && document.activeElement === pierwszy) { e.preventDefault(); ostatni.focus(); }
+  else if (!e.shiftKey && document.activeElement === ostatni) { e.preventDefault(); pierwszy.focus(); }
+});
+
 function showAlarm(voiv, st) {
   if (!voiv || !st) return;
   document.getElementById("alarm-voiv").textContent = (UI.t("woj. ", "province ", "воєв. ")) + UI.voiv(voiv);
@@ -3629,6 +3691,7 @@ function showAlarm(voiv, st) {
     (UI.t("alarm o ", "alert at ", "тривога о ")) + new Date().toLocaleTimeString(UI.t("pl-PL", "en-GB", "uk-UA"));
   alarmWyborReset();
   alarmOverlay.classList.remove("hidden");
+  alarmFokus();                // czytnik przechodzi na treść alarmu, nie na mapę pod spodem
   airRaidSiren(true);          // ciągła — milknie dopiero po potwierdzeniu
   przygotujGrote();            // tylko wczytanie w tle; ekranu nie przejmuje
 }
@@ -3650,6 +3713,7 @@ function alarmWyborReset() {
 function zamknijAlarm() {
   alarmOverlay.classList.add("hidden");
   alarmWyborReset();
+  alarmFokusPowrot();          // fokus wraca tam, gdzie był przed alarmem
 }
 alarmAck.onclick = () => {
   stopSiren();
@@ -3852,6 +3916,11 @@ function toast(msg, ms = 3800) {
   const el = document.getElementById("toast");
   el.innerHTML = msg;
   el.classList.remove("hidden");
+  /* Pasek znika sam po kilku sekundach, więc czytnik ekranu nie zdąży na niego
+     trafić — dotąd te komunikaty po prostu do kogoś niewidomego nie docierały.
+     Idą teraz do pola `polite`: czytnik przeczyta je, gdy skończy bieżące
+     zdanie. Bierzemy sam tekst, bo `msg` bywa HTML-em. */
+  powiedz(a11yInfo, el.textContent);
   // długie komunikaty (ścieżki w ustawieniach) wiszą kilkanaście sekund —
   // dotknięcie zamyka je wcześniej
   el.onclick = () => { clearTimeout(toastTimer); el.classList.add("hidden"); };
@@ -5078,6 +5147,7 @@ function showUpdateBanner(rel, local) {
       ${rel.critical ? "" : `<button class="chip" id="upd-later">${UI.t("Później", "Later", "Пізніше")}</button>`}
     </div>`;
   el.classList.remove("hidden");
+  dopasujOknoAktualizacji();       // od razu, nie dopiero po reakcji obserwatora stosu
   document.getElementById("upd-later")?.addEventListener("click", () => {
     sessionSkippedUpdates.add(ver);
     el.classList.add("hidden");
@@ -5588,10 +5658,33 @@ addEventListener("resize", () => requestAnimationFrame(fitMapActions));
     if (e.target.closest(".map-btn")) { e.stopPropagation(); e.preventDefault(); ustaw(false); }
   }, true);
 })();
+/* Okno aktualizacji ma kończyć się POD górnym paskiem, a nie na nim.
+   CSS liczył jego wysokość ze zmiennej --topbar-h, której nikt nie ustawia, więc
+   zawsze zakładał pasek 52 px. Na wąskim telefonie pasek ma dwa rzędy przycisków
+   i okno z dłuższą listą zmian wchodziło pod niego: tytuł znikał za ikonami,
+   a przewinąć dało się tylko to, co wystawało z samego okna (zgłoszenie usera
+   26.09.2026). Stos na dole jest przyklejony do dołu ekranu, a pod oknem są tylko
+   atrybucja i zastrzeżenie — dolna krawędź okna nie zależy więc od jego wysokości
+   i wystarczy odjąć od niej dół górnego paska. Resztę robi CSS: tekst przewija się
+   w swoim wierszu, przyciski zostają widoczne.
+   Pasek szukany po id, nie przez `topbarEl`: ta funkcja rusza już z obserwatora
+   stosu, zanim niżej powstanie stała topbarEl. */
+function dopasujOknoAktualizacji() {
+  const el = document.getElementById("update-banner");
+  const pasek = document.getElementById("topbar");
+  if (!el || !pasek || el.classList.contains("hidden")) return;
+  const r = el.getBoundingClientRect();
+  if (!r.height) return;                 // schowane (np. otwarty panel) — policzymy, gdy wróci
+  const gora = pasek.getBoundingClientRect().bottom + 10;
+  // 170 px to tytuł, jedna linijka zmian i przyciski — mniej już się nie da czytać
+  el.style.maxHeight = Math.max(170, Math.floor(r.bottom - gora)) + "px";
+}
+
 const stackEl = document.getElementById("bottom-stack");
 if (stackEl && window.ResizeObserver) {
   const setStackH = () => { document.documentElement.style
-    .setProperty("--stack-h", stackEl.offsetHeight + "px"); requestAnimationFrame(fitMapActions); };
+    .setProperty("--stack-h", stackEl.offsetHeight + "px"); requestAnimationFrame(fitMapActions);
+    dopasujOknoAktualizacji(); };
   new ResizeObserver(setStackH).observe(stackEl);
   setStackH();
 }
@@ -5601,7 +5694,7 @@ const topbarEl = document.getElementById("topbar");
 if (topbarEl && window.ResizeObserver) {
   const setTopbarB = () => { document.documentElement.style
     .setProperty("--topbar-bottom", Math.round(topbarEl.getBoundingClientRect().bottom) + "px");
-    requestAnimationFrame(fitMapActions); };
+    requestAnimationFrame(fitMapActions); dopasujOknoAktualizacji(); };
   new ResizeObserver(setTopbarB).observe(topbarEl);
   addEventListener("resize", setTopbarB);
   setTopbarB();
@@ -5617,6 +5710,17 @@ if (attrEl) {
   mini.textContent = UI.t("źródła ⓘ", "sources ⓘ", "джерела ⓘ");
   attrEl.appendChild(mini);
   if (localStorage.getItem("straznik_attr_mini") === "1") attrEl.classList.add("mini");
+  /* Wiersz źródeł przewija się palcem w poziomie (26.09.2026). Wygaszenie prawej
+     krawędzi zdejmujemy, gdy nie ma już czego doczytać — przy końcu przewijania
+     albo gdy cały tekst mieści się na szerokim ekranie. */
+  const attrText = document.getElementById("attr-text");
+  if (attrText) {
+    const koniec = () => attrText.classList.toggle("koniec",
+      attrText.scrollLeft + attrText.clientWidth >= attrText.scrollWidth - 2);
+    attrText.addEventListener("scroll", koniec, { passive: true });
+    addEventListener("resize", koniec);
+    koniec();
+  }
   document.getElementById("attr-x")?.addEventListener("click", (e) => {
     e.stopPropagation();
     attrEl.classList.add("mini");
@@ -5624,8 +5728,8 @@ if (attrEl) {
   });
   attrEl.addEventListener("click", (e) => {
     if (!attrEl.classList.contains("mini")) {
-      // rozwinięta atrybucja mieści jeden wiersz z wielokropkiem — dotknięcie
-      // otwiera „O aplikacji", gdzie jest pełna lista źródeł
+      // krótkie dotknięcie otwiera „O aplikacji" z pełną listą źródeł;
+      // przesunięcie palcem przewija wiersz i kliknięcia nie wywołuje
       if (e.target.closest("a")) return;
       document.getElementById("about")?.showModal();
       return;

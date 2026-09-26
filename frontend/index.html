@@ -94,7 +94,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <link rel="icon" type="image/png" sizes="512x512" href="assets/icon-512.png">
 <link rel="apple-touch-icon" href="assets/icon-192.png">
 <link rel="stylesheet" href="assets/vendor/maplibre-gl.css">
-<link rel="stylesheet" href="style.css?v=1.7.80">
+<link rel="stylesheet" href="style.css?v=1.7.81">
 </head>
 <body>
 
@@ -418,8 +418,13 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
     strefa D/R/NPZ/ADHOC od ziemi nad wschodem lub północą; dotknij strefy po opis</div>
 </div>
 
-<div id="alarm-overlay" class="hidden">
-  <div class="alarm-box">
+<!-- Ekran alarmu jest oknem `alertdialog`, nie zwykłą warstwą: czytnik ekranu
+     przerywa wtedy to, co właśnie czyta, i podaje poziom i województwo od razu,
+     zamiast czekać, aż użytkownik sam trafi na ten tekst. `aria-modal` mówi mu,
+     żeby pominął resztę strony, która i tak jest zasłonięta. -->
+<div id="alarm-overlay" class="hidden" role="alertdialog" aria-modal="true"
+     aria-labelledby="alarm-level" aria-describedby="alarm-voiv alarm-todo">
+  <div class="alarm-box" tabindex="-1">
     <div class="alarm-icon">⚠</div>
     <div class="alarm-level" id="alarm-level">WYSOKI PRIORYTET</div>
     <div class="alarm-voiv" id="alarm-voiv">—</div>
@@ -959,7 +964,16 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <script src="aircraft-photo-catalog.js?v=1.7.19"></script>
 <script src="aircraft-photos.js?v=1.7.79"></script>
 <script src="places.js?v=1.7.19-4"></script>
-<script src="app.js?v=1.7.80"></script>
+
+<!-- Miejsce na komunikaty czytane na głos. Czytnik ekranu ogłasza każdą zmianę
+     treści tych dwóch elementów, choć na ekranie nie widać ich wcale.
+     `assertive` przerywa to, co właśnie czyta — tam idzie tylko zmiana poziomu
+     zagrożenia. `polite` czeka na przerwę — tam idą komunikaty z paska.
+     MUSZĄ stać przed `app.js`: skrypt szuka ich przy wczytaniu. -->
+<div id="a11y-alert" class="sr-only" role="status" aria-live="assertive" aria-atomic="true"></div>
+<div id="a11y-info" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+
+<script src="app.js?v=1.7.81"></script>
 <script>
 /* Instrukcja pasująca do telefonu i języka (21.09.2026). iPhone ma osobną, bo alarmy,
    zgody i aktualizacje działają tam inaczej. Tu, a nie w app.js: index.html nie jest

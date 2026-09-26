@@ -251,8 +251,11 @@ body.panel-open #bg-warning { display: none; }
   display: grid; gap: 10px; grid-template-columns: minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr) auto auto; overflow: hidden;
   width: 100%; max-width: 520px; margin: 0 auto;
-  max-height: calc(100vh - var(--topbar-h, 52px) - var(--tabbar-h) - var(--safe-b) - 96px);
-  max-height: calc(100dvh - var(--topbar-h, 52px) - var(--tabbar-h) - var(--safe-b) - 96px);
+  /* Punkt wyjścia do pierwszego wyrysowania. Dokładną wysokość — od dołu górnego
+     paska do dołu okna — ustawia dopasujOknoAktualizacji() w app.js. Dawniej stało
+     tu --topbar-h, którego nikt nie ustawiał (zawsze 52 px) — 26.09.2026. */
+  max-height: calc(100vh - var(--topbar-bottom, 110px) - var(--tabbar-h) - var(--safe-b) - 106px);
+  max-height: calc(100dvh - var(--topbar-bottom, 110px) - var(--tabbar-h) - var(--safe-b) - 106px);
   background: var(--panel, #151d2e); border: 1px solid var(--accent);
   border-radius: 12px; padding: 12px 14px;
   box-shadow: 0 14px 40px rgba(0,0,0,.5);
@@ -368,9 +371,20 @@ body.panel-open #update-banner:not(.critical) { display: none; }
    liczył wiersze inaczej niż wynikało z line-height i zostawiał tekst ucięty w połowie
    linii — wyglądało to jak nachodzenie paska zastrzeżenia. Przy jednym wierszu nie ma
    czego uciąć w pionie, a pełna lista źródeł jest w „O aplikacji". */
+/* 26.09.2026 (zgłoszenie usera): wielokropek ucinał listę źródeł i nie dało się
+   jej doczytać. Teraz ten sam jeden wiersz przewija się w poziomie palcem.
+   Wygaszenie prawej krawędzi mówi, że tekst ciągnie się dalej; znika, gdy
+   przewiniesz do końca albo gdy całość się mieści (klasa .koniec z app.js).
+   touch-action: pan-x — pionowy ruch palcem nie jest tu przechwytywany. */
 #attr-text {
-  display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  display: block; white-space: nowrap;
+  overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain;
+  touch-action: pan-x; scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+          mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
 }
+#attr-text::-webkit-scrollbar { display: none; }
+#attr-text.koniec { -webkit-mask-image: none; mask-image: none; }
 /* Linki w oknach dialogowych: domyślny jaskrawoniebieski z podkreśleniem odcinał
    się od reszty interfejsu i wyglądał jak surowy HTML. */
 dialog a { color: var(--cyan); text-decoration: none; }
@@ -861,7 +875,20 @@ html[lang="en"] .list:empty::after { content: "— none —"; }
 .lg-row .pulse-ic::before { content: ""; width: 12px; height: 12px; border-radius: 50%;
   border: 2px solid #ff4d5e; animation: lg-pulse 1.6s linear infinite; }
 @keyframes lg-pulse { from { transform: scale(.8); opacity: .95; } to { transform: scale(1.9); opacity: 0; } }
-@media (prefers-reduced-motion: reduce) { .lg-row .pulse-ic::before { animation: none; } }
+/* Systemowe „ogranicz ruch" wyłącza WSZYSTKIE pulsowania bez końca, nie tylko
+   kropkę w dzienniku. Dotąd obsłużone było jedno miejsce z sześciu, więc osoba,
+   która w telefonie prosi o spokojny ekran, dostawała mrugający alarm.
+   Poziom zagrożenia zostaje czytelny bez ruchu: kolor ramki, tekst i ikona
+   nigdzie nie zależą od animacji. Krótkie przejścia (0,14–0,18 s przy pojawieniu
+   się elementu) zostają — one nie migoczą, tylko wygładzają pojawienie. */
+@media (prefers-reduced-motion: reduce) {
+  .logo-dot,
+  #my-banner.level-high,
+  #alarm-overlay,
+  .alarm-icon,
+  .voiv-card.level-high,
+  .lg-row .pulse-ic::before { animation: none; }
+}
 .lg-row .ring { width: 14px; height: 14px; border-radius: 50%;
   border: 1.5px solid var(--amber); opacity: .7; }
 .lg-row .trail { width: 16px; height: 0;
@@ -1193,3 +1220,35 @@ body.panel-open #bottom-stack > #update-banner:not(.critical) { display: none; }
 @media (max-width: 365px) {
   .ua-android .chip.download::before { content: "⬇"; font-size: 15px; letter-spacing: 0; }
 }
+
+/* ── Dostępność: klawiatura i czytniki ekranu (1.7.81) ──────────────────────
+   Nic z tego nie zmienia wyglądu dla kogoś, kto patrzy na ekran i dotyka
+   palcem — poza obwódką fokusu, która pojawia się dopiero przy nawigacji
+   klawiaturą albo przełącznikiem. */
+
+/* Tekst czytany na głos, niewidoczny na ekranie. Nie `display:none` ani
+   `visibility:hidden` — czytnik pomija oba. */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+  overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%);
+  white-space: nowrap; border: 0;
+}
+
+/* Nagłówek karty województwa jest teraz przyciskiem (rozwija kartę), więc
+   trzeba zdjąć z niego wygląd przycisku przeglądarki. Wygląda tak samo jak
+   dotąd, ale da się do niego dojść klawiszem Tab i czytnik mówi, czy karta
+   jest rozwinięta. */
+button.voiv-head {
+  width: 100%; background: none; border: 0; padding: 0; margin: 0;
+  font: inherit; color: inherit; text-align: left; cursor: pointer;
+}
+
+/* Widoczny fokus. Bez tego dodanie obsługi klawiatury jest bezużyteczne —
+   człowiek nie wie, gdzie jest. `:focus-visible`, nie `:focus`, żeby obwódka
+   nie pojawiała się po dotknięciu palcem. */
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Okno alarmu dostaje fokus po to, żeby czytnik ekranu zaczął czytać od jego
+   treści — to nie jest kontrolka, więc obwódki nie rysujemy. Niebieska ramka
+   wokół czerwonego alarmu myliłaby co do tego, co jest tu do naciśnięcia. */
+.alarm-box:focus, .alarm-box:focus-visible { outline: none; }
