@@ -65,6 +65,8 @@ class Alarms {
     /** Użytkownik wyłączył „Alarmy na tym telefonie” — usługa FCM odrzuca alarmy. */
     static final String KEY_ALERTS_OFF = "alerts_off";
     private static final String KEY_SAVED_VOLUME = "saved_alarm_volume";
+    /** Widok mapy wybrany w aplikacji (3D = przechylona) — widżet rysuje tak samo. */
+    static final String KEY_MAP_3D = "map_3d";
 
     /**
      * Wszystkie 16 województw — ta sama lista i kolejność co config.VOIVODESHIPS

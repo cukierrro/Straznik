@@ -5549,13 +5549,22 @@ function pokazStan3d() {
   b3.title = is3d ? (UI.t("Przełącz na widok 2D", "Switch to 2D view", "Перемкнути на вигляд 2D"))
                   : (UI.t("Przełącz na widok 3D", "Switch to 3D view", "Перемкнути на вигляд 3D"));
 }
+/* Widżet na ekranie głównym rysuje tę samą mapę po swojemu i nie widzi
+   localStorage strony, więc wybór 2D/3D przekazujemy warstwie natywnej.
+   Metody nie da się sprawdzić z góry (patrz komentarz przy dzwiekAlarmu) —
+   liczy się tylko wynik, a starsza wersja natywna po prostu odrzuci wywołanie. */
+function syncWidokMapy() {
+  try { BG()?.setMapView?.({ is3d })?.catch?.(() => {}); } catch {}
+}
 document.getElementById("btn-3d").onclick = () => {
   is3d = !is3d;
   try { localStorage.setItem("straznik_widok", is3d ? "3d" : "2d"); } catch {}
   map?.easeTo({ pitch: is3d ? 45 : 0, bearing: is3d ? -8 : 0, duration: 700 });
   pokazStan3d();
+  syncWidokMapy();
 };
 pokazStan3d();
+syncWidokMapy();
 
 /* Dolne zakładki: „Mapa" jest stanem spoczynku — zamyka panel, historię i menu. */
 function syncTabs() {

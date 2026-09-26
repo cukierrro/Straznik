@@ -560,7 +560,8 @@ final class Widgets {
             // bitmapa potrafi przekroczyć limit transakcji launchera
             float skala = Math.min(gestosc, 1000f / Math.max(1, wDp));
             int wPx = Math.round(wDp * skala), hPx = Math.round(hDp * skala);
-            mapa = WidgetMap.rysuj(c, st, watched, wPx, hPx, 152f / Math.max(1, wDp));
+            boolean przechylona = Alarms.prefs(c).getBoolean(Alarms.KEY_MAP_3D, false);
+            mapa = WidgetMap.rysuj(c, st, watched, wPx, hPx, 152f / Math.max(1, wDp), przechylona);
         } catch (Throwable e) {
             Log.w(TAG, "rysowanie mapy", e);
         }

@@ -175,7 +175,7 @@ final class WidgetMap {
      * @param obserwowane województwa użytkownika (obrysowane na biało)
      */
     static Bitmap rysuj(Context c, JSONObject stan, List<String> obserwowane,
-                        int w, int h, float panelUlamek) {
+                        int w, int h, float panelUlamek, boolean przechylona) {
         Map<String, List<Ksztalt>> warstwy = warstwy(c);
         if (warstwy == null || w <= 0 || h <= 0) return null;
         JSONArray obiekty = stan == null ? null : stan.optJSONArray("obj");
@@ -235,7 +235,40 @@ final class WidgetMap {
         }
 
         rysujObiekty(cv, k, obiekty, skala);
-        return bmp;
+        return przechylona ? przechyl(bmp) : bmp;
+    }
+
+    /**
+     * Mapa przechylona jak tryb 3D w aplikacji (pitch 45°, bearing −8°). Zamiast
+     * liczyć rzut na nowo, gotowy płaski rysunek wkładamy w trapez — ten sam efekt,
+     * a kropki obiektów i granice przesuwają się razem z mapą.
+     */
+    private static Bitmap przechyl(Bitmap plaska) {
+        int w = plaska.getWidth(), h = plaska.getHeight();
+        Bitmap out;
+        try {
+            out = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+        } catch (OutOfMemoryError e) {
+            Log.w(TAG, "za mało pamięci na przechylenie");
+            return plaska;
+        }
+        Canvas cv = new Canvas(out);
+        cv.drawColor(TLO);
+        float[] src = {0, 0, w, 0, w, h, 0, h};
+        // górna krawędź cofa się i zwęża, dolna wychodzi poza kafelek — to jest pitch
+        float[] dst = {
+            w * 0.18f, h * 0.06f, w * 0.82f, h * 0.06f,
+            w * 1.30f, h * 1.18f, -w * 0.30f, h * 1.18f,
+        };
+        android.graphics.Matrix m = new android.graphics.Matrix();
+        if (!m.setPolyToPoly(src, 0, dst, 0, 4)) return plaska;
+        android.graphics.Matrix obrot = new android.graphics.Matrix();
+        obrot.setRotate(-8f, w / 2f, h * 0.62f);        // bearing jak w aplikacji
+        m.postConcat(obrot);
+        Paint p = new Paint(Paint.FILTER_BITMAP_FLAG | Paint.ANTI_ALIAS_FLAG);
+        cv.drawBitmap(plaska, m, p);
+        plaska.recycle();
+        return out;
     }
 
     /** Czy któryś obiekt lecący w stronę Polski jest już blisko granicy. */

@@ -124,6 +124,19 @@ public class BackgroundPlugin extends Plugin {
         call.resolve();
     }
 
+    /**
+     * Widok mapy wybrany w aplikacji (2D albo przechylone 3D). Widżet na ekranie
+     * głównym rysuje mapę sam, natywnie, i nie widzi localStorage strony — dlatego
+     * ustawienie trafia tutaj i jest przerysowywane od razu.
+     */
+    @PluginMethod
+    public void setMapView(PluginCall call) {
+        boolean trzyD = Boolean.TRUE.equals(call.getBoolean("is3d", true));
+        Alarms.prefs(getContext()).edit().putBoolean(Alarms.KEY_MAP_3D, trzyD).apply();
+        if (Widgets.anyPlaced(getContext())) Widgets.redrawAll(getContext());
+        call.resolve();
+    }
+
     private static boolean isKnownVoivodeship(String value) {
         if (value == null) return false;
         for (String v : Alarms.VOIVS) if (v.equals(value)) return true;
