@@ -29,6 +29,14 @@ current_aircraft: list[dict] = []
 # current_aircraft, bo ta lista trafia do migawek historii (12 h)
 trails: dict[str, list] = {}
 TRAIL_MIN_KM, TRAIL_MAX_PTS, TRAIL_MAX_AGE_S = 0.5, 30, 30 * 60
+# Ostatnia przyjęta pozycja per maszyna — do odrzucania niemożliwych skoków MLAT.
+_last_pos: dict[str, dict] = {}
+# Nic, co widzimy w ADS-B, nie leci 1800 km/h. Skok powyżej tego progu to błąd
+# multilateracji, nie lot. Kotwicy nie odświeżamy w trakcie trzymania, więc
+# dopuszczalny dystans rośnie z czasem i po chwili każdy realny przelot przechodzi;
+# JUMP_HOLD_MAX_S jest twardym bezpiecznikiem, żeby maszyna nie zamarzła, gdy to
+# nasza kotwica jest nieaktualna.
+JUMP_MAX_KMH, JUMP_HOLD_MAX_S = 1800, 300
 _watch_prev: dict[str, dict] | None = None
 
 
@@ -174,6 +182,51 @@ async def _fetch_baltic_geo(client: httpx.AsyncClient, provider: str) -> list[di
     return []
 
 
+def _hold_impossible_jump(ac: dict, now: float) -> dict:
+    """Skok niemożliwy dla maszyny = trzymamy ostatnią przyjętą pozycję.
+
+    25.09.2026, zgłoszenie użytkownika: algierski C-130 (MLAT, nic=0) dostał dwie
+    kolejne pozycje 82 i 71 km od faktycznej trasy — skoki 87 i 67 km w 60 s, czyli
+    5232 i 4016 km/h. Ikona przeskakiwała wtedy w podlaskie i wracała, a odcinki
+    trafiały do trasy jako prawdziwy przelot. Podmieniamy pozycję ZANIM policzy ją
+    _classify, więc to samo trzyma ikonę, województwo, trasę i migawkę historii —
+    inaczej trasa rozjechałaby się z ikoną.
+    """
+    hexid = ac.get("hex")
+    lat, lon = ac.get("lat"), ac.get("lon")
+    if not hexid or lat is None or lon is None:
+        return ac
+    prev = _last_pos.get(hexid)
+    if prev:
+        dt = now - prev["t"]
+        # Kotwica starsza niż ślad i tak nic nie mówi o bieżącej pozycji.
+        if 0 < dt <= TRAIL_MAX_AGE_S:
+            kmh = geo.haversine_km(prev["lat"], prev["lon"], lat, lon) / dt * 3600
+            if kmh > JUMP_MAX_KMH and dt < JUMP_HOLD_MAX_S:
+                log.info("ADS-B %s: skok %.0f km/h odrzucony, trzymam pozycję", hexid, kmh)
+                return {**ac, "lat": prev["lat"], "lon": prev["lon"],
+                        "_straznik_position_held": True}
+    _last_pos[hexid] = {"lat": lat, "lon": lon, "t": now}
+    return ac
+
+
+def _position_source(ac: dict) -> str:
+    """MLAT / TIS-B / ADS-B — czym naprawdę jest ta pozycja.
+
+    MLAT liczą odbiorniki z różnic czasu dotarcia sygnału; maszyna nie podaje
+    wtedy swojego położenia i przy słabej geometrii błąd sięga dziesiątek
+    kilometrów (25.09.2026: algierski C-130 dostał dwie kolejne pozycje 82 i
+    71 km od faktycznej trasy, obie w podlaskiem). Bez tego pola karta maszyny
+    w trybie serwerowym pisała „ADS-B" nad Białorusią, gdzie odbiorników nie ma.
+    Reguła jest ta sama, co w trybie bez serwera (frontend/engine.js).
+    """
+    if ac.get("mlat"):
+        return "MLAT"
+    if ac.get("tisb"):
+        return "TIS-B"
+    return "ADS-B"
+
+
 def _classify(ac: dict) -> dict | None:
     """Punktujemy tylko województwa priorytetowe, ale pokazujemy szerszą strefę
     (wschodnia flanka NATO), żeby było widać kontekst — np. tankowce nad Rumunią."""
@@ -184,7 +237,7 @@ def _classify(ac: dict) -> dict | None:
     if voiv is None and not geo.in_watch_area(lat, lon):
         return None
     callsign = (ac.get("flight") or "").strip()
-    return {
+    out = {
         "hex": ac.get("hex"), "callsign": callsign, "type": ac.get("t"),
         "lat": lat, "lon": lon, "alt": ac.get("alt_baro"),
         "gs": ac.get("gs"), "track": ac.get("track"), "voivodeship": voiv,
@@ -193,8 +246,12 @@ def _classify(ac: dict) -> dict | None:
         # prędkość pionowa [ft/min], rocznik — wszystko wprost z ADS-B/rejestru
         "reg": ac.get("r"), "op": ac.get("ownOp"), "cat": ac.get("category"),
         "vr": ac.get("baro_rate"), "year": ac.get("year"),
+        "source": _position_source(ac),
         "detection": ac.get("_straznik_detection", "mil_registry"),
     }
+    if ac.get("_straznik_position_held"):
+        out["held"] = True
+    return out
 
 
 async def _tick(client: httpx.AsyncClient):
@@ -222,14 +279,14 @@ async def _tick(client: httpx.AsyncClient):
     per_voiv: dict[str, list] = {v: [] for v in geo.VOIV_BBOX}
     global current_aircraft
     current = []
+    now = time.time()
     for ac in ac_list:
-        c = _classify(ac)
+        c = _classify(_hold_impossible_jump(ac, now))
         if c:
             if c["voivodeship"] in per_voiv:
                 per_voiv[c["voivodeship"]].append(c)
             current.append(c)
     current_aircraft = current
-    now = time.time()
     for c in current:
         hexid = c.get("hex")
         if not hexid:
@@ -240,6 +297,8 @@ async def _tick(client: httpx.AsyncClient):
         trails[hexid] = pts[-TRAIL_MAX_PTS:]
     for hexid in [h for h, pts in trails.items() if not pts or now - pts[-1]["t"] > TRAIL_MAX_AGE_S]:
         trails.pop(hexid, None)
+    for hexid in [h for h, q in _last_pos.items() if now - q["t"] > TRAIL_MAX_AGE_S]:
+        _last_pos.pop(hexid, None)
 
     # Rejestrujemy przejścia co minutę, niezależnie od migawki mapy co 2 min.
     # Pierwszy obieg po restarcie tylko ustanawia bazę, żeby nie tworzyć lawiny
