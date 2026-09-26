@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Mapa na widżecie jest zawsze ciemna, tak jak mapa w aplikacji — te kolory
+     nie mają wariantu nocnego, bo tło rysunku jest stałe. -->
+<resources>
+    <color name="widget_map_text">#E3E9F5</color>
+    <color name="widget_map_muted">#9AA6BD</color>
+    <color name="widget_map_elevated">#FFB020</color>
+    <color name="widget_map_high">#FF6B79</color>
+    <color name="widget_map_spill">#D9B36A</color>
+</resources>

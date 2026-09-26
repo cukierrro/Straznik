@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- updatePeriodMillis=0: odświeża WidgetRefreshJob (sieć wymagana) i push FCM -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="250dp"
+    android:minHeight="180dp"
+    android:minResizeWidth="180dp"
+    android:minResizeHeight="140dp"
+    android:targetCellWidth="4"
+    android:targetCellHeight="3"
+    android:updatePeriodMillis="0"
+    android:initialLayout="@layout/widget_map"
+    android:previewLayout="@layout/widget_map"
+    android:previewImage="@mipmap/ic_launcher"
+    android:description="@string/widget_map_tall_desc"
+    android:resizeMode="horizontal|vertical"
+    android:widgetCategory="home_screen" />

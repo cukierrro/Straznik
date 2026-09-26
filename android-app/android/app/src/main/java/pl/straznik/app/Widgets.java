@@ -8,6 +8,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
@@ -55,6 +56,8 @@ final class Widgets {
     static final long STALE_AFTER_MS = 45 * 60 * 1000L;
     /** Najbliższy obiekt pokazujemy tylko wtedy, gdy jest bliżej granicy niż to. */
     static final double NEAR_MAX_KM = 400;
+    /** Ile obiektów zapisujemy na mapę widżetu (reszta i tak nie zmieści się czytelnie). */
+    static final int MAX_OBIEKTOW = 60;
     static final int JOB_ID = 0x5717;
     static final long PERIOD_MS = 30 * 60 * 1000L;
     static final String NO_WATCHED_HINT =
@@ -80,7 +83,9 @@ final class Widgets {
     }
 
     static boolean anyPlaced(Context c) {
-        return ids(c, StraznikWidgetSmall.class).length + ids(c, StraznikWidgetWide.class).length > 0;
+        return ids(c, StraznikWidgetSmall.class).length
+            + ids(c, StraznikWidgetMapWide.class).length
+            + ids(c, StraznikWidgetMapTall.class).length > 0;
     }
 
     // ── cykliczne odświeżanie ──────────────────────────────────────────────────
@@ -198,7 +203,56 @@ final class Widgets {
             }
         }
         out.put("voivs", voivs);
-        out.put("near", nearest(state.optJSONObject("neptun")));
+        JSONObject neptun = state.optJSONObject("neptun");
+        out.put("near", nearest(neptun));
+        out.put("obj", obiekty(neptun));
+        out.put("ua", alarmyUA(neptun));
+        return out;
+    }
+
+    /**
+     * Obiekty na mapę widżetu — te same pozycje, które rysuje aplikacja. Pozycja
+     * przybliżona (środek miejscowości) zostaje oznaczona: mapa rysuje ją pustym
+     * krążkiem, żeby nie udawała zmierzonego miejsca.
+     */
+    static JSONArray obiekty(JSONObject neptun) throws org.json.JSONException {
+        JSONArray out = new JSONArray();
+        JSONArray threats = neptun == null ? null : neptun.optJSONArray("threats");
+        if (threats == null) return out;
+        for (int i = 0; i < threats.length() && out.length() < MAX_OBIEKTOW; i++) {
+            JSONObject t = threats.optJSONObject(i);
+            if (t == null || t.isNull("lat") || t.isNull("lon")) continue;
+            JSONObject o = new JSONObject();
+            o.put("lon", Math.round(t.optDouble("lon", 0) * 1000) / 1000.0);
+            o.put("lat", Math.round(t.optDouble("lat", 0) * 1000) / 1000.0);
+            o.put("t", t.optString("type", "unknown"));
+            JSONObject pos = t.optJSONObject("straznik_position");
+            if (pos != null && "approx".equals(pos.optString("quality"))) o.put("ok", false);
+            JSONObject a = t.optJSONObject("pl_assessment");
+            if (a != null && a.optBoolean("toward_pl", false)) {
+                o.put("pl", true);
+                double km = a.optBoolean("inside_pl", false) ? 0 : a.optDouble("dist_km", Double.NaN);
+                if (!Double.isNaN(km)) o.put("km", Math.round(km));
+            }
+            out.put(o);
+        }
+        return out;
+    }
+
+    /** Obwody Ukrainy z aktywnym alarmem — do podświetlenia na mapie, bez punktów. */
+    static JSONArray alarmyUA(JSONObject neptun) {
+        JSONArray out = new JSONArray();
+        if (neptun == null) return out;
+        JSONArray punktowane = neptun.optJSONArray("alert_oblasts");
+        if (punktowane != null) for (int i = 0; i < punktowane.length(); i++) out.put(punktowane.optString(i, ""));
+        JSONArray obszary = neptun.optJSONArray("alert_areas");
+        if (obszary != null) for (int i = 0; i < obszary.length(); i++) {
+            JSONObject a = obszary.optJSONObject(i);
+            if (a == null || !"oblast".equals(a.optString("w"))) continue;
+            // „Донецька область" → „Донецька" (tak nazywa je plik konturów)
+            String nazwa = a.optString("n", "").replace(" область", "").trim();
+            if (!nazwa.isEmpty()) out.put(nazwa);
+        }
         return out;
     }
 
@@ -309,8 +363,9 @@ final class Widgets {
 
     static void redrawAll(Context c) {
         AppWidgetManager m = AppWidgetManager.getInstance(c);
-        for (int id : ids(c, StraznikWidgetSmall.class)) m.updateAppWidget(id, build(c, m, id, false));
-        for (int id : ids(c, StraznikWidgetWide.class)) m.updateAppWidget(id, build(c, m, id, true));
+        for (int id : ids(c, StraznikWidgetSmall.class)) m.updateAppWidget(id, build(c, m, id));
+        for (int id : ids(c, StraznikWidgetMapWide.class)) m.updateAppWidget(id, buildMap(c, m, id));
+        for (int id : ids(c, StraznikWidgetMapTall.class)) m.updateAppWidget(id, buildMap(c, m, id));
     }
 
     /** Widok stanu jednego województwa. */
@@ -345,9 +400,41 @@ final class Widgets {
     private static final int[] LABEL_COLOR = {R.color.widget_text_muted, R.color.widget_elevated_text,
         R.color.widget_high_text, R.color.widget_spill_text, R.color.widget_text_muted};
 
-    static RemoteViews build(Context c, AppWidgetManager m, int id, boolean wide) {
-        RemoteViews rv = new RemoteViews(c.getPackageName(),
-            wide ? R.layout.widget_wide : R.layout.widget_small);
+    /** Kolory etykiet na ciemnej mapie (inne niż na jasnym kafelku 2×2). */
+    private static final int[] MAP_LABEL_COLOR = {R.color.widget_map_muted, R.color.widget_map_elevated,
+        R.color.widget_map_high, R.color.widget_map_spill, R.color.widget_map_muted};
+
+    /** Ostatni zapisany stan albo null, gdy nic jeszcze nie pobrano. */
+    static JSONObject zapisanyStan(Context c) {
+        try {
+            String raw = Alarms.prefs(c).getString(KEY_STATE, null);
+            return raw == null ? null : new JSONObject(raw);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * Rozmiar kafelka w dp. W pionie Android podaje wysokość w MAX_HEIGHT i szerokość
+     * w MIN_WIDTH, w poziomie odwrotnie — pomylenie tego dawało widżet w wersji
+     * kompaktowej mimo mnóstwa miejsca (sprawdzone na Pixelu 7, 22.09.2026).
+     */
+    static int[] rozmiarDp(Context c, AppWidgetManager m, int id, int domyslnaSzer, int domyslnaWys) {
+        int w = 0, h = 0;
+        try {
+            Bundle o = m.getAppWidgetOptions(id);
+            boolean portrait = c.getResources().getConfiguration().orientation
+                != android.content.res.Configuration.ORIENTATION_LANDSCAPE;
+            h = o.getInt(portrait ? AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT
+                : AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0);
+            w = o.getInt(portrait ? AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH
+                : AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH, 0);
+        } catch (Exception ignored) {}
+        return new int[]{w > 0 ? w : domyslnaSzer, h > 0 ? h : domyslnaWys};
+    }
+
+    static RemoteViews build(Context c, AppWidgetManager m, int id) {
+        RemoteViews rv = new RemoteViews(c.getPackageName(), R.layout.widget_small);
         rv.setOnClickPendingIntent(R.id.w_root, openApp(c));
 
         JSONObject st = null;
@@ -385,7 +472,7 @@ final class Widgets {
             : "Źródło nieoficjalne · alarmem jest syrena w powiadomieniu";
         rv.setTextViewText(R.id.w_foot, foot);
 
-        if (!wide) {
+        {
             if (watched.isEmpty()) {
                 applyTone(c, rv, 4, false);
                 // pusty kafelek nic by nie mówił — mówimy, co zrobić
@@ -408,47 +495,89 @@ final class Widgets {
             rv.setTextViewText(R.id.w_points_num, r.points);
             String lbl = r.tone == 1 && !roomy ? "PODWYŻSZONA" : r.tone == 2 && !roomy ? "WYSOKI" : r.label;
             rv.setTextViewText(R.id.w_level, roomy || r.points.equals("–") ? r.label : lbl + " · " + r.points + " pkt");
-            return rv;
         }
+        return rv;
+    }
 
-        // szeroki: do 3 województw + najbliższy obiekt
+    /**
+     * Widżet z mapą (4×2 i 4×3). Mapę rysuje {@link WidgetMap} po Canvasie i wstawia
+     * jako obrazek — widżet Androida nie ma WebView, więc silnik mapy z aplikacji tu
+     * nie działa. Panel z lewej jest półprzezroczysty, żeby mapa była pod nim widoczna.
+     */
+    static RemoteViews buildMap(Context c, AppWidgetManager m, int id) {
+        RemoteViews rv = new RemoteViews(c.getPackageName(), R.layout.widget_map);
+        rv.setOnClickPendingIntent(R.id.w_root, openApp(c));
+
+        JSONObject st = zapisanyStan(c);
+        long ts = st == null ? 0 : st.optLong("ts", 0);
+        boolean stale = ts > 0 && System.currentTimeMillis() - ts > STALE_AFTER_MS;
+        String time = ts > 0 ? new SimpleDateFormat("HH:mm", Locale.ROOT).format(new Date(ts)) : "";
+        List<String> watched = watched(c);
+        JSONObject voivs = st == null ? null : st.optJSONObject("voivs");
+        int[] size = rozmiarDp(c, m, id, 250, 110);
+        int wDp = size[0], hDp = size[1];
+        float font = Math.max(1f, c.getResources().getConfiguration().fontScale);
+
         int[] rowIds = {R.id.w_row1, R.id.w_row2, R.id.w_row3};
         int[] dotIds = {R.id.w_dot1, R.id.w_dot2, R.id.w_dot3};
         int[] nameIds = {R.id.w_name1, R.id.w_name2, R.id.w_name3};
         int[] ptsIds = {R.id.w_pts1, R.id.w_pts2, R.id.w_pts3};
-        int[] lvlIds = {R.id.w_lvl1, R.id.w_lvl2, R.id.w_lvl3};
-        // nagłówek + linia najbliższego + stopka ≈ 84 dp, wiersz ≈ 22 dp (skalowane czcionką)
-        float f = Math.max(1f, font);
-        int fit = (int) Math.floor((hDp - 84 * f) / (22 * f));
+        int[] subIds = {R.id.w_sub1, R.id.w_sub2, R.id.w_sub3};
+        // nagłówek + dolny pasek ≈ 62 dp, wiersz z podpisem ≈ 31 dp (skalowane czcionką)
+        int fit = (int) Math.floor((hDp - 62 * font) / (31 * font));
         int n = Math.max(1, Math.min(3, Math.min(fit, Math.max(1, watched.size()))));
-        int worst = 0;
+        boolean shortLabels = font > 1.1f || wDp < 300;
         for (int i = 0; i < 3; i++) {
-            if (i >= n || i >= watched.size()) { rv.setViewVisibility(rowIds[i], View.GONE); continue; }
-            String name = watched.get(i);
-            Row r = row(name, voivs == null ? null : voivs.optJSONObject(name), stale);
+            if (i >= n || i >= watched.size()) {
+                rv.setViewVisibility(rowIds[i], View.GONE);
+                rv.setViewVisibility(subIds[i], View.GONE);
+                continue;
+            }
+            Row r = row(watched.get(i), voivs == null ? null : voivs.optJSONObject(watched.get(i)), stale);
             if (st == null) { r.label = "ładowanie…"; r.points = "–"; r.tone = 4; }
             rv.setViewVisibility(rowIds[i], View.VISIBLE);
+            rv.setViewVisibility(subIds[i], View.VISIBLE);
             rv.setImageViewResource(dotIds[i], DOT[r.tone]);
             rv.setTextViewText(nameIds[i], r.name);
             rv.setTextViewText(ptsIds[i], r.points);
-            rv.setTextViewText(lvlIds[i], shortLabels ? shortLabel(r) : r.label);
-            setColor(c, rv, lvlIds[i], LABEL_COLOR[r.tone]);
-            if (severity(r.tone) > severity(worst)) worst = r.tone;
+            rv.setTextViewText(subIds[i], shortLabels ? shortLabel(r) : r.label);
+            setColor(c, rv, subIds[i], MAP_LABEL_COLOR[r.tone]);
         }
         if (watched.isEmpty()) {
             rv.setViewVisibility(R.id.w_row1, View.VISIBLE);
+            rv.setViewVisibility(R.id.w_sub1, View.VISIBLE);
             rv.setImageViewResource(R.id.w_dot1, DOT[4]);
-            rv.setTextViewText(R.id.w_name1, "Brak obserwowanych województw");
+            rv.setTextViewText(R.id.w_name1, "Brak miejsc");
             rv.setTextViewText(R.id.w_pts1, "");
-            rv.setTextViewText(R.id.w_lvl1, "");
-            worst = 4;
+            rv.setTextViewText(R.id.w_sub1, NO_WATCHED_HINT);
+            setColor(c, rv, R.id.w_sub1, R.color.widget_map_muted);
         }
-        if (stale) worst = 4;
-        applyTone(c, rv, worst, false);
+
+        Bitmap mapa = null;
+        try {
+            float gestosc = c.getResources().getDisplayMetrics().density;
+            // ograniczenie szerokości: obrazek widżetu jedzie przez IPC, a wielki
+            // bitmapa potrafi przekroczyć limit transakcji launchera
+            float skala = Math.min(gestosc, 1000f / Math.max(1, wDp));
+            int wPx = Math.round(wDp * skala), hPx = Math.round(hDp * skala);
+            mapa = WidgetMap.rysuj(c, st, watched, wPx, hPx, 152f / Math.max(1, wDp));
+        } catch (Throwable e) {
+            Log.w(TAG, "rysowanie mapy", e);
+        }
+        if (mapa != null) rv.setImageViewBitmap(R.id.w_map, mapa);
+
+        JSONArray obiekty = st == null ? null : st.optJSONArray("obj");
+        boolean blisko = WidgetMap.blisko(obiekty);
+        rv.setTextViewText(R.id.w_time, time.isEmpty() ? "—"
+            : time + (mapa == null ? "" : " · " + (blisko ? "Polska" : "szeroki widok")));
+
         String near = st == null ? "" : st.optString("near", "");
-        rv.setTextViewText(R.id.w_near, watched.isEmpty() ? NO_WATCHED_HINT : st == null ? ""
+        rv.setTextViewText(R.id.w_near, watched.isEmpty() ? "Dotknij, żeby wybrać miejsca"
+            : st == null ? "Ładowanie…"
             : near.isEmpty() ? "Brak obiektów lecących w stronę Polski (do " + (int) NEAR_MAX_KM + " km)" : near);
-        rv.setViewVisibility(R.id.w_near, stale ? View.GONE : View.VISIBLE);
+        rv.setTextViewText(R.id.w_foot, stale
+            ? "Dane z " + time + " — mogą być nieaktualne. Otwórz aplikację."
+            : "Źródło nieoficjalne · alarmem jest syrena w powiadomieniu");
         return rv;
     }
 

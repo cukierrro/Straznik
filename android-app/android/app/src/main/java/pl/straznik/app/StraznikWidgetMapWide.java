@@ -5,8 +5,8 @@ import android.appwidget.AppWidgetProvider;
 import android.content.Context;
 import android.os.Bundle;
 
-/** Szeroki widżet 4×2: do trzech obserwowanych województw i najbliższy obiekt. Logika w {@link Widgets}. */
-public class StraznikWidgetWide extends AppWidgetProvider {
+/** Widżet z mapą 4×2 — mapa i lista obserwowanych województw. Logika w {@link Widgets}, rysowanie mapy w {@link WidgetMap}. */
+public class StraznikWidgetMapWide extends AppWidgetProvider {
     @Override
     public void onUpdate(Context c, AppWidgetManager m, int[] ids) {
         Widgets.redrawAll(c);
@@ -17,7 +17,7 @@ public class StraznikWidgetWide extends AppWidgetProvider {
 
     @Override
     public void onAppWidgetOptionsChanged(Context c, AppWidgetManager m, int id, Bundle o) {
-        // zmiana rozmiaru: inna liczba wierszy / punkty w wierszu poziomu
+        // zmiana rozmiaru: inny kadr mapy i inna liczba wierszy
         Widgets.redrawAll(c);
     }
 

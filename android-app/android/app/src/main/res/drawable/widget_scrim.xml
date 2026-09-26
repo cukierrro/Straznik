@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Półprzezroczysty panel na mapie: czytelny tekst, a mapa nadal widoczna. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <gradient
+        android:startColor="#EE090D16"
+        android:centerColor="#DD090D16"
+        android:endColor="#00090D16"
+        android:centerX="0.62"
+        android:angle="0" />
+</shape>

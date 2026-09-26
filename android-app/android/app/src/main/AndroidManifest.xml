@@ -73,15 +73,26 @@
                 android:resource="@xml/widget_small_info" />
         </receiver>
         <receiver
-            android:name=".StraznikWidgetWide"
+            android:name=".StraznikWidgetMapWide"
             android:exported="false"
-            android:label="@string/widget_wide_label">
+            android:label="@string/widget_map_wide_label">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
-                android:resource="@xml/widget_wide_info" />
+                android:resource="@xml/widget_map_wide_info" />
+        </receiver>
+        <receiver
+            android:name=".StraznikWidgetMapTall"
+            android:exported="false"
+            android:label="@string/widget_map_tall_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_map_tall_info" />
         </receiver>
         <service
             android:name=".WidgetRefreshJob"
