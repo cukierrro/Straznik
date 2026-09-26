@@ -140,19 +140,55 @@ final class WidgetMap {
 
     static final class Kadr {
         double lon0, lon1, lat0, lat1;
-        boolean blisko;      // kadr zbliżony do Polski
+        boolean blisko;          // kadr zbliżony do Polski
+        boolean przechylona;     // widok 3D wybrany w aplikacji
         int w, h;
-        float x(double lon) { return (float) ((lon - lon0) / (lon1 - lon0) * w); }
-        float y(double lat) { return (float) ((lat1 - lat) / (lat1 - lat0) * h); }
+
+        /* Przechylenie liczymy w samym rzutowaniu, a nie przez wyginanie gotowego
+           obrazka (tak było do 26.09.2026 i wychodziły czarne kliny w rogach oraz
+           zjeżdżanie Polski w bok). Ziemia to płaszczyzna oglądana z góry pod
+           kątem: to, co dalej, jest mniejsze i bliżej horyzontu. `dBlisko` i
+           `dDaleko` to odległości do dolnej i górnej krawędzi kadru. */
+        private static final float D_BLISKO = 1f, D_DALEKO = 2.15f;
+        private float staleC, horyzont;
+
+        void przygotuj() {
+            if (!przechylona) return;
+            // y(dół) = h przy D_BLISKO, y(góra) = 0 przy D_DALEKO
+            staleC = (float) (h * D_BLISKO * D_DALEKO / (D_DALEKO - D_BLISKO));
+            horyzont = -staleC / D_DALEKO;
+        }
+
+        /** Odległość do punktu na tej szerokości (1 = dolna krawędź kadru). */
+        private float odleglosc(double lat) {
+            double v = (lat1 - lat) / (lat1 - lat0);      // 0 = północ (dalej), 1 = południe
+            return (float) (D_DALEKO - v * (D_DALEKO - D_BLISKO));
+        }
+
+        /** Skala na tej szerokości: im dalej, tym mniejsza — stąd wrażenie głębi. */
+        float skalaGlebi(double lat) {
+            return przechylona ? D_BLISKO / odleglosc(lat) : 1f;
+        }
+
+        float x(double lon, double lat) {
+            double u = (lon - lon0) / (lon1 - lon0) - 0.5;
+            if (!przechylona) return (float) ((u + 0.5) * w);
+            return (float) (w * 0.5 + u * w * skalaGlebi(lat));
+        }
+
+        float y(double lat) {
+            if (!przechylona) return (float) ((lat1 - lat) / (lat1 - lat0) * h);
+            return horyzont + staleC / odleglosc(lat);
+        }
     }
 
     /**
      * Kadr dopasowany do proporcji kafelka. `panelUlamek` to część szerokości
      * zajęta przez panel z lewej — Polska ma wypaść obok niego, nie pod nim.
      */
-    static Kadr kadr(int w, int h, boolean blisko, float panelUlamek) {
+    static Kadr kadr(int w, int h, boolean blisko, float panelUlamek, boolean przechylona) {
         Kadr k = new Kadr();
-        k.w = w; k.h = h; k.blisko = blisko;
+        k.w = w; k.h = h; k.blisko = blisko; k.przechylona = przechylona;
         double srodekLon, cel;
         if (blisko) {
             k.lat0 = 48.3; k.lat1 = 55.3; srodekLon = 19.3;
@@ -163,8 +199,15 @@ final class WidgetMap {
         }
         double cos = Math.cos(Math.toRadians((k.lat0 + k.lat1) / 2));
         double rozpietosc = (k.lat1 - k.lat0) * ((double) w / h) / cos;
+        if (przechylona) {
+            // przy przechyleniu dolna krawędź jest bliżej, więc obejmuje mniej terenu;
+            // poszerzamy kadr, żeby Polska nie wyszła poza kafelek
+            rozpietosc *= 1.35;
+            k.lat0 -= (k.lat1 - k.lat0) * 0.10;
+        }
         k.lon0 = srodekLon - rozpietosc * cel;
         k.lon1 = k.lon0 + rozpietosc;
+        k.przygotuj();
         return k;
     }
 
@@ -179,7 +222,7 @@ final class WidgetMap {
         Map<String, List<Ksztalt>> warstwy = warstwy(c);
         if (warstwy == null || w <= 0 || h <= 0) return null;
         JSONArray obiekty = stan == null ? null : stan.optJSONArray("obj");
-        Kadr k = kadr(w, h, blisko(obiekty), panelUlamek);
+        Kadr k = kadr(w, h, blisko(obiekty), panelUlamek, przechylona);
 
         Bitmap bmp;
         try {
@@ -190,6 +233,13 @@ final class WidgetMap {
         }
         Canvas cv = new Canvas(bmp);
         cv.drawColor(TLO);
+        if (przechylona) {
+            cv.save();
+            // bearing −8° jak w aplikacji; lekkie powiększenie, żeby obrót nie
+            // odsłonił tła w rogach kafelka
+            cv.rotate(-8f, w / 2f, h * 0.58f);
+            cv.scale(1.14f, 1.14f, w / 2f, h * 0.58f);
+        }
         Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG);
         fill.setStyle(Paint.Style.FILL);
         Paint line = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -234,41 +284,13 @@ final class WidgetMap {
                 if (obserwowane.contains(s.klucz)) cv.drawPath(sciezka(s, k), line);
         }
 
-        rysujObiekty(cv, k, obiekty, skala);
-        return przechylona ? przechyl(bmp) : bmp;
-    }
-
-    /**
-     * Mapa przechylona jak tryb 3D w aplikacji (pitch 45°, bearing −8°). Zamiast
-     * liczyć rzut na nowo, gotowy płaski rysunek wkładamy w trapez — ten sam efekt,
-     * a kropki obiektów i granice przesuwają się razem z mapą.
-     */
-    private static Bitmap przechyl(Bitmap plaska) {
-        int w = plaska.getWidth(), h = plaska.getHeight();
-        Bitmap out;
-        try {
-            out = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
-        } catch (OutOfMemoryError e) {
-            Log.w(TAG, "za mało pamięci na przechylenie");
-            return plaska;
+        double[] poza = rysujObiekty(cv, k, obiekty, skala);
+        // strzałka i podpis mają zostać poziome, więc wychodzimy z przechylonego układu
+        if (przechylona) cv.restore();
+        if (poza != null) {
+            rysujPozaKadrem(cv, k, (int) poza[0], poza[1], poza[2], (int) poza[3], skala);
         }
-        Canvas cv = new Canvas(out);
-        cv.drawColor(TLO);
-        float[] src = {0, 0, w, 0, w, h, 0, h};
-        // górna krawędź cofa się i zwęża, dolna wychodzi poza kafelek — to jest pitch
-        float[] dst = {
-            w * 0.18f, h * 0.06f, w * 0.82f, h * 0.06f,
-            w * 1.30f, h * 1.18f, -w * 0.30f, h * 1.18f,
-        };
-        android.graphics.Matrix m = new android.graphics.Matrix();
-        if (!m.setPolyToPoly(src, 0, dst, 0, 4)) return plaska;
-        android.graphics.Matrix obrot = new android.graphics.Matrix();
-        obrot.setRotate(-8f, w / 2f, h * 0.62f);        // bearing jak w aplikacji
-        m.postConcat(obrot);
-        Paint p = new Paint(Paint.FILTER_BITMAP_FLAG | Paint.ANTI_ALIAS_FLAG);
-        cv.drawBitmap(plaska, m, p);
-        plaska.recycle();
-        return out;
+        return bmp;
     }
 
     /** Czy któryś obiekt lecący w stronę Polski jest już blisko granicy. */
@@ -282,8 +304,9 @@ final class WidgetMap {
         return false;
     }
 
-    private static void rysujObiekty(Canvas cv, Kadr k, JSONArray obiekty, float skala) {
-        if (obiekty == null) return;
+    /** @return {liczba poza kadrem, km najbliższego, jego szerokość, kolor} albo null. */
+    private static double[] rysujObiekty(Canvas cv, Kadr k, JSONArray obiekty, float skala) {
+        if (obiekty == null) return null;
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
         int pozaKadrem = 0;
         double najblizszePoza = Double.MAX_VALUE, latPoza = 0;
@@ -303,32 +326,34 @@ final class WidgetMap {
                 }
                 continue;
             }
-            float x = k.x(lon), y = k.y(lat);
+            float x = k.x(lon, lat), y = k.y(lat);
+            float glebia = k.skalaGlebi(lat);   // dalsze obiekty rysujemy mniejsze
             int kolor = kolorObiektu;
             p.setColor((kolor & 0x00FFFFFF) | 0x38000000);
             p.setStyle(Paint.Style.FILL);
-            cv.drawCircle(x, y, 3.4f * skala, p);
+            cv.drawCircle(x, y, 3.4f * skala * glebia, p);
             p.setColor(kolor);
             if (o.optBoolean("ok", true)) {          // potwierdzona pozycja
-                cv.drawCircle(x, y, 1.7f * skala, p);
+                cv.drawCircle(x, y, 1.7f * skala * glebia, p);
                 p.setColor(OBRYS_TLA);
                 p.setStyle(Paint.Style.STROKE);
                 p.setStrokeWidth(0.5f * skala);
-                cv.drawCircle(x, y, 1.7f * skala, p);
+                cv.drawCircle(x, y, 1.7f * skala * glebia, p);
             } else {                                  // przybliżony rejon — pusty krążek
                 p.setStyle(Paint.Style.STROKE);
                 p.setStrokeWidth(0.8f * skala);
-                cv.drawCircle(x, y, 1.9f * skala, p);
+                cv.drawCircle(x, y, 1.9f * skala * glebia, p);
             }
         }
-        if (pozaKadrem > 0) rysujPozaKadrem(cv, k, pozaKadrem, najblizszePoza, latPoza, kolorPoza, skala);
+        return pozaKadrem > 0 ? new double[]{pozaKadrem, najblizszePoza, latPoza, kolorPoza} : null;
     }
 
     /** Strzałka przy wschodniej krawędzi: ile obiektów jest dalej i jak daleko najbliższy. */
     private static void rysujPozaKadrem(Canvas cv, Kadr k, int ile, double km, double lat, int kolor, float skala) {
         float x = k.w - 2f * skala;
         // dolny pasek z tekstem zjada ok. 22% wysokości — strzałka nie może pod niego wejść
-        float y = (float) Math.max(12 * skala, Math.min(k.h * 0.76f, k.y(lat)));
+        float yMapy = k.przechylona ? (float) (k.h * 0.45) : k.y(lat);
+        float y = (float) Math.max(12 * skala, Math.min(k.h * 0.76f, yMapy));
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
         p.setColor(kolor);
         android.graphics.Path trojkat = new android.graphics.Path();
@@ -359,8 +384,8 @@ final class WidgetMap {
         Path path = new Path();
         for (float[] r : s.pierscienie) {
             if (r.length < 6) continue;
-            path.moveTo(k.x(r[0]), k.y(r[1]));
-            for (int i = 2; i < r.length; i += 2) path.lineTo(k.x(r[i]), k.y(r[i + 1]));
+            path.moveTo(k.x(r[0], r[1]), k.y(r[1]));
+            for (int i = 2; i < r.length; i += 2) path.lineTo(k.x(r[i], r[i + 1]), k.y(r[i + 1]));
             path.close();
         }
         return path;
