@@ -2,14 +2,14 @@
 <resources>
     <string name="widget_small_label">Strażnik — moje województwo</string>
     <string name="widget_wide_label">Strażnik — obserwowane województwa</string>
-    <string name="widget_small_desc">Stan pierwszego obserwowanego województwa. Nieoficjalne źródło — alarmem jest powiadomienie z syreną.</string>
-    <string name="widget_wide_desc">Do trzech obserwowanych województw i najbliższy obiekt lecący w stronę Polski. Nieoficjalne źródło — to nie jest alarm.</string>
+    <string name="widget_small_desc">Stan pierwszego obserwowanego województwa. Nieoficjalne źródło. Widżet nie alarmuje — ostrzega powiadomienie z syreną.</string>
+    <string name="widget_wide_desc">Do trzech obserwowanych województw i najbliższy obiekt lecący w stronę Polski. Nieoficjalne źródło. Widżet nie alarmuje — ostrzega powiadomienie z syreną.</string>
     <string name="widget_wide_title">Strażnik · obserwowane</string>
     <string name="widget_loading">ładowanie…</string>
     <string name="widget_pts">pkt</string>
-    <string name="widget_foot">Źródło nieoficjalne · alarmem jest syrena w powiadomieniu</string>
+    <string name="widget_foot">Źródło nieoficjalne · widżet nie alarmuje, ostrzega powiadomienie</string>
     <string name="widget_map_wide_label">Strażnik — mapa (szeroki)</string>
     <string name="widget_map_tall_label">Strażnik — mapa (duża)</string>
-    <string name="widget_map_wide_desc">Mapa z poziomami województw i obiektami lecącymi w stronę Polski, obok lista obserwowanych. Nieoficjalne źródło — alarmem jest powiadomienie z syreną.</string>
-    <string name="widget_map_tall_desc">Większa mapa z poziomami województw, alarmami w obwodach Ukrainy i obiektami. Nieoficjalne źródło — to nie jest alarm.</string>
+    <string name="widget_map_wide_desc">Mapa z poziomami województw i obiektami lecącymi w stronę Polski, obok lista obserwowanych. Nieoficjalne źródło. Widżet nie alarmuje — ostrzega powiadomienie z syreną.</string>
+    <string name="widget_map_tall_desc">Większa mapa z poziomami województw, alarmami w obwodach Ukrainy i obiektami. Nieoficjalne źródło. Widżet nie alarmuje — ostrzega powiadomienie z syreną.</string>
 </resources>

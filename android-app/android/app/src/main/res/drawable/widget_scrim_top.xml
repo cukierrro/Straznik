@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Pasek nad mapą u góry małego kafelka: tekst czytelny, mapa nadal widoczna. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <gradient
+        android:startColor="#F2090D16"
+        android:centerColor="#D0090D16"
+        android:endColor="#00090D16"
+        android:centerY="0.6"
+        android:angle="270" />
+</shape>

@@ -233,7 +233,11 @@ final class WidgetMap {
         Kadr k = new Kadr();
         k.w = w; k.h = h; k.blisko = blisko; k.przechylona = przechylona;
         if (blisko) {
-            k.lat0 = 48.6; k.lat1 = 55.0; k.lon0 = 13.6; k.lon1 = 25.2;
+            // bez panelu (mały kafelek 2×2) kadr jest ciaśniejszy, żeby Polska zajęła
+            // kafelek, a nie dzieliła go z Bałtykiem
+            boolean ciasno = panelUlamek <= 0.01f;
+            k.lat0 = ciasno ? 48.9 : 48.6; k.lat1 = ciasno ? 54.7 : 55.0;
+            k.lon0 = ciasno ? 14.0 : 13.6; k.lon1 = ciasno ? 24.4 : 25.2;
         } else {
             // zbliżony do obszaru, na który aplikacja ustawia mapę przy starcie, ale
             // bez pustego pasa na zachodzie (plik konturów kończy się na sąsiadach Polski)
@@ -253,10 +257,16 @@ final class WidgetMap {
      */
     static Bitmap rysuj(Context c, JSONObject stan, List<String> obserwowane,
                         int w, int h, float panelUlamek, boolean przechylona) {
+        return rysuj(c, stan, obserwowane, w, h, panelUlamek, przechylona, false);
+    }
+
+    /** @param zawszeBlisko kadr zawsze na Polsce — szeroki widok nie mieści się na 2×2 */
+    static Bitmap rysuj(Context c, JSONObject stan, List<String> obserwowane,
+                        int w, int h, float panelUlamek, boolean przechylona, boolean zawszeBlisko) {
         Map<String, List<Ksztalt>> warstwy = warstwy(c);
         if (warstwy == null || w <= 0 || h <= 0) return null;
         JSONArray obiekty = stan == null ? null : stan.optJSONArray("obj");
-        Kadr k = kadr(w, h, blisko(obiekty), panelUlamek, przechylona);
+        Kadr k = kadr(w, h, zawszeBlisko || blisko(obiekty), panelUlamek, przechylona);
 
         Bitmap bmp;
         try {
@@ -312,7 +322,9 @@ final class WidgetMap {
         }
 
         double[] poza = rysujObiekty(cv, k, obiekty, skala);
-        if (poza != null) {
+        // na kafelku 2×2 strzałka z liczbą kilometrów nachodziłaby na obrys województwa,
+        // a liczba obiektów 600 km stąd i tak nie jest tym, po co się patrzy na mały kafelek
+        if (poza != null && !zawszeBlisko) {
             rysujPozaKadrem(cv, k, (int) poza[0], poza[1], poza[2], (int) poza[3], skala);
         }
         return bmp;

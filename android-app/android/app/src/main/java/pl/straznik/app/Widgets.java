@@ -391,14 +391,8 @@ final class Widgets {
         return r;
     }
 
-    private static final int[] BG = {R.drawable.widget_bg, R.drawable.widget_bg_elevated,
-        R.drawable.widget_bg_high, R.drawable.widget_bg, R.drawable.widget_bg};
-    private static final int[] BAR = {R.drawable.widget_bar_none, R.drawable.widget_bar_elevated,
-        R.drawable.widget_bar_high, R.drawable.widget_bar_spill, R.drawable.widget_bar_stale};
     private static final int[] DOT = {R.drawable.widget_dot_none, R.drawable.widget_dot_elevated,
         R.drawable.widget_dot_high, R.drawable.widget_dot_spill, R.drawable.widget_dot_stale};
-    private static final int[] LABEL_COLOR = {R.color.widget_text_muted, R.color.widget_elevated_text,
-        R.color.widget_high_text, R.color.widget_spill_text, R.color.widget_text_muted};
 
     /** Kolory etykiet na ciemnej mapie (inne niż na jasnym kafelku 2×2). */
     private static final int[] MAP_LABEL_COLOR = {R.color.widget_map_muted, R.color.widget_map_elevated,
@@ -433,15 +427,16 @@ final class Widgets {
         return new int[]{w > 0 ? w : domyslnaSzer, h > 0 ? h : domyslnaWys};
     }
 
+    /**
+     * Mały widżet 2×2: pierwsze obserwowane województwo na tle mapy Polski. Sam
+     * tekst na gołym kafelku wyglądał ubogo (uwaga usera 26.09.2026), a obrys
+     * województwa na mapie mówi to samo szybciej niż nazwa.
+     */
     static RemoteViews build(Context c, AppWidgetManager m, int id) {
-        RemoteViews rv = new RemoteViews(c.getPackageName(), R.layout.widget_small);
+        RemoteViews rv = new RemoteViews(c.getPackageName(), R.layout.widget_small_map);
         rv.setOnClickPendingIntent(R.id.w_root, openApp(c));
 
-        JSONObject st = null;
-        try {
-            String raw = Alarms.prefs(c).getString(KEY_STATE, null);
-            if (raw != null) st = new JSONObject(raw);
-        } catch (Exception ignored) {}
+        JSONObject st = zapisanyStan(c);
         long ts = st == null ? 0 : st.optLong("ts", 0);
         boolean stale = ts > 0 && System.currentTimeMillis() - ts > STALE_AFTER_MS;
         String time = ts > 0 ? new SimpleDateFormat("HH:mm", Locale.ROOT).format(new Date(ts)) : "";
@@ -449,53 +444,51 @@ final class Widgets {
 
         List<String> watched = watched(c);
         JSONObject voivs = st == null ? null : st.optJSONObject("voivs");
+        int[] size = rozmiarDp(c, m, id, 110, 110);
+        float font = Math.max(1f, c.getResources().getConfiguration().fontScale);
 
-        // wysokość widżetu i skala czcionki decydują, ile się zmieści
-        float font = c.getResources().getConfiguration().fontScale;
-        int hDp = 0, wDp = 0;
+        // mapa zawsze na Polsce: na kafelku 2×2 szeroki widok byłby nieczytelny
+        Bitmap mapa = null;
         try {
-            Bundle o = m.getAppWidgetOptions(id);
-            // w pionie widżet ma wysokość MAX_HEIGHT, w poziomie MIN_HEIGHT
-            boolean portrait = c.getResources().getConfiguration().orientation
-                != android.content.res.Configuration.ORIENTATION_LANDSCAPE;
-            hDp = o.getInt(portrait ? AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT
-                : AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0);
-            wDp = o.getInt(portrait ? AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH
-                : AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH, 0);
-        } catch (Exception ignored) {}
-        if (hDp <= 0) hDp = 110;
-        if (wDp <= 0) wDp = 250;
-        // duża czcionka albo wąski widżet: krótkie etykiety zamiast uciętych („PODWYŻSZONA UW…”)
-        boolean shortLabels = font > 1.1f || wDp < 330;
-
-        String foot = stale ? "Dane z " + time + " — mogą być nieaktualne. Otwórz aplikację."
-            : "Źródło nieoficjalne · alarmem jest syrena w powiadomieniu";
-        rv.setTextViewText(R.id.w_foot, foot);
-
-        {
-            if (watched.isEmpty()) {
-                applyTone(c, rv, 4, false);
-                // pusty kafelek nic by nie mówił — mówimy, co zrobić
-                rv.setTextViewText(R.id.w_name, "Brak miejsc");
-                rv.setInt(R.id.w_level, "setMaxLines", 5);
-                rv.setTextViewText(R.id.w_level, NO_WATCHED_HINT);
-                rv.setViewVisibility(R.id.w_points, View.GONE);
-                rv.setTextViewText(R.id.w_foot, "Źródło nieoficjalne · to nie jest alarm");
-                return rv;
-            }
-            Row r = row(watched.get(0), voivs == null ? null : voivs.optJSONObject(watched.get(0)), stale);
-            if (st == null) { r.label = "ładowanie…"; r.points = "–"; r.tone = 4; }
-            applyTone(c, rv, r.tone, true);
-            rv.setTextViewText(R.id.w_name, r.name);
-            // launcher może nałożyć zmiany na istniejący widok — cofamy 5 wierszy podpowiedzi
-            rv.setInt(R.id.w_level, "setMaxLines", 2);
-            // przy małej wysokości albo dużej czcionce punkty idą do wiersza poziomu
-            boolean roomy = hDp >= 150 * Math.max(1f, font);
-            rv.setViewVisibility(R.id.w_points, roomy ? View.VISIBLE : View.GONE);
-            rv.setTextViewText(R.id.w_points_num, r.points);
-            String lbl = r.tone == 1 && !roomy ? "PODWYŻSZONA" : r.tone == 2 && !roomy ? "WYSOKI" : r.label;
-            rv.setTextViewText(R.id.w_level, roomy || r.points.equals("–") ? r.label : lbl + " · " + r.points + " pkt");
+            float gestosc = c.getResources().getDisplayMetrics().density;
+            float skala = Math.min(gestosc, 620f / Math.max(1, size[0]));
+            mapa = WidgetMap.rysuj(c, st, watched,
+                Math.round(size[0] * skala), Math.round(size[1] * skala), 0f,
+                Alarms.prefs(c).getBoolean(Alarms.KEY_MAP_3D, false), true);
+        } catch (Throwable e) {
+            Log.w(TAG, "mapa na małym kafelku", e);
         }
+        if (mapa != null) rv.setImageViewBitmap(R.id.w_map, mapa);
+
+        rv.setTextViewText(R.id.w_foot, stale
+            ? "Dane z " + time + " — mogą być nieaktualne. Otwórz aplikację."
+            : "Źródło nieoficjalne · widżet nie alarmuje, ostrzega powiadomienie");
+
+        if (watched.isEmpty()) {
+            // pusty kafelek nic by nie mówił — mówimy, co zrobić
+            rv.setImageViewResource(R.id.w_dot, DOT[4]);
+            rv.setTextViewText(R.id.w_name, "Brak miejsc");
+            rv.setInt(R.id.w_level, "setMaxLines", 5);
+            rv.setTextViewText(R.id.w_level, NO_WATCHED_HINT);
+            rv.setViewVisibility(R.id.w_points, View.GONE);
+            rv.setTextViewText(R.id.w_foot, "Źródło nieoficjalne · widżet nie alarmuje");
+            return rv;
+        }
+
+        Row r = row(watched.get(0), voivs == null ? null : voivs.optJSONObject(watched.get(0)), stale);
+        if (st == null) { r.label = "ładowanie…"; r.points = "–"; r.tone = 4; }
+        rv.setImageViewResource(R.id.w_dot, DOT[r.tone]);
+        rv.setTextViewText(R.id.w_name, r.name);
+        rv.setInt(R.id.w_level, "setMaxLines", 2);   // cofamy 5 wierszy podpowiedzi
+        setColor(c, rv, R.id.w_level, MAP_LABEL_COLOR[r.tone]);
+        // przy niskim kafelku albo dużej czcionce punkty idą do wiersza poziomu
+        boolean roomy = size[1] >= 140 * font;
+        rv.setViewVisibility(R.id.w_points, roomy ? View.VISIBLE : View.GONE);
+        rv.setTextViewText(R.id.w_points_num, r.points);
+        boolean krotko = !roomy || font > 1.1f;
+        rv.setTextViewText(R.id.w_level, roomy || r.points.equals("–")
+            ? (krotko ? shortLabel(r) : r.label)
+            : shortLabel(r) + " · " + r.points + " pkt");
         return rv;
     }
 
@@ -578,7 +571,7 @@ final class Widgets {
             : near.isEmpty() ? "Żaden obiekt nie jest bliżej niż " + (int) NEAR_MAX_KM + " km od granicy" : near);
         rv.setTextViewText(R.id.w_foot, stale
             ? "Dane z " + time + " — mogą być nieaktualne. Otwórz aplikację."
-            : "Źródło nieoficjalne · alarmem jest syrena w powiadomieniu");
+            : "Źródło nieoficjalne · widżet nie alarmuje, ostrzega powiadomienie");
         return rv;
     }
 
@@ -589,20 +582,6 @@ final class Widgets {
             case "od sąsiadów · bez alarmu": return "od sąsiadów";
             case "brak sygnałów": return "spokój";
             default: return r.label;
-        }
-    }
-
-    /** Kolejność „najgorszego” stanu dla tła szerokiego widżetu. */
-    private static int severity(int tone) {
-        switch (tone) { case 2: return 4; case 1: return 3; case 3: return 2; case 0: return 1; default: return 0; }
-    }
-
-    private static void applyTone(Context c, RemoteViews rv, int tone, boolean hasLevel) {
-        rv.setInt(R.id.w_root, "setBackgroundResource", BG[tone]);
-        rv.setImageViewResource(R.id.w_bar, BAR[tone]);
-        if (hasLevel) {
-            rv.setImageViewResource(R.id.w_dot, DOT[tone]);
-            setColor(c, rv, R.id.w_level, tone == 0 ? R.color.widget_text : LABEL_COLOR[tone]);
         }
     }
 

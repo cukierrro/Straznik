@@ -8,8 +8,8 @@
     android:targetCellWidth="2"
     android:targetCellHeight="2"
     android:updatePeriodMillis="0"
-    android:initialLayout="@layout/widget_small"
-    android:previewLayout="@layout/widget_small_preview"
+    android:initialLayout="@layout/widget_small_map"
+    
     android:previewImage="@drawable/widget_small_preview_img"
     android:description="@string/widget_small_desc"
     android:resizeMode="horizontal|vertical"
