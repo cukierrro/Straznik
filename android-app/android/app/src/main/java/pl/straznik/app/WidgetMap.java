@@ -138,48 +138,90 @@ final class WidgetMap {
 
     // ── kadr ───────────────────────────────────────────────────────────────────
 
+    /**
+     * Kamera nad mapą — ten sam model, którego używa silnik mapy w aplikacji:
+     * odwzorowanie Mercatora, obrót o bearing i pochylenie (pitch) z rzutem
+     * perspektywicznym. Dzięki temu przechylony widok na widżecie układa się tak
+     * jak w aplikacji, a nie „mniej więcej tak" (próby z wyginaniem gotowego
+     * obrazka i z własnym przybliżeniem odpadły 26.09.2026).
+     */
     static final class Kadr {
-        double lon0, lon1, lat0, lat1;
-        boolean blisko;          // kadr zbliżony do Polski
-        boolean przechylona;     // widok 3D wybrany w aplikacji
+        double lon0, lon1, lat0, lat1;      // obszar, który ma się zmieścić
+        boolean blisko;                     // kadr zbliżony do Polski
+        boolean przechylona;                // widok 3D wybrany w aplikacji
         int w, h;
 
-        /* Przechylenie liczymy w samym rzutowaniu, a nie przez wyginanie gotowego
-           obrazka (tak było do 26.09.2026 i wychodziły czarne kliny w rogach oraz
-           zjeżdżanie Polski w bok). Ziemia to płaszczyzna oglądana z góry pod
-           kątem: to, co dalej, jest mniejsze i bliżej horyzontu. `dBlisko` i
-           `dDaleko` to odległości do dolnej i górnej krawędzi kadru. */
-        private static final float D_BLISKO = 1f, D_DALEKO = 1.7f;
-        private float staleC, horyzont;
+        /** Pochylenie i obrót jak w aplikacji (`is3d ? 45 : 0`, bearing −8°). */
+        private static final double PITCH = Math.toRadians(45), BEARING = Math.toRadians(-8);
+        /** Pole widzenia silnika mapy — stąd odległość kamery od środka kadru. */
+        private static final double FOV = Math.toRadians(36.87);
 
-        void przygotuj() {
-            if (!przechylona) return;
-            // y(dół) = h przy D_BLISKO, y(góra) = 0 przy D_DALEKO
-            staleC = (float) (h * D_BLISKO * D_DALEKO / (D_DALEKO - D_BLISKO));
-            horyzont = -staleC / D_DALEKO;
+        private double srodekX, srodekY;    // środek kadru w jednostkach Mercatora
+        private double skala;               // pikseli na jednostkę Mercatora
+        private double sinB, cosB, sinP, cosP, odlKamery;
+        private double przesunX, przesunY;  // gdzie na kafelku ma wypaść środek
+
+        private static double merX(double lon) { return lon / 360.0; }
+
+        private static double merY(double lat) {
+            double s = Math.sin(Math.toRadians(Math.max(-85, Math.min(85, lat))));
+            return -Math.log((1 + s) / (1 - s)) / (4 * Math.PI);   // na północ = mniej
         }
 
-        /** Odległość do punktu na tej szerokości (1 = dolna krawędź kadru). */
-        private float odleglosc(double lat) {
-            double v = (lat1 - lat) / (lat1 - lat0);      // 0 = północ (dalej), 1 = południe
-            return (float) (D_DALEKO - v * (D_DALEKO - D_BLISKO));
+        void przygotuj(double srodkaX, double srodkaY) {
+            przesunX = srodkaX; przesunY = srodkaY;
+            sinB = Math.sin(BEARING); cosB = Math.cos(BEARING);
+            sinP = przechylona ? Math.sin(PITCH) : 0;
+            cosP = przechylona ? Math.cos(PITCH) : 1;
+            srodekX = (merX(lon0) + merX(lon1)) / 2;
+            srodekY = (merY(lat0) + merY(lat1)) / 2;
+            odlKamery = 0.5 / Math.tan(FOV / 2) * h;
+            skala = dobierzSkale();
         }
 
-        /** Skala na tej szerokości: im dalej, tym mniejsza — stąd wrażenie głębi. */
-        float skalaGlebi(double lat) {
-            return przechylona ? D_BLISKO / odleglosc(lat) : 1f;
+        /**
+         * Skala tak dobrana, żeby zadany obszar wypełnił kafelek (nie "zmieścił się
+         * w środku" — przy pochyleniu zostawiało to czarne marginesy). Przy widoku
+         * przechylonym bierzemy trochę mniejsze zbliżenie, bo perspektywa i tak
+         * powiększa bliższą połowę.
+         */
+        private double dobierzSkale() {
+            double szer = Math.abs(merX(lon1) - merX(lon0));
+            double wys = Math.abs(merY(lat0) - merY(lat1));
+            if (szer <= 0 || wys <= 0) return w;
+            // Kadr szeroki ma pokazać, gdzie naprawdę są obiekty, więc dopasowujemy go
+            // do szerokości (północ i południe mogą wyjść poza kafelek). Kadr bliski jest
+            // o Polsce, więc ma ją wypełnić w całości.
+            double s = blisko ? Math.max(w / szer, h / wys) : w / szer;
+            return przechylona ? s * 0.85 : s;
         }
 
-        float x(double lon, double lat) {
-            double u = (lon - lon0) / (lon1 - lon0) - 0.5;
-            if (!przechylona) return (float) ((u + 0.5) * w);
-            return (float) (w * 0.5 + u * w * skalaGlebi(lat));
+        /** @return {x, y, skala głębi} albo null, gdy punkt jest za horyzontem. */
+        float[] rzut(double lon, double lat, double s) {
+            double dx = (merX(lon) - srodekX) * s;
+            double dy = (merY(lat) - srodekY) * s;
+            double rx = dx * cosB - dy * sinB;          // obrót o bearing
+            double ry = dx * sinB + dy * cosB;
+            // perspektywa: to, co na południe od środka, jest bliżej kamery
+            double waga = 1 - ry * sinP / odlKamery;
+            if (waga < 0.05) return null;               // za horyzontem
+            return new float[]{
+                (float) (przesunX + rx / waga),
+                (float) (przesunY + ry * cosP / waga),
+                (float) (1 / waga),
+            };
         }
 
-        float y(double lat) {
-            if (!przechylona) return (float) ((lat1 - lat) / (lat1 - lat0) * h);
-            return horyzont + staleC / odleglosc(lat);
+        float[] rzut(double lon, double lat) { return rzut(lon, lat, skala); }
+
+        float skalaGlebi(double lon, double lat) {
+            float[] p = rzut(lon, lat);
+            return p == null ? 0 : p[2];
         }
+
+        float x(double lon, double lat) { float[] p = rzut(lon, lat); return p == null ? -9999 : p[0]; }
+
+        float y(double lat) { float[] p = rzut((lon0 + lon1) / 2, lat); return p == null ? -9999 : p[1]; }
     }
 
     /**
@@ -189,27 +231,16 @@ final class WidgetMap {
     static Kadr kadr(int w, int h, boolean blisko, float panelUlamek, boolean przechylona) {
         Kadr k = new Kadr();
         k.w = w; k.h = h; k.blisko = blisko; k.przechylona = przechylona;
-        double srodekLon, cel;
         if (blisko) {
-            k.lat0 = 48.3; k.lat1 = 55.3; srodekLon = 19.3;
-            cel = panelUlamek + (1 - panelUlamek) * 0.42;
+            k.lat0 = 48.6; k.lat1 = 55.0; k.lon0 = 13.6; k.lon1 = 25.2;
         } else {
-            k.lat0 = 45.6; k.lat1 = 55.6; srodekLon = 24.0;
-            cel = 0.5;
+            // zbliżony do obszaru, na który aplikacja ustawia mapę przy starcie, ale
+            // bez pustego pasa na zachodzie (plik konturów kończy się na sąsiadach Polski)
+            k.lat0 = 46.4; k.lat1 = 55.2; k.lon0 = 15.2; k.lon1 = 34.0;
         }
-        double cos = Math.cos(Math.toRadians((k.lat0 + k.lat1) / 2));
-        double rozpietosc = (k.lat1 - k.lat0) * ((double) w / h) / cos;
-        if (przechylona) {
-            // Przy przechyleniu dół kafelka jest bliżej (obejmuje mniej terenu), a góra
-            // ucieka do horyzontu. Żeby Polska nie wylądowała w ściśniętej górnej części,
-            // przesuwamy okno na północ i lekko je poszerzamy.
-            rozpietosc *= 1.2;
-            k.lat0 += 0.7; k.lat1 += 1.1;
-            cel += 0.05;            // Polska odrobinę dalej od panelu
-        }
-        k.lon0 = srodekLon - rozpietosc * cel;
-        k.lon1 = k.lon0 + rozpietosc;
-        k.przygotuj();
+        // środek kadru odsuwamy od panelu, żeby Polska nie chowała się pod tekstem
+        double cel = blisko ? panelUlamek / 2 + 0.5 : 0.5 + panelUlamek / 4;
+        k.przygotuj(w * cel, h * (przechylona ? 0.42f : 0.5f));
         return k;
     }
 
@@ -235,13 +266,6 @@ final class WidgetMap {
         }
         Canvas cv = new Canvas(bmp);
         cv.drawColor(TLO);
-        if (przechylona) {
-            cv.save();
-            // bearing −8° jak w aplikacji; lekkie powiększenie, żeby obrót nie
-            // odsłonił tła w rogach kafelka
-            cv.rotate(-8f, w / 2f, h * 0.58f);
-            cv.scale(1.14f, 1.14f, w / 2f, h * 0.58f);
-        }
         Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG);
         fill.setStyle(Paint.Style.FILL);
         Paint line = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -287,8 +311,6 @@ final class WidgetMap {
         }
 
         double[] poza = rysujObiekty(cv, k, obiekty, skala);
-        // strzałka i podpis mają zostać poziome, więc wychodzimy z przechylonego układu
-        if (przechylona) cv.restore();
         if (poza != null) {
             rysujPozaKadrem(cv, k, (int) poza[0], poza[1], poza[2], (int) poza[3], skala);
         }
@@ -319,7 +341,8 @@ final class WidgetMap {
             double lon = o.optDouble("lon", Double.NaN), lat = o.optDouble("lat", Double.NaN);
             if (Double.isNaN(lon) || Double.isNaN(lat)) continue;
             int kolorObiektu = kolorTypu(o.optString("t", ""));
-            if (lon < k.lon0 || lon > k.lon1 || lat < k.lat0 || lat > k.lat1) {
+            float[] test = k.rzut(lon, lat);
+            if (test == null || test[0] < 0 || test[0] > k.w || test[1] < 0 || test[1] > k.h) {
                 // nic nie znika po cichu: liczymy je i pokazujemy strzałką przy krawędzi
                 pozaKadrem++;
                 double km = o.optDouble("km", Double.MAX_VALUE);
@@ -328,8 +351,10 @@ final class WidgetMap {
                 }
                 continue;
             }
-            float x = k.x(lon, lat), y = k.y(lat);
-            float glebia = k.skalaGlebi(lat);   // dalsze obiekty rysujemy mniejsze
+            float[] pkt = k.rzut(lon, lat);
+            if (pkt == null) continue;                  // za horyzontem
+            float x = pkt[0], y = pkt[1];
+            float glebia = Math.min(2f, pkt[2]);        // dalsze obiekty rysujemy mniejsze
             int kolor = kolorObiektu;
             p.setColor((kolor & 0x00FFFFFF) | 0x38000000);
             p.setStyle(Paint.Style.FILL);
@@ -354,7 +379,7 @@ final class WidgetMap {
     private static void rysujPozaKadrem(Canvas cv, Kadr k, int ile, double km, double lat, int kolor, float skala) {
         float x = k.w - 2f * skala;
         // dolny pasek z tekstem zjada ok. 22% wysokości — strzałka nie może pod niego wejść
-        float yMapy = k.przechylona ? (float) (k.h * 0.45) : k.y(lat);
+        float yMapy = k.przechylona ? (float) (k.h * 0.45) : (float) (k.h * (k.lat1 - lat) / (k.lat1 - k.lat0));
         float y = (float) Math.max(12 * skala, Math.min(k.h * 0.76f, yMapy));
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
         p.setColor(kolor);
@@ -386,8 +411,13 @@ final class WidgetMap {
         Path path = new Path();
         for (float[] r : s.pierscienie) {
             if (r.length < 6) continue;
-            path.moveTo(k.x(r[0], r[1]), k.y(r[1]));
-            for (int i = 2; i < r.length; i += 2) path.lineTo(k.x(r[i], r[i + 1]), k.y(r[i + 1]));
+            boolean zaczete = false;
+            for (int i = 0; i < r.length; i += 2) {
+                float[] p = k.rzut(r[i], r[i + 1]);
+                if (p == null) { zaczete = false; continue; }   // punkt zza horyzontu
+                if (zaczete) path.lineTo(p[0], p[1]);
+                else { path.moveTo(p[0], p[1]); zaczete = true; }
+            }
             path.close();
         }
         return path;
