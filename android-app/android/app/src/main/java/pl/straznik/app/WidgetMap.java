@@ -45,7 +45,7 @@ final class WidgetMap {
     private static final int OBRYS_TLA = 0xFF0B0F1A;
     private static final int WOJ_OBRYS = 0x8C5B8CFF;
     /** Obrys obserwowanego województwa — cienki, żeby nie krzyczał (uwaga usera 26.09.2026). */
-    private static final int OBSERWOWANE = 0xE6DBE4F5;
+    private static final int OBSERWOWANE = 0xFFEFF3FA;
     private static final int ALARM_UA_WYPELNIENIE = 0xD97A2F1E;
     private static final int ALARM_UA_OBRYS = 0xFFFF8C1A;
     private static final int POZIOM_NONE = 0xFF2C4372;
@@ -306,7 +306,7 @@ final class WidgetMap {
         }
         if (obserwowane != null && !obserwowane.isEmpty()) {
             line.setColor(OBSERWOWANE);
-            line.setStrokeWidth(0.95f * skala);
+            line.setStrokeWidth(0.7f * skala);
             for (Ksztalt s : nieNull(warstwy.get("woj")))
                 if (obserwowane.contains(s.klucz)) cv.drawPath(sciezka(s, k), line);
         }
