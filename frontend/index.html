@@ -65,7 +65,7 @@ if (document.documentElement.classList.contains("native-app"))
 </script>
 <!-- Kanał dystrybucji (github / play). Musi być przed pierwszym renderem,
      żeby wersja sklepowa nie mrugnęła odnośnikiem do zbiórki. -->
-<script src="wariant.js?v=1.7.79a"></script>
+<script src="wariant.js?v=1.7.80"></script>
 <script>
 /* iPhone: część rzeczy z Androida (głośność, pełny ekran, APK) tam nie działa,
    a linki do wsparcia autora łamią zasady App Store — ukrywa je klasa ios-app. */
@@ -94,7 +94,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <link rel="icon" type="image/png" sizes="512x512" href="assets/icon-512.png">
 <link rel="apple-touch-icon" href="assets/icon-192.png">
 <link rel="stylesheet" href="assets/vendor/maplibre-gl.css">
-<link rel="stylesheet" href="style.css?v=1.7.79a">
+<link rel="stylesheet" href="style.css?v=1.7.80">
 </head>
 <body>
 
@@ -952,14 +952,14 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
      Cloudflare, więc po każdym wydaniu wystarczy podbić ?v= i przeglądarki
      dostają nowe app.js/engine.js OD RAZU, bez ręcznego czyszczenia cache CF.
      Podbijaj ?v= razem z versionName w build.gradle. -->
-<script src="i18n.js?v=1.7.79a"></script>
+<script src="i18n.js?v=1.7.80"></script>
 <!-- kontur Polski dla engine.js (audyt A2b, scripts/build_pl_outline.py) -->
 <script src="pl-outline.js?v=1.7.79"></script>
-<script src="engine.js?v=1.7.79a"></script>
+<script src="engine.js?v=1.7.80"></script>
 <script src="aircraft-photo-catalog.js?v=1.7.19"></script>
 <script src="aircraft-photos.js?v=1.7.79"></script>
 <script src="places.js?v=1.7.19-4"></script>
-<script src="app.js?v=1.7.79a"></script>
+<script src="app.js?v=1.7.80"></script>
 <script>
 /* Instrukcja pasująca do telefonu i języka (21.09.2026). iPhone ma osobną, bo alarmy,
    zgody i aktualizacje działają tam inaczej. Tu, a nie w app.js: index.html nie jest
