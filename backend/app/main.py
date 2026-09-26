@@ -206,6 +206,12 @@ def refresh_state() -> None:
     # „zaktualizuj aplikację" zobaczyłoby też kilkaset osób, które właśnie to
     # zrobiły. Paczka dla przeglądarek i nowych telefonów zostaje nietknięta, więc
     # brzeg dalej podaje wszystkim te same bajty.
+    #
+    # 26.09.2026: kanał ZAMKNIĘTY. Po zapowiedzianym terminie tunel przestał
+    # kierować `/ws` do writera, reader odmawia gniazda kodem 1013, a plik
+    # z komunikatem został usunięty z serwera — zostało wtedy 22 stare gniazda
+    # z 593 z 21.09. Ten blok nie ma już czego wysłać i zostaje wyłącznie na
+    # wypadek przywrócenia reguł `^/ws$` w `/etc/cloudflared-straznik/config.yml`.
     stare = _load_notice("notice-stare-wersje.json")
     if stare:
         payload["notice"] = stare
