@@ -568,13 +568,13 @@ final class Widgets {
 
         JSONArray obiekty = st == null ? null : st.optJSONArray("obj");
         boolean blisko = WidgetMap.blisko(obiekty);
-        rv.setTextViewText(R.id.w_time, time.isEmpty() ? "—"
-            : time + (mapa == null ? "" : " · " + (blisko ? "Polska" : "szeroki widok")));
+        // dopisek tylko przy zbliżeniu: wtedy kadr różni się od zwykłego i warto to powiedzieć
+        rv.setTextViewText(R.id.w_time, time.isEmpty() ? "—" : time + (blisko && mapa != null ? " · zbliżenie" : ""));
 
         String near = st == null ? "" : st.optString("near", "");
         rv.setTextViewText(R.id.w_near, watched.isEmpty() ? "Dotknij, żeby wybrać miejsca"
             : st == null ? "Ładowanie…"
-            : near.isEmpty() ? "Brak obiektów lecących w stronę Polski (do " + (int) NEAR_MAX_KM + " km)" : near);
+            : near.isEmpty() ? "Żaden obiekt nie jest bliżej niż " + (int) NEAR_MAX_KM + " km od granicy" : near);
         rv.setTextViewText(R.id.w_foot, stale
             ? "Dane z " + time + " — mogą być nieaktualne. Otwórz aplikację."
             : "Źródło nieoficjalne · alarmem jest syrena w powiadomieniu");

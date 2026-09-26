@@ -1,10 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Półprzezroczysty panel na mapie: czytelny tekst, a mapa nadal widoczna. -->
+<!-- Panel na mapie: ciemny przy lewej krawędzi, rozpływa się w prawo, żeby mapa
+     spod niego prześwitywała.
+
+     Jedna warstwa, nie layer-list: wersja z dwoma gradientami (poziomy + pionowy)
+     przygaszała CAŁY kafelek, nie tylko obszar panelu — sprawdzone na Pixelu 7
+     26.09.2026 próbkowaniem pikseli zrzutu. -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
     <gradient
-        android:startColor="#EE090D16"
-        android:centerColor="#DD090D16"
+        android:startColor="#F2090D16"
+        android:centerColor="#D9090D16"
         android:endColor="#00090D16"
-        android:centerX="0.62"
+        android:centerX="0.6"
         android:angle="0" />
 </shape>

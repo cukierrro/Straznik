@@ -158,7 +158,7 @@ final class WidgetMap {
             k.lat0 = 48.3; k.lat1 = 55.3; srodekLon = 19.3;
             cel = panelUlamek + (1 - panelUlamek) * 0.42;
         } else {
-            k.lat0 = 45.2; k.lat1 = 55.8; srodekLon = 26.5;
+            k.lat0 = 45.6; k.lat1 = 55.6; srodekLon = 24.0;
             cel = 0.5;
         }
         double cos = Math.cos(Math.toRadians((k.lat0 + k.lat1) / 2));
@@ -252,14 +252,26 @@ final class WidgetMap {
     private static void rysujObiekty(Canvas cv, Kadr k, JSONArray obiekty, float skala) {
         if (obiekty == null) return;
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+        int pozaKadrem = 0;
+        double najblizszePoza = Double.MAX_VALUE, latPoza = 0;
+        int kolorPoza = 0xFFFFB020;
         for (int i = 0; i < obiekty.length(); i++) {
             JSONObject o = obiekty.optJSONObject(i);
             if (o == null) continue;
             double lon = o.optDouble("lon", Double.NaN), lat = o.optDouble("lat", Double.NaN);
             if (Double.isNaN(lon) || Double.isNaN(lat)) continue;
-            if (lon < k.lon0 || lon > k.lon1 || lat < k.lat0 || lat > k.lat1) continue;
+            int kolorObiektu = kolorTypu(o.optString("t", ""));
+            if (lon < k.lon0 || lon > k.lon1 || lat < k.lat0 || lat > k.lat1) {
+                // nic nie znika po cichu: liczymy je i pokazujemy strzałką przy krawędzi
+                pozaKadrem++;
+                double km = o.optDouble("km", Double.MAX_VALUE);
+                if (o.optBoolean("pl", false) && km < najblizszePoza) {
+                    najblizszePoza = km; latPoza = Math.max(k.lat0, Math.min(k.lat1, lat)); kolorPoza = kolorObiektu;
+                }
+                continue;
+            }
             float x = k.x(lon), y = k.y(lat);
-            int kolor = kolorTypu(o.optString("t", ""));
+            int kolor = kolorObiektu;
             p.setColor((kolor & 0x00FFFFFF) | 0x38000000);
             p.setStyle(Paint.Style.FILL);
             cv.drawCircle(x, y, 3.4f * skala, p);
@@ -276,6 +288,29 @@ final class WidgetMap {
                 cv.drawCircle(x, y, 1.9f * skala, p);
             }
         }
+        if (pozaKadrem > 0) rysujPozaKadrem(cv, k, pozaKadrem, najblizszePoza, latPoza, kolorPoza, skala);
+    }
+
+    /** Strzałka przy wschodniej krawędzi: ile obiektów jest dalej i jak daleko najbliższy. */
+    private static void rysujPozaKadrem(Canvas cv, Kadr k, int ile, double km, double lat, int kolor, float skala) {
+        float x = k.w - 2f * skala;
+        // dolny pasek z tekstem zjada ok. 22% wysokości — strzałka nie może pod niego wejść
+        float y = (float) Math.max(12 * skala, Math.min(k.h * 0.76f, k.y(lat)));
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+        p.setColor(kolor);
+        android.graphics.Path trojkat = new android.graphics.Path();
+        trojkat.moveTo(x, y);
+        trojkat.lineTo(x - 5.5f * skala, y - 3.4f * skala);
+        trojkat.lineTo(x - 5.5f * skala, y + 3.4f * skala);
+        trojkat.close();
+        cv.drawPath(trojkat, p);
+        String podpis = (km < Double.MAX_VALUE ? Math.round(km) + " km · " : "") + ile + "×";
+        p.setColor(0xFFE3E9F5);
+        p.setTextSize(5.2f * skala);
+        p.setTextAlign(Paint.Align.RIGHT);
+        p.setFakeBoldText(true);
+        p.setShadowLayer(2f * skala, 0, 0, 0xFF0B0F1A);
+        cv.drawText(podpis, x - 7f * skala, y - 5f * skala, p);
     }
 
     private static int kolorPoziomu(JSONObject v) {
