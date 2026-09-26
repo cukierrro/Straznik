@@ -9,8 +9,7 @@
     android:targetCellHeight="2"
     android:updatePeriodMillis="0"
     android:initialLayout="@layout/widget_map"
-    android:previewLayout="@layout/widget_map"
-    android:previewImage="@mipmap/ic_launcher"
+    android:previewImage="@drawable/widget_map_preview"
     android:description="@string/widget_map_wide_desc"
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen" />
