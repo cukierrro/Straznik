@@ -232,6 +232,37 @@
     + "the system keeps the alarm volume muted — and <b>“Total silence”</b> blocks the alert "
     + "regardless of this permission. The permission is optional and you can withdraw it at any time.";
 
+  /* Sekcja „Mapa: trasy obiektów”: nagłówek, etykiety obu list, ich opcje i akapit
+     pod nimi. Trzymana raz, bo używa jej i podgląd języka w ustawieniach, i pełne
+     przełączenie strony na angielski — wcześniej opisywał ją tylko translateStatic,
+     więc w podglądzie przed zapisem zostawała w poprzednim języku (24.09.2026).
+     Ukraiński powstaje z angielskiego niżej, w ukrainize(), stąd tylko dwa warianty. */
+  function trailSection(en) {
+    const head = document.getElementById("trail-head");
+    if (head) head.textContent = en ? "Map: object tracks" : "Mapa: trasy obiektów";
+    // Etykieta listy to pierwszy węzeł tekstowy <label>, przed samym <select>.
+    const lead = (id, pl, eng) => {
+      const el = document.getElementById(id);
+      if (el?.firstChild) el.firstChild.nodeValue = (en ? eng : pl) + " ";
+    };
+    lead("trail-neptun-label", "Drony i rakiety (NEPTUN)", "Drones and missiles (NEPTUN)");
+    lead("trail-adsb-label", "Samoloty i śmigłowce (ADS-B)", "Aircraft and helicopters (ADS-B)");
+    const opcje = (id, pl, eng) => {
+      const opts = document.getElementById(id)?.options;
+      if (opts) (en ? eng : pl).forEach((v, i) => { if (opts[i]) opts[i].textContent = v; });
+    };
+    opcje("set-trail-neptun",
+      ["Wyłączone", "Przebyta trasa", "Trasa i kierunek lotu"],
+      ["Off", "Flown track", "Track and heading"]);
+    opcje("set-trail-adsb",
+      ["Wyłączone (tylko śledzony samolot)", "Przebyta trasa", "Trasa i kierunek lotu"],
+      ["Off (followed aircraft only)", "Flown track", "Track and heading"]);
+    const note = document.getElementById("trail-note");
+    if (note) note.innerHTML = en
+      ? "The heading line covers 30 minutes of drone or missile flight (15 minutes for aircraft), with dots every 5 minutes. For NEPTUN objects it is drawn <b>only for a heading measured from movement</b> — not for a heading inferred from a target name or for an area position. It assumes an unchanged heading; it is not a forecast."
+      : "Kierunek to linia na 30 minut lotu drona albo rakiety (15 minut samolotu) z kropkami co 5 minut. Dla obiektów NEPTUN rysujemy go <b>tylko przy kursie zmierzonym z ruchu</b> — nie przy kursie domniemanym z nazwy celu ani przy pozycji rejonowej. To szacunek przy niezmienionym kursie, nie prognoza.";
+  }
+
   function previewSettings(next) {
     const en = next !== "pl", dlg = document.getElementById("settings");
     if (!dlg) return;
@@ -247,8 +278,9 @@
     many(":scope .set-pane > h3:not(#trail-head)", en
       ? ["Alerts while the app is closed","My places","Alert sounds","Interface language","App version"]
       : ["Alarmy przy zamkniętej aplikacji","Moje miejsca","Sygnały dźwiękowe","Język interfejsu","Wersja aplikacji"]);
-    // nagłówki dodane w 1.7.41 — po identyfikatorze, żeby nie przesuwać indeksów wyżej
-    button("trail-head", "Mapa: trasy obiektów", "Map: object tracks");
+    // Sekcja tras stoi poza selektorami pozycyjnymi (nagłówek po identyfikatorze,
+    // opis w <div>, a nie w <p>) — ustawia ją w całości trailSection.
+    trailSection(en);
     // Warianty iOS stoją poza selektorami pozycyjnymi (klasa .ios-only), więc
     // w podglądzie języka ustawiamy je po identyfikatorze.
     button("alarmy-intro-ios",
@@ -860,15 +892,7 @@
     set("#btn-native-test", "▶ Test: red native (in 5 s)");
     set("#btn-native-test-yellow", "▶ Test: yellow native (in 5 s)");
     set("#ns-test-note", "The test uses the real notification path: lock the screen within 5 seconds to check the alert above the lock screen. Silence it with the button on the alert screen or “Wycisz alarm” in the notification.");
-    set("#trail-head", "Map: object tracks");
-    const tn = document.getElementById("trail-neptun-label"); if (tn?.firstChild) tn.firstChild.nodeValue = "Drones and missiles (NEPTUN) ";
-    const ta = document.getElementById("trail-adsb-label"); if (ta?.firstChild) ta.firstChild.nodeValue = "Aircraft and helicopters (ADS-B) ";
-    const tno = document.getElementById("set-trail-neptun")?.options;
-    if (tno) { tno[0].textContent = "Off"; tno[1].textContent = "Flown track"; tno[2].textContent = "Track and heading"; }
-    const tao = document.getElementById("set-trail-adsb")?.options;
-    if (tao) { tao[0].textContent = "Off (followed aircraft only)"; tao[1].textContent = "Flown track"; tao[2].textContent = "Track and heading"; }
-    const trailNote = document.getElementById("trail-note");
-    if (trailNote) trailNote.innerHTML = "The heading line covers 30 minutes of drone or missile flight (15 minutes for aircraft), with dots every 5 minutes. For NEPTUN objects it is drawn <b>only for a heading measured from movement</b> — not for a heading inferred from a target name or for an area position. It assumes an unchanged heading; it is not a forecast.";
+    trailSection(true);
     set("#places-dialog h2", "My places");
     const placesClose=document.getElementById("places-close"); if(placesClose)placesClose.setAttribute("aria-label","Close");
     set("#places-intro", "A saved place does not indicate your presence. Data remains on this device.");
