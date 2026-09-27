@@ -119,6 +119,20 @@ wspólnym `frontend/` to nie wymaga. Jeśli kliknięcie ginie wcześniej, w stro
 poprawka nic nie da — dlatego wersja testowa dopisuje do diagnostyki ostatni
 odnośnik widziany przez część natywną (`link:` w wierszu wersji iOS).
 
+**Kontrakt pobierania stanu (27.09.2026).** Ważne przy wydaniach iOS, bo build
+czeka w przeglądzie Apple dzień lub dwa i wersja ze sklepu może być starsza niż
+serwer. Backend obsługuje **trzy warianty równolegle**, potwierdzone przez sesję
+główną i objęte testem `scripts/test_czesci_stanu.py`:
+
+* `/api/state` bez parametrów — pełny stan, bez `aux_v` (wydania sprzed 1.7.82),
+* `/api/state?part=main` (+ `&v=`) — rdzeń z odciskiem `aux_v`,
+* `/api/state?part=aux` — same `adsb` i `health`.
+
+Najgorszy skutek rozjechania wersji to **większy transfer, nie awaria**: starsza
+aplikacja dostanie pełny stan. Sesja główna zobowiązała się uprzedzać przed każdą
+zmianą tego kontraktu; otwarty pomysł (różnice per obiekt w sekcji `neptun`) jest
+odłożony jako zbyt ryzykowny na ścieżce alarmu.
+
 ### 3.4 Serwer (propozycja, nie wdrażam)
 Blok `apns` w `notify.py`: tytuł i treść jak w `Alarms.postAlarm` na Androidzie,
 `sound` syrena/sygnał, czerwony `time-sensitive` (po zgodzie Apple — `critical`),
