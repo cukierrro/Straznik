@@ -133,6 +133,26 @@ aplikacja dostanie pełny stan. Sesja główna zobowiązała się uprzedzać prz
 zmianą tego kontraktu; otwarty pomysł (różnice per obiekt w sekcji `neptun`) jest
 odłożony jako zbyt ryzykowny na ścieżce alarmu.
 
+**Paczki GROTY a zmiana hostingu (27.09.2026).** Adres paczek (`PACZKI_URL`,
+`grota/offline.js`) jest **wkompilowany w paczkę aplikacji**, a paczki pobieramy
+nagłówkiem `Range` (stąd `CapacitorWebFetch`, nie most — `104dfed`). Na iOS źródłem
+jest `capacitor://localhost`, więc każde takie zapytanie jest międzyźródłowe i leci
+z preflightem. Wniosek: **przeniesienie paczek pod inny adres psuje każde wydanie,
+które już jest u ludzi** — nie tylko to czekające w przeglądzie. Zdalny adres
+(kanałem `wylaczniki` w `/api/state`) pomoże dopiero od wydania, w którym wejdzie.
+
+Rozważany wariant: stary adres oddaje 302 na nowy host. Zanim ktokolwiek to
+zarekomenduje, trzeba **zmierzyć**, bo przekierowanie zapytania po preflightcie to
+miejsce, w którym WebKit potrafi odmówić, a cel musi oddawać `Access-Control-Allow-Origin`,
+wpuszczać `Range` i wystawiać `Content-Range` przez `Access-Control-Expose-Headers`.
+Uzgodniona kolejność (taniej najpierw): strona w przeglądarce → WebView Androida →
+Safari na iPhonie (ten sam silnik co aplikacja, bez budowania czegokolwiek) →
+dopiero na końcu build testowy dla testera. **Strona testowa musi stać pod innym
+źródłem niż adres przekierowujący**, inaczej pierwszy skok jest z tego samego źródła
+i preflightu w ogóle nie będzie — zmierzylibyśmy co innego. Safari wysyła `Origin`
+jako `https://…`, a aplikacja `capacitor://localhost`, więc przejście w Safari nie
+jest dowodem, ale wywalenie się w Safari jest rozstrzygające.
+
 ### 3.4 Serwer (propozycja, nie wdrażam)
 Blok `apns` w `notify.py`: tytuł i treść jak w `Alarms.postAlarm` na Androidzie,
 `sound` syrena/sygnał, czerwony `time-sensitive` (po zgodzie Apple — `critical`),
