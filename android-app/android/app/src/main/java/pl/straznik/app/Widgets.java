@@ -520,6 +520,9 @@ final class Widgets {
         rv.setTextViewText(R.id.w_foot, stale
             ? t.getString(R.string.widget_stale, time)
             : t.getString(R.string.widget_foot));
+        // teksty wpisane w układzie inflatuje launcher w języku SYSTEMU — ustawiamy je
+        // z kodu, żeby całość mówiła językiem aplikacji (Pixel 7, 27.09.2026)
+        rv.setTextViewText(R.id.w_pts_label, t.getString(R.string.widget_pts));
 
         if (watched.isEmpty()) {
             // pusty kafelek nic by nie mówił — mówimy, co zrobić
