@@ -435,3 +435,30 @@ telefonie (wymaga Critical Alerts, wniosek `442YB6VV2L`, status *Submitted*).
 
 Odłożone na następną aktualizację (decyzja użytkownika): podgląd zmiany języka
 nie odświeża etykiet sekcji „Mapa: trasy obiektów” przed zapisem.
+
+## 14. Zgłoszenie 1.7.82 (27.09.2026, 18:16)
+
+Build **2609271604**, status *Waiting for Review*, publikacja automatyczna,
+bez rozłożenia w czasie. Wydanie z tego samego commita co Android (`8dcb431`,
+tag `v1.7.82`) — zasada wspólnego numeru z sekcji 13 utrzymana.
+
+Poprzednia wersja **1.7.79 jest w sklepie** (*Ready for Distribution*, 25.09).
+
+Co niesie to wydanie dla iPhone'a (zmiany we wspólnym frontendzie):
+
+* ilustracje zagrożeń w WebP — paczka lżejsza o ~12 MB; bezpieczne, bo
+  `IPHONEOS_DEPLOYMENT_TARGET = 16.0`, a WKWebView czyta WebP od iOS 14;
+* stan pobierany w dwóch częściach (`?part=main` z `If-None-Match`, `?part=aux`
+  bez) — zwykłe GET-y, więc most CapacitorHttp ich nie psuje;
+* trzy tempa odpytywania: 2 s przy alarmie, 5 s przy podniesionym poziomie,
+  15 s przy ciszy; warstwy ukraińskie dopiero, gdy są tam alarmy;
+* ekran alarmu czytelny dla czytnika ekranu (z 1.7.81);
+* GROTA z wykazem PSP i zasadami z instrukcji reagowania MSWiA.
+
+Sprawdzone przed wysyłką: `test_odpytywanie`, `test_czesci_stanu.py`,
+`test_leniwe_warstwy_ua`, `test_klucze_cache`, `test_syrena_ios`,
+`test_ios_wspolne`, `test_wariant_sklepowy` — wszystkie zielone; kompilacja
+w chmurze BUILD SUCCEEDED przed buildem podpisanym.
+
+Nadal otwarte: Critical Alerts (`442YB6VV2L`, *Submitted*) oraz odłożony podgląd
+zmiany języka w sekcji „Mapa: trasy obiektów”.
