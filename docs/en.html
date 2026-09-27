@@ -30,7 +30,7 @@
 <a class="skip" href="#content">Skip to content</a>
 <nav aria-label="Guide navigation"><div class="nav-in">
   <a class="brand" href="#top">STRAŻNIK</a>
-  <div class="nav-links"><a href="#instalacja">Install</a><a href="#ekran">Screen</a><a href="#mapa">Map</a><a href="#sygnaly">Signals</a><a href="#historia">History</a><a href="#alarmy">Alerts</a><a href="grota-en.html">GROTA</a><a href="#punkty">Scoring</a><a href="iphone-en.html">iPhone</a><a href="zmiany-en.html">Changelog</a><a href="prywatnosc-en.html">Privacy</a></div>
+  <div class="nav-links"><a href="#instalacja">Install</a><a href="#ekran">Screen</a><a href="#mapa">Map</a><a href="#sygnaly">Signals</a><a href="#historia">History</a><a href="#alarmy">Alerts</a><a href="#widzet">Widget</a><a href="grota-en.html">GROTA</a><a href="#punkty">Scoring</a><a href="iphone-en.html">iPhone</a><a href="zmiany-en.html">Changelog</a><a href="prywatnosc-en.html">Privacy</a></div>
   <div class="languages" aria-label="Guide language"><a href="index.html" lang="pl" hreflang="pl">PL</a><a href="en.html" lang="en" aria-current="page">EN</a><a href="uk.html" lang="uk" hreflang="uk">UA</a></div>
 </div></nav>
 <header class="hero"><div class="wrap hero-grid">
@@ -116,7 +116,7 @@
     <tr><td>Sliders icon</td><td><b>Legend</b> of symbols, province colours and zones.</td></tr>
     <tr><td>Cube icon</td><td><b>2D / 3D view</b>. In 3D a province's height grows with its points — also below the threshold.</td></tr>
     <tr><td>Aircraft icon</td><td><b>Foreign aircraft</b> over the eastern flank (chapter <a href="#obce-maszyny">8</a>).</td></tr>
-    <tr><td>Bell icon</td><td>Notifications: in the app — turn on or mute; on the website — browser notifications (chapter <a href="#www">10</a>).</td></tr>
+    <tr><td>Bell icon</td><td>Notifications: in the app — turn on or mute; on the website — browser notifications (chapter <a href="#www">11</a>).</td></tr>
     <tr><td>Gear icon</td><td><b>Settings</b>: Alerts, My places, Sound, App.</td></tr>
     <tr><td><kbd>my region</kbd></td><td>Frames the map on your first saved place.</td></tr>
     <tr><td><kbd>zones</kbd></td><td>Turns the PAŻP zone layer on and off. A dimmed tile means the layer is off.</td></tr>
@@ -211,7 +211,7 @@
         <li><b>Report on an earlier event</b> — the server read the article and it describes something more than an hour old.</li>
         <li><b>Article could not be read — no points</b> — the text could not be fetched; the link stays.</li>
       </ul>
-      <p>A <b>NEIGHBOURS</b> entry is points spilling over from a neighbouring province (chapter <a href="#punkty">11</a>).</p>
+      <p>A <b>NEIGHBOURS</b> entry is points spilling over from a neighbouring province (chapter <a href="#punkty">12</a>).</p>
     </div>
     <figure><a class="shot-link" href="screens/1737/panel-en.jpg"><img loading="lazy" src="screens/1737/panel-en.jpg" width="1080" height="2400" alt="Signals panel: Lublin card, my region, 1.0 pts below threshold, adds up to 0.9 ALARM UA, PAŻP zones with no points, and the Subcarpathian and Masovian cards"></a><figcaption>Province cards at a calm moment.</figcaption></figure>
   </div>
@@ -290,8 +290,29 @@
   <p id="iphone"><b>On iPhone</b> alerts work differently: no full screen, the siren plays once, and a silenced ringer silences it. The details and the settings to check are in the <a href="iphone-en.html#alarmy">iPhone guide</a>.</p>
 </section>
 
+<section id="widzet">
+  <h2>10. The home screen widget</h2>
+  <p>The widget shows the <b>state</b> of your watched provinces on the phone's home screen. It <b>is not an alarm</b>: it makes no sound and does not wake the screen — the notification with the siren does that (chapter <a href="#alarmy">9</a>). Tapping the tile opens the app.</p>
+  <p><b>How to add it:</b> press and hold an empty spot on the home screen → <kbd>Widgets</kbd> → <b>Strażnik</b> → drag the size you want onto the screen. There are three:</p>
+  <ul>
+    <li><b>2×2 — my province:</b> a map of Poland with the first watched province outlined, its level and points.</li>
+    <li><b>4×2 — map:</b> the map with province levels, next to it a list of up to three watched provinces and a line about the nearest object.</li>
+    <li><b>4×3 — larger map:</b> the same, with more room for the map.</li>
+  </ul>
+  <p><b>What the map shows:</b> the colour of a province is its level — yellow for “elevated attention”, red for “high priority”. Pale yellow marked “from neighbours” means the level was raised only by spill-over from a neighbouring province, so there is no alert (chapter <a href="#punkty">12</a>). The white outline marks the provinces you watch. Orange areas are Ukrainian oblasts under an air-raid alert. Dots are objects heading for Poland, coloured by type; a <b>hollow ring</b> is an approximate position, not a measured one. When objects are farther away than the frame, a triangle appears at the right edge with the distance of the nearest one and how many are left.</p>
+  <p><b>The frame adapts:</b> normally you see Poland with a strip of its neighbours; when an object heading for Poland comes closer than 250 km from the border, the map zooms in on Poland and the corner adds “zoomed in”.</p>
+  <p><b>Refreshing:</b> immediately when an alert arrives for a watched province, otherwise roughly every half hour as long as the phone has internet. The time in the corner says when the data is from. Anything older than 45 minutes greys out with a note that it may be out of date — the tile does not pretend all is calm.</p>
+  <p><b>It follows the app's settings:</b> the map is flat or tilted according to the <b>2D / 3D</b> button (chapter <a href="#ekran">3</a>), and the texts use the language chosen in the app. After changing the language or the view, open the app once so the tile picks it up. The names in the widget picker are shown by Android itself, so they follow the phone's language, not the app's.</p>
+  <p><b>Before it can show anything,</b> you need at least one place with <kbd>Watch alerts</kbd> ticked (chapter <a href="#pierwsze-kroki">2</a>). Without that the tile asks you to add a place instead of sitting there empty.</p>
+  <p>The widget sends nothing extra: it fetches the same state as the app, only while it is on the screen, and draws the map on the phone — no map tiles are downloaded.</p>
+  <div class="shots">
+    <figure><a class="shot-link" href="screens/widget/w01-widzet-maly-en.jpg"><img loading="lazy" src="screens/widget/w01-widzet-maly-en.jpg" width="1080" height="2400" alt="The 2×2 tile on the home screen: province name, the level “no signals”, 0.0 points and a map of Poland with the Lublin province outlined"></a><figcaption>The <b>2×2</b> tile: my province over the map.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/widget/w02-widzet-mapa-en.jpg"><img loading="lazy" src="screens/widget/w02-widzet-mapa-en.jpg" width="1080" height="2400" alt="The 4×2 tile: a map of Poland and its neighbours, the list of watched provinces and a line about the nearest object"></a><figcaption>The <b>4×2</b> tile: the map and the watched provinces.</figcaption></figure>
+  </div>
+</section>
+
 <section id="www">
-  <h2>10. The website and browser notifications</h2>
+  <h2>11. The website and browser notifications</h2>
   <p>The same map runs at <a href="https://straznik.eu">straznik.eu</a>. At the top there are also <b>Download app</b>, <b>User guide</b> and <b>Buy a coffee</b> buttons. The browser tab shows the Strażnik icon.</p>
   <p><b>Browser notifications:</b> first save a province in <kbd>⚙</kbd> → <kbd>My places</kbd>, then tap the bell and allow notifications. They arrive also with the tab closed — one per alert, without a continuous siren. The continuous siren with vibration plays only in an open tab at the red level. On an iPhone notifications work only for the site added to the Home Screen.</p>
   <p><b>Turning them off:</b> tap the bell (or <kbd>⚙</kbd> → <kbd>Alerts</kbd>) and choose <kbd>🔕 Turn off notifications in this browser</kbd>. Strażnik then removes the subscription on the server and in the browser. The browser permission itself is removed in the browser settings — the message gives the path for your browser, for example:</p>
@@ -302,7 +323,7 @@
 </section>
 
 <section id="punkty">
-  <h2>11. Where the points come from</h2>
+  <h2>12. Where the points come from</h2>
   <p>Points count over a 60-minute window. For the first 30 minutes a signal keeps full weight, then loses it linearly to zero. Every source class has a cap, so many articles or oblast alerts about the same thing do not add up without limit. A repeated observation of the same NEPTUN object is not counted as a new object.</p>
   <div class="tw"><table><thead><tr><th>Source</th><th>What is taken into account</th><th>Points / cap</th></tr></thead><tbody>
     <tr><td>NEPTUN — objects</td><td>Type, number of objects, distance from the border, heading, confidence, number of confirmations, observation state and position quality. Report area ×0.6, recognised locality centre ×0.5.</td><td>up to 8 in total</td></tr>
@@ -370,7 +391,7 @@
 </section>
 
 <section id="problemy">
-  <h2>12. Limitations and troubleshooting</h2>
+  <h2>13. Limitations and troubleshooting</h2>
   <ul>
     <li><b>A red indicator</b> — one source is not responding. The others keep working; fusion simply has fewer confirmations.</li>
     <li><b>An empty map or all indicators red</b> — check the connection and try another network. Antivirus software or proxies that intercept HTTPS can block the app's connections; do not disable protection permanently, check an exception for straznik.eu instead.</li>
@@ -381,12 +402,12 @@
 </section>
 
 <section id="serwer">
-  <h2>13. Your own server — optional</h2>
+  <h2>14. Your own server — optional</h2>
   <p>An empty <kbd>⚙</kbd> → <kbd>App</kbd> → <kbd>Advanced: shared backend</kbd> field means the default Strażnik server. Enter your own address only if you run a compatible backend and its notifications yourself. HTTPS with a system-trusted certificate is required. <a href="https://github.com/cukierrro/Straznik#readme">How to run the backend is described in the README</a>. Running your own backend for other people requires a licence from the author.</p>
 </section>
 
 <section id="prywatnosc">
-  <h2>14. Privacy and sources</h2>
+  <h2>15. Privacy and sources</h2>
   <p><a href="prywatnosc-en.html"><b>The full privacy policy</b></a> — what stays on your device, what the server sees and which third parties are involved in delivering the data.</p>
   <p>No account, no ads, no analytics. My places, their names and one-off location points are stored only on the device; Android backup is disabled for the app. The server and the notification provider receive the names of watched provinces and the device subscription identifier — never an exact location. The exception is a route in GROTA: the position and the chosen point then go to the public FOSSGIS routing server, not to us (<a href="prywatnosc-en.html#location">details</a>).</p>
   <p>The server and the providers of maps, notifications, photos and data receive ordinary network requests and may keep technical logs. When reading articles, the server fetches publishers' pages like an ordinary browser, without accepting cookie consent.</p>

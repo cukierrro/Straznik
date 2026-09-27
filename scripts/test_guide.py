@@ -11,8 +11,8 @@ HISTORICAL = {}   # instrukcja od 1.7.37 używa wyłącznie bieżących zrzutów
 OTHER_IMAGES = {"mikrus-logo.svg": (86, 14)}
 # odrębne zrzuty: instrukcja 21 ekranów × PL/EN, 14 ekranów po ukraińsku
 # (reszta ukraińskich czeka na moment, gdy na mapie będzie co pokazać)
-# + 7 archiwalnych w historii zmian
-EXPECTED_SHOTS = 63
+# + 7 archiwalnych w historii zmian + 6 zrzutów widżetu (2 kafelki × PL/EN/UK)
+EXPECTED_SHOTS = 69
 
 
 class Page(HTMLParser):

@@ -30,7 +30,7 @@
 <a class="skip" href="#content">Przejdź do treści</a>
 <nav aria-label="Nawigacja instrukcji"><div class="nav-in">
   <a class="brand" href="#top">STRAŻNIK</a>
-  <div class="nav-links"><a href="#instalacja">Instalacja</a><a href="#ekran">Ekran</a><a href="#mapa">Mapa</a><a href="#sygnaly">Sygnały</a><a href="#historia">Historia</a><a href="#alarmy">Alarmy</a><a href="grota.html">GROTA</a><a href="#punkty">Punktacja</a><a href="iphone.html">iPhone</a><a href="zmiany.html">Historia zmian</a><a href="prywatnosc.html">Prywatność</a></div>
+  <div class="nav-links"><a href="#instalacja">Instalacja</a><a href="#ekran">Ekran</a><a href="#mapa">Mapa</a><a href="#sygnaly">Sygnały</a><a href="#historia">Historia</a><a href="#alarmy">Alarmy</a><a href="#widzet">Widżet</a><a href="grota.html">GROTA</a><a href="#punkty">Punktacja</a><a href="iphone.html">iPhone</a><a href="zmiany.html">Historia zmian</a><a href="prywatnosc.html">Prywatność</a></div>
   <div class="languages" aria-label="Język instrukcji"><a href="index.html" lang="pl" aria-current="page">PL</a><a href="en.html" lang="en" hreflang="en">EN</a><a href="uk.html" lang="uk" hreflang="uk">UA</a></div>
 </div></nav>
 <header class="hero"><div class="wrap hero-grid">
@@ -116,7 +116,7 @@
     <tr><td>Ikona suwaków</td><td><b>Legenda</b> symboli, kolorów województw i stref.</td></tr>
     <tr><td>Ikona sześcianu</td><td><b>Widok 2D / 3D</b>. W 3D wysokość bryły województwa rośnie z liczbą punktów — także poniżej progu.</td></tr>
     <tr><td>Ikona samolotu</td><td><b>Obce maszyny</b> nad wschodnią flanką (rozdział <a href="#obce-maszyny">8</a>).</td></tr>
-    <tr><td>Ikona dzwonka</td><td>Powiadomienia: w aplikacji — włączenie lub wyciszenie, na stronie WWW — powiadomienia w przeglądarce (rozdział <a href="#www">10</a>).</td></tr>
+    <tr><td>Ikona dzwonka</td><td>Powiadomienia: w aplikacji — włączenie lub wyciszenie, na stronie WWW — powiadomienia w przeglądarce (rozdział <a href="#www">11</a>).</td></tr>
     <tr><td>Ikona zębatki</td><td><b>Ustawienia</b>: Alarmy, Moje miejsca, Dźwięk, Aplikacja.</td></tr>
     <tr><td><kbd>mój region</kbd></td><td>Kadruje mapę na pierwszym zapisanym miejscu.</td></tr>
     <tr><td><kbd>strefy</kbd></td><td>Włącza i wyłącza warstwę stref PAŻP. Przygaszony kafelek — warstwa wyłączona.</td></tr>
@@ -211,7 +211,7 @@
         <li><b>Relacja z wcześniejszego zdarzenia</b> — serwer przeczytał artykuł, a treść opisuje coś sprzed ponad godziny.</li>
         <li><b>Nie udało się przeczytać artykułu — bez punktów</b> — treści nie dało się pobrać; link zostaje.</li>
       </ul>
-      <p>Wpis <b>SĄSIEDZTWO</b> to przeniesienie punktów z sąsiedniego województwa (rozdział <a href="#punkty">11</a>).</p>
+      <p>Wpis <b>SĄSIEDZTWO</b> to przeniesienie punktów z sąsiedniego województwa (rozdział <a href="#punkty">12</a>).</p>
     </div>
     <figure><a class="shot-link" href="screens/1737/panel-pl.jpg"><img loading="lazy" src="screens/1737/panel-pl.jpg" width="1080" height="2400" alt="Panel sygnałów: karta Lubelskie mój region 0,6 pkt poniżej progu, składa się z 0,6 ALARM UA, strefy PAŻP bez punktów, oraz karty Podkarpackie i Mazowieckie"></a><figcaption>Karty województw w spokojnej chwili.</figcaption></figure>
   </div>
@@ -290,8 +290,29 @@
   <p id="iphone"><b>Na iPhonie</b> alarm działa inaczej: bez pełnego ekranu, syrena gra raz, a wyciszony dzwonek ją wycisza. Szczegóły i ustawienia, które trzeba sprawdzić, są w <a href="iphone.html#alarmy">instrukcji dla iPhone'a</a>.</p>
 </section>
 
+<section id="widzet">
+  <h2>10. Widżet na ekranie głównym</h2>
+  <p>Widżet pokazuje <b>stan</b> obserwowanych województw wprost na ekranie głównym telefonu. <b>Nie jest alarmem</b>: nie wydaje dźwięku i nie zapala ekranu — ostrzega powiadomienie z syreną (rozdział <a href="#alarmy">9</a>). Dotknięcie kafelka otwiera aplikację.</p>
+  <p><b>Jak dodać:</b> przytrzymaj puste miejsce na ekranie głównym → <kbd>Widżety</kbd> → <b>Strażnik</b> → przeciągnij wybrany rozmiar na ekran. Są trzy:</p>
+  <ul>
+    <li><b>2×2 — moje województwo:</b> mapa Polski z obrysem pierwszego obserwowanego województwa, jego poziom i punkty.</li>
+    <li><b>4×2 — mapa:</b> mapa z poziomami województw, obok lista do trzech obserwowanych i linijka o najbliższym obiekcie.</li>
+    <li><b>4×3 — mapa większa:</b> to samo, tylko mapa dostaje więcej miejsca.</li>
+  </ul>
+  <p><b>Co widać na mapie:</b> kolor województwa to jego poziom — żółty „podwyższona uwaga”, czerwony „wysoki priorytet”. Blady żółty z dopiskiem „od sąsiadów” oznacza poziom podniesiony wyłącznie przeniesieniem z sąsiedniego województwa, czyli bez alarmu (rozdział <a href="#punkty">12</a>). Biały obrys to województwa, które obserwujesz. Pomarańczowe pola to obwody Ukrainy z ogłoszonym alarmem. Kropki to obiekty lecące w stronę Polski, w kolorze rodzaju; <b>pusty krążek</b> to pozycja przybliżona, a nie zmierzona. Gdy obiekty są dalej niż kadr, przy prawej krawędzi pojawia się trójkąt z odległością najbliższego i liczbą pozostałych.</p>
+  <p><b>Kadr dobiera się sam:</b> zwykle widać Polskę z pasem sąsiadów, a gdy obiekt lecący w stronę Polski podejdzie bliżej niż 250 km od granicy, mapa zbliża się do Polski i w rogu dochodzi dopisek „zbliżenie”.</p>
+  <p><b>Odświeżanie:</b> natychmiast, gdy przyjdzie alarm dla obserwowanego województwa, poza tym mniej więcej co pół godziny, o ile telefon ma internet. Godzina w rogu mówi, z której chwili są dane. Starsze niż 45 minut szarzeją z dopiskiem, że mogą być nieaktualne — kafelek nie udaje wtedy spokoju.</p>
+  <p><b>Ustawienia bierze z aplikacji:</b> mapa jest płaska albo przechylona zgodnie z przyciskiem <b>2D / 3D</b> (rozdział <a href="#ekran">3</a>), a teksty są w języku wybranym w aplikacji. Po zmianie języka albo widoku otwórz raz aplikację, żeby kafelek to przejął. Nazwy na liście widżetów przy dodawaniu pokazuje system Android, więc idą za językiem telefonu, nie aplikacji.</p>
+  <p><b>Zanim cokolwiek pokaże,</b> potrzebne jest przynajmniej jedno miejsce z zaznaczonym <kbd>Obserwuj alerty</kbd> (rozdział <a href="#pierwsze-kroki">2</a>). Bez tego kafelek prosi o dodanie miejsca zamiast świecić pustką.</p>
+  <p>Widżet nie wysyła nic dodatkowego: pobiera ten sam stan co aplikacja, tylko wtedy, gdy jest postawiony na ekranie, i rysuje mapę na telefonie — bez pobierania kafelków mapy.</p>
+  <div class="shots">
+    <figure><a class="shot-link" href="screens/widget/w01-widzet-maly.jpg"><img loading="lazy" src="screens/widget/w01-widzet-maly.jpg" width="1080" height="2400" alt="Kafelek 2×2 na ekranie głównym: nazwa województwa, poziom „brak sygnałów”, 0,0 pkt i mapa Polski z białym obrysem lubelskiego"></a><figcaption>Kafelek <b>2×2</b>: moje województwo na tle mapy.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/widget/w02-widzet-mapa.jpg"><img loading="lazy" src="screens/widget/w02-widzet-mapa.jpg" width="1080" height="2400" alt="Kafelek 4×2: mapa Polski i sąsiadów, lista obserwowanych województw i linijka o najbliższym obiekcie"></a><figcaption>Kafelek <b>4×2</b>: mapa i obserwowane województwa.</figcaption></figure>
+  </div>
+</section>
+
 <section id="www">
-  <h2>10. Strona WWW i powiadomienia w przeglądarce</h2>
+  <h2>11. Strona WWW i powiadomienia w przeglądarce</h2>
   <p>Na <a href="https://straznik.eu">straznik.eu</a> działa ta sama mapa. Na górze są dodatkowo przyciski <b>Pobierz aplikację</b>, <b>Instrukcja</b> i <b>Postaw kawę</b>. W karcie przeglądarki widać ikonę Strażnika.</p>
   <p><b>Powiadomienia w przeglądarce:</b> najpierw zapisz województwo w <kbd>⚙</kbd> → <kbd>Moje miejsca</kbd>, potem dotknij dzwonka i zezwól na powiadomienia. Przychodzą także przy zamkniętej karcie — po jednym na alarm, bez ciągłej syreny. Ciągła syrena z wibracją gra tylko w otwartej karcie przy czerwonym poziomie. Na iPhonie powiadomienia działają tylko dla strony dodanej do ekranu początkowego.</p>
   <p><b>Wyłączanie:</b> dotknij dzwonka (albo <kbd>⚙</kbd> → <kbd>Alarmy</kbd>) i wybierz <kbd>🔕 Wyłącz powiadomienia w tej przeglądarce</kbd>. Strażnik usuwa wtedy subskrypcję na serwerze i w przeglądarce. Samo pozwolenie przeglądarki usuniesz w jej ustawieniach — komunikat podaje ścieżkę dla Twojej przeglądarki, np.:</p>
@@ -302,7 +323,7 @@
 </section>
 
 <section id="punkty">
-  <h2>11. Skąd biorą się punkty</h2>
+  <h2>12. Skąd biorą się punkty</h2>
   <p>Punkty liczą się z okna 60 minut. Przez pierwsze 30 minut sygnał ma pełną wagę, potem traci ją liniowo do zera. Każda klasa źródła ma limit, więc wiele artykułów czy alarmów obwodów o tym samym nie sumuje się bez końca. Kolejna obserwacja tego samego obiektu NEPTUN nie jest liczona jako nowy obiekt.</p>
   <div class="tw"><table><thead><tr><th>Źródło</th><th>Co jest uwzględniane</th><th>Punkty / limit</th></tr></thead><tbody>
     <tr><td>NEPTUN — obiekty</td><td>Typ, liczba obiektów, odległość od granicy, kurs, wiarygodność, liczba potwierdzeń, stan obserwacji i jakość pozycji. Rejon zgłoszenia ×0,6, rozpoznany środek miejscowości ×0,5.</td><td>łącznie do 8</td></tr>
@@ -370,7 +391,7 @@
 </section>
 
 <section id="problemy">
-  <h2>12. Ograniczenia i rozwiązywanie problemów</h2>
+  <h2>13. Ograniczenia i rozwiązywanie problemów</h2>
   <ul>
     <li><b>Czerwona dioda</b> — jedno ze źródeł nie odpowiada. Pozostałe działają; fuzja ma wtedy mniej potwierdzeń.</li>
     <li><b>Pusta mapa albo wszystkie diody czerwone</b> — sprawdź połączenie i inną sieć. Antywirus lub proxy, które przechwytują HTTPS, potrafią blokować połączenia aplikacji; nie wyłączaj ochrony na stałe, tylko sprawdź wyjątek dla straznik.eu.</li>
@@ -381,12 +402,12 @@
 </section>
 
 <section id="serwer">
-  <h2>13. Własny serwer — opcjonalnie</h2>
+  <h2>14. Własny serwer — opcjonalnie</h2>
   <p>Puste pole <kbd>⚙</kbd> → <kbd>Aplikacja</kbd> → <kbd>Zaawansowane: wspólny backend</kbd> oznacza domyślny serwer Strażnika. Własny adres wpisuj tylko wtedy, gdy sam utrzymujesz zgodny backend i jego powiadomienia. Wymagany jest HTTPS z certyfikatem zaufanym przez system. <a href="https://github.com/cukierrro/Straznik#readme">Opis uruchomienia backendu jest w README</a>. Uruchamianie własnego backendu dla innych osób wymaga licencji autora.</p>
 </section>
 
 <section id="prywatnosc">
-  <h2>14. Prywatność i źródła</h2>
+  <h2>15. Prywatność i źródła</h2>
   <p><a href="prywatnosc.html"><b>Pełna polityka prywatności</b></a> — co zostaje na urządzeniu, co widzi serwer i jakie usługi zewnętrzne biorą udział w przesyłaniu danych.</p>
   <p>Brak konta, reklam i analityki. Moje miejsca, nazwy i jednorazowe punkty lokalizacji zapisują się tylko na urządzeniu; kopia zapasowa Androida dla aplikacji jest wyłączona. Na serwer i do dostawcy powiadomień trafiają nazwy obserwowanych województw i identyfikator subskrypcji urządzenia — nigdy dokładna lokalizacja. Wyjątek to trasa w GROCIE: pozycja i wybrany punkt idą wtedy do publicznego serwera tras FOSSGIS, nie do nas (<a href="prywatnosc.html#lokalizacja">szczegóły</a>).</p>
   <p>Serwer oraz dostawcy map, powiadomień, zdjęć i danych otrzymują zwykłe żądania sieciowe i mogą prowadzić logi techniczne. Przy czytaniu artykułów serwer pobiera strony redakcji tak jak zwykła przeglądarka, bez akceptowania zgód na pliki cookie.</p>
