@@ -56,6 +56,15 @@ Polish UI, including in the English guide. They are not presented as captures
 of 1.7.16 or as current incidents, and their example scores are not a reference
 for today's scoring rules. Other image files remain unused historical assets.
 
+The GROTA captures `g25-przygotuj-listy*`, `g26-lista-otwarta*`, `g27-zasady*` and the new
+`g28-zasady-instrukcja*`, `g29-zasady-dane*` (Polish, `-en`, `-uk`) come from release 1.7.80
+and were taken on 26 September 2026 on a Pixel-sized emulator (1080 x 2340, Android 12,
+Test_API31), then downscaled to 720 x 1560 JPEG like the rest of the GROTA set. Nothing in
+them is retouched. Two items in the new "Basement or garage" checklist were ticked by hand
+before the capture so the counter shows 2/8; everything else is the app's own state with the
+shelter pack from the PSP register of 21 September 2026 (86,388 points), which is why
+`g29-*` reads "21.09.2026". No alerts were sent and no production data was written.
+
 ## Updating
 
 `history-lubelskie-user.png` is an unchanged 1440 × 3200 screenshot supplied

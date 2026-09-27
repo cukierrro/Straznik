@@ -1,8 +1,15 @@
 # Ilustracje AI do kart obiektów
 
 Wygenerowano wbudowanym narzędziem image_gen, 2026-09-02, bez użycia fotografii
-referencyjnych. Pliki: uav-ai.png, shahed-ai.png, fpv-ai.png, recon-ai.png,
-missile-ai.png (także alias cruise), ballistic-ai.png, kab-ai.png, mig31k-ai.png.
+referencyjnych. Pliki: uav-ai.webp, shahed-ai.webp, fpv-ai.webp, recon-ai.webp,
+missile-ai.webp (także alias cruise), ballistic-ai.webp, kab-ai.webp, mig31k-ai.webp.
+
+27.09.2026: z PNG 1536x1024 (~1,6 MB) na WebP 900x600 (~12 KB). Karta rysuje
+ilustrację na 285 px szerokości, więc 900 px starcza na ekrany o gęstości 3x.
+Różnica względem oryginału to średnio 1 poziom jasności na 255 — na gładkim
+granatowym tle nie widać pasowania. Powód: obrazy były największą pozycją
+transferu strony (127 GB w dobie szczytu) i niepotrzebnie powiększały APK.
+Pliki PNG usunięto; ilustracje odtwarza się z promptów poniżej.
 Obiekt nierozpoznany nie otrzymuje arbitralnej ilustracji konkretnego modelu.
 Ikony mapy i punktacja pozostają bez zmian. Starsze zdjęcia nie są używane
 w kartach; ich dokumentacja licencyjna pozostaje w ATTRIBUTION.md.

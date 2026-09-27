@@ -6,94 +6,85 @@
 
 Serwer: **hostowane na [Mikrusie](https://mikr.us)** — dziękujemy za wsparcie projektu.
 
-Wersja 1.7.34: weto „dni po” trafiało w środek słowa „wschodni powiat” i kasowało
-prawdziwy meldunek o poderwaniu lotnictwa. Hasła mają teraz granicę słowa, a weta
-dzielą się na twarde (ćwiczenia, rocznice — kasują wszystko) i miękkie (omówienia —
-obniżają relację z 1,5 do 1,0 pkt). Szczegóły: `docs/RELEASE_1.7.34.md`.
+Wersja 1.7.82: mniej danych. Ilustracje obiektów przeszły z PNG na WebP — osiem
+plików waży 91 KB zamiast 12,4 MB, wyglądają tak samo, a APK chudnie o 12 MB.
+Mapa Ukrainy (pół megabajta) pobiera się dopiero, gdy są tam alarmy, zamiast przy
+każdym otwarciu. Serwer przysyła tylko tę część stanu, która się zmieniła, a przy
+pełnej ciszy w kraju telefon pyta co 15 zamiast co 5 sekund — gdy cokolwiek jest
+podniesione, tempo zostaje bez zmian. Zdjęcie maszyny w zwiniętej karcie jest
+większe. Punktacja i alarmowanie bez zmian. Szczegóły: `docs/RELEASE_1.7.82.md`.
 
-Wersja 1.7.33: karta strefy była nieczytelna (kontrast 1,83:1 na białym tle) i miała
-ucięty nagłówek; karencja zniknięcia strefy, opisana w notatkach 1.7.30, nie była
-zaimplementowana — teraz jest. Instrukcja pokazuje warstwę stref na zrzutach.
-Szczegóły: `docs/RELEASE_1.7.33.md`.
+Wersja 1.7.81: alarm da się odczytać czytnikiem ekranu. Ekran alarmu jest oknem
+`alertdialog` — czytnik przerywa to, co czyta, i podaje poziom oraz województwo,
+a tabulator krąży po jego przyciskach zamiast schodzić na zasłoniętą mapę.
+Wzrost poziomu do żółtego i powrót do zwykłego czytnik ogłasza sam, z nazwą
+województwa. Systemowe „ogranicz ruch” wyłącza wszystkie pulsujące elementy. Przy
+okazji okno aktualizacji nie wchodzi już pod górny pasek, a wiersz źródeł na mapie
+przewija się palcem. To pierwszy krok w stronę dostępności, a nie ogłoszenie, że
+aplikacja jest dostępna. Szczegóły: `docs/RELEASE_1.7.81.md`.
 
-Wersja 1.7.32: okno aktualizacji pokazuje pełne punkty zamiast trzech urwanych
-kawałków zdania i przewija się; karta strefy PAŻP nie obiecuje już końca, którego
-nie zna (PAŻP publikuje plan dobowy); instrukcja tłumaczy, które strefy punktują,
-które nie i dlaczego. Szczegóły: `docs/RELEASE_1.7.32.md`.
+Wersja 1.7.80: alert RCB wysłany do kilku województw naraz przepadał bez śladu —
+listę odbiorców rozpoznawaliśmy po jednej formie słowa, a RCB używa innej właśnie
+przy kilku województwach. Alert wiszący godzinami bez odwołania jest teraz widoczny
+wprost (bez punktów), odwołanie „brak zagrożenia na terenie Polski” gasi wszystkie
+województwa, pozycja z MLAT nie udaje ADS-B, a wykaz punktów schronienia jest ze
+stanu z 21 września (86 388 miejsc). Szczegóły: `docs/RELEASE_1.7.80.md`.
 
-Wersja 1.7.31: artykuł trafia do województwa, którego naprawdę dotyczy. Nazwa
-miejscowości nie łapie się już w środku innego słowa („rozpoznania” ≠ Poznań),
-nazwa redakcji nie decyduje o regionie, a tekst o KOŃCU zagrożenia nie punktuje
-i wygasza wcześniejsze doniesienia. Słownik nazw urósł do 565 haseł, 23–49 na
-województwo. Szczegóły: `docs/RELEASE_1.7.31.md`.
+Wersja 1.7.79: odwołanie alarmu przez RCB nie jest już liczone jako alarm, a kolor
+województwa w historii bierze się z poziomu alarmu, nie z samych punktów. Pierwsze
+wydanie cięte z jednego commita dla Androida i iPhone'a. Szczegóły: `docs/RELEASE_1.7.79.md`.
 
-Wersja 1.7.30: nowy przycisk „strefy” pokazuje aktywne strefy PAŻP — dotknięcie
-strefy tłumaczy po ludzku, co to jest i od kiedy działa. Strefy nie dodają punktów.
-Północ (Pomorze, Kaliningrad) liczy się inaczej, bo NEPTUN pokrywa Ukrainę i daje
-tam zero: strefa PAŻP waży tam 1 pkt zamiast 0,5, a incydenty bałtyckie docierają
-wreszcie na wybrzeże — nadal żaden pojedynczy sygnał nie alarmuje sam.
-Szczegóły: `docs/RELEASE_1.7.30.md`.
+Wersja 1.7.78: regulacja głośności sygnału uwagi i naprawiona hierarchia dźwięków,
+alert RCB czytany z całej treści komunikatu, godzina w powiadomieniu, a pasek historii
+nie pokazuje już czerwonego tam, gdzie alarm był żółty. Szczegóły: `docs/RELEASE_1.7.78.md`.
 
-Wersja 1.7.29: artykuł o kilku województwach trafia do każdego z nich (alert RCB
-„dla województw lubelskiego i podkarpackiego" wchodził tylko do podkarpackiego),
-świeży sygnał idzie na górę listy z plakietką NOWY, karta województwa rozpisuje sumę,
-a sygnał bez obiektu na mapie mówi „nieśledzony". Szczegóły: `docs/RELEASE_1.7.29.md`.
+Wersja 1.7.76: cała aplikacja mówi po ukraińsku — ekrany, karty obiektów, historia,
+ekran alarmu i opisy źródeł. Brakujące tłumaczenie spada na angielski, nie na pusty
+napis. Szczegóły: `docs/RELEASE_1.7.76.md`.
 
-Wersja 1.7.28: karta obiektu podaje werdykt kursu („0 pkt — kurs 71° od kierunku
-na Polskę" albo „kurs na Polskę"), a wiersz sygnału dopisuje bieżącą odległość
-śledzonego obiektu — panel mówił „192,5 km", gdy ten sam dron był 130 km od granicy.
-Punktacja bez zmian. Szczegóły: `docs/RELEASE_1.7.28.md`.
+Wersja 1.7.74: czerwony alarm wymaga potwierdzenia — same 4 punkty nie wystarczą bez
+alertu RCB „znajdź bezpieczne miejsce” albo obiektu uderzeniowego kursem na Polskę.
+Alert RCB punktowany według treści (1,5 / 3 / 4,5 pkt), drony rozpoznawcze 0,5 → 0,15 pkt.
+Szczegóły: `docs/RELEASE_1.7.74.md`.
 
-Wersja 1.7.27: obiekt widoczny na mapie, który nie wnosi punktów (leci w bok albo
-od nas), pokazuje się teraz w „Sygnałach" jako „Na mapie, ale bez punktów" wraz z
-powodem — wcześniej znikał z listy i wyglądało to na przeoczenie. Punktacja bez
-zmian. Okno „Źródła danych" doczekało się wersji angielskiej.
-Szczegóły: `docs/RELEASE_1.7.27.md`.
+Wersja 1.7.72: GROTA mówi po angielsku i ukraińsku, a pobrana mapa jednego województwa
+nie gubi już ulic poza nim. Szczegóły: `docs/RELEASE_1.7.72.md`.
 
-Wersja 1.7.26: alarmy w obwodach Ukrainy punktowane według odległości od
-województwa, a nie płaską listą „obwodów granicznych" — obwód rówieński (70 km) i
-żytomierski (220 km) ogłaszały się jako graniczące z Lubelskiem i dawały tyle samo
-punktów co wołyński. Doszło pięć dalszych obwodów z małą wagą; limit klasy 1,0 pkt
-bez zmian. Liczby z geometrii ADM1, sprawdzalne `scripts/ua_oblast_rings.py --check`.
-Szczegóły: `docs/RELEASE_1.7.26.md`.
+Wersja 1.7.70: zdjęcie z góry na karcie punktu schronienia znowu się wyświetla —
+usługa ortofotomapy GUGiK zmieniła sposób działania, a Androidy starsze niż 14 nie
+ufały certyfikatowi Geoportalu. Szczegóły: `docs/RELEASE_1.7.70.md`.
 
-Wersja 1.7.25: okno i komunikaty aktualizacji mówią językiem interfejsu — cała ta
-ścieżka była zapisana po polsku na sztywno i taka zostawała w angielskiej aplikacji.
-Szczegóły: `docs/RELEASE_1.7.25.md`.
+Wersja 1.7.68: nowy moduł **GROTA**. Po potwierdzeniu alarmu przycisk „Gdzie się
+schronić” otwiera najbliższe punkty schronienia z publicznego wykazu PSP, z odległością
+i trasą; wykaz działa bez internetu. Szczegóły: `docs/RELEASE_1.7.68.md`.
 
-Wersja 1.7.24: „Sprawdź aktualizacje” znów odpowiada — serwer trzyma ostatnie znane
-wydanie i podaje je, gdy GitHub odrzuci zapytanie limitem 60/h na adres IP. „Moje
-miejsca” pokazują, czego brakuje przy zapisie, a udany zapis zamyka okno i wraca do
-ustawień. Mapa startuje zawsze na tym samym kadrze (Polska i cała Ukraina), kadr „mój
-region” odsunięty, pasek historii nie zmienia wysokości. Nowa dwujęzyczna strona
-historii zmian (`docs/zmiany.html`), dostępna z aplikacji. Szczegóły:
-`docs/RELEASE_1.7.24.md`.
+Wersja 1.7.67: aplikacja pamięta wybrany widok mapy (2D albo 3D), a gdy mapa nie wczyta
+się w 20 sekund, zamiast pustego ekranu pojawia się wyjaśnienie. Szczegóły:
+`docs/RELEASE_1.7.67.md`.
 
-Wersja 1.7.23: przebudowana nawigacja — dolne zakładki Mapa / Sygnały / Historia /
-Więcej, pięć ikon w górnym pasku, jeden dolny stos komunikatów zamiast pięciu
-pływających ramek i okna dialogowe, które nie wchodzą na systemowy pasek nawigacji.
-Karta obiektu otwiera się jako miniatura w rogu z przyciskiem rozwinięcia, a zaznaczony
-obiekt ma na mapie biały pierścień. Ustawienia w czterech zakładkach, tryb historii
-nazwany wprost i większy suwak. Aktualizacje sprawdzane przy każdym uruchomieniu, a nie
-raz na dobę. Szczegóły: `docs/RELEASE_1.7.23.md`.
+Wersja 1.7.66: przyciski mapy chowają się strzałką, aktywny alert RCB nie jest już brany
+za odwołany, a artykuły powtarzające jego treść nie dokładają drugich punktów za tę samą
+informację. Szczegóły: `docs/RELEASE_1.7.66.md`.
 
-Wersja 1.7.22: limit klasy źródła liczony po wygaszeniu wiekiem (świeży obiekt
-przy granicy nie wnosi już 0 pkt w dłuższym ataku), poziom przeliczany co 45 s
-także bez nowego sygnału i trwały po restarcie, push z terminem ważności i
-ponowieniami, alarmy powietrzne z ukraińskich rejonów oraz zasada, że samo
-przeniesienie od sąsiada nie wysyła powiadomienia. Okna informacyjne mają
-ograniczoną wysokość i przewijanie, a elementy przy dolnej krawędzi omijają
-systemowy pasek nawigacji. Szczegóły: `docs/RELEASE_1.7.22.md`.
+Wersja 1.7.65: na części nowych telefonów górny pasek wchodził pod zegar i ikony
+powiadomień. Telefon, który nie pozwala rysować map, pokazuje wyjaśnienie zamiast pustego
+ekranu — alarmy, sygnały i historia działają także bez mapy. Szczegóły: `docs/RELEASE_1.7.65.md`.
 
-Wersja 1.7.21: pozycje oznaczone przez NEPTUN jako przybliżone oraz rozpoznane
-punkty środkowe miejscowości są pokazywane jako rejony zgłoszeń, bez sztucznego
-przesuwania, pozornej trasy i ETA. Dystans rejonowy jest zaokrąglany, ma niższą
-wagę, a nowe ID w tym samym punkcie nie są automatycznie sumowane. „Moje miejsca”
-przechowują na urządzeniu do 8 profili i opcjonalne
-jednorazowe pozycje. Powiadomienia w tle nadal dotyczą województwa; po otwarciu
-aplikacji dokładny punkt służy do lokalnego wyświetlenia odległości i — tylko
-przy wystarczających danych o locie — orientacyjnego ETA. Biblioteka zdjęć ma
-również bezpieczne przykłady dla rozpoznanych kodów modeli bez opisu dostawcy.
+Wersja 1.7.64: naprawiona aktualizacja na Androidzie 9 i 10. Błąd „podpis aktualizacji
+nie zgadza się” nie był włamaniem — podpis był w porządku, to aplikacja źle go odczytywała.
+Szczegóły: `docs/RELEASE_1.7.64.md`.
+
+Wersja 1.7.63: koniec stałego połączenia z serwerem. Aplikacja pyta o stan i dołącza
+znacznik wersji, którą już ma; gdy nic się nie zmieniło, odpowiada Cloudflare ze swojego
+brzegu. Do serwera trafia najwyżej jeden stan na dwie sekundy na centrum danych,
+niezależnie od liczby telefonów. Szczegóły: `docs/RELEASE_1.7.63.md`.
+
+Wersja 1.7.62: historia nie gubi już godzin spędzonych w tle — zminimalizowana aplikacja
+nic nie nagrywa, więc po powrocie dociąga brakujący okres z serwera. Szczegóły:
+`docs/RELEASE_1.7.62.md`.
+
+Notatki wszystkich wcześniejszych wydań leżą w katalogu [`docs/`](docs) jako pliki
+`RELEASE_*.md`.
 
 **Nieoficjalne wczesne ostrzeganie o zagrożeniach powietrznych**
 
@@ -393,10 +384,10 @@ cd android-app/android
 JAVA_HOME="C:/Program Files/Android/Android Studio/jbr" ./gradlew assembleRelease
 ```
 
-Wynik: `app/build/outputs/apk/release/app-release.apk`. Weryfikacja podpisu:
+Wynik: `app/build/outputs/apk/github/release/app-github-release.apk`. Weryfikacja podpisu:
 
 ```bash
-"$ANDROID_HOME/build-tools/37.0.0/apksigner" verify --print-certs -v app/build/outputs/apk/release/app-release.apk
+"$ANDROID_HOME/build-tools/37.0.0/apksigner" verify --print-certs -v app/build/outputs/apk/github/release/app-github-release.apk
 ```
 
 Bez `keystore.properties` build wydania nadal się wykona, ale APK **nie zostanie
@@ -421,7 +412,7 @@ npx cap sync android
 cd android && JAVA_HOME="C:/Program Files/Android/Android Studio/jbr" ./gradlew assembleRelease
 ```
 
-Wynik: `android-app/android/app/build/outputs/apk/release/app-release.apk`.
+Wynik: `android-app/android/app/build/outputs/apk/github/release/app-github-release.apk`.
 Po testach i sprawdzeniu podpisu wydania kopiujemy go jako `Straznik.apk`.
 Nigdy nie publikujemy `app-debug.apk` jako wydania. Przed publikacją sprawdź
 `apksigner verify --print-certs`, brak `debuggable` oraz skompilowaną konfigurację

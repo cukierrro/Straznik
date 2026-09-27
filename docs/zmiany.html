@@ -39,6 +39,57 @@
   <p class="fineprint">Wersję zainstalowaną na telefonie sprawdzisz w aplikacji: <kbd>⚙</kbd> → zakładka <kbd>Aplikacja</kbd> → „Wersja aplikacji”. Tam też jest przycisk <kbd>⬆ Sprawdź aktualizacje</kbd>.</p>
 </div></header>
 <main id="content" class="wrap">
+<section id="v1-7-82">
+  <h2>1.7.82 — Mniej danych: lżejsza aplikacja i mniej pobierania</h2>
+  <p class="fineprint">Wydanie 1.7.82 · 27 września 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.82">Pełny opis wydania</a></p>
+  <ul>
+    <li>Aplikacja waży o 12 MB mniej. Osiem ilustracji klas obiektów przeszło z PNG na WebP — razem 91 KB zamiast 12,4 MB, przy tym samym wyglądzie.</li>
+    <li>Mapa Ukrainy, prawie pół megabajta, pobiera się dopiero wtedy, gdy są tam alarmy. Wcześniej ładowała się przy każdym otwarciu, choć zwykle nie było na niej nic widać.</li>
+    <li>Serwer przysyła tylko tę część stanu, która się zmieniła. Pozycje samolotów cywilnych i stan źródeł zmieniają się rzadziej niż dane o zagrożeniach i nie muszą przychodzić za każdym razem.</li>
+    <li>Przy pełnej ciszy w całym kraju telefon pyta serwer co 15 sekund zamiast co 5, co oszczędza baterię i transfer. Gdy gdziekolwiek jest podniesiony poziom, tempo zostaje takie jak dotąd, a przy alarmie jest szybsze.</li>
+    <li>Zdjęcie maszyny w zwiniętej karcie jest większe. Dotąd kurczyło się do znaczka pośrodku pustego pasa.</li>
+    <li>Pliki mapy zostają w przeglądarce rok zamiast doby, więc powracający użytkownik nie pobiera ich ponownie.</li>
+  </ul>
+  <p class="fineprint">To wydanie niczego nie dodaje — zmniejsza zużycie danych, pamięci i baterii. Punktacja, progi i alarmowanie zostają bez zmian.</p>
+</section>
+<section id="v1-7-81">
+  <h2>1.7.81 — Alarm da się odczytać czytnikiem ekranu</h2>
+  <p class="fineprint">Wydanie 1.7.81 · 26 września 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.81">Pełny opis wydania</a></p>
+  <ul>
+    <li>Czytnik ekranu czyta ekran alarmu od razu po jego pojawieniu się, zamiast zostawać na mapie pod spodem. Tabulator krąży po przyciskach alarmu i nie schodzi na to, co jest zasłonięte.</li>
+    <li>Gdy poziom rośnie do żółtego, czytnik ekranu mówi, w którym województwie. Dotąd osoba niewidoma słyszała tylko krótki sygnał, bez informacji, co się stało.</li>
+    <li>Powrót poziomu do zwykłego też jest mówiony — z zastrzeżeniem, że to nie jest oficjalne odwołanie alarmu, tylko wygaśnięcie naszych sygnałów.</li>
+    <li>Systemowe „ogranicz ruch” wyłącza wszystkie pulsujące elementy, nie jeden z sześciu. Poziom zagrożenia zostaje czytelny bez ruchu.</li>
+    <li>Aplikację da się obsłużyć klawiaturą i przełącznikiem: karty województw rozwijają się Enterem, a widać, na czym stoi kursor. Dotknięcie palcem działa jak dotąd.</li>
+    <li>Okno aktualizacji nie wchodzi już pod górny pasek — na wąskich telefonach zasłaniał on tytuł okna — a dłuższa lista zmian przewija się w oknie.</li>
+    <li>Wiersz ze źródłami danych na dole mapy przewija się palcem w bok zamiast urywać się wielokropkiem.</li>
+  </ul>
+  <p class="fineprint">To pierwszy krok w stronę dostępności, a nie ogłoszenie, że aplikacja jest dostępna. Opis sytuacji zamiast mapy, wzory wibracji i regulacja wielkości tekstu są przed nami.</p>
+</section>
+<section id="v1-7-80">
+  <h2>1.7.80 — Alert RCB dla kilku województw już nie przepada</h2>
+  <p class="fineprint">Wydanie 1.7.80 · 26 września 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.80">Pełny opis wydania</a></p>
+  <ul>
+    <li>Alert RCB wysłany do kilku województw naraz przepadał bez śladu i nie dawał punktów żadnemu z nich. Powód: listę odbiorców rozpoznawaliśmy po słowie „wysłany”, a RCB przy kilku województwach pisze „zostały wysłane”.</li>
+    <li>Gdy alert RCB wisi godzinami bez odwołania, Strażnik mówi to wprost zamiast pokazywać spokojną mapę. Taki wpis nie dodaje punktów i znika po dwunastu godzinach.</li>
+    <li>Odwołanie o treści „brak zagrożenia na terenie Polski” gasi alert we wszystkich województwach, a nie tylko w tym jednym, które podało RSO.</li>
+    <li>Pozycja policzona przez naziemne odbiorniki (MLAT) nie jest już podawana za ADS-B, a ikona maszyny nie przeskakuje kilkudziesięciu kilometrów i nie wraca.</li>
+    <li>Schronienie: wykaz punktów PSP zaktualizowany do stanu z 21 września — 86 388 miejsc. Zasady mówią teraz, z kiedy są dane i że wykaz nie dociąga się w tle.</li>
+    <li>Schronienie: doszły zasady z rządowej „Instrukcji reagowania” i lista tego, co sprawdzić, zanim schowasz się w piwnicy albo garażu.</li>
+    <li>Podgląd zmiany języka w ustawieniach obejmuje wreszcie sekcję „Mapa: trasy obiektów”.</li>
+  </ul>
+</section>
+<section id="v1-7-79">
+  <h2>1.7.79 — Odwołanie alarmu nie punktuje jak alarm</h2>
+  <p class="fineprint">Wydanie 1.7.79 · 24 września 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.79">Pełny opis wydania</a></p>
+  <ul>
+    <li>Odwołanie alarmu przez RCB nie jest już liczone jako alarm. Zdarzyło się to dwa razy 24 września.</li>
+    <li>Kolor województwa w historii bierze się z poziomu alarmu, a nie z samych punktów — czerwony pokazuje się tylko tam, gdzie alarm naprawdę był czerwony.</li>
+    <li>Okno „co się zmieniło” pokazuje całą listę zmian zamiast jednego urwanego punktu.</li>
+    <li>Opis źródeł danych o samolotach mówi teraz, skąd naprawdę pochodzą.</li>
+    <li>Na iPhonie syrena gra przy otwartej aplikacji także wtedy, gdy dzwonek jest wyciszony przełącznikiem.</li>
+  </ul>
+</section>
 <section id="v1-7-78">
   <h2>1.7.78 — Cichszy żółty sygnał i alert RCB czytany z treści</h2>
   <p class="fineprint">Wydanie 1.7.78 · 24 września 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.78">Pełny opis wydania</a></p>

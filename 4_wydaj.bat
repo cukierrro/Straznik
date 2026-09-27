@@ -57,7 +57,7 @@ echo === 2/7  APK w repozytorium identyczny ze zbudowanym ===
 set "H1="
 set "H2="
 for /f "skip=1 tokens=1" %%H in ('certutil -hashfile "%REPO%\Straznik.apk" SHA256') do if not defined H1 set "H1=%%H"
-for /f "skip=1 tokens=1" %%H in ('certutil -hashfile "%REPO%\android-app\android\app\build\outputs\apk\release\app-release.apk" SHA256') do if not defined H2 set "H2=%%H"
+for /f "skip=1 tokens=1" %%H in ('certutil -hashfile "%REPO%\android-app\android\app\build\outputs\apk\github\release\app-github-release.apk" SHA256') do if not defined H2 set "H2=%%H"
 echo   repozytorium: !H1!
 echo   build:        !H2!
 if not "!H1!"=="!H2!" (

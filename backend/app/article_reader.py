@@ -22,6 +22,10 @@ import unicodedata
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
+import asyncio
+import ipaddress
+import socket
+
 import feedparser
 import httpx
 
@@ -152,15 +156,82 @@ def assess(paras: list[str], published: datetime, now: datetime | None = None) -
 
 
 # ── pobieranie ───────────────────────────────────────────────────────────────
-async def _get(client: httpx.AsyncClient, url: str) -> httpx.Response | None:
+# Adresy artykułów przychodzą z zewnątrz — z kanałów RSS i z Google News, gdzie
+# link i adres wydawcy podaje obca strona. Dotąd serwer szedł za każdym z nich
+# i za każdym przekierowaniem, więc dało się go skierować na 127.0.0.1 (nasze
+# własne usługi) albo adresy sieci wewnętrznej. Audyt 26.09.2026.
+MAX_PRZEKIEROWAN = 5
+
+
+def _ip_publiczny(adres: str) -> bool:
     try:
-        r = await client.get(url, headers={"User-Agent": UA}, follow_redirects=True, timeout=12)
-    except Exception as e:
+        ip = ipaddress.ip_address(adres.split("%", 1)[0])     # „%eth0” przy IPv6 link-local
+    except ValueError:
+        return False
+    return ip.is_global and not ip.is_multicast
+
+
+async def _adres_dozwolony(url: str) -> bool:
+    """Tylko http(s) i tylko do hostów, które rozwiązują się WYŁĄCZNIE do adresów
+    publicznych — bez loopbacka, sieci prywatnych, link-local (w tym metadanych
+    chmury 169.254.169.254) i adresów zarezerwowanych. Sprawdzane przed każdym
+    skokiem przekierowania, bo publiczna strona może przekierować do środka."""
+    try:
+        u = httpx.URL(url)
+    except Exception:  # noqa: BLE001 — każdy niepoprawny adres to po prostu „nie”
+        return False
+    if u.scheme not in ("http", "https") or not u.host or u.userinfo:
+        return False
+    port = u.port or (443 if u.scheme == "https" else 80)
+    try:
+        wyniki = await asyncio.get_running_loop().getaddrinfo(u.host, port, type=socket.SOCK_STREAM)
+    except (OSError, UnicodeError):
+        return False
+    adresy = {w[4][0] for w in wyniki}
+    return bool(adresy) and all(_ip_publiczny(a) for a in adresy)
+
+
+async def _get(client: httpx.AsyncClient, url: str) -> httpx.Response | None:
+    """GET z ręcznie obsłużonymi przekierowaniami i twardym limitem rozmiaru.
+
+    Limit liczymy w trakcie pobierania, nie po nim — dotąd cała odpowiedź lądowała
+    w pamięci i dopiero potem sprawdzaliśmy jej długość, więc złośliwy serwer mógł
+    wcisnąć writerowi setki megabajtów (13.09 mieliśmy już awarię z braku pamięci).
+    Zostaje świadome ograniczenie: adres rozwiązujemy przed połączeniem, a httpx
+    rozwiązuje go jeszcze raz — przy podmianie DNS w tej chwili (DNS rebinding)
+    sprawdzenie da się obejść. Skutek byłby ślepy (treść nie wraca do atakującego),
+    więc na tym poprzestajemy."""
+    try:
+        for _ in range(MAX_PRZEKIEROWAN + 1):
+            if not await _adres_dozwolony(url):
+                status["last_error"] = f"odrzucony adres: {url[:120]}"
+                log.info("artykuł: odrzucony adres %s", url[:200])
+                return None
+            async with client.stream("GET", url, headers={"User-Agent": UA},
+                                     follow_redirects=False, timeout=12) as r:
+                if r.is_redirect:
+                    url = str(r.url.join(r.headers.get("location", "")))
+                    continue
+                if r.status_code != 200:
+                    return None
+                deklarowana = r.headers.get("content-length", "")
+                if deklarowana.isdigit() and int(deklarowana) > MAX_BYTES:
+                    return None
+                tresc = bytearray()
+                async for kawalek in r.aiter_bytes():
+                    tresc += kawalek
+                    if len(tresc) > MAX_BYTES:
+                        return None
+                # aiter_bytes oddaje treść już rozpakowaną (gzip/br), więc do nowej
+                # odpowiedzi przenosimy tylko typ z kodowaniem znaków — nagłówek
+                # content-encoding kazałby httpx rozpakować ją drugi raz.
+                naglowki = {"content-type": r.headers["content-type"]} if "content-type" in r.headers else {}
+                return httpx.Response(200, headers=naglowki, content=bytes(tresc), request=r.request)
+        status["last_error"] = f"za dużo przekierowań: {url[:120]}"
+        return None
+    except Exception as e:  # noqa: BLE001 — jedna nieudana strona nie może zatrzymać obiegu
         status["last_error"] = repr(e)[:160]
         return None
-    if r.status_code != 200 or len(r.content) > MAX_BYTES:
-        return None
-    return r
 
 
 async def _feed_urls(client: httpx.AsyncClient, base: str) -> list[str]:

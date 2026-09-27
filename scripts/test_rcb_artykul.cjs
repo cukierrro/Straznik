@@ -36,6 +36,14 @@ const BLOK_KONIEC = `&bdquo;${KONIEC}&rdquo; Alert RCB o tej treści został wys
   + 'odbiorc&oacute;w na terenie wojew&oacute;dztwa lubelskiego.';
 const SEP = ' --------------------------- ';
 
+/* Nazwy województw prosto z engine.js — bez przepisywania ich do testu. */
+function WOJEWODZTWA_Z_SILNIKA() {
+  const src = fs.readFileSync(require('node:path').resolve(__dirname, '..', 'frontend/engine.js'), 'utf8');
+  const m = /const VOIVODESHIPS = \[([\s\S]*?)\];/.exec(src);
+  assert.ok(m, 'nie znalazłem VOIVODESHIPS w engine.js');
+  return [...m[1].matchAll(/"([^"]+)"/g)].map(x => x[1]);
+}
+
 // tablice z silnika żyją w osobnym kontekście vm — deepEqual porównuje prototypy
 const tab = (x) => Array.from(x || []);
 
@@ -94,6 +102,24 @@ test('1. województwa z treści komunikatu', () => {
     'blok bez zdania o wysyłce nie zgaduje województw');
   assert.deepEqual(woj('wysłany do odbiorców na terenie woj. dolnośląskiego'),
     ['dolnośląskie'], 'dolnośląskie nie wpada jako śląskie');
+
+  /* 25.09.2026: kotwicą było samo „wysłany", a RCB pisze też „zostały wysłane"
+     i „wysłano" — liczby mnogiej używa WŁAŚNIE przy alercie dla kilku województw.
+     Wtedy tryb awaryjny nie znajdował ani jednego odbiorcy i blok przepadał bez
+     punktów, po cichu. Strona serwera ma to samo w test_wojewodztwa_alertu.py. */
+  for (const czas of ['zostały wysłane do odbiorców', 'wysłano do odbiorców',
+                      'został przekazany do odbiorców'])
+    assert.deepEqual(woj(`Alert RCB o tej treści ${czas} na terenie województwa podkarpackiego.`),
+      ['podkarpackie'], `forma „${czas}" też musi dawać odbiorcę`);
+
+  /* …i zakres 260 znaków ucinał długą listę (16 nazw w dopełniaczu to ~290).
+     Listę czytamy z PRODUKCYJNEGO engine.js, żeby test nie chwalił własnej kopii. */
+  const wszystkie = WOJEWODZTWA_Z_SILNIKA();
+  assert.equal(wszystkie.length, 16, `w engine.js jest ${wszystkie.length} województw zamiast 16`);
+  const lista = wszystkie.map(v => v.slice(0, -2) + 'ego').join(', ');
+  assert.deepEqual(
+    woj(`Alert RCB został wysłany do odbiorców na terenie województw ${lista}.`).sort(),
+    wszystkie.slice().sort(), 'lista wszystkich województw nie może się urwać');
 });
 
 test('2. poziom i odwołanie z treści', () => {

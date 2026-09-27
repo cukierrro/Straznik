@@ -12,6 +12,8 @@ Czysty ASGI, jak load_guard — bez buforowania odpowiedzi.
 import json
 import time
 
+from . import csp
+
 MAX_BODY_BYTES = 16 * 1024
 # 60, nie mniej: użytkownicy sieci komórkowych dzielą publiczny adres (CGNAT)
 SUBSCRIBE_PER_IP = 60
@@ -71,9 +73,16 @@ class RequestLimits:
 
         async def send_with_headers(message):
             if message["type"] == "http.response.start":
-                present = {k.lower() for k, _ in message.get("headers", [])}
-                message["headers"] = list(message.get("headers", [])) + [
-                    h for h in SECURITY_HEADERS if h[0] not in present]
+                naglowki = list(message.get("headers", []))
+                present = {k.lower() for k, _ in naglowki}
+                naglowki += [h for h in SECURITY_HEADERS if h[0] not in present]
+                # CSP tylko dla stron HTML — w JSON-ie i plikach nie ma czego chronić
+                typ = next((v for k, v in naglowki if k.lower() == b"content-type"), b"")
+                if typ.startswith(b"text/html"):
+                    csp_h = csp.naglowek()
+                    if csp_h and csp_h[0] not in present:
+                        naglowki.append(csp_h)
+                message["headers"] = naglowki
             await send(message)
 
         if scope.get("method") not in _BODY_METHODS:

@@ -1,8 +1,11 @@
 /* Service worker: Web Push + minimalny cache powłoki (network-first). */
 const CACHE = "straznik-v1";
-const SHELL = ["./", "index.html", "style.css", "app.js",
-  "assets/vendor/maplibre-gl.js", "assets/vendor/maplibre-gl.css",
-  "assets/wojewodztwa.geojson"];
+/* Tylko adresy BEZ wersji. Strona pobiera app.js, style.css, maplibre i geojson
+   z parametrem ?v=, więc wpisy bez wersji były innym adresem niż ten, o który kiedykolwiek
+   prosi przeglądarka — nigdy nie zostały użyte, a instalacja workera pobierała przez nie
+   drugie ~450 KB tych samych plików (27.09.2026). Resztę powłoki i tak zapisuje poniżej
+   obsługa fetch, pod adresami, o które strona naprawdę pyta. */
+const SHELL = ["./", "index.html"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));

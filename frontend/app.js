@@ -13,6 +13,9 @@ if (IS_APP) document.querySelectorAll(".web-only").forEach(el => { el.hidden = t
    brak linków do wsparcia autora (App Store 3.1.1a). Klasę ios-app ustawia
    index.html jeszcze przed pierwszym renderem. */
 const IS_IOS = IS_APP && window.Capacitor?.getPlatform?.() === "ios";
+/* Wydanie z Google Play nie może aktualizować się samo ani prowadzić do zbiórki
+   poza sklepem. Kanał ustawia wariant.js — patrz komentarz w tym pliku. */
+const SKLEP = window.STRAZNIK_KANAL === "play";
 const DEFAULT_BACKEND = "https://straznik.eu";   // serwer fuzji Strażnika (VPS przez Cloudflare)
 /* Starszy WebView (Android bez aktualizacji, 15.09.2026 audyt): AbortSignal.timeout
    jest od Chrome 103 — bez niego nie ładowały się strefy PAŻP ani dziennik ADS-B. */
@@ -51,17 +54,20 @@ const TYPE_META = {
   recon:    { label: "Dron rozpoznawczy",  color: "#c9d1dc" },
   unknown:  { label: "Obiekt powietrzny",  color: "#8a93a6" },
 };
-/* Ilustracje AI klas obiektów — nie zdjęcia ani wzorzec identyfikacji. */
+/* Ilustracje AI klas obiektów — nie zdjęcia ani wzorzec identyfikacji.
+   WebP 900x600 zamiast PNG 1536x1024 (27.09.2026): karta rysuje je na 285 px,
+   więc 900 px starcza na ekrany 3x, a plik waży ~12 KB zamiast ~1,6 MB.
+   Obrazy były największą pozycją transferu — 127 GB w dobie szczytu. */
 const THREAT_PHOTOS = {
-  kab: { file: "kab-ai.png" },
-  uav: { file: "uav-ai.png" },
-  shahed: { file: "shahed-ai.png" },
-  fpv: { file: "fpv-ai.png" },
-  recon: { file: "recon-ai.png" },
-  missile: { file: "missile-ai.png" },
-  ballistic: { file: "ballistic-ai.png" },
-  mig31k: { file: "mig31k-ai.png" },
-  cruise: { file: "missile-ai.png" },
+  kab: { file: "kab-ai.webp" },
+  uav: { file: "uav-ai.webp" },
+  shahed: { file: "shahed-ai.webp" },
+  fpv: { file: "fpv-ai.webp" },
+  recon: { file: "recon-ai.webp" },
+  missile: { file: "missile-ai.webp" },
+  ballistic: { file: "ballistic-ai.webp" },
+  mig31k: { file: "mig31k-ai.webp" },
+  cruise: { file: "missile-ai.webp" },
 };
 const UI = window.I18N || { isEn:false, isUk:false, t:(pl)=>pl, tr:s=>s, voiv:s=>s, type:(k,s)=>s, confidence:(k,s)=>s };
 
@@ -627,11 +633,48 @@ const connBadge = document.getElementById("conn-badge");
    gubi niczego, a właściwy alarm przy zamkniętej aplikacji i tak idzie powiadomieniem
    push. Serwer nadal obsługuje WebSocket dla starszych wersji aplikacji. */
 const POLL_ALARM_MS = 2000;     // trwa alarm — patrzymy uważniej
-const POLL_CALM_MS = 5000;      // spokój — stan i tak zmienia się rzadziej
+const POLL_ACTIVE_MS = 5000;    // gdziekolwiek w kraju podniesiony poziom
+/* Pełna cisza w całym kraju. Pomiar z 27.09.2026: taki stan trwa ~93,5% czasu,
+   a ticki serwera przychodzą wtedy co ~16 s — pytanie co 5 s nic nie wnosiło.
+   W szczycie ticki idą co 2 s i wtedy rzadsze pytanie wprost dzieli ruch, ale
+   wtedy i tak jesteśmy na jednym z dwóch szybszych poziomów. */
+const POLL_CALM_MS = 15000;
 const POLL_BUSY_MS = 10000;     // serwer prosi o przerwę (503)
 const POLL_LOST_MS = 12000;     // tyle bez odpowiedzi = pokazujemy „brak połączenia"
 let pollTimer = null, pollVer = null, pollEtag = null, pollBusyFlag = false;
 let pollInFlight = false, pollLastOk = 0;
+/* Część pomocnicza stanu: samoloty ADS-B i stan źródeł. Zmienia się wolniej niż
+   reszta (pomiar 27.09.2026: na 11 ticków `adsb` zmieniło się 4 razy, `health`
+   ani razu), więc serwer podaje ją osobno, a część główna niesie jej odcisk
+   `aux_v`. Dobieramy ją tylko wtedy, gdy odcisk się zmienił.
+   Gdy serwer jest starszy i nie zna podziału, `aux_v` nie przychodzi — wtedy
+   pełny stan ma te sekcje w środku i nie pytamy o nic więcej. */
+let auxDane = null, auxWersja = null, ostatniaGlowna = null;
+
+function zlozStan(glowna) {
+  // Serwer BEZ podziału (starszy writer w trakcie wdrożenia, wycofanie wydania)
+  // przysyła pełny stan razem z adsb i health. Nałożenie na niego zapamiętanej
+  // części pomocniczej zamroziłoby samoloty na ostatnio pobranej pozycji — i nikt
+  // by tego nie zgłosił, bo mapa wyglądałaby normalnie. Wtedy zapamiętaną część
+  // wyrzucamy i bierzemy to, co przyszło.
+  if (glowna && glowna.adsb) { auxDane = null; auxWersja = null; return glowna; }
+  return auxDane ? { ...glowna, ...auxDane } : glowna;
+}
+
+async function pobierzAux(wersja) {
+  const base = apiBase(); if (!base) return;
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 8000);
+    const r = await fetch(base + "/api/state?part=aux", { cache: "no-store", signal: ctrl.signal });
+    clearTimeout(timer);
+    if (!r.ok) return;
+    const d = await r.json();
+    if (!d || typeof d !== "object" || !d.adsb) return;   // nie nadpisujemy dobrych danych śmieciem
+    auxDane = d; auxWersja = wersja;
+    if (ostatniaGlowna) applyState(zlozStan(ostatniaGlowna));
+  } catch {}
+}
 /* Krótkie zerwanie (przejazd tunelem, zmiana sieci) trwa sekundy i wracało samo,
    a komunikat zdążył mignąć i straszył. Pokazujemy go dopiero, gdy połączenia nie
    ma dłużej niż CONN_LOST_DELAY_MS. */
@@ -749,7 +792,15 @@ async function probeBackend(base) {
     const timer = setTimeout(() => ctrl.abort(), 4000);
     const r = await fetch(base + "/api/state", { signal: ctrl.signal, cache: "no-store" });
     clearTimeout(timer);
-    if (r.ok) { applyState(await r.json()); return true; }
+    if (r.ok) {
+      const d = await r.json();
+      // pełny stan ma obie części — bierzemy z niego świeże `adsb`/`health`,
+      // żeby późniejsze scalanie nie podłożyło starszych; odcisk zerujemy,
+      // więc pierwszy tick części głównej dobierze aktualną wersję
+      if (d && d.adsb) { auxDane = { adsb: d.adsb, health: d.health }; auxWersja = null; }
+      applyState(d);
+      return true;
+    }
   } catch {}
   return false;
 }
@@ -762,7 +813,11 @@ function pollDelay() {
   const mine = myVoiv();
   const alarm = (mine && voivs[mine]?.alert_level && voivs[mine].alert_level !== "none")
     || Object.values(voivs).some(v => v.alert_level === "high");
-  return alarm ? POLL_ALARM_MS : POLL_CALM_MS;
+  if (alarm) return POLL_ALARM_MS;
+  // cokolwiek podniesionego gdziekolwiek w Polsce = zostajemy przy dotychczasowym
+  // tempie; zwalniamy wyłącznie, gdy cały kraj jest spokojny
+  const cos = Object.values(voivs).some(v => v.alert_level && v.alert_level !== "none");
+  return cos ? POLL_ACTIVE_MS : POLL_CALM_MS;
 }
 
 function schedulePoll(delay) {
@@ -790,7 +845,10 @@ async function pollState() {
     // Dwie drogi do tej samej odpowiedzi „nic nowego", bo każda działa gdzie indziej:
     // parametr v rozumie nasz serwer (i Cloudflare, gdy klucz cache obejmuje parametry),
     // a nagłówek If-None-Match obsługuje sam brzeg Cloudflare, oddając 304 bez pytania nas.
-    const adres = base + "/api/state" + (pollVer ? "?v=" + encodeURIComponent(pollVer) : "");
+    // Kolejność parametrów jest stała (`part`, potem `v`), bo Cloudflare traktuje
+    // każdy inny zapis adresu jako osobny wpis w pamięci brzegu.
+    const adres = base + "/api/state?part=main"
+      + (pollVer ? "&v=" + encodeURIComponent(pollVer) : "");
     const r = await fetch(adres, {
       cache: "no-store", signal: ctrl.signal,
       headers: pollEtag ? { "If-None-Match": pollEtag } : undefined,
@@ -804,16 +862,22 @@ async function pollState() {
     } else if (r.ok) {
       const dane = await r.json();
       pollOk();
-      if (!dane?.unchanged) {                  // pełny stan = nowa wersja
+      if (!dane?.unchanged) {                  // nowa wersja części głównej
         pollVer = dane?.fusion?.ts || null;
         try { pollEtag = r.headers?.get?.("ETag") || null; } catch { pollEtag = null; }
-        applyState(dane);
+        ostatniaGlowna = dane;
+        applyState(zlozStan(dane));
+        if (typeof dane.aux_v === "string" && dane.aux_v && dane.aux_v !== auxWersja)
+          pobierzAux(dane.aux_v);
       }
     } else {
       throw new Error("HTTP " + r.status);
     }
   } catch {
-    if (Date.now() - pollLastOk > POLL_LOST_MS) showConnLost();
+    // Próg musi być wielokrotnością bieżącego odstępu, nie stałą: przy pytaniu
+    // co 15 s pojedyncza nieudana próba przekroczyłaby 12 s i baner „brak
+    // połączenia" wyskakiwałby po jednym zgubionym pakiecie.
+    if (Date.now() - pollLastOk > Math.max(POLL_LOST_MS, 2.5 * pollDelay())) showConnLost();
   } finally {
     pollInFlight = false;
     schedulePoll();
@@ -1216,7 +1280,7 @@ async function initMap() {
     // (bez nakładek i szczelin), Krym w granicach Ukrainy. Wersja jest w NAZWIE
     // pliku: Cloudflare przy .geojson pomija ?v= (14.09.2026 nowy plik doszedł
     // dopiero po wygaśnięciu wpisu), więc przy zmianie danych → nowa nazwa.
-    const kraje = await (await fetch("assets/kraje-v2.geojson")).json();
+    const kraje = await (await fetch("assets/kraje-v2.geojson?v=1.7.82")).json();
     map.addSource("kraje", { type: "geojson", data: kraje, promoteId: "iso" });
     // Android WebView wyświetla ciemną mapę bardziej płasko niż przeglądarka
     // desktopowa, więc w aplikacji krycie jest trochę wyższe.
@@ -1249,7 +1313,7 @@ async function initMap() {
        więc jej granica idealnie pokrywa się z warstwami wojewódzkimi — koniec
        rozjazdu z zgrubnymi poligonami sąsiadów. Delikatny błękit + jeden czysty
        kontur = kraj czytelnie wyróżniony bez krzykliwości. */
-    const pl = await (await fetch("assets/polska.geojson")).json();
+    const pl = await (await fetch("assets/polska.geojson?v=1.7.82")).json();
     map.addSource("pl", { type: "geojson", data: pl });
     /* Stonowane: szeroka poświata (6–14 px z rozmyciem) robiła „futrzastą",
        poszarpaną krawędź i mapa wyglądała jak podgląd debugowy. Zostaje cienki,
@@ -1261,7 +1325,7 @@ async function initMap() {
       paint: { "line-color": "#8fb4ee", "line-opacity": 0.85,
         "line-width": ["interpolate", ["linear"], ["zoom"], 3, 0.9, 7, 1.6] } });
 
-    const gj = await (await fetch("assets/wojewodztwa.geojson")).json();
+    const gj = await (await fetch("assets/wojewodztwa.geojson?v=1.7.82")).json();
     voivGeo = gj;
     map.addSource("voiv", { type: "geojson", data: gj, promoteId: "nazwa" });
 
@@ -1316,10 +1380,11 @@ async function initMap() {
        (decyzja usera 15.09.2026). Pod warstwą obwodów punktowanych, żeby ich różowy
        obrys był na wierzchu. Kraje bałtyckie podświetlamy przez feature-state „kraje”. */
     try {
-      const rejony = await (await fetch("assets/rejony-ua-v1.geojson")).json();
-      for (const f of rejony.features)
-        (raionsByOblast[f.properties.o] = raionsByOblast[f.properties.o] || []).push(f.properties.k);
-      map.addSource("rejony", { type: "geojson", data: rejony, promoteId: "k" });
+      // Źródło powstaje PUSTE, na swoim miejscu w kolejności warstw. Geometrię
+      // (156 KB po gzipie) dociąga wczytajGeoUA() dopiero przy pierwszym alarmie
+      // — patrz komentarz przy uaGeo. Dzięki temu kolejność warstw jest ustalona
+      // raz, przy starcie, i nic nie może wylądować nad Polską.
+      map.addSource("rejony", { type: "geojson", data: emptyFC(), promoteId: "k" });
       const lvl = ["coalesce", ["feature-state", "alert"], ""];
       const col = ["match", lvl, "red", "#ff4d5e", "#ffb020"];
       map.addLayer({ id: "rejony-alert-fill", type: "fill", source: "rejony",
@@ -1340,8 +1405,7 @@ async function initMap() {
       paintRaionAlerts(histMode ? [] : state?.neptun?.alert_areas);
     } catch (err) { console.warn("rejony UA", err); }
     try {
-      const obwody = await (await fetch("assets/obwody-ua.geojson")).json();
-      map.addSource("obwody", { type: "geojson", data: obwody, promoteId: "oblast" });
+      map.addSource("obwody", { type: "geojson", data: emptyFC(), promoteId: "oblast" });
       const on = ["boolean", ["feature-state", "active"], false];
       const w = ["coalesce", ["feature-state", "w"], 0];
       map.addLayer({ id: "obwody-fill", type: "fill", source: "obwody",
@@ -2003,7 +2067,7 @@ function planePopupHTML(p, heli, uid) {
   const row = (l, v) => (v == null || v === "") ? ""
     : `<tr><td style="color:#68758c;padding-right:8px;vertical-align:top">${l}</td><td><b>${v}</b></td></tr>`;
   return `<div>
-    <div id="${uid}-box" style="display:none;margin:-2px 0 6px">
+    <div id="${uid}-box" class="ac-photo" style="display:none;margin:-2px 0 6px">
       <img id="${uid}" alt="" style="width:100%;max-height:220px;object-fit:contain;border-radius:6px;display:block">
       <div class="ph-cr" style="font-size:10px;color:#68758c;margin-top:2px"></div>
     </div>
@@ -2021,8 +2085,10 @@ function planePopupHTML(p, heli, uid) {
       ${row(UI.t("wiatr", "wind", "вітер"), (p.ws != null && p.wd != null) ? `${ktToKmh(p.ws)} km/h ${UI.t("z", "from", "з")} ${Math.round(p.wd)}° (${compass(p.wd)})` : "")}
       ${row("temp.", p.oat != null ? `${Math.round(p.oat)} °C` : "")}
       ${row(UI.t("tryby nav", "nav modes", "режими навігації"), nav ? esc2(nav) : "")}
-      ${row(UI.t("sygnał", "signal", "сигнал"), `${esc2(p.source || "ADS-B")}${Number.isFinite(+p.rssi) && p.rssi !== null ? ` · ${+p.rssi} dBFS` : ""}${Number.isFinite(+p.messages) && p.messages !== null ? ` · ${+p.messages} msg/s` : ""}`)}
+      ${row(UI.t("sygnał", "signal", "сигнал"), `${esc2(p.source || "ADS-B/MLAT")}${Number.isFinite(+p.rssi) && p.rssi !== null ? ` · ${+p.rssi} dBFS` : ""}${Number.isFinite(+p.messages) && p.messages !== null ? ` · ${+p.messages} msg/s` : ""}`)}
     </table>
+    ${p.held ? `<div style="color:#ffb020;font-size:11px;margin-bottom:5px">${UI.t("Pozycja wstrzymana: ostatni meldunek odrzucony jako niemożliwy skok (maszyna nie przeleciałaby tego dystansu w tym czasie). Pokazujemy ostatnią wiarygodną pozycję do czasu poprawnego meldunku.", "Position held: the latest report was rejected as an impossible jump (the aircraft could not cover that distance in that time). We show the last credible position until a sound report arrives.", "Позицію утримано: останнє повідомлення відхилено як неможливий стрибок (машина не подолала б цю відстань за такий час). Показуємо останню достовірну позицію до коректного повідомлення.")}</div>` : ""}
+    ${p.source === "MLAT" ? `<div style="color:#ffb020;font-size:11px;margin-bottom:5px">${UI.t("Pozycja z MLAT: policzona przez odbiorniki z różnic czasu dotarcia sygnału, a nie podana przez maszynę. Poza zasięgiem odbiorników — nad Białorusią, Rosją, morzem — potrafi odbiec od prawdziwej o kilkadziesiąt kilometrów. Wysokość, prędkość i kurs schodzą z pokładu i są wiarygodne.", "MLAT position: computed by ground receivers from signal time differences, not reported by the aircraft. Outside receiver coverage — over Belarus, Russia, open sea — it can be tens of kilometres off. Altitude, speed and heading come from the aircraft itself and are reliable.", "Позиція з MLAT: обчислена приймачами з різниці часу надходження сигналу, а не передана самим літаком. Поза зоною приймачів — над Білоруссю, Росією, морем — вона може відхилятися на десятки кілометрів. Висота, швидкість і курс надходять з борту і є достовірними.")}</div>` : ""}
     <button class="btn-follow chip" style="font-size:11px;padding:3px 8px;margin-bottom:4px">${followHex === p.hex
       ? (UI.t("■ przestań śledzić", "■ stop tracking", "■ припинити стеження")) : (UI.t("📍 śledź trasę", "📍 follow track", "📍 стежити за шляхом"))}</button>
     <div style="color:#68758c;font-size:11px">${UI.t("publiczny transponder ADS-B/MLAT — pozycja emisji, nie namierzanie. Telemetria: dostawcy ADS-B. Zdjęcie modelu: biblioteka lokalna; źródło i licencja powyżej.", "public ADS-B/MLAT transponder — emitted position, not active tracking. Telemetry: ADS-B providers. Model photo: local library; source and license above.", "відкритий транспондер ADS-B/MLAT — позиція випромінювання, а не радарне стеження. Телеметрія: постачальники ADS-B. Фото моделі: локальна бібліотека; джерело й ліцензія вище.")}</div>
@@ -2194,8 +2260,10 @@ function oblastsFrom(sigs) {
   return m;
 }
 function paintOblasts(sigs) {
+  ostatnieObwodyUA = sigs;
   if (!mapReady || !map.getSource("obwody")) return;
   const next = oblastsFrom(sigs);
+  if (next.size) wczytajGeoUA("obwody");        // jest co rysować — dociągnij granice
   for (const k of new Set([...oblastInfo.keys(), ...next.keys()]))
     map.setFeatureState({ source: "obwody", id: k },
       { active: next.has(k), w: next.get(k)?.w || 0 });
@@ -2204,6 +2272,46 @@ function paintOblasts(sigs) {
 
 /* ── alarmy u sąsiadów tylko do obserwacji (bez punktów, 15.09.2026) ── */
 let raionsByOblast = {};           // obwód (ukr., bez „область”) → klucze rejonów z mapy
+
+/* Geometria Ukrainy: obwody 328 KB + rejony 156 KB po gzipie, razem prawie pół
+   megabajta. Do 27.09.2026 pobierała się przy KAŻDYM wejściu na stronę, choć
+   warstwa obwodów ma fill-opacity 0, dopóki nie ma alarmu — a 24.09.2026 było
+   231 tys. odsłon w dobę. Płacili za to głównie ludzie na danych komórkowych
+   w trakcie zdarzenia, czyli dokładnie ci, którym ma być lekko.
+
+   Odkładamy WYŁĄCZNIE pobranie danych: warstwy i ich obsługa kliknięć powstają
+   przy starcie, puste, więc kolejność rysowania jest ustalona raz na zawsze.
+   Po nieudanym pobraniu wracamy do stanu „nie wczytane" i spróbujemy przy
+   następnym alarmie. */
+const uaGeo = { rejony: null, obwody: null };      // null | "wczytuje" | "gotowe"
+const UA_GEO_PLIKI = {
+  rejony: "assets/rejony-ua-v1.geojson?v=1.7.82",
+  obwody: "assets/obwody-ua.geojson?v=1.7.82",
+};
+let ostatnieRejonyUA = null, ostatnieObwodyUA = null;   // do przemalowania po pobraniu
+
+async function wczytajGeoUA(ktore) {
+  if (uaGeo[ktore] || !mapReady) return;
+  uaGeo[ktore] = "wczytuje";
+  try {
+    const gj = await (await fetch(UA_GEO_PLIKI[ktore])).json();
+    const zrodlo = map.getSource(ktore);
+    if (!zrodlo || !gj?.features?.length) { uaGeo[ktore] = null; return; }
+    if (ktore === "rejony") {
+      raionsByOblast = {};
+      for (const f of gj.features)
+        (raionsByOblast[f.properties.o] = raionsByOblast[f.properties.o] || []).push(f.properties.k);
+    }
+    zrodlo.setData(gj);
+    uaGeo[ktore] = "gotowe";
+    // alarm był wcześniej niż geometria — malujemy jeszcze raz, już po danych
+    if (ktore === "rejony") paintRaionAlerts(ostatnieRejonyUA);
+    else paintOblasts(ostatnieObwodyUA);
+  } catch (err) {
+    uaGeo[ktore] = null;
+    console.warn("geometria UA", ktore, err);
+  }
+}
 let raionAlertInfo = new Map();    // klucz rejonu → wpis alarmu NEPTUN-a
 let countryAlerts = new Map();     // ISO3 kraju z trwającym alarmem -> opis do karty
 const UA_LATIN = { а:"a",б:"b",в:"v",г:"h",ґ:"g",д:"d",е:"e",є:"ie",ж:"zh",з:"z",и:"y",і:"i",ї:"i",й:"i",
@@ -2225,7 +2333,9 @@ function raionKey(name) {
 }
 const oblastShort = s => String(s || "").replace(/^м\.\s*/, "").replace(/\s+область$/i, "").trim();
 function paintRaionAlerts(areas) {
+  ostatnieRejonyUA = areas;
   if (!mapReady || !map.getSource("rejony")) return;
+  if ((areas || []).length) wczytajGeoUA("rejony");
   const next = new Map();
   const rank = { red: 2, yellow: 1 };
   const put = (k, a) => { const prev = next.get(k);
@@ -2236,7 +2346,9 @@ function paintRaionAlerts(areas) {
     } else {
       const k = raionKey(a.k || a.n);
       if ((raionsByOblast[oblastShort(a.o)] || []).includes(k)) put(k, a);
-      else if (!paintRaionAlerts.warned?.has(k)) {
+      // Dopóki granice się nie wczytały, raionsByOblast jest puste i KAŻDY rejon
+      // wyglądałby na nieznany — ostrzegamy dopiero, gdy jest z czym porównywać.
+      else if (uaGeo.rejony === "gotowe" && !paintRaionAlerts.warned?.has(k)) {
         (paintRaionAlerts.warned = paintRaionAlerts.warned || new Set()).add(k);
         console.warn("Strażnik: rejon bez granic na mapie", a.n, a.o, k);
       }
@@ -2820,10 +2932,10 @@ function renderPanel() {
   document.getElementById("voiv-cards").innerHTML = show.map(([name, st]) => `
     <div class="voiv-card level-${spillRaised(st) ? "spill" : st.level}${name === mine ? " is-mine" : ""}${
       openVoivs.has(name) ? " open" : ""}" data-voiv="${esc(name)}">
-      <div class="voiv-head">
+      <button type="button" class="voiv-head" aria-expanded="${openVoivs.has(name)}">
         <span class="voiv-name">${esc(UI.voiv(name))}</span>
         <span class="voiv-score">${st.score.toFixed(1)} ${UI.t("pkt", "pts", "бал.")}</span>
-      </div>
+      </button>
       <div class="voiv-level">${spillRaised(st) ? SPILL_LABEL
         : st.level === "none" && st.score > 0
         ? (UI.t("poniżej progu", "below threshold", "нижче порога")) : LEVEL_LABEL[st.level]}
@@ -2838,11 +2950,16 @@ function renderPanel() {
                (${camData[name].filter(c => c.outdoor !== false).length})</button>`
           : ""}</div>
     </div>`).join("");
+  /* Klik dalej łapiemy na całej karcie — dotykowo tak jest wygodniej i tak było
+     dotąd. Nagłówek jest przyciskiem tylko po to, żeby dało się tu dojść
+     klawiszem Tab: naciśnięcie Enter albo spacji wywołuje zwykły klik, który
+     bąbelkuje do karty, więc obsługa jest jedna, nie dwie. */
   document.querySelectorAll(".voiv-card").forEach(el =>
     el.addEventListener("click", () => {
       const open = el.classList.toggle("open");
       const name = el.dataset.voiv;
       if (open) openVoivs.add(name); else openVoivs.delete(name);
+      el.querySelector(".voiv-head")?.setAttribute("aria-expanded", String(open));
     }));
   if (panelEl && keepScroll) panelEl.scrollTop = keepScroll;
   document.querySelectorAll(".btn-cams").forEach(el =>
@@ -3098,6 +3215,18 @@ function sigHTML(s) {
   // iść za językiem interfejsu — serwer zapisuje je po polsku, więc w wersji
   // angielskiej zostawały polskie. Cytaty ze źródeł (NEPTUN, RCB, media) zostają
   // w oryginale, bo to przytoczenie cudzej treści.
+  /* Alert RCB obowiązuje do odwołania, a odwołanie potrafi przyjść po godzinach
+     (24/25.09.2026: alert o 22:01, odwołanie ok. 05:00). Nasze sygnały dawno
+     wygasają i mapa wygląda spokojnie — ten wpis mówi wprost, że oficjalnie
+     alert nadal stoi. Zero punktów: Strażnik punktuje to, co widzi. */
+  if (s.event_type === "rcb_bez_odwolania") {
+    const od = new Date(d.od).toLocaleTimeString(UI.t("pl-PL", "en-GB", "uk-UA"),
+      { hour: "2-digit", minute: "2-digit" });
+    shownTitle = UI.t(
+      `Alert RCB z godz. ${od} nie został jeszcze odwołany`,
+      `The RCB alert issued at ${od} has not been cancelled yet`,
+      `Тривогу RCB, оголошену о ${od}, ще не скасовано`);
+  }
   if (s.event_type === "ua_alert_border" && d.oblast) {
     const ob = UI.t(UA_OBLAST_PL_UI[d.oblast] || d.oblast, UA_OBLAST_EN[d.oblast] || d.oblast,
                     `${d.oblast} область`);
@@ -3542,7 +3671,25 @@ function updateAlarmMood() {
       document.getElementById("disclaimer").classList.remove("hidden");
     } else if (level === "elevated") {
       chimeOnce();
+      /* Żółty poziom nie otwiera ekranu alarmu. Widać go na karcie i banerze,
+         ale czytnik ekranu nie ogłaszał zmiany — osoba niewidoma słyszała tylko
+         krótki sygnał, bez informacji, co i gdzie. Teraz czytnik przerywa
+         i mówi, co i gdzie. (To pomoc dla niewidomych; osoba głucha widziała
+         te sygnały od zawsze, a mowa czytnika i tak jej nie dotyczy.) */
+      const voiv = pool.find(v => alarmLevel(voivs[v]) === "elevated");
+      powiedz(a11yAlert, UI.t(
+        `Uwaga: podniesiony poziom zagrożenia, ${voiv ? UI.voiv(voiv) : ""}.`,
+        `Attention: raised threat level, ${voiv ? UI.voiv(voiv) : ""}.`,
+        `Увага: підвищений рівень загрози, ${voiv ? UI.voiv(voiv) : ""}.`));
     }
+  } else if (level === "none" && lastMood !== "none" && !alertsOff()) {
+    /* Spadek poziomu to NIE to samo co oficjalne odwołanie alarmu przez RCB —
+       tu po prostu wygasły nasze sygnały. Mówimy dokładnie to i nic więcej,
+       żeby nikt nie wyszedł ze schronienia na podstawie naszego wyliczenia. */
+    powiedz(a11yAlert, UI.t(
+      "Poziom zagrożenia wrócił do zwykłego. To nie jest oficjalne odwołanie alarmu.",
+      "The threat level is back to normal. This is not an official all-clear.",
+      "Рівень загрози повернувся до звичайного. Це не офіційне скасування тривоги."));
   }
   lastMood = level;
 }
@@ -3595,6 +3742,45 @@ function nearestThreatLine(voiv) {
 
 /* ── pełnoekranowy alarm z ręcznym potwierdzeniem ────────────────────────── */
 const alarmOverlay = document.getElementById("alarm-overlay");
+
+/* ── Czytnik ekranu ────────────────────────────────────────────────────────
+   Dwa niewidoczne pola z `aria-live` w index.html. Wpisanie do nich tekstu
+   każe czytnikowi go przeczytać. Ten sam tekst dwa razy pod rząd zostałby
+   pominięty (czytnik widzi niezmienioną treść), dlatego najpierw czyścimy. */
+const a11yAlert = document.getElementById("a11y-alert");
+const a11yInfo = document.getElementById("a11y-info");
+function powiedz(el, tekst) {
+  if (!el || !tekst) return;
+  el.textContent = "";
+  setTimeout(() => { el.textContent = tekst; }, 60);
+}
+
+/* Fokus przy ekranie alarmu. Bez tego czytnik zostaje tam, gdzie był przed
+   alarmem — czyli na mapie pod spodem, której i tak nie widać. */
+let fokusPrzedAlarmem = null;
+function alarmFokus() {
+  fokusPrzedAlarmem = document.activeElement;
+  alarmOverlay.querySelector(".alarm-box")?.focus();
+}
+function alarmFokusPowrot() {
+  if (fokusPrzedAlarmem && document.contains(fokusPrzedAlarmem)) {
+    try { fokusPrzedAlarmem.focus(); } catch {}
+  }
+  fokusPrzedAlarmem = null;
+}
+/* Dopóki alarm jest na wierzchu, Tab krąży po jego przyciskach i nie schodzi
+   na zasłoniętą mapę. Inaczej człowiek obsługujący telefon klawiaturą albo
+   przełącznikiem „wypada" z alarmu w nic. */
+document.addEventListener("keydown", e => {
+  if (e.key !== "Tab" || alarmOverlay.classList.contains("hidden")) return;
+  const pola = [...alarmOverlay.querySelectorAll("button, [href], [tabindex]:not([tabindex='-1'])")]
+    .filter(el => !el.disabled && el.offsetParent !== null);
+  if (!pola.length) return;
+  const pierwszy = pola[0], ostatni = pola[pola.length - 1];
+  if (e.shiftKey && document.activeElement === pierwszy) { e.preventDefault(); ostatni.focus(); }
+  else if (!e.shiftKey && document.activeElement === ostatni) { e.preventDefault(); pierwszy.focus(); }
+});
+
 function showAlarm(voiv, st) {
   if (!voiv || !st) return;
   document.getElementById("alarm-voiv").textContent = (UI.t("woj. ", "province ", "воєв. ")) + UI.voiv(voiv);
@@ -3612,6 +3798,7 @@ function showAlarm(voiv, st) {
     (UI.t("alarm o ", "alert at ", "тривога о ")) + new Date().toLocaleTimeString(UI.t("pl-PL", "en-GB", "uk-UA"));
   alarmWyborReset();
   alarmOverlay.classList.remove("hidden");
+  alarmFokus();                // czytnik przechodzi na treść alarmu, nie na mapę pod spodem
   airRaidSiren(true);          // ciągła — milknie dopiero po potwierdzeniu
   przygotujGrote();            // tylko wczytanie w tle; ekranu nie przejmuje
 }
@@ -3633,6 +3820,7 @@ function alarmWyborReset() {
 function zamknijAlarm() {
   alarmOverlay.classList.add("hidden");
   alarmWyborReset();
+  alarmFokusPowrot();          // fokus wraca tam, gdzie był przed alarmem
 }
 alarmAck.onclick = () => {
   stopSiren();
@@ -3835,6 +4023,11 @@ function toast(msg, ms = 3800) {
   const el = document.getElementById("toast");
   el.innerHTML = msg;
   el.classList.remove("hidden");
+  /* Pasek znika sam po kilku sekundach, więc czytnik ekranu nie zdąży na niego
+     trafić — dotąd te komunikaty po prostu do kogoś niewidomego nie docierały.
+     Idą teraz do pola `polite`: czytnik przeczyta je, gdy skończy bieżące
+     zdanie. Bierzemy sam tekst, bo `msg` bywa HTML-em. */
+  powiedz(a11yInfo, el.textContent);
   // długie komunikaty (ścieżki w ustawieniach) wiszą kilkanaście sekund —
   // dotknięcie zamyka je wcześniej
   el.onclick = () => { clearTimeout(toastTimer); el.classList.add("hidden"); };
@@ -4170,7 +4363,7 @@ let camData = null, camTimer = null, camIndex = null;
    dzięki temu przycisk pojawia się wszędzie tam, gdzie faktycznie coś jest. */
 async function loadCams() {
   if (camData) return camData;
-  try { camData = await (await fetch("assets/kamery.json")).json(); }
+  try { camData = await (await fetch("assets/kamery.json?v=1.7.82")).json(); }
   catch { camData = {}; }
   camIndex = new Set(Object.entries(camData).filter(([, l]) => l.length).map(([v]) => v));
   return camData;
@@ -4961,10 +5154,10 @@ async function refreshBgWarning() {
    wyszła nowsza wersja — inaczej użytkownik zostaje z wersją sprzed miesięcy,
    nieświadomy poprawek w czymś, co ma go ostrzegać.
 
-   UWAGA: gdyby aplikacja kiedyś trafiła do Google Play, to sprawdzanie trzeba
-   wyłączyć (UPDATE_CHECK = false) — regulamin sklepu zabrania aktualizowania
-   się z pominięciem Play. */
-const UPDATE_CHECK = true;
+   W wydaniu dla Google Play jest wyłączone: regulamin sklepu zabrania
+   aktualizowania się z pominięciem Play. Decyduje `wariant.js`, nie ręczna
+   edycja tej linii — patrz `scripts/test_wariant_sklepowy.cjs`. */
+const UPDATE_CHECK = !SKLEP;
 const UPDATE_API = DEFAULT_BACKEND + "/api/app-version";
 /* Sprawdzamy przy każdym uruchomieniu aplikacji i przy powrocie z tła, a nie
    raz na dobę: wydania wychodzą nieregularnie, a poprawka w narzędziu
@@ -5061,6 +5254,7 @@ function showUpdateBanner(rel, local) {
       ${rel.critical ? "" : `<button class="chip" id="upd-later">${UI.t("Później", "Later", "Пізніше")}</button>`}
     </div>`;
   el.classList.remove("hidden");
+  dopasujOknoAktualizacji();       // od razu, nie dopiero po reakcji obserwatora stosu
   document.getElementById("upd-later")?.addEventListener("click", () => {
     sessionSkippedUpdates.add(ver);
     el.classList.add("hidden");
@@ -5571,10 +5765,33 @@ addEventListener("resize", () => requestAnimationFrame(fitMapActions));
     if (e.target.closest(".map-btn")) { e.stopPropagation(); e.preventDefault(); ustaw(false); }
   }, true);
 })();
+/* Okno aktualizacji ma kończyć się POD górnym paskiem, a nie na nim.
+   CSS liczył jego wysokość ze zmiennej --topbar-h, której nikt nie ustawia, więc
+   zawsze zakładał pasek 52 px. Na wąskim telefonie pasek ma dwa rzędy przycisków
+   i okno z dłuższą listą zmian wchodziło pod niego: tytuł znikał za ikonami,
+   a przewinąć dało się tylko to, co wystawało z samego okna (zgłoszenie usera
+   26.09.2026). Stos na dole jest przyklejony do dołu ekranu, a pod oknem są tylko
+   atrybucja i zastrzeżenie — dolna krawędź okna nie zależy więc od jego wysokości
+   i wystarczy odjąć od niej dół górnego paska. Resztę robi CSS: tekst przewija się
+   w swoim wierszu, przyciski zostają widoczne.
+   Pasek szukany po id, nie przez `topbarEl`: ta funkcja rusza już z obserwatora
+   stosu, zanim niżej powstanie stała topbarEl. */
+function dopasujOknoAktualizacji() {
+  const el = document.getElementById("update-banner");
+  const pasek = document.getElementById("topbar");
+  if (!el || !pasek || el.classList.contains("hidden")) return;
+  const r = el.getBoundingClientRect();
+  if (!r.height) return;                 // schowane (np. otwarty panel) — policzymy, gdy wróci
+  const gora = pasek.getBoundingClientRect().bottom + 10;
+  // 170 px to tytuł, jedna linijka zmian i przyciski — mniej już się nie da czytać
+  el.style.maxHeight = Math.max(170, Math.floor(r.bottom - gora)) + "px";
+}
+
 const stackEl = document.getElementById("bottom-stack");
 if (stackEl && window.ResizeObserver) {
   const setStackH = () => { document.documentElement.style
-    .setProperty("--stack-h", stackEl.offsetHeight + "px"); requestAnimationFrame(fitMapActions); };
+    .setProperty("--stack-h", stackEl.offsetHeight + "px"); requestAnimationFrame(fitMapActions);
+    dopasujOknoAktualizacji(); };
   new ResizeObserver(setStackH).observe(stackEl);
   setStackH();
 }
@@ -5584,7 +5801,7 @@ const topbarEl = document.getElementById("topbar");
 if (topbarEl && window.ResizeObserver) {
   const setTopbarB = () => { document.documentElement.style
     .setProperty("--topbar-bottom", Math.round(topbarEl.getBoundingClientRect().bottom) + "px");
-    requestAnimationFrame(fitMapActions); };
+    requestAnimationFrame(fitMapActions); dopasujOknoAktualizacji(); };
   new ResizeObserver(setTopbarB).observe(topbarEl);
   addEventListener("resize", setTopbarB);
   setTopbarB();
@@ -5600,6 +5817,17 @@ if (attrEl) {
   mini.textContent = UI.t("źródła ⓘ", "sources ⓘ", "джерела ⓘ");
   attrEl.appendChild(mini);
   if (localStorage.getItem("straznik_attr_mini") === "1") attrEl.classList.add("mini");
+  /* Wiersz źródeł przewija się palcem w poziomie (26.09.2026). Wygaszenie prawej
+     krawędzi zdejmujemy, gdy nie ma już czego doczytać — przy końcu przewijania
+     albo gdy cały tekst mieści się na szerokim ekranie. */
+  const attrText = document.getElementById("attr-text");
+  if (attrText) {
+    const koniec = () => attrText.classList.toggle("koniec",
+      attrText.scrollLeft + attrText.clientWidth >= attrText.scrollWidth - 2);
+    attrText.addEventListener("scroll", koniec, { passive: true });
+    addEventListener("resize", koniec);
+    koniec();
+  }
   document.getElementById("attr-x")?.addEventListener("click", (e) => {
     e.stopPropagation();
     attrEl.classList.add("mini");
@@ -5607,8 +5835,8 @@ if (attrEl) {
   });
   attrEl.addEventListener("click", (e) => {
     if (!attrEl.classList.contains("mini")) {
-      // rozwinięta atrybucja mieści jeden wiersz z wielokropkiem — dotknięcie
-      // otwiera „O aplikacji", gdzie jest pełna lista źródeł
+      // krótkie dotknięcie otwiera „O aplikacji" z pełną listą źródeł;
+      // przesunięcie palcem przewija wiersz i kliknięcia nie wywołuje
       if (e.target.closest("a")) return;
       document.getElementById("about")?.showModal();
       return;

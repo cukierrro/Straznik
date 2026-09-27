@@ -171,6 +171,34 @@ _state_ts = ""            # `fusion.ts` obecnego stanu = wersja dla klientów
 STATE_MAX_AGE_S = 60      # mimo wszystko odświeżamy co minutę, żeby `ts` nie odpłynął
 
 
+# Sekcje, które zmieniają się WOLNIEJ niż reszta stanu. Pomiar z 27.09.2026 na
+# produkcji: przez 3 minuty było 11 ticków, w nich `neptun` i `fusion` zmieniły się
+# 11 razy, `adsb` cztery razy, a `health` ani razu. Klient, który dostaje je przy
+# każdym ticku, pobiera 2,4 KB na darmo w dwóch trzecich przypadków.
+#
+# Dlatego stan jest publikowany także w dwóch częściach: głównej (bez nich) i
+# pomocniczej (tylko one). Część główna niesie `aux_v` — odcisk części pomocniczej —
+# więc klient wie, kiedy ją dobrać, i nie pyta o nią bez potrzeby.
+#
+# Pełna paczka `state` zostaje nietknięta: biorą ją wydania sprzed tej zmiany oraz
+# widżet Androida, a odpowiedź bez parametrów ma pozostać co do bajtu taka sama.
+AUX_SEKCJE = ("adsb", "health")
+
+
+def _publikuj_czesci(payload: dict) -> None:
+    """Dwie dodatkowe paczki obok pełnej. Liczone raz, w writerze, jak wszystko inne.
+
+    Reader nie składa ani nie kompresuje niczego na zapytanie — po OOM z 13.09.2026
+    to jest warunek, od którego nie odstępujemy.
+    """
+    aux = {k: payload[k] for k in AUX_SEKCJE if k in payload}
+    blob_aux = public_cache.make_blob(aux)
+    glowna = {k: w for k, w in payload.items() if k not in AUX_SEKCJE}
+    glowna["aux_v"] = blob_aux.etag.strip('"')
+    public_cache.put("state_aux", blob_aux)
+    public_cache.put("state_main", public_cache.make_blob(glowna))
+
+
 def refresh_state() -> None:
     """Stan liczony raz i od razu podawany wszystkim: /api/state i WebSocket."""
     global _ws_message, _ws_tick, _state_fingerprint, _state_built_at, _state_ts
@@ -196,6 +224,7 @@ def refresh_state() -> None:
     _state_ts = str(fus.get("ts") or "")
     blob = public_cache.make_blob(payload)
     public_cache.put("state", blob)
+    _publikuj_czesci(payload)
     _ws_tick = '{"type":"tick","etag":' + json.dumps(blob.etag) + "}"
     _ws_message = '{"type":"state","data":' + blob.raw.decode() + "}"
     # Komunikat wyłącznie do starych wersji aplikacji.
@@ -206,6 +235,12 @@ def refresh_state() -> None:
     # „zaktualizuj aplikację" zobaczyłoby też kilkaset osób, które właśnie to
     # zrobiły. Paczka dla przeglądarek i nowych telefonów zostaje nietknięta, więc
     # brzeg dalej podaje wszystkim te same bajty.
+    #
+    # 26.09.2026: kanał ZAMKNIĘTY. Po zapowiedzianym terminie tunel przestał
+    # kierować `/ws` do writera, reader odmawia gniazda kodem 1013, a plik
+    # z komunikatem został usunięty z serwera — zostało wtedy 22 stare gniazda
+    # z 593 z 21.09. Ten blok nie ma już czego wysłać i zostaje wyłącznie na
+    # wypadek przywrócenia reguł `^/ws$` w `/etc/cloudflared-straznik/config.yml`.
     stare = _load_notice("notice-stare-wersje.json")
     if stare:
         payload["notice"] = stare
@@ -383,7 +418,7 @@ def _wersja_stanu() -> str:
 
 
 @app.get("/api/state")
-async def api_state(request: Request, v: str | None = None):
+async def api_state(request: Request, v: str | None = None, part: str | None = None):
     """Stan mapy albo krótkie „nic nowego", gdy klient ma już tę wersję.
 
     Znacznik wersji (`v`) to `fusion.ts` z ostatnio pobranego stanu. Można byłoby
@@ -397,11 +432,25 @@ async def api_state(request: Request, v: str | None = None):
     """
     if public_cache.get("state") is None and config.IS_WRITER:
         refresh_state()
+    # `part` wybiera część stanu. Celowo parametr na TEJ ścieżce, a nie osobny adres:
+    # reguła cache w Cloudflare wymienia ścieżki po nazwie (`/api/state`), więc nowa
+    # ścieżka `/api/*` nie byłaby cache'owana wcale i każde zapytanie szłoby na origin.
+    # Liczba kluczy rośnie o dwie rodziny, co dla brzegu jest niczym.
+    if part == "aux":
+        # bez `v`: klient pyta o tę część tylko wtedy, gdy `aux_v` w części głównej
+        # mu powie, że się zmieniła — więc to zawsze jest zapytanie o bieżącą wersję
+        # i na brzegu leży pod jednym kluczem
+        return public_cache.respond(request, "state_aux")
+    nazwa = "state"
+    if part == "main" and public_cache.get("state_main") is not None:
+        # brak paczki = starszy writer w trakcie wdrożenia; wtedy pełny stan, który
+        # jest nadzbiorem części głównej — klient to zniesie, bo scala po nazwach sekcji
+        nazwa = "state_main"
     if v and v == _wersja_stanu():
         return Response(NIC_NOWEGO, media_type="application/json",
                         headers={"Cache-Control": "public, max-age=2, s-maxage=2, "
                                                   "stale-while-revalidate=30"})
-    return public_cache.respond(request, "state")
+    return public_cache.respond(request, nazwa)
 
 
 @app.get("/api/signals")

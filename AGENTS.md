@@ -68,3 +68,44 @@ użytkownikowi przyczynę zmiany narzędzia.
 
 Klucz API ma pozostać wyłącznie w ignorowanej konfiguracji lokalnej. Nigdy nie
 wpisuj go do `AGENTS.md`, dokumentacji, kodu, commita, logu ani odpowiedzi.
+
+## Przegląd bezpieczeństwa — co tydzień szybki, co miesiąc gruntowny
+
+Ustalenie z użytkownikiem z 26.09.2026, po audycie, który znalazł m.in. sekrety
+zostawione na starym serwerze i logowanie roota hasłem na nowym. Oba problemy
+istniały od tygodni i nikt ich nie zauważył, bo nikt nie patrzył.
+
+**Co tydzień — szybki przebieg** (kilkanaście minut, wyłącznie odczyt):
+
+1. Zależności: baza OSV dla `backend/requirements.lock` i
+   `android-app/package-lock.json`, otwarte alerty Dependabota i skanowania
+   sekretów na GitHubie.
+2. VPS: zaległe poprawki bezpieczeństwa, czy nocna instalacja poprawek
+   działa (jej log), czy któraś usługa czeka na restart po aktualizacji
+   bibliotek, stan zapory i fail2ban.
+3. SSH: udane i nieudane logowania z ostatniego tygodnia i skąd; czy nadal
+   wpuszcza wyłącznie kluczem.
+4. Usługi: ocena `systemd-analyze security` nie gorsza niż przy audycie;
+   proces publiczny nadal NIE czyta kluczy FCM i VAPID (sprawdzać jako
+   użytkownik `straznik`, nie jako root).
+5. Strona: nagłówki bezpieczeństwa i CSP obecne, `/api/health/critical`
+   zwraca 200.
+
+**Co miesiąc — gruntowny audyt** w zakresie jak 26.09.2026: wszystko z listy
+tygodniowej oraz historia gita pod kątem sekretów, ustawienia repozytorium
+(ochrona `main`, klucze wdrożeniowe, sekrety i workflowy Actions), przegląd
+kodu dodanego od poprzedniego audytu (punkty wejścia API, pobieranie
+adresów z zewnątrz, wstawianie HTML, manifest Androida i eksportowane
+komponenty, aktualizator), każda inna maszyna, na której mogły zostać dane
+Strażnika, oraz decyzja, czy któryś klucz trzeba zrotować.
+
+Zasady przeglądu:
+
+- Tylko odczyt. Każdą zmianę najpierw pokazać użytkownikowi.
+- Raportu nie zapisywać w repozytorium ani nie publikować — repo jest publiczne,
+  a raport to mapa słabych punktów. Wyniki idą do pamięci projektu.
+- Użytkownikowi krótko: co w porządku, co wymaga jego decyzji.
+- Decyzje w skryptach opierać na kodzie wyjścia, nie na szukaniu słowa w tekście.
+  Sprawdzać WARTOŚĆ, nie samo istnienie zmiennej. Przy zmianach widocznych na
+  stronie — zrzut ekranu. (Wszystkie trzy błędy popełniłem 26.09.2026.)
+- Najbliższe terminy: tygodniowy 03.10.2026, miesięczny 26.10.2026.

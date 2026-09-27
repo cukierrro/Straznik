@@ -12,7 +12,7 @@ import time
 import unicodedata
 from datetime import datetime, timedelta, timezone
 
-from . import config, db
+from . import config, db, stealth
 
 log = logging.getLogger("fusion")
 
@@ -236,6 +236,44 @@ def _last_clear_ts(signals: list[dict]) -> float | None:
     return max(ts).timestamp() if ts else None
 
 
+def rcb_nieodwolane(zdarzenia: list[dict], ref: datetime | None = None) -> dict[str, dict]:
+    """Województwa, w których alert RCB trwa, bo nikt go nie odwołał.
+
+    Alert RCB obowiązuje DO ODWOŁANIA, a odwołanie potrafi przyjść po wielu
+    godzinach — 24/25.09.2026 alert dla podkarpackiego wyszedł o 22:01, a RCB
+    odwołało go dopiero około 05:00. Nasze sygnały wygasają po oknie fuzji, więc
+    przez te kilka godzin mapa wyglądała spokojnie, choć oficjalnie alert stał.
+    Zwracamy więc czas ostatniego nieodwołanego alertu, żeby powiedzieć to wprost.
+
+    To informacja, nie punkty: Strażnik punktuje to, co widzi, a tutaj nie widzi
+    nic nowego — wie tylko, że odwołanie nie przyszło.
+    """
+    r = ref or datetime.now(timezone.utc)
+    alerty: dict[str, datetime] = {}
+    odwolania: dict[str, datetime] = {}
+    for z in zdarzenia:
+        voiv, ts = z.get("voivodeship"), _parse_ts(z.get("ts"))
+        if not voiv or not ts or ts > r:
+            continue
+        typ = z.get("event_type")
+        if typ in ("rso_alert", "rcb_alert") and (z.get("points") or 0) > 0:
+            if ts > alerty.get(voiv, ts - timedelta(seconds=1)):
+                alerty[voiv] = ts
+        elif typ == "rso_clear":
+            # Odwołanie ogólnokrajowe liczy się dla KAŻDEGO województwa — inaczej
+            # mówilibyśmy „nie odwołano" tam, gdzie RCB wysłało SMS o końcu
+            # zagrożenia, a RSO wpisało tylko jedno województwo.
+            for w in (config.VOIVODESHIPS if _clear_krajowe(z) else (voiv,)):
+                if ts > odwolania.get(w, ts - timedelta(seconds=1)):
+                    odwolania[w] = ts
+    out: dict[str, dict] = {}
+    for voiv, ts in alerty.items():
+        if voiv in odwolania and odwolania[voiv] >= ts:
+            continue
+        out[voiv] = {"od": ts, "minut": int((r - ts).total_seconds() // 60)}
+    return out
+
+
 def _fresh_strong_signal(signals: list[dict], since_iso: str) -> bool:
     """Czy od ostatniego powiadomienia przyszedł NOWY alert RCB/RSO.
 
@@ -396,6 +434,22 @@ def _issued_at(s: dict) -> str:
     return _pl_local_to_utc((s.get("details") or {}).get("valid_from")) or s.get("ts", "")
 
 
+def _clear_krajowe(s: dict) -> bool:
+    """Czy to odwołanie mówi o CAŁEJ POLSCE, a nie o jednym województwie.
+
+    RSO tagguje taki komunikat jednym województwem, choć RCB rozsyła go do
+    wszystkich, które dostały alert. 24/25.09.2026 czytelniczka z Podkarpacia
+    pokazała SMS-y: alert o 21:45 i odwołanie o 05:35 — a RSO w obu wpisach
+    podało wyłącznie lubelskie. Bez tego alert wisiałby w województwie, w którym
+    RCB już ogłosiło koniec zagrożenia.
+    """
+    if s.get("event_type") != "rso_clear":
+        return False
+    d = s.get("details") or {}
+    t = _fold_text(f"{s.get('title', '')} {d.get('tresc', '')} {d.get('content', '')}")
+    return any(m in t for m in config.RSO_CLEAR_KRAJOWE)
+
+
 def _official_cleared(s: dict, rso_clears: dict[str, list[dict]]) -> bool:
     """Alert jest odwołany, gdy RSO odwołało TEN wpis (edycja w miejscu) albo
     województwo dostało odwołanie wydane po nim. Nowszy alert zostaje w mocy."""
@@ -516,8 +570,29 @@ def accumulate(signals: list[dict], ref: datetime | None = None) -> dict:
         if s.get("event_type") != "rso_clear" or not s.get("voivodeship"):
             continue
         d = s.get("details") or {}
-        rso_clears.setdefault(s["voivodeship"], []).append(
-            {"at": d.get("cleared_at") or s.get("ts", ""), "rso_id": str(d.get("rso_id") or "")})
+        wpis = {"at": d.get("cleared_at") or s.get("ts", ""), "rso_id": str(d.get("rso_id") or "")}
+        # Odwołanie ogólnokrajowe gasi alert wszędzie, nie tylko tam, gdzie RSO je wpisało.
+        krajowe = _clear_krajowe(s)
+        gdzie = config.VOIVODESHIPS if krajowe else (s["voivodeship"],)
+        for voiv in gdzie:
+            rso_clears.setdefault(voiv, []).append(dict(wpis))
+        if not krajowe:
+            # Odwołanie bez słów o całej Polsce zostawiamy przy jego województwie —
+            # 13.09.2026 podkarpackie miało wtedy własny alert i zaraz dostało
+            # kolejny, więc rozsyłanie mogłoby wyciszyć trwający alarm. Ale czy RCB
+            # NAPRAWDĘ odwołuje wojewódzko, wiedzą tylko ludzie, do których poszedł
+            # SMS. Zapisujemy więc każdy taki przypadek razem z województwami,
+            # które zostają z alertem — żeby następnym razem dało się o to zapytać
+            # od razu, a nie odtwarzać po tygodniu z nieistniejących już wiadomości.
+            inne = sorted({o.get("voivodeship") for o in officials
+                           if o.get("voivodeship") != s["voivodeship"]
+                           and _issued_at(o) <= wpis["at"]} - {None})
+            if inne:
+                stealth.record("odwolanie_wojewodzkie", str(wpis["rso_id"] or s.get("ts")), {
+                    "odwolanie_dla": s["voivodeship"], "o": wpis["at"],
+                    "tresc": (s.get("title") or "")[:200],
+                    "zostaja_z_alertem": inne,
+                })
     uncleared_officials: dict[str, list[str]] = {}
     for s in officials:
         if not _official_cleared(s, rso_clears):
@@ -811,12 +886,39 @@ def compute_state(signals: list[dict] | None = None, ref: datetime | None = None
             if st["alert_level"] == "high":
                 st["alert_level"] = "elevated"
         if live:
-            clear_at = _last_clear_ts([s for s in signals if s.get("voivodeship") == voiv])
+            clear_at = _last_clear_ts([s for s in signals
+                                       if s.get("voivodeship") == voiv or _clear_krajowe(s)])
             st["alert_level"] = hold_level(f"alert:{voiv}", st["alert_level"], now, clear_at)
             st["level"] = hold_level(f"map:{voiv}", st["level"], now, clear_at)
             if _ORDER.index(st["alert_level"]) > _ORDER.index(st["level"]):
                 st["level"] = st["alert_level"]
         st["spill_raised"] = _ORDER.index(st["level"]) > _ORDER.index(st["alert_level"])
+
+    # Alert RCB bez odwołania — dopisywany PO całej punktacji i po ustaleniu
+    # poziomów, żeby nie mógł na nie wpłynąć. Zero punktów: Strażnik punktuje to,
+    # co widzi, a tutaj tylko przypomina, że oficjalny alert nadal obowiązuje.
+    if getattr(db, "_conn", None) is not None:
+        try:
+            trwajace = rcb_nieodwolane(db.events_since(
+                config.RCB_NIEODWOLANY_MAX_MIN,
+                ("rso_alert", "rcb_alert", "rso_clear")), ref)
+            for voiv, info in trwajace.items():
+                st = per_voiv.get(voiv)
+                if st is None:
+                    continue
+                st["rcb_nieodwolany"] = {"od": info["od"].isoformat(timespec="seconds"),
+                                         "minut": info["minut"]}
+                st["signals"].append({
+                    "source": "rcb", "event_type": "rcb_bez_odwolania", "voivodeship": voiv,
+                    "ts": info["od"].isoformat(timespec="seconds"),
+                    "points": 0.0, "counted_points": 0.0, "weight": 0.0,
+                    "title": "Alert RCB nie został jeszcze odwołany",
+                    "details": {"od": info["od"].isoformat(timespec="seconds"),
+                                "minut": info["minut"], "informacyjny": True},
+                })
+        except Exception as e:
+            log.warning("nieodwołane alerty RCB: %s", e)
+
     return {
         "ts": (ref or datetime.now(timezone.utc)).isoformat(timespec="seconds"),
         "window_min": config.FUSION_WINDOW_MIN,

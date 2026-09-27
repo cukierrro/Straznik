@@ -1051,6 +1051,7 @@
   // kolor paska przy cytacie zależy od działu poradnika — łatwiej odróżnić zalecenia o tej samej nazwie
   const RULE_COLORS = { "atak-z-powietrza": "#dc2626", schronienia: "#16a34a", ewakuacja: "#2563eb",
     "sygnaly-alarmowe-i-komunikaty-ostrzegawcze": "#d97706", "przygotuj-swoje-otoczenie": "#7c3aed", "plan-na-kryzys": "#0f766e" };
+  const KOLOR_INSTRUKCJI = "#0891b2";      // cytaty z „Instrukcji reagowania” — własny kolor paska
 
   const duzaLitera = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -1060,16 +1061,26 @@
     const naglowek = wSekcji && temat
       ? esc(duzaLitera(temat))
       : `${esc(T(r.title))}${temat ? ` <span class="rule-temat">— ${esc(temat)}</span>` : ""}`;
-    return `<div class="rule${alert ? " alert" : ""}" style="--rc:${RULE_COLORS[r.slug] || "var(--accent)"}">
+    return `<div class="rule${alert ? " alert" : ""}" style="--rc:${RULE_COLORS[r.slug] || KOLOR_INSTRUKCJI}">
       <b>${naglowek}</b>${esc(T("„{tekst}”", { tekst: T(r.text) }))}
-      <div class="src">${zrodloPoradnika(r.slug, r.page)}</div></div>`;
+      <div class="src">${zrodlo(r)}</div></div>`;
   }
 
-  /* Odnośnik do Poradnika pod cytatem. W języku innym niż polski dopisujemy, że cytat to nasze tłumaczenie —
-     oficjalny Poradnik jest tylko po polsku i odnośnik prowadzi do polskiego oryginału. */
+  /* Odnośnik pod cytatem — do „Poradnika bezpieczeństwa” albo do „Instrukcji reagowania” MSWiA, zależnie
+     od tego, skąd cytat pochodzi. W języku innym niż polski dopisujemy, że cytat to nasze tłumaczenie:
+     oba materiały są tylko po polsku i odnośnik prowadzi do polskiego oryginału. */
+  const naszeTlumaczenie = () => (J.jezyk === "pl" ? "" : ` <span class="tl-nasze">· ${esc(T("tłumaczenie nasze, oryginał po polsku"))}</span>`);
+
+  function zrodlo(r) {
+    return r.zrodlo === "instrukcja" ? zrodloInstrukcji(r.page) : zrodloPoradnika(r.slug, r.page);
+  }
+
   function zrodloPoradnika(slug, page) {
-    return `<a href="${esc(P.url(slug))}" target="_blank" rel="noopener">${esc(T("„Poradnik bezpieczeństwa”, s. {s}", { s: page }))}</a>`
-      + (J.jezyk === "pl" ? "" : ` <span class="tl-nasze">· ${esc(T("tłumaczenie nasze, oryginał po polsku"))}</span>`);
+    return `<a href="${esc(P.url(slug))}" target="_blank" rel="noopener">${esc(T("„Poradnik bezpieczeństwa”, s. {s}", { s: page }))}</a>` + naszeTlumaczenie();
+  }
+
+  function zrodloInstrukcji(page) {
+    return `<a href="${esc(P.urlInstrukcji())}" target="_blank" rel="noopener">${esc(T("„Instrukcja reagowania” MSWiA, s. {s}", { s: page }))}</a>` + naszeTlumaczenie();
   }
 
   // Miejsce w budynku zapisane przez użytkownika — jego własna notatka, nie zalecenie Groty.
@@ -1085,16 +1096,19 @@
   const PROG_ZOLTY = 0.4;
   const poziomListy = (done, ile) => (!ile ? "pusta" : done >= ile ? "pelna" : done / ile < PROG_ZOLTY ? "pusta" : "wpol");
 
+  // Pozycja listy: sam tekst albo { tekst, ikona } — ikona idzie przed polem wyboru, jak w menu i na kartach.
+  const trescPozycji = (x) => (typeof x === "string" ? x : x.tekst);
+
   function checklist(id, compact = false) {
     const L = P.CHECKLISTS.find((x) => x.id === id); if (!L) return "";
     const done = L.items.filter((_, i) => S.prep[`${id}:${i}`]).length;
     const open = compact || S.openList === id;
     return `<div class="card lista-${poziomListy(done, L.items.length)}${open && !compact ? " sel" : ""}">
-      <div class="row"><b class="grow">${esc(T(L.title))}</b><span class="badge lista-licznik">${done}/${L.items.length}</span>
+      <div class="row">${L.ikona ? I(L.ikona, "lista-ic") : ""}<b class="grow">${esc(T(L.title))}</b><span class="badge lista-licznik">${done}/${L.items.length}</span>
         ${compact ? "" : `<button class="btn ghost" data-act="toggle-list" data-id="${esc(id)}">${open ? T("Zwiń") : T("Otwórz")}</button>`}</div>
       ${open ? `${L.intro ? `<p class="small muted">${esc(T("„{tekst}”", { tekst: T(L.intro) }))}</p>` : ""}
-        ${L.items.map((t, i) => `<label class="chk chk-lista" style="margin:6px 0"><input type="checkbox" data-act="prep" data-key="${esc(id)}:${i}"${S.prep[`${id}:${i}`] ? " checked" : ""}><span>${esc(T("„{tekst}”", { tekst: T(t) }))}</span></label>`).join("")}
-        <div class="src small muted">${zrodloPoradnika(L.slug, L.page)}</div>` : ""}
+        ${L.items.map((x, i) => `<label class="chk chk-lista" style="margin:6px 0"><input type="checkbox" data-act="prep" data-key="${esc(id)}:${i}"${S.prep[`${id}:${i}`] ? " checked" : ""}>${typeof x === "object" && x.ikona ? I(x.ikona, "poz-ic") : ""}<span>${esc(T("„{tekst}”", { tekst: T(trescPozycji(x)) }))}</span></label>`).join("")}
+        <div class="src small muted">${L.zrodlo === "instrukcja" ? zrodloInstrukcji(L.page) : zrodloPoradnika(L.slug, L.page)}</div>` : ""}
     </div>`;
   }
 
@@ -1169,6 +1183,7 @@
         ${recBlock(o.notePlace, p)}` : ""}
       ${dist != null ? `<p>${o.origin || (!S.userPos && o.distFrom) ? T("{d} od miejsca", { d: fmtDist(dist) }) : T("{d} od Ciebie", { d: fmtDist(dist) })} · ${esc(trybNazwa(mode).toLowerCase())}: ${estText(C.estimateMin(dist, mode))}</p>` : ""}
       <p class="small trust-${t.level}">${esc(t.text)}</p>
+      ${warunkiPodziemia(p, "podziemia-karta")}
       ${C.flagMessages(p).length ? notkaOBledach("bledy-karta") : ""}
       ${o.photo === false ? "" : zdjecieZGory(p, "Zdjęcie z góry, ok. 140 m szerokości · punkt w środku · ortofotomapa GUGiK")}
       <div class="row">
@@ -1311,6 +1326,7 @@
         : `<p class="muted">${T("Wybierz do trzech poniżej i przećwicz drogę — poradnik zaleca iść „ustaloną wcześniej drogą” (s. 34).")}</p>`}
 
       <h3>${T("Wybierz miejsca schronienia")}</h3>
+      ${rule("I-PRZYGOTUJ")}
       ${accessFilterBar({ F, near: byAccess, prefix: "pf", typesOpen: S.pickTypesOpen, title: "Pokaż punkty",
         note: "Filtr włączony — lista pokazuje tylko zaznaczone punkty. Odległości przy przyciskach liczone są od tego miejsca." })}
       ${near.length ? near.map((c) => {
@@ -1340,6 +1356,7 @@
       ${kindPicker(pl.kind, `data-act="place-kind" data-id="${id}"`)}
       <h3>${T("Moje miejsce w tym budynku")} ${saveState(`place-spot-${pl.id}`)}</h3>
       ${P.PLACE_KINDS[pl.kind]?.rule ? rule(P.PLACE_KINDS[pl.kind].rule) : rule("P-POZA-DOMEM")}
+      ${rule("I-DWIE-SCIANY")}${rule("I-POMIESZCZENIE")}${rule("I-POKOJE")}
       <textarea id="place-spot-${id}" data-autosave rows="2" style="width:100%" placeholder="${esc(T("Twoja notatka, np. „korytarz na parterze, bez okien”"))}">${esc(pl.spot)}</textarea>
       <label class="chk small"><input type="checkbox" id="place-spotok-${id}"${pl.spotChecked ? " checked" : ""}> ${T("Sprawdziłem to miejsce na miejscu")}</label>
       ${P.PLACE_KINDS[pl.kind]?.checklist ? checklist(P.PLACE_KINDS[pl.kind].checklist, true) : ""}
@@ -1428,6 +1445,7 @@
       <a class="btn go" target="_blank" rel="noopener" href="${esc(C.directionsUrl(p, S.mode, navOrigin()))}">${T("PROWADŹ ➜")}</a>
       ${zdjecieZGory(p, "Zdjęcie z góry · punkt w środku · ortofotomapa GUGiK")}
       <p class="small muted">${esc(acc.note && T(acc.note))} <span class="trust-${t.level}">${esc(t.text)}</span></p>
+      ${warunkiPodziemia(p, "podziemia-propozycja")}
       ${C.flagMessages(p).length ? notkaOBledach("bledy-propozycja") : ""}
       <div class="row"><a class="btn ghost" target="_blank" rel="noopener" href="${esc(svUrl(p))}">Street View</a>
         <button class="btn ghost" data-act="show-on-map" data-id="${esc(p.id)}">${T("Pokaż na mapie")}</button></div>
@@ -1444,6 +1462,25 @@
         <span class="grow"><b>${esc(p.adres)}</b><span class="small muted">${fmtDist(c.distM)} · ${estText(c.estMin)} · ${esc(T(acc.label))}${p.obiekt && p.obiekt.kod !== "budynek" ? ` · ${esc(T(p.obiekt.etykieta))}` : ""}</span></span></button>
       <a class="btn" target="_blank" rel="noopener" href="${esc(C.directionsUrl(p, S.mode, navOrigin()))}">${T("Prowadź")}</a></div>
       ${on ? routeInfo(p) : ""}</div>`;
+  }
+
+  /* Piwnica i garaż podziemny to w wykazie PSP częsty rodzaj punktu, a „Instrukcja reagowania” mówi wprost,
+     że nie każde podziemie jest bezpieczne. Przy takim punkcie pokazujemy warunki z instrukcji — zwinięte,
+     żeby nie zasłaniały adresu i trasy, ale pod ręką, gdy ktoś tam wchodzi pierwszy raz. */
+  const WARUNKI_PODZIEMIA = [
+    ["brick-wall", "Solidne ściany i stropy, bez widocznych uszkodzeń."],
+    ["door-open", "Drożne wejście."],
+    ["fan", "Sprawna wentylacja."],
+    ["lightbulb", "Oświetlenie awaryjne."],
+    ["log-out", "Bezpieczna droga wyjścia."],
+  ];
+
+  function warunkiPodziemia(p, klucz) {
+    if (groupOf(p) !== "podziemne") return "";
+    return `<details class="warunki small"${rozwin(klucz)}>
+      <summary>${T("Piwnica lub garaż — na co patrzeć na miejscu")}</summary>
+      <ul class="warunki-lista">${WARUNKI_PODZIEMIA.map(([ik, t]) => `<li>${I(ik, "poz-ic")}<span>${esc(T(t))}</span></li>`).join("")}</ul>
+      ${rule("I-PIWNICA-NIE")}${rule("I-GARAZ")}</details>`;
   }
 
   // Czym jest obiekt — z OpenStreetMap, nie z danych PSP
@@ -1904,12 +1941,12 @@
         + (late ? `<div class="warn-box"><b>${T("Według szacunku nie zdążysz:")} ${(() => { const p = liczbyCzasu();
             return p ? zdanieCzasu(p) : T("zagrożenie może być bliżej niż czas dojścia"); })()}.</b>
             <span class="small">${T("To szacunek Groty, nie gwarancja — te same minuty pokazuje pasek na dole ekranu.")}</span>
-            ${alarmTrwa() ? `<p class="small">${uwagaWidoczne()}</p>` : ""}</div>${rule("P-NIE-ZDAZE", true)}` : "")
+            ${alarmTrwa() ? `<p class="small">${uwagaWidoczne()}</p>` : ""}</div>${rule("I-NIE-RYZYKUJ", true)}${rule("P-NIE-ZDAZE", true)}` : "")
         + (here && here.spot ? spotCard(here, late) : "")
-        + (late ? rule("P-POZA-DOMEM", true) : "")
+        + (late ? rule("P-POZA-DOMEM", true) + rule("I-DWIE-SCIANY", true) + rule("I-PODZIEMIA", true) : "")
         + modeButtons()
         + liveFilterBar()
-        + (S.mode === "driving" ? rule("P-AUTO") : "")
+        + (S.mode === "driving" ? rule("I-SAMOCHOD") + rule("P-AUTO") : "")
         + (L.options.length ? mainOption(L.options[0])
           // Punkty jeszcze się wczytują (pierwsze wejście albo powrót na słabszym telefonie) — nie wolno wtedy
           // powiedzieć „brak punktów w pobliżu”, bo przy alarmie ktoś uwierzy i nie będzie szukał dalej.
@@ -1928,7 +1965,7 @@
     }
     return `${wzywacDoSchronienia() ? rule("P-ALARM", true) : notkaOZrodle()}
       ${body}
-      <details class="card"${rozwin("zasady-teraz")}><summary>${T("Pamiętaj — zasady z poradnika")}</summary>${rule("P-POWIETRZE")}${rule("P-OTWARTY-TEREN")}${rule("P-NIE-WYCHODZ")}${rule("P-EWAKUACJA")}</details>
+      <details class="card"${rozwin("zasady-teraz")}><summary>${T("Pamiętaj — zasady z poradnika i instrukcji")}</summary>${rule("I-PUNKT")}${rule("P-POWIETRZE")}${rule("P-OTWARTY-TEREN")}${rule("P-NIE-WYCHODZ")}${rule("P-EWAKUACJA")}</details>
       ${simBox()}`;
   }
 
@@ -1946,12 +1983,12 @@
   }
 
   const RULE_SECTIONS = [
-    ["sygnaly-alarmowe-i-komunikaty-ostrzegawcze", "Sygnały alarmowe"],
-    ["atak-z-powietrza", "Atak z powietrza"],
-    ["schronienia", "Schronienia"],
-    ["ewakuacja", "Ewakuacja"],
-    ["przygotuj-swoje-otoczenie", "Przygotuj swoje otoczenie"],
-    ["plan-na-kryzys", "Plan na kryzys"],
+    ["sygnaly-alarmowe-i-komunikaty-ostrzegawcze", "Sygnały alarmowe", "siren"],
+    ["atak-z-powietrza", "Atak z powietrza", "rocket"],
+    ["schronienia", "Schronienia", "shield-check"],
+    ["ewakuacja", "Ewakuacja", "footprints"],
+    ["przygotuj-swoje-otoczenie", "Przygotuj swoje otoczenie", "house"],
+    ["plan-na-kryzys", "Plan na kryzys", "clipboard-list"],
   ];
 
   const link = (href, tekst) => `<a href="${href}" target="_blank" rel="noopener">${tekst}</a>`;
@@ -1965,16 +2002,26 @@
     </div>`;
   }
 
+  // data zbioru PSP w zapisie 21.09.2026 — cyfry są takie same we wszystkich trzech językach
+  function dataDanych() {
+    const d = S.meta?.data_danych || "";
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d);
+    return m ? `${m[3]}.${m[2]}.${m[1]}` : d;
+  }
+
   function viewZasady() {
     const ids = Object.keys(C.RULES);
     return `<div class="row view-head"><h2 class="grow">${T("Zasady Groty")}</h2>
         <button class="btn ghost place-btn" data-act="close-view">${I("x")}${T("Zamknij")}</button></div>
       ${wyborJezyka()}
       <p>${T("Grota nie tworzy własnych procedur. Każde zalecenie pochodzi z „Poradnika bezpieczeństwa” (Rząd RP, nr publikacji 1/2025) i ma numer strony. Nazwy rozdziałów są z poradnika, podtytuły dodaliśmy sami, żeby odróżnić zalecenia z tego samego rozdziału.")}</p>
-      ${RULE_SECTIONS.map(([slug, label]) => {
-        const grupa = ids.filter((id) => C.RULES[id].slug === slug);
-        return grupa.length ? `<h3 class="rule-section" style="--rc:${RULE_COLORS[slug]}">${esc(T(label))}</h3>${grupa.map((id) => rule(id, false, true)).join("")}` : "";
+      ${RULE_SECTIONS.map(([slug, label, ikona]) => {
+        const grupa = ids.filter((id) => C.RULES[id].slug === slug && C.RULES[id].zrodlo !== "instrukcja");
+        return grupa.length ? `<h3 class="rule-section" style="--rc:${RULE_COLORS[slug]}">${I(ikona, "sekcja-ic")}${esc(T(label))}</h3>${grupa.map((id) => rule(id, false, true)).join("")}` : "";
       }).join("")}
+      <h3 class="rule-section" style="--rc:${KOLOR_INSTRUKCJI}">${I("book-open", "sekcja-ic")}${T("Instrukcja reagowania MSWiA")}</h3>
+      <p class="small muted">${T("Osobny materiał MSWiA i Państwowej Straży Pożarnej z 25 września 2026, nazwany przez ministerstwo rozwinięciem „Poradnika bezpieczeństwa”. Mówi to, czego w Poradniku nie ma: jak wybrać pomieszczenie i czego szukać w piwnicy albo garażu.")}</p>
+      ${ids.filter((id) => C.RULES[id].zrodlo === "instrukcja").map((id) => rule(id, false, true)).join("")}
       <h3>${T("Czego poradnik nie określa")}</h3>
       <p>${T("Poradnik nie podaje progu minut, po którym nie zdążysz dojść do schronienia, ani nie wskazuje środka transportu na czas ataku. Grota tego nie dopowiada: pokazuje szacunki i cytuje zasady.")}</p>
       <h3>${T("Dlaczego w Grocie nie ma „schronów”")}</h3>
@@ -1991,11 +2038,15 @@
       <p>${T("Miejsca, notatki, nagrane trasy i ustawienia zapisują się <b>tylko w pamięci tego urządzenia</b>. Autor aplikacji ich nie widzi i nigdzie nie wysyła.")} ${NA_IOS ? T("Kopia zapasowa iCloud może przenieść je na Twoje konto Apple.") : T("Kopia zapasowa Androida może przenieść je na Twoje konto Google.")}</p>
       <p>${T("Co opuszcza telefon i kiedy: wpisany adres trafia do wyszukiwarki GUGiK; przy wyznaczaniu trasy Twoja pozycja i cel idą do serwera tras FOSSGIS; współrzędne punktu do usługi zdjęć GUGiK; oglądany fragment mapy do OpenFreeMap; po naciśnięciu „Prowadź” albo „Street View” — do Google. Bez tych czynności nic nie wychodzi z telefonu.")}</p>
 
+      <h3>${T("Z kiedy są punkty")}</h3>
+      <p>${T("Punkty schronienia pochodzą z publicznego wykazu Komendy Głównej PSP — <b>stan na {data}</b>. W tej wersji aplikacji jest ich {ile}; wykaz jest wpisany w aplikację i działa bez internetu.", {
+        data: esc(dataDanych()), ile: J.liczba(S.points.length) })}</p>
+      <p>${T("Wykaz się zmienia: obiekty dochodzą, znikają, dostają poprawione współrzędne. Grota nie dociąga go w tle — nowszy wykaz dostajesz razem z aktualizacją aplikacji. Jeśli data powyżej jest stara, sprawdź, czy nie ma nowszej wersji Groty.")}</p>
       <h3>${T("Ograniczenia danych")}</h3>
       <p>${T("Publiczny zbiór PSP nie podaje rodzaju obiektu, liczby miejsc ani tego, czy obiekt jest teraz otwarty. „Na żądanie” oznacza, że ktoś musi go otworzyć.")}</p>
       <p>${T("Położenie sprawdzamy automatycznie: czy punkt stoi na budynku, czy zgadza się z adresem, czy leży we właściwej gminie i województwie. Punkty wątpliwe (czerwona obwódka) nie są polecane jako pierwsze; „do sprawdzenia” (żółta) to drobniejsze rozbieżności. To nie jest kontrola obiektu przez urząd.")}</p>
       <h3>${T("Przesunięte szpilki — błąd źródła, nie Groty")}</h3>
-      <p>${T("W publicznym zbiorze PSP część punktów ma współrzędne postawione obok budynku, którego dotyczą. Sprawdziliśmy to na danych z całej Polski: <b>1075 punktów</b> (1,3%) nie stoi na żadnym budynku. Przy 657 z nich budynek jest w promieniu 30 m (najczęściej blok — szpilka wylądowała na podwórku, parkingu albo trawniku), przy 252 w 30–60 m, przy 115 w 60–150 m, a <b>51 punktów nie ma żadnego budynku w promieniu 150 m</b> — tam szpilka wskazuje pole, las albo miejsce poza miejscowością z adresu.")}</p>
+      <p>${T("W publicznym zbiorze PSP część punktów ma współrzędne postawione obok budynku, którego dotyczą. Sprawdziliśmy to na danych z całej Polski: <b>1083 punkty</b> (1,3%) nie stoi na żadnym budynku. Przy 668 z nich budynek jest w promieniu 30 m (najczęściej blok — szpilka wylądowała na podwórku, parkingu albo trawniku), przy 256 w 30–60 m, przy 110 w 60–150 m, a <b>49 punktów nie ma żadnego budynku w promieniu 150 m</b> — tam szpilka wskazuje pole, las albo miejsce poza miejscowością z adresu.")}</p>
       <p>${T("To błąd danych źródłowych i ich dalszego przetwarzania, nie Groty. Nie przesuwamy punktów po cichu, bo nie mamy czym potwierdzić, gdzie naprawdę jest schronienie. Zamiast tego: oznaczamy je, nie polecamy jako pierwszych i przy każdym piszemy, co stoi najbliżej szpilki i jak daleko — żeby w terenie szukać budynku, a nie kropki na mapie.")}</p>
       <p>${T("Jeśli widzisz punkt postawiony w złym miejscu, zgłoś to gminie albo komendzie PSP, która przekazuje dane do zbioru — poprawka u źródła naprawia go we wszystkich aplikacjach naraz.")}</p>
       <p>${T("Czas dojścia to szacunek: zanim trasa się wyznaczy — z odległości w linii prostej, potem z trasy po drogach i ścieżkach (bez korków i utrudnień). Nie jest gwarancją.")}</p>
@@ -2003,6 +2054,11 @@
       <p class="small">${T("Zasady i listy kontrolne: {autorzy}, „{tytul}”, {wydanie}, {wersja}, licencja {licencja}.", {
         autorzy: esc(P.SOURCE.authors), tytul: esc(P.SOURCE.title), wydanie: esc(T(P.SOURCE.edition)),
         wersja: link(esc(P.SOURCE.url), T("wersja internetowa na gov.pl")), licencja: link(esc(P.SOURCE.licenseUrl), esc(P.SOURCE.license)) })} ${esc(T(P.SOURCE.note))}</p>
+      <p class="small">${T("Zasady oznaczone jako „Instrukcja reagowania”: {autorzy}, „{tytul}”, {wydanie}, {wersja}, licencja {licencja}. Cytaty przepisane zwykłym pismem — oryginał jest złożony wersalikami, słowa są bez zmian.", {
+        autorzy: esc(P.SOURCE_INSTRUKCJA.authors), tytul: esc(P.SOURCE_INSTRUKCJA.title), wydanie: esc(T(P.SOURCE_INSTRUKCJA.edition)),
+        wersja: link(esc(P.SOURCE_INSTRUKCJA.url), T("plik PDF na gov.pl")), licencja: link(esc(P.SOURCE_INSTRUKCJA.licenseUrl), esc(P.SOURCE_INSTRUKCJA.license)) })}</p>
+      <p class="small">${T("Instrukcja MSWiA odsyła po lokalizacje punktów schronienia do urzędowej aplikacji {app}, prowadzonej przez Komendę Główną Państwowej Straży Pożarnej. Grota korzysta z tego samego wykazu PSP — różni się tym, że działa bez internetu, liczy czas dojścia i sprawdza położenie punktów.", {
+        app: link("https://gdziesieukryc.pl", "gdziesieukryc.pl") })}</p>
       <p class="small">${T("{zrodlo}; dane z {data}. Kontrola budynków: {kontrola}. Mapa: OpenFreeMap, © OpenStreetMap. Zdjęcia z góry: ortofotomapa GUGiK (usługa WMS, pobierana na bieżąco, bez zapisywania). Biblioteka mapy: MapLibre (BSD).", {
         zrodlo: esc(T(S.meta?.zrodlo || "Komenda Główna PSP, dane.gov.pl, CC BY 4.0")), data: esc(S.meta?.data_danych || ""), kontrola: esc(S.meta?.kontrola_budynkow || "OpenStreetMap, ODbL") })}</p>
       <p class="small">${T("Wyszukiwanie adresów: usługa geokodowania GUGiK (zapytanie wysyłane dopiero po naciśnięciu „Szukaj”). Spis miejscowości do wyszukiwania bez internetu: OpenStreetMap (© współtwórcy OSM, ODbL). Ikony: Lucide (licencja ISC).")}</p>

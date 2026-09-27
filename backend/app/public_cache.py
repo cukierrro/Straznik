@@ -43,6 +43,8 @@ status = {"builds": {}, "errors": {}}
 # (max-age dla przeglądarki, s-maxage dla Cloudflare) w sekundach
 CACHE_POLICY = {
     "state": (2, 2),
+    "state_main": (2, 2),
+    "state_aux": (2, 2),
     "bundle": (30, 60),
     "timeline": (30, 60),
     "zones": (30, 60),
@@ -78,7 +80,7 @@ def get(name: str) -> Blob | None:
         dane = blob_store.wczytaj(name)
         if dane is None:
             return None
-        if name == "state" and time.time() - dane["built"] > STAN_PRZETERMINOWANY_S:
+        if name.startswith("state") and time.time() - dane["built"] > STAN_PRZETERMINOWANY_S:
             # Writer milczy. Podanie starego stanu jako bieżącego byłoby groźniejsze
             # niż cisza: telefon pokazałby spokojną mapę sprzed pół godziny i nie miałby
             # skąd wiedzieć, że patrzy w przeszłość. Lepiej 503 — aplikacja wtedy mówi

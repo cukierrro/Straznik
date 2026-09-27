@@ -170,6 +170,12 @@ OFFICIAL_ALERTS_INTERVAL = int(os.getenv("OFFICIAL_ALERTS_INTERVAL", "30"))
 # Rumunia i Białoruś w mediach (tryb cienia) — WYŁĄCZONE 22.09.2026: RO 4/19 trafień, ~2 h po RO-ALERT;
 # BY 12 wpisów bez żadnej wczesnej informacji. Dane zostają w obserwacje.db.
 RCB_INTERVAL = int(os.getenv("RCB_INTERVAL", "120"))
+# Alert RCB obowiązuje do odwołania, a odwołanie potrafi przyjść po wielu
+# godzinach (24/25.09.2026: alert o 22:01, odwołanie dopiero ok. 05:00).
+# Przez ten czas mówimy wprost, że alert nie został odwołany — nasze własne
+# sygnały dawno wygasły i mapa wygląda spokojnie, co myli. Po tym czasie
+# przestajemy: brak odwołania bywa po prostu przeoczeniem po stronie RCB.
+RCB_NIEODWOLANY_MAX_MIN = int(os.getenv("RCB_NIEODWOLANY_MAX_MIN", "720"))
 RCB_URL = "https://www.gov.pl/web/rcb"
 # RSO (Regionalny System Ostrzegania) przez TVP — realne alerty RCB/SPO (SMS-owe
 # broadcasty), których scraping gov.pl nie łapie. Publiczne JSON bez tokenu.
@@ -658,6 +664,13 @@ MEDIA_NONCURRENT_KEYWORDS = [
 # alarm (syreny, alert), to opis tego, co już się skończyło — o ile w tym czasie
 # nie przyszedł nowy alert. Zerujemy je przez tyle minut po odwołaniu.
 RSO_CLEAR_MEDIA_ECHO_MIN = 240
+# Odwołanie o treści OGÓLNOKRAJOWEJ. RSO przypisuje taki komunikat do jednego
+# województwa, choć SMS idzie do wszystkich, które miały alert — potwierdzone
+# zrzutami z telefonu z Podkarpacia (24/25.09.2026: alert 21:45 i odwołanie
+# 05:35, a RSO w obu wpisach podało wyłącznie lubelskie). Bez tego alert RCB
+# wisiałby w województwie, w którym RCB już ogłosiło koniec zagrożenia.
+RSO_CLEAR_KRAJOWE = ("brak zagrozenia na terenie polski", "brak zagrozenia dla polski",
+                     "brak zagrozenia na terytorium polski")
 RSO_CLEAR_ECHO_MARKERS = ("syren", "alert", "alarm", "rcb")
 # Bez wyjątków na „znów" czy „wybuchy": 13.09.2026 wyjątki przepuściły „Na
 # Lubelszczyźnie znów zawyły syreny alarmowe. Były zgłoszenia o wybuchach" —

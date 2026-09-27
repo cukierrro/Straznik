@@ -39,6 +39,57 @@
   <p class="fineprint">To see which version your phone has, open the app: <kbd>⚙</kbd> → the <kbd>App</kbd> tab → “App version”. The <kbd>⬆ Check for updates</kbd> button is right there too.</p>
 </div></header>
 <main id="content" class="wrap">
+<section id="v1-7-82">
+  <h2>1.7.82 — Less data: a lighter app and fewer downloads</h2>
+  <p class="fineprint">Release 1.7.82 · 27 September 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.82">Full release notes</a></p>
+  <ul>
+    <li>The app is 12 MB smaller. Eight object-class illustrations moved from PNG to WebP — 91 KB in total instead of 12.4 MB, and they look the same.</li>
+    <li>The map of Ukraine, almost half a megabyte, is downloaded only when there are alerts there. It used to load on every visit even though it usually showed nothing.</li>
+    <li>The server now sends only the part of the state that changed. Civil aircraft positions and source health change less often than threat data and no longer come with every update.</li>
+    <li>When the whole country is quiet, the phone asks the server every 15 seconds instead of every 5, which saves battery and data. Whenever any region is raised the pace stays as before, and during an alert it is faster.</li>
+    <li>The aircraft photo in the collapsed card is bigger. It used to shrink to a stamp floating in an empty band.</li>
+    <li>Map files now stay in the browser for a year instead of a day, so a returning visitor does not download them again.</li>
+  </ul>
+  <p class="fineprint">This release adds nothing — it reduces data, memory and battery use. Scoring, thresholds and alerting are unchanged.</p>
+</section>
+<section id="v1-7-81">
+  <h2>1.7.81 — The alarm can be read by a screen reader</h2>
+  <p class="fineprint">Release 1.7.81 · 26 September 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.81">Full release notes</a></p>
+  <ul>
+    <li>A screen reader now reads the alarm screen as soon as it appears, instead of staying on the map underneath. Tab cycles through the alarm's buttons and does not fall through to what is covered.</li>
+    <li>When the level rises to yellow, the screen reader says which province. Until now a blind user heard only a short chime, with no information about what had happened.</li>
+    <li>A return to the normal level is spoken too — with the caveat that this is not an official all-clear, only our own signals expiring.</li>
+    <li>The system “reduce motion” setting now stops every pulsing element, not one out of six. The threat level stays readable without movement.</li>
+    <li>The app can be operated with a keyboard or a switch: province cards expand with Enter and you can see where the cursor is. Touch works exactly as before.</li>
+    <li>The update window no longer slides under the top bar — on narrow phones the bar hid the window title — and a longer list of changes scrolls inside the window.</li>
+    <li>The row with data sources at the bottom of the map scrolls sideways with a finger instead of being cut off with an ellipsis.</li>
+  </ul>
+  <p class="fineprint">This is a first step towards accessibility, not a claim that the app is accessible. A one-sentence situation summary, distinct vibration patterns and in-app text sizing are still ahead.</p>
+</section>
+<section id="v1-7-80">
+  <h2>1.7.80 — An RCB alert for several provinces no longer vanishes</h2>
+  <p class="fineprint">Release 1.7.80 · 26 September 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.80">Full release notes</a></p>
+  <ul>
+    <li>An RCB alert sent to several provinces at once vanished without a trace and scored nothing for any of them. The recipient list was recognised by one word form, and RCB uses a different one when the alert goes to more than one province.</li>
+    <li>When an RCB alert stands for hours without being cancelled, Strażnik says so plainly instead of showing a calm map. The entry scores nothing and disappears after twelve hours.</li>
+    <li>A cancellation worded “no threat on the territory of Poland” clears the alert in every province, not only in the one RSO happened to name.</li>
+    <li>A position computed by ground receivers (MLAT) is no longer presented as ADS-B, and the aircraft icon no longer jumps tens of kilometres and back.</li>
+    <li>Shelter: the PSP register updated to its 21 September state — 86,388 places. The Rules tab now says how current the data is and that the register is not fetched in the background.</li>
+    <li>Shelter: added the rules from the government's “Response instruction” and a list of what to check before hiding in a cellar or a garage.</li>
+    <li>The language preview in settings finally covers the “Map: object trails” section.</li>
+  </ul>
+</section>
+<section id="v1-7-79">
+  <h2>1.7.79 — A cancelled alarm no longer scores like an alarm</h2>
+  <p class="fineprint">Release 1.7.79 · 24 September 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.79">Full release notes</a></p>
+  <ul>
+    <li>An alarm cancelled by RCB is no longer counted as an alarm. It happened twice on 24 September.</li>
+    <li>The colour of a province in history comes from the alert level, not from the points alone — red shows only where the alarm really was red.</li>
+    <li>The “what changed” window shows the whole list instead of one truncated item.</li>
+    <li>The description of aircraft data sources now says where they really come from.</li>
+    <li>On iPhone the siren plays with the app open even when the ringer is silenced by the switch.</li>
+  </ul>
+</section>
 <section id="v1-7-78">
   <h2>1.7.78 — A quieter yellow signal, and RCB alerts read from the message itself</h2>
   <p class="fineprint">Release 1.7.78 · 24 September 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.78">Full release notes</a></p>

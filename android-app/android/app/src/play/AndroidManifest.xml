@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Wariant dla Google Play. Regulamin sklepu zabrania aktualizowania aplikacji
+     z pominięciem Play, a samo zadeklarowanie REQUEST_INSTALL_PACKAGES wystarcza,
+     żeby paczka została odrzucona. Usuwamy je przy scalaniu manifestów, zamiast
+     liczyć na to, że ktoś pamięta o ręcznej edycji przed wysyłką. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" tools:node="remove" />
+</manifest>
