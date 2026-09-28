@@ -31,6 +31,7 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
         CAPPluginMethod(name: "setForceMaxVolume", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "testNativeAlarm", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "dzwiekAlarmu", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "zgodaKrytyczna", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "canInstallUpdates", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "requestInstallPermission", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "installUpdate", returnType: CAPPluginReturnPromise),
@@ -64,6 +65,12 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
         static let topicsError = "straznik_fcm_topics_error"
         static let unsubscribing = "straznik_fcm_unsubscribing"
         static let unsubAt = "straznik_fcm_unsub_at"
+        /// Ostatnio widziana zgoda na alarm krytyczny. `syncTopics` musi znać ją
+        /// natychmiast, a `getNotificationSettings` jest asynchroniczne.
+        static let critical = "straznik_critical_allowed"
+        /// Tematy, z których wypis się nie powiódł — próbujemy przy każdej kolejnej
+        /// synchronizacji, inaczej telefon zostałby na nich na zawsze (podwójny alarm).
+        static let stale = "straznik_fcm_stale_topics"
         /// Na czym stanęła ostatnia próba zapisu na tematy — tylko do diagnostyki.
         static let syncState = "straznik_fcm_sync_state"
     }
@@ -170,6 +177,13 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
         return "voiv_" + String(name.lowercased().map { ascii[$0] ?? $0 })
     }
 
+    /// Telefony ze zgodą na alarm krytyczny słuchają OSOBNEGO tematu — ten sam
+    /// slug plus sufiks (`voiv_lubelskie_krytyczne`). Dzięki temu serwer nie musi
+    /// zgadywać wersji aplikacji: rozdziela po faktycznej zgodzie. Na tym temacie
+    /// idą OBA poziomy — czerwony jako krytyczny, żółty jako zwykły — bo telefon
+    /// po przepisaniu nie słucha już tematu podstawowego.
+    static let criticalSuffix = "_krytyczne"
+
     /// Nazwa pliku paragonu: `sandboxReceipt` = TestFlight/sandbox,
     /// `receipt` = App Store, `brak` = iOS nie podał adresu. Pokazujemy ją
     /// w diagnostyce, bo 18.09.2026 to była jedyna niesprawdzona wartość.
@@ -195,8 +209,9 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
 
     private func topics(for regions: [String]) -> Set<String> {
         var out = Set<String>()
+        let krytyczne = defaults.bool(forKey: Key.critical)
         for region in regions where Self.isKnownVoivodeship(region) {
-            let topic = Self.voivTopic(region)
+            let topic = Self.voivTopic(region) + (krytyczne ? Self.criticalSuffix : "")
             out.insert(topic)
             if Self.isTestBuild { out.insert(Self.testTopicPrefix + topic) }
         }
@@ -238,7 +253,17 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
             defaults.set(true, forKey: Key.unsubscribing)
             defaults.set(Self.nowMs, forKey: Key.unsubAt)
             var failed = 0
-            for topic in topics(for: Self.voivodeships).union(Self.voivodeships.map { Self.voivTopic($0) }) {
+            // Obie odmiany każdego województwa, bo zgoda mogła się zmienić między
+            // zapisem a wypisem — inaczej telefon zostałby na temacie krytycznym.
+            var wszystkie = topics(for: Self.voivodeships)
+            for voiv in Self.voivodeships {
+                let baza = Self.voivTopic(voiv)
+                for t in [baza, baza + Self.criticalSuffix] {
+                    wszystkie.insert(t)
+                    wszystkie.insert(Self.testTopicPrefix + t)
+                }
+            }
+            for topic in wszystkie {
                 group.enter()
                 messaging.unsubscribe(fromTopic: topic) { error in
                     if error != nil { lock.lock(); failed += 1; lock.unlock() }
@@ -260,10 +285,12 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
         }
 
         defaults.set(false, forKey: Key.unsubscribing)
+        // NAJPIERW zapis, dopiero potem wypis ze zbędnych (niżej, w `group.notify`).
+        // Odwrotna kolejność przy przepisywaniu na temat krytyczny mogła zostawić
+        // telefon zapisany na NIC: wypis z `voiv_X` udany, zapis na wariant krytyczny
+        // nieudany — alarm nie dochodzi wcale i nikt tego nie widzi. Chwilowy dubel
+        // jest nieprzyjemny, ale serwer skleja oba w jeden baner (wspólny collapse-id).
         let current = Set(defaults.stringArray(forKey: Key.topics) ?? [])
-        for topic in current where !target.contains(topic) {
-            messaging.unsubscribe(fromTopic: topic)
-        }
         var confirmed = Set<String>()
         // Treść błędu z Firebase była do tej pory wyrzucana — zostawała sama
         // liczba. Przy temacie testowym, który milczał, to za mało.
@@ -284,6 +311,24 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
         }
         group.notify(queue: .main) {
             guard generation == self.syncGeneration else { return }
+            // Dopiero teraz wypis ze zbędnych — razem z tymi, których wypis nie udał
+            // się wcześniej. Nieudany wypis zostaje na liście do następnego razu;
+            // bez tego telefon zostałby na starym temacie na zawsze i dostawał
+            // każdy alarm dwa razy.
+            let zalegle = Set(self.defaults.stringArray(forKey: Key.stale) ?? [])
+            let doWypisu = zalegle.union(current).subtracting(target)
+            var nieudane = Set<String>()
+            let wypis = DispatchGroup()
+            for topic in doWypisu {
+                wypis.enter()
+                messaging.unsubscribe(fromTopic: topic) { error in
+                    if error != nil { lock.lock(); nieudane.insert(topic); lock.unlock() }
+                    wypis.leave()
+                }
+            }
+            wypis.notify(queue: .main) {
+                self.defaults.set(Array(nieudane), forKey: Key.stale)
+            }
             self.defaults.set(Array(confirmed), forKey: Key.topics)
             if confirmed.count == target.count {
                 self.defaults.set(Self.nowMs, forKey: Key.topicsOkAt)
@@ -334,6 +379,9 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
     @objc func status(_ call: CAPPluginCall) {
         UNUserNotificationCenter.current().getNotificationSettings { settings in
             DispatchQueue.main.async {
+                // Stan czytamy tu i tak, więc to najtańsze miejsce, żeby wyłapać
+                // zgodę cofniętą w Ustawieniach iOS.
+                self.zapamietajZgodeKrytyczna(settings.criticalAlertSetting == .enabled)
                 call.resolve(self.statusData(settings, osVersion: UIDevice.current.systemVersion))
             }
         }
@@ -384,6 +432,8 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
             // znaczy, że kliknięcie ginie jeszcze w stronie, a nie przy otwieraniu.
             osLine += " · link: " + (ostatniLink.isEmpty ? "brak" : ostatniLink)
             osLine += " · syrena: " + syrenaStan
+            osLine += " · krytyczne: " + (s.criticalAlertSetting == .enabled ? "tak"
+                : (s.criticalAlertSetting == .notSupported ? "brak uprawnienia" : "odmowa"))
             osLine += " · " + Self.receiptName
         }
 
@@ -471,6 +521,39 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
                 schedule()
             }
         }
+    }
+
+    // MARK: - alarm krytyczny
+
+    /// Zgoda na alarm krytyczny jest OSOBNA od zwykłych powiadomień i tylko ona
+    /// pozwala przebić wyciszony dzwonek oraz tryb skupienia. Apple przyznało
+    /// nam to uprawnienie 28.09.2026 (wniosek 442YB6VV2L).
+    ///
+    /// Po zmianie zgody telefon przepisuje się na inny temat FCM, więc od razu
+    /// synchronizujemy tematy — serwer rozdziela odbiorców po zgodzie, nie po
+    /// wersji aplikacji.
+    @objc func zgodaKrytyczna(_ call: CAPPluginCall) {
+        let center = UNUserNotificationCenter.current()
+        center.requestAuthorization(options: [.alert, .sound, .badge, .criticalAlert]) { _, error in
+            center.getNotificationSettings { s in
+                DispatchQueue.main.async {
+                    let zgoda = s.criticalAlertSetting == .enabled
+                    self.zapamietajZgodeKrytyczna(zgoda)
+                    call.resolve(["allowed": zgoda,
+                                  "supported": s.criticalAlertSetting != .notSupported,
+                                  "error": error?.localizedDescription ?? ""])
+                }
+            }
+        }
+    }
+
+    /// Zgodę można cofnąć w Ustawieniach iOS bez udziału aplikacji — dowiadujemy
+    /// się o tym przy najbliższym odczycie stanu. Wtedy trzeba wrócić na temat
+    /// podstawowy, inaczej telefon słuchałby tematu, którego system już nie honoruje.
+    private func zapamietajZgodeKrytyczna(_ zgoda: Bool) {
+        guard defaults.bool(forKey: Key.critical) != zgoda else { return }
+        defaults.set(zgoda, forKey: Key.critical)
+        syncTopics()
     }
 
     // MARK: - odnośniki zewnętrzne
