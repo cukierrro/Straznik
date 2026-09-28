@@ -454,6 +454,9 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
             "lockScreenAllowed": s.lockScreenSetting != .disabled,
             "timeSensitiveAllowed": s.timeSensitiveSetting == .enabled,
             "criticalAllowed": s.criticalAlertSetting == .enabled,
+            // Czy build w ogóle ma uprawnienie od Apple. Bez tego `app.js` chowa
+            // przycisk zgody — inaczej użytkownik klikałby coś, co nic nie robi.
+            "criticalSupported": s.criticalAlertSetting != .notSupported,
             // Pusty `appVersion` celowo: app.js porównuje go z wydaniem APK na GitHubie
             // i proponowałby „aktualizację”, której na iPhonie nie da się zainstalować
             // (a Apple odrzuca aplikacje, które to proponują). Wersja iOS jest niżej.
