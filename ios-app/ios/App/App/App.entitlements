@@ -11,9 +11,12 @@
 	     i podsumowanie powiadomień. Nie wymaga wniosku do Apple. -->
 	<key>com.apple.developer.usernotifications.time-sensitive</key>
 	<true/>
-	<!-- Critical Alerts (przebija wyciszenie) dopiero po zgodzie Apple — etap 2:
+	<!-- Critical Alerts: przebija wyciszony dzwonek i tryb Skupienia. Apple
+	     przyznało to uprawnienie 28.09.2026 (wniosek 442YB6VV2L), a możliwość
+	     jest włączona przy identyfikatorze pl.straznik.app. Użytkownik musi
+	     jeszcze wyrazić OSOBNĄ zgodę w telefonie — bez niej telefon zostaje
+	     na zwykłym temacie FCM (patrz `zgodaKrytyczna` w pluginie). -->
 	<key>com.apple.developer.usernotifications.critical-alerts</key>
 	<true/>
-	-->
 </dict>
 </plist>

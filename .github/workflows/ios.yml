@@ -288,6 +288,8 @@ jobs:
           codesign -d --entitlements :- "$app" 2>/dev/null | tee "$RUNNER_TEMP/ent.txt"
           grep -q "aps-environment" "$RUNNER_TEMP/ent.txt" \
             || { echo "::error::Podpisany build NIE ma uprawnienia aps-environment — telefon nie dostanie tokenu APNs i żaden alarm nie dojdzie"; exit 1; }
+          grep -q "critical-alerts" "$RUNNER_TEMP/ent.txt" \
+            || { echo "::error::Podpisany build NIE ma uprawnienia critical-alerts — alarm nie przebije wyciszonego telefonu"; exit 1; }
           grep -q "time-sensitive" "$RUNNER_TEMP/ent.txt" \
             || echo "::warning::Brak uprawnienia time-sensitive — czerwony alarm nie przebije trybu Skupienia"
           echo "Uprawnienia push obecne w podpisanym pliku."
