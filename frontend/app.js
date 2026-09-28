@@ -445,11 +445,16 @@ function approxPositionNote(t) {
     : (UI.t("przybliżony rejon zgłoszenia", "approximate report area", "приблизний район повідомлення"));
   return `<span style="color:#ffb020"><b>${heading}</b> — ${UI.t("brak potwierdzonej trasy i czasu dolotu", "no confirmed route or arrival time", "немає підтвердженого маршруту й часу підльоту")}</span>`;
 }
+/* Separator dziesiętny bierze się z języka, nie z JavaScriptu. Od 1.7.84 ta
+   liczba stoi na mapie pod ikoną, więc „0.2 km" rzucało się w oczy: po polsku
+   i po ukraińsku pisze się „0,2". */
+const odleglosc = (km) => (UI.isEn ? String(km) : String(km).replace(".", ","));
+
 function threatDistanceText(t, km) {
   if (km == null) return "?";
   // A2b: odległość liczona do konturu kraju — 0 znaczy „już nad Polską”
   if (km === 0 || t?.pl_assessment?.inside_pl) return UI.t("nad Polską", "over Poland", "над Польщею");
-  if (!isApproxPosition(t)) return `${km} km`;
+  if (!isApproxPosition(t)) return `${odleglosc(km)} km`;
   if (km < 10) return UI.t("mniej niż 10 km (szacunek rejonowy)", "less than 10 km (area estimate)", "менш ніж 10 км (оцінка по району)");
   const rounded = Math.round(km / 10) * 10;
   return UI.t(`około ${rounded} km (szacunek rejonowy)`, `about ${rounded} km (area estimate)`, `близько ${rounded} км (оцінка по району)`);
@@ -1156,9 +1161,13 @@ const MAP_STYLES = [
   "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
 ];
 
+/* Podpis z odległością od granicy pod ikoną (1.7.84). */
+const PODPIS_GRANICA_KM = 10;     // do ilu km od granicy pokazujemy odległość
+const PODPIS_OD_ZOOMU = 9;        // niżej podpisy zderzają się ze sobą
+
 /* Etykiety mapy zgodne z językiem interfejsu. Kafelki OpenMapTiles niosą
    name:pl/name:en; gdy tłumaczenia brak, zachowujemy nazwę łacińską lub źródłową. */
-const OWN_LABEL_LAYERS = new Set(["threats", "threats-age", "adsb", "adsb-label"]);
+const OWN_LABEL_LAYERS = new Set(["threats", "threats-age", "threats-dist", "adsb", "adsb-label"]);
 function localiseMapLabels() {
   const field = ["coalesce", ["get", UI.t("name:pl", "name:en", "name:uk")],
     ["get", "name:latin"], ["get", "name"]];
@@ -1438,10 +1447,13 @@ async function initMap() {
                "circle-stroke-color": "#0b0f18", "circle-stroke-width": 1 } });
 
     map.addSource("uncertainty", { type: "geojson", data: emptyFC() });
-    map.addLayer({ id: "uncertainty", type: "fill", source: "uncertainty",
-      paint: { "fill-color": ["get", "color"], "fill-opacity": 0.10 } });
+    // Sam kontur, bez wypełnienia. Przyciemniona plama ±4 km kładła się na
+    // polskich wsiach po drugiej stronie granicy (Dorohusk, Turka, Istrów) i
+    // ludzie czytali ją jako „zagrożenie jest nad nami". Przerywana linia mówi
+    // to samo — „gdzieś w tym kole" — a niczego nie zasłania.
     map.addLayer({ id: "uncertainty-line", type: "line", source: "uncertainty",
-      paint: { "line-color": ["get", "color"], "line-opacity": 0.35, "line-width": 1 } });
+      paint: { "line-color": ["get", "color"], "line-opacity": 0.85,
+               "line-width": 1.6, "line-dasharray": [3, 3] } });
 
     map.addSource("threats", { type: "geojson", data: emptyFC() });
     // poświata pod ikoną = większy, czytelny obszar kliknięcia
@@ -1487,14 +1499,69 @@ async function initMap() {
       paint: { "icon-opacity": ["case", ["==", ["get", "historicalOnly"], true], 0.48,
         ["interpolate", ["linear"], ["coalesce", ["get", "age_min"], 0], 10, 1, 60, 0.4]] },
     });
-    // podpis z wiekiem meldunku pod ikoną — dopiero gdy zrobił się stary
+    /* Podpis pod ikoną. Dwie rzeczy naraz, bo miejsce jest jedno:
+       — wiek meldunku, gdy zrobił się stary (jak dotąd, od 5 minut);
+       — ODLEGŁOŚĆ OD GRANICY dla obiektu przygranicznego (nowe w 1.7.84).
+       Przy granicy sama ikona nie rozstrzyga, po której stronie jest obiekt:
+       ma 30 px, co przy oddaleniu oznacza kilka kilometrów terenu, więc dron
+       200 m za Bugiem wygląda jak dron nad Polską. Liczba rozstrzyga to,
+       czego rysunek nie potrafi.
+
+       Nachodzenie włączamy tylko dla obiektów bardzo bliskich (≤3 km): tam ta
+       informacja jest najważniejsza i nie może przepaść przez kolizję z nazwą
+       wsi, a takich obiektów są pojedyncze sztuki. Dalsze ustępują normalnie,
+       żeby fala kilkunastu dronów nie zrobiła drabinki z napisów.
+
+       Od zoomu 9 w górę, bo niżej podpisy zderzają się ze sobą i zakrywają
+       własne ikony (zmierzone na fali ośmiu obiektów). UWAGA: MapLibre wylicza
+       układ symboli na CAŁKOWITYM zoomie kafla, więc próg 9,5 zadziałałby
+       dopiero od 10 — dlatego równo 9. */
+    const _przyGranicy = ["<=", ["coalesce", ["get", "dist_km"], 9999], PODPIS_GRANICA_KM];
+    const _stary = [">=", ["coalesce", ["get", "age_min"], 0], 5];
+    const _wiek = ["case", _stary, ["get", "age_label"], ""];
+    const _wspolne = {
+      "text-size": 11,
+      "text-max-width": 30,                  // bez zawijania „od / granicy"
+      "text-offset": [0, 1.35], "text-anchor": "top", "text-optional": true,
+      "text-font": ["Noto Sans Regular"],
+    };
+    const _malowanie = { "text-color": "#95a1b7", "text-halo-color": "#0b0f1a",
+      "text-halo-width": 1.6,
+      "text-opacity": ["interpolate", ["linear"], ["zoom"], 4, 0, 5, 1] };
+    /* Wiek meldunku — jak dotąd. Od zoomu PODPIS_OD_ZOOMU obiekt przygraniczny
+       oddaje to miejsce odległości (warstwa niżej), żeby oba podpisy nie
+       pisały się jeden na drugim. */
     map.addLayer({ id: "threats-age", type: "symbol", source: "threats",
-      filter: [">=", ["coalesce", ["get", "age_min"], 0], 5],
-      layout: { "text-field": ["get", "age_label"], "text-size": 10,
-        "text-offset": [0, 1.35], "text-anchor": "top", "text-optional": true,
-        "text-font": ["Noto Sans Regular"] },
-      paint: { "text-color": "#95a1b7", "text-halo-color": "#0b0f1a", "text-halo-width": 1.1,
-        "text-opacity": ["interpolate", ["linear"], ["zoom"], 4, 0, 5, 1] } });
+      filter: _stary,
+      layout: { ..._wspolne,
+        "text-field": ["step", ["zoom"], _wiek, PODPIS_OD_ZOOMU,
+          ["case", _przyGranicy, "", _wiek]] },
+      paint: _malowanie });
+    /* ODLEGŁOŚĆ OD GRANICY dla obiektu przygranicznego (1.7.84).
+       Osobna warstwa, nie gałąź poprzedniej, bo `text-allow-overlap` NIE przyjmuje
+       wyrażeń zależnych od danych: MapLibre odrzuca wtedy całą warstwę zdarzeniem
+       `error`, bez wyjątku i bez śladu w kodzie (przekonałem się 28.09.2026 —
+       podpisy po prostu zniknęły). Tu nachodzenie jest stałą warstwy, więc wolno.
+
+       Nachodzenie włączone, bo przy granicy właśnie ta liczba jest najważniejsza
+       i nie może przepaść przez kolizję z nazwą wsi — a tam nazw jest gęsto
+       (Berdyszcze, Świerże, Dorohusk). Sama ikona tego nie rozstrzyga: ma 30 px,
+       co przy oddaleniu oznacza kilka kilometrów terenu, więc dron 200 m za
+       Bugiem wygląda jak dron nad Polską.
+
+       Od zoomu PODPIS_OD_ZOOMU w górę, bo niżej podpisy zderzają się ze sobą
+       i zakrywają własne ikony (zmierzone na fali ośmiu obiektów). MapLibre
+       wylicza układ symboli na CAŁKOWITYM zoomie kafla, więc próg 9,5
+       zadziałałby dopiero od 10 — dlatego równo 9. */
+    map.addLayer({ id: "threats-dist", type: "symbol", source: "threats",
+      filter: _przyGranicy,
+      layout: { ..._wspolne,
+        "text-field": ["step", ["zoom"], "", PODPIS_OD_ZOOMU,
+          ["concat", ["get", "distance_text"],
+            UI.t(" od granicy", " from the border", " від кордону")]],
+        "text-allow-overlap": true,
+        "text-ignore-placement": true },
+      paint: _malowanie });
 
     // ślad śledzonej maszyny — pod ikonami samolotów, żeby ich nie zasłaniał
     map.addSource("adsb-trail", { type: "geojson", data: emptyFC() });
@@ -2576,12 +2643,13 @@ function trackSpeed(t) {
   return measuredTrackSpeed(t) ?? TYPE_SPEED_KMH[t.type] ?? null; // zapas mapy: prędkość typowa dla klasy
 }
 
-/* Dead-reckoning między aktualizacjami — reguły SDK Neptuna (audyt G5). 92%
-   pozycji nie zmienia się między migawkami, a znacznik jechał prędkością typową
-   dla klasy i kursem „kursem na X” nawet 30 km. Teraz przesuwamy tylko przy
-   ZMIERZONEJ prędkości i kursie z ruchu, od chwili potwierdzenia w źródle,
-   najwyżej 18 km i nie dłużej niż 7 min (później dane uznajemy za nieaktualne). */
-const PREDICT_MAX_KM = 18, PREDICT_MAX_S = 420;
+/* Dead-reckoning USUNIĘTY 28.09.2026. Znacznik jechał zmierzonym kursem nawet
+   18 km przed ostatni meldunek i pod Dorohuskiem wjeżdżał nad Polskę, choć sam
+   meldunek został 0,2 km za granicą: karta pokazywała „odległość od granicy PL:
+   0,2”, a ikona z okręgiem ±4 km stała 3 km w głębi kraju (nagranie czytelnika,
+   zdarzenie z 28.09.2026). NEPTUN to zgłoszenia ludzi, nie radar — pozycji,
+   której nikt nie zgłosił, nie wolno dorysowywać, a już na pewno nie po polskiej
+   stronie granicy. Płynność ruchu daje glide między PRAWDZIWYMI meldunkami. */
 /* Ile minut od ostatniego meldunku o obiekcie (NEPTUN potwierdza zgłoszeniami). */
 function threatAgeMin(t, nowMs) {
   const seen = Date.parse(t.confirmedAt || t.updatedAt || "");
@@ -2599,22 +2667,6 @@ function ageLabel(min) {
   if (min < 60) return `${min} ${jm}`;
   const h = Math.floor(min / 60), m = min % 60;
   return m ? `${h} ${jg} ${m} ${jm}` : `${h} ${jg}`;
-}
-
-function predict(t, nowMs) {
-  let lat = t.lat, lon = t.lon;
-  if (isApproxPosition(t)) return { lat, lon };
-  const hdg = t.velocity?.bearingDeg ?? measuredHeading(t);
-  const speed = t.velocity?.speedKmh ?? measuredTrackSpeed(t);
-  if (speed && hdg != null) {
-    const base = Date.parse(t.confirmedAt || t.updatedAt || "") || threatsReceivedAt;
-    const dts = Math.max(0, (nowMs - base) / 1000);
-    if (dts > PREDICT_MAX_S) return { lat, lon };
-    const d = Math.min(speed * dts / 3600, PREDICT_MAX_KM);
-    lat += (d / 110.57) * Math.cos(hdg * Math.PI / 180);
-    lon += (d / (111.32 * Math.cos(lat * Math.PI / 180))) * Math.sin(hdg * Math.PI / 180);
-  }
-  return { lat, lon };
 }
 
 /* Identyfikatory obiektów NEPTUN, które teraz wnoszą punkty (lustro panelu
@@ -2693,7 +2745,7 @@ function animate(ts) {
     if (t.lat == null || isNationalThreat(t)) continue;   // alarm ogólnokrajowy → komunikat
     const meta = TYPE_META[t.type] || { color: "#8a93a6" };
     present.add(String(t.id ?? ""));
-    const p = glidePosition(t, predict(t, now), now);
+    const p = glidePosition(t, { lat: t.lat, lon: t.lon }, now);
     // Zgłoszenie 14.09.2026: dziób ikony (kurs NEPTUN-a „kursem na X”) pokazywał
     // w inną stronę niż trasa i linia kierunku liczone z ruchu. Kurs zmierzony
     // z ruchu ma pierwszeństwo — ikona, przesuwanie i karta mówią to samo.
@@ -5369,6 +5421,24 @@ async function refreshBgStatus(previewLang = UI.lang) {
       dndBtn.textContent = T("🌙 Alarm mimo Nie przeszkadzać",
         "🌙 Alert despite Do Not Disturb", "🌙 Тривога попри «Не турбувати»");
     }
+    /* Alarm krytyczny (iOS, entitlement Apple z 28.09.2026). Osobna zgoda,
+       bez której uprawnienie jest martwe: iPhone pyta o nią raz i tylko wprost.
+       Przycisk pokazujemy dopiero, gdy warstwa natywna potwierdzi, że umie —
+       starsze wydania ze sklepu tej metody nie mają. */
+    /* Bez klasy ios-only: ta reguła ma !important, więc przykryłaby styl
+       widoczności, a !important po naszej stronie z kolei zablokowałby ukrywanie.
+       O tym guziku decyduje wyłącznie kod niżej. */
+    const critBtn = document.getElementById("btn-critical");
+    if (critBtn) {
+      const umie = IS_APP && IS_IOS && typeof BG()?.zgodaKrytyczna === "function"
+        && s.criticalSupported !== false;
+      critBtn.style.display = umie ? "" : "none";
+      critBtn.textContent = s.criticalAllowed
+        ? T("🔊 Alarm mimo wyciszenia: włączony",
+            "🔊 Alert despite silent mode: on", "🔊 Тривога попри вимкнений звук: увімкнено")
+        : T("🔊 Włącz alarm mimo wyciszenia",
+            "🔊 Turn on alert despite silent mode", "🔊 Увімкнути тривогу попри вимкнений звук");
+    }
     renderNativeSound(s, previewLang);
     // Stan subskrypcji potwierdzony przez Firebase — dowód, że wyłączenie działa
     // (15.09.2026: sam przełącznik nic nie pokazywał, a test lokalny dalej grał).
@@ -5473,6 +5543,22 @@ document.getElementById("btn-notif-settings")?.addEventListener("click", () =>
   BG()?.openNotificationSettings());
 document.getElementById("btn-fullscreen")?.addEventListener("click", async () => {
   await BG()?.requestFullScreenPermission(); setTimeout(refreshBgStatus, 800);
+});
+/* Zgoda na alarm krytyczny. iOS pokazuje swoje okno TYLKO RAZ — po odmowie
+   jedyną drogą są Ustawienia telefonu, więc po nieudanej prośbie otwieramy je
+   zamiast pytać drugi raz w próżnię. Warstwa natywna sama przepisuje telefon
+   na właściwy temat FCM po udzieleniu zgody. */
+document.getElementById("btn-critical")?.addEventListener("click", async (e) => {
+  e.target.disabled = true;
+  try {
+    const r = await BG()?.zgodaKrytyczna?.();
+    if (r && r.allowed === false) await BG()?.openNotificationSettings?.();
+  } catch (err) {
+    console.warn("zgoda na alarm krytyczny", err);
+  } finally {
+    e.target.disabled = false;
+    setTimeout(refreshBgStatus, 800);
+  }
 });
 document.getElementById("btn-dnd-access")?.addEventListener("click", async () => {
   await BG()?.requestDndAccess?.(); setTimeout(refreshBgStatus, 800);

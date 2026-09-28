@@ -6,6 +6,21 @@
 
 Serwer: **hostowane na [Mikrusie](https://mikr.us)** — dziękujemy za wsparcie projektu.
 
+Wersja 1.7.84: widać, po której stronie granicy jest obiekt. Koło niepewności
+nie zaciemnia już mapy — zostaje sam przerywany okrąg, bo przyciemniona plama
+±4 km kładła się na polskich wsiach i wyglądała jak zagrożenie nad nimi. Obiekt
+bliżej niż 10 km od granicy ma pod ikoną napisaną odległość: ikona ma 30 pikseli,
+więc sam rysunek tego nie rozstrzyga, a liczba tak. Na iPhonie doszedł przycisk
+zgody na alarm mimo wyciszenia (Apple przyznało uprawnienie 28.09; dotyczy
+wyłącznie czerwonego alarmu). Szczegóły: `docs/RELEASE_1.7.84.md`.
+
+Wersja 1.7.83: mapa rysuje obiekt tam, gdzie go zgłoszono. Znacznik jechał
+zmierzonym kursem nawet 18 km przed ostatni meldunek, więc dron 0,2 km za granicą
+pod Dorohuskiem wyglądał na mapie, jakby był 3 km nad Polską — przy karcie, która
+w tym samym czasie pisała „0,2 km od granicy”. Przewidywanie pozycji usunięte;
+płynny przejazd między prawdziwymi meldunkami zostaje. Punktacja, progi i alarmy
+bez zmian — zawsze liczyły się ze zgłoszenia. Szczegóły: `docs/RELEASE_1.7.83.md`.
+
 Wersja 1.7.82: mniej danych. Ilustracje obiektów przeszły z PNG na WebP — osiem
 plików waży 91 KB zamiast 12,4 MB, wyglądają tak samo, a APK chudnie o 12 MB.
 Mapa Ukrainy (pół megabajta) pobiera się dopiero, gdy są tam alarmy, zamiast przy

@@ -115,7 +115,7 @@ const UI_STUB = { lang: "pl", isEn: false, isUk: false,
   t: (pl, en, uk) => UI_STUB.lang === "en" ? en : UI_STUB.lang === "uk" ? (uk !== undefined ? uk : en) : pl };
 const wiek = { UI: UI_STUB };
 vm.createContext(wiek);
-vm.runInContext(cut('function threatAgeMin', String.fromCharCode(10) + 'function predict'), wiek);
+vm.runInContext(cut('function threatAgeMin', String.fromCharCode(10) + '/* Identyfikatory'), wiek);
 const T = Date.UTC(2026, 8, 17, 20, 0, 0);
 assert.equal(wiek.threatAgeMin({ updatedAt: new Date(T - 7 * 60000).toISOString() }, T), 7, 'wiek liczony z updatedAt');
 assert.equal(wiek.threatAgeMin({ confirmedAt: new Date(T - 90 * 60000).toISOString(), updatedAt: new Date(T).toISOString() }, T), 90,
@@ -147,10 +147,17 @@ vm.runInContext(cut('function snapAgeMin', String.fromCharCode(10) + 'function s
 assert.equal(histWiek.snapAgeMin({ age_min: 12 }), 12, 'wiek z migawki brany wprost');
 assert.equal(histWiek.snapAgeMin({}), 0, 'stara migawka bez wieku = obiekt jak świeży');
 assert.equal(histWiek.snapAgeMin({ age_min: -3 }), 0, 'ujemny wiek nie wygasza ikony');
+// 28.09.2026: podpis pod ikoną rozdzielił się na dwie warstwy (wiek i odległość
+// od granicy), a wspólny warunek wieku wyjechał do stałej `_stary`. Sprawdzamy
+// nadal to samo: że brak wieku przechodzi przez coalesce, a nie wywraca warstwy.
 for (const wyr of [/circle-opacity[\s\S]{0,260}coalesce.{0,30}age_min/,
                    /icon-opacity[\s\S]{0,200}coalesce.{0,30}age_min/,
-                   /filter: \[">=", \["coalesce", \["get", "age_min"\], 0\], 5\]/])
+                   /const _stary = \[">=", \["coalesce", \["get", "age_min"\], 0\], 5\]/,
+                   /id: "threats-age"[\s\S]{0,120}filter: _stary/])
   assert.match(src, wyr, 'brak wieku nie wywraca wyrażenia warstwy');
+// nowa warstwa z odległością też musi znosić brak danych
+assert.match(src, /const _przyGranicy = \["<=", \["coalesce", \["get", "dist_km"\], 9999\]/,
+  'brak odległości nie zamienia obiektu w przygraniczny');
 assert.match(src, /historyThreats[\s\S]{0,4000}age_min: snapAgeMin\(t\)/,
   'znaczniki w historii niosą wiek meldunku');
 assert.match(src, /age_min: Math\.max\(0, Math\.round\(\(when\.getTime\(\) - Date\.parse\(s\.ts\)\)/,

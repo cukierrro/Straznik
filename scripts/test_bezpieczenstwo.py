@@ -15,6 +15,7 @@
 
 Uruchomienie: py scripts/test_bezpieczenstwo.py
 """
+import re
 import sys
 import tempfile
 import warnings
@@ -137,7 +138,11 @@ sprawdz(not notify.quotable_title(media("x", "TVN24 Fake")) and not notify.quota
         "nazwa podobna do zaufanej i brak wydawcy — bez cytatu")
 
 src = (ROOT / "backend" / "app" / "notify.py").read_text(encoding="utf-8")
-sprawdz("run_in_executor(_fcm_pool, _send_fcm_sync" in src and "asyncio.Semaphore(WEBPUSH_CONCURRENCY)" in src,
+# Sprawdzamy treść wywołania, nie jego złamanie w wierszu: 28.09.2026 doszedł
+# czwarty argument (alarm krytyczny iOS), wywołanie przeszło na dwie linie
+# i dosłowne porównanie zaczęło zgłaszać awarię tam, gdzie nic się nie zepsuło.
+sprawdz(re.search(r"run_in_executor\(\s*_fcm_pool,\s*_send_fcm_sync", src)
+        and "asyncio.Semaphore(WEBPUSH_CONCURRENCY)" in src,
         "FCM we własnej puli wątków, Web Push z ograniczoną współbieżnością")
 
 # 11. aktualizator APK: tylko wydania repozytorium, pakiet i certyfikat podpisu (1.7.54;

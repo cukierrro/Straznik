@@ -48,7 +48,17 @@ Przy takim wydaniu:
    świadomych zmian zestawu ekranów. Sprawdź wizualnie PL/EN na komputerze
    i w wąskim widoku mobilnym: czytelność, ramki, brak poziomego przepełnienia,
    przełączanie języków i otwieranie zdjęć.
-7. W ramach zatwierdzonej publikacji dołącz dokumentację do wydania i sprawdź
+7. Przed wydaniem uruchom CAŁY zestaw testów, nie tylko te dotyczące zmiany:
+   wszystkie `scripts/test_*.cjs` i `scripts/test_*.py`, a testy wymagające
+   `firebase-admin` na serwerze (na kopii w `/tmp`, nie na wdrożonym kodzie).
+   Decyduj po kodzie wyjścia. Test, który padł przed Twoją zmianą, też jest
+   do naprawienia — 28.09.2026 znalazły się trzy zastałe naraz, w tym jeden
+   pilnujący, że ikony nie wyprzedzają meldunku, podczas gdy sprawdzał tylko
+   połowę ścieżki i przez dwanaście dni świecił na zielono nad zepsutym
+   mechanizmem. Gdy poprawka rozbija wywołanie na dwie linie i test przestaje
+   je rozpoznawać, uodpornij test — nie naginaj kodu pod dosłowne porównanie
+   i nie usuwaj asercji.
+8. W ramach zatwierdzonej publikacji dołącz dokumentację do wydania i sprawdź
    jej publikację na GitHub Pages. W podsumowaniu podaj linki PL i EN.
    Jeśli czegoś nie udało się zweryfikować, wyraźnie zaznacz brak.
 
