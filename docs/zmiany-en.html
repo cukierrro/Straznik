@@ -39,6 +39,17 @@
   <p class="fineprint">To see which version your phone has, open the app: <kbd>⚙</kbd> → the <kbd>App</kbd> tab → “App version”. The <kbd>⬆ Check for updates</kbd> button is right there too.</p>
 </div></header>
 <main id="content" class="wrap">
+<section id="v1-7-84">
+  <h2>1.7.84 — You can see which side of the border an object is on</h2>
+  <p class="fineprint">Release 1.7.84 · 28 September 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.84">Full release notes</a></p>
+  <ul>
+    <li>The position-uncertainty circle no longer shades the map — only a dashed outline remains. The shaded ±4 km patch used to cover towns on the Polish side of the border, making it look as if the threat was above them.</li>
+    <li>An object closer than 10 km to the border now has the distance written under its icon, for example “0.2 km from the border”. The icon is about 30 pixels wide, which at a regional view means several kilometres of ground — the drawing alone cannot settle which side of the border an object is on, but a number can. The label appears from medium zoom upwards, because when zoomed far out the labels collided with each other.</li>
+    <li>Distances use the decimal separator of the interface language.</li>
+    <li>On iPhone there is a new button granting permission for alerts despite silent mode. Apple issued that entitlement on 28 September; the permission is optional, reversible and applies to red alerts only — the yellow attention signal stays quiet.</li>
+  </ul>
+  <p class="fineprint">Scoring, thresholds, alert wording and notifications are unchanged. This release closes the 28 September case: <a href="#v1-7-83">1.7.83</a> fixed the drawn position, this one fixes the drawing itself.</p>
+</section>
 <section id="v1-7-83">
   <h2>1.7.83 — The icon stands where the object was reported</h2>
   <p class="fineprint">Release 1.7.83 · 28 September 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.83">Full release notes</a></p>
