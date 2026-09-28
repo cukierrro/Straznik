@@ -94,7 +94,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <link rel="icon" type="image/png" sizes="512x512" href="assets/icon-512.png">
 <link rel="apple-touch-icon" href="assets/icon-192.png">
 <link rel="stylesheet" href="assets/vendor/maplibre-gl.css?v=1.7.82">
-<link rel="stylesheet" href="style.css?v=1.7.82">
+<link rel="stylesheet" href="style.css?v=1.7.84">
 </head>
 <body>
 
@@ -774,9 +774,11 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
       <button type="button" id="btn-fullscreen" class="chip android-only" style="display:none">🚨 Zgoda na alarm pełnoekranowy</button>
       <button type="button" id="btn-battery" class="chip android-only">🔋 Wyłącz oszczędzanie baterii</button>
       <button type="button" id="btn-dnd-access" class="chip android-only" style="display:none">🌙 Alarm mimo Nie przeszkadzać</button>
+      <button type="button" id="btn-critical" class="chip" style="display:none">🔊 Włącz alarm mimo wyciszenia</button>
       <button type="button" id="btn-web-push-on" class="chip primary" hidden>🔔 Włącz powiadomienia w tej przeglądarce</button>
       <button type="button" id="btn-web-push-off" class="chip" hidden>🔕 Wyłącz powiadomienia w tej przeglądarce</button>
     </div>
+    <p class="fineprint ios-only" id="krytyczny-ios-note">Alarm krytyczny to osobna zgoda Apple: czerwony alarm zadzwoni nawet wtedy, gdy telefon jest wyciszony przełącznikiem albo w trybie Skupienia. Dotyczy wyłącznie czerwonego poziomu — żółty sygnał uwagi zostaje cichy. iPhone zapyta o tę zgodę tylko raz; jeśli ją odrzucisz, włączysz ją później w Ustawieniach telefonu. W każdej chwili możesz ją cofnąć w tym samym miejscu.</p>
     <p class="fineprint ios-only" id="alarm-ios-note">Na iPhonie czerwony alarm przychodzi
     jako powiadomienie oznaczone <b>„PILNE”</b>: pokazuje się nad blokadą i gra syreną.
     <b>Nie zapala pełnego ekranu i nie powtarza dźwięku</b> — iOS nie pozwala na to zwykłym
@@ -957,7 +959,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
      Cloudflare, więc po każdym wydaniu wystarczy podbić ?v= i przeglądarki
      dostają nowe app.js/engine.js OD RAZU, bez ręcznego czyszczenia cache CF.
      Podbijaj ?v= razem z versionName w build.gradle. -->
-<script src="i18n.js?v=1.7.80"></script>
+<script src="i18n.js?v=1.7.84"></script>
 <!-- kontur Polski dla engine.js (audyt A2b, scripts/build_pl_outline.py) -->
 <script src="pl-outline.js?v=1.7.82"></script>
 <script src="engine.js?v=1.7.82"></script>
@@ -973,7 +975,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <div id="a11y-alert" class="sr-only" role="status" aria-live="assertive" aria-atomic="true"></div>
 <div id="a11y-info" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
 
-<script src="app.js?v=1.7.82a"></script>
+<script src="app.js?v=1.7.84"></script>
 <script>
 /* Instrukcja pasująca do telefonu i języka (21.09.2026). iPhone ma osobną, bo alarmy,
    zgody i aktualizacje działają tam inaczej. Tu, a nie w app.js: index.html nie jest

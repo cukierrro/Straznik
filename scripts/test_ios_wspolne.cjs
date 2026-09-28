@@ -115,7 +115,9 @@ sprawdz(R('docs/index.html').includes('prywatnosc.html'),
 console.log('6. Android bez zmian');
 sprawdz(/direct_boot_ok=True/.test(R('backend/app/notify.py')),
   'wiadomość dla Androida nadal data-only z direct_boot_ok');
-sprawdz(/apns=_apns_safe\(topic, data\)/.test(R('backend/app/notify.py')),
+// 28.09.2026: osłona przyjmuje trzeci argument (alarm krytyczny iOS). Pilnujemy
+// tego, o co tu chodzi — że blok apns idzie przez _apns_safe, a nie wprost.
+sprawdz(/apns=_apns_safe\(topic, data(, critical)?\)/.test(R('backend/app/notify.py')),
   'blok apns dołączony do wiadomości FCM przez osłonę, która nie zabierze alarmu Androidowi');
 sprawdz(R('1_buduj_i_testuj.bat').includes('pl-outline.js"'),
   'build APK kopiuje kontur Polski');

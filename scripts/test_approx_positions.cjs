@@ -12,7 +12,10 @@ assert.match(app, /function geoDistanceKm/);
 assert.match(app, /locality_center/);
 assert.match(app, /threatDistanceText/);
 assert.match(app, /function etaInfo\(t\) \{\s*if \(isApproxPosition\(t\)\) return null;/);
-assert.match(app, /function predict\(t, nowMs\) \{[\s\S]*?if \(isApproxPosition\(t\)\) return \{ lat, lon \};/);
+// 28.09.2026: dead-reckoning usunięty w całości — pozycję rejonową obchodził
+// wprawdzie bokiem, ale pozycję dokładną wynosił nawet 18 km przed meldunek
+// i pod Dorohuskiem wjeżdżał nad Polskę. Pilnuje tego scripts/test_rysowana_pozycja.cjs.
+assert.doesNotMatch(app, /function predict\(/);
 assert.match(app, /function cleanTrail\(t\) \{\s*if \(isApproxPosition\(t\)\) return \[\];/);
 assert.match(app, /isApproxPosition\(t\) \|\| !Places\?\.exactPoint/);
 assert.match(app, /positionQuality: d\.position_quality/);

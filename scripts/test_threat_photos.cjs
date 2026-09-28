@@ -11,13 +11,16 @@ context.window = {};
 vm.createContext(context);
 vm.runInContext(code.slice(code.indexOf('const TYPE_META ='), code.indexOf('const threatLabelPL')) + '\nglobalThis.photos = THREAT_PHOTOS;', context);
 // wiek meldunku w karcie obiektu korzysta z ageAgoText/ageLabel
-vm.runInContext(code.slice(code.indexOf('function ageAgoText('), code.indexOf('function predict(')), context);
+vm.runInContext(code.slice(code.indexOf('function ageAgoText('), code.indexOf('/* Identyfikatory')), context);
 vm.runInContext(code.slice(code.indexOf('function openThreatPopup('), code.indexOf('/* Karta samolotu')), context);
 for (const type of ['uav', 'recon', 'shahed', 'missile', 'cruise', 'kab', 'ballistic', 'fpv', 'mig31k']) {
   const photo = context.photos[type];
-  assert.ok(photo.file.endsWith('-ai.png'));
+  // od 1.7.82 ilustracje jadą w WebP — 12,4 MB PNG na instalację było
+  // największą pojedynczą pozycją transferu (127 GB obrazków na dobę w Cloudflare)
+  assert.ok(photo.file.endsWith('.webp'), `${type}: ilustracja w WebP`);
   const bytes = fs.readFileSync(path.join(root, 'frontend/assets/threats', photo.file));
-  assert.equal(bytes.subarray(1, 4).toString(), 'PNG', `${type}: valid PNG`);
+  assert.equal(bytes.subarray(0, 4).toString(), 'RIFF', `${type}: poprawny WebP (RIFF)`);
+  assert.equal(bytes.subarray(8, 12).toString(), 'WEBP', `${type}: poprawny WebP`);
   context.openThreatPopup(null, { type });
   assert.ok(context.html.includes('Ilustracja poglądowa wygenerowana przez AI'));
   assert.ok(context.html.includes('Nie przedstawia śledzonego obiektu'));
@@ -36,4 +39,4 @@ context.openThreatPopup(null, { type: 'uav', toward_pl: true, course_off: 12 });
 assert.ok(context.html.includes('kurs na Polskę'), 'obiekt kursem na PL ma to napisane');
 assert.ok(!context.html.includes('0 pkt'), 'obiekt kursem na PL nie może się ogłaszać jako zerowy');
 
-console.log('OK: 9 typów/aliasów, PNG AI, jawne oznaczenie ilustracji, werdykt kursu w karcie');
+console.log('OK: 9 typów/aliasów, WebP AI, jawne oznaczenie ilustracji, werdykt kursu w karcie');

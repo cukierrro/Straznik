@@ -21,7 +21,8 @@ _fcm_ready = False
 # Widoczny w /api/health: bez tego cicha awaria wysyłki (błąd Google, wygasłe
 # poświadczenia) nie dawała żadnego śladu — alarm po prostu nie docierał.
 fcm_status = {"ready": False, "last_ok": None, "last_error": None, "sent": 0,
-              "failed": 0, "last_ok_at": None, "last_error_at": None, "test_sent": 0}
+              "failed": 0, "last_ok_at": None, "last_error_at": None, "test_sent": 0,
+              "crit_sent": 0, "crit_failed": 0}
 
 # Alarm jest ważny minuty, nie tygodnie. Domyślny TTL w FCM to 4 tygodnie, więc
 # telefon po nocy offline dostawał pełnoekranową syrenę o zdarzeniu sprzed godzin.
@@ -34,6 +35,35 @@ APNS_PAYLOAD_BUDGET = 3700
 # wiadomości ciszej, więc lepiej, żeby jej nie dostał wcale.
 APNS_EXPIRATION_S = 600
 FCM_RETRIES = 3
+# Alarm krytyczny iPhone'a (Critical Alerts). Apple przyznało entitlement dla
+# pl.straznik.app 28.09.2026. Dźwięk krytyczny przebija wyciszenie i tryb Nie
+# przeszkadzać, ale wymaga naraz: entitlementu w aplikacji, `sound` jako SŁOWNIKA
+# w ładunku i osobnej zgody użytkownika (UNNotificationSettings.criticalAlertSetting).
+#
+# Dlaczego osobny temat, a nie flaga na dotychczasowym: na `voiv_*` siedzą
+# wszystkie telefony z Androidem i iPhone'y ze starszymi wydaniami, bez
+# entitlementu. Zachowania Apple przy takim telefonie nie sprawdziliśmy na
+# urządzeniu, a to jest alarm — nie wolno go zepsuć tym, którzy już go mają.
+# Aplikacja iOS po uzyskaniu zgody PRZEPISUJE się z `voiv_X` na `voiv_X_krytyczne`,
+# więc na krytyczny temat musi lecieć KAŻDY poziom (żółty też), inaczej ci ludzie
+# przestaliby dostawać ostrzeżenia. Krytyczny jest wyłącznie DŹWIĘK czerwonego.
+CRITICAL_TOPIC_SUFFIX = "_krytyczne"
+
+
+def _temat_bazowy(topic: str) -> str:
+    """Temat bez sufiksu krytycznego — do sklejania powiadomień na iPhonie.
+
+    Zgłoszone przez sesję iOS 28.09.2026: przepisanie telefonu z `voiv_X` na
+    `voiv_X_krytyczne` to dwie operacje w Firebase i bezpieczna kolejność
+    (najpierw zapis, potem wypis) zostawia chwilę, w której telefon siedzi na
+    obu tematach. Gdyby `apns-collapse-id` różnił się między wariantami, iPhone
+    pokazałby wtedy DWA banery o tym samym zdarzeniu. Ten sam identyfikator
+    sprawia, że system skleja je w jeden — a przy alarmie liczy się jedna
+    jasna informacja, nie dwie takie same.
+    """
+    if topic.endswith(CRITICAL_TOPIC_SUFFIX):
+        return topic[: -len(CRITICAL_TOPIC_SUFFIX)]
+    return topic
 # Audyt bezpieczeństwa 16.09.2026: FCM i Web Push dzieliły domyślną pulę wątków, więc
 # zalew (fałszywych) subskrypcji Web Push kolejkował wysyłkę alarmu do aplikacji.
 # FCM ma własną pulę, a Web Push idzie najwyżej po WEBPUSH_CONCURRENCY naraz.
@@ -81,7 +111,7 @@ def _godzina(sent_at) -> str:
         return ""
 
 
-def _apns_config(topic: str, data: dict):
+def _apns_config(topic: str, data: dict, critical: bool = False):
     """Powiadomienie dla iPhone'a — Android ten blok ignoruje.
 
     Android dostaje wiadomość data-only i sam buduje alarm (StraznikFcmService).
@@ -137,34 +167,43 @@ def _apns_config(topic: str, data: dict):
             # z gotowego ładunku, więc wiadomość sprzed kwadransa zawyłaby syreną jak
             # świeża. Dlatego po dziesięciu minutach APNs ma ją po prostu skasować.
             "apns-expiration": str(int(time.time()) + APNS_EXPIRATION_S),
-            "apns-collapse-id": topic,                             # jak collapse_key
+            # bez sufiksu krytycznego: w chwili przepisywania telefonu ten sam
+            # alarm leci na oba tematy i ma się skleić w jeden baner
+            "apns-collapse-id": _temat_bazowy(topic),              # jak collapse_key
         },
         payload=messaging.APNSPayload(aps=messaging.Aps(
             alert=messaging.ApsAlert(title=title, body="\n".join(lines + tail)),
-            # dźwięki dołączone do aplikacji iOS (kopie res/raw z Androida)
-            sound="alarm_syrena.wav" if high else "alert_uwaga.wav",
-            thread_id=topic,
+            # dźwięki dołączone do aplikacji iOS (kopie res/raw z Androida).
+            # Dźwięk krytyczny (przebija wyciszenie i Nie przeszkadzać) TYLKO dla
+            # czerwonego i tylko na temacie dla telefonów ze zgodą — żółty nie ma
+            # prawa budzić nikogo przy pełnej głośności.
+            sound=(messaging.CriticalSound(name="alarm_syrena.wav", critical=True, volume=1.0)
+                   if (critical and high) else
+                   ("alarm_syrena.wav" if high else "alert_uwaga.wav")),
+            thread_id=_temat_bazowy(topic),
             # firebase-admin 7.5 nie ma pola interruption_level — idzie przez custom_data.
             # Czerwony jako „time-sensitive" przebija tryb Skupienia, żółty jako
-            # „active" nie budzi w nocy (decyzja 18.09.2026).
+            # „active" nie budzi w nocy (decyzja 18.09.2026). Przy zgodzie na alarm
+            # krytyczny czerwony idzie o poziom wyżej: „critical".
             custom_data={
-                "interruption-level": "time-sensitive" if high else "active",
+                "interruption-level": ("critical" if (critical and high)
+                                       else ("time-sensitive" if high else "active")),
                 "relevance-score": 1.0 if high else 0.6,
             },
         )),
     )
 
 
-def _apns_safe(topic: str, data: dict):
+def _apns_safe(topic: str, data: dict, critical: bool = False):
     """_apns_config, ale żaden jego błąd nie przewraca wysyłki na Androida."""
     try:
-        return _apns_config(topic, data)
+        return _apns_config(topic, data, critical)
     except Exception as exc:                      # noqa: BLE001
         log.warning("FCM %s: blok iOS pominięty (%r)", topic, exc)
         return None
 
 
-def _send_fcm_sync(topic: str, data: dict) -> str:
+def _send_fcm_sync(topic: str, data: dict, critical: bool = False) -> str:
     from datetime import timedelta
     from firebase_admin import messaging
     msg = messaging.Message(
@@ -186,7 +225,7 @@ def _send_fcm_sync(topic: str, data: dict) -> str:
         ),
         # tylko iPhone: FCM wysyła ten blok wyłącznie na iOS. Błąd w budowaniu
         # powiadomienia iOS nie może zabrać alarmu Androidowi — stąd osłona.
-        apns=_apns_safe(topic, data),
+        apns=_apns_safe(topic, data, critical),
     )
     return messaging.send(msg)
 
@@ -197,6 +236,14 @@ def fcm_topic(voiv: str, test: bool = False) -> str:
     if test or not config.PRODUCTION:
         return config.TEST_TOPIC_PREFIX + topic
     return topic
+
+
+def fcm_topic_krytyczny(voiv: str, test: bool = False) -> str:
+    """Temat dla iPhone'ów, którym użytkownik pozwolił na alarm krytyczny.
+
+    Ten sam slug co zwykły temat plus sufiks — aplikacja iOS liczy go tak samo
+    (pilnuje tego scripts/test_tematy_fcm.py)."""
+    return fcm_topic(voiv, test) + CRITICAL_TOPIC_SUFFIX
 
 
 def alarm_headline(signals: list[dict]) -> str:
@@ -283,23 +330,43 @@ async def send_fcm(voiv: str, level: str, score: float, reasons_text: str,
             # pokazuje dwa razy tego samego zdarzenia
             "sent_at": sent_at.isoformat(timespec="seconds"),
             "event_id": f"{voiv}|{level}|{int(sent_at.timestamp())}"}
-    last_error = None
-    for attempt in range(1, FCM_RETRIES + 1):
-        try:
-            mid = await asyncio.get_running_loop().run_in_executor(_fcm_pool, _send_fcm_sync, topic, data)
-            fcm_status.update(last_ok=sent_at.isoformat(timespec="seconds"),
-                              last_ok_at=time.time(), last_error=None,
-                              sent=fcm_status["sent"] + 1)
-            log.info("FCM → %s (%s pkt, próba %d): %s", topic, score, attempt, mid)
-            return True
-        except Exception as e:
-            last_error = e
-            log.warning("FCM błąd (%s, próba %d/%d): %s", topic, attempt, FCM_RETRIES, e)
-            if attempt < FCM_RETRIES:
-                await asyncio.sleep(2 * attempt)
-    fcm_status.update(last_error=repr(last_error), last_error_at=time.time(),
-                      failed=fcm_status["failed"] + 1)
-    return False
+
+    async def wyslij(nazwa: str, critical: bool) -> bool:
+        last_error = None
+        for attempt in range(1, FCM_RETRIES + 1):
+            try:
+                mid = await asyncio.get_running_loop().run_in_executor(
+                    _fcm_pool, _send_fcm_sync, nazwa, data, critical)
+                log.info("FCM → %s (%s pkt, próba %d): %s", nazwa, score, attempt, mid)
+                return True
+            except Exception as e:
+                last_error = e
+                log.warning("FCM błąd (%s, próba %d/%d): %s", nazwa, attempt, FCM_RETRIES, e)
+                if attempt < FCM_RETRIES:
+                    await asyncio.sleep(2 * attempt)
+        fcm_status.update(last_error=repr(last_error), last_error_at=time.time())
+        return False
+
+    ok = await wyslij(topic, False)
+    if ok:
+        fcm_status.update(last_ok=sent_at.isoformat(timespec="seconds"),
+                          last_ok_at=time.time(), last_error=None,
+                          sent=fcm_status["sent"] + 1)
+    else:
+        fcm_status.update(failed=fcm_status["failed"] + 1)
+
+    # Temat krytyczny to JEDYNY kanał iPhone'ów, które zgodziły się na alarm
+    # przebijający wyciszenie — one nie słuchają już `voiv_*`. Wysyłka musi więc
+    # iść niezależnie od wyniku tej pierwszej i być osobno widoczna w /api/health,
+    # bo jej cicha awaria oznacza ciszę u tych ludzi, a nie u nikogo.
+    krytyczny = topic + CRITICAL_TOPIC_SUFFIX
+    if await wyslij(krytyczny, True):
+        fcm_status["crit_sent"] = fcm_status.get("crit_sent", 0) + 1
+    else:
+        fcm_status["crit_failed"] = fcm_status.get("crit_failed", 0) + 1
+        log.error("FCM: alarm NIE poszedł na %s — iPhone'y ze zgodą na alarm "
+                  "krytyczny nic nie dostały", krytyczny)
+    return ok
 
 
 def init_vapid():

@@ -117,3 +117,17 @@ shows the new "Attention sound volume (yellow)" section and the Alerts tab the
 optional "Alert despite Do Not Disturb" button, which the app displays only
 while that permission is missing. No public test alerts were sent; the local
 alarm tests used during the same session are not part of these captures.
+
+The start screen and object cards were refreshed for release 1.7.84 on
+28 September 2026: `start-pl.jpg`, `start-en.jpg`, `start-uk.jpg`,
+`object-pl.jpg`, `object-en.jpg`, `card-mini-pl.jpg`, `card-mini-en.jpg`.
+All are 1080 × 2400 captures of the signed 1.7.84 APK on a Pixel 7 emulator
+with Android 14, on live server data. They were replaced because 1.7.84
+stopped shading the position-uncertainty circle: it is now a dashed outline
+only, which is visible on every screenshot that shows a NEPTUN object. The
+objects visible on them are whatever the sources reported at that moment over
+Ukraine; they are observations, not staged alert scenarios, and no public test
+notifications were sent. The Ukrainian guide reuses the English object cards,
+as before. Screens without a NEPTUN object (`panel-*`, the settings tabs, the
+ADS-B and zone captures) were deliberately NOT replaced — the change is not
+visible on them.
