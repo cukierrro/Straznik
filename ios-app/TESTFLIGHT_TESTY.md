@@ -545,3 +545,21 @@ wersji iOS). Wersja ze sklepu nigdy sama nie pyta.
   raportuje wtedy wszystko jako `notSupported`) — zwraca
   `reason: "powiadomienia-odrzucone"`, a interfejs mówi, co włączyć najpierw;
 * bramka CI sprawdza profil, nie tylko binarkę.
+
+### Wynik: alarm krytyczny DZIAŁA (29.09.2026, build 2609291237)
+
+Tester na iPhonie, dzwonek **wyciszony przełącznikiem**: syrena zagrała, baner
+nad blokadą był, pełnego ekranu nie ma (i nie obiecujemy go). Push wysłany na
+`test_voiv_lubelskie` + `test_voiv_lubelskie_krytyczne`, poziom `high`, 4,5 pkt;
+liczniki serwera `sent: 1, failed: 0, crit_sent: 1, crit_failed: 0`.
+
+Łańcuch potwierdzony na całej długości: serwer → osobny temat krytyczny → APNs
+z `sound` jako słownikiem i `interruption-level: critical` → iPhone gra mimo
+wyciszenia. Diagnoza zapętlenia zgody okazała się trafna — jednorazowe pytanie
+w wersji testowej przełamało je od razu.
+
+**Zostaje kontrtest:** po cofnięciu zgody w Ustawieniach iOS powiadomienie ma
+**nadal dochodzić**, tylko bez przebijania wyciszenia. To jedyny punkt łańcucha
+bez pokrycia w dokumentacji Apple. Gdyby wypadł inaczej, telefon wraca na temat
+podstawowy przy najbliższym odczycie stanu (czyli przy wejściu aplikacji na
+pierwszy plan), więc okno bez alarmu liczy się w minutach, nie na stałe.
