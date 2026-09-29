@@ -6,6 +6,15 @@
 
 Serwer: **hostowane na [Mikrusie](https://mikr.us)** — dziękujemy za wsparcie projektu.
 
+Wersja 1.7.85: zakładka Zasady w GROCIE mówi to, co Komenda Główna PSP
+odpowiedziała na wniosek o informację publiczną (pismo z 25.09.2026). Wycofana
+obietnica dodania daty weryfikacji punktu — rejestr jej nie prowadzi i nie
+planuje udostępniać. Dopisane: co naprawdę znaczy „Dostępność”, czego urząd nie
+wyjaśnił (kto otwiera punkt „na żądanie” w czasie alarmu), że rejestr obejmuje
+też obiekty w postępowaniu i byłe budowle ochronne „bez wskazywania ostatecznej
+kategorii obiektów”, oraz że wykaz aktualizuje się raz w tygodniu i nie ma API.
+Działanie aplikacji bez zmian. Szczegóły: `docs/RELEASE_1.7.85.md`.
+
 Wersja 1.7.84: widać, po której stronie granicy jest obiekt. Koło niepewności
 nie zaciemnia już mapy — zostaje sam przerywany okrąg, bo przyciemniona plama
 ±4 km kładła się na polskich wsiach i wyglądała jak zagrożenie nad nimi. Obiekt
