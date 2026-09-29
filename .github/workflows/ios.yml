@@ -288,6 +288,17 @@ jobs:
           codesign -d --entitlements :- "$app" 2>/dev/null | tee "$RUNNER_TEMP/ent.txt"
           grep -q "aps-environment" "$RUNNER_TEMP/ent.txt" \
             || { echo "::error::Podpisany build NIE ma uprawnienia aps-environment — telefon nie dostanie tokenu APNs i żaden alarm nie dojdzie"; exit 1; }
+          # Uprawnienie w BINARCE to nie to samo co uprawnienie przyznane przez PROFIL —
+          # system patrzy na profil. 28.09.2026 podpisany build miał `critical-alerts`
+          # w podpisie, a telefon raportował „brak uprawnienia”, więc od teraz sprawdzamy
+          # oba miejsca i wypisujemy profil do logu.
+          echo "=== profil wbudowany w aplikację ==="
+          security cms -D -i "$app/embedded.mobileprovision" > "$RUNNER_TEMP/profil.plist" 2>/dev/null || true
+          plutil -extract Entitlements xml1 -o - "$RUNNER_TEMP/profil.plist" 2>/dev/null | tee "$RUNNER_TEMP/profil-ent.txt" || echo "nie udało się odczytać profilu"
+          plutil -extract Name raw -o - "$RUNNER_TEMP/profil.plist" 2>/dev/null || true
+          plutil -extract CreationDate raw -o - "$RUNNER_TEMP/profil.plist" 2>/dev/null || true
+          grep -q "critical-alerts" "$RUNNER_TEMP/profil-ent.txt" \
+            || { echo "::error::PROFIL podpisu nie ma critical-alerts — telefon zgłosi „brak uprawnienia”, choć binarka będzie je miała. Profil powstał przed włączeniem możliwości przy identyfikatorze?"; exit 1; }
           grep -q "critical-alerts" "$RUNNER_TEMP/ent.txt" \
             || { echo "::error::Podpisany build NIE ma uprawnienia critical-alerts — alarm nie przebije wyciszonego telefonu"; exit 1; }
           grep -q "time-sensitive" "$RUNNER_TEMP/ent.txt" \

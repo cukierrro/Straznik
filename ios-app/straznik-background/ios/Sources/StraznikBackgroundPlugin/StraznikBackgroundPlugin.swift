@@ -71,6 +71,10 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
         /// Tematy, z których wypis się nie powiódł — próbujemy przy każdej kolejnej
         /// synchronizacji, inaczej telefon zostałby na nich na zawsze (podwójny alarm).
         static let stale = "straznik_fcm_stale_topics"
+        /// Wersja testowa pyta o zgodę krytyczną sama, ale tylko RAZ (patrz `load`).
+        static let criticalAsked = "straznik_critical_asked"
+        /// Wynik tego jednorazowego pytania — wyłącznie do diagnostyki testowej.
+        static let criticalProbe = "straznik_critical_probe"
         /// Na czym stanęła ostatnia próba zapisu na tematy — tylko do diagnostyki.
         static let syncState = "straznik_fcm_sync_state"
     }
@@ -111,6 +115,17 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
         // aplikacji wróciła sama.
         center.addObserver(self, selector: #selector(poszloWTlo),
                            name: UIApplication.didEnterBackgroundNotification, object: nil)
+
+        // 29.09.2026: na telefonie testera `criticalAlertSetting` zwróciło
+        // `.notSupported`, więc `app.js` schował przycisk zgody — a bez przycisku
+        // nikt nie mógł o zgodę poprosić. Klasyczne zapętlenie: nie wiemy, czy iOS
+        // mówi „brak uprawnienia”, bo profil podpisu go nie niesie, czy dlatego, że
+        // aplikacja jeszcze ani razu nie zapytała. Wersja testowa pyta więc sama,
+        // jeden raz, i zapisuje wynik w diagnostyce. Wersja ze sklepu nigdy —
+        // tam pytanie wychodzi wyłącznie z przycisku, po przeczytaniu wyjaśnienia.
+        if Self.isTestBuild && !defaults.bool(forKey: Key.criticalAsked) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3) { self.pytajRazKrytyczne() }
+        }
 
         configureFirebase()
         // Token APNs dostajemy także bez zgody na powiadomienia — zgoda decyduje
@@ -434,6 +449,7 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
             osLine += " · syrena: " + syrenaStan
             osLine += " · krytyczne: " + (s.criticalAlertSetting == .enabled ? "tak"
                 : (s.criticalAlertSetting == .notSupported ? "brak uprawnienia" : "odmowa"))
+            if let proba = defaults.string(forKey: Key.criticalProbe) { osLine += " · " + proba }
             osLine += " · " + Self.receiptName
         }
 
@@ -545,6 +561,31 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
                     call.resolve(["allowed": zgoda,
                                   "supported": s.criticalAlertSetting != .notSupported,
                                   "error": error?.localizedDescription ?? ""])
+                }
+            }
+        }
+    }
+
+    /// Tylko wersja testowa: jednorazowa próba, żeby rozstrzygnąć, czy `.notSupported`
+    /// bierze się z profilu podpisu, czy z tego, że nikt jeszcze nie pytał.
+    private func pytajRazKrytyczne() {
+        let center = UNUserNotificationCenter.current()
+        center.getNotificationSettings { s in
+            guard s.authorizationStatus == .authorized || s.authorizationStatus == .provisional else { return }
+            self.defaults.set(true, forKey: Key.criticalAsked)
+            center.requestAuthorization(options: [.alert, .sound, .badge, .criticalAlert]) { _, error in
+                center.getNotificationSettings { po in
+                    DispatchQueue.main.async {
+                        let opis: String
+                        switch po.criticalAlertSetting {
+                        case .enabled: opis = "tak"
+                        case .disabled: opis = "odmowa"
+                        default: opis = "brak uprawnienia"
+                        }
+                        self.defaults.set("pytanie: " + opis + (error == nil ? "" : " (" + error!.localizedDescription + ")"),
+                                          forKey: Key.criticalProbe)
+                        self.zapamietajZgodeKrytyczna(po.criticalAlertSetting == .enabled)
+                    }
                 }
             }
         }
