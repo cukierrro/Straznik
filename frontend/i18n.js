@@ -301,8 +301,8 @@
     {
       const yv = document.getElementById("yv-note");
       if (yv) yv.innerHTML = en
-        ? "Applies to the <b>yellow</b> attention sound only. The red alert always sounds the same. “No sound” keeps the banner and the vibration."
-        : "Dotyczy wyłącznie <b>żółtego</b> sygnału uwagi. Czerwony alarm gra zawsze tak samo. „Bez dźwięku” zostawia baner i wibrację.";
+        ? "Applies to the <b>yellow</b> attention sound only. It does not silence the red alert, which has its own setting. “No sound” keeps the banner and the vibration."
+        : "Dotyczy wyłącznie <b>żółtego</b> sygnału uwagi. Czerwonego alarmu to nie wycisza — ma on własne ustawienie. „Bez dźwięku” zostawia baner i wibrację.";
     }
     many(":scope .set-tab", en
       ? ["Alerts","My places","Sound","App"] : ["Alarmy","Moje miejsca","Dźwięk","Aplikacja"]);
@@ -593,8 +593,6 @@
     "Normal": "Звичайна",
     "Quieter": "Тихіше",
     "No sound": "Без звуку",
-    "Applies to the yellow attention sound only. The red alert always sounds the same. “No sound” keeps the banner and the vibration.":
-      "Стосується лише жовтого сигналу уваги. Червона тривога звучить завжди однаково. «Без звуку» залишає банер і вібрацію.",
     "Native alert and volume": "Системна тривога і гучність",
     "Red alert always at full volume": "Червона тривога завжди на повній гучності",
     "🔊 Android sound settings": "🔊 Налаштування звуку Android",
@@ -699,7 +697,6 @@
     }
     document.querySelector(".brand")?.setAttribute("aria-label", "About Strażnik");
     document.getElementById("status-leds")?.setAttribute("title", "Data-source status — select for details");
-    { const el = document.getElementById("rs-note"); if (el) el.innerHTML = "Сирена змовкає, решта тривоги лишається: повний екран, миготіння і сильна вібрація, зокрема в режимі «Не турбувати». Спарений годинник завібрує так само. <b>Обміркуйте це перед ніччю:</b> з вимкненим екраном і телефоном в іншій кімнаті ви можете такої тривоги не помітити. Стосується лише червоного — жовтий сигнал уваги має власне налаштування вище."; }
     const api = document.getElementById("set-api"); if (api) api.placeholder = "blank = Strażnik server (recommended)";
     const set = (sel, value) => { const el = document.querySelector(sel); if (el) el.textContent = value; };
     const setMany = (sel, values) => document.querySelectorAll(sel).forEach((el,i) => {
@@ -893,7 +890,7 @@
     set("#yv-quiet", "Quieter");
     set("#yv-silent", "No sound");
     const yvNote = document.getElementById("yv-note");
-    if (yvNote) yvNote.innerHTML = "Applies to the <b>yellow</b> attention sound only. The red alert always sounds the same. “No sound” keeps the banner and the vibration.";
+    if (yvNote) yvNote.innerHTML = "Applies to the <b>yellow</b> attention sound only. It does not silence the red alert, which has its own setting. “No sound” keeps the banner and the vibration.";
     set("#ns-head", "Native alert and volume");
     set("#ns-label", "Red alert always at full volume");
     const nsNote = document.getElementById("ns-note");
@@ -966,6 +963,12 @@
     }
     const api = document.getElementById("set-api");
     if (api) api.placeholder = "порожнє = сервер Strażnika (рекомендовано)";
+    // Oba akapity maja <b>, wiec slownik EN2UK ich nie zlapie: klucz jest calym zdaniem,
+    // a pogrubienie rozbija je na osobne wezly tekstowe. Podmieniamy wprost.
+    const rsNote = document.getElementById("rs-note");
+    if (rsNote) rsNote.innerHTML = "Сирена змовкає, решта тривоги лишається: повний екран, миготіння і сильна вібрація, зокрема в режимі «Не турбувати». Спарений годинник завібрує так само. <b>Обміркуйте це перед ніччю:</b> з вимкненим екраном і телефоном в іншій кімнаті ви можете такої тривоги не помітити. Стосується лише червоного — жовтий сигнал уваги має власне налаштування вище.";
+    const yvNote = document.getElementById("yv-note");
+    if (yvNote) yvNote.innerHTML = "Стосується лише <b>жовтого</b> сигналу уваги. Червону тривогу це не вимикає — вона має власне налаштування. «Без звуку» залишає банер і вібрацію.";
     const placeName = document.getElementById("place-name");
     if (placeName) placeName.placeholder = "напр. Дім";
     const live = document.getElementById("tb-live");

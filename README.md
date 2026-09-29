@@ -6,6 +6,16 @@
 
 Serwer: **hostowane na [Mikrusie](https://mikr.us)** — dziękujemy za wsparcie projektu.
 
+Wersja 1.7.86: czerwony alarm może budzić samą wibracją. Nowy przełącznik
+⚙ → Dźwięk → „Czerwony alarm: tylko wibracja, bez syreny” (Android) wycisza
+samą syrenę — wibracja, pełny ekran, miganie i przejście przez tryb Nie
+przeszkadzać zostają, a sparowany zegarek zawibruje tak samo. Ustawienia
+dźwięku przestały ze sobą walczyć: „Test: syrena” gra mimo ciszy, a opcja
+pełnej głośności jest przy niej nieczynna. Na iPhonie działa już przycisk
+zgody na alarm mimo wyciszenia — Apple przyznało uprawnienie Critical Alerts
+28.09.2026, a przycisk z 1.7.84 chował się sam przed sobą. Szczegóły:
+`docs/RELEASE_1.7.86.md`.
+
 Wersja 1.7.85: zakładka Zasady w GROCIE mówi to, co Komenda Główna PSP
 odpowiedziała na wniosek o informację publiczną (pismo z 25.09.2026). Wycofana
 obietnica dodania daty weryfikacji punktu — rejestr jej nie prowadzi i nie

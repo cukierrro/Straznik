@@ -39,6 +39,17 @@
   <p class="fineprint">To see which version your phone has, open the app: <kbd>⚙</kbd> → the <kbd>App</kbd> tab → “App version”. The <kbd>⬆ Check for updates</kbd> button is right there too.</p>
 </div></header>
 <main id="content" class="wrap">
+<section id="v1-7-86">
+  <h2>1.7.86 — A red alert can wake you with vibration alone</h2>
+  <p class="fineprint">Release 1.7.86 · 29 September 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.86">Full release notes</a></p>
+  <ul>
+    <li>A new switch in <kbd>⚙</kbd> → <kbd>Sound</kbd>: “Red alert: vibration only, no siren” (Android). Only <b>the sound</b> goes away: the vibration, the full screen, the flashing and getting through Do Not Disturb all stay, because anything else would be switching the alert off rather than changing how it reaches you. A paired watch vibrates just the same. Turning it on asks for confirmation and says plainly what it costs you at night. A reader on Facebook asked for this.</li>
+    <li>The sound settings stopped fighting each other. <kbd>Test: siren</kbd> now plays even while the silence is on, because it is a request to hear the sound, not an alert; <kbd>Test: full alert</kbd> respects the silence, because it shows what will really happen. The “always at full volume” option is inactive and dimmed while the silence is on — there is nothing to turn up — and your choice comes back when you switch the silence off.</li>
+    <li>On iPhone there is now a button to grant the alert-despite-silence permission. Apple granted us the <b>Critical Alerts</b> entitlement on 28 September. The button added in 1.7.84 did not work: iOS reports “not supported” until the app asks at least once, and we hid the button in exactly that case — so nobody ever asked. In the App Store build the permission would have been unreachable for everyone.</li>
+    <li>The Ukrainian version of the Sound tab: two paragraphs were still in English (one of them since 1.7.84). They are Ukrainian now.</li>
+  </ul>
+  <p class="fineprint">Scoring, thresholds and alert wording are unchanged. Alert-despite-silence on iPhone will only work in a build that passes App Store review; that is submitted separately.</p>
+</section>
 <section id="v1-7-85">
   <h2>1.7.85 — GROTA’s Rules tab matches the fire service’s written answer</h2>
   <p class="fineprint">Release 1.7.85 · 29 September 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.85">Full release notes</a></p>
