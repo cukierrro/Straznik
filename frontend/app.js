@@ -5591,7 +5591,22 @@ document.getElementById("btn-critical")?.addEventListener("click", async (e) => 
   e.target.disabled = true;
   try {
     const r = await BG()?.zgodaKrytyczna?.();
-    if (r && r.allowed === false) await BG()?.openNotificationSettings?.();
+    /* Kto odrzucił powiadomienia W OGÓLE, temu iOS nie pokaże żadnego okna
+       i zgłosi WSZYSTKIE ustawienia jako nieobsługiwane — także krytyczne.
+       Bez tego rozróżnienia otwieralibyśmy Ustawienia w ciszy, jakby to była
+       odmowa zgody krytycznej; człowiek szukałby tam „Alertów krytycznych",
+       których jeszcze nie ma, i wracał z niczym. Warstwa natywna sygnalizuje
+       ten przypadek osobno i celowo NIE zapisuje go jako „pytaliśmy", więc
+       przycisk zostaje widoczny. */
+    if (r?.reason === "powiadomienia-odrzucone") {
+      alert(UI.t(
+        "Najpierw włącz powiadomienia Strażnika.\n\nBez nich iPhone nie pozwala na alarm krytyczny i nie pokaże nawet pytania o zgodę. Otworzę teraz Ustawienia — włącz tam „Włącz powiadomienia”, wróć i naciśnij ten przycisk jeszcze raz.",
+        "Turn on notifications for Strażnik first.\n\nWithout them iPhone does not allow critical alerts and will not even show the permission prompt. I will open Settings now — turn on “Allow Notifications” there, come back and press this button again.",
+        "Спершу увімкніть сповіщення Strażnika.\n\nБез них iPhone не дозволяє критичну тривогу і навіть не покаже запит на дозвіл. Зараз відкрию Налаштування — увімкніть там «Дозволити сповіщення», поверніться і натисніть цю кнопку ще раз."));
+      await BG()?.openNotificationSettings?.();
+    } else if (r && r.allowed === false) {
+      await BG()?.openNotificationSettings?.();
+    }
   } catch (err) {
     console.warn("zgoda na alarm krytyczny", err);
   } finally {
