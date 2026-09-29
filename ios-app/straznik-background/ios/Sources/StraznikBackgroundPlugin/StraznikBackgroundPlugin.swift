@@ -473,6 +473,13 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
             // Czy build w ogóle ma uprawnienie od Apple. Bez tego `app.js` chowa
             // przycisk zgody — inaczej użytkownik klikałby coś, co nic nie robi.
             "criticalSupported": s.criticalAlertSetting != .notSupported,
+            // Czy aplikacja KIEDYKOLWIEK poprosiła o zgodę krytyczną. iOS zgłasza
+            // `notSupported` także wtedy, gdy nikt jeszcze nie pytał — bez tego
+            // rozróżnienia `app.js` chowa przycisk, a bez przycisku nie ma jak
+            // zapytać (zapętlenie wykryte 29.09.2026 na telefonie testera).
+            // Reguła dla interfejsu: pokazuj przycisk, dopóki `criticalAsked`
+            // jest fałszem; chowaj dopiero, gdy pytaliśmy, a system nie potrafi.
+            "criticalAsked": defaults.bool(forKey: Key.criticalAsked),
             // Pusty `appVersion` celowo: app.js porównuje go z wydaniem APK na GitHubie
             // i proponowałby „aktualizację”, której na iPhonie nie da się zainstalować
             // (a Apple odrzuca aplikacje, które to proponują). Wersja iOS jest niżej.
@@ -553,6 +560,9 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
     /// wersji aplikacji.
     @objc func zgodaKrytyczna(_ call: CAPPluginCall) {
         let center = UNUserNotificationCenter.current()
+        // Odnotowujemy, że pytanie już poszło — `criticalSupported` sam nie
+        // rozróżnia „jeszcze nie pytaliśmy” od „pytaliśmy i system nie potrafi”.
+        defaults.set(true, forKey: Key.criticalAsked)
         center.requestAuthorization(options: [.alert, .sound, .badge, .criticalAlert]) { _, error in
             center.getNotificationSettings { s in
                 DispatchQueue.main.async {
