@@ -45,6 +45,8 @@
    tylko tam — dzięki temu tłumaczenia i układ zostają wspólne. */
 .ios-only { display: none !important; }
 .ios-app p.ios-only { display: block !important; }
+/* Akapit chowany z kodu mimo reguły .ios-only — wyższa szczegółowość wygrywa. */
+.ios-app p.ios-only.schowane { display: none !important; }
 .ios-app span.ios-only { display: inline !important; }
 /* Przełącznik nieczynny, bo inne ustawienie odebrało mu sens (np. pełna
    głośność przy czerwonym bez syreny). Wybór użytkownika zostaje zapamiętany. */

@@ -5453,6 +5453,11 @@ async function refreshBgStatus(previewLang = UI.lang) {
       const umie = IS_APP && IS_IOS && typeof BG()?.zgodaKrytyczna === "function"
         && s.criticalSupported !== false;
       critBtn.style.display = umie ? "" : "none";
+      /* Bez przycisku akapit opisywałby funkcję, której nie da się włączyć —
+         Adrian tak właśnie trafił (29.09.2026): przeczytał opis alarmu
+         krytycznego i nie znalazł żadnego przełącznika. Reguła .ios-only ma
+         !important, więc chowamy klasą o wyższej szczegółowości. */
+      document.getElementById("krytyczny-ios-note")?.classList.toggle("schowane", !umie);
       critBtn.textContent = s.criticalAllowed
         ? T("🔊 Alarm mimo wyciszenia: włączony",
             "🔊 Alert despite silent mode: on", "🔊 Тривога попри вимкнений звук: увімкнено")
