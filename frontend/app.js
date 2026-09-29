@@ -4003,13 +4003,17 @@ function czerwonyBezSyreny() {
   try { return localStorage.getItem("straznik_czerwony_cisza") === "1"; } catch { return false; }
 }
 
-function airRaidSiren(continuous = true) {
+/* Parametr mimoCiszy — przycisk „Test: syrena” to prośba „daj mi to usłyszeć”, a nie
+   alarm. Bez tego wyjątku test przy włączonej ciszy nie grał nic i wyglądał na
+   zepsuty. Pełny alarm i test natywny celowo ciszę SZANUJĄ: one pokazują, co
+   naprawdę się stanie. */
+function airRaidSiren(continuous = true, mimoCiszy = false) {
   try {
     stopSiren();
     sesjaAudioAlarmu(true);
     // Cisza zdejmuje SAM tor audio — wibracja, pełny ekran i miganie zostają,
     // dlatego nie wychodzimy z funkcji, tylko pomijamy oscylatory.
-    const bezSyreny = czerwonyBezSyreny();
+    const bezSyreny = czerwonyBezSyreny() && !mimoCiszy;
     const total = 3 * (SIREN_UP + SIREN_DOWN);
     /* Na iPhonie syrenę odtwarza CZĘŚĆ NATYWNA (24.09.2026): `dzwiekAlarmu({wlacz:true})`
        puszcza w pętli alarm_syrena.wav przez AVAudioPlayer w kategorii `playback`, co
@@ -5578,10 +5582,32 @@ document.getElementById("btn-critical")?.addEventListener("click", async (e) => 
 });
 document.getElementById("set-red-silent")?.addEventListener("change", async (e) => {
   const wlacz = !!e.target.checked;
-  try { localStorage.setItem("straznik_czerwony_cisza", wlacz ? "1" : "0"); } catch {}
-  try { await BG()?.setRedSilent?.({ enabled: wlacz }); } catch (err) {
-    console.warn("ustawienie ciszy czerwonego", err);
+  // Świadoma zgoda, tak jak przy pełnej głośności — tyle że tu stawka jest
+  // odwrotna: można alarmu NIE usłyszeć. Włączane bywa w dzień, skutek widać
+  // w nocy.
+  if (wlacz && !confirm(UI.t(
+      "Wyłączyć syrenę czerwonego alarmu?\n\nZostanie sama wibracja, pełny ekran i miganie. Przy wygaszonym ekranie i telefonie w drugim pokoju możesz takiego alarmu nie zauważyć. Wyłączysz to tym samym przełącznikiem.",
+      "Turn off the siren for red alerts?\n\nOnly vibration, the full screen and flashing will remain. With the screen off and the phone in another room you may not notice an alert like that. You can turn this off with the same switch.",
+      "Вимкнути сирену червоної тривоги?\n\nЗалишиться лише вібрація, повний екран і миготіння. З вимкненим екраном і телефоном в іншій кімнаті ви можете такої тривоги не помітити. Вимкнете це тим самим перемикачем."))) {
+    e.target.checked = false;
+    return;
   }
+  /* Zapisujemy DOPIERO po potwierdzeniu z warstwy natywnej. Odwrotna kolejność
+     przy nieudanym wywołaniu dawała rozjazd nie do zauważenia: otwarta
+     aplikacja milczy, a powiadomienie przy zgaszonym ekranie dalej wyje. */
+  let ok = false;
+  try {
+    const r = await BG()?.setRedSilent?.({ enabled: wlacz });
+    ok = !!r && r.redSilent === wlacz;
+  } catch (err) { console.warn("ustawienie ciszy czerwonego", err); }
+  if (!ok) {
+    e.target.checked = !wlacz;
+    alert(UI.t("Nie udało się zmienić tego ustawienia. Spróbuj ponownie.",
+               "Could not change this setting. Please try again.",
+               "Не вдалося змінити це налаштування. Спробуйте ще раз."));
+    return;
+  }
+  try { localStorage.setItem("straznik_czerwony_cisza", wlacz ? "1" : "0"); } catch {}
   setTimeout(refreshBgStatus, 400);
 });
 document.getElementById("btn-dnd-access")?.addEventListener("click", async () => {
@@ -5598,14 +5624,21 @@ function renderNativeSound(s, jezyk = UI.lang) {
   const T = (pl, en, uk) => jezyk === "pl" ? pl : jezyk === "uk" ? (uk !== undefined ? uk : en) : en;
   const vol = document.getElementById("ns-volume");
   const box = document.getElementById("set-force-volume");
-  if (box) box.checked = !!s.forceMaxVolume;
+  if (box) {
+    box.checked = !!s.forceMaxVolume;
+    // Przy ciszy „zawsze na pełnej głośności” nie ma czego podgłośnić. Zamiast
+    // kasować wybór użytkownika, blokujemy przełącznik i piszemy dlaczego —
+    // po wyłączeniu ciszy jego ustawienie wraca nietknięte.
+    box.disabled = !!s.redSilent;
+    box.closest("label")?.classList.toggle("wylaczone", !!s.redSilent);
+  }
   if (!vol) return;
   const pct = s.alarmVolumeMax ? Math.round(100 * (s.alarmVolume || 0) / s.alarmVolumeMax) : null;
   const lines = [];
   if (pct != null) lines.push(T(`Głośność „Alarmy” w Androidzie: <b>${pct}%</b>.`, `Android “Alarms” volume now: <b>${pct}%</b>.`, `Гучність «Будильники» в Android: <b>${pct}%</b>.`));
   // Gdy ciszę wybrał SAM użytkownik, to nie jest usterka do zgłoszenia — tylko
   // przypomnienie, żeby nie zdziwił się w nocy.
-  if (s.redSilent) lines.push(T("🔕 Czerwony alarm masz ustawiony na samą wibrację — syrena nie zagra.", "🔕 The red alert is set to vibration only — the siren will not sound.", "🔕 Червона тривога налаштована лише на вібрацію — сирена не пролунає."));
+  if (s.redSilent) lines.push(T("🔕 Czerwony alarm masz ustawiony na samą wibrację — syrena nie zagra. Dlatego „zawsze na pełnej głośności” jest nieczynne, a przycisk „Test: pełny alarm” też będzie bez dźwięku. Samą syrenę usłyszysz przyciskiem „Test: syrena”.", "🔕 The red alert is set to vibration only — the siren will not sound. That is why “always at full volume” is inactive and “Test: full alert” will also be silent. To hear the siren itself, use “Test: siren”.", "🔕 Червона тривога налаштована лише на вібрацію — сирена не пролунає. Тому «завжди на повній гучності» неактивне, а «Тест: повна тривога» також буде без звуку. Щоб почути саму сирену, скористайтеся кнопкою «Тест: сирена»."));
   else if (s.redChannelSound === false) lines.push(T("⚠ Dźwięk kanału czerwonego alarmu jest wyłączony w ustawieniach powiadomień.", "⚠ Sound for the red alert channel is off in notification settings.", "⚠ Звук каналу червоної тривоги вимкнено в налаштуваннях сповіщень."));
   vol.innerHTML = lines.join(" ");
 }
@@ -5724,7 +5757,7 @@ const aboutDlg = document.getElementById("about");
 document.getElementById("btn-about").onclick = () => aboutDlg.showModal();
 document.getElementById("about-close").onclick = () => aboutDlg.close();
 document.getElementById("btn-test-chime").onclick = () => { if (IS_APP && blockedByAlertsOff()) return; attentionChime(); };
-document.getElementById("btn-test-siren").onclick = () => { if (IS_APP && blockedByAlertsOff()) return; airRaidSiren(false); };
+document.getElementById("btn-test-siren").onclick = () => { if (IS_APP && blockedByAlertsOff()) return; airRaidSiren(false, true); };
 document.getElementById("btn-test-alarm").onclick = () => {
   if (IS_APP && blockedByAlertsOff()) return;
   document.getElementById("settings").close();

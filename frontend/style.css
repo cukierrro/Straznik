@@ -46,6 +46,10 @@
 .ios-only { display: none !important; }
 .ios-app p.ios-only { display: block !important; }
 .ios-app span.ios-only { display: inline !important; }
+/* Przełącznik nieczynny, bo inne ustawienie odebrało mu sens (np. pełna
+   głośność przy czerwonym bez syreny). Wybór użytkownika zostaje zapamiętany. */
+.set-switch.wylaczone { opacity: .45; }
+.set-switch.wylaczone .sw-track { cursor: not-allowed; }
 /* Przycisk zgody na alarm krytyczny (1.7.84) sam decyduje o widoczności przez
    style.display w app.js — reguła .ios-only nie może mu tego nadpisywać. */
 .ios-app button.ios-only { display: inline-block; }
