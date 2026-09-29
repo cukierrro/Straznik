@@ -563,3 +563,20 @@ w wersji testowej przełamało je od razu.
 bez pokrycia w dokumentacji Apple. Gdyby wypadł inaczej, telefon wraca na temat
 podstawowy przy najbliższym odczycie stanu (czyli przy wejściu aplikacji na
 pierwszy plan), więc okno bez alarmu liczy się w minutach, nie na stałe.
+
+### Kontrtest zdany: po cofnięciu zgody alarm nadal dochodzi (29.09.2026)
+
+Tester cofnął zgodę w Ustawieniach iOS, serwer wysłał drugi push (4,6 pkt):
+**baner przyszedł, nic nie zagrało** — i to jest zachowanie pożądane.
+Więcej: powiadomienie było **nad blokadą i oznaczone „PILNE”**, czyli iOS
+zdegradował je do time-sensitive, a nie wyrzucił. Po cofnięciu zgody alarm
+**nadal przebija tryb Skupienia**, traci wyłącznie dźwięk.
+
+| zgoda na alarm krytyczny | dźwięk | baner |
+|---|---|---|
+| udzielona | **syrena mimo wyciszenia** | tak, nad blokadą |
+| cofnięta | cisza | tak, nad blokadą, dalej „PILNE” |
+
+Łańcuch jest więc zamknięty w obie strony i decyzja o osobnym temacie FCM się
+broni: najgorszy skutek cofnięcia zgody jest łagodny i nie wymaga niczego cofać.
+Nie ma już punktu bez pokrycia w pomiarze.
