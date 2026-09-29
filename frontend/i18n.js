@@ -331,6 +331,9 @@
     button("btn-notif-settings","🔔 Ustawienia powiadomień","🔔 Notification settings");
     button("btn-battery","🔋 Wyłącz oszczędzanie baterii","🔋 Disable battery optimisation");
     button("btn-dnd-access","🌙 Alarm mimo Nie przeszkadzać","🌙 Alert despite Do Not Disturb");
+    button("rs-label", "Czerwony alarm: tylko wibracja, bez syreny", "Red alert: vibration only, no siren");
+    { const el = document.getElementById("rs-note");
+      if (el) el.innerHTML = en ? "The siren goes quiet, the rest of the alert stays: full screen, flashing and strong vibration, including in Do Not Disturb. A paired watch vibrates just the same. <b>Think it over before nightfall:</b> with the screen off and the phone in another room you may not notice an alert like that. Red only — the yellow attention signal has its own setting above." : "Syrena milknie, reszta alarmu zostaje: pełny ekran, miganie i mocna wibracja, także przy trybie Nie przeszkadzać. Sparowany zegarek zawibruje tak samo. <b>Przemyśl to przed nocą:</b> przy wygaszonym ekranie i telefonie w drugim pokoju możesz takiego alarmu nie zauważyć. Dotyczy wyłącznie czerwonego — żółty sygnał uwagi ma własne ustawienie wyżej."; }
     { const el = document.getElementById("dnd-note"); if (el) el.innerHTML = en ? DND_NOTE_EN : DND_NOTE_PL; }
     button("btn-test-chime","▶ Test: uwaga","▶ Test: attention");
     button("btn-test-siren","▶ Test: syrena","▶ Test: siren");
@@ -567,6 +570,7 @@
     "🔔 Notification settings": "🔔 Налаштування сповіщень",
     "🔋 Disable battery optimisation": "🔋 Вимкнути економію батареї",
     "🌙 Alert despite Do Not Disturb": "🌙 Тривога попри «Не турбувати»",
+    "Red alert: vibration only, no siren": "Червона тривога: лише вібрація, без сирени",
     "Critical alerts are a separate permission from Apple: a red alert will sound even when the phone is muted with the switch or in Focus mode. It applies to the red level only — the yellow attention signal stays quiet. iPhone asks for this permission once; if you decline it, you can turn it on later in the phone’s Settings. You can withdraw it at any time in the same place.": "Критична тривога — це окремий дозвіл Apple: червона тривога пролунає навіть тоді, коли телефон вимкнено перемикачем або він у режимі Фокусування. Це стосується лише червоного рівня — жовтий сигнал уваги лишається тихим. iPhone запитає про цей дозвіл лише один раз; якщо ви відмовите, увімкнете його згодом у Налаштуваннях телефону. Відкликати його можна будь-коли там само.",
     "🚨 Allow full-screen alerts": "🚨 Дозволити повноекранні тривоги",
     "🚨 Check full-screen alert permission": "🚨 Перевірити дозвіл на повноекранну тривогу",
@@ -695,6 +699,7 @@
     }
     document.querySelector(".brand")?.setAttribute("aria-label", "About Strażnik");
     document.getElementById("status-leds")?.setAttribute("title", "Data-source status — select for details");
+    { const el = document.getElementById("rs-note"); if (el) el.innerHTML = "Сирена змовкає, решта тривоги лишається: повний екран, миготіння і сильна вібрація, зокрема в режимі «Не турбувати». Спарений годинник завібрує так само. <b>Обміркуйте це перед ніччю:</b> з вимкненим екраном і телефоном в іншій кімнаті ви можете такої тривоги не помітити. Стосується лише червоного — жовтий сигнал уваги має власне налаштування вище."; }
     const api = document.getElementById("set-api"); if (api) api.placeholder = "blank = Strażnik server (recommended)";
     const set = (sel, value) => { const el = document.querySelector(sel); if (el) el.textContent = value; };
     const setMany = (sel, values) => document.querySelectorAll(sel).forEach((el,i) => {
@@ -879,6 +884,8 @@
     set("#alerts-on-label", "Alerts on this phone");
     set("#alerts-on-note", "Turn off if you only want to view the map");
     set("#btn-dnd-access", "🌙 Alert despite Do Not Disturb");
+    set("#rs-label", "Red alert: vibration only, no siren");
+    { const el = document.getElementById("rs-note"); if (el) el.innerHTML = "The siren goes quiet, the rest of the alert stays: full screen, flashing and strong vibration, including in Do Not Disturb. A paired watch vibrates just the same. <b>Think it over before nightfall:</b> with the screen off and the phone in another room you may not notice an alert like that. Red only — the yellow attention signal has its own setting above."; }
     const dndNote = document.getElementById("dnd-note");
     if (dndNote) dndNote.innerHTML = DND_NOTE_EN;
     set("#yv-head", "Attention sound volume (yellow)");

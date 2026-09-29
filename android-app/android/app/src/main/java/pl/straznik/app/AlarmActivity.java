@@ -213,6 +213,10 @@ public class AlarmActivity extends Activity {
     }
 
     private void startSiren() {
+        // Opcja „tylko wibracja” (29.09.2026): pełny ekran, miganie i wibracja
+        // zostają, milknie sam dźwięk. Bez tego warunku syrena i tak by zagrała,
+        // bo pełnoekranowy alarm ma własny odtwarzacz, niezależny od kanału.
+        if (Alarms.redSilent(this)) return;
         try {
             // ta sama modulowana syrena, którą gra otwarta aplikacja (scripts/build_sounds.py)
             Uri uri = Alarms.soundUri(this, R.raw.alarm_syrena);

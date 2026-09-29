@@ -254,6 +254,7 @@ public class BackgroundPlugin extends Plugin {
         } catch (Exception ignored) {}
         ret.put("forceMaxVolume", Alarms.forceVolumeEnabled(c));
         ret.put("redChannelSound", Alarms.highChannelPlaysSound(c));
+        ret.put("redSilent", Alarms.redSilent(c));
         ret.put("yellowLevel", Alarms.yellowLevel(c));
         call.resolve(ret);
     }
@@ -271,6 +272,26 @@ public class BackgroundPlugin extends Plugin {
         Alarms.createChannels(c);
         JSObject ret = new JSObject();
         ret.put("yellowLevel", Alarms.yellowLevel(c));
+        call.resolve(ret);
+    }
+
+    /**
+     * Czerwony alarm bez syreny — sama wibracja. Prośba czytelnika z 29.09.2026:
+     * „niech zamiast syreny zawibruje zegarek”. Sparowany zegarek dostaje kopię
+     * powiadomienia i wibruje niezależnie od tego, czy telefon gra.
+     *
+     * Świadomie NIE obniżamy ważności kanału ani nie zdejmujemy obejścia trybu
+     * Nie przeszkadzać: alarm ma nadal wyskoczyć nad blokadą i zawibrować w nocy.
+     * Zdejmujemy wyłącznie dźwięk.
+     */
+    @PluginMethod
+    public void setRedSilent(PluginCall call) {
+        boolean enabled = Boolean.TRUE.equals(call.getBoolean("enabled", false));
+        Context c = getContext();
+        Alarms.prefs(c).edit().putBoolean(Alarms.KEY_RED_SILENT, enabled).apply();
+        Alarms.createChannels(c);
+        JSObject ret = new JSObject();
+        ret.put("redSilent", Alarms.redSilent(c));
         call.resolve(ret);
     }
 

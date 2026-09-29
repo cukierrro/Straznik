@@ -3990,10 +3990,26 @@ function sesjaAudioAlarmu(wlacz) {
    metody natywnej — wtedy alarm w aplikacji byłby BEZ DŹWIĘKU. Warunek do
    sprawdzenia po stronie sesji iOS przed każdym zgłoszeniem do Apple. */
 
+/* Czerwony alarm „tylko wibracja” (Android, prośba czytelnika 29.09.2026).
+   Stan trzymamy lokalnie, bo syrenę w OTWARTEJ aplikacji gra strona, a nie
+   warstwa natywna — samo przestawienie kanału powiadomień by jej nie wyciszyło.
+   Wartość przychodzi z natywnego status() i jest tam zapisywana na stałe. */
+function czerwonyBezSyreny() {
+  // Przełącznik istnieje WYŁĄCZNIE na Androidzie: iOS nie pozwala wyciszyć
+  // pojedynczego rodzaju powiadomienia, więc cisza w otwartej aplikacji przy
+  // wyjącym pushu byłaby myląca. Dzięki temu zachowanie na iPhonie jest tu
+  // nietknięte, co sprawdzają scripts/test_ios_wspolne.cjs i test_syrena_ios.cjs.
+  if (IS_IOS) return false;
+  try { return localStorage.getItem("straznik_czerwony_cisza") === "1"; } catch { return false; }
+}
+
 function airRaidSiren(continuous = true) {
   try {
     stopSiren();
     sesjaAudioAlarmu(true);
+    // Cisza zdejmuje SAM tor audio — wibracja, pełny ekran i miganie zostają,
+    // dlatego nie wychodzimy z funkcji, tylko pomijamy oscylatory.
+    const bezSyreny = czerwonyBezSyreny();
     const total = 3 * (SIREN_UP + SIREN_DOWN);
     /* Na iPhonie syrenę odtwarza CZĘŚĆ NATYWNA (24.09.2026): `dzwiekAlarmu({wlacz:true})`
        puszcza w pętli alarm_syrena.wav przez AVAudioPlayer w kategorii `playback`, co
@@ -4003,7 +4019,7 @@ function airRaidSiren(continuous = true) {
        z wtyczki nie działała, bo dla Web Audio w WKWebView robi to WebKit.
        Żółtego sygnału uwagi to nie dotyczy — zostaje w stronie i ma podlegać wyciszeniu. */
     let o = null, g = null, c = null, t0 = 0, until = 0;
-    const webAudio = !IS_IOS;
+    const webAudio = !IS_IOS && !bezSyreny;   // cisza zdejmuje tor audio, nie wibrację
     if (webAudio) {
       c = ctx(); t0 = c.currentTime;
       o = c.createOscillator(); g = c.createGain();
@@ -5560,6 +5576,14 @@ document.getElementById("btn-critical")?.addEventListener("click", async (e) => 
     setTimeout(refreshBgStatus, 800);
   }
 });
+document.getElementById("set-red-silent")?.addEventListener("change", async (e) => {
+  const wlacz = !!e.target.checked;
+  try { localStorage.setItem("straznik_czerwony_cisza", wlacz ? "1" : "0"); } catch {}
+  try { await BG()?.setRedSilent?.({ enabled: wlacz }); } catch (err) {
+    console.warn("ustawienie ciszy czerwonego", err);
+  }
+  setTimeout(refreshBgStatus, 400);
+});
 document.getElementById("btn-dnd-access")?.addEventListener("click", async () => {
   await BG()?.requestDndAccess?.(); setTimeout(refreshBgStatus, 800);
 });
@@ -5579,7 +5603,10 @@ function renderNativeSound(s, jezyk = UI.lang) {
   const pct = s.alarmVolumeMax ? Math.round(100 * (s.alarmVolume || 0) / s.alarmVolumeMax) : null;
   const lines = [];
   if (pct != null) lines.push(T(`Głośność „Alarmy” w Androidzie: <b>${pct}%</b>.`, `Android “Alarms” volume now: <b>${pct}%</b>.`, `Гучність «Будильники» в Android: <b>${pct}%</b>.`));
-  if (s.redChannelSound === false) lines.push(T("⚠ Dźwięk kanału czerwonego alarmu jest wyłączony w ustawieniach powiadomień.", "⚠ Sound for the red alert channel is off in notification settings.", "⚠ Звук каналу червоної тривоги вимкнено в налаштуваннях сповіщень."));
+  // Gdy ciszę wybrał SAM użytkownik, to nie jest usterka do zgłoszenia — tylko
+  // przypomnienie, żeby nie zdziwił się w nocy.
+  if (s.redSilent) lines.push(T("🔕 Czerwony alarm masz ustawiony na samą wibrację — syrena nie zagra.", "🔕 The red alert is set to vibration only — the siren will not sound.", "🔕 Червона тривога налаштована лише на вібрацію — сирена не пролунає."));
+  else if (s.redChannelSound === false) lines.push(T("⚠ Dźwięk kanału czerwonego alarmu jest wyłączony w ustawieniach powiadomień.", "⚠ Sound for the red alert channel is off in notification settings.", "⚠ Звук каналу червоної тривоги вимкнено в налаштуваннях сповіщень."));
   vol.innerHTML = lines.join(" ");
 }
 async function refreshNativeSound() {
@@ -5591,6 +5618,11 @@ async function refreshNativeSound() {
     // Alarms.java). localStorage to tylko kopia dla otwartej aplikacji i trybu
     // wbudowanego — przy starcie wyrównujemy ją do natywnej.
     if (s.yellowLevel) { try { localStorage.setItem("straznik_zolty_poziom", s.yellowLevel); } catch {} }
+    if (s.redSilent !== undefined) {
+      try { localStorage.setItem("straznik_czerwony_cisza", s.redSilent ? "1" : "0"); } catch {}
+      const rs = document.getElementById("set-red-silent");
+      if (rs) rs.checked = !!s.redSilent;
+    }
     renderYellowLevel();
   } catch {}
 }

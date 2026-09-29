@@ -849,6 +849,11 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
         <span class="sw-text"><b id="ns-label">Czerwony alarm zawsze na pełnej głośności</b></span>
         <input type="checkbox" role="switch" id="set-force-volume">
         <span class="sw-track" aria-hidden="true"></span></label>
+      <label class="set-switch android-only" for="set-red-silent">
+        <span class="sw-text"><b id="rs-label">Czerwony alarm: tylko wibracja, bez syreny</b></span>
+        <input type="checkbox" role="switch" id="set-red-silent">
+        <span class="sw-track" aria-hidden="true"></span></label>
+      <div class="fineprint android-only" id="rs-note">Syrena milknie, reszta alarmu zostaje: pełny ekran, miganie i mocna wibracja, także przy trybie Nie przeszkadzać. Sparowany zegarek zawibruje tak samo. <b>Przemyśl to przed nocą:</b> przy wygaszonym ekranie i telefonie w drugim pokoju możesz takiego alarmu nie zauważyć. Dotyczy wyłącznie czerwonego — żółty sygnał uwagi ma własne ustawienie wyżej.</div>
       <div class="fineprint android-only" id="ns-note">Syrena gra na suwaku głośności <b>„Alarmy”</b>
         (nie „Dzwonek” ani „Multimedia”). Czerwony alarm podnosi go <b>co najmniej do połowy</b>,
         żeby syrena nie była cicha. Opcja wyżej jest domyślnie <b>wyłączona</b> — po jej włączeniu

@@ -41,6 +41,11 @@ class Alarms {
     // WYŁĄCZNIE przez wybór kanału (zgłoszenia czytelników: żółty budzi w nocy).
     static final String CH_INFO_QUIET = "straznik-info-cicho-v1";
     static final String CH_INFO_SILENT = "straznik-info-cisza-v1";
+    // Czerwony bez dźwięku, ale z pełną wibracją i obejściem Nie przeszkadzać
+    // (prośba czytelnika 29.09.2026: „zamiast syreny niech zawibruje zegarek”).
+    // Osobny kanał, bo Android nie pozwala wyciszyć pojedynczego powiadomienia —
+    // można tylko wybrać kanał z innym dźwiękiem albo bez niego.
+    static final String CH_HIGH_SILENT = "straznik-high-cisza-v1";
     // bez dźwięku: alarm potwierdzony, wiadomość opóźniona, powtórzenie
     static final String CH_QUIET = "straznik-quiet-v1";
     // stare kanały do sprzątnięcia: dawne wersje z systemowymi dźwiękami oraz
@@ -62,6 +67,7 @@ class Alarms {
     static final String KEY_FORCE_VOLUME = "force_max_volume";
     /** Głośność żółtego wybrana przez użytkownika: „normal”, „quiet” albo „silent”. */
     static final String KEY_YELLOW_LEVEL = "yellow_level";
+    static final String KEY_RED_SILENT = "czerwony_cisza";
     /** Użytkownik wyłączył „Alarmy na tym telefonie” — usługa FCM odrzuca alarmy. */
     static final String KEY_ALERTS_OFF = "alerts_off";
     private static final String KEY_SAVED_VOLUME = "saved_alarm_volume";
@@ -147,6 +153,18 @@ class Alarms {
         high.setSound(soundUri(ctx, R.raw.alarm_syrena), alarmAttrs);
         nm.createNotificationChannel(high);
 
+        // Ten sam czerwony, tylko bez syreny. Wibracja, ważność i obejście trybu
+        // Nie przeszkadzać zostają bez zmian — chodzi o zdjęcie dźwięku, nie o
+        // obniżenie alarmu do zwykłego powiadomienia.
+        NotificationChannel highSilent = new NotificationChannel(CH_HIGH_SILENT,
+            "Wysoki priorytet — tylko wibracja (czerwony)", NotificationManager.IMPORTANCE_HIGH);
+        highSilent.setDescription("Alarm bez syreny: sama wibracja i pełny ekran");
+        highSilent.enableVibration(true);
+        highSilent.setVibrationPattern(new long[]{0, 700, 300, 700, 300, 900});
+        highSilent.setBypassDnd(true);
+        highSilent.setSound(null, null);
+        nm.createNotificationChannel(highSilent);
+
         NotificationChannel quiet = new NotificationChannel(CH_QUIET,
             "Alarmy potwierdzone i opóźnione (cicho)", NotificationManager.IMPORTANCE_LOW);
         quiet.setDescription("Bez dźwięku: potwierdzony alarm i wiadomości, które dotarły z opóźnieniem");
@@ -176,7 +194,7 @@ class Alarms {
         try {
             NotificationManager nm = ctx.getSystemService(NotificationManager.class);
             if (nm == null || !nm.areNotificationsEnabled()) return false;
-            NotificationChannel ch = nm.getNotificationChannel(CH_HIGH);
+            NotificationChannel ch = nm.getNotificationChannel(highChannel(ctx));
             return ch != null && ch.getSound() != null
                 && ch.getImportance() >= NotificationManager.IMPORTANCE_DEFAULT;
         } catch (Exception e) {
@@ -211,6 +229,16 @@ class Alarms {
         return ("quiet".equals(v) || "silent".equals(v)) ? v : "normal";
     }
 
+    /** Czy czerwony alarm ma iść bez syreny (sama wibracja). */
+    static boolean redSilent(Context ctx) {
+        return prefs(ctx).getBoolean(KEY_RED_SILENT, false);
+    }
+
+    /** Kanał czerwonego: z syreną albo sam z wibracją, zależnie od ustawienia. */
+    static String highChannel(Context ctx) {
+        return redSilent(ctx) ? CH_HIGH_SILENT : CH_HIGH;
+    }
+
     /** Kanał żółtego zależnie od ustawienia użytkownika. Czerwonego to nie dotyczy. */
     static String infoChannel(Context ctx) {
         switch (yellowLevel(ctx)) {
@@ -227,6 +255,9 @@ class Alarms {
     }
 
     static void raiseAlarmVolume(Context ctx) {
+        // Przy „tylko wibracja” podnoszenie głośności alarmów byłoby ingerencją
+        // w ustawienia telefonu bez żadnego skutku — nic nie ma zagrać.
+        if (redSilent(ctx)) return;
         try {
             AudioManager am = (AudioManager) ctx.getSystemService(Context.AUDIO_SERVICE);
             if (am == null) return;
@@ -370,7 +401,7 @@ class Alarms {
                 .putExtra(AlarmActivity.EXTRA_SENT_AT, sentAtMs),
             PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
-        Notification.Builder b = builder(ctx, high ? CH_HIGH : infoChannel(ctx));
+        Notification.Builder b = builder(ctx, high ? highChannel(ctx) : infoChannel(ctx));
         b.setContentTitle(title)
          .setContentText(firstLine)
          .setStyle(new Notification.BigTextStyle().bigText(body.toString()))
