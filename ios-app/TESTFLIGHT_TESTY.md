@@ -513,3 +513,35 @@ miejsce, gdzie widać zmianę; maila o przyjęciu wniosku Apple nie wysyła).
 Czyli dziś na wyciszonym iPhonie: alarm przy **otwartej aplikacji** zagra syreną,
 alarm przy **zablokowanym ekranie** da baner i wibrację bez dźwięku. To warto
 napisać wprost w instrukcji dla iPhone'a.
+
+## 13. Alarm krytyczny: zapętlenie zgody (29.09.2026)
+
+Apple przyznało Critical Alerts 28.09 (wniosek `442YB6VV2L`), możliwość włączona
+przy identyfikatorze, uprawnienie w `App.entitlements`. Pierwszy build dla testera
+(`2609282126`) **nie działał**: na telefonie `krytyczne: brak uprawnienia`, w
+Ustawieniach iOS brak wiersza „Alerty krytyczne”, przycisk zgody niewidoczny.
+
+**Co NIE było przyczyną** — sprawdzone, nie założone. Profil podpisu niesie
+uprawnienie: bramka CI wypisuje teraz `Entitlements` z `embedded.mobileprovision`
+rozpakowanej paczki i `com.apple.developer.usernotifications.critical-alerts`
+tam jest. Uprawnienie w binarce to nie to samo co uprawnienie z profilu — system
+patrzy na profil — ale tu oba są w porządku.
+
+**Przyczyna: jedna wartość opisywała dwie sytuacje.** `criticalAlertSetting`
+zwraca `.notSupported` zarówno gdy uprawnienia nie ma, jak i (prawdopodobnie)
+dopóki aplikacja ANI RAZU nie poprosiła o zgodę. `app.js` chował przycisk właśnie
+przy `criticalSupported === false`, więc nie było jak zapytać, a bez pytania
+wartość się nie zmieniała.
+
+**Rozstrzygnięcie:** build `2609291237` w wersji testowej pyta o zgodę sam, raz,
+3 s po starcie, i zapisuje odpowiedź systemu w diagnostyce (`pytanie:` w wierszu
+wersji iOS). Wersja ze sklepu nigdy sama nie pyta.
+
+**Co z tego zostało na stałe:**
+
+* `status()` zwraca `criticalAsked` — interfejs rozróżnia „jeszcze nie pytaliśmy”
+  od „pytaliśmy i system nie potrafi”; przycisk chowany tylko w drugim przypadku;
+* `zgodaKrytyczna` **nie zużywa pytania**, gdy powiadomienia są odrzucone (iOS
+  raportuje wtedy wszystko jako `notSupported`) — zwraca
+  `reason: "powiadomienia-odrzucone"`, a interfejs mówi, co włączyć najpierw;
+* bramka CI sprawdza profil, nie tylko binarkę.
