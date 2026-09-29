@@ -560,17 +560,33 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
     /// wersji aplikacji.
     @objc func zgodaKrytyczna(_ call: CAPPluginCall) {
         let center = UNUserNotificationCenter.current()
-        // Odnotowujemy, że pytanie już poszło — `criticalSupported` sam nie
-        // rozróżnia „jeszcze nie pytaliśmy” od „pytaliśmy i system nie potrafi”.
-        defaults.set(true, forKey: Key.criticalAsked)
-        center.requestAuthorization(options: [.alert, .sound, .badge, .criticalAlert]) { _, error in
-            center.getNotificationSettings { s in
+        center.getNotificationSettings { przed in
+            // Przy odrzuconych powiadomieniach iOS w ogóle nie pokaże okna, a WSZYSTKIE
+            // ustawienia raportuje jako `notSupported`. Gdybyśmy odnotowali „pytaliśmy”,
+            // interfejs schowałby przycisk na zawsze i człowiek z wyłączonymi
+            // powiadomieniami nie miałby jak wrócić. Odsyłamy więc do Ustawień
+            // i NIE zapisujemy pytania.
+            guard przed.authorizationStatus != .denied else {
                 DispatchQueue.main.async {
-                    let zgoda = s.criticalAlertSetting == .enabled
-                    self.zapamietajZgodeKrytyczna(zgoda)
-                    call.resolve(["allowed": zgoda,
-                                  "supported": s.criticalAlertSetting != .notSupported,
-                                  "error": error?.localizedDescription ?? ""])
+                    call.resolve(["allowed": false, "supported": true, "asked": false,
+                                  "reason": "powiadomienia-odrzucone", "error": ""])
+                }
+                return
+            }
+            // Odnotowujemy, że pytanie poszło — `criticalSupported` sam nie rozróżnia
+            // „jeszcze nie pytaliśmy” od „pytaliśmy i system nie potrafi”.
+            self.defaults.set(true, forKey: Key.criticalAsked)
+            center.requestAuthorization(options: [.alert, .sound, .badge, .criticalAlert]) { _, error in
+                center.getNotificationSettings { s in
+                    DispatchQueue.main.async {
+                        let zgoda = s.criticalAlertSetting == .enabled
+                        self.zapamietajZgodeKrytyczna(zgoda)
+                        call.resolve(["allowed": zgoda,
+                                      "supported": s.criticalAlertSetting != .notSupported,
+                                      "asked": true,
+                                      "reason": "",
+                                      "error": error?.localizedDescription ?? ""])
+                    }
                 }
             }
         }
