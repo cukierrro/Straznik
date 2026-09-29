@@ -9,7 +9,12 @@ napisałem sam; jest do przejęcia i podważenia.
 
 ---
 
-## 1. Suwak „aktualizuj automatycznie" (Android)
+## 1. Suwak „aktualizuj automatycznie" (Android) — ODPUSZCZONE
+
+> **Decyzja użytkownika z 29.09.2026: nie robimy tego.** Uzasadnienie: i tak
+> przyjdzie moment, w którym większość pobrań pójdzie przez sklepy, a tam
+> aktualizacjami zarządza sklep. Rozpoznanie poniżej zostaje na wypadek
+> powrotu do tematu — nie jest zadaniem do zrobienia.
 
 ### Krótka odpowiedź: da się, i to naprawdę bez okienka — ale tylko na Androidzie 12+
 
@@ -163,6 +168,44 @@ Użytkownik pytał. Odpowiedź brzmi nie, i to dość stanowczo:
 - Skierowanie tam tysięcy ludzi naraz zapchałoby jedyny kanał, na którym ktoś
   może wołać o pomoc. To pogorszenie sytuacji, nie ulepszenie.
 
+### Czy aplikacja może w ogóle odtwarzać sygnał? To przesądza o kształcie funkcji
+
+Pytanie użytkownika okazało się najważniejsze w całej tej sprawie, bo
+rozstrzyga między dwiema zupełnie różnymi funkcjami.
+
+**Odtwarzanie cudzego programu we własnej aplikacji to prawdopodobnie
+„rozprowadzanie” w rozumieniu ustawy o radiofonii i telewizji** (art. 4 pkt 8:
+przejęcie programu w całości i bez zmian oraz równoczesne wtórne
+rozpowszechnianie). Nie jest to teoria — KRRiT zajęła stanowisko w niemal
+identycznej sprawie: serwis internetowy udostępniał programy telewizyjne
+„w całości i bez jakichkolwiek zmian” i został uznany za rozprowadzającego.
+
+Konsekwencje takiego zakwalifikowania:
+
+- **wpis do rejestru prowadzonego przez Przewodniczącego KRRiT** (art. 41
+  ust. 1 pkt 1), ze zgłoszeniem **nie później niż na miesiąc przed**
+  rozpoczęciem rozprowadzania;
+- wśród dokumentów do rejestracji jest **zgoda nadawcy** wraz z terminem jej
+  obowiązywania;
+- dochodzi warstwa praw do muzyki i nagrań (ZAiKS, ZPAV, STOART, SAWP), którą
+  przy własnej reemisji trzeba rozliczyć samodzielnie.
+
+Dla nas to zaporowe. Nie dlatego, że nie do przejścia, tylko dlatego, że
+byłaby to zupełnie inna działalność niż aplikacja ostrzegawcza.
+
+**Odnośnik otwierający stronę stacji w przeglądarce to co innego.** Niczego nie
+przejmujemy ani nie rozpowszechniamy wtórnie — słuchacz łączy się z nadawcą
+bezpośrednio, tak jak po kliknięciu dowolnego odnośnika. Obowiązki zostają po
+stronie nadawcy, który i tak je wypełnia.
+
+**Wniosek: żadnego odtwarzania w aplikacji, nawet w ukrytym odtwarzaczu.**
+Tylko częstotliwość FM — nasza własna dana, bez niczyich praw — i odnośnik
+otwierany na zewnątrz.
+
+Zastrzeżenie: nie jestem prawnikiem, a powyższe to zebrane przepisy i stanowisko
+KRRiT, nie porada prawna. Gdyby kiedykolwiek miało dojść do odtwarzania
+w aplikacji, to jest moment na prawnika, nie na własną ocenę.
+
 ### Czego nie robić
 
 - **Wbudowanego odtwarzacza.** Podpinanie cudzego strumienia pod własny
@@ -191,8 +234,8 @@ o radiu na baterie.
 ### Do sprawdzenia przed wdrożeniem
 
 1. Podstawa prawna obowiązku nadawania komunikatów — **nieustalona**.
-2. Czy regulaminy Polskiego Radia pozwalają linkować strumienie; jeśli nie —
-   odnośnik do strony stacji zamiast do strumienia.
+2. Czy regulaminy Polskiego Radia pozwalają linkować sam strumień; jeśli nie —
+   odnośnik do strony stacji. (Odtwarzanie u nas jest już wykluczone wyżej.)
 3. Rozmiar podzbioru danych UKE i licencja na ponowne wykorzystanie.
 4. Czy pokazywać to zawsze, czy dopiero przy poziomie czerwonym.
 
@@ -200,6 +243,11 @@ o radiu na baterie.
 
 ## Co z tego wynika dla kolejności prac
 
-Obie rzeczy są sensowne i obie są **osobnymi wydaniami**, nie dodatkiem do
-czegoś innego. Radio wymaga jeszcze weryfikacji trzech rzeczy wyżej, więc
-automatyczne aktualizacje są bliżej gotowości.
+Automatyczne aktualizacje są **zamknięte decyzją użytkownika** — sklepy i tak
+przejmą dystrybucję.
+
+Zostaje radio, w wersji okrojonej przez ustalenia o licencjach: **częstotliwość
+FM plus odnośnik na zewnątrz, bez odtwarzania**. To dobrze się składa, bo wersja
+bez odtwarzacza jest jednocześnie tą, która działa bez internetu — czyli lepsza
+także technicznie. Do wyjaśnienia zostają podstawa prawna obowiązku nadawania
+komunikatów i regulaminy Polskiego Radia.
