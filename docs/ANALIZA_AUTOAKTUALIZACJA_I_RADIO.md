@@ -1,5 +1,8 @@
 # Dwa pomysły użytkowników: automatyczne aktualizacje i „gdzie słuchać komunikatów"
 
+> **OBA POMYSŁY ZAMKNIĘTE — decyzja użytkownika z 29.09.2026. Nic z tego nie wchodzi do aplikacji.**
+> Dokument zostaje jako rozpoznanie, gdyby temat kiedyś wrócił. To nie jest lista zadań.
+
 **29 września 2026.** Analiza przed jakąkolwiek zmianą w kodzie — obie sprawy
 mają pułapki, które przy pochopnym wdrożeniu pogorszyłyby działanie narzędzia
 ostrzegawczego. Nic z tego nie jest zrobione ani zatwierdzone.
@@ -95,7 +98,18 @@ zawartością — to zmiana w ścieżce instalacji aplikacji.
 
 ---
 
-## 2. Odnośniki do radia i telewizji na czas alarmu
+## 2. Odnośniki do radia i telewizji na czas alarmu — ODPUSZCZONE
+
+> **Decyzja użytkownika z 29.09.2026: też tego nie robimy.** Uzasadnienie:
+> nawet sam odnośnik kończy się transferem danych w telefonie użytkownika,
+> a od tego właśnie chcemy ludzi odzwyczaić na czas zagrożenia. Zamiast
+> kombinować: niech stosują się do Poradnika — radio na baterie albo odbiornik
+> FM w telefonie.
+>
+> **W praktyce to znaczy: nie zmieniamy niczego.** GROTA już dziś mówi
+> w trzech językach „Jeśli usłyszysz sygnał alarmowy, włącz radio lub
+> telewizor i stosuj się do komunikatów" i zaleca w wyprawce radio na baterie
+> lub na korbkę. Rada jest na miejscu i zostaje.
 
 ### Pomysł trafia w realną lukę
 
@@ -243,11 +257,18 @@ o radiu na baterie.
 
 ## Co z tego wynika dla kolejności prac
 
-Automatyczne aktualizacje są **zamknięte decyzją użytkownika** — sklepy i tak
-przejmą dystrybucję.
+Obie sprawy są **zamknięte decyzją użytkownika z 29.09.2026** i żadna nie
+wchodzi do aplikacji.
 
-Zostaje radio, w wersji okrojonej przez ustalenia o licencjach: **częstotliwość
-FM plus odnośnik na zewnątrz, bez odtwarzania**. To dobrze się składa, bo wersja
-bez odtwarzacza jest jednocześnie tą, która działa bez internetu — czyli lepsza
-także technicznie. Do wyjaśnienia zostają podstawa prawna obowiązku nadawania
-komunikatów i regulaminy Polskiego Radia.
+Automatyczne aktualizacje: dystrybucję i tak przejmą sklepy, a w wariancie
+sklepowym ta funkcja musiałaby być wyłączona.
+
+Radio: nawet sam odnośnik kończy się transferem danych w telefonie, a rada,
+która naprawdę działa w czasie zagrożenia — radio na baterie — jest już
+w GROCIE. Dokładanie do niej kanału zależnego od sieci osłabiałoby własny
+przekaz.
+
+Z analizy zostają dwie rzeczy warte zapamiętania: cichy self-update **jest**
+możliwy na Androidzie 12+ (gdyby kiedyś wróciło), a odtwarzanie cudzego
+programu we własnej aplikacji wchodzi w reżim rozprowadzania z rejestracją
+w KRRiT — co zamyka temat własnego odtwarzacza raz na zawsze.
