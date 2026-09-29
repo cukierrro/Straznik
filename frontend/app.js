@@ -5443,15 +5443,29 @@ async function refreshBgStatus(previewLang = UI.lang) {
     }
     /* Alarm krytyczny (iOS, entitlement Apple z 28.09.2026). Osobna zgoda,
        bez której uprawnienie jest martwe: iPhone pyta o nią raz i tylko wprost.
-       Przycisk pokazujemy dopiero, gdy warstwa natywna potwierdzi, że umie —
-       starsze wydania ze sklepu tej metody nie mają. */
+       Przycisk wymaga tylko tego, żeby warstwa natywna miała metodę pytania —
+       starsze wydania ze sklepu jej nie mają. O resztę pyta warunek niżej. */
     /* Bez klasy ios-only: ta reguła ma !important, więc przykryłaby styl
        widoczności, a !important po naszej stronie z kolei zablokowałby ukrywanie.
        O tym guziku decyduje wyłącznie kod niżej. */
     const critBtn = document.getElementById("btn-critical");
     if (critBtn) {
+      /* ZAPĘTLENIE, na które nadział się Adrian (29.09.2026): iOS zgłasza
+         `criticalAlertSetting == .notSupported` dopóty, dopóki aplikacja ANI RAZU
+         nie poprosi o tę zgodę. Warunek `criticalSupported !== false` chował więc
+         przycisk, bez przycisku nikt nie pytał, a bez pytania system dalej mówił
+         „nie obsługuję". Na ekranie wyglądało to identycznie jak brak uprawnienia.
+         W wersji ze sklepu, która nigdy nie pyta sama, zgoda byłaby nieosiągalna
+         dla wszystkich.
+
+         Dlatego pytamy o `criticalAsked`, nie o samo wsparcie: przycisk jest
+         widoczny, dopóki nikt nie pytał, a chowamy go dopiero wtedy, gdy system
+         ODPOWIEDZIAŁ, że nie potrafi. Starsza warstwa natywna bez tego pola
+         (undefined) też pokaże przycisk — lepiej dać spróbować raz, niż zamknąć
+         kogoś w tym samym kole. */
+      const juzPytano = s.criticalAsked === true;
       const umie = IS_APP && IS_IOS && typeof BG()?.zgodaKrytyczna === "function"
-        && s.criticalSupported !== false;
+        && !(juzPytano && s.criticalSupported === false);
       critBtn.style.display = umie ? "" : "none";
       /* Bez przycisku akapit opisywałby funkcję, której nie da się włączyć —
          Adrian tak właśnie trafił (29.09.2026): przeczytał opis alarmu
