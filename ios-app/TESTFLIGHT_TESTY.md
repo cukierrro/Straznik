@@ -580,3 +580,17 @@ zdegradował je do time-sensitive, a nie wyrzucił. Po cofnięciu zgody alarm
 Łańcuch jest więc zamknięty w obie strony i decyzja o osobnym temacie FCM się
 broni: najgorszy skutek cofnięcia zgody jest łagodny i nie wymaga niczego cofać.
 Nie ma już punktu bez pokrycia w pomiarze.
+
+### Trzeci test: żółty dociera na temat krytyczny (29.09.2026)
+
+Najważniejszy z niesprawdzonych, bo wynika z samej konstrukcji: telefon ze zgodą
+przepisuje się na `voiv_X_krytyczne` i **przestaje słuchać `voiv_X`**. Gdyby żółty
+tam nie docierał, ci ludzie po cichu straciliby wszystkie ostrzeżenia o podwyższonej
+uwadze — a brak alarmu nie wygląda jak usterka, więc nikt by tego nie zgłosił.
+
+Warunki: **aplikacja całkiem zamknięta**, dzwonek włączony, telefon zablokowany.
+Wynik: baner plus **krótki sygnał uwagi** (nie syrena) — tester potwierdził, że
+dźwięk był „normalny dla żółtego”. Przy okazji zmierzona ścieżka z zamkniętą
+aplikacją, której wcześniej nie sprawdzaliśmy.
+
+Komplet trzech testów zamyka wszystko, co da się sprawdzić bez publikacji.
