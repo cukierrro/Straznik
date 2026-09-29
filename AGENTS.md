@@ -100,6 +100,14 @@ istniały od tygodni i nikt ich nie zauważył, bo nikt nie patrzył.
    użytkownik `straznik`, nie jako root).
 5. Strona: nagłówki bezpieczeństwa i CSP obecne, `/api/health/critical`
    zwraca 200.
+6. Ruch przez Cloudflare: suma GB na dobę oraz udział `bin` (paczki GROTY)
+   i `json` (odpytywanie `/api/state`). Panel nie pokazuje rozbicia na typy —
+   metoda, identyfikatory i punkt odniesienia z 29.09.2026 są w pamięci
+   projektu, nie tutaj, bo repozytorium jest publiczne. Reaguj, gdy `bin`
+   przekroczy ~15% bajtów albo utrzyma się powyżej 40 GB/dobę (wtedy wracamy
+   do przenosin paczek), gdy `png` wróci powyżej 10 GB/dobę (regres zysku
+   z 1.7.82) albo gdy tygodniowa średnia się podwoi. Pojedynczy szczyt przy
+   prawdziwym zdarzeniu to NIE jest powód do zmian — patrz na trend.
 
 **Co miesiąc — gruntowny audyt** w zakresie jak 26.09.2026: wszystko z listy
 tygodniowej oraz historia gita pod kątem sekretów, ustawienia repozytorium
