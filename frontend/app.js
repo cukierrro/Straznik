@@ -4678,9 +4678,24 @@ function paintTimeline(points) {
     : p.level === "elevated" ? "#ffb020"
     : p.score > 0 ? "#4a5c86" : "#2a3550";
   const n = points.length;
-  const stops = points.map((p, i) => {
-    const a = (i / n * 100).toFixed(2), b = ((i + 1) / n * 100).toFixed(2);
-    return `${color(p)} ${a}%, ${color(p)} ${b}%`;
+  /* Zgłoszenie #8 (30.09.2026): Firefox 156 na Windows 11 zawieszał się albo
+     wywalał przy wejściu w Historię. Pasek rysowaliśmy jako gradient z DWOMA
+     przystankami na każdy punkt osi — przy 12 h migawek co minutę daje to
+     1440 przystanków i 22 kB CSS-a w jednej właściwości, przeliczanej przy
+     każdym odmalowaniu suwaka. Kolorów jest tymczasem tylko cztery, więc
+     sklejamy sąsiednie punkty o tym samym kolorze w jeden pas: na danych
+     z 30.09 schodzi to z 1440 przystanków do 28, czyli 52 razy krócej.
+     Wygląd bez zmian — te same pasy, tylko opisane raz zamiast 51 razy. */
+  const pasy = [];
+  for (let i = 0; i < n; i++) {
+    const c = color(points[i]);
+    const ostatni = pasy[pasy.length - 1];
+    if (ostatni && ostatni.c === c) ostatni.do = i + 1;
+    else pasy.push({ c, od: i, do: i + 1 });
+  }
+  const stops = pasy.map(s => {
+    const a = (s.od / n * 100).toFixed(2), b = (s.do / n * 100).toFixed(2);
+    return `${s.c} ${a}%, ${s.c} ${b}%`;
   }).join(", ");
   slider.style.setProperty("--tl", `linear-gradient(90deg, ${stops})`);
 }
