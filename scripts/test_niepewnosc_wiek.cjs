@@ -78,6 +78,7 @@ function piaskownica({ approx = true, mierzona = null } = {}) {
     funkcja('nowRefMs'),
     funkcja('threatAgeMin'),
     funkcja('ageSlackKm'),
+    funkcja('uncertaintyParts'),
     funkcja('shownUncertaintyKm'),
   ].join('\n'), ctx);
   return ctx;
@@ -132,6 +133,18 @@ test('pozycja dokładna też się starzeje', () => {
 test('bez niepewności w źródle i przy pozycji dokładnej nie rysujemy okręgu', () => {
   const s = piaskownica({ approx: false });
   assert.equal(s.shownUncertaintyKm(obiekt(10, { uncertaintyKm: null }), TERAZ), null);
+});
+
+test('karta dostaje rozbicie, które sumuje się do pokazanej liczby', () => {
+  // Karta pisze „±24 km (12 km zgłoszenia + 12 km lotu od meldunku)”. Gdyby
+  // części zaokrąglały się osobno od sumy, liczby w nawiasie by się nie zgadzały.
+  const s = piaskownica();
+  for (const wiek of [0, 1, 4, 7, 15, 40]) {
+    const p = s.uncertaintyParts(obiekt(wiek), TERAZ);
+    assert.equal(p.zgloszenie + p.lot, s.shownUncertaintyKm(obiekt(wiek), TERAZ),
+      `wiek ${wiek} min: rozbicie musi sumować się do całości`);
+    assert.ok(Number.isInteger(p.zgloszenie) && Number.isInteger(p.lot));
+  }
 });
 
 test('w podglądzie historii wiek liczy się od migawki, nie od „teraz”', () => {

@@ -394,7 +394,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
   <div class="lg-row"><i class="lg-threat" data-type="unknown"></i> Obiekt nierozpoznany</div>
   <div class="lg-row"><i class="lg-threat" data-type="uav" data-heading-unknown="1"></i> kurs nieznany — ikona nie jest obracana</div>
   <div class="lg-row"><i class="pulse-ic"></i> pulsujący pierścień — obiekt liczy się teraz do punktów</div>
-  <div class="lg-row"><i class="ring"></i> okrąg = niepewność pozycji (±km)</div>
+  <div class="lg-row"><i class="ring"></i> okrąg = gdzie obiekt może być (±km, rośnie z wiekiem meldunku)</div>
   <div class="lg-row"><i class="trail"></i> przerywana linia = trasa przelotu</div>
   <div class="lg-row"><i class="plane-ic"></i> samolot wojskowy (ADS-B, jawny transponder)</div>
   <div class="lg-row"><span style="color:#39c5ec">🚁</span> śmigłowiec wojskowy (ADS-B) —
@@ -964,7 +964,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
      Cloudflare, więc po każdym wydaniu wystarczy podbić ?v= i przeglądarki
      dostają nowe app.js/engine.js OD RAZU, bez ręcznego czyszczenia cache CF.
      Podbijaj ?v= razem z versionName w build.gradle. -->
-<script src="i18n.js?v=1.7.86a"></script>
+<script src="i18n.js?v=1.7.87"></script>
 <!-- kontur Polski dla engine.js (audyt A2b, scripts/build_pl_outline.py) -->
 <script src="pl-outline.js?v=1.7.82"></script>
 <script src="engine.js?v=1.7.82"></script>

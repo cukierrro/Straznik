@@ -2100,11 +2100,15 @@ function openThreatPopup(lngLat, p) {
       <b style="color:${meta.color};filter:brightness(.75)">◆ ${meta.label}</b><br>
       ${p.opis ? esc2(p.opis) + "<br>" : ""}
       ${UI.t("wiarygodność", "confidence", "достовірність")}: <b>${esc2(UI.confidence(p.confidence, CONF_PL[p.confidence] || p.confidence))}</b>
-        · ${UI.t("niepewność pozycji", "position uncertainty", "невизначеність позиції")}: <b>±${p.uncertainty} km</b><br>
+        · ${UI.t("gdzie może być", "where it may be", "де може бути")}: <b>±${p.uncertainty} km</b>${
+          Number(p.unc_lot) > 0 && Number.isFinite(Number(p.uncertainty))
+            ? ` <span style="color:#95a1b7">(${Number(p.uncertainty) - Number(p.unc_lot)} km ${
+                UI.t("zgłoszenia", "report", "повідомлення")} + ${Number(p.unc_lot)} km ${
+                UI.t("lotu od meldunku", "flown since", "польоту відтоді")})</span>` : ""}<br>
       ${p.heading != null && !p.hdg_unknown ? `${p.heading_measured ? UI.t("kurs z ruchu", "heading from movement", "курс із руху") : UI.t("kurs", "heading", "курс")}: ${Math.round(p.heading)}° (${compass(p.heading)})${p.heading_measured && p.heading_source != null && Math.abs(((p.heading - p.heading_source) % 360 + 540) % 360 - 180) > 45 ? ` <span style="color:#95a1b7">(${UI.t("NEPTUN podaje", "NEPTUN reports", "NEPTUN повідомляє")} ${Math.round(p.heading_source)}°)</span>` : ""} · ` : ""}
       ${UI.t("odległość od granicy PL", "distance from the Polish border", "відстань від кордону Польщі")}: <b>${p.distance_text ?? ((p.dist_km ?? "?") + " km")}</b><br>
       ${UI.t("ostatni meldunek", "last report", "останнє повідомлення")}: <b>${ageAgoText(p.age_min)}</b>${Number(p.age_min) >= 15
-        ? ` <span style="color:#95a1b7">${UI.t("— obiekt mógł się od tego czasu przemieścić", "— the object may have moved on since", " — відтоді об'єкт міг переміститися")}</span>` : ""}<br>
+        ? ` <span style="color:#95a1b7">${UI.t("— rejon przestał już rosnąć, obiekt może być dalej", "— the area has stopped growing; the object may be further away", " — район уже перестав зростати, об'єкт може бути далі")}</span>` : ""}<br>
       ${courseVerdictHTML(p)}
       ${p.eta || ""}
       <span style="color:#68758c">${UI.t("Dane: NEPTUN — agregator OSINT, nie radar wojskowy", "Data: NEPTUN — OSINT aggregator, not military radar", "Дані: NEPTUN — агрегатор OSINT, а не військовий радар")}</span>`);
@@ -2532,14 +2536,20 @@ const APPROX_MIN_UNCERTAINTY_KM = 12;
    w 94–100% i nigdy kursu — to meldunek o rejonie, nie namiar. Pokazujemy szerszy
    rejon (25 km), żeby punkt na mapie nie udawał miejsca, w którym leci pocisk. */
 const FAST_TYPES_AREA_KM = 25, FAST_TYPES = new Set(["missile", "cruise", "ballistic", "kab"]);
-function shownUncertaintyKm(t, nowMs) {
+/* Dwie składowe rozbite osobno, bo karta obiektu ma je pokazać: sama suma
+   zmienia się w czasie i bez rozbicia wyglądałaby na chwiejną daną ze źródła. */
+function uncertaintyParts(t, nowMs) {
   const raw = Number(t?.uncertaintyKm);
   const km = Number.isFinite(raw) && raw > 0 ? raw : null;
   const base = isApproxPosition(t)
     ? Math.max(km ?? 0, FAST_TYPES.has(t?.type) ? FAST_TYPES_AREA_KM : APPROX_MIN_UNCERTAINTY_KM)
     : km;
   if (base == null) return null;
-  return Math.round(base + ageSlackKm(t, nowMs));
+  return { zgloszenie: Math.round(base), lot: Math.round(ageSlackKm(t, nowMs)) };
+}
+function shownUncertaintyKm(t, nowMs) {
+  const p = uncertaintyParts(t, nowMs);
+  return p == null ? null : p.zgloszenie + p.lot;
 }
 /* okrąg geograficzny (przybliżony) do wizualizacji uncertaintyKm */
 function circleCoords(lat, lon, km) {
@@ -2796,6 +2806,7 @@ function animate(ts) {
         heading_source: t.heading ?? null,
         color: meta.color,
         confidence: t.confidenceLevel || "?", uncertainty: shownUncertaintyKm(t, now) ?? "?",
+        unc_lot: uncertaintyParts(t, now)?.lot ?? 0,
         opis: threatDesc(t), dist_km: t.pl_assessment?.dist_km,
         distance_text: threatDistanceText(t, t.pl_assessment?.dist_km),
         // werdykt kursu jedzie razem ze znacznikiem, żeby karta obiektu mówiła
@@ -4839,6 +4850,7 @@ function showHistoryAt(idx) {
           hdg_unknown: t.heading == null || t.pl_assessment?.heading_known === false,
           color: (TYPE_META[t.type] || {}).color || "#8a93a6",
           confidence: t.confidenceLevel || "?", uncertainty: shownUncertaintyKm(t) ?? "?",
+          unc_lot: uncertaintyParts(t)?.lot ?? 0,
           opis: t.historicalOnly
             ? `${threatLabelPL(t.type)} — ostatnia pozycja z sygnału; obiekt nie występował już w tej migawce`
             : threatDesc(t),
