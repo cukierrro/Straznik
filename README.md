@@ -11,7 +11,7 @@ z wiekiem meldunku — bo rysujemy ostatnią znaną pozycję, a obiekt od tego c
 leci dalej. Czytelnik zapytał o drona 14 km w głębi Mołdawii: okrąg miał ±12 km
 i granicy nie dotykał, choć meldunek miał 4 minuty, a dron mógł w tym czasie
 przelecieć 12 km. Karta rozbija tę liczbę na niepewność zgłoszenia i drogę
-przeleconą od meldunku, a przy meldunku „kursem na X” mówi wprost, że to rejon
+przebytą od meldunku, a przy meldunku „kursem na X” mówi wprost, że to rejon
 na linii dolotu, nie zmierzone położenie. Pozycji nadal nie wyliczamy: ikona stoi
 tam, gdzie zgłosiło źródło. Szczegóły: `docs/RELEASE_1.7.87.md`.
 
