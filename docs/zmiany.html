@@ -14,12 +14,12 @@
 <meta property="og:url" content="https://cukierrro.github.io/Straznik/zmiany.html">
 <meta property="og:title" content="Strażnik — historia zmian">
 <meta property="og:description" content="Co zmieniło się w każdym wydaniu Strażnika: opis zmian ze zrzutami, od 1.7.12 do najnowszej wersji.">
-<meta property="og:image" content="https://cukierrro.github.io/Straznik/share-panel-v2.jpg">
+<meta property="og:image" content="https://cukierrro.github.io/Straznik/share-zmiany-v1.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:type" content="image/jpeg">
-<meta property="og:image:alt" content="Strażnik — historia zmian aplikacji">
-<meta name="twitter:image" content="https://cukierrro.github.io/Straznik/share-panel-v2.jpg">
+<meta property="og:image:alt" content="Strażnik — historia zmian: oś czasu kolejnych wydań">
+<meta name="twitter:image" content="https://cukierrro.github.io/Straznik/share-zmiany-v1.jpg">
 <meta property="og:locale" content="pl_PL">
 <meta property="og:locale:alternate" content="en_GB">
 <meta name="twitter:card" content="summary_large_image">
@@ -39,6 +39,29 @@
   <p class="fineprint">Wersję zainstalowaną na telefonie sprawdzisz w aplikacji: <kbd>⚙</kbd> → zakładka <kbd>Aplikacja</kbd> → „Wersja aplikacji”. Tam też jest przycisk <kbd>⬆ Sprawdź aktualizacje</kbd>.</p>
 </div></header>
 <main id="content" class="wrap">
+<section id="v1-7-87">
+  <h2>1.7.87 — okrąg pokazuje, gdzie obiekt naprawdę może być</h2>
+  <p class="fineprint">Wydanie 1.7.87 · 30 września 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.87">Pełny opis wydania</a></p>
+  <ul>
+    <li>Okrąg wokół obiektu <b>rośnie z wiekiem meldunku</b>. Rysujemy ostatnią <i>znaną</i> pozycję, więc okrąg obejmuje teraz także to, co obiekt zdążył przelecieć. Czytelnik zapytał o drona 14 km w głębi Mołdawii: okrąg miał ±12 km i granicy nie dotykał, choć meldunek miał 4 minuty, a dron przy 180 km/h mógł w tym czasie przelecieć 12 km. Mapa obiecywała pewność, której nie miała.</li>
+    <li>Karta obiektu rozbija tę liczbę: <i>gdzie może być: ±16 km (4 km zgłoszenia + 12 km lotu od meldunku)</i>. Bez rozbicia sama suma wyglądałaby na chwiejną daną ze źródła.</li>
+    <li>Dorzut jest ucinany na 15 minutach, a potem karta mówi: <i>rejon przestał już rosnąć, obiekt może być dalej</i>. Rakiety, KAB i balistyka zostają przy stałym rejonie — źródło nie podaje im kursu.</li>
+    <li>Przy meldunku „kursem na X” karta pisze wprost, że to <b>rejon na linii dolotu, a nie zmierzone położenie</b>. Dla tego drona namiar z podanego punktu na cel wynosił 315,9° przy kursie 316° podanym przez źródło — punkt został wyliczony, nie zaobserwowany.</li>
+    <li>Legenda i instrukcja opisują okrąg zgodnie z tym, co robi.</li>
+  </ul>
+  <p class="fineprint">Punktacja, progi i treść alarmów bez zmian. Zasada z <a href="#v1-7-83">1.7.83</a> zostaje: pozycji nie wyliczamy, ikona stoi tam, gdzie zgłosiło źródło — rośnie wyłącznie okrąg niepewności.</p>
+</section>
+<section id="v1-7-86">
+  <h2>1.7.86 — Czerwony alarm może budzić samą wibracją</h2>
+  <p class="fineprint">Wydanie 1.7.86 · 29 września 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.86">Pełny opis wydania</a></p>
+  <ul>
+    <li>Nowy przełącznik <kbd>⚙</kbd> → <kbd>Dźwięk</kbd> → „Czerwony alarm: tylko wibracja, bez syreny” (Android). Milknie <b>sam dźwięk</b>: wibracja, pełny ekran, miganie i przejście przez tryb Nie przeszkadzać zostają, bo inaczej byłoby to wyłączenie alarmu, a nie zmiana sposobu powiadamiania. Sparowany zegarek zawibruje tak samo. Włączenie wymaga potwierdzenia i mówi wprost, czym to grozi w nocy. To prośba czytelnika z Facebooka.</li>
+    <li>Ustawienia dźwięku przestały ze sobą walczyć. <kbd>Test: syrena</kbd> gra także przy włączonej ciszy, bo to prośba „daj mi to usłyszeć”, a nie alarm; <kbd>Test: pełny alarm</kbd> ciszę szanuje, bo pokazuje, co naprawdę się stanie. Opcja „zawsze na pełnej głośności” jest przy ciszy nieczynna i wygaszona — nie ma czego podgłaśniać — a Twój wybór wraca po jej wyłączeniu.</li>
+    <li>Na iPhonie pojawia się przycisk zgody na alarm mimo wyciszenia. Apple przyznało nam uprawnienie <b>Critical Alerts</b> 28 września. Przycisk dołożony w 1.7.84 nie działał: iOS zgłasza „nie obsługuję”, dopóki aplikacja ani razu nie zapyta, a my chowaliśmy wtedy przycisk — więc nikt nie pytał. W wersji ze sklepu zgoda byłaby nieosiągalna dla wszystkich.</li>
+    <li>Ukraińska wersja zakładki Dźwięk: dwa akapity zostawały po angielsku (jeden od 1.7.84). Teraz są po ukraińsku.</li>
+  </ul>
+  <p class="fineprint">Punktacja, progi i treść alarmów bez zmian. Alarm mimo wyciszenia na iPhonie zadziała dopiero w wersji, która przejdzie przegląd App Store — zgłaszamy ją osobno.</p>
+</section>
 <section id="v1-7-85">
   <h2>1.7.85 — Zasady GROTY zgodne z pisemną odpowiedzią PSP</h2>
   <p class="fineprint">Wydanie 1.7.85 · 29 września 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.85">Pełny opis wydania</a></p>

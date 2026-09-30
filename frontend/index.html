@@ -94,7 +94,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <link rel="icon" type="image/png" sizes="512x512" href="assets/icon-512.png">
 <link rel="apple-touch-icon" href="assets/icon-192.png">
 <link rel="stylesheet" href="assets/vendor/maplibre-gl.css?v=1.7.82">
-<link rel="stylesheet" href="style.css?v=1.7.84">
+<link rel="stylesheet" href="style.css?v=1.7.86a">
 </head>
 <body>
 
@@ -394,7 +394,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
   <div class="lg-row"><i class="lg-threat" data-type="unknown"></i> Obiekt nierozpoznany</div>
   <div class="lg-row"><i class="lg-threat" data-type="uav" data-heading-unknown="1"></i> kurs nieznany — ikona nie jest obracana</div>
   <div class="lg-row"><i class="pulse-ic"></i> pulsujący pierścień — obiekt liczy się teraz do punktów</div>
-  <div class="lg-row"><i class="ring"></i> okrąg = niepewność pozycji (±km)</div>
+  <div class="lg-row"><i class="ring"></i> okrąg = gdzie obiekt może być (±km, rośnie z wiekiem meldunku)</div>
   <div class="lg-row"><i class="trail"></i> przerywana linia = trasa przelotu</div>
   <div class="lg-row"><i class="plane-ic"></i> samolot wojskowy (ADS-B, jawny transponder)</div>
   <div class="lg-row"><span style="color:#39c5ec">🚁</span> śmigłowiec wojskowy (ADS-B) —
@@ -839,7 +839,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
         <button type="button" id="yv-silent" class="chip" data-poziom="silent">Bez dźwięku</button>
       </div>
       <div class="fineprint" id="yv-note">Dotyczy wyłącznie <b>żółtego</b> sygnału uwagi.
-        Czerwony alarm gra zawsze tak samo. „Bez dźwięku” zostawia baner i wibrację.</div>
+        Czerwonego alarmu to nie wycisza — ma on własne ustawienie. „Bez dźwięku” zostawia baner i wibrację.</div>
     </div>
 
     <div id="native-sound" class="app-only">
@@ -849,6 +849,11 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
         <span class="sw-text"><b id="ns-label">Czerwony alarm zawsze na pełnej głośności</b></span>
         <input type="checkbox" role="switch" id="set-force-volume">
         <span class="sw-track" aria-hidden="true"></span></label>
+      <label class="set-switch android-only" for="set-red-silent">
+        <span class="sw-text"><b id="rs-label">Czerwony alarm: tylko wibracja, bez syreny</b></span>
+        <input type="checkbox" role="switch" id="set-red-silent">
+        <span class="sw-track" aria-hidden="true"></span></label>
+      <div class="fineprint android-only" id="rs-note">Syrena milknie, reszta alarmu zostaje: pełny ekran, miganie i mocna wibracja, także przy trybie Nie przeszkadzać. Sparowany zegarek zawibruje tak samo. <b>Przemyśl to przed nocą:</b> przy wygaszonym ekranie i telefonie w drugim pokoju możesz takiego alarmu nie zauważyć. Dotyczy wyłącznie czerwonego — żółty sygnał uwagi ma własne ustawienie wyżej.</div>
       <div class="fineprint android-only" id="ns-note">Syrena gra na suwaku głośności <b>„Alarmy”</b>
         (nie „Dzwonek” ani „Multimedia”). Czerwony alarm podnosi go <b>co najmniej do połowy</b>,
         żeby syrena nie była cicha. Opcja wyżej jest domyślnie <b>wyłączona</b> — po jej włączeniu
@@ -959,7 +964,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
      Cloudflare, więc po każdym wydaniu wystarczy podbić ?v= i przeglądarki
      dostają nowe app.js/engine.js OD RAZU, bez ręcznego czyszczenia cache CF.
      Podbijaj ?v= razem z versionName w build.gradle. -->
-<script src="i18n.js?v=1.7.84"></script>
+<script src="i18n.js?v=1.7.87"></script>
 <!-- kontur Polski dla engine.js (audyt A2b, scripts/build_pl_outline.py) -->
 <script src="pl-outline.js?v=1.7.82"></script>
 <script src="engine.js?v=1.7.82"></script>
@@ -975,7 +980,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <div id="a11y-alert" class="sr-only" role="status" aria-live="assertive" aria-atomic="true"></div>
 <div id="a11y-info" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
 
-<script src="app.js?v=1.7.84"></script>
+<script src="app.js?v=1.7.87a"></script>
 <script>
 /* Instrukcja pasująca do telefonu i języka (21.09.2026). iPhone ma osobną, bo alarmy,
    zgody i aktualizacje działają tam inaczej. Tu, a nie w app.js: index.html nie jest

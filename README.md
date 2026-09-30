@@ -6,6 +6,25 @@
 
 Serwer: **hostowane na [Mikrusie](https://mikr.us)** — dziękujemy za wsparcie projektu.
 
+Wersja 1.7.87: okrąg wokół obiektu pokazuje, gdzie obiekt może być, i rośnie
+z wiekiem meldunku — bo rysujemy ostatnią znaną pozycję, a obiekt od tego czasu
+leci dalej. Czytelnik zapytał o drona 14 km w głębi Mołdawii: okrąg miał ±12 km
+i granicy nie dotykał, choć meldunek miał 4 minuty, a dron mógł w tym czasie
+przelecieć 12 km. Karta rozbija tę liczbę na niepewność zgłoszenia i drogę
+przeleconą od meldunku, a przy meldunku „kursem na X” mówi wprost, że to rejon
+na linii dolotu, nie zmierzone położenie. Pozycji nadal nie wyliczamy: ikona stoi
+tam, gdzie zgłosiło źródło. Szczegóły: `docs/RELEASE_1.7.87.md`.
+
+Wersja 1.7.86: czerwony alarm może budzić samą wibracją. Nowy przełącznik
+⚙ → Dźwięk → „Czerwony alarm: tylko wibracja, bez syreny” (Android) wycisza
+samą syrenę — wibracja, pełny ekran, miganie i przejście przez tryb Nie
+przeszkadzać zostają, a sparowany zegarek zawibruje tak samo. Ustawienia
+dźwięku przestały ze sobą walczyć: „Test: syrena” gra mimo ciszy, a opcja
+pełnej głośności jest przy niej nieczynna. Na iPhonie działa już przycisk
+zgody na alarm mimo wyciszenia — Apple przyznało uprawnienie Critical Alerts
+28.09.2026, a przycisk z 1.7.84 chował się sam przed sobą. Szczegóły:
+`docs/RELEASE_1.7.86.md`.
+
 Wersja 1.7.85: zakładka Zasady w GROCIE mówi to, co Komenda Główna PSP
 odpowiedziała na wniosek o informację publiczną (pismo z 25.09.2026). Wycofana
 obietnica dodania daty weryfikacji punktu — rejestr jej nie prowadzi i nie

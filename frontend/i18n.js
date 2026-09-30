@@ -31,7 +31,7 @@
     "rejon Ukrainy z alarmem — poziom żółty": "Ukrainian district with an alert — yellow level",
     "Litwa, Łotwa, Estonia — alarm ogłoszony (wg mediów)": "Lithuania, Latvia, Estonia — alert declared (per media)",
     "pulsujący pierścień — obiekt liczy się teraz do punktów": "pulsing ring — the object currently adds points",
-    "okrąg = niepewność pozycji (±km)": "circle = position uncertainty (±km)",
+    "okrąg = gdzie obiekt może być (±km, rośnie z wiekiem meldunku)": "circle = where the object may be (±km, grows with report age)",
     "przerywana linia = trasa przelotu": "dashed line = flight path",
     "samolot wojskowy (ADS-B, jawny transponder)": "military aircraft (ADS-B, public transponder)",
     "śmigłowiec wojskowy (ADS-B) —": "military helicopter (ADS-B) —",
@@ -120,7 +120,7 @@
     "rejon Ukrainy z alarmem — poziom żółty": "район України з тривогою — жовтий рівень",
     "Litwa, Łotwa, Estonia — alarm ogłoszony (wg mediów)": "Литва, Латвія, Естонія — оголошено тривогу (за ЗМІ)",
     "pulsujący pierścień — obiekt liczy się teraz do punktów": "пульсуюче кільце — об\u2019єкт зараз додає бали",
-    "okrąg = niepewność pozycji (±km)": "коло = невизначеність позиції (±км)",
+    "okrąg = gdzie obiekt może być (±km, rośnie z wiekiem meldunku)": "коло = де об'єкт може бути (±км, зростає з віком повідомлення)",
     "przerywana linia = trasa przelotu": "пунктир = пройдений шлях",
     "samolot wojskowy (ADS-B, jawny transponder)": "військовий літак (ADS-B, відкритий транспондер)",
     "śmigłowiec wojskowy (ADS-B) —": "військовий гелікоптер (ADS-B) —",
@@ -301,8 +301,8 @@
     {
       const yv = document.getElementById("yv-note");
       if (yv) yv.innerHTML = en
-        ? "Applies to the <b>yellow</b> attention sound only. The red alert always sounds the same. “No sound” keeps the banner and the vibration."
-        : "Dotyczy wyłącznie <b>żółtego</b> sygnału uwagi. Czerwony alarm gra zawsze tak samo. „Bez dźwięku” zostawia baner i wibrację.";
+        ? "Applies to the <b>yellow</b> attention sound only. It does not silence the red alert, which has its own setting. “No sound” keeps the banner and the vibration."
+        : "Dotyczy wyłącznie <b>żółtego</b> sygnału uwagi. Czerwonego alarmu to nie wycisza — ma on własne ustawienie. „Bez dźwięku” zostawia baner i wibrację.";
     }
     many(":scope .set-tab", en
       ? ["Alerts","My places","Sound","App"] : ["Alarmy","Moje miejsca","Dźwięk","Aplikacja"]);
@@ -331,6 +331,9 @@
     button("btn-notif-settings","🔔 Ustawienia powiadomień","🔔 Notification settings");
     button("btn-battery","🔋 Wyłącz oszczędzanie baterii","🔋 Disable battery optimisation");
     button("btn-dnd-access","🌙 Alarm mimo Nie przeszkadzać","🌙 Alert despite Do Not Disturb");
+    button("rs-label", "Czerwony alarm: tylko wibracja, bez syreny", "Red alert: vibration only, no siren");
+    { const el = document.getElementById("rs-note");
+      if (el) el.innerHTML = en ? "The siren goes quiet, the rest of the alert stays: full screen, flashing and strong vibration, including in Do Not Disturb. A paired watch vibrates just the same. <b>Think it over before nightfall:</b> with the screen off and the phone in another room you may not notice an alert like that. Red only — the yellow attention signal has its own setting above." : "Syrena milknie, reszta alarmu zostaje: pełny ekran, miganie i mocna wibracja, także przy trybie Nie przeszkadzać. Sparowany zegarek zawibruje tak samo. <b>Przemyśl to przed nocą:</b> przy wygaszonym ekranie i telefonie w drugim pokoju możesz takiego alarmu nie zauważyć. Dotyczy wyłącznie czerwonego — żółty sygnał uwagi ma własne ustawienie wyżej."; }
     { const el = document.getElementById("dnd-note"); if (el) el.innerHTML = en ? DND_NOTE_EN : DND_NOTE_PL; }
     button("btn-test-chime","▶ Test: uwaga","▶ Test: attention");
     button("btn-test-siren","▶ Test: syrena","▶ Test: siren");
@@ -415,7 +418,7 @@
     "Unidentified object": "Невпізнаний об’єкт",
     "unknown heading — the icon is not rotated": "курс невідомий — іконка не обертається",
     "pulsing ring — the object currently adds points": "пульсуюче кільце — об’єкт зараз додає бали",
-    "circle = position uncertainty (±km)": "коло = невизначеність позиції (±км)",
+    "circle = where the object may be (±km, grows with report age)": "коло = де об'єкт може бути (±км, зростає з віком повідомлення)",
     "dashed line = flight path": "пунктир = пройдений шлях",
     "military aircraft (ADS-B, public transponder)": "військовий літак (ADS-B, відкритий транспондер)",
     "military helicopter (ADS-B) — select an aircraft: model, role and operator":
@@ -567,6 +570,7 @@
     "🔔 Notification settings": "🔔 Налаштування сповіщень",
     "🔋 Disable battery optimisation": "🔋 Вимкнути економію батареї",
     "🌙 Alert despite Do Not Disturb": "🌙 Тривога попри «Не турбувати»",
+    "Red alert: vibration only, no siren": "Червона тривога: лише вібрація, без сирени",
     "Critical alerts are a separate permission from Apple: a red alert will sound even when the phone is muted with the switch or in Focus mode. It applies to the red level only — the yellow attention signal stays quiet. iPhone asks for this permission once; if you decline it, you can turn it on later in the phone’s Settings. You can withdraw it at any time in the same place.": "Критична тривога — це окремий дозвіл Apple: червона тривога пролунає навіть тоді, коли телефон вимкнено перемикачем або він у режимі Фокусування. Це стосується лише червоного рівня — жовтий сигнал уваги лишається тихим. iPhone запитає про цей дозвіл лише один раз; якщо ви відмовите, увімкнете його згодом у Налаштуваннях телефону. Відкликати його можна будь-коли там само.",
     "🚨 Allow full-screen alerts": "🚨 Дозволити повноекранні тривоги",
     "🚨 Check full-screen alert permission": "🚨 Перевірити дозвіл на повноекранну тривогу",
@@ -589,8 +593,6 @@
     "Normal": "Звичайна",
     "Quieter": "Тихіше",
     "No sound": "Без звуку",
-    "Applies to the yellow attention sound only. The red alert always sounds the same. “No sound” keeps the banner and the vibration.":
-      "Стосується лише жовтого сигналу уваги. Червона тривога звучить завжди однаково. «Без звуку» залишає банер і вібрацію.",
     "Native alert and volume": "Системна тривога і гучність",
     "Red alert always at full volume": "Червона тривога завжди на повній гучності",
     "🔊 Android sound settings": "🔊 Налаштування звуку Android",
@@ -879,6 +881,8 @@
     set("#alerts-on-label", "Alerts on this phone");
     set("#alerts-on-note", "Turn off if you only want to view the map");
     set("#btn-dnd-access", "🌙 Alert despite Do Not Disturb");
+    set("#rs-label", "Red alert: vibration only, no siren");
+    { const el = document.getElementById("rs-note"); if (el) el.innerHTML = "The siren goes quiet, the rest of the alert stays: full screen, flashing and strong vibration, including in Do Not Disturb. A paired watch vibrates just the same. <b>Think it over before nightfall:</b> with the screen off and the phone in another room you may not notice an alert like that. Red only — the yellow attention signal has its own setting above."; }
     const dndNote = document.getElementById("dnd-note");
     if (dndNote) dndNote.innerHTML = DND_NOTE_EN;
     set("#yv-head", "Attention sound volume (yellow)");
@@ -886,7 +890,7 @@
     set("#yv-quiet", "Quieter");
     set("#yv-silent", "No sound");
     const yvNote = document.getElementById("yv-note");
-    if (yvNote) yvNote.innerHTML = "Applies to the <b>yellow</b> attention sound only. The red alert always sounds the same. “No sound” keeps the banner and the vibration.";
+    if (yvNote) yvNote.innerHTML = "Applies to the <b>yellow</b> attention sound only. It does not silence the red alert, which has its own setting. “No sound” keeps the banner and the vibration.";
     set("#ns-head", "Native alert and volume");
     set("#ns-label", "Red alert always at full volume");
     const nsNote = document.getElementById("ns-note");
@@ -959,6 +963,12 @@
     }
     const api = document.getElementById("set-api");
     if (api) api.placeholder = "порожнє = сервер Strażnika (рекомендовано)";
+    // Oba akapity maja <b>, wiec slownik EN2UK ich nie zlapie: klucz jest calym zdaniem,
+    // a pogrubienie rozbija je na osobne wezly tekstowe. Podmieniamy wprost.
+    const rsNote = document.getElementById("rs-note");
+    if (rsNote) rsNote.innerHTML = "Сирена змовкає, решта тривоги лишається: повний екран, миготіння і сильна вібрація, зокрема в режимі «Не турбувати». Спарений годинник завібрує так само. <b>Обміркуйте це перед ніччю:</b> з вимкненим екраном і телефоном в іншій кімнаті ви можете такої тривоги не помітити. Стосується лише червоного — жовтий сигнал уваги має власне налаштування вище.";
+    const yvNote = document.getElementById("yv-note");
+    if (yvNote) yvNote.innerHTML = "Стосується лише <b>жовтого</b> сигналу уваги. Червону тривогу це не вимикає — вона має власне налаштування. «Без звуку» залишає банер і вібрацію.";
     const placeName = document.getElementById("place-name");
     if (placeName) placeName.placeholder = "напр. Дім";
     const live = document.getElementById("tb-live");

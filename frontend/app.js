@@ -438,10 +438,22 @@ function positionInfo(t) {
   return { quality:"point", reason:"source_point" };
 }
 function isApproxPosition(t) { return positionInfo(t).quality === "approx"; }
+/* Chwila, względem której liczymy wiek meldunku. W podglądzie historii to czas
+   migawki, nie „teraz" — inaczej wszystko wyglądałoby na przeterminowane. */
+function nowRefMs() {
+  return histMode && historyAdsbTime != null ? historyAdsbTime : Date.now();
+}
+/* „Przybliżony rejon" nie mówił czytelnikowi najważniejszego: przy meldunku
+   „kursem na X" punkt leży na linii dolotu do celu i nie jest zmierzonym
+   położeniem. 30.09.2026 taki punkt wypadł 14 km za granicą, w innym państwie
+   niż zgłoszony region, i czytelnik zrozumiał to jako przelot nad tym krajem. */
 function approxPositionNote(t) {
   const locality = positionInfo(t).reason === "locality_center";
+  const naCel = !locality && t?.destination === true;
   const heading = locality
     ? (UI.t("środek miejscowości użyty jako punkt odniesienia, nie zmierzona pozycja obiektu", "locality centre used as a reference point, not a measured object position", "центр населеного пункту використано як орієнтир, а не виміряна позиція об'єкта"))
+    : naCel
+    ? (UI.t("rejon zgłoszenia na kursie do celu, nie zmierzone położenie", "reported area on the approach to the target, not a measured position", "район повідомлення на курсі до цілі, а не виміряне положення"))
     : (UI.t("przybliżony rejon zgłoszenia", "approximate report area", "приблизний район повідомлення"));
   return `<span style="color:#ffb020"><b>${heading}</b> — ${UI.t("brak potwierdzonej trasy i czasu dolotu", "no confirmed route or arrival time", "немає підтвердженого маршруту й часу підльоту")}</span>`;
 }
@@ -513,7 +525,7 @@ function etaInfo(t) {
   const vLo = jet ? Math.max(v, JET_MAX_KMH) : v;
   const mine = myVoiv();
   const seen = Date.parse(t.confirmedAt || t.updatedAt || "");
-  const refMs = histMode && historyAdsbTime != null ? historyAdsbTime : Date.now();
+  const refMs = nowRefMs();
   const ageH = Number.isFinite(seen) ? Math.max(0, (refMs - seen) / 3600000) : 0;
   const slackKm = (Number(t.uncertaintyKm) || 0) + v * ageH;
   const range = (km) => km == null ? null
@@ -539,7 +551,7 @@ const etaRangeTxt = (lo, hi) => (lo == null || hi == null || lo >= hi) ? etaTxt(
    Odejmujemy wiek sygnału, a po 15 min liczby nie pokazujemy wcale. */
 function agedEta(m, ts) {
   if (m == null) return null;
-  const ref = histMode && historyAdsbTime != null ? historyAdsbTime : Date.now();
+  const ref = nowRefMs();
   const ageMin = (ref - Date.parse(ts || "")) / 60000;
   if (!Number.isFinite(ageMin)) return m;
   if (ageMin > 15) return null;
@@ -2088,11 +2100,15 @@ function openThreatPopup(lngLat, p) {
       <b style="color:${meta.color};filter:brightness(.75)">◆ ${meta.label}</b><br>
       ${p.opis ? esc2(p.opis) + "<br>" : ""}
       ${UI.t("wiarygodność", "confidence", "достовірність")}: <b>${esc2(UI.confidence(p.confidence, CONF_PL[p.confidence] || p.confidence))}</b>
-        · ${UI.t("niepewność pozycji", "position uncertainty", "невизначеність позиції")}: <b>±${p.uncertainty} km</b><br>
+        · ${UI.t("gdzie może być", "where it may be", "де може бути")}: <b>±${p.uncertainty} km</b>${
+          Number(p.unc_lot) > 0 && Number.isFinite(Number(p.uncertainty))
+            ? ` <span style="color:#95a1b7">(${Number(p.uncertainty) - Number(p.unc_lot)} km ${
+                UI.t("zgłoszenia", "report", "повідомлення")} + ${Number(p.unc_lot)} km ${
+                UI.t("lotu od meldunku", "flown since", "польоту відтоді")})</span>` : ""}<br>
       ${p.heading != null && !p.hdg_unknown ? `${p.heading_measured ? UI.t("kurs z ruchu", "heading from movement", "курс із руху") : UI.t("kurs", "heading", "курс")}: ${Math.round(p.heading)}° (${compass(p.heading)})${p.heading_measured && p.heading_source != null && Math.abs(((p.heading - p.heading_source) % 360 + 540) % 360 - 180) > 45 ? ` <span style="color:#95a1b7">(${UI.t("NEPTUN podaje", "NEPTUN reports", "NEPTUN повідомляє")} ${Math.round(p.heading_source)}°)</span>` : ""} · ` : ""}
       ${UI.t("odległość od granicy PL", "distance from the Polish border", "відстань від кордону Польщі")}: <b>${p.distance_text ?? ((p.dist_km ?? "?") + " km")}</b><br>
       ${UI.t("ostatni meldunek", "last report", "останнє повідомлення")}: <b>${ageAgoText(p.age_min)}</b>${Number(p.age_min) >= 15
-        ? ` <span style="color:#95a1b7">${UI.t("— obiekt mógł się od tego czasu przemieścić", "— the object may have moved on since", " — відтоді об'єкт міг переміститися")}</span>` : ""}<br>
+        ? ` <span style="color:#95a1b7">${UI.t("— rejon przestał już rosnąć, obiekt może być dalej", "— the area has stopped growing; the object may be further away", " — район уже перестав зростати, об'єкт може бути далі")}</span>` : ""}<br>
       ${courseVerdictHTML(p)}
       ${p.eta || ""}
       <span style="color:#68758c">${UI.t("Dane: NEPTUN — agregator OSINT, nie radar wojskowy", "Data: NEPTUN — OSINT aggregator, not military radar", "Дані: NEPTUN — агрегатор OSINT, а не військовий радар")}</span>`);
@@ -2520,12 +2536,20 @@ const APPROX_MIN_UNCERTAINTY_KM = 12;
    w 94–100% i nigdy kursu — to meldunek o rejonie, nie namiar. Pokazujemy szerszy
    rejon (25 km), żeby punkt na mapie nie udawał miejsca, w którym leci pocisk. */
 const FAST_TYPES_AREA_KM = 25, FAST_TYPES = new Set(["missile", "cruise", "ballistic", "kab"]);
-function shownUncertaintyKm(t) {
+/* Dwie składowe rozbite osobno, bo karta obiektu ma je pokazać: sama suma
+   zmienia się w czasie i bez rozbicia wyglądałaby na chwiejną daną ze źródła. */
+function uncertaintyParts(t, nowMs) {
   const raw = Number(t?.uncertaintyKm);
   const km = Number.isFinite(raw) && raw > 0 ? raw : null;
-  if (isApproxPosition(t)) return Math.max(km ?? 0,
-    FAST_TYPES.has(t?.type) ? FAST_TYPES_AREA_KM : APPROX_MIN_UNCERTAINTY_KM);
-  return km;
+  const base = isApproxPosition(t)
+    ? Math.max(km ?? 0, FAST_TYPES.has(t?.type) ? FAST_TYPES_AREA_KM : APPROX_MIN_UNCERTAINTY_KM)
+    : km;
+  if (base == null) return null;
+  return { zgloszenie: Math.round(base), lot: Math.round(ageSlackKm(t, nowMs)) };
+}
+function shownUncertaintyKm(t, nowMs) {
+  const p = uncertaintyParts(t, nowMs);
+  return p == null ? null : p.zgloszenie + p.lot;
 }
 /* okrąg geograficzny (przybliżony) do wizualizacji uncertaintyKm */
 function circleCoords(lat, lon, km) {
@@ -2656,6 +2680,28 @@ function threatAgeMin(t, nowMs) {
   if (!seen) return 0;
   return Math.max(0, Math.round((nowMs - seen) / 60000));
 }
+/* Ile obiekt mógł przelecieć od ostatniego meldunku. Rysujemy ostatnią znaną
+   pozycję, więc okrąg niepewności musi rosnąć razem z wiekiem tej wiedzy —
+   inaczej obiecuje precyzję, której już nie ma. Zgłoszenie z 30.09.2026: dron
+   zgłoszony 4 minuty wcześniej miał okrąg ±12 km, choć przy 180 km/h mógł być
+   12 km dalej, po drugiej stronie granicy. Ten sam rachunek (niepewność plus
+   droga od potwierdzenia) robi od dawna etaInfo — tutaj tylko go widać.
+
+   Powyżej 15 minut nie doliczamy więcej. Tyle samo przyjmuje reszta kodu za
+   granicę, po której z meldunku nie da się już nic wnioskować (wygaszanie
+   punktów, ostrzeżenie na karcie), a rosnący bez końca okrąg zalałby mapę.
+
+   Szybkie typy zostają przy swoim stałym rejonie z audytu G8: dla rakiet, KAB
+   i balistyki NEPTUN podaje rejon, nie namiar, i nigdy kursu — doliczanie im
+   drogi udawałoby wiedzę o locie, której nie mamy. */
+const AGE_SLACK_MAX_MIN = 15;
+function ageSlackKm(t, nowMs) {
+  if (FAST_TYPES.has(t?.type)) return 0;
+  const kmh = Math.max(measuredTrackSpeed(t) || 0, TYPE_SPEED_KMH[t?.type] || 0);
+  if (!kmh) return 0;
+  const min = Math.min(threatAgeMin(t, nowMs ?? nowRefMs()), AGE_SLACK_MAX_MIN);
+  return kmh * (min / 60);
+}
 function ageAgoText(min) {
   const m = Number(min);
   if (!Number.isFinite(m) || m < 1) return UI.t("przed chwilą", "just now", "щойно");
@@ -2759,7 +2805,8 @@ function animate(ts) {
         heading_measured: mh != null,
         heading_source: t.heading ?? null,
         color: meta.color,
-        confidence: t.confidenceLevel || "?", uncertainty: shownUncertaintyKm(t) ?? "?",
+        confidence: t.confidenceLevel || "?", uncertainty: shownUncertaintyKm(t, now) ?? "?",
+        unc_lot: uncertaintyParts(t, now)?.lot ?? 0,
         opis: threatDesc(t), dist_km: t.pl_assessment?.dist_km,
         distance_text: threatDistanceText(t, t.pl_assessment?.dist_km),
         // werdykt kursu jedzie razem ze znacznikiem, żeby karta obiektu mówiła
@@ -2770,7 +2817,7 @@ function animate(ts) {
         age_min: ageMin, age_label: ageLabel(ageMin),
         course_off: courseOffsetDeg(t),
         eta: etaHtml(t) } });
-    const uncKm = shownUncertaintyKm(t);
+    const uncKm = shownUncertaintyKm(t, now);
     if (uncKm)
       unc.push({ type: "Feature", properties: { color: meta.color },
         geometry: { type: "Polygon", coordinates: circleCoords(p.lat, p.lon, uncKm) } });
@@ -3990,10 +4037,30 @@ function sesjaAudioAlarmu(wlacz) {
    metody natywnej — wtedy alarm w aplikacji byłby BEZ DŹWIĘKU. Warunek do
    sprawdzenia po stronie sesji iOS przed każdym zgłoszeniem do Apple. */
 
-function airRaidSiren(continuous = true) {
+/* Czerwony alarm „tylko wibracja” (Android, prośba czytelnika 29.09.2026).
+   Stan trzymamy lokalnie, bo syrenę w OTWARTEJ aplikacji gra strona, a nie
+   warstwa natywna — samo przestawienie kanału powiadomień by jej nie wyciszyło.
+   Wartość przychodzi z natywnego status() i jest tam zapisywana na stałe. */
+function czerwonyBezSyreny() {
+  // Przełącznik istnieje WYŁĄCZNIE na Androidzie: iOS nie pozwala wyciszyć
+  // pojedynczego rodzaju powiadomienia, więc cisza w otwartej aplikacji przy
+  // wyjącym pushu byłaby myląca. Dzięki temu zachowanie na iPhonie jest tu
+  // nietknięte, co sprawdzają scripts/test_ios_wspolne.cjs i test_syrena_ios.cjs.
+  if (IS_IOS) return false;
+  try { return localStorage.getItem("straznik_czerwony_cisza") === "1"; } catch { return false; }
+}
+
+/* Parametr mimoCiszy — przycisk „Test: syrena” to prośba „daj mi to usłyszeć”, a nie
+   alarm. Bez tego wyjątku test przy włączonej ciszy nie grał nic i wyglądał na
+   zepsuty. Pełny alarm i test natywny celowo ciszę SZANUJĄ: one pokazują, co
+   naprawdę się stanie. */
+function airRaidSiren(continuous = true, mimoCiszy = false) {
   try {
     stopSiren();
     sesjaAudioAlarmu(true);
+    // Cisza zdejmuje SAM tor audio — wibracja, pełny ekran i miganie zostają,
+    // dlatego nie wychodzimy z funkcji, tylko pomijamy oscylatory.
+    const bezSyreny = czerwonyBezSyreny() && !mimoCiszy;
     const total = 3 * (SIREN_UP + SIREN_DOWN);
     /* Na iPhonie syrenę odtwarza CZĘŚĆ NATYWNA (24.09.2026): `dzwiekAlarmu({wlacz:true})`
        puszcza w pętli alarm_syrena.wav przez AVAudioPlayer w kategorii `playback`, co
@@ -4003,7 +4070,7 @@ function airRaidSiren(continuous = true) {
        z wtyczki nie działała, bo dla Web Audio w WKWebView robi to WebKit.
        Żółtego sygnału uwagi to nie dotyczy — zostaje w stronie i ma podlegać wyciszeniu. */
     let o = null, g = null, c = null, t0 = 0, until = 0;
-    const webAudio = !IS_IOS;
+    const webAudio = !IS_IOS && !bezSyreny;   // cisza zdejmuje tor audio, nie wibrację
     if (webAudio) {
       c = ctx(); t0 = c.currentTime;
       o = c.createOscillator(); g = c.createGain();
@@ -4783,6 +4850,7 @@ function showHistoryAt(idx) {
           hdg_unknown: t.heading == null || t.pl_assessment?.heading_known === false,
           color: (TYPE_META[t.type] || {}).color || "#8a93a6",
           confidence: t.confidenceLevel || "?", uncertainty: shownUncertaintyKm(t) ?? "?",
+          unc_lot: uncertaintyParts(t)?.lot ?? 0,
           opis: t.historicalOnly
             ? `${threatLabelPL(t.type)} — ostatnia pozycja z sygnału; obiekt nie występował już w tej migawce`
             : threatDesc(t),
@@ -5423,16 +5491,35 @@ async function refreshBgStatus(previewLang = UI.lang) {
     }
     /* Alarm krytyczny (iOS, entitlement Apple z 28.09.2026). Osobna zgoda,
        bez której uprawnienie jest martwe: iPhone pyta o nią raz i tylko wprost.
-       Przycisk pokazujemy dopiero, gdy warstwa natywna potwierdzi, że umie —
-       starsze wydania ze sklepu tej metody nie mają. */
+       Przycisk wymaga tylko tego, żeby warstwa natywna miała metodę pytania —
+       starsze wydania ze sklepu jej nie mają. O resztę pyta warunek niżej. */
     /* Bez klasy ios-only: ta reguła ma !important, więc przykryłaby styl
        widoczności, a !important po naszej stronie z kolei zablokowałby ukrywanie.
        O tym guziku decyduje wyłącznie kod niżej. */
     const critBtn = document.getElementById("btn-critical");
     if (critBtn) {
+      /* ZAPĘTLENIE, na które nadział się Adrian (29.09.2026): iOS zgłasza
+         `criticalAlertSetting == .notSupported` dopóty, dopóki aplikacja ANI RAZU
+         nie poprosi o tę zgodę. Warunek `criticalSupported !== false` chował więc
+         przycisk, bez przycisku nikt nie pytał, a bez pytania system dalej mówił
+         „nie obsługuję". Na ekranie wyglądało to identycznie jak brak uprawnienia.
+         W wersji ze sklepu, która nigdy nie pyta sama, zgoda byłaby nieosiągalna
+         dla wszystkich.
+
+         Dlatego pytamy o `criticalAsked`, nie o samo wsparcie: przycisk jest
+         widoczny, dopóki nikt nie pytał, a chowamy go dopiero wtedy, gdy system
+         ODPOWIEDZIAŁ, że nie potrafi. Starsza warstwa natywna bez tego pola
+         (undefined) też pokaże przycisk — lepiej dać spróbować raz, niż zamknąć
+         kogoś w tym samym kole. */
+      const juzPytano = s.criticalAsked === true;
       const umie = IS_APP && IS_IOS && typeof BG()?.zgodaKrytyczna === "function"
-        && s.criticalSupported !== false;
+        && !(juzPytano && s.criticalSupported === false);
       critBtn.style.display = umie ? "" : "none";
+      /* Bez przycisku akapit opisywałby funkcję, której nie da się włączyć —
+         Adrian tak właśnie trafił (29.09.2026): przeczytał opis alarmu
+         krytycznego i nie znalazł żadnego przełącznika. Reguła .ios-only ma
+         !important, więc chowamy klasą o wyższej szczegółowości. */
+      document.getElementById("krytyczny-ios-note")?.classList.toggle("schowane", !umie);
       critBtn.textContent = s.criticalAllowed
         ? T("🔊 Alarm mimo wyciszenia: włączony",
             "🔊 Alert despite silent mode: on", "🔊 Тривога попри вимкнений звук: увімкнено")
@@ -5552,13 +5639,58 @@ document.getElementById("btn-critical")?.addEventListener("click", async (e) => 
   e.target.disabled = true;
   try {
     const r = await BG()?.zgodaKrytyczna?.();
-    if (r && r.allowed === false) await BG()?.openNotificationSettings?.();
+    /* Kto odrzucił powiadomienia W OGÓLE, temu iOS nie pokaże żadnego okna
+       i zgłosi WSZYSTKIE ustawienia jako nieobsługiwane — także krytyczne.
+       Bez tego rozróżnienia otwieralibyśmy Ustawienia w ciszy, jakby to była
+       odmowa zgody krytycznej; człowiek szukałby tam „Alertów krytycznych",
+       których jeszcze nie ma, i wracał z niczym. Warstwa natywna sygnalizuje
+       ten przypadek osobno i celowo NIE zapisuje go jako „pytaliśmy", więc
+       przycisk zostaje widoczny. */
+    if (r?.reason === "powiadomienia-odrzucone") {
+      alert(UI.t(
+        "Najpierw włącz powiadomienia Strażnika.\n\nBez nich iPhone nie pozwala na alarm krytyczny i nie pokaże nawet pytania o zgodę. Otworzę teraz Ustawienia — włącz tam „Włącz powiadomienia”, wróć i naciśnij ten przycisk jeszcze raz.",
+        "Turn on notifications for Strażnik first.\n\nWithout them iPhone does not allow critical alerts and will not even show the permission prompt. I will open Settings now — turn on “Allow Notifications” there, come back and press this button again.",
+        "Спершу увімкніть сповіщення Strażnika.\n\nБез них iPhone не дозволяє критичну тривогу і навіть не покаже запит на дозвіл. Зараз відкрию Налаштування — увімкніть там «Дозволити сповіщення», поверніться і натисніть цю кнопку ще раз."));
+      await BG()?.openNotificationSettings?.();
+    } else if (r && r.allowed === false) {
+      await BG()?.openNotificationSettings?.();
+    }
   } catch (err) {
     console.warn("zgoda na alarm krytyczny", err);
   } finally {
     e.target.disabled = false;
     setTimeout(refreshBgStatus, 800);
   }
+});
+document.getElementById("set-red-silent")?.addEventListener("change", async (e) => {
+  const wlacz = !!e.target.checked;
+  // Świadoma zgoda, tak jak przy pełnej głośności — tyle że tu stawka jest
+  // odwrotna: można alarmu NIE usłyszeć. Włączane bywa w dzień, skutek widać
+  // w nocy.
+  if (wlacz && !confirm(UI.t(
+      "Wyłączyć syrenę czerwonego alarmu?\n\nZostanie sama wibracja, pełny ekran i miganie. Przy wygaszonym ekranie i telefonie w drugim pokoju możesz takiego alarmu nie zauważyć. Wyłączysz to tym samym przełącznikiem.",
+      "Turn off the siren for red alerts?\n\nOnly vibration, the full screen and flashing will remain. With the screen off and the phone in another room you may not notice an alert like that. You can turn this off with the same switch.",
+      "Вимкнути сирену червоної тривоги?\n\nЗалишиться лише вібрація, повний екран і миготіння. З вимкненим екраном і телефоном в іншій кімнаті ви можете такої тривоги не помітити. Вимкнете це тим самим перемикачем."))) {
+    e.target.checked = false;
+    return;
+  }
+  /* Zapisujemy DOPIERO po potwierdzeniu z warstwy natywnej. Odwrotna kolejność
+     przy nieudanym wywołaniu dawała rozjazd nie do zauważenia: otwarta
+     aplikacja milczy, a powiadomienie przy zgaszonym ekranie dalej wyje. */
+  let ok = false;
+  try {
+    const r = await BG()?.setRedSilent?.({ enabled: wlacz });
+    ok = !!r && r.redSilent === wlacz;
+  } catch (err) { console.warn("ustawienie ciszy czerwonego", err); }
+  if (!ok) {
+    e.target.checked = !wlacz;
+    alert(UI.t("Nie udało się zmienić tego ustawienia. Spróbuj ponownie.",
+               "Could not change this setting. Please try again.",
+               "Не вдалося змінити це налаштування. Спробуйте ще раз."));
+    return;
+  }
+  try { localStorage.setItem("straznik_czerwony_cisza", wlacz ? "1" : "0"); } catch {}
+  setTimeout(refreshBgStatus, 400);
 });
 document.getElementById("btn-dnd-access")?.addEventListener("click", async () => {
   await BG()?.requestDndAccess?.(); setTimeout(refreshBgStatus, 800);
@@ -5574,12 +5706,22 @@ function renderNativeSound(s, jezyk = UI.lang) {
   const T = (pl, en, uk) => jezyk === "pl" ? pl : jezyk === "uk" ? (uk !== undefined ? uk : en) : en;
   const vol = document.getElementById("ns-volume");
   const box = document.getElementById("set-force-volume");
-  if (box) box.checked = !!s.forceMaxVolume;
+  if (box) {
+    box.checked = !!s.forceMaxVolume;
+    // Przy ciszy „zawsze na pełnej głośności” nie ma czego podgłośnić. Zamiast
+    // kasować wybór użytkownika, blokujemy przełącznik i piszemy dlaczego —
+    // po wyłączeniu ciszy jego ustawienie wraca nietknięte.
+    box.disabled = !!s.redSilent;
+    box.closest("label")?.classList.toggle("wylaczone", !!s.redSilent);
+  }
   if (!vol) return;
   const pct = s.alarmVolumeMax ? Math.round(100 * (s.alarmVolume || 0) / s.alarmVolumeMax) : null;
   const lines = [];
   if (pct != null) lines.push(T(`Głośność „Alarmy” w Androidzie: <b>${pct}%</b>.`, `Android “Alarms” volume now: <b>${pct}%</b>.`, `Гучність «Будильники» в Android: <b>${pct}%</b>.`));
-  if (s.redChannelSound === false) lines.push(T("⚠ Dźwięk kanału czerwonego alarmu jest wyłączony w ustawieniach powiadomień.", "⚠ Sound for the red alert channel is off in notification settings.", "⚠ Звук каналу червоної тривоги вимкнено в налаштуваннях сповіщень."));
+  // Gdy ciszę wybrał SAM użytkownik, to nie jest usterka do zgłoszenia — tylko
+  // przypomnienie, żeby nie zdziwił się w nocy.
+  if (s.redSilent) lines.push(T("🔕 Czerwony alarm masz ustawiony na samą wibrację — syrena nie zagra. Dlatego „zawsze na pełnej głośności” jest nieczynne, a przycisk „Test: pełny alarm” też będzie bez dźwięku. Samą syrenę usłyszysz przyciskiem „Test: syrena”.", "🔕 The red alert is set to vibration only — the siren will not sound. That is why “always at full volume” is inactive and “Test: full alert” will also be silent. To hear the siren itself, use “Test: siren”.", "🔕 Червона тривога налаштована лише на вібрацію — сирена не пролунає. Тому «завжди на повній гучності» неактивне, а «Тест: повна тривога» також буде без звуку. Щоб почути саму сирену, скористайтеся кнопкою «Тест: сирена»."));
+  else if (s.redChannelSound === false) lines.push(T("⚠ Dźwięk kanału czerwonego alarmu jest wyłączony w ustawieniach powiadomień.", "⚠ Sound for the red alert channel is off in notification settings.", "⚠ Звук каналу червоної тривоги вимкнено в налаштуваннях сповіщень."));
   vol.innerHTML = lines.join(" ");
 }
 async function refreshNativeSound() {
@@ -5591,6 +5733,11 @@ async function refreshNativeSound() {
     // Alarms.java). localStorage to tylko kopia dla otwartej aplikacji i trybu
     // wbudowanego — przy starcie wyrównujemy ją do natywnej.
     if (s.yellowLevel) { try { localStorage.setItem("straznik_zolty_poziom", s.yellowLevel); } catch {} }
+    if (s.redSilent !== undefined) {
+      try { localStorage.setItem("straznik_czerwony_cisza", s.redSilent ? "1" : "0"); } catch {}
+      const rs = document.getElementById("set-red-silent");
+      if (rs) rs.checked = !!s.redSilent;
+    }
     renderYellowLevel();
   } catch {}
 }
@@ -5692,7 +5839,7 @@ const aboutDlg = document.getElementById("about");
 document.getElementById("btn-about").onclick = () => aboutDlg.showModal();
 document.getElementById("about-close").onclick = () => aboutDlg.close();
 document.getElementById("btn-test-chime").onclick = () => { if (IS_APP && blockedByAlertsOff()) return; attentionChime(); };
-document.getElementById("btn-test-siren").onclick = () => { if (IS_APP && blockedByAlertsOff()) return; airRaidSiren(false); };
+document.getElementById("btn-test-siren").onclick = () => { if (IS_APP && blockedByAlertsOff()) return; airRaidSiren(false, true); };
 document.getElementById("btn-test-alarm").onclick = () => {
   if (IS_APP && blockedByAlertsOff()) return;
   document.getElementById("settings").close();

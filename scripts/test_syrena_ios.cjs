@@ -44,7 +44,7 @@ function funkcja(nazwa) {
   throw new Error(`niedomknięta funkcja ${nazwa}`);
 }
 
-function uruchom({ ios, tryb }) {
+function uruchom({ ios, tryb, bezSyreny = false }) {
   const log = [];
   const ctxKontekst = vm.createContext({
     IS_IOS: ios, console,
@@ -69,6 +69,7 @@ function uruchom({ ios, tryb }) {
       };
     },
     sesjaAudioAlarmu: (w) => log.push('sesja:' + w),
+    czerwonyBezSyreny: () => bezSyreny,
     scheduleSirenSweeps: (_o, od, cykli) => od + cykli * 4,
     BG: () => ({ dzwiekAlarmu: () => {} }),
   });
@@ -95,6 +96,24 @@ test('Android: syrena nadal syntezowana w stronie', () => {
 test('wibracja zostaje na obu platformach', () => {
   for (const ios of [true, false])
     assert.ok(uruchom({ ios, tryb: 'ciagly' }).log.includes('wibracja'), `ios=${ios}`);
+});
+
+/* Opcja „czerwony alarm: tylko wibracja” (Android, prośba czytelnika 29.09.2026).
+   Sedno: milknie SAM dźwięk. Wibracja, pełny ekran i miganie zostają, bo alarm
+   nadal ma obudzić — inaczej byłoby to po prostu wyłączenie alarmu. */
+test('cisza czerwonego: bez oscylatorów, ale z wibracją', () => {
+  const { log } = uruchom({ ios: false, tryb: 'ciagly', bezSyreny: true });
+  assert.ok(!log.includes('oscylator'), 'przy ciszy strona nie syntezuje syreny');
+  assert.ok(!log.includes('audiocontext'), 'i nie rusza AudioContextu');
+  assert.ok(log.includes('wibracja'), 'wibracja zostaje — to jest cały sens tej opcji');
+});
+
+test('cisza nie dotyka iPhone\'a', () => {
+  // Przełącznik jest androidowy; gdyby kiedyś przeciekł na iOS, natywna syrena
+  // i tak by zagrała, a aplikacja milczała — sprzeczność nie do zauważenia.
+  const { log } = uruchom({ ios: true, tryb: 'ciagly', bezSyreny: true });
+  assert.ok(log.includes('sesja:true'),
+    'na iOS sesja audio jest proszona bez względu na to ustawienie');
 });
 
 test('tryb testowy kończy się sam, tak samo długo na obu', () => {

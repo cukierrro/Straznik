@@ -86,9 +86,12 @@ check the actual format rather than assuming screenshot bytes are PNG.
 
 The phone screen must show a state that is **below the alert threshold** and the
 caption must say when it was captured. A live red or yellow level would be cached
-by link previews for weeks after the situation passed. The superseded
-`share-history-v1.jpg` stays in the repository, because other sites may still have
-it cached.
+by link previews for weeks after the situation passed. The superseded `share-history-v1.jpg`
+was removed on 29 September 2026: nothing had referenced it since 12 September,
+it showed an interface two months out of date, and the only cost of dropping it
+is a broken preview on a third-party page that cached that exact image URL.
+`git show e3e0ad5^:docs/share-history-v1.jpg` brings it back if that turns out
+to matter.
 
 Use a new versioned filename for future preview revisions, and update the
 Open Graph / Twitter metadata (`docs/index.html`, `docs/en.html`,

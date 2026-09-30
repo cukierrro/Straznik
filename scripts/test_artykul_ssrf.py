@@ -16,6 +16,9 @@ from pathlib import Path
 
 import httpx
 
+# Konsola Windows to cp1250: bez tego strzalki w opisach wywracaja test, ktory przeszedl.
+sys.stdout.reconfigure(encoding="utf-8")
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "backend"))
 

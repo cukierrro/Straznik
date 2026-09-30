@@ -17,6 +17,10 @@ const ctx = {
   window: { dispatchEvent: (e) => zdarzenia.push(e.detail) },
 };
 vm.createContext(ctx);
+// `agedEta` pyta o chwilę odniesienia przez `nowRefMs` (30.09.2026: to wyrażenie
+// stało wcześniej w trzech kopiach). Wstrzykujemy PRODUKCYJNĄ funkcję, a nie
+// atrapę — inaczej test przestałby pilnować zachowania w podglądzie historii.
+vm.runInContext(cut('function nowRefMs', String.fromCharCode(10) + '/* „Przybliżony rejon'), ctx);
 vm.runInContext(cut('function agedEta', String.fromCharCode(10) + 'function localPlaceHtml'), ctx);
 vm.runInContext(cut('const HARD_SOURCES', String.fromCharCode(10) + 'function applyState'), ctx);
 
