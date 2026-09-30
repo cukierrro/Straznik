@@ -39,6 +39,18 @@
   <p class="fineprint">To see which version your phone has, open the app: <kbd>⚙</kbd> → the <kbd>App</kbd> tab → “App version”. The <kbd>⬆ Check for updates</kbd> button is right there too.</p>
 </div></header>
 <main id="content" class="wrap">
+<section id="v1-7-87">
+  <h2>1.7.87 — the circle shows where the object may really be</h2>
+  <p class="fineprint">Release 1.7.87 · 30 September 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.87">Full release notes</a></p>
+  <ul>
+    <li>The circle around an object <b>grows with the age of the report</b>. We draw the last <i>known</i> position, so the circle now also covers the distance the object could have flown. A reader asked about a drone 14 km inside Moldova: the circle was ±12 km and did not reach the border, even though the report was 4 minutes old and a drone at 180 km/h could have flown 12 km in that time. The map was promising certainty it did not have.</li>
+    <li>The object card splits the number: <i>where it may be: ±13 km (4 km report + 9 km flown since)</i>. Without the split, the total would look like an unstable figure from the source.</li>
+    <li>The growth stops at 15 minutes, after which the card says: <i>the area has stopped growing; the object may be further away</i>. Missiles, glide bombs and ballistic objects keep a fixed area — the source gives them no heading.</li>
+    <li>For a “heading towards X” report the card now says plainly that this is <b>an area on the approach line, not a measured position</b>. For that drone, the bearing from the reported point to the target was 315.9° against the 316° heading given by the source — the point was computed, not observed.</li>
+    <li>The legend and the guide describe the circle as it actually behaves.</li>
+  </ul>
+  <p class="fineprint">Scoring, thresholds and alert wording are unchanged. The rule from <a href="#v1-7-83">1.7.83</a> still holds: we do not compute positions, the icon stays where the source reported it — only the uncertainty circle grows.</p>
+</section>
 <section id="v1-7-86">
   <h2>1.7.86 — A red alert can wake you with vibration alone</h2>
   <p class="fineprint">Release 1.7.86 · 29 September 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.86">Full release notes</a></p>
