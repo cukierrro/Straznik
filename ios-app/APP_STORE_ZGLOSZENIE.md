@@ -462,3 +462,22 @@ w chmurze BUILD SUCCEEDED przed buildem podpisanym.
 
 Nadal otwarte: Critical Alerts (`442YB6VV2L`, *Submitted*) oraz odłożony podgląd
 zmiany języka w sekcji „Mapa: trasy obiektów”.
+
+## 15. Zgłoszenie 1.7.87 (30.09.2026, 16:43)
+
+Build **2609301331**, status *Waiting for Review*, publikacja automatyczna.
+Wydanie z tego samego commita co Android (`ab3e84e`, tag `v1.7.87`). W sklepie
+było 1.7.82, więc iPhone przeskakuje o cztery wydania naraz.
+
+**Pierwsze publiczne wydanie z alarmem krytycznym** — uprawnienie potwierdzone
+i w podpisie, i w profilu; zachowanie zmierzone na urządzeniu w trzech
+scenariuszach (sekcja 13 w `TESTFLIGHT_TESTY.md`).
+
+Dwie rzeczy z panelu, warte zapamiętania:
+
+* **sesja App Store Connect wygasła** w trakcie pracy — logowania nie wykonuję,
+  zrobił je użytkownik; build był już wtedy wysłany i nie trzeba go powtarzać;
+* **kliknięcie „Add for Review” przez `ref` nie działa** — nie wywołuje żadnego
+  zapytania sieciowego, status zostaje na *Prepare for Submission*. Zadziałało
+  dopiero kliknięcie **po współrzędnych** ze zrzutu. Ten sam panel przyjmuje
+  `ref` dla „Save” i „Add Build”, więc problem dotyczy tego jednego przycisku.
