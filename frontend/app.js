@@ -438,10 +438,22 @@ function positionInfo(t) {
   return { quality:"point", reason:"source_point" };
 }
 function isApproxPosition(t) { return positionInfo(t).quality === "approx"; }
+/* Chwila, względem której liczymy wiek meldunku. W podglądzie historii to czas
+   migawki, nie „teraz" — inaczej wszystko wyglądałoby na przeterminowane. */
+function nowRefMs() {
+  return histMode && historyAdsbTime != null ? historyAdsbTime : Date.now();
+}
+/* „Przybliżony rejon" nie mówił czytelnikowi najważniejszego: przy meldunku
+   „kursem na X" punkt leży na linii dolotu do celu i nie jest zmierzonym
+   położeniem. 30.09.2026 taki punkt wypadł 14 km za granicą, w innym państwie
+   niż zgłoszony region, i czytelnik zrozumiał to jako przelot nad tym krajem. */
 function approxPositionNote(t) {
   const locality = positionInfo(t).reason === "locality_center";
+  const naCel = !locality && t?.destination === true;
   const heading = locality
     ? (UI.t("środek miejscowości użyty jako punkt odniesienia, nie zmierzona pozycja obiektu", "locality centre used as a reference point, not a measured object position", "центр населеного пункту використано як орієнтир, а не виміряна позиція об'єкта"))
+    : naCel
+    ? (UI.t("rejon zgłoszenia na kursie do celu, nie zmierzone położenie", "reported area on the approach to the target, not a measured position", "район повідомлення на курсі до цілі, а не виміряне положення"))
     : (UI.t("przybliżony rejon zgłoszenia", "approximate report area", "приблизний район повідомлення"));
   return `<span style="color:#ffb020"><b>${heading}</b> — ${UI.t("brak potwierdzonej trasy i czasu dolotu", "no confirmed route or arrival time", "немає підтвердженого маршруту й часу підльоту")}</span>`;
 }
@@ -513,7 +525,7 @@ function etaInfo(t) {
   const vLo = jet ? Math.max(v, JET_MAX_KMH) : v;
   const mine = myVoiv();
   const seen = Date.parse(t.confirmedAt || t.updatedAt || "");
-  const refMs = histMode && historyAdsbTime != null ? historyAdsbTime : Date.now();
+  const refMs = nowRefMs();
   const ageH = Number.isFinite(seen) ? Math.max(0, (refMs - seen) / 3600000) : 0;
   const slackKm = (Number(t.uncertaintyKm) || 0) + v * ageH;
   const range = (km) => km == null ? null
@@ -539,7 +551,7 @@ const etaRangeTxt = (lo, hi) => (lo == null || hi == null || lo >= hi) ? etaTxt(
    Odejmujemy wiek sygnału, a po 15 min liczby nie pokazujemy wcale. */
 function agedEta(m, ts) {
   if (m == null) return null;
-  const ref = histMode && historyAdsbTime != null ? historyAdsbTime : Date.now();
+  const ref = nowRefMs();
   const ageMin = (ref - Date.parse(ts || "")) / 60000;
   if (!Number.isFinite(ageMin)) return m;
   if (ageMin > 15) return null;
@@ -2520,12 +2532,14 @@ const APPROX_MIN_UNCERTAINTY_KM = 12;
    w 94–100% i nigdy kursu — to meldunek o rejonie, nie namiar. Pokazujemy szerszy
    rejon (25 km), żeby punkt na mapie nie udawał miejsca, w którym leci pocisk. */
 const FAST_TYPES_AREA_KM = 25, FAST_TYPES = new Set(["missile", "cruise", "ballistic", "kab"]);
-function shownUncertaintyKm(t) {
+function shownUncertaintyKm(t, nowMs) {
   const raw = Number(t?.uncertaintyKm);
   const km = Number.isFinite(raw) && raw > 0 ? raw : null;
-  if (isApproxPosition(t)) return Math.max(km ?? 0,
-    FAST_TYPES.has(t?.type) ? FAST_TYPES_AREA_KM : APPROX_MIN_UNCERTAINTY_KM);
-  return km;
+  const base = isApproxPosition(t)
+    ? Math.max(km ?? 0, FAST_TYPES.has(t?.type) ? FAST_TYPES_AREA_KM : APPROX_MIN_UNCERTAINTY_KM)
+    : km;
+  if (base == null) return null;
+  return Math.round(base + ageSlackKm(t, nowMs));
 }
 /* okrąg geograficzny (przybliżony) do wizualizacji uncertaintyKm */
 function circleCoords(lat, lon, km) {
@@ -2656,6 +2670,28 @@ function threatAgeMin(t, nowMs) {
   if (!seen) return 0;
   return Math.max(0, Math.round((nowMs - seen) / 60000));
 }
+/* Ile obiekt mógł przelecieć od ostatniego meldunku. Rysujemy ostatnią znaną
+   pozycję, więc okrąg niepewności musi rosnąć razem z wiekiem tej wiedzy —
+   inaczej obiecuje precyzję, której już nie ma. Zgłoszenie z 30.09.2026: dron
+   zgłoszony 4 minuty wcześniej miał okrąg ±12 km, choć przy 180 km/h mógł być
+   12 km dalej, po drugiej stronie granicy. Ten sam rachunek (niepewność plus
+   droga od potwierdzenia) robi od dawna etaInfo — tutaj tylko go widać.
+
+   Powyżej 15 minut nie doliczamy więcej. Tyle samo przyjmuje reszta kodu za
+   granicę, po której z meldunku nie da się już nic wnioskować (wygaszanie
+   punktów, ostrzeżenie na karcie), a rosnący bez końca okrąg zalałby mapę.
+
+   Szybkie typy zostają przy swoim stałym rejonie z audytu G8: dla rakiet, KAB
+   i balistyki NEPTUN podaje rejon, nie namiar, i nigdy kursu — doliczanie im
+   drogi udawałoby wiedzę o locie, której nie mamy. */
+const AGE_SLACK_MAX_MIN = 15;
+function ageSlackKm(t, nowMs) {
+  if (FAST_TYPES.has(t?.type)) return 0;
+  const kmh = Math.max(measuredTrackSpeed(t) || 0, TYPE_SPEED_KMH[t?.type] || 0);
+  if (!kmh) return 0;
+  const min = Math.min(threatAgeMin(t, nowMs ?? nowRefMs()), AGE_SLACK_MAX_MIN);
+  return kmh * (min / 60);
+}
 function ageAgoText(min) {
   const m = Number(min);
   if (!Number.isFinite(m) || m < 1) return UI.t("przed chwilą", "just now", "щойно");
@@ -2759,7 +2795,7 @@ function animate(ts) {
         heading_measured: mh != null,
         heading_source: t.heading ?? null,
         color: meta.color,
-        confidence: t.confidenceLevel || "?", uncertainty: shownUncertaintyKm(t) ?? "?",
+        confidence: t.confidenceLevel || "?", uncertainty: shownUncertaintyKm(t, now) ?? "?",
         opis: threatDesc(t), dist_km: t.pl_assessment?.dist_km,
         distance_text: threatDistanceText(t, t.pl_assessment?.dist_km),
         // werdykt kursu jedzie razem ze znacznikiem, żeby karta obiektu mówiła
@@ -2770,7 +2806,7 @@ function animate(ts) {
         age_min: ageMin, age_label: ageLabel(ageMin),
         course_off: courseOffsetDeg(t),
         eta: etaHtml(t) } });
-    const uncKm = shownUncertaintyKm(t);
+    const uncKm = shownUncertaintyKm(t, now);
     if (uncKm)
       unc.push({ type: "Feature", properties: { color: meta.color },
         geometry: { type: "Polygon", coordinates: circleCoords(p.lat, p.lon, uncKm) } });
