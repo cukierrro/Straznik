@@ -628,6 +628,10 @@ wydawanie zmienionych wersji albo udostępnianie funkcji aplikacji innym wymaga 
 licencji od autora — dotyczy to także firm, organizacji i instytucji publicznych.
 Licencje dla firm i instytucji: zgłoszenie (Issue) w repozytorium.
 
+Strażnik jest **source-available, a nie open source**. Na liście SPDX nie ma licencji
+o takich warunkach, więc nasza ma oznaczenie własne: `LicenseRef-Straznik-1.0`.
+GitHub pokazuje ją w związku z tym jako „Other”.
+
 Wersje do 1.7.53 włącznie pozostają na licencji MIT. Biblioteki, mapy, zdjęcia i dane
 innych podmiotów mają własne licencje — zob. [NOTICE](NOTICE).
 
