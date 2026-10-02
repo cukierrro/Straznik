@@ -3070,14 +3070,19 @@ function renderPanel() {
   const banner = document.getElementById("my-banner");
   if (mine && f.voivodeships[mine]) {
     const st = f.voivodeships[mine];
-    banner.className = "level-" + (spillRaised(st) ? "spill" : st.level);
+    const poziom = spillRaised(st) ? "spill" : st.level;
+    banner.className = "level-" + poziom;
+    // Znak przed tekstem zmienia KSZTAŁT razem z kolorem (kropka → trójkąt →
+    // kwadrat z wykrzyknikiem), żeby stan dało się odczytać bez rozróżniania barw.
+    // Sam kształt rysuje CSS; tutaj tylko wykrzyknik przy wysokim poziomie.
     // „brak sygnałów 1.9 pkt" przeczyło samo sobie (zgłoszone 13.09.2026) — przy
     // punktach poniżej progu baner mówi to samo co karta województwa
-    banner.innerHTML = `<b>${esc(UI.voiv(mine))}</b> — <span class="lvl">${
+    banner.innerHTML = `<span class="znak" aria-hidden="true">${poziom === "high" ? "!" : ""}</span>`
+      + `<span><b>${esc(UI.voiv(mine))}</b> — <span class="lvl">${
       spillRaised(st) ? SPILL_LABEL
       : st.level === "none" && st.score > 0 ? (UI.t("poniżej progu", "below threshold", "нижче порога"))
       : LEVEL_LABEL[st.level]}</span>
-      <span class="muted">${st.score.toFixed(1)} ${UI.t("pkt", "pts", "бал.")}</span>${bezPotwierdzenia(st)}`;
+      <span class="muted">${st.score.toFixed(1)} ${UI.t("pkt", "pts", "бал.")}</span>${bezPotwierdzenia(st)}</span>`;
     banner.onclick = () => { setPanel(true); openCard(mine); };
   } else {
     banner.className = "hidden";

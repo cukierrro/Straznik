@@ -574,20 +574,48 @@ body.history-mode #national-banner { display: none; }
 body.history-mode #my-banner { display: none; }
 
 /* ── baner mojego regionu ── */
+/* Wskaznik stanu mojego wojewodztwa. Zasada: MIEJSCE ROSNIE WRAZ Z WAGA.
+   Wczesniej byl to pas na cala szerokosc, widoczny bez przerwy takze wtedy, gdy
+   nie dzialo sie nic — zabieral miejsce mapie i przyzwyczajal do ignorowania.
+   Teraz w ciszy jest pigulka z kropka, przy uwadze trojkatem, a dopiero przy
+   wysokim poziomie rozciaga sie na cala szerokosc.
+   KSZTALT zmienia sie razem z kolorem — osoba nierozrozniajaca barw widzi roznice. */
 #my-banner {
   /* w stosie nad atrybucją NEPTUN — ta musi pozostać widoczna (warunek API) */
+  display: inline-flex; align-items: center; gap: 8px;
+  /* rodzic jest kolumną flex, więc samo inline-flex nie wystarcza —
+     bez align-self pigułka dalej rozciągałaby się na całą szerokość */
+  align-self: flex-start; width: auto;
   max-width: 100%;
   background: var(--panel); border: 1px solid var(--panel-border);
-  border-left: 3px solid var(--accent); border-radius: 10px;
-  padding: 7px 11px; font-size: 12px; backdrop-filter: blur(8px);
+  border-radius: 999px;
+  padding: 6px 12px 6px 8px; font-size: 12px; backdrop-filter: blur(8px);
 }
 #my-banner b { text-transform: capitalize; }
-#my-banner.level-elevated { border-left-color: var(--amber); }
-#my-banner.level-high { border-left-color: var(--red); animation: cardpulse 1.6s infinite; }
 #my-banner .lvl { font-size: 10.5px; letter-spacing: .08em; }
-#my-banner.level-elevated .lvl { color: var(--amber); }
-#my-banner.level-high .lvl { color: var(--red); }
+#my-banner .znak {
+  width: 14px; height: 14px; flex: none; display: grid; place-items: center;
+  font-size: 10px; font-weight: 700; color: #06111f;
+  border-radius: 50%; background: var(--green);
+}
 #my-banner.level-none .lvl { color: var(--muted); }
+#my-banner.level-elevated { border-color: rgba(255, 176, 32, .45); }
+#my-banner.level-elevated .znak {
+  border-radius: 0; background: var(--amber);
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+#my-banner.level-elevated .lvl { color: var(--amber); }
+#my-banner.level-high {
+  display: flex; align-self: stretch; width: auto; border-radius: 10px; padding: 9px 12px;
+  background: rgba(120, 20, 34, .94); border-color: var(--red);
+  animation: cardpulse 1.6s infinite;
+}
+#my-banner.level-high .znak {
+  width: 20px; height: 20px; border-radius: 4px;
+  background: var(--red); color: #fff; font-size: 13px;
+}
+#my-banner.level-high .lvl, #my-banner.level-high .muted { color: #ffd9de; }
+#my-banner.level-spill .znak { background: #c9a86a; border-radius: 50%; clip-path: none; }
 /* alarm ogólnokrajowy NEPTUN-a (np. start MiG-31K) — komunikat zamiast ikony;
    widoczny także w historii, bo opisuje tamtą chwilę */
 #national-banner {
@@ -599,7 +627,7 @@ body.history-mode #my-banner { display: none; }
 #national-banner .nat-row { border-left: 3px solid var(--nat, #c06bff); padding-left: 8px; }
 #national-banner .muted { font-size: 11px; }
 /* kolor tylko od sąsiadów: kreskowana ramka i przygaszony opis, bez pulsowania */
-#my-banner.level-spill { border-left: 3px dashed rgba(255,176,32,.55); }
+#my-banner.level-spill { border-color: rgba(255,176,32,.4); border-style: dashed; }
 #my-banner.level-spill .lvl { color: #c9a86a; }
 
 /* ── pełnoekranowy alarm (poziom czerwony) ── */
@@ -884,7 +912,12 @@ html[lang="en"] .list:empty::after { content: "— none —"; }
   color: var(--muted); margin-bottom: 6px; }
 .lg-group { color: var(--muted); font-size: 10.5px; letter-spacing: .06em;
   text-transform: uppercase; margin: 8px 0 4px; }
-.lg-row { display: flex; align-items: center; gap: 8px; padding: 2.5px 0; }
+.lg-row { display: flex; align-items: center; gap: 8px; padding: 3px 0; }
+/* Podpis pod nazwą: legenda mówiła CO to jest, ale nie co to znaczy.
+   Dwuwierszowe pozycje muszą się zawijać — przy ukraińskim i powiększonym
+   tekście stała wysokość urywałaby drugi wiersz. */
+.lg-row > span { min-width: 0; }
+.lg-row small { display: block; color: var(--muted); font-size: 10px; line-height: 1.3; }
 .lg-row i { flex: none; display: inline-block; }
 .lg-row .lg-threat { width: 26px; height: 26px; }
 .lg-row .lg-threat canvas { display: block; width: 26px; height: 26px; }

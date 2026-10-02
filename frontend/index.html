@@ -382,40 +382,45 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 
 <div id="legend" class="hidden">
   <h3>Legenda</h3>
-  <div class="lg-group">Obiekty (Dane: NEPTUN, nad Ukrainą)</div>
-  <div class="lg-row"><i class="lg-threat" data-type="uav"></i> Dron / BpSP</div>
-  <div class="lg-row"><i class="lg-threat" data-type="shahed"></i> Dron Shahed</div>
-  <div class="lg-row"><i class="lg-threat" data-type="fpv"></i> Dron FPV (lokalny)</div>
-  <div class="lg-row"><i class="lg-threat" data-type="recon"></i> Dron rozpoznawczy</div>
-  <div class="lg-row"><i class="lg-threat" data-type="missile"></i> Rakieta manewrująca</div>
-  <div class="lg-row"><i class="lg-threat" data-type="ballistic"></i> Rakieta balistyczna</div>
-  <div class="lg-row"><i class="lg-threat" data-type="kab"></i> Bomba kierowana KAB</div>
-  <div class="lg-row"><i class="lg-threat" data-type="mig31k"></i> MiG-31K (nosiciel)</div>
-  <div class="lg-row"><i class="lg-threat" data-type="unknown"></i> Obiekt nierozpoznany</div>
-  <div class="lg-row"><i class="lg-threat" data-type="uav" data-heading-unknown="1"></i> kurs nieznany — ikona nie jest obracana</div>
-  <div class="lg-row"><i class="pulse-ic"></i> pulsujący pierścień — obiekt liczy się teraz do punktów</div>
-  <div class="lg-row"><i class="ring"></i> okrąg = gdzie obiekt może być (±km, rośnie z wiekiem meldunku)</div>
-  <div class="lg-row"><i class="trail"></i> przerywana linia = trasa przelotu</div>
-  <div class="lg-row"><i class="plane-ic"></i> samolot wojskowy (ADS-B, jawny transponder)</div>
-  <div class="lg-row"><span style="color:#39c5ec">🚁</span> śmigłowiec wojskowy (ADS-B) —
-    kliknij maszynę: model, przeznaczenie, operator</div>
-  <div class="lg-group">Województwa (suma pkt z 60 min)</div>
-  <div class="lg-row"><i class="sq" style="--c:#233252"></i> 0–1.9 pkt — spokojnie</div>
-  <div class="lg-row"><i class="sq" style="--c:#ffb020"></i> ≥ 2 pkt — podwyższona uwaga</div>
-  <div class="lg-row"><i class="sq" style="--c:#ff4d5e"></i> ≥ 4 pkt + potwierdzenie — wysoki priorytet</div>
-  <div class="lg-row"><i class="sq" style="--c:#7c6a45"></i> przygaszony — kolor tylko od sąsiadów, bez alarmu</div>
-  <div class="lg-row"><i class="sq oblast-ic"></i> obwód UA z alarmem powietrznym, który daje punkty</div>
-  <div class="lg-group">Alarmy u sąsiadów (bez punktów)</div>
-  <div class="lg-row"><i class="sq" style="--c:#ff4d5e"></i> rejon Ukrainy z alarmem — poziom czerwony</div>
-  <div class="lg-row"><i class="sq" style="--c:#ffb020"></i> rejon Ukrainy z alarmem — poziom żółty</div>
-  <div class="lg-row"><i class="sq" style="--c:#ff4d5e;border-style:dashed"></i> Litwa, Łotwa, Estonia — alarm ogłoszony (wg mediów)</div>
-  <div class="lg-row muted-row">wysokość bryły 3D rośnie z liczbą punktów;<br>
-    kliknij obiekt lub województwo po szczegóły</div>
-  <div class="lg-group">Strefy PAŻP (tylko informacyjnie)</div>
-  <div class="lg-row"><i class="sq" style="--c:#b39ddb"></i> strefa stała — stoi tu od dawna</div>
-  <div class="lg-row"><i class="sq" style="--c:#ffb020"></i> strefa włączona ostatnio (D / R / ADHOC / TSA)</div>
-  <div class="lg-row muted-row">warstwa stref nie dodaje punktów — punktuje tylko rzadka
-    strefa D/R/NPZ/ADHOC od ziemi nad wschodem lub północą; dotknij strefy po opis</div>
+
+  <div class="lg-group">Obiekty — dane NEPTUN, nad Ukrainą</div>
+  <div class="lg-row"><i class="lg-threat" data-type="uav"></i><span>Dron / BpSP</span></div>
+  <div class="lg-row"><i class="lg-threat" data-type="shahed"></i><span>Dron Shahed</span></div>
+  <div class="lg-row"><i class="lg-threat" data-type="fpv"></i><span>Dron FPV<small>lokalny, krótki zasięg</small></span></div>
+  <div class="lg-row"><i class="lg-threat" data-type="recon"></i><span>Dron rozpoznawczy</span></div>
+  <div class="lg-row"><i class="lg-threat" data-type="missile"></i><span>Rakieta manewrująca</span></div>
+  <div class="lg-row"><i class="lg-threat" data-type="ballistic"></i><span>Rakieta balistyczna</span></div>
+  <div class="lg-row"><i class="lg-threat" data-type="kab"></i><span>Bomba kierowana KAB</span></div>
+  <div class="lg-row"><i class="lg-threat" data-type="mig31k"></i><span>MiG-31K<small>nosiciel</small></span></div>
+  <div class="lg-row"><i class="lg-threat" data-type="unknown"></i><span>Obiekt nierozpoznany</span></div>
+
+  <div class="lg-group">Oznaczenia wokół ikony</div>
+  <div class="lg-row"><i class="lg-threat" data-type="uav" data-heading-unknown="1"></i><span>Kurs nieznany<small>ikona nie jest obracana</small></span></div>
+  <div class="lg-row"><i class="pulse-ic"></i><span>Pulsujący pierścień<small>obiekt liczy się teraz do punktów</small></span></div>
+  <div class="lg-row"><i class="ring"></i><span>Okrąg<small>gdzie obiekt może być (±km) — rośnie z wiekiem meldunku</small></span></div>
+  <div class="lg-row"><i class="trail"></i><span>Przerywana linia<small>trasa przelotu</small></span></div>
+
+  <div class="lg-group">Lotnictwo — ADS-B, jawny transponder</div>
+  <div class="lg-row"><i class="plane-ic"></i><span>Samolot wojskowy</span></div>
+  <div class="lg-row"><span style="color:#39c5ec">🚁</span><span>Śmigłowiec wojskowy<small>dotknij maszyny: model, przeznaczenie, operator</small></span></div>
+
+  <div class="lg-group">Województwa — suma punktów z 60 minut</div>
+  <div class="lg-row"><i class="sq" style="--c:#233252"></i><span>0–1,9 pkt<small>spokojnie</small></span></div>
+  <div class="lg-row"><i class="sq" style="--c:#ffb020"></i><span>od 2 pkt<small>podwyższona uwaga</small></span></div>
+  <div class="lg-row"><i class="sq" style="--c:#ff4d5e"></i><span>od 4 pkt z potwierdzeniem<small>wysoki priorytet</small></span></div>
+  <div class="lg-row"><i class="sq" style="--c:#7c6a45"></i><span>Przygaszony<small>kolor tylko od sąsiadów, bez alarmu</small></span></div>
+  <div class="lg-row"><i class="sq oblast-ic"></i><span>Obwód UA z alarmem powietrznym<small>takim, który daje punkty</small></span></div>
+  <div class="lg-row muted-row">Wysokość bryły 3D rośnie z liczbą punktów. Dotknij obiektu lub województwa po szczegóły.</div>
+
+  <div class="lg-group">Alarmy u sąsiadów — bez punktów</div>
+  <div class="lg-row"><i class="sq" style="--c:#ff4d5e"></i><span>Rejon Ukrainy — poziom czerwony</span></div>
+  <div class="lg-row"><i class="sq" style="--c:#ffb020"></i><span>Rejon Ukrainy — poziom żółty</span></div>
+  <div class="lg-row"><i class="sq" style="--c:#ff4d5e;border-style:dashed"></i><span>Litwa, Łotwa, Estonia<small>alarm ogłoszony według mediów</small></span></div>
+
+  <div class="lg-group">Strefy PAŻP — tylko informacyjnie</div>
+  <div class="lg-row"><i class="sq" style="--c:#b39ddb"></i><span>Strefa stała<small>stoi tu od dawna</small></span></div>
+  <div class="lg-row"><i class="sq" style="--c:#ffb020"></i><span>Strefa włączona ostatnio<small>D / R / ADHOC / TSA</small></span></div>
+  <div class="lg-row muted-row">Warstwa stref nie dodaje punktów — punktuje tylko rzadka strefa D/R/NPZ/ADHOC od ziemi nad wschodem lub północą. Dotknij strefy po opis.</div>
 </div>
 
 <!-- Ekran alarmu jest oknem `alertdialog`, nie zwykłą warstwą: czytnik ekranu
