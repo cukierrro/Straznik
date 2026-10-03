@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Strażnik 1.7.88 — instrukcja użytkownika</title>
-<meta name="description" content="Instrukcja Strażnika 1.7.88: instalacja, Moje miejsca, mapa i strefy PAŻP, panel sygnałów, historia, alarmy, powiadomienia w przeglądarce i punktacja. Zrzuty z aktualnej wersji.">
+<title>Strażnik 1.7.89 — instrukcja użytkownika</title>
+<meta name="description" content="Instrukcja Strażnika 1.7.89: instalacja, Moje miejsca, mapa i strefy PAŻP, panel sygnałów, historia, alarmy, powiadomienia w przeglądarce i punktacja. Zrzuty z aktualnej wersji.">
 <link rel="canonical" href="https://cukierrro.github.io/Straznik/">
 <link rel="alternate" hreflang="pl" href="https://cukierrro.github.io/Straznik/">
 <link rel="alternate" hreflang="en" href="https://cukierrro.github.io/Straznik/en.html">
@@ -34,16 +34,16 @@
   <div class="languages" aria-label="Język instrukcji"><a href="index.html" lang="pl" aria-current="page">PL</a><a href="en.html" lang="en" hreflang="en">EN</a><a href="uk.html" lang="uk" hreflang="uk">UA</a></div>
 </div></nav>
 <header class="hero"><div class="wrap hero-grid">
-  <div><div class="eyebrow">Instrukcja użytkownika · wersja 1.7.88</div>
+  <div><div class="eyebrow">Instrukcja użytkownika · wersja 1.7.89</div>
     <h1>Sytuacja na mapie.<br>Źródła za każdym sygnałem.</h1>
     <p class="lead">Strażnik łączy publiczne informacje o zagrożeniach z powietrza i pokazuje ich punktację dla polskich województw. Działa na Androidzie, na iPhonie i w przeglądarce.</p>
     <div class="actions"><a class="button primary" href="https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk">↓ Pobierz na Androida</a><a class="button primary" href="https://apps.apple.com/pl/app/id6813563009">↓ Pobierz na iOS</a><a class="button" href="https://straznik.eu">Otwórz mapę</a></div>
-    <p class="fineprint">Instrukcja opisuje wyłącznie bieżącą wersję 1.7.88. Zrzuty wykonano na Pixelu 7 z Androidem 14, na żywych danych: ekran startowy 3 października 2026 z podpisanego wydania 1.7.88, miniaturę karty 28 września 2026 z podpisanego wydania 1.7.84, legendę i rozwiniętą kartę obiektu 30 września 2026 z podpisanego wydania 1.7.87, zakładkę Alarmy 24 września 2026 z podpisanego wydania 1.7.78, zakładkę Dźwięk 29 września 2026 z podpisanego wydania 1.7.86, zakładkę Aplikacja 24 września 2026 z podpisanego wydania 1.7.79, pozostałe 13 września 2026. Co zmieniało się w kolejnych wydaniach, znajdziesz w <a href="zmiany.html">historii zmian</a>. Dotknij zdjęcia, aby otworzyć je w pełnym rozmiarze.</p>
+    <p class="fineprint">Instrukcja opisuje wyłącznie bieżącą wersję 1.7.89. Zrzuty wykonano na Pixelu 7 z Androidem 14, na żywych danych: ekran startowy, legendę, panel sygnałów, menu Więcej, okno Źródła danych i wszystkie cztery zakładki ustawień — 3 października 2026 z podpisanego wydania 1.7.89, na świeżej instalacji (stąd brak zapisanych miejsc); miniaturę karty i kartę obiektu 28 i 30 września 2026 z podpisanych wydań 1.7.84 i 1.7.87; pozostałe 13 i 23 września 2026. Co zmieniało się w kolejnych wydaniach, znajdziesz w <a href="zmiany.html">historii zmian</a>. Dotknij zdjęcia, aby otworzyć je w pełnym rozmiarze.</p>
     <p class="fineprint"><b>Masz iPhone'a?</b> Alarmy, zgody i aktualizacje działają tam inaczej — przeczytaj <a href="iphone.html">instrukcję dla iPhone'a</a>.</p>
     <p class="host-note"><img src="mikrus-logo.svg" alt="Mikrus" width="86" height="14">
       Serwer Strażnika zapewnia <a href="https://mikr.us">Mikrus</a> — dziękujemy za wsparcie projektu.</p>
   </div>
-  <a class="shot-link" href="screens/1737/start-pl.jpg"><img src="screens/1737/start-pl.jpg" width="1080" height="2400" alt="Ekran startowy Strażnika: mapa Polski i Ukrainy, sześć zielonych diod źródeł, obiekty nad Ukrainą w przerywanych okręgach niepewności, ikony u góry, kafelki mój region, strefy i cała PL oraz dolne zakładki Mapa, Sygnały, Historia, Więcej"></a>
+  <a class="shot-link" href="screens/1737/start-pl.jpg"><img src="screens/1737/start-pl.jpg" width="1080" height="2400" alt="Ekran startowy Strażnika: mapa Polski i Ukrainy, sześć zielonych diod źródeł, obiekty nad Ukrainą w przerywanych okręgach niepewności, znak (i) z atrybucją w lewym górnym rogu mapy, kafelki mój region, strefy i cała PL oraz dolne zakładki Mapa, Sygnały, Historia, Więcej"></a>
 </div></header>
 <main id="content" class="wrap">
 
@@ -80,9 +80,9 @@
       <h3>Aktualizacja z poziomu aplikacji</h3>
       <p>Strażnik sprawdza nowe wydanie przy każdym uruchomieniu i przy powrocie na wierzch (nie częściej niż co 30 minut). Okno aktualizacji pokazuje numer wersji i listę zmian. Ręcznie: <kbd>⚙</kbd> → <kbd>Aplikacja</kbd> → <kbd>⬆ Sprawdź aktualizacje</kbd>.</p>
       <p>Przy zwykłej aktualizacji możesz wybrać <kbd>Później</kbd>. Po wybraniu instalacji aplikacja pobiera plik, sprawdza jego sumę SHA-256 i przekazuje go Androidowi do zatwierdzenia. Instaluj nowe wydanie na istniejące — ustawienia i Moje miejsca zostają.</p>
-      <div class="note"><b>Która wersja jest u Ciebie?</b> <kbd>⚙</kbd> → zakładka <kbd>Aplikacja</kbd> → „Zainstalowana wersja”. Najnowsze wydanie to <b>1.7.88</b>. Na dole zakładki są odnośniki do tej instrukcji, historii zmian i wsparcia autora.</div>
+      <div class="note"><b>Która wersja jest u Ciebie?</b> <kbd>⚙</kbd> → zakładka <kbd>Aplikacja</kbd> → „Zainstalowana wersja”. Najnowsze wydanie to <b>1.7.89</b>. Na dole zakładki są odnośniki do tej instrukcji, historii zmian i wsparcia autora.</div>
     </div>
-    <figure><a class="shot-link" href="screens/1737/set-aplikacja-pl.jpg"><img loading="lazy" src="screens/1737/set-aplikacja-pl.jpg" width="1080" height="2400" alt="Ustawienia, zakładka Aplikacja: język interfejsu, zainstalowana wersja 1.7.79, przycisk Sprawdź aktualizacje, rozwijane Zaawansowane i odnośniki do instrukcji, historii zmian i wsparcia autora"></a><figcaption><kbd>⚙</kbd> → <kbd>Aplikacja</kbd>: język, wersja, aktualizacje.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/1737/set-aplikacja-pl.jpg"><img loading="lazy" src="screens/1737/set-aplikacja-pl.jpg" width="1080" height="2400" alt="Ustawienia, zakładka Aplikacja: wybór języka, sekcja Mapa: trasy obiektów, zainstalowana wersja 1.7.89 oraz zwinięte sekcje Jak czytać kierunek, Skąd biorą się aktualizacje i Zaawansowane"></a><figcaption><kbd>⚙</kbd> → <kbd>Aplikacja</kbd>: język, wersja, aktualizacje.</figcaption></figure>
   </div>
 </section>
 
@@ -98,9 +98,9 @@
     <figure><a class="shot-link" href="screens/1737/places-pl.jpg"><img loading="lazy" src="screens/1737/places-pl.jpg" width="1080" height="2400" alt="Okno Moje miejsca: miejsce Dom, zakres Województwo, województwo lubelskie, zaznaczone Obserwuj alerty dla tego województwa, opis działania i przyciski Anuluj zmiany oraz Zapisz na urządzeniu"></a><figcaption>Miejsce „Dom” w lubelskim z obserwacją alertów.</figcaption></figure>
   </div>
   <div class="shots">
-    <figure><a class="shot-link" href="screens/1737/set-alarmy-pl.jpg"><img loading="lazy" src="screens/1737/set-alarmy-pl.jpg" width="1080" height="2400" alt="Ustawienia, zakładka Alarmy na świeżej instalacji: suwak Alarmy na tym telefonie, informacja, że nie wybrano jeszcze województwa, oraz przyciski Ustawienia powiadomień, Sprawdź zgodę na alarm pełnoekranowy, Wyłącz oszczędzanie baterii i Alarm mimo Nie przeszkadzać"></a><figcaption><b>Alarmy</b>: stan powiadomień i skróty do ustawień Androida. Przycisk 🌙 pojawia się tylko wtedy, gdy zgoda na przebicie Nie przeszkadzać nie jest przyznana.</figcaption></figure>
-    <figure><a class="shot-link" href="screens/1737/set-miejsca-pl.jpg"><img loading="lazy" src="screens/1737/set-miejsca-pl.jpg" width="1080" height="2400" alt="Ustawienia, zakładka Moje miejsca: 1 z 8 miejsc, obserwowane województwa lubelskie i przycisk Otwórz Moje miejsca"></a><figcaption><b>Moje miejsca</b>: podsumowanie i wejście do edycji.</figcaption></figure>
-    <figure><a class="shot-link" href="screens/1737/set-dzwiek-pl.jpg"><img loading="lazy" src="screens/1737/set-dzwiek-pl.jpg" width="1080" height="2400" alt="Ustawienia, zakładka Dźwięk: opis sygnałów, przyciski Test: uwaga, Test: syrena i Test: pełny alarm, sekcja Głośność sygnału uwagi (żółty) z wyborem Normalny, Ciszej i Bez dźwięku oraz sekcja Alarm natywny i głośność z przełącznikami Czerwony alarm zawsze na pełnej głośności i Czerwony alarm: tylko wibracja, bez syreny"></a><figcaption><b>Dźwięk</b>: testy sygnałów, osobna głośność żółtego i przełącznik ciszy czerwonego alarmu.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/1737/set-alarmy-pl.jpg"><img loading="lazy" src="screens/1737/set-alarmy-pl.jpg" width="1080" height="2400" alt="Ustawienia, zakładka Alarmy na świeżej instalacji: zwinięta sekcja Jak to działa, przełącznik Alarmy na tym telefonie, wiersze zgód systemowych z ikonami i strzałkami oraz zwinięta sekcja Szczegóły zgód i alarmu"></a><figcaption><b>Alarmy</b>: stan powiadomień i skróty do ustawień Androida. Przycisk 🌙 pojawia się tylko wtedy, gdy zgoda na przebicie Nie przeszkadzać nie jest przyznana.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/1737/set-miejsca-pl.jpg"><img loading="lazy" src="screens/1737/set-miejsca-pl.jpg" width="1080" height="2400" alt="Ustawienia, zakładka Moje miejsca na świeżej instalacji: informacja, że nie zapisano jeszcze żadnego miejsca, i wiersz Otwórz Moje miejsca z ikoną pinezki"></a><figcaption><b>Moje miejsca</b>: podsumowanie i wejście do edycji.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/1737/set-dzwiek-pl.jpg"><img loading="lazy" src="screens/1737/set-dzwiek-pl.jpg" width="1080" height="2400" alt="Ustawienia, zakładka Dźwięk: zwinięta sekcja Co kiedy gra, trzy przyciski testów, segment Normalny – Ciszej – Bez dźwięku, przełączniki alarmu natywnego i zwinięta sekcja Zanim włączysz: co to zmienia"></a><figcaption><b>Dźwięk</b>: testy sygnałów, osobna głośność żółtego i przełącznik ciszy czerwonego alarmu.</figcaption></figure>
   </div>
   <h3>Zgody na Androidzie</h3>
   <p>W zakładce <kbd>Alarmy</kbd> sprawdzisz, czy powiadomienia są gotowe i dla jakiego regionu. Jeśli chcesz tylko oglądać mapę, wyłącz suwak <kbd>Alarmy na tym telefonie</kbd> — telefon zostanie wypisany ze wszystkich województw i przestanie dostawać powiadomienia o alarmach oraz przypomnienia o zgodach. Status nad suwakiem pokazuje, do ilu województw telefon jest zapisany (potwierdzone przez Firebase). Zgody Androida zostają bez zmian — aplikacja nie może ich zmienić. Ostrzeżenie o zgodach na mapie zamkniesz też krzyżykiem. Przyciski prowadzą wprost do ustawień systemu: <kbd>🔔 Ustawienia powiadomień</kbd>, <kbd>🚨 Sprawdź zgodę na alarm pełnoekranowy</kbd> i <kbd>🔋 Wyłącz oszczędzanie baterii</kbd>. Android 14 i nowszy potrafi cofnąć zgodę na pełny ekran po aktualizacji — sprawdź ją osobiście. Czwarty przycisk, <kbd>🌙 Alarm mimo Nie przeszkadzać</kbd>, widać tylko wtedy, gdy ta zgoda nie jest przyznana; jest dobrowolna i opisana niżej, przy trybie Nie przeszkadzać.</p>
@@ -127,8 +127,8 @@
   </tbody></table></div>
   <p>Przy starcie na dole pojawia się pasek „NIEOFICJALNE źródło dodatkowe…”. Możesz go zamknąć krzyżykiem — wraca przy alarmie. Panele i okna zamkniesz krzyżykiem, zakładką <kbd>Mapa</kbd> albo dotknięciem obok.</p>
   <div class="shots">
-    <figure><a class="shot-link" href="screens/1737/sources-pl.jpg"><img loading="lazy" src="screens/1737/sources-pl.jpg" width="1080" height="2400" alt="Okno Źródła danych: każda dioda to jedno źródło; opis NEPTUN i Alarmy UA ze stanem działa"></a><figcaption>Dotknięcie diod: opis i stan każdego źródła.</figcaption></figure>
-    <figure><a class="shot-link" href="screens/1737/more-pl.jpg"><img loading="lazy" src="screens/1737/more-pl.jpg" width="1080" height="2400" alt="Arkusz Więcej: O aplikacji i punktacja, Instrukcja użytkownika, Wesprzyj autora i przycisk Zamknij"></a><figcaption>Zakładka <kbd>Więcej</kbd>.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/1737/sources-pl.jpg"><img loading="lazy" src="screens/1737/sources-pl.jpg" width="1080" height="2400" alt="Okno Źródła danych: każda dioda to jedno źródło, opis NEPTUN i Alarmy UA ze stanem działania, na dole licencje mapy; okno zamyka krzyżyk u góry"></a><figcaption>Dotknięcie diod: opis i stan każdego źródła.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/1737/more-pl.jpg"><img loading="lazy" src="screens/1737/more-pl.jpg" width="1080" height="2400" alt="Arkusz Więcej: Schronienie — gdzie najbliżej, O aplikacji i punktacja, Instrukcja użytkownika i Wesprzyj autora; okno zamyka krzyżyk u góry"></a><figcaption>Zakładka <kbd>Więcej</kbd>.</figcaption></figure>
   </div>
 </section>
 
@@ -166,7 +166,10 @@
       Nieruchome ikony nie oznaczają więc zawieszonej mapy, tylko brak nowych zgłoszeń. Kartę obiektu
       otwiera linia <kbd>ostatni meldunek</kbd>, a przy meldunku starszym niż kwadrans dopisek, że obiekt
       mógł się od tego czasu przemieścić.</p>
-    <figure><a class="shot-link" href="screens/1737/legend-pl.jpg"><img loading="lazy" src="screens/1737/legend-pl.jpg" width="1080" height="2400" alt="Legenda: dziewięć symboli obiektów NEPTUN, symbol kursu nieznanego, pulsujący pierścień obiektu liczonego do punktów, wiersz „okrąg = gdzie obiekt może być (±km, rośnie z wiekiem meldunku)”, przerywana trasa, samolot i śmigłowiec wojskowy"></a><figcaption>Legenda — pierwsza ikona u góry.</figcaption></figure>
+      <p>Legendę otwiera pierwsza ikona u góry, a zamyka przycisk <kbd>✕ Zamknij</kbd>
+      w jej nagłówku. Sześć grup rozwija się pojedynczo — nazwy wszystkich widać naraz,
+      więc nie trzeba przewijać całości, żeby znaleźć jeden symbol.</p>
+    <figure><a class="shot-link" href="screens/1737/legend-pl.jpg"><img loading="lazy" src="screens/1737/legend-pl.jpg" width="1080" height="2400" alt="Legenda z nagłówkiem i przyciskiem ✕ Zamknij: rozwinięta grupa Obiekty z dziewięcioma symbolami NEPTUN, pod nią zwinięte grupy Oznaczenia wokół ikony, Lotnictwo, Województwa, Alarmy u sąsiadów i Strefy PAŻP"></a><figcaption>Legenda — pierwsza ikona u góry.</figcaption></figure>
   </div>
   <h3 id="zdjecia">Karta obiektu i samolotu</h3>
   <p>Dotknięcie obiektu otwiera <b>miniaturę karty</b> w lewym dolnym rogu, a obiekt dostaje na mapie biały pierścień. Strzałka <kbd>⌃</kbd> rozwija kartę, <kbd>⌄</kbd> zwija, <kbd>✕</kbd> zamyka.</p>
@@ -192,7 +195,7 @@
   </div>
   <div class="shots">
     <figure><a class="shot-link" href="screens/1737/zones-map-pl.jpg"><img loading="lazy" src="screens/1737/zones-map-pl.jpg" width="1080" height="2400" alt="Mapa kadrowana na lubelskie z włączoną warstwą stref: fioletowe kontury nad wschodnią Polską i podświetlony kafelek strefy"></a><figcaption>Warstwa stref nad wschodnią Polską.</figcaption></figure>
-    <figure><a class="shot-link" href="screens/1737/legend2-pl.jpg"><img loading="lazy" src="screens/1737/legend2-pl.jpg" width="1080" height="2400" alt="Dolna część legendy: kolory województw z przygaszonym kolorem od sąsiadów, różowy obwód UA z alarmem dającym punkty oraz kolory stref stałych i włączonych ostatnio z opisem punktacji"></a><figcaption>Legenda województw i stref.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/1737/legend2-pl.jpg"><img loading="lazy" src="screens/1737/legend2-pl.jpg" width="1080" height="2400" alt="Legenda ze zwiniętą grupą Obiekty i rozwiniętą grupą Województwa: kolory od spokojnego do wysokiego priorytetu, kolor przygaszony od sąsiadów i różowy obwód Ukrainy z alarmem dającym punkty"></a><figcaption>Legenda województw i stref.</figcaption></figure>
   </div>
 </section>
 
@@ -213,7 +216,7 @@
       </ul>
       <p>Wpis <b>SĄSIEDZTWO</b> to przeniesienie punktów z sąsiedniego województwa (rozdział <a href="#punkty">11</a>).</p>
     </div>
-    <figure><a class="shot-link" href="screens/1737/panel-pl.jpg"><img loading="lazy" src="screens/1737/panel-pl.jpg" width="1080" height="2400" alt="Panel sygnałów: karta Lubelskie mój region 0,6 pkt poniżej progu, składa się z 0,6 ALARM UA, strefy PAŻP bez punktów, oraz karty Podkarpackie i Mazowieckie"></a><figcaption>Karty województw w spokojnej chwili.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/1737/panel-pl.jpg"><img loading="lazy" src="screens/1737/panel-pl.jpg" width="1080" height="2400" alt="Panel sygnałów: nagłówek z progami podanymi raz i przyciskiem ✕ Zamknij, karta Lubelskie z poziomem nad liczbą punktów i rozbiciem na ALARM UA oraz osobna karta spokojnych województw"></a><figcaption>Karty województw w spokojnej chwili.</figcaption></figure>
   </div>
   <p>Niżej panel ma dwie listy obserwacji bez punktów: <b>Obiekty ≤ 250 km od granicy</b> (NEPTUN) i <b>Lotnictwo wojskowe (ADS-B)</b> nad wschodnią Polską. To publiczne dane z transponderów, a nie namierzanie. Pochodzą z darmowych, otwartych agregatorów: serwer pyta <a href="https://adsb.lol">adsb.lol</a>, a gdy ten nie odpowiada — opendata.adsb.fi; w trybie awaryjnym, gdy telefon liczy sam, dochodzi jeszcze airplanes.live. Warstwa jest informacyjna i nie daje punktów. W karcie województwa, jeśli są dostępne, znajdziesz też <kbd>📷 Kamery w regionie</kbd> — kamery drogowe, nie narzędzie do wykrywania obiektów. Od 1.7.88 jest to sama lista z odnośnikami: podglądu nie pokazujemy u siebie, bo regulamin worldcam.pl na to nie zezwala. Dotknięcie kafelka otwiera kamerę u źródła.</p>
   <div class="shots">

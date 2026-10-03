@@ -116,6 +116,18 @@
         "8626"
       ],
       "port": 8626
+    },
+    {
+      "name": "jasny-motyw",
+      "runtimeExecutable": "py",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8631",
+        "--directory",
+        "C:/Users/PC/AppData/Local/Temp/claude/C--Users-PC-Desktop-Stra-nik--claude-worktrees-vigorous-jones-6f7d7c/09c18d30-740c-46ab-bf51-4900d0094bb3/scratchpad/jasny"
+      ],
+      "port": 8631
     }
   ]
 }

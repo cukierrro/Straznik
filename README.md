@@ -6,6 +6,16 @@
 
 Serwer: **hostowane na [Mikrusie](https://mikr.us)** — dziękujemy za wsparcie projektu.
 
+Wersja 1.7.89: porządek w oknach. Ustawienia, legenda i okno „O aplikacji"
+nie wysypują już całej treści naraz — wyjaśnienia są schowane pod nazwanymi
+sekcjami przy swojej opcji, a sterowania zostają widoczne zawsze. Legenda
+dostała wreszcie przycisk zamykania, jej sześć grup rozwija się pojedynczo,
+a samolot i śmigłowiec rysowane są tą samą kreską co na mapie. Cały interfejs
+ma jeden kształt przycisku, a zdublowany „Zamknij" zniknął z pięciu okien.
+Przy okazji naprawione tłumaczenia: legenda i część ustawień zostawały po
+polsku w wersji angielskiej i ukraińskiej. Punktacja, progi i alarmy bez zmian.
+Szczegóły: `docs/RELEASE_1.7.89.md`.
+
 Wersja 1.7.88: Strażnik czyta media także w Mołdawii, Rumunii, na Słowacji,
 w Czechach, Szwecji i na Węgrzech. Te sześć krajów podświetla się na mapie i ma
 własną kartę, ale **nie dodaje ani jednego punktu** — czeskie i słowackie

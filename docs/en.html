@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Strażnik 1.7.88 — user guide</title>
-<meta name="description" content="Strażnik 1.7.88 user guide: installation, My places, the map and PAŻP zones, the signals panel, history, alerts, browser notifications and scoring. Screenshots from the current version.">
+<title>Strażnik 1.7.89 — user guide</title>
+<meta name="description" content="Strażnik 1.7.89 user guide: installation, My places, the map and PAŻP zones, the signals panel, history, alerts, browser notifications and scoring. Screenshots from the current version.">
 <link rel="canonical" href="https://cukierrro.github.io/Straznik/en.html">
 <link rel="alternate" hreflang="pl" href="https://cukierrro.github.io/Straznik/">
 <link rel="alternate" hreflang="en" href="https://cukierrro.github.io/Straznik/en.html">
@@ -34,16 +34,16 @@
   <div class="languages" aria-label="Guide language"><a href="index.html" lang="pl" hreflang="pl">PL</a><a href="en.html" lang="en" aria-current="page">EN</a><a href="uk.html" lang="uk" hreflang="uk">UA</a></div>
 </div></nav>
 <header class="hero"><div class="wrap hero-grid">
-  <div><div class="eyebrow">User guide · version 1.7.88</div>
+  <div><div class="eyebrow">User guide · version 1.7.89</div>
     <h1>The situation on a map.<br>The sources behind each signal.</h1>
     <p class="lead">Strażnik combines public information about airborne threats and shows a score for each Polish province. It runs on Android, on iPhone and in a web browser.</p>
     <div class="actions"><a class="button primary" href="https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk">↓ Get it for Android</a><a class="button primary" href="https://apps.apple.com/pl/app/id6813563009">↓ Get it for iOS</a><a class="button" href="https://straznik.eu">Open the map</a></div>
-    <p class="fineprint">This guide describes only the current version, 1.7.88. Screenshots were taken on a Pixel 7 with Android 14, using live data: the start screen on 3 October 2026 from the signed 1.7.88 release, the card thumbnail on 28 September 2026 from the signed 1.7.84 release, the legend and the expanded object card on 30 September 2026 from the signed 1.7.87 release, the Alerts tab on 24 September 2026 from the signed 1.7.78 release, the Sound tab on 29 September 2026 from the signed 1.7.86 release, the App tab on 24 September 2026 from the signed 1.7.79 release, and the rest on 13 September 2026. What changed from release to release is in the <a href="zmiany-en.html">changelog</a>. Tap a screenshot to open it full size.</p>
+    <p class="fineprint">This guide describes only the current version, 1.7.89. Screenshots were taken on a Pixel 7 with Android 14, using live data: the start screen, the legend, the signals panel, the More sheet, the Data sources window and all four settings tabs on 3 October 2026 from the signed 1.7.89 release, on a fresh installation (hence no saved places); the card thumbnail and the object card on 28 and 30 September 2026 from the signed 1.7.84 and 1.7.87 releases; the rest on 13 and 23 September 2026. What changed from release to release is in the <a href="zmiany-en.html">changelog</a>. Tap a screenshot to open it full size.</p>
     <p class="fineprint"><b>Using an iPhone?</b> Alerts, permissions and updates work differently there — read the <a href="iphone-en.html">iPhone guide</a>.</p>
     <p class="host-note"><img src="mikrus-logo.svg" alt="Mikrus" width="86" height="14">
       Strażnik’s server is provided by <a href="https://mikr.us">Mikrus</a> — thank you for supporting the project.</p>
   </div>
-  <a class="shot-link" href="screens/1737/start-en.jpg"><img src="screens/1737/start-en.jpg" width="1080" height="2400" alt="Strażnik start screen: map of Poland and Ukraine, six green source indicators, objects over Ukraine inside dashed position-uncertainty circles, icons at the top, the my region, zones and whole PL tiles, and the Map, Signals, History, More tabs"></a>
+  <a class="shot-link" href="screens/1737/start-en.jpg"><img src="screens/1737/start-en.jpg" width="1080" height="2400" alt="Strażnik start screen: map of Poland and Ukraine, six green source indicators, objects over Ukraine inside dashed uncertainty circles, the (i) attribution mark in the top-left corner of the map, the my region, zones and whole PL tiles, and the bottom tabs Map, Signals, History, More"></a>
 </div></header>
 <main id="content" class="wrap">
 
@@ -80,9 +80,9 @@
       <h3>Updating from inside the app</h3>
       <p>Strażnik checks for a new release at every launch and whenever it returns to the foreground (at most every 30 minutes). The update window shows the version number and the list of changes. Manually: <kbd>⚙</kbd> → <kbd>App</kbd> → <kbd>⬆ Check for updates</kbd>.</p>
       <p>For an ordinary update you can choose <kbd>Later</kbd>. When you install, the app downloads the file, verifies its SHA-256 checksum and hands it to Android for confirmation. Install the new release over the old one — settings and My places are kept.</p>
-      <div class="note"><b>Which version do you have?</b> <kbd>⚙</kbd> → <kbd>App</kbd> tab → “Installed version”. The latest release is <b>1.7.88</b>. At the bottom of the tab are links to this guide, the changelog and supporting the author.</div>
+      <div class="note"><b>Which version do you have?</b> <kbd>⚙</kbd> → <kbd>App</kbd> tab → “Installed version”. The latest release is <b>1.7.89</b>. At the bottom of the tab are links to this guide, the changelog and supporting the author.</div>
     </div>
-    <figure><a class="shot-link" href="screens/1737/set-aplikacja-en.jpg"><img loading="lazy" src="screens/1737/set-aplikacja-en.jpg" width="1080" height="2400" alt="Settings, App tab: interface language English, installed version 1.7.79, Check for updates button, collapsed Advanced section and links to the user guide, changelog and support"></a><figcaption><kbd>⚙</kbd> → <kbd>App</kbd>: language, version, updates.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/1737/set-aplikacja-en.jpg"><img loading="lazy" src="screens/1737/set-aplikacja-en.jpg" width="1080" height="2400" alt="Settings, App tab: language choice, the Map: object tracks section, installed version 1.7.89 and the collapsed sections How to read the direction, Where updates come from and Advanced"></a><figcaption><kbd>⚙</kbd> → <kbd>App</kbd>: language, version, updates.</figcaption></figure>
   </div>
 </section>
 
@@ -98,9 +98,9 @@
     <figure><a class="shot-link" href="screens/1737/places-en.jpg"><img loading="lazy" src="screens/1737/places-en.jpg" width="1080" height="2400" alt="My places window: place Home, scope Province, province Lublin, Watch alerts for this province ticked, how it works note and the Delete place, Cancel changes and Save on device buttons"></a><figcaption>A “Home” place in Lublin province with alerts watched.</figcaption></figure>
   </div>
   <div class="shots">
-    <figure><a class="shot-link" href="screens/1737/set-alarmy-en.jpg"><img loading="lazy" src="screens/1737/set-alarmy-en.jpg" width="1080" height="2400" alt="Settings, Alerts tab on a fresh install: the Alerts on this phone switch, a note that no province has been chosen yet, and the buttons Notification settings, Check full-screen alert permission, Disable battery optimisation and Alert despite Do Not Disturb"></a><figcaption><b>Alerts</b>: notification status and shortcuts to Android settings. The 🌙 button appears only while Do Not Disturb access has not been granted.</figcaption></figure>
-    <figure><a class="shot-link" href="screens/1737/set-miejsca-en.jpg"><img loading="lazy" src="screens/1737/set-miejsca-en.jpg" width="1080" height="2400" alt="Settings, My places tab: 1 of 8 places, watched province Lublin and the Open My places button"></a><figcaption><b>My places</b>: summary and the way into editing.</figcaption></figure>
-    <figure><a class="shot-link" href="screens/1737/set-dzwiek-en.jpg"><img loading="lazy" src="screens/1737/set-dzwiek-en.jpg" width="1080" height="2400" alt="Settings, Sound tab: description of the alert sounds, the buttons Test: attention, Test: siren and Test: full alert, the Attention sound volume (yellow) section with Normal, Quieter and No sound, and the Native alert and volume section with the switches Red alert always at full volume and Red alert: vibration only, no siren"></a><figcaption><b>Sound</b>: sound tests, a separate volume for yellow and the red-alert silence switch.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/1737/set-alarmy-en.jpg"><img loading="lazy" src="screens/1737/set-alarmy-en.jpg" width="1080" height="2400" alt="Settings, Alerts tab on a fresh installation: the collapsed How it works section, the Alerts on this phone switch, full-width rows for system permissions with icons and arrows, and the collapsed Permissions and alert behaviour section"></a><figcaption><b>Alerts</b>: notification status and shortcuts to Android settings. The 🌙 button appears only while Do Not Disturb access has not been granted.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/1737/set-miejsca-en.jpg"><img loading="lazy" src="screens/1737/set-miejsca-en.jpg" width="1080" height="2400" alt="Settings, My places tab on a fresh installation: a note that no place has been saved yet and the Open My places row with a pin icon"></a><figcaption><b>My places</b>: summary and the way into editing.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/1737/set-dzwiek-en.jpg"><img loading="lazy" src="screens/1737/set-dzwiek-en.jpg" width="1080" height="2400" alt="Settings, Sound tab: the collapsed What plays when section, three test buttons, the Normal – Quieter – No sound segment, the native alert switches and the collapsed Before you switch it on section"></a><figcaption><b>Sound</b>: sound tests, a separate volume for yellow and the red-alert silence switch.</figcaption></figure>
   </div>
   <h3>Android permissions</h3>
   <p>The <kbd>Alerts</kbd> tab shows whether notifications are ready and for which region. If you only want to watch the map, turn off <kbd>Alerts on this phone</kbd> — the phone is unsubscribed from every province and stops receiving alert notifications and permission reminders. The status above the switch shows how many provinces the phone is subscribed to (confirmed by Firebase). Android permissions stay as they are — the app cannot change them. The permission warning on the map can also be closed with its cross. The buttons lead straight to system settings: <kbd>🔔 Notification settings</kbd>, <kbd>🚨 Check full-screen alert permission</kbd> and <kbd>🔋 Disable battery optimisation</kbd>. Android 14 and later may revoke the full-screen permission after an update — check it yourself. A fourth button, <kbd>🌙 Alert despite Do Not Disturb</kbd>, appears only while that permission has not been granted; it is optional and described below, with Do Not Disturb.</p>
@@ -127,8 +127,8 @@
   </tbody></table></div>
   <p>At start a bar “UNOFFICIAL additional source…” appears at the bottom. You can close it with the cross — it comes back during an alert. Close panels and windows with the cross, the <kbd>Map</kbd> tab or a tap beside them.</p>
   <div class="shots">
-    <figure><a class="shot-link" href="screens/1737/sources-en.jpg"><img loading="lazy" src="screens/1737/sources-en.jpg" width="1080" height="2400" alt="Data sources window: each indicator is one source; descriptions of NEPTUN and UA alerts with the status working"></a><figcaption>Tapping the indicators: description and status of each source.</figcaption></figure>
-    <figure><a class="shot-link" href="screens/1737/more-en.jpg"><img loading="lazy" src="screens/1737/more-en.jpg" width="1080" height="2400" alt="More sheet: About and scoring, User guide, Support the author and a Close button"></a><figcaption>The <kbd>More</kbd> tab.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/1737/sources-en.jpg"><img loading="lazy" src="screens/1737/sources-en.jpg" width="1080" height="2400" alt="Data sources window: each indicator is one source, with NEPTUN and Ukrainian alerts described and their status, map licences at the bottom; the window is closed with the cross at the top"></a><figcaption>Tapping the indicators: description and status of each source.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/1737/more-en.jpg"><img loading="lazy" src="screens/1737/more-en.jpg" width="1080" height="2400" alt="More sheet: Shelter — nearest, About and scoring, User guide and Support the author; the sheet is closed with the cross at the top"></a><figcaption>The <kbd>More</kbd> tab.</figcaption></figure>
   </div>
 </section>
 
@@ -166,7 +166,10 @@
       the icon is clearly faded. Motionless icons therefore mean no new reports, not a frozen map. The
       object card shows a <kbd>last report</kbd> line, and past a quarter of an hour it adds that the
       object may have moved on since.</p>
-    <figure><a class="shot-link" href="screens/1737/legend-en.jpg"><img loading="lazy" src="screens/1737/legend-en.jpg" width="1080" height="2400" alt="Legend: nine NEPTUN object symbols, the unknown-heading symbol, the pulsing ring of an object that adds points, the row “circle = where the object may be (±km, grows with report age)”, dashed flight path, military aircraft and helicopter"></a><figcaption>Legend — the first icon at the top.</figcaption></figure>
+      <p>The legend opens from the first icon at the top and closes with the
+      <kbd>✕ Close</kbd> button in its header. Its six groups expand one at a time — you
+      see every group name at once, so finding one symbol takes no scrolling.</p>
+    <figure><a class="shot-link" href="screens/1737/legend-en.jpg"><img loading="lazy" src="screens/1737/legend-en.jpg" width="1080" height="2400" alt="Legend with a header and a ✕ Close button: the Objects group expanded with nine NEPTUN symbols, below it the collapsed groups Markings around the icon, Aviation, Provinces, Alerts in neighbouring countries and PAŻP zones"></a><figcaption>Legend — the first icon at the top.</figcaption></figure>
   </div>
   <h3 id="zdjecia">Object and aircraft cards</h3>
   <p>Tapping an object opens a <b>mini card</b> in the bottom-left corner and puts a white ring around the object on the map. The <kbd>⌃</kbd> arrow expands the card, <kbd>⌄</kbd> collapses it, <kbd>✕</kbd> closes it.</p>
@@ -192,7 +195,7 @@
   </div>
   <div class="shots">
     <figure><a class="shot-link" href="screens/1737/zones-map-en.jpg"><img loading="lazy" src="screens/1737/zones-map-en.jpg" width="1080" height="2400" alt="Map framed on Lublin province with the zone layer on: purple outlines over eastern Poland and the zones tile highlighted"></a><figcaption>The zone layer over eastern Poland.</figcaption></figure>
-    <figure><a class="shot-link" href="screens/1737/legend2-en.jpg"><img loading="lazy" src="screens/1737/legend2-en.jpg" width="1080" height="2400" alt="Lower part of the legend: province colours including the dimmed neighbours-only colour, a pink Ukrainian oblast with an alert that adds points, and colours of standing and recently activated zones with a note on scoring"></a><figcaption>Legend for provinces and zones.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/1737/legend2-en.jpg"><img loading="lazy" src="screens/1737/legend2-en.jpg" width="1080" height="2400" alt="Legend with the Objects group collapsed and the Provinces group expanded: colours from calm to high priority, the dimmed colour from neighbours and the pink Ukrainian oblast with an alert that adds points"></a><figcaption>Legend for provinces and zones.</figcaption></figure>
   </div>
 </section>
 
@@ -213,7 +216,7 @@
       </ul>
       <p>A <b>NEIGHBOURS</b> entry is points spilling over from a neighbouring province (chapter <a href="#punkty">11</a>).</p>
     </div>
-    <figure><a class="shot-link" href="screens/1737/panel-en.jpg"><img loading="lazy" src="screens/1737/panel-en.jpg" width="1080" height="2400" alt="Signals panel: Lublin card, my region, 1.0 pts below threshold, adds up to 0.9 ALARM UA, PAŻP zones with no points, and the Subcarpathian and Masovian cards"></a><figcaption>Province cards at a calm moment.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/1737/panel-en.jpg"><img loading="lazy" src="screens/1737/panel-en.jpg" width="1080" height="2400" alt="Signals panel: a header stating the thresholds once and a ✕ Close button, the Lublin card with the level above the point total and its breakdown into ALARM UA, plus a separate card for the quiet provinces"></a><figcaption>Province cards at a calm moment.</figcaption></figure>
   </div>
   <p>Further down the panel has two observation lists without points: <b>Objects ≤ 250 km from the border</b> (NEPTUN) and <b>Military aviation (ADS-B)</b> over eastern Poland. This is public transponder data, not tracking of hostile aircraft. It comes from free, open aggregators: the server queries <a href="https://adsb.lol">adsb.lol</a> and falls back to opendata.adsb.fi; in emergency mode, when the phone scores on its own, airplanes.live is queried as well. The layer is informational and gives no points. Where available, the province card also offers <kbd>📷 Cameras in the region</kbd> — road cameras, not a tool for detecting airborne objects. Since 1.7.88 this is a plain list with links: the preview is not shown here, because the worldcam.pl terms do not allow it. Tapping a tile opens the camera at the source.</p>
   <div class="shots">
