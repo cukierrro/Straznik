@@ -675,11 +675,11 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <dialog id="cameras">
   <h3 id="cam-title">Kamery</h3>
   <p class="fineprint">Publiczne kamery miejskie i turystyczne (worldcam.pl).
-  Na liście są tylko te, które przy budowie aplikacji faktycznie nadawały —
-  każda została sprawdzona pobraniem świeżego obrazu. Podgląd odświeża się co
-  30 sekund; kliknij kafelek, aby otworzyć pełny stream. Kamery pokazują ziemię,
-  <b>nie niebo</b> — to uzupełnienie obrazu sytuacji, nie sposób wypatrywania
-  obiektów.</p>
+  Na liście są tylko te, które przy budowie aplikacji faktycznie nadawały.
+  Podglądu nie pokazuję u siebie: regulamin worldcam.pl nie daje zgody na
+  wyświetlanie ich miniatur w cudzej aplikacji. Dotknij kafelka, aby otworzyć
+  kamerę u źródła. Kamery pokazują ziemię, <b>nie niebo</b> — to uzupełnienie
+  obrazu sytuacji, nie sposób wypatrywania obiektów.</p>
   <div id="cam-list" class="cam-list"></div>
   <p class="fineprint" style="margin-top:12px">Nie podaję kamer z Ukrainy:
   od 2022 r. transmisje na żywo z tamtejszych kamer są zakazane, bo pozwalają
@@ -964,7 +964,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
      Cloudflare, więc po każdym wydaniu wystarczy podbić ?v= i przeglądarki
      dostają nowe app.js/engine.js OD RAZU, bez ręcznego czyszczenia cache CF.
      Podbijaj ?v= razem z versionName w build.gradle. -->
-<script src="i18n.js?v=1.7.87"></script>
+<script src="i18n.js?v=1.7.87c"></script>
 <!-- kontur Polski dla engine.js (audyt A2b, scripts/build_pl_outline.py) -->
 <script src="pl-outline.js?v=1.7.82"></script>
 <script src="engine.js?v=1.7.82"></script>

@@ -605,7 +605,10 @@ techniczne.
   ponownie pod innym identyfikatorem.
 - **Kamery tylko z Polski** — 641 publicznych kamer miejskich i turystycznych
   (worldcam.pl) we wszystkich 16 województwach, w tym 582 plenerowe; każda
-  zweryfikowana pobraniem świeżego obrazu przy budowie listy. Pierwotnie użyłem
+  zweryfikowana pobraniem świeżego obrazu przy budowie listy. Podglądu NIE
+  pokazuję w aplikacji: regulamin worldcam.pl opisuje wyłącznie własne użycie
+  miniatur przez serwis i nie daje zgody na wyświetlanie ich u kogoś innego
+  (sprawdzone 03.10.2026). Kafelek otwiera kamerę u źródła. Pierwotnie użyłem
   kamer drogowych traxelektronik.pl — okazało się, że wymagają logowania.
   Listę odświeżysz skryptem `scripts/build_cams.py`. Kamer z Ukrainy świadomie
   nie podpinam: od 2022 r. transmisje na żywo są tam zakazane, bo umożliwiają

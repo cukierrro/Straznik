@@ -46,6 +46,7 @@ const APP = fs.readFileSync(path.join(ROOT, 'frontend/app.js'), 'utf8');
 const CSS = fs.readFileSync(path.join(ROOT, 'frontend/style.css'), 'utf8');
 const SUROWY = fs.readFileSync(PLIK_KAMER, 'utf8');
 const KAMERY = JSON.parse(SUROWY);
+const czytaj = (p) => fs.readFileSync(path.join(ROOT, p), 'utf8');
 
 /* Wycinanie z app.js po nazwie — jak w test_niepewnosc_wiek.cjs. Czytamy do
    domknięcia nawiasu albo średnika na zerowej głębokości, żeby deklaracja rozbita
@@ -184,4 +185,48 @@ test('zastępnik jest widoczny — martwy kafelek nie znika z okna', () => {
      wisiał pod KAŻDĄ działającą miniaturą. */
   assert.ok(/\.cam-tile\s+\.cam-fallback\s*\{[^}]*display:\s*none/.test(CSS),
     'podpis zastępczy chowany słabszym selektorem niż .cam-tile span — będzie widoczny zawsze');
+});
+
+/* ── co musi iść RAZEM z włączeniem miniatur ────────────────────────────────
+   Miniatury są wyłączone decyzją użytkownika z 03.10.2026: regulamin worldcam.pl
+   (stan na ten dzień) opisuje wyłącznie własne użycie miniatur przez serwis i nie
+   daje zgody na pokazywanie ich w cudzej aplikacji. Powrót na `true` wymaga
+   pisemnej zgody — a wtedy dwie rzeczy muszą się zmienić w tym samym wydaniu,
+   bo inaczej aplikacja kłamie użytkownikowi albo łamie własną politykę. */
+
+/* Wartość stałej czytamy z produkcyjnego pliku, a nie z kopii w teście. */
+function camThumbsWlaczone() {
+  const ctx = { Date, String, Number, Math, encodeURIComponent };
+  vm.createContext(ctx);
+  vm.runInContext(stala('CAM_THUMBS'), ctx);
+  return vm.runInContext('CAM_THUMBS', ctx);
+}
+
+test('włączone miniatury wymagają worldcam.pl w polityce prywatności', () => {
+  const wlaczone = camThumbsWlaczone();
+  assert.equal(typeof wlaczone, 'boolean', 'CAM_THUMBS musi być wartością logiczną');
+  if (!wlaczone) return;   // obrazów nie pobieramy — telefon nie łączy się z worldcam
+  /* Przy `true` telefon odpytuje img.worldcam.pl bezpośrednio i pokazuje mu swój
+     adres IP. Polityka prywatności wymienia FOSSGIS, OpenFreeMap, Firebase
+     i Cloudflare — worldcam musi tam dojść w tym samym wydaniu, nie później. */
+  for (const plik of ['docs/prywatnosc.html', 'docs/prywatnosc-en.html']) {
+    assert.match(czytaj(plik), /worldcam/i,
+      plik + ': miniatury są włączone, a serwis nie jest wymieniony wśród odbiorców danych');
+  }
+});
+
+test('opis okienka kamer zgadza się z tym, czy miniatury są pokazywane', () => {
+  const wlaczone = camThumbsWlaczone();
+  const opis = /<dialog id="cameras">[\s\S]*?<div id="cam-list"/.exec(czytaj('frontend/index.html'));
+  assert.ok(opis, 'nie znalazłem opisu w okienku kamer');
+  const tekst = opis[0];
+  if (wlaczone) {
+    assert.match(tekst, /odświeża/i,
+      'miniatury włączone, a opis nie mówi o odświeżanym podglądzie');
+  } else {
+    assert.ok(!/odświeża/i.test(tekst),
+      'miniatur nie pokazujemy, a opis nadal obiecuje odświeżany podgląd co 30 sekund');
+    assert.match(tekst, /regulamin/i,
+      'opis ma mówić, dlaczego podglądu nie ma — powodem jest regulamin worldcam.pl');
+  }
 });

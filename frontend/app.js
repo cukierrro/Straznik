@@ -4493,11 +4493,24 @@ let camData = null, camTimer = null, camIndex = null;
 const CAM_HOST = "https://www.img.worldcam.pl/webcams";
 const CAM_SIZES = ["400x226", "400x225", "200x113"];
 let camSizeIdx = 0;                 // rozmiar, który ostatnio realnie się pobrał
-/* Miniatury wczytujemy wprost z worldcam.pl. Regulamin serwisu (stan 03.10.2026)
-   opisuje jego własne użycie miniatur i nie daje zgody na pokazywanie ich w cudzej
-   aplikacji — gdyby takiej zgody nie było, `false` zostawia samą listę kamer
-   z odnośnikami do wpisów w katalogu, bez pobierania obrazów. */
-const CAM_THUMBS = true;
+/* Czy wczytujemy miniatury wprost z worldcam.pl. WYŁĄCZONE decyzją użytkownika
+   z 03.10.2026, po sprawdzeniu regulaminu serwisu (https://www.worldcam.pl/terms,
+   ostatnia zmiana 22.12.2025): rozdział VI opisuje WYŁĄCZNIE własne użycie miniatur
+   przez worldcam („przy wpisach i na mapie wyświetlamy…"), a zgody na pokazywanie
+   ich w cudzym serwisie czy aplikacji nie ma tam wcale; stopka serwisu to „All
+   Rights Reserved". Linkowanie do wpisów jest natomiast wprost w celu regulaminu,
+   więc lista kamer z odnośnikami zostaje — znika sam obraz.
+
+   Warunkiem powrotu na `true` jest PISEMNA ZGODA worldcam.pl, nie upływ czasu ani
+   to, że technicznie nic nie blokuje (robots.txt wpuszcza wszystko, nagłówka
+   Referer nie sprawdzają — brak blokady to nie zgoda).
+
+   Przy powrocie na `true` w TYM SAMYM wydaniu musi pójść polityka prywatności:
+   `docs/prywatnosc.html` i `docs/prywatnosc-en.html` wymieniają FOSSGIS,
+   OpenFreeMap, Firebase i Cloudflare, ale nie worldcam.pl — a telefon łączy się
+   z img.worldcam.pl bezpośrednio i pokazuje mu swój adres IP. Pilnuje tego
+   scripts/test_kamery_miniatury.cjs. */
+const CAM_THUMBS = false;
 
 /* Dzień w formacie serwisu, z LOKALNEGO zegara — nie z `toISOString`, bo ten podaje
    UTC i wieczór w Polsce wypadałby jeszcze pod poprzednią datą. */
@@ -4546,9 +4559,13 @@ async function showCameras(voiv) {
     <a class="cam-tile${CAM_THUMBS ? "" : " cam-dead"}" href="${esc(c.url)}"
        target="_blank" rel="noopener" title="${esc(c.name)} — ${esc(c.city)}">
       ${CAM_THUMBS ? `<img alt="${esc(c.name)}" data-cam="${esc(c.id)}">` : ""}
-      <span class="cam-fallback">${UI.t("podgląd niedostępny — dotknij, aby otworzyć kamerę",
-        "preview unavailable — tap to open the camera",
-        "попередній перегляд недоступний — торкніться, щоб відкрити камеру")}</span>
+      <span class="cam-fallback">${CAM_THUMBS
+        ? UI.t("podgląd niedostępny — dotknij, aby otworzyć kamerę",
+               "preview unavailable — tap to open the camera",
+               "попередній перегляд недоступний — торкніться, щоб відкрити камеру")
+        : UI.t("podgląd tylko u źródła — dotknij, aby otworzyć kamerę",
+               "preview only at the source — tap to open the camera",
+               "перегляд лише на джерелі — торкніться, щоб відкрити камеру")}</span>
       <span>${esc(c.name)}</span>
     </a>`;
   // grupowanie po miejscowości, żeby dało się szybko znaleźć swoją okolicę
@@ -4570,9 +4587,10 @@ async function showCameras(voiv) {
     : '<div class="fineprint">Brak zweryfikowanych kamer dla tego województwa.</div>';
   camShowThumbs();
   dlg.showModal();
-  // odświeżanie miniatur, dopóki okno jest otwarte
+  // odświeżanie miniatur, dopóki okno jest otwarte; przy CAM_THUMBS = false nie ma
+  // czego odświeżać, więc timer w ogóle nie rusza
   clearInterval(camTimer);
-  camTimer = setInterval(() => {
+  if (CAM_THUMBS) camTimer = setInterval(() => {
     if (!dlg.open) return clearInterval(camTimer);
     camShowThumbs(true);
   }, 30000);
