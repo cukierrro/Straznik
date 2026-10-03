@@ -443,11 +443,14 @@ dialog a:hover, dialog a:focus-visible { text-decoration: underline; }
 /* Nagłówek przykleja się do góry panelu i przesuwa razem z nim, a treść
    przewija się pod nim. Gradient na dole, żeby tekst nie wjeżdżał ostrą
    krawędzią. */
+/* Nagłówek jest KARTĄ, dokładnie jak sekcje panelu. Wcześniej był gradientem
+   bez tła — napisy „WOJEWÓDZTWA" i „progi" leżały gołe na mapie i zlewały się
+   z jej etykietami (zgłoszone na zrzucie 03.10.2026). */
 #panel-head {
   position: sticky; top: 0; z-index: 4;
-  display: flex; align-items: flex-start; justify-content: space-between; gap: 10px;
-  padding: 6px 2px 10px 10px; margin-bottom: -4px;
-  background: linear-gradient(180deg, rgba(8,13,24,.97) 62%, rgba(8,13,24,0));
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  background: var(--panel); border: 1px solid var(--panel-border);
+  border-radius: 12px; padding: 9px 9px 9px 12px; backdrop-filter: blur(8px);
 }
 #panel-head .ph-txt { min-width: 0; }
 #panel-head h2 { margin: 0; font-size: 15px; line-height: 1.2; }
@@ -456,7 +459,7 @@ dialog a:hover, dialog a:focus-visible { text-decoration: underline; }
    Wcześniej było to kółko 34 px wiszące nad treścią. */
 #panel-x {
   flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px;
-  min-height: 44px; padding: 0 12px 0 10px; border-radius: 999px; cursor: pointer;
+  min-height: 44px; padding: 0 12px 0 10px; border-radius: 11px; cursor: pointer;
   background: rgba(20,28,46,.96); border: 1px solid var(--line-strong, rgba(120,150,210,.3));
   color: var(--text); line-height: 1;
   box-shadow: 0 4px 14px rgba(0,0,0,.45);
@@ -468,11 +471,18 @@ dialog a:hover, dialog a:focus-visible { text-decoration: underline; }
 /* Pusta sekcja kart nadal rysowała swoje tło — ciemny pasek bez treści
    między nagłówkiem a wierszem spokojnych województw. */
 #voiv-cards:empty, #voiv-quiet:empty { display: none; }
-/* Spokojne województwa jednym wierszem zamiast pustych kart. */
-#voiv-quiet { padding: 2px 10px 0; line-height: 1.6; }
+/* Spokojne województwa: też KARTA, z własnym nagłówkiem jak „SYGNAŁY".
+   Wcześniej podpis „Bez sygnałów:" stał w jednej linii z pierwszym kafelkiem
+   i nachodził na niego, a całość leżała bez tła wprost na mapie. */
+#voiv-quiet {
+  background: var(--panel); border: 1px solid var(--panel-border);
+  border-radius: 12px; padding: 10px 12px; backdrop-filter: blur(8px);
+}
+#voiv-quiet h2 { font-size: 12px; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--muted); margin: 0 0 8px; }
 #voiv-quiet .vq-name {
   display: inline-block; margin: 2px 4px 2px 0; padding: 4px 9px;
-  min-height: 32px; border-radius: 999px; cursor: pointer; font: inherit; font-size: 12.5px;
+  min-height: 32px; border-radius: 8px; cursor: pointer; font: inherit; font-size: 12.5px;
   background: rgba(20,28,46,.7); border: 1px solid var(--panel-border, rgba(120,150,210,.22));
   color: var(--muted);
 }

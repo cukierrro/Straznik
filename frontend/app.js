@@ -3114,8 +3114,10 @@ function renderPanel() {
   const pelne = show.filter(([n, st]) => st.score > 0 || n === mine || forcedVoivs.has(n));
   const ciche = show.filter(([n, st]) => !(st.score > 0 || n === mine || forcedVoivs.has(n)));
   const quietEl = document.getElementById("voiv-quiet");
+  /* Podpis idzie WŁASNĄ linią, nie w jednym wierszu z kafelkami: przy trzech
+     nazwach pierwsza wchodziła na napis „Bez sygnałów:". */
   quietEl.innerHTML = ciche.length
-    ? `<span class="fineprint">${UI.t("Bez sygnałów", "No signals", "Без сигналів")}:</span> `
+    ? `<h2>${UI.t("Bez sygnałów", "No signals", "Без сигналів")}</h2>`
       + ciche.map(([n]) =>
         `<button type="button" class="vq-name" data-voiv="${esc(n)}">${esc(UI.voiv(n))}</button>`).join("")
     : "";
