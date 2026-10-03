@@ -1295,13 +1295,21 @@ async function initMap() {
       UKR: "#7a6230", BLR: "#7a3340", RUS: "#503a5e",
       LTU: "#2f7048", LVA: "#2d5f80", EST: "#7a6d34",
       SVK: "#3f7040", CZE: "#7a5234", DEU: "#48566a",
-      HUN: "#624080", ROU: "#2d6e70", MDA: "#8a4d62",
+      HUN: "#624080", ROU: "#2d6e70", MDA: "#8a4d62", SWE: "#3d5c52",
     };
     // kraje-v2.geojson: Natural Earth admin-1, kraje ze wspólnymi krawędziami
     // (bez nakładek i szczelin), Krym w granicach Ukrainy. Wersja jest w NAZWIE
     // pliku: Cloudflare przy .geojson pomija ?v= (14.09.2026 nowy plik doszedł
     // dopiero po wygaśnięciu wpisu), więc przy zmianie danych → nowa nazwa.
     const kraje = await (await fetch("assets/kraje-v2.geojson?v=1.7.82")).json();
+    /* Szwecja doszła 03.10.2026, razem z obserwacją sąsiadów. Nie wydajemy
+       z tego powodu całego pliku pod nową nazwą (307 kB, a Cloudflare przy
+       .geojson rozstrzyga po nazwie), tylko dokładamy 9 kB z jej konturem.
+       Nieudane pobranie = mapa bez Szwecji, nic więcej się nie psuje. */
+    try {
+      const se = await (await fetch("assets/kraje-se-v1.geojson")).json();
+      if (se?.features?.length) kraje.features = kraje.features.concat(se.features);
+    } catch (err) { console.warn("kontur Szwecji niedostępny", err); }
     map.addSource("kraje", { type: "geojson", data: kraje, promoteId: "iso" });
     // Android WebView wyświetla ciemną mapę bardziej płasko niż przeglądarka
     // desktopowa, więc w aplikacji krycie jest trochę wyższe.
@@ -1312,7 +1320,8 @@ async function initMap() {
       paint: { "fill-color": ["match", ["get", "iso"],
           ...Object.entries(COUNTRY_COLORS).flat(), "#333"],
         "fill-opacity": countryOpacity } });
-    // Alarm powietrzny w kraju sąsiednim (na razie LT/LV/EE z mediów) — bez punktów.
+    // Zdarzenie powietrzne u sąsiada z mediów: LT/LV/EE punktują ułamkami,
+    // MD/RO/SK/CZ/SE/HU od 03.10.2026 na razie bez punktów (tryb cienia).
     map.addLayer({ id: "kraje-alert", type: "fill", source: "kraje",
       paint: { "fill-color": "#ff4d5e",
         "fill-opacity": ["case", ["boolean", ["feature-state", "alert"], false], 0.22, 0] } });
@@ -2482,15 +2491,20 @@ function openRaionAlert(a) {
     <span style="color:#8fa3c4">${UI.t(`Od ${t} · ${lvl}`, `Since ${t} · ${lvl}`, `Від ${t} · ${lvl}`)}${(() => { const r = raionReason(a.r); return r ? " · " + esc2(r) : ""; })()}</span><br>
     <span style="color:#68758c">${UI.t("Tylko do obserwacji — nie dolicza punktów. Punkty dają wyłącznie alarmy w obwodach blisko Polski (różowy obrys). Źródło: NEPTUN.", "Shown for information only — it adds no points. Points come only from alerts in the oblasts near Poland (pink outline). Source: NEPTUN.", "Лише для спостереження — балів не додає. Бали дають тільки тривоги в областях поблизу Польщі (рожевий контур). Джерело: NEPTUN.")}</span>`);
 }
-const BALTIC_ISO3 = { LT: "LTU", LV: "LVA", EE: "EST" };
+/* Kraje, które umiemy podświetlić: trzy bałtyckie (punktują) i sześć
+   dołożonych 03.10.2026 w trybie cienia (karta i panel tak, punkty nie). */
+const BALTIC_ISO3 = { LT: "LTU", LV: "LVA", EE: "EST",
+  MD: "MDA", RO: "ROU", SK: "SVK", CZ: "CZE", SE: "SWE", HU: "HUN" };
 function paintCountryAlerts(sigs) {
   if (!mapReady || !map.getSource("kraje")) return;
   const next = new Map();
   for (const s of sigs || []) {
     const iso = s.event_type === "baltic_alert" && BALTIC_ISO3[s.details?.country];
     if (!iso || s.cleared || (s.weight ?? 1) <= 0) continue;
-    const e = next.get(iso) || { country: s.details.country, per: [], since: s.ts, sig: s };
-    e.per.push({ voiv: s.voivodeship, points: Number(s.points) || 0 });
+    const e = next.get(iso) || { country: s.details.country, per: [], since: s.ts,
+                                 sig: s, shadow: !!s.details.shadow };
+    e.per.push({ voiv: s.voivodeship, points: Number(s.points) || 0,
+                 wouldBe: Number(s.details.would_be) || 0 });
     if (s.ts < e.since) { e.since = s.ts; e.sig = s; }
     next.set(iso, e);
   }
@@ -2512,14 +2526,31 @@ function openCountryAlert(e) {
   // ANI RAZU od 22.09.2026. Potwierdzone na produkcji 03.10 przy alarmie na Litwie.
   const en = UI.isEn;
   const num = (v) => en ? Number(v).toFixed(2).replace(/0$/, "") : Number(v).toFixed(2).replace(/0$/, "").replace(".", ",");
-  const rows = e.per.sort((a, b) => b.points - a.points).map(r =>
-    `${UI.t("woj. ", "", "воєв. ")}${esc2(UI.voiv(r.voiv))}: <b>+${num(r.points)} ${UI.t("pkt", "pt", "бал.")}</b>`).join("<br>");
+  // W trybie cienia punkty są zerowe z założenia. Pokazywanie „+0 pkt" przy
+  // każdym województwie wyglądałoby jak zepsuta punktacja, więc piszemy, czego
+  // zdarzenie dotyczy, i osobno — ile BY dawało, gdyby było włączone.
+  const rows = e.shadow
+    ? `${UI.t("Dotyczy", "Applies to", "Стосується")}: ${
+        e.per.map(r => esc2(UI.voiv(r.voiv))).join(", ")}<br><b>${
+        UI.t("0 pkt — obserwacja", "0 pt — observation only", "0 балів — лише спостереження")}</b>`
+    : e.per.sort((a, b) => b.points - a.points).map(r =>
+      `${UI.t("woj. ", "", "воєв. ")}${esc2(UI.voiv(r.voiv))}: <b>+${num(r.points)} ${UI.t("pkt", "pt", "бал.")}</b>`).join("<br>");
+  const naj = Math.max(0, ...e.per.map(r => r.wouldBe || 0));
+  const stopka = e.shadow
+    ? UI.t(`Od 3 października 2026 Strażnik czyta też media w Mołdawii, Rumunii, na Słowacji, w Czechach, Szwecji i na Węgrzech. Na razie tylko obserwuje: takie doniesienie widać na mapie i w panelu sygnałów, ale NIE dodaje punktów i samo nie może niczego podnieść. Czeskie i słowackie redakcje piszą o cudzej przestrzeni powietrznej częściej niż o własnej, więc najpierw przez kilka tygodni sprawdzamy, czy filtr się nie myli. Gdyby wagi były włączone, to doniesienie dałoby najwyżej ${num(naj)} pkt.`,
+           `Since 3 October 2026 Strażnik also reads the media in Moldova, Romania, Slovakia, Czechia, Sweden and Hungary. For now it only watches: a report like this shows on the map and in the signal panel, but adds NO points and cannot raise anything by itself. Czech and Slovak newsrooms write about other countries' airspace more often than their own, so the filter is being checked for a few weeks first. With the weights switched on, this report would add at most ${num(naj)} pt.`,
+           `З 3 жовтня 2026 року Strażnik читає також медіа Молдови, Румунії, Словаччини, Чехії, Швеції та Угорщини. Поки що лише спостерігає: таке повідомлення видно на карті та в панелі сигналів, але воно НЕ додає балів і саме нічого не підвищує. Чеські та словацькі редакції пишуть про чужий повітряний простір частіше, ніж про власний, тому спершу кілька тижнів перевіряємо фільтр. З увімкненими вагами це повідомлення дало б щонайбільше ${num(naj)} бала.`)
+    : UI.t("Kraje bałtyckie nie mają publicznego kanału alarmów, więc Strażnik czyta ich portale informacyjne i liczy tylko świeży tytuł ogłaszający alarm. Waga maleje z odległością: Litwa 0,3 pkt, Łotwa 0,18, Estonia 0,12 (zachodniopomorskie połowę). Artykuł o odwołaniu alarmu gasi podświetlenie.",
+           "The Baltic states have no public alert feed, so Strażnik reads their news portals and counts only a fresh headline announcing the alert. The weight falls with distance: Lithuania 0.3 pt, Latvia 0.18, Estonia 0.12 (half of that for West Pomerania). An article about the alert ending clears the highlight.",
+           "Країни Балтії не мають відкритого каналу тривог, тому Strażnik читає їхні інформаційні портали й рахує лише свіжий заголовок, що оголошує тривогу. Вага спадає з відстанню: Литва 0,3 бала, Латвія 0,18, Естонія 0,12 (Західнопоморське — половину). Стаття про відбій гасить підсвічення.");
   showCard(`
-    <div class="zone-head"><b style="color:#ff6b78">📢 ${esc2(name)}</b>
-      <span style="color:#8fa3c4">· ${UI.t("alarm powietrzny (doniesienie mediów)", "air-raid alert (media report)", "повітряна тривога (за повідомленнями ЗМІ)")}</span></div>
+    <div class="zone-head"><b style="color:${e.shadow ? "#ffc04d" : "#ff6b78"}">📢 ${esc2(name)}</b>
+      <span style="color:#8fa3c4">· ${e.shadow
+        ? UI.t("zdarzenie w przestrzeni powietrznej (doniesienie mediów)", "airspace event (media report)", "подія в повітряному просторі (за повідомленнями ЗМІ)")
+        : UI.t("alarm powietrzny (doniesienie mediów)", "air-raid alert (media report)", "повітряна тривога (за повідомленнями ЗМІ)")}</span></div>
     <span style="color:#8fa3c4">${UI.t(`Doniesienie z ${since}:`, `Reported at ${since}:`, `Повідомлення від ${since}:`)}</span> ${art}<br>
     ${rows}<br>
-    <span style="color:#68758c">${UI.t("Kraje bałtyckie nie mają publicznego kanału alarmów, więc Strażnik czyta ich portale informacyjne i liczy tylko świeży tytuł ogłaszający alarm. Waga maleje z odległością: Litwa 0,3 pkt, Łotwa 0,18, Estonia 0,12 (zachodniopomorskie połowę). Artykuł o odwołaniu alarmu gasi podświetlenie.", "The Baltic states have no public alert feed, so Strażnik reads their news portals and counts only a fresh headline announcing the alert. The weight falls with distance: Lithuania 0.3 pt, Latvia 0.18, Estonia 0.12 (half of that for West Pomerania). An article about the alert ending clears the highlight.", "Країни Балтії не мають відкритого каналу тривог, тому Strażnik читає їхні інформаційні портали й рахує лише свіжий заголовок, що оголошує тривогу. Вага спадає з відстанню: Литва 0,3 бала, Латвія 0,18, Естонія 0,12 (Західнопоморське — половину). Стаття про відбій гасить підсвічення.")}</span>`);
+    <span style="color:#68758c">${stopka}</span>`);
 }
 function openOblastCard(p) {
   const e = oblastInfo.get(p.oblast);
@@ -3384,10 +3415,13 @@ function sigHTML(s) {
                     `${d.oblast} область`);
     shownTitle = UI.t(`Koniec alarmu powietrznego w obwodzie ${ob} (woj. ${UI.voiv(s.voivodeship)})`, `Air-raid alert in ${ob} oblast has ended (${UI.voiv(s.voivodeship)})`, `Відбій повітряної тривоги: ${ob} (воєв. ${UI.voiv(s.voivodeship)})`);
   } else if (s.event_type === "baltic_alert" && d.country) {
-    // Alarm ogłoszony na Litwie, Łotwie albo w Estonii: prefiks piszemy sami,
-    // cytat tytułu zostaje w oryginale.
+    // Prefiks piszemy sami, cytat tytułu zostaje w oryginale. Kraj w trybie
+    // cienia NIE jest „alarmem powietrznym" — to zero punktów do obejrzenia,
+    // a napis „Alarm powietrzny — Czechy" w panelu kłamałby.
     const quote = String(shownTitle || "").replace(/^[^„]*/, "");
-    shownTitle = `${UI.t("Alarm powietrzny", "Air-raid alert", "Повітряна тривога")} — ${
+    shownTitle = `${d.shadow
+      ? UI.t("Obserwacja", "Observation", "Спостереження")
+      : UI.t("Alarm powietrzny", "Air-raid alert", "Повітряна тривога")} — ${
       balticName(d.country)}: ${quote}`;
   } else if (s.event_type === "neighbour_spillover" && d.from) {
     const factor = `${d.from_score} × 0.4^${d.depth}`;
@@ -3669,9 +3703,19 @@ function ledItems() {
 /* Litwa, Łotwa, Estonia: nie mają osobnej diody (alarm tam jest daleko i daje
    dziesiąte części punktu), ale okno „Źródła” pokazuje, że kanały działają,
    kiedy przyszedł ostatni artykuł i ostatni alarm. */
-const BALTIC_NAME_PL = { LT: "Litwa", LV: "Łotwa", EE: "Estonia" };
-const BALTIC_NAME_EN = { LT: "Lithuania", LV: "Latvia", EE: "Estonia" };
-const BALTIC_NAME_UK = { LT: "Литва", LV: "Латвія", EE: "Естонія" };
+const BALTIC_NAME_PL = { LT: "Litwa", LV: "Łotwa", EE: "Estonia",
+  MD: "Mołdawia", RO: "Rumunia", SK: "Słowacja", CZ: "Czechy", SE: "Szwecja", HU: "Węgry" };
+const BALTIC_NAME_EN = { LT: "Lithuania", LV: "Latvia", EE: "Estonia",
+  MD: "Moldova", RO: "Romania", SK: "Slovakia", CZ: "Czechia", SE: "Sweden", HU: "Hungary" };
+const BALTIC_NAME_UK = { LT: "Литва", LV: "Латвія", EE: "Естонія",
+  MD: "Молдова", RO: "Румунія", SK: "Словаччина", CZ: "Чехія", SE: "Швеція", HU: "Угорщина" };
+/* Kraje w trybie cienia — kolejność jak w oknie „Źródła”. */
+const SHADOW_COUNTRIES = ["RO", "MD", "SK", "HU", "CZ", "SE"];
+const SHADOW_FEEDS_TXT = {
+  RO: "Digi24, HotNews", MD: "Moldova 1 (TRM), Ziarul de Gardă",
+  SK: "TASR (teraz.sk), Aktuality", HU: "Telex, HVG",
+  CZ: "ČT24, Český rozhlas", SE: "SVT, Sveriges Radio (Ekot)",
+};
 const balticName = (c) => UI.t(BALTIC_NAME_PL[c], BALTIC_NAME_EN[c], BALTIC_NAME_UK[c]) || c;
 const BALTIC_FEEDS_TXT = { LT: "LRT (temat „oro pavojus”), 15min", LV: "LSM (LV, EN)", EE: "ERR (ET, EN)" };
 const BALTIC_ALERT_PTS = { LT: "0,3", LV: "0,18", EE: "0,12" };
@@ -3708,7 +3752,21 @@ function balticRows() {
       <p class="src-what">${esc(BALTIC_FEEDS_TXT[c])}. ${UI.t(`Ogłoszony alarm powietrzny daje +${BALTIC_ALERT_PTS[c]} pkt dla podlaskiego i warmińsko-mazurskiego — ślad, sam nigdy nie alarmuje w Polsce.`, `An announced air-raid alert adds +${BALTIC_ALERT_PTS[c].replace(",", ".")} to podlaskie and warmińsko-mazurskie — a trace, never an alert in Poland on its own.`, `Оголошена повітряна тривога дає +${BALTIC_ALERT_PTS[c]} бала для Підляського і Вармінсько-Мазурського — це лише слід, сам він у Польщі тривоги не вмикає.`)}${alertTxt}${zonesTxt}</p>
     </div>`;
   }).join("");
-  return `<p class="fineprint" style="margin:12px 0 6px">${UI.t("Sąsiedzi bałtyccy — brak publicznego API alarmów, więc śledzimy kanały mediów publicznych", "Baltic neighbours — no public alert API exists, so public media feeds are watched", "Балтійські сусіди — немає відкритого API тривог, тому стежимо за каналами суспільних мовників")}</p>${rows}`;
+  // Pozostałych sześciu sąsiadów nie rozpisujemy na osobne karty: nic nie
+  // punktują, więc wystarczy, że widać, czy kanały żyją.
+  const cien = SHADOW_COUNTRIES.filter(c => b[c]).map(c => {
+    const x = b[c], ok = x.feeds_ok > 0;
+    const newest = x.newest_item ? ` · ${agoSec(x.newest_item)}` : "";
+    return `<span class="led ${ok ? "ok" : "err"}"><i></i><span>${esc(balticName(c))} ${
+      x.feeds_ok}/${x.feeds}${newest}</span></span>`;
+  }).join(" ");
+  const cienBlok = cien ? `<div class="src-row ok"><div class="src-head"><i></i><b>${
+    UI.t("Pozostali sąsiedzi — obserwacja", "Other neighbours — observation", "Інші сусіди — спостереження")
+    }</b></div><p class="src-what">${
+    SHADOW_COUNTRIES.filter(c => b[c]).map(c => `${esc(balticName(c))}: ${esc(SHADOW_FEEDS_TXT[c])}`).join(" · ")
+    }.<br>${UI.t("Te kanały nie dodają punktów. Zdarzenie w przestrzeni powietrznej u tych sąsiadów podświetla kraj na mapie i trafia do panelu sygnałów z zerem, dopóki nie sprawdzimy, czy filtr nie bierze cudzej przestrzeni za ich własną.", "These feeds add no points. An airspace event in these countries highlights the country on the map and enters the signal panel with zero, until the filter is proven not to mistake another country's airspace for theirs.", "Ці канали не додають балів. Подія в повітряному просторі цих сусідів підсвічує країну на карті й потрапляє в панель сигналів з нулем, поки ми не переконаємося, що фільтр не бере чужий простір за їхній власний.")
+    }</p><div class="src-leds">${cien}</div></div>` : "";
+  return `<p class="fineprint" style="margin:12px 0 6px">${UI.t("Sąsiedzi — brak publicznego API alarmów, więc śledzimy kanały mediów", "Neighbours — no public alert API exists, so media feeds are watched", "Сусіди — немає відкритого API тривог, тому стежимо за каналами медіа")}</p>${rows}${cienBlok}`;
 }
 
 function renderLeds() {
