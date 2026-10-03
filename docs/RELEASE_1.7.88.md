@@ -3,16 +3,12 @@
 versionCode 117, versionName 1.7.88. 3 października 2026.
 
 <!-- zmiany -->
-- Strażnik czyta media także w Mołdawii, Rumunii, na Słowacji, w Czechach,
-  Szwecji i na Węgrzech. Te sześć krajów podświetla się na mapie i ma własną
-  kartę, ale **nie dodaje ani jednego punktu** — przez kilka tygodni tylko
-  obserwujemy, czy filtr nie myli cudzej przestrzeni powietrznej z ich własną.
-- Karta kraju sąsiedniego w ogóle się nie otwierała od 22 września. Naprawione.
-- Alarmy w rejonach Ukrainy są tłumaczone, a nie pokazywane po ukraińsku
-  w polskim i angielskim interfejsie.
-- Na mapie przybyła Szwecja.
-- Kamery w regionie: okno przestało być puste. Podglądu nie pokazujemy u siebie,
-  bo regulamin worldcam.pl na to nie zezwala — zostaje lista z odnośnikami.
+- Strażnik czyta teraz media także w Mołdawii, Rumunii, na Słowacji, w Czechach, Szwecji i na Węgrzech. Zdarzenie w przestrzeni powietrznej podświetla ten kraj na mapie, a dotknięcie otwiera kartę z doniesieniem.
+- Te sześć krajów nie dodaje ani jednego punktu. Nie podniosą poziomu, nie wywołają powiadomienia i nie zmienią koloru Twojego województwa. Przez kilka tygodni tylko sprawdzamy, czy filtr nie bierze cudzej przestrzeni powietrznej za ich własną.
+- Karta kraju sąsiedniego w ogóle się nie otwierała od 22 września. Teraz działa.
+- Alarmy w rejonach Ukrainy są tłumaczone, a nie pokazywane po ukraińsku w polskim i angielskim interfejsie.
+- Na mapie przybyła Szwecja, której wcześniej nie było.
+- Kamery w regionie: okno przestało być puste. Podglądu nie pokazujemy u siebie, bo regulamin worldcam.pl na to nie zezwala — zostaje lista z odnośnikami, a dotknięcie kafelka otwiera kamerę u źródła.
 <!-- /zmiany -->
 
 Punktacja, progi i treść alarmów bez zmian.
