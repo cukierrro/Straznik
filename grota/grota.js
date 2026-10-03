@@ -1107,7 +1107,7 @@
       <div class="row">${L.ikona ? I(L.ikona, "lista-ic") : ""}<b class="grow">${esc(T(L.title))}</b><span class="badge lista-licznik">${done}/${L.items.length}</span>
         ${compact ? "" : `<button class="btn ghost" data-act="toggle-list" data-id="${esc(id)}">${open ? T("Zwiń") : T("Otwórz")}</button>`}</div>
       ${open ? `${L.intro ? `<p class="small muted">${esc(T("„{tekst}”", { tekst: T(L.intro) }))}</p>` : ""}
-        ${L.items.map((x, i) => `<label class="chk chk-lista" style="margin:6px 0"><input type="checkbox" data-act="prep" data-key="${esc(id)}:${i}"${S.prep[`${id}:${i}`] ? " checked" : ""}>${typeof x === "object" && x.ikona ? I(x.ikona, "poz-ic") : ""}<span>${esc(T("„{tekst}”", { tekst: T(trescPozycji(x)) }))}</span></label>`).join("")}
+        ${L.items.map((x, i) => `<label class="chk chk-lista" style="margin:6px 0"><input type="checkbox" data-act="prep" data-key="${esc(id)}:${i}"${S.prep[`${id}:${i}`] ? " checked" : ""}>${typeof x === "object" && x.ikona ? I(x.ikona, "poz-ic") : `<span class="poz-ic"></span>`}<span>${esc(T("„{tekst}”", { tekst: T(trescPozycji(x)) }))}</span></label>`).join("")}
         <div class="src small muted">${L.zrodlo === "instrukcja" ? zrodloInstrukcji(L.page) : zrodloPoradnika(L.slug, L.page)}</div>` : ""}
     </div>`;
   }
