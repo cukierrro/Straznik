@@ -3090,7 +3090,36 @@ function renderPanel() {
   // karta zwijała się sama, a treść „uciekała" spod palca (zgłoszone 12.09.2026).
   const panelEl = document.getElementById("panel");
   const keepScroll = panelEl?.scrollTop || 0;
-  document.getElementById("voiv-cards").innerHTML = show.map(([name, st]) => `
+
+  /* Nagłówek panelu: tytuł, progi RAZ i krzyżyk ze słowem. Progi stały
+     wcześniej w każdej karcie z osobna — przy szesnastu województwach to
+     szesnaście razy to samo zdanie na jednym ekranie. */
+  document.getElementById("panel-title").textContent =
+    UI.t("Województwa", "Provinces", "Воєводства");
+  document.getElementById("panel-progi").textContent =
+    `${UI.t("progi", "thresholds", "пороги")}: ≥${f.thresholds.elevated} ${
+      UI.t("uwaga", "attention", "увага")}, ≥${f.thresholds.high} ${
+      UI.t("priorytet", "priority", "пріоритет")}`;
+  document.getElementById("panel-x-txt").textContent =
+    UI.t("Zamknij", "Close", "Закрити");
+  const xBtn = document.getElementById("panel-x");
+  xBtn.title = UI.t("Zamknij panel województw", "Close the provinces panel",
+                    "Закрити панель воєводств");
+  xBtn.setAttribute("aria-label", xBtn.title);
+
+  /* Pełną kartę dostaje mój region, wszystko z jakimkolwiek wynikiem i to, co
+     użytkownik sam otworzył z mapy. Reszta — czyli województwa priorytetowe,
+     w których akurat nic się nie dzieje — schodzi do jednej linii. Wcześniej
+     każde z nich zajmowało pustą kartę z powtórzonymi progami. */
+  const pelne = show.filter(([n, st]) => st.score > 0 || n === mine || forcedVoivs.has(n));
+  const ciche = show.filter(([n, st]) => !(st.score > 0 || n === mine || forcedVoivs.has(n)));
+  const quietEl = document.getElementById("voiv-quiet");
+  quietEl.innerHTML = ciche.length
+    ? `<span class="fineprint">${UI.t("Bez sygnałów", "No signals", "Без сигналів")}:</span> `
+      + ciche.map(([n]) =>
+        `<button type="button" class="vq-name" data-voiv="${esc(n)}">${esc(UI.voiv(n))}</button>`).join("")
+    : "";
+  document.getElementById("voiv-cards").innerHTML = pelne.map(([name, st]) => `
     <div class="voiv-card level-${spillRaised(st) ? "spill" : st.level}${name === mine ? " is-mine" : ""}${
       openVoivs.has(name) ? " open" : ""}" data-voiv="${esc(name)}">
       <button type="button" class="voiv-head" aria-expanded="${openVoivs.has(name)}">
@@ -3099,8 +3128,7 @@ function renderPanel() {
       </button>
       <div class="voiv-level">${spillRaised(st) ? SPILL_LABEL
         : st.level === "none" && st.score > 0
-        ? (UI.t("poniżej progu", "below threshold", "нижче порога")) : LEVEL_LABEL[st.level]}
-        <span class="muted">· ${UI.t("progi", "thresholds", "пороги")}: ≥${f.thresholds.elevated} ${UI.t("uwaga", "attention", "увага")}, ≥${f.thresholds.high} ${UI.t("priorytet", "priority", "пріоритет")}</span></div>
+        ? (UI.t("poniżej progu", "below threshold", "нижче порога")) : LEVEL_LABEL[st.level]}</div>
       ${scoreBreakdown(st)}
       ${zonesRowHTML(name)}
       <div class="voiv-breakdown">${st.signals.length
@@ -3122,6 +3150,8 @@ function renderPanel() {
       if (open) openVoivs.add(name); else openVoivs.delete(name);
       el.querySelector(".voiv-head")?.setAttribute("aria-expanded", String(open));
     }));
+  document.querySelectorAll("#voiv-quiet .vq-name").forEach(el =>
+    el.addEventListener("click", (e) => { e.stopPropagation(); openCard(el.dataset.voiv); }));
   if (panelEl && keepScroll) panelEl.scrollTop = keepScroll;
   document.querySelectorAll(".btn-cams").forEach(el =>
     el.addEventListener("click", (e) => { e.stopPropagation(); showCameras(el.dataset.voiv); }));

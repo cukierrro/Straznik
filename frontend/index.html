@@ -344,10 +344,25 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 </div>
 
 <aside id="panel" class="collapsed">
-  <button id="panel-x" type="button" title="Zamknij panel" aria-label="Zamknij panel">
-    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
-  </button>
+  <!-- Nagłówek panelu. Krzyżyk należy do niego, a nie wisi sam nad treścią:
+       samo × nie mówi, CO zostanie zamknięte, więc stoi przy nim słowo.
+       Progi podajemy TU, raz — wcześniej powtarzały się w każdej z szesnastu
+       kart województw. Teksty wpisuje renderPanel(), żeby nie trzeba było
+       dokładać ich do słowników tłumaczeń w i18n.js. -->
+  <div id="panel-head">
+    <div class="ph-txt">
+      <h2 id="panel-title"></h2>
+      <div id="panel-progi" class="fineprint"></div>
+    </div>
+    <button id="panel-x" type="button">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      <span id="panel-x-txt"></span>
+    </button>
+  </div>
   <section id="voiv-cards"></section>
+  <!-- Województwa, w których akurat nic się nie dzieje: jedna linia nazw
+       zamiast pustych kart. Dotknięcie nazwy rozwija pełną kartę. -->
+  <div id="voiv-quiet"></div>
   <section>
     <h2>Sygnały <span class="muted">(okno <span id="window-min">30</span> min)</span></h2>
     <div id="signal-list" class="list"></div>
