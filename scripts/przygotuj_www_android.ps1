@@ -13,10 +13,17 @@ robocopy (Join-Path $repo "frontend") $www /MIR /NFL /NDL /NJH /NJS /NP | Out-Nu
 if ($LASTEXITCODE -ge 8) { throw "robocopy frontend -> www: kod $LASTEXITCODE" }
 
 $grota = Join-Path $repo "grota"
-if (Test-Path (Join-Path $grota "widok.js")) {
-    robocopy $grota (Join-Path $www "grota") /MIR /NFL /NDL /NJH /NJS /NP /XF README.md | Out-Null
-    if ($LASTEXITCODE -ge 8) { throw "robocopy grota -> www/grota: kod $LASTEXITCODE" }
-    "www gotowe: frontend + GROTA"
-} else {
-    "www gotowe: sam frontend (brak grota/widok.js — moduł jeszcze nie dostarczony)"
+if (-not (Test-Path (Join-Path $grota "widok.js"))) {
+    throw "brak grota/widok.js w repozytorium — paczka bez schronień to regres od 1.7.68"
 }
+robocopy $grota (Join-Path $www "grota") /MIR /NFL /NDL /NJH /NJS /NP /XF README.md | Out-Null
+if ($LASTEXITCODE -ge 8) { throw "robocopy grota -> www/grota: kod $LASTEXITCODE" }
+
+# Sprawdzamy WYNIK kopiowania, nie sam zamiar: zły filtr albo zła ścieżka
+# potrafią zostawić katalog bez widok.js, a robocopy i tak zgłosi sukces.
+# 3.10.2026 GROTA wypadła z paczki androidowej i JEDYNYM sygnałem był rozmiar
+# APK mniejszy o 4,5 MB. Od teraz build się na tym zatrzymuje.
+if (-not (Test-Path (Join-Path $www "grota\widok.js"))) {
+    throw "po kopiowaniu nie ma www/grota/widok.js — paczka wyszłaby BEZ SCHRONIEŃ"
+}
+"www gotowe: frontend + GROTA"

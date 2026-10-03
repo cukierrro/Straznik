@@ -333,7 +333,10 @@ body.panel-open #update-banner:not(.critical) { display: none; }
 .top-actions { margin-left: auto; display: flex; gap: 8px; }
 .chip {
   border: 1px solid var(--panel-border); background: var(--panel); color: var(--text);
-  border-radius: 9px; padding: 6px 12px; font-size: 13px; cursor: pointer;
+  /* 11 px to promien przyciskow w calej aplikacji (krzyzyk okien, wiersze
+     ustawien, pigulka regionu). Chip mial 9 px i to bylo widac wszedzie,
+     gdzie stal obok czegokolwiek innego. */
+  border-radius: 11px; padding: 6px 12px; font-size: 13px; cursor: pointer;
 }
 .chip:hover { border-color: var(--accent); }
 .chip.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
@@ -359,7 +362,7 @@ body.panel-open #update-banner:not(.critical) { display: none; }
 }
 #skrot-www[hidden] { display: none !important; }
 #skrot-www a {
-  color: #0b0f1a; background: #7fb2ff; border-radius: 999px;
+  color: #0b0f1a; background: #7fb2ff; border-radius: 11px;
   padding: 6px 12px; text-decoration: none; font-weight: 600; white-space: nowrap;
 }
 #skrot-www button {
@@ -382,11 +385,18 @@ body.panel-open #update-banner:not(.critical) { display: none; }
 }
 
 /* ── atrybucja ── */
+/* Atrybucja siedzi w LEWYM GÓRNYM rogu mapy, pod paskiem tytułu — tam, gdzie
+   wytyczna OSMF każe jej szukać, i tam, gdzie nie walczy o miejsce z pigułką
+   regionu na dole. */
 #attribution {
+  position: fixed; left: 10px; top: calc(60px + var(--safe-t)); z-index: 26;
+  max-width: calc(100% - 20px);
   background: var(--panel); border: 1px solid var(--panel-border); border-radius: 8px;
   font-size: 9.5px; line-height: 1.35; color: var(--muted); padding: 5px 9px;
-  max-width: 100%; overflow: hidden;
+  overflow: hidden; backdrop-filter: blur(8px);
+  transition: opacity .2s ease;
 }
+body.panel-open #attribution { opacity: 0; pointer-events: none; }
 /* Atrybucja NEPTUN musi być widoczna (warunek API), ale nie może zjadać pół ekranu.
    JEDEN wiersz z wielokropkiem zamiast przycinania na trzech: `-webkit-line-clamp`
    liczył wiersze inaczej niż wynikało z line-height i zostawiał tekst ucięty w połowie
@@ -433,19 +443,54 @@ dialog a:hover, dialog a:focus-visible { text-decoration: underline; }
 /* Ten sam krzyżyk co na karcie obiektu: ikona SVG zamiast znaku tekstowego,
    który w różnych krojach siedział krzywo i wyglądał jak doklejony. Odstęp od
    krawędzi, żeby nie wchodził na zaokrąglenie panelu (uwaga czytelnika 23.09.2026). */
-#panel-x {
-  position: sticky; top: 6px; align-self: flex-end; z-index: 3;
-  margin: 0 6px 2px auto;
-  display: flex; align-items: center; justify-content: center;
-  width: 34px; height: 34px; border-radius: 50%; cursor: pointer;
+/* Nagłówek przykleja się do góry panelu i przesuwa razem z nim, a treść
+   przewija się pod nim. Gradient na dole, żeby tekst nie wjeżdżał ostrą
+   krawędzią. */
+/* Nagłówek jest KARTĄ, dokładnie jak sekcje panelu. Wcześniej był gradientem
+   bez tła — napisy „WOJEWÓDZTWA" i „progi" leżały gołe na mapie i zlewały się
+   z jej etykietami (zgłoszone na zrzucie 03.10.2026). */
+#panel-head {
+  position: sticky; top: 0; z-index: 4;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  background: var(--panel); border: 1px solid var(--panel-border);
+  border-radius: 12px; padding: 9px 9px 9px 12px; backdrop-filter: blur(8px);
+}
+#panel-head .ph-txt { min-width: 0; }
+#panel-head h2 { margin: 0; font-size: 15px; line-height: 1.2; }
+#panel-progi { margin-top: 3px; }
+/* Pole dotykowe 44 px i słowo obok znaku: samo × nie mówi, co zamyka.
+   Wcześniej było to kółko 34 px wiszące nad treścią. */
+#panel-x, #legend-x {
+  flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px;
+  min-height: 44px; padding: 0 12px 0 10px; border-radius: 11px; cursor: pointer;
   background: rgba(20,28,46,.96); border: 1px solid var(--line-strong, rgba(120,150,210,.3));
-  color: var(--text); line-height: 1; padding: 0;
+  color: var(--text); line-height: 1;
   box-shadow: 0 4px 14px rgba(0,0,0,.45);
   transition: background .15s, border-color .15s;
 }
-#panel-x svg { width: 16px; height: 16px; fill: none; stroke: currentColor;
+#panel-x svg, #legend-x svg { width: 16px; height: 16px; flex: 0 0 auto; fill: none; stroke: currentColor;
   stroke-width: 2.2; stroke-linecap: round; }
-#panel-x:hover { background: rgba(36,48,74,.98); border-color: var(--accent); }
+#panel-x-txt, #legend-x-txt { font-size: 12.5px; white-space: nowrap; }
+/* Pusta sekcja kart nadal rysowała swoje tło — ciemny pasek bez treści
+   między nagłówkiem a wierszem spokojnych województw. */
+#voiv-cards:empty, #voiv-quiet:empty { display: none; }
+/* Spokojne województwa: też KARTA, z własnym nagłówkiem jak „SYGNAŁY".
+   Wcześniej podpis „Bez sygnałów:" stał w jednej linii z pierwszym kafelkiem
+   i nachodził na niego, a całość leżała bez tła wprost na mapie. */
+#voiv-quiet {
+  background: var(--panel); border: 1px solid var(--panel-border);
+  border-radius: 12px; padding: 10px 12px; backdrop-filter: blur(8px);
+}
+#voiv-quiet h2 { font-size: 12px; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--muted); margin: 0 0 8px; }
+#voiv-quiet .vq-name {
+  display: inline-block; margin: 2px 4px 2px 0; padding: 4px 9px;
+  min-height: 32px; border-radius: 8px; cursor: pointer; font: inherit; font-size: 12.5px;
+  background: rgba(20,28,46,.7); border: 1px solid var(--panel-border, rgba(120,150,210,.22));
+  color: var(--muted);
+}
+#voiv-quiet .vq-name:hover { color: var(--text); border-color: var(--accent); }
+#panel-x:hover, #legend-x:hover { background: rgba(36,48,74,.98); border-color: var(--accent); }
 
 /* ── przyciski nawigacji mapy (jak w Mapach Google) ── */
 #map-actions {
@@ -493,7 +538,7 @@ dialog a:hover, dialog a:focus-visible { text-decoration: underline; }
 .tb-head #tb-national:not(:empty) + .tb-speed { margin-left: 0; }
 #tb-national { flex: 0 1 auto; min-width: 0; display: flex; }
 .tb-nat { display: block; max-width: 100%; height: 18px; padding: 0 8px; box-sizing: border-box;
-  border: 1px solid var(--nat, #c06bff); border-radius: 999px; background: rgba(192,107,255,.12);
+  border: 1px solid var(--nat, #c06bff); border-radius: 8px; background: rgba(192,107,255,.12);
   color: var(--text); font: 600 11px/16px "Segoe UI", system-ui, sans-serif;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
 body.history-mode #national-banner { display: none; }
@@ -562,7 +607,7 @@ body.history-mode #national-banner { display: none; }
 .tb-btn.play small { color: rgba(255,255,255,.85); }
 .tb-btn.play .ico-pause, .tb-btn.play.playing .ico-play { display: none; }
 .tb-btn.play.playing .ico-pause { display: inline; }
-.tb-speed { flex: none; margin-left: auto; height: 18px; padding: 0 8px; border-radius: 999px;
+.tb-speed { flex: none; margin-left: auto; height: 18px; padding: 0 8px; border-radius: 8px;
   border: 1px solid var(--panel-border); background: rgba(120,150,210,.08); color: var(--text);
   font: 700 11px/16px "Segoe UI", system-ui, sans-serif; cursor: pointer; }
 /* Stała wysokość dwóch wierszy: gdy w oknie pojawiał się sygnał, dochodziła druga
@@ -577,20 +622,50 @@ body.history-mode #national-banner { display: none; }
 body.history-mode #my-banner { display: none; }
 
 /* ── baner mojego regionu ── */
+/* Wskaznik stanu mojego wojewodztwa. Zasada: MIEJSCE ROSNIE WRAZ Z WAGA.
+   Wczesniej byl to pas na cala szerokosc, widoczny bez przerwy takze wtedy, gdy
+   nie dzialo sie nic — zabieral miejsce mapie i przyzwyczajal do ignorowania.
+   Teraz w ciszy jest pigulka z kropka, przy uwadze trojkatem, a dopiero przy
+   wysokim poziomie rozciaga sie na cala szerokosc.
+   KSZTALT zmienia sie razem z kolorem — osoba nierozrozniajaca barw widzi roznice. */
 #my-banner {
   /* w stosie nad atrybucją NEPTUN — ta musi pozostać widoczna (warunek API) */
+  display: inline-flex; align-items: center; gap: 8px;
+  /* rodzic jest kolumną flex, więc samo inline-flex nie wystarcza —
+     bez align-self pigułka dalej rozciągałaby się na całą szerokość */
+  align-self: flex-start; width: auto;
   max-width: 100%;
   background: var(--panel); border: 1px solid var(--panel-border);
-  border-left: 3px solid var(--accent); border-radius: 10px;
-  padding: 7px 11px; font-size: 12px; backdrop-filter: blur(8px);
+  /* Zaokraglony kwadrat, jak przyciski paska i ikona zrodel — nie pigulka.
+     Polokragle boki byly jedynym takim ksztaltem w calym interfejsie. */
+  border-radius: 11px;
+  padding: 7px 12px 7px 9px; font-size: 12px; backdrop-filter: blur(8px);
 }
 #my-banner b { text-transform: capitalize; }
-#my-banner.level-elevated { border-left-color: var(--amber); }
-#my-banner.level-high { border-left-color: var(--red); animation: cardpulse 1.6s infinite; }
 #my-banner .lvl { font-size: 10.5px; letter-spacing: .08em; }
-#my-banner.level-elevated .lvl { color: var(--amber); }
-#my-banner.level-high .lvl { color: var(--red); }
+#my-banner .znak {
+  width: 14px; height: 14px; flex: none; display: grid; place-items: center;
+  font-size: 10px; font-weight: 700; color: #06111f;
+  border-radius: 50%; background: var(--green);
+}
 #my-banner.level-none .lvl { color: var(--muted); }
+#my-banner.level-elevated { border-color: rgba(255, 176, 32, .45); }
+#my-banner.level-elevated .znak {
+  border-radius: 0; background: var(--amber);
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+#my-banner.level-elevated .lvl { color: var(--amber); }
+#my-banner.level-high {
+  display: flex; align-self: stretch; width: auto; border-radius: 10px; padding: 9px 12px;
+  background: rgba(120, 20, 34, .94); border-color: var(--red);
+  animation: cardpulse 1.6s infinite;
+}
+#my-banner.level-high .znak {
+  width: 20px; height: 20px; border-radius: 4px;
+  background: var(--red); color: #fff; font-size: 13px;
+}
+#my-banner.level-high .lvl, #my-banner.level-high .muted { color: #ffd9de; }
+#my-banner.level-spill .znak { background: #c9a86a; border-radius: 50%; clip-path: none; }
 /* alarm ogólnokrajowy NEPTUN-a (np. start MiG-31K) — komunikat zamiast ikony;
    widoczny także w historii, bo opisuje tamtą chwilę */
 #national-banner {
@@ -602,7 +677,7 @@ body.history-mode #my-banner { display: none; }
 #national-banner .nat-row { border-left: 3px solid var(--nat, #c06bff); padding-left: 8px; }
 #national-banner .muted { font-size: 11px; }
 /* kolor tylko od sąsiadów: kreskowana ramka i przygaszony opis, bez pulsowania */
-#my-banner.level-spill { border-left: 3px dashed rgba(255,176,32,.55); }
+#my-banner.level-spill { border-color: rgba(255,176,32,.4); border-style: dashed; }
 #my-banner.level-spill .lvl { color: #c9a86a; }
 
 /* ── pełnoekranowy alarm (poziom czerwony) ── */
@@ -814,14 +889,26 @@ html[lang="en"] .list:empty::after { content: "— none —"; }
 @keyframes cardpulse { 50% { box-shadow: inset 0 0 40px rgba(255,77,94,.22); } }
 .voiv-head { display: flex; align-items: baseline; gap: 8px; }
 .voiv-name { font-weight: 600; font-size: 14px; text-transform: capitalize; }
-.voiv-score { margin-left: auto; font-variant-numeric: tabular-nums; font-weight: 700; }
+/* ODWROCONA HIERARCHIA (krytyka 03.10.2026). Pytanie czytelnika brzmi „czy coś
+   mi grozi", a odpowiada na nie POZIOM. Tymczasem największą rzeczą na karcie
+   był wynik punktowy — liczba, która sama z siebie nic nie znaczy. Teraz wynik
+   jest drugorzędny, a poziom czytelny. Kolor wyniku i tak koduje poziom. */
+.voiv-score { margin-left: auto; font-variant-numeric: tabular-nums; font-weight: 600;
+  font-size: 12px; opacity: .8; }
 .level-none  .voiv-score { color: var(--muted); }
 .level-elevated .voiv-score { color: var(--amber); }
 .level-high .voiv-score { color: var(--red); }
-.voiv-level { font-size: 10.5px; letter-spacing: .1em; }
+.voiv-level { font-size: 12.5px; font-weight: 600; letter-spacing: .02em; margin-top: 1px; }
 .level-none .voiv-level { color: var(--muted); }
 .level-elevated .voiv-level { color: var(--amber); }
 .level-high .voiv-level { color: var(--red); }
+/* Kody stref PAZP pod „Dane techniczne". EPR134 czy EPTS551 nic nie mowia
+   czytelnikowi, a staly w widocznym miejscu karty JEGO wojewodztwa. */
+.voiv-zones > summary { cursor: pointer; list-style: none; color: var(--muted);
+  padding: 3px 0; }
+.voiv-zones > summary::-webkit-details-marker { display: none; }
+.voiv-zones > summary::before { content: "▸ "; }
+.voiv-zones[open] > summary::before { content: "▾ "; }
 .voiv-breakdown { margin-top: 6px; display: none; }
 .voiv-card.open .voiv-breakdown { display: block; }
 
@@ -837,7 +924,7 @@ html[lang="en"] .list:empty::after { content: "— none —"; }
 .sig .src { font-weight: 700; font-size: 10.5px; letter-spacing: .06em;
   color: var(--tx2, #a9b4cc); white-space: nowrap; }
 .sig .pts { font-weight: 800; color: var(--amber); font-size: 13px;
-  background: rgba(255,176,32,.12); border-radius: 999px; padding: 1px 8px;
+  background: rgba(255,176,32,.12); border-radius: 8px; padding: 1px 8px;
   white-space: nowrap; }
 .sig .pts.capped { color: var(--muted); background: rgba(140,150,175,.12); }
 .sig-title { font-size: 12.5px; line-height: 1.35; }
@@ -892,11 +979,44 @@ html[lang="en"] .list:empty::after { content: "— none —"; }
   height: 18px; margin: 4px -12px -16px; pointer-events: none;
   background: linear-gradient(rgba(13, 18, 32, 0), rgba(13, 18, 32, .95));
 }
-#legend h3 { font-size: 12px; letter-spacing: .08em; text-transform: uppercase;
-  color: var(--muted); margin-bottom: 6px; }
-.lg-group { color: var(--muted); font-size: 10.5px; letter-spacing: .06em;
-  text-transform: uppercase; margin: 8px 0 4px; }
-.lg-row { display: flex; align-items: center; gap: 8px; padding: 2.5px 0; }
+/* Nagłówek legendy to KARTA z przyciskiem zamykania, jak w panelu sygnałów. */
+.lg-head {
+  position: sticky; top: -10px; z-index: 2; margin: -10px -12px 8px; padding: 10px 10px 8px 12px;
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  /* BEZ backdrop-filter: #legend już rozmywa tło, a drugie rozmycie w środku,
+     na elemencie sticky w kontenerze przewijanym, zawieszało rysowanie
+     (ANR na emulatorze 03.10.2026). Nagłówek potrzebuje tylko krycia. */
+  background: #0e1422; border-bottom: 1px solid var(--panel-border);
+  border-radius: 12px 12px 0 0;
+}
+#legend h3 { font-size: 13px; letter-spacing: .04em; color: var(--text); margin: 0; }
+/* Grupy jako sekcje rozwijane: nazwy grup są spisem treści legendy, a nie
+   nagłówkami w wersalikach łamiącymi się na dwie linijki. */
+.lg-sec { border-top: 1px solid var(--panel-border); }
+.lg-sec:first-of-type { border-top: 0; }
+.lg-sec > summary {
+  display: flex; align-items: center; min-height: 40px; padding: 6px 2px;
+  cursor: pointer; list-style: none; color: var(--text);
+  font-size: 12.5px; font-weight: 600;
+}
+.lg-sec > summary::-webkit-details-marker { display: none; }
+/* Nazwa i podpis w jednej kolumnie: `summary` jest flexem, więc sam
+   `display: block` na <small> ustawiał podpis OBOK nazwy, bez odstępu. */
+.lg-sec > summary > span { min-width: 0; }
+.lg-sec > summary small { display: block; color: var(--muted); font-size: 10px;
+  font-weight: 400; line-height: 1.3; margin-top: 1px; }
+.lg-sec > summary::after {
+  content: "›"; display: block; margin-left: auto; padding-left: 8px;
+  color: var(--muted); font-size: 18px; line-height: 1; transform: rotate(90deg);
+}
+.lg-sec[open] > summary::after { transform: rotate(-90deg); }
+.lg-sec[open] { padding-bottom: 6px; }
+.lg-row { display: flex; align-items: center; gap: 8px; padding: 3px 0; }
+/* Podpis pod nazwą: legenda mówiła CO to jest, ale nie co to znaczy.
+   Dwuwierszowe pozycje muszą się zawijać — przy ukraińskim i powiększonym
+   tekście stała wysokość urywałaby drugi wiersz. */
+.lg-row > span { min-width: 0; }
+.lg-row small { display: block; color: var(--muted); font-size: 10px; line-height: 1.3; }
 .lg-row i { flex: none; display: inline-block; }
 .lg-row .lg-threat { width: 26px; height: 26px; }
 .lg-row .lg-threat canvas { display: block; width: 26px; height: 26px; }
@@ -923,6 +1043,8 @@ html[lang="en"] .list:empty::after { content: "— none —"; }
   border: 1.5px solid var(--amber); opacity: .7; }
 .lg-row .trail { width: 16px; height: 0;
   border-top: 2px dashed var(--red); opacity: .7; }
+.lg-row .lg-air { width: 26px; height: 26px; }
+.lg-row .lg-air canvas { display: block; width: 26px; height: 26px; }
 .lg-row .plane-ic { width: 12px; height: 12px; background: var(--cyan);
   clip-path: polygon(50% 0, 58% 35%, 100% 55%, 100% 68%, 58% 55%, 55% 80%, 68% 92%, 32% 92%, 45% 80%, 42% 55%, 0 68%, 0 55%, 42% 35%); }
 .lg-row .sq { width: 12px; height: 12px; border-radius: 3px; background: var(--c); }
@@ -976,7 +1098,18 @@ dialog h3 { margin-bottom: 10px; }
 dialog label { display: block; font-size: 13px; color: var(--muted); }
 dialog input { width: 100%; margin-top: 6px; padding: 8px 10px; border-radius: 8px;
   border: 1px solid var(--panel-border); background: #0b0f1a; color: var(--text); }
-dialog menu { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+/* Stopka okna: „Zapisz" to glowna decyzja calego okna, a miala pole dotykowe
+   mniejsze niz dowolna plakietka w tresci. 44 px wysokosci i wyrazna szerokosc. */
+dialog menu { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+dialog menu > .chip { min-height: 44px; min-width: 104px; padding: 10px 18px; font-size: 14px; }
+dialog menu > .chip.primary { font-weight: 600; }
+/* Rzad przyciskow-akcji (testy dzwieku, sprawdzenie aktualizacji). To NIE jest
+   `.set-rows`: tam strzalka obiecuje przejscie gdzie indziej, a te robia cos tutaj. */
+.btn-row { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+/* Rozciagamy je do rownej szerokosci. Przy samym `flex-wrap` trzy testy mialy
+   trzy rozne szerokosci i lamaly sie 2 + 1 w poszarpany blok — jedyne miejsce
+   w ustawieniach, gdzie nic nie bylo rowne niczemu. */
+.btn-row > .chip { flex: 1 1 140px; min-height: 40px; }
 
 /* ── lokalne profile „Moje miejsca” ── */
 .places-dialog { width:min(620px,96vw); max-height:var(--dlg-max); padding:0; overflow:hidden; }
@@ -1071,7 +1204,9 @@ dialog menu { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14
   #attribution { font-size: 10px; }
 
 
-  #legend { width: 210px; font-size: 11px; }
+  /* 210 px to była kolumna na trzy słowa — każdy podpis łamał się na dwie
+     linijki. Legenda i tak zasłania mapę tylko wtedy, gdy jest otwarta. */
+  #legend { width: min(300px, calc(100vw - 20px)); font-size: 11px; }
   /* na wąskim ekranie sam kubek — pełny napis nie mieści się w pasku */
   .chip.download { font-size: 0; padding: 5px; }
   .chip.download::before { content: "⬇ Android"; font-size: 11px; letter-spacing: -.2px; }
@@ -1104,7 +1239,9 @@ dialog menu { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14
 /* Atrybucja NEPTUN musi pozostać widoczna (warunek korzystania z API), więc ✕ nie
    usuwa jej, tylko ZWIJA do jednej plakietki. Użytkownik odzyskuje ekran, a źródło
    nadal jest podane; pełna lista jest też w „O aplikacji". */
-#attribution { position: relative; padding-right: 30px; }
+/* Tylko miejsce na krzyżyk. Pozycjonowanie jest wyżej (fixed, róg mapy) —
+   stara reguła "position: relative" stała niżej w pliku i je przebijała. */
+#attribution { padding-right: 30px; }
 #attr-x {
   position: absolute; top: 3px; right: 3px; width: 24px; height: 24px;
   display: flex; align-items: center; justify-content: center;
@@ -1112,15 +1249,157 @@ dialog menu { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14
   background: rgba(20,28,46,.9); border: 1px solid var(--panel-border); color: var(--muted);
 }
 #attr-x:hover { color: var(--text); border-color: var(--accent); }
-#attribution.mini {
-  padding-right: 9px; cursor: pointer; max-width: max-content;
+/* Rząd stanu: pigułka regionu + chip źródeł. Zawija się, więc element, który
+   musi być szeroki, bierze cały wiersz i niczego nie wypycha za krawędź. */
+#status-row {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px;
+  max-width: 100%;
 }
+#status-row > .hidden { display: none !important; }
+/* Czerwony alarm bierze wlasny wiersz. */
+#status-row > #my-banner.level-high { flex: 1 1 100%; }
+/* Zwinięty chip źródeł wygląda DOKŁADNIE tak jak pigułka regionu: ten sam
+   promień, ta sama wysokość, ten sam rozmiar pisma. Wcześniej był prostokątem
+   9,5 px obok zaokrąglonej pigułki 12 px. */
+/* Zwinięta: okrągłe (i) o polu dotykowym 40 px. Napis „źródła" chowamy —
+   w rogu mapy liczy się, żeby nie zasłaniać terenu, a sam znak (i) jest
+   wzorcem, który wytyczna OSMF wymienia z nazwy. */
+#attribution.mini {
+  display: flex; align-items: center; justify-content: center;
+  width: 38px; height: 38px; padding: 0; cursor: pointer;
+  border-radius: 11px; font-size: 17px; line-height: 1; color: var(--text);
+  background: rgba(18,26,43,.86);
+}
+#attribution.mini:hover { border-color: var(--accent); }
+#attribution.mini .mini-label svg { width: 20px; height: 20px; display: block;
+  fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 
 #attribution.mini > :not(.mini-label) { display: none; }
 #attribution .mini-label { display: none; }
 #attribution.mini .mini-label { display: inline; }
 #bottom-stack > .hidden { display: none !important; }
 body.panel-open #bottom-stack > #update-banner:not(.critical) { display: none; }
+
+/* Krzyżyk zamykający u góry każdego okna. Przyciski „Zamknij" na dole zostają —
+   w długim oknie (Źródła danych, O aplikacji) trzeba było przewinąć wszystko,
+   żeby wyjść, a to jest dokładnie ta sytuacja, w której człowiek chce wyjść.
+   `sticky` trzyma go przy górnej krawędzi przy przewijaniu; gdyby stary WebView
+   go nie obsłużył, zostaje zwykły `float` i krzyżyk nadal jest na górze. */
+dialog > .dlg-x {
+  position: sticky; top: 0; float: right; z-index: 5;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 38px; height: 38px; margin: 0 0 4px 10px; padding: 0;
+  border-radius: 11px; cursor: pointer; font-size: 15px; line-height: 1;
+  background: rgba(18,26,43,.92); border: 1px solid var(--panel-border);
+  color: var(--muted);
+}
+dialog > .dlg-x:hover { color: var(--text); border-color: var(--accent); }
+/* Okno otwiera sie z fokusem na pierwszym elemencie, czyli na krzyzyku —
+   gruba obwodka wygladala jak wcisniety przycisk. Zostaje sam akcent ramki:
+   widoczny dla klawiatury, niekrzyczacy przy dotyku. (:focus-visible odpada,
+   bo wspieramy Chrome 80.) */
+dialog > .dlg-x:focus { outline: none; box-shadow: none; border-color: var(--accent); }
+
+/* ── ustawienia: jeden typ sterowania na jeden rodzaj decyzji ─────────────
+   włącz/wyłącz = przełącznik (.set-switch, było),
+   przejście do ustawień systemu = wiersz ze strzałką (.set-rows),
+   wybór jednego z kilku = segment (.seg),
+   wyjaśnienie = details „Jak to działa?" przy swojej opcji. */
+.set-rows { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+/* UWAGA: wlasne display:flex PRZEBIJA atrybut [hidden] z arkusza przegladarki.
+   Bez tej reguly przyciski powiadomien przegladarkowych, ukryte przez [hidden],
+   pokazaly sie w aplikacji na Androidzie. Zlapane na emulatorze. */
+.set-rows > .chip[hidden], .seg > .chip[hidden] { display: none !important; }
+.set-rows > .chip {
+  display: flex; align-items: center; width: 100%; min-height: 46px;
+  padding: 8px 12px; border-radius: 11px; text-align: left;
+  font-size: 13px; font-weight: 500;
+}
+/* Strzałka mówi, że to przejście gdzieś indziej, a nie przełącznik na miejscu. */
+.set-rows > .chip::after {
+  content: "›"; margin-left: auto; padding-left: 10px;
+  color: var(--muted); font-size: 19px; line-height: 1;
+}
+/* Na niebieskim wierszu przygaszona szarość strzałki ginęła. */
+.set-rows > .chip.primary::after { color: inherit; opacity: .75; }
+.seg {
+  display: flex; margin-top: 8px; border-radius: 11px; overflow: hidden;
+  border: 1px solid var(--panel-border); background: rgba(18,26,43,.86);
+}
+.seg > .chip {
+  flex: 1 1 0; min-width: 0; min-height: 42px; margin: 0;
+  border: 0; border-radius: 0; background: transparent;
+  color: var(--muted); font-size: 12.5px;
+  display: flex; align-items: center; justify-content: center;
+}
+.seg > .chip + .chip { border-left: 1px solid var(--panel-border); }
+.seg > .chip.active { background: rgba(90,140,220,.22); color: var(--text); font-weight: 600; }
+/* Sekcja rozwijana jest KARTĄ, tak jak wszystko inne w panelu, a jej podpis —
+   wierszem o tej samej wysokości co wiersze zgód. Przy samym „▸ " przed tekstem
+   podpis wyglądał na goły napis na tle okna i miał pole dotykowe wysokości
+   dwunastopunktowej linijki. Strzałka „›" ta sama co w `.set-rows`, tylko
+   obrócona: w prawo prowadzi gdzie indziej, w dół rozwija tutaj. */
+.set-pane details.jak {
+  margin-top: 8px; border-radius: 11px;
+  border: 1px solid var(--panel-border); background: rgba(18,26,43,.5);
+}
+.set-pane details.jak[open] { padding-bottom: 10px; }
+.set-pane details.jak > summary {
+  display: flex; align-items: center; min-height: 44px; padding: 8px 12px;
+  cursor: pointer; list-style: none; color: var(--muted);
+  font-size: 12.5px; font-weight: 500;
+}
+.set-pane details.jak[open] > summary { color: var(--text); }
+.set-pane details.jak > summary::-webkit-details-marker { display: none; }
+.set-pane details.jak > summary::after {
+  content: "›"; display: block; margin-left: auto; padding-left: 10px;
+  font-size: 19px; line-height: 1; transform: rotate(90deg);
+}
+.set-pane details.jak[open] > summary::after { transform: rotate(-90deg); }
+/* Treść wyrównana do podpisu, bez własnego obrysu — karta jest jedna. */
+.set-pane details.jak > :not(summary) { padding-left: 12px; padding-right: 12px; }
+
+/* Ikony w ustawieniach rysujemy TĄ SAMĄ kreską co resztę aplikacji, a nie
+   emoji. Emoji ma własny krój, własne kolory i w rzędzie równych wierszy
+   od razu widać, że pochodzi skądinąd.
+
+   Maska zamiast obrazka: ikona dziedziczy `currentColor`, więc reaguje na
+   stan przycisku tak samo jak ikony paska. Napisy przycisków podmienia
+   app.js i i18n.js, więc ikona NIE MOŻE być w treści — jest w ::before. */
+.set-rows > .chip::before {
+  content: ""; flex: 0 0 auto; width: 20px; height: 20px; margin-right: 10px;
+  background: currentColor; opacity: .85;
+  -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+  -webkit-mask-position: center; mask-position: center;
+  -webkit-mask-size: contain; mask-size: contain;
+}
+.set-rows > #btn-notif-settings::before { -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9a6 6 0 0 1 12 0c0 7 3 7 3 7H3s3 0 3-7Z M10 20h4'/></svg>"); mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9a6 6 0 0 1 12 0c0 7 3 7 3 7H3s3 0 3-7Z M10 20h4'/></svg>"); }
+.set-rows > #btn-web-push-on::before { -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9a6 6 0 0 1 12 0c0 7 3 7 3 7H3s3 0 3-7Z M10 20h4'/></svg>"); mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9a6 6 0 0 1 12 0c0 7 3 7 3 7H3s3 0 3-7Z M10 20h4'/></svg>"); }
+.set-rows > #btn-web-push-off::before { -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9a6 6 0 0 1 9.5-4.8 M18 11c0 5 3 5 3 5H7 M10 20h4 M3 3l18 18'/></svg>"); mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9a6 6 0 0 1 9.5-4.8 M18 11c0 5 3 5 3 5H7 M10 20h4 M3 3l18 18'/></svg>"); }
+.set-rows > #btn-fullscreen::before { -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><path d='M12 3v6 M7.5 10.5 5.5 8 M16.5 10.5l2-2.5 M5 20h14l-1.5-6a5.5 5.5 0 0 0-11 0Z'/></svg>"); mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><path d='M12 3v6 M7.5 10.5 5.5 8 M16.5 10.5l2-2.5 M5 20h14l-1.5-6a5.5 5.5 0 0 0-11 0Z'/></svg>"); }
+.set-rows > #btn-battery::before { -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><path d='M3 8h13v8H3z M19 11v2 M7 12h5'/></svg>"); mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><path d='M3 8h13v8H3z M19 11v2 M7 12h5'/></svg>"); }
+.set-rows > #btn-dnd-access::before { -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><path d='M20 13.5A8 8 0 0 1 10.5 4a8 8 0 1 0 9.5 9.5Z'/></svg>"); mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><path d='M20 13.5A8 8 0 0 1 10.5 4a8 8 0 1 0 9.5 9.5Z'/></svg>"); }
+.set-rows > #btn-critical::before { -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><path d='M5 9h4l5-4v14l-5-4H5V9Z M17 9a4 4 0 0 1 0 6 M19.5 6.5a8 8 0 0 1 0 11'/></svg>"); mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><path d='M5 9h4l5-4v14l-5-4H5V9Z M17 9a4 4 0 0 1 0 6 M19.5 6.5a8 8 0 0 1 0 11'/></svg>"); }
+
+.set-rows > #btn-places::before { -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><path d='M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11Z M12 10.5h.01'/></svg>"); mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><path d='M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11Z M12 10.5h.01'/></svg>"); }
+.set-rows > #btn-sound-settings::before { -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><path d='M5 9h4l5-4v14l-5-4H5V9Z M17.5 9.5a4 4 0 0 1 0 5'/></svg>"); mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><path d='M5 9h4l5-4v14l-5-4H5V9Z M17.5 9.5a4 4 0 0 1 0 5'/></svg>"); }
+
+/* Rozdziały „O aplikacji" jako sekcje rozwijane — ten sam zabieg co
+   w ustawieniach i w legendzie. Okno miało sześć ekranów przewijania
+   i trzeba było przejść przez całą punktację, żeby dojść do ograniczeń. */
+.about-sec { border-top: 1px solid var(--panel-border); }
+.about-sec > summary {
+  display: flex; align-items: center; min-height: 44px;
+  cursor: pointer; list-style: none;
+}
+.about-sec > summary::-webkit-details-marker { display: none; }
+.about-sec > summary > h3 { margin: 0; }
+.about-sec > summary::after {
+  content: "›"; display: block; margin-left: auto; padding-left: 10px;
+  color: var(--muted); font-size: 19px; line-height: 1; transform: rotate(90deg);
+}
+.about-sec[open] > summary::after { transform: rotate(-90deg); }
+.about-sec[open] { padding-bottom: 10px; }
 
 /* ── dolny pasek zakładek ──────────────────────────────────────────────────
    Cztery cele dotyku z podpisami. Odstęp od systemowego paska nawigacji, żeby
@@ -1235,7 +1514,8 @@ body.panel-open #bottom-stack > #update-banner:not(.critical) { display: none; }
 .set-tab {
   /* cztery zakładki mają zmieścić się w jednym rzędzie na telefonie — przy
      większym odstępie „Aplikacja" wychodziła poza okno i trzeba było przewijać */
-  flex: 1 1 auto; padding: 8px 6px; border-radius: 999px; cursor: pointer;
+  flex: 1 1 auto; padding: 8px 6px; border-radius: 11px; cursor: pointer;
+  min-height: 36px;
   border: 1px solid var(--line-strong, rgba(120,150,210,.3)); background: transparent;
   color: var(--muted); font: 600 11.5px/1 "Segoe UI", system-ui, sans-serif;
   white-space: nowrap;

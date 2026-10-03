@@ -1165,6 +1165,22 @@ function renderLegendThreatIcons() {
 }
 renderLegendThreatIcons();
 
+/* Samolot i śmigłowiec w legendzie też z tych samych pikseli co warstwa mapy.
+   Wcześniej samolot był kwadracikiem CSS, a śmigłowiec emoji 🚁 — ani jedno,
+   ani drugie nie wyglądało jak to, co widać nad Polską. */
+function renderLegendAirIcons() {
+  const zrodla = { plane: makePlaneImage, heli: makeHeliImage };
+  document.querySelectorAll(".lg-air[data-air]").forEach(el => {
+    const rysuj = zrodla[el.dataset.air];
+    if (!rysuj) return;
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = 44;
+    canvas.getContext("2d").putImageData(rysuj(), 0, 0);
+    el.textContent = ""; el.appendChild(canvas);
+  });
+}
+renderLegendAirIcons();
+
 /* Kolejność stylów: OpenFreeMap (wektor, schemat OpenMapTiles — niesie nazwy
    w wielu językach, więc etykiety da się przełączyć na POLSKIE), potem CARTO,
    na końcu raster. Każdy kolejny to zapas, gdyby poprzedni nie odpowiadał. */
@@ -3090,7 +3106,38 @@ function renderPanel() {
   // karta zwijała się sama, a treść „uciekała" spod palca (zgłoszone 12.09.2026).
   const panelEl = document.getElementById("panel");
   const keepScroll = panelEl?.scrollTop || 0;
-  document.getElementById("voiv-cards").innerHTML = show.map(([name, st]) => `
+
+  /* Nagłówek panelu: tytuł, progi RAZ i krzyżyk ze słowem. Progi stały
+     wcześniej w każdej karcie z osobna — przy szesnastu województwach to
+     szesnaście razy to samo zdanie na jednym ekranie. */
+  document.getElementById("panel-title").textContent =
+    UI.t("Województwa", "Provinces", "Воєводства");
+  document.getElementById("panel-progi").textContent =
+    `${UI.t("progi", "thresholds", "пороги")}: ≥${f.thresholds.elevated} ${
+      UI.t("uwaga", "attention", "увага")}, ≥${f.thresholds.high} ${
+      UI.t("priorytet", "priority", "пріоритет")}`;
+  document.getElementById("panel-x-txt").textContent =
+    UI.t("Zamknij", "Close", "Закрити");
+  const xBtn = document.getElementById("panel-x");
+  xBtn.title = UI.t("Zamknij panel województw", "Close the provinces panel",
+                    "Закрити панель воєводств");
+  xBtn.setAttribute("aria-label", xBtn.title);
+
+  /* Pełną kartę dostaje mój region, wszystko z jakimkolwiek wynikiem i to, co
+     użytkownik sam otworzył z mapy. Reszta — czyli województwa priorytetowe,
+     w których akurat nic się nie dzieje — schodzi do jednej linii. Wcześniej
+     każde z nich zajmowało pustą kartę z powtórzonymi progami. */
+  const pelne = show.filter(([n, st]) => st.score > 0 || n === mine || forcedVoivs.has(n));
+  const ciche = show.filter(([n, st]) => !(st.score > 0 || n === mine || forcedVoivs.has(n)));
+  const quietEl = document.getElementById("voiv-quiet");
+  /* Podpis idzie WŁASNĄ linią, nie w jednym wierszu z kafelkami: przy trzech
+     nazwach pierwsza wchodziła na napis „Bez sygnałów:". */
+  quietEl.innerHTML = ciche.length
+    ? `<h2>${UI.t("Bez sygnałów", "No signals", "Без сигналів")}</h2>`
+      + ciche.map(([n]) =>
+        `<button type="button" class="vq-name" data-voiv="${esc(n)}">${esc(UI.voiv(n))}</button>`).join("")
+    : "";
+  document.getElementById("voiv-cards").innerHTML = pelne.map(([name, st]) => `
     <div class="voiv-card level-${spillRaised(st) ? "spill" : st.level}${name === mine ? " is-mine" : ""}${
       openVoivs.has(name) ? " open" : ""}" data-voiv="${esc(name)}">
       <button type="button" class="voiv-head" aria-expanded="${openVoivs.has(name)}">
@@ -3099,8 +3146,7 @@ function renderPanel() {
       </button>
       <div class="voiv-level">${spillRaised(st) ? SPILL_LABEL
         : st.level === "none" && st.score > 0
-        ? (UI.t("poniżej progu", "below threshold", "нижче порога")) : LEVEL_LABEL[st.level]}
-        <span class="muted">· ${UI.t("progi", "thresholds", "пороги")}: ≥${f.thresholds.elevated} ${UI.t("uwaga", "attention", "увага")}, ≥${f.thresholds.high} ${UI.t("priorytet", "priority", "пріоритет")}</span></div>
+        ? (UI.t("poniżej progu", "below threshold", "нижче порога")) : LEVEL_LABEL[st.level]}</div>
       ${scoreBreakdown(st)}
       ${zonesRowHTML(name)}
       <div class="voiv-breakdown">${st.signals.length
@@ -3122,24 +3168,35 @@ function renderPanel() {
       if (open) openVoivs.add(name); else openVoivs.delete(name);
       el.querySelector(".voiv-head")?.setAttribute("aria-expanded", String(open));
     }));
+  document.querySelectorAll("#voiv-quiet .vq-name").forEach(el =>
+    el.addEventListener("click", (e) => { e.stopPropagation(); openCard(el.dataset.voiv); }));
   if (panelEl && keepScroll) panelEl.scrollTop = keepScroll;
   document.querySelectorAll(".btn-cams").forEach(el =>
     el.addEventListener("click", (e) => { e.stopPropagation(); showCameras(el.dataset.voiv); }));
   document.querySelectorAll(".btn-zone").forEach(el =>
     el.addEventListener("click", (e) => { e.stopPropagation(); openZoneByName(el.dataset.zone); }));
+  /* Klik w „Dane techniczne" nie może zwinąć całej karty — klik na karcie
+     przełącza jej rozwinięcie, a to bąbelkuje z podsumowania. */
+  document.querySelectorAll(".voiv-zones > summary").forEach(el =>
+    el.addEventListener("click", (e) => e.stopPropagation()));
 
   // baner mojego regionu — zawsze widoczny, niezależnie od panelu
   const banner = document.getElementById("my-banner");
   if (mine && f.voivodeships[mine]) {
     const st = f.voivodeships[mine];
-    banner.className = "level-" + (spillRaised(st) ? "spill" : st.level);
+    const poziom = spillRaised(st) ? "spill" : st.level;
+    banner.className = "level-" + poziom;
+    // Znak przed tekstem zmienia KSZTAŁT razem z kolorem (kropka → trójkąt →
+    // kwadrat z wykrzyknikiem), żeby stan dało się odczytać bez rozróżniania barw.
+    // Sam kształt rysuje CSS; tutaj tylko wykrzyknik przy wysokim poziomie.
     // „brak sygnałów 1.9 pkt" przeczyło samo sobie (zgłoszone 13.09.2026) — przy
     // punktach poniżej progu baner mówi to samo co karta województwa
-    banner.innerHTML = `<b>${esc(UI.voiv(mine))}</b> — <span class="lvl">${
+    banner.innerHTML = `<span class="znak" aria-hidden="true">${poziom === "high" ? "!" : ""}</span>`
+      + `<span><b>${esc(UI.voiv(mine))}</b> — <span class="lvl">${
       spillRaised(st) ? SPILL_LABEL
       : st.level === "none" && st.score > 0 ? (UI.t("poniżej progu", "below threshold", "нижче порога"))
       : LEVEL_LABEL[st.level]}</span>
-      <span class="muted">${st.score.toFixed(1)} ${UI.t("pkt", "pts", "бал.")}</span>${bezPotwierdzenia(st)}`;
+      <span class="muted">${st.score.toFixed(1)} ${UI.t("pkt", "pts", "бал.")}</span>${bezPotwierdzenia(st)}</span>`;
     banner.onclick = () => { setPanel(true); openCard(mine); };
   } else {
     banner.className = "hidden";
@@ -3310,7 +3367,11 @@ function sigHTML(s) {
   // Wcześniej oba pokazywały ten sam przekreślony nominał z podpowiedzią o limicie,
   // co przy zwykłym starzeniu wprowadzało w błąd.
   const expected = s.points * (w ?? 1);
-  const capped = cp < expected - 0.005;
+  /* Plakietka bursztynowa znaczy w tej aplikacji UWAGĘ. Sygnał, który nie
+     wnosi nic — bo alarm się skończył i waga spadła do zera — nosił ją mimo to,
+     bo `cp` równało się `expected` (oba zerowe) i warunek limitu nie zaskakiwał.
+     Zero jest zerem niezależnie od powodu i ma wyglądać na zero. */
+  const capped = cp < expected - 0.005 || cp === 0;
   const repeatedOfficial = !!s.duplicate_of_official;
   const retrospective = !!s.retrospective;
   // odwołanie RCB/RSO: sam odwołany alert albo artykuł, który go potem opisuje
@@ -3511,8 +3572,13 @@ function zonesRowHTML(name) {
   if (!z.length) return "";
   const chips = z.map(p => `<button class="chip btn-zone" data-zone="${esc(String(p.designator))}"
       >${esc(String(p.designator))}</button>`).join(" ");
-  return `<div class="voiv-zones fineprint">${UI.t("Strefy PAŻP", "PAŻP zones", "Зони PAŻP")}
-    <span class="muted">(${UI.t("bez punktów", "no points", "без балів")})</span>: ${chips}</div>`;
+  /* Zwinięte pod „Dane techniczne": oznaczenia w rodzaju EPR134 są dla tego,
+     kto wie, czym jest strefa PAŻP. Reszcie zajmowały wiersz w karcie
+     własnego województwa. Liczba stref zostaje widoczna w podpisie. */
+  return `<details class="voiv-zones fineprint"><summary>${
+    UI.t("Dane techniczne", "Technical details", "Технічні дані")} · ${
+    UI.t("strefy PAŻP", "PAŻP zones", "зони PAŻP")} ${z.length} <span class="muted">(${
+    UI.t("bez punktów", "no points", "без балів")})</span></summary>${chips}</details>`;
 }
 function openZoneByName(designator) {
   const f = (zonesData?.features || []).find(x => x.properties?.designator === designator);
@@ -3800,6 +3866,14 @@ function showSources() {
   fillSources();
   document.getElementById("sources").showModal();
 }
+
+/* Jeden nasłuch na wszystkie krzyżyki okien — dokładanie osobnego do każdego
+   okna kończy się tym, że przy następnym oknie ktoś zapomni. Zamknięcie jest
+   równoważne „Anuluj": formularze zapisują się własnym przyciskiem. */
+document.addEventListener("click", (e) => {
+  const x = e.target.closest(".dlg-x");
+  if (x) x.closest("dialog")?.close();
+});
 
 document.getElementById("status-leds").onclick = () => { if (state) showSources(); };
 
@@ -4400,8 +4474,8 @@ async function refreshWebPushStatus(jezyk = UI.lang) {
   const off = document.getElementById("btn-web-push-off");
   if (!on || !off) return;
   on.hidden = off.hidden = true;
-  on.textContent = T("🔔 Włącz powiadomienia w tej przeglądarce", "🔔 Turn on notifications in this browser", "🔔 Увімкнути сповіщення в цьому браузері");
-  off.textContent = T("🔕 Wyłącz powiadomienia w tej przeglądarce", "🔕 Turn off notifications in this browser", "🔕 Вимкнути сповіщення в цьому браузері");
+  on.textContent = T("Włącz powiadomienia w tej przeglądarce", "Turn on notifications in this browser", "🔔 Увімкнути сповіщення в цьому браузері");
+  off.textContent = T("Wyłącz powiadomienia w tej przeglądarce", "Turn off notifications in this browser", "🔕 Вимкнути сповіщення в цьому браузері");
   let text;
   const iosBrowser = /iPhone|iPad|iPod/i.test(navigator.userAgent || "")
     && !(window.matchMedia?.("(display-mode: standalone)")?.matches || navigator.standalone);
@@ -4711,7 +4785,8 @@ function camShowThumbs(odswiez) {
       + (odswiez ? "?t=" + Date.now() : "");
   });
 }
-document.getElementById("cam-close").onclick = () => {
+const camClose = document.getElementById("cam-close");
+if (camClose) camClose.onclick = () => {
   clearInterval(camTimer);
   document.getElementById("cameras").close();
 };
@@ -5641,7 +5716,7 @@ async function refreshBgStatus(previewLang = UI.lang) {
     if (!s.notificationsAllowed)
       warn.push(T("⚠ Powiadomienia są zablokowane w ustawieniach systemu — bez nich alarm nie dotrze.", "⚠ Notifications are blocked in system settings — alerts cannot arrive.", "⚠ Сповіщення заблоковані в налаштуваннях системи — без них тривога не дійде."));
     if (s.fullScreenAllowed === false)
-      warn.push(T("⚠ Brak zgody na alarm pełnoekranowy — czerwony alarm nie zapali wygaszonego ekranu. Włącz przyciskiem 🚨 poniżej.", "⚠ Full-screen alert permission is missing — a red alert will not wake the screen. Enable it below.", "⚠ Немає дозволу на повноекранну тривогу — червона тривога не ввімкне згаслого екрана. Увімкніть кнопкою 🚨 нижче."));
+      warn.push(T("⚠ Brak zgody na alarm pełnoekranowy — czerwony alarm nie zapali wygaszonego ekranu. Włącz przyciskiem „Sprawdź zgodę na alarm pełnoekranowy” poniżej.", "⚠ Full-screen alert permission is missing — a red alert will not wake the screen. Enable it below.", "⚠ Немає дозволу на повноекранну тривогу — червона тривога не ввімкне згаслого екрана. Увімкніть кнопкою 🚨 нижче."));
     /* Potwierdzone na iPhonie 18.09.2026: w trybie Sen czerwony alarm nie dotarł
        do odblokowania telefonu, dopóki Strażnik nie został dopuszczony w
        Ustawienia → Skupienie → Sen → Aplikacje. iOS wymaga zgody na powiadomienia
@@ -5669,8 +5744,8 @@ async function refreshBgStatus(previewLang = UI.lang) {
       const mayBeBlocked = (s.sdk || 0) >= 34;
       fsBtn.style.display = mayBeBlocked ? "" : "none";
       fsBtn.textContent = s.fullScreenAllowed === false
-        ? (T("🚨 Zezwól na alarm pełnoekranowy", "🚨 Allow full-screen alerts", "🚨 Дозволити повноекранну тривогу"))
-        : (T("🚨 Sprawdź zgodę na alarm pełnoekranowy", "🚨 Check full-screen alert permission", "🚨 Перевірити дозвіл на повноекранну тривогу"));
+        ? (T("Zezwól na alarm pełnoekranowy", "Allow full-screen alerts", "Дозволити повноекранну тривогу"))
+        : (T("Sprawdź zgodę na alarm pełnoekranowy", "Check full-screen alert permission", "Перевірити дозвіл на повноекранну тривогу"));
     }
     /* Dostęp do zasad Nie przeszkadzać. Przycisk pokazujemy tylko wtedy, gdy zgody
        NIE MA — po jej przyznaniu nie ma czego klikać, a dodatkowy przycisk w tym
@@ -5679,8 +5754,8 @@ async function refreshBgStatus(previewLang = UI.lang) {
     if (dndBtn) {
       const brak = IS_APP && !IS_IOS && s.dndAccess === false;
       dndBtn.style.display = brak ? "" : "none";
-      dndBtn.textContent = T("🌙 Alarm mimo Nie przeszkadzać",
-        "🌙 Alert despite Do Not Disturb", "🌙 Тривога попри «Не турбувати»");
+      dndBtn.textContent = T("Alarm mimo Nie przeszkadzać",
+        "Alert despite Do Not Disturb", "Тривога попри «Не турбувати»");
     }
     /* Alarm krytyczny (iOS, entitlement Apple z 28.09.2026). Osobna zgoda,
        bez której uprawnienie jest martwe: iPhone pyta o nią raz i tylko wprost.
@@ -5714,9 +5789,9 @@ async function refreshBgStatus(previewLang = UI.lang) {
          !important, więc chowamy klasą o wyższej szczegółowości. */
       document.getElementById("krytyczny-ios-note")?.classList.toggle("schowane", !umie);
       critBtn.textContent = s.criticalAllowed
-        ? T("🔊 Alarm mimo wyciszenia: włączony",
+        ? T("Alarm mimo wyciszenia: włączony",
             "🔊 Alert despite silent mode: on", "🔊 Тривога попри вимкнений звук: увімкнено")
-        : T("🔊 Włącz alarm mimo wyciszenia",
+        : T("Włącz alarm mimo wyciszenia",
             "🔊 Turn on alert despite silent mode", "🔊 Увімкнути тривогу попри вимкнений звук");
     }
     renderNativeSound(s, previewLang);
@@ -5857,6 +5932,10 @@ document.getElementById("btn-critical")?.addEventListener("click", async (e) => 
 });
 document.getElementById("set-red-silent")?.addEventListener("change", async (e) => {
   const wlacz = !!e.target.checked;
+  // Sekcja „Zanim włączysz: co to zmienia” jest domyślnie zwinięta. Rozwijamy
+  // ją sami, gdy ktoś sięga po ten przełącznik — ostrzeżenie o nocy ma być
+  // na ekranie, a nie za podpisem, którego nikt nie dotknął.
+  if (wlacz) document.getElementById("det-natywny")?.setAttribute("open", "");
   // Świadoma zgoda, tak jak przy pełnej głośności — tyle że tu stawka jest
   // odwrotna: można alarmu NIE usłyszeć. Włączane bywa w dzień, skutek widać
   // w nocy.
@@ -6145,6 +6224,9 @@ window.straznikBack = function () {
   if (!document.getElementById("panel").classList.contains("collapsed")) { setPanel(false); return true; }
   return false;
 };
+/* Ten sam skutek co ponowne dotknięcie ikony na pasku — tylko widoczny. */
+document.getElementById("legend-x")?.addEventListener("click", () =>
+  document.getElementById("btn-legend").click());
 document.getElementById("btn-legend").onclick = () => {
   document.getElementById("legend").classList.toggle("hidden");
   document.getElementById("btn-legend").classList.toggle("active");
@@ -6240,9 +6322,22 @@ const attrEl = document.getElementById("attribution");
 if (attrEl) {
   const mini = document.createElement("span");
   mini.className = "mini-label";
-  mini.textContent = UI.t("źródła ⓘ", "sources ⓘ", "джерела ⓘ");
+  /* Znak (i) rysujemy TAK SAMO jak reszte ikon paska: obrysem SVG, nie
+     znakiem tekstowym. Znak ⓘ ma inna grubosc niz sasiednie ikony i w rogu
+     mapy bylo to widac. */
+  mini.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true">'
+    + '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/></svg>';
   attrEl.appendChild(mini);
-  if (localStorage.getItem("straznik_attr_mini") === "1") attrEl.classList.add("mini");
+  /* Zwijamy SAMOCZYNNIE PO PIĘCIU SEKUNDACH, a nie „raz na zawsze". Wytyczna
+     OSMF wymienia pięć sekund wprost; nasze dawne zapamiętywanie w
+     localStorage sprawiało, że po jednym dotknięciu krzyżyka atrybucja nie
+     pokazywała się już nigdy — a ma się pokazywać przy starcie aplikacji. */
+  const zwin = () => {
+    attrEl.classList.add("mini");
+    attrEl.title = UI.t("Źródła danych i licencje", "Data sources and licences",
+                        "Джерела даних і ліцензії");
+  };
+  setTimeout(() => { if (!attrEl.classList.contains("mini")) zwin(); }, 5000);
   /* Wiersz źródeł przewija się palcem w poziomie (26.09.2026). Wygaszenie prawej
      krawędzi zdejmujemy, gdy nie ma już czego doczytać — przy końcu przewijania
      albo gdy cały tekst mieści się na szerokim ekranie. */
@@ -6256,8 +6351,8 @@ if (attrEl) {
   }
   document.getElementById("attr-x")?.addEventListener("click", (e) => {
     e.stopPropagation();
-    attrEl.classList.add("mini");
-    try { localStorage.setItem("straznik_attr_mini", "1"); } catch {}
+    zwin();
+    try { localStorage.removeItem("straznik_attr_mini"); } catch {}
   });
   attrEl.addEventListener("click", (e) => {
     if (!attrEl.classList.contains("mini")) {
@@ -6267,8 +6362,9 @@ if (attrEl) {
       document.getElementById("about")?.showModal();
       return;
     }
-    attrEl.classList.remove("mini");
-    try { localStorage.removeItem("straznik_attr_mini"); } catch {}
+    /* Zwinięte (i) otwiera „Źródła danych" — to tam są licencje mapy.
+       Wcześniej rozwijało z powrotem pasek, czyli prowadziło donikąd. */
+    showSources();
   });
   attrEl.style.cursor = "pointer";
 }
