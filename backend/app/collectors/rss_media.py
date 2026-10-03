@@ -105,6 +105,26 @@ def _baltic_decision(country: str, kind: str, stale: str | None, title: str, lin
         "age_min": round(age / 60, 1)}, ts=now)
 
 
+def _targets(country: str) -> dict[str, float]:
+    """Województwa, których dotyczy zdarzenie w tym kraju, z wagą odległości.
+
+    Bałtyk świeci na północ, Słowacja i Węgry na południe, Czechy na zachód —
+    jedna wspólna lista czterech województw (BALTIC_TARGET_WEIGHTS) pasowała
+    tylko do trzech pierwszych krajów.
+    """
+    return config.NEIGHBOUR_TARGET_WEIGHTS.get(country, config.BALTIC_TARGET_WEIGHTS)
+
+
+def _shadow(country: str) -> bool:
+    """Czy kraj jest w trybie cienia: sygnał i karta tak, punkty nie."""
+    return country in config.NEIGHBOUR_SHADOW
+
+
+def _local_hit(title_l: str, country: str) -> bool:
+    """Czy tytuł nazywa miejsce w TYM kraju."""
+    return any(m in title_l for m in config.BALTIC_LOCAL_MARKERS.get(country, ()))
+
+
 def _baltic_abroad(title: str, country: str) -> bool:
     """Czy tytuł mówi o alarmie GDZIE INDZIEJ niż w tym kraju bałtyckim.
 
@@ -119,14 +139,22 @@ def _baltic_abroad(title: str, country: str) -> bool:
     return not any(m in tl for m in config.BALTIC_LOCAL_MARKERS.get(country, ()))
 
 
-def _is_baltic_alert(text: str) -> list[str]:
+def _is_baltic_alert(text: str, country: str = "") -> list[str]:
     tl = text.lower()
     if any(word in tl for word in config.BALTIC_EXCLUDE_KEYWORDS):
         return []
     words = set(re.findall(r"\w+", tl))
     if words & set(config.BALTIC_ALERT_PAST_MARKERS):
         return []
-    return [word for word in config.BALTIC_ALERT_KEYWORDS if word in tl]
+    hits = [word for word in config.BALTIC_ALERT_KEYWORDS if word in tl]
+    # RO-Alert to JEDEN system na burze, powodzie, pożary i drony. Samo
+    # „mesaj RO-Alert" nie mówi nic o powietrzu, więc dla krajów z
+    # NEIGHBOUR_ALERT_NEEDS_AIR ogłoszenie liczy się tylko razem ze słowem
+    # o przestrzeni, dronie albo rakiecie.
+    if hits and country in config.NEIGHBOUR_ALERT_NEEDS_AIR:
+        if not any(word in tl for word in config.BALTIC_AIR_KEYWORDS):
+            return []
+    return hits
 
 
 # Stan per kraj do okna „Źródła” w aplikacji i do łączenia doniesień z kilku
@@ -547,8 +575,11 @@ async def _check_feed(client: httpx.AsyncClient, url: str, default_voiv: str | N
 
 
 async def _check_baltic_feed(client: httpx.AsyncClient, url: str, country: str):
-    """Media LT/LV/EE: incydent powietrzny u bałtyckich sąsiadów ⇒ +1 pkt
-    dla podlaskiego i warmińsko-mazurskiego (kontekst, nie potwierdzenie)."""
+    """Media sąsiada: incydent albo ogłoszony alarm powietrzny u sąsiada.
+
+    LT/LV/EE punktują (kontekst dla północy, nie potwierdzenie). MD/RO/SK/CZ/SE/HU
+    od 03.10.2026 chodzą w trybie cienia — karta i dziennik tak, punkty nie.
+    """
     st = status["feeds"].setdefault(url, {})
     st["country"] = country
     r, err = await _get_with_retry(client, url)
@@ -580,9 +611,18 @@ _BALTIC_COUNTRY_MARKERS = {
 }
 
 
+# Te same przeniesienia poza Bałtykiem: rumuńskie media piszą o Mołdawii TYM
+# SAMYM językiem, czeskie o Słowacji i odwrotnie. Grupy są rozdzielne, więc
+# marker rumuński nie przeniesie zdarzenia na Szwecję.
+_COUNTRY_GROUPS = [("LT", "LV", "EE")] + [tuple(g) for g in config.NEIGHBOUR_COUNTRY_GROUPS]
+_ALL_COUNTRY_MARKERS = {**_BALTIC_COUNTRY_MARKERS, **config.NEIGHBOUR_COUNTRY_MARKERS}
+
+
 def _baltic_named_country(title_l: str, feed_country: str) -> str:
-    """Kraj z tytułu, gdy tytuł wprost nazywa JEDEN inny kraj bałtycki; inaczej kraj kanału."""
-    named = {c for c, marks in _BALTIC_COUNTRY_MARKERS.items() if any(m in title_l for m in marks)}
+    """Kraj z tytułu, gdy tytuł wprost nazywa JEDEN inny kraj z tej samej grupy."""
+    grupa = next((g for g in _COUNTRY_GROUPS if feed_country in g), (feed_country,))
+    named = {c for c in grupa
+             if any(m in title_l for m in _ALL_COUNTRY_MARKERS.get(c, ()))}
     others = named - {feed_country}
     return next(iter(others)) if len(others) == 1 and feed_country not in named else feed_country
 
@@ -620,7 +660,7 @@ async def _baltic_entries(entries, url: str, country: str, now: float):
                     **(baltic[country]["last_alert"] or {}), "cleared": True,
                     "cleared_title": title[:160], "cleared_at": now}
             for key in sorted(keys):
-                for voiv in config.BALTIC_TARGET_VOIVS:
+                for voiv in _targets(country):
                     await fusion.ingest(
                         source="media", event_type="baltic_clear", voivodeship=voiv,
                         points=0.0, title=f"Media {country}: odwołanie — „{title[:100]}”",
@@ -632,11 +672,30 @@ async def _baltic_entries(entries, url: str, country: str, now: float):
         if age > MAX_AGE_S:
             continue
         title_l = title.lower()
+        # Kraj, O KTÓRYM mówi tytuł, wyliczamy PRZED bramą „miejsce w kraju".
+        # Rumuńskie media piszą o Mołdawii po rumuńsku, czeskie o Słowacji po
+        # czesku — brama pytająca o markery kraju KANAŁU odrzucałaby te wpisy,
+        # zanim doszłoby do przypisania. 03.10.2026: „O dronă a intrat în
+        # spațiul aerian al Republicii Moldova" z digi24.ro.
+        where = _baltic_named_country(title_l, country)
         # tytuł-pytanie („ko trūksta…?”) to publicystyka, nie ogłoszenie alarmu (22.09.2026)
         discussion = (any(m in f" {title_l}" for m in config.BALTIC_DISCUSSION_MARKERS)
                       or title_l.rstrip().endswith("?"))
         alert_hits = ([] if discussion or _speaker_quote(title_l)
-                      else _is_baltic_alert(title_l))
+                      else _is_baltic_alert(title_l, country))
+        # Czeskie i słowackie media piszą o cudzej przestrzeni powietrznej
+        # częściej niż o własnej („Drony opět narušily dánský vzdušný prostor",
+        # „V Litvě krátce platil vzdušný poplach", „Ruské drony narušili poľský
+        # vzdušný priestor"). Przy Bałtyku wystarczało „brak zagranicy ⇒ u siebie",
+        # bo LRT pisze głównie o Litwie. Tutaj tytuł MUSI nazwać miejsce w tym
+        # kraju — inaczej Czechy świeciłyby przy każdym zdarzeniu w Danii.
+        if where in config.NEIGHBOUR_REQUIRE_LOCAL and not _local_hit(title_l, where):
+            if alert_hits or match_keywords(
+                    text, config.BALTIC_CRITICAL_KEYWORDS, config.BALTIC_AIR_KEYWORDS,
+                    config.BALTIC_EVENT_KEYWORDS, config.BALTIC_EXCLUDE_KEYWORDS):
+                _baltic_decision(where, "alert" if alert_hits else "context",
+                                 "brak miejsca w kraju", title, link, url, age, now)
+            continue
         if alert_hits and _baltic_abroad(title_l, country):
             _baltic_decision(country, "alert", "zagranica", title, link, url, age, now)
             alert_hits = []
@@ -663,17 +722,22 @@ async def _baltic_entries(entries, url: str, country: str, now: float):
                 _baltic_active[country] = {"incident_key": incident_key, "at": now}
                 baltic[country]["last_alert"] = {"title": title[:160], "at": now,
                                                  "link": link, "incident_key": incident_key}
-            where = _baltic_named_country(title_l, country)
-            weight = config.BALTIC_ALERT_COUNTRY_WEIGHTS.get(where, 0.4)
+            weight = (config.NEIGHBOUR_ALERT_COUNTRY_WEIGHTS.get(where)
+                      or config.BALTIC_ALERT_COUNTRY_WEIGHTS.get(where, 0.4))
             name = config.BALTIC_COUNTRY_NAMES.get(where, where)
-            for voiv in config.BALTIC_TARGET_VOIVS:
+            cien = _shadow(where)
+            for voiv, waga in _targets(where).items():
                 await fusion.ingest(
                     source="media", event_type="baltic_alert", voivodeship=voiv,
-                    points=round(config.POINTS["baltic_alert"] * weight
-                                 * config.BALTIC_TARGET_WEIGHTS.get(voiv, 1.0), 2),
-                    title=f"Alarm powietrzny — {name}: „{title[:110]}”",
+                    points=0.0 if cien else round(
+                        config.POINTS["baltic_alert"] * weight * waga, 2),
+                    title=(f"Obserwacja — {name}: „{title[:110]}”" if cien
+                           else f"Alarm powietrzny — {name}: „{title[:110]}”"),
                     details={"link": link, "keywords": alert_hits, "country": where,
-                             "feed_country": country, "incident_key": incident_key, "feed": url},
+                             "feed_country": country, "incident_key": incident_key,
+                             "feed": url, "shadow": cien,
+                             "would_be": round(config.POINTS["baltic_alert"]
+                                               * weight * waga, 2) if cien else None},
                     dedup_key=f"baltic-alert:{incident_key}:{voiv}",
                 )
             _baltic_alerted.add(incident_key)
@@ -681,14 +745,18 @@ async def _baltic_entries(entries, url: str, country: str, now: float):
         # tu zostają tylko incydenty: bez zagranicy (BALTIC_FOREIGN_MARKERS) i bez
         # rozmów o incydencie (15.09.2026: 1,0 pkt za komentarz) — patrz `hits` wyżej
         h = hashlib.sha1((link or title).encode()).hexdigest()[:16]
-        for voiv in config.BALTIC_TARGET_VOIVS:
+        cien = _shadow(where)
+        for voiv, waga in _targets(where).items():
             await fusion.ingest(
                 source="media", event_type="baltic_context", voivodeship=voiv,
-                points=config.POINTS["baltic_context"]
-                       * config.BALTIC_TARGET_WEIGHTS.get(voiv, 1.0),
-                title=f"Media {country}: „{title[:110]}”",
-                details={"link": link, "keywords": hits, "country": country,
-                         "incident_key": incident_key},
+                points=0.0 if cien else config.POINTS["baltic_context"] * waga,
+                title=(f"Obserwacja {where}: „{title[:110]}”" if cien
+                       else f"Media {where}: „{title[:110]}”"),
+                details={"link": link, "keywords": hits, "country": where,
+                         "feed_country": country,
+                         "incident_key": incident_key, "shadow": cien,
+                         "would_be": round(config.POINTS["baltic_context"] * waga, 2)
+                                     if cien else None},
                 dedup_key=f"baltic:{h}:{voiv}",
             )
         _baltic_alerted.add(incident_key)
@@ -714,10 +782,18 @@ async def run():
     # (60 s) 17 kanałów zestawiało TLS od nowa — i to naraz. Połączenia trzymamy dłużej niż
     # jeden cykl, a start zapytań rozkładamy o 0,4 s, żeby uzgodnienia TLS nie szły jednym blokiem.
     limity = httpx.Limits(keepalive_expiry=config.RSS_INTERVAL + 60)
+    cykl = 0
     async with httpx.AsyncClient(timeout=20, limits=limity) as client:
         while True:
             zadania = [_check_feed(client, url, voiv) for url, voiv in config.RSS_FEEDS]
             zadania += [_check_baltic_feed(client, url, c) for url, c in config.BALTIC_FEEDS]
+            # Pozostali sąsiedzi rzadziej: w trybie cienia nie dodają punktów,
+            # a 441 kB na cykl to przy 60 s ponad pół giga na dobę wyciągnięte
+            # od cudzych redakcji za nic.
+            if cykl % config.NEIGHBOUR_INTERVAL_MULT == 0:
+                zadania += [_check_baltic_feed(client, url, c)
+                            for url, c in config.NEIGHBOUR_FEEDS]
+            cykl += 1
             await asyncio.gather(
                 *[_rozlozone(i * 0.4, z) for i, z in enumerate(zadania)],
                 return_exceptions=True,

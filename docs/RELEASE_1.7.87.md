@@ -8,7 +8,7 @@
      dla czytających na GitHubie. Parser: backend/app/app_updates.py, _change_items. -->
 <!-- zmiany -->
 - Okrąg wokół obiektu rośnie teraz z wiekiem meldunku. Pokazuje, gdzie obiekt może być, a nie tylko gdzie go zgłoszono — bo od ostatniego meldunku zdążył polecieć dalej.
-- Karta obiektu rozbija tę liczbę: ile z niej to niepewność zgłoszenia, a ile droga przelecona od meldunku.
+- Karta obiektu rozbija tę liczbę: ile z niej to niepewność zgłoszenia, a ile droga przebyta od meldunku.
 - Przy meldunku „kursem na X” karta mówi wprost, że to rejon na linii dolotu, a nie zmierzone położenie obiektu.
 - Legenda i instrukcja opisują okrąg zgodnie z tym, co robi.
 <!-- /zmiany -->

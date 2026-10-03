@@ -6,14 +6,16 @@
 
 Serwer: **hostowane na [Mikrusie](https://mikr.us)** — dziękujemy za wsparcie projektu.
 
-Wersja 1.7.87: okrąg wokół obiektu pokazuje, gdzie obiekt może być, i rośnie
-z wiekiem meldunku — bo rysujemy ostatnią znaną pozycję, a obiekt od tego czasu
-leci dalej. Czytelnik zapytał o drona 14 km w głębi Mołdawii: okrąg miał ±12 km
-i granicy nie dotykał, choć meldunek miał 4 minuty, a dron mógł w tym czasie
-przelecieć 12 km. Karta rozbija tę liczbę na niepewność zgłoszenia i drogę
-przeleconą od meldunku, a przy meldunku „kursem na X” mówi wprost, że to rejon
-na linii dolotu, nie zmierzone położenie. Pozycji nadal nie wyliczamy: ikona stoi
-tam, gdzie zgłosiło źródło. Szczegóły: `docs/RELEASE_1.7.87.md`.
+Wersja 1.7.88: Strażnik czyta media także w Mołdawii, Rumunii, na Słowacji,
+w Czechach, Szwecji i na Węgrzech. Te sześć krajów podświetla się na mapie i ma
+własną kartę, ale **nie dodaje ani jednego punktu** — czeskie i słowackie
+redakcje piszą o cudzej przestrzeni powietrznej częściej niż o własnej, więc
+przez kilka tygodni tylko sprawdzamy, czy filtr nie bierze zdarzenia w Danii za
+ich własne. Przy okazji: karta kraju sąsiedniego nie otwierała się ani razu od
+22 września, alarmy w rejonach Ukrainy są wreszcie tłumaczone, a na mapie
+przybyła Szwecja. Kamery w regionie to teraz sama lista z odnośnikami —
+podglądu nie pokazujemy, bo regulamin worldcam.pl na to nie zezwala.
+Szczegóły: `docs/RELEASE_1.7.88.md`.
 
 Wersja 1.7.86: czerwony alarm może budzić samą wibracją. Nowy przełącznik
 ⚙ → Dźwięk → „Czerwony alarm: tylko wibracja, bez syreny” (Android) wycisza
@@ -605,7 +607,10 @@ techniczne.
   ponownie pod innym identyfikatorem.
 - **Kamery tylko z Polski** — 641 publicznych kamer miejskich i turystycznych
   (worldcam.pl) we wszystkich 16 województwach, w tym 582 plenerowe; każda
-  zweryfikowana pobraniem świeżego obrazu przy budowie listy. Pierwotnie użyłem
+  zweryfikowana pobraniem świeżego obrazu przy budowie listy. Podglądu NIE
+  pokazuję w aplikacji: regulamin worldcam.pl opisuje wyłącznie własne użycie
+  miniatur przez serwis i nie daje zgody na wyświetlanie ich u kogoś innego
+  (sprawdzone 03.10.2026). Kafelek otwiera kamerę u źródła. Pierwotnie użyłem
   kamer drogowych traxelektronik.pl — okazało się, że wymagają logowania.
   Listę odświeżysz skryptem `scripts/build_cams.py`. Kamer z Ukrainy świadomie
   nie podpinam: od 2022 r. transmisje na żywo są tam zakazane, bo umożliwiają
@@ -628,6 +633,10 @@ wydawanie zmienionych wersji albo udostępnianie funkcji aplikacji innym wymaga 
 licencji od autora — dotyczy to także firm, organizacji i instytucji publicznych.
 Licencje dla firm i instytucji: zgłoszenie (Issue) w repozytorium.
 
+Strażnik jest **source-available, a nie open source**. Na liście SPDX nie ma licencji
+o takich warunkach, więc nasza ma oznaczenie własne: `LicenseRef-Straznik-1.0`.
+GitHub pokazuje ją w związku z tym jako „Other”.
+
 Wersje do 1.7.53 włącznie pozostają na licencji MIT. Biblioteki, mapy, zdjęcia i dane
 innych podmiotów mają własne licencje — zob. [NOTICE](NOTICE).
 
@@ -639,6 +648,6 @@ dodatkowe, nie system ratunkowy.
 Hosting serwera: [Mikrus](https://mikr.us) (od 17.09.2026 serwer przekazany przez Mikrusa na potrzeby projektu).
 
 [NEPTUN](https://neptun.in.ua) (agregator OSINT; obiekty i alarmy obwodów UA) ·
-adsb.lol / opendata.adsb.fi (w trybie awaryjnym też airplanes.live) · airspace.pansa.pl · gov.pl/RCB · media regionalne i bałtyckie ·
+adsb.lol / opendata.adsb.fi (w trybie awaryjnym też airplanes.live) · airspace.pansa.pl · gov.pl/RCB · media regionalne, bałtyckie i sąsiadów (MD, RO, SK, CZ, SE, HU — obserwacja, bez punktów) ·
 kamery worldcam.pl ·
 mapa © [CARTO](https://carto.com/attributions), © [OpenStreetMap](https://www.openstreetmap.org/copyright)

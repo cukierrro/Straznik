@@ -1,5 +1,7 @@
-# Dokładne wersje z produkcji (pip freeze na VPS, 13.09.2026). Instalacja odtworzeniowa:
+# Dokładne wersje z produkcji (pip freeze na VPS, 02.10.2026). Instalacja odtworzeniowa:
 #   pip install -r requirements.lock
+# PyJWT i urllib3 podniesione w przeglądzie bezpieczeństwa 02.10.2026 (baza OSV).
+# PyJWT MUSI być w tej samej wersji co pin w .github/workflows/ios-certyfikat.yml.
 aiohappyeyeballs==2.7.1
 aiohttp==3.14.3
 aiosignal==1.4.0
@@ -48,7 +50,7 @@ pyasn1_modules==0.4.2
 pycparser==3.0
 pydantic==2.13.4
 pydantic_core==2.46.4
-PyJWT==2.13.0
+PyJWT==2.15.0
 python-dotenv==1.2.2
 pywebpush==2.3.0
 PyYAML==6.0.3
@@ -57,7 +59,7 @@ starlette==1.3.1
 truststore==0.10.4
 typing-inspection==0.4.2
 typing_extensions==4.16.0
-urllib3==2.7.0
+urllib3==2.8.0
 uvicorn==0.52.1
 uvloop==0.22.1
 watchfiles==1.2.0

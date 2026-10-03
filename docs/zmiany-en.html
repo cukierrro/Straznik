@@ -39,6 +39,19 @@
   <p class="fineprint">To see which version your phone has, open the app: <kbd>⚙</kbd> → the <kbd>App</kbd> tab → “App version”. The <kbd>⬆ Check for updates</kbd> button is right there too.</p>
 </div></header>
 <main id="content" class="wrap">
+<section id="v1-7-88">
+  <h2>1.7.88 — six new neighbours on the map, cameras without previews</h2>
+  <p class="fineprint">Release 1.7.88 · 3 October 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.88">Full release notes</a></p>
+  <ul>
+    <li>Strażnik now also reads the media in <b>Moldova, Romania, Slovakia, Czechia, Sweden and Hungary</b> — two feeds per country. An airspace event highlights that country on the map, and tapping it opens a card with the report.</li>
+    <li><b>These six countries add no points at all.</b> They will not raise the level, will not trigger a notification and will not change the colour of your province. Czech and Slovak newsrooms write about other countries’ airspace more often than their own, so the filter is being checked for a few weeks first — to be sure it does not take an event in Denmark, or over Poland, for one of theirs. Lithuania, Latvia and Estonia score as before.</li>
+    <li><b>The neighbouring-country card never opened at all</b> — not since 22 September, the day it was added. Tapping a highlighted Lithuania did nothing, because the card's code stopped on an error. Fixed and verified during a live alert.</li>
+    <li>Ukrainian raion alerts showed the raw source text in the Polish and English interface too (“Бахмутський район · Ракетна загроза”). It now reads “Bachmutskyj raion · missile threat”. A reason we do not recognise is left quoted rather than invented.</li>
+    <li><b>Sweden</b> has been added to the map; it had simply been missing.</li>
+    <li><b>Cameras in the region: the window was empty</b>, and that was a bug — the thumbnail address had 30 July hard-coded into it, every one returned 404, and a dead tile hid itself. It is now a list with links: the preview is not shown here, because the worldcam.pl terms do not allow it, and tapping a tile opens the camera at the source. The phone no longer connects to their server.</li>
+  </ul>
+  <p class="fineprint">Scoring, thresholds and alert wording unchanged.</p>
+</section>
 <section id="v1-7-87">
   <h2>1.7.87 — the circle shows where the object may really be</h2>
   <p class="fineprint">Release 1.7.87 · 30 September 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.87">Full release notes</a></p>

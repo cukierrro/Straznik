@@ -3,6 +3,12 @@
 Weryfikacja: kamera trafia na listę tylko wtedy, gdy jej miniatura z dzisiejszą
 datą faktycznie się pobiera (HTTP 200, typ obrazu, sensowny rozmiar) — czyli
 kamera realnie nadaje, a nie tylko widnieje w katalogu.
+
+Do pliku wynikowego NIE zapisujemy adresu miniatury — tylko identyfikator kamery.
+Adres składa aplikacja przy wyświetlaniu (`camThumb` w app.js), bo zapisany tutaj
+starzeje się sam: lista z 30.07.2026 miała w sobie datę tamtego dnia i rozmiar
+`400x225`, a 03.10.2026 wszystkie takie adresy zwracały 404 (serwis wymienił
+rozmiar na `400x226`). Tego pilnuje scripts/test_kamery_miniatury.cjs.
 """
 import concurrent.futures as cf
 import json
@@ -108,18 +114,25 @@ def city_cams(voiv, city):
     return out
 
 
+# Rozmiary miniatur, które serwis wystawia. Kolejność jak w CAM_SIZES w app.js —
+# serwis wymienia je bez zapowiedzi (30.07.2026 działał 400x225, 03.10.2026 już
+# tylko 400x226), więc sprawdzamy po kolei, a nie pod jeden zaszyty rozmiar.
+SIZES = ("400x226", "400x225", "200x113")
+
+
 def alive(cid):
-    """Miniatura z dziś lub wczoraj = kamera nadaje."""
+    """True, gdy miniatura z dziś lub wczoraj faktycznie się pobiera."""
     for d in (date.today(), date.today() - timedelta(days=1)):
-        url = f"https://www.img.worldcam.pl/webcams/400x225/{d.isoformat()}/{cid}.jpg"
-        try:
-            data, hdr, status = fetch(url, timeout=12)
-            ctype = (hdr.get("Content-Type") or "").lower()
-            if status == 200 and "image" in ctype and len(data) > 4000:
-                return url
-        except Exception:
-            continue
-    return None
+        for size in SIZES:
+            url = f"https://www.img.worldcam.pl/webcams/{size}/{d.isoformat()}/{cid}.jpg"
+            try:
+                data, hdr, status = fetch(url, timeout=12)
+                ctype = (hdr.get("Content-Type") or "").lower()
+                if status == 200 and "image" in ctype and len(data) > 4000:
+                    return True
+            except Exception:
+                continue
+    return False
 
 
 # ── normalizacja: polskie znaki i klasyfikacja plener/wnętrze ────────────────
@@ -261,10 +274,10 @@ def main(out_path):
         print(f"{voiv}: kandydatów {len(cams)}", flush=True)
         with cf.ThreadPoolExecutor(max_workers=12) as ex:
             checks = list(ex.map(lambda c: (c, alive(c[0])), cams))
-        for (cid, name, url, city), thumb in checks:
-            if thumb:
+        for (cid, name, url, city), nadaje in checks:
+            if nadaje:
                 found.append({"id": cid, "name": name, "city": city.replace("-", " ").title(),
-                              "url": url, "thumb": thumb})
+                              "url": url})
         # deduplikacja po id, sortowanie po mieście
         seen, ded = set(), []
         for c in sorted(found, key=lambda c: (c["city"], c["name"])):

@@ -1,7 +1,14 @@
 Strażnik — zasady korzystania z kodu i aplikacji
 (obowiązują od wersji 1.7.54)
 
+SPDX-License-Identifier: LicenseRef-Straznik-1.0
+
 Copyright © 2026 cukierrro. Wszelkie prawa zastrzeżone.
+
+To jest licencja własna, a nie jedna z licencji otwartych (open source). Kod jest
+widoczny po to, żeby każdy mógł sprawdzić, jak aplikacja działa. Wolno używać
+gotowej aplikacji; nie wolno kopiować kodu ani rozpowszechniać własnych wydań.
+Szczegóły w punktach 2 i 3.
 
 1. ZAKRES
    Wersje do 1.7.53 włącznie zostały udostępnione na licencji MIT i na tej licencji
@@ -56,7 +63,13 @@ Copyright © 2026 cukierrro. Wszelkie prawa zastrzeżone.
 Strażnik — terms for the code and the app (English translation)
 (apply from version 1.7.54; the Polish version prevails)
 
+SPDX-License-Identifier: LicenseRef-Straznik-1.0
+
 Copyright © 2026 cukierrro. All rights reserved.
+
+This is a custom licence, not one of the open source licences. The source is
+visible so that anyone can check how the app works. You may use the released app;
+you may not copy the code or distribute builds of your own. See points 2 and 3.
 
 1. Versions up to and including 1.7.53 were released under the MIT License and remain
    under it. These terms cover code and other material by the author added or changed

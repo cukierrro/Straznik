@@ -1,0 +1,3 @@
+# Skrypty powłoki MUSZĄ mieć końce linii LF — na Linuksie "#!/bin/sh" nie
+# uruchomi się wcale, a błąd wygląda jak "nie znaleziono pliku".
+*.sh text eol=lf

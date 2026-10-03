@@ -87,9 +87,12 @@ istniały od tygodni i nikt ich nie zauważył, bo nikt nie patrzył.
 
 **Co tydzień — szybki przebieg** (kilkanaście minut, wyłącznie odczyt):
 
-1. Zależności: baza OSV dla `backend/requirements.lock` i
-   `android-app/package-lock.json`, otwarte alerty Dependabota i skanowania
-   sekretów na GitHubie.
+1. Zależności: `python3 scripts/osv_sprawdz.py` — baza OSV dla obu plików
+   blokad, razem z pakietami wciągniętymi pośrednio. Kod wyjścia 1 znaczy
+   ZNALEZIONO albo NIE UDAŁO SIĘ SPRAWDZIĆ; jedno i drugie wymaga spojrzenia.
+   Na VPS to samo chodzi z crona w soboty, więc wynik zwykle już czeka.
+   Do tego otwarte alerty Dependabota i skanowania sekretów na GitHubie —
+   ale traktuj je jako dodatek do OSV, nie zamiennik.
 2. VPS: zaległe poprawki bezpieczeństwa, czy nocna instalacja poprawek
    działa (jej log), czy któraś usługa czeka na restart po aktualizacji
    bibliotek, stan zapory i fail2ban.
