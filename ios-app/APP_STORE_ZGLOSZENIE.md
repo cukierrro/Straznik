@@ -481,3 +481,24 @@ Dwie rzeczy z panelu, warte zapamiętania:
   zapytania sieciowego, status zostaje na *Prepare for Submission*. Zadziałało
   dopiero kliknięcie **po współrzędnych** ze zrzutu. Ten sam panel przyjmuje
   `ref` dla „Save” i „Add Build”, więc problem dotyczy tego jednego przycisku.
+
+## 16. Zgłoszenie 1.7.88 (3.10.2026, 12:55)
+
+Build **2610031047**, status *Waiting for Review*, publikacja automatyczna.
+Wspólny commit z Androidem (`706e2e3`, tag `v1.7.88`). Poprzednie wydanie 1.7.87
+Apple zatwierdziło 30.09 i jest w sklepie, więc kolejka była wolna.
+
+Treść: sześciu nowych sąsiadów w cieniu (MD, RO, SK, CZ, SE, HU) bez punktów,
+naprawiona karta kraju sąsiedniego, tłumaczone rejony Ukrainy, Szwecja na mapie,
+kamery bez podglądu (regulamin źródła).
+
+**Dwie rzeczy sprawdzone, bo w tym wydaniu łatwo je zgubić po cichu:**
+
+* **GROTA w paczce** — `skrypty/przygotuj.mjs` miał cichy wariant „build bez
+  GROTY”; tego samego dnia Android wyszedł bez modułu i jedynym sygnałem był
+  rozmiar pliku. Teraz brak modułu **zatrzymuje** przygotowanie, a sprawdzany
+  jest wynik kopiowania, nie zamiar. W logu CI: „www: dołączono moduł GROTA”.
+* **Szwecja (`assets/kraje-se-v1.geojson`, 9108 B)** — po stronie Androida plik
+  wymagał osobnego kroku i raz wypadł; u nas leży w `frontend/assets/`, a cały
+  ten katalog jest kopiowany, więc wchodzi bez dodatkowej obsługi. Potwierdzone
+  w `ios-app/www/assets/`.
