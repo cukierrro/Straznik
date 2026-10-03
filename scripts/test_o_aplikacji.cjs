@@ -15,8 +15,13 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const ROOT = path.resolve(__dirname, '..');
-const HTML = fs.readFileSync(path.join(ROOT, 'frontend/index.html'), 'utf8');
-const I18N = fs.readFileSync(path.join(ROOT, 'frontend/i18n.js'), 'utf8');
+/* Konce linii normalizujemy ZARAZ po odczycie. W checkoucie z
+   `core.autocrlf=true` (tak ma sesja iOS) kazdy `\n` poprzedza `\r`,
+   wiec wzorce z `\n</div>` nie trafialy i test przewracal sie na pierwszej
+   asercji — czyli nie sprawdzal niczego, zamiast zglosic brak tlumaczenia. */
+const czytaj = (p) => fs.readFileSync(path.join(ROOT, p), 'utf8').replace(/\r\n/g, '\n');
+const HTML = czytaj('frontend/index.html');
+const I18N = czytaj('frontend/i18n.js');
 
 function okno() {
   const i = HTML.indexOf('<dialog id="about">');

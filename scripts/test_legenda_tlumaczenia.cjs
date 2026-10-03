@@ -18,8 +18,13 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const ROOT = path.resolve(__dirname, '..');
-const HTML = fs.readFileSync(path.join(ROOT, 'frontend/index.html'), 'utf8');
-const I18N = fs.readFileSync(path.join(ROOT, 'frontend/i18n.js'), 'utf8');
+/* Konce linii normalizujemy ZARAZ po odczycie. W checkoucie z
+   `core.autocrlf=true` (tak ma sesja iOS) kazdy `\n` poprzedza `\r`,
+   wiec wzorce z `\n</div>` nie trafialy i test przewracal sie na pierwszej
+   asercji — czyli nie sprawdzal niczego, zamiast zglosic brak tlumaczenia. */
+const czytaj = (p) => fs.readFileSync(path.join(ROOT, p), 'utf8').replace(/\r\n/g, '\n');
+const HTML = czytaj('frontend/index.html');
+const I18N = czytaj('frontend/i18n.js');
 
 function legenda() {
   const m = /<div id="legend"[\s\S]*?\n<\/div>\n/.exec(HTML);
@@ -93,7 +98,7 @@ test('ikony lotnictwa rysowane tymi samymi pikselami co mapa', () => {
   assert.ok(!/🚁/.test(lg), 'emoji śmigłowca zamiast ikony z mapy');
   for (const typ of ['plane', 'heli'])
     assert.ok(new RegExp(`data-air="${typ}"`).test(lg), `brak wiersza data-air="${typ}"`);
-  const APP = fs.readFileSync(path.join(ROOT, 'frontend/app.js'), 'utf8');
+  const APP = czytaj('frontend/app.js');
   assert.ok(/\.lg-air\[data-air\]/.test(APP),
     'app.js musi wypełniać ikony lotnictwa w legendzie');
 });
@@ -101,7 +106,7 @@ test('ikony lotnictwa rysowane tymi samymi pikselami co mapa', () => {
 test('legenda wymienia wszystkie kraje, które kolorujemy na mapie', () => {
   // BALTIC_ISO3 decyduje, które kraje dostają kolor. 1.7.88 dorzuciło sześć
   // nowych i legenda przestała się z tym zgadzać: wymieniała trzy z dziewięciu.
-  const APP = fs.readFileSync(path.join(ROOT, 'frontend/app.js'), 'utf8');
+  const APP = czytaj('frontend/app.js');
   const m = /const BALTIC_ISO3 = \{([\s\S]*?)\};/.exec(APP);
   assert.ok(m, 'nie znalazłem BALTIC_ISO3');
   const kody = [...m[1].matchAll(/(\w{2}):/g)].map(x => x[1]);
