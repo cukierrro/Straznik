@@ -4458,8 +4458,8 @@ async function refreshWebPushStatus(jezyk = UI.lang) {
   const off = document.getElementById("btn-web-push-off");
   if (!on || !off) return;
   on.hidden = off.hidden = true;
-  on.textContent = T("🔔 Włącz powiadomienia w tej przeglądarce", "🔔 Turn on notifications in this browser", "🔔 Увімкнути сповіщення в цьому браузері");
-  off.textContent = T("🔕 Wyłącz powiadomienia w tej przeglądarce", "🔕 Turn off notifications in this browser", "🔕 Вимкнути сповіщення в цьому браузері");
+  on.textContent = T("Włącz powiadomienia w tej przeglądarce", "Turn on notifications in this browser", "🔔 Увімкнути сповіщення в цьому браузері");
+  off.textContent = T("Wyłącz powiadomienia w tej przeglądarce", "Turn off notifications in this browser", "🔕 Вимкнути сповіщення в цьому браузері");
   let text;
   const iosBrowser = /iPhone|iPad|iPod/i.test(navigator.userAgent || "")
     && !(window.matchMedia?.("(display-mode: standalone)")?.matches || navigator.standalone);
@@ -4769,7 +4769,8 @@ function camShowThumbs(odswiez) {
       + (odswiez ? "?t=" + Date.now() : "");
   });
 }
-document.getElementById("cam-close").onclick = () => {
+const camClose = document.getElementById("cam-close");
+if (camClose) camClose.onclick = () => {
   clearInterval(camTimer);
   document.getElementById("cameras").close();
 };
@@ -5699,7 +5700,7 @@ async function refreshBgStatus(previewLang = UI.lang) {
     if (!s.notificationsAllowed)
       warn.push(T("⚠ Powiadomienia są zablokowane w ustawieniach systemu — bez nich alarm nie dotrze.", "⚠ Notifications are blocked in system settings — alerts cannot arrive.", "⚠ Сповіщення заблоковані в налаштуваннях системи — без них тривога не дійде."));
     if (s.fullScreenAllowed === false)
-      warn.push(T("⚠ Brak zgody na alarm pełnoekranowy — czerwony alarm nie zapali wygaszonego ekranu. Włącz przyciskiem 🚨 poniżej.", "⚠ Full-screen alert permission is missing — a red alert will not wake the screen. Enable it below.", "⚠ Немає дозволу на повноекранну тривогу — червона тривога не ввімкне згаслого екрана. Увімкніть кнопкою 🚨 нижче."));
+      warn.push(T("⚠ Brak zgody na alarm pełnoekranowy — czerwony alarm nie zapali wygaszonego ekranu. Włącz przyciskiem „Sprawdź zgodę na alarm pełnoekranowy” poniżej.", "⚠ Full-screen alert permission is missing — a red alert will not wake the screen. Enable it below.", "⚠ Немає дозволу на повноекранну тривогу — червона тривога не ввімкне згаслого екрана. Увімкніть кнопкою 🚨 нижче."));
     /* Potwierdzone na iPhonie 18.09.2026: w trybie Sen czerwony alarm nie dotarł
        do odblokowania telefonu, dopóki Strażnik nie został dopuszczony w
        Ustawienia → Skupienie → Sen → Aplikacje. iOS wymaga zgody na powiadomienia
@@ -5727,8 +5728,8 @@ async function refreshBgStatus(previewLang = UI.lang) {
       const mayBeBlocked = (s.sdk || 0) >= 34;
       fsBtn.style.display = mayBeBlocked ? "" : "none";
       fsBtn.textContent = s.fullScreenAllowed === false
-        ? (T("🚨 Zezwól na alarm pełnoekranowy", "🚨 Allow full-screen alerts", "🚨 Дозволити повноекранну тривогу"))
-        : (T("🚨 Sprawdź zgodę na alarm pełnoekranowy", "🚨 Check full-screen alert permission", "🚨 Перевірити дозвіл на повноекранну тривогу"));
+        ? (T("Zezwól na alarm pełnoekranowy", "Allow full-screen alerts", "Дозволити повноекранну тривогу"))
+        : (T("Sprawdź zgodę na alarm pełnoekranowy", "Check full-screen alert permission", "Перевірити дозвіл на повноекранну тривогу"));
     }
     /* Dostęp do zasad Nie przeszkadzać. Przycisk pokazujemy tylko wtedy, gdy zgody
        NIE MA — po jej przyznaniu nie ma czego klikać, a dodatkowy przycisk w tym
@@ -5737,8 +5738,8 @@ async function refreshBgStatus(previewLang = UI.lang) {
     if (dndBtn) {
       const brak = IS_APP && !IS_IOS && s.dndAccess === false;
       dndBtn.style.display = brak ? "" : "none";
-      dndBtn.textContent = T("🌙 Alarm mimo Nie przeszkadzać",
-        "🌙 Alert despite Do Not Disturb", "🌙 Тривога попри «Не турбувати»");
+      dndBtn.textContent = T("Alarm mimo Nie przeszkadzać",
+        "Alert despite Do Not Disturb", "Тривога попри «Не турбувати»");
     }
     /* Alarm krytyczny (iOS, entitlement Apple z 28.09.2026). Osobna zgoda,
        bez której uprawnienie jest martwe: iPhone pyta o nią raz i tylko wprost.
@@ -5772,9 +5773,9 @@ async function refreshBgStatus(previewLang = UI.lang) {
          !important, więc chowamy klasą o wyższej szczegółowości. */
       document.getElementById("krytyczny-ios-note")?.classList.toggle("schowane", !umie);
       critBtn.textContent = s.criticalAllowed
-        ? T("🔊 Alarm mimo wyciszenia: włączony",
+        ? T("Alarm mimo wyciszenia: włączony",
             "🔊 Alert despite silent mode: on", "🔊 Тривога попри вимкнений звук: увімкнено")
-        : T("🔊 Włącz alarm mimo wyciszenia",
+        : T("Włącz alarm mimo wyciszenia",
             "🔊 Turn on alert despite silent mode", "🔊 Увімкнути тривогу попри вимкнений звук");
     }
     renderNativeSound(s, previewLang);
@@ -5915,6 +5916,10 @@ document.getElementById("btn-critical")?.addEventListener("click", async (e) => 
 });
 document.getElementById("set-red-silent")?.addEventListener("change", async (e) => {
   const wlacz = !!e.target.checked;
+  // Sekcja „Zanim włączysz: co to zmienia” jest domyślnie zwinięta. Rozwijamy
+  // ją sami, gdy ktoś sięga po ten przełącznik — ostrzeżenie o nocy ma być
+  // na ekranie, a nie za podpisem, którego nikt nie dotknął.
+  if (wlacz) document.getElementById("det-natywny")?.setAttribute("open", "");
   // Świadoma zgoda, tak jak przy pełnej głośności — tyle że tu stawka jest
   // odwrotna: można alarmu NIE usłyszeć. Włączane bywa w dzień, skutek widać
   // w nocy.

@@ -94,7 +94,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <link rel="icon" type="image/png" sizes="512x512" href="assets/icon-512.png">
 <link rel="apple-touch-icon" href="assets/icon-192.png">
 <link rel="stylesheet" href="assets/vendor/maplibre-gl.css?v=1.7.82">
-<link rel="stylesheet" href="style.css?v=1.7.88a">
+<link rel="stylesheet" href="style.css?v=1.7.88d">
 </head>
 <body>
 
@@ -343,7 +343,6 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 8h11v5.5a4 4 0 0 1-4 4H8.5a4 4 0 0 1-4-4z"/><path d="M15.5 9.5h2a2.5 2.5 0 0 1 0 5h-2M6 5V3.4M9.5 5V3.4M13 5V3.4"/></svg>
       <span>Wesprzyj autora</span></a>
   </div>
-  <form method="dialog"><menu><button value="cancel" class="chip">Zamknij</button></menu></form>
 </dialog>
 
 <!-- Stała karta obiektu (samolot / obiekt NEPTUN): zawsze w tym samym miejscu,
@@ -700,14 +699,12 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
   Gdy kafelki OpenFreeMap nie odpowiadają, mapa przełącza się na zapasowe
   © <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>
   © OpenStreetMap.</p>
-  <menu><button id="src-close" class="chip">Zamknij</button></menu>
 </dialog>
 
 <dialog id="national-info">
   <button type="button" class="dlg-x" aria-label="Zamknij" title="Zamknij">✕</button>
   <h3 id="national-info-head"></h3>
   <p id="national-info-body"></p>
-  <menu><button id="national-info-close" class="chip">Zamknij</button></menu>
 </dialog>
 
 <dialog id="watch">
@@ -724,7 +721,6 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
   <div id="watch-current" class="list"></div>
   <h4 class="watch-h">Dziennik — wleciały / zniknęły z zasięgu</h4>
   <div id="watch-events" class="list"></div>
-  <menu><button id="watch-close" class="chip">Zamknij</button></menu>
 </dialog>
 
 <dialog id="cameras">
@@ -741,7 +737,6 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
   od 2022 r. transmisje na żywo z tamtejszych kamer są zakazane, bo pozwalają
   korygować ostrzał. Zbieranie ich w aplikacji śledzącej obiekty powietrzne
   byłoby dokładnie tym zastosowaniem, przed którym ten zakaz chroni.</p>
-  <menu><button id="cam-close" class="chip">Zamknij</button></menu>
 </dialog>
 
 <dialog id="onboard-bg">
@@ -811,8 +806,8 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
     <!-- Dwa akapity wyjaśnienia stały nad samymi przełącznikami i spychały je
          poniżej krawędzi ekranu. Chowamy je przy ich własnej opcji; kto chce
          wiedzieć, rozwinie. -->
-    <details class="jak"><summary>Jak to działa?</summary>
-    <p class="fineprint android-only">Alarmy dla Twojego województwa przychodzą jako
+    <details class="jak"><summary id="jak-alarmy">Jak to działa?</summary>
+    <p class="fineprint android-only" id="alarmy-push-note">Alarmy dla Twojego województwa przychodzą jako
     <b>powiadomienie push</b> — także gdy aplikacja jest zamknięta, ekran wygaszony
     albo telefon w uśpieniu. Serwer Strażnika wysyła sygnał prosto na telefon, więc
     <b>nie trzeba już usługi działającej w tle</b> (Android i tak ją ubijał). Wystarczy
@@ -840,14 +835,18 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
          Klas ani id NIE ruszam: app.js podmienia tym przyciskom textContent,
          a i18n.js ustawia napisy po id. -->
     <div class="set-rows">
-      <button type="button" id="btn-notif-settings" class="chip">🔔 Ustawienia powiadomień</button>
-      <button type="button" id="btn-fullscreen" class="chip android-only" style="display:none">🚨 Zgoda na alarm pełnoekranowy</button>
-      <button type="button" id="btn-battery" class="chip android-only">🔋 Wyłącz oszczędzanie baterii</button>
-      <button type="button" id="btn-dnd-access" class="chip android-only" style="display:none">🌙 Alarm mimo Nie przeszkadzać</button>
-      <button type="button" id="btn-critical" class="chip" style="display:none">🔊 Włącz alarm mimo wyciszenia</button>
-      <button type="button" id="btn-web-push-on" class="chip primary" hidden>🔔 Włącz powiadomienia w tej przeglądarce</button>
-      <button type="button" id="btn-web-push-off" class="chip" hidden>🔕 Wyłącz powiadomienia w tej przeglądarce</button>
+      <button type="button" id="btn-notif-settings" class="chip">Ustawienia powiadomień</button>
+      <button type="button" id="btn-fullscreen" class="chip android-only" style="display:none">Zgoda na alarm pełnoekranowy</button>
+      <button type="button" id="btn-battery" class="chip android-only">Wyłącz oszczędzanie baterii</button>
+      <button type="button" id="btn-dnd-access" class="chip android-only" style="display:none">Alarm mimo Nie przeszkadzać</button>
+      <button type="button" id="btn-critical" class="chip" style="display:none">Włącz alarm mimo wyciszenia</button>
+      <button type="button" id="btn-web-push-on" class="chip primary" hidden>Włącz powiadomienia w tej przeglądarce</button>
+      <button type="button" id="btn-web-push-off" class="chip" hidden>Wyłącz powiadomienia w tej przeglądarce</button>
     </div>
+    <!-- Cztery akapity drobnego druku stały pod przyciskami i zajmowały dwa
+         ekrany przewijania. Chowamy je pod jednym podpisem; sterowania wyżej
+         zostają widoczne zawsze. -->
+    <details class="jak"><summary id="jak-zgody">Szczegóły zgód i alarmu</summary>
     <p class="fineprint ios-only" id="krytyczny-ios-note">Alarm krytyczny to osobna zgoda Apple: czerwony alarm zadzwoni nawet wtedy, gdy telefon jest wyciszony przełącznikiem albo w trybie Skupienia. Dotyczy wyłącznie czerwonego poziomu — żółty sygnał uwagi zostaje cichy. iPhone zapyta o tę zgodę tylko raz; jeśli ją odrzucisz, włączysz ją później w Ustawieniach telefonu. W każdej chwili możesz ją cofnąć w tym samym miejscu.</p>
     <p class="fineprint ios-only" id="alarm-ios-note">Na iPhonie czerwony alarm przychodzi
     jako powiadomienie oznaczone <b>„PILNE”</b>: pokazuje się nad blokadą i gra syreną.
@@ -856,7 +855,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
     Żeby przeszedł także w nocy, sprawdź dwie rzeczy: <b>Ustawienia → Powiadomienia → Strażnik
     → „Powiadomienia czasowo zależne”</b> oraz <b>Ustawienia → Skupienie → Sen → Aplikacje →
     dopuść Strażnika</b>. Bez tego iOS wstrzymuje alarm do odblokowania telefonu.</p>
-    <p class="fineprint android-only">Alarm pełnoekranowy zapala ekran i pokazuje się nad blokadą,
+    <p class="fineprint android-only" id="alarmy-fs-note">Alarm pełnoekranowy zapala ekran i pokazuje się nad blokadą,
     tak jak połączenie przychodzące. Android 14 i nowszy domyślnie odbiera tę zgodę
     aplikacjom innym niż budzik i telefon, a <b>po każdej aktualizacji potrafi ją
     cofnąć</b> — bez niej czerwony alarm przy wygaszonym ekranie będzie tylko
@@ -871,20 +870,26 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
     pokaże się na pełnym ekranie i zapali ekran także wtedy. <b>Dźwięku to nie przywróci</b> —
     system trzyma wtedy głośność alarmów wyciszoną — a tryb <b>„Całkowita cisza”</b> blokuje
     alarm niezależnie od tej zgody. Zgoda jest dobrowolna i możesz ją w każdej chwili cofnąć.</p>
+    </details>
     </section>
 
     <section class="set-pane" data-pane="miejsca" role="tabpanel" hidden>
     <h3>Moje miejsca</h3>
-    <p class="fineprint">Zapisz do 8 miejsc i wybierz, dla których województw chcesz
+    <p class="fineprint" id="miejsca-note">Zapisz do 8 miejsc i wybierz, dla których województw chcesz
     otrzymywać powiadomienia. Dokładne miejsca zostają na tym urządzeniu.</p>
     <div id="places-summary" class="fineprint">Nie zapisano jeszcze żadnego miejsca.</div>
-    <button type="button" id="btn-places" class="chip primary" style="margin-top:10px">📍 Otwórz Moje miejsca</button>
+    <!-- Przejście w inne miejsce aplikacji = wiersz ze strzałką, tak jak zgody
+         systemowe w „Alarmach". Pinezka 📍 ustąpiła ikonie z naszej rodziny. -->
+    <div class="set-rows">
+      <button type="button" id="btn-places" class="chip primary">Otwórz Moje miejsca</button>
+    </div>
     <select id="set-voiv" hidden aria-hidden="true"></select>
     </section>
 
     <section class="set-pane" data-pane="dzwiek" role="tabpanel" hidden>
     <h3>Sygnały dźwiękowe</h3>
-    <p class="fineprint android-only">Żółty poziom (≥2 pkt) — krótki sygnał uwagi i powiadomienie
+    <details class="jak"><summary id="jak-dzwiek">Co kiedy gra</summary>
+    <p class="fineprint android-only" id="dzwiek-pl-note">Żółty poziom (≥2 pkt) — krótki sygnał uwagi i powiadomienie
     wyskakujące na ekranie (heads-up).
     Czerwony (≥4 pkt z potwierdzeniem) — modulowana syrena alarmu powietrznego + wibracja.
     Odtwarzane, gdy aplikacja jest otwarta; przy zamkniętej aplikacji alarm przychodzi
@@ -893,12 +898,13 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
     i powiadomienie wyskakujące na ekranie. Czerwony (≥4 pkt z potwierdzeniem) — modulowana syrena alarmu
     powietrznego + wibracja. Odtwarzane, gdy aplikacja jest otwarta; przy zamkniętej aplikacji
     alarm przychodzi jako powiadomienie push (z syreną dla czerwonego).</p>
-    <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+    </details>
+    <div class="btn-row">
       <button type="button" id="btn-test-chime" class="chip">▶ Test: uwaga</button>
       <button type="button" id="btn-test-siren" class="chip">▶ Test: syrena</button>
       <button type="button" id="btn-test-alarm" class="chip">▶ Test: pełny alarm</button>
     </div>
-    <p class="fineprint">Przy czerwonym poziomie syrena gra <b>bez przerwy</b>,
+    <p class="fineprint" id="dzwiek-red-note">Przy czerwonym poziomie syrena gra <b>bez przerwy</b>,
     aż potwierdzisz alarm przyciskiem na ekranie.</p>
 
     <div id="yellow-volume">
@@ -910,8 +916,10 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
         <button type="button" id="yv-quiet" class="chip" data-poziom="quiet">Ciszej</button>
         <button type="button" id="yv-silent" class="chip" data-poziom="silent">Bez dźwięku</button>
       </div>
+      <details class="jak"><summary id="jak-yv">Czego dotyczy to ustawienie</summary>
       <div class="fineprint" id="yv-note">Dotyczy wyłącznie <b>żółtego</b> sygnału uwagi.
         Czerwonego alarmu to nie wycisza — ma on własne ustawienie. „Bez dźwięku” zostawia baner i wibrację.</div>
+      </details>
     </div>
 
     <div id="native-sound" class="app-only">
@@ -925,25 +933,39 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
         <span class="sw-text"><b id="rs-label">Czerwony alarm: tylko wibracja, bez syreny</b></span>
         <input type="checkbox" role="switch" id="set-red-silent">
         <span class="sw-track" aria-hidden="true"></span></label>
+      <!-- Ostrzeżenie o nocy i opis suwaka „Alarmy” to dwa najdłuższe bloki
+           w całych ustawieniach. Podpis nazywa je wprost, żeby nikt nie włączył
+           „tylko wibracji” bez przeczytania; app.js rozwija tę sekcję sam,
+           gdy przełącznik idzie w górę. -->
+      <details class="jak" id="det-natywny"><summary id="jak-natywny">Zanim włączysz: co to zmienia</summary>
       <div class="fineprint android-only" id="rs-note">Syrena milknie, reszta alarmu zostaje: pełny ekran, miganie i mocna wibracja, także przy trybie Nie przeszkadzać. Sparowany zegarek zawibruje tak samo. <b>Przemyśl to przed nocą:</b> przy wygaszonym ekranie i telefonie w drugim pokoju możesz takiego alarmu nie zauważyć. Dotyczy wyłącznie czerwonego — żółty sygnał uwagi ma własne ustawienie wyżej.</div>
       <div class="fineprint android-only" id="ns-note">Syrena gra na suwaku głośności <b>„Alarmy”</b>
         (nie „Dzwonek” ani „Multimedia”). Czerwony alarm podnosi go <b>co najmniej do połowy</b>,
         żeby syrena nie była cicha. Opcja wyżej jest domyślnie <b>wyłączona</b> — po jej włączeniu
         czerwony alarm ustawi suwak na maksimum, także w nocy. W obu przypadkach poprzednia
         głośność wraca, gdy wyciszysz alarm. Żółty sygnał uwagi gra na zwykłej głośności powiadomień i ma własne ustawienie wyżej.</div>
-      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
-        <button type="button" id="btn-sound-settings" class="chip android-only">🔊 Ustawienia dźwięku Androida</button>
+      </details>
+      <!-- android-only także na opakowaniu: na iPhonie sam przycisk znika,
+           ale pusty rząd zostawiłby po sobie odstęp. -->
+      <div class="set-rows android-only">
+        <button type="button" id="btn-sound-settings" class="chip android-only">Ustawienia dźwięku Androida</button>
+      </div>
+      <div class="btn-row">
         <button type="button" id="btn-native-test" class="chip">▶ Test: czerwony natywny (za 5 s)</button>
         <button type="button" id="btn-native-test-yellow" class="chip">▶ Test: żółty natywny (za 5 s)</button>
       </div>
+      <details class="jak"><summary id="jak-test">Jak przebiega test</summary>
       <div class="fineprint" id="ns-test-note">Test przechodzi prawdziwą drogą powiadomienia:
         zablokuj ekran w ciągu 5 sekund, żeby sprawdzić alarm nad blokadą. Wycisz go
         przyciskiem na ekranie alarmu albo „Wycisz alarm” w powiadomieniu.</div>
+      </details>
     </div>
     </section>
 
     <section class="set-pane" data-pane="aplikacja" role="tabpanel" hidden>
-    <h3>Język interfejsu</h3>
+    <!-- Krótszy niż etykieta pod spodem: ten sam napis dwa razy pod rzędem
+         nic nie wnosił, a etykieta musi zostać — nazywa pole czytnikowi. -->
+    <h3>Język</h3>
     <label>Język interfejsu
       <select id="set-lang">
         <option value="pl">Polski</option>
@@ -967,18 +989,24 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
         <option value="course">Trasa i kierunek lotu</option>
       </select>
     </label>
+    <details class="jak"><summary id="jak-trasy">Jak czytać kierunek</summary>
     <div class="fineprint" id="trail-note">Kierunek to linia na 30 minut lotu drona albo rakiety
       (15 minut samolotu) z kropkami co 5 minut. Dla obiektów NEPTUN rysujemy go
       <b>tylko przy kursie zmierzonym z ruchu</b> — nie przy kursie domniemanym z nazwy celu
       ani przy pozycji rejonowej. To szacunek przy niezmienionym kursie, nie prognoza.</div>
+    </details>
 
     <h3 style="margin-top:16px" class="app-only">Wersja aplikacji</h3>
     <p class="fineprint app-only" id="app-version">—</p>
-    <button type="button" id="btn-update" class="chip app-only">⬆ Sprawdź aktualizacje</button>
+    <div class="btn-row app-only">
+      <button type="button" id="btn-update" class="chip app-only">⬆ Sprawdź aktualizacje</button>
+    </div>
     <p class="fineprint app-only" id="upd-status"></p>
-    <p class="fineprint app-only">Aplikacja nie pochodzi ze sklepu, więc sama sprawdza
+    <details class="jak app-only"><summary id="jak-aktualizacje">Skąd biorą się aktualizacje</summary>
+    <p class="fineprint" id="app-upd-note">Aplikacja nie pochodzi ze sklepu, więc sama sprawdza
     przy każdym uruchomieniu i powrocie na wierzch, czy jest nowsze wydanie.
     Jeśli pominiesz powiadomienie, sprawdzisz ręcznie tym przyciskiem.</p>
+    </details>
     <!-- Na stronie nie ma czego aktualizować; przycisk „Sprawdź aktualizacje" wisiał tu
          i milczał po dotknięciu (zgłoszenie czytelnika z 23.09.2026). -->
     <h3 style="margin-top:16px" class="web-only">Wersja</h3>
@@ -987,12 +1015,13 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
     aplikacji i moduł <b>GROTA</b> (najbliższe schronienie). Pobierzesz ją przyciskami
     <b>↓ Android</b> i <b>↓ iOS</b> u góry ekranu.</p>
 
-    <details style="margin-top:14px">
-      <summary id="adv-summary" class="fineprint" style="cursor:pointer">Zaawansowane: wspólny backend</summary>
+    <!-- Ta sama sekcja rozwijana co pozostałe w ustawieniach, nie własny wariant. -->
+    <details class="jak">
+      <summary id="adv-summary">Zaawansowane: wspólny backend</summary>
       <label style="margin-top:8px">Adres serwera (opcjonalnie)
         <input id="set-api" type="url" placeholder="puste = serwer Strażnika (zalecane)">
       </label>
-      <p class="fineprint">Domyślnie aplikacja korzysta z serwera Strażnika
+      <p class="fineprint" id="adv-note">Domyślnie aplikacja korzysta z serwera Strażnika
       (straznik.eu) — dane i fuzja liczone są raz na serwerze. Gdy serwer jest
       niedostępny, aplikacja automatycznie przechodzi na tryb wbudowany i liczy
       sama na urządzeniu. Własny adres HTTPS (np. https://straznik.twoja-domena.pl) podaj tylko,
@@ -1036,7 +1065,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
      Cloudflare, więc po każdym wydaniu wystarczy podbić ?v= i przeglądarki
      dostają nowe app.js/engine.js OD RAZU, bez ręcznego czyszczenia cache CF.
      Podbijaj ?v= razem z versionName w build.gradle. -->
-<script src="i18n.js?v=1.7.88a"></script>
+<script src="i18n.js?v=1.7.88d"></script>
 <!-- kontur Polski dla engine.js (audyt A2b, scripts/build_pl_outline.py) -->
 <script src="pl-outline.js?v=1.7.82"></script>
 <script src="engine.js?v=1.7.82"></script>
@@ -1052,7 +1081,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <div id="a11y-alert" class="sr-only" role="status" aria-live="assertive" aria-atomic="true"></div>
 <div id="a11y-info" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
 
-<script src="app.js?v=1.7.88a"></script>
+<script src="app.js?v=1.7.88d"></script>
 <script>
 /* Instrukcja pasująca do telefonu i języka (21.09.2026). iPhone ma osobną, bo alarmy,
    zgody i aktualizacje działają tam inaczej. Tu, a nie w app.js: index.html nie jest

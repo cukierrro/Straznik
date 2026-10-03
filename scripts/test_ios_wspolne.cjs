@@ -87,17 +87,14 @@ for (const id of ['onboard-bg-ios', 'alarmy-intro-ios', 'alarm-ios-note', 'dzwie
   sprawdz(i18n.includes('"#' + id + '"') || i18n.includes('"' + id + '"'), '#' + id + ' ma wersję angielską');
 }
 sprawdz(/\.ios-only \{ display: none !important; \}/.test(css), 'wariant iOS ukryty poza aplikacją na iPhonie');
-// Tłumaczenia jadą po kolejności akapitów — wariant iOS musi z tych selektorów wypaść,
-// inaczej angielskie teksty trafiłyby o jeden akapit za daleko.
-// Wyjątków przybywa (24.09.2026 doszedł #dnd-note), więc nie porównujemy całego
-// łańcucha — sprawdzamy, że OBA selektory mają komplet wymaganych :not(...).
-// Kolejność akapitów pilnuje osobno scripts/test_ustawienia_tlumaczenia.cjs.
-{
-  const sel = i18n.match(/p\.fineprint(?::not\([^)]*\))+/g) || [];
-  const wymagane = ['.ios-only', '#app-version', '#upd-status', '#more-links'];
-  sprawdz(sel.length === 2 && sel.every(s => wymagane.every(w => s.includes(`:not(${w})`))),
-    'oba selektory pozycyjne akapitów pomijają wariant iOS i akapity tłumaczone osobno');
-}
+// 03.10.2026: akapity w ustawieniach NIE są już tłumaczone po kolejności —
+// każdy ma identyfikator. Wcześniej wariant iOS musiał wypadać z selektora
+// pozycyjnego, inaczej angielskie teksty szły o jeden akapit za daleko;
+// schowanie jednego akapitu pod sekcję rozwijaną dokładnie to wywołało.
+// Pilnujemy teraz warunku mocniejszego: żadnego selektora pozycyjnego.
+// Komplet tłumaczeń po id sprawdza scripts/test_ustawienia_tlumaczenia.cjs.
+sprawdz((i18n.match(/\.set-pane > p\.fineprint/g) || []).length === 0,
+  'akapity ustawień tłumaczone po identyfikatorach, nie po kolejności');
 sprawdz(/#onboard-bg \.about-body > p:not\(\.ios-only\)/.test(i18n),
   'ekran powitalny też pomija wariant iOS');
 sprawdz(/IS_IOS \? "iPhone'a" : "Androida"/.test(app),

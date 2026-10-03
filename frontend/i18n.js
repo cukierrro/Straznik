@@ -52,21 +52,21 @@
     "Schronienie — gdzie najbliżej": "Shelter — nearest",
     "Schronienie — w aplikacji na telefon": "Shelter — in the phone app",
     "Moja lokalizacja": "My location", "Województwo": "Province", "Wykryj z GPS": "Detect with GPS",
-    "Moje miejsca": "My places", "📍 Otwórz Moje miejsca": "📍 Open My places",
+    "Moje miejsca": "My places", "Otwórz Moje miejsca": "Open My places",
     "Nie zapisano jeszcze żadnego miejsca.": "No saved places yet.",
     "Lokalizacja jest wyłączona.": "Location is off.",
-    "🔔 Włącz powiadomienia w tej przeglądarce": "🔔 Turn on notifications in this browser",
-    "🔕 Wyłącz powiadomienia w tej przeglądarce": "🔕 Turn off notifications in this browser",
-    "🚨 Zgoda na alarm pełnoekranowy": "🚨 Check full-screen alert permission",
+    "Włącz powiadomienia w tej przeglądarce": "Turn on notifications in this browser",
+    "Wyłącz powiadomienia w tej przeglądarce": "Turn off notifications in this browser",
+    "Zgoda na alarm pełnoekranowy": "Check full-screen alert permission",
     "◎ Pobierz pozycję jeden raz": "◎ Read location once",
     "Usuń zapisaną pozycję": "Remove saved position",
     "Alarmy przy zamkniętej aplikacji": "Alerts while the app is closed",
     "Ustawienia powiadomień": "Notification settings", "Zgoda na alarm pełnoekranowy": "Full-screen alert permission",
     "Wyłącz oszczędzanie baterii": "Disable battery optimisation", "Sygnały dźwiękowe": "Alert sounds",
-    "🔔 Ustawienia powiadomień": "🔔 Notification settings",
-    "🔋 Wyłącz oszczędzanie baterii": "🔋 Disable battery optimisation",
+    "Ustawienia powiadomień": "Notification settings",
+    "Wyłącz oszczędzanie baterii": "Disable battery optimisation",
     "Test: uwaga": "Test: attention", "Test: syrena": "Test: siren", "Test: pełny alarm": "Test: full alert",
-    "Wersja aplikacji": "App version", "Sprawdź aktualizacje": "Check for updates",
+    "Język": "Language", "Wersja aplikacji": "App version", "Sprawdź aktualizacje": "Check for updates",
     "Zaawansowane: wspólny backend": "Advanced: shared backend", "Adres serwera (opcjonalnie)": "Server address (optional)",
     "Anuluj": "Cancel", "Zapisz": "Save", "Nie teraz": "Not now", "Włącz powiadomienia": "Enable notifications",
     "Język interfejsu": "Interface language", "Polski": "Polish", "Angielski": "English",
@@ -141,21 +141,21 @@
     "Schronienie — gdzie najbliżej": "Укриття — де найближче",
     "Schronienie — w aplikacji na telefon": "Укриття — у застосунку на телефон",
     "Moja lokalizacja": "Моє місцеперебування", "Województwo": "Воєводство", "Wykryj z GPS": "Визначити за GPS",
-    "Moje miejsca": "Мої місця", "📍 Otwórz Moje miejsca": "📍 Відкрити Мої місця",
+    "Moje miejsca": "Мої місця", "Otwórz Moje miejsca": "Відкрити Мої місця",
     "Nie zapisano jeszcze żadnego miejsca.": "Ще не збережено жодного місця.",
     "Lokalizacja jest wyłączona.": "Місцеперебування вимкнено.",
-    "🔔 Włącz powiadomienia w tej przeglądarce": "🔔 Увімкнути сповіщення в цьому браузері",
-    "🔕 Wyłącz powiadomienia w tej przeglądarce": "🔕 Вимкнути сповіщення в цьому браузері",
-    "🚨 Zgoda na alarm pełnoekranowy": "🚨 Перевірити дозвіл на повноекранну тривогу",
+    "Włącz powiadomienia w tej przeglądarce": "🔔 Увімкнути сповіщення в цьому браузері",
+    "Wyłącz powiadomienia w tej przeglądarce": "🔕 Вимкнути сповіщення в цьому браузері",
+    "Zgoda na alarm pełnoekranowy": "Перевірити дозвіл на повноекранну тривогу",
     "◎ Pobierz pozycję jeden raz": "◎ Зчитати місцеперебування один раз",
     "Usuń zapisaną pozycję": "Видалити збережену позицію",
     "Alarmy przy zamkniętej aplikacji": "Тривоги, коли застосунок закритий",
     "Ustawienia powiadomień": "Налаштування сповіщень", "Zgoda na alarm pełnoekranowy": "Дозвіл на повноекранну тривогу",
     "Wyłącz oszczędzanie baterii": "Вимкнути економію батареї", "Sygnały dźwiękowe": "Звукові сигнали",
-    "🔔 Ustawienia powiadomień": "🔔 Налаштування сповіщень",
-    "🔋 Wyłącz oszczędzanie baterii": "🔋 Вимкнути економію батареї",
+    "Ustawienia powiadomień": "Налаштування сповіщень",
+    "Wyłącz oszczędzanie baterii": "Вимкнути економію батареї",
     "Test: uwaga": "Тест: увага", "Test: syrena": "Тест: сирена", "Test: pełny alarm": "Тест: повна тривога",
-    "Wersja aplikacji": "Версія застосунку", "Sprawdź aktualizacje": "Перевірити оновлення",
+    "Język": "Мова", "Wersja aplikacji": "Версія застосунку", "Sprawdź aktualizacje": "Перевірити оновлення",
     "Zaawansowane: wspólny backend": "Додатково: спільний сервер", "Adres serwera (opcjonalnie)": "Адреса сервера (необов\u2019язково)",
     "Anuluj": "Скасувати", "Zapisz": "Зберегти", "Nie teraz": "Не зараз", "Włącz powiadomienia": "Увімкнути сповіщення",
     "Język interfejsu": "Мова інтерфейсу", "Polski": "Польська", "Angielski": "Англійська",
@@ -219,7 +219,7 @@
   const DND_NOTE_PL = "Tryb <b>Nie przeszkadzać</b> domyślnie przepuszcza alarmy, więc czerwony "
     + "przechodzi przez niego bez żadnych zgód, a żółty zostaje wyciszony — to zwykle jest dokładnie "
     + "to, o co chodzi w nocy. Jeśli jednak wyłączysz w wyjątkach Nie przeszkadzać pozycję "
-    + "<b>Alarmy</b>, czerwony przestanie się pokazywać. Przycisk 🌙 pozwala to naprawić: po "
+    + "<b>Alarmy</b>, czerwony przestanie się pokazywać. Przycisk „Alarm mimo Nie przeszkadzać” pozwala to naprawić: po "
     + "przyznaniu <b>dostępu do trybu Nie przeszkadzać</b> alarm pokaże się na pełnym ekranie i "
     + "zapali ekran także wtedy. <b>Dźwięku to nie przywróci</b> — system trzyma wtedy głośność "
     + "alarmów wyciszoną — a tryb <b>„Całkowita cisza”</b> blokuje alarm niezależnie od tej zgody. "
@@ -227,7 +227,7 @@
   const DND_NOTE_EN = "<b>Do Not Disturb</b> allows alarms by default, so a red alert gets through "
     + "it without any extra permission while yellow is silenced — at night that is usually exactly "
     + "what you want. If you do turn <b>Alarms</b> off in the Do Not Disturb exceptions, red stops "
-    + "appearing. The 🌙 button fixes that: once you grant <b>Do Not Disturb access</b>, the alert "
+    + "appearing. The “Alert despite Do Not Disturb” button fixes that: once you grant <b>Do Not Disturb access</b>, the alert "
     + "shows full screen and wakes the display even then. <b>It does not bring the sound back</b> — "
     + "the system keeps the alarm volume muted — and <b>“Total silence”</b> blocks the alert "
     + "regardless of this permission. The permission is optional and you can withdraw it at any time.";
@@ -276,8 +276,8 @@
     };
     // kolejność zgodna z zakładkami: Alarmy → Moje miejsca → Dźwięk → Aplikacja
     many(":scope .set-pane > h3:not(#trail-head)", en
-      ? ["Alerts while the app is closed","My places","Alert sounds","Interface language","App version"]
-      : ["Alarmy przy zamkniętej aplikacji","Moje miejsca","Sygnały dźwiękowe","Język interfejsu","Wersja aplikacji"]);
+      ? ["Alerts while the app is closed","My places","Alert sounds","Language","App version"]
+      : ["Alarmy przy zamkniętej aplikacji","Moje miejsca","Sygnały dźwiękowe","Język","Wersja aplikacji"]);
     // Sekcja tras stoi poza selektorami pozycyjnymi (nagłówek po identyfikatorze,
     // opis w <div>, a nie w <p>) — ustawia ją w całości trailSection.
     trailSection(en);
@@ -306,31 +306,58 @@
     }
     many(":scope .set-tab", en
       ? ["Alerts","My places","Sound","App"] : ["Alarmy","Moje miejsca","Dźwięk","Aplikacja"]);
-    many(":scope .set-pane > p.fineprint:not(#app-version):not(#upd-status):not(#more-links):not(#dnd-note):not(.ios-only)", en ? [
-      "Alerts for your province arrive as push notifications even when the app is closed or the phone is asleep. Full-screen permission is required for a red alert to wake the screen. This needs the Strażnik server: in emergency mode (server unavailable) alerts arrive only while the app is open.",
-      "A full-screen alert wakes the display and appears above the lock screen. Android 14 or later may revoke this permission after an update, so verify it manually.",
-      "Save up to 8 places and choose which provinces you want notifications for. Exact places remain on this device.",
-      "Yellow (≥2 pts): attention sound and heads-up notification. Red (≥4 pts): modulated siren, vibration and a full-screen alert.",
-      "The red siren continues until you acknowledge the alert.",
-      "The app checks for a newer release at every launch and when it returns to the foreground. A dismissed non-critical update can be checked again here."
-    ] : [
+    /* PO IDENTYFIKATORACH, nie po kolejnosci: lista pozycyjna przesunela sie
+       03.10.2026, gdy pierwszy akapit trafil pod „Jak to dziala?" i przestal
+       byc dzieckiem sekcji. Podpisy sekcji rozwijanych stoja tu razem z nimi. */
+    button("alarmy-push-note",
       "Alarmy dla Twojego województwa przychodzą jako powiadomienie push — także gdy aplikacja jest zamknięta, ekran wygaszony albo telefon w uśpieniu. Wymaga to działającego serwera: w trybie awaryjnym (serwer niedostępny) alarmy przychodzą tylko przy otwartej aplikacji.",
+      "Alerts for your province arrive as push notifications even when the app is closed or the phone is asleep. Full-screen permission is required for a red alert to wake the screen. This needs the Strażnik server: in emergency mode (server unavailable) alerts arrive only while the app is open.");
+    button("alarmy-fs-note",
       "Alarm pełnoekranowy zapala ekran i pokazuje się nad blokadą. Android 14 i nowszy może cofnąć tę zgodę po aktualizacji, dlatego sprawdź ją osobiście.",
+      "A full-screen alert wakes the display and appears above the lock screen. Android 14 or later may revoke this permission after an update, so verify it manually.");
+    button("miejsca-note",
       "Zapisz do 8 miejsc i wybierz, dla których województw chcesz otrzymywać powiadomienia. Dokładne miejsca zostają na tym urządzeniu.",
+      "Save up to 8 places and choose which provinces you want notifications for. Exact places remain on this device.");
+    button("dzwiek-pl-note",
       "Żółty poziom (≥2 pkt) — krótki sygnał uwagi i powiadomienie. Czerwony (≥4 pkt) — modulowana syrena, wibracja i alarm pełnoekranowy.",
+      "Yellow (≥2 pts): attention sound and heads-up notification. Red (≥4 pts): modulated siren, vibration and a full-screen alert.");
+    button("dzwiek-red-note",
       "Przy czerwonym poziomie syrena gra bez przerwy, aż potwierdzisz alarm przyciskiem na ekranie.",
-      "Aplikacja sprawdza przy każdym uruchomieniu i powrocie na wierzch, czy jest nowsze wydanie. Pominiętą aktualizację sprawdzisz ręcznie tym przyciskiem."
-    ]);
+      "The red siren continues until you acknowledge the alert.");
+    button("app-upd-note",
+      "Aplikacja sprawdza przy każdym uruchomieniu i powrocie na wierzch, czy jest nowsze wydanie. Pominiętą aktualizację sprawdzisz ręcznie tym przyciskiem.",
+      "The app checks for a newer release at every launch and when it returns to the foreground. A dismissed non-critical update can be checked again here.");
+    button("www-wersja",
+      "Ta strona zawsze działa w najnowszej wersji — nie trzeba jej aktualizować. Wersja na telefon ma dodatkowo alarmy przy zamkniętej aplikacji i moduł GROTA (najbliższe schronienie). Pobierzesz ją przyciskami ↓ Android i ↓ iOS u góry ekranu.",
+      "This page always runs the current version — there is nothing to update. The phone version adds alerts while the app is closed and the GROTA module (nearest shelter). Get it with the ↓ Android and ↓ iOS buttons at the top of the screen.");
+    button("adv-note",
+      "Domyślnie aplikacja korzysta z serwera Strażnika (straznik.eu) — dane i fuzja liczone są raz na serwerze. Gdy serwer jest niedostępny, aplikacja automatycznie przechodzi na tryb wbudowany i liczy sama na urządzeniu. Własny adres HTTPS podaj tylko, jeśli chcesz korzystać z własnego backendu. HTTP oraz certyfikaty dodane ręcznie do telefonu nie są obsługiwane w wydaniu produkcyjnym.",
+      "By default the app uses the Strażnik server (straznik.eu) — the data and the fusion are computed once, on the server. When the server is unavailable the app switches to its built-in mode and computes on the device. Enter your own HTTPS address only if you want to use your own backend. Plain HTTP and certificates added manually to the phone are not supported in the production build.");
+    button("jak-alarmy", "Jak to działa?", "How it works");
+    button("jak-zgody", "Szczegóły zgód i alarmu", "Permissions and alert behaviour in detail");
+    button("jak-dzwiek", "Co kiedy gra", "What plays when");
+    button("jak-yv", "Czego dotyczy to ustawienie", "What this setting covers");
+    button("jak-natywny", "Zanim włączysz: co to zmienia", "Before you switch it on: what changes");
+    button("jak-test", "Jak przebiega test", "How the test works");
+    button("jak-trasy", "Jak czytać kierunek", "How to read the direction");
+    button("jak-aktualizacje", "Skąd biorą się aktualizacje", "Where updates come from");
     labelLead("set-voiv", "Województwo", "Province");
     labelLead("set-lang", "Język interfejsu", "Interface language");
     const opts=document.getElementById("set-lang")?.options;
     if(opts?.[0]) opts[0].textContent="Polski";
     if(opts?.[1]) opts[1].textContent="English";
     if(opts?.[2]) opts[2].textContent="Українська";
-    button("btn-places","📍 Otwórz Moje miejsca","📍 Open My places");
-    button("btn-notif-settings","🔔 Ustawienia powiadomień","🔔 Notification settings");
-    button("btn-battery","🔋 Wyłącz oszczędzanie baterii","🔋 Disable battery optimisation");
-    button("btn-dnd-access","🌙 Alarm mimo Nie przeszkadzać","🌙 Alert despite Do Not Disturb");
+    button("btn-places","Otwórz Moje miejsca","Open My places");
+    button("btn-notif-settings","Ustawienia powiadomień","Notification settings");
+    button("btn-battery","Wyłącz oszczędzanie baterii","Disable battery optimisation");
+    button("btn-dnd-access","Alarm mimo Nie przeszkadzać","Alert despite Do Not Disturb");
+    /* Te trzy znalo tylko globalne applyEnglish: po zmianie jezyka w samym
+       oknie przelaczniki zostawaly po polsku posrod angielskiego panelu. */
+    button("alerts-on-label", "Alarmy na tym telefonie", "Alerts on this phone");
+    button("alerts-on-note", "Wyłącz, jeśli chcesz tylko oglądać mapę",
+      "Turn off if you only want to view the map");
+    button("ns-label", "Czerwony alarm zawsze na pełnej głośności",
+      "Red alert always at full volume");
     button("rs-label", "Czerwony alarm: tylko wibracja, bez syreny", "Red alert: vibration only, no siren");
     { const el = document.getElementById("rs-note");
       if (el) el.innerHTML = en ? "The siren goes quiet, the rest of the alert stays: full screen, flashing and strong vibration, including in Do Not Disturb. A paired watch vibrates just the same. <b>Think it over before nightfall:</b> with the screen off and the phone in another room you may not notice an alert like that. Red only — the yellow attention signal has its own setting above." : "Syrena milknie, reszta alarmu zostaje: pełny ekran, miganie i mocna wibracja, także przy trybie Nie przeszkadzać. Sparowany zegarek zawibruje tak samo. <b>Przemyśl to przed nocą:</b> przy wygaszonym ekranie i telefonie w drugim pokoju możesz takiego alarmu nie zauważyć. Dotyczy wyłącznie czerwonego — żółty sygnał uwagi ma własne ustawienie wyżej."; }
@@ -358,8 +385,8 @@
       .replace(/^(Zainstalowana wersja|Installed version)/, en?"Installed version":"Zainstalowana wersja");
     const fs=document.getElementById("btn-fullscreen");
     if(fs) fs.textContent = en
-      ? (fs.textContent.includes("Zezwól") ? "🚨 Allow full-screen alerts" : "🚨 Check full-screen alert permission")
-      : (fs.textContent.includes("Allow") ? "🚨 Zezwól na alarm pełnoekranowy" : "🚨 Sprawdź zgodę na alarm pełnoekranowy");
+      ? (fs.textContent.includes("Zezwól") ? "Allow full-screen alerts" : "Check full-screen alert permission")
+      : (fs.textContent.includes("Allow") ? "Zezwól na alarm pełnoekranowy" : "Sprawdź zgodę na alarm pełnoekranowy");
     if (next === "uk") ukrainize(dlg);
   }
 
@@ -367,6 +394,17 @@
      Bloki z pogrubieniami i odnosnikami stoja nizej, w HTML_UK — tam kolejnosc slow
      w zdaniu ukrainskim jest inna niz w angielskim i tlumaczenie po kawalku wyszloby zle. */
   const EN2UK = {
+    "By default the app uses the Strażnik server (straznik.eu) — the data and the fusion are computed once, on the server. When the server is unavailable the app switches to its built-in mode and computes on the device. Enter your own HTTPS address only if you want to use your own backend. Plain HTTP and certificates added manually to the phone are not supported in the production build.":
+      "Типово застосунок користується сервером Strażnika (straznik.eu) — дані і синтез рахуються один раз на сервері. Коли сервер недоступний, застосунок переходить у вбудований режим і рахує сам на пристрої. Власну адресу HTTPS вказуйте лише тоді, коли хочете користуватися власним бекендом. HTTP і сертифікати, додані вручну до телефона, у промисловому випуску не підтримуються.",
+    "Language": "Мова",
+    /* podpisy sekcji rozwijanych w ustawieniach ("How it works" nizej) */
+    "Permissions and alert behaviour in detail": "Докладно про дозволи та поведінку тривоги",
+    "What plays when": "Що коли звучить",
+    "What this setting covers": "Чого стосується це налаштування",
+    "Before you switch it on: what changes": "Перш ніж вмикати: що це змінює",
+    "How the test works": "Як відбувається тест",
+    "How to read the direction": "Як читати напрямок",
+    "Where updates come from": "Звідки беруться оновлення",
     "signal fusion · eastern Poland": "синтез сигналів · східна Польща",
     "hosted on Mikrus ↗": "хостинг: Mikrus ↗",
     "UA alerts": "Тривоги UA",
@@ -569,13 +607,13 @@
       "Тривоги для вашого воєводства приходять як push-сповіщення — також коли застосунок закритий, екран заблокований або телефон спить. Сервер Strażnika надсилає сигнал просто на телефон; достатньо дозволу на сповіщення. Для цього потрібен робочий сервер: в аварійному режимі (сервер недоступний) тривоги приходять лише при відкритому застосунку.",
     "Alerts on this phone": "Тривоги на цьому телефоні",
     "Turn off if you only want to view the map": "Вимкніть, якщо хочете лише дивитися мапу",
-    "🔔 Notification settings": "🔔 Налаштування сповіщень",
-    "🔋 Disable battery optimisation": "🔋 Вимкнути економію батареї",
-    "🌙 Alert despite Do Not Disturb": "🌙 Тривога попри «Не турбувати»",
+    "Notification settings": "Налаштування сповіщень",
+    "Disable battery optimisation": "Вимкнути економію батареї",
+    "Alert despite Do Not Disturb": "Тривога попри «Не турбувати»",
     "Red alert: vibration only, no siren": "Червона тривога: лише вібрація, без сирени",
     "Critical alerts are a separate permission from Apple: a red alert will sound even when the phone is muted with the switch or in Focus mode. It applies to the red level only — the yellow attention signal stays quiet. iPhone asks for this permission once; if you decline it, you can turn it on later in the phone’s Settings. You can withdraw it at any time in the same place.": "Критична тривога — це окремий дозвіл Apple: червона тривога пролунає навіть тоді, коли телефон вимкнено перемикачем або він у режимі Фокусування. Це стосується лише червоного рівня — жовтий сигнал уваги лишається тихим. iPhone запитає про цей дозвіл лише один раз; якщо ви відмовите, увімкнете його згодом у Налаштуваннях телефону. Відкликати його можна будь-коли там само.",
-    "🚨 Allow full-screen alerts": "🚨 Дозволити повноекранні тривоги",
-    "🚨 Check full-screen alert permission": "🚨 Перевірити дозвіл на повноекранну тривогу",
+    "Allow full-screen alerts": "🚨 Дозволити повноекранні тривоги",
+    "Check full-screen alert permission": "Перевірити дозвіл на повноекранну тривогу",
     "On iPhone a red alert arrives as a notification marked “Urgent”: it appears over the lock screen and plays our siren. It does not take over the screen and does not repeat the sound — iOS does not allow regular apps to do that. With the ringer muted the alert is silent: a banner and a vibration — as long as Settings → Sounds & Haptics → Haptics is not set to “Don’t Play in Silent Mode”. For it to reach you at night, check two settings: Settings → Notifications → Strażnik → “Time Sensitive Notifications” and Settings → Focus → Sleep → Apps → allow Strażnik. Without them iOS holds the alert until you unlock the phone.":
       "На iPhone червона тривога приходить як сповіщення з позначкою «Терміново»: воно з’являється над заблокованим екраном і програє нашу сирену. Воно не займає всього екрана і не повторює звуку — iOS не дозволяє цього звичайним застосункам. При вимкненому дзвінку тривога буде беззвучною: залишиться банер і вібрація — якщо в Налаштування → Звуки і тактильні сигнали → Тактильні сигнали не вибрано «Не відтворювати в тихому режимі». Щоб вона проходила й уночі, перевірте два місця: Налаштування → Сповіщення → Strażnik → «Сповіщення з урахуванням часу» і Налаштування → Фокус → Сон → Програми → дозвольте Strażnika. Без цього iOS притримає тривогу до розблокування телефону.",
     "A full-screen alert wakes the display and appears above the lock screen. Android 14 or later may revoke this permission after an update, so verify it manually.":
@@ -597,7 +635,7 @@
     "No sound": "Без звуку",
     "Native alert and volume": "Системна тривога і гучність",
     "Red alert always at full volume": "Червона тривога завжди на повній гучності",
-    "🔊 Android sound settings": "🔊 Налаштування звуку Android",
+    "Android sound settings": "Налаштування звуку Android",
     "▶ Test: red native (in 5 s)": "▶ Тест: червона системна (через 5 с)",
     "▶ Test: yellow native (in 5 s)": "▶ Тест: жовта системна (через 5 с)",
     "The test uses the real notification path: lock the screen within 5 seconds to check the alert above the lock screen. Silence it with the button on the alert screen or “Wycisz alarm” in the notification.":
@@ -641,7 +679,7 @@
     "Cancel changes": "Скасувати зміни",
     "Save on device": "Зберегти на пристрої",
     "📍 Detect with GPS": "📍 Визначити за GPS",
-    "📍 Open My places": "📍 Відкрити Мої місця",
+    "Open My places": "Відкрити Мої місця",
     "connecting…": "з’єднання…",
     "LIVE": "НАЖИВО",
     "(OSINT aggregator — not radar) · ADS-B: adsb.lol / adsb.fi · PAŻP · RCB · Map:":
@@ -872,17 +910,25 @@
       "Strażnik is useful only if it can warn you before you open it. Alerts for your region arrive as push notifications, even when the app is closed and the screen is off.",
       "Notification permission is required. For red alerts, full-screen alert permission is also recommended."
     ]);
-    setMany("#settings .set-pane > p.fineprint:not(#app-version):not(#upd-status):not(#more-links):not(#dnd-note):not(.ios-only)", [
-      "Alerts for your province arrive as push notifications even when the app is closed or the phone is asleep. Full-screen permission is required for a red alert to wake the screen. This needs the Strażnik server: in emergency mode (server unavailable) alerts arrive only while the app is open.",
-      "A full-screen alert wakes the display and appears above the lock screen. Android 14 or later may revoke this permission after an update, so verify it manually.",
-      "Save up to 8 places and choose which provinces you want notifications for. Exact places remain on this device.",
-      "Yellow (≥2 pts): attention sound and heads-up notification. Red (≥4 pts): modulated siren, vibration and a full-screen alert.",
-      "The red siren continues until you acknowledge the alert.",
-      "The app checks for a newer release at every launch and when it returns to the foreground. A dismissed non-critical update can be checked again here."
-    ]);
+    set("#alarmy-push-note", "Alerts for your province arrive as push notifications even when the app is closed or the phone is asleep. Full-screen permission is required for a red alert to wake the screen. This needs the Strażnik server: in emergency mode (server unavailable) alerts arrive only while the app is open.");
+    set("#alarmy-fs-note", "A full-screen alert wakes the display and appears above the lock screen. Android 14 or later may revoke this permission after an update, so verify it manually.");
+    set("#miejsca-note", "Save up to 8 places and choose which provinces you want notifications for. Exact places remain on this device.");
+    set("#dzwiek-pl-note", "Yellow (≥2 pts): attention sound and heads-up notification. Red (≥4 pts): modulated siren, vibration and a full-screen alert.");
+    set("#dzwiek-red-note", "The red siren continues until you acknowledge the alert.");
+    set("#app-upd-note", "The app checks for a newer release at every launch and when it returns to the foreground. A dismissed non-critical update can be checked again here.");
+    set("#adv-summary", "Advanced: shared backend");
+    set("#adv-note", "By default the app uses the Strażnik server (straznik.eu) — the data and the fusion are computed once, on the server. When the server is unavailable the app switches to its built-in mode and computes on the device. Enter your own HTTPS address only if you want to use your own backend. Plain HTTP and certificates added manually to the phone are not supported in the production build.");
+    set("#jak-alarmy", "How it works");
+    set("#jak-zgody", "Permissions and alert behaviour in detail");
+    set("#jak-dzwiek", "What plays when");
+    set("#jak-yv", "What this setting covers");
+    set("#jak-natywny", "Before you switch it on: what changes");
+    set("#jak-test", "How the test works");
+    set("#jak-trasy", "How to read the direction");
+    set("#jak-aktualizacje", "Where updates come from");
     set("#alerts-on-label", "Alerts on this phone");
     set("#alerts-on-note", "Turn off if you only want to view the map");
-    set("#btn-dnd-access", "🌙 Alert despite Do Not Disturb");
+    set("#btn-dnd-access", "Alert despite Do Not Disturb");
     set("#rs-label", "Red alert: vibration only, no siren");
     { const el = document.getElementById("rs-note"); if (el) el.innerHTML = "The siren goes quiet, the rest of the alert stays: full screen, flashing and strong vibration, including in Do Not Disturb. A paired watch vibrates just the same. <b>Think it over before nightfall:</b> with the screen off and the phone in another room you may not notice an alert like that. Red only — the yellow attention signal has its own setting above."; }
     const dndNote = document.getElementById("dnd-note");
@@ -897,7 +943,7 @@
     set("#ns-label", "Red alert always at full volume");
     const nsNote = document.getElementById("ns-note");
     if (nsNote) nsNote.innerHTML = "The siren uses the Android <b>“Alarms”</b> volume (not “Ring” or “Media”). A red alert raises it to <b>at least half</b> so the siren is never silent. The option above is <b>off</b> by default — when switched on, a red alert sets the volume to maximum, also at night. Either way the previous volume returns when you silence the alert. The yellow attention sound uses your normal notification volume and has its own setting above.";
-    set("#btn-sound-settings", "🔊 Android sound settings");
+    set("#btn-sound-settings", "Android sound settings");
     set("#btn-native-test", "▶ Test: red native (in 5 s)");
     set("#btn-native-test-yellow", "▶ Test: yellow native (in 5 s)");
     set("#ns-test-note", "The test uses the real notification path: lock the screen within 5 seconds to check the alert above the lock screen. Silence it with the button on the alert screen or “Wycisz alarm” in the notification.");

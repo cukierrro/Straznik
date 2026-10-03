@@ -333,7 +333,10 @@ body.panel-open #update-banner:not(.critical) { display: none; }
 .top-actions { margin-left: auto; display: flex; gap: 8px; }
 .chip {
   border: 1px solid var(--panel-border); background: var(--panel); color: var(--text);
-  border-radius: 9px; padding: 6px 12px; font-size: 13px; cursor: pointer;
+  /* 11 px to promien przyciskow w calej aplikacji (krzyzyk okien, wiersze
+     ustawien, pigulka regionu). Chip mial 9 px i to bylo widac wszedzie,
+     gdzie stal obok czegokolwiek innego. */
+  border-radius: 11px; padding: 6px 12px; font-size: 13px; cursor: pointer;
 }
 .chip:hover { border-color: var(--accent); }
 .chip.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
@@ -359,7 +362,7 @@ body.panel-open #update-banner:not(.critical) { display: none; }
 }
 #skrot-www[hidden] { display: none !important; }
 #skrot-www a {
-  color: #0b0f1a; background: #7fb2ff; border-radius: 999px;
+  color: #0b0f1a; background: #7fb2ff; border-radius: 11px;
   padding: 6px 12px; text-decoration: none; font-weight: 600; white-space: nowrap;
 }
 #skrot-www button {
@@ -535,7 +538,7 @@ dialog a:hover, dialog a:focus-visible { text-decoration: underline; }
 .tb-head #tb-national:not(:empty) + .tb-speed { margin-left: 0; }
 #tb-national { flex: 0 1 auto; min-width: 0; display: flex; }
 .tb-nat { display: block; max-width: 100%; height: 18px; padding: 0 8px; box-sizing: border-box;
-  border: 1px solid var(--nat, #c06bff); border-radius: 999px; background: rgba(192,107,255,.12);
+  border: 1px solid var(--nat, #c06bff); border-radius: 8px; background: rgba(192,107,255,.12);
   color: var(--text); font: 600 11px/16px "Segoe UI", system-ui, sans-serif;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
 body.history-mode #national-banner { display: none; }
@@ -604,7 +607,7 @@ body.history-mode #national-banner { display: none; }
 .tb-btn.play small { color: rgba(255,255,255,.85); }
 .tb-btn.play .ico-pause, .tb-btn.play.playing .ico-play { display: none; }
 .tb-btn.play.playing .ico-pause { display: inline; }
-.tb-speed { flex: none; margin-left: auto; height: 18px; padding: 0 8px; border-radius: 999px;
+.tb-speed { flex: none; margin-left: auto; height: 18px; padding: 0 8px; border-radius: 8px;
   border: 1px solid var(--panel-border); background: rgba(120,150,210,.08); color: var(--text);
   font: 700 11px/16px "Segoe UI", system-ui, sans-serif; cursor: pointer; }
 /* Stała wysokość dwóch wierszy: gdy w oknie pojawiał się sygnał, dochodziła druga
@@ -921,7 +924,7 @@ html[lang="en"] .list:empty::after { content: "— none —"; }
 .sig .src { font-weight: 700; font-size: 10.5px; letter-spacing: .06em;
   color: var(--tx2, #a9b4cc); white-space: nowrap; }
 .sig .pts { font-weight: 800; color: var(--amber); font-size: 13px;
-  background: rgba(255,176,32,.12); border-radius: 999px; padding: 1px 8px;
+  background: rgba(255,176,32,.12); border-radius: 8px; padding: 1px 8px;
   white-space: nowrap; }
 .sig .pts.capped { color: var(--muted); background: rgba(140,150,175,.12); }
 .sig-title { font-size: 12.5px; line-height: 1.35; }
@@ -1065,7 +1068,18 @@ dialog h3 { margin-bottom: 10px; }
 dialog label { display: block; font-size: 13px; color: var(--muted); }
 dialog input { width: 100%; margin-top: 6px; padding: 8px 10px; border-radius: 8px;
   border: 1px solid var(--panel-border); background: #0b0f1a; color: var(--text); }
-dialog menu { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+/* Stopka okna: „Zapisz" to glowna decyzja calego okna, a miala pole dotykowe
+   mniejsze niz dowolna plakietka w tresci. 44 px wysokosci i wyrazna szerokosc. */
+dialog menu { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+dialog menu > .chip { min-height: 44px; min-width: 104px; padding: 10px 18px; font-size: 14px; }
+dialog menu > .chip.primary { font-weight: 600; }
+/* Rzad przyciskow-akcji (testy dzwieku, sprawdzenie aktualizacji). To NIE jest
+   `.set-rows`: tam strzalka obiecuje przejscie gdzie indziej, a te robia cos tutaj. */
+.btn-row { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+/* Rozciagamy je do rownej szerokosci. Przy samym `flex-wrap` trzy testy mialy
+   trzy rozne szerokosci i lamaly sie 2 + 1 w poszarpany blok — jedyne miejsce
+   w ustawieniach, gdzie nic nie bylo rowne niczemu. */
+.btn-row > .chip { flex: 1 1 140px; min-height: 40px; }
 
 /* ── lokalne profile „Moje miejsca” ── */
 .places-dialog { width:min(620px,96vw); max-height:var(--dlg-max); padding:0; overflow:hidden; }
@@ -1274,6 +1288,8 @@ dialog > .dlg-x:focus { outline: none; box-shadow: none; border-color: var(--acc
   content: "›"; margin-left: auto; padding-left: 10px;
   color: var(--muted); font-size: 19px; line-height: 1;
 }
+/* Na niebieskim wierszu przygaszona szarość strzałki ginęła. */
+.set-rows > .chip.primary::after { color: inherit; opacity: .75; }
 .seg {
   display: flex; margin-top: 8px; border-radius: 11px; overflow: hidden;
   border: 1px solid var(--panel-border); background: rgba(18,26,43,.86);
@@ -1286,13 +1302,55 @@ dialog > .dlg-x:focus { outline: none; box-shadow: none; border-color: var(--acc
 }
 .seg > .chip + .chip { border-left: 1px solid var(--panel-border); }
 .seg > .chip.active { background: rgba(90,140,220,.22); color: var(--text); font-weight: 600; }
-.set-pane details.jak > summary {
-  cursor: pointer; color: var(--muted); padding: 4px 0; list-style: none;
-  font-size: 12px;
+/* Sekcja rozwijana jest KARTĄ, tak jak wszystko inne w panelu, a jej podpis —
+   wierszem o tej samej wysokości co wiersze zgód. Przy samym „▸ " przed tekstem
+   podpis wyglądał na goły napis na tle okna i miał pole dotykowe wysokości
+   dwunastopunktowej linijki. Strzałka „›" ta sama co w `.set-rows`, tylko
+   obrócona: w prawo prowadzi gdzie indziej, w dół rozwija tutaj. */
+.set-pane details.jak {
+  margin-top: 8px; border-radius: 11px;
+  border: 1px solid var(--panel-border); background: rgba(18,26,43,.5);
 }
+.set-pane details.jak[open] { padding-bottom: 10px; }
+.set-pane details.jak > summary {
+  display: flex; align-items: center; min-height: 44px; padding: 8px 12px;
+  cursor: pointer; list-style: none; color: var(--muted);
+  font-size: 12.5px; font-weight: 500;
+}
+.set-pane details.jak[open] > summary { color: var(--text); }
 .set-pane details.jak > summary::-webkit-details-marker { display: none; }
-.set-pane details.jak > summary::before { content: "▸ "; }
-.set-pane details.jak[open] > summary::before { content: "▾ "; }
+.set-pane details.jak > summary::after {
+  content: "›"; display: block; margin-left: auto; padding-left: 10px;
+  font-size: 19px; line-height: 1; transform: rotate(90deg);
+}
+.set-pane details.jak[open] > summary::after { transform: rotate(-90deg); }
+/* Treść wyrównana do podpisu, bez własnego obrysu — karta jest jedna. */
+.set-pane details.jak > :not(summary) { padding-left: 12px; padding-right: 12px; }
+
+/* Ikony w ustawieniach rysujemy TĄ SAMĄ kreską co resztę aplikacji, a nie
+   emoji. Emoji ma własny krój, własne kolory i w rzędzie równych wierszy
+   od razu widać, że pochodzi skądinąd.
+
+   Maska zamiast obrazka: ikona dziedziczy `currentColor`, więc reaguje na
+   stan przycisku tak samo jak ikony paska. Napisy przycisków podmienia
+   app.js i i18n.js, więc ikona NIE MOŻE być w treści — jest w ::before. */
+.set-rows > .chip::before {
+  content: ""; flex: 0 0 auto; width: 20px; height: 20px; margin-right: 10px;
+  background: currentColor; opacity: .85;
+  -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+  -webkit-mask-position: center; mask-position: center;
+  -webkit-mask-size: contain; mask-size: contain;
+}
+.set-rows > #btn-notif-settings::before { -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9a6 6 0 0 1 12 0c0 7 3 7 3 7H3s3 0 3-7Z M10 20h4'/></svg>"); mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9a6 6 0 0 1 12 0c0 7 3 7 3 7H3s3 0 3-7Z M10 20h4'/></svg>"); }
+.set-rows > #btn-web-push-on::before { -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9a6 6 0 0 1 12 0c0 7 3 7 3 7H3s3 0 3-7Z M10 20h4'/></svg>"); mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9a6 6 0 0 1 12 0c0 7 3 7 3 7H3s3 0 3-7Z M10 20h4'/></svg>"); }
+.set-rows > #btn-web-push-off::before { -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9a6 6 0 0 1 9.5-4.8 M18 11c0 5 3 5 3 5H7 M10 20h4 M3 3l18 18'/></svg>"); mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9a6 6 0 0 1 9.5-4.8 M18 11c0 5 3 5 3 5H7 M10 20h4 M3 3l18 18'/></svg>"); }
+.set-rows > #btn-fullscreen::before { -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><path d='M12 3v6 M7.5 10.5 5.5 8 M16.5 10.5l2-2.5 M5 20h14l-1.5-6a5.5 5.5 0 0 0-11 0Z'/></svg>"); mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><path d='M12 3v6 M7.5 10.5 5.5 8 M16.5 10.5l2-2.5 M5 20h14l-1.5-6a5.5 5.5 0 0 0-11 0Z'/></svg>"); }
+.set-rows > #btn-battery::before { -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><path d='M3 8h13v8H3z M19 11v2 M7 12h5'/></svg>"); mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><path d='M3 8h13v8H3z M19 11v2 M7 12h5'/></svg>"); }
+.set-rows > #btn-dnd-access::before { -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><path d='M20 13.5A8 8 0 0 1 10.5 4a8 8 0 1 0 9.5 9.5Z'/></svg>"); mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><path d='M20 13.5A8 8 0 0 1 10.5 4a8 8 0 1 0 9.5 9.5Z'/></svg>"); }
+.set-rows > #btn-critical::before { -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><path d='M5 9h4l5-4v14l-5-4H5V9Z M17 9a4 4 0 0 1 0 6 M19.5 6.5a8 8 0 0 1 0 11'/></svg>"); mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><path d='M5 9h4l5-4v14l-5-4H5V9Z M17 9a4 4 0 0 1 0 6 M19.5 6.5a8 8 0 0 1 0 11'/></svg>"); }
+
+.set-rows > #btn-places::before { -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><path d='M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11Z M12 10.5h.01'/></svg>"); mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><path d='M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11Z M12 10.5h.01'/></svg>"); }
+.set-rows > #btn-sound-settings::before { -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><path d='M5 9h4l5-4v14l-5-4H5V9Z M17.5 9.5a4 4 0 0 1 0 5'/></svg>"); mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><path d='M5 9h4l5-4v14l-5-4H5V9Z M17.5 9.5a4 4 0 0 1 0 5'/></svg>"); }
 
 /* ── dolny pasek zakładek ──────────────────────────────────────────────────
    Cztery cele dotyku z podpisami. Odstęp od systemowego paska nawigacji, żeby
@@ -1407,7 +1465,8 @@ dialog > .dlg-x:focus { outline: none; box-shadow: none; border-color: var(--acc
 .set-tab {
   /* cztery zakładki mają zmieścić się w jednym rzędzie na telefonie — przy
      większym odstępie „Aplikacja" wychodziła poza okno i trzeba było przewijać */
-  flex: 1 1 auto; padding: 8px 6px; border-radius: 999px; cursor: pointer;
+  flex: 1 1 auto; padding: 8px 6px; border-radius: 11px; cursor: pointer;
+  min-height: 36px;
   border: 1px solid var(--line-strong, rgba(120,150,210,.3)); background: transparent;
   color: var(--muted); font: 600 11.5px/1 "Segoe UI", system-ui, sans-serif;
   white-space: nowrap;
