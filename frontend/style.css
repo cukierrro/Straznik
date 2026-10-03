@@ -886,14 +886,26 @@ html[lang="en"] .list:empty::after { content: "— none —"; }
 @keyframes cardpulse { 50% { box-shadow: inset 0 0 40px rgba(255,77,94,.22); } }
 .voiv-head { display: flex; align-items: baseline; gap: 8px; }
 .voiv-name { font-weight: 600; font-size: 14px; text-transform: capitalize; }
-.voiv-score { margin-left: auto; font-variant-numeric: tabular-nums; font-weight: 700; }
+/* ODWROCONA HIERARCHIA (krytyka 03.10.2026). Pytanie czytelnika brzmi „czy coś
+   mi grozi", a odpowiada na nie POZIOM. Tymczasem największą rzeczą na karcie
+   był wynik punktowy — liczba, która sama z siebie nic nie znaczy. Teraz wynik
+   jest drugorzędny, a poziom czytelny. Kolor wyniku i tak koduje poziom. */
+.voiv-score { margin-left: auto; font-variant-numeric: tabular-nums; font-weight: 600;
+  font-size: 12px; opacity: .8; }
 .level-none  .voiv-score { color: var(--muted); }
 .level-elevated .voiv-score { color: var(--amber); }
 .level-high .voiv-score { color: var(--red); }
-.voiv-level { font-size: 10.5px; letter-spacing: .1em; }
+.voiv-level { font-size: 12.5px; font-weight: 600; letter-spacing: .02em; margin-top: 1px; }
 .level-none .voiv-level { color: var(--muted); }
 .level-elevated .voiv-level { color: var(--amber); }
 .level-high .voiv-level { color: var(--red); }
+/* Kody stref PAZP pod „Dane techniczne". EPR134 czy EPTS551 nic nie mowia
+   czytelnikowi, a staly w widocznym miejscu karty JEGO wojewodztwa. */
+.voiv-zones > summary { cursor: pointer; list-style: none; color: var(--muted);
+  padding: 3px 0; }
+.voiv-zones > summary::-webkit-details-marker { display: none; }
+.voiv-zones > summary::before { content: "▸ "; }
+.voiv-zones[open] > summary::before { content: "▾ "; }
 .voiv-breakdown { margin-top: 6px; display: none; }
 .voiv-card.open .voiv-breakdown { display: block; }
 

@@ -3159,6 +3159,10 @@ function renderPanel() {
     el.addEventListener("click", (e) => { e.stopPropagation(); showCameras(el.dataset.voiv); }));
   document.querySelectorAll(".btn-zone").forEach(el =>
     el.addEventListener("click", (e) => { e.stopPropagation(); openZoneByName(el.dataset.zone); }));
+  /* Klik w „Dane techniczne" nie może zwinąć całej karty — klik na karcie
+     przełącza jej rozwinięcie, a to bąbelkuje z podsumowania. */
+  document.querySelectorAll(".voiv-zones > summary").forEach(el =>
+    el.addEventListener("click", (e) => e.stopPropagation()));
 
   // baner mojego regionu — zawsze widoczny, niezależnie od panelu
   const banner = document.getElementById("my-banner");
@@ -3347,7 +3351,11 @@ function sigHTML(s) {
   // Wcześniej oba pokazywały ten sam przekreślony nominał z podpowiedzią o limicie,
   // co przy zwykłym starzeniu wprowadzało w błąd.
   const expected = s.points * (w ?? 1);
-  const capped = cp < expected - 0.005;
+  /* Plakietka bursztynowa znaczy w tej aplikacji UWAGĘ. Sygnał, który nie
+     wnosi nic — bo alarm się skończył i waga spadła do zera — nosił ją mimo to,
+     bo `cp` równało się `expected` (oba zerowe) i warunek limitu nie zaskakiwał.
+     Zero jest zerem niezależnie od powodu i ma wyglądać na zero. */
+  const capped = cp < expected - 0.005 || cp === 0;
   const repeatedOfficial = !!s.duplicate_of_official;
   const retrospective = !!s.retrospective;
   // odwołanie RCB/RSO: sam odwołany alert albo artykuł, który go potem opisuje
@@ -3548,8 +3556,13 @@ function zonesRowHTML(name) {
   if (!z.length) return "";
   const chips = z.map(p => `<button class="chip btn-zone" data-zone="${esc(String(p.designator))}"
       >${esc(String(p.designator))}</button>`).join(" ");
-  return `<div class="voiv-zones fineprint">${UI.t("Strefy PAŻP", "PAŻP zones", "Зони PAŻP")}
-    <span class="muted">(${UI.t("bez punktów", "no points", "без балів")})</span>: ${chips}</div>`;
+  /* Zwinięte pod „Dane techniczne": oznaczenia w rodzaju EPR134 są dla tego,
+     kto wie, czym jest strefa PAŻP. Reszcie zajmowały wiersz w karcie
+     własnego województwa. Liczba stref zostaje widoczna w podpisie. */
+  return `<details class="voiv-zones fineprint"><summary>${
+    UI.t("Dane techniczne", "Technical details", "Технічні дані")} · ${
+    UI.t("strefy PAŻP", "PAŻP zones", "зони PAŻP")} ${z.length} <span class="muted">(${
+    UI.t("bez punktów", "no points", "без балів")})</span></summary>${chips}</details>`;
 }
 function openZoneByName(designator) {
   const f = (zonesData?.features || []).find(x => x.properties?.designator === designator);
