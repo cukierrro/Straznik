@@ -1165,6 +1165,22 @@ function renderLegendThreatIcons() {
 }
 renderLegendThreatIcons();
 
+/* Samolot i śmigłowiec w legendzie też z tych samych pikseli co warstwa mapy.
+   Wcześniej samolot był kwadracikiem CSS, a śmigłowiec emoji 🚁 — ani jedno,
+   ani drugie nie wyglądało jak to, co widać nad Polską. */
+function renderLegendAirIcons() {
+  const zrodla = { plane: makePlaneImage, heli: makeHeliImage };
+  document.querySelectorAll(".lg-air[data-air]").forEach(el => {
+    const rysuj = zrodla[el.dataset.air];
+    if (!rysuj) return;
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = 44;
+    canvas.getContext("2d").putImageData(rysuj(), 0, 0);
+    el.textContent = ""; el.appendChild(canvas);
+  });
+}
+renderLegendAirIcons();
+
 /* Kolejność stylów: OpenFreeMap (wektor, schemat OpenMapTiles — niesie nazwy
    w wielu językach, więc etykiety da się przełączyć na POLSKIE), potem CARTO,
    na końcu raster. Każdy kolejny to zapas, gdyby poprzedni nie odpowiadał. */
@@ -6208,6 +6224,9 @@ window.straznikBack = function () {
   if (!document.getElementById("panel").classList.contains("collapsed")) { setPanel(false); return true; }
   return false;
 };
+/* Ten sam skutek co ponowne dotknięcie ikony na pasku — tylko widoczny. */
+document.getElementById("legend-x")?.addEventListener("click", () =>
+  document.getElementById("btn-legend").click());
 document.getElementById("btn-legend").onclick = () => {
   document.getElementById("legend").classList.toggle("hidden");
   document.getElementById("btn-legend").classList.toggle("active");

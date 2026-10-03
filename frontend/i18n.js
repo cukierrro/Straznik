@@ -8,6 +8,57 @@
   let lang = JEZYKI.includes(saved) ? saved : "pl";
 
   const EN = {
+    "Sąsiedzi (cień)": "Neighbours (shadow)",
+    /* Legenda w calosci — slownik CALYCH napisow, bo translateStatic chodzi
+       po wezlach tekstowych. Brakujacy wpis zostaje po polsku bez slowa. */
+    "Obiekty": "Objects",
+    "dane NEPTUN, nad Ukrainą": "NEPTUN data, over Ukraine",
+    "Dron FPV": "FPV drone",
+    "lokalny, krótki zasięg": "local, short range",
+    "MiG-31K": "MiG-31K",
+    "nosiciel": "carrier",
+    "Oznaczenia wokół ikony": "Markings around the icon",
+    "Kurs nieznany": "Unknown heading",
+    "ikona nie jest obracana": "the icon is not rotated",
+    "Pulsujący pierścień": "Pulsing ring",
+    "obiekt liczy się teraz do punktów": "the object counts towards points right now",
+    "Okrąg": "Circle",
+    "gdzie obiekt może być (±km) — rośnie z wiekiem meldunku": "where the object may be (±km) — grows with the age of the report",
+    "Przerywana linia": "Dashed line",
+    "trasa przelotu": "flight path",
+    "Lotnictwo": "Aviation",
+    "ADS-B, jawny transponder": "ADS-B, open transponder",
+    "Samolot wojskowy": "Military aircraft",
+    "Śmigłowiec wojskowy": "Military helicopter",
+    "dotknij maszyny: model, przeznaczenie, operator": "tap an aircraft: model, role, operator",
+    "Województwa": "Provinces",
+    "suma punktów z 60 minut": "60-minute point total",
+    "0–1,9 pkt": "0–1.9 pts",
+    "spokojnie": "calm",
+    "od 2 pkt": "from 2 pts",
+    "podwyższona uwaga": "elevated attention",
+    "od 4 pkt z potwierdzeniem": "from 4 pts with confirmation",
+    "wysoki priorytet": "high priority",
+    "Przygaszony": "Dimmed",
+    "kolor tylko od sąsiadów, bez alarmu": "colour from neighbours only, no alert",
+    "Obwód UA z alarmem powietrznym": "Ukrainian oblast with an air-raid alert",
+    "takim, który daje punkty": "one that adds points",
+    "Wysokość bryły 3D rośnie z liczbą punktów. Dotknij obiektu lub województwa po szczegóły.": "The height of the 3D block grows with the number of points. Tap an object or a province for details.",
+    "Alarmy u sąsiadów": "Alerts in neighbouring countries",
+    "kolor na mapie poza Polską": "colour on the map outside Poland",
+    "Rejon Ukrainy — poziom czerwony": "Ukrainian district — red level",
+    "Rejon Ukrainy — poziom żółty": "Ukrainian district — yellow level",
+    "Litwa, Łotwa, Estonia": "Lithuania, Latvia, Estonia",
+    "alarm według mediów — podnosi punkty na północy": "alert reported by the media — adds points in the north",
+    "Mołdawia, Rumunia, Słowacja, Czechy, Szwecja, Węgry": "Moldova, Romania, Slovakia, Czechia, Sweden, Hungary",
+    "pokazujemy, ale na razie bez punktów": "shown, but for now without points",
+    "Strefy PAŻP": "PAŻP zones",
+    "tylko informacyjnie": "information only",
+    "Strefa stała": "Standing zone",
+    "stoi tu od dawna": "it has been here for a long time",
+    "Strefa włączona ostatnio": "Recently activated zone",
+    "D / R / ADHOC / TSA": "D / R / ADHOC / TSA",
+    "Warstwa stref nie dodaje punktów — punktuje tylko rzadka strefa D/R/NPZ/ADHOC od ziemi nad wschodem lub północą. Dotknij strefy po opis.": "The zone layer adds no points — only a rare D/R/NPZ/ADHOC zone from the ground up over the east or north scores. Tap a zone for details.",
     "fuzja sygnałów · wschodnia Polska": "signal fusion · eastern Poland",
     "Pobierz aplikację": "Download app", "⬇ Pobierz aplikację": "⬇ Download app",
     "⬇ Pobierz na Androida": "⬇ Get it for Android", "⬇ Pobierz na iOS": "⬇ Get it for iOS",
@@ -97,6 +148,7 @@
   /* Ukrainski (od 23.09.2026). Ta sama zasada co w GROCIE: kluczem jest polski
      tekst ze zrodla, a brak tlumaczenia spada na angielski, nie na pusty napis. */
   const UK = {
+    "Sąsiedzi (cień)": "Сусіди (тінь)",
     "fuzja sygnałów · wschodnia Polska": "синтез сигналів · східна Польща",
     "Pobierz aplikację": "Завантажити застосунок", "⬇ Pobierz aplikację": "⬇ Завантажити застосунок",
     "⬇ Pobierz na Androida": "⬇ Завантажити для Android", "⬇ Pobierz na iOS": "⬇ Завантажити для iOS",
@@ -394,6 +446,57 @@
      Bloki z pogrubieniami i odnosnikami stoja nizej, w HTML_UK — tam kolejnosc slow
      w zdaniu ukrainskim jest inna niz w angielskim i tlumaczenie po kawalku wyszloby zle. */
   const EN2UK = {
+    "Neighbours (shadow)": "Сусіди (тінь)",
+    "Air-raid alert in Moldova, Romania, Slovakia, Czechia, Sweden or Hungary according to local media: we show it on the map and in the signal list, but for now it scores nothing — we are gathering evidence before setting the weights": "Повітряна тривога в Молдові, Румунії, Словаччині, Чехії, Швеції чи Угорщині за даними тамтешніх ЗМІ: показуємо її на мапі та в списку сигналів, але поки вона не дає балів — збираємо матеріал, перш ніж встановити ваги",
+    /* Legenda: drugi przebieg, z angielskiego na ukrainski. */
+    "MiG-31K": "МіГ-31К",
+    "D / R / ADHOC / TSA": "D / R / ADHOC / TSA",
+    "Objects": "Об’єкти",
+    "NEPTUN data, over Ukraine": "дані NEPTUN, над Україною",
+    "FPV drone": "FPV-дрон",
+    "local, short range": "локальний, малої дальності",
+    "carrier": "носій",
+    "Markings around the icon": "Позначки навколо значка",
+    "Unknown heading": "Курс невідомий",
+    "the icon is not rotated": "значок не повертається",
+    "Pulsing ring": "Пульсуюче кільце",
+    "the object counts towards points right now": "об’єкт зараз зараховується до балів",
+    "Circle": "Коло",
+    "where the object may be (±km) — grows with the age of the report": "де об’єкт може бути (±км) — зростає з віком повідомлення",
+    "Dashed line": "Пунктирна лінія",
+    "flight path": "маршрут польоту",
+    "Aviation": "Авіація",
+    "ADS-B, open transponder": "ADS-B, відкритий транспондер",
+    "Military aircraft": "Військовий літак",
+    "Military helicopter": "Військовий гелікоптер",
+    "tap an aircraft: model, role, operator": "торкніться машини: модель, призначення, оператор",
+    "Provinces": "Воєводства",
+    "60-minute point total": "сума балів за 60 хвилин",
+    "0–1.9 pts": "0–1,9 бала",
+    "calm": "спокійно",
+    "from 2 pts": "від 2 балів",
+    "elevated attention": "підвищена увага",
+    "from 4 pts with confirmation": "від 4 балів із підтвердженням",
+    "high priority": "високий пріоритет",
+    "Dimmed": "Приглушений",
+    "colour from neighbours only, no alert": "колір лише від сусідів, без тривоги",
+    "Ukrainian oblast with an air-raid alert": "Область України з повітряною тривогою",
+    "one that adds points": "такою, що дає бали",
+    "The height of the 3D block grows with the number of points. Tap an object or a province for details.": "Висота 3D-блока зростає з кількістю балів. Торкніться об’єкта або воєводства, щоб побачити деталі.",
+    "Alerts in neighbouring countries": "Тривоги в сусідніх країнах",
+    "colour on the map outside Poland": "колір на мапі поза Польщею",
+    "Ukrainian district — red level": "Район України — червоний рівень",
+    "Ukrainian district — yellow level": "Район України — жовтий рівень",
+    "Lithuania, Latvia, Estonia": "Литва, Латвія, Естонія",
+    "alert reported by the media — adds points in the north": "тривога за даними ЗМІ — додає бали на півночі",
+    "Moldova, Romania, Slovakia, Czechia, Sweden, Hungary": "Молдова, Румунія, Словаччина, Чехія, Швеція, Угорщина",
+    "shown, but for now without points": "показуємо, але поки без балів",
+    "PAŻP zones": "Зони PAŻP",
+    "information only": "лише інформативно",
+    "Standing zone": "Постійна зона",
+    "it has been here for a long time": "стоїть тут давно",
+    "Recently activated zone": "Нещодавно активована зона",
+    "The zone layer adds no points — only a rare D/R/NPZ/ADHOC zone from the ground up over the east or north scores. Tap a zone for details.": "Шар зон не додає балів — бали дає лише рідкісна зона D/R/NPZ/ADHOC від землі над сходом або північчю. Торкніться зони, щоб побачити опис.",
     "By default the app uses the Strażnik server (straznik.eu) — the data and the fusion are computed once, on the server. When the server is unavailable the app switches to its built-in mode and computes on the device. Enter your own HTTPS address only if you want to use your own backend. Plain HTTP and certificates added manually to the phone are not supported in the production build.":
       "Типово застосунок користується сервером Strażnika (straznik.eu) — дані і синтез рахуються один раз на сервері. Коли сервер недоступний, застосунок переходить у вбудований режим і рахує сам на пристрої. Власну адресу HTTPS вказуйте лише тоді, коли хочете користуватися власним бекендом. HTTP і сертифікати, додані вручну до телефона, у промисловому випуску не підтримуються.",
     "Language": "Мова",
@@ -804,19 +907,31 @@
     set("#settings details p.fineprint", "By default the app uses the Strażnik server (straznik.eu) — data and fusion are computed once on the server. When the server is unavailable, the app switches to its built-in mode and computes on the device. Enter your own HTTPS address (e.g. https://straznik.your-domain.pl) only if you want to use your own backend. HTTP and certificates added manually to the phone are not supported in the production build.");
     set("#alarm-overlay .alarm-note", "This is an UNOFFICIAL signal. Check sirens, RCB and RSO alerts — official channels are authoritative.");
     set("#about .about-sub", "unofficial fusion of air-threat signals");
-    setMany("#about .about-body > p", [
-      "Strażnik is an unofficial air-threat map for Poland. It combines reports of drones and missiles over Ukraine with RCB and RSO alerts, PAŻP airspace zones, ADS-B traffic and media reports. The map works live in a browser, and the Android and iPhone apps send alert notifications, even when the app is closed.",
-      "No single signal proves that a threat exists. The app assigns points to several independent indicators and totals them over a 60-minute window for each province. A signal has full weight for 30 minutes, then fades linearly to zero. The resulting total determines the level, and the full breakdown is always visible.",
-      "One Shahed 80 km from the border is different from six Shaheds 50 km away, while a short-range FPV drone does not threaten Poland. The score combines object class, count, distance, confidence and position quality.",
-      "The model was checked against documented incidents. A mass border violation or a missile immediately next to the border crosses an alert threshold; routine activity over western Ukraine stays below it. NEPTUN contribution is capped at 8 points.",
-      "Distance alone is misleading: 130 km may mean about 10 minutes for a cruise missile and about 45 minutes for a drone. When possible, Strażnik estimates time to the Polish border and to your province using reported, measured or class-typical speed.",
-      "The estimate is conservative: 2.5 minutes are deducted for measured source delay. With a known or calculated heading, at least two confirmations and medium/high confidence, the model can raise yellow at ≤10 minutes and red at ≤5 minutes.",
-      "This is an estimate, not a promise. It assumes unchanged speed and heading and does not account for air defence. No time is shown when heading is unknown. NEPTUN's ‘confirmed’ may confirm a report rather than coordinate accuracy. A recognised locality-centre point gets only a rounded area distance, with no route or ETA.",
-      "An eastern event also raises awareness in neighbouring provinces: a neighbour gets 40% of its points, the next ring 40% of that (16%) and so on, providing earlier awareness farther west. Transferred points alone do not send a notification.",
-      "NEPTUN is an OSINT/crowdsourced aggregator, not radar, so confidence and position uncertainty are always shown. A new ID at the same locality-centre point does not prove a new physical object and is not automatically counted twice. ADS-B contains only public transponder emissions and cannot reveal aircraft flying dark.",
-      "Data: NEPTUN · adsb.lol / adsb.fi · PAŻP · gov.pl/RCB · regional and Baltic media · neighbouring airspace sources · map © CARTO, © OpenStreetMap"
-    ]);
-    const [north, redNote] = document.querySelectorAll("#about .about-note");
+    /* PO IDENTYFIKATORACH: lista pozycyjna nad `.about-body > p`
+       trzymala caly rozdzial w jednym poziomie HTML — nie dalo sie
+       zwinac sekcji ani dolozyc akapitu bez rozjechania angielskiego. */
+    set("#ab-intro",
+      "Strażnik is an unofficial air-threat map for Poland. It combines reports of drones and missiles over Ukraine with RCB and RSO alerts, PAŻP airspace zones, ADS-B traffic and media reports. The map works live in a browser, and the Android and iPhone apps send alert notifications, even when the app is closed.");
+    set("#ab-fuzja",
+      "No single signal proves that a threat exists. The app assigns points to several independent indicators and totals them over a 60-minute window for each province. A signal has full weight for 30 minutes, then fades linearly to zero. The resulting total determines the level, and the full breakdown is always visible.");
+    set("#ab-iloczyn",
+      "One Shahed 80 km from the border is different from six Shaheds 50 km away, while a short-range FPV drone does not threaten Poland. The score combines object class, count, distance, confidence and position quality.");
+    set("#ab-model",
+      "The model was checked against documented incidents. A mass border violation or a missile immediately next to the border crosses an alert threshold; routine activity over western Ukraine stays below it. NEPTUN contribution is capped at 8 points.");
+    set("#ab-eta",
+      "Distance alone is misleading: 130 km may mean about 10 minutes for a cruise missile and about 45 minutes for a drone. When possible, Strażnik estimates time to the Polish border and to your province using reported, measured or class-typical speed.");
+    set("#ab-eta-konserw",
+      "The estimate is conservative: 2.5 minutes are deducted for measured source delay. With a known or calculated heading, at least two confirmations and medium/high confidence, the model can raise yellow at ≤10 minutes and red at ≤5 minutes.");
+    set("#ab-eta-szacunek",
+      "This is an estimate, not a promise. It assumes unchanged speed and heading and does not account for air defence. No time is shown when heading is unknown. NEPTUN's ‘confirmed’ may confirm a report rather than coordinate accuracy. A recognised locality-centre point gets only a rounded area distance, with no route or ETA.");
+    set("#ab-przeniesienia",
+      "An eastern event also raises awareness in neighbouring provinces: a neighbour gets 40% of its points, the next ring 40% of that (16%) and so on, providing earlier awareness farther west. Transferred points alone do not send a notification.");
+    set("#ab-ograniczenia",
+      "NEPTUN is an OSINT/crowdsourced aggregator, not radar, so confidence and position uncertainty are always shown. A new ID at the same locality-centre point does not prove a new physical object and is not automatically counted twice. ADS-B contains only public transponder emissions and cannot reveal aircraft flying dark.");
+    set("#ab-dane",
+      "Data: NEPTUN · adsb.lol / adsb.fi · PAŻP · gov.pl/RCB · regional and Baltic media · neighbouring airspace sources · map © CARTO, © OpenStreetMap");
+    const north = document.getElementById("ab-polnoc");
+    const redNote = document.getElementById("ab-czerwony");
     if (redNote) redNote.innerHTML = "<b>4 pts alone are not enough.</b> Red needs a "
       + "confirmation: either an RCB alert saying “find a safe place”, or a real "
       + "strike object heading at Poland — less than 15 minutes of flight away or closer "
@@ -851,7 +966,7 @@
       "<b>A MiG-31K take-off</b> and alerts for all of Ukraine are shown as information, not as an alert for Poland."
     ].forEach((html, i) => { const li = document.querySelectorAll("#about-blind li")[i]; if (li) li.innerHTML = html; });
     setMany("#about h3", ["How it works", "How NEPTUN object points are calculated", "Estimated arrival time", "Levels", "Where to find things", "What this app does NOT do"]);
-    setMany("#about .about-tab:first-of-type tr td:nth-child(2)", [
+    setMany("#ab-tab-punkty tr td:nth-child(2)", [
       "Object heading towards Poland — score depends on class, count, distance and independent confirmations",
       "Official alert in a Ukrainian region bordering Poland",
       "Local reports of sirens, explosions or airspace violations; one article alone cannot trigger an alert",
@@ -859,10 +974,11 @@
       "Military aviation activity over twice the seven-day baseline for the same time of day — informational only",
       "Rare ground-up ADHOC/R/NPZ/D zone; routine and repeating zones do not score. In the north it weighs twice as much, because NEPTUN does not reach there",
       "Air incident reported by Lithuanian, Latvian or Estonian media; an air-raid alert announced there is only a trace (Lithuania 0.3, Latvia 0.18, Estonia 0.12); an all-clear ends its contribution. Only a report from the last 30 minutes about something happening now counts — commentary and after-the-fact reports do not. It reaches the whole coast: Podlaskie, Warmian-Masurian and Pomeranian at full weight, West Pomeranian at half",
-      "NATO neighbour airspace closure in northern Romania, Estonia or Lithuania — observational signal"
+      "NATO neighbour airspace closure in northern Romania, Estonia or Lithuania — observational signal",
+      "Air-raid alert in Moldova, Romania, Slovakia, Czechia, Sweden or Hungary according to local media: we show it on the map and in the signal list, but for now it scores nothing — we are gathering evidence before setting the weights"
     ]);
-    setMany("#about .about-tab:nth-of-type(2) tr td:first-child", ["Object class", "Count", "Distance", "Wave", "Confidence", "Position quality"]);
-    setMany("#about .about-tab:nth-of-type(2) tr td:nth-child(2)", [
+    setMany("#ab-tab-neptun tr td:first-child", ["Object class", "Count", "Distance", "Wave", "Confidence", "Position quality"]);
+    setMany("#ab-tab-neptun tr td:nth-child(2)", [
       "ballistic missile 3.0 · MiG-31K 2.6 · cruise missile 2.4 · KAB 1.8 · Shahed 1.4 · drone 1.1 · reconnaissance 0.15 · FPV 0",
       "square root of object count — four objects weigh twice as much as one, not four times as much",
       "<30 km ×1.6 · <60 km ×1.3 · <100 km ×1.0 · <150 km ×0.55 · <250 km ×0.25 · farther 0",
@@ -1038,7 +1154,8 @@
       + ' (агрегатор OSINT — не радар; завжди перевіряйте достовірність і ±км)'
       + ' · ADS-B: adsb.lol / adsb.fi · Мапа: <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a>'
       + ' © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OSM</a>';
-    const [northUk, redUk] = document.querySelectorAll("#about .about-note");
+    const northUk = document.getElementById("ab-polnoc");
+    const redUk = document.getElementById("ab-czerwony");
     if (northUk) northUk.innerHTML = "<b>Північ (Поморське, Західнопоморське, Вармінсько-Мазурське, "
       + "Куявсько-Поморське) оцінюється інакше</b>, бо NEPTUN охоплює Україну і дає цим воєводствам нуль. "
       + "Залишаються PAŻP, ЗМІ (зокрема хвиля повідомлень про підняті над Балтикою винищувачі), "

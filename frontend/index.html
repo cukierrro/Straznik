@@ -94,7 +94,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <link rel="icon" type="image/png" sizes="512x512" href="assets/icon-512.png">
 <link rel="apple-touch-icon" href="assets/icon-192.png">
 <link rel="stylesheet" href="assets/vendor/maplibre-gl.css?v=1.7.82">
-<link rel="stylesheet" href="style.css?v=1.7.88d">
+<link rel="stylesheet" href="style.css?v=1.7.88f">
 </head>
 <body>
 
@@ -414,10 +414,23 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <div id="conn-badge" class="hidden">łączenie…</div>
 <div id="toast" class="hidden"></div>
 
-<div id="legend" class="hidden">
-  <h3>Legenda</h3>
+<div id="legend" class="hidden" role="region" aria-labelledby="legend-h">
+  <!-- Nagłówek jak w panelu sygnałów: karta, tytuł i ✕ ze słowem. Legenda była
+       jedynym panelem bez przycisku zamykania. -->
+  <div class="lg-head">
+    <h3 id="legend-h">Legenda</h3>
+    <button id="legend-x" type="button">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      <span id="legend-x-txt">Zamknij</span>
+    </button>
+  </div>
 
-  <div class="lg-group">Obiekty — dane NEPTUN, nad Ukrainą</div>
+  <!-- Sześć grup jako sekcje rozwijane. Legendy używa się, żeby sprawdzić JEDNĄ
+       rzecz, więc nazwy grup są spisem treści: widać wszystkie naraz i otwiera
+       się tę jedną. Otwarta zostaje grupa obiektów — po nią sięga się najczęściej,
+       bo to ikony, które widać na mapie. -->
+  <details class="lg-sec" open>
+    <summary><span>Obiekty<small>dane NEPTUN, nad Ukrainą</small></span></summary>
   <div class="lg-row"><i class="lg-threat" data-type="uav"></i><span>Dron / BpSP</span></div>
   <div class="lg-row"><i class="lg-threat" data-type="shahed"></i><span>Dron Shahed</span></div>
   <div class="lg-row"><i class="lg-threat" data-type="fpv"></i><span>Dron FPV<small>lokalny, krótki zasięg</small></span></div>
@@ -427,34 +440,46 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
   <div class="lg-row"><i class="lg-threat" data-type="kab"></i><span>Bomba kierowana KAB</span></div>
   <div class="lg-row"><i class="lg-threat" data-type="mig31k"></i><span>MiG-31K<small>nosiciel</small></span></div>
   <div class="lg-row"><i class="lg-threat" data-type="unknown"></i><span>Obiekt nierozpoznany</span></div>
+  </details>
 
-  <div class="lg-group">Oznaczenia wokół ikony</div>
+  <details class="lg-sec">
+    <summary><span>Oznaczenia wokół ikony</span></summary>
   <div class="lg-row"><i class="lg-threat" data-type="uav" data-heading-unknown="1"></i><span>Kurs nieznany<small>ikona nie jest obracana</small></span></div>
   <div class="lg-row"><i class="pulse-ic"></i><span>Pulsujący pierścień<small>obiekt liczy się teraz do punktów</small></span></div>
   <div class="lg-row"><i class="ring"></i><span>Okrąg<small>gdzie obiekt może być (±km) — rośnie z wiekiem meldunku</small></span></div>
   <div class="lg-row"><i class="trail"></i><span>Przerywana linia<small>trasa przelotu</small></span></div>
+  </details>
 
-  <div class="lg-group">Lotnictwo — ADS-B, jawny transponder</div>
-  <div class="lg-row"><i class="plane-ic"></i><span>Samolot wojskowy</span></div>
-  <div class="lg-row"><span style="color:#39c5ec">🚁</span><span>Śmigłowiec wojskowy<small>dotknij maszyny: model, przeznaczenie, operator</small></span></div>
+  <details class="lg-sec">
+    <summary><span>Lotnictwo<small>ADS-B, jawny transponder</small></span></summary>
+  <div class="lg-row"><i class="lg-air" data-air="plane"></i><span>Samolot wojskowy</span></div>
+  <div class="lg-row"><i class="lg-air" data-air="heli"></i><span>Śmigłowiec wojskowy<small>dotknij maszyny: model, przeznaczenie, operator</small></span></div>
+  </details>
 
-  <div class="lg-group">Województwa — suma punktów z 60 minut</div>
+  <details class="lg-sec">
+    <summary><span>Województwa<small>suma punktów z 60 minut</small></span></summary>
   <div class="lg-row"><i class="sq" style="--c:#233252"></i><span>0–1,9 pkt<small>spokojnie</small></span></div>
   <div class="lg-row"><i class="sq" style="--c:#ffb020"></i><span>od 2 pkt<small>podwyższona uwaga</small></span></div>
   <div class="lg-row"><i class="sq" style="--c:#ff4d5e"></i><span>od 4 pkt z potwierdzeniem<small>wysoki priorytet</small></span></div>
   <div class="lg-row"><i class="sq" style="--c:#7c6a45"></i><span>Przygaszony<small>kolor tylko od sąsiadów, bez alarmu</small></span></div>
   <div class="lg-row"><i class="sq oblast-ic"></i><span>Obwód UA z alarmem powietrznym<small>takim, który daje punkty</small></span></div>
   <div class="lg-row muted-row">Wysokość bryły 3D rośnie z liczbą punktów. Dotknij obiektu lub województwa po szczegóły.</div>
+  </details>
 
-  <div class="lg-group">Alarmy u sąsiadów — bez punktów</div>
+  <details class="lg-sec">
+    <summary><span>Alarmy u sąsiadów<small>kolor na mapie poza Polską</small></span></summary>
   <div class="lg-row"><i class="sq" style="--c:#ff4d5e"></i><span>Rejon Ukrainy — poziom czerwony</span></div>
   <div class="lg-row"><i class="sq" style="--c:#ffb020"></i><span>Rejon Ukrainy — poziom żółty</span></div>
-  <div class="lg-row"><i class="sq" style="--c:#ff4d5e;border-style:dashed"></i><span>Litwa, Łotwa, Estonia<small>alarm ogłoszony według mediów</small></span></div>
+  <div class="lg-row"><i class="sq" style="--c:#ff4d5e;border-style:dashed"></i><span>Litwa, Łotwa, Estonia<small>alarm według mediów — podnosi punkty na północy</small></span></div>
+  <div class="lg-row"><i class="sq" style="--c:#ff4d5e;border-style:dashed"></i><span>Mołdawia, Rumunia, Słowacja, Czechy, Szwecja, Węgry<small>pokazujemy, ale na razie bez punktów</small></span></div>
+  </details>
 
-  <div class="lg-group">Strefy PAŻP — tylko informacyjnie</div>
+  <details class="lg-sec">
+    <summary><span>Strefy PAŻP<small>tylko informacyjnie</small></span></summary>
   <div class="lg-row"><i class="sq" style="--c:#b39ddb"></i><span>Strefa stała<small>stoi tu od dawna</small></span></div>
   <div class="lg-row"><i class="sq" style="--c:#ffb020"></i><span>Strefa włączona ostatnio<small>D / R / ADHOC / TSA</small></span></div>
   <div class="lg-row muted-row">Warstwa stref nie dodaje punktów — punktuje tylko rzadka strefa D/R/NPZ/ADHOC od ziemi nad wschodem lub północą. Dotknij strefy po opis.</div>
+  </details>
 </div>
 
 <!-- Ekran alarmu jest oknem `alertdialog`, nie zwykłą warstwą: czytnik ekranu
@@ -500,7 +525,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
       </div>
     </div>
 
-    <p>Strażnik to nieoficjalna <b>mapa zagrożeń powietrznych dla Polski</b>.
+    <p id="ab-intro">Strażnik to nieoficjalna <b>mapa zagrożeń powietrznych dla Polski</b>.
       Zestawia informacje o dronach i rakietach nad Ukrainą z alertami RCB i RSO,
       strefami PAŻP, ruchem ADS-B oraz doniesieniami medialnymi. Mapa działa na
       żywo w przeglądarce, a aplikacje na Androida i iPhone'a wysyłają powiadomienia
@@ -513,14 +538,15 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
       nic więcej.
     </div>
 
-    <h3>Jak to działa</h3>
-    <p>Żaden pojedynczy sygnał nie przesądza o zagrożeniu. Aplikacja zbiera
+    <details class="about-sec" open>
+      <summary><h3>Jak to działa</h3></summary>
+    <p id="ab-fuzja">Żaden pojedynczy sygnał nie przesądza o zagrożeniu. Aplikacja zbiera
     kilka niezależnych wskaźników, przydziela im punkty i sumuje je w oknie
     <b>60 minut</b> osobno dla każdego województwa — przez pierwsze 30 minut
     sygnał liczy się w pełni, potem jego waga spada liniowo do zera. Dopiero
     suma decyduje o poziomie — i zawsze widzisz jej pełne rozbicie.</p>
 
-    <table class="about-tab">
+    <table class="about-tab" id="ab-tab-punkty">
       <tr><td><b>NEPTUN</b></td><td>obiekt kursem na granicę PL — punkty zależą od
         tego <b>co</b> leci, <b>ile</b> tego jest, <b>jak blisko</b> jest
         i <b>ile źródeł</b> to potwierdza (rozpisane niżej)</td><td class="pts">0–8</td></tr>
@@ -547,10 +573,12 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
         warmińsko-mazurskie i pomorskie w pełni, zachodniopomorskie o połowę słabiej</td><td class="pts">+0,5<br>alarm +0,3</td></tr>
       <tr><td><b>Sąsiedzi</b></td><td>zamknięcie przestrzeni u sąsiada NATO
         (Rumunia płn., Estonia, Litwa) — sygnał obserwacyjny</td><td class="pts">+0,3</td></tr>
+      <tr><td><b>Sąsiedzi (cień)</b></td><td>alarm lotniczy w Mołdawii, Rumunii, Słowacji,
+        Czechach, Szwecji lub na Węgrzech według tamtejszych mediów: pokazujemy go na mapie
+        i w sygnałach, ale <b>na razie nie dajemy za niego punktów</b> — zbieramy materiał,
+        zanim ustalimy wagi</td><td class="pts">0</td></tr>
     </table>
-    <!-- DIV, nie <p>: tłumaczenie ekranu „O aplikacji" mapuje `.about-body > p`
-         po INDEKSIE, więc nowy akapit rozjechałby całą wersję angielską. -->
-    <div class="fineprint about-note"><b>Północ (pomorskie, zachodniopomorskie,
+    <div class="fineprint about-note" id="ab-polnoc"><b>Północ (pomorskie, zachodniopomorskie,
     warmińsko-mazurskie, kujawsko-pomorskie) liczy się inaczej</b>, bo NEPTUN
     pokrywa Ukrainę i dla tych województw daje zero. Zostają PAŻP, media (także
     fala doniesień o poderwaniu lotnictwa nad Bałtykiem), media bałtyckie, RCB
@@ -559,11 +587,14 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
     = 2 pkt (żółty); strefa 1 + incydent bałtycki 0,5 = 1,5 pkt — media sąsiadów
     same nie wystarczą.</div>
 
-    <h3>Skąd punkty za obiekt z NEPTUN-a</h3>
-    <p class="fineprint">Jeden Shahed 80 km od granicy to co innego niż sześć
+    </details>
+
+    <details class="about-sec">
+      <summary><h3>Skąd punkty za obiekt z NEPTUN-a</h3></summary>
+    <p class="fineprint" id="ab-iloczyn">Jeden Shahed 80 km od granicy to co innego niż sześć
     Shahedów 50 km od granicy, a dron FPV o zasięgu kilkunastu kilometrów nie
     zagraża Polsce w ogóle. Dlatego punkty to iloczyn czterech czynników:</p>
-    <table class="about-tab">
+    <table class="about-tab" id="ab-tab-neptun">
       <tr><td><b>Co leci</b></td><td>rakieta balistyczna 3,0 · MiG-31K 2,6 ·
         manewrująca 2,4 · KAB 1,8 · Shahed 1,4 · dron 1,1 · zwiadowczy 0,15 ·
         FPV 0 (nie punktuje)</td></tr>
@@ -581,24 +612,27 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
         przez źródło ×0,6 · rozpoznany środek miejscowości ×0,5; pozycja rejonowa
         nie uruchamia progów ETA</td></tr>
     </table>
-    <p class="fineprint">Model sprawdzono na udokumentowanych zdarzeniach:
+    <p class="fineprint" id="ab-model">Model sprawdzono na udokumentowanych zdarzeniach:
     masowe naruszenie granicy i rakieta tuż przy granicy przekraczają próg alarmu,
     a rutynowy nalot na zachodnią Ukrainę — który zdarza się regularnie i Polsce
     nie zagraża — zostaje poniżej progu. Wkład całego NEPTUN-a jest ograniczony
     do 8 pkt, żeby skala pozostała czytelna.</p>
 
-    <h3>Czas dolotu — ile zostało minut</h3>
-    <p class="fineprint">Sama odległość niewiele mówi: te same „130 km" to około
+    </details>
+
+    <details class="about-sec">
+      <summary><h3>Czas dolotu — ile zostało minut</h3></summary>
+    <p class="fineprint" id="ab-eta">Sama odległość niewiele mówi: te same „130 km" to około
     <b>10 minut</b> dla rakiety manewrującej i około <b>45 minut</b> dla drona.
     Dlatego przy obiekcie pokazujemy czas — osobno <b>do granicy Polski</b> i
     <b>do Twojego województwa</b> (ktoś pod Warszawą ma inny zapas niż ktoś przy
     granicy). Liczymy go z prędkości: podanej przez źródło, a gdy jej brak —
     wyliczonej z kolejnych pozycji albo typowej dla klasy obiektu.</p>
-    <p class="fineprint">Pokazywany czas jest <b>konserwatywny</b>: odejmujemy 2,5 minuty
+    <p class="fineprint" id="ab-eta-konserw">Pokazywany czas jest <b>konserwatywny</b>: odejmujemy 2,5 minuty
     na zmierzone opóźnienie źródła. Przy znanym/wyliczonym kursie, co najmniej dwóch
     potwierdzeniach i średniej lub wysokiej pewności aplikacja uruchamia żółty alarm
     przy ≤10 minutach, a czerwony przy ≤5 minutach.</p>
-    <p class="fineprint"><b>To szacunek, nie obietnica.</b> Zakłada utrzymanie kursu
+    <p class="fineprint" id="ab-eta-szacunek"><b>To szacunek, nie obietnica.</b> Zakłada utrzymanie kursu
     i prędkości oraz <b>nie uwzględnia obrony powietrznej</b> — obiekt może skręcić
     albo zostać zestrzelony. Gdy kurs obiektu jest nieznany, czasu nie podajemy
     (zamiast zmyślonej liczby zobaczysz „kurs nieznany"). Pole NEPTUN
@@ -606,26 +640,32 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
     Jeżeli współrzędne odpowiadają rozpoznanemu środkowi miejscowości, Strażnik
     pokazuje tylko zaokrągloną odległość rejonową, nie rysuje trasy i nie podaje ETA.</p>
 
-    <h3>Poziomy</h3>
+    </details>
+
+    <details class="about-sec">
+      <summary><h3>Poziomy</h3></summary>
     <div class="lvl-row"><i class="sq" style="--c:#ffb020"></i>
       <b>≥ 2 pkt — PODWYŻSZONA UWAGA:</b> region na żółto, krótki sygnał
       dźwiękowy i powiadomienie, które wyskakuje na ekranie.</div>
     <div class="lvl-row"><i class="sq" style="--c:#ff4d5e"></i>
       <b>≥ 4 pkt i potwierdzenie — WYSOKI PRIORYTET:</b> region na czerwono,
       modulowana syrena alarmu powietrznego z wibracją, głośne powiadomienie.</div>
-    <div class="fineprint about-note"><b>Same 4 pkt nie wystarczą.</b> Czerwony wymaga
+    <div class="fineprint about-note" id="ab-czerwony"><b>Same 4 pkt nie wystarczą.</b> Czerwony wymaga
     potwierdzenia: albo Alertu RCB o treści „znajdź bezpieczne miejsce”, albo realnego
     obiektu uderzeniowego kursem na Polskę — bliżej niż 15 minut lotu albo 50 km od
     granicy. Drony zwiadowcze i same doniesienia nie otwierają czerwonego. Gdy region
     ma 4 pkt bez potwierdzenia, zostaje żółty, a Strażnik pisze o tym wprost na karcie.
     Zasada obowiązuje od 23.09.2026: wcześniej sam Alert RCB o monitorowaniu sytuacji
     razem z alarmami obwodów UA i mediami potrafił zapalić czerwony przy pustej mapie.</div>
-    <p class="fineprint">Zdarzenie na wschodzie podnosi też czujność sąsiednich
+    <p class="fineprint" id="ab-przeniesienia">Zdarzenie na wschodzie podnosi też czujność sąsiednich
     województw: sąsiad dostaje 40% punktów, kolejny krąg 40% z tego (16%) i tak
     dalej, więc regiony centralne i zachodnie dostają wyprzedzenie, zanim coś
     dotrze dalej. Samo przeniesienie nie wysyła powiadomienia.</p>
 
-    <h3>Gdzie co znajdziesz</h3>
+    </details>
+
+    <details class="about-sec">
+      <summary><h3>Gdzie co znajdziesz</h3></summary>
     <ul class="about-list">
       <li><b>☰ Panel</b> — karty województw z punktacją, lista sygnałów
         z godzinami, obiekty przy granicy, lotnictwo wojskowe.</li>
@@ -640,16 +680,18 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
         samolot na mapie, by zobaczyć szczegóły.</li>
     </ul>
 
-    <h3>Czego ta aplikacja NIE robi</h3>
-    <p class="fineprint">NEPTUN to agregator OSINT/crowdsourcingowy, nie radar —
+    </details>
+
+    <details class="about-sec">
+      <summary><h3>Czego ta aplikacja NIE robi</h3></summary>
+    <p class="fineprint" id="ab-ograniczenia">NEPTUN to agregator OSINT/crowdsourcingowy, nie radar —
     dlatego zawsze pokazujemy wiarygodność i niepewność pozycji (±km).
     Nowy identyfikator w tym samym punkcie miejscowości nie dowodzi nowego
     fizycznego obiektu i nie jest automatycznie doliczany drugi raz.
     Dane ADS-B pochodzą z jawnych transponderów (maszyny, które <i>chcą</i> być
     widoczne) — to nie jest namierzanie obiektów przeciwnika. Obiekty widoczne
     są nad Ukrainą; po wejściu w polską przestrzeń znikają ze źródła.</p>
-    <!-- audyt F1/F2: ograniczenia źródeł opisane wprost; lista, nie <p>, żeby nie
-         przesuwać tłumaczeń akapitów po indeksie (i18n.js #about .about-body > p) -->
+    <!-- audyt F1/F2: ograniczenia źródeł opisane wprost. -->
     <ul class="about-list" id="about-blind">
       <li><b>Rakiety balistyczne</b> (np. Iskander) lecą kilka minut — przed nimi
         Strażnik nie ostrzeże z wyprzedzeniem. Liczą się syreny i Alert RCB.</li>
@@ -663,10 +705,11 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
         nie jako alarm dla Polski.</li>
     </ul>
 
-    <p class="fineprint">Dane: <a href="https://neptun.in.ua" target="_blank" rel="noopener">NEPTUN</a>
+    </details>
+
+    <p class="fineprint" id="ab-dane">Dane: <a href="https://neptun.in.ua" target="_blank" rel="noopener">NEPTUN</a>
       · adsb.lol / adsb.fi · airspace.pansa.pl · gov.pl/RCB · media regionalne
       i bałtyckie · strefy sąsiadów (RO/EE/LT) · mapa © CARTO, © OpenStreetMap</p>
-    <!-- DIV, nie <p>: tłumaczenia akapitów idą po indeksie (i18n.js #about .about-body > p) -->
     <div class="fineprint" id="about-license">© 2026 cukierrro · wszelkie prawa zastrzeżone ·
       <a href="https://github.com/cukierrro/Straznik/blob/main/LICENSE" target="_blank" rel="noopener">licencja</a> · licencje składników:
       <a href="https://github.com/cukierrro/Straznik/blob/main/NOTICE" target="_blank" rel="noopener">NOTICE</a>
@@ -1065,7 +1108,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
      Cloudflare, więc po każdym wydaniu wystarczy podbić ?v= i przeglądarki
      dostają nowe app.js/engine.js OD RAZU, bez ręcznego czyszczenia cache CF.
      Podbijaj ?v= razem z versionName w build.gradle. -->
-<script src="i18n.js?v=1.7.88d"></script>
+<script src="i18n.js?v=1.7.88f"></script>
 <!-- kontur Polski dla engine.js (audyt A2b, scripts/build_pl_outline.py) -->
 <script src="pl-outline.js?v=1.7.82"></script>
 <script src="engine.js?v=1.7.82"></script>
@@ -1081,7 +1124,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <div id="a11y-alert" class="sr-only" role="status" aria-live="assertive" aria-atomic="true"></div>
 <div id="a11y-info" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
 
-<script src="app.js?v=1.7.88d"></script>
+<script src="app.js?v=1.7.88f"></script>
 <script>
 /* Instrukcja pasująca do telefonu i języka (21.09.2026). iPhone ma osobną, bo alarmy,
    zgody i aktualizacje działają tam inaczej. Tu, a nie w app.js: index.html nie jest
