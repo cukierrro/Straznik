@@ -4572,11 +4572,64 @@ function focusOnMap(d) {
 /* ── kamery drogowe w regionie ───────────────────────────────────────────── */
 let camData = null, camTimer = null, camIndex = null;
 
+/* Adres miniatury składamy DOPIERO przy wyświetleniu, a w pliku danych trzymamy
+   wyłącznie identyfikator kamery. Powodem jest awaria zgłoszona 03.10.2026: lista
+   zbudowana 30.07.2026 miała w sobie gotowe adresy
+   `…/webcams/400x225/2026-07-30/<id>.jpg` i tego dnia wszystkie zwracały 404.
+   Zepsuły się w nich DWIE rzeczy, obie wpisane na sztywno:
+     • rozmiar — worldcam wymienił `400x225` na `400x226`; stary rozmiar nie działa
+       dziś dla żadnej daty, także dla tej, pod którą został zapisany,
+     • data — serwis trzyma archiwum po dniach, więc zamrożona data z czasów budowy
+       listy pokazywałaby zdjęcie z tamtego dnia jako bieżące (dopiero po wygaśnięciu
+       archiwum ścieżka wraca do obrazu aktualnego — na tym nie wolno się opierać).
+   Dlatego dzień bierzemy z zegara urządzenia przy każdym odrysowaniu (przejście
+   północy przy otwartym okienku też), a rozmiarów próbujemy po kolei. */
+const CAM_HOST = "https://www.img.worldcam.pl/webcams";
+const CAM_SIZES = ["400x226", "400x225", "200x113"];
+let camSizeIdx = 0;                 // rozmiar, który ostatnio realnie się pobrał
+/* Czy wczytujemy miniatury wprost z worldcam.pl. WYŁĄCZONE decyzją użytkownika
+   z 03.10.2026, po sprawdzeniu regulaminu serwisu (https://www.worldcam.pl/terms,
+   ostatnia zmiana 22.12.2025): rozdział VI opisuje WYŁĄCZNIE własne użycie miniatur
+   przez worldcam („przy wpisach i na mapie wyświetlamy…"), a zgody na pokazywanie
+   ich w cudzym serwisie czy aplikacji nie ma tam wcale; stopka serwisu to „All
+   Rights Reserved". Linkowanie do wpisów jest natomiast wprost w celu regulaminu,
+   więc lista kamer z odnośnikami zostaje — znika sam obraz.
+
+   Warunkiem powrotu na `true` jest PISEMNA ZGODA worldcam.pl, nie upływ czasu ani
+   to, że technicznie nic nie blokuje (robots.txt wpuszcza wszystko, nagłówka
+   Referer nie sprawdzają — brak blokady to nie zgoda).
+
+   Przy powrocie na `true` w TYM SAMYM wydaniu musi pójść polityka prywatności:
+   `docs/prywatnosc.html` i `docs/prywatnosc-en.html` wymieniają FOSSGIS,
+   OpenFreeMap, Firebase i Cloudflare, ale nie worldcam.pl — a telefon łączy się
+   z img.worldcam.pl bezpośrednio i pokazuje mu swój adres IP. Pilnuje tego
+   scripts/test_kamery_miniatury.cjs. */
+const CAM_THUMBS = false;
+
+/* Dzień w formacie serwisu, z LOKALNEGO zegara — nie z `toISOString`, bo ten podaje
+   UTC i wieczór w Polsce wypadałby jeszcze pod poprzednią datą. */
+function camDay() {
+  const d = new Date(), dwie = (n) => String(n).padStart(2, "0");
+  return d.getFullYear() + "-" + dwie(d.getMonth() + 1) + "-" + dwie(d.getDate());
+}
+function camThumb(id, size) {
+  return CAM_HOST + "/" + (size || CAM_SIZES[camSizeIdx]) + "/" + camDay()
+    + "/" + encodeURIComponent(id) + ".jpg";
+}
+/* Co zrobić po błędzie pobrania: wziąć kolejny rozmiar z listy, a gdy lista się
+   skończy — pokazać zastępnik. Kafelka NIE ukrywamy: do 03.10.2026 martwa miniatura
+   znikała (`display:none`), więc gdy padły wszystkie naraz, użytkownik dostawał okno
+   z samymi nagłówkami miast i pustką pod nimi. */
+function camNextStep(sizeIdx) {
+  const next = sizeIdx + 1;
+  return next < CAM_SIZES.length ? { idx: next, size: CAM_SIZES[next] } : { dead: true };
+}
+
 /* Lista województw z kamerami ładowana z danych, nie zaszyta na sztywno —
    dzięki temu przycisk pojawia się wszędzie tam, gdzie faktycznie coś jest. */
 async function loadCams() {
   if (camData) return camData;
-  try { camData = await (await fetch("assets/kamery.json?v=1.7.82")).json(); }
+  try { camData = await (await fetch("assets/kamery.json?v=1.7.87c")).json(); }
   catch { camData = {}; }
   camIndex = new Set(Object.entries(camData).filter(([, l]) => l.length).map(([v]) => v));
   return camData;
@@ -4592,11 +4645,21 @@ async function showCameras(voiv) {
   document.getElementById("cam-title").textContent =
     `Kamery — woj. ${voiv} (${outdoor.length} plenerowych)`;
 
+  /* Adres miniatury wstawia camShowThumbs() po wsadzeniu HTML — obsługa błędu
+     wymaga nasłuchu w JS (walka o kolejny rozmiar), a atrybut `onerror` i tak
+     odpadłby przy CSP. Zastępnik jest w kafelku od początku i odsłania go CSS,
+     gdy kafelek dostanie klasę `cam-dead`. */
   const tile = (c) => `
-    <a class="cam-tile" href="${esc(c.url)}" target="_blank" rel="noopener"
-       title="${esc(c.name)} — ${esc(c.city)}">
-      <img src="${esc(c.thumb)}" alt="${esc(c.name)}"
-           onerror="this.parentElement.classList.add('cam-dead')">
+    <a class="cam-tile${CAM_THUMBS ? "" : " cam-dead"}" href="${esc(c.url)}"
+       target="_blank" rel="noopener" title="${esc(c.name)} — ${esc(c.city)}">
+      ${CAM_THUMBS ? `<img alt="${esc(c.name)}" data-cam="${esc(c.id)}">` : ""}
+      <span class="cam-fallback">${CAM_THUMBS
+        ? UI.t("podgląd niedostępny — dotknij, aby otworzyć kamerę",
+               "preview unavailable — tap to open the camera",
+               "попередній перегляд недоступний — торкніться, щоб відкрити камеру")
+        : UI.t("podgląd tylko u źródła — dotknij, aby otworzyć kamerę",
+               "preview only at the source — tap to open the camera",
+               "перегляд лише на джерелі — торкніться, щоб відкрити камеру")}</span>
       <span>${esc(c.name)}</span>
     </a>`;
   // grupowanie po miejscowości, żeby dało się szybko znaleźć swoją okolicę
@@ -4616,16 +4679,42 @@ async function showCameras(voiv) {
           ${groupBy(indoor)}
         </details>` : "")
     : '<div class="fineprint">Brak zweryfikowanych kamer dla tego województwa.</div>';
+  camShowThumbs();
   dlg.showModal();
-  // odświeżanie miniatur, dopóki okno jest otwarte
+  // odświeżanie miniatur, dopóki okno jest otwarte; przy CAM_THUMBS = false nie ma
+  // czego odświeżać, więc timer w ogóle nie rusza
   clearInterval(camTimer);
-  camTimer = setInterval(() => {
+  if (CAM_THUMBS) camTimer = setInterval(() => {
     if (!dlg.open) return clearInterval(camTimer);
-    document.querySelectorAll("#cam-list img").forEach(img => {
-      const base = img.src.split("?")[0];
-      img.src = base + "?t=" + Date.now();
-    });
+    camShowThumbs(true);
   }, 30000);
+}
+
+/* Podpina (albo odświeża) miniatury w otwartym okienku. Adres liczymy od zera —
+   dzięki temu po północy wchodzi nowa data, a nie stary adres z doklejonym `?t=`.
+   Kafelek, który raz padł, zostaje przy swoim ostatnim rozmiarze: dalej próbuje,
+   ale już jednym zapytaniem, a nie całą listą przy każdym odświeżeniu. */
+function camShowThumbs(odswiez) {
+  if (!CAM_THUMBS) return;
+  document.querySelectorAll("#cam-list img[data-cam]").forEach(img => {
+    if (!odswiez) {
+      img.dataset.size = String(camSizeIdx);
+      img.addEventListener("error", () => {
+        const krok = camNextStep(+img.dataset.size);
+        if (krok.dead) { img.closest(".cam-tile").classList.add("cam-dead"); return; }
+        img.dataset.size = String(krok.idx);
+        img.src = camThumb(img.dataset.cam, krok.size);
+      });
+      img.addEventListener("load", () => {
+        camSizeIdx = +img.dataset.size;          // ten rozmiar działa — zacznij od niego
+        img.closest(".cam-tile").classList.remove("cam-dead");
+      });
+    }
+    // bez `||`: indeks 0 jest fałszywy i kafelek na pierwszym rozmiarze dostawałby
+    // przy odświeżeniu cudzy, późniejszy rozmiar
+    img.src = camThumb(img.dataset.cam, CAM_SIZES[+img.dataset.size])
+      + (odswiez ? "?t=" + Date.now() : "");
+  });
 }
 document.getElementById("cam-close").onclick = () => {
   clearInterval(camTimer);

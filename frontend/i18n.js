@@ -538,8 +538,8 @@
     "In range now": "Зараз у зоні",
     "Log — entered / disappeared from range": "Журнал — увійшли / зникли із зони",
     "Cameras": "Камери",
-    "Public city and tourism cameras. Previews refresh every 30 seconds. Cameras show the ground, not the sky; they only provide additional context.":
-      "Відкриті міські й туристичні камери. Перегляди оновлюються кожні 30 секунд. Камери показують землю, а не небо; вони дають лише додатковий контекст.",
+    "Public city and tourism cameras (worldcam.pl). I do not show their previews here: worldcam.pl's terms do not permit displaying their thumbnails in someone else's app. Tap a tile to open the camera at the source. Cameras show the ground, not the sky; they only provide additional context.":
+      "Відкриті міські й туристичні камери (worldcam.pl). Я не показую їхніх переглядів у застосунку: правила worldcam.pl не дозволяють показувати їхні мініатюри в чужому застосунку. Торкніться плитки, щоб відкрити камеру на джерелі. Камери показують землю, а не небо; вони дають лише додатковий контекст.",
     "I do not list cameras from Ukraine: since 2022 live streams from them have been banned, because they help correct artillery fire. Collecting them in an app that tracks air objects would be exactly the use that ban protects against.":
       "Я не показую камер з України: від 2022 року трансляції з них заборонені, бо допомагають коригувати вогонь. Збирати їх у застосунку, що стежить за повітряними об’єктами, було б саме тим застосуванням, від якого ця заборона захищає.",
     "Push alerts": "Push-сповіщення",
@@ -850,7 +850,7 @@
     set("#watch h3", "🛰 Foreign aircraft over the eastern flank");
     setMany("#watch .watch-h", ["In range now", "Log — entered / disappeared from range"]);
     set("#watch > p", "Military aircraft with Russian or Belarusian registration visible in public ADS-B/MLAT data over and around the eastern flank. In history, this panel follows the selected time. This observes transponder emissions; it is not radar tracking and is not an alert. Missing data does not imply empty airspace.");
-    set("#cameras > p:first-of-type", "Public city and tourism cameras. Previews refresh every 30 seconds. Cameras show the ground, not the sky; they only provide additional context.");
+    set("#cameras > p:first-of-type", "Public city and tourism cameras (worldcam.pl). I do not show their previews here: worldcam.pl's terms do not permit displaying their thumbnails in someone else's app. Tap a tile to open the camera at the source. Cameras show the ground, not the sky; they only provide additional context.");
     set("#fs-check h2", "Full-screen alert");
     set("#fs-check .about-sub", "check the permission after an update");
     setMany("#fs-check .about-body > p", [
