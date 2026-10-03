@@ -1170,8 +1170,23 @@ dialog menu { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14
   background: rgba(20,28,46,.9); border: 1px solid var(--panel-border); color: var(--muted);
 }
 #attr-x:hover { color: var(--text); border-color: var(--accent); }
+/* Rząd stanu: pigułka regionu + chip źródeł. Zawija się, więc element, który
+   musi być szeroki, bierze cały wiersz i niczego nie wypycha za krawędź. */
+#status-row {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px;
+  max-width: 100%;
+}
+#status-row > .hidden { display: none !important; }
+/* Rozwinięta lista źródeł i czerwony alarm biorą własny wiersz. */
+#status-row > #attribution:not(.mini),
+#status-row > #my-banner.level-high { flex: 1 1 100%; }
+/* Zwinięty chip źródeł wygląda DOKŁADNIE tak jak pigułka regionu: ten sam
+   promień, ta sama wysokość, ten sam rozmiar pisma. Wcześniej był prostokątem
+   9,5 px obok zaokrąglonej pigułki 12 px. */
 #attribution.mini {
-  padding-right: 9px; cursor: pointer; max-width: max-content;
+  padding: 6px 12px; cursor: pointer; max-width: max-content;
+  border-radius: 999px; font-size: 12px; line-height: 1.2;
+  backdrop-filter: blur(8px);
 }
 
 #attribution.mini > :not(.mini-label) { display: none; }

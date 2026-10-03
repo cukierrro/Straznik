@@ -244,14 +244,21 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
   <div id="tb-info" class="fineprint"></div>
 </div>
 <div id="national-banner" class="hidden" role="status"></div>
-<div id="my-banner" class="hidden"></div>
 <div id="update-banner" class="hidden"></div>
+<!-- Pigułka regionu i chip źródeł stoją w JEDNYM rzędzie i mają ten sam
+     kształt. Wcześniej były to dwa różne kafelki jeden pod drugim w tym samym
+     rogu — wyglądały jak dwie niezwiązane ze sobą pozostałości. Gdy któreś
+     z nich musi być szerokie (czerwony alarm, rozwinięta lista źródeł),
+     zajmuje własny wiersz; rząd się zawija, nic nie wychodzi poza ekran. -->
+<div id="status-row">
+<div id="my-banner" class="hidden"></div>
 <div id="attribution">
   <button id="attr-x" type="button" title="Zwiń informację o źródłach" aria-label="Zwiń informację o źródłach">✕</button>
   <span id="attr-text"><b>Dane: <a href="https://neptun.in.ua" target="_blank" rel="noopener">NEPTUN</a></b>
   (agregator OSINT — nie radar; zawsze sprawdzaj confidence i ±km)
   · ADS-B: adsb.lol / adsb.fi · Mapa: <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a>
   © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OSM</a></span>
+</div>
 </div>
 <!-- Skrót do strony dodany na ekran telefonu wygląda jak aplikacja i nie ma alarmów
      przy zamkniętym oknie ani GROTY. Pasek pokazuje się tylko w takim skrócie
