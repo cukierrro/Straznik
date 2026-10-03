@@ -3836,6 +3836,14 @@ function showSources() {
   document.getElementById("sources").showModal();
 }
 
+/* Jeden nasłuch na wszystkie krzyżyki okien — dokładanie osobnego do każdego
+   okna kończy się tym, że przy następnym oknie ktoś zapomni. Zamknięcie jest
+   równoważne „Anuluj": formularze zapisują się własnym przyciskiem. */
+document.addEventListener("click", (e) => {
+  const x = e.target.closest(".dlg-x");
+  if (x) x.closest("dialog")?.close();
+});
+
 document.getElementById("status-leds").onclick = () => { if (state) showSources(); };
 
 /* Popup „Strażnik": na desktopie pokazuje go hover (CSS), a na ekranach
@@ -6275,7 +6283,11 @@ const attrEl = document.getElementById("attribution");
 if (attrEl) {
   const mini = document.createElement("span");
   mini.className = "mini-label";
-  mini.textContent = "ⓘ";
+  /* Znak (i) rysujemy TAK SAMO jak reszte ikon paska: obrysem SVG, nie
+     znakiem tekstowym. Znak ⓘ ma inna grubosc niz sasiednie ikony i w rogu
+     mapy bylo to widac. */
+  mini.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true">'
+    + '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/></svg>';
   attrEl.appendChild(mini);
   /* Zwijamy SAMOCZYNNIE PO PIĘCIU SEKUNDACH, a nie „raz na zawsze". Wytyczna
      OSMF wymienia pięć sekund wprost; nasze dawne zapamiętywanie w
