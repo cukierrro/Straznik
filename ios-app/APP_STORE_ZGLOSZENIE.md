@@ -502,3 +502,33 @@ kamery bez podglądu (regulamin źródła).
   wymagał osobnego kroku i raz wypadł; u nas leży w `frontend/assets/`, a cały
   ten katalog jest kopiowany, więc wchodzi bez dodatkowej obsługi. Potwierdzone
   w `ios-app/www/assets/`.
+
+## 17. Zgłoszenie 1.7.89 (3.10.2026, 22:35) — i wycofane 1.7.88
+
+Build **2610032018**, status *Waiting for Review*, publikacja automatyczna.
+Wspólny commit z Androidem (`fcb7f00`). Wydanie wyłącznie interfejsu: rozwijane
+sekcje, legenda z przyciskiem zamykania, jeden kształt narożników, ikony zamiast
+emoji, uzupełnione tłumaczenia legendy i ustawień, ikony listy „Przygotuj”
+w GROCIE. Punktacja, progi i treść alarmów bez zmian.
+
+**Wcześniej tego dnia 1.7.88 (build 2610031047) zostało ZGŁOSZONE i WYCOFANE**
+— decyzja użytkownika, bo wydanie miało wyjść jako 1.7.89. Wycofanie: App Review →
+zgłoszenie → **Cancel Submission** → Confirm. Status wersji zmienia się wtedy na
+*Developer Rejected*, kolejka zwalnia się od razu. Build zostaje w TestFlight.
+
+**Czego nauczyło to wydanie (pułapki panelu):**
+
+* **Nie da się dodać nowej wersji, dopóki poprzednia jest w stanie *Developer
+  Rejected*** — przycisku „Add iOS App” wtedy nie ma. Zamiast zostawiać śmieć,
+  przerobiłem ten rekord: pole „Version” jest edytowalne, więc 1.7.88 → 1.7.89.
+* **Pola nie przyjmują wartości ustawianej skryptem** (to wiemy od wrzeŝnia), ale
+  **klikanie po współrzędnych też zawodzi po przewinięciu strony** — wyliczone
+  położenie zdąży się zmienić. Pewne okazało się: ustawić skupienie i zaznaczenie
+  przez DOM (`focus()` + `select()`), a treść wpisać klawiaturą.
+* **UWAGA, pułapka kosztowna:** szukając przycisku odpięcia builda, trafiłem na
+  element opisany jako „Delete”, który w rzeczywistości jest **„Delete All” od
+  zrzutów ekranu** w karcie sklepu. Kliknięcie skasowałoby wszystkie zrzuty.
+  Właściwy przycisk to **czerwony minus, który pojawia się dopiero po najechaniu
+  na wiersz buildu** (po prawej stronie, kolumna za „HAS APP CLIP”).
+* Build pojawia się na liście „Add Build” dopiero po przetworzeniu u Apple —
+  tu zajęło ~15 minut. Stan widać wcześniej w TestFlight („Ready to Submit”).
