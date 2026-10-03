@@ -44,17 +44,23 @@ console.log(`www: skopiowano ${n} pozycji z frontend/`);
 // GROTA siedzi w grota/ w korzeniu repozytorium, nie w frontend/, bo strona WWW
 // jej nie ma. Kopiujemy ją DRUGĄ, jak scripts/przygotuj_www_android.ps1 na Androidzie,
 // bez README.md. Bez tego przyciski GROTY pokazują „Wyszukiwanie schronień nie jest
-// dostępne”. Brak modułu nie jest błędem — build ma wtedy sam frontend.
+// dostępne”.
+//
+// Brak GROTY jest BŁĘDEM, nie wariantem. 03.10.2026 na Androidzie zapomniano ją
+// skopiować i jedynym sygnałem był rozmiar pliku — aplikacja wyglądała normalnie,
+// tylko schronienia przestawały istnieć. Cichego wariantu „build bez GROTY” tu nie
+// ma: albo moduł wchodzi, albo przygotowanie się zatrzymuje. Jeśli kiedyś GROTA ma
+// celowo wypaść, trzeba to napisać tutaj wprost.
 const grota = join(repo, "grota");
-if (existsSync(join(grota, "widok.js"))) {
-  cpSync(grota, join(www, "grota"), {
-    recursive: true,
-    filter: (src) => !src.endsWith("README.md"),
-  });
-  console.log("www: dołączono moduł GROTA → www/grota");
-} else {
-  console.log("www: bez GROTY (brak grota/widok.js)");
-}
+if (!existsSync(join(grota, "widok.js"))) fail(`brak modułu GROTA (${join(grota, "widok.js")})`);
+cpSync(grota, join(www, "grota"), {
+  recursive: true,
+  filter: (src) => !src.endsWith("README.md"),
+});
+// Sprawdzamy WYNIK kopiowania, nie sam zamiar — filtr albo błąd ścieżki potrafi
+// zostawić katalog bez punktu wejścia.
+if (!existsSync(join(www, "grota", "widok.js"))) fail("GROTA nie trafiła do www/grota");
+console.log("www: dołączono moduł GROTA → www/grota");
 
 for (const sound of SOUNDS) {
   const src = join(soundsSrc, sound);
