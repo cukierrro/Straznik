@@ -1168,3 +1168,256 @@ BALTIC_PAST_TIME_PHRASES = ["last night", "last week", "on sunday", "on monday",
 # Godzina zdarzenia w tekście („03.15 val.”, „plkst. 3:15”, „kell 3.15”, „at 03:15”)
 # starsza niż tyle minut od teraz (czas bałtycki) = relacja po fakcie.
 BALTIC_EVENT_TIME_MAX_MIN = 60
+# ── Pozostali sąsiedzi: MD, RO, SK, CZ, SE, HU — od 03.10.2026, TRYB CIENIA ──
+# Prośba użytkownika z 02.10.2026, po tym jak okazało się, że karta kraju
+# działała (a raczej nie działała) tylko dla Litwy, Łotwy i Estonii.
+#
+# DLACZEGO ZERO PUNKTÓW NA START. Filtr bałtycki dochodził do dzisiejszego
+# stanu przez dwa tygodnie poprawek na żywym ogniu: alarm w Rijadzie liczony
+# jako alarm nad Litwą (19.09), tekst o przygotowaniach szkół w Tartu palący
+# Litwę na czerwono (22.09), komentarze po nocnym alarmie w Wilnie dające
+# 1,0 pkt przez cały dzień (14–15.09). Sześć nowych języków naraz to sześć
+# nowych źródeł fałszywego alarmu — w językach, których nie czytamy codziennie.
+# Dlatego te kraje wchodzą tak samo jak strefy rumuńskie i mapa.ua: zbierają
+# sygnał, pokazują kartę na mapie, każdą decyzję zapisują w dzienniku
+# obserwacji („baltic_media_decision”) i NIE DODAJĄ PUNKTÓW. Wagi niżej są
+# policzone i gotowe; dopóki kraj jest w NEIGHBOUR_SHADOW, punkty wychodzą 0.
+NEIGHBOUR_SHADOW = {"MD", "RO", "SK", "CZ", "SE", "HU"}
+NEIGHBOUR_COUNTRY_NAMES = {
+    "MD": "Mołdawia", "RO": "Rumunia", "SK": "Słowacja",
+    "CZ": "Czechy", "SE": "Szwecja", "HU": "Węgry",
+}
+# Po dwa kanały na kraj, jak przy Bałtyku: gdy jeden padnie albo przestanie
+# podawać artykuły z datą, drugi zostaje. Wszystkie sprawdzone 03.10.2026 —
+# kod 200, wpisy z datą, najnowszy z tego samego dnia. Gdzie jest nadawca
+# publiczny, idzie pierwszy. Agerpres (RO) odpadł: 522. hirado.hu (HU): 500.
+# ipn.md oddaje 200 bez wpisów — dokładnie tak wyglądał delfi.lt, który przez
+# to świecił na zielono nad ślepą Litwą.
+# Rozmiar kanalu ma znaczenie: pelny kanal digi24 to 454 kB, a kanal STVR
+# 2,1 MB NA JEDNO POBRANIE. Przy odpytywaniu co minute byloby z tego 4 GB na
+# dobe i 29 pobran na minute u wydawcow — dlatego Rumunia wchodzi przez dzial
+# „actualitate" (55 kB), a slowacki nadawca publiczny odpada: jego jedyny
+# dzialajacy kanal to te 2,1 MB. Zostaja agencja TASR i dzial krajowy Aktuality.
+NEIGHBOUR_FEEDS = [
+    ("https://www.digi24.ro/rss/actualitate", "RO"),  # najszybsi przy RO-Alert
+    ("https://www.hotnews.ro/rss", "RO"),
+    ("https://moldova1.md/rss", "MD"),                # TRM, nadawca publiczny
+    ("https://www.zdg.md/feed/", "MD"),
+    ("https://www.teraz.sk/rss/slovensko.rss", "SK"),  # TASR, agencja
+    ("https://www.aktuality.sk/rss/domace/", "SK"),
+    ("https://ct24.ceskatelevize.cz/rss", "CZ"),      # ČT24, nadawca publiczny
+    ("https://www.irozhlas.cz/rss/irozhlas", "CZ"),   # Český rozhlas
+    ("https://www.svt.se/nyheter/rss.xml", "SE"),     # SVT, nadawca publiczny
+    ("https://api.sr.se/api/rss/program/83", "SE"),   # Sveriges Radio, Ekot
+    ("https://telex.hu/rss", "HU"),
+    ("https://hvg.hu/rss", "HU"),
+]
+# Odległość i wspólny kierunek zagrożenia. Słowacja i Węgry graniczą z Ukrainą,
+# więc zdarzenie nad nimi znaczy, że coś przeszło przez tę samą ścianę co nad
+# nami. Mołdawia i Rumunia to szlak szahedów nad Odessą i deltą Dunaju.
+# Czechy leżą za nami, Szwecja za morzem — tam zdarzenie jest ciekawe, ale
+# mówi o Polsce najmniej.
+NEIGHBOUR_ALERT_COUNTRY_WEIGHTS = {
+    "SK": 0.8, "MD": 0.5, "RO": 0.5, "HU": 0.5, "CZ": 0.3, "SE": 0.3,
+}
+# Które województwa to w ogóle dotyczy. Alarm bałtycki świeci na północ,
+# słowacki i węgierski na południe — wspólna lista czterech województw
+# (BALTIC_TARGET_WEIGHTS) nie ma tu sensu.
+NEIGHBOUR_TARGET_WEIGHTS = {
+    "SK": {"podkarpackie": 1.0, "małopolskie": 1.0, "śląskie": 1.0,
+           "świętokrzyskie": 0.5, "lubelskie": 0.5, "opolskie": 0.5},
+    "HU": {"podkarpackie": 1.0, "małopolskie": 0.8, "śląskie": 0.5, "lubelskie": 0.5},
+    "RO": {"podkarpackie": 1.0, "lubelskie": 0.8, "małopolskie": 0.5},
+    "MD": {"podkarpackie": 1.0, "lubelskie": 1.0, "małopolskie": 0.5},
+    "CZ": {"dolnośląskie": 1.0, "opolskie": 1.0, "śląskie": 1.0,
+           "lubuskie": 0.5, "małopolskie": 0.5},
+    "SE": {"pomorskie": 1.0, "zachodniopomorskie": 1.0, "warmińsko-mazurskie": 0.5},
+}
+# NAJWAŻNIEJSZY FILTR tej szóstki. Czeskie i słowackie media piszą o cudzej
+# przestrzeni powietrznej częściej niż o własnej — pierwsze wyniki wyszukiwania
+# 03.10.2026 to „Drony opět narušily dánský vzdušný prostor”, „V Litvě krátce
+# platil vzdušný poplach”, „Ruské drony narušili poľský vzdušný priestor”,
+# „Rumunsko oznámilo narušenie vzdušného priestoru”. Przy Bałtyku wystarczało
+# „brak zagranicy w tytule ⇒ u siebie”, bo LRT pisze głównie o Litwie. Tutaj
+# zasada jest odwrócona: tytuł MUSI nazwać miejsce w tym kraju, inaczej wpis
+# nie jest sygnałem. Bez tego Czechy świeciłyby przy każdym zdarzeniu w Danii.
+NEIGHBOUR_REQUIRE_LOCAL = {"MD", "RO", "SK", "CZ", "SE", "HU"}
+# RO-Alert to jeden system na burze, powodzie, pożary i drony. Samo „mesaj
+# RO-Alert” nic nie mówi o powietrzu, więc dla tych krajów ogłoszenie alarmu
+# liczy się tylko razem ze słowem o powietrzu, dronie albo rakiecie.
+NEIGHBOUR_ALERT_NEEDS_AIR = {"MD", "RO", "SK", "CZ", "SE", "HU"}
+# Kraj, o którym MÓWI tytuł — dla par, które piszą o sobie w swoim języku:
+# rumuńskie media o Mołdawii (ten sam język!), czeskie o Słowacji i odwrotnie.
+# Grupy są rozdzielne: marker rumuński nie przeniesie zdarzenia na Szwecję.
+NEIGHBOUR_COUNTRY_MARKERS = {
+    "RO": ("român", "roman", "tulcea", "constanț", "dobrogea", "bucureșt", "bucurest"),
+    "MD": ("moldov", "chișinău", "chisinau", "basarab", "transnistri", "tiraspol"),
+    "SK": ("slovensk", "slováci", "slovaci", "bratislav", "košic", "kosic"),
+    "CZ": ("česk", "cesk", "v čr", "praze", "praha", "brno", "brně"),
+}
+NEIGHBOUR_COUNTRY_GROUPS = [("RO", "MD"), ("SK", "CZ")]
+# Te kanaly odpytujemy co tyle cykli RSS (3 x 60 s = 180 s). Nie ida
+# co minute z dwoch powodow: w trybie cienia nie dodaja punktow, wiec
+# sekundy nie maja znaczenia, a 441 kB na cykl to przy 60 s ponad
+# 600 MB na dobe wyciagniete od cudzych redakcji za nic.
+NEIGHBOUR_INTERVAL_MULT = 3
+
+# ── Słownictwo sześciu języków ───────────────────────────────────────────────
+# Wszystko potwierdzone na prawdziwych nagłówkach (wyszukiwanie 03.10.2026),
+# nie wymyślone ze słownika. Formy z ogonkami i bez, bo nie każda redakcja
+# pisze z diakrytykami.
+NEIGHBOUR_ALERT_KEYWORDS = [
+    # rumuński / mołdawski — RO-Alert i alarm powietrzny
+    "ro-alert", "ro alert", "roalert", "avertizare ro-alert",
+    "alertă aeriană", "alerta aeriana", "alarmă aeriană", "alarma aeriana",
+    # słowacki i czeski — termin istnieje, choć systemu dla ludności nie ma
+    "vzdušný poplach", "vzdusny poplach", "letecký poplach", "letecky poplach",
+    # szwedzki
+    "flyglarm", "luftlarm", "flyganfall",
+    # węgierski
+    "légiriadó", "legiriado", "légvédelmi riadó",
+]
+NEIGHBOUR_AIR_KEYWORDS = [
+    # rumuński / mołdawski
+    "spațiul aerian", "spatiul aerian", "spațiului aerian", "spatiului aerian",
+    "dronă", "drona", "aeriană", "aeriene", "rachetă", "racheta",
+    "ținte aeriene", "tinte aeriene", "țintă aeriană", "tinta aeriana", "f-16",
+    # słowacki
+    "vzdušný priestor", "vzdusny priestor", "vzdušného priestoru", "dron",
+    "drony", "bezpilotn", "stíhač", "stihac", "letisko", "raketa",
+    # czeski
+    "vzdušný prostor", "vzdusny prostor", "vzdušného prostoru", "letiště", "letiste",
+    # szwedzki
+    "luftrum", "drönare", "dronare", "flygplats", "stridsflyg", "jaktplan",
+    # węgierski
+    "légtér", "legter", "légteré", "légterét", "drón", "repülőtér", "repuloter",
+    "vadászgép", "vadaszgep",
+]
+NEIGHBOUR_EVENT_KEYWORDS = [
+    # rumuński / mołdawski
+    "a pătruns", "a patruns", "au pătruns", "au patruns", "a intrat", "au intrat",
+    "închis", "inchis", "doborât", "doborat", "prăbușit", "prabusit", "căzut",
+    "cazut", "a explodat", "ridicate de urgență", "ridicate de urgenta",
+    "survolat", "încălcat", "incalcat", "detectat",
+    # słowacki / czeski
+    "narušil", "narušili", "narušily", "narušenie", "narušení", "narusil",
+    "zostrelil", "sestřelil", "sestrelil", "uzavreli", "uzavreté", "uzavřeno",
+    "uzavreno", "prenikol", "pronikl", "proniknul", "spadol", "spadl",
+    "vzlietli", "vzlétl", "zasahoval", "poplach",
+    # szwedzki
+    "kränkt", "krankt", "kränkning", "stängd", "stangd", "stängde", "sköt ner",
+    "skjutits ner", "intrång", "intrang", "observerades", "stoppades",
+    # węgierski
+    "megsértette", "megsertette", "megsértés", "lezárták", "lezartak", "lezárva",
+    "lelőtték", "lelottek", "lezuhant", "behatolt", "riadó", "felszállt",
+]
+NEIGHBOUR_CRITICAL_KEYWORDS = [
+    "spațiul aerian a fost închis", "spatiul aerian a fost inchis",
+    "a pătruns în spațiul aerian", "a patruns in spatiul aerian",
+    "narušil vzdušný priestor", "narušil vzdušný prostor",
+    "kränkt svenskt luftrum", "megsértette a légteret", "megsertette a legteret",
+]
+NEIGHBOUR_EXCLUDE_KEYWORDS = [
+    "exercițiu", "exercitiu", "aplicație militară", "simulare",
+    "cvičenie", "cvičení", "cvicenie", "cviceni",
+    "övning", "ovning", "flygövning", "gyakorlat", "hadgyakorlat",
+    # pokazy i drony-zabawki: te same słowa, zupełnie inne zdarzenie
+    "dronă de livrare", "drónshow", "dronshow",
+]
+NEIGHBOUR_CLEAR_KEYWORDS = [
+    "alerta a fost ridicată", "alerta a fost ridicata", "alerta s-a încheiat",
+    "alerta s-a incheiat", "fără pericol", "fara pericol", "spațiul aerian redeschis",
+    "spatiul aerian redeschis", "a fost revocat", "poplach odvolaný", "odvolali poplach",
+    "poplach skončil", "poplach skoncil", "poplach odvolán", "znovu otevřeno",
+    "znovu otvorené", "faran över", "faran over", "larmet avblåst", "larmet avblast",
+    "riadó véget ért", "riado veget ert", "feloldották", "feloldottak",
+]
+NEIGHBOUR_CLEAR_CONTEXT = [
+    "aerian", "dronă", "drona", "rachet", "vzdušn", "vzdusn", "dron", "poplach",
+    "luftrum", "drönare", "larm", "légtér", "legter", "riadó", "riado",
+]
+NEIGHBOUR_PAST_TIME_WORDS = [
+    "ieri", "alaltăieri", "alaltaieri", "aseară", "aseara",
+    "včera", "predvčerom", "predvčírom", "předevčírem", "minulý", "minulú",
+    "igår", "igar", "förrgår", "forrgar", "förra", "forra",
+    "tegnap", "tegnapelőtt", "tegnapelott", "múlt", "mult",
+]
+NEIGHBOUR_DISCUSSION_MARKERS = [
+    # rumuński / mołdawski
+    "a declarat", "declară", "interviu", "analiz", "comentar", "opinie",
+    "ce se întâmplă dacă", "ce s-ar întâmpla",
+    # słowacki / czeski
+    "čo by sa dialo", "co by se stalo", "vysvetľuje", "vysvětluje", "komentár",
+    "komentář", "rozhovor", "analýza", "analyza", "povedal", "řekl",
+    # szwedzki
+    "intervju", "analys", "kommentar", "säger", "sager", "sade",
+    # węgierski
+    "interjú", "interju", "elemzés", "elemzes", "vélemény", "velemeny",
+    "mondta", "szerint",
+]
+# Tytuł mówiący o przestrzeni powietrznej CUDZEGO kraju. Lista długa, bo to
+# właśnie treść większości takich artykułów w Pradze, Bratysławie i Budapeszcie.
+NEIGHBOUR_FOREIGN_MARKERS = [
+    # polski (o Polsce piszemy z RCB i RSO, nie z czeskiej relacji)
+    "poľsk", "polsk", "polen", "lengyel", "polonia", "poloniei",
+    # ukraiński i rosyjski kontekst
+    "ukrajin", "ukrán", "ucrain", "rusk", "ryssland", "orosz", "rusesc", "rusă",
+    # pozostali, o których te redakcje piszą najczęściej
+    "dánsk", "dansk", "danmark", "dán", "danemarca", "dánie",
+    "nemeck", "německ", "tyskland", "német", "germania",
+    "litv", "litauen", "litván", "lituania", "lotyš", "lettland", "lett",
+    "estón", "eston", "rumunsk", "románia",
+    "maďarsk", "ungern",
+    "norge", "norsk", "norvegia", "finland", "finsk", "finlanda",
+]
+# Miejsca, które przesądzają, że chodzi o TEN kraj. Stolica, większe miasta,
+# bazy lotnicze i formy nazwy kraju.
+NEIGHBOUR_LOCAL_MARKERS = {
+    "RO": ["român", "roman", "tulcea", "galați", "galati", "constanț", "constant",
+           "iași", "iasi", "suceava", "botoșani", "botosani", "bucureșt", "bucurest",
+           "dobrogea", "brăila", "braila", "vaslui", "delta dunării", "delta dunarii",
+           "mihail kogălniceanu", "mihail kogalniceanu", "fetești", "fetesti",
+           "câmpia turzii", "campia turzii", "borcea", "sulina", "chilia"],
+    "MD": ["moldov", "chișinău", "chisinau", "bălți", "balti", "cahul", "briceni",
+           "ocnița", "ocnita", "florești", "floresti", "edineț", "edinet", "soroca",
+           "orhei", "dubăsari", "dubasari", "transnistri", "tiraspol", "ungheni",
+           "basarab", "raionul", "raioanele", "comrat", "găgăuzia", "gagauzia"],
+    "SK": ["slovensk", "na slovensku", "slováci", "slovaci", "bratislav", "košic",
+           "kosic", "prešov", "presov", "michalovc", "humenn", "vranov", "poprad",
+           "žilin", "zilin", "sliač", "sliac", "kuchyň", "kuchyn", "malack",
+           "trenčín", "trencin", "nitr", "banská bystric", "banska bystric",
+           "ubľa", "ubla", "vyšné nemecké", "vysne nemecke"],
+    "CZ": ["česk", "cesk", "v čr", "v cr", "praha", "praze", "pražsk", "prazsk",
+           "ruzyn", "brno", "brně", "brne", "ostrav", "mošnov", "mosnov", "plzeň",
+           "plzen", "pardubic", "náměšť", "namest", "čáslav", "caslav", "kbely",
+           "karlovy vary", "liberec", "olomouc", "zlín", "zlin", "hradec králov",
+           "hradec kralov", "vodochody"],
+    "SE": ["svensk", "sverige", "stockholm", "arlanda", "bromma", "landvetter",
+           "gotland", "visby", "karlskrona", "ronneby", "kallinge", "malmö",
+           "malmo", "göteborg", "goteborg", "luleå", "lulea", "kallax", "såtenäs",
+           "satenas", "uppsala", "norrköping", "norrkoping", "linköping",
+           "linkoping", "skåne", "skane", "blekinge", "öland", "oland"],
+    "HU": ["magyar", "magyarország", "magyarorszag", "budapest", "ferihegy",
+           "kecskemét", "kecskemet", "pápa", "papa", "debrecen", "szeged",
+           "szolnok", "záhony", "zahony", "nyírbátor", "nyirbator", "beregsurány",
+           "beregsurany", "kelebia", "győr", "gyor", "miskolc", "pécs", "pecs",
+           "szabolcs", "tisza"],
+}
+
+# Listy bałtyckie obsługują od 03.10.2026 wszystkich sąsiadów. Nazwy zostają
+# z przedrostkiem BALTIC_, bo tak nazywają się typy zdarzeń w historii
+# („baltic_alert”, „baltic_context”, „baltic_clear”) i zmiana nazwy
+# zostawiłaby dwanaście godzin historii nie do odczytania. Scalenie w jednym
+# miejscu, żeby było widać, co dokładnie doszło.
+BALTIC_ALERT_KEYWORDS += NEIGHBOUR_ALERT_KEYWORDS
+BALTIC_AIR_KEYWORDS += NEIGHBOUR_AIR_KEYWORDS
+BALTIC_EVENT_KEYWORDS += NEIGHBOUR_EVENT_KEYWORDS
+BALTIC_CRITICAL_KEYWORDS += NEIGHBOUR_CRITICAL_KEYWORDS
+BALTIC_EXCLUDE_KEYWORDS += NEIGHBOUR_EXCLUDE_KEYWORDS
+BALTIC_CLEAR_KEYWORDS += NEIGHBOUR_CLEAR_KEYWORDS
+BALTIC_CLEAR_CONTEXT += NEIGHBOUR_CLEAR_CONTEXT
+BALTIC_PAST_TIME_WORDS += NEIGHBOUR_PAST_TIME_WORDS
+BALTIC_DISCUSSION_MARKERS += NEIGHBOUR_DISCUSSION_MARKERS
+BALTIC_FOREIGN_MARKERS += NEIGHBOUR_FOREIGN_MARKERS
+BALTIC_LOCAL_MARKERS.update(NEIGHBOUR_LOCAL_MARKERS)
+BALTIC_COUNTRY_NAMES.update(NEIGHBOUR_COUNTRY_NAMES)

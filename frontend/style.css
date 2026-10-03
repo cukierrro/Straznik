@@ -323,6 +323,9 @@ body.panel-open #update-banner:not(.critical) { display: none; }
 .linklike { background: none; border: 0; padding: 0; font: inherit;
   color: var(--accent); cursor: pointer; text-decoration: underline; }
 .led { display: flex; align-items: center; gap: 5px; font-size: 10.5px; color: var(--muted); }
+/* Diody w karcie zrodla (sasiedzi w trybie cienia): .led jest flexem, wiec
+   bez tego szesc krajow ustawialoby sie w slupek. */
+.src-leds { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 6px; }
 .led i { width: 8px; height: 8px; border-radius: 50%; background: #444; display: inline-block; }
 .led.ok i { background: var(--green); box-shadow: 0 0 6px var(--green); }
 .led.err i { background: var(--red); box-shadow: 0 0 6px var(--red); }
