@@ -349,7 +349,9 @@
     if (links[2]) links[2].textContent = en ? "Support the author ☕" : "Wesprzyj autora ☕";
     button("set-save","Zapisz","Save");
     const cancel=dlg.querySelector('button[value="cancel"]'); if(cancel) cancel.textContent=en?"Cancel":"Anuluj";
-    const summary=dlg.querySelector("summary"); if(summary) summary.textContent=en?"Advanced: shared backend":"Zaawansowane: wspólny backend";
+    /* PO ID, nie "pierwsze summary w oknie": 03.10.2026 doszlo wyzej w ustawieniach
+       drugie <details> ("Jak to dziala?") i ten selektor nadpisal JEGO podpis. */
+    const summary=dlg.querySelector("#adv-summary"); if(summary) summary.textContent=en?"Advanced: shared backend":"Zaawansowane: wspólny backend";
     const api=document.getElementById("set-api"); if(api) api.placeholder=en?"blank = Strażnik server (recommended)":"puste = serwer Strażnika (zalecane)";
     const ver=document.getElementById("app-version");
     if(ver?.textContent) ver.textContent=ver.textContent

@@ -1254,6 +1254,46 @@ dialog > .dlg-x:hover { color: var(--text); border-color: var(--accent); }
    bo wspieramy Chrome 80.) */
 dialog > .dlg-x:focus { outline: none; box-shadow: none; border-color: var(--accent); }
 
+/* ── ustawienia: jeden typ sterowania na jeden rodzaj decyzji ─────────────
+   włącz/wyłącz = przełącznik (.set-switch, było),
+   przejście do ustawień systemu = wiersz ze strzałką (.set-rows),
+   wybór jednego z kilku = segment (.seg),
+   wyjaśnienie = details „Jak to działa?" przy swojej opcji. */
+.set-rows { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+/* UWAGA: wlasne display:flex PRZEBIJA atrybut [hidden] z arkusza przegladarki.
+   Bez tej reguly przyciski powiadomien przegladarkowych, ukryte przez [hidden],
+   pokazaly sie w aplikacji na Androidzie. Zlapane na emulatorze. */
+.set-rows > .chip[hidden], .seg > .chip[hidden] { display: none !important; }
+.set-rows > .chip {
+  display: flex; align-items: center; width: 100%; min-height: 46px;
+  padding: 8px 12px; border-radius: 11px; text-align: left;
+  font-size: 13px; font-weight: 500;
+}
+/* Strzałka mówi, że to przejście gdzieś indziej, a nie przełącznik na miejscu. */
+.set-rows > .chip::after {
+  content: "›"; margin-left: auto; padding-left: 10px;
+  color: var(--muted); font-size: 19px; line-height: 1;
+}
+.seg {
+  display: flex; margin-top: 8px; border-radius: 11px; overflow: hidden;
+  border: 1px solid var(--panel-border); background: rgba(18,26,43,.86);
+}
+.seg > .chip {
+  flex: 1 1 0; min-width: 0; min-height: 42px; margin: 0;
+  border: 0; border-radius: 0; background: transparent;
+  color: var(--muted); font-size: 12.5px;
+  display: flex; align-items: center; justify-content: center;
+}
+.seg > .chip + .chip { border-left: 1px solid var(--panel-border); }
+.seg > .chip.active { background: rgba(90,140,220,.22); color: var(--text); font-weight: 600; }
+.set-pane details.jak > summary {
+  cursor: pointer; color: var(--muted); padding: 4px 0; list-style: none;
+  font-size: 12px;
+}
+.set-pane details.jak > summary::-webkit-details-marker { display: none; }
+.set-pane details.jak > summary::before { content: "▸ "; }
+.set-pane details.jak[open] > summary::before { content: "▾ "; }
+
 /* ── dolny pasek zakładek ──────────────────────────────────────────────────
    Cztery cele dotyku z podpisami. Odstęp od systemowego paska nawigacji, żeby
    zakładek nie mylić z przyciskami Androida. */

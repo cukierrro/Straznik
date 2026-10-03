@@ -94,7 +94,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <link rel="icon" type="image/png" sizes="512x512" href="assets/icon-512.png">
 <link rel="apple-touch-icon" href="assets/icon-192.png">
 <link rel="stylesheet" href="assets/vendor/maplibre-gl.css?v=1.7.82">
-<link rel="stylesheet" href="style.css?v=1.7.88">
+<link rel="stylesheet" href="style.css?v=1.7.88a">
 </head>
 <body>
 
@@ -808,6 +808,10 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 
     <section class="set-pane" data-pane="alarmy" role="tabpanel">
     <h3>Alarmy przy zamkniętej aplikacji</h3>
+    <!-- Dwa akapity wyjaśnienia stały nad samymi przełącznikami i spychały je
+         poniżej krawędzi ekranu. Chowamy je przy ich własnej opcji; kto chce
+         wiedzieć, rozwinie. -->
+    <details class="jak"><summary>Jak to działa?</summary>
     <p class="fineprint android-only">Alarmy dla Twojego województwa przychodzą jako
     <b>powiadomienie push</b> — także gdy aplikacja jest zamknięta, ekran wygaszony
     albo telefon w uśpieniu. Serwer Strażnika wysyła sygnał prosto na telefon, więc
@@ -820,6 +824,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
     zablokowany albo telefon w uśpieniu. Serwer Strażnika wysyła sygnał prosto na telefon;
     wystarczy zgoda na powiadomienia. Wymaga to działającego serwera: w trybie awaryjnym
     (serwer niedostępny) alarmy przychodzą tylko przy otwartej aplikacji.</p>
+    </details>
     <div id="bg-status" class="fineprint"></div>
     <!-- Suwak zamiast pola wyboru (prośba usera 15.09.2026, jak w ustawieniach Androida).
          Włączony = alarmy przychodzą; wyłączony = telefon wypisany ze wszystkich województw. -->
@@ -828,7 +833,13 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
         <span class="muted" id="alerts-on-note">Wyłącz, jeśli chcesz tylko oglądać mapę</span></span>
       <input type="checkbox" role="switch" id="set-alerts-on" checked>
       <span class="sw-track" aria-hidden="true"></span></label>
-    <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+    <!-- Każda z tych pozycji robi to samo: PRZENOSI do ustawień systemu. To jeden
+         rodzaj decyzji, więc dostaje jeden rodzaj sterowania — wiersz pełnej
+         szerokości ze strzałką. Wcześniej był to rząd zawijanych przycisków
+         różnej długości, w którym nic nie było równe niczemu.
+         Klas ani id NIE ruszam: app.js podmienia tym przyciskom textContent,
+         a i18n.js ustawia napisy po id. -->
+    <div class="set-rows">
       <button type="button" id="btn-notif-settings" class="chip">🔔 Ustawienia powiadomień</button>
       <button type="button" id="btn-fullscreen" class="chip android-only" style="display:none">🚨 Zgoda na alarm pełnoekranowy</button>
       <button type="button" id="btn-battery" class="chip android-only">🔋 Wyłącz oszczędzanie baterii</button>
@@ -892,7 +903,9 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 
     <div id="yellow-volume">
       <h3 style="margin-top:16px" id="yv-head">Głośność sygnału uwagi (żółty)</h3>
-      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+      <!-- Wybór JEDNEJ z trzech możliwości to segment, nie trzy osobne przyciski:
+           z trzech pigułek nie widać, że wykluczają się nawzajem. -->
+      <div class="seg" role="group" aria-label="Głośność sygnału uwagi">
         <button type="button" id="yv-normal" class="chip" data-poziom="normal">Normalny</button>
         <button type="button" id="yv-quiet" class="chip" data-poziom="quiet">Ciszej</button>
         <button type="button" id="yv-silent" class="chip" data-poziom="silent">Bez dźwięku</button>
@@ -975,7 +988,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
     <b>↓ Android</b> i <b>↓ iOS</b> u góry ekranu.</p>
 
     <details style="margin-top:14px">
-      <summary class="fineprint" style="cursor:pointer">Zaawansowane: wspólny backend</summary>
+      <summary id="adv-summary" class="fineprint" style="cursor:pointer">Zaawansowane: wspólny backend</summary>
       <label style="margin-top:8px">Adres serwera (opcjonalnie)
         <input id="set-api" type="url" placeholder="puste = serwer Strażnika (zalecane)">
       </label>
@@ -1023,7 +1036,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
      Cloudflare, więc po każdym wydaniu wystarczy podbić ?v= i przeglądarki
      dostają nowe app.js/engine.js OD RAZU, bez ręcznego czyszczenia cache CF.
      Podbijaj ?v= razem z versionName w build.gradle. -->
-<script src="i18n.js?v=1.7.87c"></script>
+<script src="i18n.js?v=1.7.88a"></script>
 <!-- kontur Polski dla engine.js (audyt A2b, scripts/build_pl_outline.py) -->
 <script src="pl-outline.js?v=1.7.82"></script>
 <script src="engine.js?v=1.7.82"></script>
@@ -1039,7 +1052,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <div id="a11y-alert" class="sr-only" role="status" aria-live="assertive" aria-atomic="true"></div>
 <div id="a11y-info" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
 
-<script src="app.js?v=1.7.88"></script>
+<script src="app.js?v=1.7.88a"></script>
 <script>
 /* Instrukcja pasująca do telefonu i języka (21.09.2026). iPhone ma osobną, bo alarmy,
    zgody i aktualizacje działają tam inaczej. Tu, a nie w app.js: index.html nie jest
