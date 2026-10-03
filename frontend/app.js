@@ -6275,9 +6275,18 @@ const attrEl = document.getElementById("attribution");
 if (attrEl) {
   const mini = document.createElement("span");
   mini.className = "mini-label";
-  mini.textContent = UI.t("źródła ⓘ", "sources ⓘ", "джерела ⓘ");
+  mini.textContent = "ⓘ";
   attrEl.appendChild(mini);
-  if (localStorage.getItem("straznik_attr_mini") === "1") attrEl.classList.add("mini");
+  /* Zwijamy SAMOCZYNNIE PO PIĘCIU SEKUNDACH, a nie „raz na zawsze". Wytyczna
+     OSMF wymienia pięć sekund wprost; nasze dawne zapamiętywanie w
+     localStorage sprawiało, że po jednym dotknięciu krzyżyka atrybucja nie
+     pokazywała się już nigdy — a ma się pokazywać przy starcie aplikacji. */
+  const zwin = () => {
+    attrEl.classList.add("mini");
+    attrEl.title = UI.t("Źródła danych i licencje", "Data sources and licences",
+                        "Джерела даних і ліцензії");
+  };
+  setTimeout(() => { if (!attrEl.classList.contains("mini")) zwin(); }, 5000);
   /* Wiersz źródeł przewija się palcem w poziomie (26.09.2026). Wygaszenie prawej
      krawędzi zdejmujemy, gdy nie ma już czego doczytać — przy końcu przewijania
      albo gdy cały tekst mieści się na szerokim ekranie. */
@@ -6291,8 +6300,8 @@ if (attrEl) {
   }
   document.getElementById("attr-x")?.addEventListener("click", (e) => {
     e.stopPropagation();
-    attrEl.classList.add("mini");
-    try { localStorage.setItem("straznik_attr_mini", "1"); } catch {}
+    zwin();
+    try { localStorage.removeItem("straznik_attr_mini"); } catch {}
   });
   attrEl.addEventListener("click", (e) => {
     if (!attrEl.classList.contains("mini")) {
@@ -6302,8 +6311,9 @@ if (attrEl) {
       document.getElementById("about")?.showModal();
       return;
     }
-    attrEl.classList.remove("mini");
-    try { localStorage.removeItem("straznik_attr_mini"); } catch {}
+    /* Zwinięte (i) otwiera „Źródła danych" — to tam są licencje mapy.
+       Wcześniej rozwijało z powrotem pasek, czyli prowadziło donikąd. */
+    showSources();
   });
   attrEl.style.cursor = "pointer";
 }

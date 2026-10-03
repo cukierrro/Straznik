@@ -382,11 +382,18 @@ body.panel-open #update-banner:not(.critical) { display: none; }
 }
 
 /* ── atrybucja ── */
+/* Atrybucja siedzi w LEWYM GÓRNYM rogu mapy, pod paskiem tytułu — tam, gdzie
+   wytyczna OSMF każe jej szukać, i tam, gdzie nie walczy o miejsce z pigułką
+   regionu na dole. */
 #attribution {
+  position: fixed; left: 10px; top: calc(60px + var(--safe-t)); z-index: 26;
+  max-width: calc(100% - 20px);
   background: var(--panel); border: 1px solid var(--panel-border); border-radius: 8px;
   font-size: 9.5px; line-height: 1.35; color: var(--muted); padding: 5px 9px;
-  max-width: 100%; overflow: hidden;
+  overflow: hidden; backdrop-filter: blur(8px);
+  transition: opacity .2s ease;
 }
+body.panel-open #attribution { opacity: 0; pointer-events: none; }
 /* Atrybucja NEPTUN musi być widoczna (warunek API), ale nie może zjadać pół ekranu.
    JEDEN wiersz z wielokropkiem zamiast przycinania na trzech: `-webkit-line-clamp`
    liczył wiersze inaczej niż wynikało z line-height i zostawiał tekst ucięty w połowie
@@ -1162,7 +1169,9 @@ dialog menu { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14
 /* Atrybucja NEPTUN musi pozostać widoczna (warunek korzystania z API), więc ✕ nie
    usuwa jej, tylko ZWIJA do jednej plakietki. Użytkownik odzyskuje ekran, a źródło
    nadal jest podane; pełna lista jest też w „O aplikacji". */
-#attribution { position: relative; padding-right: 30px; }
+/* Tylko miejsce na krzyżyk. Pozycjonowanie jest wyżej (fixed, róg mapy) —
+   stara reguła "position: relative" stała niżej w pliku i je przebijała. */
+#attribution { padding-right: 30px; }
 #attr-x {
   position: absolute; top: 3px; right: 3px; width: 24px; height: 24px;
   display: flex; align-items: center; justify-content: center;
@@ -1177,16 +1186,18 @@ dialog menu { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14
   max-width: 100%;
 }
 #status-row > .hidden { display: none !important; }
-/* Rozwinięta lista źródeł i czerwony alarm biorą własny wiersz. */
-#status-row > #attribution:not(.mini),
+/* Czerwony alarm bierze wlasny wiersz. */
 #status-row > #my-banner.level-high { flex: 1 1 100%; }
 /* Zwinięty chip źródeł wygląda DOKŁADNIE tak jak pigułka regionu: ten sam
    promień, ta sama wysokość, ten sam rozmiar pisma. Wcześniej był prostokątem
    9,5 px obok zaokrąglonej pigułki 12 px. */
+/* Zwinięta: okrągłe (i) o polu dotykowym 40 px. Napis „źródła" chowamy —
+   w rogu mapy liczy się, żeby nie zasłaniać terenu, a sam znak (i) jest
+   wzorcem, który wytyczna OSMF wymienia z nazwy. */
 #attribution.mini {
-  padding: 6px 12px; cursor: pointer; max-width: max-content;
-  border-radius: 999px; font-size: 12px; line-height: 1.2;
-  backdrop-filter: blur(8px);
+  display: flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px; padding: 0; cursor: pointer;
+  border-radius: 50%; font-size: 17px; line-height: 1; color: var(--text);
 }
 
 #attribution.mini > :not(.mini-label) { display: none; }
