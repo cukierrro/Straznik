@@ -2442,17 +2442,44 @@ function paintRaionAlerts(areas) {
       : next.has(k) ? "yellow" : "" });
   raionAlertInfo = next;
 }
+/* Powod alarmu przychodzi z NEPTUN-a po ukrainsku i POWTARZA poziom, ktory
+   linijke wyzej mamy juz przetlumaczony („Ракетна загроза (червоний рівень)").
+   Tlumaczymy sam rodzaj zagrozenia i ucinamy nawias. Tresci, ktorej nie znamy,
+   NIE udajemy, ze rozumiemy — pokazujemy ja w cudzyslowie jako cytat ze zrodla. */
+const RAION_REASON = [
+  [/ракет/i, ["zagrożenie rakietowe", "missile threat", "ракетна загроза"]],
+  [/дрон|бпла|шахед/i, ["zagrożenie dronowe", "drone threat", "дронова загроза"]],
+  [/артилер|обстріл/i, ["ostrzał artyleryjski", "shelling", "артилерійський обстріл"]],
+  [/авіа|літак/i, ["zagrożenie z powietrza", "air threat", "авіаційна загроза"]],
+];
+function raionReason(r) {
+  const t = String(r || "").trim();
+  if (!t) return "";
+  const bez = t.replace(/\s*\([^)]*\)\s*$/, "");
+  for (const [re, [pl, en, uk]] of RAION_REASON) if (re.test(bez)) return UI.t(pl, en, uk);
+  return UI.isUk ? bez : `„${bez}"`;
+}
+/* „Конотопський район" zostawalo surowe w polskim i angielskim interfejsie.
+   Nazwa wlasna nie ma polskiego odpowiednika, wiec transliterujemy rdzen
+   i dokladamy przetlumaczone slowo „rejon". Po ukrainsku zostaje oryginal. */
+function raionName(s) {
+  const t = String(s || "").trim();
+  if (!t || UI.isUk) return t;
+  const rdzen = t.replace(/\s*район$/i, "");
+  return UI.t(`rejon ${placeName(rdzen)}`, `${placeName(rdzen)} raion`, t);
+}
 function openRaionAlert(a) {
   markSelected(null, null);
   const since = Date.parse(a.s || "");
   const t = Number.isFinite(since) ? new Date(since).toLocaleTimeString(UI.t("pl-PL", "en-GB", "uk-UA"),
     { hour: "2-digit", minute: "2-digit" }) : "?";
-  const where = a.w === "oblast" ? a.n : `${a.n}${a.o ? " · " + a.o : ""}`;
+  const where = a.w === "oblast" ? oblastPL(a.n)
+    : `${raionName(a.n)}${a.o ? " · " + oblastPL(a.o) : ""}`;
   const lvl = a.l === "red" ? (UI.t("poziom czerwony", "red level", "червоний рівень")) : (UI.t("poziom żółty", "yellow level", "жовтий рівень"));
   showCard(`
     <div class="zone-head"><b style="color:${a.l === "red" ? "#ff6b78" : "#ffc04d"}">📢 ${esc2(where)}</b>
       <span style="color:#8fa3c4">· ${UI.t("alarm powietrzny w Ukrainie", "air-raid alert in Ukraine", "повітряна тривога в Україні")}</span></div>
-    <span style="color:#8fa3c4">${UI.t(`Od ${t} · ${lvl}`, `Since ${t} · ${lvl}`, `Від ${t} · ${lvl}`)}${a.r ? " · " + esc2(a.r) : ""}</span><br>
+    <span style="color:#8fa3c4">${UI.t(`Od ${t} · ${lvl}`, `Since ${t} · ${lvl}`, `Від ${t} · ${lvl}`)}${(() => { const r = raionReason(a.r); return r ? " · " + esc2(r) : ""; })()}</span><br>
     <span style="color:#68758c">${UI.t("Tylko do obserwacji — nie dolicza punktów. Punkty dają wyłącznie alarmy w obwodach blisko Polski (różowy obrys). Źródło: NEPTUN.", "Shown for information only — it adds no points. Points come only from alerts in the oblasts near Poland (pink outline). Source: NEPTUN.", "Лише для спостереження — балів не додає. Бали дають тільки тривоги в областях поблизу Польщі (рожевий контур). Джерело: NEPTUN.")}</span>`);
 }
 const BALTIC_ISO3 = { LT: "LTU", LV: "LVA", EE: "EST" };
@@ -2480,6 +2507,10 @@ function openCountryAlert(e) {
   const quote = String(e.sig.title || "").replace(/^[^„]*/, "");
   const link = safeUrl(e.sig.details?.link);
   const art = link ? `<a href="${esc(link)}" target="_blank" rel="noopener">${esc2(quote)}</a>` : esc2(quote);
+  // `en` bylo tu uzyte, ale zadeklarowane dopiero w openOblastCard — karta
+  // sasiada rzucala „ReferenceError: en is not defined" i NIE OTWIERALA SIE
+  // ANI RAZU od 22.09.2026. Potwierdzone na produkcji 03.10 przy alarmie na Litwie.
+  const en = UI.isEn;
   const num = (v) => en ? Number(v).toFixed(2).replace(/0$/, "") : Number(v).toFixed(2).replace(/0$/, "").replace(".", ",");
   const rows = e.per.sort((a, b) => b.points - a.points).map(r =>
     `${UI.t("woj. ", "", "воєв. ")}${esc2(UI.voiv(r.voiv))}: <b>+${num(r.points)} ${UI.t("pkt", "pt", "бал.")}</b>`).join("<br>");
