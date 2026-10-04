@@ -517,7 +517,7 @@ function etaInfo(t) {
   // G3: kurs „kursem na X” bez potwierdzenia ruchem nie daje czasu dolotu
   if (isPresumedCourse(t) && measuredHeading(t) == null) return null;
   const jet = isJetDrone(t);
-  const typical = jet ? JET_CRUISE_KMH : (TYPE_SPEED_KMH[t.type] || 0);
+  const typical = jet ? JET_CRUISE_KMH : (typeSpeedKmh(t) || 0);
   const v = t.velocity?.speedKmh ?? (Math.max(measuredTrackSpeed(t) || 0, typical) || null);
   if (!v) return null;
   // dron odrzutowy: dłuższy koniec przy prędkości przelotowej, krótszy przy
@@ -2663,7 +2663,7 @@ function inheritTrail(t, now) {
     const last = e.pts[e.pts.length - 1];
     const km = Math.hypot((t.lat - last.lat) * 110.57,
       (t.lon - last.lon) * 111.32 * Math.cos(t.lat * Math.PI / 180));
-    const reach = (TYPE_SPEED_KMH[t.type] || 180) * (now - e.endedAt) / 3600000
+    const reach = (typeSpeedKmh(t) || 180) * (now - e.endedAt) / 3600000
       + (Number(t.uncertaintyKm) || 0) + 10;
     if (km <= reach && (!best || km < best.km)) best = { id, km, pts: e.pts };
   }
@@ -2724,7 +2724,14 @@ function cleanTrail(t) {
    w danych Neptuna praktycznie nie występuje (sprawdzone na żywym API),
    więc bez tego dead-reckoning nigdy by nie ruszył znacznika. */
 const TYPE_SPEED_KMH = { uav: 180, shahed: 180, fpv: 100, missile: 800, cruise: 800,
-  ballistic: 3000, kab: 900, mig31k: 900 };
+  ballistic: 3000, kab: 900, mig31k: 900, recon: 180 };
+/* JEDYNE wejście do tablicy prędkości. Pięć miejsc czytało `TYPE_SPEED_KMH[t.type]`
+   wprost, bez sprowadzania do małych liter, podczas gdy backend i engine.js robią
+   `.lower()` wszędzie. Dziś NEPTUN podaje `uav` / `fpv` / `kab` małymi literami,
+   więc to działało — ale przy zmianie zapisu w źródle prędkość wyszłaby
+   `undefined`, a czas dolotu zniknąłby z kart BEZ ŻADNEGO BŁĘDU, po cichu.
+   Nie czytać tej tablicy wprost; pilnuje tego scripts/test_predkosci.cjs. */
+const typeSpeedKmh = (t) => TYPE_SPEED_KMH[String(t?.type || "").toLowerCase()] ?? null;
 function measuredTrackSpeed(t) {
   if (isApproxPosition(t)) return null;
   if (Number.isFinite(+t.velocity?.speedKmh) && +t.velocity.speedKmh > 0) return +t.velocity.speedKmh;
@@ -2742,7 +2749,7 @@ function measuredTrackSpeed(t) {
   return null;
 }
 function trackSpeed(t) {
-  return measuredTrackSpeed(t) ?? TYPE_SPEED_KMH[t.type] ?? null; // zapas mapy: prędkość typowa dla klasy
+  return measuredTrackSpeed(t) ?? typeSpeedKmh(t); // zapas mapy: prędkość typowa dla klasy
 }
 
 /* Dead-reckoning USUNIĘTY 28.09.2026. Znacznik jechał zmierzonym kursem nawet
@@ -2775,7 +2782,7 @@ function threatAgeMin(t, nowMs) {
 const AGE_SLACK_MAX_MIN = 15;
 function ageSlackKm(t, nowMs) {
   if (FAST_TYPES.has(t?.type)) return 0;
-  const kmh = Math.max(measuredTrackSpeed(t) || 0, TYPE_SPEED_KMH[t?.type] || 0);
+  const kmh = Math.max(measuredTrackSpeed(t) || 0, typeSpeedKmh(t) || 0);
   if (!kmh) return 0;
   const min = Math.min(threatAgeMin(t, nowMs ?? nowRefMs()), AGE_SLACK_MAX_MIN);
   return kmh * (min / 60);
@@ -2904,7 +2911,7 @@ function animate(ts) {
     if (isApproxPosition(t) || nMode === "off") continue;
     if (nMode === "course") {
       const hdg = measuredHeading(t);
-      const kmh = measuredTrackSpeed(t) || TYPE_SPEED_KMH[t.type];
+      const kmh = measuredTrackSpeed(t) || typeSpeedKmh(t);
       if (hdg != null && kmh) course.push(...courseFeatures(p.lat, p.lon, hdg, kmh, 30, meta.color));
     }
     const coords = trackPoints(t).map(q => [q.lon, q.lat]);
