@@ -8,6 +8,8 @@
   let lang = JEZYKI.includes(saved) ? saved : "pl";
 
   const EN = {
+    // Legenda: rozdzielenie dronów jest nasze, nie źródła (04.10.2026).
+    "Źródło w praktyce nie rozróżnia Shahedów i zwykłych BSP — przychodzą jako „Dron / BpSP”. Dron odrzutowy rozpoznajemy po opisie i zaznaczamy w karcie obiektu.": "In practice the source does not tell Shaheds apart from ordinary UAVs — they arrive as “Drone / UAV”. A jet drone is recognised from the description and marked on the object card.",
     "Sąsiedzi (cień)": "Neighbours (shadow)",
     /* Legenda w calosci — slownik CALYCH napisow, bo translateStatic chodzi
        po wezlach tekstowych. Brakujacy wpis zostaje po polsku bez slowa. */
@@ -470,6 +472,7 @@
     "Larger": "Більший",
     "Largest": "Найбільший",
     "Version": "Версія",
+    "In practice the source does not tell Shaheds apart from ordinary UAVs — they arrive as “Drone / UAV”. A jet drone is recognised from the description and marked on the object card.": "На практиці джерело не розрізняє «шахеди» і звичайні БпЛА — вони надходять як «Дрон / БпЛА». Реактивний дрон розпізнаємо з опису і позначаємо на картці об’єкта.",
     "Neighbours (shadow)": "Сусіди (тінь)",
     "Air-raid alert in Moldova, Romania, Slovakia, Czechia, Sweden or Hungary according to local media: we show it on the map and in the signal list, but for now it scores nothing — we are gathering evidence before setting the weights": "Повітряна тривога в Молдові, Румунії, Словаччині, Чехії, Швеції чи Угорщині за даними тамтешніх ЗМІ: показуємо її на мапі та в списку сигналів, але поки вона не дає балів — збираємо матеріал, перш ніж встановити ваги",
     /* Legenda: drugi przebieg, z angielskiego na ukrainski. */

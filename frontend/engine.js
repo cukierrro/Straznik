@@ -1145,6 +1145,36 @@ function scoreThreat(t, distKm, courseFactorVal = 1) {
 
 /* Ostatnia pozycja tracka — kurs wyliczany z ruchu, gdy NEPTUN go nie podaje. */
 const lastPos = new Map();
+/* Ślad ze znacznikami czasu — lustro TRAIL_* z backendu (collectors/neptun.py).
+   Do 04.10.2026 tryb awaryjny pamiętał tylko OSTATNIĄ pozycję, bez czasu, więc
+   nie potrafił policzyć prędkości z ruchu i dla drona odrzutowego brał płaskie
+   450 km/h. Dron, który naprawdę rozpędził się na końcowym odcinku do 600,
+   dostawał czas dolotu o jedną trzecią za długi — czyli obiecywaliśmy zapas,
+   którego nie było, i to akurat wtedy, gdy serwer nie odpowiada. */
+const TRAIL_MIN_KM = 0.7, TRAIL_MAX_PTS = 20, TRAIL_MAX_AGE_S = 45 * 60;
+const trails = new Map();
+function recordTrail(t) {
+  if (t.id == null || isApproxPosition(t)) return;
+  const now = Date.now() / 1000;
+  const pts = (trails.get(t.id) || []).filter(p => now - p.t <= TRAIL_MAX_AGE_S);
+  const last = pts[pts.length - 1];
+  if (!last || haversine(last.lat, last.lon, t.lat, t.lon) >= TRAIL_MIN_KM)
+    pts.push({ lat: t.lat, lon: t.lon, t: now });
+  trails.set(t.id, pts.slice(-TRAIL_MAX_PTS));
+}
+/* Prędkość z dwóch ostatnich punktów śladu — te same progi co w backendzie
+   (ruch ≥ 0,7 km, odstęp ≥ 30 s, wynik w przedziale 20–4000 km/h). Odrzucenie
+   wartości spoza przedziału nie jest ozdobą: zmierzone na produkcji ślady dają
+   13–42 km/h, co jest szumem pozycji, a nie prędkością obiektu. */
+function measuredSpeedKmh(t) {
+  const pts = trails.get(t?.id) || [];
+  if (pts.length < 2) return null;
+  const a = pts[pts.length - 2], b = pts[pts.length - 1];
+  const dtH = (b.t - a.t) / 3600;
+  if (dtH < 30 / 3600) return null;
+  const v = haversine(a.lat, a.lon, b.lat, b.lon) / dtH;
+  return (v > 20 && v < 4000) ? v : null;
+}
 function movementHeading(t) {
   const prev = lastPos.get(t.id);
   if (prev && haversine(prev[0], prev[1], t.lat, t.lon) >= 2) {
@@ -1185,7 +1215,14 @@ const physicalKey = (t) => isApproxPosition(t)
   : `track:${t.id}`;
 const areaDistance = (km) => km < 10 ? "mniej niż 10 km"
   : `około ${Math.round(km / 10) * 10} km`;
-const speedOf = (t) => t.velocity?.speedKmh || (isJet(t) ? JET_SPEED_KMH : null)
+/* Lustro `_speed_of` z backendu, co do kolejności: prędkość ze źródła, potem
+   dla drona odrzutowego podłoga 450 km/h podnoszona pomiarem z ruchu, na końcu
+   prędkość typowa dla klasy. Pomiar NIGDY nie obniża — patrz komentarz przy
+   NEPTUN_JET_SPEED_KMH w backend/app/config.py. Dla klas zwykłych backend
+   pomiaru nie używa i tu też go nie używamy, żeby tryb awaryjny nie liczył
+   czegoś innego niż serwer. */
+const speedOf = (t) => t.velocity?.speedKmh
+  || (isJet(t) ? Math.max(measuredSpeedKmh(t) || 0, JET_SPEED_KMH) : null)
   || TYPE_SPEED_KMH[(t.type || "").toLowerCase()] || null;
 const etaRawMinutes = (km, kmh) => (km == null || !kmh) ? null : Math.max(0, km / kmh * 60);
 const etaMinutes = (km, kmh) => {
@@ -1222,6 +1259,7 @@ function neptunEval(t) {
   t.pl_assessment = assess(t.lat, t.lon, headingOf(t));
   t.heading_source = headingSourceOf(t);
   if (isJet(t)) t.straznik_jet = true;
+  recordTrail(t);
   if (t.id != null) lastPos.set(t.id, [t.lat, t.lon]);
   const a = t.pl_assessment, ty = (t.type||"").toLowerCase();
   if (a.toward_pl) {
