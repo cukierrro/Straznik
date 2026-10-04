@@ -105,6 +105,7 @@
     liveFilter: { dostep: ["24h", "godziny", "na_zadanie"], grupy: null, ...readLS(LIVE_FILTER_KEY, {}) },
     liveNear: null,          // najbliższy sprawdzony punkt dla każdego rodzaju dostępu (przy obecnym filtrze rodzaju budynku)
     liveTypesOpen: false,
+    listaOpen: false,      // lista najbliższych punktów na ekranie Mapa: dla czytnika ekranu i klawiatury
     mapToolsOpen: false,     // na ekranie Mapa filtry i ustawienia są zwinięte, żeby mapa miała 2/3 ekranu
     prevTab: "mapa",
     infoSchrony: !readLS(INFO_KEY, false),   // krótka informacja na starcie: dlaczego nie ma kategorii „schron”
@@ -1267,6 +1268,37 @@
     </div>`;
   }
 
+  /* Lista najbliższych punktów. Mapy nie da się przejść czytnikiem ekranu ani klawiaturą: szpilki nie
+     mają fokusu i nie mają tekstu. Ta sama zawartość musi być do przeczytania i do wybrania z listy,
+     z tymi samymi filtrami i w tej samej kolejności co na mapie — inaczej lista mówiłaby co innego
+     niż to, co widzi obok osoba widząca. */
+  function listaPunktow() {
+    const F = S.filter, c = map.getCenter();
+    const skad = S.userPos
+      ? { lat: S.userPos.lat, lon: S.userPos.lon, opis: S.posLabel || T("Twoja pozycja") }
+      : { lat: c.lat, lon: c.lng, opis: T("środek mapy") };
+    const poziom = (p) => (C.isDoubtful(p) ? 2 : C.flagMessages(p).length ? 1 : 0);
+    const widoczne = pointsFor(F.dostep, F.grupy).filter((p) => F.trust.includes(poziom(p)));
+    if (!widoczne.length) return `<p class="sim">${T("Filtr nie przepuszcza żadnego punktu — zaznacz więcej rodzajów w „Filtry i widok”.")}</p>`;
+    const lista = C.nearest(widoczne, skad.lat, skad.lon, { limit: 15, mode: S.mode });
+    return `<h3 id="lista-naglowek">${T("Najbliższe punkty")}</h3>
+      <p class="small muted">${T("Odległości liczone od: {skad}. Od najbliższego. To te same punkty, które widać na mapie.", { skad: esc(skad.opis) })}</p>
+      <ul class="lista-punktow" aria-labelledby="lista-naglowek">${lista.map((k, i) => {
+        const p = k.p, acc = C.ACCESS[p.dostep] || C.ACCESS.nieznany, t = C.trustLabel(p);
+        const rodzaj = p.obiekt && p.obiekt.kod !== "budynek" ? T(p.obiekt.etykieta) : "";
+        const czyta = T("{a}. Odległość {d}, {czas}. Dostęp: {dostep}.{rodzaj} {pewnosc}", {
+          a: p.adres, d: fmtDist(k.distM), czas: estText(k.estMin), dostep: T(acc.label),
+          rodzaj: rodzaj ? " " + T("Rodzaj: {r}.", { r: rodzaj }) : "", pewnosc: t.text });
+        return `<li><button type="button" class="opt-open lista-poz" data-act="lista-wybierz" data-id="${esc(p.id)}" aria-label="${esc(czyta)}">
+          <span class="badge">${i + 1}</span>
+          <span class="grow"><b>${esc(p.adres)}</b><span class="small muted">${fmtDist(k.distM)} · ${estText(k.estMin)} · ${esc(T(acc.label))}${rodzaj ? ` · ${esc(rodzaj)}` : ""}</span></span>
+          ${t.level === "watpliwe" ? `<span class="badge bwatpliwe">${T("wątpliwe")}</span>`
+            : t.level === "uwaga" ? `<span class="badge buwaga">${T("do sprawdzenia")}</span>` : ""}
+        </button></li>`;
+      }).join("")}</ul>
+      <p class="small muted">${T("Wybranie punktu z listy otwiera jego kartę z adresem, trasą i ostrzeżeniami — tak samo jak dotknięcie szpilki.")}</p>`;
+  }
+
   function viewMapa() {
     const p = S.selectedId && S.byId.get(S.selectedId);
     const n = S.points.length;
@@ -1285,7 +1317,10 @@
       <div class="row map-bar">
         <button type="button" class="btn ghost grow map-tools-btn" data-act="map-tools" aria-expanded="${S.mapToolsOpen}">
           ${I("sliders-horizontal")}<span class="grow">${T("Filtry i widok")}</span>${filterSummary()}${I(S.mapToolsOpen ? "chevron-up" : "chevron-down")}</button>
+        <button type="button" class="btn ghost" data-act="lista-toggle" aria-expanded="${S.listaOpen}"
+          aria-label="${T("Najbliższe punkty jako lista")}">${I("list")}<span>${T("Lista")}</span></button>
       </div>
+      ${S.listaOpen ? listaPunktow() : ""}
       ${S.mapToolsOpen ? `${n ? legendFilter() : ""}
         <h3>${T("Środek transportu")}</h3>${modeButtons()}
         ${S.mode === "driving" ? rule("P-AUTO") : ""}
@@ -2048,7 +2083,7 @@
       <p>${T("Publiczny zbiór PSP nie podaje rodzaju obiektu, liczby miejsc ani tego, czy obiekt jest teraz otwarty. „Na żądanie” oznacza, że ktoś musi go otworzyć.")}</p>
       <p>${T("Położenie sprawdzamy automatycznie: czy punkt stoi na budynku, czy zgadza się z adresem, czy leży we właściwej gminie i województwie. Punkty wątpliwe (czerwona obwódka) nie są polecane jako pierwsze; „do sprawdzenia” (żółta) to drobniejsze rozbieżności. To nie jest kontrola obiektu przez urząd.")}</p>
       <h3>${T("Przesunięte szpilki — błąd źródła, nie Groty")}</h3>
-      <p>${T("W publicznym zbiorze PSP część punktów ma współrzędne postawione obok budynku, którego dotyczą. Sprawdziliśmy to na danych z całej Polski: <b>1083 punkty</b> (1,3%) nie stoi na żadnym budynku. Przy 668 z nich budynek jest w promieniu 30 m (najczęściej blok — szpilka wylądowała na podwórku, parkingu albo trawniku), przy 256 w 30–60 m, przy 110 w 60–150 m, a <b>49 punktów nie ma żadnego budynku w promieniu 150 m</b> — tam szpilka wskazuje pole, las albo miejsce poza miejscowością z adresu.")}</p>
+      <p>${T("W publicznym zbiorze PSP część punktów ma współrzędne postawione obok budynku, którego dotyczą. Sprawdziliśmy to na danych z całej Polski: <b>1077 punktów</b> (1,2%) nie stoi na żadnym budynku. Przy 665 z nich budynek jest w promieniu 30 m (najczęściej blok — szpilka wylądowała na podwórku, parkingu albo trawniku), przy 253 w 30–60 m, przy 109 w 60–150 m, a <b>50 punktów nie ma żadnego budynku w promieniu 150 m</b> — tam szpilka wskazuje pole, las albo miejsce poza miejscowością z adresu.")}</p>
       <p>${T("To błąd danych źródłowych i ich dalszego przetwarzania, nie Groty. Nie przesuwamy punktów po cichu, bo nie mamy czym potwierdzić, gdzie naprawdę jest schronienie. Zamiast tego: oznaczamy je, nie polecamy jako pierwszych i przy każdym piszemy, co stoi najbliżej szpilki i jak daleko — żeby w terenie szukać budynku, a nie kropki na mapie.")}</p>
       <p>${T("Jeśli widzisz punkt postawiony w złym miejscu, zgłoś to gminie albo komendzie PSP, która przekazuje dane do zbioru — poprawka u źródła naprawia go we wszystkich aplikacjach naraz.")}</p>
       <p>${T("Czas dojścia to szacunek: zanim trasa się wyznaczy — z odległości w linii prostej, potem z trasy po drogach i ścieżkach (bez korków i utrudnień). Nie jest gwarancją.")}</p>
@@ -2645,6 +2680,11 @@
       closePopups(); S.tab = S.prevTab && S.prevTab !== S.tab ? S.prevTab : "mapa"; render();
     } else if (act === "map-tools") {
       S.mapToolsOpen = !S.mapToolsOpen; render();
+    } else if (act === "lista-toggle") {
+      S.listaOpen = !S.listaOpen; render();
+      if (S.listaOpen) panel.querySelector("#lista-naglowek")?.scrollIntoView({ block: "start" });
+    } else if (act === "lista-wybierz") {
+      select(b.dataset.id, true);
     } else if (act === "clear-sel") {
       select(null, false);
     } else if (act === "wybierz-opcje") {
