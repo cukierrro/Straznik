@@ -532,3 +532,30 @@ zgłoszenie → **Cancel Submission** → Confirm. Status wersji zmienia się wt
   na wiersz buildu** (po prawej stronie, kolumna za „HAS APP CLIP”).
 * Build pojawia się na liście „Add Build” dopiero po przetworzeniu u Apple —
   tu zajęło ~15 minut. Stan widać wcześniej w TestFlight („Ready to Submit”).
+
+## 18. Zgłoszenie 1.7.90 (4.10.2026, 19:55)
+
+Build **2610041735**, status *Waiting for Review*, publikacja automatyczna.
+Wspólny commit z Androidem (`8049076`). **1.7.89 zatwierdzone i opublikowane**
+tego dnia, więc kolejka była wolna — nie wycofywaliśmy niczego.
+
+Treść: regulacja wielkości tekstu (typografia w `rem`), prędkość i czas dolotu
+brane z serwera (`straznik_speed`), wykaz PSP z 28.09 w GROCIE, lista schronień
+dla czytnika ekranu, pasek atrybucji nie wchodzi pod pasek tytułu, dron
+rozpoznawczy z czasem dolotu.
+
+**Decyzja o kolejności, warta zapamiętania:** gdy 1.7.90 było gotowe, 1.7.89
+było **In Review** — czyli Apple już je czytało. Nie wycofywaliśmy: wycofanie
+w trakcie przeglądu marnuje trwającą weryfikację i zgłoszenie startuje od zera
+(inaczej niż 1.7.88, które tylko czekało w kolejce i wycofanie nic nie kosztowało).
+Argument przesądzający: **najważniejsza poprawka z 1.7.90 — poziom alertu RCB
+liczony z całej treści RSO — jest w backendzie**, więc użytkownicy iOS mieli ją
+od wdrożenia serwera, niezależnie od wersji aplikacji.
+
+**Ustalenie dla instrukcji (Dynamic Type):** WKWebView **nie skaluje** zwykłych
+rozmiarów CSS według systemowego „większy tekst”. Opt-in wymagałby
+`font: -apple-system-body` albo `-webkit-text-size-adjust`, a my nie używamy
+żadnego. Dlatego na iPhonie nasze własne ustawienie wielkości tekstu jest
+**jedyną** drogą do większych napisów — tak też napisała to sesja główna
+w instrukcji (`8049076`). Czego nie zmierzyliśmy: czy przy systemowym maksimum
+nie pęka układ z innego powodu — do sprawdzenia na urządzeniu.
