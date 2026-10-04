@@ -113,6 +113,15 @@ for (const { nazwa, plik, klucz, zrodlo } of ZASOBY) {
     // z czym porównać. Sprawdzi się przy następnym uruchomieniu, już po commicie.
     if (!cKlucz && git('status', '--porcelain', '--', zrodlo)) return;
     assert.ok(cPlik, `brak historii dla ${plik}`);
+    /* Commit SCALENIA liczy sie jako zmiana pliku, choc nie wnosi tresci ponad
+       to, co bylo juz na scalanych galeziach — a tam klucz byl podbity jak
+       trzeba. Ta asercja jest dyscyplina „na commit" i z natury nie przezywa
+       scalenia; prawdziwego niezmiennika (klucz nie moze powtarzac klucza, pod
+       ktorym Cloudflare rozdalo juz INNA tresc) pilnuje druga asercja,
+       porownujaca z origin/main. Dlatego tu przepuszczamy scalenia — na samych
+       galeziach, przed scaleniem, sprawdzenie dziala bez zmian. */
+    const rodzice = git('rev-list', '--parents', '-n', '1', cPlik).trim().split(/[ ]+/).length - 1;
+    if (rodzice > 1) return;
     assert.ok(cKlucz, `nie znalazłem w historii ${zrodlo} linii z ${nazwa}?v=`);
     let ok = true;
     try { git('merge-base', '--is-ancestor', cPlik, cKlucz); } catch { ok = false; }
