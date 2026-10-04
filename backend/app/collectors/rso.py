@@ -179,6 +179,16 @@ def _still_active(item: dict) -> bool:
 FETCH_RETRY_DELAY_S = 5
 
 
+# Nagłówki, które nic nie mówią: RSO wpisuje w `title` i `shortcut` dosłownie
+# „Alert RCB", a cały komunikat trafia do `content` (potwierdzone na wpisach
+# 23362253 z 24.09.2026 i 23389161 z 04.10.2026).
+_NAGLOWKI_PUSTE = ("alert rcb", "alert-rcb", "ostrzeżenie", "ostrzeżenie alarmowe")
+
+
+def _naglowek_pusty(naglowek: str) -> bool:
+    return (naglowek or "").strip().strip(".!").lower() in _NAGLOWKI_PUSTE
+
+
 def rcb_level(text: str) -> int:
     """Poziom alertu RCB z jego treści: 1 informacja, 2 czujność, 3 szukaj schronienia.
 
@@ -347,8 +357,23 @@ async def _process_item(it: dict) -> bool:
             _seen.add(key)   # dopiero po zapisie: błąd bazy = ponowna próba za minutę
             reference_new = True
             continue
-        title = it.get("shortcut") or it.get("title") or "Alert RCB"
-        poziom = rcb_level(f"{title} {it.get('description') or ''}")
+        naglowek = it.get("shortcut") or it.get("title") or ""
+        tresc = it.get("content") or ""
+        # Tytuł do pokazania człowiekowi: nagłówek bywa dosłownie „Alert RCB"
+        # (tak było 04.10.2026 dla lubelskiego), więc wtedy bierzemy treść —
+        # inaczej powiadomienie brzmi „Alert RCB (RSO): «Alert RCB»".
+        title = (tresc if _naglowek_pusty(naglowek) and tresc else naglowek) or "Alert RCB"
+        # POZIOM z CAŁEJ treści, razem z `content`. Do 04.10.2026 stało tu
+        # `f"{title} {it.get('description')}"`, a pole `description` W OGÓLE NIE
+        # ISTNIEJE w schemacie RSO (wpisy mają title, shortcut, content,
+        # rso_alarm, provinces, valid_*). Poziom liczył się więc wyłącznie
+        # z nagłówka. Przy wpisie o kształcie z 04.10 — nagłówek „Alert RCB",
+        # cały komunikat w `content` — alert poziomu 3 („znajdź bezpieczne
+        # miejsce") dostałby 1,5 pkt zamiast 4,5, czyli NIE PODNIÓSŁBY
+        # czerwonego alarmu. Plik sam to deklarował w komentarzu na górze
+        # („po CAŁEJ treści, razem z polem content"); wyjątek zrobiono wtedy
+        # dla odwołań, a liczenie poziomu zostało na starym wzorze.
+        poziom = rcb_level(f"{it.get('title','')} {naglowek} {tresc}")
         inserted = await fusion.ingest(
             source="rcb", event_type="rso_alert", voivodeship=voiv,
             points=config.RCB_LEVEL_POINTS[poziom],
