@@ -422,6 +422,25 @@ def _evaluate(t: dict) -> dict:
             _trail[tid] = pts[-TRAIL_MAX_PTS:]
             t["straznik_trail"] = _trail[tid]
     t["pl_assessment"] = a
+    # Prędkość UŻYTA do czasu dolotu jedzie z KAŻDYM obiektem, nie tylko z tym,
+    # który punktuje. Karta pokazuje czas także dla obiektu kursem na PL dalej
+    # niż 250 km (zero punktów), a ma pokazywać TĘ SAMĄ liczbę co serwer —
+    # inaczej wraca rozjazd, który tu właśnie usuwamy. Liczone po `straznik_trail`,
+    # więc musi stać PO zapisie śladu.
+    speed = _speed_of(t)
+    if speed:
+        jet = bool(t.get("straznik_jet") or is_jet(t))
+        t["straznik_speed"] = {
+            "kmh": round(speed, 1),
+            "source": ("source" if (t.get("velocity") or {}).get("speedKmh")
+                       else "measured" if (_measured_speed(t) or 0) > speed - 0.01
+                       else "jet_floor" if jet else "typical"),
+            "jet": jet,
+            # szybki koniec przedziału to końcowy odcinek drona odrzutowego;
+            # wolny koniec NIGDY nie jest wolniejszy niż prędkość alarmu
+            "fast_kmh": max(speed, config.NEPTUN_JET_MAX_KMH) if jet else speed,
+            "slow_kmh": speed,
+        }
     region = t.get("region") or ""
     t["border_region"] = any(r in region for r in config.NEPTUN_BORDER_REGIONS)
     return t
@@ -667,25 +686,6 @@ async def _maybe_signal(t: dict):
     # klucz czerwonego alarmu nie miałby się o co oprzeć. Pozycja rejonowa zostaje
     # oznaczona (`eta_approx`), a alarm ETA nadal jej nie podnosi — patrz _eta_alarm_level.
     speed = _speed_of(t)
-    # Prędkość UŻYTA do alarmu jedzie razem z obiektem. Karta ma pokazywać tę
-    # samą liczbę, a nie liczyć drugi raz własnym wzorem — tak powstał rozjazd
-    # między czasem w powiadomieniu a czasem na karcie (04.10.2026).
-    if speed:
-        jet = bool(t.get("straznik_jet") or is_jet(t))
-        t["straznik_speed"] = {
-            "kmh": round(speed, 1),
-            # skąd wzięta: ze źródła, z pomiaru ruchu, czy z tablicy założeń
-            "source": ("source" if (t.get("velocity") or {}).get("speedKmh")
-                       else "measured" if (_measured_speed(t) or 0) > speed - 0.01
-                       else "jet_floor" if jet else "typical"),
-            "jet": jet,
-            # granice przedziału pokazywanego w karcie: szybki koniec to końcowy
-            # odcinek drona odrzutowego, wolny koniec NIGDY nie jest wolniejszy
-            # niż prędkość alarmu — inaczej karta obiecywałaby więcej czasu,
-            # niż sami zakładamy.
-            "fast_kmh": max(speed, config.NEPTUN_JET_MAX_KMH) if jet else speed,
-            "slow_kmh": speed,
-        }
     eta_raw = geo.eta_raw_minutes(a["dist_km"], speed)
     eta_conservative = (max(0.0, eta_raw - config.NEPTUN_ETA_BUFFER_MIN)
                         if eta_raw is not None else None)
