@@ -282,19 +282,40 @@ STAGE_ACTION = ("udaj się w bezpieczne miejsce", "udaj sie w bezpieczne miejsce
                 "zagrożenie atakiem z powietrza", "zagrozenie atakiem z powietrza", "schron",
                 "ukryj się", "ukryj sie", "pozostań w domu", "pozostan w domu",
                 "stosuj się do poleceń", "stosuj sie do polecen")
+# 04.10.2026: RSO przyslalo dla lubelskiego „UWAGA. POTENCJALNE ZAGROZENIE
+# Z POWIETRZA." i `alert_stage` zwrocilo `unknown` — nie znalismy tego
+# sformulowania. To NIE jest „sytuacja monitorowana" (tam zagrozenie jest nad
+# Ukraina), ale nie jest tez wezwaniem do dzialania: nie pada ani „schron sie",
+# ani „bezpieczne miejsce". Nazywa zagrozenie nad Polska i nic nie kaze robic,
+# wiec dostaje wlasny etap — dzieki temu da sie policzyc, jak czesto RCB tak
+# pisze, zamiast chowac to pod „nieznany".
+#
+# UWAGA: etap NIE wplywa na punktacje. Poziom alertu liczy `rcb_level` z wlasnej
+# listy znacznikow (RCB_LEVEL_MARKERS) i ten komunikat zostaje poziomem 1,
+# bo nie ma w nim slowa „atakiem" ani wezwania do schronienia.
+STAGE_WARNING = ("potencjalne zagrożenie z powietrza", "potencjalne zagrozenie z powietrza",
+                 "zagrożenie z powietrza", "zagrozenie z powietrza")
 STAGE_MONITOR = ("sytuacja jest monitorowana", "operuje polskie lotnictwo", "śledź komunikaty",
                  "sledz komunikaty", "oczekuj dalszych komunikatów", "oczekuj dalszych komunikatow",
                  "zachowaj czujność", "zachowaj czujnosc", "trwa zmasowany")
 
 
 def alert_stage(text: str, rso_alarm=None) -> str:
-    """'clear' | 'action' (etap 2) | 'monitor' (etap 1) | 'unknown'."""
+    """'clear' | 'action' (etap 2) | 'ostrzezenie' | 'monitor' (etap 1) | 'unknown'.
+
+    Etap trafia WYLACZNIE do dziennika obserwacji — punktacje liczy `rcb_level`
+    z osobnej listy znacznikow. Zmiana etapu nie zmienia ani jednego punktu."""
     t = (text or "").lower()
     # rso_alarm celowo pomijamy — to stopień ostrzeżenia, nie odwołanie (21.09.2026)
     if any(w in t for w in STAGE_CLEAR):
         return "clear"
     if any(w in t for w in STAGE_ACTION):
         return "action"
+    # „ostrzezenie" sprawdzamy PRZED „monitorem": komunikat potrafi zawierac oba
+    # („potencjalne zagrozenie z powietrza. oczekuj dalszych komunikatow"),
+    # a wtedy wazniejsze jest to, ze nazwano zagrozenie nad Polska.
+    if any(w in t for w in STAGE_WARNING):
+        return "ostrzezenie"
     if any(w in t for w in STAGE_MONITOR):
         return "monitor"
     return "unknown"

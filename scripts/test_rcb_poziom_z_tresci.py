@@ -94,5 +94,27 @@ sprawdz(rso._naglowek_pusty("Ostrzeżenie alarmowe"), "„Ostrzeżenie alarmowe�
 sprawdz(not rso._naglowek_pusty("UWAGA! Rosyjski atak powietrzny na terenie Ukrainy"),
         "prawdziwy komunikat NIE jest uznany za pusty nagłówek")
 
+
+print("5. Etapy komunikatów — dziennik ma je rozpoznawać, nie chować pod „unknown”")
+# 04.10.2026 RSO przysłało „UWAGA. POTENCJALNE ZAGROŻENIE Z POWIETRZA." i etap
+# wyszedł „unknown”, bo nie znaliśmy tego sformułowania. To nie jest ani
+# „sytuacja monitorowana” (zagrożenie nad Ukrainą), ani wezwanie do działania.
+ETAPY = [
+    ("UWAGA. POTENCJALNE ZAGROŻENIE Z POWIETRZA.", "ostrzezenie"),
+    ("UWAGA! Rosyjski atak powietrzny na terenie Ukrainy. Sytuacja jest monitorowana.", "monitor"),
+    ("UWAGA! Znajdź bezpieczne miejsce. Zagrożenie atakiem z powietrza.", "action"),
+    ("UWAGA! Zakończył się atak powietrzny na Ukrainę. Brak zagrożenia na terenie Polski.", "clear"),
+]
+for tekst, oczekiwany in ETAPY:
+    wynik = rso.alert_stage(tekst)
+    sprawdz(wynik == oczekiwany,
+            f"„{tekst[:46]}…” -> {wynik} (oczekiwano {oczekiwany})")
+sprawdz(rso.alert_stage("zupełnie inny komunikat o niczym") == "unknown",
+        "nieznana treść nadal daje „unknown” — nie zgadujemy")
+
+# Etap NIE może przeciekać do punktacji: to dwie osobne listy znaczników.
+sprawdz(rso.rcb_level("UWAGA. POTENCJALNE ZAGROŻENIE Z POWIETRZA.") == 1,
+        "nowy etap NIE zmienia poziomu — „potencjalne zagrożenie” zostaje poziomem 1")
+
 print("\nBŁĘDY: %d" % bledy)
 sys.exit(1 if bledy else 0)
