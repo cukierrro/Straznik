@@ -34,6 +34,11 @@
      układzie, a nie rozpychać paska zakładek. Wartość ustawia app.js przed
      pierwszym odmalowaniem, żeby nie było mignięcia mniejszym tekstem. */
   --skala-tekstu: 1;
+  /* Wysokość paska tytułu. Wartość zapasowa na wypadek, gdyby app.js nie
+     wystartował; prawdziwą mierzy `zmierzPasekTytulu()` i wpisuje tutaj.
+     Pasek rośnie z treścią, z paskiem systemowym i z wielkością tekstu,
+     więc nic pod nim nie może mieć wpisanej liczby na sztywno. */
+  --topbar-h: 90px;
   font-size: calc(15px * var(--skala-tekstu, 1));
 }
 @supports (height: 100dvh) {
@@ -93,7 +98,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 .brand-sub { font-size: 0.7rem; color: var(--muted); letter-spacing: .06em; }
 /* informacja o hostingu (Mikrus) — widoczna także na telefonie, gdy .brand-sub jest ukryty */
 .brand-host { display: flex; align-items: center; gap: 5px; margin-top: 2px; width: max-content;
-  font: 500 10px/1.2 "Segoe UI", system-ui, sans-serif; letter-spacing: .02em;
+  font: 500 0.6667rem/1.2 "Segoe UI", system-ui, sans-serif; letter-spacing: .02em;
   color: var(--muted); text-decoration: none; }
 .brand-host img { height: 8px; width: auto; display: block; }
 /* W aplikacji linia pod „STRAŻNIK” podnosiła cały wiersz z diodami. Tam wychodzi poza
@@ -111,7 +116,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   width: min(340px, 82vw); padding: 13px 15px; border-radius: 14px;
   background: rgba(16,22,34,.985); color: #d7deea; border: 1px solid rgba(159,193,255,.24);
   box-shadow: 0 16px 50px rgba(0,0,0,.62), 0 2px 8px rgba(0,0,0,.4);
-  font: 400 12px/1.55 "Segoe UI", system-ui, sans-serif; letter-spacing: 0; text-transform: none;
+  font: 400 0.8rem/1.55 "Segoe UI", system-ui, sans-serif; letter-spacing: 0; text-transform: none;
   cursor: default; animation: brandPop .14s ease-out; }
 @keyframes brandPop { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: none; } }
 /* strzałka wskazująca na tytuł */
@@ -147,7 +152,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   bottom: calc(var(--tabbar-h) + var(--safe-b) + var(--stack-h, 0px) + 6px);
   max-height: 152px; display: flex; flex-direction: column; overflow: hidden;
   background: #fff; color: #16202f; border-radius: 12px; padding: 8px 10px 9px;
-  box-shadow: 0 8px 40px rgba(0,0,0,.55); font: 10px "Segoe UI", system-ui, sans-serif;
+  box-shadow: 0 8px 40px rgba(0,0,0,.55); font: 0.6667rem "Segoe UI", system-ui, sans-serif;
   line-height: 1.35; }
 /* rozwinięta karta — prawie cały ekran, jak przed 1.7.23 */
 #ac-card.big { right: 8px; width: auto; max-height: 74vh; max-height: 74dvh; border-radius: 14px;
@@ -395,7 +400,8 @@ body.panel-open #update-banner:not(.critical) { display: none; }
    wytyczna OSMF każe jej szukać, i tam, gdzie nie walczy o miejsce z pigułką
    regionu na dole. */
 #attribution {
-  position: fixed; left: 10px; top: calc(60px + var(--safe-t)); z-index: 26;
+  position: fixed; left: 10px; z-index: 26;
+  top: calc(var(--topbar-h, 90px) + 6px + var(--pod-plakietka, 0px));
   max-width: calc(100% - 20px);
   background: var(--panel); border: 1px solid var(--panel-border); border-radius: 8px;
   font-size: 0.6333rem; line-height: 1.35; color: var(--muted); padding: 5px 9px;
@@ -545,18 +551,18 @@ dialog a:hover, dialog a:focus-visible { text-decoration: underline; }
 #tb-national { flex: 0 1 auto; min-width: 0; display: flex; }
 .tb-nat { display: block; max-width: 100%; height: 18px; padding: 0 8px; box-sizing: border-box;
   border: 1px solid var(--nat, #c06bff); border-radius: 8px; background: rgba(192,107,255,.12);
-  color: var(--text); font: 600 11px/16px "Segoe UI", system-ui, sans-serif;
+  color: var(--text); font: 600 0.7333rem/1.455 "Segoe UI", system-ui, sans-serif;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
 body.history-mode #national-banner { display: none; }
-.tb-mode { font: 700 10.5px/1.15 "Segoe UI", system-ui, sans-serif; letter-spacing: .1em;
+.tb-mode { font: 700 0.7rem/1.15 "Segoe UI", system-ui, sans-serif; letter-spacing: .1em;
   color: var(--amber); display: flex; align-items: center; gap: 5px; flex: none; white-space: nowrap; }
 .tb-mode .tb-ico { font-size: 0.8667rem; letter-spacing: 0; }
-#timebar #tb-label { font: 600 13px/1 "Segoe UI", system-ui, sans-serif; color: var(--text);
+#timebar #tb-label { font: 600 0.8667rem/1 "Segoe UI", system-ui, sans-serif; color: var(--text);
   font-variant-numeric: tabular-nums; white-space: nowrap; }
 /* „NA ŻYWO”: ta sama czcionka co nazwa trybu, minimalistyczna ramka */
 .tb-live { flex: none; padding: 2px 7px; border-radius: 5px; text-align: center;
   border: 1px solid rgba(91,140,255,.55); background: transparent; color: var(--accent);
-  font: 700 10.5px/1.15 "Segoe UI", system-ui, sans-serif; letter-spacing: .08em; cursor: pointer;
+  font: 700 0.7rem/1.15 "Segoe UI", system-ui, sans-serif; letter-spacing: .08em; cursor: pointer;
   white-space: nowrap; }
 .tb-live:active { background: rgba(91,140,255,.2); }
 /* suwak historii: tło toru = poziom zagrożenia w czasie (zmienna --tl),
@@ -604,7 +610,7 @@ body.history-mode #national-banner { display: none; }
 .tb-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.2;
   stroke-linecap: round; stroke-linejoin: round; flex: none; }
 .tb-btn svg .fill { fill: currentColor; stroke-width: 1.5; }
-.tb-btn small { font: 600 9px/1 "Segoe UI", system-ui, sans-serif; color: var(--muted);
+.tb-btn small { font: 600 0.6rem/1 "Segoe UI", system-ui, sans-serif; color: var(--muted);
   white-space: nowrap; overflow: hidden; max-width: 100%; }
 .tb-btn:active:not(:disabled) { background: rgba(91,140,255,.28); border-color: var(--accent); }
 .tb-btn:disabled { opacity: .35; cursor: default; }
@@ -615,7 +621,7 @@ body.history-mode #national-banner { display: none; }
 .tb-btn.play.playing .ico-pause { display: inline; }
 .tb-speed { flex: none; margin-left: auto; height: 18px; padding: 0 8px; border-radius: 8px;
   border: 1px solid var(--panel-border); background: rgba(120,150,210,.08); color: var(--text);
-  font: 700 11px/16px "Segoe UI", system-ui, sans-serif; cursor: pointer; }
+  font: 700 0.7333rem/1.455 "Segoe UI", system-ui, sans-serif; cursor: pointer; }
 /* Stała wysokość dwóch wierszy: gdy w oknie pojawiał się sygnał, dochodziła druga
    linijka i cały pasek historii podskakiwał w górę pod palcem. Rezerwujemy miejsce
    od razu, więc pasek stoi w jednym miejscu niezależnie od treści. */
@@ -966,7 +972,7 @@ html[lang="en"] .list:empty::after { content: "— none —"; }
 
 /* ── legenda ── */
 #legend {
-  position: fixed; left: 10px; top: calc(60px + var(--safe-t));
+  position: fixed; left: 10px; top: calc(var(--topbar-h, 90px) + 6px);
   z-index: 26; width: 250px;
   background: var(--panel); border: 1px solid var(--panel-border); border-radius: 12px;
   padding: 10px 12px; backdrop-filter: blur(8px); font-size: 0.8rem;
@@ -1056,7 +1062,7 @@ html[lang="en"] .list:empty::after { content: "— none —"; }
 .lg-row .sq { width: 12px; height: 12px; border-radius: 3px; background: var(--c); }
 .muted-row { color: var(--muted); font-size: 0.7rem; line-height: 1.35; }
 
-#conn-badge { position: fixed; top: calc(60px + var(--safe-t)); left: 12px; z-index: 40;
+#conn-badge { position: fixed; top: calc(var(--topbar-h, 90px) + 6px); left: 12px; z-index: 40;
   background: rgba(64,44,6,.9); color: var(--amber); font-size: 0.7333rem;
   border: 1px solid var(--amber); border-radius: 8px; padding: 4px 10px; }
 .hidden { display: none !important; }
@@ -1420,7 +1426,7 @@ dialog > .dlg-x:focus { outline: none; box-shadow: none; border-color: var(--acc
 .tab-btn {
   position: relative; display: grid; justify-items: center; gap: 3px;
   padding: 6px 2px; border: 0; border-radius: 12px; background: transparent;
-  color: var(--muted); font: 500 10.5px/1.1 "Segoe UI", system-ui, sans-serif;
+  color: var(--muted); font: 500 0.7rem/1.1 "Segoe UI", system-ui, sans-serif;
   cursor: pointer; -webkit-tap-highlight-color: transparent;
 }
 .tab-btn svg { width: 23px; height: 23px; fill: none; stroke: currentColor;
@@ -1453,7 +1459,7 @@ dialog > .dlg-x:focus { outline: none; box-shadow: none; border-color: var(--acc
   width: auto; height: auto; min-width: 96px; padding: 10px 16px 11px;
   border-radius: 14px; background: rgba(13,18,32,.94);
   border: 1px solid var(--line-strong, rgba(120,150,210,.3)); color: var(--text);
-  font: 500 10px/1.1 "Segoe UI", system-ui, sans-serif; cursor: pointer;
+  font: 500 0.6667rem/1.1 "Segoe UI", system-ui, sans-serif; cursor: pointer;
 }
 #map-actions .map-btn span { display: block; font-size: 0.7rem; line-height: 1.15;
   white-space: nowrap; letter-spacing: 0; }
@@ -1500,7 +1506,7 @@ dialog > .dlg-x:focus { outline: none; box-shadow: none; border-color: var(--acc
   display: flex; align-items: center; gap: 12px; width: 100%;
   padding: 12px 13px; border-radius: 11px; text-align: left; cursor: pointer;
   border: 1px solid var(--panel-border); background: rgba(18,26,43,.7);
-  color: var(--text); font: 500 14px/1.25 "Segoe UI", system-ui, sans-serif;
+  color: var(--text); font: 500 0.9333rem/1.25 "Segoe UI", system-ui, sans-serif;
   text-decoration: none;
 }
 .sheet-row svg { width: 21px; height: 21px; flex: none; fill: none; stroke: currentColor;
@@ -1523,7 +1529,7 @@ dialog > .dlg-x:focus { outline: none; box-shadow: none; border-color: var(--acc
   flex: 1 1 auto; padding: 8px 6px; border-radius: 11px; cursor: pointer;
   min-height: 36px;
   border: 1px solid var(--line-strong, rgba(120,150,210,.3)); background: transparent;
-  color: var(--muted); font: 600 11.5px/1 "Segoe UI", system-ui, sans-serif;
+  color: var(--muted); font: 600 0.7667rem/1 "Segoe UI", system-ui, sans-serif;
   white-space: nowrap;
 }
 .set-tab:hover { color: var(--text); }

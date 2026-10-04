@@ -28,11 +28,35 @@ sprawdz(pxWApp.length === 0, `app.js bez font-size w px (znaleziono: ${pxWApp.ma
 const pxWHtml = [...html.matchAll(/font-size:\s*([0-9.]+)px/g)].filter(m => m[1] !== "0");
 sprawdz(pxWHtml.length === 0, `index.html bez font-size w px (znaleziono: ${pxWHtml.map(m => m[1] + "px").join(", ") || "brak"})`);
 
+// Skrót `font:` też niesie rozmiar — pierwsze podejście go przeoczyło
+// i trzynaście napisów (pasek czasu, legenda, atrybucja) zostałoby małych.
+const skrotFont = [...css.matchAll(/(?<![-\w])font:\s*[^;]*?([0-9.]+)px/g)];
+sprawdz(skrotFont.length === 0,
+  `style.css bez skrótu font: z px (znaleziono: ${skrotFont.map(m => m[1] + "px").join(", ") || "brak"})`);
+
 console.log("2. Mnożnik na :root");
 sprawdz(/--skala-tekstu:\s*1;/.test(css), ":root ma --skala-tekstu z wartością domyślną 1");
 sprawdz(/font-size:\s*calc\(15px\s*\*\s*var\(--skala-tekstu/.test(css), "rozmiar bazowy liczony z mnożnika");
 sprawdz(/input, select, textarea \{ font-size: max\(\s*16px\s*,/.test(css),
   "pola formularzy nigdy poniżej 16 px — inaczej iPhone przybliża ekran bezpowrotnie");
+
+console.log("2b. Nic pod paskiem tytułu nie ma wpisanej wysokości");
+// Pasek rośnie z treści, z paska systemowego i z wielkości tekstu. Do 1.7.89
+// stało tu `top: calc(60px + var(--safe-t))` i po przebudowie paska atrybucja
+// wjechała POD ikony — jej tekst prześwitywał między przyciskami przez pięć
+// sekund, zanim zwinęła się do (i). Zgłoszenie użytkownika z 04.10.2026.
+sprawdz(!/top:\s*calc\(60px \+ var\(--safe-t\)\)/.test(css),
+  "żaden element nie wisi na wpisanej na sztywno wysokości paska");
+for (const sel of ["#attribution", "#legend", "#conn-badge"]) {
+  // bez wyrażeń regularnych: bierzemy blok reguły i patrzymy, co w nim stoi
+  const i = css.indexOf(sel + " {");
+  const blok = i < 0 ? "" : css.slice(i, css.indexOf("}", i));
+  sprawdz(blok.includes("var(--topbar-h"), `${sel} ustawia się względem zmierzonego paska`);
+}
+sprawdz(/function zmierzPasekTytulu\(\)/.test(app) && /ResizeObserver/.test(app),
+  "app.js mierzy pasek i nadąża za zmianą jego wysokości");
+sprawdz(/--pod-plakietka/.test(css) && /--pod-plakietka/.test(app),
+  "atrybucja ustępuje plakietce połączenia, zamiast chować się pod nią");
 
 console.log("3. Sterowanie");
 for (const id of ["ts-1", "ts-2", "ts-3"])

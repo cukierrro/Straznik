@@ -6014,6 +6014,41 @@ async function refreshNativeSound() {
   } catch {}
 }
 
+/* ── wysokość paska tytułu ───────────────────────────────────────────────
+   Atrybucja, legenda i plakietka połączenia wisiały na `top: 60px + safe-t`.
+   Po przebudowie paska w 1.7.89 pasek urósł do 90 px i atrybucja wjechała
+   POD ikony: przez pierwsze pięć sekund, zanim zwinie się do (i), jej tekst
+   prześwitywał między przyciskami (zgłoszenie użytkownika 04.10.2026).
+   To nie była nakładka na „stary pasek" — to JEDEN element, który sam się
+   zwija, tyle że stał w złym miejscu.
+   Mierzymy pasek zamiast wpisywać liczbę, bo jego wysokość zależy od treści,
+   od paska systemowego i — od teraz — od wybranej wielkości tekstu. */
+function zmierzPasekTytulu() {
+  const tb = document.getElementById("topbar");
+  if (tb) {
+    const h = Math.round(tb.getBoundingClientRect().bottom);
+    if (h > 0) document.documentElement.style.setProperty("--topbar-h", h + "px");
+  }
+  /* Atrybucja schodzi jeszcze niżej, gdy nad nią wisi plakietka połączenia
+     („łączenie…", „tryb awaryjny…"). Obie stały dotąd na tej samej wysokości
+     i plakietka, z wyższym z-index, zasłaniała początek listy źródeł. */
+  const cb = document.getElementById("conn-badge");
+  const widoczna = cb && !cb.classList.contains("hidden") && cb.getBoundingClientRect().height > 0;
+  document.documentElement.style.setProperty("--pod-plakietka",
+    widoczna ? (Math.round(cb.getBoundingClientRect().height) + 6) + "px" : "0px");
+}
+zmierzPasekTytulu();
+addEventListener("resize", zmierzPasekTytulu);
+{
+  const tb = document.getElementById("topbar");
+  // ResizeObserver i MutationObserver są od Chrome 64 i 18 — obie poniżej
+  // naszej podłogi zgodności (80), więc można na nich polegać.
+  if (tb && window.ResizeObserver) new ResizeObserver(zmierzPasekTytulu).observe(tb);
+  const cb = document.getElementById("conn-badge");
+  if (cb && window.MutationObserver)
+    new MutationObserver(zmierzPasekTytulu).observe(cb, { attributes: true, attributeFilter: ["class"] });
+}
+
 /* ── wielkość tekstu ──────────────────────────────────────────────────────
    Zgłoszenie #4 (filo4444, 22.09.2026) i obietnica z notatek wydania 1.7.81.
    Cała typografia siedzi w `rem`, więc wystarczy jeden mnożnik na :root.
@@ -6032,6 +6067,7 @@ function skalaTekstu() {
 function renderSkalaTekstu() {
   const wybrana = skalaTekstu();
   document.documentElement.style.setProperty("--skala-tekstu", wybrana);
+  zmierzPasekTytulu();   // większy tekst = wyższy pasek = niżej atrybucja
   for (const b of document.querySelectorAll("#text-size .chip")) {
     const on = b.dataset.skala === wybrana;
     b.classList.toggle("active", on);
