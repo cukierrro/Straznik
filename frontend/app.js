@@ -1238,8 +1238,8 @@ function pokazBrakMapy(blad, niewczytana = false) {
   d.setAttribute("role", "alert");
   // prawy margines na kafelki „mój region / strefy / cała PL”, dolny na pasek i zakładki
   d.style.cssText = "position:absolute;top:0;left:0;right:0;bottom:0;display:flex;align-items:flex-start;"
-    + "justify-content:center;padding:84px 104px 150px 18px;overflow:auto;color:#dbe4f5;font-size:14px;line-height:1.5";
-  d.innerHTML = `<div style="max-width:440px"><div style="font-size:28px">🗺️</div><p><b>${UI.t("Na tym urządzeniu nie da się narysować mapy", "The map cannot be drawn on this device", "На цьому пристрої не вдається намалювати мапу")}</b></p><p>${UI.t("Alarmy, panel sygnałów i historia działają — brakuje tylko mapy, bo system blokuje WebGL.", "Alerts, the signals panel and history still work — only the map is missing, because the system blocks WebGL.", "Тривоги, панель сигналів та історія працюють — бракує лише мапи, бо система блокує WebGL.")}</p><p class="muted">${rada}</p></div>`;
+    + "justify-content:center;padding:84px 104px 150px 18px;overflow:auto;color:#dbe4f5;font-size:0.9333rem;line-height:1.5";
+  d.innerHTML = `<div style="max-width:440px"><div style="font-size:1.8667rem">🗺️</div><p><b>${UI.t("Na tym urządzeniu nie da się narysować mapy", "The map cannot be drawn on this device", "На цьому пристрої не вдається намалювати мапу")}</b></p><p>${UI.t("Alarmy, panel sygnałów i historia działają — brakuje tylko mapy, bo system blokuje WebGL.", "Alerts, the signals panel and history still work — only the map is missing, because the system blocks WebGL.", "Тривоги, панель сигналів та історія працюють — бракує лише мапи, бо система блокує WebGL.")}</p><p class="muted">${rada}</p></div>`;
   box.appendChild(d);
   if (blad) console.warn("Mapa niedostępna:", blad);
 }
@@ -1254,9 +1254,9 @@ function pokazNiewczytanaMape(box, blad) {
   d.id = "map-niedostepna";
   d.setAttribute("role", "alert");
   d.style.cssText = "position:absolute;top:0;left:0;right:0;bottom:0;display:flex;align-items:flex-start;"
-    + "justify-content:center;padding:84px 104px 150px 18px;overflow:auto;color:#dbe4f5;font-size:14px;line-height:1.5";
+    + "justify-content:center;padding:84px 104px 150px 18px;overflow:auto;color:#dbe4f5;font-size:0.9333rem;line-height:1.5";
   const tech = String(blad || "brak odpowiedzi").slice(0, 300);
-  d.innerHTML = `<div style="max-width:440px"><div style="font-size:28px">🗺️</div><p><b>${UI.t("Mapa się nie wczytała", "The map did not load", "Мапа не завантажилася")}</b></p><p>${UI.t("Alarmy, panel sygnałów i historia działają. Kafelki mapy pochodzą z zewnętrznego serwera map — coś na tym urządzeniu albo w sieci je blokuje.", "Alerts, the signals panel and history still work. The map tiles come from an outside map server — something on this device or network is blocking them.", "Тривоги, панель сигналів та історія працюють. Плитки мапи надходять із зовнішнього сервера мап — щось на цьому пристрої або в мережі їх блокує.")}</p><p class="muted">${UI.t("Najczęściej: bloker treści lub reklam, filtr DNS (AdGuard, NextDNS), VPN albo Prywatny przekaźnik iCloud. Spróbuj na chwilę go wyłączyć albo przełączyć się między Wi-Fi a danymi komórkowymi.", "Most often: a content or ad blocker, a DNS filter (AdGuard, NextDNS), a VPN or iCloud Private Relay. Try turning it off for a moment, or switch between Wi-Fi and mobile data.", "Найчастіше: блокувальник вмісту чи реклами, DNS-фільтр (AdGuard, NextDNS), VPN або Приватний вузол iCloud. Спробуйте на хвилину його вимкнути або перемкнутися між Wi-Fi і мобільними даними.")}</p><p class="muted" style="font-size:12px">${UI.t("Szczegół techniczny", "Technical detail", "Технічна деталь")}: ${esc(tech)}</p></div>`;
+  d.innerHTML = `<div style="max-width:440px"><div style="font-size:1.8667rem">🗺️</div><p><b>${UI.t("Mapa się nie wczytała", "The map did not load", "Мапа не завантажилася")}</b></p><p>${UI.t("Alarmy, panel sygnałów i historia działają. Kafelki mapy pochodzą z zewnętrznego serwera map — coś na tym urządzeniu albo w sieci je blokuje.", "Alerts, the signals panel and history still work. The map tiles come from an outside map server — something on this device or network is blocking them.", "Тривоги, панель сигналів та історія працюють. Плитки мапи надходять із зовнішнього сервера мап — щось на цьому пристрої або в мережі їх блокує.")}</p><p class="muted">${UI.t("Najczęściej: bloker treści lub reklam, filtr DNS (AdGuard, NextDNS), VPN albo Prywatny przekaźnik iCloud. Spróbuj na chwilę go wyłączyć albo przełączyć się między Wi-Fi a danymi komórkowymi.", "Most often: a content or ad blocker, a DNS filter (AdGuard, NextDNS), a VPN or iCloud Private Relay. Try turning it off for a moment, or switch between Wi-Fi and mobile data.", "Найчастіше: блокувальник вмісту чи реклами, DNS-фільтр (AdGuard, NextDNS), VPN або Приватний вузол iCloud. Спробуйте на хвилину його вимкнути або перемкнутися між Wi-Fi і мобільними даними.")}</p><p class="muted" style="font-size:0.8rem">${UI.t("Szczegół techniczny", "Technical detail", "Технічна деталь")}: ${esc(tech)}</p></div>`;
   box.appendChild(d);
 }
 
@@ -2168,7 +2168,7 @@ function planePopupHTML(p, heli, uid) {
   const vrTxt = vr == null ? "" : vr > 100 ? ` · ↑ ${vr} ft/min`
     : vr < -100 ? ` · ↓ ${Math.abs(vr)} ft/min` : (UI.t(" · lot poziomy", " · level flight", " · горизонтальний політ"));
   const mil = (p.dbflags & 1)
-    ? `<span style="background:#7a1d2b;color:#fff;border-radius:4px;padding:1px 5px;font-size:10px">${UI.t("WOJSKOWY", "MILITARY", "ВІЙСЬКОВИЙ")}</span> ` : "";
+    ? `<span style="background:#7a1d2b;color:#fff;border-radius:4px;padding:1px 5px;font-size:0.6667rem">${UI.t("WOJSKOWY", "MILITARY", "ВІЙСЬКОВИЙ")}</span> ` : "";
   const nav = Array.isArray(p.nav_modes) ? p.nav_modes.join(", ") : (p.nav_modes || "");
   const geom = p.alt_geom != null && p.alt_geom !== p.alt
     ? ` <span style="color:#68758c">(geom. ${ftToM(p.alt_geom)} m)</span>` : "";
@@ -2177,10 +2177,10 @@ function planePopupHTML(p, heli, uid) {
   return `<div>
     <div id="${uid}-box" class="ac-photo" style="display:none;margin:-2px 0 6px">
       <img id="${uid}" alt="" style="width:100%;max-height:220px;object-fit:contain;border-radius:6px;display:block">
-      <div class="ph-cr" style="font-size:10px;color:#68758c;margin-top:2px"></div>
+      <div class="ph-cr" style="font-size:0.6667rem;color:#68758c;margin-top:2px"></div>
     </div>
-    <div id="${uid}-missing" style="font-size:10px;color:#68758c;margin-bottom:6px">${UI.t("Brak zweryfikowanego zdjęcia tego modelu/wariantu.", "No verified photo for this model/variant.", "Немає перевіреного фото цієї моделі/варіанта.")}</div>
-    <b style="font-size:13.5px">${heli ? "🚁" : "✈"} ${esc2(p.callsign || p.hex || "?")}</b>
+    <div id="${uid}-missing" style="font-size:0.6667rem;color:#68758c;margin-bottom:6px">${UI.t("Brak zweryfikowanego zdjęcia tego modelu/wariantu.", "No verified photo for this model/variant.", "Немає перевіреного фото цієї моделі/варіанта.")}</div>
+    <b style="font-size:0.9rem">${heli ? "🚁" : "✈"} ${esc2(p.callsign || p.hex || "?")}</b>
       ${p.reg ? ` · ${UI.t("rej.", "reg.", "реєстр.")} ${esc2(p.reg)}` : ""}<br>
     ${mil}${c ? `${c.flag} ${esc2(countryText(c.name))} · ` : ""}<b>${esc2(acName(p.type, p.desc))}</b>${p.year ? ` (${esc2(p.year)})` : ""}<br>
     ${role ? `${UI.t("przeznaczenie", "role", "призначення")}: <b>${esc2(roleText(role))}</b><br>` : ""}
@@ -2195,11 +2195,11 @@ function planePopupHTML(p, heli, uid) {
       ${row(UI.t("tryby nav", "nav modes", "режими навігації"), nav ? esc2(nav) : "")}
       ${row(UI.t("sygnał", "signal", "сигнал"), `${esc2(p.source || "ADS-B/MLAT")}${Number.isFinite(+p.rssi) && p.rssi !== null ? ` · ${+p.rssi} dBFS` : ""}${Number.isFinite(+p.messages) && p.messages !== null ? ` · ${+p.messages} msg/s` : ""}`)}
     </table>
-    ${p.held ? `<div style="color:#ffb020;font-size:11px;margin-bottom:5px">${UI.t("Pozycja wstrzymana: ostatni meldunek odrzucony jako niemożliwy skok (maszyna nie przeleciałaby tego dystansu w tym czasie). Pokazujemy ostatnią wiarygodną pozycję do czasu poprawnego meldunku.", "Position held: the latest report was rejected as an impossible jump (the aircraft could not cover that distance in that time). We show the last credible position until a sound report arrives.", "Позицію утримано: останнє повідомлення відхилено як неможливий стрибок (машина не подолала б цю відстань за такий час). Показуємо останню достовірну позицію до коректного повідомлення.")}</div>` : ""}
-    ${p.source === "MLAT" ? `<div style="color:#ffb020;font-size:11px;margin-bottom:5px">${UI.t("Pozycja z MLAT: policzona przez odbiorniki z różnic czasu dotarcia sygnału, a nie podana przez maszynę. Poza zasięgiem odbiorników — nad Białorusią, Rosją, morzem — potrafi odbiec od prawdziwej o kilkadziesiąt kilometrów. Wysokość, prędkość i kurs schodzą z pokładu i są wiarygodne.", "MLAT position: computed by ground receivers from signal time differences, not reported by the aircraft. Outside receiver coverage — over Belarus, Russia, open sea — it can be tens of kilometres off. Altitude, speed and heading come from the aircraft itself and are reliable.", "Позиція з MLAT: обчислена приймачами з різниці часу надходження сигналу, а не передана самим літаком. Поза зоною приймачів — над Білоруссю, Росією, морем — вона може відхилятися на десятки кілометрів. Висота, швидкість і курс надходять з борту і є достовірними.")}</div>` : ""}
-    <button class="btn-follow chip" style="font-size:11px;padding:3px 8px;margin-bottom:4px">${followHex === p.hex
+    ${p.held ? `<div style="color:#ffb020;font-size:0.7333rem;margin-bottom:5px">${UI.t("Pozycja wstrzymana: ostatni meldunek odrzucony jako niemożliwy skok (maszyna nie przeleciałaby tego dystansu w tym czasie). Pokazujemy ostatnią wiarygodną pozycję do czasu poprawnego meldunku.", "Position held: the latest report was rejected as an impossible jump (the aircraft could not cover that distance in that time). We show the last credible position until a sound report arrives.", "Позицію утримано: останнє повідомлення відхилено як неможливий стрибок (машина не подолала б цю відстань за такий час). Показуємо останню достовірну позицію до коректного повідомлення.")}</div>` : ""}
+    ${p.source === "MLAT" ? `<div style="color:#ffb020;font-size:0.7333rem;margin-bottom:5px">${UI.t("Pozycja z MLAT: policzona przez odbiorniki z różnic czasu dotarcia sygnału, a nie podana przez maszynę. Poza zasięgiem odbiorników — nad Białorusią, Rosją, morzem — potrafi odbiec od prawdziwej o kilkadziesiąt kilometrów. Wysokość, prędkość i kurs schodzą z pokładu i są wiarygodne.", "MLAT position: computed by ground receivers from signal time differences, not reported by the aircraft. Outside receiver coverage — over Belarus, Russia, open sea — it can be tens of kilometres off. Altitude, speed and heading come from the aircraft itself and are reliable.", "Позиція з MLAT: обчислена приймачами з різниці часу надходження сигналу, а не передана самим літаком. Поза зоною приймачів — над Білоруссю, Росією, морем — вона може відхилятися на десятки кілометрів. Висота, швидкість і курс надходять з борту і є достовірними.")}</div>` : ""}
+    <button class="btn-follow chip" style="font-size:0.7333rem;padding:3px 8px;margin-bottom:4px">${followHex === p.hex
       ? (UI.t("■ przestań śledzić", "■ stop tracking", "■ припинити стеження")) : (UI.t("📍 śledź trasę", "📍 follow track", "📍 стежити за шляхом"))}</button>
-    <div style="color:#68758c;font-size:11px">${UI.t("publiczny transponder ADS-B/MLAT — pozycja emisji, nie namierzanie. Telemetria: dostawcy ADS-B. Zdjęcie modelu: biblioteka lokalna; źródło i licencja powyżej.", "public ADS-B/MLAT transponder — emitted position, not active tracking. Telemetry: ADS-B providers. Model photo: local library; source and license above.", "відкритий транспондер ADS-B/MLAT — позиція випромінювання, а не радарне стеження. Телеметрія: постачальники ADS-B. Фото моделі: локальна бібліотека; джерело й ліцензія вище.")}</div>
+    <div style="color:#68758c;font-size:0.7333rem">${UI.t("publiczny transponder ADS-B/MLAT — pozycja emisji, nie namierzanie. Telemetria: dostawcy ADS-B. Zdjęcie modelu: biblioteka lokalna; źródło i licencja powyżej.", "public ADS-B/MLAT transponder — emitted position, not active tracking. Telemetry: ADS-B providers. Model photo: local library; source and license above.", "відкритий транспондер ADS-B/MLAT — позиція випромінювання, а не радарне стеження. Телеметрія: постачальники ADS-B. Фото моделі: локальна бібліотека; джерело й ліцензія вище.")}</div>
   </div>`;
 }
 
@@ -3293,7 +3293,7 @@ function renderObservationLists(viewState) {
          data-lat="${p.lat}" data-lon="${p.lon}" data-kind="plane">
       <b style="color:#39c5ec">${heli ? "🚁" : "✈"} ${esc(p.callsign || p.hex)}</b>
       ${esc(acName(p.type, p.desc))}${p.year ? ` <span class="meta">(${esc(p.year)})</span>` : ""}
-      ${role ? `<div style="color:#9fd8ec;font-size:11px">${esc(roleText(role))}</div>` : ""}
+      ${role ? `<div style="color:#9fd8ec;font-size:0.7333rem">${esc(roleText(role))}</div>` : ""}
       <div class="meta">
         ${UI.t("woj.", "province", "воєв.")} ${esc(UI.voiv(p.voivodeship))}
         · ${altText(p.alt)}
@@ -6013,6 +6013,41 @@ async function refreshNativeSound() {
     renderYellowLevel();
   } catch {}
 }
+
+/* ── wielkość tekstu ──────────────────────────────────────────────────────
+   Zgłoszenie #4 (filo4444, 22.09.2026) i obietnica z notatek wydania 1.7.81.
+   Cała typografia siedzi w `rem`, więc wystarczy jeden mnożnik na :root.
+   Odstępy, wysokości i pole dotykowe zostają w px CELOWO — przy skalowaniu
+   wszystkiego razem rosłaby też wysokość paska zakładek i okna przestałyby
+   się mieścić (ten sam problem, który łataliśmy przez `--dlg-max`).
+   Wartość ustawia też skrypt w nagłówku strony, przed pierwszym odmalowaniem;
+   tutaj jest druga połowa: sterowanie i zapis. */
+const SKALE_TEKSTU = ["1", "1.15", "1.3"];
+function skalaTekstu() {
+  try {
+    const v = localStorage.getItem("straznik_skala_tekstu");
+    return SKALE_TEKSTU.includes(v) ? v : "1";
+  } catch { return "1"; }
+}
+function renderSkalaTekstu() {
+  const wybrana = skalaTekstu();
+  document.documentElement.style.setProperty("--skala-tekstu", wybrana);
+  for (const b of document.querySelectorAll("#text-size .chip")) {
+    const on = b.dataset.skala === wybrana;
+    b.classList.toggle("active", on);
+    // sama klasa jest wyłącznie wizualna — czytnik ekranu czyta aria-pressed
+    b.setAttribute("aria-pressed", on ? "true" : "false");
+  }
+}
+for (const b of document.querySelectorAll("#text-size .chip")) {
+  b.addEventListener("click", () => {
+    const skala = b.dataset.skala;
+    if (!SKALE_TEKSTU.includes(skala)) return;
+    try { localStorage.setItem("straznik_skala_tekstu", skala); } catch {}
+    renderSkalaTekstu();
+  });
+}
+renderSkalaTekstu();
 
 /* ── głośność żółtego sygnału uwagi ───────────────────────────────────────── */
 function renderYellowLevel() {

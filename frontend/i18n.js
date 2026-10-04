@@ -326,10 +326,29 @@
       const el=document.getElementById(id)?.closest("label");
       if (el?.firstChild) el.firstChild.nodeValue=(en?eng:pl)+"\n      ";
     };
-    // kolejność zgodna z zakładkami: Alarmy → Moje miejsca → Dźwięk → Aplikacja
-    many(":scope .set-pane > h3:not(#trail-head)", en
-      ? ["Alerts while the app is closed","My places","Alert sounds","Language","App version"]
-      : ["Alarmy przy zamkniętej aplikacji","Moje miejsca","Sygnały dźwiękowe","Język","Wersja aplikacji"]);
+    /* Nagłówki zakładek ustawień PO IDENTYFIKATORACH, nie po kolejności.
+       Wcześniej stał tu `many(":scope .set-pane > h3…")` z listą pięciu napisów
+       mapowaną po indeksie. Dołożenie szóstego nagłówka („Wielkość tekstu",
+       zgłoszenie #4) przesunęłoby całą listę o jeden i „Wersja aplikacji"
+       zostałaby po polsku — ten sam błąd, który złapaliśmy 24.09 i 03.10.
+       NIE przywracać selektorów pozycyjnych. */
+    button("set-h-alarmy", "Alarmy przy zamkniętej aplikacji", "Alerts while the app is closed");
+    button("set-h-miejsca", "Moje miejsca", "My places");
+    button("set-h-dzwiek", "Sygnały dźwiękowe", "Alert sounds");
+    button("set-h-jezyk", "Język", "Language");
+    button("set-h-wersja", "Wersja aplikacji", "App version");
+    button("set-h-wersja-www", "Wersja", "Version");
+    button("ts-head", "Wielkość tekstu", "Text size");
+    button("ts-1", "Normalna", "Normal");
+    button("ts-2", "Większa", "Larger");
+    button("ts-3", "Największa", "Largest");
+    button("jak-ts", "Czego dotyczy to ustawienie", "What this setting covers");
+    {
+      const ts = document.getElementById("ts-note");
+      if (ts) ts.innerHTML = en
+        ? "Enlarges <b>every piece of text</b> at once — in the panel, on the cards, in the legend and on the alert screen. Spacing and buttons keep their size so the layout does not fall apart. It applies at once, with no saving and no restart. On Android it <b>multiplies</b> with the system font size, so with a large system font “Normal” is usually enough. Labels on the map itself come from the map server and this setting does not change them."
+        : "Powiększa <b>wszystkie napisy</b> naraz — w panelu, na kartach, w legendzie i na ekranie alarmu. Odstępy i przyciski zostają tej samej wielkości, żeby układ się nie rozjechał. Działa od razu, bez zapisywania i bez restartu. Na Androidzie <b>mnoży się</b> z systemowym rozmiarem czcionki, więc przy dużej czcionce w systemie zwykle wystarcza „Normalna”. Napisy na samej mapie pochodzą z serwera map i tym ustawieniem się nie zmieniają.";
+    }
     // Sekcja tras stoi poza selektorami pozycyjnymi (nagłówek po identyfikatorze,
     // opis w <div>, a nie w <p>) — ustawia ją w całości trailSection.
     trailSection(en);
@@ -446,6 +465,11 @@
      Bloki z pogrubieniami i odnosnikami stoja nizej, w HTML_UK — tam kolejnosc slow
      w zdaniu ukrainskim jest inna niz w angielskim i tlumaczenie po kawalku wyszloby zle. */
   const EN2UK = {
+    // Wielkość tekstu (zgłoszenie #4). Klucz to CAŁY napis po angielsku.
+    "Text size": "Розмір тексту",
+    "Larger": "Більший",
+    "Largest": "Найбільший",
+    "Version": "Версія",
     "Neighbours (shadow)": "Сусіди (тінь)",
     "Air-raid alert in Moldova, Romania, Slovakia, Czechia, Sweden or Hungary according to local media: we show it on the map and in the signal list, but for now it scores nothing — we are gathering evidence before setting the weights": "Повітряна тривога в Молдові, Румунії, Словаччині, Чехії, Швеції чи Угорщині за даними тамтешніх ЗМІ: показуємо її на мапі та в списку сигналів, але поки вона не дає балів — збираємо матеріал, перш ніж встановити ваги",
     /* Legenda: drugi przebieg, z angielskiego na ukrainski. */
@@ -1049,6 +1073,21 @@
     { const el = document.getElementById("rs-note"); if (el) el.innerHTML = "The siren goes quiet, the rest of the alert stays: full screen, flashing and strong vibration, including in Do Not Disturb. A paired watch vibrates just the same. <b>Think it over before nightfall:</b> with the screen off and the phone in another room you may not notice an alert like that. Red only — the yellow attention signal has its own setting above."; }
     const dndNote = document.getElementById("dnd-note");
     if (dndNote) dndNote.innerHTML = DND_NOTE_EN;
+    set("#set-h-alarmy", "Alerts while the app is closed");
+    set("#set-h-miejsca", "My places");
+    set("#set-h-dzwiek", "Alert sounds");
+    set("#set-h-jezyk", "Language");
+    set("#set-h-wersja", "App version");
+    set("#set-h-wersja-www", "Version");
+    set("#ts-head", "Text size");
+    set("#ts-1", "Normal");
+    set("#ts-2", "Larger");
+    set("#ts-3", "Largest");
+    set("#jak-ts", "What this setting covers");
+    {
+      const tsNote = document.getElementById("ts-note");
+      if (tsNote) tsNote.innerHTML = "Enlarges <b>every piece of text</b> at once — in the panel, on the cards, in the legend and on the alert screen. Spacing and buttons keep their size so the layout does not fall apart. It applies at once, with no saving and no restart. On Android it <b>multiplies</b> with the system font size, so with a large system font “Normal” is usually enough. Labels on the map itself come from the map server and this setting does not change them.";
+    }
     set("#yv-head", "Attention sound volume (yellow)");
     set("#yv-normal", "Normal");
     set("#yv-quiet", "Quieter");
@@ -1131,6 +1170,17 @@
     // a pogrubienie rozbija je na osobne wezly tekstowe. Podmieniamy wprost.
     const rsNote = document.getElementById("rs-note");
     if (rsNote) rsNote.innerHTML = "Сирена змовкає, решта тривоги лишається: повний екран, миготіння і сильна вібрація, зокрема в режимі «Не турбувати». Спарений годинник завібрує так само. <b>Обміркуйте це перед ніччю:</b> з вимкненим екраном і телефоном в іншій кімнаті ви можете такої тривоги не помітити. Стосується лише червоного — жовтий сигнал уваги має власне налаштування вище.";
+    /* „Normal" jest w słowniku raz, jako „Звичайна" — rodzaj żeński, bo klucz
+       powstał przy głośności („гучність"). Przy wielkości tekstu rzeczownikiem
+       jest „розмір", rodzaj męski, więc ten jeden przycisk nadpisujemy po
+       identyfikatorze. Słownik EN2UK ma klucz będący całym zdaniem i nie
+       rozróżnia kontekstu. TO MUSI STAĆ W `ukrainize`, nie w `translateStatic`:
+       za pierwszym razem wylądowało w ścieżce angielskiej i po angielsku
+       wyświetlało się „Звичайний". */
+    const ts1 = document.getElementById("ts-1");
+    if (ts1) ts1.textContent = "Звичайний";
+    const tsNote = document.getElementById("ts-note");
+    if (tsNote) tsNote.innerHTML = "Збільшує <b>всі написи</b> одразу — на панелі, на картках, у легенді та на екрані тривоги. Відступи й кнопки залишаються того самого розміру, щоб розмітка не розповзлася. Діє відразу, без збереження і без перезапуску. На Android він <b>множиться</b> із системним розміром шрифту, тож за великого системного шрифту зазвичай вистачає «Звичайний». Написи на самій мапі надходять із сервера мап і це налаштування їх не змінює.";
     const yvNote = document.getElementById("yv-note");
     if (yvNote) yvNote.innerHTML = "Стосується лише <b>жовтого</b> сигналу уваги. Червону тривогу це не вимикає — вона має власне налаштування. «Без звуку» залишає банер і вібрацію.";
     const placeName = document.getElementById("place-name");

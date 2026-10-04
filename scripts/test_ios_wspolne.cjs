@@ -45,8 +45,12 @@ for (const id of ['btn-native-test', 'btn-native-test-yellow']) {
   sprawdz(tag && !/android-only/.test(tag), `#${id} zostaje — na iOS działa`);
 }
 
-sprawdz(/@supports \(-webkit-touch-callout: none\)[^}]*\{[\s\S]{0,200}input, select, textarea \{ font-size: 16px/.test(css),
-  'pola formularzy mają 16 px na iOS — mniejsze pole przybliża cały ekran i nie da się tego cofnąć');
+/* Od 1.7.90 typografia jest w `rem` (regulacja wielkości tekstu, zgłoszenie #4),
+   więc pole formularza zapisujemy jako `max(16px, …)`: rośnie razem z ustawieniem,
+   ale NIGDY nie spada poniżej 16 px. Test przyjmuje oba zapisy — goły `16px`
+   i `max(16px, …)` — i dalej odrzuca każdą wartość mniejszą. */
+sprawdz(/@supports \(-webkit-touch-callout: none\)[^}]*\{[\s\S]{0,200}input, select, textarea \{ font-size: (?:16px|max\(\s*16px\s*,)/.test(css),
+  'pola formularzy mają co najmniej 16 px na iOS — mniejsze pole przybliża cały ekran i nie da się tego cofnąć');
 // Strona WWW nie blokuje powiększania (dostępność). Aplikacja blokuje je od 1.7.72 (czytelnik przypadkiem
 // powiększał cały interfejs dwoma palcami), bo tam systemowe Powiększenie/Lupa Androida i iOS działa dalej.
 const metaViewport = (html.match(/<meta name="viewport" content="([^"]+)"/) || [])[1] || '';
