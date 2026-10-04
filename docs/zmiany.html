@@ -40,6 +40,20 @@
 </div></header>
 <main id="content" class="wrap">
 <section id="v1-7-88">
+  <h2>1.7.90 — wielkość tekstu, świeży wykaz schronień, jedna prędkość</h2>
+  <p class="fineprint">Wydanie 1.7.90 · 4 października 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.90">Pełny opis wydania</a></p>
+  <ul>
+    <li><b>Możesz powiększyć tekst w całej aplikacji.</b> ⚙ → Aplikacja → „Wielkość tekstu": Normalna, Większa albo Największa. Działa od razu, bez zapisywania i bez restartu. Powiększa wszystkie napisy naraz — w panelu, na kartach, w legendzie, na ekranie alarmu i w GROCIE — ale odstępy i przyciski zostają, żeby układ się nie rozjechał. Na Androidzie mnoży się z systemowym rozmiarem czcionki, więc przy dużej czcionce w telefonie zwykle wystarcza „Normalna".</li>
+    <li><b>GROTA ma wykaz PSP z 28 września:</b> 86 533 miejsca zamiast 86 388. Pierwszy raz żaden punkt nie wypadł z prowadzenia — osiem wróciło. Mieszkańców dalej niż 5 km od najbliższego miejsca jest o 82 tysiące mniej, a gmin bez żadnego punktu 205 zamiast 225.</li>
+    <li>W powiecie bartoszyckim <b>ubyło 405 punktów</b> (Bartoszyce 491 → 229, Górowo Iławeckie 105 → 28). Sprawdziliśmy po współrzędnych: to realne wykreślenia po stronie PSP, nie przenumerowanie. PSP poprawiło też własne błędy — punkt z ulicy Łuckiej w Warszawie stał do tej pory 144 km dalej, pod Łodzią.</li>
+    <li><b>GROTA: przycisk „Lista" na ekranie Mapa.</b> Te same miejsca i filtry co na mapie, ale jako lista do przejścia klawiaturą i czytnikiem ekranu — z adresem, odległością, czasem dojścia i pewnością położenia. Przy okazji widać wreszcie, który element ma fokus klawiatury.</li>
+    <li><b>Czas dolotu liczy jedna reguła</b> na serwerze i w aplikacji: prędkość typowa jest podłogą, a wyliczona z ruchu może ją tylko podnieść, nigdy obniżyć. Karta pokazuje teraz dokładnie tę prędkość, na której oparty jest alarm — wcześniej dla dronów odrzutowych podawała dłuższy czas niż powiadomienie, czyli obiecywała zapas, którego sami nie zakładaliśmy.</li>
+    <li><b>Mówimy wprost, czego nie wiemy.</b> Źródło w praktyce nie rozróżnia zwykłych dronów od Shahedów — przychodzą razem jako „Dron / BpSP". Karta obiektu pisze teraz, że przyjmujemy wariant groźniejszy, a legenda wyjaśnia, że rozdzielenie na osobne ikony pochodzi od nas, a nie z meldunku.</li>
+    <li>Naprawione: rozwinięty pasek źródeł wchodził pod pasek tytułu i jego tekst prześwitywał między ikonami przez pierwsze pięć sekund. Plakietka połączenia zasłaniała listę źródeł.</li>
+    <li>Naprawione: <b>dron rozpoznawczy nie dostawał czasu dolotu</b> na karcie ani zapasu na wiek meldunku na mapie. Punktacja i alarmy były dla niego poprawne — błędne było tylko to, co widział człowiek.</li>
+    <li>Punktacja, progi i treść alarmów bez zmian.</li>
+  </ul>
+
   <h2>1.7.89 — porządek w oknach: rozwijane sekcje i jeden kształt</h2>
   <p class="fineprint">Wydanie 1.7.89 · 3 października 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.89">Pełny opis wydania</a></p>
   <ul>
