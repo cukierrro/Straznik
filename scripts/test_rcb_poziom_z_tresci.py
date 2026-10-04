@@ -116,5 +116,100 @@ sprawdz(rso.alert_stage("zupełnie inny komunikat o niczym") == "unknown",
 sprawdz(rso.rcb_level("UWAGA. POTENCJALNE ZAGROŻENIE Z POWIETRZA.") == 1,
         "nowy etap NIE zmienia poziomu — „potencjalne zagrożenie” zostaje poziomem 1")
 
+
+print("6. Odwolanie NIE moze przejsc sciezka alertu")
+# Pulapka sprzezenia: odwolanie „Odwolano zagrozenie atakiem z powietrza" ZAWIERA
+# zwrot z poziomu 3. Po zmianie liczenia poziomu z calej tresci wyszloby z niego
+# 4,5 pkt i KLUCZ CZERWONEGO — czyli odwolanie zapalaloby alarm. Nie dzieje sie
+# tak tylko dlatego, ze `_is_rcb_air_cancellation` jest sprawdzane WCZESNIEJ
+# i konczy obieg. Gdyby ktos odwrocil kolejnosc, zrobiloby sie cicho i zle.
+ODWOLANIA = [
+    "Odwołano zagrożenie atakiem z powietrza.",
+    "UWAGA! Odwołano zagrożenie atakiem z powietrza. Brak zagrożenia na terenie Polski.",
+    "UWAGA! Zakończył się atak powietrzny na Ukrainę. Brak zagrożenia na terenie Polski.",
+]
+for tekst in ODWOLANIA:
+    it = {"title": "Alert RCB", "shortcut": "Alert RCB", "content": tekst}
+    sprawdz(rso._is_rcb_air_cancellation(it),
+            f"odwołanie rozpoznane przed punktacją: „{tekst[:48]}…”")
+# ...i odwrotnie: prawdziwy alert nie moze zostac wziety za odwolanie
+for tekst in ["UWAGA! UWAGA! UWAGA! Zagrożenie atakiem z powietrza. Udaj się w bezpieczne miejsce.",
+              "UWAGA! Rosyjski atak powietrzny na terenie Ukrainy. Sytuacja jest monitorowana."]:
+    it = {"title": "Alert RCB", "shortcut": "Alert RCB", "content": tekst}
+    sprawdz(not rso._is_rcb_air_cancellation(it),
+            f"alert NIE wzięty za odwołanie: „{tekst[:48]}…”")
+# Dowod, ze sprzezenie jest realne: sama tresc odwolania daje poziom 3.
+sprawdz(rso.rcb_level("Odwołano zagrożenie atakiem z powietrza.") == 3,
+        "treść odwołania SAMA W SOBIE daje poziom 3 — dlatego kolejność sprawdzeń ma znaczenie")
+
+
+print("7. TRZY OFICJALNE PROGI RCB (wprowadzone 17.09.2026) — tresci doslowne")
+# Zrodlo: opis trzech wariantow alertu opublikowany 17.09.2026 (portalobronny.se.pl,
+# potwierdzony przez polskieradio24 i wnp.pl; data zgadza sie z komentarzem przy
+# RCB_LEVEL_MARKERS). To sa wzorcowe tresci — jesli RCB je zmieni, ten test padnie
+# i bedzie to WLASCIWY sygnal, zeby zaktualizowac znaczniki, a nie usuwac asercje.
+OFICJALNE = [
+    (1, "UWAGA! Rosyjski atak powietrzny na terenie Ukrainy. Sytuacja jest monitorowana. "
+        "W przestrzeni RP operuje polskie lotnictwo. Oczekuj dalszych komunikatów"),
+    (2, "UWAGA! Trwa zmasowany rosyjski atak powietrzny na Zachodnią Ukrainę. "
+        "Oczekuj dalszych komunikatów. Reaguj na sygnały alarmowe"),
+    (3, "UWAGA! UWAGA! UWAGA! Zagrożenie atakiem z powietrza. Znajdź bezpieczne miejsce. "
+        "Stosuj się do poleceń służb. Oczekuj dalszych komunikatów"),
+]
+for oczekiwany, tekst in OFICJALNE:
+    it = {"title": "Alert RCB", "shortcut": "Alert RCB", "content": tekst}
+    sprawdz(not rso._is_rcb_air_cancellation(it),
+            f"próg {oczekiwany} nie jest brany za odwołanie")
+    wynik = poziom_wpisu(it)
+    sprawdz(wynik == oczekiwany,
+            f"próg {oczekiwany}: wyszedł {wynik} ({config.RCB_LEVEL_POINTS[wynik]} pkt) "
+            f"— „{tekst[:44]}…”")
+
+# Trzeci prog MUSI dawac klucz czerwonego: to jedyny komunikat, w ktorym panstwo
+# kaze szukac bezpiecznego miejsca.
+from app import fusion                                           # noqa: E402
+it3 = {"title": "Alert RCB", "shortcut": "Alert RCB", "content": OFICJALNE[2][1]}
+sygnal3 = {"event_type": "rso_alert", "ts": "2026-10-04T13:33:38+00:00",
+           "counted_points": 4.5, "details": {"rcb_level": poziom_wpisu(it3)}}
+sprawdz((fusion.red_key([sygnal3]) or {}).get("powod") == "rcb3",
+        "trzeci próg daje KLUCZ czerwonego alarmu")
+# ...a drugi i pierwszy NIE daja, choc drugi to juz 3 pkt.
+for oczekiwany, tekst in OFICJALNE[:2]:
+    it = {"title": "Alert RCB", "shortcut": "Alert RCB", "content": tekst}
+    syg = {"event_type": "rso_alert", "ts": "2026-10-04T13:33:38+00:00",
+           "counted_points": 3.0, "details": {"rcb_level": poziom_wpisu(it)}}
+    sprawdz(fusion.red_key([syg]) is None,
+            f"próg {oczekiwany} NIE daje klucza czerwonego")
+
+
+print("8. Odwolania trzech progow — wykrywane, a alerty NIE wyciszane")
+# Potwierdzone tresci odwolan RCB (dwie) plus formy, ktorych RCB dotad nie uzylo,
+# ale ktore przeciekaly: „Koniec zagrozenia…" i „…ustapilo" nie pasowaly do zadnej
+# formy w RSO_END i przeszlyby jako NOWY alert, trzymajac punkty zamiast je zdjac.
+ODWOLANIA_ROZSZERZONE = [
+    "UWAGA! Zakończył się atak powietrzny na Ukrainę. Brak zagrożenia na terenie Polski",
+    "Odwołano zagrożenie atakiem z powietrza",
+    "UWAGA! Zakończył się zmasowany rosyjski atak powietrzny na Zachodnią Ukrainę",
+    "UWAGA! Koniec zagrożenia atakiem z powietrza",
+    "UWAGA! Ustąpiło zagrożenie atakiem z powietrza",
+    "UWAGA! Zagrożenie atakiem z powietrza ustąpiło",
+]
+for tekst in ODWOLANIA_ROZSZERZONE:
+    it = {"title": "Alert RCB", "shortcut": "Alert RCB", "content": tekst}
+    sprawdz(rso._is_rcb_air_cancellation(it), f"odwołanie wykryte: „{tekst[:52]}…”")
+
+# NAJWAZNIEJSZE: rozszerzenie listy odwolan dziala w strone NIEBEZPIECZNA (falszywe
+# odwolanie wycisza zywy alert), wiec kazdy znany ALERT musi przejsc nietkniety.
+ALERTY_ZYWE = [t for _, t in OFICJALNE] + [
+    "UWAGA. POTENCJALNE ZAGROŻENIE Z POWIETRZA.",
+    "UWAGA! UWAGA! UWAGA! Rosyjski atak powietrzny na terenie Ukrainy. Sytuacja jest monitorowana. "
+    "W przestrzeni RP operuje polskie lotnictwo. Śledź komunikaty.",
+    "Na obszarze zachodniej Ukrainy trwa zmasowany atak powietrzny.",
+]
+for tekst in ALERTY_ZYWE:
+    it = {"title": "Alert RCB", "shortcut": "Alert RCB", "content": tekst}
+    sprawdz(not rso._is_rcb_air_cancellation(it),
+            f"alert NIE wyciszony przez listę odwołań: „{tekst[:48]}…”")
+
 print("\nBŁĘDY: %d" % bledy)
 sys.exit(1 if bledy else 0)

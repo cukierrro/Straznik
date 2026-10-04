@@ -46,7 +46,16 @@ RSO_END = ("zakończył", "zakonczyl", "zakończen", "zakonczen",
            "zakończon", "zakonczon", "odwoł", "odwol",
            "brak zagroż", "brak zagroz", "zniesion", "sytuacja opanowan",
            "zagrożenie minęł", "zagrozenie minel", "niebezpieczeństwo minęł",
-           "niebezpieczenstwo minel")
+           "niebezpieczenstwo minel",
+           # 04.10.2026: przeglad odwolan dla trzech progow RCB z 17.09 pokazal,
+           # ze „Koniec zagrozenia atakiem z powietrza" i „…ustapilo" nie pasuja
+           # do zadnej z form powyzej — przeszlyby jako NOWY alert i trzymaly
+           # punkty, zamiast je zdjac. RCB takich sformulowan dotad nie uzylo
+           # (potwierdzone tresci to „Zakonczyl sie atak…" i „Odwolano…"),
+           # wiec to zabezpieczenie na zapas. Dokladamy WASKO: oba zwroty
+           # opisuja koniec zagrozenia i nie moga sie znalezc w zywym alercie —
+           # pilnuje tego osobna asercja na trzech oficjalnych tresciach.
+           "koniec zagroż", "koniec zagroz", "ustąpił", "ustapil")
 # …ale te zwroty opisują alert WCIĄŻ OBOWIĄZUJĄCY i nie mogą go wyłączyć.
 RSO_CONTINUES = ("do odwołania", "do odwolania", "do czasu odwołania",
                  "do czasu odwolania", "do czasu zakończenia", "do czasu zakonczenia",
