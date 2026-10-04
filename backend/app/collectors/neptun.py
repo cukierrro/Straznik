@@ -503,12 +503,10 @@ def _speed_of(t: dict) -> float | None:
         return float(v)
     if t.get("straznik_jet") or is_jet(t):
         # Geran-3: przelot 300–370 km/h, na końcowym odcinku do 550–600 km/h.
-        # Decyzja usera 14.09.2026: 450 km/h, a gdy ruch w danych daje prędkość —
-        # większa z zmierzonej i przelotowej (dron, który naprawdę przyspieszył).
-        measured = _measured_speed(t)
-        if measured is not None:
-            return max(measured, config.NEPTUN_JET_CRUISE_KMH)
-        return config.NEPTUN_JET_SPEED_KMH
+        # Pomiar z ruchu może prędkość tylko PODNIEŚĆ — patrz komentarz przy
+        # NEPTUN_JET_SPEED_KMH. Dawniej `max(zmierzona, 350)` pozwalał szumowi
+        # pozycji zejść poniżej podłogi alarmu i opóźnić ostrzeżenie.
+        return max(_measured_speed(t) or 0.0, config.NEPTUN_JET_SPEED_KMH)
     return config.NEPTUN_TYPE_SPEED_KMH.get((t.get("type") or "").lower())
 
 
@@ -669,6 +667,25 @@ async def _maybe_signal(t: dict):
     # klucz czerwonego alarmu nie miałby się o co oprzeć. Pozycja rejonowa zostaje
     # oznaczona (`eta_approx`), a alarm ETA nadal jej nie podnosi — patrz _eta_alarm_level.
     speed = _speed_of(t)
+    # Prędkość UŻYTA do alarmu jedzie razem z obiektem. Karta ma pokazywać tę
+    # samą liczbę, a nie liczyć drugi raz własnym wzorem — tak powstał rozjazd
+    # między czasem w powiadomieniu a czasem na karcie (04.10.2026).
+    if speed:
+        jet = bool(t.get("straznik_jet") or is_jet(t))
+        t["straznik_speed"] = {
+            "kmh": round(speed, 1),
+            # skąd wzięta: ze źródła, z pomiaru ruchu, czy z tablicy założeń
+            "source": ("source" if (t.get("velocity") or {}).get("speedKmh")
+                       else "measured" if (_measured_speed(t) or 0) > speed - 0.01
+                       else "jet_floor" if jet else "typical"),
+            "jet": jet,
+            # granice przedziału pokazywanego w karcie: szybki koniec to końcowy
+            # odcinek drona odrzutowego, wolny koniec NIGDY nie jest wolniejszy
+            # niż prędkość alarmu — inaczej karta obiecywałaby więcej czasu,
+            # niż sami zakładamy.
+            "fast_kmh": max(speed, config.NEPTUN_JET_MAX_KMH) if jet else speed,
+            "slow_kmh": speed,
+        }
     eta_raw = geo.eta_raw_minutes(a["dist_km"], speed)
     eta_conservative = (max(0.0, eta_raw - config.NEPTUN_ETA_BUFFER_MIN)
                         if eta_raw is not None else None)

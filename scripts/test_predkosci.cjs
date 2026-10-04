@@ -84,5 +84,41 @@ sprawdz(bezposrednie === 1, `app.js czyta tablicę tylko w typeSpeedKmh (znalezi
 sprawdz(/const typeSpeedKmh = \(t\) => TYPE_SPEED_KMH\[String\(t\?\.type \|\| ""\)\.toLowerCase\(\)\]/.test(app),
   "typeSpeedKmh sprowadza nazwę klasy do małych liter");
 
+
+console.log("4. Dron odrzutowy: jedna podłoga we wszystkich trzech miejscach");
+/* To jest NIEZMIENNIK, nie konkretna liczba: podłoga może się kiedyś zmienić,
+   ale musi zmienić się we wszystkich trzech miejscach naraz. Do 04.10.2026
+   backend liczył alarm po 450, a karta pokazywała dłuższy czas po 350 — czyli
+   karta obiecywała WIĘCEJ czasu, niż zakładał alarm. */
+const cfg = czytaj("backend/app/config.py");
+const eng = czytaj("frontend/engine.js");
+const npt = czytaj("backend/app/collectors/neptun.py");
+const liczba = (tekst, re) => { const m = re.exec(tekst); return m ? Number(m[1]) : null; };
+const podlogi = {
+  "backend NEPTUN_JET_SPEED_KMH": liczba(cfg, /NEPTUN_JET_SPEED_KMH\s*=\s*([0-9.]+)/),
+  "engine.js JET_SPEED_KMH": liczba(eng, /JET_SPEED_KMH\s*=\s*([0-9.]+)/),
+  "app.js JET_ALARM_KMH": liczba(app, /JET_ALARM_KMH\s*=\s*([0-9.]+)/),
+};
+const wart = Object.values(podlogi);
+sprawdz(wart.every((v) => v != null && v === wart[0]),
+  "podłoga prędkości drona odrzutowego taka sama wszędzie: "
+  + Object.entries(podlogi).map(([k, v]) => `${k}=${v}`).join(", "));
+
+console.log("5. Pomiar z ruchu może prędkość tylko PODNIEŚĆ");
+// Szum pozycji ze źródła (zmierzone na produkcji 13–42 km/h na realnym obiekcie)
+// nie może obniżyć założonej prędkości, bo to OPÓŹNIA alarm.
+sprawdz(npt.includes("max(_measured_speed(t) or 0.0, config.NEPTUN_JET_SPEED_KMH)"),
+  "backend: max(pomiar, podłoga) — pomiar nie schodzi poniżej");
+sprawdz(eng.includes("Math.max(measuredSpeedKmh(t) || 0, JET_SPEED_KMH)"),
+  "engine.js: max(pomiar, podłoga) — tryb awaryjny liczy tak samo jak serwer");
+sprawdz(/function measuredSpeedKmh/.test(eng) && /const trails = new Map\(\)/.test(eng),
+  "engine.js UMIE zmierzyć prędkość z ruchu (ślad ze znacznikami czasu)");
+
+console.log("6. Karta pokazuje liczbę serwera, nie własną");
+sprawdz(app.includes("const zSerwera = t.straznik_speed;"),
+  "karta bierze prędkość z pola straznik_speed, gdy serwer je podał");
+sprawdz(npt.includes('t["straznik_speed"]'),
+  "backend wystawia użytą prędkość w danych");
+
 console.log("\nBŁĘDY: " + bledy);
 process.exit(bledy ? 1 : 0);

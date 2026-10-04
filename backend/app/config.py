@@ -147,11 +147,22 @@ NEPTUN_BORDER_REGIONS = ("Волинська", "Львівська", "Закар
 # obiektem. Lustro: engine.js NEPTUN_NATIONAL_*.
 # Audyt G6: drony odrzutowe (Geran-3 / Shahed-238) — NEPTUN pisze w opisie
 # „Реактивний БпЛА”. Przelot 300–370 km/h, na końcowym odcinku 550–600 km/h
-# (wywiad UA). Decyzja usera 14.09.2026: 450 km/h do czasu dolotu i alarmu ETA,
-# a przy prędkości zmierzonej z ruchu — max(zmierzona, 350). Lustro: engine.js.
+# (wywiad UA). Decyzja usera 14.09.2026: 450 km/h do czasu dolotu i alarmu ETA.
+#
+# 04.10.2026 — ZMIANA: podłoga podniesiona z 350 na 450, czyli pomiar z ruchu
+# może prędkość tylko PODNIEŚĆ, nigdy obniżyć. Powód jest pomiarowy, nie
+# teoretyczny: w próbce z produkcji 14 z 15 obiektów nie miało w ogóle drugiej
+# pozycji, a jedyny obiekt ze śladem dał z ruchu 13–42 km/h. Taki pomiar nie
+# jest prędkością obiektu, tylko szumem pozycji — i przy dawnym
+# `max(zmierzona, 350)` mógł OPÓŹNIĆ alarm, obniżając założoną prędkość z 450
+# do 350. Zasada ogólna: prędkość typowa jest PODŁOGĄ, pomiar bywa tylko
+# dowodem, że obiekt leci SZYBCIEJ. Lustro: engine.js i app.js.
 NEPTUN_JET_MARKERS = ("реактивн",)
-NEPTUN_JET_SPEED_KMH = 450.0
+NEPTUN_JET_SPEED_KMH = 450.0       # podłoga: do czasu dolotu i alarmu ETA
+# Wartość opisowa, NIE używana do liczenia — prawdziwa prędkość przelotowa.
+# Zostaje, bo tłumaczy ludziom w karcie, skąd biorą się granice przedziału.
 NEPTUN_JET_CRUISE_KMH = 350.0
+NEPTUN_JET_MAX_KMH = 600.0         # końcowy odcinek — krótszy koniec przedziału
 NEPTUN_NATIONAL_ID_PREFIX = "national-"
 NEPTUN_NATIONAL_REGION_MARKERS = ("загальнодержавн",)   # porównanie po lower()
 

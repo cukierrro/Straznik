@@ -516,13 +516,20 @@ function etaInfo(t) {
   if (!a || !a.toward_pl || a.heading_known === false) return null;
   // G3: kurs „kursem na X” bez potwierdzenia ruchem nie daje czasu dolotu
   if (isPresumedCourse(t) && measuredHeading(t) == null) return null;
-  const jet = isJetDrone(t);
-  const typical = jet ? JET_CRUISE_KMH : (typeSpeedKmh(t) || 0);
-  const v = t.velocity?.speedKmh ?? (Math.max(measuredTrackSpeed(t) || 0, typical) || null);
+  /* Prędkość bierzemy Z SERWERA, jeśli ją podał — to DOKŁADNIE ta liczba,
+     na której oparte jest powiadomienie. Własny rachunek zostaje tylko jako
+     zapas: tryb awaryjny i starszy backend bez pola `straznik_speed`.
+     Tak znika rozjazd „powiadomienie mówi co innego niż karta". */
+  const zSerwera = t.straznik_speed;
+  const jet = zSerwera ? !!zSerwera.jet : isJetDrone(t);
+  const typical = jet ? JET_ALARM_KMH : (typeSpeedKmh(t) || 0);
+  const v = zSerwera?.kmh
+    ?? (t.velocity?.speedKmh ?? (Math.max(measuredTrackSpeed(t) || 0, typical) || null));
   if (!v) return null;
-  // dron odrzutowy: dłuższy koniec przy prędkości przelotowej, krótszy przy
-  // maksymalnej z końcowego odcinka (G6)
-  const vLo = jet ? Math.max(v, JET_MAX_KMH) : v;
+  // Dron odrzutowy: krótszy koniec liczymy przy prędkości końcowego odcinka.
+  // Dłuższy koniec NIGDY nie jest wolniejszy niż prędkość alarmu — inaczej
+  // karta pokazywałaby więcej czasu, niż sami zakładamy (G6).
+  const vLo = zSerwera?.fast_kmh ?? (jet ? Math.max(v, JET_MAX_KMH) : v);
   const mine = myVoiv();
   const seen = Date.parse(t.confirmedAt || t.updatedAt || "");
   const refMs = nowRefMs();
@@ -541,7 +548,17 @@ function etaInfo(t) {
 }
 /* G3/G6 — lustro neptun.heading_source i is_jet na serwerze */
 const isPresumedCourse = (t) => t?.heading != null && t?.presumptiveCourse === true;
-const JET_CRUISE_KMH = 350, JET_MAX_KMH = 600;
+/* JET_ALARM_KMH to PODŁOGA, na której opiera się alarm i czas pokazywany
+   człowiekowi — ta sama liczba co NEPTUN_JET_SPEED_KMH w backendzie.
+   JET_CRUISE_KMH (350) jest wyłącznie OPISOWA: prawdziwa prędkość przelotowa,
+   do wyjaśnienia ludziom, skąd biorą się granice. Do 04.10.2026 karta liczyła
+   dłuższy czas po 350, czyli pokazywała WIĘCEJ czasu, niż zakładał alarm —
+   obiecywała zapas, którego sami sobie nie przyznawaliśmy. */
+const JET_ALARM_KMH = 450, JET_CRUISE_KMH = 350, JET_MAX_KMH = 600;
+/* Klasy, które źródło podaje ZBIORCZO: NEPTUN melduje „БпЛА" bez rozróżnienia
+   maszyny zwiadowczej od Shaheda. Nasza legenda je rozdziela, więc trzeba
+   powiedzieć wprost, że rozdzielenie pochodzi od nas, a nie z meldunku. */
+const COLLECTIVE_DRONE_TYPES = new Set(["uav", "shahed"]);
 const isJetDrone = (t) => !!t?.straznik_jet
   || /реактивн/i.test(`${t?.title || ""} ${t?.explanationShort || ""}`);
 const etaTxt = (m) => m == null ? null : (m < 1 ? "<1 min" : `~${m} min`);
@@ -594,7 +611,11 @@ function etaHtml(t) {
   const mine = (e.voiv != null && e.voivName)
     ? ` · ${UI.t("do woj.", "to", "до воєв.")} ${esc2(UI.voiv(e.voivName))}: <b>${etaRangeTxt(e.voivLo, e.voiv)}</b>` : "";
   return `${UI.t("konserwatywny czas dolotu do granicy PL", "conservative time to the Polish border", "консервативний час підльоту до кордону Польщі")}: <b>${etaRangeTxt(e.borderLo, e.border)}</b>${mine}<br>`
-    + (isJetDrone(t) ? `<span style="color:#95a1b7">${UI.t("dron odrzutowy: przelot 350 km/h, na końcowym odcinku do 600 km/h", "jet drone: 350 km/h cruise, up to 600 km/h on the final leg", "реактивний дрон: політ 350 км/год, на кінцевому відрізку до 600 км/год")}</span><br>` : "")
+    + (isJetDrone(t) ? `<span style="color:#95a1b7">${UI.t("dron odrzutowy: przelot 350 km/h, na końcowym odcinku do 600 — liczymy po 450", "jet drone: 350 km/h cruise, up to 600 on the final leg — we count at 450", "реактивний дрон: політ 350 км/год, на кінцевому відрізку до 600 — рахуємо за 450")}</span><br>` : "")
+    // Źródło podaje drony ZBIORCZO (БпЛА) i nie mówi, czy to maszyna
+    // zwiadowcza, czy Shahed. Przyjmujemy wariant groźniejszy i mówimy o tym
+    // wprost — człowiek ma wiedzieć, że to założenie, a nie odczyt.
+    + (COLLECTIVE_DRONE_TYPES.has(t.type) ? `<span style="color:#95a1b7">${UI.t("źródło nie rozróżnia BSP i Shahedów — przyjmujemy wariant groźniejszy", "the source does not tell UAVs and Shaheds apart — we assume the worse case", "джерело не розрізняє БпЛА і «шахедів» — беремо гірший варіант")}</span><br>` : "")
     + `<span style="color:#95a1b7">${UI.t(`szacunek przy prędkości ${e.speed} km/h i utrzymaniu kursu; krótszy czas uwzględnia niepewność pozycji i wiek danych, odjęto 2,5 min na opóźnienie — nie uwzględnia obrony powietrznej`, `estimate at ${e.speed} km/h with unchanged heading; the shorter time allows for position uncertainty and data age, 2.5 min deducted for data delay — air defence not included`, `оцінка за швидкості ${e.speed} км/год і збереження курсу; коротший час враховує невизначеність позиції та вік даних, віднято 2,5 хв на затримку — не враховує протиповітряної оборони`)}</span><br>`
     + localPlaceHtml(t);
 }
@@ -1011,7 +1032,23 @@ function applySwitches(w) {
   if (off && window.Grota?.widoczny) ukryjGrote();
 }
 
+/* Nazwę klasy obiektu sprowadzamy do małych liter RAZ, przy wejściu danych —
+   zanim cokolwiek jej użyje. Backend robi `.lower()` wszędzie; front czytał
+   `t.type` wprost w kilkunastu miejscach: TYPE_META (etykieta, kolor, ikona),
+   porównania z „mig31k" i „cruise", a przede wszystkim FAST_TYPES, od którego
+   zależy PROMIEŃ NIEPEWNOŚCI. Dziś NEPTUN podaje `uav` / `fpv` / `kab` małymi
+   literami (sprawdzone na żywym API), więc wszystko działa. Gdyby zmienił zapis
+   na „UAV", szybki obiekt dostałby mniejszy okrąg niepewności, a ikona spadłaby
+   do „obiekt powietrzny" — i nic by o tym nie powiedziało, bo nic by się nie
+   wywaliło. Jedno miejsce zamiast kilkunastu odczytów do pilnowania. */
+function normalizujTypy(lista) {
+  for (const t of lista || [])
+    if (t && typeof t.type === "string") t.type = t.type.toLowerCase();
+  return lista;
+}
+
 function applyState(s) {
+  normalizujTypy(s?.neptun?.threats);
   state = s;
   showNotice(s?.notice);
   applySwitches(s?.wylaczniki);
@@ -4875,6 +4912,8 @@ async function seedBundle() {
     const have = new Set(srvSnaps.map(sn => sn.ts));
     for (const sn of (j.snaps || [])) {
       if (have.has(sn.ts)) continue;
+      // migawki z archiwum idą osobnym pobraniem i omijają applyState
+      normalizujTypy(sn.threats);
       srvSnaps.push({ ...sn, t: Date.parse(sn.ts) });
     }
     srvAdsbEvents = (j.adsb_watch_events || []).map(e => ({ ...e, t: Date.parse(e.ts) }));
