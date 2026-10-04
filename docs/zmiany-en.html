@@ -40,6 +40,20 @@
 </div></header>
 <main id="content" class="wrap">
 <section id="v1-7-88">
+  <h2>1.7.90 — text size, a fresh shelter register, one speed</h2>
+  <p class="fineprint">Release 1.7.90 · 4 October 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.90">Full release notes</a></p>
+  <ul>
+    <li><b>You can enlarge the text across the whole app.</b> ⚙ → App → “Text size”: Normal, Larger or Largest. It applies at once, with no saving and no restart. Every piece of text grows together — the panel, the cards, the legend, the alert screen and GROTA — while spacing and buttons keep their size so the layout holds. On Android it multiplies with the system font size, so with a large system font “Normal” is usually enough.</li>
+    <li><b>GROTA carries the State Fire Service register of 28 September:</b> 86,533 places instead of 86,388. For the first time no place dropped out of routing — eight came back. There are 82,000 fewer people living further than 5 km from the nearest place, and 205 municipalities without any place instead of 225.</li>
+    <li>The Bartoszyce district <b>lost 405 places</b> (Bartoszyce 491 → 229, Górowo Iławeckie 105 → 28). We checked by coordinates: these are real removals by the Fire Service, not renumbering. The Service also corrected its own errors — a place on Łucka street in Warsaw had been sitting 144 km away, near Łódź.</li>
+    <li><b>GROTA: a “List” button on the Map screen.</b> The same places and filters as the map, but as a list you can walk with a keyboard and a screen reader — with the address, the distance, the walking time and how certain the position is. Keyboard focus is finally visible throughout the module.</li>
+    <li><b>Arrival time now follows one rule</b> on the server and in the app: the typical speed is a floor, and a speed derived from movement may only raise it, never lower it. The card now shows exactly the speed the alert is based on — for jet drones it used to show a longer time than the notification, promising more margin than we ourselves assumed.</li>
+    <li><b>We say plainly what we do not know.</b> In practice the source does not tell ordinary drones and Shaheds apart — they arrive together as “Drone / UAV”. The object card now says we assume the worse case, and the legend explains that splitting them into separate icons is ours, not the source's.</li>
+    <li>Fixed: the expanded source bar slid under the title bar and its text showed between the icons for the first five seconds. The connection badge covered the start of the source list.</li>
+    <li>Fixed: <b>reconnaissance drones got no arrival time</b> on the card and no allowance for the age of the report on the map. Scoring and alerts were correct for them — only what a person saw was wrong.</li>
+    <li>Scoring, thresholds and alert wording unchanged.</li>
+  </ul>
+
   <h2>1.7.89 — tidier windows: collapsible sections and one shape</h2>
   <p class="fineprint">Release 1.7.89 · 3 October 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.89">Full release notes</a></p>
   <ul>

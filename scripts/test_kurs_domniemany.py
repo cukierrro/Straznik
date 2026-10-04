@@ -97,8 +97,23 @@ fast = {**jet, "straznik_trail": [{"lat": 51.0, "lon": 26.5, "t": 0}, {"lat": 51
 crawl = {**jet, "straznik_trail": [{"lat": 51.0, "lon": 26.0, "t": 0}, {"lat": 51.0, "lon": 25.95, "t": 600}]}
 sprawdz(600 < neptun._speed_of(fast) < 660,
         f"zmierzona szybka prędkość ma pierwszeństwo ({round(neptun._speed_of(fast))} km/h)")
-sprawdz(neptun._speed_of(crawl) == config.NEPTUN_JET_CRUISE_KMH,
-        f"wolny pomiar nie schodzi poniżej przelotowej ({neptun._speed_of(crawl)})")
+# ZMIANA 04.10.2026: wolny pomiar nie schodzi poniżej PODŁOGI ALARMU (450),
+# nie poniżej prędkości przelotowej (350). Powód jest pomiarowy: w próbce
+# z produkcji 14 z 15 obiektów nie miało drugiej pozycji, a jedyny obiekt ze
+# śladem dał z ruchu 13–42 km/h. Taki „pomiar" to szum pozycji, a przy dawnej
+# regule mógł OBNIŻYĆ założoną prędkość i opóźnić alarm. Teraz pomiar bywa
+# wyłącznie dowodem, że obiekt leci SZYBCIEJ.
+sprawdz(neptun._speed_of(crawl) == config.NEPTUN_JET_SPEED_KMH,
+        f"wolny pomiar nie obniża prędkości poniżej podłogi alarmu ({neptun._speed_of(crawl)})")
+# Zasada w ogólnej postaci, nie tylko dla tego jednego przypadku: dla drona
+# odrzutowego ŻADEN pomiar nie może dać wyniku niższego niż podłoga.
+for km_h in (5, 40, 180, 349, 449):
+    dlug = km_h * 10 / 60 / 111.32 / 0.6293   # tyle stopni długości na 51°N w 10 min
+    wolny = {**jet, "straznik_trail": [{"lat": 51.0, "lon": 26.0, "t": 0},
+                                       {"lat": 51.0, "lon": 26.0 - dlug, "t": 600}]}
+    v = neptun._speed_of(wolny)
+    sprawdz(v >= config.NEPTUN_JET_SPEED_KMH,
+            f"pomiar {km_h} km/h nie zbija prędkości poniżej podłogi (wyszło {round(v)})")
 run([jet, slow])
 sj, ss = last_signal("trk_g6_jet"), last_signal("trk_g6_slow")
 sprawdz(sj and ss and sj["details"]["eta_border_min"] < ss["details"]["eta_border_min"],

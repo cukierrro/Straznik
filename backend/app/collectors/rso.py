@@ -46,7 +46,16 @@ RSO_END = ("zakończył", "zakonczyl", "zakończen", "zakonczen",
            "zakończon", "zakonczon", "odwoł", "odwol",
            "brak zagroż", "brak zagroz", "zniesion", "sytuacja opanowan",
            "zagrożenie minęł", "zagrozenie minel", "niebezpieczeństwo minęł",
-           "niebezpieczenstwo minel")
+           "niebezpieczenstwo minel",
+           # 04.10.2026: przeglad odwolan dla trzech progow RCB z 17.09 pokazal,
+           # ze „Koniec zagrozenia atakiem z powietrza" i „…ustapilo" nie pasuja
+           # do zadnej z form powyzej — przeszlyby jako NOWY alert i trzymaly
+           # punkty, zamiast je zdjac. RCB takich sformulowan dotad nie uzylo
+           # (potwierdzone tresci to „Zakonczyl sie atak…" i „Odwolano…"),
+           # wiec to zabezpieczenie na zapas. Dokladamy WASKO: oba zwroty
+           # opisuja koniec zagrozenia i nie moga sie znalezc w zywym alercie —
+           # pilnuje tego osobna asercja na trzech oficjalnych tresciach.
+           "koniec zagroż", "koniec zagroz", "ustąpił", "ustapil")
 # …ale te zwroty opisują alert WCIĄŻ OBOWIĄZUJĄCY i nie mogą go wyłączyć.
 RSO_CONTINUES = ("do odwołania", "do odwolania", "do czasu odwołania",
                  "do czasu odwolania", "do czasu zakończenia", "do czasu zakonczenia",
@@ -179,6 +188,16 @@ def _still_active(item: dict) -> bool:
 FETCH_RETRY_DELAY_S = 5
 
 
+# Nagłówki, które nic nie mówią: RSO wpisuje w `title` i `shortcut` dosłownie
+# „Alert RCB", a cały komunikat trafia do `content` (potwierdzone na wpisach
+# 23362253 z 24.09.2026 i 23389161 z 04.10.2026).
+_NAGLOWKI_PUSTE = ("alert rcb", "alert-rcb", "ostrzeżenie", "ostrzeżenie alarmowe")
+
+
+def _naglowek_pusty(naglowek: str) -> bool:
+    return (naglowek or "").strip().strip(".!").lower() in _NAGLOWKI_PUSTE
+
+
 def rcb_level(text: str) -> int:
     """Poziom alertu RCB z jego treści: 1 informacja, 2 czujność, 3 szukaj schronienia.
 
@@ -272,19 +291,40 @@ STAGE_ACTION = ("udaj się w bezpieczne miejsce", "udaj sie w bezpieczne miejsce
                 "zagrożenie atakiem z powietrza", "zagrozenie atakiem z powietrza", "schron",
                 "ukryj się", "ukryj sie", "pozostań w domu", "pozostan w domu",
                 "stosuj się do poleceń", "stosuj sie do polecen")
+# 04.10.2026: RSO przyslalo dla lubelskiego „UWAGA. POTENCJALNE ZAGROZENIE
+# Z POWIETRZA." i `alert_stage` zwrocilo `unknown` — nie znalismy tego
+# sformulowania. To NIE jest „sytuacja monitorowana" (tam zagrozenie jest nad
+# Ukraina), ale nie jest tez wezwaniem do dzialania: nie pada ani „schron sie",
+# ani „bezpieczne miejsce". Nazywa zagrozenie nad Polska i nic nie kaze robic,
+# wiec dostaje wlasny etap — dzieki temu da sie policzyc, jak czesto RCB tak
+# pisze, zamiast chowac to pod „nieznany".
+#
+# UWAGA: etap NIE wplywa na punktacje. Poziom alertu liczy `rcb_level` z wlasnej
+# listy znacznikow (RCB_LEVEL_MARKERS) i ten komunikat zostaje poziomem 1,
+# bo nie ma w nim slowa „atakiem" ani wezwania do schronienia.
+STAGE_WARNING = ("potencjalne zagrożenie z powietrza", "potencjalne zagrozenie z powietrza",
+                 "zagrożenie z powietrza", "zagrozenie z powietrza")
 STAGE_MONITOR = ("sytuacja jest monitorowana", "operuje polskie lotnictwo", "śledź komunikaty",
                  "sledz komunikaty", "oczekuj dalszych komunikatów", "oczekuj dalszych komunikatow",
                  "zachowaj czujność", "zachowaj czujnosc", "trwa zmasowany")
 
 
 def alert_stage(text: str, rso_alarm=None) -> str:
-    """'clear' | 'action' (etap 2) | 'monitor' (etap 1) | 'unknown'."""
+    """'clear' | 'action' (etap 2) | 'ostrzezenie' | 'monitor' (etap 1) | 'unknown'.
+
+    Etap trafia WYLACZNIE do dziennika obserwacji — punktacje liczy `rcb_level`
+    z osobnej listy znacznikow. Zmiana etapu nie zmienia ani jednego punktu."""
     t = (text or "").lower()
     # rso_alarm celowo pomijamy — to stopień ostrzeżenia, nie odwołanie (21.09.2026)
     if any(w in t for w in STAGE_CLEAR):
         return "clear"
     if any(w in t for w in STAGE_ACTION):
         return "action"
+    # „ostrzezenie" sprawdzamy PRZED „monitorem": komunikat potrafi zawierac oba
+    # („potencjalne zagrozenie z powietrza. oczekuj dalszych komunikatow"),
+    # a wtedy wazniejsze jest to, ze nazwano zagrozenie nad Polska.
+    if any(w in t for w in STAGE_WARNING):
+        return "ostrzezenie"
     if any(w in t for w in STAGE_MONITOR):
         return "monitor"
     return "unknown"
@@ -347,8 +387,23 @@ async def _process_item(it: dict) -> bool:
             _seen.add(key)   # dopiero po zapisie: błąd bazy = ponowna próba za minutę
             reference_new = True
             continue
-        title = it.get("shortcut") or it.get("title") or "Alert RCB"
-        poziom = rcb_level(f"{title} {it.get('description') or ''}")
+        naglowek = it.get("shortcut") or it.get("title") or ""
+        tresc = it.get("content") or ""
+        # Tytuł do pokazania człowiekowi: nagłówek bywa dosłownie „Alert RCB"
+        # (tak było 04.10.2026 dla lubelskiego), więc wtedy bierzemy treść —
+        # inaczej powiadomienie brzmi „Alert RCB (RSO): «Alert RCB»".
+        title = (tresc if _naglowek_pusty(naglowek) and tresc else naglowek) or "Alert RCB"
+        # POZIOM z CAŁEJ treści, razem z `content`. Do 04.10.2026 stało tu
+        # `f"{title} {it.get('description')}"`, a pole `description` W OGÓLE NIE
+        # ISTNIEJE w schemacie RSO (wpisy mają title, shortcut, content,
+        # rso_alarm, provinces, valid_*). Poziom liczył się więc wyłącznie
+        # z nagłówka. Przy wpisie o kształcie z 04.10 — nagłówek „Alert RCB",
+        # cały komunikat w `content` — alert poziomu 3 („znajdź bezpieczne
+        # miejsce") dostałby 1,5 pkt zamiast 4,5, czyli NIE PODNIÓSŁBY
+        # czerwonego alarmu. Plik sam to deklarował w komentarzu na górze
+        # („po CAŁEJ treści, razem z polem content"); wyjątek zrobiono wtedy
+        # dla odwołań, a liczenie poziomu zostało na starym wzorze.
+        poziom = rcb_level(f"{it.get('title','')} {naglowek} {tresc}")
         inserted = await fusion.ingest(
             source="rcb", event_type="rso_alert", voivodeship=voiv,
             points=config.RCB_LEVEL_POINTS[poziom],

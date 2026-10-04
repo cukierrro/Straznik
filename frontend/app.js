@@ -516,13 +516,20 @@ function etaInfo(t) {
   if (!a || !a.toward_pl || a.heading_known === false) return null;
   // G3: kurs „kursem na X” bez potwierdzenia ruchem nie daje czasu dolotu
   if (isPresumedCourse(t) && measuredHeading(t) == null) return null;
-  const jet = isJetDrone(t);
-  const typical = jet ? JET_CRUISE_KMH : (TYPE_SPEED_KMH[t.type] || 0);
-  const v = t.velocity?.speedKmh ?? (Math.max(measuredTrackSpeed(t) || 0, typical) || null);
+  /* Prędkość bierzemy Z SERWERA, jeśli ją podał — to DOKŁADNIE ta liczba,
+     na której oparte jest powiadomienie. Własny rachunek zostaje tylko jako
+     zapas: tryb awaryjny i starszy backend bez pola `straznik_speed`.
+     Tak znika rozjazd „powiadomienie mówi co innego niż karta". */
+  const zSerwera = t.straznik_speed;
+  const jet = zSerwera ? !!zSerwera.jet : isJetDrone(t);
+  const typical = jet ? JET_ALARM_KMH : (typeSpeedKmh(t) || 0);
+  const v = zSerwera?.kmh
+    ?? (t.velocity?.speedKmh ?? (Math.max(measuredTrackSpeed(t) || 0, typical) || null));
   if (!v) return null;
-  // dron odrzutowy: dłuższy koniec przy prędkości przelotowej, krótszy przy
-  // maksymalnej z końcowego odcinka (G6)
-  const vLo = jet ? Math.max(v, JET_MAX_KMH) : v;
+  // Dron odrzutowy: krótszy koniec liczymy przy prędkości końcowego odcinka.
+  // Dłuższy koniec NIGDY nie jest wolniejszy niż prędkość alarmu — inaczej
+  // karta pokazywałaby więcej czasu, niż sami zakładamy (G6).
+  const vLo = zSerwera?.fast_kmh ?? (jet ? Math.max(v, JET_MAX_KMH) : v);
   const mine = myVoiv();
   const seen = Date.parse(t.confirmedAt || t.updatedAt || "");
   const refMs = nowRefMs();
@@ -541,7 +548,17 @@ function etaInfo(t) {
 }
 /* G3/G6 — lustro neptun.heading_source i is_jet na serwerze */
 const isPresumedCourse = (t) => t?.heading != null && t?.presumptiveCourse === true;
-const JET_CRUISE_KMH = 350, JET_MAX_KMH = 600;
+/* JET_ALARM_KMH to PODŁOGA, na której opiera się alarm i czas pokazywany
+   człowiekowi — ta sama liczba co NEPTUN_JET_SPEED_KMH w backendzie.
+   JET_CRUISE_KMH (350) jest wyłącznie OPISOWA: prawdziwa prędkość przelotowa,
+   do wyjaśnienia ludziom, skąd biorą się granice. Do 04.10.2026 karta liczyła
+   dłuższy czas po 350, czyli pokazywała WIĘCEJ czasu, niż zakładał alarm —
+   obiecywała zapas, którego sami sobie nie przyznawaliśmy. */
+const JET_ALARM_KMH = 450, JET_CRUISE_KMH = 350, JET_MAX_KMH = 600;
+/* Klasy, które źródło podaje ZBIORCZO: NEPTUN melduje „БпЛА" bez rozróżnienia
+   maszyny zwiadowczej od Shaheda. Nasza legenda je rozdziela, więc trzeba
+   powiedzieć wprost, że rozdzielenie pochodzi od nas, a nie z meldunku. */
+const COLLECTIVE_DRONE_TYPES = new Set(["uav", "shahed"]);
 const isJetDrone = (t) => !!t?.straznik_jet
   || /реактивн/i.test(`${t?.title || ""} ${t?.explanationShort || ""}`);
 const etaTxt = (m) => m == null ? null : (m < 1 ? "<1 min" : `~${m} min`);
@@ -594,7 +611,11 @@ function etaHtml(t) {
   const mine = (e.voiv != null && e.voivName)
     ? ` · ${UI.t("do woj.", "to", "до воєв.")} ${esc2(UI.voiv(e.voivName))}: <b>${etaRangeTxt(e.voivLo, e.voiv)}</b>` : "";
   return `${UI.t("konserwatywny czas dolotu do granicy PL", "conservative time to the Polish border", "консервативний час підльоту до кордону Польщі")}: <b>${etaRangeTxt(e.borderLo, e.border)}</b>${mine}<br>`
-    + (isJetDrone(t) ? `<span style="color:#95a1b7">${UI.t("dron odrzutowy: przelot 350 km/h, na końcowym odcinku do 600 km/h", "jet drone: 350 km/h cruise, up to 600 km/h on the final leg", "реактивний дрон: політ 350 км/год, на кінцевому відрізку до 600 км/год")}</span><br>` : "")
+    + (isJetDrone(t) ? `<span style="color:#95a1b7">${UI.t("dron odrzutowy: przelot 350 km/h, na końcowym odcinku do 600 — liczymy po 450", "jet drone: 350 km/h cruise, up to 600 on the final leg — we count at 450", "реактивний дрон: політ 350 км/год, на кінцевому відрізку до 600 — рахуємо за 450")}</span><br>` : "")
+    // Źródło podaje drony ZBIORCZO (БпЛА) i nie mówi, czy to maszyna
+    // zwiadowcza, czy Shahed. Przyjmujemy wariant groźniejszy i mówimy o tym
+    // wprost — człowiek ma wiedzieć, że to założenie, a nie odczyt.
+    + (COLLECTIVE_DRONE_TYPES.has(t.type) ? `<span style="color:#95a1b7">${UI.t("źródło nie rozróżnia BSP i Shahedów — przyjmujemy wariant groźniejszy", "the source does not tell UAVs and Shaheds apart — we assume the worse case", "джерело не розрізняє БпЛА і «шахедів» — беремо гірший варіант")}</span><br>` : "")
     + `<span style="color:#95a1b7">${UI.t(`szacunek przy prędkości ${e.speed} km/h i utrzymaniu kursu; krótszy czas uwzględnia niepewność pozycji i wiek danych, odjęto 2,5 min na opóźnienie — nie uwzględnia obrony powietrznej`, `estimate at ${e.speed} km/h with unchanged heading; the shorter time allows for position uncertainty and data age, 2.5 min deducted for data delay — air defence not included`, `оцінка за швидкості ${e.speed} км/год і збереження курсу; коротший час враховує невизначеність позиції та вік даних, віднято 2,5 хв на затримку — не враховує протиповітряної оборони`)}</span><br>`
     + localPlaceHtml(t);
 }
@@ -1011,7 +1032,23 @@ function applySwitches(w) {
   if (off && window.Grota?.widoczny) ukryjGrote();
 }
 
+/* Nazwę klasy obiektu sprowadzamy do małych liter RAZ, przy wejściu danych —
+   zanim cokolwiek jej użyje. Backend robi `.lower()` wszędzie; front czytał
+   `t.type` wprost w kilkunastu miejscach: TYPE_META (etykieta, kolor, ikona),
+   porównania z „mig31k" i „cruise", a przede wszystkim FAST_TYPES, od którego
+   zależy PROMIEŃ NIEPEWNOŚCI. Dziś NEPTUN podaje `uav` / `fpv` / `kab` małymi
+   literami (sprawdzone na żywym API), więc wszystko działa. Gdyby zmienił zapis
+   na „UAV", szybki obiekt dostałby mniejszy okrąg niepewności, a ikona spadłaby
+   do „obiekt powietrzny" — i nic by o tym nie powiedziało, bo nic by się nie
+   wywaliło. Jedno miejsce zamiast kilkunastu odczytów do pilnowania. */
+function normalizujTypy(lista) {
+  for (const t of lista || [])
+    if (t && typeof t.type === "string") t.type = t.type.toLowerCase();
+  return lista;
+}
+
 function applyState(s) {
+  normalizujTypy(s?.neptun?.threats);
   state = s;
   showNotice(s?.notice);
   applySwitches(s?.wylaczniki);
@@ -1238,8 +1275,8 @@ function pokazBrakMapy(blad, niewczytana = false) {
   d.setAttribute("role", "alert");
   // prawy margines na kafelki „mój region / strefy / cała PL”, dolny na pasek i zakładki
   d.style.cssText = "position:absolute;top:0;left:0;right:0;bottom:0;display:flex;align-items:flex-start;"
-    + "justify-content:center;padding:84px 104px 150px 18px;overflow:auto;color:#dbe4f5;font-size:14px;line-height:1.5";
-  d.innerHTML = `<div style="max-width:440px"><div style="font-size:28px">🗺️</div><p><b>${UI.t("Na tym urządzeniu nie da się narysować mapy", "The map cannot be drawn on this device", "На цьому пристрої не вдається намалювати мапу")}</b></p><p>${UI.t("Alarmy, panel sygnałów i historia działają — brakuje tylko mapy, bo system blokuje WebGL.", "Alerts, the signals panel and history still work — only the map is missing, because the system blocks WebGL.", "Тривоги, панель сигналів та історія працюють — бракує лише мапи, бо система блокує WebGL.")}</p><p class="muted">${rada}</p></div>`;
+    + "justify-content:center;padding:84px 104px 150px 18px;overflow:auto;color:#dbe4f5;font-size:0.9333rem;line-height:1.5";
+  d.innerHTML = `<div style="max-width:440px"><div style="font-size:1.8667rem">🗺️</div><p><b>${UI.t("Na tym urządzeniu nie da się narysować mapy", "The map cannot be drawn on this device", "На цьому пристрої не вдається намалювати мапу")}</b></p><p>${UI.t("Alarmy, panel sygnałów i historia działają — brakuje tylko mapy, bo system blokuje WebGL.", "Alerts, the signals panel and history still work — only the map is missing, because the system blocks WebGL.", "Тривоги, панель сигналів та історія працюють — бракує лише мапи, бо система блокує WebGL.")}</p><p class="muted">${rada}</p></div>`;
   box.appendChild(d);
   if (blad) console.warn("Mapa niedostępna:", blad);
 }
@@ -1254,9 +1291,9 @@ function pokazNiewczytanaMape(box, blad) {
   d.id = "map-niedostepna";
   d.setAttribute("role", "alert");
   d.style.cssText = "position:absolute;top:0;left:0;right:0;bottom:0;display:flex;align-items:flex-start;"
-    + "justify-content:center;padding:84px 104px 150px 18px;overflow:auto;color:#dbe4f5;font-size:14px;line-height:1.5";
+    + "justify-content:center;padding:84px 104px 150px 18px;overflow:auto;color:#dbe4f5;font-size:0.9333rem;line-height:1.5";
   const tech = String(blad || "brak odpowiedzi").slice(0, 300);
-  d.innerHTML = `<div style="max-width:440px"><div style="font-size:28px">🗺️</div><p><b>${UI.t("Mapa się nie wczytała", "The map did not load", "Мапа не завантажилася")}</b></p><p>${UI.t("Alarmy, panel sygnałów i historia działają. Kafelki mapy pochodzą z zewnętrznego serwera map — coś na tym urządzeniu albo w sieci je blokuje.", "Alerts, the signals panel and history still work. The map tiles come from an outside map server — something on this device or network is blocking them.", "Тривоги, панель сигналів та історія працюють. Плитки мапи надходять із зовнішнього сервера мап — щось на цьому пристрої або в мережі їх блокує.")}</p><p class="muted">${UI.t("Najczęściej: bloker treści lub reklam, filtr DNS (AdGuard, NextDNS), VPN albo Prywatny przekaźnik iCloud. Spróbuj na chwilę go wyłączyć albo przełączyć się między Wi-Fi a danymi komórkowymi.", "Most often: a content or ad blocker, a DNS filter (AdGuard, NextDNS), a VPN or iCloud Private Relay. Try turning it off for a moment, or switch between Wi-Fi and mobile data.", "Найчастіше: блокувальник вмісту чи реклами, DNS-фільтр (AdGuard, NextDNS), VPN або Приватний вузол iCloud. Спробуйте на хвилину його вимкнути або перемкнутися між Wi-Fi і мобільними даними.")}</p><p class="muted" style="font-size:12px">${UI.t("Szczegół techniczny", "Technical detail", "Технічна деталь")}: ${esc(tech)}</p></div>`;
+  d.innerHTML = `<div style="max-width:440px"><div style="font-size:1.8667rem">🗺️</div><p><b>${UI.t("Mapa się nie wczytała", "The map did not load", "Мапа не завантажилася")}</b></p><p>${UI.t("Alarmy, panel sygnałów i historia działają. Kafelki mapy pochodzą z zewnętrznego serwera map — coś na tym urządzeniu albo w sieci je blokuje.", "Alerts, the signals panel and history still work. The map tiles come from an outside map server — something on this device or network is blocking them.", "Тривоги, панель сигналів та історія працюють. Плитки мапи надходять із зовнішнього сервера мап — щось на цьому пристрої або в мережі їх блокує.")}</p><p class="muted">${UI.t("Najczęściej: bloker treści lub reklam, filtr DNS (AdGuard, NextDNS), VPN albo Prywatny przekaźnik iCloud. Spróbuj na chwilę go wyłączyć albo przełączyć się między Wi-Fi a danymi komórkowymi.", "Most often: a content or ad blocker, a DNS filter (AdGuard, NextDNS), a VPN or iCloud Private Relay. Try turning it off for a moment, or switch between Wi-Fi and mobile data.", "Найчастіше: блокувальник вмісту чи реклами, DNS-фільтр (AdGuard, NextDNS), VPN або Приватний вузол iCloud. Спробуйте на хвилину його вимкнути або перемкнутися між Wi-Fi і мобільними даними.")}</p><p class="muted" style="font-size:0.8rem">${UI.t("Szczegół techniczny", "Technical detail", "Технічна деталь")}: ${esc(tech)}</p></div>`;
   box.appendChild(d);
 }
 
@@ -2168,7 +2205,7 @@ function planePopupHTML(p, heli, uid) {
   const vrTxt = vr == null ? "" : vr > 100 ? ` · ↑ ${vr} ft/min`
     : vr < -100 ? ` · ↓ ${Math.abs(vr)} ft/min` : (UI.t(" · lot poziomy", " · level flight", " · горизонтальний політ"));
   const mil = (p.dbflags & 1)
-    ? `<span style="background:#7a1d2b;color:#fff;border-radius:4px;padding:1px 5px;font-size:10px">${UI.t("WOJSKOWY", "MILITARY", "ВІЙСЬКОВИЙ")}</span> ` : "";
+    ? `<span style="background:#7a1d2b;color:#fff;border-radius:4px;padding:1px 5px;font-size:0.6667rem">${UI.t("WOJSKOWY", "MILITARY", "ВІЙСЬКОВИЙ")}</span> ` : "";
   const nav = Array.isArray(p.nav_modes) ? p.nav_modes.join(", ") : (p.nav_modes || "");
   const geom = p.alt_geom != null && p.alt_geom !== p.alt
     ? ` <span style="color:#68758c">(geom. ${ftToM(p.alt_geom)} m)</span>` : "";
@@ -2177,10 +2214,10 @@ function planePopupHTML(p, heli, uid) {
   return `<div>
     <div id="${uid}-box" class="ac-photo" style="display:none;margin:-2px 0 6px">
       <img id="${uid}" alt="" style="width:100%;max-height:220px;object-fit:contain;border-radius:6px;display:block">
-      <div class="ph-cr" style="font-size:10px;color:#68758c;margin-top:2px"></div>
+      <div class="ph-cr" style="font-size:0.6667rem;color:#68758c;margin-top:2px"></div>
     </div>
-    <div id="${uid}-missing" style="font-size:10px;color:#68758c;margin-bottom:6px">${UI.t("Brak zweryfikowanego zdjęcia tego modelu/wariantu.", "No verified photo for this model/variant.", "Немає перевіреного фото цієї моделі/варіанта.")}</div>
-    <b style="font-size:13.5px">${heli ? "🚁" : "✈"} ${esc2(p.callsign || p.hex || "?")}</b>
+    <div id="${uid}-missing" style="font-size:0.6667rem;color:#68758c;margin-bottom:6px">${UI.t("Brak zweryfikowanego zdjęcia tego modelu/wariantu.", "No verified photo for this model/variant.", "Немає перевіреного фото цієї моделі/варіанта.")}</div>
+    <b style="font-size:0.9rem">${heli ? "🚁" : "✈"} ${esc2(p.callsign || p.hex || "?")}</b>
       ${p.reg ? ` · ${UI.t("rej.", "reg.", "реєстр.")} ${esc2(p.reg)}` : ""}<br>
     ${mil}${c ? `${c.flag} ${esc2(countryText(c.name))} · ` : ""}<b>${esc2(acName(p.type, p.desc))}</b>${p.year ? ` (${esc2(p.year)})` : ""}<br>
     ${role ? `${UI.t("przeznaczenie", "role", "призначення")}: <b>${esc2(roleText(role))}</b><br>` : ""}
@@ -2195,11 +2232,11 @@ function planePopupHTML(p, heli, uid) {
       ${row(UI.t("tryby nav", "nav modes", "режими навігації"), nav ? esc2(nav) : "")}
       ${row(UI.t("sygnał", "signal", "сигнал"), `${esc2(p.source || "ADS-B/MLAT")}${Number.isFinite(+p.rssi) && p.rssi !== null ? ` · ${+p.rssi} dBFS` : ""}${Number.isFinite(+p.messages) && p.messages !== null ? ` · ${+p.messages} msg/s` : ""}`)}
     </table>
-    ${p.held ? `<div style="color:#ffb020;font-size:11px;margin-bottom:5px">${UI.t("Pozycja wstrzymana: ostatni meldunek odrzucony jako niemożliwy skok (maszyna nie przeleciałaby tego dystansu w tym czasie). Pokazujemy ostatnią wiarygodną pozycję do czasu poprawnego meldunku.", "Position held: the latest report was rejected as an impossible jump (the aircraft could not cover that distance in that time). We show the last credible position until a sound report arrives.", "Позицію утримано: останнє повідомлення відхилено як неможливий стрибок (машина не подолала б цю відстань за такий час). Показуємо останню достовірну позицію до коректного повідомлення.")}</div>` : ""}
-    ${p.source === "MLAT" ? `<div style="color:#ffb020;font-size:11px;margin-bottom:5px">${UI.t("Pozycja z MLAT: policzona przez odbiorniki z różnic czasu dotarcia sygnału, a nie podana przez maszynę. Poza zasięgiem odbiorników — nad Białorusią, Rosją, morzem — potrafi odbiec od prawdziwej o kilkadziesiąt kilometrów. Wysokość, prędkość i kurs schodzą z pokładu i są wiarygodne.", "MLAT position: computed by ground receivers from signal time differences, not reported by the aircraft. Outside receiver coverage — over Belarus, Russia, open sea — it can be tens of kilometres off. Altitude, speed and heading come from the aircraft itself and are reliable.", "Позиція з MLAT: обчислена приймачами з різниці часу надходження сигналу, а не передана самим літаком. Поза зоною приймачів — над Білоруссю, Росією, морем — вона може відхилятися на десятки кілометрів. Висота, швидкість і курс надходять з борту і є достовірними.")}</div>` : ""}
-    <button class="btn-follow chip" style="font-size:11px;padding:3px 8px;margin-bottom:4px">${followHex === p.hex
+    ${p.held ? `<div style="color:#ffb020;font-size:0.7333rem;margin-bottom:5px">${UI.t("Pozycja wstrzymana: ostatni meldunek odrzucony jako niemożliwy skok (maszyna nie przeleciałaby tego dystansu w tym czasie). Pokazujemy ostatnią wiarygodną pozycję do czasu poprawnego meldunku.", "Position held: the latest report was rejected as an impossible jump (the aircraft could not cover that distance in that time). We show the last credible position until a sound report arrives.", "Позицію утримано: останнє повідомлення відхилено як неможливий стрибок (машина не подолала б цю відстань за такий час). Показуємо останню достовірну позицію до коректного повідомлення.")}</div>` : ""}
+    ${p.source === "MLAT" ? `<div style="color:#ffb020;font-size:0.7333rem;margin-bottom:5px">${UI.t("Pozycja z MLAT: policzona przez odbiorniki z różnic czasu dotarcia sygnału, a nie podana przez maszynę. Poza zasięgiem odbiorników — nad Białorusią, Rosją, morzem — potrafi odbiec od prawdziwej o kilkadziesiąt kilometrów. Wysokość, prędkość i kurs schodzą z pokładu i są wiarygodne.", "MLAT position: computed by ground receivers from signal time differences, not reported by the aircraft. Outside receiver coverage — over Belarus, Russia, open sea — it can be tens of kilometres off. Altitude, speed and heading come from the aircraft itself and are reliable.", "Позиція з MLAT: обчислена приймачами з різниці часу надходження сигналу, а не передана самим літаком. Поза зоною приймачів — над Білоруссю, Росією, морем — вона може відхилятися на десятки кілометрів. Висота, швидкість і курс надходять з борту і є достовірними.")}</div>` : ""}
+    <button class="btn-follow chip" style="font-size:0.7333rem;padding:3px 8px;margin-bottom:4px">${followHex === p.hex
       ? (UI.t("■ przestań śledzić", "■ stop tracking", "■ припинити стеження")) : (UI.t("📍 śledź trasę", "📍 follow track", "📍 стежити за шляхом"))}</button>
-    <div style="color:#68758c;font-size:11px">${UI.t("publiczny transponder ADS-B/MLAT — pozycja emisji, nie namierzanie. Telemetria: dostawcy ADS-B. Zdjęcie modelu: biblioteka lokalna; źródło i licencja powyżej.", "public ADS-B/MLAT transponder — emitted position, not active tracking. Telemetry: ADS-B providers. Model photo: local library; source and license above.", "відкритий транспондер ADS-B/MLAT — позиція випромінювання, а не радарне стеження. Телеметрія: постачальники ADS-B. Фото моделі: локальна бібліотека; джерело й ліцензія вище.")}</div>
+    <div style="color:#68758c;font-size:0.7333rem">${UI.t("publiczny transponder ADS-B/MLAT — pozycja emisji, nie namierzanie. Telemetria: dostawcy ADS-B. Zdjęcie modelu: biblioteka lokalna; źródło i licencja powyżej.", "public ADS-B/MLAT transponder — emitted position, not active tracking. Telemetry: ADS-B providers. Model photo: local library; source and license above.", "відкритий транспондер ADS-B/MLAT — позиція випромінювання, а не радарне стеження. Телеметрія: постачальники ADS-B. Фото моделі: локальна бібліотека; джерело й ліцензія вище.")}</div>
   </div>`;
 }
 
@@ -2663,7 +2700,7 @@ function inheritTrail(t, now) {
     const last = e.pts[e.pts.length - 1];
     const km = Math.hypot((t.lat - last.lat) * 110.57,
       (t.lon - last.lon) * 111.32 * Math.cos(t.lat * Math.PI / 180));
-    const reach = (TYPE_SPEED_KMH[t.type] || 180) * (now - e.endedAt) / 3600000
+    const reach = (typeSpeedKmh(t) || 180) * (now - e.endedAt) / 3600000
       + (Number(t.uncertaintyKm) || 0) + 10;
     if (km <= reach && (!best || km < best.km)) best = { id, km, pts: e.pts };
   }
@@ -2724,7 +2761,14 @@ function cleanTrail(t) {
    w danych Neptuna praktycznie nie występuje (sprawdzone na żywym API),
    więc bez tego dead-reckoning nigdy by nie ruszył znacznika. */
 const TYPE_SPEED_KMH = { uav: 180, shahed: 180, fpv: 100, missile: 800, cruise: 800,
-  ballistic: 3000, kab: 900, mig31k: 900 };
+  ballistic: 3000, kab: 900, mig31k: 900, recon: 180 };
+/* JEDYNE wejście do tablicy prędkości. Pięć miejsc czytało `TYPE_SPEED_KMH[t.type]`
+   wprost, bez sprowadzania do małych liter, podczas gdy backend i engine.js robią
+   `.lower()` wszędzie. Dziś NEPTUN podaje `uav` / `fpv` / `kab` małymi literami,
+   więc to działało — ale przy zmianie zapisu w źródle prędkość wyszłaby
+   `undefined`, a czas dolotu zniknąłby z kart BEZ ŻADNEGO BŁĘDU, po cichu.
+   Nie czytać tej tablicy wprost; pilnuje tego scripts/test_predkosci.cjs. */
+const typeSpeedKmh = (t) => TYPE_SPEED_KMH[String(t?.type || "").toLowerCase()] ?? null;
 function measuredTrackSpeed(t) {
   if (isApproxPosition(t)) return null;
   if (Number.isFinite(+t.velocity?.speedKmh) && +t.velocity.speedKmh > 0) return +t.velocity.speedKmh;
@@ -2742,7 +2786,7 @@ function measuredTrackSpeed(t) {
   return null;
 }
 function trackSpeed(t) {
-  return measuredTrackSpeed(t) ?? TYPE_SPEED_KMH[t.type] ?? null; // zapas mapy: prędkość typowa dla klasy
+  return measuredTrackSpeed(t) ?? typeSpeedKmh(t); // zapas mapy: prędkość typowa dla klasy
 }
 
 /* Dead-reckoning USUNIĘTY 28.09.2026. Znacznik jechał zmierzonym kursem nawet
@@ -2775,7 +2819,7 @@ function threatAgeMin(t, nowMs) {
 const AGE_SLACK_MAX_MIN = 15;
 function ageSlackKm(t, nowMs) {
   if (FAST_TYPES.has(t?.type)) return 0;
-  const kmh = Math.max(measuredTrackSpeed(t) || 0, TYPE_SPEED_KMH[t?.type] || 0);
+  const kmh = Math.max(measuredTrackSpeed(t) || 0, typeSpeedKmh(t) || 0);
   if (!kmh) return 0;
   const min = Math.min(threatAgeMin(t, nowMs ?? nowRefMs()), AGE_SLACK_MAX_MIN);
   return kmh * (min / 60);
@@ -2904,7 +2948,7 @@ function animate(ts) {
     if (isApproxPosition(t) || nMode === "off") continue;
     if (nMode === "course") {
       const hdg = measuredHeading(t);
-      const kmh = measuredTrackSpeed(t) || TYPE_SPEED_KMH[t.type];
+      const kmh = measuredTrackSpeed(t) || typeSpeedKmh(t);
       if (hdg != null && kmh) course.push(...courseFeatures(p.lat, p.lon, hdg, kmh, 30, meta.color));
     }
     const coords = trackPoints(t).map(q => [q.lon, q.lat]);
@@ -3293,7 +3337,7 @@ function renderObservationLists(viewState) {
          data-lat="${p.lat}" data-lon="${p.lon}" data-kind="plane">
       <b style="color:#39c5ec">${heli ? "🚁" : "✈"} ${esc(p.callsign || p.hex)}</b>
       ${esc(acName(p.type, p.desc))}${p.year ? ` <span class="meta">(${esc(p.year)})</span>` : ""}
-      ${role ? `<div style="color:#9fd8ec;font-size:11px">${esc(roleText(role))}</div>` : ""}
+      ${role ? `<div style="color:#9fd8ec;font-size:0.7333rem">${esc(roleText(role))}</div>` : ""}
       <div class="meta">
         ${UI.t("woj.", "province", "воєв.")} ${esc(UI.voiv(p.voivodeship))}
         · ${altText(p.alt)}
@@ -4868,6 +4912,8 @@ async function seedBundle() {
     const have = new Set(srvSnaps.map(sn => sn.ts));
     for (const sn of (j.snaps || [])) {
       if (have.has(sn.ts)) continue;
+      // migawki z archiwum idą osobnym pobraniem i omijają applyState
+      normalizujTypy(sn.threats);
       srvSnaps.push({ ...sn, t: Date.parse(sn.ts) });
     }
     srvAdsbEvents = (j.adsb_watch_events || []).map(e => ({ ...e, t: Date.parse(e.ts) }));
@@ -6013,6 +6059,77 @@ async function refreshNativeSound() {
     renderYellowLevel();
   } catch {}
 }
+
+/* ── wysokość paska tytułu ───────────────────────────────────────────────
+   Atrybucja, legenda i plakietka połączenia wisiały na `top: 60px + safe-t`.
+   Po przebudowie paska w 1.7.89 pasek urósł do 90 px i atrybucja wjechała
+   POD ikony: przez pierwsze pięć sekund, zanim zwinie się do (i), jej tekst
+   prześwitywał między przyciskami (zgłoszenie użytkownika 04.10.2026).
+   To nie była nakładka na „stary pasek" — to JEDEN element, który sam się
+   zwija, tyle że stał w złym miejscu.
+   Mierzymy pasek zamiast wpisywać liczbę, bo jego wysokość zależy od treści,
+   od paska systemowego i — od teraz — od wybranej wielkości tekstu. */
+function zmierzPasekTytulu() {
+  const tb = document.getElementById("topbar");
+  if (tb) {
+    const h = Math.round(tb.getBoundingClientRect().bottom);
+    if (h > 0) document.documentElement.style.setProperty("--topbar-h", h + "px");
+  }
+  /* Atrybucja schodzi jeszcze niżej, gdy nad nią wisi plakietka połączenia
+     („łączenie…", „tryb awaryjny…"). Obie stały dotąd na tej samej wysokości
+     i plakietka, z wyższym z-index, zasłaniała początek listy źródeł. */
+  const cb = document.getElementById("conn-badge");
+  const widoczna = cb && !cb.classList.contains("hidden") && cb.getBoundingClientRect().height > 0;
+  document.documentElement.style.setProperty("--pod-plakietka",
+    widoczna ? (Math.round(cb.getBoundingClientRect().height) + 6) + "px" : "0px");
+}
+zmierzPasekTytulu();
+addEventListener("resize", zmierzPasekTytulu);
+{
+  const tb = document.getElementById("topbar");
+  // ResizeObserver i MutationObserver są od Chrome 64 i 18 — obie poniżej
+  // naszej podłogi zgodności (80), więc można na nich polegać.
+  if (tb && window.ResizeObserver) new ResizeObserver(zmierzPasekTytulu).observe(tb);
+  const cb = document.getElementById("conn-badge");
+  if (cb && window.MutationObserver)
+    new MutationObserver(zmierzPasekTytulu).observe(cb, { attributes: true, attributeFilter: ["class"] });
+}
+
+/* ── wielkość tekstu ──────────────────────────────────────────────────────
+   Zgłoszenie #4 (filo4444, 22.09.2026) i obietnica z notatek wydania 1.7.81.
+   Cała typografia siedzi w `rem`, więc wystarczy jeden mnożnik na :root.
+   Odstępy, wysokości i pole dotykowe zostają w px CELOWO — przy skalowaniu
+   wszystkiego razem rosłaby też wysokość paska zakładek i okna przestałyby
+   się mieścić (ten sam problem, który łataliśmy przez `--dlg-max`).
+   Wartość ustawia też skrypt w nagłówku strony, przed pierwszym odmalowaniem;
+   tutaj jest druga połowa: sterowanie i zapis. */
+const SKALE_TEKSTU = ["1", "1.15", "1.3"];
+function skalaTekstu() {
+  try {
+    const v = localStorage.getItem("straznik_skala_tekstu");
+    return SKALE_TEKSTU.includes(v) ? v : "1";
+  } catch { return "1"; }
+}
+function renderSkalaTekstu() {
+  const wybrana = skalaTekstu();
+  document.documentElement.style.setProperty("--skala-tekstu", wybrana);
+  zmierzPasekTytulu();   // większy tekst = wyższy pasek = niżej atrybucja
+  for (const b of document.querySelectorAll("#text-size .chip")) {
+    const on = b.dataset.skala === wybrana;
+    b.classList.toggle("active", on);
+    // sama klasa jest wyłącznie wizualna — czytnik ekranu czyta aria-pressed
+    b.setAttribute("aria-pressed", on ? "true" : "false");
+  }
+}
+for (const b of document.querySelectorAll("#text-size .chip")) {
+  b.addEventListener("click", () => {
+    const skala = b.dataset.skala;
+    if (!SKALE_TEKSTU.includes(skala)) return;
+    try { localStorage.setItem("straznik_skala_tekstu", skala); } catch {}
+    renderSkalaTekstu();
+  });
+}
+renderSkalaTekstu();
 
 /* ── głośność żółtego sygnału uwagi ───────────────────────────────────────── */
 function renderYellowLevel() {

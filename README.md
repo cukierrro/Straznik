@@ -6,6 +6,19 @@
 
 Serwer: **hostowane na [Mikrusie](https://mikr.us)** — dziękujemy za wsparcie projektu.
 
+Wersja 1.7.90: wielkość tekstu, świeży wykaz schronień i jedna prędkość
+w całej aplikacji. W Ustawieniach → Aplikacja doszedł wybór wielkości tekstu
+(Normalna / Większa / Największa) — powiększa wszystkie napisy naraz, działa
+od razu i mnoży się z systemowym rozmiarem czcionki na Androidzie. GROTA
+dostała wykaz PSP z 28 września (86 533 miejsca) oraz listę schronień do
+przejścia czytnikiem ekranu i klawiaturą. Czas dolotu liczy się teraz jedną
+regułą na serwerze i w aplikacji: prędkość typowa jest podłogą, a pomiar
+z ruchu może ją tylko podnieść — karta pokazuje dokładnie tę liczbę, na której
+oparty jest alarm. Naprawione: rozwinięty pasek źródeł wchodził pod pasek
+tytułu, a dron rozpoznawczy nie dostawał czasu dolotu. Punktacja i progi
+alarmów bez zmian.
+Szczegóły: `docs/RELEASE_1.7.90.md`.
+
 Wersja 1.7.89: porządek w oknach. Ustawienia, legenda i okno „O aplikacji"
 nie wysypują już całej treści naraz — wyjaśnienia są schowane pod nazwanymi
 sekcjami przy swojej opcji, a sterowania zostają widoczne zawsze. Legenda

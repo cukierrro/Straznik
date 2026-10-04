@@ -74,6 +74,10 @@ function piaskownica({ approx = true, mierzona = null } = {}) {
     stala('APPROX_MIN_UNCERTAINTY_KM'),
     stala('FAST_TYPES_AREA_KM'),
     stala('TYPE_SPEED_KMH'),
+    // Tablicy prędkości nie czyta się już wprost — jedyne wejście to
+    // typeSpeedKmh (sprowadza nazwę klasy do małych liter). Bez niego
+    // ageSlackKm wywala się na ReferenceError i cały plik pada.
+    stala('typeSpeedKmh'),
     stala('AGE_SLACK_MAX_MIN'),
     funkcja('nowRefMs'),
     funkcja('threatAgeMin'),

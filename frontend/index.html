@@ -73,6 +73,15 @@ if (window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlat
   document.documentElement.classList.add("ios-app");
 /* Za stary silnik przeglądarki (np. Android bez aktualizacji „Android System WebView”)
    nie wczyta app.js i zostałby pusty ekran. Wtedy mówimy wprost, co zaktualizować. */
+/* Wielkość tekstu (zgłoszenie #4, filo4444). Mnożnik ustawiamy TUTAJ, w nagłówku,
+   a nie w app.js na końcu strony — inaczej tekst mignąłby w rozmiarze podstawowym
+   i podskoczył przy pierwszym odmalowaniu. Wpuszczamy wyłącznie znane wartości:
+   to, co idzie do CSS, nie może pochodzić wprost z pamięci przeglądarki. */
+try {
+  var _ts = localStorage.getItem("straznik_skala_tekstu");
+  if (_ts === "1.15" || _ts === "1.3")
+    document.documentElement.style.setProperty("--skala-tekstu", _ts);
+} catch (e) {}
 var STRAZNIK_OLD_ENGINE = false;
 try { new Function("var a = null; return a?.b ?? 1"); } catch (e) { STRAZNIK_OLD_ENGINE = true; }
 if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function () {
@@ -94,7 +103,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <link rel="icon" type="image/png" sizes="512x512" href="assets/icon-512.png">
 <link rel="apple-touch-icon" href="assets/icon-192.png">
 <link rel="stylesheet" href="assets/vendor/maplibre-gl.css?v=1.7.82">
-<link rel="stylesheet" href="style.css?v=1.7.89">
+<link rel="stylesheet" href="style.css?v=1.7.90">
 </head>
 <body>
 
@@ -440,6 +449,11 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
   <div class="lg-row"><i class="lg-threat" data-type="kab"></i><span>Bomba kierowana KAB</span></div>
   <div class="lg-row"><i class="lg-threat" data-type="mig31k"></i><span>MiG-31K<small>nosiciel</small></span></div>
   <div class="lg-row"><i class="lg-threat" data-type="unknown"></i><span>Obiekt nierozpoznany</span></div>
+  <!-- Rozdzielenie dronów w tej legendzie jest NASZE, nie źródła: NEPTUN melduje
+       je zbiorczo jako „БпЛА". Mówimy o tym wprost, bo inaczej lista sugeruje
+       rozpoznanie, którego nie ma. Drona odrzutowego wykrywamy wyłącznie po
+       opisie i NIE ma on osobnej ikony — ma własny wiersz w karcie obiektu. -->
+  <div class="muted-row" id="lg-drony-zbiorczo">Źródło w praktyce nie rozróżnia Shahedów i zwykłych BSP — przychodzą jako „Dron / BpSP”. Dron odrzutowy rozpoznajemy po opisie i zaznaczamy w karcie obiektu.</div>
   </details>
 
   <details class="lg-sec">
@@ -788,7 +802,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
     <div class="about-head">
       <div class="about-logo"></div>
       <div>
-        <h2 style="font-size:17px;letter-spacing:.06em">Alarmy push</h2>
+        <h2 style="font-size:1.1333rem;letter-spacing:.06em">Alarmy push</h2>
         <p class="about-sub">żeby ostrzeżenie dotarło, gdy nie patrzysz na telefon</p>
       </div>
     </div>
@@ -816,7 +830,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
     <div class="about-head">
       <div class="about-logo"></div>
       <div>
-        <h2 style="font-size:17px;letter-spacing:.06em">Alarm pełnoekranowy</h2>
+        <h2 style="font-size:1.1333rem;letter-spacing:.06em">Alarm pełnoekranowy</h2>
         <p class="about-sub">sprawdź zgodę po aktualizacji</p>
       </div>
     </div>
@@ -845,7 +859,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
     </div>
 
     <section class="set-pane" data-pane="alarmy" role="tabpanel">
-    <h3>Alarmy przy zamkniętej aplikacji</h3>
+    <h3 id="set-h-alarmy">Alarmy przy zamkniętej aplikacji</h3>
     <!-- Dwa akapity wyjaśnienia stały nad samymi przełącznikami i spychały je
          poniżej krawędzi ekranu. Chowamy je przy ich własnej opcji; kto chce
          wiedzieć, rozwinie. -->
@@ -917,7 +931,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
     </section>
 
     <section class="set-pane" data-pane="miejsca" role="tabpanel" hidden>
-    <h3>Moje miejsca</h3>
+    <h3 id="set-h-miejsca">Moje miejsca</h3>
     <p class="fineprint" id="miejsca-note">Zapisz do 8 miejsc i wybierz, dla których województw chcesz
     otrzymywać powiadomienia. Dokładne miejsca zostają na tym urządzeniu.</p>
     <div id="places-summary" class="fineprint">Nie zapisano jeszcze żadnego miejsca.</div>
@@ -930,7 +944,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
     </section>
 
     <section class="set-pane" data-pane="dzwiek" role="tabpanel" hidden>
-    <h3>Sygnały dźwiękowe</h3>
+    <h3 id="set-h-dzwiek">Sygnały dźwiękowe</h3>
     <details class="jak"><summary id="jak-dzwiek">Co kiedy gra</summary>
     <p class="fineprint android-only" id="dzwiek-pl-note">Żółty poziom (≥2 pkt) — krótki sygnał uwagi i powiadomienie
     wyskakujące na ekranie (heads-up).
@@ -1008,7 +1022,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
     <section class="set-pane" data-pane="aplikacja" role="tabpanel" hidden>
     <!-- Krótszy niż etykieta pod spodem: ten sam napis dwa razy pod rzędem
          nic nie wnosił, a etykieta musi zostać — nazywa pole czytnikowi. -->
-    <h3>Język</h3>
+    <h3 id="set-h-jezyk">Język</h3>
     <label>Język interfejsu
       <select id="set-lang">
         <option value="pl">Polski</option>
@@ -1016,6 +1030,23 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
         <option value="uk">Українська</option>
       </select>
     </label>
+
+    <h3 style="margin-top:16px" id="ts-head">Wielkość tekstu</h3>
+    <!-- Wybór JEDNEJ z trzech możliwości to segment, nie trzy osobne pigułki
+         (kontrakt wyglądu 1.7.89). `aria-pressed` mówi czytnikowi, która jest
+         włączona — sama klasa `.active` jest wyłącznie wizualna. -->
+    <div class="seg" role="group" id="text-size" aria-label="Wielkość tekstu">
+      <button type="button" id="ts-1" class="chip" data-skala="1" aria-pressed="true">Normalna</button>
+      <button type="button" id="ts-2" class="chip" data-skala="1.15" aria-pressed="false">Większa</button>
+      <button type="button" id="ts-3" class="chip" data-skala="1.3" aria-pressed="false">Największa</button>
+    </div>
+    <details class="jak"><summary id="jak-ts">Czego dotyczy to ustawienie</summary>
+    <div class="fineprint" id="ts-note">Powiększa <b>wszystkie napisy</b> naraz — w panelu, na kartach,
+      w legendzie i na ekranie alarmu. Odstępy i przyciski zostają tej samej wielkości, żeby układ się
+      nie rozjechał. Działa od razu, bez zapisywania i bez restartu. Na Androidzie <b>mnoży się</b>
+      z systemowym rozmiarem czcionki, więc przy dużej czcionce w systemie zwykle wystarcza „Normalna".
+      Napisy na samej mapie pochodzą z serwera map i tym ustawieniem się nie zmieniają.</div>
+    </details>
 
     <h3 style="margin-top:16px" id="trail-head">Mapa: trasy obiektów</h3>
     <label id="trail-neptun-label">Drony i rakiety (NEPTUN)
@@ -1039,7 +1070,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
       ani przy pozycji rejonowej. To szacunek przy niezmienionym kursie, nie prognoza.</div>
     </details>
 
-    <h3 style="margin-top:16px" class="app-only">Wersja aplikacji</h3>
+    <h3 style="margin-top:16px" class="app-only" id="set-h-wersja">Wersja aplikacji</h3>
     <p class="fineprint app-only" id="app-version">—</p>
     <div class="btn-row app-only">
       <button type="button" id="btn-update" class="chip app-only">⬆ Sprawdź aktualizacje</button>
@@ -1052,7 +1083,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
     </details>
     <!-- Na stronie nie ma czego aktualizować; przycisk „Sprawdź aktualizacje" wisiał tu
          i milczał po dotknięciu (zgłoszenie czytelnika z 23.09.2026). -->
-    <h3 style="margin-top:16px" class="web-only">Wersja</h3>
+    <h3 style="margin-top:16px" class="web-only" id="set-h-wersja-www">Wersja</h3>
     <p class="fineprint web-only" id="www-wersja">Ta strona zawsze działa w najnowszej wersji —
     nie trzeba jej aktualizować. Wersja na telefon ma dodatkowo alarmy przy zamkniętej
     aplikacji i moduł <b>GROTA</b> (najbliższe schronienie). Pobierzesz ją przyciskami
@@ -1108,10 +1139,10 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
      Cloudflare, więc po każdym wydaniu wystarczy podbić ?v= i przeglądarki
      dostają nowe app.js/engine.js OD RAZU, bez ręcznego czyszczenia cache CF.
      Podbijaj ?v= razem z versionName w build.gradle. -->
-<script src="i18n.js?v=1.7.89"></script>
+<script src="i18n.js?v=1.7.90"></script>
 <!-- kontur Polski dla engine.js (audyt A2b, scripts/build_pl_outline.py) -->
 <script src="pl-outline.js?v=1.7.82"></script>
-<script src="engine.js?v=1.7.82"></script>
+<script src="engine.js?v=1.7.90"></script>
 <script src="aircraft-photo-catalog.js?v=1.7.19"></script>
 <script src="aircraft-photos.js?v=1.7.79"></script>
 <script src="places.js?v=1.7.19-4"></script>
@@ -1124,7 +1155,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <div id="a11y-alert" class="sr-only" role="status" aria-live="assertive" aria-atomic="true"></div>
 <div id="a11y-info" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
 
-<script src="app.js?v=1.7.89"></script>
+<script src="app.js?v=1.7.90"></script>
 <script>
 /* Instrukcja pasująca do telefonu i języka (21.09.2026). iPhone ma osobną, bo alarmy,
    zgody i aktualizacje działają tam inaczej. Tu, a nie w app.js: index.html nie jest

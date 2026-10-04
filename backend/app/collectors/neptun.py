@@ -422,6 +422,25 @@ def _evaluate(t: dict) -> dict:
             _trail[tid] = pts[-TRAIL_MAX_PTS:]
             t["straznik_trail"] = _trail[tid]
     t["pl_assessment"] = a
+    # Prędkość UŻYTA do czasu dolotu jedzie z KAŻDYM obiektem, nie tylko z tym,
+    # który punktuje. Karta pokazuje czas także dla obiektu kursem na PL dalej
+    # niż 250 km (zero punktów), a ma pokazywać TĘ SAMĄ liczbę co serwer —
+    # inaczej wraca rozjazd, który tu właśnie usuwamy. Liczone po `straznik_trail`,
+    # więc musi stać PO zapisie śladu.
+    speed = _speed_of(t)
+    if speed:
+        jet = bool(t.get("straznik_jet") or is_jet(t))
+        t["straznik_speed"] = {
+            "kmh": round(speed, 1),
+            "source": ("source" if (t.get("velocity") or {}).get("speedKmh")
+                       else "measured" if (_measured_speed(t) or 0) > speed - 0.01
+                       else "jet_floor" if jet else "typical"),
+            "jet": jet,
+            # szybki koniec przedziału to końcowy odcinek drona odrzutowego;
+            # wolny koniec NIGDY nie jest wolniejszy niż prędkość alarmu
+            "fast_kmh": max(speed, config.NEPTUN_JET_MAX_KMH) if jet else speed,
+            "slow_kmh": speed,
+        }
     region = t.get("region") or ""
     t["border_region"] = any(r in region for r in config.NEPTUN_BORDER_REGIONS)
     return t
@@ -503,12 +522,10 @@ def _speed_of(t: dict) -> float | None:
         return float(v)
     if t.get("straznik_jet") or is_jet(t):
         # Geran-3: przelot 300–370 km/h, na końcowym odcinku do 550–600 km/h.
-        # Decyzja usera 14.09.2026: 450 km/h, a gdy ruch w danych daje prędkość —
-        # większa z zmierzonej i przelotowej (dron, który naprawdę przyspieszył).
-        measured = _measured_speed(t)
-        if measured is not None:
-            return max(measured, config.NEPTUN_JET_CRUISE_KMH)
-        return config.NEPTUN_JET_SPEED_KMH
+        # Pomiar z ruchu może prędkość tylko PODNIEŚĆ — patrz komentarz przy
+        # NEPTUN_JET_SPEED_KMH. Dawniej `max(zmierzona, 350)` pozwalał szumowi
+        # pozycji zejść poniżej podłogi alarmu i opóźnić ostrzeżenie.
+        return max(_measured_speed(t) or 0.0, config.NEPTUN_JET_SPEED_KMH)
     return config.NEPTUN_TYPE_SPEED_KMH.get((t.get("type") or "").lower())
 
 
