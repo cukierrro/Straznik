@@ -233,6 +233,10 @@ public class BackgroundPlugin extends Plugin {
         android.content.SharedPreferences fcm = c.getSharedPreferences("straznik_fcm", Context.MODE_PRIVATE);
         ret.put("topicsConfirmed", new JSArray(fcm.getStringSet("topics", java.util.Collections.<String>emptySet())));
         ret.put("topicsOkAt", fcm.getLong("topics_ok_at", 0));
+        // Kiedy ten telefon ostatni raz dostał cokolwiek z FCM — zapisuje
+        // StraznikFcmService, zanim wiadomość zostanie gdziekolwiek odrzucona.
+        ret.put("lastPushAt", fcm.getLong("last_push_at", 0));
+        ret.put("pushCount", fcm.getInt("push_count", 0));
         ret.put("topicsError", fcm.getString("topics_error", ""));
         // Bez odpowiedzi FCM (brak Usług Google, proces zabity w trakcie) flaga zostawała
         // na zawsze i ustawienia wisiały na „Wypisywanie…”. Po 2 min uznajemy, że się nie udało.

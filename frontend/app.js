@@ -5540,6 +5540,20 @@ placeEl("places-form").onsubmit=event=>{event.preventDefault();const clean=draft
    ostrzeżenia od razu dawało fałszywy alarm „nasłuch wyłączony — napraw", który
    znikał po chwili, mimo że przełącznik był włączony. */
 let bgWarnStrikes = 0;
+/* Nakładki producentów, które usypiają aplikację tak głęboko, że push FCM nie
+   dociera do niej wcale — do pierwszego ręcznego otwarcia. Na czystym Androidzie
+   wiadomość o wysokim priorytecie przechodzi przez Doze i ostrzeżenie byłoby
+   szumem, bo oszczędzanie baterii jest tam domyślnie włączone dla wszystkich.
+
+   Samsung trafił na listę 06.10.2026 po dwóch zgłoszeniach naraz (Galaxy S24
+   Ultra i S25+): „wszystkie uprawnienia włączone, alarm rusza dopiero po wejściu
+   do aplikacji". Warstwa natywna zgłaszała batteryUnrestricted od zawsze —
+   to aplikacja nigdy tego pola nie czytała i milczała. */
+const NAKLADKI_USYPIAJACE =
+  /samsung|xiaomi|redmi|poco|huawei|honor|oppo|realme|vivo|oneplus|meizu|tecno|infinix/i;
+const usypiaAplikacje = (s) =>
+  s?.batteryUnrestricted === false && NAKLADKI_USYPIAJACE.test(String(s?.manufacturer || ""));
+
 async function refreshBgWarning() {
   const el = document.getElementById("bg-warning");
   if (!el) return;
@@ -5563,9 +5577,14 @@ async function refreshBgWarning() {
     } else if (s.fullScreenAllowed === false) {
       msg = UI.t("Zgoda na alarm pełnoekranowy wygasła — czerwony alarm nie zapali ekranu z blokady", "Full-screen alert permission expired — a red alert will not wake the locked screen", "Дозвіл на повноекранну тривогу минув — червона тривога не ввімкне екран із блокування");
       fix = "fullscreen";
+    } else if (usypiaAplikacje(s)) {
+      msg = UI.t("Oszczędzanie baterii może uśpić Strażnika — alarm ruszyłby dopiero po otwarciu aplikacji", "Battery saving may put Strażnik to sleep — an alert would start only after you open the app", "Економія батареї може приспати Strażnika — тривога запуститься аж після відкриття застосунку");
+      fix = "battery";
     }
     if (!msg) { bgWarnStrikes = 0; el.classList.add("hidden"); return; }
-    const kind = fix === "fullscreen" ? "fullscreen" : "notifications";
+    // Klucz ukrycia zostaje przy dotychczasowych nazwach: zmiana „notifications"
+    // na „settings" odsłoniłaby baner wszystkim, którzy raz go zamknęli.
+    const kind = fix === "fullscreen" ? "fullscreen" : fix === "battery" ? "battery" : "notifications";
     try { if (localStorage.getItem(BGWARN_HIDDEN_KEY) === kind) { el.classList.add("hidden"); return; } } catch {}
     // problem musi utrzymać się przez dwa sprawdzenia z rzędu — mniej fałszywych alarmów
     if (++bgWarnStrikes < 2) { setTimeout(refreshBgWarning, 5000); return; }
@@ -5578,6 +5597,8 @@ async function refreshBgWarning() {
     };
     el.querySelector("button").onclick = fix === "fullscreen"
       ? () => { BG()?.requestFullScreenPermission(); setTimeout(refreshBgWarning, 1500); }
+      : fix === "battery"
+      ? () => { BG()?.requestBatteryExemption(); setTimeout(refreshBgWarning, 1500); }
       : () => openSettings();
     el.classList.remove("hidden");
   } catch { el.classList.add("hidden"); }
@@ -5769,6 +5790,8 @@ async function refreshBgStatus(previewLang = UI.lang) {
        czasowo zależne osobno dla aplikacji i osobno dla trybu Skupienia. */
     if (s.platform === "ios" && s.notificationsAllowed && s.timeSensitiveAllowed === false)
       warn.push(T("⚠ „Powiadomienia czasowo zależne” są wyłączone dla Strażnika — czerwony alarm może nie przebić trybu Skupienia. Ustawienia → Strażnik → Powiadomienia.", "⚠ “Time Sensitive Notifications” are off for Strażnik — a red alert may stay silent in Focus mode. Settings → Strażnik → Notifications.", "⚠ «Сповіщення з урахуванням часу» вимкнені для Strażnika — червона тривога може не пробити режим Фокусування. Налаштування → Strażnik → Сповіщення."));
+    if (usypiaAplikacje(s))
+      warn.push(T(`⚠ Na telefonach ${esc(s.manufacturer)} oszczędzanie baterii potrafi uśpić Strażnika tak, że alarm nie dotrze wcale — ruszy dopiero po otwarciu aplikacji. Zdejmij ograniczenie przyciskiem „Wyłącz oszczędzanie baterii” poniżej, a w ustawieniach baterii telefonu wyjmij Strażnika z aplikacji usypianych.`, `⚠ On ${esc(s.manufacturer)} phones battery saving can put Strażnik to sleep so that an alert never arrives — it starts only after you open the app. Lift the restriction with the “Turn off battery saving” button below, and in the phone's battery settings take Strażnik out of the sleeping apps.`, `⚠ На телефонах ${esc(s.manufacturer)} економія батареї може приспати Strażnika так, що тривога не дійде взагалі — запуститься аж після відкриття застосунку. Зніміть обмеження кнопкою «Вимкнути економію батареї» нижче, а в налаштуваннях батареї приберіть Strażnika зі сплячих застосунків.`));
     if (s.topicsError)
       warn.push(T("⚠ Część subskrypcji alarmów nie została jeszcze potwierdzona — zostaw aplikację chwilę otwartą z internetem.", "⚠ Some alert subscriptions were not confirmed yet — keep the app open with internet for a moment.", "⚠ Частину підписок на тривоги ще не підтверджено — залиште застосунок ненадовго відкритим з інтернетом."));
     // Audyt B6: na tych nakładkach „wyczyść wszystko” działa jak wymuszone zatrzymanie
@@ -5792,6 +5815,15 @@ async function refreshBgStatus(previewLang = UI.lang) {
       fsBtn.textContent = s.fullScreenAllowed === false
         ? (T("Zezwól na alarm pełnoekranowy", "Allow full-screen alerts", "Дозволити повноекранну тривогу"))
         : (T("Sprawdź zgodę na alarm pełnoekranowy", "Check full-screen alert permission", "Перевірити дозвіл на повноекранну тривогу"));
+    }
+    /* Przycisk baterii mówi, w jakim stanie jesteśmy. Bez tego po zdjęciu
+       ograniczenia nic się na ekranie nie zmienia i nie wiadomo, czy zadziałało —
+       a to jedyna rzecz, którą da się stąd sprawdzić bez czekania na alarm. */
+    const batBtn = document.getElementById("btn-battery");
+    if (batBtn) {
+      batBtn.textContent = s.batteryUnrestricted
+        ? T("Oszczędzanie baterii: wyłączone", "Battery saving: off", "Економія батареї: вимкнено")
+        : T("Wyłącz oszczędzanie baterii", "Turn off battery saving", "Вимкнути економію батареї");
     }
     /* Dostęp do zasad Nie przeszkadzać. Przycisk pokazujemy tylko wtedy, gdy zgody
        NIE MA — po jej przyznaniu nie ma czego klikać, a dodatkowy przycisk w tym
@@ -5856,10 +5888,25 @@ async function refreshBgStatus(previewLang = UI.lang) {
       ? (T(`Zapisany do alarmów dla: ${subscribed.map(v => esc(UI.voiv(v))).join(", ")} (potwierdzone przez Firebase).`, `Subscribed to alerts for: ${subscribed.map(v => esc(UI.voiv(v))).join(", ")} (confirmed by Firebase).`, `Записано на тривоги для: ${subscribed.map(v => esc(UI.voiv(v))).join(", ")} (підтверджено Firebase).`))
       : (T("Telefon nie jest zapisany do żadnego województwa (potwierdzone przez Firebase).", "This phone is not subscribed to any province (confirmed by Firebase).", "Телефон не записаний на жодне воєводство (підтверджено Firebase)."));
     if (alertsOff()) warn.splice(0, warn.length, T("🔕 Alarmy są wyłączone na tym telefonie — powiadomienia o alarmach nie przyjdą, nawet gdyby serwer je wysłał. Włącz suwak niżej, żeby je przywrócić.", "🔕 Alerts are turned off on this phone — no alert notifications will arrive, even if the server sends one. Turn the switch below back on to restore them.", "🔕 Тривоги вимкнено на цьому телефоні — сповіщення про тривоги не прийдуть, навіть якби сервер їх надіслав. Увімкніть перемикач нижче, щоб їх повернути."));
+    /* Godzina ostatniego pusha. Bez niej przy zgłoszeniu „nic nie przychodzi"
+       zostaje zgadywanie: uśpiona aplikacja i ciche powiadomienie wyglądają z
+       zewnątrz tak samo, a naprawia się je zupełnie inaczej. Pusto na iPhonie
+       i na stronie — tam tego nie zapisujemy. */
+    const loc = previewLang === "pl" ? "pl-PL" : previewLang === "uk" ? "uk-UA" : "en-GB";
+    const pushLine = s.lastPushAt
+      ? T(`Ostatni sygnał z serwera odebrany ${new Date(s.lastPushAt).toLocaleString(loc)}.`,
+          `Last signal from the server received ${new Date(s.lastPushAt).toLocaleString(loc)}.`,
+          `Останній сигнал із сервера отримано ${new Date(s.lastPushAt).toLocaleString(loc)}.`)
+      : s.lastPushAt === 0
+      ? T("Ten telefon nie odebrał jeszcze żadnego sygnału z serwera — to normalne, dopóki nie było alarmu dla Twojego regionu.",
+          "This phone has not received any signal from the server yet — that is normal until there has been an alert for your region.",
+          "Цей телефон ще не отримав жодного сигналу з сервера — це нормально, доки не було тривоги для вашого регіону.")
+      : "";
     if (info) info.innerHTML = (warn.join("<br>")
       || (noRegion && !subscribed.length ? (T("Powiadomienia są dozwolone.", "Notifications are allowed.", "Сповіщення дозволені.")) : "")
       || (T("Powiadomienia gotowe. Alarmy dla Twojego regionu dotrą także przy zamkniętej aplikacji.", "Notifications ready. Alerts for your region will arrive even while the app is closed.", "Сповіщення готові. Тривоги для вашого регіону дійдуть також при закритому застосунку.")))
       + `<br>${subLine}`
+      + (pushLine ? `<br>${pushLine}` : "")
       + `<br><span class="muted">${s.platform === "ios" ? `iOS ${esc(s.osVersion || "")}`
         : `Android ${s.sdk}, ${esc(s.manufacturer || "")}`}`
       + `${s.homeVoivodeship ? " · region: " + esc(UI.voiv(s.homeVoivodeship)) : ""}</span>`;

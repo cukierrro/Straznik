@@ -26,6 +26,22 @@ public class StraznikFcmService extends FirebaseMessagingService {
 
     @Override
     public void onMessageReceived(RemoteMessage remoteMessage) {
+        /* Dowód dostarczenia. Zapisujemy KAŻDĄ wiadomość, zanim cokolwiek ją
+           odrzuci — także przy wyłączonych alarmach i nieznanym województwie.
+           Pytanie, na które to odpowiada, brzmi „czy push w ogóle dotarł do tego
+           telefonu", a nie „czy zagrał alarm". Bez tego przy zgłoszeniu „nic nie
+           przychodzi" nie da się odróżnić uśpionej aplikacji (push nie dociera)
+           od cichego powiadomienia (dociera, ale nie słychać) — a to są dwie
+           zupełnie różne naprawy. Zgłoszenia z 06.10.2026, Galaxy S24 i S25+. */
+        try {
+            android.content.SharedPreferences fcm =
+                getSharedPreferences("straznik_fcm", android.content.Context.MODE_PRIVATE);
+            fcm.edit()
+                .putLong("last_push_at", System.currentTimeMillis())
+                .putInt("push_count", fcm.getInt("push_count", 0) + 1)
+                .apply();
+        } catch (Exception ignored) {}
+
         Map<String, String> data = remoteMessage.getData();
         if (data.isEmpty()) return;
 
