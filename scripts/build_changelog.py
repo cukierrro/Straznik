@@ -8,6 +8,7 @@ bo strona ma odpowiadać na pytanie „co się zmieniło w mojej aplikacji".
 Uruchomienie: py scripts/build_changelog.py
 """
 import io
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -965,7 +966,59 @@ def build(lang: str) -> str:
     return "".join(out)
 
 
+def _klucz(wersja: str):
+    """„1.7.9" < „1.7.90" — porównujemy liczbami, nie tekstem."""
+    return tuple(int(x) for x in wersja.split("."))
+
+
+def _krotka(path: Path) -> str:
+    """Ścieżka względem repozytorium, a gdy leży poza nim — pełna.
+
+    Komunikat strażnika nie ma prawa wywrócić się na formatowaniu ścieżki:
+    to jedyna rzecz, która stoi między pomyłką a skasowaną stroną.
+    """
+    try:
+        return str(path.relative_to(ROOT))
+    except ValueError:
+        return str(path)
+
+
+def _najnowsza_na_stronie(path: Path):
+    """Najwyższa wersja obecna w istniejącym HTML-u, albo None."""
+    if not path.is_file():
+        return None
+    tekst = io.open(path, encoding="utf-8", newline="").read()
+    wersje = [m.replace("-", ".") for m in re.findall(r'<section id="v([0-9][0-9-]*)"', tekst)]
+    return max(wersje, key=_klucz) if wersje else None
+
+
+def straz():
+    """Odmawia pracy, gdy strona ma wydania, których nie ma na liście RELEASES.
+
+    build() składa stronę OD ZERA, a main() nadpisuje plik w całości. Gdy lista
+    zostaje w tyle za wpisami dopisanymi ręcznie, jedno uruchomienie kasuje je
+    BEZ ŻADNEGO BŁĘDU — skrypt robi dokładnie to, do czego go napisano.
+
+    Tak było od 1.7.79: 06.10.2026 lista kończyła się na 1.7.78, a strona miała
+    1.7.90. Dwanaście wydań do skasowania jednym poleceniem, w dobrej wierze,
+    „żeby odświeżyć stronę".
+    """
+    najnowsza_na_liscie = max((r[0] for r in RELEASES), key=_klucz)
+    for lang in ("pl", "en"):
+        path = DOCS / TEXTS[lang]["self_file"]
+        na_stronie = _najnowsza_na_stronie(path)
+        if na_stronie and _klucz(na_stronie) > _klucz(najnowsza_na_liscie):
+            raise SystemExit(
+                "PRZERWANO — nic nie zapisano.\n"
+                f"  {_krotka(path)} ma wydanie {na_stronie},\n"
+                f"  a lista RELEASES kończy się na {najnowsza_na_liscie}.\n"
+                "Uruchomienie nadpisałoby stronę i skasowało nowsze wpisy.\n"
+                "Najpierw przepisz brakujące wydania ze strony do RELEASES."
+            )
+
+
 def main():
+    straz()
     for lang in ("pl", "en"):
         path = DOCS / TEXTS[lang]["self_file"]
         io.open(path, "w", encoding="utf-8", newline="").write(build(lang))
