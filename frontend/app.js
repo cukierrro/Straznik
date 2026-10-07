@@ -1791,6 +1791,9 @@ function zoneAltText(v) {
 
 async function refreshZones(force) {
   if (zonesPending) return;
+  // W historii warstwa i tak jest ukryta (applyZones), więc odpytywanie serwera
+  // co minutę byłoby ruchem za nic. Po wyjściu exitHistory dociąga świeże.
+  if (histMode) { applyZones(); return; }
   if (!force && Date.now() - zonesAt < ZONE_TTL_MS) return;
   syncZonesButton();
   if (!zonesOn()) return;
@@ -1823,7 +1826,17 @@ async function refreshZones(force) {
 
 function applyZones() {
   if (!mapReady || !map.getSource("strefy")) return;
-  const on = zonesOn();
+  /* W trybie historii warstwa jest UKRYTA — ta sama zasada co przy alarmach
+     rejonów w showHistoryAt: migawka nie zapisuje stref, więc nie udajemy, że
+     wiemy, które obowiązywały w tamtej chwili.
+
+     Bez tego suwak rysował BIEŻĄCY zestaw nad przeszłą sytuacją. PAŻP rotuje
+     cały zestaw raz na dobę o 06:00 UTC (pomiar 07.10.2026: 33 z 34 stref
+     zaczynały dokładnie o tej godzinie), więc przez pół doby okno 12 h sięgało
+     przed rotację. Gorzej: strefa zdjęta znika z bieżącego zestawu zupełnie —
+     a to właśnie strefy doraźne, otwierane w trakcie zdarzenia, są w historii
+     najważniejsze. Odtwarzany atak wyglądał więc na odbyty przy otwartym niebie. */
+  const on = zonesOn() && !histMode;
   map.getSource("strefy").setData(on && zonesData ? zonesData : emptyFC());
   for (const id of ["strefy-3d", "strefy-tlo", "strefy-line", "strefy-hit"])
     if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", on ? "visible" : "none");
@@ -1833,8 +1846,9 @@ function syncZonesButton() {
   const b = document.getElementById("btn-zones");
   if (!b) return;
   // W trybie wbudowanym nie ma czego pokazywać, więc przycisk znika zamiast
-  // udawać, że działa.
-  b.style.display = (standalone || !apiBase()) ? "none" : "";
+  // udawać, że działa. Tak samo w historii: warstwa jest tam ukryta, więc
+  // przełącznik nie miałby czego przełączyć.
+  b.style.display = (standalone || !apiBase() || histMode) ? "none" : "";
   const on = zonesOn();
   b.setAttribute("aria-pressed", on ? "true" : "false");
   const t = on ? (UI.t("Ukryj strefy PAŻP", "Hide PAŻP zones", "Сховати зони PAŻP"))
@@ -5019,6 +5033,8 @@ async function toggleHistory() {
   }
   histMode = true;
   document.body.classList.add("history-mode");
+  // strefy PAŻP: schować raz przy wejściu, nie przy każdym ruchu suwaka
+  applyZones(); syncZonesButton();
   bar.classList.remove("hidden");
   const slider = document.getElementById("tb-slider");
   slider.max = String(histTimes.length - 1);
@@ -5040,6 +5056,10 @@ function exitHistory() {
   document.getElementById("timebar").classList.add("hidden");
   document.getElementById("btn-history").classList.remove("active");
   syncTabs();
+  /* Strefy wracają. applyZones MUSI pójść osobno: refreshZones bez `force`
+     wraca na TTL, zanim dojdzie do rysowania, więc samo wywołanie zostawiłoby
+     warstwę ukrytą do wygaśnięcia TTL-a. */
+  syncZonesButton(); applyZones(); refreshZones();
   if (state) { renderPanel(); if (mapReady) { updateVoivStates(); updateAdsb(); } }
   if (document.getElementById("watch")?.open) fillWatch();
 }
@@ -5213,7 +5233,8 @@ function renderHistoryPanel(sigs, perVoiv, when, ageMin,
   const banner = `<div class="hist-banner">${UI.t("PODGLĄD HISTORII", "HISTORY VIEW", "ПЕРЕГЛЯД ІСТОРІЇ")} —
     ${when.toLocaleTimeString(UI.t("pl-PL", "en-GB", "uk-UA"), { hour: "2-digit", minute: "2-digit" })}
     ${ageMin > 1 ? `(${histAgo(ageMin)})` : (UI.t("(teraz)", "(now)", "(зараз)"))}
-    <span>${UI.t("dane sprzed chwili wybranej suwakiem, nie na żywo", "data from the time selected on the slider, not live", "дані з моменту, обраного повзунком, а не наживо")}</span></div>`;
+    <span>${UI.t("dane sprzed chwili wybranej suwakiem, nie na żywo", "data from the time selected on the slider, not live", "дані з моменту, обраного повзунком, а не наживо")}${
+    UI.t(" · stref PAŻP nie zapisujemy, więc w historii są ukryte", " · PAŻP zones are not recorded, so they are hidden in history", " · зони PAŻP не зберігаються, тому в історії вони приховані")}</span></div>`;
 
   const shown = Object.entries(perVoiv)
     .filter(([, sc]) => sc > 0)
