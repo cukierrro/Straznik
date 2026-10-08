@@ -6,6 +6,20 @@
 
 Serwer: **hostowane na [Mikrusie](https://mikr.us)** — dziękujemy za wsparcie projektu.
 
+Wersja 1.7.91: podkarpackie słyszy drony, telefon ostrzega o uśpieniu.
+Obiekt punktuje teraz każde województwo w zasięgu, z wagą zależną od
+odległości do niego — dotąd punkty dostawało tylko województwo z najbliższym
+odcinkiem granicy, przez co drony lecące na podkarpackie liczyły się
+lubelskiemu (przeliczone na dwóch miesiącach historii: podkarpackie
+17 → 27 żółtych sygnałów, lubelskie bez zmian, czerwonych nie przybywa).
+Aplikacja ostrzega, gdy telefon ogranicza jej baterię na nakładkach, które
+potrafią przez to wstrzymać powiadomienia, i pokazuje godzinę ostatniego
+sygnału z serwera. Strefy PAŻP znikają w podglądzie historii, bo nie
+zapisujemy ich w migawkach. Karta drona nie twierdzi już, że przyjmujemy
+„wariant groźniejszy” — odrzutowego Shaheda rozpoznajemy tylko z oznaczenia
+w źródle. Progi alarmów bez zmian.
+Szczegóły: `docs/RELEASE_1.7.91.md`.
+
 Wersja 1.7.90: wielkość tekstu, świeży wykaz schronień i jedna prędkość
 w całej aplikacji. W Ustawieniach → Aplikacja doszedł wybór wielkości tekstu
 (Normalna / Większa / Największa) — powiększa wszystkie napisy naraz, działa

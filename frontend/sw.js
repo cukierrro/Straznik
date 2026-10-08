@@ -10,10 +10,39 @@ const SHELL = ["./", "index.html"];
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
 });
+/* Jedna kopia pliku na ścieżkę. Każde wydanie zmienia `?v=`, czyli ADRES — a cache
+   trzyma wpisy po adresach, więc nowa wersja dokładała się OBOK starej zamiast ją
+   zastąpić. Nazwa cache jest na sztywno, więc sprzątanie w `activate` (kasujące
+   cache o innej nazwie) nigdy nic nie usuwało.
+
+   Pomiar 07.10.2026 na historii repozytorium: 165 różnych kluczy `app.js`
+   (437 KB), 117 `i18n.js`, 138 `style.css`, 132 `engine.js`. Ktoś, kto odwiedza
+   stronę regularnie, zbierał w ten sposób ~10–25 MB martwych kopii miesięcznie.
+   Telefonu to nie zapcha (przeglądarka ma własny limit), ale rosło bez kontroli,
+   a przy wyczerpaniu limitu przeglądarka wyrzuca CAŁĄ domenę naraz — razem
+   z działaniem offline. */
+async function odkurz(c, url) {
+  const u = new URL(url);
+  if (!u.search) return;                       // powłoka bez wersji zostaje
+  for (const k of await c.keys()) {
+    const ku = new URL(k.url);
+    if (ku.origin === u.origin && ku.pathname === u.pathname && ku.search !== u.search)
+      await c.delete(k);
+  }
+}
+
 self.addEventListener("activate", (e) => {
-  e.waitUntil(caches.keys().then(keys =>
-    Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
-  ).then(() => self.clients.claim()));
+  e.waitUntil((async () => {
+    for (const k of await caches.keys()) if (k !== CACHE) await caches.delete(k);
+    /* Jednorazowe sprzątanie tego, co już się nazbierało. Nie da się odczytać
+       z cache, który wpis jest najnowszy, więc kasujemy wszystkie wersjonowane —
+       strona dociągnie bieżące przy najbliższym wczytaniu, a dzieje się to
+       zaraz po aktualizacji workera, czyli gdy połączenie i tak jest. Powłoka
+       (`./`, `index.html`) zostaje nietknięta, więc offline nie znika. */
+    const c = await caches.open(CACHE);
+    for (const k of await c.keys()) if (new URL(k.url).search) await c.delete(k);
+    await self.clients.claim();
+  })());
 });
 self.addEventListener("fetch", (e) => {
   if (e.request.method !== "GET" || e.request.url.includes("/api/")) return;
@@ -23,7 +52,9 @@ self.addEventListener("fetch", (e) => {
       // potem podawana offline zamiast ostatniej działającej wersji
       if (r.ok) {
         const copy = r.clone();
-        caches.open(CACHE).then(c => c.put(e.request, copy)).catch(() => {});
+        caches.open(CACHE)
+          .then(c => c.put(e.request, copy).then(() => odkurz(c, e.request.url)))
+          .catch(() => {});
       }
       return r;
     }).catch(() => caches.match(e.request))

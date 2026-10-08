@@ -388,6 +388,13 @@
     button("alarmy-fs-note",
       "Alarm pełnoekranowy zapala ekran i pokazuje się nad blokadą. Android 14 i nowszy może cofnąć tę zgodę po aktualizacji, dlatego sprawdź ją osobiście.",
       "A full-screen alert wakes the display and appears above the lock screen. Android 14 or later may revoke this permission after an update, so verify it manually.");
+    /* Zgłoszenia z 06.10.2026 (Galaxy S24 Ultra i S25+): wszystkie zgody nadane,
+       a alarm ruszał dopiero po otwarciu aplikacji. Do 1.7.90 pisaliśmy tu, że ta
+       zgoda „nie jest wymagana, bo push i tak dociera" — na nakładce Samsunga to
+       nieprawda. */
+    button("alarmy-bateria-note",
+      "Oszczędzanie baterii to osobna sprawa. Na czystym Androidzie push o wysokim priorytecie przechodzi przez tryb uśpienia i zgoda nie jest potrzebna. Ale Samsung, Xiaomi, Huawei, Oppo i podobne nakładki potrafią uśpić aplikację tak głęboko, że alarm nie dociera wcale, dopóki sam nie otworzysz Strażnika — włączone powiadomienia tego nie wykluczają, bo to osobne ustawienie. Na takim telefonie zdejmij ograniczenie przyciskiem poniżej, a w ustawieniach baterii wyjmij Strażnika z aplikacji usypianych.",
+      "Battery saving is a separate matter. On stock Android a high-priority push gets through Doze and this permission is not needed. But Samsung, Xiaomi, Huawei, Oppo and similar skins can put an app to sleep so deeply that the alert does not arrive at all until you open Strażnik yourself — allowed notifications do not rule this out, because it is a separate setting. On such a phone lift the restriction with the button below, and in the battery settings take Strażnik out of the sleeping apps.");
     button("miejsca-note",
       "Zapisz do 8 miejsc i wybierz, dla których województw chcesz otrzymywać powiadomienia. Dokładne miejsca zostają na tym urządzeniu.",
       "Save up to 8 places and choose which provinces you want notifications for. Exact places remain on this device.");
@@ -748,6 +755,8 @@
       "На iPhone червона тривога приходить як сповіщення з позначкою «Терміново»: воно з’являється над заблокованим екраном і програє нашу сирену. Воно не займає всього екрана і не повторює звуку — iOS не дозволяє цього звичайним застосункам. При вимкненому дзвінку тривога буде беззвучною: залишиться банер і вібрація — якщо в Налаштування → Звуки і тактильні сигнали → Тактильні сигнали не вибрано «Не відтворювати в тихому режимі». Щоб вона проходила й уночі, перевірте два місця: Налаштування → Сповіщення → Strażnik → «Сповіщення з урахуванням часу» і Налаштування → Фокус → Сон → Програми → дозвольте Strażnika. Без цього iOS притримає тривогу до розблокування телефону.",
     "A full-screen alert wakes the display and appears above the lock screen. Android 14 or later may revoke this permission after an update, so verify it manually.":
       "Повноекранна тривога вмикає екран і показується над блокуванням. Android 14 і новіші можуть скасувати цей дозвіл після оновлення, тому перевірте його особисто.",
+    "Battery saving is a separate matter. On stock Android a high-priority push gets through Doze and this permission is not needed. But Samsung, Xiaomi, Huawei, Oppo and similar skins can put an app to sleep so deeply that the alert does not arrive at all until you open Strażnik yourself — allowed notifications do not rule this out, because it is a separate setting. On such a phone lift the restriction with the button below, and in the battery settings take Strażnik out of the sleeping apps.":
+      "Економія батареї — окрема річ. На чистому Android push із високим пріоритетом проходить крізь режим сну, і цей дозвіл не потрібен. Але Samsung, Xiaomi, Huawei, Oppo та подібні оболонки можуть приспати застосунок так глибоко, що тривога не дійде взагалі, доки ви самі не відкриєте Strażnika — дозволені сповіщення цього не виключають, бо це окреме налаштування. На такому телефоні зніміть обмеження кнопкою нижче, а в налаштуваннях батареї приберіть Strażnika зі сплячих застосунків.",
     "Save up to 8 places and choose which provinces you want notifications for. Exact places remain on this device.":
       "Збережіть до 8 місць і виберіть, для яких воєводств хочете отримувати сповіщення. Точні місця залишаються на цьому пристрої.",
     "Alert sounds": "Звукові сигнали",
@@ -1055,6 +1064,7 @@
     ]);
     set("#alarmy-push-note", "Alerts for your province arrive as push notifications even when the app is closed or the phone is asleep. Full-screen permission is required for a red alert to wake the screen. This needs the Strażnik server: in emergency mode (server unavailable) alerts arrive only while the app is open.");
     set("#alarmy-fs-note", "A full-screen alert wakes the display and appears above the lock screen. Android 14 or later may revoke this permission after an update, so verify it manually.");
+    set("#alarmy-bateria-note", "Battery saving is a separate matter. On stock Android a high-priority push gets through Doze and this permission is not needed. But Samsung, Xiaomi, Huawei, Oppo and similar skins can put an app to sleep so deeply that the alert does not arrive at all until you open Strażnik yourself — allowed notifications do not rule this out, because it is a separate setting. On such a phone lift the restriction with the button below, and in the battery settings take Strażnik out of the sleeping apps.");
     set("#miejsca-note", "Save up to 8 places and choose which provinces you want notifications for. Exact places remain on this device.");
     set("#dzwiek-pl-note", "Yellow (≥2 pts): attention sound and heads-up notification. Red (≥4 pts): modulated siren, vibration and a full-screen alert.");
     set("#dzwiek-red-note", "The red siren continues until you acknowledge the alert.");

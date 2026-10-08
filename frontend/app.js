@@ -613,9 +613,18 @@ function etaHtml(t) {
   return `${UI.t("konserwatywny czas dolotu do granicy PL", "conservative time to the Polish border", "консервативний час підльоту до кордону Польщі")}: <b>${etaRangeTxt(e.borderLo, e.border)}</b>${mine}<br>`
     + (isJetDrone(t) ? `<span style="color:#95a1b7">${UI.t("dron odrzutowy: przelot 350 km/h, na końcowym odcinku do 600 — liczymy po 450", "jet drone: 350 km/h cruise, up to 600 on the final leg — we count at 450", "реактивний дрон: політ 350 км/год, на кінцевому відрізку до 600 — рахуємо за 450")}</span><br>` : "")
     // Źródło podaje drony ZBIORCZO (БпЛА) i nie mówi, czy to maszyna
-    // zwiadowcza, czy Shahed. Przyjmujemy wariant groźniejszy i mówimy o tym
-    // wprost — człowiek ma wiedzieć, że to założenie, a nie odczyt.
-    + (COLLECTIVE_DRONE_TYPES.has(t.type) ? `<span style="color:#95a1b7">${UI.t("źródło nie rozróżnia BSP i Shahedów — przyjmujemy wariant groźniejszy", "the source does not tell UAVs and Shaheds apart — we assume the worse case", "джерело не розрізняє БпЛА і «шахедів» — беремо гірший варіант")}</span><br>` : "")
+    // zwiadowcza, czy Shahed. Liczymy jak dla Shaheda i mówimy o tym wprost —
+    // człowiek ma wiedzieć, że to założenie, a nie odczyt.
+    // Do 1.7.90 stało tu „przyjmujemy wariant groźniejszy" — nieprawda wobec
+    // odrzutowego Shaheda (300–600 km/h): serwer uznaje obiekt za odrzutowy
+    // TYLKO z oznaczenia w źródle, a dla zwykłego drona prędkość jest sztywna
+    // i pomiar z ruchu jej nie podnosi (pytanie użytkownika, 08.10.2026).
+    // Prędkość z tabeli, nie wpisana na sztywno — inaczej zdanie skłamie
+    // przy pierwszej zmianie TYPE_SPEED_KMH.
+    + (COLLECTIVE_DRONE_TYPES.has(t.type) ? `<span style="color:#95a1b7">${UI.t(
+        `źródło nie rozróżnia BSP i Shahedów — liczymy jak dla Shaheda (${typeSpeedKmh(t)} km/h). Odrzutowego Shaheda rozpoznajemy tylko, gdy źródło go oznaczy`,
+        `the source does not tell UAVs and Shaheds apart — we count it as a Shahed (${typeSpeedKmh(t)} km/h). A jet Shahed is recognised only when the source marks it`,
+        `джерело не розрізняє БпЛА і «шахедів» — рахуємо як для «шахеда» (${typeSpeedKmh(t)} км/год). Реактивний «шахед» розпізнаємо, лише коли джерело його позначить`)}</span><br>` : "")
     + `<span style="color:#95a1b7">${UI.t(`szacunek przy prędkości ${e.speed} km/h i utrzymaniu kursu; krótszy czas uwzględnia niepewność pozycji i wiek danych, odjęto 2,5 min na opóźnienie — nie uwzględnia obrony powietrznej`, `estimate at ${e.speed} km/h with unchanged heading; the shorter time allows for position uncertainty and data age, 2.5 min deducted for data delay — air defence not included`, `оцінка за швидкості ${e.speed} км/год і збереження курсу; коротший час враховує невизначеність позиції та вік даних, віднято 2,5 хв на затримку — не враховує протиповітряної оборони`)}</span><br>`
     + localPlaceHtml(t);
 }
@@ -1791,6 +1800,9 @@ function zoneAltText(v) {
 
 async function refreshZones(force) {
   if (zonesPending) return;
+  // W historii warstwa i tak jest ukryta (applyZones), więc odpytywanie serwera
+  // co minutę byłoby ruchem za nic. Po wyjściu exitHistory dociąga świeże.
+  if (histMode) { applyZones(); return; }
   if (!force && Date.now() - zonesAt < ZONE_TTL_MS) return;
   syncZonesButton();
   if (!zonesOn()) return;
@@ -1823,7 +1835,17 @@ async function refreshZones(force) {
 
 function applyZones() {
   if (!mapReady || !map.getSource("strefy")) return;
-  const on = zonesOn();
+  /* W trybie historii warstwa jest UKRYTA — ta sama zasada co przy alarmach
+     rejonów w showHistoryAt: migawka nie zapisuje stref, więc nie udajemy, że
+     wiemy, które obowiązywały w tamtej chwili.
+
+     Bez tego suwak rysował BIEŻĄCY zestaw nad przeszłą sytuacją. PAŻP rotuje
+     cały zestaw raz na dobę o 06:00 UTC (pomiar 07.10.2026: 33 z 34 stref
+     zaczynały dokładnie o tej godzinie), więc przez pół doby okno 12 h sięgało
+     przed rotację. Gorzej: strefa zdjęta znika z bieżącego zestawu zupełnie —
+     a to właśnie strefy doraźne, otwierane w trakcie zdarzenia, są w historii
+     najważniejsze. Odtwarzany atak wyglądał więc na odbyty przy otwartym niebie. */
+  const on = zonesOn() && !histMode;
   map.getSource("strefy").setData(on && zonesData ? zonesData : emptyFC());
   for (const id of ["strefy-3d", "strefy-tlo", "strefy-line", "strefy-hit"])
     if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", on ? "visible" : "none");
@@ -1833,8 +1855,9 @@ function syncZonesButton() {
   const b = document.getElementById("btn-zones");
   if (!b) return;
   // W trybie wbudowanym nie ma czego pokazywać, więc przycisk znika zamiast
-  // udawać, że działa.
-  b.style.display = (standalone || !apiBase()) ? "none" : "";
+  // udawać, że działa. Tak samo w historii: warstwa jest tam ukryta, więc
+  // przełącznik nie miałby czego przełączyć.
+  b.style.display = (standalone || !apiBase() || histMode) ? "none" : "";
   const on = zonesOn();
   b.setAttribute("aria-pressed", on ? "true" : "false");
   const t = on ? (UI.t("Ukryj strefy PAŻP", "Hide PAŻP zones", "Сховати зони PAŻP"))
@@ -5019,6 +5042,8 @@ async function toggleHistory() {
   }
   histMode = true;
   document.body.classList.add("history-mode");
+  // strefy PAŻP: schować raz przy wejściu, nie przy każdym ruchu suwaka
+  applyZones(); syncZonesButton();
   bar.classList.remove("hidden");
   const slider = document.getElementById("tb-slider");
   slider.max = String(histTimes.length - 1);
@@ -5040,6 +5065,10 @@ function exitHistory() {
   document.getElementById("timebar").classList.add("hidden");
   document.getElementById("btn-history").classList.remove("active");
   syncTabs();
+  /* Strefy wracają. applyZones MUSI pójść osobno: refreshZones bez `force`
+     wraca na TTL, zanim dojdzie do rysowania, więc samo wywołanie zostawiłoby
+     warstwę ukrytą do wygaśnięcia TTL-a. */
+  syncZonesButton(); applyZones(); refreshZones();
   if (state) { renderPanel(); if (mapReady) { updateVoivStates(); updateAdsb(); } }
   if (document.getElementById("watch")?.open) fillWatch();
 }
@@ -5213,7 +5242,8 @@ function renderHistoryPanel(sigs, perVoiv, when, ageMin,
   const banner = `<div class="hist-banner">${UI.t("PODGLĄD HISTORII", "HISTORY VIEW", "ПЕРЕГЛЯД ІСТОРІЇ")} —
     ${when.toLocaleTimeString(UI.t("pl-PL", "en-GB", "uk-UA"), { hour: "2-digit", minute: "2-digit" })}
     ${ageMin > 1 ? `(${histAgo(ageMin)})` : (UI.t("(teraz)", "(now)", "(зараз)"))}
-    <span>${UI.t("dane sprzed chwili wybranej suwakiem, nie na żywo", "data from the time selected on the slider, not live", "дані з моменту, обраного повзунком, а не наживо")}</span></div>`;
+    <span>${UI.t("dane sprzed chwili wybranej suwakiem, nie na żywo", "data from the time selected on the slider, not live", "дані з моменту, обраного повзунком, а не наживо")}${
+    UI.t(" · stref PAŻP nie zapisujemy, więc w historii są ukryte", " · PAŻP zones are not recorded, so they are hidden in history", " · зони PAŻP не зберігаються, тому в історії вони приховані")}</span></div>`;
 
   const shown = Object.entries(perVoiv)
     .filter(([, sc]) => sc > 0)
@@ -5540,6 +5570,20 @@ placeEl("places-form").onsubmit=event=>{event.preventDefault();const clean=draft
    ostrzeżenia od razu dawało fałszywy alarm „nasłuch wyłączony — napraw", który
    znikał po chwili, mimo że przełącznik był włączony. */
 let bgWarnStrikes = 0;
+/* Nakładki producentów, które usypiają aplikację tak głęboko, że push FCM nie
+   dociera do niej wcale — do pierwszego ręcznego otwarcia. Na czystym Androidzie
+   wiadomość o wysokim priorytecie przechodzi przez Doze i ostrzeżenie byłoby
+   szumem, bo oszczędzanie baterii jest tam domyślnie włączone dla wszystkich.
+
+   Samsung trafił na listę 06.10.2026 po dwóch zgłoszeniach naraz (Galaxy S24
+   Ultra i S25+): „wszystkie uprawnienia włączone, alarm rusza dopiero po wejściu
+   do aplikacji". Warstwa natywna zgłaszała batteryUnrestricted od zawsze —
+   to aplikacja nigdy tego pola nie czytała i milczała. */
+const NAKLADKI_USYPIAJACE =
+  /samsung|xiaomi|redmi|poco|huawei|honor|oppo|realme|vivo|oneplus|meizu|tecno|infinix/i;
+const usypiaAplikacje = (s) =>
+  s?.batteryUnrestricted === false && NAKLADKI_USYPIAJACE.test(String(s?.manufacturer || ""));
+
 async function refreshBgWarning() {
   const el = document.getElementById("bg-warning");
   if (!el) return;
@@ -5563,9 +5607,14 @@ async function refreshBgWarning() {
     } else if (s.fullScreenAllowed === false) {
       msg = UI.t("Zgoda na alarm pełnoekranowy wygasła — czerwony alarm nie zapali ekranu z blokady", "Full-screen alert permission expired — a red alert will not wake the locked screen", "Дозвіл на повноекранну тривогу минув — червона тривога не ввімкне екран із блокування");
       fix = "fullscreen";
+    } else if (usypiaAplikacje(s)) {
+      msg = UI.t("Oszczędzanie baterii może uśpić Strażnika — alarm ruszyłby dopiero po otwarciu aplikacji", "Battery saving may put Strażnik to sleep — an alert would start only after you open the app", "Економія батареї може приспати Strażnika — тривога запуститься аж після відкриття застосунку");
+      fix = "battery";
     }
     if (!msg) { bgWarnStrikes = 0; el.classList.add("hidden"); return; }
-    const kind = fix === "fullscreen" ? "fullscreen" : "notifications";
+    // Klucz ukrycia zostaje przy dotychczasowych nazwach: zmiana „notifications"
+    // na „settings" odsłoniłaby baner wszystkim, którzy raz go zamknęli.
+    const kind = fix === "fullscreen" ? "fullscreen" : fix === "battery" ? "battery" : "notifications";
     try { if (localStorage.getItem(BGWARN_HIDDEN_KEY) === kind) { el.classList.add("hidden"); return; } } catch {}
     // problem musi utrzymać się przez dwa sprawdzenia z rzędu — mniej fałszywych alarmów
     if (++bgWarnStrikes < 2) { setTimeout(refreshBgWarning, 5000); return; }
@@ -5578,6 +5627,8 @@ async function refreshBgWarning() {
     };
     el.querySelector("button").onclick = fix === "fullscreen"
       ? () => { BG()?.requestFullScreenPermission(); setTimeout(refreshBgWarning, 1500); }
+      : fix === "battery"
+      ? () => { BG()?.requestBatteryExemption(); setTimeout(refreshBgWarning, 1500); }
       : () => openSettings();
     el.classList.remove("hidden");
   } catch { el.classList.add("hidden"); }
@@ -5769,6 +5820,8 @@ async function refreshBgStatus(previewLang = UI.lang) {
        czasowo zależne osobno dla aplikacji i osobno dla trybu Skupienia. */
     if (s.platform === "ios" && s.notificationsAllowed && s.timeSensitiveAllowed === false)
       warn.push(T("⚠ „Powiadomienia czasowo zależne” są wyłączone dla Strażnika — czerwony alarm może nie przebić trybu Skupienia. Ustawienia → Strażnik → Powiadomienia.", "⚠ “Time Sensitive Notifications” are off for Strażnik — a red alert may stay silent in Focus mode. Settings → Strażnik → Notifications.", "⚠ «Сповіщення з урахуванням часу» вимкнені для Strażnika — червона тривога може не пробити режим Фокусування. Налаштування → Strażnik → Сповіщення."));
+    if (usypiaAplikacje(s))
+      warn.push(T(`⚠ Na telefonach ${esc(s.manufacturer)} oszczędzanie baterii potrafi uśpić Strażnika tak, że alarm nie dotrze wcale — ruszy dopiero po otwarciu aplikacji. Zdejmij ograniczenie przyciskiem „Wyłącz oszczędzanie baterii” poniżej, a w ustawieniach baterii telefonu wyjmij Strażnika z aplikacji usypianych.`, `⚠ On ${esc(s.manufacturer)} phones battery saving can put Strażnik to sleep so that an alert never arrives — it starts only after you open the app. Lift the restriction with the “Turn off battery saving” button below, and in the phone's battery settings take Strażnik out of the sleeping apps.`, `⚠ На телефонах ${esc(s.manufacturer)} економія батареї може приспати Strażnika так, що тривога не дійде взагалі — запуститься аж після відкриття застосунку. Зніміть обмеження кнопкою «Вимкнути економію батареї» нижче, а в налаштуваннях батареї приберіть Strażnika зі сплячих застосунків.`));
     if (s.topicsError)
       warn.push(T("⚠ Część subskrypcji alarmów nie została jeszcze potwierdzona — zostaw aplikację chwilę otwartą z internetem.", "⚠ Some alert subscriptions were not confirmed yet — keep the app open with internet for a moment.", "⚠ Частину підписок на тривоги ще не підтверджено — залиште застосунок ненадовго відкритим з інтернетом."));
     // Audyt B6: na tych nakładkach „wyczyść wszystko” działa jak wymuszone zatrzymanie
@@ -5792,6 +5845,15 @@ async function refreshBgStatus(previewLang = UI.lang) {
       fsBtn.textContent = s.fullScreenAllowed === false
         ? (T("Zezwól na alarm pełnoekranowy", "Allow full-screen alerts", "Дозволити повноекранну тривогу"))
         : (T("Sprawdź zgodę na alarm pełnoekranowy", "Check full-screen alert permission", "Перевірити дозвіл на повноекранну тривогу"));
+    }
+    /* Przycisk baterii mówi, w jakim stanie jesteśmy. Bez tego po zdjęciu
+       ograniczenia nic się na ekranie nie zmienia i nie wiadomo, czy zadziałało —
+       a to jedyna rzecz, którą da się stąd sprawdzić bez czekania na alarm. */
+    const batBtn = document.getElementById("btn-battery");
+    if (batBtn) {
+      batBtn.textContent = s.batteryUnrestricted
+        ? T("Oszczędzanie baterii: wyłączone", "Battery saving: off", "Економія батареї: вимкнено")
+        : T("Wyłącz oszczędzanie baterii", "Turn off battery saving", "Вимкнути економію батареї");
     }
     /* Dostęp do zasad Nie przeszkadzać. Przycisk pokazujemy tylko wtedy, gdy zgody
        NIE MA — po jej przyznaniu nie ma czego klikać, a dodatkowy przycisk w tym
@@ -5856,10 +5918,25 @@ async function refreshBgStatus(previewLang = UI.lang) {
       ? (T(`Zapisany do alarmów dla: ${subscribed.map(v => esc(UI.voiv(v))).join(", ")} (potwierdzone przez Firebase).`, `Subscribed to alerts for: ${subscribed.map(v => esc(UI.voiv(v))).join(", ")} (confirmed by Firebase).`, `Записано на тривоги для: ${subscribed.map(v => esc(UI.voiv(v))).join(", ")} (підтверджено Firebase).`))
       : (T("Telefon nie jest zapisany do żadnego województwa (potwierdzone przez Firebase).", "This phone is not subscribed to any province (confirmed by Firebase).", "Телефон не записаний на жодне воєводство (підтверджено Firebase)."));
     if (alertsOff()) warn.splice(0, warn.length, T("🔕 Alarmy są wyłączone na tym telefonie — powiadomienia o alarmach nie przyjdą, nawet gdyby serwer je wysłał. Włącz suwak niżej, żeby je przywrócić.", "🔕 Alerts are turned off on this phone — no alert notifications will arrive, even if the server sends one. Turn the switch below back on to restore them.", "🔕 Тривоги вимкнено на цьому телефоні — сповіщення про тривоги не прийдуть, навіть якби сервер їх надіслав. Увімкніть перемикач нижче, щоб їх повернути."));
+    /* Godzina ostatniego pusha. Bez niej przy zgłoszeniu „nic nie przychodzi"
+       zostaje zgadywanie: uśpiona aplikacja i ciche powiadomienie wyglądają z
+       zewnątrz tak samo, a naprawia się je zupełnie inaczej. Pusto na iPhonie
+       i na stronie — tam tego nie zapisujemy. */
+    const loc = previewLang === "pl" ? "pl-PL" : previewLang === "uk" ? "uk-UA" : "en-GB";
+    const pushLine = s.lastPushAt
+      ? T(`Ostatni sygnał z serwera odebrany ${new Date(s.lastPushAt).toLocaleString(loc)}.`,
+          `Last signal from the server received ${new Date(s.lastPushAt).toLocaleString(loc)}.`,
+          `Останній сигнал із сервера отримано ${new Date(s.lastPushAt).toLocaleString(loc)}.`)
+      : s.lastPushAt === 0
+      ? T("Ten telefon nie odebrał jeszcze żadnego sygnału z serwera — to normalne, dopóki nie było alarmu dla Twojego regionu.",
+          "This phone has not received any signal from the server yet — that is normal until there has been an alert for your region.",
+          "Цей телефон ще не отримав жодного сигналу з сервера — це нормально, доки не було тривоги для вашого регіону.")
+      : "";
     if (info) info.innerHTML = (warn.join("<br>")
       || (noRegion && !subscribed.length ? (T("Powiadomienia są dozwolone.", "Notifications are allowed.", "Сповіщення дозволені.")) : "")
       || (T("Powiadomienia gotowe. Alarmy dla Twojego regionu dotrą także przy zamkniętej aplikacji.", "Notifications ready. Alerts for your region will arrive even while the app is closed.", "Сповіщення готові. Тривоги для вашого регіону дійдуть також при закритому застосунку.")))
       + `<br>${subLine}`
+      + (pushLine ? `<br>${pushLine}` : "")
       + `<br><span class="muted">${s.platform === "ios" ? `iOS ${esc(s.osVersion || "")}`
         : `Android ${s.sdk}, ${esc(s.manufacturer || "")}`}`
       + `${s.homeVoivodeship ? " · region: " + esc(UI.voiv(s.homeVoivodeship)) : ""}</span>`;

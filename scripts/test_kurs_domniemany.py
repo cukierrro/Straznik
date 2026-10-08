@@ -42,7 +42,16 @@ def run(*batches):
 
 
 def last_signal(tid):
-    got = [s for s in ingested if s["details"]["track_id"] == tid]
+    """Sygnał PIERWOTNY obiektu — ten dla najbliższego województwa.
+
+    Od 08.10.2026 jeden obiekt punktuje także dalsze województwa w zasięgu
+    (osobne wpisy, oznaczone `voiv_secondary`). Ten test pyta o ocenę SAMEGO
+    obiektu — kurs, alarm ETA, punkty — więc musi brać wpis pierwotny.
+    Bez tego `got[-1]` łapał przypadkowe dalekie województwo, które z natury
+    nie ma alarmu ETA, i test padał na zmianie, która go nie dotyczy.
+    """
+    got = [s for s in ingested if s["details"]["track_id"] == tid
+           and not s["details"].get("voiv_secondary")]
     return got[-1] if got else None
 
 

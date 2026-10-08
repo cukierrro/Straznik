@@ -39,7 +39,21 @@
   <p class="fineprint">Wersję zainstalowaną na telefonie sprawdzisz w aplikacji: <kbd>⚙</kbd> → zakładka <kbd>Aplikacja</kbd> → „Wersja aplikacji”. Tam też jest przycisk <kbd>⬆ Sprawdź aktualizacje</kbd>.</p>
 </div></header>
 <main id="content" class="wrap">
-<section id="v1-7-88">
+<section id="v1-7-91">
+  <h2>1.7.91 — podkarpackie słyszy drony, telefon ostrzega o uśpieniu</h2>
+  <p class="fineprint">Wydanie 1.7.91 · 8 października 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.91">Pełne notatki wydania</a></p>
+  <ul>
+    <li><b>Obiekt punktuje teraz każde województwo w zasięgu</b>, z wagą zależną od odległości do tego konkretnego województwa. Dotąd punkty dostawało wyłącznie województwo z najbliższym odcinkiem granicy — niezależnie od tego, dokąd obiekt leciał. Dron nad Lwowem lecący prosto na Przemyśl punktował więc lubelskie, bo granica wybrzusza się na wschód pod Hrebennem. Od 12 września do 8 października lubelskie dostało 574 sygnały o obiektach, a podkarpackie 18. Zgłosiła to użytkowniczka, Małgorzata Urbańska.</li>
+    <li>Przed wprowadzeniem przeliczyliśmy <b>dwa miesiące prawdziwych danych</b>: podkarpackie zyskuje 17 → 27 żółtych sygnałów i 610 → 1030 minut powyżej progu, lubelskie nie traci nic, a czerwonych alarmów nie przybywa ani jednego.</li>
+    <li><b>Jeśli telefon ogranicza Strażnikowi baterię, aplikacja teraz o tym ostrzega</b> i prowadzi prosto do właściwego ustawienia. Na nakładkach Samsunga, Xiaomi i podobnych uśpienie potrafi wstrzymać powiadomienia zupełnie, mimo że wszystkie zgody są nadane. Zgłoszone z dwóch telefonów Galaxy tego samego dnia.</li>
+    <li>W ⚙ → Alarmy widać <b>godzinę ostatniego sygnału odebranego z serwera</b>. Pozwala odróżnić „nic nie przyszło” od „przyszło, ale nie usłyszałem”.</li>
+    <li><b>Strefy PAŻP znikają w podglądzie historii.</b> Nie zapisujemy ich w migawkach, więc suwak pokazywał dzisiejsze strefy nad przeszłą sytuacją — a strefy doraźne, otwierane w trakcie zdarzenia, i tak były niewidoczne.</li>
+    <li><b>Karta obiektu nie twierdzi już, że przyjmujemy „wariant groźniejszy”.</b> Zwykłego drona liczymy jak Shaheda (180 km/h), ale odrzutowy Shahed leci 300–600 km/h, a rozpoznajemy go tylko wtedy, gdy oznaczy go źródło. Karta mówi to teraz wprost. Pytanie od użytkownika.</li>
+    <li>Naprawione: pamięć podręczna strony rosła bez końca, zbierając po jednej kopii każdego pliku z każdego wydania.</li>
+    <li>Progi alarmów i treść powiadomień bez zmian. Czerwony alarm nadal wymaga klucza.</li>
+  </ul>
+</section>
+<section id="v1-7-90">
   <h2>1.7.90 — wielkość tekstu, świeży wykaz schronień, jedna prędkość</h2>
   <p class="fineprint">Wydanie 1.7.90 · 4 października 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.90">Pełny opis wydania</a></p>
   <ul>
@@ -53,7 +67,8 @@
     <li>Naprawione: <b>dron rozpoznawczy nie dostawał czasu dolotu</b> na karcie ani zapasu na wiek meldunku na mapie. Punktacja i alarmy były dla niego poprawne — błędne było tylko to, co widział człowiek.</li>
     <li>Punktacja, progi i treść alarmów bez zmian.</li>
   </ul>
-
+</section>
+<section id="v1-7-89">
   <h2>1.7.89 — porządek w oknach: rozwijane sekcje i jeden kształt</h2>
   <p class="fineprint">Wydanie 1.7.89 · 3 października 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.89">Pełny opis wydania</a></p>
   <ul>
@@ -67,7 +82,8 @@
     <li>GROTA: każda pozycja listy „Przygotuj" ma teraz swoją ikonę, nie tylko lista piwniczna.</li>
     <li>Punktacja, progi, treść i głośność alarmów bez zmian.</li>
   </ul>
-
+</section>
+<section id="v1-7-88">
   <h2>1.7.88 — sześciu nowych sąsiadów na mapie, kamery bez podglądu</h2>
   <p class="fineprint">Wydanie 1.7.88 · 3 października 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.88">Pełny opis wydania</a></p>
   <ul>
