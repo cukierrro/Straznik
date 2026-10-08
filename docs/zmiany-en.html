@@ -39,6 +39,19 @@
   <p class="fineprint">To see which version your phone has, open the app: <kbd>⚙</kbd> → the <kbd>App</kbd> tab → “App version”. The <kbd>⬆ Check for updates</kbd> button is right there too.</p>
 </div></header>
 <main id="content" class="wrap">
+<section id="v1-7-91">
+  <h2>1.7.91 — Podkarpackie hears the drones, the phone warns about app sleep</h2>
+  <p class="fineprint">Release 1.7.91 · 8 October 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.91">Full release notes</a></p>
+  <ul>
+    <li><b>An object now scores every province within range</b>, weighted by the distance to that particular province. Until now only the province with the nearest stretch of border scored — regardless of where the object was heading. A drone over Lviv flying straight at Przemyśl therefore scored for Lubelskie, because the border bulges east near Hrebenne. Between 12 September and 8 October Lubelskie received 574 object signals and Podkarpackie 18. Reported by a user, Małgorzata Urbańska.</li>
+    <li>Before the change we replayed <b>two months of real data</b>: Podkarpackie gains 17 → 27 yellow signals and 610 → 1030 minutes above the threshold, Lubelskie loses nothing, and not a single extra red alert appears.</li>
+    <li><b>If your phone restricts Strażnik's battery, the app now warns you</b> and takes you straight to the right setting. On Samsung, Xiaomi and similar skins, app sleep can stop notifications entirely even though every permission is granted. Reported from two Galaxy phones on the same day.</li>
+    <li>⚙ → Alerts now shows <b>the time of the last signal received from the server</b>. It tells “nothing arrived” apart from “it arrived, but I did not hear it”.</li>
+    <li><b>PAŻP zones disappear in the history view.</b> We do not store them in snapshots, so the slider was drawing today's zones over a past situation — and the ad-hoc zones opened during an incident were invisible anyway.</li>
+    <li>Fixed: the website cache grew without limit, keeping one copy of every file from every release.</li>
+    <li>Alert thresholds and notification wording are unchanged. A red alert still requires a key.</li>
+  </ul>
+</section>
 <section id="v1-7-90">
   <h2>1.7.90 — text size, a fresh shelter register, one speed</h2>
   <p class="fineprint">Release 1.7.90 · 4 October 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.90">Full release notes</a></p>
