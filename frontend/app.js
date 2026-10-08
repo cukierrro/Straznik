@@ -5906,7 +5906,13 @@ async function refreshBgStatus(previewLang = UI.lang) {
     // Stan subskrypcji potwierdzony przez Firebase — dowód, że wyłączenie działa
     // (15.09.2026: sam przełącznik nic nie pokazywał, a test lokalny dalej grał).
     const slug = v => "voiv_" + v.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/ł/g, "l");
-    const subscribed = ALL_VOIVS.filter(v => (s.topicsConfirmed || []).includes(slug(v)));
+    /* iPhone ze zgodą na alarm krytyczny jest zapisany na `voiv_X_krytyczne`
+       (notify.py, CRITICAL_TOPIC_SUFFIX). Dokładne porównanie dawało mu
+       „nie jest zapisany… (potwierdzone przez Firebase)", choć alarmy szły. */
+    const subscribed = ALL_VOIVS.filter(v => {
+      const baza = slug(v);
+      return (s.topicsConfirmed || []).some(t => t === baza || t === baza + "_krytyczne");
+    });
     // Świeża instalacja bez żadnego obserwowanego województwa też wypisuje z tematów —
     // „Wypisywanie…” wyglądało wtedy jak błąd, a użytkownik nie wiedział, co zrobić.
     const noRegion = !alertsOff() && !(s.observedVoivodeships || []).length && !s.homeVoivodeship;
