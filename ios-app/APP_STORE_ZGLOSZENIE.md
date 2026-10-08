@@ -559,3 +559,31 @@ rozmiarów CSS według systemowego „większy tekst”. Opt-in wymagałby
 **jedyną** drogą do większych napisów — tak też napisała to sesja główna
 w instrukcji (`8049076`). Czego nie zmierzyliśmy: czy przy systemowym maksimum
 nie pęka układ z innego powodu — do sprawdzenia na urządzeniu.
+
+## 19. Zgłoszenie 1.7.91 (8.10.2026, 23:12)
+
+Build **2610082052**, commit `ed15e9a`, status *Waiting for Review*, publikacja
+automatyczna. 1.7.90 było w sklepie, więc kolejka wolna.
+
+**Błąd złapany przed wysyłką — wart zapamiętania.** `frontend/app.js` liczył
+listę zapisanych województw przez `topicsConfirmed.includes("voiv_X")`, a telefon
+ze zgodą na alarm krytyczny jest zapisany na `voiv_X_krytyczne`. Skutek: ekran
+ustawień pisał **„Telefon nie jest zapisany do żadnego województwa (potwierdzone
+przez Firebase)”** komuś, kto był zapisany i dostawał alarmy. W sklepie od 1.7.89,
+czyli przez tydzień — i trafiało akurat w ludzi, którzy przeszli dodatkowy krok,
+żeby alarm obudził ich przy wyciszonym telefonie.
+
+Wykryte przy czytaniu kodu pod kątem iOS, **potwierdzone uruchamialnym
+fragmentem** (filtr zwracał pustą listę), naprawione przez sesję główną
+(`ed15e9a`, test `scripts/test_tematy_krytyczne.cjs` z kontrolą dodatnią).
+Sprawdzone u mnie na trzech stanach: ze zgodą, bez zgody i w trakcie
+przepisywania telefonu między kanałami.
+
+Wniosek na przyszłość: **każda zmiana nazw tematów FCM po stronie iOS wymaga
+przejrzenia miejsc, gdzie wspólny front porównuje nazwy tematów** — Android
+sufiksu nie używa, więc jego testy takiego rozjazdu nie zobaczą.
+
+Pułapka panelu (nowa): karta App Store Connect **zawiesiła się w trakcie
+wpisywania** opisu — skrypty przestały odpowiadać na ~minutę. Strona zgłaszała
+niezapisane zmiany, więc zamiast przeładowywać (i tracić tekst) warto odczekać;
+po odwieszeniu tekst był kompletny.
