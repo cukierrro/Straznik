@@ -613,9 +613,18 @@ function etaHtml(t) {
   return `${UI.t("konserwatywny czas dolotu do granicy PL", "conservative time to the Polish border", "консервативний час підльоту до кордону Польщі")}: <b>${etaRangeTxt(e.borderLo, e.border)}</b>${mine}<br>`
     + (isJetDrone(t) ? `<span style="color:#95a1b7">${UI.t("dron odrzutowy: przelot 350 km/h, na końcowym odcinku do 600 — liczymy po 450", "jet drone: 350 km/h cruise, up to 600 on the final leg — we count at 450", "реактивний дрон: політ 350 км/год, на кінцевому відрізку до 600 — рахуємо за 450")}</span><br>` : "")
     // Źródło podaje drony ZBIORCZO (БпЛА) i nie mówi, czy to maszyna
-    // zwiadowcza, czy Shahed. Przyjmujemy wariant groźniejszy i mówimy o tym
-    // wprost — człowiek ma wiedzieć, że to założenie, a nie odczyt.
-    + (COLLECTIVE_DRONE_TYPES.has(t.type) ? `<span style="color:#95a1b7">${UI.t("źródło nie rozróżnia BSP i Shahedów — przyjmujemy wariant groźniejszy", "the source does not tell UAVs and Shaheds apart — we assume the worse case", "джерело не розрізняє БпЛА і «шахедів» — беремо гірший варіант")}</span><br>` : "")
+    // zwiadowcza, czy Shahed. Liczymy jak dla Shaheda i mówimy o tym wprost —
+    // człowiek ma wiedzieć, że to założenie, a nie odczyt.
+    // Do 1.7.90 stało tu „przyjmujemy wariant groźniejszy" — nieprawda wobec
+    // odrzutowego Shaheda (300–600 km/h): serwer uznaje obiekt za odrzutowy
+    // TYLKO z oznaczenia w źródle, a dla zwykłego drona prędkość jest sztywna
+    // i pomiar z ruchu jej nie podnosi (pytanie użytkownika, 08.10.2026).
+    // Prędkość z tabeli, nie wpisana na sztywno — inaczej zdanie skłamie
+    // przy pierwszej zmianie TYPE_SPEED_KMH.
+    + (COLLECTIVE_DRONE_TYPES.has(t.type) ? `<span style="color:#95a1b7">${UI.t(
+        `źródło nie rozróżnia BSP i Shahedów — liczymy jak dla Shaheda (${typeSpeedKmh(t)} km/h). Odrzutowego Shaheda rozpoznajemy tylko, gdy źródło go oznaczy`,
+        `the source does not tell UAVs and Shaheds apart — we count it as a Shahed (${typeSpeedKmh(t)} km/h). A jet Shahed is recognised only when the source marks it`,
+        `джерело не розрізняє БпЛА і «шахедів» — рахуємо як для «шахеда» (${typeSpeedKmh(t)} км/год). Реактивний «шахед» розпізнаємо, лише коли джерело його позначить`)}</span><br>` : "")
     + `<span style="color:#95a1b7">${UI.t(`szacunek przy prędkości ${e.speed} km/h i utrzymaniu kursu; krótszy czas uwzględnia niepewność pozycji i wiek danych, odjęto 2,5 min na opóźnienie — nie uwzględnia obrony powietrznej`, `estimate at ${e.speed} km/h with unchanged heading; the shorter time allows for position uncertainty and data age, 2.5 min deducted for data delay — air defence not included`, `оцінка за швидкості ${e.speed} км/год і збереження курсу; коротший час враховує невизначеність позиції та вік даних, віднято 2,5 хв на затримку — не враховує протиповітряної оборони`)}</span><br>`
     + localPlaceHtml(t);
 }

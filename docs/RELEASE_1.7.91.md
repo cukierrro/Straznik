@@ -7,6 +7,7 @@ versionCode 120, versionName 1.7.91. 8 października 2026.
 - Jeśli Twój telefon ogranicza Strażnikowi baterię, aplikacja teraz **o tym ostrzega** i prowadzi prosto do właściwego ustawienia. Na nakładkach Samsunga, Xiaomi i podobnych uśpienie potrafi wstrzymać powiadomienia zupełnie, mimo że wszystkie zgody są nadane.
 - W ustawieniach widać **godzinę ostatniego sygnału odebranego z serwera**. Dzięki temu da się odróżnić „nic nie przyszło" od „przyszło, ale nie usłyszałem".
 - **Strefy PAŻP znikają w podglądzie historii.** Nie zapisujemy ich w migawkach, więc suwak pokazywał dzisiejsze strefy nad przeszłą sytuacją — teraz warstwa jest ukryta, a baner mówi dlaczego.
+- Karta obiektu nie twierdzi już, że przyjmujemy „wariant groźniejszy”. Zwykłego drona liczymy jak Shaheda (180 km/h), ale odrzutowego Shaheda rozpoznajemy tylko wtedy, gdy oznaczy go źródło — i teraz karta mówi to wprost.
 - Naprawione: pamięć podręczna strony rosła bez końca, zbierając po jednej kopii każdego pliku z każdego wydania.
 <!-- /zmiany -->
 
