@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Strażnik 1.7.90 — user guide</title>
-<meta name="description" content="Strażnik 1.7.90 user guide: installation, My places, the map and PAŻP zones, the signals panel, history, alerts, browser notifications and scoring. Screenshots from the current version.">
+<title>Strażnik 1.7.91 — user guide</title>
+<meta name="description" content="Strażnik 1.7.91 user guide: installation, My places, the map and PAŻP zones, the signals panel, history, alerts, browser notifications and scoring. Screenshots from the current version.">
 <link rel="canonical" href="https://cukierrro.github.io/Straznik/en.html">
 <link rel="alternate" hreflang="pl" href="https://cukierrro.github.io/Straznik/">
 <link rel="alternate" hreflang="en" href="https://cukierrro.github.io/Straznik/en.html">
@@ -34,11 +34,11 @@
   <div class="languages" aria-label="Guide language"><a href="index.html" lang="pl" hreflang="pl">PL</a><a href="en.html" lang="en" aria-current="page">EN</a><a href="uk.html" lang="uk" hreflang="uk">UA</a></div>
 </div></nav>
 <header class="hero"><div class="wrap hero-grid">
-  <div><div class="eyebrow">User guide · version 1.7.90</div>
+  <div><div class="eyebrow">User guide · version 1.7.91</div>
     <h1>The situation on a map.<br>The sources behind each signal.</h1>
     <p class="lead">Strażnik combines public information about airborne threats and shows a score for each Polish province. It runs on Android, on iPhone and in a web browser.</p>
     <div class="actions"><a class="button primary" href="https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk">↓ Get it for Android</a><a class="button primary" href="https://apps.apple.com/pl/app/id6813563009">↓ Get it for iOS</a><a class="button" href="https://straznik.eu">Open the map</a></div>
-    <p class="fineprint">This guide describes only the current version, 1.7.90. Screenshots were taken on a Pixel 7 with Android 14, using live data: the legend and the App settings tab on 4 October 2026 from the signed 1.7.90 release; the start screen, the signals panel, the More sheet, the Data sources window and the other three settings tabs on 3 October 2026 from the signed 1.7.89 release, on a fresh installation (hence no saved places); the card thumbnail and the object card on 28 and 30 September 2026 from the signed 1.7.84 and 1.7.87 releases; the rest on 13 and 23 September 2026. What changed from release to release is in the <a href="zmiany-en.html">changelog</a>. Tap a screenshot to open it full size.</p>
+    <p class="fineprint">This guide describes only the current version, 1.7.91. Screenshots were taken on a Pixel 7 with Android 14, using live data: the Alerts and App settings tabs and the history view (map and panel) on 8 October 2026 from the signed 1.7.91 release; the legend on 4 October 2026 from the signed 1.7.90 release; the start screen, the signals panel, the More sheet, the Data sources window and the My places and Sound settings tabs on 3 October 2026 from the signed 1.7.89 release, on a fresh installation (hence no saved places); the card thumbnail and the object card on 28 and 30 September 2026 from the signed 1.7.84 and 1.7.87 releases; the rest on 13 and 23 September 2026. What changed from release to release is in the <a href="zmiany-en.html">changelog</a>. Tap a screenshot to open it full size.</p>
     <p class="fineprint"><b>Using an iPhone?</b> Alerts, permissions and updates work differently there — read the <a href="iphone-en.html">iPhone guide</a>.</p>
     <p class="host-note"><img src="mikrus-logo.svg" alt="Mikrus" width="86" height="14">
       Strażnik’s server is provided by <a href="https://mikr.us">Mikrus</a> — thank you for supporting the project.</p>
@@ -80,9 +80,9 @@
       <h3>Updating from inside the app</h3>
       <p>Strażnik checks for a new release at every launch and whenever it returns to the foreground (at most every 30 minutes). The update window shows the version number and the list of changes. Manually: <kbd>⚙</kbd> → <kbd>App</kbd> → <kbd>⬆ Check for updates</kbd>.</p>
       <p>For an ordinary update you can choose <kbd>Later</kbd>. When you install, the app downloads the file, verifies its SHA-256 checksum and hands it to Android for confirmation. Install the new release over the old one — settings and My places are kept.</p>
-      <div class="note"><b>Which version do you have?</b> <kbd>⚙</kbd> → <kbd>App</kbd> tab → “Installed version”. The latest release is <b>1.7.90</b>. At the bottom of the tab are links to this guide, the changelog and supporting the author.</div>
+      <div class="note"><b>Which version do you have?</b> <kbd>⚙</kbd> → <kbd>App</kbd> tab → “Installed version”. The latest release is <b>1.7.91</b>. At the bottom of the tab are links to this guide, the changelog and supporting the author.</div>
     </div>
-    <figure><a class="shot-link" href="screens/1737/set-aplikacja-en.jpg"><img loading="lazy" src="screens/1737/set-aplikacja-en.jpg" width="1080" height="2400" alt="Settings, App tab: language choice, the text size choice (Normal, Larger, Largest), the Map: object tracks section, installed version 1.7.90 and the collapsed sections How to read the direction, Where updates come from and Advanced"></a><figcaption><kbd>⚙</kbd> → <kbd>App</kbd>: language, version, updates.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/1737/set-aplikacja-en.jpg"><img loading="lazy" src="screens/1737/set-aplikacja-en.jpg" width="1080" height="2400" alt="Settings, App tab: language choice, the text size choice (Normal, Larger, Largest), the Map: object tracks section, installed version 1.7.91 and the collapsed sections How to read the direction, Where updates come from and Advanced"></a><figcaption><kbd>⚙</kbd> → <kbd>App</kbd>: language, version, updates.</figcaption></figure>
   </div>
 </section>
 
@@ -98,7 +98,7 @@
     <figure><a class="shot-link" href="screens/1737/places-en.jpg"><img loading="lazy" src="screens/1737/places-en.jpg" width="1080" height="2400" alt="My places window: place Home, scope Province, province Lublin, Watch alerts for this province ticked, how it works note and the Delete place, Cancel changes and Save on device buttons"></a><figcaption>A “Home” place in Lublin province with alerts watched.</figcaption></figure>
   </div>
   <div class="shots">
-    <figure><a class="shot-link" href="screens/1737/set-alarmy-en.jpg"><img loading="lazy" src="screens/1737/set-alarmy-en.jpg" width="1080" height="2400" alt="Settings, Alerts tab on a fresh installation: the collapsed How it works section, the Alerts on this phone switch, full-width rows for system permissions with icons and arrows, and the collapsed Permissions and alert behaviour section"></a><figcaption><b>Alerts</b>: notification status and shortcuts to Android settings. The 🌙 button appears only while Do Not Disturb access has not been granted.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/1737/set-alarmy-en.jpg"><img loading="lazy" src="screens/1737/set-alarmy-en.jpg" width="1080" height="2400" alt="Settings, Alerts tab with no saved places: the collapsed How it works section, the notification status including This phone has not received any signal from the server yet, the Alerts on this phone switch, full-width rows for system permissions with icons and arrows, and the collapsed Permissions and alert behaviour in detail section"></a><figcaption><b>Alerts</b>: notification status, the time of the last signal from the server and shortcuts to Android settings. The 🌙 button appears only while Do Not Disturb access has not been granted.</figcaption></figure>
     <figure><a class="shot-link" href="screens/1737/set-miejsca-en.jpg"><img loading="lazy" src="screens/1737/set-miejsca-en.jpg" width="1080" height="2400" alt="Settings, My places tab on a fresh installation: a note that no place has been saved yet and the Open My places row with a pin icon"></a><figcaption><b>My places</b>: summary and the way into editing.</figcaption></figure>
     <figure><a class="shot-link" href="screens/1737/set-dzwiek-en.jpg"><img loading="lazy" src="screens/1737/set-dzwiek-en.jpg" width="1080" height="2400" alt="Settings, Sound tab: the collapsed What plays when section, three test buttons, the Normal – Quieter – No sound segment, the native alert switches and the collapsed Before you switch it on section"></a><figcaption><b>Sound</b>: sound tests, a separate volume for yellow and the red-alert silence switch.</figcaption></figure>
   </div>
@@ -240,10 +240,10 @@
       <p>In history mode the panel is headed <b>HISTORY VIEW</b>, and signal times count from the chosen moment (“36 min earlier”). <kbd>SWITCH TO LIVE</kbd> in the bar header, the <kbd>Map</kbd> tab or the system back button restores the current view.</p>
       <p>History is downloaded to the device once and scrolling runs locally, without a server request for every finger movement. Snapshots are usually taken every minute — this replays stored samples, not a continuous recording.</p>
     </div>
-    <figure><a class="shot-link" href="screens/1737/history-en.jpg"><img loading="lazy" src="screens/1737/history-en.jpg" width="1080" height="2400" alt="History mode at 04:47: Lublin province red with 4.4 pts and Subcarpathian yellow in 3D, coloured slider, Back to live view button and a 22 signals in the window link"></a><figcaption>The morning of 13 September 2026: Lublin province red after an Alert RCB.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/1737/history-en.jpg"><img loading="lazy" src="screens/1737/history-en.jpg" width="1080" height="2400" alt="History mode at 19:56 on 8 October 2026: a map of Europe with drones over Ukraine, the HISTORY VIEW bar with a Switch to live button, the coloured slider, step buttons and the caption 1.2 pts · province Lublin · 24 objects · 5 aircraft in snapshot; on the right only the my region and whole PL buttons — no zones button"></a><figcaption>The evening of 8 October 2026. From version 1.7.91 the history view shows neither PAŻP zones nor the zones button.</figcaption></figure>
   </div>
   <div class="shots">
-    <figure><a class="shot-link" href="screens/1737/history-panel-en.jpg"><img loading="lazy" src="screens/1737/history-panel-en.jpg" width="1080" height="2400" alt="Panel in history mode: HISTORY VIEW 04:47 header, Lublin card 4.4 pts HIGH PRIORITY with an RCB contribution and an air-raid alert in the Lviv oblast"></a><figcaption>Point breakdown at the chosen moment.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/1737/history-panel-en.jpg"><img loading="lazy" src="screens/1737/history-panel-en.jpg" width="1080" height="2400" alt="Panel in history mode at 19:56: the HISTORY VIEW header noting that PAŻP zones are not recorded, and the Lublin card at 1.2 pts below threshold with air-raid alerts in the Ivano-Frankivsk and Ternopil oblasts and a drone 150.8 km from the border"></a><figcaption>Point breakdown at the chosen moment.</figcaption></figure>
   </div>
 </section>
 
