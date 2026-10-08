@@ -667,6 +667,98 @@ def _reconnect_wait(exc: Exception, backoff: float) -> tuple[float, float]:
     return backoff, min(backoff * 2, 60)
 
 
+async def _signal_sasiednie(t: dict, a: dict, ttype: str, count: int, conf: str,
+                            sources: int, approximate: bool, speed, course_src: str,
+                            position: dict):
+    """Ten sam obiekt punktuje KAŻDE województwo w zasięgu, z wagą od odległości
+    do TEGO województwa — tak jak od dawna robimy z alarmami obwodów UA.
+
+    Dlaczego (zgłoszenie Małgorzaty Urbańskiej, 08.10.2026): województwo brało
+    się dotąd z NAJBLIŻSZEGO punktu konturu Polski, a kurs nie miał na nie
+    żadnego wpływu. Dron nad Lwowem lecący prosto na Przemyśl punktował
+    LUBELSKIE, bo granica wybrzusza się na wschód pod Hrebennem i Lwów ma tam
+    57 km, a do podkarpackiego 79 km. Skutkiem była systemowa głuchota:
+    od 12.09 do 08.10 lubelskie dostało 574 sygnały o dronach, podkarpackie 18.
+    Przeniesienia tego nie ratowały, bo nie wysyłają powiadomień.
+
+    Przeliczenie historii (2.08–8.10, produkcyjny kod fuzji) dało dla
+    podkarpackiego 17 → 27 żółtych i 610 → 1030 minut nad progiem, przy
+    lubelskim bez zmian i BEZ ani jednego czerwonego więcej.
+
+    PUŁAPKA, w którą sam wpadłem przy przeliczaniu: trzeba przeliczyć nie tylko
+    odległość, ale i CZAS DOLOTU. Klucz czerwonego czyta `eta_border_min`;
+    zostawienie w nim czasu do granicy państwa sprawia, że każde województwo
+    dziedziczy cudzą bliskość i dostaje klucz za obiekt, który leci nie na nie.
+    W przeliczeniu dawało to cztery czerwone naraz zamiast jednego.
+    """
+    lat, lon = t.get("lat"), t.get("lon")
+    if lat is None or lon is None:
+        return
+    cf = a.get("course_factor", 1.0)
+    for voiv in config.VOIVODESHIPS:
+        if voiv == a.get("border_voiv"):
+            continue                      # pierwotne przypisanie już poszło
+        dist = geo.dist_to_voiv_km(lat, lon, voiv)
+        if dist is None or dist >= config.NEPTUN_MAX_KM:
+            continue
+        punkty = score_threat(t, dist, cf)
+        if punkty <= 0:
+            continue
+        eta_raw = geo.eta_raw_minutes(dist, speed)
+        eta_cons = (max(0.0, eta_raw - config.NEPTUN_ETA_BUFFER_MIN)
+                    if eta_raw is not None else None)
+        eta_safe = geo.eta_minutes(dist, speed, config.NEPTUN_ETA_BUFFER_MIN)
+        eta_level = _eta_alarm_level({**a, "dist_km": dist}, sources, conf, eta_cons,
+                                     approximate=approximate)
+        if eta_level == "high":
+            punkty = max(punkty, config.THRESHOLD_HIGH)
+        elif eta_level == "elevated":
+            punkty = max(punkty, config.THRESHOLD_ELEVATED)
+        ile = f"{count}× " if count > 1 else ""
+        odl = (_area_distance_label(dist) + " [pozycja rejonowa]"
+               if approximate else f"{dist} km")
+        tytul = (f"{ile}{threat_label_pl(ttype)} w odległości {odl} od woj. {voiv} "
+                 f"(confidence: {conf}, {sources} potwierdzeń)")
+        await fusion.ingest(
+            source="neptun", event_type="neptun_threat", voivodeship=voiv,
+            points=punkty, title=tytul,
+            details={"track_id": t.get("id"), "type": ttype, "count": count,
+                     "lat": lat, "lon": lon, "heading": t.get("heading"),
+                     "confidence": conf, "source_count": sources,
+                     "lifecycle": t.get("lifecycle"),
+                     "uncertainty_km": t.get("uncertaintyKm"),
+                     "position_quality": t.get("positionQuality"),
+                     "area_only": t.get("areaOnly"),
+                     "position_approximate": approximate,
+                     "position_reason": position.get("reason"),
+                     "position_locality": position.get("locality"),
+                     "distance_display_km": (int(round(dist / 10.0) * 10)
+                                             if approximate else dist),
+                     "physical_key": _physical_key(t),
+                     "dist_km": dist, "region": t.get("region"),
+                     # te same pola opisowe co przy wpisie pierwotnym — inaczej
+                     # karta i panel pokazywałyby dla tego samego obiektu raz
+                     # „kurs domniemany", a raz nic
+                     "course": ("presumptive" if course_src == "presumptive" else
+                                "known" if a.get("heading_known") else
+                                "estimated" if t.get("heading_estimated") is not None
+                                else "unknown"),
+                     "heading_source": course_src,
+                     "jet": bool(t.get("straznik_jet")),
+                     "course_factor": cf,
+                     "speed_kmh": speed,
+                     "eta_approx": approximate,
+                     "eta_raw_border_min": round(eta_raw, 1) if eta_raw is not None else None,
+                     "eta_border_min": eta_safe,
+                     "eta_buffer_min": config.NEPTUN_ETA_BUFFER_MIN,
+                     "eta_alarm": eta_level,
+                     # znacznik: to przypisanie „po odległości do regionu",
+                     # nie pierwotne „najbliższy punkt granicy"
+                     "voiv_secondary": True},
+            dedup_key=f"neptun:{t.get('id')}:{voiv}:t{int(punkty * 2)}",
+        )
+
+
 async def _maybe_signal(t: dict):
     """Reguła fuzji dla Neptuna: obiekt kursem na PL, punktowany wg wagi zagrożenia."""
     a = t.get("pl_assessment")
@@ -768,6 +860,14 @@ async def _maybe_signal(t: dict):
     if inserted or t.get("id") not in _signalled:
         # po restarcie duplikat z bazy też ustawia punkt odniesienia (bez „first" sprzed restartu)
         _remember_signal(t, a, points)
+    # Pozostałe województwa w zasięgu — patrz _signal_sasiednie. Osobno i po
+    # pierwotnym wpisie, żeby błąd tutaj nie mógł zabrać punktów temu
+    # województwu, które obiekt ma najbliżej.
+    try:
+        await _signal_sasiednie(t, a, ttype, count, conf, sources, approximate,
+                                speed, course_src, position)
+    except Exception as exc:                      # noqa: BLE001
+        log.warning("przypisanie do sąsiednich województw: %s", exc)
 
 
 async def _handle_threats(threats: list[dict], replace: bool, *,
