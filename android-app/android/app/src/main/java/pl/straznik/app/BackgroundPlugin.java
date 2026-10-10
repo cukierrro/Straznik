@@ -259,6 +259,7 @@ public class BackgroundPlugin extends Plugin {
         ret.put("forceMaxVolume", Alarms.forceVolumeEnabled(c));
         ret.put("redChannelSound", Alarms.highChannelPlaysSound(c));
         ret.put("redSilent", Alarms.redSilent(c));
+        ret.put("redMode", Alarms.redMode(c));
         ret.put("yellowLevel", Alarms.yellowLevel(c));
         call.resolve(ret);
     }
@@ -280,22 +281,45 @@ public class BackgroundPlugin extends Plugin {
     }
 
     /**
-     * Czerwony alarm bez syreny — sama wibracja. Prośba czytelnika z 29.09.2026:
-     * „niech zamiast syreny zawibruje zegarek”. Sparowany zegarek dostaje kopię
-     * powiadomienia i wibruje niezależnie od tego, czy telefon gra.
+     * Tryb czerwonego alarmu: „syrena” (domyślnie), „wibracja” albo „zwykle”.
      *
-     * Świadomie NIE obniżamy ważności kanału ani nie zdejmujemy obejścia trybu
-     * Nie przeszkadzać: alarm ma nadal wyskoczyć nad blokadą i zawibrować w nocy.
-     * Zdejmujemy wyłącznie dźwięk.
+     * „wibracja” — prośba czytelnika z 29.09.2026: „niech zamiast syreny zawibruje
+     * zegarek”. Świadomie NIE obniżamy ważności kanału ani nie zdejmujemy obejścia
+     * trybu Nie przeszkadzać: alarm ma nadal wyskoczyć nad blokadą i zawibrować
+     * w nocy. Zdejmujemy wyłącznie dźwięk. Na zegarek trafia dopiero od 10.10.2026,
+     * gdy czerwony przestał być powiadomieniem stałym (Wear OS takich nie przekazuje).
+     *
+     * „zwykle” — prośba czytelnika z 10.10.2026: czerwony jak żółty, sam baner,
+     * bez pełnego ekranu i syreny. Pośrednio między syreną a wyłączeniem alarmów.
      */
+    @PluginMethod
+    public void setRedMode(PluginCall call) {
+        String mode = call.getString("mode", Alarms.RED_SIREN);
+        if (!Alarms.RED_VIBRATION.equals(mode) && !Alarms.RED_NORMAL.equals(mode)) mode = Alarms.RED_SIREN;
+        Context c = getContext();
+        Alarms.prefs(c).edit()
+            .putString(Alarms.KEY_RED_MODE, mode)
+            .putBoolean(Alarms.KEY_RED_SILENT, !Alarms.RED_SIREN.equals(mode))
+            .apply();
+        Alarms.createChannels(c);
+        JSObject ret = new JSObject();
+        ret.put("redMode", Alarms.redMode(c));
+        ret.put("redSilent", Alarms.redSilent(c));
+        call.resolve(ret);
+    }
+
+    /** Dawny przełącznik ciszy (do 1.7.92) — zostaje jako „wibracja” / „syrena”. */
     @PluginMethod
     public void setRedSilent(PluginCall call) {
         boolean enabled = Boolean.TRUE.equals(call.getBoolean("enabled", false));
         Context c = getContext();
-        Alarms.prefs(c).edit().putBoolean(Alarms.KEY_RED_SILENT, enabled).apply();
+        Alarms.prefs(c).edit()
+            .putString(Alarms.KEY_RED_MODE, enabled ? Alarms.RED_VIBRATION : Alarms.RED_SIREN)
+            .putBoolean(Alarms.KEY_RED_SILENT, enabled).apply();
         Alarms.createChannels(c);
         JSObject ret = new JSObject();
         ret.put("redSilent", Alarms.redSilent(c));
+        ret.put("redMode", Alarms.redMode(c));
         call.resolve(ret);
     }
 

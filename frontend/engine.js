@@ -1035,10 +1035,21 @@ function stateFrom(sigs, refT) {
 function kanalZoltego() {
   try {
     const v = localStorage.getItem("straznik_zolty_poziom");
-    if (v === "quiet") return "straznik-info-cicho-v1";
-    if (v === "silent") return "straznik-info-cisza-v1";
+    if (v === "quiet") return "straznik-info-cicho-v2";
+    if (v === "silent") return "straznik-info-cisza-v2";
   } catch {}
-  return "straznik-info-v4";
+  return "straznik-info-v5";
+}
+/* Kanał czerwonego zależnie od trybu z ustawień (10.10.2026) — to samo co
+   Alarms.highChannel; app.js trzyma kopię wyboru w localStorage. */
+function kanalCzerwonego() {
+  try {
+    const t = localStorage.getItem("straznik_czerwony_tryb")
+      || (localStorage.getItem("straznik_czerwony_cisza") === "1" ? "wibracja" : "syrena");
+    if (t === "wibracja") return "straznik-high-cisza-v2";
+    if (t === "zwykle") return "straznik-high-zwykly-v1";
+  } catch {}
+  return "straznik-high-v4";
 }
 
 async function notifyNative(title, body, high) {
@@ -1054,7 +1065,7 @@ async function notifyNative(title, body, high) {
         // pilnuje tego scripts/test_tematy_fcm.py. Żółty stał na „straznik-info-v3",
         // a ten kanał od 13.09.2026 (bc4e57b) jest KASOWANY przy starcie: Android
         // odrzucał powiadomienie i tryb wbudowany nie sygnalizował żółtego poziomu.
-        channelId: high ? "straznik-high-v3" : kanalZoltego() }] });
+        channelId: high ? kanalCzerwonego() : kanalZoltego() }] });
       return;
     } catch (e) { console.warn("LocalNotifications:", e); }
   }

@@ -971,6 +971,12 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
       <button type="button" id="btn-test-siren" class="chip">▶ Test: syrena</button>
       <button type="button" id="btn-test-alarm" class="chip">▶ Test: pełny alarm</button>
     </div>
+    <!-- Wibracja alfabetem Morse'a (10.10.2026). Przyciski pokazuje app.js tylko
+         tam, gdzie działa navigator.vibrate — na iPhonie go nie ma. -->
+    <div class="btn-row" id="vib-row" hidden>
+      <button type="button" id="btn-vib-u" class="chip">📳 Poczuj: żółty (U · · —)</button>
+      <button type="button" id="btn-vib-a" class="chip">📳 Poczuj: czerwony (A · —)</button>
+    </div>
     <p class="fineprint" id="dzwiek-red-note">Przy czerwonym poziomie syrena gra <b>bez przerwy</b>,
     aż potwierdzisz alarm przyciskiem na ekranie.</p>
 
@@ -996,16 +1002,23 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
         <span class="sw-text"><b id="ns-label">Czerwony alarm zawsze na pełnej głośności</b></span>
         <input type="checkbox" role="switch" id="set-force-volume">
         <span class="sw-track" aria-hidden="true"></span></label>
-      <label class="set-switch android-only" for="set-red-silent">
-        <span class="sw-text"><b id="rs-label">Czerwony alarm: tylko wibracja, bez syreny</b></span>
-        <input type="checkbox" role="switch" id="set-red-silent">
-        <span class="sw-track" aria-hidden="true"></span></label>
+      <!-- Tryb czerwonego (10.10.2026): dawny przełącznik „tylko wibracja” plus
+           „zwykłe powiadomienie” — prośba czytelnika o coś pośredniego między
+           syreną a wyłączeniem alarmów. Jeden wybór z trzech = segment. -->
+      <div id="red-mode" class="android-only">
+        <b id="rm-head">Czerwony alarm</b>
+        <div class="seg" role="group" aria-labelledby="rm-head">
+          <button type="button" id="rm-syrena" class="chip" data-tryb="syrena">Syrena</button>
+          <button type="button" id="rm-wibracja" class="chip" data-tryb="wibracja">Tylko wibracja</button>
+          <button type="button" id="rm-zwykle" class="chip" data-tryb="zwykle">Zwykłe powiadomienie</button>
+        </div>
+      </div>
       <!-- Ostrzeżenie o nocy i opis suwaka „Alarmy” to dwa najdłuższe bloki
-           w całych ustawieniach. Podpis nazywa je wprost, żeby nikt nie włączył
-           „tylko wibracji” bez przeczytania; app.js rozwija tę sekcję sam,
-           gdy przełącznik idzie w górę. -->
-      <details class="jak" id="det-natywny"><summary id="jak-natywny">Zanim włączysz: co to zmienia</summary>
-      <div class="fineprint android-only" id="rs-note">Syrena milknie, reszta alarmu zostaje: pełny ekran, miganie i mocna wibracja, także przy trybie Nie przeszkadzać. Sparowany zegarek zawibruje tak samo. <b>Przemyśl to przed nocą:</b> przy wygaszonym ekranie i telefonie w drugim pokoju możesz takiego alarmu nie zauważyć. Dotyczy wyłącznie czerwonego — żółty sygnał uwagi ma własne ustawienie wyżej.</div>
+           w całych ustawieniach. Podpis nazywa je wprost, żeby nikt nie wybrał
+           cichszego trybu bez przeczytania; app.js rozwija tę sekcję sam,
+           gdy ktoś odchodzi od syreny. -->
+      <details class="jak" id="det-natywny"><summary id="jak-natywny">Zanim zmienisz: co to zmienia</summary>
+      <div class="fineprint android-only" id="rs-note"><b>Tylko wibracja:</b> syrena milknie, reszta alarmu zostaje — pełny ekran, miganie i mocna wibracja, także przy trybie Nie przeszkadzać. <b>Zwykłe powiadomienie:</b> czerwony przyjdzie jak żółty — baner, krótki dźwięk i wibracja, bez pełnego ekranu; szanuje tryb cichy i Nie przeszkadzać. <b>Przemyśl to przed nocą:</b> przy wygaszonym ekranie i telefonie w drugim pokoju możesz takiego alarmu nie zauważyć. Sparowany zegarek albo opaska dostaje kopię powiadomienia, jeśli w jej aplikacji zezwolisz na powiadomienia ze Strażnika — i wibruje wtedy po swojemu. Dotyczy wyłącznie czerwonego — żółty sygnał uwagi ma własne ustawienie wyżej.</div>
       <div class="fineprint android-only" id="ns-note">Syrena gra na suwaku głośności <b>„Alarmy”</b>
         (nie „Dzwonek” ani „Multimedia”). Czerwony alarm podnosi go <b>co najmniej do połowy</b>,
         żeby syrena nie była cicha. Opcja wyżej jest domyślnie <b>wyłączona</b> — po jej włączeniu
@@ -1149,10 +1162,10 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
      Cloudflare, więc po każdym wydaniu wystarczy podbić ?v= i przeglądarki
      dostają nowe app.js/engine.js OD RAZU, bez ręcznego czyszczenia cache CF.
      Podbijaj ?v= razem z versionName w build.gradle. -->
-<script src="i18n.js?v=1.7.91"></script>
+<script src="i18n.js?v=1.7.93a"></script>
 <!-- kontur Polski dla engine.js (audyt A2b, scripts/build_pl_outline.py) -->
 <script src="pl-outline.js?v=1.7.82"></script>
-<script src="engine.js?v=1.7.90"></script>
+<script src="engine.js?v=1.7.93a"></script>
 <script src="aircraft-photo-catalog.js?v=1.7.19"></script>
 <script src="aircraft-photos.js?v=1.7.79"></script>
 <script src="places.js?v=1.7.19-4"></script>

@@ -4084,7 +4084,8 @@ function updateAlarmMood() {
     if (level === "high") {
       const voiv = mine && pool.includes(mine) && alarmLevel(voivs[mine]) === "high" ? mine
         : pool.find(v => alarmLevel(voivs[v]) === "high");
-      showAlarm(voiv, voivs[voiv]);   // ciągła syrena + popup do potwierdzenia
+      if (czerwonyTryb() === "zwykle") czerwonyZwykly(voiv, voivs[voiv]?.score?.toFixed(1));
+      else showAlarm(voiv, voivs[voiv]);   // ciągła syrena + popup do potwierdzenia
       // ostrzeżenie o nieoficjalnym źródle musi wrócić, gdy robi się poważnie
       document.getElementById("disclaimer").classList.remove("hidden");
     } else if (level === "elevated") {
@@ -4129,7 +4130,10 @@ function onForegroundPush(d) {
   fcmSeen.add(id);
   const score = parseFloat(d.score) || 0;
   const st = state?.fusion?.voivodeships?.[d.voiv];
-  if (d.level === "high") {
+  if (d.level === "high" && czerwonyTryb() === "zwykle") {
+    czerwonyZwykly(d.voiv, score);
+    document.getElementById("disclaimer").classList.remove("hidden");
+  } else if (d.level === "high") {
     showAlarm(d.voiv, st && alarmLevel(st) === "high" ? st
       : { score, signals: [], reasonsText: [d.headline, d.reasons].filter(Boolean).join("\n") });
     document.getElementById("disclaimer").classList.remove("hidden");
@@ -4337,6 +4341,16 @@ const CHIME_GAIN = 0.20, CHIME_OCTAVE_MIX = 0.35;
 /* Trzy stopnie z ustawień: „ciszej" to −10 dB (tyle samo, co cichszy kanał
    powiadomień), „bez dźwięku" zostawia sam baner i wibrację. */
 const CHIME_LEVELS = { normal: 1, quiet: 0.32, silent: 0 };
+/* Wibracja alfabetem Morse'a (decyzja usera 10.10.2026): żółty „U U” (· · —),
+   czerwony „A A A” (· —), kropka 150/200 ms, kreska ×3. Te same wzory mają
+   kanały Androida (Alarms.WZOR_U / WZOR_A) i sw.js — pilnuje tego
+   scripts/test_wibracje_morse.cjs. navigator.vibrate zaczyna od wibracji,
+   więc bez wiodącego zera z tablic Androida. */
+const WIBRACJA_U = [150, 150, 150, 150, 450, 450, 150, 150, 150, 150, 450];
+const WIBRACJA_A = [200, 200, 600, 600, 200, 200, 600, 600, 200, 200, 600];
+/* Pełny alarm powtarza „A A A” z przerwą słowa (1400 ms), jak ekran natywny. */
+const WIBRACJA_A_CO_MS = WIBRACJA_A.reduce((a, b) => a + b, 0) + 1400;
+function zawibruj(wzor) { try { if (navigator.vibrate) navigator.vibrate(wzor); } catch {} }
 function chimeLevel() {
   try {
     const v = localStorage.getItem("straznik_zolty_poziom");
@@ -4347,7 +4361,8 @@ function chimeLevel() {
 function attentionChime() {
   try {
     const mnoznik = CHIME_LEVELS[chimeLevel()];
-    if (!mnoznik) { if (navigator.vibrate) navigator.vibrate([220, 120, 220]); return; }
+    zawibruj(WIBRACJA_U);   // także z dźwiękiem: osoba głucha przy otwartej aplikacji
+    if (!mnoznik) return;
     const szczyt = CHIME_GAIN * mnoznik;
     const c = ctx(), t0 = c.currentTime;
     const SEQ = [740, 988, 740, 988, 740, 988];   // fis2 ↔ h2
@@ -4425,8 +4440,32 @@ function czerwonyBezSyreny() {
   // pojedynczego rodzaju powiadomienia, więc cisza w otwartej aplikacji przy
   // wyjącym pushu byłaby myląca. Dzięki temu zachowanie na iPhonie jest tu
   // nietknięte, co sprawdzają scripts/test_ios_wspolne.cjs i test_syrena_ios.cjs.
-  if (IS_IOS) return false;
-  try { return localStorage.getItem("straznik_czerwony_cisza") === "1"; } catch { return false; }
+  return czerwonyTryb() !== "syrena";
+}
+/* Tryb czerwonego z ustawień (10.10.2026): „syrena”, „wibracja” albo „zwykle”.
+   Prawdę trzyma strona natywna; tu kopia dla otwartej aplikacji. Zapis sprzed
+   tej zmiany (sam przełącznik ciszy) czytamy jako „wibracja”. Na iPhonie
+   zawsze „syrena” — patrz wyżej. */
+const TRYBY_CZERWONEGO = ["syrena", "wibracja", "zwykle"];
+function czerwonyTryb() {
+  if (IS_IOS) return "syrena";
+  try {
+    const v = localStorage.getItem("straznik_czerwony_tryb");
+    if (TRYBY_CZERWONEGO.includes(v)) return v;
+    return localStorage.getItem("straznik_czerwony_cisza") === "1" ? "wibracja" : "syrena";
+  } catch { return "syrena"; }
+}
+/* Czerwony w trybie „zwykłe powiadomienie” przy otwartej aplikacji: tak samo
+   jak powiadomienie przy zamkniętej — bez pełnego ekranu i syreny, ale z
+   sygnałem, wibracją „A”, paskiem i komunikatem dla czytnika ekranu. */
+function czerwonyZwykly(voiv, score) {
+  chimeOnce();
+  zawibruj(WIBRACJA_A);
+  const gdzie = voiv ? `${UI.t("woj.", "province", "воєв.")} ${UI.voiv(voiv)}` : "";
+  toast(`🔴 <b>${UI.t("Wysoki priorytet", "High priority", "Високий пріоритет")}</b>: ${esc(gdzie)}`
+    + (score ? ` (${score} ${UI.t("pkt", "pts", "бал.")})` : ""), 15000);
+  powiedz(a11yAlert, UI.t(`Wysoki priorytet zagrożenia, ${gdzie}.`,
+    `High threat priority, ${gdzie}.`, `Високий пріоритет загрози, ${gdzie}.`));
 }
 
 /* Parametr mimoCiszy — przycisk „Test: syrena” to prośba „daj mi to usłyszeć”, a nie
@@ -4475,8 +4514,8 @@ function airRaidSiren(continuous = true, mimoCiszy = false) {
         }, (SIREN_UP + SIREN_DOWN) * 2500);
       }
       if (navigator.vibrate) {
-        const pulse = () => navigator.vibrate([700, 300, 700, 300, 900]);
-        pulse(); vibrateTimer = setInterval(pulse, 4000);
+        const pulse = () => zawibruj(WIBRACJA_A);
+        pulse(); vibrateTimer = setInterval(pulse, WIBRACJA_A_CO_MS);
       }
     } else {
       // tryb testowy — wycisz po trzech cyklach
@@ -4488,7 +4527,7 @@ function airRaidSiren(continuous = true, mimoCiszy = false) {
       // Na iOS ten timeout jest JEDYNYM, co kończy test: natywna syrena gra w pętli
       // do polecenia „wyłącz", więc bez niego test nie skończyłby się sam.
       setTimeout(() => { sirenNodes = null; sesjaAudioAlarmu(false); }, total * 1000 + 200);
-      if (navigator.vibrate) navigator.vibrate([700, 300, 700]);
+      zawibruj(WIBRACJA_A);
     }
   } catch {}
 }
@@ -6221,40 +6260,64 @@ document.getElementById("btn-critical")?.addEventListener("click", async (e) => 
     setTimeout(refreshBgStatus, 800);
   }
 });
-document.getElementById("set-red-silent")?.addEventListener("change", async (e) => {
-  const wlacz = !!e.target.checked;
-  // Sekcja „Zanim włączysz: co to zmienia” jest domyślnie zwinięta. Rozwijamy
-  // ją sami, gdy ktoś sięga po ten przełącznik — ostrzeżenie o nocy ma być
-  // na ekranie, a nie za podpisem, którego nikt nie dotknął.
-  if (wlacz) document.getElementById("det-natywny")?.setAttribute("open", "");
-  // Świadoma zgoda, tak jak przy pełnej głośności — tyle że tu stawka jest
-  // odwrotna: można alarmu NIE usłyszeć. Włączane bywa w dzień, skutek widać
-  // w nocy.
-  if (wlacz && !confirm(UI.t(
-      "Wyłączyć syrenę czerwonego alarmu?\n\nZostanie sama wibracja, pełny ekran i miganie. Przy wygaszonym ekranie i telefonie w drugim pokoju możesz takiego alarmu nie zauważyć. Wyłączysz to tym samym przełącznikiem.",
-      "Turn off the siren for red alerts?\n\nOnly vibration, the full screen and flashing will remain. With the screen off and the phone in another room you may not notice an alert like that. You can turn this off with the same switch.",
-      "Вимкнути сирену червоної тривоги?\n\nЗалишиться лише вібрація, повний екран і миготіння. З вимкненим екраном і телефоном в іншій кімнаті ви можете такої тривоги не помітити. Вимкнете це тим самим перемикачем."))) {
-    e.target.checked = false;
-    return;
+/* Tryb czerwonego alarmu (10.10.2026): syrena / tylko wibracja / zwykłe
+   powiadomienie. Zastąpił przełącznik „tylko wibracja” — czytelnik prosił
+   o coś pośredniego między syreną a wyłączeniem alarmów w ogóle. */
+const TRYB_OSTRZEZENIE = {
+  wibracja: ["Wyłączyć syrenę czerwonego alarmu?\n\nZostanie sama wibracja, pełny ekran i miganie. Przy wygaszonym ekranie i telefonie w drugim pokoju możesz takiego alarmu nie zauważyć. Wrócisz do syreny w tym samym miejscu.",
+    "Turn off the siren for red alerts?\n\nOnly vibration, the full screen and flashing will remain. With the screen off and the phone in another room you may not notice an alert like that. You can switch the siren back on in the same place.",
+    "Вимкнути сирену червоної тривоги?\n\nЗалишиться лише вібрація, повний екран і миготіння. З вимкненим екраном і телефоном в іншій кімнаті ви можете такої тривоги не помітити. Повернути сирену можна в цьому ж місці."],
+  zwykle: ["Czerwony alarm jako zwykłe powiadomienie?\n\nBez syreny i bez pełnego ekranu: baner, krótki dźwięk i wibracja, jak przy żółtym. Taki alarm SZANUJE tryb cichy i Nie przeszkadzać — w nocy możesz go nie dostać. Wrócisz do syreny w tym samym miejscu.",
+    "Red alert as a regular notification?\n\nNo siren and no full screen: a banner, a short sound and vibration, like yellow. Such an alert RESPECTS silent mode and Do Not Disturb — at night it may not reach you. You can switch the siren back on in the same place.",
+    "Червона тривога як звичайне сповіщення?\n\nБез сирени й повного екрана: банер, короткий звук і вібрація, як у жовтого. Така тривога ВРАХОВУЄ беззвучний режим і «Не турбувати» — уночі вона може до вас не дійти. Повернути сирену можна в цьому ж місці."],
+};
+function renderTrybCzerwonego() {
+  const wybrany = czerwonyTryb();
+  for (const b of document.querySelectorAll("#red-mode .chip")) {
+    const on = b.dataset.tryb === wybrany;
+    b.classList.toggle("active", on);
+    b.setAttribute("aria-pressed", on ? "true" : "false");   // czytnik ekranu
   }
-  /* Zapisujemy DOPIERO po potwierdzeniu z warstwy natywnej. Odwrotna kolejność
-     przy nieudanym wywołaniu dawała rozjazd nie do zauważenia: otwarta
-     aplikacja milczy, a powiadomienie przy zgaszonym ekranie dalej wyje. */
-  let ok = false;
-  try {
-    const r = await BG()?.setRedSilent?.({ enabled: wlacz });
-    ok = !!r && r.redSilent === wlacz;
-  } catch (err) { console.warn("ustawienie ciszy czerwonego", err); }
-  if (!ok) {
-    e.target.checked = !wlacz;
-    alert(UI.t("Nie udało się zmienić tego ustawienia. Spróbuj ponownie.",
-               "Could not change this setting. Please try again.",
-               "Не вдалося змінити це налаштування. Спробуйте ще раз."));
-    return;
-  }
-  try { localStorage.setItem("straznik_czerwony_cisza", wlacz ? "1" : "0"); } catch {}
-  setTimeout(refreshBgStatus, 400);
-});
+}
+for (const b of document.querySelectorAll("#red-mode .chip")) {
+  b.addEventListener("click", async () => {
+    const tryb = b.dataset.tryb;
+    if (!TRYBY_CZERWONEGO.includes(tryb) || tryb === czerwonyTryb()) return;
+    // Sekcja „Zanim zmienisz” jest domyślnie zwinięta — przy odejściu od syreny
+    // ostrzeżenie o nocy ma być na ekranie, a nie za podpisem.
+    if (tryb !== "syrena") document.getElementById("det-natywny")?.setAttribute("open", "");
+    if (tryb !== "syrena" && !confirm(UI.t(...TRYB_OSTRZEZENIE[tryb]))) return;
+    /* Zapisujemy DOPIERO po potwierdzeniu z warstwy natywnej. Odwrotna kolejność
+       przy nieudanym wywołaniu dawała rozjazd nie do zauważenia: otwarta
+       aplikacja milczy, a powiadomienie przy zgaszonym ekranie dalej wyje. */
+    let ok = false;
+    try {
+      const r = await BG()?.setRedMode?.({ mode: tryb });
+      ok = !!r && r.redMode === tryb;
+    } catch (err) { console.warn("tryb czerwonego", err); }
+    if (!ok) {
+      alert(UI.t("Nie udało się zmienić tego ustawienia. Spróbuj ponownie.",
+                 "Could not change this setting. Please try again.",
+                 "Не вдалося змінити це налаштування. Спробуйте ще раз."));
+      return;
+    }
+    try {
+      localStorage.setItem("straznik_czerwony_tryb", tryb);
+      localStorage.setItem("straznik_czerwony_cisza", tryb === "syrena" ? "0" : "1");
+    } catch {}
+    renderTrybCzerwonego();
+    setTimeout(refreshBgStatus, 400);
+  });
+}
+renderTrybCzerwonego();
+/* „Poczuj wibrację” — tylko tam, gdzie telefon umie wibrować ze strony
+   (na iPhonie navigator.vibrate nie istnieje). */
+if (navigator.vibrate) {
+  const rzad = document.getElementById("vib-row");
+  if (rzad) rzad.hidden = false;
+  document.getElementById("btn-vib-u")?.addEventListener("click", () => zawibruj(WIBRACJA_U));
+  document.getElementById("btn-vib-a")?.addEventListener("click", () => zawibruj(WIBRACJA_A));
+}
 document.getElementById("btn-dnd-access")?.addEventListener("click", async () => {
   await BG()?.requestDndAccess?.(); setTimeout(refreshBgStatus, 800);
 });
@@ -6283,7 +6346,8 @@ function renderNativeSound(s, jezyk = UI.lang) {
   if (pct != null) lines.push(T(`Głośność „Alarmy” w Androidzie: <b>${pct}%</b>.`, `Android “Alarms” volume now: <b>${pct}%</b>.`, `Гучність «Будильники» в Android: <b>${pct}%</b>.`));
   // Gdy ciszę wybrał SAM użytkownik, to nie jest usterka do zgłoszenia — tylko
   // przypomnienie, żeby nie zdziwił się w nocy.
-  if (s.redSilent) lines.push(T("🔕 Czerwony alarm masz ustawiony na samą wibrację — syrena nie zagra. Dlatego „zawsze na pełnej głośności” jest nieczynne, a przycisk „Test: pełny alarm” też będzie bez dźwięku. Samą syrenę usłyszysz przyciskiem „Test: syrena”.", "🔕 The red alert is set to vibration only — the siren will not sound. That is why “always at full volume” is inactive and “Test: full alert” will also be silent. To hear the siren itself, use “Test: siren”.", "🔕 Червона тривога налаштована лише на вібрацію — сирена не пролунає. Тому «завжди на повній гучності» неактивне, а «Тест: повна тривога» також буде без звуку. Щоб почути саму сирену, скористайтеся кнопкою «Тест: сирена»."));
+  if (s.redMode === "zwykle") lines.push(T("🔕 Czerwony alarm masz ustawiony jako zwykłe powiadomienie — bez syreny i pełnego ekranu, a w trybie Nie przeszkadzać może nie dotrzeć. Dlatego „zawsze na pełnej głośności” jest nieczynne.", "🔕 The red alert is set to a regular notification — no siren and no full screen, and in Do Not Disturb it may not reach you. That is why “always at full volume” is inactive.", "🔕 Червону тривогу налаштовано як звичайне сповіщення — без сирени й повного екрана, а в режимі «Не турбувати» вона може не дійти. Тому «завжди на повній гучності» неактивне."));
+  else if (s.redSilent) lines.push(T("🔕 Czerwony alarm masz ustawiony na samą wibrację — syrena nie zagra. Dlatego „zawsze na pełnej głośności” jest nieczynne, a przycisk „Test: pełny alarm” też będzie bez dźwięku. Samą syrenę usłyszysz przyciskiem „Test: syrena”.", "🔕 The red alert is set to vibration only — the siren will not sound. That is why “always at full volume” is inactive and “Test: full alert” will also be silent. To hear the siren itself, use “Test: siren”.", "🔕 Червона тривога налаштована лише на вібрацію — сирена не пролунає. Тому «завжди на повній гучності» неактивне, а «Тест: повна тривога» також буде без звуку. Щоб почути саму сирену, скористайтеся кнопкою «Тест: сирена»."));
   else if (s.redChannelSound === false) lines.push(T("⚠ Dźwięk kanału czerwonego alarmu jest wyłączony w ustawieniach powiadomień.", "⚠ Sound for the red alert channel is off in notification settings.", "⚠ Звук каналу червоної тривоги вимкнено в налаштуваннях сповіщень."));
   vol.innerHTML = lines.join(" ");
 }
@@ -6298,9 +6362,11 @@ async function refreshNativeSound() {
     if (s.yellowLevel) { try { localStorage.setItem("straznik_zolty_poziom", s.yellowLevel); } catch {} }
     if (s.redSilent !== undefined) {
       try { localStorage.setItem("straznik_czerwony_cisza", s.redSilent ? "1" : "0"); } catch {}
-      const rs = document.getElementById("set-red-silent");
-      if (rs) rs.checked = !!s.redSilent;
     }
+    if (TRYBY_CZERWONEGO.includes(s.redMode)) {
+      try { localStorage.setItem("straznik_czerwony_tryb", s.redMode); } catch {}
+    }
+    renderTrybCzerwonego();
     renderYellowLevel();
   } catch {}
 }

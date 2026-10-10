@@ -240,7 +240,7 @@ public class AlarmActivity extends Activity {
         try {
             vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
             if (vibrator == null || !vibrator.hasVibrator()) return;
-            long[] pattern = {0, 700, 300, 700, 300, 900, 400};
+            long[] pattern = Alarms.WZOR_A_PETLA;   // „A A A” Morse'a, w pętli
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
                 vibrator.vibrate(VibrationEffect.createWaveform(pattern, 0),
                     new AudioAttributes.Builder()
