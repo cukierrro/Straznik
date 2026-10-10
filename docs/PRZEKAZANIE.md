@@ -288,10 +288,19 @@ województwa i formatu klucza tego sygnału.
 1. Podbij `versionCode` i `versionName` w `android-app/android/app/build.gradle`.
 2. `1_buduj_i_testuj.bat` — build i testy.
 3. Skopiuj APK do `Straznik.apk` w katalogu głównym (skrypt robi to sam) i zacommituj.
+   Ten sam skrypt odkłada plik **mapping** z buildu do
+   `Pulpit\Straznik-play\mapping\<wersja>-<versionCode>\` (poza repozytorium).
+   Wydanie przechodzi przez R8, który skraca nazwy w kodzie — stos błędu
+   z telefonu albo z konsoli Play da się odczytać wyłącznie mappingiem z tego
+   samego buildu, a każdy kolejny build tworzy inny. AAB do Play niesie własną
+   kopię (konsola bierze ją sama), APK z GitHuba nie ma jej nigdzie poza tym
+   katalogiem. Odczytanie stosu:
+   `<Sdk>\cmdline-tools\latest\bin\retrace.bat mapping-githubRelease.txt stos.txt`.
 4. `4_wydaj.bat` — kontrola bezpieczeństwa, push, wydanie z notatkami po polsku
    opisującymi **objaw i przyczynę**, nie listę plików. Skrypt przerywa pracę,
    jeśli klucz podpisu albo hasła znajdą się w repozytorium lub w historii,
-   APK w repo różni się od zbudowanego albo podpis się nie weryfikuje.
+   APK w repo różni się od zbudowanego, zarchiwizowany mapping nie zgadza się
+   bajt w bajt z buildem albo podpis się nie weryfikuje.
    Tytuł wydania idzie osobno, przez API z pliku JSON — argument przekazany
    przez cmd zostałby przekodowany i polskie znaki by się rozsypały.
 5. `5_sprawdz_wydanie.bat` — pobiera plik spod linku „Pobierz APK" i porównuje

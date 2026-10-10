@@ -13,7 +13,8 @@
 //   * adnotacje przeżywają razem z wartościami domyślnymi (@PluginMethod),
 //   * każda klasa natywna jest w pakiecie pl.straznik.app (inny pakiet = bez ochrony),
 //   * każdy plik z res/raw jest wpisany w keep.xml (shrinkResources),
-//   * reguły dla testów instrumentacyjnych nie trafiają do zwykłego wydania.
+//   * reguły dla testów instrumentacyjnych nie trafiają do zwykłego wydania,
+//   * skrypt budowy archiwizuje mapping, a skrypt wydania bez niego nie publikuje.
 //
 // Sama obecność reguł nie dowodzi, że alarm działa — to sprawdza się na
 // urządzeniu (emulator, FcmPathReleaseTest). Test łapie regres w konfiguracji.
@@ -118,4 +119,23 @@ test('każdy plik z res/raw jest chroniony przed shrinkResources', () => {
   for (const z of zasoby)
     assert.ok(chronione.includes(z), `res/raw/${z} nie jest w keep.xml — nowy dźwięk może wypaść z wydania`);
   assert.doesNotMatch(keep, /tools:discard=/, 'keep.xml nie powinien niczego wyrzucać');
+});
+
+test('mapping każdego wydania jest archiwizowany i sprawdzany przed publikacją', () => {
+  // bez mapping.txt z tego samego buildu stos błędu z wydania jest nieczytelny
+  const buduj = fs.readFileSync(path.join(ROOT, '1_buduj_i_testuj.bat'), 'utf8');
+  const wydaj = fs.readFileSync(path.join(ROOT, '4_wydaj.bat'), 'utf8');
+  assert.ok(buduj.includes(String.raw`copy /y "%MAPOUT%\githubRelease\mapping.txt" "%MAPDIR%\mapping-githubRelease.txt"`),
+    '1_buduj_i_testuj.bat nie kopiuje mapping.txt do archiwum');
+  assert.ok(buduj.includes(String.raw`set "MAPDIR=%USERPROFILE%\Desktop\Straznik-play\mapping\%VER%-%CODE%"`),
+    'archiwum mapping musi być per wersja i versionCode, poza repozytorium');
+  const start = wydaj.indexOf('Plik mapping zarchiwizowany');
+  assert.ok(start >= 0, '4_wydaj.bat nie ma kroku sprawdzającego mapping');
+  const krok = wydaj.slice(start);
+  assert.ok(krok.includes(String.raw`\mapping\githubRelease\mapping.txt" "!MAPDIR!\mapping-githubRelease.txt"`)
+    && /^fc \/b /m.test(krok), '4_wydaj.bat nie porównuje archiwum z buildem');
+  assert.match(krok.slice(0, krok.indexOf('Podpis APK')), /if errorlevel 1 \([\s\S]*?goto :koniec/,
+    '4_wydaj.bat musi przerwać, gdy mapping się nie zgadza');
+  assert.ok(wydaj.indexOf('Plik mapping zarchiwizowany') < wydaj.indexOf('Wypchniecie na GitHuba'),
+    'sprawdzenie mapping musi być PRZED wypchnięciem i utworzeniem wydania');
 });

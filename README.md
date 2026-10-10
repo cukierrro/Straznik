@@ -561,6 +561,13 @@ Wynik: `app/build/outputs/apk/github/release/app-github-release.apk`. Weryfikacj
 Bez `keystore.properties` build wydania nadal się wykona, ale APK **nie zostanie
 podpisany** — to celowe, żeby wydanie nigdy nie wyszło z kluczem debug.
 
+Wydanie przechodzi przez R8 (minifikacja i usuwanie nieużywanych zasobów;
+reguły w `app/proguard-rules.pro`). Do każdego wydanego APK trzeba zachować
+`app/build/outputs/mapping/githubRelease/mapping.txt` z **tego samego** buildu —
+bez niego stos błędu jest nieczytelny, a następny build tworzy inny plik.
+`1_buduj_i_testuj.bat` odkłada go poza repozytorium, a `4_wydaj.bat` nie
+opublikuje wydania bez tej kopii. AAB dla Google Play zawiera mapping w sobie.
+
 > Od wersji 1.7.12 aplikacja ufa wyłącznie systemowym certyfikatom i blokuje
 > zewnętrzny HTTP. Jedyny wyjątek to dokładnie `localhost`: wirtualny interfejs
 > Capacitor, pozostawiony pod HTTP dla zachowania ustawień użytkowników.
