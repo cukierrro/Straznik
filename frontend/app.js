@@ -447,13 +447,28 @@ function nowRefMs() {
    „kursem na X" punkt leży na linii dolotu do celu i nie jest zmierzonym
    położeniem. 30.09.2026 taki punkt wypadł 14 km za granicą, w innym państwie
    niż zgłoszony region, i czytelnik zrozumiał to jako przelot nad tym krajem. */
+/* 10.10.2026 sprawdzone na sześciu takich obiektach z jednej nocy: punkt leży
+   na linii kursu ok. 40 km PRZED celem (namiar na cel = kurs z dokładnością
+   do 1°), a dwa różne tracki miały identyczną pozycję co do 4. miejsca po
+   przecinku. Źródło wyznacza go z celu i kursu — to nie obserwacja. Środek
+   miejscowości (locality_center) to inny przypadek: punkt stoi w celu. */
+function naKursieDoCelu(t) {
+  return t?.destination === true && positionInfo(t).reason !== "locality_center";
+}
 function approxPositionNote(t) {
   const locality = positionInfo(t).reason === "locality_center";
-  const naCel = !locality && t?.destination === true;
+  const naCel = naKursieDoCelu(t);
+  const cel = naCel && t?.locality ? placeName(t.locality) : "";
   const heading = locality
     ? (UI.t("środek miejscowości użyty jako punkt odniesienia, nie zmierzona pozycja obiektu", "locality centre used as a reference point, not a measured object position", "центр населеного пункту використано як орієнтир, а не виміряна позиція об'єкта"))
     : naCel
-    ? (UI.t("rejon zgłoszenia na kursie do celu, nie zmierzone położenie", "reported area on the approach to the target, not a measured position", "район повідомлення на курсі до цілі, а не виміряне положення"))
+    ? (cel
+      ? UI.t(`pozycja wyznaczona przez źródło z celu i kursu, nie zaobserwowana — obiekt może być w dowolnym miejscu trasy do: ${cel}`,
+          `position derived by the source from the target and course, not observed — the object may be anywhere on its route to ${cel}`,
+          `позицію визначило джерело за ціллю й курсом, її не спостерігали — об'єкт може бути будь-де на шляху до: ${cel}`)
+      : UI.t("pozycja wyznaczona przez źródło z celu i kursu, nie zaobserwowana — obiekt może być w dowolnym miejscu trasy do celu",
+          "position derived by the source from the target and course, not observed — the object may be anywhere on its route to the target",
+          "позицію визначило джерело за ціллю й курсом, її не спостерігали — об'єкт може бути будь-де на шляху до цілі"))
     : (UI.t("przybliżony rejon zgłoszenia", "approximate report area", "приблизний район повідомлення"));
   return `<span style="color:#ffb020"><b>${heading}</b> — ${UI.t("brak potwierdzonej trasy i czasu dolotu", "no confirmed route or arrival time", "немає підтвердженого маршруту й часу підльоту")}</span>`;
 }
@@ -2676,14 +2691,19 @@ const APPROX_MIN_UNCERTAINTY_KM = 12;
    w 94–100% i nigdy kursu — to meldunek o rejonie, nie namiar. Pokazujemy szerszy
    rejon (25 km), żeby punkt na mapie nie udawał miejsca, w którym leci pocisk. */
 const FAST_TYPES_AREA_KM = 25, FAST_TYPES = new Set(["missile", "cruise", "ballistic", "kab"]);
+/* Meldunek „kursem na X" z pozycją przybliżoną: źródło stawia punkt ok. 40 km
+   przed celem, na linii kursu (patrz naKursieDoCelu). Prawdziwe położenie to
+   gdziekolwiek na tym korytarzu, więc 12 km zaniżało niepewność — decyzja
+   usera 10.10.2026: 40 km, tyle, o ile źródło cofa punkt. */
+const DESTINATION_AREA_KM = 40;
 /* Dwie składowe rozbite osobno, bo karta obiektu ma je pokazać: sama suma
    zmienia się w czasie i bez rozbicia wyglądałaby na chwiejną daną ze źródła. */
 function uncertaintyParts(t, nowMs) {
   const raw = Number(t?.uncertaintyKm);
   const km = Number.isFinite(raw) && raw > 0 ? raw : null;
-  const base = isApproxPosition(t)
-    ? Math.max(km ?? 0, FAST_TYPES.has(t?.type) ? FAST_TYPES_AREA_KM : APPROX_MIN_UNCERTAINTY_KM)
-    : km;
+  const rejon = Math.max(FAST_TYPES.has(t?.type) ? FAST_TYPES_AREA_KM : APPROX_MIN_UNCERTAINTY_KM,
+    naKursieDoCelu(t) ? DESTINATION_AREA_KM : 0);
+  const base = isApproxPosition(t) ? Math.max(km ?? 0, rejon) : km;
   if (base == null) return null;
   return { zgloszenie: Math.round(base), lot: Math.round(ageSlackKm(t, nowMs)) };
 }

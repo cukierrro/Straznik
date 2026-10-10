@@ -62,17 +62,20 @@ function stala(nazwa) {
 const MINUTA = 60000;
 const TERAZ = Date.parse('2026-09-30T08:00:00Z');
 
-function piaskownica({ approx = true, mierzona = null } = {}) {
+function piaskownica({ approx = true, mierzona = null, srodekMiejscowosci = false } = {}) {
   const ctx = {
     histMode: false, historyAdsbTime: null,
     Date, Math, Number,
     isApproxPosition: () => approx,
+    positionInfo: () => ({ reason: srodekMiejscowosci ? 'locality_center' : 'source_approx' }),
     measuredTrackSpeed: () => mierzona,
   };
   vm.createContext(ctx);
   vm.runInContext([
     stala('APPROX_MIN_UNCERTAINTY_KM'),
     stala('FAST_TYPES_AREA_KM'),
+    stala('DESTINATION_AREA_KM'),
+    funkcja('naKursieDoCelu'),
     stala('TYPE_SPEED_KMH'),
     // Tablicy prędkości nie czyta się już wprost — jedyne wejście to
     // typeSpeedKmh (sprowadza nazwę klasy do małych liter). Bez niego
@@ -158,4 +161,36 @@ test('w podglądzie historii wiek liczy się od migawki, nie od „teraz”', ()
   // bez jawnego czasu funkcja ma sięgnąć po czas migawki — inaczej obiekt sprzed
   // godziny wyglądałby na przeterminowany o całą różnicę do dzisiaj
   assert.equal(s.shownUncertaintyKm(obiekt(4)), 24);
+});
+
+// 10.10.2026: meldunek „kursem na X" z pozycją przybliżoną — źródło stawia punkt
+// ok. 40 km przed celem, na linii kursu. Decyzja usera: okrąg co najmniej 40 km.
+test('obiekt „kursem na cel" z pozycją przybliżoną dostaje rejon 40 km', () => {
+  const s = piaskownica();
+  assert.equal(s.shownUncertaintyKm(obiekt(0, { destination: true }), TERAZ), 40);
+});
+
+test('po 4 minutach dorzut drogi dokłada się do 40 km, a nie znika w nich', () => {
+  const s = piaskownica();
+  assert.equal(s.shownUncertaintyKm(obiekt(4, { destination: true }), TERAZ), 52);
+});
+
+test('środek miejscowości docelowej zostaje przy 12 km — punkt stoi w celu, nie przed nim', () => {
+  const s = piaskownica({ srodekMiejscowosci: true });
+  assert.equal(s.shownUncertaintyKm(obiekt(0, { destination: true }), TERAZ), 12);
+});
+
+test('szybki typ „kursem na cel" bierze większy z rejonów (40, nie 25)', () => {
+  const s = piaskownica();
+  assert.equal(s.uncertaintyParts(obiekt(0, { type: 'cruise', destination: true }), TERAZ).zgloszenie, 40);
+});
+
+test('pozycja dokładna „kursem na cel" nie jest sztucznie rozszerzana', () => {
+  const s = piaskownica({ approx: false });
+  assert.equal(s.uncertaintyParts(obiekt(0, { destination: true }), TERAZ).zgloszenie, 4);
+});
+
+test('bez flagi destination nic się nie zmienia (12 km)', () => {
+  const s = piaskownica();
+  assert.equal(s.uncertaintyParts(obiekt(0, { destination: false }), TERAZ).zgloszenie, 12);
 });
