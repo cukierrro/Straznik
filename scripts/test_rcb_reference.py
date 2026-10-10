@@ -28,6 +28,20 @@ def check(name, condition):
 def main():
     old_conn = db._conn
     detected = datetime(2026, 9, 10, 6, 30, tzinfo=timezone.utc)
+
+    # Zegar zamrożony na godzinę po zdarzeniu. Zapis do rcb_reference_events
+    # kasuje wpisy starsze niż 30 dni licząc od PRAWDZIWEGO „teraz", więc od
+    # 10.10.2026 06:30 UTC stała data z testu znikała zaraz po zapisie i test
+    # padał bez żadnej zmiany w kodzie. Daty zostają stałe (z nich wynika czas
+    # polski i oczekiwane wartości), a test przestaje zależeć od dnia uruchomienia.
+    class _StalyZegar(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            chwila = detected + timedelta(hours=1)
+            return chwila.astimezone(tz) if tz else chwila.replace(tzinfo=None)
+
+    stare_zegary = (db.datetime, rcb_reference.datetime)
+    db.datetime = rcb_reference.datetime = _StalyZegar
     try:
         db._conn = sqlite3.connect(":memory:", check_same_thread=False)
         db._conn.executescript(db.SCHEMA)
@@ -99,6 +113,7 @@ def main():
               and short_row["payload"]["eligible_for_lead_analysis"] is False)
         check("reference module has no notification dependency", "app.notify" not in sys.modules)
     finally:
+        db.datetime, rcb_reference.datetime = stare_zegary
         if db._conn is not None and db._conn is not old_conn:
             db._conn.close()
         db._conn = old_conn
