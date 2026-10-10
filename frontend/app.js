@@ -2289,7 +2289,9 @@ function openPlanePopup(lngLat, props) {
         cr.textContent = window.AircraftPhotos.caption(ph, UI.t("pl", "en", "uk"));
         cr.append(document.createElement("br"), document.createTextNode("📷 " + ph.author + " · "));
         for (const [label, url] of [[UI.t("Źródło", "Source", "Джерело"), ph.sourceUrl], [ph.license, ph.licenseUrl]]) {
-          const a = document.createElement("a"); a.textContent = label; a.href = url; a.target = "_blank"; a.rel = "noopener noreferrer";
+          // adres przychodzi z zewnętrznej bazy zdjęć — ten sam filtr co linki z RSS
+          const bezp = safeUrl(url); if (!bezp) continue;
+          const a = document.createElement("a"); a.textContent = label; a.href = bezp; a.target = "_blank"; a.rel = "noopener noreferrer";
           cr.append(a, document.createTextNode(" · "));
         }
         cr.append(document.createTextNode(ph.sourceCrop
@@ -3139,13 +3141,19 @@ const esc = (s) => String(s ?? "").replace(/[<>&"']/g, c => ({ "<": "&lt;", ">":
 const esc2 = esc;
 /* Adres z kanału RSS to treść z zewnątrz, a `esc` zamienia tylko znaki HTML —
    sam schemat przepuszczał. Dopuszczamy wyłącznie http(s), żeby „javascript:"
-   z przejętego lub złośliwego kanału nie stało się klikalnym kodem w WebView. */
+   z przejętego lub złośliwego kanału nie stało się klikalnym kodem w WebView.
+   Odrzucamy też adresy WŁASNEGO originu: w aplikacji to `http://localhost`,
+   a Capacitor do 8.4.2 ładował cudzą stronę w naszym originie po kliknięciu
+   w `/_capacitor_http_interceptor_?u=…` (GHSA-rvm3-566m-v7fv, 10.10.2026).
+   Link ze źródła zewnętrznego nie ma po co prowadzić do nas samych. */
 const safeUrl = (u) => {
   const raw = String(u ?? "").trim();
   if (!raw) return "";
   try {
     const parsed = new URL(raw, location.href);
-    return (parsed.protocol === "http:" || parsed.protocol === "https:") ? parsed.href : "";
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return "";
+    if (parsed.origin === location.origin) return "";
+    return parsed.href;
   } catch { return ""; }
 };
 
