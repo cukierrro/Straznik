@@ -984,10 +984,11 @@ html[lang="en"] .list:empty::after { content: "— none —"; }
      i rozwinięte sekcje znikały pod nią. Do tego wyraźny odstęp
      (--legend-gap), żeby okno nie stykało się z pigułką. */
   --legend-gap: 28px;
+  /* 8px = odstęp, o który #bottom-stack stoi nad paskiem zakładek. */
   max-height: calc(100vh - var(--topbar-h, 90px) - 6px - var(--tabbar-h) - var(--safe-b)
-    - var(--stack-h, 0px) - var(--legend-gap));
+    - 8px - var(--stack-h, 0px) - var(--legend-gap));
   max-height: calc(100dvh - var(--topbar-h, 90px) - 6px - var(--tabbar-h) - var(--safe-b)
-    - var(--stack-h, 0px) - var(--legend-gap));
+    - 8px - var(--stack-h, 0px) - var(--legend-gap));
   overflow-y: auto; overscroll-behavior: contain;
   /* Ostatni wiersz nie może kończyć się dokładnie na krawędzi — wyglądało to jak
      ucięta treść, mimo że legenda przewija się do końca. */
