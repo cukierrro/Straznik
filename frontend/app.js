@@ -1082,6 +1082,7 @@ function applyState(s) {
   refreshCountedTracks();
   renderLeds();
   updateAlarmMood();          // alarmy działają także w trybie przeglądania
+  odswiezOpisSytuacji();      // czytnik ekranu: stan NA ŻYWO, także w historii
   publishAlertContract();     // stan alarmu dla modułu GROTA — także w historii
   if (histMode) return;       // ale widok mapy/panelu zostaje na wybranym momencie
   renderPanel();
@@ -4140,7 +4141,7 @@ function onForegroundPush(d) {
 }
 
 /* Najbliższy obiekt i czas dolotu do województwa alarmu (audyt C11). */
-function nearestThreatLine(voiv) {
+function najblizszyObiekt(voiv) {
   let best = null;
   for (const t of state?.neptun?.threats || []) {
     if (t.lat == null || isApproxPosition(t) || !t.pl_assessment?.toward_pl) continue;
@@ -4148,13 +4149,73 @@ function nearestThreatLine(voiv) {
     if (km == null || (best && km >= best.km)) continue;
     best = { t, km };
   }
-  if (!best) return "";
+  if (!best) return null;
   const v = best.t.pl_assessment?.heading_known === false ? null
     : (best.t.velocity?.speedKmh ?? trackSpeed(best.t));
-  const eta = v ? etaMin(best.km, v) : null;
-  const what = UI.type(best.t.type, (TYPE_META[best.t.type] || TYPE_META.unknown).label);
-  return `${UI.t("Najbliżej", "Nearest", "Найближче")}: <b>${esc(what)}</b> · ${Math.round(best.km)} km`
-    + (eta != null ? ` · ${UI.t("ok.", "about", "бл.")} ${etaTxt(eta)}` : "");
+  return {
+    what: UI.type(best.t.type, (TYPE_META[best.t.type] || TYPE_META.unknown).label),
+    km: Math.round(best.km),
+    eta: v ? etaMin(best.km, v) : null,
+  };
+}
+function nearestThreatLine(voiv) {
+  const n = najblizszyObiekt(voiv);
+  if (!n) return "";
+  return `${UI.t("Najbliżej", "Nearest", "Найближче")}: <b>${esc(n.what)}</b> · ${n.km} km`
+    + (n.eta != null ? ` · ${UI.t("ok.", "about", "бл.")} ${etaTxt(n.eta)}` : "");
+}
+
+/* ── Sytuacja jednym zdaniem — dla czytnika ekranu zamiast mapy ─────────────
+   Obiecane publicznie w opisie 1.7.81. Mapa dla osoby niewidomej jest pustym
+   obrazkiem: czytnik słyszał zmianę poziomu (pole `assertive`), ale nie miał
+   jak sprawdzić, jak jest TERAZ. Niewidoczny nagłówek przed mapą mówi to jednym
+   zdaniem: obserwowane województwa (jak alarm w updateAlarmMood), a bez nich
+   województwa z sygnałami w kraju; poziom ALARMU, nie kolor mapy; najbliższy
+   obiekt i godzina danych. Nie jest polem `aria-live` — nie przerywa co kilka
+   sekund, czytnik czyta go, gdy człowiek do niego dojdzie (nagłówek: skok
+   „następny nagłówek"). Osobna funkcja bez DOM, żeby test mógł ją uruchomić. */
+function opisSytuacji(voivs, obserwowane, najblizszy, godzina) {
+  const order = ["none", "elevated", "high"];
+  const nazwa = { none: UI.t("brak sygnałów", "no signals", "немає сигналів"),
+                  elevated: UI.t("podwyższona uwaga", "heightened attention", "підвищена увага"),
+                  high: UI.t("wysoki priorytet", "high priority", "високий пріоритет") };
+  const liczba = (x) => UI.t(x.toFixed(1).replace(".", ","), x.toFixed(1), x.toFixed(1).replace(".", ","));
+  const poziom = (v) => alarmLevel(voivs[v]);
+  const wazniejsze = (a, b) => order.indexOf(poziom(b)) - order.indexOf(poziom(a))
+    || (voivs[b]?.score || 0) - (voivs[a]?.score || 0);
+  const start = `${UI.t("Sytuacja o", "Situation at", "Ситуація о")} ${godzina}: `;
+  const koniec = " " + UI.t("Strażnik to źródło nieoficjalne — kieruj się syrenami i komunikatami RCB.",
+    "Strażnik is an unofficial source — follow sirens and RCB alerts.",
+    "Strażnik — неофіційне джерело, орієнтуйтеся на сирени та повідомлення RCB.");
+  let lista = (obserwowane || []).filter(v => voivs[v]);
+  if (!lista.length) {
+    lista = Object.keys(voivs).filter(v => poziom(v) !== "none").sort(wazniejsze).slice(0, 3);
+    if (!lista.length)
+      return start + UI.t("w całym kraju brak sygnałów.", "no signals anywhere in Poland.",
+        "по всій Польщі сигналів немає.") + koniec;
+  }
+  const czesci = lista.map(v => {
+    const lv = poziom(v);
+    return `${UI.t("woj.", "", "воєв.")} ${UI.voiv(v)} — ${nazwa[lv]}`
+      + (lv !== "none" ? `, ${liczba(voivs[v]?.score || 0)} ${UI.t("pkt", "pts", "бал.")}` : "");
+  });
+  let zdanie = start + czesci.join("; ") + ".";
+  const glowne = [...lista].sort(wazniejsze)[0];
+  const n = poziom(glowne) !== "none" ? najblizszy(glowne) : null;
+  if (n) zdanie += ` ${UI.t("Najbliżej", "Nearest", "Найближче")}: ${n.what}, ${n.km} km`
+    + (n.eta != null ? `, ${UI.t("około", "about", "близько")} ${n.eta < 1 ? 1 : n.eta} min` : "") + ".";
+  return zdanie.replace(/ {2,}/g, " ") + koniec;
+}
+function odswiezOpisSytuacji() {
+  const sytuacjaEl = document.getElementById("sytuacja");
+  if (!sytuacjaEl) return;
+  const voivs = state?.fusion?.voivodeships || {};
+  const mine = myVoiv();
+  const watched = Places?.observedVoivodeships(savedPlaces) || [];
+  const godzina = new Date(threatsReceivedAt || Date.now())
+    .toLocaleTimeString(UI.t("pl-PL", "en-GB", "uk-UA"), { hour: "2-digit", minute: "2-digit" });
+  sytuacjaEl.textContent = opisSytuacji(voivs, watched.length ? watched : (mine ? [mine] : []),
+    najblizszyObiekt, godzina);
 }
 
 /* ── pełnoekranowy alarm z ręcznym potwierdzeniem ────────────────────────── */
