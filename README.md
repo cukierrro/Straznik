@@ -6,6 +6,11 @@
 
 Serwer: **hostowane na [Mikrusie](https://mikr.us)** — dziękujemy za wsparcie projektu.
 
+Wersja 1.7.92: poprawka bezpieczeństwa. Silnik aplikacji (Capacitor) podniesiony
+do wersji z poprawką publicznie ogłoszonej luki, a linki ze źródeł zewnętrznych
+nie mogą już prowadzić do wnętrza aplikacji. Wygląd i działanie bez zmian.
+Zalecamy aktualizację. Szczegóły: `docs/RELEASE_1.7.92.md`.
+
 Wersja 1.7.91: podkarpackie słyszy drony, telefon ostrzega o uśpieniu.
 Obiekt punktuje teraz każde województwo w zasięgu, z wagą zależną od
 odległości do niego — dotąd punkty dostawało tylko województwo z najbliższym
