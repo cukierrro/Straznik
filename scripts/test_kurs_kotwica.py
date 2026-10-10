@@ -64,15 +64,31 @@ neptun._renewal_shadow({**tr, "lat": 50.9, "lon": 24.7}, a, 1.9, False, now=t0 +
 ren = stealth.query("neptun_renew_shadow", 10**8)
 sprawdz(len(ren) == 1 and ren[0]["moved_km"] >= 2,
         f"odnowienie tylko po 30 min, z ruchem ≥ 2 km i pozycją nierejonową ({len(ren)})")
-away = {**tr, "heading_estimated": 90.0, "pl_assessment": {"toward_pl": False, "dist_km": 45}}
-neptun._turnaway_shadow(away, now=t0 + 700)
+# 10.10.2026: zawrócenie liczy się z RUCHU (heading_movement + pomiar w _last_est),
+# a kierunek względem Polski z tego ruchu — nie z kursu NEPTUN-a ani pl_assessment.
+# Dotąd mechanizm patrzył na heading_estimated, który istnieje tylko bez kursu
+# NEPTUN-a (20–30% obserwacji), więc od 11.09 nie zapisał ani jednego wpisu.
+# s1 stoi na wschód od Polski (50,9 N 24,9 E); ruch na wschód = od Polski.
+def ruch(kurs, kiedy, **reszta):
+    neptun._last_est["s1"] = (kurs, kiedy)        # świeży pomiar ruchu
+    return {**tr, "heading_movement": kurs, **reszta}
+
+neptun._turnaway_shadow(ruch(90.0, t0 + 700), now=t0 + 700)
 sprawdz(not stealth.query("neptun_turnaway_shadow", 10**8), "jeden odczyt od Polski to jeszcze nie zawrócenie")
-neptun._turnaway_shadow(away, now=t0 + 800)
-neptun._turnaway_shadow(away, now=t0 + 900)
+neptun._turnaway_shadow({**tr, "heading_movement": 90.0}, now=t0 + 750)   # ten sam pomiar
+sprawdz(neptun._away_streak["s1"] == 1, "powtórzony stary pomiar ruchu nie liczy się drugi raz")
+# NEPTUN uparcie mówi „kursem na cel w Polsce” (270°), a obiekt odlatuje na wschód
+neptun._turnaway_shadow(ruch(90.0, t0 + 800, heading=270.0, heading_source="presumptive",
+                             pl_assessment={"toward_pl": True}), now=t0 + 800)
+neptun._turnaway_shadow(ruch(85.0, t0 + 900), now=t0 + 900)
 tw = stealth.query("neptun_turnaway_shadow", 10**8)
-sprawdz(len(tw) == 1 and tw[0]["points_held"] == 1.9, f"dwa kolejne odczyty = jeden zapis zawrócenia ({len(tw)})")
-neptun._turnaway_shadow({**tr, "heading": 90.0, "pl_assessment": {"toward_pl": False}}, now=t0 + 950)
-sprawdz(neptun._away_streak["s1"] == 0, "kurs z NEPTUN-a („kursem na”) nie liczy się jako zmierzony")
+sprawdz(len(tw) == 1 and tw[0]["points_held"] == 1.9,
+        f"dwa kolejne pomiary ruchu od Polski = jeden zapis, MIMO kursu NEPTUN-a „na PL” ({len(tw)})")
+sprawdz(tw and tw[0].get("heading_neptun") == 270.0 and tw[0].get("heading_movement") == 90.0,
+        "wpis mówi, że NEPTUN twierdził co innego niż ruch")
+neptun._turnaway_shadow(ruch(270.0, t0 + 950, heading=90.0), now=t0 + 950)
+sprawdz(neptun._away_streak["s1"] == 0,
+        "ruch z powrotem na Polskę zeruje serię, choć NEPTUN podaje kurs od Polski")
 
 stealth._conn and stealth._conn.close()
 if bledy:

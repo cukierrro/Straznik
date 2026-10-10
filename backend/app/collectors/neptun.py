@@ -628,14 +628,35 @@ def _renewal_shadow(t: dict, a: dict, points: float, approximate: bool,
     }, now)
 
 
+_away_counted: dict[str, float] = {}   # track_id -> czas pomiaru ruchu już policzonego
+
+
 def _turnaway_shadow(t: dict, now: float | None = None) -> None:
-    """Wołane dla każdej aktualizacji tracka (także gdy już nie leci na PL)."""
+    """Wołane dla każdej aktualizacji tracka (także gdy już nie leci na PL).
+
+    10.10.2026: do tej pory „kurs zmierzony” znaczył `heading_estimated`, który
+    ustawiamy WYŁĄCZNIE, gdy NEPTUN nie poda własnego kursu — a podaje go przy
+    70–80% obserwacji (archiwum 27.09–10.10), zwykle jako kurs „na cel”. Do tego
+    „od Polski” brane było z pl_assessment, czyli z tego samego kursu NEPTUN-a.
+    Mechanizm był więc ślepy: zero wpisów od 11.09. Teraz kurs bierzemy z ruchu
+    (`heading_movement`), kierunek względem Polski liczymy z niego, a dwa odczyty
+    z rzędu to dwa RÓŻNE pomiary ruchu — nie ten sam zachowany szacunek."""
     tid = t.get("id")
     if tid not in _signalled:
         return
-    a = t.get("pl_assessment") or {}
-    measured = t.get("heading_estimated") is not None
-    if measured and a.get("toward_pl") is False:
+    moved = t.get("heading_movement")
+    pomiar = (_last_est.get(tid) or (None, None))[1]
+    if moved is None or t.get("lat") is None or pomiar is None:
+        _away_streak[tid] = 0
+        return
+    if _away_counted.get(tid) == pomiar:
+        return                        # ten sam pomiar ruchu — nic nowego
+    _away_counted[tid] = pomiar
+    ruch = geo.assess_for_scoring(t["lat"], t["lon"], moved, config.NEPTUN_HEADING_TOLERANCE,
+                                  config.NEPTUN_HEADING_SOFT_DEG,
+                                  config.NEPTUN_UNKNOWN_HEADING_MULT,
+                                  config.NEPTUN_UNKNOWN_HEADING_MAX_KM)
+    if ruch.get("toward_pl") is False:
         _away_streak[tid] = _away_streak.get(tid, 0) + 1
     else:
         _away_streak[tid] = 0
@@ -644,8 +665,9 @@ def _turnaway_shadow(t: dict, now: float | None = None) -> None:
         last = _signalled[tid]
         stealth.record("neptun_turnaway_shadow", f"{tid}:{int(last['at'])}", {
             "track_id": tid, "type": t.get("type"), "voivodeship": last.get("voiv"),
-            "points_held": last.get("points"), "heading_estimated": t.get("heading_estimated"),
-            "dist_km": a.get("dist_km"), "lat": t.get("lat"), "lon": t.get("lon"),
+            "points_held": last.get("points"), "heading_movement": moved,
+            "heading_neptun": t.get("heading"), "heading_source": t.get("heading_source"),
+            "dist_km": ruch.get("dist_km"), "lat": t.get("lat"), "lon": t.get("lon"),
             "since_signal_min": round(((now or time.time()) - last["at"]) / 60, 1),
         }, now)
 
@@ -901,7 +923,7 @@ async def _handle_threats(threats: list[dict], replace: bool, *,
         by_entry_shadow.removed(tid)
     if replace:
         # pełny snapshot: zapominamy kotwice obiektów, których już nie ma
-        for cache in (_last_pos, _last_est, _signalled, _away_streak, _trail):
+        for cache in (_last_pos, _last_est, _signalled, _away_streak, _away_counted, _trail):
             for tid in [k for k in cache if k not in tracks]:
                 cache.pop(tid, None)
     if fusion.on_state_change:

@@ -21,7 +21,12 @@ log = logging.getLogger("stealth")
 DB_PATH = config.DATA_DIR / "obserwacje.db"
 
 # Ile trzymamy: próbki tras są liczne, artykuły i fale — rzadkie i cenne.
-RETENTION_DAYS = {"air_support": 180, "mapa_report": 30, "mapa_tick": 30}
+RETENTION_DAYS = {"air_support": 180, "mapa_report": 30, "mapa_tick": 30,
+                  # 10.10.2026: pozostałości po zamkniętych kolektorach (nikt ich już
+                  # nie zapisuje, ostatnie wpisy 14–22.09). Przy domyślnych dwóch latach
+                  # leżałyby w bazie bez celu; kopie miesięczne trzymają je rok.
+                  "catalog_point_shadow": 30, "by_media": 30,
+                  "ro_alert_media": 30, "ro_alert_reference": 30}
 DEFAULT_RETENTION_DAYS = 730
 
 _lock = threading.Lock()
