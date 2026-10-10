@@ -129,4 +129,4 @@ Zasady przeglądu:
 - Decyzje w skryptach opierać na kodzie wyjścia, nie na szukaniu słowa w tekście.
   Sprawdzać WARTOŚĆ, nie samo istnienie zmiennej. Przy zmianach widocznych na
   stronie — zrzut ekranu. (Wszystkie trzy błędy popełniłem 26.09.2026.)
-- Najbliższe terminy: tygodniowy 03.10.2026, miesięczny 26.10.2026.
+- Najbliższe terminy: tygodniowy 17.10.2026, miesięczny 26.10.2026.
