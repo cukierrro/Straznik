@@ -55,7 +55,8 @@ raw = public_cache.build_bundle_bytes()
 nowy = json.loads(raw)
 dawne = [{"ts": ts, **json.loads(p)} for ts, p in public_cache.db.snapshot_rows()]
 ok(nowy["snaps"] == dawne, "migawki identyczne z dawnym all_snapshots")
-ok(set(nowy) == {"hours", "window_min", "snaps", "signals", "adsb_watch_events"}, f"pola {sorted(nowy)}")
+ok(set(nowy) == {"hours", "window_min", "snaps", "signals", "adsb_watch_events",
+                    "zone_defs"}, f"pola {sorted(nowy)}")
 
 print("2. gotowe bajty")
 blob = public_cache.make_blob(raw)

@@ -172,6 +172,9 @@ const buf = {
   console, positionQuality: () => null, positionInfo: () => null,
   watchSyncState: '', fetch: () => { throw new Error('bez sieci w teście'); },
   apiBase: () => '', Engine: {},
+  // od 10.10.2026 srvRecord zapisuje też strefy z tej chwili, a seedBundle
+  // definicje stref z paczki — tu bez stref (null = nie znamy bieżących)
+  zonesData: null, srvZoneDefs: {},
 };
 let ZEGAR = Date.UTC(2026, 8, 19, 17, 0, 0);
 function FakeDate(x) { return new Date(x); }

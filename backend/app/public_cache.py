@@ -265,7 +265,12 @@ def build_bundle_bytes(hours: int = 12) -> bytes:
                     if s["id"] not in seen]
     head = json.dumps({"hours": hours, "window_min": config.FUSION_WINDOW_MIN},
                       ensure_ascii=False, separators=(",", ":"))[:-1]
-    tail = json.dumps({"signals": signals, "adsb_watch_events": db.adsb_watch_events(hours)},
+    # Definicje stref, do których odwołują się migawki (pole "zones": klucze).
+    # Bierzemy widziane od początku okna; strefa wcześniejsza i dalej aktywna
+    # ma świeże last_seen, więc też tu trafi.
+    zone_defs = db.zone_defs_since(rows[0][0]) if rows else {}
+    tail = json.dumps({"signals": signals, "adsb_watch_events": db.adsb_watch_events(hours),
+                       "zone_defs": zone_defs},
                       ensure_ascii=False, separators=(",", ":"))[1:]
     return (head + ',"snaps":[' + ",".join(parts) + "]," + tail).encode()
 

@@ -1737,7 +1737,7 @@ async function initMap() {
         { layers: ["threats", "threats-glow", "adsb"] });
       if (hit.length) return;
       const names = [...new Set((e.features || []).map(f => f.properties?.designator).filter(Boolean))];
-      const full = names.map(n => (zonesData?.features || []).find(x => x.properties?.designator === n))
+      const full = names.map(n => (aktywneStrefy()?.features || []).find(x => x.properties?.designator === n))
         .filter(Boolean).sort((a, b) => zoneArea(a) - zoneArea(b));
       if (!full.length) { openZoneCard(e.features?.[0]?.properties); return; }
       openZoneCard(full[0].properties, full.slice(1).map(f => f.properties.designator));
@@ -1790,6 +1790,42 @@ const ZONE_QUIET = ["any", ["==", ["get", "standing"], true],
 const ZONE_COLOR = ["case", ZONE_QUIET, "#b39ddb", "#ffb020"];
 const ZONE_TTL_MS = 4 * 60 * 1000;
 let zonesData = null, zonesAt = 0, zonesPending = false;
+/* Strefy w historii (10.10.2026). Migawka niesie listę [klucz, since, atBoot],
+   a geometria i opis przychodzą raz w paczce (`zone_defs`) albo z żywego
+   /api/zones. histZonesData = strefy wybranej chwili; null = z tej chwili nie
+   mamy zapisu (migawki sprzed wdrożenia, tryb wbudowany) — wtedy warstwa jest
+   ukryta, jak wcześniej, zamiast rysować bieżące strefy nad przeszłością.
+   zoneRefMs = „teraz” dla karty strefy („aktywna od 3 godz.”) — w historii
+   to chwila z suwaka, nie zegar telefonu. */
+let srvZoneDefs = {}, histZonesData = null, zoneRefMs = null;
+const aktywneStrefy = () => (histMode ? histZonesData : zonesData);
+const ZONE_ZMIENNE = ["since", "atBoot", "standing", "baseM", "topM"];
+function zapamietajDefinicjeStref(features) {
+  for (const f of features || []) {
+    const p = f?.properties;
+    if (!p?.key || srvZoneDefs[p.key]) continue;
+    const props = {};
+    for (const [k, v] of Object.entries(p)) if (!ZONE_ZMIENNE.includes(k)) props[k] = v;
+    srvZoneDefs[p.key] = { type: "Feature", geometry: f.geometry, properties: props };
+  }
+}
+/* Warstwa stref dla migawki: null, gdy migawka nie ma pola `zones`. Klucz bez
+   definicji pomijamy — lepiej brak jednej strefy niż wymyślony kształt. */
+function strefyZMigawki(snap, whenMs) {
+  if (!snap || !Array.isArray(snap.zones)) return null;
+  const features = [];
+  for (const [key, since, atBoot] of snap.zones) {
+    const def = srvZoneDefs[key];
+    if (!def) continue;
+    const p = { ...def.properties, since, atBoot: !!atBoot,
+                // jak na serwerze: strefa stojąca dłużej niż dobę to stan, nie zdarzenie
+                standing: since > 0 && whenMs / 1000 - since > 24 * 3600 };
+    p.baseM = zoneAltM(p.lower);
+    p.topM = Math.max(zoneAltM(p.upper), p.baseM + 400);
+    features.push({ type: "Feature", geometry: def.geometry, properties: p });
+  }
+  return { type: "FeatureCollection", features };
+}
 
 function zonesOn() {
   try { return localStorage.getItem("straznik_zones") !== "0"; } catch { return true; }
@@ -1815,8 +1851,8 @@ function zoneAltText(v) {
 
 async function refreshZones(force) {
   if (zonesPending) return;
-  // W historii warstwa i tak jest ukryta (applyZones), więc odpytywanie serwera
-  // co minutę byłoby ruchem za nic. Po wyjściu exitHistory dociąga świeże.
+  // W historii warstwa pokazuje strefy z migawki (applyZones), więc odpytywanie
+  // serwera byłoby ruchem za nic. Po wyjściu exitHistory dociąga świeże.
   if (histMode) { applyZones(); return; }
   if (!force && Date.now() - zonesAt < ZONE_TTL_MS) return;
   syncZonesButton();
@@ -1839,6 +1875,7 @@ async function refreshZones(force) {
       p.topM = Math.max(zoneAltM(p.upper), p.baseM + 400);
     }
     zonesData = fc; zonesAt = Date.now();
+    zapamietajDefinicjeStref(fc.features);   // dla historii nagrywanej na żywo
     applyZones();
     /* Panel przerysowuje się dopiero przy następnym stanie z serwera, więc bez
        tego plakietki stref pojawiały się w kartach województw z opóźnieniem —
@@ -1850,18 +1887,19 @@ async function refreshZones(force) {
 
 function applyZones() {
   if (!mapReady || !map.getSource("strefy")) return;
-  /* W trybie historii warstwa jest UKRYTA — ta sama zasada co przy alarmach
-     rejonów w showHistoryAt: migawka nie zapisuje stref, więc nie udajemy, że
-     wiemy, które obowiązywały w tamtej chwili.
+  /* W historii rysujemy strefy Z TAMTEJ CHWILI (histZonesData), a gdy migawka
+     ich nie zapisała — warstwa jest UKRYTA. Nigdy bieżących.
 
-     Bez tego suwak rysował BIEŻĄCY zestaw nad przeszłą sytuacją. PAŻP rotuje
+     Do 07.10.2026 suwak rysował BIEŻĄCY zestaw nad przeszłą sytuacją. PAŻP rotuje
      cały zestaw raz na dobę o 06:00 UTC (pomiar 07.10.2026: 33 z 34 stref
      zaczynały dokładnie o tej godzinie), więc przez pół doby okno 12 h sięgało
      przed rotację. Gorzej: strefa zdjęta znika z bieżącego zestawu zupełnie —
      a to właśnie strefy doraźne, otwierane w trakcie zdarzenia, są w historii
-     najważniejsze. Odtwarzany atak wyglądał więc na odbyty przy otwartym niebie. */
-  const on = zonesOn() && !histMode;
-  map.getSource("strefy").setData(on && zonesData ? zonesData : emptyFC());
+     najważniejsze. Odtwarzany atak wyglądał więc na odbyty przy otwartym niebie.
+     Od 10.10.2026 migawka zapisuje klucze stref (pansa.zones_snapshot). */
+  const dane = aktywneStrefy();
+  const on = zonesOn() && !!dane;
+  map.getSource("strefy").setData(on ? dane : emptyFC());
   for (const id of ["strefy-3d", "strefy-tlo", "strefy-line", "strefy-hit"])
     if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", on ? "visible" : "none");
 }
@@ -1870,9 +1908,9 @@ function syncZonesButton() {
   const b = document.getElementById("btn-zones");
   if (!b) return;
   // W trybie wbudowanym nie ma czego pokazywać, więc przycisk znika zamiast
-  // udawać, że działa. Tak samo w historii: warstwa jest tam ukryta, więc
-  // przełącznik nie miałby czego przełączyć.
-  b.style.display = (standalone || !apiBase() || histMode) ? "none" : "";
+  // udawać, że działa. Tak samo w historii, gdy wybrana chwila nie ma zapisu
+  // stref: warstwa jest wtedy ukryta i przełącznik nie miałby czego przełączyć.
+  b.style.display = (standalone || !apiBase() || (histMode && !histZonesData)) ? "none" : "";
   const on = zonesOn();
   b.setAttribute("aria-pressed", on ? "true" : "false");
   const t = on ? (UI.t("Ukryj strefy PAŻP", "Hide PAŻP zones", "Сховати зони PAŻP"))
@@ -1924,7 +1962,12 @@ function zoneClock(iso) {
 function zoneSinceText(sinceEpochS) {
   const t = Number(sinceEpochS) * 1000;
   if (!t || isNaN(t)) return "";
-  const h = (Date.now() - t) / 3600000;
+  // w historii „temu” liczymy od chwili z suwaka, nie od zegara telefonu
+  const h = ((histMode && zoneRefMs) || Date.now()) - t;
+  if (h < 0) return "";
+  return zoneAgoText(h / 3600000);
+}
+function zoneAgoText(h) {
   if (h < 1) return UI.t(`${Math.max(1, Math.round(h * 60))} min temu`, `${Math.max(1, Math.round(h * 60))} min ago`, `${Math.max(1, Math.round(h * 60))} хв тому`);
   if (h < 48) return UI.t(`${Math.round(h)} godz. temu`, `${Math.round(h)} h ago`, `${Math.round(h)} год тому`);
   return UI.t(`${Math.round(h / 24)} dni temu`, `${Math.round(h / 24)} days ago`, `${Math.round(h / 24)} дн. тому`);
@@ -3657,8 +3700,9 @@ function scoreBreakdown(st) {
 /* Strefy nad danym województwem — druga droga do karty strefy, niezależna od
    celowania palcem w mapę. Bez tego trzeba by trafić w konkretny wielokąt. */
 function zonesForVoiv(name) {
-  if (!zonesOn() || !zonesData) return [];
-  return zonesData.features
+  const dane = aktywneStrefy();
+  if (!zonesOn() || !dane) return [];
+  return dane.features
     .filter(f => f.properties?.voiv === name)
     .map(f => f.properties);
 }
@@ -3676,7 +3720,7 @@ function zonesRowHTML(name) {
     UI.t("bez punktów", "no points", "без балів")})</span></summary>${chips}</details>`;
 }
 function openZoneByName(designator) {
-  const f = (zonesData?.features || []).find(x => x.properties?.designator === designator);
+  const f = (aktywneStrefy()?.features || []).find(x => x.properties?.designator === designator);
   if (f) openZoneCard(f.properties);
 }
 
@@ -4945,7 +4989,12 @@ function srvRecord(s) {
     type: a.type, lat: +(+a.lat).toFixed(3), lon: +(+a.lon).toFixed(3), alt: a.alt, gs: a.gs,
     track: a.track, voivodeship: a.voivodeship, desc: a.desc, cat: a.cat,
     reg: a.reg, op: a.op, vr: a.vr, year: a.year }));
-  srvSnaps.push({ ts: new Date(now).toISOString(), t: now, threats, aircraft });
+  const snap = { ts: new Date(now).toISOString(), t: now, threats, aircraft };
+  // strefy z tej chwili, jak w migawce serwera — tylko gdy znamy bieżące
+  if (zonesData) snap.zones = zonesData.features
+    .filter(f => f.properties?.key)
+    .map(f => [f.properties.key, f.properties.since || 0, !!f.properties.atBoot]);
+  srvSnaps.push(snap);
   const cut = now - HIST_MS;
   srvSnaps = srvSnaps.filter(sn => sn.t >= cut);
 }
@@ -4968,6 +5017,7 @@ async function seedBundle() {
       srvSnaps.push({ ...sn, t: Date.parse(sn.ts) });
     }
     srvAdsbEvents = (j.adsb_watch_events || []).map(e => ({ ...e, t: Date.parse(e.ts) }));
+    if (j.zone_defs && typeof j.zone_defs === "object") Object.assign(srvZoneDefs, j.zone_defs);
     watchSyncState = "ok";
     srvSnaps.sort((a, b) => a.t - b.t);
     srvSeeded = true;
@@ -5093,6 +5143,7 @@ function exitHistory() {
   document.getElementById("timebar").classList.add("hidden");
   document.getElementById("btn-history").classList.remove("active");
   syncTabs();
+  histZonesData = null; zoneRefMs = null;
   /* Strefy wracają. applyZones MUSI pójść osobno: refreshZones bez `force`
      wraca na TTL, zanim dojdzie do rysowania, więc samo wywołanie zostawiłoby
      warstwę ukrytą do wygaśnięcia TTL-a. */
@@ -5126,6 +5177,10 @@ function showHistoryAt(idx) {
   paintCountryAlerts(sigs);
   // alarmów rejonów nie ma w migawkach — w historii nie udajemy, że trwały wtedy
   paintRaionAlerts([]);
+  // strefy PAŻP z tamtej chwili (albo żadne, gdy migawka ich nie zapisała)
+  histZonesData = strefyZMigawki(snap, when.getTime());
+  zoneRefMs = when.getTime();
+  syncZonesButton(); applyZones();
   // alarmy ogólnokrajowe z tamtej chwili jako komunikat, nie obiekt na mapie
   const snapThreats = snap?.threats || [];
   renderNationalChip(snapThreats);
@@ -5271,7 +5326,9 @@ function renderHistoryPanel(sigs, perVoiv, when, ageMin,
     ${when.toLocaleTimeString(UI.t("pl-PL", "en-GB", "uk-UA"), { hour: "2-digit", minute: "2-digit" })}
     ${ageMin > 1 ? `(${histAgo(ageMin)})` : (UI.t("(teraz)", "(now)", "(зараз)"))}
     <span>${UI.t("dane sprzed chwili wybranej suwakiem, nie na żywo", "data from the time selected on the slider, not live", "дані з моменту, обраного повзунком, а не наживо")}${
-    UI.t(" · stref PAŻP nie zapisujemy, więc w historii są ukryte", " · PAŻP zones are not recorded, so they are hidden in history", " · зони PAŻP не зберігаються, тому в історії вони приховані")}</span></div>`;
+    histZonesData
+      ? UI.t(" · strefy PAŻP z tamtej chwili", " · PAŻP zones as they were then", " · зони PAŻP на той момент")
+      : UI.t(" · z tej chwili nie mamy zapisu stref PAŻP, więc są ukryte", " · no PAŻP zone record for this moment, so they are hidden", " · для цього моменту немає запису зон PAŻP, тому вони приховані")}</span></div>`;
 
   const shown = Object.entries(perVoiv)
     .filter(([, sc]) => sc > 0)
