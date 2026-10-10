@@ -16,7 +16,7 @@ try:
 except ImportError:
     sys.modules["truststore"] = types.SimpleNamespace(inject_into_ssl=lambda: None)
 
-from app import db, rcb_reference  # noqa: E402
+from app import config, db, rcb_reference  # noqa: E402
 
 
 def check(name, condition):
@@ -34,17 +34,31 @@ def main():
     # 10.10.2026 06:30 UTC stała data z testu znikała zaraz po zapisie i test
     # padał bez żadnej zmiany w kodzie. Daty zostają stałe (z nich wynika czas
     # polski i oczekiwane wartości), a test przestaje zależeć od dnia uruchomienia.
+    zegar = [detected + timedelta(hours=1)]  # przestawiany niżej dla testu retencji
+
     class _StalyZegar(datetime):
         @classmethod
         def now(cls, tz=None):
-            chwila = detected + timedelta(hours=1)
+            chwila = zegar[0]
             return chwila.astimezone(tz) if tz else chwila.replace(tzinfo=None)
 
     stare_zegary = (db.datetime, rcb_reference.datetime)
     db.datetime = rcb_reference.datetime = _StalyZegar
+    stara_flaga, stary_status = config.RCB_REFERENCE_AUDIT_ENABLED, dict(rcb_reference.status)
     try:
         db._conn = sqlite3.connect(":memory:", check_same_thread=False)
         db._conn.executescript(db.SCHEMA)
+
+        # Flaga ustawiana jawnie: wynik nie może zależeć od RCB_REFERENCE_AUDIT_ENABLED
+        # w .env maszyny, na której chodzi test. Wyłączony audyt niczego nie zapisuje.
+        config.RCB_REFERENCE_AUDIT_ENABLED = False
+        disabled = rcb_reference.capture(
+            source="rso", source_event_id="off", title="Off",
+            voivodeships=["lubelskie"], bootstrap=False, detected_at=detected)
+        check("disabled audit saves nothing", disabled is False and not db._conn.execute(
+            "SELECT COUNT(*) FROM rcb_reference_events").fetchone()[0])
+        check("disabled audit reported in status", rcb_reference.status["enabled"] is False)
+        config.RCB_REFERENCE_AUDIT_ENABLED = True
         # One old signal must be excluded; one recent signal and two map frames retained.
         db._conn.execute(
             "INSERT INTO signals(ts,source,event_type,voivodeship,points,title,details,dedup_key)"
@@ -112,8 +126,21 @@ def main():
               short_row["payload"]["coverage"]["history_complete"] is False
               and short_row["payload"]["eligible_for_lead_analysis"] is False)
         check("reference module has no notification dependency", "app.notify" not in sys.modules)
+
+        # Retencja 30 dni — mechanizm, który 10.10.2026 wysadził stałą datę tego testu.
+        pozniej = detected + timedelta(days=31)
+        zegar[0] = pozniej + timedelta(hours=1)
+        rcb_reference.capture(
+            source="rso", source_event_id="next-month", title="Later",
+            voivodeships=["lubelskie"], bootstrap=False, detected_at=pozniej)
+        check("entries older than 30 days pruned on insert",
+              [r[0] for r in db._conn.execute(
+                  "SELECT source_event_id FROM rcb_reference_events")] == ["next-month"])
     finally:
         db.datetime, rcb_reference.datetime = stare_zegary
+        config.RCB_REFERENCE_AUDIT_ENABLED = stara_flaga
+        rcb_reference.status.clear()
+        rcb_reference.status.update(stary_status)
         if db._conn is not None and db._conn is not old_conn:
             db._conn.close()
         db._conn = old_conn
