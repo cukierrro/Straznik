@@ -63,6 +63,117 @@ def check(name, condition):
     print("PASS", name)
 
 
+def check_pool_and_connection_reuse(good):
+    """10.10.2026: 08.10 Web Push szedł 26 min (DNS przy każdej wysyłce, 6 wątków
+    wspólnej puli), na co dzień ~16/s. Pilnujemy puli, połączenia i ponowienia."""
+    import threading
+    import time
+    import requests
+
+    sessions = []
+
+    def remember(**kwargs):
+        sessions.append(kwargs.get("requests_session"))
+        return Response(201)
+
+    notify._webpush_local.__dict__.clear()
+    with install_fake(remember):
+        notify._send_webpush_sync(good, "{}")
+        notify._send_webpush_sync(good, "{}")
+    check("session passed to pywebpush", sessions[0] is not None)
+    check("same thread reuses one connection", sessions[0] is sessions[1])
+
+    calls = []
+
+    def dropped_once(**kwargs):
+        calls.append(kwargs.get("requests_session"))
+        if len(calls) == 1:
+            raise requests.exceptions.ConnectionError("Connection aborted.")
+        return Response(201)
+
+    with install_fake(dropped_once):
+        result = notify._send_webpush_sync(good, "{}")
+    check("dropped keep-alive connection retried once",
+          result["status"] == "sent" and len(calls) == 2)
+    check("retry uses a fresh connection", calls[0] is not calls[1])
+
+    calls.clear()
+
+    def too_slow(**kwargs):
+        calls.append(1)
+        raise requests.exceptions.ReadTimeout("read timed out")
+
+    with install_fake(too_slow):
+        result = notify._send_webpush_sync(good, "{}")
+    check("timeout not retried", result["status"] == "error" and len(calls) == 1)
+
+    threads, lock = set(), threading.Lock()
+
+    def slow_send(sub, payload):
+        with lock:
+            threads.add(threading.current_thread().name)
+        time.sleep(0.2)
+        return {"status": "sent", "ref": "x", "http": 201}
+
+    subs = [good] * 64
+    with (patch.object(notify.db, "all_push_subs", return_value=subs),
+          patch.object(notify, "_send_webpush_sync", side_effect=slow_send)):
+        started = time.monotonic()
+        sent = asyncio.run(notify.send_webpush("lubelskie", "title", "body", "elevated"))
+        took = time.monotonic() - started
+    check("dedicated webpush pool, not the default executor",
+          threads and all(name.startswith("webpush") for name in threads))
+    # 64 x 0,2 s: przy 6 wątkach wspólnej puli > 2 s, przy 32 ~0,4 s
+    check(f"more than 6 sends in parallel ({took:.2f} s for 64)", sent == 64 and took < 1.2)
+
+
+def check_fcm_logged_before_webpush():
+    """Dziennik nie czeka na Web Push: 08.10 wiersz stał 26 min na „pending”."""
+    records, cooldowns = [], []
+    release = None
+    seen_while_sending = {}
+
+    async def scenario():
+        nonlocal release
+        release = asyncio.Event()
+
+        async def fcm(*args, **kwargs):
+            return True
+
+        async def web(*args, **kwargs):
+            await release.wait()
+            return 5
+
+        async def nothing(*args, **kwargs):
+            return None
+
+        with (patch.object(notify, "send_fcm", fcm), patch.object(notify, "send_webpush", web),
+              patch.object(notify, "send_ntfy", nothing),
+              patch.object(notify, "send_telegram", nothing),
+              patch.object(notify.db, "log_notif", side_effect=lambda *a: cooldowns.append(a)),
+              patch("app.alert_log.record_delivery",
+                    side_effect=lambda i, d, x: records.append((d, dict(x))))):
+            task = asyncio.create_task(notify._deliver_level("lubelskie", "elevated", 3.0, [], 7))
+            for _ in range(50):
+                await asyncio.sleep(0)
+            seen_while_sending["records"] = list(records)
+            seen_while_sending["cooldowns"] = list(cooldowns)
+            release.set()
+            await task
+
+    asyncio.run(scenario())
+    early = seen_while_sending["records"]
+    check("FCM logged while Web Push still sending",
+          len(early) == 1 and early[0][0] == "sent" and early[0][1].get("fcm") is True
+          and early[0][1].get("webpush_sent") == "w toku")
+    check("cooldown saved right after FCM", len(seen_while_sending["cooldowns"]) == 1)
+    final = records[-1][1] if records else {}
+    check("Web Push result appended with duration",
+          final.get("webpush_sent") == 5 and isinstance(final.get("webpush_s"), float)
+          and final.get("fcm") is True)
+    check("cooldown saved once", len(cooldowns) == 1)
+
+
 def main():
     notify._vapid = {"private_key": "test", "public_key": "test"}
     good = subscription()
@@ -119,6 +230,9 @@ def main():
           patch.object(notify.db, "remove_push_sub") as remove):
         asyncio.run(notify.send_webpush("lubelskie", "title", "body", "elevated"))
         check("lone HTTP 400 retained as possible shared fault", not remove.called)
+
+    check_pool_and_connection_reuse(good)
+    check_fcm_logged_before_webpush()
 
     previous_conn = db._conn
     try:
