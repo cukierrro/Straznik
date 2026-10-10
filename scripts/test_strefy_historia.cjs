@@ -79,6 +79,24 @@ sprawdz(p.EPTS1?.atBoot === true && p.EPR999?.atBoot === false, "atBoot z migawk
 sprawdz(p.EPR999?.baseM === 0 && Math.round(p.EPR999?.topM) === 2896, "pułapy przeliczone na metry");
 sprawdz(ctx.srvZoneDefs.aaa.properties.since === undefined, "definicja nie zostaje nadpisana chwilą");
 
+console.log("2b. Migawki nagrane przed nadejściem stref (start strony)");
+/* Na produkcji 10.10.2026 najnowsza chwila historii nie miała stref: strona
+   nagrała migawkę, zanim przyszło /api/zones. Uzupełniamy tylko świeże. */
+const ctxU = { srvSnaps: [] };
+vm.createContext(ctxU);
+vm.runInContext([linia("const STREFY_UZUPELNIJ_MS = "), funkcja("uzupelnijStrefyMigawek"),
+  "this.uzupelnij = uzupelnijStrefyMigawek;"].join("\n"), ctxU);
+const odczyt = 1_000_000_000_000;
+ctxU.srvSnaps.push({ t: odczyt - 10 * 60000 }, { t: odczyt - 60000 },
+                   { t: odczyt - 30000, zones: [["stara", 1, false]] });
+ctxU.uzupelnij([{ properties: { key: "k1", since: 5, atBoot: true } }, { properties: {} }], odczyt);
+sprawdz(ctxU.srvSnaps[0].zones === undefined, "migawka sprzed 10 min zostaje bez zapisu (nie zgadujemy)");
+sprawdz(JSON.stringify(ctxU.srvSnaps[1].zones) === JSON.stringify([["k1", 5, true]]),
+  "migawka sprzed minuty dostaje strefy z pierwszego odczytu");
+sprawdz(ctxU.srvSnaps[2].zones[0][0] === "stara", "zapisane strefy nie są nadpisywane");
+sprawdz(/uzupelnijStrefyMigawek\(fc\.features, zonesAt\)/.test(funkcja("refreshZones")),
+  "refreshZones uzupełnia migawki po odczycie stref");
+
 console.log("3. Każdy odczyt stref idzie przez aktywneStrefy()");
 const odczyty = app.match(/zonesData(\?\.|\.)features/g) || [];
 const dozwolone = [funkcja("refreshZones"), funkcja("srvRecord")].join("\n").match(/zonesData(\?\.|\.)features/g) || [];

@@ -1809,6 +1809,21 @@ function zapamietajDefinicjeStref(features) {
     srvZoneDefs[p.key] = { type: "Feature", geometry: f.geometry, properties: props };
   }
 }
+/* Migawki nagrane przez stronę ZANIM przyszły strefy (start aplikacji: stan
+   z serwera bywa szybszy niż /api/zones) nie miały ich wcale — a to właśnie
+   najnowsza chwila, którą w historii ogląda się najczęściej (sprawdzone na
+   produkcji 10.10.2026). Uzupełniamy tylko świeże, najwyżej 5 min przed
+   odczytem stref: zestaw zmienia się rzadko (raz na dobę o 6:00, a zniknięcie
+   strefy serwer i tak trzyma przez karencję). Starszych nie ruszamy — dla nich
+   zostaje „brak zapisu”, nie zgadujemy. */
+const STREFY_UZUPELNIJ_MS = 5 * 60 * 1000;
+function uzupelnijStrefyMigawek(features, odczytMs) {
+  const zones = (features || []).filter(f => f.properties?.key)
+    .map(f => [f.properties.key, f.properties.since || 0, !!f.properties.atBoot]);
+  for (const sn of srvSnaps)
+    if (!Array.isArray(sn.zones) && sn.t >= odczytMs - STREFY_UZUPELNIJ_MS && sn.t <= odczytMs)
+      sn.zones = zones;
+}
 /* Warstwa stref dla migawki: null, gdy migawka nie ma pola `zones`. Klucz bez
    definicji pomijamy — lepiej brak jednej strefy niż wymyślony kształt. */
 function strefyZMigawki(snap, whenMs) {
@@ -1876,6 +1891,7 @@ async function refreshZones(force) {
     }
     zonesData = fc; zonesAt = Date.now();
     zapamietajDefinicjeStref(fc.features);   // dla historii nagrywanej na żywo
+    uzupelnijStrefyMigawek(fc.features, zonesAt);
     applyZones();
     /* Panel przerysowuje się dopiero przy następnym stanie z serwera, więc bez
        tego plakietki stref pojawiały się w kartach województw z opóźnieniem —
