@@ -977,9 +977,17 @@ html[lang="en"] .list:empty::after { content: "— none —"; }
   background: var(--panel); border: 1px solid var(--panel-border); border-radius: 12px;
   padding: 10px 12px; backdrop-filter: blur(8px); font-size: 0.8rem;
   /* Legenda kończy się nad dolnymi sekcjami: wcześniej sztywne 170 px nie
-     wiedziało o pasku zakładek ani o stosie komunikatów i wchodziła na nie. */
-  max-height: calc(100vh - 74px - var(--tabbar-h) - var(--safe-b) - var(--stack-h, 0px));
-  max-height: calc(100dvh - 74px - var(--tabbar-h) - var(--safe-b) - var(--stack-h, 0px));
+     wiedziało o pasku zakładek ani o stosie komunikatów i wchodziła na nie.
+     10.10.2026: górę też liczymy z ZMIERZONEGO paska, a nie ze stałych 74 px —
+     legenda zaczyna się na --topbar-h + 6, a przy wyższym pasku (dwie linijki
+     logo, większa czcionka) zjeżdżała o różnicę na pigułkę stanu województwa
+     i rozwinięte sekcje znikały pod nią. Do tego wyraźny odstęp
+     (--legend-gap), żeby okno nie stykało się z pigułką. */
+  --legend-gap: 28px;
+  max-height: calc(100vh - var(--topbar-h, 90px) - 6px - var(--tabbar-h) - var(--safe-b)
+    - var(--stack-h, 0px) - var(--legend-gap));
+  max-height: calc(100dvh - var(--topbar-h, 90px) - 6px - var(--tabbar-h) - var(--safe-b)
+    - var(--stack-h, 0px) - var(--legend-gap));
   overflow-y: auto; overscroll-behavior: contain;
   /* Ostatni wiersz nie może kończyć się dokładnie na krawędzi — wyglądało to jak
      ucięta treść, mimo że legenda przewija się do końca. */
