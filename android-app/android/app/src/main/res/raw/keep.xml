@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- shrinkResources nie może ruszyć dźwięków alarmu ani certyfikatu. Kanał
+     powiadomień zapamiętuje dźwięk jako android.resource://…/<numer zasobu>
+     i Android nie pozwala go potem zmienić: gdyby plik zniknął albo dostał
+     inny numer, czerwony kanał u użytkowników zamilkłby po aktualizacji.
+     Numery zasobów sprawdzamy przed każdym wydaniem (aapt2 dump resources). -->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@raw/alarm_syrena,@raw/alert_uwaga,@raw/alert_uwaga_cicho,@raw/certum_trusted_root_ca" />
