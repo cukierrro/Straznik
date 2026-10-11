@@ -502,9 +502,16 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
 
     // MARK: - test alarmu
 
-    /// Test prawdziwą drogą powiadomienia systemowego: za kilka sekund, z dźwiękiem
-    /// syreny i poziomem Time Sensitive — można zablokować ekran i sprawdzić, jak
-    /// alarm wygląda nad blokadą. Tekst jak `Alarms.postAlarm` na Androidzie.
+    /// Test prawdziwą drogą powiadomienia systemowego: za kilka sekund, można
+    /// zablokować ekran i sprawdzić, jak alarm wygląda nad blokadą. Tekst jak
+    /// `Alarms.postAlarm` na Androidzie.
+    ///
+    /// 11.10.2026 — czego ten test NIE robił: czerwony szedł zawsze zwykłym
+    /// dźwiękiem i jako `.timeSensitive`, nigdy jako alarm krytyczny. Na wyciszonym
+    /// iPhonie milczał więc u KAŻDEGO — także u ludzi, u których prawdziwy czerwony
+    /// push (`CriticalSound`, temat `voiv_X_krytyczne`) by zagrał. Zgłoszenie brzmiało
+    /// „alarm nie działa", a cichy był test, nie alarm. Teraz test idzie tą samą drogą
+    /// co prawdziwy alarm, a gdy iść nią nie może — mówi w treści dlaczego.
     @objc func testNativeAlarm(_ call: CAPPluginCall) {
         let high = call.getString("level") != "elevated"
         let delayMs = max(0, min(call.getInt("delayMs") ?? 0, 30_000))
@@ -513,17 +520,32 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
         let center = UNUserNotificationCenter.current()
 
         center.getNotificationSettings { settings in
-            let schedule = {
+            // `krytyczny` znaczy: ten telefon MA zgodę Apple na alarm przebijający
+            // wyciszenie. Tylko wtedy wolno użyć `criticalSoundNamed` — bez zgody
+            // system i tak ściąłby dźwięk do zwykłego, a my obiecalibyśmy za dużo.
+            let schedule = { (krytyczny: Bool) in
                 let content = UNMutableNotificationContent()
                 content.title = "TEST — " + (high ? "WYSOKI PRIORYTET" : "PODWYŻSZONA UWAGA")
                     + ": woj. \(voiv) (\(high ? "4.0" : "2.0") pkt)"
-                content.body = "TEST: sprawdzenie dźwięku i powiadomienia\n"
-                    + "To jest test alarmu — nie ma zagrożenia.\n"
-                    + (high ? "Co zrobić: przejdź do schronu lub pomieszczenia bez okien i śledź komunikaty RCB.\n"
-                            : "Co zrobić: zachowaj czujność i sprawdź komunikaty RCB.\n")
-                    + "NIEOFICJALNE źródło — kieruj się syrenami, RCB i RSO."
-                content.sound = UNNotificationSound(named: UNNotificationSoundName(high ? "alarm_syrena.wav" : "alert_uwaga.wav"))
-                content.interruptionLevel = high ? .timeSensitive : .active
+                // Kolejność linii nie jest kosmetyczna: ekran blokady pokazuje
+                // trzy–cztery wiersze, resztę chowa za „…". Gdy test może zagrać
+                // w ciszę, wyjaśnienie idzie WYŻEJ niż porada „co zrobić" — to
+                // odpowiedź na pytanie, które człowiek zada sobie za chwilę.
+                let ciche = high && !krytyczny
+                let coZrobic = high
+                    ? "Co zrobić: przejdź do schronu lub pomieszczenia bez okien i śledź komunikaty RCB."
+                    : "Co zrobić: zachowaj czujność i sprawdź komunikaty RCB."
+                let oCiszy = Self.wyjasnienieCiszy(high: high, krytyczny: krytyczny)
+                content.body = (["TEST: sprawdzenie dźwięku i powiadomienia",
+                                 "To jest test alarmu — nie ma zagrożenia."]
+                                + (ciche ? [oCiszy, coZrobic] : [coZrobic, oCiszy])
+                                + ["NIEOFICJALNE źródło — kieruj się syrenami, RCB i RSO."])
+                               .joined(separator: "\n")
+                content.sound = krytyczny
+                    ? UNNotificationSound.criticalSoundNamed(UNNotificationSoundName("alarm_syrena.wav"),
+                                                             withAudioVolume: 1.0)
+                    : UNNotificationSound(named: UNNotificationSoundName(high ? "alarm_syrena.wav" : "alert_uwaga.wav"))
+                content.interruptionLevel = krytyczny ? .critical : (high ? .timeSensitive : .active)
                 content.threadIdentifier = voiv
                 let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(1, Double(delayMs) / 1000), repeats: false)
                 let request = UNNotificationRequest(identifier: "straznik-test-\(UUID().uuidString)",
@@ -532,21 +554,45 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
                     if let error = error {
                         call.reject("Nie udało się zaplanować testu: \(error.localizedDescription)")
                     } else {
-                        call.resolve(["scheduled": true])
+                        // `critical` i `silentRisk` są dla interfejsu: pozwalają
+                        // uprzedzić człowieka PRZED testem, czego ma się spodziewać.
+                        // Starszy app.js czyta tylko `scheduled` i nic nie traci.
+                        call.resolve(["scheduled": true, "critical": krytyczny,
+                                      "silentRisk": high && !krytyczny])
                     }
                 }
             }
             switch settings.authorizationStatus {
             case .notDetermined:
+                // Tu zgody krytycznej nie ma z definicji — o zwykłe powiadomienia
+                // dopiero pytamy, a krytyczne są osobnym pytaniem (zgodaKrytyczna).
                 center.requestAuthorization(options: [.alert, .sound, .badge]) { granted, _ in
-                    if granted { schedule() } else { call.resolve(["scheduled": false, "reason": "denied"]) }
+                    if granted { schedule(false) } else { call.resolve(["scheduled": false, "reason": "denied"]) }
                 }
             case .denied:
                 call.resolve(["scheduled": false, "reason": "denied"])
             default:
-                schedule()
+                schedule(high && settings.criticalAlertSetting == .enabled)
             }
         }
+    }
+
+    /// Zdanie o ciszy w treści testu. Pisane do człowieka, który właśnie patrzy na
+    /// ekran blokady i nic nie usłyszał: ma od razu wiedzieć, czy to usterka, czy
+    /// ustawienie jego telefonu — i co zmienić, żeby zagrało.
+    private static func wyjasnienieCiszy(high: Bool, krytyczny: Bool) -> String {
+        if !high {
+            return "Żółty poziom przy wyciszonym telefonie jest cichy — tak ma być. "
+                 + "Mimo wyciszenia odzywa się tylko czerwony alarm."
+        }
+        if krytyczny {
+            return "Ten test poszedł tą samą drogą co prawdziwy czerwony alarm: "
+                 + "przebija wyciszenie i tryb Skupienia. Słychać go — usłyszysz i alarm."
+        }
+        return "Jeśli nic nie zagrało, a telefon jest wyciszony — tak właśnie działa "
+             + "iPhone: bez zgody na alarm krytyczny ucina dźwięk powiadomień. "
+             + "Włącz ją w aplikacji: ⚙ → Alarmy → „Włącz alarm mimo wyciszenia”. "
+             + "Wtedy czerwony zagra nawet przy wyciszonym dzwonku; żółty zostanie cichy."
     }
 
     // MARK: - alarm krytyczny

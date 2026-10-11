@@ -425,6 +425,45 @@ if (r && r.scheduled === false) return toast(UI.isEn
 
 ---
 
+### B9. Uprzedzić PRZED testem, że zagra w ciszę (11.10.2026)
+
+Strona natywna jest zrobiona: `testNativeAlarm` wysyła czerwony test jako **alarm
+krytyczny**, gdy telefon ma zgodę Apple (`criticalAlertSetting == .enabled`), a gdy
+jej nie ma — dopisuje w treści powiadomienia, dlaczego było cicho i co włączyć.
+Zwraca teraz `{scheduled, critical, silentRisk}`; `critical` mówi, że test poszedł
+drogą prawdziwego czerwonego alarmu, `silentRisk` — że przy wyciszonym telefonie
+będzie cichy.
+
+Czego brakuje po stronie wspólnej: tej samej informacji **zanim** człowiek odłoży
+telefon. Dziś toast mówi tylko „Test alarmu za 5 sekund". W `app.js` `nativeTest()`,
+po istniejącej obsłudze `scheduled === false`:
+
+```js
+if (r?.silentRisk) return toast(UI.t(
+  "Test alarmu za 5 sekund. Uwaga: przy wyciszonym telefonie będzie cichy — iPhone bez zgody na alarm krytyczny ucina dźwięk. Włącz ją przyciskiem „Włącz alarm mimo wyciszenia” powyżej.",
+  "Test alert in 5 seconds. Note: it will be silent if your phone is muted — without the critical-alert permission iOS cuts notification sound. Turn it on with “Turn on alert despite silent mode” above.",
+  "Тест тривоги за 5 секунд. Увага: при вимкненому звуку він буде тихим — без дозволу на критичну тривогу iPhone прибирає звук сповіщень. Увімкніть його кнопкою «Увімкнути тривогу попри вимкнений звук» вище."), 9000);
+if (r?.critical) return toast(UI.t(
+  "Test alarmu za 5 sekund — pójdzie jak prawdziwy czerwony alarm, mimo wyciszenia.",
+  "Test alert in 5 seconds — it goes out like a real red alert, even on silent.",
+  "Тест тривоги за 5 секунд — піде як справжня червона тривога, навіть при вимкненому звуці."), 7000);
+```
+
+Android zwraca `undefined`, więc oba warunki go omijają — zachowanie bez zmian.
+
+**Dlaczego to ważne, a nie kosmetyczne:** do 11.10.2026 czerwony test NIGDY nie szedł
+jako krytyczny. Na wyciszonym iPhonie milczał u każdego — także u ludzi, u których
+prawdziwy alarm by zagrał. Zgłoszenie brzmiało „alarm nie działa na iPhonie", a nie
+działał test. Jeden człowiek z tego powodu uznał aplikację za zepsutą; ilu nie
+napisało, nie wiemy.
+
+**Przy okazji, do decyzji w sesji głównej:** treść testu natywnego na iOS jest
+wyłącznie po polsku (tytuł, opis, „co zrobić"), także dla interfejsu EN i UA —
+`testNativeAlarm` nie dostaje języka. Przekazanie `lang` w wywołaniu wystarczy,
+żeby to naprawić po obu stronach.
+
+---
+
 ## C. Uwaga przy okazji: build Androida i `pl-outline.js`
 
 `1_buduj_i_testuj.bat` (krok 3/7) kopiuje do `android-app/www` wybrane pliki,
