@@ -27,6 +27,7 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
     public let pluginMethods: [CAPPluginMethod] = [
         CAPPluginMethod(name: "setHomeVoivodeship", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "setObservedVoivodeships", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "setPushLanguage", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "status", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "setForceMaxVolume", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "testNativeAlarm", returnType: CAPPluginReturnPromise),
@@ -77,6 +78,9 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
         static let criticalProbe = "straznik_critical_probe"
         /// Na czym stanęła ostatnia próba zapisu na tematy — tylko do diagnostyki.
         static let syncState = "straznik_fcm_sync_state"
+        /// Język, w którym serwer ma przysyłać alarmy („pl" / „en" / „uk").
+        /// Treść powiadomienia składa serwer, więc język musi być w nazwie tematu.
+        static let lang = "straznik_push_lang"
     }
 
     private let defaults = UserDefaults.standard
@@ -199,6 +203,59 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
     /// po przepisaniu nie słucha już tematu podstawowego.
     static let criticalSuffix = "_krytyczne"
 
+    /// Język w nazwie tematu, bo treść powiadomienia na iOS składa SERWER
+    /// (data-only przy zamkniętej aplikacji nic nie pokazuje — patrz `notify.py`).
+    ///
+    /// Dlaczego nie `loc-key` z `Localizable.strings`: ładunek jest wspólny dla
+    /// wszystkich wersji aplikacji. Telefon z 1.7.93 i starszą nie ma tych kluczy
+    /// w pakiecie i iOS pokazałby surowy klucz ZAMIAST treści alarmu. Sufiks tematu
+    /// jest z natury zgodny wstecz: polski zostaje na `voiv_X`, więc istniejące
+    /// instalacje nie zauważają zmiany, a nowe EN/UA zapisują się obok.
+    ///
+    /// Kolejność sufiksów jest częścią umowy z serwerem i nie wolno jej zamieniać:
+    /// `voiv_<region>[_krytyczne][_en|_uk]`.
+    static func langSuffix(_ lang: String) -> String {
+        switch lang {
+        case "en": return "_en"
+        case "uk": return "_uk"
+        default:   return ""          // polski = temat bez sufiksu (zgodność wstecz)
+        }
+    }
+
+    /// Język zapisany do tematów. Nieznana wartość = polski.
+    private var pushLang: String {
+        let l = defaults.string(forKey: Key.lang) ?? "pl"
+        return (l == "en" || l == "uk") ? l : "pl"
+    }
+
+    /// WSZYSTKIE warianty tematu dla województwa: zwykły i krytyczny, w każdym
+    /// z trzech języków. Używane przy wypisywaniu — telefon mógł wcześniej siedzieć
+    /// na dowolnym z nich, a zostawienie choćby jednego daje podwójny alarm.
+    static func wszystkieWarianty(_ voiv: String) -> [String] {
+        let baza = voivTopic(voiv)
+        var out: [String] = []
+        for krytyczny in ["", criticalSuffix] {
+            for jezyk in ["", "_en", "_uk"] {
+                out.append(baza + krytyczny + jezyk)
+            }
+        }
+        return out
+    }
+
+    /// Region odczytany z nazwy tematu — po obcięciu obu sufiksów i prefiksu
+    /// testowego. Dzięki temu interfejs nie musi składać nazw tematów sam;
+    /// 08.10.2026 właśnie takie składanie po stronie `app.js` kazało ludziom ze
+    /// zgodą krytyczną czytać „telefon nie jest zapisany do żadnego województwa".
+    static func regionZTematu(_ topic: String) -> String? {
+        var t = topic
+        if t.hasPrefix(testTopicPrefix) { t.removeFirst(testTopicPrefix.count) }
+        for sufiks in ["_en", "_uk"] where t.hasSuffix(sufiks) { t.removeLast(sufiks.count) }
+        if t.hasSuffix(criticalSuffix) { t.removeLast(criticalSuffix.count) }
+        guard t.hasPrefix("voiv_") else { return nil }
+        let slug = String(t.dropFirst("voiv_".count))
+        return voivodeships.first { voivTopic($0) == "voiv_" + slug }
+    }
+
     /// Nazwa pliku paragonu: `sandboxReceipt` = TestFlight/sandbox,
     /// `receipt` = App Store, `brak` = iOS nie podał adresu. Pokazujemy ją
     /// w diagnostyce, bo 18.09.2026 to była jedyna niesprawdzona wartość.
@@ -227,6 +284,7 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
         let krytyczne = defaults.bool(forKey: Key.critical)
         for region in regions where Self.isKnownVoivodeship(region) {
             let topic = Self.voivTopic(region) + (krytyczne ? Self.criticalSuffix : "")
+                + Self.langSuffix(pushLang)
             out.insert(topic)
             if Self.isTestBuild { out.insert(Self.testTopicPrefix + topic) }
         }
@@ -272,8 +330,7 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
             // zapisem a wypisem — inaczej telefon zostałby na temacie krytycznym.
             var wszystkie = topics(for: Self.voivodeships)
             for voiv in Self.voivodeships {
-                let baza = Self.voivTopic(voiv)
-                for t in [baza, baza + Self.criticalSuffix] {
+                for t in Self.wszystkieWarianty(voiv) {
                     wszystkie.insert(t)
                     wszystkie.insert(Self.testTopicPrefix + t)
                 }
@@ -362,12 +419,32 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
     @objc func setHomeVoivodeship(_ call: CAPPluginCall) {
         let value = call.getString("voivodeship")
         let regions = Self.isKnownVoivodeship(value) ? [value!] : []
+        let lang = call.getString("lang")
         DispatchQueue.main.async {
+            self.zapiszJezyk(lang)
             self.defaults.set(value ?? "", forKey: Key.home)
             self.defaults.set(regions, forKey: Key.regions)
             self.syncTopics()
             call.resolve()
         }
+    }
+
+    /// Zmiana języka w aplikacji musi przepisać telefon na temat tego języka —
+    /// inaczej człowiek przełączy interfejs na ukraiński, a alarm obudzi go po
+    /// polsku. Wywołanie jest idempotentne; przy tym samym języku nic się nie dzieje.
+    @objc func setPushLanguage(_ call: CAPPluginCall) {
+        let lang = call.getString("lang")
+        DispatchQueue.main.async {
+            let przed = self.pushLang
+            self.zapiszJezyk(lang)
+            if self.pushLang != przed { self.syncTopics() }
+            call.resolve(["lang": self.pushLang])
+        }
+    }
+
+    private func zapiszJezyk(_ lang: String?) {
+        guard let l = lang?.lowercased(), ["pl", "en", "uk"].contains(l) else { return }
+        defaults.set(l, forKey: Key.lang)
     }
 
     /// Dostaje wyłącznie listę województw. Nazwy miejsc, adresy i współrzędne
@@ -380,7 +457,9 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
             }
         }
         let alertsOff = call.getBool("alertsOff") ?? false
+        let lang = call.getString("lang")
         DispatchQueue.main.async {
+            self.zapiszJezyk(lang)
             self.defaults.set(regions.first ?? "", forKey: Key.home)
             self.defaults.set(regions, forKey: Key.regions)
             self.defaults.set(alertsOff, forKey: Key.alertsOff)
@@ -489,6 +568,16 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
             "homeVoivodeship": defaults.string(forKey: Key.home) ?? "",
             "observedVoivodeships": defaults.stringArray(forKey: Key.regions) ?? [],
             "topicsConfirmed": defaults.stringArray(forKey: Key.topics) ?? [],
+            // Województwa odczytane z POTWIERDZONYCH tematów, bez względu na sufiksy
+            // (`_krytyczne`, `_en`, `_uk`, prefiks testowy). Interfejs ma czytać to
+            // pole zamiast składać nazwy tematów samodzielnie: 08.10.2026 takie
+            // składanie w app.js kazało ludziom ze zgodą krytyczną czytać, że telefon
+            // „nie jest zapisany do żadnego województwa", choć był. Każdy nowy sufiks
+            // powtórzyłby ten błąd.
+            "subscribedVoivodeships": Array(Set((defaults.stringArray(forKey: Key.topics) ?? [])
+                .compactMap { Self.regionZTematu($0) })).sorted(),
+            // Język, w którym serwer przysyła alarmy na ten telefon.
+            "pushLang": pushLang,
             "topicsOkAt": defaults.integer(forKey: Key.topicsOkAt),
             "topicsError": topicsError,
             "topicsUnsubscribing": unsubscribing,
