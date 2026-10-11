@@ -789,8 +789,8 @@
     "Android sound settings": "Налаштування звуку Android",
     "▶ Test: red native (in 5 s)": "▶ Тест: червона системна (через 5 с)",
     "▶ Test: yellow native (in 5 s)": "▶ Тест: жовта системна (через 5 с)",
-    "The test uses the real notification path: lock the screen within 5 seconds to check the alert above the lock screen. Silence it with the button on the alert screen or “Wycisz alarm” in the notification.":
-      "Тест іде справжнім шляхом сповіщення: заблокуйте екран протягом 5 секунд, щоб побачити тривогу над блокуванням. Вимкніть її кнопкою на екрані тривоги або «Wycisz alarm» у сповіщенні.",
+    "The test uses the real notification path: lock the screen within 5 seconds to check the alert above the lock screen. Silence it with the button on the alert screen or “Wycisz alarm” in the notification. Real alerts arrive in Polish, whatever the app language.":
+      "Тест іде справжнім шляхом сповіщення: заблокуйте екран протягом 5 секунд, щоб побачити тривогу над блокуванням. Вимкніть її кнопкою на екрані тривоги або «Wycisz alarm» у сповіщенні. Справжні тривоги приходять польською, незалежно від мови застосунку.",
     "Interface language": "Мова інтерфейсу",
     "Map: object tracks": "Мапа: шляхи об’єктів",
     "Drones and missiles (NEPTUN)": "Дрони й ракети (NEPTUN)",
@@ -1132,7 +1132,7 @@
     set("#btn-sound-settings", "Android sound settings");
     set("#btn-native-test", "▶ Test: red native (in 5 s)");
     set("#btn-native-test-yellow", "▶ Test: yellow native (in 5 s)");
-    set("#ns-test-note", "The test uses the real notification path: lock the screen within 5 seconds to check the alert above the lock screen. Silence it with the button on the alert screen or “Wycisz alarm” in the notification.");
+    set("#ns-test-note", "The test uses the real notification path: lock the screen within 5 seconds to check the alert above the lock screen. Silence it with the button on the alert screen or “Wycisz alarm” in the notification. Real alerts arrive in Polish, whatever the app language.");
     trailSection(true);
     set("#places-dialog h2", "My places");
     const placesClose=document.getElementById("places-close"); if(placesClose)placesClose.setAttribute("aria-label","Close");
