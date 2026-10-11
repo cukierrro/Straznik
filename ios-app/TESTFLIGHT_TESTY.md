@@ -619,6 +619,17 @@ Wtyczka zwraca teraz `{scheduled, critical, silentRisk}`; toast przed testem
 (wspólny `app.js`) opisany jako B9 w `POTRZEBNE_ZMIANY_WSPOLNE.md`.
 Sprawdzenie kompilacji i uprawnień: `tryb=sprawdzenie`, run 38138387727 — zielone.
 
+**Język (dociągnięte z `f178b8c`):** `app.js` przysyła `lang` („pl" / „en" / „uk"),
+więc treść testu jest wreszcie w języku interfejsu — do 1.7.93 była wyłącznie po
+polsku, także dla EN i UA. Nieznana wartość albo jej brak = polski.
+Nazwa województwa zostaje po polsku w każdym języku, bo tak wysyła ją serwer.
+Przy okazji tytuł testu zrównany z prawdziwym alarmem: bez „woj." i bez punktów
+(iPhone uciął 19.09.2026 tytuł dokładnie na nazwie regionu), punkty otwierają treść.
+
+**Zostaje do decyzji sesji głównej:** prawdziwy push z serwera jest po polsku dla
+wszystkich. Przetłumaczony test i polski alarm to rozjazd oczekiwań — do
+rozważenia język w `notify.py` albo świadoma zgoda, że alarm jest po polsku.
+
 ### Do sprawdzenia na urządzeniu (trzy przebiegi, jeden telefon)
 
 | # | Stan telefonu | Zgoda krytyczna | Oczekiwane |
