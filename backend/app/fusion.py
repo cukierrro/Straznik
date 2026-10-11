@@ -888,10 +888,21 @@ def compute_state(signals: list[dict] | None = None, ref: datetime | None = None
         if live:
             clear_at = _last_clear_ts([s for s in signals
                                        if s.get("voivodeship") == voiv or _clear_krajowe(s)])
+            surowy = st["level"]
             st["alert_level"] = hold_level(f"alert:{voiv}", st["alert_level"], now, clear_at)
             st["level"] = hold_level(f"map:{voiv}", st["level"], now, clear_at)
             if _ORDER.index(st["alert_level"]) > _ORDER.index(st["level"]):
                 st["level"] = st["alert_level"]
+            # 11.10.2026: karta mówiła „PODWYŻSZONA UWAGA” przy 1,7 pkt bez słowa
+            # wyjaśnienia. Gdy poziom trzyma podtrzymanie, a nie punkty — mówimy
+            # wprost, do kiedy (aplikacja pisze to w karcie i baner).
+            if _ORDER.index(st["level"]) > _ORDER.index(surowy):
+                q = max(_qualified_at.get((f"{k}:{voiv}", st["level"]), 0) for k in ("map", "alert"))
+                if q:
+                    st["podtrzymanie"] = {
+                        "poziom": st["level"],
+                        "do": datetime.fromtimestamp(q + config.LEVEL_HOLD_MIN * 60,
+                                                     timezone.utc).isoformat(timespec="seconds")}
         st["spill_raised"] = _ORDER.index(st["level"]) > _ORDER.index(st["alert_level"])
 
     # Alert RCB bez odwołania — dopisywany PO całej punktacji i po ustaleniu

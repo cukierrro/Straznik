@@ -96,6 +96,19 @@ function bezPotwierdzenia(st) {
   if (!st || st.red_key || st.score < 4 || st.level === "high") return "";
   return `<span class="muted"> · ${UI.t("brak potwierdzenia obiektem — zostaje żółty", "no confirming object — stays yellow", "немає підтвердження об'єктом — лишається жовтий")}</span>`;
 }
+/* Poziom trzymany CZASEM, nie punktami (11.10.2026). Na żywo żółty zostaje
+   10 min po ostatnim przekroczeniu progu (fusion.hold_level), żeby nie migał —
+   ale karta mówiła wtedy „PODWYŻSZONA UWAGA” przy 1,7 pkt bez słowa wyjaśnienia.
+   Ten sam opis w historii (Engine.historyFrom → podtrzymanie). */
+function podtrzymanieHTML(p) {
+  if (!p?.do) return "";
+  const godz = new Date(p.do).toLocaleTimeString(UI.t("pl-PL", "en-GB", "uk-UA"),
+    { hour: "2-digit", minute: "2-digit" });
+  return `<div class="fineprint podtrzymanie">${UI.t(
+    `podtrzymany do ${godz}: wynik spadł poniżej progu, a poziom trzyma się 10 min po ostatnim przekroczeniu, żeby nie migał`,
+    `held until ${godz}: the score fell below the threshold, and the level stays for 10 min after it was last exceeded so it does not flicker`,
+    `утримується до ${godz}: бал упав нижче порога, а рівень тримається 10 хв після останнього перевищення, щоб не блимав`)}</div>`;
+}
 const LEVEL_LABEL = UI.t(
   { none: "brak sygnałów", elevated: "PODWYŻSZONA UWAGA", high: "WYSOKI PRIORYTET" },
   { none: "no signals", elevated: "ELEVATED ATTENTION", high: "HIGH PRIORITY" },
@@ -3302,6 +3315,7 @@ function renderPanel() {
       <div class="voiv-level">${spillRaised(st) ? SPILL_LABEL
         : st.level === "none" && st.score > 0
         ? (UI.t("poniżej progu", "below threshold", "нижче порога")) : LEVEL_LABEL[st.level]}</div>
+      ${podtrzymanieHTML(st.podtrzymanie)}
       ${scoreBreakdown(st)}
       ${zonesRowHTML(name)}
       <div class="voiv-breakdown">${st.signals.length
@@ -3351,7 +3365,10 @@ function renderPanel() {
       spillRaised(st) ? SPILL_LABEL
       : st.level === "none" && st.score > 0 ? (UI.t("poniżej progu", "below threshold", "нижче порога"))
       : LEVEL_LABEL[st.level]}</span>
-      <span class="muted">${st.score.toFixed(1)} ${UI.t("pkt", "pts", "бал.")}</span>${bezPotwierdzenia(st)}</span>`;
+      <span class="muted">${st.score.toFixed(1)} ${UI.t("pkt", "pts", "бал.")}${st.podtrzymanie?.do
+        ? " · " + UI.t("podtrzymany do", "held until", "утримується до") + " "
+          + new Date(st.podtrzymanie.do).toLocaleTimeString(UI.t("pl-PL", "en-GB", "uk-UA"), { hour: "2-digit", minute: "2-digit" })
+        : ""}</span>${bezPotwierdzenia(st)}</span>`;
     banner.onclick = () => { setPanel(true); openCard(mine); };
   } else {
     banner.className = "hidden";
@@ -5424,7 +5441,7 @@ function showHistoryAt(idx) {
     }
   }
 
-  renderHistoryPanel(sigs, perVoiv, when, ageMin, poziomHist);
+  renderHistoryPanel(sigs, perVoiv, when, ageMin, poziomHist, h?.podtrzymanie || {});
   renderObservationLists({neptun:{threats}, adsb:{aircraft:planes}});
 }
 
@@ -5437,7 +5454,8 @@ function histAgo(ageMin) {
   return h ? `−${h} h${m ? ` ${m} min` : ""}` : `−${ageMin} min`;
 }
 function renderHistoryPanel(sigs, perVoiv, when, ageMin,
-                            poziom = (v, sc) => sc >= 4 ? "high" : sc >= 2 ? "elevated" : "none") {
+                            poziom = (v, sc) => sc >= 4 ? "high" : sc >= 2 ? "elevated" : "none",
+                            podtrzymanie = {}) {
   const banner = `<div class="hist-banner">${UI.t("PODGLĄD HISTORII", "HISTORY VIEW", "ПЕРЕГЛЯД ІСТОРІЇ")} —
     ${when.toLocaleTimeString(UI.t("pl-PL", "en-GB", "uk-UA"), { hour: "2-digit", minute: "2-digit" })}
     ${ageMin > 1 ? `(${histAgo(ageMin)})` : (UI.t("(teraz)", "(now)", "(зараз)"))}
@@ -5456,6 +5474,7 @@ function renderHistoryPanel(sigs, perVoiv, when, ageMin,
       <div class="voiv-head"><span class="voiv-name">${esc(UI.voiv(name))}</span>
         <span class="voiv-score">${(Math.round(sc * 10) / 10).toFixed(1)} ${UI.t("pkt", "pts", "бал.")}</span></div>
       <div class="voiv-level">${lvl === "none" ? (UI.t("poniżej progu", "below threshold", "нижче порога")) : LEVEL_LABEL[lvl]}</div>
+      ${podtrzymanieHTML(podtrzymanie[name])}
       <div class="voiv-breakdown">${sigList(own)}</div></div>`;
   }).join("");
 

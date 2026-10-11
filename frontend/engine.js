@@ -935,9 +935,16 @@ function computeState() {
   for (const [v, st] of Object.entries(state.voivodeships)) {
     const clears = sigs.filter(s => s.event_type === "rso_clear" && s.voivodeship === v).map(s => s.t);
     const clearAt = clears.length ? Math.max(...clears) : null;
+    const surowy = st.level;
     st.alert_level = holdLevel("alert:" + v, st.alert_level, now, clearAt);
     st.level = holdLevel("map:" + v, st.level, now, clearAt);
     if (LEVEL_ORDER.indexOf(st.alert_level) > LEVEL_ORDER.indexOf(st.level)) st.level = st.alert_level;
+    // lustro fusion: pole `podtrzymanie`, gdy poziom trzyma czas, a nie punkty (11.10.2026)
+    if (LEVEL_ORDER.indexOf(st.level) > LEVEL_ORDER.indexOf(surowy)) {
+      const q = Math.max(qualifiedAt.get("map:" + v + "|" + st.level) || 0,
+                         qualifiedAt.get("alert:" + v + "|" + st.level) || 0);
+      if (q) st.podtrzymanie = { poziom: st.level, do: new Date(q + LEVEL_HOLD_MIN * 60000).toISOString() };
+    }
     st.spill_raised = LEVEL_ORDER.indexOf(st.level) > LEVEL_ORDER.indexOf(st.alert_level);
   }
   return state;
@@ -2222,6 +2229,7 @@ function historyFrom(snaps, sigs, atIso) {
   // przeniesienie, więc województwo zaalarmowane przez sąsiada miało w historii 0.
   const per = stateFrom(sigs.filter(s => s.t >= start && s.t <= end)
     .concat(activeUaAlerts(sigs, end)), end).voivodeships;
+  const podtrzymanie = podtrzymajWHistorii(per, end, snaps, sigs);
   const scores = {}, spill = {}, levels = {};
   for (const [v, st] of Object.entries(per)) {
     if (st.score > 0) scores[v] = st.score;
@@ -2233,14 +2241,71 @@ function historyFrom(snaps, sigs, atIso) {
     if (st.level && st.level !== "none") levels[v] = st.level;
   }
   const annotated = [].concat(...Object.values(per).map(st => st.signals)).sort((a, b) => b.t - a.t);
-  return { times, at: atIso, snapshot: snap, signals: annotated, scores, spill, levels };
+  return { times, at: atIso, snapshot: snap, signals: annotated, scores, spill, levels, podtrzymanie };
+}
+
+/* ── Podtrzymanie poziomu w HISTORII (11.10.2026, zgłoszenie usera) ─────────
+   Na żywo żółty trzyma się LEVEL_HOLD_MIN minut po ostatnim przekroczeniu progu
+   (holdLevel, fusion.hold_level), a historia liczyła samą chwilę: 11.10 o 9:56
+   gasiła lubelskie przy 1,7 pkt, choć na mapie świeciło ono na żółto do 10:05.
+   Historia ma pokazywać to, co człowiek widział, więc stosuje tę samą regułę:
+   najwyższy poziom osiągnięty w poprzednich LEVEL_HOLD_MIN minutach, chyba że po
+   nim przyszło odwołanie RSO dla tego województwa. Liczymy z migawek (co ~1 min),
+   więc granica może przesunąć się o minutę względem tego, co było na żywo. */
+const _surowe = new Map();
+function surowyStan(s, sigs) {
+  const klucz = s.t + "|" + sigs.length;
+  let st = _surowe.get(klucz);
+  if (!st) {
+    const od = s.t - WINDOW_MIN * 60000;
+    st = stateFrom(sigs.filter(x => x.t >= od && x.t <= s.t)
+      .concat(activeUaAlerts(sigs, s.t)), s.t).voivodeships;
+    if (_surowe.size > 500) _surowe.clear();
+    _surowe.set(klucz, st);
+  }
+  return st;
+}
+function podtrzymajWHistorii(per, end, snaps, sigs) {
+  const okno = end - LEVEL_HOLD_MIN * 60000;
+  // od najnowszej: liczy się OSTATNIE przekroczenie danego progu
+  const wczesniej = snaps.filter(s => s.t > okno && s.t < end).sort((a, b) => b.t - a.t);
+  const info = {};
+  if (!wczesniej.length) return info;
+  for (const [v, st] of Object.entries(per)) {
+    const clears = sigs.filter(x => x.event_type === "rso_clear" && x.voivodeship === v && x.t <= end)
+      .map(x => x.t);
+    const clearAt = clears.length ? Math.max(...clears) : null;
+    const surowy = st.level || "none";
+    for (const pole of ["alert_level", "level"]) {
+      const teraz = LEVEL_ORDER.indexOf(st[pole] || "none");
+      for (const lvl of ["high", "elevated"]) {
+        if (LEVEL_ORDER.indexOf(lvl) <= teraz) break;
+        const q = wczesniej.find(s =>
+          LEVEL_ORDER.indexOf(surowyStan(s, sigs)[v]?.[pole] || "none") >= LEVEL_ORDER.indexOf(lvl));
+        if (q && !(clearAt && clearAt >= q.t)) {
+          st[pole] = lvl;
+          const doKiedy = q.t + LEVEL_HOLD_MIN * 60000;
+          if (!info[v] || doKiedy > info[v].doMs) info[v] = { poziom: lvl, doMs: doKiedy };
+          break;
+        }
+      }
+    }
+    if (LEVEL_ORDER.indexOf(st.alert_level) > LEVEL_ORDER.indexOf(st.level)) st.level = st.alert_level;
+    if (info[v] && LEVEL_ORDER.indexOf(st.level) > LEVEL_ORDER.indexOf(surowy)) {
+      st.podtrzymanie = { poziom: st.level, do: new Date(info[v].doMs).toISOString() };
+      info[v] = st.podtrzymanie;
+    } else {
+      delete info[v];
+    }
+  }
+  return info;
 }
 function history(atIso) {
   return historyFrom(JSON.parse(localStorage.getItem("eng_snaps") || "[]"), signals, atIso);
 }
 
 /* Oś czasu do pokolorowania suwaka: najwyższy wynik w kraju dla każdej migawki. */
-function timelineFrom(snaps, sigs) {
+function timelineSurowa(snaps, sigs) {
   return snaps.map(s => {
     const win = sigs.filter(sig => {
       const age = (s.t - sig.t) / 60000;
@@ -2260,7 +2325,23 @@ function timelineFrom(snaps, sigs) {
         best = st.score; voiv = v; level = lvl;
       }
     }
-    return { ts: s.ts, score: Math.round(best * 10) / 10, voiv, level };
+    return { ts: s.ts, t: s.t, score: Math.round(best * 10) / 10, voiv, level };
+  });
+}
+/* Pasek suwaka z tym samym podtrzymaniem co mapa i panel historii (11.10.2026):
+   poziom chwili = najwyższy z poprzednich LEVEL_HOLD_MIN minut, chyba że po nim
+   przyszło odwołanie RSO. Liczone na całym kraju, jak sam pasek. */
+function timelineFrom(snaps, sigs) {
+  const pkt = timelineSurowa(snaps, sigs);
+  const odwolania = sigs.filter(x => x.event_type === "rso_clear").map(x => x.t);
+  const RANGA = { none: 0, elevated: 1, high: 2 };
+  return pkt.map((p, i) => {
+    let level = p.level;
+    for (let j = i - 1; j >= 0 && p.t - pkt[j].t < LEVEL_HOLD_MIN * 60000; j--) {
+      const q = pkt[j];
+      if (RANGA[q.level] > RANGA[level] && !odwolania.some(c => c >= q.t && c <= p.t)) level = q.level;
+    }
+    return level === p.level ? p : { ...p, level, podtrzymany: true };
   });
 }
 function timeline() {
