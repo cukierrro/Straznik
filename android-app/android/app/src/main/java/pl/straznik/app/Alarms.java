@@ -12,6 +12,8 @@ import android.media.AudioManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.PowerManager;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
 import android.util.Log;
 
 import java.util.List;
@@ -308,6 +310,41 @@ class Alarms {
     /** Czy czerwony ma przyjść jak zwykłe powiadomienie: bez pełnego ekranu i syreny. */
     static boolean redNormal(Context ctx) {
         return RED_NORMAL.equals(redMode(ctx));
+    }
+
+    /**
+     * Przyciski „Poczuj” (11.10.2026): wzór wibracji tą samą drogą co prawdziwy
+     * sygnał. Wibracja ze strony (navigator.vibrate) idzie w Androidzie jako
+     * „dotyk” — milczy w trybie cichym i przy wyłączonych wibracjach dotyku, choć
+     * alarm wtedy wibruje (zgłoszenie usera). Żółty: jak powiadomienie, czerwony:
+     * jak alarm (albo jak powiadomienie w trybie „zwykłe”).
+     * Zwraca "ok", "bez_wibratora", "kanal_bez_wibracji" (użytkownik wyłączył
+     * wibrację kanału — prawdziwy sygnał też nie zawibruje) albo "tryb_cichy":
+     * powiadomienie w trybie cichym Android odrzuca (sprawdzone na Pixelu 7:
+     * status ignored_for_ringer_mode), a alarm wibruje mimo to.
+     */
+    static String poczuj(Context ctx, boolean czerwony) {
+        Vibrator v = (Vibrator) ctx.getSystemService(Context.VIBRATOR_SERVICE);
+        if (v == null || !v.hasVibrator()) return "bez_wibratora";
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationManager nm = ctx.getSystemService(NotificationManager.class);
+            NotificationChannel ch = nm == null ? null
+                : nm.getNotificationChannel(czerwony ? highChannel(ctx) : infoChannel(ctx));
+            if (ch != null && (!ch.shouldVibrate()
+                    || ch.getImportance() == NotificationManager.IMPORTANCE_NONE)) return "kanal_bez_wibracji";
+        }
+        boolean alarm = czerwony && !redNormal(ctx);
+        AudioAttributes aa = new AudioAttributes.Builder()
+            .setUsage(alarm ? AudioAttributes.USAGE_ALARM : AudioAttributes.USAGE_NOTIFICATION)
+            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build();
+        long[] wzor = czerwony ? WZOR_A : WZOR_U;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+            v.vibrate(VibrationEffect.createWaveform(wzor, -1), aa);
+        else
+            v.vibrate(wzor, -1, aa);
+        AudioManager am = (AudioManager) ctx.getSystemService(Context.AUDIO_SERVICE);
+        if (!alarm && am != null && am.getRingerMode() == AudioManager.RINGER_MODE_SILENT) return "tryb_cichy";
+        return "ok";
     }
 
     /** Kanał czerwonego zależnie od wybranego trybu. */

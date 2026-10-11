@@ -349,7 +349,9 @@ body.panel-open #update-banner:not(.critical) { display: none; }
      gdzie stal obok czegokolwiek innego. */
   border-radius: 11px; padding: 6px 12px; font-size: 0.8667rem; cursor: pointer;
 }
-.chip:hover { border-color: var(--accent); }
+/* Tylko tam, gdzie jest prawdziwe najechanie: na dotyku :hover zostaje po stuknięciu
+   i przycisk wyglądał na „zaznaczony” (przyciski „Poczuj”, 11.10.2026). */
+@media (hover: hover) { .chip:hover { border-color: var(--accent); } }
 .chip.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
 .chip.active { background: var(--accent); color: #fff; }
 .chip.download { background: linear-gradient(135deg, #287a52, #3ca76e); color: #fff;
