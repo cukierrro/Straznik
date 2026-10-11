@@ -626,9 +626,24 @@ Nazwa województwa zostaje po polsku w każdym języku, bo tak wysyła ją serwe
 Przy okazji tytuł testu zrównany z prawdziwym alarmem: bez „woj." i bez punktów
 (iPhone uciął 19.09.2026 tytuł dokładnie na nazwie regionu), punkty otwierają treść.
 
-**Zostaje do decyzji sesji głównej:** prawdziwy push z serwera jest po polsku dla
-wszystkich. Przetłumaczony test i polski alarm to rozjazd oczekiwań — do
-rozważenia język w `notify.py` albo świadoma zgoda, że alarm jest po polsku.
+**ROZSTRZYGNIĘTE 11.10.2026 (decyzja usera).** Prawdziwy push z serwera jest po
+polsku dla wszystkich i na razie tak zostaje. Mówimy to wprost: zdanie „Real alerts
+arrive in Polish, whatever the app language" w treści testu (EN/UA), w nocie przy
+teście w aplikacji i w instrukcjach EN/UK/iPhone (`4bf2531` na main).
+Tłumaczenie stałych części powiadomienia — osobne zadanie **po 1.7.94**.
+
+**Pułapka na tamto zadanie: `loc-key` nie jest bezpieczny.** Ładunek APNs jest
+wspólny dla wszystkich wersji aplikacji. Telefon z 1.7.93 i starszą nie ma kluczy
+w pakiecie, a iOS pokazuje wtedy **surowy klucz zamiast treści alarmu** —
+`title-loc-key` ma pierwszeństwo nad `title`, więc zwykły tytuł nie zadziała jako
+zapas. Stare instalacje zostają na telefonach miesiącami. Drugi haczyk: `loc-key`
+bierze język **telefonu**, nie przełącznik w aplikacji.
+Bezpieczna droga to język w nazwie tematu (`voiv_<region>[_krytyczne][_en|_uk]`,
+polski bez sufiksu = zgodność wstecz). Strona iOS była napisana i przeszła CI
+(`ece2709`), po czym **świadomie cofnięta** (`ac7af31`) — w wydaniu aplikacji
+alarmowej nie zostawiamy mechanizmu, którego nikt nie używa i nikt nie sprawdził
+na telefonie. Wrócić po niego w zadaniu po 1.7.94; przy okazji wtedy
+`status()` → `subscribedVoivodeships`, żeby app.js przestał składać nazwy tematów.
 
 ### Do sprawdzenia na urządzeniu (trzy przebiegi, jeden telefon)
 

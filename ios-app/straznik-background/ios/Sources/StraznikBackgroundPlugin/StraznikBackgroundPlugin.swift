@@ -563,9 +563,16 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
                                                   "This is an alert test — there is no threat.",
                                                   "Це тест тривоги — загрози немає.")]
                                 + (ciche ? [oCiszy, coZrobic] : [coZrobic, oCiszy])
+                                // Test jest w języku interfejsu, a prawdziwy alarm przychodzi
+                                // po polsku — treść pusha składa serwer (`notify.py`) i nie zna
+                                // języka telefonu. Mówimy to w EN i UA wprost, żeby test nie
+                                // obiecywał czegoś, czego alarm nie dotrzyma. Tłumaczenie
+                                // stałych części powiadomienia to osobne zadanie po 1.7.94.
                                 + [Self.tekst(lang, "NIEOFICJALNE źródło — kieruj się syrenami, RCB i RSO.",
-                                                    "UNOFFICIAL source — follow sirens, RCB and RSO.",
-                                                    "НЕОФІЦІЙНЕ джерело — орієнтуйтеся на сирени, RCB та RSO.")])
+                                                    "UNOFFICIAL source — follow sirens, RCB and RSO. "
+                                                    + "Real alerts arrive in Polish, whatever the app language.",
+                                                    "НЕОФІЦІЙНЕ джерело — орієнтуйтеся на сирени, RCB та RSO. "
+                                                    + "Справжні тривоги приходять польською, незалежно від мови застосунку.")])
                                .joined(separator: "\n")
                 content.sound = krytyczny
                     ? UNNotificationSound.criticalSoundNamed(UNNotificationSoundName("alarm_syrena.wav"),
