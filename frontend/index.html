@@ -103,7 +103,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <link rel="icon" type="image/png" sizes="512x512" href="assets/icon-512.png">
 <link rel="apple-touch-icon" href="assets/icon-192.png">
 <link rel="stylesheet" href="assets/vendor/maplibre-gl.css?v=1.7.82">
-<link rel="stylesheet" href="style.css?v=1.7.92b">
+<link rel="stylesheet" href="style.css?v=1.7.93b">
 </head>
 <body>
 
@@ -974,9 +974,10 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
     <!-- Wibracja alfabetem Morse'a (10.10.2026). Przyciski pokazuje app.js tylko
          tam, gdzie działa navigator.vibrate — na iPhonie go nie ma. -->
     <div class="btn-row" id="vib-row" hidden>
-      <button type="button" id="btn-vib-u" class="chip">📳 Poczuj: żółty (U · · —)</button>
-      <button type="button" id="btn-vib-a" class="chip">📳 Poczuj: czerwony (A · —)</button>
+      <button type="button" id="btn-vib-u" class="chip">▶ Poczuj: żółty (U · · —)</button>
+      <button type="button" id="btn-vib-a" class="chip">▶ Poczuj: czerwony (A · —)</button>
     </div>
+    <p class="fineprint" id="vib-note" hidden>Wzorów wibracji się nie wybiera: żółty zawsze wibruje „U”, czerwony zawsze „A”. Przyciski tylko je odtwarzają, żebyś je rozpoznał.</p>
     <p class="fineprint" id="dzwiek-red-note">Przy czerwonym poziomie syrena gra <b>bez przerwy</b>,
     aż potwierdzisz alarm przyciskiem na ekranie.</p>
 
@@ -1162,7 +1163,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
      Cloudflare, więc po każdym wydaniu wystarczy podbić ?v= i przeglądarki
      dostają nowe app.js/engine.js OD RAZU, bez ręcznego czyszczenia cache CF.
      Podbijaj ?v= razem z versionName w build.gradle. -->
-<script src="i18n.js?v=1.7.93"></script>
+<script src="i18n.js?v=1.7.93b"></script>
 <!-- kontur Polski dla engine.js (audyt A2b, scripts/build_pl_outline.py) -->
 <script src="pl-outline.js?v=1.7.82"></script>
 <script src="engine.js?v=1.7.93a"></script>
@@ -1178,7 +1179,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <div id="a11y-alert" class="sr-only" role="status" aria-live="assertive" aria-atomic="true"></div>
 <div id="a11y-info" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
 
-<script src="app.js?v=1.7.93a"></script>
+<script src="app.js?v=1.7.93b"></script>
 <script>
 /* Instrukcja pasująca do telefonu i języka (21.09.2026). iPhone ma osobną, bo alarmy,
    zgody i aktualizacje działają tam inaczej. Tu, a nie w app.js: index.html nie jest

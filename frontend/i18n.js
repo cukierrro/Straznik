@@ -442,8 +442,9 @@
     button("rm-syrena", "Syrena", "Siren");
     button("rm-wibracja", "Tylko wibracja", "Vibration only");
     button("rm-zwykle", "Zwykłe powiadomienie", "Regular notification");
-    button("btn-vib-u", "📳 Poczuj: żółty (U · · —)", "📳 Feel: yellow (U · · —)");
-    button("btn-vib-a", "📳 Poczuj: czerwony (A · —)", "📳 Feel: red (A · —)");
+    button("btn-vib-u", "▶ Poczuj: żółty (U · · —)", "▶ Feel: yellow (U · · —)");
+    button("btn-vib-a", "▶ Poczuj: czerwony (A · —)", "▶ Feel: red (A · —)");
+    button("vib-note", "Wzorów wibracji się nie wybiera: żółty zawsze wibruje „U”, czerwony zawsze „A”. Przyciski tylko je odtwarzają, żebyś je rozpoznał.", "The vibration patterns are not a choice: yellow always vibrates “U”, red always “A”. The buttons only play them so you can recognise them.");
     { const el = document.getElementById("rs-note");
       if (el) el.innerHTML = en ? "<b>Vibration only:</b> the siren goes quiet, the rest of the alert stays — full screen, flashing and strong vibration, including in Do Not Disturb. <b>Regular notification:</b> red arrives like yellow — a banner, a short sound and vibration, no full screen; it respects silent mode and Do Not Disturb. <b>Think it over before nightfall:</b> with the screen off and the phone in another room you may not notice an alert like that. A paired watch or band gets a copy of the notification if you allow Strażnik notifications in its app — and then vibrates in its own way. Red only — the yellow attention signal has its own setting above." : "<b>Tylko wibracja:</b> syrena milknie, reszta alarmu zostaje — pełny ekran, miganie i mocna wibracja, także przy trybie Nie przeszkadzać. <b>Zwykłe powiadomienie:</b> czerwony przyjdzie jak żółty — baner, krótki dźwięk i wibracja, bez pełnego ekranu; szanuje tryb cichy i Nie przeszkadzać. <b>Przemyśl to przed nocą:</b> przy wygaszonym ekranie i telefonie w drugim pokoju możesz takiego alarmu nie zauważyć. Sparowany zegarek albo opaska dostaje kopię powiadomienia, jeśli w jej aplikacji zezwolisz na powiadomienia ze Strażnika — i wibruje wtedy po swojemu. Dotyczy wyłącznie czerwonego — żółty sygnał uwagi ma własne ustawienie wyżej."; }
     { const el = document.getElementById("dnd-note"); if (el) el.innerHTML = en ? DND_NOTE_EN : DND_NOTE_PL; }
@@ -756,8 +757,9 @@
     "Siren": "Сирена",
     "Vibration only": "Лише вібрація",
     "Regular notification": "Звичайне сповіщення",
-    "📳 Feel: yellow (U · · —)": "📳 Відчути: жовтий (U · · —)",
-    "📳 Feel: red (A · —)": "📳 Відчути: червоний (A · —)",
+    "▶ Feel: yellow (U · · —)": "▶ Відчути: жовтий (U · · —)",
+    "▶ Feel: red (A · —)": "▶ Відчути: червоний (A · —)",
+    "The vibration patterns are not a choice: yellow always vibrates “U”, red always “A”. The buttons only play them so you can recognise them.": "Ритм вібрації не обирається: жовта завжди вібрує «U», червона — завжди «A». Кнопки лише відтворюють його, щоб ви його впізнали.",
     "Critical alerts are a separate permission from Apple: a red alert will sound even when the phone is muted with the switch or in Focus mode. It applies to the red level only — the yellow attention signal stays quiet. iPhone asks for this permission once; if you decline it, you can turn it on later in the phone’s Settings. You can withdraw it at any time in the same place.": "Критична тривога — це окремий дозвіл Apple: червона тривога пролунає навіть тоді, коли телефон вимкнено перемикачем або він у режимі Фокусування. Це стосується лише червоного рівня — жовтий сигнал уваги лишається тихим. iPhone запитає про цей дозвіл лише один раз; якщо ви відмовите, увімкнете його згодом у Налаштуваннях телефону. Відкликати його можна будь-коли там само.",
     "Allow full-screen alerts": "🚨 Дозволити повноекранні тривоги",
     "Check full-screen alert permission": "Перевірити дозвіл на повноекранну тривогу",
@@ -1096,8 +1098,9 @@
     set("#rm-syrena", "Siren");
     set("#rm-wibracja", "Vibration only");
     set("#rm-zwykle", "Regular notification");
-    set("#btn-vib-u", "📳 Feel: yellow (U · · —)");
-    set("#btn-vib-a", "📳 Feel: red (A · —)");
+    set("#btn-vib-u", "▶ Feel: yellow (U · · —)");
+    set("#btn-vib-a", "▶ Feel: red (A · —)");
+    set("#vib-note", "The vibration patterns are not a choice: yellow always vibrates “U”, red always “A”. The buttons only play them so you can recognise them.");
     { const el = document.getElementById("rs-note"); if (el) el.innerHTML = "<b>Vibration only:</b> the siren goes quiet, the rest of the alert stays — full screen, flashing and strong vibration, including in Do Not Disturb. <b>Regular notification:</b> red arrives like yellow — a banner, a short sound and vibration, no full screen; it respects silent mode and Do Not Disturb. <b>Think it over before nightfall:</b> with the screen off and the phone in another room you may not notice an alert like that. A paired watch or band gets a copy of the notification if you allow Strażnik notifications in its app — and then vibrates in its own way. Red only — the yellow attention signal has its own setting above."; }
     const dndNote = document.getElementById("dnd-note");
     if (dndNote) dndNote.innerHTML = DND_NOTE_EN;
