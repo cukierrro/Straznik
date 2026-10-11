@@ -364,6 +364,22 @@ public class BackgroundPlugin extends Plugin {
         call.resolve();
     }
 
+    /** Przyciski „Poczuj”: wzór wibracji tą samą drogą co prawdziwy sygnał (Alarms.poczuj). */
+    @PluginMethod
+    public void poczuj(PluginCall call) {
+        boolean czerwony = "high".equals(call.getString("level"));
+        String wynik;
+        try {
+            wynik = Alarms.poczuj(getContext(), czerwony);
+        } catch (Exception e) {
+            call.reject("wibracja: " + e.getMessage());
+            return;
+        }
+        JSObject ret = new JSObject();
+        ret.put("wynik", wynik);
+        call.resolve(ret);
+    }
+
     /** Wersja aplikacji — potrzebna, by porównać ją z najnowszym wydaniem. */
     private String appVersion(Context c) {
         try {
