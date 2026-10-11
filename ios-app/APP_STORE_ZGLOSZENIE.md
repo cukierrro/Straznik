@@ -587,3 +587,29 @@ Pułapka panelu (nowa): karta App Store Connect **zawiesiła się w trakcie
 wpisywania** opisu — skrypty przestały odpowiadać na ~minutę. Strona zgłaszała
 niezapisane zmiany, więc zamiast przeładowywać (i tracić tekst) warto odczekać;
 po odwieszeniu tekst był kompletny.
+
+## 20. Zgłoszenie 1.7.93 (11.10.2026, 12:20)
+
+Build **2610110949**, commit `56ec8a3`, status *Waiting for Review*, publikacja
+automatyczna. 1.7.91 zostało zatwierdzone i opublikowane, więc kolejka była wolna.
+
+W wydaniu (licząc od 1.7.90 w sklepie): poprawka fałszywego „telefon nie jest
+zapisany do żadnego województwa” przy alarmie krytycznym, punktacja każdego
+województwa w zasięgu, zaostrzony filtr adresów (`safeUrl`), podtrzymanie poziomu
+z „podtrzymany do…”, strefy PAŻP w historii z tamtej chwili, krok „−1 min”,
+zdanie opisujące sytuację dla czytnika ekranu, szybsze wygaszanie obiektów
+zgubionych przez NEPTUN.
+
+**Sprawdzone przed buildem (prośba sesji głównej):** trzy androidowe nowości
+z 1.7.93 są na iOS nieszkodliwe i każda ma własne zabezpieczenie —
+`#red-mode` ma klasę `android-only` (chowaną przez `.ios-app` w CSS) ORAZ
+wywołanie `setRedMode` w `try/catch`; `#vib-row` jest `hidden` i odsłaniany tylko
+przy `navigator.vibrate` (brak w WKWebView); wiersz drogi pusha gaśnie na
+`s.lastPushDelayMs >= 0`, bo `undefined >= 0` jest fałszem.
+
+**Pułapka panelu, tym razem dotkliwa:** karta App Store Connect **zawiesza się
+przy wpisywaniu dłuższego tekstu** w „What's New”. Tym razem nie odwiesiła się
+wcale — nie pomogło ani czekanie, ani wymuszone przeładowanie; trzeba było
+zamknąć kartę i otworzyć nową (wersja i build w panelu przetrwały). Po ponownym
+wejściu tekst szedł akapitami, ale karta znowu zamarła po trzecim. Wniosek na
+przyszłość: **pisać opis krótko**, 2–3 akapity, i zapisywać po każdym.
