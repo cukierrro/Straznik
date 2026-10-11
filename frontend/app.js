@@ -6585,9 +6585,23 @@ async function nativeTest(level) {
   document.getElementById("settings").close();
   // iOS zwraca {scheduled:false, reason:"denied"} przy zablokowanych powiadomieniach;
   // bez tego toast obiecywał alarm, który nigdy nie przyszedł. Android zwraca undefined.
-  const r = await plugin.testNativeAlarm({ level, delayMs: 5000, voivodeship: myVoiv() || "lubelskie" });
+  // `lang`: na iOS treść testu była zawsze po polsku; Android parametr pomija
+  const r = await plugin.testNativeAlarm({ level, delayMs: 5000, voivodeship: myVoiv() || "lubelskie",
+                                           lang: UI.lang });
   if (r && r.scheduled === false)
     return toast(UI.t("Powiadomienia są zablokowane — włącz je w Ustawienia → Strażnik → Powiadomienia.", "Notifications are blocked — enable them in Settings → Strażnik → Notifications.", "Сповіщення заблоковано — увімкніть їх у Налаштування → Strażnik → Сповіщення."), 6000);
+  /* iOS (11.10.2026): czerwony test idzie jako alarm krytyczny tylko ze zgodą Apple.
+     Bez niej wyciszony iPhone milczy — człowiek odkładał telefon, nie słyszał nic
+     i uznawał aplikację za zepsutą. Mówimy to PRZED testem. Android zwraca
+     undefined, więc oba warunki go omijają. */
+  if (r?.silentRisk)
+    return toast(UI.t("Test alarmu za 5 sekund. Przy wyciszonym iPhonie będzie cichy: bez zgody na alarm krytyczny system wycisza powiadomienia. Zgodę daje przycisk „Włącz alarm mimo wyciszenia” w ustawieniach.",
+      "Test alert in 5 seconds. On a muted iPhone it will be silent: without the critical-alert permission iOS mutes notifications. The “Turn on alert despite silent mode” button in settings grants it.",
+      "Тест тривоги за 5 секунд. На iPhone з вимкненим звуком він буде тихим: без дозволу на критичну тривогу система приглушує сповіщення. Дозвіл дає кнопка «Увімкнути тривогу попри вимкнений звук» у налаштуваннях."), 9000);
+  if (r?.critical)
+    return toast(UI.t("Test alarmu za 5 sekund — przyjdzie jak prawdziwy czerwony alarm, także przy wyciszonym telefonie.",
+      "Test alert in 5 seconds — it arrives like a real red alert, even on a muted phone.",
+      "Тест тривоги за 5 секунд — прийде як справжня червона тривога, навіть на телефоні з вимкненим звуком."), 7000);
   toast(UI.t("Test alarmu za 5 sekund — możesz teraz zablokować ekran.", "Test alert in 5 seconds — you can lock the screen now.", "Тест тривоги за 5 секунд — можете зараз заблокувати екран."), 5000);
 }
 document.getElementById("btn-native-test")?.addEventListener("click", () => nativeTest("high"));
