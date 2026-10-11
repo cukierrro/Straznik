@@ -33,16 +33,33 @@ public class StraznikFcmService extends FirebaseMessagingService {
            przychodzi" nie da się odróżnić uśpionej aplikacji (push nie dociera)
            od cichego powiadomienia (dociera, ale nie słychać) — a to są dwie
            zupełnie różne naprawy. Zgłoszenia z 06.10.2026, Galaxy S24 i S25+. */
+        long odebrano = System.currentTimeMillis();
+        Map<String, String> data = remoteMessage.getData();
+        long sentAtMs = 0;
+        try {
+            // „2026-09-13T17:09:16+00:00" — SimpleDateFormat zamiast java.time (minSdk 24)
+            sentAtMs = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", Locale.ROOT)
+                .parse(data.get("sent_at")).getTime();
+        } catch (Exception ignored) {}
+        /* 11.10.2026: alarm wysłany 09:50:56 dotarł na telefon usera 09:52:16 — 80 s.
+           Google obniża priorytet pilnym wiadomościom, które nie kończą się widocznym
+           powiadomieniem (ocena z 7 dni, osobno dla każdego telefonu), a wtedy uśpiony
+           telefon dostaje je dopiero przy przebudzeniu. Zapisujemy, czy to się stało
+           (priorytet wysłany vs dostarczony) i ile trwała droga — żeby nie zgadywać. */
         try {
             android.content.SharedPreferences fcm =
                 getSharedPreferences("straznik_fcm", android.content.Context.MODE_PRIVATE);
+            boolean obnizony = remoteMessage.getOriginalPriority() == RemoteMessage.PRIORITY_HIGH
+                && remoteMessage.getPriority() != RemoteMessage.PRIORITY_HIGH;
             fcm.edit()
-                .putLong("last_push_at", System.currentTimeMillis())
+                .putLong("last_push_at", odebrano)
                 .putInt("push_count", fcm.getInt("push_count", 0) + 1)
+                .putLong("last_push_delay_ms", sentAtMs > 0 ? Math.max(0, odebrano - sentAtMs) : -1)
+                .putBoolean("last_push_deprioritized", obnizony)
+                .putInt("deprioritized_count", fcm.getInt("deprioritized_count", 0) + (obnizony ? 1 : 0))
                 .apply();
         } catch (Exception ignored) {}
 
-        Map<String, String> data = remoteMessage.getData();
         if (data.isEmpty()) return;
 
         String voivName = data.get("voiv");
@@ -60,22 +77,23 @@ public class StraznikFcmService extends FirebaseMessagingService {
             if (Alarms.VOIVS[i].equalsIgnoreCase(voivName)) { voiv = i; break; }
         if (voiv < 0) { Log.w(TAG, "nieznane województwo: " + voivName); return; }
 
-        long sentAtMs = 0;
-        try {
-            // „2026-09-13T17:09:16+00:00" — SimpleDateFormat zamiast java.time (minSdk 24)
-            sentAtMs = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", Locale.ROOT)
-                .parse(data.get("sent_at")).getTime();
-        } catch (Exception ignored) {}
         boolean stale = sentAtMs > 0 && System.currentTimeMillis() - sentAtMs > Alarms.STALE_AFTER_MS;
+
+        double score = 0;
+        try { score = Double.parseDouble(data.get("score")); } catch (Exception ignored) {}
 
         // Audyt B1: przy aplikacji na wierzchu wiadomość była po cichu porzucana, a
         // WebView alarmował tylko o głównym miejscu — alarm dla drugiego miejsca
         // (np. rodzice w innym województwie) przepadał. Teraz świeżą wiadomość
         // przekazujemy do aplikacji, a gdy ta jej nie odbierze — pokazujemy natywnie.
-        if (!stale && MainActivity.isForeground() && BackgroundPlugin.forwardAlarm(data)) return;
-
-        double score = 0;
-        try { score = Double.parseDouble(data.get("score")); } catch (Exception ignored) {}
+        // 11.10.2026: także wtedy zostawiamy CICHE powiadomienie systemowe. Bez niego
+        // pilna wiadomość nie kończyła się niczym widocznym dla Google, a kto często ma
+        // otwartą aplikację, dostawał potem alarmy z obniżonym priorytetem (80 s).
+        if (!stale && MainActivity.isForeground() && BackgroundPlugin.forwardAlarm(data)) {
+            Alarms.createChannels(this);
+            Alarms.postShownInApp(this, voiv, level, score, data.get("headline"), sentAtMs);
+            return;
+        }
 
         List<String> reasons = new ArrayList<>();
         String r = data.get("reasons");

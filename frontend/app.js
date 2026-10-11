@@ -6136,10 +6136,24 @@ async function refreshBgStatus(previewLang = UI.lang) {
        zewnątrz tak samo, a naprawia się je zupełnie inaczej. Pusto na iPhonie
        i na stronie — tam tego nie zapisujemy. */
     const loc = previewLang === "pl" ? "pl-PL" : previewLang === "uk" ? "uk-UA" : "en-GB";
+    /* 11.10.2026: obok godziny — ile trwała droga od serwera i czy Google obniżył
+       priorytet (wtedy uśpiony telefon dostaje alarm dopiero przy przebudzeniu;
+       u usera 80 s). Opóźnienie do 15 s to zwykła droga przez sieć — nie straszymy. */
+    const sek = s.lastPushDelayMs >= 0 ? Math.round(s.lastPushDelayMs / 1000) : null;
+    const droga = sek == null ? ""
+      : s.lastPushDeprioritized
+      ? T(` Szedł ${sek} s — ⚠ Google obniżył mu priorytet, więc uśpiony telefon dostał go z opóźnieniem.`,
+          ` It took ${sek} s — ⚠ Google lowered its priority, so a sleeping phone got it late.`,
+          ` Він ішов ${sek} с — ⚠ Google знизив йому пріоритет, тож приспаний телефон отримав його із запізненням.`)
+      : sek > 15
+      ? T(` Szedł ${sek} s (priorytet bez zmian — opóźnienie po stronie sieci albo telefonu).`,
+          ` It took ${sek} s (priority unchanged — the delay was in the network or the phone).`,
+          ` Він ішов ${sek} с (пріоритет без змін — затримка в мережі або в телефоні).`)
+      : T(` Szedł ${sek} s.`, ` It took ${sek} s.`, ` Він ішов ${sek} с.`);
     const pushLine = s.lastPushAt
       ? T(`Ostatni sygnał z serwera odebrany ${new Date(s.lastPushAt).toLocaleString(loc)}.`,
           `Last signal from the server received ${new Date(s.lastPushAt).toLocaleString(loc)}.`,
-          `Останній сигнал із сервера отримано ${new Date(s.lastPushAt).toLocaleString(loc)}.`)
+          `Останній сигнал із сервера отримано ${new Date(s.lastPushAt).toLocaleString(loc)}.`) + droga
       : s.lastPushAt === 0
       ? T("Ten telefon nie odebrał jeszcze żadnego sygnału z serwera — to normalne, dopóki nie było alarmu dla Twojego regionu.",
           "This phone has not received any signal from the server yet — that is normal until there has been an alert for your region.",

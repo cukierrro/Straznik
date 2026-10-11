@@ -237,6 +237,10 @@ public class BackgroundPlugin extends Plugin {
         // StraznikFcmService, zanim wiadomość zostanie gdziekolwiek odrzucona.
         ret.put("lastPushAt", fcm.getLong("last_push_at", 0));
         ret.put("pushCount", fcm.getInt("push_count", 0));
+        // 11.10.2026: droga ostatniego alarmu i to, czy Google obniżył mu priorytet
+        ret.put("lastPushDelayMs", fcm.getLong("last_push_delay_ms", -1));
+        ret.put("lastPushDeprioritized", fcm.getBoolean("last_push_deprioritized", false));
+        ret.put("deprioritizedCount", fcm.getInt("deprioritized_count", 0));
         ret.put("topicsError", fcm.getString("topics_error", ""));
         // Bez odpowiedzi FCM (brak Usług Google, proces zabity w trakcie) flaga zostawała
         // na zawsze i ustawienia wisiały na „Wypisywanie…”. Po 2 min uznajemy, że się nie udało.

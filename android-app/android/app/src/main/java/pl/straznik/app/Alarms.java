@@ -388,6 +388,38 @@ class Alarms {
         restoreAlarmVolume(ctx);
     }
 
+    /**
+     * Ciche powiadomienie, gdy alarm pokazała już OTWARTA aplikacja (11.10.2026).
+     *
+     * Google obniża priorytet pilnym wiadomościom FCM, które nie kończą się
+     * widocznym powiadomieniem — ocenia to z 7 dni, osobno dla każdego telefonu.
+     * Alarm przekazany do otwartej aplikacji był dla Google „niczym”, więc kto
+     * często ma Strażnika na ekranie, dostawał potem alarmy przy zgaszonym ekranie
+     * z opóźnieniem (u usera 80 s). To powiadomienie jest bez dźwięku i wibracji
+     * (kanał CH_QUIET) — alarm i tak widać w aplikacji — ale zostaje w szufladzie.
+     * Ten sam identyfikator co alarm: późniejszy alarm natywny je zastąpi.
+     */
+    static void postShownInApp(Context ctx, int voiv, String level, double score,
+                               String headline, long sentAtMs) {
+        if (voiv < 0 || voiv >= VOIVS.length) return;
+        NotificationManager nm = (NotificationManager) ctx.getSystemService(Context.NOTIFICATION_SERVICE);
+        if (nm == null) return;
+        String title = ("high".equals(level) ? "WYSOKI PRIORYTET" : "PODWYŻSZONA UWAGA")
+            + ": woj. " + VOIVS[voiv] + " (" + score + " pkt)";
+        String text = (headline != null && !headline.isEmpty() ? headline + "\n" : "")
+            + "Pokazane w otwartej aplikacji.";
+        Notification.Builder b = builder(ctx, CH_QUIET)
+            .setContentTitle(title)
+            .setContentText(text)
+            .setStyle(new Notification.BigTextStyle().bigText(text))
+            .setSmallIcon(android.R.drawable.ic_dialog_alert)
+            .setContentIntent(openApp(ctx))
+            .setAutoCancel(true);
+        if (sentAtMs > 0) b.setWhen(sentAtMs).setShowWhen(true);
+        try { nm.notify(notifId(voiv), b.build()); }
+        catch (Exception e) { Log.w(TAG, "ciche powiadomienie z otwartej aplikacji", e); }
+    }
+
     /** Treść ostatniego alarmu per województwo — do cichej kopii po wyciszeniu. */
     static final class Last {
         private static final String[] TITLES = new String[VOIVS.length];
