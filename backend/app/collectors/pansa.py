@@ -16,6 +16,7 @@ województwem pojawi się NOWA aktywna rezerwacja (nieobecna w poprzednim
 odczycie) w oknie czasowym obejmującym teraz.
 """
 import asyncio
+import hashlib
 import json
 import logging
 import os
@@ -133,6 +134,47 @@ def zones_geojson() -> dict:
 def zone_events() -> list[dict]:
     """Kiedy która strefa się włączyła i wyłączyła (okno 12 h)."""
     return list(_zone_events)
+
+
+# Pola zależne od chwili — liczone na nowo przy każdej migawce, więc nie wchodzą
+# do definicji strefy (wtedy ta sama strefa miałaby co minutę nowy klucz).
+_ZMIENNE = ("since", "atBoot", "standing")
+
+
+def _zone_key(designator: str, zone_type, res: dict, remarks: str, geometry) -> str:
+    """Stały klucz jednej rezerwacji strefy: oznaczenie + typ + pułapy + czas + kształt.
+
+    Ta sama strefa w kolejnej dobie (nowa rezerwacja, inny pułap) dostaje nowy
+    klucz, więc historia pokazuje dokładnie to, co obowiązywało wtedy."""
+    tresc = json.dumps([designator, zone_type, res.get("lowerAltitude"), res.get("upperAltitude"),
+                        res.get("startDate"), res.get("endDate"), remarks.strip(), geometry],
+                       ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha1(tresc.encode()).hexdigest()[:12]
+
+
+def zones_snapshot() -> tuple[list | None, dict]:
+    """Strefy do migawki historii (10.10.2026).
+
+    Zwraca (lista [klucz, since, atBoot] dla każdej strefy na mapie,
+    {klucz: Feature bez pól zmiennych}). Migawka co minutę trzyma tylko krótką
+    listę; geometrię i opis zapisuje raz db.save_zone_defs. Pomiar z 07.10:
+    pełne odtwarzanie to ok. +3% paczki historii po gzipie.
+
+    Przed pierwszym odczytem PAŻP (świeży start) zwraca (None, {}): „nie wiemy”
+    to co innego niż „zero stref”, a pusta lista udawałaby otwarte niebo."""
+    if "zones_shown" not in status:
+        return None, {}
+    lista, defs = [], {}
+    for z in _zones_shown.values():
+        f = z["feature"]
+        p = f["properties"]
+        k = p.get("key")
+        if not k:
+            continue
+        lista.append([k, round(float(p.get("since") or 0)), bool(p.get("atBoot"))])
+        defs[k] = {"type": "Feature", "geometry": f["geometry"],
+                   "properties": {x: v for x, v in p.items() if x not in _ZMIENNE}}
+    return lista, defs
 
 
 def _load_seen(now_ts: float | None = None) -> dict[str, float]:
@@ -277,6 +319,7 @@ async def _tick(client: httpx.AsyncClient):
         since = _zones_since.setdefault(designator, now_epoch)
         pokazywane[designator] = {"feature": {
             "type": "Feature", "geometry": f["geometry"], "properties": {
+                "key": _zone_key(designator, zone_type, res, remarks, f["geometry"]),
                 "designator": designator, "type": zone_type, "voiv": voiv,
                 "lower": res.get("lowerAltitude"), "upper": res.get("upperAltitude"),
                 "remarks": remarks.strip(), "unit": res.get("unit"),

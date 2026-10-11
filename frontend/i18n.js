@@ -417,7 +417,7 @@
     button("jak-zgody", "Szczegóły zgód i alarmu", "Permissions and alert behaviour in detail");
     button("jak-dzwiek", "Co kiedy gra", "What plays when");
     button("jak-yv", "Czego dotyczy to ustawienie", "What this setting covers");
-    button("jak-natywny", "Zanim włączysz: co to zmienia", "Before you switch it on: what changes");
+    button("jak-natywny", "Zanim zmienisz: co to zmienia", "Before you change it: what it changes");
     button("jak-test", "Jak przebiega test", "How the test works");
     button("jak-trasy", "Jak czytać kierunek", "How to read the direction");
     button("jak-aktualizacje", "Skąd biorą się aktualizacje", "Where updates come from");
@@ -438,9 +438,14 @@
       "Turn off if you only want to view the map");
     button("ns-label", "Czerwony alarm zawsze na pełnej głośności",
       "Red alert always at full volume");
-    button("rs-label", "Czerwony alarm: tylko wibracja, bez syreny", "Red alert: vibration only, no siren");
+    button("rm-head", "Czerwony alarm", "Red alert");
+    button("rm-syrena", "Syrena", "Siren");
+    button("rm-wibracja", "Tylko wibracja", "Vibration only");
+    button("rm-zwykle", "Zwykłe powiadomienie", "Regular notification");
+    button("btn-vib-u", "📳 Poczuj: żółty (U · · —)", "📳 Feel: yellow (U · · —)");
+    button("btn-vib-a", "📳 Poczuj: czerwony (A · —)", "📳 Feel: red (A · —)");
     { const el = document.getElementById("rs-note");
-      if (el) el.innerHTML = en ? "The siren goes quiet, the rest of the alert stays: full screen, flashing and strong vibration, including in Do Not Disturb. A paired watch vibrates just the same. <b>Think it over before nightfall:</b> with the screen off and the phone in another room you may not notice an alert like that. Red only — the yellow attention signal has its own setting above." : "Syrena milknie, reszta alarmu zostaje: pełny ekran, miganie i mocna wibracja, także przy trybie Nie przeszkadzać. Sparowany zegarek zawibruje tak samo. <b>Przemyśl to przed nocą:</b> przy wygaszonym ekranie i telefonie w drugim pokoju możesz takiego alarmu nie zauważyć. Dotyczy wyłącznie czerwonego — żółty sygnał uwagi ma własne ustawienie wyżej."; }
+      if (el) el.innerHTML = en ? "<b>Vibration only:</b> the siren goes quiet, the rest of the alert stays — full screen, flashing and strong vibration, including in Do Not Disturb. <b>Regular notification:</b> red arrives like yellow — a banner, a short sound and vibration, no full screen; it respects silent mode and Do Not Disturb. <b>Think it over before nightfall:</b> with the screen off and the phone in another room you may not notice an alert like that. A paired watch or band gets a copy of the notification if you allow Strażnik notifications in its app — and then vibrates in its own way. Red only — the yellow attention signal has its own setting above." : "<b>Tylko wibracja:</b> syrena milknie, reszta alarmu zostaje — pełny ekran, miganie i mocna wibracja, także przy trybie Nie przeszkadzać. <b>Zwykłe powiadomienie:</b> czerwony przyjdzie jak żółty — baner, krótki dźwięk i wibracja, bez pełnego ekranu; szanuje tryb cichy i Nie przeszkadzać. <b>Przemyśl to przed nocą:</b> przy wygaszonym ekranie i telefonie w drugim pokoju możesz takiego alarmu nie zauważyć. Sparowany zegarek albo opaska dostaje kopię powiadomienia, jeśli w jej aplikacji zezwolisz na powiadomienia ze Strażnika — i wibruje wtedy po swojemu. Dotyczy wyłącznie czerwonego — żółty sygnał uwagi ma własne ustawienie wyżej."; }
     { const el = document.getElementById("dnd-note"); if (el) el.innerHTML = en ? DND_NOTE_EN : DND_NOTE_PL; }
     button("btn-test-chime","▶ Test: uwaga","▶ Test: attention");
     button("btn-test-siren","▶ Test: syrena","▶ Test: siren");
@@ -538,7 +543,7 @@
     "Permissions and alert behaviour in detail": "Докладно про дозволи та поведінку тривоги",
     "What plays when": "Що коли звучить",
     "What this setting covers": "Чого стосується це налаштування",
-    "Before you switch it on: what changes": "Перш ніж вмикати: що це змінює",
+    "Before you change it: what it changes": "Перш ніж змінювати: що це змінює",
     "How the test works": "Як відбувається тест",
     "How to read the direction": "Як читати напрямок",
     "Where updates come from": "Звідки беруться оновлення",
@@ -747,7 +752,12 @@
     "Notification settings": "Налаштування сповіщень",
     "Disable battery optimisation": "Вимкнути економію батареї",
     "Alert despite Do Not Disturb": "Тривога попри «Не турбувати»",
-    "Red alert: vibration only, no siren": "Червона тривога: лише вібрація, без сирени",
+    "Red alert": "Червона тривога",
+    "Siren": "Сирена",
+    "Vibration only": "Лише вібрація",
+    "Regular notification": "Звичайне сповіщення",
+    "📳 Feel: yellow (U · · —)": "📳 Відчути: жовтий (U · · —)",
+    "📳 Feel: red (A · —)": "📳 Відчути: червоний (A · —)",
     "Critical alerts are a separate permission from Apple: a red alert will sound even when the phone is muted with the switch or in Focus mode. It applies to the red level only — the yellow attention signal stays quiet. iPhone asks for this permission once; if you decline it, you can turn it on later in the phone’s Settings. You can withdraw it at any time in the same place.": "Критична тривога — це окремий дозвіл Apple: червона тривога пролунає навіть тоді, коли телефон вимкнено перемикачем або він у режимі Фокусування. Це стосується лише червоного рівня — жовтий сигнал уваги лишається тихим. iPhone запитає про цей дозвіл лише один раз; якщо ви відмовите, увімкнете його згодом у Налаштуваннях телефону. Відкликати його можна будь-коли там само.",
     "Allow full-screen alerts": "🚨 Дозволити повноекранні тривоги",
     "Check full-screen alert permission": "Перевірити дозвіл на повноекранну тривогу",
@@ -1075,15 +1085,20 @@
     set("#jak-zgody", "Permissions and alert behaviour in detail");
     set("#jak-dzwiek", "What plays when");
     set("#jak-yv", "What this setting covers");
-    set("#jak-natywny", "Before you switch it on: what changes");
+    set("#jak-natywny", "Before you change it: what it changes");
     set("#jak-test", "How the test works");
     set("#jak-trasy", "How to read the direction");
     set("#jak-aktualizacje", "Where updates come from");
     set("#alerts-on-label", "Alerts on this phone");
     set("#alerts-on-note", "Turn off if you only want to view the map");
     set("#btn-dnd-access", "Alert despite Do Not Disturb");
-    set("#rs-label", "Red alert: vibration only, no siren");
-    { const el = document.getElementById("rs-note"); if (el) el.innerHTML = "The siren goes quiet, the rest of the alert stays: full screen, flashing and strong vibration, including in Do Not Disturb. A paired watch vibrates just the same. <b>Think it over before nightfall:</b> with the screen off and the phone in another room you may not notice an alert like that. Red only — the yellow attention signal has its own setting above."; }
+    set("#rm-head", "Red alert");
+    set("#rm-syrena", "Siren");
+    set("#rm-wibracja", "Vibration only");
+    set("#rm-zwykle", "Regular notification");
+    set("#btn-vib-u", "📳 Feel: yellow (U · · —)");
+    set("#btn-vib-a", "📳 Feel: red (A · —)");
+    { const el = document.getElementById("rs-note"); if (el) el.innerHTML = "<b>Vibration only:</b> the siren goes quiet, the rest of the alert stays — full screen, flashing and strong vibration, including in Do Not Disturb. <b>Regular notification:</b> red arrives like yellow — a banner, a short sound and vibration, no full screen; it respects silent mode and Do Not Disturb. <b>Think it over before nightfall:</b> with the screen off and the phone in another room you may not notice an alert like that. A paired watch or band gets a copy of the notification if you allow Strażnik notifications in its app — and then vibrates in its own way. Red only — the yellow attention signal has its own setting above."; }
     const dndNote = document.getElementById("dnd-note");
     if (dndNote) dndNote.innerHTML = DND_NOTE_EN;
     set("#set-h-alarmy", "Alerts while the app is closed");
@@ -1182,7 +1197,7 @@
     // Oba akapity maja <b>, wiec slownik EN2UK ich nie zlapie: klucz jest calym zdaniem,
     // a pogrubienie rozbija je na osobne wezly tekstowe. Podmieniamy wprost.
     const rsNote = document.getElementById("rs-note");
-    if (rsNote) rsNote.innerHTML = "Сирена змовкає, решта тривоги лишається: повний екран, миготіння і сильна вібрація, зокрема в режимі «Не турбувати». Спарений годинник завібрує так само. <b>Обміркуйте це перед ніччю:</b> з вимкненим екраном і телефоном в іншій кімнаті ви можете такої тривоги не помітити. Стосується лише червоного — жовтий сигнал уваги має власне налаштування вище.";
+    if (rsNote) rsNote.innerHTML = "<b>Лише вібрація:</b> сирена змовкає, решта тривоги лишається — повний екран, миготіння і сильна вібрація, зокрема в режимі «Не турбувати». <b>Звичайне сповіщення:</b> червона тривога прийде як жовта — банер, короткий звук і вібрація, без повного екрана; враховує беззвучний режим і «Не турбувати». <b>Обміркуйте це перед ніччю:</b> з вимкненим екраном і телефоном в іншій кімнаті ви можете такої тривоги не помітити. Спарений годинник або браслет отримує копію сповіщення, якщо в його застосунку дозволено сповіщення від Strażnika, — і вібрує тоді по-своєму. Стосується лише червоного — жовтий сигнал уваги має власне налаштування вище.";
     /* „Normal" jest w słowniku raz, jako „Звичайна" — rodzaj żeński, bo klucz
        powstał przy głośności („гучність"). Przy wielkości tekstu rzeczownikiem
        jest „розмір", rodzaj męski, więc ten jeden przycisk nadpisujemy po

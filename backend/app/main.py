@@ -840,12 +840,26 @@ async def snapshot_loop():
             # 12 h do paczki historii bez source_metadata: to ponad połowa bajtów
             # migawki, a klient ma positionQuality na wierzchu. Dzięki temu migawki
             # co minutę ważą tyle, co wcześniej co dwie. Pełny zapis idzie do archiwum.
-            db.add_snapshot({"threats": [{k: v for k, v in t.items() if k != "source_metadata"}
-                                         for t in threats],
-                             "aircraft": aircraft})
+            # Strefy PAŻP z tej minuty (10.10.2026). Do 07.10 suwak rysował nad
+            # przeszłością BIEŻĄCE strefy, potem ukrywał je zupełnie. Teraz migawka
+            # niesie krótkie klucze, a geometria leży raz w zone_defs. Błąd stref
+            # nie może zabrać migawki — wtedy zapisujemy ją bez nich.
+            try:
+                strefy, definicje = pansa.zones_snapshot()   # None = jeszcze nie wiemy
+                db.save_zone_defs(definicje)
+            except Exception as e:                  # noqa: BLE001
+                log.warning("snapshot: strefy pominięte: %s", e)
+                strefy = None
+            migawka = {"threats": [{k: v for k, v in t.items() if k != "source_metadata"}
+                                   for t in threats],
+                       "aircraft": aircraft}
+            if strefy is not None:
+                migawka["zones"] = strefy
+            db.add_snapshot(migawka)
             # G1: pełna migawka na 30 dni w osobnym, skompresowanym archiwum
             await asyncio.to_thread(alert_log.archive_snapshot,
-                                    {"threats": threats, "aircraft": aircraft})
+                                    {"threats": threats, "aircraft": aircraft,
+                                     **({"zones": strefy} if strefy is not None else {})})
         except Exception as e:
             log.warning("snapshot błąd: %s", e)
         await asyncio.sleep(max(1.0, config.SNAPSHOT_INTERVAL_S - (time.monotonic() - started)))

@@ -302,8 +302,14 @@ STAGE_ACTION = ("udaj się w bezpieczne miejsce", "udaj sie w bezpieczne miejsce
 # UWAGA: etap NIE wplywa na punktacje. Poziom alertu liczy `rcb_level` z wlasnej
 # listy znacznikow (RCB_LEVEL_MARKERS) i ten komunikat zostaje poziomem 1,
 # bo nie ma w nim slowa „atakiem" ani wezwania do schronienia.
-STAGE_WARNING = ("potencjalne zagrożenie z powietrza", "potencjalne zagrozenie z powietrza",
-                 "zagrożenie z powietrza", "zagrozenie z powietrza")
+#
+# 10.10.2026: z listy wypadło gołe „zagrożenie z powietrza”. RCB wstawia je do
+# NAGŁÓWKA prawie każdego alertu („ALERT RCB-ZAGROŻENIE Z POWIETRZA”, „Alert RCB-
+# Zagrożenie z powietrza”), a etap czyta nagłówek razem z treścią — więc od 04.10
+# każdy „sytuacja jest monitorowana” z takim nagłówkiem lądował jako „ostrzezenie”
+# (5 wpisów do 10.10; te same teksty przed 04.10 miały poprawnie „monitor”).
+# Ostrzeżeniem jest tylko zwrot z przymiotnikiem „potencjalne”.
+STAGE_WARNING = ("potencjalne zagrożenie z powietrza", "potencjalne zagrozenie z powietrza")
 STAGE_MONITOR = ("sytuacja jest monitorowana", "operuje polskie lotnictwo", "śledź komunikaty",
                  "sledz komunikaty", "oczekuj dalszych komunikatów", "oczekuj dalszych komunikatow",
                  "zachowaj czujność", "zachowaj czujnosc", "trwa zmasowany")
