@@ -594,3 +594,38 @@ dźwięk był „normalny dla żółtego”. Przy okazji zmierzona ścieżka z z
 aplikacją, której wcześniej nie sprawdzaliśmy.
 
 Komplet trzech testów zamyka wszystko, co da się sprawdzić bez publikacji.
+
+## 14. Test 5 s milczał u wszystkich przy wyciszeniu (11.10.2026)
+
+**Zgłoszenie:** „nie przychodzi alert na iPhona", ustawienia zgodne z instrukcją.
+Ze zrzutów wyszło co innego: oba testy **doszły** (żółty i czerwony z etykietą
+PILNE), ale czerwony był bez dźwięku — a w pasku stanu widać przekreślony dzwonek,
+czyli telefon wyciszony przełącznikiem.
+
+**Co było nie tak u nas:** `testNativeAlarm` planował czerwony zawsze zwykłym
+dźwiękiem i jako `.timeSensitive`. Prawdziwy czerwony push idzie inaczej —
+`CriticalSound(volume 1.0)` i `interruption-level: critical`, na temat
+`voiv_X_krytyczne` (`backend/app/notify.py`). Czyli test **nie sprawdzał tego, co
+obiecywał**: na wyciszonym iPhonie milczał u KAŻDEGO, także u ludzi ze zgodą na
+alarm krytyczny, u których prawdziwy alarm by zagrał.
+
+Łatwo to pomylić, bo etykieta **PILNE** (`time-sensitive`) znaczy „przebij tryb
+Skupienia", a nie „zagraj mimo ciszy". Ciszę przebija wyłącznie alarm krytyczny.
+
+**Poprawione:** czerwony test idzie jako krytyczny, gdy telefon ma zgodę; gdy jej
+nie ma — powiadomienie samo pisze, dlaczego było cicho i który przełącznik to
+zmienia. Żółty mówi wprost, że przy wyciszeniu jest cichy i tak ma być.
+Wtyczka zwraca teraz `{scheduled, critical, silentRisk}`; toast przed testem
+(wspólny `app.js`) opisany jako B9 w `POTRZEBNE_ZMIANY_WSPOLNE.md`.
+Sprawdzenie kompilacji i uprawnień: `tryb=sprawdzenie`, run 38138387727 — zielone.
+
+### Do sprawdzenia na urządzeniu (trzy przebiegi, jeden telefon)
+
+| # | Stan telefonu | Zgoda krytyczna | Oczekiwane |
+|---|---------------|-----------------|------------|
+| 1 | wyciszony przełącznikiem | **nie** | cisza + w treści zdanie „iPhone ucina dźwięk…" z nazwą przełącznika |
+| 2 | wyciszony przełącznikiem | **tak** | **syrena na pełnej głośności** i treść „poszedł jak prawdziwy czerwony alarm" |
+| 3 | dzwonek włączony, test żółty | dowolna | krótki sygnał uwagi + zdanie, że żółty przy wyciszeniu jest cichy |
+
+Przebieg 2 jest tym, czego nigdy nie sprawdziliśmy — i tym, który testerka
+uznała za dowód, że alarm nie działa.
