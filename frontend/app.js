@@ -5122,7 +5122,9 @@ function srvRecord(s) {
     type: a.type, lat: +(+a.lat).toFixed(3), lon: +(+a.lon).toFixed(3), alt: a.alt, gs: a.gs,
     track: a.track, voivodeship: a.voivodeship, desc: a.desc, cat: a.cat,
     reg: a.reg, op: a.op, vr: a.vr, year: a.year }));
-  const snap = { ts: new Date(now).toISOString(), t: now, threats, aircraft };
+  const snap = { ts: new Date(now).toISOString(), t: now, threats, aircraft,
+    // obiekty bez współrzędnych — historia nie może uznać ich za zgubione z feedu
+    bezPozycji: (s?.neptun?.threats || []).filter(t => t.lat == null).map(t => t.id) };
   // strefy z tej chwili, jak w migawce serwera — tylko gdy znamy bieżące
   if (zonesData) snap.zones = zonesData.features
     .filter(f => f.properties?.key)

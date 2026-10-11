@@ -26,6 +26,63 @@ function rcbLevel(text) {
    Sama suma nie wystarcza: pośrednie sygnały dawały 5 pkt przy pustej mapie. */
 const RED_GATE_ETA_MIN = 15, RED_GATE_KM = 50, RED_GATE_MAX_AGE_MS = 25*60*1000;
 const RCB_DOWNGRADE_FADE_MIN = 10;   // lustro config.RCB_DOWNGRADE_FADE_MIN
+/* Obiekt zgubiony z feedu NEPTUN-a gaśnie szybciej — lustro config.NEPTUN_LOST_*
+   i fusion.lost_weight (11.10.2026). Wyjątek: zgubiony bliżej granicy niż 50 km. */
+const LOST_FULL_MIN = 15, LOST_FADE_MIN = 15, LOST_EXEMPT_KM = 50;
+function lostWeight(info, sigT, ref) {
+  if (!info) return 1;
+  const [lostAt, km] = info;
+  if (km != null && km <= LOST_EXEMPT_KM) return 1;
+  const goneMin = (ref - Math.max(lostAt, Number.isFinite(sigT) ? sigT : lostAt)) / 60000;
+  if (goneMin <= LOST_FULL_MIN) return 1;
+  if (LOST_FADE_MIN <= 0) return 0;
+  return Math.max(0, 1 - (goneMin - LOST_FULL_MIN) / LOST_FADE_MIN);
+}
+/* Kiedy obiekt zniknął — z migawek historii (co ~1 min). Zwraca funkcję
+   track_id → [chwila ostatniej obecności (ms), km od granicy] albo null, gdy
+   obiekt jest w migawce `ref`, nic o nim nie wiemy albo zaraz po jego ostatniej
+   obecności brakuje migawek (dziura w buforze — wtedy jak dotąd). */
+// indeks per tablica migawek (bufor aplikacji dopisuje do tej samej tablicy,
+// więc przebudowa także przy zmianie długości)
+const _zgubIdx = new WeakMap();
+function zgubioneZMigawek(snaps, ref) {
+  if (!snaps?.length || !Number.isFinite(ref)) return null;
+  let idx = _zgubIdx.get(snaps);
+  if (!idx || idx.len !== snaps.length) {
+    const sorted = [...snaps].sort((a, b) => a.t - b.t);
+    const obecny = new Map();
+    sorted.forEach((sn, i) => {
+      // `bezPozycji`: obiekty w feedzie bez współrzędnych — bufor aplikacji nie
+      // trzyma ich w `threats`, a nie wolno uznać ich za zgubione
+      const lista = (sn.threats || []).concat((sn.bezPozycji || []).map(id => ({ id })));
+      for (const t of lista) {
+        if (t?.id == null) continue;
+        let e = obecny.get(t.id);
+        if (!e) obecny.set(t.id, e = { i: [], km: [] });
+        if (e.i[e.i.length - 1] === i) continue;
+        e.i.push(i);
+        const km = t.pl_assessment?.dist_km;
+        e.km.push(Number.isFinite(km) ? km : null);
+      }
+    });
+    idx = { len: snaps.length, sorted, obecny };
+    _zgubIdx.set(snaps, idx);
+  }
+  const { sorted, obecny } = idx;
+  let lo = 0, hi = sorted.length - 1, k = -1;
+  while (lo <= hi) { const m = (lo + hi) >> 1; if (sorted[m].t <= ref) { k = m; lo = m + 1; } else hi = m - 1; }
+  if (k < 0 || ref - sorted[k].t > 180000) return null;   // brak migawki z tej chwili
+  return (tid) => {
+    const e = obecny.get(tid);
+    if (!e) return null;
+    let a = 0, b = e.i.length - 1, p = -1;
+    while (a <= b) { const m = (a + b) >> 1; if (e.i[m] <= k) { p = m; a = m + 1; } else b = m - 1; }
+    if (p < 0 || e.i[p] === k) return null;
+    const j = e.i[p], nast = sorted[j + 1];
+    if (!nast || nast.t - sorted[j].t > 180000) return null;
+    return [sorted[j].t, e.km[p]];
+  };
+}
 const RED_GATE_TYPES = new Set(["ballistic", "mig31k", "cruise", "missile", "kab", "shahed", "uav"]);
 /* Fala obiektów — lustro config.NEPTUN_WAVE_* */
 const WAVE_MIN = 3, WAVE_KM = 150, WAVE_WINDOW_MS = 15*60*1000, WAVE_POINTS = 0.5;
@@ -760,7 +817,7 @@ function mediaRetrospective(media) {
    SUROWE punkty i np. 4 rutynowe strefy PAŻP (cap 1) dawały fałszywe 4.0 zamiast
    1.0. Kaskadę sąsiedzką dokłada dopiero computeState.
    Number.isFinite: jedna zła wartość punktów zatrułaby NaN-em całą sumę. */
-function accumulate(sigs, refT) {
+function accumulate(sigs, refT, lost = null) {
   const ref = refT || Date.now();
   const per = {}; VOIVODESHIPS.forEach(v => per[v] = { score: 0, signals: [], _spillover_score: 0, _spill_parts: {} });
   const perSource = {};
@@ -861,6 +918,11 @@ function accumulate(sigs, refT) {
       w = ageMin <= FULL_MIN ? 1
         : Math.max(0, 1 - (ageMin - FULL_MIN) / Math.max(WINDOW_MIN - FULL_MIN, 1));
     }
+    let lostW = 1;
+    if (lost && trackId) {
+      try { lostW = lostWeight(lost(trackId), s.t || Date.parse(s.ts), ref); } catch {}
+      w = Math.min(w, lostW);
+    }
     if (rcbNadwyzka) {
       const minely = (ref - rcbRes.od) / 60000;
       const zanik = Math.max(0, 1 - minely / RCB_DOWNGRADE_FADE_MIN);
@@ -869,7 +931,8 @@ function accumulate(sigs, refT) {
     }
     const zeroed = superseded || cleared || relayOf || retrospective || articleStatus;
     prepared.push({ s, w, counted: 0, weighted: zeroed ? 0 : s.points * w,
-                    cleared, relayOf, retrospective, officialClear, articleStatus, uaEnd });
+                    cleared, relayOf, retrospective, officialClear, articleStatus, uaEnd,
+                    lost: lostW < 1 });
   }
   for (const e of [...prepared].sort((a, b) => b.weighted - a.weighted || a.s.t - b.s.t)) {
     const k = e.s.voivodeship + "|" + e.s.source;
@@ -894,7 +957,8 @@ function accumulate(sigs, refT) {
       ...(e.retrospective ? { retrospective:true } : {}),
       ...(e.officialClear ? { official_clear: e.officialClear } : {}),
       ...(e.articleStatus ? { article_status: e.articleStatus } : {}),
-      ...(e.uaEnd ? { alert_ended: new Date(e.uaEnd).toISOString() } : {}) });
+      ...(e.uaEnd ? { alert_ended: new Date(e.uaEnd).toISOString() } : {}),
+      ...(e.lost ? { lost_feed: true } : {}) });
   }
   return per;
 }
@@ -930,7 +994,7 @@ function computeState() {
   const now = Date.now();
   const sigs = signals.filter(s => s.t >= cut
     || (s.event_type === "rso_clear" && s.t >= clearCut)).concat(activeUaAlerts(signals, now));
-  const state = stateFrom(sigs, now);
+  const state = stateFrom(sigs, now, zgubionyNaZywo);
   // podtrzymanie poziomu tylko na żywo (historia liczy się ze stateFrom bez niego)
   for (const [v, st] of Object.entries(state.voivodeships)) {
     const clears = sigs.filter(s => s.event_type === "rso_clear" && s.voivodeship === v).map(s => s.t);
@@ -966,10 +1030,10 @@ function holdLevel(key, computed, now, clearAt) {
 
 /* Stan z podanej listy sygnałów w chwili `refT` — rdzeń computeState, osobno,
    żeby testy mogły odtworzyć przeszłą chwilę (lustro fusion.compute_state). */
-function stateFrom(sigs, refT) {
+function stateFrom(sigs, refT, lost = null) {
   const ref = refT || Date.now();
   // limit klasy źródła + wygaszanie — wspólny rdzeń z rekonstrukcją historii
-  const per = accumulate(sigs, ref);
+  const per = accumulate(sigs, ref, lost);
   for (const v of VOIVODESHIPS) per[v].level = "none";
   const base = {}, parts = {};
   for (const [v, st] of Object.entries(per)) {
@@ -1417,6 +1481,16 @@ const timers = [];
 const every = (fn, ms) => { const id = setInterval(fn, ms); timers.push(id); return id; };
 const later = (fn, ms) => { const id = setTimeout(fn, ms); timers.push(id); return id; };
 
+/* Tryb wbudowany: obiekty zgubione z feedu (lustro collectors/neptun._zgubione). */
+const zgubione = new Map();
+function zgub(t) {
+  if (t?.id == null) return;
+  const km = t.pl_assessment?.dist_km, now = Date.now();
+  zgubione.set(t.id, [now, Number.isFinite(km) ? km : null]);
+  for (const [id, [at]] of zgubione) if (now - at > (WINDOW_MIN + 10) * 60000) zgubione.delete(id);
+}
+function zgubionyNaZywo(tid) { return tracks.has(tid) ? null : (zgubione.get(tid) || null); }
+
 function startNeptun() {
   if (stopped) return;
   wsRetryPending = false;
@@ -1424,10 +1498,11 @@ function startNeptun() {
   ws.onopen = () => { markHealth("neptun", true); wsRetry = 1; emit(); };
   ws.onmessage = (e) => {
     let env; try { env = JSON.parse(e.data); } catch { return; }
-    if (env.type === "snapshot") { tracks.clear();
-      for (const t of env.data?.threats||[]) tracks.set(t.id, neptunEval(t)); }
-    else if (env.type === "upsert") tracks.set(env.data.id, neptunEval(env.data));
-    else if (env.type === "remove") tracks.delete(env.data?.id);
+    if (env.type === "snapshot") { const stare = new Map(tracks); tracks.clear();
+      for (const t of env.data?.threats||[]) { tracks.set(t.id, neptunEval(t)); zgubione.delete(t.id); }
+      for (const [id, t] of stare) if (!tracks.has(id)) zgub(t); }
+    else if (env.type === "upsert") { tracks.set(env.data.id, neptunEval(env.data)); zgubione.delete(env.data.id); }
+    else if (env.type === "remove") { zgub(tracks.get(env.data?.id)); tracks.delete(env.data?.id); }
     else if (env.type === "alerts") neptunAlerts(env.data);
     emit();
   };
@@ -2195,6 +2270,7 @@ function saveSnapshot() {
         positionQuality: t.positionQuality, areaOnly: t.areaOnly,
         straznik_position: t.straznik_position, straznik_national: t.straznik_national,
         pl_assessment: t.pl_assessment })),
+      bezPozycji: [...tracks.values()].filter(t => t.lat == null).map(t => t.id),
       aircraft: adsbAircraft.map(a => ({ hex: a.hex, callsign: a.callsign, type: a.type,
         lat: +a.lat.toFixed(3), lon: +a.lon.toFixed(3), alt: a.alt, gs: a.gs,
         track: a.track, voivodeship: a.voivodeship, desc: a.desc, cat: a.cat })),
@@ -2228,7 +2304,7 @@ function historyFrom(snaps, sigs, atIso) {
   // I przeniesienie od sąsiadów). Audyt A11/C10: samo accumulate pomijało
   // przeniesienie, więc województwo zaalarmowane przez sąsiada miało w historii 0.
   const per = stateFrom(sigs.filter(s => s.t >= start && s.t <= end)
-    .concat(activeUaAlerts(sigs, end)), end).voivodeships;
+    .concat(activeUaAlerts(sigs, end)), end, snap ? zgubioneZMigawek(snaps, end) : null).voivodeships;
   const podtrzymanie = podtrzymajWHistorii(per, end, snaps, sigs);
   const scores = {}, spill = {}, levels = {};
   for (const [v, st] of Object.entries(per)) {
@@ -2253,13 +2329,13 @@ function historyFrom(snaps, sigs, atIso) {
    nim przyszło odwołanie RSO dla tego województwa. Liczymy z migawek (co ~1 min),
    więc granica może przesunąć się o minutę względem tego, co było na żywo. */
 const _surowe = new Map();
-function surowyStan(s, sigs) {
-  const klucz = s.t + "|" + sigs.length;
+function surowyStan(s, sigs, snaps) {
+  const klucz = s.t + "|" + sigs.length + "|" + (snaps?.length || 0);
   let st = _surowe.get(klucz);
   if (!st) {
     const od = s.t - WINDOW_MIN * 60000;
     st = stateFrom(sigs.filter(x => x.t >= od && x.t <= s.t)
-      .concat(activeUaAlerts(sigs, s.t)), s.t).voivodeships;
+      .concat(activeUaAlerts(sigs, s.t)), s.t, zgubioneZMigawek(snaps, s.t)).voivodeships;
     if (_surowe.size > 500) _surowe.clear();
     _surowe.set(klucz, st);
   }
@@ -2281,7 +2357,7 @@ function podtrzymajWHistorii(per, end, snaps, sigs) {
       for (const lvl of ["high", "elevated"]) {
         if (LEVEL_ORDER.indexOf(lvl) <= teraz) break;
         const q = wczesniej.find(s =>
-          LEVEL_ORDER.indexOf(surowyStan(s, sigs)[v]?.[pole] || "none") >= LEVEL_ORDER.indexOf(lvl));
+          LEVEL_ORDER.indexOf(surowyStan(s, sigs, snaps)[v]?.[pole] || "none") >= LEVEL_ORDER.indexOf(lvl));
         if (q && !(clearAt && clearAt >= q.t)) {
           st[pole] = lvl;
           const doKiedy = q.t + LEVEL_HOLD_MIN * 60000;
@@ -2311,7 +2387,7 @@ function timelineSurowa(snaps, sigs) {
       const age = (s.t - sig.t) / 60000;
       return age >= 0 && age <= WINDOW_MIN;
     });
-    const per = stateFrom(win.concat(activeUaAlerts(sigs, s.t)), s.t).voivodeships;
+    const per = stateFrom(win.concat(activeUaAlerts(sigs, s.t)), s.t, zgubioneZMigawek(snaps, s.t)).voivodeships;
     /* Poziom bierzemy Z OCENY województwa, a nie z progu punktowego. Od 1.7.74
        czerwony wymaga KLUCZA (alert RCB „znajdź bezpieczne miejsce” albo bliski
        obiekt), więc 4+ pkt bez klucza to na mapie ŻÓŁTY — a pasek historii malował
@@ -2386,7 +2462,7 @@ async function start(stateCb) {
 // oraz `adsbHoldJump`: strażnik niemożliwych skoków dla scripts/test_skok_pozycji.cjs,
 // który sprawdza, że tryb bez serwera trzyma pozycję tak samo jak backend.
 return { start, stop, history, timeline, historyFrom, timelineFrom, accumulate, matchVoivs,
-         adsbHoldJump,
+         adsbHoldJump, lostWeight, zgubioneZMigawek,
          stateFrom, alertLevel, rsoIsCancellation, assess,
          rcbArtykul: { tickRcb, tekstArtykuluRcb, dataArtykuluRcb, wojewodztwaAlertu,
                        czyOdwolanieRcb, meldunkiArtykulu, najnowszyMeldunek } };

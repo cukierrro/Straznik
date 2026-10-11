@@ -38,6 +38,11 @@ def threat_label_pl(threat_type: str) -> str:
 
 # stan: aktywne tracki wg id (dla frontendu i CLI)
 tracks: dict[str, dict] = {}
+# Obiekty, które zniknęły z feedu (11.10.2026): track_id -> (chwila zniknięcia,
+# ostatnia odległość od granicy). Fuzja na żywo gasi ich punkty szybciej —
+# fusion.lost_weight. Po restarcie pusto, więc stare sygnały liczą się jak dotąd.
+_zgubione: dict[str, tuple[float, float | None]] = {}
+_ZGUBIONE_TTL_S = (config.FUSION_WINDOW_MIN + 10) * 60
 status = {"connected": False, "mode": "ws", "last_msg": None, "error": None,
           # ostatnie potwierdzenie z REST, że cisza na gnieździe to brak zdarzeń, nie awaria
           "last_alive": None, "silence_probe": None,
@@ -900,6 +905,7 @@ async def _handle_threats(threats: list[dict], replace: bool, *,
         time.time() if received_at is None else received_at, timezone.utc,
     ).isoformat(timespec="milliseconds")
     before = set(tracks) if replace else set()
+    old = dict(tracks) if replace else {}
     if replace:
         tracks.clear()
     for t in threats:
@@ -914,6 +920,7 @@ async def _handle_threats(threats: list[dict], replace: bool, *,
                              "message_type": message_type, "source_message_ts": source_message_ts}
             t = _evaluate(t)
             tracks[t.get("id")] = t
+            _zgubione.pop(t.get("id"), None)       # wrócił do feedu
             _turnaway_shadow(t)
             by_entry_shadow.observe(t)
             await _maybe_signal(t)
@@ -921,6 +928,7 @@ async def _handle_threats(threats: list[dict], replace: bool, *,
             _bad_record(t, exc)
     for tid in before - set(tracks):
         by_entry_shadow.removed(tid)
+        _zgub(old.get(tid))
     if replace:
         # pełny snapshot: zapominamy kotwice obiektów, których już nie ma
         for cache in (_last_pos, _last_est, _signalled, _away_streak, _away_counted, _trail):
@@ -928,6 +936,28 @@ async def _handle_threats(threats: list[dict], replace: bool, *,
                 cache.pop(tid, None)
     if fusion.on_state_change:
         asyncio.create_task(fusion.on_state_change())
+
+
+def _zgub(t: dict | None, now: float | None = None) -> None:
+    """Zapamiętuje obiekt, który właśnie zniknął z feedu."""
+    if not t or t.get("id") is None:
+        return
+    now = now or time.time()
+    km = (t.get("pl_assessment") or {}).get("dist_km")
+    _zgubione[t["id"]] = (now, km if isinstance(km, (int, float)) else None)
+    for tid in [k for k, (at, _) in _zgubione.items() if now - at > _ZGUBIONE_TTL_S]:
+        _zgubione.pop(tid, None)
+
+
+def zgubiony(track_id) -> tuple[float, float | None] | None:
+    """Dla fuzji: (chwila zniknięcia, km od granicy) albo None, gdy obiekt jest
+    w feedzie albo nic o nim nie wiemy."""
+    if track_id in tracks:
+        return None
+    return _zgubione.get(track_id)
+
+
+fusion.lost_provider = zgubiony
 
 
 def _bad_record(record, exc: Exception) -> None:
@@ -951,7 +981,7 @@ async def _dispatch(env: dict, received_at: float) -> None:
                              message_type=etype, source_message_ts=env.get("ts"))
     elif etype == "remove":
         rid = (data or {}).get("id")
-        tracks.pop(rid, None)
+        _zgub(tracks.pop(rid, None))
         by_entry_shadow.removed(rid)
         if fusion.on_state_change:
             asyncio.create_task(fusion.on_state_change())
