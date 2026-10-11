@@ -5537,14 +5537,20 @@ function histGo(idx) {
   document.getElementById("tb-slider").value = String(idx);
   scrubTo(idx);
 }
-/* indeks migawki o `minutes` od bieżącej (co najmniej jedna migawka dalej) */
+/* indeks migawki o `minutes` od bieżącej (co najmniej jedna migawka dalej).
+   Liczymy w MINUTACH ETYKIETY, nie w sekundach (zgłoszenie usera 11.10.2026):
+   najnowsza migawka bywa nagrana przez aplikację (np. 10:00:05), a serwer
+   zapisuje je o pełnej minucie + kilkanaście sekund (09:59:16). Przy porównaniu
+   co do sekundy 09:59:16 była „za późno” na cel 09:59:05 i pierwsze „−1 min”
+   skakało z 10:00 na 09:58. */
 function histStepIdx(idx, minutes) {
-  const t = Date.parse(histTimes[idx]) + minutes * 60000;
+  const minuta = (i) => Math.floor(Date.parse(histTimes[i]) / 60000);
+  const cel = minuta(idx) + minutes;
   if (minutes > 0) {
-    for (let i = idx + 1; i < histTimes.length; i++) if (Date.parse(histTimes[i]) >= t - 1000) return i;
+    for (let i = idx + 1; i < histTimes.length; i++) if (minuta(i) >= cel) return i;
     return histTimes.length - 1;
   }
-  for (let i = idx - 1; i >= 0; i--) if (Date.parse(histTimes[i]) <= t + 1000) return i;
+  for (let i = idx - 1; i >= 0; i--) if (minuta(i) <= cel) return i;
   return 0;
 }
 function alarmStarts() {

@@ -33,6 +33,16 @@ assert.equal(ctx.histStepIdx(at(45), -10), at(35), '−10 w ciągłym odcinku');
 assert.equal(ctx.histStepIdx(at(49), 10), at(49), '+10 na końcu zostaje na końcu');
 assert.equal(ctx.histStepIdx(0, -10), 0, '−10 na początku zostaje na początku');
 
+// 11.10.2026 (zgłoszenie usera): serwer zapisuje migawki o :16, a najnowsza jest
+// nagrana przez aplikację o :05. Pierwsze „−1 min” skakało z 10:00 na 09:58.
+const mieszane = { histTimes: ['09:57:16', '09:58:16', '09:59:16', '10:00:05']
+  .map(g => `2026-10-11T${g}.000Z`), timelinePoints: [] };
+vm.createContext(mieszane);
+vm.runInContext(cut('function histStepIdx', 'function syncTbControls'), mieszane);
+assert.equal(mieszane.histStepIdx(3, -1), 2, '−1 min z 10:00:05 → 09:59:16, nie 09:58');
+assert.equal(mieszane.histStepIdx(2, 1), 3, '+1 min z 09:59:16 → 10:00:05');
+assert.equal(mieszane.histStepIdx(3, -2), 1, '−2 min z 10:00 → 09:58');
+
 assert.deepEqual([...ctx.alarmStarts()], [at(5), at(35), at(40)], 'początki alarmów: 08:05, 08:35 i osobny 08:40 (przerwa 08:37–39)');
 assert.equal(ctx.prevAlarmIdx(at(46)), at(40), 'poprzedni alarm z 08:46 → 08:40');
 assert.equal(ctx.prevAlarmIdx(at(39)), at(35), 'poprzedni alarm z 08:39 → 08:35');
