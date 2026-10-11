@@ -208,27 +208,39 @@ Wymagania (strona „Screenshot specifications”, sprawdzona 17.09.2026):
 - można dodać podpisy i ramki, ale zrzut musi pokazywać **działającą aplikację**,
   nie ekran startowy (2.3.3), a treść musi być odpowiednia dla 4+ (2.3.8).
 
-Plan 6 zrzutów z podpisami:
+Zestaw z 11.10.2026 (wydanie 1.7.93, po przebudowie wyglądu z 1.7.89) —
+`ios-app/zrzuty/`, 1320×2868, bez kanału alfa:
 
-| # | Ekran | Podpis (PL) |
-|---|---|---|
-| 1 | Mapa z alarmem w województwie | „Jedna mapa: co leci, skąd i jak blisko” |
-| 2 | Panel sygnałów z rozbiciem punktów | „Widzisz każde źródło i jego wagę” |
-| 3 | Powiadomienie / ekran alarmu | „Alarm dotrze przy zamkniętej aplikacji” |
-| 4 | Suwak historii | „Wróć do przebiegu zdarzenia” |
-| 5 | Moje miejsca | „Alarmy tylko dla wybranych województw” |
-| 6 | Ustawienia → Alarmy | „Wszystko możesz wyłączyć jednym suwakiem” |
+| # | Plik | Co widać |
+|---|------|----------|
+| 1 | `1-mapa.png` | cała Polska, strefy PAŻP, ruch wojskowy ADS-B, pasek disclaimera |
+| 2 | `2-sygnaly.png` | rozbicie punktów województwa: NEPTUN +1,2, alarm UA +1, NEPTUN +0,2 |
+| 3 | `3-historia.png` | suwak historii cofnięty do prawdziwego alarmu (lubelskie 2,6 pkt) |
+| 4 | `4-schronienie.png` | GROTA: „Tu jesteś" w Lublinie i najbliższe punkty z odległościami |
+| 5 | `5-miejsca.png` | Moje miejsca — i zdanie, że nazwy i współrzędne zostają na telefonie |
+| 6 | `6-punktacja.png` | „O aplikacji i punktacja" — skąd biorą się punkty (odpowiedź na 4.2.2) |
 
-Jak je zrobić bez iPhone'a i Maca:
-1. **Najlepiej:** tester zrobi zrzuty na swoim iPhonie — musi to być model
-   z ekranem 6,9″ lub 6,5″ (np. 16/17 Pro Max daje 1290×2796). Zrzuty z iPhone'a
-   13 czy 15 zwykłego mają inny rozmiar i **nie nadają się** jako zestaw główny.
-2. **Zapasowo:** złożę obrazy 1320×2868 z widoku aplikacji uruchomionej
-   w przeglądarce w proporcjach iPhone'a, z podpisem i ciemnym tłem. Apple to
-   dopuszcza (nie ma wymogu zrzutu z prawdziwego urządzenia), a UI będzie
-   prawdziwy. Minus: obraz będzie nieco mniej ostry niż z telefonu.
-3. Na zrzutach musi być widoczny disclaimer albo neutralny stan — nie robimy
-   wrażenia, że to oficjalny alarm państwowy.
+Jak powstają: `node ios-app/skrypty/zrzuty.mjs` (z korzenia repo, po
+`przygotuj.mjs`). Skrypt serwuje **tę samą paczkę `ios-app/www`, która idzie do
+IPA**, w Chromium w wymiarach iPhone'a 16 Pro Max (440×956 @3×), podstawia
+`window.Capacitor.getPlatform() === "ios"` — dokładnie to, po czym `index.html`
+rozpoznaje aplikację — i klika w ekrany tak, jak klikałby palec. Dane są
+prawdziwe, z produkcji; spokojny dzień obchodzimy przyciskiem „alarm" w pasku
+historii, który cofa do ostatniego zapisanego zdarzenia.
+
+Czego ten sposób NIE daje (mówimy to wprost):
+- tekst rysuje Chromium, nie WebKit — krój jest systemowy z Windows, nie SF Pro,
+- nie ma paska stanu iOS ani marginesów bezpiecznych wokół wyspy,
+- ekran **„Ustawienia → Alarmy" celowo wypadł z zestawu**: w przeglądarce pokazuje
+  treść dla Safari („dodaj do ekranu początkowego"), a nie to, co widzi człowiek
+  w aplikacji ze sklepu. Zrzutu, który pokazuje co innego niż aplikacja, nie
+  wstawiamy — to byłaby makieta.
+
+Lepszy zestaw dałby tester na swoim iPhonie (6,9″ lub 6,5″) albo zrzuty
+z symulatora iOS na macOS. Póki ich nie ma, powyższe są najbliżej prawdy.
+
+Na zrzutach musi być widoczny disclaimer albo neutralny stan — nie robimy
+wrażenia, że to oficjalny alarm państwowy.
 
 ---
 
@@ -321,7 +333,7 @@ z podtytułem „Nieoficjalna mapa zagrożeń”.
 | Podtytuł | **Nieoficjalna mapa zagrożeń** |
 | Kategoria | **Utilities** (bez dodatkowej; do zmiany, jeśli wolisz Weather) |
 | Tekst promocyjny, opis, słowa kluczowe | wpisane (opis po polsku, 1335 znaków; słowa kluczowe 90 B) |
-| Zrzuty ekranu | **6 szt., 1284×2778** (6,5″ — Apple przeskaluje na pozostałe rozmiary) |
+| Zrzuty ekranu | **6 szt., 1320×2868** (6,9″ — Apple przeskaluje na pozostałe rozmiary); zestaw odświeżony 11.10.2026 |
 | Support URL | `https://cukierrro.pl/#kontakt` |
 | Marketing URL | puste (celowo — kawa na stronie głównej) |
 | Wersja / Copyright | 1.7.57 / `2026 cukierrro` |
