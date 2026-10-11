@@ -56,6 +56,15 @@ CREATE TABLE IF NOT EXISTS snapshots (
     payload TEXT NOT NULL         -- JSON: {threats:[...], aircraft:[...]}
 );
 CREATE INDEX IF NOT EXISTS idx_snap_ts ON snapshots(ts);
+-- strefy PAŻP do odtwarzania w historii (10.10.2026): migawka trzyma tylko
+-- klucze aktywnych stref, a geometria i opis leżą tu raz, nie co minutę
+CREATE TABLE IF NOT EXISTS zone_defs (
+    key TEXT PRIMARY KEY,
+    feature TEXT NOT NULL,        -- JSON: Feature bez pól zależnych od chwili
+    first_seen TEXT NOT NULL,
+    last_seen TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_zone_defs_last ON zone_defs(last_seen);
 -- krótkotrwałe obce maszyny mogą pojawić się między migawkami mapy
 CREATE TABLE IF NOT EXISTS adsb_watch_events (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -281,6 +290,35 @@ def add_snapshot(payload: dict, keep_hours: int = 12):
         cutoff = (datetime.now(timezone.utc) - timedelta(hours=keep_hours)).isoformat(timespec="seconds")
         _conn.execute("DELETE FROM snapshots WHERE ts < ?", (cutoff,))
         _conn.commit()
+
+
+# Definicje stref żyją dłużej niż 12 h historii, bo te same klucze ma archiwum
+# migawek (30 dni) — bez definicji nie dałoby się go potem odczytać.
+ZONE_DEFS_KEEP_DAYS = 31
+
+
+def save_zone_defs(defs: dict[str, dict]) -> None:
+    """Zapisuje nowe definicje stref i odświeża `last_seen` dla obecnych."""
+    if not defs:
+        return
+    ts = now_iso()
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=ZONE_DEFS_KEEP_DAYS)).isoformat(timespec="seconds")
+    with _lock:
+        _conn.executemany(
+            "INSERT OR IGNORE INTO zone_defs (key, feature, first_seen, last_seen) VALUES (?,?,?,?)",
+            [(k, json.dumps(f, ensure_ascii=False, separators=(",", ":")), ts, ts)
+             for k, f in defs.items()])
+        _conn.executemany("UPDATE zone_defs SET last_seen=? WHERE key=?", [(ts, k) for k in defs])
+        _conn.execute("DELETE FROM zone_defs WHERE last_seen < ?", (cutoff,))
+        _conn.commit()
+
+
+def zone_defs_since(since_iso: str) -> dict[str, dict]:
+    """Definicje stref widzianych od `since_iso` — dla paczki historii."""
+    with _lock:
+        rows = _conn.execute("SELECT key, feature FROM zone_defs WHERE last_seen >= ?",
+                             (since_iso,)).fetchall()
+    return {k: json.loads(f) for k, f in rows}
 
 
 def add_adsb_watch_event(kind: str, aircraft: dict, keep_hours: int = 12):

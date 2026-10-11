@@ -32,20 +32,26 @@ class Alarms {
     // sufiks wersji: kanał raz utworzony ignoruje zmiany dźwięku, wibracji i
     // ważności, więc podmiana sygnałów albo podniesienie żółtego do heads-up
     // wymaga nowego identyfikatora
-    static final String CH_HIGH = "straznik-high-v3";
+    // v4 (10.10.2026): wibracja alfabetem Morse'a — patrz WZOR_A / WZOR_U.
+    static final String CH_HIGH = "straznik-high-v4";
     // v4 (audyt B7): żółty gra jako zdarzenie powiadomienia, a nie alarm — szanuje
     // tryb cichy i Nie przeszkadzać. Budzić przez DND ma wyłącznie czerwony.
-    static final String CH_INFO = "straznik-info-v4";
+    // v5 (10.10.2026): wibracja „U” alfabetem Morse'a.
+    static final String CH_INFO = "straznik-info-v5";
     // Ten sam żółty o ~10 dB ciszej i wariant zupełnie bez dźwięku. Androida nie da
     // się poprosić o głośność pojedynczego powiadomienia — regulacja jest możliwa
     // WYŁĄCZNIE przez wybór kanału (zgłoszenia czytelników: żółty budzi w nocy).
-    static final String CH_INFO_QUIET = "straznik-info-cicho-v1";
-    static final String CH_INFO_SILENT = "straznik-info-cisza-v1";
+    static final String CH_INFO_QUIET = "straznik-info-cicho-v2";
+    static final String CH_INFO_SILENT = "straznik-info-cisza-v2";
     // Czerwony bez dźwięku, ale z pełną wibracją i obejściem Nie przeszkadzać
     // (prośba czytelnika 29.09.2026: „zamiast syreny niech zawibruje zegarek”).
     // Osobny kanał, bo Android nie pozwala wyciszyć pojedynczego powiadomienia —
     // można tylko wybrać kanał z innym dźwiękiem albo bez niego.
-    static final String CH_HIGH_SILENT = "straznik-high-cisza-v1";
+    static final String CH_HIGH_SILENT = "straznik-high-cisza-v2";
+    // Czerwony jako ZWYKŁE powiadomienie (prośba czytelnika 10.10.2026): baner,
+    // krótki dźwięk i wibracja „A”, bez pełnego ekranu, syreny i obejścia trybu
+    // Nie przeszkadzać — pośrednio między syreną a wyłączeniem alarmów w ogóle.
+    static final String CH_HIGH_NORMAL = "straznik-high-zwykly-v1";
     // bez dźwięku: alarm potwierdzony, wiadomość opóźniona, powtórzenie
     static final String CH_QUIET = "straznik-quiet-v1";
     // stare kanały do sprzątnięcia: dawne wersje z systemowymi dźwiękami oraz
@@ -53,7 +59,24 @@ class Alarms {
     // „nasłuch aktywny" już nie istnieje)
     private static final String[] CH_LEGACY = {
         "straznik-high", "straznik-info", "straznik-high-v2", "straznik-info-v2",
-        "straznik-info-v3", "straznik-status"};
+        "straznik-info-v3", "straznik-status",
+        "straznik-high-v3", "straznik-info-v4", "straznik-info-cicho-v1",
+        "straznik-info-cisza-v1", "straznik-high-cisza-v1"};
+
+    // ── wibracja alfabetem Morse'a (decyzja usera 10.10.2026) ──────────────────
+    // Żółty to „U” (· · —): Uwaga / Увага / Urgent. Czerwony to „A” (· —):
+    // Alarm / Атака. Kto zna Morse'a, czyta literę; kto nie zna, czuje dwa rytmy
+    // nie do pomylenia ze sobą ani z SMS-em — dawny żółty (dwa krótkie) był
+    // prawie identyczny z domyślną wibracją Androida. Nie SOS: to wołanie o pomoc,
+    // a część telefonów i aplikacji ratunkowych już go używa.
+    // Kropka = 1 jednostka, kreska = 3, przerwa w literze = 1, między literami = 3.
+    // Czerwony na dłuższej jednostce, żeby był mocniejszy w kieszeni.
+    // TE SAME wzory są w app.js (WIBRACJA_U / WIBRACJA_A) i sw.js — pilnuje
+    // scripts/test_wibracje_morse.cjs. Tablice Androida zaczynają się od opóźnienia.
+    static final long[] WZOR_U = {0, 150, 150, 150, 150, 450, 450, 150, 150, 150, 150, 450};
+    static final long[] WZOR_A = {0, 200, 200, 600, 600, 200, 200, 600, 600, 200, 200, 600};
+    /** Pełny ekran powtarza „A A A” z przerwą słowa (7 jednostek), aż ktoś potwierdzi. */
+    static final long[] WZOR_A_PETLA = {0, 200, 200, 600, 600, 200, 200, 600, 600, 200, 200, 600, 1400};
 
     /** Wiadomość starsza niż to pokazujemy cicho, z dopiskiem o opóźnieniu (audyt B2). */
     static final long STALE_AFTER_MS = 10 * 60 * 1000L;
@@ -68,6 +91,10 @@ class Alarms {
     /** Głośność żółtego wybrana przez użytkownika: „normal”, „quiet” albo „silent”. */
     static final String KEY_YELLOW_LEVEL = "yellow_level";
     static final String KEY_RED_SILENT = "czerwony_cisza";
+    /** Tryb czerwonego: „syrena” (domyślnie), „wibracja” albo „zwykle”. Zastępuje
+     *  KEY_RED_SILENT, który zostaje odczytywany jako „wibracja” dla starszych zapisów. */
+    static final String KEY_RED_MODE = "czerwony_tryb";
+    static final String RED_SIREN = "syrena", RED_VIBRATION = "wibracja", RED_NORMAL = "zwykle";
     /** Użytkownik wyłączył „Alarmy na tym telefonie” — usługa FCM odrzuca alarmy. */
     static final String KEY_ALERTS_OFF = "alerts_off";
     private static final String KEY_SAVED_VOLUME = "saved_alarm_volume";
@@ -96,12 +123,6 @@ class Alarms {
         NotificationManager nm = ctx.getSystemService(NotificationManager.class);
         if (nm == null) return;
 
-        // stare kanały (systemowe dźwięki, dawny status usługi) — usuwamy, żeby
-        // nie dublowały wpisów w ustawieniach powiadomień
-        for (String old : CH_LEGACY) {
-            try { nm.deleteNotificationChannel(old); } catch (Exception ignored) {}
-        }
-
         AudioAttributes alarmAttrs = new AudioAttributes.Builder()
             .setUsage(AudioAttributes.USAGE_ALARM)
             .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build();
@@ -116,10 +137,10 @@ class Alarms {
             "Podwyższona uwaga (żółty)", NotificationManager.IMPORTANCE_HIGH);
         info.setDescription("Sygnał uwagi — respektuje tryb cichy i Nie przeszkadzać");
         info.enableVibration(true);
-        info.setVibrationPattern(new long[]{0, 220, 120, 220});
+        info.setVibrationPattern(WZOR_U);
         // ten sam dwutonowy sygnał, który gra w otwartej aplikacji
         info.setSound(soundUri(ctx, R.raw.alert_uwaga), eventAttrs);
-        nm.createNotificationChannel(info);
+        utworz(nm, info, "straznik-info-v4");
 
         // Kanał tworzymy zawsze, nie dopiero po włączeniu opcji: kanał raz utworzony
         // ignoruje zmiany dźwięku, więc lepiej, żeby istniał od początku i miał
@@ -128,9 +149,9 @@ class Alarms {
             "Podwyższona uwaga — ciszej (żółty)", NotificationManager.IMPORTANCE_HIGH);
         quietInfo.setDescription("Ten sam sygnał uwagi, około dziesięć razy ciszej");
         quietInfo.enableVibration(true);
-        quietInfo.setVibrationPattern(new long[]{0, 220, 120, 220});
+        quietInfo.setVibrationPattern(WZOR_U);
         quietInfo.setSound(soundUri(ctx, R.raw.alert_uwaga_cicho), eventAttrs);
-        nm.createNotificationChannel(quietInfo);
+        utworz(nm, quietInfo, "straznik-info-cicho-v1");
 
         // Bez dźwięku, ale nadal IMPORTANCE_HIGH: baner ma wyskoczyć, telefon zawibrować.
         // CH_QUIET się do tego nie nadaje — ma niską ważność (tylko szuflada) i służy
@@ -139,19 +160,19 @@ class Alarms {
             "Podwyższona uwaga — bez dźwięku (żółty)", NotificationManager.IMPORTANCE_HIGH);
         silentInfo.setDescription("Sygnał uwagi tylko jako baner i wibracja");
         silentInfo.enableVibration(true);
-        silentInfo.setVibrationPattern(new long[]{0, 220, 120, 220});
+        silentInfo.setVibrationPattern(WZOR_U);
         silentInfo.setSound(null, null);
-        nm.createNotificationChannel(silentInfo);
+        utworz(nm, silentInfo, "straznik-info-cisza-v1");
 
         NotificationChannel high = new NotificationChannel(CH_HIGH,
             "Wysoki priorytet (czerwony)", NotificationManager.IMPORTANCE_HIGH);
         high.setDescription("Alarm — przebija tryb cichy, jeśli na to zezwolisz");
         high.enableVibration(true);
-        high.setVibrationPattern(new long[]{0, 700, 300, 700, 300, 900});
+        high.setVibrationPattern(WZOR_A);
         high.setBypassDnd(true);
         // modulowana syrena alarmu powietrznego — identyczna jak w aplikacji
         high.setSound(soundUri(ctx, R.raw.alarm_syrena), alarmAttrs);
-        nm.createNotificationChannel(high);
+        utworz(nm, high, "straznik-high-v3");
 
         // Ten sam czerwony, tylko bez syreny. Wibracja, ważność i obejście trybu
         // Nie przeszkadzać zostają bez zmian — chodzi o zdjęcie dźwięku, nie o
@@ -160,10 +181,21 @@ class Alarms {
             "Wysoki priorytet — tylko wibracja (czerwony)", NotificationManager.IMPORTANCE_HIGH);
         highSilent.setDescription("Alarm bez syreny: sama wibracja i pełny ekran");
         highSilent.enableVibration(true);
-        highSilent.setVibrationPattern(new long[]{0, 700, 300, 700, 300, 900});
+        highSilent.setVibrationPattern(WZOR_A);
         highSilent.setBypassDnd(true);
         highSilent.setSound(null, null);
-        nm.createNotificationChannel(highSilent);
+        utworz(nm, highSilent, "straznik-high-cisza-v1");
+
+        // Czerwony jako zwykłe powiadomienie: dźwięk zdarzenia jak żółty (szanuje
+        // tryb cichy i Nie przeszkadzać — świadomie, tego chciał czytelnik), bez
+        // obejścia DND. Nowy kanał, więc nie ma czego przenosić.
+        NotificationChannel highNormal = new NotificationChannel(CH_HIGH_NORMAL,
+            "Wysoki priorytet — zwykłe powiadomienie (czerwony)", NotificationManager.IMPORTANCE_HIGH);
+        highNormal.setDescription("Czerwony bez syreny i pełnego ekranu: baner, krótki dźwięk i wibracja");
+        highNormal.enableVibration(true);
+        highNormal.setVibrationPattern(WZOR_A);
+        highNormal.setSound(soundUri(ctx, R.raw.alert_uwaga), eventAttrs);
+        nm.createNotificationChannel(highNormal);
 
         NotificationChannel quiet = new NotificationChannel(CH_QUIET,
             "Alarmy potwierdzone i opóźnione (cicho)", NotificationManager.IMPORTANCE_LOW);
@@ -171,6 +203,37 @@ class Alarms {
         quiet.setSound(null, null);
         quiet.enableVibration(false);
         nm.createNotificationChannel(quiet);
+
+        // Stare kanały sprzątamy DOPIERO teraz: utworz() musiało jeszcze odczytać
+        // z nich, co użytkownik wyłączył.
+        for (String old : CH_LEGACY) {
+            try { nm.deleteNotificationChannel(old); } catch (Exception ignored) {}
+        }
+    }
+
+    /**
+     * Tworzy kanał, a przy PIERWSZYM utworzeniu przenosi ze starej wersji to, co
+     * użytkownik sam wyłączył w ustawieniach systemu: cały kanał albo wibrację.
+     *
+     * Nowy wzór wibracji wymaga nowego identyfikatora (kanał po utworzeniu ignoruje
+     * zmiany), a nowy kanał startuje z naszymi domyślnymi. Bez tego ktoś, kto
+     * wyciszył żółty w ustawieniach telefonu, po aktualizacji znów by go dostawał.
+     * Dźwięku wybranego w systemie nie przenosimy — wraca nasz.
+     */
+    private static void utworz(NotificationManager nm, NotificationChannel nowy, String stary) {
+        try {
+            if (nm.getNotificationChannel(nowy.getId()) == null) {
+                NotificationChannel s = nm.getNotificationChannel(stary);
+                if (s != null) {
+                    if (s.getImportance() == NotificationManager.IMPORTANCE_NONE)
+                        nowy.setImportance(NotificationManager.IMPORTANCE_NONE);
+                    if (!s.shouldVibrate()) nowy.enableVibration(false);
+                }
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "przeniesienie ustawień kanału " + stary, e);
+        }
+        nm.createNotificationChannel(nowy);
     }
 
     /** „HH:mm" z czasu wysyłki serwera; pusty napis, gdy czas nieznany (sentAtMs = 0). */
@@ -229,14 +292,31 @@ class Alarms {
         return ("quiet".equals(v) || "silent".equals(v)) ? v : "normal";
     }
 
-    /** Czy czerwony alarm ma iść bez syreny (sama wibracja). */
-    static boolean redSilent(Context ctx) {
-        return prefs(ctx).getBoolean(KEY_RED_SILENT, false);
+    /** Tryb czerwonego; zapis sprzed 10.10.2026 (sam przełącznik ciszy) czytamy jako „wibracja”. */
+    static String redMode(Context ctx) {
+        SharedPreferences p = prefs(ctx);
+        String v = p.getString(KEY_RED_MODE, null);
+        if (RED_VIBRATION.equals(v) || RED_NORMAL.equals(v) || RED_SIREN.equals(v)) return v;
+        return p.getBoolean(KEY_RED_SILENT, false) ? RED_VIBRATION : RED_SIREN;
     }
 
-    /** Kanał czerwonego: z syreną albo sam z wibracją, zależnie od ustawienia. */
+    /** Czy czerwony alarm ma iść bez syreny (wibracja albo zwykłe powiadomienie). */
+    static boolean redSilent(Context ctx) {
+        return !RED_SIREN.equals(redMode(ctx));
+    }
+
+    /** Czy czerwony ma przyjść jak zwykłe powiadomienie: bez pełnego ekranu i syreny. */
+    static boolean redNormal(Context ctx) {
+        return RED_NORMAL.equals(redMode(ctx));
+    }
+
+    /** Kanał czerwonego zależnie od wybranego trybu. */
     static String highChannel(Context ctx) {
-        return redSilent(ctx) ? CH_HIGH_SILENT : CH_HIGH;
+        switch (redMode(ctx)) {
+            case RED_VIBRATION: return CH_HIGH_SILENT;
+            case RED_NORMAL:    return CH_HIGH_NORMAL;
+            default:            return CH_HIGH;
+        }
     }
 
     /** Kanał żółtego zależnie od ustawienia użytkownika. Czerwonego to nie dotyczy. */
@@ -306,6 +386,38 @@ class Alarms {
             nm.notify(notifId(voiv), b.build());
         }
         restoreAlarmVolume(ctx);
+    }
+
+    /**
+     * Ciche powiadomienie, gdy alarm pokazała już OTWARTA aplikacja (11.10.2026).
+     *
+     * Google obniża priorytet pilnym wiadomościom FCM, które nie kończą się
+     * widocznym powiadomieniem — ocenia to z 7 dni, osobno dla każdego telefonu.
+     * Alarm przekazany do otwartej aplikacji był dla Google „niczym”, więc kto
+     * często ma Strażnika na ekranie, dostawał potem alarmy przy zgaszonym ekranie
+     * z opóźnieniem (u usera 80 s). To powiadomienie jest bez dźwięku i wibracji
+     * (kanał CH_QUIET) — alarm i tak widać w aplikacji — ale zostaje w szufladzie.
+     * Ten sam identyfikator co alarm: późniejszy alarm natywny je zastąpi.
+     */
+    static void postShownInApp(Context ctx, int voiv, String level, double score,
+                               String headline, long sentAtMs) {
+        if (voiv < 0 || voiv >= VOIVS.length) return;
+        NotificationManager nm = (NotificationManager) ctx.getSystemService(Context.NOTIFICATION_SERVICE);
+        if (nm == null) return;
+        String title = ("high".equals(level) ? "WYSOKI PRIORYTET" : "PODWYŻSZONA UWAGA")
+            + ": woj. " + VOIVS[voiv] + " (" + score + " pkt)";
+        String text = (headline != null && !headline.isEmpty() ? headline + "\n" : "")
+            + "Pokazane w otwartej aplikacji.";
+        Notification.Builder b = builder(ctx, CH_QUIET)
+            .setContentTitle(title)
+            .setContentText(text)
+            .setStyle(new Notification.BigTextStyle().bigText(text))
+            .setSmallIcon(android.R.drawable.ic_dialog_alert)
+            .setContentIntent(openApp(ctx))
+            .setAutoCancel(true);
+        if (sentAtMs > 0) b.setWhen(sentAtMs).setShowWhen(true);
+        try { nm.notify(notifId(voiv), b.build()); }
+        catch (Exception e) { Log.w(TAG, "ciche powiadomienie z otwartej aplikacji", e); }
     }
 
     /** Treść ostatniego alarmu per województwo — do cichej kopii po wyciszeniu. */
@@ -416,14 +528,23 @@ class Alarms {
             b.setDefaults(Notification.DEFAULT_VIBRATE | Notification.DEFAULT_SOUND);
             if (high) b.setSound(android.provider.Settings.System.DEFAULT_ALARM_ALERT_URI);
         }
-        if (high) {
+        // „Zwykłe powiadomienie” (prośba czytelnika 10.10.2026): czerwony przychodzi
+        // jak żółty — baner, krótki dźwięk, wibracja „A” — bez pełnego ekranu, syreny
+        // w pętli, podnoszenia głośności i obejścia Nie przeszkadzać.
+        boolean pelnyAlarm = high && !redNormal(ctx);
+        if (pelnyAlarm) {
             PendingIntent silenceIntent = PendingIntent.getBroadcast(ctx, 4000 + voiv,
                 new Intent(ctx, AlarmActionReceiver.class).setAction(ACTION_SILENCE)
                     .putExtra(EXTRA_NOTIF_ID, voiv),
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
             b.setFullScreenIntent(fullScreen, true);
             b.setCategory(Notification.CATEGORY_ALARM);
-            b.setOngoing(true);        // alarm nie znika przypadkowym muśnięciem
+            // NIE setOngoing (10.10.2026): Wear OS nie przekazuje powiadomień stałych
+            // na zegarek (developer.android.com, „When notifications aren't bridged”),
+            // a opaski z własnymi aplikacjami zwykle też je pomijają — czerwony nie
+            // docierał na rękę osoby głuchej. Android 14+ i tak pozwala zsunąć stałe
+            // powiadomienie z odblokowanego telefonu. Zsunięcie = „Wycisz alarm”
+            // (deleteIntent), pełny ekran zostaje.
             b.setDeleteIntent(silenceIntent);
             b.addAction(new Notification.Action.Builder(null, "Wycisz alarm", silenceIntent).build());
         }
@@ -431,12 +552,12 @@ class Alarms {
         Notification n = b.build();
         // Audyt B11: przy włączonym ekranie czerwony grał syrenę raz, przez 8 s.
         // Flaga INSISTENT powtarza dźwięk kanału, dopóki użytkownik nie wyciszy.
-        if (high) n.flags |= Notification.FLAG_INSISTENT;
+        if (pelnyAlarm) n.flags |= Notification.FLAG_INSISTENT;
 
-        if (high) raiseAlarmVolume(ctx);
+        if (pelnyAlarm) raiseAlarmVolume(ctx);
         if (nm != null) nm.notify(notifId(voiv), n);
 
-        if (high) ensureAlarmIsSeen(ctx, nm);
+        if (pelnyAlarm) ensureAlarmIsSeen(ctx, nm);
     }
 
     /**

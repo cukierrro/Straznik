@@ -69,7 +69,12 @@ self.addEventListener("push", (e) => {
     tag: "straznik-" + data.level,
     renotify: data.level === "high",
     requireInteraction: data.level === "high",
-    vibrate: data.level === "high" ? [300, 100, 300, 100, 600] : [150],
+    // Morse'em, jak w aplikacji (10.10.2026): czerwony „A A A” (· —), żółty
+    // „U U” (· · —). Te same tablice co WIBRACJA_A / WIBRACJA_U w app.js —
+    // pilnuje scripts/test_wibracje_morse.cjs.
+    vibrate: data.level === "high"
+      ? [200, 200, 600, 600, 200, 200, 600, 600, 200, 200, 600]
+      : [150, 150, 150, 150, 450, 450, 150, 150, 150, 150, 450],
     icon: "assets/icon-192.png",
     badge: "assets/icon-192.png",
   }));

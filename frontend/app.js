@@ -96,6 +96,19 @@ function bezPotwierdzenia(st) {
   if (!st || st.red_key || st.score < 4 || st.level === "high") return "";
   return `<span class="muted"> · ${UI.t("brak potwierdzenia obiektem — zostaje żółty", "no confirming object — stays yellow", "немає підтвердження об'єктом — лишається жовтий")}</span>`;
 }
+/* Poziom trzymany CZASEM, nie punktami (11.10.2026). Na żywo żółty zostaje
+   10 min po ostatnim przekroczeniu progu (fusion.hold_level), żeby nie migał —
+   ale karta mówiła wtedy „PODWYŻSZONA UWAGA” przy 1,7 pkt bez słowa wyjaśnienia.
+   Ten sam opis w historii (Engine.historyFrom → podtrzymanie). */
+function podtrzymanieHTML(p) {
+  if (!p?.do) return "";
+  const godz = new Date(p.do).toLocaleTimeString(UI.t("pl-PL", "en-GB", "uk-UA"),
+    { hour: "2-digit", minute: "2-digit" });
+  return `<div class="fineprint podtrzymanie">${UI.t(
+    `podtrzymany do ${godz}: wynik spadł poniżej progu, a poziom trzyma się 10 min po ostatnim przekroczeniu, żeby nie migał`,
+    `held until ${godz}: the score fell below the threshold, and the level stays for 10 min after it was last exceeded so it does not flicker`,
+    `утримується до ${godz}: бал упав нижче порога, а рівень тримається 10 хв після останнього перевищення, щоб не блимав`)}</div>`;
+}
 const LEVEL_LABEL = UI.t(
   { none: "brak sygnałów", elevated: "PODWYŻSZONA UWAGA", high: "WYSOKI PRIORYTET" },
   { none: "no signals", elevated: "ELEVATED ATTENTION", high: "HIGH PRIORITY" },
@@ -1082,6 +1095,7 @@ function applyState(s) {
   refreshCountedTracks();
   renderLeds();
   updateAlarmMood();          // alarmy działają także w trybie przeglądania
+  odswiezOpisSytuacji();      // czytnik ekranu: stan NA ŻYWO, także w historii
   publishAlertContract();     // stan alarmu dla modułu GROTA — także w historii
   if (histMode) return;       // ale widok mapy/panelu zostaje na wybranym momencie
   renderPanel();
@@ -1737,7 +1751,7 @@ async function initMap() {
         { layers: ["threats", "threats-glow", "adsb"] });
       if (hit.length) return;
       const names = [...new Set((e.features || []).map(f => f.properties?.designator).filter(Boolean))];
-      const full = names.map(n => (zonesData?.features || []).find(x => x.properties?.designator === n))
+      const full = names.map(n => (aktywneStrefy()?.features || []).find(x => x.properties?.designator === n))
         .filter(Boolean).sort((a, b) => zoneArea(a) - zoneArea(b));
       if (!full.length) { openZoneCard(e.features?.[0]?.properties); return; }
       openZoneCard(full[0].properties, full.slice(1).map(f => f.properties.designator));
@@ -1790,6 +1804,57 @@ const ZONE_QUIET = ["any", ["==", ["get", "standing"], true],
 const ZONE_COLOR = ["case", ZONE_QUIET, "#b39ddb", "#ffb020"];
 const ZONE_TTL_MS = 4 * 60 * 1000;
 let zonesData = null, zonesAt = 0, zonesPending = false;
+/* Strefy w historii (10.10.2026). Migawka niesie listę [klucz, since, atBoot],
+   a geometria i opis przychodzą raz w paczce (`zone_defs`) albo z żywego
+   /api/zones. histZonesData = strefy wybranej chwili; null = z tej chwili nie
+   mamy zapisu (migawki sprzed wdrożenia, tryb wbudowany) — wtedy warstwa jest
+   ukryta, jak wcześniej, zamiast rysować bieżące strefy nad przeszłością.
+   zoneRefMs = „teraz” dla karty strefy („aktywna od 3 godz.”) — w historii
+   to chwila z suwaka, nie zegar telefonu. */
+let srvZoneDefs = {}, histZonesData = null, zoneRefMs = null;
+const aktywneStrefy = () => (histMode ? histZonesData : zonesData);
+const ZONE_ZMIENNE = ["since", "atBoot", "standing", "baseM", "topM"];
+function zapamietajDefinicjeStref(features) {
+  for (const f of features || []) {
+    const p = f?.properties;
+    if (!p?.key || srvZoneDefs[p.key]) continue;
+    const props = {};
+    for (const [k, v] of Object.entries(p)) if (!ZONE_ZMIENNE.includes(k)) props[k] = v;
+    srvZoneDefs[p.key] = { type: "Feature", geometry: f.geometry, properties: props };
+  }
+}
+/* Migawki nagrane przez stronę ZANIM przyszły strefy (start aplikacji: stan
+   z serwera bywa szybszy niż /api/zones) nie miały ich wcale — a to właśnie
+   najnowsza chwila, którą w historii ogląda się najczęściej (sprawdzone na
+   produkcji 10.10.2026). Uzupełniamy tylko świeże, najwyżej 5 min przed
+   odczytem stref: zestaw zmienia się rzadko (raz na dobę o 6:00, a zniknięcie
+   strefy serwer i tak trzyma przez karencję). Starszych nie ruszamy — dla nich
+   zostaje „brak zapisu”, nie zgadujemy. */
+const STREFY_UZUPELNIJ_MS = 5 * 60 * 1000;
+function uzupelnijStrefyMigawek(features, odczytMs) {
+  const zones = (features || []).filter(f => f.properties?.key)
+    .map(f => [f.properties.key, f.properties.since || 0, !!f.properties.atBoot]);
+  for (const sn of srvSnaps)
+    if (!Array.isArray(sn.zones) && sn.t >= odczytMs - STREFY_UZUPELNIJ_MS && sn.t <= odczytMs)
+      sn.zones = zones;
+}
+/* Warstwa stref dla migawki: null, gdy migawka nie ma pola `zones`. Klucz bez
+   definicji pomijamy — lepiej brak jednej strefy niż wymyślony kształt. */
+function strefyZMigawki(snap, whenMs) {
+  if (!snap || !Array.isArray(snap.zones)) return null;
+  const features = [];
+  for (const [key, since, atBoot] of snap.zones) {
+    const def = srvZoneDefs[key];
+    if (!def) continue;
+    const p = { ...def.properties, since, atBoot: !!atBoot,
+                // jak na serwerze: strefa stojąca dłużej niż dobę to stan, nie zdarzenie
+                standing: since > 0 && whenMs / 1000 - since > 24 * 3600 };
+    p.baseM = zoneAltM(p.lower);
+    p.topM = Math.max(zoneAltM(p.upper), p.baseM + 400);
+    features.push({ type: "Feature", geometry: def.geometry, properties: p });
+  }
+  return { type: "FeatureCollection", features };
+}
 
 function zonesOn() {
   try { return localStorage.getItem("straznik_zones") !== "0"; } catch { return true; }
@@ -1815,8 +1880,8 @@ function zoneAltText(v) {
 
 async function refreshZones(force) {
   if (zonesPending) return;
-  // W historii warstwa i tak jest ukryta (applyZones), więc odpytywanie serwera
-  // co minutę byłoby ruchem za nic. Po wyjściu exitHistory dociąga świeże.
+  // W historii warstwa pokazuje strefy z migawki (applyZones), więc odpytywanie
+  // serwera byłoby ruchem za nic. Po wyjściu exitHistory dociąga świeże.
   if (histMode) { applyZones(); return; }
   if (!force && Date.now() - zonesAt < ZONE_TTL_MS) return;
   syncZonesButton();
@@ -1839,6 +1904,8 @@ async function refreshZones(force) {
       p.topM = Math.max(zoneAltM(p.upper), p.baseM + 400);
     }
     zonesData = fc; zonesAt = Date.now();
+    zapamietajDefinicjeStref(fc.features);   // dla historii nagrywanej na żywo
+    uzupelnijStrefyMigawek(fc.features, zonesAt);
     applyZones();
     /* Panel przerysowuje się dopiero przy następnym stanie z serwera, więc bez
        tego plakietki stref pojawiały się w kartach województw z opóźnieniem —
@@ -1850,18 +1917,19 @@ async function refreshZones(force) {
 
 function applyZones() {
   if (!mapReady || !map.getSource("strefy")) return;
-  /* W trybie historii warstwa jest UKRYTA — ta sama zasada co przy alarmach
-     rejonów w showHistoryAt: migawka nie zapisuje stref, więc nie udajemy, że
-     wiemy, które obowiązywały w tamtej chwili.
+  /* W historii rysujemy strefy Z TAMTEJ CHWILI (histZonesData), a gdy migawka
+     ich nie zapisała — warstwa jest UKRYTA. Nigdy bieżących.
 
-     Bez tego suwak rysował BIEŻĄCY zestaw nad przeszłą sytuacją. PAŻP rotuje
+     Do 07.10.2026 suwak rysował BIEŻĄCY zestaw nad przeszłą sytuacją. PAŻP rotuje
      cały zestaw raz na dobę o 06:00 UTC (pomiar 07.10.2026: 33 z 34 stref
      zaczynały dokładnie o tej godzinie), więc przez pół doby okno 12 h sięgało
      przed rotację. Gorzej: strefa zdjęta znika z bieżącego zestawu zupełnie —
      a to właśnie strefy doraźne, otwierane w trakcie zdarzenia, są w historii
-     najważniejsze. Odtwarzany atak wyglądał więc na odbyty przy otwartym niebie. */
-  const on = zonesOn() && !histMode;
-  map.getSource("strefy").setData(on && zonesData ? zonesData : emptyFC());
+     najważniejsze. Odtwarzany atak wyglądał więc na odbyty przy otwartym niebie.
+     Od 10.10.2026 migawka zapisuje klucze stref (pansa.zones_snapshot). */
+  const dane = aktywneStrefy();
+  const on = zonesOn() && !!dane;
+  map.getSource("strefy").setData(on ? dane : emptyFC());
   for (const id of ["strefy-3d", "strefy-tlo", "strefy-line", "strefy-hit"])
     if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", on ? "visible" : "none");
 }
@@ -1870,9 +1938,9 @@ function syncZonesButton() {
   const b = document.getElementById("btn-zones");
   if (!b) return;
   // W trybie wbudowanym nie ma czego pokazywać, więc przycisk znika zamiast
-  // udawać, że działa. Tak samo w historii: warstwa jest tam ukryta, więc
-  // przełącznik nie miałby czego przełączyć.
-  b.style.display = (standalone || !apiBase() || histMode) ? "none" : "";
+  // udawać, że działa. Tak samo w historii, gdy wybrana chwila nie ma zapisu
+  // stref: warstwa jest wtedy ukryta i przełącznik nie miałby czego przełączyć.
+  b.style.display = (standalone || !apiBase() || (histMode && !histZonesData)) ? "none" : "";
   const on = zonesOn();
   b.setAttribute("aria-pressed", on ? "true" : "false");
   const t = on ? (UI.t("Ukryj strefy PAŻP", "Hide PAŻP zones", "Сховати зони PAŻP"))
@@ -1924,7 +1992,12 @@ function zoneClock(iso) {
 function zoneSinceText(sinceEpochS) {
   const t = Number(sinceEpochS) * 1000;
   if (!t || isNaN(t)) return "";
-  const h = (Date.now() - t) / 3600000;
+  // w historii „temu” liczymy od chwili z suwaka, nie od zegara telefonu
+  const h = ((histMode && zoneRefMs) || Date.now()) - t;
+  if (h < 0) return "";
+  return zoneAgoText(h / 3600000);
+}
+function zoneAgoText(h) {
   if (h < 1) return UI.t(`${Math.max(1, Math.round(h * 60))} min temu`, `${Math.max(1, Math.round(h * 60))} min ago`, `${Math.max(1, Math.round(h * 60))} хв тому`);
   if (h < 48) return UI.t(`${Math.round(h)} godz. temu`, `${Math.round(h)} h ago`, `${Math.round(h)} год тому`);
   return UI.t(`${Math.round(h / 24)} dni temu`, `${Math.round(h / 24)} days ago`, `${Math.round(h / 24)} дн. тому`);
@@ -3242,6 +3315,7 @@ function renderPanel() {
       <div class="voiv-level">${spillRaised(st) ? SPILL_LABEL
         : st.level === "none" && st.score > 0
         ? (UI.t("poniżej progu", "below threshold", "нижче порога")) : LEVEL_LABEL[st.level]}</div>
+      ${podtrzymanieHTML(st.podtrzymanie)}
       ${scoreBreakdown(st)}
       ${zonesRowHTML(name)}
       <div class="voiv-breakdown">${st.signals.length
@@ -3291,7 +3365,10 @@ function renderPanel() {
       spillRaised(st) ? SPILL_LABEL
       : st.level === "none" && st.score > 0 ? (UI.t("poniżej progu", "below threshold", "нижче порога"))
       : LEVEL_LABEL[st.level]}</span>
-      <span class="muted">${st.score.toFixed(1)} ${UI.t("pkt", "pts", "бал.")}</span>${bezPotwierdzenia(st)}</span>`;
+      <span class="muted">${st.score.toFixed(1)} ${UI.t("pkt", "pts", "бал.")}${st.podtrzymanie?.do
+        ? " · " + UI.t("podtrzymany do", "held until", "утримується до") + " "
+          + new Date(st.podtrzymanie.do).toLocaleTimeString(UI.t("pl-PL", "en-GB", "uk-UA"), { hour: "2-digit", minute: "2-digit" })
+        : ""}</span>${bezPotwierdzenia(st)}</span>`;
     banner.onclick = () => { setPanel(true); openCard(mine); };
   } else {
     banner.className = "hidden";
@@ -3657,8 +3734,9 @@ function scoreBreakdown(st) {
 /* Strefy nad danym województwem — druga droga do karty strefy, niezależna od
    celowania palcem w mapę. Bez tego trzeba by trafić w konkretny wielokąt. */
 function zonesForVoiv(name) {
-  if (!zonesOn() || !zonesData) return [];
-  return zonesData.features
+  const dane = aktywneStrefy();
+  if (!zonesOn() || !dane) return [];
+  return dane.features
     .filter(f => f.properties?.voiv === name)
     .map(f => f.properties);
 }
@@ -3676,7 +3754,7 @@ function zonesRowHTML(name) {
     UI.t("bez punktów", "no points", "без балів")})</span></summary>${chips}</details>`;
 }
 function openZoneByName(designator) {
-  const f = (zonesData?.features || []).find(x => x.properties?.designator === designator);
+  const f = (aktywneStrefy()?.features || []).find(x => x.properties?.designator === designator);
   if (f) openZoneCard(f.properties);
 }
 
@@ -4023,7 +4101,8 @@ function updateAlarmMood() {
     if (level === "high") {
       const voiv = mine && pool.includes(mine) && alarmLevel(voivs[mine]) === "high" ? mine
         : pool.find(v => alarmLevel(voivs[v]) === "high");
-      showAlarm(voiv, voivs[voiv]);   // ciągła syrena + popup do potwierdzenia
+      if (czerwonyTryb() === "zwykle") czerwonyZwykly(voiv, voivs[voiv]?.score?.toFixed(1));
+      else showAlarm(voiv, voivs[voiv]);   // ciągła syrena + popup do potwierdzenia
       // ostrzeżenie o nieoficjalnym źródle musi wrócić, gdy robi się poważnie
       document.getElementById("disclaimer").classList.remove("hidden");
     } else if (level === "elevated") {
@@ -4068,7 +4147,10 @@ function onForegroundPush(d) {
   fcmSeen.add(id);
   const score = parseFloat(d.score) || 0;
   const st = state?.fusion?.voivodeships?.[d.voiv];
-  if (d.level === "high") {
+  if (d.level === "high" && czerwonyTryb() === "zwykle") {
+    czerwonyZwykly(d.voiv, score);
+    document.getElementById("disclaimer").classList.remove("hidden");
+  } else if (d.level === "high") {
     showAlarm(d.voiv, st && alarmLevel(st) === "high" ? st
       : { score, signals: [], reasonsText: [d.headline, d.reasons].filter(Boolean).join("\n") });
     document.getElementById("disclaimer").classList.remove("hidden");
@@ -4080,7 +4162,7 @@ function onForegroundPush(d) {
 }
 
 /* Najbliższy obiekt i czas dolotu do województwa alarmu (audyt C11). */
-function nearestThreatLine(voiv) {
+function najblizszyObiekt(voiv) {
   let best = null;
   for (const t of state?.neptun?.threats || []) {
     if (t.lat == null || isApproxPosition(t) || !t.pl_assessment?.toward_pl) continue;
@@ -4088,13 +4170,73 @@ function nearestThreatLine(voiv) {
     if (km == null || (best && km >= best.km)) continue;
     best = { t, km };
   }
-  if (!best) return "";
+  if (!best) return null;
   const v = best.t.pl_assessment?.heading_known === false ? null
     : (best.t.velocity?.speedKmh ?? trackSpeed(best.t));
-  const eta = v ? etaMin(best.km, v) : null;
-  const what = UI.type(best.t.type, (TYPE_META[best.t.type] || TYPE_META.unknown).label);
-  return `${UI.t("Najbliżej", "Nearest", "Найближче")}: <b>${esc(what)}</b> · ${Math.round(best.km)} km`
-    + (eta != null ? ` · ${UI.t("ok.", "about", "бл.")} ${etaTxt(eta)}` : "");
+  return {
+    what: UI.type(best.t.type, (TYPE_META[best.t.type] || TYPE_META.unknown).label),
+    km: Math.round(best.km),
+    eta: v ? etaMin(best.km, v) : null,
+  };
+}
+function nearestThreatLine(voiv) {
+  const n = najblizszyObiekt(voiv);
+  if (!n) return "";
+  return `${UI.t("Najbliżej", "Nearest", "Найближче")}: <b>${esc(n.what)}</b> · ${n.km} km`
+    + (n.eta != null ? ` · ${UI.t("ok.", "about", "бл.")} ${etaTxt(n.eta)}` : "");
+}
+
+/* ── Sytuacja jednym zdaniem — dla czytnika ekranu zamiast mapy ─────────────
+   Obiecane publicznie w opisie 1.7.81. Mapa dla osoby niewidomej jest pustym
+   obrazkiem: czytnik słyszał zmianę poziomu (pole `assertive`), ale nie miał
+   jak sprawdzić, jak jest TERAZ. Niewidoczny nagłówek przed mapą mówi to jednym
+   zdaniem: obserwowane województwa (jak alarm w updateAlarmMood), a bez nich
+   województwa z sygnałami w kraju; poziom ALARMU, nie kolor mapy; najbliższy
+   obiekt i godzina danych. Nie jest polem `aria-live` — nie przerywa co kilka
+   sekund, czytnik czyta go, gdy człowiek do niego dojdzie (nagłówek: skok
+   „następny nagłówek"). Osobna funkcja bez DOM, żeby test mógł ją uruchomić. */
+function opisSytuacji(voivs, obserwowane, najblizszy, godzina) {
+  const order = ["none", "elevated", "high"];
+  const nazwa = { none: UI.t("brak sygnałów", "no signals", "немає сигналів"),
+                  elevated: UI.t("podwyższona uwaga", "heightened attention", "підвищена увага"),
+                  high: UI.t("wysoki priorytet", "high priority", "високий пріоритет") };
+  const liczba = (x) => UI.t(x.toFixed(1).replace(".", ","), x.toFixed(1), x.toFixed(1).replace(".", ","));
+  const poziom = (v) => alarmLevel(voivs[v]);
+  const wazniejsze = (a, b) => order.indexOf(poziom(b)) - order.indexOf(poziom(a))
+    || (voivs[b]?.score || 0) - (voivs[a]?.score || 0);
+  const start = `${UI.t("Sytuacja o", "Situation at", "Ситуація о")} ${godzina}: `;
+  const koniec = " " + UI.t("Strażnik to źródło nieoficjalne — kieruj się syrenami i komunikatami RCB.",
+    "Strażnik is an unofficial source — follow sirens and RCB alerts.",
+    "Strażnik — неофіційне джерело, орієнтуйтеся на сирени та повідомлення RCB.");
+  let lista = (obserwowane || []).filter(v => voivs[v]);
+  if (!lista.length) {
+    lista = Object.keys(voivs).filter(v => poziom(v) !== "none").sort(wazniejsze).slice(0, 3);
+    if (!lista.length)
+      return start + UI.t("w całym kraju brak sygnałów.", "no signals anywhere in Poland.",
+        "по всій Польщі сигналів немає.") + koniec;
+  }
+  const czesci = lista.map(v => {
+    const lv = poziom(v);
+    return `${UI.t("woj.", "", "воєв.")} ${UI.voiv(v)} — ${nazwa[lv]}`
+      + (lv !== "none" ? `, ${liczba(voivs[v]?.score || 0)} ${UI.t("pkt", "pts", "бал.")}` : "");
+  });
+  let zdanie = start + czesci.join("; ") + ".";
+  const glowne = [...lista].sort(wazniejsze)[0];
+  const n = poziom(glowne) !== "none" ? najblizszy(glowne) : null;
+  if (n) zdanie += ` ${UI.t("Najbliżej", "Nearest", "Найближче")}: ${n.what}, ${n.km} km`
+    + (n.eta != null ? `, ${UI.t("około", "about", "близько")} ${n.eta < 1 ? 1 : n.eta} min` : "") + ".";
+  return zdanie.replace(/ {2,}/g, " ") + koniec;
+}
+function odswiezOpisSytuacji() {
+  const sytuacjaEl = document.getElementById("sytuacja");
+  if (!sytuacjaEl) return;
+  const voivs = state?.fusion?.voivodeships || {};
+  const mine = myVoiv();
+  const watched = Places?.observedVoivodeships(savedPlaces) || [];
+  const godzina = new Date(threatsReceivedAt || Date.now())
+    .toLocaleTimeString(UI.t("pl-PL", "en-GB", "uk-UA"), { hour: "2-digit", minute: "2-digit" });
+  sytuacjaEl.textContent = opisSytuacji(voivs, watched.length ? watched : (mine ? [mine] : []),
+    najblizszyObiekt, godzina);
 }
 
 /* ── pełnoekranowy alarm z ręcznym potwierdzeniem ────────────────────────── */
@@ -4216,6 +4358,16 @@ const CHIME_GAIN = 0.20, CHIME_OCTAVE_MIX = 0.35;
 /* Trzy stopnie z ustawień: „ciszej" to −10 dB (tyle samo, co cichszy kanał
    powiadomień), „bez dźwięku" zostawia sam baner i wibrację. */
 const CHIME_LEVELS = { normal: 1, quiet: 0.32, silent: 0 };
+/* Wibracja alfabetem Morse'a (decyzja usera 10.10.2026): żółty „U U” (· · —),
+   czerwony „A A A” (· —), kropka 150/200 ms, kreska ×3. Te same wzory mają
+   kanały Androida (Alarms.WZOR_U / WZOR_A) i sw.js — pilnuje tego
+   scripts/test_wibracje_morse.cjs. navigator.vibrate zaczyna od wibracji,
+   więc bez wiodącego zera z tablic Androida. */
+const WIBRACJA_U = [150, 150, 150, 150, 450, 450, 150, 150, 150, 150, 450];
+const WIBRACJA_A = [200, 200, 600, 600, 200, 200, 600, 600, 200, 200, 600];
+/* Pełny alarm powtarza „A A A” z przerwą słowa (1400 ms), jak ekran natywny. */
+const WIBRACJA_A_CO_MS = WIBRACJA_A.reduce((a, b) => a + b, 0) + 1400;
+function zawibruj(wzor) { try { if (navigator.vibrate) navigator.vibrate(wzor); } catch {} }
 function chimeLevel() {
   try {
     const v = localStorage.getItem("straznik_zolty_poziom");
@@ -4226,7 +4378,8 @@ function chimeLevel() {
 function attentionChime() {
   try {
     const mnoznik = CHIME_LEVELS[chimeLevel()];
-    if (!mnoznik) { if (navigator.vibrate) navigator.vibrate([220, 120, 220]); return; }
+    zawibruj(WIBRACJA_U);   // także z dźwiękiem: osoba głucha przy otwartej aplikacji
+    if (!mnoznik) return;
     const szczyt = CHIME_GAIN * mnoznik;
     const c = ctx(), t0 = c.currentTime;
     const SEQ = [740, 988, 740, 988, 740, 988];   // fis2 ↔ h2
@@ -4304,8 +4457,32 @@ function czerwonyBezSyreny() {
   // pojedynczego rodzaju powiadomienia, więc cisza w otwartej aplikacji przy
   // wyjącym pushu byłaby myląca. Dzięki temu zachowanie na iPhonie jest tu
   // nietknięte, co sprawdzają scripts/test_ios_wspolne.cjs i test_syrena_ios.cjs.
-  if (IS_IOS) return false;
-  try { return localStorage.getItem("straznik_czerwony_cisza") === "1"; } catch { return false; }
+  return czerwonyTryb() !== "syrena";
+}
+/* Tryb czerwonego z ustawień (10.10.2026): „syrena”, „wibracja” albo „zwykle”.
+   Prawdę trzyma strona natywna; tu kopia dla otwartej aplikacji. Zapis sprzed
+   tej zmiany (sam przełącznik ciszy) czytamy jako „wibracja”. Na iPhonie
+   zawsze „syrena” — patrz wyżej. */
+const TRYBY_CZERWONEGO = ["syrena", "wibracja", "zwykle"];
+function czerwonyTryb() {
+  if (IS_IOS) return "syrena";
+  try {
+    const v = localStorage.getItem("straznik_czerwony_tryb");
+    if (TRYBY_CZERWONEGO.includes(v)) return v;
+    return localStorage.getItem("straznik_czerwony_cisza") === "1" ? "wibracja" : "syrena";
+  } catch { return "syrena"; }
+}
+/* Czerwony w trybie „zwykłe powiadomienie” przy otwartej aplikacji: tak samo
+   jak powiadomienie przy zamkniętej — bez pełnego ekranu i syreny, ale z
+   sygnałem, wibracją „A”, paskiem i komunikatem dla czytnika ekranu. */
+function czerwonyZwykly(voiv, score) {
+  chimeOnce();
+  zawibruj(WIBRACJA_A);
+  const gdzie = voiv ? `${UI.t("woj.", "province", "воєв.")} ${UI.voiv(voiv)}` : "";
+  toast(`🔴 <b>${UI.t("Wysoki priorytet", "High priority", "Високий пріоритет")}</b>: ${esc(gdzie)}`
+    + (score ? ` (${score} ${UI.t("pkt", "pts", "бал.")})` : ""), 15000);
+  powiedz(a11yAlert, UI.t(`Wysoki priorytet zagrożenia, ${gdzie}.`,
+    `High threat priority, ${gdzie}.`, `Високий пріоритет загрози, ${gdzie}.`));
 }
 
 /* Parametr mimoCiszy — przycisk „Test: syrena” to prośba „daj mi to usłyszeć”, a nie
@@ -4354,8 +4531,8 @@ function airRaidSiren(continuous = true, mimoCiszy = false) {
         }, (SIREN_UP + SIREN_DOWN) * 2500);
       }
       if (navigator.vibrate) {
-        const pulse = () => navigator.vibrate([700, 300, 700, 300, 900]);
-        pulse(); vibrateTimer = setInterval(pulse, 4000);
+        const pulse = () => zawibruj(WIBRACJA_A);
+        pulse(); vibrateTimer = setInterval(pulse, WIBRACJA_A_CO_MS);
       }
     } else {
       // tryb testowy — wycisz po trzech cyklach
@@ -4367,7 +4544,7 @@ function airRaidSiren(continuous = true, mimoCiszy = false) {
       // Na iOS ten timeout jest JEDYNYM, co kończy test: natywna syrena gra w pętli
       // do polecenia „wyłącz", więc bez niego test nie skończyłby się sam.
       setTimeout(() => { sirenNodes = null; sesjaAudioAlarmu(false); }, total * 1000 + 200);
-      if (navigator.vibrate) navigator.vibrate([700, 300, 700]);
+      zawibruj(WIBRACJA_A);
     }
   } catch {}
 }
@@ -4945,7 +5122,12 @@ function srvRecord(s) {
     type: a.type, lat: +(+a.lat).toFixed(3), lon: +(+a.lon).toFixed(3), alt: a.alt, gs: a.gs,
     track: a.track, voivodeship: a.voivodeship, desc: a.desc, cat: a.cat,
     reg: a.reg, op: a.op, vr: a.vr, year: a.year }));
-  srvSnaps.push({ ts: new Date(now).toISOString(), t: now, threats, aircraft });
+  const snap = { ts: new Date(now).toISOString(), t: now, threats, aircraft };
+  // strefy z tej chwili, jak w migawce serwera — tylko gdy znamy bieżące
+  if (zonesData) snap.zones = zonesData.features
+    .filter(f => f.properties?.key)
+    .map(f => [f.properties.key, f.properties.since || 0, !!f.properties.atBoot]);
+  srvSnaps.push(snap);
   const cut = now - HIST_MS;
   srvSnaps = srvSnaps.filter(sn => sn.t >= cut);
 }
@@ -4968,6 +5150,7 @@ async function seedBundle() {
       srvSnaps.push({ ...sn, t: Date.parse(sn.ts) });
     }
     srvAdsbEvents = (j.adsb_watch_events || []).map(e => ({ ...e, t: Date.parse(e.ts) }));
+    if (j.zone_defs && typeof j.zone_defs === "object") Object.assign(srvZoneDefs, j.zone_defs);
     watchSyncState = "ok";
     srvSnaps.sort((a, b) => a.t - b.t);
     srvSeeded = true;
@@ -5093,6 +5276,7 @@ function exitHistory() {
   document.getElementById("timebar").classList.add("hidden");
   document.getElementById("btn-history").classList.remove("active");
   syncTabs();
+  histZonesData = null; zoneRefMs = null;
   /* Strefy wracają. applyZones MUSI pójść osobno: refreshZones bez `force`
      wraca na TTL, zanim dojdzie do rysowania, więc samo wywołanie zostawiłoby
      warstwę ukrytą do wygaśnięcia TTL-a. */
@@ -5126,6 +5310,10 @@ function showHistoryAt(idx) {
   paintCountryAlerts(sigs);
   // alarmów rejonów nie ma w migawkach — w historii nie udajemy, że trwały wtedy
   paintRaionAlerts([]);
+  // strefy PAŻP z tamtej chwili (albo żadne, gdy migawka ich nie zapisała)
+  histZonesData = strefyZMigawki(snap, when.getTime());
+  zoneRefMs = when.getTime();
+  syncZonesButton(); applyZones();
   // alarmy ogólnokrajowe z tamtej chwili jako komunikat, nie obiekt na mapie
   const snapThreats = snap?.threats || [];
   renderNationalChip(snapThreats);
@@ -5253,7 +5441,7 @@ function showHistoryAt(idx) {
     }
   }
 
-  renderHistoryPanel(sigs, perVoiv, when, ageMin, poziomHist);
+  renderHistoryPanel(sigs, perVoiv, when, ageMin, poziomHist, h?.podtrzymanie || {});
   renderObservationLists({neptun:{threats}, adsb:{aircraft:planes}});
 }
 
@@ -5266,12 +5454,15 @@ function histAgo(ageMin) {
   return h ? `−${h} h${m ? ` ${m} min` : ""}` : `−${ageMin} min`;
 }
 function renderHistoryPanel(sigs, perVoiv, when, ageMin,
-                            poziom = (v, sc) => sc >= 4 ? "high" : sc >= 2 ? "elevated" : "none") {
+                            poziom = (v, sc) => sc >= 4 ? "high" : sc >= 2 ? "elevated" : "none",
+                            podtrzymanie = {}) {
   const banner = `<div class="hist-banner">${UI.t("PODGLĄD HISTORII", "HISTORY VIEW", "ПЕРЕГЛЯД ІСТОРІЇ")} —
     ${when.toLocaleTimeString(UI.t("pl-PL", "en-GB", "uk-UA"), { hour: "2-digit", minute: "2-digit" })}
     ${ageMin > 1 ? `(${histAgo(ageMin)})` : (UI.t("(teraz)", "(now)", "(зараз)"))}
     <span>${UI.t("dane sprzed chwili wybranej suwakiem, nie na żywo", "data from the time selected on the slider, not live", "дані з моменту, обраного повзунком, а не наживо")}${
-    UI.t(" · stref PAŻP nie zapisujemy, więc w historii są ukryte", " · PAŻP zones are not recorded, so they are hidden in history", " · зони PAŻP не зберігаються, тому в історії вони приховані")}</span></div>`;
+    histZonesData
+      ? UI.t(" · strefy PAŻP z tamtej chwili", " · PAŻP zones as they were then", " · зони PAŻP на той момент")
+      : UI.t(" · z tej chwili nie mamy zapisu stref PAŻP, więc są ukryte", " · no PAŻP zone record for this moment, so they are hidden", " · для цього моменту немає запису зон PAŻP, тому вони приховані")}</span></div>`;
 
   const shown = Object.entries(perVoiv)
     .filter(([, sc]) => sc > 0)
@@ -5283,6 +5474,7 @@ function renderHistoryPanel(sigs, perVoiv, when, ageMin,
       <div class="voiv-head"><span class="voiv-name">${esc(UI.voiv(name))}</span>
         <span class="voiv-score">${(Math.round(sc * 10) / 10).toFixed(1)} ${UI.t("pkt", "pts", "бал.")}</span></div>
       <div class="voiv-level">${lvl === "none" ? (UI.t("poniżej progu", "below threshold", "нижче порога")) : LEVEL_LABEL[lvl]}</div>
+      ${podtrzymanieHTML(podtrzymanie[name])}
       <div class="voiv-breakdown">${sigList(own)}</div></div>`;
   }).join("");
 
@@ -5364,14 +5556,20 @@ function histGo(idx) {
   document.getElementById("tb-slider").value = String(idx);
   scrubTo(idx);
 }
-/* indeks migawki o `minutes` od bieżącej (co najmniej jedna migawka dalej) */
+/* indeks migawki o `minutes` od bieżącej (co najmniej jedna migawka dalej).
+   Liczymy w MINUTACH ETYKIETY, nie w sekundach (zgłoszenie usera 11.10.2026):
+   najnowsza migawka bywa nagrana przez aplikację (np. 10:00:05), a serwer
+   zapisuje je o pełnej minucie + kilkanaście sekund (09:59:16). Przy porównaniu
+   co do sekundy 09:59:16 była „za późno” na cel 09:59:05 i pierwsze „−1 min”
+   skakało z 10:00 na 09:58. */
 function histStepIdx(idx, minutes) {
-  const t = Date.parse(histTimes[idx]) + minutes * 60000;
+  const minuta = (i) => Math.floor(Date.parse(histTimes[i]) / 60000);
+  const cel = minuta(idx) + minutes;
   if (minutes > 0) {
-    for (let i = idx + 1; i < histTimes.length; i++) if (Date.parse(histTimes[i]) >= t - 1000) return i;
+    for (let i = idx + 1; i < histTimes.length; i++) if (minuta(i) >= cel) return i;
     return histTimes.length - 1;
   }
-  for (let i = idx - 1; i >= 0; i--) if (Date.parse(histTimes[i]) <= t + 1000) return i;
+  for (let i = idx - 1; i >= 0; i--) if (minuta(i) <= cel) return i;
   return 0;
 }
 function alarmStarts() {
@@ -5957,10 +6155,24 @@ async function refreshBgStatus(previewLang = UI.lang) {
        zewnątrz tak samo, a naprawia się je zupełnie inaczej. Pusto na iPhonie
        i na stronie — tam tego nie zapisujemy. */
     const loc = previewLang === "pl" ? "pl-PL" : previewLang === "uk" ? "uk-UA" : "en-GB";
+    /* 11.10.2026: obok godziny — ile trwała droga od serwera i czy Google obniżył
+       priorytet (wtedy uśpiony telefon dostaje alarm dopiero przy przebudzeniu;
+       u usera 80 s). Opóźnienie do 15 s to zwykła droga przez sieć — nie straszymy. */
+    const sek = s.lastPushDelayMs >= 0 ? Math.round(s.lastPushDelayMs / 1000) : null;
+    const droga = sek == null ? ""
+      : s.lastPushDeprioritized
+      ? T(` Szedł ${sek} s — ⚠ Google obniżył mu priorytet, więc uśpiony telefon dostał go z opóźnieniem.`,
+          ` It took ${sek} s — ⚠ Google lowered its priority, so a sleeping phone got it late.`,
+          ` Він ішов ${sek} с — ⚠ Google знизив йому пріоритет, тож приспаний телефон отримав його із запізненням.`)
+      : sek > 15
+      ? T(` Szedł ${sek} s (priorytet bez zmian — opóźnienie po stronie sieci albo telefonu).`,
+          ` It took ${sek} s (priority unchanged — the delay was in the network or the phone).`,
+          ` Він ішов ${sek} с (пріоритет без змін — затримка в мережі або в телефоні).`)
+      : T(` Szedł ${sek} s.`, ` It took ${sek} s.`, ` Він ішов ${sek} с.`);
     const pushLine = s.lastPushAt
       ? T(`Ostatni sygnał z serwera odebrany ${new Date(s.lastPushAt).toLocaleString(loc)}.`,
           `Last signal from the server received ${new Date(s.lastPushAt).toLocaleString(loc)}.`,
-          `Останній сигнал із сервера отримано ${new Date(s.lastPushAt).toLocaleString(loc)}.`)
+          `Останній сигнал із сервера отримано ${new Date(s.lastPushAt).toLocaleString(loc)}.`) + droga
       : s.lastPushAt === 0
       ? T("Ten telefon nie odebrał jeszcze żadnego sygnału z serwera — to normalne, dopóki nie było alarmu dla Twojego regionu.",
           "This phone has not received any signal from the server yet — that is normal until there has been an alert for your region.",
@@ -6087,40 +6299,64 @@ document.getElementById("btn-critical")?.addEventListener("click", async (e) => 
     setTimeout(refreshBgStatus, 800);
   }
 });
-document.getElementById("set-red-silent")?.addEventListener("change", async (e) => {
-  const wlacz = !!e.target.checked;
-  // Sekcja „Zanim włączysz: co to zmienia” jest domyślnie zwinięta. Rozwijamy
-  // ją sami, gdy ktoś sięga po ten przełącznik — ostrzeżenie o nocy ma być
-  // na ekranie, a nie za podpisem, którego nikt nie dotknął.
-  if (wlacz) document.getElementById("det-natywny")?.setAttribute("open", "");
-  // Świadoma zgoda, tak jak przy pełnej głośności — tyle że tu stawka jest
-  // odwrotna: można alarmu NIE usłyszeć. Włączane bywa w dzień, skutek widać
-  // w nocy.
-  if (wlacz && !confirm(UI.t(
-      "Wyłączyć syrenę czerwonego alarmu?\n\nZostanie sama wibracja, pełny ekran i miganie. Przy wygaszonym ekranie i telefonie w drugim pokoju możesz takiego alarmu nie zauważyć. Wyłączysz to tym samym przełącznikiem.",
-      "Turn off the siren for red alerts?\n\nOnly vibration, the full screen and flashing will remain. With the screen off and the phone in another room you may not notice an alert like that. You can turn this off with the same switch.",
-      "Вимкнути сирену червоної тривоги?\n\nЗалишиться лише вібрація, повний екран і миготіння. З вимкненим екраном і телефоном в іншій кімнаті ви можете такої тривоги не помітити. Вимкнете це тим самим перемикачем."))) {
-    e.target.checked = false;
-    return;
+/* Tryb czerwonego alarmu (10.10.2026): syrena / tylko wibracja / zwykłe
+   powiadomienie. Zastąpił przełącznik „tylko wibracja” — czytelnik prosił
+   o coś pośredniego między syreną a wyłączeniem alarmów w ogóle. */
+const TRYB_OSTRZEZENIE = {
+  wibracja: ["Wyłączyć syrenę czerwonego alarmu?\n\nZostanie sama wibracja, pełny ekran i miganie. Przy wygaszonym ekranie i telefonie w drugim pokoju możesz takiego alarmu nie zauważyć. Wrócisz do syreny w tym samym miejscu.",
+    "Turn off the siren for red alerts?\n\nOnly vibration, the full screen and flashing will remain. With the screen off and the phone in another room you may not notice an alert like that. You can switch the siren back on in the same place.",
+    "Вимкнути сирену червоної тривоги?\n\nЗалишиться лише вібрація, повний екран і миготіння. З вимкненим екраном і телефоном в іншій кімнаті ви можете такої тривоги не помітити. Повернути сирену можна в цьому ж місці."],
+  zwykle: ["Czerwony alarm jako zwykłe powiadomienie?\n\nBez syreny i bez pełnego ekranu: baner, krótki dźwięk i wibracja, jak przy żółtym. Taki alarm SZANUJE tryb cichy i Nie przeszkadzać — w nocy możesz go nie dostać. Wrócisz do syreny w tym samym miejscu.",
+    "Red alert as a regular notification?\n\nNo siren and no full screen: a banner, a short sound and vibration, like yellow. Such an alert RESPECTS silent mode and Do Not Disturb — at night it may not reach you. You can switch the siren back on in the same place.",
+    "Червона тривога як звичайне сповіщення?\n\nБез сирени й повного екрана: банер, короткий звук і вібрація, як у жовтого. Така тривога ВРАХОВУЄ беззвучний режим і «Не турбувати» — уночі вона може до вас не дійти. Повернути сирену можна в цьому ж місці."],
+};
+function renderTrybCzerwonego() {
+  const wybrany = czerwonyTryb();
+  for (const b of document.querySelectorAll("#red-mode .chip")) {
+    const on = b.dataset.tryb === wybrany;
+    b.classList.toggle("active", on);
+    b.setAttribute("aria-pressed", on ? "true" : "false");   // czytnik ekranu
   }
-  /* Zapisujemy DOPIERO po potwierdzeniu z warstwy natywnej. Odwrotna kolejność
-     przy nieudanym wywołaniu dawała rozjazd nie do zauważenia: otwarta
-     aplikacja milczy, a powiadomienie przy zgaszonym ekranie dalej wyje. */
-  let ok = false;
-  try {
-    const r = await BG()?.setRedSilent?.({ enabled: wlacz });
-    ok = !!r && r.redSilent === wlacz;
-  } catch (err) { console.warn("ustawienie ciszy czerwonego", err); }
-  if (!ok) {
-    e.target.checked = !wlacz;
-    alert(UI.t("Nie udało się zmienić tego ustawienia. Spróbuj ponownie.",
-               "Could not change this setting. Please try again.",
-               "Не вдалося змінити це налаштування. Спробуйте ще раз."));
-    return;
-  }
-  try { localStorage.setItem("straznik_czerwony_cisza", wlacz ? "1" : "0"); } catch {}
-  setTimeout(refreshBgStatus, 400);
-});
+}
+for (const b of document.querySelectorAll("#red-mode .chip")) {
+  b.addEventListener("click", async () => {
+    const tryb = b.dataset.tryb;
+    if (!TRYBY_CZERWONEGO.includes(tryb) || tryb === czerwonyTryb()) return;
+    // Sekcja „Zanim zmienisz” jest domyślnie zwinięta — przy odejściu od syreny
+    // ostrzeżenie o nocy ma być na ekranie, a nie za podpisem.
+    if (tryb !== "syrena") document.getElementById("det-natywny")?.setAttribute("open", "");
+    if (tryb !== "syrena" && !confirm(UI.t(...TRYB_OSTRZEZENIE[tryb]))) return;
+    /* Zapisujemy DOPIERO po potwierdzeniu z warstwy natywnej. Odwrotna kolejność
+       przy nieudanym wywołaniu dawała rozjazd nie do zauważenia: otwarta
+       aplikacja milczy, a powiadomienie przy zgaszonym ekranie dalej wyje. */
+    let ok = false;
+    try {
+      const r = await BG()?.setRedMode?.({ mode: tryb });
+      ok = !!r && r.redMode === tryb;
+    } catch (err) { console.warn("tryb czerwonego", err); }
+    if (!ok) {
+      alert(UI.t("Nie udało się zmienić tego ustawienia. Spróbuj ponownie.",
+                 "Could not change this setting. Please try again.",
+                 "Не вдалося змінити це налаштування. Спробуйте ще раз."));
+      return;
+    }
+    try {
+      localStorage.setItem("straznik_czerwony_tryb", tryb);
+      localStorage.setItem("straznik_czerwony_cisza", tryb === "syrena" ? "0" : "1");
+    } catch {}
+    renderTrybCzerwonego();
+    setTimeout(refreshBgStatus, 400);
+  });
+}
+renderTrybCzerwonego();
+/* „Poczuj wibrację” — tylko tam, gdzie telefon umie wibrować ze strony
+   (na iPhonie navigator.vibrate nie istnieje). */
+if (navigator.vibrate) {
+  const rzad = document.getElementById("vib-row");
+  if (rzad) rzad.hidden = false;
+  document.getElementById("btn-vib-u")?.addEventListener("click", () => zawibruj(WIBRACJA_U));
+  document.getElementById("btn-vib-a")?.addEventListener("click", () => zawibruj(WIBRACJA_A));
+}
 document.getElementById("btn-dnd-access")?.addEventListener("click", async () => {
   await BG()?.requestDndAccess?.(); setTimeout(refreshBgStatus, 800);
 });
@@ -6149,7 +6385,8 @@ function renderNativeSound(s, jezyk = UI.lang) {
   if (pct != null) lines.push(T(`Głośność „Alarmy” w Androidzie: <b>${pct}%</b>.`, `Android “Alarms” volume now: <b>${pct}%</b>.`, `Гучність «Будильники» в Android: <b>${pct}%</b>.`));
   // Gdy ciszę wybrał SAM użytkownik, to nie jest usterka do zgłoszenia — tylko
   // przypomnienie, żeby nie zdziwił się w nocy.
-  if (s.redSilent) lines.push(T("🔕 Czerwony alarm masz ustawiony na samą wibrację — syrena nie zagra. Dlatego „zawsze na pełnej głośności” jest nieczynne, a przycisk „Test: pełny alarm” też będzie bez dźwięku. Samą syrenę usłyszysz przyciskiem „Test: syrena”.", "🔕 The red alert is set to vibration only — the siren will not sound. That is why “always at full volume” is inactive and “Test: full alert” will also be silent. To hear the siren itself, use “Test: siren”.", "🔕 Червона тривога налаштована лише на вібрацію — сирена не пролунає. Тому «завжди на повній гучності» неактивне, а «Тест: повна тривога» також буде без звуку. Щоб почути саму сирену, скористайтеся кнопкою «Тест: сирена»."));
+  if (s.redMode === "zwykle") lines.push(T("🔕 Czerwony alarm masz ustawiony jako zwykłe powiadomienie — bez syreny i pełnego ekranu, a w trybie Nie przeszkadzać może nie dotrzeć. Dlatego „zawsze na pełnej głośności” jest nieczynne.", "🔕 The red alert is set to a regular notification — no siren and no full screen, and in Do Not Disturb it may not reach you. That is why “always at full volume” is inactive.", "🔕 Червону тривогу налаштовано як звичайне сповіщення — без сирени й повного екрана, а в режимі «Не турбувати» вона може не дійти. Тому «завжди на повній гучності» неактивне."));
+  else if (s.redSilent) lines.push(T("🔕 Czerwony alarm masz ustawiony na samą wibrację — syrena nie zagra. Dlatego „zawsze na pełnej głośności” jest nieczynne, a przycisk „Test: pełny alarm” też będzie bez dźwięku. Samą syrenę usłyszysz przyciskiem „Test: syrena”.", "🔕 The red alert is set to vibration only — the siren will not sound. That is why “always at full volume” is inactive and “Test: full alert” will also be silent. To hear the siren itself, use “Test: siren”.", "🔕 Червона тривога налаштована лише на вібрацію — сирена не пролунає. Тому «завжди на повній гучності» неактивне, а «Тест: повна тривога» також буде без звуку. Щоб почути саму сирену, скористайтеся кнопкою «Тест: сирена»."));
   else if (s.redChannelSound === false) lines.push(T("⚠ Dźwięk kanału czerwonego alarmu jest wyłączony w ustawieniach powiadomień.", "⚠ Sound for the red alert channel is off in notification settings.", "⚠ Звук каналу червоної тривоги вимкнено в налаштуваннях сповіщень."));
   vol.innerHTML = lines.join(" ");
 }
@@ -6164,9 +6401,11 @@ async function refreshNativeSound() {
     if (s.yellowLevel) { try { localStorage.setItem("straznik_zolty_poziom", s.yellowLevel); } catch {} }
     if (s.redSilent !== undefined) {
       try { localStorage.setItem("straznik_czerwony_cisza", s.redSilent ? "1" : "0"); } catch {}
-      const rs = document.getElementById("set-red-silent");
-      if (rs) rs.checked = !!s.redSilent;
     }
+    if (TRYBY_CZERWONEGO.includes(s.redMode)) {
+      try { localStorage.setItem("straznik_czerwony_tryb", s.redMode); } catch {}
+    }
+    renderTrybCzerwonego();
     renderYellowLevel();
   } catch {}
 }

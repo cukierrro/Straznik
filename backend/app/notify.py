@@ -1,5 +1,6 @@
 """Kanały powiadomień: ntfy, Telegram, Web Push (VAPID). Wszystkie best-effort."""
 import asyncio
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 import base64
@@ -68,7 +69,19 @@ def _temat_bazowy(topic: str) -> str:
 # zalew (fałszywych) subskrypcji Web Push kolejkował wysyłkę alarmu do aplikacji.
 # FCM ma własną pulę, a Web Push idzie najwyżej po WEBPUSH_CONCURRENCY naraz.
 _fcm_pool = ThreadPoolExecutor(max_workers=4, thread_name_prefix="fcm")
-WEBPUSH_CONCURRENCY = 16
+# 10.10.2026: Web Push też ma własną pulę. Szedł przez asyncio.to_thread, czyli
+# domyślną pulę min(32, rdzenie + 4) — na dwurdzeniowym VPS to 6 wątków, więc
+# WEBPUSH_CONCURRENCY = 16 nic nie dawało. Każda wysyłka zestawiała przy tym nowe
+# połączenie TLS i pytała DNS: stałe ~16/s (lubelskie, 2065 subskrypcji = 142 s
+# do ostatniej osoby), a 08.10, gdy resolwery Hetznera nie odpowiadały, 1,2/s —
+# 26 minut. Połączenie trzymane per wątek: pomiar na VPS (nieistniejące tokeny)
+# 32 → 130/s dla FCM, 12 → 33/s dla Apple.
+WEBPUSH_CONCURRENCY = 32
+_webpush_pool = ThreadPoolExecutor(max_workers=WEBPUSH_CONCURRENCY,
+                                   thread_name_prefix="webpush")
+_webpush_local = threading.local()
+# Wysyłka dłuższa niż to trafia do dziennika jako ostrzeżenie (zwykle ~30 s).
+WEBPUSH_SLOW_S = 60
 
 _WEBPUSH_HOSTS = {"fcm.googleapis.com", "web.push.apple.com"}
 _WEBPUSH_HOST_SUFFIXES = (".push.services.mozilla.com", ".notify.windows.com")
@@ -474,35 +487,64 @@ async def send_telegram(text: str):
         log.warning("telegram błąd: %s", e)
 
 
+def _webpush_session():
+    """Sesja HTTP tego wątku puli: DNS i TLS raz na usługę, nie przy każdej wysyłce."""
+    session = getattr(_webpush_local, "session", None)
+    if session is None:
+        try:
+            import requests
+        except ImportError:        # testy offline bez requests: pywebpush zrobi własne
+            return None
+        session = _webpush_local.session = requests.Session()
+    return session
+
+
+def _zerwane_polaczenie(exc: Exception) -> bool:
+    """Połączenie trzymane godzinami między alarmami bywa zamknięte przez drugą
+    stronę. Takie zerwanie ponawiamy raz na świeżym połączeniu; przekroczenia
+    czasu NIE — podwoiłyby czekanie przy wolnej usłudze."""
+    try:
+        import requests
+    except ImportError:
+        return False
+    return (isinstance(exc, requests.exceptions.ConnectionError)
+            and not isinstance(exc, requests.exceptions.Timeout))
+
+
 def _send_webpush_sync(sub: dict, payload: str):
     from pywebpush import webpush, WebPushException
     ref = _push_ref(sub)
-    try:
-        response = webpush(
-            subscription_info=sub,
-            data=payload,
-            vapid_private_key=_vapid["private_key"],
-            vapid_claims={"sub": config.VAPID_CONTACT},
-            timeout=10,
-            ttl=300,
-        )
-        return {"status": "sent", "ref": ref,
-                "http": getattr(response, "status_code", None)}
-    except WebPushException as e:
-        status = getattr(e.response, "status_code", None)
-        # 404/410 explicitly mean an expired endpoint.  A 400 may concern one
-        # corrupt subscription, but it can also expose a shared request/VAPID
-        # fault.  Defer deletion until the batch proves that other endpoints
-        # accepted the same notification.
-        if status in (400, 404, 410):
-            return {"status": "expired" if status in (404, 410) else "invalid",
-                    "ref": ref, "http": status, "endpoint": sub.get("endpoint", "")}
-        else:
-            log.warning("WebPush błąd %s (HTTP %s): %s", ref, status, e)
-            return {"status": "error", "ref": ref, "http": status}
-    except Exception as e:
-        log.warning("WebPush błąd %s: %s", ref, e)
-        return {"status": "error", "ref": ref, "http": None}
+    for proba in (1, 2):
+        try:
+            response = webpush(
+                subscription_info=sub,
+                data=payload,
+                vapid_private_key=_vapid["private_key"],
+                vapid_claims={"sub": config.VAPID_CONTACT},
+                timeout=10,
+                ttl=300,
+                requests_session=_webpush_session(),
+            )
+            return {"status": "sent", "ref": ref,
+                    "http": getattr(response, "status_code", None)}
+        except WebPushException as e:
+            status = getattr(e.response, "status_code", None)
+            # 404/410 explicitly mean an expired endpoint.  A 400 may concern one
+            # corrupt subscription, but it can also expose a shared request/VAPID
+            # fault.  Defer deletion until the batch proves that other endpoints
+            # accepted the same notification.
+            if status in (400, 404, 410):
+                return {"status": "expired" if status in (404, 410) else "invalid",
+                        "ref": ref, "http": status, "endpoint": sub.get("endpoint", "")}
+            else:
+                log.warning("WebPush błąd %s (HTTP %s): %s", ref, status, e)
+                return {"status": "error", "ref": ref, "http": status}
+        except Exception as e:
+            if proba == 1 and _zerwane_polaczenie(e):
+                _webpush_local.session = None      # następna próba: nowe połączenie
+                continue
+            log.warning("WebPush błąd %s: %s", ref, e)
+            return {"status": "error", "ref": ref, "http": None}
 
 
 async def send_webpush(voiv: str, title: str, body: str, level: str):
@@ -511,12 +553,15 @@ async def send_webpush(voiv: str, title: str, body: str, level: str):
     payload = json.dumps({"title": title, "body": body, "level": level}, ensure_ascii=False)
     subs = await asyncio.to_thread(db.all_push_subs, voiv)
     gate = asyncio.Semaphore(WEBPUSH_CONCURRENCY)
+    loop = asyncio.get_running_loop()
+    started = time.monotonic()
 
     async def one(sub):
         async with gate:
-            return await asyncio.to_thread(_send_webpush_sync, sub, payload)
+            return await loop.run_in_executor(_webpush_pool, _send_webpush_sync, sub, payload)
 
     results = await asyncio.gather(*[one(s) for s in subs], return_exceptions=True)
+    took = time.monotonic() - started
     sent = sum(isinstance(r, dict) and r.get("status") == "sent" for r in results)
     removable = [r for r in results if isinstance(r, dict)
                  and (r.get("status") == "expired"
@@ -527,8 +572,9 @@ async def send_webpush(voiv: str, title: str, body: str, level: str):
                  result.get("ref"), result.get("http"))
     removed = len(removable)
     errors = len(results) - sent - removed
-    log.info("WebPush %s: wysłano=%d, usunięto=%d, błędy=%d, razem=%d",
-             voiv, sent, removed, errors, len(results))
+    log.log(logging.WARNING if took > WEBPUSH_SLOW_S else logging.INFO,
+            "WebPush %s: wysłano=%d, usunięto=%d, błędy=%d, razem=%d, czas=%.0f s",
+            voiv, sent, removed, errors, len(results), took)
     return sent
 
 
@@ -599,28 +645,50 @@ async def _deliver_level(voiv: str, level: str, score: float, signals: list[dict
             f"NIEOFICJALNE źródło dodatkowe — w razie realnego zagrożenia "
             f"kieruj się syrenami/RCB/RSO.")
     ntfy_prio = "urgent" if level == "high" else "default"
+    from datetime import datetime, timezone
+    from . import alert_log
+
+    def teraz() -> str:
+        return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+    # Web Push rusza razem z resztą, ale na niego NIE czekamy z zapisem: do 10.10
+    # wiersz dziennika stał na „pending”, dopóki nie skończyła się najwolniejsza
+    # wysyłka — 08.10 przez 26 minut, choć aplikacje miały alarm po sekundzie.
+    started = time.monotonic()
+    web_task = asyncio.create_task(send_webpush(voiv, title, body, level))
     results = await asyncio.gather(
         send_ntfy(title, body, ntfy_prio),
         send_telegram(f"{'🚨' if level == 'high' else '⚠️'} {title}\n{body}"),
-        send_webpush(voiv, title, body, level),
         send_fcm(voiv, level, score, reasons_for_push, headline=headline),
         return_exceptions=True,
     )
-    web_sent, fcm_ok = results[2], results[3]
-    delivered = (fcm_ok is True) or (isinstance(web_sent, int) and web_sent > 0)
-    channels_off = not (config.FCM_ENABLED or config.WEBPUSH_ENABLED)
-    from datetime import datetime, timezone
-    from . import alert_log
-    alert_log.record_delivery(log_id, "sent" if delivered else
-                              ("channels_off" if channels_off else "undelivered"), {
-        "at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+    fcm_ok = results[2]
+    delivery = {
+        "at": teraz(),
         "fcm": fcm_ok if isinstance(fcm_ok, bool) else repr(fcm_ok)[:200],
         "fcm_topic": fcm_topic(voiv),
-        "webpush_sent": web_sent if isinstance(web_sent, int) else repr(web_sent)[:200],
         "title": title,
+    }
+    if fcm_ok is True:
+        # aplikacje mają sygnał: cooldown i dziennik od razu, Web Push dopiszemy
+        alert_log.record_delivery(log_id, "sent", {**delivery, "webpush_sent": "w toku"})
+        db.log_notif(voiv, level)
+    try:
+        web_sent = await web_task
+    except Exception as exc:                   # noqa: BLE001
+        web_sent = exc
+    delivered = (fcm_ok is True) or (isinstance(web_sent, int) and web_sent > 0)
+    channels_off = not (config.FCM_ENABLED or config.WEBPUSH_ENABLED)
+    alert_log.record_delivery(log_id, "sent" if delivered else
+                              ("channels_off" if channels_off else "undelivered"), {
+        **delivery,
+        "webpush_sent": web_sent if isinstance(web_sent, int) else repr(web_sent)[:200],
+        "webpush_at": teraz(),
+        "webpush_s": round(time.monotonic() - started, 1),
     })
     if delivered or channels_off:
-        db.log_notif(voiv, level)
+        if fcm_ok is not True:                 # przy udanym FCM cooldown zapisany wyżej
+            db.log_notif(voiv, level)
     else:
         # Bez zapisu cooldownu: kolejny wzrost poziomu pójdzie od razu, bez czekania
         # NOTIFY_COOLDOWN_MIN. Same ponowienia robi już send_fcm (FCM_RETRIES).

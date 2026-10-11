@@ -112,6 +112,25 @@ for tekst, oczekiwany in ETAPY:
 sprawdz(rso.alert_stage("zupełnie inny komunikat o niczym") == "unknown",
         "nieznana treść nadal daje „unknown” — nie zgadujemy")
 
+# 10.10.2026: etap czyta NAGŁÓWEK + skrót + treść (rso._record_text), a RCB
+# wstawia „zagrożenie z powietrza” do nagłówka niemal każdego alertu. Gołe zwroty
+# w STAGE_WARNING robiły z każdego „monitorowana” → „ostrzezenie”. Prawdziwe
+# złożenia z produkcji (wpisy 23404085 i 23399187):
+Z_NAGLOWKIEM = [
+    ("ALERT RCB-ZAGROŻENIE Z POWIETRZA\n\"UWAGA! UWAGA! UWAGA! Rosyjski atak powietrzny na "
+     "terenie Ukrainy. Sytuacja jest monitorowana. W przestrzeni RP operuje polskie lotnictwo. "
+     "Śledź komunikaty.\"\nSzanowni Państwo, … wysłano Alert RCB o treści: … Sytuacja jest monitorowana.",
+     "monitor"),
+    ("Alert-RCB\nAlert RCB- Zagrożenie z powietrza\nSzanowni Państwo, zgodnie z decyzją dyrektora "
+     "RCB … wysłano Alert RCB o treści: UWAGA! Rosyjski atak powietrzny na terenie Ukrainy. "
+     "Sytuacja jest monitorowana. Oczekuj dalszych komunikatów.", "monitor"),
+    ("Alert RCB\nAlert RCB\nUWAGA. POTENCJALNE ZAGROŻENIE Z POWIETRZA.", "ostrzezenie"),
+]
+for tekst, oczekiwany in Z_NAGLOWKIEM:
+    wynik = rso.alert_stage(tekst)
+    sprawdz(wynik == oczekiwany,
+            f"nagłówek+treść „{tekst[:40]}…” -> {wynik} (oczekiwano {oczekiwany})")
+
 # Etap NIE może przeciekać do punktacji: to dwie osobne listy znaczników.
 sprawdz(rso.rcb_level("UWAGA. POTENCJALNE ZAGROŻENIE Z POWIETRZA.") == 1,
         "nowy etap NIE zmienia poziomu — „potencjalne zagrożenie” zostaje poziomem 1")

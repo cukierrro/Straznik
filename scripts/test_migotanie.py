@@ -69,6 +69,17 @@ print("5. odtwarzanie historii bez podtrzymania")
 src = (ROOT / "backend" / "app" / "fusion.py").read_text(encoding="utf-8")
 sprawdz("live = signals is None and ref is None" in src and 'new_level = st["alert_level"]' in src,
         "compute_state trzyma poziom tylko na żywo, reevaluate używa wyniku z compute_state")
+# 11.10.2026: historię liczy silnik aplikacji z TYM SAMYM podtrzymaniem
+# (scripts/test_podtrzymanie_historia.cjs), a serwer mówi karcie, do kiedy trwa.
+
+print("6. pole „podtrzymanie” dla karty województwa")
+sprawdz('st["podtrzymanie"] = {' in src
+        and '_qualified_at.get((f"{k}:{voiv}", st["level"]), 0) for k in ("map", "alert")' in src,
+        "na żywo stan podaje poziom i godzinę końca podtrzymania")
+k = "map:podtrzymanie-test"
+fusion.hold_level(k, "elevated", t("09:55"))
+sprawdz(fusion._qualified_at[(k, "elevated")] + config.LEVEL_HOLD_MIN * 60 == t("10:05"),
+        "koniec podtrzymania = ostatnie przekroczenie + LEVEL_HOLD_MIN (09:55 → 10:05)")
 
 if bledy:
     print(f"\n{len(bledy)} błędów")
