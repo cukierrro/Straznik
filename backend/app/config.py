@@ -203,6 +203,16 @@ SNAPSHOT_INTERVAL_S = int(os.getenv("SNAPSHOT_INTERVAL_S", "60"))
 # pojedyncze zdarzenie samo nie utrzymuje alarmu.
 FUSION_WINDOW_MIN = 60
 FUSION_FULL_MIN = 30
+# Obiekt NEPTUN, który zniknął z feedu (11.10.2026): pełna waga jeszcze przez
+# NEPTUN_LOST_FULL_MIN od zniknięcia, potem liniowo do zera w NEPTUN_LOST_FADE_MIN —
+# zamiast trzymać punkty do 60 min. Archiwum 13.09–11.10: obiekt wraca po przerwie
+# >15 min w 3,3% przypadków, po >30 min nigdy. WYJĄTEK: zgubiony bliżej granicy
+# niż NEPTUN_LOST_EXEMPT_KM — NEPTUN gubi obiekty wlatujące nad Polskę (28.09 0,2 km,
+# 08.10 12,5 km przed alertem RCB), więc „zniknął” nie znaczy tam „odleciał”.
+# Replay od 13.09: te same powiadomienia i to samo wyprzedzenie RCB co wcześniej.
+NEPTUN_LOST_FULL_MIN = 15
+NEPTUN_LOST_FADE_MIN = 15
+NEPTUN_LOST_EXEMPT_KM = 50.0
 # --- Alert RCB ma od 17.09.2026 trzy poziomy treści (potwierdzone na gov.pl/rcb
 # i w Sejmie). Do 23.09 każdy ważył tyle samo (2,0), więc alert „sytuacja jest
 # monitorowana" — czyli najniższy z trzech — wchodził w skład wszystkich siedmiu

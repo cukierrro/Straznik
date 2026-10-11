@@ -51,7 +51,7 @@ assert.equal(ctx.historicalAdsbGhosts([serbia],[],Date.parse(serbia.ts)+150000).
 const engine = fs.readFileSync('frontend/engine.js','utf8');
 // od 11.10.2026 historyFrom stosuje podtrzymanie poziomu (podtrzymajWHistorii),
 // które czyta dwie stałe silnika — piaskownica musi je mieć
-vm.runInContext('const HISTORY_H=12, WINDOW_MIN=60, LEVEL_HOLD_MIN=10, LEVEL_ORDER=["none","elevated","high"]; function accumulate(){return {}}; function activeUaAlerts(){return []}; function stateFrom(){return {voivodeships:{}}};'+
+vm.runInContext('const HISTORY_H=12, WINDOW_MIN=60, LEVEL_HOLD_MIN=10, LEVEL_ORDER=["none","elevated","high"]; function accumulate(){return {}}; function activeUaAlerts(){return []}; function stateFrom(){return {voivodeships:{}}}; function zgubioneZMigawek(){return null};'+
   engine.slice(engine.indexOf('function historyFrom('),engine.indexOf('\nfunction history(atIso)')),ctx);
 const snaps=[{ts:new Date(stamp(54)).toISOString(),t:stamp(54)},{ts:new Date(stamp(52)).toISOString(),t:stamp(52)}];
 assert.equal(ctx.historyFrom(snaps,[],new Date(stamp(50)).toISOString()).snapshot,null);

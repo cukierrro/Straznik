@@ -27,6 +27,9 @@ def round1(x: float) -> float:
 # callbacki: notyfikacje i broadcast do frontendów (ustawiane w main)
 on_level_change = None   # async def (voiv, level, score, breakdown, *, log_id)
 on_state_change = None   # async def ()
+# def (track_id) -> (chwila zniknięcia, km od granicy | None) | None — ustawia
+# collectors.neptun; tylko stan na żywo (patrz lost_weight)
+lost_provider = None
 
 _last_levels: dict[str, str] = {}
 _levels_loaded = False
@@ -348,6 +351,29 @@ def _age_weight(ts: str, ref: datetime | None = None) -> float:
     return max(0.0, 1.0 - (age_min - config.FUSION_FULL_MIN) / span)
 
 
+def lost_weight(info: tuple | None, sig_ts: str, ref: datetime | None = None) -> float:
+    """Waga sygnału obiektu, który zniknął z feedu NEPTUN-a (11.10.2026).
+
+    `info` = (chwila zniknięcia w sekundach epoki, ostatnia odległość od granicy
+    w km albo None); None = obiekt śledzony albo nieznany (np. po restarcie) —
+    wtedy bez zmian. Obiekt zgubiony bliżej granicy niż NEPTUN_LOST_EXEMPT_KM
+    też bez zmian: mógł właśnie wlecieć nad Polskę."""
+    if not info:
+        return 1.0
+    lost_at, km = info
+    if km is not None and km <= config.NEPTUN_LOST_EXEMPT_KM:
+        return 1.0
+    r = (ref or datetime.now(timezone.utc)).timestamp()
+    sig = _parse_ts(sig_ts)
+    od = max(lost_at, sig.timestamp()) if sig else lost_at
+    gone_min = (r - od) / 60
+    if gone_min <= config.NEPTUN_LOST_FULL_MIN:
+        return 1.0
+    if config.NEPTUN_LOST_FADE_MIN <= 0:
+        return 0.0
+    return max(0.0, 1.0 - (gone_min - config.NEPTUN_LOST_FULL_MIN) / config.NEPTUN_LOST_FADE_MIN)
+
+
 def _parse_ts(value) -> datetime | None:
     try:
         t = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
@@ -486,9 +512,12 @@ def _media_after_official_clear(media: dict, clears: list[dict],
     return None
 
 
-def accumulate(signals: list[dict], ref: datetime | None = None) -> dict:
+def accumulate(signals: list[dict], ref: datetime | None = None, lost=None) -> dict:
     """Per województwo {score, signals[]} z limitem klasy źródła (config.SOURCE_CAPS)
     i wygaszaniem wiekiem względem `ref`.
+
+    `lost(track_id)` (opcjonalnie) mówi, kiedy obiekt NEPTUN zniknął z feedu —
+    wtedy jego sygnały gasną szybciej (lost_weight). Bez niego jak dotąd.
 
     Wspólne dla fuzji na żywo (compute_state) i rekonstrukcji historii. Bez tego
     historia sumowała SUROWE punkty bez limitu — np. 4 rutynowe strefy PAŻP
@@ -651,6 +680,13 @@ def accumulate(signals: list[dict], ref: datetime | None = None) -> dict:
             w, ua_end = ua_alert_factor(s, ua_ends, ref)
         else:
             w = _age_weight(s["ts"], ref)
+        lost_w = 1.0
+        if lost is not None and track_id:
+            try:
+                lost_w = lost_weight(lost(track_id), s["ts"], ref)
+            except Exception as exc:              # noqa: BLE001
+                log.debug("zgubiony obiekt %s: %s", track_id, exc)
+            w = min(w, lost_w)
         if s.get("event_type") in ("rso_alert", "rcb_alert"):
             res = rcb_residual.get(voiv)
             if res and res["stary"] is s:
@@ -665,7 +701,7 @@ def accumulate(signals: list[dict], ref: datetime | None = None) -> dict:
             "weighted": 0.0 if zeroed else s["points"] * w,
             "cleared": cleared, "relay_of": relay_of, "retrospective": retrospective,
             "official_clear": official_clear, "article_status": article_status,
-            "ua_end": ua_end,
+            "ua_end": ua_end, "lost": lost_w < 1.0,
         })
 
     for e in sorted(prepared, key=lambda x: (-x["weighted"], x["s"]["ts"])):
@@ -731,7 +767,8 @@ def accumulate(signals: list[dict], ref: datetime | None = None) -> dict:
              **({"retrospective": True} if e["retrospective"] else {}),
              **({"official_clear": e["official_clear"]} if e["official_clear"] else {}),
              **({"article_status": e["article_status"]} if e["article_status"] else {}),
-             **({"alert_ended": e["ua_end"].isoformat(timespec="seconds")} if e["ua_end"] else {})})
+             **({"alert_ended": e["ua_end"].isoformat(timespec="seconds")} if e["ua_end"] else {}),
+             **({"lost_feed": True} if e["lost"] else {})})
     return per_voiv
 
 
@@ -869,7 +906,9 @@ def compute_state(signals: list[dict] | None = None, ref: datetime | None = None
         except Exception as e:
             log.warning("trwające alarmy obwodów spoza okna: %s", e)
     # limit klasy źródła + wygaszanie wiekiem — wspólne z rekonstrukcją historii
-    per_voiv = apply_spillover(accumulate(signals, ref), ref)
+    # obiekty zgubione z feedu NEPTUN-a gasną szybciej — tylko na żywo, bo tylko
+    # wtedy wiadomo, kiedy zniknęły (historię liczy aplikacja z migawek)
+    per_voiv = apply_spillover(accumulate(signals, ref, lost_provider if live else None), ref)
     levels = _levels()
     now = time.time()
     for voiv, st in per_voiv.items():
