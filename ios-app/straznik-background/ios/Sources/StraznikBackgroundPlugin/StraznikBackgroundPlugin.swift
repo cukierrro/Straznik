@@ -517,6 +517,9 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
         let delayMs = max(0, min(call.getInt("delayMs") ?? 0, 30_000))
         let requested = call.getString("voivodeship")
         let voiv = Self.isKnownVoivodeship(requested) ? requested! : Self.voivodeships[0]
+        // Język interfejsu przekazuje app.js (`lang`). Nieznany albo brak — polski,
+        // bo tak działały wszystkie wydania do 1.7.93 i tak pisze serwer.
+        let lang = Self.jezykTestu(call.getString("lang"))
         let center = UNUserNotificationCenter.current()
 
         center.getNotificationSettings { settings in
@@ -525,21 +528,44 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
             // system i tak ściąłby dźwięk do zwykłego, a my obiecalibyśmy za dużo.
             let schedule = { (krytyczny: Bool) in
                 let content = UNMutableNotificationContent()
-                content.title = "TEST — " + (high ? "WYSOKI PRIORYTET" : "PODWYŻSZONA UWAGA")
-                    + ": woj. \(voiv) (\(high ? "4.0" : "2.0") pkt)"
+                // Tytuł jak w prawdziwym alarmie z serwera (`notify.py`): bez „woj."
+                // i bez punktów. Powód jest zmierzony — 19.09.2026 iPhone uciął tytuł
+                // dokładnie na nazwie województwa, czyli na najważniejszym słowie.
+                // Test, który wygląda inaczej niż alarm, niczego nie dowodzi.
+                // Nazwa województwa zostaje po polsku także w EN i UK, bo serwer
+                // wysyła ją po polsku.
+                content.title = "TEST — "
+                    + (high ? Self.tekst(lang, "WYSOKI PRIORYTET", "HIGH PRIORITY", "ВИСОКИЙ ПРІОРИТЕТ")
+                            : Self.tekst(lang, "PODWYŻSZONA UWAGA", "ELEVATED ATTENTION", "ПІДВИЩЕНА УВАГА"))
+                    + ": \(voiv)"
                 // Kolejność linii nie jest kosmetyczna: ekran blokady pokazuje
                 // trzy–cztery wiersze, resztę chowa za „…". Gdy test może zagrać
                 // w ciszę, wyjaśnienie idzie WYŻEJ niż porada „co zrobić" — to
                 // odpowiedź na pytanie, które człowiek zada sobie za chwilę.
                 let ciche = high && !krytyczny
                 let coZrobic = high
-                    ? "Co zrobić: przejdź do schronu lub pomieszczenia bez okien i śledź komunikaty RCB."
-                    : "Co zrobić: zachowaj czujność i sprawdź komunikaty RCB."
-                let oCiszy = Self.wyjasnienieCiszy(high: high, krytyczny: krytyczny)
-                content.body = (["TEST: sprawdzenie dźwięku i powiadomienia",
-                                 "To jest test alarmu — nie ma zagrożenia."]
+                    ? Self.tekst(lang,
+                        "Co zrobić: przejdź do schronu lub pomieszczenia bez okien i śledź komunikaty RCB.",
+                        "What to do: go to a shelter or a room without windows and follow RCB messages.",
+                        "Що робити: перейдіть до укриття або кімнати без вікон і стежте за повідомленнями RCB.")
+                    : Self.tekst(lang,
+                        "Co zrobić: zachowaj czujność i sprawdź komunikaty RCB.",
+                        "What to do: stay alert and check RCB messages.",
+                        "Що робити: будьте пильні та перевірте повідомлення RCB.")
+                let oCiszy = Self.wyjasnienieCiszy(high: high, krytyczny: krytyczny, lang: lang)
+                // Punkty otwierają treść — tak samo jak w alarmie z serwera, gdzie
+                // zeszły z tytułu, żeby zmieściła się nazwa regionu.
+                content.body = (["\(high ? "4.0" : "2.0") \(Self.tekst(lang, "pkt", "pts", "бал."))",
+                                 Self.tekst(lang, "TEST: sprawdzenie dźwięku i powiadomienia",
+                                                  "TEST: checking sound and notifications",
+                                                  "ТЕСТ: перевірка звуку та сповіщень"),
+                                 Self.tekst(lang, "To jest test alarmu — nie ma zagrożenia.",
+                                                  "This is an alert test — there is no threat.",
+                                                  "Це тест тривоги — загрози немає.")]
                                 + (ciche ? [oCiszy, coZrobic] : [coZrobic, oCiszy])
-                                + ["NIEOFICJALNE źródło — kieruj się syrenami, RCB i RSO."])
+                                + [Self.tekst(lang, "NIEOFICJALNE źródło — kieruj się syrenami, RCB i RSO.",
+                                                    "UNOFFICIAL source — follow sirens, RCB and RSO.",
+                                                    "НЕОФІЦІЙНЕ джерело — орієнтуйтеся на сирени, RCB та RSO.")])
                                .joined(separator: "\n")
                 content.sound = krytyczny
                     ? UNNotificationSound.criticalSoundNamed(UNNotificationSoundName("alarm_syrena.wav"),
@@ -580,19 +606,55 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
     /// Zdanie o ciszy w treści testu. Pisane do człowieka, który właśnie patrzy na
     /// ekran blokady i nic nie usłyszał: ma od razu wiedzieć, czy to usterka, czy
     /// ustawienie jego telefonu — i co zmienić, żeby zagrało.
-    private static func wyjasnienieCiszy(high: Bool, krytyczny: Bool) -> String {
+    private static func wyjasnienieCiszy(high: Bool, krytyczny: Bool, lang: String) -> String {
         if !high {
-            return "Żółty poziom przy wyciszonym telefonie jest cichy — tak ma być. "
-                 + "Mimo wyciszenia odzywa się tylko czerwony alarm."
+            return tekst(lang,
+                "Żółty poziom przy wyciszonym telefonie jest cichy — tak ma być. "
+                + "Mimo wyciszenia odzywa się tylko czerwony alarm.",
+                "On a muted phone the yellow level stays silent — that is by design. "
+                + "Only a red alert sounds despite silent mode.",
+                "На вимкненому звуці жовтий рівень мовчить — так і має бути. "
+                + "Попри вимкнений звук озивається лише червона тривога.")
         }
         if krytyczny {
-            return "Ten test poszedł tą samą drogą co prawdziwy czerwony alarm: "
-                 + "przebija wyciszenie i tryb Skupienia. Słychać go — usłyszysz i alarm."
+            return tekst(lang,
+                "Ten test poszedł tą samą drogą co prawdziwy czerwony alarm: "
+                + "przebija wyciszenie i tryb Skupienia. Słychać go — usłyszysz i alarm.",
+                "This test took the same path as a real red alert: it breaks through "
+                + "silent mode and Focus. If you can hear it, you will hear the alert too.",
+                "Цей тест пішов тим самим шляхом, що й справжня червона тривога: "
+                + "пробиває вимкнений звук і режим Фокусування. Чути його — почуєте й тривогу.")
         }
-        return "Jeśli nic nie zagrało, a telefon jest wyciszony — tak właśnie działa "
-             + "iPhone: bez zgody na alarm krytyczny ucina dźwięk powiadomień. "
-             + "Włącz ją w aplikacji: ⚙ → Alarmy → „Włącz alarm mimo wyciszenia”. "
-             + "Wtedy czerwony zagra nawet przy wyciszonym dzwonku; żółty zostanie cichy."
+        // Nazwa przycisku musi brzmieć DOKŁADNIE jak w aplikacji (app.js, `btn-critical`),
+        // inaczej człowiek szuka na ekranie czegoś, czego tam nie ma.
+        return tekst(lang,
+            "Jeśli nic nie zagrało, a telefon jest wyciszony — tak właśnie działa iPhone: "
+            + "bez zgody na alarm krytyczny ucina dźwięk powiadomień. Włącz ją w aplikacji: "
+            + "⚙ → Alarmy → „Włącz alarm mimo wyciszenia”. Wtedy czerwony zagra nawet przy "
+            + "wyciszonym dzwonku; żółty zostanie cichy.",
+            "If nothing sounded and your phone is muted, that is how iPhone works: without "
+            + "the critical-alert permission iOS cuts notification sound. Turn it on in the app: "
+            + "⚙ → Alerts → “Turn on alert despite silent mode”. Then a red alert sounds even "
+            + "on a muted ringer; yellow stays silent.",
+            "Якщо нічого не прозвучало, а звук телефона вимкнено — так працює iPhone: "
+            + "без дозволу на критичну тривогу iOS прибирає звук сповіщень. Увімкніть його "
+            + "в застосунку: ⚙ → Тривоги → «Увімкнути тривогу попри вимкнений звук». "
+            + "Тоді червона тривога озветься навіть при вимкненому дзвінку; жовта залишиться тихою.")
+    }
+
+    /// Język treści testu. app.js przysyła „pl" / „en" / „uk"; cokolwiek innego
+    /// (stare wydanie, literówka) traktujemy jak polski — tak brzmią alarmy z serwera.
+    private static func jezykTestu(_ wartosc: String?) -> String {
+        let l = (wartosc ?? "").lowercased()
+        return (l == "en" || l == "uk") ? l : "pl"
+    }
+
+    private static func tekst(_ lang: String, _ pl: String, _ en: String, _ uk: String) -> String {
+        switch lang {
+        case "en": return en
+        case "uk": return uk
+        default:   return pl
+        }
     }
 
     // MARK: - alarm krytyczny
