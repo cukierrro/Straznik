@@ -993,6 +993,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
       <details class="jak"><summary id="jak-yv">Czego dotyczy to ustawienie</summary>
       <div class="fineprint" id="yv-note">Dotyczy wyłącznie <b>żółtego</b> sygnału uwagi.
         Czerwonego alarmu to nie wycisza — ma on własne ustawienie. „Bez dźwięku” zostawia baner i wibrację.</div>
+      <p class="fineprint ios-only" id="yv-ios-note">Na iPhonie to ustawienie zmienia tylko sygnał przy otwartej aplikacji. Dźwięk powiadomienia, które przychodzi przy zamkniętej, wybiera serwer i jest taki sam dla wszystkich. Kto chce zupełnej ciszy żółtego, wyłącza Dźwięki w Ustawieniach iPhone'a → Strażnik → Powiadomienia, ale to wycisza także powiadomienia czerwone.</p>
       </details>
     </div>
 
@@ -1163,7 +1164,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
      Cloudflare, więc po każdym wydaniu wystarczy podbić ?v= i przeglądarki
      dostają nowe app.js/engine.js OD RAZU, bez ręcznego czyszczenia cache CF.
      Podbijaj ?v= razem z versionName w build.gradle. -->
-<script src="i18n.js?v=1.7.93c"></script>
+<script src="i18n.js?v=1.7.93d"></script>
 <!-- kontur Polski dla engine.js (audyt A2b, scripts/build_pl_outline.py) -->
 <script src="pl-outline.js?v=1.7.82"></script>
 <script src="engine.js?v=1.7.93a"></script>
@@ -1179,7 +1180,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <div id="a11y-alert" class="sr-only" role="status" aria-live="assertive" aria-atomic="true"></div>
 <div id="a11y-info" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
 
-<script src="app.js?v=1.7.93c"></script>
+<script src="app.js?v=1.7.93d"></script>
 <script>
 /* Instrukcja pasująca do telefonu i języka (21.09.2026). iPhone ma osobną, bo alarmy,
    zgody i aktualizacje działają tam inaczej. Tu, a nie w app.js: index.html nie jest
