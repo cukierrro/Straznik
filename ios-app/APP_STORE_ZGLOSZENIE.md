@@ -679,3 +679,42 @@ to przeżywają.
 
 Przed wpisaniem sprawdzić w panelu, **które lokalizacje karta naprawdę ma** —
 w każdej trzeba wpisać osobno, a pusta lokalizacja pokazuje tekst poprzedniej wersji.
+
+## 22. Zgłoszenie 1.7.94 (13.10.2026, 21:21)
+
+Build **2610131906**, commit `c9f2e38` (scalenie `f3185f6` z main — tag `v1.7.94`),
+Capacitor 8.5.2, status **Waiting for Review**, publikacja automatyczna po
+zatwierdzeniu, do wszystkich od razu, ocena zachowana.
+
+Sprawdzone przed zgłoszeniem, bo zgoda usera dotyczyła wydania w ustalonym
+kształcie: GROTA w paczce z wykazu **2026-10-12** (86 712 punktów, `polska.min.json`),
+w podpisanym pliku `aps-environment: production`, `critical-alerts`,
+`time-sensitive`, CI zielone.
+
+W karcie sklepu jest **tylko lokalizacja polska** — EN i UK z §21 zostają na
+zapas, gdyby kiedyś doszły. Opis zmian: 342 znaki, bez liczb GROTY (były jeszcze
+wstępne) i bez androidowej wibracji „Poczuj".
+
+### Pułapki panelu — co działa, a co nie
+
+Panel przeszedł na nowy układ i część chwytów z §19–§20 jest nieaktualna:
+
+- **Wersję zakłada się „plusem" przy „iOS App" w lewym pasku.** Ten przycisk ma
+  4×13 px i **nie reaguje ani na kliknięcie po ref, ani po współrzędnych** —
+  otworzyło go dopiero `element.click()` z konsoli. Dialog „New Version" potem
+  zachowuje się normalnie.
+- **Współrzędne w `computer` są w układzie ZRZUTU (800×500), a nie strony
+  (1440×900).** Kliknięcia liczone z `getBoundingClientRect()` trafiały w próżnię,
+  co wyglądało jak „panel ignoruje kliknięcia". Albo przeliczać ×0,556, albo —
+  prościej i pewniej — klikać po `ref`.
+- **„Add for Review" zadziałało po ref** (w §19 nie działało) i otwiera prawy
+  panel „Draft Submission" z listą pozycji; dopiero w nim jest „Submit for Review".
+- Karta **nie zawiesiła się** przy wpisywaniu opisu, bo tekst wszedł przez
+  `form_input` (ustawia wartość naraz) zamiast literowania. Tak robić dalej.
+- Po zapisie `Save` gaśnie — to jedyny pewny sygnał, że nic nie zostało niezapisane.
+
+### Co z tym wydaniem jest niezweryfikowane
+
+Dwa pomiary dźwięku na urządzeniu (wyciszony iPhone + zgoda krytyczna; wyłączone
+„Dźwięki" + zgoda) — tester nie zdążył, decyzja usera: wydanie idzie bez nich,
+wyniki wejdą do następnego. Dlaczego to bezpieczne: `TESTFLIGHT_TESTY.md` §14.
