@@ -34,7 +34,8 @@
   "operatingSystem": "Android, iOS, Web",
   "isAccessibleForFree": true,
   "offers": { "@type": "Offer", "price": "0", "priceCurrency": "PLN" },
-  "downloadUrl": "https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk",
+  "downloadUrl": "https://play.google.com/store/apps/details?id=pl.straznik.app",
+  "installUrl": "https://play.google.com/store/apps/details?id=pl.straznik.app",
   "softwareHelp": "https://cukierrro.github.io/Straznik/",
   "sameAs": ["https://github.com/cukierrro/Straznik"]
 }
@@ -103,7 +104,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <link rel="icon" type="image/png" sizes="512x512" href="assets/icon-512.png">
 <link rel="apple-touch-icon" href="assets/icon-192.png">
 <link rel="stylesheet" href="assets/vendor/maplibre-gl.css?v=1.7.82">
-<link rel="stylesheet" href="style.css?v=1.7.93b">
+<link rel="stylesheet" href="style.css?v=1.7.94">
 </head>
 <body>
 
@@ -137,9 +138,9 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
        role="button" tabindex="0"></div>
   <div class="top-actions">
     <a id="btn-download" class="chip download web-only"
-       href="https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk"
-       title="Pobierz najnowszą wersję aplikacji Strażnik na Androida"
-       aria-label="Pobierz najnowszą wersję aplikacji Strażnik na Androida">⬇ Pobierz na Androida</a>
+       href="https://play.google.com/store/apps/details?id=pl.straznik.app" target="_blank" rel="noopener"
+       title="Pobierz aplikację Strażnik na Androida z Google Play"
+       aria-label="Pobierz aplikację Strażnik na Androida z Google Play">⬇ Pobierz na Androida</a>
     <a id="btn-ios" class="chip download ios web-only"
        href="https://apps.apple.com/pl/app/id6813563009" target="_blank" rel="noopener"
        title="Pobierz aplikację Strażnik na iPhone'a z App Store"
@@ -207,7 +208,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
       RCB i RSO, strefami PAŻP, ruchem ADS-B oraz doniesieniami medialnymi.</p>
     <p>Do wyświetlenia mapy na żywo potrzebna jest obsługa JavaScript.
       <a href="https://cukierrro.github.io/Straznik/">Przeczytaj instrukcję</a> lub
-      pobierz aplikację <a href="https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk">na Androida</a>
+      pobierz aplikację <a href="https://play.google.com/store/apps/details?id=pl.straznik.app">na Androida (Google Play)</a> albo <a href="https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk">jako plik APK</a>
       lub <a href="https://apps.apple.com/pl/app/id6813563009">na iPhone'a (App Store)</a>.</p>
     <p><b>To źródło dodatkowe.</b> Nie zastępuje syren, Alertu RCB, RSO ani komunikatów służb.</p>
   </main>
@@ -292,7 +293,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
      drogą do powiadomień w przeglądarce, więc tam go nie straszymy. -->
 <div id="skrot-www" hidden>
   <span id="skrot-www-tekst">To jest skrót do strony, nie aplikacja. Alarmy przy zamkniętym oknie i schronienie (GROTA) są w aplikacji na telefon.</span>
-  <a id="skrot-www-pobierz" href="https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk">↓ Pobierz aplikację</a>
+  <a id="skrot-www-pobierz" href="https://play.google.com/store/apps/details?id=pl.straznik.app" target="_blank" rel="noopener">↓ Pobierz aplikację</a>
   <button id="skrot-www-x" title="Ukryj">✕</button>
 </div>
 <div id="disclaimer">
@@ -1164,10 +1165,10 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
      Cloudflare, więc po każdym wydaniu wystarczy podbić ?v= i przeglądarki
      dostają nowe app.js/engine.js OD RAZU, bez ręcznego czyszczenia cache CF.
      Podbijaj ?v= razem z versionName w build.gradle. -->
-<script src="i18n.js?v=1.7.93e"></script>
+<script src="i18n.js?v=1.7.94a"></script>
 <!-- kontur Polski dla engine.js (audyt A2b, scripts/build_pl_outline.py) -->
 <script src="pl-outline.js?v=1.7.82"></script>
-<script src="engine.js?v=1.7.93a"></script>
+<script src="engine.js?v=1.7.94"></script>
 <script src="aircraft-photo-catalog.js?v=1.7.19"></script>
 <script src="aircraft-photos.js?v=1.7.79"></script>
 <script src="places.js?v=1.7.19-4"></script>
@@ -1180,7 +1181,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <div id="a11y-alert" class="sr-only" role="status" aria-live="assertive" aria-atomic="true"></div>
 <div id="a11y-info" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
 
-<script src="app.js?v=1.7.93d"></script>
+<script src="app.js?v=1.7.94"></script>
 <script>
 /* Instrukcja pasująca do telefonu i języka (21.09.2026). iPhone ma osobną, bo alarmy,
    zgody i aktualizacje działają tam inaczej. Tu, a nie w app.js: index.html nie jest

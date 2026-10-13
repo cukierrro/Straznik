@@ -872,7 +872,7 @@
     for (const node of nodes) for (const [from,to] of fragments)
       if (node.nodeValue.includes(from)) node.nodeValue = node.nodeValue.split(from).join(to);
     const attrs = {
-      "btn-download": ["title","Download the latest Strażnik app for Android"],
+      "btn-download": ["title","Get the Strażnik app for Android on Google Play"],
       "btn-ios": ["title","Get the Strażnik app for iPhone on the App Store"],
       "btn-instructions": ["title","Open the full Strażnik user guide"],
       "btn-about": ["title","About Strażnik — what it is and how it works"],
@@ -1164,7 +1164,7 @@
   const norm = (t) => t.trim().replace(/\s+/g, " ");
 
   const ATTR_UK = {
-    "#btn-download": ["title", "Завантажити найновіший застосунок Strażnik для Android"],
+    "#btn-download": ["title", "Завантажити Strażnik для Android з Google Play"],
     "#btn-ios": ["title", "Завантажити Strażnik для iPhone в App Store"],
     "#btn-instructions": ["title", "Відкрити повну інструкцію Strażnika"],
     "#btn-about": ["title", "Про Strażnika — що це і як працює"],
