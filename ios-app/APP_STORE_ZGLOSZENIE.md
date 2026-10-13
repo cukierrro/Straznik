@@ -625,3 +625,57 @@ wcale — nie pomogło ani czekanie, ani wymuszone przeładowanie; trzeba było
 zamknąć kartę i otworzyć nową (wersja i build w panelu przetrwały). Po ponownym
 wejściu tekst szedł akapitami, ale karta znowu zamarła po trzecim. Wniosek na
 przyszłość: **pisać opis krótko**, 2–3 akapity, i zapisywać po każdym.
+
+## 21. Przygotowane „co nowego" dla 1.7.94 (13.10.2026)
+
+Zawartość wydania wg sesji głównej (`docs/RELEASE_1.7.94.md`). Build do App Store
+powstaje wieczorem, po wypchnięciu finalnego frontu i nowej GROTY na `main`.
+
+**Celowo bez liczb.** GROTA podała wstępnie 86 712 punktów, +2/−39 i 22 zmiany
+dostępności, ale zastrzegła, że po pełnej przebudowie mogą się zmienić. Liczba
+w opisie sklepu, której potem nie da się poprawić bez nowego wydania, nic nie
+wnosi — wystarczy data wykazu.
+
+**Nie wpisywać** wibracji „Poczuj" — to zmiana wyłącznie androidowa i na iPhonie
+jej nie ma.
+
+### PL (335 znaków)
+
+```
+Schronienia: wykaz PSP opublikowany 12 października.
+
+Historia: obiekt, który zniknął z danych NEPTUN, gaśnie po około 30 minutach — tak samo jak na mapie na żywo.
+
+Test czerwonego alarmu idzie teraz tą samą drogą co prawdziwy: ze zgodą na alarm krytyczny zagra nawet przy wyciszonym telefonie, a bez niej aplikacja uprzedza, że będzie cicho.
+```
+
+### EN (338 znaków)
+
+```
+Shelters: the PSP register published on 12 October.
+
+History: an object that disappeared from NEPTUN data fades after about 30 minutes, the same as on the live map.
+
+The red alert test now takes the same path as a real alert: with critical alert permission it sounds even on a muted phone, and without it the app says so beforehand.
+```
+
+### UK (389 znaków) — tylko jeśli karta ma lokalizację ukraińską
+
+```
+Укриття: реєстр PSP, опублікований 12 жовтня.
+
+Історія: об'єкт, що зник із даних NEPTUN, згасає приблизно за 30 хвилин — так само, як на мапі наживо.
+
+Тест червоної тривоги тепер іде тим самим шляхом, що й справжня: з дозволом на критичну тривогу він прозвучить навіть при вимкненому звуці, а без нього застосунок попередить, що буде тихо.
+```
+
+### Jak to wpisać, żeby panel nie zamarł
+
+Pułapka z §20 (11.10): karta App Store Connect **zawiesza się przy dłuższym
+wpisywaniu** w „What's New", a wymuszone przeładowanie gubi tekst. Dlatego teksty
+są krótkie i podzielone na akapity: wpisywać **akapit po akapicie i zapisywać po
+każdym**. Przy zamarciu zamknąć kartę i otworzyć nową — wersja i build w panelu
+to przeżywają.
+
+Przed wpisaniem sprawdzić w panelu, **które lokalizacje karta naprawdę ma** —
+w każdej trzeba wpisać osobno, a pusta lokalizacja pokazuje tekst poprzedniej wersji.
