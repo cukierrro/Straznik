@@ -97,6 +97,11 @@ class Alarms {
      *  KEY_RED_SILENT, który zostaje odczytywany jako „wibracja” dla starszych zapisów. */
     static final String KEY_RED_MODE = "czerwony_tryb";
     static final String RED_SIREN = "syrena", RED_VIBRATION = "wibracja", RED_NORMAL = "zwykle";
+    // Godziny ciszy (prośba czytelnika 13.10.2026: „w dzień chcę słyszeć, w nocy w domu
+    // wystarczy wibracja”). Minuty od północy; od == do znaczy „nigdy”.
+    static final String KEY_QUIET_ON = "cisza_wlaczona", KEY_QUIET_FROM = "cisza_od",
+        KEY_QUIET_TO = "cisza_do", KEY_QUIET_RED = "cisza_czerwony";
+    static final int QUIET_FROM_DEFAULT = 22 * 60, QUIET_TO_DEFAULT = 7 * 60;
     /** Użytkownik wyłączył „Alarmy na tym telefonie” — usługa FCM odrzuca alarmy. */
     static final String KEY_ALERTS_OFF = "alerts_off";
     private static final String KEY_SAVED_VOLUME = "saved_alarm_volume";
@@ -302,14 +307,54 @@ class Alarms {
         return p.getBoolean(KEY_RED_SILENT, false) ? RED_VIBRATION : RED_SIREN;
     }
 
-    /** Czy czerwony alarm ma iść bez syreny (wibracja albo zwykłe powiadomienie). */
+    /** Czy czerwony alarm ma iść bez syreny (wibracja albo zwykłe powiadomienie) — TERAZ,
+     *  z uwzględnieniem godzin ciszy. */
     static boolean redSilent(Context ctx) {
-        return !RED_SIREN.equals(redMode(ctx));
+        return !RED_SIREN.equals(redModeNow(ctx));
     }
 
     /** Czy czerwony ma przyjść jak zwykłe powiadomienie: bez pełnego ekranu i syreny. */
     static boolean redNormal(Context ctx) {
-        return RED_NORMAL.equals(redMode(ctx));
+        return RED_NORMAL.equals(redModeNow(ctx));
+    }
+
+    // ── godziny ciszy ────────────────────────────────────────────────────────────
+    // Zapisany wybór (redMode, yellowLevel) zostaje bez zmian — w godzinach ciszy
+    // liczy się wariant „teraz”: żółty bez dźwięku, czerwony z syreną → tylko wibracja
+    // (chyba że użytkownik wybrał „syrena jak w dzień”). Wszystko, co decyduje o
+    // dźwięku (kanał, pełny ekran, syrena, głośność, „Poczuj”), pyta o wariant „teraz”.
+
+    static boolean quietEnabled(Context ctx) { return prefs(ctx).getBoolean(KEY_QUIET_ON, false); }
+    static int quietFrom(Context ctx) { return prefs(ctx).getInt(KEY_QUIET_FROM, QUIET_FROM_DEFAULT); }
+    static int quietTo(Context ctx) { return prefs(ctx).getInt(KEY_QUIET_TO, QUIET_TO_DEFAULT); }
+    static String quietRed(Context ctx) {
+        return RED_SIREN.equals(prefs(ctx).getString(KEY_QUIET_RED, RED_VIBRATION)) ? RED_SIREN : RED_VIBRATION;
+    }
+
+    /** Czy minuta doby `teraz` leży w przedziale [od, do) — także przez północ. */
+    static boolean inWindow(int od, int doo, int teraz) {
+        if (od == doo) return false;
+        return od < doo ? (teraz >= od && teraz < doo) : (teraz >= od || teraz < doo);
+    }
+
+    static boolean quietNow(Context ctx) {
+        if (!quietEnabled(ctx)) return false;
+        java.util.Calendar c = java.util.Calendar.getInstance();
+        int teraz = c.get(java.util.Calendar.HOUR_OF_DAY) * 60 + c.get(java.util.Calendar.MINUTE);
+        return inWindow(quietFrom(ctx), quietTo(ctx), teraz);
+    }
+
+    /** Tryb czerwonego obowiązujący w tej chwili. „Zwykłe powiadomienie” i „tylko wibracja”
+     *  wybrane na stałe zostają — cisza nigdy nie robi alarmu GŁOŚNIEJSZYM. */
+    static String redModeNow(Context ctx) {
+        String m = redMode(ctx);
+        if (RED_SIREN.equals(m) && quietNow(ctx) && RED_VIBRATION.equals(quietRed(ctx))) return RED_VIBRATION;
+        return m;
+    }
+
+    /** Głośność żółtego obowiązująca w tej chwili: w godzinach ciszy bez dźwięku. */
+    static String yellowLevelNow(Context ctx) {
+        return quietNow(ctx) ? "silent" : yellowLevel(ctx);
     }
 
     /**
@@ -349,7 +394,7 @@ class Alarms {
 
     /** Kanał czerwonego zależnie od wybranego trybu. */
     static String highChannel(Context ctx) {
-        switch (redMode(ctx)) {
+        switch (redModeNow(ctx)) {
             case RED_VIBRATION: return CH_HIGH_SILENT;
             case RED_NORMAL:    return CH_HIGH_NORMAL;
             default:            return CH_HIGH;
@@ -358,7 +403,7 @@ class Alarms {
 
     /** Kanał żółtego zależnie od ustawienia użytkownika. Czerwonego to nie dotyczy. */
     static String infoChannel(Context ctx) {
-        switch (yellowLevel(ctx)) {
+        switch (yellowLevelNow(ctx)) {
             case "quiet":  return CH_INFO_QUIET;
             case "silent": return CH_INFO_SILENT;
             default:       return CH_INFO;

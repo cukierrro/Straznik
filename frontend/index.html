@@ -104,7 +104,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <link rel="icon" type="image/png" sizes="512x512" href="assets/icon-512.png">
 <link rel="apple-touch-icon" href="assets/icon-192.png">
 <link rel="stylesheet" href="assets/vendor/maplibre-gl.css?v=1.7.82">
-<link rel="stylesheet" href="style.css?v=1.7.94">
+<link rel="stylesheet" href="style.css?v=1.7.94b">
 </head>
 <body>
 
@@ -1028,6 +1028,30 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
         czerwony alarm ustawi suwak na maksimum, także w nocy. W obu przypadkach poprzednia
         głośność wraca, gdy wyciszysz alarm. Żółty sygnał uwagi gra na zwykłej głośności powiadomień i ma własne ustawienie wyżej.</div>
       </details>
+      <!-- Godziny ciszy (13.10.2026, prośba czytelnika po nocnym alarmie o 4:00):
+           „w dzień chcę słyszeć, w nocy w domu wystarczy wibracja”. Tylko Android —
+           na iPhonie dźwięk powiadomienia ustala serwer. Logika w Alarms.java
+           (redModeNow / yellowLevelNow) i app.js (godzinyCiszyTeraz). -->
+      <div id="quiet-hours" class="android-only">
+        <label class="set-switch" for="set-quiet-on">
+          <span class="sw-text"><b id="qh-label">Godziny ciszy</b>
+            <span class="muted" id="qh-sub">Np. w nocy: żółty bez dźwięku, czerwony tylko wibracją</span></span>
+          <input type="checkbox" role="switch" id="set-quiet-on">
+          <span class="sw-track" aria-hidden="true"></span></label>
+        <div class="qh-czas">
+          <label for="qh-od" id="qh-od-l">Od</label>
+          <input type="time" id="qh-od" value="22:00">
+          <label for="qh-do" id="qh-do-l">do</label>
+          <input type="time" id="qh-do" value="07:00">
+        </div>
+        <b id="qh-red-head">Czerwony w godzinach ciszy</b>
+        <div class="seg" role="group" aria-labelledby="qh-red-head">
+          <button type="button" id="qh-red-wibracja" class="chip" data-czerwony="wibracja">Tylko wibracja</button>
+          <button type="button" id="qh-red-syrena" class="chip" data-czerwony="syrena">Syrena jak w dzień</button>
+        </div>
+        <p class="fineprint" id="qh-stan" hidden></p>
+        <p class="fineprint" id="qh-note">W tych godzinach żółty przychodzi bez dźwięku — baner i wibracja. Czerwony zależnie od wyboru: tylko wibracją (pełny ekran i mocna wibracja zostają) albo z syreną jak w dzień. Poza tymi godzinami wszystko działa jak wyżej. Przy telefonie w drugim pokoju wibracji możesz nie poczuć. Godziny liczą się według zegara telefonu.</p>
+      </div>
       <!-- android-only także na opakowaniu: na iPhonie sam przycisk znika,
            ale pusty rząd zostawiłby po sobie odstęp. -->
       <div class="set-rows android-only">
@@ -1165,7 +1189,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
      Cloudflare, więc po każdym wydaniu wystarczy podbić ?v= i przeglądarki
      dostają nowe app.js/engine.js OD RAZU, bez ręcznego czyszczenia cache CF.
      Podbijaj ?v= razem z versionName w build.gradle. -->
-<script src="i18n.js?v=1.7.94a"></script>
+<script src="i18n.js?v=1.7.94b"></script>
 <!-- kontur Polski dla engine.js (audyt A2b, scripts/build_pl_outline.py) -->
 <script src="pl-outline.js?v=1.7.82"></script>
 <script src="engine.js?v=1.7.94"></script>
@@ -1181,7 +1205,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <div id="a11y-alert" class="sr-only" role="status" aria-live="assertive" aria-atomic="true"></div>
 <div id="a11y-info" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
 
-<script src="app.js?v=1.7.94"></script>
+<script src="app.js?v=1.7.94b"></script>
 <script>
 /* Instrukcja pasująca do telefonu i języka (21.09.2026). iPhone ma osobną, bo alarmy,
    zgody i aktualizacje działają tam inaczej. Tu, a nie w app.js: index.html nie jest

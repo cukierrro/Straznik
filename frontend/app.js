@@ -4377,7 +4377,8 @@ function chimeLevel() {
 }
 function attentionChime() {
   try {
-    const mnoznik = CHIME_LEVELS[chimeLevel()];
+    // w godzinach ciszy bez dźwięku, jak kanał żółtego (Alarms.yellowLevelNow)
+    const mnoznik = CHIME_LEVELS[godzinyCiszyTeraz() ? "silent" : chimeLevel()];
     zawibruj(WIBRACJA_U);   // także z dźwiękiem: osoba głucha przy otwartej aplikacji
     if (!mnoznik) return;
     const szczyt = CHIME_GAIN * mnoznik;
@@ -4457,7 +4458,39 @@ function czerwonyBezSyreny() {
   // pojedynczego rodzaju powiadomienia, więc cisza w otwartej aplikacji przy
   // wyjącym pushu byłaby myląca. Dzięki temu zachowanie na iPhonie jest tu
   // nietknięte, co sprawdzają scripts/test_ios_wspolne.cjs i test_syrena_ios.cjs.
-  return czerwonyTryb() !== "syrena";
+  // Godziny ciszy liczą się tak samo jak w Alarms.redModeNow.
+  return czerwonyTrybTeraz() !== "syrena";
+}
+/* Godziny ciszy (13.10.2026, Android). Prawdę trzyma Alarms.java (redModeNow,
+   yellowLevelNow); tu kopia dla otwartej aplikacji — syrenę i sygnał uwagi gra
+   wtedy strona. Minuty od północy; od == do znaczy „nigdy”. */
+const CISZA_KLUCZ = "straznik_godziny_ciszy";
+const CISZA_DOMYSLNIE = { on: false, od: 22 * 60, do: 7 * 60, czerwony: "wibracja" };
+function ciszaUstawienia() {
+  try {
+    const v = JSON.parse(localStorage.getItem(CISZA_KLUCZ) || "null");
+    if (v && typeof v === "object") return {
+      on: v.on === true,
+      od: Number.isInteger(v.od) && v.od >= 0 && v.od < 1440 ? v.od : CISZA_DOMYSLNIE.od,
+      do: Number.isInteger(v.do) && v.do >= 0 && v.do < 1440 ? v.do : CISZA_DOMYSLNIE.do,
+      czerwony: v.czerwony === "syrena" ? "syrena" : "wibracja" };
+  } catch {}
+  return { ...CISZA_DOMYSLNIE };
+}
+function wOknieCiszy(od, doo, teraz) {
+  if (od === doo) return false;
+  return od < doo ? (teraz >= od && teraz < doo) : (teraz >= od || teraz < doo);
+}
+function godzinyCiszyTeraz(d = new Date()) {
+  if (!IS_APP || IS_IOS) return false;
+  const c = ciszaUstawienia();
+  return c.on && wOknieCiszy(c.od, c.do, d.getHours() * 60 + d.getMinutes());
+}
+/* Tryb czerwonego obowiązujący TERAZ. Cisza nigdy nie robi alarmu głośniejszym:
+   „zwykłe” i „wibracja” wybrane na stałe zostają (lustro Alarms.redModeNow). */
+function czerwonyTrybTeraz() {
+  const t = czerwonyTryb();
+  return t === "syrena" && godzinyCiszyTeraz() && ciszaUstawienia().czerwony === "wibracja" ? "wibracja" : t;
 }
 /* Tryb czerwonego z ustawień (10.10.2026): „syrena”, „wibracja” albo „zwykle”.
    Prawdę trzyma strona natywna; tu kopia dla otwartej aplikacji. Zapis sprzed
@@ -6326,6 +6359,82 @@ function renderTrybCzerwonego() {
     b.setAttribute("aria-pressed", on ? "true" : "false");   // czytnik ekranu
   }
 }
+function minutyNaCzas(m) { return String(Math.floor(m / 60)).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0"); }
+function czasNaMinuty(s) {
+  const m = /^(\d{1,2}):(\d{2})/.exec(s || "");
+  return m && +m[1] < 24 && +m[2] < 60 ? +m[1] * 60 + +m[2] : null;
+}
+function renderGodzinyCiszy() {
+  const c = ciszaUstawienia();
+  const box = document.getElementById("set-quiet-on");
+  if (!box) return;
+  box.checked = c.on;
+  document.getElementById("quiet-hours")?.classList.toggle("wylaczone", !c.on);
+  const od = document.getElementById("qh-od"), doo = document.getElementById("qh-do");
+  if (od && document.activeElement !== od) od.value = minutyNaCzas(c.od);
+  if (doo && document.activeElement !== doo) doo.value = minutyNaCzas(c.do);
+  for (const b of document.querySelectorAll("#quiet-hours .seg .chip")) {
+    const on = b.dataset.czerwony === c.czerwony;
+    b.classList.toggle("active", on);
+    b.setAttribute("aria-pressed", on ? "true" : "false");
+  }
+  const stan = document.getElementById("qh-stan");
+  if (stan) {
+    const teraz = godzinyCiszyTeraz();
+    stan.hidden = !c.on;
+    stan.textContent = !c.on ? "" : c.od === c.do
+      ? UI.t("Początek i koniec są takie same — godziny ciszy nie obowiązują.", "Start and end are the same — quiet hours never apply.", "Початок і кінець однакові — години тиші не діють.")
+      : teraz ? UI.t(`Teraz trwają godziny ciszy (do ${minutyNaCzas(c.do)}).`, `Quiet hours are on now (until ${minutyNaCzas(c.do)}).`, `Зараз тривають години тиші (до ${minutyNaCzas(c.do)}).`)
+      : UI.t(`Godziny ciszy zaczną się o ${minutyNaCzas(c.od)}.`, `Quiet hours start at ${minutyNaCzas(c.od)}.`, `Години тиші почнуться о ${minutyNaCzas(c.od)}.`);
+  }
+}
+/* Zapis DOPIERO po potwierdzeniu z warstwy natywnej (jak tryb czerwonego): inaczej
+   otwarta aplikacja milczałaby w nocy, a powiadomienie przy zgaszonym ekranie wyło. */
+async function zapiszGodzinyCiszy(zmiana) {
+  const c = { ...ciszaUstawienia(), ...zmiana };
+  let ok = false;
+  try {
+    const r = await BG()?.setQuietHours?.({ enabled: c.on, from: c.od, to: c.do, red: c.czerwony });
+    ok = !!r && r.quietOn === c.on && r.quietFrom === c.od && r.quietTo === c.do && r.quietRed === c.czerwony;
+  } catch (err) { console.warn("godziny ciszy", err); }
+  if (!ok) {
+    toast(UI.t("Nie udało się zapisać godzin ciszy — spróbuj jeszcze raz.", "Could not save quiet hours — please try again.", "Не вдалося зберегти години тиші — спробуйте ще раз."), 6000);
+    renderGodzinyCiszy();
+    return;
+  }
+  try { localStorage.setItem(CISZA_KLUCZ, JSON.stringify(c)); } catch {}
+  renderGodzinyCiszy();
+  const zakres = `${minutyNaCzas(c.od)}–${minutyNaCzas(c.do)}`;
+  toast(!c.on ? UI.t("Godziny ciszy wyłączone.", "Quiet hours off.", "Години тиші вимкнено.")
+    : c.czerwony === "wibracja"
+      ? UI.t(`Godziny ciszy ${zakres}: żółty bez dźwięku, czerwony tylko wibracją.`, `Quiet hours ${zakres}: yellow without sound, red vibration only.`, `Години тиші ${zakres}: жовтий без звуку, червоний лише вібрацією.`)
+      : UI.t(`Godziny ciszy ${zakres}: żółty bez dźwięku, czerwony z syreną.`, `Quiet hours ${zakres}: yellow without sound, red with the siren.`, `Години тиші ${zakres}: жовтий без звуку, червоний із сиреною.`), 6000);
+}
+document.getElementById("set-quiet-on")?.addEventListener("change", async (e) => {
+  const on = e.target.checked;
+  if (on && ciszaUstawienia().czerwony === "wibracja" && !confirm(UI.t(
+    "Włączyć godziny ciszy?\n\nW tych godzinach czerwony alarm przyjdzie bez syreny — pełny ekran i mocna wibracja zostają. Przy wygaszonym ekranie i telefonie w drugim pokoju możesz go nie zauważyć. Syrenę na noc możesz zostawić wyborem „Syrena jak w dzień”.",
+    "Turn on quiet hours?\n\nDuring these hours a red alert arrives without the siren — the full screen and strong vibration stay. With the screen off and the phone in another room you may not notice it. You can keep the siren at night with “Siren as in the daytime”.",
+    "Увімкнути години тиші?\n\nУ ці години червона тривога прийде без сирени — повний екран і сильна вібрація лишаються. З вимкненим екраном і телефоном в іншій кімнаті ви можете її не помітити. Сирену на ніч можна залишити вибором «Сирена, як удень»."))) {
+    e.target.checked = false;
+    return;
+  }
+  zapiszGodzinyCiszy({ on });
+});
+for (const [id, pole] of [["qh-od", "od"], ["qh-do", "do"]]) {
+  document.getElementById(id)?.addEventListener("change", (e) => {
+    const m = czasNaMinuty(e.target.value);
+    if (m === null) { renderGodzinyCiszy(); return; }
+    zapiszGodzinyCiszy({ [pole]: m });
+  });
+}
+for (const b of document.querySelectorAll("#quiet-hours .seg .chip")) {
+  b.addEventListener("click", () => {
+    const czerwony = b.dataset.czerwony === "syrena" ? "syrena" : "wibracja";
+    if (czerwony !== ciszaUstawienia().czerwony) zapiszGodzinyCiszy({ czerwony });
+  });
+}
+renderGodzinyCiszy();
 for (const b of document.querySelectorAll("#red-mode .chip")) {
   b.addEventListener("click", async () => {
     const tryb = b.dataset.tryb;
@@ -6438,6 +6547,11 @@ async function refreshNativeSound() {
       try { localStorage.setItem("straznik_czerwony_tryb", s.redMode); } catch {}
     }
     renderTrybCzerwonego();
+    if (typeof s.quietOn === "boolean") {
+      try { localStorage.setItem(CISZA_KLUCZ, JSON.stringify({ on: s.quietOn, od: s.quietFrom,
+        do: s.quietTo, czerwony: s.quietRed })); } catch {}
+    }
+    renderGodzinyCiszy();
     renderYellowLevel();
   } catch {}
 }

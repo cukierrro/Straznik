@@ -262,9 +262,12 @@ public class BackgroundPlugin extends Plugin {
         } catch (Exception ignored) {}
         ret.put("forceMaxVolume", Alarms.forceVolumeEnabled(c));
         ret.put("redChannelSound", Alarms.highChannelPlaysSound(c));
-        ret.put("redSilent", Alarms.redSilent(c));
+        // ZAPISANY wybór, nie stan „teraz” — inaczej w godzinach ciszy ustawienia
+        // pokazywałyby „masz tylko wibrację”, choć użytkownik wybrał syrenę
+        ret.put("redSilent", !Alarms.RED_SIREN.equals(Alarms.redMode(c)));
         ret.put("redMode", Alarms.redMode(c));
         ret.put("yellowLevel", Alarms.yellowLevel(c));
+        putQuiet(ret, c);
         call.resolve(ret);
     }
 
@@ -308,7 +311,7 @@ public class BackgroundPlugin extends Plugin {
         Alarms.createChannels(c);
         JSObject ret = new JSObject();
         ret.put("redMode", Alarms.redMode(c));
-        ret.put("redSilent", Alarms.redSilent(c));
+        ret.put("redSilent", !Alarms.RED_SIREN.equals(Alarms.redMode(c)));
         call.resolve(ret);
     }
 
@@ -322,7 +325,7 @@ public class BackgroundPlugin extends Plugin {
             .putBoolean(Alarms.KEY_RED_SILENT, enabled).apply();
         Alarms.createChannels(c);
         JSObject ret = new JSObject();
-        ret.put("redSilent", Alarms.redSilent(c));
+        ret.put("redSilent", !Alarms.RED_SIREN.equals(Alarms.redMode(c)));
         ret.put("redMode", Alarms.redMode(c));
         call.resolve(ret);
     }
@@ -362,6 +365,41 @@ public class BackgroundPlugin extends Plugin {
                 "TEST: sprawdzenie dźwięku i ekranu alarmu", System.currentTimeMillis(), true);
         }, delayMs);
         call.resolve();
+    }
+
+    /**
+     * Godziny ciszy (13.10.2026): od/do w minutach od północy, `red` = "wibracja" albo
+     * "syrena" (czerwony w tych godzinach). Kanały tworzymy od nowa, bo wybór kanału
+     * zależy od pory — same kanały już istnieją.
+     */
+    @PluginMethod
+    public void setQuietHours(PluginCall call) {
+        Context c = getContext();
+        int od = clampMinute(call.getInt("from", Alarms.QUIET_FROM_DEFAULT));
+        int doo = clampMinute(call.getInt("to", Alarms.QUIET_TO_DEFAULT));
+        String red = Alarms.RED_SIREN.equals(call.getString("red")) ? Alarms.RED_SIREN : Alarms.RED_VIBRATION;
+        Alarms.prefs(c).edit()
+            .putBoolean(Alarms.KEY_QUIET_ON, Boolean.TRUE.equals(call.getBoolean("enabled", false)))
+            .putInt(Alarms.KEY_QUIET_FROM, od)
+            .putInt(Alarms.KEY_QUIET_TO, doo)
+            .putString(Alarms.KEY_QUIET_RED, red)
+            .apply();
+        JSObject ret = new JSObject();
+        putQuiet(ret, c);
+        call.resolve(ret);
+    }
+
+    private static int clampMinute(Integer m) {
+        if (m == null) return 0;
+        return Math.max(0, Math.min(24 * 60 - 1, m));
+    }
+
+    static void putQuiet(JSObject ret, Context c) {
+        ret.put("quietOn", Alarms.quietEnabled(c));
+        ret.put("quietFrom", Alarms.quietFrom(c));
+        ret.put("quietTo", Alarms.quietTo(c));
+        ret.put("quietRed", Alarms.quietRed(c));
+        ret.put("quietNow", Alarms.quietNow(c));
     }
 
     /** Przyciski „Poczuj”: wzór wibracji tą samą drogą co prawdziwy sygnał (Alarms.poczuj). */

@@ -62,6 +62,11 @@
 /* Przełącznik nieczynny, bo inne ustawienie odebrało mu sens (np. pełna
    głośność przy czerwonym bez syreny). Wybór użytkownika zostaje zapamiętany. */
 .set-switch.wylaczone { opacity: .45; }
+/* Godziny ciszy: pola czasu w ciemnym motywie (color-scheme daje ciemny wybierak) */
+#quiet-hours .qh-czas { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 8px 0 12px; }
+#quiet-hours input[type="time"] { color-scheme: dark; background: var(--panel); color: var(--text);
+  border: 1px solid var(--panel-border); border-radius: 11px; padding: 6px 10px; font-size: 1rem; min-height: 40px; }
+#quiet-hours.wylaczone .qh-czas, #quiet-hours.wylaczone .seg, #quiet-hours.wylaczone #qh-red-head { opacity: .45; }
 .set-switch.wylaczone .sw-track { cursor: not-allowed; }
 /* Przycisk zgody na alarm krytyczny (1.7.84) sam decyduje o widoczności przez
    style.display w app.js — reguła .ios-only nie może mu tego nadpisywać. */

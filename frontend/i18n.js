@@ -440,6 +440,14 @@
     button("ns-label", "Czerwony alarm zawsze na pełnej głośności",
       "Red alert always at full volume");
     button("rm-head", "Czerwony alarm", "Red alert");
+    button("qh-label", "Godziny ciszy", "Quiet hours");
+    button("qh-sub", "Np. w nocy: żółty bez dźwięku, czerwony tylko wibracją", "E.g. at night: yellow without sound, red vibration only");
+    button("qh-od-l", "Od", "From");
+    button("qh-do-l", "do", "to");
+    button("qh-red-head", "Czerwony w godzinach ciszy", "Red during quiet hours");
+    button("qh-red-wibracja", "Tylko wibracja", "Vibration only");
+    button("qh-red-syrena", "Syrena jak w dzień", "Siren as in the daytime");
+    button("qh-note", "W tych godzinach żółty przychodzi bez dźwięku — baner i wibracja. Czerwony zależnie od wyboru: tylko wibracją (pełny ekran i mocna wibracja zostają) albo z syreną jak w dzień. Poza tymi godzinami wszystko działa jak wyżej. Przy telefonie w drugim pokoju wibracji możesz nie poczuć. Godziny liczą się według zegara telefonu.", "During these hours yellow arrives without sound — a banner and vibration. Red depends on your choice: vibration only (the full screen and strong vibration stay) or the siren as in the daytime. Outside these hours everything works as above. With the phone in another room you may not feel the vibration. The hours follow the phone's clock.");
     button("rm-syrena", "Syrena", "Siren");
     button("rm-wibracja", "Tylko wibracja", "Vibration only");
     button("rm-zwykle", "Zwykłe powiadomienie", "Regular notification");
@@ -762,6 +770,13 @@
     "▶ Feel: red (A · —)": "▶ Відчути: червоний (A · —)",
     "The vibration patterns are not a choice: yellow always vibrates “U”, red always “A”. The buttons only play them so you can recognise them.": "Ритм вібрації не обирається: жовта завжди вібрує «U», червона — завжди «A». Кнопки лише відтворюють його, щоб ви його впізнали.",
     "On iPhone this setting only changes the signal while the app is open. The sound of a notification that arrives with the app closed is chosen by the server and is the same for everyone. For complete silence on yellow, turn off Sounds in iPhone Settings → Strażnik → Notifications — but that switch covers all Strażnik notifications, including the red alert.": "На iPhone це налаштування змінює лише сигнал при відкритому застосунку. Звук сповіщення, яке приходить при закритому, вибирає сервер, і він однаковий для всіх. Хто хоче повної тиші для жовтого, вимикає Звуки в Налаштуваннях iPhone → Strażnik → Сповіщення — але цей перемикач стосується всіх сповіщень Strażnik, зокрема червоної тривоги.",
+    "Quiet hours": "Години тиші",
+    "E.g. at night: yellow without sound, red vibration only": "Напр. уночі: жовтий без звуку, червоний лише вібрацією",
+    "From": "Від",
+    "to": "до",
+    "Red during quiet hours": "Червоний у години тиші",
+    "Siren as in the daytime": "Сирена, як удень",
+    "During these hours yellow arrives without sound — a banner and vibration. Red depends on your choice: vibration only (the full screen and strong vibration stay) or the siren as in the daytime. Outside these hours everything works as above. With the phone in another room you may not feel the vibration. The hours follow the phone's clock.": "У ці години жовтий приходить без звуку — банер і вібрація. Червоний залежно від вибору: лише вібрацією (повний екран і сильна вібрація лишаються) або із сиреною, як удень. Поза цими годинами все працює, як вище. Якщо телефон в іншій кімнаті, вібрацію можна не відчути. Години рахуються за годинником телефона.",
     "Critical alerts are a separate permission from Apple: a red alert will sound even when the phone is muted with the switch or in Focus mode. It applies to the red level only — the yellow attention signal stays quiet. iPhone asks for this permission once; if you decline it, you can turn it on later in the phone’s Settings. You can withdraw it at any time in the same place.": "Критична тривога — це окремий дозвіл Apple: червона тривога пролунає навіть тоді, коли телефон вимкнено перемикачем або він у режимі Фокусування. Це стосується лише червоного рівня — жовтий сигнал уваги лишається тихим. iPhone запитає про цей дозвіл лише один раз; якщо ви відмовите, увімкнете його згодом у Налаштуваннях телефону. Відкликати його можна будь-коли там само.",
     "Allow full-screen alerts": "🚨 Дозволити повноекранні тривоги",
     "Check full-screen alert permission": "Перевірити дозвіл на повноекранну тривогу",
@@ -1099,6 +1114,14 @@
     set("#btn-dnd-access", "Alert despite Do Not Disturb");
     set("#rm-head", "Red alert");
     set("#rm-syrena", "Siren");
+    set("#qh-label", "Quiet hours");
+    set("#qh-sub", "E.g. at night: yellow without sound, red vibration only");
+    set("#qh-od-l", "From");
+    set("#qh-do-l", "to");
+    set("#qh-red-head", "Red during quiet hours");
+    set("#qh-red-wibracja", "Vibration only");
+    set("#qh-red-syrena", "Siren as in the daytime");
+    set("#qh-note", "During these hours yellow arrives without sound — a banner and vibration. Red depends on your choice: vibration only (the full screen and strong vibration stay) or the siren as in the daytime. Outside these hours everything works as above. With the phone in another room you may not feel the vibration. The hours follow the phone's clock.");
     set("#rm-wibracja", "Vibration only");
     set("#rm-zwykle", "Regular notification");
     set("#btn-vib-u", "▶ Feel: yellow (U · · —)");
