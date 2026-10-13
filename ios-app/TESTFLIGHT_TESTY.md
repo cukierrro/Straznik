@@ -713,6 +713,24 @@ drogą poszedł, więc ze zrzutu widać to bez zgadywania.
 Jeśli w przebiegu 1 nic nie zagrało, to nie jest Twoja wina ani usterka telefonu —
 to dokładnie ten wynik, którego szukamy. Napisz, co zobaczyłeś.
 
+### Decyzja usera (13.10.2026): 1.7.94 wychodzi bez tych pomiarów
+
+Tester nie zdąży przed wieczorną publikacją, więc wydanie idzie bez wyników,
+a one wejdą do **następnego** wydania. To jest bezpieczne i warto wiedzieć dlaczego:
+
+- Poprawka czerwonego testu już jest w kodzie i **gorzej niż dotąd być nie może** —
+  do 1.7.93 ten test milczał przy wyciszeniu u każdego, także u ludzi ze zgodą.
+- Wydanie **nie zawiera twierdzenia, które pomiar mógłby obalić**. Zdanie w teście
+  dla telefonu ze zgodą jest warunkowe („Słychać go — usłyszysz i alarm"), a notka
+  o alarmie krytycznym w ustawieniach opisuje udokumentowane zachowanie Apple
+  (alarm krytyczny ignoruje wyciszenie i Nie przeszkadzać), nie nasz pomiar.
+- Przebieg 4 wpływa wyłącznie na **jedno zdanie w notce** o głośności żółtego,
+  a to zdanie zostało już 13.10 przeformułowane na fakt („ten przełącznik dotyczy
+  wszystkich powiadomień Strażnika"), który jest prawdziwy niezależnie od wyniku.
+
+Gdy wyniki przyjdą: dopisać je tutaj przy przebiegach 1–4 i — jeśli przebieg 4
+pokaże, że alarm krytyczny jednak gra — doprecyzować notkę w ustawieniach.
+
 ### Czego ten build NIE sprawdza
 
 Prawdziwego pusha z serwera. Test jest powiadomieniem lokalnym, planowanym na
