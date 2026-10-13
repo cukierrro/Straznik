@@ -20,17 +20,21 @@ sklepu aktualizuje sklep.
 
 ## GROTA — nowy wykaz PSP (12.10)
 
-<!-- GROTA: liczby i długi tekst sprawdzić/podmienić po scaleniu gałęzi grota-0510 -->
-Wykaz punktów schronienia Państwowej Straży Pożarnej opublikowany 12 października
-(pole daty w samym zbiorze nadal pokazuje 5 października — liczy się data publikacji
-pliku). W porównaniu z wykazem z 5 października: 86 712 punktów zamiast 86 749,
-2 nowe, 39 wykreślonych (30 w lubuskiem), 22 zmiany dostępności, w tym 15 punktów
-całodobowych przeszło na „Na żądanie”.
+Paczka GROTY jest zbudowana z wykazu punktów schronienia Państwowej Straży Pożarnej
+opublikowanego 12 października 2026 — 86 712 punktów. W aplikacji był dotąd wykaz
+z 28 września (86 533 punkty). Pole daty w samym zbiorze nadal pokazuje 5 października;
+liczy się data publikacji pliku. Między 5 a 12 października: 2 punkty doszły,
+39 skreślono (Zielona Góra 20, Czerwieńsk 9, Lublin 7), żadnych przesunięć współrzędnych,
+22 zmiany dostępności.
 
-Wcześniejsza zmiana, która trafia do aplikacji dopiero teraz: wykaz przeklasyfikował
-punkty w Ustrzykach Dolnych („Całodobowo” 9 zamiast 52) i w Leżajsku (2 zamiast 33).
-Punkty nie zniknęły — są na mapie jako „Na żądanie”, czyli ktoś musi je otworzyć.
-Jeśli masz tam zapisane schronienie, sprawdź jego dostępność i dopytaj zarządcę.
+Nowy wykaz PSP zmienił dostępność 136 punktom i prawie wyłącznie w jedną stronę:
+z „Całodobowo” na „Na żądanie”. Najmocniej w podkarpackiem — w Ustrzykach Dolnych
+punktów „Całodobowo” jest teraz 9 zamiast 52, w Leżajsku 2 zamiast 33. Punkty nie
+zniknęły: zostają na mapie z etykietą „Na żądanie”, czyli obiekt jest zamknięty,
+a zarządca lub mieszkańcy powinni go otworzyć w razie zagrożenia. Jeśli masz tam
+zapisane schronienie, otwórz jego kartę i sprawdź dostępność, a zarządcę zapytaj
+wcześniej, kto ma klucz. Dostępność w wykazie jest parametrem pomocniczym z etapu
+rozpoznania i zmienia się razem ze sposobem użytkowania budynku; powodu wykaz nie podaje.
 
 ## „Poczuj” — wibracja jak prawdziwy sygnał
 
