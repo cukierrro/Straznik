@@ -37,7 +37,7 @@
   <div><div class="eyebrow">Instrukcja użytkownika · wersja 1.7.94</div>
     <h1>Sytuacja na mapie.<br>Źródła za każdym sygnałem.</h1>
     <p class="lead">Strażnik łączy publiczne informacje o zagrożeniach z powietrza i pokazuje ich punktację dla polskich województw. Działa na Androidzie, na iPhonie i w przeglądarce.</p>
-    <div class="actions"><a class="button primary" href="https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk">↓ Pobierz na Androida</a><a class="button primary" href="https://apps.apple.com/pl/app/id6813563009">↓ Pobierz na iOS</a><a class="button" href="https://straznik.eu">Otwórz mapę</a></div>
+    <div class="actions"><a class="button primary" href="https://play.google.com/store/apps/details?id=pl.straznik.app">↓ Google Play</a><a class="button primary" href="https://apps.apple.com/pl/app/id6813563009">↓ Pobierz na iOS</a><a class="button" href="https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk">↓ Plik APK</a><a class="button" href="https://straznik.eu">Otwórz mapę</a></div>
     <p class="fineprint">Instrukcja opisuje wyłącznie bieżącą wersję 1.7.94. Zrzuty wykonano na Pixelu 7 z Androidem 14, na żywych danych: zakładkę ustawień Dźwięk — 13 października 2026 z podpisanego wydania 1.7.94; zakładki ustawień Alarmy i Aplikacja oraz podgląd historii (mapę i panel) — 8 października 2026 z podpisanego wydania 1.7.91; legendę — 4 października 2026 z podpisanego wydania 1.7.90; ekran startowy, panel sygnałów, menu Więcej, okno Źródła danych oraz zakładkę ustawień Moje miejsca — 3 października 2026 z podpisanego wydania 1.7.89, na świeżej instalacji (stąd brak zapisanych miejsc); miniaturę karty i kartę obiektu 28 i 30 września 2026 z podpisanych wydań 1.7.84 i 1.7.87; pozostałe 13 i 23 września 2026. Co zmieniało się w kolejnych wydaniach, znajdziesz w <a href="zmiany.html">historii zmian</a>. Dotknij zdjęcia, aby otworzyć je w pełnym rozmiarze.</p>
     <p class="fineprint"><b>Masz iPhone'a?</b> Alarmy, zgody i aktualizacje działają tam inaczej — przeczytaj <a href="iphone.html">instrukcję dla iPhone'a</a>.</p>
     <p class="host-note"><img src="mikrus-logo.svg" alt="Mikrus" width="86" height="14">
@@ -58,13 +58,15 @@
   <h2>1. Instalacja i aktualizacje</h2>
   <ol>
     <li><b>iPhone:</b> pobierz Strażnika z <a href="https://apps.apple.com/pl/app/id6813563009">App Store</a> i przeczytaj <a href="iphone.html">instrukcję dla iPhone'a</a> — poniższe kroki dotyczą tylko Androida.</li>
-    <li>Pobierz <a href="https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk">najnowszy Straznik.apk</a> na telefon z Androidem.</li>
+    <li><b>Android — najprościej:</b> zainstaluj Strażnika z <a href="https://play.google.com/store/apps/details?id=pl.straznik.app">Google Play</a> (Polska i pozostałe kraje Europy). Aktualizacje przychodzą wtedy przez sklep, a kolejne kroki z tej listy możesz pominąć — zostaje tylko ostatni.</li>
+    <li><b>Bez Google Play:</b> pobierz <a href="https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk">najnowszy Straznik.apk</a> na telefon z Androidem.</li>
     <li>Otwórz plik z folderu <b>Pobrane</b>. Jeśli Android poprosi, zezwól przeglądarce lub menedżerowi plików na instalowanie aplikacji z tego źródła.</li>
     <li>Zatwierdź instalację i uruchom Strażnika. Pozwól systemowi przeskanować plik — nie wyłączaj Play Protect.</li>
     <li>Zezwól na powiadomienia i zapisz swoje województwo w <kbd>⚙</kbd> → <kbd>Moje miejsca</kbd>.</li>
   </ol>
   <h3 id="zgoda-instalacji">Zgoda „Instalowanie nieznanych aplikacji” — i jak ją cofnąć</h3>
-  <p>Strażnika nie ma w Google Play, więc Android pozwoli go zainstalować dopiero wtedy, gdy aplikacja otwierająca plik — zwykle <b>Chrome</b> — dostanie uprawnienie <b>Instalowanie nieznanych aplikacji</b>. Przeglądarka przerywa wtedy instalację i przenosi Cię do przełącznika <kbd>Zezwalaj z tego źródła</kbd>. To normalny krok, nie błąd.</p>
+  <p><b>Masz już Strażnika z pliku APK?</b> Możesz zainstalować wersję z Google Play na istniejącą — obie są podpisane tym samym kluczem, więc ustawienia i Moje miejsca zostają.</p>
+  <p>Przy instalacji z pliku APK Android pozwoli go zainstalować dopiero wtedy, gdy aplikacja otwierająca plik — zwykle <b>Chrome</b> — dostanie uprawnienie <b>Instalowanie nieznanych aplikacji</b>. Przeglądarka przerywa wtedy instalację i przenosi Cię do przełącznika <kbd>Zezwalaj z tego źródła</kbd>. To normalny krok, nie błąd.</p>
   <p>Uprawnienie dotyczy tylko tej jednej aplikacji, ale <b>zostaje włączone</b>, dopóki go nie wyłączysz. Dlatego po instalacji warto je cofnąć:</p>
   <div class="note">
     <ol>
@@ -78,6 +80,7 @@
   <div class="split">
     <div>
       <h3>Aktualizacja z poziomu aplikacji</h3>
+      <p><b>Wersję z Google Play aktualizuje sklep</b> — nie ma w niej przycisku aktualizacji. Poniższe dotyczy wersji z pliku APK.</p>
       <p>Strażnik sprawdza nowe wydanie przy każdym uruchomieniu i przy powrocie na wierzch (nie częściej niż co 30 minut). Okno aktualizacji pokazuje numer wersji i listę zmian. Ręcznie: <kbd>⚙</kbd> → <kbd>Aplikacja</kbd> → <kbd>⬆ Sprawdź aktualizacje</kbd>.</p>
       <p>Przy zwykłej aktualizacji możesz wybrać <kbd>Później</kbd>. Po wybraniu instalacji aplikacja pobiera plik, sprawdza jego sumę SHA-256 i przekazuje go Androidowi do zatwierdzenia. Instaluj nowe wydanie na istniejące — ustawienia i Moje miejsca zostają.</p>
       <div class="note"><b>Która wersja jest u Ciebie?</b> <kbd>⚙</kbd> → zakładka <kbd>Aplikacja</kbd> → „Zainstalowana wersja”. Najnowsze wydanie to <b>1.7.94</b>. Na dole zakładki są odnośniki do tej instrukcji, historii zmian i wsparcia autora.</div>

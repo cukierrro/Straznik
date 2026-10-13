@@ -197,7 +197,7 @@ Instrukcja dla 1.7.79 opisuje „Moje miejsca”, rozdział alertów wojewódzki
 i lokalnych obliczeń na pierwszym planie, regulację głośności żółtego sygnału
 oraz bibliotekę fotografii PL/EN/UA. Zrzuty otwierają się w pełnym rozmiarze.
 
-[⬇ Pobierz na Androida (APK)](https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk) · [⬇ Pobierz na iOS (App Store)](https://apps.apple.com/pl/app/id6813563009) · [☕ Postaw kawę](https://buycoffee.to/cukierrro)
+[⬇ Pobierz na Androida (Google Play)](https://play.google.com/store/apps/details?id=pl.straznik.app) · [⬇ Android: plik APK](https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk) · [⬇ Pobierz na iOS (App Store)](https://apps.apple.com/pl/app/id6813563009) · [☕ Postaw kawę](https://buycoffee.to/cukierrro)
 
 📖 Instrukcja: [Android](https://cukierrro.github.io/Straznik/) · [iPhone](https://cukierrro.github.io/Straznik/iphone.html) · [English (Android)](https://cukierrro.github.io/Straznik/en.html) · [English (iPhone)](https://cukierrro.github.io/Straznik/iphone-en.html) · [Українська (Android)](https://cukierrro.github.io/Straznik/uk.html)
 
@@ -614,6 +614,9 @@ Testy bieżącej zmiany zabezpieczeń wykonano na emulatorze Pixel 7 / Android 1
 nie są gwarancją działania każdego telefonu. [Raport testów](docs/TESTY_BEZPIECZENSTWA_2026-09-03.md).
 
 ### Aktualizacje poza Google Play
+
+Dotyczy wersji z pliku APK (GitHub). Wersja z Google Play nie ma własnego aktualizatora
+— aktualizuje ją sklep; obie są podpisane tym samym kluczem.
 
 Aplikacja sprawdza `GET /api/app-version`, a po wykryciu nowego wydania może
 pobrać `Straznik.apk` bezpośrednio i otworzyć systemowy instalator Androida.

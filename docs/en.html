@@ -37,7 +37,7 @@
   <div><div class="eyebrow">User guide · version 1.7.94</div>
     <h1>The situation on a map.<br>The sources behind each signal.</h1>
     <p class="lead">Strażnik combines public information about airborne threats and shows a score for each Polish province. It runs on Android, on iPhone and in a web browser.</p>
-    <div class="actions"><a class="button primary" href="https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk">↓ Get it for Android</a><a class="button primary" href="https://apps.apple.com/pl/app/id6813563009">↓ Get it for iOS</a><a class="button" href="https://straznik.eu">Open the map</a></div>
+    <div class="actions"><a class="button primary" href="https://play.google.com/store/apps/details?id=pl.straznik.app">↓ Google Play</a><a class="button primary" href="https://apps.apple.com/pl/app/id6813563009">↓ Get it for iOS</a><a class="button" href="https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk">↓ APK file</a><a class="button" href="https://straznik.eu">Open the map</a></div>
     <p class="fineprint">This guide describes only the current version, 1.7.94. Screenshots were taken on a Pixel 7 with Android 14, using live data: the Sound settings tab on 13 October 2026 from the signed 1.7.94 release; the Alerts and App settings tabs and the history view (map and panel) on 8 October 2026 from the signed 1.7.91 release; the legend on 4 October 2026 from the signed 1.7.90 release; the start screen, the signals panel, the More sheet, the Data sources window and the My places settings tab on 3 October 2026 from the signed 1.7.89 release, on a fresh installation (hence no saved places); the card thumbnail and the object card on 28 and 30 September 2026 from the signed 1.7.84 and 1.7.87 releases; the rest on 13 and 23 September 2026. What changed from release to release is in the <a href="zmiany-en.html">changelog</a>. Tap a screenshot to open it full size.</p>
     <p class="fineprint"><b>Using an iPhone?</b> Alerts, permissions and updates work differently there — read the <a href="iphone-en.html">iPhone guide</a>.</p>
     <p class="host-note"><img src="mikrus-logo.svg" alt="Mikrus" width="86" height="14">
@@ -58,13 +58,15 @@
   <h2>1. Installation and updates</h2>
   <ol>
     <li><b>iPhone:</b> get Strażnik from the <a href="https://apps.apple.com/pl/app/id6813563009">App Store</a> and read the <a href="iphone-en.html">iPhone guide</a> — the steps below are for Android only.</li>
-    <li>Download the <a href="https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk">latest Straznik.apk</a> to your Android phone.</li>
+    <li><b>Android — the easy way:</b> install Strażnik from <a href="https://play.google.com/store/apps/details?id=pl.straznik.app">Google Play</a> (Poland and the rest of Europe). Updates then come through the store, and you can skip the next steps of this list — only the last one remains.</li>
+    <li><b>Without Google Play:</b> download the <a href="https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk">latest Straznik.apk</a> to your Android phone.</li>
     <li>Open the file from <b>Downloads</b>. If Android asks, allow the browser or file manager to install apps from this source.</li>
     <li>Confirm the installation and open Strażnik. Let the system scan the file — do not turn off Play Protect.</li>
     <li>Allow notifications and save your province in <kbd>⚙</kbd> → <kbd>My places</kbd>.</li>
   </ol>
   <h3 id="zgoda-instalacji">The “Install unknown apps” permission — and how to revoke it</h3>
-  <p>Strażnik is not on Google Play, so Android installs it only after the app that opens the file — usually <b>Chrome</b> — is granted <b>Install unknown apps</b>. The browser interrupts the installation and sends you to the <kbd>Allow from this source</kbd> switch. This is a normal step, not an error.</p>
+  <p><b>Already have Strażnik from the APK file?</b> You can install the Google Play version over it — both are signed with the same key, so your settings and My places stay.</p>
+  <p>When you install from the APK file, Android installs it only after the app that opens the file — usually <b>Chrome</b> — is granted <b>Install unknown apps</b>. The browser interrupts the installation and sends you to the <kbd>Allow from this source</kbd> switch. This is a normal step, not an error.</p>
   <p>The permission applies only to that one app, but it <b>stays on</b> until you turn it off. It is worth revoking after installation:</p>
   <div class="note">
     <ol>
@@ -78,6 +80,7 @@
   <div class="split">
     <div>
       <h3>Updating from inside the app</h3>
+      <p><b>The store updates the Google Play version</b> — it has no update button. The following applies to the APK version.</p>
       <p>Strażnik checks for a new release at every launch and whenever it returns to the foreground (at most every 30 minutes). The update window shows the version number and the list of changes. Manually: <kbd>⚙</kbd> → <kbd>App</kbd> → <kbd>⬆ Check for updates</kbd>.</p>
       <p>For an ordinary update you can choose <kbd>Later</kbd>. When you install, the app downloads the file, verifies its SHA-256 checksum and hands it to Android for confirmation. Install the new release over the old one — settings and My places are kept.</p>
       <div class="note"><b>Which version do you have?</b> <kbd>⚙</kbd> → <kbd>App</kbd> tab → “Installed version”. The latest release is <b>1.7.94</b>. At the bottom of the tab are links to this guide, the changelog and supporting the author.</div>

@@ -9,6 +9,15 @@ versionCode 123, versionName 1.7.94. 13 października 2026.
 - Komunikaty pokazywane przy otwartych ustawieniach są już widoczne nad oknem.
 <!-- /zmiany -->
 
+## Strażnik w Google Play
+
+Od 13 października Strażnik jest publicznie w Google Play (Polska i pozostałe kraje Europy,
+bez Białorusi i Rosji). Przycisk „Pobierz na Androida” na stronie, instrukcja PL/EN/UK,
+strony GROTY i historia zmian prowadzą teraz do sklepu; plik APK z GitHuba jest dalej
+dostępny jako druga możliwość. Wersja ze sklepu i APK są podpisane tym samym kluczem,
+więc wersję ze sklepu można zainstalować na istniejącą — ustawienia zostają. Wersję ze
+sklepu aktualizuje sklep.
+
 ## GROTA — nowy wykaz PSP (12.10)
 
 <!-- GROTA: liczby i długi tekst sprawdzić/podmienić po scaleniu gałęzi grota-0510 -->
