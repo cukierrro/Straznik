@@ -673,3 +673,49 @@ a nie odwrotnie), ale zdanie trzeba doprecyzować po pomiarze.
 Jak zmierzyć, 2 minuty na telefonie ze zgodą krytyczną: wyłączyć „Dźwięki"
 w Ustawieniach iPhone'a → Strażnik → Powiadomienia, zostawić włączone „Alarmy
 krytyczne", uruchomić test czerwony (od 1.7.94 idzie jako krytyczny) i posłuchać.
+
+## 15. Build do pomiarów: 1.7.94 (2610130624), 13.10.2026
+
+Wysłany do TestFlight z gałęzi `ios-grota` (`d05ab41`), run 38356416695.
+Wersja **1.7.94** — 1.7.93 jest już w sklepie, więc build testowy musi mieć swoją.
+W podpisanym pliku potwierdzone `aps-environment: production`, `critical-alerts`
+i `time-sensitive`; GROTA w paczce.
+
+Co w nim jest nowe: czerwony test idzie jako **alarm krytyczny**, gdy telefon ma
+zgodę Apple; bez zgody powiadomienie samo pisze, dlaczego było cicho i co włączyć;
+treść testu jest w języku interfejsu, a w EN/UA mówi wprost, że prawdziwy alarm
+przychodzi po polsku; notka przy głośności żółtego nie obiecuje już na iPhonie
+czegoś, czego nie dowozimy.
+
+### Instrukcja dla testera (do przekazania w całości)
+
+Najpierw sprawdź w aplikacji: **⚙ → Alarmy**. Jeśli widzisz przycisk „Włącz alarm
+mimo wyciszenia", naciśnij go i zgódź się — iPhone pyta tylko raz. Jeśli pisze
+„Alarm mimo wyciszenia: włączony", zgoda już jest. Bez niej pomiary 1 i 2 nie mają
+sensu, bo to one sprawdzają właśnie ten mechanizm.
+
+Potem trzy przebiegi, za każdym razem: **⚙ → Dźwięk → „Test: czerwony natywny (za 5 s)"**,
+pięć sekund na zablokowanie ekranu, słuchasz i notujesz.
+
+| # | Ustaw telefon tak | Pytanie, na które odpowiada |
+|---|-------------------|------------------------------|
+| 1 | dzwonek **wyciszony** przełącznikiem, Dźwięki Strażnika włączone | czy czerwony przebija wyciszenie — tego nigdy nie sprawdziliśmy |
+| 2 | **Ustawienia iPhone'a → Strażnik → Powiadomienia → Dźwięki WYŁĄCZONE**, dzwonek dowolnie | czy ten przełącznik ucisza też alarm krytyczny — nie wiemy, Apple tego nie opisuje |
+| 3 | dzwonek **włączony**, Dźwięki włączone, test **żółty** | czy żółty nadal brzmi jak dotąd (kontrola, że niczego nie zepsuliśmy) |
+
+Po przebiegu 2 **włącz Dźwięki z powrotem** — inaczej zostaniesz bez dźwięku alarmów.
+
+Dla każdego przebiegu potrzebujemy trzech rzeczy: czy **był dźwięk**, czy to była
+**syrena czy krótki sygnał**, i czy powiadomienie pokazało się **nad blokadą**.
+Zrzut ekranu blokady bardzo pomaga — w treści testu jest zdanie, które mówi, którą
+drogą poszedł, więc ze zrzutu widać to bez zgadywania.
+
+Jeśli w przebiegu 1 nic nie zagrało, to nie jest Twoja wina ani usterka telefonu —
+to dokładnie ten wynik, którego szukamy. Napisz, co zobaczyłeś.
+
+### Czego ten build NIE sprawdza
+
+Prawdziwego pusha z serwera. Test jest powiadomieniem lokalnym, planowanym na
+telefonie — idzie tą samą drogą co alarm, ale nie dowodzi, że serwer wysyła
+poprawnie. Alarmów testowych na prawdziwe tematy nie wysyłamy; build z TestFlight
+dodatkowo słucha tematów `test_`.
