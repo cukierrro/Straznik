@@ -106,7 +106,8 @@ odpisujemy.
 > Co możesz zrobić teraz: włącz tryb Skupienia. Czerwony alarm jest pilny i przez
 > Skupienie przejdzie, a żółty nie — czyli dokładnie to, o co Ci chodzi. A jeśli
 > żółty ma w ogóle nie grać, wyłącz Dźwięki w Ustawieniach iPhone'a → Strażnik →
-> Powiadomienia; tylko wtedy zamilknie też czerwony.
+> Powiadomienia — tylko pamiętaj, że ten przełącznik obejmuje wszystkie
+> powiadomienia Strażnika, także czerwony alarm.
 >
 > Pracujemy nad tym, żeby na iPhonie działało jak na Androidzie. Wymaga dodatkowego
 > modułu, więc nie w najbliższej aktualizacji — nie chcę rzucać daty, której nie
