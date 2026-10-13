@@ -1,7 +1,14 @@
-# Teksty do ludzi: dlaczego czerwony alarm milczał na wyciszonym iPhonie
+# Teksty do ludzi: dźwięk alarmów na iPhonie
 
-Trzy gotowe teksty — do odpowiedzi pod komentarzem, do wiadomości prywatnej
-i do notatek wydania. Do użycia po Twojej akceptacji; nic nigdzie nie wysłałem.
+Gotowe odpowiedzi na zgłoszenia o dźwięku na iOS. Do użycia po akceptacji usera;
+niczego nigdzie nie wysyłam sam.
+
+- **A.** Czerwony alarm milczał na wyciszonym telefonie (11.10.2026)
+- **B.** „Głośność sygnału uwagi (żółty) → Bez dźwięku" nie działa (13.10.2026)
+
+---
+
+# A. Dlaczego czerwony alarm milczał na wyciszonym iPhonie
 
 ---
 
@@ -74,3 +81,48 @@ iPhone ma trzy różne poziomy: zwykły (cichy przy wyciszeniu i w Skupieniu),
 i **krytyczny** (przebija jedno i drugie, wymaga osobnej zgody Apple, którą
 dostaliśmy 28.09.2026). Serwer wysyła każdy alarm dwa razy: zwykłą drogą
 i krytyczną — telefon ze zgodą słucha wyłącznie tej drugiej.
+
+---
+
+# B. „Głośność sygnału uwagi (żółty) → Bez dźwięku" nie działa na iPhonie
+
+Zgłoszenie z 13.10.2026. Użytkownik ma rację: to ustawienie na iOS nie wycisza
+powiadomienia. Szczegóły techniczne i proponowana poprawka — B11
+w `POTRZEBNE_ZMIANY_WSPOLNE.md`.
+
+## B1. Krótka odpowiedź
+
+> Ma Pan/Pani rację i dziękuję za zgłoszenie — to nasz błąd w opisie, nie
+> w Pana/Pani ustawieniach.
+>
+> Na iPhonie to ustawienie działa tylko dla sygnału, który Strażnik gra, gdy jest
+> **otwarty na ekranie**. Dźwięku samego powiadomienia — tego, które przychodzi
+> przy zamkniętej aplikacji — nie da się nim wyciszyć, bo na iOS dźwięk
+> powiadomienia wybiera serwer razem z treścią, a telefon go tylko odtwarza.
+> Na Androidzie powiadomienie składa sam telefon i dlatego tam ten przełącznik
+> działa w pełni. Nie napisaliśmy tego przy przełączniku — poprawiamy.
+>
+> Co można zrobić teraz. Jeśli chodzi o spokój w nocy albo w pracy, najlepszy jest
+> **tryb Skupienia**: czerwony alarm jest oznaczony jako pilny i przez Skupienie
+> przechodzi, a żółty sygnał uwagi nie — czyli dokładnie to, o co chodzi.
+> Jeśli żółty ma w ogóle nie wydawać dźwięku, zostaje Ustawienia iPhone'a →
+> Strażnik → Powiadomienia → wyłączyć **Dźwięki** — ale to wycisza powiadomienia
+> Strażnika w całości, więc **czerwony też**. Banery i wibracja zostają.
+>
+> Pracujemy nad tym, żeby ten przełącznik działał na iPhonie tak samo jak na
+> Androidzie. Wymaga dodatkowego modułu w aplikacji, więc nie wejdzie w najbliższej
+> aktualizacji — nie chcę obiecywać daty, której nie dowiozę.
+
+## B2. Jeśli ktoś zapyta „to po co ten przycisk na iPhonie?"
+
+> Nie jest całkiem bezczynny: ustawia dźwięk, który Strażnik gra sam, gdy jest
+> otwarty na ekranie. Tylko że to najmniej ważny przypadek — przy otwartej
+> aplikacji i tak widać kolor na mapie. Dlatego dopisujemy przy nim zdanie, czego
+> dotyczy, zamiast udawać, że obejmuje powiadomienia.
+
+## Czego NIE pisać
+
+Nie pisać „iOS na to nie pozwala" bez wyjaśnienia — brzmi jak wymówka, a prawda
+jest prostsza i dla nas mniej wygodna: dźwięk wybiera **nasz serwer**, bo na iOS
+przy zamkniętej aplikacji powiadomienie musi przyjść gotowe. Da się to zrobić
+lepiej, tylko jeszcze tego nie zrobiliśmy.

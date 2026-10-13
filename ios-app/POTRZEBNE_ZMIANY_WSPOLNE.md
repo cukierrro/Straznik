@@ -415,6 +415,63 @@ if (r && r.scheduled === false) return toast(UI.isEn
 ```
 (Android zwraca `undefined` — zachowanie bez zmian.)
 
+### B11. „Głośność sygnału uwagi (żółty)" nie działa na iPhonie (13.10.2026)
+
+**Zgłoszenie użytkownika iOS:** Ustawienia → Dźwięk → Głośność sygnału uwagi →
+„Bez dźwięku" nie działa. Ma rację. Sprawdzona cała ścieżka:
+
+1. `app.js` (`#yellow-volume`, l. ~6525) woła `BG()?.setYellowLevel?.({ level })`.
+   **Ta metoda istnieje tylko w pluginie Androida** (`BackgroundPlugin.java:277`);
+   w pluginie iOS jej nie ma. Capacitor 8 podstawia proxy pod dowolną nazwę, więc
+   wywołanie nie wywala się od razu — kończy się **odrzuconą obietnicą**, którą
+   `try/catch` zjada po cichu. Pigułka się podświetla, UI wygląda na zapisany,
+   a natywnie nie zapisało się nic. (Ten sam haczyk co w `dzwiekAlarmu`, opisany
+   w komentarzu `app.js` ~l. 4435.)
+2. Nawet gdyby metoda była, **nie miałaby czego ustawić**. Na iOS dźwięk żółtego
+   pusha jest w ładunku APNs składanym przez serwer (`alert_uwaga.wav`,
+   `notify.py:195`) i jest ten sam dla wszystkich. Telefon nie zmieni lokalnie
+   dźwięku powiadomienia, które przyszło z serwera. Na Androidzie da się, bo tam
+   treść buduje telefon i wybór sprowadza się do kanału z innym plikiem —
+   dokładnie tak, jak mówi komentarz przy `setYellowLevel`.
+3. **Co na iPhonie faktycznie działa:** sygnał przy OTWARTEJ aplikacji. To Web
+   Audio w `app.js`, `chimeLevel()` jest respektowany, więc „Ciszej" i „Bez
+   dźwięku" działają na ekranie. Przy wyciszonym dzwonku Web Audio i tak milczy,
+   więc efekt jest niewidoczny.
+4. Segment **nie ma klasy `android-only`**, a nota „Czego dotyczy to ustawienie"
+   nie wspomina o platformie. Pokazujemy więc iPhone'owi przełącznik, którego nie
+   dowozimy — ta sama klasa błędu co test 5 s milczący w ciszy (B9).
+
+#### Proponowana zmiana (wspólny `index.html` / `app.js`)
+
+**Nie chować segmentu** — on naprawdę działa dla sygnału przy otwartej aplikacji,
+a schowanie odebrałoby iPhone'om sprawne ustawienie. Zamiast tego:
+
+- dołożyć akapit `ios-only` przy `#jak-yv` (ten sam wzorzec co `krytyczny-ios-note`),
+  mówiący wprost: na iPhonie to ustawienie dotyczy **sygnału przy otwartej
+  aplikacji**; dźwięk powiadomienia przy zamkniętej aplikacji wybiera serwer i tego
+  nie da się tu wyciszyć. Kto nie chce żadnego dźwięku żółtego, ma wyłączyć dźwięk
+  powiadomień Strażnika w Ustawieniach iPhone'a → Strażnik → Powiadomienia →
+  Dźwięki (to zdejmuje dźwięk także czerwonego, i trzeba to powiedzieć);
+- `if (!IS_IOS)` przy wywołaniu `setYellowLevel` — po co odrzucona obietnica,
+  skoro natywnie nie ma takiej metody. Albo zostawić, ale bez udawania sukcesu.
+
+Przy okazji: `status()` na iOS **nie zwraca** `yellowLevel`, więc wyrównanie
+`localStorage` z l. ~6433 jest tam bezczynne. To jest poprawne dla tego projektu —
+na iOS prawdę o tym ustawieniu trzyma przeglądarka, nie część natywna — ale warto
+o tym wiedzieć, zanim ktoś zacznie szukać błędu po tej stronie.
+
+#### Co by to naprawdę naprawiło na iPhonie
+
+`UNNotificationServiceExtension`: rozszerzenie dostaje push przed pokazaniem
+i może zdjąć albo podmienić `sound`. To jedyna droga, żeby ten przełącznik działał
+na iOS przy zamkniętej aplikacji — i **to samo rozszerzenie rozwiązuje sprawę
+języka powiadomienia** (A2, wariant 2 po 1.7.94) bez pułapki `loc-key`. Koszt:
+nowy target w Xcode, własny App ID i profil, zmiany w podpisywaniu — a podpisywanie
+raz już kosztowało nas odrzucony build (ITMS-90035). **Robić to RAZ, dla obu spraw
+naraz**, nie dwa razy osobno. Strona iOS tego rozszerzenia należy do sesji iOS.
+
+---
+
 ### B8. Do sprawdzenia na iPhonie (bez zmian w kodzie na razie)
 - `navigator.vibrate` nie istnieje w Safari/WKWebView — alarm przy otwartej
   aplikacji nie wibruje (kod jest już zabezpieczony `if (navigator.vibrate)`).
