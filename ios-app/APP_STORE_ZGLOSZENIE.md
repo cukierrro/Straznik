@@ -639,7 +639,7 @@ wnosi — wystarczy data wykazu.
 **Nie wpisywać** wibracji „Poczuj" — to zmiana wyłącznie androidowa i na iPhonie
 jej nie ma.
 
-### PL (335 znaków)
+### PL (342 znaki)
 
 ```
 Schronienia: wykaz PSP opublikowany 12 października.
@@ -649,7 +649,7 @@ Historia: obiekt, który zniknął z danych NEPTUN, gaśnie po około 30 minutac
 Test czerwonego alarmu idzie teraz tą samą drogą co prawdziwy: ze zgodą na alarm krytyczny zagra nawet przy wyciszonym telefonie, a bez niej aplikacja uprzedza, że będzie cicho.
 ```
 
-### EN (338 znaków)
+### EN (332 znaki)
 
 ```
 Shelters: the PSP register published on 12 October.
@@ -659,7 +659,7 @@ History: an object that disappeared from NEPTUN data fades after about 30 minute
 The red alert test now takes the same path as a real alert: with critical alert permission it sounds even on a muted phone, and without it the app says so beforehand.
 ```
 
-### UK (389 znaków) — tylko jeśli karta ma lokalizację ukraińską
+### UK (339 znaków) — tylko jeśli karta ma lokalizację ukraińską
 
 ```
 Укриття: реєстр PSP, опублікований 12 жовтня.
