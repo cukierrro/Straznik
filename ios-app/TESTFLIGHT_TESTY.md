@@ -652,6 +652,24 @@ na telefonie. Wrócić po niego w zadaniu po 1.7.94; przy okazji wtedy
 | 1 | wyciszony przełącznikiem | **nie** | cisza + w treści zdanie „iPhone ucina dźwięk…" z nazwą przełącznika |
 | 2 | wyciszony przełącznikiem | **tak** | **syrena na pełnej głośności** i treść „poszedł jak prawdziwy czerwony alarm" |
 | 3 | dzwonek włączony, test żółty | dowolna | krótki sygnał uwagi + zdanie, że żółty przy wyciszeniu jest cichy |
+| 4 | **Dźwięki WYŁĄCZONE** w Ustawieniach iPhone'a → Strażnik → Powiadomienia | **tak** | **nie wiemy** — to jest pytanie do zmierzenia |
 
 Przebieg 2 jest tym, czego nigdy nie sprawdziliśmy — i tym, który testerka
 uznała za dowód, że alarm nie działa.
+
+**Przebieg 4: otwarte pytanie z 13.10.2026.** Czy alarm krytyczny gra, gdy
+człowiek wyłączy „Dźwięki" dla Strażnika w ustawieniach iPhone'a? Apple pisze
+tylko, że alarm krytyczny ignoruje **wyciszenie i Nie przeszkadzać** — o tym
+przełączniku nie pisze nic. W API `soundSetting` i `criticalAlertSetting` są
+osobnymi polami, co sugeruje niezależność, ale to wnioskowanie, nie pomiar.
+Nigdy tego nie zmierzyliśmy i bez telefonu nie zmierzymy.
+
+Ma to znaczenie praktyczne: notka w ustawieniach (B11, `93667df`) radzi wyłączyć
+„Dźwięki", jeśli ktoś nie chce dźwięku żółtego, i mówi, że to wycisza także
+czerwony. Jeśli alarm krytyczny jednak gra, zdanie obiecuje ciszę, której nie ma.
+Pomyłka jest w bezpieczną stronę (ktoś usłyszy alarm, którego się nie spodziewał,
+a nie odwrotnie), ale zdanie trzeba doprecyzować po pomiarze.
+
+Jak zmierzyć, 2 minuty na telefonie ze zgodą krytyczną: wyłączyć „Dźwięki"
+w Ustawieniach iPhone'a → Strażnik → Powiadomienia, zostawić włączone „Alarmy
+krytyczne", uruchomić test czerwony (od 1.7.94 idzie jako krytyczny) i posłuchać.
