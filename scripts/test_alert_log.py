@@ -101,14 +101,17 @@ sprawdz(po_id[lid2]["decision"] == "test" and po_id[lid2]["delivery"]["topic"] =
         "test oznaczony i na temacie testowym")
 
 print("5. archiwum migawek")
-alert_log.archive_snapshot({"threats": [{"id": "a1", "lat": 51.2}], "aircraft": []},
-                           ts="2026-09-13T05:00:00+00:00")
-alert_log.archive_snapshot({"threats": [{"id": "a2", "lat": 51.3}], "aircraft": []},
-                           ts="2026-09-13T05:02:00+00:00")
-m = alert_log.archived_snapshot("2026-09-13T05:01:30+00:00")
-sprawdz(m and m["ts"] == "2026-09-13T05:00:00+00:00" and m["threats"][0]["id"] == "a1",
+# Daty względem dziś: archiwum kasuje migawki starsze niż ARCHIVE_DAYS (30), więc stała
+# data 13.09.2026 przestała działać 13.10.2026 — bomba czasowa w teście, nie błąd kodu.
+from datetime import datetime, timedelta, timezone  # noqa: E402
+_dzien = (datetime.now(timezone.utc) - timedelta(days=1)).replace(hour=5, minute=0, second=0, microsecond=0)
+_t = lambda minuty: (_dzien + timedelta(minutes=minuty)).isoformat(timespec="seconds")  # noqa: E731
+alert_log.archive_snapshot({"threats": [{"id": "a1", "lat": 51.2}], "aircraft": []}, ts=_t(0))
+alert_log.archive_snapshot({"threats": [{"id": "a2", "lat": 51.3}], "aircraft": []}, ts=_t(2))
+m = alert_log.archived_snapshot(_t(1.5))
+sprawdz(m and m["ts"] == _t(0) and m["threats"][0]["id"] == "a1",
         "najbliższa wcześniejsza migawka odczytana po kompresji")
-sprawdz(alert_log.archived_snapshot("2026-09-13T04:00:00+00:00") is None, "brak migawki przed archiwum")
+sprawdz(alert_log.archived_snapshot(_t(-60)) is None, "brak migawki przed archiwum")
 
 alert_log._conn and alert_log._conn.close()
 db._conn.close()

@@ -72,3 +72,21 @@ test('język trafia do strony natywnej; komunikaty w EN i UK', async () => {
   assert.equal(uk.z.wywolania[0].lang, 'uk');
   assert.match(uk.z.toasty[0], /справжня червона тривога/);
 });
+
+test('alarm przychodzi po polsku — powiedziane w aplikacji i w instrukcjach EN/UK/iPhone', () => {
+  const I18N = fs.readFileSync('frontend/i18n.js', 'utf8');
+  assert.ok(I18N.includes('Real alerts arrive in Polish, whatever the app language.'), 'nota EN przy teście');
+  assert.ok(I18N.includes('Справжні тривоги приходять польською, незалежно від мови застосунку.'), 'nota UK przy teście');
+  for (const [plik, zdanie] of [['docs/en.html', '<b>Alerts arrive in Polish.</b>'],
+                                ['docs/iphone-en.html', '<b>Alerts arrive in Polish.</b>'],
+                                ['docs/uk.html', '<b>Тривоги приходять польською.</b>']])
+    assert.ok(fs.readFileSync(plik, 'utf8').includes(zdanie), plik);
+});
+
+test('instrukcja UK nazywa przycisk testu tak jak aplikacja', () => {
+  const I18N = fs.readFileSync('frontend/i18n.js', 'utf8');
+  const UK = fs.readFileSync('docs/uk.html', 'utf8');
+  assert.ok(I18N.includes('"▶ Тест: червона системна (через 5 с)"'));
+  assert.ok(!UK.includes('червоний нативний'), 'stara, nieistniejąca etykieta');
+  assert.ok(UK.includes('<kbd>▶ Тест: червона системна</kbd>'));
+});

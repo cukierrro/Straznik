@@ -6524,8 +6524,10 @@ for (const b of document.querySelectorAll("#yellow-volume .chip")) {
     const poziom = b.dataset.poziom;
     try { localStorage.setItem("straznik_zolty_poziom", poziom); } catch {}
     renderYellowLevel();
-    // zapis natywny decyduje o kanale powiadomienia przy zgaszonym ekranie
-    try { await BG()?.setYellowLevel?.({ level: poziom }); } catch {}
+    // zapis natywny decyduje o kanale powiadomienia przy zgaszonym ekranie (Android).
+    // iOS tej metody nie ma (proxy Capacitora odrzuca obietnicę), a dźwięk żółtego
+    // pusha jest tam w ładunku APNs z serwera — patrz #yv-ios-note (B11, 13.10.2026).
+    if (!IS_IOS) try { await BG()?.setYellowLevel?.({ level: poziom }); } catch {}
     if (poziom !== "silent" && !(IS_APP && blockedByAlertsOff())) attentionChime();
   });
 }
