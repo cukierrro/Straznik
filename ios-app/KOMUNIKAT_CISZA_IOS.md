@@ -92,26 +92,25 @@ w `POTRZEBNE_ZMIANY_WSPOLNE.md`.
 
 ## B1. Krótka odpowiedź
 
-> Ma Pan/Pani rację i dziękuję za zgłoszenie — to nasz błąd w opisie, nie
-> w Pana/Pani ustawieniach.
+Na „ty", krótko — użytkownicy Strażnika piszą do nas po imieniu i tak samo
+odpisujemy.
+
+> Masz rację i dzięki, że napisałeś — to nasz błąd, nie Twoje ustawienia.
 >
-> Na iPhonie to ustawienie działa tylko dla sygnału, który Strażnik gra, gdy jest
-> **otwarty na ekranie**. Dźwięku samego powiadomienia — tego, które przychodzi
-> przy zamkniętej aplikacji — nie da się nim wyciszyć, bo na iOS dźwięk
-> powiadomienia wybiera serwer razem z treścią, a telefon go tylko odtwarza.
-> Na Androidzie powiadomienie składa sam telefon i dlatego tam ten przełącznik
-> działa w pełni. Nie napisaliśmy tego przy przełączniku — poprawiamy.
+> Na iPhonie ten przełącznik wycisza tylko sygnał, który Strażnik gra, gdy jest
+> otwarty na ekranie. Na dźwięk powiadomienia nie ma wpływu, bo na iOS
+> powiadomienie przychodzi z serwera razem z dźwiękiem — telefon tylko je
+> odtwarza. Na Androidzie składa je sam telefon i dlatego tam działa w pełni.
+> Powinniśmy to napisać przy przełączniku. Dopiszemy.
 >
-> Co można zrobić teraz. Jeśli chodzi o spokój w nocy albo w pracy, najlepszy jest
-> **tryb Skupienia**: czerwony alarm jest oznaczony jako pilny i przez Skupienie
-> przechodzi, a żółty sygnał uwagi nie — czyli dokładnie to, o co chodzi.
-> Jeśli żółty ma w ogóle nie wydawać dźwięku, zostaje Ustawienia iPhone'a →
-> Strażnik → Powiadomienia → wyłączyć **Dźwięki** — ale to wycisza powiadomienia
-> Strażnika w całości, więc **czerwony też**. Banery i wibracja zostają.
+> Co możesz zrobić teraz: włącz tryb Skupienia. Czerwony alarm jest pilny i przez
+> Skupienie przejdzie, a żółty nie — czyli dokładnie to, o co Ci chodzi. A jeśli
+> żółty ma w ogóle nie grać, wyłącz Dźwięki w Ustawieniach iPhone'a → Strażnik →
+> Powiadomienia; tylko wtedy zamilknie też czerwony.
 >
-> Pracujemy nad tym, żeby ten przełącznik działał na iPhonie tak samo jak na
-> Androidzie. Wymaga dodatkowego modułu w aplikacji, więc nie wejdzie w najbliższej
-> aktualizacji — nie chcę obiecywać daty, której nie dowiozę.
+> Pracujemy nad tym, żeby na iPhonie działało jak na Androidzie. Wymaga dodatkowego
+> modułu, więc nie w najbliższej aktualizacji — nie chcę rzucać daty, której nie
+> dowiozę.
 
 ## B2. Jeśli ktoś zapyta „to po co ten przycisk na iPhonie?"
 
