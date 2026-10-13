@@ -26,7 +26,10 @@ test('notka tylko dla iOS w „Czego dotyczy to ustawienie”, jako <p> (CSS pok
   const od = HTML.indexOf('id="jak-yv"');
   const blok = HTML.slice(od, HTML.indexOf('</details>', od));
   assert.match(blok, /<p class="fineprint ios-only" id="yv-ios-note">Na iPhonie to ustawienie zmienia tylko sygnał przy otwartej aplikacji\./);
-  assert.match(blok, /także powiadomienia czerwone\./, 'uczciwie: wyłączenie dźwięków wycisza też czerwone');
+  // Nie obiecujemy, czy alarm krytyczny zagra przy wyłączonych Dźwiękach — nikt tego nie
+  // zmierzył (sesja iOS, 13.10). Mówimy fakt: przełącznik obejmuje też czerwony alarm.
+  assert.match(blok, /dotyczy jednak wszystkich powiadomień Strażnika, także czerwonego alarmu\./);
+  assert.doesNotMatch(blok, /wycisza także/, 'bez niesprawdzonej obietnicy');
   assert.match(CSS, /\.ios-app p\.ios-only \{ display: block !important; \}/);
   assert.ok(!/id="yellow-volume"[^>]*android-only/.test(HTML), 'segment zostaje widoczny na iPhonie');
 });
