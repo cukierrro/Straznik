@@ -6,6 +6,10 @@
 
 Serwer: **hostowane na [Mikrusie](https://mikr.us)** — dziękujemy za wsparcie projektu.
 
+Wersja 1.7.94: GROTA na wykazie schronień PSP z 12 października, przyciski
+„Poczuj” wibrują tak jak prawdziwy sygnał, a historia gasi punkty zgubionych dronów
+tak jak mapa na żywo. Szczegóły: `docs/RELEASE_1.7.94.md`.
+
 Wersja 1.7.93: czerwony alarm dociera na zegarek z Wear OS, wibracja mówi
 alfabetem Morse'a (żółty „U”, czerwony „A”), a czerwony ma trzy tryby: syrena,
 sama wibracja albo zwykłe powiadomienie. Karta województwa mówi, do kiedy
