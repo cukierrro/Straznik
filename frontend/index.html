@@ -104,7 +104,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <link rel="icon" type="image/png" sizes="512x512" href="assets/icon-512.png">
 <link rel="apple-touch-icon" href="assets/icon-192.png">
 <link rel="stylesheet" href="assets/vendor/maplibre-gl.css?v=1.7.82">
-<link rel="stylesheet" href="style.css?v=1.7.95-ui19">
+<link rel="stylesheet" href="style.css?v=1.7.95-ui20">
 </head>
 <body>
 
@@ -136,6 +136,15 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
   </div>
   <div id="status-leds" title="Status źródeł danych — dotknij po szczegóły"
        role="button" tabindex="0"></div>
+  <!-- Licznik dronów i rakiet (prośba usera 14.10.2026, wariant A z makiety). Puste
+       miejsce w pasku obok diod — nie zabiera mapy. Liczby wpisuje odswiezLicznik()
+       w app.js; do pierwszych danych ukryty. Dotknięcie otwiera #licznik-okno. -->
+  <button type="button" id="licznik" class="licznik" hidden aria-haspopup="dialog">
+    <span class="lk-poz" id="lk-drony"><svg class="lk-ikona" viewBox="-32 -32 64 64" aria-hidden="true"><path class="lk-dron" d="M0 -30 L5 -8 L27 2 L27 7 L5 7 L4 20 L9 27 L0 23 L-9 27 L-4 20 L-5 7 L-27 7 L-27 2 L-5 -8 Z"/><path class="lk-dziob" d="M0 -30 L4.5 -15 L-4.5 -15 Z"/></svg><span class="lk-n">0</span></span>
+    <span class="lk-sep" aria-hidden="true"></span>
+    <span class="lk-poz" id="lk-rakiety"><svg class="lk-ikona" viewBox="-32 -32 64 64" aria-hidden="true"><path class="lk-rakieta" d="M0 -29 L5 -20 L7 -4 L22 11 L7 7 L6 21 L15 28 L0 23 L-15 28 L-6 21 L-7 7 L-22 11 L-7 -4 L-5 -20 Z"/></svg><span class="lk-n">0</span></span>
+    <span class="lk-zegar" hidden></span>
+  </button>
   <div class="top-actions">
     <a id="btn-download" class="chip download web-only"
        href="https://play.google.com/store/apps/details?id=pl.straznik.app" target="_blank" rel="noopener"
@@ -331,6 +340,26 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
      `grota/` w korzeniu repo i trafiają do www/ WYŁĄCZNIE przy budowaniu Androida
      i iOS — strona straznik.eu ich nie ma (decyzja usera: GROTY nie ma w WWW). -->
 <section id="grota-widok" class="app-only" hidden></section>
+
+<!-- Wyjaśnienie licznika (uwaga usera 14.10.2026: „po dotknięciu ma być jasno
+     wyjaśnione”). Treść w trzech językach wpisuje pokazOknoLicznika() w app.js. -->
+<dialog id="licznik-okno" class="sheet" aria-labelledby="lk-h">
+  <button type="button" class="dlg-x dlg-x-slowo"><span id="lk-x-t">Zamknij</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  <h3 id="lk-h">Drony i rakiety na mapie</h3>
+  <p id="lk-kiedy" class="lk-kiedy"></p>
+  <div class="lk-wiersze">
+    <div class="lk-wiersz"><span class="lk-kafel"><svg class="lk-ikona" viewBox="-32 -32 64 64" aria-hidden="true"><path class="lk-dron" d="M0 -30 L5 -8 L27 2 L27 7 L5 7 L4 20 L9 27 L0 23 L-9 27 L-4 20 L-5 7 L-27 7 L-27 2 L-5 -8 Z"/><path class="lk-dziob" d="M0 -30 L4.5 -15 L-4.5 -15 Z"/></svg></span>
+      <span class="lk-liczba" id="lk-o-drony">0</span>
+      <span class="lk-opis"><b id="lk-o-drony-t"></b><span id="lk-o-drony-d"></span></span></div>
+    <div class="lk-wiersz"><span class="lk-kafel"><svg class="lk-ikona" viewBox="-32 -32 64 64" aria-hidden="true"><path class="lk-rakieta" d="M0 -29 L5 -20 L7 -4 L22 11 L7 7 L6 21 L15 28 L0 23 L-15 28 L-6 21 L-7 7 L-22 11 L-7 -4 L-5 -20 Z"/></svg></span>
+      <span class="lk-liczba" id="lk-o-rakiety">0</span>
+      <span class="lk-opis"><b id="lk-o-rakiety-t"></b><span id="lk-o-rakiety-d"></span></span></div>
+  </div>
+  <div class="lk-uwaga"><b id="lk-uwaga-h"></b><p id="lk-uwaga-p"></p></div>
+  <p id="lk-nie" class="lk-drobne"></p>
+  <p id="lk-zrodlo" class="lk-drobne"></p>
+  <button type="button" id="lk-sygnaly" class="chip primary">Pokaż sygnały</button>
+</dialog>
 
 <dialog id="more-sheet" class="sheet" aria-labelledby="more-h">
   <button type="button" class="dlg-x dlg-x-slowo" aria-label="Zamknij menu"><span>Zamknij</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
@@ -1216,7 +1245,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <div id="a11y-alert" class="sr-only" role="status" aria-live="assertive" aria-atomic="true"></div>
 <div id="a11y-info" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
 
-<script src="app.js?v=1.7.95-ui13"></script>
+<script src="app.js?v=1.7.95-ui14"></script>
 <script>
 /* Instrukcja pasująca do telefonu i języka (21.09.2026). iPhone ma osobną, bo alarmy,
    zgody i aktualizacje działają tam inaczej. Tu, a nie w app.js: index.html nie jest

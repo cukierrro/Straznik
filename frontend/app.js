@@ -3268,6 +3268,114 @@ const safeUrl = (u) => {
    przebudowujemy przy każdym odświeżeniu stanu. */
 const openVoivs = new Set();
 
+/* ── Licznik dronów i rakiet na mapie (14.10.2026) ──────────────────────────
+   Decyzje usera: drony = uav, shahed, recon; rakiety = manewrujące, balistyczne
+   i KAB (bomba szybująca, w opisie osobno); bez FPV, MiG-31K i nieznanych.
+   Licznik liczy DOKŁADNIE to, co rysuje mapa. Próba z doliczaniem obiektów
+   zgubionych z feedu (≤15 min) dawała na emulatorze ~2× więcej niż ikon
+   (np. 86 przy 44) — zgubione prawie nigdy nie wracają pod tym samym numerem.
+   User wybrał „tyle, ile ikon”; okno po dotknięciu mówi, dlaczego liczba skacze. */
+const LICZNIK_DRONY = new Set(["uav", "shahed", "recon"]);
+const LICZNIK_RAKIETY = new Set(["missile", "cruise", "ballistic", "kab"]);
+/* Obiekty z pozycją (te rysuje mapa), bez alarmów ogólnokrajowych. Ta sama funkcja
+   dla stanu na żywo i dla migawki historii. */
+function licznikZObiektow(threats) {
+  const l = { drony: 0, rakiety: 0, kab: 0 };
+  for (const t of threats || []) {
+    if (t.lat == null || isNationalThreat(t)) continue;
+    const typ = String(t.type || "").toLowerCase();
+    if (LICZNIK_DRONY.has(typ)) l.drony++;
+    else if (LICZNIK_RAKIETY.has(typ)) { l.rakiety++; if (typ === "kab") l.kab++; }
+  }
+  return l;
+}
+/* Odmiana: PL i UK mają trzy formy (1 / 2–4 / 5+), EN dwie. */
+function odmiana(n, pl, en, uk) {
+  const d = n % 10, s = n % 100;
+  const few = d >= 2 && d <= 4 && !(s >= 12 && s <= 14);
+  if (UI.isEn) return `${n} ${n === 1 ? en[0] : en[1]}`;
+  if (UI.isUk) return `${n} ${d === 1 && s !== 11 ? uk[0] : few ? uk[1] : uk[2]}`;
+  return `${n} ${n === 1 ? pl[0] : few ? pl[1] : pl[2]}`;
+}
+function licznikDrony(n) { return odmiana(n, ["dron", "drony", "dronów"], ["drone", "drones"], ["дрон", "дрони", "дронів"]); }
+function licznikRakiety(n) { return odmiana(n, ["rakieta", "rakiety", "rakiet"], ["missile", "missiles"], ["ракета", "ракети", "ракет"]); }
+function licznikZdanie(l) {
+  return `${UI.t("Na mapie", "On the map", "На мапі")}: ${licznikDrony(l.drony)} ${UI.t("i", "and", "і")} ${licznikRakiety(l.rakiety)}`
+    + (l.kab ? ` (${UI.t("w tym", "incl.", "з них")} ${l.kab} KAB)` : "") + ".";
+}
+function licznikGodzina(d) {
+  return d.toLocaleTimeString(UI.t("pl-PL", "en-GB", "uk-UA"), { hour: "2-digit", minute: "2-digit" });
+}
+let licznikStan = null, licznikChwila = null;
+/* `chwila` = godzina migawki w historii; null = na żywo. */
+function odswiezLicznik(l = licznikZObiektow(state?.neptun?.threats), chwila = null) {
+  const el = document.getElementById("licznik");
+  if (!el) return;
+  licznikStan = l; licznikChwila = chwila;
+  el.hidden = false;
+  for (const [id, n] of [["lk-drony", l.drony], ["lk-rakiety", l.rakiety]]) {
+    const poz = document.getElementById(id);
+    poz.querySelector(".lk-n").textContent = n;
+    poz.classList.toggle("zero", n === 0);
+  }
+  const zegar = el.querySelector(".lk-zegar");
+  zegar.hidden = !chwila; zegar.textContent = chwila ? licznikGodzina(chwila) : "";
+  el.classList.toggle("historyczny", !!chwila);
+  /* Nazwa przycisku zawiera widoczne liczby (WCAG 2.5.3). Bez aria-live — liczby
+     zmieniają się co kilka sekund; czytnik dostaje je w „sytuacji jednym zdaniem”. */
+  el.setAttribute("aria-label", (chwila ? `${UI.t("O", "At", "О")} ${licznikGodzina(chwila)}. ` : "")
+    + licznikZdanie(l) + " " + UI.t("Co liczymy?", "What is counted?", "Що враховано?"));
+  el.title = UI.t("Drony i rakiety na mapie — dotknij, żeby zobaczyć, co liczymy",
+    "Drones and missiles on the map — tap to see what is counted",
+    "Дрони й ракети на мапі — торкніться, щоб побачити, що враховано");
+  if (document.getElementById("licznik-okno")?.open) wypelnijOknoLicznika();
+}
+/* Okno po dotknięciu: co jest liczone, czego nie liczymy i dlaczego liczba bywa
+   większa niż ikon na mapie (uwaga usera: „ma być jasno wyjaśnione ludziom”). */
+function wypelnijOknoLicznika() {
+  const l = licznikStan;
+  if (!l) return;
+  const ustaw = (id, tekst) => { const e = document.getElementById(id); if (e) e.textContent = tekst; };
+  ustaw("lk-x-t", UI.t("Zamknij", "Close", "Закрити"));
+  ustaw("lk-h", UI.t("Drony i rakiety na mapie", "Drones and missiles on the map", "Дрони й ракети на мапі"));
+  ustaw("lk-kiedy", licznikChwila
+    ? UI.t("Historia — stan o ", "History — as of ", "Історія — стан о ") + licznikGodzina(licznikChwila)
+    : UI.t("Na żywo — dane z ", "Live — data from ", "Наживо — дані з ") + licznikGodzina(new Date(threatsReceivedAt || Date.now())));
+  ustaw("lk-o-drony", l.drony);
+  ustaw("lk-o-drony-t", UI.t("Drony", "Drones", "Дрони"));
+  ustaw("lk-o-drony-d", UI.t("Shahed i inne drony bojowe oraz drony rozpoznawcze.",
+    "Shahed and other attack drones, plus reconnaissance drones.",
+    "Shahed та інші ударні дрони, а також розвідувальні дрони."));
+  ustaw("lk-o-rakiety", l.rakiety);
+  ustaw("lk-o-rakiety-t", UI.t("Rakiety i bomby KAB", "Missiles and KAB bombs", "Ракети й бомби KAB"));
+  ustaw("lk-o-rakiety-d", UI.t("Rakiety manewrujące i balistyczne oraz bomby szybujące KAB",
+    "Cruise and ballistic missiles plus KAB glide bombs",
+    "Крилаті й балістичні ракети та керовані авіабомби KAB")
+    + (l.kab ? ` (${UI.t("teraz KAB", "KAB now", "зараз KAB")}: ${l.kab})` : "") + ".");
+  ustaw("lk-uwaga-h", UI.t("Dlaczego liczba skacze?", "Why does the number jump?", "Чому число стрибає?"));
+  ustaw("lk-uwaga-p", UI.t(
+    "Licznik pokazuje dokładnie to, co mapa. Źródło danych (NEPTUN) usuwa obiekty kilka minut po ostatnim potwierdzeniu, często całymi grupami, a nowe meldunki też przychodzą paczkami. Dlatego liczba potrafi w kilka minut spaść i znów wzrosnąć — spadek nie musi oznaczać końca ataku.",
+    "The counter shows exactly what the map shows. The data source (NEPTUN) removes objects a few minutes after their last confirmation, often in whole groups, and new reports also arrive in batches. So the number can drop and rise again within minutes — a drop does not necessarily mean the attack is over.",
+    "Лічильник показує саме те, що й мапа. Джерело даних (NEPTUN) прибирає об'єкти через кілька хвилин після останнього підтвердження, часто цілими групами, а нові повідомлення теж надходять пачками. Тому число може за кілька хвилин упасти й знову зрости — спад не обов'язково означає кінець атаки."));
+  ustaw("lk-nie", UI.t("Nie liczymy: dronów FPV przy linii frontu, samolotów (np. MiG-31K) ani obiektów bez określonego rodzaju.",
+    "Not counted: FPV drones at the front line, aircraft (e.g. MiG-31K) or objects of unknown type.",
+    "Не враховуємо: FPV-дрони на лінії фронту, літаки (напр. MiG-31K) та об'єкти невідомого типу."));
+  ustaw("lk-zrodlo", UI.t("Licznik pokazuje obiekty nad Ukrainą i przy granicy — to nie jest ostrzeżenie dla Twojego województwa. O zagrożeniu mówi poziom alarmu i kolor województwa.",
+    "The counter shows objects over Ukraine and near the border — it is not a warning for your province. The alert level and province colour tell you about the threat.",
+    "Лічильник показує об'єкти над Україною та біля кордону — це не попередження для вашого воєводства. Про загрозу говорять рівень тривоги та колір воєводства."));
+  ustaw("lk-sygnaly", UI.t("Pokaż sygnały", "Show signals", "Показати сигнали"));
+}
+const oknoLicznika = document.getElementById("licznik-okno");
+document.getElementById("licznik")?.addEventListener("click", () => {
+  if (!licznikStan || !oknoLicznika) return;
+  wypelnijOknoLicznika();
+  oknoLicznika.showModal();
+});
+document.getElementById("lk-sygnaly")?.addEventListener("click", () => {
+  oknoLicznika?.close();
+  setPanel(true);
+});
+
 function renderPanel() {
   // w trybie historii panel należy do wybranej chwili — cykliczne odświeżanie
   // (co 30 s) i napływające stany nie mogą go podmienić na dane bieżące
@@ -3389,6 +3497,7 @@ function renderPanel() {
     banner.innerHTML = "";
   }
   if (!histMode) renderNationalBanner(state?.neptun?.threats);
+  if (!histMode) odswiezLicznik();
 
   const sigs = [];
   for (const [name, st] of voivs) for (const s of st.signals) sigs.push(s);
@@ -4217,7 +4326,7 @@ function nearestThreatLine(voiv) {
    obiekt i godzina danych. Nie jest polem `aria-live` — nie przerywa co kilka
    sekund, czytnik czyta go, gdy człowiek do niego dojdzie (nagłówek: skok
    „następny nagłówek"). Osobna funkcja bez DOM, żeby test mógł ją uruchomić. */
-function opisSytuacji(voivs, obserwowane, najblizszy, godzina) {
+function opisSytuacji(voivs, obserwowane, najblizszy, godzina, licznik = "") {
   const order = ["none", "elevated", "high"];
   const nazwa = { none: UI.t("brak sygnałów", "no signals", "немає сигналів"),
                   elevated: UI.t("podwyższona uwaga", "heightened attention", "підвищена увага"),
@@ -4227,7 +4336,7 @@ function opisSytuacji(voivs, obserwowane, najblizszy, godzina) {
   const wazniejsze = (a, b) => order.indexOf(poziom(b)) - order.indexOf(poziom(a))
     || (voivs[b]?.score || 0) - (voivs[a]?.score || 0);
   const start = `${UI.t("Sytuacja o", "Situation at", "Ситуація о")} ${godzina}: `;
-  const koniec = " " + UI.t("Strażnik to źródło nieoficjalne — kieruj się syrenami i komunikatami RCB.",
+  const koniec = (licznik ? " " + licznik : "") + " " + UI.t("Strażnik to źródło nieoficjalne — kieruj się syrenami i komunikatami RCB.",
     "Strażnik is an unofficial source — follow sirens and RCB alerts.",
     "Strażnik — неофіційне джерело, орієнтуйтеся на сирени та повідомлення RCB.");
   let lista = (obserwowane || []).filter(v => voivs[v]);
@@ -4258,7 +4367,7 @@ function odswiezOpisSytuacji() {
   const godzina = new Date(threatsReceivedAt || Date.now())
     .toLocaleTimeString(UI.t("pl-PL", "en-GB", "uk-UA"), { hour: "2-digit", minute: "2-digit" });
   sytuacjaEl.textContent = opisSytuacji(voivs, watched.length ? watched : (mine ? [mine] : []),
-    najblizszyObiekt, godzina);
+    najblizszyObiekt, godzina, licznikZdanie(licznikZObiektow(state?.neptun?.threats)));
 }
 
 /* ── pełnoekranowy alarm z ręcznym potwierdzeniem ────────────────────────── */
@@ -5416,6 +5525,8 @@ function showHistoryAt(idx) {
   // alarmy ogólnokrajowe z tamtej chwili jako komunikat, nie obiekt na mapie
   const snapThreats = snap?.threats || [];
   renderNationalChip(snapThreats);
+  const licznikHist = licznikZObiektow(snapThreats);
+  odswiezLicznik(licznikHist, when);
   const threats = snapThreats.filter(t => !isNationalThreat(t));
   const planes = [...(snap?.aircraft || [])];
   // ADS-B jest odpytywane częściej niż powstają migawki. Zdarzenie wejścia lub
@@ -5488,7 +5599,7 @@ function showHistoryAt(idx) {
           : tp.level === "elevated" ? "var(--amber)" : "var(--muted)"}">`
         + `${tp.score} ${UI.t("pkt", "pts", "бал.")}${tp.voiv ? ` · ${UI.t("woj.", "province", "воєв.")} ` + esc(UI.voiv(tp.voiv)) : ""}</b> · `
       : "")
-    + `${threats.length} ${UI.t("obiektów", "objects", "об'єктів")} · ${planes.filter(p => !p.historicalOnly).length} ${UI.t("maszyn w migawce", "aircraft in snapshot", "машин у знімку")}`
+    + `${licznikDrony(licznikHist.drony)} · ${licznikRakiety(licznikHist.rakiety)} · ${planes.filter(p => !p.historicalOnly).length} ${UI.t("maszyn w migawce", "aircraft in snapshot", "машин у знімку")}`
     + (planes.some(p => p.historicalOnly) ? ` + ${planes.filter(p => p.historicalOnly).length} ${UI.t("ostatnich obserwacji", "last observations", "останніх спостережень")}` : "") + " · "
     + (sigs.length
       ? `<button id="tb-sigs" class="linklike">${sigs.length} ${UI.t("sygnałów w oknie", "signals in the window", "сигналів у вікні")} ↗</button>`
