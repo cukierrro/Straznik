@@ -474,8 +474,8 @@
     button("rm-syrena", "Syrena", "Siren");
     button("rm-wibracja", "Tylko wibracja", "Vibration only");
     button("rm-zwykle", "Zwykłe powiadomienie", "Regular notification");
-    button("btn-vib-u", "▶ Poczuj: żółty (U · · —)", "▶ Feel: yellow (U · · —)");
-    button("btn-vib-a", "▶ Poczuj: czerwony (A · —)", "▶ Feel: red (A · —)");
+    button("btn-vib-u", "▶ Poczuj: żółty (U)", "▶ Feel: yellow (U)");
+    button("btn-vib-a", "▶ Poczuj: czerwony (A)", "▶ Feel: red (A)");
     button("vib-note", "Wzorów wibracji się nie wybiera: żółty zawsze wibruje „U”, czerwony zawsze „A”. Przyciski tylko je odtwarzają, żebyś je rozpoznał.", "The vibration patterns are not a choice: yellow always vibrates “U”, red always “A”. The buttons only play them so you can recognise them.");
     { const el = document.getElementById("rs-note");
       if (el) el.innerHTML = en ? "<b>Vibration only:</b> the siren goes quiet, the rest of the alert stays — full screen, flashing and strong vibration, including in Do Not Disturb. <b>Regular notification:</b> red arrives like yellow — a banner, a short sound and vibration, no full screen; it respects silent mode and Do Not Disturb. <b>Think it over before nightfall:</b> with the screen off and the phone in another room you may not notice an alert like that. A paired watch or band gets a copy of the notification if you allow Strażnik notifications in its app — and then vibrates in its own way. Red only — the yellow attention signal has its own setting above." : "<b>Tylko wibracja:</b> syrena milknie, reszta alarmu zostaje — pełny ekran, miganie i mocna wibracja, także przy trybie Nie przeszkadzać. <b>Zwykłe powiadomienie:</b> czerwony przyjdzie jak żółty — baner, krótki dźwięk i wibracja, bez pełnego ekranu; szanuje tryb cichy i Nie przeszkadzać. <b>Przemyśl to przed nocą:</b> przy wygaszonym ekranie i telefonie w drugim pokoju możesz takiego alarmu nie zauważyć. Sparowany zegarek albo opaska dostaje kopię powiadomienia, jeśli w jej aplikacji zezwolisz na powiadomienia ze Strażnika — i wibruje wtedy po swojemu. Dotyczy wyłącznie czerwonego — żółty sygnał uwagi ma własne ustawienie wyżej."; }
@@ -600,7 +600,7 @@
     "Language, text and version": "Мова, текст і версія",
     "Change language and restart": "Змінити мову й перезапустити",
     "Save address and restart": "Зберегти адресу й перезапустити",
-    "Loading the map…": "Завантажую мапу…",
+    "Loading the map…": "Завантажую мапу…", "Loading the situation…": "Завантажую ситуацію…",
     "Settings": "Налаштування", "Notifications": "Сповіщення", "3D view": "Вигляд 3D",
     "Foreign aircraft (RU/BY)": "Чужі літаки (РФ/РБ)", "Information": "Інформація",
     "GROTA — places of shelter in the app": "GROTA — місця укриття в застосунку",
@@ -747,8 +747,8 @@
     "What this app does NOT do": "Чого цей застосунок НЕ робить",
     "NEPTUN is an OSINT/crowdsourced aggregator, not radar, so confidence and position uncertainty are always shown. A new ID at the same locality-centre point does not prove a new physical object and is not automatically counted twice. ADS-B contains only public transponder emissions and cannot reveal aircraft flying dark.":
       "NEPTUN — агрегатор OSINT і повідомлень людей, а не радар, тому ми завжди показуємо достовірність і невизначеність позиції. Новий ідентифікатор у тій самій точці центру населеного пункту не доводить появи нового фізичного об’єкта і не рахується автоматично вдруге. ADS-B містить лише відкриті сигнали транспондерів і не покаже літаків, які летять без них.",
-    "Data: NEPTUN · adsb.lol / adsb.fi · PAŻP · gov.pl/RCB · regional and Baltic media · neighbouring airspace sources · map © CARTO, © OpenStreetMap":
-      "Дані: NEPTUN · adsb.lol / adsb.fi · PAŻP · gov.pl/RCB · регіональні та балтійські ЗМІ · джерела про повітряний простір сусідів · мапа © CARTO, © OpenStreetMap",
+    "Data: NEPTUN · adsb.lol / adsb.fi · PAŻP · gov.pl/RCB · regional and Baltic media · neighbouring airspace sources · map © OpenFreeMap, © OpenMapTiles, © OpenStreetMap":
+      "Дані: NEPTUN · adsb.lol / adsb.fi · PAŻP · gov.pl/RCB · регіональні та балтійські ЗМІ · джерела про повітряний простір сусідів · мапа © OpenFreeMap, © OpenMapTiles, © OpenStreetMap",
     "I understand — continue": "Зрозуміло — далі",
     "Data sources": "Джерела даних",
     "Each LED at the top represents one data source. Fusion relies on agreement between several sources, so one unavailable source reduces confirmation rather than disabling warnings.":
@@ -795,8 +795,8 @@
     "Siren": "Сирена",
     "Vibration only": "Лише вібрація",
     "Regular notification": "Звичайне сповіщення",
-    "▶ Feel: yellow (U · · —)": "▶ Відчути: жовтий (U · · —)",
-    "▶ Feel: red (A · —)": "▶ Відчути: червоний (A · —)",
+    "▶ Feel: yellow (U)": "▶ Відчути: жовтий (U)",
+    "▶ Feel: red (A)": "▶ Відчути: червоний (A)",
     "The vibration patterns are not a choice: yellow always vibrates “U”, red always “A”. The buttons only play them so you can recognise them.": "Ритм вібрації не обирається: жовта завжди вібрує «U», червона — завжди «A». Кнопки лише відтворюють його, щоб ви його впізнали.",
     "On iPhone this setting only changes the signal while the app is open. The sound of a notification that arrives with the app closed is chosen by the server and is the same for everyone. For complete silence on yellow, turn off Sounds in iPhone Settings → Strażnik → Notifications — but that switch covers all Strażnik notifications, including the red alert.": "На iPhone це налаштування змінює лише сигнал при відкритому застосунку. Звук сповіщення, яке приходить при закритому, вибирає сервер, і він однаковий для всіх. Хто хоче повної тиші для жовтого, вимикає Звуки в Налаштуваннях iPhone → Strażnik → Сповіщення — але цей перемикач стосується всіх сповіщень Strażnik, зокрема червоної тривоги.",
     "Quiet hours": "Години тиші",
@@ -958,6 +958,7 @@
     // v4 (14.10.2026): zakładki i Menu WYŁĄCZNIE po identyfikatorach. Po kolejności
     // dwa razy się już rozjechało (1.7.68 wpis GROTY, teraz zakładka GROTY w środku).
     set("#mapa-laduje-t", "Loading the map…");
+    if (document.getElementById("sytuacja")?.textContent === "Wczytywanie sytuacji…") set("#sytuacja", "Loading the situation…");
     set("#tab-map-t", "Map"); set("#btn-panel-t", "Signals");
     set("#btn-history-t", "History"); set("#tab-more-t", "Menu");
     document.getElementById("btn-grota")?.setAttribute("aria-label", "GROTA — places of shelter");
@@ -1041,7 +1042,7 @@
     set("#ab-ograniczenia",
       "NEPTUN is an OSINT/crowdsourced aggregator, not radar, so confidence and position uncertainty are always shown. A new ID at the same locality-centre point does not prove a new physical object and is not automatically counted twice. ADS-B contains only public transponder emissions and cannot reveal aircraft flying dark.");
     set("#ab-dane",
-      "Data: NEPTUN · adsb.lol / adsb.fi · PAŻP · gov.pl/RCB · regional and Baltic media · neighbouring airspace sources · map © CARTO, © OpenStreetMap");
+      "Data: NEPTUN · adsb.lol / adsb.fi · PAŻP · gov.pl/RCB · regional and Baltic media · neighbouring airspace sources · map © OpenFreeMap, © OpenMapTiles, © OpenStreetMap");
     const north = document.getElementById("ab-polnoc");
     const redNote = document.getElementById("ab-czerwony");
     if (redNote) redNote.innerHTML = "<b>4 pts alone are not enough.</b> Red needs a "
@@ -1171,8 +1172,8 @@
     set("#qh-note", "During these hours yellow arrives without sound — a banner and vibration. Red depends on your choice: vibration only (the full screen and strong vibration stay) or unchanged — as set above for the red alert. Quiet hours never make an alert louder. Outside these hours everything works as above. With the phone in another room you may not feel the vibration. The hours follow the phone's clock.");
     set("#rm-wibracja", "Vibration only");
     set("#rm-zwykle", "Regular notification");
-    set("#btn-vib-u", "▶ Feel: yellow (U · · —)");
-    set("#btn-vib-a", "▶ Feel: red (A · —)");
+    set("#btn-vib-u", "▶ Feel: yellow (U)");
+    set("#btn-vib-a", "▶ Feel: red (A)");
     set("#vib-note", "The vibration patterns are not a choice: yellow always vibrates “U”, red always “A”. The buttons only play them so you can recognise them.");
     { const el = document.getElementById("rs-note"); if (el) el.innerHTML = "<b>Vibration only:</b> the siren goes quiet, the rest of the alert stays — full screen, flashing and strong vibration, including in Do Not Disturb. <b>Regular notification:</b> red arrives like yellow — a banner, a short sound and vibration, no full screen; it respects silent mode and Do Not Disturb. <b>Think it over before nightfall:</b> with the screen off and the phone in another room you may not notice an alert like that. A paired watch or band gets a copy of the notification if you allow Strażnik notifications in its app — and then vibrates in its own way. Red only — the yellow attention signal has its own setting above."; }
     const dndNote = document.getElementById("dnd-note");

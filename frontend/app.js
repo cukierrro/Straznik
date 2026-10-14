@@ -784,7 +784,7 @@ let standalone = false;
 async function connect() {
   const savedApi = localStorage.getItem("straznik_api");
   if (savedApi && !validBackendUrl(savedApi)) {
-    connBadge.textContent = "Serwer zablokowany — wymagany HTTPS. Otwórz ustawienia.";
+    connBadge.textContent = UI.t("Serwer zablokowany — wymagany HTTPS. Otwórz ustawienia.", "Server blocked — HTTPS required. Open settings.", "Сервер заблоковано — потрібен HTTPS. Відкрийте налаштування.");
     connBadge.classList.remove("hidden");
     connBadge.onclick = () => openSettings();
     connBadge.style.cursor = "pointer";
@@ -803,7 +803,7 @@ async function connect() {
   // z dziurami/skokami (zapisywane tylko gdy apka działa). Dajemy 4 próby z
   // narastającą przerwą; przy prawdziwie martwym serwerze i tak schodzimy na
   // wbudowany, tylko po ~kilkunastu sekundach zamiast po czterech.
-  connBadge.textContent = "łączenie…"; connBadge.classList.remove("hidden");
+  connBadge.textContent = UI.t("łączenie…", "connecting…", "з’єднання…"); connBadge.classList.remove("hidden");
   for (let attempt = 1; attempt <= 4; attempt++) {
     if (await probeBackend(base)) return startPolling();
     if (attempt < 4) await new Promise(r => setTimeout(r, attempt * 1500));
@@ -854,7 +854,7 @@ function switchToBackend(base) {
   srvSnaps = []; srvSigs = []; srvAdsbEvents = []; srvSeeded = false;
   connBadge.style.cursor = "";
   connBadge.onclick = null;
-  connBadge.textContent = "łączenie…";
+  connBadge.textContent = UI.t("łączenie…", "connecting…", "з’єднання…");
   connBadge.classList.remove("hidden");
   startPolling();      // natychmiast pokaż stan z serwera
 }
@@ -998,7 +998,7 @@ function showNotice(n) {
   if (!n || !n.id || localStorage.getItem("notice_seen_" + n.id)) {
     el.classList.add("hidden"); return;
   }
-  el.innerHTML = `<span>ℹ️ ${esc(n.text)}</span><button class="chip" id="notice-ok">Rozumiem</button>`;
+  el.innerHTML = `<span><span aria-hidden="true">ℹ️ </span>${esc(n.text)}</span><button class="chip" id="notice-ok">${UI.t("Rozumiem", "Got it", "Зрозуміло")}</button>`;
   el.classList.remove("hidden");
   document.getElementById("notice-ok").onclick = () => {
     localStorage.setItem("notice_seen_" + n.id, "1");
@@ -1315,12 +1315,9 @@ function pokazBrakMapy(blad, niewczytana = false) {
   const ios = IS_IOS || document.documentElement.classList.contains("ua-ios");
   if (niewczytana) return pokazNiewczytanaMape(box, blad);
   const rada = ios
-    ? (UI.t("Na iPhonie to zwykle <b>Tryb blokady</b> — wyłącza rysowanie map (WebGL) w Safari i w aplikacjach. ", "On iPhone this is usually <b>Lockdown Mode</b>, which switches off map drawing (WebGL) in Safari and in apps. "
-          + "Settings → Privacy &amp; Security → Lockdown Mode → Configure Web Browsing → exclude Strażnik "
-          + "(and straznik.eu in Safari). If Lockdown Mode is off, check Settings → Apps → Safari → Advanced → Feature Flags → WebGL.", "На iPhone це зазвичай <b>Режим блокування</b> — він вимикає малювання мап (WebGL) у Safari і в застосунках. ")
-          + "Ustawienia → Prywatność i ochrona → Tryb blokady → Konfiguruj przeglądanie → wyklucz Strażnika "
-          + "(a w Safari także straznik.eu). Jeśli Tryb blokady jest wyłączony, sprawdź Ustawienia → Aplikacje → Safari → "
-          + "Zaawansowane → Flagi funkcji → WebGL.")
+    ? UI.t("Na iPhonie to zwykle <b>Tryb blokady</b> — wyłącza rysowanie map (WebGL) w Safari i w aplikacjach. Ustawienia → Prywatność i ochrona → Tryb blokady → Konfiguruj przeglądanie → wyklucz Strażnika (a w Safari także straznik.eu). Jeśli Tryb blokady jest wyłączony, sprawdź Ustawienia → Aplikacje → Safari → Zaawansowane → Flagi funkcji → WebGL.",
+           "On iPhone this is usually <b>Lockdown Mode</b>, which switches off map drawing (WebGL) in Safari and in apps. Settings → Privacy &amp; Security → Lockdown Mode → Configure Web Browsing → exclude Strażnik (and straznik.eu in Safari). If Lockdown Mode is off, check Settings → Apps → Safari → Advanced → Feature Flags → WebGL.",
+           "На iPhone це зазвичай <b>Режим блокування</b> — він вимикає малювання мап (WebGL) у Safari і в застосунках. Параметри → Приватність і безпека → Режим блокування → Налаштувати перегляд вебсторінок → виключіть Strażnik (а в Safari також straznik.eu). Якщо Режим блокування вимкнено, перевірте Параметри → Програми → Safari → Додатково → Прапорці функцій → WebGL.")
     : (UI.t("Włącz przyspieszenie sprzętowe w ustawieniach przeglądarki, zaktualizuj ją albo spróbuj innej.", "Turn on hardware acceleration in the browser settings, update the browser, or try another one.", "Увімкніть апаратне прискорення в налаштуваннях браузера, оновіть його або спробуйте інший."));
   const d = document.createElement("div");
   d.id = "map-niedostepna";
@@ -2507,8 +2504,8 @@ function toggleFollow(hex) {
     map.flyTo({ center: [p.lon, p.lat], zoom: Math.max(map.getZoom(), 7), duration: 800 });
   }
   toast(followHex
-    ? "📍 <b>Śledzę samolot.</b><br>Mapa podąża, trasa rysowana. Kliknij ponownie, by przestać."
-    : "Śledzenie wyłączone.");
+    ? UI.t("<b>Śledzę samolot.</b><br>Mapa podąża, trasa rysowana. Dotknij ponownie, by przestać.", "<b>Following the aircraft.</b><br>The map follows it and draws the track. Tap again to stop.", "<b>Стежу за літаком.</b><br>Мапа рухається за ним, маршрут малюється. Торкніться ще раз, щоб зупинити.")
+    : UI.t("Śledzenie wyłączone.", "Following stopped.", "Стеження вимкнено."));
 }
 
 /* ── alarmy obwodów UA na mapie ─────────────────────────────────────────────
@@ -3327,7 +3324,7 @@ function renderPanel() {
       openVoivs.has(name) ? " open" : ""}" data-voiv="${esc(name)}">
       <button type="button" class="voiv-head" aria-expanded="${openVoivs.has(name)}">
         <span class="voiv-name">${esc(UI.voiv(name))}</span>
-        <span class="voiv-score">${st.score.toFixed(1)} ${UI.t("pkt", "pts", "бал.")}</span>
+        <span class="voiv-score">${pktTxt(st.score)} ${UI.t("pkt", "pts", "бал.")}</span>
       </button>
       <div class="voiv-level">${spillRaised(st) ? SPILL_LABEL
         : st.level === "none" && st.score > 0
@@ -3382,7 +3379,7 @@ function renderPanel() {
       spillRaised(st) ? SPILL_LABEL
       : st.level === "none" && st.score > 0 ? (UI.t("poniżej progu", "below threshold", "нижче порога"))
       : LEVEL_LABEL[st.level]}</span>
-      <span class="muted">${st.score.toFixed(1)} ${UI.t("pkt", "pts", "бал.")}${st.podtrzymanie?.do
+      <span class="muted">${pktTxt(st.score)} ${UI.t("pkt", "pts", "бал.")}${st.podtrzymanie?.do
         ? " · " + UI.t("podtrzymany do", "held until", "утримується до") + " "
           + new Date(st.podtrzymanie.do).toLocaleTimeString(UI.t("pl-PL", "en-GB", "uk-UA"), { hour: "2-digit", minute: "2-digit" })
         : ""}</span>${bezPotwierdzenia(st)}</span>`;
@@ -3726,6 +3723,12 @@ function sigHTML(s) {
    sygnałami, ale żeby to sprawdzić, trzeba było dodać w pamięci plakietki
    rozrzucone po przewijanej liście — a część wpisów ma wkład 0 (wygaszone wiekiem
    albo ucięte limitem klasy) i tylko myli rachunek (zgłoszone 12.09.2026). */
+/* Punkty z jednym miejscem po przecinku: po polsku i ukraińsku przecinek, po angielsku
+   kropka. Dotąd „1.9 pkt” stało obok „179,6 km” (przegląd UI 14.10.2026). */
+function pktTxt(x) {
+  const t = (Math.round((Number(x) || 0) * 10) / 10).toFixed(1);
+  return UI.lang === "en" ? t : t.replace(".", ",");
+}
 function scoreBreakdown(st) {
   const byClass = new Map();
   let zeros = 0;
@@ -3736,7 +3739,7 @@ function scoreBreakdown(st) {
     byClass.set(key, (byClass.get(key) || 0) + cp);
   }
   const parts = [...byClass.entries()].sort((a, b) => b[1] - a[1])
-    .map(([src, v]) => `${v.toFixed(1)} ${SRC_LABEL[src] || src.toUpperCase()}`);
+    .map(([src, v]) => `${pktTxt(v)} ${SRC_LABEL[src] || src.toUpperCase()}`);
   if (!parts.length) return "";
   const zeroNote = zeros
     ? ` · ${zeros} ${zeros === 1
@@ -4044,11 +4047,9 @@ function fillSources() {
   const anyErr = ledItems().some(([, ok]) => !ok);
   document.getElementById("src-list").innerHTML = rows + balticRows();
   document.getElementById("src-note").innerHTML = anyErr
-    ? (UI.t("Czerwona dioda nie oznacza awarii aplikacji — pozostałe źródła liczą się ", "A red indicator does not mean the app has failed — the remaining sources "
-        + "keep counting, and the fusion needs several of them to agree anyway. If "
-        + "every indicator is red, check your internet connection.", "Червона діода не означає збою застосунку — решта джерел рахується ")
-        + "dalej, a fuzja i tak wymaga zgodności kilku z nich. Jeśli czerwone są "
-        + "wszystkie, sprawdź połączenie z internetem.")
+    ? UI.t("Czerwona dioda nie oznacza awarii aplikacji — pozostałe źródła liczą się dalej, a ocena i tak wymaga zgodności kilku z nich. Jeśli czerwone są wszystkie, sprawdź połączenie z internetem.",
+           "A red indicator does not mean the app has failed — the remaining sources keep counting, and the assessment needs several of them to agree anyway. If every indicator is red, check your internet connection.",
+           "Червона діода не означає збою застосунку — решта джерел рахується далі, а для оцінки й так потрібна згода кількох із них. Якщо червоні всі, перевірте з’єднання з інтернетом.")
     : (UI.t("Wszystkie źródła odpowiadają.", "Every source is responding.", "Усі джерела відповідають."));
 }
 
@@ -4323,7 +4324,7 @@ function showAlarm(voiv, st) {
   zdejmijZasloneAlarmu();
   document.getElementById("alarm-voiv").textContent = (UI.t("woj. ", "province ", "воєв. ")) + UI.voiv(voiv);
   document.getElementById("alarm-score").textContent =
-    `${st.score.toFixed(1)} ${UI.t("pkt w oknie", "pts in a", "балів у вікні")} ${state?.fusion?.window_min ?? 60} min ${UI.t("", "window", "")}`;
+    `${pktTxt(st.score)} ${UI.t("pkt w oknie", "pts in a", "балів у вікні")} ${state?.fusion?.window_min ?? 60} min ${UI.t("", "window", "")}`;
   document.getElementById("alarm-signals").innerHTML =
     sigList(st.signals, 5)
     || (st.reasonsText ? st.reasonsText.split("\n").filter(Boolean).slice(0, 5)
@@ -4690,8 +4691,8 @@ async function refreshBell() {
   const perm = await notifPermission();
   const on = notifWanted() && perm === "granted";
   btn.classList.toggle("active", on);
-  btn.title = on ? "Powiadomienia włączone — kliknij, aby wyciszyć"
-                 : "Powiadomienia wyciszone — kliknij, aby włączyć";
+  btn.title = on ? UI.t("Powiadomienia włączone — dotknij, aby wyciszyć", "Notifications on — tap to mute", "Сповіщення ввімкнено — торкніться, щоб вимкнути")
+                 : UI.t("Powiadomienia wyciszone — dotknij, aby włączyć", "Notifications muted — tap to turn on", "Сповіщення вимкнено — торкніться, щоб увімкнути");
   return { perm, on };
 }
 
@@ -4700,21 +4701,23 @@ async function toggleBell() {
   if (on) {                       // wyłączamy — tylko lokalnie, bez ruszania systemu
     localStorage.setItem(NOTIF_KEY, "0");
     await refreshBell();
-    toast("🔕 <b>Powiadomienia wyciszone.</b><br>Alarmy dalej widać w aplikacji "
-        + "(kolory, syrena), ale nie dostaniesz powiadomień systemowych.");
+    toast(UI.t("<b>Powiadomienia wyciszone.</b><br>Alarmy dalej widać w aplikacji (kolory, syrena), ale nie dostaniesz powiadomień systemowych.",
+               "<b>Notifications muted.</b><br>Alerts still show in the app (colours, siren), but you will not get system notifications.",
+               "<b>Сповіщення вимкнено.</b><br>Тривоги й далі видно в застосунку (кольори, сирена), але системних сповіщень не буде."));
     return;
   }
   localStorage.setItem(NOTIF_KEY, "1");
   if (perm === "granted") {
     await refreshBell();
-    toast("🔔 <b>Powiadomienia włączone.</b><br>Dostaniesz je przy poziomie żółtym "
-        + "i czerwonym dla swojego regionu.");
+    toast(UI.t("<b>Powiadomienia włączone.</b><br>Dostaniesz je przy poziomie żółtym i czerwonym dla swojego województwa.",
+               "<b>Notifications on.</b><br>You will get them at the yellow and red level for your province.",
+               "<b>Сповіщення ввімкнено.</b><br>Ви отримаєте їх на жовтому й червоному рівні для свого воєводства."));
     return;
   }
   if (perm === "denied") {
-    toast("⚠️ System blokuje powiadomienia dla Strażnika.<br>"
-        + (IS_IOS ? "Włącz je w Ustawieniach iPhone'a (⚙ → Ustawienia powiadomień)."
-                  : "Włącz je w ustawieniach Androida (⚙ → Ustawienia powiadomień)."), 6000);
+    toast(UI.t("System blokuje powiadomienia dla Strażnika.<br>", "The system blocks notifications for Strażnik.<br>", "Система блокує сповіщення для Strażnika.<br>")
+        + (IS_IOS ? UI.t("Włącz je w Ustawieniach iPhone'a (Menu → Ustawienia → Alarmy i zgody).", "Turn them on in iPhone Settings (Menu → Settings → Alerts and permissions).", "Увімкніть їх у Параметрах iPhone (Меню → Налаштування → Тривоги й дозволи).")
+                  : UI.t("Włącz je w ustawieniach Androida (Menu → Ustawienia → Alarmy i zgody).", "Turn them on in Android settings (Menu → Settings → Alerts and permissions).", "Увімкніть їх у налаштуваннях Android (Меню → Налаштування → Тривоги й дозволи).")), 6000);
     await refreshBell();
     return;
   }
@@ -4726,8 +4729,8 @@ async function toggleBell() {
   } catch {}
   const after = await refreshBell();
   toast(after.on
-    ? "🔔 <b>Powiadomienia włączone.</b><br>Dostaniesz je przy poziomie żółtym i czerwonym."
-    : "🔕 Nie przyznano zgody — powiadomienia systemowe pozostają wyłączone.");
+    ? UI.t("<b>Powiadomienia włączone.</b><br>Dostaniesz je przy poziomie żółtym i czerwonym.", "<b>Notifications on.</b><br>You will get them at the yellow and red level.", "<b>Сповіщення ввімкнено.</b><br>Ви отримаєте їх на жовтому й червоному рівні.")
+    : UI.t("Bez zgody na powiadomienia — powiadomienia systemowe zostają wyłączone.", "No notification permission — system notifications stay off.", "Без дозволу на сповіщення — системні сповіщення лишаються вимкненими."));
 }
 
 async function enablePush() {
@@ -5066,7 +5069,7 @@ async function showCameras(voiv) {
   const indoor = list.filter(c => c.outdoor === false);
   const dlg = document.getElementById("cameras");
   document.getElementById("cam-title").textContent =
-    `Kamery — woj. ${voiv} (${outdoor.length} plenerowych)`;
+    UI.t(`Kamery — woj. ${UI.voiv(voiv)} (${outdoor.length} plenerowych)`, `Cameras — ${UI.voiv(voiv)} (${outdoor.length} outdoor)`, `Камери — ${UI.voiv(voiv)} (${outdoor.length} зовнішніх)`);
 
   /* Adres miniatury wstawia camShowThumbs() po wsadzeniu HTML — obsługa błędu
      wymaga nasłuchu w JS (walka o kolejny rozmiar), a atrybut `onerror` i tak
@@ -5097,11 +5100,10 @@ async function showCameras(voiv) {
   document.getElementById("cam-list").innerHTML = list.length
     ? groupBy(outdoor) + (indoor.length ? `
         <details class="cam-indoor">
-          <summary>Kamery wnętrzowe (${indoor.length}) — transmisje z kościołów,
-            mało przydatne do oceny sytuacji na zewnątrz</summary>
+          <summary>${UI.t(`Kamery wnętrzowe (${indoor.length}) — transmisje z kościołów, mało przydatne do oceny sytuacji na zewnątrz`, `Indoor cameras (${indoor.length}) — church streams, of little use for judging the situation outside`, `Камери в приміщеннях (${indoor.length}) — трансляції з костелів, мало корисні для оцінки ситуації надворі`)}</summary>
           ${groupBy(indoor)}
         </details>` : "")
-    : '<div class="fineprint">Brak zweryfikowanych kamer dla tego województwa.</div>';
+    : `<div class="fineprint">${UI.t("Brak zweryfikowanych kamer dla tego województwa.", "No verified cameras for this province.", "Немає перевірених камер для цього воєводства.")}</div>`;
   camShowThumbs();
   dlg.showModal();
   // odświeżanie miniatur, dopóki okno jest otwarte; przy CAM_THUMBS = false nie ma
@@ -5569,7 +5571,7 @@ function renderHistoryPanel(sigs, perVoiv, when, ageMin,
     const own = sigs.filter(s => s.voivodeship === name);
     return `<div class="voiv-card level-${lvl} open">
       <div class="voiv-head"><span class="voiv-name">${esc(UI.voiv(name))}</span>
-        <span class="voiv-score">${(Math.round(sc * 10) / 10).toFixed(1)} ${UI.t("pkt", "pts", "бал.")}</span></div>
+        <span class="voiv-score">${pktTxt(sc)} ${UI.t("pkt", "pts", "бал.")}</span></div>
       <div class="voiv-level">${lvl === "none" ? (UI.t("poniżej progu", "below threshold", "нижче порога")) : LEVEL_LABEL[lvl]}</div>
       ${podtrzymanieHTML(podtrzymanie[name])}
       <div class="voiv-breakdown">${sigList(own)}</div></div>`;
@@ -6191,8 +6193,11 @@ function showUpdateBanner(rel, local) {
       btn.textContent = UI.t("Instalator otwarty", "Installer opened", "Інсталятор відкрито");
     } catch (error) {
       btn.disabled = false;
-      btn.textContent = "Spróbuj ponownie";
-      progress.textContent = "Aktualizacja nie powiodła się: " + String(error?.message || error);
+      btn.textContent = UI.t("Spróbuj ponownie", "Try again", "Спробувати ще раз");
+      /* Bez surowego wyjątku na pierwszym planie: co się stało i co zrobić,
+         szczegół techniczny w nawiasie (do zrzutu ekranu). */
+      progress.textContent = UI.t("Nie udało się zaktualizować. Spróbuj ponownie albo pobierz nową wersję ze strony wydania.", "The update failed. Try again or download the new version from the release page.", "Оновлення не вдалося. Спробуйте ще раз або завантажте нову версію зі сторінки випуску.")
+        + ` (${String(error?.message || error).slice(0, 120)})`;
     }
   };
 }

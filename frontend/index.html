@@ -734,7 +734,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 
     <p class="fineprint" id="ab-dane">Dane: <a href="https://neptun.in.ua" target="_blank" rel="noopener">NEPTUN</a>
       · adsb.lol / adsb.fi · airspace.pansa.pl · gov.pl/RCB · media regionalne
-      i bałtyckie · strefy sąsiadów (RO/EE/LT) · mapa © CARTO, © OpenStreetMap</p>
+      i bałtyckie · strefy sąsiadów (RO/EE/LT) · mapa © OpenFreeMap, © OpenMapTiles, © OpenStreetMap</p>
     <div class="fineprint" id="about-license">© 2026 cukierrro · wszelkie prawa zastrzeżone ·
       <a href="https://github.com/cukierrro/Straznik/blob/main/LICENSE" target="_blank" rel="noopener">licencja</a> · licencje składników:
       <a href="https://github.com/cukierrro/Straznik/blob/main/NOTICE" target="_blank" rel="noopener">NOTICE</a>
@@ -993,8 +993,8 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
     <!-- Wibracja alfabetem Morse'a (10.10.2026). Przyciski pokazuje app.js tylko
          tam, gdzie działa navigator.vibrate — na iPhonie go nie ma. -->
     <div class="btn-row" id="vib-row" hidden>
-      <button type="button" id="btn-vib-u" class="chip">▶ Poczuj: żółty (U · · —)</button>
-      <button type="button" id="btn-vib-a" class="chip">▶ Poczuj: czerwony (A · —)</button>
+      <button type="button" id="btn-vib-u" class="chip">▶ Poczuj: żółty (U)</button>
+      <button type="button" id="btn-vib-a" class="chip">▶ Poczuj: czerwony (A)</button>
     </div>
     <p class="fineprint" id="vib-note" hidden>Wzorów wibracji się nie wybiera: żółty zawsze wibruje „U”, czerwony zawsze „A”. Przyciski tylko je odtwarzają, żebyś je rozpoznał.</p>
     <p class="fineprint" id="dzwiek-red-note">Przy czerwonym poziomie syrena gra <b>bez przerwy</b>,
@@ -1205,7 +1205,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
      Cloudflare, więc po każdym wydaniu wystarczy podbić ?v= i przeglądarki
      dostają nowe app.js/engine.js OD RAZU, bez ręcznego czyszczenia cache CF.
      Podbijaj ?v= razem z versionName w build.gradle. -->
-<script src="i18n.js?v=1.7.95-ui11"></script>
+<script src="i18n.js?v=1.7.95-ui12"></script>
 <!-- kontur Polski dla engine.js (audyt A2b, scripts/build_pl_outline.py) -->
 <script src="pl-outline.js?v=1.7.82"></script>
 <script src="engine.js?v=1.7.94"></script>
@@ -1221,7 +1221,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <div id="a11y-alert" class="sr-only" role="status" aria-live="assertive" aria-atomic="true"></div>
 <div id="a11y-info" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
 
-<script src="app.js?v=1.7.95-ui11"></script>
+<script src="app.js?v=1.7.95-ui12"></script>
 <script>
 /* Instrukcja pasująca do telefonu i języka (21.09.2026). iPhone ma osobną, bo alarmy,
    zgody i aktualizacje działają tam inaczej. Tu, a nie w app.js: index.html nie jest
