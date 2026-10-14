@@ -1895,3 +1895,25 @@ body.dane-stare .led i { background: #6b7385 !important; box-shadow: none !impor
   dialog .set-switch input:focus + .sw-track { outline: 2px solid var(--akcent-jasny); outline-offset: 2px; }
   .alarm-box:focus { outline: none; }
 }
+
+/* ── dotyk i czytelność (przegląd UI 14.10.2026, pakiet P7) ──
+   Pola dotyku do 44 px (zasada 6) i najmniejsze napisy z 9–10,5 px w górę. */
+#disclaimer-x { min-width: 44px; min-height: 44px; right: 2px; padding: 0; }
+#status-leds { min-height: 44px; align-items: center; }
+/* krzyżyk i „rozwiń” miniatury karty: 24 px rysunku, 44 px pola (pseudo-element
+   bez `inset`, który jest od Chrome 87) */
+#ac-card-x, #ac-card-zoom { position: relative; }
+#ac-card-x::before, #ac-card-zoom::before { content: ""; position: absolute;
+  top: -10px; right: -10px; bottom: -10px; left: -10px; }
+/* przyciski historii: kwadrat dawał 31–33 px wysokości */
+.tb-btn { min-height: 44px; }
+.tb-btn small { font-size: 0.7rem; text-overflow: ellipsis; }
+.tb-btn.play { background: var(--przycisk-glowny); border-color: rgba(214, 228, 255, 0.7); color: var(--napis-na-glownym); }
+#tb-live, #tb-speed { min-height: 36px; }
+/* drobny druk: było 0,6333–0,7 rem (9,5–10,5 px) */
+.sig-fresh { font-size: 0.7333rem; }
+.sig .src, .sig .ts, .fineprint { font-size: 0.7667rem; }
+.voiv-sum { font-size: 0.8rem; }
+.lg-row small { font-size: 0.7333rem; }
+#map-actions .map-btn span { font-size: 0.7667rem; }
+.brand-host { font-size: 0.7333rem; }
