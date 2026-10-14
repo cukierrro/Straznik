@@ -759,14 +759,24 @@ function showConnLost() {
   if (connLostTimer || !connBadge.classList.contains("hidden")) return;
   connLostTimer = setTimeout(() => {
     connLostTimer = null;
-    connBadge.textContent = UI.t("brak połączenia z serwerem — ponawiam…", "server connection lost — retrying…", "немає зв'язку із сервером — повторюю…");
+    /* Przegląd UI 14.10.2026: przy zerwanym połączeniu stare dane wyglądały na
+       świeże — baner województwa, zielone diody. Plakietka mówi teraz, od kiedy
+       są dane, a klasa dane-stare przygasza baner i diody (style.css). */
+    const zKiedy = threatsReceivedAt
+      ? new Date(threatsReceivedAt).toLocaleTimeString(UI.t("pl-PL", "en-GB", "uk-UA"), { hour: "2-digit", minute: "2-digit" }) : "";
+    connBadge.textContent = zKiedy
+      ? UI.t(`brak połączenia — dane z ${zKiedy}, mogą być nieaktualne; ponawiam…`, `no connection — data from ${zKiedy}, may be out of date; retrying…`, `немає з'єднання — дані з ${zKiedy}, можуть бути застарілими; повторюю…`)
+      : UI.t("brak połączenia z serwerem — ponawiam…", "server connection lost — retrying…", "немає зв'язку із сервером — повторюю…");
     connBadge.classList.remove("hidden");
+    document.body.classList.add("dane-stare");
+    powiedz(a11yInfo, connBadge.textContent);
   }, CONN_LOST_DELAY_MS);
 }
 function clearConnLostTimer() { clearTimeout(connLostTimer); connLostTimer = null; }
 function showBusyPolling() {
   clearConnLostTimer();
-  connBadge.textContent = UI.t("duży ruch — mapa odświeżana co kilka sekund", "heavy traffic — map refreshes every few seconds", "великий трафік — мапа оновлюється кожні кілька секунд");
+  // Nie „odświeżana co kilka sekund” — przy 503 nowe dane NIE przychodzą (przegląd UI 14.10).
+  connBadge.textContent = UI.t("duży ruch na serwerze — dane mogą być opóźnione; ponawiam…", "heavy server traffic — data may be delayed; retrying…", "великий трафік на сервері — дані можуть запізнюватися; повторюю…");
   connBadge.classList.remove("hidden");
 }
 
@@ -964,6 +974,7 @@ function pollOk() {
   if (pollBusyFlag) { pollBusyFlag = false; }
   clearConnLostTimer();
   connBadge.classList.add("hidden");
+  document.body.classList.remove("dane-stare");
 }
 
 /* Start odpytywania: pierwsze pytanie natychmiast, żeby mapa była od razu. */

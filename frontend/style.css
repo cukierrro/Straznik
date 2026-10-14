@@ -483,6 +483,11 @@ dialog a:hover, dialog a:focus-visible { text-decoration: underline; }
 }
 #panel.collapsed { transform: translateX(calc(100% + 16px)); opacity: 0;
   pointer-events: none; }
+/* Zamknięty panel znika też dla klawiatury i czytnika ekranu — sam transform
+   zostawiał go w kolejności Tab (przegląd UI 14.10.2026). visibility zmienia się
+   PO wyjeździe, żeby animacja zamykania była widoczna. */
+#panel { visibility: visible; }
+#panel.collapsed { visibility: hidden; transition: transform .25s ease, opacity .2s ease, visibility 0s linear .25s; }
 /* Zamykanie panelu: wyraźny, okrągły cel dotyku z ramką i tłem — wcześniej goły
    znak × zlewał się z mapą i wyglądał jak niedokończony element. */
 /* Ten sam krzyżyk co na karcie obiektu: ikona SVG zamiast znaku tekstowego,
@@ -1829,3 +1834,27 @@ dialog.ustawienia .set-tab.sheet-row > svg:first-child { color: #fff; }
    14.10.2026. Wolniejsze dotknięcie (starsza osoba, drżenie ręki) trafiało w to samo. */
 button, .chip, .sheet-row, .tab-btn, .map-btn, summary, [role="button"], .seg, label.set-switch {
   -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+
+/* ── panel sygnałów: JEDNO przewijanie (przegląd UI 14.10.2026) ──
+   Na telefonie panel 422 px miał w sobie listę 244 px z treścią 2385 px — palec
+   przewijał listę, a sekcje niżej były nieosiągalne. Listy rosną, przewija się panel. */
+#panel .list { max-height: none; overflow: visible; }
+/* Na komputerze przyciski mapy leżały NA otwartym panelu — przesuwamy je obok. */
+@media (min-width: 701px) {
+  body.panel-open #map-actions { right: calc(340px + 22px); }
+}
+/* Puste listy: zdanie mówiące, co znaczy pustka, zamiast „— brak —” (i w trzech językach) */
+html[lang="uk"] .list:empty::after { content: "— немає —"; }
+#signal-unscored:empty { display: none; }
+#signal-list:empty::after { content: "Brak sygnałów w tym oknie."; }
+html[lang="en"] #signal-list:empty::after { content: "No signals in this window."; }
+html[lang="uk"] #signal-list:empty::after { content: "У цьому вікні немає сигналів."; }
+#threat-list:empty::after { content: "Brak obiektów NEPTUN bliżej niż 250 km od granicy."; }
+html[lang="en"] #threat-list:empty::after { content: "No NEPTUN objects within 250 km of the border."; }
+html[lang="uk"] #threat-list:empty::after { content: "Немає об’єктів NEPTUN ближче ніж 250 км від кордону."; }
+#adsb-list:empty::after { content: "Nie widać maszyn wojskowych — wiele lata z wyłączonym transponderem."; }
+html[lang="en"] #adsb-list:empty::after { content: "No military aircraft visible — many fly with the transponder off."; }
+html[lang="uk"] #adsb-list:empty::after { content: "Не видно військових літаків — багато літає з вимкненим транспондером."; }
+/* Zerwane połączenie: dane nie mogą wyglądać na świeże */
+body.dane-stare #my-banner { opacity: .6; filter: grayscale(.8); border-style: dashed; }
+body.dane-stare .led i { background: #6b7385 !important; box-shadow: none !important; }
