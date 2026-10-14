@@ -113,7 +113,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
     <div class="logo-dot"></div>
     <div>
       <h1 class="brand-name">STRAŻNIK</h1>
-      <div class="brand-sub">fuzja sygnałów · wschodnia Polska</div>
+      <div class="brand-sub">mapa zagrożeń z powietrza · Polska</div>
       <!-- 17.09.2026: Mikrus przekazał Strażnikowi serwer; zgodnie z ich prośbą informacja
            o hostingu z linkiem do ich strony (logo z ich strony z logotypami, biały tekst) -->
       <a class="brand-host" href="https://mikr.us" target="_blank" rel="noopener"
@@ -670,11 +670,9 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
     <details class="about-sec">
       <summary><h3>Poziomy</h3></summary>
     <div class="lvl-row"><i class="sq" style="--c:#ffb020"></i>
-      <b>≥ 2 pkt — PODWYŻSZONA UWAGA:</b> region na żółto, krótki sygnał
-      dźwiękowy i powiadomienie, które wyskakuje na ekranie.</div>
+      <span id="ab-lvl-1"><b>≥ 2 pkt — PODWYŻSZONA UWAGA:</b> region na żółto, krótki sygnał dźwiękowy i powiadomienie, które wyskakuje na ekranie.</span></div>
     <div class="lvl-row"><i class="sq" style="--c:#ff4d5e"></i>
-      <b>≥ 4 pkt i potwierdzenie — WYSOKI PRIORYTET:</b> region na czerwono,
-      modulowana syrena alarmu powietrznego z wibracją, głośne powiadomienie.</div>
+      <span id="ab-lvl-2"><b>≥ 4 pkt i potwierdzenie — WYSOKI PRIORYTET:</b> region na czerwono, modulowana syrena alarmu powietrznego z wibracją, głośne powiadomienie.</span></div>
     <div class="fineprint about-note" id="ab-czerwony"><b>Same 4 pkt nie wystarczą.</b> Czerwony wymaga
     potwierdzenia: albo Alertu RCB o treści „znajdź bezpieczne miejsce”, albo realnego
     obiektu uderzeniowego kursem na Polskę — bliżej niż 15 minut lotu albo 50 km od
@@ -691,18 +689,15 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 
     <details class="about-sec">
       <summary><h3>Gdzie co znajdziesz</h3></summary>
-    <ul class="about-list">
-      <li><b>☰ Panel</b> — karty województw z punktacją, lista sygnałów
-        z godzinami, obiekty przy granicy, lotnictwo wojskowe.</li>
-      <li><b>Legenda</b> — co oznacza każdy symbol i kolor na mapie.</li>
-      <li><b>⚙ Ustawienia</b> — wybór Twojego województwa (decyduje o alarmach
-        i starcie mapy), test dźwięków, opcjonalny wspólny backend.</li>
-      <li><b>◎ / ⤢</b> — powrót do Twojego regionu i widok całej Polski z Ukrainą.</li>
-      <li><b>strefy</b> — pokazuje aktywne strefy PAŻP (zamknięcia nieba przez
-        wojsko). Dotknięcie strefy opisuje, co to jest i od kiedy działa. Strefy
-        nie dokładają punktów — są wyłącznie informacją.</li>
-      <li><b>Diody u góry</b> — stan każdego źródła danych; kliknij obiekt lub
-        samolot na mapie, by zobaczyć szczegóły.</li>
+    <!-- v4 (14.10.2026): opis nowego układu — zakładki, Menu, GROTA. Każdy punkt ma
+         id i tłumaczy się po nim (wcześniej setMany po kolejności). -->
+    <ul class="about-list" id="ab-gdzie">
+      <li id="ab-gdzie-1"><b>Mapa</b> — obiekty, strefy i kolory województw. Z boku: <b>mój region</b>, <b>strefy</b> (zamknięcia nieba przez wojsko — tylko informacja, bez punktów) i <b>cała PL</b>.</li>
+      <li id="ab-gdzie-2"><b>Sygnały</b> — karty województw z punktacją, lista sygnałów, obiekty przy granicy, lotnictwo wojskowe.</li>
+      <li id="ab-gdzie-3"><b>GROTA</b> (w aplikacji) — najbliższe miejsca schronienia i co przygotować.</li>
+      <li id="ab-gdzie-4"><b>Historia</b> — ostatnie 12 godzin na suwaku.</li>
+      <li id="ab-gdzie-5"><b>Menu</b> — ustawienia (województwo, zgody, dźwięk, godziny ciszy, język), legenda, widok 3D, obce maszyny, instrukcja.</li>
+      <li id="ab-gdzie-6"><b>Diody i (i) u góry</b> — stan źródeł danych i źródła mapy. Dotknij obiektu na mapie, żeby zobaczyć szczegóły.</li>
     </ul>
 
     </details>
@@ -1017,7 +1012,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
     </div>
 
     <div id="native-sound" class="app-only">
-      <h3 style="margin-top:16px" id="ns-head">Alarm natywny i głośność</h3>
+      <h3 style="margin-top:16px" id="ns-head">Głośność alarmu</h3>
       <div class="fineprint android-only" id="ns-volume"></div>
       <label class="set-switch android-only" for="set-force-volume">
         <span class="sw-text"><b id="ns-label">Czerwony alarm zawsze na pełnej głośności</b></span>
@@ -1205,7 +1200,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
      Cloudflare, więc po każdym wydaniu wystarczy podbić ?v= i przeglądarki
      dostają nowe app.js/engine.js OD RAZU, bez ręcznego czyszczenia cache CF.
      Podbijaj ?v= razem z versionName w build.gradle. -->
-<script src="i18n.js?v=1.7.95-ui12"></script>
+<script src="i18n.js?v=1.7.95-ui13"></script>
 <!-- kontur Polski dla engine.js (audyt A2b, scripts/build_pl_outline.py) -->
 <script src="pl-outline.js?v=1.7.82"></script>
 <script src="engine.js?v=1.7.94"></script>

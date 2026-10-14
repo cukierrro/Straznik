@@ -74,7 +74,7 @@
     "Strefa włączona ostatnio": "Recently activated zone",
     "D / R / ADHOC / TSA": "D / R / ADHOC / TSA",
     "Warstwa stref nie dodaje punktów — punktuje tylko rzadka strefa D/R/NPZ/ADHOC od ziemi nad wschodem lub północą. Dotknij strefy po opis.": "The zone layer adds no points — only a rare D/R/NPZ/ADHOC zone from the ground up over the east or north scores. Tap a zone for details.",
-    "fuzja sygnałów · wschodnia Polska": "signal fusion · eastern Poland",
+    "mapa zagrożeń z powietrza · Polska": "air threat map · Poland",
     "Pobierz aplikację": "Download app", "⬇ Pobierz aplikację": "⬇ Download app",
     "⬇ Pobierz na Androida": "⬇ Get it for Android", "⬇ Pobierz na iOS": "⬇ Get it for iOS",
     "Instrukcja": "User guide", "📖 Instrukcja": "📖 User guide",
@@ -164,7 +164,7 @@
      tekst ze zrodla, a brak tlumaczenia spada na angielski, nie na pusty napis. */
   const UK = {
     "Sąsiedzi (cień)": "Сусіди (тінь)",
-    "fuzja sygnałów · wschodnia Polska": "синтез сигналів · східна Польща",
+    "mapa zagrożeń z powietrza · Polska": "мапа повітряних загроз · Польща",
     "Pobierz aplikację": "Завантажити застосунок", "⬇ Pobierz aplikację": "⬇ Завантажити застосунок",
     "⬇ Pobierz na Androida": "⬇ Завантажити для Android", "⬇ Pobierz na iOS": "⬇ Завантажити для iOS",
     "Instrukcja": "Інструкція", "📖 Instrukcja": "📖 Інструкція",
@@ -380,7 +380,7 @@
     button("dzwiek-ios-note",
       "Żółty poziom (≥2 pkt) — krótki sygnał uwagi i powiadomienie wyskakujące na ekranie. Czerwony (≥4 pkt) — modulowana syrena alarmu powietrznego + wibracja. Odtwarzane, gdy aplikacja jest otwarta; przy zamkniętej aplikacji alarm przychodzi jako powiadomienie push (z syreną dla czerwonego).",
       "Yellow (≥2 pts): attention sound and heads-up notification. Red (≥4 pts): modulated air-raid siren and vibration. Played while the app is open; with the app closed the alert arrives as a push notification (with the siren for red).");
-    button("ns-head", "Alarm natywny i głośność", "Native alert and volume");
+    button("ns-head", "Głośność alarmu", "Alert volume");
     button("yv-head", "Głośność sygnału uwagi (żółty)", "Attention sound volume (yellow)");
     button("yv-normal", "Normalny", "Normal");
     button("yv-quiet", "Ciszej", "Quieter");
@@ -578,7 +578,7 @@
     "How the test works": "Як відбувається тест",
     "How to read the direction": "Як читати напрямок",
     "Where updates come from": "Звідки беруться оновлення",
-    "signal fusion · eastern Poland": "синтез сигналів · східна Польща",
+    "air threat map · Poland": "мапа повітряних загроз · Польща",
     "hosted on Mikrus ↗": "хостинг: Mikrus ↗",
     "UA alerts": "Тривоги UA",
     "⬇ Get it for Android": "⬇ Завантажити для Android",
@@ -753,7 +753,7 @@
     "Data sources": "Джерела даних",
     "Each LED at the top represents one data source. Fusion relies on agreement between several sources, so one unavailable source reduces confirmation rather than disabling warnings.":
       "Кожна діода вгорі — це одне джерело даних. Синтез спирається на збіг кількох джерел, тому одне недоступне джерело зменшує підтвердження, а не вимикає попередження.",
-    "🛰 Foreign aircraft over the eastern flank": "🛰 Чужі літаки над східним флангом",
+    "Foreign aircraft over the eastern flank": "Чужі літаки над східним флангом",
     "Military aircraft with Russian or Belarusian registration visible in public ADS-B/MLAT data over and around the eastern flank. In history, this panel follows the selected time. This observes transponder emissions; it is not radar tracking and is not an alert. Missing data does not imply empty airspace.":
       "Військові літаки з російською чи білоруською реєстрацією, видимі у відкритих даних ADS-B/MLAT над східним флангом і поблизу. В історії ця панель іде за обраним часом. Це спостереження сигналів транспондерів, а не радарне стеження, і не тривога. Відсутність даних не означає порожнього неба.",
     "In range now": "Зараз у зоні",
@@ -830,7 +830,7 @@
     "Normal": "Звичайна",
     "Quieter": "Тихіше",
     "No sound": "Без звуку",
-    "Native alert and volume": "Системна тривога і гучність",
+    "Alert volume": "Гучність тривоги",
     "Red alert always at full volume": "Червона тривога завжди на повній гучності",
     "Android sound settings": "Налаштування звуку Android",
     "▶ Test: red native (in 5 s)": "▶ Тест: червона системна (через 5 с)",
@@ -1099,24 +1099,20 @@
       "confidence, independent report count and observation status",
       "source point ×1.0 · source-reported area ×0.6 · recognised locality centre ×0.5; area positions cannot trigger ETA thresholds"
     ]);
-    setMany("#about .lvl-row", [
-      "≥ 2 pts — ELEVATED ATTENTION: yellow region, short attention sound and heads-up notification.",
-      "≥ 4 pts and a confirmation — HIGH PRIORITY: red region, modulated air-raid siren, vibration and loud notification."
-    ]);
-    setMany("#about .about-list li", [
-      "☰ Panel — province scores, signal timeline, nearby objects and military aviation.",
-      "Legend — explains every map symbol and colour.",
-      "⚙ Settings — your province, alert permissions, sound tests, language and optional backend.",
-      "◎ / ⤢ — return to your region or show Poland and Ukraine.",
-      "zones — shows active PAŻP airspace zones (airspace closed by the military). "
-        + "Tap a zone to see what it is and since when it has been active. Zones add no "
-        + "points — they are information only.",
-      "Top LEDs — data-source status; select an object or aircraft for details."
-    ]);
+    // „Gdzie co znajdziesz” i poziomy PO IDENTYFIKATORACH (14.10.2026): setMany po kolejności
+    // nadpisywał textContent i w EN/UK znikały kolorowe kwadraty poziomów.
+    { const el = document.getElementById("ab-lvl-1"); if (el) el.innerHTML = "<b>≥ 2 pts — ELEVATED ATTENTION:</b> yellow region, short attention sound and heads-up notification."; }
+    { const el = document.getElementById("ab-lvl-2"); if (el) el.innerHTML = "<b>≥ 4 pts and a confirmation — HIGH PRIORITY:</b> red region, modulated air-raid siren, vibration and loud notification."; }
+    { const el = document.getElementById("ab-gdzie-1"); if (el) el.innerHTML = "<b>Map</b> — objects, zones and province colours. On the side: <b>my region</b>, <b>zones</b> (airspace closed by the military — information only, no points) and <b>whole PL</b>."; }
+    { const el = document.getElementById("ab-gdzie-2"); if (el) el.innerHTML = "<b>Signals</b> — province cards with scores, the signal list, objects near the border, military aviation."; }
+    { const el = document.getElementById("ab-gdzie-3"); if (el) el.innerHTML = "<b>GROTA</b> (in the app) — the nearest places of shelter and what to prepare."; }
+    { const el = document.getElementById("ab-gdzie-4"); if (el) el.innerHTML = "<b>History</b> — the last 12 hours on a slider."; }
+    { const el = document.getElementById("ab-gdzie-5"); if (el) el.innerHTML = "<b>Menu</b> — settings (province, permissions, sound, quiet hours, language), legend, 3D view, foreign aircraft, user guide."; }
+    { const el = document.getElementById("ab-gdzie-6"); if (el) el.innerHTML = "<b>LEDs and (i) at the top</b> — data-source status and map sources. Tap an object on the map to see its details."; }
     set("#about-close", "I understand — continue");
     set("#sources h3", "Data sources");
     set("#sources > p:first-of-type", "Each LED at the top represents one data source. Fusion relies on agreement between several sources, so one unavailable source reduces confirmation rather than disabling warnings.");
-    set("#watch h3", "🛰 Foreign aircraft over the eastern flank");
+    { const w = document.getElementById("watch-h"); if (w) w.lastChild.textContent = "Foreign aircraft over the eastern flank"; }
     setMany("#watch .watch-h", ["In range now", "Log — entered / disappeared from range"]);
     set("#watch > p", "Military aircraft with Russian or Belarusian registration visible in public ADS-B/MLAT data over and around the eastern flank. In history, this panel follows the selected time. This observes transponder emissions; it is not radar tracking and is not an alert. Missing data does not imply empty airspace.");
     set("#cameras > p:first-of-type", "Public city and tourism cameras (worldcam.pl). I do not show their previews here: worldcam.pl's terms do not permit displaying their thumbnails in someone else's app. Tap a tile to open the camera at the source. Cameras show the ground, not the sky; they only provide additional context.");
@@ -1199,7 +1195,7 @@
     set("#yv-silent", "No sound");
     const yvNote = document.getElementById("yv-note");
     if (yvNote) yvNote.innerHTML = "Applies to the <b>yellow</b> attention sound only. It does not silence the red alert, which has its own setting. “No sound” keeps the banner and the vibration.";
-    set("#ns-head", "Native alert and volume");
+    set("#ns-head", "Alert volume");
     set("#ns-label", "Red alert always at full volume");
     const nsNote = document.getElementById("ns-note");
     if (nsNote) nsNote.innerHTML = "The siren uses the Android <b>“Alarms”</b> volume (not “Ring” or “Media”). A red alert raises it to <b>at least half</b> so the siren is never silent. The option above is <b>off</b> by default — when switched on, a red alert sets the volume to maximum, also at night. Either way the previous volume returns when you silence the alert. The yellow attention sound uses your normal notification volume and has its own setting above.";
@@ -1339,6 +1335,14 @@
       "<b>Низько летючі ракети</b> без повідомлень спостерігачів можуть узагалі не з’явитися в даних.",
       "<b>Зліт МіГ-31К</b> і тривоги для всієї України показуємо як інформацію, а не як тривогу для Польщі."
     ].forEach((html, i) => { const li = document.querySelectorAll("#about-blind li")[i]; if (li) li.innerHTML = html; });
+    { const el = document.getElementById("ab-lvl-1"); if (el) el.innerHTML = "<b>≥ 2 бали — ПІДВИЩЕНА УВАГА:</b> регіон жовтим, короткий звуковий сигнал і спливне сповіщення."; }
+    { const el = document.getElementById("ab-lvl-2"); if (el) el.innerHTML = "<b>≥ 4 бали й підтвердження — ВИСОКИЙ ПРІОРИТЕТ:</b> регіон червоним, модульована сирена повітряної тривоги, вібрація і гучне сповіщення."; }
+    { const el = document.getElementById("ab-gdzie-1"); if (el) el.innerHTML = "<b>Мапа</b> — об’єкти, зони й кольори воєводств. Збоку: <b>мій регіон</b>, <b>зони</b> (закриття неба військовими — лише інформація, без балів) і <b>вся Польща</b>."; }
+    { const el = document.getElementById("ab-gdzie-2"); if (el) el.innerHTML = "<b>Сигнали</b> — картки воєводств із балами, список сигналів, об’єкти біля кордону, військова авіація."; }
+    { const el = document.getElementById("ab-gdzie-3"); if (el) el.innerHTML = "<b>GROTA</b> (у застосунку) — найближчі місця укриття і що підготувати."; }
+    { const el = document.getElementById("ab-gdzie-4"); if (el) el.innerHTML = "<b>Історія</b> — останні 12 годин на повзунку."; }
+    { const el = document.getElementById("ab-gdzie-5"); if (el) el.innerHTML = "<b>Меню</b> — налаштування (воєводство, дозволи, звук, години тиші, мова), легенда, вигляд 3D, чужі літаки, інструкція."; }
+    { const el = document.getElementById("ab-gdzie-6"); if (el) el.innerHTML = "<b>Діоди й (i) угорі</b> — стан джерел даних і джерела мапи. Торкніться об’єкта на мапі, щоб побачити подробиці."; }
     const licUk = document.getElementById("about-license");
     if (licUk) licUk.innerHTML = '© 2026 cukierrro · усі права застережено · '
       + '<a href="https://github.com/cukierrro/Straznik/blob/main/LICENSE" target="_blank" rel="noopener">ліцензія</a> · ліцензії третіх сторін: '
