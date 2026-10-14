@@ -1917,3 +1917,12 @@ body.dane-stare .led i { background: #6b7385 !important; box-shadow: none !impor
 .lg-row small { font-size: 0.7333rem; }
 #map-actions .map-btn span { font-size: 0.7667rem; }
 .brand-host { font-size: 0.7333rem; }
+
+/* Powitanie (przegląd UI 14.10.2026, P10): „Rozumiem, zaczynajmy” było na samym
+   końcu długiej strony — ok. 12 przesunięć palcem. Przyciski przyklejone do dołu
+   okna; treść da się doczytać, ale nie trzeba, żeby zacząć. */
+#about .about-actions { position: sticky; bottom: -18px; z-index: 2; margin: 18px -22px -18px;
+  padding: 12px 22px calc(14px + var(--safe-b));
+  background: linear-gradient(180deg, rgba(14, 19, 33, 0), rgba(14, 19, 33, 0.96) 28%);
+  border-top: 1px solid rgba(170, 195, 245, 0.10); }
+#about-close { min-height: 44px; }
