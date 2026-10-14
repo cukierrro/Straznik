@@ -361,3 +361,54 @@ przeznaczona do App Store **nie może** zapisywać się na `test_voiv_*`. Sposó
 sprawdzenia bez sklepu: w kompilacji Release z paragonem `receipt` pole
 `testTopics` w `status()` musi być fałszem, a wiersz z wersją iOS — bez dopisku
 `· test:`. Dopóki tego nie potwierdzimy, nie wysyłamy aplikacji do przeglądu.
+
+## 9. Rozszerzenie powiadomień (NSE) — zatwierdzone na PO 1.7.95
+
+**Decyzja usera z 14.10.2026:** `UNNotificationServiceExtension` robimy **osobnym
+wydaniem po 1.7.95**, z własnymi testami na TestFlighcie. Do tego czasu w aplikacji
+zostaje notka „alarmy przychodzą po polsku".
+
+### Co to naraz załatwia
+
+Dwie rzeczy, których dziś na iPhonie nie da się zrobić, bo treść i dźwięk
+powiadomienia składa SERWER (data-only przy zamkniętej aplikacji nic nie pokazuje):
+
+1. **Język powiadomienia.** Rozszerzenie przepisuje tytuł i stałe zdania na język
+   aplikacji, korzystając z pól, które push już niesie (`level`, `score`, `voiv`,
+   `reasons`). Powody i cytaty z mediów zostają po polsku — to polska proza
+   z `alarm_headline` / `reasons_split` i cudze tytuły prasowe.
+   Po wejściu **D2** (aplikacja bez zapisanego wyboru bierze język telefonu)
+   rozjazd dotyczy każdego z nietypowym językiem systemu, nie tylko tych, którzy
+   sami przestawili — czyli skala rośnie, a nie maleje.
+2. **Cisza żółtego** (B11 w `POTRZEBNE_ZMIANY_WSPOLNE.md`): rozszerzenie może zdjąć
+   `sound`, zanim powiadomienie się pokaże. Dziś przełącznik „Głośność sygnału
+   uwagi" nie ma na iPhonie wpływu na powiadomienie i notka mówi to wprost.
+
+**Dlaczego NIE `loc-key`:** ładunek APNs jest wspólny dla wszystkich wersji
+aplikacji. Telefon ze starszą nie ma kluczy w pakiecie i iOS pokazuje **surowy klucz
+zamiast treści alarmu**; `title-loc-key` ma pierwszeństwo nad `title`, więc zwykły
+tytuł nie działa jako zapas. Sprawdzone i odrzucone 11.10.
+**Dlaczego nie sam sufiks języka w temacie FCM:** działa i jest zgodny wstecz
+(napisane, `ece2709`, cofnięte świadomie w `ac7af31`), ale nie rozwiązuje ciszy
+żółtego i mnoży tematy w najbardziej kruchej części systemu.
+
+### Czego to będzie wymagać — i gdzie może boleć
+
+- Nowy target w Xcode, **własny App ID** (`pl.straznik.app.NotificationService`)
+  i **własny profil provisioningu**, czyli zmiany w `skrypty/podpis_apple.py`
+  i w `.github/workflows/ios.yml`. To jest jedyne poważne ryzyko: podpisywanie
+  raz już kosztowało nas odrzucony build (ITMS-90035, 1.7.63).
+- Backend: `mutable-content: 1` w ładunku. Dla starszych aplikacji nieszkodliwe —
+  ignorują je, więc zmiana jest bezpieczna dla wszystkich wersji naraz
+  (inaczej niż `loc-key`).
+- Rozszerzenie ma ~30 s i działa też przy alarmie krytycznym; dźwięku nie rusza,
+  o ile sami go nie zdejmiemy.
+- **Nie zaczynać przy okazji innego wydania.** Ma iść samo, żeby przy awarii
+  podpisu było wiadomo, co ją spowodowało.
+
+### Co sprawdzić na urządzeniu, zanim pójdzie do sklepu
+
+Czerwony i żółty przy zamkniętej aplikacji, w trzech językach interfejsu; alarm
+krytyczny ze zgodą (czy rozszerzenie nie zdejmuje mu dźwięku); zachowanie, gdy
+rozszerzenie nie zdąży albo się wywróci — iOS pokazuje wtedy treść z serwera,
+czyli polską, i to jest akceptowalny zapas.
