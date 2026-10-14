@@ -1717,6 +1717,10 @@ dialog input, dialog select, #quiet-hours input[type="time"] {
   backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
 }
 #tabbar > .tab-btn { flex: 1 1 0; min-width: 0; min-height: 52px; font-size: 0.8rem; }
+/* Podpis zakładki rośnie razem z tekstem, ale najwyżej do 18 px na ekranie — przy 200%
+   w systemie miałby 24 px i nachodził na sąsiada. --zoom-sys mierzy app.js. */
+#tabbar > .tab-btn > span:not(.tab-grota-pill):not(.badge) { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: min(0.8rem, calc(18px / var(--zoom-sys, 1))); }
 #tabbar > .tab-btn.active { color: var(--akcent-jasny); background: rgba(143, 180, 255, 0.14); }
 .tab-btn.tab-grota { color: var(--napis-na-glownym); background: none; padding: 0; }
 .tab-grota-pill {
@@ -1785,6 +1789,20 @@ dialog.ustawienia .set-tab.sheet-row > svg:first-child { color: #fff; }
 .set-wartosc { margin-left: auto; color: var(--muted); font-weight: 500; font-size: 0.8667rem; white-space: nowrap; }
 .set-tab.sheet-row::after { content: "›"; color: var(--muted); font-size: 1.3rem; line-height: 1; padding-left: 4px; }
 .set-wartosc:empty + * { margin-left: auto; }
+/* Duży tekst (200% w systemie): stara reguła .set-tab z nowrap rozpychała kolumnę siatki
+   do 530 px w oknie 336 px — wiersze wychodziły za prawą krawędź, bez strzałek.
+   Kolumna nie szersza niż okno, nazwa się zawija, wartość skraca. (przegląd UI 14.10.2026) */
+dialog.ustawienia .set-tabs { grid-template-columns: minmax(0, 1fr); }
+dialog.ustawienia .set-tab.sheet-row { white-space: normal; min-width: 0; }
+dialog.ustawienia .set-tab.sheet-row > span:not(.set-wartosc) { min-width: 0; overflow-wrap: anywhere; }
+.set-wartosc { min-width: 0; max-width: 42%; overflow: hidden; text-overflow: ellipsis; }
+html.tekst-duzy dialog.ustawienia .set-tab.sheet-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto;
+  column-gap: 12px; row-gap: 2px; }
+html.tekst-duzy dialog.ustawienia .set-tab.sheet-row > svg:first-child { grid-column: 1; grid-row: 1 / span 2; }
+html.tekst-duzy dialog.ustawienia .set-tab.sheet-row > span:not(.set-wartosc) { grid-column: 2; grid-row: 1; }
+html.tekst-duzy .set-wartosc { grid-column: 2; grid-row: 2; margin: 0; max-width: none; white-space: normal; }
+html.tekst-duzy .set-wartosc:empty { display: none; }
+html.tekst-duzy dialog.ustawienia .set-tab.sheet-row::after { grid-column: 3; grid-row: 1 / span 2; }
 /* „‹ Ustawienia” — powrót z sekcji, przyklejony u góry jak krzyżyk */
 .set-wstecz {
   position: sticky; top: 0; z-index: 4; display: inline-flex; align-items: center; gap: 4px;
@@ -1962,10 +1980,15 @@ dialog#about { width: min(560px, 94vw); border-radius: 24px; }
   bottom: 0; background: linear-gradient(180deg, rgba(14, 19, 33, 0), rgba(14, 19, 33, 0.97) 24%); }
 #about #about-close { order: -1; width: 100%; min-height: 48px; font-size: 1rem; }
 #about .about-actions .chip.coffee { width: 100%; min-height: 44px; justify-content: center; display: flex; align-items: center; }
+/* Duży tekst (≥160%): „Zamknij” rośnie i zasłaniał nazwę, a przyklejona stopka z dwoma
+   przyciskami zajmowała ćwierć ekranu. Nagłówek schodzi pod krzyżyk, stopka płynie z treścią. */
+html.tekst-duzy #about .about-head { padding-right: 0; margin-top: 44px; }
+html.tekst-duzy #about .about-actions { position: static; background: none; }
 
 /* Na wąskim ekranie kawa z górnego paska była samą ikoną (font-size: 0) — w stopce
    powitania ma mieć pełny napis. */
-#about .chip.coffee { font-size: 0.9rem; padding: 8px 14px; color: var(--text); text-decoration: none; }
+#about .chip.coffee { font-size: 0.9rem; padding: 8px 14px; color: var(--text); text-decoration: none;
+  background: linear-gradient(180deg, #2a3552, #1c2539); }   /* kryjące: w stopce nad treścią */
 #about .chip.coffee::before { content: none; }
 
 /* ── paski przewijania (uwaga usera 14.10.2026: „rozciągnięte na całą długość psują

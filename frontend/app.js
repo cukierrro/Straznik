@@ -6734,6 +6734,27 @@ async function refreshNativeSound() {
    zwija, tyle że stał w złym miejscu.
    Mierzymy pasek zamiast wpisywać liczbę, bo jego wysokość zależy od treści,
    od paska systemowego i — od teraz — od wybranej wielkości tekstu. */
+/* Powiększenie tekstu z ustawień SYSTEMU (Android: „Rozmiar czcionki” → WebView textZoom).
+   Mnoży każdy rozmiar czcionki niezależnie od CSS, więc przy 200% podpisy dolnego paska
+   (5 zakładek po ~76 px) nachodziły na siebie. Mierzymy mnożnik, żeby CSS mógł przyciąć
+   wzrost tam, gdzie miejsca nie przybywa — jak systemowe paski zakładek na iOS i Androidzie.
+   (przegląd UI 14.10.2026) */
+function zmierzPowiekszenieSystemu() {
+  const t = document.createElement("div");
+  t.style.cssText = "position:absolute;visibility:hidden;font-size:100px";
+  document.documentElement.appendChild(t);
+  const z = parseFloat(getComputedStyle(t).fontSize) / 100;
+  t.remove();
+  if (!(z > 0 && isFinite(z))) return;
+  const html = document.documentElement;
+  html.style.setProperty("--zoom-sys", String(z));
+  /* Łącznie z wielkością tekstu wybraną w Strażniku: od ~160% wiersze ustawień
+     układają wartość pod nazwą, zamiast ucinać ją do „S…”. */
+  const skala = parseFloat(getComputedStyle(html).getPropertyValue("--skala-tekstu")) || 1;
+  html.classList.toggle("tekst-duzy", z * skala >= 1.6);
+}
+zmierzPowiekszenieSystemu();
+
 function zmierzPasekTytulu() {
   const tb = document.getElementById("topbar");
   if (tb) {
@@ -6779,6 +6800,7 @@ function renderSkalaTekstu() {
   const wybrana = skalaTekstu();
   document.documentElement.style.setProperty("--skala-tekstu", wybrana);
   zmierzPasekTytulu();   // większy tekst = wyższy pasek = niżej atrybucja
+  zmierzPowiekszenieSystemu();
   for (const b of document.querySelectorAll("#text-size .chip")) {
     const on = b.dataset.skala === wybrana;
     b.classList.toggle("active", on);
