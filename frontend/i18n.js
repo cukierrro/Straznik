@@ -980,7 +980,7 @@
     if (zoneNote) zoneNote.textContent = "the zone layer adds no points — only a rare D/R/NPZ/ADHOC "
       + "zone from the ground up over the east or north scores; tap a zone for details";
     const live = document.getElementById("tb-live");
-    if (live) { live.innerHTML = "LIVE"; live.title = "Back to live view";
+    if (live) { live.textContent = "LIVE"; live.title = "Back to live view";
       live.setAttribute("aria-label", "Back to live view"); }
     const mode = document.querySelector(".tb-mode .tb-two");
     if (mode) mode.innerHTML = "HISTORY<br>VIEW";
@@ -1294,7 +1294,7 @@
     const placeName = document.getElementById("place-name");
     if (placeName) placeName.placeholder = "напр. Дім";
     const live = document.getElementById("tb-live");
-    if (live) live.innerHTML = "НАЖИВО";
+    if (live) live.textContent = "НАЖИВО";
     const mode = document.querySelector(".tb-mode .tb-two");
     if (mode) mode.innerHTML = "ПЕРЕГЛЯД<br>ІСТОРІЇ";
     const brandInfo = document.querySelector(".brand-info");

@@ -5398,9 +5398,195 @@ function mergedWatchEvents(server, local, at) {
 /* Kolorowanie osi czasu: tło suwaka odwzorowuje poziom zagrożenia w każdym
    momencie (szary → bursztyn → czerwony), żeby od razu było widać, kiedy coś
    się działo. */
+/* ── Wykres 12 h w historii (14.10.2026) ───────────────────────────────────
+   Te same reguły co licznik w pasku (licznikZObiektow), policzone dla każdej
+   migawki. Surowa liczba skacze, bo źródło gasi obiekty paczkami — krzywa dronów
+   to więc średnia z 30 min (decyzja usera), a surowe wartości stoją pod nią jako
+   blade słupki. Rakiety i KAB to kropki u dołu (przy kilkudziesięciu dronach
+   kilka rakiet byłoby płaską linią). Dziura w migawkach >10 min przerywa krzywą. */
+const W12_W = 364, W12_H = 84, W12_SREDNIA_MS = 15 * 60000, W12_DZIURA_MS = 10 * 60000;
+let _snapyLokalne = null, _snapyLokalneT = 0;
+function snapyHistorii() {
+  if (!standalone) return srvSnaps;
+  if (!_snapyLokalne || Date.now() - _snapyLokalneT > 60000) {
+    try { _snapyLokalne = JSON.parse(localStorage.getItem("eng_snaps") || "[]"); } catch { _snapyLokalne = []; }
+    _snapyLokalneT = Date.now();
+  }
+  return _snapyLokalne;
+}
+/* [{t, drony, rakiety}] — po jednej migawce na minutę (bufor ma migawki serwera
+   i własne aplikacji, czasem dwie w tej samej minucie). */
+function seriaDronow(snaps) {
+  const s = [...(snaps || [])].filter(x => Number.isFinite(x?.t)).sort((a, b) => a.t - b.t);
+  const out = [];
+  for (const x of s) {
+    if (out.length && x.t - out[out.length - 1].t < 50000) continue;
+    const l = licznikZObiektow(x.threats);
+    out.push({ t: x.t, drony: l.drony, rakiety: l.rakiety });
+  }
+  // średnia krocząca ±15 min po czasie (nie po indeksie — migawki mają dziury)
+  let a = 0, b = 0, suma = 0;
+  for (let i = 0; i < out.length; i++) {
+    while (b < out.length && out[b].t <= out[i].t + W12_SREDNIA_MS) suma += out[b++].drony;
+    while (out[a].t < out[i].t - W12_SREDNIA_MS) suma -= out[a++].drony;
+    out[i].srednia = suma / (b - a);
+  }
+  return out;
+}
+function sciezkaGladka(pkt) {        // Catmull-Rom → krzywe Béziera
+  if (!pkt.length) return "";
+  let d = `M${pkt[0][0].toFixed(1)},${pkt[0][1].toFixed(1)}`;
+  for (let i = 0; i < pkt.length - 1; i++) {
+    const p0 = pkt[i - 1] || pkt[i], p1 = pkt[i], p2 = pkt[i + 1], p3 = pkt[i + 2] || p2;
+    d += ` C${(p1[0] + (p2[0] - p0[0]) / 6).toFixed(1)},${(p1[1] + (p2[1] - p0[1]) / 6).toFixed(1)}`
+      + ` ${(p2[0] - (p3[0] - p1[0]) / 6).toFixed(1)},${(p2[1] - (p3[1] - p1[1]) / 6).toFixed(1)}`
+      + ` ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`;
+  }
+  return d;
+}
+let w12 = null;   // { seria, t0, t1, max } dla bieżącego wejścia w historię
+function wykres12Rysuj(svg, W, H, mini) {
+  if (!w12 || !svg) return;
+  const { seria, t0, t1, max } = w12;
+  const x = t => (t - t0) / Math.max(1, t1 - t0) * W;
+  const y = mini ? (v => H - 2 - v / max * (H - 4)) : (v => wykres12Y(v, H));
+  let out = "";
+  if (!mini) {
+    for (let v = w12.krok; v <= max; v += w12.krok)
+      out += `<line class="w12-siatka" x1="0" x2="${W}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}"/>`;
+    for (let i = 0; i < seria.length; i += 2)
+      out += `<line class="w12-slupek" x1="${x(seria[i].t).toFixed(1)}" x2="${x(seria[i].t).toFixed(1)}" y1="${H - 10}" y2="${y(seria[i].drony).toFixed(1)}"/>`;
+  }
+  // krzywa w kawałkach — dziura w migawkach przerywa linię zamiast ją zmyślać
+  const kawalki = [[]];
+  const krok = mini ? 10 : 4;
+  for (let i = 0; i < seria.length; i++) {
+    if (i && seria[i].t - seria[i - 1].t > W12_DZIURA_MS) kawalki.push([]);
+    const k = kawalki[kawalki.length - 1];
+    if (i % krok === 0 || i === seria.length - 1 || (i + 1 < seria.length && seria[i + 1].t - seria[i].t > W12_DZIURA_MS))
+      k.push([x(seria[i].t), y(seria[i].srednia)]);
+  }
+  for (const k of kawalki) {
+    if (k.length < 2) continue;
+    const d = sciezkaGladka(k);
+    if (!mini) out += `<path class="w12-pole" d="${d} L${k[k.length - 1][0].toFixed(1)},${H - 10} L${k[0][0].toFixed(1)},${H - 10} Z"/>`;
+    out += `<path class="w12-linia" d="${d}"/>`;
+  }
+  // rakiety: kropka na każde 10 min z rakietą, większa przy większej liczbie
+  if (!mini) {
+    const kosze = new Map();
+    for (const p of seria) if (p.rakiety > 0) {
+      const k = Math.floor(p.t / 600000);
+      kosze.set(k, Math.max(kosze.get(k) || 0, p.rakiety));
+    }
+    for (const [k, n] of kosze)
+      out += `<circle class="w12-rakieta" cx="${x(k * 600000 + 300000).toFixed(1)}" cy="${H - 4}" r="${(2.4 + Math.min(n, 10) * 0.35).toFixed(1)}"/>`;
+    out += `<line id="w12-kreska" class="w12-kreska" x1="${W}" x2="${W}" y1="0" y2="${H}"/>`;
+    out += `<circle id="w12-punkt" class="w12-punkt" cx="${W}" cy="${H}" r="3.5"/>`;
+  }
+  svg.innerHTML = out;
+}
+/* Oś pionowa wspólna dla krzywej, siatki i etykiet: 10 px na dole zostaje na kropki rakiet. */
+function wykres12Y(v, H = W12_H) { return H - 10 - v / w12.max * (H - 16); }
+function wykres12Godz(t) {
+  return new Date(t).toLocaleTimeString(UI.t("pl-PL", "en-GB", "uk-UA"), { hour: "2-digit", minute: "2-digit" });
+}
+function wykres12Odswiez() {
+  const box = document.getElementById("wykres12");
+  if (!box) return;
+  const seria = seriaDronow(snapyHistorii());
+  const t0 = Date.parse(histTimes[0]), t1 = Date.parse(histTimes[histTimes.length - 1]);
+  if (!seria.length || !Number.isFinite(t0) || !Number.isFinite(t1) || t1 <= t0) { box.hidden = true; w12 = null; return; }
+  box.hidden = false;
+  const szczyt = seria.reduce((a, p) => p.drony > a.drony ? p : a, seria[0]);
+  const szczytR = seria.reduce((a, p) => p.rakiety > a.rakiety ? p : a, seria[0]);
+  // Podziałka (uwaga usera: „brakuje liczb na skali”): krok 1/2/5 × 10^n, najwyżej
+  // cztery linie, a góra wykresu to pełna wielokrotność kroku.
+  const surowy = Math.max(4, szczyt.drony, ...seria.map(p => p.srednia));
+  const krok = [1, 2, 5, 10, 20, 25, 50, 100, 200, 250, 500].find(k => surowy / k <= 4) || 1000;
+  w12 = { seria, t0, t1, krok, max: Math.ceil(surowy / krok) * krok };
+  document.getElementById("w12-t").textContent = UI.t("Drony i rakiety · 12 h", "Drones and missiles · 12 h", "Дрони й ракети · 12 год");
+  document.getElementById("w12-max").textContent = szczyt.drony
+    ? `${UI.t("max", "max", "макс.")} ${szczyt.drony} ${UI.t("o", "at", "о")} ${wykres12Godz(szczyt.t)}` : "";
+  document.getElementById("w12-l-d").textContent = UI.t("drony (średnia z 30 min)", "drones (30-min average)", "дрони (середнє за 30 хв)");
+  document.getElementById("w12-l-r").textContent = UI.t("rakiety i KAB", "missiles and KAB", "ракети й KAB");
+  const osie = document.getElementById("w12-osie");
+  osie.innerHTML = [0, 0.25, 0.5, 0.75, 1].map(f => `<span>${wykres12Godz(t0 + (t1 - t0) * f)}</span>`).join("");
+  /* Dla czytnika: wykres to obrazek, więc mówimy wprost, co na nim jest. */
+  const opis = (szczyt.drony
+    ? UI.t(`W ostatnich 12 godzinach najwięcej dronów na mapie: ${szczyt.drony} o ${wykres12Godz(szczyt.t)}.`,
+        `In the last 12 hours the most drones on the map: ${szczyt.drony} at ${wykres12Godz(szczyt.t)}.`,
+        `За останні 12 годин найбільше дронів на мапі: ${szczyt.drony} о ${wykres12Godz(szczyt.t)}.`)
+    : UI.t("W ostatnich 12 godzinach nie było dronów na mapie.", "No drones on the map in the last 12 hours.",
+        "За останні 12 годин дронів на мапі не було."))
+    + " " + (szczytR.rakiety
+      ? UI.t(`Rakiet i bomb KAB najwięcej: ${szczytR.rakiety} o ${wykres12Godz(szczytR.t)}.`,
+          `Most missiles and KAB bombs: ${szczytR.rakiety} at ${wykres12Godz(szczytR.t)}.`,
+          `Найбільше ракет і бомб KAB: ${szczytR.rakiety} о ${wykres12Godz(szczytR.t)}.`)
+      : UI.t("Rakiet i bomb KAB nie było.", "No missiles or KAB bombs.", "Ракет і бомб KAB не було."));
+  const svg = document.getElementById("w12-svg");
+  svg.setAttribute("aria-label", opis);
+  const skala = document.getElementById("w12-skala");
+  let etykiety = "";
+  for (let v = 0; v <= w12.max; v += w12.krok)
+    etykiety += `<span style="top:${(wykres12Y(v) / W12_H * 100).toFixed(1)}%">${v}</span>`;
+  skala.innerHTML = etykiety;
+  wykres12Rysuj(document.getElementById("w12-mini"), 110, 22, true);
+  wykres12Rysuj(svg, W12_W, W12_H, false);
+  wykres12Kreska(Date.parse(histTimes[+document.getElementById("tb-slider").value || 0]) || t1);
+  let rozwiniety = false;
+  try { rozwiniety = localStorage.getItem("straznik_wykres12") === "1"; } catch {}
+  wykres12Ustaw(rozwiniety);
+}
+function wykres12Ustaw(rozwiniety) {
+  document.getElementById("w12-cialo").hidden = !rozwiniety;
+  document.getElementById("w12-mini").style.display = rozwiniety ? "none" : "";
+  const b = document.getElementById("w12-przelacz");
+  b.setAttribute("aria-expanded", String(rozwiniety));
+  b.classList.toggle("otwarty", rozwiniety);
+}
+function wykres12Kreska(t) {
+  const k = document.getElementById("w12-kreska");
+  if (!k || !w12) return;
+  const x = ((t - w12.t0) / Math.max(1, w12.t1 - w12.t0) * W12_W).toFixed(1);
+  k.setAttribute("x1", x); k.setAttribute("x2", x);
+  /* Przy kresce: kropka na krzywej i jej wartość — średnia z 30 min w tej chwili
+     (uwaga usera: „nie widać na wykresie tej średniej, ile to jest”). */
+  let p = w12.seria[0];
+  for (const q of w12.seria) if (Math.abs(q.t - t) < Math.abs(p.t - t)) p = q;
+  const sr = Math.round(p.srednia);
+  const pkt = document.getElementById("w12-punkt");
+  pkt?.setAttribute("cx", x); pkt?.setAttribute("cy", wykres12Y(p.srednia).toFixed(1));
+  const w = document.getElementById("w12-wartosc");
+  if (!w) return;
+  w.textContent = `${UI.t("śr.", "avg", "сер.")} ${sr}`;
+  const fx = +x / W12_W;
+  w.style.left = (fx * 100).toFixed(2) + "%";
+  w.style.top = (wykres12Y(p.srednia) / W12_H * 100).toFixed(1) + "%";
+  // dymek po lewej stronie kreski, a przy lewym brzegu po prawej — nie wychodzi poza kartę
+  w.classList.toggle("w-prawo", fx < 0.25);
+}
+document.getElementById("w12-przelacz")?.addEventListener("click", () => {
+  const teraz = document.getElementById("w12-cialo").hidden;   // był zwinięty → rozwijamy
+  wykres12Ustaw(teraz);
+  try { localStorage.setItem("straznik_wykres12", teraz ? "1" : "0"); } catch {}
+});
+/* Dotknięcie wykresu przewija suwak do tej chwili — oś jest ta sama co suwaka. */
+document.getElementById("w12-svg")?.addEventListener("click", (e) => {
+  if (!w12 || !histTimes.length) return;
+  const r = e.currentTarget.getBoundingClientRect();
+  const t = w12.t0 + (e.clientX - r.left) / r.width * (w12.t1 - w12.t0);
+  let najl = 0, roz = Infinity;
+  histTimes.forEach((ts, i) => { const d = Math.abs(Date.parse(ts) - t); if (d < roz) { roz = d; najl = i; } });
+  stopHistPlay();
+  document.getElementById("tb-slider").value = String(najl);
+  scrubTo(najl);
+});
+
 let timelinePoints = [];
 function paintTimeline(points) {
   timelinePoints = points || [];
+  wykres12Odswiez();
   const slider = document.getElementById("tb-slider");
   if (!points?.length) { slider.style.removeProperty("--tl"); return; }
   const color = (p) => p.level === "high" ? "#ff4d5e"
@@ -5527,6 +5713,7 @@ function showHistoryAt(idx) {
   renderNationalChip(snapThreats);
   const licznikHist = licznikZObiektow(snapThreats);
   odswiezLicznik(licznikHist, when);
+  wykres12Kreska(when.getTime());
   const threats = snapThreats.filter(t => !isNationalThreat(t));
   const planes = [...(snap?.aircraft || [])];
   // ADS-B jest odpytywane częściej niż powstają migawki. Zdarzenie wejścia lub

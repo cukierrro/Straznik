@@ -84,5 +84,33 @@ sprawdz(/Nie liczymy: dronów FPV/.test(app), "okno mówi, czego NIE liczymy");
 sprawdz(/opisSytuacji\(voivs, watched\.length[\s\S]{0,120}licznikZdanie\(/.test(app),
   "liczby trafiają do „sytuacji jednym zdaniem” dla czytnika");
 
+console.log("5. Wykres 12 h w historii");
+{
+  // seriaDronow: jedna migawka na minutę i średnia ±15 min po CZASIE
+  const a = app.indexOf("function seriaDronow");
+  const b = app.indexOf("function sciezkaGladka");
+  assert(a > 0 && b > a, "nie znaleziono seriaDronow");
+  const ctx = { isNationalThreat: t => !!t.straznik_national, W12_SREDNIA_MS: 15 * 60000 };
+  vm.createContext(ctx);
+  vm.runInContext(blok + "\n" + app.slice(a, b) + "\nthis.seria = seriaDronow;", ctx);
+  const t0 = Date.UTC(2026, 9, 14, 18, 0);
+  const snap = (min, n, ile = 0) => ({ t: t0 + min * 60000,
+    threats: Array.from({ length: n }, () => ({ type: "uav", lat: 50, lon: 30 }))
+      .concat(Array.from({ length: ile }, () => ({ type: "cruise", lat: 50, lon: 30 }))) });
+  const snaps = [];
+  for (let m = 0; m < 60; m++) snaps.push(snap(m, m < 30 ? 10 : 40, m === 45 ? 2 : 0));
+  snaps.push({ ...snap(10, 99), t: t0 + 10 * 60000 + 20000 });   // druga migawka w tej samej minucie
+  const s = ctx.seria(snaps);
+  sprawdz(s.length === 60, `podwójna migawka w minucie sklejona (60 punktów, jest ${s.length})`);
+  sprawdz(Math.abs(s[0].srednia - 10) < 0.01, "średnia na początku = 10 (tylko przeszłe/bieżące 10)");
+  sprawdz(Math.abs(s[59].srednia - 40) < 0.01, "średnia na końcu = 40");
+  sprawdz(s[29].srednia > 10 && s[29].srednia < 40, "przy skoku 10 → 40 krzywa przechodzi łagodnie");
+  sprawdz(s[45].rakiety === 2 && s[45].drony === 40, "rakiety liczone osobno (kropki), drony bez nich");
+}
+sprawdz(/id="w12-przelacz"[^>]*aria-expanded="false"/.test(html) && /id="w12-cialo"[^>]*hidden/.test(html),
+  "wykres domyślnie zwinięty (decyzja usera), przełącznik z aria-expanded");
+sprawdz(/straznik_wykres12/.test(app), "rozwinięcie zapamiętane na telefonie");
+sprawdz(/svg\.setAttribute\("aria-label", opis\)/.test(app), "wykres ma opis dla czytnika ekranu");
+
 console.log(`\nBŁĘDY: ${bledy}`);
 process.exit(bledy ? 1 : 0);

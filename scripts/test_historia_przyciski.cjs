@@ -60,7 +60,8 @@ assert.deepEqual(acts, ['start', 'prev-alarm', 'back10', 'back1', 'play', 'fwd1'
 const head = html.slice(html.indexOf('<div class="tb-head">'), html.indexOf('<div class="tb-row">'));
 // 14.10.2026: „ZMIEŃ NA ŻYWO” → „NA ŻYWO” — widoczny napis musi być zawarty w nazwie
 // przycisku „Wróć do podglądu na żywo” (WCAG 2.5.3, sterowanie głosem).
-assert.match(head, /id="tb-live"[^>]*>NA<br>ŻYWO</, '„NA ŻYWO” w nagłówku, w dwóch liniach');
+// 14.10.2026 (uwaga usera „niechlujnie wygląda”): „NA ŻYWO” w jednej linii, przycisk v4.
+assert.match(head, /id="tb-live"[^>]*>NA ŻYWO</, '„NA ŻYWO” w nagłówku, w jednej linii');
 assert.match(head, /id="tb-live"[^>]*aria-label="[^"]*na żywo"/i, 'nazwa przycisku zawiera widoczny napis');
 assert.match(head, /PODGLĄD<br>HISTORII/, '„PODGLĄD HISTORII” w dwóch liniach');
 assert.match(head, /id="tb-speed"/, 'wybór prędkości w nagłówku');

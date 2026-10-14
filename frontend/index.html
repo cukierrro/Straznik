@@ -104,7 +104,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <link rel="icon" type="image/png" sizes="512x512" href="assets/icon-512.png">
 <link rel="apple-touch-icon" href="assets/icon-192.png">
 <link rel="stylesheet" href="assets/vendor/maplibre-gl.css?v=1.7.82">
-<link rel="stylesheet" href="style.css?v=1.7.95-ui20">
+<link rel="stylesheet" href="style.css?v=1.7.95-ui24">
 </head>
 <body>
 
@@ -249,13 +249,30 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
     <!-- 17.09.2026: pełnej szerokości przycisk „Wróć do podglądu na żywo” zajmował cały
          rząd; teraz mała ramka obok nazwy trybu, a jego miejsce mają przyciski przewijania -->
     <button type="button" id="tb-live" class="tb-live" title="Wróć do podglądu na żywo"
-            aria-label="Wróć do podglądu na żywo">NA<br>ŻYWO</button>
+            aria-label="Wróć do podglądu na żywo">NA ŻYWO</button>
     <!-- plakietka alarmu ogólnokrajowego: w nagłówku o stałej wysokości, żeby
          pojawienie się komunikatu nie podnosiło paska pod palcem -->
     <span id="tb-national"></span>
     <!-- prędkość odtwarzania: dotknięcie przełącza ×1 → ×2 → ×4 -->
     <button type="button" id="tb-speed" class="tb-speed">×1</button>
     <span id="tb-label">teraz</span>
+  </div>
+  <!-- Wykres 12 h: drony (średnia z 30 min) i rakiety (kropki) nad suwakiem, ta sama
+       oś czasu. Decyzje usera 14.10.2026: domyślnie zwinięty, średnia 30 min, rakiety
+       kropkami. Rysuje go wykres12Odswiez() w app.js. -->
+  <div id="wykres12" class="wykres12">
+    <button type="button" id="w12-przelacz" class="w12-przelacz" aria-expanded="false" aria-controls="w12-cialo"><svg class="w12-strz" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg><span id="w12-t">Drony i rakiety · 12 h</span><span id="w12-max" class="w12-max"></span><svg id="w12-mini" class="w12-mini" viewBox="0 0 110 22" preserveAspectRatio="none" aria-hidden="true"></svg></button>
+    <div id="w12-cialo" class="w12-cialo" hidden>
+      <div class="w12-leg" aria-hidden="true"><span><i class="w12-l-dron"></i><span id="w12-l-d">drony (średnia z 30 min)</span></span><span><i class="w12-l-rak"></i><span id="w12-l-r">rakiety i KAB</span></span></div>
+      <!-- podziałka i wartość przy kresce jako HTML nad wykresem: SVG jest rozciągany
+           (preserveAspectRatio="none"), więc tekst w nim byłby zniekształcony -->
+      <div class="w12-plot">
+        <svg id="w12-svg" class="w12-svg" viewBox="0 0 364 84" preserveAspectRatio="none" role="img"></svg>
+        <div id="w12-skala" class="w12-skala" aria-hidden="true"></div>
+        <div id="w12-wartosc" class="w12-wartosc" aria-hidden="true"></div>
+      </div>
+      <div id="w12-osie" class="w12-osie" aria-hidden="true"></div>
+    </div>
   </div>
   <div class="tb-row">
     <input id="tb-slider" type="range" min="0" max="0" value="0" step="1"
@@ -1229,7 +1246,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
      Cloudflare, więc po każdym wydaniu wystarczy podbić ?v= i przeglądarki
      dostają nowe app.js/engine.js OD RAZU, bez ręcznego czyszczenia cache CF.
      Podbijaj ?v= razem z versionName w build.gradle. -->
-<script src="i18n.js?v=1.7.95-ui16"></script>
+<script src="i18n.js?v=1.7.95-ui17"></script>
 <!-- kontur Polski dla engine.js (audyt A2b, scripts/build_pl_outline.py) -->
 <script src="pl-outline.js?v=1.7.82"></script>
 <script src="engine.js?v=1.7.94"></script>
@@ -1245,7 +1262,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <div id="a11y-alert" class="sr-only" role="status" aria-live="assertive" aria-atomic="true"></div>
 <div id="a11y-info" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
 
-<script src="app.js?v=1.7.95-ui14"></script>
+<script src="app.js?v=1.7.95-ui17"></script>
 <script>
 /* Instrukcja pasująca do telefonu i języka (21.09.2026). iPhone ma osobną, bo alarmy,
    zgody i aktualizacje działają tam inaczej. Tu, a nie w app.js: index.html nie jest
