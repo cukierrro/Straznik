@@ -737,3 +737,48 @@ Prawdziwego pusha z serwera. Test jest powiadomieniem lokalnym, planowanym na
 telefonie — idzie tą samą drogą co alarm, ale nie dowodzi, że serwer wysyła
 poprawnie. Alarmów testowych na prawdziwe tematy nie wysyłamy; build z TestFlight
 dodatkowo słucha tematów `test_`.
+
+## 16. Wyniki z urządzenia (14.10.2026, iPhone testera)
+
+### Przebieg 1 — POTWIERDZONY: czerwony przebija wyciszenie
+
+> „W pierwszym teście z czerwonym przebija strażnik wyciszenie, normalnie gra syrena."
+
+Pierwszy raz zmierzone na prawdziwym telefonie. Do 13.10 wiedzieliśmy tylko, co
+pisze Apple — teraz wiemy, że nasza droga przez `criticalSoundNamed` działa.
+
+Zrzut ekranu blokady dowodzi tego niezależnie od ucha testera: iOS oznaczył
+powiadomienie czerwoną etykietą **„⚠ KRYTYCZNE"** nad tytułem. Tej etykiety nie da
+się ustawić z ładunku — dokłada ją system wyłącznie alarmowi krytycznemu.
+
+Przy okazji zrzut potwierdza układ treści z 1.7.94: tytuł „TEST — WYSOKI PRIORYTET:
+lubelskie" (bez „woj." i bez punktów), a pod nim „4.0 pkt", opis testu i „Co zrobić".
+Kolejność linii jest ta dla wariantu krytycznego (porada przed zdaniem o ciszy),
+czyli kod poszedł właściwą gałęzią.
+
+### Przebieg 4 — DO POWTÓRZENIA: zmierzony nie tym przełącznikiem
+
+> „przy drugim teście przy wyłączonych powiadomieniach nie dostaje powiadomienia
+> ani banera"
+
+Tester wyłączył **całe powiadomienia** („Włącz powiadomienia"), a pytanie dotyczy
+samego przełącznika **„Dźwięki"** niżej na tym samym ekranie. Przy wyłączonych
+powiadomieniach brak banera jest oczekiwany i nie mówi nic o alarmie krytycznym.
+Pytanie zostaje otwarte.
+
+Prośba na powtórkę, precyzyjnie: Ustawienia iPhone'a → Strażnik → Powiadomienia →
+**„Włącz powiadomienia" zostawić WŁĄCZONE**, zjechać niżej do sekcji „Alerty"
+i wyłączyć **tylko „Dźwięki"**. Potem test czerwony. Po pomiarze włączyć z powrotem.
+
+### Przebieg 3 — zgłoszony jako sprawny
+
+Tester napisał „żółty działa". Przyjmujemy jako kontrolę, że niczego nie zepsuliśmy;
+nie jest to pomiar głośności ani porównanie z poprzednim wydaniem.
+
+### Co z tego wynika dla tekstów
+
+Zdanie „czerwony alarm zadzwoni nawet wtedy, gdy telefon jest wyciszony" przestało
+być przepisane z dokumentacji Apple, a stało się **naszym pomiarem**. Można je
+podawać bez zastrzeżeń — dla telefonu ze zgodą na alarm krytyczny.
+Zdanie o wyłączonych „Dźwiękach" zostaje faktem o zakresie przełącznika,
+dopóki przebieg 4 nie zostanie powtórzony.
