@@ -69,7 +69,7 @@
     "☕ Postaw kawę autorowi": "☕ Buy the author a coffee", "Bałtyk": "Baltic",
     "Sąsiedzi": "Neighbours",
     "łączenie…": "connecting…", "teraz": "now", "NA ŻYWO": "LIVE",
-    "Zamknij": "Close", "Zamknij panel": "Close panel",
+    "Zamknij": "Close", "Zamknij panel": "Close panel", "Źródła mapy": "Map sources",
     "Sygnały": "Signals", "Obiekty ≤ 250 km od granicy": "Objects ≤ 250 km from the border",
     "Lotnictwo wojskowe (ADS-B)": "Military aviation (ADS-B)", "nad PL-wschód": "over eastern Poland",
     "Legenda symboli": "Symbol legend", "Obiekty (Dane: NEPTUN, nad Ukrainą)": "Objects (Data: NEPTUN, over Ukraine)",
@@ -159,7 +159,7 @@
     "☕ Postaw kawę autorowi": "☕ Пригостити автора кавою", "Bałtyk": "Балтика",
     "Sąsiedzi": "Сусіди",
     "łączenie…": "з\u2019єднання…", "teraz": "зараз", "NA ŻYWO": "НАЖИВО",
-    "Zamknij": "Закрити", "Zamknij panel": "Закрити панель",
+    "Zamknij": "Закрити", "Zamknij panel": "Закрити панель", "Źródła mapy": "Джерела мапи",
     "Sygnały": "Сигнали", "Obiekty ≤ 250 km od granicy": "Об\u2019єкти ≤ 250 км від кордону",
     "Lotnictwo wojskowe (ADS-B)": "Військова авіація (ADS-B)", "nad PL-wschód": "над сходом Польщі",
     "Legenda symboli": "Легенда символів", "Obiekty (Dane: NEPTUN, nad Ukrainą)": "Об\u2019єкти (Дані: NEPTUN, над Україною)",
@@ -585,7 +585,7 @@
     "About and scoring": "Про застосунок і бали",
     "User guide": "Інструкція",
     "Support the author": "Підтримати автора",
-    "Close": "Закрити",
+    "Close": "Закрити", "Map sources": "Джерела мапи",
     "no signals": "немає сигналів",
     "no signals in the window": "у вікні немає сигналів",
     "· thresholds: ≥2 attention, ≥4 priority": "· пороги: ≥2 увага, ≥4 пріоритет",
@@ -897,7 +897,8 @@
       // zgłoszenie #1 z GitHuba: te trzy podpowiedzi zostawały po polsku
       "btn-3d": ["title","Switch between 2D and 3D view"],
       "btn-watch": ["title","Foreign (RU/BY) aircraft over the eastern flank"],
-      "btn-push": ["title","Notifications"]
+      "btn-push": ["title","Notifications"],
+      "attr-i": ["title","Map sources"]
     };
     for (const [id, [a,v]] of Object.entries(attrs)) {
       const el = document.getElementById(id); if (!el) continue;
@@ -954,10 +955,11 @@
     if (changes) changes.href = "https://cukierrro.github.io/Straznik/zmiany-en.html";
     // atrybucja: nazwy własne zostają, opis źródła musi być po angielsku
     const attr = document.getElementById("attr-text");
-    if (attr) attr.innerHTML = '<b>Data: <a href="https://neptun.in.ua" target="_blank" rel="noopener">NEPTUN</a></b>'
-      + ' (OSINT aggregator — not radar; always check confidence and ±km)'
-      + ' · ADS-B: adsb.lol / adsb.fi · Map: <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a>'
-      + ' © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OSM</a>';
+    if (attr) attr.innerHTML = 'Data: <a href="https://neptun.in.ua" target="_blank" rel="noopener">NEPTUN</a> — OSINT aggregator, not radar.<br>'
+      + 'Aircraft: ADS-B (adsb.lol, adsb.fi).<br>'
+      + 'Map: <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a>'
+      + ' © <a href="https://www.openmaptiles.org/" target="_blank" rel="noopener">OpenMapTiles</a>,'
+      + ' data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>';
     const moreClose = document.querySelector('#more-sheet button[value="cancel"]');
     if (moreClose) moreClose.textContent = "Close";
     set("#adsb-list + p", "Public transponder data (aircraft that choose to be visible) — this is NOT hostile-aircraft tracking.");
@@ -1203,6 +1205,7 @@
     "#btn-3d": ["title", "Перемкнути вигляд 2D/3D"],
     "#btn-watch": ["title", "Чужі літаки (РФ/РБ) над східним флангом"],
     "#btn-push": ["title", "Сповіщення"],
+    "#attr-i": ["title", "Джерела мапи"],
   };
 
   function ukrainize(root) {
@@ -1257,10 +1260,11 @@
       + "Дякуємо за підтримку проєкту!</p>"
       + '<a href="https://mikr.us" target="_blank" rel="noopener">Сайт Mikrus ↗</a></div>';
     const attr = document.getElementById("attr-text");
-    if (attr) attr.innerHTML = '<b>Дані: <a href="https://neptun.in.ua" target="_blank" rel="noopener">NEPTUN</a></b>'
-      + ' (агрегатор OSINT — не радар; завжди перевіряйте достовірність і ±км)'
-      + ' · ADS-B: adsb.lol / adsb.fi · Мапа: <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a>'
-      + ' © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OSM</a>';
+    if (attr) attr.innerHTML = 'Дані: <a href="https://neptun.in.ua" target="_blank" rel="noopener">NEPTUN</a> — агрегатор OSINT, не радар.<br>'
+      + 'Авіація: ADS-B (adsb.lol, adsb.fi).<br>'
+      + 'Мапа: <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a>'
+      + ' © <a href="https://www.openmaptiles.org/" target="_blank" rel="noopener">OpenMapTiles</a>,'
+      + ' дані © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>';
     const northUk = document.getElementById("ab-polnoc");
     const redUk = document.getElementById("ab-czerwony");
     if (northUk) northUk.innerHTML = "<b>Північ (Поморське, Західнопоморське, Вармінсько-Мазурське, "

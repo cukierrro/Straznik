@@ -6966,58 +6966,37 @@ if (topbarEl && window.ResizeObserver) {
   setTopbarB();
 }
 
-/* ✕ przy atrybucji NIE usuwa jej — zwija do jednej plakietki. Widoczna atrybucja
-   NEPTUN jest warunkiem korzystania z ich API, więc znika tylko z pola widzenia,
-   nie z ekranu. Dotknięcie plakietki rozwija ją z powrotem. */
+/* Atrybucja: (i) i okienko obok niego (przegląd UI 14.10.2026). Okienko jest
+   otwarte przy starcie i znika po pięciu sekundach, przy pierwszym dotknięciu
+   albo przewinięciu mapy, po „Zamknij” albo klawiszem Esc. (i) przełącza TYLKO
+   okienko — pełna lista źródeł jest pod diodami. Zgodne z wytyczną OSMF
+   („Interactive maps”), patrz komentarz w index.html. */
 const attrEl = document.getElementById("attribution");
 if (attrEl) {
-  const mini = document.createElement("span");
-  mini.className = "mini-label";
-  /* Znak (i) rysujemy TAK SAMO jak reszte ikon paska: obrysem SVG, nie
-     znakiem tekstowym. Znak ⓘ ma inna grubosc niz sasiednie ikony i w rogu
-     mapy bylo to widac. */
-  mini.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true">'
-    + '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/></svg>';
-  attrEl.appendChild(mini);
-  /* Zwijamy SAMOCZYNNIE PO PIĘCIU SEKUNDACH, a nie „raz na zawsze". Wytyczna
-     OSMF wymienia pięć sekund wprost; nasze dawne zapamiętywanie w
-     localStorage sprawiało, że po jednym dotknięciu krzyżyka atrybucja nie
-     pokazywała się już nigdy — a ma się pokazywać przy starcie aplikacji. */
-  const zwin = () => {
-    attrEl.classList.add("mini");
-    attrEl.title = UI.t("Źródła danych i licencje", "Data sources and licences",
-                        "Джерела даних і ліцензії");
+  const przycisk = document.getElementById("attr-i");
+  let odliczanie = null;
+  const ustaw = (otwarta) => {
+    attrEl.classList.toggle("otwarta", otwarta);
+    przycisk?.setAttribute("aria-expanded", otwarta ? "true" : "false");
+    if (!otwarta) { attrEl.classList.remove("odliczanie"); clearTimeout(odliczanie); odliczanie = null; }
   };
-  setTimeout(() => { if (!attrEl.classList.contains("mini")) zwin(); }, 5000);
-  /* Wiersz źródeł przewija się palcem w poziomie (26.09.2026). Wygaszenie prawej
-     krawędzi zdejmujemy, gdy nie ma już czego doczytać — przy końcu przewijania
-     albo gdy cały tekst mieści się na szerokim ekranie. */
-  const attrText = document.getElementById("attr-text");
-  if (attrText) {
-    const koniec = () => attrText.classList.toggle("koniec",
-      attrText.scrollLeft + attrText.clientWidth >= attrText.scrollWidth - 2);
-    attrText.addEventListener("scroll", koniec, { passive: true });
-    addEventListener("resize", koniec);
-    koniec();
-  }
-  document.getElementById("attr-x")?.addEventListener("click", (e) => {
-    e.stopPropagation();
-    zwin();
-    try { localStorage.removeItem("straznik_attr_mini"); } catch {}
+  const zamknij = () => ustaw(false);
+  attrEl.classList.add("odliczanie");
+  odliczanie = setTimeout(zamknij, 5000);
+  przycisk?.addEventListener("click", () => {
+    const otworz = !attrEl.classList.contains("otwarta");
+    ustaw(otworz);                       // ponowne otwarcie zostaje, aż ktoś je zamknie
   });
-  attrEl.addEventListener("click", (e) => {
-    if (!attrEl.classList.contains("mini")) {
-      // krótkie dotknięcie otwiera „O aplikacji" z pełną listą źródeł;
-      // przesunięcie palcem przewija wiersz i kliknięcia nie wywołuje
-      if (e.target.closest("a")) return;
-      document.getElementById("about")?.showModal();
-      return;
-    }
-    /* Zwinięte (i) otwiera „Źródła danych" — to tam są licencje mapy.
-       Wcześniej rozwijało z powrotem pasek, czyli prowadziło donikąd. */
-    showSources();
+  document.getElementById("attr-x")?.addEventListener("click", () => { zamknij(); przycisk?.focus(); });
+  attrEl.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && attrEl.classList.contains("otwarta")) { zamknij(); przycisk?.focus(); }
   });
-  attrEl.style.cursor = "pointer";
+  /* Dotknięcie albo przewinięcie mapy zwija okienko (tak, jak pozwala OSMF) —
+     także otwarte ręcznie: na mapie nic nie ma zostawać na stałe. */
+  const mapaEl = document.getElementById("map");
+  const ruchMapy = () => { if (attrEl.classList.contains("otwarta")) zamknij(); };
+  mapaEl?.addEventListener("pointerdown", ruchMapy, { passive: true });
+  mapaEl?.addEventListener("wheel", ruchMapy, { passive: true });
 }
 
 /* ── moduł schronienia (GROTA) ───────────────────────────────────────────────

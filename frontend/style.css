@@ -410,32 +410,53 @@ body.panel-open #update-banner:not(.critical) { display: none; }
 #attribution {
   position: fixed; left: 10px; z-index: 26;
   top: calc(var(--topbar-h, 90px) + 6px + var(--pod-plakietka, 0px));
-  max-width: calc(100% - 20px);
-  background: var(--panel); border: 1px solid var(--panel-border); border-radius: 8px;
-  font-size: 0.6333rem; line-height: 1.35; color: var(--muted); padding: 5px 9px;
-  overflow: hidden; backdrop-filter: blur(8px);
-  transition: opacity .2s ease;
+  width: 44px; height: 44px; font-size: 0.8rem; line-height: 1.45; color: var(--muted);
 }
 body.panel-open #attribution { opacity: 0; pointer-events: none; }
-/* Atrybucja NEPTUN musi być widoczna (warunek API), ale nie może zjadać pół ekranu.
-   JEDEN wiersz z wielokropkiem zamiast przycinania na trzech: `-webkit-line-clamp`
-   liczył wiersze inaczej niż wynikało z line-height i zostawiał tekst ucięty w połowie
-   linii — wyglądało to jak nachodzenie paska zastrzeżenia. Przy jednym wierszu nie ma
-   czego uciąć w pionie, a pełna lista źródeł jest w „O aplikacji". */
-/* 26.09.2026 (zgłoszenie usera): wielokropek ucinał listę źródeł i nie dało się
-   jej doczytać. Teraz ten sam jeden wiersz przewija się w poziomie palcem.
-   Wygaszenie prawej krawędzi mówi, że tekst ciągnie się dalej; znika, gdy
-   przewiniesz do końca albo gdy całość się mieści (klasa .koniec z app.js).
-   touch-action: pan-x — pionowy ruch palcem nie jest tu przechwytywany. */
-#attr-text {
-  display: block; white-space: nowrap;
-  overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain;
-  touch-action: pan-x; scrollbar-width: none;
-  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
-          mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+/* (i): jedno pole 44 px, ta sama kreska co reszta ikon. */
+#attr-i {
+  width: 44px; height: 44px; padding: 0; display: flex; align-items: center; justify-content: center;
+  border-radius: 13px; cursor: pointer; color: var(--text);
+  background: var(--panel); border: 1px solid var(--panel-border);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08); backdrop-filter: blur(8px);
 }
-#attr-text::-webkit-scrollbar { display: none; }
-#attr-text.koniec { -webkit-mask-image: none; mask-image: none; }
+#attr-i svg, #attr-x svg { width: 21px; height: 21px; display: block; fill: none; stroke: currentColor;
+  stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+#attr-i:hover, #attribution.otwarta #attr-i { border-color: rgba(143,180,255,.55); }
+/* Okienko obok (i) — karta z jasną krawędzią u góry. Rozmycie tylko tu
+   (nie zagnieżdżamy backdrop-filter — ANR na emulatorze, 03.10). */
+#attr-pop {
+  position: absolute; left: 0; top: 54px; width: 300px; max-width: calc(100vw - 20px);
+  padding: 11px 12px 10px; border-radius: 16px;
+  background: rgba(22,30,50,.92); border: 1px solid rgba(170,195,255,.22);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.10), 0 14px 32px -12px rgba(0,0,0,.75);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  transform-origin: 20px -8px;
+  transition: opacity .18s ease, transform .18s ease, visibility 0s linear .18s;
+  opacity: 0; transform: translateY(-4px) scale(.97); visibility: hidden;
+}
+#attribution.otwarta #attr-pop { opacity: 1; transform: none; visibility: visible;
+  transition: opacity .18s ease, transform .18s ease, visibility 0s; }
+/* strzałka wskazująca (i) */
+#attr-pop::before { content: ""; position: absolute; left: 15px; top: -7px; width: 12px; height: 12px;
+  transform: rotate(45deg); background: rgba(26,35,58,.98);
+  border-left: 1px solid rgba(170,195,255,.22); border-top: 1px solid rgba(170,195,255,.22); }
+.attr-head { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.attr-head b { color: var(--text); font-size: 0.9rem; }
+/* „Zamknij” ze słowem (zasada 6) i polem dotyku 44 px wysokości */
+#attr-x { margin-left: auto; min-height: 44px; margin-top: -10px; margin-bottom: -10px; margin-right: -6px;
+  padding: 0 6px; display: flex; align-items: center; gap: 4px; cursor: pointer;
+  background: none; border: 0; color: var(--muted); font: inherit; font-size: 0.8rem; }
+#attr-x:hover { color: var(--text); }
+#attr-x svg { width: 16px; height: 16px; }
+#attr-text { margin: 0; color: #b4bfd6; }
+/* Pasek odliczania pięciu sekund — tylko przy pokazaniu na starcie. */
+.attr-czas { height: 3px; border-radius: 2px; background: rgba(255,255,255,.08); margin-top: 9px; overflow: hidden; display: none; }
+#attribution.odliczanie .attr-czas { display: block; }
+.attr-czas i { display: block; height: 100%; width: 100%; transform-origin: left;
+  background: linear-gradient(90deg, var(--accent), #8fb4ff); }
+#attribution.odliczanie .attr-czas i { animation: attr-czas 5s linear forwards; }
+@keyframes attr-czas { from { transform: scaleX(1); } to { transform: scaleX(0); } }
 /* Linki w oknach dialogowych: domyślny jaskrawoniebieski z podkreśleniem odcinał
    się od reszty interfejsu i wyglądał jak surowy HTML. */
 dialog a { color: var(--cyan); text-decoration: none; }
@@ -1067,6 +1088,8 @@ html[lang="en"] .list:empty::after { content: "— none —"; }
   .alarm-icon,
   .voiv-card.level-high,
   .lg-row .pulse-ic::before { animation: none; }
+  #attr-pop { transform: none !important; }
+  #attribution.odliczanie .attr-czas { display: none; }
 }
 .lg-row .ring { width: 14px; height: 14px; border-radius: 50%;
   border: 1.5px solid var(--amber); opacity: .7; }
@@ -1230,7 +1253,6 @@ dialog menu > .chip.primary { font-weight: 600; }
     max-height: calc(100vh - var(--topbar-bottom, 110px) - 8px - var(--tabbar-h) - var(--safe-b)
       - var(--stack-h, 0px) - 14px); }
   #panel.collapsed { transform: translateY(calc(100% + 60px)); }
-  #attribution { font-size: 0.6667rem; }
 
 
   /* 210 px to była kolumna na trzy słowa — każdy podpis łamał się na dwie
@@ -1265,19 +1287,6 @@ dialog menu > .chip.primary { font-weight: 600; }
    jak nachodzenie paska zastrzeżenia na tekst źródeł. */
 #bottom-stack > * { pointer-events: auto; flex: 0 0 auto; }
 
-/* Atrybucja NEPTUN musi pozostać widoczna (warunek korzystania z API), więc ✕ nie
-   usuwa jej, tylko ZWIJA do jednej plakietki. Użytkownik odzyskuje ekran, a źródło
-   nadal jest podane; pełna lista jest też w „O aplikacji". */
-/* Tylko miejsce na krzyżyk. Pozycjonowanie jest wyżej (fixed, róg mapy) —
-   stara reguła "position: relative" stała niżej w pliku i je przebijała. */
-#attribution { padding-right: 30px; }
-#attr-x {
-  position: absolute; top: 3px; right: 3px; width: 24px; height: 24px;
-  display: flex; align-items: center; justify-content: center;
-  border-radius: 50%; cursor: pointer; font-size: 0.8rem; line-height: 1;
-  background: rgba(20,28,46,.9); border: 1px solid var(--panel-border); color: var(--muted);
-}
-#attr-x:hover { color: var(--text); border-color: var(--accent); }
 /* Rząd stanu: pigułka regionu + chip źródeł. Zawija się, więc element, który
    musi być szeroki, bierze cały wiersz i niczego nie wypycha za krawędź. */
 #status-row {
@@ -1287,25 +1296,6 @@ dialog menu > .chip.primary { font-weight: 600; }
 #status-row > .hidden { display: none !important; }
 /* Czerwony alarm bierze wlasny wiersz. */
 #status-row > #my-banner.level-high { flex: 1 1 100%; }
-/* Zwinięty chip źródeł wygląda DOKŁADNIE tak jak pigułka regionu: ten sam
-   promień, ta sama wysokość, ten sam rozmiar pisma. Wcześniej był prostokątem
-   9,5 px obok zaokrąglonej pigułki 12 px. */
-/* Zwinięta: okrągłe (i) o polu dotykowym 40 px. Napis „źródła" chowamy —
-   w rogu mapy liczy się, żeby nie zasłaniać terenu, a sam znak (i) jest
-   wzorcem, który wytyczna OSMF wymienia z nazwy. */
-#attribution.mini {
-  display: flex; align-items: center; justify-content: center;
-  width: 38px; height: 38px; padding: 0; cursor: pointer;
-  border-radius: 11px; font-size: 1.1333rem; line-height: 1; color: var(--text);
-  background: rgba(18,26,43,.86);
-}
-#attribution.mini:hover { border-color: var(--accent); }
-#attribution.mini .mini-label svg { width: 20px; height: 20px; display: block;
-  fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
-
-#attribution.mini > :not(.mini-label) { display: none; }
-#attribution .mini-label { display: none; }
-#attribution.mini .mini-label { display: inline; }
 #bottom-stack > .hidden { display: none !important; }
 body.panel-open #bottom-stack > #update-banner:not(.critical) { display: none; }
 
