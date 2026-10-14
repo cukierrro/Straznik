@@ -295,7 +295,12 @@
         await czekaj(1000 * 2 ** proba);
       }
     }
-    throw new Error(T("Nie udało się pobrać fragmentu mapy ({powod}).", { powod: ostatni?.message || T("brak połączenia") }));
+    /* „Failed to fetch” z przeglądarki nic nie mówi i nie tłumaczy się na inne języki —
+       zamieniamy na powód po ludzku, własne komunikaty zostawiamy. */
+    const powod = /Failed to fetch|NetworkError|Load failed/i.test(ostatni?.message || "") ? T("brak połączenia")
+      : ostatni?.name === "AbortError" ? T("brak odpowiedzi serwera")
+      : ostatni?.message || T("brak połączenia");
+    throw new Error(T("Nie udało się pobrać fragmentu mapy ({powod}).", { powod }));
   }
 
   // Nagłówek części: znacznik, długość, spis wpisów. Zwykle mieści się w pierwszych 256 KB.
@@ -375,7 +380,8 @@
 
   async function zapiszZasob(url, klucz) {
     const r = await fetch(url);
-    if (!r.ok) throw new Error(url);
+    // sam adres w komunikacie nic nie mówi — czytelne zdanie z kodem odpowiedzi
+    if (!r.ok) throw new Error(T("Nie udało się pobrać pliku mapy (HTTP {kod}).", { kod: r.status }));
     const b = await r.arrayBuffer();
     await zapisz(SKLEP, klucz, b);
     return b.byteLength;
