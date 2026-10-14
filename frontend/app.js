@@ -2033,11 +2033,11 @@ function openZoneCard(p, overlapping = []) {
      pasem przygranicznym, przedłużana od 10.09.2026). */
   if (standing && type === "ADHOC")
     meaning = UI.t("Strefa powołana decyzją administracyjną. Ta akurat jest przedłużana, więc stoi tygodniami, a nie godzinami.", "A zone raised by an administrative decision. This one keeps being extended, so it stays up for weeks rather than hours.", "Зону створено адміністративним рішенням. Цю конкретну продовжують, тож вона стоїть тижнями, а не годинами.");
-  /* Karta ma BIAŁE tło (#ac-card), a kolory z mapy są na nie za jasne: surowy
-     amber #ffb020 daje kontrast 1,83:1, czyli poniżej każdego progu czytelności.
-     Wersje tekstowe tych samych barw trzymają ~5,8:1. Predykat ten sam co na
-     mapie (ZONE_QUIET), żeby kolor karty zgadzał się z kolorem konturu. */
-  const color = (standing || zastana) ? "#6f5b9e" : "#8a5a00";
+  /* Karta jest od v4 (14.10.2026) CIEMNA, jak reszta aplikacji — wcześniej była
+     biała i te same barwy trzeba było przyciemniać. Na ciemnym szkle jasne wersje
+     trzymają ponad 7:1. Predykat ten sam co na mapie (ZONE_QUIET), żeby kolor
+     karty zgadzał się z kolorem konturu. */
+  const color = (standing || zastana) ? "#b9a6ee" : "#ffc04d";
   /* „Od kiedy” bierzemy z chwili, w której Strażnik zobaczył strefę po raz
      pierwszy, a nie z pola startDate — plan dobowy PAŻP przepisuje tę samą
      strefę codziennie od 06:00 UTC, więc startDate kłamałby o świeżości. */
@@ -2054,7 +2054,7 @@ function openZoneCard(p, overlapping = []) {
   const untilRaw = zoneClock(p.end);
   const until = untilRaw === "?" ? ""
     : `${UI.t("Rezerwacja do", "Reserved until", "Резервація до")}: <b>${esc2(untilRaw)}</b>
-       <span style="color:#68758c">${UI.t("(koniec dzisiejszej rezerwacji — PAŻP publikuje plan dobowy, strefa bywa przedłużana)", "(end of today’s slot — PAŻP publishes day by day and a zone can be renewed)", "(кінець сьогоднішньої резервації — PAŻP публікує добовий план, зону часто продовжують)")}</span><br>`;
+       <span style="color:#9aa6be">${UI.t("(koniec dzisiejszej rezerwacji — PAŻP publikuje plan dobowy, strefa bywa przedłużana)", "(end of today’s slot — PAŻP publishes day by day and a zone can be renewed)", "(кінець сьогоднішньої резервації — PAŻP публікує добовий план, зону часто продовжують)")}</span><br>`;
   showCard(`
     <div class="zone-head"><b style="color:${color}">▦ ${esc2(String(p.designator || "—"))}</b>
       <span style="color:#8fa3c4">· ${esc2(kind)}</span></div>
@@ -2064,11 +2064,11 @@ function openZoneCard(p, overlapping = []) {
     ${UI.t("Pułap", "Altitude band", "Стеля")}: <b>${esc2(zoneAltText(p.lower))} – ${esc2(zoneAltText(p.upper))}</b><br>
     ${p.voiv ? `<button type="button" class="chip btn-zone-voiv" data-voiv="${esc2(p.voiv)}"
         style="margin:5px 0 6px">${UI.t("Województwo", "Province", "Воєводство")}: ${esc2(UI.voiv(p.voiv))} ›</button><br>` : ""}
-    ${p.remarks ? `<span style="color:#68758c">${UI.t("Adnotacja PAŻP", "PAŻP note", "Примітка PAŻP")}: ${esc2(String(p.remarks))}</span><br>` : ""}
-    ${overlapping.length ? `<span style="color:#68758c">${UI.t("W tym miejscu są też", "Other zones at this spot", "У цьому місці є також")}:</span>
+    ${p.remarks ? `<span style="color:#9aa6be">${UI.t("Adnotacja PAŻP", "PAŻP note", "Примітка PAŻP")}: ${esc2(String(p.remarks))}</span><br>` : ""}
+    ${overlapping.length ? `<span style="color:#9aa6be">${UI.t("W tym miejscu są też", "Other zones at this spot", "У цьому місці є також")}:</span>
       ${overlapping.map(d => `<button type="button" class="chip btn-zone-other" data-zone="${esc2(d)}"
         style="margin:3px 4px 3px 0">${esc2(d)}</button>`).join("")}<br>` : ""}
-    <span style="color:#68758c">${UI.t("To informacja, nie alarm. Sama warstwa stref nie dodaje punktów — punktuje tylko rzadka strefa D, R, NPZ albo ADHOC od ziemi nad ścianą wschodnią lub północą, niewidziana od 7 dni (0,5–1 pkt), i wtedy pojawia się w sygnałach. Źródło: PAŻP (AUP/UUP).", "This is information, not an alert. The zone layer itself adds no points — only a rare D, R, NPZ or ADHOC zone from the ground up over the eastern border or the north, not seen for 7 days, scores (0.5–1 pt) and then appears among the signals. Source: PAŻP (AUP/UUP).", "Це інформація, а не тривога. Сам шар зон балів не додає — бали дає лише рідкісна зона D, R, NPZ або ADHOC від землі над східною стіною чи північчю, не бачена 7 днів (0,5–1 бала), і тоді вона з'являється в сигналах. Джерело: PAŻP (AUP/UUP).")}</span>`, { big: true });
+    <span style="color:#9aa6be">${UI.t("To informacja, nie alarm. Sama warstwa stref nie dodaje punktów — punktuje tylko rzadka strefa D, R, NPZ albo ADHOC od ziemi nad ścianą wschodnią lub północą, niewidziana od 7 dni (0,5–1 pkt), i wtedy pojawia się w sygnałach. Źródło: PAŻP (AUP/UUP).", "This is information, not an alert. The zone layer itself adds no points — only a rare D, R, NPZ or ADHOC zone from the ground up over the eastern border or the north, not seen for 7 days, scores (0.5–1 pt) and then appears among the signals. Source: PAŻP (AUP/UUP).", "Це інформація, а не тривога. Сам шар зон балів не додає — бали дає лише рідкісна зона D, R, NPZ або ADHOC від землі над східною стіною чи північчю, не бачена 7 днів (0,5–1 бала), і тоді вона з'являється в сигналах. Джерело: PAŻP (AUP/UUP).")}</span>`, { big: true });
 }
 
 /* Dotknięcie wnętrza dużej strefy trafia w strefę, nie w województwo — bez tego
@@ -2274,7 +2274,7 @@ function openThreatPopup(lngLat, p) {
         <div class="thr-photo-note">${UI.t("grafika poglądowa typu — nie tego obiektu", "type reference — not this object", "оглядове зображення типу — не цього об'єкта")}</div></div>`)
     : "";
   showCard(`${img}
-      <b style="color:${meta.color};filter:brightness(.75)">◆ ${meta.label}</b><br>
+      <b style="color:${meta.color}">◆ ${meta.label}</b><br>
       ${p.opis ? esc2(p.opis) + "<br>" : ""}
       ${UI.t("wiarygodność", "confidence", "достовірність")}: <b>${esc2(UI.confidence(p.confidence, CONF_PL[p.confidence] || p.confidence))}</b>
         · ${UI.t("gdzie może być", "where it may be", "де може бути")}: <b>±${p.uncertainty} km</b>${
@@ -2288,7 +2288,7 @@ function openThreatPopup(lngLat, p) {
         ? ` <span style="color:#95a1b7">${UI.t("— rejon przestał już rosnąć, obiekt może być dalej", "— the area has stopped growing; the object may be further away", " — район уже перестав зростати, об'єкт може бути далі")}</span>` : ""}<br>
       ${courseVerdictHTML(p)}
       ${p.eta || ""}
-      <span style="color:#68758c">${UI.t("Dane: NEPTUN — agregator OSINT, nie radar wojskowy", "Data: NEPTUN — OSINT aggregator, not military radar", "Дані: NEPTUN — агрегатор OSINT, а не військовий радар")}</span>`);
+      <span style="color:#9aa6be">${UI.t("Dane: NEPTUN — agregator OSINT, nie radar wojskowy", "Data: NEPTUN — OSINT aggregator, not military radar", "Дані: NEPTUN — агрегатор OSINT, а не військовий радар")}</span>`);
 }
 
 /* Werdykt kursu w karcie obiektu. Bez tego karta podawała same stopnie („kurs
@@ -2299,7 +2299,7 @@ function courseVerdictHTML(p) {
   const known = !(p.heading_known === false || p.heading_known === "false");
   const off = p.course_off == null || p.course_off === "" ? null : Math.round(Number(p.course_off));
   if (toward) {
-    return `<span style="color:#c0392b"><b>${UI.t("kurs na Polskę", "heading towards Poland", "курс на Польщу")}</b>${
+    return `<span style="color:#ff7b88"><b>${UI.t("kurs na Polskę", "heading towards Poland", "курс на Польщу")}</b>${
       off != null ? ` (${off}° ${UI.t("od kierunku na granicę", "off the direction to the border", "від напрямку на кордон")})` : ""}</span><br>`;
   }
   const why = !known
@@ -2307,7 +2307,7 @@ function courseVerdictHTML(p) {
     : off != null
       ? (UI.t(`kurs ${off}° od kierunku na Polskę`, `heading ${off}° away from the direction to Poland`, `курс ${off}° від напрямку на Польщу`))
       : (UI.t("kurs nie prowadzi na Polskę", "not heading towards Poland", "курс не веде на Польщу"));
-  return `<span style="color:#7a8699"><b>${UI.t("0 pkt", "0 pts", "0 бал.")}</b> — ${why}</span><br>`;
+  return `<span style="color:#a3aec4"><b>${UI.t("0 pkt", "0 pts", "0 бал.")}</b> — ${why}</span><br>`;
 }
 
 /* Karta samolotu w stylu airplanes.live: zdjęcie, kraj rejestracji, operator,
@@ -2323,15 +2323,15 @@ function planePopupHTML(p, heli, uid) {
     ? `<span style="background:#7a1d2b;color:#fff;border-radius:4px;padding:1px 5px;font-size:0.6667rem">${UI.t("WOJSKOWY", "MILITARY", "ВІЙСЬКОВИЙ")}</span> ` : "";
   const nav = Array.isArray(p.nav_modes) ? p.nav_modes.join(", ") : (p.nav_modes || "");
   const geom = p.alt_geom != null && p.alt_geom !== p.alt
-    ? ` <span style="color:#68758c">(geom. ${ftToM(p.alt_geom)} m)</span>` : "";
+    ? ` <span style="color:#9aa6be">(geom. ${ftToM(p.alt_geom)} m)</span>` : "";
   const row = (l, v) => (v == null || v === "") ? ""
-    : `<tr><td style="color:#68758c;padding-right:8px;vertical-align:top">${l}</td><td><b>${v}</b></td></tr>`;
+    : `<tr><td style="color:#9aa6be;padding-right:8px;vertical-align:top">${l}</td><td><b>${v}</b></td></tr>`;
   return `<div>
     <div id="${uid}-box" class="ac-photo" style="display:none;margin:-2px 0 6px">
       <img id="${uid}" alt="" style="width:100%;max-height:220px;object-fit:contain;border-radius:6px;display:block">
-      <div class="ph-cr" style="font-size:0.6667rem;color:#68758c;margin-top:2px"></div>
+      <div class="ph-cr" style="font-size:0.6667rem;color:#9aa6be;margin-top:2px"></div>
     </div>
-    <div id="${uid}-missing" style="font-size:0.6667rem;color:#68758c;margin-bottom:6px">${UI.t("Brak zweryfikowanego zdjęcia tego modelu/wariantu.", "No verified photo for this model/variant.", "Немає перевіреного фото цієї моделі/варіанта.")}</div>
+    <div id="${uid}-missing" style="font-size:0.6667rem;color:#9aa6be;margin-bottom:6px">${UI.t("Brak zweryfikowanego zdjęcia tego modelu/wariantu.", "No verified photo for this model/variant.", "Немає перевіреного фото цієї моделі/варіанта.")}</div>
     <b style="font-size:0.9rem">${heli ? "🚁" : "✈"} ${esc2(p.callsign || p.hex || "?")}</b>
       ${p.reg ? ` · ${UI.t("rej.", "reg.", "реєстр.")} ${esc2(p.reg)}` : ""}<br>
     ${mil}${c ? `${c.flag} ${esc2(countryText(c.name))} · ` : ""}<b>${esc2(acName(p.type, p.desc))}</b>${p.year ? ` (${esc2(p.year)})` : ""}<br>
@@ -2351,7 +2351,7 @@ function planePopupHTML(p, heli, uid) {
     ${p.source === "MLAT" ? `<div style="color:#ffb020;font-size:0.7333rem;margin-bottom:5px">${UI.t("Pozycja z MLAT: policzona przez odbiorniki z różnic czasu dotarcia sygnału, a nie podana przez maszynę. Poza zasięgiem odbiorników — nad Białorusią, Rosją, morzem — potrafi odbiec od prawdziwej o kilkadziesiąt kilometrów. Wysokość, prędkość i kurs schodzą z pokładu i są wiarygodne.", "MLAT position: computed by ground receivers from signal time differences, not reported by the aircraft. Outside receiver coverage — over Belarus, Russia, open sea — it can be tens of kilometres off. Altitude, speed and heading come from the aircraft itself and are reliable.", "Позиція з MLAT: обчислена приймачами з різниці часу надходження сигналу, а не передана самим літаком. Поза зоною приймачів — над Білоруссю, Росією, морем — вона може відхилятися на десятки кілометрів. Висота, швидкість і курс надходять з борту і є достовірними.")}</div>` : ""}
     <button class="btn-follow chip" style="font-size:0.7333rem;padding:3px 8px;margin-bottom:4px">${followHex === p.hex
       ? (UI.t("■ przestań śledzić", "■ stop tracking", "■ припинити стеження")) : (UI.t("📍 śledź trasę", "📍 follow track", "📍 стежити за шляхом"))}</button>
-    <div style="color:#68758c;font-size:0.7333rem">${UI.t("publiczny transponder ADS-B/MLAT — pozycja emisji, nie namierzanie. Telemetria: dostawcy ADS-B. Zdjęcie modelu: biblioteka lokalna; źródło i licencja powyżej.", "public ADS-B/MLAT transponder — emitted position, not active tracking. Telemetry: ADS-B providers. Model photo: local library; source and license above.", "відкритий транспондер ADS-B/MLAT — позиція випромінювання, а не радарне стеження. Телеметрія: постачальники ADS-B. Фото моделі: локальна бібліотека; джерело й ліцензія вище.")}</div>
+    <div style="color:#9aa6be;font-size:0.7333rem">${UI.t("publiczny transponder ADS-B/MLAT — pozycja emisji, nie namierzanie. Telemetria: dostawcy ADS-B. Zdjęcie modelu: biblioteka lokalna; źródło i licencja powyżej.", "public ADS-B/MLAT transponder — emitted position, not active tracking. Telemetry: ADS-B providers. Model photo: local library; source and license above.", "відкритий транспондер ADS-B/MLAT — позиція випромінювання, а не радарне стеження. Телеметрія: постачальники ADS-B. Фото моделі: локальна бібліотека; джерело й ліцензія вище.")}</div>
   </div>`;
 }
 
@@ -2659,7 +2659,7 @@ function openRaionAlert(a) {
     <div class="zone-head"><b style="color:${a.l === "red" ? "#ff6b78" : "#ffc04d"}">📢 ${esc2(where)}</b>
       <span style="color:#8fa3c4">· ${UI.t("alarm powietrzny w Ukrainie", "air-raid alert in Ukraine", "повітряна тривога в Україні")}</span></div>
     <span style="color:#8fa3c4">${UI.t(`Od ${t} · ${lvl}`, `Since ${t} · ${lvl}`, `Від ${t} · ${lvl}`)}${(() => { const r = raionReason(a.r); return r ? " · " + esc2(r) : ""; })()}</span><br>
-    <span style="color:#68758c">${UI.t("Tylko do obserwacji — nie dolicza punktów. Punkty dają wyłącznie alarmy w obwodach blisko Polski (różowy obrys). Źródło: NEPTUN.", "Shown for information only — it adds no points. Points come only from alerts in the oblasts near Poland (pink outline). Source: NEPTUN.", "Лише для спостереження — балів не додає. Бали дають тільки тривоги в областях поблизу Польщі (рожевий контур). Джерело: NEPTUN.")}</span>`);
+    <span style="color:#9aa6be">${UI.t("Tylko do obserwacji — nie dolicza punktów. Punkty dają wyłącznie alarmy w obwodach blisko Polski (różowy obrys). Źródło: NEPTUN.", "Shown for information only — it adds no points. Points come only from alerts in the oblasts near Poland (pink outline). Source: NEPTUN.", "Лише для спостереження — балів не додає. Бали дають тільки тривоги в областях поблизу Польщі (рожевий контур). Джерело: NEPTUN.")}</span>`);
 }
 /* Kraje, które umiemy podświetlić: trzy bałtyckie (punktują) i sześć
    dołożonych 03.10.2026 w trybie cienia (karta i panel tak, punkty nie). */
@@ -2720,7 +2720,7 @@ function openCountryAlert(e) {
         : UI.t("alarm powietrzny (doniesienie mediów)", "air-raid alert (media report)", "повітряна тривога (за повідомленнями ЗМІ)")}</span></div>
     <span style="color:#8fa3c4">${UI.t(`Doniesienie z ${since}:`, `Reported at ${since}:`, `Повідомлення від ${since}:`)}</span> ${art}<br>
     ${rows}<br>
-    <span style="color:#68758c">${stopka}</span>`);
+    <span style="color:#9aa6be">${stopka}</span>`);
 }
 function openOblastCard(p) {
   const e = oblastInfo.get(p.oblast);
@@ -2734,16 +2734,16 @@ function openOblastCard(p) {
     const km = r.km == null ? "" : r.km <= 0 ? (UI.t(" (przy granicy)", " (at the border)", " (біля кордону)")) : ` — ${r.km} km`;
     const pts = Number(r.points).toFixed(2).replace(/0$/, "");
     const counted = r.counted != null && Math.abs(r.counted - r.points) >= 0.01
-      ? ` <span style="color:#68758c">(${UI.t("wliczone", "counted", "враховано")} ${en ? Number(r.counted).toFixed(1) : Number(r.counted).toFixed(1).replace(".", ",")} — ${UI.t("limit klasy", "class cap", "ліміт класу")})</span>` : "";
-    const half = r.half ? ` <span style="color:#68758c">(${UI.t("połowa wagi — alarm trwa ponad 30 min", "half weight — the alert has lasted over 30 min", "половина ваги — тривога триває понад 30 хв")})</span>` : "";
+      ? ` <span style="color:#9aa6be">(${UI.t("wliczone", "counted", "враховано")} ${en ? Number(r.counted).toFixed(1) : Number(r.counted).toFixed(1).replace(".", ",")} — ${UI.t("limit klasy", "class cap", "ліміт класу")})</span>` : "";
+    const half = r.half ? ` <span style="color:#9aa6be">(${UI.t("połowa wagi — alarm trwa ponad 30 min", "half weight — the alert has lasted over 30 min", "половина ваги — тривога триває понад 30 хв")})</span>` : "";
     return `${UI.t("woj. ", "", "воєв. ")}${esc2(UI.voiv(r.voiv))}${km}: <b>+${UI.isEn ? pts : pts.replace(".", ",")} ${UI.t("pkt", "pt", "бал.")}</b>${half}${counted}`;
   }).join("<br>");
   showCard(`
-    <div class="zone-head"><b style="color:#b8325a">📢 ${esc2(name)}</b>
+    <div class="zone-head"><b style="color:#ff8aa3">📢 ${esc2(name)}</b>
       <span style="color:#8fa3c4">· ${UI.t("alarm powietrzny", "air-raid alert", "повітряна тривога")}</span></div>
     <span style="color:#8fa3c4">${UI.t(`Alarm trwa od ${since}.`, `Alert in progress since ${since}.`, `Тривога триває від ${since}.`)}</span><br>
     ${rows}<br>
-    <span style="color:#68758c">${UI.t("Alarm ogłasza ukraińska obrona cywilna dla całego obwodu. Waga maleje z odległością od województwa (tabela w instrukcji), a cała klasa ma limit 1 pkt. Przez pierwsze 30 minut alarm liczy się w pełni, potem w połowie, dopóki trwa; gdy się skończy, punkty i podświetlenie znikają od razu.", "Ukraine's civil defence declares the alert for the whole oblast. Its weight falls with the distance from the province (table in the user guide), and the whole class is capped at 1 pt. For the first 30 minutes the alert counts in full, then at half weight while it lasts; when it ends, the points and the highlight disappear at once.", "Тривогу оголошує українська цивільна оборона для всієї області. Вага спадає з відстанню від воєводства (таблиця в інструкції), а весь клас має ліміт 1 бал. Перші 30 хвилин тривога рахується повністю, потім наполовину, доки триває; коли вона закінчується, бали й підсвічення зникають одразу.")}</span>`, { big: true });
+    <span style="color:#9aa6be">${UI.t("Alarm ogłasza ukraińska obrona cywilna dla całego obwodu. Waga maleje z odległością od województwa (tabela w instrukcji), a cała klasa ma limit 1 pkt. Przez pierwsze 30 minut alarm liczy się w pełni, potem w połowie, dopóki trwa; gdy się skończy, punkty i podświetlenie znikają od razu.", "Ukraine's civil defence declares the alert for the whole oblast. Its weight falls with the distance from the province (table in the user guide), and the whole class is capped at 1 pt. For the first 30 minutes the alert counts in full, then at half weight while it lasts; when it ends, the points and the highlight disappear at once.", "Тривогу оголошує українська цивільна оборона для всієї області. Вага спадає з відстанню від воєводства (таблиця в інструкції), а весь клас має ліміт 1 бал. Перші 30 хвилин тривога рахується повністю, потім наполовину, доки триває; коли вона закінчується, бали й підсвічення зникають одразу.")}</span>`, { big: true });
 }
 
 function updateVoivStates() {
@@ -5811,6 +5811,9 @@ async function renderGotowosc(jezyk = UI.lang) {
   if (!box) return;
   const nr = ++gotowoscNr;
   const T = (pl, en, uk) => jezyk === "pl" ? pl : jezyk === "uk" ? (uk !== undefined ? uk : en) : en;
+  // Moduł natywny przy zimnym starcie odpowiada nawet kilka sekund — bez tego
+  // karta wskakiwała znikąd, gdy człowiek już czytał wiersze pod nią.
+  if (!box.innerHTML) box.innerHTML = `<p class="got-sprawdzam">${esc(T("Sprawdzam zgody i ustawienia…", "Checking permissions and settings…", "Перевіряю дозволи й налаштування…"))}</p>`;
   const punkty = [];
   const woj = Places.observedVoivodeships(savedPlaces).length > 0 || !!myVoiv();
   punkty.push({ ok: woj, tekst: T("Województwo do alarmów", "Province for alerts", "Воєводство для тривог"),

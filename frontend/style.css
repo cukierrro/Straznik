@@ -157,8 +157,12 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   width: min(172px, calc(100vw - 16px));
   bottom: calc(var(--tabbar-h) + var(--safe-b) + var(--stack-h, 0px) + 6px);
   max-height: 152px; display: flex; flex-direction: column; overflow: hidden;
-  background: #fff; color: #16202f; border-radius: 12px; padding: 8px 10px 9px;
-  box-shadow: 0 8px 40px rgba(0,0,0,.55); font: 0.6667rem "Segoe UI", system-ui, sans-serif;
+  /* v4: ciemne szkło jak reszta (zasada 2). Biała karta dostawała kolory pisane
+     pod ciemne tło — bursztynowe ostrzeżenie miało 1,83:1 (przegląd UI 14.10). */
+  background: linear-gradient(180deg, rgba(34, 45, 74, 0.97), rgba(15, 20, 35, 0.98));
+  color: var(--text); border: 1px solid rgba(170, 195, 245, 0.22);
+  border-radius: 14px; padding: 8px 10px 9px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.10), 0 14px 40px -10px rgba(0,0,0,.8); font: 0.6667rem "Segoe UI", system-ui, sans-serif;
   line-height: 1.35; }
 /* rozwinięta karta — prawie cały ekran, jak przed 1.7.23 */
 #ac-card.big { right: 8px; width: auto; max-height: 74vh; max-height: 74dvh; border-radius: 14px;
@@ -208,12 +212,12 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 #ac-card.big #ac-card-zoom .ic-min { display: inline; }
 #ac-card img { width: 100%; border-radius: 6px; display: block; }
 .thr-photo img { max-height: 190px; object-fit: contain; background: #0e1626; }
-.thr-photo-note { margin-top: 3px; color: #68758c; font-size: 0.6667rem; line-height: 1.25; }
-.thr-photo-note a { color: #55729d; text-decoration: underline; }
-#ac-card a { color: #1a6fd4; }
+.thr-photo-note { margin-top: 3px; color: var(--muted); font-size: 0.6667rem; line-height: 1.25; }
+.thr-photo-note a { color: var(--cyan); text-decoration: underline; }
+#ac-card a { color: var(--cyan); }
 #ac-card table { border-collapse: collapse; }
-#ac-card .btn-follow { border: 1px solid rgba(0,0,0,.15); background: #16202f; color: #fff;
-  border-radius: 9px; }
+#ac-card .btn-follow { border: 1px solid rgba(255,255,255,.14); color: var(--text);
+  background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.04)); border-radius: 11px; }
 /* na szerokim ekranie karta jako narożnik, nie pełna szerokość */
 @media (min-width: 861px) {
   #ac-card { left: 12px; right: auto; width: 340px; max-height: 46vh; }
@@ -1813,3 +1817,9 @@ dialog.ustawienia .set-tab.sheet-row > svg:first-child { color: #fff; }
 .got-lista li.brak svg { color: #3a2600; background: var(--amber); }
 .got-lista li.brak > span { color: var(--text); font-weight: 600; }
 .got-lista .chip { min-height: 36px; padding: 0 14px; flex: none; }
+
+.got-sprawdzam { margin: 0; color: var(--muted); font-size: 0.8667rem; min-height: 60px; display: flex; align-items: center; }
+/* W aplikacji napis „hostowane na Mikrusie” wisi POD marką poza przepływem
+   (position:absolute), więc mierzona wysokość paska go nie obejmuje i (i)
+   wchodziło na ten napis. Dopełnienie paska go uwzględnia. */
+.native-app #topbar { padding-bottom: 38px; }
