@@ -1581,3 +1581,118 @@ button.voiv-head {
    treści — to nie jest kontrolka, więc obwódki nie rysujemy. Niebieska ramka
    wokół czerwonego alarmu myliłaby co do tego, co jest tu do naciśnięcia. */
 .alarm-box:focus, .alarm-box:focus-visible { outline: none; }
+
+/* ══ WYGLĄD v4 — „lekkie szkło” (przegląd UI 14.10.2026, makieta v4 przyjęta
+   przez usera) ═══════════════════════════════════════════════════════════════
+   Ta warstwa stoi NA KOŃCU pliku i zmienia tylko „skórę”: kolory, krawędzie,
+   cienie, promienie. Układ zostaje w regułach wyżej — dzięki temu widać, co
+   zmieniła v4, i łatwo to cofnąć.
+   Zasady:
+   - Szkło = półprzezroczyste tło + jasna krawędź + odblask na górnej linii
+     (inset 0 1px 0). Rozmycie (backdrop-filter) TYLKO na jednej warstwie na
+     ekranie — nigdy w elemencie, który już leży na rozmytym (ANR, 03.10).
+   - Główny przycisk: jasny niebieski z CIEMNYM napisem (~9:1). Biały na
+     dawnym --accent miał 3,16:1.
+   - Bursztyn wyłącznie dla uwagi; czerwony wyłącznie dla alarmu.
+   - Promienie: przyciski 12, wiersze i karty 14–16, okna 22. Zmiana zasady
+     „jeden kształt 11/12/8” — zgoda usera na v4 (14.10.2026).
+   - Chrome 80: bez :has, color-mix, :focus-visible bez zapasu. */
+:root {
+  --text: #e8edf8;
+  --muted: #8f9bb4;                 /* było #7c8aa5 — za blade na szkle */
+  --panel: rgba(20, 28, 47, 0.80);
+  --panel-border: rgba(170, 195, 245, 0.16);
+  --line: rgba(170, 195, 245, 0.16);  /* używane wyżej, a nigdzie niezdefiniowane */
+  --line-strong: rgba(170, 195, 245, 0.30);
+  --card: rgba(255, 255, 255, 0.045);
+  --szklo-odblask: inset 0 1px 0 rgba(255, 255, 255, 0.10);
+  --szklo-cien: 0 14px 34px -14px rgba(0, 0, 0, 0.75);
+  --akcent-jasny: #9dbcff;
+  --przycisk-glowny: linear-gradient(180deg, #b6ceff, #7ca3ff);
+  --napis-na-glownym: #06122e;
+}
+
+/* ── okna ── */
+dialog {
+  background: linear-gradient(180deg, rgba(30, 40, 66, 0.96), rgba(13, 18, 32, 0.97));
+  border: 1px solid rgba(170, 195, 245, 0.20);
+  border-radius: 22px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 30px 70px -20px rgba(0, 0, 0, 0.8);
+}
+dialog::backdrop { background: rgba(3, 6, 12, 0.58); }
+dialog > .dlg-x {
+  width: 44px; height: 44px; border-radius: 13px;
+  background: linear-gradient(180deg, rgba(50, 62, 92, 0.95), rgba(26, 34, 54, 0.95));
+  border: 1px solid rgba(255, 255, 255, 0.14); box-shadow: var(--szklo-odblask);
+}
+
+/* ── przyciski ── */
+.chip {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0.035));
+  box-shadow: var(--szklo-odblask);
+  border-radius: 12px;
+}
+@media (hover: hover) { .chip:hover { border-color: rgba(157, 188, 255, 0.55); } }
+.chip.primary, .chip.active {
+  background: var(--przycisk-glowny); color: var(--napis-na-glownym);
+  border-color: rgba(214, 228, 255, 0.70); font-weight: 600;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.60), 0 6px 16px -7px rgba(91, 140, 255, 0.75);
+}
+.set-rows > .chip.primary::after { color: var(--napis-na-glownym); }
+.chip.danger { color: #ffc2c9; border-color: rgba(255, 84, 104, 0.45);
+  background: linear-gradient(180deg, rgba(255, 84, 104, 0.18), rgba(255, 84, 104, 0.06)); }
+/* „Postaw kawę” bez bursztynu — bursztyn znaczy UWAGĘ (zasada 5) */
+.chip.coffee { background: linear-gradient(180deg, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0.035));
+  border-color: rgba(255, 255, 255, 0.12); color: var(--text); }
+.btn-row > .chip { min-height: 44px; }
+dialog menu > .chip { border-radius: 13px; }
+
+/* ── segment: tor wklęsły, wybór „wychodzi” nad tło ── */
+.seg {
+  border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px; padding: 3px; gap: 3px;
+  background: rgba(0, 0, 0, 0.22); box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.45);
+}
+.seg > .chip { border-radius: 11px; background: transparent; box-shadow: none; color: #c3cbe0; }
+.seg > .chip + .chip { border-left: 0; }
+.seg > .chip.active {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.08));
+  color: var(--text); font-weight: 600; border: 0;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.30), 0 4px 10px -4px rgba(0, 0, 0, 0.7);
+}
+
+/* ── wiersze, przełączniki, sekcje rozwijane ── */
+.set-rows > .chip, dialog label.set-switch, .set-pane details.jak {
+  border-radius: 14px; border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.045); box-shadow: var(--szklo-odblask);
+}
+.set-rows > .chip { min-height: 48px; font-size: 0.9rem; }
+dialog .set-switch .sw-track { background: rgba(255, 255, 255, 0.16);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5); }
+dialog .set-switch .sw-track::after { background: linear-gradient(180deg, #ffffff, #d6dbe6);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5); }
+dialog .set-switch input:checked + .sw-track { background: linear-gradient(180deg, #8fb2ff, #4f7ff0); }
+/* Fokus klawiatury na przełączniku dla Chrome 80–85 (bez :focus-visible) */
+dialog .set-switch input:focus + .sw-track { box-shadow: 0 0 0 2px var(--akcent-jasny); }
+
+/* ── pola formularzy: obrys widoczny (było 1,11:1, teraz ok. 3,3:1) ── */
+dialog input, dialog select, #quiet-hours input[type="time"] {
+  background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(180, 195, 225, 0.50); border-radius: 12px;
+}
+
+/* ── karty na mapie i w panelu ── */
+#panel section, #panel-head, .voiv-card {
+  background: linear-gradient(180deg, rgba(34, 45, 74, 0.82), rgba(17, 23, 39, 0.86));
+  border: 1px solid rgba(170, 195, 245, 0.18); border-radius: 16px;
+  box-shadow: var(--szklo-odblask), var(--szklo-cien);
+}
+/* karty województw leżą W rozmytej sekcji panelu — bez własnego rozmycia */
+.voiv-card { backdrop-filter: none; -webkit-backdrop-filter: none;
+  background: rgba(255, 255, 255, 0.05); box-shadow: var(--szklo-odblask); }
+.map-btn, #map-actions .map-btn, #map-actions .map-toggle, .icon-btn {
+  background: linear-gradient(180deg, rgba(40, 52, 82, 0.86), rgba(18, 24, 40, 0.88));
+  border: 1px solid rgba(170, 195, 245, 0.20); box-shadow: var(--szklo-odblask), var(--szklo-cien);
+}
+#map-actions .map-btn { border-radius: 16px; }
+.icon-btn { border-radius: 13px; }
+
