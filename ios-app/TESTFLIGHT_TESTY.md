@@ -817,3 +817,48 @@ a nie „Dźwięki". Zgłoszone sesji głównej do poprawki we wspólnym froncie
 Zastrzeżenie: „żółty cichy przy wyłączonych Dźwiękach" nie było mierzone osobno —
 to zwykłe powiadomienie, więc `soundSetting == .disabled` zdejmuje mu dźwięk.
 Zmierzony jest wyłącznie czerwony.
+
+## 18. Co sprawdzić w buildzie 1.7.95 (lista gotowa 14.10.2026)
+
+Wydanie jest duże i prawie w całości webowe: wygląd v4 „lekkie szkło", pływający
+dolny pasek z GROTĄ, Menu zamiast „Więcej", ustawienia jako arkusz, licznik
+obiektów w górnym pasku, godziny ciszy (Android), nowy eksport GROTY.
+**Po stronie natywnej iOS nie zmienia się nic** — żadnych nowych wtyczek,
+uprawnień, wpisów w `Info.plist` ani zgód, więc **App Privacy bez zmian**.
+
+### Zanim zbuduję
+
+- [ ] `#quiet-hours` ma `android-only` (godziny ciszy są tylko androidowe,
+      `godzinyCiszyTeraz()` zwraca `false` przy `IS_IOS`).
+- [ ] `#yv-ios-note` (`p.ios-only`) nadal pokazuje się w nowym arkuszu ustawień —
+      to poprawione zdanie o przełączniku „Dźwięki" po pomiarze z 14.10 (§17).
+- [ ] W arkuszu ustawień v4 nie wychodzi nic androidowego, czego wcześniej nie było.
+- [ ] Prefiksy `-webkit-backdrop-filter`: sprawdzone i **zamknięte** na gałęzi UI
+      (`6cbd8a4` + naprawa `.lg-head` w `ed1599b`) — 15 par, wartości `blur()`/`none`.
+      Po scaleniu na `main` sprawdzić jeszcze raz, czy scalenie czegoś nie zgubiło.
+
+### Na urządzeniu
+
+| # | Co | Dlaczego akurat to |
+|---|----|--------------------|
+| 1 | **Ścieżka alarmu** (`ab43b01`, „Alarm na wierzchu" zamyka okna i kartę) | jedyna zmiana w tym wydaniu dotykająca tego, co musi zadziałać w najgorszym momencie; test czerwony przy otwartym arkuszu ustawień i przy otwartej karcie obiektu |
+| 2 | Pływający dolny pasek z GROTĄ | nowy element nad mapą; sprawdzić też obszar bezpieczny na dole (pasek gestów) |
+| 3 | Karta obiektu | czytelność nad mapą; na iOS 16/17 bez rozmycia (patrz niżej) |
+| 4 | Panel sygnałów | jw. |
+| 5 | Okno licznika dronów i rakiet (`b4fb0b5`) | nowe, nie było nigdy na iPhonie |
+| 6 | Nagłówek i wykres 12 h w historii | nowe panele v4 |
+| 7 | Tekst 200% | w v4 doszły nowe pojemniki; wcześniej „test 200% przeszedł, ale tekst się mielił" |
+
+**Czytelność na starszym iPhonie:** sesja UI świadomie **nie dodała** zapasu
+`@supports not (-webkit-backdrop-filter…)`, bo panele v4 mają tło `rgba` o kryciu
+0,80–0,92 (np. `--panel` 0,80, dolny pasek 0,84–0,90), więc brak rozmycia na
+iOS 16/17 nie zostawia tekstu na gołej mapie. Przyjęte. Jeśli na urządzeniu coś
+jednak będzie nieczytelne, zgłaszać **z nazwą ekranu**, a nie ogólnie — podniosą
+krycie w tym jednym miejscu.
+
+### Czego w tym wydaniu NIE ma i nie obiecujemy
+
+Ciszy żółtego na iPhonie i języka powiadomienia — to rozszerzenie powiadomień
+(NSE), zatwierdzone jako **osobne wydanie po 1.7.95** (`PLAN_IOS.md` §9).
+Do tego czasu w aplikacji zostaje notka „alarmy przychodzą po polsku", która po
+wejściu D2 (język telefonu zamiast polskiego) dotyczy większej liczby osób.
