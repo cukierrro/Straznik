@@ -416,8 +416,11 @@
     for (const id of ["ps", "ps-hit"]) if (map.getLayer(id)) map.setFilter(id, filterExpr());
   }
 
+  /* Liczymy z samych punktów, bez oglądania się na S.counts. Dawniej przy pustym S.counts wychodziło
+     zero, a S.counts powstaje dopiero przy budowaniu warstwy mapy — więc komuś z zawężonym filtrem
+     pasek „Filtry i widok” pokazywał „0 pkt”, choć punkty były już wczytane (najłatwiej zobaczyć
+     bez internetu). Bez punktów obie drogi i tak dają zero. */
   function visibleCount() {
-    if (!S.counts) return 0;
     // kategorie są niezależne, więc liczymy wprost po punktach tylko przy zawężonym filtrze
     const full = S.filter.dostep.length === 3 && S.filter.trust.length === 3 && !S.filter.grupy;
     if (full) return S.points.length;
