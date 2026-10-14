@@ -671,7 +671,7 @@
     "Where to shelter": "Де сховатися",
     "Watch the map": "Спостерігати за мапою",
     "I'm in a safe place": "Я в безпечному місці",
-    "unofficial fusion of air-threat signals": "неофіційний синтез сигналів про повітряну загрозу",
+    "unofficial air threat map for Poland": "неофіційна мапа повітряних загроз для Польщі", "unofficial fusion of air-threat signals": "неофіційний синтез сигналів про повітряну загрозу",
     "Strażnik is an unofficial air-threat map for Poland. It combines reports of drones and missiles over Ukraine with RCB and RSO alerts, PAŻP airspace zones, ADS-B traffic and media reports. The map works live in a browser, and the Android and iPhone apps send alert notifications, even when the app is closed.":
       "Strażnik — неофіційна мапа повітряної загрози для Польщі. Вона поєднує повідомлення про дрони й ракети над Україною з тривогами RCB і RSO, зонами повітряного простору PAŻP, рухом ADS-B і повідомленнями ЗМІ. Мапа працює наживо у браузері, а застосунки для Android та iPhone надсилають сповіщення про тривогу навіть тоді, коли застосунок закритий.",
     "This is NOT an official warning system. It does not replace sirens, RCB or RSO alerts. In a real emergency, follow official channels. Strażnik provides an additional, potentially earlier signal — nothing more.":
@@ -1019,7 +1019,7 @@
     set("#onboard-bg h2", "Push alerts");
     set("#settings details p.fineprint", "By default the app uses the Strażnik server (straznik.eu) — data and fusion are computed once on the server. When the server is unavailable, the app switches to its built-in mode and computes on the device. Enter your own HTTPS address (e.g. https://straznik.your-domain.pl) only if you want to use your own backend. HTTP and certificates added manually to the phone are not supported in the production build.");
     set("#alarm-overlay .alarm-note", "This is an UNOFFICIAL signal. Check sirens, RCB and RSO alerts — official channels are authoritative.");
-    set("#about .about-sub", "unofficial fusion of air-threat signals");
+    set("#about .about-sub", "unofficial air threat map for Poland");
     /* PO IDENTYFIKATORACH: lista pozycyjna nad `.about-body > p`
        trzymala caly rozdzial w jednym poziomie HTML — nie dalo sie
        zwinac sekcji ani dolozyc akapitu bez rozjechania angielskiego. */

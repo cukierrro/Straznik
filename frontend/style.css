@@ -1926,3 +1926,68 @@ body.dane-stare .led i { background: #6b7385 !important; box-shadow: none !impor
   background: linear-gradient(180deg, rgba(14, 19, 33, 0), rgba(14, 19, 33, 0.96) 28%);
   border-top: 1px solid rgba(170, 195, 245, 0.10); }
 #about-close { min-height: 44px; }
+
+/* ── „O aplikacji” / powitanie w stylu v4 (uwaga usera 14.10.2026: „brzydko,
+   nieprofesjonalnie”) ──
+   Krzyżyk był pływający (float), a przewijana treść obok niego tworzyła własny
+   kontekst i zwężała się na CAŁĄ wysokość — wąska kolumna i drugi pasek
+   przewijania w środku okna. Krzyżyk w rogu bezwzględnie, treść na pełną szerokość. */
+dialog#about { width: min(560px, 94vw); border-radius: 24px; }
+#about > .dlg-x { position: absolute; top: 12px; right: 12px; float: none; margin: 0; z-index: 3; }
+#about .about-body { padding: 18px 18px 0; }
+#about .about-head { padding-right: 112px; margin-bottom: 14px; gap: 12px; min-height: 52px; }
+#about .about-logo { width: 48px; height: 48px; border-radius: 14px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.25), 0 6px 18px -6px rgba(91,140,255,.7); }
+#about h2 { font-size: 1.3333rem; letter-spacing: .14em; line-height: 1.15; }
+#about .about-sub { font-size: 0.8333rem; line-height: 1.35; margin-top: 2px; }
+#about #ab-intro { font-size: 0.9333rem; line-height: 1.55; color: #c9d3e6; }
+/* ostrzeżenie: karta z ikoną, nie bursztynowa plama */
+#about .warn-box { position: relative; margin: 12px 0 14px; padding: 12px 14px 12px 46px;
+  border-radius: 16px; background: rgba(255, 176, 32, 0.08); border: 1px solid rgba(255, 176, 32, 0.35);
+  color: #f1e2c3; font-size: 0.8667rem; line-height: 1.5; box-shadow: var(--szklo-odblask); }
+#about .warn-box b { color: #ffd98a; }
+#about .warn-box::before { content: "!"; position: absolute; left: 13px; top: 12px; width: 22px; height: 22px;
+  border-radius: 50%; display: grid; place-items: center; background: var(--amber); color: #3a2600;
+  font-weight: 800; font-size: 0.8667rem; line-height: 1; }
+/* rozdziały jako wiersze rozwijane — ta sama karta co w ustawieniach i Menu */
+#about .about-sec { border: 1px solid rgba(255, 255, 255, 0.09); border-radius: 14px; margin-top: 6px;
+  background: rgba(255, 255, 255, 0.045); box-shadow: var(--szklo-odblask); }
+#about .about-sec > summary { min-height: 50px; padding: 0 14px; }
+#about .about-sec > summary > h3 { margin: 0; text-transform: none; letter-spacing: 0;
+  font-size: 0.9333rem; font-weight: 600; color: var(--text); }
+#about .about-sec[open] { padding: 0 14px 12px; }
+#about .about-sec[open] > summary { margin: 0 -14px 4px; }
+/* stopka: jeden główny przycisk na całą szerokość, wsparcie jako drugi plan */
+#about .about-actions { display: grid; gap: 8px; justify-content: stretch; margin: 16px -18px 0; padding: 14px 18px calc(14px + var(--safe-b));
+  bottom: 0; background: linear-gradient(180deg, rgba(14, 19, 33, 0), rgba(14, 19, 33, 0.97) 24%); }
+#about #about-close { order: -1; width: 100%; min-height: 48px; font-size: 1rem; }
+#about .about-actions .chip.coffee { width: 100%; min-height: 44px; justify-content: center; display: flex; align-items: center; }
+
+/* Na wąskim ekranie kawa z górnego paska była samą ikoną (font-size: 0) — w stopce
+   powitania ma mieć pełny napis. */
+#about .chip.coffee { font-size: 0.9rem; padding: 8px 14px; color: var(--text); text-decoration: none; }
+#about .chip.coffee::before { content: none; }
+
+/* ── paski przewijania (uwaga usera 14.10.2026: „rozciągnięte na całą długość psują
+   wygląd”) ── cienkie, półprzezroczyste, zaokrąglone, odsunięte od zaokrąglonych
+   rogów okien; tor niewidoczny. Firefox: scrollbar-width/color. */
+dialog, .about-body, .upd-txt, .places-dialog form, #panel, #legend, #ac-card-body, .list {
+  scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, 0.22) transparent; }
+::-webkit-scrollbar,
+dialog::-webkit-scrollbar, .upd-txt::-webkit-scrollbar,
+.about-body::-webkit-scrollbar, .places-dialog form::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track,
+dialog::-webkit-scrollbar-track, .about-body::-webkit-scrollbar-track,
+.places-dialog form::-webkit-scrollbar-track { background: transparent; margin: 18px 0; }
+::-webkit-scrollbar-thumb,
+dialog::-webkit-scrollbar-thumb, .upd-txt::-webkit-scrollbar-thumb,
+.about-body::-webkit-scrollbar-thumb, .places-dialog form::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.20); border-radius: 10px;
+  border: 3px solid transparent; background-clip: content-box; min-height: 40px; }
+::-webkit-scrollbar-thumb:hover, dialog::-webkit-scrollbar-thumb:hover { background-color: rgba(255, 255, 255, 0.34); }
+::-webkit-scrollbar-corner { background: transparent; }
+/* W aplikacji przewija się palcem — pasek tylko jako cienka wskazówka. */
+.native-app ::-webkit-scrollbar, .native-app dialog::-webkit-scrollbar,
+.native-app .about-body::-webkit-scrollbar { width: 6px; }
+.native-app ::-webkit-scrollbar-thumb, .native-app dialog::-webkit-scrollbar-thumb,
+.native-app .about-body::-webkit-scrollbar-thumb { border-width: 1.5px; background-color: rgba(255, 255, 255, 0.16); }

@@ -104,7 +104,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <link rel="icon" type="image/png" sizes="512x512" href="assets/icon-512.png">
 <link rel="apple-touch-icon" href="assets/icon-192.png">
 <link rel="stylesheet" href="assets/vendor/maplibre-gl.css?v=1.7.82">
-<link rel="stylesheet" href="style.css?v=1.7.95-ui15">
+<link rel="stylesheet" href="style.css?v=1.7.95-ui17">
 </head>
 <body>
 
@@ -539,14 +539,14 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
   </div>
 </div>
 
-<dialog id="about" aria-labelledby="about-h">
+<dialog id="about" class="sheet" aria-labelledby="about-h">
   <button type="button" class="dlg-x dlg-x-slowo"><span>Zamknij</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
   <div class="about-body">
     <div class="about-head">
       <div class="about-logo"></div>
       <div>
         <h2 id="about-h">STRAŻNIK</h2>
-        <p class="about-sub">nieoficjalna fuzja sygnałów o zagrożeniach powietrznych</p>
+        <p class="about-sub">nieoficjalna mapa zagrożeń z powietrza dla Polski</p>
       </div>
     </div>
 
@@ -563,7 +563,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
       nic więcej.
     </div>
 
-    <details class="about-sec" open>
+    <details class="about-sec">
       <summary><h3>Jak to działa</h3></summary>
     <p id="ab-fuzja">Żaden pojedynczy sygnał nie przesądza o zagrożeniu. Aplikacja zbiera
     kilka niezależnych wskaźników, przydziela im punkty i sumuje je w oknie
@@ -1200,7 +1200,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
      Cloudflare, więc po każdym wydaniu wystarczy podbić ?v= i przeglądarki
      dostają nowe app.js/engine.js OD RAZU, bez ręcznego czyszczenia cache CF.
      Podbijaj ?v= razem z versionName w build.gradle. -->
-<script src="i18n.js?v=1.7.95-ui13"></script>
+<script src="i18n.js?v=1.7.95-ui16"></script>
 <!-- kontur Polski dla engine.js (audyt A2b, scripts/build_pl_outline.py) -->
 <script src="pl-outline.js?v=1.7.82"></script>
 <script src="engine.js?v=1.7.94"></script>
