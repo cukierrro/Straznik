@@ -927,7 +927,10 @@
       "btn-3d": ["title","Switch between 2D and 3D view"],
       "btn-watch": ["title","Foreign (RU/BY) aircraft over the eastern flank"],
       "btn-push": ["title","Notifications"],
-      "attr-i": ["title","Map sources"]
+      "attr-i": ["title","Map sources"],
+      "disclaimer-x": ["aria-label","Hide the warning (returns with an alert)"],
+      "skrot-www-x": ["aria-label","Hide this bar"],
+      "tb-slider": ["aria-label","Scroll through 12 hours of history"]
     };
     for (const [id, [a,v]] of Object.entries(attrs)) {
       const el = document.getElementById(id); if (!el) continue;
@@ -976,7 +979,7 @@
     if (zoneNote) zoneNote.textContent = "the zone layer adds no points — only a rare D/R/NPZ/ADHOC "
       + "zone from the ground up over the east or north scores; tap a zone for details";
     const live = document.getElementById("tb-live");
-    if (live) { live.innerHTML = "SWITCH<br>TO LIVE"; live.title = "Back to live view";
+    if (live) { live.innerHTML = "LIVE"; live.title = "Back to live view";
       live.setAttribute("aria-label", "Back to live view"); }
     const mode = document.querySelector(".tb-mode .tb-two");
     if (mode) mode.innerHTML = "HISTORY<br>VIEW";
@@ -1251,6 +1254,9 @@
     "#more-sheet .dlg-x": ["aria-label", "Закрити меню"],
     "#settings .dlg-x": ["aria-label", "Закрити налаштування"],
     "#attr-i": ["title", "Джерела мапи"],
+    "#disclaimer-x": ["aria-label", "Сховати попередження (повернеться під час тривоги)"],
+    "#skrot-www-x": ["aria-label", "Сховати цю смугу"],
+    "#tb-slider": ["aria-label", "Прогорнути історію за 12 годин"],
   };
 
   function ukrainize(root) {
@@ -1291,7 +1297,7 @@
     const placeName = document.getElementById("place-name");
     if (placeName) placeName.placeholder = "напр. Дім";
     const live = document.getElementById("tb-live");
-    if (live) live.innerHTML = "ПЕРЕЙТИ<br>НАЖИВО";
+    if (live) live.innerHTML = "НАЖИВО";
     const mode = document.querySelector(".tb-mode .tb-two");
     if (mode) mode.innerHTML = "ПЕРЕГЛЯД<br>ІСТОРІЇ";
     const brandInfo = document.querySelector(".brand-info");

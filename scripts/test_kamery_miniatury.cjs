@@ -217,7 +217,7 @@ test('włączone miniatury wymagają worldcam.pl w polityce prywatności', () =>
 
 test('opis okienka kamer zgadza się z tym, czy miniatury są pokazywane', () => {
   const wlaczone = camThumbsWlaczone();
-  const opis = /<dialog id="cameras">[\s\S]*?<div id="cam-list"/.exec(czytaj('frontend/index.html'));
+  const opis = /<dialog id="cameras"[^>]*>[\s\S]*?<div id="cam-list"/.exec(czytaj('frontend/index.html'));
   assert.ok(opis, 'nie znalazłem opisu w okienku kamer');
   const tekst = opis[0];
   if (wlaczone) {

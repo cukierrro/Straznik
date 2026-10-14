@@ -104,7 +104,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <link rel="icon" type="image/png" sizes="512x512" href="assets/icon-512.png">
 <link rel="apple-touch-icon" href="assets/icon-192.png">
 <link rel="stylesheet" href="assets/vendor/maplibre-gl.css?v=1.7.82">
-<link rel="stylesheet" href="style.css?v=1.7.95-ui10">
+<link rel="stylesheet" href="style.css?v=1.7.95-ui11">
 </head>
 <body>
 
@@ -240,7 +240,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
     <!-- 17.09.2026: pełnej szerokości przycisk „Wróć do podglądu na żywo” zajmował cały
          rząd; teraz mała ramka obok nazwy trybu, a jego miejsce mają przyciski przewijania -->
     <button type="button" id="tb-live" class="tb-live" title="Wróć do podglądu na żywo"
-            aria-label="Wróć do podglądu na żywo">ZMIEŃ<br>NA ŻYWO</button>
+            aria-label="Wróć do podglądu na żywo">NA<br>ŻYWO</button>
     <!-- plakietka alarmu ogólnokrajowego: w nagłówku o stałej wysokości, żeby
          pojawienie się komunikatu nie podnosiło paska pod palcem -->
     <span id="tb-national"></span>
@@ -284,12 +284,12 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <div id="skrot-www" hidden>
   <span id="skrot-www-tekst">To jest skrót do strony, nie aplikacja. Alarmy przy zamkniętym oknie i schronienie (GROTA) są w aplikacji na telefon.</span>
   <a id="skrot-www-pobierz" href="https://play.google.com/store/apps/details?id=pl.straznik.app" target="_blank" rel="noopener">↓ Pobierz aplikację</a>
-  <button id="skrot-www-x" title="Ukryj">✕</button>
+  <button id="skrot-www-x" title="Ukryj" aria-label="Ukryj ten pasek">✕</button>
 </div>
 <div id="disclaimer">
   <span>NIEOFICJALNE źródło dodatkowe — nie zastępuje syren, alertów RCB ani RSO.
   W razie realnego zagrożenia kieruj się oficjalnymi kanałami.</span>
-  <button id="disclaimer-x" title="Ukryj (wróci przy alarmie)">✕</button>
+  <button id="disclaimer-x" title="Ukryj (wróci przy alarmie)" aria-label="Ukryj ostrzeżenie (wróci przy alarmie)">✕</button>
 </div>
 </div>
 
@@ -539,13 +539,13 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
   </div>
 </div>
 
-<dialog id="about">
-  <button type="button" class="dlg-x" aria-label="Zamknij" title="Zamknij">✕</button>
+<dialog id="about" aria-labelledby="about-h">
+  <button type="button" class="dlg-x dlg-x-slowo"><span>Zamknij</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
   <div class="about-body">
     <div class="about-head">
       <div class="about-logo"></div>
       <div>
-        <h2>STRAŻNIK</h2>
+        <h2 id="about-h">STRAŻNIK</h2>
         <p class="about-sub">nieoficjalna fuzja sygnałów o zagrożeniach powietrznych</p>
       </div>
     </div>
@@ -748,9 +748,9 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
   </div>
 </dialog>
 
-<dialog id="sources">
-  <button type="button" class="dlg-x" aria-label="Zamknij" title="Zamknij">✕</button>
-  <h3>Źródła danych</h3>
+<dialog id="sources" aria-labelledby="src-h">
+  <button type="button" class="dlg-x dlg-x-slowo"><span>Zamknij</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  <h3 id="src-h">Źródła danych</h3>
   <p class="fineprint">Każda dioda u góry ekranu to jedno źródło. Fuzja wymaga
   zgodności kilku z nich, więc pojedyncze niedostępne źródło nie wyłącza
   ostrzegania — obniża tylko liczbę potwierdzeń.</p>
@@ -769,15 +769,15 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
   © OpenStreetMap.</p>
 </dialog>
 
-<dialog id="national-info">
-  <button type="button" class="dlg-x" aria-label="Zamknij" title="Zamknij">✕</button>
+<dialog id="national-info" aria-labelledby="national-info-head">
+  <button type="button" class="dlg-x dlg-x-slowo"><span>Zamknij</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
   <h3 id="national-info-head"></h3>
   <p id="national-info-body"></p>
 </dialog>
 
-<dialog id="watch">
-  <button type="button" class="dlg-x" aria-label="Zamknij" title="Zamknij">✕</button>
-  <h3>🛰 Obce maszyny nad wschodnią flanką</h3>
+<dialog id="watch" aria-labelledby="watch-h">
+  <button type="button" class="dlg-x dlg-x-slowo"><span>Zamknij</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  <h3 id="watch-h"><span aria-hidden="true">🛰 </span>Obce maszyny nad wschodnią flanką</h3>
   <p class="fineprint">Wojskowe samoloty o rejestracji <b>rosyjskiej lub białoruskiej</b>,
   widoczne w publicznych danych ADS-B/MLAT nad wschodnią flanką i w jej otoczeniu.
   W historii panel pokazuje czas wybrany suwakiem. To <b>obserwacja</b> emisji
@@ -791,8 +791,8 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
   <div id="watch-events" class="list"></div>
 </dialog>
 
-<dialog id="cameras">
-  <button type="button" class="dlg-x" aria-label="Zamknij" title="Zamknij">✕</button>
+<dialog id="cameras" aria-labelledby="cam-title">
+  <button type="button" class="dlg-x dlg-x-slowo"><span>Zamknij</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
   <h3 id="cam-title">Kamery</h3>
   <p class="fineprint">Publiczne kamery miejskie i turystyczne (worldcam.pl).
   Na liście są tylko te, które przy budowie aplikacji faktycznie nadawały.
@@ -807,13 +807,13 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
   byłoby dokładnie tym zastosowaniem, przed którym ten zakaz chroni.</p>
 </dialog>
 
-<dialog id="onboard-bg">
-  <button type="button" class="dlg-x" aria-label="Zamknij" title="Zamknij">✕</button>
+<dialog id="onboard-bg" aria-labelledby="onboard-bg-h">
+  <button type="button" class="dlg-x dlg-x-slowo"><span>Zamknij</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
   <div class="about-body" style="max-height:none">
     <div class="about-head">
       <div class="about-logo"></div>
       <div>
-        <h2 style="font-size:1.1333rem;letter-spacing:.06em">Alarmy push</h2>
+        <h2 id="onboard-bg-h" style="font-size:1.1333rem;letter-spacing:.06em">Alarmy push</h2>
         <p class="about-sub">żeby ostrzeżenie dotarło, gdy nie patrzysz na telefon</p>
       </div>
     </div>
@@ -835,13 +835,13 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 </dialog>
 
 <!-- 17.09.2026: po aktualizacji Android wyłączył zgodę, a aplikacja tego nie pokazała -->
-<dialog id="fs-check" class="android-only">
-  <button type="button" class="dlg-x" aria-label="Zamknij" title="Zamknij">✕</button>
+<dialog id="fs-check" class="android-only" aria-labelledby="fs-check-h">
+  <button type="button" class="dlg-x dlg-x-slowo"><span>Zamknij</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
   <div class="about-body" style="max-height:none">
     <div class="about-head">
       <div class="about-logo"></div>
       <div>
-        <h2 style="font-size:1.1333rem;letter-spacing:.06em">Alarm pełnoekranowy</h2>
+        <h2 id="fs-check-h" style="font-size:1.1333rem;letter-spacing:.06em">Alarm pełnoekranowy</h2>
         <p class="about-sub">sprawdź zgodę po aktualizacji</p>
       </div>
     </div>
@@ -1181,9 +1181,9 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
   </form>
 </dialog>
 
-<dialog id="places-dialog" class="places-dialog">
+<dialog id="places-dialog" class="places-dialog" aria-labelledby="places-h">
   <form id="places-form">
-    <div class="places-head"><div><div class="eyebrow">STRAŻNIK</div><h2>Moje miejsca</h2></div><button type="button" id="places-close" class="chip" aria-label="Zamknij">✕</button></div>
+    <div class="places-head"><div><div class="eyebrow">STRAŻNIK</div><h2 id="places-h">Moje miejsca</h2></div><button type="button" id="places-close" class="chip" aria-label="Zamknij">✕</button></div>
     <p class="fineprint" id="places-intro">Zapisane miejsce nie oznacza Twojej obecności. Dane pozostają na tym urządzeniu.</p>
     <div class="places-tabs" id="places-tabs"></div>
     <button type="button" id="place-add" class="chip">＋ Dodaj miejsce</button>
@@ -1205,7 +1205,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
      Cloudflare, więc po każdym wydaniu wystarczy podbić ?v= i przeglądarki
      dostają nowe app.js/engine.js OD RAZU, bez ręcznego czyszczenia cache CF.
      Podbijaj ?v= razem z versionName w build.gradle. -->
-<script src="i18n.js?v=1.7.95-ui10"></script>
+<script src="i18n.js?v=1.7.95-ui11"></script>
 <!-- kontur Polski dla engine.js (audyt A2b, scripts/build_pl_outline.py) -->
 <script src="pl-outline.js?v=1.7.82"></script>
 <script src="engine.js?v=1.7.94"></script>
@@ -1221,7 +1221,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <div id="a11y-alert" class="sr-only" role="status" aria-live="assertive" aria-atomic="true"></div>
 <div id="a11y-info" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
 
-<script src="app.js?v=1.7.95-ui10"></script>
+<script src="app.js?v=1.7.95-ui11"></script>
 <script>
 /* Instrukcja pasująca do telefonu i języka (21.09.2026). iPhone ma osobną, bo alarmy,
    zgody i aktualizacje działają tam inaczej. Tu, a nie w app.js: index.html nie jest

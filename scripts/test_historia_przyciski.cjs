@@ -58,7 +58,10 @@ const acts = [...html.matchAll(/class="tb-btn[^"]*" data-act="([a-z0-9-]+)"/g)].
 assert.deepEqual(acts, ['start', 'prev-alarm', 'back10', 'back1', 'play', 'fwd1', 'fwd10', 'next-alarm', 'end'],
   'dziewięć przycisków w ustalonej kolejności');
 const head = html.slice(html.indexOf('<div class="tb-head">'), html.indexOf('<div class="tb-row">'));
-assert.match(head, /id="tb-live"[^>]*>ZMIEŃ<br>NA ŻYWO</, '„ZMIEŃ NA ŻYWO” w nagłówku, w dwóch liniach');
+// 14.10.2026: „ZMIEŃ NA ŻYWO” → „NA ŻYWO” — widoczny napis musi być zawarty w nazwie
+// przycisku „Wróć do podglądu na żywo” (WCAG 2.5.3, sterowanie głosem).
+assert.match(head, /id="tb-live"[^>]*>NA<br>ŻYWO</, '„NA ŻYWO” w nagłówku, w dwóch liniach');
+assert.match(head, /id="tb-live"[^>]*aria-label="[^"]*na żywo"/i, 'nazwa przycisku zawiera widoczny napis');
 assert.match(head, /PODGLĄD<br>HISTORII/, '„PODGLĄD HISTORII” w dwóch liniach');
 assert.match(head, /id="tb-speed"/, 'wybór prędkości w nagłówku');
 assert.ok(!/chip primary">▶ Wróć do podglądu/.test(html), 'stary przycisk na całą szerokość usunięty');

@@ -818,6 +818,7 @@ function startStandalone() {
   // Audyt C2: tryb awaryjny musi być widoczny — bez serwera nie ma pushy FCM,
   // a silnik powiadamia tylko przy otwartej aplikacji. Wcześniej znacznik znikał.
   connBadge.textContent = UI.t("tryb awaryjny — serwer niedostępny, bez alarmów przy zamkniętej aplikacji", "emergency mode — server unavailable, no alerts while the app is closed", "аварійний режим — сервер недоступний, без тривог при закритому застосунку");
+  setTimeout(() => powiedz(a11yInfo, connBadge.textContent), 0);
   connBadge.style.cursor = "pointer";
   connBadge.onclick = () => showSources();
   connBadge.classList.remove("hidden");
@@ -4021,7 +4022,7 @@ function balticRows() {
 
 function renderLeds() {
   document.getElementById("status-leds").innerHTML = ledItems().map(([n, ok]) =>
-    `<span class="led ${ok ? "ok" : "err"}"><i></i><span>${esc(srcTitle(n))}</span></span>`).join("");
+    `<span class="led ${ok ? "ok" : "err"}"><i></i><span>${esc(srcTitle(n))}<span class="sr-only">: ${ok ? UI.t("działa", "working", "працює") : UI.t("brak odpowiedzi", "not responding", "немає відповіді")}</span></span></span>`).join("");
   // okno źródeł bywa otwarte właśnie wtedy, gdy użytkownik czeka na powrót
   // połączenia — musi pokazywać stan na żywo, nie ten sprzed otwarcia
   if (document.getElementById("sources")?.open) fillSources();
@@ -4065,6 +4066,10 @@ document.addEventListener("click", (e) => {
 });
 
 document.getElementById("status-leds").onclick = () => { if (state) showSources(); };
+/* role="button" bez Enter i Spacji był przyciskiem tylko dla myszy (przegląd UI 14.10.2026). */
+document.getElementById("status-leds").addEventListener("keydown", (e) => {
+  if ((e.key === "Enter" || e.key === " ") && state) { e.preventDefault(); showSources(); }
+});
 
 /* Popup „Strażnik": na desktopie pokazuje go hover (CSS), a na ekranach
    dotykowych sterujemy nim tapnięciem — dotknięcie marki przełącza, dotknięcie
@@ -5588,6 +5593,7 @@ function quickLabel(idx) {
   document.getElementById("tb-label").textContent =
     when.toLocaleTimeString(UI.t("pl-PL", "en-GB", "uk-UA"), { hour: "2-digit", minute: "2-digit" })
     + (ageMin > 1 ? ` (${histAgo(ageMin)})` : (UI.t(" (teraz)", " (now)", " (зараз)")));
+  document.getElementById("tb-slider").setAttribute("aria-valuetext", document.getElementById("tb-label").textContent);
   document.getElementById("tb-slider").dataset.level = timelinePoints[idx]?.level || "none";
   syncTbControls(idx);
 }
@@ -7012,6 +7018,13 @@ window.straznikBack = function () {
   if (!document.getElementById("panel").classList.contains("collapsed")) { setPanel(false); return true; }
   return false;
 };
+/* Esc robi na stronie to, co systemowe „wstecz” w aplikacji: zamyka kartę obiektu,
+   legendę, historię i panel (przegląd UI 14.10.2026 — na stronie Esc nie działało).
+   Otwarte okna obsługują Esc same (zdarzenie cancel), więc wtedy nie wchodzimy. */
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape" || e.defaultPrevented || document.querySelector("dialog[open]")) return;
+  if (window.straznikBack?.()) e.preventDefault();
+});
 /* Ten sam skutek co ponowne dotknięcie ikony na pasku — tylko widoczny. */
 document.getElementById("legend-x")?.addEventListener("click", () =>
   document.getElementById("btn-legend").click());

@@ -1326,7 +1326,9 @@ dialog > .dlg-x:hover { color: var(--text); border-color: var(--accent); }
    gruba obwodka wygladala jak wcisniety przycisk. Zostaje sam akcent ramki:
    widoczny dla klawiatury, niekrzyczacy przy dotyku. (:focus-visible odpada,
    bo wspieramy Chrome 80.) */
-dialog > .dlg-x:focus { outline: none; box-shadow: none; border-color: var(--accent); }
+/* Tylko przy fokusie z dotyku/myszy — klawiatura dostaje pełną obwódkę
+   (wcześniej ta reguła gasiła ją także dla klawiatury; przegląd UI 14.10.2026). */
+dialog > .dlg-x:focus:not(:focus-visible) { outline: none; box-shadow: none; border-color: var(--accent); }
 
 /* ── ustawienia: jeden typ sterowania na jeden rodzaj decyzji ─────────────
    włącz/wyłącz = przełącznik (.set-switch, było),
@@ -1881,4 +1883,15 @@ body.dane-stare .led i { background: #6b7385 !important; box-shadow: none !impor
 @media (prefers-reduced-motion: reduce) {
   #mapa-laduje .kolko { animation: none; border-color: var(--akcent-jasny); }
   .tab-btn.laduje svg { animation: none; }
+}
+
+/* Fokus klawiatury na WebView 80–85, które nie znają :focus-visible (podłoga: Chrome 80).
+   Tam CAŁA reguła z :focus-visible przepada, więc przełączniki, logo i krzyżyki nie
+   miały żadnej obwódki. @supports not selector(…) — w Chrome 80–82 nieznana składnia
+   liczy się jako „nie”, więc blok działa; od Chrome 86 jest pomijany. */
+@supports not selector(:focus-visible) {
+  button:focus, a:focus, [tabindex]:focus, summary:focus, select:focus, input:focus {
+    outline: 2px solid var(--akcent-jasny); outline-offset: 2px; }
+  dialog .set-switch input:focus + .sw-track { outline: 2px solid var(--akcent-jasny); outline-offset: 2px; }
+  .alarm-box:focus { outline: none; }
 }
