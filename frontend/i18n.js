@@ -6,6 +6,10 @@
   const JEZYKI = ["pl", "en", "uk"];
   const saved = localStorage.getItem("straznik_lang");
   let lang = JEZYKI.includes(saved) ? saved : "pl";
+  /* GROTA czyta straznik_lang, a gdy go brak — bierze jezyk telefonu. Kto nigdy nie
+     wybieral jezyka, dostawal polskiego Straznika i np. angielska Grote. Zapisujemy
+     wiec jezyk, ktorym Straznik faktycznie mowi (14.10.2026). */
+  if (saved !== lang) { try { localStorage.setItem("straznik_lang", lang); } catch { /* tryb prywatny */ } }
 
   const EN = {
     // Legenda: rozdzielenie dronów jest nasze, nie źródła (04.10.2026).
