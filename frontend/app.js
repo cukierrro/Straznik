@@ -2198,6 +2198,10 @@ function updateWatchBadge(n) {
   if (!b) return;
   b.textContent = n || "";
   b.style.display = n ? "" : "none";
+  // Przycisk „Obce maszyny” jest w Menu (v4) — licznik musi być widać także na
+  // zakładce, inaczej nikt nie zajrzy do menu, żeby się o maszynach dowiedzieć.
+  const m = document.getElementById("menu-badge");
+  if (m) { m.textContent = n || ""; m.style.display = n ? "" : "none"; }
 }
 
 /* Stała karta obiektu (bottom-sheet) — zawsze w tym samym miejscu, zamiast dymka
@@ -6809,6 +6813,7 @@ function pokazStan3d() {
   const b3 = document.getElementById("btn-3d");
   if (!b3) return;
   b3.classList.toggle("active", is3d);
+  b3.setAttribute("aria-pressed", is3d ? "true" : "false");   // stan dla czytnika ekranu
   b3.title = is3d ? (UI.t("Przełącz na widok 2D", "Switch to 2D view", "Перемкнути на вигляд 2D"))
                   : (UI.t("Przełącz na widok 3D", "Switch to 3D view", "Перемкнути на вигляд 3D"));
 }

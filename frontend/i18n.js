@@ -574,7 +574,10 @@
     "sources ⓘ": "джерела ⓘ",
     "UNOFFICIAL additional source — it does not replace sirens, RCB or RSO alerts. In a real emergency, follow official instructions.":
       "НЕОФІЦІЙНЕ додаткове джерело — не замінює сирен, Alert RCB чи RSO. У реальній небезпеці виконуйте офіційні вказівки.",
-    "Map": "Мапа", "Signals": "Сигнали", "History": "Історія", "More": "Ще",
+    "Map": "Мапа", "Signals": "Сигнали", "History": "Історія", "More": "Ще", "Menu": "Меню",
+    "Settings": "Налаштування", "Notifications": "Сповіщення", "3D view": "Вигляд 3D",
+    "Foreign aircraft (RU/BY)": "Чужі літаки (РФ/РБ)", "Information": "Інформація",
+    "GROTA — places of shelter in the app": "GROTA — місця укриття в застосунку",
     "Shelter — nearest": "Укриття — де найближче",
     "Shelter — in the phone app": "Укриття — у застосунку на телефон",
     "This is a shortcut to the website, not the app. Alerts while the window is closed and shelter (GROTA) are in the phone app.":
@@ -923,14 +926,20 @@
       + '<a href="https://mikr.us" target="_blank" rel="noopener">Mikrus website ↗</a></div>';
     set("#disclaimer span", "UNOFFICIAL additional source — it does not replace sirens, RCB or RSO alerts. In a real emergency, follow official instructions.");
     // nowa nawigacja 1.7.23: dolne zakładki, menu „Więcej", kadrowanie mapy
-    setMany("#tabbar .tab-btn > span:not(.badge)", ["Map", "Signals", "History", "More"]);
-    set("#more-sheet h3", "More");
-    // GROTA po identyfikatorze, reszta bez niej: tłumaczenie po kolejności przesunęło się o jeden,
-    // gdy w 1.7.68 na górze doszedł wpis GROTY („About and scoring” stało przy GROCIE).
-    set("#btn-grota span", "Shelter — nearest");
-    set("#btn-grota-web span", "Shelter — in the phone app");
-    setMany("#more-sheet .sheet-row:not(#btn-grota):not(#btn-grota-web) span", ["About and scoring", "User guide",
-      "Support the author"]);
+    // v4 (14.10.2026): zakładki i Menu WYŁĄCZNIE po identyfikatorach. Po kolejności
+    // dwa razy się już rozjechało (1.7.68 wpis GROTY, teraz zakładka GROTY w środku).
+    set("#tab-map-t", "Map"); set("#btn-panel-t", "Signals");
+    set("#btn-history-t", "History"); set("#tab-more-t", "Menu");
+    document.getElementById("btn-grota")?.setAttribute("aria-label", "GROTA — places of shelter");
+    set("#more-h", "Menu");
+    document.querySelector("#more-sheet .dlg-x")?.setAttribute("aria-label", "Close menu");
+    set("#more-sheet .dlg-x span", "Close");
+    set("#m-ustawienia", "Settings"); set("#m-powiadomienia", "Notifications");
+    set("#m-cap-mapa", "Map"); set("#m-legenda", "Legend"); set("#m-3d", "3D view");
+    set("#m-obce", "Foreign aircraft (RU/BY)");
+    set("#m-cap-info", "Information"); set("#m-o-aplikacji", "About and scoring");
+    set("#m-instrukcja", "User guide"); set("#m-kawa", "Support the author");
+    set("#btn-grota-web span", "GROTA — places of shelter in the app");
     set("#skrot-www-tekst", "This is a shortcut to the website, not the app. Alerts while the window is closed and shelter (GROTA) are in the phone app.");
     set("#skrot-www-pobierz", "↓ Get the app");
     set("#www-wersja", "This page always runs the current version — there is nothing to update. The phone version adds alerts while the app is closed and the GROTA module (nearest shelter). Get it with the ↓ Android and ↓ iOS buttons at the top of the screen.");
@@ -1205,6 +1214,8 @@
     "#btn-3d": ["title", "Перемкнути вигляд 2D/3D"],
     "#btn-watch": ["title", "Чужі літаки (РФ/РБ) над східним флангом"],
     "#btn-push": ["title", "Сповіщення"],
+    "#btn-grota": ["aria-label", "GROTA — місця укриття"],
+    "#more-sheet .dlg-x": ["aria-label", "Закрити меню"],
     "#attr-i": ["title", "Джерела мапи"],
   };
 

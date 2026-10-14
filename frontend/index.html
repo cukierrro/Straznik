@@ -104,7 +104,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <link rel="icon" type="image/png" sizes="512x512" href="assets/icon-512.png">
 <link rel="apple-touch-icon" href="assets/icon-192.png">
 <link rel="stylesheet" href="assets/vendor/maplibre-gl.css?v=1.7.82">
-<link rel="stylesheet" href="style.css?v=1.7.95-ui3">
+<link rel="stylesheet" href="style.css?v=1.7.95-ui5">
 </head>
 <body>
 
@@ -145,32 +145,10 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
        href="https://apps.apple.com/pl/app/id6813563009" target="_blank" rel="noopener"
        title="Pobierz aplikację Strażnik na iPhone'a z App Store"
        aria-label="Pobierz aplikację Strażnik na iPhone'a z App Store">⬇ Pobierz na iOS</a>
-    <a id="btn-instructions" class="chip instructions web-only"
-       href="https://cukierrro.github.io/Straznik/" target="_blank" rel="noopener"
-       title="Otwórz pełną instrukcję aplikacji Strażnik"
-       aria-label="Otwórz pełną instrukcję aplikacji Strażnik">📖 Instrukcja</a>
-    <a id="btn-coffee" class="chip coffee web-only no-ios no-sklep" href="https://buycoffee.to/cukierrro"
-       target="_blank" rel="noopener"
-       title="Postaw kawę dla cukierrro na buycoffee.to">☕ Postaw kawę</a>
-    <!-- Na pasku zostają tylko dwie rzeczy: stan powiadomień i ustawienia.
-         Reszta zeszła do dolnych zakładek i do menu „Więcej” — wcześniej
-         najgłośniejszym elementem ekranu była pomarańczowa kawa, a nie alarm. -->
-    <button id="btn-legend" class="icon-btn" title="Legenda symboli" aria-label="Legenda symboli">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h6M4 12h6M4 18h6"/><circle cx="16.5" cy="6" r="2"/><circle cx="16.5" cy="12" r="2"/><circle cx="16.5" cy="18" r="2"/></svg>
-    </button>
-    <button id="btn-3d" class="icon-btn" title="Przełącz widok 2D/3D" aria-label="Przełącz widok 2D/3D">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.6 20 8v8l-8 4.4L4 16V8z"/><path d="M4 8l8 4.4L20 8M12 12.4V20.4"/></svg>
-    </button>
-    <button id="btn-watch" class="icon-btn" title="Obce maszyny (RU/BY) nad wschodnią flanką" aria-label="Obce maszyny">
-      <svg class="solid" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.6 2.9a1.4 1.4 0 0 1 2.8 0V9l7.6 4.3v2.2l-7.6-2.3v4.2l2.6 1.7v1.7L12 19.9l-4 .9v-1.7l2.6-1.7v-4.2L3 15.5v-2.2l7.6-4.3z"/></svg>
-      <span id="watch-badge" class="badge" style="display:none"></span>
-    </button>
-    <button id="btn-push" class="icon-btn" title="Powiadomienia" aria-label="Powiadomienia">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9a6 6 0 0 1 12 0c0 7 3 7 3 7H3s3 0 3-7Z"/><path d="M10 20h4"/></svg>
-    </button>
-    <button id="btn-settings" class="icon-btn" title="Moja lokalizacja i ustawienia" aria-label="Ustawienia">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/></svg>
-    </button>
+    <!-- v4 (14.10.2026): na pasku zostaje marka, diody i — na stronie — pobieranie
+         aplikacji. Legenda, 3D, obce maszyny, powiadomienia i ustawienia są w Menu
+         (dolna zakładka) — makieta v4 przyjęta przez usera. Identyfikatory przycisków
+         się nie zmieniły, więc ich obsługa w app.js działa bez zmian. -->
   </div>
 </header>
 
@@ -319,19 +297,27 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <nav id="tabbar" aria-label="Nawigacja główna">
   <button type="button" id="tab-map" class="tab-btn active" aria-pressed="true">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3V6Z"/><path d="M9 3v15M15 6v15"/></svg>
-    <span>Mapa</span>
+    <span id="tab-map-t">Mapa</span>
   </button>
   <button type="button" id="btn-panel" class="tab-btn" aria-pressed="false">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17h2M9 14h2M14 10h2M19 6h2"/><path d="M5 21v-4M10 21v-7M15 21V10M20 21V6"/></svg>
-    <span>Sygnały</span>
+    <span id="btn-panel-t">Sygnały</span>
+  </button>
+  <!-- GROTA w środku, pod kciukiem (v4). Ta sama tarcza co zakładka TERAZ w Grocie
+       i przycisk w alarmie (decyzja usera 20.09). Nie „schron” — wykaz PSP to miejsca
+       schronienia, więc zakładka nosi nazwę modułu (uwaga usera 14.10.2026). -->
+  <button type="button" id="btn-grota" class="tab-btn tab-grota app-only" aria-label="GROTA — miejsca schronienia">
+    <span class="tab-grota-pill"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg></span>
+    <span>GROTA</span>
   </button>
   <button type="button" id="btn-history" class="tab-btn" aria-pressed="false">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5v5h5"/><path d="M5.5 9A8 8 0 1 1 4 15"/><path d="M12 7v5l3 2"/></svg>
-    <span>Historia</span>
+    <span id="btn-history-t">Historia</span>
   </button>
-  <button type="button" id="tab-more" class="tab-btn" aria-pressed="false">
-    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg>
-    <span>Więcej</span>
+  <button type="button" id="tab-more" class="tab-btn" aria-pressed="false" aria-haspopup="dialog">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    <span id="tab-more-t">Menu</span>
+    <span id="menu-badge" class="badge" style="display:none"></span>
   </button>
 </nav>
 
@@ -342,29 +328,36 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
      i iOS — strona straznik.eu ich nie ma (decyzja usera: GROTY nie ma w WWW). -->
 <section id="grota-widok" class="app-only" hidden></section>
 
-<dialog id="more-sheet" class="sheet">
-  <button type="button" class="dlg-x" aria-label="Zamknij" title="Zamknij">✕</button>
-  <h3>Więcej</h3>
+<dialog id="more-sheet" class="sheet" aria-labelledby="more-h">
+  <button type="button" class="dlg-x dlg-x-slowo" aria-label="Zamknij menu"><span>Zamknij</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  <h3 id="more-h">Menu</h3>
   <div class="sheet-list">
-    <!-- Ta sama tarcza co zakładka TERAZ w Grocie (decyzja usera 20.09): człowiek widzi
-         w Strażniku ikonę, którą potem zobaczy w module. -->
-    <button type="button" id="btn-grota" class="sheet-row app-only">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
-      <span>Schronienie — gdzie najbliżej</span></button>
+    <button type="button" id="btn-settings" class="sheet-row" data-kolor="niebieski"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/></svg>
+      <span id="m-ustawienia">Ustawienia</span></button>
+    <button type="button" id="btn-push" class="sheet-row" data-kolor="fiolet"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9a6 6 0 0 1 12 0c0 7 3 7 3 7H3s3 0 3-7Z"/><path d="M10 20h4"/></svg>
+      <span id="m-powiadomienia">Powiadomienia</span></button>
+  </div>
+  <p class="menu-cap" id="m-cap-mapa">Mapa</p>
+  <div class="sheet-list">
+    <button type="button" id="btn-legend" class="sheet-row" data-kolor="morski"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h6M4 12h6M4 18h6"/><circle cx="16.5" cy="6" r="2"/><circle cx="16.5" cy="12" r="2"/><circle cx="16.5" cy="18" r="2"/></svg>
+      <span id="m-legenda">Legenda</span></button>
+    <button type="button" id="btn-3d" class="sheet-row" data-kolor="fiolet" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.6 20 8v8l-8 4.4L4 16V8z"/><path d="M4 8l8 4.4L20 8M12 12.4V20.4"/></svg>
+      <span id="m-3d">Widok 3D</span><span class="sw-mini" aria-hidden="true"></span></button>
+    <button type="button" id="btn-watch" class="sheet-row" data-kolor="szary"><svg class="solid" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.6 2.9a1.4 1.4 0 0 1 2.8 0V9l7.6 4.3v2.2l-7.6-2.3v4.2l2.6 1.7v1.7L12 19.9l-4 .9v-1.7l2.6-1.7v-4.2L3 15.5v-2.2l7.6-4.3z"/></svg>
+      <span id="m-obce">Obce maszyny (RU/BY)</span><span id="watch-badge" class="badge" style="display:none"></span></button>
+  </div>
+  <p class="menu-cap" id="m-cap-info">Informacje</p>
+  <div class="sheet-list">
+    <button type="button" id="btn-about" class="sheet-row" data-kolor="szary"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.3 2.4c-.6.2-.9.8-.9 1.4v.4"/><path d="M12 16.8h.01"/></svg>
+      <span id="m-o-aplikacji">O aplikacji i punktacja</span></button>
+    <a class="sheet-row" id="m-instrukcja-a" data-kolor="szary" href="https://cukierrro.github.io/Straznik/" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5h9l5 5v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-14a1 1 0 0 1 1-1z"/><path d="M14 4.5v5h5M8 13h8M8 16.5h5"/></svg>
+      <span id="m-instrukcja">Instrukcja użytkownika</span></a>
     <!-- Strona nie ma GROTY (moduł jest w aplikacjach). Bez tego wiersza znikała
          bez śladu i czytelnicy szukali jej w ustawieniach — zgłoszenie z 23.09.2026. -->
-    <a class="sheet-row web-only" id="btn-grota-web" href="https://cukierrro.github.io/Straznik/#grota" target="_blank" rel="noopener">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
-      <span>Schronienie — w aplikacji na telefon</span></a>
-    <button type="button" id="btn-about" class="sheet-row">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.3 2.4c-.6.2-.9.8-.9 1.4v.4"/><path d="M12 16.8h.01"/></svg>
-      <span>O aplikacji i punktacja</span></button>
-    <a class="sheet-row" href="https://cukierrro.github.io/Straznik/" target="_blank" rel="noopener">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5h9l5 5v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-14a1 1 0 0 1 1-1z"/><path d="M14 4.5v5h5M8 13h8M8 16.5h5"/></svg>
-      <span>Instrukcja użytkownika</span></a>
-    <a class="sheet-row no-ios no-sklep" href="https://buycoffee.to/cukierrro" target="_blank" rel="noopener">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 8h11v5.5a4 4 0 0 1-4 4H8.5a4 4 0 0 1-4-4z"/><path d="M15.5 9.5h2a2.5 2.5 0 0 1 0 5h-2M6 5V3.4M9.5 5V3.4M13 5V3.4"/></svg>
-      <span>Wesprzyj autora</span></a>
+    <a class="sheet-row web-only" id="btn-grota-web" data-kolor="niebieski" href="https://cukierrro.github.io/Straznik/#grota" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+      <span>GROTA — miejsca schronienia w aplikacji</span></a>
+    <a class="sheet-row no-ios no-sklep" id="m-kawa-a" data-kolor="szary" href="https://buycoffee.to/cukierrro" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 8h11v5.5a4 4 0 0 1-4 4H8.5a4 4 0 0 1-4-4z"/><path d="M15.5 9.5h2a2.5 2.5 0 0 1 0 5h-2M6 5V3.4M9.5 5V3.4M13 5V3.4"/></svg>
+      <span id="m-kawa">Wesprzyj autora</span></a>
   </div>
 </dialog>
 
@@ -1197,7 +1190,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
      Cloudflare, więc po każdym wydaniu wystarczy podbić ?v= i przeglądarki
      dostają nowe app.js/engine.js OD RAZU, bez ręcznego czyszczenia cache CF.
      Podbijaj ?v= razem z versionName w build.gradle. -->
-<script src="i18n.js?v=1.7.95-ui2"></script>
+<script src="i18n.js?v=1.7.95-ui4"></script>
 <!-- kontur Polski dla engine.js (audyt A2b, scripts/build_pl_outline.py) -->
 <script src="pl-outline.js?v=1.7.82"></script>
 <script src="engine.js?v=1.7.94"></script>
@@ -1213,7 +1206,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <div id="a11y-alert" class="sr-only" role="status" aria-live="assertive" aria-atomic="true"></div>
 <div id="a11y-info" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
 
-<script src="app.js?v=1.7.95-ui2"></script>
+<script src="app.js?v=1.7.95-ui4"></script>
 <script>
 /* Instrukcja pasująca do telefonu i języka (21.09.2026). iPhone ma osobną, bo alarmy,
    zgody i aktualizacje działają tam inaczej. Tu, a nie w app.js: index.html nie jest
