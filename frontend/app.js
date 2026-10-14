@@ -5739,7 +5739,9 @@ function renderPlacesSummary() {
   const watched=Places.observedVoivodeships(savedPlaces).map(v=>UI.voiv(v));
   el.textContent=(UI.t(`${savedPlaces.length}/8 miejsc. Obserwowane województwa: `, `${savedPlaces.length}/8 places. Watched provinces: `, `${savedPlaces.length}/8 місць. Відстежувані воєводства: `))+(watched.join(", ")||(UI.t("brak", "none", "немає")));
 }
+let wojPrzedUstawieniami = null;   // region sprzed otwarcia ustawień — mapa skacze tylko po zmianie
 function openSettings() {
+  wojPrzedUstawieniami = myVoiv() || "";
   UI.previewSettings?.(UI.lang || "pl");
   const alertsBox = document.getElementById("set-alerts-on");
   if (alertsBox) alertsBox.checked = !alertsOff();
@@ -5750,51 +5752,145 @@ function openSettings() {
   const langSel = document.getElementById("set-lang"); if (langSel) langSel.value = UI.lang || "pl";
   document.getElementById("set-api").value = localStorage.getItem("straznik_api") || "";
   renderPlacesSummary();
+  pokazStartUstawien();
   dlg.showModal();
 }
 document.getElementById("btn-settings").onclick = () => openSettings();
 
-/* Zakładki w Ustawieniach: jedna długa lista zamieniona na cztery sekcje.
-   Zmiana zakładki przewija okno na górę, żeby nowa sekcja zaczynała się od
-   początku, a nie w połowie poprzedniej. */
+/* Ustawienia v4 (przegląd UI 14.10.2026): ekran startowy z gotowością alarmu
+   i wierszami sekcji; sekcja otwiera się w tym samym arkuszu o stałej wysokości.
+   Wiersze to dawne zakładki .set-tab — każde miejsce, które otwiera sekcję
+   kliknięciem `.set-tab[data-pane=…]`, działa bez zmian. */
+function pokazStartUstawien(jezyk = UI.lang) {
+  dlg.classList.add("na-starcie"); dlg.classList.remove("w-sekcji");
+  document.querySelectorAll("#settings .set-pane").forEach(p => p.hidden = true);
+  dlg.scrollTop = 0;
+  odswiezWartosciUstawien(jezyk);
+  renderGotowosc(jezyk);
+}
+function pokazSekcjeUstawien(pane) {
+  dlg.classList.remove("na-starcie"); dlg.classList.add("w-sekcji");
+  document.querySelectorAll("#settings .set-pane").forEach(p => p.hidden = p.dataset.pane !== pane);
+  dlg.scrollTop = 0;
+  if (dlg.open) document.getElementById("set-wstecz")?.focus();
+}
 document.querySelectorAll("#settings .set-tab").forEach(tab =>
-  tab.addEventListener("click", () => {
-    const pane = tab.dataset.pane;
-    document.querySelectorAll("#settings .set-tab").forEach(t => {
-      const on = t === tab;
-      t.classList.toggle("active", on);
-      t.setAttribute("aria-selected", String(on));
-    });
-    document.querySelectorAll("#settings .set-pane").forEach(p =>
-      p.hidden = p.dataset.pane !== pane);
-    document.getElementById("settings").scrollTop = 0;
-  }));
+  tab.addEventListener("click", () => pokazSekcjeUstawien(tab.dataset.pane)));
+document.getElementById("set-wstecz")?.addEventListener("click", () => {
+  const byla = dlg.querySelector(".set-pane:not([hidden])")?.dataset.pane;
+  pokazStartUstawien(document.getElementById("set-lang")?.value || UI.lang);
+  dlg.querySelector(`.set-tab[data-pane="${byla}"]`)?.focus();   // fokus wraca do wiersza
+});
+/* Systemowe „wstecz” i Esc wysyłają „cancel”: z sekcji wracamy do ekranu
+   startowego, dopiero z niego zamykamy okno. */
+dlg.addEventListener("cancel", (e) => {
+  if (!dlg.classList.contains("w-sekcji")) return;
+  e.preventDefault();
+  document.getElementById("set-wstecz")?.click();
+});
+
+/* Wartości przy wierszach ekranu startowego — co jest teraz ustawione. */
+function odswiezWartosciUstawien(jezyk = UI.lang) {
+  const T = (pl, en, uk) => jezyk === "pl" ? pl : jezyk === "uk" ? (uk !== undefined ? uk : en) : en;
+  const wpisz = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+  wpisz("sv-alarmy", IS_APP && alertsOff() ? T("wyłączone", "off", "вимкнено") : T("włączone", "on", "увімкнено"));
+  wpisz("sv-miejsca", `${savedPlaces.length} ${T("z", "of", "з")} 8`);
+  const tryb = czerwonyTryb();
+  wpisz("sv-dzwiek", !IS_APP || IS_IOS ? ""
+    : tryb === "wibracja" ? T("wibracja", "vibration", "вібрація")
+    : tryb === "zwykle" ? T("zwykłe", "normal", "звичайне") : T("syrena", "siren", "сирена"));
+  wpisz("sv-aplikacja", { pl: "Polski", en: "English", uk: "Українська" }[jezyk] || "");
+}
+
+/* Gotowość alarmu: lista warunków, od których zależy, czy alarm w ogóle może
+   dotrzeć. Uczciwie: to są ZGODY i ustawienia, a nie obietnica, że alarm
+   przyjdzie — dlatego „wszystko na miejscu”, a nie „alarm dotrze”. */
+let gotowoscNr = 0;
+async function renderGotowosc(jezyk = UI.lang) {
+  const box = document.getElementById("gotowosc");
+  if (!box) return;
+  const nr = ++gotowoscNr;
+  const T = (pl, en, uk) => jezyk === "pl" ? pl : jezyk === "uk" ? (uk !== undefined ? uk : en) : en;
+  const punkty = [];
+  const woj = Places.observedVoivodeships(savedPlaces).length > 0 || !!myVoiv();
+  punkty.push({ ok: woj, tekst: T("Województwo do alarmów", "Province for alerts", "Воєводство для тривог"),
+    napraw: () => pokazSekcjeUstawien("miejsca") });
+  const plugin = BG();
+  let s = null;
+  if (plugin) { try { s = await plugin.status(); } catch {} }
+  if (IS_APP) {
+    punkty.push({ ok: !alertsOff(), tekst: T("Alarmy włączone na tym telefonie", "Alerts on for this phone", "Тривоги ввімкнено на цьому телефоні"),
+      napraw: () => pokazSekcjeUstawien("alarmy") });
+    punkty.push({ ok: s ? s.notificationsAllowed !== false : true, tekst: T("Zgoda na powiadomienia", "Notification permission", "Дозвіл на сповіщення"),
+      napraw: () => document.getElementById("btn-notif-settings")?.click() });
+    if (s && !IS_IOS && (s.sdk || 0) >= 34)
+      punkty.push({ ok: s.fullScreenAllowed !== false, tekst: T("Alarm pełnoekranowy", "Full-screen alert", "Повноекранна тривога"),
+        napraw: () => document.getElementById("btn-fullscreen")?.click() });
+    if (s && !IS_IOS)
+      punkty.push({ ok: !usypiaAplikacje(s), tekst: T("Bateria nie usypia Strażnika", "Battery does not put Strażnik to sleep", "Батарея не присипляє Strażnika"),
+        napraw: () => document.getElementById("btn-battery")?.click() });
+  } else {
+    const perm = await notifPermission();
+    punkty.push({ ok: perm === "granted" && notifWanted(), tekst: T("Powiadomienia w przeglądarce", "Browser notifications", "Сповіщення в браузері"),
+      napraw: () => pokazSekcjeUstawien("alarmy") });
+  }
+  if (nr !== gotowoscNr) return;              // w międzyczasie przyszło nowsze wywołanie
+  const ok = punkty.filter(p => p.ok).length;
+  const wszystko = ok === punkty.length;
+  const procent = Math.round(ok / punkty.length * 100);
+  box.classList.toggle("komplet", wszystko);
+  box.innerHTML = `<div class="got-glowa">
+      <div class="got-pierscien" style="--got:${procent}%" aria-hidden="true"><span>${ok}/${punkty.length}</span></div>
+      <div><b>${esc(wszystko ? T("Wszystko na miejscu", "All set", "Усе на місці") : T("Alarm może nie dotrzeć", "Alerts may not reach you", "Тривога може не дійти"))}</b>
+      <p>${esc(wszystko ? T("Zgody i ustawienia potrzebne do alarmów są włączone.", "The permissions and settings alerts need are on.", "Дозволи й налаштування, потрібні для тривог, увімкнено.")
+                        : T("Popraw zaznaczone niżej — bez tego alarm może nie przyjść.", "Fix the items below — without them an alert may not arrive.", "Виправте позначене нижче — без цього тривога може не надійти."))}</p></div>
+    </div>
+    <ul class="got-lista">${punkty.map((p, i) => `<li class="${p.ok ? "ok" : "brak"}">
+      <svg viewBox="0 0 24 24" aria-hidden="true">${p.ok ? '<path d="M5 12.5l4.5 4.5L19 7.5"/>' : '<path d="M12 7v6M12 17h.01"/>'}</svg>
+      <span>${esc(p.tekst)}<span class="sr-only">: ${esc(p.ok ? T("w porządku", "OK", "гаразд") : T("wymaga poprawy", "needs fixing", "потребує виправлення"))}</span></span>
+      ${p.ok ? "" : `<button type="button" class="chip" data-got="${i}">${esc(T("Popraw", "Fix", "Виправити"))}</button>`}</li>`).join("")}</ul>`;
+  box.querySelectorAll("[data-got]").forEach(b =>
+    b.addEventListener("click", () => punkty[Number(b.dataset.got)].napraw()));
+}
+
+/* Język: podgląd w oknie od razu, zmiana całej aplikacji dopiero przyciskiem —
+   wymaga ponownego uruchomienia (wcześniej robił to wspólny „Zapisz”). */
 document.getElementById("set-lang")?.addEventListener("change", (event) => {
   UI.previewSettings?.(event.target.value);
   refreshBgStatus(event.target.value);
+  odswiezWartosciUstawien(event.target.value);
+  const btn = document.getElementById("set-lang-zastosuj");
+  if (btn) btn.hidden = event.target.value === (UI.lang || "pl");
 });
-document.getElementById("set-save").onclick = (event) => {
+document.getElementById("set-lang-zastosuj")?.addEventListener("click", () => {
+  const next = document.getElementById("set-lang")?.value || "pl";
+  localStorage.setItem("straznik_lang", next);
+  setTimeout(() => location.reload(), 100);
+});
+document.getElementById("set-api-zapisz")?.addEventListener("click", () => {
   const api = document.getElementById("set-api").value.trim();
   if (api && !validBackendUrl(api)) {
-    event.preventDefault();
     alert("Własny serwer wymaga adresu HTTPS bez loginu, hasła, parametrów ani fragmentu. Wpisz bezpieczny adres lub wyczyść pole, aby wybrać serwer Strażnika.");
     return;
   }
-  const v = myVoiv() || "";
-  const nextLang = document.getElementById("set-lang")?.value || "pl";
-  syncObservedRegions();
-  const apiChanged = api !== (localStorage.getItem("straznik_api") || "");
+  if (api === (localStorage.getItem("straznik_api") || "")) return;
   if (api) localStorage.setItem("straznik_api", api); else localStorage.removeItem("straznik_api");
-  const langChanged = nextLang !== (UI.lang || "pl");
-  if (langChanged) { localStorage.setItem("straznik_lang", nextLang); setTimeout(() => location.reload(), 100); return; }
-  if (apiChanged) { setTimeout(() => location.reload(), 100); return; }
+  setTimeout(() => location.reload(), 100);
+});
+/* Zamknięcie okna robi to, co dawniej „Zapisz” poza językiem i serwerem:
+   ustawienia działają od razu, więc mapa i panel muszą to zobaczyć. Podgląd
+   języka, którego nie zatwierdzono przyciskiem, wraca do zapisanego. */
+dlg.addEventListener("close", () => {
+  UI.previewSettings?.(UI.lang || "pl");
+  const v = myVoiv() || "";
+  syncObservedRegions();
   if (mapReady) {
     for (const id of ["my-voiv", "my-voiv-glow"])
       if (map.getLayer(id)) map.setFilter(id, ["==", ["get", "nazwa"], v || "—"]);
-    goHome();
+    if (v !== wojPrzedUstawieniami) goHome();   // mapa skacze tylko, gdy region się zmienił
   }
   if (state) renderPanel();
-};
+});
 
 /* ── Moje miejsca: zapis lokalny, bez geokodowania i ruchu w tle ── */
 const placesDlg=document.getElementById("places-dialog");
@@ -6089,6 +6185,7 @@ function showUpdateBanner(rel, local) {
 const BG = () => window.Capacitor?.Plugins?.StraznikBackground || null;
 
 async function refreshBgStatus(previewLang = UI.lang) {
+  if (dlg.open && dlg.classList.contains("na-starcie")) renderGotowosc(previewLang);
   // Podglad w ustawieniach pokazuje wybrany jezyk jeszcze przed zapisem, dlatego
   // teksty w tym oknie skladamy przez lokalne T, a nie przez UI.t (jezyk zapisany).
   const T = (pl, en, uk) => previewLang === "pl" ? pl : previewLang === "uk" ? (uk !== undefined ? uk : en) : en;

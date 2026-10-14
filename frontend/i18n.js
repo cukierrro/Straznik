@@ -378,8 +378,18 @@
         ? "Applies to the <b>yellow</b> attention sound only. It does not silence the red alert, which has its own setting. “No sound” keeps the banner and the vibration."
         : "Dotyczy wyłącznie <b>żółtego</b> sygnału uwagi. Czerwonego alarmu to nie wycisza — ma on własne ustawienie. „Bez dźwięku” zostawia baner i wibrację.";
     }
-    many(":scope .set-tab", en
-      ? ["Alerts","My places","Sound","App"] : ["Alarmy","Moje miejsca","Dźwięk","Aplikacja"]);
+    // v4 (14.10.2026): ekran startowy ustawień — wiersze sekcji PO IDENTYFIKATORACH
+    const tx = (id, pl, eng) => { const el = document.getElementById(id); if (el) el.textContent = en ? eng : pl; };
+    tx("set-tytul", "Ustawienia", "Settings");
+    tx("set-x-t", "Zamknij", "Close");
+    dlg.querySelector(".dlg-x")?.setAttribute("aria-label", en ? "Close settings" : "Zamknij ustawienia");
+    tx("st-alarmy", "Alarmy i zgody", "Alerts and permissions");
+    tx("st-miejsca", "Moje miejsca", "My places");
+    tx("st-dzwiek", "Dźwięk i godziny ciszy", "Sound and quiet hours");
+    tx("st-aplikacja", "Język, tekst i wersja", "Language, text and version");
+    tx("set-wstecz-t", "Ustawienia", "Settings");
+    tx("set-lang-zastosuj", "Zmień język i uruchom ponownie", "Change language and restart");
+    tx("set-api-zapisz", "Zapisz adres i uruchom ponownie", "Save address and restart");
     /* PO IDENTYFIKATORACH, nie po kolejnosci: lista pozycyjna przesunela sie
        03.10.2026, gdy pierwszy akapit trafil pod „Jak to dziala?" i przestal
        byc dzieckiem sekcji. Podpisy sekcji rozwijanych stoja tu razem z nimi. */
@@ -469,8 +479,6 @@
                          : "https://cukierrro.github.io/Straznik/zmiany.html";
     }
     if (links[2]) links[2].textContent = en ? "Support the author ☕" : "Wesprzyj autora ☕";
-    button("set-save","Zapisz","Save");
-    const cancel=dlg.querySelector('button[value="cancel"]'); if(cancel) cancel.textContent=en?"Cancel":"Anuluj";
     /* PO ID, nie "pierwsze summary w oknie": 03.10.2026 doszlo wyzej w ustawieniach
        drugie <details> ("Jak to dziala?") i ten selektor nadpisal JEGO podpis. */
     const summary=dlg.querySelector("#adv-summary"); if(summary) summary.textContent=en?"Advanced: shared backend":"Zaawansowane: wspólny backend";
@@ -575,6 +583,10 @@
     "UNOFFICIAL additional source — it does not replace sirens, RCB or RSO alerts. In a real emergency, follow official instructions.":
       "НЕОФІЦІЙНЕ додаткове джерело — не замінює сирен, Alert RCB чи RSO. У реальній небезпеці виконуйте офіційні вказівки.",
     "Map": "Мапа", "Signals": "Сигнали", "History": "Історія", "More": "Ще", "Menu": "Меню",
+    "Alerts and permissions": "Тривоги й дозволи", "Sound and quiet hours": "Звук і години тиші",
+    "Language, text and version": "Мова, текст і версія",
+    "Change language and restart": "Змінити мову й перезапустити",
+    "Save address and restart": "Зберегти адресу й перезапустити",
     "Settings": "Налаштування", "Notifications": "Сповіщення", "3D view": "Вигляд 3D",
     "Foreign aircraft (RU/BY)": "Чужі літаки (РФ/РБ)", "Information": "Інформація",
     "GROTA — places of shelter in the app": "GROTA — місця укриття в застосунку",
@@ -953,7 +965,13 @@
       live.setAttribute("aria-label", "Back to live view"); }
     const mode = document.querySelector(".tb-mode .tb-two");
     if (mode) mode.innerHTML = "HISTORY<br>VIEW";
-    setMany("#settings .set-tab", ["Alerts", "My places", "Sound", "App"]);
+    // v4: wiersze sekcji ustawień po identyfikatorach (wcześniej setMany po kolejności)
+    set("#set-tytul", "Settings"); set("#set-x-t", "Close"); set("#set-wstecz-t", "Settings");
+    document.querySelector("#settings .dlg-x")?.setAttribute("aria-label", "Close settings");
+    set("#st-alarmy", "Alerts and permissions"); set("#st-miejsca", "My places");
+    set("#st-dzwiek", "Sound and quiet hours"); set("#st-aplikacja", "Language, text and version");
+    set("#set-lang-zastosuj", "Change language and restart");
+    set("#set-api-zapisz", "Save address and restart");
     const langOpts = document.getElementById("set-lang")?.options;
     if (langOpts?.[2]) langOpts[2].textContent = "Українська";
     if (langOpts?.[0]) langOpts[0].textContent = "Polski";
@@ -1216,6 +1234,7 @@
     "#btn-push": ["title", "Сповіщення"],
     "#btn-grota": ["aria-label", "GROTA — місця укриття"],
     "#more-sheet .dlg-x": ["aria-label", "Закрити меню"],
+    "#settings .dlg-x": ["aria-label", "Закрити налаштування"],
     "#attr-i": ["title", "Джерела мапи"],
   };
 

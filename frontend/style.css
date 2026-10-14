@@ -1757,3 +1757,59 @@ dialog.sheet[open] { animation: arkusz-wjazd .2s ease-out; }
 dialog > .dlg-x.dlg-x-slowo { width: auto; padding: 0 12px; gap: 6px; font-size: 0.85rem; color: var(--text); }
 .dlg-x-slowo svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
 @media (prefers-reduced-motion: reduce) { dialog.sheet[open] { animation: none; } }
+
+/* ── v4: ustawienia jako arkusz o STAŁEJ wysokości (koniec skakania okna) ── */
+dialog.ustawienia { width: min(460px, 94vw); height: var(--dlg-max); }
+dialog.ustawienia.na-starcie .set-pane, dialog.ustawienia.na-starcie #set-wstecz { display: none; }
+dialog.ustawienia.w-sekcji #set-start { display: none; }
+#set-start h3 { font-size: 1.4rem; font-weight: 700; letter-spacing: -0.01em; margin: 4px 0 12px; }
+/* Wiersze sekcji: dawne zakładki, teraz lista jak w Menu */
+dialog.ustawienia .set-tabs { display: grid; gap: 6px; padding: 0; margin: 14px 0 0; clear: both; }
+dialog.ustawienia .set-tab.sheet-row {
+  display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 10px 13px;
+  font: 600 0.9333rem/1.25 "Segoe UI", system-ui, sans-serif; color: var(--text); text-align: left;
+}
+dialog.ustawienia .set-tab.sheet-row > svg:first-child { color: #fff; }
+.sheet-row[data-kolor="czerwony"] > svg:first-child { background: linear-gradient(180deg, #ff7686, #e0405a); }
+.set-wartosc { margin-left: auto; color: var(--muted); font-weight: 500; font-size: 0.8667rem; white-space: nowrap; }
+.set-tab.sheet-row::after { content: "›"; color: var(--muted); font-size: 1.3rem; line-height: 1; padding-left: 4px; }
+.set-wartosc:empty + * { margin-left: auto; }
+/* „‹ Ustawienia” — powrót z sekcji, przyklejony u góry jak krzyżyk */
+.set-wstecz {
+  position: sticky; top: 0; z-index: 4; display: inline-flex; align-items: center; gap: 4px;
+  min-height: 44px; padding: 0 12px 0 6px; margin: 0 0 6px; border-radius: 13px; cursor: pointer;
+  background: linear-gradient(180deg, rgba(50, 62, 92, 0.95), rgba(26, 34, 54, 0.95));
+  border: 1px solid rgba(255, 255, 255, 0.14); box-shadow: var(--szklo-odblask);
+  color: var(--akcent-jasny); font: 600 0.9rem/1 "Segoe UI", system-ui, sans-serif;
+}
+.set-wstecz svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2.2;
+  stroke-linecap: round; stroke-linejoin: round; }
+.set-zastosuj { width: 100%; min-height: 44px; margin-top: 10px; }
+
+/* Karta „gotowość alarmu”: pierścień (conic-gradient — Chrome 69+) i lista warunków.
+   Kolor nigdy sam: przy każdym warunku ikona ✓ albo ! i ukryty opis dla czytnika. */
+.gotowosc { border-radius: 18px; padding: 13px; margin-top: 4px;
+  background: radial-gradient(160px 110px at 14% 30%, rgba(255, 176, 32, 0.16), transparent 70%), rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 210, 120, 0.30); box-shadow: var(--szklo-odblask); }
+.gotowosc.komplet { background: radial-gradient(160px 110px at 14% 30%, rgba(61, 220, 132, 0.14), transparent 70%), rgba(255, 255, 255, 0.05);
+  border-color: rgba(61, 220, 132, 0.30); }
+.gotowosc:empty { display: none; }
+.got-glowa { display: flex; align-items: center; gap: 13px; }
+.got-glowa b { font-size: 1rem; }
+.got-glowa p { margin: 2px 0 0; color: var(--muted); font-size: 0.8667rem; line-height: 1.35; }
+.got-pierscien { flex: none; width: 60px; height: 60px; border-radius: 50%; display: grid; place-items: center;
+  background: conic-gradient(var(--amber) var(--got), rgba(255, 255, 255, 0.10) 0);
+  box-shadow: 0 0 20px -6px rgba(255, 176, 32, 0.6); }
+.gotowosc.komplet .got-pierscien { background: conic-gradient(var(--green) var(--got), rgba(255, 255, 255, 0.10) 0);
+  box-shadow: 0 0 20px -6px rgba(61, 220, 132, 0.6); }
+.got-pierscien span { width: 47px; height: 47px; border-radius: 50%; display: grid; place-items: center;
+  background: #161d30; font-weight: 700; font-size: 0.9333rem; }
+.got-lista { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 4px; }
+.got-lista li { display: flex; align-items: center; gap: 9px; min-height: 36px; font-size: 0.8667rem; }
+.got-lista li > span { flex: 1; min-width: 0; }
+.got-lista svg { flex: none; width: 20px; height: 20px; padding: 3px; border-radius: 50%; fill: none;
+  stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; box-sizing: border-box; }
+.got-lista li.ok svg { color: #0b2a18; background: var(--green); }
+.got-lista li.brak svg { color: #3a2600; background: var(--amber); }
+.got-lista li.brak > span { color: var(--text); font-weight: 600; }
+.got-lista .chip { min-height: 36px; padding: 0 14px; flex: none; }
