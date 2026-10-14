@@ -104,7 +104,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <link rel="icon" type="image/png" sizes="512x512" href="assets/icon-512.png">
 <link rel="apple-touch-icon" href="assets/icon-192.png">
 <link rel="stylesheet" href="assets/vendor/maplibre-gl.css?v=1.7.82">
-<link rel="stylesheet" href="style.css?v=1.7.95-ui9">
+<link rel="stylesheet" href="style.css?v=1.7.95-ui10">
 </head>
 <body>
 
@@ -159,6 +159,10 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <h2 id="sytuacja" class="sr-only">Wczytywanie sytuacji…</h2>
 
 <div id="map"></div>
+<!-- Wczytywanie mapy (przegląd UI 14.10.2026): styl i kafelki przychodzą z zewnętrznego
+     serwera i przy słabym łączu trwa to 5–30 s — przez ten czas był czarny ekran bez
+     słowa. Znika przy wczytaniu mapy albo przy komunikacie o błędzie. -->
+<div id="mapa-laduje" role="status"><span class="kolko" aria-hidden="true"></span><span id="mapa-laduje-t">Wczytuję mapę…</span></div>
 
 <!-- Atrybucja: przycisk (i) w rogu mapy i OKIENKO obok niego (przegląd UI
      14.10.2026 — długi pasek przewijany palcem i zwijany po 5 s „chował się pod
@@ -1201,7 +1205,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
      Cloudflare, więc po każdym wydaniu wystarczy podbić ?v= i przeglądarki
      dostają nowe app.js/engine.js OD RAZU, bez ręcznego czyszczenia cache CF.
      Podbijaj ?v= razem z versionName w build.gradle. -->
-<script src="i18n.js?v=1.7.95-ui8"></script>
+<script src="i18n.js?v=1.7.95-ui10"></script>
 <!-- kontur Polski dla engine.js (audyt A2b, scripts/build_pl_outline.py) -->
 <script src="pl-outline.js?v=1.7.82"></script>
 <script src="engine.js?v=1.7.94"></script>
@@ -1217,7 +1221,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <div id="a11y-alert" class="sr-only" role="status" aria-live="assertive" aria-atomic="true"></div>
 <div id="a11y-info" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
 
-<script src="app.js?v=1.7.95-ui9"></script>
+<script src="app.js?v=1.7.95-ui10"></script>
 <script>
 /* Instrukcja pasująca do telefonu i języka (21.09.2026). iPhone ma osobną, bo alarmy,
    zgody i aktualizacje działają tam inaczej. Tu, a nie w app.js: index.html nie jest

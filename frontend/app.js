@@ -1306,7 +1306,9 @@ function webglDostepny() {
   } catch { return false; }
 }
 
+function ukryjLadowanieMapy() { document.getElementById("mapa-laduje")?.remove(); }
 function pokazBrakMapy(blad, niewczytana = false) {
+  ukryjLadowanieMapy();
   const box = document.getElementById("map");
   if (!box || document.getElementById("map-niedostepna")) return;
   const ios = IS_IOS || document.documentElement.classList.contains("ua-ios");
@@ -1323,9 +1325,8 @@ function pokazBrakMapy(blad, niewczytana = false) {
   d.id = "map-niedostepna";
   d.setAttribute("role", "alert");
   // prawy margines na kafelki „mój region / strefy / cała PL”, dolny na pasek i zakładki
-  d.style.cssText = "position:absolute;top:0;left:0;right:0;bottom:0;display:flex;align-items:flex-start;"
-    + "justify-content:center;padding:84px 104px 150px 18px;overflow:auto;color:#dbe4f5;font-size:0.9333rem;line-height:1.5";
-  d.innerHTML = `<div style="max-width:440px"><div style="font-size:1.8667rem">🗺️</div><p><b>${UI.t("Na tym urządzeniu nie da się narysować mapy", "The map cannot be drawn on this device", "На цьому пристрої не вдається намалювати мапу")}</b></p><p>${UI.t("Alarmy, panel sygnałów i historia działają — brakuje tylko mapy, bo system blokuje WebGL.", "Alerts, the signals panel and history still work — only the map is missing, because the system blocks WebGL.", "Тривоги, панель сигналів та історія працюють — бракує лише мапи, бо система блокує WebGL.")}</p><p class="muted">${rada}</p></div>`;
+  d.className = "mapa-blad";   // karta, nie goły tekst na mapie (style.css)
+  d.innerHTML = `<div class="mapa-blad-karta"><p><b>${UI.t("Na tym urządzeniu nie da się narysować mapy", "The map cannot be drawn on this device", "На цьому пристрої не вдається намалювати мапу")}</b></p><p>${UI.t("Alarmy, panel sygnałów i historia działają — brakuje tylko mapy, bo system blokuje WebGL.", "Alerts, the signals panel and history still work — only the map is missing, because the system blocks WebGL.", "Тривоги, панель сигналів та історія працюють — бракує лише мапи, бо система блокує WebGL.")}</p><p class="muted">${rada}</p></div>`;
   box.appendChild(d);
   if (blad) console.warn("Mapa niedostępna:", blad);
 }
@@ -1339,10 +1340,9 @@ function pokazNiewczytanaMape(box, blad) {
   const d = document.createElement("div");
   d.id = "map-niedostepna";
   d.setAttribute("role", "alert");
-  d.style.cssText = "position:absolute;top:0;left:0;right:0;bottom:0;display:flex;align-items:flex-start;"
-    + "justify-content:center;padding:84px 104px 150px 18px;overflow:auto;color:#dbe4f5;font-size:0.9333rem;line-height:1.5";
+  d.className = "mapa-blad";   // karta, nie goły tekst na mapie (style.css)
   const tech = String(blad || "brak odpowiedzi").slice(0, 300);
-  d.innerHTML = `<div style="max-width:440px"><div style="font-size:1.8667rem">🗺️</div><p><b>${UI.t("Mapa się nie wczytała", "The map did not load", "Мапа не завантажилася")}</b></p><p>${UI.t("Alarmy, panel sygnałów i historia działają. Kafelki mapy pochodzą z zewnętrznego serwera map — coś na tym urządzeniu albo w sieci je blokuje.", "Alerts, the signals panel and history still work. The map tiles come from an outside map server — something on this device or network is blocking them.", "Тривоги, панель сигналів та історія працюють. Плитки мапи надходять із зовнішнього сервера мап — щось на цьому пристрої або в мережі їх блокує.")}</p><p class="muted">${UI.t("Najczęściej: bloker treści lub reklam, filtr DNS (AdGuard, NextDNS), VPN albo Prywatny przekaźnik iCloud. Spróbuj na chwilę go wyłączyć albo przełączyć się między Wi-Fi a danymi komórkowymi.", "Most often: a content or ad blocker, a DNS filter (AdGuard, NextDNS), a VPN or iCloud Private Relay. Try turning it off for a moment, or switch between Wi-Fi and mobile data.", "Найчастіше: блокувальник вмісту чи реклами, DNS-фільтр (AdGuard, NextDNS), VPN або Приватний вузол iCloud. Спробуйте на хвилину його вимкнути або перемкнутися між Wi-Fi і мобільними даними.")}</p><p class="muted" style="font-size:0.8rem">${UI.t("Szczegół techniczny", "Technical detail", "Технічна деталь")}: ${esc(tech)}</p></div>`;
+  d.innerHTML = `<div class="mapa-blad-karta"><p><b>${UI.t("Mapa się nie wczytała", "The map did not load", "Мапа не завантажилася")}</b></p><p>${UI.t("Alarmy, panel sygnałów i historia działają. Kafelki mapy pochodzą z zewnętrznego serwera map — coś na tym urządzeniu albo w sieci je blokuje.", "Alerts, the signals panel and history still work. The map tiles come from an outside map server — something on this device or network is blocking them.", "Тривоги, панель сигналів та історія працюють. Плитки мапи надходять із зовнішнього сервера мап — щось на цьому пристрої або в мережі їх блокує.")}</p><p class="muted">${UI.t("Najczęściej: bloker treści lub reklam, filtr DNS (AdGuard, NextDNS), VPN albo Prywatny przekaźnik iCloud. Spróbuj na chwilę go wyłączyć albo przełączyć się między Wi-Fi a danymi komórkowymi.", "Most often: a content or ad blocker, a DNS filter (AdGuard, NextDNS), a VPN or iCloud Private Relay. Try turning it off for a moment, or switch between Wi-Fi and mobile data.", "Найчастіше: блокувальник вмісту чи реклами, DNS-фільтр (AdGuard, NextDNS), VPN або Приватний вузол iCloud. Спробуйте на хвилину його вимкнути або перемкнутися між Wi-Fi і мобільними даними.")}</p><p class="muted" style="font-size:0.8rem">${UI.t("Szczegół techniczny", "Technical detail", "Технічна деталь")}: ${esc(tech)}</p></div>`;
   box.appendChild(d);
 }
 
@@ -1379,6 +1379,7 @@ async function initMap() {
   if (window.ResizeObserver) new ResizeObserver(() => map.resize()).observe(map.getContainer());
 
   map.on("load", async () => {
+    ukryjLadowanieMapy();
     localiseMapLabels();
     // Granice państw: natywne linie stylu bazowego plus kontrastowe wypełnienia
     // krajów (kraje-fill). Białe obrysy z 1.7.41–1.7.42 wycofane 13.09.2026, bo
@@ -5214,10 +5215,10 @@ function srvRecord(s) {
    znosi stary backend bez endpointu — wtedy historia jest krótsza (tylko to, co
    apka nagrała na żywo od otwarcia), ale apka działa. */
 async function seedBundle() {
-  const base = apiBase(); if (!base) return;
+  const base = apiBase(); if (!base) return false;
   try {
     const r = await fetch(base + "/api/history/bundle?hours=12", { cache: "no-store" });
-    if (!r.ok) return;
+    if (!r.ok) return false;
     const j = await r.json();
     srvMergeSignals((j.signals || []).map(s => ({ ...s, t: Date.parse(s.ts) })));
     const have = new Set(srvSnaps.map(sn => sn.ts));
@@ -5233,7 +5234,8 @@ async function seedBundle() {
     srvSnaps.sort((a, b) => a.t - b.t);
     srvSeeded = true;
     _srvHole = false;
-  } catch {}
+    return true;
+  } catch { return false; }
 }
 function needSeed() {
   if (!srvSeeded || _srvHole) return true;
@@ -5318,13 +5320,25 @@ function fetchTimeline() {
 async function toggleHistory() {
   const bar = document.getElementById("timebar");
   if (histMode) return exitHistory();
-  if (!standalone && needSeed()) await seedBundle();   // jednorazowy backfill 12 h z serwera
+  /* Pobranie 12 h z serwera trwa kilka sekund (na emulatorze ~10) — przez ten czas
+     nic się nie działo i nie było wiadomo, czy dotknięcie zadziałało (przegląd UI
+     14.10.2026). Przy błędzie mówimy prawdę zamiast „brak zapisanej historii”. */
+  let pobrana = true;
+  if (!standalone && needSeed()) {
+    const btnH = document.getElementById("btn-history");
+    btnH?.classList.add("laduje"); btnH?.setAttribute("aria-busy", "true");
+    toast(UI.t("Wczytuję historię 12 godzin…", "Loading 12 hours of history…", "Завантажую історію за 12 годин…"), 8000);
+    pobrana = await seedBundle();   // jednorazowy backfill 12 h z serwera
+    btnH?.classList.remove("laduje"); btnH?.removeAttribute("aria-busy");
+    document.getElementById("toast")?.classList.add("hidden");   // komunikat o wczytywaniu już nieaktualny
+  }
   const h = fetchHistory();
   histTimes = h?.times || [];
   paintTimeline(fetchTimeline());
   if (!histTimes.length) {
-    document.getElementById("tb-info").textContent =
-      UI.t("Brak zapisanej historii — migawki powstają co minutę od uruchomienia.", "No saved history — snapshots are created every minute after startup.", "Немає збереженої історії — знімки створюються щохвилини від запуску.");
+    document.getElementById("tb-info").textContent = !pobrana
+      ? UI.t("Nie udało się pobrać historii z serwera — sprawdź internet i spróbuj ponownie.", "Could not download the history from the server — check your internet and try again.", "Не вдалося завантажити історію із сервера — перевірте інтернет і спробуйте ще раз.")
+      : UI.t("Brak zapisanej historii — migawki powstają co minutę od uruchomienia.", "No saved history — snapshots are created every minute after startup.", "Немає збереженої історії — знімки створюються щохвилини від запуску.");
     bar.classList.remove("hidden");
     setTimeout(() => bar.classList.add("hidden"), 3500);
     return;

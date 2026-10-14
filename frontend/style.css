@@ -1858,3 +1858,27 @@ html[lang="uk"] #adsb-list:empty::after { content: "Не видно військ
 /* Zerwane połączenie: dane nie mogą wyglądać na świeże */
 body.dane-stare #my-banner { opacity: .6; filter: grayscale(.8); border-style: dashed; }
 body.dane-stare .led i { background: #6b7385 !important; box-shadow: none !important; }
+
+/* ── wczytywanie i błąd mapy (przegląd UI 14.10.2026) ── */
+#mapa-laduje { position: fixed; left: 50%; top: 42%; transform: translate(-50%, -50%); z-index: 5;
+  display: flex; align-items: center; gap: 10px; padding: 12px 18px; border-radius: 16px;
+  background: linear-gradient(180deg, rgba(34, 45, 74, 0.92), rgba(15, 20, 35, 0.94));
+  border: 1px solid rgba(170, 195, 245, 0.20); box-shadow: var(--szklo-odblask), var(--szklo-cien);
+  color: var(--text); font-size: 0.9333rem; pointer-events: none; }
+#mapa-laduje .kolko { width: 18px; height: 18px; border-radius: 50%; flex: none;
+  border: 2.5px solid rgba(255, 255, 255, 0.18); border-top-color: var(--akcent-jasny);
+  animation: obrot .9s linear infinite; }
+@keyframes obrot { to { transform: rotate(360deg); } }
+.mapa-blad { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: flex-start;
+  justify-content: center; overflow: auto; padding: calc(var(--topbar-h, 90px) + var(--pod-plakietka, 0px) + 62px) 16px calc(var(--tabbar-h) + var(--safe-b) + 120px); }
+.mapa-blad-karta { max-width: 440px; padding: 16px 18px; border-radius: 18px; color: var(--text);
+  font-size: 0.9333rem; line-height: 1.5;
+  background: linear-gradient(180deg, rgba(34, 45, 74, 0.96), rgba(15, 20, 35, 0.97));
+  border: 1px solid rgba(170, 195, 245, 0.22); box-shadow: var(--szklo-odblask), var(--szklo-cien); }
+.mapa-blad-karta p + p { margin-top: 8px; }
+.tab-btn.laduje svg { animation: pulsik 1s ease-in-out infinite; }
+@keyframes pulsik { 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) {
+  #mapa-laduje .kolko { animation: none; border-color: var(--akcent-jasny); }
+  .tab-btn.laduje svg { animation: none; }
+}

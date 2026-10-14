@@ -600,6 +600,7 @@
     "Language, text and version": "Мова, текст і версія",
     "Change language and restart": "Змінити мову й перезапустити",
     "Save address and restart": "Зберегти адресу й перезапустити",
+    "Loading the map…": "Завантажую мапу…",
     "Settings": "Налаштування", "Notifications": "Сповіщення", "3D view": "Вигляд 3D",
     "Foreign aircraft (RU/BY)": "Чужі літаки (РФ/РБ)", "Information": "Інформація",
     "GROTA — places of shelter in the app": "GROTA — місця укриття в застосунку",
@@ -953,6 +954,7 @@
     // nowa nawigacja 1.7.23: dolne zakładki, menu „Więcej", kadrowanie mapy
     // v4 (14.10.2026): zakładki i Menu WYŁĄCZNIE po identyfikatorach. Po kolejności
     // dwa razy się już rozjechało (1.7.68 wpis GROTY, teraz zakładka GROTY w środku).
+    set("#mapa-laduje-t", "Loading the map…");
     set("#tab-map-t", "Map"); set("#btn-panel-t", "Signals");
     set("#btn-history-t", "History"); set("#tab-more-t", "Menu");
     document.getElementById("btn-grota")?.setAttribute("aria-label", "GROTA — places of shelter");
