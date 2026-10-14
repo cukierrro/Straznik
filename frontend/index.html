@@ -519,7 +519,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
       bez okien, z dala od szyb. Śledź komunikaty RCB i służb.</div>
     <p class="alarm-note">To sygnał NIEOFICJALNY. Sprawdź syreny, RCB i RSO —
       one są źródłem rozstrzygającym.</p>
-    <button id="alarm-ack" class="alarm-btn">POTWIERDZAM — wycisz syrenę</button>
+    <button id="alarm-ack" class="alarm-btn">POTWIERDZAM — wycisz alarm</button>
     <!-- Po potwierdzeniu: wybór zamiast zamykania ekranu. Aplikacja NIGDY sama nie
          przejmuje ekranu Grotą (decyzja usera 20.09) — człowiek patrzy na zagrożenie
          i sam decyduje, dokąd dalej. -->
@@ -528,7 +528,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
         <span>Gdzie się schronić</span></button>
       <button type="button" id="alarm-map" class="alarm-choice">Obserwuj mapę</button>
-      <button type="button" id="alarm-safe" class="alarm-choice">Jestem bezpieczny</button>
+      <button type="button" id="alarm-safe" class="alarm-choice">Jestem w bezpiecznym miejscu</button>
     </div>
     <div class="alarm-time" id="alarm-time"></div>
   </div>
@@ -1189,7 +1189,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
      Cloudflare, więc po każdym wydaniu wystarczy podbić ?v= i przeglądarki
      dostają nowe app.js/engine.js OD RAZU, bez ręcznego czyszczenia cache CF.
      Podbijaj ?v= razem z versionName w build.gradle. -->
-<script src="i18n.js?v=1.7.94b"></script>
+<script src="i18n.js?v=1.7.95-ui1"></script>
 <!-- kontur Polski dla engine.js (audyt A2b, scripts/build_pl_outline.py) -->
 <script src="pl-outline.js?v=1.7.82"></script>
 <script src="engine.js?v=1.7.94"></script>
@@ -1205,7 +1205,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <div id="a11y-alert" class="sr-only" role="status" aria-live="assertive" aria-atomic="true"></div>
 <div id="a11y-info" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
 
-<script src="app.js?v=1.7.94b"></script>
+<script src="app.js?v=1.7.95-ui1"></script>
 <script>
 /* Instrukcja pasująca do telefonu i języka (21.09.2026). iPhone ma osobną, bo alarmy,
    zgody i aktualizacje działają tam inaczej. Tu, a nie w app.js: index.html nie jest

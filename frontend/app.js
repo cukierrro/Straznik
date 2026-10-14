@@ -4280,8 +4280,26 @@ document.addEventListener("keydown", e => {
   else if (!e.shiftKey && document.activeElement === ostatni) { e.preventDefault(); pierwszy.focus(); }
 });
 
+/* Ekran alarmu musi leżeć NA WIERZCHU. Okno otwarte przez showModal() trafia do
+   warstwy nad całą stroną, więc alarm przy otwartych Ustawieniach leżał POD
+   oknem: syrena grała, a „POTWIERDZAM” było nie do dotknięcia (przegląd UI
+   14.10.2026). Otwarta karta obiektu ma z-index 1200 i też go zasłaniała. */
+function zdejmijZasloneAlarmu() {
+  document.querySelectorAll("dialog[open]").forEach(d => { try { d.close(); } catch {} });
+  hideCard();
+}
+/* To samo w drugą stronę: dopóki alarm jest na ekranie, żadne okno nie wchodzi
+   nad niego. Okno otwierane po zamknięciu poprzedniego (ciąg okien powitania,
+   prośby o zgody) przepada — wróci przy następnym uruchomieniu. */
+const pokazOknoModalnie = HTMLDialogElement.prototype.showModal;
+HTMLDialogElement.prototype.showModal = function () {
+  if (!alarmOverlay.classList.contains("hidden")) return;
+  return pokazOknoModalnie.call(this);
+};
+
 function showAlarm(voiv, st) {
   if (!voiv || !st) return;
+  zdejmijZasloneAlarmu();
   document.getElementById("alarm-voiv").textContent = (UI.t("woj. ", "province ", "воєв. ")) + UI.voiv(voiv);
   document.getElementById("alarm-score").textContent =
     `${st.score.toFixed(1)} ${UI.t("pkt w oknie", "pts in a", "балів у вікні")} ${state?.fusion?.window_min ?? 60} min ${UI.t("", "window", "")}`;
@@ -4314,7 +4332,8 @@ function alarmWyborReset() {
   const t = (id, pl, en, uk) => { const el = document.getElementById(id); if (el) el.lastChild.textContent = UI.t(pl, en, uk); };
   t("alarm-grota", "Gdzie się schronić", "Where to shelter", "Де сховатися");
   t("alarm-map", "Obserwuj mapę", "Watch the map", "Спостерігати за мапою");
-  t("alarm-safe", "Jestem bezpieczny", "I am safe");
+  // Trzeci język był pominięty i po ukraińsku ten przycisk był po angielsku.
+  t("alarm-safe", "Jestem w bezpiecznym miejscu", "I'm in a safe place", "Я в безпечному місці");
 }
 function zamknijAlarm() {
   alarmOverlay.classList.add("hidden");
@@ -4326,6 +4345,9 @@ alarmAck.onclick = () => {
   if (!alarmWybor) { zamknijAlarm(); setPanel(true); return; }
   alarmAck.hidden = true;
   alarmWybor.hidden = false;
+  // Schowany przycisk miał fokus — bez tego fokus spadał na <body>, a Tab
+  // wychodził z alarmu na zasłoniętą mapę.
+  [...alarmWybor.querySelectorAll("button")].find(b => b.offsetParent !== null)?.focus();
 };
 document.getElementById("alarm-map")?.addEventListener("click", () => {
   zamknijAlarm();

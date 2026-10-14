@@ -101,7 +101,7 @@
     "+0,5–1": "+0.5–1", "alarm +0,3": "alert +0.3", "+0,5": "+0.5",
     "przygaszony — kolor tylko od sąsiadów, bez alarmu": "dimmed — colour from neighbours only, no alert",
     "WYSOKI PRIORYTET": "HIGH PRIORITY", "PODWYŻSZONA UWAGA": "ELEVATED ATTENTION",
-    "POTWIERDZAM — wycisz syrenę": "ACKNOWLEDGE — silence siren",
+    "POTWIERDZAM — wycisz alarm": "ACKNOWLEDGE — silence alert",
     "Schronienie — gdzie najbliżej": "Shelter — nearest",
     "Schronienie — w aplikacji na telefon": "Shelter — in the phone app",
     "Moja lokalizacja": "My location", "Województwo": "Province", "Wykryj z GPS": "Detect with GPS",
@@ -191,7 +191,7 @@
     "+0,5–1": "+0,5–1", "alarm +0,3": "тривога +0,3", "+0,5": "+0,5",
     "przygaszony — kolor tylko od sąsiadów, bez alarmu": "приглушений — колір лише від сусідів, без тривоги",
     "WYSOKI PRIORYTET": "ВИСОКИЙ ПРІОРИТЕТ", "PODWYŻSZONA UWAGA": "ПІДВИЩЕНА УВАГА",
-    "POTWIERDZAM — wycisz syrenę": "ПІДТВЕРДЖУЮ — вимкнути сирену",
+    "POTWIERDZAM — wycisz alarm": "ПІДТВЕРДЖУЮ — вимкнути тривогу",
     "Schronienie — gdzie najbliżej": "Укриття — де найближче",
     "Schronienie — w aplikacji na telefon": "Укриття — у застосунку на телефон",
     "Moja lokalizacja": "Моє місцеперебування", "Województwo": "Воєводство", "Wykryj z GPS": "Визначити за GPS",
@@ -638,10 +638,10 @@
       "Що робити: перейдіть в укриття або в кімнату без вікон, подалі від скла. Стежте за повідомленнями RCB і служб.",
     "This is an UNOFFICIAL signal. Check sirens, RCB and RSO alerts — official channels are authoritative.":
       "Це НЕОФІЦІЙНИЙ сигнал. Перевірте сирени, Alert RCB і RSO — вирішальними є офіційні канали.",
-    "ACKNOWLEDGE — silence siren": "ПІДТВЕРДЖУЮ — вимкнути сирену",
+    "ACKNOWLEDGE — silence alert": "ПІДТВЕРДЖУЮ — вимкнути тривогу",
     "Where to shelter": "Де сховатися",
     "Watch the map": "Спостерігати за мапою",
-    "I am safe": "Я в безпеці",
+    "I'm in a safe place": "Я в безпечному місці",
     "unofficial fusion of air-threat signals": "неофіційний синтез сигналів про повітряну загрозу",
     "Strażnik is an unofficial air-threat map for Poland. It combines reports of drones and missiles over Ukraine with RCB and RSO alerts, PAŻP airspace zones, ADS-B traffic and media reports. The map works live in a browser, and the Android and iPhone apps send alert notifications, even when the app is closed.":
       "Strażnik — неофіційна мапа повітряної загрози для Польщі. Вона поєднує повідомлення про дрони й ракети над Україною з тривогами RCB і RSO, зонами повітряного простору PAŻP, рухом ADS-B і повідомленнями ЗМІ. Мапа працює наживо у браузері, а застосунки для Android та iPhone надсилають сповіщення про тривогу навіть тоді, коли застосунок закритий.",
@@ -964,7 +964,7 @@
     set("#alarm-todo", "What to do: go to a shelter or a room without windows, away from glass. Follow RCB and emergency-service messages.");
     set("#alarm-grota span", "Where to shelter");
     set("#alarm-map", "Watch the map");
-    set("#alarm-safe", "I am safe");
+    set("#alarm-safe", "I'm in a safe place");
     set("#cam-title", "Cameras");
     const camNote = document.querySelectorAll("#cameras p.fineprint")[1];
     if (camNote) camNote.textContent = "I do not list cameras from Ukraine: since 2022 live streams from them have been banned, because they help correct artillery fire. Collecting them in an app that tracks air objects would be exactly the use that ban protects against.";
