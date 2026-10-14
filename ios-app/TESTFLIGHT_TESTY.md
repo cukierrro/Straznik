@@ -782,3 +782,38 @@ być przepisane z dokumentacji Apple, a stało się **naszym pomiarem**. Można 
 podawać bez zastrzeżeń — dla telefonu ze zgodą na alarm krytyczny.
 Zdanie o wyłączonych „Dźwiękach" zostaje faktem o zakresie przełącznika,
 dopóki przebieg 4 nie zostanie powtórzony.
+
+## 17. Przebieg 4 POTWIERDZONY (14.10.2026): „Dźwięki" NIE uciszają alarmu krytycznego
+
+Powtórka z właściwym przełącznikiem. Tester: „Alerty krytyczne" włączone, w sekcji
+„Alerty" wyłączone **tylko „Dźwięki"**, do tego dzwonek wyciszony przełącznikiem.
+
+> „Wszystko działa po wyłączeniu dźwięków, normalnie pojawia się syrena nawet przy
+> wyciszeniu przełącznikiem z iP :) I normalnie słychać też"
+
+**Wynik: alarm krytyczny gra mimo wyłączonych „Dźwięków".** Czyli `soundSetting`
+i `criticalAlertSetting` są w iOS niezależne — tak, jak sugerował kształt API, ale
+czego Apple nigdzie nie pisze. Pytanie otwarte od 13.10 jest zamknięte pomiarem.
+
+### To obala zdanie, które weszło do aplikacji 13.10
+
+Notka przy głośności żółtego radzi wyłączyć „Dźwięki", jeśli ktoś nie chce dźwięku
+żółtego, i mówi, że **ten przełącznik dotyczy wszystkich powiadomień Strażnika,
+także czerwonego alarmu**. Dla kogoś ze zgodą na alarm krytyczny to nieprawda
+w najgorszą stronę: człowiek wyłącza „Dźwięki" licząc na ciszę, a czerwony zagra
+mu syreną na pełnej głośności.
+
+Prawda po pomiarze — **dwa niezależne przełączniki**:
+
+| Co wyłączone | Żółty sygnał | Czerwony alarm |
+|---|---|---|
+| nic | gra | gra |
+| „Dźwięki" (sekcja Alerty) | cichy | **gra dalej**, jeśli „Alerty krytyczne" włączone |
+| „Dźwięki" + „Alerty krytyczne" | cichy | baner bez dźwięku (zmierzone 29.09) |
+
+Czyli: kto chce ciszy także przy czerwonym, musi wyłączyć **„Alerty krytyczne"**,
+a nie „Dźwięki". Zgłoszone sesji głównej do poprawki we wspólnym froncie i instrukcji.
+
+Zastrzeżenie: „żółty cichy przy wyłączonych Dźwiękach" nie było mierzone osobno —
+to zwykłe powiadomienie, więc `soundSetting == .disabled` zdejmuje mu dźwięk.
+Zmierzony jest wyłącznie czerwony.
