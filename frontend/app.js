@@ -6531,17 +6531,24 @@ async function zapiszGodzinyCiszy(zmiana) {
   try { localStorage.setItem(CISZA_KLUCZ, JSON.stringify(c)); } catch {}
   renderGodzinyCiszy();
   const zakres = `${minutyNaCzas(c.od)}–${minutyNaCzas(c.do)}`;
+  /* Komunikat mówi, co NAPRAWDĘ się stanie — z dziennego trybu czerwonego. Dawniej
+     „Syrena jak w dzień” obiecywała syrenę także wtedy, gdy w dzień ustawiona była
+     wibracja albo zwykłe powiadomienie (cisza nigdy nie robi alarmu głośniejszym). */
+  const dzien = czerwonyTryb();
+  const czerwonyOpis = c.czerwony === "wibracja" && dzien === "syrena"
+    ? UI.t("czerwony tylko wibracją", "red vibration only", "червоний лише вібрацією")
+    : dzien === "zwykle" ? UI.t("czerwony jako zwykłe powiadomienie, jak w dzień", "red as a normal notification, as in the daytime", "червоний як звичайне сповіщення, як удень")
+    : dzien === "wibracja" ? UI.t("czerwony tylko wibracją, jak w dzień", "red vibration only, as in the daytime", "червоний лише вібрацією, як удень")
+    : UI.t("czerwony z syreną, jak w dzień", "red with the siren, as in the daytime", "червоний із сиреною, як удень");
   toast(!c.on ? UI.t("Godziny ciszy wyłączone.", "Quiet hours off.", "Години тиші вимкнено.")
-    : c.czerwony === "wibracja"
-      ? UI.t(`Godziny ciszy ${zakres}: żółty bez dźwięku, czerwony tylko wibracją.`, `Quiet hours ${zakres}: yellow without sound, red vibration only.`, `Години тиші ${zakres}: жовтий без звуку, червоний лише вібрацією.`)
-      : UI.t(`Godziny ciszy ${zakres}: żółty bez dźwięku, czerwony z syreną.`, `Quiet hours ${zakres}: yellow without sound, red with the siren.`, `Години тиші ${zakres}: жовтий без звуку, червоний із сиреною.`), 6000);
+    : UI.t(`Godziny ciszy ${zakres}: żółty bez dźwięku, ${czerwonyOpis}.`, `Quiet hours ${zakres}: yellow without sound, ${czerwonyOpis}.`, `Години тиші ${zakres}: жовтий без звуку, ${czerwonyOpis}.`), 6000);
 }
 document.getElementById("set-quiet-on")?.addEventListener("change", async (e) => {
   const on = e.target.checked;
   if (on && ciszaUstawienia().czerwony === "wibracja" && !confirm(UI.t(
-    "Włączyć godziny ciszy?\n\nW tych godzinach czerwony alarm przyjdzie bez syreny — pełny ekran i mocna wibracja zostają. Przy wygaszonym ekranie i telefonie w drugim pokoju możesz go nie zauważyć. Syrenę na noc możesz zostawić wyborem „Syrena jak w dzień”.",
-    "Turn on quiet hours?\n\nDuring these hours a red alert arrives without the siren — the full screen and strong vibration stay. With the screen off and the phone in another room you may not notice it. You can keep the siren at night with “Siren as in the daytime”.",
-    "Увімкнути години тиші?\n\nУ ці години червона тривога прийде без сирени — повний екран і сильна вібрація лишаються. З вимкненим екраном і телефоном в іншій кімнаті ви можете її не помітити. Сирену на ніч можна залишити вибором «Сирена, як удень»."))) {
+    "Włączyć godziny ciszy?\n\nW tych godzinach czerwony alarm przyjdzie bez syreny — pełny ekran i mocna wibracja zostają. Przy wygaszonym ekranie i telefonie w drugim pokoju możesz go nie zauważyć. Jeśli w nocy ma być tak samo jak w dzień, wybierz „Bez zmian”.",
+    "Turn on quiet hours?\n\nDuring these hours a red alert arrives without the siren — the full screen and strong vibration stay. With the screen off and the phone in another room you may not notice it. To keep it the same as in the daytime, choose “Unchanged”.",
+    "Увімкнути години тиші?\n\nУ ці години червона тривога прийде без сирени — повний екран і сильна вібрація лишаються. З вимкненим екраном і телефоном в іншій кімнаті ви можете її не помітити. Щоб уночі було так само, як удень, виберіть «Без змін»."))) {
     e.target.checked = false;
     return;
   }

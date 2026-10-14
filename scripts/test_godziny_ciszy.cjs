@@ -125,6 +125,8 @@ test('ustawienia: blok tylko na Androidzie, w trzech językach', () => {
   for (const id of ['set-quiet-on', 'qh-od', 'qh-do', 'qh-red-wibracja', 'qh-red-syrena', 'qh-note'])
     assert.ok(HTML.includes(`id="${id}"`), id);
   assert.match(I18N, /"Quiet hours": "Години тиші"/);
-  assert.match(I18N, /"Siren as in the daytime": "Сирена, як удень"/);
+  // 14.10.2026: „Syrena jak w dzień” znaczyło w kodzie „bez zmian” — przy dziennej
+  // wibracji obiecywało syrenę, której nie było. Teraz napis mówi, co robi.
+  assert.match(I18N, /"Unchanged": "Без змін"/);
   assert.match(I18N, /button\("qh-note", "W tych godzinach żółty przychodzi bez dźwięku/);
 });

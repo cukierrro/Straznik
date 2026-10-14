@@ -1823,3 +1823,9 @@ dialog.ustawienia .set-tab.sheet-row > svg:first-child { color: #fff; }
    (position:absolute), więc mierzona wysokość paska go nie obejmuje i (i)
    wchodziło na ten napis. Dopełnienie paska go uwzględnia. */
 .native-app #topbar { padding-bottom: 38px; }
+
+/* Dotknięcie przycisku nie może zaznaczać jego tekstu (Kopiuj / Udostępnij zamiast
+   akcji) — złapane na emulatorze na „Schronienie” i przy przewijaniu ustawień,
+   14.10.2026. Wolniejsze dotknięcie (starsza osoba, drżenie ręki) trafiało w to samo. */
+button, .chip, .sheet-row, .tab-btn, .map-btn, summary, [role="button"], .seg, label.set-switch {
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }

@@ -5,7 +5,20 @@
 
   const JEZYKI = ["pl", "en", "uk"];
   const saved = localStorage.getItem("straznik_lang");
-  let lang = JEZYKI.includes(saved) ? saved : "pl";
+  /* Bez zapisanego wyboru (przegląd UI 14.10.2026, decyzja D2): w APLIKACJI język
+     telefonu — tak samo jak GROTA (grota/jezyk.js), inaczej przy angielskim telefonie
+     Strażnik był po polsku, a GROTA po angielsku. uk / *-UA → ukraiński, pl → polski,
+     inny → angielski. Na STRONIE zostaje polski: robot wyszukiwarki ma przeglądarkę
+     po angielsku i zaindeksowałby polską stronę po angielsku. Wyboru nie zapisujemy —
+     dopiero użytkownik zapisuje go w ustawieniach. */
+  const wykryty = () => {
+    if (!document.documentElement.classList.contains("native-app")) return "pl";
+    const tel = (navigator.languages && navigator.languages[0]) || navigator.language || "pl";
+    if (/^pl/i.test(tel)) return "pl";
+    if (/^uk/i.test(tel) || /-UA$/i.test(tel)) return "uk";
+    return "en";
+  };
+  let lang = JEZYKI.includes(saved) ? saved : wykryty();
 
   const EN = {
     // Legenda: rozdzielenie dronów jest nasze, nie źródła (04.10.2026).
@@ -456,8 +469,8 @@
     button("qh-do-l", "do", "to");
     button("qh-red-head", "Czerwony w godzinach ciszy", "Red during quiet hours");
     button("qh-red-wibracja", "Tylko wibracja", "Vibration only");
-    button("qh-red-syrena", "Syrena jak w dzień", "Siren as in the daytime");
-    button("qh-note", "W tych godzinach żółty przychodzi bez dźwięku — baner i wibracja. Czerwony zależnie od wyboru: tylko wibracją (pełny ekran i mocna wibracja zostają) albo z syreną jak w dzień. Poza tymi godzinami wszystko działa jak wyżej. Przy telefonie w drugim pokoju wibracji możesz nie poczuć. Godziny liczą się według zegara telefonu.", "During these hours yellow arrives without sound — a banner and vibration. Red depends on your choice: vibration only (the full screen and strong vibration stay) or the siren as in the daytime. Outside these hours everything works as above. With the phone in another room you may not feel the vibration. The hours follow the phone's clock.");
+    button("qh-red-syrena", "Bez zmian", "Unchanged");
+    button("qh-note", "W tych godzinach żółty przychodzi bez dźwięku — baner i wibracja. Czerwony zależnie od wyboru: tylko wibracją (pełny ekran i mocna wibracja zostają) albo bez zmian — tak, jak ustawiono wyżej dla czerwonego alarmu. Godziny ciszy nigdy nie robią alarmu głośniejszym. Poza tymi godzinami wszystko działa jak wyżej. Przy telefonie w drugim pokoju wibracji możesz nie poczuć. Godziny liczą się według zegara telefonu.", "During these hours yellow arrives without sound — a banner and vibration. Red depends on your choice: vibration only (the full screen and strong vibration stay) or unchanged — as set above for the red alert. Quiet hours never make an alert louder. Outside these hours everything works as above. With the phone in another room you may not feel the vibration. The hours follow the phone's clock.");
     button("rm-syrena", "Syrena", "Siren");
     button("rm-wibracja", "Tylko wibracja", "Vibration only");
     button("rm-zwykle", "Zwykłe powiadomienie", "Regular notification");
@@ -790,8 +803,8 @@
     "From": "Від",
     "to": "до",
     "Red during quiet hours": "Червоний у години тиші",
-    "Siren as in the daytime": "Сирена, як удень",
-    "During these hours yellow arrives without sound — a banner and vibration. Red depends on your choice: vibration only (the full screen and strong vibration stay) or the siren as in the daytime. Outside these hours everything works as above. With the phone in another room you may not feel the vibration. The hours follow the phone's clock.": "У ці години жовтий приходить без звуку — банер і вібрація. Червоний залежно від вибору: лише вібрацією (повний екран і сильна вібрація лишаються) або із сиреною, як удень. Поза цими годинами все працює, як вище. Якщо телефон в іншій кімнаті, вібрацію можна не відчути. Години рахуються за годинником телефона.",
+    "Unchanged": "Без змін",
+    "During these hours yellow arrives without sound — a banner and vibration. Red depends on your choice: vibration only (the full screen and strong vibration stay) or unchanged — as set above for the red alert. Quiet hours never make an alert louder. Outside these hours everything works as above. With the phone in another room you may not feel the vibration. The hours follow the phone's clock.": "У ці години жовтий приходить без звуку — банер і вібрація. Червоний залежно від вибору: лише вібрацією (повний екран і сильна вібрація лишаються) або без змін — так, як налаштовано вище для червоної тривоги. Години тиші ніколи не роблять тривогу гучнішою. Поза цими годинами все працює, як вище. Якщо телефон в іншій кімнаті, вібрацію можна не відчути. Години рахуються за годинником телефона.",
     "Critical alerts are a separate permission from Apple: a red alert will sound even when the phone is muted with the switch or in Focus mode. It applies to the red level only — the yellow attention signal stays quiet. iPhone asks for this permission once; if you decline it, you can turn it on later in the phone’s Settings. You can withdraw it at any time in the same place.": "Критична тривога — це окремий дозвіл Apple: червона тривога пролунає навіть тоді, коли телефон вимкнено перемикачем або він у режимі Фокусування. Це стосується лише червоного рівня — жовтий сигнал уваги лишається тихим. iPhone запитає про цей дозвіл лише один раз; якщо ви відмовите, увімкнете його згодом у Налаштуваннях телефону. Відкликати його можна будь-коли там само.",
     "Allow full-screen alerts": "🚨 Дозволити повноекранні тривоги",
     "Check full-screen alert permission": "Перевірити дозвіл на повноекранну тривогу",
@@ -1149,8 +1162,8 @@
     set("#qh-do-l", "to");
     set("#qh-red-head", "Red during quiet hours");
     set("#qh-red-wibracja", "Vibration only");
-    set("#qh-red-syrena", "Siren as in the daytime");
-    set("#qh-note", "During these hours yellow arrives without sound — a banner and vibration. Red depends on your choice: vibration only (the full screen and strong vibration stay) or the siren as in the daytime. Outside these hours everything works as above. With the phone in another room you may not feel the vibration. The hours follow the phone's clock.");
+    set("#qh-red-syrena", "Unchanged");
+    set("#qh-note", "During these hours yellow arrives without sound — a banner and vibration. Red depends on your choice: vibration only (the full screen and strong vibration stay) or unchanged — as set above for the red alert. Quiet hours never make an alert louder. Outside these hours everything works as above. With the phone in another room you may not feel the vibration. The hours follow the phone's clock.");
     set("#rm-wibracja", "Vibration only");
     set("#rm-zwykle", "Regular notification");
     set("#btn-vib-u", "▶ Feel: yellow (U · · —)");
