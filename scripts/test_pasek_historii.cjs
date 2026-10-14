@@ -48,6 +48,9 @@ function maluj(points) {
   const ctx = {
     document: { getElementById: () => slider },
     timelinePoints: null,
+    // 14.10.2026: paintTimeline odświeża też wykres 12 h nad suwakiem — tu badamy
+    // tylko gradient toru, wykres ma własny test (test_licznik_dronow.cjs)
+    wykres12Odswiez: () => {},
   };
   vm.createContext(ctx);
   vm.runInContext(funkcja('paintTimeline'), ctx);

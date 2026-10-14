@@ -5,7 +5,20 @@
 
   const JEZYKI = ["pl", "en", "uk"];
   const saved = localStorage.getItem("straznik_lang");
-  let lang = JEZYKI.includes(saved) ? saved : "pl";
+  /* Bez zapisanego wyboru (przegląd UI 14.10.2026, decyzja D2): w APLIKACJI język
+     telefonu — tak samo jak GROTA (grota/jezyk.js), inaczej przy angielskim telefonie
+     Strażnik był po polsku, a GROTA po angielsku. uk / *-UA → ukraiński, pl → polski,
+     inny → angielski. Na STRONIE zostaje polski: robot wyszukiwarki ma przeglądarkę
+     po angielsku i zaindeksowałby polską stronę po angielsku. Wyboru nie zapisujemy —
+     dopiero użytkownik zapisuje go w ustawieniach. */
+  const wykryty = () => {
+    if (!document.documentElement.classList.contains("native-app")) return "pl";
+    const tel = (navigator.languages && navigator.languages[0]) || navigator.language || "pl";
+    if (/^pl/i.test(tel)) return "pl";
+    if (/^uk/i.test(tel) || /-UA$/i.test(tel)) return "uk";
+    return "en";
+  };
+  let lang = JEZYKI.includes(saved) ? saved : wykryty();
 
   const EN = {
     // Legenda: rozdzielenie dronów jest nasze, nie źródła (04.10.2026).
@@ -61,7 +74,7 @@
     "Strefa włączona ostatnio": "Recently activated zone",
     "D / R / ADHOC / TSA": "D / R / ADHOC / TSA",
     "Warstwa stref nie dodaje punktów — punktuje tylko rzadka strefa D/R/NPZ/ADHOC od ziemi nad wschodem lub północą. Dotknij strefy po opis.": "The zone layer adds no points — only a rare D/R/NPZ/ADHOC zone from the ground up over the east or north scores. Tap a zone for details.",
-    "fuzja sygnałów · wschodnia Polska": "signal fusion · eastern Poland",
+    "mapa zagrożeń z powietrza · Polska": "air threat map · Poland",
     "Pobierz aplikację": "Download app", "⬇ Pobierz aplikację": "⬇ Download app",
     "⬇ Pobierz na Androida": "⬇ Get it for Android", "⬇ Pobierz na iOS": "⬇ Get it for iOS",
     "Instrukcja": "User guide", "📖 Instrukcja": "📖 User guide",
@@ -69,7 +82,7 @@
     "☕ Postaw kawę autorowi": "☕ Buy the author a coffee", "Bałtyk": "Baltic",
     "Sąsiedzi": "Neighbours",
     "łączenie…": "connecting…", "teraz": "now", "NA ŻYWO": "LIVE",
-    "Zamknij": "Close", "Zamknij panel": "Close panel",
+    "Zamknij": "Close", "Zamknij panel": "Close panel", "Źródła mapy": "Map sources",
     "Sygnały": "Signals", "Obiekty ≤ 250 km od granicy": "Objects ≤ 250 km from the border",
     "Lotnictwo wojskowe (ADS-B)": "Military aviation (ADS-B)", "nad PL-wschód": "over eastern Poland",
     "Legenda symboli": "Symbol legend", "Obiekty (Dane: NEPTUN, nad Ukrainą)": "Objects (Data: NEPTUN, over Ukraine)",
@@ -101,7 +114,7 @@
     "+0,5–1": "+0.5–1", "alarm +0,3": "alert +0.3", "+0,5": "+0.5",
     "przygaszony — kolor tylko od sąsiadów, bez alarmu": "dimmed — colour from neighbours only, no alert",
     "WYSOKI PRIORYTET": "HIGH PRIORITY", "PODWYŻSZONA UWAGA": "ELEVATED ATTENTION",
-    "POTWIERDZAM — wycisz syrenę": "ACKNOWLEDGE — silence siren",
+    "POTWIERDZAM — wycisz alarm": "ACKNOWLEDGE — silence alert",
     "Schronienie — gdzie najbliżej": "Shelter — nearest",
     "Schronienie — w aplikacji na telefon": "Shelter — in the phone app",
     "Moja lokalizacja": "My location", "Województwo": "Province", "Wykryj z GPS": "Detect with GPS",
@@ -151,7 +164,7 @@
      tekst ze zrodla, a brak tlumaczenia spada na angielski, nie na pusty napis. */
   const UK = {
     "Sąsiedzi (cień)": "Сусіди (тінь)",
-    "fuzja sygnałów · wschodnia Polska": "синтез сигналів · східна Польща",
+    "mapa zagrożeń z powietrza · Polska": "мапа повітряних загроз · Польща",
     "Pobierz aplikację": "Завантажити застосунок", "⬇ Pobierz aplikację": "⬇ Завантажити застосунок",
     "⬇ Pobierz na Androida": "⬇ Завантажити для Android", "⬇ Pobierz na iOS": "⬇ Завантажити для iOS",
     "Instrukcja": "Інструкція", "📖 Instrukcja": "📖 Інструкція",
@@ -159,7 +172,7 @@
     "☕ Postaw kawę autorowi": "☕ Пригостити автора кавою", "Bałtyk": "Балтика",
     "Sąsiedzi": "Сусіди",
     "łączenie…": "з\u2019єднання…", "teraz": "зараз", "NA ŻYWO": "НАЖИВО",
-    "Zamknij": "Закрити", "Zamknij panel": "Закрити панель",
+    "Zamknij": "Закрити", "Zamknij panel": "Закрити панель", "Źródła mapy": "Джерела мапи",
     "Sygnały": "Сигнали", "Obiekty ≤ 250 km od granicy": "Об\u2019єкти ≤ 250 км від кордону",
     "Lotnictwo wojskowe (ADS-B)": "Військова авіація (ADS-B)", "nad PL-wschód": "над сходом Польщі",
     "Legenda symboli": "Легенда символів", "Obiekty (Dane: NEPTUN, nad Ukrainą)": "Об\u2019єкти (Дані: NEPTUN, над Україною)",
@@ -191,7 +204,7 @@
     "+0,5–1": "+0,5–1", "alarm +0,3": "тривога +0,3", "+0,5": "+0,5",
     "przygaszony — kolor tylko od sąsiadów, bez alarmu": "приглушений — колір лише від сусідів, без тривоги",
     "WYSOKI PRIORYTET": "ВИСОКИЙ ПРІОРИТЕТ", "PODWYŻSZONA UWAGA": "ПІДВИЩЕНА УВАГА",
-    "POTWIERDZAM — wycisz syrenę": "ПІДТВЕРДЖУЮ — вимкнути сирену",
+    "POTWIERDZAM — wycisz alarm": "ПІДТВЕРДЖУЮ — вимкнути тривогу",
     "Schronienie — gdzie najbliżej": "Укриття — де найближче",
     "Schronienie — w aplikacji na telefon": "Укриття — у застосунку на телефон",
     "Moja lokalizacja": "Моє місцеперебування", "Województwo": "Воєводство", "Wykryj z GPS": "Визначити за GPS",
@@ -367,7 +380,7 @@
     button("dzwiek-ios-note",
       "Żółty poziom (≥2 pkt) — krótki sygnał uwagi i powiadomienie wyskakujące na ekranie. Czerwony (≥4 pkt) — modulowana syrena alarmu powietrznego + wibracja. Odtwarzane, gdy aplikacja jest otwarta; przy zamkniętej aplikacji alarm przychodzi jako powiadomienie push (z syreną dla czerwonego).",
       "Yellow (≥2 pts): attention sound and heads-up notification. Red (≥4 pts): modulated air-raid siren and vibration. Played while the app is open; with the app closed the alert arrives as a push notification (with the siren for red).");
-    button("ns-head", "Alarm natywny i głośność", "Native alert and volume");
+    button("ns-head", "Głośność alarmu", "Alert volume");
     button("yv-head", "Głośność sygnału uwagi (żółty)", "Attention sound volume (yellow)");
     button("yv-normal", "Normalny", "Normal");
     button("yv-quiet", "Ciszej", "Quieter");
@@ -378,8 +391,18 @@
         ? "Applies to the <b>yellow</b> attention sound only. It does not silence the red alert, which has its own setting. “No sound” keeps the banner and the vibration."
         : "Dotyczy wyłącznie <b>żółtego</b> sygnału uwagi. Czerwonego alarmu to nie wycisza — ma on własne ustawienie. „Bez dźwięku” zostawia baner i wibrację.";
     }
-    many(":scope .set-tab", en
-      ? ["Alerts","My places","Sound","App"] : ["Alarmy","Moje miejsca","Dźwięk","Aplikacja"]);
+    // v4 (14.10.2026): ekran startowy ustawień — wiersze sekcji PO IDENTYFIKATORACH
+    const tx = (id, pl, eng) => { const el = document.getElementById(id); if (el) el.textContent = en ? eng : pl; };
+    tx("set-tytul", "Ustawienia", "Settings");
+    tx("set-x-t", "Zamknij", "Close");
+    dlg.querySelector(".dlg-x")?.setAttribute("aria-label", en ? "Close settings" : "Zamknij ustawienia");
+    tx("st-alarmy", "Alarmy i zgody", "Alerts and permissions");
+    tx("st-miejsca", "Moje miejsca", "My places");
+    tx("st-dzwiek", "Dźwięk i godziny ciszy", "Sound and quiet hours");
+    tx("st-aplikacja", "Język, tekst i wersja", "Language, text and version");
+    tx("set-wstecz-t", "Ustawienia", "Settings");
+    tx("set-lang-zastosuj", "Zmień język i uruchom ponownie", "Change language and restart");
+    tx("set-api-zapisz", "Zapisz adres i uruchom ponownie", "Save address and restart");
     /* PO IDENTYFIKATORACH, nie po kolejnosci: lista pozycyjna przesunela sie
        03.10.2026, gdy pierwszy akapit trafil pod „Jak to dziala?" i przestal
        byc dzieckiem sekcji. Podpisy sekcji rozwijanych stoja tu razem z nimi. */
@@ -446,13 +469,13 @@
     button("qh-do-l", "do", "to");
     button("qh-red-head", "Czerwony w godzinach ciszy", "Red during quiet hours");
     button("qh-red-wibracja", "Tylko wibracja", "Vibration only");
-    button("qh-red-syrena", "Syrena jak w dzień", "Siren as in the daytime");
-    button("qh-note", "W tych godzinach żółty przychodzi bez dźwięku — baner i wibracja. Czerwony zależnie od wyboru: tylko wibracją (pełny ekran i mocna wibracja zostają) albo z syreną jak w dzień. Poza tymi godzinami wszystko działa jak wyżej. Przy telefonie w drugim pokoju wibracji możesz nie poczuć. Godziny liczą się według zegara telefonu.", "During these hours yellow arrives without sound — a banner and vibration. Red depends on your choice: vibration only (the full screen and strong vibration stay) or the siren as in the daytime. Outside these hours everything works as above. With the phone in another room you may not feel the vibration. The hours follow the phone's clock.");
+    button("qh-red-syrena", "Bez zmian", "Unchanged");
+    button("qh-note", "W tych godzinach żółty przychodzi bez dźwięku — baner i wibracja. Czerwony zależnie od wyboru: tylko wibracją (pełny ekran i mocna wibracja zostają) albo bez zmian — tak, jak ustawiono wyżej dla czerwonego alarmu. Godziny ciszy nigdy nie robią alarmu głośniejszym. Poza tymi godzinami wszystko działa jak wyżej. Przy telefonie w drugim pokoju wibracji możesz nie poczuć. Godziny liczą się według zegara telefonu.", "During these hours yellow arrives without sound — a banner and vibration. Red depends on your choice: vibration only (the full screen and strong vibration stay) or unchanged — as set above for the red alert. Quiet hours never make an alert louder. Outside these hours everything works as above. With the phone in another room you may not feel the vibration. The hours follow the phone's clock.");
     button("rm-syrena", "Syrena", "Siren");
     button("rm-wibracja", "Tylko wibracja", "Vibration only");
     button("rm-zwykle", "Zwykłe powiadomienie", "Regular notification");
-    button("btn-vib-u", "▶ Poczuj: żółty (U · · —)", "▶ Feel: yellow (U · · —)");
-    button("btn-vib-a", "▶ Poczuj: czerwony (A · —)", "▶ Feel: red (A · —)");
+    button("btn-vib-u", "▶ Poczuj: żółty (U)", "▶ Feel: yellow (U)");
+    button("btn-vib-a", "▶ Poczuj: czerwony (A)", "▶ Feel: red (A)");
     button("vib-note", "Wzorów wibracji się nie wybiera: żółty zawsze wibruje „U”, czerwony zawsze „A”. Przyciski tylko je odtwarzają, żebyś je rozpoznał.", "The vibration patterns are not a choice: yellow always vibrates “U”, red always “A”. The buttons only play them so you can recognise them.");
     { const el = document.getElementById("rs-note");
       if (el) el.innerHTML = en ? "<b>Vibration only:</b> the siren goes quiet, the rest of the alert stays — full screen, flashing and strong vibration, including in Do Not Disturb. <b>Regular notification:</b> red arrives like yellow — a banner, a short sound and vibration, no full screen; it respects silent mode and Do Not Disturb. <b>Think it over before nightfall:</b> with the screen off and the phone in another room you may not notice an alert like that. A paired watch or band gets a copy of the notification if you allow Strażnik notifications in its app — and then vibrates in its own way. Red only — the yellow attention signal has its own setting above." : "<b>Tylko wibracja:</b> syrena milknie, reszta alarmu zostaje — pełny ekran, miganie i mocna wibracja, także przy trybie Nie przeszkadzać. <b>Zwykłe powiadomienie:</b> czerwony przyjdzie jak żółty — baner, krótki dźwięk i wibracja, bez pełnego ekranu; szanuje tryb cichy i Nie przeszkadzać. <b>Przemyśl to przed nocą:</b> przy wygaszonym ekranie i telefonie w drugim pokoju możesz takiego alarmu nie zauważyć. Sparowany zegarek albo opaska dostaje kopię powiadomienia, jeśli w jej aplikacji zezwolisz na powiadomienia ze Strażnika — i wibruje wtedy po swojemu. Dotyczy wyłącznie czerwonego — żółty sygnał uwagi ma własne ustawienie wyżej."; }
@@ -469,8 +492,6 @@
                          : "https://cukierrro.github.io/Straznik/zmiany.html";
     }
     if (links[2]) links[2].textContent = en ? "Support the author ☕" : "Wesprzyj autora ☕";
-    button("set-save","Zapisz","Save");
-    const cancel=dlg.querySelector('button[value="cancel"]'); if(cancel) cancel.textContent=en?"Cancel":"Anuluj";
     /* PO ID, nie "pierwsze summary w oknie": 03.10.2026 doszlo wyzej w ustawieniach
        drugie <details> ("Jak to dziala?") i ten selektor nadpisal JEGO podpis. */
     const summary=dlg.querySelector("#adv-summary"); if(summary) summary.textContent=en?"Advanced: shared backend":"Zaawansowane: wspólny backend";
@@ -557,7 +578,7 @@
     "How the test works": "Як відбувається тест",
     "How to read the direction": "Як читати напрямок",
     "Where updates come from": "Звідки беруться оновлення",
-    "signal fusion · eastern Poland": "синтез сигналів · східна Польща",
+    "air threat map · Poland": "мапа повітряних загроз · Польща",
     "hosted on Mikrus ↗": "хостинг: Mikrus ↗",
     "UA alerts": "Тривоги UA",
     "⬇ Get it for Android": "⬇ Завантажити для Android",
@@ -574,7 +595,15 @@
     "sources ⓘ": "джерела ⓘ",
     "UNOFFICIAL additional source — it does not replace sirens, RCB or RSO alerts. In a real emergency, follow official instructions.":
       "НЕОФІЦІЙНЕ додаткове джерело — не замінює сирен, Alert RCB чи RSO. У реальній небезпеці виконуйте офіційні вказівки.",
-    "Map": "Мапа", "Signals": "Сигнали", "History": "Історія", "More": "Ще",
+    "Map": "Мапа", "Signals": "Сигнали", "History": "Історія", "More": "Ще", "Menu": "Меню",
+    "Alerts and permissions": "Тривоги й дозволи", "Sound and quiet hours": "Звук і години тиші",
+    "Language, text and version": "Мова, текст і версія",
+    "Change language and restart": "Змінити мову й перезапустити",
+    "Save address and restart": "Зберегти адресу й перезапустити",
+    "Loading the map…": "Завантажую мапу…", "Loading the situation…": "Завантажую ситуацію…",
+    "Settings": "Налаштування", "Notifications": "Сповіщення", "3D view": "Вигляд 3D",
+    "Foreign aircraft (RU/BY)": "Чужі літаки (РФ/РБ)", "Information": "Інформація",
+    "GROTA — places of shelter in the app": "GROTA — місця укриття в застосунку",
     "Shelter — nearest": "Укриття — де найближче",
     "Shelter — in the phone app": "Укриття — у застосунку на телефон",
     "This is a shortcut to the website, not the app. Alerts while the window is closed and shelter (GROTA) are in the phone app.":
@@ -585,7 +614,7 @@
     "About and scoring": "Про застосунок і бали",
     "User guide": "Інструкція",
     "Support the author": "Підтримати автора",
-    "Close": "Закрити",
+    "Close": "Закрити", "Map sources": "Джерела мапи",
     "no signals": "немає сигналів",
     "no signals in the window": "у вікні немає сигналів",
     "· thresholds: ≥2 attention, ≥4 priority": "· пороги: ≥2 увага, ≥4 пріоритет",
@@ -638,11 +667,11 @@
       "Що робити: перейдіть в укриття або в кімнату без вікон, подалі від скла. Стежте за повідомленнями RCB і служб.",
     "This is an UNOFFICIAL signal. Check sirens, RCB and RSO alerts — official channels are authoritative.":
       "Це НЕОФІЦІЙНИЙ сигнал. Перевірте сирени, Alert RCB і RSO — вирішальними є офіційні канали.",
-    "ACKNOWLEDGE — silence siren": "ПІДТВЕРДЖУЮ — вимкнути сирену",
+    "ACKNOWLEDGE — silence alert": "ПІДТВЕРДЖУЮ — вимкнути тривогу",
     "Where to shelter": "Де сховатися",
     "Watch the map": "Спостерігати за мапою",
-    "I am safe": "Я в безпеці",
-    "unofficial fusion of air-threat signals": "неофіційний синтез сигналів про повітряну загрозу",
+    "I'm in a safe place": "Я в безпечному місці",
+    "unofficial air threat map for Poland": "неофіційна мапа повітряних загроз для Польщі", "unofficial fusion of air-threat signals": "неофіційний синтез сигналів про повітряну загрозу",
     "Strażnik is an unofficial air-threat map for Poland. It combines reports of drones and missiles over Ukraine with RCB and RSO alerts, PAŻP airspace zones, ADS-B traffic and media reports. The map works live in a browser, and the Android and iPhone apps send alert notifications, even when the app is closed.":
       "Strażnik — неофіційна мапа повітряної загрози для Польщі. Вона поєднує повідомлення про дрони й ракети над Україною з тривогами RCB і RSO, зонами повітряного простору PAŻP, рухом ADS-B і повідомленнями ЗМІ. Мапа працює наживо у браузері, а застосунки для Android та iPhone надсилають сповіщення про тривогу навіть тоді, коли застосунок закритий.",
     "This is NOT an official warning system. It does not replace sirens, RCB or RSO alerts. In a real emergency, follow official channels. Strażnik provides an additional, potentially earlier signal — nothing more.":
@@ -718,13 +747,13 @@
     "What this app does NOT do": "Чого цей застосунок НЕ робить",
     "NEPTUN is an OSINT/crowdsourced aggregator, not radar, so confidence and position uncertainty are always shown. A new ID at the same locality-centre point does not prove a new physical object and is not automatically counted twice. ADS-B contains only public transponder emissions and cannot reveal aircraft flying dark.":
       "NEPTUN — агрегатор OSINT і повідомлень людей, а не радар, тому ми завжди показуємо достовірність і невизначеність позиції. Новий ідентифікатор у тій самій точці центру населеного пункту не доводить появи нового фізичного об’єкта і не рахується автоматично вдруге. ADS-B містить лише відкриті сигнали транспондерів і не покаже літаків, які летять без них.",
-    "Data: NEPTUN · adsb.lol / adsb.fi · PAŻP · gov.pl/RCB · regional and Baltic media · neighbouring airspace sources · map © CARTO, © OpenStreetMap":
-      "Дані: NEPTUN · adsb.lol / adsb.fi · PAŻP · gov.pl/RCB · регіональні та балтійські ЗМІ · джерела про повітряний простір сусідів · мапа © CARTO, © OpenStreetMap",
+    "Data: NEPTUN · adsb.lol / adsb.fi · PAŻP · gov.pl/RCB · regional and Baltic media · neighbouring airspace sources · map © OpenFreeMap, © OpenMapTiles, © OpenStreetMap":
+      "Дані: NEPTUN · adsb.lol / adsb.fi · PAŻP · gov.pl/RCB · регіональні та балтійські ЗМІ · джерела про повітряний простір сусідів · мапа © OpenFreeMap, © OpenMapTiles, © OpenStreetMap",
     "I understand — continue": "Зрозуміло — далі",
     "Data sources": "Джерела даних",
     "Each LED at the top represents one data source. Fusion relies on agreement between several sources, so one unavailable source reduces confirmation rather than disabling warnings.":
       "Кожна діода вгорі — це одне джерело даних. Синтез спирається на збіг кількох джерел, тому одне недоступне джерело зменшує підтвердження, а не вимикає попередження.",
-    "🛰 Foreign aircraft over the eastern flank": "🛰 Чужі літаки над східним флангом",
+    "Foreign aircraft over the eastern flank": "Чужі літаки над східним флангом",
     "Military aircraft with Russian or Belarusian registration visible in public ADS-B/MLAT data over and around the eastern flank. In history, this panel follows the selected time. This observes transponder emissions; it is not radar tracking and is not an alert. Missing data does not imply empty airspace.":
       "Військові літаки з російською чи білоруською реєстрацією, видимі у відкритих даних ADS-B/MLAT над східним флангом і поблизу. В історії ця панель іде за обраним часом. Це спостереження сигналів транспондерів, а не радарне стеження, і не тривога. Відсутність даних не означає порожнього неба.",
     "In range now": "Зараз у зоні",
@@ -766,8 +795,8 @@
     "Siren": "Сирена",
     "Vibration only": "Лише вібрація",
     "Regular notification": "Звичайне сповіщення",
-    "▶ Feel: yellow (U · · —)": "▶ Відчути: жовтий (U · · —)",
-    "▶ Feel: red (A · —)": "▶ Відчути: червоний (A · —)",
+    "▶ Feel: yellow (U)": "▶ Відчути: жовтий (U)",
+    "▶ Feel: red (A)": "▶ Відчути: червоний (A)",
     "The vibration patterns are not a choice: yellow always vibrates “U”, red always “A”. The buttons only play them so you can recognise them.": "Ритм вібрації не обирається: жовта завжди вібрує «U», червона — завжди «A». Кнопки лише відтворюють його, щоб ви його впізнали.",
     "On iPhone this setting only changes the signal while the app is open. The sound of a notification that arrives with the app closed is chosen by the server and is the same for everyone. For complete silence on yellow, turn off Sounds in iPhone Settings → Strażnik → Notifications. The red alert will still sound if Critical Alerts are turned on on the same screen. For silence on red too, turn those off as well — the notification will then arrive without sound.": "На iPhone це налаштування змінює лише сигнал при відкритому застосунку. Звук сповіщення, яке приходить при закритому, вибирає сервер, і він однаковий для всіх. Хто хоче повної тиші для жовтого, вимикає Звуки в Налаштуваннях iPhone → Strażnik → Сповіщення. Червона тривога все одно пролунає, якщо на тому ж екрані ввімкнено Критичні оповістки. Хто хоче тиші й для червоної, вимикає також їх — сповіщення тоді прийде без звуку.",
     "Quiet hours": "Години тиші",
@@ -775,8 +804,8 @@
     "From": "Від",
     "to": "до",
     "Red during quiet hours": "Червоний у години тиші",
-    "Siren as in the daytime": "Сирена, як удень",
-    "During these hours yellow arrives without sound — a banner and vibration. Red depends on your choice: vibration only (the full screen and strong vibration stay) or the siren as in the daytime. Outside these hours everything works as above. With the phone in another room you may not feel the vibration. The hours follow the phone's clock.": "У ці години жовтий приходить без звуку — банер і вібрація. Червоний залежно від вибору: лише вібрацією (повний екран і сильна вібрація лишаються) або із сиреною, як удень. Поза цими годинами все працює, як вище. Якщо телефон в іншій кімнаті, вібрацію можна не відчути. Години рахуються за годинником телефона.",
+    "Unchanged": "Без змін",
+    "During these hours yellow arrives without sound — a banner and vibration. Red depends on your choice: vibration only (the full screen and strong vibration stay) or unchanged — as set above for the red alert. Quiet hours never make an alert louder. Outside these hours everything works as above. With the phone in another room you may not feel the vibration. The hours follow the phone's clock.": "У ці години жовтий приходить без звуку — банер і вібрація. Червоний залежно від вибору: лише вібрацією (повний екран і сильна вібрація лишаються) або без змін — так, як налаштовано вище для червоної тривоги. Години тиші ніколи не роблять тривогу гучнішою. Поза цими годинами все працює, як вище. Якщо телефон в іншій кімнаті, вібрацію можна не відчути. Години рахуються за годинником телефона.",
     "Critical alerts are a separate permission from Apple: a red alert will sound even when the phone is muted with the switch or in Focus mode. It applies to the red level only — the yellow attention signal stays quiet. iPhone asks for this permission once; if you decline it, you can turn it on later in the phone’s Settings. You can withdraw it at any time in the same place.": "Критична тривога — це окремий дозвіл Apple: червона тривога пролунає навіть тоді, коли телефон вимкнено перемикачем або він у режимі Фокусування. Це стосується лише червоного рівня — жовтий сигнал уваги лишається тихим. iPhone запитає про цей дозвіл лише один раз; якщо ви відмовите, увімкнете його згодом у Налаштуваннях телефону. Відкликати його можна будь-коли там само.",
     "Allow full-screen alerts": "🚨 Дозволити повноекранні тривоги",
     "Check full-screen alert permission": "Перевірити дозвіл на повноекранну тривогу",
@@ -801,7 +830,7 @@
     "Normal": "Звичайна",
     "Quieter": "Тихіше",
     "No sound": "Без звуку",
-    "Native alert and volume": "Системна тривога і гучність",
+    "Alert volume": "Гучність тривоги",
     "Red alert always at full volume": "Червона тривога завжди на повній гучності",
     "Android sound settings": "Налаштування звуку Android",
     "▶ Test: red native (in 5 s)": "▶ Тест: червона системна (через 5 с)",
@@ -897,7 +926,11 @@
       // zgłoszenie #1 z GitHuba: te trzy podpowiedzi zostawały po polsku
       "btn-3d": ["title","Switch between 2D and 3D view"],
       "btn-watch": ["title","Foreign (RU/BY) aircraft over the eastern flank"],
-      "btn-push": ["title","Notifications"]
+      "btn-push": ["title","Notifications"],
+      "attr-i": ["title","Map sources"],
+      "disclaimer-x": ["aria-label","Hide the warning (returns with an alert)"],
+      "skrot-www-x": ["aria-label","Hide this bar"],
+      "tb-slider": ["aria-label","Scroll through 12 hours of history"]
     };
     for (const [id, [a,v]] of Object.entries(attrs)) {
       const el = document.getElementById(id); if (!el) continue;
@@ -922,14 +955,22 @@
       + '<a href="https://mikr.us" target="_blank" rel="noopener">Mikrus website ↗</a></div>';
     set("#disclaimer span", "UNOFFICIAL additional source — it does not replace sirens, RCB or RSO alerts. In a real emergency, follow official instructions.");
     // nowa nawigacja 1.7.23: dolne zakładki, menu „Więcej", kadrowanie mapy
-    setMany("#tabbar .tab-btn > span:not(.badge)", ["Map", "Signals", "History", "More"]);
-    set("#more-sheet h3", "More");
-    // GROTA po identyfikatorze, reszta bez niej: tłumaczenie po kolejności przesunęło się o jeden,
-    // gdy w 1.7.68 na górze doszedł wpis GROTY („About and scoring” stało przy GROCIE).
-    set("#btn-grota span", "Shelter — nearest");
-    set("#btn-grota-web span", "Shelter — in the phone app");
-    setMany("#more-sheet .sheet-row:not(#btn-grota):not(#btn-grota-web) span", ["About and scoring", "User guide",
-      "Support the author"]);
+    // v4 (14.10.2026): zakładki i Menu WYŁĄCZNIE po identyfikatorach. Po kolejności
+    // dwa razy się już rozjechało (1.7.68 wpis GROTY, teraz zakładka GROTY w środku).
+    set("#mapa-laduje-t", "Loading the map…");
+    if (document.getElementById("sytuacja")?.textContent === "Wczytywanie sytuacji…") set("#sytuacja", "Loading the situation…");
+    set("#tab-map-t", "Map"); set("#btn-panel-t", "Signals");
+    set("#btn-history-t", "History"); set("#tab-more-t", "Menu");
+    document.getElementById("btn-grota")?.setAttribute("aria-label", "GROTA — places of shelter");
+    set("#more-h", "Menu");
+    document.querySelector("#more-sheet .dlg-x")?.setAttribute("aria-label", "Close menu");
+    set("#more-sheet .dlg-x span", "Close");
+    set("#m-ustawienia", "Settings"); set("#m-powiadomienia", "Notifications");
+    set("#m-cap-mapa", "Map"); set("#m-legenda", "Legend"); set("#m-3d", "3D view");
+    set("#m-obce", "Foreign aircraft (RU/BY)");
+    set("#m-cap-info", "Information"); set("#m-o-aplikacji", "About and scoring");
+    set("#m-instrukcja", "User guide"); set("#m-kawa", "Support the author");
+    set("#btn-grota-web span", "GROTA — places of shelter in the app");
     set("#skrot-www-tekst", "This is a shortcut to the website, not the app. Alerts while the window is closed and shelter (GROTA) are in the phone app.");
     set("#skrot-www-pobierz", "↓ Get the app");
     set("#www-wersja", "This page always runs the current version — there is nothing to update. The phone version adds alerts while the app is closed and the GROTA module (nearest shelter). Get it with the ↓ Android and ↓ iOS buttons at the top of the screen.");
@@ -939,11 +980,17 @@
     if (zoneNote) zoneNote.textContent = "the zone layer adds no points — only a rare D/R/NPZ/ADHOC "
       + "zone from the ground up over the east or north scores; tap a zone for details";
     const live = document.getElementById("tb-live");
-    if (live) { live.innerHTML = "SWITCH<br>TO LIVE"; live.title = "Back to live view";
+    if (live) { live.textContent = "LIVE"; live.title = "Back to live view";
       live.setAttribute("aria-label", "Back to live view"); }
     const mode = document.querySelector(".tb-mode .tb-two");
     if (mode) mode.innerHTML = "HISTORY<br>VIEW";
-    setMany("#settings .set-tab", ["Alerts", "My places", "Sound", "App"]);
+    // v4: wiersze sekcji ustawień po identyfikatorach (wcześniej setMany po kolejności)
+    set("#set-tytul", "Settings"); set("#set-x-t", "Close"); set("#set-wstecz-t", "Settings");
+    document.querySelector("#settings .dlg-x")?.setAttribute("aria-label", "Close settings");
+    set("#st-alarmy", "Alerts and permissions"); set("#st-miejsca", "My places");
+    set("#st-dzwiek", "Sound and quiet hours"); set("#st-aplikacja", "Language, text and version");
+    set("#set-lang-zastosuj", "Change language and restart");
+    set("#set-api-zapisz", "Save address and restart");
     const langOpts = document.getElementById("set-lang")?.options;
     if (langOpts?.[2]) langOpts[2].textContent = "Українська";
     if (langOpts?.[0]) langOpts[0].textContent = "Polski";
@@ -954,24 +1001,25 @@
     if (changes) changes.href = "https://cukierrro.github.io/Straznik/zmiany-en.html";
     // atrybucja: nazwy własne zostają, opis źródła musi być po angielsku
     const attr = document.getElementById("attr-text");
-    if (attr) attr.innerHTML = '<b>Data: <a href="https://neptun.in.ua" target="_blank" rel="noopener">NEPTUN</a></b>'
-      + ' (OSINT aggregator — not radar; always check confidence and ±km)'
-      + ' · ADS-B: adsb.lol / adsb.fi · Map: <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a>'
-      + ' © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OSM</a>';
+    if (attr) attr.innerHTML = 'Data: <a href="https://neptun.in.ua" target="_blank" rel="noopener">NEPTUN</a> — OSINT aggregator, not radar.<br>'
+      + 'Aircraft: ADS-B (adsb.lol, adsb.fi).<br>'
+      + 'Map: <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a>'
+      + ' © <a href="https://www.openmaptiles.org/" target="_blank" rel="noopener">OpenMapTiles</a>,'
+      + ' data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>';
     const moreClose = document.querySelector('#more-sheet button[value="cancel"]');
     if (moreClose) moreClose.textContent = "Close";
     set("#adsb-list + p", "Public transponder data (aircraft that choose to be visible) — this is NOT hostile-aircraft tracking.");
     set("#alarm-todo", "What to do: go to a shelter or a room without windows, away from glass. Follow RCB and emergency-service messages.");
     set("#alarm-grota span", "Where to shelter");
     set("#alarm-map", "Watch the map");
-    set("#alarm-safe", "I am safe");
+    set("#alarm-safe", "I'm in a safe place");
     set("#cam-title", "Cameras");
     const camNote = document.querySelectorAll("#cameras p.fineprint")[1];
     if (camNote) camNote.textContent = "I do not list cameras from Ukraine: since 2022 live streams from them have been banned, because they help correct artillery fire. Collecting them in an app that tracks air objects would be exactly the use that ban protects against.";
     set("#onboard-bg h2", "Push alerts");
     set("#settings details p.fineprint", "By default the app uses the Strażnik server (straznik.eu) — data and fusion are computed once on the server. When the server is unavailable, the app switches to its built-in mode and computes on the device. Enter your own HTTPS address (e.g. https://straznik.your-domain.pl) only if you want to use your own backend. HTTP and certificates added manually to the phone are not supported in the production build.");
     set("#alarm-overlay .alarm-note", "This is an UNOFFICIAL signal. Check sirens, RCB and RSO alerts — official channels are authoritative.");
-    set("#about .about-sub", "unofficial fusion of air-threat signals");
+    set("#about .about-sub", "unofficial air threat map for Poland");
     /* PO IDENTYFIKATORACH: lista pozycyjna nad `.about-body > p`
        trzymala caly rozdzial w jednym poziomie HTML — nie dalo sie
        zwinac sekcji ani dolozyc akapitu bez rozjechania angielskiego. */
@@ -994,7 +1042,7 @@
     set("#ab-ograniczenia",
       "NEPTUN is an OSINT/crowdsourced aggregator, not radar, so confidence and position uncertainty are always shown. A new ID at the same locality-centre point does not prove a new physical object and is not automatically counted twice. ADS-B contains only public transponder emissions and cannot reveal aircraft flying dark.");
     set("#ab-dane",
-      "Data: NEPTUN · adsb.lol / adsb.fi · PAŻP · gov.pl/RCB · regional and Baltic media · neighbouring airspace sources · map © CARTO, © OpenStreetMap");
+      "Data: NEPTUN · adsb.lol / adsb.fi · PAŻP · gov.pl/RCB · regional and Baltic media · neighbouring airspace sources · map © OpenFreeMap, © OpenMapTiles, © OpenStreetMap");
     const north = document.getElementById("ab-polnoc");
     const redNote = document.getElementById("ab-czerwony");
     if (redNote) redNote.innerHTML = "<b>4 pts alone are not enough.</b> Red needs a "
@@ -1051,24 +1099,20 @@
       "confidence, independent report count and observation status",
       "source point ×1.0 · source-reported area ×0.6 · recognised locality centre ×0.5; area positions cannot trigger ETA thresholds"
     ]);
-    setMany("#about .lvl-row", [
-      "≥ 2 pts — ELEVATED ATTENTION: yellow region, short attention sound and heads-up notification.",
-      "≥ 4 pts and a confirmation — HIGH PRIORITY: red region, modulated air-raid siren, vibration and loud notification."
-    ]);
-    setMany("#about .about-list li", [
-      "☰ Panel — province scores, signal timeline, nearby objects and military aviation.",
-      "Legend — explains every map symbol and colour.",
-      "⚙ Settings — your province, alert permissions, sound tests, language and optional backend.",
-      "◎ / ⤢ — return to your region or show Poland and Ukraine.",
-      "zones — shows active PAŻP airspace zones (airspace closed by the military). "
-        + "Tap a zone to see what it is and since when it has been active. Zones add no "
-        + "points — they are information only.",
-      "Top LEDs — data-source status; select an object or aircraft for details."
-    ]);
+    // „Gdzie co znajdziesz” i poziomy PO IDENTYFIKATORACH (14.10.2026): setMany po kolejności
+    // nadpisywał textContent i w EN/UK znikały kolorowe kwadraty poziomów.
+    { const el = document.getElementById("ab-lvl-1"); if (el) el.innerHTML = "<b>≥ 2 pts — ELEVATED ATTENTION:</b> yellow region, short attention sound and heads-up notification."; }
+    { const el = document.getElementById("ab-lvl-2"); if (el) el.innerHTML = "<b>≥ 4 pts and a confirmation — HIGH PRIORITY:</b> red region, modulated air-raid siren, vibration and loud notification."; }
+    { const el = document.getElementById("ab-gdzie-1"); if (el) el.innerHTML = "<b>Map</b> — objects, zones and province colours. On the side: <b>my region</b>, <b>zones</b> (airspace closed by the military — information only, no points) and <b>whole PL</b>."; }
+    { const el = document.getElementById("ab-gdzie-2"); if (el) el.innerHTML = "<b>Signals</b> — province cards with scores, the signal list, objects near the border, military aviation."; }
+    { const el = document.getElementById("ab-gdzie-3"); if (el) el.innerHTML = "<b>GROTA</b> (in the app) — the nearest places of shelter and what to prepare."; }
+    { const el = document.getElementById("ab-gdzie-4"); if (el) el.innerHTML = "<b>History</b> — the last 12 hours on a slider."; }
+    { const el = document.getElementById("ab-gdzie-5"); if (el) el.innerHTML = "<b>Menu</b> — settings (province, permissions, sound, quiet hours, language), legend, 3D view, foreign aircraft, user guide."; }
+    { const el = document.getElementById("ab-gdzie-6"); if (el) el.innerHTML = "<b>LEDs and (i) at the top</b> — data-source status and map sources. Tap an object on the map to see its details."; }
     set("#about-close", "I understand — continue");
     set("#sources h3", "Data sources");
     set("#sources > p:first-of-type", "Each LED at the top represents one data source. Fusion relies on agreement between several sources, so one unavailable source reduces confirmation rather than disabling warnings.");
-    set("#watch h3", "🛰 Foreign aircraft over the eastern flank");
+    { const w = document.getElementById("watch-h"); if (w) w.lastChild.textContent = "Foreign aircraft over the eastern flank"; }
     setMany("#watch .watch-h", ["In range now", "Log — entered / disappeared from range"]);
     set("#watch > p", "Military aircraft with Russian or Belarusian registration visible in public ADS-B/MLAT data over and around the eastern flank. In history, this panel follows the selected time. This observes transponder emissions; it is not radar tracking and is not an alert. Missing data does not imply empty airspace.");
     set("#cameras > p:first-of-type", "Public city and tourism cameras (worldcam.pl). I do not show their previews here: worldcam.pl's terms do not permit displaying their thumbnails in someone else's app. Tap a tile to open the camera at the source. Cameras show the ground, not the sky; they only provide additional context.");
@@ -1120,12 +1164,12 @@
     set("#qh-do-l", "to");
     set("#qh-red-head", "Red during quiet hours");
     set("#qh-red-wibracja", "Vibration only");
-    set("#qh-red-syrena", "Siren as in the daytime");
-    set("#qh-note", "During these hours yellow arrives without sound — a banner and vibration. Red depends on your choice: vibration only (the full screen and strong vibration stay) or the siren as in the daytime. Outside these hours everything works as above. With the phone in another room you may not feel the vibration. The hours follow the phone's clock.");
+    set("#qh-red-syrena", "Unchanged");
+    set("#qh-note", "During these hours yellow arrives without sound — a banner and vibration. Red depends on your choice: vibration only (the full screen and strong vibration stay) or unchanged — as set above for the red alert. Quiet hours never make an alert louder. Outside these hours everything works as above. With the phone in another room you may not feel the vibration. The hours follow the phone's clock.");
     set("#rm-wibracja", "Vibration only");
     set("#rm-zwykle", "Regular notification");
-    set("#btn-vib-u", "▶ Feel: yellow (U · · —)");
-    set("#btn-vib-a", "▶ Feel: red (A · —)");
+    set("#btn-vib-u", "▶ Feel: yellow (U)");
+    set("#btn-vib-a", "▶ Feel: red (A)");
     set("#vib-note", "The vibration patterns are not a choice: yellow always vibrates “U”, red always “A”. The buttons only play them so you can recognise them.");
     { const el = document.getElementById("rs-note"); if (el) el.innerHTML = "<b>Vibration only:</b> the siren goes quiet, the rest of the alert stays — full screen, flashing and strong vibration, including in Do Not Disturb. <b>Regular notification:</b> red arrives like yellow — a banner, a short sound and vibration, no full screen; it respects silent mode and Do Not Disturb. <b>Think it over before nightfall:</b> with the screen off and the phone in another room you may not notice an alert like that. A paired watch or band gets a copy of the notification if you allow Strażnik notifications in its app — and then vibrates in its own way. Red only — the yellow attention signal has its own setting above."; }
     const dndNote = document.getElementById("dnd-note");
@@ -1151,7 +1195,7 @@
     set("#yv-silent", "No sound");
     const yvNote = document.getElementById("yv-note");
     if (yvNote) yvNote.innerHTML = "Applies to the <b>yellow</b> attention sound only. It does not silence the red alert, which has its own setting. “No sound” keeps the banner and the vibration.";
-    set("#ns-head", "Native alert and volume");
+    set("#ns-head", "Alert volume");
     set("#ns-label", "Red alert always at full volume");
     const nsNote = document.getElementById("ns-note");
     if (nsNote) nsNote.innerHTML = "The siren uses the Android <b>“Alarms”</b> volume (not “Ring” or “Media”). A red alert raises it to <b>at least half</b> so the siren is never silent. The option above is <b>off</b> by default — when switched on, a red alert sets the volume to maximum, also at night. Either way the previous volume returns when you silence the alert. The yellow attention sound uses your normal notification volume and has its own setting above.";
@@ -1203,6 +1247,13 @@
     "#btn-3d": ["title", "Перемкнути вигляд 2D/3D"],
     "#btn-watch": ["title", "Чужі літаки (РФ/РБ) над східним флангом"],
     "#btn-push": ["title", "Сповіщення"],
+    "#btn-grota": ["aria-label", "GROTA — місця укриття"],
+    "#more-sheet .dlg-x": ["aria-label", "Закрити меню"],
+    "#settings .dlg-x": ["aria-label", "Закрити налаштування"],
+    "#attr-i": ["title", "Джерела мапи"],
+    "#disclaimer-x": ["aria-label", "Сховати попередження (повернеться під час тривоги)"],
+    "#skrot-www-x": ["aria-label", "Сховати цю смугу"],
+    "#tb-slider": ["aria-label", "Прогорнути історію за 12 годин"],
   };
 
   function ukrainize(root) {
@@ -1243,7 +1294,7 @@
     const placeName = document.getElementById("place-name");
     if (placeName) placeName.placeholder = "напр. Дім";
     const live = document.getElementById("tb-live");
-    if (live) live.innerHTML = "ПЕРЕЙТИ<br>НАЖИВО";
+    if (live) live.textContent = "НАЖИВО";
     const mode = document.querySelector(".tb-mode .tb-two");
     if (mode) mode.innerHTML = "ПЕРЕГЛЯД<br>ІСТОРІЇ";
     const brandInfo = document.querySelector(".brand-info");
@@ -1257,10 +1308,11 @@
       + "Дякуємо за підтримку проєкту!</p>"
       + '<a href="https://mikr.us" target="_blank" rel="noopener">Сайт Mikrus ↗</a></div>';
     const attr = document.getElementById("attr-text");
-    if (attr) attr.innerHTML = '<b>Дані: <a href="https://neptun.in.ua" target="_blank" rel="noopener">NEPTUN</a></b>'
-      + ' (агрегатор OSINT — не радар; завжди перевіряйте достовірність і ±км)'
-      + ' · ADS-B: adsb.lol / adsb.fi · Мапа: <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a>'
-      + ' © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OSM</a>';
+    if (attr) attr.innerHTML = 'Дані: <a href="https://neptun.in.ua" target="_blank" rel="noopener">NEPTUN</a> — агрегатор OSINT, не радар.<br>'
+      + 'Авіація: ADS-B (adsb.lol, adsb.fi).<br>'
+      + 'Мапа: <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a>'
+      + ' © <a href="https://www.openmaptiles.org/" target="_blank" rel="noopener">OpenMapTiles</a>,'
+      + ' дані © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>';
     const northUk = document.getElementById("ab-polnoc");
     const redUk = document.getElementById("ab-czerwony");
     if (northUk) northUk.innerHTML = "<b>Північ (Поморське, Західнопоморське, Вармінсько-Мазурське, "
@@ -1283,6 +1335,14 @@
       "<b>Низько летючі ракети</b> без повідомлень спостерігачів можуть узагалі не з’явитися в даних.",
       "<b>Зліт МіГ-31К</b> і тривоги для всієї України показуємо як інформацію, а не як тривогу для Польщі."
     ].forEach((html, i) => { const li = document.querySelectorAll("#about-blind li")[i]; if (li) li.innerHTML = html; });
+    { const el = document.getElementById("ab-lvl-1"); if (el) el.innerHTML = "<b>≥ 2 бали — ПІДВИЩЕНА УВАГА:</b> регіон жовтим, короткий звуковий сигнал і спливне сповіщення."; }
+    { const el = document.getElementById("ab-lvl-2"); if (el) el.innerHTML = "<b>≥ 4 бали й підтвердження — ВИСОКИЙ ПРІОРИТЕТ:</b> регіон червоним, модульована сирена повітряної тривоги, вібрація і гучне сповіщення."; }
+    { const el = document.getElementById("ab-gdzie-1"); if (el) el.innerHTML = "<b>Мапа</b> — об’єкти, зони й кольори воєводств. Збоку: <b>мій регіон</b>, <b>зони</b> (закриття неба військовими — лише інформація, без балів) і <b>вся Польща</b>."; }
+    { const el = document.getElementById("ab-gdzie-2"); if (el) el.innerHTML = "<b>Сигнали</b> — картки воєводств із балами, список сигналів, об’єкти біля кордону, військова авіація."; }
+    { const el = document.getElementById("ab-gdzie-3"); if (el) el.innerHTML = "<b>GROTA</b> (у застосунку) — найближчі місця укриття і що підготувати."; }
+    { const el = document.getElementById("ab-gdzie-4"); if (el) el.innerHTML = "<b>Історія</b> — останні 12 годин на повзунку."; }
+    { const el = document.getElementById("ab-gdzie-5"); if (el) el.innerHTML = "<b>Меню</b> — налаштування (воєводство, дозволи, звук, години тиші, мова), легенда, вигляд 3D, чужі літаки, інструкція."; }
+    { const el = document.getElementById("ab-gdzie-6"); if (el) el.innerHTML = "<b>Діоди й (i) угорі</b> — стан джерел даних і джерела мапи. Торкніться об’єкта на мапі, щоб побачити подробиці."; }
     const licUk = document.getElementById("about-license");
     if (licUk) licUk.innerHTML = '© 2026 cukierrro · усі права застережено · '
       + '<a href="https://github.com/cukierrro/Straznik/blob/main/LICENSE" target="_blank" rel="noopener">ліцензія</a> · ліцензії третіх сторін: '

@@ -21,7 +21,10 @@ function symulacja({ minuty = 10, alarm = false, aktywnie = false, tryb = 'ok', 
     setTimeout: (fn, ms) => { const id = ++seq; timers.push({ id, at: now + (ms || 0), fn }); return id; },
     clearTimeout: (id) => { const i = timers.findIndex(t => t.id === id); if (i >= 0) timers.splice(i, 1); },
     setInterval: () => 0, clearInterval: () => {},
-    document: { get hidden() { return !widoczna; } },
+    // 14.10.2026: plakietka braku połączenia podaje czas ostatnich danych, przygasza
+    // baner (klasa na <body>) i ogłasza się czytnikowi — piaskownica musi to mieć.
+    document: { get hidden() { return !widoczna; }, body: { classList: { add: () => {}, remove: () => {} } } },
+    threatsReceivedAt: 0, a11yInfo: null, powiedz: () => {},
     UI: { isEn: false, isUk: false, t: (pl) => pl },
     apiBase: () => 'https://straznik.eu',
     myVoiv: () => 'lubelskie',

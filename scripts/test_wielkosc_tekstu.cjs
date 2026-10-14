@@ -23,10 +23,23 @@ console.log("1. Typografia w rem, nie w px");
 const pxWCss = [...css.matchAll(/font-size:\s*([0-9.]+)px/g)]
   .filter(m => m[1] !== "0" && !css.slice(Math.max(0, m.index - 12), m.index + 2).includes("max("));
 sprawdz(pxWCss.length === 0, `style.css bez font-size w px (znaleziono: ${pxWCss.map(m => m[1] + "px").join(", ") || "brak"})`);
-const pxWApp = [...app.matchAll(/font-size:\s*([0-9.]+)px/g)].filter(m => m[1] !== "0");
+// Wyjątek (14.10.2026): próbnik w zmierzPowiekszenieSystemu() ma 100px, bo MIERZY
+// mnożnik systemowego powiększenia tekstu (Android textZoom) — nie jest typografią
+// i nigdy nie jest widoczny. Wyłączamy tylko wnętrze tej jednej funkcji.
+const probnik = (() => {
+  const i = app.indexOf("function zmierzPowiekszenieSystemu()");
+  return i < 0 ? [0, 0] : [i, app.indexOf("\n}", i)];
+})();
+const pxWApp = [...app.matchAll(/font-size:\s*([0-9.]+)px/g)]
+  .filter(m => m[1] !== "0" && !(m.index > probnik[0] && m.index < probnik[1]));
 sprawdz(pxWApp.length === 0, `app.js bez font-size w px (znaleziono: ${pxWApp.map(m => m[1] + "px").join(", ") || "brak"})`);
 const pxWHtml = [...html.matchAll(/font-size:\s*([0-9.]+)px/g)].filter(m => m[1] !== "0");
 sprawdz(pxWHtml.length === 0, `index.html bez font-size w px (znaleziono: ${pxWHtml.map(m => m[1] + "px").join(", ") || "brak"})`);
+// Dolny pasek: pięć zakładek po ~76 px. Przy 200% w systemie podpisy nachodziły na
+// siebie — rosną z tekstem, ale najwyżej do 18 px na ekranie (przegląd UI 14.10.2026).
+sprawdz(/function zmierzPowiekszenieSystemu\(\)[\s\S]*?--zoom-sys/.test(app), "app.js mierzy systemowe powiększenie tekstu (--zoom-sys)");
+sprawdz(/#tabbar > \.tab-btn > span[^{]*\{[^}]*font-size:\s*min\([^;]*var\(--zoom-sys/.test(css),
+  "podpisy zakładek przycięte względem --zoom-sys");
 
 // Skrót `font:` też niesie rozmiar — pierwsze podejście go przeoczyło
 // i trzynaście napisów (pasek czasu, legenda, atrybucja) zostałoby małych.

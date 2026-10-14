@@ -104,7 +104,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <link rel="icon" type="image/png" sizes="512x512" href="assets/icon-512.png">
 <link rel="apple-touch-icon" href="assets/icon-192.png">
 <link rel="stylesheet" href="assets/vendor/maplibre-gl.css?v=1.7.82">
-<link rel="stylesheet" href="style.css?v=1.7.94c">
+<link rel="stylesheet" href="style.css?v=1.7.95-ui25">
 </head>
 <body>
 
@@ -113,7 +113,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
     <div class="logo-dot"></div>
     <div>
       <h1 class="brand-name">STRAŻNIK</h1>
-      <div class="brand-sub">fuzja sygnałów · wschodnia Polska</div>
+      <div class="brand-sub">mapa zagrożeń z powietrza · Polska</div>
       <!-- 17.09.2026: Mikrus przekazał Strażnikowi serwer; zgodnie z ich prośbą informacja
            o hostingu z linkiem do ich strony (logo z ich strony z logotypami, biały tekst) -->
       <a class="brand-host" href="https://mikr.us" target="_blank" rel="noopener"
@@ -136,6 +136,15 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
   </div>
   <div id="status-leds" title="Status źródeł danych — dotknij po szczegóły"
        role="button" tabindex="0"></div>
+  <!-- Licznik dronów i rakiet (prośba usera 14.10.2026, wariant A z makiety). Puste
+       miejsce w pasku obok diod — nie zabiera mapy. Liczby wpisuje odswiezLicznik()
+       w app.js; do pierwszych danych ukryty. Dotknięcie otwiera #licznik-okno. -->
+  <button type="button" id="licznik" class="licznik" hidden aria-haspopup="dialog">
+    <span class="lk-poz" id="lk-drony"><svg class="lk-ikona" viewBox="-32 -32 64 64" aria-hidden="true"><path class="lk-dron" d="M0 -30 L5 -8 L27 2 L27 7 L5 7 L4 20 L9 27 L0 23 L-9 27 L-4 20 L-5 7 L-27 7 L-27 2 L-5 -8 Z"/><path class="lk-dziob" d="M0 -30 L4.5 -15 L-4.5 -15 Z"/></svg><span class="lk-n">0</span></span>
+    <span class="lk-sep" aria-hidden="true"></span>
+    <span class="lk-poz" id="lk-rakiety"><svg class="lk-ikona" viewBox="-32 -32 64 64" aria-hidden="true"><path class="lk-rakieta" d="M0 -29 L5 -20 L7 -4 L22 11 L7 7 L6 21 L15 28 L0 23 L-15 28 L-6 21 L-7 7 L-22 11 L-7 -4 L-5 -20 Z"/></svg><span class="lk-n">0</span></span>
+    <span class="lk-zegar" hidden></span>
+  </button>
   <div class="top-actions">
     <a id="btn-download" class="chip download web-only"
        href="https://play.google.com/store/apps/details?id=pl.straznik.app" target="_blank" rel="noopener"
@@ -145,32 +154,10 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
        href="https://apps.apple.com/pl/app/id6813563009" target="_blank" rel="noopener"
        title="Pobierz aplikację Strażnik na iPhone'a z App Store"
        aria-label="Pobierz aplikację Strażnik na iPhone'a z App Store">⬇ Pobierz na iOS</a>
-    <a id="btn-instructions" class="chip instructions web-only"
-       href="https://cukierrro.github.io/Straznik/" target="_blank" rel="noopener"
-       title="Otwórz pełną instrukcję aplikacji Strażnik"
-       aria-label="Otwórz pełną instrukcję aplikacji Strażnik">📖 Instrukcja</a>
-    <a id="btn-coffee" class="chip coffee web-only no-ios no-sklep" href="https://buycoffee.to/cukierrro"
-       target="_blank" rel="noopener"
-       title="Postaw kawę dla cukierrro na buycoffee.to">☕ Postaw kawę</a>
-    <!-- Na pasku zostają tylko dwie rzeczy: stan powiadomień i ustawienia.
-         Reszta zeszła do dolnych zakładek i do menu „Więcej” — wcześniej
-         najgłośniejszym elementem ekranu była pomarańczowa kawa, a nie alarm. -->
-    <button id="btn-legend" class="icon-btn" title="Legenda symboli" aria-label="Legenda symboli">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h6M4 12h6M4 18h6"/><circle cx="16.5" cy="6" r="2"/><circle cx="16.5" cy="12" r="2"/><circle cx="16.5" cy="18" r="2"/></svg>
-    </button>
-    <button id="btn-3d" class="icon-btn" title="Przełącz widok 2D/3D" aria-label="Przełącz widok 2D/3D">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.6 20 8v8l-8 4.4L4 16V8z"/><path d="M4 8l8 4.4L20 8M12 12.4V20.4"/></svg>
-    </button>
-    <button id="btn-watch" class="icon-btn" title="Obce maszyny (RU/BY) nad wschodnią flanką" aria-label="Obce maszyny">
-      <svg class="solid" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.6 2.9a1.4 1.4 0 0 1 2.8 0V9l7.6 4.3v2.2l-7.6-2.3v4.2l2.6 1.7v1.7L12 19.9l-4 .9v-1.7l2.6-1.7v-4.2L3 15.5v-2.2l7.6-4.3z"/></svg>
-      <span id="watch-badge" class="badge" style="display:none"></span>
-    </button>
-    <button id="btn-push" class="icon-btn" title="Powiadomienia" aria-label="Powiadomienia">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9a6 6 0 0 1 12 0c0 7 3 7 3 7H3s3 0 3-7Z"/><path d="M10 20h4"/></svg>
-    </button>
-    <button id="btn-settings" class="icon-btn" title="Moja lokalizacja i ustawienia" aria-label="Ustawienia">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/></svg>
-    </button>
+    <!-- v4 (14.10.2026): na pasku zostaje marka, diody i — na stronie — pobieranie
+         aplikacji. Legenda, 3D, obce maszyny, powiadomienia i ustawienia są w Menu
+         (dolna zakładka) — makieta v4 przyjęta przez usera. Identyfikatory przycisków
+         się nie zmieniły, więc ich obsługa w app.js działa bez zmian. -->
   </div>
 </header>
 
@@ -181,24 +168,36 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <h2 id="sytuacja" class="sr-only">Wczytywanie sytuacji…</h2>
 
 <div id="map"></div>
+<!-- Wczytywanie mapy (przegląd UI 14.10.2026): styl i kafelki przychodzą z zewnętrznego
+     serwera i przy słabym łączu trwa to 5–30 s — przez ten czas był czarny ekran bez
+     słowa. Znika przy wczytaniu mapy albo przy komunikacie o błędzie. -->
+<div id="mapa-laduje" role="status"><span class="kolko" aria-hidden="true"></span><span id="mapa-laduje-t">Wczytuję mapę…</span></div>
 
-<!-- Atrybucja w rogu mapy. Pokazuje się przy starcie i po pięciu sekundach
-     zwija do kółka (i); można ją też zamknąć od razu krzyżykiem. Dotknięcie
-     kółka otwiera okno „Źródła danych" z licencjami.
+<!-- Atrybucja: przycisk (i) w rogu mapy i OKIENKO obok niego (przegląd UI
+     14.10.2026 — długi pasek przewijany palcem i zwijany po 5 s „chował się pod
+     nowym guzikiem”, a zwinięte (i) dublowało okno źródeł spod diod).
+     Okienko pokazuje się przy starcie i znika po pięciu sekundach, przy pierwszym
+     dotknięciu mapy albo po „Zamknij”; (i) otwiera z powrotem TYLKO je.
      Tak pozwala wytyczna OSM Foundation (Licence/Attribution_Guidelines,
-     „Interactive maps"): zwijanie wolno wywołać dotknięciem x, ruchem mapy
-     albo samoczynnie po pięciu sekundach, o ile licencję da się potem
-     znaleźć — „na przykład z przycisku (i) w rogu mapy".
-     © OpenMapTiles jest tu WYMAGANE przez OpenFreeMap, a brakowało go:
-     własną atrybucję MapLibre mamy wyłączoną (attributionControl: false),
-     więc nic nie dopisze jej za nas. -->
-<div id="attribution">
-  <button id="attr-x" type="button" title="Zwiń do ikony" aria-label="Zwiń informację o źródłach">✕</button>
-  <span id="attr-text"><b>Dane: <a href="https://neptun.in.ua" target="_blank" rel="noopener">NEPTUN</a></b>
-  (agregator OSINT — nie radar; zawsze sprawdzaj confidence i ±km)
-  · ADS-B: adsb.lol / adsb.fi · Mapa: <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a>
-  © <a href="https://www.openmaptiles.org/" target="_blank" rel="noopener">OpenMapTiles</a>,
-  dane © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a></span>
+     „Interactive maps”, sprawdzone 14.10.2026): atrybucja może być okienkiem przy
+     starcie, zwijanym dotknięciem x, ruchem mapy albo po pięciu sekundach, o ile
+     da się ją potem znaleźć — „na przykład z przycisku (i) w rogu mapy”.
+     Widoczny NEPTUN jest warunkiem korzystania z ich API.
+     © OpenMapTiles jest WYMAGANE przez OpenFreeMap: własną atrybucję MapLibre
+     mamy wyłączoną (attributionControl: false), więc nic nie dopisze jej za nas. -->
+<div id="attribution" class="otwarta">
+  <button id="attr-i" type="button" aria-expanded="true" aria-controls="attr-pop"
+          aria-label="Źródła mapy" title="Źródła mapy"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/></svg></button>
+  <div id="attr-pop" role="group" aria-labelledby="attr-h">
+    <div class="attr-head"><b id="attr-h">Źródła mapy</b>
+      <button id="attr-x" type="button"><span id="attr-x-t">Zamknij</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    <p id="attr-text">Dane: <a href="https://neptun.in.ua" target="_blank" rel="noopener">NEPTUN</a> — agregator OSINT, nie radar.<br>
+      Lotnictwo: ADS-B (adsb.lol, adsb.fi).<br>
+      Mapa: <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a>
+      © <a href="https://www.openmaptiles.org/" target="_blank" rel="noopener">OpenMapTiles</a>,
+      dane © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a></p>
+    <div class="attr-czas" aria-hidden="true"><i></i></div>
+  </div>
 </div>
 
 <noscript>
@@ -250,13 +249,30 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
     <!-- 17.09.2026: pełnej szerokości przycisk „Wróć do podglądu na żywo” zajmował cały
          rząd; teraz mała ramka obok nazwy trybu, a jego miejsce mają przyciski przewijania -->
     <button type="button" id="tb-live" class="tb-live" title="Wróć do podglądu na żywo"
-            aria-label="Wróć do podglądu na żywo">ZMIEŃ<br>NA ŻYWO</button>
+            aria-label="Wróć do podglądu na żywo">NA ŻYWO</button>
     <!-- plakietka alarmu ogólnokrajowego: w nagłówku o stałej wysokości, żeby
          pojawienie się komunikatu nie podnosiło paska pod palcem -->
     <span id="tb-national"></span>
     <!-- prędkość odtwarzania: dotknięcie przełącza ×1 → ×2 → ×4 -->
     <button type="button" id="tb-speed" class="tb-speed">×1</button>
     <span id="tb-label">teraz</span>
+  </div>
+  <!-- Wykres 12 h: drony (średnia z 30 min) i rakiety (kropki) nad suwakiem, ta sama
+       oś czasu. Decyzje usera 14.10.2026: domyślnie zwinięty, średnia 30 min, rakiety
+       kropkami. Rysuje go wykres12Odswiez() w app.js. -->
+  <div id="wykres12" class="wykres12">
+    <button type="button" id="w12-przelacz" class="w12-przelacz" aria-expanded="false" aria-controls="w12-cialo"><svg class="w12-strz" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg><span id="w12-t">Drony i rakiety · 12 h</span><span id="w12-max" class="w12-max"></span><svg id="w12-mini" class="w12-mini" viewBox="0 0 110 22" preserveAspectRatio="none" aria-hidden="true"></svg></button>
+    <div id="w12-cialo" class="w12-cialo" hidden>
+      <div class="w12-leg" aria-hidden="true"><span><i class="w12-l-dron"></i><span id="w12-l-d">drony (średnia z 30 min)</span></span><span><i class="w12-l-rak"></i><span id="w12-l-r">rakiety i KAB</span></span></div>
+      <!-- podziałka i wartość przy kresce jako HTML nad wykresem: SVG jest rozciągany
+           (preserveAspectRatio="none"), więc tekst w nim byłby zniekształcony -->
+      <div class="w12-plot">
+        <svg id="w12-svg" class="w12-svg" viewBox="0 0 364 84" preserveAspectRatio="none" role="img"></svg>
+        <div id="w12-skala" class="w12-skala" aria-hidden="true"></div>
+        <div id="w12-wartosc" class="w12-wartosc" aria-hidden="true"></div>
+      </div>
+      <div id="w12-osie" class="w12-osie" aria-hidden="true"></div>
+    </div>
   </div>
   <div class="tb-row">
     <input id="tb-slider" type="range" min="0" max="0" value="0" step="1"
@@ -294,12 +310,12 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <div id="skrot-www" hidden>
   <span id="skrot-www-tekst">To jest skrót do strony, nie aplikacja. Alarmy przy zamkniętym oknie i schronienie (GROTA) są w aplikacji na telefon.</span>
   <a id="skrot-www-pobierz" href="https://play.google.com/store/apps/details?id=pl.straznik.app" target="_blank" rel="noopener">↓ Pobierz aplikację</a>
-  <button id="skrot-www-x" title="Ukryj">✕</button>
+  <button id="skrot-www-x" title="Ukryj" aria-label="Ukryj ten pasek">✕</button>
 </div>
 <div id="disclaimer">
   <span>NIEOFICJALNE źródło dodatkowe — nie zastępuje syren, alertów RCB ani RSO.
   W razie realnego zagrożenia kieruj się oficjalnymi kanałami.</span>
-  <button id="disclaimer-x" title="Ukryj (wróci przy alarmie)">✕</button>
+  <button id="disclaimer-x" title="Ukryj (wróci przy alarmie)" aria-label="Ukryj ostrzeżenie (wróci przy alarmie)">✕</button>
 </div>
 </div>
 
@@ -311,19 +327,27 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <nav id="tabbar" aria-label="Nawigacja główna">
   <button type="button" id="tab-map" class="tab-btn active" aria-pressed="true">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3V6Z"/><path d="M9 3v15M15 6v15"/></svg>
-    <span>Mapa</span>
+    <span id="tab-map-t">Mapa</span>
   </button>
   <button type="button" id="btn-panel" class="tab-btn" aria-pressed="false">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17h2M9 14h2M14 10h2M19 6h2"/><path d="M5 21v-4M10 21v-7M15 21V10M20 21V6"/></svg>
-    <span>Sygnały</span>
+    <span id="btn-panel-t">Sygnały</span>
+  </button>
+  <!-- GROTA w środku, pod kciukiem (v4). Ta sama tarcza co zakładka TERAZ w Grocie
+       i przycisk w alarmie (decyzja usera 20.09). Nie „schron” — wykaz PSP to miejsca
+       schronienia, więc zakładka nosi nazwę modułu (uwaga usera 14.10.2026). -->
+  <button type="button" id="btn-grota" class="tab-btn tab-grota app-only" aria-label="GROTA — miejsca schronienia">
+    <span class="tab-grota-pill"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg></span>
+    <span>GROTA</span>
   </button>
   <button type="button" id="btn-history" class="tab-btn" aria-pressed="false">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5v5h5"/><path d="M5.5 9A8 8 0 1 1 4 15"/><path d="M12 7v5l3 2"/></svg>
-    <span>Historia</span>
+    <span id="btn-history-t">Historia</span>
   </button>
-  <button type="button" id="tab-more" class="tab-btn" aria-pressed="false">
-    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg>
-    <span>Więcej</span>
+  <button type="button" id="tab-more" class="tab-btn" aria-pressed="false" aria-haspopup="dialog">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    <span id="tab-more-t">Menu</span>
+    <span id="menu-badge" class="badge" style="display:none"></span>
   </button>
 </nav>
 
@@ -334,29 +358,56 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
      i iOS — strona straznik.eu ich nie ma (decyzja usera: GROTY nie ma w WWW). -->
 <section id="grota-widok" class="app-only" hidden></section>
 
-<dialog id="more-sheet" class="sheet">
-  <button type="button" class="dlg-x" aria-label="Zamknij" title="Zamknij">✕</button>
-  <h3>Więcej</h3>
+<!-- Wyjaśnienie licznika (uwaga usera 14.10.2026: „po dotknięciu ma być jasno
+     wyjaśnione”). Treść w trzech językach wpisuje pokazOknoLicznika() w app.js. -->
+<dialog id="licznik-okno" class="sheet" aria-labelledby="lk-h">
+  <button type="button" class="dlg-x dlg-x-slowo"><span id="lk-x-t">Zamknij</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  <h3 id="lk-h">Drony i rakiety na mapie</h3>
+  <p id="lk-kiedy" class="lk-kiedy"></p>
+  <div class="lk-wiersze">
+    <div class="lk-wiersz"><span class="lk-kafel"><svg class="lk-ikona" viewBox="-32 -32 64 64" aria-hidden="true"><path class="lk-dron" d="M0 -30 L5 -8 L27 2 L27 7 L5 7 L4 20 L9 27 L0 23 L-9 27 L-4 20 L-5 7 L-27 7 L-27 2 L-5 -8 Z"/><path class="lk-dziob" d="M0 -30 L4.5 -15 L-4.5 -15 Z"/></svg></span>
+      <span class="lk-liczba" id="lk-o-drony">0</span>
+      <span class="lk-opis"><b id="lk-o-drony-t"></b><span id="lk-o-drony-d"></span></span></div>
+    <div class="lk-wiersz"><span class="lk-kafel"><svg class="lk-ikona" viewBox="-32 -32 64 64" aria-hidden="true"><path class="lk-rakieta" d="M0 -29 L5 -20 L7 -4 L22 11 L7 7 L6 21 L15 28 L0 23 L-15 28 L-6 21 L-7 7 L-22 11 L-7 -4 L-5 -20 Z"/></svg></span>
+      <span class="lk-liczba" id="lk-o-rakiety">0</span>
+      <span class="lk-opis"><b id="lk-o-rakiety-t"></b><span id="lk-o-rakiety-d"></span></span></div>
+  </div>
+  <div class="lk-uwaga"><b id="lk-uwaga-h"></b><p id="lk-uwaga-p"></p></div>
+  <p id="lk-nie" class="lk-drobne"></p>
+  <p id="lk-zrodlo" class="lk-drobne"></p>
+  <button type="button" id="lk-sygnaly" class="chip primary">Pokaż sygnały</button>
+</dialog>
+
+<dialog id="more-sheet" class="sheet" aria-labelledby="more-h">
+  <button type="button" class="dlg-x dlg-x-slowo" aria-label="Zamknij menu"><span>Zamknij</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  <h3 id="more-h">Menu</h3>
   <div class="sheet-list">
-    <!-- Ta sama tarcza co zakładka TERAZ w Grocie (decyzja usera 20.09): człowiek widzi
-         w Strażniku ikonę, którą potem zobaczy w module. -->
-    <button type="button" id="btn-grota" class="sheet-row app-only">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
-      <span>Schronienie — gdzie najbliżej</span></button>
+    <button type="button" id="btn-settings" class="sheet-row" data-kolor="niebieski"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/></svg>
+      <span id="m-ustawienia">Ustawienia</span></button>
+    <button type="button" id="btn-push" class="sheet-row" data-kolor="fiolet"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9a6 6 0 0 1 12 0c0 7 3 7 3 7H3s3 0 3-7Z"/><path d="M10 20h4"/></svg>
+      <span id="m-powiadomienia">Powiadomienia</span></button>
+  </div>
+  <p class="menu-cap" id="m-cap-mapa">Mapa</p>
+  <div class="sheet-list">
+    <button type="button" id="btn-legend" class="sheet-row" data-kolor="morski"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h6M4 12h6M4 18h6"/><circle cx="16.5" cy="6" r="2"/><circle cx="16.5" cy="12" r="2"/><circle cx="16.5" cy="18" r="2"/></svg>
+      <span id="m-legenda">Legenda</span></button>
+    <button type="button" id="btn-3d" class="sheet-row" data-kolor="fiolet" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.6 20 8v8l-8 4.4L4 16V8z"/><path d="M4 8l8 4.4L20 8M12 12.4V20.4"/></svg>
+      <span id="m-3d">Widok 3D</span><span class="sw-mini" aria-hidden="true"></span></button>
+    <button type="button" id="btn-watch" class="sheet-row" data-kolor="szary"><svg class="solid" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.6 2.9a1.4 1.4 0 0 1 2.8 0V9l7.6 4.3v2.2l-7.6-2.3v4.2l2.6 1.7v1.7L12 19.9l-4 .9v-1.7l2.6-1.7v-4.2L3 15.5v-2.2l7.6-4.3z"/></svg>
+      <span id="m-obce">Obce maszyny (RU/BY)</span><span id="watch-badge" class="badge" style="display:none"></span></button>
+  </div>
+  <p class="menu-cap" id="m-cap-info">Informacje</p>
+  <div class="sheet-list">
+    <button type="button" id="btn-about" class="sheet-row" data-kolor="szary"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.3 2.4c-.6.2-.9.8-.9 1.4v.4"/><path d="M12 16.8h.01"/></svg>
+      <span id="m-o-aplikacji">O aplikacji i punktacja</span></button>
+    <a class="sheet-row" id="m-instrukcja-a" data-kolor="szary" href="https://cukierrro.github.io/Straznik/" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5h9l5 5v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-14a1 1 0 0 1 1-1z"/><path d="M14 4.5v5h5M8 13h8M8 16.5h5"/></svg>
+      <span id="m-instrukcja">Instrukcja użytkownika</span></a>
     <!-- Strona nie ma GROTY (moduł jest w aplikacjach). Bez tego wiersza znikała
          bez śladu i czytelnicy szukali jej w ustawieniach — zgłoszenie z 23.09.2026. -->
-    <a class="sheet-row web-only" id="btn-grota-web" href="https://cukierrro.github.io/Straznik/#grota" target="_blank" rel="noopener">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
-      <span>Schronienie — w aplikacji na telefon</span></a>
-    <button type="button" id="btn-about" class="sheet-row">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.3 2.4c-.6.2-.9.8-.9 1.4v.4"/><path d="M12 16.8h.01"/></svg>
-      <span>O aplikacji i punktacja</span></button>
-    <a class="sheet-row" href="https://cukierrro.github.io/Straznik/" target="_blank" rel="noopener">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5h9l5 5v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-14a1 1 0 0 1 1-1z"/><path d="M14 4.5v5h5M8 13h8M8 16.5h5"/></svg>
-      <span>Instrukcja użytkownika</span></a>
-    <a class="sheet-row no-ios no-sklep" href="https://buycoffee.to/cukierrro" target="_blank" rel="noopener">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 8h11v5.5a4 4 0 0 1-4 4H8.5a4 4 0 0 1-4-4z"/><path d="M15.5 9.5h2a2.5 2.5 0 0 1 0 5h-2M6 5V3.4M9.5 5V3.4M13 5V3.4"/></svg>
-      <span>Wesprzyj autora</span></a>
+    <a class="sheet-row web-only" id="btn-grota-web" data-kolor="niebieski" href="https://cukierrro.github.io/Straznik/#grota" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+      <span>GROTA — miejsca schronienia w aplikacji</span></a>
+    <a class="sheet-row no-ios no-sklep" id="m-kawa-a" data-kolor="szary" href="https://buycoffee.to/cukierrro" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 8h11v5.5a4 4 0 0 1-4 4H8.5a4 4 0 0 1-4-4z"/><path d="M15.5 9.5h2a2.5 2.5 0 0 1 0 5h-2M6 5V3.4M9.5 5V3.4M13 5V3.4"/></svg>
+      <span id="m-kawa">Wesprzyj autora</span></a>
   </div>
 </dialog>
 
@@ -519,7 +570,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
       bez okien, z dala od szyb. Śledź komunikaty RCB i służb.</div>
     <p class="alarm-note">To sygnał NIEOFICJALNY. Sprawdź syreny, RCB i RSO —
       one są źródłem rozstrzygającym.</p>
-    <button id="alarm-ack" class="alarm-btn">POTWIERDZAM — wycisz syrenę</button>
+    <button id="alarm-ack" class="alarm-btn">POTWIERDZAM — wycisz alarm</button>
     <!-- Po potwierdzeniu: wybór zamiast zamykania ekranu. Aplikacja NIGDY sama nie
          przejmuje ekranu Grotą (decyzja usera 20.09) — człowiek patrzy na zagrożenie
          i sam decyduje, dokąd dalej. -->
@@ -528,20 +579,20 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
         <span>Gdzie się schronić</span></button>
       <button type="button" id="alarm-map" class="alarm-choice">Obserwuj mapę</button>
-      <button type="button" id="alarm-safe" class="alarm-choice">Jestem bezpieczny</button>
+      <button type="button" id="alarm-safe" class="alarm-choice">Jestem w bezpiecznym miejscu</button>
     </div>
     <div class="alarm-time" id="alarm-time"></div>
   </div>
 </div>
 
-<dialog id="about">
-  <button type="button" class="dlg-x" aria-label="Zamknij" title="Zamknij">✕</button>
+<dialog id="about" class="sheet" aria-labelledby="about-h">
+  <button type="button" class="dlg-x dlg-x-slowo"><span>Zamknij</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
   <div class="about-body">
     <div class="about-head">
       <div class="about-logo"></div>
       <div>
-        <h2>STRAŻNIK</h2>
-        <p class="about-sub">nieoficjalna fuzja sygnałów o zagrożeniach powietrznych</p>
+        <h2 id="about-h">STRAŻNIK</h2>
+        <p class="about-sub">nieoficjalna mapa zagrożeń z powietrza dla Polski</p>
       </div>
     </div>
 
@@ -558,7 +609,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
       nic więcej.
     </div>
 
-    <details class="about-sec" open>
+    <details class="about-sec">
       <summary><h3>Jak to działa</h3></summary>
     <p id="ab-fuzja">Żaden pojedynczy sygnał nie przesądza o zagrożeniu. Aplikacja zbiera
     kilka niezależnych wskaźników, przydziela im punkty i sumuje je w oknie
@@ -665,11 +716,9 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
     <details class="about-sec">
       <summary><h3>Poziomy</h3></summary>
     <div class="lvl-row"><i class="sq" style="--c:#ffb020"></i>
-      <b>≥ 2 pkt — PODWYŻSZONA UWAGA:</b> region na żółto, krótki sygnał
-      dźwiękowy i powiadomienie, które wyskakuje na ekranie.</div>
+      <span id="ab-lvl-1"><b>≥ 2 pkt — PODWYŻSZONA UWAGA:</b> region na żółto, krótki sygnał dźwiękowy i powiadomienie, które wyskakuje na ekranie.</span></div>
     <div class="lvl-row"><i class="sq" style="--c:#ff4d5e"></i>
-      <b>≥ 4 pkt i potwierdzenie — WYSOKI PRIORYTET:</b> region na czerwono,
-      modulowana syrena alarmu powietrznego z wibracją, głośne powiadomienie.</div>
+      <span id="ab-lvl-2"><b>≥ 4 pkt i potwierdzenie — WYSOKI PRIORYTET:</b> region na czerwono, modulowana syrena alarmu powietrznego z wibracją, głośne powiadomienie.</span></div>
     <div class="fineprint about-note" id="ab-czerwony"><b>Same 4 pkt nie wystarczą.</b> Czerwony wymaga
     potwierdzenia: albo Alertu RCB o treści „znajdź bezpieczne miejsce”, albo realnego
     obiektu uderzeniowego kursem na Polskę — bliżej niż 15 minut lotu albo 50 km od
@@ -686,18 +735,15 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 
     <details class="about-sec">
       <summary><h3>Gdzie co znajdziesz</h3></summary>
-    <ul class="about-list">
-      <li><b>☰ Panel</b> — karty województw z punktacją, lista sygnałów
-        z godzinami, obiekty przy granicy, lotnictwo wojskowe.</li>
-      <li><b>Legenda</b> — co oznacza każdy symbol i kolor na mapie.</li>
-      <li><b>⚙ Ustawienia</b> — wybór Twojego województwa (decyduje o alarmach
-        i starcie mapy), test dźwięków, opcjonalny wspólny backend.</li>
-      <li><b>◎ / ⤢</b> — powrót do Twojego regionu i widok całej Polski z Ukrainą.</li>
-      <li><b>strefy</b> — pokazuje aktywne strefy PAŻP (zamknięcia nieba przez
-        wojsko). Dotknięcie strefy opisuje, co to jest i od kiedy działa. Strefy
-        nie dokładają punktów — są wyłącznie informacją.</li>
-      <li><b>Diody u góry</b> — stan każdego źródła danych; kliknij obiekt lub
-        samolot na mapie, by zobaczyć szczegóły.</li>
+    <!-- v4 (14.10.2026): opis nowego układu — zakładki, Menu, GROTA. Każdy punkt ma
+         id i tłumaczy się po nim (wcześniej setMany po kolejności). -->
+    <ul class="about-list" id="ab-gdzie">
+      <li id="ab-gdzie-1"><b>Mapa</b> — obiekty, strefy i kolory województw. Z boku: <b>mój region</b>, <b>strefy</b> (zamknięcia nieba przez wojsko — tylko informacja, bez punktów) i <b>cała PL</b>.</li>
+      <li id="ab-gdzie-2"><b>Sygnały</b> — karty województw z punktacją, lista sygnałów, obiekty przy granicy, lotnictwo wojskowe.</li>
+      <li id="ab-gdzie-3"><b>GROTA</b> (w aplikacji) — najbliższe miejsca schronienia i co przygotować.</li>
+      <li id="ab-gdzie-4"><b>Historia</b> — ostatnie 12 godzin na suwaku.</li>
+      <li id="ab-gdzie-5"><b>Menu</b> — ustawienia (województwo, zgody, dźwięk, godziny ciszy, język), legenda, widok 3D, obce maszyny, instrukcja.</li>
+      <li id="ab-gdzie-6"><b>Diody i (i) u góry</b> — stan źródeł danych i źródła mapy. Dotknij obiektu na mapie, żeby zobaczyć szczegóły.</li>
     </ul>
 
     </details>
@@ -729,7 +775,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 
     <p class="fineprint" id="ab-dane">Dane: <a href="https://neptun.in.ua" target="_blank" rel="noopener">NEPTUN</a>
       · adsb.lol / adsb.fi · airspace.pansa.pl · gov.pl/RCB · media regionalne
-      i bałtyckie · strefy sąsiadów (RO/EE/LT) · mapa © CARTO, © OpenStreetMap</p>
+      i bałtyckie · strefy sąsiadów (RO/EE/LT) · mapa © OpenFreeMap, © OpenMapTiles, © OpenStreetMap</p>
     <div class="fineprint" id="about-license">© 2026 cukierrro · wszelkie prawa zastrzeżone ·
       <a href="https://github.com/cukierrro/Straznik/blob/main/LICENSE" target="_blank" rel="noopener">licencja</a> · licencje składników:
       <a href="https://github.com/cukierrro/Straznik/blob/main/NOTICE" target="_blank" rel="noopener">NOTICE</a>
@@ -743,9 +789,9 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
   </div>
 </dialog>
 
-<dialog id="sources">
-  <button type="button" class="dlg-x" aria-label="Zamknij" title="Zamknij">✕</button>
-  <h3>Źródła danych</h3>
+<dialog id="sources" aria-labelledby="src-h">
+  <button type="button" class="dlg-x dlg-x-slowo"><span>Zamknij</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  <h3 id="src-h">Źródła danych</h3>
   <p class="fineprint">Każda dioda u góry ekranu to jedno źródło. Fuzja wymaga
   zgodności kilku z nich, więc pojedyncze niedostępne źródło nie wyłącza
   ostrzegania — obniża tylko liczbę potwierdzeń.</p>
@@ -764,15 +810,15 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
   © OpenStreetMap.</p>
 </dialog>
 
-<dialog id="national-info">
-  <button type="button" class="dlg-x" aria-label="Zamknij" title="Zamknij">✕</button>
+<dialog id="national-info" aria-labelledby="national-info-head">
+  <button type="button" class="dlg-x dlg-x-slowo"><span>Zamknij</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
   <h3 id="national-info-head"></h3>
   <p id="national-info-body"></p>
 </dialog>
 
-<dialog id="watch">
-  <button type="button" class="dlg-x" aria-label="Zamknij" title="Zamknij">✕</button>
-  <h3>🛰 Obce maszyny nad wschodnią flanką</h3>
+<dialog id="watch" aria-labelledby="watch-h">
+  <button type="button" class="dlg-x dlg-x-slowo"><span>Zamknij</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  <h3 id="watch-h"><span aria-hidden="true">🛰 </span>Obce maszyny nad wschodnią flanką</h3>
   <p class="fineprint">Wojskowe samoloty o rejestracji <b>rosyjskiej lub białoruskiej</b>,
   widoczne w publicznych danych ADS-B/MLAT nad wschodnią flanką i w jej otoczeniu.
   W historii panel pokazuje czas wybrany suwakiem. To <b>obserwacja</b> emisji
@@ -786,8 +832,8 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
   <div id="watch-events" class="list"></div>
 </dialog>
 
-<dialog id="cameras">
-  <button type="button" class="dlg-x" aria-label="Zamknij" title="Zamknij">✕</button>
+<dialog id="cameras" aria-labelledby="cam-title">
+  <button type="button" class="dlg-x dlg-x-slowo"><span>Zamknij</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
   <h3 id="cam-title">Kamery</h3>
   <p class="fineprint">Publiczne kamery miejskie i turystyczne (worldcam.pl).
   Na liście są tylko te, które przy budowie aplikacji faktycznie nadawały.
@@ -802,13 +848,13 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
   byłoby dokładnie tym zastosowaniem, przed którym ten zakaz chroni.</p>
 </dialog>
 
-<dialog id="onboard-bg">
-  <button type="button" class="dlg-x" aria-label="Zamknij" title="Zamknij">✕</button>
+<dialog id="onboard-bg" aria-labelledby="onboard-bg-h">
+  <button type="button" class="dlg-x dlg-x-slowo"><span>Zamknij</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
   <div class="about-body" style="max-height:none">
     <div class="about-head">
       <div class="about-logo"></div>
       <div>
-        <h2 style="font-size:1.1333rem;letter-spacing:.06em">Alarmy push</h2>
+        <h2 id="onboard-bg-h" style="font-size:1.1333rem;letter-spacing:.06em">Alarmy push</h2>
         <p class="about-sub">żeby ostrzeżenie dotarło, gdy nie patrzysz na telefon</p>
       </div>
     </div>
@@ -830,13 +876,13 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 </dialog>
 
 <!-- 17.09.2026: po aktualizacji Android wyłączył zgodę, a aplikacja tego nie pokazała -->
-<dialog id="fs-check" class="android-only">
-  <button type="button" class="dlg-x" aria-label="Zamknij" title="Zamknij">✕</button>
+<dialog id="fs-check" class="android-only" aria-labelledby="fs-check-h">
+  <button type="button" class="dlg-x dlg-x-slowo"><span>Zamknij</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
   <div class="about-body" style="max-height:none">
     <div class="about-head">
       <div class="about-logo"></div>
       <div>
-        <h2 style="font-size:1.1333rem;letter-spacing:.06em">Alarm pełnoekranowy</h2>
+        <h2 id="fs-check-h" style="font-size:1.1333rem;letter-spacing:.06em">Alarm pełnoekranowy</h2>
         <p class="about-sub">sprawdź zgodę po aktualizacji</p>
       </div>
     </div>
@@ -852,19 +898,32 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
   </div>
 </dialog>
 
-<dialog id="settings">
-  <button type="button" class="dlg-x" aria-label="Zamknij" title="Zamknij">✕</button>
+<!-- Ustawienia v4 (przegląd UI 14.10.2026): arkusz od dołu o STAŁEJ wysokości.
+     Okno wyśrodkowane w pionie zmieniało wysokość z każdą zakładką, kolejna
+     zakładka uciekała spod palca i dotknięcie trafiało w tło — okno się zamykało.
+     Teraz: ekran startowy (gotowość alarmu + wiersze sekcji), sekcja otwiera się
+     w tym samym miejscu, „‹ Ustawienia” wraca. Wiersze to dawne .set-tab z tymi
+     samymi data-pane, więc wszystkie miejsca, które otwierają konkretną sekcję
+     kliknięciem `.set-tab[data-pane=…]`, działają bez zmian.
+     Bez „Zapisz/Anuluj”: prawie wszystko działa od razu, a tylko zmiana języka
+     i adresu serwera wymaga ponownego uruchomienia — mają własne przyciski. -->
+<dialog id="settings" class="sheet ustawienia na-starcie" aria-labelledby="set-tytul">
+  <button type="button" class="dlg-x dlg-x-slowo" aria-label="Zamknij ustawienia"><span id="set-x-t">Zamknij</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
   <form method="dialog">
-    <!-- Cztery zakładki zamiast jednej długiej listy: żeby dojść do wersji aplikacji,
-         trzeba było wcześniej przewinąć przez miejsca, język, alarmy i dźwięki. -->
-    <div class="set-tabs" role="tablist" aria-label="Sekcje ustawień">
-      <button type="button" class="set-tab active" data-pane="alarmy" role="tab" aria-selected="true">Alarmy</button>
-      <button type="button" class="set-tab" data-pane="miejsca" role="tab" aria-selected="false">Moje miejsca</button>
-      <button type="button" class="set-tab" data-pane="dzwiek" role="tab" aria-selected="false">Dźwięk</button>
-      <button type="button" class="set-tab" data-pane="aplikacja" role="tab" aria-selected="false">Aplikacja</button>
+    <div id="set-start">
+      <h3 id="set-tytul">Ustawienia</h3>
+      <!-- Wypełnia renderGotowosc() w app.js: czy alarm do Ciebie dotrze. -->
+      <div id="gotowosc" class="gotowosc"></div>
+      <nav class="set-tabs" aria-label="Sekcje ustawień">
+        <button type="button" class="set-tab sheet-row" data-pane="alarmy" data-kolor="czerwony"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9a6 6 0 0 1 12 0c0 7 3 7 3 7H3s3 0 3-7Z"/><path d="M10 20h4"/><path d="M3.5 5.5 2 4M20.5 5.5 22 4"/></svg><span id="st-alarmy">Alarmy i zgody</span><span class="set-wartosc" id="sv-alarmy"></span></button>
+        <button type="button" class="set-tab sheet-row" data-pane="miejsca" data-kolor="morski"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></svg><span id="st-miejsca">Moje miejsca</span><span class="set-wartosc" id="sv-miejsca"></span></button>
+        <button type="button" class="set-tab sheet-row" data-pane="dzwiek" data-kolor="fiolet"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4.5 4.5 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11"/></svg><span id="st-dzwiek">Dźwięk i godziny ciszy</span><span class="set-wartosc" id="sv-dzwiek"></span></button>
+        <button type="button" class="set-tab sheet-row" data-pane="aplikacja" data-kolor="niebieski"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h9M8.5 3v2M6 5c.5 3.5 3 6.5 6.5 8M11 5c-.6 3.7-3.2 6.8-7 8.5"/><path d="M12.5 21l4.25-10L21 21M14 17.5h5.5"/></svg><span id="st-aplikacja">Język, tekst i wersja</span><span class="set-wartosc" id="sv-aplikacja"></span></button>
+      </nav>
     </div>
+    <button type="button" id="set-wstecz" class="set-wstecz"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg><span id="set-wstecz-t">Ustawienia</span></button>
 
-    <section class="set-pane" data-pane="alarmy" role="tabpanel">
+    <section class="set-pane" data-pane="alarmy" aria-labelledby="set-h-alarmy" hidden>
     <h3 id="set-h-alarmy">Alarmy przy zamkniętej aplikacji</h3>
     <!-- Dwa akapity wyjaśnienia stały nad samymi przełącznikami i spychały je
          poniżej krawędzi ekranu. Chowamy je przy ich własnej opcji; kto chce
@@ -941,7 +1000,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
     </details>
     </section>
 
-    <section class="set-pane" data-pane="miejsca" role="tabpanel" hidden>
+    <section class="set-pane" data-pane="miejsca" aria-labelledby="set-h-miejsca" hidden>
     <h3 id="set-h-miejsca">Moje miejsca</h3>
     <p class="fineprint" id="miejsca-note">Zapisz do 8 miejsc i wybierz, dla których województw chcesz
     otrzymywać powiadomienia. Dokładne miejsca zostają na tym urządzeniu.</p>
@@ -954,7 +1013,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
     <select id="set-voiv" hidden aria-hidden="true"></select>
     </section>
 
-    <section class="set-pane" data-pane="dzwiek" role="tabpanel" hidden>
+    <section class="set-pane" data-pane="dzwiek" aria-labelledby="set-h-dzwiek" hidden>
     <h3 id="set-h-dzwiek">Sygnały dźwiękowe</h3>
     <details class="jak"><summary id="jak-dzwiek">Co kiedy gra</summary>
     <p class="fineprint android-only" id="dzwiek-pl-note">Żółty poziom (≥2 pkt) — krótki sygnał uwagi i powiadomienie
@@ -975,8 +1034,8 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
     <!-- Wibracja alfabetem Morse'a (10.10.2026). Przyciski pokazuje app.js tylko
          tam, gdzie działa navigator.vibrate — na iPhonie go nie ma. -->
     <div class="btn-row" id="vib-row" hidden>
-      <button type="button" id="btn-vib-u" class="chip">▶ Poczuj: żółty (U · · —)</button>
-      <button type="button" id="btn-vib-a" class="chip">▶ Poczuj: czerwony (A · —)</button>
+      <button type="button" id="btn-vib-u" class="chip">▶ Poczuj: żółty (U)</button>
+      <button type="button" id="btn-vib-a" class="chip">▶ Poczuj: czerwony (A)</button>
     </div>
     <p class="fineprint" id="vib-note" hidden>Wzorów wibracji się nie wybiera: żółty zawsze wibruje „U”, czerwony zawsze „A”. Przyciski tylko je odtwarzają, żebyś je rozpoznał.</p>
     <p class="fineprint" id="dzwiek-red-note">Przy czerwonym poziomie syrena gra <b>bez przerwy</b>,
@@ -999,7 +1058,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
     </div>
 
     <div id="native-sound" class="app-only">
-      <h3 style="margin-top:16px" id="ns-head">Alarm natywny i głośność</h3>
+      <h3 style="margin-top:16px" id="ns-head">Głośność alarmu</h3>
       <div class="fineprint android-only" id="ns-volume"></div>
       <label class="set-switch android-only" for="set-force-volume">
         <span class="sw-text"><b id="ns-label">Czerwony alarm zawsze na pełnej głośności</b></span>
@@ -1047,10 +1106,10 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
         <b id="qh-red-head">Czerwony w godzinach ciszy</b>
         <div class="seg" role="group" aria-labelledby="qh-red-head">
           <button type="button" id="qh-red-wibracja" class="chip" data-czerwony="wibracja">Tylko wibracja</button>
-          <button type="button" id="qh-red-syrena" class="chip" data-czerwony="syrena">Syrena jak w dzień</button>
+          <button type="button" id="qh-red-syrena" class="chip" data-czerwony="syrena">Bez zmian</button>
         </div>
         <p class="fineprint" id="qh-stan" hidden></p>
-        <p class="fineprint" id="qh-note">W tych godzinach żółty przychodzi bez dźwięku — baner i wibracja. Czerwony zależnie od wyboru: tylko wibracją (pełny ekran i mocna wibracja zostają) albo z syreną jak w dzień. Poza tymi godzinami wszystko działa jak wyżej. Przy telefonie w drugim pokoju wibracji możesz nie poczuć. Godziny liczą się według zegara telefonu.</p>
+        <p class="fineprint" id="qh-note">W tych godzinach żółty przychodzi bez dźwięku — baner i wibracja. Czerwony zależnie od wyboru: tylko wibracją (pełny ekran i mocna wibracja zostają) albo bez zmian — tak, jak ustawiono wyżej dla czerwonego alarmu. Godziny ciszy nigdy nie robią alarmu głośniejszym. Poza tymi godzinami wszystko działa jak wyżej. Przy telefonie w drugim pokoju wibracji możesz nie poczuć. Godziny liczą się według zegara telefonu.</p>
       </div>
       <!-- android-only także na opakowaniu: na iPhonie sam przycisk znika,
            ale pusty rząd zostawiłby po sobie odstęp. -->
@@ -1069,7 +1128,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
     </div>
     </section>
 
-    <section class="set-pane" data-pane="aplikacja" role="tabpanel" hidden>
+    <section class="set-pane" data-pane="aplikacja" aria-labelledby="set-h-jezyk" hidden>
     <!-- Krótszy niż etykieta pod spodem: ten sam napis dwa razy pod rzędem
          nic nie wnosił, a etykieta musi zostać — nazywa pole czytnikowi. -->
     <h3 id="set-h-jezyk">Język</h3>
@@ -1080,6 +1139,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
         <option value="uk">Українська</option>
       </select>
     </label>
+    <button type="button" id="set-lang-zastosuj" class="chip primary set-zastosuj" hidden>Zmień język i uruchom ponownie</button>
 
     <h3 style="margin-top:16px" id="ts-head">Wielkość tekstu</h3>
     <!-- Wybór JEDNEJ z trzech możliwości to segment, nie trzy osobne pigułki
@@ -1145,6 +1205,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
       <label style="margin-top:8px">Adres serwera (opcjonalnie)
         <input id="set-api" type="url" placeholder="puste = serwer Strażnika (zalecane)">
       </label>
+      <button type="button" id="set-api-zapisz" class="chip set-zastosuj">Zapisz adres i uruchom ponownie</button>
       <p class="fineprint" id="adv-note">Domyślnie aplikacja korzysta z serwera Strażnika
       (straznik.eu) — dane i fuzja liczone są raz na serwerze. Gdy serwer jest
       niedostępny, aplikacja automatycznie przechodzi na tryb wbudowany i liczy
@@ -1158,16 +1219,12 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
       <a class="no-ios no-sklep" href="https://buycoffee.to/cukierrro" target="_blank" rel="noopener">Wesprzyj autora ☕</a>
     </p>
     </section>
-    <menu>
-      <button value="cancel" class="chip">Anuluj</button>
-      <button id="set-save" value="ok" class="chip primary">Zapisz</button>
-    </menu>
   </form>
 </dialog>
 
-<dialog id="places-dialog" class="places-dialog">
+<dialog id="places-dialog" class="places-dialog" aria-labelledby="places-h">
   <form id="places-form">
-    <div class="places-head"><div><div class="eyebrow">STRAŻNIK</div><h2>Moje miejsca</h2></div><button type="button" id="places-close" class="chip" aria-label="Zamknij">✕</button></div>
+    <div class="places-head"><div><div class="eyebrow">STRAŻNIK</div><h2 id="places-h">Moje miejsca</h2></div><button type="button" id="places-close" class="chip" aria-label="Zamknij">✕</button></div>
     <p class="fineprint" id="places-intro">Zapisane miejsce nie oznacza Twojej obecności. Dane pozostają na tym urządzeniu.</p>
     <div class="places-tabs" id="places-tabs"></div>
     <button type="button" id="place-add" class="chip">＋ Dodaj miejsce</button>
@@ -1189,7 +1246,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
      Cloudflare, więc po każdym wydaniu wystarczy podbić ?v= i przeglądarki
      dostają nowe app.js/engine.js OD RAZU, bez ręcznego czyszczenia cache CF.
      Podbijaj ?v= razem z versionName w build.gradle. -->
-<script src="i18n.js?v=1.7.94d"></script>
+<script src="i18n.js?v=1.7.95-ui18"></script>
 <!-- kontur Polski dla engine.js (audyt A2b, scripts/build_pl_outline.py) -->
 <script src="pl-outline.js?v=1.7.82"></script>
 <script src="engine.js?v=1.7.94"></script>
@@ -1205,7 +1262,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <div id="a11y-alert" class="sr-only" role="status" aria-live="assertive" aria-atomic="true"></div>
 <div id="a11y-info" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
 
-<script src="app.js?v=1.7.94b"></script>
+<script src="app.js?v=1.7.95-ui19"></script>
 <script>
 /* Instrukcja pasująca do telefonu i języka (21.09.2026). iPhone ma osobną, bo alarmy,
    zgody i aktualizacje działają tam inaczej. Tu, a nie w app.js: index.html nie jest
