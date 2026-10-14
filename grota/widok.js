@@ -16,7 +16,7 @@
   if (window.Grota) return;
 
   const BAZA = "grota/";
-  const WERSJA = "54b987eb65";                 // podmieniane przy eksporcie — świeże pliki po aktualizacji aplikacji
+  const WERSJA = "ce01eddc04";                 // podmieniane przy eksporcie — świeże pliki po aktualizacji aplikacji
   const SKRYPTY = ["jezyk.js", "jezyk-en.js", "jezyk-uk.js", "ikony.js", "poradnik.js", "grota-core.js", "trasa-lokalna.js", "vendor/fflate.min.js", "offline.js", "grota.js"];
 
   // Szkielet widoku — ten sam układ co samodzielna Grota, plus powrót do Strażnika w nagłówku.
@@ -36,8 +36,9 @@
       <button id="btn-theme" class="map-btn theme" title="Jasna / ciemna mapa" aria-label="Jasna albo ciemna mapa" data-icon="moon"></button>
       <button id="btn-locate" class="map-btn" title="Moja pozycja" aria-label="Moja pozycja" data-icon="locate-fixed"></button>
     </div>
-    <aside id="g-panel" aria-live="polite"></aside>
+    <aside id="g-panel"></aside>
   </div>
+  <p id="g-live" class="tylko-czytnik" role="status" aria-live="polite"></p>
   <nav class="g-bottom" aria-label="Sekcje">
     <button data-tab="mapa" class="on" data-icon="map">Mapa</button>
     <button data-tab="miejsca" data-icon="map-pin-house">Miejsca</button>

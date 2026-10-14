@@ -48,6 +48,16 @@
   };
   const panel = document.getElementById("g-panel");
   const root = document.getElementById("grota");
+  const liveBox = document.getElementById("g-live");
+
+  /* Komunikat dla czytnika ekranu. Kiedyś `aria-live` wisiało na całym panelu, a render() podmienia
+     jego wnętrze w całości — czytnik czytał więc cały ekran po każdym filtrze i po każdym kawałku mapy.
+     Teraz mówimy tylko to, co naprawdę trzeba usłyszeć. */
+  function powiedz(tekst) {
+    if (!liveBox || !tekst) return;
+    if (liveBox.textContent === tekst) liveBox.textContent = "";   // ten sam tekst drugi raz czytnik pominie
+    liveBox.textContent = tekst;
+  }
 
   /* Środki transportu, których już nie ma: „Komunikacja” (Grota nie zna rozkładów) i osobny
      „Skuter / motocykl” (ta sama trasa i ten sam czas co samochód). Telefony, które mają je
@@ -382,6 +392,7 @@
     } catch (err) {
       if (attempt < 3) { await new Promise((ok) => setTimeout(ok, 1500 * attempt)); return loadData(attempt + 1); }
       S.dataError = "Nie udało się wczytać punktów schronienia. Zasady i listy „Przygotuj się” działają bez nich.";
+      powiedz(T(S.dataError));
     }
     /* Ktoś zdążył nacisnąć TERAZ (albo wszedł z alarmu), zanim punkty się wczytały — liczymy wynik od razu
        po wczytaniu, razem z trasą do pierwszej propozycji. Bez fitLive() zostawał sam szacunek z linii prostej
@@ -1307,7 +1318,8 @@
           <button class="btn ghost place-btn icon-only" data-act="clear-sel" title="${T("Zamknij")}" aria-label="${T("Zamknij kartę punktu")}">${I("x")}</button></div>
         ${shelterCard(p, { sel: true, trasa: true, after: addToPlace(p) })}
       </div>` : ""}
-      ${S.dataError ? `<p class="sim">${esc(T(S.dataError))}</p>` : ""}
+      ${S.dataError ? `<div class="warn-box"><b>${esc(T(S.dataError))}</b>
+        <button type="button" class="btn" data-act="dane-ponow">${I("refresh-cw")}${T("Spróbuj ponownie")}</button></div>` : ""}
       ${S.infoSchrony ? `<div class="card info-card">
         <div class="row"><b class="grow">${T("Czemu nie ma tu „schronów”?")}</b>
           <button class="btn ghost place-btn icon-only" data-act="info-off" title="${T("Zamknij")}" aria-label="${T("Zamknij informację")}">${I("x")}</button></div>
@@ -1983,6 +1995,11 @@
         + liveFilterBar()
         + (S.mode === "driving" ? rule("I-SAMOCHOD") + rule("P-AUTO") : "")
         + (L.options.length ? mainOption(L.options[0])
+          /* Punkty się nie wczytały (brak sieci przy pierwszym wejściu, uszkodzony plik). Bez tego TERAZ
+             w kółko pisało „Wczytuję punkty — za chwilę pokażę najbliższe”, choć nic już się nie wczytywało. */
+          : S.dataError ? `<div class="warn-box"><b>${esc(T(S.dataError))}</b>
+              <p class="small">${T("Sprawdź połączenie i spróbuj ponownie — albo kieruj się zasadami niżej.")}</p>
+              <button type="button" class="btn" data-act="dane-ponow">${I("refresh-cw")}${T("Spróbuj ponownie")}</button></div>`
           // Punkty jeszcze się wczytują (pierwsze wejście albo powrót na słabszym telefonie) — nie wolno wtedy
           // powiedzieć „brak punktów w pobliżu”, bo przy alarmie ktoś uwierzy i nie będzie szukał dalej.
           : !S.points.length ? `<p class="sim">${T("Wczytuję punkty schronienia — za chwilę pokażę najbliższe. Zasady niżej działają już teraz.")}</p>`
@@ -2114,10 +2131,32 @@
     /* Panel przerysowujemy w całości, więc bez tego przewinięcie skakało — najbardziej widać to było
        po ustaleniu pozycji i po pobraniu mapy, gdy karta zmienia wysokość. */
     const przewiniecie = panel.scrollTop, tabPrzed = ostatniaZakladka;
+    const wrocFokus = zapamietajFokus();
     panel.innerHTML = { teraz: viewTeraz, mapa: viewMapa, miejsca: viewMiejsca, przygotuj: viewPrzygotuj, zasady: viewZasady }[S.tab]();
     if (tabPrzed === S.tab && przewiniecie) panel.scrollTop = przewiniecie;
+    wrocFokus();
     ostatniaZakladka = S.tab;
     updateLiveDim();
+  }
+
+  /* Panel jest przerysowywany w całości, więc po każdym kliknięciu fokus spadał na <body> — klawiatura
+     i czytnik ekranu zaczynały od początku. Zapamiętujemy, co było aktywne, i oddajemy fokus temu samemu
+     przyciskowi (po akcji, która go usuwa — sąsiadowi z tego samego miejsca w panelu). */
+  const KLIKALNE = "button, a[href], summary, input, select, textarea, [tabindex]";
+  function podpis(el) {
+    return [el.tagName, el.dataset.act || "", el.dataset.tab || "", el.dataset.id || "", el.dataset.val || "", el.id || ""].join("|");
+  }
+  function zapamietajFokus() {
+    const byl = document.activeElement;
+    if (!byl || !panel.contains(byl)) return () => {};
+    const lista = Array.from(panel.querySelectorAll(KLIKALNE));
+    const szukany = podpis(byl), gdzie = lista.indexOf(byl);
+    return () => {
+      const po = Array.from(panel.querySelectorAll(KLIKALNE));
+      const cel = po.find((el) => podpis(el) === szukany) || po[Math.min(gdzie, po.length - 1)];
+      // preventScroll: inaczej panel przeskakiwał do odzyskanego elementu i gubił przewinięcie
+      if (cel) try { cel.focus({ preventScroll: true }); } catch { cel.focus(); }
+    };
   }
 
   // Na ekranie „Teraz” z włączonym filtrem punkty spoza filtra są przygaszone — widać, że istnieją, ale Grota do nich nie prowadzi.
@@ -2390,7 +2429,7 @@
   }
 
   /* ---------- zdarzenia ---------- */
-  root.querySelectorAll(".g-tabs, .g-bottom").forEach((nav) => nav.addEventListener("click", (e) => {
+  root.querySelectorAll(".g-bottom").forEach((nav) => nav.addEventListener("click", (e) => {
     const t = e.target.closest("button[data-tab]"); if (!t) return;
     if (t.dataset.tab === "teraz") { runLive(); return; }       // czerwony przycisk = od razu szukaj
     if (t.dataset.tab === "mapa") closePopups();                // wracamy do mapy, nie do ustawień
@@ -2651,6 +2690,10 @@
       S.pobieranie = { ...S.pobieranie, przerywam: true }; render();
     } else if (act === "mapy-usun") {
       O.wyczysc().then(() => { O.paczki().forEach((p) => O.usunPaczke(p.id)); odswiezStanMap(); });
+    } else if (act === "dane-ponow") {
+      // Ponowne pobranie punktów po nieudanym starcie — loadData sama przerysuje panel, gdy skończy.
+      S.dataError = null; powiedz(T("Wczytuję punkty schronienia — za chwilę pokażę najbliższe. Zasady niżej działają już teraz.")); render();
+      dataReady = loadData();
     } else if (act === "test-offline") {
       testBezSieci(!O.udaje());
     } else if (act === "cel-open") {
