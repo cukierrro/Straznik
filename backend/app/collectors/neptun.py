@@ -42,10 +42,6 @@ tracks: dict[str, dict] = {}
 # ostatnia odległość od granicy). Fuzja na żywo gasi ich punkty szybciej —
 # fusion.lost_weight. Po restarcie pusto, więc stare sygnały liczą się jak dotąd.
 _zgubione: dict[str, tuple[float, float | None]] = {}
-# Typ zgubionego obiektu — tylko dla licznika dronów/rakiet w aplikacji (14.10.2026).
-# Osobno, żeby nie ruszać krotek, które czyta fusion.lost_provider. Tylko obiekty
-# z pozycją i nie ogólnokrajowe — takie, jakie licznik liczy w feedzie.
-_zgubione_typ: dict[str, str] = {}
 _ZGUBIONE_TTL_S = (config.FUSION_WINDOW_MIN + 10) * 60
 status = {"connected": False, "mode": "ws", "last_msg": None, "error": None,
           # ostatnie potwierdzenie z REST, że cisza na gnieździe to brak zdarzeń, nie awaria
@@ -925,7 +921,6 @@ async def _handle_threats(threats: list[dict], replace: bool, *,
             t = _evaluate(t)
             tracks[t.get("id")] = t
             _zgubione.pop(t.get("id"), None)       # wrócił do feedu
-            _zgubione_typ.pop(t.get("id"), None)
             _turnaway_shadow(t)
             by_entry_shadow.observe(t)
             await _maybe_signal(t)
@@ -950,31 +945,8 @@ def _zgub(t: dict | None, now: float | None = None) -> None:
     now = now or time.time()
     km = (t.get("pl_assessment") or {}).get("dist_km")
     _zgubione[t["id"]] = (now, km if isinstance(km, (int, float)) else None)
-    if t.get("lat") is not None and not is_national(t) and t.get("type"):
-        _zgubione_typ[t["id"]] = str(t["type"]).lower()
-    else:
-        _zgubione_typ.pop(t["id"], None)
     for tid in [k for k, (at, _) in _zgubione.items() if now - at > _ZGUBIONE_TTL_S]:
         _zgubione.pop(tid, None)
-    for tid in [k for k in _zgubione_typ if k not in _zgubione]:
-        _zgubione_typ.pop(tid, None)
-
-
-def lost_counts(now: float | None = None) -> dict[str, int]:
-    """Licznik w aplikacji (14.10.2026): ile obiektów każdego typu zniknęło z feedu
-    najwyżej NEPTUN_LOST_FULL_MIN temu. NEPTUN gasi obiekt ~8 min po ostatnim
-    potwierdzeniu, paczkami, więc surowa liczba skakała o 50–70% co kilka minut.
-    Same liczby, nie lista — /api/state odpytuje każdy klient."""
-    now = now or time.time()
-    okno = config.NEPTUN_LOST_FULL_MIN * 60
-    wynik: dict[str, int] = {}
-    for tid, typ in _zgubione_typ.items():
-        if tid in tracks:
-            continue
-        at = (_zgubione.get(tid) or (None,))[0]
-        if at is not None and now - at <= okno:
-            wynik[typ] = wynik.get(typ, 0) + 1
-    return wynik
 
 
 def zgubiony(track_id) -> tuple[float, float | None] | None:
@@ -1145,7 +1117,6 @@ def public_state() -> dict:
     return {
         "status": {k: status[k] for k in ("connected", "mode", "last_msg")},
         "threats": list(tracks.values()),
-        "lost_counts": lost_counts(),
         "alert_oblasts": sorted(alert_oblasts),
         "alert_areas": alert_areas,
     }

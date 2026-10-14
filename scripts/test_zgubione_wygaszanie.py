@@ -16,7 +16,6 @@ Uruchomienie: py scripts/test_zgubione_wygaszanie.py
 """
 import asyncio
 import sys
-import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -125,29 +124,6 @@ sprawdz(za is not None and za[1] == 120.0, f"„remove” — zgubiony {za}")
 neptun._zgubione["stary"] = (1.0, 100.0)
 neptun._zgub({"id": "trk_D", "pl_assessment": {"dist_km": 70}})
 sprawdz("stary" not in neptun._zgubione, "wpisy starsze niż okno fuzji są sprzątane")
-
-# Licznik w aplikacji (14.10.2026): lost_counts — zgubione z feedu ≤ NEPTUN_LOST_FULL_MIN,
-# wg typu, tylko z pozycją i nie ogólnokrajowe (jak obiekty, które licznik liczy w feedzie).
-neptun.tracks.clear(); neptun._zgubione.clear(); neptun._zgubione_typ.clear()
-D1 = {"id": "d1", "type": "UAV", "lat": 49.0, "lon": 33.0}
-D2 = {"id": "d2", "type": "uav", "lat": 48.0, "lon": 34.0}
-R1 = {"id": "r1", "type": "cruise", "lat": 47.0, "lon": 32.0}
-BEZ = {"id": "bez", "type": "uav", "lat": None, "lon": None}
-KRAJ = {"id": "national-1", "type": "ballistic", "lat": 49.0, "lon": 31.0}
-asyncio.run(neptun._handle_threats([D1, D2, R1, BEZ, KRAJ], replace=True))
-sprawdz(neptun.lost_counts() == {}, "wszystko w feedzie — pusto")
-asyncio.run(neptun._handle_threats([D2], replace=True))
-lc = neptun.lost_counts()
-sprawdz(lc == {"uav": 1, "cruise": 1}, f"zgubione d1 i r1 (typ małymi), bez obiektu bez pozycji i ogólnokrajowego: {lc}")
-teraz = time.time()
-okno = config.NEPTUN_LOST_FULL_MIN * 60
-sprawdz(neptun.lost_counts(teraz + okno - 5) == {"uav": 1, "cruise": 1}, "tuż przed końcem okna — nadal liczone")
-sprawdz(neptun.lost_counts(teraz + okno + 5) == {}, "po oknie — już nie liczone")
-asyncio.run(neptun._handle_threats([D1], replace=False))
-sprawdz(neptun.lost_counts() == {"cruise": 1}, "d1 wrócił (upsert) — wypada z licznika")
-sprawdz(neptun.zgubiony("r1") is not None, "krotki dla fuzji bez zmian")
-st = neptun.public_state()
-sprawdz(st.get("lost_counts") == {"cruise": 1}, f"public_state niesie lost_counts: {st.get('lost_counts')}")
 
 if bledy:
     print(f"\n{len(bledy)} błędów")
