@@ -1045,9 +1045,6 @@ html[lang="en"] .list:empty::after { content: "— none —"; }
   /* BEZ backdrop-filter: #legend już rozmywa tło, a drugie rozmycie w środku,
      na elemencie sticky w kontenerze przewijanym, zawieszało rysowanie
      (ANR na emulatorze 03.10.2026). Nagłówek potrzebuje tylko krycia. */
-  background: #0e1422; backdrop-filter: #legend już rozmywa tło, a drugie rozmycie w środku,
-     na elemencie sticky w kontenerze przewijanym, zawieszało rysowanie
-     (ANR na emulatorze 03.10.2026). Nagłówek potrzebuje tylko krycia. */
   background: #0e1422; border-bottom: 1px solid var(--panel-border);
   border-radius: 12px 12px 0 0;
 }

@@ -7523,6 +7523,61 @@ function przygotujGrote() {
    zjadałoby procesor w tle, obok mapy Strażnika. */
 function ukryjGrote() { window.Grota?.ukryj(); }
 
+/* Dostępność przy otwartej GROCIE (przegląd UI 14.10.2026): moduł zakrywa cały
+   ekran (z-index 60), ale czytnik widział pod nim cały Strażnik, a fokus zostawał
+   na zakładce pod spodem. Gdy moduł jest widoczny, reszta strony dostaje inert
+   (Chrome 102+) i aria-hidden (starsze WebView — czytnik i tak ją pomija). Poza
+   tym zostają: alarm (leży NAD Grotą i musi działać), okna, komunikaty i pola
+   aria-live. Fokus idzie na nagłówek zakładki modułu (#g-tytul, zaczep z eksportu
+   a149d8b983), a po zamknięciu wraca na przycisk GROTA — chyba że człowiek
+   przeszedł już gdzie indziej (np. dotknął innej zakładki). */
+const GROTA_TLO_ZOSTAJE = new Set(["grota-widok", "alarm-overlay", "toast", "a11y-alert", "a11y-info"]);
+function grotaTlo(wylacz) {
+  for (const el of document.body.children) {
+    if (GROTA_TLO_ZOSTAJE.has(el.id) || el.tagName === "DIALOG" || el.tagName === "SCRIPT"
+        || el.tagName === "STYLE" || el.getAttribute("aria-live")) continue;
+    if (wylacz) {
+      if (el.hasAttribute("aria-hidden") && !el.dataset.grotaTlo) continue;   // już ukryty z innego powodu
+      el.dataset.grotaTlo = "1";
+      el.setAttribute("aria-hidden", "true");
+      el.inert = true;
+    } else if (el.dataset.grotaTlo) {
+      delete el.dataset.grotaTlo;
+      el.removeAttribute("aria-hidden");
+      el.inert = false;
+    }
+  }
+}
+const grotaWidokEl = document.getElementById("grota-widok");
+if (grotaWidokEl && window.MutationObserver) {
+  let grotaBylaWidoczna = false;
+  new MutationObserver(() => {
+    const widoczna = !grotaWidokEl.hidden;
+    if (widoczna === grotaBylaWidoczna) return;
+    grotaBylaWidoczna = widoczna;
+    grotaTlo(widoczna);
+    if (widoczna) {
+      /* Nagłówek powstaje w render() modułu: przy pierwszym otwarciu dopiero po
+         wczytaniu modułu i punktów (na emulatorze ~6,5 s), a potem moduł przerysowuje
+         panel jeszcze raz. Stałe opóźnienia trafiały na styk, więc patrzymy na samą
+         treść modułu: przez 10 s od otwarcia każde przerysowanie, po którym fokus
+         nie jest w module, oddaje go nagłówkowi. Dalej nie wchodzimy w drogę. */
+      const naglowek = () => {
+        if (grotaWidokEl.hidden || grotaWidokEl.contains(document.activeElement)) return;
+        document.getElementById("g-tytul")?.focus({ preventScroll: true });
+      };
+      const obs = new MutationObserver(naglowek);
+      obs.observe(grotaWidokEl, { childList: true, subtree: true });
+      setTimeout(() => obs.disconnect(), 10000);
+      naglowek();
+    } else {
+      const a = document.activeElement;
+      if (!a || a === document.body || grotaWidokEl.contains(a))
+        document.getElementById("btn-grota")?.focus({ preventScroll: true });
+    }
+  }).observe(grotaWidokEl, { attributes: true, attributeFilter: ["hidden"] });
+}
+
 /* ── dolne zakładki i menu „Więcej” ── */
 const moreSheet = document.getElementById("more-sheet");
 document.getElementById("btn-grota")?.addEventListener("click", () => otworzGrote());
