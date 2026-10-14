@@ -204,6 +204,7 @@
     "To, co już masz w telefonie, nie pobierze się drugi raz.": "Те, що вже є в телефоні, вдруге не завантажиться.",
     "(sama mapa)": "(лише мапа)",
     "Sprawdzam, jakie mapy są do pobrania…": "Перевіряю, які мапи можна завантажити…",
+    "Sprawdź połączenie i spróbuj ponownie — albo kieruj się zasadami niżej.": "Перевірте з'єднання і спробуйте ще раз — або дійте за правилами нижче.",
     "Spróbuj ponownie": "Спробувати ще раз",
     "Wokół czego": "Навколо чого",
     "mojej pozycji": "моєї позиції",

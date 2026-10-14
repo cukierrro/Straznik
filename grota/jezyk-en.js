@@ -204,6 +204,7 @@
     "To, co już masz w telefonie, nie pobierze się drugi raz.": "Whatever is already on your phone won't be downloaded again.",
     "(sama mapa)": "(map only)",
     "Sprawdzam, jakie mapy są do pobrania…": "Checking which maps are available…",
+    "Sprawdź połączenie i spróbuj ponownie — albo kieruj się zasadami niżej.": "Check your connection and try again — or follow the rules below.",
     "Spróbuj ponownie": "Try again",
     "Wokół czego": "Around what",
     "mojej pozycji": "my position",
