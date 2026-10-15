@@ -67,15 +67,16 @@ shelter pack from the PSP register of 21 September 2026 (86,388 points), which i
 
 The GROTA map and rules captures `g11-mapa*`, `g13-mapa-filtry*`, `g14-mapa-rodzaje*`,
 `g15-mapa-ciemna*`, `g29-zasady-dane*` and `g30-lista*` (Polish, `-en`, `-uk`) were retaken
-on 13 October 2026 from a build with the PSP register of 12 October, on a Pixel-sized emulator
-(1080 x 2340, Android 12, Test_API31), then downscaled to 720 x 1560 JPEG like the rest of the
-GROTA set. Nothing in them is retouched. The position is a fake GPS fix in Lublin's Old Town, the
-same spot as the older captures, so the figures still line up with the text. They show the counts
-the app really holds (86 712 points, 19 803 / 7 335 / 59 574 by access) and the "List" button
-next to the filters. The route and the "Goal" marker come from opening the NOW tab before the
-captures; the shots replace the 4 October set, which came from the register of 28 September.
-Poland was quiet at the time of capture (Lubelskie 0.9 pt, Podkarpackie 0.8 pt — both below the
-alert threshold), so no alert state is visible in the frames. No alerts were sent and no
+on 15 October 2026 for release 1.7.95, from a debug build of that release (module 5c32a5434c,
+PSP register of 12 October), on a Pixel-sized emulator (1080 x 2340, Android 12, Test_API31),
+then downscaled to 720 x 1560 JPEG like the rest of the GROTA set. Nothing in them is retouched.
+The position is a fake GPS fix in Lublin's Old Town, the same spot as the older captures, so the
+figures still line up with the text. They show the counts the app really holds (86 712 points,
+19 803 / 7 335 / 59 574 by access), the "List" button next to the filters and the reworked look:
+touch targets of at least 44 px, no text below 12 px and filter chips without the dimming that
+used to drop their contrast to 2.8:1. The route and the "Goal" marker come from opening the NOW
+tab before the captures. Poland was quiet at the time (Lubelskie 0.5 pt, Podkarpackie 0.2 pt,
+both below the alert threshold), so no alert state is visible. No alerts were sent and no
 production data was written.
 
 ## Updating

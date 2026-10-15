@@ -2177,7 +2177,8 @@
 
       <h3>${T("Twoje dane")}</h3>
       <p>${T("Miejsca, notatki, nagrane trasy i ustawienia zapisują się <b>tylko w pamięci tego urządzenia</b>. Autor aplikacji ich nie widzi i nigdzie nie wysyła.")} ${NA_IOS ? T("Kopia zapasowa iCloud może przenieść je na Twoje konto Apple.") : T("Kopia zapasowa Androida może przenieść je na Twoje konto Google.")}</p>
-      <p>${T("Co opuszcza telefon i kiedy: wpisany adres trafia do wyszukiwarki GUGiK; przy wyznaczaniu trasy Twoja pozycja i cel idą do serwera tras FOSSGIS; współrzędne punktu do usługi zdjęć GUGiK; oglądany fragment mapy do OpenFreeMap; po naciśnięciu „Prowadź” albo „Street View” — do Google. Bez tych czynności nic nie wychodzi z telefonu.")}</p>
+      <p>${T("Co opuszcza telefon i kiedy: wpisany adres trafia do wyszukiwarki GUGiK; po naciśnięciu TERAZ — od razu, bez osobnego pytania — Twoja dokładna pozycja i współrzędne proponowanego punktu idą do serwera tras FOSSGIS, który rysuje drogę; współrzędne punktu do usługi zdjęć GUGiK; oglądany fragment mapy do OpenFreeMap; po naciśnięciu „Prowadź” albo „Street View” — do Google. Bez tych czynności nic nie wychodzi z telefonu.")}</p>
+      <p>${T("Mapa offline: paczki mapy pobierasz z serwera Strażnika. Prosimy o fragmenty pokrywające obszar, który sam wybrałeś, więc serwer (i Cloudflare, przez który działa) widzi, o które kwadraty siatki pytasz — każdy ma około 12 na 20 kilometrów. Z samego pobierania da się więc wyczytać okolicę, dla której chcesz mieć mapę bez internetu — z dokładnością do takiego kwadratu, nie do adresu. Jeśli wolisz tego uniknąć, wybierz „Województwo” albo „Cała Polska” zamiast „Wokół miejsca”.")}</p>
 
       <h3>${T("Z kiedy są punkty")}</h3>
       <p>${T("Punkty schronienia pochodzą z publicznego wykazu Komendy Głównej PSP — <b>stan na {data}</b>. W tej wersji aplikacji jest ich {ile}; wykaz jest wpisany w aplikację i działa bez internetu.", {
