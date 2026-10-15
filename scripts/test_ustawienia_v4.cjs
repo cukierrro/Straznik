@@ -62,6 +62,10 @@ for (const id of ["set-tytul", "set-x-t", "st-alarmy", "st-miejsca", "st-dzwiek"
 }
 sprawdz(!/many\(":scope \.set-tab"/.test(i18n) && !/setMany\("#settings \.set-tab"/.test(i18n),
   "wiersze sekcji nie są tłumaczone po kolejności");
+// 15.10.2026: wiersz z przyciskiem głównym („Otwórz Moje miejsca”) dostawał tło zwykłego
+// wiersza przy ciemnym tekście przycisku głównego — wyglądał na wyłączony.
+sprawdz(/\.set-rows > \.chip\.primary \{[^}]*background: var\(--przycisk-glowny\)/.test(css),
+  "wiersz z przyciskiem głównym ma tło przycisku głównego (czytelny tekst)");
 
 console.log(bledy ? `\n${bledy} błędów` : "\nWszystko w porządku");
 process.exit(bledy ? 1 : 0);

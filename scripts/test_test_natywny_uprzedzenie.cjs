@@ -66,7 +66,8 @@ test('język trafia do strony natywnej; komunikaty w EN i UK', async () => {
   await en.nativeTest('high');
   assert.equal(en.z.wywolania[0].lang, 'en');
   assert.match(en.z.toasty[0], /“Turn on alert despite silent mode”/);
-  assert.match(APP, /"🔊 Turn on alert despite silent mode"/, 'nazwa EN zgodna z etykietą przycisku');
+  // 15.10.2026: etykieta bez „🔊” (jak PL, przyciski bez emoji) — komunikat cytuje ją dosłownie
+  assert.match(APP, /"Turn on alert despite silent mode", "Увімкнути тривогу/, 'nazwa EN zgodna z etykietą przycisku');
   const uk = uruchom({ scheduled: true, critical: true }, 'uk');
   await uk.nativeTest('high');
   assert.equal(uk.z.wywolania[0].lang, 'uk');

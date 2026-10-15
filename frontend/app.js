@@ -4288,7 +4288,7 @@ function onForegroundPush(d) {
   } else {
     chimeOnce();
     toast(`⚠️ <b>${UI.t("Podwyższona uwaga", "Heightened attention", "Підвищена увага")}</b>: `
-      + `${UI.t("woj.", "province", "воєв.")} ${esc(UI.voiv(d.voiv))} (${score} ${UI.t("pkt", "pts", "бал.")})`, 9000);
+      + `${UI.t("woj.", "province", "воєв.")} ${esc(UI.voiv(d.voiv))} (${pktTxt(score)} ${UI.t("pkt", "pts", "бал.")})`, 9000);
   }
 }
 
@@ -4666,7 +4666,7 @@ function czerwonyZwykly(voiv, score) {
   zawibruj(WIBRACJA_A);
   const gdzie = voiv ? `${UI.t("woj.", "province", "воєв.")} ${UI.voiv(voiv)}` : "";
   toast(`🔴 <b>${UI.t("Wysoki priorytet", "High priority", "Високий пріоритет")}</b>: ${esc(gdzie)}`
-    + (score ? ` (${score} ${UI.t("pkt", "pts", "бал.")})` : ""), 15000);
+    + (score ? ` (${pktTxt(score)} ${UI.t("pkt", "pts", "бал.")})` : ""), 15000);
   powiedz(a11yAlert, UI.t(`Wysoki priorytet zagrożenia, ${gdzie}.`,
     `High threat priority, ${gdzie}.`, `Високий пріоритет загрози, ${gdzie}.`));
 }
@@ -5784,7 +5784,7 @@ function showHistoryAt(idx) {
     (tp && tp.score > 0
       ? `<b style="color:${tp.level === "high" ? "var(--red)"
           : tp.level === "elevated" ? "var(--amber)" : "var(--muted)"}">`
-        + `${tp.score} ${UI.t("pkt", "pts", "бал.")}${tp.voiv ? ` · ${UI.t("woj.", "province", "воєв.")} ` + esc(UI.voiv(tp.voiv)) : ""}</b> · `
+        + `${pktTxt(tp.score)} ${UI.t("pkt", "pts", "бал.")}${tp.voiv ? ` · ${UI.t("woj.", "province", "воєв.")} ` + esc(UI.voiv(tp.voiv)) : ""}</b> · `
       : "")
     + `${licznikDrony(licznikHist.drony)} · ${licznikRakiety(licznikHist.rakiety)} · ${planes.filter(p => !p.historicalOnly).length} ${UI.t("maszyn w migawce", "aircraft in snapshot", "машин у знімку")}`
     + (planes.some(p => p.historicalOnly) ? ` + ${planes.filter(p => p.historicalOnly).length} ${UI.t("ostatnich obserwacji", "last observations", "останніх спостережень")}` : "") + " · "
@@ -6625,9 +6625,9 @@ async function refreshBgStatus(previewLang = UI.lang) {
       document.getElementById("krytyczny-ios-note")?.classList.toggle("schowane", !umie);
       critBtn.textContent = s.criticalAllowed
         ? T("Alarm mimo wyciszenia: włączony",
-            "🔊 Alert despite silent mode: on", "🔊 Тривога попри вимкнений звук: увімкнено")
+            "Alert despite silent mode: on", "Тривога попри вимкнений звук: увімкнено")
         : T("Włącz alarm mimo wyciszenia",
-            "🔊 Turn on alert despite silent mode", "🔊 Увімкнути тривогу попри вимкнений звук");
+            "Turn on alert despite silent mode", "Увімкнути тривогу попри вимкнений звук");
     }
     renderNativeSound(s, previewLang);
     // Stan subskrypcji potwierdzony przez Firebase — dowód, że wyłączenie działa
