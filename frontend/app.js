@@ -2981,19 +2981,29 @@ function refreshCountedTracks() {
   countedTracks = ids;
 }
 const PULSE_MS = 1600;
-let lastPulse = 0;
+let lastPulse = 0, pulseOff = false;
 function pulseLoop(ts) {
   requestAnimationFrame(pulseLoop);
   // ~20 kl./s wystarcza; w tle, w historii i bez liczonych obiektów nic nie robimy
   if (!mapReady || ts - lastPulse < 50) return;
   lastPulse = ts;
   if (document.hidden || histMode || !countedTracks.size) {
-    if (map.getLayer("threats-pulse")) map.setPaintProperty("threats-pulse", "circle-stroke-opacity", 0);
+    // wygaszamy raz, a nie co 50 ms — każde ustawienie to przerysowanie mapy
+    if (!pulseOff && map.getLayer("threats-pulse")) map.setPaintProperty("threats-pulse", "circle-stroke-opacity", 0);
+    pulseOff = true;
     return;
   }
+  // Zgłoszenie 15.10.2026: przy wielu obiektach przesuwanie mapy w przeglądarce
+  // przycinało. Puls przerysowuje mapę 20×/s, więc w trakcie przesuwania i przybliżania
+  // stoi — wraca, gdy mapa się zatrzyma.
+  if (map.isMoving()) return;
+  pulseOff = false;
   const k = (ts % PULSE_MS) / PULSE_MS;
-  map.setPaintProperty("threats-pulse", "circle-radius",
-    ["interpolate", ["linear"], ["zoom"], 4, 11 + 12 * k, 8, 20 + 20 * k]);
+  // promień liczony tutaj z poziomu przybliżenia (liniowo 4→8, poza zakresem stały)
+  // zamiast nowego wyrażenia „interpolate” 20×/s, które MapLibre musi za każdym
+  // razem przetworzyć od nowa — wygląd ten sam
+  const z = Math.min(1, Math.max(0, (map.getZoom() - 4) / 4));
+  map.setPaintProperty("threats-pulse", "circle-radius", (11 + 12 * k) + ((20 + 20 * k) - (11 + 12 * k)) * z);
   map.setPaintProperty("threats-pulse", "circle-stroke-opacity", 0.9 * (1 - k));
 }
 requestAnimationFrame(pulseLoop);
@@ -3032,11 +3042,26 @@ function glidePosition(t, target, now) {
 }
 
 let lastAnim = 0;
+// Ostatnio narysowany stan warstw obiektów (zgłoszenie 15.10.2026 — przycinanie
+// przy wielu obiektach). Cztery setData co 200 ms przebudowują i indeksują całe
+// kolekcje GeoJSON, a potem mapa przelicza etykiety. Przebudowujemy tylko wtedy,
+// gdy coś się zmieniło: nowy stan, trwające przejście ikony, upływ 15 s (wiek
+// meldunku i okrąg niepewności rosną z czasem), inny tryb śladów albo nowe źródło.
+let _animState = null, _animBucket = -1, _animMode = "", _animSrc = null;
 function animate(ts) {
   requestAnimationFrame(animate);
-  if (!mapReady || !state || histMode || ts - lastAnim < 200) return;
+  if (histMode) { _animState = null; return; }   // po wyjściu z historii rysujemy od nowa
+  if (!mapReady || !state || ts - lastAnim < 200) return;
+  // w trakcie przesuwania i przybliżania nie przebudowujemy warstw — to wtedy
+  // najdroższe; ikony dojadą, gdy mapa się zatrzyma
+  if (map.isMoving()) return;
   lastAnim = ts;
   const now = Date.now();
+  const bucket = Math.floor(now / 15000), mode = trailMode("neptun"), src = map.getSource("threats");
+  let glideActive = false;
+  for (const g of glides.values()) if (g.start && now - g.start < GLIDE_MS) { glideActive = true; break; }
+  if (!glideActive && _animState === state && _animBucket === bucket && _animMode === mode && _animSrc === src) return;
+  _animState = state; _animBucket = bucket; _animMode = mode; _animSrc = src;
   const threats = state.neptun?.threats || [];
   const pts = [], trails = [], unc = [], course = [];
   const nMode = trailMode("neptun");
