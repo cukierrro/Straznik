@@ -28,7 +28,7 @@
 </div></nav>
 
 <header class="hero"><div class="wrap">
-  <div class="eyebrow">Privacy policy · in force since 22 September 2026</div>
+  <div class="eyebrow">Privacy policy · in force since 15 October 2026</div>
   <h1>We do not collect data about you.</h1>
   <p class="lead">Strażnik has no accounts, no sign-in, no ads and no analytics. We never ask for your name, e-mail address or phone number — and we do not have them. This page describes exactly what stays on your device, what our server sees and who else is involved in delivering the data.</p>
   <p class="fineprint">Applies to the Strażnik app for Android and iOS and to <a href="https://straznik.eu">straznik.eu</a>. The project and its data are the responsibility of its author; contact through <a href="https://github.com/cukierrro/Straznik/issues">an issue in the repository</a>.</p>
@@ -41,7 +41,7 @@
     <li><b>No account, no sign-in.</b> The app works straight after installation.</li>
     <li><b>No ads, no analytics, no tracking tools.</b> There is no Google Analytics, no advertising pixel and no third-party statistics SDK.</li>
     <li><b>No cookies.</b> The site and the app set no cookies at all — neither our own nor anyone else’s. That is why there is no consent pop-up here.</li>
-    <li><b>Your location never reaches our server.</b> We never store it. The one exception is a route to shelter in GROTA: the position and destination then go to a public routing server (section 2).</li>
+    <li><b>Your location never reaches our server.</b> We never store it. The exceptions are in GROTA: a route to shelter (the position and destination go to a public routing server) and the “Around a place” offline map, whose download lets our server and Cloudflare infer the area to within a square of about 12 by 20 km (section 2).</li>
     <li><b>Notifications go to provinces, not to people.</b> We do not know who receives them.</li>
     <li><b>We do not sell or share data</b> with anyone for marketing. There is nothing to sell.</li>
   </ul>
@@ -70,17 +70,18 @@
   <h2>2. Location</h2>
   <p>The location permission is <b>optional</b>. It is used only to drop a one-off “I am here” point when you add a place, and to centre the map. The coordinates stay on the device — we do not send them to the server, do not store them and do not pass them to anyone. You can decline and pick the place on the map by hand; the app works exactly the same.</p>
   <p>Notifications do not depend on GPS. You pick provinces from a list, and that is the only information about what you watch.</p>
-  <h3>GROTA — where to shelter (Android app)</h3>
-  <p>GROTA uses your location to show the nearest shelter points. The list of points and the search for the nearest one run <b>on the phone</b>, without sending the position. Only this leaves the phone:</p>
+  <h3>GROTA — where to shelter (Android and iPhone app)</h3>
+  <p>GROTA uses your location to show the nearest shelter points. The list of points and the search for the nearest one run <b>on the phone</b>, without sending the position. Only this leaves the phone, and only after you do something:</p>
   <ul>
-    <li><b>the route on the map</b> — the start position and the chosen point go to the public <b>FOSSGIS</b> routing server (OSRM on OpenStreetMap data), which returns the path. Offline, GROTA shows the straight-line distance and sends nothing;</li>
-    <li><b>address search</b> — the typed address goes to the <b>GUGiK</b> geocoding service, only after you press “Search”;</li>
-    <li><b>the base map</b> — <b>OpenFreeMap</b> tiles for the area you view, as in Strażnik's map; with the map downloaded to the phone nothing is sent;</li>
-    <li><b>aerial photos</b> — orthophoto tiles for the area you view, from <b>Geoportal (GUGiK)</b>;</li>
+    <li><b>the route</b> — after you press <kbd>NOW</kbd>, immediately and without a separate question, and also when you plot a route on the map: your exact position and the coordinates of the suggested point go to the public <b>FOSSGIS</b> routing server (OSRM on OpenStreetMap data), which draws the way. Offline, GROTA shows the straight-line distance and sends nothing;</li>
+    <li><b>address search</b> — the typed address goes to the <b>GUGiK</b> search service;</li>
+    <li><b>the point's photo</b> — the point's coordinates go to the <b>Geoportal (GUGiK)</b> photo service;</li>
+    <li><b>the base map</b> — the part of the map you view, from <b>OpenFreeMap</b>, as in Strażnik's map; with the map downloaded to the phone nothing is sent;</li>
     <li><b>data packages</b> — the shelter files for a province, downloaded from our server; the file name only says which province;</li>
-    <li><b>Google Maps</b> — only if you tap the navigation button yourself; Google's terms apply from then on.</li>
+    <li><b>offline map</b> — you download map packages from our server. We request the pieces covering the area you chose, so the server and Cloudflare, through which it runs, see which grid squares you ask for — each about 12 by 20 kilometres. The download alone therefore reveals the area you want an offline map for, to within such a square, not to an address. To avoid that, choose <kbd>Province</kbd> or <kbd>All of Poland</kbd> instead of <kbd>Around a place</kbd>;</li>
+    <li><b>Google</b> — only after you press <kbd>Navigate</kbd> or <kbd>Street View</kbd>; Google's terms apply from then on.</li>
   </ul>
-  <p>Places and settings saved in GROTA stay on the device, like Strażnik's My places.</p>
+  <p>Without these actions GROTA sends nothing from the phone. Places and settings saved in it stay on the device, like Strażnik's My places.</p>
 </section>
 
 <section id="notifications">
