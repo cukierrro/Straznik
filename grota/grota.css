@@ -19,10 +19,6 @@
 #grota-widok .g-brand b { display: block; letter-spacing: .08em; }
 #grota-widok .g-brand small { color: var(--muted); }
 #grota-widok .g-logo { width: 32px; height: 32px; border-radius: 8px; background: var(--accent); color: #0b0d12; display: grid; place-items: center; font-size: 1.2rem; }
-#grota-widok .g-tabs { display: flex; gap: 4px; margin-left: auto; flex-wrap: wrap; }
-#grota-widok .g-tabs button { background: transparent; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; cursor: pointer; font: inherit; }
-#grota-widok .g-tabs button.on { background: var(--accent); color: #0b0d12; border-color: var(--accent); font-weight: 600; }
-#grota-widok .g-tabs button[data-tab="alarm"].on { background: var(--red); border-color: var(--red); color: #fff; }
 #grota-widok .g-body { flex: 1; display: grid; grid-template-columns: 1fr 400px; min-height: 0; }
 #grota-widok .map-wrap { position: relative; min-height: 0; }
 /* bez `inset` — zna go dopiero Chrome 87, a minimum Strażnika to 80 (na 80–86 mapa miałaby zerowy rozmiar) */
@@ -34,8 +30,6 @@
   #grota-widok #grota[data-view="mapa-duza"] .g-body { grid-template-rows: minmax(0, 1fr) auto; }
   #grota-widok #grota[data-view="mapa-duza"] #g-panel { max-height: 45vh; max-height: 45dvh; }
   #grota-widok #g-panel { border-left: 0; border-top: 1px solid var(--line); padding-bottom: 12px; }
-  #grota-widok .g-tabs { display: none; }
-  #grota-widok .g-bottom { display: grid; }
 }
 #grota-widok h2 { font-size: 1.0667rem; margin: 0 0 8px; }
 #grota-widok h3 { font-size: 0.8667rem; margin: 14px 0 6px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
@@ -46,10 +40,10 @@
 #grota-widok .card.sel { border-color: var(--accent); }
 #grota-widok .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 #grota-widok .grow { flex: 1; min-width: 0; }
-#grota-widok .badge { display: inline-block; font-size: 0.7333rem; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
-#grota-widok .badge.b24h { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 50%, transparent); }
-#grota-widok .badge.bgodziny { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 50%, transparent); }
-#grota-widok .badge.bna_zadanie { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 50%, transparent); }
+#grota-widok .badge { display: inline-block; font-size: 0.8rem; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+#grota-widok .badge.b24h { color: var(--ok); border-color: rgba(62, 207, 142, .5); border-color: color-mix(in srgb, var(--ok) 50%, transparent); }
+#grota-widok .badge.bgodziny { color: var(--warn); border-color: rgba(245, 185, 66, .5); border-color: color-mix(in srgb, var(--warn) 50%, transparent); }
+#grota-widok .badge.bna_zadanie { color: var(--accent); border-color: rgba(124, 156, 255, .5); border-color: color-mix(in srgb, var(--accent) 50%, transparent); }
 #grota-widok .trust-ok { color: var(--ok); }
 #grota-widok .trust-watpliwe { color: var(--bad); }
 #grota-widok .trust-uwaga { color: var(--warn); }
@@ -60,13 +54,13 @@
 #grota-widok select, #grota-widok input[type=text], #grota-widok input[type=number] { background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 8px; padding: 8px; font: inherit; }
 #grota-widok .rule { border-left: 3px solid var(--rc, var(--accent)); background: var(--panel2); padding: 10px 12px; border-radius: 0 10px 10px 0; margin: 8px 0; }
 #grota-widok .rule-temat { font-weight: 500; color: var(--muted); }
-#grota-widok h3.rule-section { color: var(--rc); border-bottom: 1px solid color-mix(in srgb, var(--rc) 40%, transparent); padding-bottom: 4px; margin-top: 18px; }
+#grota-widok h3.rule-section { color: var(--rc); border-bottom: 1px solid var(--rc); border-bottom-color: color-mix(in srgb, var(--rc) 40%, transparent); padding-bottom: 4px; margin-top: 18px; }
 #grota-widok .view-head { align-items: flex-start; }
 #grota-widok .view-head h2 { margin-top: 2px; }
 #grota-widok .rule.alert { border-left-color: var(--red); }
 #grota-widok .rule b { display: block; }
 #grota-widok .rule .src { color: var(--muted); font-size: 0.8rem; }
-#grota-widok .sim { background: color-mix(in srgb, var(--warn) 15%, transparent); color: var(--warn); border-radius: 8px; padding: 8px 10px; font-size: 0.8rem; }
+#grota-widok .sim { background: rgba(245, 185, 66, .15); background: color-mix(in srgb, var(--warn) 15%, transparent); color: var(--warn); border-radius: 8px; padding: 8px 10px; font-size: 0.8rem; }
 #grota-widok .opt { display: flex; gap: 10px; align-items: flex-start; }
 #grota-widok .opt .num { width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: #0b0d12; display: grid; place-items: center; font-weight: 700; flex: none; }
 #grota-widok label.chk { display: flex; gap: 8px; align-items: flex-start; }
@@ -91,23 +85,21 @@
 #grota-widok figure.ortho img { display: block; width: 100%; aspect-ratio: 480 / 300; object-fit: cover; }
 #grota-widok figure.ortho .ortho-dot { position: absolute; left: 50%; top: calc(50% - 11px); width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%;
   border: 3px solid #fff; box-shadow: 0 0 0 2px var(--red), 0 0 8px rgba(0,0,0,.6); pointer-events: none; }
-#grota-widok figure.ortho figcaption { font-size: 0.7333rem; color: var(--muted); padding: 4px 8px; }
+#grota-widok figure.ortho figcaption { font-size: 0.8rem; color: var(--muted); padding: 4px 8px; }
 #grota-widok figure.ortho.err img, #grota-widok figure.ortho.err .ortho-dot { display: none; }
 /* tekst błędu jest w HTML (grota.js, zdjecieZGory), bo musi się tłumaczyć — CSS go tylko pokazuje */
 #grota-widok figure.ortho .ortho-err { display: none; }
 #grota-widok figure.ortho.err .ortho-err { display: inline; }
 
 /* ---- nawigacja i tryb „Teraz” ---- */
-#grota-widok .g-tabs button.danger { background: var(--red); border-color: var(--red); color: #fff; font-weight: 700; }
-#grota-widok .g-tabs button.danger.on { box-shadow: 0 0 0 2px #fff inset; }
-#grota-widok .g-bottom { display: none; grid-template-columns: repeat(5, 1fr); border-top: 1px solid var(--line); background: var(--panel);
+#grota-widok .g-bottom { display: grid; grid-template-columns: repeat(5, 1fr); border-top: 1px solid var(--line); background: var(--panel);
   padding-bottom: env(safe-area-inset-bottom); position: relative; z-index: 6; }
-#grota-widok .g-bottom button { background: none; border: 0; color: var(--muted); font: inherit; font-size: 0.7333rem; padding: 6px 2px 8px; display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; }
+#grota-widok .g-bottom button { background: none; border: 0; color: var(--muted); font: inherit; font-size: 0.8rem; padding: 6px 2px 8px; display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; }
 #grota-widok .g-bottom button .ic { width: 22px; height: 22px; }
 #grota-widok .g-bottom button.on { color: var(--fg); }
 /* wyraźna ramka pod aktywną zakładką — widać, gdzie się jest */
 #grota-widok .g-bottom button { border-radius: 12px; margin: 4px 3px; position: relative; }
-#grota-widok .g-bottom button.on { background: color-mix(in srgb, var(--accent) 18%, transparent); box-shadow: inset 0 0 0 1.5px var(--accent); }
+#grota-widok .g-bottom button.on { background: rgba(124, 156, 255, .18); background: color-mix(in srgb, var(--accent) 18%, transparent); box-shadow: inset 0 0 0 1.5px var(--accent); }
 #grota-widok .g-bottom button.on .ic { color: var(--accent); }
 #grota-widok .g-bottom button.danger { background: var(--red); color: #fff; font-weight: 700; margin: -10px 4px 0; border-radius: 16px 16px 0 0; }
 #grota-widok .g-bottom button.danger.on { background: var(--red); box-shadow: inset 0 0 0 2.5px #fff; }
@@ -123,21 +115,21 @@
 #grota-widok .main-opt { border-color: var(--ok); box-shadow: inset 0 0 0 1px var(--ok); }
 #grota-widok .big-addr { font-size: 1.2rem; font-weight: 700; margin: 2px 0 4px; }
 #grota-widok .other-opt { padding: 8px 10px; }
-#grota-widok .seg { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin: 8px 0; }
-#grota-widok .seg button { background: var(--panel2); border: 1px solid var(--line); color: var(--muted); border-radius: 10px; padding: 7px 2px 5px; font: inherit; font-size: 0.7333rem; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+/* trzy środki transportu, nie pięć — przy pięciu kolumnach przyciski kończyły się w 3/5 szerokości */
+#grota-widok .seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin: 8px 0; }
+#grota-widok .seg button { background: var(--panel2); border: 1px solid var(--line); color: var(--muted); border-radius: 10px; padding: 7px 2px 5px; font: inherit; font-size: 0.8rem; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; }
 #grota-widok .seg button .ic { width: 22px; height: 22px; }
-#grota-widok .seg button.on { border-color: var(--accent); color: var(--fg); background: color-mix(in srgb, var(--accent) 20%, var(--panel2)); }
+#grota-widok .seg button.on { border-color: var(--accent); color: var(--fg); background: #2e3a59; background: color-mix(in srgb, var(--accent) 20%, var(--panel2)); }
 #grota-widok .chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 6px 0; }
 #grota-widok .chip { background: var(--panel2); border: 1px solid var(--line); color: var(--fg); border-radius: 999px; padding: 6px 12px; font: inherit; cursor: pointer; }
-#grota-widok .warn-box { background: color-mix(in srgb, var(--red) 20%, transparent); border: 1px solid var(--red); border-radius: 10px; padding: 10px; margin: 8px 0; }
+#grota-widok .warn-box { background: rgba(200, 30, 48, .2); background: color-mix(in srgb, var(--red) 20%, transparent); border: 1px solid var(--red); border-radius: 10px; padding: 10px; margin: 8px 0; }
 /* miękki próg: daleko, ale bez alarmu — ostrzegamy spokojniej niż przy znanym czasie zagrożenia */
-#grota-widok .warn-box.miekki { background: color-mix(in srgb, var(--warn) 18%, transparent); border-color: var(--warn); }
+#grota-widok .warn-box.miekki { background: rgba(245, 185, 66, .18); background: color-mix(in srgb, var(--warn) 18%, transparent); border-color: var(--warn); }
 #grota-widok .cel-adres { display: flex; gap: 6px; align-items: flex-start; margin: 4px 0 8px; }
 #grota-widok .pasek { height: 8px; border-radius: 999px; background: var(--panel2); border: 1px solid var(--line); overflow: hidden; margin: 6px 0; }
 #grota-widok .pasek i { display: block; height: 100%; background: var(--accent); transition: width .2s; }
 #grota-widok details.card summary { cursor: pointer; color: var(--muted); }
-@media (max-width: 760px) { #grota-widok .g-bottom { display: grid; } }
-#grota-widok .maplibregl-ctrl-attrib { font-size: 0.6667rem; }
+#grota-widok .maplibregl-ctrl-attrib { font-size: 0.8rem; }
 #grota-widok .maplibregl-ctrl-attrib.maplibregl-compact { min-height: 20px; }
 /* Zwinięta atrybucja to ma być sam przycisk „i” — domyślne style zostawiały obok pustą, czarną pigułkę. */
 #grota-widok .maplibregl-ctrl-attrib.maplibregl-compact:not(.maplibregl-compact-show) {
@@ -157,21 +149,21 @@
 #grota-widok .kind-ic.sm .ic { width: 12px; height: 12px; }
 #grota-widok .chip { display: inline-flex; align-items: center; }
 #grota-widok .kinds { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 6px; margin: 6px 0 10px; }
-#grota-widok .kinds button { background: var(--panel2); border: 1px solid var(--line); color: var(--muted); border-radius: 12px; padding: 8px 4px 6px; font: inherit; font-size: 0.7333rem; line-height: 1.2;
+#grota-widok .kinds button { background: var(--panel2); border: 1px solid var(--line); color: var(--muted); border-radius: 12px; padding: 8px 4px 6px; font: inherit; font-size: 0.8rem; line-height: 1.2;
   cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
 #grota-widok .kinds button .kind-ic { box-shadow: none; }
-#grota-widok .kinds button.on { border-color: var(--kc); color: var(--fg); background: color-mix(in srgb, var(--kc) 22%, var(--panel2)); }
+#grota-widok .kinds button.on { border-color: var(--kc); color: var(--fg); background: var(--panel2); background: color-mix(in srgb, var(--kc) 22%, var(--panel2)); }
 
 /* znacznik zapisanego miejsca na mapie: ikona w kółku + podpis */
 #grota-widok .place-pin { display: flex; flex-direction: column; align-items: center; cursor: pointer; transform: translateY(-14px); }
 #grota-widok .place-pin .kind-ic { width: 30px; height: 30px; }
-#grota-widok .place-pin .place-name { margin-top: 3px; font-size: 0.7333rem; font-weight: 600; color: #111827; background: rgba(255,255,255,.92); padding: 1px 6px; border-radius: 6px;
+#grota-widok .place-pin .place-name { margin-top: 3px; font-size: 0.8rem; font-weight: 600; color: #111827; background: rgba(255,255,255,.92); padding: 1px 6px; border-radius: 6px;
   max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-shadow: 0 1px 3px rgba(0,0,0,.3); }
 
 /* ---- wpisywanie adresu ---- */
 #grota-widok form.addr { margin: 10px 0 4px; }
 #grota-widok form.addr label { display: block; margin-bottom: 4px; }
-#grota-widok form.addr input { min-width: 0; font-size: max(16px, 1.0667rem); }         /* 16px: telefon nie powiększa strony przy pisaniu */
+#grota-widok form.addr input { min-width: 0; min-height: 44px; font-size: max(16px, 1.0667rem); }   /* 16px: telefon nie powiększa strony przy pisaniu */
 #grota-widok .addr-list { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
 #grota-widok .addr-item { display: flex; align-items: center; gap: 10px; text-align: left; background: var(--bg); border: 1px solid var(--line); color: var(--fg);
   border-radius: 10px; padding: 9px 10px; font: inherit; cursor: pointer; }
@@ -185,12 +177,12 @@
 #grota-widok .seg { gap: 6px; }
 #grota-widok .seg button { min-height: 58px; justify-content: center; border-radius: 12px; transition: background .15s, border-color .15s, color .15s; }
 #grota-widok .seg button span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; padding: 0 2px; }
-#grota-widok .seg button.on { color: #fff; border-color: var(--accent); background: color-mix(in srgb, var(--accent) 34%, var(--panel2)); box-shadow: 0 0 0 1px var(--accent) inset; }
+#grota-widok .seg button.on { color: #fff; border-color: var(--accent); background: #3c4b76; background: color-mix(in srgb, var(--accent) 34%, var(--panel2)); box-shadow: 0 0 0 1px var(--accent) inset; }
 #grota-widok .seg button.on .ic { color: #fff; }
-#grota-widok .seg button:not(.on):hover { border-color: color-mix(in srgb, var(--accent) 50%, var(--line)); color: var(--fg); }
+#grota-widok .seg button:not(.on):hover { border-color: #5366a0; border-color: color-mix(in srgb, var(--accent) 50%, var(--line)); color: var(--fg); }
 #grota-widok .add-to { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
 #grota-widok .add-to .chips { margin-top: 6px; }
-#grota-widok .chip.on { border-color: var(--ok); background: color-mix(in srgb, var(--ok) 16%, var(--panel2)); }
+#grota-widok .chip.on { border-color: var(--ok); background: #213d3f; background: color-mix(in srgb, var(--ok) 16%, var(--panel2)); }
 #grota-widok .chip:disabled { opacity: .45; cursor: not-allowed; }
 #grota-widok .chip .chip-check { width: 14px; height: 14px; margin-left: 6px; color: var(--ok); }
 #grota-widok .maplibregl-ctrl-bottom-left .maplibregl-ctrl-attrib { margin: 0 0 8px 8px; }
@@ -201,13 +193,13 @@
 #grota-widok .filter-head .chip { padding: 4px 12px; font-size: 0.8rem; }
 #grota-widok .filter-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 6px; }
 #grota-widok .fchip { display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: 7px; align-items: center; text-align: left;
-  background: var(--panel2); border: 1px solid var(--line); color: var(--muted); border-radius: 10px; padding: 7px 8px; font: inherit; font-size: 0.8rem; cursor: pointer; opacity: .6; }
+  background: var(--panel2); border: 1px solid var(--line); color: #a3aec4; border-radius: 10px; padding: 7px 8px; font: inherit; font-size: 0.8rem; cursor: pointer; }
 #grota-widok .fchip i { grid-row: 1 / span 2; width: 12px; height: 12px; border-radius: 50%; }
 #grota-widok .fchip i.ring { background: transparent; border: 2.5px solid; }
 #grota-widok .fchip span { color: var(--fg); line-height: 1.2; }
-#grota-widok .fchip small { color: var(--muted); font-size: 0.7333rem; }
+#grota-widok .fchip small { color: #a3aec4; font-size: 0.8rem; }
 /* Zaznaczone = zielone: w reszcie aplikacji zielony znaczy „to jest brane pod uwagę". */
-#grota-widok .fchip.on { opacity: 1; border-color: var(--ok); box-shadow: inset 0 0 0 1.5px var(--ok); background: color-mix(in srgb, var(--ok) 12%, var(--panel2)); }
+#grota-widok .fchip.on { opacity: 1; border-color: var(--ok); box-shadow: inset 0 0 0 1.5px var(--ok); background: #1f363b; background: color-mix(in srgb, var(--ok) 12%, var(--panel2)); }
 #grota-widok .fchip:not(.on) span { text-decoration: line-through; text-decoration-color: var(--muted); }
 
 /* ---- trasa, rodzaj obiektu, notatka o wejściu ---- */
@@ -231,23 +223,23 @@
 /* ---- podpisy „Tu jesteś” / „Cel” ---- */
 #grota-widok .pin, #grota-widok .goal { position: relative; }
 #grota-widok .goal { width: 34px; height: 34px; border-radius: 50%; pointer-events: none; }
-#grota-widok .map-tag { position: absolute; left: 50%; top: calc(100% + 6px); transform: translateX(-50%); white-space: nowrap; font-size: 0.7333rem; font-weight: 700;
+#grota-widok .map-tag { position: absolute; left: 50%; top: calc(100% + 6px); transform: translateX(-50%); white-space: nowrap; font-size: 0.8rem; font-weight: 700;
   padding: 2px 7px; border-radius: 6px; color: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.35); pointer-events: none; letter-spacing: .02em; }
 #grota-widok .map-tag.me { background: var(--red); }
-#grota-widok .map-tag.goal-tag { background: #16a34a; top: calc(100% - 2px); }
+#grota-widok .map-tag.goal-tag { background: #16a34a; color: #06260f; top: calc(100% - 2px); }
 
 /* ---- przyciski edycji miejsca ---- */
 #grota-widok .place-head { flex-wrap: nowrap; }
 #grota-widok .place-head b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #grota-widok button.btn.place-btn { padding: 8px 10px; }
-#grota-widok button.btn.danger-ghost { color: #f87171; border-color: color-mix(in srgb, #f87171 45%, var(--line)); }
-#grota-widok button.btn.danger-ghost:hover { background: color-mix(in srgb, #f87171 12%, transparent); }
+#grota-widok button.btn.danger-ghost { color: #f87171; border-color: #874e57; border-color: color-mix(in srgb, #f87171 45%, var(--line)); }
+#grota-widok button.btn.danger-ghost:hover { background: rgba(248, 113, 113, .12); background: color-mix(in srgb, #f87171 12%, transparent); }
 
 /* ---- przeciąganie kafli miejsc ---- */
 #grota-widok .drag-handle { flex: none; display: grid; place-items: center; width: 28px; height: 40px; margin: -4px 0 -4px -8px; padding: 0;
   background: none; border: 0; border-radius: 8px; color: var(--muted); cursor: grab; touch-action: none; }
 #grota-widok .drag-handle .ic { width: 20px; height: 20px; }
-#grota-widok .drag-handle:hover, #grota-widok .drag-handle:focus-visible { color: var(--fg); background: color-mix(in srgb, var(--accent) 14%, transparent); outline: none; }
+#grota-widok .drag-handle:hover, #grota-widok .drag-handle:focus-visible { color: var(--fg); background: rgba(124, 156, 255, .14); background: color-mix(in srgb, var(--accent) 14%, transparent); outline: none; }
 #grota-widok .place-list.sorting .place-card { transition: transform .18s ease; user-select: none; }
 #grota-widok .place-list.sorting .place-card.dragging { transition: none; position: relative; z-index: 5; cursor: grabbing;
   box-shadow: 0 10px 28px rgba(0,0,0,.45); border-color: var(--accent); }
@@ -257,11 +249,11 @@
 #grota-widok button.linkish { background: none; border: 0; padding: 0; color: var(--accent); cursor: pointer; font: inherit; text-decoration: underline; }
 #grota-widok .type-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
 #grota-widok .tchip { display: flex; flex-direction: column; align-items: center; gap: 3px; text-align: center; min-height: 74px; justify-content: center;
-  background: var(--panel2); border: 1px solid var(--line); color: var(--muted); border-radius: 10px; padding: 6px 4px; font: inherit; font-size: 0.7333rem; line-height: 1.15; cursor: pointer; opacity: .55; }
+  background: var(--panel2); border: 1px solid var(--line); color: #a3aec4; border-radius: 10px; padding: 6px 4px; font: inherit; font-size: 0.8rem; line-height: 1.15; cursor: pointer; }
 #grota-widok .tchip .ic { width: 20px; height: 20px; }
 #grota-widok .tchip span { color: var(--fg); }
-#grota-widok .tchip small { font-size: 0.6667rem; color: var(--muted); }
-#grota-widok .tchip.on { opacity: 1; border-color: var(--ok); box-shadow: inset 0 0 0 1.5px var(--ok); background: color-mix(in srgb, var(--ok) 12%, var(--panel2)); }
+#grota-widok .tchip small { font-size: 0.8rem; color: #a3aec4; }
+#grota-widok .tchip.on { opacity: 1; border-color: var(--ok); box-shadow: inset 0 0 0 1.5px var(--ok); background: #1f363b; background: color-mix(in srgb, var(--ok) 12%, var(--panel2)); }
 #grota-widok .tchip.on .ic { color: var(--ok); }
 
 /* ---- nagrywanie trasy ---- */
@@ -323,9 +315,9 @@
 #grota-widok .card.lista-pusta { border-color: var(--bad); }
 #grota-widok .card.lista-wpol { border-color: var(--warn); }
 #grota-widok .card.lista-pelna { border-color: var(--ok); box-shadow: inset 0 0 0 1px var(--ok); }
-#grota-widok .lista-pusta .lista-licznik { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 50%, transparent); }
-#grota-widok .lista-wpol .lista-licznik { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 50%, transparent); }
-#grota-widok .lista-pelna .lista-licznik { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 50%, transparent); }
+#grota-widok .lista-pusta .lista-licznik { color: var(--bad); border-color: rgba(255, 107, 107, .5); border-color: color-mix(in srgb, var(--bad) 50%, transparent); }
+#grota-widok .lista-wpol .lista-licznik { color: var(--warn); border-color: rgba(245, 185, 66, .5); border-color: color-mix(in srgb, var(--warn) 50%, transparent); }
+#grota-widok .lista-pelna .lista-licznik { color: var(--ok); border-color: rgba(62, 207, 142, .5); border-color: color-mix(in srgb, var(--ok) 50%, transparent); }
 /* Zaznaczone pozycje na zielono — widać, co już jest, i co zostało. */
 #grota-widok .chk-lista input:checked + span { color: var(--ok); }
 
@@ -334,7 +326,7 @@
 #grota-widok .bledy summary { cursor: pointer; color: var(--muted); }
 #grota-widok .bledy p { margin: 6px 0 0; color: var(--muted); }
 
-#grota-widok .save-state { display: inline-flex; align-items: center; gap: 4px; margin-left: 6px; font-size: 0.7333rem; font-weight: 500; color: var(--ok); text-transform: none; letter-spacing: 0; }
+#grota-widok .save-state { display: inline-flex; align-items: center; gap: 4px; margin-left: 6px; font-size: 0.8rem; font-weight: 500; color: var(--ok); text-transform: none; letter-spacing: 0; }
 #grota-widok .save-state .ic { width: 12px; height: 12px; }
 #grota-widok button.btn.save-btn { padding: 6px 10px; font-size: 0.8667rem; }
 #grota-widok .row.between { justify-content: space-between; margin-top: 6px; }
@@ -350,7 +342,7 @@
 
 /* karta wybranego punktu — na samej górze panelu, tuż pod mapą */
 #grota-widok .sel-point { border: 1px solid var(--accent); border-radius: 12px; padding: 8px 10px 2px; margin-bottom: 12px;
-  background: color-mix(in srgb, var(--accent) 8%, transparent); }
+  background: rgba(124, 156, 255, .08); background: color-mix(in srgb, var(--accent) 8%, transparent); }
 #grota-widok .sel-point > .row { margin-bottom: 4px; }
 #grota-widok .sel-point .card { margin-top: 0; }
 
@@ -361,21 +353,59 @@
 #grota-widok button.btn.map-tools-btn .small { font-weight: 500; white-space: nowrap; }
 
 /* karta informacyjna na starcie */
-#grota-widok .info-card { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
+#grota-widok .info-card { border-color: #4f6197; border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
 #grota-widok .info-card p { margin: 4px 0 8px; }
 
 /* Lista najbliższych punktów (ekran Mapa) — dla czytnika ekranu i klawiatury. */
 #grota-widok .lista-punktow { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 #grota-widok .lista-punktow > li { margin: 0; }
-#grota-widok .lista-poz { width: 100%; text-align: left; padding: 8px 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
-#grota-widok .lista-poz:hover { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
-#grota-widok .badge.bwatpliwe { color: #dc2626; border-color: color-mix(in srgb, #dc2626 50%, transparent); }
-#grota-widok .badge.buwaga { color: #d97706; border-color: color-mix(in srgb, #d97706 50%, transparent); }
+#grota-widok .lista-poz { width: 100%; text-align: left; padding: 8px 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel2); }
+#grota-widok .lista-poz:hover { border-color: #4f6197; border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
+#grota-widok .badge.bwatpliwe { color: #ff6b78; border-color: rgba(255, 107, 120, .5); border-color: color-mix(in srgb, #ff6b78 50%, transparent); }
+#grota-widok .badge.buwaga { color: #f0a63a; border-color: rgba(240, 166, 58, .5); border-color: color-mix(in srgb, #f0a63a 50%, transparent); }
+
+/* Kto prosi system o mniej ruchu, nie powinien dostawać pulsowania ani przesuwania.
+   Kropka nagrywania zostaje widoczna — gaśnie tylko miganie. */
+@media (prefers-reduced-motion: reduce) {
+  #grota-widok .map-btn.busy, #grota-widok .rec-dot { animation: none; }
+  #grota-widok .pasek i, #grota-widok .seg button, #grota-widok .place-list.sorting .place-card { transition: none; }
+}
+
+/* Pytanie i komunikat zamiast systemowego confirm()/alert() — karta na górze panelu.
+   Wyróżniona ramką, żeby było widać, że czeka na odpowiedź. */
+#grota-widok .card.pytanie, #grota-widok .card.komunikat { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+#grota-widok .card.pytanie.grozne { border-color: var(--bad); box-shadow: inset 0 0 0 1px var(--bad); }
+#grota-widok .card.pytanie p, #grota-widok .card.komunikat p { margin-top: 0; }
+
+/* Komunikaty dla czytnika ekranu: słyszalne, niewidoczne, poza układem strony.
+   Bez `clip-path` — WebView 80 zna tylko stare `clip`. */
+#grota-widok .tylko-czytnik { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
 /* Klawiatura musi widzieć, gdzie jest. Bez tego fokus był niewidoczny poza uchwytem przeciągania. */
-#grota-widok #grota-widok :is(button, #grota-widok a, #grota-widok summary, #grota-widok input, #grota-widok select, #grota-widok textarea, #grota-widok [tabindex]):focus-visible {
+#grota-widok button:focus-visible, #grota-widok a:focus-visible, #grota-widok summary:focus-visible, #grota-widok input:focus-visible, #grota-widok select:focus-visible, #grota-widok textarea:focus-visible, #grota-widok [tabindex]:focus-visible {
   outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 8px;
 }
+/* WebView starszy niz Chrome 86 nie zna :focus-visible — tam obrys dostaje zwykly :focus */
+@supports not selector(:focus-visible) {
+  #grota-widok button:focus, #grota-widok a:focus, #grota-widok summary:focus, #grota-widok input:focus, #grota-widok select:focus, #grota-widok textarea:focus, #grota-widok [tabindex]:focus {
+    outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 8px;
+  }
+}
+
+/* ---------- obszar dotyku 44x44 ----------
+   Wytyczna ta sama co w Strażniku: przycisk moze wygladac mniej, ale palec ma trafiac w 44 px.
+   Tam, gdzie wysokosc da sie podniesc bez psucia ukladu — min-height; przy przyciskach w tekscie
+   i uchwytach — niewidoczna nakladka ::after, ktora powieksza sam obszar klikania. */
+#grota-widok .btn { min-height: 44px; }
+#grota-widok .chip, #grota-widok .filter-head .chip { min-height: 44px; display: inline-flex; align-items: center; }
+#grota-widok .place-btn, #grota-widok .btn.icon-only, #grota-widok .close-live, #grota-widok .save-btn, #grota-widok .map-btn.theme, #grota-widok .drag-handle { min-width: 44px; min-height: 44px; }
+#grota-widok .map-offline button { min-height: 44px; }
+/* Przycisk-odnośnik siedzi w środku zdania i nie da się go rozepchać — powiększamy sam obszar dotyku. */
+#grota-widok button.linkish { position: relative; }
+#grota-widok button.linkish::after {
+  content: ""; position: absolute; top: 50%; left: 50%; width: 100%; height: 100%;
+  min-width: 44px; min-height: 44px; transform: translate(-50%, -50%); }
 
 /* ---------- pojemnik modułu (dopisane przy eksporcie, tools/eksport_modulu.cjs) ---------- */
 #grota-widok { position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 60; background: var(--bg); color: var(--fg);
@@ -385,8 +415,10 @@
 #grota-widok #grota { height: 100%; }
 #grota-widok .g-top { padding-top: calc(8px + env(safe-area-inset-top, 0px)); }
 #grota-widok .g-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+/* min-height 44: wyjście z Groty ma być tak samo łatwe do trafienia palcem jak reszta przycisków */
 #grota-widok .g-powrot { display: inline-flex; align-items: center; gap: 2px; background: transparent; color: var(--fg);
-  border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px 6px 6px; font: inherit; font-weight: 600; cursor: pointer; }
+  border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px 6px 6px; min-height: 44px;
+  font: inherit; font-weight: 600; cursor: pointer; }
 #grota-widok .g-powrot svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 #grota-widok .grota-za-stary { padding: 24px 18px; }
 #grota-widok .grota-za-stary button { margin-top: 12px; padding: 10px 16px; border-radius: 10px; border: 1px solid var(--line);

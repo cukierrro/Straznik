@@ -33,7 +33,8 @@ const I18N = fs.readFileSync(path.join(ROOT, 'frontend/i18n.js'), 'utf8');
 
 /* Napisy wypełniane z kodu w czasie działania — nie mają stałej treści,
    więc nie mają też tłumaczenia w słowniku. */
-const Z_KODU = new Set(['app-version', 'upd-status', 'bg-status', 'ns-volume', 'more-links']);
+const Z_KODU = new Set(['app-version', 'upd-status', 'bg-status', 'ns-volume', 'more-links',
+  'qh-stan']);   // stan godzin ciszy — tekst z UI.t w renderGodzinyCiszy (13.10.2026)
 
 function sekcje() {
   return [...HTML.matchAll(/<section class="set-pane"[^>]*data-pane="([a-z]+)"[\s\S]*?<\/section>/g)];

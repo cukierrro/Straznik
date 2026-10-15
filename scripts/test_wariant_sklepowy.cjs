@@ -62,7 +62,9 @@ test('sprawdzanie aktualizacji wynika z kanału, nie jest wpisane na sztywno', (
 test('każdy odnośnik do zbiórki ma klasę no-sklep', () => {
   // liczymy znaczniki <a>, a nie wszystkie wystąpienia adresu (jest też w title=)
   const linki = [...INDEX.matchAll(/<a\b[^>]*buycoffee\.to[^>]*>/g)].map(m => m[0]);
-  assert.ok(linki.length >= 4, `spodziewam się co najmniej 4 odnośników, jest ${linki.length}`);
+  // 14.10.2026 (wygląd v4): kawa zeszła z górnego paska do Menu — zostały trzy
+  // odnośniki (Menu, „O aplikacji”, zakładka Aplikacja). Każdy musi mieć no-sklep.
+  assert.ok(linki.length >= 3, `spodziewam się co najmniej 3 odnośników, jest ${linki.length}`);
   for (const l of linki)
     assert.match(l, /class="[^"]*\bno-sklep\b/, `odnośnik bez klasy no-sklep: ${l.slice(0, 90)}`);
 });

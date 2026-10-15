@@ -24,7 +24,8 @@ const HTML = czytaj('frontend/index.html');
 const I18N = czytaj('frontend/i18n.js');
 
 function okno() {
-  const i = HTML.indexOf('<dialog id="about">');
+  // 14.10.2026: okno ma aria-labelledby, więc szukamy samego początku znacznika.
+  const i = HTML.indexOf('<dialog id="about"');
   assert.ok(i >= 0, 'nie znalazłem okna #about');
   return HTML.slice(i, HTML.indexOf('\n</dialog>', i));
 }
@@ -44,7 +45,8 @@ test('akapity, tabele i ramki mają identyfikatory', () => {
   const o = okno();
   const bez = [];
   // akapity poza nagłówkiem okna (.about-sub ma własny selektor)
-  for (const m of o.matchAll(/<p(?! class="about-sub")([^>]*)>([\s\S]{0,50})/g))
+  // <p, a nie <path — od 14.10.2026 krzyżyk okna ma ikonę SVG ze ścieżką <path>
+  for (const m of o.matchAll(/<p(?=[\s>])(?! class="about-sub")([^>]*)>([\s\S]{0,50})/g))
     if (!/id="/.test(m[1])) bez.push('  <p> ' + m[2].replace(/\s+/g, ' ').trim().slice(0, 50));
   for (const m of o.matchAll(/<table([^>]*)>/g))
     if (!/id="/.test(m[1])) bez.push('  <table> bez id');

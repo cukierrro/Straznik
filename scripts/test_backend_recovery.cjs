@@ -11,6 +11,8 @@ async function main() {
     console, localStorage: {getItem: () => null},
     apiBase: () => 'https://straznik.eu', applyState: () => {},
     connBadge: {classList: {add(){}, remove(){}}, style: {}},
+    // 14.10.2026: tryb awaryjny ogłasza się czytnikowi ekranu
+    powiedz: () => {}, a11yInfo: null,
     Engine: {start: () => calls.push('start'), stop: () => calls.push('stop')},
     setTimeout: fn => { fn(); },
     setInterval: fn => {tick = fn; return 1;}, clearInterval: () => calls.push('clear'),

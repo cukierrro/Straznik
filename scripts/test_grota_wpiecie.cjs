@@ -77,10 +77,12 @@ sprawdz(/async function otworzGrote\(opcje\) \{\s*\n\s*if \(grotaWylaczona\(\)\)
 
 console.log("4c. Menu „More” po angielsku (22.09.2026)");
 const i18n = fs.readFileSync(path.join(root, "frontend/i18n.js"), "utf8");
-sprawdz(/set\("#btn-grota span", "Shelter — nearest"\)/.test(i18n) &&
-        /set\("#btn-grota-web span", "Shelter — in the phone app"\)/.test(i18n) &&
-        /setMany\("#more-sheet \.sheet-row:not\(#btn-grota\):not\(#btn-grota-web\) span"/.test(i18n),
-  "oba wpisy GROTY tłumaczone po id, reszta bez nich — kolejność nie przesuwa podpisów");
+// 14.10.2026 (wygląd v4): GROTA jest zakładką w dolnym pasku, a Menu tłumaczy się
+// w CAŁOŚCI po identyfikatorach — po kolejności rozjechało się już dwa razy.
+sprawdz(/getElementById\("btn-grota"\)\?\.setAttribute\("aria-label", "GROTA — places of shelter"\)/.test(i18n) &&
+        /set\("#btn-grota-web span", "GROTA — places of shelter in the app"\)/.test(i18n) &&
+        !/setMany\("#more-sheet/.test(i18n) && !/setMany\("#tabbar/.test(i18n),
+  "oba wpisy GROTY tłumaczone po id, a Menu i zakładki bez tłumaczenia po kolejności");
 // Strona WWW nie ma modułu, więc zamiast pustego miejsca pokazuje, gdzie go szukać
 // (czytelnik 23.09.2026 szukał schronienia na stronie i w ustawieniach).
 sprawdz(/<a class="sheet-row web-only" id="btn-grota-web"/.test(html),

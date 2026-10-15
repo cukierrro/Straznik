@@ -27,7 +27,8 @@ sprawdz(/\.ios-app \.no-ios[^}]*display: none/.test(css) && /\.ios-app \.android
 
 console.log('2. Wsparcie autora poza aplikacją na iOS (App Store 3.1.1a)');
 const kawy = [...html.matchAll(/<a[^>]*buycoffee[^>]*>/g)].map(m => m[0]);
-sprawdz(kawy.length === 4, `wszystkie linki do kawy odnalezione (${kawy.length})`);
+// 14.10.2026 (wygląd v4): kawa zeszła z górnego paska do Menu — są trzy linki.
+sprawdz(kawy.length === 3, `wszystkie linki do kawy odnalezione (${kawy.length})`);
 sprawdz(kawy.every(a => /class="[^"]*no-ios/.test(a)), 'każdy link do kawy ma klasę no-ios');
 sprawdz(!/no-ios[^>]*>\s*Instrukcja użytkownika/.test(html),
   'neutralny link do instrukcji zostaje w aplikacji');

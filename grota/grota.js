@@ -48,6 +48,68 @@
   };
   const panel = document.getElementById("g-panel");
   const root = document.getElementById("grota");
+  const liveBox = document.getElementById("g-live");
+
+  /* Komunikat dla czytnika ekranu. Kiedyś `aria-live` wisiało na całym panelu, a render() podmienia
+     jego wnętrze w całości — czytnik czytał więc cały ekran po każdym filtrze i po każdym kawałku mapy.
+     Teraz mówimy tylko to, co naprawdę trzeba usłyszeć. */
+  function powiedz(tekst) {
+    if (!liveBox || !tekst) return;
+    if (liveBox.textContent === tekst) liveBox.textContent = "";   // ten sam tekst drugi raz czytnik pominie
+    liveBox.textContent = tekst;
+  }
+
+  /* ---------- pytania i komunikaty bez natywnego alert()/confirm() ----------
+     Systemowe okno zatrzymuje cały WebView: przy alarmie zasłania ekran Strażnika, który leży nad Grotą,
+     i nie da się go ani przewinąć, ani przeczytać czytnikiem razem z resztą panelu. Zamiast tego karta
+     na górze panelu — zwykły HTML, więc alarm Strażnika nadal jest na wierzchu. */
+  let pytanieAkcja = null;
+  function zapytaj({ tekst, tak, nie, grozne = false, akcja }) {
+    S.pytanie = { tekst, tak: tak || "Tak", nie: nie || "Anuluj", grozne };
+    pytanieAkcja = typeof akcja === "function" ? akcja : null;
+    render();
+    panel.scrollTop = 0;
+    powiedz(T(tekst));
+    // fokus na wyjściu, nie na akcji — przy usuwaniu „Anuluj” ma być pod palcem i pod Enterem
+    panel.querySelector('[data-act="pytanie-nie"]')?.focus({ preventScroll: true });
+  }
+  function komunikat(tekst) {
+    S.komunikat = tekst;
+    render();
+    panel.scrollTop = 0;
+    powiedz(T(tekst));
+    panel.querySelector('[data-act="komunikat-ok"]')?.focus({ preventScroll: true });
+  }
+  /* Wyjątek silnika w zdanie, które coś mówi. „Failed to fetch” i „QuotaExceededError” to teksty
+     przeglądarki: nie tłumaczą się, nie mówią, co robić, a użytkownik widział je wprost. */
+  function poLudzku(e) {
+    const nazwa = e && e.name ? String(e.name) : "";
+    const tekst = String((e && e.message) || e || "");
+    if (nazwa === "QuotaExceededError" || /quota/i.test(tekst) || /quota/i.test(nazwa))
+      return T("Brak miejsca na telefonie — zwolnij miejsce albo pobierz mniejszy obszar.");
+    if (nazwa === "AbortError" || /timeout|timed out/i.test(tekst))
+      return T("Serwer nie odpowiedział na czas — spróbuj ponownie.");
+    if (/Failed to fetch|NetworkError|Load failed|network error/i.test(tekst))
+      return T("Brak połączenia — sprawdź internet i spróbuj ponownie.");
+    return T(tekst);
+  }
+
+  function kartaPytania() {
+    const q = S.pytanie;
+    if (!q) return "";
+    return `<div class="card pytanie${q.grozne ? " grozne" : ""}" role="group" aria-label="${esc(T("Pytanie"))}">
+      <p>${esc(T(q.tekst)).replace(/\n/g, "<br>")}</p>
+      <div class="row">
+        <button type="button" class="btn${q.grozne ? " danger-ghost" : ""}" data-act="pytanie-tak">${esc(T(q.tak))}</button>
+        <button type="button" class="btn ghost" data-act="pytanie-nie">${esc(T(q.nie))}</button>
+      </div></div>`;
+  }
+  function kartaKomunikatu() {
+    if (!S.komunikat) return "";
+    return `<div class="card komunikat" role="group" aria-label="${esc(T("Komunikat"))}">
+      <p>${esc(T(S.komunikat)).replace(/\n/g, "<br>")}</p>
+      <button type="button" class="btn" data-act="komunikat-ok">${esc(T("Rozumiem"))}</button></div>`;
+  }
 
   /* Środki transportu, których już nie ma: „Komunikacja” (Grota nie zna rozkładów) i osobny
      „Skuter / motocykl” (ta sama trasa i ten sam czas co samochód). Telefony, które mają je
@@ -68,6 +130,7 @@
     userPos: null, etaMin: null,
     alarm: null,             // stan ze Strażnika, gdy Grota działa w jego wnętrzu
     live: null, liveError: null, locating: false,
+    pytanie: null, komunikat: null,   // karty zamiast systemowych confirm()/alert()
     openPlace: null,
     theme: readLS(THEME_KEY, "jasna"),
     localities: null,                    // spis miejscowości (wyszukiwanie bez GPS)
@@ -353,8 +416,11 @@
     for (const id of ["ps", "ps-hit"]) if (map.getLayer(id)) map.setFilter(id, filterExpr());
   }
 
+  /* Liczymy z samych punktów, bez oglądania się na S.counts. Dawniej przy pustym S.counts wychodziło
+     zero, a S.counts powstaje dopiero przy budowaniu warstwy mapy — więc komuś z zawężonym filtrem
+     pasek „Filtry i widok” pokazywał „0 pkt”, choć punkty były już wczytane (najłatwiej zobaczyć
+     bez internetu). Bez punktów obie drogi i tak dają zero. */
   function visibleCount() {
-    if (!S.counts) return 0;
     // kategorie są niezależne, więc liczymy wprost po punktach tylko przy zawężonym filtrze
     const full = S.filter.dostep.length === 3 && S.filter.trust.length === 3 && !S.filter.grupy;
     if (full) return S.points.length;
@@ -382,6 +448,7 @@
     } catch (err) {
       if (attempt < 3) { await new Promise((ok) => setTimeout(ok, 1500 * attempt)); return loadData(attempt + 1); }
       S.dataError = "Nie udało się wczytać punktów schronienia. Zasady i listy „Przygotuj się” działają bez nich.";
+      powiedz(T(S.dataError));
     }
     /* Ktoś zdążył nacisnąć TERAZ (albo wszedł z alarmu), zanim punkty się wczytały — liczymy wynik od razu
        po wczytaniu, razem z trasą do pierwszej propozycji. Bez fitLive() zostawał sam szacunek z linii prostej
@@ -436,6 +503,9 @@
     });
     const powrot = root.querySelector(".g-powrot[aria-label]");
     if (powrot && !powrot.dataset.tAria) powrot.dataset.tAria = powrot.getAttribute("aria-label");
+    // podpis paska zakładek czytany przez czytnik ekranu — też ma być w języku interfejsu
+    const nawigacja = root.querySelector(".g-bottom[aria-label]");
+    if (nawigacja && !nawigacja.dataset.tAria) nawigacja.dataset.tAria = nawigacja.getAttribute("aria-label");
     root.querySelectorAll(".map-btn[title]").forEach((el) => {
       if (!el.dataset.tTitle) el.dataset.tTitle = el.title;
       if (!el.dataset.tAria && el.getAttribute("aria-label")) el.dataset.tAria = el.getAttribute("aria-label");
@@ -607,14 +677,20 @@
       <div class="row"><button class="btn" data-rec="save">${I("save")}${T("Zakończ i zapisz")}</button><button class="btn ghost" data-rec="cancel">${T("Anuluj")}</button></div>`;
   }
 
-  async function recStart(placeId, shelterId) {
+  function recStart(placeId, shelterId) {
     const pl = S.places.find((x) => x.id === placeId), p = S.byId.get(shelterId);
     if (S.rec || !pl || !p) return;
-    if (!window.isSecureContext || !navigator.geolocation) { alert(T("Nagrywanie trasy wymaga lokalizacji (strona https albo localhost).")); return; }
-    if (!confirm(T("Nagrywanie trasy z „{n}” do: {a}.", { n: pl.name, a: p.adres }) + "\n\n"
-      + T("Idź tak, jak szedłbyś w czasie alarmu — najkrótszą bezpieczną drogą, którą znasz. Nagrywanie działa tylko przy włączonym ekranie.")
-      + "\n\n" + T("Zacząć?"))) return;
-    const R = S.rec = { placeId, shelterId, mode: pl.mode, startedAt: Date.now(), coords: [], distM: 0, last: null, lastAcc: null, error: null };
+    if (!window.isSecureContext || !navigator.geolocation) { komunikat("Nagrywanie trasy wymaga lokalizacji (strona https albo localhost)."); return; }
+    zapytaj({
+      tekst: T("Nagrywanie trasy z „{n}” do: {a}.", { n: pl.name, a: p.adres }) + "\n\n"
+        + T("Idź tak, jak szedłbyś w czasie alarmu — najkrótszą bezpieczną drogą, którą znasz. Nagrywanie działa tylko przy włączonym ekranie."),
+      tak: "Zacznij nagrywanie", nie: "Anuluj",
+      akcja: () => recStartTeraz(pl, p),
+    });
+  }
+
+  async function recStartTeraz(pl, p) {
+    const R = S.rec = { placeId: pl.id, shelterId: p.id, mode: pl.mode, startedAt: Date.now(), coords: [], distM: 0, last: null, lastAcc: null, error: null };
     R.watchId = navigator.geolocation.watchPosition(recPoint, recError, { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 });
     R.timer = setInterval(renderRecBar, 1000);
     try { R.wake = await navigator.wakeLock?.request("screen"); } catch { R.wake = null; }
@@ -661,13 +737,23 @@
     const R = S.rec; if (!R) return;
     const pl = S.places.find((x) => x.id === R.placeId), p = S.byId.get(R.shelterId);
     if (R.coords.length < 2 || R.distM < 20) {
-      if (confirm(T("Nagrano za mało drogi, żeby zapisać trasę. Przerwać nagrywanie?"))) { recStop(); render(); }
+      zapytaj({ tekst: "Nagrano za mało drogi, żeby zapisać trasę. Przerwać nagrywanie?",
+        tak: "Przerwij nagrywanie", nie: "Nagrywaj dalej", grozne: true,
+        akcja: () => { recStop(); render(); } });
       return;
     }
     const start = R.coords[0], end = R.coords[R.coords.length - 1];
     const startGap = C.distanceM(start[1], start[0], pl.lat, pl.lon), endGap = C.distanceM(end[1], end[0], p.lat, p.lon);
     const warn = [startGap > 150 ? T("początek jest {d} od miejsca „{n}”", { d: fmtDist(startGap), n: pl.name }) : "", endGap > 100 ? T("koniec jest {d} od schronienia", { d: fmtDist(endGap) }) : ""].filter(Boolean);
-    if (warn.length && !confirm(T("Uwaga: {w}. Zapisać trasę mimo to?", { w: warn.join(", ") }))) return;
+    if (warn.length) {
+      zapytaj({ tekst: T("Uwaga: {w}. Zapisać trasę mimo to?", { w: warn.join(", ") }),
+        tak: "Zapisz mimo to", nie: "Anuluj", akcja: () => recZapisz(R, pl) });
+      return;
+    }
+    recZapisz(R, pl);
+  }
+
+  function recZapisz(R, pl) {
     recStop();
     const coords = C.simplifyLine(R.coords, 3);
     pl.routes = { ...(pl.routes || {}), [R.shelterId]: {
@@ -680,7 +766,8 @@
   recBar.addEventListener("click", (e) => {
     const b = e.target.closest("[data-rec]"); if (!b) return;
     if (b.dataset.rec === "save") recSave();
-    else if (confirm(T("Przerwać nagrywanie bez zapisu?"))) { recStop(); render(); }
+    else zapytaj({ tekst: "Przerwać nagrywanie bez zapisu?", tak: "Przerwij bez zapisu", nie: "Nagrywaj dalej",
+      grozne: true, akcja: () => { recStop(); render(); } });
   });
 
   function recBlock(pl, p) {
@@ -1013,20 +1100,29 @@
       const najblizsze = Math.min(...wTyle.map((id) => {
         const p = S.byId.get(id); return C.distanceM(pos.lat, pos.lon, p.lat, p.lon);
       }));
-      const zgoda = confirm(T("Nowe położenie miejsca „{n}” jest daleko od zapisanych tu schronień (najbliższe {d} stąd).", { n: pl.name, d: fmtDist(najblizsze) })
-        + "\n\n"
-        + (ile === 1 ? T("To schronienie zostanie usunięte z tego miejsca") : T("Zapisane schronienia ({n}) zostaną usunięte z tego miejsca", { n: ile }))
-        + (ileTras ? (ileTras === 1 ? T(", razem z nagraną trasą") : T(", razem z nagranymi trasami ({n})", { n: ileTras })) : "") + ". "
-        + T("Punkty zostają na mapie — do nowego adresu wybierzesz schronienia na nowo.")
-        + "\n\n" + T("Zmienić położenie?"));
-      if (!zgoda) { render(); return; }
-      pl.shelters = pl.shelters.filter((id) => !wTyle.includes(id));
-      if (pl.routes) for (const id of wTyle) delete pl.routes[id];
-      if (S.route?.own && wTyle.includes(S.route.id)) { S.route = null; drawRoute(); }
-      // Notatkę „moje miejsce w tym budynku" zostawiamy — to tekst użytkownika — ale dotyczy starego
-      // budynku, więc przestaje być sprawdzona.
-      if (pl.spotChecked) pl.spotChecked = false;
+      zapytaj({
+        tekst: T("Nowe położenie miejsca „{n}” jest daleko od zapisanych tu schronień (najbliższe {d} stąd).", { n: pl.name, d: fmtDist(najblizsze) })
+          + "\n\n"
+          + (ile === 1 ? T("To schronienie zostanie usunięte z tego miejsca") : T("Zapisane schronienia ({n}) zostaną usunięte z tego miejsca", { n: ile }))
+          + (ileTras ? (ileTras === 1 ? T(", razem z nagraną trasą") : T(", razem z nagranymi trasami ({n})", { n: ileTras })) : "") + ". "
+          + T("Punkty zostają na mapie — do nowego adresu wybierzesz schronienia na nowo."),
+        tak: "Zmień położenie", nie: "Zostaw jak było", grozne: true,
+        akcja: () => {
+          pl.shelters = pl.shelters.filter((id) => !wTyle.includes(id));
+          if (pl.routes) for (const id of wTyle) delete pl.routes[id];
+          if (S.route?.own && wTyle.includes(S.route.id)) { S.route = null; drawRoute(); }
+          // Notatkę „moje miejsce w tym budynku" zostawiamy — to tekst użytkownika — ale dotyczy starego
+          // budynku, więc przestaje być sprawdzona.
+          if (pl.spotChecked) pl.spotChecked = false;
+          przeniesMiejsce(pl, pos, extra);
+        },
+      });
+      return;
     }
+    przeniesMiejsce(pl, pos, extra);
+  }
+
+  function przeniesMiejsce(pl, pos, extra) {
     Object.assign(pl, { lat: pos.lat, lon: pos.lon }, extra);
     savePlaces();
     map.flyTo({ center: [pos.lon, pos.lat], zoom: extra.approx ? 14 : 17 });
@@ -1307,7 +1403,8 @@
           <button class="btn ghost place-btn icon-only" data-act="clear-sel" title="${T("Zamknij")}" aria-label="${T("Zamknij kartę punktu")}">${I("x")}</button></div>
         ${shelterCard(p, { sel: true, trasa: true, after: addToPlace(p) })}
       </div>` : ""}
-      ${S.dataError ? `<p class="sim">${esc(T(S.dataError))}</p>` : ""}
+      ${S.dataError ? `<div class="warn-box"><b>${esc(T(S.dataError))}</b>
+        <button type="button" class="btn" data-act="dane-ponow">${I("refresh-cw")}${T("Spróbuj ponownie")}</button></div>` : ""}
       ${S.infoSchrony ? `<div class="card info-card">
         <div class="row"><b class="grow">${T("Czemu nie ma tu „schronów”?")}</b>
           <button class="btn ghost place-btn icon-only" data-act="info-off" title="${T("Zamknij")}" aria-label="${T("Zamknij informację")}">${I("x")}</button></div>
@@ -1392,6 +1489,7 @@
       <h3>${T("Moje miejsce w tym budynku")} ${saveState(`place-spot-${pl.id}`)}</h3>
       ${P.PLACE_KINDS[pl.kind]?.rule ? rule(P.PLACE_KINDS[pl.kind].rule) : rule("P-POZA-DOMEM")}
       ${rule("I-DWIE-SCIANY")}${rule("I-POMIESZCZENIE")}${rule("I-POKOJE")}
+      <label class="tylko-czytnik" for="place-spot-${id}">${esc(T("Moje miejsce w tym budynku"))}</label>
       <textarea id="place-spot-${id}" data-autosave rows="2" style="width:100%" placeholder="${esc(T("Twoja notatka, np. „korytarz na parterze, bez okien”"))}">${esc(pl.spot)}</textarea>
       <label class="chk small"><input type="checkbox" id="place-spotok-${id}"${pl.spotChecked ? " checked" : ""}> ${T("Sprawdziłem to miejsce na miejscu")}</label>
       ${P.PLACE_KINDS[pl.kind]?.checklist ? checklist(P.PLACE_KINDS[pl.kind].checklist, true) : ""}
@@ -1451,8 +1549,10 @@
   // placeId: wybór dla zapisanego miejsca; bez niego — ustawienie ogólne (Teraz, Mapa)
   function modeButtons(current = S.mode, placeId = null) {
     const attrs = placeId ? `data-act="place-mode" data-id="${esc(placeId)}"` : `data-act="mode"`;
-    return `<div class="seg" role="radiogroup" aria-label="${esc(T("Środek transportu"))}">${Object.keys(C.MODES).map((k) =>
-      `<button type="button" ${attrs} data-mode="${k}" class="${k === current ? "on" : ""}" role="radio" aria-checked="${k === current}" title="${esc(trybNazwa(k))}">${I(MODE_ICONS[k])}<span>${esc(trybKrotko(k))}</span></button>`).join("")}</div>`;
+    /* Zwykłe przyciski z aria-pressed, nie role="radio": grupa radiowa wymaga obsługi strzałek,
+       której tu nie było — czytnik zapowiadał „1 z 3”, a strzałki nic nie robiły. */
+    return `<div class="seg" role="group" aria-label="${esc(T("Środek transportu"))}">${Object.keys(C.MODES).map((k) =>
+      `<button type="button" ${attrs} data-mode="${k}" class="${k === current ? "on" : ""}" aria-pressed="${k === current}" title="${esc(trybNazwa(k))}">${I(MODE_ICONS[k])}<span>${esc(trybKrotko(k))}</span></button>`).join("")}</div>`;
   }
 
   /* Start trasy w Google Maps. Gdy pozycja pochodzi z GPS — bez punktu startowego (Google Maps użyje
@@ -1721,7 +1821,7 @@
     S.spisLaduje = true; S.spisBlad = null;
     O.spis(wymus)
       .then((s) => { S.spis = s; })
-      .catch((e) => { S.spisBlad = String(e.message || e); })
+      .catch((e) => { S.spisBlad = poLudzku(e); })
       .finally(() => { S.spisLaduje = false; render(); });
   }
 
@@ -1768,7 +1868,7 @@
       const wynik = await O.pobierzPlan({ id: w.id, nazwa: w.nazwa }, plan, (x) => { S.pobieranie = { ...S.pobieranie, ...x }; render(); });
       S.pobranieWynik = { ...wynik, trasy: plan.trasy };
     } catch (e) {
-      S.pobieranie = { blad: String(e.message || e) };
+      S.pobieranie = { blad: poLudzku(e) };
       O.zakoncz();
       await odswiezStanMap();
       return;
@@ -1983,6 +2083,11 @@
         + liveFilterBar()
         + (S.mode === "driving" ? rule("I-SAMOCHOD") + rule("P-AUTO") : "")
         + (L.options.length ? mainOption(L.options[0])
+          /* Punkty się nie wczytały (brak sieci przy pierwszym wejściu, uszkodzony plik). Bez tego TERAZ
+             w kółko pisało „Wczytuję punkty — za chwilę pokażę najbliższe”, choć nic już się nie wczytywało. */
+          : S.dataError ? `<div class="warn-box"><b>${esc(T(S.dataError))}</b>
+              <p class="small">${T("Sprawdź połączenie i spróbuj ponownie — albo kieruj się zasadami niżej.")}</p>
+              <button type="button" class="btn" data-act="dane-ponow">${I("refresh-cw")}${T("Spróbuj ponownie")}</button></div>`
           // Punkty jeszcze się wczytują (pierwsze wejście albo powrót na słabszym telefonie) — nie wolno wtedy
           // powiedzieć „brak punktów w pobliżu”, bo przy alarmie ktoś uwierzy i nie będzie szukał dalej.
           : !S.points.length ? `<p class="sim">${T("Wczytuję punkty schronienia — za chwilę pokażę najbliższe. Zasady niżej działają już teraz.")}</p>`
@@ -2072,7 +2177,8 @@
 
       <h3>${T("Twoje dane")}</h3>
       <p>${T("Miejsca, notatki, nagrane trasy i ustawienia zapisują się <b>tylko w pamięci tego urządzenia</b>. Autor aplikacji ich nie widzi i nigdzie nie wysyła.")} ${NA_IOS ? T("Kopia zapasowa iCloud może przenieść je na Twoje konto Apple.") : T("Kopia zapasowa Androida może przenieść je na Twoje konto Google.")}</p>
-      <p>${T("Co opuszcza telefon i kiedy: wpisany adres trafia do wyszukiwarki GUGiK; przy wyznaczaniu trasy Twoja pozycja i cel idą do serwera tras FOSSGIS; współrzędne punktu do usługi zdjęć GUGiK; oglądany fragment mapy do OpenFreeMap; po naciśnięciu „Prowadź” albo „Street View” — do Google. Bez tych czynności nic nie wychodzi z telefonu.")}</p>
+      <p>${T("Co opuszcza telefon i kiedy: wpisany adres trafia do wyszukiwarki GUGiK; po naciśnięciu TERAZ — od razu, bez osobnego pytania — Twoja dokładna pozycja i współrzędne proponowanego punktu idą do serwera tras FOSSGIS, który rysuje drogę; współrzędne punktu do usługi zdjęć GUGiK; oglądany fragment mapy do OpenFreeMap; po naciśnięciu „Prowadź” albo „Street View” — do Google. Bez tych czynności nic nie wychodzi z telefonu.")}</p>
+      <p>${T("Mapa offline: paczki mapy pobierasz z serwera Strażnika. Prosimy o fragmenty pokrywające obszar, który sam wybrałeś, więc serwer (i Cloudflare, przez który działa) widzi, o które kwadraty siatki pytasz — każdy ma około 12 na 20 kilometrów. Z samego pobierania da się więc wyczytać okolicę, dla której chcesz mieć mapę bez internetu — z dokładnością do takiego kwadratu, nie do adresu. Jeśli wolisz tego uniknąć, wybierz „Województwo” albo „Cała Polska” zamiast „Wokół miejsca”.")}</p>
 
       <h3>${T("Z kiedy są punkty")}</h3>
       <p>${T("Punkty schronienia pochodzą z publicznego wykazu Komendy Głównej PSP — <b>stan na {data}</b>. W tej wersji aplikacji jest ich {ile}; wykaz jest wpisany w aplikację i działa bez internetu.", {
@@ -2107,17 +2213,52 @@
 
   let ostatniaZakladka = null;
   function render() {
-    root.querySelectorAll("[data-tab]").forEach((b) => b.classList.toggle("on", b.dataset.tab === S.tab));
+    /* Nazwy zakładek do nagłówka-zaczepu. Wewnątrz render(), a nie jako stała modułu: pierwsze render()
+       wychodzi z loadData() z góry pliku, zanim wykonanie dojdzie do stałych na dole — stała byłaby wtedy
+       w martwej strefie i Grota wywracała się tuż po wczytaniu punktów (pasek stawał na 97%). */
+    const TYTUL_ZAKLADKI = { mapa: "Mapa", miejsca: "Miejsca", teraz: "TERAZ", przygotuj: "Przygotuj", zasady: "Zasady" };
+    root.querySelectorAll("[data-tab]").forEach((b) => {
+      const tu = b.dataset.tab === S.tab;
+      b.classList.toggle("on", tu);
+      // sam kolor nie mówi czytnikowi, na której zakładce jesteśmy
+      if (tu) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
+    });
     // na ekranie Mapa (ze zwiniętymi ustawieniami) mapa dostaje 2/3 wysokości
     const view = S.tab === "mapa" && !S.mapToolsOpen && !S.selectedId ? "mapa-duza" : S.tab;
     if (root.dataset.view !== view) { root.dataset.view = view; requestAnimationFrame(() => map.resize()); }
     /* Panel przerysowujemy w całości, więc bez tego przewinięcie skakało — najbardziej widać to było
        po ustaleniu pozycji i po pobraniu mapy, gdy karta zmienia wysokość. */
     const przewiniecie = panel.scrollTop, tabPrzed = ostatniaZakladka;
-    panel.innerHTML = { teraz: viewTeraz, mapa: viewMapa, miejsca: viewMiejsca, przygotuj: viewPrzygotuj, zasady: viewZasady }[S.tab]();
+    const wrocFokus = zapamietajFokus();
+    /* Zaczep dla fokusu: Strażnik po otwarciu Groty przenosi tu fokus, a czytnik zapowiada, na której
+       zakładce jesteśmy. Nagłówek jest tylko dla czytnika — na ekranie nazwę zakładki widać w pasku na dole. */
+    panel.innerHTML = `<h2 id="g-tytul" tabindex="-1" class="tylko-czytnik">${esc(T(TYTUL_ZAKLADKI[S.tab] || "GROTA"))}</h2>`
+      + kartaKomunikatu() + kartaPytania()
+      + { teraz: viewTeraz, mapa: viewMapa, miejsca: viewMiejsca, przygotuj: viewPrzygotuj, zasady: viewZasady }[S.tab]();
     if (tabPrzed === S.tab && przewiniecie) panel.scrollTop = przewiniecie;
+    wrocFokus();
     ostatniaZakladka = S.tab;
     updateLiveDim();
+  }
+
+  /* Panel jest przerysowywany w całości, więc po każdym kliknięciu fokus spadał na <body> — klawiatura
+     i czytnik ekranu zaczynały od początku. Zapamiętujemy, co było aktywne, i oddajemy fokus temu samemu
+     przyciskowi (po akcji, która go usuwa — sąsiadowi z tego samego miejsca w panelu). */
+  const KLIKALNE = "button, a[href], summary, input, select, textarea, [tabindex]";
+  function podpis(el) {
+    return [el.tagName, el.dataset.act || "", el.dataset.tab || "", el.dataset.id || "", el.dataset.val || "", el.id || ""].join("|");
+  }
+  function zapamietajFokus() {
+    const byl = document.activeElement;
+    if (!byl || !panel.contains(byl)) return () => {};
+    const lista = Array.from(panel.querySelectorAll(KLIKALNE));
+    const szukany = podpis(byl), gdzie = lista.indexOf(byl);
+    return () => {
+      const po = Array.from(panel.querySelectorAll(KLIKALNE));
+      const cel = po.find((el) => podpis(el) === szukany) || po[Math.min(gdzie, po.length - 1)];
+      // preventScroll: inaczej panel przeskakiwał do odzyskanego elementu i gubił przewinięcie
+      if (cel) try { cel.focus({ preventScroll: true }); } catch { cel.focus(); }
+    };
   }
 
   // Na ekranie „Teraz” z włączonym filtrem punkty spoza filtra są przygaszone — widać, że istnieją, ale Grota do nich nie prowadzi.
@@ -2326,7 +2467,7 @@
       S.locating = true; S.addrOpen = false; render();
       let pos;
       try { pos = await locate(); }
-      catch (e) { if (seq !== S.posSeq) return; S.locating = false; S.liveError = e.message; render(); return; }
+      catch (e) { if (seq !== S.posSeq) return; S.locating = false; S.liveError = poLudzku(e); render(); return; }
       if (seq !== S.posSeq) return;                     // w międzyczasie wybrano adres, miejsce albo punkt na mapie
       S.coarseOk = false; S.posLabel = null; setUserPos(pos, false); S.userPosAt = Date.now();
       S.locating = false;
@@ -2390,7 +2531,7 @@
   }
 
   /* ---------- zdarzenia ---------- */
-  root.querySelectorAll(".g-tabs, .g-bottom").forEach((nav) => nav.addEventListener("click", (e) => {
+  root.querySelectorAll(".g-bottom").forEach((nav) => nav.addEventListener("click", (e) => {
     const t = e.target.closest("button[data-tab]"); if (!t) return;
     if (t.dataset.tab === "teraz") { runLive(); return; }       // czerwony przycisk = od razu szukaj
     if (t.dataset.tab === "mapa") closePopups();                // wracamy do mapy, nie do ustawień
@@ -2402,10 +2543,11 @@
     btn.classList.add("busy");
     try {
       const pos = await locate(); S.posSeq++; S.coarseOk = false; S.posLabel = null; setUserPos(pos, true); S.userPosAt = Date.now();
-      if (S.coarse) alert(COARSE_TEXT(pos.acc));
       if (S.tab === "teraz") computeLive();
-      render();
-    } catch (e) { S.tab = "teraz"; S.live = null; S.liveError = e.message; render(); }
+      // Komunikat kartą, nie systemowym alertem: ten przycisk bywa naciskany przy alarmie, a alert()
+      // zatrzymuje cały WebView razem z ekranem alarmu Strażnika.
+      if (S.coarse) komunikat(COARSE_TEXT(pos.acc)); else render();
+    } catch (e) { S.tab = "teraz"; S.live = null; S.liveError = poLudzku(e); render(); }
     finally { btn.classList.remove("busy"); }
   });
 
@@ -2605,7 +2747,7 @@
     } else if (act === "place-move-gps") {
       const pl = S.places.find((x) => x.id === b.dataset.id); if (!pl) return;
       try { const pos = await locate(); movePlace(pl, pos, { addr: "", approx: pos.acc > 300 }); }
-      catch (err) { alert(T(err.message) + " " + T("Wpisz adres albo wskaż miejsce na mapie.")); }
+      catch (err) { komunikat(T(err.message) + " " + T("Wpisz adres albo wskaż miejsce na mapie.")); }
     } else if (act === "place-move-map") {
       S.pick = { purpose: "move", id: b.dataset.id }; map.getCanvas().style.cursor = "crosshair"; render();
     } else if (act === "rec-start") {
@@ -2614,11 +2756,13 @@
       const pl = S.places.find((x) => x.id === b.dataset.place);
       if (pl) { showOwnRoute(pl, b.dataset.id); render(); document.getElementById("g-map").scrollIntoView({ behavior: "smooth" }); }
     } else if (act === "rec-del") {
-      const pl = S.places.find((x) => x.id === b.dataset.place);
-      if (!pl?.routes?.[b.dataset.id] || !confirm(T("Usunąć nagraną trasę?"))) return;
-      delete pl.routes[b.dataset.id];
-      if (S.route?.own && S.route.id === b.dataset.id) { S.route = null; drawRoute(); }
-      savePlaces(); render();
+      const pl = S.places.find((x) => x.id === b.dataset.place), idTrasy = b.dataset.id;
+      if (!pl?.routes?.[idTrasy]) return;
+      zapytaj({ tekst: "Usunąć nagraną trasę?", tak: "Usuń", nie: "Anuluj", grozne: true, akcja: () => {
+        delete pl.routes[idTrasy];
+        if (S.route?.own && S.route.id === idTrasy) { S.route = null; drawRoute(); }
+        savePlaces(); render();
+      } });
     } else if (act === "paczka-rodzaj") {
       S.paczka = { ...S.paczka, rodzaj: b.dataset.val }; S.pobieranie = null; render();
     } else if (act === "paczka-zestaw") {
@@ -2630,7 +2774,7 @@
       if (!S.userPos) {
         S.rysujeTrase = true; render();
         try { setUserPos(await locate(), false); S.posLabel = null; S.userPosAt = Date.now(); }
-        catch (e) { S.trasaBlad = `${T(e.message)} ${T("Możesz też ustalić pozycję na ekranie TERAZ albo wskazać ją na mapie.")}`; }
+        catch (e) { S.trasaBlad = `${poLudzku(e)} ${T("Możesz też ustalić pozycję na ekranie TERAZ albo wskazać ją na mapie.")}`; }
         S.rysujeTrase = false;
       }
       if (S.userPos) showRoute(b.dataset.id);
@@ -2638,7 +2782,7 @@
     } else if (act === "paczka-gps") {
       S.locatingPaczka = true; S.paczkaBlad = null; render();
       try { setUserPos(await locate()); S.posLabel = null; }
-      catch (e) { S.paczkaBlad = String(e.message || e); }
+      catch (e) { S.paczkaBlad = poLudzku(e); }
       S.locatingPaczka = false; render();
     } else if (act === "paczka-mapa") {
       S.paczkaBlad = null; S.pick = { purpose: "paczka" }; map.getCanvas().style.cursor = "crosshair"; S.tab = "mapa"; render();
@@ -2651,6 +2795,18 @@
       S.pobieranie = { ...S.pobieranie, przerywam: true }; render();
     } else if (act === "mapy-usun") {
       O.wyczysc().then(() => { O.paczki().forEach((p) => O.usunPaczke(p.id)); odswiezStanMap(); });
+    } else if (act === "pytanie-tak") {
+      const akcja = pytanieAkcja;
+      S.pytanie = null; pytanieAkcja = null; render();
+      if (akcja) akcja();
+    } else if (act === "pytanie-nie") {
+      S.pytanie = null; pytanieAkcja = null; render();
+    } else if (act === "komunikat-ok") {
+      S.komunikat = null; render();
+    } else if (act === "dane-ponow") {
+      // Ponowne pobranie punktów po nieudanym starcie — loadData sama przerysuje panel, gdy skończy.
+      S.dataError = null; powiedz(T("Wczytuję punkty schronienia — za chwilę pokażę najbliższe. Zasady niżej działają już teraz.")); render();
+      dataReady = loadData();
     } else if (act === "test-offline") {
       testBezSieci(!O.udaje());
     } else if (act === "cel-open") {
@@ -2695,7 +2851,8 @@
       useManualPos({ lat: it.lat, lon: it.lon, acc: it.acc }, `${it.label}${it.detail && it.source === "spis" ? ` (${it.detail})` : ""} — ${T(ADDR_SRC[it.source])}`);
     } else if (act === "addr-toggle") {
       S.addrOpen = !S.addrOpen; render();
-      if (S.addrOpen) document.getElementById("addr-q")?.focus();
+      // pole ma id z kontekstem (addr-q-live, addr-q-place…) — samo „addr-q” nie trafiało w nic
+      if (S.addrOpen) (panel.querySelector(`#addr-q-${b.dataset.ctx || "live"}`) || panel.querySelector(".addr-q"))?.focus();
     } else if (act === "filter") {
       const group = b.dataset.group, val = group === "trust" ? Number(b.dataset.val) : b.dataset.val;
       S.filter[group] = toggleIn(S.filter[group], val);
@@ -2773,14 +2930,17 @@
       if (pl) { pl.shelters = pl.shelters.filter((id) => id !== b.dataset.id); if (pl.routes) delete pl.routes[b.dataset.id]; savePlaces(); render(); }
     } else if (act === "del-place") {
       const pl = S.places.find((x) => x.id === b.dataset.id);
-      if (!pl || !confirm(T("Usunąć miejsce „{n}” razem z zapisanymi schronieniami i notatkami?", { n: pl.name }))) return;
-      S.places = S.places.filter((x) => x.id !== pl.id);
-      if (S.openPlace === pl.id) S.openPlace = null;
-      savePlaces(); render();
+      if (!pl) return;
+      zapytaj({ tekst: T("Usunąć miejsce „{n}” razem z zapisanymi schronieniami i notatkami?", { n: pl.name }),
+        tak: "Usuń", nie: "Anuluj", grozne: true, akcja: () => {
+          S.places = S.places.filter((x) => x.id !== pl.id);
+          if (S.openPlace === pl.id) S.openPlace = null;
+          savePlaces(); render();
+        } });
     } else if (act === "place-gps") {
       const name = document.getElementById("new-place-name").value.trim();
       try { const pos = await locate(); addPlace(name, pos, S.adding); map.flyTo({ center: [pos.lon, pos.lat], zoom: 14 }); }
-      catch (err) { alert(T(err.message) + " " + T("Wskaż miejsce na mapie.")); }
+      catch (err) { komunikat(T(err.message) + " " + T("Wskaż miejsce na mapie.")); }
       render();
     } else if (act === "place-map") {
       S.pick = { purpose: "place", name: document.getElementById("new-place-name").value.trim(), kind: S.adding };

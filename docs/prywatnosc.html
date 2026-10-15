@@ -28,7 +28,7 @@
 </div></nav>
 
 <header class="hero"><div class="wrap">
-  <div class="eyebrow">Polityka prywatności · obowiązuje od 22 września 2026</div>
+  <div class="eyebrow">Polityka prywatności · obowiązuje od 15 października 2026</div>
   <h1>Nie zbieramy danych o Tobie.</h1>
   <p class="lead">Strażnik nie ma kont, logowania, reklam ani analityki. Nie prosimy o imię, adres e-mail ani numer telefonu — i ich nie mamy. Ta strona opisuje dokładnie, co zostaje na Twoim urządzeniu, co widzi nasz serwer i kto jeszcze bierze udział w przesyłaniu danych.</p>
   <p class="fineprint">Dotyczy aplikacji Strażnik na Androida i iOS oraz strony <a href="https://straznik.eu">straznik.eu</a>. Za projekt i dane odpowiada jego autor; kontakt przez <a href="https://github.com/cukierrro/Straznik/issues">zgłoszenie w repozytorium</a>.</p>
@@ -41,7 +41,7 @@
     <li><b>Brak konta i logowania.</b> Aplikacja działa od razu po instalacji.</li>
     <li><b>Brak reklam, analityki i narzędzi śledzących.</b> Nie ma tu Google Analytics, pikseli reklamowych ani żadnego zewnętrznego SDK zbierającego statystyki.</li>
     <li><b>Brak ciasteczek.</b> Strona i aplikacja nie ustawiają żadnych ciasteczek — ani własnych, ani cudzych. Dlatego nie ma tu okienka z pytaniem o zgodę.</li>
-    <li><b>Twoja lokalizacja nie trafia na nasz serwer.</b> Nigdy jej nie przechowujemy. Jedyny wyjątek to trasa do schronienia w GROTA: pozycja i cel idą wtedy do publicznego serwera tras (punkt 2).</li>
+    <li><b>Twoja lokalizacja nie trafia na nasz serwer.</b> Nigdy jej nie przechowujemy. Wyjątki są w GROCIE: trasa do schronienia (pozycja i cel idą do publicznego serwera tras) oraz mapa offline „Wokół miejsca”, z której pobierania nasz serwer i Cloudflare mogą wyczytać okolicę z dokładnością do kwadratu około 12 na 20 km (punkt 2).</li>
     <li><b>Powiadomienia idą do województw, nie do osób.</b> Nie wiemy, kto je dostaje.</li>
     <li><b>Nie sprzedajemy i nie udostępniamy danych</b> nikomu w celach marketingowych. Nie ma czego sprzedawać.</li>
   </ul>
@@ -70,17 +70,18 @@
   <h2>2. Lokalizacja</h2>
   <p>Uprawnienie do lokalizacji jest <b>opcjonalne</b>. Służy wyłącznie do jednorazowego wstawienia punktu „tu jestem” przy dodawaniu miejsca i do wyśrodkowania mapy. Współrzędne zostają na urządzeniu — nie wysyłamy ich na serwer, nie zapisujemy u siebie i nie przekazujemy nikomu. Możesz odmówić i wskazać miejsce ręcznie na mapie; aplikacja działa wtedy tak samo.</p>
   <p>Powiadomienia nie zależą od GPS-u. Województwa wybierasz z listy i to jedyna informacja o tym, co obserwujesz.</p>
-  <h3>GROTA — gdzie się schronić (aplikacja na Androida)</h3>
-  <p>GROTA używa lokalizacji, żeby wskazać najbliższe punkty schronienia. Wykaz punktów i wyszukiwanie najbliższego działają <b>na telefonie</b>, bez wysyłania pozycji. Poza telefon trafia tylko to:</p>
+  <h3>GROTA — gdzie się schronić (aplikacja na Androida i iPhone'a)</h3>
+  <p>GROTA używa lokalizacji, żeby wskazać najbliższe punkty schronienia. Wykaz punktów i wyszukiwanie najbliższego działają <b>na telefonie</b>, bez wysyłania pozycji. Poza telefon trafia tylko to, i tylko po Twojej czynności:</p>
   <ul>
-    <li><b>trasa na mapie</b> — pozycja początkowa i wybrany punkt idą do publicznego serwera tras <b>FOSSGIS</b> (OSRM na danych OpenStreetMap), który zwraca przebieg drogi. Bez internetu GROTA pokazuje odległość w linii prostej i nic nie wysyła;</li>
-    <li><b>wyszukiwanie adresu</b> — wpisany adres idzie do usługi geokodowania <b>GUGiK</b>, dopiero po naciśnięciu „Szukaj”;</li>
-    <li><b>podkład mapy</b> — kafelki z <b>OpenFreeMap</b> dla oglądanego obszaru, jak w mapie Strażnika; przy mapie pobranej do pamięci telefonu nic nie wychodzi;</li>
-    <li><b>zdjęcia z góry</b> — fragmenty ortofotomapy pobierane z <b>Geoportalu (GUGiK)</b> dla oglądanego obszaru;</li>
+    <li><b>trasa</b> — po naciśnięciu <kbd>TERAZ</kbd> od razu, bez osobnego pytania, a także przy wyznaczaniu trasy na mapie: Twoja dokładna pozycja i współrzędne proponowanego punktu idą do publicznego serwera tras <b>FOSSGIS</b> (OSRM na danych OpenStreetMap), który rysuje drogę. Bez internetu GROTA pokazuje odległość w linii prostej i nic nie wysyła;</li>
+    <li><b>wyszukiwanie adresu</b> — wpisany adres idzie do wyszukiwarki <b>GUGiK</b>;</li>
+    <li><b>zdjęcie punktu</b> — współrzędne punktu idą do usługi zdjęć <b>Geoportalu (GUGiK)</b>;</li>
+    <li><b>podkład mapy</b> — oglądany fragment mapy pobierany z <b>OpenFreeMap</b>, jak w mapie Strażnika; przy mapie pobranej do pamięci telefonu nic nie wychodzi;</li>
     <li><b>paczki danych</b> — pliki z punktami dla województwa pobierane z naszego serwera; sama nazwa pliku mówi tylko, o które województwo chodzi;</li>
-    <li><b>Google Maps</b> — tylko jeśli sam dotkniesz przycisku nawigacji; od tej chwili obowiązują zasady Google.</li>
+    <li><b>mapa offline</b> — paczki mapy pobierasz z naszego serwera. Prosimy o fragmenty pokrywające obszar, który sam wybrałeś, więc serwer i Cloudflare, przez który działa, widzą, o które kwadraty siatki pytasz — każdy ma około 12 na 20 kilometrów. Z samego pobierania da się więc wyczytać okolicę, dla której chcesz mieć mapę bez internetu, z dokładnością do takiego kwadratu, nie do adresu. Jeśli wolisz tego uniknąć, wybierz <kbd>Województwo</kbd> albo <kbd>Cała Polska</kbd> zamiast <kbd>Wokół miejsca</kbd>;</li>
+    <li><b>Google</b> — tylko po naciśnięciu <kbd>Prowadź</kbd> albo <kbd>Street View</kbd>; od tej chwili obowiązują zasady Google.</li>
   </ul>
-  <p>Zapisane w GROCIE miejsca i ustawienia zostają na urządzeniu, tak jak Moje miejsca Strażnika.</p>
+  <p>Bez tych czynności GROTA nic nie wysyła z telefonu. Zapisane w niej miejsca i ustawienia zostają na urządzeniu, tak jak Moje miejsca Strażnika.</p>
 </section>
 
 <section id="powiadomienia">

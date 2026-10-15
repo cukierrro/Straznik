@@ -62,6 +62,12 @@
 /* Przełącznik nieczynny, bo inne ustawienie odebrało mu sens (np. pełna
    głośność przy czerwonym bez syreny). Wybór użytkownika zostaje zapamiętany. */
 .set-switch.wylaczone { opacity: .45; }
+/* Godziny ciszy: pola czasu w ciemnym motywie (color-scheme daje ciemny wybierak) */
+#quiet-hours .qh-czas { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 8px 0 12px; }
+#quiet-hours input[type="time"] { width: auto; flex: 1 1 7.5em; max-width: 11em; margin-top: 0;
+  color-scheme: dark; background: var(--panel); color: var(--text);
+  border: 1px solid var(--panel-border); border-radius: 11px; padding: 6px 10px; font-size: 1rem; min-height: 40px; }
+#quiet-hours.wylaczone .qh-czas, #quiet-hours.wylaczone .seg, #quiet-hours.wylaczone #qh-red-head { opacity: .45; }
 .set-switch.wylaczone .sw-track { cursor: not-allowed; }
 /* Przycisk zgody na alarm krytyczny (1.7.84) sam decyduje o widoczności przez
    style.display w app.js — reguła .ios-only nie może mu tego nadpisywać. */
@@ -151,8 +157,12 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   width: min(172px, calc(100vw - 16px));
   bottom: calc(var(--tabbar-h) + var(--safe-b) + var(--stack-h, 0px) + 6px);
   max-height: 152px; display: flex; flex-direction: column; overflow: hidden;
-  background: #fff; color: #16202f; border-radius: 12px; padding: 8px 10px 9px;
-  box-shadow: 0 8px 40px rgba(0,0,0,.55); font: 0.6667rem "Segoe UI", system-ui, sans-serif;
+  /* v4: ciemne szkło jak reszta (zasada 2). Biała karta dostawała kolory pisane
+     pod ciemne tło — bursztynowe ostrzeżenie miało 1,83:1 (przegląd UI 14.10). */
+  background: linear-gradient(180deg, rgba(34, 45, 74, 0.97), rgba(15, 20, 35, 0.98));
+  color: var(--text); border: 1px solid rgba(170, 195, 245, 0.22);
+  border-radius: 14px; padding: 8px 10px 9px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.10), 0 14px 40px -10px rgba(0,0,0,.8); font: 0.6667rem "Segoe UI", system-ui, sans-serif;
   line-height: 1.35; }
 /* rozwinięta karta — prawie cały ekran, jak przed 1.7.23 */
 #ac-card.big { right: 8px; width: auto; max-height: 74vh; max-height: 74dvh; border-radius: 14px;
@@ -202,12 +212,12 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 #ac-card.big #ac-card-zoom .ic-min { display: inline; }
 #ac-card img { width: 100%; border-radius: 6px; display: block; }
 .thr-photo img { max-height: 190px; object-fit: contain; background: #0e1626; }
-.thr-photo-note { margin-top: 3px; color: #68758c; font-size: 0.6667rem; line-height: 1.25; }
-.thr-photo-note a { color: #55729d; text-decoration: underline; }
-#ac-card a { color: #1a6fd4; }
+.thr-photo-note { margin-top: 3px; color: var(--muted); font-size: 0.6667rem; line-height: 1.25; }
+.thr-photo-note a { color: var(--cyan); text-decoration: underline; }
+#ac-card a { color: var(--cyan); }
 #ac-card table { border-collapse: collapse; }
-#ac-card .btn-follow { border: 1px solid rgba(0,0,0,.15); background: #16202f; color: #fff;
-  border-radius: 9px; }
+#ac-card .btn-follow { border: 1px solid rgba(255,255,255,.14); color: var(--text);
+  background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.04)); border-radius: 11px; }
 /* na szerokim ekranie karta jako narożnik, nie pełna szerokość */
 @media (min-width: 861px) {
   #ac-card { left: 12px; right: auto; width: 340px; max-height: 46vh; }
@@ -404,32 +414,53 @@ body.panel-open #update-banner:not(.critical) { display: none; }
 #attribution {
   position: fixed; left: 10px; z-index: 26;
   top: calc(var(--topbar-h, 90px) + 6px + var(--pod-plakietka, 0px));
-  max-width: calc(100% - 20px);
-  background: var(--panel); border: 1px solid var(--panel-border); border-radius: 8px;
-  font-size: 0.6333rem; line-height: 1.35; color: var(--muted); padding: 5px 9px;
-  overflow: hidden; backdrop-filter: blur(8px);
-  transition: opacity .2s ease;
+  width: 44px; height: 44px; font-size: 0.8rem; line-height: 1.45; color: var(--muted);
 }
 body.panel-open #attribution { opacity: 0; pointer-events: none; }
-/* Atrybucja NEPTUN musi być widoczna (warunek API), ale nie może zjadać pół ekranu.
-   JEDEN wiersz z wielokropkiem zamiast przycinania na trzech: `-webkit-line-clamp`
-   liczył wiersze inaczej niż wynikało z line-height i zostawiał tekst ucięty w połowie
-   linii — wyglądało to jak nachodzenie paska zastrzeżenia. Przy jednym wierszu nie ma
-   czego uciąć w pionie, a pełna lista źródeł jest w „O aplikacji". */
-/* 26.09.2026 (zgłoszenie usera): wielokropek ucinał listę źródeł i nie dało się
-   jej doczytać. Teraz ten sam jeden wiersz przewija się w poziomie palcem.
-   Wygaszenie prawej krawędzi mówi, że tekst ciągnie się dalej; znika, gdy
-   przewiniesz do końca albo gdy całość się mieści (klasa .koniec z app.js).
-   touch-action: pan-x — pionowy ruch palcem nie jest tu przechwytywany. */
-#attr-text {
-  display: block; white-space: nowrap;
-  overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain;
-  touch-action: pan-x; scrollbar-width: none;
-  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
-          mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+/* (i): jedno pole 44 px, ta sama kreska co reszta ikon. */
+#attr-i {
+  width: 44px; height: 44px; padding: 0; display: flex; align-items: center; justify-content: center;
+  border-radius: 13px; cursor: pointer; color: var(--text);
+  background: var(--panel); border: 1px solid var(--panel-border);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
 }
-#attr-text::-webkit-scrollbar { display: none; }
-#attr-text.koniec { -webkit-mask-image: none; mask-image: none; }
+#attr-i svg, #attr-x svg { width: 21px; height: 21px; display: block; fill: none; stroke: currentColor;
+  stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+#attr-i:hover, #attribution.otwarta #attr-i { border-color: rgba(143,180,255,.55); }
+/* Okienko obok (i) — karta z jasną krawędzią u góry. Rozmycie tylko tu
+   (nie zagnieżdżamy backdrop-filter — ANR na emulatorze, 03.10). */
+#attr-pop {
+  position: absolute; left: 0; top: 54px; width: 300px; max-width: calc(100vw - 20px);
+  padding: 11px 12px 10px; border-radius: 16px;
+  background: rgba(22,30,50,.92); border: 1px solid rgba(170,195,255,.22);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.10), 0 14px 32px -12px rgba(0,0,0,.75);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  transform-origin: 20px -8px;
+  transition: opacity .18s ease, transform .18s ease, visibility 0s linear .18s;
+  opacity: 0; transform: translateY(-4px) scale(.97); visibility: hidden;
+}
+#attribution.otwarta #attr-pop { opacity: 1; transform: none; visibility: visible;
+  transition: opacity .18s ease, transform .18s ease, visibility 0s; }
+/* strzałka wskazująca (i) */
+#attr-pop::before { content: ""; position: absolute; left: 15px; top: -7px; width: 12px; height: 12px;
+  transform: rotate(45deg); background: rgba(26,35,58,.98);
+  border-left: 1px solid rgba(170,195,255,.22); border-top: 1px solid rgba(170,195,255,.22); }
+.attr-head { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.attr-head b { color: var(--text); font-size: 0.9rem; }
+/* „Zamknij” ze słowem (zasada 6) i polem dotyku 44 px wysokości */
+#attr-x { margin-left: auto; min-height: 44px; margin-top: -10px; margin-bottom: -10px; margin-right: -6px;
+  padding: 0 6px; display: flex; align-items: center; gap: 4px; cursor: pointer;
+  background: none; border: 0; color: var(--muted); font: inherit; font-size: 0.8rem; }
+#attr-x:hover { color: var(--text); }
+#attr-x svg { width: 16px; height: 16px; }
+#attr-text { margin: 0; color: #b4bfd6; }
+/* Pasek odliczania pięciu sekund — tylko przy pokazaniu na starcie. */
+.attr-czas { height: 3px; border-radius: 2px; background: rgba(255,255,255,.08); margin-top: 9px; overflow: hidden; display: none; }
+#attribution.odliczanie .attr-czas { display: block; }
+.attr-czas i { display: block; height: 100%; width: 100%; transform-origin: left;
+  background: linear-gradient(90deg, var(--accent), #8fb4ff); }
+#attribution.odliczanie .attr-czas i { animation: attr-czas 5s linear forwards; }
+@keyframes attr-czas { from { transform: scaleX(1); } to { transform: scaleX(0); } }
 /* Linki w oknach dialogowych: domyślny jaskrawoniebieski z podkreśleniem odcinał
    się od reszty interfejsu i wyglądał jak surowy HTML. */
 dialog a { color: var(--cyan); text-decoration: none; }
@@ -452,6 +483,11 @@ dialog a:hover, dialog a:focus-visible { text-decoration: underline; }
 }
 #panel.collapsed { transform: translateX(calc(100% + 16px)); opacity: 0;
   pointer-events: none; }
+/* Zamknięty panel znika też dla klawiatury i czytnika ekranu — sam transform
+   zostawiał go w kolejności Tab (przegląd UI 14.10.2026). visibility zmienia się
+   PO wyjeździe, żeby animacja zamykania była widoczna. */
+#panel { visibility: visible; }
+#panel.collapsed { visibility: hidden; transition: transform .25s ease, opacity .2s ease, visibility 0s linear .25s; }
 /* Zamykanie panelu: wyraźny, okrągły cel dotyku z ramką i tłem — wcześniej goły
    znak × zlewał się z mapą i wyglądał jak niedokończony element. */
 /* Ten sam krzyżyk co na karcie obiektu: ikona SVG zamiast znaku tekstowego,
@@ -467,7 +503,7 @@ dialog a:hover, dialog a:focus-visible { text-decoration: underline; }
   position: sticky; top: 0; z-index: 4;
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
   background: var(--panel); border: 1px solid var(--panel-border);
-  border-radius: 12px; padding: 9px 9px 9px 12px; backdrop-filter: blur(8px);
+  border-radius: 12px; padding: 9px 9px 9px 12px; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
 }
 #panel-head .ph-txt { min-width: 0; }
 #panel-head h2 { margin: 0; font-size: 1rem; line-height: 1.2; }
@@ -493,7 +529,7 @@ dialog a:hover, dialog a:focus-visible { text-decoration: underline; }
    i nachodził na niego, a całość leżała bez tła wprost na mapie. */
 #voiv-quiet {
   background: var(--panel); border: 1px solid var(--panel-border);
-  border-radius: 12px; padding: 10px 12px; backdrop-filter: blur(8px);
+  border-radius: 12px; padding: 10px 12px; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
 }
 #voiv-quiet h2 { font-size: 0.8rem; letter-spacing: .08em; text-transform: uppercase;
   color: var(--muted); margin: 0 0 8px; }
@@ -529,7 +565,7 @@ dialog a:hover, dialog a:focus-visible { text-decoration: underline; }
 .map-btn {
   width: 42px; height: 42px; border-radius: 50%; cursor: pointer;
   background: var(--panel); border: 1px solid var(--panel-border); color: var(--accent);
-  font-size: 1.2667rem; line-height: 1; backdrop-filter: blur(8px);
+  font-size: 1.2667rem; line-height: 1; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
   box-shadow: 0 2px 10px rgba(0,0,0,.45);
 }
 .map-btn:hover { border-color: var(--accent); }
@@ -537,7 +573,7 @@ dialog a:hover, dialog a:focus-visible { text-decoration: underline; }
 /* ── pasek historii 12 h ── */
 #timebar {
   background: var(--panel); border: 1px solid var(--panel-border);
-  border-radius: 12px; padding: 8px 12px; backdrop-filter: blur(8px);
+  border-radius: 12px; padding: 8px 12px; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
 }
 #timebar.hidden { display: none !important; }
 .tb-row { display: flex; align-items: center; gap: 10px; }
@@ -653,7 +689,7 @@ body.history-mode #my-banner { display: none; }
   /* Zaokraglony kwadrat, jak przyciski paska i ikona zrodel — nie pigulka.
      Polokragle boki byly jedynym takim ksztaltem w calym interfejsie. */
   border-radius: 11px;
-  padding: 7px 12px 7px 9px; font-size: 0.8rem; backdrop-filter: blur(8px);
+  padding: 7px 12px 7px 9px; font-size: 0.8rem; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
 }
 #my-banner b { text-transform: capitalize; }
 #my-banner .lvl { font-size: 0.7rem; letter-spacing: .08em; }
@@ -685,7 +721,7 @@ body.history-mode #my-banner { display: none; }
 #national-banner {
   max-width: 100%;
   background: var(--panel); border: 1px solid var(--panel-border); border-radius: 10px;
-  padding: 7px 11px; font-size: 0.8rem; line-height: 1.35; backdrop-filter: blur(8px);
+  padding: 7px 11px; font-size: 0.8rem; line-height: 1.35; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
   display: flex; flex-direction: column; gap: 6px;
 }
 #national-banner .nat-row { border-left: 3px solid var(--nat, #c06bff); padding-left: 8px; }
@@ -698,7 +734,7 @@ body.history-mode #my-banner { display: none; }
 #alarm-overlay {
   position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 90; display: flex; align-items: center;
   justify-content: center; padding: 18px;
-  background: rgba(20, 0, 4, .72); backdrop-filter: blur(4px);
+  background: rgba(20, 0, 4, .72); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
   animation: alarmflash 1.1s infinite;
 }
 @keyframes alarmflash {
@@ -866,6 +902,8 @@ dialog select { width: 100%; margin-top: 6px; padding: 8px 10px; border-radius: 
 .voiv-card.is-mine .voiv-name::after { content: " · mój region"; color: var(--accent);
   font-size: 0.6667rem; letter-spacing: .05em; text-transform: none; }
 html[lang="en"] .voiv-card.is-mine .voiv-name::after { content: " · my region"; }
+/* UK: było polskie „mój region” (zrzuty 1.7.95, 15.10.2026) */
+html[lang="uk"] .voiv-card.is-mine .voiv-name::after { content: " · мій регіон"; }
 .sig.src-spillover { border-left-color: #6f7ea8; opacity: .85; }
 /* Rozpisanie wyniku pod nagłówkiem karty — cichsze niż sygnały, ale czytelne. */
 /* Plakietka przy sygnale z ostatnich 5 minut — tłumaczy, czemu jest na górze. */
@@ -878,7 +916,7 @@ html[lang="en"] .voiv-card.is-mine .voiv-name::after { content: " · my region";
 
 #panel section {
   background: var(--panel); border: 1px solid var(--panel-border);
-  border-radius: 12px; padding: 10px 12px; backdrop-filter: blur(8px);
+  border-radius: 12px; padding: 10px 12px; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
 }
 #panel h2 { font-size: 0.8rem; letter-spacing: .08em; text-transform: uppercase;
   color: var(--muted); margin-bottom: 8px; }
@@ -892,7 +930,7 @@ html[lang="en"] .list:empty::after { content: "— none —"; }
 .voiv-card {
   border-radius: 12px; padding: 10px 12px; margin-bottom: 8px;
   background: var(--panel); border: 1px solid var(--panel-border);
-  backdrop-filter: blur(8px); cursor: pointer;
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); cursor: pointer;
 }
 .voiv-card.level-elevated { border-color: rgba(255,176,32,.65);
   box-shadow: inset 0 0 24px rgba(255,176,32,.07); }
@@ -977,7 +1015,7 @@ html[lang="en"] .list:empty::after { content: "— none —"; }
   position: fixed; left: 10px; top: calc(var(--topbar-h, 90px) + 6px);
   z-index: 26; width: 250px;
   background: var(--panel); border: 1px solid var(--panel-border); border-radius: 12px;
-  padding: 10px 12px; backdrop-filter: blur(8px); font-size: 0.8rem;
+  padding: 10px 12px; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); font-size: 0.8rem;
   /* Legenda kończy się nad dolnymi sekcjami: wcześniej sztywne 170 px nie
      wiedziało o pasku zakładek ani o stosie komunikatów i wchodziła na nie.
      10.10.2026: górę też liczymy z ZMIERZONEGO paska, a nie ze stałych 74 px —
@@ -1061,6 +1099,8 @@ html[lang="en"] .list:empty::after { content: "— none —"; }
   .alarm-icon,
   .voiv-card.level-high,
   .lg-row .pulse-ic::before { animation: none; }
+  #attr-pop { transform: none !important; }
+  #attribution.odliczanie .attr-czas { display: none; }
 }
 .lg-row .ring { width: 14px; height: 14px; border-radius: 50%;
   border: 1.5px solid var(--amber); opacity: .7; }
@@ -1224,7 +1264,6 @@ dialog menu > .chip.primary { font-weight: 600; }
     max-height: calc(100vh - var(--topbar-bottom, 110px) - 8px - var(--tabbar-h) - var(--safe-b)
       - var(--stack-h, 0px) - 14px); }
   #panel.collapsed { transform: translateY(calc(100% + 60px)); }
-  #attribution { font-size: 0.6667rem; }
 
 
   /* 210 px to była kolumna na trzy słowa — każdy podpis łamał się na dwie
@@ -1259,19 +1298,6 @@ dialog menu > .chip.primary { font-weight: 600; }
    jak nachodzenie paska zastrzeżenia na tekst źródeł. */
 #bottom-stack > * { pointer-events: auto; flex: 0 0 auto; }
 
-/* Atrybucja NEPTUN musi pozostać widoczna (warunek korzystania z API), więc ✕ nie
-   usuwa jej, tylko ZWIJA do jednej plakietki. Użytkownik odzyskuje ekran, a źródło
-   nadal jest podane; pełna lista jest też w „O aplikacji". */
-/* Tylko miejsce na krzyżyk. Pozycjonowanie jest wyżej (fixed, róg mapy) —
-   stara reguła "position: relative" stała niżej w pliku i je przebijała. */
-#attribution { padding-right: 30px; }
-#attr-x {
-  position: absolute; top: 3px; right: 3px; width: 24px; height: 24px;
-  display: flex; align-items: center; justify-content: center;
-  border-radius: 50%; cursor: pointer; font-size: 0.8rem; line-height: 1;
-  background: rgba(20,28,46,.9); border: 1px solid var(--panel-border); color: var(--muted);
-}
-#attr-x:hover { color: var(--text); border-color: var(--accent); }
 /* Rząd stanu: pigułka regionu + chip źródeł. Zawija się, więc element, który
    musi być szeroki, bierze cały wiersz i niczego nie wypycha za krawędź. */
 #status-row {
@@ -1281,25 +1307,6 @@ dialog menu > .chip.primary { font-weight: 600; }
 #status-row > .hidden { display: none !important; }
 /* Czerwony alarm bierze wlasny wiersz. */
 #status-row > #my-banner.level-high { flex: 1 1 100%; }
-/* Zwinięty chip źródeł wygląda DOKŁADNIE tak jak pigułka regionu: ten sam
-   promień, ta sama wysokość, ten sam rozmiar pisma. Wcześniej był prostokątem
-   9,5 px obok zaokrąglonej pigułki 12 px. */
-/* Zwinięta: okrągłe (i) o polu dotykowym 40 px. Napis „źródła" chowamy —
-   w rogu mapy liczy się, żeby nie zasłaniać terenu, a sam znak (i) jest
-   wzorcem, który wytyczna OSMF wymienia z nazwy. */
-#attribution.mini {
-  display: flex; align-items: center; justify-content: center;
-  width: 38px; height: 38px; padding: 0; cursor: pointer;
-  border-radius: 11px; font-size: 1.1333rem; line-height: 1; color: var(--text);
-  background: rgba(18,26,43,.86);
-}
-#attribution.mini:hover { border-color: var(--accent); }
-#attribution.mini .mini-label svg { width: 20px; height: 20px; display: block;
-  fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
-
-#attribution.mini > :not(.mini-label) { display: none; }
-#attribution .mini-label { display: none; }
-#attribution.mini .mini-label { display: inline; }
 #bottom-stack > .hidden { display: none !important; }
 body.panel-open #bottom-stack > #update-banner:not(.critical) { display: none; }
 
@@ -1321,7 +1328,9 @@ dialog > .dlg-x:hover { color: var(--text); border-color: var(--accent); }
    gruba obwodka wygladala jak wcisniety przycisk. Zostaje sam akcent ramki:
    widoczny dla klawiatury, niekrzyczacy przy dotyku. (:focus-visible odpada,
    bo wspieramy Chrome 80.) */
-dialog > .dlg-x:focus { outline: none; box-shadow: none; border-color: var(--accent); }
+/* Tylko przy fokusie z dotyku/myszy — klawiatura dostaje pełną obwódkę
+   (wcześniej ta reguła gasiła ją także dla klawiatury; przegląd UI 14.10.2026). */
+dialog > .dlg-x:focus:not(:focus-visible) { outline: none; box-shadow: none; border-color: var(--accent); }
 
 /* ── ustawienia: jeden typ sterowania na jeden rodzaj decyzji ─────────────
    włącz/wyłącz = przełącznik (.set-switch, było),
@@ -1432,7 +1441,7 @@ dialog > .dlg-x:focus { outline: none; box-shadow: none; border-color: var(--acc
   display: grid; grid-template-columns: repeat(4, 1fr);
   padding: 6px 4px calc(16px + var(--safe-b));
   background: rgba(9, 13, 22, .96); border-top: 1px solid var(--panel-border);
-  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
 }
 .tab-btn {
   position: relative; display: grid; justify-items: center; gap: 3px;
@@ -1585,3 +1594,542 @@ button.voiv-head {
    treści — to nie jest kontrolka, więc obwódki nie rysujemy. Niebieska ramka
    wokół czerwonego alarmu myliłaby co do tego, co jest tu do naciśnięcia. */
 .alarm-box:focus, .alarm-box:focus-visible { outline: none; }
+
+/* ══ WYGLĄD v4 — „lekkie szkło” (przegląd UI 14.10.2026, makieta v4 przyjęta
+   przez usera) ═══════════════════════════════════════════════════════════════
+   Ta warstwa stoi NA KOŃCU pliku i zmienia tylko „skórę”: kolory, krawędzie,
+   cienie, promienie. Układ zostaje w regułach wyżej — dzięki temu widać, co
+   zmieniła v4, i łatwo to cofnąć.
+   Zasady:
+   - Szkło = półprzezroczyste tło + jasna krawędź + odblask na górnej linii
+     (inset 0 1px 0). Rozmycie (backdrop-filter) TYLKO na jednej warstwie na
+     ekranie — nigdy w elemencie, który już leży na rozmytym (ANR, 03.10).
+   - Główny przycisk: jasny niebieski z CIEMNYM napisem (~9:1). Biały na
+     dawnym --accent miał 3,16:1.
+   - Bursztyn wyłącznie dla uwagi; czerwony wyłącznie dla alarmu.
+   - Promienie: przyciski 12, wiersze i karty 14–16, okna 22. Zmiana zasady
+     „jeden kształt 11/12/8” — zgoda usera na v4 (14.10.2026).
+   - Chrome 80: bez :has, color-mix, :focus-visible bez zapasu. */
+:root {
+  --text: #e8edf8;
+  --muted: #8f9bb4;                 /* było #7c8aa5 — za blade na szkle */
+  --panel: rgba(20, 28, 47, 0.80);
+  --panel-border: rgba(170, 195, 245, 0.16);
+  --line: rgba(170, 195, 245, 0.16);  /* używane wyżej, a nigdzie niezdefiniowane */
+  --line-strong: rgba(170, 195, 245, 0.30);
+  --card: rgba(255, 255, 255, 0.045);
+  --szklo-odblask: inset 0 1px 0 rgba(255, 255, 255, 0.10);
+  --szklo-cien: 0 14px 34px -14px rgba(0, 0, 0, 0.75);
+  --akcent-jasny: #9dbcff;
+  --przycisk-glowny: linear-gradient(180deg, #b6ceff, #7ca3ff);
+  --napis-na-glownym: #06122e;
+}
+
+/* ── okna ── */
+dialog {
+  background: linear-gradient(180deg, rgba(30, 40, 66, 0.96), rgba(13, 18, 32, 0.97));
+  border: 1px solid rgba(170, 195, 245, 0.20);
+  border-radius: 22px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 30px 70px -20px rgba(0, 0, 0, 0.8);
+}
+dialog::backdrop { background: rgba(3, 6, 12, 0.58); }
+dialog > .dlg-x {
+  width: 44px; height: 44px; border-radius: 13px;
+  background: linear-gradient(180deg, rgba(50, 62, 92, 0.95), rgba(26, 34, 54, 0.95));
+  border: 1px solid rgba(255, 255, 255, 0.14); box-shadow: var(--szklo-odblask);
+}
+
+/* ── przyciski ── */
+.chip {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0.035));
+  box-shadow: var(--szklo-odblask);
+  border-radius: 12px;
+}
+@media (hover: hover) { .chip:hover { border-color: rgba(157, 188, 255, 0.55); } }
+.chip.primary, .chip.active {
+  background: var(--przycisk-glowny); color: var(--napis-na-glownym);
+  border-color: rgba(214, 228, 255, 0.70); font-weight: 600;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.60), 0 6px 16px -7px rgba(91, 140, 255, 0.75);
+}
+.set-rows > .chip.primary::after { color: var(--napis-na-glownym); }
+.chip.danger { color: #ffc2c9; border-color: rgba(255, 84, 104, 0.45);
+  background: linear-gradient(180deg, rgba(255, 84, 104, 0.18), rgba(255, 84, 104, 0.06)); }
+/* „Postaw kawę” bez bursztynu — bursztyn znaczy UWAGĘ (zasada 5) */
+.chip.coffee { background: linear-gradient(180deg, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0.035));
+  border-color: rgba(255, 255, 255, 0.12); color: var(--text); }
+.btn-row > .chip { min-height: 44px; }
+dialog menu > .chip { border-radius: 13px; }
+
+/* ── segment: tor wklęsły, wybór „wychodzi” nad tło ── */
+.seg {
+  border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px; padding: 3px; gap: 3px;
+  background: rgba(0, 0, 0, 0.22); box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.45);
+}
+.seg > .chip { border-radius: 11px; background: transparent; box-shadow: none; color: #c3cbe0; }
+.seg > .chip + .chip { border-left: 0; }
+.seg > .chip.active {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.08));
+  color: var(--text); font-weight: 600; border: 0;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.30), 0 4px 10px -4px rgba(0, 0, 0, 0.7);
+}
+
+/* ── wiersze, przełączniki, sekcje rozwijane ── */
+.set-rows > .chip, dialog label.set-switch, .set-pane details.jak {
+  border-radius: 14px; border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.045); box-shadow: var(--szklo-odblask);
+}
+.set-rows > .chip { min-height: 48px; font-size: 0.9rem; }
+/* Wiersz z przyciskiem głównym („Otwórz Moje miejsca”, na stronie „Włącz powiadomienia
+   w tej przeglądarce”) dostawał tło zwykłego wiersza, a tekst zostawał ciemny jak na
+   jasnym przycisku głównym — wyglądał na wyłączony (zrzuty do 1.7.95, 15.10.2026). */
+.set-rows > .chip.primary { background: var(--przycisk-glowny); border-color: rgba(214, 228, 255, 0.70); }
+dialog .set-switch .sw-track { background: rgba(255, 255, 255, 0.16);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5); }
+dialog .set-switch .sw-track::after { background: linear-gradient(180deg, #ffffff, #d6dbe6);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5); }
+dialog .set-switch input:checked + .sw-track { background: linear-gradient(180deg, #8fb2ff, #4f7ff0); }
+/* Fokus klawiatury na przełączniku dla Chrome 80–85 (bez :focus-visible) */
+dialog .set-switch input:focus + .sw-track { box-shadow: 0 0 0 2px var(--akcent-jasny); }
+
+/* ── pola formularzy: obrys widoczny (było 1,11:1, teraz ok. 3,3:1) ── */
+dialog input, dialog select, #quiet-hours input[type="time"] {
+  background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(180, 195, 225, 0.50); border-radius: 12px;
+}
+
+/* ── karty na mapie i w panelu ── */
+#panel section, #panel-head, .voiv-card {
+  background: linear-gradient(180deg, rgba(34, 45, 74, 0.82), rgba(17, 23, 39, 0.86));
+  border: 1px solid rgba(170, 195, 245, 0.18); border-radius: 16px;
+  box-shadow: var(--szklo-odblask), var(--szklo-cien);
+}
+/* karty województw leżą W rozmytej sekcji panelu — bez własnego rozmycia */
+.voiv-card { backdrop-filter: none; -webkit-backdrop-filter: none;
+  background: rgba(255, 255, 255, 0.05); box-shadow: var(--szklo-odblask); }
+.map-btn, #map-actions .map-btn, #map-actions .map-toggle, .icon-btn {
+  background: linear-gradient(180deg, rgba(40, 52, 82, 0.86), rgba(18, 24, 40, 0.88));
+  border: 1px solid rgba(170, 195, 245, 0.20); box-shadow: var(--szklo-odblask), var(--szklo-cien);
+}
+#map-actions .map-btn { border-radius: 16px; }
+.icon-btn { border-radius: 13px; }
+
+/* ── v4: pływający dolny pasek z GROTĄ w środku ── */
+#tabbar {
+  left: 10px; right: 10px; bottom: calc(8px + var(--safe-b));
+  display: flex; align-items: center; padding: 6px; border-radius: 22px;
+  background: linear-gradient(180deg, rgba(36, 47, 76, 0.84), rgba(15, 20, 35, 0.90));
+  border: 1px solid rgba(170, 195, 245, 0.20); border-top-color: rgba(255, 255, 255, 0.22);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.10), 0 16px 36px -14px rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+}
+#tabbar > .tab-btn { flex: 1 1 0; min-width: 0; min-height: 52px; font-size: 0.8rem; }
+/* Podpis zakładki rośnie razem z tekstem, ale najwyżej do 18 px na ekranie — przy 200%
+   w systemie miałby 24 px i nachodził na sąsiada. --zoom-sys mierzy app.js. */
+#tabbar > .tab-btn > span:not(.tab-grota-pill):not(.badge) { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: min(0.8rem, calc(18px / var(--zoom-sys, 1))); }
+#tabbar > .tab-btn.active { color: var(--akcent-jasny); background: rgba(143, 180, 255, 0.14); }
+.tab-btn.tab-grota { color: var(--napis-na-glownym); background: none; padding: 0; }
+.tab-grota-pill {
+  display: grid; place-items: center; width: 54px; height: 40px; border-radius: 14px;
+  background: var(--przycisk-glowny);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65), 0 6px 18px -6px rgba(91, 140, 255, 0.85);
+}
+.tab-grota-pill svg { width: 22px; height: 22px; }
+.tab-btn.tab-grota > span:last-child { color: var(--akcent-jasny); font-weight: 600; }
+#menu-badge { position: absolute; top: 2px; right: 22%; min-width: 18px; height: 18px; padding: 0 5px;
+  border-radius: 9px; background: #d8344b; color: #fff; font-size: 0.75rem; font-weight: 700;
+  line-height: 18px; text-align: center; box-shadow: 0 0 0 2px rgba(15, 20, 35, 0.9); }
+
+/* ── v4: Menu jako arkusz od dołu, nad paskiem ── */
+dialog.sheet { margin: auto auto 6px; border-radius: 24px; padding-top: 14px; }
+dialog.sheet[open] { animation: arkusz-wjazd .2s ease-out; }
+@keyframes arkusz-wjazd { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+.sheet h3 { font-size: 1.4rem; font-weight: 700; letter-spacing: -0.01em; margin: 4px 0 12px; }
+/* krzyżyk okna pływa w prawo — lista ma zaczynać się POD nim, nie opływać go */
+.sheet .sheet-list { clear: both; }
+.menu-cap { font-size: 0.75rem; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
+  color: var(--muted); margin: 16px 4px 7px; }
+.sheet-row {
+  min-height: 52px; border-radius: 14px; border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.045); box-shadow: var(--szklo-odblask);
+}
+.sheet-row:hover { background: rgba(143, 180, 255, 0.10); }
+/* Ikona w kolorowym kafelku — kolor mówi o rodzaju, nie o pilności
+   (bursztyn i czerwień zostają dla uwagi i alarmu). */
+.sheet-row > svg:first-child {
+  box-sizing: content-box; width: 18px; height: 18px; padding: 6px; border-radius: 9px;
+  color: #fff; background: linear-gradient(180deg, #6fa7ff, #3d76ec);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 2px 6px -2px rgba(0, 0, 0, 0.6);
+}
+.sheet-row[data-kolor="fiolet"] > svg:first-child { background: linear-gradient(180deg, #9b93ff, #6458e8); }
+.sheet-row[data-kolor="morski"] > svg:first-child { background: linear-gradient(180deg, #4fd9c4, #1fae98); }
+.sheet-row[data-kolor="szary"] > svg:first-child { background: linear-gradient(180deg, #8f9ab2, #5d677d); }
+.sheet-row > svg.solid:first-child { fill: #fff; stroke: none; }
+.sheet-row .badge, .sheet-row #watch-badge { position: static; margin-left: auto; }
+/* Mały przełącznik przy „Widok 3D”: stan bez słów, więc bez tłumaczeń. */
+.sw-mini { margin-left: auto; flex: none; position: relative; width: 42px; height: 24px; border-radius: 12px;
+  background: rgba(255, 255, 255, 0.16); box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5); }
+.sw-mini::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%;
+  background: linear-gradient(180deg, #ffffff, #d6dbe6); box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5); transition: transform .15s; }
+.sheet-row.active .sw-mini { background: linear-gradient(180deg, #8fb2ff, #4f7ff0); }
+.sheet-row.active .sw-mini::after { transform: translateX(18px); }
+.sheet-row.active { border-color: rgba(255, 255, 255, 0.09); }
+/* Krzyżyk ze słowem (zasada 6): „Zamknij” + ×, pole 44 px */
+dialog > .dlg-x.dlg-x-slowo { width: auto; padding: 0 12px; gap: 6px; font-size: 0.85rem; color: var(--text); }
+.dlg-x-slowo svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+@media (prefers-reduced-motion: reduce) { dialog.sheet[open] { animation: none; } }
+
+/* ── v4: ustawienia jako arkusz o STAŁEJ wysokości (koniec skakania okna) ── */
+dialog.ustawienia { width: min(460px, 94vw); height: var(--dlg-max); }
+dialog.ustawienia.na-starcie .set-pane, dialog.ustawienia.na-starcie #set-wstecz { display: none; }
+dialog.ustawienia.w-sekcji #set-start { display: none; }
+#set-start h3 { font-size: 1.4rem; font-weight: 700; letter-spacing: -0.01em; margin: 4px 0 12px; }
+/* Wiersze sekcji: dawne zakładki, teraz lista jak w Menu */
+dialog.ustawienia .set-tabs { display: grid; gap: 6px; padding: 0; margin: 14px 0 0; clear: both; }
+dialog.ustawienia .set-tab.sheet-row {
+  display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 10px 13px;
+  font: 600 0.9333rem/1.25 "Segoe UI", system-ui, sans-serif; color: var(--text); text-align: left;
+}
+dialog.ustawienia .set-tab.sheet-row > svg:first-child { color: #fff; }
+.sheet-row[data-kolor="czerwony"] > svg:first-child { background: linear-gradient(180deg, #ff7686, #e0405a); }
+.set-wartosc { margin-left: auto; color: var(--muted); font-weight: 500; font-size: 0.8667rem; white-space: nowrap; }
+.set-tab.sheet-row::after { content: "›"; color: var(--muted); font-size: 1.3rem; line-height: 1; padding-left: 4px; }
+.set-wartosc:empty + * { margin-left: auto; }
+/* Duży tekst (200% w systemie): stara reguła .set-tab z nowrap rozpychała kolumnę siatki
+   do 530 px w oknie 336 px — wiersze wychodziły za prawą krawędź, bez strzałek.
+   Kolumna nie szersza niż okno, nazwa się zawija, wartość skraca. (przegląd UI 14.10.2026) */
+dialog.ustawienia .set-tabs { grid-template-columns: minmax(0, 1fr); }
+dialog.ustawienia .set-tab.sheet-row { white-space: normal; min-width: 0; }
+dialog.ustawienia .set-tab.sheet-row > span:not(.set-wartosc) { min-width: 0; overflow-wrap: anywhere; }
+.set-wartosc { min-width: 0; max-width: 42%; overflow: hidden; text-overflow: ellipsis; }
+html.tekst-duzy dialog.ustawienia .set-tab.sheet-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto;
+  column-gap: 12px; row-gap: 2px; }
+html.tekst-duzy dialog.ustawienia .set-tab.sheet-row > svg:first-child { grid-column: 1; grid-row: 1 / span 2; }
+html.tekst-duzy dialog.ustawienia .set-tab.sheet-row > span:not(.set-wartosc) { grid-column: 2; grid-row: 1; }
+html.tekst-duzy .set-wartosc { grid-column: 2; grid-row: 2; margin: 0; max-width: none; white-space: normal; }
+html.tekst-duzy .set-wartosc:empty { display: none; }
+html.tekst-duzy dialog.ustawienia .set-tab.sheet-row::after { grid-column: 3; grid-row: 1 / span 2; }
+/* „‹ Ustawienia” — powrót z sekcji, przyklejony u góry jak krzyżyk */
+.set-wstecz {
+  position: sticky; top: 0; z-index: 4; display: inline-flex; align-items: center; gap: 4px;
+  min-height: 44px; padding: 0 12px 0 6px; margin: 0 0 6px; border-radius: 13px; cursor: pointer;
+  background: linear-gradient(180deg, rgba(50, 62, 92, 0.95), rgba(26, 34, 54, 0.95));
+  border: 1px solid rgba(255, 255, 255, 0.14); box-shadow: var(--szklo-odblask);
+  color: var(--akcent-jasny); font: 600 0.9rem/1 "Segoe UI", system-ui, sans-serif;
+}
+.set-wstecz svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2.2;
+  stroke-linecap: round; stroke-linejoin: round; }
+.set-zastosuj { width: 100%; min-height: 44px; margin-top: 10px; }
+
+/* Karta „gotowość alarmu”: pierścień (conic-gradient — Chrome 69+) i lista warunków.
+   Kolor nigdy sam: przy każdym warunku ikona ✓ albo ! i ukryty opis dla czytnika. */
+.gotowosc { border-radius: 18px; padding: 13px; margin-top: 4px;
+  background: radial-gradient(160px 110px at 14% 30%, rgba(255, 176, 32, 0.16), transparent 70%), rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 210, 120, 0.30); box-shadow: var(--szklo-odblask); }
+.gotowosc.komplet { background: radial-gradient(160px 110px at 14% 30%, rgba(61, 220, 132, 0.14), transparent 70%), rgba(255, 255, 255, 0.05);
+  border-color: rgba(61, 220, 132, 0.30); }
+.gotowosc:empty { display: none; }
+.got-glowa { display: flex; align-items: center; gap: 13px; }
+.got-glowa b { font-size: 1rem; }
+.got-glowa p { margin: 2px 0 0; color: var(--muted); font-size: 0.8667rem; line-height: 1.35; }
+.got-pierscien { flex: none; width: 60px; height: 60px; border-radius: 50%; display: grid; place-items: center;
+  background: conic-gradient(var(--amber) var(--got), rgba(255, 255, 255, 0.10) 0);
+  box-shadow: 0 0 20px -6px rgba(255, 176, 32, 0.6); }
+.gotowosc.komplet .got-pierscien { background: conic-gradient(var(--green) var(--got), rgba(255, 255, 255, 0.10) 0);
+  box-shadow: 0 0 20px -6px rgba(61, 220, 132, 0.6); }
+.got-pierscien span { width: 47px; height: 47px; border-radius: 50%; display: grid; place-items: center;
+  background: #161d30; font-weight: 700; font-size: 0.9333rem; }
+.got-lista { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 4px; }
+.got-lista li { display: flex; align-items: center; gap: 9px; min-height: 36px; font-size: 0.8667rem; }
+.got-lista li > span { flex: 1; min-width: 0; }
+.got-lista svg { flex: none; width: 20px; height: 20px; padding: 3px; border-radius: 50%; fill: none;
+  stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; box-sizing: border-box; }
+.got-lista li.ok svg { color: #0b2a18; background: var(--green); }
+.got-lista li.brak svg { color: #3a2600; background: var(--amber); }
+.got-lista li.brak > span { color: var(--text); font-weight: 600; }
+.got-lista .chip { min-height: 36px; padding: 0 14px; flex: none; }
+
+.got-sprawdzam { margin: 0; color: var(--muted); font-size: 0.8667rem; min-height: 60px; display: flex; align-items: center; }
+/* W aplikacji napis „hostowane na Mikrusie” wisi POD marką poza przepływem
+   (position:absolute), więc mierzona wysokość paska go nie obejmuje i (i)
+   wchodziło na ten napis. Dopełnienie paska go uwzględnia. */
+.native-app #topbar { padding-bottom: 38px; }
+
+/* Dotknięcie przycisku nie może zaznaczać jego tekstu (Kopiuj / Udostępnij zamiast
+   akcji) — złapane na emulatorze na „Schronienie” i przy przewijaniu ustawień,
+   14.10.2026. Wolniejsze dotknięcie (starsza osoba, drżenie ręki) trafiało w to samo. */
+button, .chip, .sheet-row, .tab-btn, .map-btn, summary, [role="button"], .seg, label.set-switch {
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+  /* domyślny turkusowy błysk Androida po dotknięciu (rgba(51,181,229,.4)) — przyciski
+     mają własne :active, a błysk zostawał na wierszu wykresu jak zaznaczenie */
+  -webkit-tap-highlight-color: transparent; }
+
+/* ── panel sygnałów: JEDNO przewijanie (przegląd UI 14.10.2026) ──
+   Na telefonie panel 422 px miał w sobie listę 244 px z treścią 2385 px — palec
+   przewijał listę, a sekcje niżej były nieosiągalne. Listy rosną, przewija się panel. */
+#panel .list { max-height: none; overflow: visible; }
+/* Na komputerze przyciski mapy leżały NA otwartym panelu — przesuwamy je obok. */
+@media (min-width: 701px) {
+  body.panel-open #map-actions { right: calc(340px + 22px); }
+}
+/* Puste listy: zdanie mówiące, co znaczy pustka, zamiast „— brak —” (i w trzech językach) */
+html[lang="uk"] .list:empty::after { content: "— немає —"; }
+#signal-unscored:empty { display: none; }
+#signal-list:empty::after { content: "Brak sygnałów w tym oknie."; }
+html[lang="en"] #signal-list:empty::after { content: "No signals in this window."; }
+html[lang="uk"] #signal-list:empty::after { content: "У цьому вікні немає сигналів."; }
+#threat-list:empty::after { content: "Brak obiektów NEPTUN bliżej niż 250 km od granicy."; }
+html[lang="en"] #threat-list:empty::after { content: "No NEPTUN objects within 250 km of the border."; }
+html[lang="uk"] #threat-list:empty::after { content: "Немає об’єктів NEPTUN ближче ніж 250 км від кордону."; }
+#adsb-list:empty::after { content: "Nie widać maszyn wojskowych — wiele lata z wyłączonym transponderem."; }
+html[lang="en"] #adsb-list:empty::after { content: "No military aircraft visible — many fly with the transponder off."; }
+html[lang="uk"] #adsb-list:empty::after { content: "Не видно військових літаків — багато літає з вимкненим транспондером."; }
+/* Zerwane połączenie: dane nie mogą wyglądać na świeże */
+body.dane-stare #my-banner { opacity: .6; filter: grayscale(.8); border-style: dashed; }
+body.dane-stare .led i { background: #6b7385 !important; box-shadow: none !important; }
+
+/* ── wczytywanie i błąd mapy (przegląd UI 14.10.2026) ── */
+#mapa-laduje { position: fixed; left: 50%; top: 42%; transform: translate(-50%, -50%); z-index: 5;
+  display: flex; align-items: center; gap: 10px; padding: 12px 18px; border-radius: 16px;
+  background: linear-gradient(180deg, rgba(34, 45, 74, 0.92), rgba(15, 20, 35, 0.94));
+  border: 1px solid rgba(170, 195, 245, 0.20); box-shadow: var(--szklo-odblask), var(--szklo-cien);
+  color: var(--text); font-size: 0.9333rem; pointer-events: none; }
+#mapa-laduje .kolko { width: 18px; height: 18px; border-radius: 50%; flex: none;
+  border: 2.5px solid rgba(255, 255, 255, 0.18); border-top-color: var(--akcent-jasny);
+  animation: obrot .9s linear infinite; }
+@keyframes obrot { to { transform: rotate(360deg); } }
+.mapa-blad { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: flex-start;
+  justify-content: center; overflow: auto; padding: calc(var(--topbar-h, 90px) + var(--pod-plakietka, 0px) + 62px) 16px calc(var(--tabbar-h) + var(--safe-b) + 120px); }
+.mapa-blad-karta { max-width: 440px; padding: 16px 18px; border-radius: 18px; color: var(--text);
+  font-size: 0.9333rem; line-height: 1.5;
+  background: linear-gradient(180deg, rgba(34, 45, 74, 0.96), rgba(15, 20, 35, 0.97));
+  border: 1px solid rgba(170, 195, 245, 0.22); box-shadow: var(--szklo-odblask), var(--szklo-cien); }
+.mapa-blad-karta p + p { margin-top: 8px; }
+.tab-btn.laduje svg { animation: pulsik 1s ease-in-out infinite; }
+@keyframes pulsik { 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) {
+  #mapa-laduje .kolko { animation: none; border-color: var(--akcent-jasny); }
+  .tab-btn.laduje svg { animation: none; }
+}
+
+/* Fokus klawiatury na WebView 80–85, które nie znają :focus-visible (podłoga: Chrome 80).
+   Tam CAŁA reguła z :focus-visible przepada, więc przełączniki, logo i krzyżyki nie
+   miały żadnej obwódki. @supports not selector(…) — w Chrome 80–82 nieznana składnia
+   liczy się jako „nie”, więc blok działa; od Chrome 86 jest pomijany. */
+@supports not selector(:focus-visible) {
+  button:focus, a:focus, [tabindex]:focus, summary:focus, select:focus, input:focus {
+    outline: 2px solid var(--akcent-jasny); outline-offset: 2px; }
+  dialog .set-switch input:focus + .sw-track { outline: 2px solid var(--akcent-jasny); outline-offset: 2px; }
+  .alarm-box:focus { outline: none; }
+}
+
+/* ── dotyk i czytelność (przegląd UI 14.10.2026, pakiet P7) ──
+   Pola dotyku do 44 px (zasada 6) i najmniejsze napisy z 9–10,5 px w górę. */
+#disclaimer-x { min-width: 44px; min-height: 44px; right: 2px; padding: 0; }
+#status-leds { min-height: 44px; align-items: center; }
+/* krzyżyk i „rozwiń” miniatury karty: 24 px rysunku, 44 px pola (pseudo-element
+   bez `inset`, który jest od Chrome 87) */
+#ac-card-x, #ac-card-zoom { position: relative; }
+#ac-card-x::before, #ac-card-zoom::before { content: ""; position: absolute;
+  top: -10px; right: -10px; bottom: -10px; left: -10px; }
+/* przyciski historii: kwadrat dawał 31–33 px wysokości */
+.tb-btn { min-height: 44px; }
+.tb-btn small { font-size: 0.7rem; text-overflow: ellipsis; }
+.tb-btn.play { background: var(--przycisk-glowny); border-color: rgba(214, 228, 255, 0.7); color: var(--napis-na-glownym); }
+#tb-live, #tb-speed { min-height: 36px; }
+/* drobny druk: było 0,6333–0,7 rem (9,5–10,5 px) */
+.sig-fresh { font-size: 0.7333rem; }
+.sig .src, .sig .ts, .fineprint { font-size: 0.7667rem; }
+.voiv-sum { font-size: 0.8rem; }
+.lg-row small { font-size: 0.7333rem; }
+#map-actions .map-btn span { font-size: 0.7667rem; }
+.brand-host { font-size: 0.7333rem; }
+
+/* Powitanie (przegląd UI 14.10.2026, P10): „Rozumiem, zaczynajmy” było na samym
+   końcu długiej strony — ok. 12 przesunięć palcem. Przyciski przyklejone do dołu
+   okna; treść da się doczytać, ale nie trzeba, żeby zacząć. */
+#about .about-actions { position: sticky; bottom: -18px; z-index: 2; margin: 18px -22px -18px;
+  padding: 12px 22px calc(14px + var(--safe-b));
+  background: linear-gradient(180deg, rgba(14, 19, 33, 0), rgba(14, 19, 33, 0.96) 28%);
+  border-top: 1px solid rgba(170, 195, 245, 0.10); }
+#about-close { min-height: 44px; }
+
+/* ── „O aplikacji” / powitanie w stylu v4 (uwaga usera 14.10.2026: „brzydko,
+   nieprofesjonalnie”) ──
+   Krzyżyk był pływający (float), a przewijana treść obok niego tworzyła własny
+   kontekst i zwężała się na CAŁĄ wysokość — wąska kolumna i drugi pasek
+   przewijania w środku okna. Krzyżyk w rogu bezwzględnie, treść na pełną szerokość. */
+dialog#about { width: min(560px, 94vw); border-radius: 24px; }
+#about > .dlg-x { position: absolute; top: 12px; right: 12px; float: none; margin: 0; z-index: 3; }
+#about .about-body { padding: 18px 18px 0; }
+#about .about-head { padding-right: 112px; margin-bottom: 14px; gap: 12px; min-height: 52px; }
+#about .about-logo { width: 48px; height: 48px; border-radius: 14px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.25), 0 6px 18px -6px rgba(91,140,255,.7); }
+#about h2 { font-size: 1.3333rem; letter-spacing: .14em; line-height: 1.15; }
+#about .about-sub { font-size: 0.8333rem; line-height: 1.35; margin-top: 2px; }
+#about #ab-intro { font-size: 0.9333rem; line-height: 1.55; color: #c9d3e6; }
+/* ostrzeżenie: karta z ikoną, nie bursztynowa plama */
+#about .warn-box { position: relative; margin: 12px 0 14px; padding: 12px 14px 12px 46px;
+  border-radius: 16px; background: rgba(255, 176, 32, 0.08); border: 1px solid rgba(255, 176, 32, 0.35);
+  color: #f1e2c3; font-size: 0.8667rem; line-height: 1.5; box-shadow: var(--szklo-odblask); }
+#about .warn-box b { color: #ffd98a; }
+#about .warn-box::before { content: "!"; position: absolute; left: 13px; top: 12px; width: 22px; height: 22px;
+  border-radius: 50%; display: grid; place-items: center; background: var(--amber); color: #3a2600;
+  font-weight: 800; font-size: 0.8667rem; line-height: 1; }
+/* rozdziały jako wiersze rozwijane — ta sama karta co w ustawieniach i Menu */
+#about .about-sec { border: 1px solid rgba(255, 255, 255, 0.09); border-radius: 14px; margin-top: 6px;
+  background: rgba(255, 255, 255, 0.045); box-shadow: var(--szklo-odblask); }
+#about .about-sec > summary { min-height: 50px; padding: 0 14px; }
+#about .about-sec > summary > h3 { margin: 0; text-transform: none; letter-spacing: 0;
+  font-size: 0.9333rem; font-weight: 600; color: var(--text); }
+#about .about-sec[open] { padding: 0 14px 12px; }
+#about .about-sec[open] > summary { margin: 0 -14px 4px; }
+/* stopka: jeden główny przycisk na całą szerokość, wsparcie jako drugi plan */
+#about .about-actions { display: grid; gap: 8px; justify-content: stretch; margin: 16px -18px 0; padding: 14px 18px calc(14px + var(--safe-b));
+  bottom: 0; background: linear-gradient(180deg, rgba(14, 19, 33, 0), rgba(14, 19, 33, 0.97) 24%); }
+#about #about-close { order: -1; width: 100%; min-height: 48px; font-size: 1rem; }
+#about .about-actions .chip.coffee { width: 100%; min-height: 44px; justify-content: center; display: flex; align-items: center; }
+/* Duży tekst (≥160%): „Zamknij” rośnie i zasłaniał nazwę, a przyklejona stopka z dwoma
+   przyciskami zajmowała ćwierć ekranu. Nagłówek schodzi pod krzyżyk, stopka płynie z treścią. */
+html.tekst-duzy #about .about-head { padding-right: 0; margin-top: 44px; }
+html.tekst-duzy #about .about-actions { position: static; background: none; }
+
+/* Na wąskim ekranie kawa z górnego paska była samą ikoną (font-size: 0) — w stopce
+   powitania ma mieć pełny napis. */
+#about .chip.coffee { font-size: 0.9rem; padding: 8px 14px; color: var(--text); text-decoration: none;
+  background: linear-gradient(180deg, #2a3552, #1c2539); }   /* kryjące: w stopce nad treścią */
+#about .chip.coffee::before { content: none; }
+
+/* ── paski przewijania (uwaga usera 14.10.2026: „rozciągnięte na całą długość psują
+   wygląd”) ── cienkie, półprzezroczyste, zaokrąglone, odsunięte od zaokrąglonych
+   rogów okien; tor niewidoczny. Firefox: scrollbar-width/color. */
+dialog, .about-body, .upd-txt, .places-dialog form, #panel, #legend, #ac-card-body, .list {
+  scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, 0.22) transparent; }
+::-webkit-scrollbar,
+dialog::-webkit-scrollbar, .upd-txt::-webkit-scrollbar,
+.about-body::-webkit-scrollbar, .places-dialog form::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track,
+dialog::-webkit-scrollbar-track, .about-body::-webkit-scrollbar-track,
+.places-dialog form::-webkit-scrollbar-track { background: transparent; margin: 18px 0; }
+::-webkit-scrollbar-thumb,
+dialog::-webkit-scrollbar-thumb, .upd-txt::-webkit-scrollbar-thumb,
+.about-body::-webkit-scrollbar-thumb, .places-dialog form::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.20); border-radius: 10px;
+  border: 3px solid transparent; background-clip: content-box; min-height: 40px; }
+::-webkit-scrollbar-thumb:hover, dialog::-webkit-scrollbar-thumb:hover { background-color: rgba(255, 255, 255, 0.34); }
+::-webkit-scrollbar-corner { background: transparent; }
+/* W aplikacji przewija się palcem — pasek tylko jako cienka wskazówka. */
+.native-app ::-webkit-scrollbar, .native-app dialog::-webkit-scrollbar,
+.native-app .about-body::-webkit-scrollbar { width: 6px; }
+.native-app ::-webkit-scrollbar-thumb, .native-app dialog::-webkit-scrollbar-thumb,
+.native-app .about-body::-webkit-scrollbar-thumb { border-width: 1.5px; background-color: rgba(255, 255, 255, 0.16); }
+
+/* ── Licznik dronów i rakiet (14.10.2026, wariant A) ──
+   Szklana pigułka w pustym rogu paska obok diod. Ikony = sylwetki z mapy w kolorach
+   legendy; cyfry białe i stałej szerokości, zero przygaszone. */
+#licznik { margin-left: auto; display: inline-flex; align-items: center; gap: 9px; min-height: 44px;
+  padding: 0 11px 0 9px; border-radius: 12px; cursor: pointer; color: var(--text);
+  background: linear-gradient(180deg, rgba(36, 47, 76, 0.86), rgba(15, 20, 35, 0.92));
+  border: 1px solid rgba(170, 195, 245, 0.22); border-top-color: rgba(255, 255, 255, 0.22);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.10), 0 10px 24px -12px rgba(0, 0, 0, 0.9);
+  font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1;
+  font-size: min(1rem, calc(18px / var(--zoom-sys, 1))); }
+#licznik[hidden] { display: none; }
+#licznik + .top-actions { margin-left: 8px; }
+#licznik .lk-poz { display: inline-flex; align-items: center; gap: 5px; }
+#licznik .lk-poz.zero { opacity: 0.42; }
+#licznik .lk-sep { width: 1px; height: 16px; background: rgba(255, 255, 255, 0.14); }
+.lk-ikona { width: 1.15em; height: 1.15em; flex: none; }
+.lk-dron { fill: #ffb020; stroke: rgba(255, 255, 255, 0.9); stroke-width: 3; stroke-linejoin: round; }
+.lk-dziob { fill: #ff2e3c; }
+.lk-rakieta { fill: #ff4d5e; stroke: rgba(255, 255, 255, 0.9); stroke-width: 3; stroke-linejoin: round; }
+#licznik .lk-zegar { font-weight: 600; font-size: 0.7333rem; color: var(--akcent-jasny); padding: 3px 6px;
+  border-radius: 6px; background: rgba(143, 180, 255, 0.14); }
+#licznik.historyczny { border-color: rgba(157, 188, 255, 0.55); }
+body.dane-stare #licznik { opacity: 0.55; }
+/* Strona na wąskim ekranie: róg zajmuje „Pobierz”, więc licznik staje obok (i). */
+@media (max-width: 480px) {
+  html:not(.native-app) #licznik { position: fixed; z-index: 26; left: 62px; margin: 0;
+    top: calc(var(--topbar-h, 90px) + 6px + var(--pod-plakietka, 0px)); }
+  html:not(.native-app) body.panel-open #licznik { opacity: 0; pointer-events: none; }
+}
+/* okno z wyjaśnieniem */
+#licznik-okno { width: min(460px, 94vw); }
+#licznik-okno h3 { margin: 0 112px 2px 0; text-transform: none; letter-spacing: 0; font-size: 1.1333rem; color: var(--text); }
+#licznik-okno .lk-kiedy { margin: 0 0 12px; color: var(--muted); font-size: 0.8667rem; }
+#licznik-okno .lk-wiersze { display: grid; gap: 8px; }
+#licznik-okno .lk-wiersz { display: grid; grid-template-columns: auto auto minmax(0, 1fr); align-items: center; gap: 12px;
+  padding: 10px 13px; border-radius: 14px; border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.045); box-shadow: var(--szklo-odblask); }
+#licznik-okno .lk-kafel { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 11px;
+  background: rgba(255, 255, 255, 0.06); }
+#licznik-okno .lk-kafel .lk-ikona { width: 26px; height: 26px; }
+#licznik-okno .lk-liczba { font-size: 1.6rem; font-weight: 700; font-variant-numeric: tabular-nums; min-width: 1.6em; text-align: right; }
+#licznik-okno .lk-opis { display: grid; gap: 2px; font-size: 0.8667rem; color: var(--muted); line-height: 1.35; }
+#licznik-okno .lk-opis b { color: var(--text); font-size: 0.9333rem; }
+#licznik-okno .lk-uwaga { margin: 12px 0 0; padding: 12px 14px; border-radius: 14px;
+  background: rgba(143, 180, 255, 0.08); border: 1px solid rgba(143, 180, 255, 0.28); }
+#licznik-okno .lk-uwaga b { color: var(--akcent-jasny); font-size: 0.9333rem; }
+#licznik-okno .lk-uwaga p { margin: 4px 0 0; font-size: 0.8667rem; line-height: 1.5; color: #c9d3e6; }
+#licznik-okno .lk-drobne { margin: 10px 0 0; font-size: 0.8667rem; line-height: 1.45; color: var(--muted); }
+#licznik-okno #lk-sygnaly { width: 100%; min-height: 48px; margin-top: 14px; justify-content: center; font-size: 1rem; }
+html.tekst-duzy #licznik-okno h3 { margin-right: 0; margin-top: 44px; }
+html.tekst-duzy #licznik-okno .lk-wiersz { grid-template-columns: auto minmax(0, 1fr); }
+html.tekst-duzy #licznik-okno .lk-opis { grid-column: 1 / -1; }
+
+/* ── Wykres 12 h w historii (14.10.2026): zwinięty wiersz z miniaturą albo wykres ── */
+.wykres12 { margin: 2px 0 6px; }
+.wykres12[hidden] { display: none; }
+.w12-przelacz { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 40px; padding: 0 10px;
+  border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.08); background: rgba(255, 255, 255, 0.04);
+  color: var(--text); font: 600 0.8333rem/1.2 "Segoe UI", system-ui, sans-serif; text-align: left; cursor: pointer; }
+.w12-strz { width: 16px; height: 16px; flex: none; fill: none; stroke: var(--muted); stroke-width: 2.4;
+  stroke-linecap: round; stroke-linejoin: round; transition: transform .15s ease; }
+.w12-przelacz.otwarty .w12-strz { transform: rotate(90deg); }
+.w12-max { color: var(--muted); font-weight: 500; white-space: nowrap; }
+.w12-mini { width: 96px; height: 22px; margin-left: auto; flex: none; }
+.w12-przelacz.otwarty .w12-max { margin-left: auto; }
+.w12-cialo { padding: 6px 2px 0; }
+.w12-cialo[hidden] { display: none; }
+.w12-leg { display: flex; gap: 14px; font-size: 0.7667rem; color: var(--muted); margin: 0 0 2px 2px; }
+.w12-leg i { display: inline-block; vertical-align: middle; margin-right: 5px; }
+.w12-l-dron { width: 12px; height: 3px; border-radius: 2px; background: #ffb020; }
+.w12-l-rak { width: 8px; height: 8px; border-radius: 50%; background: #ff4d5e; }
+.w12-svg { display: block; width: 100%; height: 84px; cursor: pointer; }
+.w12-osie { display: flex; justify-content: space-between; font-size: 0.7333rem; color: var(--muted);
+  font-variant-numeric: tabular-nums; margin-top: 2px; }
+.w12-linia { fill: none; stroke: #ffb020; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.w12-mini .w12-linia { stroke-width: 1.5; }
+.w12-pole { fill: rgba(255, 176, 32, 0.16); stroke: none; }
+.w12-slupek { stroke: rgba(255, 176, 32, 0.16); stroke-width: 1; }
+.w12-siatka { stroke: rgba(255, 255, 255, 0.07); stroke-width: 1; }
+.w12-rakieta { fill: #ff4d5e; stroke: rgba(255, 255, 255, 0.85); stroke-width: 1; }
+.w12-kreska { stroke: var(--akcent-jasny); stroke-width: 1.5; }
+@media (prefers-reduced-motion: reduce) { .w12-strz { transition: none; } }
+.w12-linia, .w12-slupek, .w12-kreska, .w12-siatka { vector-effect: non-scaling-stroke; }
+
+/* ── Nagłówek historii v4 (uwaga usera 14.10.2026: „NA ŻYWO” i „×1” niechlujne) ──
+   Oba przyciski: jedna linia, ta sama wysokość 36 px i promień 10 px co reszta v4.
+   „Na żywo” z zieloną kropką jak diody źródeł — tam wraca się do danych na żywo. */
+.tb-head { height: 40px; gap: 8px; margin-bottom: 4px; }
+#timebar .tb-live { display: inline-flex; align-items: center; gap: 7px; height: 36px; min-height: 36px;
+  padding: 0 12px; border-radius: 10px; letter-spacing: .06em; font: 700 0.7667rem/1 "Segoe UI", system-ui, sans-serif;
+  color: var(--akcent-jasny); background: rgba(143, 180, 255, 0.12); border: 1px solid rgba(143, 180, 255, 0.40);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08); }
+#timebar .tb-live::before { content: ""; width: 7px; height: 7px; border-radius: 50%; flex: none;
+  background: var(--green); box-shadow: 0 0 6px var(--green); }
+#timebar .tb-live:active { background: rgba(143, 180, 255, 0.24); }
+#timebar .tb-speed { display: inline-flex; align-items: center; justify-content: center; height: 36px; min-height: 36px;
+  min-width: 44px; padding: 0 10px; border-radius: 10px; font: 700 0.8667rem/1 "Segoe UI", system-ui, sans-serif;
+  font-variant-numeric: tabular-nums; color: var(--text); background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08); }
+#timebar .tb-speed:active { background: rgba(143, 180, 255, 0.20); }
+/* podziałka i wartość przy kresce (uwaga usera 14.10.2026) */
+.w12-plot { position: relative; margin-top: 10px; }
+.w12-skala span { position: absolute; left: 2px; transform: translateY(-110%); font-size: 0.7rem; line-height: 1;
+  color: var(--muted); font-variant-numeric: tabular-nums; text-shadow: 0 0 3px #0e1424, 0 0 3px #0e1424; pointer-events: none; }
+.w12-punkt { fill: #ffb020; stroke: #fff; stroke-width: 1.2; }
+.w12-wartosc { position: absolute; transform: translate(calc(-100% - 8px), -50%); padding: 3px 7px; border-radius: 7px;
+  font: 700 0.7667rem/1 "Segoe UI", system-ui, sans-serif; font-variant-numeric: tabular-nums; white-space: nowrap;
+  color: #2a1a00; background: #ffb020; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5); pointer-events: none; }
+.w12-wartosc.w-prawo { transform: translate(8px, -50%); }

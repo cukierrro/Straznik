@@ -216,11 +216,11 @@
   <h2>11. Privacy and sources</h2>
 <p>GROTA has no account, no ads and no analytics. The list of points and the search for the nearest one run <b>on the phone</b>. Places, notes, recorded routes, checklists and the offline map stay on the phone. Only what a given feature needs leaves the phone:</p>
   <ul>
-    <li><b>a route on the map</b> — your position and the chosen point go to the public FOSSGIS routing server (OSRM, OpenStreetMap data);</li>
+    <li><b>a route on the map</b> — your exact position and the chosen point go to the public FOSSGIS routing server (OSRM, OpenStreetMap data). This also happens right after you press <kbd>NOW</kbd>, at once and without a separate prompt, because GROTA then draws the way to the first suggestion;</li>
     <li><b>address search</b> — the typed address goes to the GUGiK service, after you press “Search”;</li>
     <li><b>aerial photo</b> — an orthophoto tile from Geoportal (GUGiK) for the point you view;</li>
     <li><b>the base map</b> — OpenFreeMap tiles for the area you view (nothing is sent with an offline map);</li>
-    <li><b>offline map packages</b> — downloaded from Strażnik's server;</li>
+    <li><b>offline map packages</b> — downloaded from Strażnik's server. We ask for the parts that cover the area you chose, so the server (and Cloudflare in front of it) can see which grid cells you ask for — each about 12 by 20 km. The download alone shows roughly which area you want, to within such a cell, not to an address; if you would rather avoid that, download a whole province or the whole country;</li>
     <li><b>Google Maps and Street View</b> — only when you tap the button.</li>
   </ul>
   <p>Details: <a href="prywatnosc-en.html#location">privacy policy</a>.</p>

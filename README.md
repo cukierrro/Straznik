@@ -6,6 +6,10 @@
 
 Serwer: **hostowane na [Mikrusie](https://mikr.us)** — dziękujemy za wsparcie projektu.
 
+Wersja 1.7.95: nowy wygląd z pływającym dolnym paskiem i Menu, licznik dronów
+i rakiet w górnym pasku, wykres 12 godzin w historii, godziny ciszy na Androidzie
+i język telefonu w aplikacji. Szczegóły: `docs/RELEASE_1.7.95.md`.
+
 Wersja 1.7.94: GROTA na wykazie schronień PSP z 12 października, przyciski
 „Poczuj” wibrują tak jak prawdziwy sygnał, a historia gasi punkty zgubionych dronów
 tak jak mapa na żywo. Szczegóły: `docs/RELEASE_1.7.94.md`.
@@ -572,7 +576,7 @@ intent z powiadomienia FCM (`StraznikFcmService`).
 Na Androidzie 14+ należy sprawdzić uprawnienie `USE_FULL_SCREEN_INTENT`
 w ustawieniach, również po aktualizacji. Bez niego pełny ekran nie jest
 gwarantowany, więc aplikacja prosi
-o zgodę w ustawieniach (`⚙ → 🚨 Zgoda na alarm pełnoekranowy`), przypomina o niej
+o zgodę w ustawieniach (`Menu → Ustawienia → Alarmy i zgody → Zgoda na alarm pełnoekranowy`), przypomina o niej
 banerem „Napraw". Przy braku zgody pozostaje powiadomienie systemowe; aplikacja
 podejmuje próbę wybudzenia, ale nie gwarantuje zapalenia ekranu. Działanie zależy
 też od ustawień powiadomień, kanałów, trybu Nie przeszkadzać i ograniczeń systemu.
