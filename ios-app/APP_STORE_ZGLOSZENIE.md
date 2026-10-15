@@ -751,3 +751,40 @@ Panel przeszedł na nowy układ i część chwytów z §19–§20 jest nieaktual
 Dwa pomiary dźwięku na urządzeniu (wyciszony iPhone + zgoda krytyczna; wyłączone
 „Dźwięki" + zgoda) — tester nie zdążył, decyzja usera: wydanie idzie bez nich,
 wyniki wejdą do następnego. Dlaczego to bezpieczne: `TESTFLIGHT_TESTY.md` §14.
+
+## 23. Zgłoszenie 1.7.95 (15.10.2026, 10:25)
+
+Build **2610150749**, commit `main 3a6ba42` (tag `v1.7.95`), status **Waiting for
+Review**. **Publikacja RĘCZNA** — user chce, żeby iOS wyszedł razem z Androidem,
+więc po zatwierdzeniu wersja czeka, aż ktoś naciśnie przycisk. Bez tego Apple
+wypuściłoby ją sama, kiedy skończy przegląd.
+
+Sprawdzone przed buildem na `main`: prefiksy `-webkit-backdrop-filter` 15/15
+(wartości `blur()`/`none`), `#quiet-hours` android-only, `#yv-ios-note` ios-only,
+`godzinyCiszyTeraz()` wychodzi na `IS_IOS` w pierwszej linii. W podpisanym pliku
+`aps-environment: production`, `critical-alerts`, `time-sensitive`; GROTA w paczce.
+
+**App Privacy sprawdzone własnymi oczami** (obiecane po pomyłce z 14.10): stan
+**Published**, cztery kategorie — Precise Location, Coarse Location, Device ID,
+dane diagnostyczne. Zgadza się z tym, co robi GROTA. Nic nie zmieniane.
+
+Opis zmian: 290 znaków, cztery akapity — wygląd i pływający pasek, licznik
+i wykres 12 h w historii, „Twoje dane" w schronieniu, język telefonu przy
+pierwszym uruchomieniu. Bez godzin ciszy, bo są androidowe.
+
+### Panel przez Claude in Chrome — co działa inaczej niż we własnej przeglądarce
+
+Sesja w panelu żyje w Chromie usera, więc nie trzeba się logować. Ale:
+
+- **`form_input` i kliknięcia po `ref` potrafią nie dojść do Reacta.** Pierwsze
+  podejście do „New Version" wyglądało na udane (pole wypełnione, Create
+  kliknięte), a wersja się nie utworzyła. Pewne okazało się dopiero ustawienie
+  wartości natywnym setterem i wywołanie zdarzeń:
+  `Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(inp, …)`
+  plus `input` i `change`, a potem `element.click()`. Tak samo dla `textarea`
+  (opis zmian) i dla przycisków.
+- **Sprawdzać SKUTEK, nie wynik kliknięcia.** Każdy krok potwierdzałem stanem
+  strony: `Save` zgaszony = zapisane, nazwa wersji w pasku, numer builda w treści,
+  `Manually release` zaznaczone po zapisie.
+- Strona bywa „busy" po nawigacji — zrzut ekranu potrafi się nie udać, a odczyt
+  `main` zwraca pustkę. `document.body.innerText` działa wcześniej niż `main`.
