@@ -788,3 +788,31 @@ Sesja w panelu żyje w Chromie usera, więc nie trzeba się logować. Ale:
   `Manually release` zaznaczone po zapisie.
 - Strona bywa „busy" po nawigacji — zrzut ekranu potrafi się nie udać, a odczyt
   `main` zwraca pustkę. `document.body.innerText` działa wcześniej niż `main`.
+
+## 24. 1.7.95 opublikowane (15.10.2026 wieczorem)
+
+Status w panelu: **1.7.95 Ready for Distribution**, build 2610150749 — sprawdzone
+własnymi oczami 16.10. Wydane w **40 krajach**.
+
+Przebieg: zgłoszone 15.10 o 10:25 z publikacją **ręczną**; wieczorem user kazał
+wypuścić od razu i sesja główna nacisnęła „Release This Version". Czyli przegląd
+Apple zmieścił się w jednym dniu roboczym.
+
+**Publikacja ręczna zrobiła dokładnie to, do czego była:** dała userowi decyzję
+o momencie zamiast oddawać ją Apple'owi. Że ostatecznie wybrał „od razu", a nie
+„razem z Androidem", niczego nie zmienia — wybór był po jego stronie.
+Google Play 1.7.95 (124) poszło do sprawdzenia i wchodzi samo po zatwierdzeniu,
+więc **iOS wyszedł pierwszy**.
+
+### Czego w tym wydaniu NIE sprawdziliśmy na iPhonie
+
+Pięciu ekranów z listy sesji UI po przejściu na wygląd v4: pływający pasek,
+karta obiektu, panel sygnałów, okno licznika obiektów, pasek historii. Build
+poszedł do sklepu bez przejścia ich na urządzeniu — przegląd skończył się
+szybciej, niż zdążyłem je obejrzeć.
+
+Ryzyko jest ograniczone: wszystkie cztery sprawdzenia w kodzie przeszły,
+a na iOS 16/17 brak rozmycia zostawia panele z kryciem 0,80–0,92, więc tekst
+stoi na niemal nieprzezroczystym tle. Ale to wniosek z kodu, nie z telefonu.
+**Przy pierwszym zgłoszeniu „coś źle wygląda na iPhonie" zacząć od tych pięciu
+ekranów**, a przy następnym wydaniu przejść je, zanim build pójdzie do sklepu.
