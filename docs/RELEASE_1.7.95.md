@@ -63,6 +63,9 @@ alarmy nadal przychodzą po polsku.
 - Czytnik ekranu nie czyta całego panelu po każdym filtrze; fokus wchodzi do modułu
   i wraca po zamknięciu; obrys fokusu działa.
 - Pasek filtrów nie pokazuje już „0 pkt” przy zapisanym filtrze.
+- Rozdział „Twoje dane” w Zasadach mówi wprost, co opuszcza telefon: po naciśnięciu TERAZ dokładna
+  pozycja idzie od razu do serwera tras FOSSGIS, a pobranie mapy offline „Wokół miejsca” zdradza
+  okolicę z dokładnością do kwadratu około 12 na 20 km. Tak samo mówi polityka prywatności.
 
 ## Dostępność i czytelność
 
