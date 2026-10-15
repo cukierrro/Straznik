@@ -1678,6 +1678,10 @@ dialog menu > .chip { border-radius: 13px; }
   background: rgba(255, 255, 255, 0.045); box-shadow: var(--szklo-odblask);
 }
 .set-rows > .chip { min-height: 48px; font-size: 0.9rem; }
+/* Wiersz z przyciskiem głównym („Otwórz Moje miejsca”, na stronie „Włącz powiadomienia
+   w tej przeglądarce”) dostawał tło zwykłego wiersza, a tekst zostawał ciemny jak na
+   jasnym przycisku głównym — wyglądał na wyłączony (zrzuty do 1.7.95, 15.10.2026). */
+.set-rows > .chip.primary { background: var(--przycisk-glowny); border-color: rgba(214, 228, 255, 0.70); }
 dialog .set-switch .sw-track { background: rgba(255, 255, 255, 0.16);
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5); }
 dialog .set-switch .sw-track::after { background: linear-gradient(180deg, #ffffff, #d6dbe6);

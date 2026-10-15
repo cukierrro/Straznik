@@ -112,5 +112,14 @@ sprawdz(/id="w12-przelacz"[^>]*aria-expanded="false"/.test(html) && /id="w12-cia
 sprawdz(/straznik_wykres12/.test(app), "rozwinięcie zapamiętane na telefonie");
 sprawdz(/svg\.setAttribute\("aria-label", opis\)/.test(app), "wykres ma opis dla czytnika ekranu");
 
+console.log("6. Punkty z przecinkiem po PL i UK");
+// 15.10.2026: podpis paska historii miał „0.1 pkt”, a karta w tym samym kadrze „0,1 pkt”
+// (58bf074 wprowadził pktTxt, ale nie wszędzie). Liczba przed „pkt/pts/бал.” ma iść przez pktTxt.
+{
+  const surowe = [...app.matchAll(/\$\{([\w.?]*score[\w.?]*)\} \$\{UI\.t\("pkt"/g)].map(m => m[1]);
+  sprawdz(surowe.length === 0, `wynik w punktach zawsze przez pktTxt (surowe: ${surowe.join(", ") || "brak"})`);
+  sprawdz(/\$\{pktTxt\(tp\.score\)\} \$\{UI\.t\("pkt"/.test(app), "podpis paska historii przez pktTxt");
+}
+
 console.log(`\nBŁĘDY: ${bledy}`);
 process.exit(bledy ? 1 : 0);
