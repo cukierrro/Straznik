@@ -105,6 +105,9 @@ sprawdz("klucz czerwonego: ETA", num(r"RED_GATE_ETA_MIN = ([\d.]+)", ENGINE, "et
         num(r"RED_GATE_ETA_MIN = ([\d.]+)", CONFIG, "eta py"))
 sprawdz("klucz czerwonego: km", num(r"RED_GATE_KM = ([\d.]+)", ENGINE, "km js"),
         num(r"RED_GATE_KM = ([\d.]+)", CONFIG, "km py"))
+sprawdz("klucz czerwonego: niepewność pozycji rejonowej",
+        num(r"RED_GATE_AREA_MAX_UNC_KM = ([\d.]+)", ENGINE, "rejonowa js"),
+        num(r"RED_GATE_AREA_MAX_UNC_KM = ([\d.]+)", CONFIG, "rejonowa py"))
 sprawdz("fala: liczba obiektów", num(r"WAVE_MIN = ([\d.]+)", ENGINE, "fala js"),
         num(r"NEPTUN_WAVE_MIN = ([\d.]+)", CONFIG, "fala py"))
 sprawdz("fala: punkty", num(r"WAVE_POINTS = ([\d.]+)", ENGINE, "fala pkt js"),

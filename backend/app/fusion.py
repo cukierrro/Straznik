@@ -869,6 +869,8 @@ def red_key(signals: list[dict], ref: datetime | None = None) -> dict | None:
         d = s.get("details") or {}
         if (d.get("type") or "").lower() not in config.RED_GATE_TYPES:
             continue
+        if d.get("area_only") and (d.get("uncertainty_km") or 0) > config.RED_GATE_AREA_MAX_UNC_KM:
+            continue
         eta, km = d.get("eta_border_min"), d.get("dist_km")
         if eta is not None and eta <= config.RED_GATE_ETA_MIN:
             return {"powod": "eta", "opis": f"obiekt {int(eta)} min od granicy", "eta_min": eta, "km": km}

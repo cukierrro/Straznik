@@ -250,6 +250,12 @@ NEPTUN_WAVE_WINDOW_MIN = 15
 NEPTUN_WAVE_POINTS = 0.5
 
 RED_GATE_MAX_AGE_MIN = 25          # meldunek starszy niż 25 min nie otwiera czerwonego
+# Pozycja tylko „rejonowa” (środek obwodu) z dużą niepewnością nie otwiera czerwonego —
+# punkty daje dalej. 15.10.2026 lubelskie dostało czerwony od „2× dron, około 50 km”
+# z pozycją w środku obwodu wołyńskiego, ±70 km, bez kursu, sprzed 14 minut; resztę
+# dopchnął Alert RCB poziomu 1. W historii od 15.09 każdy prawdziwy czerwony otworzył
+# obiekt z niepewnością 4–25 km, a ten próg zmienia wyłącznie 15.10 (decyzja usera).
+RED_GATE_AREA_MAX_UNC_KM = 30.0
 RED_GATE_TYPES = ("ballistic", "mig31k", "cruise", "missile", "kab", "shahed", "uav")
 
 THRESHOLD_ELEVATED = 2.0           # "PODWYŻSZONA UWAGA"

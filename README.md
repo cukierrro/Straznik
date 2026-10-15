@@ -223,6 +223,7 @@ osobno dla każdego województwa. Przy **≥ 2 pkt**
 włącza podwyższoną uwagę (sygnał uwagi i powiadomienie). Głośny alarm z syreną wymaga
 **≥ 4 pkt ORAZ potwierdzenia**: Alertu RCB o treści „znajdź bezpieczne miejsce" albo
 obiektu uderzeniowego kursem na Polskę ≤ 15 minut od granicy (albo ≤ 50 km).
+Pozycja tylko rejonowa z niepewnością ponad 30 km nie otwiera czerwonego (od 15.10.2026).
 Sama suma punktów z sygnałów pośrednich nie zapala czerwonego (zmiana 23.09.2026). UI zawsze pokazuje pełne rozbicie: które sygnały, skąd, ile punktów.
 
 | Sygnał | Warunek | Punkty |

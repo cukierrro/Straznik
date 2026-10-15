@@ -25,6 +25,7 @@ function rcbLevel(text) {
 /* Klucz czerwonego alarmu — lustro config.RED_GATE_* i fusion.red_key (23.09.2026).
    Sama suma nie wystarcza: pośrednie sygnały dawały 5 pkt przy pustej mapie. */
 const RED_GATE_ETA_MIN = 15, RED_GATE_KM = 50, RED_GATE_MAX_AGE_MS = 25*60*1000;
+const RED_GATE_AREA_MAX_UNC_KM = 30;   // pozycja rejonowa ±70 km nie otwiera czerwonego (15.10.2026)
 const RCB_DOWNGRADE_FADE_MIN = 10;   // lustro config.RCB_DOWNGRADE_FADE_MIN
 /* Obiekt zgubiony z feedu NEPTUN-a gaśnie szybciej — lustro config.NEPTUN_LOST_*
    i fusion.lost_weight (11.10.2026). Wyjątek: zgubiony bliżej granicy niż 50 km. */
@@ -980,6 +981,7 @@ function redKey(sigs, ref) {
     if (!Number.isFinite(t) || ref - t > RED_GATE_MAX_AGE_MS) continue;
     const d = s.details || {};
     if (!RED_GATE_TYPES.has(String(d.type || "").toLowerCase())) continue;
+    if (d.area_only && (d.uncertainty_km || 0) > RED_GATE_AREA_MAX_UNC_KM) continue;
     if (d.eta_border_min != null && d.eta_border_min <= RED_GATE_ETA_MIN)
       return { powod: "eta", opis: `obiekt ${Math.round(d.eta_border_min)} min od granicy`, eta_min: d.eta_border_min, km: d.dist_km };
     if (d.dist_km != null && d.dist_km <= RED_GATE_KM)
