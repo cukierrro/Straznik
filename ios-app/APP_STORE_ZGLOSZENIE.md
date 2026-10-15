@@ -134,36 +134,39 @@ ale ponieważ jedzie razem z identyfikatorem urządzenia, uczciwiej to zadeklaro
 **Nie dodawać Google Analytics do aplikacji** — pociągnęłoby za sobą kolejne
 kategorie.
 
-> ### ⚠ NIEAKTUALNE OD GROTY (1.7.68/1.7.72) — do rozstrzygnięcia przez usera
+> ### Sprostowanie 15.10.2026: panel JEST zgodny, nieaktualna była ta tabela
 >
-> Do 15.10.2026 stało tu, że NIE deklarujemy dokładnej lokalizacji, bo
-> „jednorazowy odczyt GPS zostaje w telefonie i nigdy nie jest wysyłany".
-> **To przestało być prawdą, gdy doszła GROTA**, a tabela wyżej nie została wtedy
-> zmieniona.
+> Tabela wyżej i zdanie „nie deklarujemy dokładnej lokalizacji" pochodzą z pierwszego
+> zgłoszenia, sprzed GROTY. **W App Store Connect zadeklarowane są cztery kategorie**
+> (odczyt sesji głównej z panelu, 15.10 08:20; opublikowane przez usera ~22.09):
+> Other Diagnostic Data, **Precise Location**, Device ID, Coarse Location —
+> wszystkie „App Functionality", **Data Not Linked to You**. Czyli sklep mówi prawdę,
+> a nieaktualny był nasz własny opis. **W panelu nic nie zmieniamy.**
 >
-> Sprawdzone w kodzie (`grota/grota-core.js`, `fetchRoute`): po naciśnięciu
-> „TERAZ" pozycja użytkownika i współrzędne celu idą do publicznego serwera tras
-> FOSSGIS (`routing.openstreetmap.de`) z dokładnością **sześciu miejsc po
-> przecinku** (~0,1 m), bez pytania. Nasz własny komentarz w tym samym miejscu
-> mówi wprost: *„Serwer zapisuje zapytania w logach — w wersji produkcyjnej
-> potrzebny własny serwer tras."*
+> Dlaczego Precise Location musi tam być — warto, żeby to zostało zapisane, bo
+> tabela wyżej twierdziła coś przeciwnego. Sprawdzone w kodzie
+> (`grota/grota-core.js`, `fetchRoute`): po naciśnięciu „TERAZ" pozycja człowieka
+> i współrzędne celu idą do publicznego serwera tras FOSSGIS
+> (`routing.openstreetmap.de`) z dokładnością **sześciu miejsc po przecinku**
+> (~0,1 m), bez pytania. Nasz własny komentarz obok mówi: *„Serwer zapisuje
+> zapytania w logach — w wersji produkcyjnej potrzebny własny serwer tras."*
+> Apple zwalnia z deklarowania tylko dane wysyłane **wyłącznie** do obsłużenia
+> żądania w czasie rzeczywistym i nieprzechowywane; logowanie ten wyjątek wyklucza.
 >
-> To jest istotne dla etykiet, bo Apple pozwala nie deklarować danych wysyłanych
-> **wyłącznie** do obsłużenia żądania w czasie rzeczywistym i nieprzechowywanych.
-> Skoro sami zapisaliśmy, że ten serwer loguje zapytania, ten wyjątek nas nie
-> obejmuje. Ostrożna i obronna odpowiedź: dodać **Precise Location**,
-> cel **App Functionality**, niepowiązane z tożsamością, bez śledzenia.
+> Pozostałe przepływy z polityki prywatności: kwadrat ~12×20 km przy mapie offline
+> to nasz serwer i Cloudflare (Coarse Location), „Prowadź"/„Street View" to świadome
+> przekazanie do innej aplikacji przez człowieka, a współrzędne do usługi zdjęć
+> GUGiK dotyczą punktu z wykazu PSP, nie pozycji człowieka.
 >
-> Pozostałe przepływy z polityki prywatności mieszczą się w tym, co już mamy albo
-> poza definicją zbierania: kwadrat ~12×20 km przy pobieraniu mapy offline to nasz
-> serwer i Cloudflare (Coarse Location, już zadeklarowane), a „Prowadź" i „Street
-> View" to świadome przekazanie do innej aplikacji przez samego człowieka.
-> Współrzędne punktu do usługi zdjęć GUGiK dotyczą punktu z wykazu PSP, nie
-> pozycji człowieka — ale jeśli deklarujemy Precise Location, i tak jest objęte.
+> **Do sprawdzenia własnymi oczami** przy najbliższym wejściu do panelu (zgłoszenie
+> 1.7.95): czy te cztery kategorie faktycznie tam są. Powyższe to odczyt innej sesji,
+> nie mój — a od tego zależy zgodność z 5.1.2.
 >
-> **Nic w panelu nie zmieniam bez słowa usera.** Przy okazji: komentarz w kodzie
-> sam mówi, że produkcja potrzebuje własnego serwera tras — to rozwiązałoby też
-> ten punkt, bo dane nie opuszczałyby naszej infrastruktury.
+> **Osobna sprawa, nie dla Apple:** komentarz w kodzie sam mówi, że produkcja
+> potrzebuje własnego serwera tras. FOSSGIS to serwer fundacji utrzymywany
+> z darowizn, z warunkiem „najwyżej 1 zapytanie na sekundę, bez intensywnego
+> użycia" (dławik 1,1 s przestrzegamy). Przy kilku tysiącach ludzi to cudza
+> infrastruktura — własny serwer tras byłby uczciwszy.
 
 ---
 
