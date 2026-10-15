@@ -6183,6 +6183,11 @@ function odswiezWartosciUstawien(jezyk = UI.lang) {
   wpisz("sv-dzwiek", !IS_APP || IS_IOS ? ""
     : tryb === "wibracja" ? T("wibracja", "vibration", "вібрація")
     : tryb === "zwykle" ? T("zwykłe", "normal", "звичайне") : T("syrena", "siren", "сирена"));
+  // sekcja „Mapa”: jak rysujemy drony i rakiety (najczęściej zmieniane ustawienie trasy)
+  const tr = trailMode("neptun");
+  wpisz("sv-mapa", tr === "off" ? T("bez tras", "no tracks", "без шляхів")
+    : tr === "course" ? T("trasa i kierunek", "track and heading", "шлях і напрямок")
+    : T("przebyta trasa", "flown track", "пройдений шлях"));
   wpisz("sv-aplikacja", { pl: "Polski", en: "English", uk: "Українська" }[jezyk] || "");
 }
 
@@ -7275,6 +7280,7 @@ for (const kind of ["neptun", "adsb"]) {
   sel.addEventListener("change", () => {
     try { localStorage.setItem(TRAIL_KEYS[kind], sel.value); } catch {}
     if (kind === "adsb" && mapReady) drawFollowTrail();
+    odswiezWartosciUstawien();
   });
 }
 

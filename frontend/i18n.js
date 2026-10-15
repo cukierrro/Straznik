@@ -306,7 +306,7 @@
      Ukraiński powstaje z angielskiego niżej, w ukrainize(), stąd tylko dwa warianty. */
   function trailSection(en) {
     const head = document.getElementById("trail-head");
-    if (head) head.textContent = en ? "Map: object tracks" : "Mapa: trasy obiektów";
+    if (head) head.textContent = en ? "Object tracks" : "Trasy obiektów";
     // Etykieta listy to pierwszy węzeł tekstowy <label>, przed samym <select>.
     const lead = (id, pl, eng) => {
       const el = document.getElementById(id);
@@ -399,6 +399,7 @@
     tx("st-alarmy", "Alarmy i zgody", "Alerts and permissions");
     tx("st-miejsca", "Moje miejsca", "My places");
     tx("st-dzwiek", "Dźwięk i godziny ciszy", "Sound and quiet hours");
+    tx("st-mapa", "Mapa", "Map");
     tx("st-aplikacja", "Język, tekst i wersja", "Language, text and version");
     tx("set-wstecz-t", "Ustawienia", "Settings");
     tx("set-lang-zastosuj", "Zmień język i uruchom ponownie", "Change language and restart");
@@ -838,7 +839,7 @@
     "The test uses the real notification path: lock the screen within 5 seconds to check the alert above the lock screen. Silence it with the button on the alert screen or “Wycisz alarm” in the notification. Real alerts arrive in Polish, whatever the app language.":
       "Тест іде справжнім шляхом сповіщення: заблокуйте екран протягом 5 секунд, щоб побачити тривогу над блокуванням. Вимкніть її кнопкою на екрані тривоги або «Wycisz alarm» у сповіщенні. Справжні тривоги приходять польською, незалежно від мови застосунку.",
     "Interface language": "Мова інтерфейсу",
-    "Map: object tracks": "Мапа: шляхи об’єктів",
+    "Map: object tracks": "Мапа: шляхи об’єктів", "Object tracks": "Шляхи об’єктів",
     "Drones and missiles (NEPTUN)": "Дрони й ракети (NEPTUN)",
     "Aircraft and helicopters (ADS-B)": "Літаки й гелікоптери (ADS-B)",
     "Off": "Вимкнено",
@@ -988,7 +989,7 @@
     set("#set-tytul", "Settings"); set("#set-x-t", "Close"); set("#set-wstecz-t", "Settings");
     document.querySelector("#settings .dlg-x")?.setAttribute("aria-label", "Close settings");
     set("#st-alarmy", "Alerts and permissions"); set("#st-miejsca", "My places");
-    set("#st-dzwiek", "Sound and quiet hours"); set("#st-aplikacja", "Language, text and version");
+    set("#st-dzwiek", "Sound and quiet hours"); set("#st-mapa", "Map"); set("#st-aplikacja", "Language, text and version");
     set("#set-lang-zastosuj", "Change language and restart");
     set("#set-api-zapisz", "Save address and restart");
     const langOpts = document.getElementById("set-lang")?.options;

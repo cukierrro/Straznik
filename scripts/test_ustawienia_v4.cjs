@@ -35,7 +35,7 @@ const okno = html.slice(html.indexOf('<dialog id="settings"'), html.indexOf("</d
 console.log("1. Stała wysokość, ekran startowy i sekcje");
 sprawdz(/dialog\.ustawienia \{[^}]*height:\s*var\(--dlg-max\)/.test(css), "okno ustawień ma stałą wysokość");
 sprawdz(/<dialog id="settings" class="[^"]*\bna-starcie\b/.test(html), "okno startuje od ekranu startowego");
-for (const pane of ["alarmy", "miejsca", "dzwiek", "aplikacja"]) {
+for (const pane of ["alarmy", "miejsca", "dzwiek", "mapa", "aplikacja"]) {
   sprawdz(new RegExp(`class="set-tab[^"]*" data-pane="${pane}"`).test(okno), `wiersz sekcji „${pane}” to .set-tab z data-pane`);
   sprawdz(new RegExp(`<section class="set-pane" data-pane="${pane}"[^>]*hidden`).test(okno), `sekcja „${pane}” schowana na starcie`);
 }
@@ -55,7 +55,7 @@ sprawdz(/dlg\.addEventListener\("close"/.test(js), "po zamknięciu mapa i panel 
 console.log("4. Tłumaczenia ekranu startowego w obu ścieżkach");
 const podglad = i18n.slice(i18n.indexOf("// v4 (14.10.2026): ekran startowy ustawień"), i18n.indexOf("// v4 (14.10.2026): ekran startowy ustawień") + 1500);
 const globalnie = i18n.slice(i18n.indexOf("// v4: wiersze sekcji ustawień po identyfikatorach"), i18n.indexOf("// v4: wiersze sekcji ustawień po identyfikatorach") + 900);
-for (const id of ["set-tytul", "set-x-t", "st-alarmy", "st-miejsca", "st-dzwiek", "st-aplikacja", "set-wstecz-t", "set-lang-zastosuj", "set-api-zapisz"]) {
+for (const id of ["set-tytul", "set-x-t", "st-alarmy", "st-miejsca", "st-dzwiek", "st-mapa", "st-aplikacja", "set-wstecz-t", "set-lang-zastosuj", "set-api-zapisz"]) {
   sprawdz(okno.includes(`id="${id}"`), `#${id} jest w oknie`);
   sprawdz(podglad.includes(`"${id}"`), `#${id} tłumaczony w podglądzie języka w oknie`);
   sprawdz(globalnie.includes(`#${id}"`), `#${id} tłumaczony przy przełączeniu całej aplikacji`);

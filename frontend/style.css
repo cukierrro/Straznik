@@ -1764,6 +1764,7 @@ dialog.sheet[open] { animation: arkusz-wjazd .2s ease-out; }
 .sheet-row[data-kolor="fiolet"] > svg:first-child { background: linear-gradient(180deg, #9b93ff, #6458e8); }
 .sheet-row[data-kolor="morski"] > svg:first-child { background: linear-gradient(180deg, #4fd9c4, #1fae98); }
 .sheet-row[data-kolor="szary"] > svg:first-child { background: linear-gradient(180deg, #8f9ab2, #5d677d); }
+.sheet-row[data-kolor="zielony"] > svg:first-child { background: linear-gradient(180deg, #5fd38f, #2a9d5c); }
 .sheet-row > svg.solid:first-child { fill: #fff; stroke: none; }
 .sheet-row .badge, .sheet-row #watch-badge { position: static; margin-left: auto; }
 /* Mały przełącznik przy „Widok 3D”: stan bez słów, więc bez tłumaczeń. */
