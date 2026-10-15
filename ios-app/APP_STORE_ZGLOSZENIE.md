@@ -130,10 +130,40 @@ Do zaznaczenia:
 Ostatni wiersz jest wyborem ostrożnym: województwo to obszar większy niż miasto,
 ale ponieważ jedzie razem z identyfikatorem urządzenia, uczciwiej to zadeklarować.
 
-**Czego NIE deklarujemy:** dokładnej lokalizacji (jednorazowy odczyt GPS zostaje
-w telefonie i nigdy nie jest wysyłany), kontaktów, zdjęć, danych o użyciu,
-reklam. **Nie dodawać Google Analytics do aplikacji** — pociągnęłoby za sobą
-kolejne kategorie.
+**Czego NIE deklarujemy:** kontaktów, zdjęć, danych o użyciu, reklam.
+**Nie dodawać Google Analytics do aplikacji** — pociągnęłoby za sobą kolejne
+kategorie.
+
+> ### ⚠ NIEAKTUALNE OD GROTY (1.7.68/1.7.72) — do rozstrzygnięcia przez usera
+>
+> Do 15.10.2026 stało tu, że NIE deklarujemy dokładnej lokalizacji, bo
+> „jednorazowy odczyt GPS zostaje w telefonie i nigdy nie jest wysyłany".
+> **To przestało być prawdą, gdy doszła GROTA**, a tabela wyżej nie została wtedy
+> zmieniona.
+>
+> Sprawdzone w kodzie (`grota/grota-core.js`, `fetchRoute`): po naciśnięciu
+> „TERAZ" pozycja użytkownika i współrzędne celu idą do publicznego serwera tras
+> FOSSGIS (`routing.openstreetmap.de`) z dokładnością **sześciu miejsc po
+> przecinku** (~0,1 m), bez pytania. Nasz własny komentarz w tym samym miejscu
+> mówi wprost: *„Serwer zapisuje zapytania w logach — w wersji produkcyjnej
+> potrzebny własny serwer tras."*
+>
+> To jest istotne dla etykiet, bo Apple pozwala nie deklarować danych wysyłanych
+> **wyłącznie** do obsłużenia żądania w czasie rzeczywistym i nieprzechowywanych.
+> Skoro sami zapisaliśmy, że ten serwer loguje zapytania, ten wyjątek nas nie
+> obejmuje. Ostrożna i obronna odpowiedź: dodać **Precise Location**,
+> cel **App Functionality**, niepowiązane z tożsamością, bez śledzenia.
+>
+> Pozostałe przepływy z polityki prywatności mieszczą się w tym, co już mamy albo
+> poza definicją zbierania: kwadrat ~12×20 km przy pobieraniu mapy offline to nasz
+> serwer i Cloudflare (Coarse Location, już zadeklarowane), a „Prowadź" i „Street
+> View" to świadome przekazanie do innej aplikacji przez samego człowieka.
+> Współrzędne punktu do usługi zdjęć GUGiK dotyczą punktu z wykazu PSP, nie
+> pozycji człowieka — ale jeśli deklarujemy Precise Location, i tak jest objęte.
+>
+> **Nic w panelu nie zmieniam bez słowa usera.** Przy okazji: komentarz w kodzie
+> sam mówi, że produkcja potrzebuje własnego serwera tras — to rozwiązałoby też
+> ten punkt, bo dane nie opuszczałyby naszej infrastruktury.
 
 ---
 
