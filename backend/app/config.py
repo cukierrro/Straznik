@@ -677,6 +677,11 @@ MEDIA_NONCURRENT_KEYWORDS = [
     # („Nocny alert RCB na wschodzie Polski… przestrzeń powietrzna nie została naruszona”,
     # „Alert RCB zamiast ostrzegać, usypia czujność? Co nie działa w systemie alarmowym?”)
     "nocny alert", "nocnego alertu", "nie została naruszona", "zakończyło operację", "znamy szczegóły", "usypia czujność", "co nie działa w systemie", "zakończyło działania",
+    # 15.10.2026: „Jak reagować w sytuacji zagrożenia? Specjalne szkolenie w Lublinie”
+    # dało lubelskiemu 0,8 pkt i z alarmem obwodu wołyńskiego (1,0) oraz dronami 250 km
+    # (0,2) wysłało żółty. Szkolenie to zapowiedź, nie meldunek. Bez „jak reagować”
+    # (bywa w relacji z trwającego alarmu) i bez „warsztat” (dron spadł na warsztat).
+    "szkoleni",
 ]
 # „Niespokojna noc/poranek" nie jest już wetem (E3): podsumowanie nocy bywa
 # relacją na żywo, a o świeżości decyduje article_reader po treści artykułu.
