@@ -826,16 +826,24 @@ obiektów w górnym pasku, godziny ciszy (Android), nowy eksport GROTY.
 **Po stronie natywnej iOS nie zmienia się nic** — żadnych nowych wtyczek,
 uprawnień, wpisów w `Info.plist` ani zgód, więc **App Privacy bez zmian**.
 
-### Zanim zbuduję
+### Zanim zbuduję — SPRAWDZONE 15.10 na gałęzi wydania `godziny-ciszy` (`732932e`)
 
-- [ ] `#quiet-hours` ma `android-only` (godziny ciszy są tylko androidowe,
-      `godzinyCiszyTeraz()` zwraca `false` przy `IS_IOS`).
-- [ ] `#yv-ios-note` (`p.ios-only`) nadal pokazuje się w nowym arkuszu ustawień —
-      to poprawione zdanie o przełączniku „Dźwięki" po pomiarze z 14.10 (§17).
-- [ ] W arkuszu ustawień v4 nie wychodzi nic androidowego, czego wcześniej nie było.
-- [ ] Prefiksy `-webkit-backdrop-filter`: sprawdzone i **zamknięte** na gałęzi UI
-      (`6cbd8a4` + naprawa `.lg-head` w `ed1599b`) — 15 par, wartości `blur()`/`none`.
-      Po scaleniu na `main` sprawdzić jeszcze raz, czy scalenie czegoś nie zgubiło.
+Przegląd UI jest już w niej scalony (`9b89483`), więc dało się to odhaczyć przed
+wejściem na `main`:
+
+- [x] `#quiet-hours` ma `class="android-only"`.
+- [x] `godzinyCiszyTeraz()` zaczyna się od `if (!IS_APP || IS_IOS) return false;`
+      — **cisza nie może wyciszyć niczego na iPhonie**. Oba miejsca użycia
+      (poziom sygnału i tryb czerwonego) są przez to na iOS bezczynne. To warto
+      było sprawdzić samemu: gdyby ten warunek wypadł, godziny ciszy zabierałyby
+      dźwięk alarmu na telefonach, na których nie ma ich jak ustawić.
+- [x] `#yv-ios-note` jest i ma `class="fineprint ios-only"` — poprawione zdanie
+      o przełączniku „Dźwięki" po pomiarze z 14.10 (§17) dociera do iPhone'ów.
+- [x] Prefiksy: **15 par** `-webkit-backdrop-filter` / `backdrop-filter`, każda
+      wartość `blur(...)` albo `none`. Scalenie niczego nie zgubiło.
+
+Zostaje jedno: **powtórzyć te same cztery sprawdzenia na `main`** po scaleniu
+przez sesję główną — scalenie bywa miejscem, w którym poprawki giną.
 
 ### Na urządzeniu
 
