@@ -4441,7 +4441,7 @@ function showAlarm(voiv, st) {
   const near = document.getElementById("alarm-nearest");
   if (near) { const html = nearestThreatLine(voiv); near.innerHTML = html; near.hidden = !html; }
   const todo = document.getElementById("alarm-todo");
-  if (todo) todo.textContent = UI.t("Co zrobić: przejdź do schronu albo pomieszczenia bez okien, z dala od szyb. Śledź komunikaty RCB i służb.", "What to do: go to a shelter or a room without windows, away from glass. Follow RCB and emergency service messages.", "Що робити: перейдіть в укриття або в кімнату без вікон, подалі від скла. Стежте за повідомленнями RCB і служб.");
+  if (todo) todo.textContent = UI.t("Co zrobić: przejdź do miejsca schronienia albo pomieszczenia bez okien, z dala od szyb. Śledź komunikaty RCB i służb.", "What to do: go to a place of shelter or a room without windows, away from glass. Follow RCB and emergency service messages.", "Що робити: перейдіть в укриття або в кімнату без вікон, подалі від скла. Стежте за повідомленнями RCB і служб.");
   document.getElementById("alarm-time").textContent =
     (UI.t("alarm o ", "alert at ", "тривога о ")) + new Date().toLocaleTimeString(UI.t("pl-PL", "en-GB", "uk-UA"));
   alarmWyborReset();

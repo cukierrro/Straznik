@@ -663,7 +663,7 @@
       "шар зон не додає балів — бали дає лише рідкісна зона D/R/NPZ/ADHOC від землі над сходом чи північчю; торкніться зони, щоб побачити деталі",
     "HIGH PRIORITY": "ВИСОКИЙ ПРІОРИТЕТ",
     "ELEVATED ATTENTION": "ПІДВИЩЕНА УВАГА",
-    "What to do: go to a shelter or a room without windows, away from glass. Follow RCB and emergency-service messages.":
+    "What to do: go to a place of shelter or a room without windows, away from glass. Follow RCB and emergency-service messages.":
       "Що робити: перейдіть в укриття або в кімнату без вікон, подалі від скла. Стежте за повідомленнями RCB і служб.",
     "This is an UNOFFICIAL signal. Check sirens, RCB and RSO alerts — official channels are authoritative.":
       "Це НЕОФІЦІЙНИЙ сигнал. Перевірте сирени, Alert RCB і RSO — вирішальними є офіційні канали.",
@@ -1009,7 +1009,7 @@
     const moreClose = document.querySelector('#more-sheet button[value="cancel"]');
     if (moreClose) moreClose.textContent = "Close";
     set("#adsb-list + p", "Public transponder data (aircraft that choose to be visible) — this is NOT hostile-aircraft tracking.");
-    set("#alarm-todo", "What to do: go to a shelter or a room without windows, away from glass. Follow RCB and emergency-service messages.");
+    set("#alarm-todo", "What to do: go to a place of shelter or a room without windows, away from glass. Follow RCB and emergency-service messages.");
     set("#alarm-grota span", "Where to shelter");
     set("#alarm-map", "Watch the map");
     set("#alarm-safe", "I'm in a safe place");

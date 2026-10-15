@@ -902,6 +902,8 @@ dialog select { width: 100%; margin-top: 6px; padding: 8px 10px; border-radius: 
 .voiv-card.is-mine .voiv-name::after { content: " · mój region"; color: var(--accent);
   font-size: 0.6667rem; letter-spacing: .05em; text-transform: none; }
 html[lang="en"] .voiv-card.is-mine .voiv-name::after { content: " · my region"; }
+/* UK: było polskie „mój region” (zrzuty 1.7.95, 15.10.2026) */
+html[lang="uk"] .voiv-card.is-mine .voiv-name::after { content: " · мій регіон"; }
 .sig.src-spillover { border-left-color: #6f7ea8; opacity: .85; }
 /* Rozpisanie wyniku pod nagłówkiem karty — cichsze niż sygnały, ale czytelne. */
 /* Plakietka przy sygnale z ostatnich 5 minut — tłumaczy, czemu jest na górze. */
