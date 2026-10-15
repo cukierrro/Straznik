@@ -794,15 +794,21 @@ Sesja w panelu żyje w Chromie usera, więc nie trzeba się logować. Ale:
 Status w panelu: **1.7.95 Ready for Distribution**, build 2610150749 — sprawdzone
 własnymi oczami 16.10. Wydane w **40 krajach**.
 
-Przebieg: zgłoszone 15.10 o 10:25 z publikacją **ręczną**; wieczorem user kazał
-wypuścić od razu i sesja główna nacisnęła „Release This Version". Czyli przegląd
-Apple zmieścił się w jednym dniu roboczym.
+Przebieg: zgłoszone 15.10 o **10:25** z publikacją **ręczną**. Apple zatwierdziło
+między 10:25 a ~17:20 (o 17:20 status brzmiał „Pending Developer Release"), czyli
+**przegląd zmieścił się w jednym dniu roboczym** — warto to pamiętać przy planowaniu
+kolejnych wydań. O **17:28** sesja główna nacisnęła „Release This Version" na wyraźne
+słowo usera „Teraz", w odpowiedzi na pytanie, czy wypuścić od razu, czy czekać na
+Google.
 
 **Publikacja ręczna zrobiła dokładnie to, do czego była:** dała userowi decyzję
 o momencie zamiast oddawać ją Apple'owi. Że ostatecznie wybrał „od razu", a nie
 „razem z Androidem", niczego nie zmienia — wybór był po jego stronie.
-Google Play 1.7.95 (124) poszło do sprawdzenia i wchodzi samo po zatwierdzeniu,
-więc **iOS wyszedł pierwszy**.
+Google Play 1.7.95 (124) poszło do sprawdzenia o ~17:25 (produkcja, 100%,
+publikowanie zarządzane wyłączone, więc wchodzi samo), a o 17:33 było jeszcze
+w przeglądzie — **iOS wyszedł pierwszy**.
+
+Od wydania **żadnych zgłoszeń od użytkowników iPhone'a**.
 
 ### Czego w tym wydaniu NIE sprawdziliśmy na iPhonie
 
