@@ -71,6 +71,11 @@ console.log("4. Fokus po potwierdzeniu");
 const ack = js.slice(js.indexOf("alarmAck.onclick"), js.indexOf("alarmAck.onclick") + 600);
 sprawdz(/alarmWybor\.hidden = false;[\s\S]{0,300}\.focus\(\)/.test(ack),
   "po „POTWIERDZAM” fokus przechodzi na pierwszy widoczny wybór");
+// 15.10.2026, decyzja usera: „miejsce schronienia”, nie „schron” (wykaz PSP to miejsca schronienia)
+sprawdz(!/przejdź do schronu/.test(js + html) && /przejdź do miejsca schronienia/.test(js) && /przejdź do miejsca schronienia/.test(html),
+  "ekran alarmu mówi „miejsce schronienia”, nie „schron”");
+sprawdz(!/go to a shelter or/.test(js + i18n) && /go to a place of shelter/.test(i18n),
+  "EN: „a place of shelter” w app.js i i18n.js");
 
 console.log(bledy ? `\n${bledy} błędów` : "\nWszystko w porządku");
 process.exit(bledy ? 1 : 0);
