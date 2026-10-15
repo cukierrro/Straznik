@@ -2095,6 +2095,7 @@ html.tekst-duzy #licznik-okno .lk-opis { grid-column: 1 / -1; }
 .w12-leg i { display: inline-block; vertical-align: middle; margin-right: 5px; }
 .w12-l-dron { width: 12px; height: 3px; border-radius: 2px; background: #ffb020; }
 .w12-l-rak { width: 8px; height: 8px; border-radius: 50%; background: #ff4d5e; }
+.w12-l-slup { width: 3px; height: 10px; background: rgba(255, 176, 32, 0.45); }
 .w12-svg { display: block; width: 100%; height: 84px; cursor: pointer; }
 .w12-osie { display: flex; justify-content: space-between; font-size: 0.7333rem; color: var(--muted);
   font-variant-numeric: tabular-nums; margin-top: 2px; }
