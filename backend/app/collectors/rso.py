@@ -377,8 +377,28 @@ async def _process_item(it: dict) -> bool:
         return True
     voivodeships = _voivs_for(it)
     reference_new = False
+    naglowek = it.get("shortcut") or it.get("title") or ""
+    tresc = it.get("content") or ""
+    # POZIOM z CAŁEJ treści, razem z `content`. Do 04.10.2026 stało tu
+    # `f"{title} {it.get('description')}"`, a pole `description` W OGÓLE NIE
+    # ISTNIEJE w schemacie RSO (wpisy mają title, shortcut, content,
+    # rso_alarm, provinces, valid_*). Poziom liczył się więc wyłącznie
+    # z nagłówka. Przy wpisie o kształcie z 04.10 — nagłówek „Alert RCB",
+    # cały komunikat w `content` — alert poziomu 3 („znajdź bezpieczne
+    # miejsce") dostałby 1,5 pkt zamiast 4,5, czyli NIE PODNIÓSŁBY
+    # czerwonego alarmu. Plik sam to deklarował w komentarzu na górze
+    # („po CAŁEJ treści, razem z polem content"); wyjątek zrobiono wtedy
+    # dla odwołań, a liczenie poziomu zostało na starym wzorze.
+    poziom = rcb_level(f"{it.get('title','')} {naglowek} {tresc}")
     for voiv in voivodeships:
-        key = f"rso:{mid}:{voiv}"
+        # Poziom w kluczu (16.10.2026): RSO podnosi stopień W MIEJSCU, pod tym samym id.
+        # 15.10 o 01:06 wpis 23420577 (lubelskie) zmienił się z „sytuacja jest
+        # monitorowana” na „Znajdź bezpieczne miejsce”; klucz `rso:id:woj` był już
+        # znany, więc poziom 3 (4,5 pkt i klucz czerwonego) przepadł — został tylko
+        # w dzienniku obserwacji. Poziom 1 zachowuje stary klucz, żeby po wdrożeniu
+        # trwające alerty nie weszły drugi raz. Ograniczenie: powrót w miejscu
+        # 1 → 3 → 1 zostawia poziom 3 do odwołania (strona ostrożniejsza).
+        key = f"rso:{mid}:{voiv}" if poziom == 1 else f"rso:{mid}:{voiv}:L{poziom}"
         if key in _seen:
             continue
         if not _bootstrap and not _issued_recently(it):
@@ -393,23 +413,10 @@ async def _process_item(it: dict) -> bool:
             _seen.add(key)   # dopiero po zapisie: błąd bazy = ponowna próba za minutę
             reference_new = True
             continue
-        naglowek = it.get("shortcut") or it.get("title") or ""
-        tresc = it.get("content") or ""
         # Tytuł do pokazania człowiekowi: nagłówek bywa dosłownie „Alert RCB"
         # (tak było 04.10.2026 dla lubelskiego), więc wtedy bierzemy treść —
         # inaczej powiadomienie brzmi „Alert RCB (RSO): «Alert RCB»".
         title = (tresc if _naglowek_pusty(naglowek) and tresc else naglowek) or "Alert RCB"
-        # POZIOM z CAŁEJ treści, razem z `content`. Do 04.10.2026 stało tu
-        # `f"{title} {it.get('description')}"`, a pole `description` W OGÓLE NIE
-        # ISTNIEJE w schemacie RSO (wpisy mają title, shortcut, content,
-        # rso_alarm, provinces, valid_*). Poziom liczył się więc wyłącznie
-        # z nagłówka. Przy wpisie o kształcie z 04.10 — nagłówek „Alert RCB",
-        # cały komunikat w `content` — alert poziomu 3 („znajdź bezpieczne
-        # miejsce") dostałby 1,5 pkt zamiast 4,5, czyli NIE PODNIÓSŁBY
-        # czerwonego alarmu. Plik sam to deklarował w komentarzu na górze
-        # („po CAŁEJ treści, razem z polem content"); wyjątek zrobiono wtedy
-        # dla odwołań, a liczenie poziomu zostało na starym wzorze.
-        poziom = rcb_level(f"{it.get('title','')} {naglowek} {tresc}")
         inserted = await fusion.ingest(
             source="rcb", event_type="rso_alert", voivodeship=voiv,
             points=config.RCB_LEVEL_POINTS[poziom],
