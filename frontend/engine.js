@@ -1581,6 +1581,17 @@ function looksMilitaryAdsb(a) {
   return /air ?force|army|navy|military|nato|force aérienne|luftwaffe|türk hava|turkish af|polish af/i
     .test(String(a.ownOp||""));
 }
+/* Zapytanie geograficzne zależy od dostawcy (16.10.2026): adsb.fi odpowiada
+   400 na /point/... i ma /lat/{lat}/lon/{lon}/dist/{r}, a listę oddaje pod
+   „aircraft”. adsb.lol i airplanes.live: /point/{lat}/{lon}/{r} i „ac”. */
+function adsbGeoUrl(base, lat, lon, r) {
+  return /opendata\.adsb\.fi/.test(base)
+    ? `${base}/lat/${lat}/lon/${lon}/dist/${r}`
+    : `${base}/point/${lat}/${lon}/${r}`;
+}
+function adsbGeoAircraft(data) {
+  return (data && (data.ac || data.aircraft)) || [];
+}
 async function tickAdsb() {
   try {
     /* airplanes.live wzbogaca rekordy o pełną nazwę typu (desc), operatora (ownOp)
@@ -1607,10 +1618,10 @@ async function tickAdsb() {
     if (base) {
       const points = [[55.5,24.0,220],[58.2,25.5,220]];
       const geo = await Promise.all(points.map(([lat,lon,r]) =>
-        httpGet(`${base}/point/${lat}/${lon}/${r}`).catch(() => null)));
+        httpGet(adsbGeoUrl(base, lat, lon, r)).catch(() => null)));
       for (const body of geo) {
         if (!body) continue;
-        for (const a of (JSON.parse(body).ac||[])) {
+        for (const a of adsbGeoAircraft(JSON.parse(body))) {
           if (!looksMilitaryAdsb(a)) continue;
           const key = a.hex || `${a.lat}:${a.lon}:${a.flight}`;
           if (!merged.has(key)) merged.set(key, {...a, _straznik_detection:"baltic_geo"});
@@ -2464,10 +2475,11 @@ async function start(stateCb) {
 // matchVoivs wystawiamy wyłącznie do testów zgodności z backendem
 // (scripts/test_voiv_match.cjs) — reszta aplikacji go nie używa. Tak samo
 // `rcbArtykul`: kolektor i parser treści z gov.pl dla scripts/test_rcb_artykul.cjs,
-// oraz `adsbHoldJump`: strażnik niemożliwych skoków dla scripts/test_skok_pozycji.cjs,
-// który sprawdza, że tryb bez serwera trzyma pozycję tak samo jak backend.
+// `adsbHoldJump`: strażnik niemożliwych skoków dla scripts/test_skok_pozycji.cjs,
+// który sprawdza, że tryb bez serwera trzyma pozycję tak samo jak backend,
+// oraz `adsbGeoUrl`/`adsbGeoAircraft` dla scripts/test_adsb_geo_zapas.cjs.
 return { start, stop, history, timeline, historyFrom, timelineFrom, accumulate, matchVoivs,
-         adsbHoldJump, lostWeight, zgubioneZMigawek,
+         adsbHoldJump, adsbGeoUrl, adsbGeoAircraft, lostWeight, zgubioneZMigawek,
          stateFrom, alertLevel, rsoIsCancellation, assess,
          rcbArtykul: { tickRcb, tekstArtykuluRcb, dataArtykuluRcb, wojewodztwaAlertu,
                        czyOdwolanieRcb, meldunkiArtykulu, najnowszyMeldunek } };
