@@ -142,6 +142,25 @@ def _looks_military(ac: dict) -> bool:
     return any(word.lower() in operator for word in MIL_OPERATOR_WORDS)
 
 
+def _geo_url(provider: str, lat: float, lon: float, radius: int) -> str:
+    """Adres zapytania geograficznego u danego dostawcy.
+
+    16.10.2026: adsb.fi nie zna ścieżki `/point/...` — odpowiada na nią 400,
+    więc zapas dla kół bałtyckich nigdy nie zadziałał. Pomiar tego samego dnia:
+    `/api/v2/lat/{lat}/lon/{lon}/dist/{r}` zwraca 200. adsb.lol zostaje przy
+    `/v2/point/{lat}/{lon}/{r}`.
+    """
+    base = MIL_ENDPOINTS[provider].rsplit("/mil", 1)[0]
+    if provider == "adsb.fi":
+        return f"{base}/lat/{lat}/lon/{lon}/dist/{radius}"
+    return f"{base}/point/{lat}/{lon}/{radius}"
+
+
+def _geo_aircraft(data: dict) -> list[dict]:
+    """adsb.lol oddaje listę pod `ac`, adsb.fi w zapytaniu geograficznym pod `aircraft`."""
+    return data.get("ac") or data.get("aircraft") or []
+
+
 async def _fetch_baltic_geo(client: httpx.AsyncClient, provider: str) -> list[dict]:
     """Wszystkie rekordy w dwóch kołach, potem lokalny filtr wojskowy.
 
@@ -153,19 +172,18 @@ async def _fetch_baltic_geo(client: httpx.AsyncClient, provider: str) -> list[di
     order = [provider] + [p for p in MIL_ENDPOINTS if p != provider]
     last_error = None
     for name in order:
-        base = MIL_ENDPOINTS.get(name, "").rsplit("/mil", 1)[0]
-        if not base:
+        if name not in MIL_ENDPOINTS:
             continue
         try:
             responses = await asyncio.gather(*[
-                client.get(f"{base}/point/{lat}/{lon}/{radius}",
+                client.get(_geo_url(name, lat, lon, radius),
                            headers={"User-Agent": UA})
                 for lat, lon, radius in BALTIC_GEO_POINTS
             ])
             merged = {}
             for response in responses:
                 response.raise_for_status()
-                for ac in response.json().get("ac") or []:
+                for ac in _geo_aircraft(response.json()):
                     key = ac.get("hex") or f"{ac.get('lat')}:{ac.get('lon')}:{ac.get('flight')}"
                     merged[key] = ac
             candidates = []
