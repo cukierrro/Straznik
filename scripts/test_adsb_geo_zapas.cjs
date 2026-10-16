@@ -48,7 +48,8 @@ test('lista maszyn spod `ac` i spod `aircraft`', () => {
 });
 
 test('tickAdsb używa obu pomocników, nie sklejonego /point/', () => {
-  const m = /async function tickAdsb\(\)[\s\S]*?\n}\n/.exec(ENGINE);
+  // \r?\n: na Windows checkout daje CRLF i bez tego test padał na końcach linii, nie na kodzie
+  const m = /async function tickAdsb\(\)[\s\S]*?\r?\n}\r?\n/.exec(ENGINE);
   assert.ok(m, 'nie znalazłem tickAdsb w engine.js');
   assert.match(m[0], /adsbGeoUrl\(\s*base\s*,/);
   assert.match(m[0], /adsbGeoAircraft\(/);
