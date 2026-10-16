@@ -102,13 +102,47 @@ if len(zapisane) == 2:
     trzy = zapisane[1]
     ok(trzy["details"]["rcb_level"] == 3, f"poziom 3 ({trzy['details']['rcb_level']})")
     ok(trzy["points"] == config.RCB_LEVEL_POINTS[3], f"{config.RCB_LEVEL_POINTS[3]} pkt")
-    ok(trzy["dedup_key"] == "rso:23420577:lubelskie:L3", f"osobny klucz ({trzy['dedup_key']})")
+    ok(trzy["dedup_key"] == "rso:23420577:lubelskie:L3:2026-10-16 01:06:24",
+       f"osobny klucz wersji: poziom i czas zmiany w RSO ({trzy['dedup_key']})")
 asyncio.run(rso._check(FakeClient([SCHRONIENIE])))
 ok(len(zapisane) == 2, "poziom 3 w kolejnym cyklu nie dubluje")
+POWIATY = {**SCHRONIENIE, "content": SCHRONIENIE["content"] + " oraz lubartowski.",
+           "updated_at": "2026-10-16 01:10:00"}
+asyncio.run(rso._check(FakeClient([POWIATY])))
+ok(len(zapisane) == 2, "zmiana treści bez zmiany poziomu (dopisany powiat) nie dubluje")
+
+print("2. kolektor: obniżenie w miejscu idzie za RSO")
+ZEJSCIE = {**MONITOR, "updated_at": "2026-10-16 01:20:00"}
+asyncio.run(rso._check(FakeClient([ZEJSCIE])))
+ok(len(zapisane) == 3 and zapisane[-1]["details"]["rcb_level"] == 1,
+   "3 → 1 w miejscu: zapisana nowa wersja poziomu 1")
+if len(zapisane) == 3:
+    ok(zapisane[-1]["dedup_key"] == "rso:23420577:lubelskie:L1:2026-10-16 01:20:00",
+       f"klucz wersji ({zapisane[-1]['dedup_key']})")
+    ok(zapisane[-1]["points"] == config.RCB_LEVEL_POINTS[1], "1,5 pkt")
+asyncio.run(rso._check(FakeClient([SCHRONIENIE | {"updated_at": "2026-10-16 01:25:00"}])))
+ok(len(zapisane) == 4 and zapisane[-1]["details"]["rcb_level"] == 3, "1 → 3 drugi raz: znowu zapisane")
 asyncio.run(rso._check(FakeClient([ODWOLANIE])))
 ok([z["event_type"] for z in zapisane][-1] == "rso_clear", "01:28: odwołanie zapisane jak dotąd")
 
-print("2. fuzja: nowszy poziom 3 daje czerwony bez obiektów")
+print("3. kolektor po restarcie: poziom z bazy")
+zapisane.clear()
+rso._seen.clear()
+rso._levels.clear()
+rso._bootstrap = False                          # pierwszy obieg po starcie
+stary_db = rso.fusion.db
+rso.fusion = types.SimpleNamespace(
+    ingest=fake_ingest,
+    db=types.SimpleNamespace(last_rso_level=lambda mid, voiv: 1,
+                             add_signal=lambda *a, **k: zapisane.append({"event_type": a[1]}) or True))
+asyncio.run(rso._check(FakeClient([MONITOR])))
+ok(zapisane == [], "po restarcie ta sama treść (poziom 1 w bazie) nic nie zapisuje")
+asyncio.run(rso._check(FakeClient([SCHRONIENIE])))
+ok(len(zapisane) == 1 and zapisane[0].get("details", {}).get("rcb_level") == 3,
+   "podniesienie w czasie restartu: zapisane z punktami, nie jako „istniejący przy starcie”")
+rso.fusion = types.SimpleNamespace(ingest=fake_ingest, db=stary_db)
+
+print("4. fuzja: nowszy poziom 3 daje czerwony bez obiektów")
 
 
 def sig(sid, ts, event_type, points, details):
@@ -125,6 +159,14 @@ lub = fusion.accumulate([jeden, trzy_s], ref)["lubelskie"]
 ok(abs(lub["score"] - 4.5) < 0.05, f"alerty się nie sumują, liczy się nowszy: {lub['score']:.2f}")
 klucz = fusion.red_key(lub["signals"], ref)
 ok((klucz or {}).get("powod") == "rcb3", f"klucz czerwonego z alertu poziomu 3 ({klucz})")
+zejscie = sig(4, "2026-10-15T23:20:30+00:00", "rso_alert", 1.5,
+              {"rso_id": "23420577", "valid_from": "2026-10-15 23:59:00", "rcb_level": 1})
+w_chwili = fusion.accumulate([jeden, trzy_s, zejscie], datetime(2026, 10, 15, 23, 21, tzinfo=timezone.utc))["lubelskie"]
+ok(fusion.red_key(w_chwili["signals"], datetime(2026, 10, 15, 23, 21, tzinfo=timezone.utc)) is None,
+   "po zejściu RSO do poziomu 1 klucz czerwonego znika od razu")
+po_10 = fusion.accumulate([jeden, trzy_s, zejscie], datetime(2026, 10, 15, 23, 31, tzinfo=timezone.utc))["lubelskie"]
+ok(abs(po_10["score"] - 1.5) < 0.05,
+   f"po {config.RCB_DOWNGRADE_FADE_MIN:g} min zostaje sam poziom 1: {po_10['score']:.2f}")
 odw = sig(3, "2026-10-15T23:29:25+00:00", "rso_clear", 0.0,
           {"rso_id": "23420577", "clear": True, "cleared_at": "2026-10-15T23:28:13+00:00"})
 lub = fusion.accumulate([jeden, trzy_s, odw], datetime(2026, 10, 15, 23, 30, tzinfo=timezone.utc))["lubelskie"]

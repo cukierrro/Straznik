@@ -62,6 +62,8 @@ RSO_CONTINUES = ("do odwołania", "do odwolania", "do czasu odwołania",
                  "aż do odwołania", "az do odwolania")
 
 _seen: set[str] = set()
+# ostatnio zapisany poziom wpisu w województwie: „rso:id:woj” → 1/2/3 (16.10.2026)
+_levels: dict[str, int] = {}
 _bootstrap = False
 
 
@@ -391,17 +393,31 @@ async def _process_item(it: dict) -> bool:
     # dla odwołań, a liczenie poziomu zostało na starym wzorze.
     poziom = rcb_level(f"{it.get('title','')} {naglowek} {tresc}")
     for voiv in voivodeships:
-        # Poziom w kluczu (16.10.2026): RSO podnosi stopień W MIEJSCU, pod tym samym id.
-        # 15.10 o 01:06 wpis 23420577 (lubelskie) zmienił się z „sytuacja jest
-        # monitorowana” na „Znajdź bezpieczne miejsce”; klucz `rso:id:woj` był już
+        # Zmiana stopnia W MIEJSCU (16.10.2026). RSO zmienia stopień pod tym samym id:
+        # 15.10 o 01:06 wpis 23420577 (lubelskie) przeszedł z „sytuacja jest
+        # monitorowana” na „Znajdź bezpieczne miejsce”. Klucz `rso:id:woj` był już
         # znany, więc poziom 3 (4,5 pkt i klucz czerwonego) przepadł — został tylko
-        # w dzienniku obserwacji. Poziom 1 zachowuje stary klucz, żeby po wdrożeniu
-        # trwające alerty nie weszły drugi raz. Ograniczenie: powrót w miejscu
-        # 1 → 3 → 1 zostawia poziom 3 do odwołania (strona ostrożniejsza).
-        key = f"rso:{mid}:{voiv}" if poziom == 1 else f"rso:{mid}:{voiv}:L{poziom}"
+        # w dzienniku obserwacji. Teraz każda zmiana poziomu, W GÓRĘ I W DÓŁ, wchodzi
+        # jako nowa wersja wpisu (decyzja usera: punktujemy tak, jak RSO podaje).
+        # Fuzja liczy najnowszą wersję; po obniżeniu nadwyżka gaśnie przez
+        # RCB_DOWNGRADE_FADE_MIN, a klucz czerwonego znika od razu. Pierwsza wersja
+        # zachowuje dawny klucz, więc trwające alerty nie wejdą drugi raz po wdrożeniu.
+        base = f"rso:{mid}:{voiv}"
+        prev = _levels.get(base)
+        if prev is None:
+            prev = fusion.db.last_rso_level(mid, voiv)
+        if prev == poziom:
+            _levels[base] = poziom
+            continue
+        if prev is None:
+            key = base if poziom == 1 else f"{base}:L{poziom}"
+        else:
+            key = f"{base}:L{poziom}:{it.get('updated_at') or ''}"
         if key in _seen:
             continue
-        if not _bootstrap and not _issued_recently(it):
+        # Zmiana poziomu znanego już wpisu nigdy nie idzie ścieżką „istniejący przy
+        # starcie”: to nowa informacja od RSO, nawet gdy przyszła w czasie restartu.
+        if prev is None and not _bootstrap and not _issued_recently(it):
             # Pierwszy przebieg: STARE alerty nie mają alarmować. Świeży alert
             # (patrz _issued_recently) musi jednak zadziałać normalnie — alert
             # wydany w czasie przestoju albo sekundę przed wdrożeniem dostawał
@@ -426,6 +442,7 @@ async def _process_item(it: dict) -> bool:
             dedup_key=key,
         )
         _seen.add(key)
+        _levels[base] = poziom
         reference_new = reference_new or inserted
     if reference_new:
         rcb_reference.capture(
