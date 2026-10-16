@@ -150,7 +150,10 @@ def build_state() -> dict:
             # 13.09.2026 pokazywała kolektor strony gov.pl, który od E3 jest tylko
             # punktem odniesienia (0 pkt); jego stan jest w /api/health jako rcb.
             "rcb": monitoring.rso_fresh(),
-            "rss": {u: st.get("ok", False) for u, st in rss_media.status["feeds"].items()},
+            # Bez kanałów „tylko dziennik” (BG/FI/NO): aplikacja ich nie pokazuje,
+            # a każdy bajt tej sekcji pobiera każdy klient (patrz rss_media.baltic).
+            "rss": {u: st.get("ok", False) for u, st in rss_media.status["feeds"].items()
+                    if st.get("country") not in config.NEIGHBOUR_JOURNAL_ONLY},
             # Litwa/Łotwa/Estonia osobno: w oknie „Źródła” widać, że kanały
             # działają i kiedy był ostatni artykuł oraz ostatni alarm.
             "baltic": rss_media.baltic,
