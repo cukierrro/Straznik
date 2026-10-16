@@ -844,10 +844,11 @@ async def _maybe_signal(t: dict):
     # Poziom w kluczu deduplikacji: gdy obiekt się zbliży albo zyska potwierdzenia,
     # jego waga rośnie i sygnał ma prawo wejść ponownie z wyższą punktacją.
     tier = int(points * 2)
-    try:
-        _renewal_shadow(t, a, points, approximate)
-    except Exception as exc:                      # noqa: BLE001
-        log.debug("cień odnowienia: %s", exc)
+    if config.SHADOW_NEPTUN_RENEW:
+        try:
+            _renewal_shadow(t, a, points, approximate)
+        except Exception as exc:                  # noqa: BLE001
+            log.debug("cień odnowienia: %s", exc)
     inserted = await fusion.ingest(
         source="neptun", event_type="neptun_threat", voivodeship=a["border_voiv"],
         points=points, title=title,
@@ -921,13 +922,16 @@ async def _handle_threats(threats: list[dict], replace: bool, *,
             t = _evaluate(t)
             tracks[t.get("id")] = t
             _zgubione.pop(t.get("id"), None)       # wrócił do feedu
-            _turnaway_shadow(t)
-            by_entry_shadow.observe(t)
+            if config.SHADOW_NEPTUN_TURNAWAY:
+                _turnaway_shadow(t)
+            if config.SHADOW_BY_ENTRY:
+                by_entry_shadow.observe(t)
             await _maybe_signal(t)
         except Exception as exc:                  # noqa: BLE001
             _bad_record(t, exc)
     for tid in before - set(tracks):
-        by_entry_shadow.removed(tid)
+        if config.SHADOW_BY_ENTRY:
+            by_entry_shadow.removed(tid)
         _zgub(old.get(tid))
     if replace:
         # pełny snapshot: zapominamy kotwice obiektów, których już nie ma
@@ -982,7 +986,8 @@ async def _dispatch(env: dict, received_at: float) -> None:
     elif etype == "remove":
         rid = (data or {}).get("id")
         _zgub(tracks.pop(rid, None))
-        by_entry_shadow.removed(rid)
+        if config.SHADOW_BY_ENTRY:
+            by_entry_shadow.removed(rid)
         if fusion.on_state_change:
             asyncio.create_task(fusion.on_state_change())
     elif etype == "alerts":

@@ -1058,7 +1058,7 @@
     if (north) north.innerHTML = "<b>The north (Pomeranian, West Pomeranian, "
       + "Warmian-Masurian, Kuyavian-Pomeranian) is scored differently</b>, because "
       + "NEPTUN covers Ukraine and gives those provinces zero. What remains is PA\u017bP, "
-      + "media (including a wave of reports about fighters scrambled over the Baltic), "
+      + "media, "
       + "Baltic media, RCB and neighbouring closures, so a PA\u017bP zone weighs 1 pt "
       + "there instead of 0.5. None of these raises the level on its own: zone 1 + media "
       + "report 1 = 2 pts (yellow); zone 1 + Baltic incident 0.5 = 1.5 pts — neighbouring "
@@ -1319,7 +1319,7 @@
     const redUk = document.getElementById("ab-czerwony");
     if (northUk) northUk.innerHTML = "<b>Північ (Поморське, Західнопоморське, Вармінсько-Мазурське, "
       + "Куявсько-Поморське) оцінюється інакше</b>, бо NEPTUN охоплює Україну і дає цим воєводствам нуль. "
-      + "Залишаються PAŻP, ЗМІ (зокрема хвиля повідомлень про підняті над Балтикою винищувачі), "
+      + "Залишаються PAŻP, ЗМІ, "
       + "балтійські ЗМІ, RCB і закриття простору в сусідів, тому зона PAŻP важить там 1 бал замість 0,5. "
       + "Жоден із цих сигналів сам рівня не піднімає: зона 1 + повідомлення ЗМІ 1 = 2 бали (жовтий); "
       + "зона 1 + балтійський інцидент 0,5 = 1,5 бала — самих лише сусідських ЗМІ не досить.";
