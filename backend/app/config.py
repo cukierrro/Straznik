@@ -421,6 +421,20 @@ TEST_SIGNAL_ENABLED = os.getenv("TEST_SIGNAL_ENABLED", "false").lower() == "true
 # do SQLite/logów, żeby przed osobną zgodą ocenić reguły na prawdziwych danych.
 ESCALATION_SHADOW_ENABLED = os.getenv("ESCALATION_SHADOW_ENABLED", "false").lower() == "true"
 
+# Zakończone pomiary trybu cienia (decyzja usera 16.10.2026, po analizie danych
+# z 13.09–16.10). Kod zostaje — przełącznik przywraca pomiar bez wdrażania kodu.
+#   samoloty wsparcia: przed alertem RCB 3,7 maszyny / 90 min, tło 3,5 — brak związku;
+#   artykuły o poderwaniu i fala QRA: fala 0 pkt od 22.09, 5 fal w miesiącu;
+#   wloty na Białoruś: w 3 h przed alertem 26/27, w tle 222/238 — nic nie wyróżnia;
+#   odnowienie / zawrócenie tropu NEPTUN: 11 i 2 przypadki po 0,1–1 pkt;
+#   odwołania wojewódzkie: 8 razy ten sam wzór, fuzja go już obsługuje.
+SHADOW_AIR_SUPPORT = False
+SHADOW_QRA = False
+SHADOW_BY_ENTRY = False
+SHADOW_NEPTUN_RENEW = False
+SHADOW_NEPTUN_TURNAWAY = False
+SHADOW_ODWOLANIE_WOJ = False
+
 # Audyt referencyjny oficjalnych alertów RCB/RSO. Zachowuje 30 minut danych
 # sprzed pierwszego wykrycia, ale nie zmienia punktacji ani powiadomień.
 RCB_REFERENCE_AUDIT_ENABLED = os.getenv("RCB_REFERENCE_AUDIT_ENABLED", "true").lower() == "true"
@@ -1084,7 +1098,16 @@ BALTIC_EVENT_KEYWORDS = [
 ]
 BALTIC_EXCLUDE_KEYWORDS = ["exercise", "drill", "training", "anniversary",
                            "drone show", "festival", "pratyb", "mācīb", "õppus",
-                           "delivery drone", "drone racing", "photo drone"]
+                           "delivery drone", "drone racing", "photo drone",
+                           # 16.10.2026 (decyzja usera): w październiku 3 z 4 punktowanych
+                           # „alarmów” z Bałtyku to nie były alarmy — informacja wyborcza (LV
+                           # 02.10), test powiadomień (EE 14.10), ćwiczenia w szkole (LV 15.10).
+                           # Na 66 tytułach z historii te rdzenie odcinają 5 wpisów, żadnego
+                           # prawdziwego alarmu. „Szkoła” celowo poza listą: prawdziwy alarm
+                           # bywa o zamkniętych szkołach.
+                           "izmēģin", "vēlēšan", "testib", "testim", "testitakse",
+                           "ruošia", "pasirengim", "pasiruoš", "rehearsal", "testing",
+                           "test alert"]
 # Komunikat kończący alarm nie jest kolejnym potwierdzeniem zagrożenia. Musi
 # wyzerować odpowiadający mu aktywny kontekst (LSM/ERR często zmieniają tytuł
 # i slug tego samego artykułu, zachowując jego numeryczny identyfikator).

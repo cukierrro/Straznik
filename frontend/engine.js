@@ -272,7 +272,10 @@ const B_AIR = ["airspace","air space","drone","uav","missile","shahed","air defe
 const B_EVENT = ["violat","intercept","shot down","scrambl","incursion","crash","fell","explos",
   "struck","entered","closed","alert","debris"];
 const B_EXCLUDE = ["exercise","drill","training","anniversary","drone show","festival",
-  "pratyb","mācīb","õppus","delivery drone","drone racing","photo drone"];
+  "pratyb","mācīb","õppus","delivery drone","drone racing","photo drone",
+  // lustro config.BALTIC_EXCLUDE_KEYWORDS: testy, ćwiczenia, wybory (16.10.2026)
+  "izmēģin","vēlēšan","testib","testim","testitakse","ruošia","pasirengim","pasiruoš",
+  "rehearsal","testing","test alert"];
 /* Kolejność ma znaczenie: dopasowanie kończy się na pierwszym trafieniu, więc
    nazwy zawierające się w innych (pomorskie ⊂ kujawsko-pomorskie) idą później.
    Świadomie pomijamy nazwy kolidujące ze słowami pospolitymi ("piła", "żary",

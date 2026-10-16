@@ -419,6 +419,12 @@ Tryb wbudowany w przeglądarce: `http://localhost:8600/?standalone=1`
 
 ## Tryb cienia progresji
 
+**Wyłączony 16.10.2026 (decyzja użytkownika).** Od 08.10 próg 3,5 przekroczyło 82 epizody
+żółte, a czerwonym skończyło się 11 (13%), średnio 2 minuty przed czerwonym; ostrzejsza
+reguła kwalifikacji nie zapaliła się ani razu. Czerwony zostaje przy 4,0 z kluczem.
+Kod zostaje; włącza go `ESCALATION_SHADOW_ENABLED=true`.
+
+
 Backend obserwuje na żywych danych hipotetyczne dodatkowe stopnie 2,5 / 3,0 /
 3,5, ale nie łączy ich z żadnym kanałem powiadomień. Rejestruje również
 eksperymentalny stopień oznaczony `1,5` dla świeżego, ciągłego śladu obiektu

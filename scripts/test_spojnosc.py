@@ -203,6 +203,12 @@ sprawdz("VOIV_KEYWORDS",
 sprawdz("MEDIA_CLEAR",
         sorted(lista(r"const MEDIA_CLEAR = \[(.*?)\];", ENGINE, "odwołania js")),
         sorted(lista(r"MEDIA_CLEAR_KEYWORDS = \[(.*?)\]", CONFIG, "odwołania py")))
+# 16.10.2026: weto bałtyckie (ćwiczenia, testy, wybory) — bez lustra tryb awaryjny
+# punktowałby ćwiczenia w szkole, które serwer już odrzuca. Porównujemy listę
+# z dosłownego przypisania; dopisek NEIGHBOUR_EXCLUDE_KEYWORDS dotyczy tylko serwera.
+sprawdz("BALTIC_EXCLUDE",
+        sorted(lista(r"const B_EXCLUDE = \[(.*?)\];", ENGINE, "weto bałtyckie js")),
+        sorted(lista(r"BALTIC_EXCLUDE_KEYWORDS = \[(.*?)\]", CONFIG, "weto bałtyckie py")))
 
 # ── wynik ────────────────────────────────────────────────────────────────────
 if bledy:

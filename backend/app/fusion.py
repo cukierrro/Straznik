@@ -616,7 +616,7 @@ def accumulate(signals: list[dict], ref: datetime | None = None, lost=None) -> d
             inne = sorted({o.get("voivodeship") for o in officials
                            if o.get("voivodeship") != s["voivodeship"]
                            and _issued_at(o) <= wpis["at"]} - {None})
-            if inne:
+            if inne and config.SHADOW_ODWOLANIE_WOJ:
                 stealth.record("odwolanie_wojewodzkie", str(wpis["rso_id"] or s.get("ts")), {
                     "odwolanie_dla": s["voivodeship"], "o": wpis["at"],
                     "tresc": (s.get("title") or "")[:200],

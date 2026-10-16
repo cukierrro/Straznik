@@ -513,10 +513,11 @@ async def _check_feed(client: httpx.AsyncClient, url: str, default_voiv: str | N
         t = entry.get("published_parsed") or entry.get("updated_parsed")
         pub_ts = calendar.timegm(t) if t else None
         # Fala QRA i dziennik stealth widzą też artykuły starsze i zagraniczne.
-        try:
-            _qra_observe(title, text, publisher, link, url, pub_ts, now)
-        except Exception as exc:                   # noqa: BLE001
-            log.warning("QRA: %s", exc)
+        if config.SHADOW_QRA:
+            try:
+                _qra_observe(title, text, publisher, link, url, pub_ts, now)
+            except Exception as exc:               # noqa: BLE001
+                log.warning("QRA: %s", exc)
         # wiek wpisu
         if pub_ts and now - pub_ts > MAX_AGE_S:
             continue
@@ -799,8 +800,9 @@ async def run():
                 return_exceptions=True,
             )
             _baltic_summary()
-            try:
-                await _qra_evaluate(time.time())
-            except Exception as exc:               # noqa: BLE001
-                log.warning("fala QRA: %s", exc)
+            if config.SHADOW_QRA:
+                try:
+                    await _qra_evaluate(time.time())
+                except Exception as exc:           # noqa: BLE001
+                    log.warning("fala QRA: %s", exc)
             await asyncio.sleep(config.RSS_INTERVAL)

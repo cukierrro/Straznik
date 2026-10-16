@@ -271,10 +271,11 @@ async def _tick(client: httpx.AsyncClient):
     ac_list = list(merged.values())
     status.update(ok=True, last=time.time(), error=None)
     # Tryb stealth: trasy tankowców/AWACS/rozpoznania do analizy wzorców (bez punktów).
-    try:
-        stealth.observe_air_support(ac_list)
-    except Exception as exc:                      # noqa: BLE001
-        log.warning("stealth air_support: %s", exc)
+    if config.SHADOW_AIR_SUPPORT:
+        try:
+            stealth.observe_air_support(ac_list)
+        except Exception as exc:                  # noqa: BLE001
+            log.warning("stealth air_support: %s", exc)
 
     per_voiv: dict[str, list] = {v: [] for v in geo.VOIV_BBOX}
     global current_aircraft
