@@ -19,7 +19,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "backend"))
 sys.stdout.reconfigure(encoding="utf-8")
 
-from app import by_entry_shadow as bes, fusion, stealth  # noqa: E402
+from app import by_entry_shadow as bes, config, fusion, stealth  # noqa: E402
 from app.collectors import neptun  # noqa: E402
 
 zapisy = []
@@ -101,10 +101,22 @@ async def neptun_flow():
                                  replace=False)
     await neptun._dispatch({"type": "remove", "data": {"id": "trk_f"}}, T0)
 
+# 16.10.2026: pomiar wyłączony przełącznikiem (decyzja usera). Podpięcie sprawdzamy
+# przy włączonym przełączniku, a potem, że wyłączony naprawdę nic nie zapisuje.
+config.SHADOW_BY_ENTRY = True
 asyncio.run(neptun_flow())
 fazy = sorted(d["phase"] + ":" + d["id"] for k, key, d in zapisy if k == "by_entry")
 sprawdz(fazy == ["inside:trk_f", "vanished:trk_e"], f"NEPTUN woła observe i removed ({fazy})")
 sprawdz(not any("by_entry" in str(kw) for kw in ingested), "wlot na Białoruś nie daje punktów")
+
+zapisy.clear()
+bes._last.clear()
+bes._inside.clear()
+neptun.tracks.clear()
+config.SHADOW_BY_ENTRY = False
+asyncio.run(neptun_flow())
+wylaczony = [d for k, key, d in zapisy if k == "by_entry"]
+sprawdz(not wylaczony, f"przełącznik SHADOW_BY_ENTRY=False: NEPTUN nic nie zapisuje ({len(wylaczony)})")
 
 if bledy:
     print(f"\n{len(bledy)} błędów")

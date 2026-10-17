@@ -105,6 +105,9 @@ sprawdz("klucz czerwonego: ETA", num(r"RED_GATE_ETA_MIN = ([\d.]+)", ENGINE, "et
         num(r"RED_GATE_ETA_MIN = ([\d.]+)", CONFIG, "eta py"))
 sprawdz("klucz czerwonego: km", num(r"RED_GATE_KM = ([\d.]+)", ENGINE, "km js"),
         num(r"RED_GATE_KM = ([\d.]+)", CONFIG, "km py"))
+sprawdz("klucz czerwonego: niepewność pozycji rejonowej",
+        num(r"RED_GATE_AREA_MAX_UNC_KM = ([\d.]+)", ENGINE, "rejonowa js"),
+        num(r"RED_GATE_AREA_MAX_UNC_KM = ([\d.]+)", CONFIG, "rejonowa py"))
 sprawdz("fala: liczba obiektów", num(r"WAVE_MIN = ([\d.]+)", ENGINE, "fala js"),
         num(r"NEPTUN_WAVE_MIN = ([\d.]+)", CONFIG, "fala py"))
 sprawdz("fala: punkty", num(r"WAVE_POINTS = ([\d.]+)", ENGINE, "fala pkt js"),
@@ -200,6 +203,12 @@ sprawdz("VOIV_KEYWORDS",
 sprawdz("MEDIA_CLEAR",
         sorted(lista(r"const MEDIA_CLEAR = \[(.*?)\];", ENGINE, "odwołania js")),
         sorted(lista(r"MEDIA_CLEAR_KEYWORDS = \[(.*?)\]", CONFIG, "odwołania py")))
+# 16.10.2026: weto bałtyckie (ćwiczenia, testy, wybory) — bez lustra tryb awaryjny
+# punktowałby ćwiczenia w szkole, które serwer już odrzuca. Porównujemy listę
+# z dosłownego przypisania; dopisek NEIGHBOUR_EXCLUDE_KEYWORDS dotyczy tylko serwera.
+sprawdz("BALTIC_EXCLUDE",
+        sorted(lista(r"const B_EXCLUDE = \[(.*?)\];", ENGINE, "weto bałtyckie js")),
+        sorted(lista(r"BALTIC_EXCLUDE_KEYWORDS = \[(.*?)\]", CONFIG, "weto bałtyckie py")))
 
 # ── wynik ────────────────────────────────────────────────────────────────────
 if bledy:

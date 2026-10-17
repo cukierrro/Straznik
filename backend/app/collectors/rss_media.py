@@ -51,18 +51,51 @@ UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
 MAX_AGE_S = 45 * 60   # ignoruj wpisy starsze niż 45 min (stare newsy ≠ sygnał "teraz")
 
 
-def _is_baltic_clear(text: str) -> bool:
+def _vocab(country: str, kind: str, base) -> list[str]:
+    """Wspólna lista plus słowa języka tego kanału (NEIGHBOUR_VOCAB, 16.10.2026).
+
+    Kraje spoza NEIGHBOUR_VOCAB dostają wspólną listę bez zmian — Litwa, Łotwa
+    i Estonia punktują, więc ich zachowanie nie może zależeć od tego, że doszedł
+    fiński czy norweski.
+    """
+    extra = config.NEIGHBOUR_VOCAB.get(country, {}).get(kind)
+    return list(base) + extra if extra else base
+
+
+def _foreign_markers(country: str) -> list[str]:
+    """Znaczniki zagranicy dla kanału z tego kraju.
+
+    Wspólna lista ma „norge”, „norsk”, „finland” — dla czeskiej redakcji to
+    zagranica, dla NRK to ON SAM. Bez wycięcia każdy norweski tytuł o „norsk
+    luftrom” wypadałby jako zagraniczny. Wycinamy tylko dla krajów z
+    NEIGHBOUR_VOCAB, reszta dostaje listę bez zmian.
+    """
+    markers = _vocab(country, "foreign", config.BALTIC_FOREIGN_MARKERS)
+    if country not in config.NEIGHBOUR_VOCAB:
+        return markers
+    own = config.BALTIC_LOCAL_MARKERS.get(country, ())
+    return [m for m in markers if not any(m in loc for loc in own)]
+
+
+def _journal_only(*countries: str) -> bool:
+    """Kraj na etapie „tylko dziennik”: decyzja do obserwacji, nic do fuzji."""
+    return any(c in config.NEIGHBOUR_JOURNAL_ONLY for c in countries)
+
+
+def _is_baltic_clear(text: str, country: str = "") -> bool:
     tl = text.lower()
-    return (any(word in tl for word in config.BALTIC_CLEAR_KEYWORDS)
-            and any(word in tl for word in config.BALTIC_CLEAR_CONTEXT))
+    return (any(word in tl for word in _vocab(country, "clear", config.BALTIC_CLEAR_KEYWORDS))
+            and any(word in tl for word in
+                    _vocab(country, "clear_context", config.BALTIC_CLEAR_CONTEXT)))
 
 
-def _speaker_quote(title_l: str) -> bool:
+def _speaker_quote(title_l: str, country: str = "") -> bool:
     """Tytuł „Osoba: cytat” („KOP vadas: neturėjome…”, „Gaižauskas: nesutinku…”) to
     wypowiedź o alarmie, nie jego ogłoszenie. Przedrostek z hasłem alarmu („Oro pavojus
     Vilniuje: …”) zostaje ogłoszeniem."""
     m = re.match(r"^([^:–—]{2,40}):\s", title_l)
-    return bool(m and not any(w in m.group(1) for w in config.BALTIC_ALERT_KEYWORDS))
+    return bool(m and not any(w in m.group(1) for w in
+                              _vocab(country, "alert", config.BALTIC_ALERT_KEYWORDS)))
 
 
 _BALTIC_TZ = ZoneInfo("Europe/Vilnius")      # LT, LV i EE mają ten sam czas
@@ -70,13 +103,14 @@ _BALTIC_TIME_RE = re.compile(
     r"(?:\b(\d{1,2})[:.](\d{2})\s*val\b)|(?:\b(?:plkst\.?|kell|at|apie)\s*(\d{1,2})[:.](\d{2})\b)")
 
 
-def _baltic_stale(text: str, age: float, now: float) -> str | None:
+def _baltic_stale(text: str, age: float, now: float, country: str = "") -> str | None:
     """Powód, dla którego wpis to nie „teraz” — albo None, gdy jest świeży."""
     if age > config.BALTIC_MAX_AGE_MIN * 60:
         return f"wiek {int(age // 60)} min"
     words = set(re.findall(r"\w+", text))
-    past = sorted(words & set(config.BALTIC_PAST_TIME_WORDS))
-    past += [p for p in config.BALTIC_PAST_TIME_PHRASES if p in text]
+    past = sorted(words & set(_vocab(country, "past", config.BALTIC_PAST_TIME_WORDS)))
+    past += [p for p in _vocab(country, "past_phrases", config.BALTIC_PAST_TIME_PHRASES)
+             if p in text]
     if past:
         return "czas przeszły: " + ", ".join(past[:3])
     local = datetime.fromtimestamp(now, _BALTIC_TZ)
@@ -134,33 +168,39 @@ def _baltic_abroad(title: str, country: str) -> bool:
     miejsce w kraju, zostaje — to nasz alarm z zagranicznym kontekstem.
     """
     tl = title.lower()
-    if not any(m in tl for m in config.BALTIC_FOREIGN_MARKERS):
+    if not any(m in tl for m in _foreign_markers(country)):
         return False
     return not any(m in tl for m in config.BALTIC_LOCAL_MARKERS.get(country, ()))
 
 
 def _is_baltic_alert(text: str, country: str = "") -> list[str]:
     tl = text.lower()
-    if any(word in tl for word in config.BALTIC_EXCLUDE_KEYWORDS):
+    if any(word in tl for word in _vocab(country, "exclude", config.BALTIC_EXCLUDE_KEYWORDS)):
         return []
     words = set(re.findall(r"\w+", tl))
-    if words & set(config.BALTIC_ALERT_PAST_MARKERS):
+    if words & set(_vocab(country, "past_markers", config.BALTIC_ALERT_PAST_MARKERS)):
         return []
-    hits = [word for word in config.BALTIC_ALERT_KEYWORDS if word in tl]
+    hits = [word for word in _vocab(country, "alert", config.BALTIC_ALERT_KEYWORDS)
+            if word in tl]
     # RO-Alert to JEDEN system na burze, powodzie, pożary i drony. Samo
     # „mesaj RO-Alert" nie mówi nic o powietrzu, więc dla krajów z
     # NEIGHBOUR_ALERT_NEEDS_AIR ogłoszenie liczy się tylko razem ze słowem
     # o przestrzeni, dronie albo rakiecie.
     if hits and country in config.NEIGHBOUR_ALERT_NEEDS_AIR:
-        if not any(word in tl for word in config.BALTIC_AIR_KEYWORDS):
+        if not any(word in tl for word in _vocab(country, "air", config.BALTIC_AIR_KEYWORDS)):
             return []
     return hits
 
 
 # Stan per kraj do okna „Źródła” w aplikacji i do łączenia doniesień z kilku
 # redakcji: ten sam alarm w LRT i 15min to jedno zdarzenie, nie dwa.
+# Kraje „tylko dziennik” (BG/FI/NO) celowo poza tym słownikiem: trafia on do
+# sekcji `health` w /api/state, której ETag nie zmienił się przez 3 minuty
+# pomiaru z 27.09.2026. „Ostatni artykuł” sześciu nowych kanałów zmieniałby go
+# co kilka minut i każdy klient dobierałby 2,4 KB na darmo. Ich zdrowie widać
+# w pełnym /api/health (status["feeds"]).
 baltic = {c: {"feeds_ok": 0, "feeds": 0, "newest_item": None, "last_alert": None}
-          for c in config.BALTIC_COUNTRY_NAMES}
+          for c in config.BALTIC_COUNTRY_NAMES if c not in config.NEIGHBOUR_JOURNAL_ONLY}
 _baltic_active: dict[str, dict] = {}     # kraj -> {"incident_key", "at"}
 _baltic_clears_seen: set[str] = set()
 _baltic_alerted: set[str] = set()        # incident_key, za które coś przyznano
@@ -513,10 +553,11 @@ async def _check_feed(client: httpx.AsyncClient, url: str, default_voiv: str | N
         t = entry.get("published_parsed") or entry.get("updated_parsed")
         pub_ts = calendar.timegm(t) if t else None
         # Fala QRA i dziennik stealth widzą też artykuły starsze i zagraniczne.
-        try:
-            _qra_observe(title, text, publisher, link, url, pub_ts, now)
-        except Exception as exc:                   # noqa: BLE001
-            log.warning("QRA: %s", exc)
+        if config.SHADOW_QRA:
+            try:
+                _qra_observe(title, text, publisher, link, url, pub_ts, now)
+            except Exception as exc:               # noqa: BLE001
+                log.warning("QRA: %s", exc)
         # wiek wpisu
         if pub_ts and now - pub_ts > MAX_AGE_S:
             continue
@@ -579,6 +620,7 @@ async def _check_baltic_feed(client: httpx.AsyncClient, url: str, country: str):
 
     LT/LV/EE punktują (kontekst dla północy, nie potwierdzenie). MD/RO/SK/CZ/SE/HU
     od 03.10.2026 chodzą w trybie cienia — karta i dziennik tak, punkty nie.
+    BG/FI/NO od 16.10.2026 tylko do dziennika (NEIGHBOUR_JOURNAL_ONLY).
     """
     st = status["feeds"].setdefault(url, {})
     st["country"] = country
@@ -637,7 +679,7 @@ async def _baltic_entries(entries, url: str, country: str, now: float):
             continue
         link = entry.get("link", "")
         incident_key = _baltic_incident_key(link, title, country)
-        if _is_baltic_clear(text):
+        if _is_baltic_clear(text, country):
             # Punkty 0 są celowe: wpis zostaje w historii i natychmiast wymusza
             # reevaluację, a fusion.accumulate wygasza wcześniejszy kontekst o
             # tym samym incident_key. Nigdy nie może podbić wyniku. Odwołanie
@@ -679,10 +721,15 @@ async def _baltic_entries(entries, url: str, country: str, now: float):
         # spațiul aerian al Republicii Moldova" z digi24.ro.
         where = _baltic_named_country(title_l, country)
         # tytuł-pytanie („ko trūksta…?”) to publicystyka, nie ogłoszenie alarmu (22.09.2026)
-        discussion = (any(m in f" {title_l}" for m in config.BALTIC_DISCUSSION_MARKERS)
+        discussion = (any(m in f" {title_l}" for m in
+                          _vocab(country, "discussion", config.BALTIC_DISCUSSION_MARKERS))
                       or title_l.rstrip().endswith("?"))
-        alert_hits = ([] if discussion or _speaker_quote(title_l)
+        alert_hits = ([] if discussion or _speaker_quote(title_l, country)
                       else _is_baltic_alert(title_l, country))
+        # Słowa incydentu w języku kanału (dla Bałtyku i szóstki — wspólne listy).
+        kw = [_vocab(country, k, base) for k, base in (
+            ("critical", config.BALTIC_CRITICAL_KEYWORDS), ("air", config.BALTIC_AIR_KEYWORDS),
+            ("event", config.BALTIC_EVENT_KEYWORDS), ("exclude", config.BALTIC_EXCLUDE_KEYWORDS))]
         # Czeskie i słowackie media piszą o cudzej przestrzeni powietrznej
         # częściej niż o własnej („Drony opět narušily dánský vzdušný prostor",
         # „V Litvě krátce platil vzdušný poplach", „Ruské drony narušili poľský
@@ -690,9 +737,7 @@ async def _baltic_entries(entries, url: str, country: str, now: float):
         # bo LRT pisze głównie o Litwie. Tutaj tytuł MUSI nazwać miejsce w tym
         # kraju — inaczej Czechy świeciłyby przy każdym zdarzeniu w Danii.
         if where in config.NEIGHBOUR_REQUIRE_LOCAL and not _local_hit(title_l, where):
-            if alert_hits or match_keywords(
-                    text, config.BALTIC_CRITICAL_KEYWORDS, config.BALTIC_AIR_KEYWORDS,
-                    config.BALTIC_EVENT_KEYWORDS, config.BALTIC_EXCLUDE_KEYWORDS):
+            if alert_hits or match_keywords(text, *kw):
                 _baltic_decision(where, "alert" if alert_hits else "context",
                                  "brak miejsca w kraju", title, link, url, age, now)
             continue
@@ -700,18 +745,21 @@ async def _baltic_entries(entries, url: str, country: str, now: float):
             _baltic_decision(country, "alert", "zagranica", title, link, url, age, now)
             alert_hits = []
         hits = ([] if alert_hits or discussion
-                or any(m in title_l for m in config.BALTIC_FOREIGN_MARKERS)
-                else match_keywords(text, config.BALTIC_CRITICAL_KEYWORDS,
-                                    config.BALTIC_AIR_KEYWORDS, config.BALTIC_EVENT_KEYWORDS,
-                                    config.BALTIC_EXCLUDE_KEYWORDS))
+                or any(m in title_l for m in _foreign_markers(country))
+                else match_keywords(text, *kw))
         if not (alert_hits or hits):
             continue
         # 15.09.2026: tylko świeże doniesienie o zdarzeniu teraz; każda decyzja do
         # dziennika, żeby po kilku dniach dobrać wagi na danych, a nie na oko.
-        stale = _baltic_stale(text, age, now)
+        stale = _baltic_stale(text, age, now, country)
         _baltic_decision(country, "alert" if alert_hits else "context", stale,
                          title, link, url, age, now)
         if stale:
+            continue
+        # BG/FI/NO (16.10.2026): decyzja jest już w dzienniku i na tym koniec —
+        # bez karty, bez wpisu w panelu, bez zera w historii. Patrz
+        # NEIGHBOUR_JOURNAL_ONLY w config.py.
+        if _journal_only(country, where):
             continue
         if alert_hits:
             active = _baltic_active.get(country)
@@ -799,8 +847,9 @@ async def run():
                 return_exceptions=True,
             )
             _baltic_summary()
-            try:
-                await _qra_evaluate(time.time())
-            except Exception as exc:               # noqa: BLE001
-                log.warning("fala QRA: %s", exc)
+            if config.SHADOW_QRA:
+                try:
+                    await _qra_evaluate(time.time())
+                except Exception as exc:           # noqa: BLE001
+                    log.warning("fala QRA: %s", exc)
             await asyncio.sleep(config.RSS_INTERVAL)

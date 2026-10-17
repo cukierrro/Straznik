@@ -2981,19 +2981,29 @@ function refreshCountedTracks() {
   countedTracks = ids;
 }
 const PULSE_MS = 1600;
-let lastPulse = 0;
+let lastPulse = 0, pulseOff = false;
 function pulseLoop(ts) {
   requestAnimationFrame(pulseLoop);
   // ~20 kl./s wystarcza; w tle, w historii i bez liczonych obiektów nic nie robimy
   if (!mapReady || ts - lastPulse < 50) return;
   lastPulse = ts;
   if (document.hidden || histMode || !countedTracks.size) {
-    if (map.getLayer("threats-pulse")) map.setPaintProperty("threats-pulse", "circle-stroke-opacity", 0);
+    // wygaszamy raz, a nie co 50 ms — każde ustawienie to przerysowanie mapy
+    if (!pulseOff && map.getLayer("threats-pulse")) map.setPaintProperty("threats-pulse", "circle-stroke-opacity", 0);
+    pulseOff = true;
     return;
   }
+  // Zgłoszenie 15.10.2026: przy wielu obiektach przesuwanie mapy w przeglądarce
+  // przycinało. Puls przerysowuje mapę 20×/s, więc w trakcie przesuwania i przybliżania
+  // stoi — wraca, gdy mapa się zatrzyma.
+  if (map.isMoving()) return;
+  pulseOff = false;
   const k = (ts % PULSE_MS) / PULSE_MS;
-  map.setPaintProperty("threats-pulse", "circle-radius",
-    ["interpolate", ["linear"], ["zoom"], 4, 11 + 12 * k, 8, 20 + 20 * k]);
+  // promień liczony tutaj z poziomu przybliżenia (liniowo 4→8, poza zakresem stały)
+  // zamiast nowego wyrażenia „interpolate” 20×/s, które MapLibre musi za każdym
+  // razem przetworzyć od nowa — wygląd ten sam
+  const z = Math.min(1, Math.max(0, (map.getZoom() - 4) / 4));
+  map.setPaintProperty("threats-pulse", "circle-radius", (11 + 12 * k) + ((20 + 20 * k) - (11 + 12 * k)) * z);
   map.setPaintProperty("threats-pulse", "circle-stroke-opacity", 0.9 * (1 - k));
 }
 requestAnimationFrame(pulseLoop);
@@ -3032,11 +3042,26 @@ function glidePosition(t, target, now) {
 }
 
 let lastAnim = 0;
+// Ostatnio narysowany stan warstw obiektów (zgłoszenie 15.10.2026 — przycinanie
+// przy wielu obiektach). Cztery setData co 200 ms przebudowują i indeksują całe
+// kolekcje GeoJSON, a potem mapa przelicza etykiety. Przebudowujemy tylko wtedy,
+// gdy coś się zmieniło: nowy stan, trwające przejście ikony, upływ 15 s (wiek
+// meldunku i okrąg niepewności rosną z czasem), inny tryb śladów albo nowe źródło.
+let _animState = null, _animBucket = -1, _animMode = "", _animSrc = null;
 function animate(ts) {
   requestAnimationFrame(animate);
-  if (!mapReady || !state || histMode || ts - lastAnim < 200) return;
+  if (histMode) { _animState = null; return; }   // po wyjściu z historii rysujemy od nowa
+  if (!mapReady || !state || ts - lastAnim < 200) return;
+  // w trakcie przesuwania i przybliżania nie przebudowujemy warstw — to wtedy
+  // najdroższe; ikony dojadą, gdy mapa się zatrzyma
+  if (map.isMoving()) return;
   lastAnim = ts;
   const now = Date.now();
+  const bucket = Math.floor(now / 15000), mode = trailMode("neptun"), src = map.getSource("threats");
+  let glideActive = false;
+  for (const g of glides.values()) if (g.start && now - g.start < GLIDE_MS) { glideActive = true; break; }
+  if (!glideActive && _animState === state && _animBucket === bucket && _animMode === mode && _animSrc === src) return;
+  _animState = state; _animBucket = bucket; _animMode = mode; _animSrc = src;
   const threats = state.neptun?.threats || [];
   const pts = [], trails = [], unc = [], course = [];
   const nMode = trailMode("neptun");
@@ -4132,7 +4157,46 @@ function balticRows() {
   return `<p class="fineprint" style="margin:12px 0 6px">${UI.t("Sąsiedzi — brak publicznego API alarmów, więc śledzimy kanały mediów", "Neighbours — no public alert API exists, so media feeds are watched", "Сусіди — немає відкритого API тривог, тому стежимо за каналами медіа")}</p>${rows}${cienBlok}`;
 }
 
+/* Pasek „NEPTUN niedostępny” (17.10.2026, decyzja usera). Tego dnia NEPTUN leżał
+   16 minut, a mapa pokazywała obiekty sprzed awarii; sygnałem była tylko czerwona
+   dioda. Obiektów NIE ukrywamy (pusta mapa przy czerwonych diodach mówiłaby
+   „spokój”) — pasek tylko wyjaśnia, od kiedy dane NEPTUN-a stoją. Krótkie
+   przerwy (ponowne łączenie trwa sekundy) nie pokazują nic. */
+const NEPTUN_DOWN_BADGE_MS = 120000;
+let neptunDownSeen = 0;          // kiedy TA aplikacja zobaczyła awarię (tryb bez serwera nie zna last_msg)
+function renderNeptunBadge() {
+  const el = document.getElementById("src-badge");
+  if (!el) return;
+  const down = !!(state && !histMode && state.health && state.health.neptun === false);
+  if (!down) neptunDownSeen = 0;
+  else if (!neptunDownSeen) neptunDownSeen = Date.now();
+  const lastRaw = Number(state?.neptun?.status?.last_msg);
+  const last = lastRaw > 0 ? lastRaw * 1000 : NaN;
+  const od_ = Number.isFinite(last) ? last : neptunDownSeen;
+  const dlugo = down && Date.now() - od_ > NEPTUN_DOWN_BADGE_MS;
+  // przy zerwanym połączeniu z NASZYM serwerem mówi już plakietka połączenia
+  if (!dlugo || !connBadge.classList.contains("hidden")) {
+    if (!el.classList.contains("hidden")) el.classList.add("hidden");
+    return;
+  }
+  const od = Number.isFinite(last)
+    ? new Date(od_).toLocaleTimeString(UI.t("pl-PL", "en-GB", "uk-UA"), { hour: "2-digit", minute: "2-digit" }) : "";
+  const txt = od
+    ? UI.t(`NEPTUN nie odpowiada od ${od} — drony i alarmy UA na mapie mogą być nieaktualne`,
+           `NEPTUN not responding since ${od} — drones and UA alerts on the map may be out of date`,
+           `NEPTUN не відповідає з ${od} — дрони й тривоги UA на мапі можуть бути застарілими`)
+    : UI.t("NEPTUN nie odpowiada — drony i alarmy UA na mapie mogą być nieaktualne",
+           "NEPTUN not responding — drones and UA alerts on the map may be out of date",
+           "NEPTUN не відповідає — дрони й тривоги UA на мапі можуть бути застарілими");
+  if (el.textContent !== txt) {
+    el.textContent = txt;
+    if (el.classList.contains("hidden")) powiedz(a11yInfo, txt);
+  }
+  el.classList.remove("hidden");
+}
+
 function renderLeds() {
+  renderNeptunBadge();
   document.getElementById("status-leds").innerHTML = ledItems().map(([n, ok]) =>
     `<span class="led ${ok ? "ok" : "err"}"><i></i><span>${esc(srcTitle(n))}<span class="sr-only">: ${ok ? UI.t("działa", "working", "працює") : UI.t("brak odpowiedzi", "not responding", "немає відповіді")}</span></span></span>`).join("");
   // okno źródeł bywa otwarte właśnie wtedy, gdy użytkownik czeka na powrót
@@ -4166,6 +4230,7 @@ function showSources() {
   fillSources();
   document.getElementById("sources").showModal();
 }
+document.getElementById("src-badge")?.addEventListener("click", showSources);
 
 /* Jeden nasłuch na wszystkie krzyżyki okien — dokładanie osobnego do każdego
    okna kończy się tym, że przy następnym oknie ktoś zapomni. Zamknięcie jest
@@ -5404,7 +5469,7 @@ function mergedWatchEvents(server, local, at) {
    to więc średnia z 30 min (decyzja usera), a surowe wartości stoją pod nią jako
    blade słupki. Rakiety i KAB to kropki u dołu (przy kilkudziesięciu dronach
    kilka rakiet byłoby płaską linią). Dziura w migawkach >10 min przerywa krzywą. */
-const W12_W = 364, W12_H = 84, W12_SREDNIA_MS = 15 * 60000, W12_DZIURA_MS = 10 * 60000;
+const W12_W = 364, W12_H = 84, W12_SREDNIA_MS = 30 * 60000, W12_DZIURA_MS = 10 * 60000;
 let _snapyLokalne = null, _snapyLokalneT = 0;
 function snapyHistorii() {
   if (!standalone) return srvSnaps;
@@ -5424,10 +5489,12 @@ function seriaDronow(snaps) {
     const l = licznikZObiektow(x.threats);
     out.push({ t: x.t, drony: l.drony, rakiety: l.rakiety });
   }
-  // średnia krocząca ±15 min po czasie (nie po indeksie — migawki mają dziury)
+  /* Średnia z OSTATNICH 30 min do danej chwili, po czasie (migawki mają dziury).
+     Do 15.10.2026 było okno ±15 min wokół chwili — w historii sięgało w przyszłość
+     i o 15:36 dawało 3 przy 5 z poprzednich 30 min (zgłoszenie usera). */
   let a = 0, b = 0, suma = 0;
   for (let i = 0; i < out.length; i++) {
-    while (b < out.length && out[b].t <= out[i].t + W12_SREDNIA_MS) suma += out[b++].drony;
+    while (b <= i) suma += out[b++].drony;
     while (out[a].t < out[i].t - W12_SREDNIA_MS) suma -= out[a++].drony;
     out[i].srednia = suma / (b - a);
   }
@@ -5507,9 +5574,10 @@ function wykres12Odswiez() {
   w12 = { seria, t0, t1, krok, max: Math.ceil(surowy / krok) * krok };
   document.getElementById("w12-t").textContent = UI.t("Drony i rakiety · 12 h", "Drones and missiles · 12 h", "Дрони й ракети · 12 год");
   document.getElementById("w12-max").textContent = szczyt.drony
-    ? `${UI.t("max", "max", "макс.")} ${szczyt.drony} ${UI.t("o", "at", "о")} ${wykres12Godz(szczyt.t)}` : "";
-  document.getElementById("w12-l-d").textContent = UI.t("drony (średnia z 30 min)", "drones (30-min average)", "дрони (середнє за 30 хв)");
+    ? `${UI.t("najwięcej naraz", "peak", "найбільше одночасно")}: ${szczyt.drony} ${UI.t("o", "at", "о")} ${wykres12Godz(szczyt.t)}` : "";
+  document.getElementById("w12-l-d").textContent = UI.t("drony (średnia z ostatnich 30 min)", "drones (average of the last 30 min)", "дрони (середнє за останні 30 хв)");
   document.getElementById("w12-l-r").textContent = UI.t("rakiety i KAB", "missiles and KAB", "ракети й KAB");
+  document.getElementById("w12-l-s").textContent = UI.t("liczba w danej minucie", "count at that minute", "кількість у ту хвилину");
   const osie = document.getElementById("w12-osie");
   osie.innerHTML = [0, 0.25, 0.5, 0.75, 1].map(f => `<span>${wykres12Godz(t0 + (t1 - t0) * f)}</span>`).join("");
   /* Dla czytnika: wykres to obrazek, więc mówimy wprost, co na nim jest. */
@@ -5532,14 +5600,32 @@ function wykres12Odswiez() {
     etykiety += `<span style="top:${(wykres12Y(v) / W12_H * 100).toFixed(1)}%">${v}</span>`;
   skala.innerHTML = etykiety;
   wykres12Rysuj(document.getElementById("w12-mini"), 110, 22, true);
-  wykres12Rysuj(svg, W12_W, W12_H, false);
-  wykres12Kreska(Date.parse(histTimes[+document.getElementById("tb-slider").value || 0]) || t1);
+  wykres12RysujDuzy();
   let rozwiniety = false;
   try { rozwiniety = localStorage.getItem("straznik_wykres12") === "1"; } catch {}
   wykres12Ustaw(rozwiniety);
 }
+/* Rysunek w szerokości, jaką wykres ma NA EKRANIE. Stały viewBox 364 rozciągany na
+   stronie do ~1800 px robił z kropek rakiet owale (zgłoszenie usera 15.10.2026).
+   Zwinięty wykres ma szerokość 0 — wtedy rysujemy przy rozwinięciu. */
+function wykres12RysujDuzy() {
+  const svg = document.getElementById("w12-svg");
+  if (!w12 || !svg) return;
+  const W = Math.round(svg.getBoundingClientRect().width);
+  if (!W) return;
+  w12.W = W;
+  svg.setAttribute("viewBox", `0 0 ${W} ${W12_H}`);
+  wykres12Rysuj(svg, W, W12_H, false);
+  wykres12Kreska(Date.parse(histTimes[+document.getElementById("tb-slider").value || 0]) || w12.t1);
+}
+let _w12Resize = 0;
+window.addEventListener("resize", () => {
+  clearTimeout(_w12Resize);
+  _w12Resize = setTimeout(() => { if (histMode && !document.getElementById("w12-cialo")?.hidden) wykres12RysujDuzy(); }, 200);
+});
 function wykres12Ustaw(rozwiniety) {
   document.getElementById("w12-cialo").hidden = !rozwiniety;
+  if (rozwiniety) wykres12RysujDuzy();
   document.getElementById("w12-mini").style.display = rozwiniety ? "none" : "";
   const b = document.getElementById("w12-przelacz");
   b.setAttribute("aria-expanded", String(rozwiniety));
@@ -5548,7 +5634,8 @@ function wykres12Ustaw(rozwiniety) {
 function wykres12Kreska(t) {
   const k = document.getElementById("w12-kreska");
   if (!k || !w12) return;
-  const x = ((t - w12.t0) / Math.max(1, w12.t1 - w12.t0) * W12_W).toFixed(1);
+  const W = w12.W || W12_W;
+  const x = ((t - w12.t0) / Math.max(1, w12.t1 - w12.t0) * W).toFixed(1);
   k.setAttribute("x1", x); k.setAttribute("x2", x);
   /* Przy kresce: kropka na krzywej i jej wartość — średnia z 30 min w tej chwili
      (uwaga usera: „nie widać na wykresie tej średniej, ile to jest”). */
@@ -5559,8 +5646,14 @@ function wykres12Kreska(t) {
   pkt?.setAttribute("cx", x); pkt?.setAttribute("cy", wykres12Y(p.srednia).toFixed(1));
   const w = document.getElementById("w12-wartosc");
   if (!w) return;
-  w.textContent = `${UI.t("śr.", "avg", "сер.")} ${sr}`;
-  const fx = +x / W12_W;
+  /* Dwie miary obok siebie (zgłoszenie usera 15.10.2026: „max 30 o 12:58”, a przy
+     12:58 dymek „17”): liczba w tej minucie — ta sama co w pasku i podpisie — oraz
+     średnia z 30 min, którą rysuje krzywa. */
+  w.textContent = `${p.drony} · ${UI.t("śr.", "avg", "сер.")} ${sr}`;
+  w.title = UI.t(`${p.drony} dronów w tej minucie, średnio ${sr} w ostatnich 30 minutach`,
+    `${p.drony} drones at this minute, ${sr} on average over the last 30 minutes`,
+    `${p.drony} дронів у цю хвилину, у середньому ${sr} за останні 30 хвилин`);
+  const fx = +x / W;
   w.style.left = (fx * 100).toFixed(2) + "%";
   w.style.top = (wykres12Y(p.srednia) / W12_H * 100).toFixed(1) + "%";
   // dymek po lewej stronie kreski, a przy lewym brzegu po prawej — nie wychodzi poza kartę

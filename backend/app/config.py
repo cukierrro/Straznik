@@ -250,6 +250,12 @@ NEPTUN_WAVE_WINDOW_MIN = 15
 NEPTUN_WAVE_POINTS = 0.5
 
 RED_GATE_MAX_AGE_MIN = 25          # meldunek starszy niż 25 min nie otwiera czerwonego
+# Pozycja tylko „rejonowa” (środek obwodu) z dużą niepewnością nie otwiera czerwonego —
+# punkty daje dalej. 15.10.2026 lubelskie dostało czerwony od „2× dron, około 50 km”
+# z pozycją w środku obwodu wołyńskiego, ±70 km, bez kursu, sprzed 14 minut; resztę
+# dopchnął Alert RCB poziomu 1. W historii od 15.09 każdy prawdziwy czerwony otworzył
+# obiekt z niepewnością 4–25 km, a ten próg zmienia wyłącznie 15.10 (decyzja usera).
+RED_GATE_AREA_MAX_UNC_KM = 30.0
 RED_GATE_TYPES = ("ballistic", "mig31k", "cruise", "missile", "kab", "shahed", "uav")
 
 THRESHOLD_ELEVATED = 2.0           # "PODWYŻSZONA UWAGA"
@@ -414,6 +420,20 @@ TEST_SIGNAL_ENABLED = os.getenv("TEST_SIGNAL_ENABLED", "false").lower() == "true
 # żadnego połączenia z kanałami powiadomień: zapisuje wyłącznie próbki i decyzje
 # do SQLite/logów, żeby przed osobną zgodą ocenić reguły na prawdziwych danych.
 ESCALATION_SHADOW_ENABLED = os.getenv("ESCALATION_SHADOW_ENABLED", "false").lower() == "true"
+
+# Zakończone pomiary trybu cienia (decyzja usera 16.10.2026, po analizie danych
+# z 13.09–16.10). Kod zostaje — przełącznik przywraca pomiar bez wdrażania kodu.
+#   samoloty wsparcia: przed alertem RCB 3,7 maszyny / 90 min, tło 3,5 — brak związku;
+#   artykuły o poderwaniu i fala QRA: fala 0 pkt od 22.09, 5 fal w miesiącu;
+#   wloty na Białoruś: w 3 h przed alertem 26/27, w tle 222/238 — nic nie wyróżnia;
+#   odnowienie / zawrócenie tropu NEPTUN: 11 i 2 przypadki po 0,1–1 pkt;
+#   odwołania wojewódzkie: 8 razy ten sam wzór, fuzja go już obsługuje.
+SHADOW_AIR_SUPPORT = False
+SHADOW_QRA = False
+SHADOW_BY_ENTRY = False
+SHADOW_NEPTUN_RENEW = False
+SHADOW_NEPTUN_TURNAWAY = False
+SHADOW_ODWOLANIE_WOJ = False
 
 # Audyt referencyjny oficjalnych alertów RCB/RSO. Zachowuje 30 minut danych
 # sprzed pierwszego wykrycia, ale nie zmienia punktacji ani powiadomień.
@@ -677,6 +697,11 @@ MEDIA_NONCURRENT_KEYWORDS = [
     # („Nocny alert RCB na wschodzie Polski… przestrzeń powietrzna nie została naruszona”,
     # „Alert RCB zamiast ostrzegać, usypia czujność? Co nie działa w systemie alarmowym?”)
     "nocny alert", "nocnego alertu", "nie została naruszona", "zakończyło operację", "znamy szczegóły", "usypia czujność", "co nie działa w systemie", "zakończyło działania",
+    # 15.10.2026: „Jak reagować w sytuacji zagrożenia? Specjalne szkolenie w Lublinie”
+    # dało lubelskiemu 0,8 pkt i z alarmem obwodu wołyńskiego (1,0) oraz dronami 250 km
+    # (0,2) wysłało żółty. Szkolenie to zapowiedź, nie meldunek. Bez „jak reagować”
+    # (bywa w relacji z trwającego alarmu) i bez „warsztat” (dron spadł na warsztat).
+    "szkoleni",
 ]
 # „Niespokojna noc/poranek" nie jest już wetem (E3): podsumowanie nocy bywa
 # relacją na żywo, a o świeżości decyduje article_reader po treści artykułu.
@@ -1073,7 +1098,16 @@ BALTIC_EVENT_KEYWORDS = [
 ]
 BALTIC_EXCLUDE_KEYWORDS = ["exercise", "drill", "training", "anniversary",
                            "drone show", "festival", "pratyb", "mācīb", "õppus",
-                           "delivery drone", "drone racing", "photo drone"]
+                           "delivery drone", "drone racing", "photo drone",
+                           # 16.10.2026 (decyzja usera): w październiku 3 z 4 punktowanych
+                           # „alarmów” z Bałtyku to nie były alarmy — informacja wyborcza (LV
+                           # 02.10), test powiadomień (EE 14.10), ćwiczenia w szkole (LV 15.10).
+                           # Na 66 tytułach z historii te rdzenie odcinają 5 wpisów, żadnego
+                           # prawdziwego alarmu. „Szkoła” celowo poza listą: prawdziwy alarm
+                           # bywa o zamkniętych szkołach.
+                           "izmēģin", "vēlēšan", "testib", "testim", "testitakse",
+                           "ruošia", "pasirengim", "pasiruoš", "rehearsal", "testing",
+                           "test alert"]
 # Komunikat kończący alarm nie jest kolejnym potwierdzeniem zagrożenia. Musi
 # wyzerować odpowiadający mu aktywny kontekst (LSM/ERR często zmieniają tytuł
 # i slug tego samego artykułu, zachowując jego numeryczny identyfikator).
@@ -1203,10 +1237,11 @@ BALTIC_EVENT_TIME_MAX_MIN = 60
 # sygnał, pokazują kartę na mapie, każdą decyzję zapisują w dzienniku
 # obserwacji („baltic_media_decision”) i NIE DODAJĄ PUNKTÓW. Wagi niżej są
 # policzone i gotowe; dopóki kraj jest w NEIGHBOUR_SHADOW, punkty wychodzą 0.
-NEIGHBOUR_SHADOW = {"MD", "RO", "SK", "CZ", "SE", "HU"}
+NEIGHBOUR_SHADOW = {"MD", "RO", "SK", "CZ", "SE", "HU", "BG", "FI", "NO"}
 NEIGHBOUR_COUNTRY_NAMES = {
     "MD": "Mołdawia", "RO": "Rumunia", "SK": "Słowacja",
     "CZ": "Czechy", "SE": "Szwecja", "HU": "Węgry",
+    "BG": "Bułgaria", "FI": "Finlandia", "NO": "Norwegia",
 }
 # Po dwa kanały na kraj, jak przy Bałtyku: gdy jeden padnie albo przestanie
 # podawać artykuły z datą, drugi zostaje. Wszystkie sprawdzone 03.10.2026 —
@@ -1232,6 +1267,17 @@ NEIGHBOUR_FEEDS = [
     ("https://api.sr.se/api/rss/program/83", "SE"),   # Sveriges Radio, Ekot
     ("https://telex.hu/rss", "HU"),
     ("https://hvg.hu/rss", "HU"),
+    # 16.10.2026, tylko dziennik (NEIGHBOUR_JOURNAL_ONLY). Zmierzone tego dnia:
+    # BNT 18,9 kB po gzip, Dnevnik 8,6, Yle 4,1, HS 15, NRK 8,6, NRK Troms og
+    # Finnmark 6,9 — razem ok. 30 MB na dobę przy co trzecim cyklu. Odpadły:
+    # BTA (99 kB bez kompresji), 24chasa (27 kB), NRK toppsaker (32 kB),
+    # Iltalehti (30 kB bez kompresji), BNR (nie ma działającego kanału RSS).
+    ("https://bntnews.bg/bg/rss/news", "BG"),          # BNT, nadawca publiczny
+    ("https://www.dnevnik.bg/rss/", "BG"),
+    ("https://yle.fi/rss/uutiset/tuoreimmat", "FI"),   # Yle, nadawca publiczny
+    ("https://www.hs.fi/rss/tuoreimmat.xml", "FI"),
+    ("https://www.nrk.no/nyheter/siste.rss", "NO"),    # NRK, nadawca publiczny
+    ("https://www.nrk.no/tromsogfinnmark/siste.rss", "NO"),  # pogranicze z Kolą
 ]
 # Odległość i wspólny kierunek zagrożenia. Słowacja i Węgry graniczą z Ukrainą,
 # więc zdarzenie nad nimi znaczy, że coś przeszło przez tę samą ścianę co nad
@@ -1240,6 +1286,8 @@ NEIGHBOUR_FEEDS = [
 # mówi o Polsce najmniej.
 NEIGHBOUR_ALERT_COUNTRY_WEIGHTS = {
     "SK": 0.8, "MD": 0.5, "RO": 0.5, "HU": 0.5, "CZ": 0.3, "SE": 0.3,
+    # Wstępne, nieużywane: te trzy kraje na razie nie trafiają nawet do fuzji.
+    "FI": 0.3, "BG": 0.2, "NO": 0.2,
 }
 # Które województwa to w ogóle dotyczy. Alarm bałtycki świeci na północ,
 # słowacki i węgierski na południe — wspólna lista czterech województw
@@ -1253,6 +1301,9 @@ NEIGHBOUR_TARGET_WEIGHTS = {
     "CZ": {"dolnośląskie": 1.0, "opolskie": 1.0, "śląskie": 1.0,
            "lubuskie": 0.5, "małopolskie": 0.5},
     "SE": {"pomorskie": 1.0, "zachodniopomorskie": 1.0, "warmińsko-mazurskie": 0.5},
+    "FI": {"podlaskie": 1.0, "warmińsko-mazurskie": 1.0, "pomorskie": 0.5},
+    "NO": {"pomorskie": 1.0, "zachodniopomorskie": 1.0},
+    "BG": {"podkarpackie": 1.0, "lubelskie": 0.5, "małopolskie": 0.5},
 }
 # NAJWAŻNIEJSZY FILTR tej szóstki. Czeskie i słowackie media piszą o cudzej
 # przestrzeni powietrznej częściej niż o własnej — pierwsze wyniki wyszukiwania
@@ -1262,11 +1313,11 @@ NEIGHBOUR_TARGET_WEIGHTS = {
 # „brak zagranicy w tytule ⇒ u siebie”, bo LRT pisze głównie o Litwie. Tutaj
 # zasada jest odwrócona: tytuł MUSI nazwać miejsce w tym kraju, inaczej wpis
 # nie jest sygnałem. Bez tego Czechy świeciłyby przy każdym zdarzeniu w Danii.
-NEIGHBOUR_REQUIRE_LOCAL = {"MD", "RO", "SK", "CZ", "SE", "HU"}
+NEIGHBOUR_REQUIRE_LOCAL = {"MD", "RO", "SK", "CZ", "SE", "HU", "BG", "FI", "NO"}
 # RO-Alert to jeden system na burze, powodzie, pożary i drony. Samo „mesaj
 # RO-Alert” nic nie mówi o powietrzu, więc dla tych krajów ogłoszenie alarmu
 # liczy się tylko razem ze słowem o powietrzu, dronie albo rakiecie.
-NEIGHBOUR_ALERT_NEEDS_AIR = {"MD", "RO", "SK", "CZ", "SE", "HU"}
+NEIGHBOUR_ALERT_NEEDS_AIR = {"MD", "RO", "SK", "CZ", "SE", "HU", "BG", "FI", "NO"}
 # Kraj, o którym MÓWI tytuł — dla par, które piszą o sobie w swoim języku:
 # rumuńskie media o Mołdawii (ten sam język!), czeskie o Słowacji i odwrotnie.
 # Grupy są rozdzielne: marker rumuński nie przeniesie zdarzenia na Szwecję.
@@ -1423,6 +1474,132 @@ NEIGHBOUR_LOCAL_MARKERS = {
            "szolnok", "záhony", "zahony", "nyírbátor", "nyirbator", "beregsurány",
            "beregsurany", "kelebia", "győr", "gyor", "miskolc", "pécs", "pecs",
            "szabolcs", "tisza"],
+    # Bez krótkich rdzeni, które siedzą w zwykłych słowach: „oulu” jest
+    # w „koulu” (szkoła), „salla” w „kassalla”, „sola” i „alta” w dziesiątkach
+    # norweskich wyrazów. „въздушното ни пространство” to „nasza przestrzeń” —
+    # tak bułgarskie MO pisało 08.08.2026 o dronie koło Kardam, bez nazwy kraju.
+    "BG": ["българ", "въздушното ни простр", "софия", "варна", "варненск", "бургас",
+           "добрич", "силистр", "русе", "кардам", "шабла", "каварн", "балчик",
+           "крапец", "калиакра", "генерал тошево", "тутракан", "видин", "пловдив",
+           "ямбол", "граф игнатиево", "безмер", "долна митрополия"],
+    "FI": ["suome", "suomi", "helsin", "vantaa", "espoo", "porvoo", "kotka", "hamina",
+           "virolah", "lappeenran", "imatra", "joensuu", "kuopio", "rovaniem",
+           "ivalo", "sodankyl", "kajaani", "kuusamo", "savonlinna", "mikkeli",
+           "turku", "tampere", "vaasa", "uusimaa", "uudenmaan", "uudellemaalle",
+           "kymenlaak", "rissala", "pirkkala"],
+    "NO": ["norsk", "norge", "noreg", "oslo", "gardermoen", "bergen", "stavanger",
+           "trondheim", "bodø", "tromsø", "tromso", "kirkenes", "finnmark", "vardø",
+           "vardo", "vadsø", "vadso", "sør-varanger", "sor-varanger", "hammerfest",
+           "evenes", "ørland", "orland", "andøya", "andoya", "rygge", "bardufoss",
+           "nordland", "svalbard", "kristiansand", "haugesund", "lofoten", "narvik",
+           "harstad"],
+}
+
+# ── Bułgaria, Finlandia, Norwegia — od 16.10.2026, TYLKO DZIENNIK ────────────
+# Prośba użytkownika z 16.10.2026, po atakach dronów na statki u wybrzeży
+# Bułgarii i przy pytaniu o lukę między Rosją a Szwecją. To krok PRZED trybem
+# cienia z 03.10: każda decyzja idzie do dziennika obserwacji
+# („baltic_media_decision”), ale nic nie trafia do fuzji — ani karta, ani wpis
+# w panelu sygnałów, ani zero punktów w historii. Powód: aplikacja nie zna
+# jeszcze tych krajów (mapa nie ma ich konturów, okno „Źródła” i instrukcja ich
+# nie opisują), a wpis „Obserwacja — Bułgaria” w panelu byłby zmianą widoczną
+# dla ludzi bez wydania i bez dokumentacji. Gdy dziennik pokaże, że filtr się
+# nie myli, przenosimy kraj do zwykłego trybu cienia (karta tak, punkty nie).
+NEIGHBOUR_JOURNAL_ONLY = {"BG", "FI", "NO"}
+# Słownictwo tych trzech języków trzymamy OSOBNO dla kraju kanału, a nie we
+# wspólnych listach BALTIC_*. Wspólne listy czytają też Litwa, Łotwa i Estonia,
+# które PUNKTUJĄ — a fińskie „drooni” to po estońsku dopełniacz od „droon”,
+# norweskie „drone” trafia w angielskie tytuły LSM i ERR. Dopisanie tego do
+# wspólnych list po cichu zmieniłoby punktację Bałtyku.
+# Skąd słowa: prawdziwe nagłówki z 16.10.2026 i wcześniejszych zdarzeń —
+# „Дрон навлезе във въздушното ни пространство край Кардам” (armymedia.bg,
+# 08.08), „Epäilty ilmatilaloukkaus Virolahdella” i „Miehittämättömän lennokin
+# epäillään loukanneen Suomen ilmatilaa” (defmin.fi, 03.05), vaaratiedote dla
+# Uusimaa 15.05.2026 o dronach. Reszta ze znajomości języka, NIE sprawdzona na
+# nagłówkach — dlatego właśnie zaczynamy od samego dziennika.
+NEIGHBOUR_VOCAB = {
+    "BG": {
+        # BG-ALERT to, jak RO-Alert, system na wszystko — liczy się tylko ze
+        # słowem o powietrzu (NEIGHBOUR_ALERT_NEEDS_AIR).
+        "alert": ["въздушна тревога", "въздушна опасност", "bg-alert", "bg alert"],
+        "air": ["въздушното пространство", "въздушно пространство", "дрон",
+                "безпилот", "ракет", "изтребител", "летище", "миг-29"],
+        "event": ["навлез", "навлязъл", "навлязл", "нарушен", "нарушиха", "наруши",
+                  "свален", "сваля", "падна", "паднал", "взриви", "взрив", "засечен",
+                  "засякоха", "прехван", "затвор", "вдигнат", "отломк", "удар"],
+        "critical": ["навлезе в българското въздушно пространство",
+                     "нарушение на въздушното пространство"],
+        # „тест” — BG-ALERT testuje się zapowiadanymi seriami (02.06, 07–29.11);
+        # tytuł o teście ma słowo alarmu i nie jest alarmem.
+        "exclude": ["учение", "учения", "тренировка", "тест", "дрон шоу",
+                    "доставка с дрон", "годишнин"],
+        "clear": ["отбой", "опасността отмина", "тревогата е отменена",
+                  "въздушното пространство е отворено"],
+        "clear_context": ["дрон", "въздуш", "ракет", "тревог"],
+        "past": ["вчера", "онзи", "снощи", "миналата", "миналия", "миналото"],
+        "past_markers": ["беше", "имаше"],
+        # 16.10.2026 kanały BG pełne były skutków ataku na „Chelsea 3”: śledztwo
+        # prokuratury, zboże, NATO, „Moskwa twierdzi” — to nie zdarzenie teraz.
+        "discussion": ["интервю", "анализ", "коментар", "мнение", "заяви", "каза",
+                       "според", "разследва", "прокуратур", "досъдебно", "настоява",
+                       "след атаки", "след нападени", "какво", "защо"],
+        # 16.10.2026 24chasa: „Саудитска Арабия прехвана ракети и дронове над
+        # Рияд” — dokładnie ten błąd, który 19.09 zapalił Litwę.
+        "foreign": ["румъни", "констанц", "тулча", "галац", "украйн", "киев", "одес",
+                    "измаил", "молдов", "турци", "истанбул", "гърци", "сърби",
+                    "саудит", "рияд", "израел", "иран", "полша", "литва", "латви",
+                    "естони", "дания", "германи", "финланд", "швеци", "норвеги"],
+    },
+    "FI": {
+        # Vaaratiedote wychodzi też przy pożarach i wyciekach chemikaliów, więc
+        # sam liczy się tylko ze słowem o powietrzu (NEIGHBOUR_ALERT_NEEDS_AIR).
+        "alert": ["ilmahälytys", "ilmahalytys", "vaaratiedote", "yleinen vaaramerkki",
+                  "fi-alert"],
+        "air": ["ilmatila", "lennok", "miehittämätön", "miehittamaton", "ohjus",
+                "hävittäjä", "havittaja", "lentoasema", "lentokenttä", "lentokentta",
+                "ilmapuolustus", "rajoitusalue"],
+        "event": ["loukka", "loukann", "ammuttiin", "pudotettiin", "putosi", "syöksyi",
+                  "havait", "havainto", "suljett", "räjäh", "rajah", "tunkeutui",
+                  "harhautu", "torjut"],
+        "critical": ["ilmatilaloukkau", "loukannut suomen ilmatilaa",
+                     "loukanneen suomen ilmatilaa"],
+        "exclude": ["harjoitu", "sotaharjoitu", "vaaramerkin koe", "droonishow",
+                    "valoshow"],
+        "clear": ["vaara ohi", "vaaratilanne ohi", "vaaratiedote on peruttu",
+                  "vaaratiedote peruttu", "purettu", "kumottu"],
+        "clear_context": ["ilmatila", "ilmahäly", "droon", "lennok", "vaara"],
+        "past": ["eilen", "toissapäivänä", "viime", "viikonloppuna", "sunnuntaina",
+                 "maanantaina", "tiistaina", "keskiviikkona", "torstaina",
+                 "perjantaina", "lauantaina"],
+        "discussion": ["haastattelu", "analyysi", "kommentti", "kolumni", "sanoo",
+                       "mielestä", "arvioi", "selittää", "pääkirjoitus", "miksi",
+                       "kysymys"],
+        "foreign": ["kiova", "viron", "virossa", "latvia", "liettua", "puolan",
+                    "puolassa", "tanska", "ruotsi", "norja", "saksa", "romania",
+                    "moldova", "venäjällä"],
+    },
+    "NO": {
+        # Nødvarsel (komórkowy) to także ostrzeżenia o pogodzie i powodzi.
+        "alert": ["flyalarm", "luftalarm", "nødvarsel", "nodvarsel", "flyangrep"],
+        "air": ["luftrom", "droner", "missil", "kampfly", "jagerfly", "f-35",
+                "flyplass", "lufthavn", "ubemannet", "luftvern", "luftforsvar"],
+        "event": ["krenk", "skutt ned", "styrtet", "stengt", "observert",
+                  "avskåret", "avskjær", "eksplo", "trengte inn", "identifiser",
+                  "angrep"],
+        "critical": ["krenket norsk luftrom", "krenkelse av norsk luftrom",
+                     "stengte luftrommet"],
+        "exclude": ["øvelse", "ovelse", "trening", "droneshow", "dronelevering",
+                    "testvarsel", "test av nødvarsel"],
+        "clear": ["faren er over", "avblåst", "avblast", "gjenåpnet", "åpnet igjen"],
+        "clear_context": ["luft", "drone", "alarm", "varsel", "fly"],
+        "past": ["forrige", "søndag", "mandag", "tirsdag", "onsdag", "torsdag",
+                 "fredag", "lørdag"],
+        "past_phrases": [" i går", "i helgen", "forrige uke"],
+        "discussion": ["analyse", "sier", "mener", "hvorfor", "ekspert", "debatt",
+                       "slik"],
+        "foreign": ["sverige", "svensk", "estland", "latvia", "romania", "moldova",
+                    "i russland"],
+    },
 }
 
 # Listy bałtyckie obsługują od 03.10.2026 wszystkich sąsiadów. Nazwy zostają

@@ -25,6 +25,7 @@ function rcbLevel(text) {
 /* Klucz czerwonego alarmu — lustro config.RED_GATE_* i fusion.red_key (23.09.2026).
    Sama suma nie wystarcza: pośrednie sygnały dawały 5 pkt przy pustej mapie. */
 const RED_GATE_ETA_MIN = 15, RED_GATE_KM = 50, RED_GATE_MAX_AGE_MS = 25*60*1000;
+const RED_GATE_AREA_MAX_UNC_KM = 30;   // pozycja rejonowa ±70 km nie otwiera czerwonego (15.10.2026)
 const RCB_DOWNGRADE_FADE_MIN = 10;   // lustro config.RCB_DOWNGRADE_FADE_MIN
 /* Obiekt zgubiony z feedu NEPTUN-a gaśnie szybciej — lustro config.NEPTUN_LOST_*
    i fusion.lost_weight (11.10.2026). Wyjątek: zgubiony bliżej granicy niż 50 km. */
@@ -264,14 +265,17 @@ const UA_OBLAST_PL = { "Волинська":"wołyńskim", "Львівська":
 const CRITICAL = ["alarm powietrzny", "zagrożenie z powietrza", "zawyły syreny", "zawyła syrena", "obiekt powietrzny spadł", "niezidentyfikowany obiekt spadł", "zestrzelono dron", "zestrzelono rakiet", "poderwano myśliwce", "poderwano lotnictwo", "schrony otwarte", "zamknięto przestrzeń powietrzn", "zamknięcie przestrzeni powietrzn", "zamknięta przestrzeń powietrzn", "operacja obrony powietrzn", "operację obrony powietrzn", "operacji obrony powietrzn", "poderwano f-16", "poderwano f-35", "poderwano samoloty", "poderwała myśliwce", "poderwała samoloty", "poderwała lotnictwo", "poderwało myśliwce", "poderwało samoloty", "poderwało lotnictwo", "poderwali myśliwce", "podrywa myśliwce", "podrywa samoloty", "podrywa lotnictwo", "wojsko poderwało", "operuje lotnictwo", "operuje polskie lotnictwo", "lotnictwo operuje", "rozpoczęło się operowanie", "rozpoczęło operowanie", "atakiem z powietrza"];
 const AIR = ["dron", "bezzałogow", "bsp", "shahed", "geran", "rakiet", "pocisk", "ch-101", "kalibr", "iskander", "kab", "bomb", "myśliwc", "mig-31", "obiekt powietrzny", "przestrzeni powietrznej", "przestrzeń powietrzną", "obrona powietrzna", "obiekt latając", "lancet", "kindżał", "kinżał", "kh-101", "kh-47", "kh-59", "amunicja krążąc", "fpv", "kamikadze", "statek powietrzny", "pocisk manewrując", "pocisk balistyczn", "hipersoniczn", "f-16", "f-35", "su-24", "su-34", "su-35", "tu-95", "tu-160", "mig-29", "lotnictwo wojskow"];
 const EVENT = ["spadł", "spadła", "spadło", "eksploz", "wybuch", "zestrzel", "przechwyc", "poderwan", "naruszen", "naruszył", "naruszyła", "wleciał", "wtargn", "uderzy", "trafił", "szczątki", "atak", "ostrzał", "zawył", "alarm", "ewakuac", "schron", "zagrożeni", "przekrocz", "wtargnięci", "detonac", "runął", "runęła", "runęło", "zestrzelen", "przechwycen", "poderwał", "poderwało", "poderwali", "podrywa", "eksplod", "zaatak", "uderza"];
-const EXCLUDE = ["ćwiczeni", "trening", "test syren", "próba syren", "próby syren", "głośna próba", "rocznic", "upamiętni", "minuta ciszy", "wymian", "modernizac", "przetarg", "inwestycj", "zakup", "montaż", "zamontow", "instalac", "rozbudow", "dofinansow", "dotacj", "planowan", "potrwa", "konserwac", "remont", "pojawią się", "powstan", "wdroż", "komunikat głosowy", "system ostrzegania będzie", "nowe syreny", "nowych syren", "pożar bloku", "pożar domu", "pożar mieszkania", "pożar lasu", "wypadek drogow", "kolizja", "lpr lądował", "śmigłowiec lpr", "utonię", "potrąc", "dachowa", "karambol", "zderzenie samochod", "pożar ciężarów", "pożar samochod", "pożar autobusu", "pożar cystern", "zapaliła się ciężarów", "zapalił się samoch", "zbiornik paliw", "wyciek paliw", "demograf", "przyrost naturaln", "liczba mieszkańc", "wyludnia", "tydzień po", "tygodnie po", "tygodni po", "dzień po", "dni po", "miesiąc po", "miesiące po", "miesięcy po", "rok po", "lata po", "lat po", "rok temu", "lata temu", "lat temu", "ubiegłym roku", "ubiegłego roku", "godzin po", "godziny po", "kalendarium", "przypominamy", "wspomina", "kulisy", "reportaż", "felieton", "czy na pewno", "co wiemy", "jak doszło", "śledztwo w sprawie", "śledztwo ws", "podsumowanie roku", "zawyły syreny?", "zawyła syrena?", "alarm powietrzny?", "co powinieneś zrobić", "co należy zrobić", "jak się zachować w razie", "co robić w razie", "co zrobić w razie", "poradnik bezpieczeństwa", "poznaj sygnały alarmowe", "co oznacza sygnał alarmowy", "film fabularn", "film dokumentaln", "serial", "premiera", "recenzja", "zwiastun", "gra wideo", "gry wideo", "powieść", "komiks", "cosplay", "spektakl", "1939", "1944", "1945", "ii wojn", "powstanie warszawsk", "rakieta kosmiczn", "rakieta nośn", "start rakiety", "spacex", "falcon", "starship", "misja kosmiczn", "kosmodrom", "odbudow", "ma być gotow", "rakieta tenisow", "rakietka", "rakiety śnieżn", "bomba atomow", "wybuchła afera", "pokaz dron", "dron rolnicz", "dron dostawcz", "wyścig dron", "nagranie z drona", "zdjęcia z drona", "zdjęcie z drona", "widok z drona", "wybiła godzina", "godzina \"w\"", "godzinie \"w\"", "godziny \"w\"", "oddali hołd", "oddał hołd", "oddano hołd", "hołd bohaterom", "hołd powstańcom", "uroczystoś", "próbny alarm", "alarm próbny", "próbnego alarmu", "próba syren alarmowych", "ogólnopolskie ćwiczenia", "są zarzuty", "usłyszał zarzut", "usłyszała zarzut", "usłyszeli zarzuty", "postawiono zarzut", "postawiono zarzuty", "zarzuty dla", "akt oskarżenia", "odpowie przed sądem", "stanął przed sądem", "stanęła przed sądem", "skazany za", "skazana za", "do zdarzenia miało dojść", "po nocnym alarmie", "po porannym alarmie", "po wieczornym alarmie", "po nocnym ataku", "po porannym ataku", "po nocnych alarmach", "nie zawyły", "nie zawyła", "pomyłk", "omyłkow", "fałszywy alarm", "umorzył", "umorzono", "przespał", "stado ptaków", "to ptaki", "wykrył ptaki", "testy syren", "testy dron", "testuje", "testów", "rozpoczyna testy", "korytarz", "zawyją", "rozlegną się", "zabrzmią", "przelecą", "polecą", "będą latać", "dostaną alert", "wyją syreny", "nocny alert", "nocnego alertu", "nie została naruszona", "zakończyło operację", "znamy szczegóły", "usypia czujność", "co nie działa w systemie", "zakończyło działania", "alarm bombowy", "alarmy bombowe", "alarmu bombowego", "alarmów bombowych", "alarmie bombowym", "alarmem bombowym", "alarmów bombowych", "o podłożeniu ładunku", "podłożeniu bomby", "informacja o bombie"];
+const EXCLUDE = ["ćwiczeni", "trening", "test syren", "próba syren", "próby syren", "głośna próba", "rocznic", "upamiętni", "minuta ciszy", "wymian", "modernizac", "przetarg", "inwestycj", "zakup", "montaż", "zamontow", "instalac", "rozbudow", "dofinansow", "dotacj", "planowan", "potrwa", "konserwac", "remont", "pojawią się", "powstan", "wdroż", "komunikat głosowy", "system ostrzegania będzie", "nowe syreny", "nowych syren", "pożar bloku", "pożar domu", "pożar mieszkania", "pożar lasu", "wypadek drogow", "kolizja", "lpr lądował", "śmigłowiec lpr", "utonię", "potrąc", "dachowa", "karambol", "zderzenie samochod", "pożar ciężarów", "pożar samochod", "pożar autobusu", "pożar cystern", "zapaliła się ciężarów", "zapalił się samoch", "zbiornik paliw", "wyciek paliw", "demograf", "przyrost naturaln", "liczba mieszkańc", "wyludnia", "tydzień po", "tygodnie po", "tygodni po", "dzień po", "dni po", "miesiąc po", "miesiące po", "miesięcy po", "rok po", "lata po", "lat po", "rok temu", "lata temu", "lat temu", "ubiegłym roku", "ubiegłego roku", "godzin po", "godziny po", "kalendarium", "przypominamy", "wspomina", "kulisy", "reportaż", "felieton", "czy na pewno", "co wiemy", "jak doszło", "śledztwo w sprawie", "śledztwo ws", "podsumowanie roku", "zawyły syreny?", "zawyła syrena?", "alarm powietrzny?", "co powinieneś zrobić", "co należy zrobić", "jak się zachować w razie", "co robić w razie", "co zrobić w razie", "poradnik bezpieczeństwa", "poznaj sygnały alarmowe", "co oznacza sygnał alarmowy", "film fabularn", "film dokumentaln", "serial", "premiera", "recenzja", "zwiastun", "gra wideo", "gry wideo", "powieść", "komiks", "cosplay", "spektakl", "1939", "1944", "1945", "ii wojn", "powstanie warszawsk", "rakieta kosmiczn", "rakieta nośn", "start rakiety", "spacex", "falcon", "starship", "misja kosmiczn", "kosmodrom", "odbudow", "ma być gotow", "rakieta tenisow", "rakietka", "rakiety śnieżn", "bomba atomow", "wybuchła afera", "pokaz dron", "dron rolnicz", "dron dostawcz", "wyścig dron", "nagranie z drona", "zdjęcia z drona", "zdjęcie z drona", "widok z drona", "wybiła godzina", "godzina \"w\"", "godzinie \"w\"", "godziny \"w\"", "oddali hołd", "oddał hołd", "oddano hołd", "hołd bohaterom", "hołd powstańcom", "uroczystoś", "próbny alarm", "alarm próbny", "próbnego alarmu", "próba syren alarmowych", "ogólnopolskie ćwiczenia", "są zarzuty", "usłyszał zarzut", "usłyszała zarzut", "usłyszeli zarzuty", "postawiono zarzut", "postawiono zarzuty", "zarzuty dla", "akt oskarżenia", "odpowie przed sądem", "stanął przed sądem", "stanęła przed sądem", "skazany za", "skazana za", "do zdarzenia miało dojść", "po nocnym alarmie", "po porannym alarmie", "po wieczornym alarmie", "po nocnym ataku", "po porannym ataku", "po nocnych alarmach", "nie zawyły", "nie zawyła", "pomyłk", "omyłkow", "fałszywy alarm", "umorzył", "umorzono", "przespał", "stado ptaków", "to ptaki", "wykrył ptaki", "testy syren", "testy dron", "testuje", "testów", "rozpoczyna testy", "korytarz", "zawyją", "rozlegną się", "zabrzmią", "przelecą", "polecą", "będą latać", "dostaną alert", "wyją syreny", "nocny alert", "nocnego alertu", "nie została naruszona", "zakończyło operację", "znamy szczegóły", "usypia czujność", "co nie działa w systemie", "zakończyło działania", "szkoleni", "alarm bombowy", "alarmy bombowe", "alarmu bombowego", "alarmów bombowych", "alarmie bombowym", "alarmem bombowym", "alarmów bombowych", "o podłożeniu ładunku", "podłożeniu bomby", "informacja o bombie"];
 const B_CRITICAL = ["airspace violation", "violated airspace", "airspace was violated", "airspace closed", "shot down a drone", "scrambled jets", "oro erdvės pažeid", "gaisa telpas pārkāp", "õhuruumi rikku"];
 const B_AIR = ["airspace","air space","drone","uav","missile","shahed","air defence","air defense",
   "oro erdv","bepilot","raket","gaisa telp","droon","õhuruum","military aircraft","fighter jet","jets"];
 const B_EVENT = ["violat","intercept","shot down","scrambl","incursion","crash","fell","explos",
   "struck","entered","closed","alert","debris"];
 const B_EXCLUDE = ["exercise","drill","training","anniversary","drone show","festival",
-  "pratyb","mācīb","õppus","delivery drone","drone racing","photo drone"];
+  "pratyb","mācīb","õppus","delivery drone","drone racing","photo drone",
+  // lustro config.BALTIC_EXCLUDE_KEYWORDS: testy, ćwiczenia, wybory (16.10.2026)
+  "izmēģin","vēlēšan","testib","testim","testitakse","ruošia","pasirengim","pasiruoš",
+  "rehearsal","testing","test alert"];
 /* Kolejność ma znaczenie: dopasowanie kończy się na pierwszym trafieniu, więc
    nazwy zawierające się w innych (pomorskie ⊂ kujawsko-pomorskie) idą później.
    Świadomie pomijamy nazwy kolidujące ze słowami pospolitymi ("piła", "żary",
@@ -779,9 +783,11 @@ function plLocalToMs(value) {
   } catch {}
   return asUtc - offsetMin * 60000;
 }
+/* Lustro fusion._issued_at (17.10.2026, #12): późniejsze z valid_from i chwili
+   pojawienia się wpisu w RSO — valid_from bywa do 9 min wcześniejsze. */
 function issuedAt(s) {
-  const v = plLocalToMs(s.details?.valid_from);
-  return Number.isFinite(v) ? v : (s.t || Date.parse(s.ts) || 0);
+  const czasy = [plLocalToMs(s.details?.valid_from), plLocalToMs(s.details?.issued_rso)].filter(Number.isFinite);
+  return czasy.length ? Math.max(...czasy) : (s.t || Date.parse(s.ts) || 0);
 }
 function officialCleared(s, rsoClears) {
   const id = String(s.details?.rso_id ?? ""), issued = issuedAt(s);
@@ -980,6 +986,7 @@ function redKey(sigs, ref) {
     if (!Number.isFinite(t) || ref - t > RED_GATE_MAX_AGE_MS) continue;
     const d = s.details || {};
     if (!RED_GATE_TYPES.has(String(d.type || "").toLowerCase())) continue;
+    if (d.area_only && (d.uncertainty_km || 0) > RED_GATE_AREA_MAX_UNC_KM) continue;
     if (d.eta_border_min != null && d.eta_border_min <= RED_GATE_ETA_MIN)
       return { powod: "eta", opis: `obiekt ${Math.round(d.eta_border_min)} min od granicy`, eta_min: d.eta_border_min, km: d.dist_km };
     if (d.dist_km != null && d.dist_km <= RED_GATE_KM)
@@ -1576,6 +1583,17 @@ function looksMilitaryAdsb(a) {
   return /air ?force|army|navy|military|nato|force aérienne|luftwaffe|türk hava|turkish af|polish af/i
     .test(String(a.ownOp||""));
 }
+/* Zapytanie geograficzne zależy od dostawcy (16.10.2026): adsb.fi odpowiada
+   400 na /point/... i ma /lat/{lat}/lon/{lon}/dist/{r}, a listę oddaje pod
+   „aircraft”. adsb.lol i airplanes.live: /point/{lat}/{lon}/{r} i „ac”. */
+function adsbGeoUrl(base, lat, lon, r) {
+  return /opendata\.adsb\.fi/.test(base)
+    ? `${base}/lat/${lat}/lon/${lon}/dist/${r}`
+    : `${base}/point/${lat}/${lon}/${r}`;
+}
+function adsbGeoAircraft(data) {
+  return (data && (data.ac || data.aircraft)) || [];
+}
 async function tickAdsb() {
   try {
     /* airplanes.live wzbogaca rekordy o pełną nazwę typu (desc), operatora (ownOp)
@@ -1602,10 +1620,10 @@ async function tickAdsb() {
     if (base) {
       const points = [[55.5,24.0,220],[58.2,25.5,220]];
       const geo = await Promise.all(points.map(([lat,lon,r]) =>
-        httpGet(`${base}/point/${lat}/${lon}/${r}`).catch(() => null)));
+        httpGet(adsbGeoUrl(base, lat, lon, r)).catch(() => null)));
       for (const body of geo) {
         if (!body) continue;
-        for (const a of (JSON.parse(body).ac||[])) {
+        for (const a of adsbGeoAircraft(JSON.parse(body))) {
           if (!looksMilitaryAdsb(a)) continue;
           const key = a.hex || `${a.lat}:${a.lon}:${a.flight}`;
           if (!merged.has(key)) merged.set(key, {...a, _straznik_detection:"baltic_geo"});
@@ -1871,6 +1889,7 @@ const RSO_END = ["zakończył","zakonczyl","zakończen","zakonczen","odwoł","od
 
 let rsoBootstrapped = localStorage.getItem("eng_rso_boot") === "1";
 const rsoSeen = new Set(JSON.parse(localStorage.getItem("eng_rso_seen") || "[]"));
+const rsoLevels = new Map();   // „rso:id:woj” → ostatnio zapisany poziom (zmiana stopnia w miejscu)
 
 const RSO_CONTINUES = ["do odwołania","do odwolania","do czasu odwołania","do czasu odwolania",
   "do czasu zakończenia","do czasu zakonczenia","aż do odwołania","az do odwolania"];
@@ -1918,15 +1937,25 @@ async function tickRso() {
                 || Date.now()).toISOString() }, `rso-clear:${it.id}:${v}`);
           continue;
         }
-        const key = `rso:${it.id}:${v}`;
-        if (!rsoBootstrapped) { rsoSeen.add(key); continue; }   // istniejące przy starcie nie alarmują
-        if (rsoSeen.has(key)) continue;
-        rsoSeen.add(key);
+        /* Lustro collectors/rso.py (16–17.10.2026): poziom z CAŁEJ treści (pole
+           `description` w RSO nie istnieje, komunikat bywa tylko w `content`),
+           a zmiana stopnia W MIEJSCU (ten sam id, w górę i w dół) to nowa wersja. */
         const tresc = String(it.shortcut || it.title || "");
-        const poziom = rcbLevel(tresc + " " + String(it.description || ""));
+        const poziom = rcbLevel(`${it.title || ""} ${it.shortcut || ""} ${it.content || ""}`);
+        const base = `rso:${it.id}:${v}`;
+        const prev = rsoLevels.get(base);
+        if (prev === poziom) continue;
+        const key = prev === undefined
+          ? (poziom === 1 ? base : `${base}:L${poziom}`)
+          : `${base}:L${poziom}:${it.updated_at || ""}`;
+        if (!rsoBootstrapped) { rsoSeen.add(key); rsoLevels.set(base, poziom); continue; }   // istniejące przy starcie nie alarmują
+        if (rsoSeen.has(key)) { rsoLevels.set(base, poziom); continue; }
+        rsoSeen.add(key);
+        rsoLevels.set(base, poziom);
         addSignal("rcb", "rso_alert", v, RCB_LEVEL_POINTS[poziom],
           `Alert RCB (RSO): „${tresc.slice(0,120)}”`,
-          { rso_id: String(it.id), valid_from: it.valid_from, valid_to: it.valid_to, rcb_level: poziom }, key);
+          { rso_id: String(it.id), valid_from: it.valid_from, valid_to: it.valid_to, rcb_level: poziom,
+            issued_rso: prev === undefined ? (it.created_at || it.updated_at) : (it.updated_at || it.created_at) }, key);
       }
     }
     rsoBootstrapped = true;
@@ -2459,11 +2488,13 @@ async function start(stateCb) {
 // matchVoivs wystawiamy wyłącznie do testów zgodności z backendem
 // (scripts/test_voiv_match.cjs) — reszta aplikacji go nie używa. Tak samo
 // `rcbArtykul`: kolektor i parser treści z gov.pl dla scripts/test_rcb_artykul.cjs,
-// oraz `adsbHoldJump`: strażnik niemożliwych skoków dla scripts/test_skok_pozycji.cjs,
-// który sprawdza, że tryb bez serwera trzyma pozycję tak samo jak backend.
+// `adsbHoldJump`: strażnik niemożliwych skoków dla scripts/test_skok_pozycji.cjs,
+// który sprawdza, że tryb bez serwera trzyma pozycję tak samo jak backend,
+// oraz `adsbGeoUrl`/`adsbGeoAircraft` dla scripts/test_adsb_geo_zapas.cjs.
 return { start, stop, history, timeline, historyFrom, timelineFrom, accumulate, matchVoivs,
-         adsbHoldJump, lostWeight, zgubioneZMigawek,
+         adsbHoldJump, adsbGeoUrl, adsbGeoAircraft, lostWeight, zgubioneZMigawek,
          stateFrom, alertLevel, rsoIsCancellation, assess,
+         rso: { tickRso, sygnaly: () => signals },
          rcbArtykul: { tickRcb, tekstArtykuluRcb, dataArtykuluRcb, wojewodztwaAlertu,
                        czyOdwolanieRcb, meldunkiArtykulu, najnowszyMeldunek } };
 })();

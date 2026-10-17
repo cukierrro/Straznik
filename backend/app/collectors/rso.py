@@ -62,6 +62,8 @@ RSO_CONTINUES = ("do odwołania", "do odwolania", "do czasu odwołania",
                  "aż do odwołania", "az do odwolania")
 
 _seen: set[str] = set()
+# ostatnio zapisany poziom wpisu w województwie: „rso:id:woj” → 1/2/3 (16.10.2026)
+_levels: dict[str, int] = {}
 _bootstrap = False
 
 
@@ -377,11 +379,45 @@ async def _process_item(it: dict) -> bool:
         return True
     voivodeships = _voivs_for(it)
     reference_new = False
+    naglowek = it.get("shortcut") or it.get("title") or ""
+    tresc = it.get("content") or ""
+    # POZIOM z CAŁEJ treści, razem z `content`. Do 04.10.2026 stało tu
+    # `f"{title} {it.get('description')}"`, a pole `description` W OGÓLE NIE
+    # ISTNIEJE w schemacie RSO (wpisy mają title, shortcut, content,
+    # rso_alarm, provinces, valid_*). Poziom liczył się więc wyłącznie
+    # z nagłówka. Przy wpisie o kształcie z 04.10 — nagłówek „Alert RCB",
+    # cały komunikat w `content` — alert poziomu 3 („znajdź bezpieczne
+    # miejsce") dostałby 1,5 pkt zamiast 4,5, czyli NIE PODNIÓSŁBY
+    # czerwonego alarmu. Plik sam to deklarował w komentarzu na górze
+    # („po CAŁEJ treści, razem z polem content"); wyjątek zrobiono wtedy
+    # dla odwołań, a liczenie poziomu zostało na starym wzorze.
+    poziom = rcb_level(f"{it.get('title','')} {naglowek} {tresc}")
     for voiv in voivodeships:
-        key = f"rso:{mid}:{voiv}"
+        # Zmiana stopnia W MIEJSCU (16.10.2026). RSO zmienia stopień pod tym samym id:
+        # 15.10 o 01:06 wpis 23420577 (lubelskie) przeszedł z „sytuacja jest
+        # monitorowana” na „Znajdź bezpieczne miejsce”. Klucz `rso:id:woj` był już
+        # znany, więc poziom 3 (4,5 pkt i klucz czerwonego) przepadł — został tylko
+        # w dzienniku obserwacji. Teraz każda zmiana poziomu, W GÓRĘ I W DÓŁ, wchodzi
+        # jako nowa wersja wpisu (decyzja usera: punktujemy tak, jak RSO podaje).
+        # Fuzja liczy najnowszą wersję; po obniżeniu nadwyżka gaśnie przez
+        # RCB_DOWNGRADE_FADE_MIN, a klucz czerwonego znika od razu. Pierwsza wersja
+        # zachowuje dawny klucz, więc trwające alerty nie wejdą drugi raz po wdrożeniu.
+        base = f"rso:{mid}:{voiv}"
+        prev = _levels.get(base)
+        if prev is None:
+            prev = fusion.db.last_rso_level(mid, voiv)
+        if prev == poziom:
+            _levels[base] = poziom
+            continue
+        if prev is None:
+            key = base if poziom == 1 else f"{base}:L{poziom}"
+        else:
+            key = f"{base}:L{poziom}:{it.get('updated_at') or ''}"
         if key in _seen:
             continue
-        if not _bootstrap and not _issued_recently(it):
+        # Zmiana poziomu znanego już wpisu nigdy nie idzie ścieżką „istniejący przy
+        # starcie”: to nowa informacja od RSO, nawet gdy przyszła w czasie restartu.
+        if prev is None and not _bootstrap and not _issued_recently(it):
             # Pierwszy przebieg: STARE alerty nie mają alarmować. Świeży alert
             # (patrz _issued_recently) musi jednak zadziałać normalnie — alert
             # wydany w czasie przestoju albo sekundę przed wdrożeniem dostawał
@@ -393,32 +429,24 @@ async def _process_item(it: dict) -> bool:
             _seen.add(key)   # dopiero po zapisie: błąd bazy = ponowna próba za minutę
             reference_new = True
             continue
-        naglowek = it.get("shortcut") or it.get("title") or ""
-        tresc = it.get("content") or ""
         # Tytuł do pokazania człowiekowi: nagłówek bywa dosłownie „Alert RCB"
         # (tak było 04.10.2026 dla lubelskiego), więc wtedy bierzemy treść —
         # inaczej powiadomienie brzmi „Alert RCB (RSO): «Alert RCB»".
         title = (tresc if _naglowek_pusty(naglowek) and tresc else naglowek) or "Alert RCB"
-        # POZIOM z CAŁEJ treści, razem z `content`. Do 04.10.2026 stało tu
-        # `f"{title} {it.get('description')}"`, a pole `description` W OGÓLE NIE
-        # ISTNIEJE w schemacie RSO (wpisy mają title, shortcut, content,
-        # rso_alarm, provinces, valid_*). Poziom liczył się więc wyłącznie
-        # z nagłówka. Przy wpisie o kształcie z 04.10 — nagłówek „Alert RCB",
-        # cały komunikat w `content` — alert poziomu 3 („znajdź bezpieczne
-        # miejsce") dostałby 1,5 pkt zamiast 4,5, czyli NIE PODNIÓSŁBY
-        # czerwonego alarmu. Plik sam to deklarował w komentarzu na górze
-        # („po CAŁEJ treści, razem z polem content"); wyjątek zrobiono wtedy
-        # dla odwołań, a liczenie poziomu zostało na starym wzorze.
-        poziom = rcb_level(f"{it.get('title','')} {naglowek} {tresc}")
         inserted = await fusion.ingest(
             source="rcb", event_type="rso_alert", voivodeship=voiv,
             points=config.RCB_LEVEL_POINTS[poziom],
             title=f"Alert RCB (RSO): „{title[:120]}”",
+            # issued_rso: kiedy TA wersja pojawiła się w RSO — utworzenie wpisu,
+            # a dla zmiany stopnia w miejscu chwila edycji (fusion._issued_at).
             details={"rso_id": mid, "valid_from": it.get("valid_from"),
-                     "valid_to": it.get("valid_to"), "rcb_level": poziom},
+                     "valid_to": it.get("valid_to"), "rcb_level": poziom,
+                     "issued_rso": ((it.get("created_at") or it.get("updated_at")) if prev is None
+                                    else it.get("updated_at") or it.get("created_at"))},
             dedup_key=key,
         )
         _seen.add(key)
+        _levels[base] = poziom
         reference_new = reference_new or inserted
     if reference_new:
         rcb_reference.capture(

@@ -223,6 +223,7 @@ osobno dla każdego województwa. Przy **≥ 2 pkt**
 włącza podwyższoną uwagę (sygnał uwagi i powiadomienie). Głośny alarm z syreną wymaga
 **≥ 4 pkt ORAZ potwierdzenia**: Alertu RCB o treści „znajdź bezpieczne miejsce" albo
 obiektu uderzeniowego kursem na Polskę ≤ 15 minut od granicy (albo ≤ 50 km).
+Pozycja tylko rejonowa z niepewnością ponad 30 km nie otwiera czerwonego (od 15.10.2026).
 Sama suma punktów z sygnałów pośrednich nie zapala czerwonego (zmiana 23.09.2026). UI zawsze pokazuje pełne rozbicie: które sygnały, skąd, ile punktów.
 
 | Sygnał | Warunek | Punkty |
@@ -417,6 +418,12 @@ Tryb wbudowany w przeglądarce: `http://localhost:8600/?standalone=1`
   endpointy są usuwane, a ponowne otwarcie strony aktualizuje przypisanie regionów.
 
 ## Tryb cienia progresji
+
+**Wyłączony 16.10.2026 (decyzja użytkownika).** Od 08.10 próg 3,5 przekroczyło 82 epizody
+żółte, a czerwonym skończyło się 11 (13%), średnio 2 minuty przed czerwonym; ostrzejsza
+reguła kwalifikacji nie zapaliła się ani razu. Czerwony zostaje przy 4,0 z kluczem.
+Kod zostaje; włącza go `ESCALATION_SHADOW_ENABLED=true`.
+
 
 Backend obserwuje na żywych danych hipotetyczne dodatkowe stopnie 2,5 / 3,0 /
 3,5, ale nie łączy ich z żadnym kanałem powiadomień. Rejestruje również

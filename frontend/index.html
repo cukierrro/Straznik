@@ -104,7 +104,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <link rel="icon" type="image/png" sizes="512x512" href="assets/icon-512.png">
 <link rel="apple-touch-icon" href="assets/icon-192.png">
 <link rel="stylesheet" href="assets/vendor/maplibre-gl.css?v=1.7.82">
-<link rel="stylesheet" href="style.css?v=1.7.95b">
+<link rel="stylesheet" href="style.css?v=1.7.95e">
 </head>
 <body>
 
@@ -263,7 +263,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
   <div id="wykres12" class="wykres12">
     <button type="button" id="w12-przelacz" class="w12-przelacz" aria-expanded="false" aria-controls="w12-cialo"><svg class="w12-strz" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg><span id="w12-t">Drony i rakiety · 12 h</span><span id="w12-max" class="w12-max"></span><svg id="w12-mini" class="w12-mini" viewBox="0 0 110 22" preserveAspectRatio="none" aria-hidden="true"></svg></button>
     <div id="w12-cialo" class="w12-cialo" hidden>
-      <div class="w12-leg" aria-hidden="true"><span><i class="w12-l-dron"></i><span id="w12-l-d">drony (średnia z 30 min)</span></span><span><i class="w12-l-rak"></i><span id="w12-l-r">rakiety i KAB</span></span></div>
+      <div class="w12-leg" aria-hidden="true"><span><i class="w12-l-dron"></i><span id="w12-l-d">drony (średnia z ostatnich 30 min)</span></span><span><i class="w12-l-slup"></i><span id="w12-l-s">liczba w danej minucie</span></span><span><i class="w12-l-rak"></i><span id="w12-l-r">rakiety i KAB</span></span></div>
       <!-- podziałka i wartość przy kresce jako HTML nad wykresem: SVG jest rozciągany
            (preserveAspectRatio="none"), więc tekst w nim byłby zniekształcony -->
       <div class="w12-plot">
@@ -478,6 +478,8 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 
 
 <div id="conn-badge" class="hidden">łączenie…</div>
+<!-- Pasek awarii NEPTUN-a (17.10.2026): obiekty zostają na mapie, pasek mówi, od kiedy dane stoją. -->
+<button type="button" id="src-badge" class="hidden"></button>
 <div id="toast" class="hidden"></div>
 
 <div id="legend" class="hidden" role="region" aria-labelledby="legend-h">
@@ -651,8 +653,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
     </table>
     <div class="fineprint about-note" id="ab-polnoc"><b>Północ (pomorskie, zachodniopomorskie,
     warmińsko-mazurskie, kujawsko-pomorskie) liczy się inaczej</b>, bo NEPTUN
-    pokrywa Ukrainę i dla tych województw daje zero. Zostają PAŻP, media (także
-    fala doniesień o poderwaniu lotnictwa nad Bałtykiem), media bałtyckie, RCB
+    pokrywa Ukrainę i dla tych województw daje zero. Zostają PAŻP, media, media bałtyckie, RCB
     i zamknięcia u sąsiadów, więc strefa PAŻP waży tam 1 pkt zamiast 0,5. Nadal
     żaden z tych sygnałów nie podnosi poziomu sam: strefa 1 + relacja mediów 1
     = 2 pkt (żółty); strefa 1 + incydent bałtycki 0,5 = 1,5 pkt — media sąsiadów
@@ -722,7 +723,8 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
     <div class="fineprint about-note" id="ab-czerwony"><b>Same 4 pkt nie wystarczą.</b> Czerwony wymaga
     potwierdzenia: albo Alertu RCB o treści „znajdź bezpieczne miejsce”, albo realnego
     obiektu uderzeniowego kursem na Polskę — bliżej niż 15 minut lotu albo 50 km od
-    granicy. Drony zwiadowcze i same doniesienia nie otwierają czerwonego. Gdy region
+    granicy. Pozycja podana tylko jako rejon z niepewnością ponad 30 km go nie otwiera.
+    Drony zwiadowcze i same doniesienia nie otwierają czerwonego. Gdy region
     ma 4 pkt bez potwierdzenia, zostaje żółty, a Strażnik pisze o tym wprost na karcie.
     Zasada obowiązuje od 23.09.2026: wcześniej sam Alert RCB o monitorowaniu sytuacji
     razem z alarmami obwodów UA i mediami potrafił zapalić czerwony przy pustej mapie.</div>
@@ -1246,10 +1248,10 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
      Cloudflare, więc po każdym wydaniu wystarczy podbić ?v= i przeglądarki
      dostają nowe app.js/engine.js OD RAZU, bez ręcznego czyszczenia cache CF.
      Podbijaj ?v= razem z versionName w build.gradle. -->
-<script src="i18n.js?v=1.7.95a"></script>
+<script src="i18n.js?v=1.7.95c"></script>
 <!-- kontur Polski dla engine.js (audyt A2b, scripts/build_pl_outline.py) -->
 <script src="pl-outline.js?v=1.7.82"></script>
-<script src="engine.js?v=1.7.95"></script>
+<script src="engine.js?v=1.7.95e"></script>
 <script src="aircraft-photo-catalog.js?v=1.7.19"></script>
 <script src="aircraft-photos.js?v=1.7.79"></script>
 <script src="places.js?v=1.7.19-4"></script>
@@ -1262,7 +1264,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <div id="a11y-alert" class="sr-only" role="status" aria-live="assertive" aria-atomic="true"></div>
 <div id="a11y-info" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
 
-<script src="app.js?v=1.7.95c"></script>
+<script src="app.js?v=1.7.95g"></script>
 <script>
 /* Instrukcja pasująca do telefonu i języka (21.09.2026). iPhone ma osobną, bo alarmy,
    zgody i aktualizacje działają tam inaczej. Tu, a nie w app.js: index.html nie jest

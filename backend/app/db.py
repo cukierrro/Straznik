@@ -161,6 +161,28 @@ def add_signal(source: str, event_type: str, voivodeship: str | None, points: fl
             return False
 
 
+def last_rso_level(rso_id: str, voivodeship: str) -> int | None:
+    """Ostatnio ZAPISANY poziom wpisu RSO w województwie (None = nigdy nie zapisany).
+
+    RSO zmienia stopień alertu w miejscu, pod tym samym id (16.10.2026). Kolektor
+    porównuje z tym poziomem, żeby po restarcie nie zgubić zmiany ani jej nie dublować."""
+    if _conn is None:
+        return None
+    with _lock:
+        row = _conn.execute(
+            "SELECT details FROM signals WHERE source='rcb' AND event_type='rso_alert'"
+            " AND voivodeship=? AND (dedup_key=? OR dedup_key LIKE ?)"
+            " ORDER BY ts DESC, id DESC LIMIT 1",
+            (voivodeship, f"rso:{rso_id}:{voivodeship}", f"rso:{rso_id}:{voivodeship}:%"),
+        ).fetchone()
+    if not row:
+        return None
+    try:
+        return int((json.loads(row[0]) if row[0] else {}).get("rcb_level") or 1)
+    except (ValueError, TypeError):
+        return 1
+
+
 def signals_since(minutes: int) -> list[dict]:
     cutoff = (datetime.now(timezone.utc) - timedelta(minutes=minutes)).isoformat(timespec="seconds")
     with _lock:

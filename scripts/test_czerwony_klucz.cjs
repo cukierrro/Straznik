@@ -70,6 +70,23 @@ test('bezpiecznik 50 km działa, gdy nie znamy czasu dolotu', () => {
   assert.equal(st.red_key.powod, 'blisko');
 });
 
+test('pozycja rejonowa ±70 km NIE jest kluczem (czerwony 15.10.2026)', () => {
+  // „2× dron, około 50 km” w środku obwodu wołyńskiego, bez kursu — dał czerwony
+  // razem z Alertem RCB poziomu 1. Punkty zostają, klucza nie ma.
+  const rejonowy = (unc, area) => sygnal({ id: 35, ts: '2026-09-23T05:20:00Z', source: 'neptun',
+    event_type: 'neptun_threat', points: 0.3, title: '2× Dron / BpSP kursem na granicę PL, około 50 km [pozycja rejonowa] [kurs nieznany]',
+    details: { type: 'uav', dist_km: 53.6, eta_border_min: 15, track_id: 'trk_35', course: 'unknown',
+               area_only: area, uncertainty_km: unc } });
+  const tlo = [alertMonitorowana, obwodyUA, dron(36, 84, 28, '05'), dron(37, 91, 30, '06'), dron(38, 104, 34, '07')];
+  const st = Engine.stateFrom([...tlo, rejonowy(70, true)], REF).voivodeships.lubelskie;
+  assert.equal(st.red_key, null);
+  assert.equal(st.alert_level, 'elevated');
+  assert.ok(st.signals.find(s => s.id === 35).counted_points > 0, 'meldunek dalej daje punkty');
+  // dokładna pozycja (jak 13.10, ±25 km) albo rejonowa z małą niepewnością — klucz zostaje
+  assert.equal(Engine.stateFrom([...tlo, rejonowy(25, null)], REF).voivodeships.lubelskie.red_key.powod, 'eta');
+  assert.equal(Engine.stateFrom([...tlo, rejonowy(10, true)], REF).voivodeships.lubelskie.red_key.powod, 'eta');
+});
+
 test('dron rozpoznawczy tuż przy granicy NIE jest kluczem', () => {
   const recon = sygnal({ id: 40, ts: '2026-09-23T05:20:00Z', source: 'neptun', event_type: 'neptun_threat',
     points: 0.2, title: 'Dron rozpoznawczy kursem na granicę PL, około 20 km',

@@ -86,11 +86,14 @@ sprawdz(/opisSytuacji\(voivs, watched\.length[\s\S]{0,120}licznikZdanie\(/.test(
 
 console.log("5. Wykres 12 h w historii");
 {
-  // seriaDronow: jedna migawka na minutę i średnia ±15 min po CZASIE
+  // seriaDronow: jedna migawka na minutę i średnia z OSTATNICH 30 min po CZASIE.
+  // 15.10.2026: okno ±15 min sięgało w przyszłość (o 15:36 „śr. 3” przy 5 z poprzednich 30 min).
   const a = app.indexOf("function seriaDronow");
   const b = app.indexOf("function sciezkaGladka");
   assert(a > 0 && b > a, "nie znaleziono seriaDronow");
-  const ctx = { isNationalThreat: t => !!t.straznik_national, W12_SREDNIA_MS: 15 * 60000 };
+  const okno = +(app.match(/W12_SREDNIA_MS = (\d+) \* 60000/) || [])[1];
+  sprawdz(okno === 30, `okno średniej 30 min (jest ${okno})`);
+  const ctx = { isNationalThreat: t => !!t.straznik_national, W12_SREDNIA_MS: okno * 60000 };
   vm.createContext(ctx);
   vm.runInContext(blok + "\n" + app.slice(a, b) + "\nthis.seria = seriaDronow;", ctx);
   const t0 = Date.UTC(2026, 9, 14, 18, 0);
@@ -103,8 +106,9 @@ console.log("5. Wykres 12 h w historii");
   const s = ctx.seria(snaps);
   sprawdz(s.length === 60, `podwójna migawka w minucie sklejona (60 punktów, jest ${s.length})`);
   sprawdz(Math.abs(s[0].srednia - 10) < 0.01, "średnia na początku = 10 (tylko przeszłe/bieżące 10)");
-  sprawdz(Math.abs(s[59].srednia - 40) < 0.01, "średnia na końcu = 40");
-  sprawdz(s[29].srednia > 10 && s[29].srednia < 40, "przy skoku 10 → 40 krzywa przechodzi łagodnie");
+  sprawdz(Math.abs(s[29].srednia - 10) < 0.01, "tuż przed skokiem 10 → 40 średnia = 10 — nie widzi przyszłości");
+  sprawdz(s[30].srednia > 10 && s[30].srednia < 12, "pierwsza minuta po skoku podnosi średnią tylko trochę");
+  sprawdz(Math.abs(s[59].srednia - (10 + 30 * 40) / 31) < 0.01, "na końcu: minuty 29–59 (30 min wstecz)");
   sprawdz(s[45].rakiety === 2 && s[45].drony === 40, "rakiety liczone osobno (kropki), drony bez nich");
 }
 sprawdz(/id="w12-przelacz"[^>]*aria-expanded="false"/.test(html) && /id="w12-cialo"[^>]*hidden/.test(html),
