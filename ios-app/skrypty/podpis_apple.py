@@ -45,6 +45,12 @@ import jwt
 API = "https://api.appstoreconnect.apple.com"
 NAZWA_PROFILU = "Straznik CI App Store"
 BUNDLE_ID = "pl.straznik.app"
+# Rozszerzenie powiadomień to OSOBNY plik wykonywalny i Apple wymaga dla niego
+# własnego identyfikatora oraz własnego profilu. Bez tego drugiego profilu eksport
+# archiwum kończy się błędem o brakującym profilu dla `...NotificationService`,
+# a nie czymś, co wygląda na problem z rozszerzeniem (17.10.2026).
+NAZWA_PROFILU_NSE = "Straznik CI NSE App Store"
+BUNDLE_ID_NSE = "pl.straznik.app.NotificationService"
 
 
 def token() -> str:
@@ -104,28 +110,33 @@ def wypisz(klucz: str, wartosc: str) -> None:
     print(f"{klucz}={wartosc}")
 
 
-def id_bundle() -> str:
-    filtr = urllib.parse.quote(BUNDLE_ID)
+def id_bundle(identyfikator: str = BUNDLE_ID) -> str:
+    filtr = urllib.parse.quote(identyfikator)
     dane = api(f"/v1/bundleIds?filter[identifier]={filtr}&limit=200")
     for wpis in dane.get("data", []):
-        if wpis["attributes"]["identifier"] == BUNDLE_ID:
+        if wpis["attributes"]["identifier"] == identyfikator:
             return wpis["id"]
-    raise SystemExit(f"Nie znalazłem identyfikatora aplikacji {BUNDLE_ID} na koncie")
+    raise SystemExit(
+        f"Nie znalazłem identyfikatora {identyfikator} na koncie. "
+        "Identyfikatory i grupy zakłada się RĘCZNIE w portalu — API App Store "
+        "Connect nie potrafi utworzyć grupy aplikacji ani przypisać jej do "
+        "identyfikatora (sprawdzone 17.10.2026). Patrz PLAN_IOS.md §10.")
 
 
-def profile_o_nazwie() -> list[dict]:
+def profile_o_nazwie(nazwa: str = NAZWA_PROFILU) -> list[dict]:
     dane = api("/v1/profiles?limit=200")
-    return [p for p in dane.get("data", []) if p["attributes"]["name"] == NAZWA_PROFILU]
+    return [p for p in dane.get("data", []) if p["attributes"]["name"] == nazwa]
 
 
-def profil_dla(cert_id: str) -> dict:
+def profil_dla(cert_id: str, nazwa: str = NAZWA_PROFILU,
+               identyfikator: str = BUNDLE_ID) -> dict:
     """Profil App Store wskazujący trwały certyfikat — istniejący albo nowy.
 
     Istniejący aktywny profil bierzemy bez zmian. Nowy powstaje tylko wtedy, gdy
     takiego nie ma; wcześniej kasujemy profile o tej samej nazwie, bo wskazują
     wycofane certyfikaty z czasów „pożyczania” i do niczego się nie nadają.
     """
-    for profil in profile_o_nazwie():
+    for profil in profile_o_nazwie(nazwa):
         attrs = profil["attributes"]
         if attrs.get("profileState") != "ACTIVE" or attrs.get("profileType") != "IOS_APP_STORE":
             continue
@@ -133,16 +144,16 @@ def profil_dla(cert_id: str) -> dict:
         if any(c["id"] == cert_id for c in certy):
             print("Używam istniejącego profilu", profil["id"], attrs.get("uuid"))
             return profil
-    for stary in profile_o_nazwie():
+    for stary in profile_o_nazwie(nazwa):
         api("/v1/profiles/" + stary["id"], "DELETE")
         print("Skasowałem nieaktualny profil", stary["id"],
               stary["attributes"].get("profileState"))
     profil = api("/v1/profiles", "POST", {
         "data": {
             "type": "profiles",
-            "attributes": {"name": NAZWA_PROFILU, "profileType": "IOS_APP_STORE"},
+            "attributes": {"name": nazwa, "profileType": "IOS_APP_STORE"},
             "relationships": {
-                "bundleId": {"data": {"type": "bundleIds", "id": id_bundle()}},
+                "bundleId": {"data": {"type": "bundleIds", "id": id_bundle(identyfikator)}},
                 "certificates": {"data": [{"type": "certificates", "id": cert_id}]},
             },
         }
@@ -193,15 +204,20 @@ def przygotuj() -> None:
     haslo_plik.write_text(haslo, encoding="utf-8")
     haslo_plik.chmod(0o600)
 
-    profil = profil_dla(cert_id)
-    wypisz("profil_nazwa", NAZWA_PROFILU)
-    wypisz("profil_uuid", profil["attributes"]["uuid"])
-
     cel = pathlib.Path.home() / "Library/MobileDevice/Provisioning Profiles"
     cel.mkdir(parents=True, exist_ok=True)
-    plik = cel / (profil["attributes"]["uuid"] + ".mobileprovision")
-    plik.write_bytes(base64.b64decode(profil["attributes"]["profileContent"]))
-    print("Profil zapisany:", plik)
+
+    # Dwa profile: aplikacja i jej rozszerzenie powiadomień. Oba muszą wskazywać
+    # TEN SAM trwały certyfikat, inaczej eksport odmówi podpisania jednego z nich.
+    for nazwa, identyfikator, klucz_wyjscia in (
+            (NAZWA_PROFILU, BUNDLE_ID, "profil"),
+            (NAZWA_PROFILU_NSE, BUNDLE_ID_NSE, "profil_nse")):
+        profil = profil_dla(cert_id, nazwa, identyfikator)
+        wypisz(klucz_wyjscia + "_nazwa", nazwa)
+        wypisz(klucz_wyjscia + "_uuid", profil["attributes"]["uuid"])
+        plik = cel / (profil["attributes"]["uuid"] + ".mobileprovision")
+        plik.write_bytes(base64.b64decode(profil["attributes"]["profileContent"]))
+        print("Profil zapisany:", identyfikator, "→", plik)
 
 
 def sprzatanie() -> None:

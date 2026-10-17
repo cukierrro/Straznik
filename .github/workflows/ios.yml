@@ -42,6 +42,7 @@ on:
         options:
           - testflight
           - sprawdzenie
+          - podpis
 
 permissions:
   contents: read
@@ -87,6 +88,13 @@ jobs:
           if [ "${{ inputs.tryb }}" = "sprawdzenie" ]; then
             echo "mode=check" >> "$GITHUB_OUTPUT"
             echo "Tryb: SPRAWDZENIE na żądanie — sama kompilacja, nic nie idzie do Apple"
+          elif [ "${{ inputs.tryb }}" = "podpis" ]; then
+            # Próba generalna podpisywania: certyfikat, profile, archiwum, eksport
+            # i bramki uprawnień — wszystko poza wysyłką. Dodane 17.10.2026 przy
+            # rozszerzeniu powiadomień, bo drugi profil dało się wcześniej sprawdzić
+            # wyłącznie przez wgranie builda do Apple. Zły podpis lepiej zobaczyć tu.
+            echo "mode=sign" >> "$GITHUB_OUTPUT"
+            echo "Tryb: PODPIS — pełne podpisywanie i eksport, BEZ wysyłki do Apple"
           elif [ -n "$TEAM" ] && [ -n "$KEY_ID" ] && [ -n "$ISSUER" ] && [ -n "$KEY_P8" ] && [ -n "$GSI" ]; then
             echo "mode=testflight" >> "$GITHUB_OUTPUT"
             echo "Tryb: TESTFLIGHT (podpis i wysyłka do App Store Connect)"
@@ -136,7 +144,7 @@ jobs:
           grep -q "BUILD SUCCEEDED" "$RUNNER_TEMP/xcodebuild.log"
 
       - name: Sprawdzenie klucza App Store Connect
-        if: steps.mode.outputs.mode == 'testflight'
+        if: steps.mode.outputs.mode != 'check'
         env:
           KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ISSUER: ${{ secrets.ASC_ISSUER_ID }}
@@ -191,7 +199,7 @@ jobs:
       # ostatni krok oddaje je z powrotem.
       - name: Certyfikat i profil do podpisu
         id: podpis
-        if: steps.mode.outputs.mode == 'testflight'
+        if: steps.mode.outputs.mode != 'check'
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
@@ -215,7 +223,7 @@ jobs:
           security find-identity -v -p codesigning "$kc"
 
       - name: Archiwum podpisane certyfikatem
-        if: steps.mode.outputs.mode == 'testflight'
+        if: steps.mode.outputs.mode != 'check'
         env:
           TEAM: ${{ secrets.APPLE_TEAM_ID }}
           KEY_ID: ${{ secrets.ASC_KEY_ID }}
@@ -252,12 +260,13 @@ jobs:
       # Taki build trafił do testerów 18.09 i kosztował nas dobę szukania nie tam,
       # gdzie trzeba — dlatego sprawdzamy PODPISANY plik, a nie nasze intencje.
       - name: Sprawdzenie uprawnień push w podpisanym pliku
-        if: steps.mode.outputs.mode == 'testflight'
+        if: steps.mode.outputs.mode != 'check'
         env:
           TEAM: ${{ secrets.APPLE_TEAM_ID }}
           KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ISSUER: ${{ secrets.ASC_ISSUER_ID }}
           PROFIL: ${{ steps.podpis.outputs.profil_nazwa }}
+          PROFIL_NSE: ${{ steps.podpis.outputs.profil_nse_nazwa }}
         run: |
           set -o pipefail
           cat > "$RUNNER_TEMP/ExportGood.plist" <<PLIST
@@ -271,7 +280,10 @@ jobs:
             <key>signingStyle</key><string>manual</string>
             <key>signingCertificate</key><string>Apple Distribution</string>
             <key>provisioningProfiles</key>
-            <dict><key>pl.straznik.app</key><string>$PROFIL</string></dict>
+            <dict>
+              <key>pl.straznik.app</key><string>$PROFIL</string>
+              <key>pl.straznik.app.NotificationService</key><string>$PROFIL_NSE</string>
+            </dict>
             <key>manageAppVersionAndBuildNumber</key><false/>
           </dict>
           </plist>
