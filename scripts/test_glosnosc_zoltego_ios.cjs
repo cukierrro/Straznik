@@ -16,10 +16,24 @@ const HTML = fs.readFileSync('frontend/index.html', 'utf8');
 const I18N = fs.readFileSync('frontend/i18n.js', 'utf8');
 const CSS = fs.readFileSync('frontend/style.css', 'utf8');
 
-test('iOS nie woła setYellowLevel (tylko Android ma tę metodę)', () => {
-  assert.match(APP, /if \(!IS_IOS\) try \{ await BG\(\)\?\.setYellowLevel\?\.\(\{ level: poziom \}\); \} catch \{\}/);
-  const wolania = APP.match(/setYellowLevel\?\.\(/g) || [];
-  assert.equal(wolania.length, 1, 'jedno wywołanie, i to osłonięte');
+// B13 (17.10.2026): od 1.7.96 plugin iOS MA setYellowLevel i setPushLanguage — zapisują
+// do wspólnego kontenera, z którego czyta rozszerzenie powiadomień (NSE). Bez tych wywołań
+// pierwszy push testowy NSE przyszedł po polsku i z dźwiękiem mimo „Bez dźwięku”.
+// Starsze buildy iOS metod nie mają: odrzucona obietnica musi być złapana.
+test('setYellowLevel przy wyborze poziomu — także na iOS, w try z await', () => {
+  assert.match(APP, /try \{ await BG\(\)\?\.setYellowLevel\?\.\(\{ level: poziom \}\); \} catch \{\}/);
+  assert.doesNotMatch(APP, /if \(!IS_IOS\) try \{ await BG\(\)\?\.setYellowLevel/, 'dawna osłona !IS_IOS zdjęta');
+});
+
+test('iOS przy starcie zapisuje język i poziom żółtego dla rozszerzenia (B13)', () => {
+  const od = APP.indexOf('if (IS_IOS) {\n  const nse = BG();');
+  const odCrlf = od >= 0 ? od : APP.indexOf('if (IS_IOS) {\r\n  const nse = BG();');
+  assert.ok(odCrlf >= 0, 'blok startowy B13 pod IS_IOS');
+  const blok = APP.slice(odCrlf, odCrlf + 400);   // cały blok startowy; nawiasy w środku są zagnieżdżone
+  assert.match(blok, /setPushLanguage\?\.\(\{ lang: UI\.lang \|\| "pl" \}\)\)\.catch\(\(\) => \{\}\)/);
+  assert.match(blok, /setYellowLevel\?\.\(\{ level: chimeLevel\(\) \}\)\)\.catch\(\(\) => \{\}\)/);
+  // przed blokiem musi już istnieć BG (const) — inaczej błąd strefy martwej przy starcie
+  assert.ok(APP.indexOf('const BG = () =>') < odCrlf, 'BG zadeklarowane przed użyciem');
 });
 
 test('notka tylko dla iOS w „Czego dotyczy to ustawienie”, jako <p> (CSS pokazuje tylko p.ios-only)', () => {

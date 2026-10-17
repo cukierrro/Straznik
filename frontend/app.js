@@ -7221,13 +7221,25 @@ for (const b of document.querySelectorAll("#yellow-volume .chip")) {
     try { localStorage.setItem("straznik_zolty_poziom", poziom); } catch {}
     renderYellowLevel();
     // zapis natywny decyduje o kanale powiadomienia przy zgaszonym ekranie (Android).
-    // iOS tej metody nie ma (proxy Capacitora odrzuca obietnicę), a dźwięk żółtego
-    // pusha jest tam w ładunku APNs z serwera — patrz #yv-ios-note (B11, 13.10.2026).
-    if (!IS_IOS) try { await BG()?.setYellowLevel?.({ level: poziom }); } catch {}
+    // Na iOS od 1.7.96 (B13, 17.10.2026) metoda zapisuje poziom do wspólnego kontenera,
+    // z którego czyta go rozszerzenie powiadomień; starsze buildy iOS jej nie mają —
+    // proxy Capacitora odrzuca wtedy obietnicę, stąd await w try.
+    try { await BG()?.setYellowLevel?.({ level: poziom }); } catch {}
     if (poziom !== "silent" && !(IS_APP && blockedByAlertsOff())) attentionChime();
   });
 }
 renderYellowLevel();
+/* B13 (17.10.2026): rozszerzenie powiadomień iOS ma własny kontener i nie widzi
+   ustawień aplikacji — czyta język i poziom żółtego ze wspólnej grupy, do której
+   zapisuje wyłącznie ta strona. Przy starcie, bo kto nigdy nie zmienia ustawień,
+   inaczej nie zapisałby nic; zmiana języka przeładowuje stronę, więc tu też trafia.
+   Bez tego pierwszy push testowy NSE przyszedł po polsku i z dźwiękiem mimo „Bez
+   dźwięku”. Starsze buildy iOS nie mają tych metod — obietnica odrzucona, łapiemy. */
+if (IS_IOS) {
+  const nse = BG();
+  Promise.resolve().then(() => nse?.setPushLanguage?.({ lang: UI.lang || "pl" })).catch(() => {});
+  Promise.resolve().then(() => nse?.setYellowLevel?.({ level: chimeLevel() })).catch(() => {});
+}
 /* Suwak „Alarmy na tym telefonie” (15.09.2026 zamiast pola „Nie chcę alarmów”):
    włączony = alarmy przychodzą. Stan wypisania pokazuje status nad suwakiem —
    z potwierdzeniem z Firebase, a nie z samego zapisu w aplikacji. */
