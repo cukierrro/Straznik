@@ -157,7 +157,7 @@ public class AlarmActivity extends Activity {
         box.addView(sc, scp);
 
         // Audyt B10: człowiek wybudzony w nocy ma wiedzieć, co zrobić — krótko.
-        TextView todo = text("Co zrobić: przejdź do schronu albo pomieszczenia bez okien, "
+        TextView todo = text("Co zrobić: przejdź do miejsca schronienia albo pomieszczenia bez okien, "
             + "z dala od szyb. Śledź komunikaty RCB i służb.", 15, Color.WHITE, true);
         todo.setPadding(dp(12), dp(10), dp(12), dp(10));
         todo.setBackgroundColor(Color.parseColor("#2a1016"));
