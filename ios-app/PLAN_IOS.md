@@ -503,3 +503,24 @@ kroki, a `podpis_apple.py` mówi o tym w komunikacie błędu.
   rozszerzenie jest w aplikacji i nic nie robi.
 - Po włączeniu D trzeba zmienić notkę `#yv-ios-note`: przestanie być prawdą, że na
   iPhonie ustawienie żółtego nie dotyczy powiadomień.
+
+### Etap C w toku — WSTRZYMANE DO POMIARU (17.10.2026)
+
+Build **1.7.96, 2610171533** jest w TestFlighcie, instrukcja wysłana testerowi
+(`INSTRUKCJA_ADRIAN_1796.md`). **Decyzja usera: do czasu pomiaru nic nie idzie do
+publikacji.**
+
+**Odkryte przy pisaniu instrukcji, ważne na przyszłość:** rozszerzenie uruchamia
+się **wyłącznie dla powiadomień zdalnych**. Nasz test 5 s jest powiadomieniem
+LOKALNYM, więc iOS nigdy nie przepuszcza go przez rozszerzenie — tester
+z angielskim interfejsem zobaczyłby polski komunikat i zgłosiłby błąd, którego
+nie ma. Dlatego instrukcja mówi to wprost, a pomiar wymaga **pushu z
+`mutable-content: 1` na `test_voiv_lubelskie`** (prośba wysłana do sesji głównej;
+bez wdrażania zmiany na produkcję).
+
+Co pomiar ma rozstrzygnąć:
+1. żółty z ustawieniem „Bez dźwięku" — **czy jest cichy**;
+2. czerwony przy tym samym ustawieniu — **czy dźwięk zostaje** (nic nie ma prawa
+   wyciszyć alarmu);
+3. czy tytuł i dwa stałe zdania są w języku aplikacji, a nazwa województwa
+   i opis sytuacji zostają po polsku.
