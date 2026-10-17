@@ -4157,7 +4157,46 @@ function balticRows() {
   return `<p class="fineprint" style="margin:12px 0 6px">${UI.t("Sąsiedzi — brak publicznego API alarmów, więc śledzimy kanały mediów", "Neighbours — no public alert API exists, so media feeds are watched", "Сусіди — немає відкритого API тривог, тому стежимо за каналами медіа")}</p>${rows}${cienBlok}`;
 }
 
+/* Pasek „NEPTUN niedostępny” (17.10.2026, decyzja usera). Tego dnia NEPTUN leżał
+   16 minut, a mapa pokazywała obiekty sprzed awarii; sygnałem była tylko czerwona
+   dioda. Obiektów NIE ukrywamy (pusta mapa przy czerwonych diodach mówiłaby
+   „spokój”) — pasek tylko wyjaśnia, od kiedy dane NEPTUN-a stoją. Krótkie
+   przerwy (ponowne łączenie trwa sekundy) nie pokazują nic. */
+const NEPTUN_DOWN_BADGE_MS = 120000;
+let neptunDownSeen = 0;          // kiedy TA aplikacja zobaczyła awarię (tryb bez serwera nie zna last_msg)
+function renderNeptunBadge() {
+  const el = document.getElementById("src-badge");
+  if (!el) return;
+  const down = !!(state && !histMode && state.health && state.health.neptun === false);
+  if (!down) neptunDownSeen = 0;
+  else if (!neptunDownSeen) neptunDownSeen = Date.now();
+  const lastRaw = Number(state?.neptun?.status?.last_msg);
+  const last = lastRaw > 0 ? lastRaw * 1000 : NaN;
+  const od_ = Number.isFinite(last) ? last : neptunDownSeen;
+  const dlugo = down && Date.now() - od_ > NEPTUN_DOWN_BADGE_MS;
+  // przy zerwanym połączeniu z NASZYM serwerem mówi już plakietka połączenia
+  if (!dlugo || !connBadge.classList.contains("hidden")) {
+    if (!el.classList.contains("hidden")) el.classList.add("hidden");
+    return;
+  }
+  const od = Number.isFinite(last)
+    ? new Date(od_).toLocaleTimeString(UI.t("pl-PL", "en-GB", "uk-UA"), { hour: "2-digit", minute: "2-digit" }) : "";
+  const txt = od
+    ? UI.t(`NEPTUN nie odpowiada od ${od} — drony i alarmy UA na mapie mogą być nieaktualne`,
+           `NEPTUN not responding since ${od} — drones and UA alerts on the map may be out of date`,
+           `NEPTUN не відповідає з ${od} — дрони й тривоги UA на мапі можуть бути застарілими`)
+    : UI.t("NEPTUN nie odpowiada — drony i alarmy UA na mapie mogą być nieaktualne",
+           "NEPTUN not responding — drones and UA alerts on the map may be out of date",
+           "NEPTUN не відповідає — дрони й тривоги UA на мапі можуть бути застарілими");
+  if (el.textContent !== txt) {
+    el.textContent = txt;
+    if (el.classList.contains("hidden")) powiedz(a11yInfo, txt);
+  }
+  el.classList.remove("hidden");
+}
+
 function renderLeds() {
+  renderNeptunBadge();
   document.getElementById("status-leds").innerHTML = ledItems().map(([n, ok]) =>
     `<span class="led ${ok ? "ok" : "err"}"><i></i><span>${esc(srcTitle(n))}<span class="sr-only">: ${ok ? UI.t("działa", "working", "працює") : UI.t("brak odpowiedzi", "not responding", "немає відповіді")}</span></span></span>`).join("");
   // okno źródeł bywa otwarte właśnie wtedy, gdy użytkownik czeka na powrót
@@ -4191,6 +4230,7 @@ function showSources() {
   fillSources();
   document.getElementById("sources").showModal();
 }
+document.getElementById("src-badge")?.addEventListener("click", showSources);
 
 /* Jeden nasłuch na wszystkie krzyżyki okien — dokładanie osobnego do każdego
    okna kończy się tym, że przy następnym oknie ktoś zapomni. Zamknięcie jest
