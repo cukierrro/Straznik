@@ -944,3 +944,35 @@ wyprzedzenia, ale nie chcę, żeby to przeszło bez zapisu.
   ustawienie żółtego nie dotyczy powiadomień.
 - Kolejność ma być: rozszerzenie w App Store → dopiero potem znacznik w serwerze.
   Odwrotnie oznaczałoby alarmy oznaczone dla modułu, którego u ludzi nie ma.
+
+## 21. DO 1.7.97: przejrzeć układ przycisków na iPhonie (zgłoszenie usera, 17.10)
+
+User po obejrzeniu zrzutów od testera: **wrażenie, że układ guzików nachodzi na
+siebie**. Zapisane jako zadanie na 1.7.97, nie na teraz.
+
+**Uczciwie: na zrzutach, które mam, nachodzenia nie widzę.** Na obu ujęciach
+arkusza ustawień z 17.10 (19:03) ostatni wiersz kończy się wyraźnie nad
+pływającym paskiem, a między nimi jest puste miejsce. To nie znaczy, że wrażenie
+jest błędne — znaczy, że **te zrzuty tego nie pokazują** i trzeba sprawdzić
+warunki, w których problem mógłby wyjść.
+
+### Gdzie szukać w pierwszej kolejności
+
+1. **Pływający dolny pasek nad treścią arkusza.** Pasek jest `position: fixed`,
+   a arkusz przewijany — przy krótszym ekranie albo większej czcionce ostatni
+   wiersz może pod niego wjechać. Sprawdzić na iPhonie SE i przy „Wielkość
+   tekstu" ustawionej na maksimum.
+2. **Obszar bezpieczny na dole** (pasek gestów). To samo miejsce, inny powód.
+3. **Ekran „Alarmy przy zamkniętej aplikacji"** — ma najwięcej przycisków jeden
+   pod drugim i najdłuższe etykiety, więc rośnie najszybciej przy dużym tekście.
+4. **Ukraiński** — etykiety są tam dłuższe niż polskie („Увімкнути тривогу попри
+   вимкнений звук"), więc łamią się na dwie linie i podnoszą wiersze.
+
+### Jak to rozstrzygnąć bez zgadywania
+
+Poprosić testera o zrzut **dokładnie tego ekranu, który wyglądał źle**, z podaną
+wielkością tekstu i językiem. Jedno zdanie „tu nachodzi" plus zrzut wystarczy;
+bez tego będziemy poprawiać po omacku rzecz, której nie widać u nas.
+
+To wspólny front (`style.css`, arkusz ustawień v4) — **do sesji UI/UX albo
+głównej**, nie do mnie. Zgłoszę im przy pracach nad 1.7.97.
