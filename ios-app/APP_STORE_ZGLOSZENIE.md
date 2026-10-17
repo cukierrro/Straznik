@@ -822,3 +822,32 @@ a na iOS 16/17 brak rozmycia zostawia panele z kryciem 0,80–0,92, więc tekst
 stoi na niemal nieprzezroczystym tle. Ale to wniosek z kodu, nie z telefonu.
 **Przy pierwszym zgłoszeniu „coś źle wygląda na iPhonie" zacząć od tych pięciu
 ekranów**, a przy następnym wydaniu przejść je, zanim build pójdzie do sklepu.
+
+## 25. Zgłoszenie 1.7.96 (17.10.2026, 20:45)
+
+Build **2610171825**, commit `500cbe7` (tag `v1.7.96`, versionCode 125),
+status **Waiting for Review**, publikacja **automatyczna** po zatwierdzeniu —
+Android wyszedł wcześniej tego samego dnia, więc nie było na co czekać
+(1.7.95 miało ręczną; nowa wersja dziedziczy ustawienie i trzeba je przestawić).
+
+Pierwsze wydanie z **rozszerzeniem powiadomień w paczce**. Jest **nieaktywne**:
+`notify.py` nie wysyła `mutable-content`, więc iOS go nie uruchamia. Etap D
+dopiero po publikacji i za osobną zgodą usera.
+
+Sprawdzone przed buildem: GROTA z wykazu **2026-10-12** (86 712 punktów),
+prefiksy `-webkit-backdrop-filter` 15/15, `#quiet-hours` android-only,
+`#yv-ios-note` ios-only, `godzinyCiszyTeraz()` wychodzi na `IS_IOS`,
+`test_zdania_rozszerzenia.py` zielony, rozszerzenie w paczce (bramka CI).
+
+### Pułapka: trzy buildy pod jednym numerem wersji
+
+W oknie „Add Build" były **2610171825, 2610171752 i 2610171533** — wszystkie
+jako 1.7.96, bo każdy był próbą tego samego wydania. Wybierać **po numerze
+builda**, nigdy po kolejności na liście; podpiąłem ten z commita wydania.
+
+### Drobiazg, który łatwo przeoczyć
+
+Sesja główna uprzedziła, że panel nie przyjmuje znaków ⚙ i →, i omyłkowo
+napisałem pierwszą wersję opisu **bez polskich znaków diakrytycznych**.
+Panel je przyjmuje bez problemu (działały w 1.7.94 i 1.7.95) — poprawione przed
+zapisem. Unikać trzeba wyłącznie ⚙ i →.
