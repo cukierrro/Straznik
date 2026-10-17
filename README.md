@@ -6,9 +6,9 @@
 
 Serwer: **hostowane na [Mikrusie](https://mikr.us)** — dziękujemy za wsparcie projektu.
 
-Wersja 1.7.95: nowy wygląd z pływającym dolnym paskiem i Menu, licznik dronów
-i rakiet w górnym pasku, wykres 12 godzin w historii, godziny ciszy na Androidzie
-i język telefonu w aplikacji. Szczegóły: `docs/RELEASE_1.7.95.md`.
+Wersja 1.7.96: sekcja „Mapa” w ustawieniach, pasek „NEPTUN nie odpowiada od…”
+przy awarii źródła, „miejsce schronienia” w alarmach i płynniejsza mapa.
+Szczegóły: `docs/RELEASE_1.7.96.md`.
 
 Wersja 1.7.94: GROTA na wykazie schronień PSP z 12 października, przyciski
 „Poczuj” wibrują tak jak prawdziwy sygnał, a historia gasi punkty zgubionych dronów
