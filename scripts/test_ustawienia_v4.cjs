@@ -55,7 +55,7 @@ sprawdz(/dlg\.addEventListener\("close"/.test(js), "po zamknięciu mapa i panel 
 console.log("4. Tłumaczenia ekranu startowego w obu ścieżkach");
 const podglad = i18n.slice(i18n.indexOf("// v4 (14.10.2026): ekran startowy ustawień"), i18n.indexOf("// v4 (14.10.2026): ekran startowy ustawień") + 1500);
 const globalnie = i18n.slice(i18n.indexOf("// v4: wiersze sekcji ustawień po identyfikatorach"), i18n.indexOf("// v4: wiersze sekcji ustawień po identyfikatorach") + 900);
-for (const id of ["set-tytul", "set-x-t", "st-alarmy", "st-miejsca", "st-dzwiek", "st-mapa", "st-aplikacja", "set-wstecz-t", "set-lang-zastosuj", "set-api-zapisz"]) {
+for (const id of ["set-tytul", "set-x-t", "st-alarmy", "st-miejsca", "st-dzwiek", "st-dzwiek-cisza", "st-mapa", "st-aplikacja", "set-wstecz-t", "set-lang-zastosuj", "set-api-zapisz"]) {
   sprawdz(okno.includes(`id="${id}"`), `#${id} jest w oknie`);
   sprawdz(podglad.includes(`"${id}"`), `#${id} tłumaczony w podglądzie języka w oknie`);
   sprawdz(globalnie.includes(`#${id}"`), `#${id} tłumaczony przy przełączeniu całej aplikacji`);
@@ -66,6 +66,29 @@ sprawdz(!/many\(":scope \.set-tab"/.test(i18n) && !/setMany\("#settings \.set-ta
 // wiersza przy ciemnym tekście przycisku głównego — wyglądał na wyłączony.
 sprawdz(/\.set-rows > \.chip\.primary \{[^}]*background: var\(--przycisk-glowny\)/.test(css),
   "wiersz z przyciskiem głównym ma tło przycisku głównego (czytelny tekst)");
+
+console.log("7. Godziny ciszy tylko tam, gdzie są (Android)");
+// 1.7.96: na iPhonie wiersz mówił „Dźwięk i godziny ciszy”, a #quiet-hours jest android-only
+// (zgłoszenie testera z TestFlight). Dopisek o ciszy ma tę samą klasę co sama funkcja.
+sprawdz(/id="quiet-hours" class="android-only"/.test(html), "#quiet-hours jest tylko na Androidzie");
+sprawdz(/<span id="st-dzwiek">Dźwięk<\/span>/.test(html), "wiersz sekcji: samo „Dźwięk”");
+sprawdz(/<span id="st-dzwiek-cisza" class="android-only">i godziny ciszy<\/span>/.test(html),
+  "„i godziny ciszy” w wierszu tylko na Androidzie");
+sprawdz(!/tx\("st-dzwiek", "[^"]*cisz/.test(i18n) && !/set\("#st-dzwiek", "[^"]*quiet/.test(i18n),
+  "tłumaczenie #st-dzwiek nie dokleja godzin ciszy (PL/EN)");
+{
+  // Każda wzmianka o godzinach ciszy w widocznym tekście aplikacji siedzi w elemencie android-only
+  // albo wewnątrz #quiet-hours. Sprawdzamy index.html i napisy innerHTML w i18n.js.
+  const bezCiszy = (txt) => txt
+    .replace(/<div id="quiet-hours" class="android-only">[\s\S]*?<\/details>\s*<\/div>/g, "")
+    .replace(/<([a-z]+)[^>]*class=["'][^"']*android-only[^"']*["'][^>]*>[\s\S]*?<\/\1>/g, "")
+    .replace(/<!--[\s\S]*?-->/g, "");
+  const wolne = [...bezCiszy(html).matchAll(/[^<>]{0,40}godzin(y|ach) ciszy[^<>]{0,20}/gi)].map(m => m[0].trim());
+  sprawdz(wolne.length === 0, `w index.html o godzinach ciszy tylko w android-only (poza: ${wolne.join(" | ") || "brak"})`);
+  const gdzie5 = [...i18n.matchAll(/getElementById\("ab-gdzie-5"\); if \(el\) el\.innerHTML = "([^"]*)"/g)].map(m => m[1]);
+  sprawdz(gdzie5.length === 2 && gdzie5.every(t => /android-only'>, (quiet hours|години тиші)<\/span>/.test(t)),
+    "„O aplikacji” EN/UK: godziny ciszy w android-only");
+}
 
 console.log(bledy ? `\n${bledy} błędów` : "\nWszystko w porządku");
 process.exit(bledy ? 1 : 0);

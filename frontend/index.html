@@ -742,7 +742,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
       <li id="ab-gdzie-2"><b>Sygnały</b> — karty województw z punktacją, lista sygnałów, obiekty przy granicy, lotnictwo wojskowe.</li>
       <li id="ab-gdzie-3"><b>GROTA</b> (w aplikacji) — najbliższe miejsca schronienia i co przygotować.</li>
       <li id="ab-gdzie-4"><b>Historia</b> — ostatnie 12 godzin na suwaku.</li>
-      <li id="ab-gdzie-5"><b>Menu</b> — ustawienia (województwo, zgody, dźwięk, godziny ciszy, język), legenda, widok 3D, obce maszyny, instrukcja.</li>
+      <li id="ab-gdzie-5"><b>Menu</b> — ustawienia (województwo, zgody, dźwięk<span class="android-only">, godziny ciszy</span>, język), legenda, widok 3D, obce maszyny, instrukcja.</li>
       <li id="ab-gdzie-6"><b>Diody i (i) u góry</b> — stan źródeł danych i źródła mapy. Dotknij obiektu na mapie, żeby zobaczyć szczegóły.</li>
     </ul>
 
@@ -917,7 +917,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
       <nav class="set-tabs" aria-label="Sekcje ustawień">
         <button type="button" class="set-tab sheet-row" data-pane="alarmy" data-kolor="czerwony"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9a6 6 0 0 1 12 0c0 7 3 7 3 7H3s3 0 3-7Z"/><path d="M10 20h4"/><path d="M3.5 5.5 2 4M20.5 5.5 22 4"/></svg><span id="st-alarmy">Alarmy i zgody</span><span class="set-wartosc" id="sv-alarmy"></span></button>
         <button type="button" class="set-tab sheet-row" data-pane="miejsca" data-kolor="morski"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></svg><span id="st-miejsca">Moje miejsca</span><span class="set-wartosc" id="sv-miejsca"></span></button>
-        <button type="button" class="set-tab sheet-row" data-pane="dzwiek" data-kolor="fiolet"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4.5 4.5 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11"/></svg><span id="st-dzwiek">Dźwięk i godziny ciszy</span><span class="set-wartosc" id="sv-dzwiek"></span></button>
+        <button type="button" class="set-tab sheet-row" data-pane="dzwiek" data-kolor="fiolet"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4.5 4.5 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11"/></svg><span class="st-nazwa"><span id="st-dzwiek">Dźwięk</span> <span id="st-dzwiek-cisza" class="android-only">i godziny ciszy</span></span><span class="set-wartosc" id="sv-dzwiek"></span></button>
         <!-- 1.7.96 (uwaga usera 16.10.2026): trasy obiektów były schowane w „Język, tekst
              i wersja” i nikt ich tam nie szukał — mają własną sekcję „Mapa”. -->
         <button type="button" class="set-tab sheet-row" data-pane="mapa" data-kolor="zielony"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3V6Z"/><path d="M9 3v15M15 6v15"/></svg><span id="st-mapa">Mapa</span><span class="set-wartosc" id="sv-mapa"></span></button>
@@ -1252,7 +1252,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
      Cloudflare, więc po każdym wydaniu wystarczy podbić ?v= i przeglądarki
      dostają nowe app.js/engine.js OD RAZU, bez ręcznego czyszczenia cache CF.
      Podbijaj ?v= razem z versionName w build.gradle. -->
-<script src="i18n.js?v=1.7.95d"></script>
+<script src="i18n.js?v=1.7.95e"></script>
 <!-- kontur Polski dla engine.js (audyt A2b, scripts/build_pl_outline.py) -->
 <script src="pl-outline.js?v=1.7.82"></script>
 <script src="engine.js?v=1.7.95d"></script>
