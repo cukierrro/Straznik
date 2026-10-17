@@ -870,3 +870,37 @@ Ciszy żółtego na iPhonie i języka powiadomienia — to rozszerzenie powiadom
 (NSE), zatwierdzone jako **osobne wydanie po 1.7.95** (`PLAN_IOS.md` §9).
 Do tego czasu w aplikacji zostaje notka „alarmy przychodzą po polsku", która po
 wejściu D2 (język telefonu zamiast polskiego) dotyczy większej liczby osób.
+
+## 19. Pierwsze pushe przez rozszerzenie (17.10.2026, build 2610171533)
+
+Dwa pushe testowe z `mutable-content: 1`, wyłącznie na `test_voiv_lubelskie`
+i `test_voiv_lubelskie_krytyczne`, wysłane przez sesję główną za zgodą usera.
+Wspólny kontener był wtedy **pusty** (B13 jeszcze nie było), więc rozszerzenie
+nie miało czym zadziałać — i to było wiadome przed wysyłką.
+
+### Co ten pomiar rozstrzygnął
+
+| Pytanie | Wynik |
+|---|---|
+| Czy alarm z `mutable-content` dochodzi **cały**? | **TAK** — tytuł, godzina, punkty, nagłówek i powód na miejscu |
+| Czy przychodzi **jeden** baner mimo wysyłki na dwa tematy? | **TAK** — `apns-collapse-id` działa |
+| Czy czerwony nadal jest **krytyczny**? | **TAK** — etykieta „⚠ KRYTYCZNE" i dźwięk |
+| Czy żółty jest cichy przy „Bez dźwięku"? | **NIE** — i tak miało być, kontener pusty |
+| Czy treść jest w języku aplikacji? | **NIE** — jw. |
+
+**To jest wynik bezpieczeństwa i on jest dobry.** Najgorsze, co mogło się stać przy
+tej zmianie, to okaleczenie albo zgubienie alarmu. Nie stało się: droga czerwonego
+alarmu z dźwiękiem krytycznym przeszła nienaruszona.
+
+### Czego ten pomiar NIE rozstrzygnął — i czego nie da się z niego wyczytać
+
+**Nie wiemy, czy iOS w ogóle uruchomił rozszerzenie.** Przy pustym kontenerze
+rozszerzenie, które się uruchomiło i nic nie zmieniło, wygląda identycznie jak
+takie, które nigdy nie ruszyło. Rozstrzygnie to dopiero pomiar po B13.
+
+### Przy okazji: tytuł ucina się na ekranie blokady
+
+„TEST — PODWYŻSZONA UWAGA: lu…". Prawdziwy alarm nie ma przedrostka „TEST — ",
+więc mieści się lepiej — ale to przypomnienie, dlaczego `notify.py` zdjął
+z tytułu „woj." i punkty (19.09.2026). Przy dłuższych etykietach poziomu
+w tłumaczeniach (np. „ВИСОКИЙ ПРІОРИТЕТ") warto to sprawdzić ponownie.
