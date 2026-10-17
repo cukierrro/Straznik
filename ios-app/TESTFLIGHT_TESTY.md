@@ -904,3 +904,43 @@ takie, które nigdy nie ruszyło. Rozstrzygnie to dopiero pomiar po B13.
 więc mieści się lepiej — ale to przypomnienie, dlaczego `notify.py` zdjął
 z tytułu „woj." i punkty (19.09.2026). Przy dłuższych etykietach poziomu
 w tłumaczeniach (np. „ВИСОКИЙ ПРІОРИТЕТ") warto to sprawdzić ponownie.
+
+## 20. ROZSZERZENIE DZIAŁA — zmierzone 17.10.2026 (build 2610171752)
+
+Telefon testera: język aplikacji **angielski**, żółty ustawiony na **„Bez
+dźwięku"**, zgoda krytyczna włączona. Pushe na oba tematy testowe.
+
+| Co | Wynik |
+|---|---|
+| żółty — dźwięk | **CISZA** przy ustawieniu „Bez dźwięku" |
+| żółty — język | **„TEST — ELEVATED ATTENTION: lubel…"** |
+| czerwony — dźwięk | **ZAGRAŁ** mimo wyciszenia żółtego |
+| czerwony — poziom | etykieta **„⚠ KRYTYCZNE"** |
+| czerwony — język | **„TEST — HIGH PRIORITY: lubelskie"** |
+| nazwa województwa | **„lubelskie"** po polsku — tak miało być |
+
+Cytat testera: *„do żółtego nie ma dźwięku i jest po ang."* oraz *„czerwony (…)
+zawył alarm ale zawył"*.
+
+**To zamyka pytanie z §19.** Rozszerzenie nie tylko nie szkodzi — ono realnie
+działa: podmienia stałe zdania na język aplikacji i zdejmuje dźwięk żółtemu,
+a **alarmu nie tyka**. Dokładnie ten podział, o który chodziło.
+
+### Jedna obserwacja do sprawdzenia później
+
+Tester: *„na początku telefon zaczął wibrować i dopiero po jakichś 2 sek zawył
+alarm"*. Wcześniejsze pomiary alarmu krytycznego (29.09, 14.10) tego nie
+odnotowały. **Nie blokuje niczego** — alarm zadźwięczał — ale warto kiedyś
+zmierzyć, czy rozszerzenie dokłada opóźnienie między dostarczeniem a dźwiękiem.
+Sposób: ten sam push raz z `mutable-content`, raz bez, i porównanie na wideo.
+Przy ostrzeganiu o nalocie dwie sekundy są bez znaczenia wobec minut
+wyprzedzenia, ale nie chcę, żeby to przeszło bez zapisu.
+
+### Co zostaje do wydania
+
+- **Etap D**: `"mutable-content": 1` w `notify.py` — bez tego rozszerzenie nie
+  dostaje prawdziwych alarmów. Wspólny kod, **osobna zgoda usera**.
+- Po D: zmienić `#yv-ios-note`, bo przestanie być prawdą, że na iPhonie
+  ustawienie żółtego nie dotyczy powiadomień.
+- Kolejność ma być: rozszerzenie w App Store → dopiero potem znacznik w serwerze.
+  Odwrotnie oznaczałoby alarmy oznaczone dla modułu, którego u ludzi nie ma.
