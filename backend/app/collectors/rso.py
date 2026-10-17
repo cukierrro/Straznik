@@ -437,8 +437,12 @@ async def _process_item(it: dict) -> bool:
             source="rcb", event_type="rso_alert", voivodeship=voiv,
             points=config.RCB_LEVEL_POINTS[poziom],
             title=f"Alert RCB (RSO): „{title[:120]}”",
+            # issued_rso: kiedy TA wersja pojawiła się w RSO — utworzenie wpisu,
+            # a dla zmiany stopnia w miejscu chwila edycji (fusion._issued_at).
             details={"rso_id": mid, "valid_from": it.get("valid_from"),
-                     "valid_to": it.get("valid_to"), "rcb_level": poziom},
+                     "valid_to": it.get("valid_to"), "rcb_level": poziom,
+                     "issued_rso": ((it.get("created_at") or it.get("updated_at")) if prev is None
+                                    else it.get("updated_at") or it.get("created_at"))},
             dedup_key=key,
         )
         _seen.add(key)

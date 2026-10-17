@@ -456,8 +456,16 @@ def _pl_local_to_utc(value) -> str | None:
 
 
 def _issued_at(s: dict) -> str:
-    """Kiedy RCB wydało alert: `valid_from` z RSO, a bez niego chwila zapisu."""
-    return _pl_local_to_utc((s.get("details") or {}).get("valid_from")) or s.get("ts", "")
+    """Kiedy RCB wydało alert: późniejsze z `valid_from` i chwili pojawienia się
+    w RSO (`issued_rso`), a bez nich chwila zapisu.
+
+    17.10.2026 (zgłoszenie #12): `valid_from` jest zaokrąglone do minuty i bywa
+    WCZEŚNIEJSZE niż wpis w RSO — mediana 1,2 min, maksimum 9 min na 46 alertach.
+    Odwołanie innego wpisu z tego okna gasiło nowszy alert, bo porównanie
+    `issued <= odwołanie` widziało alert jako starszy. Na historii 0 kolizji."""
+    d = s.get("details") or {}
+    czasy = [t for t in (_pl_local_to_utc(d.get("valid_from")), _pl_local_to_utc(d.get("issued_rso"))) if t]
+    return max(czasy) if czasy else s.get("ts", "")
 
 
 def _clear_krajowe(s: dict) -> bool:

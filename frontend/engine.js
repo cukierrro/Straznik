@@ -783,9 +783,11 @@ function plLocalToMs(value) {
   } catch {}
   return asUtc - offsetMin * 60000;
 }
+/* Lustro fusion._issued_at (17.10.2026, #12): późniejsze z valid_from i chwili
+   pojawienia się wpisu w RSO — valid_from bywa do 9 min wcześniejsze. */
 function issuedAt(s) {
-  const v = plLocalToMs(s.details?.valid_from);
-  return Number.isFinite(v) ? v : (s.t || Date.parse(s.ts) || 0);
+  const czasy = [plLocalToMs(s.details?.valid_from), plLocalToMs(s.details?.issued_rso)].filter(Number.isFinite);
+  return czasy.length ? Math.max(...czasy) : (s.t || Date.parse(s.ts) || 0);
 }
 function officialCleared(s, rsoClears) {
   const id = String(s.details?.rso_id ?? ""), issued = issuedAt(s);
@@ -1887,6 +1889,7 @@ const RSO_END = ["zakończył","zakonczyl","zakończen","zakonczen","odwoł","od
 
 let rsoBootstrapped = localStorage.getItem("eng_rso_boot") === "1";
 const rsoSeen = new Set(JSON.parse(localStorage.getItem("eng_rso_seen") || "[]"));
+const rsoLevels = new Map();   // „rso:id:woj” → ostatnio zapisany poziom (zmiana stopnia w miejscu)
 
 const RSO_CONTINUES = ["do odwołania","do odwolania","do czasu odwołania","do czasu odwolania",
   "do czasu zakończenia","do czasu zakonczenia","aż do odwołania","az do odwolania"];
@@ -1934,15 +1937,25 @@ async function tickRso() {
                 || Date.now()).toISOString() }, `rso-clear:${it.id}:${v}`);
           continue;
         }
-        const key = `rso:${it.id}:${v}`;
-        if (!rsoBootstrapped) { rsoSeen.add(key); continue; }   // istniejące przy starcie nie alarmują
-        if (rsoSeen.has(key)) continue;
-        rsoSeen.add(key);
+        /* Lustro collectors/rso.py (16–17.10.2026): poziom z CAŁEJ treści (pole
+           `description` w RSO nie istnieje, komunikat bywa tylko w `content`),
+           a zmiana stopnia W MIEJSCU (ten sam id, w górę i w dół) to nowa wersja. */
         const tresc = String(it.shortcut || it.title || "");
-        const poziom = rcbLevel(tresc + " " + String(it.description || ""));
+        const poziom = rcbLevel(`${it.title || ""} ${it.shortcut || ""} ${it.content || ""}`);
+        const base = `rso:${it.id}:${v}`;
+        const prev = rsoLevels.get(base);
+        if (prev === poziom) continue;
+        const key = prev === undefined
+          ? (poziom === 1 ? base : `${base}:L${poziom}`)
+          : `${base}:L${poziom}:${it.updated_at || ""}`;
+        if (!rsoBootstrapped) { rsoSeen.add(key); rsoLevels.set(base, poziom); continue; }   // istniejące przy starcie nie alarmują
+        if (rsoSeen.has(key)) { rsoLevels.set(base, poziom); continue; }
+        rsoSeen.add(key);
+        rsoLevels.set(base, poziom);
         addSignal("rcb", "rso_alert", v, RCB_LEVEL_POINTS[poziom],
           `Alert RCB (RSO): „${tresc.slice(0,120)}”`,
-          { rso_id: String(it.id), valid_from: it.valid_from, valid_to: it.valid_to, rcb_level: poziom }, key);
+          { rso_id: String(it.id), valid_from: it.valid_from, valid_to: it.valid_to, rcb_level: poziom,
+            issued_rso: prev === undefined ? (it.created_at || it.updated_at) : (it.updated_at || it.created_at) }, key);
       }
     }
     rsoBootstrapped = true;
@@ -2481,6 +2494,7 @@ async function start(stateCb) {
 return { start, stop, history, timeline, historyFrom, timelineFrom, accumulate, matchVoivs,
          adsbHoldJump, adsbGeoUrl, adsbGeoAircraft, lostWeight, zgubioneZMigawek,
          stateFrom, alertLevel, rsoIsCancellation, assess,
+         rso: { tickRso, sygnaly: () => signals },
          rcbArtykul: { tickRcb, tekstArtykuluRcb, dataArtykuluRcb, wojewodztwaAlertu,
                        czyOdwolanieRcb, meldunkiArtykulu, najnowszyMeldunek } };
 })();

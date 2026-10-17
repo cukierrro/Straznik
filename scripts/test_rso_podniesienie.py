@@ -42,7 +42,7 @@ MONITOR = {
     "content": "UWAGA! Rosyjski atak powietrzny na terenie Ukrainy. Sytuacja jest monitorowana. "
                "W przestrzeni RP operuje polskie lotnictwo. Oczekuj dalszych komunikatów.",
     "valid_from": "2026-10-15 23:59:00", "valid_to": "2026-10-16 23:59:00",
-    "updated_at": "2026-10-16 00:00:22",
+    "created_at": "2026-10-16 00:00:22", "updated_at": "2026-10-16 00:00:22",
 }
 SCHRONIENIE = {
     **MONITOR,
@@ -92,6 +92,8 @@ print("1. kolektor: ten sam id, wyższy stopień")
 asyncio.run(rso._check(FakeClient([MONITOR])))
 ok([(z["event_type"], z["details"]["rcb_level"]) for z in zapisane] == [("rso_alert", 1)],
    "00:00: alert poziomu 1")
+ok(zapisane[0]["details"].get("issued_rso") == "2026-10-16 00:00:22",
+   f"issued_rso pierwszej wersji = utworzenie wpisu w RSO ({zapisane[0]['details'].get('issued_rso')})")
 ok(zapisane[0]["dedup_key"] == "rso:23420577:lubelskie",
    "poziom 1 ma dotychczasowy klucz (trwające alerty nie wejdą drugi raz po wdrożeniu)")
 asyncio.run(rso._check(FakeClient([MONITOR])))
@@ -102,6 +104,8 @@ if len(zapisane) == 2:
     trzy = zapisane[1]
     ok(trzy["details"]["rcb_level"] == 3, f"poziom 3 ({trzy['details']['rcb_level']})")
     ok(trzy["points"] == config.RCB_LEVEL_POINTS[3], f"{config.RCB_LEVEL_POINTS[3]} pkt")
+    ok(trzy["details"].get("issued_rso") == "2026-10-16 01:06:24",
+       f"issued_rso wersji = chwila edycji w RSO ({trzy['details'].get('issued_rso')})")
     ok(trzy["dedup_key"] == "rso:23420577:lubelskie:L3:2026-10-16 01:06:24",
        f"osobny klucz wersji: poziom i czas zmiany w RSO ({trzy['dedup_key']})")
 asyncio.run(rso._check(FakeClient([SCHRONIENIE])))
