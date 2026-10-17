@@ -18,5 +18,13 @@
 	     na zwykłym temacie FCM (patrz `zgodaKrytyczna` w pluginie). -->
 	<key>com.apple.developer.usernotifications.critical-alerts</key>
 	<true/>
+	<!-- Wspólny kontener z rozszerzeniem powiadomień: wtyczka zapisuje tu wybrany
+	     język i ustawienie żółtego, a rozszerzenie je czyta, bo ma własny
+	     `UserDefaults`. Bez tego alarm musiałby zgadywać język z ustawień
+	     telefonu — patrz PLAN_IOS.md §10. -->
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>group.pl.straznik.app</string>
+	</array>
 </dict>
 </plist>

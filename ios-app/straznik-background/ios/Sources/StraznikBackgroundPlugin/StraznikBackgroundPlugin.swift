@@ -27,6 +27,8 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
     public let pluginMethods: [CAPPluginMethod] = [
         CAPPluginMethod(name: "setHomeVoivodeship", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "setObservedVoivodeships", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "setPushLanguage", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "setYellowLevel", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "status", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "setForceMaxVolume", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "testNativeAlarm", returnType: CAPPluginReturnPromise),
@@ -359,6 +361,40 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
         }
     }
 
+    // MARK: - ustawienia dla rozszerzenia powiadomień
+
+    /// Wspólny kontener z rozszerzeniem (`NotificationService`). Rozszerzenie ma
+    /// własny `UserDefaults`, więc wszystko, co ma znać w chwili alarmu, musi
+    /// wylądować TUTAJ, a nie w `UserDefaults.standard`. Patrz `PLAN_IOS.md` §10.
+    private static let grupa = "group.pl.straznik.app"
+    private var wspolne: UserDefaults? { UserDefaults(suiteName: Self.grupa) }
+
+    /// Język treści alarmu. Rozszerzenie podmienia stałe zdania na ten język;
+    /// nagłówek i powody zostają po polsku, bo pisze je serwer.
+    @objc func setPushLanguage(_ call: CAPPluginCall) {
+        let l = (call.getString("lang") ?? "").lowercased()
+        guard ["pl", "en", "uk"].contains(l) else { return call.resolve(["lang": "pl"]) }
+        DispatchQueue.main.async {
+            self.wspolne?.set(l, forKey: "straznik_push_lang")
+            call.resolve(["lang": l])
+        }
+    }
+
+    /// Głośność żółtego sygnału. Na iOS treść i dźwięk powiadomienia składa serwer,
+    /// więc telefon może je zmienić dopiero w rozszerzeniu — stąd zapis do grupy,
+    /// a nie do kanału jak na Androidzie. **Czerwonego to nie dotyka**: rozszerzenie
+    /// nie zdejmuje dźwięku alarmowi, cokolwiek tu stoi.
+    @objc func setYellowLevel(_ call: CAPPluginCall) {
+        let poziom = call.getString("level") ?? "normal"
+        guard ["normal", "quiet", "silent"].contains(poziom) else {
+            return call.reject("nieznany poziom: \(poziom)")
+        }
+        DispatchQueue.main.async {
+            self.wspolne?.set(poziom, forKey: "straznik_zolty_poziom")
+            call.resolve(["yellowLevel": poziom])
+        }
+    }
+
     @objc func setHomeVoivodeship(_ call: CAPPluginCall) {
         let value = call.getString("voivodeship")
         let regions = Self.isKnownVoivodeship(value) ? [value!] : []
@@ -489,6 +525,11 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
             "homeVoivodeship": defaults.string(forKey: Key.home) ?? "",
             "observedVoivodeships": defaults.stringArray(forKey: Key.regions) ?? [],
             "topicsConfirmed": defaults.stringArray(forKey: Key.topics) ?? [],
+            // Co naprawdę zobaczy rozszerzenie powiadomień w chwili alarmu.
+            // Pusto = aplikacja jeszcze nic nie zapisała do wspólnego kontenera,
+            // czyli alarm przyjdzie po polsku i z dźwiękiem z serwera.
+            "pushLang": wspolne?.string(forKey: "straznik_push_lang") ?? "",
+            "yellowLevel": wspolne?.string(forKey: "straznik_zolty_poziom") ?? "",
             "topicsOkAt": defaults.integer(forKey: Key.topicsOkAt),
             "topicsError": topicsError,
             "topicsUnsubscribing": unsubscribing,
