@@ -298,6 +298,21 @@ jobs:
           app=$(ls -d "$RUNNER_TEMP/ipa/Payload"/*.app | head -1)
           echo "=== uprawnienia PODPISANEJ aplikacji ==="
           codesign -d --entitlements :- "$app" 2>/dev/null | tee "$RUNNER_TEMP/ent.txt"
+          # Rozszerzenie powiadomień musi BYĆ w paczce. Gdy wypadnie — zły warunek
+          # w fazie kopiowania, literówka w profilu — nic nie krzyczy: aplikacja
+          # działa, tylko alarmy znów przychodzą po polsku, a żółtego nie da się
+          # wyciszyć. Objawem byłby BRAK FUNKCJI, a nie błąd, więc pilnujemy tego
+          # tutaj — ta sama lekcja co z GROTĄ, gdzie jedynym sygnałem był rozmiar APK.
+          if [ -d "$app/PlugIns/NotificationService.appex" ]; then
+            echo "Rozszerzenie powiadomień jest w paczce."
+            codesign -d --entitlements :- "$app/PlugIns/NotificationService.appex" 2>/dev/null \
+              | tee "$RUNNER_TEMP/ent-nse.txt" || true
+            grep -q "application-groups" "$RUNNER_TEMP/ent-nse.txt" \
+              || { echo "::error::Rozszerzenie NIE ma wspólnego kontenera — nie odczyta ani języka, ani ustawienia żółtego"; exit 1; }
+          else
+            echo "::error::Brak NotificationService.appex w paczce — rozszerzenie powiadomień nie trafiło do builda"
+            exit 1
+          fi
           grep -q "aps-environment" "$RUNNER_TEMP/ent.txt" \
             || { echo "::error::Podpisany build NIE ma uprawnienia aps-environment — telefon nie dostanie tokenu APNs i żaden alarm nie dojdzie"; exit 1; }
           # Uprawnienie w BINARCE to nie to samo co uprawnienie przyznane przez PROFIL —
