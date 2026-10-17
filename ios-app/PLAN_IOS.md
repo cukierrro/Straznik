@@ -469,3 +469,37 @@ Drugi powód istnienia rozszerzenia: przy wyborze „Bez dźwięku" dla żółte
 rozszerzenie zdejmuje `sound` z powiadomienia, zanim iOS je pokaże. Ustawienie
 jedzie tą samą drogą co język — wspólnym kontenerem. **Czerwonego nie dotykamy
 nigdy**, niezależnie od ustawień.
+
+### Etapy A i B ZROBIONE (17.10.2026) — podpis przeszedł za pierwszym razem
+
+Przebiegi `39042090888` i `39042409126`, tryb **`podpis`** (nowy: pełne
+podpisywanie i eksport, **bez wysyłki do Apple**). Co się potwierdziło:
+
+- **Unieważniony profil naprawił się sam.** Dopisanie grupy do `pl.straznik.app`
+  unieważniło „Straznik CI App Store" — skrypt zobaczył go jako `INVALID`,
+  skasował i utworzył nowy. Dokładnie tak, jak zakładaliśmy; **nic nie trzeba było
+  robić ręcznie**.
+- **Dwa profile**: aplikacja i `...NotificationService`, oba na tym samym trwałym
+  certyfikacie. `EXPORT SUCCEEDED`.
+- **Podpisana aplikacja ma teraz** `aps-environment`, `critical-alerts`,
+  `time-sensitive` **i** `com.apple.security.application-groups` z naszą grupą.
+- **Rozszerzenie jest w paczce** i ma wspólny kontener — pilnuje tego nowa bramka
+  w `ios.yml`, która przerywa budowanie przy braku `PlugIns/NotificationService.appex`
+  albo braku grupy w jego uprawnieniach.
+
+Grupy aplikacji **nie da się założyć przez API** — ani utworzyć, ani przypiąć do
+identyfikatora (sprawdzone u Apple 17.10). Zrobił to user ręcznie w portalu:
+grupa `group.pl.straznik.app`, nowy identyfikator rozszerzenia i dopisanie grupy
+do identyfikatora głównego. Gdyby trzeba było to kiedyś odtworzyć — to są te trzy
+kroki, a `podpis_apple.py` mówi o tym w komunikacie błędu.
+
+### Co zostało
+
+- **Etap C**: build TestFlight i pomiary na telefonie — za słowem usera.
+  Sprawdzić: alarm testowy w trzech językach, cichy żółty, oraz że czerwony
+  **nigdy** nie traci dźwięku.
+- **Etap D**: `"mutable-content": 1` w bloku `aps` w `notify.py` — wspólny kod
+  alarmów, opis dla sesji głównej i **osobna zgoda usera**. Do tego czasu
+  rozszerzenie jest w aplikacji i nic nie robi.
+- Po włączeniu D trzeba zmienić notkę `#yv-ios-note`: przestanie być prawdą, że na
+  iPhonie ustawienie żółtego nie dotyczy powiadomień.
