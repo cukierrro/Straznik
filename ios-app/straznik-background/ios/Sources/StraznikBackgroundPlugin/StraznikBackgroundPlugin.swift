@@ -586,8 +586,12 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
                 let ciche = high && !krytyczny
                 let coZrobic = high
                     ? Self.tekst(lang,
-                        "Co zrobić: przejdź do schronu lub pomieszczenia bez okien i śledź komunikaty RCB.",
-                        "What to do: go to a shelter or a room without windows and follow RCB messages.",
+                        // Brzmienie zrównane z serwerem i Androidem 17.10.2026
+                        // („schron" → „miejsce schronienia", decyzja usera z 15.10).
+                        // Test ma mówić dokładnie to, co powie prawdziwy alarm —
+                        // inaczej uczy ludzi słów, których potem nie zobaczą.
+                        "Co zrobić: przejdź do miejsca schronienia lub pomieszczenia bez okien i śledź komunikaty RCB.",
+                        "What to do: go to a place of shelter or a room without windows and follow RCB messages.",
                         "Що робити: перейдіть до укриття або кімнати без вікон і стежте за повідомленнями RCB.")
                     : Self.tekst(lang,
                         "Co zrobić: zachowaj czujność i sprawdź komunikaty RCB.",

@@ -64,15 +64,19 @@ def main() -> int:
         print(f"\nTabele do uzupełnienia: {NSE.relative_to(KORZEN)} (POZIOMY / ZDANIA).")
         return 1
 
-    # To samo dla testu lokalnego we wtyczce — tam zdania są wpisane drugi raz.
+    # Test 5 s we wtyczce wpisuje te same zdania DRUGI RAZ. Jeśli się rozjadą,
+    # test uczy ludzi słów, których w prawdziwym alarmie nie zobaczą — a po to
+    # właśnie go robią, żeby wiedzieć, czego się spodziewać. Dlatego to błąd,
+    # nie uwaga. Etykiety poziomu pomijamy: wtyczka buduje tytuł inaczej.
     wtyczka = czytaj(SWIFT)
-    rozjazd = [z for z in sorted(oczekiwane) if z not in wtyczka and "PRIORYTET" not in z
-               and "UWAGA" not in z]
+    zdania_tail = {z for z in oczekiwane if z.startswith("Co zrobić") or z.startswith("NIEOFICJALNE")}
+    rozjazd = [z for z in sorted(zdania_tail) if z not in wtyczka]
     if rozjazd:
-        print("\nUWAGA (nie błąd): test alarmu we wtyczce ma inne brzmienie niż serwer:")
+        print("\nTEST 5 s MÓWI CO INNEGO NIŻ PRAWDZIWY ALARM. Brakuje w nim zdań:\n")
         for z in rozjazd:
             print(f"  • {z}")
-        print("Test 5 s wygląda wtedy inaczej niż prawdziwy alarm — do rozważenia.")
+        print(f"\nDo poprawienia w {SWIFT.relative_to(KORZEN)} (testNativeAlarm).")
+        return 1
 
     print("OK — rozszerzenie zna wszystkie stałe zdania serwera.")
     return 0
