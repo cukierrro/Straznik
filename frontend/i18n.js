@@ -306,7 +306,7 @@
      Ukraiński powstaje z angielskiego niżej, w ukrainize(), stąd tylko dwa warianty. */
   function trailSection(en) {
     const head = document.getElementById("trail-head");
-    if (head) head.textContent = en ? "Map: object tracks" : "Mapa: trasy obiektów";
+    if (head) head.textContent = en ? "Object tracks" : "Trasy obiektów";
     // Etykieta listy to pierwszy węzeł tekstowy <label>, przed samym <select>.
     const lead = (id, pl, eng) => {
       const el = document.getElementById(id);
@@ -398,7 +398,11 @@
     dlg.querySelector(".dlg-x")?.setAttribute("aria-label", en ? "Close settings" : "Zamknij ustawienia");
     tx("st-alarmy", "Alarmy i zgody", "Alerts and permissions");
     tx("st-miejsca", "Moje miejsca", "My places");
-    tx("st-dzwiek", "Dźwięk i godziny ciszy", "Sound and quiet hours");
+    // „godziny ciszy” są tylko na Androidzie (#quiet-hours.android-only) — na iPhonie
+    // etykieta obiecywała funkcję, której tam nie ma (zgłoszenie testera 1.7.96)
+    tx("st-dzwiek", "Dźwięk", "Sound");
+    tx("st-dzwiek-cisza", "i godziny ciszy", "and quiet hours");
+    tx("st-mapa", "Mapa", "Map");
     tx("st-aplikacja", "Język, tekst i wersja", "Language, text and version");
     tx("set-wstecz-t", "Ustawienia", "Settings");
     tx("set-lang-zastosuj", "Zmień język i uruchom ponownie", "Change language and restart");
@@ -596,7 +600,7 @@
     "UNOFFICIAL additional source — it does not replace sirens, RCB or RSO alerts. In a real emergency, follow official instructions.":
       "НЕОФІЦІЙНЕ додаткове джерело — не замінює сирен, Alert RCB чи RSO. У реальній небезпеці виконуйте офіційні вказівки.",
     "Map": "Мапа", "Signals": "Сигнали", "History": "Історія", "More": "Ще", "Menu": "Меню",
-    "Alerts and permissions": "Тривоги й дозволи", "Sound and quiet hours": "Звук і години тиші",
+    "Alerts and permissions": "Тривоги й дозволи", "Sound and quiet hours": "Звук і години тиші", "and quiet hours": "і години тиші",
     "Language, text and version": "Мова, текст і версія",
     "Change language and restart": "Змінити мову й перезапустити",
     "Save address and restart": "Зберегти адресу й перезапустити",
@@ -838,7 +842,7 @@
     "The test uses the real notification path: lock the screen within 5 seconds to check the alert above the lock screen. Silence it with the button on the alert screen or “Wycisz alarm” in the notification. Real alerts arrive in Polish, whatever the app language.":
       "Тест іде справжнім шляхом сповіщення: заблокуйте екран протягом 5 секунд, щоб побачити тривогу над блокуванням. Вимкніть її кнопкою на екрані тривоги або «Wycisz alarm» у сповіщенні. Справжні тривоги приходять польською, незалежно від мови застосунку.",
     "Interface language": "Мова інтерфейсу",
-    "Map: object tracks": "Мапа: шляхи об’єктів",
+    "Map: object tracks": "Мапа: шляхи об’єктів", "Object tracks": "Шляхи об’єктів",
     "Drones and missiles (NEPTUN)": "Дрони й ракети (NEPTUN)",
     "Aircraft and helicopters (ADS-B)": "Літаки й гелікоптери (ADS-B)",
     "Off": "Вимкнено",
@@ -988,7 +992,7 @@
     set("#set-tytul", "Settings"); set("#set-x-t", "Close"); set("#set-wstecz-t", "Settings");
     document.querySelector("#settings .dlg-x")?.setAttribute("aria-label", "Close settings");
     set("#st-alarmy", "Alerts and permissions"); set("#st-miejsca", "My places");
-    set("#st-dzwiek", "Sound and quiet hours"); set("#st-aplikacja", "Language, text and version");
+    set("#st-dzwiek", "Sound"); set("#st-dzwiek-cisza", "and quiet hours"); set("#st-mapa", "Map"); set("#st-aplikacja", "Language, text and version");
     set("#set-lang-zastosuj", "Change language and restart");
     set("#set-api-zapisz", "Save address and restart");
     const langOpts = document.getElementById("set-lang")?.options;
@@ -1108,7 +1112,7 @@
     { const el = document.getElementById("ab-gdzie-2"); if (el) el.innerHTML = "<b>Signals</b> — province cards with scores, the signal list, objects near the border, military aviation."; }
     { const el = document.getElementById("ab-gdzie-3"); if (el) el.innerHTML = "<b>GROTA</b> (in the app) — the nearest places of shelter and what to prepare."; }
     { const el = document.getElementById("ab-gdzie-4"); if (el) el.innerHTML = "<b>History</b> — the last 12 hours on a slider."; }
-    { const el = document.getElementById("ab-gdzie-5"); if (el) el.innerHTML = "<b>Menu</b> — settings (province, permissions, sound, quiet hours, language), legend, 3D view, foreign aircraft, user guide."; }
+    { const el = document.getElementById("ab-gdzie-5"); if (el) el.innerHTML = "<b>Menu</b> — settings (province, permissions, sound<span class='android-only'>, quiet hours</span>, language), legend, 3D view, foreign aircraft, user guide."; }
     { const el = document.getElementById("ab-gdzie-6"); if (el) el.innerHTML = "<b>LEDs and (i) at the top</b> — data-source status and map sources. Tap an object on the map to see its details."; }
     set("#about-close", "I understand — continue");
     set("#sources h3", "Data sources");
@@ -1343,7 +1347,7 @@
     { const el = document.getElementById("ab-gdzie-2"); if (el) el.innerHTML = "<b>Сигнали</b> — картки воєводств із балами, список сигналів, об’єкти біля кордону, військова авіація."; }
     { const el = document.getElementById("ab-gdzie-3"); if (el) el.innerHTML = "<b>GROTA</b> (у застосунку) — найближчі місця укриття і що підготувати."; }
     { const el = document.getElementById("ab-gdzie-4"); if (el) el.innerHTML = "<b>Історія</b> — останні 12 годин на повзунку."; }
-    { const el = document.getElementById("ab-gdzie-5"); if (el) el.innerHTML = "<b>Меню</b> — налаштування (воєводство, дозволи, звук, години тиші, мова), легенда, вигляд 3D, чужі літаки, інструкція."; }
+    { const el = document.getElementById("ab-gdzie-5"); if (el) el.innerHTML = "<b>Меню</b> — налаштування (воєводство, дозволи, звук<span class='android-only'>, години тиші</span>, мова), легенда, вигляд 3D, чужі літаки, інструкція."; }
     { const el = document.getElementById("ab-gdzie-6"); if (el) el.innerHTML = "<b>Діоди й (i) угорі</b> — стан джерел даних і джерела мапи. Торкніться об’єкта на мапі, щоб побачити подробиці."; }
     const licUk = document.getElementById("about-license");
     if (licUk) licUk.innerHTML = '© 2026 cukierrro · усі права застережено · '
