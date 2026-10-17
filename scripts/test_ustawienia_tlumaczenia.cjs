@@ -141,6 +141,8 @@ test('nagłówki h3 nie rozjechały się po indeksie', () => {
     for (const h of plain.matchAll(/<h3([^>]*)>/g))
       if (!wyj.some(w => h[1].includes(`id="${w}"`))) h3.push(sek[1]);
   }
-  assert.deepEqual(h3.slice(0, 5), ['alarmy', 'miejsca', 'dzwiek', 'aplikacja', 'aplikacja'],
+  // 16.10.2026 (1.7.96): nowa sekcja „Mapa” z nagłówkiem #trail-head (przeniesionym
+  // z „Język, tekst i wersja”); nagłówek tłumaczy trailSection po id, nie po kolejności.
+  assert.deepEqual(h3.slice(0, 5), ['alarmy', 'miejsca', 'dzwiek', 'mapa', 'aplikacja'],
     'zmieniła się liczba lub kolejność nagłówków h3 w panelach ustawień:\n  ' + h3.join(', '));
 });

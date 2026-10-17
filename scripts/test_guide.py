@@ -12,7 +12,9 @@ OTHER_IMAGES = {"mikrus-logo.svg": (86, 14)}
 # odrębne zrzuty: instrukcja 1.7.95 (wygląd v4) — 28 ekranów × PL/EN/UK, wszystkie
 # z 15.10.2026 w docs/screens/1795 (ukraińska ma już własne kadry zamiast angielskich)
 # + 7 archiwalnych w historii zmian
-EXPECTED_SHOTS = 91
+# 1.7.96 (16.10.2026): nowa sekcja „Mapa” w ustawieniach — +3 zrzuty set-mapa (PL/EN/UK)
+# w docs/screens/1796; set-start i set-aplikacja zastąpione kadrami z 1796 (bez zmiany liczby)
+EXPECTED_SHOTS = 94
 
 
 class Page(HTMLParser):
