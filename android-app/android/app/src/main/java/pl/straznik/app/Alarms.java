@@ -553,7 +553,7 @@ class Alarms {
         if (headline != null && !headline.isEmpty()) body.append(headline).append('\n');
         for (int i = 0; i < Math.min(reasons.size(), 4); i++) body.append(reasons.get(i)).append('\n');
         body.append(high
-            ? "Co zrobić: przejdź do schronu lub pomieszczenia bez okien i śledź komunikaty RCB.\n"
+            ? "Co zrobić: przejdź do miejsca schronienia lub pomieszczenia bez okien i śledź komunikaty RCB.\n"
             : "Co zrobić: zachowaj czujność i sprawdź komunikaty RCB.\n");
         body.append("NIEOFICJALNE źródło — kieruj się syrenami, RCB i RSO.");
         String firstLine = headline != null && !headline.isEmpty() ? headline

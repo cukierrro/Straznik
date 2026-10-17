@@ -147,7 +147,7 @@ def _apns_config(topic: str, data: dict, critical: bool = False):
     # nazwa regionu mieści się zawsze; punkty otwierają treść.
     title = (("TEST — " if topic.startswith(config.TEST_TOPIC_PREFIX) else "")
              + f"{LEVEL_LABELS.get(level, level)}: {data.get('voiv', '')}")
-    tail = [("Co zrobić: przejdź do schronu lub pomieszczenia bez okien i śledź komunikaty RCB."
+    tail = [("Co zrobić: przejdź do miejsca schronienia lub pomieszczenia bez okien i śledź komunikaty RCB."
              if high else "Co zrobić: zachowaj czujność i sprawdź komunikaty RCB."),
             "NIEOFICJALNE źródło — kieruj się syrenami, RCB i RSO."]
     # ~400 bajtów na klucze aps, dźwięk, thread-id i identyfikatory dokładane przez FCM
@@ -638,7 +638,7 @@ async def _deliver_level(voiv: str, level: str, score: float, signals: list[dict
                 if eta_alarm else "")
     reasons_for_push = reasons + eta_note
     title = f"{label}: woj. {voiv} ({score} pkt)"
-    todo = ("Co zrobić: przejdź do schronu lub pomieszczenia bez okien i śledź komunikaty RCB."
+    todo = ("Co zrobić: przejdź do miejsca schronienia lub pomieszczenia bez okien i śledź komunikaty RCB."
             if level == "high" else "Co zrobić: zachowaj czujność i sprawdź komunikaty RCB.")
     body = (f"{headline}\n"
             f"{reasons_for_push}\n{todo}\n"
