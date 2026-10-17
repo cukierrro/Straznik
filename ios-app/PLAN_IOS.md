@@ -412,3 +412,60 @@ Czerwony i żółty przy zamkniętej aplikacji, w trzech językach interfejsu; a
 krytyczny ze zgodą (czy rozszerzenie nie zdejmuje mu dźwięku); zachowanie, gdy
 rozszerzenie nie zdąży albo się wywróci — iOS pokazuje wtedy treść z serwera,
 czyli polską, i to jest akceptowalny zapas.
+
+## 10. NSE — plan wykonania (17.10.2026, zakres 1.7.96 pkt 12)
+
+Założenia i powody są w §9. Tu kolejność robót dobrana tak, żeby **ryzyko
+podpisywania ujawniło się jak najwcześniej i bez konsekwencji dla ludzi**.
+
+### Najważniejsza własność: rozszerzenie jest BEZCZYNNE, póki serwer nie doda `mutable-content`
+
+iOS uruchamia `UNNotificationServiceExtension` wyłącznie dla powiadomień
+z `mutable-content: 1` w ładunku. Dopóki `notify.py` tego nie wysyła, rozszerzenie
+jest w aplikacji obecne i nic nie robi — **można je wydać bez zmiany czegokolwiek
+dla użytkowników**. To zdejmuje z tej zmiany większość strachu: nie ma momentu,
+w którym „alarm nagle idzie nową drogą" bez naszej decyzji.
+
+### Kolejność
+
+| Etap | Co | Czym ryzykuje | Jak sprawdzam |
+|---|---|---|---|
+| A | Źródła rozszerzenia + wpięcie targetu w `project.pbxproj` | kompilacja, nie podpis | CI `tryb=sprawdzenie` |
+| B | Drugi App ID (`pl.straznik.app.NotificationService`) i jego profil w `podpis_apple.py` | **tu jest całe ryzyko** — ITMS-90035 | CI `tryb=sprawdzenie` czyta oba profile |
+| C | Build TestFlight + testy na telefonie Adriana | brak, push tylko na `test_voiv_*` | pomiar na urządzeniu |
+| D | `mutable-content: 1` w `notify.py` | wspólny kod alarmów | opis dla sesji głównej + **osobna zgoda usera** |
+
+Etapy A–C nie zmieniają niczego dla użytkowników. Dopiero D włącza mechanizm.
+
+### Język: skąd rozszerzenie ma go wziąć
+
+Rozszerzenie ma **własny kontener** — `UserDefaults.standard` z wtyczki jest dla
+niego niewidoczny. Dwie drogi:
+
+1. **App Group** (`group.pl.straznik.app`) — wtyczka zapisuje wybrany język do
+   wspólnego kontenera, rozszerzenie go czyta. Zgodne z przełącznikiem w aplikacji.
+   Koszt: kolejna zdolność na obu App ID i przebudowa profili.
+2. **Język telefonu** (`Locale.preferredLanguages`) — zero dodatkowych uprawnień,
+   ale rozmija się z własnym przełącznikiem w aplikacji. Po **D2** (aplikacja bez
+   zapisanego wyboru bierze język telefonu) dla większości ludzi to to samo —
+   rozjazd dotyczy wyłącznie tych, którzy świadomie przestawili język w Strażniku.
+
+**Wybór: App Group.** Zrobienie tego „prawie dobrze" przy alarmie oznaczałoby, że
+ktoś, kto celowo ustawił sobie ukraiński, dostaje alarm po angielsku, bo tak ma
+telefon. Jeśli App Group okaże się kłopotliwa w profilach, droga 2 zostaje jako
+awaryjna — ale wtedy trzeba to powiedzieć wprost w ustawieniach.
+
+### Czego rozszerzenie NIE przetłumaczy
+
+Nagłówka i powodów — to polska proza z `alarm_headline` / `reasons_split`
+(`threat_label_pl`, „ok. 88 km od granicy") oraz **dosłowne cytaty z tytułów
+medialnych**. Przetłumaczymy ramę: etykietę poziomu, „Co zrobić…", disclaimer.
+Pełne tłumaczenie wymaga kodów powodów zamiast prozy po stronie serwera — osobny
+temat, nie ten.
+
+### Cichy żółty
+
+Drugi powód istnienia rozszerzenia: przy wyborze „Bez dźwięku" dla żółtego
+rozszerzenie zdejmuje `sound` z powiadomienia, zanim iOS je pokaże. Ustawienie
+jedzie tą samą drogą co język — wspólnym kontenerem. **Czerwonego nie dotykamy
+nigdy**, niezależnie od ustawień.
