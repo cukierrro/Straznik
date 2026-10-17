@@ -105,6 +105,14 @@ class NotificationService: UNNotificationServiceExtension {
     /// Stałe zdania z `notify.py`. Kolejność nieistotna — podmieniamy wszystkie,
     /// które wystąpią.
     private static let ZDANIA: [String: [String: String]] = [
+        // Brzmienie zmienione 17.10.2026 („schron" → „miejsce schronienia", decyzja
+        // usera z 15.10). ZNAMY OBA: serwer dostaje nowe wcześniej, niż ludzie
+        // dostają tę wersję ze sklepu, a w tym oknie tłumaczenie nie może przepaść.
+        // Starego nie usuwać, dopóki w sklepie są wersje sprzed tej zmiany.
+        "Co zrobić: przejdź do miejsca schronienia lub pomieszczenia bez okien i śledź komunikaty RCB.": [
+            "en": "What to do: go to a place of shelter or a room without windows and follow RCB messages.",
+            "uk": "Що робити: перейдіть до укриття або кімнати без вікон і стежте за повідомленнями RCB.",
+        ],
         "Co zrobić: przejdź do schronu lub pomieszczenia bez okien i śledź komunikaty RCB.": [
             "en": "What to do: go to a shelter or a room without windows and follow RCB messages.",
             "uk": "Що робити: перейдіть до укриття або кімнати без вікон і стежте за повідомленнями RCB.",
