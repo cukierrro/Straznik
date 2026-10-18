@@ -8,6 +8,7 @@
 // przy każdym uruchomieniu zestawu: przegląda 15 widoków na kilku szerokościach,
 // w trzech językach i przy dużym tekście i pada, gdy coś wyjdzie za ekran,
 // z ramki albo złamie się w słupek (scripts/responsywnosc/przeglad.js).
+// Do tego sprawdza, że mapa przesuwa się nad otwarty panel Sygnały (od 1.7.97).
 //
 // Dane są syntetyczne (scripts/responsywnosc/dane.cjs) i podawane przez lokalny
 // serwer na losowym porcie. Kafelki tła mapy nie są potrzebne.
@@ -121,6 +122,24 @@ const GOTOWE = `(async () => {
   return "brak mapy albo danych " + JSON.stringify(d);
 })()`;
 
+const MAPA_NAD_PANELEM = `(async () => {
+  const pauza = (ms) => new Promise(r => setTimeout(r, ms));
+  try { exitHistory(); } catch {}
+  try { hideCard(); } catch {}
+  setPanel(false);
+  document.getElementById("disclaimer")?.classList.remove("hidden");
+  await pauza(1200);
+  const baza = zaslonietyDol();
+  setPanel(true);
+  await pauza(1500);
+  const panel = zaslonietyDol();
+  const pasekPrzyPanelu = !!document.getElementById("disclaimer")?.offsetHeight;
+  setPanel(false);
+  // pasek widoczny PRZY otwartym panelu — na ekranach niższych niż 780 px CSS go
+  // wtedy chowa i usterki nie widać; dlatego w zestawie jest ekran 411×838
+  return JSON.stringify({ baza, panel, pasek: pasekPrzyPanelu });
+})()`;
+
 // ── przebieg ─────────────────────────────────────────────────────────────────
 (async () => {
   const exe = znajdzPrzegladarke();
@@ -136,7 +155,7 @@ const GOTOWE = `(async () => {
   try {
     await cdp.wyslij("Page.enable");
     await cdp.wyslij("Runtime.enable");
-    for (const k of (SZYBKO ? KONFIGURACJE.slice(0, 2) : KONFIGURACJE)) {
+    for (const k of (SZYBKO ? KONFIGURACJE.filter(k => ["320 pl", "411 pl"].includes(k.nazwa)) : KONFIGURACJE)) {
       await cdp.wyslij("Emulation.setDeviceMetricsOverride", { width: k.w, height: k.h, deviceScaleFactor: 2.625, mobile: true });
       await cdp.wyslij("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 5 });
       // ustawienia przed pierwszym odmalowaniem: język, wielkość tekstu, bez okna powitalnego
@@ -161,7 +180,15 @@ const GOTOWE = `(async () => {
             + `${p.o ? " +" + p.o + " px" : ""}${p.x ? " x " + p.x : ""}${p.y ? " y " + p.y : ""}${p.linie ? " " + p.linie + " linii" : ""}`);
         }
       }
-      console.log(`${ile ? "BŁĄD" : "OK  "} ${k.nazwa} (${wynik.W}×${wynik.H}): ${wynik.wyniki.length} widoków, problemów: ${ile}`);
+      // Mapa przesuwa się nad otwarty panel Sygnały — także przy widocznym pasku
+      // „NIEOFICJALNE źródło” (18.10.2026: z paskiem panel kończył się nad dołem mapy
+      // i warunek „panel z dołu” nie łapał, więc mapa stała pod panelem).
+      const mapa = JSON.parse(await ocen(cdp, MAPA_NAD_PANELEM));
+      const mapaZle = !(mapa.panel - mapa.baza > 150);
+      if (mapaZle)
+        bledy.push(`${k.nazwa} · mapa nad panelem: dolny margines mapy ${mapa.baza} → ${mapa.panel} px po otwarciu Sygnałów (pasek ostrzeżenia widoczny: ${mapa.pasek})`);
+      console.log(`${ile || mapaZle ? "BŁĄD" : "OK  "} ${k.nazwa} (${wynik.W}×${wynik.H}): ${wynik.wyniki.length} widoków, problemów: ${ile}; `
+        + `mapa nad panelem ${mapa.baza}→${mapa.panel} px${mapa.pasek ? " (z paskiem ostrzeżenia)" : ""}`);
       await cdp.wyslij("Page.removeScriptToEvaluateOnNewDocument", { identifier });
     }
   } finally {

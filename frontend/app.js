@@ -7652,7 +7652,10 @@ function zaslonietyDol() {
     // w trakcie wysuwania pomiar byłby przypadkowy — wtedy „jeszcze nie wiadomo”
     if (panel.getAnimations?.().some(a => a.playState === "running")) return null;
     const r = panel.getBoundingClientRect();
-    if (r.width > m.width * 0.8 && r.bottom >= m.bottom - 120) gora = Math.min(gora, r.top);
+    /* „Panel z dołu” = sięga do paska zakładek albo dolnego stosu, a nie do dołu mapy:
+       z widocznym paskiem „NIEOFICJALNE źródło” panel kończy się ~150 px nad dołem
+       mapy i mapa nie przesuwała się wcale (zrzuty 1.7.97, 18.10.2026). */
+    if (r.width > m.width * 0.8 && r.bottom >= gora - 60) gora = Math.min(gora, r.top);
   }
   return Math.max(0, Math.round(m.bottom - gora));
 }
