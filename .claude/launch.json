@@ -65,7 +65,7 @@
         "http.server",
         "8620",
         "--directory",
-        "C:/Users/PC/Desktop/Grota/app"
+        "C:/Users/PC/Desktop/Strażnik/_materialy/Grota/app"
       ],
       "port": 8620
     },
@@ -93,7 +93,7 @@
         "http.server",
         "8616",
         "--directory",
-        "C:/Users/PC/Desktop/Straznik-poll/frontend"
+        "C:/Users/PC/Desktop/Strażnik/_materialy/Straznik-poll/frontend"
       ],
       "port": 8616
     },
@@ -102,7 +102,7 @@
       "runtimeExecutable": "node",
       "runtimeArgs": [
         "C:/Users/PC/AppData/Local/Temp/claude/C--Users-PC-Desktop-Stra-nik/5b5db3d3-e145-4492-961e-2e2f0785a56e/scratchpad/serwer_statyczny.cjs",
-        "C:/Users/PC/Desktop/Grota/app",
+        "C:/Users/PC/Desktop/Strażnik/_materialy/Grota/app",
         "8627"
       ],
       "port": 8627
