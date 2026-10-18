@@ -490,6 +490,21 @@ function approxPositionNote(t) {
    i po ukraińsku pisze się „0,2". */
 const odleglosc = (km) => (UI.isEn ? String(km) : String(km).replace(".", ","));
 
+/* Wpisy NEPTUN zapisane przed 1.7.98 mają w polskim tytule „confidence: high”,
+   kropkę dziesiętną i „3 potwierdzeń” — historia pokazuje je jeszcze długo. Nowe
+   tytuły serwer i engine.js budują już po polsku (test_tytuly_neptun.cjs). */
+function polskiTytulNeptun(title) {
+  return String(title || "")
+    .replace(/confidence: (high|medium|low)\b/g, (_, c) => `wiarygodność: ${CONF_PL[c]}`)
+    .replace(/\b(\d+) potwierdzeń/g, (_, n) => {
+      const k = Number(n);
+      return k === 1 ? "1 potwierdzenie"
+        : k % 10 >= 2 && k % 10 <= 4 && !(k % 100 >= 12 && k % 100 <= 14) ? `${k} potwierdzenia`
+        : `${k} potwierdzeń`;
+    })
+    .replace(/(\d+)\.(\d+)(?= km\b)/g, "$1,$2");
+}
+
 function threatDistanceText(t, km) {
   if (km == null) return "?";
   // A2b: odległość liczona do konturu kraju — 0 znaczy „już nad Polską”
@@ -3836,7 +3851,7 @@ function sigHTML(s) {
     shownTitle = signalApprox && d.dist_km != null
       ? prefix + threatLabelPL(d.type) + ` kursem na granicę PL, ${threatDistanceText(signalPosition, d.dist_km)}`
       : prefix + threatLabelPL(d.type) + (at >= 0 ? String(shownTitle).slice(at) : "");
-    if (!UI.isEn && !UI.isUk) { /* polski tytul zostaje taki, jak zbudowany wyzej */ }
+    if (!UI.isEn && !UI.isUk) shownTitle = polskiTytulNeptun(shownTitle);
     else {
       const count = (Number(d.count) || 1) > 1 ? `${Number(d.count)}× ` : "";
       shownTitle = count + threatLabelPL(d.type)
