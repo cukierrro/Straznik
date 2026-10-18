@@ -851,3 +851,62 @@ Sesja główna uprzedziła, że panel nie przyjmuje znaków ⚙ i →, i omyłko
 napisałem pierwszą wersję opisu **bez polskich znaków diakrytycznych**.
 Panel je przyjmuje bez problemu (działały w 1.7.94 i 1.7.95) — poprawione przed
 zapisem. Unikać trzeba wyłącznie ⚙ i →.
+
+## 26. Przygotowane do zgłoszenia 1.7.98 (18.10.2026) — CZEKA NA SŁOWO USERA
+
+Build **2610181539**, commit `main 5b006e8`, w TestFlight, bramki CI zielone:
+`aps-environment: production`, `critical-alerts`, `time-sensitive`, rozszerzenie
+powiadomień w paczce ze wspólnym kontenerem `group.pl.straznik.app`.
+
+Zgoda przyszła **przez sesję główną** (user w sesji wydania: „daj znac tez sesji
+ios ze moze juz robioc"). Do Apple nic nie idzie na przekaz — ustalenie z userem
+jest takie, że potrzebne jest jego własne słowo w tej sesji. Reszta jest gotowa.
+
+### Decyzja do podjęcia: co z 1.7.96
+
+1.7.96 wisi w **„Waiting for Review"** od 17.10 wieczorem, a Apple bierze
+**jedną wersję naraz**. Dwa wyjścia:
+
+| | Co się dzieje | Koszt |
+|---|---|---|
+| **A. Czekać** | 1.7.96 wchodzi sama (publikacja automatyczna), potem zgłaszamy 1.7.98 | dwa przeglądy, 1.7.98 u ludzi o kilka dni później |
+| **B. Wycofać 1.7.96** („Remove from Review") i zgłosić 1.7.98 | jeden przegląd, ludzie dostają wszystko naraz | tracimy miejsce w kolejce — jeśli 1.7.96 jest już na biurku recenzenta, nowe zgłoszenie startuje z końca |
+
+**Nic nie ginie przy B:** 1.7.98 jest zbudowane z późniejszego `main`, więc
+zawiera wszystko z 1.7.96 — także rozszerzenie powiadomień. Warunek kolejności
+etapu D („najpierw rozszerzenie w App Store") spełnia dowolna z tych wersji.
+**Rekomendacja: B** — jeden przegląd zamiast dwóch, a 1.7.96 i tak czeka ~20 h.
+
+### Publikacja: AUTOMATYCZNA
+
+Android wyszedł 18.10, więc nie ma na co czekać. **Uwaga:** nowa wersja dziedziczy
+ustawienie po poprzedniej — 1.7.96 miało automatyczną, więc powinno się zgodzić,
+ale sprawdzić w panelu (1.7.95 miało ręczną i trzeba było przestawiać).
+
+### „What's New" — tylko PL
+
+Karta ma **wyłącznie lokalizację polską** (§22), więc EN i UK z
+`Straznik-play/opis-1.7.98.txt` zostają na zapas. Tekst wklejać przez
+`form_input` **naraz**, nie literowaniem (§22 — panel zamarza):
+
+```
+• Każde okno z Menu ma na górze „‹ Menu", a sekcje Ustawień i Moje miejsca — „‹ Ustawienia".
+• Okna, karty i tekst mieszczą się na małych ekranach i przy dużej czcionce.
+• Mapa przesuwa się nad otwarty dolny panel.
+• Historia: karty województw zwijają się jak na żywo.
+• Dron do 30 km od granicy województwa daje co najmniej żółty.
+• Tryb bez serwera liczy każde województwo w zasięgu, jak serwer.
+```
+
+Znak `•` nie był dotąd w iOS używany (poprzednie opisy to zwykłe akapity). Jeśli
+panel go odrzuci — zamienić na zwykłe wiersze. Zakazane są tylko `⚙` i `→` (§25).
+Po zapisie **odczytać pole z powrotem** i sprawdzić polskie znaki diakrytyczne.
+
+### Czego w tym wydaniu NIE sprawdzono na iPhonie
+
+Zmiany 1.7.97/1.7.98 to responsywność i nawigacja „wstecz" — mierzone na
+Androidzie i w przeglądarce, **nie na urządzeniu z iOS**. Jedno konkretne miejsce
+do zmierzenia: `#about.z-menu .about-body { padding-top: 68px }` zakłada stałą
+wysokość przycisku „‹ Menu"; przy systemowej czcionce 200 % przycisk może zasłonić
+pierwszy akapit. To nie safe-area — sam notch jest bezpieczny, bo `dialog` ma
+`top: var(--safe-t)`, więc `top: 12px` liczy się od krawędzi okna, nie ekranu.
