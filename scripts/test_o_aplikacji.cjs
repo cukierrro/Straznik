@@ -94,3 +94,17 @@ test('tabela punktacji wymienia sąsiadów w cieniu', () => {
   assert.equal(opisow, wierszy,
     `tabela ma ${wierszy} wierszy, a angielskich opisów jest ${opisow} — ta lista idzie po kolejności`);
 });
+
+test('tabela obiektów NEPTUN ma tyle angielskich nazw i opisów, ile wierszy', () => {
+  // 18.10.2026 doszły wiersze „Kurs” i „Przy granicy”; obie listy idą po kolejności.
+  const o = okno();
+  const tab = /<table class="about-tab" id="ab-tab-neptun">([\s\S]*?)<\/table>/.exec(o);
+  assert.ok(tab, 'nie znalazłem tabeli obiektów NEPTUN');
+  const wierszy = (tab[1].match(/<tr>/g) || []).length;
+  const nazwy = /setMany\("#ab-tab-neptun tr td:first-child", \[([^\]]*)\]\);/.exec(I18N);
+  assert.ok(nazwy, 'nie znalazłem angielskich nazw wierszy tabeli NEPTUN');
+  assert.equal((nazwy[1].match(/"[^"]*"/g) || []).length, wierszy, 'nazwy wierszy tabeli NEPTUN');
+  const opisy = /setMany\("#ab-tab-neptun tr td:nth-child\(2\)", \[([\s\S]*?)\n    \]\);/.exec(I18N);
+  assert.ok(opisy, 'nie znalazłem angielskich opisów tabeli NEPTUN');
+  assert.equal((opisy[1].match(/^\s*"/gm) || []).length, wierszy, 'opisy wierszy tabeli NEPTUN');
+});

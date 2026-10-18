@@ -222,19 +222,21 @@ i sumuje w oknie 60 minut (pełna waga przez 30 minut, potem liniowe wygaszanie)
 osobno dla każdego województwa. Przy **≥ 2 pkt**
 włącza podwyższoną uwagę (sygnał uwagi i powiadomienie). Głośny alarm z syreną wymaga
 **≥ 4 pkt ORAZ potwierdzenia**: Alertu RCB o treści „znajdź bezpieczne miejsce" albo
-obiektu uderzeniowego kursem na Polskę ≤ 15 minut od granicy (albo ≤ 50 km).
-Pozycja tylko rejonowa z niepewnością ponad 30 km nie otwiera czerwonego (od 15.10.2026).
+obiektu uderzeniowego kursem na Polskę ≤ 15 minut od granicy (albo ≤ 50 km), z meldunkiem
+nie starszym niż 25 minut. Czerwonego nie otwiera pozycja tylko rejonowa z niepewnością ponad
+30 km (od 15.10.2026) ani punkt „na cel” — kurs domniemany przy pozycji rejonowej, którą źródło
+wyznacza z celu i kursu, a nie z obserwacji (od 18.10.2026).
 Sama suma punktów z sygnałów pośrednich nie zapala czerwonego (zmiana 23.09.2026). UI zawsze pokazuje pełne rozbicie: które sygnały, skąd, ile punktów.
 
 | Sygnał | Warunek | Punkty |
 |---|---|---|
 | **NEPTUN** | obiekt kursem na granicę PL — punktacja zależna od typu, liczby, odległości i liczby potwierdzeń (niżej) | **0–8** |
 | **NEPTUN** | oficjalny alarm powietrzny w obwodzie UA graniczącym z PL | **+1** |
-| **Media/RSS** | obiekt + zdarzenie: 1 pkt; jednoznaczna bieżąca relacja operacyjna: 1,5 pkt; historia, ćwiczenia i następstwa prawne: 0 pkt. Całe RSS ma limit 1,5 pkt i samo nie alarmuje | **0 / +1 / +1,5** |
-| **RCB / RSO** | Alert RCB o zagrożeniu z powietrza — waga zależna od treści: „sytuacja jest monitorowana” 1,5; „trwa zmasowany atak” 3; „znajdź bezpieczne miejsce” 4,5. Źródłem jest RSO, a treść komunikatu dnia na gov.pl/web/rcb dokłada województwa, których RSO nie przekazało; sama lista wpisów gov.pl to tylko punkt odniesienia w czasie (0 pkt) | **+1,5 / +3 / +4,5** |
-| **ADS-B** | ≥3 maszyny wojskowe nad województwem i >2× baseline **z tej samej pory doby** z 7 dni | **+1** |
-| **PAŻP** | rzadka strefa ADHOC/R/NPZ/D obejmująca całą kolumnę od ziemi w górę; TRA/TSA/MRT/ATZ i designatory powtarzane w ciągu 7 dni nie punktują | **+0,5** |
-| **Media LT/LV/EE** | incydent powietrzny wg mediów bałtyckich → podlaskie + warmińsko-mazurskie; komunikat kończący wygasza wkład tego samego zdarzenia | **+1** |
+| **Media/RSS** | obiekt + zdarzenie: 0,5 pkt; jednoznaczna bieżąca relacja operacyjna: 1 pkt; historia, ćwiczenia i następstwa prawne: 0 pkt. Całe RSS ma limit 1 pkt i samo nie alarmuje | **0 / +0,5 / +1** |
+| **RCB / RSO** | Alert RCB o zagrożeniu z powietrza — waga zależna od treści: „sytuacja jest monitorowana” 1,5; „trwa zmasowany atak” 3; „znajdź bezpieczne miejsce” 4,5. Źródłem jest RSO, a treść komunikatu dnia na gov.pl/web/rcb dokłada województwa, których RSO nie przekazało; sama lista wpisów gov.pl to tylko punkt odniesienia w czasie (0 pkt), a artykuł gov.pl o alercie, który RSO już odwołało, nie daje punktów | **+1,5 / +3 / +4,5** |
+| **ADS-B** | ≥3 maszyny wojskowe nad województwem i >2× baseline **z tej samej pory doby** z 7 dni — od 13.09.2026 tylko informacyjnie | **0** |
+| **PAŻP** | rzadka strefa ADHOC/R/NPZ/D obejmująca całą kolumnę od ziemi w górę; TRA/TSA/MRT/ATZ i designatory powtarzane w ciągu 7 dni nie punktują. Na północy (bez NEPTUN-a) waga podwójna | **+0,5 / +1 płn.** |
+| **Media LT/LV/EE** | incydent powietrzny wg mediów bałtyckich → podlaskie, warmińsko-mazurskie i pomorskie w pełni, zachodniopomorskie w połowie; ogłoszony tam alarm dla ludności to ślad (LT 0,3 · LV 0,18 · EE 0,12). Komunikat kończący wygasza wkład; tytuł, który nadal ogłasza alarm (np. zawężony region), nie jest odwołaniem, artykuł sprzed odwołania nie otwiera alarmu na nowo, a relacja o alarmach w innych krajach nie jest alarmem w kraju redakcji | **+0,5 / alarm do +0,3** |
 | **Sąsiedzi (RO/EE/LT)** | aktywne zamknięcie przestrzeni u sąsiada NATO — sygnał obserwacyjny, wyprzedzający | **+0,3** |
 
 ### Punktacja obiektów NEPTUN
@@ -245,25 +247,29 @@ nieszkodliwy. Zamiast jednej stawki za „obiekt kursem na PL" punkty uwzględni
 kilka czynników:
 
 ```
-punkty = waga_typu × √liczba × k_odległości × k_wiarygodności × k_potwierdzeń × k_cyklu × k_kursu
+punkty = waga_typu × √liczba × k_odległości × k_wiarygodności × k_potwierdzeń × k_cyklu × k_pozycji × k_kursu
 ```
 
 | Czynnik | Wartości |
 |---|---|
-| **waga typu** | balistyczna 3,0 · MiG-31K 2,6 · manewrująca 2,4 · KAB 1,8 · Shahed 1,4 · dron 1,1 · zwiadowczy 0,5 · **FPV 0** |
+| **waga typu** | balistyczna 3,0 · MiG-31K 2,6 · manewrująca 2,4 · KAB 1,8 · Shahed 1,4 · dron 1,1 · zwiadowczy 0,15 · **FPV 0** |
 | **liczba** (`count`) | pierwiastek — cztery obiekty ważą 2× tyle co jeden, nie 4× |
-| **odległość** | płynna interpolacja: 0 km ×1,7 · 15 ×1,6 · 45 ×1,3 · 80 ×1,0 · 110 ×0,7 · 150 ×0,4 · 200 ×0,25 · 250 ×0,1; od 250 km wkład 0 |
+| **odległość** | płynna interpolacja: 0 km ×1,7 · 15 ×1,6 · 45 ×1,3 · 80 ×1,0 · 110 ×0,7 · 150 ×0,4 · 200 ×0,25 · 250 ×0,1; od 250 km wkład 0. Liczona osobno do każdego województwa w zasięgu 250 km — obiekt punktuje każde z nich |
 | **wiarygodność** | high ×1,0 · medium ×0,6 · low ×0,35 |
 | **potwierdzenia** (`sourceCount`) | 1 ×0,7 · 2 ×0,9 · 3–4 ×1,1 · ≥5 ×1,25 |
 | **cykl życia** | confirmed ×1,1 · uncertain ×0,85 · created ×0,7 |
+| **pozycja** | punkt ×1,0 · rejon wskazany przez źródło ×0,6 · rozpoznany środek miejscowości ×0,5 |
+| **kurs** | do ±50° od kierunku na Polskę ×1,0, od 50° do 70° liniowo do 0; kurs nieznany ×0,5 i tylko do 150 km |
+| **podłogi przy granicy** | (≥ 2 zgłoszenia, pozycja punktowa) rakieta / MiG-31K ≤ 60 km od granicy: min. 2 pkt × k_kursu; dron / Shahed ≤ 30 km od województwa: min. 2 pkt w tym województwie, także bez kursu (od 18.10.2026) — ten dodatek nie przechodzi do sąsiadów |
 
-Wkład całego NEPTUN-a ograniczony do **8 pkt** — przy kilkudziesięciu obiektach
+Fala: co najmniej 3 różne obiekty kursem na Polskę w 15 minut, bliżej niż 150 km, dokładają
+wspólnie **+0,5 pkt**. Wkład całego NEPTUN-a ograniczony do **8 pkt** — przy kilkudziesięciu obiektach
 suma i tak dawno przekroczyła próg alarmu, a trzycyfrowa punktacja psułaby skalę.
 
 **Historyczna kalibracja (wcześniejsza krzywa odległości).** Poniższe wyniki
 opisują wcześniejszy model i nie są aktualną tabelą progów. Obecny algorytm ma
-płynną krzywą, współczynnik kursu, minimum dla ciężkich obiektów przy granicy
-i progi ETA opisane w [aktualnej instrukcji](https://cukierrro.github.io/Straznik/#punkty).
+płynną krzywą, współczynnik kursu, minimum dla ciężkich obiektów i dla dronów
+przy granicy oraz progi ETA opisane w [aktualnej instrukcji](https://cukierrro.github.io/Straznik/#punkty).
 Wagi dobrano na żywych danych NEPTUN i sprawdzono na
 udokumentowanych zdarzeniach oraz na 354 migawkach zebranych przez backend
 (1998 obserwacji obiektów w 7,5 h):
@@ -280,27 +286,28 @@ udokumentowanych zdarzeniach oraz na 354 migawkach zebranych przez backend
 
 Klasyfikacja mediów ma trzy jawne wyniki (`textmatch.py`): **0 pkt** dla
 ćwiczeń, administracji, publicystyki, historii oraz postępowań prawnych po
-zdarzeniu; **1 pkt** dla jednoczesnego obiektu powietrznego i zdarzenia
-(AIR + EVENT); **1,5 pkt** dla jednoznacznej
+zdarzeniu; **0,5 pkt** dla jednoczesnego obiektu powietrznego i zdarzenia
+(AIR + EVENT); **1 pkt** dla jednoznacznej
 bieżącej reakcji operacyjnej, np. alarmu powietrznego, syren, poderwania
 lotnictwa, zestrzelenia lub upadku obiektu. Sama fraza „naruszenie przestrzeni
-powietrznej” jest niejednoznaczna czasowo i należy do poziomu 1 pkt.
-Łączny wkład całej klasy RSS jest ograniczony do 1,5 pkt, więc same artykuły
+powietrznej” jest niejednoznaczna czasowo i należy do poziomu 0,5 pkt.
+Łączny wkład całej klasy RSS jest ograniczony do 1 pkt, więc same artykuły
 nie mogą uruchomić żółtego progu. Wykluczenia mają pierwszeństwo. Filtry mogą się mylić.
 Jedna klasa źródła ma limit wkładu do sumy
-(media ≤1,5, RCB ≤2, ADS-B ≤1, PAŻP ≤1, sąsiedzi ≤0,6) — pięć artykułów o tym
+(media ≤1, RCB ≤4,5, alarmy obwodów UA ≤1, PAŻP ≤1, sąsiedzi ≤0,6, NEPTUN ≤8) — pięć artykułów o tym
 samym zdarzeniu to wciąż jedno potwierdzenie. Nadmiarowe sygnały są widoczne
 w UI z przekreśloną punktacją. Artykuł rozpoznany po treści, regionie i czasie
 jako powtórzenie świeżego Alertu RCB pozostaje widoczny, ale wnosi 0 pkt; sama
 wzmianka o RCB nie wycina artykułu z nową informacją.
 
-**Alarm czasowy NEPTUN.** Dla obiektu o znanym albo wiarygodnie wyliczonym
-kursie, średniej/wysokiej pewności i co najmniej dwóch potwierdzeniach działa
+**Alarm czasowy NEPTUN.** Dla obiektu o kursie znanym albo wyliczonym z ruchu
+(nie domniemanym z nazwy celu), z pozycją punktową (nie rejonową), średniej/wysokiej
+pewności i co najmniej dwóch potwierdzeniach działa
 dodatkowe zabezpieczenie ETA do **granicy Polski**, nie adresu użytkownika:
 żółty przy konserwatywnym czasie ≤10 min, czerwony
 przy ≤5 min. Od surowego czasu odejmowane jest **2,5 min** (p90 opóźnienia
-źródła z pomiaru 27–30.08.2026). Brak kursu, niska pewność lub jedno zgłoszenie
-nie mogą samodzielnie uruchomić alarmu ETA.
+źródła z pomiaru 27–30.08.2026). Brak kursu, kurs domniemany, pozycja rejonowa, niska pewność lub jedno
+zgłoszenie nie mogą samodzielnie uruchomić alarmu ETA.
 
 Propagacja jest **kaskadowa**: region z sumą ≥ 2 pkt po wyłączeniu regionalnych
 Alertów RCB/RSO przekazuje 40 % pozostałego wyniku
@@ -310,7 +317,10 @@ tak: sąsiedzi +2,0 (żółty próg), drugi krąg +0,8, trzeci +0,3, czwarty +0,
 Oficjalny nadawca sam wskazuje obszar Alertu RCB, więc ten wkład nie jest
 powielany u sąsiadów. Pozostałe zagrożenie na wschodzie podnosi czujność w całym
 kraju proporcjonalnie do odległości. Każdy wkład jest osobnym sygnałem „Przeniesienie z woj. X (… , 2. krąg)",
-więc nigdy nie miesza się z własnym sygnałem regionu.
+więc nigdy nie miesza się z własnym sygnałem regionu. Dodatek z podłogi dla drona przy
+granicy nie jest przenoszony. Samo przeniesienie nie wysyła powiadomienia: do tego
+trzeba co najmniej 1 pkt własnych sygnałów, a przeniesienie podnosi powiadomienie
+najwyżej o jeden stopień ponad poziom z punktów własnych.
 
 ## Architektura
 

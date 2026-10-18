@@ -632,7 +632,8 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
         RCB na gov.pl. Od 17.09.2026 RCB wysyła <b>trzy rodzaje</b> komunikatu i tyle samo
         ważą u nas: „sytuacja jest monitorowana” 1,5 · „trwa zmasowany atak… reaguj na
         sygnały alarmowe” 3 · „zagrożenie atakiem z powietrza, znajdź bezpieczne miejsce”
-        4,5. Kolejny alert nie sumuje się z poprzednim — liczy się bieżący</td><td class="pts">+1,5<br>+3<br>+4,5</td></tr>
+        4,5. Kolejny alert nie sumuje się z poprzednim — liczy się bieżący. Artykuł RCB
+        na gov.pl o alercie, który RSO już odwołało, nie daje punktów</td><td class="pts">+1,5<br>+3<br>+4,5</td></tr>
       <tr><td><b>ADS-B</b></td><td>ruch lotnictwa wojskowego ponad dwukrotnie
         wyższy niż o tej samej porze doby w ostatnich 7 dniach — tylko informacyjnie</td><td class="pts">0</td></tr>
       <tr><td><b>PAŻP</b></td><td>rzadka strefa ADHOC/R/NPZ/D od ziemi w górę;
@@ -642,8 +643,11 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
         lub Estonii; ogłoszony tam alarm dla ludności to tylko ślad (Litwa 0,3,
         Łotwa 0,18, Estonia 0,12); komunikat kończący wygasza wkład. Liczy się tylko
         doniesienie z ostatnich 30 minut o zdarzeniu teraz — komentarze i relacje
-        po fakcie nie punktują. Trafia na całe wybrzeże: podlaskie,
-        warmińsko-mazurskie i pomorskie w pełni, zachodniopomorskie o połowę słabiej</td><td class="pts">+0,5<br>alarm +0,3</td></tr>
+        po fakcie nie punktują. Tytuł, który nadal ogłasza alarm (np. dla mniejszego
+        regionu), nie jest odwołaniem; artykuł sprzed odwołania nie otwiera alarmu na nowo,
+        a relacja o alarmach w innych krajach nie jest alarmem w kraju redakcji. Trafia
+        na całe wybrzeże: podlaskie, warmińsko-mazurskie i pomorskie w pełni,
+        zachodniopomorskie o połowę słabiej</td><td class="pts">+0,5<br>alarm +0,3</td></tr>
       <tr><td><b>Sąsiedzi</b></td><td>zamknięcie przestrzeni u sąsiada NATO
         (Rumunia płn., Estonia, Litwa) — sygnał obserwacyjny</td><td class="pts">+0,3</td></tr>
       <tr><td><b>Sąsiedzi (cień)</b></td><td>alarm lotniczy w Mołdawii, Rumunii, Słowacji,
@@ -665,24 +669,34 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
       <summary><h3>Skąd punkty za obiekt z NEPTUN-a</h3></summary>
     <p class="fineprint" id="ab-iloczyn">Jeden Shahed 80 km od granicy to co innego niż sześć
     Shahedów 50 km od granicy, a dron FPV o zasięgu kilkunastu kilometrów nie
-    zagraża Polsce w ogóle. Dlatego punkty to iloczyn czterech czynników:</p>
+    zagraża Polsce w ogóle. Dlatego punkty to iloczyn kilku czynników:</p>
     <table class="about-tab" id="ab-tab-neptun">
       <tr><td><b>Co leci</b></td><td>rakieta balistyczna 3,0 · MiG-31K 2,6 ·
         manewrująca 2,4 · KAB 1,8 · Shahed 1,4 · dron 1,1 · zwiadowczy 0,15 ·
         FPV 0 (nie punktuje)</td></tr>
       <tr><td><b>Ile</b></td><td>pierwiastek z liczby obiektów — cztery sztuki
         ważą dwa razy tyle co jedna, ale nie cztery razy</td></tr>
-      <tr><td><b>Jak blisko</b></td><td>&lt;30 km ×1,6 · &lt;60 km ×1,3 ·
-        &lt;100 km ×1,0 · &lt;150 km ×0,55 · &lt;250 km ×0,25 · dalej 0</td></tr>
+      <tr><td><b>Jak blisko</b></td><td>waga zmienia się płynnie: 0 km ×1,7 · 15 km ×1,6 ·
+        45 km ×1,3 · 80 km ×1,0 · 110 km ×0,7 · 150 km ×0,4 · 200 km ×0,25 · 250 km ×0,1 ·
+        dalej 0. Obiekt punktuje każde województwo w zasięgu 250 km, każde według
+        odległości do niego</td></tr>
+      <tr><td><b>Kurs</b></td><td>do ±50° od kierunku na Polskę pełna waga, od 50° do 70°
+        waga maleje do zera; kurs nieznany ×0,5 i tylko do 150 km</td></tr>
       <tr><td><b>Fala</b></td><td>trzy różne obiekty kursem na Polskę w 15 minut,
         bliżej niż 150 km, dokładają wspólnie 0,5 pkt — kilka obiektów naraz znaczy
         więcej niż każdy z osobna</td></tr>
       <tr><td><b>Jak pewnie</b></td><td>wiarygodność (wysoka ×1,0, średnia ×0,6,
-        niska ×0,35), liczba niezależnych zgłoszeń (jedno ×0,7, pięć i więcej ×1,25)
-        oraz status obserwacji</td></tr>
+        niska ×0,35), liczba niezależnych zgłoszeń (jedno ×0,7, dwa ×0,9, trzy–cztery ×1,1,
+        pięć i więcej ×1,25) oraz status obserwacji (potwierdzony ×1,1, niepewny ×0,85,
+        świeży ×0,7)</td></tr>
       <tr><td><b>Jakość pozycji</b></td><td>punkt źródłowy ×1,0 · rejon wskazany
         przez źródło ×0,6 · rozpoznany środek miejscowości ×0,5; pozycja rejonowa
         nie uruchamia progów ETA</td></tr>
+      <tr><td><b>Przy granicy</b></td><td>minimum punktów przy co najmniej dwóch zgłoszeniach
+        i pozycji punktowej: rakieta lub MiG-31K do 60 km od granicy — co najmniej 2 pkt
+        (przy nieznanym kursie 1 pkt); dron lub Shahed do 30 km od województwa — co najmniej
+        2 pkt (żółty) w tym województwie, także bez znanego kursu, o ile nie leci od Polski.
+        Ten dodatek nie przechodzi na sąsiednie województwa. Jedno zgłoszenie nie wystarcza</td></tr>
     </table>
     <p class="fineprint" id="ab-model">Model sprawdzono na udokumentowanych zdarzeniach:
     masowe naruszenie granicy i rakieta tuż przy granicy przekraczają próg alarmu,
@@ -701,8 +715,9 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
     granicy). Liczymy go z prędkości: podanej przez źródło, a gdy jej brak —
     wyliczonej z kolejnych pozycji albo typowej dla klasy obiektu.</p>
     <p class="fineprint" id="ab-eta-konserw">Pokazywany czas jest <b>konserwatywny</b>: odejmujemy 2,5 minuty
-    na zmierzone opóźnienie źródła. Przy znanym/wyliczonym kursie, co najmniej dwóch
-    potwierdzeniach i średniej lub wysokiej pewności aplikacja uruchamia żółty alarm
+    na zmierzone opóźnienie źródła. Przy kursie znanym albo wyliczonym z ruchu (nie
+    domniemanym z nazwy celu), co najmniej dwóch potwierdzeniach, średniej lub wysokiej
+    pewności i pozycji punktowej (nie rejonowej) aplikacja uruchamia żółty alarm
     przy ≤10 minutach, a czerwony przy ≤5 minutach.</p>
     <p class="fineprint" id="ab-eta-szacunek"><b>To szacunek, nie obietnica.</b> Zakłada utrzymanie kursu
     i prędkości oraz <b>nie uwzględnia obrony powietrznej</b> — obiekt może skręcić
@@ -723,15 +738,19 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
     <div class="fineprint about-note" id="ab-czerwony"><b>Same 4 pkt nie wystarczą.</b> Czerwony wymaga
     potwierdzenia: albo Alertu RCB o treści „znajdź bezpieczne miejsce”, albo realnego
     obiektu uderzeniowego kursem na Polskę — bliżej niż 15 minut lotu albo 50 km od
-    granicy. Pozycja podana tylko jako rejon z niepewnością ponad 30 km go nie otwiera.
-    Drony zwiadowcze i same doniesienia nie otwierają czerwonego. Gdy region
+    granicy, z meldunkiem nie starszym niż 25 minut. Nie otwierają go: pozycja podana
+    tylko jako rejon z niepewnością ponad 30 km oraz punkt „na cel” — obiekt z kursem
+    domniemanym i pozycją rejonową, którą źródło wyznacza z celu i kursu, a nie
+    z obserwacji. Drony zwiadowcze i same doniesienia też nie. Gdy region
     ma 4 pkt bez potwierdzenia, zostaje żółty, a Strażnik pisze o tym wprost na karcie.
     Zasada obowiązuje od 23.09.2026: wcześniej sam Alert RCB o monitorowaniu sytuacji
     razem z alarmami obwodów UA i mediami potrafił zapalić czerwony przy pustej mapie.</div>
     <p class="fineprint" id="ab-przeniesienia">Zdarzenie na wschodzie podnosi też czujność sąsiednich
     województw: sąsiad dostaje 40% punktów, kolejny krąg 40% z tego (16%) i tak
     dalej, więc regiony centralne i zachodnie dostają wyprzedzenie, zanim coś
-    dotrze dalej. Samo przeniesienie nie wysyła powiadomienia.</p>
+    dotrze dalej. Przenosi tylko województwo z co najmniej 2 pkt (bez regionalnego Alertu
+    RCB). Samo przeniesienie nie wysyła powiadomienia — do tego trzeba co najmniej
+    1 pkt własnych sygnałów.</p>
 
     </details>
 
@@ -1254,7 +1273,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
      Cloudflare, więc po każdym wydaniu wystarczy podbić ?v= i przeglądarki
      dostają nowe app.js/engine.js OD RAZU, bez ręcznego czyszczenia cache CF.
      Podbijaj ?v= razem z versionName w build.gradle. -->
-<script src="i18n.js?v=1.7.96"></script>
+<script src="i18n.js?v=1.7.96d"></script>
 <!-- kontur Polski dla engine.js (audyt A2b, scripts/build_pl_outline.py) -->
 <script src="pl-outline.js?v=1.7.82"></script>
 <script src="engine.js?v=1.7.96d"></script>
