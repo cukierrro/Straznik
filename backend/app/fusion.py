@@ -250,9 +250,16 @@ def rcb_nieodwolane(zdarzenia: list[dict], ref: datetime | None = None) -> dict[
 
     To informacja, nie punkty: Strażnik punktuje to, co widzi, a tutaj nie widzi
     nic nowego — wie tylko, że odwołanie nie przyszło.
+
+    18.10.2026: alert RSO dla podkarpackiego z 09:28 miał ważność do 10:59 i bez
+    odwołania wygasł — RCB często kończy tak alerty dla podkarpackiego (archiwum
+    rso_message od 16.09). Wieczorem nadal pisaliśmy „nie został jeszcze odwołany”.
+    Alert z `valid_to` (czas lokalny PL) po upływie ważności traktujemy jak zakończony.
+    Alert bez `valid_to` (artykuł gov.pl) dalej czeka na odwołanie.
     """
     r = ref or datetime.now(timezone.utc)
     alerty: dict[str, datetime] = {}
+    waznosc: dict[str, str | None] = {}
     odwolania: dict[str, datetime] = {}
     for z in zdarzenia:
         voiv, ts = z.get("voivodeship"), _parse_ts(z.get("ts"))
@@ -262,6 +269,7 @@ def rcb_nieodwolane(zdarzenia: list[dict], ref: datetime | None = None) -> dict[
         if typ in ("rso_alert", "rcb_alert") and (z.get("points") or 0) > 0:
             if ts > alerty.get(voiv, ts - timedelta(seconds=1)):
                 alerty[voiv] = ts
+                waznosc[voiv] = (z.get("details") or {}).get("valid_to")
         elif typ == "rso_clear":
             # Odwołanie ogólnokrajowe liczy się dla KAŻDEGO województwa — inaczej
             # mówilibyśmy „nie odwołano" tam, gdzie RCB wysłało SMS o końcu
@@ -273,6 +281,9 @@ def rcb_nieodwolane(zdarzenia: list[dict], ref: datetime | None = None) -> dict[
     for voiv, ts in alerty.items():
         if voiv in odwolania and odwolania[voiv] >= ts:
             continue
+        koniec = _parse_ts(_pl_local_to_utc(waznosc.get(voiv))) if waznosc.get(voiv) else None
+        if koniec is not None and koniec <= r:
+            continue            # wpis RSO wygasł — RCB zakończyło alert ważnością
         out[voiv] = {"od": ts, "minut": int((r - ts).total_seconds() // 60)}
     return out
 

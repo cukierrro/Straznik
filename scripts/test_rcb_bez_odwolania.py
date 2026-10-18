@@ -74,6 +74,27 @@ wynik = rcb_nieodwolane([sygnal("rcb_alert", "podkarpackie", iso(18, 0)),
 sprawdz("bierzemy najnowszy alert", wynik.get("podkarpackie", {}).get("minut") == 418,
         str(wynik))
 
+# ── 18.10.2026: alert RSO z ważnością do 10:59 wygasł bez odwołania ─────────
+def rso(ts: str, valid_to: str | None) -> dict:
+    s = sygnal("rso_alert", "podkarpackie", ts)
+    s["details"] = {"rso_id": "23427180", "valid_from": "2026-10-18 09:28:00", "valid_to": valid_to}
+    return s
+
+WIECZOR = datetime(2026, 10, 18, 18, 0, tzinfo=timezone.utc)        # 20:00 w Polsce
+ALERT = datetime(2026, 10, 18, 7, 30, 39, tzinfo=timezone.utc).isoformat(timespec="seconds")
+wynik = rcb_nieodwolane([rso(ALERT, "2026-10-18 10:59:00")], WIECZOR)
+sprawdz("wygasły wpis RSO nie jest „nieodwołany”", wynik == {}, str(wynik))
+PRZED = datetime(2026, 10, 18, 8, 30, tzinfo=timezone.utc)          # 10:30 — jeszcze ważny
+wynik = rcb_nieodwolane([rso(ALERT, "2026-10-18 10:59:00")], PRZED)
+sprawdz("przed końcem ważności alert nadal trwa", "podkarpackie" in wynik, str(wynik))
+PO = datetime(2026, 10, 18, 9, 0, tzinfo=timezone.utc)              # 11:00 — minutę po 10:59
+wynik = rcb_nieodwolane([rso(ALERT, "2026-10-18 10:59:00")], PO)
+sprawdz("ważność liczona w czasie polskim (10:59 CEST = 08:59 UTC)", wynik == {}, str(wynik))
+wynik = rcb_nieodwolane([rso(ALERT, None)], WIECZOR)
+sprawdz("wpis bez valid_to czeka na odwołanie", "podkarpackie" in wynik, str(wynik))
+wynik = rcb_nieodwolane([rso(ALERT, "nie-data")], WIECZOR)
+sprawdz("nieczytelne valid_to nie gasi alertu", "podkarpackie" in wynik, str(wynik))
+
 # ── okno pilnowania jest skończone ──────────────────────────────────────────
 from app import config  # noqa: E402
 sprawdz("okno pilnowania nie jest nieskończone",
@@ -84,4 +105,4 @@ if bledy:
     for b in bledy:
         print(" -", b)
     sys.exit(1)
-print("OK — nieodwołany alert RCB zgłaszany do skutku, odwołanie go gasi (8 przypadków)")
+print("OK — nieodwołany alert RCB zgłaszany do odwołania albo końca ważności w RSO (13 przypadków)")
