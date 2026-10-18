@@ -3741,6 +3741,11 @@ function sigHTML(s) {
     else if (d.course === "estimated") extra.push(UI.t("kurs szacowany z ruchu", "heading estimated from movement", "курс оцінено з руху"));
     else if (d.course === "presumptive") extra.push(UI.t("kurs domniemany (na cel)", "presumed heading (towards a target)", "курс припущений (на ціль)"));
     if (d.jet) extra.push(UI.t("dron odrzutowy", "jet drone", "реактивний дрон"));
+    // podłoga przygraniczna (18.10.2026): skąd 2 pkt przy nieznanym kursie
+    if (d.border_floor) extra.push({ html: `<b style="color:#ff9f43">${UI.t(
+      "blisko granicy — co najmniej próg żółtego",
+      "close to the border — at least the yellow threshold",
+      "біля кордону — щонайменше жовтий поріг")}</b>` });
   }
   if (d.source_count) extra.push(`${d.source_count} ${UI.t("potw.", "conf.", "підтв.")}`);
   // czas dolotu policzony przy sygnale — dla regionu użytkownika, a gdy go brak,

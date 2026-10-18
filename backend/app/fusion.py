@@ -761,11 +761,16 @@ def accumulate(signals: list[dict], ref: datetime | None = None, lost=None) -> d
         # Nie przelewamy go ponownie do sąsiadów, zwłaszcza gdy ten sam komunikat
         # został wydany osobno dla kilku regionów.
         if s.get("source") != "rcb":
-            per_voiv[voiv]["_spillover_score"] += counted
-            if counted > 0:
+            # Dodatek z podłogi przygranicznej dla drona (18.10.2026) zostaje
+            # w województwie przy granicy — sąsiad dostaje tylko część „zwykłą”.
+            bez = (s.get("details") or {}).get("bez_przeniesienia_pkt") or 0.0
+            do_sasiadow = (counted * max(0.0, 1.0 - bez / s["points"])
+                           if bez and s.get("points") else counted)
+            per_voiv[voiv]["_spillover_score"] += do_sasiadow
+            if do_sasiadow > 0:
                 parts = per_voiv[voiv]["_spill_parts"]
                 key = _event_key(s)
-                parts[key] = parts.get(key, 0.0) + counted
+                parts[key] = parts.get(key, 0.0) + do_sasiadow
         per_voiv[voiv]["signals"].append(
             {**s, "counted_points": round1(counted), "weight": round(e["w"], 2),
              **({"cleared": True} if e["cleared"] else {}),

@@ -162,6 +162,18 @@ sprawdz("podłoga przy granicy (pkt)",
 sprawdz("podłoga przy granicy (min. potwierdzeń)",
         num(r"NEAR_FLOOR_SOURCES\s*=\s*([\d.]+)", ENGINE, "floor src js"),
         num(r"NEPTUN_NEAR_FLOOR_SOURCES\s*=\s*([\d.]+)", CONFIG, "floor src py"))
+sprawdz("podłoga dla dronów przy granicy (km)",
+        num(r"BORDER_UAV_FLOOR_KM\s*=\s*([\d.]+)", ENGINE, "dron floor km js"),
+        num(r"NEPTUN_BORDER_UAV_FLOOR_KM\s*=\s*([\d.]+)", CONFIG, "dron floor km py"))
+sprawdz("podłoga dla dronów przy granicy (pkt)",
+        num(r"BORDER_UAV_FLOOR_POINTS\s*=\s*([\d.]+)", ENGINE, "dron floor pkt js"),
+        num(r"NEPTUN_BORDER_UAV_FLOOR_POINTS\s*=\s*([\d.]+)", CONFIG, "dron floor pkt py"))
+sprawdz("podłoga dla dronów przy granicy (min. zgłoszeń)",
+        num(r"BORDER_UAV_FLOOR_SOURCES\s*=\s*([\d.]+)", ENGINE, "dron floor src js"),
+        num(r"NEPTUN_BORDER_UAV_FLOOR_SOURCES\s*=\s*([\d.]+)", CONFIG, "dron floor src py"))
+sprawdz("podłoga dla dronów przy granicy (typy)",
+        sorted(re.findall(r'"(\w+)"', re.search(r"BORDER_UAV_FLOOR_TYPES = \[(.*?)\]", ENGINE).group(1))),
+        sorted(re.findall(r'"(\w+)"', re.search(r"NEPTUN_BORDER_UAV_FLOOR_TYPES = \((.*?)\)", CONFIG).group(1))))
 
 # ── alarmy w obwodach UA: te same odległości i te same pasy wag ──────────────
 def _oblasty(tekst, nazwa):

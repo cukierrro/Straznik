@@ -158,6 +158,16 @@ const NEPTUN_DIST_CURVE = [[0,1.7],[15,1.6],[45,1.3],[80,1.0],[110,0.7],[150,0.4
 /* Podłoga dla ciężkich obiektów tuż przy granicy (lustro NEPTUN_NEAR_FLOOR_*). */
 const NEAR_FLOOR_KM = 60, NEAR_FLOOR_SOURCES = 2, NEAR_FLOOR_POINTS = 2.0;
 const NEAR_FLOOR_TYPES = ["ballistic", "mig31k", "cruise", "missile"];
+/* Podłoga dla dronów tuż przy granicy, bez skalowania kursem; dodatek nie
+   przechodzi do sąsiadów (lustro NEPTUN_BORDER_UAV_FLOOR_*, 18.10.2026). */
+const BORDER_UAV_FLOOR_KM = 30, BORDER_UAV_FLOOR_SOURCES = 2, BORDER_UAV_FLOOR_POINTS = 2.0;
+const BORDER_UAV_FLOOR_TYPES = ["uav", "shahed"];
+function borderUavFloor(t, distKm) {
+  return (!isApproxPosition(t) && BORDER_UAV_FLOOR_TYPES.includes((t.type || "").toLowerCase())
+      && distKm <= BORDER_UAV_FLOOR_KM
+      && Math.max(parseInt(t.sourceCount) || 1, 1) >= BORDER_UAV_FLOOR_SOURCES)
+    ? BORDER_UAV_FLOOR_POINTS : 0;
+}
 const NEPTUN_MAX_KM = 250;
 const NEPTUN_CONF_MULT = { high: 1.0, medium: 0.6, low: 0.35 };
 const NEPTUN_LIFECYCLE_MULT = { confirmed: 1.1, uncertain: 0.85, created: 0.7 };
@@ -951,10 +961,13 @@ function accumulate(sigs, refT, lost = null) {
     const { s, counted, relayOf } = e;
     per[s.voivodeship].score += counted;
     if (s.source !== "rcb") {
-      per[s.voivodeship]._spillover_score += counted;
-      if (counted > 0) {
+      // dodatek z podłogi przygranicznej zostaje w swoim województwie (18.10.2026)
+      const bez = s.details?.bez_przeniesienia_pkt || 0;
+      const doSasiadow = bez && s.points ? counted * Math.max(0, 1 - bez / s.points) : counted;
+      per[s.voivodeship]._spillover_score += doSasiadow;
+      if (doSasiadow > 0) {
         const parts = per[s.voivodeship]._spill_parts, k = eventKey(s);
-        parts[k] = (parts[k] || 0) + counted;
+        parts[k] = (parts[k] || 0) + doSasiadow;
       }
     }
     per[s.voivodeship].signals.push({ ...s, counted_points: Math.round(counted * 10) / 10,
@@ -1354,6 +1367,8 @@ function neptunEval(t) {
   if (a.toward_pl) {
     let points = scoreThreat(t, a.dist_km, a.course_factor);
     if (points > 0) {
+      const bazowe = points, podloga = borderUavFloor(t, a.dist_km);
+      points = Math.max(points, podloga);
       const count = Math.max(parseInt(t.count) || 1, 1);
       const conf = (t.confidenceLevel||"low").toLowerCase();
       const sources = Math.max(parseInt(t.sourceCount) || 1, 1);
@@ -1373,6 +1388,8 @@ function neptunEval(t) {
       } else if (etaEligible && etaConservative <= ETA_ELEVATED_MIN) {
         etaAlarm = "elevated"; points = Math.max(points, TH_ELEVATED);
       }
+      // część z samej podłogi przygranicznej nie przechodzi do sąsiadów
+      const zPodlogi = podloga > bazowe && points === podloga ? Math.round((podloga - bazowe) * 100) / 100 : 0;
       const ile = count > 1 ? `${count}× ` : "";
       // poziom w kluczu: gdy obiekt się zbliży lub zyska potwierdzenia,
       // sygnał wchodzi ponownie z wyższą punktacją
@@ -1381,6 +1398,7 @@ function neptunEval(t) {
         : `${a.dist_km} km`;
       addSignal("neptun", "neptun_threat", a.border_voiv, points,
         `${ile}${neptunTypeLabelPL(ty)} kursem na granicę PL, ${distanceInfo}`
+        + `${zPodlogi ? " [blisko granicy]" : ""}`
         + `${etaAlarm ? `, konserwatywny czas dolotu ~${etaSafe} min` : ""} (woj. ${a.border_voiv}, `
         + `confidence: ${conf}, ${sources} potwierdzeń, ±${t.uncertaintyKm??"?"} km)`,
         { track_id: t.id, dist_km: a.dist_km, count, source_count: sources,
@@ -1402,7 +1420,8 @@ function neptunEval(t) {
           course: presumed ? "presumptive" : a.heading_known ? "known"
                 : (t.heading_estimated != null ? "estimated" : "unknown"),
           heading_source: t.heading_source, jet: !!t.straznik_jet,
-          course_factor: a.course_factor },
+          course_factor: a.course_factor,
+          ...(zPodlogi ? { border_floor: true, bez_przeniesienia_pkt: zPodlogi } : {}) },
         `neptun:${t.id}:t${tier}`);
     }
   }
@@ -2095,6 +2114,26 @@ function rsoPokrycie() {
   }
   return out;
 }
+/* Województwa, w których RSO odwołało alert i od tego czasu NIGDZIE nie wydało
+   nowego — meldunek z artykułu to wtedy ten sam, zakończony alert opisany
+   z opóźnieniem (18.10.2026: odbiorcy dopisani ok. 08:13 do alertu z 06:27,
+   odwołanego 06:54 — fałszywy żółty). Lustro rcb._odwolane_w_rso. */
+const ODWOLANIE_OKNO_MIN = 18 * 60;
+function odwolaneWRso() {
+  const cut = Date.now() - ODWOLANIE_OKNO_MIN * 60000;
+  const alert = new Map(), odw = new Map();
+  let najnowszy = 0;
+  for (const s of signals) {
+    if ((s.t || 0) < cut || s.source !== "rcb" || !s.voivodeship) continue;
+    if (s.event_type === "rso_alert" && s.points > 0) {
+      alert.set(s.voivodeship, Math.max(alert.get(s.voivodeship) || 0, s.t));
+      najnowszy = Math.max(najnowszy, s.t);
+    } else if (s.event_type === "rso_clear") {
+      odw.set(s.voivodeship, Math.max(odw.get(s.voivodeship) || 0, s.t));
+    }
+  }
+  return new Set([...odw].filter(([v, t]) => t > (alert.get(v) || 0) && t > najnowszy).map(([v]) => v));
+}
 function kluczMeldunku(s) {
   let h = 2166136261;
   for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619);
@@ -2138,7 +2177,13 @@ async function czytajArtykulRcb(href, tytul) {
   }
 
   const poziom = m.poziom;
-  const brakujace = m.wojewodztwa.filter(v => (pokrycie.get(v) || 0) < poziom);
+  const odwolane = odwolaneWRso();
+  const brakujace = m.wojewodztwa.filter(v => (pokrycie.get(v) || 0) < poziom && !odwolane.has(v));
+  for (const v of m.wojewodztwa)
+    if (odwolane.has(v) && (pokrycie.get(v) || 0) < poziom)
+      addSignal("rcb", "rcb_art_seen", v, 0,
+        `RCB (gov.pl, alert już odwołany w RSO): „${m.tresc.slice(0,110)}”`,
+        { url, rcb_level: poziom, odwolany_w_rso: true }, `${klucz}:odwolany:${v}`);
   // Meldunek zastany przy pierwszym otwarciu bywa sprzed godzin. Punktuje dopiero,
   // gdy RSO ma żywy alert — wtedy wiadomo, że komunikat trwa. Sprawdzamy w każdym
   // obiegu, bo alert RSO może wejść chwilę po starcie aplikacji.
@@ -2490,11 +2535,13 @@ async function start(stateCb) {
 // `rcbArtykul`: kolektor i parser treści z gov.pl dla scripts/test_rcb_artykul.cjs,
 // `adsbHoldJump`: strażnik niemożliwych skoków dla scripts/test_skok_pozycji.cjs,
 // który sprawdza, że tryb bez serwera trzyma pozycję tak samo jak backend,
-// oraz `adsbGeoUrl`/`adsbGeoAircraft` dla scripts/test_adsb_geo_zapas.cjs.
+// oraz `adsbGeoUrl`/`adsbGeoAircraft` dla scripts/test_adsb_geo_zapas.cjs,
+// a `podloga` dla scripts/test_podloga_dron.cjs.
 return { start, stop, history, timeline, historyFrom, timelineFrom, accumulate, matchVoivs,
          adsbHoldJump, adsbGeoUrl, adsbGeoAircraft, lostWeight, zgubioneZMigawek,
          stateFrom, alertLevel, rsoIsCancellation, assess,
          rso: { tickRso, sygnaly: () => signals },
+         podloga: { neptunEval, borderUavFloor, sygnaly: () => signals },
          rcbArtykul: { tickRcb, tekstArtykuluRcb, dataArtykuluRcb, wojewodztwaAlertu,
                        czyOdwolanieRcb, meldunkiArtykulu, najnowszyMeldunek } };
 })();

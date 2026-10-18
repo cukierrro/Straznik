@@ -54,14 +54,14 @@ const stronaArtykulu = (bloki, data = '24.09.2026') =>
 /* Świeży silnik na każdy scenariusz: kolektor trzyma stan przeczytanych artykułów
    w pamięci procesu, a testy sprawdzają właśnie zachowanie „pierwszego otwarcia".
    `rso` to żywe alerty RSO zastane w sygnałach — tak jak po starcie aplikacji. */
-function swiezySilnik({ artykul, rso = [], teraz = '2026-09-24T12:00:00Z' }) {
+function swiezySilnik({ artykul, rso = [], dodatkowe = [], teraz = '2026-09-24T12:00:00Z' }) {
   const storage = new Map();
   const zadania = [];
   const stan = { artykul };
-  if (rso.length) storage.set('eng_signals', JSON.stringify(rso.map(([voiv, poziom = 1], i) => ({
+  if (rso.length || dodatkowe.length) storage.set('eng_signals', JSON.stringify(rso.map(([voiv, poziom = 1], i) => ({
     t: Date.parse('2026-09-24T11:55:00Z'), ts: '2026-09-24T11:55:00Z', source: 'rcb',
     event_type: 'rso_alert', voivodeship: voiv, points: 1.5,
-    title: 'Alert RCB (RSO)', details: { rcb_level: poziom }, key: `rso:${i}:${voiv}` }))));
+    title: 'Alert RCB (RSO)', details: { rcb_level: poziom }, key: `rso:${i}:${voiv}` })).concat(dodatkowe)));
   const context = vm.createContext({
     console, URL, Intl, setTimeout, clearTimeout, setInterval, clearInterval,
     window: {},
@@ -211,4 +211,47 @@ test('10. odwołanie zastane przy pierwszym otwarciu nie wycisza alertu', async 
   await e.Engine.rcbArtykul.tickRcb();
   assert.deepEqual(e.punktowane(), [],
     'przy pierwszym czytaniu nie wiemy, czy odwołanie nie jest starsze');
+});
+
+// 18.10.2026: alert 06:27 dla lubelskiego odwołany w RSO o 06:54; artykuł gov.pl
+// dostał zdanie o odbiorcach ok. 08:13, gdy alert RSO był już poza oknem fuzji,
+// i kolektor dał fałszywy żółty. Lustro sekcji 10 w test_rcb_artykul.py.
+const sygnalRso = (typ, voiv, iso) => ({ t: Date.parse(iso), ts: iso, source: 'rcb', event_type: typ,
+  voivodeship: voiv, points: typ === 'rso_alert' ? 1.5 : 0, title: 'RSO', details: {},
+  key: `${typ}:${voiv}:${iso}` });
+const TYLKO_LUB = `&bdquo;${MONITOR}&rdquo; Alert RCB został wysłany do odbiorc&oacute;w na terenie woj. lubelskiego.`;
+const RANO = { teraz: '2026-09-24T08:13:00Z' };
+const ALERT_RANO = sygnalRso('rso_alert', 'lubelskie', '2026-09-24T06:29:00Z');
+const ODWOL_RANO = sygnalRso('rso_clear', 'lubelskie', '2026-09-24T06:55:00Z');
+
+// wstrzyknięte odwołanie RSO też jest rso_clear — liczymy tylko to, co dał artykuł
+const zArtykulu = (e) => e.punktowane().filter(s => s.event_type === 'rcb_alert');
+
+async function dwaObiegi(e, bloki) {
+  // pierwszy obieg: artykuł jeszcze bez zdania o odbiorcach — tak wyglądał tuż po 06:27
+  await e.Engine.rcbArtykul.tickRcb();
+  e.stan.artykul = stronaArtykulu(bloki);
+  await e.Engine.rcbArtykul.tickRcb();
+}
+
+test('11. spóźniony artykuł o alercie już odwołanym w RSO nie punktuje', async () => {
+  const e = swiezySilnik({ artykul: stronaArtykulu(`&bdquo;${MONITOR}&rdquo;`),
+    dodatkowe: [ALERT_RANO, ODWOL_RANO], ...RANO });
+  await dwaObiegi(e, TYLKO_LUB);
+  assert.deepEqual(zArtykulu(e), [], 'lubelskie bez punktów po odwołaniu w RSO');
+  assert.ok(e.sygnaly().some(s => s.event_type === 'rcb_art_seen' && s.details.odwolany_w_rso),
+    '…ale zostaje ślad 0 pkt');
+
+  const b = swiezySilnik({ artykul: stronaArtykulu(`&bdquo;${MONITOR}&rdquo;`),
+    dodatkowe: [ALERT_RANO, ODWOL_RANO], ...RANO });
+  await dwaObiegi(b, BLOK_ALERT);
+  assert.deepEqual(zArtykulu(b).map(s => s.voivodeship), ['podkarpackie'],
+    'województwo, którego RSO nie odwoływało, nadal jest uzupełniane');
+
+  const c = swiezySilnik({ artykul: stronaArtykulu(`&bdquo;${MONITOR}&rdquo;`),
+    dodatkowe: [ALERT_RANO, ODWOL_RANO, sygnalRso('rso_alert', 'podkarpackie', '2026-09-24T07:00:00Z')],
+    ...RANO });
+  await dwaObiegi(c, TYLKO_LUB);
+  assert.deepEqual(zArtykulu(c).map(s => s.voivodeship), ['lubelskie'],
+    'nowy alert RSO gdziekolwiek po odwołaniu znosi blokadę');
 });
