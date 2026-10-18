@@ -1429,9 +1429,76 @@ function neptunEval(t) {
           course_factor: a.course_factor,
           ...(zPodlogi ? { border_floor: true, bez_przeniesienia_pkt: zPodlogi } : {}) },
         `neptun:${t.id}:t${tier}`);
+      sygnalySasiednie(t, a, ty, count, conf, sources, approx, speed, presumed);
     }
   }
   return t;
+}
+
+/* Lustro neptun._signal_sasiednie (serwer od 1.7.91, tryb bez serwera od 1.7.97):
+   ten sam obiekt punktuje KAŻDE województwo w zasięgu 250 km, z wagą od odległości
+   do TEGO województwa, z podłogą przygraniczną i czasem dolotu liczonymi od tej
+   odległości. Dron 17 km od lubelskiego i 29 km od podkarpackiego ostrzega oba.
+   Ocena kursu `a` — jak na serwerze — ta sama co dla województwa przy granicy. */
+function pointInRing(lat, lon, ring) {
+  let inside = false;
+  for (let i = 0, n = ring.length; i < n; i++) {
+    const [y1, x1] = ring[i], [y2, x2] = ring[(i + 1) % n];
+    if ((y1 > lat) !== (y2 > lat) && lon < x1 + (lat - y1) * (x2 - x1) / (y2 - y1)) inside = !inside;
+  }
+  return inside;
+}
+function distToVoivKm(lat, lon, voiv) {
+  if (typeof VOIV_OUTLINE === "undefined") return null;   // brak obrysów — bez przypisań wtórnych
+  const ring = VOIV_OUTLINE[voiv];
+  if (!ring) return null;
+  if (pointInRing(lat, lon, ring)) return 0;
+  let best = Infinity;
+  for (const [blat, blon] of ring) best = Math.min(best, haversine(lat, lon, blat, blon));
+  return Math.round(best * 10) / 10;
+}
+function sygnalySasiednie(t, a, ty, count, conf, sources, approx, speed, presumed) {
+  if (t.lat == null || t.lon == null) return;
+  const cf = a.course_factor ?? 1;
+  for (const voiv of VOIVODESHIPS) {
+    if (voiv === a.border_voiv) continue;              // pierwotne przypisanie już poszło
+    const dist = distToVoivKm(t.lat, t.lon, voiv);
+    if (dist == null || dist >= NEPTUN_MAX_KM) continue;
+    let punkty = scoreThreat(t, dist, cf);
+    if (punkty <= 0) continue;
+    const bazowe = punkty, podloga = borderUavFloor(t, dist);
+    punkty = Math.max(punkty, podloga);
+    const etaRaw = etaRawMinutes(dist, speed);
+    const etaCons = etaRaw == null ? null : Math.max(0, etaRaw - ETA_BUFFER_MIN);
+    const etaSafe = etaMinutes(dist, speed);
+    const eligible = !approx && a.heading_known && a.toward_pl !== false && sources >= ETA_MIN_SOURCES
+      && ["medium", "high"].includes(conf) && etaCons != null;
+    let etaAlarm = null;
+    if (eligible && etaCons <= ETA_HIGH_MIN) { etaAlarm = "high"; punkty = Math.max(punkty, TH_HIGH); }
+    else if (eligible && etaCons <= ETA_ELEVATED_MIN) { etaAlarm = "elevated"; punkty = Math.max(punkty, TH_ELEVATED); }
+    const zPodlogi = podloga > bazowe && punkty === podloga ? Math.round((podloga - bazowe) * 100) / 100 : 0;
+    const ile = count > 1 ? `${count}× ` : "";
+    const odl = approx ? `${areaDistance(dist)} [pozycja rejonowa]` : `${dist} km`;
+    addSignal("neptun", "neptun_threat", voiv, punkty,
+      `${ile}${neptunTypeLabelPL(ty)} w odległości ${odl} od woj. ${voiv}${zPodlogi ? " [blisko granicy]" : ""} `
+      + `(confidence: ${conf}, ${sources} potwierdzeń)`,
+      { track_id: t.id, type: ty, count, lat: t.lat, lon: t.lon, heading: t.heading ?? null,
+        confidence: conf, source_count: sources, lifecycle: t.lifecycle ?? null,
+        uncertainty_km: t.uncertaintyKm ?? null, position_quality: t.positionQuality,
+        area_only: t.areaOnly ?? null, position_approximate: approx,
+        position_reason: t.straznik_position?.reason, position_locality: t.straznik_position?.locality,
+        distance_display_km: approx ? Math.round(dist / 10) * 10 : dist,
+        physical_key: physicalKey(t), dist_km: dist, region: t.region ?? null,
+        course: presumed ? "presumptive" : a.heading_known ? "known"
+              : (t.heading_estimated != null ? "estimated" : "unknown"),
+        heading_source: t.heading_source, jet: !!t.straznik_jet, course_factor: cf,
+        speed_kmh: speed, eta_approx: approx,
+        eta_raw_border_min: etaRaw == null ? null : Math.round(etaRaw * 10) / 10,
+        eta_border_min: etaSafe, eta_buffer_min: ETA_BUFFER_MIN, eta_alarm: etaAlarm,
+        voiv_secondary: true,
+        ...(zPodlogi ? { border_floor: true, bez_przeniesienia_pkt: zPodlogi } : {}) },
+      `neptun:${t.id}:${voiv}:t${Math.floor(punkty * 2)}`);
+  }
 }
 const ALERT_LEVELS_OFF = new Set(["none","green","off","clear","no","false"]);
 /* Epizody alarmów obwodów (lustro backendu): obwód → początek; koniec po

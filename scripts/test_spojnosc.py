@@ -189,6 +189,19 @@ sprawdz("nazwy krajów bałtyckich",
         _kraje(r"const BALTIC_COUNTRY_MARKERS = \{(.*?)\};", ENGINE, "markery js"),
         _kraje(r"_BALTIC_COUNTRY_MARKERS = \{(.*?)\n\}", RSS_MEDIA, "markery py"))
 
+# ── obrysy województw: silnik aplikacji przypisuje obiekt do każdego województwa
+# w zasięgu tak jak serwer (1.7.97) — obrysy muszą być identyczne
+import json as _json
+sys.path.insert(0, str(ROOT / "backend"))
+from app.voiv_points import VOIV_OUTLINE as _VO  # noqa: E402
+_m = re.search(r"const VOIV_OUTLINE = (\{.*\});", (ROOT / "frontend/voiv-outline.js").read_text(encoding="utf-8"), re.S)
+if not _m:
+    bledy.append("nie znaleziono VOIV_OUTLINE w frontend/voiv-outline.js")
+else:
+    sprawdz("obrysy województw (voiv-outline.js ↔ voiv_points.py)",
+            {k: [list(p) for p in v] for k, v in _json.loads(_m.group(1)).items()},
+            {k: [list(p) for p in v] for k, v in _VO.items()})
+
 # ── alarmy w obwodach UA: te same odległości i te same pasy wag ──────────────
 def _oblasty(tekst, nazwa):
     """{obwód: {województwo: km}} z config.py albo engine.js."""

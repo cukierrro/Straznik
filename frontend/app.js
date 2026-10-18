@@ -2309,9 +2309,22 @@ function courseVerdictHTML(p) {
   const toward = p.toward_pl === true || p.toward_pl === "true";
   const known = !(p.heading_known === false || p.heading_known === "false");
   const off = p.course_off == null || p.course_off === "" ? null : Math.round(Number(p.course_off));
+  /* 18.10.2026: karta pisała „kursem na Kulykiw” i zarazem „kurs na Polskę (71° od
+     kierunku na granicę)”. Dwie rzeczy naraz: (1) kurs był DOMNIEMANY — źródło wyznaczyło
+     punkt z celu w Ukrainie, a Polska leży dopiero na przedłużeniu linii; (2) „na Polskę”
+     znaczy „na jakikolwiek odcinek granicy”, a stopnie liczymy do NAJBLIŻSZEGO punktu. */
+  const naCel = p.na_cel === true || p.na_cel === "true";
+  if (toward && naCel) {
+    const cel = p.cel ? `: ${esc(String(p.cel))}` : "";
+    return `<span style="color:#ffb020"><b>${UI.t("kurs na cel", "heading to a target", "курс на ціль")}${cel}</b> — ${
+      UI.t("przedłużenie trasy prowadzi w stronę Polski", "the extended track points towards Poland", "продовження траси веде в бік Польщі")}</span><br>`;
+  }
   if (toward) {
+    const daleko = off != null && off > 50;
     return `<span style="color:#ff7b88"><b>${UI.t("kurs na Polskę", "heading towards Poland", "курс на Польщу")}</b>${
-      off != null ? ` (${off}° ${UI.t("od kierunku na granicę", "off the direction to the border", "від напрямку на кордон")})` : ""}</span><br>`;
+      off == null ? "" : daleko
+        ? ` (${UI.t("w stronę dalszego odcinka granicy", "towards a farther part of the border", "у бік віддаленішої ділянки кордону")})`
+        : ` (${off}° ${UI.t("od kierunku na granicę", "off the direction to the border", "від напрямку на кордон")})`}</span><br>`;
   }
   const why = !known
     ? (UI.t("kurs nieznany", "heading unknown", "курс невідомий"))
@@ -3100,6 +3113,7 @@ function animate(ts) {
         counted: countedTracks.has(String(t.id ?? "")),
         age_min: ageMin, age_label: ageLabel(ageMin),
         course_off: courseOffsetDeg(t),
+        na_cel: naKursieDoCelu(t), cel: naKursieDoCelu(t) && t.locality ? placeName(t.locality) : "",
         eta: etaHtml(t) } });
     const uncKm = shownUncertaintyKm(t, now);
     if (uncKm)
@@ -3915,7 +3929,7 @@ function zonesRowHTML(name) {
   return `<details class="voiv-zones fineprint"><summary>${
     UI.t("Dane techniczne", "Technical details", "Технічні дані")} · ${
     UI.t("strefy PAŻP", "PAŻP zones", "зони PAŻP")} ${z.length} <span class="muted">(${
-    UI.t("bez punktów", "no points", "без балів")})</span></summary>${chips}</details>`;
+    UI.t("bez punktów", "no points", "без балів")})</span></summary><div class="voiv-zones-lista">${chips}</div></details>`;
 }
 function openZoneByName(designator) {
   const f = (aktywneStrefy()?.features || []).find(x => x.properties?.designator === designator);
@@ -5922,6 +5936,7 @@ function showHistoryAt(idx) {
           toward_pl: t.pl_assessment?.toward_pl === true,
           heading_known: t.pl_assessment?.heading_known !== false,
           course_off: courseOffsetDeg(t),
+        na_cel: naKursieDoCelu(t), cel: naKursieDoCelu(t) && t.locality ? placeName(t.locality) : "",
           eta: etaHtml(t) } })) });
     map.getSource("trails")?.setData(emptyFC());
     map.getSource("course")?.setData(emptyFC());

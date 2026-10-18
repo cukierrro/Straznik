@@ -1007,6 +1007,10 @@ html[lang="en"] .list:empty::after { content: "— none —"; }
 .voiv-zones > summary { cursor: pointer; list-style: none; color: var(--muted);
   padding: 3px 0; }
 .voiv-zones > summary::-webkit-details-marker { display: none; }
+/* <details> nie przekazuje display:flex zawartości we wszystkich WebView — plakietki
+   stref szły jednym rzędem za prawą krawędź (czcionka 130 %, 18.10.2026) */
+.voiv-zones-lista { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; min-width: 0; }
+.voiv-zones-lista .btn-zone { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .voiv-zones > summary::before { content: "▸ "; }
 .voiv-zones[open] > summary::before { content: "▾ "; }
 .voiv-breakdown { margin-top: 6px; display: none; }
