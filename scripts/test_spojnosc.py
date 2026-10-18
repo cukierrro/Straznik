@@ -175,6 +175,20 @@ sprawdz("podłoga dla dronów przy granicy (typy)",
         sorted(re.findall(r'"(\w+)"', re.search(r"BORDER_UAV_FLOOR_TYPES = \[(.*?)\]", ENGINE).group(1))),
         sorted(re.findall(r'"(\w+)"', re.search(r"NEPTUN_BORDER_UAV_FLOOR_TYPES = \((.*?)\)", CONFIG).group(1))))
 
+# ── nazwy krajów bałtyckich w tytułach (18.10.2026: relacja ERR o Łotwie i
+# Litwie liczyła się jako alarm w Estonii) — ta sama lista w rss_media i engine.js
+RSS_MEDIA = (ROOT / "backend/app/collectors/rss_media.py").read_text(encoding="utf-8")
+def _kraje(wzorzec, tekst, nazwa):
+    m = re.search(wzorzec, tekst, re.S)
+    if not m:
+        bledy.append(f"nie znaleziono {nazwa}")
+        return {}
+    return {k: sorted(re.findall(r'"([^"]+)"', v)) for k, v in
+            re.findall(r'"?(LT|LV|EE)"?\s*:\s*[\(\[]([^\)\]]*)[\)\]]', m.group(1))}
+sprawdz("nazwy krajów bałtyckich",
+        _kraje(r"const BALTIC_COUNTRY_MARKERS = \{(.*?)\};", ENGINE, "markery js"),
+        _kraje(r"_BALTIC_COUNTRY_MARKERS = \{(.*?)\n\}", RSS_MEDIA, "markery py"))
+
 # ── alarmy w obwodach UA: te same odległości i te same pasy wag ──────────────
 def _oblasty(tekst, nazwa):
     """{obwód: {województwo: km}} z config.py albo engine.js."""

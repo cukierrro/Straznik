@@ -1739,6 +1739,20 @@ function balticIncidentKey(link, title, country) {
 }
 /* Ten sam alarm w dwóch redakcjach to jedno zdarzenie (lustro rss_media). */
 const balticActive = new Map(), balticClearsSeen = new Set(), balticAlerted = new Set();
+/* Lustro poprawek serwera z 18.10.2026 (rss_media): kraj → chwila odwołania
+   (artykuł o alarmie opublikowany wcześniej nie otwiera go na nowo) oraz nazwy
+   krajów bałtyckich (tytuł o DWÓCH innych krajach to nie alarm u redakcji). */
+const balticClearedAt = new Map();
+const BALTIC_COUNTRY_MARKERS = {
+  LT: ["lietuv", "lithuan", "leedu", "литв", "litw"],
+  LV: ["latvij", "läti", "latvia", "латви", "łotw", "lotw"],
+  EE: ["estij", "igaunij", "eesti", "estonia", "эстон", "estoni"],
+};
+function balticInneKraje(titleL, country) {
+  const named = Object.keys(BALTIC_COUNTRY_MARKERS)
+    .filter(c => BALTIC_COUNTRY_MARKERS[c].some(m => titleL.includes(m)));
+  return named.includes(country) ? [] : named.filter(c => c !== country);
+}
 const BALTIC_ACTIVE_MS = 3*3600*1000;
 async function tickRss() {
   for (const [url, defVoiv] of RSS_FEEDS) {
@@ -1791,10 +1805,17 @@ async function tickRss() {
         if (age > BALTIC_CLEAR_MAX_AGE_MS) continue;
         const text = (it.title + " " + it.desc).toLowerCase();
         const incident = balticIncidentKey(it.link, it.title, country);
-        if (BALTIC_CLEAR.some(k => text.includes(k))
+        // tytuł, który sam nadal ogłasza alarm, to zawężenie, nie odwołanie (18.10.2026)
+        const tytulL = String(it.title || "").toLowerCase();
+        const tytulOdw = BALTIC_CLEAR.some(k => tytulL.includes(k))
+          && BALTIC_CLEAR_CONTEXT.some(k => tytulL.includes(k));
+        const tytulAlarm = !tytulOdw && B_ALERT.some(k => tytulL.includes(k))
+          && !B_EXCLUDE.some(k => tytulL.includes(k));
+        if (!tytulAlarm && BALTIC_CLEAR.some(k => text.includes(k))
             && BALTIC_CLEAR_CONTEXT.some(k => text.includes(k))) {
           if (balticClearsSeen.has(incident)) continue;
           balticClearsSeen.add(incident);
+          balticClearedAt.set(country, Date.now());
           const keys = new Set(balticAlerted.has(incident) ? [incident] : []);
           const active = balticActive.get(country);
           balticActive.delete(country);
@@ -1810,6 +1831,7 @@ async function tickRss() {
         const words = new Set(text.match(/[\p{L}\p{N}_]+/gu) || []);
         if (balticStale(text, words, age)) continue;   // tylko zdarzenie „teraz” (15.09.2026)
         const titleL = " " + String(it.title || "").toLowerCase();
+        if (balticInneKraje(titleL, country).length >= 2) continue;   // relacja o sąsiadach
         // tytuł-pytanie („ko trūksta…?”) to publicystyka, nie ogłoszenie alarmu (22.09.2026)
         const discussion = BALTIC_DISCUSSION.some(k => titleL.includes(k)) || titleL.trim().endsWith("?");
         if (!B_EXCLUDE.some(k => text.includes(k)) && !BALTIC_ALERT_PAST.some(k => words.has(k))) {
@@ -1817,6 +1839,8 @@ async function tickRss() {
           const alertHits = discussion || balticSpeakerQuote(titleL.trim()) ? []
             : B_ALERT.filter(k => titleL.includes(k));
           if (alertHits.length) {
+            const odwolano = balticClearedAt.get(country);
+            if (odwolano && it.date && new Date(it.date).getTime() <= odwolano) continue;
             const active = balticActive.get(country);
             if (active && Date.now() - active.at < BALTIC_ACTIVE_MS && active.key !== incident) continue;
             if (!active) balticActive.set(country, {key: incident, at: Date.now()});
@@ -2536,12 +2560,13 @@ async function start(stateCb) {
 // `adsbHoldJump`: strażnik niemożliwych skoków dla scripts/test_skok_pozycji.cjs,
 // który sprawdza, że tryb bez serwera trzyma pozycję tak samo jak backend,
 // oraz `adsbGeoUrl`/`adsbGeoAircraft` dla scripts/test_adsb_geo_zapas.cjs,
-// a `podloga` dla scripts/test_podloga_dron.cjs.
+// a `podloga` dla scripts/test_podloga_dron.cjs, `baltyk` dla scripts/test_baltyk_silnik.cjs.
 return { start, stop, history, timeline, historyFrom, timelineFrom, accumulate, matchVoivs,
          adsbHoldJump, adsbGeoUrl, adsbGeoAircraft, lostWeight, zgubioneZMigawek,
          stateFrom, alertLevel, rsoIsCancellation, assess,
          rso: { tickRso, sygnaly: () => signals },
          podloga: { neptunEval, borderUavFloor, sygnaly: () => signals },
+         baltyk: { tickRss, sygnaly: () => signals },
          rcbArtykul: { tickRcb, tekstArtykuluRcb, dataArtykuluRcb, wojewodztwaAlertu,
                        czyOdwolanieRcb, meldunkiArtykulu, najnowszyMeldunek } };
 })();

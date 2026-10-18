@@ -55,6 +55,7 @@ def reset():
     rm._baltic_active.clear()
     rm._baltic_clears_seen.clear()
     rm._baltic_alerted.clear()
+    rm._baltic_cleared_at.clear()
 
 
 LRT = "https://www.lrt.lt/naujienos/lietuvoje/2/2936222/"
@@ -203,6 +204,69 @@ asyncio.run(rm._baltic_entries([wpis(
     "Öösel anti Eestis õhuhäire, Tallinnas kostis sireene", M15 + "-tallinn")], "15min", "EE", T0 + 120))
 ok(any(z["event_type"] == "baltic_alert" for z in zapis),
    "estoński alarm bez wzmianki o zagranicy przechodzi")
+
+
+# ── 18.10.2026: trzy błędy z jednego poranka (dron, który według 15min wleciał
+# na Litwę z Polski; szczątki w rejonie Pasvalys) ───────────────────────────────
+T18 = calendar.timegm((2026, 10, 18, 4, 19, 0, 0, 0, 0))   # 07:19 w Wilnie
+
+
+def wpis18(tytul, link, minut, opis="", opublikowano=None):
+    return {"title": tytul, "summary": opis, "link": link,
+            "published_parsed": time.gmtime(T18 + (minut if opublikowano is None else opublikowano) * 60)}
+
+
+print("9. zawężenie alarmu na Litwie to nie odwołanie (18.10, 15min)")
+reset()
+L15 = "https://www.15min.lt/naujiena/aktualu/lietuva/panevezio-ir-siauliu-apskrityse-raudonas-oro-pavojus-56-2787174"
+asyncio.run(rm._baltic_entries([wpis18(
+    "Panevėžio ir Šiaulių apskrityse – raudonas oro pavojus, Kaune stabdomi skrydžiai", L15, 0)],
+    "15min", "LT", T18 + 30))
+ok(any(z["event_type"] == "baltic_alert" for z in zapis), "alarm 07:19 wchodzi")
+zapis.clear()
+asyncio.run(rm._baltic_entries([wpis18(
+    "Panevėžio apskrityje – raudonas oro pavojus, Kaune stabdomi skrydžiai", L15, 0,
+    opis="Šiaulių apskrityje oro pavojus atšauktas.")], "15min", "LT", T18 + 40 * 60))
+ok(not any(z["event_type"] == "baltic_clear" for z in zapis),
+   "tytuł nadal ogłasza czerwony alarm w Poniewieżu — to nie odwołanie całej Litwy")
+asyncio.run(rm._baltic_entries([wpis18(
+    "Oro pavojus visur atšauktas", L15, 0)], "15min", "LT", T18 + 45 * 60))
+ok(any(z["event_type"] == "baltic_clear" for z in zapis), "prawdziwe odwołanie nadal gasi")
+
+print("10. spóźniony angielski artykuł po odwołaniu na Łotwie (18.10, LSM)")
+reset()
+LV = "https://www.lsm.lv/raksts/zinas/latvija/18.10.2026-izsludinats-iespejamais-gaisa-telpas-apdraudejums.a668034/"
+LV_END = "https://www.lsm.lv/raksts/zinas/latvija/18.10.2026-beidzies-iespejamais-gaisa-telpas-apdraudejums.a668034/"
+ENG = "https://eng.lsm.lv/article/society/defence/18.10.2026-possible-air-threat-alert-in-bauskas.a664326/"
+asyncio.run(rm._baltic_entries([wpis18(
+    "Izsludināts iespējamais gaisa telpas apdraudējums Bauskas, Aizkraukles un Ogres novados", LV, 32)],
+    "lsm", "LV", T18 + 32 * 60))
+ok(any(z["event_type"] == "baltic_alert" for z in zapis), "łotewski alarm 07:51 wchodzi")
+zapis.clear()
+# 08:21 w jednym obiegu: najpierw kanał łotewski z odwołaniem, potem angielski z
+# artykułem opublikowanym 07:53, czyli PRZED końcem alarmu (08:12)
+asyncio.run(rm._baltic_entries([wpis18(
+    "Beidzies iespējamais gaisa telpas apdraudējums Bauskas, Aizkraukles un Ogres novados", LV_END, 62,
+    opublikowano=29)], "lsm", "LV", T18 + 62 * 60))
+asyncio.run(rm._baltic_entries([wpis18(
+    "Possible air threat alert in Bauskas, Aizkraukles and Ogres municipalities of Latvia", ENG, 62,
+    opublikowano=34)], "eng.lsm", "LV", T18 + 62 * 60 + 5))
+ok(any(z["event_type"] == "baltic_clear" for z in zapis), "odwołanie wchodzi")
+ok(not any(z["event_type"] == "baltic_alert" for z in zapis),
+   "artykuł opublikowany przed odwołaniem nie otwiera alarmu na nowo")
+zapis.clear()
+asyncio.run(rm._baltic_entries([wpis18(
+    "Izsludināts iespējamais gaisa telpas apdraudējums Rīgā", LV + "riga.a668999/", 90)],
+    "lsm", "LV", T18 + 90 * 60))
+ok(any(z["event_type"] == "baltic_alert" for z in zapis), "NOWY alarm opublikowany po odwołaniu przechodzi")
+
+print("11. estońska relacja o alarmach na Łotwie i Litwie to nie alarm w Estonii (18.10, ERR)")
+reset()
+asyncio.run(rm._baltic_entries([wpis18(
+    "Läti ja Leedu andsid öösel õhuohu hoiatuse", "https://www.err.ee/1610169574/lati-ja-leedu", 142)],
+    "err", "EE", T18 + 142 * 60))
+ok(not any(z["event_type"] in ("baltic_alert", "baltic_context") for z in zapis),
+   "dwa inne kraje w tytule, bez Estonii — bez punktów")
 
 
 print("8. kanał bez artykułów to nie „ok”")
