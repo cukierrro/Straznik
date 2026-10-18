@@ -7500,6 +7500,10 @@ function fitMapActions() {
   box.classList.add("compact");
   const one = box.firstElementChild?.offsetHeight || 0;
   if (one > room) box.classList.add("no-room");
+  // Ikony przechodzą do kolejnych kolumn w lewo; przy czcionce 200 % w historii
+  // trzecia kolumna lądowała za lewą krawędzią ekranu (analiza 18.10.2026).
+  else if ([...box.children].some(c => c.offsetWidth && c.getBoundingClientRect().left < 4))
+    box.classList.add("no-room");
 }
 addEventListener("resize", () => requestAnimationFrame(fitMapActions));
 

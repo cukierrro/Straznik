@@ -516,7 +516,7 @@ dialog a:hover, dialog a:focus-visible { text-decoration: underline; }
   border-radius: 12px; padding: 9px 9px 9px 12px; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
 }
 #panel-head .ph-txt { min-width: 0; }
-#panel-head h2 { margin: 0; font-size: 1rem; line-height: 1.2; }
+#panel-head h2 { margin: 0; font-size: 1rem; line-height: 1.2; overflow-wrap: anywhere; }
 #panel-progi { margin-top: 3px; }
 /* Pole dotykowe 44 px i słowo obok znaku: samo × nie mówi, co zamyka.
    Wcześniej było to kółko 34 px wiszące nad treścią. */
@@ -833,6 +833,9 @@ dialog .set-switch input:focus-visible + .sw-track { outline: 2px solid var(--ac
    z 324 px okna, a prawy pas był pusty (zgłoszenie 17.10.2026). Przewija się
    samo okno, więc treść może zwyczajnie opłynąć przycisk. */
 #fs-check > .about-body, #onboard-bg > .about-body { overflow: visible; }
+/* nagłówek (logo + tytuł) to układ flex, więc też nie opływa przycisku — przy dużej
+   czcionce wychodził za prawą krawędź; schodzi pod przycisk */
+#fs-check .about-head, #onboard-bg .about-head { clear: both; }
 .about-head { display: flex; gap: 14px; align-items: center; margin-bottom: 14px; }
 .about-logo {
   width: 52px; height: 52px; flex: none; border-radius: 14px;
@@ -857,7 +860,11 @@ dialog .set-switch input:focus-visible + .sw-track { outline: 2px solid var(--ac
 .about-tab { width: 100%; border-collapse: collapse; font-size: 0.8333rem; }
 .about-tab td { padding: 5px 6px; border-bottom: 1px solid rgba(120,150,210,.12);
   vertical-align: top; line-height: 1.4; }
-.about-tab td:first-child { white-space: nowrap; color: var(--cyan); width: 74px; }
+/* Etykiety mogą złamać się na dwie linie: przy zakazie łamania „Jakość pozycji”,
+   „Sąsiedzi (cień)” czy „Przy granicy” rozpychały tabelę poza okno na 320–360 dp
+   i przy dużej czcionce (analiza responsywności 18.10.2026). */
+.about-tab td:first-child { white-space: normal; color: var(--cyan); width: 74px; }
+.about-tab td { overflow-wrap: anywhere; }
 .about-tab .pts { text-align: right; color: var(--amber); font-weight: 700;
   white-space: nowrap; width: 46px; }
 .lvl-row { display: flex; gap: 9px; align-items: flex-start; font-size: 0.8333rem;
@@ -1316,6 +1323,10 @@ dialog menu > .chip.primary { font-weight: 600; }
   display: flex; flex-direction: column; gap: 7px;
   pointer-events: none;                 /* mapa pod spodem zostaje przesuwalna */
 }
+/* Przy czcionce 200 % na 360 dp panel historii był wyższy niż ekran i „NA ŻYWO”
+   lądowało pod paskiem stanu. Panel nie wychodzi ponad górę — przewija się w sobie. */
+#timebar { max-height: calc(100vh - var(--safe-t) - var(--tabbar-h) - var(--safe-b) - 24px);
+  overflow-y: auto; overscroll-behavior: contain; }
 /* Bez tego flex ściskał atrybucję i ucinał ją w połowie wiersza — wyglądało to
    jak nachodzenie paska zastrzeżenia na tekst źródeł. */
 #bottom-stack > * { pointer-events: auto; flex: 0 0 auto; }
@@ -2117,6 +2128,10 @@ html.tekst-duzy #licznik-okno .lk-opis { grid-column: 1 / -1; }
    na wąskim ekranie chowamy miniwykres (pełny jest pod rozwinięciem). */
 #w12-t { flex: none; white-space: nowrap; }
 .w12-max { min-width: 0; white-space: normal; line-height: 1.2; }
+/* Gdy obok tytułu zostaje mniej niż ~150 px (wąski ekran, ukraiński, duża czcionka),
+   „najwięcej naraz” schodzi pod tytuł na całą szerokość zamiast łamać się w słupek. */
+.w12-przelacz { flex-wrap: wrap; row-gap: 2px; padding-top: 4px; padding-bottom: 4px; }
+.w12-przelacz .w12-max { flex: 1 1 150px; }
 @media (max-width: 400px) { .w12-mini { display: none; } }
 .w12-przelacz.otwarty .w12-max { margin-left: auto; }
 .w12-cialo { padding: 6px 2px 0; }
@@ -2147,7 +2162,10 @@ html.tekst-duzy #licznik-okno .lk-opis { grid-column: 1 / -1; }
    „01:27 (−8 h 25 min)” wychodziła za prawą krawędź (zgłoszenie 17.10.2026,
    zmierzone: 40 px poza ekranem na 320 dp). Godzina może zejść do dwóch linii,
    a rząd urosnąć — bez ucinania. */
-.tb-head { height: auto; min-height: 40px; }
+/* Wysokość zostaje stała (40 px): dwie linie godziny mieszczą się w niej, a rząd
+   się nie zawija — inaczej długość godziny przy przesuwaniu suwaka zmieniałaby
+   wysokość panelu pod palcem (ten sam powód co przy #tb-national, 14.09.2026). */
+.tb-head { height: 40px; }
 #timebar #tb-label { flex: 0 1 auto; min-width: 0; white-space: normal; line-height: 1.15; }
 #timebar .tb-live { display: inline-flex; align-items: center; gap: 7px; height: 36px; min-height: 36px;
   padding: 0 12px; border-radius: 10px; letter-spacing: .06em; font: 700 0.7667rem/1 "Segoe UI", system-ui, sans-serif;
