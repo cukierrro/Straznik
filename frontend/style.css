@@ -168,6 +168,14 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 #ac-card.big { right: 8px; width: auto; max-height: 74vh; max-height: 74dvh; border-radius: 14px;
   bottom: calc(var(--tabbar-h) + var(--safe-b) + var(--stack-h, 0px) + 12px);
   padding: 14px 16px 16px; font-size: 0.8333rem; line-height: 1.45; }
+/* Karta stoi NAD panelem (historia, sygnały: --stack-h), więc jej wysokość musi
+   odjąć panel i pasek stanu. Sztywne 74% ekranu wypychało rozwiniętą kartę ponad
+   górę, a przyciski „zwiń” i „zamknij” znikały — karty nie dało się zamknąć
+   (zgłoszenie 18.10.2026, potwierdzone na 360 i 411 dp). Przewija się ciało karty. */
+#ac-card { max-height: min(152px, calc(100vh - var(--safe-t) - var(--tabbar-h) - var(--safe-b) - var(--stack-h, 0px) - 18px));
+  max-height: min(152px, calc(100dvh - var(--safe-t) - var(--tabbar-h) - var(--safe-b) - var(--stack-h, 0px) - 18px)); }
+#ac-card.big { max-height: min(74vh, calc(100vh - var(--safe-t) - var(--tabbar-h) - var(--safe-b) - var(--stack-h, 0px) - 24px));
+  max-height: min(74dvh, calc(100dvh - var(--safe-t) - var(--tabbar-h) - var(--safe-b) - var(--stack-h, 0px) - 24px)); }
 /* W zwiniętej karcie zdjęcie jest podglądem, nie połową karty — ale 44 px robiło
    z niego znaczek pocztowy pływający pośrodku pustego pasa na całą szerokość
    (zgłoszenie użytkownika 27.09.2026). Dwie reguły, bo te obrazy różnią się kadrem.
@@ -220,8 +228,10 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.04)); border-radius: 11px; }
 /* na szerokim ekranie karta jako narożnik, nie pełna szerokość */
 @media (min-width: 861px) {
-  #ac-card { left: 12px; right: auto; width: 340px; max-height: 46vh; }
-  #ac-card.big { right: auto; width: 420px; max-height: 82vh; }
+  #ac-card { left: 12px; right: auto; width: 340px; max-height: 46vh;
+    max-height: min(46vh, calc(100vh - var(--safe-t) - var(--tabbar-h) - var(--safe-b) - var(--stack-h, 0px) - 18px)); }
+  #ac-card.big { right: auto; width: 420px; max-height: 82vh;
+    max-height: min(82vh, calc(100vh - var(--safe-t) - var(--tabbar-h) - var(--safe-b) - var(--stack-h, 0px) - 24px)); }
 }
 
 /* ── obserwacja obcych maszyn (RU/BY) ── */
@@ -817,6 +827,12 @@ dialog .set-switch input:focus-visible + .sw-track { outline: 2px solid var(--ac
 /* ── okno „O aplikacji" ── */
 #about { width: min(680px, 94vw); max-height: var(--dlg-max); padding: 0; overflow: hidden; }
 .about-body { max-height: var(--dlg-max); overflow-y: auto; padding: 20px 22px 18px; }
+/* Okna z treścią bez własnego przewijania (zgoda pełnoekranowa, praca w tle):
+   `overflow-y: auto` robi z treści osobny blok, który NIE opływa pływającego
+   przycisku „Zamknij”, tylko staje obok niego — na 360 dp treść dostawała 183 px
+   z 324 px okna, a prawy pas był pusty (zgłoszenie 17.10.2026). Przewija się
+   samo okno, więc treść może zwyczajnie opłynąć przycisk. */
+#fs-check > .about-body, #onboard-bg > .about-body { overflow: visible; }
 .about-head { display: flex; gap: 14px; align-items: center; margin-bottom: 14px; }
 .about-logo {
   width: 52px; height: 52px; flex: none; border-radius: 14px;
@@ -2095,6 +2111,13 @@ html.tekst-duzy #licznik-okno .lk-opis { grid-column: 1 / -1; }
 .w12-przelacz.otwarty .w12-strz { transform: rotate(90deg); }
 .w12-max { color: var(--muted); font-weight: 500; white-space: nowrap; }
 .w12-mini { width: 96px; height: 22px; margin-left: auto; flex: none; }
+/* Tytuł dostawał resztkę rzędu i łamał się po każdym słowie („Drony / i /
+   rakiety / · 12 h”, 38 px na 360 dp — zgłoszenie 17.10.2026). Tytuł zostaje
+   w jednej linii, a ustępuje „najwięcej naraz”, które może zejść do dwóch linii;
+   na wąskim ekranie chowamy miniwykres (pełny jest pod rozwinięciem). */
+#w12-t { flex: none; white-space: nowrap; }
+.w12-max { min-width: 0; white-space: normal; line-height: 1.2; }
+@media (max-width: 400px) { .w12-mini { display: none; } }
 .w12-przelacz.otwarty .w12-max { margin-left: auto; }
 .w12-cialo { padding: 6px 2px 0; }
 .w12-cialo[hidden] { display: none; }
@@ -2120,6 +2143,12 @@ html.tekst-duzy #licznik-okno .lk-opis { grid-column: 1 / -1; }
    Oba przyciski: jedna linia, ta sama wysokość 36 px i promień 10 px co reszta v4.
    „Na żywo” z zieloną kropką jak diody źródeł — tam wraca się do danych na żywo. */
 .tb-head { height: 40px; gap: 8px; margin-bottom: 4px; }
+/* Pięć elementów w jednym rzędzie nie mieści się na 320–360 dp: godzina
+   „01:27 (−8 h 25 min)” wychodziła za prawą krawędź (zgłoszenie 17.10.2026,
+   zmierzone: 40 px poza ekranem na 320 dp). Godzina może zejść do dwóch linii,
+   a rząd urosnąć — bez ucinania. */
+.tb-head { height: auto; min-height: 40px; }
+#timebar #tb-label { flex: 0 1 auto; min-width: 0; white-space: normal; line-height: 1.15; }
 #timebar .tb-live { display: inline-flex; align-items: center; gap: 7px; height: 36px; min-height: 36px;
   padding: 0 12px; border-radius: 10px; letter-spacing: .06em; font: 700 0.7667rem/1 "Segoe UI", system-ui, sans-serif;
   color: var(--akcent-jasny); background: rgba(143, 180, 255, 0.12); border: 1px solid rgba(143, 180, 255, 0.40);
