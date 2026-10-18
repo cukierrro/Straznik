@@ -2931,8 +2931,12 @@ function trackSpeed(t) {
 /* Ile minut od ostatniego meldunku o obiekcie (NEPTUN potwierdza zgłoszeniami). */
 function threatAgeMin(t, nowMs) {
   const seen = Date.parse(t.confirmedAt || t.updatedAt || "");
-  if (!seen) return 0;
-  return Math.max(0, Math.round((nowMs - seen) / 60000));
+  if (seen) return Math.max(0, Math.round((nowMs - seen) / 60000));
+  /* Migawka historii nie niesie czasów meldunku, tylko `age_min` z chwili zapisu.
+     Bez tego w historii wiek był zawsze 0 i okrąg stał w miejscu od meldunku do
+     zniknięcia obiektu (zgłoszone 18.10.2026: dron spod Rostania o 01:32 miał
+     meldunek sprzed 5 min, a karta pokazywała ±4 km zamiast ±19 km). */
+  return snapAgeMin(t);
 }
 /* Ile obiekt mógł przelecieć od ostatniego meldunku. Rysujemy ostatnią znaną
    pozycję, więc okrąg niepewności musi rosnąć razem z wiekiem tej wiedzy —
@@ -5920,7 +5924,14 @@ function showHistoryAt(idx) {
     map.getSource("trails")?.setData(emptyFC());
     map.getSource("course")?.setData(emptyFC());
     map.getSource("adsb-course")?.setData(emptyFC());
-    map.getSource("uncertainty")?.setData(emptyFC());
+    // Okrąg niepewności także w historii, z wiekiem meldunku z migawki — wcześniej
+    // warstwa była tu czyszczona, więc w podglądzie historii okręgu nie było wcale.
+    map.getSource("uncertainty")?.setData({ type: "FeatureCollection",
+      features: historyThreats.filter(t => t.lat != null).flatMap(t => {
+        const km = shownUncertaintyKm(t);
+        return km ? [{ type: "Feature", properties: { color: (TYPE_META[t.type] || {}).color || "#8a93a6" },
+          geometry: { type: "Polygon", coordinates: circleCoords(t.lat, t.lon, km) } }] : [];
+      }) });
     map.getSource("adsb")?.setData({ type: "FeatureCollection",
       features: planes.map(p => ({ type: "Feature",
         geometry: { type: "Point", coordinates: [p.lon, p.lat] },

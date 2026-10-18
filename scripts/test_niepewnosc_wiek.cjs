@@ -83,6 +83,7 @@ function piaskownica({ approx = true, mierzona = null, srodekMiejscowosci = fals
     stala('typeSpeedKmh'),
     stala('AGE_SLACK_MAX_MIN'),
     funkcja('nowRefMs'),
+    funkcja('snapAgeMin'),
     funkcja('threatAgeMin'),
     funkcja('ageSlackKm'),
     funkcja('uncertaintyParts'),
@@ -193,4 +194,26 @@ test('pozycja dokładna „kursem na cel" nie jest sztucznie rozszerzana', () =>
 test('bez flagi destination nic się nie zmienia (12 km)', () => {
   const s = piaskownica();
   assert.equal(s.uncertaintyParts(obiekt(0, { destination: false }), TERAZ).zgloszenie, 12);
+});
+
+// 18.10.2026: migawka historii NIE ma confirmedAt/updatedAt, tylko `age_min`.
+// Test wyżej podawał confirmedAt, więc przechodził, a w prawdziwej historii wiek
+// był zawsze 0 i karta drona spod Rostania o 01:32 mówiła ±4 km zamiast ±19 km.
+test('obiekt z migawki (tylko age_min) też dostaje dorzut drogi', () => {
+  const s = piaskownica({ approx: false });
+  s.histMode = true;
+  s.historyAdsbTime = TERAZ;
+  const zMigawki = { type: 'uav', uncertaintyKm: 4, age_min: 5 };
+  assert.equal(s.shownUncertaintyKm(zMigawki), 4 + 15, 'Rostań 01:32: 4 km zgłoszenia + 15 km lotu');
+  assert.equal(s.shownUncertaintyKm({ ...zMigawki, age_min: 10 }), 4 + 30, 'rośnie do zniknięcia');
+  assert.equal(s.shownUncertaintyKm({ ...zMigawki, age_min: undefined }), 4,
+    'starsze migawki bez age_min: jak świeży (nie zgadujemy)');
+});
+
+test('podgląd historii rysuje okrąg niepewności, a nie czyści jego warstwy', () => {
+  const ciało = funkcja('showHistoryAt');
+  const m = /getSource\("uncertainty"\)\?\.setData\(([\s\S]{0,40})/.exec(ciało);
+  assert.ok(m, 'showHistoryAt ustawia warstwę uncertainty');
+  assert.ok(!/^\s*emptyFC\(\)/.test(m[1]), 'warstwa okręgu w historii nie może być pusta');
+  assert.match(ciało, /shownUncertaintyKm\(/, 'promień z tej samej funkcji co na żywo');
 });
