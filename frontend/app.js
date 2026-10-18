@@ -3271,7 +3271,10 @@ async function refreshWatchEvents() {
     if (document.getElementById("watch")?.open) fillWatch();
   }
 }
-function showWatch() { fillWatch(); document.getElementById("watch").showModal(); refreshWatchEvents(); }
+function showWatch({ zMenu = false } = {}) {
+  const w = document.getElementById("watch");
+  oznaczZMenu(w, zMenu); fillWatch(); w.showModal(); refreshWatchEvents();
+}
 
 /* ── panel boczny ────────────────────────────────────────────────────────── */
 /* W trybie historii czas liczymy względem chwili wybranej suwakiem, nie teraz:
@@ -4291,7 +4294,7 @@ document.getElementById("status-leds").addEventListener("keydown", (e) => {
 })();
 document.getElementById("src-close")?.addEventListener("click", () =>
   document.getElementById("sources").close());
-document.getElementById("btn-watch")?.addEventListener("click", () => showWatch());
+document.getElementById("btn-watch")?.addEventListener("click", () => showWatch({ zMenu: true }));
 document.getElementById("watch-close")?.addEventListener("click", () =>
   document.getElementById("watch").close());
 document.getElementById("ac-card-x")?.addEventListener("click", () => hideCard());
@@ -6217,9 +6220,11 @@ function renderPlacesSummary() {
   el.textContent=(UI.t(`${savedPlaces.length}/8 miejsc. Obserwowane województwa: `, `${savedPlaces.length}/8 places. Watched provinces: `, `${savedPlaces.length}/8 місць. Відстежувані воєводства: `))+(watched.join(", ")||(UI.t("brak", "none", "немає")));
 }
 let wojPrzedUstawieniami = null;   // region sprzed otwarcia ustawień — mapa skacze tylko po zmianie
+let ustawieniaZMenu = false;
 function openSettings({ zMenu = false } = {}) {
   wojPrzedUstawieniami = myVoiv() || "";
   // „‹ Menu” tylko, gdy Ustawienia otwarto z Menu (zgłoszenie 17.10.2026)
+  ustawieniaZMenu = zMenu;
   dlg.classList.toggle("z-menu", zMenu);
   const doMenu = document.getElementById("set-do-menu-t");
   if (doMenu) doMenu.textContent = UI.t("Menu", "Menu", "Меню");
@@ -6237,6 +6242,28 @@ function openSettings({ zMenu = false } = {}) {
   dlg.showModal();
 }
 document.getElementById("btn-settings").onclick = () => openSettings({ zMenu: true });
+/* 1.7.98 (zgłoszenie usera 18.10.2026): każde okno otwarte z Menu ma na górze „‹ Menu”
+   — Ustawienia, O aplikacji, Obce maszyny, Legenda. Klasa z-menu na oknie pokazuje
+   przycisk; otwarcie z innego miejsca (link, skrót, panel) ją zdejmuje. */
+function oznaczZMenu(el, zMenu) {
+  if (!el) return;
+  el.classList.toggle("z-menu", !!zMenu);
+  el.querySelectorAll(".do-menu-t").forEach(s => { s.textContent = UI.t("Menu", "Menu", "Меню"); });
+}
+document.addEventListener("click", (e) => {
+  const b = e.target.closest(".do-menu");
+  if (!b) return;
+  const okno = b.closest("dialog");
+  if (okno) okno.close();
+  // legenda to panel, nie okno; NIE przez btn-legend.click() — to wiersz Menu, który
+  // po 60 ms sam zamyka arkusz Menu
+  else if (b.closest("#legend")) {
+    document.getElementById("legend").classList.add("hidden");
+    document.getElementById("btn-legend").classList.remove("active");
+  }
+  const menu = document.getElementById("more-sheet");
+  if (menu && !menu.open) menu.showModal();
+});
 function wrocDoMenu() {
   dlg.close();
   const menu = document.getElementById("more-sheet");
@@ -6414,14 +6441,18 @@ function renderPlacePrecision(){
   const gps=placeDraft?.gps; placeEl("place-gps-status").textContent=gps?`${placeText("Zapisano jednorazowo","Saved once","Збережено одноразово")}: ${gps.lat.toFixed(5)}, ${gps.lon.toFixed(5)} · ±${Math.round(gps.accuracy)} m · ${new Date(gps.capturedAt).toLocaleString(UI.t("pl-PL", "en-GB", "uk-UA"))}`:placeText("Lokalizacja jest wyłączona.","Location is off.","Місцеперебування вимкнено."); placeEl("place-gps-remove").hidden=!gps;
 }
 function openPlaces(){
+  placeEl("places-wstecz-t").textContent=placeText("Ustawienia","Settings","Налаштування");
   savedPlaces=Places.migrate(localStorage); placeEl("place-region").innerHTML=ALL_VOIVS.map(v=>`<option value="${esc(v)}">${esc(UI.voiv(v))}</option>`).join("");
   fillPlace(savedPlaces[0]||{id:crypto.randomUUID?.()||String(Date.now()),name:"",precision:"region",region:myVoiv()||"lubelskie",alerts:true}); placesDlg.showModal();
 }
 placeEl("btn-places").onclick=()=>{dlg.close();openPlaces();};
+/* 1.7.98: „‹ Ustawienia” na górze Moich miejsc robi to samo co ✕ — wraca do sekcji. */
+placeEl("places-wstecz").onclick=()=>placeEl("places-close").click();
 /* „Moje miejsca" otwierają się Z Ustawień, więc po zamknięciu wracamy dokładnie tam,
    skąd użytkownik przyszedł — inaczej ląduje na mapie i musi klikać ⚙ od nowa. */
 function backToPlacesTab(){
-  openSettings();
+  // wracamy do Ustawień takich, jakie były — z „‹ Menu”, jeśli przyszło się z Menu
+  openSettings({ zMenu: ustawieniaZMenu });
   document.querySelector('#settings .set-tab[data-pane="miejsca"]')?.click();
 }
 placeEl("places-close").onclick=()=>{if(!placeDirty()||confirm(placeText("Odrzucić niezapisane zmiany?","Discard unsaved changes?","Скасувати незбережені зміни?"))){placesDlg.close();backToPlacesTab();}};
@@ -6912,6 +6943,7 @@ document.getElementById("fs-check-skip")?.addEventListener("click", () =>
   document.getElementById("fs-check").close());
 
 async function runOnboarding() {
+  oznaczZMenu(aboutDlg, false);   // powitanie — nie z Menu, bez „‹ Menu”
   aboutDlg.showModal();
   await dialogClosed(aboutDlg);
   if (!myVoiv()) { openSettings(); await dialogClosed(document.getElementById("settings")); }
@@ -7408,7 +7440,7 @@ for (const kind of ["neptun", "adsb"]) {
 }
 
 const aboutDlg = document.getElementById("about");
-document.getElementById("btn-about").onclick = () => aboutDlg.showModal();
+document.getElementById("btn-about").onclick = () => { oznaczZMenu(aboutDlg, true); aboutDlg.showModal(); };
 document.getElementById("about-close").onclick = () => aboutDlg.close();
 document.getElementById("btn-test-chime").onclick = () => { if (IS_APP && blockedByAlertsOff()) return; attentionChime(); };
 document.getElementById("btn-test-siren").onclick = () => { if (IS_APP && blockedByAlertsOff()) return; airRaidSiren(false, true); };
@@ -7430,7 +7462,7 @@ document.getElementById("btn-push").onclick = async () => {
   // Audyt B9: w APK dzwonek próbował Web Push (WebView go nie obsługuje), a jego
   // „wyciszenie” nie wyłączało pushy FCM. Teraz otwiera prawdziwy stan powiadomień.
   if (IS_APP && BG()) {
-    openSettings();
+    openSettings({ zMenu: true });   // przyszło się z Menu — „‹ Ustawienia” i dalej „‹ Menu”
     document.querySelector('#settings .set-tab[data-pane="alarmy"]')?.click();
     refreshBgStatus();
     return;
@@ -7439,7 +7471,7 @@ document.getElementById("btn-push").onclick = async () => {
     let sub = null;
     try { sub = Notification.permission === "granted" ? await browserPushSubscription() : null; } catch {}
     if (sub) {
-      openSettings();
+      openSettings({ zMenu: true });
       document.querySelector('#settings .set-tab[data-pane="alarmy"]')?.click();
       return;
     }
@@ -7539,7 +7571,10 @@ document.addEventListener("keydown", (e) => {
 document.getElementById("legend-x")?.addEventListener("click", () =>
   document.getElementById("btn-legend").click());
 document.getElementById("btn-legend").onclick = () => {
-  document.getElementById("legend").classList.toggle("hidden");
+  const lg = document.getElementById("legend");
+  // z Menu (arkusz jeszcze otwarty w chwili dotknięcia) — z „‹ Menu” na górze legendy
+  if (lg.classList.contains("hidden")) oznaczZMenu(lg, !!document.getElementById("more-sheet")?.open);
+  lg.classList.toggle("hidden");
   document.getElementById("btn-legend").classList.toggle("active");
 };
 

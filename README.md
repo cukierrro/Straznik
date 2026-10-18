@@ -6,6 +6,9 @@
 
 Serwer: **hostowane na [Mikrusie](https://mikr.us)** — dziękujemy za wsparcie projektu.
 
+Wersja 1.7.98: przycisk „‹ Menu” na górze każdego okna otwartego z Menu
+i „‹ Ustawienia” na górze sekcji Ustawień i Moich miejsc. Szczegóły: `docs/RELEASE_1.7.98.md`.
+
 Wersja 1.7.97: układ na małych ekranach i przy dużej czcionce, mapa przesuwa się
 nad otwarty dolny panel, „‹ Menu” w ustawieniach, zwijane karty w historii i podłoga
 dla drona do 30 km od granicy województwa. Szczegóły: `docs/RELEASE_1.7.97.md`.
