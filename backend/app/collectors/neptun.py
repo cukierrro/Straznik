@@ -506,8 +506,9 @@ def score_threat(t: dict, dist_km: float, course_factor: float = 1.0) -> float:
 
 def border_uav_floor(t: dict, dist_km: float) -> float:
     """Minimum punktów dla drona tuż przy granicy — patrz NEPTUN_BORDER_UAV_FLOOR_*.
-    Zero, gdy obiekt się nie kwalifikuje. Tylko dla przypisania do najbliższej
-    granicy; przeniesienie do sąsiadów pomija ten dodatek (fusion.accumulate)."""
+    Zero, gdy obiekt się nie kwalifikuje. Liczona osobno dla KAŻDEGO województwa
+    od odległości do niego (_maybe_signal i _signal_sasiednie); przeniesienie do
+    sąsiadów pomija ten dodatek (fusion.accumulate)."""
     if (not _is_approx_position(t)
             and (t.get("type") or "").lower() in config.NEPTUN_BORDER_UAV_FLOOR_TYPES
             and dist_km <= config.NEPTUN_BORDER_UAV_FLOOR_KM
@@ -743,6 +744,12 @@ async def _signal_sasiednie(t: dict, a: dict, ttype: str, count: int, conf: str,
         punkty = score_threat(t, dist, cf)
         if punkty <= 0:
             continue
+        # Podłoga przygraniczna liczona od odległości do TEGO województwa (decyzja
+        # usera 18.10.2026): dron 10 km od lubelskiego i 25 km od podkarpackiego
+        # ostrzega oba. Dodatek z podłogi nie przechodzi dalej do sąsiadów.
+        bazowe = punkty
+        podloga = border_uav_floor(t, dist)
+        punkty = max(punkty, podloga)
         eta_raw = geo.eta_raw_minutes(dist, speed)
         eta_cons = (max(0.0, eta_raw - config.NEPTUN_ETA_BUFFER_MIN)
                     if eta_raw is not None else None)
@@ -753,10 +760,12 @@ async def _signal_sasiednie(t: dict, a: dict, ttype: str, count: int, conf: str,
             punkty = max(punkty, config.THRESHOLD_HIGH)
         elif eta_level == "elevated":
             punkty = max(punkty, config.THRESHOLD_ELEVATED)
+        z_podlogi = round(podloga - bazowe, 2) if podloga > bazowe and punkty == podloga else 0.0
         ile = f"{count}× " if count > 1 else ""
         odl = (_area_distance_label(dist) + " [pozycja rejonowa]"
                if approximate else f"{dist} km")
-        tytul = (f"{ile}{threat_label_pl(ttype)} w odległości {odl} od woj. {voiv} "
+        tytul = (f"{ile}{threat_label_pl(ttype)} w odległości {odl} od woj. {voiv}"
+                 f"{' [blisko granicy]' if z_podlogi else ''} "
                  f"(confidence: {conf}, {sources} potwierdzeń)")
         await fusion.ingest(
             source="neptun", event_type="neptun_threat", voivodeship=voiv,
@@ -793,7 +802,9 @@ async def _signal_sasiednie(t: dict, a: dict, ttype: str, count: int, conf: str,
                      "eta_alarm": eta_level,
                      # znacznik: to przypisanie „po odległości do regionu",
                      # nie pierwotne „najbliższy punkt granicy"
-                     "voiv_secondary": True},
+                     "voiv_secondary": True,
+                     **({"border_floor": True, "bez_przeniesienia_pkt": z_podlogi}
+                        if z_podlogi else {})},
             dedup_key=f"neptun:{t.get('id')}:{voiv}:t{int(punkty * 2)}",
         )
 

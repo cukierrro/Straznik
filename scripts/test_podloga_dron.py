@@ -70,8 +70,26 @@ ok(abs(g["details"].get("bez_przeniesienia_pkt", 0) - (2.0 - 0.57)) < 0.02,
 ok("[blisko granicy]" in g["title"], "tytuł mówi, skąd punkty")
 ok(g["details"].get("course") == "unknown", "kurs nadal opisany jako nieznany")
 drugorzedne = [w for w in wpisy if w["details"].get("voiv_secondary")]
-ok(all(not w["details"].get("border_floor") for w in drugorzedne),
-   "inne województwa w zasięgu nie dostają podłogi")
+ok(drugorzedne and all(w["details"]["dist_km"] > 30 and not w["details"].get("border_floor")
+                       for w in drugorzedne),
+   "województwa dalej niż 30 km (podlaskie 84, mazowieckie 76…) nie dostają podłogi")
+
+print("\n2b. Dron blisko DWÓCH województw: podłoga od odległości do każdego (18.10.2026)")
+# punkt pod Rawą Ruską: 17 km od lubelskiego i 29 km od podkarpackiego
+wpisy.clear()
+DWA = {**ROSTAN, "id": "trk_test_rawa", "lat": 50.30, "lon": 23.95, "region": "Львівська область"}
+ok(17 < neptun.geo.dist_to_voiv_km(50.30, 23.95, "lubelskie") < 18
+   and 28 < neptun.geo.dist_to_voiv_km(50.30, 23.95, "podkarpackie") < 30,
+   "warunek testu: punkt ok. 17 km od lubelskiego i 29 km od podkarpackiego")
+asyncio.run(neptun._maybe_signal(neptun._evaluate(dict(DWA))))
+po_woj = {w["voivodeship"]: w for w in wpisy}
+for v in ("lubelskie", "podkarpackie"):
+    w = po_woj.get(v, {"points": 0, "details": {}})
+    ok(w["points"] == 2.0 and w["details"].get("bez_przeniesienia_pkt", 0) > 0,
+       f"{v}: próg żółtego z podłogi ({w['points']} pkt, dystans {w['details'].get('dist_km')} km)")
+ok(all(not w["details"].get("border_floor") for v, w in po_woj.items()
+       if v not in ("lubelskie", "podkarpackie")),
+   f"reszta województw bez podłogi ({sorted(v for v in po_woj if v not in ('lubelskie', 'podkarpackie'))})")
 
 print("\n3. Bez kwalifikacji nic się nie zmienia")
 wpisy.clear()

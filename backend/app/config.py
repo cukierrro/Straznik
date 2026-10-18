@@ -98,8 +98,9 @@ NEPTUN_NEAR_FLOOR_POINTS = 2.0     # = THRESHOLD_ELEVATED
 # Lublina słyszeli przelatujący obiekt. Dron ze ZNANYM kursem ma już alarm ETA;
 # ta podłoga domyka lukę dla kursu nieznanego i domniemanego. Bez skalowania
 # kursem — przy granicy brak kursu to niepewność, a nie dowód, że nic nie leci.
-# Dodatek z podłogi NIE przechodzi do sąsiadów (ostrzega województwo, przy którym
-# obiekt jest). Przeliczenie 2.08–18.10: jedyna zmiana to żółty 01:27 zamiast 02:03.
+# Liczona od odległości do KAŻDEGO województwa osobno (każde w promieniu 30 km
+# dostaje próg żółtego). Dodatek z podłogi NIE przechodzi dalej do sąsiadów.
+# Przeliczenie 2.08–18.10: jedyna zmiana to żółty 01:27 zamiast 02:03.
 NEPTUN_BORDER_UAV_FLOOR_KM = 30.0
 NEPTUN_BORDER_UAV_FLOOR_TYPES = ("uav", "shahed")
 NEPTUN_BORDER_UAV_FLOOR_SOURCES = 2
