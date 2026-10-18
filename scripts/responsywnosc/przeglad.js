@@ -11,6 +11,7 @@
 //   D — tekst wystaje poza ramkę rodzica
 //   E — krótki tekst (≤ 32 znaki) złamany w ≥ 3 linie (liczone z prostokątów tekstu)
 //   F — przycisk poza widokiem, gdy nie ma przewijania
+//   G — krótka etykieta (≤ 10 znaków) ucięta wielokropkiem
 // Zwraca JSON: { W, H, wyniki: [{ widok, problemy | blad }] }.
 // Przegląd responsywności w aplikacji (WebView). Wstrzykiwany przez cdp.cjs.
 // Zwraca JSON: dla każdego widoku listę problemów.
@@ -62,6 +63,10 @@
         out.push({ t: "B pojemnik poza ekranem (pion)", el: opis(el), y: `${Math.round(r.top)}–${Math.round(r.bottom)}/${H}` });
       // C. tekst wystaje z własnej ramki / ucięty
       const tekst = [...el.childNodes].some(n => n.nodeType === 3 && n.textContent.trim().length > 2);
+      // G. krótka etykieta ucięta wielokropkiem („−12 h” → „−1…” myli bardziej niż brak podpisu)
+      if (tekst && el.clientWidth > 0 && el.scrollWidth > el.clientWidth + 1 && cs.textOverflow === "ellipsis"
+          && el.textContent.trim().length <= 10)
+        out.push({ t: "G krótka etykieta ucięta", el: opis(el), txt: el.textContent.trim(), o: el.scrollWidth - el.clientWidth });
       if (tekst && el.clientWidth > 0 && el.scrollWidth > el.clientWidth + 2 && cs.textOverflow !== "ellipsis")
         out.push({ t: /hidden|clip/.test(cs.overflowX) ? "C tekst ucięty" : "C tekst wystaje z ramki",
                    el: opis(el), txt: el.textContent.trim().slice(0, 40), o: el.scrollWidth - el.clientWidth });

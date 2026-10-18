@@ -14,6 +14,15 @@
       "port": 8611
     },
     {
+      "name": "straznik-dane-testowe",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "scripts/responsywnosc/serwer.cjs",
+        "8640"
+      ],
+      "port": 8640
+    },
+    {
       "name": "pazp-podglad",
       "runtimeExecutable": "py",
       "runtimeArgs": [
