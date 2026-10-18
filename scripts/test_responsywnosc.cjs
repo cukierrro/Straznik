@@ -8,7 +8,8 @@
 // przy każdym uruchomieniu zestawu: przegląda 15 widoków na kilku szerokościach,
 // w trzech językach i przy dużym tekście i pada, gdy coś wyjdzie za ekran,
 // z ramki albo złamie się w słupek (scripts/responsywnosc/przeglad.js).
-// Do tego sprawdza, że mapa przesuwa się nad otwarty panel Sygnały (od 1.7.97).
+// Do tego sprawdza, że mapa przesuwa się nad otwarty panel Sygnały (od 1.7.97)
+// i że okna z Menu i sekcje Ustawień mają na górze działający przycisk powrotu (1.7.98).
 //
 // Dane są syntetyczne (scripts/responsywnosc/dane.cjs) i podawane przez lokalny
 // serwer na losowym porcie. Kafelki tła mapy nie są potrzebne.
@@ -140,6 +141,77 @@ const MAPA_NAD_PANELEM = `(async () => {
   return JSON.stringify({ baza, panel, pasek: pasekPrzyPanelu });
 })()`;
 
+/* Przyciski powrotu (1.7.98, zgłoszenie usera 18.10.2026: „nie na wszystkich kartach
+   pojawia się ten guzik, powinien być na górze”). Każde okno otwarte z Menu ma NA GÓRZE
+   „‹ Menu” (w rzędzie z „Zamknij”), każda sekcja Ustawień i Moje miejsca — „‹ Ustawienia”;
+   przycisk naprawdę wraca, a etykieta jest w języku interfejsu. Zwraca listę problemów. */
+const POWROTY = `(async () => {
+  const P = (ms) => new Promise(r => setTimeout(r, ms));
+  const lang = UI.lang || "pl";
+  const MENU = { pl: "Menu", en: "Menu", uk: "Меню" }[lang];
+  const USTAW = { pl: "Ustawienia", en: "Settings", uk: "Налаштування" }[lang];
+  const vis = (e) => !!e && e.getClientRects().length > 0 && getComputedStyle(e).display !== "none";
+  const menu = document.getElementById("more-sheet"), set = document.getElementById("settings");
+  const zle = [];
+  const zamknijWszystko = () => { document.querySelectorAll("dialog[open]").forEach(d => d.close());
+    document.getElementById("legend").classList.add("hidden"); };
+  // przycisk powrotu: jeden widoczny, z etykietą, na górze okna, nie niżej niż „Zamknij”
+  const sprawdz = (gdzie, root, etykieta, zamknij) => {
+    const b = [...root.querySelectorAll(".set-wstecz")].filter(vis);
+    if (b.length !== 1) { zle.push(gdzie + ": widocznych przycisków powrotu " + b.length); return null; }
+    const txt = b[0].innerText.trim();
+    if (txt !== etykieta) zle.push(gdzie + ": etykieta «" + txt + "», oczekiwano «" + etykieta + "»");
+    const r = b[0].getBoundingClientRect(), rr = root.getBoundingClientRect();
+    // w rzędzie z „Zamknij” albo — gdy przy dużym tekście oba się nie mieszczą — tuż pod nim
+    const zb = zamknij && vis(zamknij) ? zamknij.getBoundingClientRect() : null;
+    const wRzedzie = zb && Math.abs(zb.top - r.top) <= 12;
+    const podSpodem = zb && r.top >= zb.bottom - 4 && r.top - zb.bottom <= 16;
+    if (r.top - rr.top > 30 && !podSpodem)
+      zle.push(gdzie + ": przycisk nie na górze (" + Math.round(r.top - rr.top) + " px od góry)");
+    if (zb && !wRzedzie && !podSpodem) zle.push(gdzie + ": przycisk ani w rzędzie z «Zamknij», ani tuż pod nim");
+    return b[0];
+  };
+  const zMenu = async (id) => { zamknijWszystko(); document.getElementById("tab-more").click(); await P(350);
+    document.getElementById(id).click(); await P(650); };
+  // Ustawienia z Menu: start i pięć sekcji
+  await zMenu("btn-settings");
+  sprawdz("Ustawienia (start)", set, MENU, set.querySelector(".dlg-x"));
+  for (const pane of ["alarmy", "miejsca", "dzwiek", "mapa", "aplikacja"]) {
+    set.querySelector('.set-tab[data-pane="' + pane + '"]').click(); await P(200);
+    const b = sprawdz("Ustawienia → " + pane, set, USTAW, set.querySelector(".dlg-x"));
+    b?.click(); await P(200);
+    if (!set.classList.contains("na-starcie")) zle.push("Ustawienia → " + pane + ": «‹ " + USTAW + "» nie wraca do startu");
+  }
+  document.getElementById("set-do-menu").click(); await P(350);
+  if (!menu.open || set.open) zle.push("Ustawienia: «‹ " + MENU + "» nie otwiera Menu");
+  // pozostałe okna z Menu
+  for (const [btn, id] of [["btn-about", "about"], ["btn-watch", "watch"], ["btn-legend", "legend"]]) {
+    await zMenu(btn);
+    const o = document.getElementById(id);
+    const b = sprawdz(id + " z Menu", o, MENU, id === "legend" ? document.getElementById("legend-x") : o.querySelector(".dlg-x"));
+    if (b) { b.click(); await P(350);
+      const nadal = id === "legend" ? !o.classList.contains("hidden") : o.open;
+      if (!menu.open || nadal) zle.push(id + ": «‹ " + MENU + "» nie wraca do Menu"); }
+  }
+  // Moje miejsca: «‹ Ustawienia» wraca do sekcji, a Ustawienia zachowują «‹ Menu»
+  await zMenu("btn-settings");
+  set.querySelector('.set-tab[data-pane="miejsca"]').click(); await P(200);
+  document.getElementById("btn-places").click(); await P(450);
+  const pd = document.getElementById("places-dialog");
+  sprawdz("Moje miejsca", pd, USTAW, null)?.click(); await P(450);
+  if (!set.open || set.querySelector(".set-pane:not([hidden])")?.dataset.pane !== "miejsca")
+    zle.push("Moje miejsca: «‹ " + USTAW + "» nie wraca do sekcji Moje miejsca");
+  document.getElementById("set-wstecz").click(); await P(200);
+  if (!vis(document.getElementById("set-do-menu"))) zle.push("Ustawienia po Moich miejscach: zniknęło «‹ " + MENU + "»");
+  // okna otwarte NIE z Menu nie mają «‹ Menu»
+  zamknijWszystko(); openSettings(); await P(300);
+  if (vis(document.getElementById("set-do-menu"))) zle.push("Ustawienia nie z Menu: widać «‹ " + MENU + "»");
+  zamknijWszystko(); showWatch(); await P(300);
+  if ([...document.querySelectorAll("#watch .do-menu")].some(vis)) zle.push("Obce maszyny nie z Menu: widać «‹ " + MENU + "»");
+  zamknijWszystko();
+  return JSON.stringify(zle);
+})()`;
+
 // ── przebieg ─────────────────────────────────────────────────────────────────
 (async () => {
   const exe = znajdzPrzegladarke();
@@ -184,10 +256,12 @@ const MAPA_NAD_PANELEM = `(async () => {
       // „NIEOFICJALNE źródło” (18.10.2026: z paskiem panel kończył się nad dołem mapy
       // i warunek „panel z dołu” nie łapał, więc mapa stała pod panelem).
       const mapa = JSON.parse(await ocen(cdp, MAPA_NAD_PANELEM));
+      const powroty = JSON.parse(await ocen(cdp, POWROTY));
+      for (const z of powroty) bledy.push(`${k.nazwa} · przyciski powrotu: ${z}`);
       const mapaZle = !(mapa.panel - mapa.baza > 150);
       if (mapaZle)
         bledy.push(`${k.nazwa} · mapa nad panelem: dolny margines mapy ${mapa.baza} → ${mapa.panel} px po otwarciu Sygnałów (pasek ostrzeżenia widoczny: ${mapa.pasek})`);
-      console.log(`${ile || mapaZle ? "BŁĄD" : "OK  "} ${k.nazwa} (${wynik.W}×${wynik.H}): ${wynik.wyniki.length} widoków, problemów: ${ile}; `
+      console.log(`${ile || mapaZle || powroty.length ? "BŁĄD" : "OK  "} ${k.nazwa} (${wynik.W}×${wynik.H}): ${wynik.wyniki.length} widoków, problemów: ${ile}; `
         + `mapa nad panelem ${mapa.baza}→${mapa.panel} px${mapa.pasek ? " (z paskiem ostrzeżenia)" : ""}`);
       await cdp.wyslij("Page.removeScriptToEvaluateOnNewDocument", { identifier });
     }

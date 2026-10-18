@@ -104,7 +104,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <link rel="icon" type="image/png" sizes="512x512" href="assets/icon-512.png">
 <link rel="apple-touch-icon" href="assets/icon-192.png">
 <link rel="stylesheet" href="assets/vendor/maplibre-gl.css?v=1.7.82">
-<link rel="stylesheet" href="style.css?v=1.7.96g">
+<link rel="stylesheet" href="style.css?v=1.7.98">
 </head>
 <body>
 
@@ -486,6 +486,9 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
   <!-- Nagłówek jak w panelu sygnałów: karta, tytuł i ✕ ze słowem. Legenda była
        jedynym panelem bez przycisku zamykania. -->
   <div class="lg-head">
+    <!-- 1.7.98: powrót do Menu, gdy legendę otwarto z Menu — w rzędzie nagłówka, bo nad
+         nim panel wchodzi pod licznik w górnym pasku -->
+    <button type="button" class="set-wstecz do-menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg><span class="do-menu-t">Menu</span></button>
     <h3 id="legend-h">Legenda</h3>
     <button id="legend-x" type="button">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
@@ -589,6 +592,8 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 
 <dialog id="about" class="sheet" aria-labelledby="about-h">
   <button type="button" class="dlg-x dlg-x-slowo"><span>Zamknij</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  <!-- 1.7.98: powrót do Menu, gdy okno otwarto z Menu (klasa z-menu na oknie) -->
+  <button type="button" class="set-wstecz do-menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg><span class="do-menu-t">Menu</span></button>
   <div class="about-body">
     <div class="about-head">
       <div class="about-logo"></div>
@@ -839,6 +844,8 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 
 <dialog id="watch" aria-labelledby="watch-h">
   <button type="button" class="dlg-x dlg-x-slowo"><span>Zamknij</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  <!-- 1.7.98: powrót do Menu, gdy okno otwarto z Menu (klasa z-menu na oknie) -->
+  <button type="button" class="set-wstecz do-menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg><span class="do-menu-t">Menu</span></button>
   <h3 id="watch-h"><span aria-hidden="true">🛰 </span>Obce maszyny nad wschodnią flanką</h3>
   <p class="fineprint">Wojskowe samoloty o rejestracji <b>rosyjskiej lub białoruskiej</b>,
   widoczne w publicznych danych ADS-B/MLAT nad wschodnią flanką i w jej otoczeniu.
@@ -931,6 +938,11 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <dialog id="settings" class="sheet ustawienia na-starcie" aria-labelledby="set-tytul">
   <button type="button" class="dlg-x dlg-x-slowo" aria-label="Zamknij ustawienia"><span id="set-x-t">Zamknij</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
   <form method="dialog">
+    <!-- 1.7.97 (zgłoszenie usera 17.10.2026): z Ustawień otwartych z Menu nie było
+         powrotu do Menu. 1.7.98 (18.10): przycisk stoi NA GÓRZE, w tym samym miejscu co
+         „‹ Ustawienia” w sekcjach — wcześniej był pod listą sekcji. Widoczny tylko
+         wtedy, gdy przyszło się z Menu. -->
+    <button type="button" id="set-do-menu" class="set-wstecz"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg><span id="set-do-menu-t">Menu</span></button>
     <div id="set-start">
       <h3 id="set-tytul">Ustawienia</h3>
       <!-- Wypełnia renderGotowosc() w app.js: czy alarm do Ciebie dotrze. -->
@@ -946,9 +958,6 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
       </nav>
     </div>
     <button type="button" id="set-wstecz" class="set-wstecz"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg><span id="set-wstecz-t">Ustawienia</span></button>
-    <!-- 1.7.97 (zgłoszenie usera 17.10.2026): z Ustawień otwartych z Menu nie było
-         powrotu do Menu — tylko zamknięcie. Widoczny wyłącznie wtedy, gdy przyszło się z Menu. -->
-    <button type="button" id="set-do-menu" class="set-wstecz"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg><span id="set-do-menu-t">Menu</span></button>
 
     <section class="set-pane" data-pane="alarmy" aria-labelledby="set-h-alarmy" hidden>
     <h3 id="set-h-alarmy">Alarmy przy zamkniętej aplikacji</h3>
@@ -1254,6 +1263,9 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 
 <dialog id="places-dialog" class="places-dialog" aria-labelledby="places-h">
   <form id="places-form">
+    <!-- 1.7.98: Moje miejsca otwierają się z Ustawień i ✕ do nich wraca, ale nic tego
+         nie mówiło. Ten sam przycisk co „‹ Ustawienia” w sekcjach. -->
+    <button type="button" id="places-wstecz" class="set-wstecz"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg><span id="places-wstecz-t">Ustawienia</span></button>
     <div class="places-head"><div><div class="eyebrow">STRAŻNIK</div><h2 id="places-h">Moje miejsca</h2></div><button type="button" id="places-close" class="chip" aria-label="Zamknij">✕</button></div>
     <p class="fineprint" id="places-intro">Zapisane miejsce nie oznacza Twojej obecności. Dane pozostają na tym urządzeniu.</p>
     <div class="places-tabs" id="places-tabs"></div>
@@ -1293,7 +1305,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <div id="a11y-alert" class="sr-only" role="status" aria-live="assertive" aria-atomic="true"></div>
 <div id="a11y-info" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
 
-<script src="app.js?v=1.7.97"></script>
+<script src="app.js?v=1.7.98"></script>
 <script>
 /* Instrukcja pasująca do telefonu i języka (21.09.2026). iPhone ma osobną, bo alarmy,
    zgody i aktualizacje działają tam inaczej. Tu, a nie w app.js: index.html nie jest

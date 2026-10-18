@@ -1856,6 +1856,11 @@ dialog.ustawienia { width: min(460px, 94vw); height: var(--dlg-max); }
 dialog.ustawienia.na-starcie .set-pane, dialog.ustawienia.na-starcie #set-wstecz { display: none; }
 #set-do-menu { display: none; }
 dialog.ustawienia.na-starcie.z-menu #set-do-menu { display: inline-flex; }
+/* 1.7.98: „‹ Menu” na górze okien otwartych z Menu (O aplikacji, Obce maszyny, Legenda) */
+.set-wstecz.do-menu { display: none; }
+dialog.z-menu > .set-wstecz.do-menu, #legend.z-menu .lg-head > .set-wstecz.do-menu { display: inline-flex; }
+#legend .lg-head > .do-menu { position: static; margin: 0; min-height: 40px; flex: 0 0 auto; }
+#legend.z-menu .lg-head > h3 { margin-right: auto; }
 dialog.ustawienia.w-sekcji #set-start { display: none; }
 #set-start h3 { font-size: 1.4rem; font-weight: 700; letter-spacing: -0.01em; margin: 4px 0 12px; }
 /* Wiersze sekcji: dawne zakładki, teraz lista jak w Menu */
@@ -2044,6 +2049,9 @@ body.dane-stare .led i { background: #6b7385 !important; box-shadow: none !impor
    przewijania w środku okna. Krzyżyk w rogu bezwzględnie, treść na pełną szerokość. */
 dialog#about { width: min(560px, 94vw); border-radius: 24px; }
 #about > .dlg-x { position: absolute; top: 12px; right: 12px; float: none; margin: 0; z-index: 3; }
+/* 1.7.98: „‹ Menu” w tym samym rzędzie co „Zamknij”; treść schodzi pod oba przyciski */
+#about > .set-wstecz.do-menu { position: absolute; top: 12px; left: 12px; margin: 0; z-index: 3; }
+#about.z-menu .about-body { padding-top: 68px; }
 #about .about-body { padding: 18px 18px 0; }
 #about .about-head { padding-right: 112px; margin-bottom: 14px; gap: 12px; min-height: 52px; }
 #about .about-logo { width: 48px; height: 48px; border-radius: 14px;
@@ -2135,6 +2143,11 @@ body.dane-stare #licznik { opacity: 0.55; }
   html:not(.native-app) #licznik { position: fixed; z-index: 26; left: 62px; margin: 0;
     top: calc(var(--topbar-h, 90px) + 6px + var(--pod-plakietka, 0px)); }
   html:not(.native-app) body.panel-open #licznik { opacity: 0; pointer-events: none; }
+  /* 1.7.98: licznik stoi tu na wysokości góry legendy i zasłaniał jej nagłówek
+     (tytuł, „Zamknij”, „‹ Menu”) — legenda schodzi pod licznik (44 px + odstęp). */
+  html:not(.native-app) #legend { top: calc(var(--topbar-h, 90px) + 56px + var(--pod-plakietka, 0px));
+    max-height: calc(100dvh - var(--topbar-h, 90px) - 56px - var(--tabbar-h) - var(--safe-b)
+      - 8px - var(--stack-h, 0px) - var(--legend-gap)); }
 }
 /* okno z wyjaśnieniem */
 #licznik-okno { width: min(460px, 94vw); }
