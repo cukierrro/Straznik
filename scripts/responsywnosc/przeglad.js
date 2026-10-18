@@ -48,6 +48,8 @@
     for (const el of korzen.querySelectorAll("*")) {
       if (el.closest("svg") && el.tagName.toLowerCase() !== "svg") continue;
       if (el.closest(".maplibregl-canvas-container, .maplibregl-ctrl-attrib")) continue;
+      // zawartość zwiniętego <details> ma w Chrome wymiary, choć jej nie widać
+      { const det = el.closest("details:not([open])"); if (det && !el.closest("summary")) continue; }
       // schowane przyciski mapy celowo wystają za prawą krawędź (pasek ~20 px do wysunięcia)
       if (el.closest("#map-actions.schowane")) continue;
       const v = widoczny(el); if (!v) continue;
@@ -125,6 +127,9 @@
 
   await krok("mapa", async () => {});
   await krok("sygnały", async () => setPanel(true));
+  await krok("sygnały rozwinięte", async () => { setPanel(true); await czekaj(600);
+    document.querySelectorAll("#voiv-cards .voiv-card").forEach(c => c.classList.add("open"));
+    document.querySelectorAll("#voiv-cards details").forEach(x => x.open = true); });
   await krok("karta obiektu", kartaObiektu);
   await krok("historia", historia);
   await krok("historia + wykres", async () => { await historia();
