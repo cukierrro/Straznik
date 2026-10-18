@@ -6,6 +6,10 @@
 
 Serwer: **hostowane na [Mikrusie](https://mikr.us)** — dziękujemy za wsparcie projektu.
 
+Wersja 1.7.97: układ na małych ekranach i przy dużej czcionce, mapa przesuwa się
+nad otwarty dolny panel, „‹ Menu” w ustawieniach, zwijane karty w historii i podłoga
+dla drona do 30 km od granicy województwa. Szczegóły: `docs/RELEASE_1.7.97.md`.
+
 Wersja 1.7.96: sekcja „Mapa” w ustawieniach, pasek „NEPTUN nie odpowiada od…”
 przy awarii źródła, „miejsce schronienia” w alarmach i płynniejsza mapa.
 Szczegóły: `docs/RELEASE_1.7.96.md`.

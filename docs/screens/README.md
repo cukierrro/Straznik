@@ -148,3 +148,26 @@ notifications were sent. The Ukrainian guide reuses the English object cards,
 as before. Screens without a NEPTUN object (`panel-*`, the settings tabs, the
 ADS-B and zone captures) were deliberately NOT replaced — the change is not
 visible on them.
+
+## 1797 — release 1.7.97 (18 October 2026)
+
+`1797/` holds 21 captures (pl/en/uk): `set-start`, `panel`, `card-mini`, `object`,
+`history`, `history-zwiniety`, `history-panel`. They replace the 1795/1796 files
+of the same names in the PL/EN/UK and iPhone guides, because 1.7.97 changed what
+these screens look like: the map moves above the open bottom panel, the object
+card has a new height and the "heading to a target" line, history province cards
+collapse and the bar buttons have labels, and Settings opened from the Menu have
+a "‹ Menu" button.
+
+All are unchanged 1080 × 2400 screenshots of a 1.7.97 debug build (code 126,
+the same web code as the release) on the Pixel 7 emulator with Android 14,
+default density, taken on the afternoon of 18 October 2026 (PL ~15:18–15:25,
+EN ~15:27–15:30, UK ~15:35–15:38, Europe/Warsaw) on live server data. Screens
+were opened with real taps (`adb shell input tap`); the map was only framed
+(moved and zoomed) to put a drone in view before tapping it. The drones over
+Rivne oblast and the Lublin scores (below threshold in PL, elevated attention
+in EN/UK a few minutes later) are what the sources reported at that moment, not
+staged scenarios. No public test notifications were sent.
+
+On the Ukrainian history screens the labels under the history buttons are
+hidden: that is the app's own behaviour when the labels do not fit (1.7.97).
