@@ -852,17 +852,21 @@ napisałem pierwszą wersję opisu **bez polskich znaków diakrytycznych**.
 Panel je przyjmuje bez problemu (działały w 1.7.94 i 1.7.95) — poprawione przed
 zapisem. Unikać trzeba wyłącznie ⚙ i →.
 
-## 26. Przygotowane do zgłoszenia 1.7.98 (18.10.2026) — CZEKA NA SŁOWO USERA
+## 26. Zgłoszenie 1.7.98 (18.10.2026, 18:05) — po wycofaniu 1.7.96
 
 Build **2610181539**, commit `main 5b006e8`, w TestFlight, bramki CI zielone:
 `aps-environment: production`, `critical-alerts`, `time-sensitive`, rozszerzenie
 powiadomień w paczce ze wspólnym kontenerem `group.pl.straznik.app`.
 
-Zgoda przyszła **przez sesję główną** (user w sesji wydania: „daj znac tez sesji
-ios ze moze juz robioc"). Do Apple nic nie idzie na przekaz — ustalenie z userem
-jest takie, że potrzebne jest jego własne słowo w tej sesji. Reszta jest gotowa.
+Zgoda przyszła najpierw **przez sesję główną** (user w sesji wydania: „daj znac
+tez sesji ios ze moze juz robioc"). Do Apple nic nie poszło na przekaz —
+zapytałem usera wprost w tej sesji i **wybrał wycofanie 1.7.96**, żeby zgłosić
+od razu 1.7.98. Tak zrobione.
 
-### Decyzja do podjęcia: co z 1.7.96
+**Status: „Waiting for Review", publikacja automatyczna, od razu do wszystkich,
+ocena zachowana.** Panel potwierdził „1 Item Submitted".
+
+### Decyzja: 1.7.96 wycofane z przeglądu (wybór usera)
 
 1.7.96 wisi w **„Waiting for Review"** od 17.10 wieczorem, a Apple bierze
 **jedną wersję naraz**. Dwa wyjścia:
@@ -875,13 +879,21 @@ jest takie, że potrzebne jest jego własne słowo w tej sesji. Reszta jest goto
 **Nic nie ginie przy B:** 1.7.98 jest zbudowane z późniejszego `main`, więc
 zawiera wszystko z 1.7.96 — także rozszerzenie powiadomień. Warunek kolejności
 etapu D („najpierw rozszerzenie w App Store") spełnia dowolna z tych wersji.
-**Rekomendacja: B** — jeden przegląd zamiast dwóch, a 1.7.96 i tak czeka ~20 h.
+**User wybrał B.** Po „Remove from Review" wersja przechodzi w stan
+**Developer Rejected** i znów jest edytowalna — wtedy **wystarczy zmienić w niej
+numer wersji** na 1.7.98, podmienić build i opis. Nie zakłada się nowej wersji;
+Apple i tak nie pozwala mieć dwóch edytowalnych naraz. Po zapisie stan zmienia
+się na „Prepare for Submission", a nagłówek i pasek boczny od razu pokazują
+nowy numer — to najpewniejszy sygnał, że zmiana weszła.
 
-### Publikacja: AUTOMATYCZNA
+### Publikacja: AUTOMATYCZNA — sprawdzone w panelu
 
-Android wyszedł 18.10, więc nie ma na co czekać. **Uwaga:** nowa wersja dziedziczy
-ustawienie po poprzedniej — 1.7.96 miało automatyczną, więc powinno się zgodzić,
-ale sprawdzić w panelu (1.7.95 miało ręczną i trzeba było przestawiać).
+Android wyszedł 18.10, więc nie było na co czekać. Ustawienie odziedziczone po
+1.7.96 było już właściwe: „Automatically release this version", „Release update
+to all users immediately", „Keep existing rating". **Mylące pole:** pod trzecią
+opcją („no earlier than") widnieje data `Oct 18, 2026 7:00 PM` — to tylko
+nieaktywny towarzysz tej opcji, nie zaplanowana publikacja. Patrzeć na to,
+**który radio jest zaznaczony**, nie na datę.
 
 ### „What's New" — tylko PL
 
@@ -898,9 +910,26 @@ Karta ma **wyłącznie lokalizację polską** (§22), więc EN i UK z
 • Tryb bez serwera liczy każde województwo w zasięgu, jak serwer.
 ```
 
-Znak `•` nie był dotąd w iOS używany (poprzednie opisy to zwykłe akapity). Jeśli
-panel go odrzuci — zamienić na zwykłe wiersze. Zakazane są tylko `⚙` i `→` (§25).
-Po zapisie **odczytać pole z powrotem** i sprawdzić polskie znaki diakrytyczne.
+Znak `•` **panel przyjął bez problemu** (pierwszy raz w iOS; wcześniej były
+zwykłe akapity). Zakazane zostają tylko `⚙` i `→` (§25). Odczytane z powrotem
+po zapisie: 397 znaków, 6 wierszy, polskie znaki i cudzysłowy „ ” nienaruszone.
+
+### Pułapka: `form_input` tu NIE działa, a mówi, że zadziałał
+
+`form_input` na polach `versionString` i `whatsNew` zwrócił
+`Set text value to "1.7.96" (previous: "1.7.96")` — czyli **wpisał starą wartość
+i zameldował sukces**. React nie zobaczył zmiany. To odwrotnie niż w §22, gdzie
+`form_input` zadziałał; nie zakładać, że przejdzie.
+
+Co działa: natywny setter z `javascript_tool`, osobno dla input i textarea —
+`Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(el, v)`
+(dla textarea `HTMLTextAreaElement.prototype`), a po nim `input` i `change`
+z `bubbles: true`. Pola mają czyste identyfikatory: `versionString`, `whatsNew`,
+`description`, `keywords`, `notes`, `promotionalText`.
+
+**Rozszerzenie zasłania odczyt:** `javascript_tool` zwraca `[BLOCKED: JWT token]`
+zamiast wartości wyglądającej jak `1.7.98`. Numer wersji sprawdzać **wzrokowo**
+(`zoom` na pole), nie przez odczyt wartości.
 
 ### Czego w tym wydaniu NIE sprawdzono na iPhonie
 
