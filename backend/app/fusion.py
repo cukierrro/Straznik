@@ -884,6 +884,14 @@ def red_key(signals: list[dict], ref: datetime | None = None) -> dict | None:
             continue
         if d.get("area_only") and (d.get("uncertainty_km") or 0) > config.RED_GATE_AREA_MAX_UNC_KM:
             continue
+        # V3 (decyzja usera 18.10.2026): punkt „na cel” — kurs DOMNIEMANY przy pozycji
+        # rejonowej — wyznacza źródło z celu i kursu (ok. 40 km przed celem), nie jest
+        # obserwacją. 18.10 09:20 taki punkt „kursem na Kulików” (cel w Ukrainie) dał
+        # czerwony w lubelskim. Przeliczenie 2.08–18.10: znikają 4 z 19 czerwonych,
+        # wszystkie bez obiektu z pewnym kursem bliżej niż 57 km i bez RCB powyżej
+        # 1. stopnia; 28.09 (dron 2,5 km od granicy) bez opóźnienia.
+        if d.get("position_approximate") and "presumptive" in (d.get("course"), d.get("heading_source")):
+            continue
         eta, km = d.get("eta_border_min"), d.get("dist_km")
         if eta is not None and eta <= config.RED_GATE_ETA_MIN:
             return {"powod": "eta", "opis": f"obiekt {int(eta)} min od granicy", "eta_min": eta, "km": km}

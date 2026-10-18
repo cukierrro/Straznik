@@ -1000,6 +1000,8 @@ function redKey(sigs, ref) {
     const d = s.details || {};
     if (!RED_GATE_TYPES.has(String(d.type || "").toLowerCase())) continue;
     if (d.area_only && (d.uncertainty_km || 0) > RED_GATE_AREA_MAX_UNC_KM) continue;
+    // V3 (18.10.2026, lustro fusion.red_key): punkt „na cel” to nie obserwacja
+    if (d.position_approximate && (d.course === "presumptive" || d.heading_source === "presumptive")) continue;
     if (d.eta_border_min != null && d.eta_border_min <= RED_GATE_ETA_MIN)
       return { powod: "eta", opis: `obiekt ${Math.round(d.eta_border_min)} min od granicy`, eta_min: d.eta_border_min, km: d.dist_km };
     if (d.dist_km != null && d.dist_km <= RED_GATE_KM)
@@ -1402,6 +1404,10 @@ function neptunEval(t) {
         + `${etaAlarm ? `, konserwatywny czas dolotu ~${etaSafe} min` : ""} (woj. ${a.border_voiv}, `
         + `confidence: ${conf}, ${sources} potwierdzeń, ±${t.uncertaintyKm??"?"} km)`,
         { track_id: t.id, dist_km: a.dist_km, count, source_count: sources,
+          // typ, area_only i niepewność czyta klucz czerwonego (redKey) — bez nich
+          // w trybie bez serwera żaden obiekt nie dawał klucza (znalezione 18.10.2026)
+          type: ty, area_only: t.areaOnly ?? null, uncertainty_km: t.uncertaintyKm ?? null,
+          confidence: conf,
           position_quality: t.positionQuality,
           position_approximate: approx,
           position_reason: t.straznik_position.reason,
