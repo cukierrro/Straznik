@@ -1009,7 +1009,8 @@ html[lang="en"] .list:empty::after { content: "— none —"; }
 .voiv-zones > summary::-webkit-details-marker { display: none; }
 /* <details> nie przekazuje display:flex zawartości we wszystkich WebView — plakietki
    stref szły jednym rzędem za prawą krawędź (czcionka 130 %, 18.10.2026) */
-.voiv-zones-lista { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; min-width: 0; }
+.voiv-zones-lista { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; min-width: 0;
+  flex: 1 1 100%; }   /* w otwartym <details> lista bierze cały wiersz pod podsumowaniem */
 .voiv-zones-lista .btn-zone { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .voiv-zones > summary::before { content: "▸ "; }
 .voiv-zones[open] > summary::before { content: "▾ "; }
@@ -1794,6 +1795,10 @@ dialog input, dialog select, #quiet-hours input[type="time"] {
 #tabbar > .tab-btn > span:not(.tab-grota-pill):not(.badge) { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   font-size: min(0.8rem, calc(18px / var(--zoom-sys, 1))); }
 #tabbar > .tab-btn.active { color: var(--akcent-jasny); background: rgba(143, 180, 255, 0.14); }
+/* Wąski ekran i duży tekst (320 dp, ×1,3, ukraiński): „Сигнали” ucinało się do
+   „Сигна…” — przy wąskim ekranie mniejsze podpisy zakładek (18.10.2026). */
+@media (max-width: 360px) { #tabbar > .tab-btn > span:not(.tab-grota-pill):not(.badge) {
+  font-size: min(0.72rem, calc(16px / var(--zoom-sys, 1))); letter-spacing: -0.01em; } }
 .tab-btn.tab-grota { color: var(--napis-na-glownym); background: none; padding: 0; }
 .tab-grota-pill {
   display: grid; place-items: center; width: 54px; height: 40px; border-radius: 14px;
