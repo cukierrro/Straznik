@@ -199,6 +199,68 @@ strona["artykul"] = strona_artykulu(BLOK_KONIEC + " ---------------- " + BLOK_AL
 obieg()
 ok(not punktowane, "przy pierwszym czytaniu nie wiemy, czy odwołanie nie jest starsze")
 
+# 18.10.2026: alert 06:27 dla lubelskiego, RSO odwołało go 06:54. Artykuł gov.pl
+# dostał zdanie o odbiorcach dopiero ok. 08:13 — alert RSO był już poza oknem
+# fuzji, więc kolektor uznał meldunek za brakujący w RSO i dał fałszywy żółty.
+print("\n10. Spóźniony artykuł o alercie już odwołanym w RSO nie punktuje")
+
+
+def sygnal_rso(typ, voiv, ts):
+    return {"source": "rcb", "event_type": typ, "voivodeship": voiv,
+            "points": 1.5 if typ == "rso_alert" else 0.0, "details": {}, "ts": ts}
+
+
+ALERT_1810 = sygnal_rso("rso_alert", "lubelskie", "2026-10-18T04:29:17+00:00")
+ODWOL_1810 = sygnal_rso("rso_clear", "lubelskie", "2026-10-18T04:55:23+00:00")
+TYLKO_LUB = (f"&bdquo;{MONITOR}&rdquo; Alert RCB został wysłany do odbiorców na terenie "
+             "woj. lubelskiego.")
+
+
+def od_nowa(bloki):
+    rcb._artykuly.clear()
+    rcb._meldunki.clear()
+    rcb._zastane.clear()
+    rso_pokrycie.clear()
+    # pierwszy obieg: artykuł bez zdania o odbiorcach (tak wyglądał tuż po 06:27)
+    strona["artykul"] = strona_artykulu(f"&bdquo;{MONITOR}&rdquo;")
+    obieg()
+    strona["artykul"] = strona_artykulu(bloki)
+
+
+# _pokrycie liczy tylko okno fuzji; tu podajemy sygnały spoza niego, więc
+# zastępujemy je tak, jak wygląda baza o 08:13 (alert RSO starszy niż okno)
+_pokrycie_oryg = rcb._rso_pokrycie
+rcb._rso_pokrycie = lambda okno_min: {}
+
+od_nowa(TYLKO_LUB)
+rso_pokrycie.extend([ALERT_1810, ODWOL_1810])
+obieg()
+ok(not punktowane, f"lubelskie bez punktów po odwołaniu w RSO ({[p['voivodeship'] for p in punktowane]})")
+ok(any(a[1] == "rcb_art_seen" and a[2] == "lubelskie" for a in zapisy),
+   "…ale zostaje ślad 0 pkt „alert już odwołany w RSO”")
+
+od_nowa(BLOK_ALERT)
+rso_pokrycie.extend([ALERT_1810, ODWOL_1810])
+obieg()
+ok([p["voivodeship"] for p in punktowane] == ["podkarpackie"],
+   "województwo, którego RSO nie odwoływało, nadal jest uzupełniane "
+   f"({[p['voivodeship'] for p in punktowane]})")
+
+od_nowa(TYLKO_LUB)
+rso_pokrycie.extend([ALERT_1810, ODWOL_1810,
+                     sygnal_rso("rso_alert", "podkarpackie", "2026-10-18T06:10:00+00:00")])
+obieg()
+ok([p["voivodeship"] for p in punktowane] == ["lubelskie"],
+   "nowy alert RSO gdziekolwiek po odwołaniu znosi blokadę — trwa nowe zdarzenie")
+
+od_nowa(TYLKO_LUB)
+rso_pokrycie.extend([ODWOL_1810, sygnal_rso("rso_alert", "lubelskie", "2026-10-18T05:30:00+00:00")])
+obieg()
+ok([p["voivodeship"] for p in punktowane] == ["lubelskie"],
+   "alert RSO nowszy niż odwołanie: województwo nie jest „odwołane”")
+
+rcb._rso_pokrycie = _pokrycie_oryg
+
 if bledy:
     print(f"\nBLEDY: {len(bledy)}")
     sys.exit(1)

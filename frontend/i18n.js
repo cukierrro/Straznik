@@ -689,23 +689,23 @@
     "Media": "ЗМІ",
     "Local reports of sirens, explosions or airspace violations; one article alone cannot trigger an alert":
       "Місцеві повідомлення про сирени, вибухи чи порушення повітряного простору; сама лише стаття тривоги не вмикає",
-    "Official RCB alert from the Regional Warning System or a new gov.pl/RCB notice. Since 17.09.2026 RCB sends three kinds of message and they weigh accordingly: “the situation is being monitored” 1.5 · “a massive attack is under way… react to alarm signals” 3 · “threat of an air attack, find a safe place” 4.5. A later alert does not add to the earlier one — the current one counts":
-      "Офіційний Alert RCB із Регіональної системи оповіщення або нове повідомлення gov.pl/RCB. Від 17.09.2026 RCB надсилає три види повідомлень, і вони важать відповідно: «ситуацію моніторять» 1,5 · «триває масований напад… реагуйте на сигнали тривоги» 3 · «загроза нападу з повітря, знайдіть безпечне місце» 4,5. Пізніша тривога не додається до попередньої — рахується поточна",
+    "Official RCB alert from the Regional Warning System or a new gov.pl/RCB notice. Since 17.09.2026 RCB sends three kinds of message and they weigh accordingly: “the situation is being monitored” 1.5 · “a massive attack is under way… react to alarm signals” 3 · “threat of an air attack, find a safe place” 4.5. A later alert does not add to the earlier one — the current one counts. An RCB article on gov.pl about an alert that RSO has already cancelled scores nothing":
+      "Офіційний Alert RCB із Регіональної системи оповіщення або нове повідомлення gov.pl/RCB. Від 17.09.2026 RCB надсилає три види повідомлень, і вони важать відповідно: «ситуацію моніторять» 1,5 · «триває масований напад… реагуйте на сигнали тривоги» 3 · «загроза нападу з повітря, знайдіть безпечне місце» 4,5. Пізніша тривога не додається до попередньої — рахується поточна. Стаття RCB на gov.pl про тривогу, яку RSO вже скасувала, балів не дає",
     "Military aviation activity over twice the seven-day baseline for the same time of day — informational only":
       "Активність військової авіації понад подвійну семиденну норму для тієї самої пори доби — лише інформація",
     "Rare ground-up ADHOC/R/NPZ/D zone; routine and repeating zones do not score. In the north it weighs twice as much, because NEPTUN does not reach there":
       "Рідкісна зона ADHOC/R/NPZ/D від землі; рутинні й повторювані зони балів не дають. На півночі важить удвічі більше, бо NEPTUN туди не сягає",
     "+1 płn.": "+1 півн.",
     "Baltic": "Балтика",
-    "Air incident reported by Lithuanian, Latvian or Estonian media; an air-raid alert announced there is only a trace (Lithuania 0.3, Latvia 0.18, Estonia 0.12); an all-clear ends its contribution. Only a report from the last 30 minutes about something happening now counts — commentary and after-the-fact reports do not. It reaches the whole coast: Podlaskie, Warmian-Masurian and Pomeranian at full weight, West Pomeranian at half":
-      "Повітряний інцидент за повідомленнями литовських, латвійських чи естонських ЗМІ; оголошена там повітряна тривога — лише слід (Литва 0,3, Латвія 0,18, Естонія 0,12); відбій завершує її внесок. Рахується лише повідомлення за останні 30 хвилин про те, що відбувається зараз — коментарі й ретроспективи ні. Сягає всього узбережжя: Підляське, Вармінсько-Мазурське й Поморське з повною вагою, Західнопоморське — з половинною",
+    "Air incident reported by Lithuanian, Latvian or Estonian media; an air-raid alert announced there is only a trace (Lithuania 0.3, Latvia 0.18, Estonia 0.12); an all-clear ends its contribution. Only a report from the last 30 minutes about something happening now counts — commentary and after-the-fact reports do not. A headline that still announces an alert (e.g. for a smaller region) is not an all-clear; an article published before the all-clear does not reopen the alert, and a report about alerts in other countries is not an alert in the outlet’s own country. It reaches the whole coast: Podlaskie, Warmian-Masurian and Pomeranian at full weight, West Pomeranian at half":
+      "Повітряний інцидент за повідомленнями литовських, латвійських чи естонських ЗМІ; оголошена там повітряна тривога — лише слід (Литва 0,3, Латвія 0,18, Естонія 0,12); відбій завершує її внесок. Рахується лише повідомлення за останні 30 хвилин про те, що відбувається зараз — коментарі й ретроспективи ні. Заголовок, який досі оголошує тривогу (напр. для меншого регіону), не є відбоєм; стаття, опублікована до відбою, не відкриває тривогу знову, а репортаж про тривоги в інших країнах не є тривогою в країні редакції. Сягає всього узбережжя: Підляське, Вармінсько-Мазурське й Поморське з повною вагою, Західнопоморське — з половинною",
     "alert +0.3": "тривога +0,3",
     "Neighbours": "Сусіди",
     "NATO neighbour airspace closure in northern Romania, Estonia or Lithuania — observational signal":
       "Закриття повітряного простору сусідом по НАТО на півночі Румунії, в Естонії чи Литві — спостережний сигнал",
     "How NEPTUN object points are calculated": "Як нараховуються бали за об’єкти NEPTUN",
-    "One Shahed 80 km from the border is different from six Shaheds 50 km away, while a short-range FPV drone does not threaten Poland. The score combines object class, count, distance, confidence and position quality.":
-      "Один Shahed за 80 км від кордону — це не те саме, що шість Shahed за 50 км, а FPV-дрон малої дальності Польщі не загрожує. Бал поєднує клас об’єкта, кількість, відстань, достовірність і якість позиції.",
+    "One Shahed 80 km from the border is different from six Shaheds 50 km away, while a short-range FPV drone does not threaten Poland. The score combines object class, count, distance, heading, confidence and position quality.":
+      "Один Shahed за 80 км від кордону — це не те саме, що шість Shahed за 50 км, а FPV-дрон малої дальності Польщі не загрожує. Бал поєднує клас об’єкта, кількість, відстань, курс, достовірність і якість позиції.",
     "Object class": "Клас об’єкта",
     "ballistic missile 3.0 · MiG-31K 2.6 · cruise missile 2.4 · KAB 1.8 · Shahed 1.4 · drone 1.1 · reconnaissance 0.15 · FPV 0":
       "балістична ракета 3,0 · МіГ-31К 2,6 · крилата ракета 2,4 · КАБ 1,8 · Shahed 1,4 · дрон 1,1 · розвідувальний 0,15 · FPV 0",
@@ -713,14 +713,21 @@
     "square root of object count — four objects weigh twice as much as one, not four times as much":
       "квадратний корінь із кількості об’єктів — чотири об’єкти важать удвічі більше за один, а не вчетверо",
     "Distance": "Відстань",
-    "<30 km ×1.6 · <60 km ×1.3 · <100 km ×1.0 · <150 km ×0.55 · <250 km ×0.25 · farther 0":
-      "<30 км ×1,6 · <60 км ×1,3 · <100 км ×1,0 · <150 км ×0,55 · <250 км ×0,25 · далі 0",
+    "weight changes smoothly: 0 km ×1.7 · 15 km ×1.6 · 45 km ×1.3 · 80 km ×1.0 · 110 km ×0.7 · 150 km ×0.4 · 200 km ×0.25 · 250 km ×0.1 · farther 0. An object scores every province within 250 km, each by its distance to that province":
+      "вага змінюється плавно: 0 км ×1,7 · 15 км ×1,6 · 45 км ×1,3 · 80 км ×1,0 · 110 км ×0,7 · 150 км ×0,4 · 200 км ×0,25 · 250 км ×0,1 · далі 0. Об’єкт дає бали кожному воєводству в межах 250 км, кожному — за відстанню до нього",
+    "Heading": "Курс",
+    "within ±50° of the direction to Poland full weight, from 50° to 70° the weight falls to zero; unknown heading ×0.5 and only up to 150 km":
+      "у межах ±50° від напрямку на Польщу повна вага, від 50° до 70° вага спадає до нуля; невідомий курс ×0,5 і лише до 150 км",
     "Wave": "Хвиля",
     "three different objects heading at Poland within 15 minutes and closer than 150 km add 0.5 pt together — several objects at once mean more than each on its own":
       "три різні об’єкти курсом на Польщу протягом 15 хвилин і ближче ніж 150 км разом додають 0,5 бала — кілька об’єктів одночасно означають більше, ніж кожен окремо",
     "Confidence": "Достовірність",
-    "confidence, independent report count and observation status": "достовірність, кількість незалежних повідомлень і статус спостереження",
+    "confidence (high ×1.0, medium ×0.6, low ×0.35), number of independent reports (one ×0.7, two ×0.9, three–four ×1.1, five or more ×1.25) and observation status (confirmed ×1.1, uncertain ×0.85, fresh ×0.7)":
+      "достовірність (висока ×1,0, середня ×0,6, низька ×0,35), кількість незалежних повідомлень (одне ×0,7, два ×0,9, три–чотири ×1,1, п’ять і більше ×1,25) і статус спостереження (підтверджений ×1,1, непевний ×0,85, свіжий ×0,7)",
     "Position quality": "Якість позиції",
+    "Near the border": "Біля кордону",
+    "minimum points with at least two reports and a point position: a missile or MiG-31K within 60 km of the border — at least 2 pts (1 pt with unknown heading); a drone or Shahed within 30 km of a province — at least 2 pts (yellow) in that province, even without a known heading, unless it is flying away from Poland. This extra does not pass to neighbouring provinces. A single report is not enough":
+      "мінімум балів щонайменше за двох повідомлень і точкової позиції: ракета або МіГ-31К у межах 60 км від кордону — щонайменше 2 бали (за невідомого курсу 1 бал); дрон або Shahed у межах 30 км від воєводства — щонайменше 2 бали (жовтий) у цьому воєводстві, навіть без відомого курсу, якщо він не летить від Польщі. Цей додаток не переходить до сусідніх воєводств. Одного повідомлення не досить",
     "source point ×1.0 · source-reported area ×0.6 · recognised locality centre ×0.5; area positions cannot trigger ETA thresholds":
       "точка джерела ×1,0 · район, повідомлений джерелом, ×0,6 · розпізнаний центр населеного пункту ×0,5; районні позиції не можуть вмикати пороги за часом підльоту",
     "The model was checked against documented incidents. A mass border violation or a missile immediately next to the border crosses an alert threshold; routine activity over western Ukraine stays below it. NEPTUN contribution is capped at 8 points.":
@@ -728,8 +735,8 @@
     "Estimated arrival time": "Орієнтовний час підльоту",
     "Distance alone is misleading: 130 km may mean about 10 minutes for a cruise missile and about 45 minutes for a drone. When possible, Strażnik estimates time to the Polish border and to your province using reported, measured or class-typical speed.":
       "Сама лише відстань оманлива: 130 км для крилатої ракети — це близько 10 хвилин, а для дрона — близько 45. Коли це можливо, Strażnik оцінює час підльоту до кордону Польщі й до вашого воєводства за повідомленою, виміряною або типовою для класу швидкістю.",
-    "The estimate is conservative: 2.5 minutes are deducted for measured source delay. With a known or calculated heading, at least two confirmations and medium/high confidence, the model can raise yellow at ≤10 minutes and red at ≤5 minutes.":
-      "Оцінка консервативна: 2,5 хвилини віднімаємо на виміряну затримку джерела. За відомого або обчисленого курсу, щонайменше двох підтверджень і середньої чи високої достовірності модель може підняти жовтий при ≤10 хвилинах, а червоний — при ≤5 хвилинах.",
+    "The estimate is conservative: 2.5 minutes are deducted for measured source delay. With a heading that is known or calculated from movement (not presumed from the target’s name), at least two confirmations, medium/high confidence and a point (not area) position, the model can raise yellow at ≤10 minutes and red at ≤5 minutes.":
+      "Оцінка консервативна: 2,5 хвилини віднімаємо на виміряну затримку джерела. За курсу, відомого або обчисленого з руху (а не припущеного з назви цілі), щонайменше двох підтверджень, середньої чи високої достовірності й точкової (не районної) позиції модель може підняти жовтий при ≤10 хвилинах, а червоний — при ≤5 хвилинах.",
     "This is an estimate, not a promise. It assumes unchanged speed and heading and does not account for air defence. No time is shown when heading is unknown. NEPTUN's ‘confirmed’ may confirm a report rather than coordinate accuracy. A recognised locality-centre point gets only a rounded area distance, with no route or ETA.":
       "Це оцінка, а не обіцянка. Вона припускає незмінні швидкість і курс і не враховує протиповітряної оборони. Коли курс невідомий, часу не показуємо. «Підтверджено» в NEPTUN може означати підтвердження повідомлення, а не точності координат. Точка, розпізнана як центр населеного пункту, отримує лише округлену відстань по району — без маршруту й часу підльоту.",
     "Levels": "Рівні",
@@ -887,8 +894,8 @@
       "(агрегатор OSINT — не радар) · ADS-B: adsb.lol / adsb.fi · PAŻP · RCB · Мапа:",
     "(OSINT aggregator — not radar; always check confidence and ±km) · ADS-B: adsb.lol / adsb.fi · Map:":
       "(агрегатор OSINT — не радар; завжди перевіряйте достовірність і ±км) · ADS-B: adsb.lol / adsb.fi · Мапа:",
-    "An eastern event also raises awareness in neighbouring provinces: a neighbour gets 40% of its points, the next ring 40% of that (16%) and so on, providing earlier awareness farther west. Transferred points alone do not send a notification.":
-      "Подія на сході підвищує увагу й у сусідніх воєводствах: сусід отримує 40% балів, наступне коло — 40% від цього (16%) і так далі, що дає раніше попередження далі на захід. Самі лише перенесені бали сповіщення не надсилають.",
+    "An eastern event also raises awareness in neighbouring provinces: a neighbour gets 40% of its points, the next ring 40% of that (16%) and so on, providing earlier awareness farther west. Only a province with at least 2 pts (excluding a regional RCB alert) passes points on. Transferred points alone do not send a notification — that takes at least 1 pt from the province’s own signals.":
+      "Подія на сході підвищує увагу й у сусідніх воєводствах: сусід отримує 40% балів, наступне коло — 40% від цього (16%) і так далі, що дає раніше попередження далі на захід. Передає бали лише воєводство, яке має щонайменше 2 бали (без регіонального Alert RCB). Самі лише перенесені бали сповіщення не надсилають — для цього потрібен щонайменше 1 бал власних сигналів.",
     "Buy me a coffee": "Пригостити кавою",
     "Download app": "Завантажити застосунок",
     "Symbol legend": "Легенда символів",
@@ -1032,17 +1039,17 @@
     set("#ab-fuzja",
       "No single signal proves that a threat exists. The app assigns points to several independent indicators and totals them over a 60-minute window for each province. A signal has full weight for 30 minutes, then fades linearly to zero. The resulting total determines the level, and the full breakdown is always visible.");
     set("#ab-iloczyn",
-      "One Shahed 80 km from the border is different from six Shaheds 50 km away, while a short-range FPV drone does not threaten Poland. The score combines object class, count, distance, confidence and position quality.");
+      "One Shahed 80 km from the border is different from six Shaheds 50 km away, while a short-range FPV drone does not threaten Poland. The score combines object class, count, distance, heading, confidence and position quality.");
     set("#ab-model",
       "The model was checked against documented incidents. A mass border violation or a missile immediately next to the border crosses an alert threshold; routine activity over western Ukraine stays below it. NEPTUN contribution is capped at 8 points.");
     set("#ab-eta",
       "Distance alone is misleading: 130 km may mean about 10 minutes for a cruise missile and about 45 minutes for a drone. When possible, Strażnik estimates time to the Polish border and to your province using reported, measured or class-typical speed.");
     set("#ab-eta-konserw",
-      "The estimate is conservative: 2.5 minutes are deducted for measured source delay. With a known or calculated heading, at least two confirmations and medium/high confidence, the model can raise yellow at ≤10 minutes and red at ≤5 minutes.");
+      "The estimate is conservative: 2.5 minutes are deducted for measured source delay. With a heading that is known or calculated from movement (not presumed from the target’s name), at least two confirmations, medium/high confidence and a point (not area) position, the model can raise yellow at ≤10 minutes and red at ≤5 minutes.");
     set("#ab-eta-szacunek",
       "This is an estimate, not a promise. It assumes unchanged speed and heading and does not account for air defence. No time is shown when heading is unknown. NEPTUN's ‘confirmed’ may confirm a report rather than coordinate accuracy. A recognised locality-centre point gets only a rounded area distance, with no route or ETA.");
     set("#ab-przeniesienia",
-      "An eastern event also raises awareness in neighbouring provinces: a neighbour gets 40% of its points, the next ring 40% of that (16%) and so on, providing earlier awareness farther west. Transferred points alone do not send a notification.");
+      "An eastern event also raises awareness in neighbouring provinces: a neighbour gets 40% of its points, the next ring 40% of that (16%) and so on, providing earlier awareness farther west. Only a province with at least 2 pts (excluding a regional RCB alert) passes points on. Transferred points alone do not send a notification — that takes at least 1 pt from the province’s own signals.");
     set("#ab-ograniczenia",
       "NEPTUN is an OSINT/crowdsourced aggregator, not radar, so confidence and position uncertainty are always shown. A new ID at the same locality-centre point does not prove a new physical object and is not automatically counted twice. ADS-B contains only public transponder emissions and cannot reveal aircraft flying dark.");
     set("#ab-dane",
@@ -1052,8 +1059,11 @@
     if (redNote) redNote.innerHTML = "<b>4 pts alone are not enough.</b> Red needs a "
       + "confirmation: either an RCB alert saying “find a safe place”, or a real "
       + "strike object heading at Poland — less than 15 minutes of flight away or closer "
-      + "than 50 km to the border. A position given only as an area with more than 30 km of "
-      + "uncertainty does not count. Reconnaissance drones and reports alone do not open red. "
+      + "than 50 km to the border, with a report no older than 25 minutes. It is not opened by a "
+      + "position given only as an area with more than 30 km of uncertainty, nor by a “towards "
+      + "the target” point — an object with a presumed heading and an area position that the "
+      + "source derives from the target and heading rather than from an observation. Nor do "
+      + "reconnaissance drones or reports alone. "
       + "When a region has 4 pts without a confirmation it stays yellow, and Strażnik "
       + "says so on the card. The rule applies from 23.09.2026: before that an RCB alert "
       + "about a monitored situation together with Ukrainian oblast alarms and the media "
@@ -1088,21 +1098,23 @@
       "Object heading towards Poland — score depends on class, count, distance and independent confirmations",
       "Official alert in a Ukrainian region bordering Poland",
       "Local reports of sirens, explosions or airspace violations; one article alone cannot trigger an alert",
-      "Official RCB alert from the Regional Warning System or a new gov.pl/RCB notice. Since 17.09.2026 RCB sends three kinds of message and they weigh accordingly: “the situation is being monitored” 1.5 · “a massive attack is under way… react to alarm signals” 3 · “threat of an air attack, find a safe place” 4.5. A later alert does not add to the earlier one — the current one counts",
+      "Official RCB alert from the Regional Warning System or a new gov.pl/RCB notice. Since 17.09.2026 RCB sends three kinds of message and they weigh accordingly: “the situation is being monitored” 1.5 · “a massive attack is under way… react to alarm signals” 3 · “threat of an air attack, find a safe place” 4.5. A later alert does not add to the earlier one — the current one counts. An RCB article on gov.pl about an alert that RSO has already cancelled scores nothing",
       "Military aviation activity over twice the seven-day baseline for the same time of day — informational only",
       "Rare ground-up ADHOC/R/NPZ/D zone; routine and repeating zones do not score. In the north it weighs twice as much, because NEPTUN does not reach there",
-      "Air incident reported by Lithuanian, Latvian or Estonian media; an air-raid alert announced there is only a trace (Lithuania 0.3, Latvia 0.18, Estonia 0.12); an all-clear ends its contribution. Only a report from the last 30 minutes about something happening now counts — commentary and after-the-fact reports do not. It reaches the whole coast: Podlaskie, Warmian-Masurian and Pomeranian at full weight, West Pomeranian at half",
+      "Air incident reported by Lithuanian, Latvian or Estonian media; an air-raid alert announced there is only a trace (Lithuania 0.3, Latvia 0.18, Estonia 0.12); an all-clear ends its contribution. Only a report from the last 30 minutes about something happening now counts — commentary and after-the-fact reports do not. A headline that still announces an alert (e.g. for a smaller region) is not an all-clear; an article published before the all-clear does not reopen the alert, and a report about alerts in other countries is not an alert in the outlet’s own country. It reaches the whole coast: Podlaskie, Warmian-Masurian and Pomeranian at full weight, West Pomeranian at half",
       "NATO neighbour airspace closure in northern Romania, Estonia or Lithuania — observational signal",
       "Air-raid alert in Moldova, Romania, Slovakia, Czechia, Sweden or Hungary according to local media: we show it on the map and in the signal list, but for now it scores nothing — we are gathering evidence before setting the weights"
     ]);
-    setMany("#ab-tab-neptun tr td:first-child", ["Object class", "Count", "Distance", "Wave", "Confidence", "Position quality"]);
+    setMany("#ab-tab-neptun tr td:first-child", ["Object class", "Count", "Distance", "Heading", "Wave", "Confidence", "Position quality", "Near the border"]);
     setMany("#ab-tab-neptun tr td:nth-child(2)", [
       "ballistic missile 3.0 · MiG-31K 2.6 · cruise missile 2.4 · KAB 1.8 · Shahed 1.4 · drone 1.1 · reconnaissance 0.15 · FPV 0",
       "square root of object count — four objects weigh twice as much as one, not four times as much",
-      "<30 km ×1.6 · <60 km ×1.3 · <100 km ×1.0 · <150 km ×0.55 · <250 km ×0.25 · farther 0",
+      "weight changes smoothly: 0 km ×1.7 · 15 km ×1.6 · 45 km ×1.3 · 80 km ×1.0 · 110 km ×0.7 · 150 km ×0.4 · 200 km ×0.25 · 250 km ×0.1 · farther 0. An object scores every province within 250 km, each by its distance to that province",
+      "within ±50° of the direction to Poland full weight, from 50° to 70° the weight falls to zero; unknown heading ×0.5 and only up to 150 km",
       "three different objects heading at Poland within 15 minutes and closer than 150 km add 0.5 pt together — several objects at once mean more than each on its own",
-      "confidence, independent report count and observation status",
-      "source point ×1.0 · source-reported area ×0.6 · recognised locality centre ×0.5; area positions cannot trigger ETA thresholds"
+      "confidence (high ×1.0, medium ×0.6, low ×0.35), number of independent reports (one ×0.7, two ×0.9, three–four ×1.1, five or more ×1.25) and observation status (confirmed ×1.1, uncertain ×0.85, fresh ×0.7)",
+      "source point ×1.0 · source-reported area ×0.6 · recognised locality centre ×0.5; area positions cannot trigger ETA thresholds",
+      "minimum points with at least two reports and a point position: a missile or MiG-31K within 60 km of the border — at least 2 pts (1 pt with unknown heading); a drone or Shahed within 30 km of a province — at least 2 pts (yellow) in that province, even without a known heading, unless it is flying away from Poland. This extra does not pass to neighbouring provinces. A single report is not enough"
     ]);
     // „Gdzie co znajdziesz” i poziomy PO IDENTYFIKATORACH (14.10.2026): setMany po kolejności
     // nadpisywał textContent i w EN/UK znikały kolorowe kwadraty poziomów.
@@ -1328,9 +1340,11 @@
       + "зона 1 + балтійський інцидент 0,5 = 1,5 бала — самих лише сусідських ЗМІ не досить.";
     if (redUk) redUk.innerHTML = "<b>Самих 4 балів не досить.</b> Червоний потребує підтвердження: "
       + "або тривоги RCB зі словами «знайдіть безпечне місце», або реального ударного об’єкта курсом "
-      + "на Польщу — менш ніж 15 хвилин лету чи ближче ніж 50 км до кордону. Позиція, подана лише "
-      + "як район із похибкою понад 30 км, не рахується. Самі лише розвідувальні "
-      + "дрони й повідомлення червоного не відкривають. Коли регіон має 4 бали без підтвердження, він "
+      + "на Польщу — менш ніж 15 хвилин лету чи ближче ніж 50 км до кордону, з повідомленням, не "
+      + "старшим за 25 хвилин. Його не відкривають позиція, подана лише як район із похибкою понад "
+      + "30 км, і точка «на ціль» — об’єкт із припущеним курсом і районною позицією, яку джерело "
+      + "визначає з цілі й курсу, а не зі спостереження. Так само розвідувальні дрони й самі лише "
+      + "повідомлення. Коли регіон має 4 бали без підтвердження, він "
       + "лишається жовтим, і Strażnik пише про це на картці. Правило діє від 23.09.2026: раніше тривога "
       + "RCB про моніторинг ситуації разом із тривогами в областях України та ЗМІ могла зробити регіон "
       + "червоним із порожньою мапою.";

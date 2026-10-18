@@ -92,6 +92,20 @@ NEPTUN_NEAR_FLOOR_TYPES = ("ballistic", "mig31k", "cruise", "missile")
 NEPTUN_NEAR_FLOOR_SOURCES = 2      # min. liczba niezależnych zgłoszeń
 NEPTUN_NEAR_FLOOR_POINTS = 2.0     # = THRESHOLD_ELEVATED
 
+# Podłoga dla DRONÓW tuż przy granicy (decyzja usera 18.10.2026). W nocy 17/18.10
+# dron 10 km od granicy pod Rostaniem, bez kursu, miał 0,57 pkt (kurs nieznany ×0,5,
+# świeży trop ×0,7) i lubelskie zostało na 1,6–1,8 pkt; ok. 02:00 mieszkańcy
+# Lublina słyszeli przelatujący obiekt. Dron ze ZNANYM kursem ma już alarm ETA;
+# ta podłoga domyka lukę dla kursu nieznanego i domniemanego. Bez skalowania
+# kursem — przy granicy brak kursu to niepewność, a nie dowód, że nic nie leci.
+# Liczona od odległości do KAŻDEGO województwa osobno (każde w promieniu 30 km
+# dostaje próg żółtego). Dodatek z podłogi NIE przechodzi dalej do sąsiadów.
+# Przeliczenie 2.08–18.10: jedyna zmiana to żółty 01:27 zamiast 02:03.
+NEPTUN_BORDER_UAV_FLOOR_KM = 30.0
+NEPTUN_BORDER_UAV_FLOOR_TYPES = ("uav", "shahed")
+NEPTUN_BORDER_UAV_FLOOR_SOURCES = 2
+NEPTUN_BORDER_UAV_FLOOR_POINTS = 2.0   # = THRESHOLD_ELEVATED
+
 # Prędkości typowe klas obiektów (km/h) — do szacowania CZASU DOLOTU. NEPTUN nie
 # podaje prędkości (sprawdzone na żywym API), więc czas liczymy z tej tablicy;
 # gdy z kolejnych pozycji da się wyliczyć prędkość rzeczywistą, ma pierwszeństwo.

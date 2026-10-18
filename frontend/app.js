@@ -1782,6 +1782,7 @@ async function initMap() {
         "line-blur": 0.4 } });
 
     mapReady = true;
+    dopasujMapeDoPanelu();
     // komunikat „mapa się nie wczytała” mógł wyskoczyć, gdy start trwał dłużej (np. aplikacja w tle)
     document.getElementById("map-niedostepna")?.remove();
     syncZonesButton();
@@ -2308,9 +2309,22 @@ function courseVerdictHTML(p) {
   const toward = p.toward_pl === true || p.toward_pl === "true";
   const known = !(p.heading_known === false || p.heading_known === "false");
   const off = p.course_off == null || p.course_off === "" ? null : Math.round(Number(p.course_off));
+  /* 18.10.2026: karta pisała „kursem na Kulykiw” i zarazem „kurs na Polskę (71° od
+     kierunku na granicę)”. Dwie rzeczy naraz: (1) kurs był DOMNIEMANY — źródło wyznaczyło
+     punkt z celu w Ukrainie, a Polska leży dopiero na przedłużeniu linii; (2) „na Polskę”
+     znaczy „na jakikolwiek odcinek granicy”, a stopnie liczymy do NAJBLIŻSZEGO punktu. */
+  const naCel = p.na_cel === true || p.na_cel === "true";
+  if (toward && naCel) {
+    const cel = p.cel ? `: ${esc(String(p.cel))}` : "";
+    return `<span style="color:#ffb020"><b>${UI.t("kurs na cel", "heading to a target", "курс на ціль")}${cel}</b> — ${
+      UI.t("przedłużenie trasy prowadzi w stronę Polski", "the extended track points towards Poland", "продовження траси веде в бік Польщі")}</span><br>`;
+  }
   if (toward) {
+    const daleko = off != null && off > 50;
     return `<span style="color:#ff7b88"><b>${UI.t("kurs na Polskę", "heading towards Poland", "курс на Польщу")}</b>${
-      off != null ? ` (${off}° ${UI.t("od kierunku na granicę", "off the direction to the border", "від напрямку на кордон")})` : ""}</span><br>`;
+      off == null ? "" : daleko
+        ? ` (${UI.t("w stronę dalszego odcinka granicy", "towards a farther part of the border", "у бік віддаленішої ділянки кордону")})`
+        : ` (${off}° ${UI.t("od kierunku na granicę", "off the direction to the border", "від напрямку на кордон")})`}</span><br>`;
   }
   const why = !known
     ? (UI.t("kurs nieznany", "heading unknown", "курс невідомий"))
@@ -2931,8 +2945,12 @@ function trackSpeed(t) {
 /* Ile minut od ostatniego meldunku o obiekcie (NEPTUN potwierdza zgłoszeniami). */
 function threatAgeMin(t, nowMs) {
   const seen = Date.parse(t.confirmedAt || t.updatedAt || "");
-  if (!seen) return 0;
-  return Math.max(0, Math.round((nowMs - seen) / 60000));
+  if (seen) return Math.max(0, Math.round((nowMs - seen) / 60000));
+  /* Migawka historii nie niesie czasów meldunku, tylko `age_min` z chwili zapisu.
+     Bez tego w historii wiek był zawsze 0 i okrąg stał w miejscu od meldunku do
+     zniknięcia obiektu (zgłoszone 18.10.2026: dron spod Rostania o 01:32 miał
+     meldunek sprzed 5 min, a karta pokazywała ±4 km zamiast ±19 km). */
+  return snapAgeMin(t);
 }
 /* Ile obiekt mógł przelecieć od ostatniego meldunku. Rysujemy ostatnią znaną
    pozycję, więc okrąg niepewności musi rosnąć razem z wiekiem tej wiedzy —
@@ -3095,6 +3113,7 @@ function animate(ts) {
         counted: countedTracks.has(String(t.id ?? "")),
         age_min: ageMin, age_label: ageLabel(ageMin),
         course_off: courseOffsetDeg(t),
+        na_cel: naKursieDoCelu(t), cel: naKursieDoCelu(t) && t.locality ? placeName(t.locality) : "",
         eta: etaHtml(t) } });
     const uncKm = shownUncertaintyKm(t, now);
     if (uncKm)
@@ -3741,6 +3760,11 @@ function sigHTML(s) {
     else if (d.course === "estimated") extra.push(UI.t("kurs szacowany z ruchu", "heading estimated from movement", "курс оцінено з руху"));
     else if (d.course === "presumptive") extra.push(UI.t("kurs domniemany (na cel)", "presumed heading (towards a target)", "курс припущений (на ціль)"));
     if (d.jet) extra.push(UI.t("dron odrzutowy", "jet drone", "реактивний дрон"));
+    // podłoga przygraniczna (18.10.2026): skąd 2 pkt przy nieznanym kursie
+    if (d.border_floor) extra.push({ html: `<b style="color:#ff9f43">${UI.t(
+      "blisko granicy — co najmniej próg żółtego",
+      "close to the border — at least the yellow threshold",
+      "біля кордону — щонайменше жовтий поріг")}</b>` });
   }
   if (d.source_count) extra.push(`${d.source_count} ${UI.t("potw.", "conf.", "підтв.")}`);
   // czas dolotu policzony przy sygnale — dla regionu użytkownika, a gdy go brak,
@@ -3905,7 +3929,7 @@ function zonesRowHTML(name) {
   return `<details class="voiv-zones fineprint"><summary>${
     UI.t("Dane techniczne", "Technical details", "Технічні дані")} · ${
     UI.t("strefy PAŻP", "PAŻP zones", "зони PAŻP")} ${z.length} <span class="muted">(${
-    UI.t("bez punktów", "no points", "без балів")})</span></summary>${chips}</details>`;
+    UI.t("bez punktów", "no points", "без балів")})</span></summary><div class="voiv-zones-lista">${chips}</div></details>`;
 }
 function openZoneByName(designator) {
   const f = (aktywneStrefy()?.features || []).find(x => x.properties?.designator === designator);
@@ -5792,6 +5816,7 @@ function showHistoryAt(idx) {
   document.getElementById("tb-label").textContent =
     when.toLocaleTimeString(UI.t("pl-PL", "en-GB", "uk-UA"), { hour: "2-digit", minute: "2-digit" })
     + (ageMin > 1 ? ` (${histAgo(ageMin)})` : (UI.t(" (teraz)", " (now)", " (зараз)")));
+  dopasujNaglowekHistorii();
   const sigs = h?.signals || [];
   paintOblasts(sigs);
   paintCountryAlerts(sigs);
@@ -5911,11 +5936,19 @@ function showHistoryAt(idx) {
           toward_pl: t.pl_assessment?.toward_pl === true,
           heading_known: t.pl_assessment?.heading_known !== false,
           course_off: courseOffsetDeg(t),
+        na_cel: naKursieDoCelu(t), cel: naKursieDoCelu(t) && t.locality ? placeName(t.locality) : "",
           eta: etaHtml(t) } })) });
     map.getSource("trails")?.setData(emptyFC());
     map.getSource("course")?.setData(emptyFC());
     map.getSource("adsb-course")?.setData(emptyFC());
-    map.getSource("uncertainty")?.setData(emptyFC());
+    // Okrąg niepewności także w historii, z wiekiem meldunku z migawki — wcześniej
+    // warstwa była tu czyszczona, więc w podglądzie historii okręgu nie było wcale.
+    map.getSource("uncertainty")?.setData({ type: "FeatureCollection",
+      features: historyThreats.filter(t => t.lat != null).flatMap(t => {
+        const km = shownUncertaintyKm(t);
+        return km ? [{ type: "Feature", properties: { color: (TYPE_META[t.type] || {}).color || "#8a93a6" },
+          geometry: { type: "Polygon", coordinates: circleCoords(t.lat, t.lon, km) } }] : [];
+      }) });
     map.getSource("adsb")?.setData({ type: "FeatureCollection",
       features: planes.map(p => ({ type: "Feature",
         geometry: { type: "Point", coordinates: [p.lon, p.lat] },
@@ -5943,6 +5976,10 @@ function histAgo(ageMin) {
   const h = Math.floor(ageMin / 60), m = ageMin % 60;
   return h ? `−${h} h${m ? ` ${m} min` : ""}` : `−${ageMin} min`;
 }
+/* Karty województw w historii zwijają się dotknięciem jak na żywo (zgłoszenie
+   18.10.2026: w historii karta zostawała rozwinięta). Domyślnie rozwinięte —
+   zapamiętujemy tylko zwinięte, żeby przesuwanie suwaka ich nie otwierało. */
+const histZwiniete = new Set();
 function renderHistoryPanel(sigs, perVoiv, when, ageMin,
                             poziom = (v, sc) => sc >= 4 ? "high" : sc >= 2 ? "elevated" : "none",
                             podtrzymanie = {}) {
@@ -5960,9 +5997,10 @@ function renderHistoryPanel(sigs, perVoiv, when, ageMin,
   const cards = shown.map(([name, sc]) => {
     const lvl = poziom(name, sc);
     const own = sigs.filter(s => s.voivodeship === name);
-    return `<div class="voiv-card level-${lvl} open">
-      <div class="voiv-head"><span class="voiv-name">${esc(UI.voiv(name))}</span>
-        <span class="voiv-score">${pktTxt(sc)} ${UI.t("pkt", "pts", "бал.")}</span></div>
+    const otwarta = !histZwiniete.has(name);
+    return `<div class="voiv-card level-${lvl}${otwarta ? " open" : ""}" data-voiv="${esc(name)}">
+      <button type="button" class="voiv-head" aria-expanded="${otwarta}"><span class="voiv-name">${esc(UI.voiv(name))}</span>
+        <span class="voiv-score">${pktTxt(sc)} ${UI.t("pkt", "pts", "бал.")}</span></button>
       <div class="voiv-level">${lvl === "none" ? (UI.t("poniżej progu", "below threshold", "нижче порога")) : LEVEL_LABEL[lvl]}</div>
       ${podtrzymanieHTML(podtrzymanie[name])}
       <div class="voiv-breakdown">${sigList(own)}</div></div>`;
@@ -5972,6 +6010,13 @@ function renderHistoryPanel(sigs, perVoiv, when, ageMin,
     (cards || `<div class="fineprint">${UI.t("W tej chwili żadne województwo nie miało punktów.", "No province had points at this time.", "Цієї миті жодне воєводство не мало балів.")}</div>`);
   document.getElementById("signal-list").innerHTML =
     sigList(sigs) || `<div class="fineprint">${UI.t("brak sygnałów w tym oknie", "no signals in this window", "у цьому вікні немає сигналів")}</div>`;
+  // ta sama obsługa co na żywo: klik na całej karcie (Enter/spacja na nagłówku bąbelkuje)
+  document.querySelectorAll("#voiv-cards .voiv-card[data-voiv]").forEach(el =>
+    el.addEventListener("click", () => {
+      const open = el.classList.toggle("open");
+      if (open) histZwiniete.delete(el.dataset.voiv); else histZwiniete.add(el.dataset.voiv);
+      el.querySelector(".voiv-head")?.setAttribute("aria-expanded", String(open));
+    }));
 }
 
 document.getElementById("btn-history").onclick = () => toggleHistory();
@@ -5986,6 +6031,7 @@ function quickLabel(idx) {
   document.getElementById("tb-label").textContent =
     when.toLocaleTimeString(UI.t("pl-PL", "en-GB", "uk-UA"), { hour: "2-digit", minute: "2-digit" })
     + (ageMin > 1 ? ` (${histAgo(ageMin)})` : (UI.t(" (teraz)", " (now)", " (зараз)")));
+  dopasujNaglowekHistorii();
   document.getElementById("tb-slider").setAttribute("aria-valuetext", document.getElementById("tb-label").textContent);
   document.getElementById("tb-slider").dataset.level = timelinePoints[idx]?.level || "none";
   syncTbControls(idx);
@@ -6038,6 +6084,13 @@ function labelTbControls() {
   }
   const sp = document.getElementById("tb-speed");
   sp.title = L.speed; sp.setAttribute("aria-label", `${L.speed}: ×${histSpeed}`);
+}
+function dopasujPodpisyHistorii() {
+  const c = document.getElementById("tb-controls");
+  if (!c || !c.offsetWidth) return;
+  c.classList.remove("bez-podpisow");
+  if ([...c.querySelectorAll(".tb-btn small")].some(s => s.offsetWidth && s.scrollWidth > s.clientWidth + 1))
+    c.classList.add("bez-podpisow");
 }
 function histIdx() { return +document.getElementById("tb-slider").value || 0; }
 function histGo(idx) {
@@ -6164,8 +6217,12 @@ function renderPlacesSummary() {
   el.textContent=(UI.t(`${savedPlaces.length}/8 miejsc. Obserwowane województwa: `, `${savedPlaces.length}/8 places. Watched provinces: `, `${savedPlaces.length}/8 місць. Відстежувані воєводства: `))+(watched.join(", ")||(UI.t("brak", "none", "немає")));
 }
 let wojPrzedUstawieniami = null;   // region sprzed otwarcia ustawień — mapa skacze tylko po zmianie
-function openSettings() {
+function openSettings({ zMenu = false } = {}) {
   wojPrzedUstawieniami = myVoiv() || "";
+  // „‹ Menu” tylko, gdy Ustawienia otwarto z Menu (zgłoszenie 17.10.2026)
+  dlg.classList.toggle("z-menu", zMenu);
+  const doMenu = document.getElementById("set-do-menu-t");
+  if (doMenu) doMenu.textContent = UI.t("Menu", "Menu", "Меню");
   UI.previewSettings?.(UI.lang || "pl");
   const alertsBox = document.getElementById("set-alerts-on");
   if (alertsBox) alertsBox.checked = !alertsOff();
@@ -6179,7 +6236,13 @@ function openSettings() {
   pokazStartUstawien();
   dlg.showModal();
 }
-document.getElementById("btn-settings").onclick = () => openSettings();
+document.getElementById("btn-settings").onclick = () => openSettings({ zMenu: true });
+function wrocDoMenu() {
+  dlg.close();
+  const menu = document.getElementById("more-sheet");
+  if (menu && !menu.open) menu.showModal();
+}
+document.getElementById("set-do-menu")?.addEventListener("click", wrocDoMenu);
 
 /* Ustawienia v4 (przegląd UI 14.10.2026): ekran startowy z gotowością alarmu
    i wierszami sekcji; sekcja otwiera się w tym samym arkuszu o stałej wysokości.
@@ -6208,7 +6271,11 @@ document.getElementById("set-wstecz")?.addEventListener("click", () => {
 /* Systemowe „wstecz” i Esc wysyłają „cancel”: z sekcji wracamy do ekranu
    startowego, dopiero z niego zamykamy okno. */
 dlg.addEventListener("cancel", (e) => {
-  if (!dlg.classList.contains("w-sekcji")) return;
+  if (!dlg.classList.contains("w-sekcji")) {
+    // z ekranu startowego: jeśli przyszło się z Menu, „wstecz” wraca do Menu
+    if (dlg.classList.contains("z-menu")) { e.preventDefault(); wrocDoMenu(); }
+    return;
+  }
   e.preventDefault();
   document.getElementById("set-wstecz")?.click();
 });
@@ -7147,9 +7214,13 @@ function zmierzPowiekszenieSystemu() {
   /* Łącznie z wielkością tekstu wybraną w Strażniku: od ~160% wiersze ustawień
      układają wartość pod nazwą, zamiast ucinać ją do „S…”. */
   const skala = parseFloat(getComputedStyle(html).getPropertyValue("--skala-tekstu")) || 1;
-  html.classList.toggle("tekst-duzy", z * skala >= 1.6);
+  // …albo gdy ekran jest wąski względem tekstu: 320 dp przy skali 1,3 to jak 246 px
+  // przy zwykłym tekście — po ukraińsku nazwa sekcji dostawała 59 px i łamała się
+  // w słupek (analiza responsywności 18.10.2026)
+  html.classList.toggle("tekst-duzy", z * skala >= 1.6 || innerWidth / (z * skala) < 280);
 }
 zmierzPowiekszenieSystemu();
+addEventListener("resize", () => requestAnimationFrame(zmierzPowiekszenieSystemu));
 
 function zmierzPasekTytulu() {
   const tb = document.getElementById("topbar");
@@ -7421,6 +7492,9 @@ function setPanel(open) {
   document.body.classList.toggle("panel-open", open);
   syncTabs();
   requestAnimationFrame(fitMapActions);   // po zamknięciu panelu przyciski wracają
+  // panel wysuwa się z animacją — mierzymy, gdy stanie (drugi raz na wolnym telefonie)
+  setTimeout(dopasujMapeDoPanelu, 450);
+  setTimeout(dopasujMapeDoPanelu, 1100);
 }
 document.getElementById("btn-panel").onclick = () =>
   setPanel(document.getElementById("panel").classList.contains("collapsed"));
@@ -7478,14 +7552,44 @@ function fitMapActions() {
   if (!box) return;
   box.classList.remove("compact", "no-room");
   const room = box.clientHeight;
-  if (!room) return;                                  // ukryty (panel otwarty)
+  if (getComputedStyle(box).display === "none") return;   // ukryty (panel otwarty)
+  // Zero wysokości przy WIDOCZNYM pudełku to brak miejsca, a nie ukrycie: w historii
+  // przy czcionce 200 % każdy przycisk lądował w osobnej kolumnie, coraz dalej w lewo,
+  // aż „cała PL” wyszło za lewą krawędź (analiza responsywności 18.10.2026).
+  if (room <= 0) { box.classList.add("compact", "no-room"); return; }
   const need = el => [...el.children].reduce((h, c) => h + c.offsetHeight + 8, -8);
   if (need(box) <= room) return;
   box.classList.add("compact");
   const one = box.firstElementChild?.offsetHeight || 0;
   if (one > room) box.classList.add("no-room");
+  // Ikony przechodzą do kolejnych kolumn w lewo; przy czcionce 200 % w historii
+  // trzecia kolumna lądowała za lewą krawędzią ekranu (analiza 18.10.2026).
+  else if ([...box.children].some(c => c.offsetWidth && c.getBoundingClientRect().left < 4))
+    box.classList.add("no-room");
 }
 addEventListener("resize", () => requestAnimationFrame(fitMapActions));
+
+/* Nagłówek historii na wąskim ekranie albo przy dużej czcionce: gdy nazwa trybu,
+   „NA ŻYWO”, „×1” i godzina się nie mieszczą, zostaje sama ikona ⏱ zamiast napisu
+   „PODGLĄD HISTORII”. Przy czcionce 200 % „×1” wychodziło za prawą krawędź, a na
+   320 dp godzina wystawała z ramki (analiza responsywności 18.10.2026). Mierzone
+   przy każdej zmianie godziny, przed odmalowaniem — bez mrugania. */
+function dopasujNaglowekHistorii() {
+  const head = document.querySelector("#timebar .tb-head");
+  dopasujPodpisyHistorii();
+  if (!head || !head.offsetWidth) return;
+  head.classList.remove("ciasno", "b-ciasno");
+  const prawa = head.getBoundingClientRect().right + 1;
+  const label = document.getElementById("tb-label");
+  const za = head.scrollWidth > head.clientWidth + 1
+    || [...head.children].some(c => c.offsetWidth && c.getBoundingClientRect().right > prawa)
+    || (label && label.scrollWidth > label.clientWidth + 1);
+  if (!za) return;
+  head.classList.add("ciasno");
+  // przy czcionce 200 % nawet bez napisu trybu godzina wystawała o kilka px
+  if (label && label.scrollWidth > label.clientWidth + 1) head.classList.add("b-ciasno");
+}
+addEventListener("resize", () => requestAnimationFrame(dopasujNaglowekHistorii));
 
 /* Chowane kafelki mapy (21.09.2026, próba): strzałka chowa je za prawą krawędź,
    dotknięcie paska albo strzałki wysuwa. Wybór zostaje na tym urządzeniu. */
@@ -7532,11 +7636,56 @@ function dopasujOknoAktualizacji() {
   el.style.maxHeight = Math.max(170, Math.floor(r.bottom - gora)) + "px";
 }
 
+/* Mapa nad dolnym panelem (sugestia czytelnika 18.10.2026): po otwarciu historii czy
+   panelu z dołu mapa się nie zmieniała i część obiektów chowała się pod panelem.
+   Środek mapy przesuwamy do WIDOCZNEJ części ekranu (padding MapLibre) i lekko
+   oddalamy tak, by widać było ten sam obszar co przed otwarciem; po zamknięciu
+   wraca. Drobne zmiany (< 40 px: baner, godzina) nie ruszają mapy. */
+function zaslonietyDol() {
+  const m = map.getContainer().getBoundingClientRect();
+  let gora = document.getElementById("tabbar")?.getBoundingClientRect().top ?? m.bottom;
+  for (const c of document.getElementById("bottom-stack")?.children || [])
+    if (c.offsetHeight && !c.classList.contains("hidden")) gora = Math.min(gora, c.getBoundingClientRect().top);
+  // panel Sygnały na telefonie wysuwa się z dołu nad mapę (na komputerze stoi z boku)
+  const panel = document.getElementById("panel");
+  if (document.body.classList.contains("panel-open") && panel) {
+    // w trakcie wysuwania pomiar byłby przypadkowy — wtedy „jeszcze nie wiadomo”
+    if (panel.getAnimations?.().some(a => a.playState === "running")) return null;
+    const r = panel.getBoundingClientRect();
+    /* „Panel z dołu” = sięga do paska zakładek albo dolnego stosu, a nie do dołu mapy:
+       z widocznym paskiem „NIEOFICJALNE źródło” panel kończy się ~150 px nad dołem
+       mapy i mapa nie przesuwała się wcale (zrzuty 1.7.97, 18.10.2026). */
+    if (r.width > m.width * 0.8 && r.bottom >= gora - 60) gora = Math.min(gora, r.top);
+  }
+  return Math.max(0, Math.round(m.bottom - gora));
+}
+/* Oddalenie liczymy względem stanu WYJŚCIOWEGO (pierwszy pomiar), a nie przyrostami:
+   po zamknięciu panelu mapa wraca dokładnie do poprzedniego przybliżenia, nawet gdy
+   po drodze był pomiar w trakcie animacji albo ograniczenie do ±0,75 poziomu. */
+let _mapaBaza = null, _mapaDol = null, _mapaDz = 0, _mapaDolT = 0;
+function dopasujMapeDoPanelu() {
+  if (typeof map === "undefined" || !mapReady) return;
+  clearTimeout(_mapaDolT);
+  _mapaDolT = setTimeout(() => {
+    const nowy = zaslonietyDol(), H = map.getContainer().clientHeight;
+    if (nowy === null) { _mapaDolT = setTimeout(dopasujMapeDoPanelu, 250); return; }
+    if (_mapaBaza === null) { _mapaBaza = _mapaDol = nowy; map.setPadding({ ...map.getPadding(), bottom: nowy }); return; }
+    if (Math.abs(nowy - _mapaDol) < 40) return;
+    _mapaDol = nowy;
+    // ten sam pionowy wycinek mapy co w stanie wyjściowym — ale „lekko”: na 360 dp
+    // historia zasłania ~80 % ekranu i pełne wyrównanie oddalało mapę o 2 poziomy
+    const cel = Math.max(-0.75, Math.min(0.75,
+      Math.log2(Math.max(120, H - _mapaBaza) / Math.max(120, H - nowy))));
+    const dz = cel - _mapaDz;
+    _mapaDz = cel;
+    map.easeTo({ padding: { ...map.getPadding(), bottom: nowy }, zoom: map.getZoom() - dz, duration: 350 });
+  }, 150);
+}
 const stackEl = document.getElementById("bottom-stack");
 if (stackEl && window.ResizeObserver) {
   const setStackH = () => { document.documentElement.style
     .setProperty("--stack-h", stackEl.offsetHeight + "px"); requestAnimationFrame(fitMapActions);
-    dopasujOknoAktualizacji(); };
+    dopasujOknoAktualizacji(); dopasujMapeDoPanelu(); };
   new ResizeObserver(setStackH).observe(stackEl);
   setStackH();
 }

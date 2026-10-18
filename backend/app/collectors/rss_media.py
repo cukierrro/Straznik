@@ -204,6 +204,11 @@ baltic = {c: {"feeds_ok": 0, "feeds": 0, "newest_item": None, "last_alert": None
 _baltic_active: dict[str, dict] = {}     # kraj -> {"incident_key", "at"}
 _baltic_clears_seen: set[str] = set()
 _baltic_alerted: set[str] = set()        # incident_key, za które coś przyznano
+# kraj -> chwila pierwszego zobaczenia odwołania. 18.10.2026: angielski LSM
+# opublikował „Possible air threat alert…” o 07:53, a my przeczytaliśmy go o 08:21,
+# w tym samym obiegu co łotewskie „Beidzies…” (koniec 08:12). Odwołanie zdjęło
+# aktywny alarm, więc spóźniony artykuł wszedł jako NOWY alarm na godzinę.
+_baltic_cleared_at: dict[str, float] = {}
 BALTIC_ACTIVE_S = 3 * 3600
 
 
@@ -660,6 +665,18 @@ _COUNTRY_GROUPS = [("LT", "LV", "EE")] + [tuple(g) for g in config.NEIGHBOUR_COU
 _ALL_COUNTRY_MARKERS = {**_BALTIC_COUNTRY_MARKERS, **config.NEIGHBOUR_COUNTRY_MARKERS}
 
 
+def _baltic_other_named(title_l: str, feed_country: str) -> set[str]:
+    """Inne kraje z grupy wymienione w tytule, gdy tytuł NIE wymienia kraju redakcji.
+
+    18.10.2026: ERR (Estonia) „Läti ja Leedu andsid öösel õhuohu hoiatuse” —
+    „Łotwa i Litwa ogłosiły w nocy alarm” — liczył się jako alarm nad Estonią,
+    bo przy dwóch innych krajach _baltic_named_country zostawia kraj redakcji."""
+    grupa = next((g for g in _COUNTRY_GROUPS if feed_country in g), (feed_country,))
+    named = {c for c in grupa
+             if any(m in title_l for m in _ALL_COUNTRY_MARKERS.get(c, ()))}
+    return set() if feed_country in named else named - {feed_country}
+
+
 def _baltic_named_country(title_l: str, feed_country: str) -> str:
     """Kraj z tytułu, gdy tytuł wprost nazywa JEDEN inny kraj z tej samej grupy."""
     grupa = next((g for g in _COUNTRY_GROUPS if feed_country in g), (feed_country,))
@@ -679,7 +696,14 @@ async def _baltic_entries(entries, url: str, country: str, now: float):
             continue
         link = entry.get("link", "")
         incident_key = _baltic_incident_key(link, title, country)
-        if _is_baltic_clear(text, country):
+        # 18.10.2026: 15min zmienił tytuł z „Panevėžio ir Šiaulių apskrityse –
+        # raudonas oro pavojus” na „Panevėžio apskrityje – raudonas oro pavojus”, a opis
+        # mówił o odwołaniu w Szawlach. Tytuł nadal OGŁASZA alarm, więc to zawężenie,
+        # nie koniec — odwołanie bierzemy tylko wtedy, gdy tytuł sam alarmu nie głosi.
+        tytul_l = title.lower()
+        tytul_alarm = (bool(_is_baltic_alert(tytul_l, country))
+                       and not _is_baltic_clear(tytul_l, country))
+        if _is_baltic_clear(text, country) and not tytul_alarm:
             # Punkty 0 są celowe: wpis zostaje w historii i natychmiast wymusza
             # reevaluację, a fusion.accumulate wygasza wcześniejszy kontekst o
             # tym samym incident_key. Nigdy nie może podbić wyniku. Odwołanie
@@ -694,6 +718,7 @@ async def _baltic_entries(entries, url: str, country: str, now: float):
             _baltic_clears_seen.add(incident_key)
             if not first_seen:
                 continue
+            _baltic_cleared_at[country] = now
             keys = {incident_key} & _baltic_alerted
             active = _baltic_active.pop(country, None)
             if active and now - active["at"] < BALTIC_ACTIVE_S:
@@ -736,6 +761,12 @@ async def _baltic_entries(entries, url: str, country: str, now: float):
         # vzdušný priestor"). Przy Bałtyku wystarczało „brak zagranicy ⇒ u siebie",
         # bo LRT pisze głównie o Litwie. Tutaj tytuł MUSI nazwać miejsce w tym
         # kraju — inaczej Czechy świeciłyby przy każdym zdarzeniu w Danii.
+        inne = _baltic_other_named(title_l, country)
+        if len(inne) >= 2:
+            if alert_hits or match_keywords(text, *kw):
+                _baltic_decision(country, "alert" if alert_hits else "context",
+                                 "inne kraje: " + ", ".join(sorted(inne)), title, link, url, age, now)
+            continue
         if where in config.NEIGHBOUR_REQUIRE_LOCAL and not _local_hit(title_l, where):
             if alert_hits or match_keywords(text, *kw):
                 _baltic_decision(where, "alert" if alert_hits else "context",
@@ -762,6 +793,11 @@ async def _baltic_entries(entries, url: str, country: str, now: float):
         if _journal_only(country, where):
             continue
         if alert_hits:
+            odwolano = _baltic_cleared_at.get(where) or _baltic_cleared_at.get(country)
+            if odwolano and t and now - age <= odwolano:
+                _baltic_decision(where, "alert", "opublikowany przed odwołaniem",
+                                 title, link, url, age, now)
+                continue
             active = _baltic_active.get(country)
             if (active and now - active["at"] < BALTIC_ACTIVE_S
                     and active["incident_key"] != incident_key):

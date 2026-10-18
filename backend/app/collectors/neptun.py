@@ -504,6 +504,19 @@ def score_threat(t: dict, dist_km: float, course_factor: float = 1.0) -> float:
     return round(points, 2)
 
 
+def border_uav_floor(t: dict, dist_km: float) -> float:
+    """Minimum punktów dla drona tuż przy granicy — patrz NEPTUN_BORDER_UAV_FLOOR_*.
+    Zero, gdy obiekt się nie kwalifikuje. Liczona osobno dla KAŻDEGO województwa
+    od odległości do niego (_maybe_signal i _signal_sasiednie); przeniesienie do
+    sąsiadów pomija ten dodatek (fusion.accumulate)."""
+    if (not _is_approx_position(t)
+            and (t.get("type") or "").lower() in config.NEPTUN_BORDER_UAV_FLOOR_TYPES
+            and dist_km <= config.NEPTUN_BORDER_UAV_FLOOR_KM
+            and max(int(t.get("sourceCount") or 1), 1) >= config.NEPTUN_BORDER_UAV_FLOOR_SOURCES):
+        return config.NEPTUN_BORDER_UAV_FLOOR_POINTS
+    return 0.0
+
+
 def _measured_speed(t: dict) -> float | None:
     """Prędkość z dwóch ostatnich punktów śladu (ruch ≥ 0,7 km, odstęp ≥ 30 s)."""
     pts = t.get("straznik_trail") or []
@@ -731,6 +744,12 @@ async def _signal_sasiednie(t: dict, a: dict, ttype: str, count: int, conf: str,
         punkty = score_threat(t, dist, cf)
         if punkty <= 0:
             continue
+        # Podłoga przygraniczna liczona od odległości do TEGO województwa (decyzja
+        # usera 18.10.2026): dron 10 km od lubelskiego i 25 km od podkarpackiego
+        # ostrzega oba. Dodatek z podłogi nie przechodzi dalej do sąsiadów.
+        bazowe = punkty
+        podloga = border_uav_floor(t, dist)
+        punkty = max(punkty, podloga)
         eta_raw = geo.eta_raw_minutes(dist, speed)
         eta_cons = (max(0.0, eta_raw - config.NEPTUN_ETA_BUFFER_MIN)
                     if eta_raw is not None else None)
@@ -741,10 +760,12 @@ async def _signal_sasiednie(t: dict, a: dict, ttype: str, count: int, conf: str,
             punkty = max(punkty, config.THRESHOLD_HIGH)
         elif eta_level == "elevated":
             punkty = max(punkty, config.THRESHOLD_ELEVATED)
+        z_podlogi = round(podloga - bazowe, 2) if podloga > bazowe and punkty == podloga else 0.0
         ile = f"{count}× " if count > 1 else ""
         odl = (_area_distance_label(dist) + " [pozycja rejonowa]"
                if approximate else f"{dist} km")
-        tytul = (f"{ile}{threat_label_pl(ttype)} w odległości {odl} od woj. {voiv} "
+        tytul = (f"{ile}{threat_label_pl(ttype)} w odległości {odl} od woj. {voiv}"
+                 f"{' [blisko granicy]' if z_podlogi else ''} "
                  f"(confidence: {conf}, {sources} potwierdzeń)")
         await fusion.ingest(
             source="neptun", event_type="neptun_threat", voivodeship=voiv,
@@ -781,7 +802,9 @@ async def _signal_sasiednie(t: dict, a: dict, ttype: str, count: int, conf: str,
                      "eta_alarm": eta_level,
                      # znacznik: to przypisanie „po odległości do regionu",
                      # nie pierwotne „najbliższy punkt granicy"
-                     "voiv_secondary": True},
+                     "voiv_secondary": True,
+                     **({"border_floor": True, "bez_przeniesienia_pkt": z_podlogi}
+                        if z_podlogi else {})},
             dedup_key=f"neptun:{t.get('id')}:{voiv}:t{int(punkty * 2)}",
         )
 
@@ -794,6 +817,9 @@ async def _maybe_signal(t: dict):
     points = score_threat(t, a["dist_km"], a.get("course_factor", 1.0))
     if points <= 0:
         return
+    bazowe = points
+    podloga = border_uav_floor(t, a["dist_km"])
+    points = max(points, podloga)
 
     ttype = (t.get("type") or "").lower()
     count = max(int(t.get("count") or 1), 1)
@@ -829,7 +855,11 @@ async def _maybe_signal(t: dict):
         points = max(points, config.THRESHOLD_HIGH)
     elif eta_level == "elevated":
         points = max(points, config.THRESHOLD_ELEVATED)
+    # Część punktów, którą dała sama podłoga przygraniczna — nie przechodzi do
+    # sąsiadów. Gdy alarm ETA podniósł punkty wyżej, działa jak dotąd (0).
+    z_podlogi = round(podloga - bazowe, 2) if podloga > bazowe and points == podloga else 0.0
     ile = f"{count}× " if count > 1 else ""
+    blisko_info = " [blisko granicy]" if z_podlogi else ""
     kurs_info = (" [kurs domniemany — na cel]" if course_src == "presumptive"
                  else "" if a.get("heading_known") else
                  (" [kurs szacowany z ruchu]" if t.get("heading_estimated") is not None
@@ -838,7 +868,7 @@ async def _maybe_signal(t: dict):
     position = t.get("straznik_position") or _position_info(t)
     distance_info = (_area_distance_label(a["dist_km"]) + " [pozycja rejonowa]"
                      if approximate else f"{a['dist_km']} km")
-    title = (f"{ile}{threat_label_pl(ttype)} kursem na granicę PL, {distance_info}{kurs_info}{eta_info} "
+    title = (f"{ile}{threat_label_pl(ttype)} kursem na granicę PL, {distance_info}{kurs_info}{blisko_info}{eta_info} "
              f"(woj. {a['border_voiv']}, confidence: {conf}, {sources} potwierdzeń, "
              f"±{t.get('uncertaintyKm', '?')} km)")
     # Poziom w kluczu deduplikacji: gdy obiekt się zbliży albo zyska potwierdzenia,
@@ -882,7 +912,9 @@ async def _maybe_signal(t: dict):
                  "eta_border_min": eta_safe,
                  "eta_buffer_min": config.NEPTUN_ETA_BUFFER_MIN,
                  "eta_alarm": eta_level,
-                 "eta_voiv_min": _eta_per_voiv(t)},
+                 "eta_voiv_min": _eta_per_voiv(t),
+                 **({"border_floor": True, "bez_przeniesienia_pkt": z_podlogi}
+                    if z_podlogi else {})},
         dedup_key=f"neptun:{t.get('id')}:t{tier}",
     )
     if inserted or t.get("id") not in _signalled:

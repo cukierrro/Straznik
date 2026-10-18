@@ -162,6 +162,45 @@ sprawdz("podłoga przy granicy (pkt)",
 sprawdz("podłoga przy granicy (min. potwierdzeń)",
         num(r"NEAR_FLOOR_SOURCES\s*=\s*([\d.]+)", ENGINE, "floor src js"),
         num(r"NEPTUN_NEAR_FLOOR_SOURCES\s*=\s*([\d.]+)", CONFIG, "floor src py"))
+sprawdz("podłoga dla dronów przy granicy (km)",
+        num(r"BORDER_UAV_FLOOR_KM\s*=\s*([\d.]+)", ENGINE, "dron floor km js"),
+        num(r"NEPTUN_BORDER_UAV_FLOOR_KM\s*=\s*([\d.]+)", CONFIG, "dron floor km py"))
+sprawdz("podłoga dla dronów przy granicy (pkt)",
+        num(r"BORDER_UAV_FLOOR_POINTS\s*=\s*([\d.]+)", ENGINE, "dron floor pkt js"),
+        num(r"NEPTUN_BORDER_UAV_FLOOR_POINTS\s*=\s*([\d.]+)", CONFIG, "dron floor pkt py"))
+sprawdz("podłoga dla dronów przy granicy (min. zgłoszeń)",
+        num(r"BORDER_UAV_FLOOR_SOURCES\s*=\s*([\d.]+)", ENGINE, "dron floor src js"),
+        num(r"NEPTUN_BORDER_UAV_FLOOR_SOURCES\s*=\s*([\d.]+)", CONFIG, "dron floor src py"))
+sprawdz("podłoga dla dronów przy granicy (typy)",
+        sorted(re.findall(r'"(\w+)"', re.search(r"BORDER_UAV_FLOOR_TYPES = \[(.*?)\]", ENGINE).group(1))),
+        sorted(re.findall(r'"(\w+)"', re.search(r"NEPTUN_BORDER_UAV_FLOOR_TYPES = \((.*?)\)", CONFIG).group(1))))
+
+# ── nazwy krajów bałtyckich w tytułach (18.10.2026: relacja ERR o Łotwie i
+# Litwie liczyła się jako alarm w Estonii) — ta sama lista w rss_media i engine.js
+RSS_MEDIA = (ROOT / "backend/app/collectors/rss_media.py").read_text(encoding="utf-8")
+def _kraje(wzorzec, tekst, nazwa):
+    m = re.search(wzorzec, tekst, re.S)
+    if not m:
+        bledy.append(f"nie znaleziono {nazwa}")
+        return {}
+    return {k: sorted(re.findall(r'"([^"]+)"', v)) for k, v in
+            re.findall(r'"?(LT|LV|EE)"?\s*:\s*[\(\[]([^\)\]]*)[\)\]]', m.group(1))}
+sprawdz("nazwy krajów bałtyckich",
+        _kraje(r"const BALTIC_COUNTRY_MARKERS = \{(.*?)\};", ENGINE, "markery js"),
+        _kraje(r"_BALTIC_COUNTRY_MARKERS = \{(.*?)\n\}", RSS_MEDIA, "markery py"))
+
+# ── obrysy województw: silnik aplikacji przypisuje obiekt do każdego województwa
+# w zasięgu tak jak serwer (1.7.97) — obrysy muszą być identyczne
+import json as _json
+sys.path.insert(0, str(ROOT / "backend"))
+from app.voiv_points import VOIV_OUTLINE as _VO  # noqa: E402
+_m = re.search(r"const VOIV_OUTLINE = (\{.*\});", (ROOT / "frontend/voiv-outline.js").read_text(encoding="utf-8"), re.S)
+if not _m:
+    bledy.append("nie znaleziono VOIV_OUTLINE w frontend/voiv-outline.js")
+else:
+    sprawdz("obrysy województw (voiv-outline.js ↔ voiv_points.py)",
+            {k: [list(p) for p in v] for k, v in _json.loads(_m.group(1)).items()},
+            {k: [list(p) for p in v] for k, v in _VO.items()})
 
 # ── alarmy w obwodach UA: te same odległości i te same pasy wag ──────────────
 def _oblasty(tekst, nazwa):

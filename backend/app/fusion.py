@@ -761,11 +761,16 @@ def accumulate(signals: list[dict], ref: datetime | None = None, lost=None) -> d
         # Nie przelewamy go ponownie do sąsiadów, zwłaszcza gdy ten sam komunikat
         # został wydany osobno dla kilku regionów.
         if s.get("source") != "rcb":
-            per_voiv[voiv]["_spillover_score"] += counted
-            if counted > 0:
+            # Dodatek z podłogi przygranicznej dla drona (18.10.2026) zostaje
+            # w województwie przy granicy — sąsiad dostaje tylko część „zwykłą”.
+            bez = (s.get("details") or {}).get("bez_przeniesienia_pkt") or 0.0
+            do_sasiadow = (counted * max(0.0, 1.0 - bez / s["points"])
+                           if bez and s.get("points") else counted)
+            per_voiv[voiv]["_spillover_score"] += do_sasiadow
+            if do_sasiadow > 0:
                 parts = per_voiv[voiv]["_spill_parts"]
                 key = _event_key(s)
-                parts[key] = parts.get(key, 0.0) + counted
+                parts[key] = parts.get(key, 0.0) + do_sasiadow
         per_voiv[voiv]["signals"].append(
             {**s, "counted_points": round1(counted), "weight": round(e["w"], 2),
              **({"cleared": True} if e["cleared"] else {}),
@@ -878,6 +883,14 @@ def red_key(signals: list[dict], ref: datetime | None = None) -> dict | None:
         if (d.get("type") or "").lower() not in config.RED_GATE_TYPES:
             continue
         if d.get("area_only") and (d.get("uncertainty_km") or 0) > config.RED_GATE_AREA_MAX_UNC_KM:
+            continue
+        # V3 (decyzja usera 18.10.2026): punkt „na cel” — kurs DOMNIEMANY przy pozycji
+        # rejonowej — wyznacza źródło z celu i kursu (ok. 40 km przed celem), nie jest
+        # obserwacją. 18.10 09:20 taki punkt „kursem na Kulików” (cel w Ukrainie) dał
+        # czerwony w lubelskim. Przeliczenie 2.08–18.10: znikają 4 z 19 czerwonych,
+        # wszystkie bez obiektu z pewnym kursem bliżej niż 57 km i bez RCB powyżej
+        # 1. stopnia; 28.09 (dron 2,5 km od granicy) bez opóźnienia.
+        if d.get("position_approximate") and "presumptive" in (d.get("course"), d.get("heading_source")):
             continue
         eta, km = d.get("eta_border_min"), d.get("dist_km")
         if eta is not None and eta <= config.RED_GATE_ETA_MIN:

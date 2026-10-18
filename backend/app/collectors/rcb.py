@@ -200,6 +200,36 @@ def _rso_pokrycie(okno_min: int) -> dict[str, int]:
     return out
 
 
+# 18.10.2026: artykuł o alercie z 06:27 dostał listę odbiorców dopiero ok. 08:13,
+# gdy alert RSO wypadł już z okna fuzji (a o 06:54 RSO go odwołało). Kolektor
+# uznał go za alert, którego „RSO nie niosło", i dał fałszywy żółty. Dlatego
+# patrzymy dłużej wstecz niż okno fuzji — do początku poprzedniej nocy.
+ODWOLANIE_OKNO_MIN = 18 * 60
+
+
+def _odwolane_w_rso(okno_min: int = ODWOLANIE_OKNO_MIN) -> set[str]:
+    """Województwa, w których RSO odwołało alert i od tego czasu NIGDZIE nie
+    wydało nowego. Meldunek z artykułu dla takiego województwa to ten sam,
+    już zakończony alert, opisany z opóźnieniem — a nie brakujący w RSO.
+
+    Nowy alert RSO w jakimkolwiek województwie po odwołaniu znosi tę blokadę:
+    wtedy trwa nowe zdarzenie i artykuł może uzupełniać odbiorców jak dotąd."""
+    ostatni_alert: dict[str, str] = {}
+    ostatnie_odwolanie: dict[str, str] = {}
+    najnowszy_alert = ""
+    for s in fusion.db.signals_since(okno_min):
+        if s.get("source") != "rcb" or not s.get("voivodeship"):
+            continue
+        v, ts = s["voivodeship"], s.get("ts") or ""
+        if s.get("event_type") == "rso_alert" and (s.get("points") or 0) > 0:
+            ostatni_alert[v] = max(ostatni_alert.get(v, ""), ts)
+            najnowszy_alert = max(najnowszy_alert, ts)
+        elif s.get("event_type") == "rso_clear":
+            ostatnie_odwolanie[v] = max(ostatnie_odwolanie.get(v, ""), ts)
+    return {v for v, t in ostatnie_odwolanie.items()
+            if t > ostatni_alert.get(v, "") and t > najnowszy_alert}
+
+
 async def _czytaj_artykul(client: httpx.AsyncClient, href: str, tytul: str):
     """Otwiera artykuł z bieżącego dnia i punktuje województwa spoza RSO."""
     url = f"https://www.gov.pl{href}"
@@ -246,7 +276,16 @@ async def _czytaj_artykul(client: httpx.AsyncClient, href: str, tytul: str):
         return
 
     poziom = m["poziom"]
-    brakujace = [v for v in m["wojewodztwa"] if pokrycie.get(v, 0) < poziom]
+    odwolane = _odwolane_w_rso()
+    brakujace = [v for v in m["wojewodztwa"]
+                 if pokrycie.get(v, 0) < poziom and v not in odwolane]
+    for voiv in m["wojewodztwa"]:
+        if voiv in odwolane and pokrycie.get(voiv, 0) < poziom:
+            fusion.db.add_signal(
+                "rcb", "rcb_art_seen", voiv, 0.0,
+                f"RCB (gov.pl, alert już odwołany w RSO): „{m['tresc'][:110]}”",
+                {"url": url, "rcb_level": poziom, "odwolany_w_rso": True},
+                f"{klucz}:odwolany:{voiv}")
     # Meldunek zastany przy pierwszym otwarciu bywa sprzed godzin. Punktuje dopiero,
     # gdy RSO ma żywy alert — wtedy wiadomo, że komunikat trwa. Sprawdzamy to w
     # każdym obiegu, bo alert RSO może wejść chwilę po starcie.

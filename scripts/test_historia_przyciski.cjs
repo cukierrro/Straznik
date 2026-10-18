@@ -130,11 +130,14 @@ const UI_STUB = { lang: "pl", isEn: false, isUk: false,
 const wiek = { UI: UI_STUB };
 vm.createContext(wiek);
 vm.runInContext(cut('function threatAgeMin', String.fromCharCode(10) + '/* Identyfikatory'), wiek);
+// threatAgeMin sięga po snapAgeMin, gdy obiekt pochodzi z migawki historii (18.10.2026)
+vm.runInContext(cut('function snapAgeMin', String.fromCharCode(10) + 'function showHistoryAt'), wiek);
 const T = Date.UTC(2026, 8, 17, 20, 0, 0);
 assert.equal(wiek.threatAgeMin({ updatedAt: new Date(T - 7 * 60000).toISOString() }, T), 7, 'wiek liczony z updatedAt');
 assert.equal(wiek.threatAgeMin({ confirmedAt: new Date(T - 90 * 60000).toISOString(), updatedAt: new Date(T).toISOString() }, T), 90,
   'confirmedAt ma pierwszeństwo nad updatedAt');
 assert.equal(wiek.threatAgeMin({}, T), 0, 'brak czasu = 0, bez wygaszania');
+assert.equal(wiek.threatAgeMin({ age_min: 5 }, T), 5, 'obiekt z migawki: wiek z age_min');
 assert.equal(wiek.ageLabel(7), '7 min');
 assert.equal(wiek.ageLabel(65), '1 h 5 min');
 assert.equal(wiek.ageLabel(120), '2 h');

@@ -168,6 +168,22 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 #ac-card.big { right: 8px; width: auto; max-height: 74vh; max-height: 74dvh; border-radius: 14px;
   bottom: calc(var(--tabbar-h) + var(--safe-b) + var(--stack-h, 0px) + 12px);
   padding: 14px 16px 16px; font-size: 0.8333rem; line-height: 1.45; }
+/* Karta stoi NAD panelem (historia, sygnały: --stack-h), więc jej wysokość musi
+   odjąć panel i pasek stanu. Sztywne 74% ekranu wypychało rozwiniętą kartę ponad
+   górę, a przyciski „zwiń” i „zamknij” znikały — karty nie dało się zamknąć
+   (zgłoszenie 18.10.2026, potwierdzone na 360 i 411 dp). Przewija się ciało karty. */
+/* Gdy nad panelem zostaje mniej niż ~150 px (czcionka 200 %, 320 dp z historią),
+   karta nie ucieka za ekran, tylko nachodzi na górę panelu: dół karty nie wyżej niż
+   150 px pod górną krawędzią. Wysokość liczona od tego samego dołu. */
+#ac-card { --karta-dol: min(calc(var(--tabbar-h) + var(--safe-b) + var(--stack-h, 0px) + 6px),
+    calc(100vh - var(--safe-t) - 150px));
+  bottom: var(--karta-dol);
+  max-height: min(152px, calc(100vh - var(--safe-t) - var(--karta-dol) - 12px)); }
+#ac-card.big { --karta-dol: min(calc(var(--tabbar-h) + var(--safe-b) + var(--stack-h, 0px) + 12px),
+    calc(100vh - var(--safe-t) - 150px));
+  bottom: var(--karta-dol);
+  max-height: min(74vh, calc(100vh - var(--safe-t) - var(--karta-dol) - 12px));
+  max-height: min(74dvh, calc(100dvh - var(--safe-t) - var(--karta-dol) - 12px)); }
 /* W zwiniętej karcie zdjęcie jest podglądem, nie połową karty — ale 44 px robiło
    z niego znaczek pocztowy pływający pośrodku pustego pasa na całą szerokość
    (zgłoszenie użytkownika 27.09.2026). Dwie reguły, bo te obrazy różnią się kadrem.
@@ -220,8 +236,10 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.04)); border-radius: 11px; }
 /* na szerokim ekranie karta jako narożnik, nie pełna szerokość */
 @media (min-width: 861px) {
-  #ac-card { left: 12px; right: auto; width: 340px; max-height: 46vh; }
-  #ac-card.big { right: auto; width: 420px; max-height: 82vh; }
+  #ac-card { left: 12px; right: auto; width: 340px; max-height: 46vh;
+    max-height: min(46vh, calc(100vh - var(--safe-t) - var(--karta-dol) - 12px)); }
+  #ac-card.big { right: auto; width: 420px; max-height: 82vh;
+    max-height: min(82vh, calc(100vh - var(--safe-t) - var(--karta-dol) - 12px)); }
 }
 
 /* ── obserwacja obcych maszyn (RU/BY) ── */
@@ -506,7 +524,7 @@ dialog a:hover, dialog a:focus-visible { text-decoration: underline; }
   border-radius: 12px; padding: 9px 9px 9px 12px; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
 }
 #panel-head .ph-txt { min-width: 0; }
-#panel-head h2 { margin: 0; font-size: 1rem; line-height: 1.2; }
+#panel-head h2 { margin: 0; font-size: 1rem; line-height: 1.2; overflow-wrap: anywhere; }
 #panel-progi { margin-top: 3px; }
 /* Pole dotykowe 44 px i słowo obok znaku: samo × nie mówi, co zamyka.
    Wcześniej było to kółko 34 px wiszące nad treścią. */
@@ -817,7 +835,23 @@ dialog .set-switch input:focus-visible + .sw-track { outline: 2px solid var(--ac
 /* ── okno „O aplikacji" ── */
 #about { width: min(680px, 94vw); max-height: var(--dlg-max); padding: 0; overflow: hidden; }
 .about-body { max-height: var(--dlg-max); overflow-y: auto; padding: 20px 22px 18px; }
+/* Okna z treścią bez własnego przewijania (zgoda pełnoekranowa, praca w tle):
+   `overflow-y: auto` robi z treści osobny blok, który NIE opływa pływającego
+   przycisku „Zamknij”, tylko staje obok niego — na 360 dp treść dostawała 183 px
+   z 324 px okna, a prawy pas był pusty (zgłoszenie 17.10.2026). Przewija się
+   samo okno, więc treść może zwyczajnie opłynąć przycisk. */
+#fs-check > .about-body, #onboard-bg > .about-body { overflow: visible; }
+/* nagłówek (logo + tytuł) to układ flex, więc też nie opływa przycisku — przy dużej
+   czcionce wychodził za prawą krawędź; schodzi pod przycisk */
+#fs-check .about-head, #onboard-bg .about-head { clear: both; }
+/* na wąskim ekranie logo (dekoracja) zabierało tytułowi miejsce — „Alarm
+   pełnoekranowy” łamał się w trzy linie na 320 px */
+@media (max-width: 360px) { #fs-check .about-logo, #onboard-bg .about-logo { display: none; } }
 .about-head { display: flex; gap: 14px; align-items: center; margin-bottom: 14px; }
+/* blok tytułu może się zwęzić, a długie słowo („pełnoekranowy” przy czcionce 200 %)
+   złamać, zamiast wypchnąć nagłówek za prawą krawędź okna */
+.about-head > div { min-width: 0; }
+.about-head h2, .about-head .about-sub { overflow-wrap: anywhere; }
 .about-logo {
   width: 52px; height: 52px; flex: none; border-radius: 14px;
   background: radial-gradient(circle at 35% 30%, #5b8cff, #12203c);
@@ -841,7 +875,21 @@ dialog .set-switch input:focus-visible + .sw-track { outline: 2px solid var(--ac
 .about-tab { width: 100%; border-collapse: collapse; font-size: 0.8333rem; }
 .about-tab td { padding: 5px 6px; border-bottom: 1px solid rgba(120,150,210,.12);
   vertical-align: top; line-height: 1.4; }
-.about-tab td:first-child { white-space: nowrap; color: var(--cyan); width: 74px; }
+/* Etykiety mogą złamać się na dwie linie: przy zakazie łamania „Jakość pozycji”,
+   „Sąsiedzi (cień)” czy „Przy granicy” rozpychały tabelę poza okno na 320–360 dp
+   i przy dużej czcionce (analiza responsywności 18.10.2026). */
+.about-tab td:first-child { white-space: normal; color: var(--cyan); width: 74px; }
+/* środkowa kolumna może złamać długi wyraz; etykieta tylko między słowami —
+   „anywhere” w etykiecie rozbijało „Neighbours (shadow)” w środku słów */
+.about-tab td:not(:first-child) { overflow-wrap: anywhere; }
+.about-body { overflow-wrap: break-word; }
+/* Duży tekst: trzy kolumny się nie mieszczą (środkowa miała 21 px przy 200 %) —
+   etykieta nad wierszem, opis i punkty pod nią. */
+html.tekst-duzy .about-tab tr { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 8px;
+  border-bottom: 1px solid rgba(120,150,210,.12); }
+html.tekst-duzy .about-tab td { border-bottom: 0; width: auto; }
+html.tekst-duzy .about-tab td:first-child { grid-column: 1 / -1; padding-bottom: 0; }
+html.tekst-duzy .about-tab td:first-child:empty { display: none; }
 .about-tab .pts { text-align: right; color: var(--amber); font-weight: 700;
   white-space: nowrap; width: 46px; }
 .lvl-row { display: flex; gap: 9px; align-items: flex-start; font-size: 0.8333rem;
@@ -959,6 +1007,11 @@ html[lang="en"] .list:empty::after { content: "— none —"; }
 .voiv-zones > summary { cursor: pointer; list-style: none; color: var(--muted);
   padding: 3px 0; }
 .voiv-zones > summary::-webkit-details-marker { display: none; }
+/* <details> nie przekazuje display:flex zawartości we wszystkich WebView — plakietki
+   stref szły jednym rzędem za prawą krawędź (czcionka 130 %, 18.10.2026) */
+.voiv-zones-lista { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; min-width: 0;
+  flex: 1 1 100%; }   /* w otwartym <details> lista bierze cały wiersz pod podsumowaniem */
+.voiv-zones-lista .btn-zone { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .voiv-zones > summary::before { content: "▸ "; }
 .voiv-zones[open] > summary::before { content: "▾ "; }
 .voiv-breakdown { margin-top: 6px; display: none; }
@@ -1300,6 +1353,14 @@ dialog menu > .chip.primary { font-weight: 600; }
   display: flex; flex-direction: column; gap: 7px;
   pointer-events: none;                 /* mapa pod spodem zostaje przesuwalna */
 }
+/* Przy czcionce 200 % na 360 dp dolny stos (komunikaty + panel historii) był wyższy
+   niż ekran i „NA ŻYWO” lądowało pod paskiem stanu. Stos nie wychodzi ponad górę,
+   a ustępuje panel historii — przewija się w sobie (reszta stosu zostaje cała). */
+#bottom-stack { max-height: calc(100vh - var(--safe-t) - var(--tabbar-h) - var(--safe-b) - 16px); }
+/* Ścisnąć się może tylko panel historii — baner i komunikaty zostają całe (przy 200 %
+   krzyżyk banera wypadał pod dolną krawędź). Selektor musi przebić ogólne
+   `#bottom-stack > * { flex: 0 0 auto }` niżej, stąd #bottom-stack > #timebar. */
+#bottom-stack > #timebar { min-height: 0; flex: 0 1 auto; overflow-y: auto; overscroll-behavior: contain; }
 /* Bez tego flex ściskał atrybucję i ucinał ją w połowie wiersza — wyglądało to
    jak nachodzenie paska zastrzeżenia na tekst źródeł. */
 #bottom-stack > * { pointer-events: auto; flex: 0 0 auto; }
@@ -1734,6 +1795,10 @@ dialog input, dialog select, #quiet-hours input[type="time"] {
 #tabbar > .tab-btn > span:not(.tab-grota-pill):not(.badge) { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   font-size: min(0.8rem, calc(18px / var(--zoom-sys, 1))); }
 #tabbar > .tab-btn.active { color: var(--akcent-jasny); background: rgba(143, 180, 255, 0.14); }
+/* Wąski ekran i duży tekst (320 dp, ×1,3, ukraiński): „Сигнали” ucinało się do
+   „Сигна…” — przy wąskim ekranie mniejsze podpisy zakładek (18.10.2026). */
+@media (max-width: 360px) { #tabbar > .tab-btn > span:not(.tab-grota-pill):not(.badge) {
+  font-size: min(0.72rem, calc(16px / var(--zoom-sys, 1))); letter-spacing: -0.01em; } }
 .tab-btn.tab-grota { color: var(--napis-na-glownym); background: none; padding: 0; }
 .tab-grota-pill {
   display: grid; place-items: center; width: 54px; height: 40px; border-radius: 14px;
@@ -1789,6 +1854,8 @@ dialog > .dlg-x.dlg-x-slowo { width: auto; padding: 0 12px; gap: 6px; font-size:
 /* ── v4: ustawienia jako arkusz o STAŁEJ wysokości (koniec skakania okna) ── */
 dialog.ustawienia { width: min(460px, 94vw); height: var(--dlg-max); }
 dialog.ustawienia.na-starcie .set-pane, dialog.ustawienia.na-starcie #set-wstecz { display: none; }
+#set-do-menu { display: none; }
+dialog.ustawienia.na-starcie.z-menu #set-do-menu { display: inline-flex; }
 dialog.ustawienia.w-sekcji #set-start { display: none; }
 #set-start h3 { font-size: 1.4rem; font-weight: 700; letter-spacing: -0.01em; margin: 4px 0 12px; }
 /* Wiersze sekcji: dawne zakładki, teraz lista jak w Menu */
@@ -1809,6 +1876,10 @@ dialog.ustawienia .set-tabs { grid-template-columns: minmax(0, 1fr); }
 dialog.ustawienia .set-tab.sheet-row { white-space: normal; min-width: 0; }
 dialog.ustawienia .set-tab.sheet-row > span:not(.set-wartosc) { min-width: 0; overflow-wrap: anywhere; }
 .set-wartosc { min-width: 0; max-width: 42%; overflow: hidden; text-overflow: ellipsis; }
+/* Krótka wartość („włączone”, „Polski”, „Українська”) nie może być ucinana o kilka px
+   (320–360 dp, 18.10.2026): nie kurczy się, a ustępuje nazwa, która się zawija.
+   Długie wartości (lista miejsc) nadal kończą się wielokropkiem przy 55 %. */
+dialog.ustawienia .set-wartosc { flex-shrink: 0; max-width: 55%; }
 html.tekst-duzy dialog.ustawienia .set-tab.sheet-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto;
   column-gap: 12px; row-gap: 2px; }
 html.tekst-duzy dialog.ustawienia .set-tab.sheet-row > svg:first-child { grid-column: 1; grid-row: 1 / span 2; }
@@ -1942,6 +2013,11 @@ body.dane-stare .led i { background: #6b7385 !important; box-shadow: none !impor
 /* przyciski historii: kwadrat dawał 31–33 px wysokości */
 .tb-btn { min-height: 44px; }
 .tb-btn small { font-size: 0.7rem; text-overflow: ellipsis; }
+/* 9 przycisków na 360 dp to ~34 px każdy: „−12 h” ucinało się do „−1…”, a to
+   wprowadza w błąd. Najpierw mniejsze podpisy, a gdy i to za mało (duży tekst) —
+   same ikony; nazwy zostają dla czytnika ekranu w aria-label (18.10.2026). */
+@media (max-width: 400px) { .tb-btn small { font-size: 0.6rem; letter-spacing: -0.02em; } .tb-controls { gap: 3px; } }
+.tb-controls.bez-podpisow .tb-btn small { display: none; }
 .tb-btn.play { background: var(--przycisk-glowny); border-color: rgba(214, 228, 255, 0.7); color: var(--napis-na-glownym); }
 #tb-live, #tb-speed { min-height: 36px; }
 /* drobny druk: było 0,6333–0,7 rem (9,5–10,5 px) */
@@ -2095,10 +2171,22 @@ html.tekst-duzy #licznik-okno .lk-opis { grid-column: 1 / -1; }
 .w12-przelacz.otwarty .w12-strz { transform: rotate(90deg); }
 .w12-max { color: var(--muted); font-weight: 500; white-space: nowrap; }
 .w12-mini { width: 96px; height: 22px; margin-left: auto; flex: none; }
+/* Tytuł dostawał resztkę rzędu i łamał się po każdym słowie („Drony / i /
+   rakiety / · 12 h”, 38 px na 360 dp — zgłoszenie 17.10.2026). Tytuł zostaje
+   w jednej linii, a ustępuje „najwięcej naraz”, które może zejść do dwóch linii;
+   na wąskim ekranie chowamy miniwykres (pełny jest pod rozwinięciem). */
+#w12-t { flex: none; white-space: nowrap; }
+.w12-max { min-width: 0; white-space: normal; line-height: 1.2; }
+/* Gdy obok tytułu zostaje mniej niż ~150 px (wąski ekran, ukraiński, duża czcionka),
+   „najwięcej naraz” schodzi pod tytuł na całą szerokość zamiast łamać się w słupek. */
+.w12-przelacz { flex-wrap: wrap; row-gap: 2px; padding-top: 4px; padding-bottom: 4px; }
+.w12-przelacz .w12-max { flex: 1 1 150px; }
+@media (max-width: 400px) { .w12-mini { display: none; } }
 .w12-przelacz.otwarty .w12-max { margin-left: auto; }
 .w12-cialo { padding: 6px 2px 0; }
 .w12-cialo[hidden] { display: none; }
-.w12-leg { display: flex; gap: 14px; font-size: 0.7667rem; color: var(--muted); margin: 0 0 2px 2px; }
+.w12-leg { display: flex; gap: 14px; font-size: 0.7667rem; color: var(--muted); margin: 0 0 2px 2px;
+  flex-wrap: wrap; row-gap: 2px; }   /* po ukraińsku pozycje legendy łamały się w słupki */
 .w12-leg i { display: inline-block; vertical-align: middle; margin-right: 5px; }
 .w12-l-dron { width: 12px; height: 3px; border-radius: 2px; background: #ffb020; }
 .w12-l-rak { width: 8px; height: 8px; border-radius: 50%; background: #ff4d5e; }
@@ -2120,6 +2208,19 @@ html.tekst-duzy #licznik-okno .lk-opis { grid-column: 1 / -1; }
    Oba przyciski: jedna linia, ta sama wysokość 36 px i promień 10 px co reszta v4.
    „Na żywo” z zieloną kropką jak diody źródeł — tam wraca się do danych na żywo. */
 .tb-head { height: 40px; gap: 8px; margin-bottom: 4px; }
+/* Pięć elementów w jednym rzędzie nie mieści się na 320–360 dp: godzina
+   „01:27 (−8 h 25 min)” wychodziła za prawą krawędź (zgłoszenie 17.10.2026,
+   zmierzone: 40 px poza ekranem na 320 dp). Godzina może zejść do dwóch linii,
+   a rząd urosnąć — bez ucinania. */
+/* Wysokość zostaje stała (40 px): dwie linie godziny mieszczą się w niej, a rząd
+   się nie zawija — inaczej długość godziny przy przesuwaniu suwaka zmieniałaby
+   wysokość panelu pod palcem (ten sam powód co przy #tb-national, 14.09.2026). */
+.tb-head { height: 40px; }
+.tb-head.ciasno .tb-two { display: none; }
+.tb-head.ciasno #tb-label { font-size: 0.75rem; }
+.tb-head.b-ciasno #tb-label { font-size: 0.65rem; letter-spacing: -0.01em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }   /* godzina zawsze widoczna */
+#timebar #tb-label { flex: 0 1 auto; min-width: 0; white-space: normal; line-height: 1.15; }
 #timebar .tb-live { display: inline-flex; align-items: center; gap: 7px; height: 36px; min-height: 36px;
   padding: 0 12px; border-radius: 10px; letter-spacing: .06em; font: 700 0.7667rem/1 "Segoe UI", system-ui, sans-serif;
   color: var(--akcent-jasny); background: rgba(143, 180, 255, 0.12); border: 1px solid rgba(143, 180, 255, 0.40);

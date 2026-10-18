@@ -39,7 +39,7 @@ for (const pane of ["alarmy", "miejsca", "dzwiek", "mapa", "aplikacja"]) {
   sprawdz(new RegExp(`class="set-tab[^"]*" data-pane="${pane}"`).test(okno), `wiersz sekcji „${pane}” to .set-tab z data-pane`);
   sprawdz(new RegExp(`<section class="set-pane" data-pane="${pane}"[^>]*hidden`).test(okno), `sekcja „${pane}” schowana na starcie`);
 }
-sprawdz(/function pokazStartUstawien\(/.test(js) && /openSettings\(\)[\s\S]{0,900}pokazStartUstawien\(\);\s*\r?\n\s*dlg\.showModal\(\)/.test(js),
+sprawdz(/function pokazStartUstawien\(/.test(js) && /function openSettings\([^\n]*\)\s*\{[\s\S]{0,1400}?pokazStartUstawien\(\);\s*\r?\n\s*dlg\.showModal\(\)/.test(js),
   "otwarcie okna zawsze zaczyna od ekranu startowego");
 
 console.log("2. Wstecz i Esc");
