@@ -3744,11 +3744,22 @@ function sigHTML(s) {
     areaOnly:d.area_only, straznik_position:d.position_approximate
       ? { quality:"approx", reason:d.position_reason, locality:d.position_locality } : null };
   const signalApprox = src === "neptun" && isApproxPosition(signalPosition);
+  /* Przypisanie wtórne (serwer od 1.7.91, tryb bez serwera od 1.7.97): ten sam obiekt
+     punktuje każde województwo w zasięgu, a dist_km i czas dolotu liczone są do TEGO
+     województwa, nie do granicy. Panel mówił „X km od granicy" i „kursem na granicę PL". */
+  const secondary = src === "neptun" && !!d.voiv_secondary;
+  const sigVoiv = UI.voiv(s.voivodeship);
+  const secondaryWhere = (km) => km === 0
+    ? UI.t(`nad woj. ${sigVoiv}`, `over ${sigVoiv} province`, `над воєв. ${sigVoiv}`)
+    : UI.t(`${threatDistanceText(signalPosition, km)} od woj. ${sigVoiv}`,
+           `${threatDistanceText(signalPosition, km)} from ${sigVoiv} province`,
+           `${threatDistanceText(signalPosition, km)} від воєв. ${sigVoiv}`);
   // NEPTUN: odległość i pewność kursu wprost w wierszu — bez tego nie było
   // widać, że obiekt bez kursu w ogóle jest brany pod uwagę
   const extra = [];
   if (s.article_status && s.details?.article?.reason) extra.push(String(s.details.article.reason));
-  if (d.dist_km != null) extra.push(`${threatDistanceText(signalPosition, d.dist_km)} ${UI.t("od granicy", "from the border", "від кордону")}`);
+  if (d.dist_km != null) extra.push(secondary ? secondaryWhere(d.dist_km)
+    : `${threatDistanceText(signalPosition, d.dist_km)} ${UI.t("od granicy", "from the border", "від кордону")}`);
   /* Odległość w sygnale to stan Z CHWILI JEGO POWSTANIA — obiekt leci dalej i po
      pół godzinie panel mówił „192,5 km", gdy na mapie ten sam dron był 130 km od
      granicy (zgłoszone 12.09.2026). Dopisujemy bieżącą odległość, dopóki obiekt
@@ -3758,7 +3769,8 @@ function sigHTML(s) {
   const liveNow = tracksNow
     ? (state?.neptun?.threats || []).find(t => String(t.id) === String(d.track_id))
     : null;
-  const nowKm = liveNow?.pl_assessment?.dist_km;
+  // bieżąca odległość to odległość od granicy — przy przypisaniu wtórnym nieporównywalna
+  const nowKm = secondary ? null : liveNow?.pl_assessment?.dist_km;
   if (nowKm != null && d.dist_km != null && Math.abs(nowKm - d.dist_km) >= 5) {
     const closer = nowKm < d.dist_km;
     extra.push({ html: `<b style="color:${closer ? "#ff9f43" : "var(--muted)"}">${
@@ -3790,6 +3802,8 @@ function sigHTML(s) {
   const etaV = presumed ? null : agedEta(mineV && d.eta_voiv_min ? d.eta_voiv_min[mineV] : null, s.ts);
   const etaB = presumed ? null : agedEta(d.eta_border_min, s.ts);
   if (!signalApprox && etaV != null) extra.push(`⏱ ${etaTxt(etaV)} ${UI.t("do woj.", "to", "до воєв.")} ${UI.voiv(mineV)}`);
+  // przy przypisaniu wtórnym eta_border_min to czas do TEGO województwa
+  else if (!signalApprox && etaB != null && secondary) extra.push(`⏱ ${etaTxt(etaB)} ${UI.t("do woj.", "to", "до воєв.")} ${sigVoiv}`);
   else if (!signalApprox && etaB != null) extra.push(`⏱ ${etaTxt(etaB)} ${UI.t("do granicy", "to border", "до кордону")}`);
   let shownTitle = s.title;
   // Tytuły, które PISZEMY SAMI (alarm obwodu UA, przeniesienie od sąsiada), muszą
@@ -3845,20 +3859,30 @@ function sigHTML(s) {
   // Polonizujemy także stare wpisy zapisane już w bazie, korzystając ze
   // stabilnego details.type zamiast ukraińskiego/rosyjskiego tytułu źródła.
   if (src === "neptun" && d.type) {
-    const marker = " kursem na granicę PL";
+    const marker = secondary ? " w odległości " : " kursem na granicę PL";
     const at = String(shownTitle || "").indexOf(marker);
     const prefix = (Number(d.count) || 1) > 1 ? `${Number(d.count)}× ` : "";
-    shownTitle = signalApprox && d.dist_km != null
-      ? prefix + threatLabelPL(d.type) + ` kursem na granicę PL, ${threatDistanceText(signalPosition, d.dist_km)}`
-      : prefix + threatLabelPL(d.type) + (at >= 0 ? String(shownTitle).slice(at) : "");
-    if (!UI.isEn && !UI.isUk) shownTitle = polskiTytulNeptun(shownTitle);
-    else {
-      const count = (Number(d.count) || 1) > 1 ? `${Number(d.count)}× ` : "";
-      shownTitle = count + threatLabelPL(d.type)
-        + (d.dist_km != null
-          ? UI.t("", ` heading towards the Polish border, ${threatDistanceText(signalPosition, d.dist_km)}`,
-                 ` курсом на кордон Польщі, ${threatDistanceText(signalPosition, d.dist_km)}`)
-          : "");
+    if (secondary) {
+      // PL: dokładna pozycja — końcówka tytułu z serwera („[blisko granicy] (wiarygodność…)”);
+      // pozycja rejonowa, „nad woj.” i EN/UK — składane z details
+      const where = d.dist_km != null ? secondaryWhere(d.dist_km) : "";
+      shownTitle = !UI.isEn && !UI.isUk && at >= 0 && !signalApprox && d.dist_km !== 0
+        ? polskiTytulNeptun(prefix + threatLabelPL(d.type) + String(shownTitle).slice(at))
+        : prefix + threatLabelPL(d.type) + (where
+          ? (d.dist_km === 0 ? ` ${where}` : UI.t(` w odległości ${where}`, ` ${where}`, ` за ${where}`)) : "");
+    } else {
+      shownTitle = signalApprox && d.dist_km != null
+        ? prefix + threatLabelPL(d.type) + ` kursem na granicę PL, ${threatDistanceText(signalPosition, d.dist_km)}`
+        : prefix + threatLabelPL(d.type) + (at >= 0 ? String(shownTitle).slice(at) : "");
+      if (!UI.isEn && !UI.isUk) shownTitle = polskiTytulNeptun(shownTitle);
+      else {
+        const count = (Number(d.count) || 1) > 1 ? `${Number(d.count)}× ` : "";
+        shownTitle = count + threatLabelPL(d.type)
+          + (d.dist_km != null
+            ? UI.t("", ` heading towards the Polish border, ${threatDistanceText(signalPosition, d.dist_km)}`,
+                   ` курсом на кордон Польщі, ${threatDistanceText(signalPosition, d.dist_km)}`)
+            : "");
+      }
     }
   }
   return `<div class="sig src-${esc(src)}">

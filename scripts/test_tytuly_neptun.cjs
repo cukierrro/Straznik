@@ -160,3 +160,94 @@ test("app.js spolszcza stare tytuły z bazy, a EN/UK dalej składa tytuł z deta
   assert.match(app, /if \(!UI\.isEn && !UI\.isUk\) shownTitle = polskiTytulNeptun\(shownTitle\);\s*else \{/);
   assert.match(app, /` heading towards the Polish border, \$\{threatDistanceText\(signalPosition, d\.dist_km\)\}`/);
 });
+
+/* Panel sygnałów (sigHTML) w trzech językach. Przypisanie wtórne (details.voiv_secondary)
+   to odległość i czas dolotu do TEGO województwa, nie do granicy: do 18.10.2026 panel PL
+   pokazywał samo „Dron / BpSP”, a EN/UK „heading towards the Polish border”. Funkcje
+   wycinamy z prawdziwego app.js; zależności spoza tytułu i wiersza są zaślepkami. */
+function wytnij(zrodlo, poczatek) {
+  const start = zrodlo.indexOf(poczatek);
+  assert.notEqual(start, -1, `nie znalazłem „${poczatek}” w app.js`);
+  const funkcja = poczatek.startsWith("function");
+  let g = 0;
+  for (let i = start; i < zrodlo.length; i++) {
+    const z = zrodlo[i];
+    if (funkcja) {                      // funkcja kończy się na domknięciu ciała
+      if (z === "{") g++;
+      else if (z === "}" && --g === 0) return zrodlo.slice(start, i + 1);
+    } else if (z === "{" || z === "(" || z === "[") g++;
+    else if (z === "}" || z === ")" || z === "]") g--;
+    else if (z === ";" && g === 0) return zrodlo.slice(start, i + 1);
+  }
+  throw new Error(`niedomknięte: ${poczatek}`);
+}
+
+function panel(lang) {
+  const app = czytaj("frontend/app.js");
+  const VOIV = { en: { podkarpackie: "Subcarpathian", lubelskie: "Lublin" },
+                 uk: { podkarpackie: "Підкарпатське", lubelskie: "Люблінське" } };
+  const TYP = { en: { uav: "Drone / UAV" }, uk: { uav: "Дрон / БпЛА" } };
+  const UI = { isEn: lang === "en", isUk: lang === "uk",
+    t: (pl, en, uk) => (lang === "en" ? en : lang === "uk" ? (uk ?? en) : pl),
+    voiv: (v) => (VOIV[lang] || {})[v] || v,
+    type: (k, fb) => (TYP[lang] || {})[k] || fb };
+  const ctx = vm.createContext({ UI, Math, Number, String, JSON, Date, Object, Array,
+    safeUrl: () => null, relTime: () => "teraz", isFreshSignal: () => false,
+    esc: (x) => String(x), esc2: (x) => String(x), SRC_ICON: {}, SRC_LABEL: {}, histMode: true, state: null,
+    myVoiv: () => null, agedEta: (m) => m,
+    positionInfo: (t) => ({ quality: t?.straznik_position?.quality || (t?.positionQuality === "approx" ? "approx" : "exact") }),
+    TYPE_META: { uav: { label: "Dron / BpSP" }, unknown: { label: "Obiekt" } } });
+  vm.runInContext([wytnij(app, "const CONF_PL = "), wytnij(app, "const odleglosc = "),
+    wytnij(app, "const threatLabelPL = "), wytnij(app, "const etaTxt = "),
+    wytnij(app, "function isApproxPosition("), wytnij(app, "function threatDistanceText("),
+    wytnij(app, "function polskiTytulNeptun("), wytnij(app, "function sigHTML("),
+    "this.sigHTML = sigHTML;"].join("\n"), ctx);
+  return (s) => {
+    const html = ctx.sigHTML(s);
+    const tytul = html.match(/<div class="sig-title">([\s\S]*?)<\/div>/)[1].trim();
+    const wiersz = html.match(/<div class="ts">([\s\S]*?)<\/div>/)[1].replace(/\s+/g, " ").trim();
+    return { tytul, wiersz };
+  };
+}
+
+const WTORNY = { source: "neptun", event_type: "neptun_threat", voivodeship: "podkarpackie", points: 2,
+  ts: "2026-10-18T10:00:00Z",
+  title: "Dron / BpSP w odległości 29,1 km od woj. podkarpackie [blisko granicy] (wiarygodność: wysoka, 3 potwierdzenia)",
+  details: { track_id: "trk_t", type: "uav", count: 1, dist_km: 29.1, source_count: 3, confidence: "high",
+    course: "unknown", voiv_secondary: true, eta_border_min: 7, position_quality: "confirmed" } };
+const GLOWNY = { ...WTORNY, voivodeship: "lubelskie",
+  title: "Dron / BpSP kursem na granicę PL, 180.9 km [kurs domniemany — na cel] (woj. lubelskie, confidence: high, 3 potwierdzeń, ±10 km)",
+  details: { ...WTORNY.details, voiv_secondary: undefined, dist_km: 180.9, course: "presumptive" } };
+
+test("panel: przypisanie wtórne mówi o odległości od TEGO województwa, w trzech językach", () => {
+  const pl = panel("pl")(WTORNY), en = panel("en")(WTORNY), uk = panel("uk")(WTORNY);
+  assert.equal(pl.tytul, WTORNY.title, "PL: pełny tytuł z serwera, nie sama etykieta");
+  assert.equal(en.tytul, "Drone / UAV 29.1 km from Subcarpathian province");
+  assert.equal(uk.tytul, "Дрон / БпЛА за 29,1 km від воєв. Підкарпатське");
+  for (const [j, w] of [["pl", pl], ["en", en], ["uk", uk]]) {
+    // „[blisko granicy]” to znacznik podłogi przygranicznej, nie opis odległości
+    assert.doesNotMatch((w.tytul + w.wiersz).replace("[blisko granicy]", ""), /granic|border|кордон/i,
+      `${j}: ${w.tytul} | ${w.wiersz}`);
+  }
+  assert.match(pl.wiersz, /29,1 km od woj\. podkarpackie/);
+  assert.match(pl.wiersz, /⏱ ~7 min do woj\. podkarpackie/, "czas dolotu do tego województwa");
+  assert.match(en.wiersz, /29\.1 km from Subcarpathian province/);
+  assert.match(en.wiersz, /⏱ ~7 min to Subcarpathian/);
+  // stary tytuł z bazy, pozycja rejonowa i obiekt już nad województwem
+  assert.equal(panel("pl")({ ...WTORNY, title: "Dron / BpSP w odległości 29.1 km od woj. podkarpackie (confidence: medium, 2 potwierdzeń)" }).tytul,
+    "Dron / BpSP w odległości 29,1 km od woj. podkarpackie (wiarygodność: średnia, 2 potwierdzenia)");
+  const rejon = { ...WTORNY, details: { ...WTORNY.details, dist_km: 43, position_approximate: true, position_reason: "x" } };
+  assert.equal(panel("pl")(rejon).tytul, "Dron / BpSP w odległości około 40 km (szacunek rejonowy) od woj. podkarpackie");
+  assert.equal(panel("en")(rejon).tytul, "Drone / UAV about 40 km (area estimate) from Subcarpathian province");
+  const nad = { ...WTORNY, details: { ...WTORNY.details, dist_km: 0 } };
+  assert.equal(panel("pl")(nad).tytul, "Dron / BpSP nad woj. podkarpackie");
+  assert.equal(panel("uk")(nad).tytul, "Дрон / БпЛА над воєв. Підкарпатське");
+});
+
+test("panel: wpis główny bez zmian w EN/UK, w PL spolszczony stary tytuł", () => {
+  assert.equal(panel("pl")(GLOWNY).tytul,
+    "Dron / BpSP kursem na granicę PL, 180,9 km [kurs domniemany — na cel] (woj. lubelskie, wiarygodność: wysoka, 3 potwierdzenia, ±10 km)");
+  assert.equal(panel("en")(GLOWNY).tytul, "Drone / UAV heading towards the Polish border, 180.9 km");
+  assert.equal(panel("uk")(GLOWNY).tytul, "Дрон / БпЛА курсом на кордон Польщі, 180,9 km");
+  assert.match(panel("pl")(GLOWNY).wiersz, /180,9 km od granicy/);
+});
