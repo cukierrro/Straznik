@@ -5801,6 +5801,7 @@ function showHistoryAt(idx) {
   document.getElementById("tb-label").textContent =
     when.toLocaleTimeString(UI.t("pl-PL", "en-GB", "uk-UA"), { hour: "2-digit", minute: "2-digit" })
     + (ageMin > 1 ? ` (${histAgo(ageMin)})` : (UI.t(" (teraz)", " (now)", " (зараз)")));
+  dopasujNaglowekHistorii();
   const sigs = h?.signals || [];
   paintOblasts(sigs);
   paintCountryAlerts(sigs);
@@ -6002,6 +6003,7 @@ function quickLabel(idx) {
   document.getElementById("tb-label").textContent =
     when.toLocaleTimeString(UI.t("pl-PL", "en-GB", "uk-UA"), { hour: "2-digit", minute: "2-digit" })
     + (ageMin > 1 ? ` (${histAgo(ageMin)})` : (UI.t(" (teraz)", " (now)", " (зараз)")));
+  dopasujNaglowekHistorii();
   document.getElementById("tb-slider").setAttribute("aria-valuetext", document.getElementById("tb-label").textContent);
   document.getElementById("tb-slider").dataset.level = timelinePoints[idx]?.level || "none";
   syncTbControls(idx);
@@ -7163,9 +7165,13 @@ function zmierzPowiekszenieSystemu() {
   /* Łącznie z wielkością tekstu wybraną w Strażniku: od ~160% wiersze ustawień
      układają wartość pod nazwą, zamiast ucinać ją do „S…”. */
   const skala = parseFloat(getComputedStyle(html).getPropertyValue("--skala-tekstu")) || 1;
-  html.classList.toggle("tekst-duzy", z * skala >= 1.6);
+  // …albo gdy ekran jest wąski względem tekstu: 320 dp przy skali 1,3 to jak 246 px
+  // przy zwykłym tekście — po ukraińsku nazwa sekcji dostawała 59 px i łamała się
+  // w słupek (analiza responsywności 18.10.2026)
+  html.classList.toggle("tekst-duzy", z * skala >= 1.6 || innerWidth / (z * skala) < 280);
 }
 zmierzPowiekszenieSystemu();
+addEventListener("resize", () => requestAnimationFrame(zmierzPowiekszenieSystemu));
 
 function zmierzPasekTytulu() {
   const tb = document.getElementById("topbar");
@@ -7494,7 +7500,11 @@ function fitMapActions() {
   if (!box) return;
   box.classList.remove("compact", "no-room");
   const room = box.clientHeight;
-  if (!room) return;                                  // ukryty (panel otwarty)
+  if (getComputedStyle(box).display === "none") return;   // ukryty (panel otwarty)
+  // Zero wysokości przy WIDOCZNYM pudełku to brak miejsca, a nie ukrycie: w historii
+  // przy czcionce 200 % każdy przycisk lądował w osobnej kolumnie, coraz dalej w lewo,
+  // aż „cała PL” wyszło za lewą krawędź (analiza responsywności 18.10.2026).
+  if (room <= 0) { box.classList.add("compact", "no-room"); return; }
   const need = el => [...el.children].reduce((h, c) => h + c.offsetHeight + 8, -8);
   if (need(box) <= room) return;
   box.classList.add("compact");
@@ -7506,6 +7516,27 @@ function fitMapActions() {
     box.classList.add("no-room");
 }
 addEventListener("resize", () => requestAnimationFrame(fitMapActions));
+
+/* Nagłówek historii na wąskim ekranie albo przy dużej czcionce: gdy nazwa trybu,
+   „NA ŻYWO”, „×1” i godzina się nie mieszczą, zostaje sama ikona ⏱ zamiast napisu
+   „PODGLĄD HISTORII”. Przy czcionce 200 % „×1” wychodziło za prawą krawędź, a na
+   320 dp godzina wystawała z ramki (analiza responsywności 18.10.2026). Mierzone
+   przy każdej zmianie godziny, przed odmalowaniem — bez mrugania. */
+function dopasujNaglowekHistorii() {
+  const head = document.querySelector("#timebar .tb-head");
+  if (!head || !head.offsetWidth) return;
+  head.classList.remove("ciasno", "b-ciasno");
+  const prawa = head.getBoundingClientRect().right + 1;
+  const label = document.getElementById("tb-label");
+  const za = head.scrollWidth > head.clientWidth + 1
+    || [...head.children].some(c => c.offsetWidth && c.getBoundingClientRect().right > prawa)
+    || (label && label.scrollWidth > label.clientWidth + 1);
+  if (!za) return;
+  head.classList.add("ciasno");
+  // przy czcionce 200 % nawet bez napisu trybu godzina wystawała o kilka px
+  if (label && label.scrollWidth > label.clientWidth + 1) head.classList.add("b-ciasno");
+}
+addEventListener("resize", () => requestAnimationFrame(dopasujNaglowekHistorii));
 
 /* Chowane kafelki mapy (21.09.2026, próba): strzałka chowa je za prawą krawędź,
    dotknięcie paska albo strzałki wysuwa. Wybór zostaje na tym urządzeniu. */

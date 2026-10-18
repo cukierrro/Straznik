@@ -172,10 +172,18 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
    odjąć panel i pasek stanu. Sztywne 74% ekranu wypychało rozwiniętą kartę ponad
    górę, a przyciski „zwiń” i „zamknij” znikały — karty nie dało się zamknąć
    (zgłoszenie 18.10.2026, potwierdzone na 360 i 411 dp). Przewija się ciało karty. */
-#ac-card { max-height: min(152px, calc(100vh - var(--safe-t) - var(--tabbar-h) - var(--safe-b) - var(--stack-h, 0px) - 18px));
-  max-height: min(152px, calc(100dvh - var(--safe-t) - var(--tabbar-h) - var(--safe-b) - var(--stack-h, 0px) - 18px)); }
-#ac-card.big { max-height: min(74vh, calc(100vh - var(--safe-t) - var(--tabbar-h) - var(--safe-b) - var(--stack-h, 0px) - 24px));
-  max-height: min(74dvh, calc(100dvh - var(--safe-t) - var(--tabbar-h) - var(--safe-b) - var(--stack-h, 0px) - 24px)); }
+/* Gdy nad panelem zostaje mniej niż ~150 px (czcionka 200 %, 320 dp z historią),
+   karta nie ucieka za ekran, tylko nachodzi na górę panelu: dół karty nie wyżej niż
+   150 px pod górną krawędzią. Wysokość liczona od tego samego dołu. */
+#ac-card { --karta-dol: min(calc(var(--tabbar-h) + var(--safe-b) + var(--stack-h, 0px) + 6px),
+    calc(100vh - var(--safe-t) - 150px));
+  bottom: var(--karta-dol);
+  max-height: min(152px, calc(100vh - var(--safe-t) - var(--karta-dol) - 12px)); }
+#ac-card.big { --karta-dol: min(calc(var(--tabbar-h) + var(--safe-b) + var(--stack-h, 0px) + 12px),
+    calc(100vh - var(--safe-t) - 150px));
+  bottom: var(--karta-dol);
+  max-height: min(74vh, calc(100vh - var(--safe-t) - var(--karta-dol) - 12px));
+  max-height: min(74dvh, calc(100dvh - var(--safe-t) - var(--karta-dol) - 12px)); }
 /* W zwiniętej karcie zdjęcie jest podglądem, nie połową karty — ale 44 px robiło
    z niego znaczek pocztowy pływający pośrodku pustego pasa na całą szerokość
    (zgłoszenie użytkownika 27.09.2026). Dwie reguły, bo te obrazy różnią się kadrem.
@@ -229,9 +237,9 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 /* na szerokim ekranie karta jako narożnik, nie pełna szerokość */
 @media (min-width: 861px) {
   #ac-card { left: 12px; right: auto; width: 340px; max-height: 46vh;
-    max-height: min(46vh, calc(100vh - var(--safe-t) - var(--tabbar-h) - var(--safe-b) - var(--stack-h, 0px) - 18px)); }
+    max-height: min(46vh, calc(100vh - var(--safe-t) - var(--karta-dol) - 12px)); }
   #ac-card.big { right: auto; width: 420px; max-height: 82vh;
-    max-height: min(82vh, calc(100vh - var(--safe-t) - var(--tabbar-h) - var(--safe-b) - var(--stack-h, 0px) - 24px)); }
+    max-height: min(82vh, calc(100vh - var(--safe-t) - var(--karta-dol) - 12px)); }
 }
 
 /* ── obserwacja obcych maszyn (RU/BY) ── */
@@ -836,7 +844,14 @@ dialog .set-switch input:focus-visible + .sw-track { outline: 2px solid var(--ac
 /* nagłówek (logo + tytuł) to układ flex, więc też nie opływa przycisku — przy dużej
    czcionce wychodził za prawą krawędź; schodzi pod przycisk */
 #fs-check .about-head, #onboard-bg .about-head { clear: both; }
+/* na wąskim ekranie logo (dekoracja) zabierało tytułowi miejsce — „Alarm
+   pełnoekranowy” łamał się w trzy linie na 320 px */
+@media (max-width: 360px) { #fs-check .about-logo, #onboard-bg .about-logo { display: none; } }
 .about-head { display: flex; gap: 14px; align-items: center; margin-bottom: 14px; }
+/* blok tytułu może się zwęzić, a długie słowo („pełnoekranowy” przy czcionce 200 %)
+   złamać, zamiast wypchnąć nagłówek za prawą krawędź okna */
+.about-head > div { min-width: 0; }
+.about-head h2, .about-head .about-sub { overflow-wrap: anywhere; }
 .about-logo {
   width: 52px; height: 52px; flex: none; border-radius: 14px;
   background: radial-gradient(circle at 35% 30%, #5b8cff, #12203c);
@@ -864,7 +879,17 @@ dialog .set-switch input:focus-visible + .sw-track { outline: 2px solid var(--ac
    „Sąsiedzi (cień)” czy „Przy granicy” rozpychały tabelę poza okno na 320–360 dp
    i przy dużej czcionce (analiza responsywności 18.10.2026). */
 .about-tab td:first-child { white-space: normal; color: var(--cyan); width: 74px; }
-.about-tab td { overflow-wrap: anywhere; }
+/* środkowa kolumna może złamać długi wyraz; etykieta tylko między słowami —
+   „anywhere” w etykiecie rozbijało „Neighbours (shadow)” w środku słów */
+.about-tab td:not(:first-child) { overflow-wrap: anywhere; }
+.about-body { overflow-wrap: break-word; }
+/* Duży tekst: trzy kolumny się nie mieszczą (środkowa miała 21 px przy 200 %) —
+   etykieta nad wierszem, opis i punkty pod nią. */
+html.tekst-duzy .about-tab tr { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 8px;
+  border-bottom: 1px solid rgba(120,150,210,.12); }
+html.tekst-duzy .about-tab td { border-bottom: 0; width: auto; }
+html.tekst-duzy .about-tab td:first-child { grid-column: 1 / -1; padding-bottom: 0; }
+html.tekst-duzy .about-tab td:first-child:empty { display: none; }
 .about-tab .pts { text-align: right; color: var(--amber); font-weight: 700;
   white-space: nowrap; width: 46px; }
 .lvl-row { display: flex; gap: 9px; align-items: flex-start; font-size: 0.8333rem;
@@ -1323,10 +1348,14 @@ dialog menu > .chip.primary { font-weight: 600; }
   display: flex; flex-direction: column; gap: 7px;
   pointer-events: none;                 /* mapa pod spodem zostaje przesuwalna */
 }
-/* Przy czcionce 200 % na 360 dp panel historii był wyższy niż ekran i „NA ŻYWO”
-   lądowało pod paskiem stanu. Panel nie wychodzi ponad górę — przewija się w sobie. */
-#timebar { max-height: calc(100vh - var(--safe-t) - var(--tabbar-h) - var(--safe-b) - 24px);
-  overflow-y: auto; overscroll-behavior: contain; }
+/* Przy czcionce 200 % na 360 dp dolny stos (komunikaty + panel historii) był wyższy
+   niż ekran i „NA ŻYWO” lądowało pod paskiem stanu. Stos nie wychodzi ponad górę,
+   a ustępuje panel historii — przewija się w sobie (reszta stosu zostaje cała). */
+#bottom-stack { max-height: calc(100vh - var(--safe-t) - var(--tabbar-h) - var(--safe-b) - 16px); }
+/* Ścisnąć się może tylko panel historii — baner i komunikaty zostają całe (przy 200 %
+   krzyżyk banera wypadał pod dolną krawędź). Selektor musi przebić ogólne
+   `#bottom-stack > * { flex: 0 0 auto }` niżej, stąd #bottom-stack > #timebar. */
+#bottom-stack > #timebar { min-height: 0; flex: 0 1 auto; overflow-y: auto; overscroll-behavior: contain; }
 /* Bez tego flex ściskał atrybucję i ucinał ją w połowie wiersza — wyglądało to
    jak nachodzenie paska zastrzeżenia na tekst źródeł. */
 #bottom-stack > * { pointer-events: auto; flex: 0 0 auto; }
@@ -2136,7 +2165,8 @@ html.tekst-duzy #licznik-okno .lk-opis { grid-column: 1 / -1; }
 .w12-przelacz.otwarty .w12-max { margin-left: auto; }
 .w12-cialo { padding: 6px 2px 0; }
 .w12-cialo[hidden] { display: none; }
-.w12-leg { display: flex; gap: 14px; font-size: 0.7667rem; color: var(--muted); margin: 0 0 2px 2px; }
+.w12-leg { display: flex; gap: 14px; font-size: 0.7667rem; color: var(--muted); margin: 0 0 2px 2px;
+  flex-wrap: wrap; row-gap: 2px; }   /* po ukraińsku pozycje legendy łamały się w słupki */
 .w12-leg i { display: inline-block; vertical-align: middle; margin-right: 5px; }
 .w12-l-dron { width: 12px; height: 3px; border-radius: 2px; background: #ffb020; }
 .w12-l-rak { width: 8px; height: 8px; border-radius: 50%; background: #ff4d5e; }
@@ -2166,6 +2196,10 @@ html.tekst-duzy #licznik-okno .lk-opis { grid-column: 1 / -1; }
    się nie zawija — inaczej długość godziny przy przesuwaniu suwaka zmieniałaby
    wysokość panelu pod palcem (ten sam powód co przy #tb-national, 14.09.2026). */
 .tb-head { height: 40px; }
+.tb-head.ciasno .tb-two { display: none; }
+.tb-head.ciasno #tb-label { font-size: 0.75rem; }
+.tb-head.b-ciasno #tb-label { font-size: 0.65rem; letter-spacing: -0.01em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }   /* godzina zawsze widoczna */
 #timebar #tb-label { flex: 0 1 auto; min-width: 0; white-space: normal; line-height: 1.15; }
 #timebar .tb-live { display: inline-flex; align-items: center; gap: 7px; height: 36px; min-height: 36px;
   padding: 0 12px; border-radius: 10px; letter-spacing: .06em; font: 700 0.7667rem/1 "Segoe UI", system-ui, sans-serif;
