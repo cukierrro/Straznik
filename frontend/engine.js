@@ -1319,6 +1319,16 @@ const physicalKey = (t) => isApproxPosition(t)
   : `track:${t.id}`;
 const areaDistance = (km) => km < 10 ? "mniej niż 10 km"
   : `około ${Math.round(km / 10) * 10} km`;
+/* Lustro _km_pl / _conf_pl / _potwierdzenia_pl z neptun.py: tytuł jest polski,
+   EN i UK aplikacja składa sama z details (test_tytuly_neptun.cjs). */
+const kmPL = (km) => typeof km === "number" ? String(km).replace(".", ",") : String(km);
+const CONF_TYTUL_PL = { high: "wysoka", medium: "średnia", low: "niska" };
+const wiarygodnoscPL = (conf) => CONF_TYTUL_PL[conf] || conf;
+function potwierdzeniaPL(n) {
+  if (n === 1) return "1 potwierdzenie";
+  if (n % 10 >= 2 && n % 10 <= 4 && !(n % 100 >= 12 && n % 100 <= 14)) return `${n} potwierdzenia`;
+  return `${n} potwierdzeń`;
+}
 /* Lustro `_speed_of` z backendu, co do kolejności: prędkość ze źródła, potem
    dla drona odrzutowego podłoga 450 km/h podnoszona pomiarem z ruchu, na końcu
    prędkość typowa dla klasy. Pomiar NIGDY nie obniża — patrz komentarz przy
@@ -1397,12 +1407,12 @@ function neptunEval(t) {
       // sygnał wchodzi ponownie z wyższą punktacją
       const tier = Math.floor(points * 2);
       const distanceInfo = approx ? `${areaDistance(a.dist_km)} [pozycja rejonowa]`
-        : `${a.dist_km} km`;
+        : `${kmPL(a.dist_km)} km`;
       addSignal("neptun", "neptun_threat", a.border_voiv, points,
         `${ile}${neptunTypeLabelPL(ty)} kursem na granicę PL, ${distanceInfo}`
         + `${zPodlogi ? " [blisko granicy]" : ""}`
         + `${etaAlarm ? `, konserwatywny czas dolotu ~${etaSafe} min` : ""} (woj. ${a.border_voiv}, `
-        + `confidence: ${conf}, ${sources} potwierdzeń, ±${t.uncertaintyKm??"?"} km)`,
+        + `wiarygodność: ${wiarygodnoscPL(conf)}, ${potwierdzeniaPL(sources)}, ±${kmPL(t.uncertaintyKm??"?")} km)`,
         { track_id: t.id, dist_km: a.dist_km, count, source_count: sources,
           // typ, area_only i niepewność czyta klucz czerwonego (redKey) — bez nich
           // w trybie bez serwera żaden obiekt nie dawał klucza (znalezione 18.10.2026)
@@ -1478,10 +1488,10 @@ function sygnalySasiednie(t, a, ty, count, conf, sources, approx, speed, presume
     else if (eligible && etaCons <= ETA_ELEVATED_MIN) { etaAlarm = "elevated"; punkty = Math.max(punkty, TH_ELEVATED); }
     const zPodlogi = podloga > bazowe && punkty === podloga ? Math.round((podloga - bazowe) * 100) / 100 : 0;
     const ile = count > 1 ? `${count}× ` : "";
-    const odl = approx ? `${areaDistance(dist)} [pozycja rejonowa]` : `${dist} km`;
+    const odl = approx ? `${areaDistance(dist)} [pozycja rejonowa]` : `${kmPL(dist)} km`;
     addSignal("neptun", "neptun_threat", voiv, punkty,
       `${ile}${neptunTypeLabelPL(ty)} w odległości ${odl} od woj. ${voiv}${zPodlogi ? " [blisko granicy]" : ""} `
-      + `(confidence: ${conf}, ${sources} potwierdzeń)`,
+      + `(wiarygodność: ${wiarygodnoscPL(conf)}, ${potwierdzeniaPL(sources)})`,
       { track_id: t.id, type: ty, count, lat: t.lat, lon: t.lon, heading: t.heading ?? null,
         confidence: conf, source_count: sources, lifecycle: t.lifecycle ?? null,
         uncertainty_km: t.uncertaintyKm ?? null, position_quality: t.positionQuality,
@@ -2639,6 +2649,7 @@ return { start, stop, history, timeline, historyFrom, timelineFrom, accumulate, 
          stateFrom, alertLevel, rsoIsCancellation, assess,
          rso: { tickRso, sygnaly: () => signals },
          podloga: { neptunEval, borderUavFloor, sygnaly: () => signals },
+         tytuly: { kmPL, wiarygodnoscPL, potwierdzeniaPL },
          baltyk: { tickRss, sygnaly: () => signals },
          rcbArtykul: { tickRcb, tekstArtykuluRcb, dataArtykuluRcb, wojewodztwaAlertu,
                        czyOdwolanieRcb, meldunkiArtykulu, najnowszyMeldunek } };

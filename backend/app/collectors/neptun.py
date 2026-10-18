@@ -374,6 +374,33 @@ def _area_distance_label(km: float) -> str:
     return f"około {int(round(km / 10.0) * 10)} km"
 
 
+# Tytuł sygnału jest polski (panel PL, rozbicie w powiadomieniu); EN i UK aplikacja
+# składa sama z `details`. Lustro w engine.js (kmPL, wiarygodnoscPL, potwierdzeniaPL)
+# — zgodność pilnuje scripts/test_tytuly_neptun.cjs.
+_CONF_PL = {"high": "wysoka", "medium": "średnia", "low": "niska"}
+
+
+def _km_pl(km) -> str:
+    """180.9 → „180,9”, 180.0 → „180”; nieliczbowe (np. „?”) bez zmian."""
+    if isinstance(km, bool) or not isinstance(km, (int, float)):
+        return str(km)
+    if float(km).is_integer():
+        return str(int(km))
+    return str(km).replace(".", ",")
+
+
+def _conf_pl(conf: str) -> str:
+    return _CONF_PL.get(conf, conf)
+
+
+def _potwierdzenia_pl(n: int) -> str:
+    if n == 1:
+        return "1 potwierdzenie"
+    if 2 <= n % 10 <= 4 and not 12 <= n % 100 <= 14:
+        return f"{n} potwierdzenia"
+    return f"{n} potwierdzeń"
+
+
 def is_national(t: dict) -> bool:
     """Alarm ogólnokrajowy NEPTUN-a (np. „national-mig31k”), a nie obiekt z pozycją."""
     if str(t.get("id") or "").startswith(config.NEPTUN_NATIONAL_ID_PREFIX):
@@ -763,10 +790,10 @@ async def _signal_sasiednie(t: dict, a: dict, ttype: str, count: int, conf: str,
         z_podlogi = round(podloga - bazowe, 2) if podloga > bazowe and punkty == podloga else 0.0
         ile = f"{count}× " if count > 1 else ""
         odl = (_area_distance_label(dist) + " [pozycja rejonowa]"
-               if approximate else f"{dist} km")
+               if approximate else f"{_km_pl(dist)} km")
         tytul = (f"{ile}{threat_label_pl(ttype)} w odległości {odl} od woj. {voiv}"
                  f"{' [blisko granicy]' if z_podlogi else ''} "
-                 f"(confidence: {conf}, {sources} potwierdzeń)")
+                 f"(wiarygodność: {_conf_pl(conf)}, {_potwierdzenia_pl(sources)})")
         await fusion.ingest(
             source="neptun", event_type="neptun_threat", voivodeship=voiv,
             points=punkty, title=tytul,
@@ -867,10 +894,10 @@ async def _maybe_signal(t: dict):
     eta_info = (f", konserwatywny czas dolotu ~{eta_safe} min" if eta_level else "")
     position = t.get("straznik_position") or _position_info(t)
     distance_info = (_area_distance_label(a["dist_km"]) + " [pozycja rejonowa]"
-                     if approximate else f"{a['dist_km']} km")
+                     if approximate else f"{_km_pl(a['dist_km'])} km")
     title = (f"{ile}{threat_label_pl(ttype)} kursem na granicę PL, {distance_info}{kurs_info}{blisko_info}{eta_info} "
-             f"(woj. {a['border_voiv']}, confidence: {conf}, {sources} potwierdzeń, "
-             f"±{t.get('uncertaintyKm', '?')} km)")
+             f"(woj. {a['border_voiv']}, wiarygodność: {_conf_pl(conf)}, {_potwierdzenia_pl(sources)}, "
+             f"±{_km_pl(t.get('uncertaintyKm', '?'))} km)")
     # Poziom w kluczu deduplikacji: gdy obiekt się zbliży albo zyska potwierdzenia,
     # jego waga rośnie i sygnał ma prawo wejść ponownie z wyższą punktacją.
     tier = int(points * 2)
