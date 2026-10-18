@@ -171,3 +171,13 @@ staged scenarios. No public test notifications were sent.
 
 On the Ukrainian history screens the labels under the history buttons are
 hidden: that is the app's own behaviour when the labels do not fit (1.7.97).
+
+## 1798 — release 1.7.98 (18 October 2026)
+
+`1798/set-start-{pl,en,uk}.jpg` replace the 1797 settings start screens: in 1.7.98
+the "‹ Menu" button moved from below the list of sections to the top, next to
+"Close". Unchanged 1080 × 2400 screenshots of a 1.7.98 debug build (code 127) on
+the Pixel 7 emulator with Android 14, taken on the evening of 18 October 2026 with
+real taps (Menu → Settings). The same run tapped through every Menu window and
+Settings section in all three languages to check the back buttons; only the
+settings start screens are used in the guides. No public test notifications were sent.
