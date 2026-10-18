@@ -78,7 +78,7 @@
     "Pobierz aplikację": "Download app", "⬇ Pobierz aplikację": "⬇ Download app",
     "⬇ Pobierz na Androida": "⬇ Get it for Android", "⬇ Pobierz na iOS": "⬇ Get it for iOS",
     "Instrukcja": "User guide", "📖 Instrukcja": "📖 User guide",
-    "Postaw kawę": "Buy me a coffee", "☕ Postaw kawę": "☕ Buy me a coffee", "Legenda": "Legend",
+    "Postaw kawę": "Buy me a coffee", "☕ Postaw kawę": "☕ Buy me a coffee", "Legenda": "Legend", "Menu": "Menu",
     "☕ Postaw kawę autorowi": "☕ Buy the author a coffee", "Bałtyk": "Baltic",
     "Sąsiedzi": "Neighbours",
     "łączenie…": "connecting…", "teraz": "now", "NA ŻYWO": "LIVE",
