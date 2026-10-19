@@ -200,3 +200,17 @@ new scoring, during a real drone attack — the scores are live data from that
 moment. The emulator is subscribed to Lublin alerts, so a real red alert screen
 appeared on start; it was acknowledged before the screenshots. No test
 notifications were sent; the emulator sound was muted.
+
+`1799/map-uncertain-{pl,en,uk}.jpg`, `1799/object-points-{pl,en,uk}.jpg` and
+`1799/set-mapa-{pl,en,uk}.jpg` were taken on 19 October 2026 between 23:24 and 23:34 Polish
+time on the Pixel 7 emulator (1080 x 2400, Android 14) from a debug build of release 1.7.99,
+with the production server's data. The map and card shots use the history view at 21:39
+Polish time, when a drone was circling Lviv and most of the icons were "heading towards …"
+reports: they show the dimmed, dashed icon for an uncertain position, the default circles
+(only the tapped object and confirmed positions within 50 km of the border), the position
+badge and the "Points now" row with the reason a province gets nothing. They replace
+`1797/card-mini-*`, `1797/object-*` and `1796/set-mapa-*` in the guides. During the series a
+real red alert was in force for Lubelskie and Podkarpackie; it was acknowledged on the
+emulator and "Alerts on this phone" was switched off there so it would not cover the app
+again — that setting is not visible in any shot. No alerts were sent and nothing was written
+to production. Nothing in the images is retouched.
