@@ -472,6 +472,56 @@ naraz**, nie dwa razy osobno. Strona iOS tego rozszerzenia należy do sesji iOS.
 
 ---
 
+### B14. „Głośność alarmu" na iPhonie to pusty nagłówek i pusty rozwijacz (19.10.2026)
+
+**Zgłoszenie użytkownika, 1.7.95 na iPhonie:** chciał wyciszyć syrenę czerwonego
+alarmu, zostawiając wszystkie powiadomienia. Szukał w Ustawieniach → Dźwięk,
+nie znalazł i napisał: „Na iPhone nie widzę takiej opcji". **Miał rację**, i to
+nie dlatego, że czegoś nie zauważył.
+
+W `frontend/index.html`, w sekcji `#native-sound` („Głośność alarmu", klasa
+`app-only`, więc widoczna też na iOS), **android-only jest praktycznie wszystko**:
+`#ns-volume`, `#set-force-volume`, `#red-mode` (Syrena / Tylko wibracja / Zwykłe
+powiadomienie), `#rs-note`, `#ns-note`, `#quiet-hours`, `#btn-sound-settings`.
+Na iPhonie zostaje z tego:
+
+1. nagłówek **„Głośność alarmu"**, pod którym nie ma żadnego ustawienia —
+   tylko dwa przyciski testowe;
+2. rozwijacz **„Zanim zmienisz: co to zmienia"** (`#det-natywny`), którego
+   **oba** dzieci (`#rs-note`, `#ns-note`) są android-only — czyli po rozwinięciu
+   **otwiera się pusty prostokąt**.
+
+Dla człowieka wygląda to jak miejsce, gdzie ustawienie powinno być, ale go nie
+ma. Dokładnie tam zajrzał zgłaszający.
+
+**Odpowiedź merytoryczna istnieje**, tylko leży piętro wyżej i pod cudzym
+nagłówkiem: `#yv-ios-note` (w sekcji żółtego) mówi, że czerwony wycisza się
+przez **Ustawienia iPhone'a → Powiadomienia → Strażnik → Alerty krytyczne**.
+Nikt nie będzie tego szukał pod „Głośność sygnału uwagi (żółty)".
+
+**Proponowana zmiana (frontend, nie mój katalog):**
+- `#det-natywny` dostaje trzecie dziecko `ios-only` z krótkim tekstem: na iPhonie
+  dźwięk czerwonego ustala system jako Alert krytyczny; żeby przestał przebijać
+  wyciszenie — Ustawienia iPhone'a → Powiadomienia → Strażnik → Alerty krytyczne;
+  powiadomienia zostają, tylko czerwony przestaje być głośniejszy od reszty.
+  Dopisać ostrzeżenie o nocy, jak w `#rs-note`.
+- Albo, jeśli prościej: na iOS schować `#det-natywny` i `#ns-head` razem, a nad
+  przyciskami testowymi zostawić sam ten tekst. Pustego rozwijacza zostawić nie można.
+- `i18n.js`: klucz po `id`, trzy języki.
+
+**Czego NIE proponuję:** dokładania na iOS wyboru „Syrena / Tylko wibracja /
+Zwykłe powiadomienie". Na iPhonie dźwięk przychodzącego powiadomienia ustala
+serwer i zgoda Apple, nie aplikacja — segment, który nic nie zmienia, byłby
+gorszy niż jego brak.
+
+**Zweryfikowane w kodzie przy okazji (dobra wiadomość):** cofnięcie zgody
+krytycznej w Ustawieniach iOS **nie gubi alarmów**. `status()` w
+`StraznikBackgroundPlugin.swift` czyta `criticalAlertSetting` przy każdym odczycie
+stanu i woła `zapamietajZgodeKrytyczna()`, które przepisuje telefon z tematu
+`voiv_X_krytyczne` z powrotem na `voiv_X`. Warunek: **wejść raz do aplikacji**
+po zmianie. Do tego czasu telefon siedzi na temacie krytycznym, ale i tak
+dostaje oba poziomy, a dźwięk i tak ścina system — nic nie przepada.
+
 ### B8. Do sprawdzenia na iPhonie (bez zmian w kodzie na razie)
 - `navigator.vibrate` nie istnieje w Safari/WKWebView — alarm przy otwartej
   aplikacji nie wibruje (kod jest już zabezpieczony `if (navigator.vibrate)`).
