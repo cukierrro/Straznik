@@ -40,7 +40,7 @@
     "Pulsujący pierścień": "Pulsing ring",
     "obiekt liczy się teraz do punktów": "the object counts towards points right now",
     "Okrąg": "Circle",
-    "gdzie obiekt może być (±km) — rośnie z wiekiem meldunku": "where the object may be (±km) — grows with the age of the report",
+    "gdzie obiekt może być (±km); domyślnie dla dotkniętego i przy granicy": "where the object may be (±km); by default for the tapped one and near the border",
     "Przerywana linia": "Dashed line",
     "trasa przelotu": "flight path",
     "Lotnictwo": "Aviation",
@@ -326,6 +326,15 @@
     opcje("set-trail-adsb",
       ["Wyłączone (tylko śledzony samolot)", "Przebyta trasa", "Trasa i kierunek lotu"],
       ["Off (followed aircraft only)", "Flown track", "Track and heading"]);
+    // Okręgi niepewności (19.10.2026) — w tej samej sekcji Mapa
+    lead("okregi-label", "Okręgi niepewności (NEPTUN)", "Uncertainty circles (NEPTUN)");
+    opcje("set-okregi",
+      ["Wybrany i przy granicy", "Wszystkie", "Wyłączone"],
+      ["Selected and near the border", "All", "Off"]);
+    const okregiNote = document.getElementById("okregi-note");
+    if (okregiNote) okregiNote.innerHTML = en
+      ? "A circle shows <b>where the object may be</b>. By default it is drawn for the tapped object and for objects with a confirmed position within 50 km of the Polish border — there it tells whether the object may already be over Poland. Every object’s radius is also on its card."
+      : "Okrąg pokazuje, <b>gdzie obiekt może być</b>. Domyślnie rysujemy go dla dotkniętego obiektu i dla obiektów z pozycją potwierdzoną do 50 km od granicy Polski — tam rozstrzyga, czy obiekt może być już nad Polską. Promień każdego obiektu jest też w jego karcie.";
     const note = document.getElementById("trail-note");
     if (note) note.innerHTML = en
       ? "The heading line covers 30 minutes of drone or missile flight (15 minutes for aircraft), with dots every 5 minutes. For NEPTUN objects it is drawn <b>only for a heading measured from movement</b> — not for a heading inferred from a target name or for an area position. It assumes an unchanged heading; it is not a forecast."
@@ -541,7 +550,7 @@
     "Pulsing ring": "Пульсуюче кільце",
     "the object counts towards points right now": "об’єкт зараз зараховується до балів",
     "Circle": "Коло",
-    "where the object may be (±km) — grows with the age of the report": "де об’єкт може бути (±км) — зростає з віком повідомлення",
+    "where the object may be (±km); by default for the tapped one and near the border": "де об’єкт може бути (±км); типово для вибраного й біля кордону",
     "Dashed line": "Пунктирна лінія",
     "flight path": "маршрут польоту",
     "Aviation": "Авіація",
@@ -861,6 +870,8 @@
     "Off": "Вимкнено",
     "Flown track": "Пройдений шлях",
     "Track and heading": "Шлях і курс",
+    "Selected and near the border": "Вибраний і біля кордону",
+    "All": "Усі",
     "Off (followed aircraft only)": "Вимкнено (лише супроводжуваний літак)",
     "App version": "Версія застосунку",
     "⬆ Check for updates": "⬆ Перевірити оновлення",
@@ -1398,6 +1409,12 @@
       + "літаків), з точками кожні 5 хвилин. Для об’єктів NEPTUN вона малюється <b>лише для курсу, виміряного "
       + "з руху</b> — не для курсу, припущеного з назви цілі, і не для районної позиції. Вона припускає "
       + "незмінний курс; це не прогноз.";
+    const okregiNoteUk = document.getElementById("okregi-note");
+    if (okregiNoteUk) okregiNoteUk.innerHTML = "Коло показує, <b>де об’єкт може бути</b>. Типово воно малюється для "
+      + "об’єкта, якого ви торкнулися, і для об’єктів із підтвердженою позицією ближче ніж 50 км від кордону "
+      + "Польщі — там воно показує, чи може об’єкт уже бути над Польщею. Радіус кожного об’єкта є також у його картці.";
+    const okregiL = document.getElementById("okregi-label");
+    if (okregiL?.firstChild) okregiL.firstChild.nodeValue = "Кола невизначеності (NEPTUN) ";
     const trailN = document.getElementById("trail-neptun-label");
     if (trailN?.firstChild) trailN.firstChild.nodeValue = "Дрони й ракети (NEPTUN) ";
     const trailA = document.getElementById("trail-adsb-label");

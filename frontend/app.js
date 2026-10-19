@@ -1618,7 +1618,9 @@ async function initMap() {
     // polskich wsiach po drugiej stronie granicy (Dorohusk, Turka, Istrów) i
     // ludzie czytali ją jako „zagrożenie jest nad nami". Przerywana linia mówi
     // to samo — „gdzieś w tym kole" — a niczego nie zasłania.
+    const _filtrOkregow = okregiFiltr(okregiTryb(), null);
     map.addLayer({ id: "uncertainty-line", type: "line", source: "uncertainty",
+      ...(_filtrOkregow ? { filter: _filtrOkregow } : {}),
       paint: { "line-color": ["get", "color"], "line-opacity": OKRAG_KRYCIE,
                "line-width": 1.6, "line-dasharray": [3, 3] } });
 
@@ -2279,9 +2281,32 @@ function markSelected(kind, id) {
    (uwaga usera 19.10.2026, Lwów). Po dotknięciu obiektu jego okrąg zostaje
    wyraźny i grubszy, a pozostałe bledną; po zamknięciu karty wszystko wraca. */
 const OKRAG_KRYCIE = 0.85, OKRAG_KRYCIE_WYBRANY = 0.95, OKRAG_KRYCIE_INNE = 0.22;
+/* Które okręgi rysujemy (19.10.2026, czytelnik: „apka mniej czytelna, zwłaszcza okręgi”;
+   decyzja usera: warianty 1+2+4, próg 50 km). Okrąg każdego obiektu naraz — przy
+   meldunkach „w kierunku X” po 40+ km każdy — zlewał się w jedną plamę. Domyślnie:
+   obiekt dotknięty + obiekty z pozycją POTWIERDZONĄ do 50 km od granicy (tam okrąg
+   rozstrzyga, czy obiekt może być już nad Polską). Pozycja niepewna ma okrąg dopiero
+   po dotknięciu. „Wszystkie” = jak do 1.7.98, „Wyłączone” = żadnych. */
+const OKREGI_KEY = "straznik_okregi", OKREGI_DOMYSLNE = "granica", OKREGI_GRANICA_KM = 50;
+function okregiTryb() {
+  try {
+    const v = localStorage.getItem(OKREGI_KEY);
+    return ["granica", "wszystkie", "off"].includes(v) ? v : OKREGI_DOMYSLNE;
+  } catch { return OKREGI_DOMYSLNE; }
+}
+let _okragWybrany = null;
+function okregiFiltr(tryb, tid) {
+  const ten = ["==", ["get", "tid"], tid ?? "__none__"];
+  if (tryb === "off") return ["==", ["get", "tid"], "__none__"];
+  if (tryb === "wszystkie") return null;
+  return ["any", ten, ["all", ["!=", ["get", "apx"], true],
+    ["<=", ["coalesce", ["get", "dist_km"], 9999], OKREGI_GRANICA_KM]]];
+}
 function okregiWybranego(tid) {
+  _okragWybrany = tid ?? null;
   if (!map.getLayer("uncertainty-line")) return;
   const ten = ["==", ["get", "tid"], tid ?? "__none__"];
+  map.setFilter("uncertainty-line", okregiFiltr(okregiTryb(), tid));
   map.setPaintProperty("uncertainty-line", "line-opacity",
     tid == null ? OKRAG_KRYCIE : ["case", ten, OKRAG_KRYCIE_WYBRANY, OKRAG_KRYCIE_INNE]);
   map.setPaintProperty("uncertainty-line", "line-width",
@@ -2366,6 +2391,10 @@ function openThreatPopup(lngLat, p) {
    252°"), a lista sygnałów mówiła „0 pkt, kurs 86° od kierunku na Polskę" — te same
    dane, dwa różne wrażenia. Właściwości warstwy GL bywają tekstem, stąd rzutowania. */
 function courseVerdictHTML(p) {
+  /* Obiekt-duch z historii (ostatnia pozycja z sygnału, bez migawki) nie ma oceny
+     kursu — karta pisała „0 pkt — kurs nie prowadzi na Polskę”, a wiersz punktów
+     niżej pokazywał, że obiekt jednak punktował (19.10.2026). Bez oceny — bez werdyktu. */
+  if (p.kurs_znany === false || p.kurs_znany === "false") return "";
   const toward = p.toward_pl === true || p.toward_pl === "true";
   const known = !(p.heading_known === false || p.heading_known === "false");
   const off = p.course_off == null || p.course_off === "" ? null : Math.round(Number(p.course_off));
@@ -2400,10 +2429,12 @@ function courseVerdictHTML(p) {
    tu sama plakietka, bez powtórzenia. */
 function kartaPozycjaHTML(p) {
   const apx = p.apx === true || p.apx === "true";
-  if (apx) return `<span class="poz-plak poz-niepewna">${UI.t("pozycja niepewna", "uncertain position", "непевна позиція")}</span> <span style="color:#95a1b7">${
-    UI.t("nie namiar — opis niżej", "not a fix — see below", "не координати — опис нижче")}</span><br>`;
-  return `<span class="poz-plak poz-pewna">${UI.t("pozycja potwierdzona", "confirmed position", "підтверджена позиція")}</span> <span style="color:#95a1b7">${
-    UI.t("namiar ze źródła", "fix from the source", "координати від джерела")}</span><br>`;
+  // Dopisek jako zwykły tekst w wierszu, nie osobny element: na 320 px przy dużym
+  // tekście osobny <span> po ukraińsku zawijał się w trzy linie (test_responsywnosc).
+  if (apx) return `<div class="poz-wiersz"><span class="poz-plak poz-niepewna">${UI.t("pozycja niepewna", "uncertain position", "непевна позиція")}</span> ${
+    UI.t("nie namiar, opis niżej", "not a fix, see below", "не координати, опис нижче")}</div>`;
+  return `<div class="poz-wiersz"><span class="poz-plak poz-pewna">${UI.t("pozycja potwierdzona", "confirmed position", "підтверджена позиція")}</span> ${
+    UI.t("namiar ze źródła", "fix from the source", "координати від джерела")}</div>`;
 }
 /* „Punkty teraz” — ile obiekt w tej chwili daje każdemu województwu, a przy zerze
    dlaczego (limit NEPTUN-a pełny albo ten sam punkt liczony z innego meldunku). */
@@ -3297,7 +3328,8 @@ function animate(ts) {
         eta: etaHtml(t) } });
     const uncKm = shownUncertaintyKm(t, now);
     if (uncKm)
-      unc.push({ type: "Feature", properties: { color: meta.color, tid: String(t.id ?? "") },
+      unc.push({ type: "Feature", properties: { color: meta.color, tid: String(t.id ?? ""),
+                   apx: isApproxPosition(t), dist_km: t.pl_assessment?.dist_km ?? null },
         geometry: { type: "Polygon", coordinates: circleCoords(p.lat, p.lon, uncKm) } });
     // ślad = to, co dało API + to, co sami zaobserwowaliśmy + pozycja bieżąca.
     // Dla przybliżonego rejonu nie łączymy kolejnych raportów w pozorną trasę.
@@ -6142,6 +6174,7 @@ function showHistoryAt(idx) {
           age_min: snapAgeMin(t), age_label: ageLabel(snapAgeMin(t)),
           distance_text: threatDistanceText(t, t.pl_assessment?.dist_km),
           toward_pl: t.pl_assessment?.toward_pl === true,
+          kurs_znany: t.pl_assessment?.toward_pl !== undefined,
           heading_known: t.pl_assessment?.heading_known !== false,
           course_off: courseOffsetDeg(t),
         na_cel: naKursieDoCelu(t), cel: naKursieDoCelu(t) && t.locality ? placeName(t.locality) : "",
@@ -6155,7 +6188,8 @@ function showHistoryAt(idx) {
       features: historyThreats.filter(t => t.lat != null).flatMap(t => {
         const km = shownUncertaintyKm(t);
         return km ? [{ type: "Feature", properties: { color: (TYPE_META[t.type] || {}).color || "#8a93a6",
-                                                      tid: String(t.id ?? "") },
+                                                      tid: String(t.id ?? ""), apx: isApproxPosition(t),
+                                                      dist_km: t.pl_assessment?.dist_km ?? null },
           geometry: { type: "Polygon", coordinates: circleCoords(t.lat, t.lon, km) } }] : [];
       }) });
     map.getSource("adsb")?.setData({ type: "FeatureCollection",
@@ -7643,6 +7677,16 @@ for (const kind of ["neptun", "adsb"]) {
     if (kind === "adsb" && mapReady) drawFollowTrail();
     odswiezWartosciUstawien();
   });
+}
+{
+  const sel = document.getElementById("set-okregi");
+  if (sel) {
+    sel.value = okregiTryb();
+    sel.addEventListener("change", () => {
+      try { localStorage.setItem(OKREGI_KEY, sel.value); } catch {}
+      if (mapReady) okregiWybranego(_okragWybrany);
+    });
+  }
 }
 
 const aboutDlg = document.getElementById("about");

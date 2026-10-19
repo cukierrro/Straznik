@@ -523,7 +523,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
   <div class="lg-row"><i class="lg-threat" data-type="uav" data-heading-unknown="1"></i><span>Kurs nieznany<small>ikona nie jest obracana</small></span></div>
   <div class="lg-row"><i class="lg-threat" data-type="uav" data-approx="1"></i><span>Pozycja niepewna<small>meldunek o kierunku lotu, nie namiar — liczy się słabiej</small></span></div>
   <div class="lg-row"><i class="pulse-ic"></i><span>Pulsujący pierścień<small>obiekt liczy się teraz do punktów</small></span></div>
-  <div class="lg-row"><i class="ring"></i><span>Okrąg<small>gdzie obiekt może być (±km) — rośnie z wiekiem meldunku</small></span></div>
+  <div class="lg-row"><i class="ring"></i><span>Okrąg<small>gdzie obiekt może być (±km); domyślnie dla dotkniętego i przy granicy</small></span></div>
   <div class="lg-row"><i class="trail"></i><span>Przerywana linia<small>trasa przelotu</small></span></div>
   </details>
 
@@ -1192,6 +1192,19 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
       <b>tylko przy kursie zmierzonym z ruchu</b> — nie przy kursie domniemanym z nazwy celu
       ani przy pozycji rejonowej. To szacunek przy niezmienionym kursie, nie prognoza.</div>
     </details>
+    <!-- Okręgi niepewności (19.10.2026, uwaga czytelnika o czytelności): domyślnie tylko
+         dotknięty obiekt i obiekty z pozycją potwierdzoną do 50 km od granicy. -->
+    <label id="okregi-label">Okręgi niepewności (NEPTUN)
+      <select id="set-okregi">
+        <option value="granica">Wybrany i przy granicy</option>
+        <option value="wszystkie">Wszystkie</option>
+        <option value="off">Wyłączone</option>
+      </select>
+    </label>
+    <div class="fineprint" id="okregi-note">Okrąg pokazuje, <b>gdzie obiekt może być</b>.
+      Domyślnie rysujemy go dla dotkniętego obiektu i dla obiektów z pozycją potwierdzoną
+      do 50 km od granicy Polski — tam rozstrzyga, czy obiekt może być już nad Polską.
+      Promień każdego obiektu jest też w jego karcie.</div>
 
     </section>
 

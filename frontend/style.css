@@ -234,6 +234,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 .poz-plak { display: inline-block; border-radius: 4px; padding: 0 6px; font-size: 0.7333rem; line-height: 1.5; }
 .poz-pewna { background: #1f3a2b; color: #8fe0a8; }
 .poz-niepewna { background: #3a2f17; color: #ffcf70; }
+.poz-wiersz { color: #95a1b7; margin: 2px 0; }
 .karta-pkt { margin: 6px 0; padding-top: 6px; border-top: 1px solid rgba(255,255,255,.08); }
 #ac-card a { color: var(--cyan); }
 #ac-card table { border-collapse: collapse; }

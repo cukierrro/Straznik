@@ -46,8 +46,11 @@ sprawdz((app.match(/properties: \{ color: [^}]*tid: String\(t\.id \?\? ""\)/gs) 
   'okrąg niepewności ma tid na żywo i w historii');
 sprawdz(/okregiWybranego\(kind === "threat"/.test(app), 'markSelected wyróżnia okrąg wybranego obiektu');
 {
-  const ctx = { map: { getLayer: () => true, wywolania: [],
-    setPaintProperty(l, k, v) { this.wywolania.push([l, k, v]); } } };
+  const pamiec = {};
+  const ctx = { localStorage: { getItem: k => pamiec[k] ?? null },
+    map: { getLayer: () => true, wywolania: [], filtr: undefined,
+      setPaintProperty(l, k, v) { this.wywolania.push([l, k, v]); },
+      setFilter(l, f) { this.filtr = f; } } };
   vm.createContext(ctx);
   vm.runInContext(wycinek('const OKRAG_KRYCIE =', '\nfunction showCard('), ctx);
   ctx.okregiWybranego('trk_7');
@@ -57,7 +60,45 @@ sprawdz(/okregiWybranego\(kind === "threat"/.test(app), 'markSelected wyróżnia
   ctx.map.wywolania = [];
   ctx.okregiWybranego(null);
   sprawdz(ctx.map.wywolania.find(w => w[1] === 'line-opacity')[2] === 0.85, 'po zamknięciu karty krycie wraca');
+
+  // Które okręgi w ogóle rysujemy (czytelnik 19.10: okręgi zlewały się w plamę;
+  // decyzja usera: domyślnie dotknięty + pozycja potwierdzona do 50 km od granicy).
+  const widac = (filtr, f) => {
+    if (filtr == null) return true;
+    const ev = (e) => {
+      const [op, ...a] = e;
+      if (op === 'get') return f[a[0]];
+      if (op === 'coalesce') { const v = ev(a[0]); return v ?? a[1]; }
+      if (op === 'any') return a.some(ev);
+      if (op === 'all') return a.every(ev);
+      const x = Array.isArray(a[0]) ? ev(a[0]) : a[0], y = Array.isArray(a[1]) ? ev(a[1]) : a[1];
+      return { '==': x === y, '!=': x !== y, '<=': x <= y }[op];
+    };
+    return ev(filtr);
+  };
+  sprawdz(ctx.okregiTryb() === 'granica', 'domyślny tryb: wybrany i przy granicy');
+  const g = ctx.okregiFiltr('granica', 'wyb');
+  sprawdz(widac(g, { tid: 'a', apx: false, dist_km: 37 }), 'pozycja potwierdzona 37 km od granicy — okrąg jest');
+  sprawdz(!widac(g, { tid: 'b', apx: false, dist_km: 57 }), 'pozycja potwierdzona 57 km — bez okręgu');
+  sprawdz(!widac(g, { tid: 'c', apx: true, dist_km: 9 }), 'pozycja niepewna nawet tuż przy granicy — bez okręgu');
+  sprawdz(widac(g, { tid: 'wyb', apx: true, dist_km: 240 }), 'dotknięty obiekt — okrąg zawsze');
+  sprawdz(!widac(g, { tid: 'd', apx: false, dist_km: null }), 'bez znanej odległości — bez okręgu');
+  sprawdz(ctx.okregiFiltr('wszystkie', null) === null, '„Wszystkie” — bez filtra, jak do 1.7.98');
+  sprawdz(!widac(ctx.okregiFiltr('off', 'wyb'), { tid: 'wyb' }), '„Wyłączone” — także bez okręgu dotkniętego');
+  pamiec.straznik_okregi = 'wszystkie';
+  sprawdz(ctx.okregiTryb() === 'wszystkie', 'tryb z pamięci telefonu');
+  pamiec.straznik_okregi = 'cokolwiek';
+  sprawdz(ctx.okregiTryb() === 'granica', 'nieznana wartość — domyślny');
+  ctx.okregiWybranego('x');
+  sprawdz(Array.isArray(ctx.map.filtr) && ctx.map.filtr[0] === 'any', 'zmiana wyboru ustawia filtr warstwy');
 }
+sprawdz(/apx: isApproxPosition\(t\), dist_km: t\.pl_assessment\?\.dist_km \?\? null/.test(app)
+  && /tid: String\(t\.id \?\? ""\), apx: isApproxPosition\(t\),\s*dist_km: t\.pl_assessment\?\.dist_km \?\? null/.test(app),
+  'okrąg niesie apx i odległość na żywo i w historii');
+sprawdz(/<select id="set-okregi">/.test(html) && /okregiFiltr\(okregiTryb\(\), null\)/.test(app),
+  'przełącznik w Ustawieniach → Mapa i filtr od startu mapy');
+sprawdz(i18n.includes('"Selected and near the border": "Вибраний і біля кордону"')
+  && i18n.includes('["Selected and near the border", "All", "Off"]'), 'przełącznik po angielsku i ukraińsku');
 
 // 3. Lustra stałych: limit NEPTUN-a i waga pozycji niepewnej jak w serwerze i silniku.
 sprawdz(/const NEPTUN_LIMIT_PKT = 8;/.test(app) && /neptun: 8\b/.test(engine) && /"neptun": 8\.0/.test(config),
@@ -111,6 +152,14 @@ sprawdz(karta({ apx: true, apx_why: 'source_approx', pkt: JSON.stringify(px) }).
   'waga meldunku kierunkowego 60%');
 sprawdz(ctx.kartaPunktyHTML({}) === '' && ctx.kartaPunktyHTML({ pkt: '{"daje":[],"zero":[]}' }) === '',
   'bez danych o punktach wiersz znika');
+
+// 5a. Obiekt-duch z historii nie ma oceny kursu: bez werdyktu „0 pkt — kurs nie prowadzi
+// na Polskę”, który przeczył wierszowi punktów (zrzut 19.10.2026).
+vm.runInContext(wycinek('function courseVerdictHTML(', '/* Plakietka pewności'), ctx);
+sprawdz(ctx.courseVerdictHTML({ kurs_znany: false, toward_pl: false }) === '', 'duch z historii — bez werdyktu kursu');
+sprawdz(ctx.courseVerdictHTML({ toward_pl: false, heading_known: true, course_off: 86 }).includes('0 pkt'),
+  'zwykły obiekt mijający Polskę — werdykt jak dotąd');
+sprawdz(/kurs_znany: t\.pl_assessment\?\.toward_pl !== undefined/.test(app), 'historia ustawia kurs_znany');
 
 // 6. Legenda i tłumaczenia.
 sprawdz(/data-type="uav" data-approx="1"><\/i><span>Pozycja niepewna<small>/.test(html), 'wpis w legendzie');
