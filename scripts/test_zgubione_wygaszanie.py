@@ -15,6 +15,7 @@ i to samo wyprzedzenie RCB co wcześniej. Sprawdzamy:
 Uruchomienie: py scripts/test_zgubione_wygaszanie.py
 """
 import asyncio
+import re
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -84,7 +85,9 @@ sprawdz(punkty(REF, blisko)[0] == dzis, "zgubiony 12,5 km od granicy — jak dot
 
 print("3. compute_state: dostawca tylko na żywo")
 src = (ROOT / "backend" / "app" / "fusion.py").read_text(encoding="utf-8")
-sprawdz("accumulate(signals, ref, lost_provider if live else None)" in src,
+# 19.10.2026: wywołanie dostało czwarty argument (alerty RCB sprzed okna) i rozbiło
+# się na dwie linie — szukamy wzorcem, nie dosłownym tekstem.
+sprawdz(re.search(r"accumulate\(\s*signals,\s*ref,\s*lost_provider if live else None\b", src) is not None,
         "na żywo z dostawcą, rekonstrukcja z `ref` bez niego")
 sprawdz(fusion.lost_provider is neptun.zgubiony, "kolektor NEPTUN ustawia fusion.lost_provider")
 st = fusion.compute_state([dron], REF)["voivodeships"]["lubelskie"]
