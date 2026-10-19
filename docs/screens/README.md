@@ -67,17 +67,23 @@ shelter pack from the PSP register of 21 September 2026 (86,388 points), which i
 
 The GROTA map and rules captures `g11-mapa*`, `g13-mapa-filtry*`, `g14-mapa-rodzaje*`,
 `g15-mapa-ciemna*`, `g29-zasady-dane*` and `g30-lista*` (Polish, `-en`, `-uk`) were retaken
-on 15 October 2026 for release 1.7.95, from a debug build of that release (module 5c32a5434c,
-PSP register of 12 October), on a Pixel-sized emulator (1080 x 2340, Android 12, Test_API31),
+on 19 October 2026 for release 1.7.99, from a debug build of that release (module abd4d376c3,
+PSP register of 19 October), on a Pixel-sized emulator (1080 x 2340, Android 12, Test_API31),
 then downscaled to 720 x 1560 JPEG like the rest of the GROTA set. Nothing in them is retouched.
 The position is a fake GPS fix in Lublin's Old Town, the same spot as the older captures, so the
-figures still line up with the text. They show the counts the app really holds (86 712 points,
-19 803 / 7 335 / 59 574 by access), the "List" button next to the filters and the reworked look:
-touch targets of at least 44 px, no text below 12 px and filter chips without the dimming that
-used to drop their contrast to 2.8:1. The route and the "Goal" marker come from opening the NOW
-tab before the captures. Poland was quiet at the time (Lubelskie 0.5 pt, Podkarpackie 0.2 pt,
-both below the alert threshold), so no alert state is visible. No alerts were sent and no
-production data was written.
+figures still line up with the text. They show the counts the app really holds (87 316 points,
+19 658 / 7 504 / 60 154 by access, 85 146 / 895 / 1 275 by location certainty). The route and the
+"Goal" marker come from opening the NOW tab before the captures.
+
+Two things about these captures are worth stating plainly. First, a real Russian drone attack was
+under way that evening (Lublin province 9.5 pts, Subcarpathian 9.9 — both above the red threshold),
+and the test phone sits in Lublin, so the app opened on a genuine red alert screen. We acknowledged
+it and then turned off "Alerts on this phone" in Settings, so that a new alert would not cover the
+app mid-series; that switch is not visible in any of the frames and changes nothing about GROTA
+itself. No alerts were sent and no production data was written. Second, the previous set (15 October,
+release 1.7.95) was built before `cap copy`, so it still showed the module from 1.7.94: the numbers
+on it matched the shipped pack, but the look predated the 14 October contrast and touch-target work.
+This set is the first one built with the assets actually synchronised, and it replaces those frames.
 
 ## Updating
 
