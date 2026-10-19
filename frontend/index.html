@@ -104,7 +104,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <link rel="icon" type="image/png" sizes="512x512" href="assets/icon-512.png">
 <link rel="apple-touch-icon" href="assets/icon-192.png">
 <link rel="stylesheet" href="assets/vendor/maplibre-gl.css?v=1.7.82">
-<link rel="stylesheet" href="style.css?v=1.7.98">
+<link rel="stylesheet" href="style.css?v=1.7.99a">
 </head>
 <body>
 
@@ -521,6 +521,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
   <details class="lg-sec">
     <summary><span>Oznaczenia wokół ikony</span></summary>
   <div class="lg-row"><i class="lg-threat" data-type="uav" data-heading-unknown="1"></i><span>Kurs nieznany<small>ikona nie jest obracana</small></span></div>
+  <div class="lg-row"><i class="lg-threat" data-type="uav" data-approx="1"></i><span>Pozycja niepewna<small>meldunek o kierunku lotu, nie namiar — liczy się słabiej</small></span></div>
   <div class="lg-row"><i class="pulse-ic"></i><span>Pulsujący pierścień<small>obiekt liczy się teraz do punktów</small></span></div>
   <div class="lg-row"><i class="ring"></i><span>Okrąg<small>gdzie obiekt może być (±km) — rośnie z wiekiem meldunku</small></span></div>
   <div class="lg-row"><i class="trail"></i><span>Przerywana linia<small>trasa przelotu</small></span></div>
@@ -1293,7 +1294,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
      Cloudflare, więc po każdym wydaniu wystarczy podbić ?v= i przeglądarki
      dostają nowe app.js/engine.js OD RAZU, bez ręcznego czyszczenia cache CF.
      Podbijaj ?v= razem z versionName w build.gradle. -->
-<script src="i18n.js?v=1.7.99"></script>
+<script src="i18n.js?v=1.7.99a"></script>
 <!-- kontur Polski dla engine.js (audyt A2b, scripts/build_pl_outline.py) -->
 <script src="pl-outline.js?v=1.7.82"></script>
 <script src="voiv-outline.js?v=1.7.97"></script>
@@ -1310,7 +1311,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <div id="a11y-alert" class="sr-only" role="status" aria-live="assertive" aria-atomic="true"></div>
 <div id="a11y-info" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
 
-<script src="app.js?v=1.7.99"></script>
+<script src="app.js?v=1.7.99a"></script>
 <script>
 /* Instrukcja pasująca do telefonu i języka (21.09.2026). iPhone ma osobną, bo alarmy,
    zgody i aktualizacje działają tam inaczej. Tu, a nie w app.js: index.html nie jest

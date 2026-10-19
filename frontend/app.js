@@ -471,7 +471,8 @@ function naKursieDoCelu(t) {
 function approxPositionNote(t) {
   const locality = positionInfo(t).reason === "locality_center";
   const naCel = naKursieDoCelu(t);
-  const cel = naCel && t?.locality ? placeName(t.locality) : "";
+  // nazwa ze źródła trafia do HTML karty i listy — escapujemy (w ukraińskim placeName ją zwraca bez zmian)
+  const cel = naCel && t?.locality ? esc(placeName(t.locality)) : "";
   const heading = locality
     ? (UI.t("środek miejscowości użyty jako punkt odniesienia, nie zmierzona pozycja obiektu", "locality centre used as a reference point, not a measured object position", "центр населеного пункту використано як орієнтир, а не виміряна позиція об'єкта"))
     : naCel
@@ -1142,7 +1143,20 @@ const FALLBACK_STYLE = {
 
 /* Obraz ma 64 px, a sylwetka tę samą skalę co dawniej w 48 px: zapas mieści
    czerwony grot kursu przed dziobem BpSP. */
-function makeThreatImage(type, color, headingUnknown = false) {
+/* Pozycja niepewna (19.10.2026, wariant C wybrany przez usera): ten sam odcień
+   typu, ale przygaszone wypełnienie i przerywany kontur w kolorze typu, bez
+   poświaty i bez czerwonego dzioba. Kolor ikony oznacza TYP obiektu, więc inny
+   odcień pomyliłby się z innym typem (szarości to FPV, nieznany, rozpoznawczy).
+   Tego wieczoru 9 ikon wokół Lwowa to były w większości meldunki „w kierunku X”,
+   a dokładne pozycje tylko cztery — na mapie wyglądały tak samo. */
+function przygaszony(color, udzial = 0.42) {
+  const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(color || "");
+  if (!m) return "rgba(110,90,51,.9)";
+  const tlo = [20, 26, 38];                     // #141a26 — tło mapy
+  const k = [1, 2, 3].map((i, j) => Math.round(parseInt(m[i], 16) * udzial + tlo[j] * (1 - udzial)));
+  return `rgb(${k[0]},${k[1]},${k[2]})`;
+}
+function makeThreatImage(type, color, headingUnknown = false, approx = false) {
   const c = document.createElement("canvas"); c.width = c.height = 64;
   const x = c.getContext("2d");
   x.translate(32, 32);
@@ -1150,6 +1164,10 @@ function makeThreatImage(type, color, headingUnknown = false) {
   x.fillStyle = color; x.strokeStyle = "rgba(255,255,255,.9)";
   x.lineWidth = 2; x.lineJoin = "round"; x.lineCap = "round";
   x.shadowColor = color; x.shadowBlur = 9;
+  if (approx) {
+    x.fillStyle = przygaszony(color); x.strokeStyle = color;
+    x.lineWidth = 2.6; x.setLineDash([5, 3]); x.shadowBlur = 0;
+  }
   const path = (points) => {
     x.beginPath(); x.moveTo(points[0][0], points[0][1]);
     for (let i = 1; i < points.length; i++) x.lineTo(points[i][0], points[i][1]);
@@ -1200,6 +1218,13 @@ function makeThreatImage(type, color, headingUnknown = false) {
          mówił, gdzie jest przód. Skrzydło nie jest deltą — to znak Shaheda. */
       path(BPSP_BODY);
       if (headingUnknown) break;           // bez kursu: bez czerwonego dzioba i grotu
+      if (approx) {                        // kurs jest, pozycja niepewna: sam grot w kolorze typu
+        x.setLineDash([]); x.globalAlpha = .75; x.fillStyle = color;
+        x.strokeStyle = "rgba(0,0,0,.55)"; x.lineWidth = 1.2;
+        path([[0,-44],[8,-34],[0,-37],[-8,-34]]);
+        x.globalAlpha = 1;
+        break;
+      }
       x.shadowBlur = 0; x.fillStyle = BPSP_RED; x.strokeStyle = BPSP_RED; x.lineWidth = 1.5;
       path([[0,-30],[4.5,-15],[-4.5,-15]]);
       x.strokeStyle = "rgba(0,0,0,.55)"; x.lineWidth = 1.2;
@@ -1261,7 +1286,8 @@ function renderLegendThreatIcons() {
     const meta = TYPE_META[type] || TYPE_META.unknown;
     const canvas = document.createElement("canvas");
     canvas.width = canvas.height = 64;
-    canvas.getContext("2d").putImageData(makeThreatImage(type, meta.color, el.dataset.headingUnknown === "1"), 0, 0);
+    canvas.getContext("2d").putImageData(makeThreatImage(type, meta.color,
+      el.dataset.headingUnknown === "1", el.dataset.approx === "1"), 0, 0);
     el.textContent = ""; el.appendChild(canvas);   // replaceChildren: Chrome 86
   });
 }
@@ -1397,9 +1423,13 @@ async function initMap() {
     // Granice państw: natywne linie stylu bazowego plus kontrastowe wypełnienia
     // krajów (kraje-fill). Białe obrysy z 1.7.41–1.7.42 wycofane 13.09.2026, bo
     // przy pochylonej mapie znikały odcinki granic.
-    for (const [t, m] of Object.entries(TYPE_META)) map.addImage("dart-" + t, makeThreatImage(t, m.color));
-    for (const [t, m] of Object.entries(TYPE_META))
-      if (!NO_HEADING_TYPES.has(t)) map.addImage("dart-" + t + "-unk", makeThreatImage(t, m.color, true));
+    for (const [t, m] of Object.entries(TYPE_META)) {
+      map.addImage("dart-" + t, makeThreatImage(t, m.color));
+      map.addImage("dart-" + t + "-apx", makeThreatImage(t, m.color, false, true));
+      if (NO_HEADING_TYPES.has(t)) continue;
+      map.addImage("dart-" + t + "-unk", makeThreatImage(t, m.color, true));
+      map.addImage("dart-" + t + "-unk-apx", makeThreatImage(t, m.color, true, true));
+    }
     map.addImage("plane", makePlaneImage());
     map.addImage("heli", makeHeliImage());
 
@@ -1589,7 +1619,7 @@ async function initMap() {
     // ludzie czytali ją jako „zagrożenie jest nad nami". Przerywana linia mówi
     // to samo — „gdzieś w tym kole" — a niczego nie zasłania.
     map.addLayer({ id: "uncertainty-line", type: "line", source: "uncertainty",
-      paint: { "line-color": ["get", "color"], "line-opacity": 0.85,
+      paint: { "line-color": ["get", "color"], "line-opacity": OKRAG_KRYCIE,
                "line-width": 1.6, "line-dasharray": [3, 3] } });
 
     map.addSource("threats", { type: "geojson", data: emptyFC() });
@@ -1620,11 +1650,11 @@ async function initMap() {
         "circle-stroke-color": "#ffffff", "circle-stroke-width": 2.5,
         "circle-stroke-opacity": 0.95 } });
     map.addLayer({ id: "threats", type: "symbol", source: "threats",
-      layout: { "icon-image": ["case",
-          ["all", ["==", ["get", "hdg_unknown"], true],
-                 ["match", ["get", "type"], [...NO_HEADING_TYPES], false, true]],
-          ["concat", "dart-", ["get", "type"], "-unk"],
-          ["concat", "dart-", ["get", "type"]]],
+      // dart-<typ>[-unk][-apx]: kurs nieznany i pozycja niepewna (19.10.2026) niezależnie
+      layout: { "icon-image": ["concat", "dart-", ["get", "type"],
+          ["case", ["all", ["==", ["get", "hdg_unknown"], true],
+                   ["match", ["get", "type"], [...NO_HEADING_TYPES], false, true]], "-unk", ""],
+          ["case", ["==", ["get", "apx"], true], "-apx", ""]],
         // 64 px zamiast 48 — skala zmniejszona tak, żeby sylwetka miała dawny rozmiar
         "icon-size": ["interpolate", ["linear"], ["zoom"], 4, 0.375, 8, 0.64],
         "icon-rotate": ["case", ["==", ["get", "hdg_unknown"], true], 0, ["get", "heading"]],
@@ -2242,7 +2272,20 @@ function markSelected(kind, id) {
   try {
     map.setFilter("threats-sel", ["==", ["get", "tid"], kind === "threat" ? String(id ?? none) : none]);
     map.setFilter("adsb-sel", ["==", ["get", "hex"], kind === "plane" ? String(id ?? none) : none]);
+    okregiWybranego(kind === "threat" && id != null ? String(id) : null);
   } catch {}
+}
+/* Okręgi niepewności przy kilku dronach obok siebie zlewały się w jedną plamę
+   (uwaga usera 19.10.2026, Lwów). Po dotknięciu obiektu jego okrąg zostaje
+   wyraźny i grubszy, a pozostałe bledną; po zamknięciu karty wszystko wraca. */
+const OKRAG_KRYCIE = 0.85, OKRAG_KRYCIE_WYBRANY = 0.95, OKRAG_KRYCIE_INNE = 0.22;
+function okregiWybranego(tid) {
+  if (!map.getLayer("uncertainty-line")) return;
+  const ten = ["==", ["get", "tid"], tid ?? "__none__"];
+  map.setPaintProperty("uncertainty-line", "line-opacity",
+    tid == null ? OKRAG_KRYCIE : ["case", ten, OKRAG_KRYCIE_WYBRANY, OKRAG_KRYCIE_INNE]);
+  map.setPaintProperty("uncertainty-line", "line-width",
+    tid == null ? 1.6 : ["case", ten, 2.6, 1.2]);
 }
 
 function showCard(html, opts) {
@@ -2302,6 +2345,7 @@ function openThreatPopup(lngLat, p) {
   showCard(`${img}
       <b style="color:${meta.color}">◆ ${meta.label}</b><br>
       ${p.opis ? esc2(p.opis) + "<br>" : ""}
+      ${p.pkt !== undefined ? kartaPozycjaHTML(p) : ""}
       ${UI.t("wiarygodność", "confidence", "достовірність")}: <b>${esc2(UI.confidence(p.confidence, CONF_PL[p.confidence] || p.confidence))}</b>
         · ${UI.t("gdzie może być", "where it may be", "де може бути")}: <b>±${p.uncertainty} km</b>${
           Number(p.unc_lot) > 0 && Number.isFinite(Number(p.uncertainty))
@@ -2314,6 +2358,7 @@ function openThreatPopup(lngLat, p) {
         ? ` <span style="color:#95a1b7">${UI.t("— rejon przestał już rosnąć, obiekt może być dalej", "— the area has stopped growing; the object may be further away", " — район уже перестав зростати, об'єкт може бути далі")}</span>` : ""}<br>
       ${courseVerdictHTML(p)}
       ${p.eta || ""}
+      ${kartaPunktyHTML(p)}
       <span style="color:#9aa6be">${UI.t("Dane: NEPTUN — agregator OSINT, nie radar wojskowy", "Data: NEPTUN — OSINT aggregator, not military radar", "Дані: NEPTUN — агрегатор OSINT, а не військовий радар")}</span>`);
 }
 
@@ -2347,6 +2392,47 @@ function courseVerdictHTML(p) {
       ? (UI.t(`kurs ${off}° od kierunku na Polskę`, `heading ${off}° away from the direction to Poland`, `курс ${off}° від напрямку на Польщу`))
       : (UI.t("kurs nie prowadzi na Polskę", "not heading towards Poland", "курс не веде на Польщу"));
   return `<span style="color:#a3aec4"><b>${UI.t("0 pkt", "0 pts", "0 бал.")}</b> — ${why}</span><br>`;
+}
+
+/* Plakietka pewności pozycji w karcie (19.10.2026). Pewna = punkt ze źródła;
+   niepewna = meldunek o kierunku lotu albo środek miejscowości. Opis, skąd wzięła
+   się pozycja niepewna, karta ma już niżej (etaHtml → approxPositionNote) —
+   tu sama plakietka, bez powtórzenia. */
+function kartaPozycjaHTML(p) {
+  const apx = p.apx === true || p.apx === "true";
+  if (apx) return `<span class="poz-plak poz-niepewna">${UI.t("pozycja niepewna", "uncertain position", "непевна позиція")}</span> <span style="color:#95a1b7">${
+    UI.t("nie namiar — opis niżej", "not a fix — see below", "не координати — опис нижче")}</span><br>`;
+  return `<span class="poz-plak poz-pewna">${UI.t("pozycja potwierdzona", "confirmed position", "підтверджена позиція")}</span> <span style="color:#95a1b7">${
+    UI.t("namiar ze źródła", "fix from the source", "координати від джерела")}</span><br>`;
+}
+/* „Punkty teraz” — ile obiekt w tej chwili daje każdemu województwu, a przy zerze
+   dlaczego (limit NEPTUN-a pełny albo ten sam punkt liczony z innego meldunku). */
+function kartaPunktyHTML(p) {
+  let d;
+  try { d = JSON.parse(p.pkt || "null"); } catch { d = null; }
+  if (!d || (!d.daje?.length && !d.zero?.length)) return "";
+  const apx = p.apx === true || p.apx === "true";
+  const waga = Math.round((POZYCJA_WAGA[p.apx_why] ?? POZYCJA_WAGA.source_approx) * 100);
+  const lista = d.daje.map((e, i) => {
+    const t = `${esc2(UI.voiv(e.v))} ${pktTxt(e.p)}`;
+    return i < 2 ? `<b>${t}</b>` : t;
+  }).join(" · ");
+  const zera = ["limit", "ten_sam"].map(why => {
+    const w = d.zero.filter(e => e.why === why).map(e => esc2(UI.voiv(e.v)));
+    if (!w.length) return "";
+    const pow = why === "limit"
+      ? UI.t(`limit NEPTUN-a (${NEPTUN_LIMIT_PKT} pkt) w województwie jest już pełny`,
+          `the NEPTUN limit (${NEPTUN_LIMIT_PKT} pts) in the province is already full`,
+          `ліміт NEPTUN (${NEPTUN_LIMIT_PKT} бал.) у воєводстві вже вичерпано`)
+      : UI.t("ten sam punkt liczy się już z innego meldunku",
+          "the same point is already counted from another report",
+          "ту саму точку вже враховано з іншого повідомлення");
+    return `<div class="meta">${w.join(", ")}: ${UI.t("nie dolicza punktów", "adds no points", "не додає балів")} — ${pow}</div>`;
+  }).join("");
+  return `<div class="karta-pkt"><span style="color:#95a1b7">${UI.t("Punkty teraz:", "Points now:", "Бали зараз:")}</span> ${
+    lista || UI.t("nie dolicza", "none added", "не додає")}${zera}<div class="meta">${apx
+      ? UI.t(`Pozycja niepewna waży ${waga}% pewnej.`, `An uncertain position weighs ${waga}% of a confirmed one.`, `Непевна позиція важить ${waga}% підтвердженої.`)
+      : UI.t("Pełna waga — pozycja potwierdzona.", "Full weight — confirmed position.", "Повна вага — підтверджена позиція.")}</div></div>`;
 }
 
 /* Karta samolotu w stylu airplanes.live: zdjęcie, kraj rejestracji, operator,
@@ -3013,6 +3099,84 @@ function refreshCountedTracks() {
         ids.add(String(s.details.track_id));
   countedTracks = ids;
 }
+
+/* Punkty w karcie obiektu (19.10.2026, pomysł usera po wieczorze, w którym 9 ikon
+   wokół Lwowa było w większości meldunkami „w kierunku X”). Karta mówi, ile obiekt
+   TERAZ daje każdemu województwu (counted_points z fuzji — po wygaszeniu wiekiem
+   i limicie klasy źródła), a przy zerze: dlaczego. Zero ma dwa źródła, które
+   trzeba rozróżnić, bo inaczej czytelnik uzna obiekt za zignorowany:
+   - limit NEPTUN-a w województwie jest już pełny (SOURCE_CAPS.neptun = 8),
+   - ten sam punkt rejonowy (physical_key) liczy się z innego meldunku.
+   Indeks budujemy raz na stan (na żywo) albo raz na tablicę sygnałów (historia). */
+const NEPTUN_LIMIT_PKT = 8;             // lustro config.SOURCE_CAPS["neptun"] i engine.js
+const POZYCJA_WAGA = { source_approx: 0.6, locality_center: 0.5 };   // lustro NEPTUN_POSITION_MULT
+const _indeksyPunktow = new WeakMap();
+function fusionSignals(st) {
+  const v = st?.fusion?.voivodeships;
+  if (!v) return [];
+  let lista = _indeksyPunktow.get(v);
+  if (!lista) {
+    lista = Object.values(v).flatMap(x => x.signals || []);
+    _indeksyPunktow.set(v, lista);
+  }
+  return lista;
+}
+function indeksPunktow(sygnaly) {
+  if (!Array.isArray(sygnaly)) return null;
+  let ix = _indeksyPunktow.get(sygnaly);
+  if (ix) return ix;
+  ix = { tor: new Map(), neptun: new Map(), fiz: new Map() };
+  for (const s of sygnaly) {
+    if (s?.source !== "neptun" || !s.voivodeship || s.details?.wave) continue;
+    const pkt = Number(s.counted_points) || 0;
+    ix.neptun.set(s.voivodeship, (ix.neptun.get(s.voivodeship) || 0) + pkt);
+    const tid = s.details?.track_id;
+    if (tid == null) continue;
+    const k = String(tid);
+    if (!ix.tor.has(k)) ix.tor.set(k, []);
+    ix.tor.get(k).push(s);
+    const fiz = s.details?.physical_key;
+    if (fiz && pkt > 0) ix.fiz.set(s.voivodeship + "|" + fiz, k);
+  }
+  _indeksyPunktow.set(sygnaly, ix);
+  return ix;
+}
+/* [{v, p}] dla województw, którym obiekt daje punkty, i [{v, why}] dla tych,
+   którym dawałby, ale nie dolicza (why: "limit" | "ten_sam"). Pomijamy wpisy,
+   które i tak wygasły wiekiem (waga × punkty < 0,05). */
+function punktyObiektu(tid, sygnaly) {
+  const ix = indeksPunktow(sygnaly);
+  const wpisy = ix?.tor.get(String(tid ?? "")) || [];
+  const per = new Map();
+  for (const s of wpisy) {
+    const e = per.get(s.voivodeship) || { v: s.voivodeship, p: 0, mozliwe: 0, fiz: null };
+    e.p += Number(s.counted_points) || 0;
+    e.mozliwe = Math.max(e.mozliwe, (Number(s.points) || 0) * (Number(s.weight ?? 1) || 0));
+    e.fiz = e.fiz || s.details?.physical_key || null;
+    per.set(s.voivodeship, e);
+  }
+  const daje = [], zero = [];
+  for (const e of per.values()) {
+    if (e.p >= 0.05) { daje.push({ v: e.v, p: Math.round(e.p * 10) / 10 }); continue; }
+    if (e.mozliwe < 0.05) continue;
+    const inny = e.fiz && ix.fiz.get(e.v + "|" + e.fiz);
+    const why = inny && inny !== String(tid) ? "ten_sam"
+      : (ix.neptun.get(e.v) || 0) >= NEPTUN_LIMIT_PKT - 0.05 ? "limit" : null;
+    if (why) zero.push({ v: e.v, why });
+  }
+  daje.sort((a, b) => b.p - a.p);
+  return { daje, zero };
+}
+/* Właściwości znacznika: pozycja niepewna (ikona -apx, plakietka w karcie)
+   i punkty obiektu jako tekst JSON — właściwości warstwy GL nie przenoszą tablic. */
+function pozycjaIPunkty(t, sygnaly) {
+  const info = positionInfo(t);
+  const apx = info.quality === "approx";
+  return {
+    apx, apx_why: apx ? info.reason || "source_approx" : "",
+    pkt: JSON.stringify(punktyObiektu(t.id, sygnaly)),
+  };
+}
 const PULSE_MS = 1600;
 let lastPulse = 0, pulseOff = false;
 function pulseLoop(ts) {
@@ -3126,13 +3290,14 @@ function animate(ts) {
         toward_pl: t.pl_assessment?.toward_pl === true,
         heading_known: t.pl_assessment?.heading_known !== false,
         counted: countedTracks.has(String(t.id ?? "")),
+        ...pozycjaIPunkty(t, fusionSignals(state)),
         age_min: ageMin, age_label: ageLabel(ageMin),
         course_off: courseOffsetDeg(t),
         na_cel: naKursieDoCelu(t), cel: naKursieDoCelu(t) && t.locality ? placeName(t.locality) : "",
         eta: etaHtml(t) } });
     const uncKm = shownUncertaintyKm(t, now);
     if (uncKm)
-      unc.push({ type: "Feature", properties: { color: meta.color },
+      unc.push({ type: "Feature", properties: { color: meta.color, tid: String(t.id ?? "") },
         geometry: { type: "Polygon", coordinates: circleCoords(p.lat, p.lon, uncKm) } });
     // ślad = to, co dało API + to, co sami zaobserwowaliśmy + pozycja bieżąca.
     // Dla przybliżonego rejonu nie łączymy kolejnych raportów w pozorną trasę.
@@ -5971,6 +6136,7 @@ function showHistoryAt(idx) {
             ? `${threatLabelPL(t.type)} — ostatnia pozycja z sygnału; obiekt nie występował już w tej migawce`
             : threatDesc(t),
           historicalOnly: !!t.historicalOnly, dist_km: t.pl_assessment?.dist_km,
+          ...pozycjaIPunkty(t, sigs),
           // wiek meldunku zapisany w migawce (starsze migawki go nie mają — wtedy 0,
           // czyli obiekt rysuje się jak świeży, bez podpisu z wiekiem)
           age_min: snapAgeMin(t), age_label: ageLabel(snapAgeMin(t)),
@@ -5988,7 +6154,8 @@ function showHistoryAt(idx) {
     map.getSource("uncertainty")?.setData({ type: "FeatureCollection",
       features: historyThreats.filter(t => t.lat != null).flatMap(t => {
         const km = shownUncertaintyKm(t);
-        return km ? [{ type: "Feature", properties: { color: (TYPE_META[t.type] || {}).color || "#8a93a6" },
+        return km ? [{ type: "Feature", properties: { color: (TYPE_META[t.type] || {}).color || "#8a93a6",
+                                                      tid: String(t.id ?? "") },
           geometry: { type: "Polygon", coordinates: circleCoords(t.lat, t.lon, km) } }] : [];
       }) });
     map.getSource("adsb")?.setData({ type: "FeatureCollection",

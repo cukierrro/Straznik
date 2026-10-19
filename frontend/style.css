@@ -230,6 +230,11 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 .thr-photo img { max-height: 190px; object-fit: contain; background: #0e1626; }
 .thr-photo-note { margin-top: 3px; color: var(--muted); font-size: 0.6667rem; line-height: 1.25; }
 .thr-photo-note a { color: var(--cyan); text-decoration: underline; }
+/* Pewność pozycji obiektu i punkty w karcie (19.10.2026) */
+.poz-plak { display: inline-block; border-radius: 4px; padding: 0 6px; font-size: 0.7333rem; line-height: 1.5; }
+.poz-pewna { background: #1f3a2b; color: #8fe0a8; }
+.poz-niepewna { background: #3a2f17; color: #ffcf70; }
+.karta-pkt { margin: 6px 0; padding-top: 6px; border-top: 1px solid rgba(255,255,255,.08); }
 #ac-card a { color: var(--cyan); }
 #ac-card table { border-collapse: collapse; }
 #ac-card .btn-follow { border: 1px solid rgba(255,255,255,.14); color: var(--text);
