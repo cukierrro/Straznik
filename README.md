@@ -6,6 +6,10 @@
 
 Serwer: **hostowane na [Mikrusie](https://mikr.us)** — dziękujemy za wsparcie projektu.
 
+Wersja 1.7.99: drony nie przechodzą już do sąsiednich województw (każdy ma własną
+odległość do każdego), artykuł, który tylko powtarza Alert RCB, nie daje drugich punktów,
+opisy dronów po polsku, GROTA z wykazem PSP z 19 października. Szczegóły: `docs/RELEASE_1.7.99.md`.
+
 Wersja 1.7.98: przycisk „‹ Menu” na górze każdego okna otwartego z Menu
 i „‹ Ustawienia” na górze sekcji Ustawień i Moich miejsc. Szczegóły: `docs/RELEASE_1.7.98.md`.
 

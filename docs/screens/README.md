@@ -181,3 +181,16 @@ the Pixel 7 emulator with Android 14, taken on the evening of 18 October 2026 wi
 real taps (Menu → Settings). The same run tapped through every Menu window and
 Settings section in all three languages to check the back buttons; only the
 settings start screens are used in the guides. No public test notifications were sent.
+
+## 1799 — release 1.7.99 (19 October 2026)
+
+`1799/panel-{pl,en,uk}.jpg` and `1799/history-panel-{pl,en,uk}.jpg` replace the
+1797 files: 1.7.99 stopped passing NEPTUN objects to neighbouring provinces and
+shows NEPTUN signal titles in Polish, both visible on these panels. Unchanged
+1080 × 2400 screenshots of a 1.7.99 debug build (code 128) on the Pixel 7
+emulator with Android 14, taken on the evening of 19 October 2026 (PL ~20:15,
+EN ~20:18, UK ~20:22 Europe/Warsaw), after the server had been deployed with the
+new scoring, during a real drone attack — the scores are live data from that
+moment. The emulator is subscribed to Lublin alerts, so a real red alert screen
+appeared on start; it was acknowledged before the screenshots. No test
+notifications were sent; the emulator sound was muted.

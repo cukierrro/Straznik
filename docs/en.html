@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Strażnik 1.7.98 — user guide</title>
-<meta name="description" content="Strażnik 1.7.98 user guide: installation, My places, the map and PAŻP zones, the signals panel, history, alerts, browser notifications and scoring. Screenshots from the current version.">
+<title>Strażnik 1.7.99 — user guide</title>
+<meta name="description" content="Strażnik 1.7.99 user guide: installation, My places, the map and PAŻP zones, the signals panel, history, alerts, browser notifications and scoring. Screenshots from the current version.">
 <link rel="canonical" href="https://cukierrro.github.io/Straznik/en.html">
 <link rel="alternate" hreflang="pl" href="https://cukierrro.github.io/Straznik/">
 <link rel="alternate" hreflang="en" href="https://cukierrro.github.io/Straznik/en.html">
@@ -34,11 +34,11 @@
   <div class="languages" aria-label="Guide language"><a href="index.html" lang="pl" hreflang="pl">PL</a><a href="en.html" lang="en" aria-current="page">EN</a><a href="uk.html" lang="uk" hreflang="uk">UA</a></div>
 </div></nav>
 <header class="hero"><div class="wrap hero-grid">
-  <div><div class="eyebrow">User guide · version 1.7.98</div>
+  <div><div class="eyebrow">User guide · version 1.7.99</div>
     <h1>The situation on a map.<br>The sources behind each signal.</h1>
     <p class="lead">Strażnik combines public information about airborne threats and shows a score for each Polish province. It runs on Android, on iPhone and in a web browser.</p>
     <div class="actions"><a class="button primary" href="https://play.google.com/store/apps/details?id=pl.straznik.app">↓ Google Play</a><a class="button primary" href="https://apps.apple.com/pl/app/id6813563009">↓ Get it for iOS</a><a class="button" href="https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk">↓ APK file</a><a class="button" href="https://straznik.eu">Open the map</a></div>
-    <p class="fineprint">This guide describes only the current version, 1.7.98. Screenshots were taken on the morning of 15 October 2026 on a Pixel 7 emulator with Android 14, from a test build of release 1.7.95 (the same code as the release), using live data — so the numbers of objects and points are what they were that morning. The settings screenshots with the Map section were taken on 17 October 2026 on a 1.7.96 test build. The screenshots of the signals panel, object card, history and settings start were taken on the afternoon of 18 October 2026 on a 1.7.97 test build (the same code as the release), using live data from that moment. The settings start screen with “‹ Menu” at the top was taken on the evening of 18 October 2026 on a 1.7.98 test build. The alert screen is a test (<kbd>▶ Test: full alert</kbd>). What changed from release to release is in the <a href="zmiany-en.html">changelog</a>. Tap a screenshot to open it full size.</p>
+    <p class="fineprint">This guide describes only the current version, 1.7.99. Screenshots were taken on the morning of 15 October 2026 on a Pixel 7 emulator with Android 14, from a test build of release 1.7.95 (the same code as the release), using live data — so the numbers of objects and points are what they were that morning. The settings screenshots with the Map section were taken on 17 October 2026 on a 1.7.96 test build. The screenshots of the signals panel, object card, history and settings start were taken on the afternoon of 18 October 2026 on a 1.7.97 test build (the same code as the release), using live data from that moment. The settings start screen with “‹ Menu” at the top was taken on the evening of 18 October 2026 on a 1.7.98 test build. The signals panel and the history panel were taken on the evening of 19 October 2026 on a 1.7.99 test build, with the server already scoring by the new rules, during a real drone attack. The alert screen is a test (<kbd>▶ Test: full alert</kbd>). What changed from release to release is in the <a href="zmiany-en.html">changelog</a>. Tap a screenshot to open it full size.</p>
     <p class="fineprint"><b>Using an iPhone?</b> Alerts, permissions and updates work differently there — read the <a href="iphone-en.html">iPhone guide</a>.</p>
     <p class="host-note"><img src="mikrus-logo.svg" alt="Mikrus" width="86" height="14">
       Strażnik’s server is provided by <a href="https://mikr.us">Mikrus</a> — thank you for supporting the project.</p>
@@ -83,7 +83,7 @@
       <p><b>The store updates the Google Play version</b> — it has no update button. The following applies to the APK version.</p>
       <p>Strażnik checks for a new release at every launch and whenever it returns to the foreground (at most every 30 minutes). The update window shows the version number and the list of changes. Manually: <kbd>Menu</kbd> → <kbd>Settings</kbd> → <kbd>Language, text and version</kbd> → <kbd>⬆ Check for updates</kbd>.</p>
       <p>For an ordinary update you can choose <kbd>Later</kbd>. When you install, the app downloads the file, verifies its SHA-256 checksum and hands it to Android for confirmation. Install the new release over the old one — settings and My places are kept.</p>
-      <div class="note"><b>Which version do you have?</b> <kbd>Menu</kbd> → <kbd>Settings</kbd> → <kbd>Language, text and version</kbd> section → “Installed version”. The latest release is <b>1.7.98</b>. At the bottom of the tab are links to this guide, the changelog and supporting the author.</div>
+      <div class="note"><b>Which version do you have?</b> <kbd>Menu</kbd> → <kbd>Settings</kbd> → <kbd>Language, text and version</kbd> section → “Installed version”. The latest release is <b>1.7.99</b>. At the bottom of the tab are links to this guide, the changelog and supporting the author.</div>
     </div>
     <figure><a class="shot-link" href="screens/1796/set-aplikacja-en.jpg"><img loading="lazy" src="screens/1796/set-aplikacja-en.jpg" width="1080" height="2400" alt="Settings, Language, text and version section: interface language English, text size Normal, Larger, Largest, installed version 1.7.95 and the Check for updates button"></a><figcaption><kbd>Menu</kbd> → <kbd>Settings</kbd> → <kbd>Language, text and version</kbd>: language, text size, version and updates.</figcaption></figure>
   </div>
@@ -228,7 +228,7 @@
       </ul>
       <p>A <b>NEIGHBOURS</b> entry is points spilling over from a neighbouring province (chapter <a href="#punkty">11</a>).</p>
     </div>
-    <figure><a class="shot-link" href="screens/1797/panel-en.jpg"><img loading="lazy" src="screens/1797/panel-en.jpg" width="1080" height="2400" alt="Live signals panel over a map shifted upwards: Provinces header with thresholds ≥2 attention, ≥4 priority and a Close button, the Lublin — my region card at 2.1 pts ELEVATED ATTENTION adding up to 1.1 NEPTUN and 0.9 ALARM UA, the Subcarpathian card at 1.2 pts below threshold, and further provinces below"></a><figcaption>Panel: province cards with the breakdown of points.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/1799/panel-en.jpg"><img loading="lazy" src="screens/1799/panel-en.jpg" width="1080" height="2400" alt="Live signals panel during the drone attack of 19.10.2026: the Lublin — my region card at HIGH PRIORITY 4.6 pts, adding up to 3.7 NEPTUN and 1.0 ALARM UA, the Subcarpathian card at ELEVATED ATTENTION 2.6 pts from 1.7 NEPTUN and 1.0 ALARM UA, Podlaskie 0.7 pts below — no points passed on from neighbours"></a><figcaption>Panel: province cards with the breakdown of points.</figcaption></figure>
   </div>
   <p>Further down the panel has two observation lists without points: <b>Objects ≤ 250 km from the border</b> (NEPTUN) and <b>Military aviation (ADS-B)</b> over eastern Poland. This is public transponder data, not tracking of hostile aircraft. It comes from free, open aggregators: the server queries <a href="https://adsb.lol">adsb.lol</a> and falls back to opendata.adsb.fi; in emergency mode, when the phone scores on its own, airplanes.live is queried as well. The layer is informational and gives no points. Where available, the province card also offers <kbd>Cameras in the region</kbd> — road cameras, not a tool for detecting airborne objects. Since 1.7.88 this is a plain list with links: the preview is not shown here, because the worldcam.pl terms do not allow it. Tapping a tile opens the camera at the source.</p>
   <div class="shots">
@@ -253,7 +253,7 @@
     <figure><a class="shot-link" href="screens/1797/history-zwiniety-en.jpg"><img loading="lazy" src="screens/1797/history-zwiniety-en.jpg" width="1080" height="2400" alt="History mode with the chart collapsed to a single Drones and missiles · 12 h row, peak 33 at 07:01, with a mini curve; the map moves to sit above the lower bar"></a><figcaption>The chart is collapsed by default.</figcaption></figure>
   </div>
   <div class="shots">
-    <figure><a class="shot-link" href="screens/1797/history-panel-en.jpg"><img loading="lazy" src="screens/1797/history-panel-en.jpg" width="1080" height="2400" alt="Panel in history mode: HISTORY VIEW — 15:28 (now) header noting that this is data from the time selected on the slider, the Lublin card at 2.1 pts ELEVATED ATTENTION with a new NEPTUN entry for a drone heading towards the Polish border 107.7 km away, and the history bar with LIVE, ×1 and the collapsed chart at the bottom"></a><figcaption>Breakdown of points at the selected moment. Tapping a province card collapses or expands it.</figcaption></figure>
+    <figure><a class="shot-link" href="screens/1799/history-panel-en.jpg"><img loading="lazy" src="screens/1799/history-panel-en.jpg" width="1080" height="2400" alt="Panel in history mode: HISTORY VIEW — 20:18 (now), the Lublin card at 5.7 pts HIGH PRIORITY with the ALARM UA entry “Air-raid alert in Volyn oblast (Lublin — at the border)”, and the history bar with LIVE, ×1, the collapsed chart and the line 5.7 pts · province Lublin · 49 drones"></a><figcaption>Breakdown of points at the selected moment. Tapping a province card collapses or expands it.</figcaption></figure>
   </div>
 </section>
 
