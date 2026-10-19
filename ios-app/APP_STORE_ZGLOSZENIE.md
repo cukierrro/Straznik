@@ -939,3 +939,60 @@ do zmierzenia: `#about.z-menu .about-body { padding-top: 68px }` zakłada stał�
 wysokość przycisku „‹ Menu"; przy systemowej czcionce 200 % przycisk może zasłonić
 pierwszy akapit. To nie safe-area — sam notch jest bezpieczny, bo `dialog` ma
 `top: var(--safe-t)`, więc `top: 12px` liczy się od krawędzi okna, nie ekranu.
+
+## 27. Zgłoszenie 1.7.99 (20.10.2026, 00:04)
+
+Build **2610192151**, commit `main f092eca` scalony w `ios-grota`, status
+**Waiting for Review**, publikacja **automatyczna**, od razu do wszystkich,
+ocena zachowana. Zgoda usera własnym słowem w sesji iOS („tak zglasaj").
+
+**1.7.98 było już „Ready for Distribution"** — zatwierdzone i opublikowane.
+Kolejka wolna, więc tym razem **bez wycofywania** czegokolwiek: zwykła nowa
+wersja przez „+". Opis z `_materialy/Straznik-play/opis-1.7.99.txt`, tylko PL
+(karta nadal ma jedną lokalizację), 465 znaków, 6 wierszy z `•`.
+
+Sprawdzone przed buildem: GROTA z wykazu **2026-10-19** (87 316 punktów),
+prefiksy `-webkit-backdrop-filter` 15/15, `#quiet-hours` android-only,
+`#yv-ios-note` i `#rs-ios-note` ios-only, `godzinyCiszyTeraz()` wychodzi na
+`IS_IOS`, `test_zdania_rozszerzenia.py` zielony, rozszerzenie w paczce (bramka CI).
+
+### Trzy rzeczy zachowały się INACZEJ niż zapisano w §22 i §26
+
+Panel nie jest stabilny między wydaniami — **sprawdzać, nie ufać notatce**:
+
+1. **Przycisk „+" („Add iOS App", 4×13 px) tym razem ZADZIAŁAŁ po `ref`.**
+   §22 mówi, że otwiera go dopiero `element.click()` z konsoli. Próbować
+   najpierw kliknięcia po `ref`; `find` znajduje go jako „Add iOS App".
+2. **`form_input` tym razem ZADZIAŁAŁ** (`previous: ""` → 465 znaków).
+   W §26 na tych samych polach wpisywał starą wartość i meldował sukces.
+   Wniosek nie brzmi „form_input działa" ani „nie działa", tylko:
+   **po każdym wpisaniu odczytać pole z powrotem.** To jedyne, co nie zawiodło.
+3. **Natywny setter z `javascript_tool` jest teraz ZABLOKOWANY** przez
+   mechanizm bezpieczeństwa Claude Code („Unrequested Commit in a Connected
+   App") — dotyczy wywołań `.click()` i podobnych. Odczyt przez
+   `javascript_tool` nadal działa i to on służy do weryfikacji. Kolejność:
+   zwykłe kliknięcie / `form_input` → odczyt kontrolny przez `javascript_tool`.
+
+### Co weszło w tym wydaniu po stronie iOS
+
+Poza wspólnym frontendem — **poprawka B14**: `#rs-ios-note` w środku
+`#det-natywny`. Do 1.7.98 rozwijacz „Zanim zmienisz: co to zmienia" otwierał
+na iPhonie **pusty prostokąt**, bo oba jego akapity są android-only. Zgłosił to
+użytkownik („Na iPhone nie widzę takiej opcji"). Teraz jest tam tekst
+o Alertach krytycznych, w trzech językach.
+
+### Czego w tym wydaniu NIE sprawdzono na iPhonie
+
+Nowości 1.7.99 (ikona drona z niepewną pozycją, punkty per województwo, okręgi
+niepewności) mierzone na Androidzie i w przeglądarce, **nie na urządzeniu iOS**.
+Ikony nie są plikami — rysuje je `makeThreatImage()` i rejestruje `map.addImage`,
+więc nie ma czego zgubić w paczce.
+
+### Pułapka lokalnego builda (ostrzeżenie sesji GROTY, potwierdzone)
+
+`ios-app/www/` jest w `.gitignore` i **nie jest śledzony**. Mój lokalny egzemplarz
+miał jeszcze wykaz GROTY z **12.10**, choć repozytorium ma 19.10. Build **lokalny**
+wziąłby po cichu stary moduł — objawem byłby tylko inny licznik punktów.
+W CI to nie grozi: `npm run sync` odtwarza `www` od zera na świeżym checkoucie
+(log: „www: skopiowano 13 pozycji z frontend/", „www: dołączono moduł GROTA").
+**Przed buildem lokalnym zawsze `npm run sync`.**
