@@ -6,6 +6,10 @@ obwodu rówieńskiego przypisane do OBU województw liczyły się w każdym w pe
 i jeszcze raz jako 40% przeniesienia od drugiego. Lubelskie dostało przez to
 żółty i czerwony, a podkarpackie drugi czerwony po chwilowym spadku do 3,87.
 
+19.10.2026 (W1, decyzja usera): obiekty NEPTUN nie przechodzą do sąsiadów — każdy
+obiekt punktuje już każde województwo w 250 km od własnej odległości (1.7.91).
+Mechanizm przeniesienia sprawdzamy więc na mediach, alarmach obwodów i ADS-B.
+
 Uruchomienie:  py scripts/test_przeniesienia.py
 """
 import sys
@@ -28,7 +32,8 @@ def sig(sid, voiv, source, points, details=None, ts="2026-09-13T05:10:00+00:00",
         event_type=None):
     return {"id": sid, "ts": ts, "source": source,
             "event_type": event_type or {"media": "media_keywords", "neptun": "neptun_threat",
-                                         "ua_alert": "ua_alert_border", "rcb": "rso_alert"}[source],
+                                         "ua_alert": "ua_alert_border", "rcb": "rso_alert",
+                                         "adsb": "adsb_military"}[source],
             "voivodeship": voiv, "points": points, "title": f"sygnał {sid}",
             "details": details or {}}
 
@@ -53,7 +58,7 @@ obwod = {"oblast": "Рівненська", "distance_km": 70}
 wspolne = [
     sig(1, "lubelskie", "media", 1.0, link), sig(2, "podkarpackie", "media", 1.0, link),
     sig(3, "lubelskie", "ua_alert", 0.6, obwod), sig(4, "podkarpackie", "ua_alert", 0.6, obwod),
-    sig(5, "podkarpackie", "neptun", 1.0, {"track_id": "a"}),
+    sig(5, "podkarpackie", "adsb", 1.0, {"hex": "a"}),
     sig(6, "lubelskie", "neptun", 0.5, {"track_id": "b"}),
 ]
 st = fusion.compute_state(wspolne, REF)["voivodeships"]
@@ -65,11 +70,22 @@ ok(spill(st, "świętokrzyskie", "podkarpackie") == 1.0,
    "województwo bez wspólnych zdarzeń dostaje pełne przeniesienie (2,6 × 0,4)")
 ok(st["lubelskie"]["own_score"] == 2.1, "punkty własne bez zmian")
 
-niezalezne = [sig(10, "podkarpackie", "neptun", 3.0, {"track_id": "c"}),
-              sig(11, "lubelskie", "neptun", 0.5, {"track_id": "d"})]
+# W1 (19.10.2026): obiekt NEPTUN u sąsiada NIE przechodzi — nawet 3,0 pkt
+drony = [sig(10, "podkarpackie", "neptun", 3.0, {"track_id": "c"}),
+         sig(11, "lubelskie", "neptun", 0.5, {"track_id": "d"})]
+st = fusion.compute_state(drony, REF)["voivodeships"]
+ok(spill(st, "lubelskie", "podkarpackie") == 0,
+   "obiekt NEPTUN u sąsiada nie przechodzi (ma własną odległość do każdego województwa)")
+ok(all(s["score"] == 0 for v, s in st.items() if v not in ("lubelskie", "podkarpackie")),
+   "drony nie dają punktów województwom bez własnych sygnałów")
+
+niezalezne = [sig(12, "podkarpackie", "media", 1.0, {"link": "https://example.test/c"}),
+              sig(13, "podkarpackie", "ua_alert", 1.0, {"oblast": "Львівська", "distance_km": 40}),
+              sig(14, "podkarpackie", "adsb", 1.0, {"hex": "c"}),
+              sig(15, "lubelskie", "neptun", 0.5, {"track_id": "d"})]
 st = fusion.compute_state(niezalezne, REF)["voivodeships"]
 ok(spill(st, "lubelskie", "podkarpackie") == 1.2,
-   "niezależne zdarzenie u sąsiada nadal się przenosi")
+   "niezależne zdarzenie u sąsiada (media, alarm obwodu, ADS-B) nadal się przenosi")
 tytul = next(s["title"] for s in st["lubelskie"]["signals"] if s["source"] == "spillover")
 ok("3.0 pkt" in tytul, f"tytuł przeniesienia z zaokrągleniem: {tytul}")
 

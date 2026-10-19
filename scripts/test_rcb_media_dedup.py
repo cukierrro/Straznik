@@ -43,12 +43,25 @@ def test_relay_is_visible_but_scores_zero():
 
 
 def test_rcb_mention_with_new_information_is_not_suppressed():
+    # Informacja PONAD alert (dron nad regionem) — liczy się mimo słów „Alert RCB”.
     distinct = sig(
         3, "2026-09-10T04:25:00+00:00", "media", "media_keywords", "lubelskie", 1.5,
-        "Media: Rosja zaatakowała Kijów pociskami balistycznymi. Alert RCB dla Lubelszczyzny")
+        "Media: Drony nad Lubelszczyzną. Alert RCB dla Lubelszczyzny")
     state = fusion.accumulate([official_lub, distinct], REF)["lubelskie"]
     assert state["score"] == 3.0   # 2,0 RCB + media do limitu klasy 1,0
     assert "duplicate_of_official" not in state["signals"][1]
+
+
+def test_rcb_article_about_ukraine_only_is_an_echo():
+    # 19.10.2026 (decyzja usera): artykuł O alercie RCB bez informacji ponad alert —
+    # atak na Kijów to treść samego alertu („atak na terenie Ukrainy”) — 0 pkt.
+    # Wcześniej (do 1.7.98) ten tytuł liczył się jako niezależne źródło.
+    kijow = sig(
+        3, "2026-09-10T04:25:00+00:00", "media", "media_keywords", "lubelskie", 1.5,
+        "Media: Rosja zaatakowała Kijów pociskami balistycznymi. Alert RCB dla Lubelszczyzny")
+    state = fusion.accumulate([official_lub, kijow], REF)["lubelskie"]
+    assert state["score"] == 2.0, state["score"]
+    assert state["signals"][1]["duplicate_of_official"] == "23321638"
 
 
 def test_regional_rcb_does_not_spill_or_make_today_red():
@@ -73,11 +86,14 @@ def test_regional_rcb_does_not_spill_or_make_today_red():
 
 
 def test_independent_non_rcb_risk_can_still_spill():
+    # Od 19.10.2026 (W1) drony nie przechodzą do sąsiadów — przeniesienie niesie
+    # alarm obwodu UA obok niezależnej relacji.
     signals = [
         sig(6, "2026-09-10T04:20:00+00:00", "media", "media_keywords",
             "lubelskie", 1.5, "Niezależna relacja o naruszeniu przestrzeni"),
-        sig(7, "2026-09-10T04:20:30+00:00", "neptun", "neptun_threat",
-            "lubelskie", 1.0, "Dron", {"track_id": "independent-1"}),   # media do limitu 1,0
+        sig(7, "2026-09-10T04:20:30+00:00", "ua_alert", "ua_alert_border",
+            "lubelskie", 1.0, "Alarm powietrzny w obwodzie wołyńskim",
+            {"oblast": "Волинська", "distance_km": 60}),   # media do limitu 1,0
     ]
     original = fusion.db.signals_since
     original_weight = fusion._age_weight
@@ -173,6 +189,7 @@ def test_2109_qra_wave_without_official_alert_still_counts():
 if __name__ == "__main__":
     test_relay_is_visible_but_scores_zero()
     test_rcb_mention_with_new_information_is_not_suppressed()
+    test_rcb_article_about_ukraine_only_is_an_echo()
     test_regional_rcb_does_not_spill_or_make_today_red()
     test_independent_non_rcb_risk_can_still_spill()
     test_stored_wyryki_retrospective_is_visible_but_scores_zero()
@@ -181,4 +198,4 @@ if __name__ == "__main__":
     test_2109_echo_without_rcb_words_and_qra_wave_score_zero()
     test_2109_article_with_more_than_the_alert_still_counts()
     test_2109_qra_wave_without_official_alert_still_counts()
-    print("OK: 10 regresji RCB/media, materiałów historycznych i propagacji")
+    print("OK: 11 regresji RCB/media, materiałów historycznych i propagacji")

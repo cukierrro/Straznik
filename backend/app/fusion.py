@@ -93,16 +93,67 @@ def _minutes_apart(a: dict, b: dict) -> float:
 
 
 # Artykuł, który mówi o czymś PONAD treść alertu — liczy się zawsze (21.09.2026).
+# 19.10.2026: także poszukiwania i niezidentyfikowany obiekt (Lublin 18.10).
 _RELAY_ESCALATION_MARKERS = (
     "dron nad", "drony nad", "dronow nad", "nad polsk", "nad lubel", "nad podkarp",
     "narusz", "wlecia", "zestrzel", "eksploz", "wybuch", "spadl", "spadly", "szczatk",
-    "syren",
+    "syren", "poszukiw", "niezidentyf",
+)
+# Artykuł O ALERCIE RCB (19.10.2026, decyzja usera): tytuł nazywa RCB albo alert
+# dla regionu, albo cytuje alert. Reguła z 21–23.09 łapała tylko „alert RCB” w tej
+# kolejności i podobieństwo słów — przechodziły „RCB: alert dla województwa
+# lubelskiego i podkarpackiego” (19.10, po 1,0 pkt w obu), „„Atak powietrzny na
+# terenie Ukrainy”. Alert dla Lubelskiego”, „„Sytuacja jest monitorowana”…”.
+_MEDIA_ABOUT_RCB_MARKERS = (
+    "rzadowe centrum bezpieczenstwa", "rzadowego centrum bezpieczenstwa",
+    "alert dla", "alertu dla", "alert w wojewodztw", "alert w lubelsk", "alert na lubelszczy",
+    "alert na podkarpaciu", "alert w podkarpack",
+    "sytuacja jest monitorowana", "atak powietrzny na terenie ukrainy",
+    "operuje polskie lotnictwo",
+)
+_MEDIA_ABOUT_RCB_RE = re.compile(r"\brcb\b")
+# Artykuł o KOŃCU zagrożenia nie podnosi wyniku (19.10.2026: „Wojsko zakończyło
+# kolejne działania po ataku na Ukrainę. RCB: brak zagrożenia w Polsce” — 0,5 pkt).
+_MEDIA_END_TITLE_MARKERS = (
+    "brak zagrozenia", "koniec zagrozenia", "zagrozenie minelo", "zakonczyl sie atak",
+    "zakonczyla sie", "zakonczono alert", "alert odwolany", "odwolano alert",
+    "zakonczono poszukiwania", "zakonczyly sie poszukiwania",
 )
 
 
 def _relay_stems(value: str) -> set[str]:
     """Rdzenie słów (5 liter): „Ukrainę”/„Ukrainy”, „powietrzny”/„powietrzna” to jedno."""
     return {w[:5] for w in _relay_tokens(value)}
+
+
+def _media_about_rcb(media: dict) -> bool:
+    """Czy artykuł mówi O alercie RCB i nie wnosi nic ponad niego (19.10.2026)."""
+    if media.get("source") != "media" or media.get("event_type") != "media_keywords":
+        return False
+    folded = _fold_text(media.get("title", ""))
+    if any(m in folded for m in _RELAY_ESCALATION_MARKERS):
+        return False
+    return bool(_MEDIA_ABOUT_RCB_RE.search(folded)) or any(m in folded for m in _MEDIA_ABOUT_RCB_MARKERS)
+
+
+def _media_echo_of_rcb(media: dict, officials: list[dict]) -> dict | None:
+    """Alert RCB/RSO (dowolne województwo), który artykuł o alercie tylko powtarza.
+
+    Bez wymogu tego samego województwa: relacja o alercie dla lubelskiego trafiała
+    też do podkarpackiego i opolskiego (Radio Lublin, 15.10 — po 1,0 pkt)."""
+    if not _media_about_rcb(media):
+        return None
+    mt = _parse_ts(media.get("ts"))
+    if mt is None:
+        return None
+    for o in sorted(officials, key=lambda x: x.get("ts", ""), reverse=True):
+        ot = _parse_ts(o.get("ts"))
+        if ot is None:
+            continue
+        roznica = (mt - ot).total_seconds() / 60
+        if -config.RCB_MEDIA_ECHO_PO_MIN <= roznica <= config.RCB_MEDIA_ECHO_MIN:
+            return o
+    return None
 
 
 def _media_relay_of_official(media: dict, officials: list[dict]) -> dict | None:
@@ -125,6 +176,9 @@ def _media_relay_of_official(media: dict, officials: list[dict]) -> dict | None:
     kind = media.get("event_type")
     if kind not in ("media_keywords", "media_qra_wave"):
         return None
+    echo = _media_echo_of_rcb(media, officials)
+    if echo is not None:
+        return echo
     folded = _fold_text(media.get("title", ""))
     close = [o for o in officials
              if o.get("voivodeship") == media.get("voivodeship")
@@ -173,7 +227,8 @@ def _media_retrospective(media: dict) -> bool:
     if media.get("source") != "media" or media.get("event_type") != "media_keywords":
         return False
     title = _fold_text(media.get("title", ""))
-    return any(marker in title for marker in _MEDIA_RETROSPECTIVE_TITLE_MARKERS)
+    return (any(marker in title for marker in _MEDIA_RETROSPECTIVE_TITLE_MARKERS)
+            or any(marker in title for marker in _MEDIA_END_TITLE_MARKERS))
 
 
 def level_for(score: float) -> str:
@@ -531,7 +586,8 @@ def _media_after_official_clear(media: dict, clears: list[dict],
     return None
 
 
-def accumulate(signals: list[dict], ref: datetime | None = None, lost=None) -> dict:
+def accumulate(signals: list[dict], ref: datetime | None = None, lost=None,
+               officials_extra: list[dict] | None = None) -> dict:
     """Per województwo {score, signals[]} z limitem klasy źródła (config.SOURCE_CAPS)
     i wygaszaniem wiekiem względem `ref`.
 
@@ -549,6 +605,14 @@ def accumulate(signals: list[dict], ref: datetime | None = None, lost=None) -> d
     }
     per_source: dict[tuple, float] = {}
     officials = [s for s in signals if _is_official(s)]
+    # Alerty RCB/RSO sprzed okna fuzji — tylko do rozpoznania artykułów o alercie
+    # (RCB_MEDIA_ECHO_MIN); same nie punktują i nie trafiają do rozbicia.
+    if officials_extra:
+        znane = {s.get("id") for s in officials}
+        teraz_ = ref or datetime.now(timezone.utc)
+        officials += [s for s in officials_extra
+                      if _is_official(s) and s.get("id") not in znane
+                      and (_parse_ts(s.get("ts")) or teraz_) <= teraz_]
     ua_ends = ua_alert_ends(signals)
 
     # Odwołanie alertu u sąsiada wygasza tylko wcześniejszy wpis tego samego
@@ -754,7 +818,7 @@ def accumulate(signals: list[dict], ref: datetime | None = None, lost=None) -> d
             continue
         ostatni = max(ts for _, ts in obiekty)
         per_voiv[voiv]["score"] += config.NEPTUN_WAVE_POINTS
-        per_voiv[voiv]["_spillover_score"] += config.NEPTUN_WAVE_POINTS
+        # fala to obiekty NEPTUN — do sąsiadów nie przechodzi (W1, 19.10.2026)
         per_voiv[voiv]["signals"].append({
             "source": "neptun", "event_type": "neptun_wave", "voivodeship": voiv,
             "ts": ostatni.isoformat(timespec="seconds"),
@@ -771,7 +835,14 @@ def accumulate(signals: list[dict], ref: datetime | None = None, lost=None) -> d
         # Oficjalny alert jest już przypisany do województwa przez RCB/RSO.
         # Nie przelewamy go ponownie do sąsiadów, zwłaszcza gdy ten sam komunikat
         # został wydany osobno dla kilku regionów.
-        if s.get("source") != "rcb":
+        # Obiekty NEPTUN też nie (W1, decyzja usera 19.10.2026): od 1.7.91 obiekt
+        # punktuje KAŻDE województwo w 250 km od własnej odległości, a przeniesienie
+        # dokładało jeszcze 40% wyniku sąsiada złożonego z tych samych dronów —
+        # 19.10 05:10 świętokrzyskie 1,1 własne → 9,5 łącznie (czerwone), podlaskie
+        # 0,1 → 6,0. Przeliczone 11.10–19.10: mapa czerwona przez przeniesienie
+        # 1510 → 0 min, żółta 3742 → 96 min; żaden czerwony alarm nie znika
+        # (jeden 4 min później). Do sąsiadów idą alarmy obwodów, media, ADS-B, PAŻP.
+        if s.get("source") not in ("rcb", "neptun"):
             # Dodatek z podłogi przygranicznej dla drona (18.10.2026) zostaje
             # w województwie przy granicy — sąsiad dostaje tylko część „zwykłą”.
             bez = (s.get("details") or {}).get("bez_przeniesienia_pkt") or 0.0
@@ -942,7 +1013,16 @@ def compute_state(signals: list[dict] | None = None, ref: datetime | None = None
     # limit klasy źródła + wygaszanie wiekiem — wspólne z rekonstrukcją historii
     # obiekty zgubione z feedu NEPTUN-a gasną szybciej — tylko na żywo, bo tylko
     # wtedy wiadomo, kiedy zniknęły (historię liczy aplikacja z migawek)
-    per_voiv = apply_spillover(accumulate(signals, ref, lost_provider if live else None), ref)
+    # Alerty RCB/RSO z ostatnich godzin — do rozpoznania artykułów o alercie.
+    oficjalne_wczesniej = None
+    if getattr(db, "_conn", None) is not None and signals is not None:
+        try:
+            oficjalne_wczesniej = db.events_since(
+                config.RCB_MEDIA_ECHO_MIN + config.FUSION_WINDOW_MIN, ("rso_alert", "rcb_alert"))
+        except Exception as e:
+            log.warning("alerty RCB spoza okna (media): %s", e)
+    per_voiv = apply_spillover(accumulate(signals, ref, lost_provider if live else None,
+                                          oficjalne_wczesniej), ref)
     levels = _levels()
     now = time.time()
     for voiv, st in per_voiv.items():

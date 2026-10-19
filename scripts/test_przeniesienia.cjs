@@ -1,5 +1,7 @@
 // Lustro scripts/test_przeniesienia.py i test_rso_odwolanie.py dla silnika
 // wbudowanego (tryb awaryjny bez serwera). Uruchomienie: node --test scripts/test_przeniesienia.cjs
+// 19.10.2026 (W1): obiekty NEPTUN nie przechodzą do sąsiadów — mechanizm sprawdzamy na
+// mediach, alarmach obwodów i ADS-B.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -20,7 +22,7 @@ const REF = Date.parse('2026-09-13T05:20:00Z');
 const sig = (id, voiv, source, points, details = {}, ts = '2026-09-13T05:10:00Z', event_type) => ({
   id, t: Date.parse(ts), ts, source, voivodeship: voiv, points, title: `sygnał ${id}`, details,
   event_type: event_type || { media: 'media_keywords', neptun: 'neptun_threat',
-    ua_alert: 'ua_alert_border', rcb: 'rso_alert' }[source],
+    ua_alert: 'ua_alert_border', rcb: 'rso_alert', adsb: 'adsb_military' }[source],
 });
 const spill = (st, target, src) => st.voivodeships[target].signals
   .filter(s => s.source === 'spillover' && s.details.from === src)
@@ -32,7 +34,7 @@ test('shared event does not come back through spillover', () => {
   const st = Engine.stateFrom([
     sig(1, 'lubelskie', 'media', 1.0, link), sig(2, 'podkarpackie', 'media', 1.0, link),
     sig(3, 'lubelskie', 'ua_alert', 0.6, obwod), sig(4, 'podkarpackie', 'ua_alert', 0.6, obwod),
-    sig(5, 'podkarpackie', 'neptun', 1.0, { track_id: 'a' }),
+    sig(5, 'podkarpackie', 'adsb', 1.0, { hex: 'a' }),
     sig(6, 'lubelskie', 'neptun', 0.5, { track_id: 'b' }),
   ], REF);
   assert.equal(spill(st, 'lubelskie', 'podkarpackie'), 0);
@@ -40,15 +42,34 @@ test('shared event does not come back through spillover', () => {
   assert.equal(st.voivodeships.lubelskie.own_score, 2.1);
 });
 
-test('independent neighbour event still spills', () => {
+test('NEPTUN object does not spill to neighbours (W1, 19.10.2026)', () => {
   const st = Engine.stateFrom([sig(10, 'podkarpackie', 'neptun', 3.0, { track_id: 'c' }),
                                sig(11, 'lubelskie', 'neptun', 0.5, { track_id: 'd' })], REF);
+  assert.equal(spill(st, 'lubelskie', 'podkarpackie'), 0);
+  for (const [v, s] of Object.entries(st.voivodeships))
+    if (v !== 'lubelskie' && v !== 'podkarpackie') assert.equal(s.score, 0, v);
+});
+
+test('independent neighbour event still spills', () => {
+  const st = Engine.stateFrom([
+    sig(12, 'podkarpackie', 'media', 1.0, { link: 'https://example.test/c' }),
+    sig(13, 'podkarpackie', 'ua_alert', 1.0, { oblast: 'Львівська', distance_km: 40 }),
+    sig(14, 'podkarpackie', 'adsb', 1.0, { hex: 'c' }),
+    sig(15, 'lubelskie', 'neptun', 0.5, { track_id: 'd' })], REF);
   assert.equal(spill(st, 'lubelskie', 'podkarpackie'), 1.2);
 });
 
 test('spillover-only colour is flagged and does not alert', () => {
-  const st = Engine.stateFrom([sig(20, 'lubelskie', 'neptun', 5.0, { track_id: 'e' })], REF);
-  const sw = st.voivodeships['podkarpackie'];
+  // dwa sąsiednie źródła bez NEPTUN-a (media, alarm obwodu, ADS-B) — świętokrzyskie
+  // dostaje kolor tylko z przeniesienia
+  const zrodla = [];
+  for (const [i, v] of [[0, 'lubelskie'], [1, 'podkarpackie']]) {
+    zrodla.push(sig(20 + i * 3, v, 'media', 1.0, { link: `https://example.test/${v}` }),
+                sig(21 + i * 3, v, 'ua_alert', 1.0, { oblast: `obwód-${v}`, distance_km: 40 }),
+                sig(22 + i * 3, v, 'adsb', 1.0, { hex: `h-${v}` }));
+  }
+  const st = Engine.stateFrom(zrodla, REF);
+  const sw = st.voivodeships['świętokrzyskie'];
   assert.equal(sw.level, 'elevated');
   assert.equal(sw.alert_level, 'none');
   assert.equal(sw.spill_raised, true);

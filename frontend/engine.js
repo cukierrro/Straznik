@@ -111,6 +111,9 @@ const SPILLOVER_MIN_CONTRIB = 0.1, SPILLOVER_MAX_DEPTH = 5;
 const ALERT_OWN_MIN = 1.0, ALERT_REPEAT_QUIET_MIN = 60;   // bez marginesu przy zejściu
 /* Po odwołaniu alertu RCB/RSO artykuły o alarmie to relacja z przeszłości. */
 const RSO_CLEAR_MEDIA_ECHO_MIN = 240;
+/* Lustro config.RCB_MEDIA_ECHO_MIN / _PO_MIN (19.10.2026): artykuł o alercie RCB nie
+   punktuje, gdy alert RCB/RSO był w dowolnym województwie 240 min przed nim albo 30 po. */
+const RCB_MEDIA_ECHO_MIN = 240, RCB_MEDIA_ECHO_PO_MIN = 30;
 const RSO_CLEAR_ECHO_MARKERS = ["syren", "alert", "alarm", "rcb"];
 /* Bez wyjątków — lustro config.RSO_CLEAR_NOT_ECHO_MARKERS (13.09.2026 wyjątki
    przepuściły fałszywy żółty). Lista zostaje, żeby obie strony miały ten sam kształt. */
@@ -715,7 +718,37 @@ function relayTokens(value) {
    artykuł bez „alert RCB”, który powtarza treść alertu, i fala QRA przy alercie
    mówiącym o lotnictwie nie dają drugich punktów za tę samą informację. */
 const RELAY_ESCALATION_MARKERS = ["dron nad", "drony nad", "dronow nad", "nad polsk", "nad lubel",
-  "nad podkarp", "narusz", "wlecia", "zestrzel", "eksploz", "wybuch", "spadl", "spadly", "szczatk", "syren"];
+  "nad podkarp", "narusz", "wlecia", "zestrzel", "eksploz", "wybuch", "spadl", "spadly", "szczatk", "syren",
+  "poszukiw", "niezidentyf"];
+/* Lustro fusion._MEDIA_ABOUT_RCB_MARKERS i _media_echo_of_rcb (19.10.2026): artykuł
+   O alercie RCB (nazywa RCB, „alert dla…”, cytuje alert) nie daje drugich punktów. */
+const MEDIA_ABOUT_RCB_MARKERS = ["rzadowe centrum bezpieczenstwa", "rzadowego centrum bezpieczenstwa",
+  "alert dla", "alertu dla", "alert w wojewodztw", "alert w lubelsk", "alert na lubelszczy",
+  "alert na podkarpaciu", "alert w podkarpack",
+  "sytuacja jest monitorowana", "atak powietrzny na terenie ukrainy", "operuje polskie lotnictwo"];
+const MEDIA_ABOUT_RCB_RE = /\brcb\b/;
+/* Lustro fusion._MEDIA_END_TITLE_MARKERS: artykuł o KOŃCU zagrożenia nie podnosi wyniku. */
+const MEDIA_END_TITLE_MARKERS = ["brak zagrozenia", "koniec zagrozenia", "zagrozenie minelo",
+  "zakonczyl sie atak", "zakonczyla sie", "zakonczono alert", "alert odwolany", "odwolano alert",
+  "zakonczono poszukiwania", "zakonczyly sie poszukiwania"];
+function mediaAboutRcb(media) {
+  if (media.source !== "media" || media.event_type !== "media_keywords") return false;
+  const folded = fold(media.title || "");
+  if (RELAY_ESCALATION_MARKERS.some(m => folded.includes(m))) return false;
+  return MEDIA_ABOUT_RCB_RE.test(folded) || MEDIA_ABOUT_RCB_MARKERS.some(m => folded.includes(m));
+}
+function mediaEchoOfRcb(media, officials) {
+  if (!mediaAboutRcb(media)) return null;
+  const mt = media.t || Date.parse(media.ts);
+  if (!Number.isFinite(mt)) return null;
+  for (const o of [...officials].sort((a, b) => (b.t || Date.parse(b.ts)) - (a.t || Date.parse(a.ts)))) {
+    const ot = o.t || Date.parse(o.ts);
+    if (!Number.isFinite(ot)) continue;
+    const roznica = (mt - ot) / 60000;
+    if (roznica >= -RCB_MEDIA_ECHO_PO_MIN && roznica <= RCB_MEDIA_ECHO_MIN) return o;
+  }
+  return null;
+}
 function relayStems(value) {
   return new Set([...relayTokens(value)].map(w => w.slice(0, 5)));
 }
@@ -723,6 +756,8 @@ function mediaRelayOfOfficial(media, officials) {
   if (media.source !== "media") return null;
   const kind = media.event_type;
   if (kind !== "media_keywords" && kind !== "media_qra_wave") return null;
+  const echo = mediaEchoOfRcb(media, officials);
+  if (echo) return echo;
   const folded = fold(media.title || "");
   const close = officials.filter(o => {
     if (o.voivodeship !== media.voivodeship) return false;
@@ -824,7 +859,8 @@ function mediaArticleStatus(media) {
 function mediaRetrospective(media) {
   if (media.source !== "media" || media.event_type !== "media_keywords") return false;
   const title = fold(media.title || "");
-  return MEDIA_RETROSPECTIVE_TITLE_MARKERS.some(marker => title.includes(marker));
+  return MEDIA_RETROSPECTIVE_TITLE_MARKERS.some(marker => title.includes(marker))
+    || MEDIA_END_TITLE_MARKERS.some(marker => title.includes(marker));
 }
 
 /* Wynik per województwo z limitem klasy źródła (SOURCE_CAPS) i wygaszaniem
@@ -833,11 +869,18 @@ function mediaRetrospective(media) {
    SUROWE punkty i np. 4 rutynowe strefy PAŻP (cap 1) dawały fałszywe 4.0 zamiast
    1.0. Kaskadę sąsiedzką dokłada dopiero computeState.
    Number.isFinite: jedna zła wartość punktów zatrułaby NaN-em całą sumę. */
-function accumulate(sigs, refT, lost = null) {
+function accumulate(sigs, refT, lost = null, officialsExtra = null) {
   const ref = refT || Date.now();
   const per = {}; VOIVODESHIPS.forEach(v => per[v] = { score: 0, signals: [], _spillover_score: 0, _spill_parts: {} });
   const perSource = {};
   const officials = sigs.filter(isOfficial);
+  /* Alerty RCB/RSO sprzed okna — tylko do rozpoznania artykułów o alercie (lustro
+     fusion.accumulate officials_extra, 19.10.2026); nie punktują i nie są w rozbiciu. */
+  if (officialsExtra) {
+    const znane = new Set(officials);
+    for (const s of officialsExtra)
+      if (isOfficial(s) && !znane.has(s) && (s.t || Date.parse(s.ts)) <= ref) officials.push(s);
+  }
   const uaEnds = uaAlertEnds(sigs);
   /* Odwołania RCB/RSO (lustro fusion.accumulate). Wpis RSO bywa edytowany
      w miejscu: 13.09.2026 alert 23329799 zmienił się w odwołanie. */
@@ -960,7 +1003,9 @@ function accumulate(sigs, refT, lost = null) {
   for (const e of prepared) {        // do wyniku i rozbicia — w kolejności czasu
     const { s, counted, relayOf } = e;
     per[s.voivodeship].score += counted;
-    if (s.source !== "rcb") {
+    /* Obiekty NEPTUN nie przechodzą do sąsiadów (W1, lustro fusion.accumulate,
+       19.10.2026): obiekt punktuje każde województwo w 250 km od własnej odległości. */
+    if (s.source !== "rcb" && s.source !== "neptun") {
       // dodatek z podłogi przygranicznej zostaje w swoim województwie (18.10.2026)
       const bez = s.details?.bez_przeniesienia_pkt || 0;
       const doSasiadow = bez && s.points ? counted * Math.max(0, 1 - bez / s.points) : counted;
@@ -1016,7 +1061,8 @@ function computeState() {
   const now = Date.now();
   const sigs = signals.filter(s => s.t >= cut
     || (s.event_type === "rso_clear" && s.t >= clearCut)).concat(activeUaAlerts(signals, now));
-  const state = stateFrom(sigs, now, zgubionyNaZywo);
+  const echoCut = now - (RCB_MEDIA_ECHO_MIN + WINDOW_MIN) * 60000;
+  const state = stateFrom(sigs, now, zgubionyNaZywo, signals.filter(s => s.t >= echoCut && isOfficial(s)));
   // podtrzymanie poziomu tylko na żywo (historia liczy się ze stateFrom bez niego)
   for (const [v, st] of Object.entries(state.voivodeships)) {
     const clears = sigs.filter(s => s.event_type === "rso_clear" && s.voivodeship === v).map(s => s.t);
@@ -1052,10 +1098,10 @@ function holdLevel(key, computed, now, clearAt) {
 
 /* Stan z podanej listy sygnałów w chwili `refT` — rdzeń computeState, osobno,
    żeby testy mogły odtworzyć przeszłą chwilę (lustro fusion.compute_state). */
-function stateFrom(sigs, refT, lost = null) {
+function stateFrom(sigs, refT, lost = null, officialsExtra = null) {
   const ref = refT || Date.now();
   // limit klasy źródła + wygaszanie — wspólny rdzeń z rekonstrukcją historii
-  const per = accumulate(sigs, ref, lost);
+  const per = accumulate(sigs, ref, lost, officialsExtra);
   for (const v of VOIVODESHIPS) per[v].level = "none";
   const base = {}, parts = {};
   for (const [v, st] of Object.entries(per)) {
@@ -2485,7 +2531,8 @@ function historyFrom(snaps, sigs, atIso) {
   // I przeniesienie od sąsiadów). Audyt A11/C10: samo accumulate pomijało
   // przeniesienie, więc województwo zaalarmowane przez sąsiada miało w historii 0.
   const per = stateFrom(sigs.filter(s => s.t >= start && s.t <= end)
-    .concat(activeUaAlerts(sigs, end)), end, snap ? zgubioneZMigawek(snaps, end) : null).voivodeships;
+    .concat(activeUaAlerts(sigs, end)), end, snap ? zgubioneZMigawek(snaps, end) : null,
+    sigs.filter(s => isOfficial(s) && s.t <= end && end - s.t <= (RCB_MEDIA_ECHO_MIN + WINDOW_MIN) * 60000)).voivodeships;
   const podtrzymanie = podtrzymajWHistorii(per, end, snaps, sigs);
   const scores = {}, spill = {}, levels = {};
   for (const [v, st] of Object.entries(per)) {
@@ -2516,7 +2563,8 @@ function surowyStan(s, sigs, snaps) {
   if (!st) {
     const od = s.t - WINDOW_MIN * 60000;
     st = stateFrom(sigs.filter(x => x.t >= od && x.t <= s.t)
-      .concat(activeUaAlerts(sigs, s.t)), s.t, zgubioneZMigawek(snaps, s.t)).voivodeships;
+      .concat(activeUaAlerts(sigs, s.t)), s.t, zgubioneZMigawek(snaps, s.t),
+      sigs.filter(x => isOfficial(x) && x.t <= s.t && s.t - x.t <= (RCB_MEDIA_ECHO_MIN + WINDOW_MIN) * 60000)).voivodeships;
     if (_surowe.size > 500) _surowe.clear();
     _surowe.set(klucz, st);
   }
@@ -2568,7 +2616,8 @@ function timelineSurowa(snaps, sigs) {
       const age = (s.t - sig.t) / 60000;
       return age >= 0 && age <= WINDOW_MIN;
     });
-    const per = stateFrom(win.concat(activeUaAlerts(sigs, s.t)), s.t, zgubioneZMigawek(snaps, s.t)).voivodeships;
+    const per = stateFrom(win.concat(activeUaAlerts(sigs, s.t)), s.t, zgubioneZMigawek(snaps, s.t),
+      sigs.filter(x => isOfficial(x) && x.t <= s.t && s.t - x.t <= (RCB_MEDIA_ECHO_MIN + WINDOW_MIN) * 60000)).voivodeships;
     /* Poziom bierzemy Z OCENY województwa, a nie z progu punktowego. Od 1.7.74
        czerwony wymaga KLUCZA (alert RCB „znajdź bezpieczne miejsce” albo bliski
        obiekt), więc 4+ pkt bez klucza to na mapie ŻÓŁTY — a pasek historii malował
