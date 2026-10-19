@@ -474,6 +474,9 @@ naraz**, nie dwa razy osobno. Strona iOS tego rozszerzenia należy do sesji iOS.
 
 ### B14. „Głośność alarmu" na iPhonie to pusty nagłówek i pusty rozwijacz (19.10.2026)
 
+**PRZYJĘTE przez sesję główną 19.10 — wchodzi w 1.7.99**, razem z resztą frontendu.
+Po ich stronie, nie czeka u mnie.
+
 **Zgłoszenie użytkownika, 1.7.95 na iPhonie:** chciał wyciszyć syrenę czerwonego
 alarmu, zostawiając wszystkie powiadomienia. Szukał w Ustawieniach → Dźwięk,
 nie znalazł i napisał: „Na iPhone nie widzę takiej opcji". **Miał rację**, i to
