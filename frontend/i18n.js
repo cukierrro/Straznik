@@ -35,10 +35,12 @@
     "Oznaczenia wokół ikony": "Markings around the icon",
     "Kurs nieznany": "Unknown heading",
     "ikona nie jest obracana": "the icon is not rotated",
+    "Pozycja niepewna": "Uncertain position",
+    "meldunek o kierunku lotu, nie namiar — liczy się słabiej": "a report of the flight direction, not a fix — counts less",
     "Pulsujący pierścień": "Pulsing ring",
     "obiekt liczy się teraz do punktów": "the object counts towards points right now",
     "Okrąg": "Circle",
-    "gdzie obiekt może być (±km) — rośnie z wiekiem meldunku": "where the object may be (±km) — grows with the age of the report",
+    "gdzie obiekt może być (±km); domyślnie dla dotkniętego i przy granicy": "where the object may be (±km); by default for the tapped one and near the border",
     "Przerywana linia": "Dashed line",
     "trasa przelotu": "flight path",
     "Lotnictwo": "Aviation",
@@ -324,6 +326,15 @@
     opcje("set-trail-adsb",
       ["Wyłączone (tylko śledzony samolot)", "Przebyta trasa", "Trasa i kierunek lotu"],
       ["Off (followed aircraft only)", "Flown track", "Track and heading"]);
+    // Okręgi niepewności (19.10.2026) — w tej samej sekcji Mapa
+    lead("okregi-label", "Okręgi niepewności (NEPTUN)", "Uncertainty circles (NEPTUN)");
+    opcje("set-okregi",
+      ["Wybrany i przy granicy", "Wszystkie", "Wyłączone"],
+      ["Selected and near the border", "All", "Off"]);
+    const okregiNote = document.getElementById("okregi-note");
+    if (okregiNote) okregiNote.innerHTML = en
+      ? "A circle shows <b>where the object may be</b>. By default it is drawn for the tapped object and for objects with a confirmed position within 50 km of the Polish border — there it tells whether the object may already be over Poland. Every object’s radius is also on its card."
+      : "Okrąg pokazuje, <b>gdzie obiekt może być</b>. Domyślnie rysujemy go dla dotkniętego obiektu i dla obiektów z pozycją potwierdzoną do 50 km od granicy Polski — tam rozstrzyga, czy obiekt może być już nad Polską. Promień każdego obiektu jest też w jego karcie.";
     const note = document.getElementById("trail-note");
     if (note) note.innerHTML = en
       ? "The heading line covers 30 minutes of drone or missile flight (15 minutes for aircraft), with dots every 5 minutes. For NEPTUN objects it is drawn <b>only for a heading measured from movement</b> — not for a heading inferred from a target name or for an area position. It assumes an unchanged heading; it is not a forecast."
@@ -373,6 +384,7 @@
       "Alarmy dla Twojego województwa przychodzą jako powiadomienie push — także gdy aplikacja jest zamknięta, ekran zablokowany albo telefon w uśpieniu. Serwer Strażnika wysyła sygnał prosto na telefon; wystarczy zgoda na powiadomienia. Wymaga to działającego serwera: w trybie awaryjnym (serwer niedostępny) alarmy przychodzą tylko przy otwartej aplikacji.",
       "Alerts for your province arrive as a push notification — also when the app is closed, the screen is locked or the phone is asleep. The Strażnik server sends the signal straight to the phone; notification permission is all that is needed. This needs a working server: in fallback mode (server unreachable) alerts only arrive while the app is open.");
     button("yv-ios-note", "Na iPhonie to ustawienie zmienia tylko sygnał przy otwartej aplikacji. Dźwięk powiadomienia, które przychodzi przy zamkniętej, wybiera serwer i jest taki sam dla wszystkich. Kto chce zupełnej ciszy żółtego, wyłącza Dźwięki w Ustawieniach iPhone'a → Strażnik → Powiadomienia. Czerwony alarm zagra mimo to, jeśli na tym samym ekranie włączone są Alerty krytyczne. Kto chce ciszy także przy czerwonym, wyłącza również je — powiadomienie przyjdzie wtedy bez dźwięku.", "On iPhone this setting only changes the signal while the app is open. The sound of a notification that arrives with the app closed is chosen by the server and is the same for everyone. For complete silence on yellow, turn off Sounds in iPhone Settings → Strażnik → Notifications. The red alert will still sound if Critical Alerts are turned on on the same screen. For silence on red too, turn those off as well — the notification will then arrive without sound.");
+    button("rs-ios-note", "Na iPhonie syreną czerwonego alarmu steruje system iOS, nie Strażnik — w tej sekcji nie ma czego przestawiać. Czerwony alarm zagra mimo wyciszenia i trybu Skupienia, jeśli w Ustawieniach iPhone'a → Strażnik → Powiadomienia włączone są Alerty krytyczne. Po ich wyłączeniu czerwony przyjdzie bez dźwięku — także w nocy. Po zmianie otwórz raz Strażnika, żeby uaktualnił zapis na alarmy.", "On iPhone the red alert siren is controlled by iOS, not by Strażnik — there is nothing to change in this section. The red alert will sound despite mute and Focus mode if Critical Alerts are turned on in iPhone Settings → Strażnik → Notifications. With them turned off, red arrives without sound — also at night. After changing it, open Strażnik once so it updates the alert subscription.");
     button("krytyczny-ios-note", "Alarm krytyczny to osobna zgoda Apple: czerwony alarm zadzwoni nawet wtedy, gdy telefon jest wyciszony przełącznikiem albo w trybie Skupienia. Dotyczy wyłącznie czerwonego poziomu — żółty sygnał uwagi zostaje cichy. iPhone zapyta o tę zgodę tylko raz; jeśli ją odrzucisz, włączysz ją później w Ustawieniach telefonu. W każdej chwili możesz ją cofnąć w tym samym miejscu.", "Critical alerts are a separate permission from Apple: a red alert will sound even when the phone is muted with the switch or in Focus mode. It applies to the red level only — the yellow attention signal stays quiet. iPhone asks for this permission once; if you decline it, you can turn it on later in the phone’s Settings. You can withdraw it at any time in the same place.");
     button("alarm-ios-note",
       "Na iPhonie czerwony alarm przychodzi jako powiadomienie oznaczone „PILNE”: pokazuje się nad blokadą i gra syreną. Nie zapala pełnego ekranu i nie powtarza dźwięku — iOS nie pozwala na to zwykłym aplikacjom. Przy wyciszonym dzwonku alarm będzie bezgłośny: zostanie baner i wibracja — o ile w Ustawienia → Dźwięki i haptyka → Haptyka nie jest wybrane „Nie odtwarzaj w trybie cichym”. Żeby przeszedł także w nocy, sprawdź dwie rzeczy: Ustawienia → Powiadomienia → Strażnik → „Powiadomienia czasowo zależne” oraz Ustawienia → Skupienie → Sen → Aplikacje → dopuść Strażnika. Bez tego iOS wstrzymuje alarm do odblokowania telefonu.",
@@ -533,10 +545,12 @@
     "Markings around the icon": "Позначки навколо значка",
     "Unknown heading": "Курс невідомий",
     "the icon is not rotated": "значок не повертається",
+    "Uncertain position": "Непевна позиція",
+    "a report of the flight direction, not a fix — counts less": "повідомлення про напрямок польоту, а не координати — важить менше",
     "Pulsing ring": "Пульсуюче кільце",
     "the object counts towards points right now": "об’єкт зараз зараховується до балів",
     "Circle": "Коло",
-    "where the object may be (±km) — grows with the age of the report": "де об’єкт може бути (±км) — зростає з віком повідомлення",
+    "where the object may be (±km); by default for the tapped one and near the border": "де об’єкт може бути (±км); типово для вибраного й біля кордону",
     "Dashed line": "Пунктирна лінія",
     "flight path": "маршрут польоту",
     "Aviation": "Авіація",
@@ -687,8 +701,8 @@
       "Об’єкт курсом на Польщу — бал залежить від класу, кількості, відстані та незалежних підтверджень",
     "Official alert in a Ukrainian region bordering Poland": "Офіційна тривога в прикордонній з Польщею області України",
     "Media": "ЗМІ",
-    "Local reports of sirens, explosions or airspace violations; one article alone cannot trigger an alert":
-      "Місцеві повідомлення про сирени, вибухи чи порушення повітряного простору; сама лише стаття тривоги не вмикає",
+    "Local reports of sirens, explosions or airspace violations; one article alone cannot trigger an alert. An article that only repeats an RCB alert (issued up to 4 hours earlier) and an article about the end of the threat score 0":
+      "Місцеві повідомлення про сирени, вибухи чи порушення повітряного простору; сама лише стаття тривоги не вмикає. Стаття, яка лише повторює Alert RCB (виданий до 4 годин раніше), і стаття про кінець загрози — 0 балів",
     "Official RCB alert from the Regional Warning System or a new gov.pl/RCB notice. Since 17.09.2026 RCB sends three kinds of message and they weigh accordingly: “the situation is being monitored” 1.5 · “a massive attack is under way… react to alarm signals” 3 · “threat of an air attack, find a safe place” 4.5. A later alert does not add to the earlier one — the current one counts. An RCB article on gov.pl about an alert that RSO has already cancelled scores nothing":
       "Офіційний Alert RCB із Регіональної системи оповіщення або нове повідомлення gov.pl/RCB. Від 17.09.2026 RCB надсилає три види повідомлень, і вони важать відповідно: «ситуацію моніторять» 1,5 · «триває масований напад… реагуйте на сигнали тривоги» 3 · «загроза нападу з повітря, знайдіть безпечне місце» 4,5. Пізніша тривога не додається до попередньої — рахується поточна. Стаття RCB на gov.pl про тривогу, яку RSO вже скасувала, балів не дає",
     "Military aviation activity over twice the seven-day baseline for the same time of day — informational only":
@@ -817,6 +831,7 @@
     "Red during quiet hours": "Червоний у години тиші",
     "Unchanged": "Без змін",
     "During these hours yellow arrives without sound — a banner and vibration. Red depends on your choice: vibration only (the full screen and strong vibration stay) or unchanged — as set above for the red alert. Quiet hours never make an alert louder. Outside these hours everything works as above. With the phone in another room you may not feel the vibration. The hours follow the phone's clock.": "У ці години жовтий приходить без звуку — банер і вібрація. Червоний залежно від вибору: лише вібрацією (повний екран і сильна вібрація лишаються) або без змін — так, як налаштовано вище для червоної тривоги. Години тиші ніколи не роблять тривогу гучнішою. Поза цими годинами все працює, як вище. Якщо телефон в іншій кімнаті, вібрацію можна не відчути. Години рахуються за годинником телефона.",
+    "On iPhone the red alert siren is controlled by iOS, not by Strażnik — there is nothing to change in this section. The red alert will sound despite mute and Focus mode if Critical Alerts are turned on in iPhone Settings → Strażnik → Notifications. With them turned off, red arrives without sound — also at night. After changing it, open Strażnik once so it updates the alert subscription.": "На iPhone сиреною червоної тривоги керує iOS, а не Strażnik — у цьому розділі нічого змінювати. Червона тривога пролунає попри вимкнений звук і режим Фокусування, якщо в Налаштуваннях iPhone → Strażnik → Сповіщення ввімкнено Критичні оповістки. Якщо їх вимкнути, червона тривога прийде без звуку — також уночі. Після зміни один раз відкрийте Strażnik, щоб він оновив підписку на тривоги.",
     "Critical alerts are a separate permission from Apple: a red alert will sound even when the phone is muted with the switch or in Focus mode. It applies to the red level only — the yellow attention signal stays quiet. iPhone asks for this permission once; if you decline it, you can turn it on later in the phone’s Settings. You can withdraw it at any time in the same place.": "Критична тривога — це окремий дозвіл Apple: червона тривога пролунає навіть тоді, коли телефон вимкнено перемикачем або він у режимі Фокусування. Це стосується лише червоного рівня — жовтий сигнал уваги лишається тихим. iPhone запитає про цей дозвіл лише один раз; якщо ви відмовите, увімкнете його згодом у Налаштуваннях телефону. Відкликати його можна будь-коли там само.",
     "Allow full-screen alerts": "🚨 Дозволити повноекранні тривоги",
     "Check full-screen alert permission": "Перевірити дозвіл на повноекранну тривогу",
@@ -855,6 +870,8 @@
     "Off": "Вимкнено",
     "Flown track": "Пройдений шлях",
     "Track and heading": "Шлях і курс",
+    "Selected and near the border": "Вибраний і біля кордону",
+    "All": "Усі",
     "Off (followed aircraft only)": "Вимкнено (лише супроводжуваний літак)",
     "App version": "Версія застосунку",
     "⬆ Check for updates": "⬆ Перевірити оновлення",
@@ -894,8 +911,8 @@
       "(агрегатор OSINT — не радар) · ADS-B: adsb.lol / adsb.fi · PAŻP · RCB · Мапа:",
     "(OSINT aggregator — not radar; always check confidence and ±km) · ADS-B: adsb.lol / adsb.fi · Map:":
       "(агрегатор OSINT — не радар; завжди перевіряйте достовірність і ±км) · ADS-B: adsb.lol / adsb.fi · Мапа:",
-    "An eastern event also raises awareness in neighbouring provinces: a neighbour gets 40% of its points, the next ring 40% of that (16%) and so on, providing earlier awareness farther west. Only a province with at least 2 pts (excluding a regional RCB alert) passes points on. Transferred points alone do not send a notification — that takes at least 1 pt from the province’s own signals.":
-      "Подія на сході підвищує увагу й у сусідніх воєводствах: сусід отримує 40% балів, наступне коло — 40% від цього (16%) і так далі, що дає раніше попередження далі на захід. Передає бали лише воєводство, яке має щонайменше 2 бали (без регіонального Alert RCB). Самі лише перенесені бали сповіщення не надсилають — для цього потрібен щонайменше 1 бал власних сигналів.",
+    "An eastern event also raises awareness in neighbouring provinces: a neighbour gets 40% of its points, the next ring 40% of that (16%) and so on. Only a province with at least 2 pts passes points on, and only Ukrainian oblast alerts, media, aviation and zones are passed — not a regional RCB alert and not NEPTUN objects, because every object already scores every province within 250 km by its own distance (since 1.7.99; before, the same drone was counted a second time in the neighbour). Transferred points alone do not send a notification — that takes at least 1 pt from the province’s own signals.":
+      "Подія на сході підвищує увагу й у сусідніх воєводствах: сусід отримує 40% балів, наступне коло — 40% від цього (16%) і так далі. Бали передає лише воєводство з щонайменше 2 балами, і передаються тільки тривоги в областях України, ЗМІ, авіація та зони — не регіональний Alert RCB і не об'єкти NEPTUN, бо кожен об'єкт уже дає бали кожному воєводству в радіусі 250 км за власною відстанню (з 1.7.99; раніше той самий дрон рахувався в сусіда вдруге). Самі лише передані бали не надсилають сповіщення — для цього потрібен щонайменше 1 бал власних сигналів.",
     "Buy me a coffee": "Пригостити кавою",
     "Download app": "Завантажити застосунок",
     "Symbol legend": "Легенда символів",
@@ -1049,7 +1066,7 @@
     set("#ab-eta-szacunek",
       "This is an estimate, not a promise. It assumes unchanged speed and heading and does not account for air defence. No time is shown when heading is unknown. NEPTUN's ‘confirmed’ may confirm a report rather than coordinate accuracy. A recognised locality-centre point gets only a rounded area distance, with no route or ETA.");
     set("#ab-przeniesienia",
-      "An eastern event also raises awareness in neighbouring provinces: a neighbour gets 40% of its points, the next ring 40% of that (16%) and so on, providing earlier awareness farther west. Only a province with at least 2 pts (excluding a regional RCB alert) passes points on. Transferred points alone do not send a notification — that takes at least 1 pt from the province’s own signals.");
+      "An eastern event also raises awareness in neighbouring provinces: a neighbour gets 40% of its points, the next ring 40% of that (16%) and so on. Only a province with at least 2 pts passes points on, and only Ukrainian oblast alerts, media, aviation and zones are passed — not a regional RCB alert and not NEPTUN objects, because every object already scores every province within 250 km by its own distance (since 1.7.99; before, the same drone was counted a second time in the neighbour). Transferred points alone do not send a notification — that takes at least 1 pt from the province’s own signals.");
     set("#ab-ograniczenia",
       "NEPTUN is an OSINT/crowdsourced aggregator, not radar, so confidence and position uncertainty are always shown. A new ID at the same locality-centre point does not prove a new physical object and is not automatically counted twice. ADS-B contains only public transponder emissions and cannot reveal aircraft flying dark.");
     set("#ab-dane",
@@ -1097,7 +1114,7 @@
     setMany("#ab-tab-punkty tr td:nth-child(2)", [
       "Object heading towards Poland — score depends on class, count, distance and independent confirmations",
       "Official alert in a Ukrainian region bordering Poland",
-      "Local reports of sirens, explosions or airspace violations; one article alone cannot trigger an alert",
+      "Local reports of sirens, explosions or airspace violations; one article alone cannot trigger an alert. An article that only repeats an RCB alert (issued up to 4 hours earlier) and an article about the end of the threat score 0",
       "Official RCB alert from the Regional Warning System or a new gov.pl/RCB notice. Since 17.09.2026 RCB sends three kinds of message and they weigh accordingly: “the situation is being monitored” 1.5 · “a massive attack is under way… react to alarm signals” 3 · “threat of an air attack, find a safe place” 4.5. A later alert does not add to the earlier one — the current one counts. An RCB article on gov.pl about an alert that RSO has already cancelled scores nothing",
       "Military aviation activity over twice the seven-day baseline for the same time of day — informational only",
       "Rare ground-up ADHOC/R/NPZ/D zone; routine and repeating zones do not score. In the north it weighs twice as much, because NEPTUN does not reach there",
@@ -1146,6 +1163,7 @@
     set("#onboard-bg-ios", "We only ask for notification permission. So that a red alert can reach you at night, keep “Time Sensitive Notifications” on and allow Strażnik in your Sleep focus (Settings → Focus → Sleep → Apps).");
     set("#alarmy-intro-ios", "Alerts for your province arrive as a push notification — also when the app is closed, the screen is locked or the phone is asleep. The Strażnik server sends the signal straight to the phone; notification permission is all that is needed. This needs a working server: in fallback mode (server unreachable) alerts only arrive while the app is open.");
     set("#yv-ios-note", "On iPhone this setting only changes the signal while the app is open. The sound of a notification that arrives with the app closed is chosen by the server and is the same for everyone. For complete silence on yellow, turn off Sounds in iPhone Settings → Strażnik → Notifications. The red alert will still sound if Critical Alerts are turned on on the same screen. For silence on red too, turn those off as well — the notification will then arrive without sound.");
+    set("#rs-ios-note", "On iPhone the red alert siren is controlled by iOS, not by Strażnik — there is nothing to change in this section. The red alert will sound despite mute and Focus mode if Critical Alerts are turned on in iPhone Settings → Strażnik → Notifications. With them turned off, red arrives without sound — also at night. After changing it, open Strażnik once so it updates the alert subscription.");
     set("#krytyczny-ios-note", "Critical alerts are a separate permission from Apple: a red alert will sound even when the phone is muted with the switch or in Focus mode. It applies to the red level only — the yellow attention signal stays quiet. iPhone asks for this permission once; if you decline it, you can turn it on later in the phone’s Settings. You can withdraw it at any time in the same place.");
     set("#alarm-ios-note", "On iPhone a red alert arrives as a notification marked “Urgent”: it appears over the lock screen and plays our siren. It does not take over the screen and does not repeat the sound — iOS does not allow regular apps to do that. With the ringer muted the alert is silent: a banner and a vibration — as long as Settings → Sounds & Haptics → Haptics is not set to “Don’t Play in Silent Mode”. For it to reach you at night, check two settings: Settings → Notifications → Strażnik → “Time Sensitive Notifications” and Settings → Focus → Sleep → Apps → allow Strażnik. Without them iOS holds the alert until you unlock the phone.");
     set("#dzwiek-ios-note", "Yellow (≥2 pts): attention sound and heads-up notification. Red (≥4 pts): modulated air-raid siren and vibration. Played while the app is open; with the app closed the alert arrives as a push notification (with the siren for red).");
@@ -1391,6 +1409,12 @@
       + "літаків), з точками кожні 5 хвилин. Для об’єктів NEPTUN вона малюється <b>лише для курсу, виміряного "
       + "з руху</b> — не для курсу, припущеного з назви цілі, і не для районної позиції. Вона припускає "
       + "незмінний курс; це не прогноз.";
+    const okregiNoteUk = document.getElementById("okregi-note");
+    if (okregiNoteUk) okregiNoteUk.innerHTML = "Коло показує, <b>де об’єкт може бути</b>. Типово воно малюється для "
+      + "об’єкта, якого ви торкнулися, і для об’єктів із підтвердженою позицією ближче ніж 50 км від кордону "
+      + "Польщі — там воно показує, чи може об’єкт уже бути над Польщею. Радіус кожного об’єкта є також у його картці.";
+    const okregiL = document.getElementById("okregi-label");
+    if (okregiL?.firstChild) okregiL.firstChild.nodeValue = "Кола невизначеності (NEPTUN) ";
     const trailN = document.getElementById("trail-neptun-label");
     if (trailN?.firstChild) trailN.firstChild.nodeValue = "Дрони й ракети (NEPTUN) ";
     const trailA = document.getElementById("trail-adsb-label");

@@ -50,11 +50,11 @@ function sygnaly(teraz) {
     counted_points: points, weight: 1, details });
   return [
     s(1, 3, "neptun", "neptun_threat", "lubelskie", 2.0,
-      "Dron / BpSP kursem na granicę PL, 10.2 km [kurs nieznany] [blisko granicy] (woj. lubelskie, confidence: high, 3 potwierdzeń, ±4 km)",
+      "Dron / BpSP kursem na granicę PL, 10,2 km [kurs nieznany] [blisko granicy] (woj. lubelskie, wiarygodność: wysoka, 3 potwierdzenia, ±4 km)",
       { track_id: "trk_test_01", type: "uav", dist_km: 10.2, course: "unknown", source_count: 3,
         border_floor: true, bez_przeniesienia_pkt: 1.4, eta_border_min: 1 }),
     s(2, 5, "neptun", "neptun_threat", "lubelskie", 1.6,
-      "4× Shahed kursem na granicę PL, 34.5 km, konserwatywny czas dolotu ~8 min (woj. lubelskie, confidence: high, 5 potwierdzeń, ±10 km)",
+      "4× Shahed kursem na granicę PL, 34,5 km, konserwatywny czas dolotu ~8 min (woj. lubelskie, wiarygodność: wysoka, 5 potwierdzeń, ±10 km)",
       { track_id: "trk_test_04", type: "shahed", dist_km: 34.5, course: "known", source_count: 5, eta_border_min: 8 }),
     s(3, 20, "ua_alert", "ua_alert_border", "lubelskie", 1.0,
       "Alarm powietrzny w obwodzie wołyńskim (woj. lubelskie — przy granicy)", { oblast: "Волинська", distance_km: 0 }),
@@ -62,7 +62,7 @@ function sygnaly(teraz) {
       "Alert RCB (RSO): „UWAGA! Rosyjski atak powietrzny na terenie Ukrainy. Sytuacja jest monitorowana. W przestrzeni RP operuje polskie lotnictwo.”",
       { rcb_level: 1, rso_id: "test-1" }),
     s(5, 8, "neptun", "neptun_threat", "podkarpackie", 1.3,
-      "Dron / BpSP w odległości 29.1 km od woj. podkarpackie [blisko granicy] (confidence: high, 3 potwierdzeń)",
+      "Dron / BpSP w odległości 29,1 km od woj. podkarpackie [blisko granicy] (wiarygodność: wysoka, 3 potwierdzenia)",
       { track_id: "trk_test_02", type: "uav", dist_km: 29.1, voiv_secondary: true }),
     s(6, 9, "ua_alert", "ua_alert_border", "podkarpackie", 1.0,
       "Alarm powietrzny w obwodzie lwowskim (woj. podkarpackie — przy granicy)", { oblast: "Львівська", distance_km: 0 }),

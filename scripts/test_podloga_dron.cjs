@@ -52,9 +52,10 @@ test('dron spod Rostania: 2,0 pkt w lubelskim, bez przelewu do sąsiadów', () =
   const sasiedzi = Object.entries(st).filter(([v, x]) => v !== 'lubelskie' && x.score > 0);
   assert.deepEqual(sasiedzi.map(([v]) => v), [], 'podłoga nie przelewa się do sąsiadów');
 
-  // kontrola: te same 2,0 pkt bez znacznika przelewają się jak dotąd
+  // kontrola W1 (19.10.2026): obiekty NEPTUN w ogóle nie przechodzą do sąsiadów —
+  // także te same 2,0 pkt bez znacznika podłogi (wcześniej kontrola była odwrotna)
   const zwykly = { ...s[0], details: { ...s[0].details } };
   delete zwykly.details.bez_przeniesienia_pkt;
   const st2 = E.stateFrom([zwykly], Date.now()).voivodeships;
-  assert.ok(st2.podkarpackie.score > 0, 'zwykłe punkty nadal przechodzą do sąsiada');
+  assert.equal(st2.podkarpackie.score, 0, 'zwykłe punkty drona też nie przechodzą do sąsiada');
 });

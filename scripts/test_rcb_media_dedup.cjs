@@ -37,15 +37,30 @@ test('standalone keeps an RCB relay visible with zero extra points', () => {
 });
 
 test('standalone does not suppress a distinct article that only mentions RCB', () => {
+  // informacja PONAD alert (dron nad regionem) — liczy się mimo słów „Alert RCB”
   const distinct = {
     id: 3, t: t('2026-09-10T04:25:00Z'), ts: '2026-09-10T04:25:00Z',
     source: 'media', event_type: 'media_keywords', voivodeship: 'lubelskie', points: 1.5,
-    title: 'Media: Rosja zaatakowała Kijów pociskami balistycznymi. Alert RCB dla Lubelszczyzny',
+    title: 'Media: Drony nad Lubelszczyzną. Alert RCB dla Lubelszczyzny',
     details: {},
   };
   const state = Engine.accumulate([official, distinct], t('2026-09-10T04:30:00Z')).lubelskie;
   assert.equal(state.score, 3);
   assert.equal(state.signals[1].duplicate_of_official, undefined);
+});
+
+test('standalone: article about the RCB alert with only Ukraine news is an echo (19.10.2026)', () => {
+  // decyzja usera: artykuł O alercie RCB bez informacji ponad alert — 0 pkt
+  // (do 1.7.98 ten tytuł liczył się jako niezależne źródło)
+  const kijow = {
+    id: 4, t: t('2026-09-10T04:25:00Z'), ts: '2026-09-10T04:25:00Z',
+    source: 'media', event_type: 'media_keywords', voivodeship: 'lubelskie', points: 1.5,
+    title: 'Media: Rosja zaatakowała Kijów pociskami balistycznymi. Alert RCB dla Lubelszczyzny',
+    details: {},
+  };
+  const state = Engine.accumulate([official, kijow], t('2026-09-10T04:30:00Z')).lubelskie;
+  assert.equal(state.score, 2);
+  assert.ok(state.signals[1].duplicate_of_official);
 });
 
 test('standalone keeps a stored Wyryki retrospective visible with zero points', () => {

@@ -724,6 +724,13 @@ MEDIA_NONCURRENT_KEYWORDS = [
 # alarm (syreny, alert), to opis tego, co już się skończyło — o ile w tym czasie
 # nie przyszedł nowy alert. Zerujemy je przez tyle minut po odwołaniu.
 RSO_CLEAR_MEDIA_ECHO_MIN = 240
+# Artykuł, który mówi O ALERCIE RCB (relacja, cytat alertu, „RCB: alert dla…”),
+# nie daje punktów, jeśli w tylu minutach PRZED nim (albo RCB_MEDIA_ECHO_PO_MIN po
+# nim — artykuł bywa szybszy niż nasz odczyt RSO) był alert RCB/RSO w dowolnym
+# województwie: alert jest już policzony, a media tylko go powtarzają (decyzja
+# usera 19.10.2026). Punkty zostają artykułom z informacją ponad alert.
+RCB_MEDIA_ECHO_MIN = 240
+RCB_MEDIA_ECHO_PO_MIN = 30
 # Odwołanie o treści OGÓLNOKRAJOWEJ. RSO przypisuje taki komunikat do jednego
 # województwa, choć SMS idzie do wszystkich, które miały alert — potwierdzone
 # zrzutami z telefonu z Podkarpacia (24/25.09.2026: alert 21:45 i odwołanie

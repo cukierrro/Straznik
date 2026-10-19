@@ -118,10 +118,12 @@ ok(fusion.alert_level(st["lubelskie"]["own_score"], st["lubelskie"]["score"]) ==
 sasiedzi = {v: s["score"] for v, s in st.items() if v != "lubelskie" and s["score"] > 0}
 ok(not sasiedzi, f"podłoga nie przelewa się do sąsiadów ({sasiedzi})")
 
+# Od 19.10.2026 (W1) obiekty NEPTUN w ogóle nie przechodzą do sąsiadów — także
+# zwykłe 2,0 pkt bez znacznika podłogi. Wcześniej ta kontrola sprawdzała odwrotnie.
 zwykly = sig(2.0, {})
 st2 = fusion.apply_spillover(fusion.accumulate([zwykly], REF), REF)
-ok(st2["podkarpackie"]["score"] > 0,
-   "kontrola: zwykłe 2,0 pkt bez znacznika przelewa się jak dotąd "
+ok(st2["podkarpackie"]["score"] == 0,
+   "kontrola W1: zwykłe 2,0 pkt drona też nie przechodzą do sąsiada "
    f"(podkarpackie {st2['podkarpackie']['score']})")
 
 if bledy:

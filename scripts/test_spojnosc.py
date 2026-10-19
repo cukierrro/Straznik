@@ -249,6 +249,27 @@ sprawdz("BALTIC_EXCLUDE",
         sorted(lista(r"const B_EXCLUDE = \[(.*?)\];", ENGINE, "weto bałtyckie js")),
         sorted(lista(r"BALTIC_EXCLUDE_KEYWORDS = \[(.*?)\]", CONFIG, "weto bałtyckie py")))
 
+# 19.10.2026: artykuł O ALERCIE RCB i artykuł o końcu zagrożenia nie dają punktów,
+# a informacja ponad alert (markery eskalacji) zostaje. Bez lustra tryb bez serwera
+# i historia w aplikacji liczyłyby echa alertu, które serwer już zeruje.
+FUSION = (ROOT / "backend/app/fusion.py").read_text(encoding="utf-8")
+for nazwa, js, py in (
+        ("RELAY_ESCALATION_MARKERS", r"const RELAY_ESCALATION_MARKERS = \[(.*?)\];",
+         r"_RELAY_ESCALATION_MARKERS = \((.*?)\n\)"),
+        ("MEDIA_ABOUT_RCB_MARKERS", r"const MEDIA_ABOUT_RCB_MARKERS = \[(.*?)\];",
+         r"_MEDIA_ABOUT_RCB_MARKERS = \((.*?)\n\)"),
+        ("MEDIA_END_TITLE_MARKERS", r"const MEDIA_END_TITLE_MARKERS = \[(.*?)\];",
+         r"_MEDIA_END_TITLE_MARKERS = \((.*?)\n\)")):
+    sprawdz(nazwa, sorted(lista(js, ENGINE, nazwa + " js")), sorted(lista(py, FUSION, nazwa + " py")))
+for nazwa in ("RCB_MEDIA_ECHO_MIN", "RCB_MEDIA_ECHO_PO_MIN"):
+    mj = re.search(nazwa + r" = (\d+)", ENGINE)
+    mp = re.search(r"^" + nazwa + r" = (\d+)", CONFIG, re.M)
+    sprawdz(nazwa, mj and mj.group(1), mp and mp.group(1))
+# W1 (19.10.2026): obiekty NEPTUN nie wchodzą do podstawy przeniesienia — po obu stronach
+sprawdz("W1: NEPTUN poza podstawą przeniesienia",
+        'if (s.source !== "rcb" && s.source !== "neptun")' in ENGINE,
+        'if s.get("source") not in ("rcb", "neptun"):' in FUSION)
+
 # ── wynik ────────────────────────────────────────────────────────────────────
 if bledy:
     print("ROZJAZD MIĘDZY SILNIKAMI (backend ↔ engine.js):")

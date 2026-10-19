@@ -39,6 +39,19 @@
   <p class="fineprint">To see which version your phone has, open the app: <kbd>Menu</kbd> → <kbd>Settings</kbd> → <kbd>Language, text and version</kbd> → “App version”. The <kbd>⬆ Check for updates</kbd> button is right there too.</p>
 </div></header>
 <main id="content" class="wrap">
+<section id="v1-7-99">
+  <h2>1.7.99 — fairer scoring, confirmed and uncertain drones on the map, new PSP list</h2>
+  <p class="fineprint">Release 1.7.99 · 19 October 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.99">Full release notes</a></p>
+  <ul>
+    <li><b>Drones are not passed to neighbours.</b> Every drone has its own distance to every province, and spillover counted it a second time in the neighbour — on 19.10 Świętokrzyskie, with 1.1 points of its own, showed red (9.5 points). On the 11–19.10 history: red from neighbours only 1510 min → 0; no red alert disappears.</li>
+    <li><b>An article about an RCB alert scores nothing extra</b> (a reader's suggestion): a report that only repeats an RCB alert issued up to 4 hours earlier, and an article about the end of the threat — 0 points. Information beyond the alert (a drone over Poland, a violation, debris, sirens, a search) keeps its points.</li>
+    <li><b>Drone descriptions in Polish:</b> “wiarygodność: wysoka”, “180,9 km”, “3 potwierdzenia”; a drone added to a farther province — “X km from … province”, “⏱ to … province”.</li>
+    <li><b>Confirmed and uncertain drones on the map.</b> A drone whose position comes from a “heading towards …” report rather than a fix has a dimmed icon with a dashed outline — on 19.10 around Lviv 11 of 16 tracks were such reports. New legend entry.</li>
+    <li><b>Points on the object card:</b> a “confirmed / uncertain position” badge and “Points now” for each province, and when it adds nothing, the reason (NEPTUN limit full, or the same point counted from another report). Uncertainty circles by default only for the tapped drone and confirmed positions within 50 km of the border — they used to merge into a blot; turn all on in Settings → Map. Scoring unchanged.</li>
+    <li><b>GROTA:</b> the PSP register of 19 October — 87,316 points (604 more); 183 changed availability, most in Racibórz, Grudziądz and Mogilno. Check the place you saved.</li>
+    <li><b>iPhone:</b> “Alert volume” describes Critical Alerts instead of an empty expander.</li>
+  </ul>
+</section>
 <section id="v1-7-98">
   <h2>1.7.98 — back buttons at the top of every window</h2>
   <p class="fineprint">Release 1.7.98 · 18 October 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.7.98">Full release notes</a></p>

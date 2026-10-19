@@ -6,6 +6,12 @@
 
 Serwer: **hostowane na [Mikrusie](https://mikr.us)** — dziękujemy za wsparcie projektu.
 
+Wersja 1.7.99: drony nie przechodzą już do sąsiednich województw (każdy ma własną
+odległość do każdego), artykuł, który tylko powtarza Alert RCB, nie daje drugich punktów,
+opisy dronów po polsku, dron z pozycją niepewną ma na mapie przygaszoną ikonę z przerywanym
+konturem, a karta obiektu pokazuje jego punkty dla każdego województwa, GROTA z wykazem PSP
+z 19 października (87 316 punktów). Szczegóły: `docs/RELEASE_1.7.99.md`.
+
 Wersja 1.7.98: przycisk „‹ Menu” na górze każdego okna otwartego z Menu
 i „‹ Ustawienia” na górze sekcji Ustawień i Moich miejsc. Szczegóły: `docs/RELEASE_1.7.98.md`.
 
@@ -303,9 +309,12 @@ nie mogą uruchomić żółtego progu. Wykluczenia mają pierwszeństwo. Filtry 
 Jedna klasa źródła ma limit wkładu do sumy
 (media ≤1, RCB ≤4,5, alarmy obwodów UA ≤1, PAŻP ≤1, sąsiedzi ≤0,6, NEPTUN ≤8) — pięć artykułów o tym
 samym zdarzeniu to wciąż jedno potwierdzenie. Nadmiarowe sygnały są widoczne
-w UI z przekreśloną punktacją. Artykuł rozpoznany po treści, regionie i czasie
-jako powtórzenie świeżego Alertu RCB pozostaje widoczny, ale wnosi 0 pkt; sama
-wzmianka o RCB nie wycina artykułu z nową informacją.
+w UI z przekreśloną punktacją. Artykuł, który tylko mówi o Alercie RCB (nazywa RCB,
+„alert dla…”, cytuje alert), pozostaje widoczny, ale wnosi 0 pkt, jeśli alert RCB albo RSO
+dla dowolnego województwa przyszedł do 4 godzin wcześniej (albo do 30 minut później).
+Punkty zostają artykułom z informacją ponad alert — dron nad Polską, naruszenie,
+eksplozja, szczątki, syreny, poszukiwania. Artykuł o końcu zagrożenia też wnosi 0 pkt
+(od 1.7.99).
 
 **Alarm czasowy NEPTUN.** Dla obiektu o kursie znanym albo wyliczonym z ruchu
 (nie domniemanym z nazwy celu), z pozycją punktową (nie rejonową), średniej/wysokiej
@@ -322,8 +331,10 @@ sąsiadom, ci 40 % tego swoim sąsiadom i tak dalej, licząc po najkrótszej dro
 (BFS) aż wkład spadnie poniżej 0,1 pkt. Alarm 5 pkt w lubelskim rozkłada się więc
 tak: sąsiedzi +2,0 (żółty próg), drugi krąg +0,8, trzeci +0,3, czwarty +0,1.
 Oficjalny nadawca sam wskazuje obszar Alertu RCB, więc ten wkład nie jest
-powielany u sąsiadów. Pozostałe zagrożenie na wschodzie podnosi czujność w całym
-kraju proporcjonalnie do odległości. Każdy wkład jest osobnym sygnałem „Przeniesienie z woj. X (… , 2. krąg)",
+powielany u sąsiadów. Od 1.7.99 nie przechodzą też obiekty NEPTUN: każdy obiekt sam
+punktuje każde województwo w promieniu 250 km od własnej odległości, a przeniesienie
+liczyło ten sam dron u sąsiada drugi raz. Przechodzą alarmy obwodów Ukrainy, media,
+lotnictwo i strefy. Każdy wkład jest osobnym sygnałem „Przeniesienie z woj. X (… , 2. krąg)",
 więc nigdy nie miesza się z własnym sygnałem regionu. Dodatek z podłogi dla drona przy
 granicy nie jest przenoszony. Samo przeniesienie nie wysyła powiadomienia: do tego
 trzeba co najmniej 1 pkt własnych sygnałów, a przeniesienie podnosi powiadomienie

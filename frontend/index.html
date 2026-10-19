@@ -104,7 +104,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <link rel="icon" type="image/png" sizes="512x512" href="assets/icon-512.png">
 <link rel="apple-touch-icon" href="assets/icon-192.png">
 <link rel="stylesheet" href="assets/vendor/maplibre-gl.css?v=1.7.82">
-<link rel="stylesheet" href="style.css?v=1.7.98">
+<link rel="stylesheet" href="style.css?v=1.7.99b">
 </head>
 <body>
 
@@ -521,8 +521,9 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
   <details class="lg-sec">
     <summary><span>Oznaczenia wokół ikony</span></summary>
   <div class="lg-row"><i class="lg-threat" data-type="uav" data-heading-unknown="1"></i><span>Kurs nieznany<small>ikona nie jest obracana</small></span></div>
+  <div class="lg-row"><i class="lg-threat" data-type="uav" data-approx="1"></i><span>Pozycja niepewna<small>meldunek o kierunku lotu, nie namiar — liczy się słabiej</small></span></div>
   <div class="lg-row"><i class="pulse-ic"></i><span>Pulsujący pierścień<small>obiekt liczy się teraz do punktów</small></span></div>
-  <div class="lg-row"><i class="ring"></i><span>Okrąg<small>gdzie obiekt może być (±km) — rośnie z wiekiem meldunku</small></span></div>
+  <div class="lg-row"><i class="ring"></i><span>Okrąg<small>gdzie obiekt może być (±km); domyślnie dla dotkniętego i przy granicy</small></span></div>
   <div class="lg-row"><i class="trail"></i><span>Przerywana linia<small>trasa przelotu</small></span></div>
   </details>
 
@@ -631,7 +632,8 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
       <tr><td></td><td>oficjalny alarm w przygranicznym obwodzie Ukrainy</td><td class="pts">+1</td></tr>
       <tr><td><b>Media</b></td><td>relacje lokalnych mediów: syreny, wybuch,
         naruszenie przestrzeni — sam artykuł nie alarmuje, próg przekracza
-        dopiero potwierdzenie</td><td class="pts">+0,5–1</td></tr>
+        dopiero potwierdzenie. Artykuł, który tylko powtarza Alert RCB (wydany do
+        4 godzin wcześniej), i artykuł o końcu zagrożenia — 0 pkt</td><td class="pts">+0,5–1</td></tr>
       <tr><td><b>RCB</b></td><td>oficjalny <b>Alert RCB</b> (ten sam, który przychodzi
         SMS-em — czytany z Regionalnego Systemu Ostrzegania) albo nowy komunikat
         RCB na gov.pl. Od 17.09.2026 RCB wysyła <b>trzy rodzaje</b> komunikatu i tyle samo
@@ -752,10 +754,11 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
     razem z alarmami obwodów UA i mediami potrafił zapalić czerwony przy pustej mapie.</div>
     <p class="fineprint" id="ab-przeniesienia">Zdarzenie na wschodzie podnosi też czujność sąsiednich
     województw: sąsiad dostaje 40% punktów, kolejny krąg 40% z tego (16%) i tak
-    dalej, więc regiony centralne i zachodnie dostają wyprzedzenie, zanim coś
-    dotrze dalej. Przenosi tylko województwo z co najmniej 2 pkt (bez regionalnego Alertu
-    RCB). Samo przeniesienie nie wysyła powiadomienia — do tego trzeba co najmniej
-    1 pkt własnych sygnałów.</p>
+    dalej. Przenosi tylko województwo z co najmniej 2 pkt, a przechodzą wyłącznie alarmy
+    obwodów Ukrainy, media, lotnictwo i strefy — nie regionalny Alert RCB i nie obiekty
+    NEPTUN, bo każdy obiekt już punktuje każde województwo w promieniu 250 km od własnej
+    odległości (od 1.7.99; wcześniej ten sam dron liczył się u sąsiada drugi raz). Samo
+    przeniesienie nie wysyła powiadomienia — do tego trzeba co najmniej 1 pkt własnych sygnałów.</p>
 
     </details>
 
@@ -1116,6 +1119,9 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
            cichszego trybu bez przeczytania; app.js rozwija tę sekcję sam,
            gdy ktoś odchodzi od syreny. -->
       <details class="jak" id="det-natywny"><summary id="jak-natywny">Zanim zmienisz: co to zmienia</summary>
+      <!-- 1.7.99 (zgłoszenie z iPhone'a, B14): oba akapity niżej są android-only, więc na
+           iPhonie rozwijacz otwierał pusty prostokąt — „Na iPhone nie widzę takiej opcji”. -->
+      <p class="fineprint ios-only" id="rs-ios-note">Na iPhonie syreną czerwonego alarmu steruje system iOS, nie Strażnik — w tej sekcji nie ma czego przestawiać. Czerwony alarm zagra mimo wyciszenia i trybu Skupienia, jeśli w Ustawieniach iPhone'a → Strażnik → Powiadomienia włączone są Alerty krytyczne. Po ich wyłączeniu czerwony przyjdzie bez dźwięku — także w nocy. Po zmianie otwórz raz Strażnika, żeby uaktualnił zapis na alarmy.</p>
       <div class="fineprint android-only" id="rs-note"><b>Tylko wibracja:</b> syrena milknie, reszta alarmu zostaje — pełny ekran, miganie i mocna wibracja, także przy trybie Nie przeszkadzać. <b>Zwykłe powiadomienie:</b> czerwony przyjdzie jak żółty — baner, krótki dźwięk i wibracja, bez pełnego ekranu; szanuje tryb cichy i Nie przeszkadzać. <b>Przemyśl to przed nocą:</b> przy wygaszonym ekranie i telefonie w drugim pokoju możesz takiego alarmu nie zauważyć. Sparowany zegarek albo opaska dostaje kopię powiadomienia, jeśli w jej aplikacji zezwolisz na powiadomienia ze Strażnika — i wibruje wtedy po swojemu. Dotyczy wyłącznie czerwonego — żółty sygnał uwagi ma własne ustawienie wyżej.</div>
       <div class="fineprint android-only" id="ns-note">Syrena gra na suwaku głośności <b>„Alarmy”</b>
         (nie „Dzwonek” ani „Multimedia”). Czerwony alarm podnosi go <b>co najmniej do połowy</b>,
@@ -1186,6 +1192,19 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
       <b>tylko przy kursie zmierzonym z ruchu</b> — nie przy kursie domniemanym z nazwy celu
       ani przy pozycji rejonowej. To szacunek przy niezmienionym kursie, nie prognoza.</div>
     </details>
+    <!-- Okręgi niepewności (19.10.2026, uwaga czytelnika o czytelności): domyślnie tylko
+         dotknięty obiekt i obiekty z pozycją potwierdzoną do 50 km od granicy. -->
+    <label id="okregi-label">Okręgi niepewności (NEPTUN)
+      <select id="set-okregi">
+        <option value="granica">Wybrany i przy granicy</option>
+        <option value="wszystkie">Wszystkie</option>
+        <option value="off">Wyłączone</option>
+      </select>
+    </label>
+    <div class="fineprint" id="okregi-note">Okrąg pokazuje, <b>gdzie obiekt może być</b>.
+      Domyślnie rysujemy go dla dotkniętego obiektu i dla obiektów z pozycją potwierdzoną
+      do 50 km od granicy Polski — tam rozstrzyga, czy obiekt może być już nad Polską.
+      Promień każdego obiektu jest też w jego karcie.</div>
 
     </section>
 
@@ -1288,11 +1307,11 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
      Cloudflare, więc po każdym wydaniu wystarczy podbić ?v= i przeglądarki
      dostają nowe app.js/engine.js OD RAZU, bez ręcznego czyszczenia cache CF.
      Podbijaj ?v= razem z versionName w build.gradle. -->
-<script src="i18n.js?v=1.7.98"></script>
+<script src="i18n.js?v=1.7.99b"></script>
 <!-- kontur Polski dla engine.js (audyt A2b, scripts/build_pl_outline.py) -->
 <script src="pl-outline.js?v=1.7.82"></script>
 <script src="voiv-outline.js?v=1.7.97"></script>
-<script src="engine.js?v=1.7.96f"></script>
+<script src="engine.js?v=1.7.99"></script>
 <script src="aircraft-photo-catalog.js?v=1.7.19"></script>
 <script src="aircraft-photos.js?v=1.7.79"></script>
 <script src="places.js?v=1.7.19-4"></script>
@@ -1305,7 +1324,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <div id="a11y-alert" class="sr-only" role="status" aria-live="assertive" aria-atomic="true"></div>
 <div id="a11y-info" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
 
-<script src="app.js?v=1.7.98"></script>
+<script src="app.js?v=1.7.99b"></script>
 <script>
 /* Instrukcja pasująca do telefonu i języka (21.09.2026). iPhone ma osobną, bo alarmy,
    zgody i aktualizacje działają tam inaczej. Tu, a nie w app.js: index.html nie jest

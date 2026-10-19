@@ -471,7 +471,8 @@ function naKursieDoCelu(t) {
 function approxPositionNote(t) {
   const locality = positionInfo(t).reason === "locality_center";
   const naCel = naKursieDoCelu(t);
-  const cel = naCel && t?.locality ? placeName(t.locality) : "";
+  // nazwa ze źródła trafia do HTML karty i listy — escapujemy (w ukraińskim placeName ją zwraca bez zmian)
+  const cel = naCel && t?.locality ? esc(placeName(t.locality)) : "";
   const heading = locality
     ? (UI.t("środek miejscowości użyty jako punkt odniesienia, nie zmierzona pozycja obiektu", "locality centre used as a reference point, not a measured object position", "центр населеного пункту використано як орієнтир, а не виміряна позиція об'єкта"))
     : naCel
@@ -489,6 +490,21 @@ function approxPositionNote(t) {
    liczba stoi na mapie pod ikoną, więc „0.2 km" rzucało się w oczy: po polsku
    i po ukraińsku pisze się „0,2". */
 const odleglosc = (km) => (UI.isEn ? String(km) : String(km).replace(".", ","));
+
+/* Wpisy NEPTUN zapisane przed 1.7.98 mają w polskim tytule „confidence: high”,
+   kropkę dziesiętną i „3 potwierdzeń” — historia pokazuje je jeszcze długo. Nowe
+   tytuły serwer i engine.js budują już po polsku (test_tytuly_neptun.cjs). */
+function polskiTytulNeptun(title) {
+  return String(title || "")
+    .replace(/confidence: (high|medium|low)\b/g, (_, c) => `wiarygodność: ${CONF_PL[c]}`)
+    .replace(/\b(\d+) potwierdzeń/g, (_, n) => {
+      const k = Number(n);
+      return k === 1 ? "1 potwierdzenie"
+        : k % 10 >= 2 && k % 10 <= 4 && !(k % 100 >= 12 && k % 100 <= 14) ? `${k} potwierdzenia`
+        : `${k} potwierdzeń`;
+    })
+    .replace(/(\d+)\.(\d+)(?= km\b)/g, "$1,$2");
+}
 
 function threatDistanceText(t, km) {
   if (km == null) return "?";
@@ -1127,7 +1143,20 @@ const FALLBACK_STYLE = {
 
 /* Obraz ma 64 px, a sylwetka tę samą skalę co dawniej w 48 px: zapas mieści
    czerwony grot kursu przed dziobem BpSP. */
-function makeThreatImage(type, color, headingUnknown = false) {
+/* Pozycja niepewna (19.10.2026, wariant C wybrany przez usera): ten sam odcień
+   typu, ale przygaszone wypełnienie i przerywany kontur w kolorze typu, bez
+   poświaty i bez czerwonego dzioba. Kolor ikony oznacza TYP obiektu, więc inny
+   odcień pomyliłby się z innym typem (szarości to FPV, nieznany, rozpoznawczy).
+   Tego wieczoru 9 ikon wokół Lwowa to były w większości meldunki „w kierunku X”,
+   a dokładne pozycje tylko cztery — na mapie wyglądały tak samo. */
+function przygaszony(color, udzial = 0.42) {
+  const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(color || "");
+  if (!m) return "rgba(110,90,51,.9)";
+  const tlo = [20, 26, 38];                     // #141a26 — tło mapy
+  const k = [1, 2, 3].map((i, j) => Math.round(parseInt(m[i], 16) * udzial + tlo[j] * (1 - udzial)));
+  return `rgb(${k[0]},${k[1]},${k[2]})`;
+}
+function makeThreatImage(type, color, headingUnknown = false, approx = false) {
   const c = document.createElement("canvas"); c.width = c.height = 64;
   const x = c.getContext("2d");
   x.translate(32, 32);
@@ -1135,6 +1164,10 @@ function makeThreatImage(type, color, headingUnknown = false) {
   x.fillStyle = color; x.strokeStyle = "rgba(255,255,255,.9)";
   x.lineWidth = 2; x.lineJoin = "round"; x.lineCap = "round";
   x.shadowColor = color; x.shadowBlur = 9;
+  if (approx) {
+    x.fillStyle = przygaszony(color); x.strokeStyle = color;
+    x.lineWidth = 2.6; x.setLineDash([5, 3]); x.shadowBlur = 0;
+  }
   const path = (points) => {
     x.beginPath(); x.moveTo(points[0][0], points[0][1]);
     for (let i = 1; i < points.length; i++) x.lineTo(points[i][0], points[i][1]);
@@ -1185,6 +1218,13 @@ function makeThreatImage(type, color, headingUnknown = false) {
          mówił, gdzie jest przód. Skrzydło nie jest deltą — to znak Shaheda. */
       path(BPSP_BODY);
       if (headingUnknown) break;           // bez kursu: bez czerwonego dzioba i grotu
+      if (approx) {                        // kurs jest, pozycja niepewna: sam grot w kolorze typu
+        x.setLineDash([]); x.globalAlpha = .75; x.fillStyle = color;
+        x.strokeStyle = "rgba(0,0,0,.55)"; x.lineWidth = 1.2;
+        path([[0,-44],[8,-34],[0,-37],[-8,-34]]);
+        x.globalAlpha = 1;
+        break;
+      }
       x.shadowBlur = 0; x.fillStyle = BPSP_RED; x.strokeStyle = BPSP_RED; x.lineWidth = 1.5;
       path([[0,-30],[4.5,-15],[-4.5,-15]]);
       x.strokeStyle = "rgba(0,0,0,.55)"; x.lineWidth = 1.2;
@@ -1246,7 +1286,8 @@ function renderLegendThreatIcons() {
     const meta = TYPE_META[type] || TYPE_META.unknown;
     const canvas = document.createElement("canvas");
     canvas.width = canvas.height = 64;
-    canvas.getContext("2d").putImageData(makeThreatImage(type, meta.color, el.dataset.headingUnknown === "1"), 0, 0);
+    canvas.getContext("2d").putImageData(makeThreatImage(type, meta.color,
+      el.dataset.headingUnknown === "1", el.dataset.approx === "1"), 0, 0);
     el.textContent = ""; el.appendChild(canvas);   // replaceChildren: Chrome 86
   });
 }
@@ -1382,9 +1423,13 @@ async function initMap() {
     // Granice państw: natywne linie stylu bazowego plus kontrastowe wypełnienia
     // krajów (kraje-fill). Białe obrysy z 1.7.41–1.7.42 wycofane 13.09.2026, bo
     // przy pochylonej mapie znikały odcinki granic.
-    for (const [t, m] of Object.entries(TYPE_META)) map.addImage("dart-" + t, makeThreatImage(t, m.color));
-    for (const [t, m] of Object.entries(TYPE_META))
-      if (!NO_HEADING_TYPES.has(t)) map.addImage("dart-" + t + "-unk", makeThreatImage(t, m.color, true));
+    for (const [t, m] of Object.entries(TYPE_META)) {
+      map.addImage("dart-" + t, makeThreatImage(t, m.color));
+      map.addImage("dart-" + t + "-apx", makeThreatImage(t, m.color, false, true));
+      if (NO_HEADING_TYPES.has(t)) continue;
+      map.addImage("dart-" + t + "-unk", makeThreatImage(t, m.color, true));
+      map.addImage("dart-" + t + "-unk-apx", makeThreatImage(t, m.color, true, true));
+    }
     map.addImage("plane", makePlaneImage());
     map.addImage("heli", makeHeliImage());
 
@@ -1573,8 +1618,10 @@ async function initMap() {
     // polskich wsiach po drugiej stronie granicy (Dorohusk, Turka, Istrów) i
     // ludzie czytali ją jako „zagrożenie jest nad nami". Przerywana linia mówi
     // to samo — „gdzieś w tym kole" — a niczego nie zasłania.
+    const _filtrOkregow = okregiFiltr(okregiTryb(), null);
     map.addLayer({ id: "uncertainty-line", type: "line", source: "uncertainty",
-      paint: { "line-color": ["get", "color"], "line-opacity": 0.85,
+      ...(_filtrOkregow ? { filter: _filtrOkregow } : {}),
+      paint: { "line-color": ["get", "color"], "line-opacity": OKRAG_KRYCIE,
                "line-width": 1.6, "line-dasharray": [3, 3] } });
 
     map.addSource("threats", { type: "geojson", data: emptyFC() });
@@ -1605,11 +1652,11 @@ async function initMap() {
         "circle-stroke-color": "#ffffff", "circle-stroke-width": 2.5,
         "circle-stroke-opacity": 0.95 } });
     map.addLayer({ id: "threats", type: "symbol", source: "threats",
-      layout: { "icon-image": ["case",
-          ["all", ["==", ["get", "hdg_unknown"], true],
-                 ["match", ["get", "type"], [...NO_HEADING_TYPES], false, true]],
-          ["concat", "dart-", ["get", "type"], "-unk"],
-          ["concat", "dart-", ["get", "type"]]],
+      // dart-<typ>[-unk][-apx]: kurs nieznany i pozycja niepewna (19.10.2026) niezależnie
+      layout: { "icon-image": ["concat", "dart-", ["get", "type"],
+          ["case", ["all", ["==", ["get", "hdg_unknown"], true],
+                   ["match", ["get", "type"], [...NO_HEADING_TYPES], false, true]], "-unk", ""],
+          ["case", ["==", ["get", "apx"], true], "-apx", ""]],
         // 64 px zamiast 48 — skala zmniejszona tak, żeby sylwetka miała dawny rozmiar
         "icon-size": ["interpolate", ["linear"], ["zoom"], 4, 0.375, 8, 0.64],
         "icon-rotate": ["case", ["==", ["get", "hdg_unknown"], true], 0, ["get", "heading"]],
@@ -2227,7 +2274,43 @@ function markSelected(kind, id) {
   try {
     map.setFilter("threats-sel", ["==", ["get", "tid"], kind === "threat" ? String(id ?? none) : none]);
     map.setFilter("adsb-sel", ["==", ["get", "hex"], kind === "plane" ? String(id ?? none) : none]);
+    okregiWybranego(kind === "threat" && id != null ? String(id) : null);
   } catch {}
+}
+/* Okręgi niepewności przy kilku dronach obok siebie zlewały się w jedną plamę
+   (uwaga usera 19.10.2026, Lwów). Po dotknięciu obiektu jego okrąg zostaje
+   wyraźny i grubszy, a pozostałe bledną; po zamknięciu karty wszystko wraca. */
+const OKRAG_KRYCIE = 0.85, OKRAG_KRYCIE_WYBRANY = 0.95, OKRAG_KRYCIE_INNE = 0.22;
+/* Które okręgi rysujemy (19.10.2026, czytelnik: „apka mniej czytelna, zwłaszcza okręgi”;
+   decyzja usera: warianty 1+2+4, próg 50 km). Okrąg każdego obiektu naraz — przy
+   meldunkach „w kierunku X” po 40+ km każdy — zlewał się w jedną plamę. Domyślnie:
+   obiekt dotknięty + obiekty z pozycją POTWIERDZONĄ do 50 km od granicy (tam okrąg
+   rozstrzyga, czy obiekt może być już nad Polską). Pozycja niepewna ma okrąg dopiero
+   po dotknięciu. „Wszystkie” = jak do 1.7.98, „Wyłączone” = żadnych. */
+const OKREGI_KEY = "straznik_okregi", OKREGI_DOMYSLNE = "granica", OKREGI_GRANICA_KM = 50;
+function okregiTryb() {
+  try {
+    const v = localStorage.getItem(OKREGI_KEY);
+    return ["granica", "wszystkie", "off"].includes(v) ? v : OKREGI_DOMYSLNE;
+  } catch { return OKREGI_DOMYSLNE; }
+}
+let _okragWybrany = null;
+function okregiFiltr(tryb, tid) {
+  const ten = ["==", ["get", "tid"], tid ?? "__none__"];
+  if (tryb === "off") return ["==", ["get", "tid"], "__none__"];
+  if (tryb === "wszystkie") return null;
+  return ["any", ten, ["all", ["!=", ["get", "apx"], true],
+    ["<=", ["coalesce", ["get", "dist_km"], 9999], OKREGI_GRANICA_KM]]];
+}
+function okregiWybranego(tid) {
+  _okragWybrany = tid ?? null;
+  if (!map.getLayer("uncertainty-line")) return;
+  const ten = ["==", ["get", "tid"], tid ?? "__none__"];
+  map.setFilter("uncertainty-line", okregiFiltr(okregiTryb(), tid));
+  map.setPaintProperty("uncertainty-line", "line-opacity",
+    tid == null ? OKRAG_KRYCIE : ["case", ten, OKRAG_KRYCIE_WYBRANY, OKRAG_KRYCIE_INNE]);
+  map.setPaintProperty("uncertainty-line", "line-width",
+    tid == null ? 1.6 : ["case", ten, 2.6, 1.2]);
 }
 
 function showCard(html, opts) {
@@ -2287,6 +2370,7 @@ function openThreatPopup(lngLat, p) {
   showCard(`${img}
       <b style="color:${meta.color}">◆ ${meta.label}</b><br>
       ${p.opis ? esc2(p.opis) + "<br>" : ""}
+      ${p.pkt !== undefined ? kartaPozycjaHTML(p) : ""}
       ${UI.t("wiarygodność", "confidence", "достовірність")}: <b>${esc2(UI.confidence(p.confidence, CONF_PL[p.confidence] || p.confidence))}</b>
         · ${UI.t("gdzie może być", "where it may be", "де може бути")}: <b>±${p.uncertainty} km</b>${
           Number(p.unc_lot) > 0 && Number.isFinite(Number(p.uncertainty))
@@ -2299,6 +2383,7 @@ function openThreatPopup(lngLat, p) {
         ? ` <span style="color:#95a1b7">${UI.t("— rejon przestał już rosnąć, obiekt może być dalej", "— the area has stopped growing; the object may be further away", " — район уже перестав зростати, об'єкт може бути далі")}</span>` : ""}<br>
       ${courseVerdictHTML(p)}
       ${p.eta || ""}
+      ${kartaPunktyHTML(p)}
       <span style="color:#9aa6be">${UI.t("Dane: NEPTUN — agregator OSINT, nie radar wojskowy", "Data: NEPTUN — OSINT aggregator, not military radar", "Дані: NEPTUN — агрегатор OSINT, а не військовий радар")}</span>`);
 }
 
@@ -2306,6 +2391,10 @@ function openThreatPopup(lngLat, p) {
    252°"), a lista sygnałów mówiła „0 pkt, kurs 86° od kierunku na Polskę" — te same
    dane, dwa różne wrażenia. Właściwości warstwy GL bywają tekstem, stąd rzutowania. */
 function courseVerdictHTML(p) {
+  /* Obiekt-duch z historii (ostatnia pozycja z sygnału, bez migawki) nie ma oceny
+     kursu — karta pisała „0 pkt — kurs nie prowadzi na Polskę”, a wiersz punktów
+     niżej pokazywał, że obiekt jednak punktował (19.10.2026). Bez oceny — bez werdyktu. */
+  if (p.kurs_znany === false || p.kurs_znany === "false") return "";
   const toward = p.toward_pl === true || p.toward_pl === "true";
   const known = !(p.heading_known === false || p.heading_known === "false");
   const off = p.course_off == null || p.course_off === "" ? null : Math.round(Number(p.course_off));
@@ -2332,6 +2421,49 @@ function courseVerdictHTML(p) {
       ? (UI.t(`kurs ${off}° od kierunku na Polskę`, `heading ${off}° away from the direction to Poland`, `курс ${off}° від напрямку на Польщу`))
       : (UI.t("kurs nie prowadzi na Polskę", "not heading towards Poland", "курс не веде на Польщу"));
   return `<span style="color:#a3aec4"><b>${UI.t("0 pkt", "0 pts", "0 бал.")}</b> — ${why}</span><br>`;
+}
+
+/* Plakietka pewności pozycji w karcie (19.10.2026). Pewna = punkt ze źródła;
+   niepewna = meldunek o kierunku lotu albo środek miejscowości. Opis, skąd wzięła
+   się pozycja niepewna, karta ma już niżej (etaHtml → approxPositionNote) —
+   tu sama plakietka, bez powtórzenia. */
+function kartaPozycjaHTML(p) {
+  const apx = p.apx === true || p.apx === "true";
+  // Dopisek jako zwykły tekst w wierszu, nie osobny element: na 320 px przy dużym
+  // tekście osobny <span> po ukraińsku zawijał się w trzy linie (test_responsywnosc).
+  if (apx) return `<div class="poz-wiersz"><span class="poz-plak poz-niepewna">${UI.t("pozycja niepewna", "uncertain position", "непевна позиція")}</span> ${
+    UI.t("nie namiar, opis niżej", "not a fix, see below", "не координати, опис нижче")}</div>`;
+  return `<div class="poz-wiersz"><span class="poz-plak poz-pewna">${UI.t("pozycja potwierdzona", "confirmed position", "підтверджена позиція")}</span> ${
+    UI.t("namiar ze źródła", "fix from the source", "координати від джерела")}</div>`;
+}
+/* „Punkty teraz” — ile obiekt w tej chwili daje każdemu województwu, a przy zerze
+   dlaczego (limit NEPTUN-a pełny albo ten sam punkt liczony z innego meldunku). */
+function kartaPunktyHTML(p) {
+  let d;
+  try { d = JSON.parse(p.pkt || "null"); } catch { d = null; }
+  if (!d || (!d.daje?.length && !d.zero?.length)) return "";
+  const apx = p.apx === true || p.apx === "true";
+  const waga = Math.round((POZYCJA_WAGA[p.apx_why] ?? POZYCJA_WAGA.source_approx) * 100);
+  const lista = d.daje.map((e, i) => {
+    const t = `${esc2(UI.voiv(e.v))} ${pktTxt(e.p)}`;
+    return i < 2 ? `<b>${t}</b>` : t;
+  }).join(" · ");
+  const zera = ["limit", "ten_sam"].map(why => {
+    const w = d.zero.filter(e => e.why === why).map(e => esc2(UI.voiv(e.v)));
+    if (!w.length) return "";
+    const pow = why === "limit"
+      ? UI.t(`limit NEPTUN-a (${NEPTUN_LIMIT_PKT} pkt) w województwie jest już pełny`,
+          `the NEPTUN limit (${NEPTUN_LIMIT_PKT} pts) in the province is already full`,
+          `ліміт NEPTUN (${NEPTUN_LIMIT_PKT} бал.) у воєводстві вже вичерпано`)
+      : UI.t("ten sam punkt liczy się już z innego meldunku",
+          "the same point is already counted from another report",
+          "ту саму точку вже враховано з іншого повідомлення");
+    return `<div class="meta">${w.join(", ")}: ${UI.t("nie dolicza punktów", "adds no points", "не додає балів")} — ${pow}</div>`;
+  }).join("");
+  return `<div class="karta-pkt"><span style="color:#95a1b7">${UI.t("Punkty teraz:", "Points now:", "Бали зараз:")}</span> ${
+    lista || UI.t("nie dolicza", "none added", "не додає")}${zera}<div class="meta">${apx
+      ? UI.t(`Pozycja niepewna waży ${waga}% pewnej.`, `An uncertain position weighs ${waga}% of a confirmed one.`, `Непевна позиція важить ${waga}% підтвердженої.`)
+      : UI.t("Pełna waga — pozycja potwierdzona.", "Full weight — confirmed position.", "Повна вага — підтверджена позиція.")}</div></div>`;
 }
 
 /* Karta samolotu w stylu airplanes.live: zdjęcie, kraj rejestracji, operator,
@@ -2998,6 +3130,84 @@ function refreshCountedTracks() {
         ids.add(String(s.details.track_id));
   countedTracks = ids;
 }
+
+/* Punkty w karcie obiektu (19.10.2026, pomysł usera po wieczorze, w którym 9 ikon
+   wokół Lwowa było w większości meldunkami „w kierunku X”). Karta mówi, ile obiekt
+   TERAZ daje każdemu województwu (counted_points z fuzji — po wygaszeniu wiekiem
+   i limicie klasy źródła), a przy zerze: dlaczego. Zero ma dwa źródła, które
+   trzeba rozróżnić, bo inaczej czytelnik uzna obiekt za zignorowany:
+   - limit NEPTUN-a w województwie jest już pełny (SOURCE_CAPS.neptun = 8),
+   - ten sam punkt rejonowy (physical_key) liczy się z innego meldunku.
+   Indeks budujemy raz na stan (na żywo) albo raz na tablicę sygnałów (historia). */
+const NEPTUN_LIMIT_PKT = 8;             // lustro config.SOURCE_CAPS["neptun"] i engine.js
+const POZYCJA_WAGA = { source_approx: 0.6, locality_center: 0.5 };   // lustro NEPTUN_POSITION_MULT
+const _indeksyPunktow = new WeakMap();
+function fusionSignals(st) {
+  const v = st?.fusion?.voivodeships;
+  if (!v) return [];
+  let lista = _indeksyPunktow.get(v);
+  if (!lista) {
+    lista = Object.values(v).flatMap(x => x.signals || []);
+    _indeksyPunktow.set(v, lista);
+  }
+  return lista;
+}
+function indeksPunktow(sygnaly) {
+  if (!Array.isArray(sygnaly)) return null;
+  let ix = _indeksyPunktow.get(sygnaly);
+  if (ix) return ix;
+  ix = { tor: new Map(), neptun: new Map(), fiz: new Map() };
+  for (const s of sygnaly) {
+    if (s?.source !== "neptun" || !s.voivodeship || s.details?.wave) continue;
+    const pkt = Number(s.counted_points) || 0;
+    ix.neptun.set(s.voivodeship, (ix.neptun.get(s.voivodeship) || 0) + pkt);
+    const tid = s.details?.track_id;
+    if (tid == null) continue;
+    const k = String(tid);
+    if (!ix.tor.has(k)) ix.tor.set(k, []);
+    ix.tor.get(k).push(s);
+    const fiz = s.details?.physical_key;
+    if (fiz && pkt > 0) ix.fiz.set(s.voivodeship + "|" + fiz, k);
+  }
+  _indeksyPunktow.set(sygnaly, ix);
+  return ix;
+}
+/* [{v, p}] dla województw, którym obiekt daje punkty, i [{v, why}] dla tych,
+   którym dawałby, ale nie dolicza (why: "limit" | "ten_sam"). Pomijamy wpisy,
+   które i tak wygasły wiekiem (waga × punkty < 0,05). */
+function punktyObiektu(tid, sygnaly) {
+  const ix = indeksPunktow(sygnaly);
+  const wpisy = ix?.tor.get(String(tid ?? "")) || [];
+  const per = new Map();
+  for (const s of wpisy) {
+    const e = per.get(s.voivodeship) || { v: s.voivodeship, p: 0, mozliwe: 0, fiz: null };
+    e.p += Number(s.counted_points) || 0;
+    e.mozliwe = Math.max(e.mozliwe, (Number(s.points) || 0) * (Number(s.weight ?? 1) || 0));
+    e.fiz = e.fiz || s.details?.physical_key || null;
+    per.set(s.voivodeship, e);
+  }
+  const daje = [], zero = [];
+  for (const e of per.values()) {
+    if (e.p >= 0.05) { daje.push({ v: e.v, p: Math.round(e.p * 10) / 10 }); continue; }
+    if (e.mozliwe < 0.05) continue;
+    const inny = e.fiz && ix.fiz.get(e.v + "|" + e.fiz);
+    const why = inny && inny !== String(tid) ? "ten_sam"
+      : (ix.neptun.get(e.v) || 0) >= NEPTUN_LIMIT_PKT - 0.05 ? "limit" : null;
+    if (why) zero.push({ v: e.v, why });
+  }
+  daje.sort((a, b) => b.p - a.p);
+  return { daje, zero };
+}
+/* Właściwości znacznika: pozycja niepewna (ikona -apx, plakietka w karcie)
+   i punkty obiektu jako tekst JSON — właściwości warstwy GL nie przenoszą tablic. */
+function pozycjaIPunkty(t, sygnaly) {
+  const info = positionInfo(t);
+  const apx = info.quality === "approx";
+  return {
+    apx, apx_why: apx ? info.reason || "source_approx" : "",
+    pkt: JSON.stringify(punktyObiektu(t.id, sygnaly)),
+  };
+}
 const PULSE_MS = 1600;
 let lastPulse = 0, pulseOff = false;
 function pulseLoop(ts) {
@@ -3111,13 +3321,15 @@ function animate(ts) {
         toward_pl: t.pl_assessment?.toward_pl === true,
         heading_known: t.pl_assessment?.heading_known !== false,
         counted: countedTracks.has(String(t.id ?? "")),
+        ...pozycjaIPunkty(t, fusionSignals(state)),
         age_min: ageMin, age_label: ageLabel(ageMin),
         course_off: courseOffsetDeg(t),
         na_cel: naKursieDoCelu(t), cel: naKursieDoCelu(t) && t.locality ? placeName(t.locality) : "",
         eta: etaHtml(t) } });
     const uncKm = shownUncertaintyKm(t, now);
     if (uncKm)
-      unc.push({ type: "Feature", properties: { color: meta.color },
+      unc.push({ type: "Feature", properties: { color: meta.color, tid: String(t.id ?? ""),
+                   apx: isApproxPosition(t), dist_km: t.pl_assessment?.dist_km ?? null },
         geometry: { type: "Polygon", coordinates: circleCoords(p.lat, p.lon, uncKm) } });
     // ślad = to, co dało API + to, co sami zaobserwowaliśmy + pozycja bieżąca.
     // Dla przybliżonego rejonu nie łączymy kolejnych raportów w pozorną trasę.
@@ -3732,11 +3944,22 @@ function sigHTML(s) {
     areaOnly:d.area_only, straznik_position:d.position_approximate
       ? { quality:"approx", reason:d.position_reason, locality:d.position_locality } : null };
   const signalApprox = src === "neptun" && isApproxPosition(signalPosition);
+  /* Przypisanie wtórne (serwer od 1.7.91, tryb bez serwera od 1.7.97): ten sam obiekt
+     punktuje każde województwo w zasięgu, a dist_km i czas dolotu liczone są do TEGO
+     województwa, nie do granicy. Panel mówił „X km od granicy" i „kursem na granicę PL". */
+  const secondary = src === "neptun" && !!d.voiv_secondary;
+  const sigVoiv = UI.voiv(s.voivodeship);
+  const secondaryWhere = (km) => km === 0
+    ? UI.t(`nad woj. ${sigVoiv}`, `over ${sigVoiv} province`, `над воєв. ${sigVoiv}`)
+    : UI.t(`${threatDistanceText(signalPosition, km)} od woj. ${sigVoiv}`,
+           `${threatDistanceText(signalPosition, km)} from ${sigVoiv} province`,
+           `${threatDistanceText(signalPosition, km)} від воєв. ${sigVoiv}`);
   // NEPTUN: odległość i pewność kursu wprost w wierszu — bez tego nie było
   // widać, że obiekt bez kursu w ogóle jest brany pod uwagę
   const extra = [];
   if (s.article_status && s.details?.article?.reason) extra.push(String(s.details.article.reason));
-  if (d.dist_km != null) extra.push(`${threatDistanceText(signalPosition, d.dist_km)} ${UI.t("od granicy", "from the border", "від кордону")}`);
+  if (d.dist_km != null) extra.push(secondary ? secondaryWhere(d.dist_km)
+    : `${threatDistanceText(signalPosition, d.dist_km)} ${UI.t("od granicy", "from the border", "від кордону")}`);
   /* Odległość w sygnale to stan Z CHWILI JEGO POWSTANIA — obiekt leci dalej i po
      pół godzinie panel mówił „192,5 km", gdy na mapie ten sam dron był 130 km od
      granicy (zgłoszone 12.09.2026). Dopisujemy bieżącą odległość, dopóki obiekt
@@ -3746,7 +3969,8 @@ function sigHTML(s) {
   const liveNow = tracksNow
     ? (state?.neptun?.threats || []).find(t => String(t.id) === String(d.track_id))
     : null;
-  const nowKm = liveNow?.pl_assessment?.dist_km;
+  // bieżąca odległość to odległość od granicy — przy przypisaniu wtórnym nieporównywalna
+  const nowKm = secondary ? null : liveNow?.pl_assessment?.dist_km;
   if (nowKm != null && d.dist_km != null && Math.abs(nowKm - d.dist_km) >= 5) {
     const closer = nowKm < d.dist_km;
     extra.push({ html: `<b style="color:${closer ? "#ff9f43" : "var(--muted)"}">${
@@ -3778,6 +4002,8 @@ function sigHTML(s) {
   const etaV = presumed ? null : agedEta(mineV && d.eta_voiv_min ? d.eta_voiv_min[mineV] : null, s.ts);
   const etaB = presumed ? null : agedEta(d.eta_border_min, s.ts);
   if (!signalApprox && etaV != null) extra.push(`⏱ ${etaTxt(etaV)} ${UI.t("do woj.", "to", "до воєв.")} ${UI.voiv(mineV)}`);
+  // przy przypisaniu wtórnym eta_border_min to czas do TEGO województwa
+  else if (!signalApprox && etaB != null && secondary) extra.push(`⏱ ${etaTxt(etaB)} ${UI.t("do woj.", "to", "до воєв.")} ${sigVoiv}`);
   else if (!signalApprox && etaB != null) extra.push(`⏱ ${etaTxt(etaB)} ${UI.t("do granicy", "to border", "до кордону")}`);
   let shownTitle = s.title;
   // Tytuły, które PISZEMY SAMI (alarm obwodu UA, przeniesienie od sąsiada), muszą
@@ -3833,20 +4059,30 @@ function sigHTML(s) {
   // Polonizujemy także stare wpisy zapisane już w bazie, korzystając ze
   // stabilnego details.type zamiast ukraińskiego/rosyjskiego tytułu źródła.
   if (src === "neptun" && d.type) {
-    const marker = " kursem na granicę PL";
+    const marker = secondary ? " w odległości " : " kursem na granicę PL";
     const at = String(shownTitle || "").indexOf(marker);
     const prefix = (Number(d.count) || 1) > 1 ? `${Number(d.count)}× ` : "";
-    shownTitle = signalApprox && d.dist_km != null
-      ? prefix + threatLabelPL(d.type) + ` kursem na granicę PL, ${threatDistanceText(signalPosition, d.dist_km)}`
-      : prefix + threatLabelPL(d.type) + (at >= 0 ? String(shownTitle).slice(at) : "");
-    if (!UI.isEn && !UI.isUk) { /* polski tytul zostaje taki, jak zbudowany wyzej */ }
-    else {
-      const count = (Number(d.count) || 1) > 1 ? `${Number(d.count)}× ` : "";
-      shownTitle = count + threatLabelPL(d.type)
-        + (d.dist_km != null
-          ? UI.t("", ` heading towards the Polish border, ${threatDistanceText(signalPosition, d.dist_km)}`,
-                 ` курсом на кордон Польщі, ${threatDistanceText(signalPosition, d.dist_km)}`)
-          : "");
+    if (secondary) {
+      // PL: dokładna pozycja — końcówka tytułu z serwera („[blisko granicy] (wiarygodność…)”);
+      // pozycja rejonowa, „nad woj.” i EN/UK — składane z details
+      const where = d.dist_km != null ? secondaryWhere(d.dist_km) : "";
+      shownTitle = !UI.isEn && !UI.isUk && at >= 0 && !signalApprox && d.dist_km !== 0
+        ? polskiTytulNeptun(prefix + threatLabelPL(d.type) + String(shownTitle).slice(at))
+        : prefix + threatLabelPL(d.type) + (where
+          ? (d.dist_km === 0 ? ` ${where}` : UI.t(` w odległości ${where}`, ` ${where}`, ` за ${where}`)) : "");
+    } else {
+      shownTitle = signalApprox && d.dist_km != null
+        ? prefix + threatLabelPL(d.type) + ` kursem na granicę PL, ${threatDistanceText(signalPosition, d.dist_km)}`
+        : prefix + threatLabelPL(d.type) + (at >= 0 ? String(shownTitle).slice(at) : "");
+      if (!UI.isEn && !UI.isUk) shownTitle = polskiTytulNeptun(shownTitle);
+      else {
+        const count = (Number(d.count) || 1) > 1 ? `${Number(d.count)}× ` : "";
+        shownTitle = count + threatLabelPL(d.type)
+          + (d.dist_km != null
+            ? UI.t("", ` heading towards the Polish border, ${threatDistanceText(signalPosition, d.dist_km)}`,
+                   ` курсом на кордон Польщі, ${threatDistanceText(signalPosition, d.dist_km)}`)
+            : "");
+      }
     }
   }
   return `<div class="sig src-${esc(src)}">
@@ -5932,11 +6168,13 @@ function showHistoryAt(idx) {
             ? `${threatLabelPL(t.type)} — ostatnia pozycja z sygnału; obiekt nie występował już w tej migawce`
             : threatDesc(t),
           historicalOnly: !!t.historicalOnly, dist_km: t.pl_assessment?.dist_km,
+          ...pozycjaIPunkty(t, sigs),
           // wiek meldunku zapisany w migawce (starsze migawki go nie mają — wtedy 0,
           // czyli obiekt rysuje się jak świeży, bez podpisu z wiekiem)
           age_min: snapAgeMin(t), age_label: ageLabel(snapAgeMin(t)),
           distance_text: threatDistanceText(t, t.pl_assessment?.dist_km),
           toward_pl: t.pl_assessment?.toward_pl === true,
+          kurs_znany: t.pl_assessment?.toward_pl !== undefined,
           heading_known: t.pl_assessment?.heading_known !== false,
           course_off: courseOffsetDeg(t),
         na_cel: naKursieDoCelu(t), cel: naKursieDoCelu(t) && t.locality ? placeName(t.locality) : "",
@@ -5949,7 +6187,9 @@ function showHistoryAt(idx) {
     map.getSource("uncertainty")?.setData({ type: "FeatureCollection",
       features: historyThreats.filter(t => t.lat != null).flatMap(t => {
         const km = shownUncertaintyKm(t);
-        return km ? [{ type: "Feature", properties: { color: (TYPE_META[t.type] || {}).color || "#8a93a6" },
+        return km ? [{ type: "Feature", properties: { color: (TYPE_META[t.type] || {}).color || "#8a93a6",
+                                                      tid: String(t.id ?? ""), apx: isApproxPosition(t),
+                                                      dist_km: t.pl_assessment?.dist_km ?? null },
           geometry: { type: "Polygon", coordinates: circleCoords(t.lat, t.lon, km) } }] : [];
       }) });
     map.getSource("adsb")?.setData({ type: "FeatureCollection",
@@ -7437,6 +7677,16 @@ for (const kind of ["neptun", "adsb"]) {
     if (kind === "adsb" && mapReady) drawFollowTrail();
     odswiezWartosciUstawien();
   });
+}
+{
+  const sel = document.getElementById("set-okregi");
+  if (sel) {
+    sel.value = okregiTryb();
+    sel.addEventListener("change", () => {
+      try { localStorage.setItem(OKREGI_KEY, sel.value); } catch {}
+      if (mapReady) okregiWybranego(_okragWybrany);
+    });
+  }
 }
 
 const aboutDlg = document.getElementById("about");
