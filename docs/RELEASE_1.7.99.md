@@ -8,7 +8,7 @@ versionCode 128, versionName 1.7.99. 19 października 2026.
 - Opisy dronów w panelu po polsku: „wiarygodność”, przecinek, „3 potwierdzenia”, „X km od woj. …”.
 - Dron z pozycją niepewną (meldunek „w kierunku …”) ma na mapie przygaszoną ikonę z przerywanym konturem.
 - Karta obiektu pokazuje, ile punktów daje on teraz każdemu województwu, a przy zerze — dlaczego.
-- Po dotknięciu drona jego okrąg niepewności jest wyraźny, a pozostałe bledną.
+- Okręgi niepewności domyślnie tylko dla dotkniętego drona i dla pewnych pozycji do 50 km od granicy (Ustawienia → Mapa).
 - GROTA: nowy wykaz PSP z 19 października — 87 316 punktów, 183 zmieniły dostępność.
 - iPhone: w Głośności alarmu jest opis Alertów krytycznych.
 <!-- /zmiany -->
@@ -78,8 +78,12 @@ wszystkie wyglądały tak samo.
   mówi dlaczego: limit NEPTUN-a w województwie (8 pkt) jest już pełny albo ten sam punkt
   liczy się z innego meldunku. Pozycja niepewna waży 60% pewnej (środek miejscowości 50%).
   W podglądzie historii karta pokazuje punkty z tamtej chwili.
-- **Okręgi niepewności.** Przy kilku dronach obok siebie okręgi zlewały się w jedną plamę.
-  Po dotknięciu obiektu jego okrąg jest wyraźny i grubszy, a pozostałe bledną.
+- **Okręgi niepewności.** Przy kilku dronach obok siebie okręgi zlewały się w jedną plamę
+  (uwaga czytelnika: aplikacja zrobiła się mniej czytelna). Teraz domyślnie okrąg ma tylko
+  obiekt dotknięty i obiekty z pozycją potwierdzoną do 50 km od granicy — tam rozstrzyga,
+  czy obiekt może być już nad Polską. Dotknięty obiekt ma okrąg wyraźny i grubszy, pozostałe
+  bledną. W Ustawieniach → Mapa → „Okręgi niepewności”: wybrany i przy granicy / wszystkie
+  (jak dotąd) / wyłączone. Promień każdego obiektu jest w karcie.
 
 Punktacja się nie zmienia. Przeliczyliśmy na historii 11–19.10 warianty, w których meldunki
 do 40 lub 60 km od siebie liczą się jak jeden obiekt albo ważą połowę: mapa czerwona skracała
