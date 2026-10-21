@@ -778,14 +778,14 @@ body.history-mode #my-banner { display: none; }
 .alarm-voiv { font-size: 1.6rem; font-weight: 700; text-transform: capitalize;
   margin-top: 4px; }
 .alarm-score { font-size: 0.8667rem; color: var(--muted); margin-top: 2px; }
-.alarm-signals { text-align: left; margin: 14px 0 10px; display: flex;
+.alarm-signals { text-align: left; margin: 10px 0 10px; display: flex;
   flex-direction: column; gap: 6px; }
 .alarm-note { font-size: 0.7667rem; color: #ffd98a; line-height: 1.4;
   background: rgba(64,44,6,.5); border: 1px solid rgba(255,176,32,.4);
   border-radius: 9px; padding: 8px 10px; }
 .alarm-nearest { font-size: 0.8667rem; color: #e8edf7; margin-top: 10px; line-height: 1.4; }
 .alarm-todo { font-size: 0.8667rem; font-weight: 700; color: #fff; text-align: left;
-  background: rgba(214, 40, 57, .22); border-radius: 9px; padding: 8px 10px; margin: 0 0 10px; }
+  background: rgba(214, 40, 57, .22); border-radius: 9px; padding: 8px 10px; margin: 14px 0 0; }
 dialog label.set-check { display: flex; gap: 10px; align-items: center; margin: 10px 0 6px;
   color: var(--text); font-size: 0.9333rem; }
 dialog .set-check input { width: 20px; height: 20px; flex: 0 0 20px; margin: 0; padding: 0; }
@@ -830,6 +830,12 @@ dialog .set-switch input:focus-visible + .sw-track { outline: 2px solid var(--ac
   stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .alarm-choice:hover { filter: brightness(1.12); }
 .alarm-time { font-size: 0.7rem; color: var(--muted); margin-top: 8px; }
+/* 21.10.2026 (user): po potwierdzeniu albo po limicie ALARM_MAX_MIN ekran przestaje
+   migać — miganie i jasne tło grzały telefon i ekran przez cały czas trwania alarmu. */
+#alarm-overlay.wyciszony { animation: none; }
+#alarm-overlay.wyciszony .alarm-icon { animation: none; }
+.alarm-auto { font-size: 0.8667rem; font-weight: 700; color: #ffd98a; margin-top: 10px; }
+.alarm-wiecej { font-size: 0.7667rem; color: var(--muted); text-align: left; margin: -4px 0 10px; }
 
 /* ── przycisk buycoffee ── */
 .chip.coffee {

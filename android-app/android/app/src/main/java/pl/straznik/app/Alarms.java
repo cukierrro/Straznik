@@ -85,6 +85,18 @@ class Alarms {
 
     static final String ACTION_SILENCE = "pl.straznik.app.SILENCE_ALARM";
     static final String EXTRA_NOTIF_ID = "notif_id";
+    /**
+     * Najdłuższy czas głośnego czerwonego alarmu (decyzja usera 21.10.2026: bateria,
+     * grzanie telefonu i ekranu). Po nim syrena, wibracja i miganie gasną same,
+     * a powiadomienie przechodzi na ciche — jak po „Wycisz”. Ten sam limit ma ekran
+     * alarmu w aplikacji (app.js ALARM_MAX_MIN); pilnuje scripts/test_alarm_limit.cjs.
+     */
+    static final long ALARM_MAX_MS = 15 * 60 * 1000L;
+    /** Automatyczne wyciszenie po ALARM_MAX_MS — z czasem wystawienia alarmu. */
+    static final String EXTRA_AUTO_POSTED_AT = "auto_posted_at";
+    /** Ile powodów pokazuje powiadomienie i ekran alarmu (21.10.2026: było 4 i 6). */
+    static final int POWODY_MAX = 3;
+    private static final String KEY_POSTED_PREFIX = "alarm_posted_";
 
     // Ustawienia natywne trzymamy w pamięci urządzenia dostępnej przed pierwszym
     // odblokowaniem (audyt B6): push po nocnym restarcie telefonu musi je odczytać.
@@ -274,11 +286,29 @@ class Alarms {
 
     private static String reasonsOnly(List<String> reasons) {
         StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < Math.min(reasons.size(), 6); i++) {
+        for (String r : powody(reasons)) {
             if (sb.length() > 0) sb.append('\n');
-            sb.append(reasons.get(i));
+            sb.append(r);
         }
         return sb.toString();
+    }
+
+    /**
+     * Najwyżej POWODY_MAX powodów, bez nagłówków grup („Oficjalnie:”, „Wskaźniki
+     * (nieoficjalne):”) — przy dłuższej liście przyciski ekranu alarmu i sedno
+     * powiadomienia uciekały pod krawędź (21.10.2026). Pełna lista jest w aplikacji.
+     */
+    static List<String> powody(List<String> reasons) {
+        List<String> out = new java.util.ArrayList<>();
+        if (reasons == null) return out;
+        for (String r : reasons) {
+            if (r == null) continue;
+            String t = r.trim();
+            if (t.isEmpty() || t.endsWith(":")) continue;
+            out.add(t);
+            if (out.size() >= POWODY_MAX) break;
+        }
+        return out;
     }
 
     static int notifId(int voiv) { return 2000 + voiv; }
@@ -453,13 +483,19 @@ class Alarms {
      * ciche z tą samą treścią i przywraca głośność sprzed alarmu.
      */
     static void silence(Context ctx, int voiv) {
+        silence(ctx, voiv, false);
+    }
+
+    /** @param auto wyciszenie po ALARM_MAX_MS, a nie przez użytkownika */
+    static void silence(Context ctx, int voiv, boolean auto) {
+        try { prefs(ctx).edit().remove(KEY_POSTED_PREFIX + voiv).apply(); } catch (Exception ignored) {}
         NotificationManager nm = (NotificationManager) ctx.getSystemService(Context.NOTIFICATION_SERVICE);
         if (nm == null) return;
         String title = Last.title(voiv);
         nm.cancel(notifId(voiv));
         if (title != null) {
             Notification.Builder b = builder(ctx, CH_QUIET)
-                .setContentTitle(title + " — potwierdzony")
+                .setContentTitle(title + (auto ? " — wyciszony po 15 min" : " — potwierdzony"))
                 .setContentText(Last.text(voiv))
                 .setStyle(new Notification.BigTextStyle().bigText(Last.text(voiv)))
                 .setSmallIcon(android.R.drawable.ic_dialog_alert)
@@ -468,6 +504,39 @@ class Alarms {
             nm.notify(notifId(voiv), b.build());
         }
         restoreAlarmVolume(ctx);
+    }
+
+    /**
+     * Automatyczne wyciszenie po ALARM_MAX_MS (AlarmActionReceiver). Działa tylko,
+     * gdy to wciąż TEN SAM alarm: nowszy alarm albo wcześniejsze wyciszenie zmienia
+     * zapisany czas wystawienia, więc stare zlecenie niczego nie zgasi.
+     */
+    static void autoSilence(Context ctx, int voiv, long postedAt) {
+        long zapisany;
+        try { zapisany = prefs(ctx).getLong(KEY_POSTED_PREFIX + voiv, -1L); }
+        catch (Exception e) { zapisany = -1L; }
+        if (postedAt <= 0 || zapisany != postedAt) return;
+        silence(ctx, voiv, true);
+    }
+
+    /** Zlecenie automatycznego wyciszenia za ALARM_MAX_MS (bez uprawnień do alarmów dokładnych). */
+    private static void zaplanujAutoWyciszenie(Context ctx, int voiv, long postedAt) {
+        try {
+            prefs(ctx).edit().putLong(KEY_POSTED_PREFIX + voiv, postedAt).apply();
+            android.app.AlarmManager am = (android.app.AlarmManager) ctx.getSystemService(Context.ALARM_SERVICE);
+            if (am == null) return;
+            PendingIntent pi = PendingIntent.getBroadcast(ctx, 5000 + voiv,
+                new Intent(ctx, AlarmActionReceiver.class).setAction(ACTION_SILENCE)
+                    .putExtra(EXTRA_NOTIF_ID, voiv).putExtra(EXTRA_AUTO_POSTED_AT, postedAt),
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+            long kiedy = postedAt + ALARM_MAX_MS;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
+                am.setAndAllowWhileIdle(android.app.AlarmManager.RTC_WAKEUP, kiedy, pi);
+            else
+                am.set(android.app.AlarmManager.RTC_WAKEUP, kiedy, pi);
+        } catch (Exception e) {
+            Log.w(TAG, "zlecenie automatycznego wyciszenia", e);
+        }
     }
 
     /**
@@ -549,13 +618,14 @@ class Alarms {
         // 24.09.2026). Stoi na początku treści — i w zwiniętym, i w rozwiniętym
         // powiadomieniu — bo zwinięte pokazuje wyłącznie `firstLine`.
         String czas = godzina(sentAtMs);
+        // 21.10.2026 (user): krócej — nagłówek, najwyżej POWODY_MAX powodów i jedna linia
+        // „co zrobić · źródło”, zamiast czterech powodów i dwóch pełnych zdań.
         StringBuilder body = new StringBuilder();
         if (headline != null && !headline.isEmpty()) body.append(headline).append('\n');
-        for (int i = 0; i < Math.min(reasons.size(), 4); i++) body.append(reasons.get(i)).append('\n');
+        for (String r : powody(reasons)) body.append(r).append('\n');
         body.append(high
-            ? "Co zrobić: przejdź do miejsca schronienia lub pomieszczenia bez okien i śledź komunikaty RCB.\n"
-            : "Co zrobić: zachowaj czujność i sprawdź komunikaty RCB.\n");
-        body.append("NIEOFICJALNE źródło — kieruj się syrenami, RCB i RSO.");
+            ? "Co zrobić: przejdź do miejsca schronienia lub pomieszczenia bez okien · źródło nieoficjalne"
+            : "Zachowaj czujność · źródło nieoficjalne");
         String firstLine = headline != null && !headline.isEmpty() ? headline
             : (reasons.isEmpty() ? "" : reasons.get(0));
         if (!czas.isEmpty()) {
@@ -581,6 +651,7 @@ class Alarms {
         // przychodzące: zapala ekran, pokazuje się nad blokadą, miga i gra do potwierdzenia.
         // Kod żądania per województwo (audyt B11): dwa czerwone naraz miały wspólny
         // PendingIntent, więc ekran alarmu pokazywał dane tylko ostatniego.
+        long postedAt = System.currentTimeMillis();
         PendingIntent fullScreen = PendingIntent.getActivity(ctx, 3000 + voiv,
             new Intent(ctx, AlarmActivity.class)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP)
@@ -592,7 +663,8 @@ class Alarms {
                 .putExtra(AlarmActivity.EXTRA_VOIV_INDEX, voiv)
                 .putExtra(AlarmActivity.EXTRA_TEST, test)
                 .putExtra(AlarmActivity.EXTRA_SCORE, score)
-                .putExtra(AlarmActivity.EXTRA_SENT_AT, sentAtMs),
+                .putExtra(AlarmActivity.EXTRA_SENT_AT, sentAtMs)
+                .putExtra(AlarmActivity.EXTRA_POSTED_AT, postedAt),
             PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
         Notification.Builder b = builder(ctx, high ? highChannel(ctx) : infoChannel(ctx));
@@ -629,6 +701,9 @@ class Alarms {
             // (deleteIntent), pełny ekran zostaje.
             b.setDeleteIntent(silenceIntent);
             b.addAction(new Notification.Action.Builder(null, "Wycisz alarm", silenceIntent).build());
+            // Bezpiecznik limitu (21.10.2026): gdyby zlecenie wyciszenia nie doszło,
+            // system sam usunie głośne powiadomienie minutę po ALARM_MAX_MS.
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) b.setTimeoutAfter(ALARM_MAX_MS + 60_000L);
         }
 
         Notification n = b.build();
@@ -638,6 +713,7 @@ class Alarms {
 
         if (pelnyAlarm) raiseAlarmVolume(ctx);
         if (nm != null) nm.notify(notifId(voiv), n);
+        if (pelnyAlarm && !test) zaplanujAutoWyciszenie(ctx, voiv, postedAt);
 
         if (pelnyAlarm) ensureAlarmIsSeen(ctx, nm);
     }

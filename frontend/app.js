@@ -4199,7 +4199,16 @@ function openCard(name) {
     renderPanel();
   }
   const el = document.querySelector(`.voiv-card[data-voiv="${CSS.escape(name)}"]`);
-  if (el) { el.classList.add("open"); openVoivs.add(name); el.scrollIntoView({ behavior: "smooth" }); }
+  if (el) {
+    el.classList.add("open"); openVoivs.add(name);
+    /* 21.10.2026 (user): nagłówek karty chował się pod przypiętym nagłówkiem panelu
+       („WOJEWÓDZTWA”, #panel-head, sticky top 0) i karta zaczynała się od sygnałów.
+       Odsuwamy przewinięcie o jego wysokość — wysokość zmienia się z tekstem i językiem,
+       więc liczymy ją przy każdym otwarciu. */
+    const glowa = document.getElementById("panel-head");
+    el.style.scrollMarginTop = ((glowa?.getBoundingClientRect().height || 0) + 8) + "px";
+    el.scrollIntoView({ behavior: "smooth" });
+  }
 }
 
 /* Co znaczy każda dioda i dlaczego bywa czerwona — czerwona kropka bez
@@ -4773,21 +4782,61 @@ function showAlarm(voiv, st) {
   document.getElementById("alarm-voiv").textContent = (UI.t("woj. ", "province ", "воєв. ")) + UI.voiv(voiv);
   document.getElementById("alarm-score").textContent =
     `${pktTxt(st.score)} ${UI.t("pkt w oknie", "pts in a", "балів у вікні")} ${state?.fusion?.window_min ?? 60} min ${UI.t("", "window", "")}`;
+  /* Najwyżej ALARM_POWODY_MAX powodów (21.10.2026, user): przy pięciu lista spychała
+     przyciski pod krawędź ekranu. Resztę pokazuje panel — mówimy o tym wprost. */
+  const wszystkie = (st.signals || []).filter(s => (s.counted_points ?? s.points ?? 0) > 0).length
+    || (st.reasonsText ? st.reasonsText.split("\n").filter(Boolean).length : 0);
   document.getElementById("alarm-signals").innerHTML =
-    sigList(st.signals, 5)
-    || (st.reasonsText ? st.reasonsText.split("\n").filter(Boolean).slice(0, 5)
+    sigList(st.signals, ALARM_POWODY_MAX)
+    || (st.reasonsText ? st.reasonsText.split("\n").filter(Boolean).slice(0, ALARM_POWODY_MAX)
           .map(r => `<div>${esc(r)}</div>`).join("") : "");
+  const wiecej = document.getElementById("alarm-wiecej");
+  if (wiecej) {
+    wiecej.hidden = wszystkie <= ALARM_POWODY_MAX;
+    wiecej.textContent = UI.t("Pełna lista sygnałów w panelu", "The full list of signals is in the panel", "Повний список сигналів — на панелі");
+  }
   const near = document.getElementById("alarm-nearest");
   if (near) { const html = nearestThreatLine(voiv); near.innerHTML = html; near.hidden = !html; }
   const todo = document.getElementById("alarm-todo");
-  if (todo) todo.textContent = UI.t("Co zrobić: przejdź do miejsca schronienia albo pomieszczenia bez okien, z dala od szyb. Śledź komunikaty RCB i służb.", "What to do: go to a place of shelter or a room without windows, away from glass. Follow RCB and emergency service messages.", "Що робити: перейдіть в укриття або в кімнату без вікон, подалі від скла. Стежте за повідомленнями RCB і служб.");
+  if (todo) todo.textContent = UI.t("Co zrobić: przejdź do miejsca schronienia albo pomieszczenia bez okien i śledź komunikaty RCB.", "What to do: go to a place of shelter or a room without windows and follow RCB messages.", "Що робити: перейдіть в укриття або в кімнату без вікон і стежте за повідомленнями RCB.");
   document.getElementById("alarm-time").textContent =
     (UI.t("alarm o ", "alert at ", "тривога о ")) + new Date().toLocaleTimeString(UI.t("pl-PL", "en-GB", "uk-UA"));
   alarmWyborReset();
   alarmOverlay.classList.remove("hidden");
   alarmFokus();                // czytnik przechodzi na treść alarmu, nie na mapę pod spodem
-  airRaidSiren(true);          // ciągła — milknie dopiero po potwierdzeniu
+  airRaidSiren(true);          // ciągła — milknie po potwierdzeniu albo po ALARM_MAX_MIN
+  ustawLimitAlarmu();
   przygotujGrote();            // tylko wczytanie w tle; ekranu nie przejmuje
+}
+
+/* Limit czerwonego alarmu (21.10.2026, user: bateria, grzanie telefonu i ekranu).
+   Po ALARM_MAX_MIN minutach od pokazania alarmu syrena, wibracja i miganie gasną
+   same; ekran zostaje — z dopiskiem i przyciskami — żeby było widać, co się stało.
+   Ten sam limit ma natywny ekran Androida (AlarmActivity.ALARM_MAX_MS) i powiadomienie
+   (Alarms: setTimeoutAfter + wyciszenie). Pilnuje scripts/test_alarm_limit.cjs. */
+const ALARM_MAX_MIN = 15, ALARM_POWODY_MAX = 3;
+let alarmLimitTimer = null;
+function ustawLimitAlarmu() {
+  zdejmijLimitAlarmu();
+  alarmOverlay.classList.remove("wyciszony");
+  const auto = document.getElementById("alarm-auto");
+  if (auto) auto.hidden = true;
+  alarmLimitTimer = setTimeout(wyciszAlarmPoLimicie, ALARM_MAX_MIN * 60000);
+}
+function zdejmijLimitAlarmu() {
+  if (alarmLimitTimer) { clearTimeout(alarmLimitTimer); alarmLimitTimer = null; }
+}
+function wyciszAlarmPoLimicie() {
+  alarmLimitTimer = null;
+  if (alarmOverlay.classList.contains("hidden")) return;
+  stopSiren();
+  alarmOverlay.classList.add("wyciszony");        // bez migania (style.css)
+  const auto = document.getElementById("alarm-auto");
+  if (auto) {
+    auto.textContent = UI.t(`Wyciszono automatycznie po ${ALARM_MAX_MIN} min`,
+      `Silenced automatically after ${ALARM_MAX_MIN} min`, `Автоматично вимкнено через ${ALARM_MAX_MIN} хв`);
+    auto.hidden = false;
+  }
 }
 
 /* Po potwierdzeniu alarmu: wybór zamiast natychmiastowego zamknięcia ekranu.
@@ -4807,11 +4856,15 @@ function alarmWyborReset() {
 }
 function zamknijAlarm() {
   alarmOverlay.classList.add("hidden");
+  alarmOverlay.classList.remove("wyciszony");
+  zdejmijLimitAlarmu();
   alarmWyborReset();
   alarmFokusPowrot();          // fokus wraca tam, gdzie był przed alarmem
 }
 alarmAck.onclick = () => {
   stopSiren();
+  zdejmijLimitAlarmu();
+  alarmOverlay.classList.add("wyciszony");       // potwierdzony — ekran przestaje migać
   if (!alarmWybor) { zamknijAlarm(); setPanel(true); return; }
   alarmAck.hidden = true;
   alarmWybor.hidden = false;
