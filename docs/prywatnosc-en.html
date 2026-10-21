@@ -28,10 +28,10 @@
 </div></nav>
 
 <header class="hero"><div class="wrap">
-  <div class="eyebrow">Privacy policy · in force since 15 October 2026</div>
+  <div class="eyebrow">Privacy policy · in force since 21 October 2026</div>
   <h1>We do not collect data about you.</h1>
   <p class="lead">Strażnik has no accounts, no sign-in, no ads and no analytics. We never ask for your name, e-mail address or phone number — and we do not have them. This page describes exactly what stays on your device, what our server sees and who else is involved in delivering the data.</p>
-  <p class="fineprint">Applies to the Strażnik app for Android and iOS and to <a href="https://straznik.eu">straznik.eu</a>. The project and its data are the responsibility of its author; contact through <a href="https://github.com/cukierrro/Straznik/issues">an issue in the repository</a>.</p>
+  <p class="fineprint">Applies to the Strażnik app for Android and iOS and to <a href="https://straznik.eu">straznik.eu</a>. The data controller is the project's author, Piotr Kukier. Contact: <a href="https://cukierrro.pl/#kontakt">the form on cukierrro.pl</a> or <a href="https://github.com/cukierrro/Straznik/issues">an issue in the repository</a>.</p>
 </div></header>
 <main id="content" class="wrap">
 
@@ -101,7 +101,7 @@
     <li>the IP address is used <b>only briefly, in memory</b>, for request limits, so that a single sender cannot take the service down for everyone. It does not reach the database or the backups;</li>
     <li>the database holds <b>data about threats, not about people</b>: signals from public sources, snapshots of the map from the last <b>12 hours</b>, an archive of ADS-B aircraft positions for <b>14 days</b>, and a log of alerts sent (province, level, time). None of these entries is linked to a user.</li>
   </ul>
-  <p>Database backups are made every six hours and are encrypted. They contain the browser push subscriptions from section 3 — there is no other user data in the database.</p>
+  <p>Database backups are made every six hours and are encrypted. They contain the browser push subscriptions from section 3 — there is no other user data in the database. Backups are kept <b>for at most 12 months</b>: all of them from the last two days, older ones one per day, week and month.</p>
 </section>
 
 <section id="services">
@@ -116,13 +116,14 @@
     <li><b>FOSSGIS</b> (OSRM routing server) and <b>GUGiK</b> (address geocoding, orthophoto) — in GROTA only, see section 2.</li>
   </ul>
   <p>Object photos and illustrations are bundled inside the app — we do not fetch them from outside services. Publishers' pages are read by our server, not by your phone. You open an article link in your own browser, and from that point the publisher's own rules apply.</p>
+  <p>Google, Cloudflare and GitHub are based in the United States, so your IP address and app installation identifier may be processed by them outside the European Economic Area — under the terms described in their privacy policies.</p>
 </section>
 
 <section id="permissions">
   <h2>6. App permissions</h2>
   <ul>
     <li><b>Notifications</b> — to show the alert.</li>
-    <li><b>Location (optional)</b> — the one-off “I am here” point, see section 2.</li>
+    <li><b>Location (optional)</b> — the “I am here” point when adding a place, centring the map, and in GROTA the nearest shelter points and the route to them; see section 2.</li>
     <li><b>Internet and network state</b> — fetching the map state and detecting a lost connection.</li>
     <li><b>Installing packages</b> — installing an update downloaded from GitHub (Android, outside the Play Store).</li>
     <li><b>Battery optimisation exemption, waking the screen and full-screen alert</b> — so that the alert arrives while the phone sleeps.</li>
@@ -134,7 +135,16 @@
 <section id="rights">
   <h2>7. Your rights and contact</h2>
   <p>There are no accounts, so there is no record in which we could find you. The only device-related data — a browser push subscription — you delete yourself by turning notifications off. The remaining settings disappear when you uninstall the app or clear its data.</p>
-  <p>If you want to ask about data processing, request deletion, or point out a mistake in this policy, write through <a href="https://github.com/cukierrro/Straznik/issues">an issue in the project repository</a>.</p>
+  <p><b>Data controller:</b> Piotr Kukier, the project's author. If you want to ask about data processing, exercise your rights or point out a mistake in this policy, write through <a href="https://cukierrro.pl/#kontakt">the contact form on cukierrro.pl</a> or <a href="https://github.com/cukierrro/Straznik/issues">an issue in the project repository</a>. We reply within one month at the latest.</p>
+  <p><b>Legal bases</b> (Art. 6(1) GDPR):</p>
+  <ul>
+    <li>browser push subscriptions and serving the app's requests, including offline map packages — <b>point (b)</b>: providing the service you ask for;</li>
+    <li>brief in-memory use of the IP address for request limits, and traffic protection by Cloudflare — <b>point (f)</b>: legitimate interest in keeping the service secure and available to everyone;</li>
+    <li>replying to a message from the form or an issue — <b>point (f)</b>: handling correspondence you start.</li>
+  </ul>
+  <p><b>How long:</b> a push subscription — until you turn notifications off or the push provider reports it expired, and in backups for at most 12 months after that; the IP address — only in the server's memory, for at most 10 minutes; settings on your device — until you delete them.</p>
+  <p><b>Your rights:</b> access to your data, rectification, erasure, restriction of processing, objection to processing based on legitimate interest, and data portability. We do not know who you are, so we may be unable to tell which subscription is yours (Art. 11 GDPR) — the simplest way is to delete it yourself by turning notifications off. We make no automated decisions about you and do no profiling: alerts concern provinces, not people.</p>
+  <p>You have the right to lodge a complaint with a supervisory authority — in Poland the <b>President of the Personal Data Protection Office</b> (UODO), ul. Stawki 2, 00-193 Warszawa (<a href="https://uodo.gov.pl/en">uodo.gov.pl</a>), or the authority in your own EU country.</p>
   <p>The app is not directed at children and does not ask for age.</p>
 </section>
 

@@ -28,10 +28,10 @@
 </div></nav>
 
 <header class="hero"><div class="wrap">
-  <div class="eyebrow">Polityka prywatności · obowiązuje od 15 października 2026</div>
+  <div class="eyebrow">Polityka prywatności · obowiązuje od 21 października 2026</div>
   <h1>Nie zbieramy danych o Tobie.</h1>
   <p class="lead">Strażnik nie ma kont, logowania, reklam ani analityki. Nie prosimy o imię, adres e-mail ani numer telefonu — i ich nie mamy. Ta strona opisuje dokładnie, co zostaje na Twoim urządzeniu, co widzi nasz serwer i kto jeszcze bierze udział w przesyłaniu danych.</p>
-  <p class="fineprint">Dotyczy aplikacji Strażnik na Androida i iOS oraz strony <a href="https://straznik.eu">straznik.eu</a>. Za projekt i dane odpowiada jego autor; kontakt przez <a href="https://github.com/cukierrro/Straznik/issues">zgłoszenie w repozytorium</a>.</p>
+  <p class="fineprint">Dotyczy aplikacji Strażnik na Androida i iOS oraz strony <a href="https://straznik.eu">straznik.eu</a>. Administratorem danych jest autor projektu, Piotr Kukier. Kontakt: <a href="https://cukierrro.pl/#kontakt">formularz na cukierrro.pl</a> albo <a href="https://github.com/cukierrro/Straznik/issues">zgłoszenie w repozytorium</a>.</p>
 </div></header>
 <main id="content" class="wrap">
 
@@ -101,7 +101,7 @@
     <li>adres IP jest używany <b>tylko chwilowo, w pamięci</b>, do limitu zapytań, żeby jeden nadawca nie zablokował usługi wszystkim. Nie trafia do bazy ani do kopii zapasowych;</li>
     <li>w bazie są <b>dane o zagrożeniach, nie o ludziach</b>: sygnały ze źródeł publicznych, migawki stanu mapy z ostatnich <b>12 godzin</b>, archiwum pozycji lotniczych ADS-B z <b>14 dni</b> oraz dziennik wysłanych alarmów (województwo, poziom, godzina). Żaden z tych wpisów nie jest powiązany z użytkownikiem.</li>
   </ul>
-  <p>Kopie zapasowe bazy powstają co sześć godzin i są zaszyfrowane. Zawierają subskrypcje powiadomień w przeglądarce z punktu 3 — innych danych o użytkownikach w bazie nie ma.</p>
+  <p>Kopie zapasowe bazy powstają co sześć godzin i są zaszyfrowane. Zawierają subskrypcje powiadomień w przeglądarce z punktu 3 — innych danych o użytkownikach w bazie nie ma. Kopie przechowujemy <b>najdłużej 12 miesięcy</b>: z ostatnich dwóch dni wszystkie, starsze po jednej z dnia, tygodnia i miesiąca.</p>
 </section>
 
 <section id="uslugi">
@@ -116,13 +116,14 @@
     <li><b>FOSSGIS</b> (serwer tras OSRM) i <b>GUGiK</b> (geokodowanie adresów, ortofotomapa) — tylko w GROCIE, zob. punkt 2.</li>
   </ul>
   <p>Zdjęcia i grafiki obiektów są zapisane w samej aplikacji — nie pobieramy ich z zewnętrznych serwisów. Strony redakcji odczytuje nasz serwer, nie Twój telefon. Link do artykułu otwierasz już w swojej przeglądarce i od tego momentu obowiązują zasady danej redakcji.</p>
+  <p>Google, Cloudflare i GitHub to firmy z siedzibą w USA, więc adres IP i identyfikator instalacji mogą być przez nie przetwarzane poza Europejskim Obszarem Gospodarczym — na zasadach opisanych w ich politykach prywatności.</p>
 </section>
 
 <section id="uprawnienia">
   <h2>6. Uprawnienia aplikacji</h2>
   <ul>
     <li><b>Powiadomienia</b> — żeby pokazać alarm.</li>
-    <li><b>Lokalizacja (opcjonalnie)</b> — jednorazowy punkt „tu jestem”, patrz punkt 2.</li>
+    <li><b>Lokalizacja (opcjonalnie)</b> — punkt „tu jestem” przy dodawaniu miejsca, wyśrodkowanie mapy, a w GROCIE najbliższe punkty schronienia i trasa do nich; patrz punkt 2.</li>
     <li><b>Internet i stan sieci</b> — pobieranie stanu mapy i wykrywanie utraty połączenia.</li>
     <li><b>Instalowanie pakietów</b> — instalacja aktualizacji pobranej z GitHuba (Android, poza sklepem Play).</li>
     <li><b>Wyłączenie optymalizacji baterii, wybudzenie ekranu i alarm pełnoekranowy</b> — żeby alarm dotarł, gdy telefon śpi.</li>
@@ -134,7 +135,16 @@
 <section id="prawa">
   <h2>7. Twoje prawa i kontakt</h2>
   <p>Nie prowadzimy kont, więc nie mamy zbioru, w którym moglibyśmy Cię odnaleźć. Jedyne dane związane z urządzeniem — subskrypcję powiadomień w przeglądarce — usuwasz sam, wyłączając powiadomienia. Pozostałe ustawienia znikają po odinstalowaniu aplikacji lub wyczyszczeniu jej danych.</p>
-  <p>Jeśli chcesz zapytać o przetwarzanie danych, zgłosić żądanie usunięcia albo zwrócić uwagę na błąd w tej polityce, napisz przez <a href="https://github.com/cukierrro/Straznik/issues">zgłoszenie w repozytorium projektu</a>.</p>
+  <p><b>Administrator danych:</b> Piotr Kukier, autor projektu. Jeśli chcesz zapytać o przetwarzanie danych, skorzystać ze swoich praw albo zwrócić uwagę na błąd w tej polityce, napisz przez <a href="https://cukierrro.pl/#kontakt">formularz kontaktowy na cukierrro.pl</a> albo <a href="https://github.com/cukierrro/Straznik/issues">zgłoszenie w repozytorium projektu</a>. Odpowiadamy najpóźniej w ciągu miesiąca.</p>
+  <p><b>Podstawy prawne</b> (art. 6 ust. 1 RODO):</p>
+  <ul>
+    <li>subskrypcja powiadomień w przeglądarce i obsługa żądań aplikacji, w tym pobieranie paczek mapy offline — <b>lit. b</b>, czyli świadczenie usługi, o którą prosisz;</li>
+    <li>chwilowe użycie adresu IP do limitu zapytań i ochrona ruchu przez Cloudflare — <b>lit. f</b>, czyli prawnie uzasadniony interes: bezpieczeństwo i dostępność usługi dla wszystkich;</li>
+    <li>odpowiedź na wiadomość z formularza lub zgłoszenia — <b>lit. f</b>, czyli prowadzenie korespondencji, którą zaczynasz.</li>
+  </ul>
+  <p><b>Jak długo:</b> subskrypcja powiadomień — do wyłączenia powiadomień albo do wygaśnięcia u dostawcy push, a w kopiach zapasowych najdłużej 12 miesięcy dłużej; adres IP — tylko w pamięci serwera, najwyżej 10 minut; ustawienia na urządzeniu — dopóki ich nie usuniesz.</p>
+  <p><b>Twoje prawa:</b> dostęp do danych, ich sprostowanie, usunięcie i ograniczenie przetwarzania, sprzeciw wobec przetwarzania opartego na prawnie uzasadnionym interesie oraz przeniesienie danych. Nie znamy Twojej tożsamości, więc możemy nie umieć wskazać, która subskrypcja jest Twoja (art. 11 RODO) — najprościej usunąć ją samodzielnie, wyłączając powiadomienia. Nie podejmujemy wobec Ciebie zautomatyzowanych decyzji i nie profilujemy: alarmy dotyczą województw, nie osób.</p>
+  <p>Masz prawo wnieść skargę do organu nadzorczego: <b>Prezesa Urzędu Ochrony Danych Osobowych</b>, ul. Stawki 2, 00-193 Warszawa (<a href="https://uodo.gov.pl">uodo.gov.pl</a>).</p>
   <p>Aplikacja nie jest kierowana do dzieci i nie pyta o wiek.</p>
 </section>
 

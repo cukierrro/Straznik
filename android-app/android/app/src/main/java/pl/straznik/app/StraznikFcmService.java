@@ -76,6 +76,13 @@ public class StraznikFcmService extends FirebaseMessagingService {
         for (int i = 0; i < Alarms.VOIVS.length; i++)
             if (Alarms.VOIVS[i].equalsIgnoreCase(voivName)) { voiv = i; break; }
         if (voiv < 0) { Log.w(TAG, "nieznane województwo: " + voivName); return; }
+        // Zgłoszenie #15: alarm z tematu, który został na serwerach Google po zmianie
+        // miejsc, nie może zawyć dla województwa, którego użytkownik nie obserwuje.
+        if (!BackgroundPlugin.obserwowane(this, Alarms.VOIVS[voiv])) {
+            Log.i(TAG, "województwo spoza obserwowanych — pomijam " + voivName + "/" + level);
+            BackgroundPlugin.syncFcmSubscription(this);   // i jeszcze raz wypisz
+            return;
+        }
 
         boolean stale = sentAtMs > 0 && System.currentTimeMillis() - sentAtMs > Alarms.STALE_AFTER_MS;
 

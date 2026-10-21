@@ -214,3 +214,18 @@ real red alert was in force for Lubelskie and Podkarpackie; it was acknowledged 
 emulator and "Alerts on this phone" was switched off there so it would not cover the app
 again — that setting is not visible in any shot. No alerts were sent and nothing was written
 to production. Nothing in the images is retouched.
+
+## 1800 — release 1.8.00 (21 October 2026)
+
+`1800/alarm-{pl,en,uk}.jpg` and `1800/alarm2-{pl,en,uk}.jpg` replace the 1795
+alert screens in all guides (the iPhone guides use `alarm-{pl,en}.jpg`): in 1.8.00
+the acknowledge button and the choices moved to the top, the alert shows at most
+3 reasons with “The full list of signals is in the panel”, and siren, vibration and
+flashing stop after 15 minutes. Unchanged 1080 × 2400 screenshots of a 1.8.00 debug
+build (code 129) on the Pixel 7 emulator with Android 14, taken on the evening of
+21 October 2026 (PL ~21:53, EN ~21:55, UK ~22:00 Europe/Warsaw; the UK pair was
+retaken after the score line got “хв” instead of “min”, so the UK pair shows the Lublin signals of ~22:00 — two NEPTUN drones and the RCB alert — rather than the PL/EN set). In the UK signal lines the units “km” and “min” are still shown untranslated; that is how 1.8.00 renders them. The alert is the local
+test (▶ Test: full alert) on the live Lublin signals of that moment, during a real
+drone alert in Lublin province; the RCB alert text is quoted in Polish in every
+language because that is how the source publishes it. No notifications were sent;
+the emulator sound was muted.

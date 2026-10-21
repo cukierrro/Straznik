@@ -284,7 +284,8 @@ def _match_voivs(text: str, regions_only: bool = False) -> list[str]:
                 # wojskowy wpadał do wielkopolskiego (złapane na żywo 12.09.2026);
                 # tak samo „bełkot"→Ełk i „topole"→Opole. Hasła są rdzeniami
                 # odmian („podlask", „chełm"), więc obcinamy tylko lewą stronę.
-                if start == 0 or not (tl[start - 1].isalnum() or tl[start - 1] == "-"):
+                if ((start == 0 or not (tl[start - 1].isalnum() or tl[start - 1] == "-"))
+                        and not _nazwa_powiatu(tl, start, voiv, kf)):
                     hits.append((start, start + len(kf), voiv, _is_region_keyword(voiv, kf)))
                 start = tl.find(kf, start + 1)
     out: list[str] = []
@@ -295,6 +296,23 @@ def _match_voivs(text: str, regions_only: bool = False) -> list[str]:
         if not covered and voiv not in out and (region or not regions_only):
             out.append(voiv)
     return out
+
+
+def _nazwa_powiatu(tl: str, start: int, voiv: str, kf: str) -> bool:
+    """Przymiotnik województwa użyty jako nazwa POWIATU (21.10.2026).
+
+    Radio Lublin wymieniało w opisie alertu dla lubelskiego powiaty, w tym „opolski”
+    — powiat wokół Opola Lubelskiego — a słownik brał rdzeń „opolsk” za województwo
+    opolskie (opolskie dostawało te same artykuły: 21.09–15.10, dziewięć razy).
+    Przymiotnik z rdzenia nazwy województwa, przed którym w tym samym zdaniu (do 80
+    znaków wstecz) stoi „powiat…”, to nazwa powiatu — nie dowód na województwo.
+    Lustro w engine.js (nazwaPowiatu)."""
+    if not kf.startswith(_fold(voiv)[:6]):
+        return False
+    przed = tl[max(0, start - 80):start]
+    for znak in ".!?\n":
+        przed = przed.rsplit(znak, 1)[-1]
+    return "powiat" in przed or "powiec" in przed
 
 
 # Nazwy REGIONÓW (nie miast): rdzeń nazwy województwa albo potoczna nazwa krainy.

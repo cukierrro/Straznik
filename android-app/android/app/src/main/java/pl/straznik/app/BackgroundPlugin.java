@@ -120,6 +120,27 @@ public class BackgroundPlugin extends Plugin {
         call.resolve();
     }
 
+    /**
+     * Czy telefon obserwuje to województwo (zgłoszenie #15, 21.10.2026). Drugie
+     * zabezpieczenie obok wypisania z tematów: alarm z tematu, który został na serwerach
+     * Google, nie może zawyć dla województwa spoza miejsc użytkownika. Gdy ustawień nie da
+     * się odczytać (np. przed odblokowaniem telefonu) — przepuszczamy: lepiej alarm za dużo
+     * niż cisza. Bez zapisanej listy obowiązuje dawny domyślny zestaw z syncFcmSubscription.
+     */
+    static boolean obserwowane(Context c, String voiv) {
+        try {
+            android.content.SharedPreferences bg = c.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+            if (bg.contains(KEY_REGIONS))
+                return bg.getStringSet(KEY_REGIONS, java.util.Collections.<String>emptySet()).contains(voiv);
+            String home = bg.getString(KEY_HOME, "");
+            if (isKnownVoivodeship(home)) return home.equals(voiv);
+            for (int i : new int[]{0, 1, 2, 6}) if (Alarms.VOIVS[i].equals(voiv)) return true;
+            return false;
+        } catch (Exception e) {
+            return true;
+        }
+    }
+
     private static boolean isKnownVoivodeship(String value) {
         if (value == null) return false;
         for (String v : Alarms.VOIVS) if (v.equals(value)) return true;
@@ -198,7 +219,16 @@ public class BackgroundPlugin extends Plugin {
             }
             return;
         }
-        for (String t : current) if (!target.contains(t)) fm.unsubscribeFromTopic(t);
+        // Zgłoszenie #15 (20.10.2026): telefon z jednym miejscem w mazowieckim dostawał
+        // czerwone dla lubelskiego i podkarpackiego (mazowieckie nie miało wtedy ani jednego
+        // czerwonego). Wypisywaliśmy tylko z tematów z WŁASNEJ listy, a ta bywa niepełna:
+        // pierwsza synchronizacja przy starcie zapisuje ścianę wschodnią, zanim aplikacja
+        // poda miejsca, i jeśli kolejna synchronizacja ruszy przed potwierdzeniem tamtej,
+        // lista nadpisuje się samym docelowym tematem, a Google zostawia stare. Teraz przy
+        // każdej synchronizacji wypisujemy ze WSZYSTKICH tematów województw spoza celu.
+        java.util.Set<String> doWypisania = new java.util.HashSet<>(current);
+        for (String v : Alarms.VOIVS) doWypisania.add(voivTopic(v));
+        for (String t : doWypisania) if (!target.contains(t)) fm.unsubscribeFromTopic(t);
         for (String t : target) {
             fm.subscribeToTopic(t).addOnCompleteListener(task -> {
                 if (task.isSuccessful()) confirmed.add(t);
