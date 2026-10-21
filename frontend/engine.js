@@ -278,7 +278,7 @@ const UA_OBLAST_PL = { "Волинська":"wołyńskim", "Львівська":
 const CRITICAL = ["alarm powietrzny", "zagrożenie z powietrza", "zawyły syreny", "zawyła syrena", "obiekt powietrzny spadł", "niezidentyfikowany obiekt spadł", "zestrzelono dron", "zestrzelono rakiet", "poderwano myśliwce", "poderwano lotnictwo", "schrony otwarte", "zamknięto przestrzeń powietrzn", "zamknięcie przestrzeni powietrzn", "zamknięta przestrzeń powietrzn", "operacja obrony powietrzn", "operację obrony powietrzn", "operacji obrony powietrzn", "poderwano f-16", "poderwano f-35", "poderwano samoloty", "poderwała myśliwce", "poderwała samoloty", "poderwała lotnictwo", "poderwało myśliwce", "poderwało samoloty", "poderwało lotnictwo", "poderwali myśliwce", "podrywa myśliwce", "podrywa samoloty", "podrywa lotnictwo", "wojsko poderwało", "operuje lotnictwo", "operuje polskie lotnictwo", "lotnictwo operuje", "rozpoczęło się operowanie", "rozpoczęło operowanie", "atakiem z powietrza"];
 const AIR = ["dron", "bezzałogow", "bsp", "shahed", "geran", "rakiet", "pocisk", "ch-101", "kalibr", "iskander", "kab", "bomb", "myśliwc", "mig-31", "obiekt powietrzny", "przestrzeni powietrznej", "przestrzeń powietrzną", "obrona powietrzna", "obiekt latając", "lancet", "kindżał", "kinżał", "kh-101", "kh-47", "kh-59", "amunicja krążąc", "fpv", "kamikadze", "statek powietrzny", "pocisk manewrując", "pocisk balistyczn", "hipersoniczn", "f-16", "f-35", "su-24", "su-34", "su-35", "tu-95", "tu-160", "mig-29", "lotnictwo wojskow"];
 const EVENT = ["spadł", "spadła", "spadło", "eksploz", "wybuch", "zestrzel", "przechwyc", "poderwan", "naruszen", "naruszył", "naruszyła", "wleciał", "wtargn", "uderzy", "trafił", "szczątki", "atak", "ostrzał", "zawył", "alarm", "ewakuac", "schron", "zagrożeni", "przekrocz", "wtargnięci", "detonac", "runął", "runęła", "runęło", "zestrzelen", "przechwycen", "poderwał", "poderwało", "poderwali", "podrywa", "eksplod", "zaatak", "uderza"];
-const EXCLUDE = ["ćwiczeni", "trening", "test syren", "próba syren", "próby syren", "głośna próba", "rocznic", "upamiętni", "minuta ciszy", "wymian", "modernizac", "przetarg", "inwestycj", "zakup", "montaż", "zamontow", "instalac", "rozbudow", "dofinansow", "dotacj", "planowan", "potrwa", "konserwac", "remont", "pojawią się", "powstan", "wdroż", "komunikat głosowy", "system ostrzegania będzie", "nowe syreny", "nowych syren", "pożar bloku", "pożar domu", "pożar mieszkania", "pożar lasu", "wypadek drogow", "kolizja", "lpr lądował", "śmigłowiec lpr", "utonię", "potrąc", "dachowa", "karambol", "zderzenie samochod", "pożar ciężarów", "pożar samochod", "pożar autobusu", "pożar cystern", "zapaliła się ciężarów", "zapalił się samoch", "zbiornik paliw", "wyciek paliw", "demograf", "przyrost naturaln", "liczba mieszkańc", "wyludnia", "tydzień po", "tygodnie po", "tygodni po", "dzień po", "dni po", "miesiąc po", "miesiące po", "miesięcy po", "rok po", "lata po", "lat po", "rok temu", "lata temu", "lat temu", "ubiegłym roku", "ubiegłego roku", "godzin po", "godziny po", "kalendarium", "przypominamy", "wspomina", "kulisy", "reportaż", "felieton", "czy na pewno", "co wiemy", "jak doszło", "śledztwo w sprawie", "śledztwo ws", "podsumowanie roku", "zawyły syreny?", "zawyła syrena?", "alarm powietrzny?", "co powinieneś zrobić", "co należy zrobić", "jak się zachować w razie", "co robić w razie", "co zrobić w razie", "poradnik bezpieczeństwa", "poznaj sygnały alarmowe", "co oznacza sygnał alarmowy", "film fabularn", "film dokumentaln", "serial", "premiera", "recenzja", "zwiastun", "gra wideo", "gry wideo", "powieść", "komiks", "cosplay", "spektakl", "1939", "1944", "1945", "ii wojn", "powstanie warszawsk", "rakieta kosmiczn", "rakieta nośn", "start rakiety", "spacex", "falcon", "starship", "misja kosmiczn", "kosmodrom", "odbudow", "ma być gotow", "rakieta tenisow", "rakietka", "rakiety śnieżn", "bomba atomow", "wybuchła afera", "pokaz dron", "dron rolnicz", "dron dostawcz", "wyścig dron", "nagranie z drona", "zdjęcia z drona", "zdjęcie z drona", "widok z drona", "wybiła godzina", "godzina \"w\"", "godzinie \"w\"", "godziny \"w\"", "oddali hołd", "oddał hołd", "oddano hołd", "hołd bohaterom", "hołd powstańcom", "uroczystoś", "próbny alarm", "alarm próbny", "próbnego alarmu", "próba syren alarmowych", "ogólnopolskie ćwiczenia", "są zarzuty", "usłyszał zarzut", "usłyszała zarzut", "usłyszeli zarzuty", "postawiono zarzut", "postawiono zarzuty", "zarzuty dla", "akt oskarżenia", "odpowie przed sądem", "stanął przed sądem", "stanęła przed sądem", "skazany za", "skazana za", "do zdarzenia miało dojść", "po nocnym alarmie", "po porannym alarmie", "po wieczornym alarmie", "po nocnym ataku", "po porannym ataku", "po nocnych alarmach", "nie zawyły", "nie zawyła", "pomyłk", "omyłkow", "fałszywy alarm", "umorzył", "umorzono", "przespał", "stado ptaków", "to ptaki", "wykrył ptaki", "testy syren", "testy dron", "testuje", "testów", "rozpoczyna testy", "korytarz", "zawyją", "rozlegną się", "zabrzmią", "przelecą", "polecą", "będą latać", "dostaną alert", "wyją syreny", "nocny alert", "nocnego alertu", "nie została naruszona", "zakończyło operację", "znamy szczegóły", "usypia czujność", "co nie działa w systemie", "zakończyło działania", "szkoleni", "alarm bombowy", "alarmy bombowe", "alarmu bombowego", "alarmów bombowych", "alarmie bombowym", "alarmem bombowym", "alarmów bombowych", "o podłożeniu ładunku", "podłożeniu bomby", "informacja o bombie"];
+const EXCLUDE = ["ćwiczeni", "trening", "test syren", "próba syren", "próby syren", "głośna próba", "rocznic", "upamiętni", "minuta ciszy", "wymian", "modernizac", "przetarg", "inwestycj", "zakup", "montaż", "zamontow", "instalac", "rozbudow", "dofinansow", "dotacj", "planowan", "potrwa", "konserwac", "remont", "pojawią się", "powstan", "wdroż", "komunikat głosowy", "system ostrzegania będzie", "nowe syreny", "nowych syren", "pożar bloku", "pożar domu", "pożar mieszkania", "pożar lasu", "wypadek drogow", "kolizja", "lpr lądował", "śmigłowiec lpr", "utonię", "potrąc", "dachowa", "karambol", "zderzenie samochod", "pożar ciężarów", "pożar samochod", "pożar autobusu", "pożar cystern", "zapaliła się ciężarów", "zapalił się samoch", "zbiornik paliw", "wyciek paliw", "demograf", "przyrost naturaln", "liczba mieszkańc", "wyludnia", "tydzień po", "tygodnie po", "tygodni po", "dzień po", "dni po", "miesiąc po", "miesiące po", "miesięcy po", "rok po", "lata po", "lat po", "rok temu", "lata temu", "lat temu", "ubiegłym roku", "ubiegłego roku", "godzin po", "godziny po", "kalendarium", "przypominamy", "wspomina", "kulisy", "reportaż", "felieton", "czy na pewno", "co wiemy", "jak doszło", "śledztwo w sprawie", "śledztwo ws", "podsumowanie roku", "zawyły syreny?", "zawyła syrena?", "alarm powietrzny?", "co powinieneś zrobić", "co należy zrobić", "jak się zachować w razie", "co robić w razie", "co zrobić w razie", "poradnik bezpieczeństwa", "poznaj sygnały alarmowe", "co oznacza sygnał alarmowy", "film fabularn", "film dokumentaln", "serial", "premiera", "recenzja", "zwiastun", "gra wideo", "gry wideo", "powieść", "komiks", "cosplay", "spektakl", "1939", "1944", "1945", "ii wojn", "powstanie warszawsk", "rakieta kosmiczn", "rakieta nośn", "start rakiety", "spacex", "falcon", "starship", "misja kosmiczn", "kosmodrom", "odbudow", "ma być gotow", "rakieta tenisow", "rakietka", "rakiety śnieżn", "bomba atomow", "wybuchła afera", "pokaz dron", "dron rolnicz", "dron dostawcz", "wyścig dron", "nagranie z drona", "zdjęcia z drona", "zdjęcie z drona", "widok z drona", "wybiła godzina", "godzina \"w\"", "godzinie \"w\"", "godziny \"w\"", "oddali hołd", "oddał hołd", "oddano hołd", "hołd bohaterom", "hołd powstańcom", "uroczystoś", "próbny alarm", "alarm próbny", "próbnego alarmu", "próba syren alarmowych", "ogólnopolskie ćwiczenia", "są zarzuty", "usłyszał zarzut", "usłyszała zarzut", "usłyszeli zarzuty", "postawiono zarzut", "postawiono zarzuty", "zarzuty dla", "akt oskarżenia", "odpowie przed sądem", "stanął przed sądem", "stanęła przed sądem", "skazany za", "skazana za", "do zdarzenia miało dojść", "po nocnym alarmie", "po porannym alarmie", "po wieczornym alarmie", "po nocnym ataku", "po porannym ataku", "po nocnych alarmach", "nie zawyły", "nie zawyła", "pomyłk", "omyłkow", "fałszywy alarm", "umorzył", "umorzono", "przespał", "stado ptaków", "to ptaki", "wykrył ptaki", "testy syren", "testy dron", "testuje", "testów", "rozpoczyna testy", "korytarz", "zawyją", "rozlegną się", "zabrzmią", "przelecą", "polecą", "będą latać", "dostaną alert", "wyją syreny", "nocny alert", "nocnego alertu", "nie została naruszona", "zakończyło operację", "znamy szczegóły", "usypia czujność", "co nie działa w systemie", "zakończyło działania", "szkoleni", "bezpłatne spotkanie", "spotkanie dla osób", "spotkanie informacyjne", "warsztaty dla", "bezpłatne warsztaty", "zaprasza na", "zapisy na", "wykład", "prelekcj", "webinar", "alarm bombowy", "alarmy bombowe", "alarmu bombowego", "alarmów bombowych", "alarmie bombowym", "alarmem bombowym", "alarmów bombowych", "o podłożeniu ładunku", "podłożeniu bomby", "informacja o bombie"];
 const B_CRITICAL = ["airspace violation", "violated airspace", "airspace was violated", "airspace closed", "shot down a drone", "scrambled jets", "oro erdvės pažeid", "gaisa telpas pārkāp", "õhuruumi rikku"];
 const B_AIR = ["airspace","air space","drone","uav","missile","shahed","air defence","air defense",
   "oro erdv","bepilot","raket","gaisa telp","droon","õhuruum","military aircraft","fighter jet","jets"];
@@ -1079,7 +1079,72 @@ function computeState() {
     }
     st.spill_raised = LEVEL_ORDER.indexOf(st.level) > LEVEL_ORDER.indexOf(st.alert_level);
   }
+  dopiszPrzypomnieniaRcb(state, now);
   return state;
+}
+
+/* Lustro fusion.rcb_nieodwolane / rcb_wygasle (21.10.2026): tryb bez serwera też mówi,
+   że alert RCB nie został jeszcze odwołany, a po końcu ważności przez godzinę — że
+   wygasł bez odwołania. Informacja, zero punktów; dopisywane po ustaleniu poziomów. */
+const RCB_NIEODWOLANY_MAX_MIN = 720, RCB_WYGASL_POKAZ_MIN = 60;
+const RSO_CLEAR_KRAJOWE = ["brak zagrozenia na terenie polski", "brak zagrozenia dla polski",
+  "brak zagrozenia na terytorium polski"];
+function rcbOstatnie(zdarzenia, r) {
+  const alerty = new Map(), waznosc = new Map(), odwolania = new Map();
+  for (const z of zdarzenia) {
+    const t = z.t || Date.parse(z.ts) || 0;
+    if (!z.voivodeship || !t || t > r) continue;
+    if ((z.event_type === "rso_alert" || z.event_type === "rcb_alert") && (z.points || 0) > 0) {
+      if (t > (alerty.get(z.voivodeship) || 0)) {
+        alerty.set(z.voivodeship, t);
+        waznosc.set(z.voivodeship, z.details?.valid_to || null);
+      }
+    } else if (z.event_type === "rso_clear") {
+      const tekst = fold(`${z.title || ""} ${z.details?.tresc || ""} ${z.details?.content || ""}`);
+      const gdzie = RSO_CLEAR_KRAJOWE.some(m => tekst.includes(m)) ? VOIVODESHIPS : [z.voivodeship];
+      for (const w of gdzie) if (t > (odwolania.get(w) || 0)) odwolania.set(w, t);
+    }
+  }
+  return { alerty, waznosc, odwolania };
+}
+function rcbNieodwolane(zdarzenia, r) {
+  const { alerty, waznosc, odwolania } = rcbOstatnie(zdarzenia, r), out = {};
+  for (const [v, t] of alerty) {
+    if ((odwolania.get(v) || 0) >= t) continue;
+    const koniec = waznosc.get(v) ? plLocalToMs(waznosc.get(v)) : NaN;
+    if (Number.isFinite(koniec) && koniec <= r) continue;
+    out[v] = { od: t, minut: Math.floor((r - t) / 60000) };
+  }
+  return out;
+}
+function rcbWygasle(zdarzenia, r) {
+  const { alerty, waznosc, odwolania } = rcbOstatnie(zdarzenia, r), out = {};
+  for (const [v, t] of alerty) {
+    if ((odwolania.get(v) || 0) >= t) continue;
+    const koniec = waznosc.get(v) ? plLocalToMs(waznosc.get(v)) : NaN;
+    if (!Number.isFinite(koniec) || koniec > r || koniec < t) continue;
+    if (r - koniec > RCB_WYGASL_POKAZ_MIN * 60000) continue;
+    out[v] = { od: t, koniec };
+  }
+  return out;
+}
+function dopiszPrzypomnieniaRcb(state, now) {
+  const zd = signals.filter(s => s.source === "rcb" && (s.t || 0) >= now - RCB_NIEODWOLANY_MAX_MIN * 60000
+    && ["rso_alert", "rcb_alert", "rso_clear"].includes(s.event_type));
+  const iso = (ms) => new Date(ms).toISOString();
+  for (const [v, info] of Object.entries(rcbWygasle(zd, now))) {
+    const st = state.voivodeships[v]; if (!st) continue;
+    st.signals.push({ t: info.koniec, ts: iso(info.koniec), source: "rcb", event_type: "rcb_wygasl",
+      voivodeship: v, points: 0, counted_points: 0, weight: 0, title: "Alert RCB wygasł bez odwołania",
+      details: { od: iso(info.od), koniec: iso(info.koniec), informacyjny: true } });
+  }
+  for (const [v, info] of Object.entries(rcbNieodwolane(zd, now))) {
+    const st = state.voivodeships[v]; if (!st) continue;
+    st.rcb_nieodwolany = { od: iso(info.od), minut: info.minut };
+    st.signals.push({ t: info.od, ts: iso(info.od), source: "rcb", event_type: "rcb_bez_odwolania",
+      voivodeship: v, points: 0, counted_points: 0, weight: 0, title: "Alert RCB nie został jeszcze odwołany",
+      details: { od: iso(info.od), minut: info.minut, informacyjny: true } });
+  }
 }
 /* Lustro fusion.hold_level: poziom nie spada przez LEVEL_HOLD_MIN od ostatniego
    przekroczenia progu; odwołanie RSO po nim zdejmuje podtrzymanie (16.09.2026). */
@@ -2701,5 +2766,7 @@ return { start, stop, history, timeline, historyFrom, timelineFrom, accumulate, 
          tytuly: { kmPL, wiarygodnoscPL, potwierdzeniaPL },
          baltyk: { tickRss, sygnaly: () => signals },
          rcbArtykul: { tickRcb, tekstArtykuluRcb, dataArtykuluRcb, wojewodztwaAlertu,
-                       czyOdwolanieRcb, meldunkiArtykulu, najnowszyMeldunek } };
+                       czyOdwolanieRcb, meldunkiArtykulu, najnowszyMeldunek },
+         // dla scripts/test_rcb_wygasl.cjs (lustro fusion.rcb_nieodwolane / rcb_wygasle)
+         rcbPrzypomnienia: { rcbNieodwolane, rcbWygasle } };
 })();

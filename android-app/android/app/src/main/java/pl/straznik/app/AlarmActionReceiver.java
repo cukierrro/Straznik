@@ -18,6 +18,8 @@ public class AlarmActionReceiver extends BroadcastReceiver {
             Alarms.restoreAlarmVolume(context);
             return;
         }
-        Alarms.silence(context, voiv);
+        long auto = intent.getLongExtra(Alarms.EXTRA_AUTO_POSTED_AT, 0L);
+        if (auto > 0) Alarms.autoSilence(context, voiv, auto);   // po ALARM_MAX_MS
+        else Alarms.silence(context, voiv);
     }
 }

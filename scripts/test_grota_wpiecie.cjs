@@ -30,7 +30,9 @@ const wywolania = [...js.matchAll(/(?<!function )otworzGrote\(/g)].length;   // 
 const wKliknieciach = [...js.matchAll(/addEventListener\("click",\s*\(\) => otworzGrote\(\)\)|zamknijAlarm\(\);\s*\n\s*otworzGrote\(\{ zakladka: "teraz" \}\);/g)].length;
 sprawdz(wywolania === 2 && wKliknieciach === 2,
   "Grota otwiera się tylko z kliknięcia człowieka (przycisk w alarmie lub w „Więcej”)");
-sprawdz(/airRaidSiren\(true\);[^\n]*\n\s*przygotujGrote\(\);/.test(js) &&
+// 21.10.2026: między syreną a wczytaniem GROTY stoi limit 15 min (ustawLimitAlarmu) —
+// sprawdzamy kolejność w showAlarm, nie sąsiedztwo linii.
+sprawdz(/airRaidSiren\(true\);[^\n]*\n(?:\s*[A-Za-z]+\(\);[^\n]*\n){0,3}\s*przygotujGrote\(\);/.test(js) &&
         /function przygotujGrote\(\) \{\s*\n\s*if \(!document\.documentElement\.classList\.contains\("native-app"\)[^\n]*\) return;/.test(js),
   "przy alarmie Grota tylko wczytuje się w tle (i tylko w aplikacji)");
 sprawdz(/alarmAck\.hidden = true;\s*\n\s*alarmWybor\.hidden = false;/.test(js),

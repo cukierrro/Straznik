@@ -147,9 +147,7 @@ def _apns_config(topic: str, data: dict, critical: bool = False):
     # nazwa regionu mieści się zawsze; punkty otwierają treść.
     title = (("TEST — " if topic.startswith(config.TEST_TOPIC_PREFIX) else "")
              + f"{LEVEL_LABELS.get(level, level)}: {data.get('voiv', '')}")
-    tail = [("Co zrobić: przejdź do miejsca schronienia lub pomieszczenia bez okien i śledź komunikaty RCB."
-             if high else "Co zrobić: zachowaj czujność i sprawdź komunikaty RCB."),
-            "NIEOFICJALNE źródło — kieruj się syrenami, RCB i RSO."]
+    tail = [OGON_CZERWONY if high else OGON_ZOLTY]
     # ~400 bajtów na klucze aps, dźwięk, thread-id i identyfikatory dokładane przez FCM
     used = size(data) + size(title) + size("\n".join(tail)) + 400
     if used > APNS_PAYLOAD_BUDGET:
@@ -157,7 +155,7 @@ def _apns_config(topic: str, data: dict, critical: bool = False):
                     topic, size(data))
         return None
     lines = []
-    reasons = [x.strip() for x in (data.get("reasons") or "").split("\n") if x.strip()][:4]
+    reasons = krotkie_powody(data.get("reasons") or "")
     # punkty otwierają treść, skoro zeszły z tytułu; przed nimi GODZINA WYSYŁKI
     # (prośba użytkownika 24.09.2026). iPhone pokazuje własny znacznik czasu dopiero
     # w Centrum powiadomień — na banerze nie widać go wcale, a przy spóźnionym pushu
@@ -257,6 +255,29 @@ def fcm_topic_krytyczny(voiv: str, test: bool = False) -> str:
     Ten sam slug co zwykły temat plus sufiks — aplikacja iOS liczy go tak samo
     (pilnuje tego scripts/test_tematy_fcm.py)."""
     return fcm_topic(voiv, test) + CRITICAL_TOPIC_SUFFIX
+
+
+# Krótsze powiadomienia (decyzja usera 21.10.2026): nagłówek, najwyżej
+# POWODY_W_POWIADOMIENIU powodów i JEDNA linia „co zrobić · źródło” zamiast dwóch
+# pełnych zdań. Ta sama długość co natywne powiadomienie Androida (Alarms.POWODY_MAX
+# i jego ogon) — pilnuje scripts/test_alarm_limit.cjs. Pełna lista jest w aplikacji.
+POWODY_W_POWIADOMIENIU = 3
+OGON_CZERWONY = "Co zrobić: przejdź do miejsca schronienia lub pomieszczenia bez okien · źródło NIEOFICJALNE"
+OGON_ZOLTY = "Zachowaj czujność · źródło NIEOFICJALNE"
+
+
+def krotkie_powody(reasons_text: str, ile: int = POWODY_W_POWIADOMIENIU) -> list[str]:
+    """Najwyżej `ile` powodów z tekstu reasons_split, bez nagłówków grup
+    („Oficjalnie:”, „Wskaźniki (nieoficjalne):”) i bez pustych linii."""
+    out = []
+    for x in (reasons_text or "").split("\n"):
+        t = x.strip()
+        if not t or t.endswith(":"):
+            continue
+        out.append(t)
+        if len(out) >= ile:
+            break
+    return out
 
 
 def alarm_headline(signals: list[dict]) -> str:
@@ -638,12 +659,10 @@ async def _deliver_level(voiv: str, level: str, score: float, signals: list[dict
                 if eta_alarm else "")
     reasons_for_push = reasons + eta_note
     title = f"{label}: woj. {voiv} ({score} pkt)"
-    todo = ("Co zrobić: przejdź do miejsca schronienia lub pomieszczenia bez okien i śledź komunikaty RCB."
-            if level == "high" else "Co zrobić: zachowaj czujność i sprawdź komunikaty RCB.")
-    body = (f"{headline}\n"
-            f"{reasons_for_push}\n{todo}\n"
-            f"NIEOFICJALNE źródło dodatkowe — w razie realnego zagrożenia "
-            f"kieruj się syrenami/RCB/RSO.")
+    # Web Push, ntfy i Telegram — krótko, jak powiadomienie w telefonie (21.10.2026).
+    # FCM dostaje pełne `reasons_for_push`: aplikacja sama przycina listę na ekranie.
+    body = "\n".join([headline] + krotkie_powody(reasons) + ([eta_note.strip()] if eta_note else [])
+                      + [OGON_CZERWONY if level == "high" else OGON_ZOLTY])
     ntfy_prio = "urgent" if level == "high" else "default"
     from datetime import datetime, timezone
     from . import alert_log

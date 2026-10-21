@@ -13,6 +13,8 @@ import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.PowerManager;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
@@ -48,6 +50,8 @@ public class AlarmActivity extends Activity {
     static final String EXTRA_TEST = "test";
     /** Czas wysyłki z serwera (ms). Ekran alarmu nie pokazywał żadnej godziny. */
     static final String EXTRA_SENT_AT = "sent_at";
+    /** Chwila wystawienia alarmu na telefonie (ms) — od niej liczymy ALARM_MAX_MS. */
+    static final String EXTRA_POSTED_AT = "posted_at";
 
     // barwy i tempo migania przepisane z #alarm-overlay / @keyframes alarmflash
     // w frontend/style.css, żeby alarm w tle wyglądał jak w otwartej aplikacji
@@ -60,6 +64,9 @@ public class AlarmActivity extends Activity {
     private ValueAnimator blink;
     private PowerManager.WakeLock screenLock;
     private View root;
+    private TextView autoNote;
+    private final Handler limit = new Handler(Looper.getMainLooper());
+    private final Runnable poLimicie = this::wyciszPoLimicie;
 
     @Override
     protected void onCreate(Bundle saved) {
@@ -72,6 +79,39 @@ public class AlarmActivity extends Activity {
         if (!Alarms.highChannelPlaysSound(this)) startSiren();
         startVibration();
         startBlinking();
+        ustawLimit();
+    }
+
+    /**
+     * Limit głośnego alarmu (decyzja usera 21.10.2026: bateria, grzanie telefonu
+     * i ekranu): po Alarms.ALARM_MAX_MS od WYSTAWIENIA alarmu syrena, wibracja
+     * i miganie gasną same. Ekran otwarty później (np. z powiadomienia) liczy się
+     * od tej samej chwili, nie od otwarcia.
+     */
+    private void ustawLimit() {
+        limit.removeCallbacks(poLimicie);
+        Intent in = getIntent();
+        long posted = in != null ? in.getLongExtra(EXTRA_POSTED_AT, 0L) : 0L;
+        if (posted <= 0) posted = System.currentTimeMillis();
+        long zostalo = posted + Alarms.ALARM_MAX_MS - System.currentTimeMillis();
+        if (zostalo <= 0) wyciszPoLimicie();
+        else limit.postDelayed(poLimicie, zostalo);
+    }
+
+    private void wyciszPoLimicie() {
+        stopAlarmSignals();
+        if (root != null) root.setBackgroundColor(FLASH_DARK);
+        if (autoNote != null) autoNote.setVisibility(View.VISIBLE);
+        // ekran może już zgasnąć — tylko komunikat zostaje nad blokadą
+        getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        if (screenLock != null && screenLock.isHeld()) {
+            try { screenLock.release(); } catch (Exception ignored) {}
+        }
+        Intent in = getIntent();
+        int voiv = in != null ? in.getIntExtra(EXTRA_VOIV_INDEX, -1) : -1;
+        long posted = in != null ? in.getLongExtra(EXTRA_POSTED_AT, 0L) : 0L;
+        if (voiv >= 0 && posted > 0) Alarms.autoSilence(this, voiv, posted);
+        else Alarms.restoreAlarmVolume(this);
     }
 
     /**
@@ -142,33 +182,10 @@ public class AlarmActivity extends Activity {
         String czas = Alarms.godzina(in != null ? in.getLongExtra(EXTRA_SENT_AT, 0L) : 0L);
         String podpis = (score > 0 ? score + " pkt" : "")
             + (czas.isEmpty() ? "" : (score > 0 ? " · " : "") + "godz. " + czas);
-        box.addView(text(podpis, 16, Color.parseColor("#a9b4cc"), false), lp(dp(18)));
+        box.addView(text(podpis, 16, Color.parseColor("#a9b4cc"), false), lp(dp(14)));
 
-        if (title != null && !title.isEmpty())
-            box.addView(text(title, 15, Color.parseColor("#e8edf7"), false), lp(dp(10)));
-
-        ScrollView sc = new ScrollView(this);
-        TextView reasons = text(body != null ? body : "", 14, Color.parseColor("#c9d3e8"), false);
-        reasons.setGravity(Gravity.START);
-        sc.addView(reasons);
-        LinearLayout.LayoutParams scp = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f);
-        scp.bottomMargin = dp(16);
-        box.addView(sc, scp);
-
-        // Audyt B10: człowiek wybudzony w nocy ma wiedzieć, co zrobić — krótko.
-        TextView todo = text("Co zrobić: przejdź do miejsca schronienia albo pomieszczenia bez okien, "
-            + "z dala od szyb. Śledź komunikaty RCB i służb.", 15, Color.WHITE, true);
-        todo.setPadding(dp(12), dp(10), dp(12), dp(10));
-        todo.setBackgroundColor(Color.parseColor("#2a1016"));
-        box.addView(todo, lp(dp(12)));
-
-        TextView warn = text("To sygnał NIEOFICJALNY. Sprawdź syreny, RCB i RSO — "
-            + "one są źródłem rozstrzygającym.", 13, Color.parseColor("#ffd98a"), false);
-        warn.setPadding(dp(14), dp(12), dp(14), dp(12));
-        warn.setBackgroundColor(Color.parseColor("#3a2a10"));
-        box.addView(warn, lp(dp(18)));
-
+        // 21.10.2026 (user): przyciski zaraz pod nagłówkiem — przy długiej liście
+        // powodów trzeba było przewijać do „POTWIERDZAM”. Informacje są niżej.
         Button ack = new Button(this);
         ack.setText("POTWIERDZAM — wycisz alarm");
         ack.setAllCaps(false);
@@ -196,8 +213,43 @@ public class AlarmActivity extends Activity {
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP));
             finish();
         });
-        box.addView(open, new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+        box.addView(open, lp(dp(8)));
+
+        autoNote = text("Wyciszono automatycznie po 15 min", 15, Color.parseColor("#ffd98a"), true);
+        autoNote.setVisibility(View.GONE);
+        box.addView(autoNote, lp(dp(8)));
+
+        // Reszta przewija się pod przyciskami: co zrobić, nagłówek, najwyżej
+        // Alarms.POWODY_MAX powodów (pełna lista w aplikacji) i notka o źródle.
+        LinearLayout info = new LinearLayout(this);
+        info.setOrientation(LinearLayout.VERTICAL);
+
+        // Audyt B10: człowiek wybudzony w nocy ma wiedzieć, co zrobić — krótko.
+        TextView todo = text("Co zrobić: przejdź do miejsca schronienia albo pomieszczenia bez okien "
+            + "i śledź komunikaty RCB.", 15, Color.WHITE, true);
+        todo.setPadding(dp(12), dp(10), dp(12), dp(10));
+        todo.setBackgroundColor(Color.parseColor("#2a1016"));
+        info.addView(todo, lp(dp(12)));
+
+        if (title != null && !title.isEmpty())
+            info.addView(text(title, 15, Color.parseColor("#e8edf7"), false), lp(dp(8)));
+
+        TextView reasons = text(body != null ? body : "", 14, Color.parseColor("#c9d3e8"), false);
+        reasons.setGravity(Gravity.START);
+        info.addView(reasons, lp(dp(6)));
+        info.addView(text("Pełna lista sygnałów w aplikacji.", 13, Color.parseColor("#a9b4cc"), false), lp(dp(12)));
+
+        TextView warn = text("To sygnał NIEOFICJALNY. Sprawdź syreny, RCB i RSO — "
+            + "one są źródłem rozstrzygającym.", 13, Color.parseColor("#ffd98a"), false);
+        warn.setPadding(dp(14), dp(12), dp(14), dp(12));
+        warn.setBackgroundColor(Color.parseColor("#3a2a10"));
+        info.addView(warn, lp(0));
+
+        ScrollView sc = new ScrollView(this);
+        sc.addView(info);
+        LinearLayout.LayoutParams scp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f);
+        box.addView(sc, scp);
 
         return back;   // migające tło jest korzeniem; karta siedzi w środku
     }
@@ -286,11 +338,17 @@ public class AlarmActivity extends Activity {
         super.onNewIntent(intent);
         setIntent(intent);
         setContentView(buildUi());
+        // nowy alarm: znów pełne sygnały i nowy limit liczony od jego wystawienia
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        if (player == null && !Alarms.highChannelPlaysSound(this)) startSiren();
+        if (vibrator == null) startVibration();
         startBlinking();
+        ustawLimit();
     }
 
     @Override
     protected void onDestroy() {
+        limit.removeCallbacks(poLimicie);
         stopAlarmSignals();
         if (screenLock != null && screenLock.isHeld()) {
             try { screenLock.release(); } catch (Exception ignored) {}
