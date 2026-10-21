@@ -224,7 +224,7 @@ the acknowledge button and the choices moved to the top, the alert shows at most
 flashing stop after 15 minutes. Unchanged 1080 × 2400 screenshots of a 1.8.00 debug
 build (code 129) on the Pixel 7 emulator with Android 14, taken on the evening of
 21 October 2026 (PL ~21:53, EN ~21:55, UK ~22:00 Europe/Warsaw; the UK pair was
-retaken after the score line got “хв” instead of “min”). The alert is the local
+retaken after the score line got “хв” instead of “min”, so the UK pair shows the Lublin signals of ~22:00 — two NEPTUN drones and the RCB alert — rather than the PL/EN set). In the UK signal lines the units “km” and “min” are still shown untranslated; that is how 1.8.00 renders them. The alert is the local
 test (▶ Test: full alert) on the live Lublin signals of that moment, during a real
 drone alert in Lublin province; the RCB alert text is quoted in Polish in every
 language because that is how the source publishes it. No notifications were sent;
