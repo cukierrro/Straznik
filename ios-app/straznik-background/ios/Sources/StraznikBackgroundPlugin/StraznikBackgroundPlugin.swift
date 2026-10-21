@@ -73,6 +73,10 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
         /// Tematy, z których wypis się nie powiódł — próbujemy przy każdej kolejnej
         /// synchronizacji, inaczej telefon zostałby na nich na zawsze (podwójny alarm).
         static let stale = "straznik_fcm_stale_topics"
+        /// Tematy, z których wypis POTWIERDZIŁ Firebase. Pozwala nie powtarzać
+        /// pełnego wypisu przy każdym starcie. Utrata tego klucza jest bezpieczna:
+        /// znaczy „wypisz jeszcze raz", a nie „nie wypisuj".
+        static let wypisane = "straznik_fcm_wypisane"
         /// Wersja testowa pyta o zgodę krytyczną sama, ale tylko RAZ (patrz `load`).
         static let criticalAsked = "straznik_critical_asked"
         /// Wynik tego jednorazowego pytania — wyłącznie do diagnostyki testowej.
@@ -235,6 +239,22 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
         return out
     }
 
+    /// WSZYSTKIE tematy, jakie ta aplikacja mogła kiedykolwiek założyć: każde
+    /// województwo w obu odmianach (zwykłej i krytycznej) plus ich odpowiedniki
+    /// testowe. Celem wypisu są tematy u Google, a nie nasza lista — dlatego
+    /// liczymy je z nazw województw, nie z zapamiętanego stanu.
+    private func wszystkieMozliweTematy() -> Set<String> {
+        var out = Set<String>()
+        for voiv in Self.voivodeships {
+            let baza = Self.voivTopic(voiv)
+            for t in [baza, baza + Self.criticalSuffix] {
+                out.insert(t)
+                out.insert(Self.testTopicPrefix + t)
+            }
+        }
+        return out
+    }
+
     private func targetTopics() -> Set<String> {
         if defaults.bool(forKey: Key.alertsOff) { return [] }
         return topics(for: defaults.stringArray(forKey: Key.regions) ?? [])
@@ -272,14 +292,7 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
             var failed = 0
             // Obie odmiany każdego województwa, bo zgoda mogła się zmienić między
             // zapisem a wypisem — inaczej telefon zostałby na temacie krytycznym.
-            var wszystkie = topics(for: Self.voivodeships)
-            for voiv in Self.voivodeships {
-                let baza = Self.voivTopic(voiv)
-                for t in [baza, baza + Self.criticalSuffix] {
-                    wszystkie.insert(t)
-                    wszystkie.insert(Self.testTopicPrefix + t)
-                }
-            }
+            let wszystkie = wszystkieMozliweTematy()
             for topic in wszystkie {
                 group.enter()
                 messaging.unsubscribe(fromTopic: topic) { error in
@@ -292,6 +305,7 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
                 self.defaults.set(false, forKey: Key.unsubscribing)
                 if failed == 0 {
                     self.defaults.set([String](), forKey: Key.topics)
+                    self.defaults.set(Array(wszystkie), forKey: Key.wypisane)
                     self.defaults.set(Self.nowMs, forKey: Key.topicsOkAt)
                     self.defaults.set("", forKey: Key.topicsError)
                 } else {
@@ -332,19 +346,50 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
             // się wcześniej. Nieudany wypis zostaje na liście do następnego razu;
             // bez tego telefon zostałby na starym temacie na zawsze i dostawał
             // każdy alarm dwa razy.
+            // Zgłoszenie #15 (21.10.2026): telefon dostawał alarmy województw,
+            // których nie obserwuje, bo wypisywaliśmy się tylko z ZAPAMIĘTANYCH
+            // tematów. Subskrypcję trzyma Google, niezależnie od naszej listy —
+            // a ta potrafi jej nie znać: `Key.topics` zapisuje wyłącznie
+            // POTWIERDZONE zapisy, więc gdy `subscribe` zadziałał po stronie
+            // Google, a odpowiedź do nas nie doszła, temat zostawał na zawsze
+            // poza naszą wiedzą i poza wypisem. Objawem był alarm obcego
+            // województwa, czyli dokładnie to, co podważa zaufanie do aplikacji.
+            //
+            // Dlatego wypisujemy się ze WSZYSTKICH możliwych tematów spoza celu.
+            // Żeby nie robić 64 wywołań przy każdym starcie, potwierdzone wypisy
+            // pamiętamy w `Key.wypisane` i je pomijamy. Kierunek utraty tej
+            // pamięci jest BEZPIECZNY — brak wpisu znaczy „wypisz jeszcze raz".
+            // Odwrotnie niż przy `Key.topics`, gdzie brak wpisu znaczył
+            // „nigdy się nie wypiszesz".
             let zalegle = Set(self.defaults.stringArray(forKey: Key.stale) ?? [])
-            let doWypisu = zalegle.union(current).subtracting(target)
+            let juzWypisane = Set(self.defaults.stringArray(forKey: Key.wypisane) ?? [])
+            var doWypisu = self.wszystkieMozliweTematy()
+                .subtracting(target)
+                .subtracting(juzWypisane)
+            doWypisu.formUnion(zalegle.subtracting(target))
+            doWypisu.formUnion(current.subtracting(target))
             var nieudane = Set<String>()
+            var wypisaneTeraz = Set<String>()
             let wypis = DispatchGroup()
             for topic in doWypisu {
                 wypis.enter()
                 messaging.unsubscribe(fromTopic: topic) { error in
-                    if error != nil { lock.lock(); nieudane.insert(topic); lock.unlock() }
+                    lock.lock()
+                    if error != nil { nieudane.insert(topic) } else { wypisaneTeraz.insert(topic) }
+                    lock.unlock()
                     wypis.leave()
                 }
             }
             wypis.notify(queue: .main) {
                 self.defaults.set(Array(nieudane), forKey: Key.stale)
+                // Tematy z `target` nie mogą zostać w pamięci wypisanych — właśnie
+                // się na nie zapisaliśmy. Bez tego powrót do poprzedniego
+                // województwa zostawiłby je jako „wypisane" i przy następnej
+                // zmianie nie wypisalibyśmy się z niego.
+                let pamiec = juzWypisane.union(wypisaneTeraz)
+                    .subtracting(target)
+                    .subtracting(nieudane)
+                self.defaults.set(Array(pamiec), forKey: Key.wypisane)
             }
             self.defaults.set(Array(confirmed), forKey: Key.topics)
             if confirmed.count == target.count {
