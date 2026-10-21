@@ -551,6 +551,17 @@ bez zmiany na iPhonie wyszłoby:
   tym, jak dźwięk ucichł,
 - świadoma reguła 15 min **nigdy się nie wykonuje** — bezpiecznik zawsze wygrywa.
 
+**Potwierdzone przez sesję główną 21.10:** zostaje 15 min (decyzja usera), moja
+propozycja przyjęta. Regułę trzyma JS: `ALARM_MAX_MIN = 15` w `app.js`,
+`ustawLimitAlarmu` / `wyciszAlarmPoLimicie` → `stopSiren()`.
+
+**Do sprawdzenia po scaleniu, zanim zbuduję:** czy `wyciszAlarmPoLimicie`
+naprawdę woła `stopSiren()`, a nie sam tor Web Audio. To jest cały sedno dla iOS —
+natywną syrenę zatrzymuje wyłącznie `sesjaAudioAlarmu(false)` ze środka
+`stopSiren()`. Gdyby limit gasił dźwięk własną ścieżką, na iPhonie syrena
+grałaby dalej aż do bezpiecznika — czyli po zmianie na 1200 s **dłużej niż dziś**.
+Sprawdzić w kodzie, nie zakładać.
+
 **Zmiana:** `600` → `1200` (20 min) w `StraznikBackgroundPlugin.swift`, żeby
 bezpiecznik znów był bezpiecznikiem, a regułę trzymał JS — jeden limit dla obu
 platform. Komentarz nad stoperem poprawić razem z liczbą.
