@@ -586,17 +586,18 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
                 let ciche = high && !krytyczny
                 let coZrobic = high
                     ? Self.tekst(lang,
-                        // Brzmienie zrównane z serwerem i Androidem 17.10.2026
-                        // („schron" → „miejsce schronienia", decyzja usera z 15.10).
-                        // Test ma mówić dokładnie to, co powie prawdziwy alarm —
-                        // inaczej uczy ludzi słów, których potem nie zobaczą.
-                        "Co zrobić: przejdź do miejsca schronienia lub pomieszczenia bez okien i śledź komunikaty RCB.",
-                        "What to do: go to a place of shelter or a room without windows and follow RCB messages.",
-                        "Що робити: перейдіть до укриття або кімнати без вікон і стежте за повідомленнями RCB.")
+                        // Brzmienie zrównane z serwerem 21.10.2026: jedna linia
+                        // „co zrobić · źródło NIEOFICJALNE" (OGON_CZERWONY / OGON_ZOLTY
+                        // w notify.py). Test ma mówić dokładnie to, co powie prawdziwy
+                        // alarm — inaczej uczy ludzi słów, których potem nie zobaczą.
+                        // Pilnuje tego ios-app/skrypty/test_zdania_rozszerzenia.py.
+                        "Co zrobić: przejdź do miejsca schronienia lub pomieszczenia bez okien · źródło NIEOFICJALNE",
+                        "What to do: go to a place of shelter or a room without windows · UNOFFICIAL source",
+                        "Що робити: перейдіть до укриття або кімнати без вікон · НЕОФІЦІЙНЕ джерело")
                     : Self.tekst(lang,
-                        "Co zrobić: zachowaj czujność i sprawdź komunikaty RCB.",
-                        "What to do: stay alert and check RCB messages.",
-                        "Що робити: будьте пильні та перевірте повідомлення RCB.")
+                        "Zachowaj czujność · źródło NIEOFICJALNE",
+                        "Stay alert · UNOFFICIAL source",
+                        "Будьте пильні · НЕОФІЦІЙНЕ джерело")
                 let oCiszy = Self.wyjasnienieCiszy(high: high, krytyczny: krytyczny, lang: lang)
                 // Punkty otwierają treść — tak samo jak w alarmie z serwera, gdzie
                 // zeszły z tytułu, żeby zmieściła się nazwa regionu.
@@ -611,13 +612,19 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
                                 // Test jest w języku interfejsu, a prawdziwy alarm przychodzi
                                 // po polsku — treść pusha składa serwer (`notify.py`) i nie zna
                                 // języka telefonu. Mówimy to w EN i UA wprost, żeby test nie
-                                // obiecywał czegoś, czego alarm nie dotrzyma. Tłumaczenie
-                                // stałych części powiadomienia to osobne zadanie po 1.7.94.
-                                + [Self.tekst(lang, "NIEOFICJALNE źródło — kieruj się syrenami, RCB i RSO.",
-                                                    "UNOFFICIAL source — follow sirens, RCB and RSO. "
-                                                    + "Real alerts arrive in Polish, whatever the app language.",
-                                                    "НЕОФІЦІЙНЕ джерело — орієнтуйтеся на сирени, RCB та RSO. "
-                                                    + "Справжні тривоги приходять польською, незалежно від мови застосунку.")])
+                                // obiecywał czegoś, czego alarm nie dotrzyma. (Przestanie to być
+                                // prawdą na etapie D — wtedy rozszerzenie zacznie tłumaczyć
+                                // prawdziwe alarmy i to zdanie trzeba będzie usunąć.)
+                                // Zdanie o NIEOFICJALNYM źródle jest od 21.10.2026 CZĘŚCIĄ
+                                // ogona z serwera (wyżej, w `coZrobic`), więc nie powtarzamy
+                                // go osobno — test ma wyglądać jak alarm, a nie mówić to samo
+                                // dwa razy. Zostaje jedno zastrzeżenie, którego prawdziwy
+                                // alarm nie ma: że przychodzi po polsku. Po polsku byłoby
+                                // bez sensu, więc pusty napis wypada z listy.
+                                + [Self.tekst(lang, "",
+                                                    "Real alerts arrive in Polish, whatever the app language.",
+                                                    "Справжні тривоги приходять польською, незалежно від мови застосунку.")]
+                                  .filter { !$0.isEmpty })
                                .joined(separator: "\n")
                 content.sound = krytyczny
                     ? UNNotificationSound.criticalSoundNamed(UNNotificationSoundName("alarm_syrena.wav"),
@@ -849,9 +856,17 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
 
     /// Ten sam plik, który gra w powiadomieniu (8 s), puszczany w kółko —
     /// alarm powietrzny nie milknie sam z siebie, milknie na polecenie ze strony.
-    /// Bezpiecznik 10 minut jest na wypadek, gdyby polecenie „wyłącz” nigdy nie
+    /// Bezpiecznik 20 minut jest na wypadek, gdyby polecenie „wyłącz” nigdy nie
     /// przyszło (przeładowanie strony, błąd w JS): telefon ma nie zostać z syreną
     /// bez końca i bez przycisku.
+    ///
+    /// Było 10 minut. Od 1.7.100 strona sama wycisza alarm po `ALARM_MAX_MIN = 15`
+    /// (`wyciszAlarmPoLimicie` → `stopSiren()` → `dzwiekAlarmu({wlacz:false})`),
+    /// więc bezpiecznik 10 min byłby KRÓTSZY niż reguła i zawsze by ją uprzedzał:
+    /// na iPhonie dźwięk milkłby w 10. minucie, a dopisek „wyciszono po 15 min"
+    /// pojawiałby się pięć minut po ciszy. Bezpiecznik ma być ostatnią deską
+    /// ratunku, nie regułą — dlatego musi być DŁUŻSZY niż `ALARM_MAX_MIN`.
+    /// Przy zmianie tamtej liczby sprawdzić, czy ta nadal jest większa.
     private func wlaczSyrene() -> String? {
         if syrena?.isPlaying == true { return nil }
         guard let plik = Bundle.main.url(forResource: "alarm_syrena", withExtension: "wav") else {
@@ -866,7 +881,7 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
             odtwarzacz.play()
             syrena = odtwarzacz
             syrenaStoper?.invalidate()
-            syrenaStoper = Timer.scheduledTimer(withTimeInterval: 600, repeats: false) { [weak self] _ in
+            syrenaStoper = Timer.scheduledTimer(withTimeInterval: 1200, repeats: false) { [weak self] _ in
                 self?.zatrzymajSyrene()
             }
             syrenaStan = "gra"

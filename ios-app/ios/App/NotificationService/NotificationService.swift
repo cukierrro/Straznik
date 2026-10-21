@@ -105,6 +105,18 @@ class NotificationService: UNNotificationServiceExtension {
     /// Stałe zdania z `notify.py`. Kolejność nieistotna — podmieniamy wszystkie,
     /// które wystąpią.
     private static let ZDANIA: [String: [String: String]] = [
+        // Serwer skrócił treść 21.10.2026 (OGON_CZERWONY / OGON_ZOLTY w notify.py):
+        // zamiast dwóch zdań jedna linia „co zrobić · źródło NIEOFICJALNE".
+        // Dawne brzmienia zostają NIŻEJ — telefon może dostać pusha sprzed
+        // wdrożenia serwera, a w tym oknie tłumaczenie nie może przepaść.
+        "Co zrobić: przejdź do miejsca schronienia lub pomieszczenia bez okien · źródło NIEOFICJALNE": [
+            "en": "What to do: go to a place of shelter or a room without windows · UNOFFICIAL source",
+            "uk": "Що робити: перейдіть до укриття або кімнати без вікон · НЕОФІЦІЙНЕ джерело",
+        ],
+        "Zachowaj czujność · źródło NIEOFICJALNE": [
+            "en": "Stay alert · UNOFFICIAL source",
+            "uk": "Будьте пильні · НЕОФІЦІЙНЕ джерело",
+        ],
         // Brzmienie zmienione 17.10.2026 („schron" → „miejsce schronienia", decyzja
         // usera z 15.10). ZNAMY OBA: serwer dostaje nowe wcześniej, niż ludzie
         // dostają tę wersję ze sklepu, a w tym oknie tłumaczenie nie może przepaść.

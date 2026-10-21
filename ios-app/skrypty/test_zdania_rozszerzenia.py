@@ -41,7 +41,21 @@ def zdania_serwera(tresc: str) -> set[str]:
         print("      więc ten test przestał cokolwiek sprawdzać. Popraw test, nie usuwaj.")
         sys.exit(1)
     blok = tresc[i:tresc.index("]", i)]
-    return {m.group(1) for m in re.finditer(r'"([^"]{30,})"', blok)}
+    zdania = {m.group(1) for m in re.finditer(r'"([^"]{30,})"', blok)}
+    # 21.10.2026: blok przestał zawierać literały — `tail = [OGON_CZERWONY if high
+    # else OGON_ZOLTY]`. Test świecił wtedy na ZIELONO, sprawdzając zero zdań,
+    # czyli zrobił dokładnie to, czemu miał zapobiegać. Dlatego nazwy stałych
+    # z bloku rozwijamy po ich definicjach w tym samym pliku.
+    for nazwa in set(re.findall(r"\b([A-Z][A-Z0-9_]{3,})\b", blok)):
+        m = re.search(r"^" + nazwa + r'\s*=\s*"([^"]{30,})"', tresc, re.M)
+        if m:
+            zdania.add(m.group(1))
+    if not zdania:
+        print("BŁĄD: blok `tail` jest, ale nie wyciągnąłem z niego ANI JEDNEGO zdania.")
+        print("      Tak wygląda test, który przestał sprawdzać cokolwiek — a nie test,")
+        print("      który przeszedł. Zobacz, w jakiej formie serwer trzyma teraz treść.")
+        sys.exit(1)
+    return zdania
 
 
 def etykiety_poziomu(tresc: str) -> set[str]:
