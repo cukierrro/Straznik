@@ -836,9 +836,11 @@ VOIV_KEYWORDS = {
         "zamoś", "hrubiesz", "włodaw", "terespol", "dorohusk", "świdnik", "puław", "kraśnik",
         "łęczn", "biała podlask", "białej podlask", "białą podlask", "bialskopodlask",
         "radzyń podlask", "radzyniu podlask", "radzynia podlask", "tomaszów lubelsk",
-        "tomaszowie lubelsk", "janów lubelsk", "opole lubelsk", "opolu lubelsk", "biłgoraj",
+        "tomaszowie lubelsk", "janów lubelsk", "opole lubelsk", "opolu lubelsk", "opola lubelsk", "opolem lubelsk", "biłgoraj",
         "lubartów", "łuków", "parczew", "dęblin", "krasnystaw", "krasnymstaw", "szczebrzeszyn",
-        "józefów", "poniatowa", "bychawa", "rejowiec", "międzyrzec podlask", "kock", "annopol",
+        "józefów", "poniatowa", "bychawa", "rejowiec", "międzyrzec podlask", "międzyrzecu podlask", "międzyrzeca podlask",
+        # 21.10.2026: Janów Podlaski leży w lubelskim — bez tego „podlask” dawał podlaskie
+        "janów podlask", "janowie podlask", "janowa podlask", "kock", "annopol",
         "tarnawa-kolonia", "wyryki", "czosnówka"
     ],
     "lubuskie": [
@@ -852,7 +854,7 @@ VOIV_KEYWORDS = {
         "łódzk", "lodzk", "łódź", "piotrków trybunalsk", "pabianic", "bełchatów", "sieradz",
         "kutno", "zgierz", "radomsk", "skierniewic", "tomaszów mazowieck",
         "tomaszowie mazowieck", "tomaszowa mazowieck", "tomaszowem mazowieck", "zduńska wol",
-        "zduńskiej wol", "wieluń", "opoczno", "rawa mazowieck", "łowicz", "kolusz",
+        "zduńskiej wol", "wieluń", "opoczno", "rawa mazowieck", "rawie mazowieck", "rawy mazowieck", "łowicz", "kolusz",
         "aleksandrów łódzk", "konstantynów łódzk", "ozorków", "głowno", "poddębic", "łęczyc",
         "pajęczno", "wieruszów", "warta k. sieradza"
     ],
@@ -862,27 +864,27 @@ VOIV_KEYWORDS = {
         "wadowic", "nowy targ", "nowym targu", "gorlic", "brzesk", "andrychów", "skawina",
         "myślenic", "limanow", "trzebini", "libiąż", "wieliczk", "sucha beskidzk",
         "krynic-zdrój", "muszyn", "dąbrowa tarnowsk", "proszowic", "miechów", "wolbrom",
-        "kęty", "niepołomic", "bukowno", "szczawnic"
+        "kęty", "niepołomic", "bukowno", "chełmek", "chełmk", "szczawnic"
     ],
     "mazowieckie": [
         "mazowieck", "mazowsz", "warszaw", "radom", "siedlc", "płock", "ostrołęk", "pruszków",
         "legionow", "otwock", "żyrardów", "ciechanów", "mińsk mazowieck",
         "nowy dwór mazowieck", "grodzisk mazowieck", "maków mazowieck", "ostrów mazowieck",
         "ostrowie mazowieck", "sokołów podlask", "sokołowie podlask", "sokołowa podlask",
-        "mińsku mazowieck", "grodzisku mazowieck", "makowie mazowieck", "rawie mazowieck",
+        "mińsku mazowieck", "grodzisku mazowieck", "makowie mazowieck",
         "wołomin", "piaseczno", "sochaczew", "wyszków", "garwolin", "węgrów", "płońsk",
         "mława", "żuromin", "gostynin", "sierpc", "przasnysz", "pułtusk", "łosic", "grójec",
         "kozienic", "zwoleń", "lipsko", "szydłowiec", "białobrzeg", "sulejówek", "konstancin",
         "modlin", "sochaczewsk"
     ],
     "opolskie": [
-        "opolsk", "opole", "opolu", "opolszczy", "kędzierzyn", "nysa", "nysie", "kluczbork",
+        "opolsk", "opole", "śląsk opolsk", "śląsku opolsk", "śląska opolsk", "opolu", "opolszczy", "kędzierzyn", "nysa", "nysie", "kluczbork",
         "prudnik", "strzelce opolsk", "namysłów", "krapkowic", "głubczyc", "olesno", "ozimek",
         "zdzieszowic", "praszka", "grodków", "niemodlin", "gogolin", "brzeg opolsk", "paczków",
         "biała prudnick"
     ],
     "podkarpackie": [
-        "podkarpack", "podkarpaci", "rzeszów", "rzeszow", "przemyśl", "przemysl", "medyk",
+        "podkarpack", "podkarpaci", "rzeszów", "rzeszow", "przemyśl", "przemysl", "medyce", "medykę", "medyka-sz",
         "jarosław", "lubaczów", "sanok", "krosno", "krośni", "mielec", "stalowa wol",
         "stalowej woli", "tarnobrzeg", "dębic", "jasło", "jaśle", "łańcut", "ropczyc",
         "sędziszów", "leżajsk", "przeworsk", "ustrzyk", "lesko", "brzozów", "strzyżów",

@@ -44,3 +44,24 @@ test('provinces come in the order they appear in the text', () => {
   assert.deepEqual(matchVoivs('Syreny w Przemyślu, potem w Lublinie'),
     ['podkarpackie', 'lubelskie']);
 });
+
+// 21.10.2026: kolizje nazw, które przypisywały artykuł do złego województwa
+// (Radio Lublin → opolskie dziewięć razy przez „powiat opolski”). Ten sam zestaw
+// sprawdza scripts/test_slownik_kolizje.py dla backendu.
+test('ambiguous place and county names resolve to the right province', () => {
+  const PRZYPADKI = [
+    ['Alert RCB dla województwa lubelskiego. Alert trafił do powiatów: lubelskiego, puławskiego, opolskiego, kraśnickiego.', ['lubelskie']],
+    ['Pożar w Opolu Lubelskim', ['lubelskie']],
+    ['Syreny w okolicy Opola Lubelskiego', ['lubelskie']],
+    ['Janów Podlaski: syreny', ['lubelskie']],
+    ['Alarm w Międzyrzecu Podlaskim', ['lubelskie']],
+    ['Zderzenie w Rawie Mazowieckiej', ['łódzkie']],
+    ['Brak medyków w szpitalu', []],
+    ['Kolejka w Medyce', ['podkarpackie']],
+    ['Chełmek: pożar', ['małopolskie']],
+    ['Na Śląsku Opolskim syreny', ['opolskie']],
+    ['Alert dla województwa opolskiego', ['opolskie']],
+    ['Opole: syreny', ['opolskie']],
+  ];
+  for (const [tekst, oczekiwane] of PRZYPADKI) assert.deepEqual(matchVoivs(tekst), oczekiwane, tekst);
+});
