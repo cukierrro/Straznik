@@ -716,6 +716,13 @@ MEDIA_NONCURRENT_KEYWORDS = [
     # (0,2) wysłało żółty. Szkolenie to zapowiedź, nie meldunek. Bez „jak reagować”
     # (bywa w relacji z trwającego alarmu) i bez „warsztat” (dron spadł na warsztat).
     "szkoleni",
+    # 21.10.2026: „Jak reagować na zagrożenie? Bezpłatne spotkanie dla osób niesłyszących
+    # i niedosłyszących” (Lublin112) dało lubelskiemu 1,0 pkt za „zagrożenie z powietrza”
+    # z opisu. Zapowiedź wydarzenia, nie meldunek. Na 612 artykułach z historii te zwroty
+    # były w tytule tylko tu. Bez gołego „spotkanie” (spotkanie sztabu po ataku) i bez
+    # „dla mieszkańców” (stoi w prawdziwych relacjach: „Alert RCB dla mieszkańców…”).
+    "bezpłatne spotkanie", "spotkanie dla osób", "spotkanie informacyjne", "warsztaty dla",
+    "bezpłatne warsztaty", "zaprasza na", "zapisy na", "wykład", "prelekcj", "webinar",
 ]
 # „Niespokojna noc/poranek" nie jest już wetem (E3): podsumowanie nocy bywa
 # relacją na żywo, a o świeżości decyduje article_reader po treści artykułu.
