@@ -4022,6 +4022,17 @@ function sigHTML(s) {
       `The RCB alert issued at ${od} has not been cancelled yet`,
       `Тривогу RCB, оголошену о ${od}, ще не скасовано`);
   }
+  /* 21.10.2026 (decyzja usera): alert RSO z ważnością, który wygasł bez odwołania,
+     znikał z panelu bez słowa. Przez godzinę po końcu ważności mówimy to wprost. */
+  if (s.event_type === "rcb_wygasl") {
+    const zegar = (iso) => new Date(iso).toLocaleTimeString(UI.t("pl-PL", "en-GB", "uk-UA"),
+      { hour: "2-digit", minute: "2-digit" });
+    const od = zegar(d.od), koniec = zegar(d.koniec);
+    shownTitle = UI.t(
+      `Alert RCB z godz. ${od} wygasł o ${koniec} (bez odwołania)`,
+      `The RCB alert issued at ${od} expired at ${koniec} (not cancelled)`,
+      `Тривога RCB, оголошена о ${od}, завершилася о ${koniec} (без скасування)`);
+  }
   if (s.event_type === "ua_alert_border" && d.oblast) {
     const ob = UI.t(UA_OBLAST_PL_UI[d.oblast] || d.oblast, UA_OBLAST_EN[d.oblast] || d.oblast,
                     `${d.oblast} область`);

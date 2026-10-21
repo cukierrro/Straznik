@@ -1079,7 +1079,72 @@ function computeState() {
     }
     st.spill_raised = LEVEL_ORDER.indexOf(st.level) > LEVEL_ORDER.indexOf(st.alert_level);
   }
+  dopiszPrzypomnieniaRcb(state, now);
   return state;
+}
+
+/* Lustro fusion.rcb_nieodwolane / rcb_wygasle (21.10.2026): tryb bez serwera też mówi,
+   że alert RCB nie został jeszcze odwołany, a po końcu ważności przez godzinę — że
+   wygasł bez odwołania. Informacja, zero punktów; dopisywane po ustaleniu poziomów. */
+const RCB_NIEODWOLANY_MAX_MIN = 720, RCB_WYGASL_POKAZ_MIN = 60;
+const RSO_CLEAR_KRAJOWE = ["brak zagrozenia na terenie polski", "brak zagrozenia dla polski",
+  "brak zagrozenia na terytorium polski"];
+function rcbOstatnie(zdarzenia, r) {
+  const alerty = new Map(), waznosc = new Map(), odwolania = new Map();
+  for (const z of zdarzenia) {
+    const t = z.t || Date.parse(z.ts) || 0;
+    if (!z.voivodeship || !t || t > r) continue;
+    if ((z.event_type === "rso_alert" || z.event_type === "rcb_alert") && (z.points || 0) > 0) {
+      if (t > (alerty.get(z.voivodeship) || 0)) {
+        alerty.set(z.voivodeship, t);
+        waznosc.set(z.voivodeship, z.details?.valid_to || null);
+      }
+    } else if (z.event_type === "rso_clear") {
+      const tekst = fold(`${z.title || ""} ${z.details?.tresc || ""} ${z.details?.content || ""}`);
+      const gdzie = RSO_CLEAR_KRAJOWE.some(m => tekst.includes(m)) ? VOIVODESHIPS : [z.voivodeship];
+      for (const w of gdzie) if (t > (odwolania.get(w) || 0)) odwolania.set(w, t);
+    }
+  }
+  return { alerty, waznosc, odwolania };
+}
+function rcbNieodwolane(zdarzenia, r) {
+  const { alerty, waznosc, odwolania } = rcbOstatnie(zdarzenia, r), out = {};
+  for (const [v, t] of alerty) {
+    if ((odwolania.get(v) || 0) >= t) continue;
+    const koniec = waznosc.get(v) ? plLocalToMs(waznosc.get(v)) : NaN;
+    if (Number.isFinite(koniec) && koniec <= r) continue;
+    out[v] = { od: t, minut: Math.floor((r - t) / 60000) };
+  }
+  return out;
+}
+function rcbWygasle(zdarzenia, r) {
+  const { alerty, waznosc, odwolania } = rcbOstatnie(zdarzenia, r), out = {};
+  for (const [v, t] of alerty) {
+    if ((odwolania.get(v) || 0) >= t) continue;
+    const koniec = waznosc.get(v) ? plLocalToMs(waznosc.get(v)) : NaN;
+    if (!Number.isFinite(koniec) || koniec > r || koniec < t) continue;
+    if (r - koniec > RCB_WYGASL_POKAZ_MIN * 60000) continue;
+    out[v] = { od: t, koniec };
+  }
+  return out;
+}
+function dopiszPrzypomnieniaRcb(state, now) {
+  const zd = signals.filter(s => s.source === "rcb" && (s.t || 0) >= now - RCB_NIEODWOLANY_MAX_MIN * 60000
+    && ["rso_alert", "rcb_alert", "rso_clear"].includes(s.event_type));
+  const iso = (ms) => new Date(ms).toISOString();
+  for (const [v, info] of Object.entries(rcbWygasle(zd, now))) {
+    const st = state.voivodeships[v]; if (!st) continue;
+    st.signals.push({ t: info.koniec, ts: iso(info.koniec), source: "rcb", event_type: "rcb_wygasl",
+      voivodeship: v, points: 0, counted_points: 0, weight: 0, title: "Alert RCB wygasł bez odwołania",
+      details: { od: iso(info.od), koniec: iso(info.koniec), informacyjny: true } });
+  }
+  for (const [v, info] of Object.entries(rcbNieodwolane(zd, now))) {
+    const st = state.voivodeships[v]; if (!st) continue;
+    st.rcb_nieodwolany = { od: iso(info.od), minut: info.minut };
+    st.signals.push({ t: info.od, ts: iso(info.od), source: "rcb", event_type: "rcb_bez_odwolania",
+      voivodeship: v, points: 0, counted_points: 0, weight: 0, title: "Alert RCB nie został jeszcze odwołany",
+      details: { od: iso(info.od), minut: info.minut, informacyjny: true } });
+  }
 }
 /* Lustro fusion.hold_level: poziom nie spada przez LEVEL_HOLD_MIN od ostatniego
    przekroczenia progu; odwołanie RSO po nim zdejmuje podtrzymanie (16.09.2026). */
@@ -2701,5 +2766,7 @@ return { start, stop, history, timeline, historyFrom, timelineFrom, accumulate, 
          tytuly: { kmPL, wiarygodnoscPL, potwierdzeniaPL },
          baltyk: { tickRss, sygnaly: () => signals },
          rcbArtykul: { tickRcb, tekstArtykuluRcb, dataArtykuluRcb, wojewodztwaAlertu,
-                       czyOdwolanieRcb, meldunkiArtykulu, najnowszyMeldunek } };
+                       czyOdwolanieRcb, meldunkiArtykulu, najnowszyMeldunek },
+         // dla scripts/test_rcb_wygasl.cjs (lustro fusion.rcb_nieodwolane / rcb_wygasle)
+         rcbPrzypomnienia: { rcbNieodwolane, rcbWygasle } };
 })();

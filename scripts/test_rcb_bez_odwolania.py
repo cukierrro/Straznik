@@ -95,8 +95,34 @@ sprawdz("wpis bez valid_to czeka na odwołanie", "podkarpackie" in wynik, str(wy
 wynik = rcb_nieodwolane([rso(ALERT, "nie-data")], WIECZOR)
 sprawdz("nieczytelne valid_to nie gasi alertu", "podkarpackie" in wynik, str(wynik))
 
-# ── okno pilnowania jest skończone ──────────────────────────────────────────
+# ── 21.10.2026: wygasły bez odwołania — przez godzinę mówimy to wprost ──────
+from app.fusion import rcb_wygasle  # noqa: E402
 from app import config  # noqa: E402
+
+KONIEC = datetime(2026, 10, 18, 8, 59, tzinfo=timezone.utc)        # 10:59 CEST
+wynik = rcb_wygasle([rso(ALERT, "2026-10-18 10:59:00")], PO)
+sprawdz("minutę po końcu ważności: „wygasł”", wynik.get("podkarpackie", {}).get("koniec") == KONIEC,
+        str(wynik))
+sprawdz("„wygasł” podaje godzinę alertu", wynik.get("podkarpackie", {}).get("od")
+        == datetime.fromisoformat(ALERT), str(wynik))
+wynik = rcb_wygasle([rso(ALERT, "2026-10-18 10:59:00")], PRZED)
+sprawdz("przed końcem ważności nie ma „wygasł”", wynik == {}, str(wynik))
+wynik = rcb_wygasle([rso(ALERT, "2026-10-18 10:59:00")],
+                    KONIEC + timedelta(minutes=config.RCB_WYGASL_POKAZ_MIN + 1))
+sprawdz("po godzinie „wygasł” znika", wynik == {}, str(wynik))
+wynik = rcb_wygasle([rso(ALERT, "2026-10-18 10:59:00"),
+                     sygnal("rso_clear", "podkarpackie", "2026-10-18T08:30:00+00:00", 0.0)], PO)
+sprawdz("odwołany przed końcem ważności to nie „wygasł”", wynik == {}, str(wynik))
+wynik = rcb_wygasle([rso(ALERT, None)], PO)
+sprawdz("bez valid_to nie ma „wygasł” (czeka na odwołanie)", wynik == {}, str(wynik))
+wynik = rcb_wygasle([rso(ALERT, "2026-10-18 10:59:00"),
+                     {**rso(datetime(2026, 10, 18, 8, 55, tzinfo=timezone.utc).isoformat(), None),
+                      "details": {"rso_id": "23427999"}}], PO)
+sprawdz("nowszy alert bez ważności przesłania stary „wygasł”", wynik == {}, str(wynik))
+sprawdz("okno „wygasł” to rozsądna godzina", 0 < config.RCB_WYGASL_POKAZ_MIN <= 180,
+        str(config.RCB_WYGASL_POKAZ_MIN))
+
+# ── okno pilnowania jest skończone ──────────────────────────────────────────
 sprawdz("okno pilnowania nie jest nieskończone",
         0 < config.RCB_NIEODWOLANY_MAX_MIN <= 24 * 60, str(config.RCB_NIEODWOLANY_MAX_MIN))
 
@@ -105,4 +131,5 @@ if bledy:
     for b in bledy:
         print(" -", b)
     sys.exit(1)
-print("OK — nieodwołany alert RCB zgłaszany do odwołania albo końca ważności w RSO (13 przypadków)")
+print("OK — nieodwołany alert RCB zgłaszany do odwołania albo końca ważności w RSO, "
+      "a po końcu ważności przez godzinę „wygasł bez odwołania” (21 przypadków)")

@@ -313,6 +313,45 @@ def rcb_nieodwolane(zdarzenia: list[dict], ref: datetime | None = None) -> dict[
     Alert bez `valid_to` (artykuł gov.pl) dalej czeka na odwołanie.
     """
     r = ref or datetime.now(timezone.utc)
+    alerty, waznosc, odwolania = _rcb_ostatnie(zdarzenia, r)
+    out: dict[str, dict] = {}
+    for voiv, ts in alerty.items():
+        if voiv in odwolania and odwolania[voiv] >= ts:
+            continue
+        koniec = _parse_ts(_pl_local_to_utc(waznosc.get(voiv))) if waznosc.get(voiv) else None
+        if koniec is not None and koniec <= r:
+            continue            # wpis RSO wygasł — RCB zakończyło alert ważnością
+        out[voiv] = {"od": ts, "minut": int((r - ts).total_seconds() // 60)}
+    return out
+
+
+def rcb_wygasle(zdarzenia: list[dict], ref: datetime | None = None) -> dict[str, dict]:
+    """Województwa, w których NAJNOWSZY alert RCB/RSO wygasł z końcem ważności
+    (`valid_to`) bez odwołania, najwyżej RCB_WYGASL_POKAZ_MIN minut temu.
+
+    Uzupełnienie rcb_nieodwolane (decyzja usera 21.10.2026): po końcu ważności
+    przypomnienie „nie został jeszcze odwołany” znikało bez słowa. Teraz przez
+    godzinę panel mówi „Alert RCB z 09:30 wygasł o 10:59 (bez odwołania)”.
+    Alert odwołany przed końcem ważności nie jest „wygasły”."""
+    r = ref or datetime.now(timezone.utc)
+    alerty, waznosc, odwolania = _rcb_ostatnie(zdarzenia, r)
+    out: dict[str, dict] = {}
+    for voiv, ts in alerty.items():
+        if voiv in odwolania and odwolania[voiv] >= ts:
+            continue
+        koniec = _parse_ts(_pl_local_to_utc(waznosc.get(voiv))) if waznosc.get(voiv) else None
+        if koniec is None or koniec > r or koniec < ts:
+            continue
+        if (r - koniec).total_seconds() > config.RCB_WYGASL_POKAZ_MIN * 60:
+            continue
+        out[voiv] = {"od": ts, "koniec": koniec}
+    return out
+
+
+def _rcb_ostatnie(zdarzenia: list[dict], r: datetime):
+    """Najnowszy alert RCB/RSO (z jego valid_to) i najnowsze odwołanie w każdym
+    województwie, wszystko nie później niż `r`. Wspólne dla rcb_nieodwolane
+    i rcb_wygasle."""
     alerty: dict[str, datetime] = {}
     waznosc: dict[str, str | None] = {}
     odwolania: dict[str, datetime] = {}
@@ -332,15 +371,7 @@ def rcb_nieodwolane(zdarzenia: list[dict], ref: datetime | None = None) -> dict[
             for w in (config.VOIVODESHIPS if _clear_krajowe(z) else (voiv,)):
                 if ts > odwolania.get(w, ts - timedelta(seconds=1)):
                     odwolania[w] = ts
-    out: dict[str, dict] = {}
-    for voiv, ts in alerty.items():
-        if voiv in odwolania and odwolania[voiv] >= ts:
-            continue
-        koniec = _parse_ts(_pl_local_to_utc(waznosc.get(voiv))) if waznosc.get(voiv) else None
-        if koniec is not None and koniec <= r:
-            continue            # wpis RSO wygasł — RCB zakończyło alert ważnością
-        out[voiv] = {"od": ts, "minut": int((r - ts).total_seconds() // 60)}
-    return out
+    return alerty, waznosc, odwolania
 
 
 def _fresh_strong_signal(signals: list[dict], since_iso: str) -> bool:
@@ -1063,9 +1094,24 @@ def compute_state(signals: list[dict] | None = None, ref: datetime | None = None
     # co widzi, a tutaj tylko przypomina, że oficjalny alert nadal obowiązuje.
     if getattr(db, "_conn", None) is not None:
         try:
-            trwajace = rcb_nieodwolane(db.events_since(
+            zdarzenia_rcb = db.events_since(
                 config.RCB_NIEODWOLANY_MAX_MIN,
-                ("rso_alert", "rcb_alert", "rso_clear")), ref)
+                ("rso_alert", "rcb_alert", "rso_clear"))
+            trwajace = rcb_nieodwolane(zdarzenia_rcb, ref)
+            # wygasły bez odwołania (21.10.2026) — przez godzinę po końcu ważności
+            for voiv, info in rcb_wygasle(zdarzenia_rcb, ref).items():
+                st = per_voiv.get(voiv)
+                if st is None:
+                    continue
+                st["signals"].append({
+                    "source": "rcb", "event_type": "rcb_wygasl", "voivodeship": voiv,
+                    "ts": info["koniec"].isoformat(timespec="seconds"),
+                    "points": 0.0, "counted_points": 0.0, "weight": 0.0,
+                    "title": "Alert RCB wygasł bez odwołania",
+                    "details": {"od": info["od"].isoformat(timespec="seconds"),
+                                "koniec": info["koniec"].isoformat(timespec="seconds"),
+                                "informacyjny": True},
+                })
             for voiv, info in trwajace.items():
                 st = per_voiv.get(voiv)
                 if st is None:

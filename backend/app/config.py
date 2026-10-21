@@ -201,6 +201,11 @@ RCB_INTERVAL = int(os.getenv("RCB_INTERVAL", "120"))
 # sygnały dawno wygasły i mapa wygląda spokojnie, co myli. Po tym czasie
 # przestajemy: brak odwołania bywa po prostu przeoczeniem po stronie RCB.
 RCB_NIEODWOLANY_MAX_MIN = int(os.getenv("RCB_NIEODWOLANY_MAX_MIN", "720"))
+# Alert RSO z ważnością (valid_to), który wygasł BEZ odwołania: przez tyle minut po
+# końcu ważności panel mówi „Alert RCB z 09:30 wygasł o 10:59 (bez odwołania)” zamiast
+# po cichu zniknąć (18.10.2026: podkarpackie, alert 09:28, ważny do 10:59; decyzja
+# usera 21.10.2026). Informacja, zero punktów.
+RCB_WYGASL_POKAZ_MIN = int(os.getenv("RCB_WYGASL_POKAZ_MIN", "60"))
 RCB_URL = "https://www.gov.pl/web/rcb"
 # RSO (Regionalny System Ostrzegania) przez TVP — realne alerty RCB/SPO (SMS-owe
 # broadcasty), których scraping gov.pl nie łapie. Publiczne JSON bez tokenu.
