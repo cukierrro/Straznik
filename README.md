@@ -6,6 +6,11 @@
 
 Serwer: **hostowane na [Mikrusie](https://mikr.us)** — dziękujemy za wsparcie projektu.
 
+Wersja 1.8.00: ekran czerwonego alarmu ma przycisk potwierdzenia i wybór na górze oraz
+najwyżej 3 powody, syrena, wibracja i miganie cichną same po 15 minutach, powiadomienia są
+krótsze, a alarmy przychodzą tylko dla obserwowanych województw (zgłoszenie #15). Alert RCB
+wygasły bez odwołania widać przez godzinę jako „wygasł o …”. Szczegóły: `docs/RELEASE_1.8.00.md`.
+
 Wersja 1.7.99: drony nie przechodzą już do sąsiednich województw (każdy ma własną
 odległość do każdego), artykuł, który tylko powtarza Alert RCB, nie daje drugich punktów,
 opisy dronów po polsku, dron z pozycją niepewną ma na mapie przygaszoną ikonę z przerywanym

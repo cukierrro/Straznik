@@ -4785,8 +4785,10 @@ function showAlarm(voiv, st) {
   if (!voiv || !st) return;
   zdejmijZasloneAlarmu();
   document.getElementById("alarm-voiv").textContent = (UI.t("woj. ", "province ", "воєв. ")) + UI.voiv(voiv);
-  document.getElementById("alarm-score").textContent =
-    `${pktTxt(st.score)} ${UI.t("pkt w oknie", "pts in a", "балів у вікні")} ${state?.fusion?.window_min ?? 60} min ${UI.t("", "window", "")}`;
+  const oknoMin = state?.fusion?.window_min ?? 60;
+  // po ukraińsku „хв”, nie „min” (zrzuty 1.8.00); bez spacji na końcu w PL i UK
+  document.getElementById("alarm-score").textContent = `${pktTxt(st.score)} ` +
+    UI.t(`pkt w oknie ${oknoMin} min`, `pts in a ${oknoMin} min window`, `балів у вікні ${oknoMin} хв`);
   /* Najwyżej ALARM_POWODY_MAX powodów (21.10.2026, user): przy pięciu lista spychała
      przyciski pod krawędź ekranu. Resztę pokazuje panel — mówimy o tym wprost. */
   const wszystkie = (st.signals || []).filter(s => (s.counted_points ?? s.points ?? 0) > 0).length
