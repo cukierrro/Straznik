@@ -4621,6 +4621,11 @@ function chimeOnce() {
 const fcmSeen = new Set();
 function onForegroundPush(d) {
   if (!d || !d.voiv || !d.level || alertsOff()) return;
+  // Zgłoszenie #15 (21.10.2026): push z tematu, który został na serwerach Google po
+  // zmianie miejsc, nie może zawyć dla województwa spoza obserwowanych. Natywna część
+  // odrzuca go wcześniej (BackgroundPlugin.obserwowane) — to drugie zabezpieczenie.
+  const obserwowane = Places?.observedVoivodeships?.(savedPlaces) || [];
+  if (obserwowane.length && !obserwowane.includes(d.voiv)) return;
   const id = d.event_id || `${d.voiv}|${d.level}|${d.sent_at || ""}`;
   if (fcmSeen.has(id)) return;
   fcmSeen.add(id);
