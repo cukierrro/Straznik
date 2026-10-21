@@ -262,8 +262,8 @@ def fcm_topic_krytyczny(voiv: str, test: bool = False) -> str:
 # pełnych zdań. Ta sama długość co natywne powiadomienie Androida (Alarms.POWODY_MAX
 # i jego ogon) — pilnuje scripts/test_alarm_limit.cjs. Pełna lista jest w aplikacji.
 POWODY_W_POWIADOMIENIU = 3
-OGON_CZERWONY = "Co zrobić: przejdź do miejsca schronienia lub pomieszczenia bez okien · źródło nieoficjalne"
-OGON_ZOLTY = "Zachowaj czujność · źródło nieoficjalne"
+OGON_CZERWONY = "Co zrobić: przejdź do miejsca schronienia lub pomieszczenia bez okien · źródło NIEOFICJALNE"
+OGON_ZOLTY = "Zachowaj czujność · źródło NIEOFICJALNE"
 
 
 def krotkie_powody(reasons_text: str, ile: int = POWODY_W_POWIADOMIENIU) -> list[str]:

@@ -624,8 +624,8 @@ class Alarms {
         if (headline != null && !headline.isEmpty()) body.append(headline).append('\n');
         for (String r : powody(reasons)) body.append(r).append('\n');
         body.append(high
-            ? "Co zrobić: przejdź do miejsca schronienia lub pomieszczenia bez okien · źródło nieoficjalne"
-            : "Zachowaj czujność · źródło nieoficjalne");
+            ? "Co zrobić: przejdź do miejsca schronienia lub pomieszczenia bez okien · źródło NIEOFICJALNE"
+            : "Zachowaj czujność · źródło NIEOFICJALNE");
         String firstLine = headline != null && !headline.isEmpty() ? headline
             : (reasons.isEmpty() ? "" : reasons.get(0));
         if (!czas.isEmpty()) {
