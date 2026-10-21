@@ -525,9 +525,14 @@ Co pomiar ma rozstrzygnąć:
 3. czy tytuł i dwa stałe zdania są w języku aplikacji, a nazwa województwa
    i opis sytuacji zostają po polsku.
 
-## 11. DO ZROBIENIA przy scalaniu 1.7.100 — bezpiecznik syreny
+## 11. Bezpiecznik syreny — ZROBIONE (21.10.2026, `70db553`)
 
-**Nie zapomnieć: do zrobienia w tym samym commicie co scalenie frontendu 1.7.100.**
+**Wykonane przy scaleniu `main 1701adf`:** bezpiecznik 600 → 1200 s,
+tabela `ZDANIA` w NSE zrównana z nowymi ogonami serwera, treść testu 5 s
+zrównana z alarmem, test zdań naprawiony (patrz niżej — oślepł).
+**Sprawdzone w kodzie, nie na słowo:** `wyciszAlarmPoLimicie()` woła
+`stopSiren()`, więc limit 15 min zatrzymuje też natywną syrenę na iPhonie.
+Build dopiero przy wydaniu 1.7.100.
 
 Sesja główna wprowadza w 1.7.100 limit **15 minut** — po tym czasie syrena,
 wibracja i miganie gasną same, a ekran zostaje z dopiskiem „Wyciszono
