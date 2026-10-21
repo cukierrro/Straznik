@@ -524,3 +524,45 @@ Co pomiar ma rozstrzygnąć:
    wyciszyć alarmu);
 3. czy tytuł i dwa stałe zdania są w języku aplikacji, a nazwa województwa
    i opis sytuacji zostają po polsku.
+
+## 11. DO ZROBIENIA przy scalaniu 1.7.100 — bezpiecznik syreny
+
+**Nie zapomnieć: do zrobienia w tym samym commicie co scalenie frontendu 1.7.100.**
+
+Sesja główna wprowadza w 1.7.100 limit **15 minut** — po tym czasie syrena,
+wibracja i miganie gasną same, a ekran zostaje z dopiskiem „Wyciszono
+automatycznie po 15 min". Limit wołają przez `stopSiren()`.
+
+Na iOS syrenę gra **część natywna**, nie strona: `AVAudioPlayer` z
+`numberOfLoops = -1`, uruchamiany przez `dzwiekAlarmu({wlacz:true})`.
+`stopSiren()` ją zatrzyma — wywołanie `sesjaAudioAlarmu(false)` stoi tam
+celowo **poza** warunkiem `if (sirenNodes)`, bo na iPhonie `sirenNodes` nigdy
+nie powstaje. Tę część sprawdziłem, działa bez zmian.
+
+**Problem jest gdzie indziej.** W `wlaczSyrene()` siedzi
+`Timer.scheduledTimer(withTimeInterval: 600)` → `zatrzymajSyrene()` —
+bezpiecznik **10 minut** na wypadek, gdyby „wyłącz" nigdy nie przyszło
+(przeładowanie strony, błąd w JS). Jest **krótszy** niż nowy limit 15 min, więc
+bez zmiany na iPhonie wyszłoby:
+
+- w 10. minucie syrena milknie sama,
+- ekran dalej pokazuje trwający alarm,
+- w 15. minucie dopisek o automatycznym wyciszeniu pojawia się **pięć minut po**
+  tym, jak dźwięk ucichł,
+- świadoma reguła 15 min **nigdy się nie wykonuje** — bezpiecznik zawsze wygrywa.
+
+**Zmiana:** `600` → `1200` (20 min) w `StraznikBackgroundPlugin.swift`, żeby
+bezpiecznik znów był bezpiecznikiem, a regułę trzymał JS — jeden limit dla obu
+platform. Komentarz nad stoperem poprawić razem z liczbą.
+
+**Dlaczego nie wcześniej:** sam bezpiecznik 20 min bez limitu 15 min w JS to krok
+w tył (telefon po awarii JS zostałby z syreną dwa razy dłużej). Te dwie zmiany
+muszą wejść jednym wydaniem.
+
+Natywnej pętli wibracji nie ma — w całej wtyczce jest dokładnie jeden `Timer`,
+ten od syreny. Gaszenie wibracji i migania zostaje po stronie frontendu.
+
+**Po wdrożeniu serwera (skrócone body w `notify.py`):** uruchomić
+`ios-app/skrypty/test_zdania_rozszerzenia.py` i zrównać tabelę `ZDANIA`
+w rozszerzeniu. Niezgodność nie psuje alarmu — push przyjdzie po polsku, ale
+cały; nigdy ucięty. NSE i tak nieaktywne do etapu D.
