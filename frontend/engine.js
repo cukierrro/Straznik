@@ -2155,6 +2155,33 @@ function rsoIsCancellation(it) {
   return RSO_END.some(w => text.includes(w));
 }
 
+/* Lustro collectors/rso.py tytul_alertu (23.10.2026): RSO zmieniło format — nagłówek
+   „ALERT RCB / SPO-13” (w `shortcut` z prefiksem „Lubelskie:”), a komunikat stoi w `content`
+   po liście powiatów i słowach „o treści:”. Tytuł sygnału był samym nagłówkiem. */
+const RSO_NAGLOWKI_PUSTE = ["alert rcb", "alert-rcb", "ostrzeżenie", "ostrzeżenie alarmowe"];
+function rsoBezWoj(t) {
+  t = String(t || "").trim();
+  const i = t.indexOf(":");
+  if (i > 0 && VOIVODESHIPS.some(v => fold(v) === fold(t.slice(0, i).trim()))) return t.slice(i + 1).trim();
+  return t;
+}
+function rsoNaglowekPusty(n) {
+  const x = rsoBezWoj(n).replace(/^[.!]+|[.!]+$/g, "").toLowerCase();
+  return RSO_NAGLOWKI_PUSTE.includes(x) || /^alert[\s-]*rcb(\s*\/\s*spo[\s-]*\d+)?$/.test(x);
+}
+function rsoSedno(t) {
+  t = String(t || "").trim();
+  const m = /o\s+treści\s*:\s*/i.exec(t);
+  if (m && t.slice(m.index + m[0].length).trim()) return t.slice(m.index + m[0].length).trim();
+  return t.replace(/^\s*alert[\s-]*rcb(\s*\/\s*spo[\s-]*\d+)?\s*/i, "").trim() || t;
+}
+function rsoTytul(naglowek, tresc) {
+  if (rsoNaglowekPusty(naglowek) && String(tresc || "").trim()) return rsoSedno(tresc);
+  // 23.10 17:56: „ALERT RCB / SPO-13: UWAGA! Rosyjski atak…” — nagłówek doklejony do treści
+  const bez = rsoBezWoj(naglowek).replace(/^\s*alert[\s-]*rcb(\s*\/\s*spo[\s-]*\d+)?\s*:\s*/i, "").trim();
+  return bez || rsoSedno(tresc);
+}
+
 async function tickRso() {
   try {
     const j = JSON.parse(await httpGet(RSO_URL));
@@ -2177,7 +2204,7 @@ async function tickRso() {
           /* Odwołanie (0 pkt) zapisujemy także przy pierwszym obiegu — fuzja
              porównuje czasy wydania, więc nie zgasi nowszego alertu. */
           addSignal("rcb", "rso_clear", v, 0,
-            `RCB (RSO): odwołanie — „${String(it.shortcut || it.title || "").slice(0,120)}”`,
+            `RCB (RSO): odwołanie — „${rsoTytul(it.shortcut || it.title || "", it.content || "").slice(0,120)}”`,
             { rso_id: String(it.id), clear: true, updated_at: it.updated_at,
               cleared_at: new Date(plLocalToMs(it.updated_at || it.created_at || it.valid_from)
                 || Date.now()).toISOString() }, `rso-clear:${it.id}:${v}`);
@@ -2186,7 +2213,7 @@ async function tickRso() {
         /* Lustro collectors/rso.py (16–17.10.2026): poziom z CAŁEJ treści (pole
            `description` w RSO nie istnieje, komunikat bywa tylko w `content`),
            a zmiana stopnia W MIEJSCU (ten sam id, w górę i w dół) to nowa wersja. */
-        const tresc = String(it.shortcut || it.title || "");
+        const tresc = rsoTytul(it.shortcut || it.title || "", it.content || "") || "Alert RCB";
         const poziom = rcbLevel(`${it.title || ""} ${it.shortcut || ""} ${it.content || ""}`);
         const base = `rso:${it.id}:${v}`;
         const prev = rsoLevels.get(base);
@@ -2777,5 +2804,5 @@ return { start, stop, history, timeline, historyFrom, timelineFrom, accumulate, 
          rcbArtykul: { tickRcb, tekstArtykuluRcb, dataArtykuluRcb, wojewodztwaAlertu,
                        czyOdwolanieRcb, meldunkiArtykulu, najnowszyMeldunek },
          // dla scripts/test_rcb_wygasl.cjs (lustro fusion.rcb_nieodwolane / rcb_wygasle)
-         rcbPrzypomnienia: { rcbNieodwolane, rcbWygasle } };
+         rcbPrzypomnienia: { rcbNieodwolane, rcbWygasle }, rsoTytul };
 })();

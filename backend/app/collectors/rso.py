@@ -18,6 +18,7 @@ treść), więc odwołanie rozpoznajemy także po zmianie wpisu — zawsze po TR
 import asyncio
 import hashlib
 import logging
+import re
 import time
 import unicodedata
 
@@ -194,10 +195,47 @@ FETCH_RETRY_DELAY_S = 5
 # „Alert RCB", a cały komunikat trafia do `content` (potwierdzone na wpisach
 # 23362253 z 24.09.2026 i 23389161 z 04.10.2026).
 _NAGLOWKI_PUSTE = ("alert rcb", "alert-rcb", "ostrzeżenie", "ostrzeżenie alarmowe")
+# 23.10.2026 RSO zmieniło format: nagłówek „ALERT RCB / SPO-13”, w `shortcut` z prefiksem
+# województwa („Lubelskie:ALERT RCB / SPO-13”), a właściwy komunikat stoi w `content`
+# dopiero po liście powiatów i słowach „o treści:”. Panel i powody powiadomienia
+# pokazywały „Alert RCB (RSO): „Lubelskie:ALERT RCB / SPO-13”” — bez treści alertu.
+_NAGLOWEK_SPO = re.compile(r"^alert[\s-]*rcb(\s*/\s*spo[\s-]*\d+)?$")
+_PREFIKS_ALERTU = re.compile(r"^\s*alert[\s-]*rcb(\s*/\s*spo[\s-]*\d+)?\s*", re.I)
+_O_TRESCI = re.compile(r"o\s+treści\s*:\s*", re.I)
+# 23.10 17:56: `shortcut` „ALERT RCB / SPO-13: UWAGA! Rosyjski atak…” — nagłówek doklejony do treści
+_NAGLOWEK_Z_DWUKROPKIEM = re.compile(r"^\s*alert[\s-]*rcb(\s*/\s*spo[\s-]*\d+)?\s*:\s*", re.I)
+
+
+def _bez_wojewodztwa(tekst: str) -> str:
+    """„Lubelskie: UWAGA! …” → „UWAGA! …” — RSO dokleja nazwę województwa do `shortcut`."""
+    tekst = (tekst or "").strip()
+    glowa, dwukropek, reszta = tekst.partition(":")
+    if dwukropek and _fold(glowa.strip()) in _VOIV_BY_FOLD:
+        return reszta.strip()
+    return tekst
 
 
 def _naglowek_pusty(naglowek: str) -> bool:
-    return (naglowek or "").strip().strip(".!").lower() in _NAGLOWKI_PUSTE
+    n = _bez_wojewodztwa(naglowek).strip(".!").lower()
+    return n in _NAGLOWKI_PUSTE or bool(_NAGLOWEK_SPO.match(n))
+
+
+def _sedno_tresci(tresc: str) -> str:
+    """Sam komunikat z `content`: tekst po „o treści:”, a bez tego — bez nagłówka
+    „ALERT RCB / SPO-13” na początku (lista powiatów nie mówi, co się dzieje)."""
+    tresc = (tresc or "").strip()
+    m = _O_TRESCI.search(tresc)
+    if m and tresc[m.end():].strip():
+        return tresc[m.end():].strip()
+    return _PREFIKS_ALERTU.sub("", tresc, count=1).strip() or tresc
+
+
+def tytul_alertu(naglowek: str, tresc: str) -> str:
+    """Tytuł do pokazania człowiekowi (panel, powody powiadomienia)."""
+    if _naglowek_pusty(naglowek) and (tresc or "").strip():
+        return _sedno_tresci(tresc)
+    bez = _NAGLOWEK_Z_DWUKROPKIEM.sub("", _bez_wojewodztwa(naglowek), count=1).strip()
+    return bez or _sedno_tresci(tresc)
 
 
 def rcb_level(text: str) -> int:
@@ -432,7 +470,7 @@ async def _process_item(it: dict) -> bool:
         # Tytuł do pokazania człowiekowi: nagłówek bywa dosłownie „Alert RCB"
         # (tak było 04.10.2026 dla lubelskiego), więc wtedy bierzemy treść —
         # inaczej powiadomienie brzmi „Alert RCB (RSO): «Alert RCB»".
-        title = (tresc if _naglowek_pusty(naglowek) and tresc else naglowek) or "Alert RCB"
+        title = tytul_alertu(naglowek, tresc) or "Alert RCB"
         inserted = await fusion.ingest(
             source="rcb", event_type="rso_alert", voivodeship=voiv,
             points=config.RCB_LEVEL_POINTS[poziom],
@@ -471,7 +509,8 @@ async def _ingest_clear(it: dict):
         key = f"rso-clear:{mid}:{voiv}"
         if key in _seen:
             continue
-        title = it.get("shortcut") or it.get("title") or "Odwołanie alertu RCB"
+        title = (tytul_alertu(it.get("shortcut") or it.get("title") or "", it.get("content") or "")
+                 or "Odwołanie alertu RCB")
         await fusion.ingest(
             source="rcb", event_type="rso_clear", voivodeship=voiv, points=0.0,
             title=f"RCB (RSO): odwołanie — „{title[:120]}”",
