@@ -1,0 +1,1029 @@
+# Miasta z rejestru TERYT (SIMC, RM=96), stan na 2026-01-01; wyciąg z teryt_2026-10-23
+# Źródło: Główny Urząd Statystyczny, rejestr TERYT. Odświeżenie: py tools/miasta_teryt.py <katalog>
+# NAZWA;województwo;gmina
+Aleksandrów Kujawski;kujawsko-pomorskie;Aleksandrów Kujawski
+Aleksandrów Łódzki;łódzkie;Aleksandrów Łódzki
+Alwernia;małopolskie;Alwernia
+Andrychów;małopolskie;Andrychów
+Annopol;lubelskie;Annopol
+Augustów;podlaskie;Augustów
+Babimost;lubuskie;Babimost
+Baborów;opolskie;Baborów
+Baranów Sandomierski;podkarpackie;Baranów Sandomierski
+Barcin;kujawsko-pomorskie;Barcin
+Barczewo;warmińsko-mazurskie;Barczewo
+Bardo;dolnośląskie;Bardo
+Barlinek;zachodniopomorskie;Barlinek
+Bartoszyce;warmińsko-mazurskie;Bartoszyce
+Barwice;zachodniopomorskie;Barwice
+Bełchatów;łódzkie;Bełchatów
+Bełżyce;lubelskie;Bełżyce
+Biała;opolskie;Biała
+Biała Piska;warmińsko-mazurskie;Biała Piska
+Biała Podlaska;lubelskie;Biała Podlaska
+Biała Rawska;łódzkie;Biała Rawska
+Białaczów;łódzkie;Białaczów
+Białobrzegi;mazowieckie;Białobrzegi
+Białogard;zachodniopomorskie;Białogard
+Biały Bór;zachodniopomorskie;Biały Bór
+Białystok;podlaskie;Białystok
+Biecz;małopolskie;Biecz
+Bielawa;dolnośląskie;Bielawa
+Bielsk Podlaski;podlaskie;Bielsk Podlaski
+Bielsko-Biała;śląskie;Bielsko-Biała
+Bierutów;dolnośląskie;Bierutów
+Bieruń;śląskie;Bieruń
+Bieżuń;mazowieckie;Bieżuń
+Bircza;podkarpackie;Bircza
+Biskupiec;warmińsko-mazurskie;Biskupiec
+Bisztynek;warmińsko-mazurskie;Bisztynek
+Biłgoraj;lubelskie;Biłgoraj
+Blachownia;śląskie;Blachownia
+Bobolice;zachodniopomorskie;Bobolice
+Bobowa;małopolskie;Bobowa
+Bobrowniki;kujawsko-pomorskie;Bobrowniki
+Bochnia;małopolskie;Bochnia
+Bodzanów;mazowieckie;Bodzanów
+Bodzentyn;świętokrzyskie;Bodzentyn
+Bogatynia;dolnośląskie;Bogatynia
+Bogoria;świętokrzyskie;Bogoria
+Boguchwała;podkarpackie;Boguchwała
+Boguszów-Gorce;dolnośląskie;Boguszów-Gorce
+Bojanowo;wielkopolskie;Bojanowo
+Bolesławiec;dolnośląskie;Bolesławiec
+Bolesławiec;łódzkie;Bolesławiec
+Bolimów;łódzkie;Bolimów
+Bolków;dolnośląskie;Bolków
+Borek Wielkopolski;wielkopolskie;Borek Wielkopolski
+Borne Sulinowo;zachodniopomorskie;Borne Sulinowo
+Branice;opolskie;Branice
+Braniewo;warmińsko-mazurskie;Braniewo
+Brańsk;podlaskie;Brańsk
+Brodnica;kujawsko-pomorskie;Brodnica
+Brody;lubuskie;Brody
+Brok;mazowieckie;Brok
+Brusy;pomorskie;Brusy
+Brwinów;mazowieckie;Brwinów
+Brzeg;opolskie;Brzeg
+Brzeg Dolny;dolnośląskie;Brzeg Dolny
+Brzesko;małopolskie;Brzesko
+Brzeszcze;małopolskie;Brzeszcze
+Brzeziny;łódzkie;Brzeziny
+Brześć Kujawski;kujawsko-pomorskie;Brześć Kujawski
+Brzostek;podkarpackie;Brzostek
+Brzozów;podkarpackie;Brzozów
+Budzyń;wielkopolskie;Budzyń
+Buk;wielkopolskie;Buk
+Bukowno;małopolskie;Bukowno
+Busko-Zdrój;świętokrzyskie;Busko-Zdrój
+Bychawa;lubelskie;Bychawa
+Byczyna;opolskie;Byczyna
+Bydgoszcz;kujawsko-pomorskie;Bydgoszcz
+Bystrzyca Kłodzka;dolnośląskie;Bystrzyca Kłodzka
+Bytom;śląskie;Bytom
+Bytom Odrzański;lubuskie;Bytom Odrzański
+Bytów;pomorskie;Bytów
+Będzin;śląskie;Będzin
+Błaszki;łódzkie;Błaszki
+Błażowa;podkarpackie;Błażowa
+Błonie;mazowieckie;Błonie
+Cedynia;zachodniopomorskie;Cedynia
+Cegłów;mazowieckie;Cegłów
+Chełm;lubelskie;Chełm
+Chełmek;małopolskie;Chełmek
+Chełmno;kujawsko-pomorskie;Chełmno
+Chełmża;kujawsko-pomorskie;Chełmża
+Chmielnik;świętokrzyskie;Chmielnik
+Chocianów;dolnośląskie;Chocianów
+Chociwel;zachodniopomorskie;Chociwel
+Chocz;wielkopolskie;Chocz
+Chodecz;kujawsko-pomorskie;Chodecz
+Chodzież;wielkopolskie;Chodzież
+Chojna;zachodniopomorskie;Chojna
+Chojnice;pomorskie;Chojnice
+Chojnów;dolnośląskie;Chojnów
+Choroszcz;podlaskie;Choroszcz
+Chorzele;mazowieckie;Chorzele
+Chorzów;śląskie;Chorzów
+Choszczno;zachodniopomorskie;Choszczno
+Chrzanów;małopolskie;Chrzanów
+Chęciny;świętokrzyskie;Chęciny
+Ciechanowiec;podlaskie;Ciechanowiec
+Ciechanów;mazowieckie;Ciechanów
+Ciechocinek;kujawsko-pomorskie;Ciechocinek
+Ciepielów;mazowieckie;Ciepielów
+Cieszanów;podkarpackie;Cieszanów
+Cieszyn;śląskie;Cieszyn
+Ciężkowice;małopolskie;Ciężkowice
+Cybinka;lubuskie;Cybinka
+Czaplinek;zachodniopomorskie;Czaplinek
+Czarna Białostocka;podlaskie;Czarna Białostocka
+Czarna Woda;pomorskie;Czarna Woda
+Czarne;pomorskie;Czarne
+Czarnków;wielkopolskie;Czarnków
+Czarny Dunajec;małopolskie;Czarny Dunajec
+Czchów;małopolskie;Czchów
+Czechowice-Dziedzice;śląskie;Czechowice-Dziedzice
+Czeladź;śląskie;Czeladź
+Czemierniki;lubelskie;Czemierniki
+Czempiń;wielkopolskie;Czempiń
+Czerniejewo;wielkopolskie;Czerniejewo
+Czersk;pomorskie;Czersk
+Czerwieńsk;lubuskie;Czerwieńsk
+Czerwionka-Leszczyny;śląskie;Czerwionka-Leszczyny
+Czerwińsk nad Wisłą;mazowieckie;Czerwińsk nad Wisłą
+Czyżew;podlaskie;Czyżew
+Częstochowa;śląskie;Częstochowa
+Człopa;zachodniopomorskie;Człopa
+Człuchów;pomorskie;Człuchów
+Daleszyce;świętokrzyskie;Daleszyce
+Darłowo;zachodniopomorskie;Darłowo
+Debrzno;pomorskie;Debrzno
+Dobczyce;małopolskie;Dobczyce
+Dobiegniew;lubuskie;Dobiegniew
+Dobra;wielkopolskie;Dobra
+Dobra;zachodniopomorskie;Dobra
+Dobre;mazowieckie;Dobre
+Dobre Miasto;warmińsko-mazurskie;Dobre Miasto
+Dobrodzień;opolskie;Dobrodzień
+Dobrzany;zachodniopomorskie;Dobrzany
+Dobrzyca;wielkopolskie;Dobrzyca
+Dobrzyń nad Wisłą;kujawsko-pomorskie;Dobrzyń nad Wisłą
+Dolsk;wielkopolskie;Dolsk
+Drawno;zachodniopomorskie;Drawno
+Drawsko Pomorskie;zachodniopomorskie;Drawsko Pomorskie
+Drezdenko;lubuskie;Drezdenko
+Drobin;mazowieckie;Drobin
+Drohiczyn;podlaskie;Drohiczyn
+Drzewica;łódzkie;Drzewica
+Dubiecko;podkarpackie;Dubiecko
+Dukla;podkarpackie;Dukla
+Duszniki-Zdrój;dolnośląskie;Duszniki-Zdrój
+Dynów;podkarpackie;Dynów
+Działdowo;warmińsko-mazurskie;Działdowo
+Działoszyce;świętokrzyskie;Działoszyce
+Działoszyn;łódzkie;Działoszyn
+Dzierzgoń;pomorskie;Dzierzgoń
+Dzierżoniów;dolnośląskie;Dzierżoniów
+Dziwnów;zachodniopomorskie;Dziwnów
+Dąbie;wielkopolskie;Dąbie
+Dąbrowa Białostocka;podlaskie;Dąbrowa Białostocka
+Dąbrowa Górnicza;śląskie;Dąbrowa Górnicza
+Dąbrowa Tarnowska;małopolskie;Dąbrowa Tarnowska
+Dąbrowice;łódzkie;Dąbrowice
+Dębica;podkarpackie;Dębica
+Dęblin;lubelskie;Dęblin
+Dębno;zachodniopomorskie;Dębno
+Elbląg;warmińsko-mazurskie;Elbląg
+Ełk;warmińsko-mazurskie;Ełk
+Frampol;lubelskie;Frampol
+Frombork;warmińsko-mazurskie;Frombork
+Garwolin;mazowieckie;Garwolin
+Gdańsk;pomorskie;Gdańsk
+Gdynia;pomorskie;Gdynia
+Gielniów;mazowieckie;Gielniów
+Giżycko;warmińsko-mazurskie;Giżycko
+Glinojeck;mazowieckie;Glinojeck
+Gliwice;śląskie;Gliwice
+Gniew;pomorskie;Gniew
+Gniewkowo;kujawsko-pomorskie;Gniewkowo
+Gniezno;wielkopolskie;Gniezno
+Gogolin;opolskie;Gogolin
+Golczewo;zachodniopomorskie;Golczewo
+Goleniów;zachodniopomorskie;Goleniów
+Golina;wielkopolskie;Golina
+Golub-Dobrzyń;kujawsko-pomorskie;Golub-Dobrzyń
+Goniądz;podlaskie;Goniądz
+Goraj;lubelskie;Goraj
+Gorlice;małopolskie;Gorlice
+Gorzów Wielkopolski;lubuskie;Gorzów Wielkopolski
+Gorzów Śląski;opolskie;Gorzów Śląski
+Gostynin;mazowieckie;Gostynin
+Gostyń;wielkopolskie;Gostyń
+Gowarczów;świętokrzyskie;Gowarczów
+Gozdnica;lubuskie;Gozdnica
+Gołańcz;wielkopolskie;Gołańcz
+Gołdap;warmińsko-mazurskie;Gołdap
+Gościno;zachodniopomorskie;Gościno
+Grabów;łódzkie;Grabów
+Grabów nad Prosną;wielkopolskie;Grabów nad Prosną
+Grajewo;podlaskie;Grajewo
+Grodków;opolskie;Grodków
+Grodzisk Mazowiecki;mazowieckie;Grodzisk Mazowiecki
+Grodzisk Wielkopolski;wielkopolskie;Grodzisk Wielkopolski
+Grudziądz;kujawsko-pomorskie;Grudziądz
+Grybów;małopolskie;Grybów
+Gryfice;zachodniopomorskie;Gryfice
+Gryfino;zachodniopomorskie;Gryfino
+Gryfów Śląski;dolnośląskie;Gryfów Śląski
+Grójec;mazowieckie;Grójec
+Gubin;lubuskie;Gubin
+Góra;dolnośląskie;Góra
+Góra Kalwaria;mazowieckie;Góra Kalwaria
+Górowo Iławeckie;warmińsko-mazurskie;Górowo Iławeckie
+Górzno;kujawsko-pomorskie;Górzno
+Gąbin;mazowieckie;Gąbin
+Gąsawa;kujawsko-pomorskie;Gąsawa
+Głogów;dolnośląskie;Głogów
+Głogów Małopolski;podkarpackie;Głogów Małopolski
+Głogówek;opolskie;Głogówek
+Głowaczów;mazowieckie;Głowaczów
+Głowno;łódzkie;Głowno
+Głubczyce;opolskie;Głubczyce
+Głuchołazy;opolskie;Głuchołazy
+Głuszyca;dolnośląskie;Głuszyca
+Hajnówka;podlaskie;Hajnówka
+Halinów;mazowieckie;Halinów
+Hel;pomorskie;Hel
+Hrubieszów;lubelskie;Hrubieszów
+Imielin;śląskie;Imielin
+Inowrocław;kujawsko-pomorskie;Inowrocław
+Inowłódz;łódzkie;Inowłódz
+Iwaniska;świętokrzyskie;Iwaniska
+Iwonicz-Zdrój;podkarpackie;Iwonicz-Zdrój
+Izbica;lubelskie;Izbica
+Izbica Kujawska;kujawsko-pomorskie;Izbica Kujawska
+Iława;warmińsko-mazurskie;Iława
+Iłowa;lubuskie;Iłowa
+Iłża;mazowieckie;Iłża
+Ińsko;zachodniopomorskie;Ińsko
+Jabłonowo Pomorskie;kujawsko-pomorskie;Jabłonowo Pomorskie
+Jadów;mazowieckie;Jadów
+Janikowo;kujawsko-pomorskie;Janikowo
+Janowiec Wielkopolski;kujawsko-pomorskie;Janowiec Wielkopolski
+Janów;śląskie;Janów
+Janów Lubelski;lubelskie;Janów Lubelski
+Janów Podlaski;lubelskie;Janów Podlaski
+Jaraczewo;wielkopolskie;Jaraczewo
+Jarocin;wielkopolskie;Jarocin
+Jarosław;podkarpackie;Jarosław
+Jasień;lubuskie;Jasień
+Jastarnia;pomorskie;Jastarnia
+Jastrowie;wielkopolskie;Jastrowie
+Jastrząb;mazowieckie;Jastrząb
+Jastrzębie-Zdrój;śląskie;Jastrzębie-Zdrój
+Jasło;podkarpackie;Jasło
+Jawor;dolnośląskie;Jawor
+Jawornik Polski;podkarpackie;Jawornik Polski
+Jaworzno;śląskie;Jaworzno
+Jaworzyna Śląska;dolnośląskie;Jaworzyna Śląska
+Jedlicze;podkarpackie;Jedlicze
+Jedlina-Zdrój;dolnośląskie;Jedlina-Zdrój
+Jedlnia-Letnisko;mazowieckie;Jedlnia-Letnisko
+Jedwabne;podlaskie;Jedwabne
+Jelcz-Laskowice;dolnośląskie;Jelcz-Laskowice
+Jelenia Góra;dolnośląskie;Jelenia Góra
+Jeziorany;warmińsko-mazurskie;Jeziorany
+Jeżów;łódzkie;Jeżów
+Jordanów;małopolskie;Jordanów
+Jutrosin;wielkopolskie;Jutrosin
+Józefów;lubelskie;Józefów
+Józefów;mazowieckie;Józefów
+Józefów nad Wisłą;lubelskie;Józefów nad Wisłą
+Jędrzejów;świętokrzyskie;Jędrzejów
+Kaczory;wielkopolskie;Kaczory
+Kalety;śląskie;Kalety
+Kalisz;wielkopolskie;Kalisz
+Kalisz Pomorski;zachodniopomorskie;Kalisz Pomorski
+Kalwaria Zebrzydowska;małopolskie;Kalwaria Zebrzydowska
+Kamieniec Ząbkowicki;dolnośląskie;Kamieniec Ząbkowicki
+Kamienna Góra;dolnośląskie;Kamienna Góra
+Kamień Krajeński;kujawsko-pomorskie;Kamień Krajeński
+Kamień Pomorski;zachodniopomorskie;Kamień Pomorski
+Kamieńsk;łódzkie;Kamieńsk
+Kamionka;lubelskie;Kamionka
+Karczew;mazowieckie;Karczew
+Kargowa;lubuskie;Kargowa
+Karlino;zachodniopomorskie;Karlino
+Karpacz;dolnośląskie;Karpacz
+Kartuzy;pomorskie;Kartuzy
+Katowice;śląskie;Katowice
+Kazanów;mazowieckie;Kazanów
+Kazimierz Dolny;lubelskie;Kazimierz Dolny
+Kazimierza Wielka;świętokrzyskie;Kazimierza Wielka
+Kałuszyn;mazowieckie;Kałuszyn
+Kańczuga;podkarpackie;Kańczuga
+Kcynia;kujawsko-pomorskie;Kcynia
+Kielce;świętokrzyskie;Kielce
+Kiernozia;łódzkie;Kiernozia
+Kietrz;opolskie;Kietrz
+Kikół;kujawsko-pomorskie;Kikół
+Kisielice;warmińsko-mazurskie;Kisielice
+Kleczew;wielkopolskie;Kleczew
+Kleszczele;podlaskie;Kleszczele
+Klimontów;świętokrzyskie;Klimontów
+Kluczbork;opolskie;Kluczbork
+Knurów;śląskie;Knurów
+Knyszyn;podlaskie;Knyszyn
+Kobylin;wielkopolskie;Kobylin
+Kobylnica;pomorskie;Kobylnica
+Kobyłka;mazowieckie;Kobyłka
+Kock;lubelskie;Kock
+Kolbuszowa;podkarpackie;Kolbuszowa
+Kolno;podlaskie;Kolno
+Kolonowskie;opolskie;Kolonowskie
+Koluszki;łódzkie;Koluszki
+Koniecpol;śląskie;Koniecpol
+Konin;wielkopolskie;Konin
+Konstancin-Jeziorna;mazowieckie;Konstancin-Jeziorna
+Konstantynów Łódzki;łódzkie;Konstantynów Łódzki
+Koprzywnica;świętokrzyskie;Koprzywnica
+Korfantów;opolskie;Korfantów
+Koronowo;kujawsko-pomorskie;Koronowo
+Korsze;warmińsko-mazurskie;Korsze
+Kostrzyn;wielkopolskie;Kostrzyn
+Kostrzyn nad Odrą;lubuskie;Kostrzyn nad Odrą
+Koszalin;zachodniopomorskie;Koszalin
+Koszyce;małopolskie;Koszyce
+Kosów Lacki;mazowieckie;Kosów Lacki
+Kowal;kujawsko-pomorskie;Kowal
+Kowalewo Pomorskie;kujawsko-pomorskie;Kowalewo Pomorskie
+Kowary;dolnośląskie;Kowary
+Koziegłowy;śląskie;Koziegłowy
+Kozienice;mazowieckie;Kozienice
+Kołaczyce;podkarpackie;Kołaczyce
+Koło;wielkopolskie;Koło
+Kołobrzeg;zachodniopomorskie;Kołobrzeg
+Końskie;świętokrzyskie;Końskie
+Końskowola;lubelskie;Końskowola
+Kościan;wielkopolskie;Kościan
+Kościerzyna;pomorskie;Kościerzyna
+Koźmin Wielkopolski;wielkopolskie;Koźmin Wielkopolski
+Koźminek;wielkopolskie;Koźminek
+Kożuchów;lubuskie;Kożuchów
+Krajenka;wielkopolskie;Krajenka
+Kraków;małopolskie;Kraków
+Krapkowice;opolskie;Krapkowice
+Krasnobród;lubelskie;Krasnobród
+Krasnystaw;lubelskie;Krasnystaw
+Kraśnik;lubelskie;Kraśnik
+Krobia;wielkopolskie;Krobia
+Krosno;podkarpackie;Krosno
+Krosno Odrzańskie;lubuskie;Krosno Odrzańskie
+Krotoszyn;wielkopolskie;Krotoszyn
+Krośniewice;łódzkie;Krośniewice
+Kruszwica;kujawsko-pomorskie;Kruszwica
+Krynica Morska;pomorskie;Krynica Morska
+Krynica-Zdrój;małopolskie;Krynica-Zdrój
+Krynki;podlaskie;Krynki
+Krzanowice;śląskie;Krzanowice
+Krzepice;śląskie;Krzepice
+Krzeszowice;małopolskie;Krzeszowice
+Krzywiń;wielkopolskie;Krzywiń
+Krzyż Wielkopolski;wielkopolskie;Krzyż Wielkopolski
+Książ Wielki;małopolskie;Książ Wielki
+Książ Wielkopolski;wielkopolskie;Książ Wielkopolski
+Kudowa-Zdrój;dolnośląskie;Kudowa-Zdrój
+Kunów;świętokrzyskie;Kunów
+Kurów;lubelskie;Kurów
+Kutno;łódzkie;Kutno
+Kuźnia Raciborska;śląskie;Kuźnia Raciborska
+Kwidzyn;pomorskie;Kwidzyn
+Kórnik;wielkopolskie;Kórnik
+Kąty Wrocławskie;dolnośląskie;Kąty Wrocławskie
+Kędzierzyn-Koźle;opolskie;Kędzierzyn-Koźle
+Kępice;pomorskie;Kępice
+Kępno;wielkopolskie;Kępno
+Kętrzyn;warmińsko-mazurskie;Kętrzyn
+Kęty;małopolskie;Kęty
+Kłecko;wielkopolskie;Kłecko
+Kłobuck;śląskie;Kłobuck
+Kłodawa;wielkopolskie;Kłodawa
+Kłodzko;dolnośląskie;Kłodzko
+Latowicz;mazowieckie;Latowicz
+Legionowo;mazowieckie;Legionowo
+Legnica;dolnośląskie;Legnica
+Lesko;podkarpackie;Lesko
+Leszno;wielkopolskie;Leszno
+Lewin Brzeski;opolskie;Lewin Brzeski
+Leśna;dolnośląskie;Leśna
+Leśnica;opolskie;Leśnica
+Leżajsk;podkarpackie;Leżajsk
+Libiąż;małopolskie;Libiąż
+Lidzbark;warmińsko-mazurskie;Lidzbark
+Lidzbark Warmiński;warmińsko-mazurskie;Lidzbark Warmiński
+Limanowa;małopolskie;Limanowa
+Lipiany;zachodniopomorskie;Lipiany
+Lipno;kujawsko-pomorskie;Lipno
+Lipsk;podlaskie;Lipsk
+Lipsko;mazowieckie;Lipsko
+Lubaczów;podkarpackie;Lubaczów
+Lubartów;lubelskie;Lubartów
+Lubawa;warmińsko-mazurskie;Lubawa
+Lubawka;dolnośląskie;Lubawka
+Lubań;dolnośląskie;Lubań
+Lubień Kujawski;kujawsko-pomorskie;Lubień Kujawski
+Lubin;dolnośląskie;Lubin
+Lublin;lubelskie;Lublin
+Lubliniec;śląskie;Lubliniec
+Lubniewice;lubuskie;Lubniewice
+Lubomierz;dolnośląskie;Lubomierz
+Lubowidz;mazowieckie;Lubowidz
+Luboń;wielkopolskie;Luboń
+Lubraniec;kujawsko-pomorskie;Lubraniec
+Lubsko;lubuskie;Lubsko
+Lubycza Królewska;lubelskie;Lubycza Królewska
+Lutomiersk;łódzkie;Lutomiersk
+Lututów;łódzkie;Lututów
+Lwówek;wielkopolskie;Lwówek
+Lwówek Śląski;dolnośląskie;Lwówek Śląski
+Lądek-Zdrój;dolnośląskie;Lądek-Zdrój
+Lębork;pomorskie;Lębork
+Lędziny;śląskie;Lędziny
+Maciejowice;mazowieckie;Maciejowice
+Magnuszew;mazowieckie;Magnuszew
+Maków Mazowiecki;mazowieckie;Maków Mazowiecki
+Maków Podhalański;małopolskie;Maków Podhalański
+Malbork;pomorskie;Malbork
+Margonin;wielkopolskie;Margonin
+Marki;mazowieckie;Marki
+Maszewo;zachodniopomorskie;Maszewo
+Małkinia Górna;mazowieckie;Małkinia Górna
+Małogoszcz;świętokrzyskie;Małogoszcz
+Małomice;lubuskie;Małomice
+Miasteczko Krajeńskie;wielkopolskie;Miasteczko Krajeńskie
+Miasteczko Śląskie;śląskie;Miasteczko Śląskie
+Miastko;pomorskie;Miastko
+Michałowo;podlaskie;Michałowo
+Miechów;małopolskie;Miechów
+Miejska Górka;wielkopolskie;Miejska Górka
+Mielec;podkarpackie;Mielec
+Mielno;zachodniopomorskie;Mielno
+Mieroszów;dolnośląskie;Mieroszów
+Mieszkowice;zachodniopomorskie;Mieszkowice
+Mieścisko;wielkopolskie;Mieścisko
+Mikołajki;warmińsko-mazurskie;Mikołajki
+Mikołów;śląskie;Mikołów
+Mikstat;wielkopolskie;Mikstat
+Milanówek;mazowieckie;Milanówek
+Milicz;dolnośląskie;Milicz
+Mirosławiec;zachodniopomorskie;Mirosławiec
+Mirsk;dolnośląskie;Mirsk
+Międzybórz;dolnośląskie;Międzybórz
+Międzychód;wielkopolskie;Międzychód
+Międzylesie;dolnośląskie;Międzylesie
+Międzyrzec Podlaski;lubelskie;Międzyrzec Podlaski
+Międzyrzecz;lubuskie;Międzyrzecz
+Międzyzdroje;zachodniopomorskie;Międzyzdroje
+Miękinia;dolnośląskie;Miękinia
+Miłakowo;warmińsko-mazurskie;Miłakowo
+Miłomłyn;warmińsko-mazurskie;Miłomłyn
+Miłosław;wielkopolskie;Miłosław
+Mińsk Mazowiecki;mazowieckie;Mińsk Mazowiecki
+Modliborzyce;lubelskie;Modliborzyce
+Mogielnica;mazowieckie;Mogielnica
+Mogilno;kujawsko-pomorskie;Mogilno
+Morawica;świętokrzyskie;Morawica
+Mordy;mazowieckie;Mordy
+Moryń;zachodniopomorskie;Moryń
+Morąg;warmińsko-mazurskie;Morąg
+Mosina;wielkopolskie;Mosina
+Mońki;podlaskie;Mońki
+Mrocza;kujawsko-pomorskie;Mrocza
+Mrozy;mazowieckie;Mrozy
+Mrągowo;warmińsko-mazurskie;Mrągowo
+Mszana Dolna;małopolskie;Mszana Dolna
+Mszczonów;mazowieckie;Mszczonów
+Murowana Goślina;wielkopolskie;Murowana Goślina
+Muszyna;małopolskie;Muszyna
+Myszków;śląskie;Myszków
+Myszyniec;mazowieckie;Myszyniec
+Mysłowice;śląskie;Mysłowice
+Myślenice;małopolskie;Myślenice
+Myślibórz;zachodniopomorskie;Myślibórz
+Mława;mazowieckie;Mława
+Młynary;warmińsko-mazurskie;Młynary
+Nakło nad Notecią;kujawsko-pomorskie;Nakło nad Notecią
+Namysłów;opolskie;Namysłów
+Narol;podkarpackie;Narol
+Nasielsk;mazowieckie;Nasielsk
+Nałęczów;lubelskie;Nałęczów
+Nekla;wielkopolskie;Nekla
+Nidzica;warmińsko-mazurskie;Nidzica
+Niemcza;dolnośląskie;Niemcza
+Niemodlin;opolskie;Niemodlin
+Niepołomice;małopolskie;Niepołomice
+Nieszawa;kujawsko-pomorskie;Nieszawa
+Nisko;podkarpackie;Nisko
+Nowa Dęba;podkarpackie;Nowa Dęba
+Nowa Ruda;dolnośląskie;Nowa Ruda
+Nowa Sarzyna;podkarpackie;Nowa Sarzyna
+Nowa Sól;lubuskie;Nowa Sól
+Nowa Słupia;świętokrzyskie;Nowa Słupia
+Nowe;kujawsko-pomorskie;Nowe
+Nowe Brzesko;małopolskie;Nowe Brzesko
+Nowe Miasteczko;lubuskie;Nowe Miasteczko
+Nowe Miasto;mazowieckie;Nowe Miasto
+Nowe Miasto Lubawskie;warmińsko-mazurskie;Nowe Miasto Lubawskie
+Nowe Miasto nad Pilicą;mazowieckie;Nowe Miasto nad Pilicą
+Nowe Skalmierzyce;wielkopolskie;Nowe Skalmierzyce
+Nowe Warpno;zachodniopomorskie;Nowe Warpno
+Nowogard;zachodniopomorskie;Nowogard
+Nowogrodziec;dolnośląskie;Nowogrodziec
+Nowogród;podlaskie;Nowogród
+Nowogród Bobrzański;lubuskie;Nowogród Bobrzański
+Nowy Dwór Gdański;pomorskie;Nowy Dwór Gdański
+Nowy Dwór Mazowiecki;mazowieckie;Nowy Dwór Mazowiecki
+Nowy Korczyn;świętokrzyskie;Nowy Korczyn
+Nowy Staw;pomorskie;Nowy Staw
+Nowy Sącz;małopolskie;Nowy Sącz
+Nowy Targ;małopolskie;Nowy Targ
+Nowy Tomyśl;wielkopolskie;Nowy Tomyśl
+Nowy Wiśnicz;małopolskie;Nowy Wiśnicz
+Nysa;opolskie;Nysa
+Oborniki;wielkopolskie;Oborniki
+Oborniki Śląskie;dolnośląskie;Oborniki Śląskie
+Obrzycko;wielkopolskie;Obrzycko
+Odolanów;wielkopolskie;Odolanów
+Odrzywół;mazowieckie;Odrzywół
+Ogrodzieniec;śląskie;Ogrodzieniec
+Okonek;wielkopolskie;Okonek
+Olecko;warmińsko-mazurskie;Olecko
+Olesno;opolskie;Olesno
+Oleszyce;podkarpackie;Oleszyce
+Oleśnica;dolnośląskie;Oleśnica
+Oleśnica;świętokrzyskie;Oleśnica
+Olkusz;małopolskie;Olkusz
+Olsztyn;warmińsko-mazurskie;Olsztyn
+Olsztyn;śląskie;Olsztyn
+Olsztynek;warmińsko-mazurskie;Olsztynek
+Olszyna;dolnośląskie;Olszyna
+Opalenica;wielkopolskie;Opalenica
+Opatowiec;świętokrzyskie;Opatowiec
+Opatów;świętokrzyskie;Opatów
+Opatówek;wielkopolskie;Opatówek
+Opoczno;łódzkie;Opoczno
+Opole;opolskie;Opole
+Opole Lubelskie;lubelskie;Opole Lubelskie
+Orneta;warmińsko-mazurskie;Orneta
+Orzesze;śląskie;Orzesze
+Orzysz;warmińsko-mazurskie;Orzysz
+Osieck;mazowieckie;Osieck
+Osieczna;wielkopolskie;Osieczna
+Osiek;świętokrzyskie;Osiek
+Osjaków;łódzkie;Osjaków
+Ostroróg;wielkopolskie;Ostroróg
+Ostrowiec Świętokrzyski;świętokrzyskie;Ostrowiec Świętokrzyski
+Ostrołęka;mazowieckie;Ostrołęka
+Ostrzeszów;wielkopolskie;Ostrzeszów
+Ostróda;warmińsko-mazurskie;Ostróda
+Ostrów Lubelski;lubelskie;Ostrów Lubelski
+Ostrów Mazowiecka;mazowieckie;Ostrów Mazowiecka
+Ostrów Wielkopolski;wielkopolskie;Ostrów Wielkopolski
+Otmuchów;opolskie;Otmuchów
+Otwock;mazowieckie;Otwock
+Otyń;lubuskie;Otyń
+Ozimek;opolskie;Ozimek
+Ozorków;łódzkie;Ozorków
+Oława;dolnośląskie;Oława
+Ośno Lubuskie;lubuskie;Ośno Lubuskie
+Oświęcim;małopolskie;Oświęcim
+Ożarów;świętokrzyskie;Ożarów
+Ożarów Mazowiecki;mazowieckie;Ożarów Mazowiecki
+Pabianice;łódzkie;Pabianice
+Pacanów;świętokrzyskie;Pacanów
+Paczków;opolskie;Paczków
+Pajęczno;łódzkie;Pajęczno
+Pakość;kujawsko-pomorskie;Pakość
+Parczew;lubelskie;Parczew
+Parzęczew;łódzkie;Parzęczew
+Pasym;warmińsko-mazurskie;Pasym
+Pasłęk;warmińsko-mazurskie;Pasłęk
+Pelplin;pomorskie;Pelplin
+Pełczyce;zachodniopomorskie;Pełczyce
+Piaseczno;mazowieckie;Piaseczno
+Piaski;lubelskie;Piaski
+Piastów;mazowieckie;Piastów
+Piechowice;dolnośląskie;Piechowice
+Piekary Śląskie;śląskie;Piekary Śląskie
+Piekoszów;świętokrzyskie;Piekoszów
+Pieniężno;warmińsko-mazurskie;Pieniężno
+Pierzchnica;świętokrzyskie;Pierzchnica
+Pieszyce;dolnośląskie;Pieszyce
+Pieńsk;dolnośląskie;Pieńsk
+Pilawa;mazowieckie;Pilawa
+Pilica;śląskie;Pilica
+Pilzno;podkarpackie;Pilzno
+Pionki;mazowieckie;Pionki
+Piotrków Kujawski;kujawsko-pomorskie;Piotrków Kujawski
+Piotrków Trybunalski;łódzkie;Piotrków Trybunalski
+Pisz;warmińsko-mazurskie;Pisz
+Piszczac;lubelskie;Piszczac
+Piwniczna-Zdrój;małopolskie;Piwniczna-Zdrój
+Piątek;łódzkie;Piątek
+Piła;wielkopolskie;Piła
+Piława Górna;dolnośląskie;Piława Górna
+Pińczów;świętokrzyskie;Pińczów
+Pleszew;wielkopolskie;Pleszew
+Pniewy;wielkopolskie;Pniewy
+Pobiedziska;wielkopolskie;Pobiedziska
+Poddębice;łódzkie;Poddębice
+Podkowa Leśna;mazowieckie;Podkowa Leśna
+Pogorzela;wielkopolskie;Pogorzela
+Polanica-Zdrój;dolnośląskie;Polanica-Zdrój
+Polanów;zachodniopomorskie;Polanów
+Police;zachodniopomorskie;Police
+Polkowice;dolnośląskie;Polkowice
+Poniatowa;lubelskie;Poniatowa
+Poniec;wielkopolskie;Poniec
+Poręba;śląskie;Poręba
+Poznań;wielkopolskie;Poznań
+Połaniec;świętokrzyskie;Połaniec
+Połczyn-Zdrój;zachodniopomorskie;Połczyn-Zdrój
+Prabuty;pomorskie;Prabuty
+Praszka;opolskie;Praszka
+Prochowice;dolnośląskie;Prochowice
+Proszowice;małopolskie;Proszowice
+Pruchnik;podkarpackie;Pruchnik
+Prudnik;opolskie;Prudnik
+Prusice;dolnośląskie;Prusice
+Pruszcz;kujawsko-pomorskie;Pruszcz
+Pruszcz Gdański;pomorskie;Pruszcz Gdański
+Pruszków;mazowieckie;Pruszków
+Przasnysz;mazowieckie;Przasnysz
+Przecław;podkarpackie;Przecław
+Przedbórz;łódzkie;Przedbórz
+Przedecz;wielkopolskie;Przedecz
+Przemków;dolnośląskie;Przemków
+Przemyśl;podkarpackie;Przemyśl
+Przeworsk;podkarpackie;Przeworsk
+Przyrów;śląskie;Przyrów
+Przysucha;mazowieckie;Przysucha
+Przytyk;mazowieckie;Przytyk
+Prószków;opolskie;Prószków
+Pszczyna;śląskie;Pszczyna
+Pszów;śląskie;Pszów
+Puck;pomorskie;Puck
+Puszczykowo;wielkopolskie;Puszczykowo
+Puławy;lubelskie;Puławy
+Pułtusk;mazowieckie;Pułtusk
+Pyrzyce;zachodniopomorskie;Pyrzyce
+Pyskowice;śląskie;Pyskowice
+Pyzdry;wielkopolskie;Pyzdry
+Płock;mazowieckie;Płock
+Płoty;zachodniopomorskie;Płoty
+Płońsk;mazowieckie;Płońsk
+Rabka-Zdrój;małopolskie;Rabka-Zdrój
+Racibórz;śląskie;Racibórz
+Raciąż;mazowieckie;Raciąż
+Radków;dolnośląskie;Radków
+Radlin;śląskie;Radlin
+Radom;mazowieckie;Radom
+Radomsko;łódzkie;Radomsko
+Radomyśl Wielki;podkarpackie;Radomyśl Wielki
+Radoszyce;świętokrzyskie;Radoszyce
+Radymno;podkarpackie;Radymno
+Radziejów;kujawsko-pomorskie;Radziejów
+Radzionków;śląskie;Radzionków
+Radzymin;mazowieckie;Radzymin
+Radzyń Chełmiński;kujawsko-pomorskie;Radzyń Chełmiński
+Radzyń Podlaski;lubelskie;Radzyń Podlaski
+Radłów;małopolskie;Radłów
+Rajgród;podlaskie;Rajgród
+Rakoniewice;wielkopolskie;Rakoniewice
+Raszków;wielkopolskie;Raszków
+Rawa Mazowiecka;łódzkie;Rawa Mazowiecka
+Rawicz;wielkopolskie;Rawicz
+Recz;zachodniopomorskie;Recz
+Reda;pomorskie;Reda
+Rejowiec;lubelskie;Rejowiec
+Rejowiec Fabryczny;lubelskie;Rejowiec Fabryczny
+Resko;zachodniopomorskie;Resko
+Reszel;warmińsko-mazurskie;Reszel
+Rogoźno;wielkopolskie;Rogoźno
+Ropczyce;podkarpackie;Ropczyce
+Rozprza;łódzkie;Rozprza
+Ruciane-Nida;warmińsko-mazurskie;Ruciane-Nida
+Ruda Śląska;śląskie;Ruda Śląska
+Rudnik nad Sanem;podkarpackie;Rudnik nad Sanem
+Rumia;pomorskie;Rumia
+Rybnik;śląskie;Rybnik
+Rychtal;wielkopolskie;Rychtal
+Rychwał;wielkopolskie;Rychwał
+Rydułtowy;śląskie;Rydułtowy
+Rydzyna;wielkopolskie;Rydzyna
+Ryglice;małopolskie;Ryglice
+Ryki;lubelskie;Ryki
+Rymanów;podkarpackie;Rymanów
+Ryn;warmińsko-mazurskie;Ryn
+Rypin;kujawsko-pomorskie;Rypin
+Rzepin;lubuskie;Rzepin
+Rzeszów;podkarpackie;Rzeszów
+Rzgów;łódzkie;Rzgów
+Różan;mazowieckie;Różan
+Sandomierz;świętokrzyskie;Sandomierz
+Sanniki;mazowieckie;Sanniki
+Sanok;podkarpackie;Sanok
+Sejny;podlaskie;Sejny
+Serock;mazowieckie;Serock
+Sianów;zachodniopomorskie;Sianów
+Siechnice;dolnośląskie;Siechnice
+Siedlce;mazowieckie;Siedlce
+Siedliszcze;lubelskie;Siedliszcze
+Siemianowice Śląskie;śląskie;Siemianowice Śląskie
+Siemiatycze;podlaskie;Siemiatycze
+Sieniawa;podkarpackie;Sieniawa
+Siennica;mazowieckie;Siennica
+Sienno;mazowieckie;Sienno
+Sieradz;łódzkie;Sieradz
+Sieraków;wielkopolskie;Sieraków
+Sierpc;mazowieckie;Sierpc
+Siewierz;śląskie;Siewierz
+Skalbmierz;świętokrzyskie;Skalbmierz
+Skarszewy;pomorskie;Skarszewy
+Skaryszew;mazowieckie;Skaryszew
+Skarżysko-Kamienna;świętokrzyskie;Skarżysko-Kamienna
+Skawina;małopolskie;Skawina
+Skała;małopolskie;Skała
+Skierniewice;łódzkie;Skierniewice
+Skoczów;śląskie;Skoczów
+Skoki;wielkopolskie;Skoki
+Skwierzyna;lubuskie;Skwierzyna
+Skórcz;pomorskie;Skórcz
+Skępe;kujawsko-pomorskie;Skępe
+Sobków;świętokrzyskie;Sobków
+Sobótka;dolnośląskie;Sobótka
+Sochaczew;mazowieckie;Sochaczew
+Sochocin;mazowieckie;Sochocin
+Sokołów Małopolski;podkarpackie;Sokołów Małopolski
+Sokołów Podlaski;mazowieckie;Sokołów Podlaski
+Sokółka;podlaskie;Sokółka
+Solec Kujawski;kujawsko-pomorskie;Solec Kujawski
+Solec nad Wisłą;mazowieckie;Solec nad Wisłą
+Sompolno;wielkopolskie;Sompolno
+Sopot;pomorskie;Sopot
+Sosnowiec;śląskie;Sosnowiec
+Sośnicowice;śląskie;Sośnicowice
+Stalowa Wola;podkarpackie;Stalowa Wola
+Stanisławów;mazowieckie;Stanisławów
+Starachowice;świętokrzyskie;Starachowice
+Stargard;zachodniopomorskie;Stargard
+Starogard Gdański;pomorskie;Starogard Gdański
+Staroźreby;mazowieckie;Staroźreby
+Stary Sącz;małopolskie;Stary Sącz
+Staszów;świętokrzyskie;Staszów
+Stawiski;podlaskie;Stawiski
+Stawiszyn;wielkopolskie;Stawiszyn
+Stepnica;zachodniopomorskie;Stepnica
+Stoczek Łukowski;lubelskie;Stoczek Łukowski
+Stopnica;świętokrzyskie;Stopnica
+Stronie Śląskie;dolnośląskie;Stronie Śląskie
+Strumień;śląskie;Strumień
+Stryków;łódzkie;Stryków
+Strzegom;dolnośląskie;Strzegom
+Strzelce Krajeńskie;lubuskie;Strzelce Krajeńskie
+Strzelce Opolskie;opolskie;Strzelce Opolskie
+Strzeleczki;opolskie;Strzeleczki
+Strzelin;dolnośląskie;Strzelin
+Strzelno;kujawsko-pomorskie;Strzelno
+Strzyżów;podkarpackie;Strzyżów
+Stąporków;świętokrzyskie;Stąporków
+Stęszew;wielkopolskie;Stęszew
+Sucha Beskidzka;małopolskie;Sucha Beskidzka
+Suchań;zachodniopomorskie;Suchań
+Suchedniów;świętokrzyskie;Suchedniów
+Suchowola;podlaskie;Suchowola
+Sulechów;lubuskie;Sulechów
+Sulejów;łódzkie;Sulejów
+Sulejówek;mazowieckie;Sulejówek
+Sulmierzyce;wielkopolskie;Sulmierzyce
+Sulęcin;lubuskie;Sulęcin
+Supraśl;podlaskie;Supraśl
+Suraż;podlaskie;Suraż
+Susz;warmińsko-mazurskie;Susz
+Suwałki;podlaskie;Suwałki
+Sułkowice;małopolskie;Sułkowice
+Swarzędz;wielkopolskie;Swarzędz
+Syców;dolnośląskie;Syców
+Szadek;łódzkie;Szadek
+Szamocin;wielkopolskie;Szamocin
+Szamotuły;wielkopolskie;Szamotuły
+Szczawnica;małopolskie;Szczawnica
+Szczawno-Zdrój;dolnośląskie;Szczawno-Zdrój
+Szczebrzeszyn;lubelskie;Szczebrzeszyn
+Szczecin;zachodniopomorskie;Szczecin
+Szczecinek;zachodniopomorskie;Szczecinek
+Szczekociny;śląskie;Szczekociny
+Szczucin;małopolskie;Szczucin
+Szczuczyn;podlaskie;Szczuczyn
+Szczyrk;śląskie;Szczyrk
+Szczytna;dolnośląskie;Szczytna
+Szczytno;warmińsko-mazurskie;Szczytno
+Szepietowo;podlaskie;Szepietowo
+Szklarska Poręba;dolnośląskie;Szklarska Poręba
+Szlichtyngowa;lubuskie;Szlichtyngowa
+Szprotawa;lubuskie;Szprotawa
+Sztum;pomorskie;Sztum
+Szubin;kujawsko-pomorskie;Szubin
+Szydłowiec;mazowieckie;Szydłowiec
+Szydłów;świętokrzyskie;Szydłów
+Sędziszów;świętokrzyskie;Sędziszów
+Sędziszów Małopolski;podkarpackie;Sędziszów Małopolski
+Sępopol;warmińsko-mazurskie;Sępopol
+Sępólno Krajeńskie;kujawsko-pomorskie;Sępólno Krajeńskie
+Sława;lubuskie;Sława
+Sławków;śląskie;Sławków
+Sławno;zachodniopomorskie;Sławno
+Słomniki;małopolskie;Słomniki
+Słubice;lubuskie;Słubice
+Słupca;wielkopolskie;Słupca
+Słupsk;pomorskie;Słupsk
+Tarczyn;mazowieckie;Tarczyn
+Tarnobrzeg;podkarpackie;Tarnobrzeg
+Tarnogród;lubelskie;Tarnogród
+Tarnowskie Góry;śląskie;Tarnowskie Góry
+Tarnów;małopolskie;Tarnów
+Tczew;pomorskie;Tczew
+Terespol;lubelskie;Terespol
+Tolkmicko;warmińsko-mazurskie;Tolkmicko
+Tomaszów Lubelski;lubelskie;Tomaszów Lubelski
+Tomaszów Mazowiecki;łódzkie;Tomaszów Mazowiecki
+Toruń;kujawsko-pomorskie;Toruń
+Torzym;lubuskie;Torzym
+Toszek;śląskie;Toszek
+Trzcianka;wielkopolskie;Trzcianka
+Trzciel;lubuskie;Trzciel
+Trzcińsko-Zdrój;zachodniopomorskie;Trzcińsko-Zdrój
+Trzebiatów;zachodniopomorskie;Trzebiatów
+Trzebinia;małopolskie;Trzebinia
+Trzebnica;dolnośląskie;Trzebnica
+Trzemeszno;wielkopolskie;Trzemeszno
+Tuchola;kujawsko-pomorskie;Tuchola
+Tuchów;małopolskie;Tuchów
+Tuczno;zachodniopomorskie;Tuczno
+Tuliszków;wielkopolskie;Tuliszków
+Turek;wielkopolskie;Turek
+Turobin;lubelskie;Turobin
+Tuszyn;łódzkie;Tuszyn
+Tułowice;opolskie;Tułowice
+Twardogóra;dolnośląskie;Twardogóra
+Tychowo;zachodniopomorskie;Tychowo
+Tychy;śląskie;Tychy
+Tyczyn;podkarpackie;Tyczyn
+Tykocin;podlaskie;Tykocin
+Tyszowce;lubelskie;Tyszowce
+Tłuszcz;mazowieckie;Tłuszcz
+Ujazd;opolskie;Ujazd
+Ujazd;łódzkie;Ujazd
+Ujście;wielkopolskie;Ujście
+Ulanów;podkarpackie;Ulanów
+Uniejów;łódzkie;Uniejów
+Urzędów;lubelskie;Urzędów
+Ustka;pomorskie;Ustka
+Ustroń;śląskie;Ustroń
+Ustrzyki Dolne;podkarpackie;Ustrzyki Dolne
+Wadowice;małopolskie;Wadowice
+Warka;mazowieckie;Warka
+Warszawa;mazowieckie;Warszawa
+Warta;łódzkie;Warta
+Wasilków;podlaskie;Wasilków
+Wałbrzych;dolnośląskie;Wałbrzych
+Wałcz;zachodniopomorskie;Wałcz
+Wejherowo;pomorskie;Wejherowo
+Wielbark;warmińsko-mazurskie;Wielbark
+Wieleń;wielkopolskie;Wieleń
+Wielichowo;wielkopolskie;Wielichowo
+Wieliczka;małopolskie;Wieliczka
+Wieluń;łódzkie;Wieluń
+Wieruszów;łódzkie;Wieruszów
+Wilamowice;śląskie;Wilamowice
+Wiskitki;mazowieckie;Wiskitki
+Wisła;śląskie;Wisła
+Witkowo;wielkopolskie;Witkowo
+Witnica;lubuskie;Witnica
+Wiązów;dolnośląskie;Wiązów
+Więcbork;kujawsko-pomorskie;Więcbork
+Wiślica;świętokrzyskie;Wiślica
+Wleń;dolnośląskie;Wleń
+Wodzisław;świętokrzyskie;Wodzisław
+Wodzisław Śląski;śląskie;Wodzisław Śląski
+Wojcieszów;dolnośląskie;Wojcieszów
+Wojkowice;śląskie;Wojkowice
+Wojnicz;małopolskie;Wojnicz
+Wolbrom;małopolskie;Wolbrom
+Wolbórz;łódzkie;Wolbórz
+Wolin;zachodniopomorskie;Wolin
+Wolsztyn;wielkopolskie;Wolsztyn
+Wołczyn;opolskie;Wołczyn
+Wołomin;mazowieckie;Wołomin
+Wołów;dolnośląskie;Wołów
+Woźniki;śląskie;Woźniki
+Wrocław;dolnośląskie;Wrocław
+Wronki;wielkopolskie;Wronki
+Września;wielkopolskie;Września
+Wschowa;lubuskie;Wschowa
+Wyrzysk;wielkopolskie;Wyrzysk
+Wysoka;wielkopolskie;Wysoka
+Wysokie Mazowieckie;podlaskie;Wysokie Mazowieckie
+Wyszków;mazowieckie;Wyszków
+Wyszogród;mazowieckie;Wyszogród
+Wyśmierzyce;mazowieckie;Wyśmierzyce
+Wąbrzeźno;kujawsko-pomorskie;Wąbrzeźno
+Wąchock;świętokrzyskie;Wąchock
+Wągrowiec;wielkopolskie;Wągrowiec
+Wąsosz;dolnośląskie;Wąsosz
+Wąwolnica;lubelskie;Wąwolnica
+Węgliniec;dolnośląskie;Węgliniec
+Węgorzewo;warmińsko-mazurskie;Węgorzewo
+Węgorzyno;zachodniopomorskie;Węgorzyno
+Węgrów;mazowieckie;Węgrów
+Władysławowo;pomorskie;Władysławowo
+Włocławek;kujawsko-pomorskie;Włocławek
+Włodawa;lubelskie;Włodawa
+Włodowice;śląskie;Włodowice
+Włoszczowa;świętokrzyskie;Włoszczowa
+Zabrze;śląskie;Zabrze
+Zabłudów;podlaskie;Zabłudów
+Zagórz;podkarpackie;Zagórz
+Zagórów;wielkopolskie;Zagórów
+Zakliczyn;małopolskie;Zakliczyn
+Zaklików;podkarpackie;Zaklików
+Zakopane;małopolskie;Zakopane
+Zakroczym;mazowieckie;Zakroczym
+Zalewo;warmińsko-mazurskie;Zalewo
+Zambrów;podlaskie;Zambrów
+Zamość;lubelskie;Zamość
+Zaniemyśl;wielkopolskie;Zaniemyśl
+Zator;małopolskie;Zator
+Zawadzkie;opolskie;Zawadzkie
+Zawichost;świętokrzyskie;Zawichost
+Zawidów;dolnośląskie;Zawidów
+Zawiercie;śląskie;Zawiercie
+Zbąszynek;lubuskie;Zbąszynek
+Zbąszyń;wielkopolskie;Zbąszyń
+Zduny;wielkopolskie;Zduny
+Zduńska Wola;łódzkie;Zduńska Wola
+Zdzieszowice;opolskie;Zdzieszowice
+Zelów;łódzkie;Zelów
+Zgierz;łódzkie;Zgierz
+Zgorzelec;dolnośląskie;Zgorzelec
+Zielona Góra;lubuskie;Zielona Góra
+Zielonka;mazowieckie;Zielonka
+Ziębice;dolnośląskie;Ziębice
+Zwierzyniec;lubelskie;Zwierzyniec
+Zwoleń;mazowieckie;Zwoleń
+Ząbki;mazowieckie;Ząbki
+Ząbkowice Śląskie;dolnośląskie;Ząbkowice Śląskie
+Złocieniec;zachodniopomorskie;Złocieniec
+Złoczew;łódzkie;Złoczew
+Złotoryja;dolnośląskie;Złotoryja
+Złoty Stok;dolnośląskie;Złoty Stok
+Złotów;wielkopolskie;Złotów
+Ćmielów;świętokrzyskie;Ćmielów
+Łabiszyn;kujawsko-pomorskie;Łabiszyn
+Łagów;świętokrzyskie;Łagów
+Łapy;podlaskie;Łapy
+Łasin;kujawsko-pomorskie;Łasin
+Łask;łódzkie;Łask
+Łaskarzew;mazowieckie;Łaskarzew
+Łaszczów;lubelskie;Łaszczów
+Łaziska Górne;śląskie;Łaziska Górne
+Łazy;śląskie;Łazy
+Łańcut;podkarpackie;Łańcut
+Łeba;pomorskie;Łeba
+Łobez;zachodniopomorskie;Łobez
+Łobżenica;wielkopolskie;Łobżenica
+Łochów;mazowieckie;Łochów
+Łomianki;mazowieckie;Łomianki
+Łomża;podlaskie;Łomża
+Łopuszno;świętokrzyskie;Łopuszno
+Łosice;mazowieckie;Łosice
+Łowicz;łódzkie;Łowicz
+Łuków;lubelskie;Łuków
+Łódź;łódzkie;Łódź
+Łęczna;lubelskie;Łęczna
+Łęczyca;łódzkie;Łęczyca
+Łęknica;lubuskie;Łęknica
+Ścinawa;dolnośląskie;Ścinawa
+Ślesin;wielkopolskie;Ślesin
+Śmigiel;wielkopolskie;Śmigiel
+Śrem;wielkopolskie;Śrem
+Środa Wielkopolska;wielkopolskie;Środa Wielkopolska
+Środa Śląska;dolnośląskie;Środa Śląska
+Świdnica;dolnośląskie;Świdnica
+Świdnik;lubelskie;Świdnik
+Świdwin;zachodniopomorskie;Świdwin
+Świebodzice;dolnośląskie;Świebodzice
+Świebodzin;lubuskie;Świebodzin
+Świecie;kujawsko-pomorskie;Świecie
+Świeradów-Zdrój;dolnośląskie;Świeradów-Zdrój
+Świerzawa;dolnośląskie;Świerzawa
+Świnoujście;zachodniopomorskie;Świnoujście
+Świątniki Górne;małopolskie;Świątniki Górne
+Świętochłowice;śląskie;Świętochłowice
+Żabno;małopolskie;Żabno
+Żagań;lubuskie;Żagań
+Żarki;śląskie;Żarki
+Żarnów;łódzkie;Żarnów
+Żary;lubuskie;Żary
+Żarów;dolnośląskie;Żarów
+Żelechów;mazowieckie;Żelechów
+Żerków;wielkopolskie;Żerków
+Żmigród;dolnośląskie;Żmigród
+Żnin;kujawsko-pomorskie;Żnin
+Żory;śląskie;Żory
+Żukowo;pomorskie;Żukowo
+Żuromin;mazowieckie;Żuromin
+Żychlin;łódzkie;Żychlin
+Żyrardów;mazowieckie;Żyrardów
+Żywiec;śląskie;Żywiec
