@@ -261,6 +261,48 @@ ok([p["voivodeship"] for p in punktowane] == ["lubelskie"],
 
 rcb._rso_pokrycie = _pokrycie_oryg
 
+print("\n23.10.2026: wpis z aktualizacjami, listy powiatów bez nawiasów")
+# Układ strony gov.pl z 23.10.2026 (skrócony, znaczniki jak w oryginale): na górze cytat
+# PIERWSZEGO alertu, niżej aktualizacje od najnowszej rozdzielone <hr />. O 18:24 parser
+# wziął alert z 17:57 zamiast odwołania z 18:23, a „Biała Podlaska” z listy powiatów
+# dała woj. podlaskie — fałszywy alert i żółte powiadomienie w podlaskim.
+LISTA_LUB = ("włodawski, łęczyński, świdnicki, Chełm, chełmski, krasnostawski, hrubieszowski, Zamość, "
+             "zamojski, tomaszowski, biłgorajski, łukowski, Biała Podlaska, bialski, rycki, radzyński, "
+             "parczewski, lubartowski")
+STRONA_2310 = (
+    "<h2>Alert RCB - zagrożenie z powietrza (23.10)</h2><p>23.10.2026</p>"
+    f"<p>&bdquo;{MONITOR}&rdquo;</p><img alt='Logotyp alertu RCB'/>"
+    '<div class="editor-content"><div>'
+    "<p><strong><u>Aktualizacja! &mdash; 18:23</u></strong></p>"
+    f"<p><strong>&bdquo;{KONIEC}&rdquo;</strong></p>"
+    "<p>Alert RCB został wysłany do odbiorc&oacute;w na terenie części wojew&oacute;dztwa: "
+    f"- lubelskiego - powiaty: {LISTA_LUB}.</p><hr />"
+    "<p><strong><u>Aktualizacja! &mdash; 17:57</u></strong></p>"
+    f"<p><strong>&bdquo;{MONITOR}&rdquo;</strong></p>"
+    "<p>Alert RCB został wysłany do odbiorc&oacute;w na terenie części wojew&oacute;dztwa: "
+    "- lubelskiego - powiaty: włodawski, łęczyński, hrubieszowski, Zamość, biłgorajski.</p><hr />"
+    "<p><strong><u>Aktualizacja! &mdash; 9:33</u></strong></p>"
+    f"<p><strong>&bdquo;{KONIEC}&rdquo;</strong></p>"
+    "<p>Alert RCB został wysłany do odbiorc&oacute;w na terenie części wojew&oacute;dztwa:</p>"
+    "<p>- lubelskiego - powiaty: hrubieszowski, Zamość, zamojski, tomaszowski, biłgorajski</p>"
+    "<p>- podkarpackiego - powiaty: dębicki, ropczycko-sędziszowski, Rzesz&oacute;w, Przemyśl.</p><hr />"
+    f"<p><strong>&bdquo;{MONITOR}&rdquo;</strong></p>"
+    "<p>Alert RCB został wysłany do odbiorc&oacute;w na terenie części wojew&oacute;dztwa:</p>"
+    "<p>- lubelskiego - powiaty: hrubieszowski, Zamość</p>"
+    "<p>- podkarpackiego - powiaty: dębicki, Rzesz&oacute;w.</p></div></div>"
+)
+m2310 = rcb.meldunki(rcb.tresc_artykulu(STRONA_2310, "Alert RCB - zagrożenie z powietrza (23.10)"))
+ok(len(m2310) == 4, "cztery bloki: trzy aktualizacje rozdzielone <hr /> i pierwszy alert")
+ok(all("podlaskie" not in m["wojewodztwa"] for m in m2310),
+   "„Biała Podlaska” z listy powiatów nie robi z alertu woj. podlaskiego")
+ok(m2310[2]["wojewodztwa"] == ["podkarpackie", "lubelskie"], "dwa województwa z list „- woj. - powiaty:”")
+n2310 = rcb.najnowszy_meldunek(m2310)
+ok(n2310 is not None and n2310["odwolanie"] and n2310["wojewodztwa"] == ["lubelskie"],
+   "najnowsza jest pierwsza aktualizacja (odwołanie 18:23), nie cytat z góry strony")
+ok(rcb.wojewodztwa_alertu("Alert RCB został wysłany do odbiorców na terenie województwa: - opolskiego "
+                          "- powiaty: brzeski, nyski.") == ["opolskie"],
+   "wycięcie listy powiatów nie gubi samego województwa")
+
 if bledy:
     print(f"\nBLEDY: {len(bledy)}")
     sys.exit(1)

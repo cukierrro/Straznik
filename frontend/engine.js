@@ -2281,6 +2281,7 @@ function odkodujEncje(s) {
    innych komunikatów i daty z menu trafiałyby do parsera jako treść alertu. */
 function tekstArtykuluRcb(strona, tytul) {
   let c = String(strona || "").replace(/<(script|style)[^>]*>[\s\S]*?<\/\1>/gi, " ");
+  c = c.replace(/<hr\b[^>]*>/gi, " ----- ");          // bloki aktualizacji rozdziela <hr /> (23.10.2026)
   c = odkodujEncje(c.replace(/<[^>]+>/g, " ").replace(/\s+/g, " "));
   const i = c.indexOf(tytul), j = c.indexOf('{"register"');
   return c.slice(Math.max(i, 0), j > i ? j : c.length).slice(0, 8000);
@@ -2311,8 +2312,12 @@ const VOIV_RDZENIE = VOIVODESHIPS.map(v => {
 /* Odbiorcy z jednego bloku artykułu. Nawiasy wycinamy, bo RCB wylicza w nich
    POWIATY: „województwa lubelskiego (powiaty: puławski, opolski, …)" dokładało
    woj. opolskie (21.09.2026). */
+/* 23.10.2026 (lustro rcb.POWIATY_RE): „części województwa: - lubelskiego - powiaty: …, Biała
+   Podlaska, …” — lista powiatów bez nawiasu dawała woj. podlaskie. Wycinamy ją do następnego
+   „ - ” (kolejne województwo), kropki albo końca. */
+const POWIATY_RCB = /powiat\w*\s*:.*?(?=\s[-–]\s|[.;]|$)/g;
 function wojewodztwaAlertu(blok) {
-  const t = fold(blok).replace(NAWIAS_RCB, " ");
+  const t = fold(blok).replace(NAWIAS_RCB, " ").replace(POWIATY_RCB, " ");
   const m = /wyslan|odbiorc/.exec(t);
   if (!m) return [];
   let zakres = t.slice(m.index, m.index + ZAKRES_ZNAKOW_RCB);
@@ -2333,14 +2338,18 @@ function czyOdwolanieRcb(tresc) {
 /* Bloki artykułu od najnowszego (NAJNOWSZY NA GÓRZE), rozdzielone linią myślników. */
 function meldunkiArtykulu(tekst) {
   const out = [];
-  for (const blok of String(tekst || "").split(BLOK_SEP_RCB)) {
+  for (let blok of String(tekst || "").split(BLOK_SEP_RCB)) {
+    // blok aktualizacji zaczyna się od „Aktualizacja!”; wcześniej (na górze strony) stoi
+    // cytat pierwszego alertu, nie bieżący komunikat (23.10.2026)
+    const akt = [...blok.matchAll(/aktualizacja\s*!?/gi)];
+    if (akt.length) blok = blok.slice(akt[akt.length - 1].index);
     CYTAT_RCB.lastIndex = 0;
     const cytaty = [...blok.matchAll(CYTAT_RCB)].map(m => m[1]);
     if (!cytaty.length) continue;
     const tresc = cytaty.reduce((a, b) => b.length > a.length ? b : a);  // w bloku bywa krótki cytat z nagłówka
     if (!RCB_AIR_FOLD.some(a => fold(tresc).includes(a))) continue;
     out.push({ tresc: tresc.trim(), wojewodztwa: wojewodztwaAlertu(blok),
-               odwolanie: czyOdwolanieRcb(tresc), poziom: rcbLevel(tresc) });
+               odwolanie: czyOdwolanieRcb(tresc), poziom: rcbLevel(tresc), aktualizacja: akt.length > 0 });
   }
   return out;
 }
@@ -2349,6 +2358,9 @@ function meldunkiArtykulu(tekst) {
    jego powtórzeniu niżej. Gdy treść się różni, blok jest starszy. */
 function najnowszyMeldunek(lista) {
   if (!lista.length) return null;
+  // Wpis z aktualizacjami: najnowsza jest PIERWSZA aktualizacja z odbiorcami (23.10.2026).
+  const akt = lista.find(m => m.aktualizacja && m.wojewodztwa.length);
+  if (akt) return akt;
   const lead = lista[0];
   if (lead.wojewodztwa.length) return lead;
   for (const m of lista.slice(1))

@@ -76,6 +76,15 @@ def _match_voivs(text: str) -> list[str]:
 BLOK_SEP = re.compile(r"-{5,}")
 CYTAT_RE = re.compile(r"[„\"]([^”\"]{25,600})[”\"]")
 NAWIAS_RE = re.compile(r"\([^)]*\)")
+# 23.10.2026 RCB zmieniło układ wpisu: „Alert RCB został wysłany do odbiorców na terenie części
+# województwa: - lubelskiego - powiaty: …, Biała Podlaska, …” — lista POWIATÓW bez nawiasu.
+# „Biała Podlaska” dawało woj. podlaskie (fałszywy alert 18:24, żółte powiadomienie w podlaskim).
+# Wycinamy listę od „powiat…:” do następnego „ - ” (kolejne województwo), kropki albo końca.
+POWIATY_RE = re.compile(r"powiat\w*\s*:.*?(?=\s[-–]\s|[.;]|$)")
+# Wpisy z aktualizacjami („Aktualizacja! — 18:23”) mają je OD NAJNOWSZEJ, rozdzielone <hr />,
+# a na górze strony zostaje cytat PIERWSZEGO alertu (23.10.2026).
+AKTUALIZACJA_RE = re.compile(r"aktualizacja\s*!?", re.I)
+HR_RE = re.compile(r"<hr\b[^>]*>", re.I)
 DATA_RE = re.compile(r"\b(\d{2})\.(\d{2})\.(20\d{2})\b")
 # Kotwica listy odbiorców. Samo „wysłany" NIE wystarczało: RCB pisze też
 # „zostały wysłane" i „wysłano", a liczby mnogiej używa właśnie wtedy, gdy alert
@@ -113,7 +122,7 @@ def wojewodztwa_alertu(blok: str) -> list[str]:
 
     Nawiasy wycinamy, bo RCB wylicza w nich POWIATY: „województwa lubelskiego
     (powiaty: puławski, opolski, …)" dokładało woj. opolskie (21.09.2026)."""
-    t = NAWIAS_RE.sub(" ", _fold(blok))
+    t = POWIATY_RE.sub(" ", NAWIAS_RE.sub(" ", _fold(blok)))
     m = WYSYLKA_RE.search(t)
     if not m:
         return []
@@ -139,6 +148,11 @@ def meldunki(tresc_artykulu: str) -> list[dict]:
     """Bloki artykułu od najnowszego: treść komunikatu, odbiorcy, poziom."""
     out = []
     for blok in BLOK_SEP.split(tresc_artykulu):
+        akt = list(AKTUALIZACJA_RE.finditer(blok))
+        if akt:
+            # blok aktualizacji zaczyna się od „Aktualizacja!”; to, co przed nią (na górze
+            # strony), to cytat pierwszego alertu — nie bieżący komunikat
+            blok = blok[akt[-1].start():]
         cytaty = CYTAT_RE.findall(blok)
         if not cytaty:
             continue
@@ -146,7 +160,8 @@ def meldunki(tresc_artykulu: str) -> list[dict]:
         if not any(a in _fold(tresc) for a in AIR_FOLD):
             continue
         out.append({"tresc": tresc.strip(), "wojewodztwa": wojewodztwa_alertu(blok),
-                    "odwolanie": _czy_odwolanie(tresc), "poziom": rcb_level(tresc)})
+                    "odwolanie": _czy_odwolanie(tresc), "poziom": rcb_level(tresc),
+                    "aktualizacja": bool(akt)})
     return out
 
 
@@ -157,6 +172,11 @@ def najnowszy_meldunek(lista: list[dict]) -> dict | None:
     Gdy treść się różni, blok jest starszy i nie wolno go brać za bieżący."""
     if not lista:
         return None
+    # Wpis z aktualizacjami: najnowsza jest PIERWSZA aktualizacja z odbiorcami (23.10.2026 —
+    # lead był cytatem alertu z 03:54, a o 18:23 przyszło odwołanie; braliśmy alert z 17:57).
+    aktualizacje = [m for m in lista if m.get("aktualizacja") and m["wojewodztwa"]]
+    if aktualizacje:
+        return aktualizacje[0]
     lead = lista[0]
     if lead["wojewodztwa"]:
         return lead
@@ -170,6 +190,7 @@ def tresc_artykulu(strona: str, tytul: str) -> str:
     """Sam wpis: od tytułu do bloku danych strony. Bez tego cudzysłowy z teaserów
     innych komunikatów i daty z menu trafiałyby do parsera jako treść alertu."""
     czysty = re.sub(r"<(script|style)[^>]*>.*?</\1>", " ", strona, flags=re.S | re.I)
+    czysty = HR_RE.sub(" ----- ", czysty)          # bloki aktualizacji rozdziela <hr />
     czysty = html_mod.unescape(re.sub(r"\s+", " ", TAG_RE.sub(" ", czysty)))
     i = czysty.find(tytul)
     j = czysty.find('{"register"')

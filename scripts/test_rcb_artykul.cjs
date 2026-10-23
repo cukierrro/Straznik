@@ -255,3 +255,30 @@ test('11. spóźniony artykuł o alercie już odwołanym w RSO nie punktuje', as
   assert.deepEqual(zArtykulu(c).map(s => s.voivodeship), ['lubelskie'],
     'nowy alert RSO gdziekolwiek po odwołaniu znosi blokadę');
 });
+
+test('12. 23.10.2026: aktualizacje rozdzielone <hr />, listy powiatów bez nawiasów', () => {
+  // Lustro scripts/test_rcb_artykul.py: na górze cytat PIERWSZEGO alertu, niżej aktualizacje
+  // od najnowszej. Parser brał alert z 17:57 zamiast odwołania z 18:23, a „Biała Podlaska”
+  // z listy powiatów dawała woj. podlaskie.
+  const strona = '<h2>Alert RCB - zagrożenie z powietrza (23.10)</h2><p>23.10.2026</p>'
+    + `<p>&bdquo;${MONITOR}&rdquo;</p><div class="editor-content"><div>`
+    + '<p><strong><u>Aktualizacja! &mdash; 18:23</u></strong></p>'
+    + `<p><strong>&bdquo;${KONIEC}&rdquo;</strong></p>`
+    + '<p>Alert RCB został wysłany do odbiorc&oacute;w na terenie części wojew&oacute;dztwa: '
+    + '- lubelskiego - powiaty: włodawski, Chełm, Biała Podlaska, bialski, rycki.</p><hr />'
+    + '<p><strong><u>Aktualizacja! &mdash; 17:57</u></strong></p>'
+    + `<p><strong>&bdquo;${MONITOR}&rdquo;</strong></p>`
+    + '<p>Alert RCB został wysłany do odbiorc&oacute;w na terenie części wojew&oacute;dztwa: '
+    + '- lubelskiego - powiaty: włodawski, Chełm.</p><hr />'
+    + `<p><strong>&bdquo;${MONITOR}&rdquo;</strong></p>`
+    + '<p>Alert RCB został wysłany do odbiorc&oacute;w na terenie części wojew&oacute;dztwa:</p>'
+    + '<p>- lubelskiego - powiaty: hrubieszowski, Zamość</p>'
+    + '<p>- podkarpackiego - powiaty: dębicki, ropczycko-sędziszowski, Rzesz&oacute;w.</p></div></div>';
+  const lista = P.meldunkiArtykulu(P.tekstArtykuluRcb(strona, 'Alert RCB - zagrożenie z powietrza (23.10)'));
+  assert.equal(lista.length, 3, 'trzy bloki');
+  assert.ok(lista.every(m => !tab(m.wojewodztwa).includes('podlaskie')), 'Biała Podlaska to nie woj. podlaskie');
+  assert.deepEqual(tab(lista[2].wojewodztwa), ['podkarpackie', 'lubelskie'], 'dwa województwa z list');
+  const n = P.najnowszyMeldunek(lista);
+  assert.ok(n && n.odwolanie, 'najnowsza jest pierwsza aktualizacja — odwołanie 18:23');
+  assert.deepEqual(tab(n.wojewodztwa), ['lubelskie']);
+});
