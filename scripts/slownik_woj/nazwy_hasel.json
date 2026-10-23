@@ -1,0 +1,1372 @@
+{
+ "dolnośląskie": {
+  "Wrocław": [
+   "wrocław",
+   "wroclaw"
+  ],
+  "Legnica": [
+   "legnic"
+  ],
+  "Wałbrzych": [
+   "wałbrzych"
+  ],
+  "Jelenia Góra": [
+   "jelenia gór"
+  ],
+  "Lubin": [
+   "lubin"
+  ],
+  "Głogów": [
+   "głogów"
+  ],
+  "Świdnica": [
+   "świdnic"
+  ],
+  "Bolesławiec": [
+   "bolesławiec"
+  ],
+  "Oleśnica": [
+   "oleśnic"
+  ],
+  "Dzierżoniów": [
+   "dzierżoniów"
+  ],
+  "Zgorzelec": [
+   "zgorzelec"
+  ],
+  "Polkowice": [
+   "polkowic"
+  ],
+  "Kłodzko": [
+   "kłodzk"
+  ],
+  "Bielawa": [
+   "bielaw"
+  ],
+  "Oława": [
+   "oława"
+  ],
+  "Brzeg Dolny": [
+   "brzeg dolny"
+  ],
+  "Strzelin": [
+   "strzelin"
+  ],
+  "Środa Śląska": [
+   "środa śląsk"
+  ],
+  "Trzebnica": [
+   "trzebnic"
+  ],
+  "Złotoryja": [
+   "złotoryj"
+  ],
+  "Kamienna Góra": [
+   "kamienna gór"
+  ],
+  "Lubań": [
+   "lubań"
+  ],
+  "Milicz": [
+   "milicz"
+  ],
+  "Syców": [
+   "syców"
+  ],
+  "Chojnów": [
+   "chojnów"
+  ],
+  "Karpacz": [
+   "karpacz"
+  ],
+  "Szklarska Poręba": [
+   "szklarska poręb"
+  ],
+  "Bogatynia": [
+   "bogatyni"
+  ]
+ },
+ "kujawsko-pomorskie": {
+  "Bydgoszcz": [
+   "bydgoszcz"
+  ],
+  "Toruń": [
+   "toruń",
+   "torun"
+  ],
+  "Włocławek": [
+   "włocławek"
+  ],
+  "Grudziądz": [
+   "grudziądz"
+  ],
+  "Inowrocław": [
+   "inowrocław"
+  ],
+  "Brodnica": [
+   "brodnic"
+  ],
+  "Chełmno": [
+   "chełmn"
+  ],
+  "Chełmża": [
+   "chełmż"
+  ],
+  "Rypin": [
+   "rypin"
+  ],
+  "Lipno": [
+   "lipno"
+  ],
+  "Nakło nad Notecią": [
+   "nakło"
+  ],
+  "Żnin": [
+   "żnin"
+  ],
+  "Mogilno": [
+   "mogilno"
+  ],
+  "Tuchola": [
+   "tuchol"
+  ],
+  "Sępólno Krajeńskie": [
+   "sępólno"
+  ],
+  "Wąbrzeźno": [
+   "wąbrzeźno"
+  ],
+  "Golub-Dobrzyń": [
+   "golub-dobrzyń"
+  ],
+  "Aleksandrów Kujawski": [
+   "aleksandrów kujawsk"
+  ],
+  "Ciechocinek": [
+   "ciechocinek"
+  ],
+  "Solec Kujawski": [
+   "solec kujawsk"
+  ],
+  "Kruszwica": [
+   "kruszwic"
+  ],
+  "Radziejów": [
+   "radziejów"
+  ],
+  "Janikowo": [
+   "janikowo"
+  ],
+  "Koronowo": [
+   "koronowo"
+  ],
+  "Szubin": [
+   "szubin"
+  ]
+ },
+ "lubelskie": {
+  "Lublin": [
+   "lublin"
+  ],
+  "Chełm": [
+   "chełm"
+  ],
+  "Zamość": [
+   "zamość",
+   "zamoś"
+  ],
+  "Hrubieszów": [
+   "hrubiesz"
+  ],
+  "Włodawa": [
+   "włodaw"
+  ],
+  "Terespol": [
+   "terespol"
+  ],
+  "Dorohusk": [
+   "dorohusk"
+  ],
+  "Świdnik": [
+   "świdnik"
+  ],
+  "Puławy": [
+   "puław"
+  ],
+  "Kraśnik": [
+   "kraśnik"
+  ],
+  "Łęczna": [
+   "łęczn"
+  ],
+  "Biała Podlaska": [
+   "biała podlask",
+   "białą podlask"
+  ],
+  "Radzyń Podlaski": [
+   "radzyń podlask"
+  ],
+  "Tomaszów Lubelski": [
+   "tomaszów lubelsk"
+  ],
+  "Janów Lubelski": [
+   "janów lubelsk"
+  ],
+  "Opole Lubelskie": [
+   "opole lubelsk"
+  ],
+  "Biłgoraj": [
+   "biłgoraj"
+  ],
+  "Lubartów": [
+   "lubartów"
+  ],
+  "Łuków": [
+   "łuków"
+  ],
+  "Parczew": [
+   "parczew"
+  ],
+  "Dęblin": [
+   "dęblin"
+  ],
+  "Krasnystaw": [
+   "krasnystaw"
+  ],
+  "Szczebrzeszyn": [
+   "szczebrzeszyn"
+  ],
+  "Józefów": [
+   "józefów"
+  ],
+  "Poniatowa": [
+   "poniatowa"
+  ],
+  "Bychawa": [
+   "bychawa"
+  ],
+  "Rejowiec": [
+   "rejowiec"
+  ],
+  "Międzyrzec Podlaski": [
+   "międzyrzec podlask"
+  ],
+  "Janów Podlaski": [
+   "janów podlask"
+  ],
+  "Kock": [
+   "kock"
+  ],
+  "Annopol": [
+   "annopol"
+  ],
+  "Tarnawa-Kolonia": [
+   "tarnawa-kolonia"
+  ],
+  "Wyryki-Wola": [
+   "wyryki"
+  ],
+  "Czosnówka": [
+   "czosnówka"
+  ]
+ },
+ "lubuskie": {
+  "Zielona Góra": [
+   "zielona gór"
+  ],
+  "Gorzów Wielkopolski": [
+   "gorzów",
+   "gorzow"
+  ],
+  "Nowa Sól": [
+   "nowa sól"
+  ],
+  "Świebodzin": [
+   "świebodzin"
+  ],
+  "Międzyrzecz": [
+   "międzyrzecz"
+  ],
+  "Słubice": [
+   "słubic"
+  ],
+  "Sulechów": [
+   "sulechów"
+  ],
+  "Żagań": [
+   "żagań"
+  ],
+  "Kostrzyn nad Odrą": [
+   "kostrzyn"
+  ],
+  "Gubin": [
+   "gubin"
+  ],
+  "Krosno Odrzańskie": [
+   "krosno odrzańsk"
+  ],
+  "Drezdenko": [
+   "drezdenko"
+  ],
+  "Strzelce Krajeńskie": [
+   "strzelce krajeńsk"
+  ],
+  "Wschowa": [
+   "wschowa"
+  ],
+  "Szprotawa": [
+   "szprotawa"
+  ],
+  "Lubsko": [
+   "lubsko"
+  ],
+  "Skwierzyna": [
+   "skwierzyna"
+  ],
+  "Sulęcin": [
+   "sulęcin"
+  ],
+  "Rzepin": [
+   "rzepin"
+  ],
+  "Dobiegniew": [
+   "dobiegniew"
+  ],
+  "Witnica": [
+   "witnica"
+  ]
+ },
+ "łódzkie": {
+  "Łódź": [
+   "łódź"
+  ],
+  "Piotrków Trybunalski": [
+   "piotrków trybunalsk"
+  ],
+  "Pabianice": [
+   "pabianic"
+  ],
+  "Bełchatów": [
+   "bełchatów"
+  ],
+  "Sieradz": [
+   "sieradz"
+  ],
+  "Kutno": [
+   "kutno"
+  ],
+  "Zgierz": [
+   "zgierz"
+  ],
+  "Radomsko": [
+   "radomsk"
+  ],
+  "Skierniewice": [
+   "skierniewic"
+  ],
+  "Tomaszów Mazowiecki": [
+   "tomaszów mazowieck"
+  ],
+  "Zduńska Wola": [
+   "zduńska wol"
+  ],
+  "Wieluń": [
+   "wieluń"
+  ],
+  "Opoczno": [
+   "opoczno"
+  ],
+  "Rawa Mazowiecka": [
+   "rawa mazowieck"
+  ],
+  "Łowicz": [
+   "łowicz"
+  ],
+  "Koluszki": [
+   "kolusz"
+  ],
+  "Aleksandrów Łódzki": [
+   "aleksandrów łódzk"
+  ],
+  "Konstantynów Łódzki": [
+   "konstantynów łódzk"
+  ],
+  "Ozorków": [
+   "ozorków"
+  ],
+  "Głowno": [
+   "głowno"
+  ],
+  "Poddębice": [
+   "poddębic"
+  ],
+  "Łęczyca": [
+   "łęczyc"
+  ],
+  "Pajęczno": [
+   "pajęczno"
+  ],
+  "Wieruszów": [
+   "wieruszów"
+  ]
+ },
+ "małopolskie": {
+  "Kraków": [
+   "kraków",
+   "krakow"
+  ],
+  "Tarnów": [
+   "tarnów"
+  ],
+  "Nowy Sącz": [
+   "nowy sącz"
+  ],
+  "Oświęcim": [
+   "oświęcim"
+  ],
+  "Zakopane": [
+   "zakopane"
+  ],
+  "Chrzanów": [
+   "chrzanów"
+  ],
+  "Olkusz": [
+   "olkusz"
+  ],
+  "Bochnia": [
+   "bochni"
+  ],
+  "Wadowice": [
+   "wadowic"
+  ],
+  "Nowy Targ": [
+   "nowy targ"
+  ],
+  "Gorlice": [
+   "gorlic"
+  ],
+  "Brzesko": [
+   "brzesk"
+  ],
+  "Andrychów": [
+   "andrychów"
+  ],
+  "Skawina": [
+   "skawina"
+  ],
+  "Myślenice": [
+   "myślenic"
+  ],
+  "Limanowa": [
+   "limanow"
+  ],
+  "Trzebinia": [
+   "trzebini"
+  ],
+  "Libiąż": [
+   "libiąż"
+  ],
+  "Wieliczka": [
+   "wieliczk"
+  ],
+  "Sucha Beskidzka": [
+   "sucha beskidzk"
+  ],
+  "Muszyna": [
+   "muszyn"
+  ],
+  "Dąbrowa Tarnowska": [
+   "dąbrowa tarnowsk"
+  ],
+  "Proszowice": [
+   "proszowic"
+  ],
+  "Miechów": [
+   "miechów"
+  ],
+  "Wolbrom": [
+   "wolbrom"
+  ],
+  "Kęty": [
+   "kęty"
+  ],
+  "Niepołomice": [
+   "niepołomic"
+  ],
+  "Bukowno": [
+   "bukowno"
+  ],
+  "Chełmek": [
+   "chełmek"
+  ],
+  "Szczawnica": [
+   "szczawnic"
+  ]
+ },
+ "mazowieckie": {
+  "Warszawa": [
+   "warszaw"
+  ],
+  "Radom": [
+   "radom"
+  ],
+  "Siedlce": [
+   "siedlc"
+  ],
+  "Płock": [
+   "płock"
+  ],
+  "Ostrołęka": [
+   "ostrołęk"
+  ],
+  "Pruszków": [
+   "pruszków"
+  ],
+  "Legionowo": [
+   "legionow"
+  ],
+  "Otwock": [
+   "otwock"
+  ],
+  "Żyrardów": [
+   "żyrardów"
+  ],
+  "Ciechanów": [
+   "ciechanów"
+  ],
+  "Mińsk Mazowiecki": [
+   "mińsk mazowieck"
+  ],
+  "Nowy Dwór Mazowiecki": [
+   "nowy dwór mazowieck"
+  ],
+  "Grodzisk Mazowiecki": [
+   "grodzisk mazowieck"
+  ],
+  "Maków Mazowiecki": [
+   "maków mazowieck"
+  ],
+  "Ostrów Mazowiecka": [
+   "ostrów mazowieck"
+  ],
+  "Sokołów Podlaski": [
+   "sokołów podlask"
+  ],
+  "Wołomin": [
+   "wołomin"
+  ],
+  "Piaseczno": [
+   "piaseczno"
+  ],
+  "Sochaczew": [
+   "sochaczew"
+  ],
+  "Wyszków": [
+   "wyszków"
+  ],
+  "Garwolin": [
+   "garwolin"
+  ],
+  "Węgrów": [
+   "węgrów"
+  ],
+  "Płońsk": [
+   "płońsk"
+  ],
+  "Mława": [
+   "mława"
+  ],
+  "Żuromin": [
+   "żuromin"
+  ],
+  "Gostynin": [
+   "gostynin"
+  ],
+  "Sierpc": [
+   "sierpc"
+  ],
+  "Przasnysz": [
+   "przasnysz"
+  ],
+  "Pułtusk": [
+   "pułtusk"
+  ],
+  "Łosice": [
+   "łosic"
+  ],
+  "Grójec": [
+   "grójec"
+  ],
+  "Kozienice": [
+   "kozienic"
+  ],
+  "Zwoleń": [
+   "zwoleń"
+  ],
+  "Lipsko": [
+   "lipsko"
+  ],
+  "Szydłowiec": [
+   "szydłowiec"
+  ],
+  "Białobrzegi": [
+   "białobrzeg"
+  ],
+  "Sulejówek": [
+   "sulejówek"
+  ],
+  "Konstancin-Jeziorna": [
+   "konstancin"
+  ],
+  "Modlinek": [
+   "modlin"
+  ]
+ },
+ "opolskie": {
+  "Opole": [
+   "opole"
+  ],
+  "Kędzierzyn-Koźle": [
+   "kędzierzyn"
+  ],
+  "Nysa": [
+   "nysa"
+  ],
+  "Kluczbork": [
+   "kluczbork"
+  ],
+  "Prudnik": [
+   "prudnik"
+  ],
+  "Strzelce Opolskie": [
+   "strzelce opolsk"
+  ],
+  "Namysłów": [
+   "namysłów"
+  ],
+  "Krapkowice": [
+   "krapkowic"
+  ],
+  "Głubczyce": [
+   "głubczyc"
+  ],
+  "Olesno": [
+   "olesno"
+  ],
+  "Ozimek": [
+   "ozimek"
+  ],
+  "Zdzieszowice": [
+   "zdzieszowic"
+  ],
+  "Praszka": [
+   "praszka"
+  ],
+  "Grodków": [
+   "grodków"
+  ],
+  "Niemodlin": [
+   "niemodlin"
+  ],
+  "Gogolin": [
+   "gogolin"
+  ],
+  "Paczków": [
+   "paczków"
+  ]
+ },
+ "podkarpackie": {
+  "Rzeszów": [
+   "rzeszów",
+   "rzeszow"
+  ],
+  "Przemyśl": [
+   "przemyśl",
+   "przemysl"
+  ],
+  "Jarosław": [
+   "jarosław"
+  ],
+  "Lubaczów": [
+   "lubaczów"
+  ],
+  "Sanok": [
+   "sanok"
+  ],
+  "Krosno": [
+   "krosno"
+  ],
+  "Mielec": [
+   "mielec"
+  ],
+  "Stalowa Wola": [
+   "stalowa wol"
+  ],
+  "Tarnobrzeg": [
+   "tarnobrzeg"
+  ],
+  "Dębica": [
+   "dębic"
+  ],
+  "Jasło": [
+   "jasło"
+  ],
+  "Łańcut": [
+   "łańcut"
+  ],
+  "Ropczyce": [
+   "ropczyc"
+  ],
+  "Sędziszów Małopolski": [
+   "sędziszów"
+  ],
+  "Leżajsk": [
+   "leżajsk"
+  ],
+  "Przeworsk": [
+   "przeworsk"
+  ],
+  "Ustrzyki Dolne": [
+   "ustrzyk"
+  ],
+  "Lesko": [
+   "lesko"
+  ],
+  "Brzozów": [
+   "brzozów"
+  ],
+  "Strzyżów": [
+   "strzyżów"
+  ],
+  "Kolbuszowa": [
+   "kolbuszow"
+  ],
+  "Głogów Małopolski": [
+   "głogów małopolsk"
+  ],
+  "Nowa Dęba": [
+   "nowa dęba"
+  ],
+  "Radymno": [
+   "radymno"
+  ],
+  "Korczowa": [
+   "korczowa"
+  ],
+  "Budomierz": [
+   "budomierz"
+  ],
+  "Krościenko": [
+   "krościenko"
+  ],
+  "Jasionka": [
+   "jasionka"
+  ],
+  "Arłamów": [
+   "arłamów"
+  ]
+ },
+ "podlaskie": {
+  "Białystok": [
+   "białystok",
+   "bialystok"
+  ],
+  "Suwałki": [
+   "suwałk",
+   "suwalk"
+  ],
+  "Augustów": [
+   "augustów"
+  ],
+  "Sokółka": [
+   "sokółk"
+  ],
+  "Kuźnica": [
+   "kuźnic"
+  ],
+  "Siemiatycze": [
+   "siemiatycz"
+  ],
+  "Hajnówka": [
+   "hajnówk"
+  ],
+  "Bielsk Podlaski": [
+   "bielsk podlask"
+  ],
+  "Wysokie Mazowieckie": [
+   "wysokie mazowieck"
+  ],
+  "Łomża": [
+   "łomż"
+  ],
+  "Grajewo": [
+   "grajewo"
+  ],
+  "Zambrów": [
+   "zambrów"
+  ],
+  "Mońki": [
+   "mońk"
+  ],
+  "Kolno": [
+   "kolno"
+  ],
+  "Sejny": [
+   "sejny"
+  ],
+  "Dąbrowa Białostocka": [
+   "dąbrowa białostock"
+  ],
+  "Czarna Białostocka": [
+   "czarna białostock"
+  ],
+  "Supraśl": [
+   "supraśl"
+  ],
+  "Michałowo": [
+   "michałowo"
+  ],
+  "Narewka": [
+   "narewk"
+  ],
+  "Białowieża": [
+   "białowież"
+  ],
+  "Krynki": [
+   "krynk"
+  ],
+  "Czeremcha": [
+   "czeremch"
+  ],
+  "Siemianówka": [
+   "siemianówk"
+  ],
+  "Wasilków": [
+   "wasilków"
+  ],
+  "Zabłudów": [
+   "zabłudów"
+  ],
+  "Połowce": [
+   "połowce"
+  ]
+ },
+ "pomorskie": {
+  "Gdańsk": [
+   "gdańsk",
+   "gdansk"
+  ],
+  "Gdynia": [
+   "gdyni"
+  ],
+  "Sopot": [
+   "sopot"
+  ],
+  "Słupsk": [
+   "słupsk"
+  ],
+  "Tczew": [
+   "tczew"
+  ],
+  "Malbork": [
+   "malbork"
+  ],
+  "Wejherowo": [
+   "wejherow"
+  ],
+  "Kwidzyn": [
+   "kwidzyn"
+  ],
+  "Starogard Gdański": [
+   "starogard gdańsk"
+  ],
+  "Chojnice": [
+   "chojnic"
+  ],
+  "Lębork": [
+   "lębork"
+  ],
+  "Puck": [
+   "puck"
+  ],
+  "Pruszcz Gdański": [
+   "pruszcz gdańsk"
+  ],
+  "Kościerzyna": [
+   "kościerzyn"
+  ],
+  "Kartuzy": [
+   "kartuz"
+  ],
+  "Bytów": [
+   "bytów"
+  ],
+  "Człuchów": [
+   "człuchów"
+  ],
+  "Sztum": [
+   "sztum"
+  ],
+  "Nowy Dwór Gdański": [
+   "nowy dwór gdańsk"
+  ],
+  "Ustka": [
+   "ustk"
+  ],
+  "Władysławowo": [
+   "władysławow"
+  ],
+  "Jastarnia": [
+   "jastarni"
+  ],
+  "Krynica Morska": [
+   "krynica morsk"
+  ],
+  "Skarszewy": [
+   "skarszew"
+  ],
+  "Żukowo": [
+   "żukowo"
+  ]
+ },
+ "śląskie": {
+  "Katowice": [
+   "katowic"
+  ],
+  "Częstochowa": [
+   "częstochow"
+  ],
+  "Gliwice": [
+   "gliwic"
+  ],
+  "Sosnowiec": [
+   "sosnowiec"
+  ],
+  "Zabrze": [
+   "zabrze"
+  ],
+  "Bytom": [
+   "bytom"
+  ],
+  "Rybnik": [
+   "rybnik"
+  ],
+  "Bielsko-Biała": [
+   "bielsko-biał"
+  ],
+  "Tychy": [
+   "tychy"
+  ],
+  "Chorzów": [
+   "chorzów"
+  ],
+  "Dąbrowa Górnicza": [
+   "dąbrowa górnicz"
+  ],
+  "Jastrzębie-Zdrój": [
+   "jastrzębie"
+  ],
+  "Żywiec": [
+   "żywiec"
+  ],
+  "Ruda Śląska": [
+   "ruda śląsk"
+  ],
+  "Tarnowskie Góry": [
+   "tarnowskie gór"
+  ],
+  "Mysłowice": [
+   "mysłowic"
+  ],
+  "Siemianowice Śląskie": [
+   "siemianowic"
+  ],
+  "Piekary Śląskie": [
+   "piekary śląsk"
+  ],
+  "Świętochłowice": [
+   "świętochłowic"
+  ],
+  "Zawiercie": [
+   "zawiercie"
+  ],
+  "Będzin": [
+   "będzin"
+  ],
+  "Racibórz": [
+   "racibórz"
+  ],
+  "Wodzisław Śląski": [
+   "wodzisław"
+  ],
+  "Mikołów": [
+   "mikołów"
+  ],
+  "Czechowice-Dziedzice": [
+   "czechowic"
+  ],
+  "Cieszyn": [
+   "cieszyn"
+  ],
+  "Pszczyna": [
+   "pszczyn"
+  ],
+  "Lubliniec": [
+   "lubliniec"
+  ],
+  "Myszków": [
+   "myszków"
+  ],
+  "Kłobuck": [
+   "kłobuck"
+  ],
+  "Knurów": [
+   "knurów"
+  ],
+  "Żory": [
+   "żory"
+  ],
+  "Jaworzno": [
+   "jaworzno"
+  ],
+  "Bieruń": [
+   "bieruń"
+  ],
+  "Radzionków": [
+   "radzionków"
+  ],
+  "Orzesze": [
+   "orzesze"
+  ],
+  "Pyrzowice": [
+   "pyrzowic"
+  ]
+ },
+ "świętokrzyskie": {
+  "Kielce": [
+   "kielc"
+  ],
+  "Ostrowiec Świętokrzyski": [
+   "ostrowiec świętokrzysk"
+  ],
+  "Starachowice": [
+   "starachowic"
+  ],
+  "Skarżysko-Kamienna": [
+   "skarżysk"
+  ],
+  "Sandomierz": [
+   "sandomierz"
+  ],
+  "Końskie": [
+   "końskie"
+  ],
+  "Jędrzejów": [
+   "jędrzejów"
+  ],
+  "Busko-Zdrój": [
+   "busko"
+  ],
+  "Staszów": [
+   "staszów"
+  ],
+  "Opatów": [
+   "opatów"
+  ],
+  "Pińczów": [
+   "pińczów"
+  ],
+  "Włoszczowa": [
+   "włoszczow"
+  ],
+  "Kazimierza Wielka": [
+   "kazimierza wielk"
+  ],
+  "Chmielnik": [
+   "chmielnik"
+  ],
+  "Suchedniów": [
+   "suchedniów"
+  ],
+  "Morawica": [
+   "morawic"
+  ],
+  "Daleszyce": [
+   "daleszyc"
+  ],
+  "Bodzentyn": [
+   "bodzentyn"
+  ],
+  "Połaniec": [
+   "połaniec"
+  ],
+  "Ćmielów": [
+   "ćmielów"
+  ]
+ },
+ "warmińsko-mazurskie": {
+  "Olsztyn": [
+   "olsztyn"
+  ],
+  "Elbląg": [
+   "elbląg"
+  ],
+  "Ełk": [
+   "ełk"
+  ],
+  "Gołdap": [
+   "gołdap"
+  ],
+  "Braniewo": [
+   "braniew"
+  ],
+  "Ostróda": [
+   "ostróda"
+  ],
+  "Iława": [
+   "iława"
+  ],
+  "Kętrzyn": [
+   "kętrzyn"
+  ],
+  "Giżycko": [
+   "giżyck"
+  ],
+  "Mrągowo": [
+   "mrągow"
+  ],
+  "Szczytno": [
+   "szczytno"
+  ],
+  "Działdowo": [
+   "działdow"
+  ],
+  "Bartoszyce": [
+   "bartoszyc"
+  ],
+  "Lidzbark": [
+   "lidzbark"
+  ],
+  "Węgorzewo": [
+   "węgorzew"
+  ],
+  "Olecko": [
+   "olecko"
+  ],
+  "Nidzica": [
+   "nidzic"
+  ],
+  "Nowe Miasto Lubawskie": [
+   "nowe miasto lubawsk"
+  ],
+  "Morąg": [
+   "morąg"
+  ],
+  "Orneta": [
+   "orneta"
+  ],
+  "Dobre Miasto": [
+   "dobre miasto"
+  ],
+  "Biskupiec": [
+   "biskupiec"
+  ],
+  "Mikołajki": [
+   "mikołajk"
+  ],
+  "Bezledy": [
+   "bezledy"
+  ],
+  "Grzechotki": [
+   "grzechotki"
+  ],
+  "Gronowo": [
+   "gronowo"
+  ],
+  "Pieniężno": [
+   "pieniężno"
+  ],
+  "Pasłęk": [
+   "pasłęk"
+  ]
+ },
+ "wielkopolskie": {
+  "Poznań": [
+   "poznań",
+   "poznan"
+  ],
+  "Kalisz": [
+   "kalisz"
+  ],
+  "Konin": [
+   "konin"
+  ],
+  "Leszno": [
+   "leszno"
+  ],
+  "Gniezno": [
+   "gniezno"
+  ],
+  "Ostrów Wielkopolski": [
+   "ostrów wielkopolsk"
+  ],
+  "Grodzisk Wielkopolski": [
+   "grodzisk wielkopolsk"
+  ],
+  "Środa Wielkopolska": [
+   "środa wielkopolsk"
+  ],
+  "Swarzędz": [
+   "swarzędz"
+  ],
+  "Śrem": [
+   "śrem"
+  ],
+  "Luboń": [
+   "luboń"
+  ],
+  "Kościan": [
+   "kościan"
+  ],
+  "Września": [
+   "wrześni"
+  ],
+  "Jarocin": [
+   "jarocin"
+  ],
+  "Krotoszyn": [
+   "krotoszyn"
+  ],
+  "Słupca": [
+   "słupc"
+  ],
+  "Oborniki": [
+   "oborniki"
+  ],
+  "Szamotuły": [
+   "szamotuł"
+  ],
+  "Wągrowiec": [
+   "wągrowiec"
+  ],
+  "Chodzież": [
+   "chodzież"
+  ],
+  "Czarnków": [
+   "czarnków"
+  ],
+  "Złotów": [
+   "złotów"
+  ],
+  "Rawicz": [
+   "rawicz"
+  ],
+  "Gostyń": [
+   "gostyń"
+  ],
+  "Pleszew": [
+   "pleszew"
+  ],
+  "Wolsztyn": [
+   "wolsztyn"
+  ],
+  "Nowy Tomyśl": [
+   "nowy tomyśl"
+  ],
+  "Murowana Goślina": [
+   "murowana goślin"
+  ],
+  "Puszczykowo": [
+   "puszczykowo"
+  ],
+  "Opalenica": [
+   "opalenic"
+  ],
+  "Krzesiny": [
+   "krzesiny"
+  ]
+ },
+ "zachodniopomorskie": {
+  "Szczecin": [
+   "szczecin"
+  ],
+  "Koszalin": [
+   "koszalin"
+  ],
+  "Kołobrzeg": [
+   "kołobrzeg"
+  ],
+  "Świnoujście": [
+   "świnoujści"
+  ],
+  "Stargard": [
+   "stargard"
+  ],
+  "Police": [
+   "police"
+  ],
+  "Wałcz": [
+   "wałcz"
+  ],
+  "Gryfino": [
+   "gryfin"
+  ],
+  "Białogard": [
+   "białogard"
+  ],
+  "Szczecinek": [
+   "szczecinek"
+  ],
+  "Goleniów": [
+   "goleniów"
+  ],
+  "Gryfice": [
+   "gryfic"
+  ],
+  "Kamień Pomorski": [
+   "kamień pomorsk"
+  ],
+  "Nowogard": [
+   "nowogard"
+  ],
+  "Choszczno": [
+   "choszczno"
+  ],
+  "Drawsko Pomorskie": [
+   "drawsko pomorsk"
+  ],
+  "Świdwin": [
+   "świdwin"
+  ],
+  "Myślibórz": [
+   "myślibórz"
+  ],
+  "Dębno": [
+   "dębno"
+  ],
+  "Barlinek": [
+   "barlinek"
+  ],
+  "Trzebiatów": [
+   "trzebiatów"
+  ],
+  "Darłowo": [
+   "darłowo"
+  ],
+  "Sławno": [
+   "sławno"
+  ],
+  "Złocieniec": [
+   "złocieniec"
+  ],
+  "Połczyn-Zdrój": [
+   "połczyn"
+  ],
+  "Mielno": [
+   "mielno"
+  ],
+  "Międzyzdroje": [
+   "międzyzdroj"
+  ]
+ }
+}

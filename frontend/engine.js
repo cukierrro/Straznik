@@ -628,8 +628,70 @@ const nazwaPowiatu = (folded, i, v, kf) => {
   for (const z of [".", "!", "?", "\n"]) przed = przed.split(z).pop();
   return przed.includes("powiat") || przed.includes("powiec");
 };
+/* Lustro app/slownik_woj.py (23.10.2026): pełne formy z PoliMorf i TERYT, całe słowa,
+   najdłuższa fraza w całym tekście. Słownik (assets/slownik-woj.json, ~1,3 MB) ładujemy
+   przy starcie silnika; dopóki go nie ma, działa dawne dopasowanie po rdzeniach. */
+let SLOWNIK = null, SLOWNIK_MAXN = 1;
+const ustawSlownik = (dane) => {
+  SLOWNIK = new Map(Object.entries(dane.frazy));
+  SLOWNIK_MAXN = Math.max(...[...SLOWNIK.keys()].map(k => k.split(" ").length));
+};
+const SL_TOK = /[a-z0-9]+(?:-[a-z0-9]+)*/g;
+const SL_PRZYIMKI = new Set(["nad","pod","przy","w","we","z","ze","na","do","od","k","kolo"]);
+const slKandydaci = (toks) => {
+  const out = [];
+  for (let i = 0; i < toks.length; i++)
+    for (let n = 1; n <= Math.min(SLOWNIK_MAXN, toks.length - i); n++) {
+      const fr = toks.slice(i, i + n).map(t => t[0]).join(" ");
+      const hit = SLOWNIK.get(fr);
+      if (!hit) continue;
+      const [v, r] = hit;
+      // fraza ochronna od przyimka („Nad Zieloną” — wieś) nie zjada „nad Zieloną Górą”
+      if (r === "x" && SL_PRZYIMKI.has(toks[i][0])) continue;
+      out.push([n, r !== "x", i, v, r, fr]);
+    }
+  return out;
+};
+const slWybierz = (kand, toks) => {
+  kand.sort((a, b) => b[0] - a[0] || (a[1] === b[1] ? 0 : a[1] ? -1 : 1) || a[2] - b[2]);
+  const zajete = new Set(), out = [];
+  for (const [n, , i, v, r, fr] of kand) {
+    let wolne = true;
+    for (let j = i; j < i + n; j++) if (zajete.has(j)) { wolne = false; break; }
+    if (!wolne) continue;
+    for (let j = i; j < i + n; j++) zajete.add(j);
+    out.push([toks[i][1], toks[i + n - 1][2], v, r, fr]);
+  }
+  return [out, zajete];
+};
+const slTrafienia = (t) => {
+  const toks = [...t.matchAll(SL_TOK)].map(m => [m[0], m.index, m.index + m[0].length]);
+  let [out, zajete] = slWybierz(slKandydaci(toks), toks);
+  // słowo z łącznikiem bez pokrycia („Dorohusk-Jagodzin”) → po członach
+  toks.forEach(([w, a], i) => {
+    if (!w.includes("-") || zajete.has(i)) return;
+    const czesci = []; let poz = a;
+    for (const cz of w.split("-")) { czesci.push([cz, poz, poz + cz.length]); poz += cz.length + 1; }
+    out = out.concat(slWybierz(slKandydaci(czesci), czesci)[0]);
+  });
+  return out.sort((x, y) => x[0] - y[0] || x[1] - y[1]);
+};
+const slWojewodztwa = (folded, tylkoRegiony = false) => {
+  const out = [];
+  for (const [s, , v, r, fr] of slTrafienia(folded)) {
+    if (v === null || (tylkoRegiony && r !== "r")) continue;
+    // reguła powiatu: pojedynczy przymiotnik po „powiat…” w tym samym zdaniu to powiat z listy
+    if ((r === "r" || r === "m") && !fr.includes(" ")) {
+      const zdanie = folded.slice(0, s).split(/[.!?]/).pop();
+      if (zdanie.includes("powiat") || zdanie.includes("powiec")) continue;
+    }
+    if (!out.includes(v)) out.push(v);
+  }
+  return out;
+};
 const matchVoivs = (text) => {
   const folded = fold(String(text).replace(MONTH_NOT_PLACE, "$1 ").toLowerCase());
+  if (SLOWNIK) return slWojewodztwa(folded);
   const hits = [];
   for (const [v, keys] of Object.entries(VOIV_KEYWORDS))
     for (const k of keys) {
@@ -2770,6 +2832,10 @@ function timeline() {
 /* ── start ───────────────────────────────────────────────────────────────── */
 async function start(stateCb) {
   onState = stateCb;
+  // słownik województw (pełne formy) przed pierwszym odczytem źródeł; plik jest w paczce
+  // aplikacji, więc to milisekundy. Gdy się nie uda, zostaje dawne dopasowanie po rdzeniach.
+  try { ustawSlownik(await (await fetch("assets/slownik-woj.json?v=1.8.00")).json()); }
+  catch (e) { console.warn("slownik-woj", e); }
   // Powrót do aplikacji z tła: odśwież wygaszanie okna, żeby po odblokowaniu
   // telefonu nie było widać stanu sprzed uśpienia.
   document.addEventListener("visibilitychange", () => {
@@ -2799,14 +2865,14 @@ async function start(stateCb) {
   every(saveSnapshot, 120000);
 }
 
-// matchVoivs wystawiamy wyłącznie do testów zgodności z backendem
-// (scripts/test_voiv_match.cjs) — reszta aplikacji go nie używa. Tak samo
+// matchVoivs i ustawSlownik wystawiamy wyłącznie do testów zgodności z backendem
+// (scripts/test_voiv_match.cjs, test_slownik_woj.cjs) — reszta aplikacji go nie używa. Tak samo
 // `rcbArtykul`: kolektor i parser treści z gov.pl dla scripts/test_rcb_artykul.cjs,
 // `adsbHoldJump`: strażnik niemożliwych skoków dla scripts/test_skok_pozycji.cjs,
 // który sprawdza, że tryb bez serwera trzyma pozycję tak samo jak backend,
 // oraz `adsbGeoUrl`/`adsbGeoAircraft` dla scripts/test_adsb_geo_zapas.cjs,
 // a `podloga` dla scripts/test_podloga_dron.cjs, `baltyk` dla scripts/test_baltyk_silnik.cjs.
-return { start, stop, history, timeline, historyFrom, timelineFrom, accumulate, matchVoivs,
+return { start, stop, history, timeline, historyFrom, timelineFrom, accumulate, matchVoivs, ustawSlownik,
          adsbHoldJump, adsbGeoUrl, adsbGeoAircraft, lostWeight, zgubioneZMigawek,
          stateFrom, alertLevel, rsoIsCancellation, assess,
          rso: { tickRso, sygnaly: () => signals },

@@ -30,7 +30,7 @@ from zoneinfo import ZoneInfo
 
 import httpx
 
-from .. import config, fusion, rcb_reference
+from .. import config, fusion, rcb_reference, slownik_woj
 from ..textmatch import match_keywords
 from .rso import RSO_AIR, RSO_CONTINUES, RSO_END, rcb_level
 
@@ -64,9 +64,10 @@ def _fold(s: str) -> str:
 
 
 def _match_voivs(text: str) -> list[str]:
-    tl = text.lower()
-    out = [v for v, keys in config.VOIV_KEYWORDS.items() if any(k in tl for k in keys)]
-    return out or list(config.PRIORITY_VOIVODESHIPS)
+    """Województwa z tytułu wpisu (0 pkt, odniesienie czasowe). Pełne formy, całe słowa
+    (app/slownik_woj.py, 23.10.2026) — wcześniej podciąg rdzenia: „Biała Podlaska”
+    dawała podlaskie."""
+    return slownik_woj.wojewodztwa(text) or list(config.PRIORITY_VOIVODESHIPS)
 
 
 # ── Treść artykułu: województwa i poziom prosto z komunikatu ─────────────────
