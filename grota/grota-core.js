@@ -298,8 +298,10 @@
 
   // Spis miejscowości z OpenStreetMap (tools/miejscowosci.py) → obiekty + indeks po nazwie bez polskich znaków.
   function localityIndex(pack) {
+    // województwo gminy — starsze paczki go nie mają, wtedy zostaje puste i nic się nie dopisuje
+    const woj = (g) => (pack.wojewodztwa && pack.gminy_woj ? pack.wojewodztwa[pack.gminy_woj[g]] || "" : "");
     const list = pack.m.map(([name, g, lat, lon, kind]) => ({
-      name, gmina: pack.gminy[g], lat: lat / 1e4, lon: lon / 1e4, kind, kindLabel: pack.rodzaje[kind], key: fold(name) }));
+      name, gmina: pack.gminy[g], woj: woj(g), lat: lat / 1e4, lon: lon / 1e4, kind, kindLabel: pack.rodzaje[kind], key: fold(name) }));
     const byKey = new Map();
     for (const m of list) { const a = byKey.get(m.key); if (a) a.push(m); else byKey.set(m.key, [m]); }
     return { list, byKey };
@@ -312,8 +314,18 @@
     const prefix = exact.length >= limit ? [] : idx.list.filter((m) => m.key !== f && m.key.startsWith(f));
     const d = (m) => (ref ? distanceM(ref.lat, ref.lon, m.lat, m.lon) : 0);
     const by = (a, b) => (ref ? d(a) - d(b) : KIND_RANK[a.kind] - KIND_RANK[b.kind]);
-    return [...exact.sort(by), ...prefix.sort(by)].slice(0, limit).map((m) => ({
-      label: m.name, detail: `${T(m.kindLabel)}, ${T("gm. {g}", { g: m.gmina })}`, lat: m.lat, lon: m.lon, acc: KIND_ACC[m.kind] || 1000, kind: m.kind, source: "spis" }));
+    const out = [...exact.sort(by), ...prefix.sort(by)].slice(0, limit).map((m) => ({
+      label: m.name, detail: `${T(m.kindLabel)}, ${T("gm. {g}", { g: m.gmina })}`, woj: m.woj,
+      lat: m.lat, lon: m.lon, acc: KIND_ACC[m.kind] || 1000, kind: m.kind, source: "spis" }));
+    /* Dwie różne miejscowości potrafią mieć tę samą nazwę I tę samą nazwę gminy — Olsztyn warmiński
+       i Olsztyn pod Częstochową leżą w gminach Olsztyn, tylko w innych województwach. Na liście
+       wyglądały wtedy identycznie i nie dało się wybrać właściwej. Województwo dopisujemy wyłącznie
+       w takim przypadku: przy pozostałych wynikach byłoby dodatkowym słowem bez treści. */
+    const ile = new Map();
+    const klucz = (p) => `${p.label}|${p.detail}`;
+    for (const p of out) ile.set(klucz(p), (ile.get(klucz(p)) || 0) + 1);
+    for (const p of out) if (p.woj && ile.get(klucz(p)) > 1) p.detail = `${p.detail} · ${p.woj}`;
+    return out;
   }
 
   /* Warianty zapytania dla wyszukiwarki GUGiK. Oczekuje „Miejscowość, ulica numer” i polskich znaków

@@ -124,3 +124,35 @@ if (zle.length) {
   process.exit(1);
 }
 console.log(`OK: wyszukiwanie offline dla ${SPRAWDZANE.length} nazw podaje właściwe miasto na pierwszym miejscu`);
+
+/* Trzecia część: województwo przy powtórzonych etykietach. Bez niego dwa różne miasta wyglądają
+   na liście identycznie („Olsztyn — miasto, gm. Olsztyn”) i nie da się wybrać właściwego.
+   Dopisek ma się pojawiać TYLKO wtedy — przy zwykłym wyniku byłby słowem bez treści. */
+const BLIZNIAKI = [
+  // [wpisane, dwa województwa, które muszą się pojawić przy wynikach o tej samej etykiecie]
+  ["Olsztyn", ["warmińsko-mazurskie", "śląskie"]],
+  ["Bolesławiec", ["dolnośląskie", "łódzkie"]],
+  ["Oleśnica", ["dolnośląskie", "świętokrzyskie"]],
+];
+const zleWoj = [];
+for (const [pytanie, oczekiwane] of BLIZNIAKI) {
+  const wyniki = core.findLocalities(idx, pytanie, null).filter((p) => p.kind === "m");
+  for (const w of oczekiwane) {
+    if (!wyniki.some((p) => p.detail.includes(w))) {
+      zleWoj.push(`„${pytanie}”: brak województwa ${w} w wynikach: ${wyniki.map((p) => p.detail).join(" / ")}`);
+    }
+  }
+}
+// a tam, gdzie nic się nie powtarza, województwa ma nie być
+for (const pytanie of ["Warszawa", "Hel", "Gdynia"]) {
+  const pierwszy = core.findLocalities(idx, pytanie, null)[0];
+  if (pierwszy && pierwszy.detail.includes(" · ")) {
+    zleWoj.push(`„${pytanie}”: województwo dopisane bez potrzeby — ${pierwszy.detail}`);
+  }
+}
+if (zleWoj.length) {
+  console.error("BŁĄD: rozróżnianie miejscowości o tej samej nazwie i gminie:");
+  for (const z of zleWoj) console.error("  ", z);
+  process.exit(1);
+}
+console.log(`OK: województwo dopisane przy ${BLIZNIAKI.length} parach imienników, przy pozostałych wynikach go nie ma`);
