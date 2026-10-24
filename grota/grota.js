@@ -1808,6 +1808,8 @@
   /* ---------- mapy offline ---------- */
 
   const mb = (x) => (x >= 1000 ? T("{x} GB", { x: J.ulamek(x / 1000) }) : T("{x} MB", { x: x < 10 ? J.ulamek(x) : Math.round(x) }));
+  // daty pobrania zapisujemy jako RRRR-MM-DD, więc wersję spisu pokazujemy w tej samej postaci
+  const dzien = (iso) => esc(String(iso || "").slice(0, 10));
 
   function punktPaczki() {
     if (S.paczka.zPunktu === "pozycja") return S.userPos;
@@ -1865,8 +1867,39 @@
         try { await O.pobierzStyl(nazwa, adres); } catch { /* styl dociągniemy przy okazji */ }
       }
       S.pobieranie = { ...S.pobieranie, etap: "mapa", razem: plan.bajty }; render();
-      const wynik = await O.pobierzPlan({ id: w.id, nazwa: w.nazwa }, plan, (x) => { S.pobieranie = { ...S.pobieranie, ...x }; render(); });
+      // opcje zapisujemy razem z paczką — po nich wiadomo później, co dokładnie odświeżyć przy nowszej mapie
+      const opcje = { obszary: w.opcje.obszary || null, komorki: w.opcje.komorki ? [...w.opcje.komorki] : null };
+      const wynik = await O.pobierzPlan({ id: w.id, nazwa: w.nazwa, opcje }, plan, (x) => { S.pobieranie = { ...S.pobieranie, ...x }; render(); });
       S.pobranieWynik = { ...wynik, trasy: plan.trasy };
+    } catch (e) {
+      S.pobieranie = { blad: poLudzku(e) };
+      O.zakoncz();
+      await odswiezStanMap();
+      return;
+    }
+    O.zakoncz();
+    S.pobieranie = null;
+    await odswiezStanMap();
+  }
+
+  /* Odświeżenie pobranej mapy, gdy serwer ma nowszą. Pobieramy tylko części, których telefon nie ma
+     w tej wersji, i nadpisujemy kafelki w miejscu — stara mapa działa do chwili, gdy nowa wejdzie
+     na jej miejsce. Przerwanie w połowie nie psuje mapy: zapisane zostaje to, co weszło w całości,
+     a następne podejście dobiera resztę. Nic nie rusza się samo — tylko z tego przycisku. */
+  async function aktualizujMape(id) {
+    const biezaca = (S.stanMap?.paczki || []).find((p) => p.id === id);
+    if (!biezaca) return;
+    S.pobranieWynik = null;
+    S.pobieranie = { zrobione: 0, razem: 0, etykieta: biezaca.nazwa, etap: "spis", odswiezanie: true }; render();
+    try {
+      const s = await O.spis(true);
+      S.spis = s;
+      const stan = O.stanPaczki(s, biezaca);
+      if (!stan) { S.pobieranie = null; S.pobranieWynik = { aktualna: true }; await odswiezStanMap(); return; }
+      S.pobieranie = { ...S.pobieranie, etap: "mapa", razem: stan.plan.bajty }; render();
+      const wynik = await O.pobierzPlan({ id, nazwa: biezaca.nazwa, opcje: biezaca.opcje || null }, stan.plan,
+        (x) => { S.pobieranie = { ...S.pobieranie, ...x }; render(); }, { nadpisz: true, zachowaj: stan.zachowaj });
+      S.pobranieWynik = { ...wynik, trasy: stan.plan.trasy, odswiezone: true };
     } catch (e) {
       S.pobieranie = { blad: poLudzku(e) };
       O.zakoncz();
@@ -1899,7 +1932,21 @@
     const st = S.stanMap, pob = S.pobieranie, W = S.paczka;
     if (!S.spis && !S.spisBlad && !S.spisLaduje && !O.udaje()) wczytajSpis();
     const maPaczki = st?.paczki?.length;
-    const lista = maPaczki ? st.paczki.map((x) => `<li>${esc(x.nazwa)}${x.trasy === false ? " " + T("(sama mapa)") : ""} — ${mb((x.bajtow || 0) / 1e6)}, ${esc(x.data)}</li>`).join("") : "";
+    /* Mapa w telefonie się nie odświeża sama, więc po przebudowie paczek trzeba o tym powiedzieć —
+       spokojnie, przy liście pobranych map, bez okna na pół ekranu i bez pobierania z własnej woli. */
+    const nowsze = S.spis ? O.doAktualizacji(S.spis) : [];
+    const nowszaDla = new Map(nowsze.map((n) => [n.id, n]));
+    const lista = maPaczki ? st.paczki.map((x) => {
+      const n = nowszaDla.get(x.id);
+      return `<li>${esc(x.nazwa)}${x.trasy === false ? " " + T("(sama mapa)") : ""} — ${mb((x.bajtow || 0) / 1e6)}, ${esc(x.data)}${
+        n ? `<br><span class="small">${n.powod === "niepelna"
+            ? T("Ta mapa pobrała się nie w całości.")    // zerwane połączenie, nie nowsza wersja — nie mylmy tego
+            : dzien(n.wersjaSerwera) === esc(x.data)
+              ? T("Jest nowsza wersja tej mapy.")        // przebudowa tego samego dnia — dwie takie same daty tylko myliłyby
+              : T("Jest nowsza mapa (z {data}). Twoja jest z {moja}.", { data: dzien(n.wersjaSerwera), moja: esc(x.data) })}
+          <button class="btn ghost place-btn" data-act="mapa-odswiez" data-val="${esc(x.id)}"${pob ? " disabled" : ""}>${I("refresh-cw")}${
+            n.powod === "niepelna" ? T("Dokończ pobieranie") : T("Zaktualizuj")} · ${mb(n.bajty / 1e6)}</button></span>` : ""}</li>`;
+    }).join("") : "";
     const opcja = (rodzaj, etykieta) => `<button type="button" class="chip${W.rodzaj === rodzaj ? " on" : ""}" data-act="paczka-rodzaj" data-val="${rodzaj}">${T(etykieta)}</button>`;
     const obszary = dostepneObszary();
     const w = S.spis ? wyborPaczki() : null;
@@ -1939,8 +1986,12 @@
     const procent = pob && pob.razem ? Math.round((100 * pob.zrobione) / pob.razem) : 0;
     const wynik = !pob && S.pobranieWynik ? (() => {
       const r = S.pobranieWynik;
-      if (r.anulowane) return `<p class="small muted">${T("Przerwane. To, co zdążyło się pobrać, zostaje w telefonie — następna próba dobierze tylko resztę.")}</p>`;
+      if (r.aktualna) return `<p class="small trust-ok">${T("Ta mapa jest już aktualna.")}</p>`;
+      if (r.anulowane) return `<p class="small muted">${r.odswiezone
+        ? T("Przerwane. Mapa dalej działa — zaktualizowane fragmenty są już nowe, reszta została stara. Następna próba dobierze resztę.")
+        : T("Przerwane. To, co zdążyło się pobrać, zostaje w telefonie — następna próba dobierze tylko resztę.")}</p>`;
       const kafelki = plural(r.kafelkow || 0, "kafelek mapy", "kafelki mapy", "kafelków mapy");
+      if (r.odswiezone) return `<p class="small trust-ok">${T("Mapa zaktualizowana: {mb}, {kafelki}.", { mb: mb((r.pobrane || 0) / 1e6), kafelki })}</p>`;
       return `<p class="small trust-ok">${r.trasy
         ? T("Pobrano {mb}: {kafelki} i dane do tras dla {obszary}.", { mb: mb((r.pobrane || 0) / 1e6), kafelki, obszary: plural(r.komorekGrafu || 0, "obszaru", "obszarów", "obszarów") })
         : T("Pobrano {mb}: {kafelki}.", { mb: mb((r.pobrane || 0) / 1e6), kafelki })}${!r.pobrane ? " " + T("Wszystko było już w telefonie.") : ""}</p>`;
@@ -1969,8 +2020,9 @@
       ${wynik}
       ${pob && !pob.blad
         ? `<p class="small">${pob.przerywam ? T("Przerywam…")
-             : pob.etap === "spis" ? T("Sprawdzam, co jest do pobrania…")
+             : pob.etap === "spis" ? (pob.odswiezanie ? T("Sprawdzam, co się zmieniło na mapie…") : T("Sprawdzam, co jest do pobrania…"))
              : pob.etap === "styl" ? T("Pobieram wygląd mapy (kolory, ikony, napisy)…")
+             : pob.odswiezanie ? T("Aktualizuję „{n}”: {x} z {razem}", { n: esc(pob.etykieta), x: mb((pob.zrobione || 0) / 1e6), razem: mb((pob.razem || 0) / 1e6) })
              : T("Pobieram „{n}”: {x} z {razem}", { n: esc(pob.etykieta), x: mb((pob.zrobione || 0) / 1e6), razem: mb((pob.razem || 0) / 1e6) })}</p>
            <div class="pasek"><i style="width:${procent}%"></i></div>
            <p class="small muted">${T("Możesz zamknąć tę kartę, ale nie aplikację. Po zerwaniu połączenia pobieranie samo spróbuje jeszcze raz.")}</p>
@@ -2790,6 +2842,8 @@
       wczytajSpis(true); render();
     } else if (act === "paczka-pobierz") {
       pobierzPaczke();
+    } else if (act === "mapa-odswiez") {
+      aktualizujMape(b.dataset.val);
     } else if (act === "paczka-anuluj") {
       O.anuluj();
       S.pobieranie = { ...S.pobieranie, przerywam: true }; render();
