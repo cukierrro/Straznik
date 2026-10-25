@@ -279,6 +279,26 @@ def dist_to_voiv_km(lat: float, lon: float, voiv: str) -> float | None:
     return round(min(haversine_km(lat, lon, blat, blon) for blat, blon in ring), 1)
 
 
+def celowanie_woj(lat: float, lon: float, heading, voiv: str,
+                  pelne_deg: float, zero_deg: float) -> float | None:
+    """Na ile kurs obiektu celuje w TO województwo: 1 — kurs w wycinku kątowym jego
+    obrysu (z zapasem `pelne_deg`), 0 — dalej niż `zero_deg` od wycinka, pomiędzy
+    liniowo. None, gdy kursu nie znamy. Obiekt nad województwem celuje w nie (1)."""
+    ring = VOIV_OUTLINE.get(voiv)
+    if heading is None or not ring:
+        return None
+    if point_in_ring(lat, lon, ring):
+        return 1.0
+    start, width = _bearing_arc(lat, lon, ring)
+    off = (float(heading) - start) % 360.0
+    d = 0.0 if off <= width else min(off - width, 360.0 - off)
+    if d <= pelne_deg:
+        return 1.0
+    if d >= zero_deg:
+        return 0.0
+    return round((zero_deg - d) / (zero_deg - pelne_deg), 3)
+
+
 def point_in_ring(lat: float, lon: float, ring) -> bool:
     """Czy punkt leży wewnątrz obrysu (ray casting).
 

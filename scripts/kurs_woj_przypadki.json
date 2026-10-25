@@ -1,0 +1,128 @@
+{
+ "opis": "Wspólne przypadki dla premii za kurs na województwo (neptun.wagi_kursu_woj) i lustra w engine.js (25.10.2026).",
+ "przypadki": [
+  {
+   "nazwa": "tarnopol_233",
+   "track": {
+    "id": "kw-tarnopol",
+    "type": "uav",
+    "lat": 49.553,
+    "lon": 25.595,
+    "heading": 233,
+    "confidenceLevel": "high",
+    "sourceCount": 5,
+    "lifecycle": "confirmed",
+    "count": 1,
+    "positionQuality": "confirmed",
+    "uncertaintyKm": 4
+   }
+  },
+  {
+   "nazwa": "lwow_pd_334_domniemany",
+   "track": {
+    "id": "kw-lwow-pd",
+    "type": "uav",
+    "lat": 49.124,
+    "lon": 24.727,
+    "heading": 334.4,
+    "presumptiveCourse": true,
+    "confidenceLevel": "high",
+    "sourceCount": 3,
+    "lifecycle": "confirmed",
+    "count": 1,
+    "positionQuality": "confirmed",
+    "uncertaintyKm": 4
+   }
+  },
+  {
+   "nazwa": "bez_kursu",
+   "track": {
+    "id": "kw-bez",
+    "type": "uav",
+    "lat": 49.553,
+    "lon": 25.595,
+    "confidenceLevel": "high",
+    "sourceCount": 5,
+    "lifecycle": "confirmed",
+    "count": 1,
+    "positionQuality": "confirmed",
+    "uncertaintyKm": 4
+   }
+  },
+  {
+   "nazwa": "lwow_300_na_lubelskie",
+   "track": {
+    "id": "kw-lwow-300",
+    "type": "uav",
+    "lat": 49.84,
+    "lon": 24.03,
+    "heading": 330,
+    "confidenceLevel": "high",
+    "sourceCount": 3,
+    "lifecycle": "confirmed",
+    "count": 1,
+    "positionQuality": "confirmed",
+    "uncertaintyKm": 4
+   }
+  }
+ ],
+ "oczekiwane": {
+  "bez_kursu": {
+   "lubelskie": {
+    "points": 0.31,
+    "obok": false
+   },
+   "podkarpackie": {
+    "points": 0.27,
+    "obok": false
+   }
+  },
+  "lwow_300_na_lubelskie": {
+   "lubelskie": {
+    "points": 1.61,
+    "obok": false
+   },
+   "mazowieckie": {
+    "points": 0.3,
+    "obok": false
+   },
+   "małopolskie": {
+    "points": 0.31,
+    "obok": false
+   },
+   "podkarpackie": {
+    "points": 1.61,
+    "obok": false
+   },
+   "świętokrzyskie": {
+    "points": 0.38,
+    "obok": false
+   }
+  },
+  "lwow_pd_334_domniemany": {
+   "lubelskie": {
+    "points": 0.53,
+    "obok": false
+   },
+   "małopolskie": {
+    "points": 0.15,
+    "obok": false
+   },
+   "podkarpackie": {
+    "points": 0.7,
+    "obok": false
+   }
+  },
+  "tarnopol_233": {
+   "lubelskie": {
+    "points": 0.59,
+    "obok": true
+   },
+   "podkarpackie": {
+    "points": 0.56,
+    "obok": false
+   }
+  }
+ },
+ "oczekiwane_opis": "Wynik serwera (neptun._maybe_signal) z 25.10.2026: punkty i napis „w odległości” per województwo. Oba testy porównują się z nim."
+}

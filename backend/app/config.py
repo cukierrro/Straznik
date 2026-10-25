@@ -139,6 +139,15 @@ NEPTUN_HEADING_TOLERANCE = 50.0    # ± stopni od azymutu na najbliższy punkt g
 # Twarde cięcie na 50° gubiło obiekty tuż za progiem (51° = 0 pkt), więc waga
 # kursu spada LINIOWO od tolerancji do NEPTUN_HEADING_SOFT_DEG, dopiero potem 0.
 NEPTUN_HEADING_SOFT_DEG = 70.0
+# Mała premia za kurs NA KONKRETNE województwo (decyzja usera 25.10.2026, wariant B15):
+# punkty obiektu dzielone wg odległości jak dotąd, ale województwo, w które celuje kurs,
+# dostaje do +15%, a pozostałe oddają tyle samo — suma obiektu się nie zmienia, bo dron
+# może zmienić kurs w każdej chwili. Kurs domniemany (na cel) — połowa. Przeliczenie
+# 11–25.10: wejścia w żółty 137 → 136, minuty ≥ żółty +0,2%, czerwone bez zmian.
+# Celowanie: kurs w wycinku obrysu województwa ±15° = pełne, 45° = zero (geo.celowanie_woj).
+NEPTUN_KURS_WOJ_K = 0.15
+NEPTUN_KURS_WOJ_PELNE_DEG = 15.0
+NEPTUN_KURS_WOJ_ZERO_DEG = 45.0
 # Obiekt BEZ pola heading (NEPTUN nie zawsze je podaje) był pomijany w ciszy —
 # tak przepadła rakieta manewrująca 130 km od granicy. Teraz liczy się z karą
 # i tylko blisko granicy: nieznany kurs to niepewność, nie dowód bezpieczeństwa.

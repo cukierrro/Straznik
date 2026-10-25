@@ -189,6 +189,8 @@ const HEADING_TOL = 50;
 /* Waga kursu (lustro geo.course_factor): twarde cięcie na 50° gubiło obiekty tuż
    za progiem, a brak pola heading wyciszał nawet rakietę tuż przy granicy. */
 const HEADING_SOFT = 70, UNKNOWN_HEADING_MULT = 0.5, UNKNOWN_HEADING_MAX_KM = 150;
+// lustro config.NEPTUN_KURS_WOJ_* (B15, decyzja usera 25.10.2026): premia za kurs na województwo
+const KURS_WOJ_K = 0.15, KURS_WOJ_PELNE_DEG = 15, KURS_WOJ_ZERO_DEG = 45;
 const BORDER_POINTS = [
   [54.44,19.80,"warmińsko-mazurskie"],[54.35,20.60,"warmińsko-mazurskie"],
   [54.36,21.50,"warmińsko-mazurskie"],[54.34,22.79,"warmińsko-mazurskie"],
@@ -1561,6 +1563,9 @@ function neptunEval(t) {
   if (a.toward_pl) {
     let points = scoreThreat(t, a.dist_km, a.course_factor);
     if (points > 0) {
+      const wagi = wagiKursuWoj(t, a);
+      points = Math.round(points * (wagi[a.border_voiv] ?? 1) * 100) / 100;
+      const obok = kursObokWoj(t, a);
       const bazowe = points, podloga = borderUavFloor(t, a.dist_km);
       points = Math.max(points, podloga);
       const count = Math.max(parseInt(t.count) || 1, 1);
@@ -1590,11 +1595,17 @@ function neptunEval(t) {
       const tier = Math.floor(points * 2);
       const distanceInfo = approx ? `${areaDistance(a.dist_km)} [pozycja rejonowa]`
         : `${kmPL(a.dist_km)} km`;
+      // „kursem na granicę” tylko przy kursie na TO województwo (lustro neptun._kurs_obok_woj)
       addSignal("neptun", "neptun_threat", a.border_voiv, points,
-        `${ile}${neptunTypeLabelPL(ty)} kursem na granicę PL, ${distanceInfo}`
-        + `${zPodlogi ? " [blisko granicy]" : ""}`
-        + `${etaAlarm ? `, konserwatywny czas dolotu ~${etaSafe} min` : ""} (woj. ${a.border_voiv}, `
-        + `wiarygodność: ${wiarygodnoscPL(conf)}, ${potwierdzeniaPL(sources)}, ±${kmPL(t.uncertaintyKm??"?")} km)`,
+        obok
+          ? `${ile}${neptunTypeLabelPL(ty)} w odległości ${distanceInfo} od woj. ${a.border_voiv}`
+            + `${zPodlogi ? " [blisko granicy]" : ""}`
+            + `${etaAlarm ? `, konserwatywny czas dolotu ~${etaSafe} min` : ""} `
+            + `(wiarygodność: ${wiarygodnoscPL(conf)}, ${potwierdzeniaPL(sources)})`
+          : `${ile}${neptunTypeLabelPL(ty)} kursem na granicę PL, ${distanceInfo}`
+            + `${zPodlogi ? " [blisko granicy]" : ""}`
+            + `${etaAlarm ? `, konserwatywny czas dolotu ~${etaSafe} min` : ""} (woj. ${a.border_voiv}, `
+            + `wiarygodność: ${wiarygodnoscPL(conf)}, ${potwierdzeniaPL(sources)}, ±${kmPL(t.uncertaintyKm??"?")} km)`,
         { track_id: t.id, dist_km: a.dist_km, count, source_count: sources,
           // typ, area_only i niepewność czyta klucz czerwonego (redKey) — bez nich
           // w trybie bez serwera żaden obiekt nie dawał klucza (znalezione 18.10.2026)
@@ -1619,9 +1630,11 @@ function neptunEval(t) {
                 : (t.heading_estimated != null ? "estimated" : "unknown"),
           heading_source: t.heading_source, jet: !!t.straznik_jet,
           course_factor: a.course_factor,
+          waga_kursu_woj: wagi[a.border_voiv] ?? 1,
+          ...(obok ? { voiv_secondary: true, kurs_obok_woj: true } : {}),
           ...(zPodlogi ? { border_floor: true, bez_przeniesienia_pkt: zPodlogi } : {}) },
         `neptun:${t.id}:t${tier}`);
-      sygnalySasiednie(t, a, ty, count, conf, sources, approx, speed, presumed);
+      sygnalySasiednie(t, a, ty, count, conf, sources, approx, speed, presumed, wagi);
     }
   }
   return t;
@@ -1649,7 +1662,39 @@ function distToVoivKm(lat, lon, voiv) {
   for (const [blat, blon] of ring) best = Math.min(best, haversine(lat, lon, blat, blon));
   return Math.round(best * 10) / 10;
 }
-function sygnalySasiednie(t, a, ty, count, conf, sources, approx, speed, presumed) {
+/* Lustro geo.celowanie_woj i neptun.wagi_kursu_woj (B15, 25.10.2026): kurs przesuwa do 15%
+   punktów obiektu do województwa, w które celuje — suma ważona punktami się nie zmienia. */
+function celowanieWoj(t, voiv) {
+  const h = headingOf(t);
+  if (typeof VOIV_OUTLINE === "undefined" || h == null || t.lat == null) return null;
+  const ring = VOIV_OUTLINE[voiv];
+  if (!ring) return null;
+  if (pointInRing(t.lat, t.lon, ring)) return 1;
+  const [start, width] = bearingArc(t.lat, t.lon, ring);
+  const off = ((h - start) % 360 + 360) % 360;
+  const d = off <= width ? 0 : Math.min(off - width, 360 - off);
+  if (d <= KURS_WOJ_PELNE_DEG) return 1;
+  if (d >= KURS_WOJ_ZERO_DEG) return 0;
+  return Math.round((KURS_WOJ_ZERO_DEG - d) / (KURS_WOJ_ZERO_DEG - KURS_WOJ_PELNE_DEG) * 1000) / 1000;
+}
+function wagiKursuWoj(t, a) {
+  if (headingOf(t) == null || t.lat == null) return {};
+  const cf = a.course_factor ?? 1, baza = {}, cel = {};
+  for (const voiv of VOIVODESHIPS) {
+    const dist = voiv === a.border_voiv ? a.dist_km : distToVoivKm(t.lat, t.lon, voiv);
+    if (dist == null || dist >= NEPTUN_MAX_KM) continue;
+    const p = scoreThreat(t, dist, cf), c = celowanieWoj(t, voiv);
+    if (p > 0 && c != null) { baza[voiv] = p; cel[voiv] = c; }
+  }
+  const woj = Object.keys(baza);
+  if (woj.length < 2) return {};
+  const suma = woj.reduce((s, v) => s + baza[v], 0);
+  const srednia = woj.reduce((s, v) => s + baza[v] * cel[v], 0) / suma;
+  const k = KURS_WOJ_K * (headingSourceOf(t) === "presumptive" ? 0.5 : 1);
+  return Object.fromEntries(woj.map(v => [v, Math.round((1 + k * (cel[v] - srednia)) * 10000) / 10000]));
+}
+const kursObokWoj = (t, a) => !a.inside_pl && celowanieWoj(t, a.border_voiv) === 0;
+function sygnalySasiednie(t, a, ty, count, conf, sources, approx, speed, presumed, wagi = {}) {
   if (t.lat == null || t.lon == null) return;
   const cf = a.course_factor ?? 1;
   for (const voiv of VOIVODESHIPS) {
@@ -1658,6 +1703,7 @@ function sygnalySasiednie(t, a, ty, count, conf, sources, approx, speed, presume
     if (dist == null || dist >= NEPTUN_MAX_KM) continue;
     let punkty = scoreThreat(t, dist, cf);
     if (punkty <= 0) continue;
+    punkty = Math.round(punkty * (wagi[voiv] ?? 1) * 100) / 100;
     const bazowe = punkty, podloga = borderUavFloor(t, dist);
     punkty = Math.max(punkty, podloga);
     const etaRaw = etaRawMinutes(dist, speed);
@@ -1687,6 +1733,7 @@ function sygnalySasiednie(t, a, ty, count, conf, sources, approx, speed, presume
         speed_kmh: speed, eta_approx: approx,
         eta_raw_border_min: etaRaw == null ? null : Math.round(etaRaw * 10) / 10,
         eta_border_min: etaSafe, eta_buffer_min: ETA_BUFFER_MIN, eta_alarm: etaAlarm,
+        waga_kursu_woj: wagi[voiv] ?? 1,
         voiv_secondary: true,
         ...(zPodlogi ? { border_floor: true, bez_przeniesienia_pkt: zPodlogi } : {}) },
       `neptun:${t.id}:${voiv}:t${Math.floor(punkty * 2)}`);
