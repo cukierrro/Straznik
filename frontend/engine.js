@@ -2900,7 +2900,9 @@ async function start(stateCb) {
     try { Notification.requestPermission(); } catch {}
   }
   startNeptun();
-  tickAdsb(); every(tickAdsb, 60000);
+  // adsb.lol: limit 500 zapytań na adres i dobę (26.10.2026) — równo co 173 s to 499, nawet gdy
+  // tryb awaryjny trwa całą dobę; każdy telefon ma własny adres i własny limit
+  tickAdsb(); every(tickAdsb, 173000);
   tickRss(); every(tickRss, 60000);
   tickRcb(); every(tickRcb, 180000);   // 3 min: alerty RCB nie zmieniają się częściej
   tickRso(); every(tickRso, 180000);   // 3 min: rzadziej niż backend (60 s), bo tu

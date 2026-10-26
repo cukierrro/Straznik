@@ -69,9 +69,11 @@ MIL_CALLSIGN_PREFIXES = ("NATO", "MMF", "REDEYE", "BART", "OSY", "PLF", "HKY",
                          "VIPER", "WOLF", "FENIX", "DUKE", "TIGER", "KAPLAN",
                          "TUAF", "TURAF", "SOLOTURK")
 
-# Dwa koła po 220 NM pokrywają LT/LV/EE i najbliższy Bałtyk. To tylko dwa małe
-# zapytania/min, nie globalny zrzut całego ruchu cywilnego.
-BALTIC_GEO_POINTS = ((55.5, 24.0, 220), (58.2, 25.5, 220))
+# Jedno koło 250 NM (największy promień, jaki przyjmuje adsb.lol) nad LT/LV/EE i najbliższym
+# Bałtykiem: od ~52,1° do ~60,6° N, czyli od Suwalszczyzny po Zatokę Fińską. Do 26.10.2026 były
+# dwa koła po 220 NM — jedno zapytanie zamiast dwóch to więcej zapytań o listę w limicie 500/dobę.
+# Sprawdzone 26.10 na serwerze: 200, 49 maszyn, ~30 KB.
+BALTIC_GEO_POINTS = ((56.4, 24.5, 250),)
 MIL_TYPES = {"F16", "F15", "F18", "FA18", "F35", "EUFI", "RFAL", "JAS39",
              "MIR2", "M2K", "SU27", "SU30", "SU35", "MIG29", "MIG31",
              "A10", "B1", "B2", "B52", "E3CF", "E3TF", "A400", "C130",
@@ -110,6 +112,13 @@ async def _fetch_mil(client: httpx.AsyncClient) -> list[dict] | None:
             continue
         try:
             r = await client.get(url, headers={"User-Agent": UA})
+            if r.status_code == 429:
+                _zapamietaj_limit(r)
+                # limit to nie awaria: status źródła ocenia świeżość ostatniego sukcesu
+                # (monitoring.fresh), więc nie gasimy `ok` po jednym odrzuceniu
+                status.update(error=f"{name}: limit zapytań, następna próba za {_przerwa_s():.0f} s")
+                log.warning("ADS-B %s: limit zapytań (429), przerwa %.0f s", name, _przerwa_s())
+                return None
             r.raise_for_status()
             status.update(ok=True, error=None,
                           provider=name if name == prov else f"{name}(fallback)")
@@ -149,7 +158,42 @@ def _geo_aircraft(data: dict) -> list[dict]:
     return data.get("ac") or []
 
 
-async def _fetch_baltic_geo(client: httpx.AsyncClient, provider: str) -> list[dict]:
+# Przerwa po 429: adsb.lol podaje, po ilu sekundach okno się zwalnia (Retry-After albo
+# x-ratelimit-reset). Do tego czasu nie pytamy wcale — każde kolejne 429 i tak liczy się do limitu.
+_przerwa_do = 0.0
+
+
+def _zapamietaj_limit(r) -> None:
+    global _przerwa_do
+    h = r.headers
+    try:
+        s = float(h.get("retry-after") or h.get("x-ratelimit-reset") or 0)
+    except ValueError:
+        s = 0
+    _przerwa_do = time.time() + min(max(s, config.ADSB_INTERVAL), 3600)
+
+
+def _przerwa_s() -> float:
+    return max(0.0, _przerwa_do - time.time())
+
+
+# Każde koło bałtyckie ma swój krok w ADSB_PLAN; między krokami pokazujemy wynik jego ostatniego
+# zapytania, ale nie dłużej niż przez jeden pełny obieg planu (~9 min) — starsza pozycja wojskowej
+# maszyny myli bardziej, niż pomaga.
+_geo_cache: dict[int, dict] = {}
+_cykl = 0
+
+
+def _geo_max_wiek_s() -> float:
+    return len(config.ADSB_PLAN) * config.ADSB_INTERVAL + 60
+
+
+def _geo_z_pamieci(now: float) -> list[dict]:
+    return [ac for c in _geo_cache.values() if now - c["t"] <= _geo_max_wiek_s() for ac in c["lista"]]
+
+
+async def _fetch_baltic_geo(client: httpx.AsyncClient, provider: str,
+                            indeksy: tuple[int, ...] | None = None) -> list[dict]:
     """Wszystkie rekordy w dwóch kołach, potem lokalny filtr wojskowy.
 
     `/v2/mil` ominął nocne tureckie F-16, choć według użytkownika były widoczne
@@ -157,6 +201,7 @@ async def _fetch_baltic_geo(client: httpx.AsyncClient, provider: str) -> list[di
     Zapasowego hosta nie ma (opis modułu): gdy adsb.lol nie odpowiada, koła
     zostają puste, a status kół mówi o błędzie.
     """
+    indeksy = tuple(range(len(BALTIC_GEO_POINTS))) if indeksy is None else indeksy
     order = [provider] + [p for p in MIL_ENDPOINTS if p != provider]
     last_error = None
     for name in order:
@@ -164,20 +209,21 @@ async def _fetch_baltic_geo(client: httpx.AsyncClient, provider: str) -> list[di
             continue
         try:
             responses = await asyncio.gather(*[
-                client.get(_geo_url(name, lat, lon, radius),
-                           headers={"User-Agent": UA})
-                for lat, lon, radius in BALTIC_GEO_POINTS
+                client.get(_geo_url(name, *BALTIC_GEO_POINTS[i]), headers={"User-Agent": UA})
+                for i in indeksy
             ])
             merged = {}
-            for response in responses:
+            for i, response in zip(indeksy, responses):
+                if response.status_code == 429:
+                    _zapamietaj_limit(response)
                 response.raise_for_status()
-                for ac in _geo_aircraft(response.json()):
+                w_kole = [{**ac, "_straznik_detection": "baltic_geo"}
+                          for ac in _geo_aircraft(response.json()) if _looks_military(ac)]
+                _geo_cache[i] = {"t": time.time(), "lista": w_kole}
+                for ac in w_kole:
                     key = ac.get("hex") or f"{ac.get('lat')}:{ac.get('lon')}:{ac.get('flight')}"
                     merged[key] = ac
-            candidates = []
-            for ac in merged.values():
-                if _looks_military(ac):
-                    candidates.append({**ac, "_straznik_detection": "baltic_geo"})
+            candidates = list(merged.values())
             status["baltic_geo"] = {"ok": True, "provider": name,
                                     "candidates": len(candidates), "error": None}
             return candidates
@@ -261,12 +307,21 @@ def _classify(ac: dict) -> dict | None:
 
 
 async def _tick(client: httpx.AsyncClient):
-    global _watch_prev
+    """Jeden krok planu ADSB_PLAN = dokładnie jedno zapytanie do adsb.lol."""
+    global _watch_prev, _cykl
+    if _przerwa_s() > 0:                      # po 429 czekamy, aż adsb.lol zwolni okno
+        return
+    krok = config.ADSB_PLAN[_cykl % len(config.ADSB_PLAN)]
+    _cykl += 1
+    selected = str(status.get("provider") or config.ADSB_PROVIDER).replace("(fallback)", "")
+    if krok.startswith("kolo"):
+        # krok koła tylko odświeża pamięć koła; mapę i próbki liczy krok listy
+        await _fetch_baltic_geo(client, selected, (int(krok[4:]),))
+        return
     ac_list = await _fetch_mil(client)
     if ac_list is None:
         return
-    selected = str(status.get("provider") or config.ADSB_PROVIDER).replace("(fallback)", "")
-    geo_candidates = await _fetch_baltic_geo(client, selected)
+    geo_candidates = _geo_z_pamieci(time.time())
     merged: dict[str, dict] = {}
     for ac in ac_list:
         key = ac.get("hex") or f"{ac.get('lat')}:{ac.get('lon')}:{ac.get('flight')}"
@@ -343,7 +398,9 @@ async def _tick(client: httpx.AsyncClient):
 
 
 async def run():
-    async with httpx.AsyncClient(timeout=25) as client:
+    # local_address="0.0.0.0" wymusza IPv4 (patrz config.ADSB_IPV4)
+    transport = httpx.AsyncHTTPTransport(local_address="0.0.0.0") if config.ADSB_IPV4 else None
+    async with httpx.AsyncClient(timeout=25, transport=transport) as client:
         while True:
             try:
                 await _tick(client)

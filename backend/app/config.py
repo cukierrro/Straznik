@@ -191,7 +191,19 @@ NEPTUN_NATIONAL_REGION_MARKERS = ("загальнодержавн",)   # porówn
 
 # ── ADS-B ─────────────────────────────────────────────────────────────────────
 ADSB_PROVIDER = os.getenv("ADSB_PROVIDER", "adsb.lol")   # jedyny dostawca od 26.10.2026
-ADSB_INTERVAL = int(os.getenv("ADSB_INTERVAL", "60"))
+# adsb.lol ma limit na adres: 4/s, 60/min i 500 na dobę (nagłówek x-ratelimit-limit, 26.10.2026).
+# Co minutę /v2/mil + dwa koła bałtyckie to ~4300 zapytań na dobę — od co najmniej 20.10 około 80%
+# odpowiedzi to było 429, a dziurę cicho łatał zapas adsb.fi, usunięty 26.10.
+# Decyzja usera 26.10: pytać dokładnie tyle, ile pozwala limit, i równo rozłożyć — JEDNO zapytanie
+# co 173 s (86400 / 500 = 172,8 → 499 na dobę), w stałej kolejności ADSB_PLAN: dwa razy lista
+# /v2/mil, raz koło bałtyckie (jedno zbiorcze zapytanie, adsb.py). Lista wychodzi średnio co
+# ~4,3 min (najdłużej 5,8 min), koło co ~8,7 min.
+ADSB_LIMIT_DOBA = 500                                      # limit adsb.lol na adres i dobę
+ADSB_INTERVAL = int(os.getenv("ADSB_INTERVAL", "173"))     # odstęp między KAŻDYMI dwoma zapytaniami
+ADSB_PLAN = ("mil", "mil", "kolo0")
+# Wyjście do adsb.lol przez IPv4. Limit liczy się na adres; nasz adres IPv6 wyczerpał dobową
+# pulę przy dawnym tempie (okno ruchome 24 h), IPv4 tego obciążenia nie niósł.
+ADSB_IPV4 = os.getenv("ADSB_IPV4", "1") == "1"
 ADSB_BASELINE_DAYS = 7
 ADSB_SPIKE_FACTOR = 2.0            # sygnał gdy > 2x baseline
 ADSB_MIN_COUNT = 3                 # ...i co najmniej tyle maszyn wojskowych
