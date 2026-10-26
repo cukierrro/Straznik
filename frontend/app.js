@@ -4148,7 +4148,7 @@ function scoreBreakdown(st) {
     byClass.set(key, (byClass.get(key) || 0) + cp);
   }
   const parts = [...byClass.entries()].sort((a, b) => b[1] - a[1])
-    .map(([src, v]) => `${pktTxt(v)} ${SRC_LABEL[src] || src.toUpperCase()}`);
+    .map(([src, v]) => `${pktTxt(v)} ${esc(SRC_LABEL[src] || src.toUpperCase())}`);
   if (!parts.length) return "";
   const zeroNote = zeros
     ? ` · ${zeros} ${zeros === 1
@@ -5585,7 +5585,7 @@ async function showCameras(voiv) {
      odpadłby przy CSP. Zastępnik jest w kafelku od początku i odsłania go CSS,
      gdy kafelek dostanie klasę `cam-dead`. */
   const tile = (c) => `
-    <a class="cam-tile${CAM_THUMBS ? "" : " cam-dead"}" href="${esc(c.url)}"
+    <a class="cam-tile${CAM_THUMBS ? "" : " cam-dead"}" href="${esc(safeUrl(c.url))}"
        target="_blank" rel="noopener" title="${esc(c.name)} — ${esc(c.city)}">
       ${CAM_THUMBS ? `<img alt="${esc(c.name)}" data-cam="${esc(c.id)}">` : ""}
       <span class="cam-fallback">${CAM_THUMBS

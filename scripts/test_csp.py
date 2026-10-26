@@ -79,12 +79,20 @@ sprawdz("'unsafe-inline'" not in script_src, "bez 'unsafe-inline'")
 import re  # noqa: E402
 EVAL = re.compile(r"new Function\s*\(|(?<![\w.])eval\s*\(|set(?:Timeout|Interval)\s*\(\s*[\"'`]")
 wystapienia = []
-for plik in sorted((ROOT / "frontend").glob("*.js")) + [ROOT / "frontend" / "index.html"]:
+# GROTA ładuje się do tej samej strony (grota/*.js) — audyt 26.10.2026: test dotąd jej nie widział
+for plik in (sorted((ROOT / "frontend").glob("*.js")) + [ROOT / "frontend" / "index.html"]
+             + sorted((ROOT / "grota").glob("*.js"))):
     for nr, linia in enumerate(plik.read_text(encoding="utf-8").splitlines(), 1):
         if EVAL.search(linia):
             wystapienia.append((plik.name, nr, linia.strip()))
-sprawdz(len(wystapienia) == 1 and wystapienia[0][0] == "index.html" and "a?.b ?? 1" in wystapienia[0][2],
-        f"jedyny eval w frontendzie to test wieku przeglądarki (znaleziono: {[(p, n) for p, n, _ in wystapienia]})")
+# Dwa dozwolone, oba to TEN SAM stały test wieku przeglądarki (bez danych z zewnątrz):
+# index.html (Strażnik) i grota/widok.js (GROTA sprawdza WebView przed wczytaniem modułu).
+STALE_TESTY = {"index.html": 'new Function("var a = null; return a?.b ?? 1")',
+               "widok.js": 'new Function("var a = {}; return a?.b ?? 1;")'}
+dozwolone = [w for w in wystapienia if STALE_TESTY.get(w[0], "\0") in w[2]]
+sprawdz(len(wystapienia) == 2 and len(dozwolone) == 2,
+        f"jedyne evale to stały test wieku przeglądarki w index.html i grota/widok.js "
+        f"(znaleziono: {[(p, n) for p, n, _ in wystapienia]})")
 sprawdz("'unsafe-eval'" in script_src, "'unsafe-eval' jest (bez niego test wieku zgłasza stary silnik)")
 sprawdz("https:" not in script_src and "*" not in script_src, "bez obcych domen dla skryptów")
 sprawdz("object-src 'none'" in pol and "base-uri 'self'" in pol, "object-src none i base-uri self")

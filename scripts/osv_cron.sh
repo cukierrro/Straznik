@@ -36,8 +36,13 @@ if [ -r "$PLIK_PINGU" ]; then
   ADRES=$(head -n 1 "$PLIK_PINGU" | tr -d ' \t\r\n')
   if [ -n "$ADRES" ]; then
     # Kod wyjścia w adresie: 0 to zaliczenie, każdy inny to awaria w Healthchecks.
-    # Treść wyniku leci jako ciało, żeby powiadomienie od razu mówiło, co znaleziono.
-    if ! curl -fsS -m 15 --retry 3 --data-raw "$WYNIK" "$ADRES/$KOD" >/dev/null 2>&1; then
+    # Ciało: TYLKO podsumowanie per plik („63 pakietów, ZNALEZIONO 10”), bez nazw pakietów
+    # i numerów podatności (audyt 26.10.2026) — lista podatnych wersji produkcji to mapa
+    # słabych punktów i nie powinna leżeć w usłudze zewnętrznej. Szczegóły są w dzienniku.
+    PODSUMOWANIE=$(printf '%s\n' "$WYNIK" | grep -E "^[^ ].*(pakiet|BRAK PLIKU|nie udało)" | head -n 10)
+    PODSUMOWANIE="${PODSUMOWANIE:-brak podsumowania (kod $KOD)}
+Szczegóły: $DZIENNIK na serwerze."
+    if ! curl -fsS -m 15 --retry 3 --data-raw "$PODSUMOWANIE" "$ADRES/$KOD" >/dev/null 2>&1; then
       echo "UWAGA: nie udalo sie zameldowac w Healthchecks" >>"$DZIENNIK"
     fi
   fi

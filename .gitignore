@@ -46,3 +46,5 @@ docs/WZNOWIENIE_*.md
 # Szkice postów i stare zrzuty podglądów
 post_fb.md
 podglad_panelu/
+# lokalna konfiguracja podglądu (ścieżki z tego komputera) — audyt 26.10.2026
+.claude/launch.json
