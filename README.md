@@ -6,6 +6,10 @@
 
 Serwer: **hostowane na [Mikrusie](https://mikr.us)** — dziękujemy za wsparcie projektu.
 
+Wersja 1.8.02: ostrzeżenie GROTY o zmienionym schronieniu podaje właściwy wykaz ze starym
+obiektem, a samoloty mieszczą się w dobowym limicie adsb.lol (500 zapytań). Szczegóły:
+`docs/RELEASE_1.8.02.md`.
+
 Wersja 1.8.01: GROTA ma wykaz PSP z 26.10 (87 835 punktów) i ostrzega, gdy zapisane
 schronienie w nowym wykazie jest innym obiektem, ma poprawione położenie albo zniknęło.
 Wyszukiwarka zna miasta nadmorskie i pokazuje województwo przy imiennikach, mapa offline

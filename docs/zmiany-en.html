@@ -39,6 +39,14 @@
   <p class="fineprint">To see which version your phone has, open the app: <kbd>Menu</kbd> → <kbd>Settings</kbd> → <kbd>Language, text and version</kbd> → “App version”. The <kbd>⬆ Check for updates</kbd> button is right there too.</p>
 </div></header>
 <main id="content" class="wrap">
+<section id="v1-8-02">
+  <h2>1.8.02 — the correct date in the GROTA warning, aircraft within the adsb.lol limit</h2>
+  <p class="fineprint">Release 1.8.02 · 26 October 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.8.02">Full release notes</a></p>
+  <ul>
+    <li><b>GROTA:</b> in the warning about a changed shelter (places saved before 1.8.01) the “pointed to” sentence now gives the register in which the number still meant the old building — in 1.8.01 both dates were the same. The rest of the warning worked correctly.</li>
+    <li><b>Aircraft:</b> adsb.lol allows 500 requests a day per address. The server now asks evenly within that limit (every 173 s), so the aircraft layer and the ADS-B indicator in the sources work again; a phone in serverless mode stays within the limit too.</li>
+  </ul>
+</section>
 <section id="v1-8-01">
   <h2>1.8.01 — GROTA with the 26 October PSP list and a warning about a changed shelter</h2>
   <p class="fineprint">Release 1.8.01 · 26 October 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.8.01">Full release notes</a></p>
