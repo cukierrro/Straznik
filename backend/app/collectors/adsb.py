@@ -17,6 +17,7 @@ Gdy adsb.lol nie odpowiada, warstwa ADS-B jest pusta, a status mówi o błędzie
 warstwa i tak nie daje punktów.
 """
 import asyncio
+import json
 import logging
 import re
 import time
@@ -111,7 +112,7 @@ async def _fetch_mil(client: httpx.AsyncClient) -> list[dict] | None:
         if not url:
             continue
         try:
-            r = await client.get(url, headers={"User-Agent": UA})
+            r = await _get(client, url)
             if r.status_code == 429:
                 _zapamietaj_limit(r)
                 # limit to nie awaria: status źródła ocenia świeżość ostatniego sukcesu
@@ -159,8 +160,18 @@ def _geo_aircraft(data: dict) -> list[dict]:
 
 
 # Przerwa po 429: adsb.lol podaje, po ilu sekundach okno się zwalnia (Retry-After albo
-# x-ratelimit-reset). Do tego czasu nie pytamy wcale — każde kolejne 429 i tak liczy się do limitu.
+# x-ratelimit-reset). Do tego czasu nie pytamy wcale — każde kolejne 429 i tak liczy się do limitu
+# (w logu 23–25.10: ~1100 odrzuceń dziennie, a sukcesów tylko tyle, ile zostało z 500).
 _przerwa_do = 0.0
+
+
+def _pierwsza_kwota(h) -> int | None:
+    """Kwota polityki, która właśnie ogranicza: pierwsza liczba x-ratelimit-limit
+    („500, 4;w=1, 60;w=60, 500;w=86400” → 500, „4, 4;w=1, …” → 4)."""
+    try:
+        return int(str(h.get("x-ratelimit-limit") or "").split(",")[0].split(";")[0])
+    except ValueError:
+        return None
 
 
 def _zapamietaj_limit(r) -> None:
@@ -170,11 +181,98 @@ def _zapamietaj_limit(r) -> None:
         s = float(h.get("retry-after") or h.get("x-ratelimit-reset") or 0)
     except ValueError:
         s = 0
-    _przerwa_do = time.time() + min(max(s, config.ADSB_INTERVAL), 3600)
+    teraz = time.time()
+    if _pierwsza_kwota(h) == config.ADSB_LIMIT_DOBA:
+        # Dobowa pula wyczerpana: czekamy do resetu, który podał adsb.lol (do 26.10 przerwa
+        # była ucięta do godziny — i co godzinę szło kolejne, zbędne 429).
+        _budzet_aktualny(teraz)["uzyte"] = config.ADSB_LIMIT_DOBA
+        _budzet_zapisz()
+        _przerwa_do = teraz + min(max(s, 1.0), _do_polnocy_utc(teraz) + 60)
+    else:
+        # limit na sekundę albo minutę (albo bez nagłówków): krótka przerwa wg adsb.lol
+        _przerwa_do = teraz + min(max(s, 1.0), 3600)
 
 
 def _przerwa_s() -> float:
     return max(0.0, _przerwa_do - time.time())
+
+
+# ── Dobowy budżet zapytań (patrz config.ADSB_ZAPAS_DOBA) ────────────────────
+# Licznik zapytań tej doby UTC leży w pliku, bo restart serwera zerowałby plan i dokładał
+# zapytanie od razu po starcie. Liczymy KAŻDE wysłane zapytanie, także zakończone 429.
+_budzet = {"dzien": None, "uzyte": 0}
+_odstep = float(config.ADSB_INTERVAL)       # ostatnio policzony odstęp (do pamięci koła)
+
+
+def _budzet_plik():
+    return config.DATA_DIR / "adsb_budzet.json"
+
+
+def _dzien_utc(t: float) -> str:
+    return datetime.fromtimestamp(t, timezone.utc).strftime("%Y-%m-%d")
+
+
+def _do_polnocy_utc(t: float) -> float:
+    return 86400 - (t % 86400)
+
+
+def _budzet_wczytaj() -> None:
+    try:
+        dane = json.loads(_budzet_plik().read_text(encoding="utf-8"))
+        _budzet.update(dzien=str(dane["dzien"]), uzyte=int(dane["uzyte"]))
+    except (OSError, ValueError, KeyError, TypeError):
+        pass
+
+
+def _budzet_zapisz() -> None:
+    try:
+        _budzet_plik().write_text(json.dumps(_budzet), encoding="utf-8")
+    except OSError as e:
+        log.warning("ADS-B: nie zapisałem budżetu zapytań: %s", e)
+
+
+def _budzet_aktualny(t: float) -> dict:
+    if _budzet["dzien"] != _dzien_utc(t):          # nowa doba UTC — adsb.lol zeruje pulę
+        _budzet.update(dzien=_dzien_utc(t), uzyte=0)
+    return _budzet
+
+
+def _policz_zapytanie(r=None) -> None:
+    """Jedno wysłane zapytanie. Gdy adsb.lol pokazuje stan puli dobowej (ogranicza właśnie
+    ona), bierzemy jego liczbę — liczy też zapytania spoza tego procesu (curl, restart)."""
+    b = _budzet_aktualny(time.time())
+    b["uzyte"] += 1
+    h = getattr(r, "headers", None) or {}
+    if _pierwsza_kwota(h) == config.ADSB_LIMIT_DOBA:
+        try:
+            b["uzyte"] = max(b["uzyte"], config.ADSB_LIMIT_DOBA - int(h.get("x-ratelimit-remaining")))
+        except (TypeError, ValueError):
+            pass
+    _budzet_zapisz()
+
+
+def _zostalo(t: float) -> int:
+    return (config.ADSB_LIMIT_DOBA - config.ADSB_ZAPAS_DOBA) - _budzet_aktualny(t)["uzyte"]
+
+
+def _policz_odstep(t: float) -> float:
+    """Ile czekać do następnego zapytania: pula, która została, rozłożona równo do północy UTC,
+    nie gęściej niż co ADSB_INTERVAL. Pusta pula → czekamy do północy UTC."""
+    zostalo = _zostalo(t)
+    if zostalo <= 0:
+        return _do_polnocy_utc(t) + 5
+    return max(float(config.ADSB_INTERVAL), _do_polnocy_utc(t) / zostalo)
+
+
+async def _get(client: httpx.AsyncClient, url: str):
+    """Każde zapytanie do adsb.lol idzie tędy, żeby budżet liczył wszystkie."""
+    try:
+        r = await client.get(url, headers={"User-Agent": UA})
+    except Exception:
+        _policz_zapytanie()                      # mogło dojść do serwera — liczymy ostrożnie
+        raise
+    _policz_zapytanie(r)
+    return r
 
 
 # Każde koło bałtyckie ma swój krok w ADSB_PLAN; między krokami pokazujemy wynik jego ostatniego
@@ -185,7 +283,8 @@ _cykl = 0
 
 
 def _geo_max_wiek_s() -> float:
-    return len(config.ADSB_PLAN) * config.ADSB_INTERVAL + 60
+    # odstęp bywa dłuższy niż ADSB_INTERVAL (budżet po restarcie), więc liczymy z bieżącego
+    return len(config.ADSB_PLAN) * max(_odstep, config.ADSB_INTERVAL) + 60
 
 
 def _geo_z_pamieci(now: float) -> list[dict]:
@@ -209,7 +308,7 @@ async def _fetch_baltic_geo(client: httpx.AsyncClient, provider: str,
             continue
         try:
             responses = await asyncio.gather(*[
-                client.get(_geo_url(name, *BALTIC_GEO_POINTS[i]), headers={"User-Agent": UA})
+                _get(client, _geo_url(name, *BALTIC_GEO_POINTS[i]))
                 for i in indeksy
             ])
             merged = {}
@@ -398,12 +497,20 @@ async def _tick(client: httpx.AsyncClient):
 
 
 async def run():
+    global _odstep
+    _budzet_wczytaj()
     # local_address="0.0.0.0" wymusza IPv4 (patrz config.ADSB_IPV4)
     transport = httpx.AsyncHTTPTransport(local_address="0.0.0.0") if config.ADSB_IPV4 else None
     async with httpx.AsyncClient(timeout=25, transport=transport) as client:
         while True:
-            try:
-                await _tick(client)
-            except Exception as e:
-                log.warning("adsb tick błąd: %s", e)
-            await asyncio.sleep(config.ADSB_INTERVAL)
+            if _zostalo(time.time()) > 0:          # pusta pula: nie pytamy do północy UTC
+                try:
+                    await _tick(client)
+                except Exception as e:
+                    log.warning("adsb tick błąd: %s", e)
+            teraz = time.time()
+            _odstep = _policz_odstep(teraz)
+            b = _budzet_aktualny(teraz)
+            status["budzet"] = {"dzien_utc": b["dzien"], "uzyte": b["uzyte"],
+                                "limit": config.ADSB_LIMIT_DOBA, "odstep_s": round(_odstep)}
+            await asyncio.sleep(max(_odstep, _przerwa_s()))

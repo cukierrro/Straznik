@@ -27,7 +27,10 @@ sys.stdout.reconfigure(encoding="utf-8")
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "backend"))
+import tempfile
 from app import config
+_tmp = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
+config.DATA_DIR = Path(_tmp.name)        # licznik budżetu zapytań (adsb_budzet.json) nie do danych w repo
 from app.collectors import adsb
 from app.collectors.adsb import BALTIC_GEO_POINTS, MIL_ENDPOINTS, _fetch_baltic_geo, _fetch_mil, _geo_url
 

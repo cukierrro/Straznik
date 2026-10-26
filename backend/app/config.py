@@ -200,6 +200,13 @@ ADSB_PROVIDER = os.getenv("ADSB_PROVIDER", "adsb.lol")   # jedyny dostawca od 26
 # ~4,3 min (najdłużej 5,8 min), koło co ~8,7 min.
 ADSB_LIMIT_DOBA = 500                                      # limit adsb.lol na adres i dobę
 ADSB_INTERVAL = int(os.getenv("ADSB_INTERVAL", "173"))     # odstęp między KAŻDYMI dwoma zapytaniami
+# Doba adsb.lol to doba UTC: x-ratelimit-reset 26.10 o 17:21 UTC wskazywał dokładnie 00:00 UTC,
+# a w logu 23–26.10 pierwsze 429 każdego dnia padało o 02:49–02:59 UTC, czyli po ~500 zapytaniach
+# od północy UTC (stary kod pytał ~3 razy na minutę) — potem do północy UTC już tylko 429.
+# Budżet liczy zapytania tej doby w pliku (adsb.py), więc restart serwera ani ręczny pomiar curl-em
+# nie przepychają nas ponad limit: odstęp = czas do północy UTC / zapytania, które zostały,
+# nie krócej niż ADSB_INTERVAL. ADSB_ZAPAS_DOBA zostaje na restarty i pomiary.
+ADSB_ZAPAS_DOBA = 5
 ADSB_PLAN = ("mil", "mil", "kolo0")
 # Wyjście do adsb.lol przez NASZ adres (IPv6 serwera), nie przez IPv4. IPv4 Mikrusa to brama NAT
 # wspólna z innymi klientami: druga pula 500 zapytań z innego adresu byłaby obejściem limitu
