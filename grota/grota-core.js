@@ -58,6 +58,37 @@
     return p.flagi.some((f) => HARD_FLAGS.includes(f));
   }
 
+  /* Zapisane schronienia, które po nowym wykazie PSP przestały być tym, co człowiek wybrał.
+     Wykaz bywa przepisywany: 26.10.2026 w 31 punktach ten sam identyfikator wskazał inny budynek
+     (np. „51a, Kromolice, gm. Pogorzela” → „os. Gawrony 2, Gostyń”, 23 km dalej), a 23 z nich
+     zamknięto („Na żądanie”). Ponieważ miejsca użytkownika trzymają SAME identyfikatory, bez tej
+     kontroli ktoś biegłby w alarmie pod adres, którego nigdy nie wybrał.
+
+     `przeniesione` przychodzi z paczką (tools/przeniesione.py) i niesie stary adres — w telefonie nie
+     ma go skąd wziąć, bo paczka podmienia się razem z aplikacją. Drugie sito, odległość od miejsca,
+     działa nawet bez tej listy: schronienie 23 km od domu nie jest już niczyim schronieniem.
+     Zwraca po jednym wpisie na zapisane schronienie, które wymaga decyzji człowieka. */
+  const PRZENIESIONE_M = 3000;        // ten sam próg, co przy przeprowadzce (DALEKIE_SCHRONIENIE_M)
+
+  function zmienioneSchronienia(miejsce, byId, przeniesione = {}) {
+    const out = [];
+    for (const id of miejsce.shelters || []) {
+      const p = byId.get(id);
+      if (!p) { out.push({ id, powod: "znikl" }); continue; }
+      const dist = distanceM(miejsce.lat, miejsce.lon, p.lat, p.lon);
+      const prz = przeniesione[id];
+      if (!prz && dist <= PRZENIESIONE_M) continue;
+      out.push({
+        id, punkt: p, powod: prz ? "przeniesiony" : "daleko",
+        byl: prz?.byl || null, bylaGmina: prz?.gmina || null,
+        przesuniecieM: prz?.m ?? null,
+        odMiejscaM: Math.round(dist),
+        zamkniete: p.dostep === "na_zadanie",
+      });
+    }
+    return out;
+  }
+
   function flagMessages(p) {
     const km = (m) => (J ? J.ulamek(m / 1000) : (m / 1000).toFixed(1).replace(".", ","));
     const msg = [];
@@ -430,5 +461,5 @@
   }
 
   global.GrotaCore = { MODES, ACCESS, RULES, distanceM, estimateMin, nearest, liveBest, directionsUrl, streetViewUrl, pointBeforeEnd, bearing, orthoUrl, trustLabel, isDoubtful, flagMessages,
-    fold, localityIndex, findLocalities, queryVariants, geocode, fetchRoute, ROUTE_PROFILE, lineLengthM, simplifyLine };
+    fold, localityIndex, findLocalities, zmienioneSchronienia, PRZENIESIONE_M, queryVariants, geocode, fetchRoute, ROUTE_PROFILE, lineLengthM, simplifyLine };
 })(window);

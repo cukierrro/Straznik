@@ -849,9 +849,21 @@
       coords: own.coords, distM: own.distM, durMin: Math.max(1, Math.round(own.durSec / 60)) };
   };
 
+  // Czy nagrana trasa do tego schronienia jest jeszcze o tym samym miejscu (wykaz PSP bywa przepisywany).
+  const trasaNieaktualna = (pl, id) =>
+    C.zmienioneSchronienia(pl, S.byId, S.meta?.przeniesione || {}).some((z) => z.id === id);
+
   // Nagrana trasa z zapisanego miejsca (np. z Moich miejsc: „Pokaż na mapie”) — rysowana od tego miejsca.
   function showOwnRoute(pl, id) {
     if (!pl.routes?.[id]) return;
+    /* Punkt pod tym numerem bywa po aktualizacji wykazu innym obiektem — wtedy nagrana trasa prowadzi
+       donikąd i prowadzenie nią byłoby gorsze niż jej brak. Mówimy o tym i nie rysujemy. */
+    if (trasaNieaktualna(pl, id)) {
+      S.route = null; drawRoute();
+      S.openPlace = pl.id; S.tab = "miejsca"; render();
+      powiedz(T("Nagrana trasa jest nieaktualna — w wykazie PSP pod tym numerem jest teraz inny obiekt."));
+      return;
+    }
     S.route = ownRouteState(pl, id, { lat: pl.lat, lon: pl.lon });
     S.selectedId = id;
     if (map.getLayer("ps-sel")) map.setFilter("ps-sel", ["==", ["get", "id"], id]);
@@ -1434,7 +1446,46 @@
   }
 
   function placeSummary(pl, saved) {
-    return `${esc(T(P.PLACE_KINDS[pl.kind]?.label || ""))} · ${T("schronienia: {n}/3", { n: saved.length })}${pl.routes && Object.keys(pl.routes).length ? ` · ${T("nagrane trasy: {n}", { n: Object.keys(pl.routes).length })}` : ""} · ${esc(trybNazwa(pl.mode))}`;
+    // zmiana w wykazie musi być widać na zwiniętej karcie — inaczej człowiek nie ma powodu jej otworzyć
+    const zmian = S.points.length ? C.zmienioneSchronienia(pl, S.byId, S.meta?.przeniesione || {})
+      .filter((z) => !uznane(pl).has(z.id)).length : 0;
+    return `${esc(T(P.PLACE_KINDS[pl.kind]?.label || ""))} · ${T("schronienia: {n}/3", { n: saved.length })}${pl.routes && Object.keys(pl.routes).length ? ` · ${T("nagrane trasy: {n}", { n: Object.keys(pl.routes).length })}` : ""} · ${esc(trybNazwa(pl.mode))}${
+      zmian ? `<br><span class="trust-uwaga">${I("triangle-alert")}${zmian === 1 ? T("zapisane schronienie wymaga sprawdzenia") : T("zapisane schronienia wymagają sprawdzenia ({n})", { n: zmian })}</span>` : ""}`;
+  }
+
+  /* Ostrzeżenie o zapisanym schronieniu, które po nowym wykazie PSP jest czym innym. Pokazujemy je
+     przy miejscu, którego dotyczy, i nie znika samo: dopóki człowiek nie wybierze nowego schronienia
+     albo świadomie nie potwierdzi, że zostawia stare. Niczego nie kasujemy za niego — to jego wybór
+     i jego plan na alarm. Tekst ma mówić wprost, skąd się to wzięło i co trzeba zrobić. */
+  function uznane(pl) { return new Set(pl.uznaneZmiany || []); }
+
+  function ostrzezenieZmian(pl) {
+    const zmiany = C.zmienioneSchronienia(pl, S.byId, S.meta?.przeniesione || {}).filter((z) => !uznane(pl).has(z.id));
+    if (!zmiany.length) return "";
+    const data = S.meta?.data_danych ? ` ${T("z {d}", { d: esc(S.meta.data_danych) })}` : "";
+    const pozycje = zmiany.map((z) => {
+      const maTrase = !!(pl.routes && pl.routes[z.id]);
+      if (z.powod === "znikl") {
+        return `<li><b>${T("Tego punktu nie ma już w wykazie PSP{d}.", { d: data })}</b> ${T("Musisz wybrać inne miejsce schronienia.")}
+          ${maTrase ? T("Nagrana do niego trasa jest nieaktualna.") : ""}</li>`;
+      }
+      const gdzieByl = z.byl ? (z.bylaGmina ? `${esc(z.byl)}, ${T("gm. {g}", { g: esc(z.bylaGmina) })}` : esc(z.byl)) : null;
+      const ile = fmtDist(z.przesuniecieM ?? z.odMiejscaM);
+      return `<li>${gdzieByl
+          ? `<b>${T("Zapisane tu schronienie: {stary}.", { stary: gdzieByl })}</b> ${T("W wykazie PSP{d} pod tym samym numerem jest teraz inny obiekt: {nowy} — {ile} dalej.", { d: data, nowy: esc(z.punkt.adres), ile })}`
+          : `<b>${T("To schronienie jest teraz {ile} od tego miejsca: {nowy}.", { ile: fmtDist(z.odMiejscaM), nowy: esc(z.punkt.adres) })}</b> ${T("W wykazie PSP{d} ten numer wskazuje inny obiekt niż przy zapisie.", { d: data })}`}
+        ${z.zamkniete ? " " + T("Nowy obiekt jest <b>zamknięty („Na żądanie”)</b> — otwiera go zarządca.") : ""}
+        ${maTrase ? " " + T("Nagrana trasa prowadzi do starego miejsca i jest nieaktualna.") : ""}
+        <br><b>${T("Wybór nowego miejsca schronienia jest konieczny.")}</b></li>`;
+    }).join("");
+    return `<div class="card sim zmiana-psp" role="alert">
+      <b>${I("triangle-alert")}${T("Zmienił się wykaz PSP — sprawdź zapisane schronienia")}</b>
+      <ul class="small">${pozycje}</ul>
+      <div class="row">
+        <button class="btn" data-act="wybierz-schronienie" data-id="${esc(pl.id)}">${I("shield-alert")}${T("Wybierz nowe schronienie")}</button>
+        <button class="btn ghost" data-act="zmiany-uznane" data-id="${esc(pl.id)}">${T("Zostawiam jak jest")}</button></div>
+      <p class="small muted">${T("Nic nie usunęliśmy — decyzja należy do Ciebie. To ostrzeżenie zostanie, dopóki nie wybierzesz nowego schronienia albo nie potwierdzisz, że zostawiasz dotychczasowe.")}</p>
+    </div>`;
   }
 
   // Szczegóły miejsca (po dotknięciu kafla): wszystko, co zapisano — bez wchodzenia w edycję.
@@ -1444,6 +1495,7 @@
     const byAccess = nearestByAccess(pl.lat, pl.lon, F.grupy, pl.mode);
     const where = pl.addr ? esc(pl.addr) : T("wskazane na mapie");
     return `<div class="place-details">
+      ${ostrzezenieZmian(pl)}
       <dl class="kv">
         <dt>${T("Położenie")}</dt><dd>${where}${pl.approx ? ` <span class="trust-uwaga small">${T("(przybliżone — popraw w „Edytuj”)")}</span>` : ""}</dd>
         <dt>${T("Moje miejsce w budynku")}</dt><dd>${pl.spot ? `${esc(pl.spot)} <span class="small ${pl.spotChecked ? "trust-ok" : "trust-uwaga"}">${pl.spotChecked ? T("· sprawdzone") : T("· jeszcze nie sprawdzone")}</span>` : `<span class="muted">${T("nie zapisano")}</span>`}</dd>
@@ -2842,6 +2894,19 @@
       wczytajSpis(true); render();
     } else if (act === "paczka-pobierz") {
       pobierzPaczke();
+    } else if (act === "wybierz-schronienie") {
+      // otwieramy miejsce i prowadzimy prosto do listy wyboru — żeby nie zostawiać człowieka z samym ostrzeżeniem
+      S.openPlace = b.dataset.id; S.editPlace = null; S.tab = "miejsca"; render();
+      setTimeout(() => document.querySelector(`.place-card[data-id="${CSS.escape(b.dataset.id)}"] .place-details h3 + .rule, .place-card[data-id="${CSS.escape(b.dataset.id)}"] .pick`)?.scrollIntoView({ block: "center" }), 60);
+    } else if (act === "zmiany-uznane") {
+      const pl = S.places.find((x) => x.id === b.dataset.id);
+      if (pl) {
+        // świadome „zostawiam jak jest" zapamiętujemy przy TYCH identyfikatorach — przy następnej zmianie
+        // wykazu ostrzeżenie pojawi się znowu, bo to będzie już inna zmiana
+        const zmiany = C.zmienioneSchronienia(pl, S.byId, S.meta?.przeniesione || {});
+        pl.uznaneZmiany = [...new Set([...(pl.uznaneZmiany || []), ...zmiany.map((z) => z.id)])];
+        savePlaces(); render();
+      }
     } else if (act === "mapa-odswiez") {
       aktualizujMape(b.dataset.val);
     } else if (act === "paczka-anuluj") {
