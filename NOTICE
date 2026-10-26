@@ -12,8 +12,11 @@ Biblioteki
 
 Mapy i granice
 - OpenStreetMap — © współtwórcy OpenStreetMap, ODbL
-- Podkład mapy OpenFreeMap / OpenMapTiles, CARTO — zgodnie z ich warunkami
+- Podkład mapy OpenFreeMap / OpenMapTiles — zgodnie z ich warunkami
 - Granice krajów Natural Earth — domena publiczna
+- Granice obwodów Ukrainy (frontend/assets/obwody-ua.geojson) — geoBoundaries gbOpen
+  UKR ADM1, dane © współtwórcy OpenStreetMap; plik jako baza pochodna na licencji
+  ODbL 1.0 (https://opendatacommons.org/licenses/odbl/1-0/)
 
 Zdjęcia
 - Zdjęcia samolotów (frontend/aircraft-photo-catalog.js) — licencje podane przy
@@ -24,4 +27,7 @@ Znaki towarowe
   zgodą na wzmianki o Mikrusie (strona z logotypami Mikrusa); hosting serwera Strażnika
 
 Dane
+- ADS-B: © adsb.lol, licencja ODbL 1.0 (https://opendatacommons.org/licenses/odbl/1-0/).
+  Dane lotnicze w odpowiedziach API Strażnika (/api/state, historia, archiwum pozycji)
+  pochodzą z adsb.lol i są udostępniane dalej na tej samej licencji ODbL 1.0.
 - Źródła danych i wymagana atrybucja: sekcja „Dane i atrybucja” w README.md

@@ -190,9 +190,8 @@ NEPTUN_NATIONAL_ID_PREFIX = "national-"
 NEPTUN_NATIONAL_REGION_MARKERS = ("загальнодержавн",)   # porównanie po lower()
 
 # ── ADS-B ─────────────────────────────────────────────────────────────────────
-ADSB_PROVIDER = os.getenv("ADSB_PROVIDER", "adsb.lol")   # adsb.lol | adsb.fi | adsbx
+ADSB_PROVIDER = os.getenv("ADSB_PROVIDER", "adsb.lol")   # jedyny dostawca od 26.10.2026
 ADSB_INTERVAL = int(os.getenv("ADSB_INTERVAL", "60"))
-ADSBX_RAPIDAPI_KEY = os.getenv("ADSBX_RAPIDAPI_KEY", "")
 ADSB_BASELINE_DAYS = 7
 ADSB_SPIKE_FACTOR = 2.0            # sygnał gdy > 2x baseline
 ADSB_MIN_COUNT = 3                 # ...i co najmniej tyle maszyn wojskowych

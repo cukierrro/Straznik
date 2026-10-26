@@ -1131,14 +1131,18 @@ function applyState(s) {
 }
 
 /* ── mapa ────────────────────────────────────────────────────────────────── */
+/* Zapas, gdy styl OpenFreeMap nie odpowiada: bez cudzych kafelków. Zostaje ciemne
+   tło, a na nim to, co mapa i tak rysuje z plików aplikacji — kontury państw
+   (Natural Earth), Polska, województwa, obwody UA, obiekty i samoloty. Czcionki
+   podpisów z OpenFreeMap: przy jego pełnej awarii znikają tylko podpisy pod
+   ikonami, warstwy zostają. Do 26.10.2026 zapasem były kafelki CARTO bez klucza,
+   a ich warunki z 29.09.2026 wymagają klucza i podpisu CARTO — przegląd źródeł,
+   decyzja usera: usunąć. */
 const FALLBACK_STYLE = {
   version: 8,
-  glyphs: "https://fonts.openmaptiles.org/{fontstack}/{range}.pbf",
-  sources: { carto: { type: "raster", tileSize: 256, attribution: "© CARTO © OpenStreetMap",
-    tiles: ["https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
-            "https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png"] } },
-  layers: [{ id: "bg", type: "background", paint: { "background-color": "#0b0f1a" } },
-           { id: "carto", type: "raster", source: "carto" }],
+  glyphs: "https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf",
+  sources: {},
+  layers: [{ id: "bg", type: "background", paint: { "background-color": "#0b0f1a" } }],
 };
 
 /* Obraz ma 64 px, a sylwetka tę samą skalę co dawniej w 48 px: zapas mieści
@@ -1309,12 +1313,11 @@ function renderLegendAirIcons() {
 }
 renderLegendAirIcons();
 
-/* Kolejność stylów: OpenFreeMap (wektor, schemat OpenMapTiles — niesie nazwy
-   w wielu językach, więc etykiety da się przełączyć na POLSKIE), potem CARTO,
-   na końcu raster. Każdy kolejny to zapas, gdyby poprzedni nie odpowiadał. */
+/* Styl mapy: OpenFreeMap (wektor, schemat OpenMapTiles — niesie nazwy w wielu
+   językach, więc etykiety da się przełączyć na POLSKIE). Gdy nie odpowiada,
+   initMap bierze FALLBACK_STYLE (samo tło + warstwy z plików aplikacji). */
 const MAP_STYLES = [
   "https://tiles.openfreemap.org/styles/dark",
-  "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
 ];
 
 /* Podpis z odległością od granicy pod ikoną (1.7.84). */
@@ -2466,7 +2469,7 @@ function kartaPunktyHTML(p) {
       : UI.t("Pełna waga — pozycja potwierdzona.", "Full weight — confirmed position.", "Повна вага — підтверджена позиція.")}</div></div>`;
 }
 
-/* Karta samolotu w stylu airplanes.live: zdjęcie, kraj rejestracji, operator,
+/* Karta samolotu: zdjęcie, kraj rejestracji, operator,
    pełna telemetria i przycisk śledzenia trasy. Pełne dane bierzemy z adsbByHex
    (właściwe typy), bo właściwości warstwy GL potrafią zamienić liczby w tekst. */
 function planePopupHTML(p, heli, uid) {
@@ -4266,28 +4269,28 @@ const SOURCE_INFO = {
   },
   "ADS-B": {
     co: "Publiczne transpondery lotnicze — maszyny wojskowe nad Polską i regionem. "
-      + "Serwer pyta adsb.lol, a gdy nie odpowiada — opendata.adsb.fi. W trybie awaryjnym, "
-      + "gdy telefon liczy sam, dochodzi jeszcze airplanes.live. Warstwa jest informacyjna i nie daje "
+      + "Dane pochodzą z adsb.lol (licencja ODbL) — pyta je serwer, a w trybie awaryjnym sam telefon. "
+      + "Gdy adsb.lol nie odpowiada, warstwa jest pusta. Warstwa jest informacyjna i nie daje "
       + "punktów: w danych z 41 dni wzmożony ruch okazywał się rutynowymi lotami. "
       + "Ruch ponad dwukrotnie wyższy niż zwykle o tej porze jest zaznaczany w panelu. "
       + "Karta samolotu pokazuje zdjęcie, kraj rejestracji i pełną telemetrię.",
     coEn: "Public aircraft transponders — military aircraft over Poland and the region. "
-      + "The server queries adsb.lol and falls back to opendata.adsb.fi. In emergency mode, "
-      + "when the phone scores on its own, airplanes.live is queried as well. The layer is informational and "
+      + "The data comes from adsb.lol (ODbL licence) — queried by the server, and in emergency mode by the phone itself. "
+      + "When adsb.lol does not respond, the layer stays empty. The layer is informational and "
       + "gives no points: over 41 days of data, increased traffic turned out to be "
       + "routine flights. Traffic more than twice the usual level for that time is "
       + "marked in the panel. The aircraft card shows a photograph, the country of "
       + "registration and full telemetry.",
-    czerwona: "Serwisy ADS-B nie odpowiadają. Mapa nie pokaże wtedy lotnictwa "
+    czerwona: "Serwis ADS-B (adsb.lol) nie odpowiada. Mapa nie pokaże wtedy lotnictwa "
       + "wojskowego; na punktację to nie wpływa.",
     coUk: "Відкриті авіаційні транспондери — військові машини над Польщею й регіоном. "
-      + "Сервер опитує adsb.lol, а коли той не відповідає — opendata.adsb.fi. В аварійному "
-      + "режимі, коли телефон рахує сам, додається ще airplanes.live. Шар інформативний і балів не дає: у даних за 41 день "
+      + "Дані надходять з adsb.lol (ліцензія ODbL) — їх опитує сервер, а в аварійному режимі сам телефон. "
+      + "Коли adsb.lol не відповідає, шар порожній. Шар інформативний і балів не дає: у даних за 41 день "
       + "посилений рух виявлявся рутинними польотами. Рух, удвічі вищий за звичайний о цій порі, "
       + "позначаємо в панелі. Картка літака показує фото, країну реєстрації й повну телеметрію.",
-    czerwonaUk: "Сервіси ADS-B не відповідають. Мапа тоді не покаже військової авіації; "
+    czerwonaUk: "Сервіс ADS-B (adsb.lol) не відповідає. Мапа тоді не покаже військової авіації; "
       + "на бали це не впливає.",
-    czerwonaEn: "The ADS-B services are not responding. The map will not show military "
+    czerwonaEn: "The ADS-B service (adsb.lol) is not responding. The map will not show military "
       + "aviation then; scoring is not affected.",
   },
   "RSS": {

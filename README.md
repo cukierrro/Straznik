@@ -747,6 +747,7 @@ dodatkowe, nie system ratunkowy.
 Hosting serwera: [Mikrus](https://mikr.us) (od 17.09.2026 serwer przekazany przez Mikrusa na potrzeby projektu).
 
 [NEPTUN](https://neptun.in.ua) (agregator OSINT; obiekty i alarmy obwodów UA) ·
-adsb.lol / opendata.adsb.fi (w trybie awaryjnym też airplanes.live) · airspace.pansa.pl · gov.pl/RCB · media regionalne, bałtyckie i sąsiadów (MD, RO, SK, CZ, SE, HU — obserwacja, bez punktów) ·
+ADS-B © [adsb.lol](https://adsb.lol) ([ODbL](https://opendatacommons.org/licenses/odbl/1-0/)) · airspace.pansa.pl · gov.pl/RCB · media regionalne, bałtyckie i sąsiadów (MD, RO, SK, CZ, SE, HU — obserwacja, bez punktów) ·
 kamery worldcam.pl ·
-mapa © [CARTO](https://carto.com/attributions), © [OpenStreetMap](https://www.openstreetmap.org/copyright)
+mapa © [OpenFreeMap](https://openfreemap.org), © [OpenMapTiles](https://www.openmaptiles.org/), © [OpenStreetMap](https://www.openstreetmap.org/copyright) ·
+granice obwodów UA: [geoBoundaries](https://www.geoboundaries.org/) (OpenStreetMap, ODbL)
