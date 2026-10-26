@@ -201,9 +201,10 @@ ADSB_PROVIDER = os.getenv("ADSB_PROVIDER", "adsb.lol")   # jedyny dostawca od 26
 ADSB_LIMIT_DOBA = 500                                      # limit adsb.lol na adres i dobę
 ADSB_INTERVAL = int(os.getenv("ADSB_INTERVAL", "173"))     # odstęp między KAŻDYMI dwoma zapytaniami
 ADSB_PLAN = ("mil", "mil", "kolo0")
-# Wyjście do adsb.lol przez IPv4. Limit liczy się na adres; nasz adres IPv6 wyczerpał dobową
-# pulę przy dawnym tempie (okno ruchome 24 h), IPv4 tego obciążenia nie niósł.
-ADSB_IPV4 = os.getenv("ADSB_IPV4", "1") == "1"
+# Wyjście do adsb.lol przez NASZ adres (IPv6 serwera), nie przez IPv4. IPv4 Mikrusa to brama NAT
+# wspólna z innymi klientami: druga pula 500 zapytań z innego adresu byłaby obejściem limitu
+# adsb.lol i zjadałaby limit cudzym usługom. 26.10.2026 przez godzinę tak chodziło — cofnięte.
+ADSB_IPV4 = os.getenv("ADSB_IPV4", "0") == "1"
 ADSB_BASELINE_DAYS = 7
 ADSB_SPIKE_FACTOR = 2.0            # sygnał gdy > 2x baseline
 ADSB_MIN_COUNT = 3                 # ...i co najmniej tyle maszyn wojskowych

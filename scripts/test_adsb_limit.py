@@ -131,9 +131,9 @@ asyncio.run(adsb._tick(Klient(odp_ok)))
 sprawdz(not any(a.get("hex") == "4b8452" for a in adsb.current_aircraft),
         "wynik koła starszy niż obieg planu znika z mapy")
 
-print("\n4. Wyjście przez IPv4")
-src = (ROOT / "backend" / "app" / "collectors" / "adsb.py").read_text(encoding="utf-8")
-sprawdz('local_address="0.0.0.0"' in src and config.ADSB_IPV4, "klient ADS-B wychodzi przez IPv4")
+print("\n4. Własny adres, bez drugiej puli")
+sprawdz(not config.ADSB_IPV4,
+        "domyślnie bez wymuszania IPv4 — wspólna brama Mikrusa dałaby drugą pulę limitu (obejście)")
 
 print()
 print(f"BŁĘDY: {len(bledy)}" if bledy else "Wszystko OK")
