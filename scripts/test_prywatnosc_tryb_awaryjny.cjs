@@ -14,8 +14,9 @@
 //     w polityce po źródle, którego już nie ma, też,
 //   * usunięte 26.10.2026 źródła nie wracają do kodu: CARTO (kafelki bez klucza,
 //     wbrew warunkom z 29.09.2026), fonts.openmaptiles.org (czcionki zapasu CARTO),
-//     opendata.adsb.fi (tylko użytek osobisty, niekomercyjny) i airplanes.live
-//     (regulamin zakazuje automatycznego pobierania),
+//     opendata.adsb.fi (tylko użytek osobisty, niekomercyjny), airplanes.live
+//     (regulamin zakazuje automatycznego pobierania) i ADSBexchange przez RapidAPI
+//     (opcja bez przeczytanych warunków),
 //   * polityka nie twierdzi już, że redakcje czyta wyłącznie serwer.
 //
 // Test jest OFFLINE i porównuje WARTOŚCI (zbiory hostów), nie obecność słów.
@@ -88,7 +89,8 @@ test('usunięte źródła nie wracają do kodu aplikacji i serwera', () => {
   const pliki = ['frontend/engine.js', 'frontend/app.js', 'frontend/i18n.js', 'frontend/index.html',
                  'grota/grota.js', 'grota/grota-core.js',
                  'backend/app/config.py', 'backend/app/collectors/adsb.py'];
-  const zakazane = ['cartocdn.com', 'fonts.openmaptiles.org', 'opendata.adsb.fi', 'airplanes.live'];
+  const zakazane = ['cartocdn.com', 'fonts.openmaptiles.org', 'opendata.adsb.fi', 'airplanes.live',
+                    'rapidapi.com'];
   for (const p of pliki) {
     // JS: bez komentarzy; Python i HTML: każdy adres ze schematem (notatka
     // „dlaczego usunięte” w docstringu nie ma schematu i nie jest połączeniem)

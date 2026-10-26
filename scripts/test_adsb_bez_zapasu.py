@@ -107,6 +107,11 @@ try:
     lista = asyncio.run(_fetch_mil(k))
     sprawdz(lista is None and adsb.status.get("ok") is False,
             "adsb.lol pada → brak listy i status ok=False (bez zapasu)")
+    config.ADSB_PROVIDER = "adsbx"            # opcja ADSBexchange usunięta 26.10.2026
+    k = Klient(lol_dziala=True)
+    asyncio.run(_fetch_mil(k))
+    sprawdz(k.adresy == ["https://api.adsb.lol/v2/mil"],
+            f"ADSB_PROVIDER=adsbx → pytamy tylko adsb.lol, nie RapidAPI ({k.adresy})")
 finally:
     config.ADSB_PROVIDER = dawny
 

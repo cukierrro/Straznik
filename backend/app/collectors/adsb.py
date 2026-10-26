@@ -7,11 +7,12 @@ wojskowych nad województwem > 2x baseline z ostatnich 7 dni.
 Domyślnie darmowe, bezkluczowe API adsb.lol (endpoint /v2/mil — wszystkie
 maszyny wojskowe globalnie, filtrujemy bboxem). Dane adsb.lol są na licencji
 ODbL 1.0 (opis ich API) — podpis „© adsb.lol, ODbL” w okienku źródeł i w NOTICE.
-Opcjonalnie ADSBexchange przez RapidAPI (klucz w .env).
 
 Zapasu NIE MA od 26.10.2026: opendata.adsb.fi pozwala tylko na „personal,
 non-commercial use” i zakazuje licencjonowania danych (README ich API), a to
 kłóci się z publicznym serwisem i z ODbL adsb.lol, bo listy były mieszane.
+Opcja ADSBexchange przez RapidAPI (domyślnie wyłączona, warunków nikt nie
+czytał) usunięta tego samego dnia — decyzja usera.
 Gdy adsb.lol nie odpowiada, warstwa ADS-B jest pusta, a status mówi o błędzie —
 warstwa i tak nie daje punktów.
 """
@@ -96,21 +97,10 @@ async def _fetch_mil(client: httpx.AsyncClient) -> list[dict] | None:
     UWAGA (20.08.2026): adsb.lol zaczął odrzucać domyślny User-Agent bibliotek
     (`python-httpx/...`) z kodem 403 — dokładnie ten sam adres z nagłówkiem
     przeglądarki zwraca 200. Dlatego KAŻDE żądanie idzie z UA jak z przeglądarki.
-    Nieznana nazwa w ADSB_PROVIDER (np. dawne „adsb.fi” w .env) spada na adsb.lol.
+    Nieznana nazwa w ADSB_PROVIDER (np. dawne „adsb.fi” albo „adsbx” w .env) spada
+    na adsb.lol.
     """
     prov = config.ADSB_PROVIDER
-    if prov == "adsbx" and config.ADSBX_RAPIDAPI_KEY:
-        try:
-            r = await client.get(
-                "https://adsbexchange-com1.p.rapidapi.com/v2/mil/",
-                headers={"X-RapidAPI-Key": config.ADSBX_RAPIDAPI_KEY,
-                         "X-RapidAPI-Host": "adsbexchange-com1.p.rapidapi.com"})
-            r.raise_for_status()
-            status.update(ok=True, error=None, provider="adsbx")
-            return r.json().get("ac") or []
-        except Exception as e:
-            status.update(ok=False, error=f"adsbx: {e}")
-
     # wybrany dostawca pierwszy; nieznana nazwa nie ma adresu i zostaje pominięta
     order = [prov] + [p for p in MIL_ENDPOINTS if p != prov]
     last_err = None
