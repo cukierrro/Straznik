@@ -28,7 +28,7 @@
 </div></nav>
 
 <header class="hero"><div class="wrap">
-  <div class="eyebrow">Privacy policy · in force since 21 October 2026</div>
+  <div class="eyebrow">Privacy policy · in force since 26 October 2026</div>
   <h1>We do not collect data about you.</h1>
   <p class="lead">Strażnik has no accounts, no sign-in, no ads and no analytics. We never ask for your name, e-mail address or phone number — and we do not have them. This page describes exactly what stays on your device, what our server sees and who else is involved in delivering the data.</p>
   <p class="fineprint">Applies to the Strażnik app for Android and iOS and to <a href="https://straznik.eu">straznik.eu</a>. The data controller is the project's author, Piotr Kukier. Contact: <a href="https://cukierrro.pl/#kontakt">the form on cukierrro.pl</a> or <a href="https://github.com/cukierrro/Straznik/issues">an issue in the repository</a>.</p>
@@ -112,10 +112,20 @@
     <li><b>Cloudflare</b> — tunnel, protection and acceleration of traffic to the server;</li>
     <li><b>Google Firebase</b> — delivery of notifications to the app;</li>
     <li><b>GitHub</b> — app downloads, update checks and this page (GitHub Pages);</li>
-    <li><b>OpenFreeMap</b> and <b>CARTO</b> — map tiles, based on OpenStreetMap data;</li>
+    <li><b>OpenFreeMap</b> — map tiles and label fonts, based on OpenStreetMap data;</li>
     <li><b>FOSSGIS</b> (OSRM routing server) and <b>GUGiK</b> (address geocoding, orthophoto) — in GROTA only, see section 2.</li>
   </ul>
-  <p>Object photos and illustrations are bundled inside the app — we do not fetch them from outside services. Publishers' pages are read by our server, not by your phone. You open an article link in your own browser, and from that point the publisher's own rules apply.</p>
+  <p>Object photos and illustrations are bundled inside the app — we do not fetch them from outside services. Normally the data sources — publishers' pages included — are read by our server, not by your phone. You open an article link in your own browser, and from that point the publisher's own rules apply.</p>
+  <h3 id="tryb-awaryjny">Emergency mode — when our server does not respond</h3>
+  <p>If the app or the website cannot reach the Strażnik server, it switches to <b>emergency mode</b> (the top of the screen then says “emergency mode”) and fetches data from public sources itself. Your phone or browser then connects <b>directly</b> to the services below. Each of them sees your IP address and an ordinary request — we do not send them your location, settings or any identifier. Emergency mode ends on its own once the server responds again.</p>
+  <ul>
+    <li><b>NEPTUN</b> — aerial objects over Ukraine: <code>neptun.in.ua</code>;</li>
+    <li><b>adsb.lol</b> — ADS-B air traffic: <code>api.adsb.lol</code>;</li>
+    <li><b>RCB and RSO</b> — announcements and alerts: <code>www.gov.pl</code>, <code>komunikaty.tvp.pl</code> (the Regional Warning System portal run by Polish public broadcaster TVP);</li>
+    <li><b>PAŻP</b> (Polish Air Navigation Services Agency) — airspace zones: <code>airspace.pansa.pl</code>;</li>
+    <li><b>Google News</b> — search for media reports: <code>news.google.com</code>;</li>
+    <li><b>publishers' RSS feeds</b> — <code>www.lublin112.pl</code>, <code>radio.lublin.pl</code>, <code>www.dziennikwschodni.pl</code>, <code>www.lrt.lt</code>, <code>www.15min.lt</code>, <code>www.lsm.lv</code>, <code>eng.lsm.lv</code>, <code>www.err.ee</code>, <code>news.err.ee</code>.</li>
+  </ul>
   <p>Google, Cloudflare and GitHub are based in the United States, so your IP address and app installation identifier may be processed by them outside the European Economic Area — under the terms described in their privacy policies.</p>
 </section>
 
