@@ -1070,3 +1070,38 @@ Nowości 1.8.00 mierzone na Androidzie i w przeglądarce. Na urządzeniu z iOS n
 sprawdzono ani limitu 15 minut (łącznie z tym, czy natywna syrena faktycznie
 milknie), ani nowego układu ekranu alarmu. Pierwszy pomiar wart zrobienia:
 czy po 15 minutach syrena na iPhonie naprawdę cichnie, a ekran pokazuje dopisek.
+
+## 29. Zgłoszenie 1.8.02 (26.10.2026, 19:10)
+
+Build **2610261726**, commit `main ac36986`, status **Waiting for Review**,
+publikacja **automatyczna**, od razu do wszystkich, ocena zachowana. Zgoda usera
+własnym słowem w sesji iOS. **1.8.01 na iOS pominięte** — ten sam kod web, więc
+nie było po co robić dwóch przeglądów.
+
+1.8.00 było już „Ready for Distribution", więc kolejka wolna i **nic nie trzeba
+było wycofywać**. Sprawdzenie stanu starszej wersji PRZED buildem okazało się
+dobrym nawykiem: gdyby wisiała w przeglądzie, decyzja o wycofaniu zapadałaby
+z gotowym buildem i presją czasu.
+
+Numer znów przeszedł co do znaku: `1.8.02` w polu i w nagłówku, a build pojawił
+się na liście **pod wersją 1.8.02**. Drugie potwierdzenie zasady z §28 — App
+Store Connect nie rusza zer wiodących.
+
+Opis z `_materialy/Straznik-play/opis-1.8.02.txt`, tylko PL, **462 znaki**:
+tyle samo, co w pliku (sprawdzone przez odczyt pola po wpisaniu). Plik ma zwykłe
+spacje, bez twardych — sprawdzone, bo „87 835" kusi, żeby wstawić NBSP i wtedy
+tekst w sklepie różniłby się od androidowego niewidocznym znakiem.
+
+### Co sprawdzono przed buildem
+
+GROTA z wykazu **2026-10-26** (87 835 punktów) i moduł `grota/widok.js`
+WERSJA **f48f4eb0c6** — czyli ten z poprawką daty, a nie poprzedni; w logu CI
+widać `dołączono moduł GROTA`. Klucz `engine.js?v=1.8.01a`. Prefiksy
+`-webkit-backdrop-filter` 15/15, `#quiet-hours` android-only, `#yv-ios-note`
+i `#rs-ios-note` ios-only, godziny ciszy wychodzą na `IS_IOS`, test zdań
+rozszerzenia zielony.
+
+**Para, która musi do siebie pasować:** `ALARM_MAX_MIN = 15` nadal woła
+`stopSiren()`, a natywny bezpiecznik syreny ma 1200 s (20 min). Sprawdzać to
+przy każdym wydaniu — gdyby ktoś zmienił jedną z tych liczb, objawem byłaby
+syrena milknąca w złym momencie i nic by o tym nie powiedziało.
