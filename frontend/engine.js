@@ -189,6 +189,8 @@ const HEADING_TOL = 50;
 /* Waga kursu (lustro geo.course_factor): twarde cięcie na 50° gubiło obiekty tuż
    za progiem, a brak pola heading wyciszał nawet rakietę tuż przy granicy. */
 const HEADING_SOFT = 70, UNKNOWN_HEADING_MULT = 0.5, UNKNOWN_HEADING_MAX_KM = 150;
+// lustro config.NEPTUN_KURS_WOJ_* (B15, decyzja usera 25.10.2026): premia za kurs na województwo
+const KURS_WOJ_K = 0.15, KURS_WOJ_PELNE_DEG = 15, KURS_WOJ_ZERO_DEG = 45;
 const BORDER_POINTS = [
   [54.44,19.80,"warmińsko-mazurskie"],[54.35,20.60,"warmińsko-mazurskie"],
   [54.36,21.50,"warmińsko-mazurskie"],[54.34,22.79,"warmińsko-mazurskie"],
@@ -628,7 +630,79 @@ const nazwaPowiatu = (folded, i, v, kf) => {
   for (const z of [".", "!", "?", "\n"]) przed = przed.split(z).pop();
   return przed.includes("powiat") || przed.includes("powiec");
 };
+/* Lustro app/slownik_woj.py (23.10.2026): pełne formy z PoliMorf i TERYT, całe słowa,
+   najdłuższa fraza w całym tekście. Słownik (assets/slownik-woj.json, ~1,3 MB) ładujemy
+   przy starcie silnika; dopóki go nie ma, działa dawne dopasowanie po rdzeniach. */
+let SLOWNIK = null, SLOWNIK_MAXN = 1;
+const ustawSlownik = (dane) => {
+  SLOWNIK = new Map(Object.entries(dane.frazy));
+  SLOWNIK_MAXN = Math.max(...[...SLOWNIK.keys()].map(k => k.split(" ").length));
+};
+const SL_TOK = /[a-z0-9]+(?:-[a-z0-9]+)*/g;
+const SL_PRZYIMKI = new Set(["nad","pod","przy","w","we","z","ze","na","do","od","k","kolo"]);
+const slKandydaci = (toks) => {
+  const out = [];
+  for (let i = 0; i < toks.length; i++)
+    for (let n = 1; n <= Math.min(SLOWNIK_MAXN, toks.length - i); n++) {
+      const fr = toks.slice(i, i + n).map(t => t[0]).join(" ");
+      const hit = SLOWNIK.get(fr);
+      if (!hit) continue;
+      const [v, r] = hit;
+      // fraza ochronna od przyimka („Nad Zieloną” — wieś) nie zjada „nad Zieloną Górą”
+      if (r === "x" && SL_PRZYIMKI.has(toks[i][0])) continue;
+      out.push([n, r !== "x", i, v, r, fr]);
+    }
+  return out;
+};
+const slWybierz = (kand, toks) => {
+  kand.sort((a, b) => b[0] - a[0] || (a[1] === b[1] ? 0 : a[1] ? -1 : 1) || a[2] - b[2]);
+  const zajete = new Set(), out = [];
+  for (const [n, , i, v, r, fr] of kand) {
+    let wolne = true;
+    for (let j = i; j < i + n; j++) if (zajete.has(j)) { wolne = false; break; }
+    if (!wolne) continue;
+    for (let j = i; j < i + n; j++) zajete.add(j);
+    out.push([toks[i][1], toks[i + n - 1][2], v, r, fr]);
+  }
+  return [out, zajete];
+};
+const slTrafienia = (t) => {
+  const toks = [...t.matchAll(SL_TOK)].map(m => [m[0], m.index, m.index + m[0].length]);
+  let [out, zajete] = slWybierz(slKandydaci(toks), toks);
+  // słowo z łącznikiem bez pokrycia („Dorohusk-Jagodzin”) → po członach
+  toks.forEach(([w, a], i) => {
+    if (!w.includes("-") || zajete.has(i)) return;
+    const czesci = []; let poz = a;
+    for (const cz of w.split("-")) { czesci.push([cz, poz, poz + cz.length]); poz += cz.length + 1; }
+    out = out.concat(slWybierz(slKandydaci(czesci), czesci)[0]);
+  });
+  return out.sort((x, y) => x[0] - y[0] || x[1] - y[1]);
+};
+const slWojewodztwa = (folded, tylkoRegiony = false) => {
+  const out = [];
+  // granice zdań raz (lustro slownik_woj.wojewodztwa, audyt 26.10.2026) — dawniej split całego
+  // przedrostka przy każdym trafieniu, czyli czas kwadratowy
+  const konce = [];
+  for (let i = 0; i < folded.length; i++) { const c = folded[i]; if (c === "." || c === "!" || c === "?") konce.push(i); }
+  const poczatekZdania = (s) => {
+    let lo = 0, hi = konce.length;                 // pierwszy koniec zdania >= s
+    while (lo < hi) { const m = (lo + hi) >> 1; if (konce[m] < s) lo = m + 1; else hi = m; }
+    return lo ? konce[lo - 1] + 1 : 0;
+  };
+  for (const [s, , v, r, fr] of slTrafienia(folded)) {
+    if (v === null || (tylkoRegiony && r !== "r")) continue;
+    // reguła powiatu: pojedynczy przymiotnik po „powiat…” w tym samym zdaniu to powiat z listy
+    if ((r === "r" || r === "m") && !fr.includes(" ")) {
+      const zdanie = folded.slice(poczatekZdania(s), s);
+      if (zdanie.includes("powiat") || zdanie.includes("powiec")) continue;
+    }
+    if (!out.includes(v)) out.push(v);
+  }
+  return out;
+};
+const SL_MAX_ZNAKOW = 8000;      // lustro slownik_woj.MAX_ZNAKOW (bezpiecznik, audyt 26.10.2026)
 const matchVoivs = (text) => {
+  if (SLOWNIK) return slWojewodztwa(fold(String(text).slice(0, SL_MAX_ZNAKOW).replace(MONTH_NOT_PLACE, "$1 ").toLowerCase()));
   const folded = fold(String(text).replace(MONTH_NOT_PLACE, "$1 ").toLowerCase());
   const hits = [];
   for (const [v, keys] of Object.entries(VOIV_KEYWORDS))
@@ -1499,6 +1573,9 @@ function neptunEval(t) {
   if (a.toward_pl) {
     let points = scoreThreat(t, a.dist_km, a.course_factor);
     if (points > 0) {
+      const wagi = wagiKursuWoj(t, a);
+      points = Math.round(points * (wagi[a.border_voiv] ?? 1) * 100) / 100;
+      const obok = kursObokWoj(t, a);
       const bazowe = points, podloga = borderUavFloor(t, a.dist_km);
       points = Math.max(points, podloga);
       const count = Math.max(parseInt(t.count) || 1, 1);
@@ -1528,11 +1605,17 @@ function neptunEval(t) {
       const tier = Math.floor(points * 2);
       const distanceInfo = approx ? `${areaDistance(a.dist_km)} [pozycja rejonowa]`
         : `${kmPL(a.dist_km)} km`;
+      // „kursem na granicę” tylko przy kursie na TO województwo (lustro neptun._kurs_obok_woj)
       addSignal("neptun", "neptun_threat", a.border_voiv, points,
-        `${ile}${neptunTypeLabelPL(ty)} kursem na granicę PL, ${distanceInfo}`
-        + `${zPodlogi ? " [blisko granicy]" : ""}`
-        + `${etaAlarm ? `, konserwatywny czas dolotu ~${etaSafe} min` : ""} (woj. ${a.border_voiv}, `
-        + `wiarygodność: ${wiarygodnoscPL(conf)}, ${potwierdzeniaPL(sources)}, ±${kmPL(t.uncertaintyKm??"?")} km)`,
+        obok
+          ? `${ile}${neptunTypeLabelPL(ty)} w odległości ${distanceInfo} od woj. ${a.border_voiv}`
+            + `${zPodlogi ? " [blisko granicy]" : ""}`
+            + `${etaAlarm ? `, konserwatywny czas dolotu ~${etaSafe} min` : ""} `
+            + `(wiarygodność: ${wiarygodnoscPL(conf)}, ${potwierdzeniaPL(sources)})`
+          : `${ile}${neptunTypeLabelPL(ty)} kursem na granicę PL, ${distanceInfo}`
+            + `${zPodlogi ? " [blisko granicy]" : ""}`
+            + `${etaAlarm ? `, konserwatywny czas dolotu ~${etaSafe} min` : ""} (woj. ${a.border_voiv}, `
+            + `wiarygodność: ${wiarygodnoscPL(conf)}, ${potwierdzeniaPL(sources)}, ±${kmPL(t.uncertaintyKm??"?")} km)`,
         { track_id: t.id, dist_km: a.dist_km, count, source_count: sources,
           // typ, area_only i niepewność czyta klucz czerwonego (redKey) — bez nich
           // w trybie bez serwera żaden obiekt nie dawał klucza (znalezione 18.10.2026)
@@ -1557,9 +1640,11 @@ function neptunEval(t) {
                 : (t.heading_estimated != null ? "estimated" : "unknown"),
           heading_source: t.heading_source, jet: !!t.straznik_jet,
           course_factor: a.course_factor,
+          waga_kursu_woj: wagi[a.border_voiv] ?? 1,
+          ...(obok ? { voiv_secondary: true, kurs_obok_woj: true } : {}),
           ...(zPodlogi ? { border_floor: true, bez_przeniesienia_pkt: zPodlogi } : {}) },
         `neptun:${t.id}:t${tier}`);
-      sygnalySasiednie(t, a, ty, count, conf, sources, approx, speed, presumed);
+      sygnalySasiednie(t, a, ty, count, conf, sources, approx, speed, presumed, wagi);
     }
   }
   return t;
@@ -1587,7 +1672,39 @@ function distToVoivKm(lat, lon, voiv) {
   for (const [blat, blon] of ring) best = Math.min(best, haversine(lat, lon, blat, blon));
   return Math.round(best * 10) / 10;
 }
-function sygnalySasiednie(t, a, ty, count, conf, sources, approx, speed, presumed) {
+/* Lustro geo.celowanie_woj i neptun.wagi_kursu_woj (B15, 25.10.2026): kurs przesuwa do 15%
+   punktów obiektu do województwa, w które celuje — suma ważona punktami się nie zmienia. */
+function celowanieWoj(t, voiv) {
+  const h = headingOf(t);
+  if (typeof VOIV_OUTLINE === "undefined" || h == null || t.lat == null) return null;
+  const ring = VOIV_OUTLINE[voiv];
+  if (!ring) return null;
+  if (pointInRing(t.lat, t.lon, ring)) return 1;
+  const [start, width] = bearingArc(t.lat, t.lon, ring);
+  const off = ((h - start) % 360 + 360) % 360;
+  const d = off <= width ? 0 : Math.min(off - width, 360 - off);
+  if (d <= KURS_WOJ_PELNE_DEG) return 1;
+  if (d >= KURS_WOJ_ZERO_DEG) return 0;
+  return Math.round((KURS_WOJ_ZERO_DEG - d) / (KURS_WOJ_ZERO_DEG - KURS_WOJ_PELNE_DEG) * 1000) / 1000;
+}
+function wagiKursuWoj(t, a) {
+  if (headingOf(t) == null || t.lat == null) return {};
+  const cf = a.course_factor ?? 1, baza = {}, cel = {};
+  for (const voiv of VOIVODESHIPS) {
+    const dist = voiv === a.border_voiv ? a.dist_km : distToVoivKm(t.lat, t.lon, voiv);
+    if (dist == null || dist >= NEPTUN_MAX_KM) continue;
+    const p = scoreThreat(t, dist, cf), c = celowanieWoj(t, voiv);
+    if (p > 0 && c != null) { baza[voiv] = p; cel[voiv] = c; }
+  }
+  const woj = Object.keys(baza);
+  if (woj.length < 2) return {};
+  const suma = woj.reduce((s, v) => s + baza[v], 0);
+  const srednia = woj.reduce((s, v) => s + baza[v] * cel[v], 0) / suma;
+  const k = KURS_WOJ_K * (headingSourceOf(t) === "presumptive" ? 0.5 : 1);
+  return Object.fromEntries(woj.map(v => [v, Math.round((1 + k * (cel[v] - srednia)) * 10000) / 10000]));
+}
+const kursObokWoj = (t, a) => !a.inside_pl && celowanieWoj(t, a.border_voiv) === 0;
+function sygnalySasiednie(t, a, ty, count, conf, sources, approx, speed, presumed, wagi = {}) {
   if (t.lat == null || t.lon == null) return;
   const cf = a.course_factor ?? 1;
   for (const voiv of VOIVODESHIPS) {
@@ -1596,6 +1713,7 @@ function sygnalySasiednie(t, a, ty, count, conf, sources, approx, speed, presume
     if (dist == null || dist >= NEPTUN_MAX_KM) continue;
     let punkty = scoreThreat(t, dist, cf);
     if (punkty <= 0) continue;
+    punkty = Math.round(punkty * (wagi[voiv] ?? 1) * 100) / 100;
     const bazowe = punkty, podloga = borderUavFloor(t, dist);
     punkty = Math.max(punkty, podloga);
     const etaRaw = etaRawMinutes(dist, speed);
@@ -1625,6 +1743,7 @@ function sygnalySasiednie(t, a, ty, count, conf, sources, approx, speed, presume
         speed_kmh: speed, eta_approx: approx,
         eta_raw_border_min: etaRaw == null ? null : Math.round(etaRaw * 10) / 10,
         eta_border_min: etaSafe, eta_buffer_min: ETA_BUFFER_MIN, eta_alarm: etaAlarm,
+        waga_kursu_woj: wagi[voiv] ?? 1,
         voiv_secondary: true,
         ...(zPodlogi ? { border_floor: true, bez_przeniesienia_pkt: zPodlogi } : {}) },
       `neptun:${t.id}:${voiv}:t${Math.floor(punkty * 2)}`);
@@ -1805,32 +1924,22 @@ function looksMilitaryAdsb(a) {
   return /air ?force|army|navy|military|nato|force aérienne|luftwaffe|türk hava|turkish af|polish af/i
     .test(String(a.ownOp||""));
 }
-/* Zapytanie geograficzne zależy od dostawcy (16.10.2026): adsb.fi odpowiada
-   400 na /point/... i ma /lat/{lat}/lon/{lon}/dist/{r}, a listę oddaje pod
-   „aircraft”. adsb.lol i airplanes.live: /point/{lat}/{lon}/{r} i „ac”. */
+/* Zapytanie geograficzne adsb.lol: /point/{lat}/{lon}/{r}, lista pod „ac”. */
 function adsbGeoUrl(base, lat, lon, r) {
-  return /opendata\.adsb\.fi/.test(base)
-    ? `${base}/lat/${lat}/lon/${lon}/dist/${r}`
-    : `${base}/point/${lat}/${lon}/${r}`;
+  return `${base}/point/${lat}/${lon}/${r}`;
 }
 function adsbGeoAircraft(data) {
-  return (data && (data.ac || data.aircraft)) || [];
+  return (data && data.ac) || [];
 }
 async function tickAdsb() {
   try {
-    /* airplanes.live wzbogaca rekordy o pełną nazwę typu (desc), operatora (ownOp)
-       i rok — adsb.lol tego nie zwraca. Wszystkie mają ten sam format /v2/mil,
-       więc kolejność można zmieniać bez ruszania reszty kodu. */
-    let txt = null;
-    /* Kolejność wg tego, co REALNIE odpowiada (sprawdzone 20.08.2026):
-       airplanes.live zaczął zwracać 403, więc pytamy najpierw adsb.lol; gdy
-       airplanes.live wróci, znów wzbogaci karty o desc/ownOp. opendata.adsb.fi
-       to trzeci zapas (stary api.adsb.fi/v2 już nie istnieje — 404). */
-    let base = null;
-    for (const u of ["https://api.adsb.lol/v2/mil", "https://api.airplanes.live/v2/mil",
-                     "https://opendata.adsb.fi/api/v2/mil"]) {
-      try { txt = await httpGet(u); if (txt) { base = u.replace(/\/mil$/, ""); break; } } catch {}
-    }
+    /* Tylko adsb.lol (dane na ODbL), bez zapasów — lustro backendu (adsb.py),
+       decyzja usera z 26.10.2026. airplanes.live: regulamin zakazuje
+       automatycznego pobierania i budowania z danych bazy bez pisemnej zgody;
+       opendata.adsb.fi: wyłącznie użytek osobisty, niekomercyjny. Gdy adsb.lol
+       nie odpowiada, warstwa jest pusta — i tak nie daje punktów. */
+    const base = "https://api.adsb.lol/v2";
+    const txt = await httpGet(`${base}/mil`);
     if (!txt) throw new Error("brak odpowiedzi ADS-B");
     const merged = new Map();
     for (const a of (JSON.parse(txt).ac||[])) {
@@ -1866,7 +1975,7 @@ async function tickAdsb() {
       // warstwy obserwacyjnej (patrz D w app.js). To tylko podgląd, nie punktacja.
       const inWatch = a.lat >= 43 && a.lat <= 61 && a.lon >= 14 && a.lon <= 42;
       if (!v && !inWatch) continue;
-      // pełniejszy zestaw pól — karta samolotu pokazuje to, co airplanes.live
+      // pełny zestaw pól z /v2/mil — karta samolotu pokazuje całą telemetrię
       const p = { hex:a.hex, callsign:(a.flight||"").trim(), type:a.t, lat:a.lat, lon:a.lon,
                   alt:a.alt_baro, alt_geom:a.alt_geom, gs:a.gs, tas:a.tas, ias:a.ias, mach:a.mach,
                   track:a.track, true_heading:a.true_heading, mag_heading:a.mag_heading,
@@ -2155,6 +2264,33 @@ function rsoIsCancellation(it) {
   return RSO_END.some(w => text.includes(w));
 }
 
+/* Lustro collectors/rso.py tytul_alertu (23.10.2026): RSO zmieniło format — nagłówek
+   „ALERT RCB / SPO-13” (w `shortcut` z prefiksem „Lubelskie:”), a komunikat stoi w `content`
+   po liście powiatów i słowach „o treści:”. Tytuł sygnału był samym nagłówkiem. */
+const RSO_NAGLOWKI_PUSTE = ["alert rcb", "alert-rcb", "ostrzeżenie", "ostrzeżenie alarmowe"];
+function rsoBezWoj(t) {
+  t = String(t || "").trim();
+  const i = t.indexOf(":");
+  if (i > 0 && VOIVODESHIPS.some(v => fold(v) === fold(t.slice(0, i).trim()))) return t.slice(i + 1).trim();
+  return t;
+}
+function rsoNaglowekPusty(n) {
+  const x = rsoBezWoj(n).replace(/^[.!]+|[.!]+$/g, "").toLowerCase();
+  return RSO_NAGLOWKI_PUSTE.includes(x) || /^alert[\s-]*rcb(\s*\/\s*spo[\s-]*\d+)?$/.test(x);
+}
+function rsoSedno(t) {
+  t = String(t || "").trim();
+  const m = /o\s+treści\s*:\s*/i.exec(t);
+  if (m && t.slice(m.index + m[0].length).trim()) return t.slice(m.index + m[0].length).trim();
+  return t.replace(/^\s*alert[\s-]*rcb(\s*\/\s*spo[\s-]*\d+)?\s*/i, "").trim() || t;
+}
+function rsoTytul(naglowek, tresc) {
+  if (rsoNaglowekPusty(naglowek) && String(tresc || "").trim()) return rsoSedno(tresc);
+  // 23.10 17:56: „ALERT RCB / SPO-13: UWAGA! Rosyjski atak…” — nagłówek doklejony do treści
+  const bez = rsoBezWoj(naglowek).replace(/^\s*alert[\s-]*rcb(\s*\/\s*spo[\s-]*\d+)?\s*:\s*/i, "").trim();
+  return bez || rsoSedno(tresc);
+}
+
 async function tickRso() {
   try {
     const j = JSON.parse(await httpGet(RSO_URL));
@@ -2177,7 +2313,7 @@ async function tickRso() {
           /* Odwołanie (0 pkt) zapisujemy także przy pierwszym obiegu — fuzja
              porównuje czasy wydania, więc nie zgasi nowszego alertu. */
           addSignal("rcb", "rso_clear", v, 0,
-            `RCB (RSO): odwołanie — „${String(it.shortcut || it.title || "").slice(0,120)}”`,
+            `RCB (RSO): odwołanie — „${rsoTytul(it.shortcut || it.title || "", it.content || "").slice(0,120)}”`,
             { rso_id: String(it.id), clear: true, updated_at: it.updated_at,
               cleared_at: new Date(plLocalToMs(it.updated_at || it.created_at || it.valid_from)
                 || Date.now()).toISOString() }, `rso-clear:${it.id}:${v}`);
@@ -2186,7 +2322,7 @@ async function tickRso() {
         /* Lustro collectors/rso.py (16–17.10.2026): poziom z CAŁEJ treści (pole
            `description` w RSO nie istnieje, komunikat bywa tylko w `content`),
            a zmiana stopnia W MIEJSCU (ten sam id, w górę i w dół) to nowa wersja. */
-        const tresc = String(it.shortcut || it.title || "");
+        const tresc = rsoTytul(it.shortcut || it.title || "", it.content || "") || "Alert RCB";
         const poziom = rcbLevel(`${it.title || ""} ${it.shortcut || ""} ${it.content || ""}`);
         const base = `rso:${it.id}:${v}`;
         const prev = rsoLevels.get(base);
@@ -2254,6 +2390,7 @@ function odkodujEncje(s) {
    innych komunikatów i daty z menu trafiałyby do parsera jako treść alertu. */
 function tekstArtykuluRcb(strona, tytul) {
   let c = String(strona || "").replace(/<(script|style)[^>]*>[\s\S]*?<\/\1>/gi, " ");
+  c = c.replace(/<hr\b[^>]*>/gi, " ----- ");          // bloki aktualizacji rozdziela <hr /> (23.10.2026)
   c = odkodujEncje(c.replace(/<[^>]+>/g, " ").replace(/\s+/g, " "));
   const i = c.indexOf(tytul), j = c.indexOf('{"register"');
   return c.slice(Math.max(i, 0), j > i ? j : c.length).slice(0, 8000);
@@ -2284,8 +2421,12 @@ const VOIV_RDZENIE = VOIVODESHIPS.map(v => {
 /* Odbiorcy z jednego bloku artykułu. Nawiasy wycinamy, bo RCB wylicza w nich
    POWIATY: „województwa lubelskiego (powiaty: puławski, opolski, …)" dokładało
    woj. opolskie (21.09.2026). */
+/* 23.10.2026 (lustro rcb.POWIATY_RE): „części województwa: - lubelskiego - powiaty: …, Biała
+   Podlaska, …” — lista powiatów bez nawiasu dawała woj. podlaskie. Wycinamy ją do następnego
+   „ - ” (kolejne województwo), kropki albo końca. */
+const POWIATY_RCB = /powiat\w*\s*:.*?(?=\s[-–]\s|[.;]|$)/g;
 function wojewodztwaAlertu(blok) {
-  const t = fold(blok).replace(NAWIAS_RCB, " ");
+  const t = fold(blok).replace(NAWIAS_RCB, " ").replace(POWIATY_RCB, " ");
   const m = /wyslan|odbiorc/.exec(t);
   if (!m) return [];
   let zakres = t.slice(m.index, m.index + ZAKRES_ZNAKOW_RCB);
@@ -2306,14 +2447,18 @@ function czyOdwolanieRcb(tresc) {
 /* Bloki artykułu od najnowszego (NAJNOWSZY NA GÓRZE), rozdzielone linią myślników. */
 function meldunkiArtykulu(tekst) {
   const out = [];
-  for (const blok of String(tekst || "").split(BLOK_SEP_RCB)) {
+  for (let blok of String(tekst || "").split(BLOK_SEP_RCB)) {
+    // blok aktualizacji zaczyna się od „Aktualizacja!”; wcześniej (na górze strony) stoi
+    // cytat pierwszego alertu, nie bieżący komunikat (23.10.2026)
+    const akt = [...blok.matchAll(/aktualizacja\s*!?/gi)];
+    if (akt.length) blok = blok.slice(akt[akt.length - 1].index);
     CYTAT_RCB.lastIndex = 0;
     const cytaty = [...blok.matchAll(CYTAT_RCB)].map(m => m[1]);
     if (!cytaty.length) continue;
     const tresc = cytaty.reduce((a, b) => b.length > a.length ? b : a);  // w bloku bywa krótki cytat z nagłówka
     if (!RCB_AIR_FOLD.some(a => fold(tresc).includes(a))) continue;
     out.push({ tresc: tresc.trim(), wojewodztwa: wojewodztwaAlertu(blok),
-               odwolanie: czyOdwolanieRcb(tresc), poziom: rcbLevel(tresc) });
+               odwolanie: czyOdwolanieRcb(tresc), poziom: rcbLevel(tresc), aktualizacja: akt.length > 0 });
   }
   return out;
 }
@@ -2322,6 +2467,9 @@ function meldunkiArtykulu(tekst) {
    jego powtórzeniu niżej. Gdy treść się różni, blok jest starszy. */
 function najnowszyMeldunek(lista) {
   if (!lista.length) return null;
+  // Wpis z aktualizacjami: najnowsza jest PIERWSZA aktualizacja z odbiorcami (23.10.2026).
+  const akt = lista.find(m => m.aktualizacja && m.wojewodztwa.length);
+  if (akt) return akt;
   const lead = lista[0];
   if (lead.wojewodztwa.length) return lead;
   for (const m of lista.slice(1))
@@ -2731,6 +2879,10 @@ function timeline() {
 /* ── start ───────────────────────────────────────────────────────────────── */
 async function start(stateCb) {
   onState = stateCb;
+  // słownik województw (pełne formy) przed pierwszym odczytem źródeł; plik jest w paczce
+  // aplikacji, więc to milisekundy. Gdy się nie uda, zostaje dawne dopasowanie po rdzeniach.
+  try { ustawSlownik(await (await fetch("assets/slownik-woj.json?v=1.8.00")).json()); }
+  catch (e) { console.warn("slownik-woj", e); }
   // Powrót do aplikacji z tła: odśwież wygaszanie okna, żeby po odblokowaniu
   // telefonu nie było widać stanu sprzed uśpienia.
   document.addEventListener("visibilitychange", () => {
@@ -2748,7 +2900,9 @@ async function start(stateCb) {
     try { Notification.requestPermission(); } catch {}
   }
   startNeptun();
-  tickAdsb(); every(tickAdsb, 60000);
+  // adsb.lol: limit 500 zapytań na adres i dobę (26.10.2026) — równo co 173 s to 499, nawet gdy
+  // tryb awaryjny trwa całą dobę; każdy telefon ma własny adres i własny limit
+  tickAdsb(); every(tickAdsb, 173000);
   tickRss(); every(tickRss, 60000);
   tickRcb(); every(tickRcb, 180000);   // 3 min: alerty RCB nie zmieniają się częściej
   tickRso(); every(tickRso, 180000);   // 3 min: rzadziej niż backend (60 s), bo tu
@@ -2760,14 +2914,14 @@ async function start(stateCb) {
   every(saveSnapshot, 120000);
 }
 
-// matchVoivs wystawiamy wyłącznie do testów zgodności z backendem
-// (scripts/test_voiv_match.cjs) — reszta aplikacji go nie używa. Tak samo
+// matchVoivs i ustawSlownik wystawiamy wyłącznie do testów zgodności z backendem
+// (scripts/test_voiv_match.cjs, test_slownik_woj.cjs) — reszta aplikacji go nie używa. Tak samo
 // `rcbArtykul`: kolektor i parser treści z gov.pl dla scripts/test_rcb_artykul.cjs,
 // `adsbHoldJump`: strażnik niemożliwych skoków dla scripts/test_skok_pozycji.cjs,
 // który sprawdza, że tryb bez serwera trzyma pozycję tak samo jak backend,
-// oraz `adsbGeoUrl`/`adsbGeoAircraft` dla scripts/test_adsb_geo_zapas.cjs,
+// oraz `adsbGeoUrl`/`adsbGeoAircraft` dla scripts/test_adsb_bez_zapasu.cjs,
 // a `podloga` dla scripts/test_podloga_dron.cjs, `baltyk` dla scripts/test_baltyk_silnik.cjs.
-return { start, stop, history, timeline, historyFrom, timelineFrom, accumulate, matchVoivs,
+return { start, stop, history, timeline, historyFrom, timelineFrom, accumulate, matchVoivs, ustawSlownik,
          adsbHoldJump, adsbGeoUrl, adsbGeoAircraft, lostWeight, zgubioneZMigawek,
          stateFrom, alertLevel, rsoIsCancellation, assess,
          rso: { tickRso, sygnaly: () => signals },
@@ -2777,5 +2931,5 @@ return { start, stop, history, timeline, historyFrom, timelineFrom, accumulate, 
          rcbArtykul: { tickRcb, tekstArtykuluRcb, dataArtykuluRcb, wojewodztwaAlertu,
                        czyOdwolanieRcb, meldunkiArtykulu, najnowszyMeldunek },
          // dla scripts/test_rcb_wygasl.cjs (lustro fusion.rcb_nieodwolane / rcb_wygasle)
-         rcbPrzypomnienia: { rcbNieodwolane, rcbWygasle } };
+         rcbPrzypomnienia: { rcbNieodwolane, rcbWygasle }, rsoTytul };
 })();

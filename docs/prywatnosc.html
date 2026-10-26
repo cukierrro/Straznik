@@ -28,7 +28,7 @@
 </div></nav>
 
 <header class="hero"><div class="wrap">
-  <div class="eyebrow">Polityka prywatności · obowiązuje od 21 października 2026</div>
+  <div class="eyebrow">Polityka prywatności · obowiązuje od 26 października 2026</div>
   <h1>Nie zbieramy danych o Tobie.</h1>
   <p class="lead">Strażnik nie ma kont, logowania, reklam ani analityki. Nie prosimy o imię, adres e-mail ani numer telefonu — i ich nie mamy. Ta strona opisuje dokładnie, co zostaje na Twoim urządzeniu, co widzi nasz serwer i kto jeszcze bierze udział w przesyłaniu danych.</p>
   <p class="fineprint">Dotyczy aplikacji Strażnik na Androida i iOS oraz strony <a href="https://straznik.eu">straznik.eu</a>. Administratorem danych jest autor projektu, Piotr Kukier. Kontakt: <a href="https://cukierrro.pl/#kontakt">formularz na cukierrro.pl</a> albo <a href="https://github.com/cukierrro/Straznik/issues">zgłoszenie w repozytorium</a>.</p>
@@ -112,10 +112,20 @@
     <li><b>Cloudflare</b> — tunel, ochrona i przyspieszenie ruchu do serwera;</li>
     <li><b>Google Firebase</b> — dostarczanie powiadomień do aplikacji;</li>
     <li><b>GitHub</b> — pobieranie aplikacji, sprawdzanie aktualizacji i ta strona (GitHub Pages);</li>
-    <li><b>OpenFreeMap</b> i <b>CARTO</b> — kafelki mapy, na danych OpenStreetMap;</li>
+    <li><b>OpenFreeMap</b> — kafelki mapy i czcionki podpisów, na danych OpenStreetMap;</li>
     <li><b>FOSSGIS</b> (serwer tras OSRM) i <b>GUGiK</b> (geokodowanie adresów, ortofotomapa) — tylko w GROCIE, zob. punkt 2.</li>
   </ul>
-  <p>Zdjęcia i grafiki obiektów są zapisane w samej aplikacji — nie pobieramy ich z zewnętrznych serwisów. Strony redakcji odczytuje nasz serwer, nie Twój telefon. Link do artykułu otwierasz już w swojej przeglądarce i od tego momentu obowiązują zasady danej redakcji.</p>
+  <p>Zdjęcia i grafiki obiektów są zapisane w samej aplikacji — nie pobieramy ich z zewnętrznych serwisów. Zwykle źródła danych — w tym strony redakcji — odczytuje nasz serwer, nie Twój telefon. Link do artykułu otwierasz już w swojej przeglądarce i od tego momentu obowiązują zasady danej redakcji.</p>
+  <h3 id="tryb-awaryjny">Tryb awaryjny — gdy nasz serwer nie odpowiada</h3>
+  <p>Jeśli aplikacja albo strona nie może połączyć się z serwerem Strażnika, przechodzi w <b>tryb awaryjny</b> (u góry ekranu widać wtedy napis „tryb awaryjny”) i sama pobiera dane ze źródeł publicznych. Wtedy Twój telefon lub przeglądarka łączy się <b>bezpośrednio</b> z poniższymi serwisami. Każdy z nich widzi Twój adres IP i zwykłe żądanie — nie wysyłamy im lokalizacji, ustawień ani żadnego identyfikatora. Tryb awaryjny kończy się sam, gdy serwer znów odpowiada.</p>
+  <ul>
+    <li><b>NEPTUN</b> — obiekty powietrzne nad Ukrainą: <code>neptun.in.ua</code>;</li>
+    <li><b>adsb.lol</b> — ruch lotniczy ADS-B: <code>api.adsb.lol</code>;</li>
+    <li><b>RCB i RSO</b> — komunikaty i alerty: <code>www.gov.pl</code>, <code>komunikaty.tvp.pl</code> (portal Regionalnego Systemu Ostrzegania prowadzony przez TVP);</li>
+    <li><b>PAŻP</b> — strefy przestrzeni powietrznej: <code>airspace.pansa.pl</code>;</li>
+    <li><b>Google News</b> — wyszukiwanie doniesień medialnych: <code>news.google.com</code>;</li>
+    <li><b>kanały RSS redakcji</b> — <code>www.lublin112.pl</code>, <code>radio.lublin.pl</code>, <code>www.dziennikwschodni.pl</code>, <code>www.lrt.lt</code>, <code>www.15min.lt</code>, <code>www.lsm.lv</code>, <code>eng.lsm.lv</code>, <code>www.err.ee</code>, <code>news.err.ee</code>.</li>
+  </ul>
   <p>Google, Cloudflare i GitHub to firmy z siedzibą w USA, więc adres IP i identyfikator instalacji mogą być przez nie przetwarzane poza Europejskim Obszarem Gospodarczym — na zasadach opisanych w ich politykach prywatności.</p>
 </section>
 

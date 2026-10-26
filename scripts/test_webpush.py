@@ -108,11 +108,16 @@ def check_pool_and_connection_reuse(good):
     check("timeout not retried", result["status"] == "error" and len(calls) == 1)
 
     threads, lock = set(), threading.Lock()
+    rownolegle = {"teraz": 0, "szczyt": 0}
 
     def slow_send(sub, payload):
         with lock:
             threads.add(threading.current_thread().name)
+            rownolegle["teraz"] += 1
+            rownolegle["szczyt"] = max(rownolegle["szczyt"], rownolegle["teraz"])
         time.sleep(0.2)
+        with lock:
+            rownolegle["teraz"] -= 1
         return {"status": "sent", "ref": "x", "http": 201}
 
     subs = [good] * 64
@@ -123,8 +128,11 @@ def check_pool_and_connection_reuse(good):
         took = time.monotonic() - started
     check("dedicated webpush pool, not the default executor",
           threads and all(name.startswith("webpush") for name in threads))
-    # 64 x 0,2 s: przy 6 wątkach wspólnej puli > 2 s, przy 32 ~0,4 s
-    check(f"more than 6 sends in parallel ({took:.2f} s for 64)", sent == 64 and took < 1.2)
+    # 64 x 0,2 s: przy 6 wątkach wspólnej puli > 2 s, przy 32 ~0,4 s. Liczymy szczyt jednoczesnych
+    # wysyłek, nie czas zegarowy — 26.10.2026 przy obciążonym komputerze ten sam kod dawał 0,4 s
+    # albo 2,9 s i test padał co drugi raz, choć pula miała 32 wątki.
+    check(f"more than 6 sends in parallel (peak {rownolegle['szczyt']}, {took:.2f} s for 64)",
+          sent == 64 and rownolegle["szczyt"] > 6)
 
 
 def check_fcm_logged_before_webpush():

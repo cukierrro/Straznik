@@ -139,6 +139,15 @@ NEPTUN_HEADING_TOLERANCE = 50.0    # ± stopni od azymutu na najbliższy punkt g
 # Twarde cięcie na 50° gubiło obiekty tuż za progiem (51° = 0 pkt), więc waga
 # kursu spada LINIOWO od tolerancji do NEPTUN_HEADING_SOFT_DEG, dopiero potem 0.
 NEPTUN_HEADING_SOFT_DEG = 70.0
+# Mała premia za kurs NA KONKRETNE województwo (decyzja usera 25.10.2026, wariant B15):
+# punkty obiektu dzielone wg odległości jak dotąd, ale województwo, w które celuje kurs,
+# dostaje do +15%, a pozostałe oddają tyle samo — suma obiektu się nie zmienia, bo dron
+# może zmienić kurs w każdej chwili. Kurs domniemany (na cel) — połowa. Przeliczenie
+# 11–25.10: wejścia w żółty 137 → 136, minuty ≥ żółty +0,2%, czerwone bez zmian.
+# Celowanie: kurs w wycinku obrysu województwa ±15° = pełne, 45° = zero (geo.celowanie_woj).
+NEPTUN_KURS_WOJ_K = 0.15
+NEPTUN_KURS_WOJ_PELNE_DEG = 15.0
+NEPTUN_KURS_WOJ_ZERO_DEG = 45.0
 # Obiekt BEZ pola heading (NEPTUN nie zawsze je podaje) był pomijany w ciszy —
 # tak przepadła rakieta manewrująca 130 km od granicy. Teraz liczy się z karą
 # i tylko blisko granicy: nieznany kurs to niepewność, nie dowód bezpieczeństwa.
@@ -181,9 +190,21 @@ NEPTUN_NATIONAL_ID_PREFIX = "national-"
 NEPTUN_NATIONAL_REGION_MARKERS = ("загальнодержавн",)   # porównanie po lower()
 
 # ── ADS-B ─────────────────────────────────────────────────────────────────────
-ADSB_PROVIDER = os.getenv("ADSB_PROVIDER", "adsb.lol")   # adsb.lol | adsb.fi | adsbx
-ADSB_INTERVAL = int(os.getenv("ADSB_INTERVAL", "60"))
-ADSBX_RAPIDAPI_KEY = os.getenv("ADSBX_RAPIDAPI_KEY", "")
+ADSB_PROVIDER = os.getenv("ADSB_PROVIDER", "adsb.lol")   # jedyny dostawca od 26.10.2026
+# adsb.lol ma limit na adres: 4/s, 60/min i 500 na dobę (nagłówek x-ratelimit-limit, 26.10.2026).
+# Co minutę /v2/mil + dwa koła bałtyckie to ~4300 zapytań na dobę — od co najmniej 20.10 około 80%
+# odpowiedzi to było 429, a dziurę cicho łatał zapas adsb.fi, usunięty 26.10.
+# Decyzja usera 26.10: pytać dokładnie tyle, ile pozwala limit, i równo rozłożyć — JEDNO zapytanie
+# co 173 s (86400 / 500 = 172,8 → 499 na dobę), w stałej kolejności ADSB_PLAN: dwa razy lista
+# /v2/mil, raz koło bałtyckie (jedno zbiorcze zapytanie, adsb.py). Lista wychodzi średnio co
+# ~4,3 min (najdłużej 5,8 min), koło co ~8,7 min.
+ADSB_LIMIT_DOBA = 500                                      # limit adsb.lol na adres i dobę
+ADSB_INTERVAL = int(os.getenv("ADSB_INTERVAL", "173"))     # odstęp między KAŻDYMI dwoma zapytaniami
+ADSB_PLAN = ("mil", "mil", "kolo0")
+# Wyjście do adsb.lol przez NASZ adres (IPv6 serwera), nie przez IPv4. IPv4 Mikrusa to brama NAT
+# wspólna z innymi klientami: druga pula 500 zapytań z innego adresu byłaby obejściem limitu
+# adsb.lol i zjadałaby limit cudzym usługom. 26.10.2026 przez godzinę tak chodziło — cofnięte.
+ADSB_IPV4 = os.getenv("ADSB_IPV4", "0") == "1"
 ADSB_BASELINE_DAYS = 7
 ADSB_SPIKE_FACTOR = 2.0            # sygnał gdy > 2x baseline
 ADSB_MIN_COUNT = 3                 # ...i co najmniej tyle maszyn wojskowych

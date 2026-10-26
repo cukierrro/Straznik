@@ -145,8 +145,8 @@
     "(okno": "(window", "min)": "min)",
     "Dane:": "Data:", "(agregator OSINT — nie radar; zawsze sprawdzaj confidence i ±km)": "(OSINT aggregator — not radar; always check confidence and ±km)",
     "Mapa:": "Map:",
-    "(agregator OSINT — nie radar) · ADS-B: adsb.lol / adsb.fi · PAŻP · RCB · Mapa:": "(OSINT aggregator — not radar) · ADS-B: adsb.lol / adsb.fi · PAŻP · RCB · Map:",
-    "(agregator OSINT — nie radar; zawsze sprawdzaj confidence i ±km) · ADS-B: adsb.lol / adsb.fi · Mapa:": "(OSINT aggregator — not radar; always check confidence and ±km) · ADS-B: adsb.lol / adsb.fi · Map:",
+    "(agregator OSINT — nie radar) · ADS-B: © adsb.lol (ODbL) · PAŻP · RCB · Mapa:": "(OSINT aggregator — not radar) · ADS-B: © adsb.lol (ODbL) · PAŻP · RCB · Map:",
+    "(agregator OSINT — nie radar; zawsze sprawdzaj confidence i ±km) · ADS-B: © adsb.lol (ODbL) · Mapa:": "(OSINT aggregator — not radar; always check confidence and ±km) · ADS-B: © adsb.lol (ODbL) · Map:",
   };
 
   const VOIV_EN = {
@@ -235,8 +235,8 @@
     "(okno": "(вікно", "min)": "хв)",
     "Dane:": "Дані:", "(agregator OSINT — nie radar; zawsze sprawdzaj confidence i ±km)": "(агрегатор OSINT — не радар; завжди перевіряйте достовірність і ±км)",
     "Mapa:": "Мапа:",
-    "(agregator OSINT — nie radar) · ADS-B: adsb.lol / adsb.fi · PAŻP · RCB · Mapa:": "(агрегатор OSINT — не радар) · ADS-B: adsb.lol / adsb.fi · PAŻP · RCB · Мапа:",
-    "(agregator OSINT — nie radar; zawsze sprawdzaj confidence i ±km) · ADS-B: adsb.lol / adsb.fi · Mapa:": "(агрегатор OSINT — не радар; завжди перевіряйте достовірність і ±км) · ADS-B: adsb.lol / adsb.fi · Мапа:",
+    "(agregator OSINT — nie radar) · ADS-B: © adsb.lol (ODbL) · PAŻP · RCB · Mapa:": "(агрегатор OSINT — не радар) · ADS-B: © adsb.lol (ODbL) · PAŻP · RCB · Мапа:",
+    "(agregator OSINT — nie radar; zawsze sprawdzaj confidence i ±km) · ADS-B: © adsb.lol (ODbL) · Mapa:": "(агрегатор OSINT — не радар; завжди перевіряйте достовірність і ±км) · ADS-B: © adsb.lol (ODbL) · Мапа:",
   };
 
   const VOIV_UK = {
@@ -772,8 +772,8 @@
     "What this app does NOT do": "Чого цей застосунок НЕ робить",
     "NEPTUN is an OSINT/crowdsourced aggregator, not radar, so confidence and position uncertainty are always shown. A new ID at the same locality-centre point does not prove a new physical object and is not automatically counted twice. ADS-B contains only public transponder emissions and cannot reveal aircraft flying dark.":
       "NEPTUN — агрегатор OSINT і повідомлень людей, а не радар, тому ми завжди показуємо достовірність і невизначеність позиції. Новий ідентифікатор у тій самій точці центру населеного пункту не доводить появи нового фізичного об’єкта і не рахується автоматично вдруге. ADS-B містить лише відкриті сигнали транспондерів і не покаже літаків, які летять без них.",
-    "Data: NEPTUN · adsb.lol / adsb.fi · PAŻP · gov.pl/RCB · regional and Baltic media · neighbouring airspace sources · map © OpenFreeMap, © OpenMapTiles, © OpenStreetMap":
-      "Дані: NEPTUN · adsb.lol / adsb.fi · PAŻP · gov.pl/RCB · регіональні та балтійські ЗМІ · джерела про повітряний простір сусідів · мапа © OpenFreeMap, © OpenMapTiles, © OpenStreetMap",
+    "Data: NEPTUN · © adsb.lol (ODbL) · PAŻP · gov.pl/RCB · regional and Baltic media · neighbouring airspace sources · map © OpenFreeMap, © OpenMapTiles, © OpenStreetMap":
+      "Дані: NEPTUN · © adsb.lol (ODbL) · PAŻP · gov.pl/RCB · регіональні та балтійські ЗМІ · джерела про повітряний простір сусідів · мапа © OpenFreeMap, © OpenMapTiles, © OpenStreetMap",
     "I understand — continue": "Зрозуміло — далі",
     "Data sources": "Джерела даних",
     "Each LED at the top represents one data source. Fusion relies on agreement between several sources, so one unavailable source reduces confirmation rather than disabling warnings.":
@@ -907,10 +907,10 @@
     "Open My places": "Відкрити Мої місця",
     "connecting…": "з’єднання…",
     "LIVE": "НАЖИВО",
-    "(OSINT aggregator — not radar) · ADS-B: adsb.lol / adsb.fi · PAŻP · RCB · Map:":
-      "(агрегатор OSINT — не радар) · ADS-B: adsb.lol / adsb.fi · PAŻP · RCB · Мапа:",
-    "(OSINT aggregator — not radar; always check confidence and ±km) · ADS-B: adsb.lol / adsb.fi · Map:":
-      "(агрегатор OSINT — не радар; завжди перевіряйте достовірність і ±км) · ADS-B: adsb.lol / adsb.fi · Мапа:",
+    "(OSINT aggregator — not radar) · ADS-B: © adsb.lol (ODbL) · PAŻP · RCB · Map:":
+      "(агрегатор OSINT — не радар) · ADS-B: © adsb.lol (ODbL) · PAŻP · RCB · Мапа:",
+    "(OSINT aggregator — not radar; always check confidence and ±km) · ADS-B: © adsb.lol (ODbL) · Map:":
+      "(агрегатор OSINT — не радар; завжди перевіряйте достовірність і ±км) · ADS-B: © adsb.lol (ODbL) · Мапа:",
     "An eastern event also raises awareness in neighbouring provinces: a neighbour gets 40% of its points, the next ring 40% of that (16%) and so on. Only a province with at least 2 pts passes points on, and only Ukrainian oblast alerts, media, aviation and zones are passed — not a regional RCB alert and not NEPTUN objects, because every object already scores every province within 250 km by its own distance (since 1.7.99; before, the same drone was counted a second time in the neighbour). Transferred points alone do not send a notification — that takes at least 1 pt from the province’s own signals.":
       "Подія на сході підвищує увагу й у сусідніх воєводствах: сусід отримує 40% балів, наступне коло — 40% від цього (16%) і так далі. Бали передає лише воєводство з щонайменше 2 балами, і передаються тільки тривоги в областях України, ЗМІ, авіація та зони — не регіональний Alert RCB і не об'єкти NEPTUN, бо кожен об'єкт уже дає бали кожному воєводству в радіусі 250 км за власною відстанню (з 1.7.99; раніше той самий дрон рахувався в сусіда вдруге). Самі лише передані бали не надсилають сповіщення — для цього потрібен щонайменше 1 бал власних сигналів.",
     "Buy me a coffee": "Пригостити кавою",
@@ -1030,7 +1030,7 @@
     // atrybucja: nazwy własne zostają, opis źródła musi być po angielsku
     const attr = document.getElementById("attr-text");
     if (attr) attr.innerHTML = 'Data: <a href="https://neptun.in.ua" target="_blank" rel="noopener">NEPTUN</a> — OSINT aggregator, not radar.<br>'
-      + 'Aircraft: ADS-B (adsb.lol, adsb.fi).<br>'
+      + 'Aircraft: ADS-B © <a href="https://adsb.lol" target="_blank" rel="noopener">adsb.lol</a>, licence <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener">ODbL</a>.<br>'
       + 'Map: <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a>'
       + ' © <a href="https://www.openmaptiles.org/" target="_blank" rel="noopener">OpenMapTiles</a>,'
       + ' data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>';
@@ -1070,7 +1070,7 @@
     set("#ab-ograniczenia",
       "NEPTUN is an OSINT/crowdsourced aggregator, not radar, so confidence and position uncertainty are always shown. A new ID at the same locality-centre point does not prove a new physical object and is not automatically counted twice. ADS-B contains only public transponder emissions and cannot reveal aircraft flying dark.");
     set("#ab-dane",
-      "Data: NEPTUN · adsb.lol / adsb.fi · PAŻP · gov.pl/RCB · regional and Baltic media · neighbouring airspace sources · map © OpenFreeMap, © OpenMapTiles, © OpenStreetMap");
+      "Data: NEPTUN · © adsb.lol (ODbL) · PAŻP · gov.pl/RCB · regional and Baltic media · neighbouring airspace sources · map © OpenFreeMap, © OpenMapTiles, © OpenStreetMap");
     const north = document.getElementById("ab-polnoc");
     const redNote = document.getElementById("ab-czerwony");
     if (redNote) redNote.innerHTML = "<b>4 pts alone are not enough.</b> Red needs a "
@@ -1344,7 +1344,7 @@
       + '<a href="https://mikr.us" target="_blank" rel="noopener">Сайт Mikrus ↗</a></div>';
     const attr = document.getElementById("attr-text");
     if (attr) attr.innerHTML = 'Дані: <a href="https://neptun.in.ua" target="_blank" rel="noopener">NEPTUN</a> — агрегатор OSINT, не радар.<br>'
-      + 'Авіація: ADS-B (adsb.lol, adsb.fi).<br>'
+      + 'Авіація: ADS-B © <a href="https://adsb.lol" target="_blank" rel="noopener">adsb.lol</a>, ліцензія <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener">ODbL</a>.<br>'
       + 'Мапа: <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a>'
       + ' © <a href="https://www.openmaptiles.org/" target="_blank" rel="noopener">OpenMapTiles</a>,'
       + ' дані © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>';

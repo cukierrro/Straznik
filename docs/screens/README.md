@@ -85,6 +85,34 @@ release 1.7.95) was built before `cap copy`, so it still showed the module from 
 on it matched the shipped pack, but the look predated the 14 October contrast and touch-target work.
 This set is the first one built with the assets actually synchronised, and it replaces those frames.
 
+The GROTA captures `g13-mapa-filtry*` and `g29-zasady-dane*` were retaken, and
+`g31-zmiana-wykazu*` and `g32-adres-imiennicy*` are new (Polish, `-en`, `-uk`), on
+26 October 2026 between 15:28 and 16:03 Europe/Warsaw. They come from a debug build of the
+`grota-zmiana-wykazu` branch — the same GROTA module as release 1.8.01 (module 66b55272b6, shelter pack from the PSP register
+of 26 October 2026, 87,835 points) on the Pixel 7 emulator with Android 14, with the screen
+set to `wm size 1080x2340` so the frames match the rest of the GROTA set, then downscaled to
+720 x 1560 JPEG. Nothing in them is retouched. The position is the same fake GPS fix in
+Lublin's Old Town as the earlier sets. `g13-*` shows the counts the pack really holds
+(87 835 points, 19 591 / 7 578 / 60 666 by access, 85 668 / 897 / 1 270 by location
+certainty), and `g29-*` the register date that goes with them.
+
+`g31-zmiana-wykazu*` shows the warning that the register changed. To produce it, a test place
+"Dom" in Kromolice was written to the app's own storage with the shelter `OZO-852EACB93576`
+saved from the register of 14 September 2026 — the point that PSP has since rewritten to a
+building in Gostyń. Everything in the warning (the old address, the new one, the 23 km and
+the "On request" access) is what the app computed from the two packs; only the saved place is
+made up, and its note "piwnica, wejscie od podworza" stays Polish in the English and Ukrainian
+frames because it is text a user types, not an interface string. `g32-adres-imiennicy*` was
+taken with the emulator's Wi-Fi switched off, so the offline town list really is what answers;
+the province names in the results stay Polish in all three languages, as they are in the
+register. Both new screens first appear in release 1.8.01.
+
+There is deliberately no screenshot for "When the map gets old": the offline map packs have not
+been rebuilt since that code was written, so no device can honestly show the "There is a newer
+map" line yet. The section is described in words until a newer pack exists.
+
+No alerts were sent and no production data was written.
+
 ## Updating
 
 `history-lubelskie-user.png` is an unchanged 1440 × 3200 screenshot supplied

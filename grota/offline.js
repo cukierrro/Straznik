@@ -132,6 +132,74 @@
   function dopiszPaczke(p) { const l = paczki().filter((x) => x.id !== p.id); l.push(p); zapiszLS(PACZKI_KEY, l); }
   function usunPaczke(id) { zapiszLS(PACZKI_KEY, paczki().filter((x) => x.id !== id)); }
 
+  /* ---------- czy pobrana mapa jest jeszcze aktualna ----------
+
+     Mapa w telefonie nie starzeje się sama: kafelki leżą w IndexedDB i nikt ich nie podmienia,
+     bo pobieranie pomija to, co telefon już ma. Po przebudowie paczek (świeższy OpenStreetMap)
+     człowiek trzymałby więc starą mapę bez śladu, że jest starsza. Dlatego przy pobraniu
+     zapisujemy, z których części powstała (nazwa pliku + początek sumy sha256), a przy czytaniu
+     spisu — i tylko wtedy, bez osobnych zapytań — porównujemy to z tym, co serwer ma teraz. */
+
+  const SKROT = (sha) => String(sha || "").slice(0, 16);       // tyle wystarczy, żeby odróżnić wersje
+  const znacznik = (c) => `${c.plik}:${SKROT(c.sha256)}`;
+
+  /* Pobrania sprzed 24.10.2026 nie zapisywały wersji. Innego spisu niż ten jeszcze nie było
+     (pliki na serwerze są niezmienione od 21.09.2026), więc taki wpis traktujemy jak pobrany
+     z tamtego spisu — i uznajemy za nieaktualny dopiero wtedy, gdy serwer poda nowszy. */
+  const SPIS_PIERWOTNY = "2026-09-21T13:06:18.077Z";
+
+  /* Co pobrać ponownie dla tej paczki — albo null, gdy mapa jest aktualna. `plan` liczymy z dzisiejszego
+     spisu, więc wychodzą z niego i nowe części (inna nazwa po przebudowie), i części zmienione w miejscu. */
+  function stanPaczki(s, p) {
+    const opcje = p.opcje ? { obszary: p.opcje.obszary || null, komorki: p.opcje.komorki ? new Set(p.opcje.komorki) : null, trasy: p.trasy !== false }
+      : opcjeZId(p.id, p.trasy !== false);
+    if (!opcje) return null;                                   // nie wiemy, co to był za obszar — nie zgadujemy
+    const plan = planuj(s, opcje);
+    if (!plan.czesci.length) return null;
+    const mamy = new Set(p.czesci || []);
+    const nowe = p.czesci ? plan.czesci.filter((w) => !mamy.has(znacznik(w.c)))
+      : (String(s.utworzono || "") > SPIS_PIERWOTNY ? plan.czesci : []);
+    if (!nowe.length) return null;
+    /* Brakujące części znaczą dwie różne rzeczy i nie wolno ich mylić: przy TYM SAMYM spisie to
+       pobranie, które się nie dokończyło (mapa nie jest stara, tylko niepełna), a przy innym —
+       nowsza mapa na serwerze. Człowiek ma przeczytać prawdę, nie „jest nowsza mapa” po zerwanym wifi. */
+    const powod = !p.spis || p.spis !== s.utworzono ? "nowsza" : "niepelna";
+    const bajty = nowe.reduce((suma, w) => suma + rozmiarCzesci(w, plan.trasy), 0);
+    /* `zachowaj` — części, które telefon ma w wersji wciąż aktualnej (np. odświeżone przy poprzednim,
+       przerwanym podejściu). Reszta zapisu jest nieprawdą, bo właśnie wchodzi na jej miejsce nowa
+       wersja; gdyby stare znaczniki zostały, mapa po aktualizacji wyglądałaby na mieszankę dwóch wersji. */
+    const wPlanie = new Set(plan.czesci.map((w) => znacznik(w.c)));
+    const zachowaj = (p.czesci || []).filter((z) => wPlanie.has(z));
+    // plan tylko na to, czego brakuje — po przerwanej aktualizacji dobiera resztę, a nie wszystko od nowa
+    return { id: p.id, nazwa: p.nazwa, bajty, powod, czesci: nowe.length, wszystkich: plan.czesci.length,
+      wersjaSerwera: s.utworzono, pobranoDnia: p.data, bezWersji: !p.czesci, niepelna: !!p.niepelna,
+      opcje, zachowaj, plan: { ...plan, czesci: nowe, bajty } };
+  }
+
+  function rozmiarCzesci(w, trasy) {
+    let b = w.ogolne ? w.c.ogolne : 0;
+    for (const [k, [km, kg]] of Object.entries(w.c.komorki || {})) {
+      if (w.komorki && !w.komorki.has(k)) continue;
+      b += km + (trasy ? kg : 0);
+    }
+    return b;
+  }
+
+  // Identyfikator pobrania niesie w sobie obszar — to zapas dla wpisów sprzed zapisywania `opcje`.
+  function opcjeZId(id, trasy) {
+    if (id === "polska") return { obszary: null, komorki: null, trasy };
+    if (id.startsWith("woj:")) return { obszary: [id.slice(4)], komorki: null, trasy };
+    const m = /^promien:(-?[\d.]+),(-?[\d.]+):(\d+)$/.exec(id);
+    if (m) return { obszary: null, komorki: komorkiPromien(+m[1], +m[2], +m[3]), trasy };
+    return null;
+  }
+
+  // Lista map, dla których serwer ma nowszą wersję. Liczona ze spisu, który i tak właśnie czytamy.
+  function doAktualizacji(s) {
+    if (!s || !s.obszary) return [];
+    return paczki().map((p) => stanPaczki(s, p)).filter(Boolean);
+  }
+
   /* ---------- siatka ---------- */
 
   const MAXZOOM = 14, Z_GRAFU = 11;
@@ -227,7 +295,8 @@
         czesci.push(w);
       }
     }
-    return { czesci, bajty, mapa, graf, zajmie, trasy };
+    // `spis` zapamiętujemy przy pobraniu — po nim poznajemy później, że serwer ma już nowszą mapę
+    return { czesci, bajty, mapa, graf, zajmie, trasy, spis: s.utworzono || null };
   }
 
   /* ---------- pobieranie ---------- */
@@ -319,11 +388,27 @@
       ? wynik.buffer : wynik.buffer.slice(wynik.byteOffset, wynik.byteOffset + wynik.byteLength);
   }
 
-  async function pobierzPlan(obszar, plan, onPostep) {
+  /* `nadpisz` — aktualizacja mapy, którą telefon już ma: wtedy NIE pomijamy kafelków po kluczu,
+     bo właśnie o ich podmianę chodzi. Stare kafelki zostają na miejscu do chwili zapisania nowych,
+     więc mapa działa przez cały czas pobierania. Wpis paczki zapisujemy po każdej ukończonej części,
+     żeby przerwana aktualizacja zostawiała prawdę o tym, co już jest nowe, a nie wszystko albo nic. */
+  async function pobierzPlan(obszar, plan, onPostep, { nadpisz = false, zachowaj = null } = {}) {
     zacznij();
-    const mamy = new Set((await wszystkieKlucze()).map(String));
-    let zrobione = 0, pobrane = 0, kafelkow = 0, komorekGrafu = 0, zajete = 0;
+    const mamy = nadpisz ? new Set() : new Set((await wszystkieKlucze()).map(String));
+    const wczesniej = paczki().find((x) => x.id === obszar.id);
+    // przy aktualizacji zostają tylko te części zapisu, które wciąż są aktualne (stanPaczki.zachowaj)
+    const gotoweCzesci = new Set(nadpisz ? (zachowaj || []) : wczesniej?.czesci || []);
+    // przy aktualizacji kafelki wchodzą na miejsce starych, więc zajętości nie sumujemy ze starą
+    let zrobione = 0, pobrane = 0, kafelkow = 0, komorekGrafu = 0, zajete = nadpisz ? 0 : wczesniej?.zajmuje || 0;
     const razem = plan.bajty;
+    const zapiszWpis = (niepelna) => dopiszPaczke({
+      id: obszar.id, nazwa: obszar.nazwa, trasy: plan.trasy, bajtow: plan.bajty, zajmuje: zajete,
+      data: new Date().toISOString().slice(0, 10),
+      spis: plan.spis || null,
+      czesci: [...gotoweCzesci],
+      opcje: obszar.opcje || null,
+      ...(niepelna ? { niepelna: true } : {}),
+    });
     const postep = (extra) => onPostep?.({ zrobione, razem, pobrane, kafelkow, komorekGrafu, ...extra });
     postep();
     try {
@@ -365,13 +450,15 @@
           for (const e of g.wpisy) { zrobione += e.len; pobrane += e.len; if (e.graf) komorekGrafu++; else kafelkow++; }
           postep();
         }
+        // część jest w telefonie w całości — dopiero teraz wolno zapisać, że mamy właśnie tę wersję
+        gotoweCzesci.add(znacznik(w.c));
+        zapiszWpis(true);
       }
     } catch (e) {
-      if (e instanceof Przerwane) return { anulowane: true, kafelkow, komorekGrafu, pobrane };
+      if (e instanceof Przerwane) { zapiszWpis(true); return { anulowane: true, kafelkow, komorekGrafu, pobrane }; }
       throw e;
     }
-    dopiszPaczke({ id: obszar.id, nazwa: obszar.nazwa, trasy: plan.trasy, bajtow: plan.bajty, zajmuje: zajete,
-      data: new Date().toISOString().slice(0, 10) });
+    zapiszWpis(false);
     postep({ koniec: true });
     return { anulowane: false, kafelkow, komorekGrafu, pobrane };
   }
@@ -500,7 +587,7 @@
     rejestruj, stan, paczki, pobierzStyl, stylZPamieci, anuluj, usunPaczke, zakoncz,
     maKafelek, wyczysc, ustawZrodloOFM, ustawUdawanie, udaje,
     grafDlaKorytarza, maGraf, stanZasobow,
-    spis, planuj, pobierzPlan, komorkiPromien,
+    spis, planuj, pobierzPlan, komorkiPromien, doAktualizacji, stanPaczki,
     zapiszMeta: (k, v) => zapisz("meta", k, v),
     xT, yT, MAXZOOM, PACZKI_URL,
   };

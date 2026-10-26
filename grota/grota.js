@@ -849,9 +849,18 @@
       coords: own.coords, distM: own.distM, durMin: Math.max(1, Math.round(own.durSec / 60)) };
   };
 
+
   // Nagrana trasa z zapisanego miejsca (np. z Moich miejsc: „Pokaż na mapie”) — rysowana od tego miejsca.
   function showOwnRoute(pl, id) {
     if (!pl.routes?.[id]) return;
+    /* Punkt pod tym numerem bywa po aktualizacji wykazu innym obiektem — wtedy nagrana trasa prowadzi
+       donikąd i prowadzenie nią byłoby gorsze niż jej brak. Mówimy o tym i nie rysujemy. */
+    if (trasaDoStarego(pl, id)) {
+      S.route = null; drawRoute();
+      S.openPlace = pl.id; S.tab = "miejsca"; render();
+      powiedz(T("Nagrana trasa kończy się gdzie indziej niż dzisiejsze położenie punktu — jest nieaktualna."));
+      return;
+    }
     S.route = ownRouteState(pl, id, { lat: pl.lat, lon: pl.lon });
     S.selectedId = id;
     if (map.getLayer("ps-sel")) map.setFilter("ps-sel", ["==", ["get", "id"], id]);
@@ -1127,6 +1136,18 @@
     savePlaces();
     map.flyTo({ center: [pos.lon, pos.lat], zoom: extra.approx ? 14 : 17 });
     render();
+  }
+
+  /* Przy zapisie schronienia zapamiętujemy, z którego wykazu PSP pochodziło — wtedy po zmianie
+     wykazu wiadomo, czy człowiek wybrał stary obiekt (i trzeba go ostrzec), czy już nowy (i nie
+     ma o czym mówić). Zapisy sprzed 1.8.01 tej daty nie mają i wtedy mówimy warunkowo. */
+  function zapamietajWykaz(pl, id) {
+    if (!S.meta?.data_danych) return;
+    pl.wykaz = { ...(pl.wykaz || {}), [id]: S.meta.data_danych };
+  }
+
+  function zapomnijWykaz(pl, id) {
+    if (pl.wykaz) delete pl.wykaz[id];
   }
 
   function savePlaces() { writeLS(PLACES_KEY, S.places); drawPlaces(); }
@@ -1434,7 +1455,85 @@
   }
 
   function placeSummary(pl, saved) {
-    return `${esc(T(P.PLACE_KINDS[pl.kind]?.label || ""))} · ${T("schronienia: {n}/3", { n: saved.length })}${pl.routes && Object.keys(pl.routes).length ? ` · ${T("nagrane trasy: {n}", { n: Object.keys(pl.routes).length })}` : ""} · ${esc(trybNazwa(pl.mode))}`;
+    // zmiana w wykazie musi być widać na zwiniętej karcie — inaczej człowiek nie ma powodu jej otworzyć
+    const zmian = S.points.length ? C.zmienioneSchronienia(pl, S.byId, S.meta?.przeniesione || {})
+      .filter((z) => !uznane(pl).has(kluczZmiany(z))).length : 0;
+    return `${esc(T(P.PLACE_KINDS[pl.kind]?.label || ""))} · ${T("schronienia: {n}/3", { n: saved.length })}${pl.routes && Object.keys(pl.routes).length ? ` · ${T("nagrane trasy: {n}", { n: Object.keys(pl.routes).length })}` : ""} · ${esc(trybNazwa(pl.mode))}${
+      zmian ? `<br><span class="trust-uwaga">${I("triangle-alert")}${zmian === 1 ? T("zapisane schronienie wymaga sprawdzenia") : T("zapisane schronienia wymagają sprawdzenia ({n})", { n: zmian })}</span>` : ""}`;
+  }
+
+  /* Ostrzeżenie o zapisanym schronieniu, które po nowym wykazie PSP jest czym innym. Pokazujemy je
+     przy miejscu, którego dotyczy, i nie znika samo: dopóki człowiek nie wybierze nowego schronienia
+     albo świadomie nie potwierdzi, że zostawia stare. Niczego nie kasujemy za niego — to jego wybór
+     i jego plan na alarm. Tekst ma mówić wprost, skąd się to wzięło i co trzeba zrobić. */
+  /* „Zostawiam jak jest” dotyczy KONKRETNEJ zmiany, nie punktu na zawsze: w kluczu jest data wykazu,
+     w którym punkt się przesunął. Gdy PSP przepisze go jeszcze raz, klucz będzie inny i ostrzeżenie
+     wróci — wcześniej obiecywał to komentarz, a kod zapamiętywał sam identyfikator i milczał już zawsze. */
+  const kluczZmiany = (z) => `${z.id}|${z.zmienionyWWykazie || z.powod}`;
+  function uznane(pl) { return new Set(pl.uznaneZmiany || []); }
+
+  /* Nagrana trasa jest nieaktualna, gdy punkt się przesunął, a ona kończy się tam, gdzie był.
+     Dwa warunki, oba potrzebne:
+       • coś się w wykazie zmieniło — bo nagrywanie pozwala świadomie zapisać trasę kończącą się
+         dalej niż 100 m od schronienia („Zapisz mimo to” w recSave) i taka trasa jest w porządku,
+         dopóki punkt stoi w miejscu; bez tego warunku nazwalibyśmy ją nieaktualną bez powodu,
+       • koniec trasy leży daleko od dzisiejszego położenia punktu — bo trasa nagrana już PO
+         przesunięciu jest dobra i blokowanie jej byłoby stratą dla kogoś, kto ją przeszedł. */
+  const TRASA_PRZY_CELU_M = 300;
+  function trasaDoStarego(pl, id) {
+    const tr = pl.routes?.[id], p = S.byId.get(id);
+    if (!tr) return false;
+    if (!p) return true;                                   // punktu nie ma — trasa prowadzi donikąd
+    if (!S.meta?.przeniesione?.[id]) return false;          // wykaz niczego tu nie zmienił
+    const koniec = tr.coords?.[tr.coords.length - 1];
+    if (!koniec) return false;
+    return C.distanceM(koniec[1], koniec[0], p.lat, p.lon) > TRASA_PRZY_CELU_M;
+  }
+
+  function ostrzezenieZmian(pl) {
+    const zmiany = C.zmienioneSchronienia(pl, S.byId, S.meta?.przeniesione || {}).filter((z) => !uznane(pl).has(kluczZmiany(z)));
+    if (!zmiany.length) return "";
+    const data = S.meta?.data_danych ? ` ${T("z {d}", { d: esc(S.meta.data_danych) })}` : "";
+    const pozycje = zmiany.map((z) => {
+      const maTrase = trasaDoStarego(pl, z.id);
+      if (z.powod === "znikl") {
+        return `<li><b>${T("Tego punktu nie ma już w wykazie PSP{d}.", { d: data })}</b> ${T("Musisz wybrać inne miejsce schronienia.")}
+          ${maTrase ? " " + T("Nagrana do niego trasa jest nieaktualna.") : ""}</li>`;
+      }
+      const gdzieByl = z.byl ? (z.bylaGmina ? `${esc(z.byl)}, ${T("gm. {g}", { g: esc(z.bylaGmina) })}` : esc(z.byl)) : null;
+      const ile = fmtDist(z.przesuniecieM ?? z.odMiejscaM);
+      const kiedy = z.zmienionyWWykazie ? esc(z.zmienionyWWykazie) : null;
+      /* Dwie różne daty: `zWykazu` to wykaz, w którym pod tym numerem stał jeszcze stary adres,
+         a `zmienionyWWykazie` to ten, w którym stanął nowy. Pomylenie ich dawało zdanie
+         „w wykazie z 26.10 był X. W wykazie z 26.10 jest Y”, czyli ten sam wykaz po obu stronach. */
+      const kiedyByl = z.zWykazu ? esc(z.zWykazu) : null;
+      /* Wiemy, z którego wykazu pochodzi zapis (od 1.8.01), czy nie wiemy (starsze zapisy) — i tylko
+         w pierwszym przypadku wolno powiedzieć wprost „zapisane tu było X”. Bez tej wiedzy mówimy
+         warunkowo, bo punkt mógł zostać wybrany już po zmianie i wtedy nic się dla człowieka nie stało. */
+      const pewne = !!z.zapisanoZWykazu;
+      const trescPrzeniesiony = pewne
+        ? `<b>${T("Zapisane tu schronienie: {stary}.", { stary: gdzieByl })}</b> ${T("W wykazie PSP{d} pod tym samym numerem jest teraz inny obiekt: {nowy} — {ile} dalej.", { d: data, nowy: esc(z.punkt.adres), ile })}`
+        : `${kiedyByl
+            ? T("W wykazie PSP z {kiedy} pod tym numerem był: {stary}.", { kiedy: kiedyByl, stary: gdzieByl })
+            : T("Pod tym numerem był wcześniej: {stary}.", { stary: gdzieByl })} ${T("W wykazie{d} jest tu: {nowy} — {ile} dalej.", { d: data, nowy: esc(z.punkt.adres), ile })} <b>${T("Jeśli zapisano tu {stary}, wybór nowego miejsca schronienia jest konieczny.", { stary: gdzieByl })}</b>`;
+      const trescPoprawiony = pewne
+        ? `<b>${T("Zapisane tu schronienie: {nowy}.", { nowy: esc(z.punkt.adres) })}</b> ${T("PSP poprawiło w wykazie{d} jego położenie — punkt jest teraz {ile} od miejsca, w którym był przy zapisie.", { d: data, ile })}`
+        : `${T("PSP poprawiło w wykazie z {kiedy} położenie tego punktu — stał {ile} stąd, a adres pozostał ten sam: {nowy}.", { kiedy, ile, nowy: esc(z.punkt.adres) })} <b>${T("Jeśli zapisano go wcześniej, sprawdź na mapie, czy to wciąż właściwe miejsce.")}</b>`;
+      return `<li>${z.powod === "przeniesiony" ? trescPrzeniesiony : trescPoprawiony}
+        ${z.zamkniete ? " " + (z.powod === "przeniesiony"
+            ? T("Nowy obiekt jest <b>zamknięty („Na żądanie”)</b> — otwiera go zarządca.")
+            : T("Ten punkt jest <b>zamknięty („Na żądanie”)</b> — otwiera go zarządca.")) : ""}
+        ${maTrase ? " " + T("Nagrana trasa kończy się gdzie indziej niż dzisiejsze położenie punktu — jest nieaktualna.") : ""}
+        ${pewne ? `<br><b>${T("Wybór nowego miejsca schronienia jest konieczny.")}</b>` : ""}</li>`;
+    }).join("");
+    return `<div class="card sim zmiana-psp" role="alert">
+      <b>${I("triangle-alert")}${T("Zmienił się wykaz PSP — sprawdź zapisane schronienia")}</b>
+      <ul class="small">${pozycje}</ul>
+      <div class="row">
+        <button class="btn" data-act="wybierz-schronienie" data-id="${esc(pl.id)}">${I("shield-alert")}${T("Wybierz nowe schronienie")}</button>
+        <button class="btn ghost" data-act="zmiany-uznane" data-id="${esc(pl.id)}">${T("Zostawiam jak jest")}</button></div>
+      <p class="small muted">${T("Nic nie usunęliśmy — decyzja należy do Ciebie. To ostrzeżenie zostanie, dopóki nie wybierzesz nowego schronienia albo nie potwierdzisz, że zostawiasz dotychczasowe.")}</p>
+    </div>`;
   }
 
   // Szczegóły miejsca (po dotknięciu kafla): wszystko, co zapisano — bez wchodzenia w edycję.
@@ -1444,6 +1543,7 @@
     const byAccess = nearestByAccess(pl.lat, pl.lon, F.grupy, pl.mode);
     const where = pl.addr ? esc(pl.addr) : T("wskazane na mapie");
     return `<div class="place-details">
+      ${ostrzezenieZmian(pl)}
       <dl class="kv">
         <dt>${T("Położenie")}</dt><dd>${where}${pl.approx ? ` <span class="trust-uwaga small">${T("(przybliżone — popraw w „Edytuj”)")}</span>` : ""}</dd>
         <dt>${T("Moje miejsce w budynku")}</dt><dd>${pl.spot ? `${esc(pl.spot)} <span class="small ${pl.spotChecked ? "trust-ok" : "trust-uwaga"}">${pl.spotChecked ? T("· sprawdzone") : T("· jeszcze nie sprawdzone")}</span>` : `<span class="muted">${T("nie zapisano")}</span>`}</dd>
@@ -1491,7 +1591,7 @@
       ${rule("I-DWIE-SCIANY")}${rule("I-POMIESZCZENIE")}${rule("I-POKOJE")}
       <label class="tylko-czytnik" for="place-spot-${id}">${esc(T("Moje miejsce w tym budynku"))}</label>
       <textarea id="place-spot-${id}" data-autosave rows="2" style="width:100%" placeholder="${esc(T("Twoja notatka, np. „korytarz na parterze, bez okien”"))}">${esc(pl.spot)}</textarea>
-      <label class="chk small"><input type="checkbox" id="place-spotok-${id}"${pl.spotChecked ? " checked" : ""}> ${T("Sprawdziłem to miejsce na miejscu")}</label>
+      <label class="chk small"><input type="checkbox" id="place-spotok-${id}"${pl.spotChecked ? " checked" : ""}> ${T("Sprawdzone na miejscu")}</label>
       ${P.PLACE_KINDS[pl.kind]?.checklist ? checklist(P.PLACE_KINDS[pl.kind].checklist, true) : ""}
       <h3>${T("Środek transportu z tego miejsca")}</h3>${modeButtons(pl.mode, pl.id)}
       ${pl.mode === "driving" ? rule("P-AUTO") : ""}
@@ -1655,9 +1755,9 @@
     const results = A.items ? (A.items.length
       ? `<div class="addr-list">${A.items.map((it, i) => `<button class="addr-item" data-act="addr-pick" data-ctx="${ctx}" data-i="${i}">${I(it.source === "gugik" && it.acc <= 25 ? "map-pin" : "map")}
           <span class="grow"><b>${esc(it.label)}</b><span class="small muted">${esc(it.detail || "")}</span></span></button>`).join("")}</div>`
-      : `<p class="small muted">${T("Nic nie znalazłem. Spróbuj: „Miejscowość, ulica numer” albo samą miejscowość.")}</p>`) : "";
+      : `<p class="small muted">${T("Nic nie znaleziono. Spróbuj: „Miejscowość, ulica numer” albo samą miejscowość.")}</p>`) : "";
     const note = A.offline ? `<p class="sim">${T("Brak połączenia z wyszukiwarką adresów. Pokazuję miejscowości zapisane w aplikacji — pozycja to środek miejscowości.")}</p>`
-      : A.notFound && A.items?.length ? `<p class="sim">${ctx === "live" ? T("Nie znalazłem tego adresu ani ulicy. Miejscowości o tej nazwie — to tylko środek miejscowości:") : T("Nie znalazłem tego adresu ani ulicy. Miejscowości o tej nazwie — to tylko środek miejscowości, po wyborze popraw położenie na mapie:")}</p>`
+      : A.notFound && A.items?.length ? `<p class="sim">${ctx === "live" ? T("Nie znaleziono tego adresu ani ulicy. Miejscowości o tej nazwie — to tylko środek miejscowości:") : T("Nie znaleziono tego adresu ani ulicy. Miejscowości o tej nazwie — to tylko środek miejscowości, po wyborze popraw położenie na mapie:")}</p>`
       : A.approx && A.items?.length ? `<p class="sim">${ctx === "live" ? T("Dokładnego adresu nie ma w bazie adresów (np. numer mieszkania albo litera). Wyniki są przybliżone.") : T("Dokładnego adresu nie ma w bazie adresów (np. numer mieszkania albo litera). Wyniki są przybliżone — po wyborze popraw położenie na mapie.")}</p>` : "";
     return `<form class="addr" data-form="addr" data-ctx="${ctx}"><label class="small muted" for="addr-q-${ctx}">${esc(T(title))}</label>
       <div class="row"><input type="text" id="addr-q-${ctx}" data-ctx="${ctx}" class="grow addr-q" autocomplete="street-address" enterkeyhint="search"
@@ -1808,6 +1908,8 @@
   /* ---------- mapy offline ---------- */
 
   const mb = (x) => (x >= 1000 ? T("{x} GB", { x: J.ulamek(x / 1000) }) : T("{x} MB", { x: x < 10 ? J.ulamek(x) : Math.round(x) }));
+  // daty pobrania zapisujemy jako RRRR-MM-DD, więc wersję spisu pokazujemy w tej samej postaci
+  const dzien = (iso) => esc(String(iso || "").slice(0, 10));
 
   function punktPaczki() {
     if (S.paczka.zPunktu === "pozycja") return S.userPos;
@@ -1865,8 +1967,39 @@
         try { await O.pobierzStyl(nazwa, adres); } catch { /* styl dociągniemy przy okazji */ }
       }
       S.pobieranie = { ...S.pobieranie, etap: "mapa", razem: plan.bajty }; render();
-      const wynik = await O.pobierzPlan({ id: w.id, nazwa: w.nazwa }, plan, (x) => { S.pobieranie = { ...S.pobieranie, ...x }; render(); });
+      // opcje zapisujemy razem z paczką — po nich wiadomo później, co dokładnie odświeżyć przy nowszej mapie
+      const opcje = { obszary: w.opcje.obszary || null, komorki: w.opcje.komorki ? [...w.opcje.komorki] : null };
+      const wynik = await O.pobierzPlan({ id: w.id, nazwa: w.nazwa, opcje }, plan, (x) => { S.pobieranie = { ...S.pobieranie, ...x }; render(); });
       S.pobranieWynik = { ...wynik, trasy: plan.trasy };
+    } catch (e) {
+      S.pobieranie = { blad: poLudzku(e) };
+      O.zakoncz();
+      await odswiezStanMap();
+      return;
+    }
+    O.zakoncz();
+    S.pobieranie = null;
+    await odswiezStanMap();
+  }
+
+  /* Odświeżenie pobranej mapy, gdy serwer ma nowszą. Pobieramy tylko części, których telefon nie ma
+     w tej wersji, i nadpisujemy kafelki w miejscu — stara mapa działa do chwili, gdy nowa wejdzie
+     na jej miejsce. Przerwanie w połowie nie psuje mapy: zapisane zostaje to, co weszło w całości,
+     a następne podejście dobiera resztę. Nic nie rusza się samo — tylko z tego przycisku. */
+  async function aktualizujMape(id) {
+    const biezaca = (S.stanMap?.paczki || []).find((p) => p.id === id);
+    if (!biezaca) return;
+    S.pobranieWynik = null;
+    S.pobieranie = { zrobione: 0, razem: 0, etykieta: biezaca.nazwa, etap: "spis", odswiezanie: true }; render();
+    try {
+      const s = await O.spis(true);
+      S.spis = s;
+      const stan = O.stanPaczki(s, biezaca);
+      if (!stan) { S.pobieranie = null; S.pobranieWynik = { aktualna: true }; await odswiezStanMap(); return; }
+      S.pobieranie = { ...S.pobieranie, etap: "mapa", razem: stan.plan.bajty }; render();
+      const wynik = await O.pobierzPlan({ id, nazwa: biezaca.nazwa, opcje: biezaca.opcje || null }, stan.plan,
+        (x) => { S.pobieranie = { ...S.pobieranie, ...x }; render(); }, { nadpisz: true, zachowaj: stan.zachowaj });
+      S.pobranieWynik = { ...wynik, trasy: stan.plan.trasy, odswiezone: true };
     } catch (e) {
       S.pobieranie = { blad: poLudzku(e) };
       O.zakoncz();
@@ -1899,7 +2032,21 @@
     const st = S.stanMap, pob = S.pobieranie, W = S.paczka;
     if (!S.spis && !S.spisBlad && !S.spisLaduje && !O.udaje()) wczytajSpis();
     const maPaczki = st?.paczki?.length;
-    const lista = maPaczki ? st.paczki.map((x) => `<li>${esc(x.nazwa)}${x.trasy === false ? " " + T("(sama mapa)") : ""} — ${mb((x.bajtow || 0) / 1e6)}, ${esc(x.data)}</li>`).join("") : "";
+    /* Mapa w telefonie się nie odświeża sama, więc po przebudowie paczek trzeba o tym powiedzieć —
+       spokojnie, przy liście pobranych map, bez okna na pół ekranu i bez pobierania z własnej woli. */
+    const nowsze = S.spis ? O.doAktualizacji(S.spis) : [];
+    const nowszaDla = new Map(nowsze.map((n) => [n.id, n]));
+    const lista = maPaczki ? st.paczki.map((x) => {
+      const n = nowszaDla.get(x.id);
+      return `<li>${esc(x.nazwa)}${x.trasy === false ? " " + T("(sama mapa)") : ""} — ${mb((x.bajtow || 0) / 1e6)}, ${esc(x.data)}${
+        n ? `<br><span class="small">${n.powod === "niepelna"
+            ? T("Ta mapa pobrała się nie w całości.")    // zerwane połączenie, nie nowsza wersja — nie mylmy tego
+            : dzien(n.wersjaSerwera) === esc(x.data)
+              ? T("Jest nowsza wersja tej mapy.")        // przebudowa tego samego dnia — dwie takie same daty tylko myliłyby
+              : T("Jest nowsza mapa (z {data}). Twoja jest z {moja}.", { data: dzien(n.wersjaSerwera), moja: esc(x.data) })}
+          <button class="btn ghost place-btn" data-act="mapa-odswiez" data-val="${esc(x.id)}"${pob ? " disabled" : ""}>${I("refresh-cw")}${
+            n.powod === "niepelna" ? T("Dokończ pobieranie") : T("Zaktualizuj")} · ${mb(n.bajty / 1e6)}</button></span>` : ""}</li>`;
+    }).join("") : "";
     const opcja = (rodzaj, etykieta) => `<button type="button" class="chip${W.rodzaj === rodzaj ? " on" : ""}" data-act="paczka-rodzaj" data-val="${rodzaj}">${T(etykieta)}</button>`;
     const obszary = dostepneObszary();
     const w = S.spis ? wyborPaczki() : null;
@@ -1939,8 +2086,12 @@
     const procent = pob && pob.razem ? Math.round((100 * pob.zrobione) / pob.razem) : 0;
     const wynik = !pob && S.pobranieWynik ? (() => {
       const r = S.pobranieWynik;
-      if (r.anulowane) return `<p class="small muted">${T("Przerwane. To, co zdążyło się pobrać, zostaje w telefonie — następna próba dobierze tylko resztę.")}</p>`;
+      if (r.aktualna) return `<p class="small trust-ok">${T("Ta mapa jest już aktualna.")}</p>`;
+      if (r.anulowane) return `<p class="small muted">${r.odswiezone
+        ? T("Przerwane. Mapa dalej działa — zaktualizowane fragmenty są już nowe, reszta została stara. Następna próba dobierze resztę.")
+        : T("Przerwane. To, co zdążyło się pobrać, zostaje w telefonie — następna próba dobierze tylko resztę.")}</p>`;
       const kafelki = plural(r.kafelkow || 0, "kafelek mapy", "kafelki mapy", "kafelków mapy");
+      if (r.odswiezone) return `<p class="small trust-ok">${T("Mapa zaktualizowana: {mb}, {kafelki}.", { mb: mb((r.pobrane || 0) / 1e6), kafelki })}</p>`;
       return `<p class="small trust-ok">${r.trasy
         ? T("Pobrano {mb}: {kafelki} i dane do tras dla {obszary}.", { mb: mb((r.pobrane || 0) / 1e6), kafelki, obszary: plural(r.komorekGrafu || 0, "obszaru", "obszarów", "obszarów") })
         : T("Pobrano {mb}: {kafelki}.", { mb: mb((r.pobrane || 0) / 1e6), kafelki })}${!r.pobrane ? " " + T("Wszystko było już w telefonie.") : ""}</p>`;
@@ -1969,8 +2120,9 @@
       ${wynik}
       ${pob && !pob.blad
         ? `<p class="small">${pob.przerywam ? T("Przerywam…")
-             : pob.etap === "spis" ? T("Sprawdzam, co jest do pobrania…")
+             : pob.etap === "spis" ? (pob.odswiezanie ? T("Sprawdzam, co się zmieniło na mapie…") : T("Sprawdzam, co jest do pobrania…"))
              : pob.etap === "styl" ? T("Pobieram wygląd mapy (kolory, ikony, napisy)…")
+             : pob.odswiezanie ? T("Aktualizuję „{n}”: {x} z {razem}", { n: esc(pob.etykieta), x: mb((pob.zrobione || 0) / 1e6), razem: mb((pob.razem || 0) / 1e6) })
              : T("Pobieram „{n}”: {x} z {razem}", { n: esc(pob.etykieta), x: mb((pob.zrobione || 0) / 1e6), razem: mb((pob.razem || 0) / 1e6) })}</p>
            <div class="pasek"><i style="width:${procent}%"></i></div>
            <p class="small muted">${T("Możesz zamknąć tę kartę, ale nie aplikację. Po zerwaniu połączenia pobieranie samo spróbuje jeszcze raz.")}</p>
@@ -2178,7 +2330,7 @@
       <h3>${T("Twoje dane")}</h3>
       <p>${T("Miejsca, notatki, nagrane trasy i ustawienia zapisują się <b>tylko w pamięci tego urządzenia</b>. Autor aplikacji ich nie widzi i nigdzie nie wysyła.")} ${NA_IOS ? T("Kopia zapasowa iCloud może przenieść je na Twoje konto Apple.") : T("Kopia zapasowa Androida może przenieść je na Twoje konto Google.")}</p>
       <p>${T("Co opuszcza telefon i kiedy: wpisany adres trafia do wyszukiwarki GUGiK; po naciśnięciu TERAZ — od razu, bez osobnego pytania — Twoja dokładna pozycja i współrzędne proponowanego punktu idą do serwera tras FOSSGIS, który rysuje drogę; współrzędne punktu do usługi zdjęć GUGiK; oglądany fragment mapy do OpenFreeMap; po naciśnięciu „Prowadź” albo „Street View” — do Google. Bez tych czynności nic nie wychodzi z telefonu.")}</p>
-      <p>${T("Mapa offline: paczki mapy pobierasz z serwera Strażnika. Prosimy o fragmenty pokrywające obszar, który sam wybrałeś, więc serwer (i Cloudflare, przez który działa) widzi, o które kwadraty siatki pytasz — każdy ma około 12 na 20 kilometrów. Z samego pobierania da się więc wyczytać okolicę, dla której chcesz mieć mapę bez internetu — z dokładnością do takiego kwadratu, nie do adresu. Jeśli wolisz tego uniknąć, wybierz „Województwo” albo „Cała Polska” zamiast „Wokół miejsca”.")}</p>
+      <p>${T("Mapa offline: paczki mapy pobierasz z serwera Strażnika. Prosimy o fragmenty pokrywające wybrany przez Ciebie obszar, więc serwer (i Cloudflare, przez który działa) widzi, o które kwadraty siatki pytasz — każdy ma około 12 na 20 kilometrów. Z samego pobierania da się więc wyczytać okolicę, dla której chcesz mieć mapę bez internetu — z dokładnością do takiego kwadratu, nie do adresu. Jeśli wolisz tego uniknąć, wybierz „Województwo” albo „Cała Polska” zamiast „Wokół miejsca”.")}</p>
 
       <h3>${T("Z kiedy są punkty")}</h3>
       <p>${T("Punkty schronienia pochodzą z publicznego wykazu Komendy Głównej PSP — <b>stan na {data}</b>. W tej wersji aplikacji jest ich {ile}; wykaz jest wpisany w aplikację i działa bez internetu.", {
@@ -2723,8 +2875,10 @@
       commitField(el);   // opuszczenie pola — zapis bez przerysowania
     } else if (el.dataset.act === "save") {
       const pl = S.places.find((x) => x.id === el.dataset.place); if (!pl) return;
-      if (el.checked && pl.shelters.length < 3 && !pl.shelters.includes(el.dataset.id)) pl.shelters.push(el.dataset.id);
-      if (!el.checked) pl.shelters = pl.shelters.filter((id) => id !== el.dataset.id);
+      if (el.checked && pl.shelters.length < 3 && !pl.shelters.includes(el.dataset.id)) {
+        pl.shelters.push(el.dataset.id); zapamietajWykaz(pl, el.dataset.id);
+      }
+      if (!el.checked) { pl.shelters = pl.shelters.filter((id) => id !== el.dataset.id); zapomnijWykaz(pl, el.dataset.id); }
       savePlaces(); render();
     }
   });
@@ -2790,6 +2944,21 @@
       wczytajSpis(true); render();
     } else if (act === "paczka-pobierz") {
       pobierzPaczke();
+    } else if (act === "wybierz-schronienie") {
+      // otwieramy miejsce i prowadzimy prosto do listy wyboru — żeby nie zostawiać człowieka z samym ostrzeżeniem
+      S.openPlace = b.dataset.id; S.editPlace = null; S.tab = "miejsca"; render();
+      setTimeout(() => document.querySelector(`.place-card[data-id="${CSS.escape(b.dataset.id)}"] .place-details h3 + .rule, .place-card[data-id="${CSS.escape(b.dataset.id)}"] .pick`)?.scrollIntoView({ block: "center" }), 60);
+    } else if (act === "zmiany-uznane") {
+      const pl = S.places.find((x) => x.id === b.dataset.id);
+      if (pl) {
+        // świadome „zostawiam jak jest" zapamiętujemy przy TYCH identyfikatorach — przy następnej zmianie
+        // wykazu ostrzeżenie pojawi się znowu, bo to będzie już inna zmiana
+        const zmiany = C.zmienioneSchronienia(pl, S.byId, S.meta?.przeniesione || {});
+        pl.uznaneZmiany = [...new Set([...(pl.uznaneZmiany || []), ...zmiany.map(kluczZmiany)])];
+        savePlaces(); render();
+      }
+    } else if (act === "mapa-odswiez") {
+      aktualizujMape(b.dataset.val);
     } else if (act === "paczka-anuluj") {
       O.anuluj();
       S.pobieranie = { ...S.pobieranie, przerywam: true }; render();
@@ -2896,8 +3065,8 @@
       const pl = S.places.find((x) => x.id === b.dataset.id); if (pl) { pl.mode = b.dataset.mode; savePlaces(); render(); }
     } else if (act === "toggle-shelter") {
       const pl = S.places.find((x) => x.id === b.dataset.place); if (!pl) return;
-      if (pl.shelters.includes(b.dataset.id)) pl.shelters = pl.shelters.filter((id) => id !== b.dataset.id);
-      else if (pl.shelters.length < 3) pl.shelters.push(b.dataset.id);
+      if (pl.shelters.includes(b.dataset.id)) { pl.shelters = pl.shelters.filter((id) => id !== b.dataset.id); zapomnijWykaz(pl, b.dataset.id); }
+      else if (pl.shelters.length < 3) { pl.shelters.push(b.dataset.id); zapamietajWykaz(pl, b.dataset.id); }
       savePlaces(); render();
     } else if (act === "place-kind") {
       const pl = S.places.find((x) => x.id === b.dataset.id); if (pl) { pl.kind = b.dataset.kind; savePlaces(); render(); }

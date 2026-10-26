@@ -5,8 +5,16 @@ namierzanie obiektów wroga. Sygnał = statystyczna anomalia: liczba maszyn
 wojskowych nad województwem > 2x baseline z ostatnich 7 dni.
 
 Domyślnie darmowe, bezkluczowe API adsb.lol (endpoint /v2/mil — wszystkie
-maszyny wojskowe globalnie, filtrujemy bboxem). Fallback: opendata.adsb.fi.
-Opcjonalnie ADSBexchange przez RapidAPI (klucz w .env).
+maszyny wojskowe globalnie, filtrujemy bboxem). Dane adsb.lol są na licencji
+ODbL 1.0 (opis ich API) — podpis „© adsb.lol, ODbL” w okienku źródeł i w NOTICE.
+
+Zapasu NIE MA od 26.10.2026: opendata.adsb.fi pozwala tylko na „personal,
+non-commercial use” i zakazuje licencjonowania danych (README ich API), a to
+kłóci się z publicznym serwisem i z ODbL adsb.lol, bo listy były mieszane.
+Opcja ADSBexchange przez RapidAPI (domyślnie wyłączona, warunków nikt nie
+czytał) usunięta tego samego dnia — decyzja usera.
+Gdy adsb.lol nie odpowiada, warstwa ADS-B jest pusta, a status mówi o błędzie —
+warstwa i tak nie daje punktów.
 """
 import asyncio
 import logging
@@ -61,9 +69,11 @@ MIL_CALLSIGN_PREFIXES = ("NATO", "MMF", "REDEYE", "BART", "OSY", "PLF", "HKY",
                          "VIPER", "WOLF", "FENIX", "DUKE", "TIGER", "KAPLAN",
                          "TUAF", "TURAF", "SOLOTURK")
 
-# Dwa koła po 220 NM pokrywają LT/LV/EE i najbliższy Bałtyk. To tylko dwa małe
-# zapytania/min, nie globalny zrzut całego ruchu cywilnego.
-BALTIC_GEO_POINTS = ((55.5, 24.0, 220), (58.2, 25.5, 220))
+# Jedno koło 250 NM (największy promień, jaki przyjmuje adsb.lol) nad LT/LV/EE i najbliższym
+# Bałtykiem: od ~52,1° do ~60,6° N, czyli od Suwalszczyzny po Zatokę Fińską. Do 26.10.2026 były
+# dwa koła po 220 NM — jedno zapytanie zamiast dwóch to więcej zapytań o listę w limicie 500/dobę.
+# Sprawdzone 26.10 na serwerze: 200, 49 maszyn, ~30 KB.
+BALTIC_GEO_POINTS = ((56.4, 24.5, 250),)
 MIL_TYPES = {"F16", "F15", "F18", "FA18", "F35", "EUFI", "RFAL", "JAS39",
              "MIR2", "M2K", "SU27", "SU30", "SU35", "MIG29", "MIG31",
              "A10", "B1", "B2", "B52", "E3CF", "E3TF", "A400", "C130",
@@ -76,36 +86,24 @@ MIL_OPERATOR_WORDS = ("air force", "airforce", "army", "navy", "military",
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/126.0 Safari/537.36")
 
-# Darmowe, bezkluczowe źródła maszyn wojskowych (globalnie, filtrujemy bboxem).
+# Darmowe, bezkluczowe źródło maszyn wojskowych (globalnie, filtrujemy bboxem).
+# Jedyne od 26.10.2026 — dlaczego bez zapasu, patrz opis modułu.
 MIL_ENDPOINTS = {
     "adsb.lol": "https://api.adsb.lol/v2/mil",
-    "adsb.fi": "https://opendata.adsb.fi/api/v2/mil",
 }
 
 
 async def _fetch_mil(client: httpx.AsyncClient) -> list[dict] | None:
-    """Lista maszyn wojskowych: wybrany dostawca, a przy błędzie kolejni zapasowi.
+    """Lista maszyn wojskowych od wybranego dostawcy.
 
     UWAGA (20.08.2026): adsb.lol zaczął odrzucać domyślny User-Agent bibliotek
     (`python-httpx/...`) z kodem 403 — dokładnie ten sam adres z nagłówkiem
     przeglądarki zwraca 200. Dlatego KAŻDE żądanie idzie z UA jak z przeglądarki.
-    Przy okazji: stary zapasowy adres `api.adsb.fi/v2` już nie istnieje (404),
-    adsb.fi wystawia dane pod `opendata.adsb.fi/api/v2`.
+    Nieznana nazwa w ADSB_PROVIDER (np. dawne „adsb.fi” albo „adsbx” w .env) spada
+    na adsb.lol.
     """
     prov = config.ADSB_PROVIDER
-    if prov == "adsbx" and config.ADSBX_RAPIDAPI_KEY:
-        try:
-            r = await client.get(
-                "https://adsbexchange-com1.p.rapidapi.com/v2/mil/",
-                headers={"X-RapidAPI-Key": config.ADSBX_RAPIDAPI_KEY,
-                         "X-RapidAPI-Host": "adsbexchange-com1.p.rapidapi.com"})
-            r.raise_for_status()
-            status.update(ok=True, error=None, provider="adsbx")
-            return r.json().get("ac") or []
-        except Exception as e:
-            status.update(ok=False, error=f"adsbx: {e}")
-
-    # wybrany dostawca pierwszy, pozostali jako zapas
+    # wybrany dostawca pierwszy; nieznana nazwa nie ma adresu i zostaje pominięta
     order = [prov] + [p for p in MIL_ENDPOINTS if p != prov]
     last_err = None
     for name in order:
@@ -114,6 +112,13 @@ async def _fetch_mil(client: httpx.AsyncClient) -> list[dict] | None:
             continue
         try:
             r = await client.get(url, headers={"User-Agent": UA})
+            if r.status_code == 429:
+                _zapamietaj_limit(r)
+                # limit to nie awaria: status źródła ocenia świeżość ostatniego sukcesu
+                # (monitoring.fresh), więc nie gasimy `ok` po jednym odrzuceniu
+                status.update(error=f"{name}: limit zapytań, następna próba za {_przerwa_s():.0f} s")
+                log.warning("ADS-B %s: limit zapytań (429), przerwa %.0f s", name, _przerwa_s())
+                return None
             r.raise_for_status()
             status.update(ok=True, error=None,
                           provider=name if name == prov else f"{name}(fallback)")
@@ -143,32 +148,60 @@ def _looks_military(ac: dict) -> bool:
 
 
 def _geo_url(provider: str, lat: float, lon: float, radius: int) -> str:
-    """Adres zapytania geograficznego u danego dostawcy.
-
-    16.10.2026: adsb.fi nie zna ścieżki `/point/...` — odpowiada na nią 400,
-    więc zapas dla kół bałtyckich nigdy nie zadziałał. Pomiar tego samego dnia:
-    `/api/v2/lat/{lat}/lon/{lon}/dist/{r}` zwraca 200. adsb.lol zostaje przy
-    `/v2/point/{lat}/{lon}/{r}`.
-    """
+    """Adres zapytania geograficznego u danego dostawcy: `/v2/point/{lat}/{lon}/{r}`."""
     base = MIL_ENDPOINTS[provider].rsplit("/mil", 1)[0]
-    if provider == "adsb.fi":
-        return f"{base}/lat/{lat}/lon/{lon}/dist/{radius}"
     return f"{base}/point/{lat}/{lon}/{radius}"
 
 
 def _geo_aircraft(data: dict) -> list[dict]:
-    """adsb.lol oddaje listę pod `ac`, adsb.fi w zapytaniu geograficznym pod `aircraft`."""
-    return data.get("ac") or data.get("aircraft") or []
+    """adsb.lol oddaje listę pod `ac`."""
+    return data.get("ac") or []
 
 
-async def _fetch_baltic_geo(client: httpx.AsyncClient, provider: str) -> list[dict]:
+# Przerwa po 429: adsb.lol podaje, po ilu sekundach okno się zwalnia (Retry-After albo
+# x-ratelimit-reset). Do tego czasu nie pytamy wcale — każde kolejne 429 i tak liczy się do limitu.
+_przerwa_do = 0.0
+
+
+def _zapamietaj_limit(r) -> None:
+    global _przerwa_do
+    h = r.headers
+    try:
+        s = float(h.get("retry-after") or h.get("x-ratelimit-reset") or 0)
+    except ValueError:
+        s = 0
+    _przerwa_do = time.time() + min(max(s, config.ADSB_INTERVAL), 3600)
+
+
+def _przerwa_s() -> float:
+    return max(0.0, _przerwa_do - time.time())
+
+
+# Każde koło bałtyckie ma swój krok w ADSB_PLAN; między krokami pokazujemy wynik jego ostatniego
+# zapytania, ale nie dłużej niż przez jeden pełny obieg planu (~9 min) — starsza pozycja wojskowej
+# maszyny myli bardziej, niż pomaga.
+_geo_cache: dict[int, dict] = {}
+_cykl = 0
+
+
+def _geo_max_wiek_s() -> float:
+    return len(config.ADSB_PLAN) * config.ADSB_INTERVAL + 60
+
+
+def _geo_z_pamieci(now: float) -> list[dict]:
+    return [ac for c in _geo_cache.values() if now - c["t"] <= _geo_max_wiek_s() for ac in c["lista"]]
+
+
+async def _fetch_baltic_geo(client: httpx.AsyncClient, provider: str,
+                            indeksy: tuple[int, ...] | None = None) -> list[dict]:
     """Wszystkie rekordy w dwóch kołach, potem lokalny filtr wojskowy.
 
     `/v2/mil` ominął nocne tureckie F-16, choć według użytkownika były widoczne
     w FR24. Zapytanie geograficzne usuwa zależność od flagi „military” dostawcy.
-    Przy awarii wybranego hosta próbujemy drugi, ale nigdy nie odpytujemy obu
-    równolegle bez potrzeby.
+    Zapasowego hosta nie ma (opis modułu): gdy adsb.lol nie odpowiada, koła
+    zostają puste, a status kół mówi o błędzie.
     """
+    indeksy = tuple(range(len(BALTIC_GEO_POINTS))) if indeksy is None else indeksy
     order = [provider] + [p for p in MIL_ENDPOINTS if p != provider]
     last_error = None
     for name in order:
@@ -176,20 +209,21 @@ async def _fetch_baltic_geo(client: httpx.AsyncClient, provider: str) -> list[di
             continue
         try:
             responses = await asyncio.gather(*[
-                client.get(_geo_url(name, lat, lon, radius),
-                           headers={"User-Agent": UA})
-                for lat, lon, radius in BALTIC_GEO_POINTS
+                client.get(_geo_url(name, *BALTIC_GEO_POINTS[i]), headers={"User-Agent": UA})
+                for i in indeksy
             ])
             merged = {}
-            for response in responses:
+            for i, response in zip(indeksy, responses):
+                if response.status_code == 429:
+                    _zapamietaj_limit(response)
                 response.raise_for_status()
-                for ac in _geo_aircraft(response.json()):
+                w_kole = [{**ac, "_straznik_detection": "baltic_geo"}
+                          for ac in _geo_aircraft(response.json()) if _looks_military(ac)]
+                _geo_cache[i] = {"t": time.time(), "lista": w_kole}
+                for ac in w_kole:
                     key = ac.get("hex") or f"{ac.get('lat')}:{ac.get('lon')}:{ac.get('flight')}"
                     merged[key] = ac
-            candidates = []
-            for ac in merged.values():
-                if _looks_military(ac):
-                    candidates.append({**ac, "_straznik_detection": "baltic_geo"})
+            candidates = list(merged.values())
             status["baltic_geo"] = {"ok": True, "provider": name,
                                     "candidates": len(candidates), "error": None}
             return candidates
@@ -273,12 +307,21 @@ def _classify(ac: dict) -> dict | None:
 
 
 async def _tick(client: httpx.AsyncClient):
-    global _watch_prev
+    """Jeden krok planu ADSB_PLAN = dokładnie jedno zapytanie do adsb.lol."""
+    global _watch_prev, _cykl
+    if _przerwa_s() > 0:                      # po 429 czekamy, aż adsb.lol zwolni okno
+        return
+    krok = config.ADSB_PLAN[_cykl % len(config.ADSB_PLAN)]
+    _cykl += 1
+    selected = str(status.get("provider") or config.ADSB_PROVIDER).replace("(fallback)", "")
+    if krok.startswith("kolo"):
+        # krok koła tylko odświeża pamięć koła; mapę i próbki liczy krok listy
+        await _fetch_baltic_geo(client, selected, (int(krok[4:]),))
+        return
     ac_list = await _fetch_mil(client)
     if ac_list is None:
         return
-    selected = str(status.get("provider") or config.ADSB_PROVIDER).replace("(fallback)", "")
-    geo_candidates = await _fetch_baltic_geo(client, selected)
+    geo_candidates = _geo_z_pamieci(time.time())
     merged: dict[str, dict] = {}
     for ac in ac_list:
         key = ac.get("hex") or f"{ac.get('lat')}:{ac.get('lon')}:{ac.get('flight')}"
@@ -355,7 +398,9 @@ async def _tick(client: httpx.AsyncClient):
 
 
 async def run():
-    async with httpx.AsyncClient(timeout=25) as client:
+    # local_address="0.0.0.0" wymusza IPv4 (patrz config.ADSB_IPV4)
+    transport = httpx.AsyncHTTPTransport(local_address="0.0.0.0") if config.ADSB_IPV4 else None
+    async with httpx.AsyncClient(timeout=25, transport=transport) as client:
         while True:
             try:
                 await _tick(client)

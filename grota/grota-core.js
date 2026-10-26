@@ -58,6 +58,60 @@
     return p.flagi.some((f) => HARD_FLAGS.includes(f));
   }
 
+  /* Zapisane schronienia, które po nowym wykazie PSP przestały być tym, co człowiek wybrał.
+     Wykaz bywa przepisywany: w wykazie z 26.10.2026 w 25 punktach ten sam identyfikator wskazał inny budynek
+     (np. „51a, Kromolice, gm. Pogorzela” → „os. Gawrony 2, Gostyń”, 23 km dalej), a 20 z nich
+     zamknięto („Na żądanie”). Ponieważ miejsca użytkownika trzymają SAME identyfikatory, bez tej
+     kontroli ktoś biegłby w alarmie pod adres, którego nigdy nie wybrał.
+
+     `przeniesione` przychodzi z paczką (tools/przeniesione.py) i niesie stary adres — w telefonie nie
+     ma go skąd wziąć, bo paczka podmienia się razem z aplikacją. Zwraca po jednym wpisie na zapisane
+     schronienie, które wymaga decyzji człowieka. */
+  const PRZENIESIONE_M = 3000;        // ten sam próg, co przy przeprowadzce (DALEKIE_SCHRONIENIE_M)
+
+  /* Mówimy wyłącznie o tym, co wiemy z wykazu — i nazywamy rzecz po imieniu, bo przyczyny są dwie:
+       „przeniesiony”  — zmienił się adres, czyli pod tym numerem jest INNY obiekt (65 wpisów
+                         w paczce z 26.10, np. Kromolice → Gostyń, Toruń → inna ulica),
+       „poprawiony”    — adres ten sam, PSP poprawiło tylko współrzędne (11 wpisów; punkt przy
+                         al. Sikorskiego na Mokotowie leżał 222 km od swojego adresu, na Kujawach),
+       „znikl”         — punktu nie ma już w wykazie.
+     Przepisań na inny obiekt (zmiana adresu i gminy) było w samym wykazie z 26.10 dwadzieścia pięć;
+     lista w paczce jest szersza, bo sięga wszystkich wydanych wykazów i liczy każde przesunięcie.
+     Czego NIE robimy: nie zgłaszamy schronienia tylko dlatego, że jest daleko od miejsca. Na wsi
+     najbliższy punkt bywa dalej niż 3 km — dwa miliony ludzi ma ponad 5 km — a ktoś, kto wybrał je
+     świadomie i komu nic się nie zmieniło, dostałby kategoryczne ostrzeżenie bez powodu.
+
+     Nie zgłaszamy też zmiany, która wydarzyła się PRZED zapisem. Lista w paczce sięga wszystkich
+     wydanych wykazów, więc większość przepisań jest sprzed tygodni (w paczce z 26.10 aż 46 z 76);
+     kto wybrał punkt później, wybrał już nowy obiekt i ostrzeżenie byłoby dla niego nieprawdą.
+     Dlatego każdy wpis niesie `zm` — wykaz, w którym punkt stanął tam, gdzie stoi dziś — a miejsce
+     pamięta w `wykaz`, z którego wykazu pochodzi każde zapisane schronienie (od 1.8.01). Gdy daty
+     nie znamy (zapisy starsze), nie da się tego rozstrzygnąć i interfejs mówi warunkowo. */
+  function zmienioneSchronienia(miejsce, byId, przeniesione = {}) {
+    const out = [];
+    const zapisane = miejsce.wykaz || {};
+    for (const id of miejsce.shelters || []) {
+      const p = byId.get(id);
+      if (!p) { out.push({ id, powod: "znikl", zapisanoZWykazu: zapisane[id] || null }); continue; }
+      const prz = przeniesione[id];
+      if (!prz) continue;
+      const zapisanoZWykazu = zapisane[id] || null;
+      // człowiek zapisał to schronienie już po zmianie — dla niego nic się nie wydarzyło
+      if (zapisanoZWykazu && prz.zm && zapisanoZWykazu >= prz.zm) continue;
+      out.push({
+        id, punkt: p, powod: prz.byl ? "przeniesiony" : "poprawiony",
+        byl: prz.byl || null, bylaGmina: prz.gmina || null,
+        przesuniecieM: prz.m ?? null,
+        zWykazu: prz.od || null,                 // z którego wykazu pochodzi zapamiętany adres
+        zmienionyWWykazie: prz.zm || null,       // kiedy punkt stanął tam, gdzie stoi dziś
+        zapisanoZWykazu,                         // null = zapis sprzed 1.8.01, nie wiemy
+        odMiejscaM: Math.round(distanceM(miejsce.lat, miejsce.lon, p.lat, p.lon)),
+        zamkniete: p.dostep === "na_zadanie",
+      });
+    }
+    return out;
+  }
+
   function flagMessages(p) {
     const km = (m) => (J ? J.ulamek(m / 1000) : (m / 1000).toFixed(1).replace(".", ","));
     const msg = [];
@@ -298,8 +352,10 @@
 
   // Spis miejscowości z OpenStreetMap (tools/miejscowosci.py) → obiekty + indeks po nazwie bez polskich znaków.
   function localityIndex(pack) {
+    // województwo gminy — starsze paczki go nie mają, wtedy zostaje puste i nic się nie dopisuje
+    const woj = (g) => (pack.wojewodztwa && pack.gminy_woj ? pack.wojewodztwa[pack.gminy_woj[g]] || "" : "");
     const list = pack.m.map(([name, g, lat, lon, kind]) => ({
-      name, gmina: pack.gminy[g], lat: lat / 1e4, lon: lon / 1e4, kind, kindLabel: pack.rodzaje[kind], key: fold(name) }));
+      name, gmina: pack.gminy[g], woj: woj(g), lat: lat / 1e4, lon: lon / 1e4, kind, kindLabel: pack.rodzaje[kind], key: fold(name) }));
     const byKey = new Map();
     for (const m of list) { const a = byKey.get(m.key); if (a) a.push(m); else byKey.set(m.key, [m]); }
     return { list, byKey };
@@ -312,8 +368,18 @@
     const prefix = exact.length >= limit ? [] : idx.list.filter((m) => m.key !== f && m.key.startsWith(f));
     const d = (m) => (ref ? distanceM(ref.lat, ref.lon, m.lat, m.lon) : 0);
     const by = (a, b) => (ref ? d(a) - d(b) : KIND_RANK[a.kind] - KIND_RANK[b.kind]);
-    return [...exact.sort(by), ...prefix.sort(by)].slice(0, limit).map((m) => ({
-      label: m.name, detail: `${T(m.kindLabel)}, ${T("gm. {g}", { g: m.gmina })}`, lat: m.lat, lon: m.lon, acc: KIND_ACC[m.kind] || 1000, kind: m.kind, source: "spis" }));
+    const out = [...exact.sort(by), ...prefix.sort(by)].slice(0, limit).map((m) => ({
+      label: m.name, detail: `${T(m.kindLabel)}, ${T("gm. {g}", { g: m.gmina })}`, woj: m.woj,
+      lat: m.lat, lon: m.lon, acc: KIND_ACC[m.kind] || 1000, kind: m.kind, source: "spis" }));
+    /* Dwie różne miejscowości potrafią mieć tę samą nazwę I tę samą nazwę gminy — Olsztyn warmiński
+       i Olsztyn pod Częstochową leżą w gminach Olsztyn, tylko w innych województwach. Na liście
+       wyglądały wtedy identycznie i nie dało się wybrać właściwej. Województwo dopisujemy wyłącznie
+       w takim przypadku: przy pozostałych wynikach byłoby dodatkowym słowem bez treści. */
+    const ile = new Map();
+    const klucz = (p) => `${p.label}|${p.detail}`;
+    for (const p of out) ile.set(klucz(p), (ile.get(klucz(p)) || 0) + 1);
+    for (const p of out) if (p.woj && ile.get(klucz(p)) > 1) p.detail = `${p.detail} · ${p.woj}`;
+    return out;
   }
 
   /* Warianty zapytania dla wyszukiwarki GUGiK. Oczekuje „Miejscowość, ulica numer” i polskich znaków
@@ -418,5 +484,5 @@
   }
 
   global.GrotaCore = { MODES, ACCESS, RULES, distanceM, estimateMin, nearest, liveBest, directionsUrl, streetViewUrl, pointBeforeEnd, bearing, orthoUrl, trustLabel, isDoubtful, flagMessages,
-    fold, localityIndex, findLocalities, queryVariants, geocode, fetchRoute, ROUTE_PROFILE, lineLengthM, simplifyLine };
+    fold, localityIndex, findLocalities, zmienioneSchronienia, PRZENIESIONE_M, queryVariants, geocode, fetchRoute, ROUTE_PROFILE, lineLengthM, simplifyLine };
 })(window);

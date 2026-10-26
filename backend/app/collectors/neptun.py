@@ -531,6 +531,44 @@ def score_threat(t: dict, dist_km: float, course_factor: float = 1.0) -> float:
     return round(points, 2)
 
 
+def _celowanie(t: dict, voiv: str) -> float | None:
+    if t.get("lat") is None or t.get("lon") is None:
+        return None
+    return geo.celowanie_woj(t["lat"], t["lon"], _heading_of(t), voiv,
+                             config.NEPTUN_KURS_WOJ_PELNE_DEG, config.NEPTUN_KURS_WOJ_ZERO_DEG)
+
+
+def wagi_kursu_woj(t: dict, a: dict) -> dict[str, float]:
+    """Mnożniki punktów obiektu dla województw w zasięgu — premia za kurs (B15, 25.10.2026).
+
+    Województwo, w które celuje kurs, dostaje do +K, pozostałe oddają tyle, że ważona
+    punktami suma obiektu się nie zmienia (dron może zmienić kurs w każdej chwili, więc
+    kurs tylko PRZESUWA część punktów, nie dokłada). Bez znanego kursu — {} (mnożnik 1)."""
+    if _heading_of(t) is None or t.get("lat") is None or t.get("lon") is None:
+        return {}
+    cf = a.get("course_factor", 1.0)
+    baza, cel = {}, {}
+    for voiv in config.VOIVODESHIPS:
+        dist = a["dist_km"] if voiv == a.get("border_voiv") else geo.dist_to_voiv_km(t["lat"], t["lon"], voiv)
+        if dist is None or dist >= config.NEPTUN_MAX_KM:
+            continue
+        p = score_threat(t, dist, cf)
+        c = _celowanie(t, voiv)
+        if p > 0 and c is not None:
+            baza[voiv], cel[voiv] = p, c
+    if len(baza) < 2:
+        return {}
+    srednia = sum(baza[v] * cel[v] for v in baza) / sum(baza.values())
+    k = config.NEPTUN_KURS_WOJ_K * (0.5 if heading_source(t) == "presumptive" else 1.0)
+    return {v: round(1.0 + k * (cel[v] - srednia), 4) for v in baza}
+
+
+def _kurs_obok_woj(t: dict, a: dict) -> bool:
+    """Kurs znany, a województwo z najbliższą granicą leży całkiem poza nim (≥ 45°)."""
+    c = _celowanie(t, a.get("border_voiv"))
+    return c is not None and c == 0.0 and not a.get("inside_pl")
+
+
 def border_uav_floor(t: dict, dist_km: float) -> float:
     """Minimum punktów dla drona tuż przy granicy — patrz NEPTUN_BORDER_UAV_FLOOR_*.
     Zero, gdy obiekt się nie kwalifikuje. Liczona osobno dla KAŻDEGO województwa
@@ -736,7 +774,7 @@ def _reconnect_wait(exc: Exception, backoff: float) -> tuple[float, float]:
 
 async def _signal_sasiednie(t: dict, a: dict, ttype: str, count: int, conf: str,
                             sources: int, approximate: bool, speed, course_src: str,
-                            position: dict):
+                            position: dict, wagi: dict | None = None):
     """Ten sam obiekt punktuje KAŻDE województwo w zasięgu, z wagą od odległości
     do TEGO województwa — tak jak od dawna robimy z alarmami obwodów UA.
 
@@ -771,6 +809,7 @@ async def _signal_sasiednie(t: dict, a: dict, ttype: str, count: int, conf: str,
         punkty = score_threat(t, dist, cf)
         if punkty <= 0:
             continue
+        punkty = round(punkty * (wagi or {}).get(voiv, 1.0), 2)
         # Podłoga przygraniczna liczona od odległości do TEGO województwa (decyzja
         # usera 18.10.2026): dron 10 km od lubelskiego i 25 km od podkarpackiego
         # ostrzega oba. Dodatek z podłogi nie przechodzi dalej do sąsiadów.
@@ -821,6 +860,7 @@ async def _signal_sasiednie(t: dict, a: dict, ttype: str, count: int, conf: str,
                      "heading_source": course_src,
                      "jet": bool(t.get("straznik_jet")),
                      "course_factor": cf,
+                     "waga_kursu_woj": (wagi or {}).get(voiv, 1.0),
                      "speed_kmh": speed,
                      "eta_approx": approximate,
                      "eta_raw_border_min": round(eta_raw, 1) if eta_raw is not None else None,
@@ -844,6 +884,8 @@ async def _maybe_signal(t: dict):
     points = score_threat(t, a["dist_km"], a.get("course_factor", 1.0))
     if points <= 0:
         return
+    wagi = wagi_kursu_woj(t, a)
+    points = round(points * wagi.get(a["border_voiv"], 1.0), 2)
     bazowe = points
     podloga = border_uav_floor(t, a["dist_km"])
     points = max(points, podloga)
@@ -895,9 +937,19 @@ async def _maybe_signal(t: dict):
     position = t.get("straznik_position") or _position_info(t)
     distance_info = (_area_distance_label(a["dist_km"]) + " [pozycja rejonowa]"
                      if approximate else f"{_km_pl(a['dist_km'])} km")
-    title = (f"{ile}{threat_label_pl(ttype)} kursem na granicę PL, {distance_info}{kurs_info}{blisko_info}{eta_info} "
-             f"(woj. {a['border_voiv']}, wiarygodność: {_conf_pl(conf)}, {_potwierdzenia_pl(sources)}, "
-             f"±{_km_pl(t.get('uncertaintyKm', '?'))} km)")
+    # „Kursem na granicę” tylko wtedy, gdy kurs celuje w TO województwo (25.10.2026).
+    # Dron pod Tarnopolem z kursem 233° (na południowy zachód) był opisany w lubelskim
+    # „kursem na granicę PL”, bo lubelskie ma tam najbliższą granicę — a kurs lubelskiego
+    # nie dotyka. Wtedy opis jak przy pozostałych województwach: „w odległości … od woj.”.
+    kurs_obok = _kurs_obok_woj(t, a)
+    if kurs_obok:
+        title = (f"{ile}{threat_label_pl(ttype)} w odległości {distance_info} od woj. {a['border_voiv']}"
+                 f"{blisko_info}{eta_info} "
+                 f"(wiarygodność: {_conf_pl(conf)}, {_potwierdzenia_pl(sources)})")
+    else:
+        title = (f"{ile}{threat_label_pl(ttype)} kursem na granicę PL, {distance_info}{kurs_info}{blisko_info}{eta_info} "
+                 f"(woj. {a['border_voiv']}, wiarygodność: {_conf_pl(conf)}, {_potwierdzenia_pl(sources)}, "
+                 f"±{_km_pl(t.get('uncertaintyKm', '?'))} km)")
     # Poziom w kluczu deduplikacji: gdy obiekt się zbliży albo zyska potwierdzenia,
     # jego waga rośnie i sygnał ma prawo wejść ponownie z wyższą punktacją.
     tier = int(points * 2)
@@ -940,6 +992,10 @@ async def _maybe_signal(t: dict):
                  "eta_buffer_min": config.NEPTUN_ETA_BUFFER_MIN,
                  "eta_alarm": eta_level,
                  "eta_voiv_min": _eta_per_voiv(t),
+                 "waga_kursu_woj": wagi.get(a["border_voiv"], 1.0),
+                 # kurs nie celuje w to województwo — panel opisuje go jak przypisanie
+                 # po odległości (aplikacje od 1.7.91 rozumieją ten znacznik)
+                 **({"voiv_secondary": True, "kurs_obok_woj": True} if kurs_obok else {}),
                  **({"border_floor": True, "bez_przeniesienia_pkt": z_podlogi}
                     if z_podlogi else {})},
         dedup_key=f"neptun:{t.get('id')}:t{tier}",
@@ -952,7 +1008,7 @@ async def _maybe_signal(t: dict):
     # województwu, które obiekt ma najbliżej.
     try:
         await _signal_sasiednie(t, a, ttype, count, conf, sources, approximate,
-                                speed, course_src, position)
+                                speed, course_src, position, wagi)
     except Exception as exc:                      # noqa: BLE001
         log.warning("przypisanie do sąsiednich województw: %s", exc)
 

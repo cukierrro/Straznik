@@ -192,7 +192,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
     <div class="attr-head"><b id="attr-h">Źródła mapy</b>
       <button id="attr-x" type="button"><span id="attr-x-t">Zamknij</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
     <p id="attr-text">Dane: <a href="https://neptun.in.ua" target="_blank" rel="noopener">NEPTUN</a> — agregator OSINT, nie radar.<br>
-      Lotnictwo: ADS-B (adsb.lol, adsb.fi).<br>
+      Lotnictwo: ADS-B © <a href="https://adsb.lol" target="_blank" rel="noopener">adsb.lol</a>, licencja <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener">ODbL</a>.<br>
       Mapa: <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a>
       © <a href="https://www.openmaptiles.org/" target="_blank" rel="noopener">OpenMapTiles</a>,
       dane © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a></p>
@@ -470,7 +470,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
        API NEPTUN wymaga, żeby była widoczna zawsze -->
   <section id="panel-attrib" class="fineprint">
     <b>Dane: <a href="https://neptun.in.ua" target="_blank" rel="noopener">NEPTUN</a></b>
-    (agregator OSINT — nie radar) · ADS-B: adsb.lol / adsb.fi · PAŻP · RCB
+    (agregator OSINT — nie radar) · ADS-B: © adsb.lol (ODbL) · PAŻP · RCB
     · Mapa: <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a>,
     © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OSM</a>
   </section>
@@ -807,7 +807,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
     </details>
 
     <p class="fineprint" id="ab-dane">Dane: <a href="https://neptun.in.ua" target="_blank" rel="noopener">NEPTUN</a>
-      · adsb.lol / adsb.fi · airspace.pansa.pl · gov.pl/RCB · media regionalne
+      · ADS-B © adsb.lol (ODbL) · airspace.pansa.pl · gov.pl/RCB · media regionalne
       i bałtyckie · strefy sąsiadów (RO/EE/LT) · mapa © OpenFreeMap, © OpenMapTiles, © OpenStreetMap</p>
     <div class="fineprint" id="about-license">© 2026 cukierrro · wszelkie prawa zastrzeżone ·
       <a href="https://github.com/cukierrro/Straznik/blob/main/LICENSE" target="_blank" rel="noopener">licencja</a> · licencje składników:
@@ -838,9 +838,12 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
   © <a href="https://www.openmaptiles.org/" target="_blank" rel="noopener">OpenMapTiles</a>,
   dane © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> (ODbL).
   Kontury państw: <a href="https://www.naturalearthdata.com/" target="_blank" rel="noopener">Natural Earth</a>.
-  Gdy kafelki OpenFreeMap nie odpowiadają, mapa przełącza się na zapasowe
-  © <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>
-  © OpenStreetMap.</p>
+  Granice obwodów Ukrainy: <a href="https://www.geoboundaries.org/" target="_blank" rel="noopener">geoBoundaries</a>,
+  dane © OpenStreetMap (ODbL).
+  Lotnictwo: ADS-B © <a href="https://adsb.lol" target="_blank" rel="noopener">adsb.lol</a>,
+  licencja <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener">ODbL</a>.
+  Gdy kafelki OpenFreeMap nie odpowiadają, mapa pokazuje same kontury i obiekty
+  z plików aplikacji, bez podkładu.</p>
 </dialog>
 
 <dialog id="national-info" aria-labelledby="national-info-head">
@@ -1311,11 +1314,11 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
      Cloudflare, więc po każdym wydaniu wystarczy podbić ?v= i przeglądarki
      dostają nowe app.js/engine.js OD RAZU, bez ręcznego czyszczenia cache CF.
      Podbijaj ?v= razem z versionName w build.gradle. -->
-<script src="i18n.js?v=1.7.99b"></script>
+<script src="i18n.js?v=1.8.00a"></script>
 <!-- kontur Polski dla engine.js (audyt A2b, scripts/build_pl_outline.py) -->
 <script src="pl-outline.js?v=1.7.82"></script>
 <script src="voiv-outline.js?v=1.7.97"></script>
-<script src="engine.js?v=1.7.99e"></script>
+<script src="engine.js?v=1.8.01a"></script>
 <script src="aircraft-photo-catalog.js?v=1.7.19"></script>
 <script src="aircraft-photos.js?v=1.7.79"></script>
 <script src="places.js?v=1.7.19-4"></script>
@@ -1328,7 +1331,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <div id="a11y-alert" class="sr-only" role="status" aria-live="assertive" aria-atomic="true"></div>
 <div id="a11y-info" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
 
-<script src="app.js?v=1.8.00"></script>
+<script src="app.js?v=1.8.00c"></script>
 <script>
 /* Instrukcja pasująca do telefonu i języka (21.09.2026). iPhone ma osobną, bo alarmy,
    zgody i aktualizacje działają tam inaczej. Tu, a nie w app.js: index.html nie jest
