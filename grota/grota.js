@@ -849,7 +849,6 @@
       coords: own.coords, distM: own.distM, durMin: Math.max(1, Math.round(own.durSec / 60)) };
   };
 
-  // Czy nagrana trasa do tego schronienia jest jeszcze o tym samym miejscu (wykaz PSP bywa przepisywany).
 
   // Nagrana trasa z zapisanego miejsca (np. z Moich miejsc: „Pokaż na mapie”) — rysowana od tego miejsca.
   function showOwnRoute(pl, id) {
@@ -1473,14 +1472,19 @@
   const kluczZmiany = (z) => `${z.id}|${z.zmienionyWWykazie || z.powod}`;
   function uznane(pl) { return new Set(pl.uznaneZmiany || []); }
 
-  /* Nagrana trasa jest nieaktualna, gdy jej koniec leży daleko od dzisiejszego położenia punktu.
-     Patrzymy na samą trasę, a nie na listę przeniesień: trasa nagrana już PO przesunięciu punktu
-     jest dobra i blokowanie jej na zawsze byłoby stratą dla człowieka, który ją przeszedł. */
+  /* Nagrana trasa jest nieaktualna, gdy punkt się przesunął, a ona kończy się tam, gdzie był.
+     Dwa warunki, oba potrzebne:
+       • coś się w wykazie zmieniło — bo nagrywanie pozwala świadomie zapisać trasę kończącą się
+         dalej niż 100 m od schronienia („Zapisz mimo to” w recSave) i taka trasa jest w porządku,
+         dopóki punkt stoi w miejscu; bez tego warunku nazwalibyśmy ją nieaktualną bez powodu,
+       • koniec trasy leży daleko od dzisiejszego położenia punktu — bo trasa nagrana już PO
+         przesunięciu jest dobra i blokowanie jej byłoby stratą dla kogoś, kto ją przeszedł. */
   const TRASA_PRZY_CELU_M = 300;
   function trasaDoStarego(pl, id) {
     const tr = pl.routes?.[id], p = S.byId.get(id);
     if (!tr) return false;
     if (!p) return true;                                   // punktu nie ma — trasa prowadzi donikąd
+    if (!S.meta?.przeniesione?.[id]) return false;          // wykaz niczego tu nie zmienił
     const koniec = tr.coords?.[tr.coords.length - 1];
     if (!koniec) return false;
     return C.distanceM(koniec[1], koniec[0], p.lat, p.lon) > TRASA_PRZY_CELU_M;

@@ -210,6 +210,20 @@ sprawdz("trasa oceniana po jej końcu, nie po liście przeniesień", () => {
     "komunikat o trasie nadal mówi o „innym obiekcie”, co przy poprawce współrzędnych jest nieprawdą");
 });
 
+sprawdz("trasa do punktu, w ktorym nic sie nie zmienilo, zostaje", () => {
+  /* Nagrywanie pozwala świadomie zapisać trasę kończącą się dalej niż 100 m od schronienia
+     („Zapisz mimo to"). Taka trasa jest w porządku, dopóki punkt stoi w miejscu — gdyby ocena
+     patrzyła wyłącznie na odległość końca, po 1.8.01 nagle przestałaby się pokazywać
+     z komunikatem „jest nieaktualna". To byłaby nowa nieprawda, tym razem o trasie. */
+  const grota = fs.readFileSync(path.join(KORZEN, "grota", "grota.js"), "utf-8");
+  const fn = grota.slice(grota.indexOf("function trasaDoStarego"), grota.indexOf("function trasaDoStarego") + 700);
+  assert.ok(/przeniesione\?\.\[id\]\)\s*return false/.test(fn),
+    "trasaDoStarego ocenia trasę także wtedy, gdy wykaz niczego przy tym punkcie nie zmienił");
+  // kolejność warunków ma znaczenie: brak punktu w wykazie sprawdzamy PRZED odległością końca
+  assert.ok(fn.indexOf("przeniesione") < fn.indexOf("TRASA_PRZY_CELU_M"),
+    "sprawdzenie listy przeniesień musi poprzedzać pomiar odległości końca trasy");
+});
+
 sprawdz("definicja: co trafia na listę przeniesień", () => {
   /* Świadomie przyjęta definicja (26.10.2026), żeby nikt jej później nie zgadywał z kodu:
      na listę trafia punkt, który względem DOWOLNEJ wcześniej wydanej paczki przesunął się
