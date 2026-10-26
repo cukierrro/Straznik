@@ -66,14 +66,41 @@ sprawdz("punkt, który stoi w miejscu, nie podnosi alarmu", () => {
     "schronienie tuż obok domu nie może straszyć człowieka bez powodu");
 });
 
-sprawdz("bez listy przeniesień ratuje odległość od miejsca", () => {
-  // starsza paczka albo brak pola `przeniesione` — i tak nie wolno milczeć o schronieniu 23 km od domu
+sprawdz("daleko, ale w wykazie bez zmian — ANI SŁOWA", () => {
+  /* Uwaga z przeglądu 26.10, najważniejsza w całym tym zadaniu: na wsi najbliższy punkt bywa dalej
+     niż 3 km — dwa miliony ludzi ma ponad 5 km — a ostrzeżenie twierdziło wtedy wprost, że „pod tym
+     numerem jest teraz inny obiekt". Dla kogoś, kto wybrał to schronienie świadomie i komu nic się
+     nie zmieniło, byłoby to kategoryczne kłamstwo. Mówimy tylko o tym, co wiemy z wykazu. */
   const pl = { ...DOM, shelters: ["OZO-852EACB93576"] };
-  const [z] = core.zmienioneSchronienia(pl, indeks(PUNKT_GOSTYN), {});
-  assert.ok(z, "bez listy przeniesień nadal trzeba wykryć schronienie daleko od miejsca");
-  assert.strictEqual(z.powod, "daleko");
-  assert.strictEqual(z.byl, null, "starego adresu wtedy nie znamy i nie wolno go zmyślać");
-  assert.ok(z.odMiejscaM > 15000, `odległość od domu: ${z.odMiejscaM} m`);
+  assert.deepStrictEqual(core.zmienioneSchronienia(pl, indeks(PUNKT_GOSTYN), {}), [],
+    "schronienie daleko od domu, ale niezmienione w wykazie, nie może podnosić alarmu");
+});
+
+sprawdz("poprawka współrzędnych to NIE jest „inny obiekt”", () => {
+  /* PSP poprawia też błędne pozycje: punkt przy al. Sikorskiego na Mokotowie leżał 222 km dalej,
+     na Kujawach. To wciąż ten sam budynek pod tym samym adresem, więc komunikat musi mówić
+     o poprawionym położeniu, a nie o innym obiekcie. Rozpoznajemy po braku starego adresu. */
+  const punkt = { id: "OZO-POPRAWIONY", lat: 52.19, lon: 21.02, adres: "al. Sikorskiego 3, Mokotów", dostep: "24h" };
+  const pl = { ...DOM, shelters: ["OZO-POPRAWIONY"] };
+  const [z] = core.zmienioneSchronienia(pl, indeks(punkt), { "OZO-POPRAWIONY": { m: 221900, od: "2026-09-14" } });
+  assert.ok(z, "poprawiony punkt też wymaga uwagi człowieka");
+  assert.strictEqual(z.powod, "poprawiony", `powód ma brzmieć „poprawiony", a jest „${z.powod}"`);
+  assert.strictEqual(z.byl, null, "przy poprawce nie zmyślamy starego adresu");
+  const grota = fs.readFileSync(path.join(KORZEN, "grota", "grota.js"), "utf-8");
+  assert.ok(grota.includes("PSP poprawiło w wykazie{d} jego położenie"),
+    "brak osobnego zdania dla poprawionego położenia");
+});
+
+sprawdz("lista przeniesień sięga wszystkich wydanych wykazów, nie tylko poprzedniego", () => {
+  /* Kto pominął aktualizację, przeskakuje cały wykaz. Lista w paczce musi pamiętać przepisania
+     z każdego wydanego wcześniej wykazu, inaczej taki człowiek nie dowie się o swoim schronieniu. */
+  const paczka = JSON.parse(fs.readFileSync(path.join(KORZEN, "grota", "data", "polska.min.json"), "utf-8"));
+  const wykazy = new Set(Object.values(paczka.przeniesione).map((w) => w.od).filter(Boolean));
+  assert.ok(wykazy.size >= 1, "wpisy nie mówią, z którego wykazu pochodzi zapamiętany adres");
+  const najstarszy = [...wykazy].sort()[0];
+  assert.ok(najstarszy < paczka.data_danych, `najstarszy zapamiętany wykaz (${najstarszy}) ma być starszy niż paczka`);
+  assert.ok(Object.keys(paczka.przeniesione).length > 31,
+    "lista wygląda na zbudowaną tylko z ostatniego tygodnia — ktoś, kto pominął aktualizację, nic się nie dowie");
 });
 
 sprawdz("próg jest ten sam, co przy przeprowadzce (3 km)", () => {
@@ -127,6 +154,23 @@ sprawdz("nowy adres bierzemy z paczki, a nie z pamięci", () => {
   assert.ok(z, "nie wykryto zmiany dla OZO-852EACB93576");
   assert.strictEqual(z.punkt.adres, adresZPaczki, "komunikat pokazałby inny adres niż ten z paczki");
   assert.ok(!/Gostycyn/.test(adresZPaczki), `w paczce pod tym numerem jest „${adresZPaczki}" — to nie ten rekord`);
+});
+
+sprawdz("definicja: co trafia na listę przeniesień", () => {
+  /* Świadomie przyjęta definicja (26.10.2026), żeby nikt jej później nie zgadywał z kodu:
+     na listę trafia punkt, który względem DOWOLNEJ wcześniej wydanej paczki przesunął się
+     o co najmniej 3 km — niezależnie od tego, czy zmienił gminę. Rozróżniamy potem dwa przypadki:
+       • zmienił się adres  → „przeniesiony": pod tym numerem jest inny obiekt (pole `byl`),
+       • adres bez zmian    → „poprawiony": PSP poprawiło współrzędne tego samego obiektu.
+     Progu nie wiążemy ze zmianą gminy, bo człowieka obchodzi odległość do jego schronienia,
+     a nie granica administracyjna: przepisanie w obrębie jednej gminy (Toruń → inna ulica, 5,6 km)
+     jest dla niego tak samo ważne jak przeniesienie do sąsiedniej. */
+  const paczka = JSON.parse(fs.readFileSync(path.join(KORZEN, "grota", "data", "polska.min.json"), "utf-8"));
+  const wpisy = Object.values(paczka.przeniesione);
+  assert.ok(wpisy.length, "pusta lista przeniesień — sprawdź, czy uruchomiono tools/przeniesione.py");
+  assert.ok(wpisy.every((w) => w.m >= 3000), "na liście jest wpis poniżej progu 3 km");
+  assert.ok(wpisy.some((w) => w.byl), "brak przypadków z nowym adresem (przeniesionych)");
+  assert.ok(wpisy.some((w) => !w.byl), "brak przypadków bez zmiany adresu (poprawki współrzędnych)");
 });
 
 sprawdz("paczka niesie listę przeniesień razem z danymi", () => {

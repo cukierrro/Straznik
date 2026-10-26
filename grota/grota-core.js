@@ -70,19 +70,30 @@
      Zwraca po jednym wpisie na zapisane schronienie, które wymaga decyzji człowieka. */
   const PRZENIESIONE_M = 3000;        // ten sam próg, co przy przeprowadzce (DALEKIE_SCHRONIENIE_M)
 
+  /* Mówimy wyłącznie o tym, co wiemy z wykazu — i nazywamy rzecz po imieniu, bo przyczyny są dwie:
+       „przeniesiony”  — zmienił się adres, czyli pod tym numerem jest INNY obiekt (65 przypadków
+                         w paczce z 26.10, np. Kromolice → Gostyń, Toruń → inna ulica),
+       „poprawiony”    — adres ten sam, PSP poprawiło tylko współrzędne (11 przypadków; punkt przy
+                         al. Sikorskiego na Mokotowie leżał 222 km od swojego adresu, na Kujawach),
+       „znikl”         — punktu nie ma już w wykazie.
+     Czego NIE robimy: nie zgłaszamy schronienia tylko dlatego, że jest daleko od miejsca. Na wsi
+     najbliższy punkt bywa dalej niż 3 km — dwa miliony ludzi ma ponad 5 km — a ktoś, kto wybrał je
+     świadomie i komu nic się nie zmieniło, dostałby kategoryczne ostrzeżenie bez powodu i bez
+     prawdziwej przyczyny do podania. Porównanie „gdzie to było przy zapisie” wróci dopiero wtedy,
+     gdy przy wyborze schronienia zacznie się zapisywać jego pozycję. */
   function zmienioneSchronienia(miejsce, byId, przeniesione = {}) {
     const out = [];
     for (const id of miejsce.shelters || []) {
       const p = byId.get(id);
       if (!p) { out.push({ id, powod: "znikl" }); continue; }
-      const dist = distanceM(miejsce.lat, miejsce.lon, p.lat, p.lon);
       const prz = przeniesione[id];
-      if (!prz && dist <= PRZENIESIONE_M) continue;
+      if (!prz) continue;
       out.push({
-        id, punkt: p, powod: prz ? "przeniesiony" : "daleko",
-        byl: prz?.byl || null, bylaGmina: prz?.gmina || null,
-        przesuniecieM: prz?.m ?? null,
-        odMiejscaM: Math.round(dist),
+        id, punkt: p, powod: prz.byl ? "przeniesiony" : "poprawiony",
+        byl: prz.byl || null, bylaGmina: prz.gmina || null,
+        przesuniecieM: prz.m ?? null,
+        zWykazu: prz.od || null,                 // z którego wykazu pochodzi zapamiętany adres
+        odMiejscaM: Math.round(distanceM(miejsce.lat, miejsce.lon, p.lat, p.lon)),
         zamkniete: p.dostep === "na_zadanie",
       });
     }

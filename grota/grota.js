@@ -1471,10 +1471,14 @@
       }
       const gdzieByl = z.byl ? (z.bylaGmina ? `${esc(z.byl)}, ${T("gm. {g}", { g: esc(z.bylaGmina) })}` : esc(z.byl)) : null;
       const ile = fmtDist(z.przesuniecieM ?? z.odMiejscaM);
-      return `<li>${gdzieByl
+      return `<li>${z.powod === "przeniesiony"
+          /* inny obiekt pod tym samym numerem — mówimy, co było zapisane i co jest teraz */
           ? `<b>${T("Zapisane tu schronienie: {stary}.", { stary: gdzieByl })}</b> ${T("W wykazie PSP{d} pod tym samym numerem jest teraz inny obiekt: {nowy} — {ile} dalej.", { d: data, nowy: esc(z.punkt.adres), ile })}`
-          : `<b>${T("To schronienie jest teraz {ile} od tego miejsca: {nowy}.", { ile: fmtDist(z.odMiejscaM), nowy: esc(z.punkt.adres) })}</b> ${T("W wykazie PSP{d} ten numer wskazuje inny obiekt niż przy zapisie.", { d: data })}`}
-        ${z.zamkniete ? " " + T("Nowy obiekt jest <b>zamknięty („Na żądanie”)</b> — otwiera go zarządca.") : ""}
+          /* ten sam obiekt, poprawione współrzędne — nie wolno twierdzić, że to inny budynek */
+          : `<b>${T("Zapisane tu schronienie: {nowy}.", { nowy: esc(z.punkt.adres) })}</b> ${T("PSP poprawiło w wykazie{d} jego położenie — punkt jest teraz {ile} od miejsca, w którym był przy zapisie.", { d: data, ile })}`}
+        ${z.zamkniete ? " " + (z.powod === "przeniesiony"
+            ? T("Nowy obiekt jest <b>zamknięty („Na żądanie”)</b> — otwiera go zarządca.")
+            : T("Ten punkt jest <b>zamknięty („Na żądanie”)</b> — otwiera go zarządca.")) : ""}
         ${maTrase ? " " + T("Nagrana trasa prowadzi do starego miejsca i jest nieaktualna.") : ""}
         <br><b>${T("Wybór nowego miejsca schronienia jest konieczny.")}</b></li>`;
     }).join("");
@@ -1543,7 +1547,7 @@
       ${rule("I-DWIE-SCIANY")}${rule("I-POMIESZCZENIE")}${rule("I-POKOJE")}
       <label class="tylko-czytnik" for="place-spot-${id}">${esc(T("Moje miejsce w tym budynku"))}</label>
       <textarea id="place-spot-${id}" data-autosave rows="2" style="width:100%" placeholder="${esc(T("Twoja notatka, np. „korytarz na parterze, bez okien”"))}">${esc(pl.spot)}</textarea>
-      <label class="chk small"><input type="checkbox" id="place-spotok-${id}"${pl.spotChecked ? " checked" : ""}> ${T("Sprawdziłem to miejsce na miejscu")}</label>
+      <label class="chk small"><input type="checkbox" id="place-spotok-${id}"${pl.spotChecked ? " checked" : ""}> ${T("Sprawdzone na miejscu")}</label>
       ${P.PLACE_KINDS[pl.kind]?.checklist ? checklist(P.PLACE_KINDS[pl.kind].checklist, true) : ""}
       <h3>${T("Środek transportu z tego miejsca")}</h3>${modeButtons(pl.mode, pl.id)}
       ${pl.mode === "driving" ? rule("P-AUTO") : ""}
@@ -1707,9 +1711,9 @@
     const results = A.items ? (A.items.length
       ? `<div class="addr-list">${A.items.map((it, i) => `<button class="addr-item" data-act="addr-pick" data-ctx="${ctx}" data-i="${i}">${I(it.source === "gugik" && it.acc <= 25 ? "map-pin" : "map")}
           <span class="grow"><b>${esc(it.label)}</b><span class="small muted">${esc(it.detail || "")}</span></span></button>`).join("")}</div>`
-      : `<p class="small muted">${T("Nic nie znalazłem. Spróbuj: „Miejscowość, ulica numer” albo samą miejscowość.")}</p>`) : "";
+      : `<p class="small muted">${T("Nic nie znaleziono. Spróbuj: „Miejscowość, ulica numer” albo samą miejscowość.")}</p>`) : "";
     const note = A.offline ? `<p class="sim">${T("Brak połączenia z wyszukiwarką adresów. Pokazuję miejscowości zapisane w aplikacji — pozycja to środek miejscowości.")}</p>`
-      : A.notFound && A.items?.length ? `<p class="sim">${ctx === "live" ? T("Nie znalazłem tego adresu ani ulicy. Miejscowości o tej nazwie — to tylko środek miejscowości:") : T("Nie znalazłem tego adresu ani ulicy. Miejscowości o tej nazwie — to tylko środek miejscowości, po wyborze popraw położenie na mapie:")}</p>`
+      : A.notFound && A.items?.length ? `<p class="sim">${ctx === "live" ? T("Nie znaleziono tego adresu ani ulicy. Miejscowości o tej nazwie — to tylko środek miejscowości:") : T("Nie znaleziono tego adresu ani ulicy. Miejscowości o tej nazwie — to tylko środek miejscowości, po wyborze popraw położenie na mapie:")}</p>`
       : A.approx && A.items?.length ? `<p class="sim">${ctx === "live" ? T("Dokładnego adresu nie ma w bazie adresów (np. numer mieszkania albo litera). Wyniki są przybliżone.") : T("Dokładnego adresu nie ma w bazie adresów (np. numer mieszkania albo litera). Wyniki są przybliżone — po wyborze popraw położenie na mapie.")}</p>` : "";
     return `<form class="addr" data-form="addr" data-ctx="${ctx}"><label class="small muted" for="addr-q-${ctx}">${esc(T(title))}</label>
       <div class="row"><input type="text" id="addr-q-${ctx}" data-ctx="${ctx}" class="grow addr-q" autocomplete="street-address" enterkeyhint="search"
@@ -2282,7 +2286,7 @@
       <h3>${T("Twoje dane")}</h3>
       <p>${T("Miejsca, notatki, nagrane trasy i ustawienia zapisują się <b>tylko w pamięci tego urządzenia</b>. Autor aplikacji ich nie widzi i nigdzie nie wysyła.")} ${NA_IOS ? T("Kopia zapasowa iCloud może przenieść je na Twoje konto Apple.") : T("Kopia zapasowa Androida może przenieść je na Twoje konto Google.")}</p>
       <p>${T("Co opuszcza telefon i kiedy: wpisany adres trafia do wyszukiwarki GUGiK; po naciśnięciu TERAZ — od razu, bez osobnego pytania — Twoja dokładna pozycja i współrzędne proponowanego punktu idą do serwera tras FOSSGIS, który rysuje drogę; współrzędne punktu do usługi zdjęć GUGiK; oglądany fragment mapy do OpenFreeMap; po naciśnięciu „Prowadź” albo „Street View” — do Google. Bez tych czynności nic nie wychodzi z telefonu.")}</p>
-      <p>${T("Mapa offline: paczki mapy pobierasz z serwera Strażnika. Prosimy o fragmenty pokrywające obszar, który sam wybrałeś, więc serwer (i Cloudflare, przez który działa) widzi, o które kwadraty siatki pytasz — każdy ma około 12 na 20 kilometrów. Z samego pobierania da się więc wyczytać okolicę, dla której chcesz mieć mapę bez internetu — z dokładnością do takiego kwadratu, nie do adresu. Jeśli wolisz tego uniknąć, wybierz „Województwo” albo „Cała Polska” zamiast „Wokół miejsca”.")}</p>
+      <p>${T("Mapa offline: paczki mapy pobierasz z serwera Strażnika. Prosimy o fragmenty pokrywające wybrany przez Ciebie obszar, więc serwer (i Cloudflare, przez który działa) widzi, o które kwadraty siatki pytasz — każdy ma około 12 na 20 kilometrów. Z samego pobierania da się więc wyczytać okolicę, dla której chcesz mieć mapę bez internetu — z dokładnością do takiego kwadratu, nie do adresu. Jeśli wolisz tego uniknąć, wybierz „Województwo” albo „Cała Polska” zamiast „Wokół miejsca”.")}</p>
 
       <h3>${T("Z kiedy są punkty")}</h3>
       <p>${T("Punkty schronienia pochodzą z publicznego wykazu Komendy Głównej PSP — <b>stan na {data}</b>. W tej wersji aplikacji jest ich {ile}; wykaz jest wpisany w aplikację i działa bez internetu.", {
