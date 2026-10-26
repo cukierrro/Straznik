@@ -97,7 +97,12 @@ test('usunięte źródła nie wracają do kodu aplikacji i serwera', () => {
     const hosty = p.endsWith('.js')
       ? hostyZKodu(read(p))
       : new Set([...read(p).matchAll(/(?:https?|wss?):\/\/([a-z0-9.-]+)/gi)].map(m => m[1].toLowerCase()));
-    for (const z of zakazane)
+    for (const z of zakazane) {
+      // TYMCZASOWO (decyzja usera 26.10.2026 wieczorem): serwer znów ma zapas adsb.fi, z linkiem
+      // w źródłach, do czasu aż dobowy rytm adsb.lol zadziała (config.ADSB_ZAPAS). Tylko serwer —
+      // telefon (engine.js, app.js, index.html) nadal nie łączy się z adsb.fi. Zdjąć razem z zapasem.
+      if (z === 'opendata.adsb.fi' && p === 'backend/app/collectors/adsb.py') continue;
       assert.ok(![...hosty].some(h => h === z || h.endsWith('.' + z)), `${p} łączy się z ${z}`);
+    }
   }
 });

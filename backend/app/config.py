@@ -207,6 +207,12 @@ ADSB_INTERVAL = int(os.getenv("ADSB_INTERVAL", "173"))     # odstęp między KA�
 # nie przepychają nas ponad limit: odstęp = czas do północy UTC / zapytania, które zostały,
 # nie krócej niż ADSB_INTERVAL. ADSB_ZAPAS_DOBA zostaje na restarty i pomiary.
 ADSB_ZAPAS_DOBA = 5
+# TYMCZASOWO (decyzja usera 26.10.2026 wieczorem): zapas adsb.fi, gdy pula adsb.lol jest pusta
+# albo adsb.lol odmawia. Warunki adsb.fi mówią o użytku osobistym i niekomercyjnym i wymagają
+# linku — link jest w okienku źródeł. Do zdjęcia, gdy dobowy rytm adsb.lol działa (od 27.10),
+# razem z wysłaniem maili do adsb.lol i adsb.fi. Pusta wartość w .env wyłącza zapas.
+ADSB_ZAPAS = os.getenv("ADSB_ZAPAS", "adsb.fi")
+ADSB_ZAPAS_INTERVAL = 60
 ADSB_PLAN = ("mil", "mil", "kolo0")
 # Wyjście do adsb.lol przez NASZ adres (IPv6 serwera), nie przez IPv4. IPv4 Mikrusa to brama NAT
 # wspólna z innymi klientami: druga pula 500 zapytań z innego adresu byłaby obejściem limitu

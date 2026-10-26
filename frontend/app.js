@@ -4270,13 +4270,13 @@ const SOURCE_INFO = {
   "ADS-B": {
     co: "Publiczne transpondery lotnicze — maszyny wojskowe nad Polską i regionem. "
       + "Dane pochodzą z adsb.lol (licencja ODbL) — pyta je serwer, a w trybie awaryjnym sam telefon. "
-      + "Gdy adsb.lol nie odpowiada, warstwa jest pusta. Warstwa jest informacyjna i nie daje "
+      + "Gdy adsb.lol nie odpowiada albo wyczerpie dobowy limit, serwer tymczasowo pyta adsb.fi. Warstwa jest informacyjna i nie daje "
       + "punktów: w danych z 41 dni wzmożony ruch okazywał się rutynowymi lotami. "
       + "Ruch ponad dwukrotnie wyższy niż zwykle o tej porze jest zaznaczany w panelu. "
       + "Karta samolotu pokazuje zdjęcie, kraj rejestracji i pełną telemetrię.",
     coEn: "Public aircraft transponders — military aircraft over Poland and the region. "
       + "The data comes from adsb.lol (ODbL licence) — queried by the server, and in emergency mode by the phone itself. "
-      + "When adsb.lol does not respond, the layer stays empty. The layer is informational and "
+      + "When adsb.lol does not respond or its daily limit runs out, the server temporarily asks adsb.fi. The layer is informational and "
       + "gives no points: over 41 days of data, increased traffic turned out to be "
       + "routine flights. Traffic more than twice the usual level for that time is "
       + "marked in the panel. The aircraft card shows a photograph, the country of "
@@ -4285,7 +4285,7 @@ const SOURCE_INFO = {
       + "wojskowego; na punktację to nie wpływa.",
     coUk: "Відкриті авіаційні транспондери — військові машини над Польщею й регіоном. "
       + "Дані надходять з adsb.lol (ліцензія ODbL) — їх опитує сервер, а в аварійному режимі сам телефон. "
-      + "Коли adsb.lol не відповідає, шар порожній. Шар інформативний і балів не дає: у даних за 41 день "
+      + "Коли adsb.lol не відповідає або вичерпано добовий ліміт, сервер тимчасово запитує adsb.fi. Шар інформативний і балів не дає: у даних за 41 день "
       + "посилений рух виявлявся рутинними польотами. Рух, удвічі вищий за звичайний о цій порі, "
       + "позначаємо в панелі. Картка літака показує фото, країну реєстрації й повну телеметрію.",
     czerwonaUk: "Сервіс ADS-B (adsb.lol) не відповідає. Мапа тоді не покаже військової авіації; "

@@ -92,6 +92,12 @@ UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
 MIL_ENDPOINTS = {
     "adsb.lol": "https://api.adsb.lol/v2/mil",
 }
+# Tymczasowy zapas (config.ADSB_ZAPAS): pytany TYLKO, gdy adsb.lol nie ma dla nas puli albo
+# odmawia, i nie liczony do budżetu adsb.lol. adsb.fi ma inną ścieżkę geograficzną
+# (/lat/{lat}/lon/{lon}/dist/{r}, lista pod „aircraft”) — sprawdzone 16.10.2026.
+ZAPAS_ENDPOINTS = {
+    "adsb.fi": "https://opendata.adsb.fi/api/v2",
+}
 
 
 async def _fetch_mil(client: httpx.AsyncClient) -> list[dict] | None:
@@ -405,22 +411,67 @@ def _classify(ac: dict) -> dict | None:
     return out
 
 
-async def _tick(client: httpx.AsyncClient):
-    """Jeden krok planu ADSB_PLAN = dokładnie jedno zapytanie do adsb.lol."""
+async def _pobierz_zapas(client: httpx.AsyncClient) -> tuple[list, list] | None:
+    """Lista wojskowych i koło bałtyckie z zapasu — dwa zapytania na raz, co ADSB_ZAPAS_INTERVAL."""
+    name = config.ADSB_ZAPAS
+    base = ZAPAS_ENDPOINTS.get(name)
+    if not base:
+        return None
+    try:
+        r = await client.get(f"{base}/mil", headers={"User-Agent": UA})
+        r.raise_for_status()
+        ac_list = r.json().get("ac") or []
+    except Exception as e:
+        status.update(ok=False, error=f"{name}: {e}")
+        log.warning("ADS-B zapas %s nie odpowiada: %s", name, e)
+        return None
+    geo_candidates = []
+    try:
+        for i, (lat, lon, radius) in enumerate(BALTIC_GEO_POINTS):
+            g = await client.get(f"{base}/lat/{lat}/lon/{lon}/dist/{radius}", headers={"User-Agent": UA})
+            g.raise_for_status()
+            dane = g.json()
+            w_kole = [{**ac, "_straznik_detection": "baltic_geo"}
+                      for ac in (dane.get("aircraft") or dane.get("ac") or []) if _looks_military(ac)]
+            _geo_cache[i] = {"t": time.time(), "lista": w_kole}
+            geo_candidates += w_kole
+        status["baltic_geo"] = {"ok": True, "provider": f"{name}(fallback)",
+                                "candidates": len(geo_candidates), "error": None}
+    except Exception as exc:
+        status["baltic_geo"] = {"ok": False, "provider": None, "candidates": 0, "error": f"{name}: {exc!r}"}
+    status.update(provider=f"{name}(fallback)")
+    return ac_list, geo_candidates
+
+
+def _lol_dostepny(t: float) -> bool:
+    return _zostalo(t) > 0 and _przerwa_s() == 0
+
+
+async def _tick(client: httpx.AsyncClient, zapas: bool = False):
+    """Jeden krok planu ADSB_PLAN = dokładnie jedno zapytanie do adsb.lol.
+    Z `zapas=True` (pula adsb.lol pusta albo przerwa po 429) dane idą z config.ADSB_ZAPAS."""
     global _watch_prev, _cykl
-    if _przerwa_s() > 0:                      # po 429 czekamy, aż adsb.lol zwolni okno
-        return
-    krok = config.ADSB_PLAN[_cykl % len(config.ADSB_PLAN)]
-    _cykl += 1
-    selected = str(status.get("provider") or config.ADSB_PROVIDER).replace("(fallback)", "")
-    if krok.startswith("kolo"):
-        # krok koła tylko odświeża pamięć koła; mapę i próbki liczy krok listy
-        await _fetch_baltic_geo(client, selected, (int(krok[4:]),))
-        return
-    ac_list = await _fetch_mil(client)
-    if ac_list is None:
-        return
-    geo_candidates = _geo_z_pamieci(time.time())
+    if zapas:
+        dane = await _pobierz_zapas(client)
+        if dane is None:
+            return
+        ac_list, geo_candidates = dane
+    else:
+        if _przerwa_s() > 0:                  # po 429 czekamy, aż adsb.lol zwolni okno
+            return
+        krok = config.ADSB_PLAN[_cykl % len(config.ADSB_PLAN)]
+        _cykl += 1
+        selected = str(status.get("provider") or config.ADSB_PROVIDER).replace("(fallback)", "")
+        if selected not in MIL_ENDPOINTS:
+            selected = config.ADSB_PROVIDER
+        if krok.startswith("kolo"):
+            # krok koła tylko odświeża pamięć koła; mapę i próbki liczy krok listy
+            await _fetch_baltic_geo(client, selected, (int(krok[4:]),))
+            return
+        ac_list = await _fetch_mil(client)
+        if ac_list is None:
+            return
+        geo_candidates = _geo_z_pamieci(time.time())
     merged: dict[str, dict] = {}
     for ac in ac_list:
         key = ac.get("hex") or f"{ac.get('lat')}:{ac.get('lon')}:{ac.get('flight')}"
@@ -503,12 +554,22 @@ async def run():
     transport = httpx.AsyncHTTPTransport(local_address="0.0.0.0") if config.ADSB_IPV4 else None
     async with httpx.AsyncClient(timeout=25, transport=transport) as client:
         while True:
-            if _zostalo(time.time()) > 0:          # pusta pula: nie pytamy do północy UTC
+            lol = _lol_dostepny(time.time())       # pusta pula: adsb.lol nie pytamy do północy UTC
+            if lol or config.ADSB_ZAPAS:
                 try:
-                    await _tick(client)
+                    await _tick(client, zapas=not lol)
                 except Exception as e:
                     log.warning("adsb tick błąd: %s", e)
             teraz = time.time()
+            if config.ADSB_ZAPAS and not _lol_dostepny(teraz):
+                # adsb.lol odmówił albo pula pusta — następny krok z zapasu, w jego rytmie
+                _odstep = float(config.ADSB_ZAPAS_INTERVAL)
+                b = _budzet_aktualny(teraz)
+                status["budzet"] = {"dzien_utc": b["dzien"], "uzyte": b["uzyte"],
+                                    "limit": config.ADSB_LIMIT_DOBA, "odstep_s": round(_odstep),
+                                    "zapas": config.ADSB_ZAPAS}
+                await asyncio.sleep(_odstep)
+                continue
             _odstep = _policz_odstep(teraz)
             b = _budzet_aktualny(teraz)
             status["budzet"] = {"dzien_utc": b["dzien"], "uzyte": b["uzyte"],

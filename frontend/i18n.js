@@ -1030,7 +1030,7 @@
     // atrybucja: nazwy własne zostają, opis źródła musi być po angielsku
     const attr = document.getElementById("attr-text");
     if (attr) attr.innerHTML = 'Data: <a href="https://neptun.in.ua" target="_blank" rel="noopener">NEPTUN</a> — OSINT aggregator, not radar.<br>'
-      + 'Aircraft: ADS-B © <a href="https://adsb.lol" target="_blank" rel="noopener">adsb.lol</a>, licence <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener">ODbL</a>.<br>'
+      + 'Aircraft: ADS-B © <a href="https://adsb.lol" target="_blank" rel="noopener">adsb.lol</a>, licence <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener">ODbL</a>; temporary fallback <a href="https://adsb.fi" target="_blank" rel="noopener">adsb.fi</a>.<br>'
       + 'Map: <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a>'
       + ' © <a href="https://www.openmaptiles.org/" target="_blank" rel="noopener">OpenMapTiles</a>,'
       + ' data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>';
@@ -1344,7 +1344,7 @@
       + '<a href="https://mikr.us" target="_blank" rel="noopener">Сайт Mikrus ↗</a></div>';
     const attr = document.getElementById("attr-text");
     if (attr) attr.innerHTML = 'Дані: <a href="https://neptun.in.ua" target="_blank" rel="noopener">NEPTUN</a> — агрегатор OSINT, не радар.<br>'
-      + 'Авіація: ADS-B © <a href="https://adsb.lol" target="_blank" rel="noopener">adsb.lol</a>, ліцензія <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener">ODbL</a>.<br>'
+      + 'Авіація: ADS-B © <a href="https://adsb.lol" target="_blank" rel="noopener">adsb.lol</a>, ліцензія <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener">ODbL</a>; тимчасово резервно <a href="https://adsb.fi" target="_blank" rel="noopener">adsb.fi</a>.<br>'
       + 'Мапа: <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a>'
       + ' © <a href="https://www.openmaptiles.org/" target="_blank" rel="noopener">OpenMapTiles</a>,'
       + ' дані © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>';

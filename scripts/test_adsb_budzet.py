@@ -156,17 +156,34 @@ class KlientRun:
         return Odp(200)
 
 
-prawdziwy_sen, prawdziwy_klient = adsb.asyncio.sleep, adsb.httpx.AsyncClient
-adsb.asyncio.sleep, adsb.httpx.AsyncClient = sen, KlientRun
-try:
-    asyncio.run(adsb.run())
-except Koniec:
-    pass
-finally:
-    adsb.asyncio.sleep, adsb.httpx.AsyncClient = prawdziwy_sen, prawdziwy_klient
-sprawdz(wyslane == [], f"żadnego zapytania przy pustej puli ({wyslane})")
-sprawdz(sny and abs(sny[0] - (86400 - 70000 + 5)) <= 1, f"sen do północy UTC: {sny[0] if sny else None:.0f} s")
+def obieg_run():
+    wyslane.clear(); sny.clear()
+    prawdziwy_sen, prawdziwy_klient = adsb.asyncio.sleep, adsb.httpx.AsyncClient
+    adsb.asyncio.sleep, adsb.httpx.AsyncClient = sen, KlientRun
+    try:
+        asyncio.run(adsb.run())
+    except Koniec:
+        pass
+    finally:
+        adsb.asyncio.sleep, adsb.httpx.AsyncClient = prawdziwy_sen, prawdziwy_klient
+
+
+# bez zapasu (ADSB_ZAPAS pusty) — tak ma być po zdjęciu tymczasowego adsb.fi
+zapas_przed = config.ADSB_ZAPAS
+config.ADSB_ZAPAS = ""
+obieg_run()
+sprawdz(wyslane == [], f"bez zapasu: żadnego zapytania przy pustej puli ({wyslane})")
+sprawdz(sny and abs(sny[0] - (86400 - 70000 + 5)) <= 1, f"bez zapasu: sen do północy UTC: {sny[0] if sny else None:.0f} s")
 sprawdz(adsb.status.get("budzet", {}).get("uzyte") == PULA, f"status pokazuje budżet: {adsb.status.get('budzet')}")
+
+print("\n8. Pusta pula z tymczasowym zapasem adsb.fi (decyzja usera 26.10)")
+config.ADSB_ZAPAS = "adsb.fi"
+obieg_run()
+sprawdz(wyslane and all(u.startswith("https://opendata.adsb.fi/") for u in wyslane),
+        f"pytamy tylko zapas, adsb.lol ani razu: {wyslane}")
+sprawdz(adsb._budzet["uzyte"] == PULA, "zapytania do zapasu nie liczą się do puli adsb.lol")
+sprawdz(sny and sny[0] == config.ADSB_ZAPAS_INTERVAL, f"zapas w swoim rytmie: {sny[0] if sny else None} s")
+config.ADSB_ZAPAS = zapas_przed
 
 print()
 print(f"BŁĘDY: {len(bledy)}" if bledy else "Wszystko OK")
