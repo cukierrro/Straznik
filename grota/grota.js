@@ -850,18 +850,16 @@
   };
 
   // Czy nagrana trasa do tego schronienia jest jeszcze o tym samym miejscu (wykaz PSP bywa przepisywany).
-  const trasaNieaktualna = (pl, id) =>
-    C.zmienioneSchronienia(pl, S.byId, S.meta?.przeniesione || {}).some((z) => z.id === id);
 
   // Nagrana trasa z zapisanego miejsca (np. z Moich miejsc: „Pokaż na mapie”) — rysowana od tego miejsca.
   function showOwnRoute(pl, id) {
     if (!pl.routes?.[id]) return;
     /* Punkt pod tym numerem bywa po aktualizacji wykazu innym obiektem — wtedy nagrana trasa prowadzi
        donikąd i prowadzenie nią byłoby gorsze niż jej brak. Mówimy o tym i nie rysujemy. */
-    if (trasaNieaktualna(pl, id)) {
+    if (trasaDoStarego(pl, id)) {
       S.route = null; drawRoute();
       S.openPlace = pl.id; S.tab = "miejsca"; render();
-      powiedz(T("Nagrana trasa jest nieaktualna — w wykazie PSP pod tym numerem jest teraz inny obiekt."));
+      powiedz(T("Nagrana trasa kończy się gdzie indziej niż dzisiejsze położenie punktu — jest nieaktualna."));
       return;
     }
     S.route = ownRouteState(pl, id, { lat: pl.lat, lon: pl.lon });
@@ -1139,6 +1137,18 @@
     savePlaces();
     map.flyTo({ center: [pos.lon, pos.lat], zoom: extra.approx ? 14 : 17 });
     render();
+  }
+
+  /* Przy zapisie schronienia zapamiętujemy, z którego wykazu PSP pochodziło — wtedy po zmianie
+     wykazu wiadomo, czy człowiek wybrał stary obiekt (i trzeba go ostrzec), czy już nowy (i nie
+     ma o czym mówić). Zapisy sprzed 1.8.01 tej daty nie mają i wtedy mówimy warunkowo. */
+  function zapamietajWykaz(pl, id) {
+    if (!S.meta?.data_danych) return;
+    pl.wykaz = { ...(pl.wykaz || {}), [id]: S.meta.data_danych };
+  }
+
+  function zapomnijWykaz(pl, id) {
+    if (pl.wykaz) delete pl.wykaz[id];
   }
 
   function savePlaces() { writeLS(PLACES_KEY, S.places); drawPlaces(); }
@@ -1448,7 +1458,7 @@
   function placeSummary(pl, saved) {
     // zmiana w wykazie musi być widać na zwiniętej karcie — inaczej człowiek nie ma powodu jej otworzyć
     const zmian = S.points.length ? C.zmienioneSchronienia(pl, S.byId, S.meta?.przeniesione || {})
-      .filter((z) => !uznane(pl).has(z.id)).length : 0;
+      .filter((z) => !uznane(pl).has(kluczZmiany(z))).length : 0;
     return `${esc(T(P.PLACE_KINDS[pl.kind]?.label || ""))} · ${T("schronienia: {n}/3", { n: saved.length })}${pl.routes && Object.keys(pl.routes).length ? ` · ${T("nagrane trasy: {n}", { n: Object.keys(pl.routes).length })}` : ""} · ${esc(trybNazwa(pl.mode))}${
       zmian ? `<br><span class="trust-uwaga">${I("triangle-alert")}${zmian === 1 ? T("zapisane schronienie wymaga sprawdzenia") : T("zapisane schronienia wymagają sprawdzenia ({n})", { n: zmian })}</span>` : ""}`;
   }
@@ -1457,30 +1467,54 @@
      przy miejscu, którego dotyczy, i nie znika samo: dopóki człowiek nie wybierze nowego schronienia
      albo świadomie nie potwierdzi, że zostawia stare. Niczego nie kasujemy za niego — to jego wybór
      i jego plan na alarm. Tekst ma mówić wprost, skąd się to wzięło i co trzeba zrobić. */
+  /* „Zostawiam jak jest” dotyczy KONKRETNEJ zmiany, nie punktu na zawsze: w kluczu jest data wykazu,
+     w którym punkt się przesunął. Gdy PSP przepisze go jeszcze raz, klucz będzie inny i ostrzeżenie
+     wróci — wcześniej obiecywał to komentarz, a kod zapamiętywał sam identyfikator i milczał już zawsze. */
+  const kluczZmiany = (z) => `${z.id}|${z.zmienionyWWykazie || z.powod}`;
   function uznane(pl) { return new Set(pl.uznaneZmiany || []); }
 
+  /* Nagrana trasa jest nieaktualna, gdy jej koniec leży daleko od dzisiejszego położenia punktu.
+     Patrzymy na samą trasę, a nie na listę przeniesień: trasa nagrana już PO przesunięciu punktu
+     jest dobra i blokowanie jej na zawsze byłoby stratą dla człowieka, który ją przeszedł. */
+  const TRASA_PRZY_CELU_M = 300;
+  function trasaDoStarego(pl, id) {
+    const tr = pl.routes?.[id], p = S.byId.get(id);
+    if (!tr) return false;
+    if (!p) return true;                                   // punktu nie ma — trasa prowadzi donikąd
+    const koniec = tr.coords?.[tr.coords.length - 1];
+    if (!koniec) return false;
+    return C.distanceM(koniec[1], koniec[0], p.lat, p.lon) > TRASA_PRZY_CELU_M;
+  }
+
   function ostrzezenieZmian(pl) {
-    const zmiany = C.zmienioneSchronienia(pl, S.byId, S.meta?.przeniesione || {}).filter((z) => !uznane(pl).has(z.id));
+    const zmiany = C.zmienioneSchronienia(pl, S.byId, S.meta?.przeniesione || {}).filter((z) => !uznane(pl).has(kluczZmiany(z)));
     if (!zmiany.length) return "";
     const data = S.meta?.data_danych ? ` ${T("z {d}", { d: esc(S.meta.data_danych) })}` : "";
     const pozycje = zmiany.map((z) => {
-      const maTrase = !!(pl.routes && pl.routes[z.id]);
+      const maTrase = trasaDoStarego(pl, z.id);
       if (z.powod === "znikl") {
         return `<li><b>${T("Tego punktu nie ma już w wykazie PSP{d}.", { d: data })}</b> ${T("Musisz wybrać inne miejsce schronienia.")}
-          ${maTrase ? T("Nagrana do niego trasa jest nieaktualna.") : ""}</li>`;
+          ${maTrase ? " " + T("Nagrana do niego trasa jest nieaktualna.") : ""}</li>`;
       }
       const gdzieByl = z.byl ? (z.bylaGmina ? `${esc(z.byl)}, ${T("gm. {g}", { g: esc(z.bylaGmina) })}` : esc(z.byl)) : null;
       const ile = fmtDist(z.przesuniecieM ?? z.odMiejscaM);
-      return `<li>${z.powod === "przeniesiony"
-          /* inny obiekt pod tym samym numerem — mówimy, co było zapisane i co jest teraz */
-          ? `<b>${T("Zapisane tu schronienie: {stary}.", { stary: gdzieByl })}</b> ${T("W wykazie PSP{d} pod tym samym numerem jest teraz inny obiekt: {nowy} — {ile} dalej.", { d: data, nowy: esc(z.punkt.adres), ile })}`
-          /* ten sam obiekt, poprawione współrzędne — nie wolno twierdzić, że to inny budynek */
-          : `<b>${T("Zapisane tu schronienie: {nowy}.", { nowy: esc(z.punkt.adres) })}</b> ${T("PSP poprawiło w wykazie{d} jego położenie — punkt jest teraz {ile} od miejsca, w którym był przy zapisie.", { d: data, ile })}`}
+      const kiedy = z.zmienionyWWykazie ? esc(z.zmienionyWWykazie) : null;
+      /* Wiemy, z którego wykazu pochodzi zapis (od 1.8.01), czy nie wiemy (starsze zapisy) — i tylko
+         w pierwszym przypadku wolno powiedzieć wprost „zapisane tu było X”. Bez tej wiedzy mówimy
+         warunkowo, bo punkt mógł zostać wybrany już po zmianie i wtedy nic się dla człowieka nie stało. */
+      const pewne = !!z.zapisanoZWykazu;
+      const trescPrzeniesiony = pewne
+        ? `<b>${T("Zapisane tu schronienie: {stary}.", { stary: gdzieByl })}</b> ${T("W wykazie PSP{d} pod tym samym numerem jest teraz inny obiekt: {nowy} — {ile} dalej.", { d: data, nowy: esc(z.punkt.adres), ile })}`
+        : `${T("W wykazie PSP z {kiedy} pod tym numerem był: {stary}.", { kiedy, stary: gdzieByl })} ${T("W wykazie{d} jest tu: {nowy} — {ile} dalej.", { d: data, nowy: esc(z.punkt.adres), ile })} <b>${T("Jeśli zapisano tu {stary}, wybór nowego miejsca schronienia jest konieczny.", { stary: gdzieByl })}</b>`;
+      const trescPoprawiony = pewne
+        ? `<b>${T("Zapisane tu schronienie: {nowy}.", { nowy: esc(z.punkt.adres) })}</b> ${T("PSP poprawiło w wykazie{d} jego położenie — punkt jest teraz {ile} od miejsca, w którym był przy zapisie.", { d: data, ile })}`
+        : `${T("PSP poprawiło w wykazie z {kiedy} położenie tego punktu — stał {ile} stąd, a adres pozostał ten sam: {nowy}.", { kiedy, ile, nowy: esc(z.punkt.adres) })} <b>${T("Jeśli zapisano go wcześniej, sprawdź na mapie, czy to wciąż właściwe miejsce.")}</b>`;
+      return `<li>${z.powod === "przeniesiony" ? trescPrzeniesiony : trescPoprawiony}
         ${z.zamkniete ? " " + (z.powod === "przeniesiony"
             ? T("Nowy obiekt jest <b>zamknięty („Na żądanie”)</b> — otwiera go zarządca.")
             : T("Ten punkt jest <b>zamknięty („Na żądanie”)</b> — otwiera go zarządca.")) : ""}
-        ${maTrase ? " " + T("Nagrana trasa prowadzi do starego miejsca i jest nieaktualna.") : ""}
-        <br><b>${T("Wybór nowego miejsca schronienia jest konieczny.")}</b></li>`;
+        ${maTrase ? " " + T("Nagrana trasa kończy się gdzie indziej niż dzisiejsze położenie punktu — jest nieaktualna.") : ""}
+        ${pewne ? `<br><b>${T("Wybór nowego miejsca schronienia jest konieczny.")}</b>` : ""}</li>`;
     }).join("");
     return `<div class="card sim zmiana-psp" role="alert">
       <b>${I("triangle-alert")}${T("Zmienił się wykaz PSP — sprawdź zapisane schronienia")}</b>
@@ -2831,8 +2865,10 @@
       commitField(el);   // opuszczenie pola — zapis bez przerysowania
     } else if (el.dataset.act === "save") {
       const pl = S.places.find((x) => x.id === el.dataset.place); if (!pl) return;
-      if (el.checked && pl.shelters.length < 3 && !pl.shelters.includes(el.dataset.id)) pl.shelters.push(el.dataset.id);
-      if (!el.checked) pl.shelters = pl.shelters.filter((id) => id !== el.dataset.id);
+      if (el.checked && pl.shelters.length < 3 && !pl.shelters.includes(el.dataset.id)) {
+        pl.shelters.push(el.dataset.id); zapamietajWykaz(pl, el.dataset.id);
+      }
+      if (!el.checked) { pl.shelters = pl.shelters.filter((id) => id !== el.dataset.id); zapomnijWykaz(pl, el.dataset.id); }
       savePlaces(); render();
     }
   });
@@ -2908,7 +2944,7 @@
         // świadome „zostawiam jak jest" zapamiętujemy przy TYCH identyfikatorach — przy następnej zmianie
         // wykazu ostrzeżenie pojawi się znowu, bo to będzie już inna zmiana
         const zmiany = C.zmienioneSchronienia(pl, S.byId, S.meta?.przeniesione || {});
-        pl.uznaneZmiany = [...new Set([...(pl.uznaneZmiany || []), ...zmiany.map((z) => z.id)])];
+        pl.uznaneZmiany = [...new Set([...(pl.uznaneZmiany || []), ...zmiany.map(kluczZmiany)])];
         savePlaces(); render();
       }
     } else if (act === "mapa-odswiez") {
@@ -3019,8 +3055,8 @@
       const pl = S.places.find((x) => x.id === b.dataset.id); if (pl) { pl.mode = b.dataset.mode; savePlaces(); render(); }
     } else if (act === "toggle-shelter") {
       const pl = S.places.find((x) => x.id === b.dataset.place); if (!pl) return;
-      if (pl.shelters.includes(b.dataset.id)) pl.shelters = pl.shelters.filter((id) => id !== b.dataset.id);
-      else if (pl.shelters.length < 3) pl.shelters.push(b.dataset.id);
+      if (pl.shelters.includes(b.dataset.id)) { pl.shelters = pl.shelters.filter((id) => id !== b.dataset.id); zapomnijWykaz(pl, b.dataset.id); }
+      else if (pl.shelters.length < 3) { pl.shelters.push(b.dataset.id); zapamietajWykaz(pl, b.dataset.id); }
       savePlaces(); render();
     } else if (act === "place-kind") {
       const pl = S.places.find((x) => x.id === b.dataset.id); if (pl) { pl.kind = b.dataset.kind; savePlaces(); render(); }

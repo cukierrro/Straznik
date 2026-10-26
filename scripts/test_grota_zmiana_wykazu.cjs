@@ -1,6 +1,7 @@
 /* Zapisane schronienie, które po nowym wykazie PSP jest już czym innym.
 
-   Powstał 26.10.2026, po wykazie, w którym PSP przepisało 31 identyfikatorów na inne obiekty.
+   Powstał 26.10.2026, po wykazie, w którym PSP przepisało 25 identyfikatorów na inne obiekty
+   (zmiana adresu i gminy; licząc same zmiany adresu — 31).
    Prawdziwy przypadek: OZO-852EACB93576 był piwnicą pod adresem „51a, Kromolice, gm. Pogorzela",
    a w wykazie z 26.10 ten sam numer wskazuje „os. Osiedle Gawrony 2, Gostyń" — 23,3 km dalej,
    przy okazji zamknięte („Na żądanie"). GROTA zapisuje wybrane schronienia jako listę
@@ -12,7 +13,9 @@
         bo paczka podmienia się razem z aplikacją — dlatego jedzie w niej lista `przeniesione`),
      2. punkt usunięty z wykazu też jest wykryty,
      3. punkt, który stoi w miejscu, NIE podnosi fałszywego alarmu,
-     4. drugie sito — odległość od miejsca — działa nawet bez listy `przeniesione`,
+     4. zmiana sprzed zapisu NIE jest zgłaszana — kto wybrał punkt już po przepisaniu, wybrał nowy
+        obiekt i ostrzeżenie byłoby dla niego nieprawdą (w paczce z 26.10 aż 46 z 76 przeniesień
+        wydarzyło się tygodnie wcześniej),
      5. zamknięcie („Na żądanie") jest widoczne, bo zmienia plan na alarm. */
 "use strict";
 const fs = require("fs"), path = require("path"), assert = require("assert");
@@ -121,7 +124,7 @@ sprawdz("interfejs mówi wprost, co się stało i co trzeba zrobić", () => {
     "Wybór nowego miejsca schronienia jest konieczny.",
     "Zapisane tu schronienie: {stary}.",
     "Nowy obiekt jest <b>zamknięty („Na żądanie”)</b> — otwiera go zarządca.",
-    "Nagrana trasa prowadzi do starego miejsca i jest nieaktualna.",
+    "Nagrana trasa kończy się gdzie indziej niż dzisiejsze położenie punktu — jest nieaktualna.",
     "Nic nie usunęliśmy — decyzja należy do Ciebie.",
   ]) {
     assert.ok(grota.includes(fragment), `brak w interfejsie: „${fragment}”`);
@@ -133,8 +136,8 @@ sprawdz("interfejs mówi wprost, co się stało i co trzeba zrobić", () => {
       assert.ok(slownik.includes(klucz), `${jezyk}: brak tłumaczenia dla „${klucz}”`);
     }
   }
-  // nie prowadzimy nagraną trasą do punktu, który jest już czym innym
-  assert.ok(/trasaNieaktualna\(pl, id\)/.test(grota), "showOwnRoute nie sprawdza, czy trasa jest jeszcze aktualna");
+  // nie prowadzimy nagraną trasą, która kończy się gdzie indziej niż dzisiejsze położenie punktu
+  assert.ok(/trasaDoStarego\(pl, id\)/.test(grota), "showOwnRoute nie sprawdza, czy trasa jest jeszcze aktualna");
 });
 
 sprawdz("nowy adres bierzemy z paczki, a nie z pamięci", () => {
@@ -154,6 +157,57 @@ sprawdz("nowy adres bierzemy z paczki, a nie z pamięci", () => {
   assert.ok(z, "nie wykryto zmiany dla OZO-852EACB93576");
   assert.strictEqual(z.punkt.adres, adresZPaczki, "komunikat pokazałby inny adres niż ten z paczki");
   assert.ok(!/Gostycyn/.test(adresZPaczki), `w paczce pod tym numerem jest „${adresZPaczki}" — to nie ten rekord`);
+});
+
+sprawdz("zapisane PO zmianie — ani słowa", () => {
+  /* Najważniejszy przypadek po przeglądzie 26.10: lista sięga wszystkich wydanych wykazów, więc
+     większość przepisań jest sprzed tygodni. Kto wybrał ten punkt później, wybrał już nowy obiekt. */
+  const prz = { "OZO-852EACB93576": { byl: "51a, Kromolice", gmina: "Pogorzela", m: 23300, od: "2026-09-14", zm: "2026-10-05" } };
+  const pl = { ...DOM, shelters: ["OZO-852EACB93576"], wykaz: { "OZO-852EACB93576": "2026-10-12" } };
+  assert.deepStrictEqual(core.zmienioneSchronienia(pl, indeks(PUNKT_GOSTYN), prz), [],
+    "schronienie zapisane po zmianie nie może podnosić alarmu");
+});
+
+sprawdz("zapisane PRZED zmianą — ostrzeżenie", () => {
+  const prz = { "OZO-852EACB93576": { byl: "51a, Kromolice", gmina: "Pogorzela", m: 23300, od: "2026-09-14", zm: "2026-10-26" } };
+  const pl = { ...DOM, shelters: ["OZO-852EACB93576"], wykaz: { "OZO-852EACB93576": "2026-10-12" } };
+  const [z] = core.zmienioneSchronienia(pl, indeks(PUNKT_GOSTYN), prz);
+  assert.ok(z, "zmiana po zapisie musi być zgłoszona");
+  assert.strictEqual(z.zapisanoZWykazu, "2026-10-12", "wpis ma nieść datę wykazu, z którego pochodzi zapis");
+  assert.strictEqual(z.zmienionyWWykazie, "2026-10-26");
+});
+
+sprawdz("stary zapis bez daty — tekst warunkowy, nic nie zmyślamy", () => {
+  /* Zapisy sprzed 1.8.01 nie mają daty wykazu. Nie wiemy wtedy, czy człowiek wybrał stary obiekt,
+     czy nowy — więc komunikat musi być prawdziwy w obu przypadkach. */
+  const prz = { "OZO-852EACB93576": { byl: "51a, Kromolice", gmina: "Pogorzela", m: 23300, od: "2026-09-14", zm: "2026-10-26" } };
+  const pl = { ...DOM, shelters: ["OZO-852EACB93576"] };          // bez pl.wykaz
+  const [z] = core.zmienioneSchronienia(pl, indeks(PUNKT_GOSTYN), prz);
+  assert.ok(z, "przy nieznanej dacie zapisu trzeba zapytać człowieka");
+  assert.strictEqual(z.zapisanoZWykazu, null, "nie wolno udawać, że znamy datę zapisu");
+  const grota = fs.readFileSync(path.join(KORZEN, "grota", "grota.js"), "utf-8");
+  assert.ok(grota.includes("W wykazie PSP z {kiedy} pod tym numerem był: {stary}."),
+    "brak warunkowego zdania dla zapisów bez daty");
+  assert.ok(grota.includes("Jeśli zapisano tu {stary}, wybór nowego miejsca schronienia jest konieczny."),
+    "warunkowy tekst musi mimo wszystko mówić o konieczności wyboru");
+});
+
+sprawdz("„zostawiam jak jest” dotyczy tej zmiany, nie punktu na zawsze", () => {
+  const grota = fs.readFileSync(path.join(KORZEN, "grota", "grota.js"), "utf-8");
+  assert.ok(/kluczZmiany\s*=\s*\(z\)\s*=>\s*`\$\{z\.id\}\|\$\{z\.zmienionyWWykazie/.test(grota),
+    "klucz potwierdzenia musi zawierać datę zmiany, inaczej ostrzeżenie nie wróci nigdy");
+  assert.ok(grota.includes("uznane(pl).has(kluczZmiany(z))"), "ostrzeżenie filtrowane starym kluczem");
+});
+
+sprawdz("trasa oceniana po jej końcu, nie po liście przeniesień", () => {
+  /* Trasa nagrana JUŻ PO przesunięciu punktu jest dobra — blokowanie jej na zawsze byłoby stratą
+     dla kogoś, kto ją przeszedł i sprawdził. Liczy się to, gdzie trasa się kończy. */
+  const grota = fs.readFileSync(path.join(KORZEN, "grota", "grota.js"), "utf-8");
+  assert.ok(grota.includes("function trasaDoStarego"), "brak oceny trasy po jej geometrii");
+  assert.ok(/TRASA_PRZY_CELU_M\s*=\s*\d+/.test(grota), "brak progu odległości końca trasy od punktu");
+  assert.ok(!grota.includes("trasaNieaktualna"), "została stara ocena trasy po liście przeniesień");
+  assert.ok(grota.includes("Nagrana trasa kończy się gdzie indziej niż dzisiejsze położenie punktu"),
+    "komunikat o trasie nadal mówi o „innym obiekcie”, co przy poprawce współrzędnych jest nieprawdą");
 });
 
 sprawdz("definicja: co trafia na listę przeniesień", () => {
