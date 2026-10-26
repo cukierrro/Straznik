@@ -256,6 +256,7 @@
     "PSP poprawiło w wykazie{d} jego położenie — punkt jest teraz {ile} od miejsca, w którym był przy zapisie.": "In the register{d} the PSP corrected its position — the point is now {ile} from where it was when you saved it.",
     "Ten punkt jest <b>zamknięty („Na żądanie”)</b> — otwiera go zarządca.": "This point is <b>locked (“On request”)</b> — the manager opens it.",
     "W wykazie PSP z {kiedy} pod tym numerem był: {stary}.": "In the PSP register of {kiedy} this number pointed to: {stary}.",
+    "Pod tym numerem był wcześniej: {stary}.": "This number previously pointed to: {stary}.",
     "W wykazie{d} jest tu: {nowy} — {ile} dalej.": "In the register{d} it points to: {nowy} — {ile} away.",
     "Jeśli zapisano tu {stary}, wybór nowego miejsca schronienia jest konieczny.": "If what was saved here is {stary}, choosing a new shelter is necessary.",
     "PSP poprawiło w wykazie z {kiedy} położenie tego punktu — stał {ile} stąd, a adres pozostał ten sam: {nowy}.": "In the register of {kiedy} the PSP corrected this point’s position — it used to be {ile} from here, and the address stayed the same: {nowy}.",

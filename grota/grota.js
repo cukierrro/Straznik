@@ -1503,13 +1503,19 @@
       const gdzieByl = z.byl ? (z.bylaGmina ? `${esc(z.byl)}, ${T("gm. {g}", { g: esc(z.bylaGmina) })}` : esc(z.byl)) : null;
       const ile = fmtDist(z.przesuniecieM ?? z.odMiejscaM);
       const kiedy = z.zmienionyWWykazie ? esc(z.zmienionyWWykazie) : null;
+      /* Dwie różne daty: `zWykazu` to wykaz, w którym pod tym numerem stał jeszcze stary adres,
+         a `zmienionyWWykazie` to ten, w którym stanął nowy. Pomylenie ich dawało zdanie
+         „w wykazie z 26.10 był X. W wykazie z 26.10 jest Y”, czyli ten sam wykaz po obu stronach. */
+      const kiedyByl = z.zWykazu ? esc(z.zWykazu) : null;
       /* Wiemy, z którego wykazu pochodzi zapis (od 1.8.01), czy nie wiemy (starsze zapisy) — i tylko
          w pierwszym przypadku wolno powiedzieć wprost „zapisane tu było X”. Bez tej wiedzy mówimy
          warunkowo, bo punkt mógł zostać wybrany już po zmianie i wtedy nic się dla człowieka nie stało. */
       const pewne = !!z.zapisanoZWykazu;
       const trescPrzeniesiony = pewne
         ? `<b>${T("Zapisane tu schronienie: {stary}.", { stary: gdzieByl })}</b> ${T("W wykazie PSP{d} pod tym samym numerem jest teraz inny obiekt: {nowy} — {ile} dalej.", { d: data, nowy: esc(z.punkt.adres), ile })}`
-        : `${T("W wykazie PSP z {kiedy} pod tym numerem był: {stary}.", { kiedy, stary: gdzieByl })} ${T("W wykazie{d} jest tu: {nowy} — {ile} dalej.", { d: data, nowy: esc(z.punkt.adres), ile })} <b>${T("Jeśli zapisano tu {stary}, wybór nowego miejsca schronienia jest konieczny.", { stary: gdzieByl })}</b>`;
+        : `${kiedyByl
+            ? T("W wykazie PSP z {kiedy} pod tym numerem był: {stary}.", { kiedy: kiedyByl, stary: gdzieByl })
+            : T("Pod tym numerem był wcześniej: {stary}.", { stary: gdzieByl })} ${T("W wykazie{d} jest tu: {nowy} — {ile} dalej.", { d: data, nowy: esc(z.punkt.adres), ile })} <b>${T("Jeśli zapisano tu {stary}, wybór nowego miejsca schronienia jest konieczny.", { stary: gdzieByl })}</b>`;
       const trescPoprawiony = pewne
         ? `<b>${T("Zapisane tu schronienie: {nowy}.", { nowy: esc(z.punkt.adres) })}</b> ${T("PSP poprawiło w wykazie{d} jego położenie — punkt jest teraz {ile} od miejsca, w którym był przy zapisie.", { d: data, ile })}`
         : `${T("PSP poprawiło w wykazie z {kiedy} położenie tego punktu — stał {ile} stąd, a adres pozostał ten sam: {nowy}.", { kiedy, ile, nowy: esc(z.punkt.adres) })} <b>${T("Jeśli zapisano go wcześniej, sprawdź na mapie, czy to wciąż właściwe miejsce.")}</b>`;

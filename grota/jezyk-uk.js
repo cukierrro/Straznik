@@ -256,6 +256,7 @@
     "PSP poprawiło w wykazie{d} jego położenie — punkt jest teraz {ile} od miejsca, w którym był przy zapisie.": "PSP виправила в переліку{d} його розташування — пункт тепер за {ile} від місця, де він був під час збереження.",
     "Ten punkt jest <b>zamknięty („Na żądanie”)</b> — otwiera go zarządca.": "Цей пункт <b>зачинений («На вимогу»)</b> — його відчиняє управитель.",
     "W wykazie PSP z {kiedy} pod tym numerem był: {stary}.": "У переліку PSP від {kiedy} під цим номером був: {stary}.",
+    "Pod tym numerem był wcześniej: {stary}.": "Під цим номером раніше був: {stary}.",
     "W wykazie{d} jest tu: {nowy} — {ile} dalej.": "У переліку{d} тут: {nowy} — за {ile}.",
     "Jeśli zapisano tu {stary}, wybór nowego miejsca schronienia jest konieczny.": "Якщо тут збережено {stary}, вибір нового місця укриття є обов’язковим.",
     "PSP poprawiło w wykazie z {kiedy} położenie tego punktu — stał {ile} stąd, a adres pozostał ten sam: {nowy}.": "PSP виправила в переліку від {kiedy} розташування цього пункту — він був за {ile} звідси, а адреса лишилася та сама: {nowy}.",

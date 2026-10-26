@@ -192,6 +192,27 @@ sprawdz("stary zapis bez daty — tekst warunkowy, nic nie zmyślamy", () => {
     "warunkowy tekst musi mimo wszystko mówić o konieczności wyboru");
 });
 
+sprawdz("tekst warunkowy podaje DWA różne wykazy, nie dwa razy ten sam", () => {
+  /* Zrzut z wydania 1.8.01 pokazał zdanie „W wykazie PSP z 2026-10-26 pod tym numerem był: 51a,
+     Kromolice. W wykazie z 2026-10-26 jest tu: os. Osiedle Gawrony 2” — ten sam wykaz po obu
+     stronach, bo do „był” szła data ZMIANY (`zm`) zamiast wykazu ze starym adresem (`od`).
+     Poprzedni test sprawdzał tylko, że zdanie w ogóle istnieje, więc świecił na zielono. */
+  const prz = { "OZO-852EACB93576": { byl: "51a, Kromolice", gmina: "Pogorzela", m: 23300, od: "2026-09-14", zm: "2026-10-26" } };
+  const pl = { ...DOM, shelters: ["OZO-852EACB93576"] };          // zapis sprzed 1.8.01, bez pl.wykaz
+  const [z] = core.zmienioneSchronienia(pl, indeks(PUNKT_GOSTYN), prz);
+  assert.strictEqual(z.zWykazu, "2026-09-14", "wpis musi nieść wykaz, w którym stał jeszcze stary adres");
+  assert.notStrictEqual(z.zWykazu, z.zmienionyWWykazie, "to są dwie różne daty i nie wolno ich mylić");
+
+  // bez spacji i łamań wierszy, żeby poprawka rozbijająca wywołanie na linie nie psuła testu
+  const zbity = fs.readFileSync(path.join(KORZEN, "grota", "grota.js"), "utf-8").replace(/\s+/g, "");
+  assert.ok(zbity.includes("constkiedyByl=z.zWykazu"),
+    "zdanie o starym adresie musi brać datę z `zWykazu` (wykaz ze starym adresem)");
+  assert.ok(zbity.includes('T("WwykaziePSPz{kiedy}podtymnumerembył:{stary}.",{kiedy:kiedyByl'),
+    "do zdania „był” idzie wciąż data zmiany zamiast wykazu ze starym adresem");
+  assert.ok(zbity.includes('T("Podtymnumerembyłwcześniej:{stary}."'),
+    "brak wariantu bez daty na wypadek wpisu bez pola `od` — lepiej pominąć datę niż podać złą");
+});
+
 sprawdz("„zostawiam jak jest” dotyczy tej zmiany, nie punktu na zawsze", () => {
   const grota = fs.readFileSync(path.join(KORZEN, "grota", "grota.js"), "utf-8");
   assert.ok(/kluczZmiany\s*=\s*\(z\)\s*=>\s*`\$\{z\.id\}\|\$\{z\.zmienionyWWykazie/.test(grota),
