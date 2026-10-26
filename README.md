@@ -6,6 +6,12 @@
 
 Serwer: **hostowane na [Mikrusie](https://mikr.us)** — dziękujemy za wsparcie projektu.
 
+Wersja 1.8.01: GROTA ma wykaz PSP z 26.10 (87 835 punktów) i ostrzega, gdy zapisane
+schronienie w nowym wykazie jest innym obiektem, ma poprawione położenie albo zniknęło.
+Wyszukiwarka zna miasta nadmorskie i pokazuje województwo przy imiennikach, mapa offline
+mówi o nowszej wersji. Bez zapasowej mapy CARTO i zapasowych źródeł ADS-B.
+Szczegóły: `docs/RELEASE_1.8.01.md`.
+
 Wersja 1.8.00: ekran czerwonego alarmu ma przycisk potwierdzenia i wybór na górze oraz
 najwyżej 3 powody, syrena, wibracja i miganie cichną same po 15 minutach, powiadomienia są
 krótsze, a alarmy przychodzą tylko dla obserwowanych województw (zgłoszenie #15). Alert RCB
