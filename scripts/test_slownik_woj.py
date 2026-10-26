@@ -58,6 +58,18 @@ sprawdz(all(k == " ".join(slownik_woj.TOK.findall(k)) for k in frazy), "klucze z
 sprawdz(frazy.get("biala podlaska") == ("lubelskie", "m"), "biala podlaska → lubelskie")
 sprawdz(maxn <= 8, f"najdłuższa fraza: {maxn} słów")
 
+print("5. Długi tekst (audyt 26.10.2026): czas liniowy i bezpiecznik długości")
+import time  # noqa: E402
+dlugi = ("Drony nad Lublinem, Chełmem i Zamościem, potem Rzeszów oraz Przemyśl. " * 4000)  # ~280 KB
+t0 = time.time()
+wynik = slownik_woj.wojewodztwa(dlugi)
+sprawdz(time.time() - t0 < 1.0, f"280 KB w {time.time() - t0:.2f} s (dawniej ok. 30 s)")
+sprawdz(wynik == ["lubelskie", "podkarpackie"], f"wynik bez zmian: {wynik}")
+sprawdz(slownik_woj.wojewodztwa("x" * slownik_woj.MAX_ZNAKOW + " Alarm w Rzeszowie") == [],
+        "tekst po 8000. znaku nie jest czytany (bezpiecznik)")
+sprawdz(slownik_woj.wojewodztwa("Alert. W powiatach: puławski, opolski. Syreny w Opolu.") == ["opolskie"],
+        "reguła powiatu działa w obrębie zdania, nie dalej (granice liczone raz)")
+
 print()
 print(f"BŁĘDY: {len(bledy)}" if bledy else "Wszystko OK")
 sys.exit(1 if bledy else 0)

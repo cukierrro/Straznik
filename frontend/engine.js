@@ -680,20 +680,30 @@ const slTrafienia = (t) => {
 };
 const slWojewodztwa = (folded, tylkoRegiony = false) => {
   const out = [];
+  // granice zdań raz (lustro slownik_woj.wojewodztwa, audyt 26.10.2026) — dawniej split całego
+  // przedrostka przy każdym trafieniu, czyli czas kwadratowy
+  const konce = [];
+  for (let i = 0; i < folded.length; i++) { const c = folded[i]; if (c === "." || c === "!" || c === "?") konce.push(i); }
+  const poczatekZdania = (s) => {
+    let lo = 0, hi = konce.length;                 // pierwszy koniec zdania >= s
+    while (lo < hi) { const m = (lo + hi) >> 1; if (konce[m] < s) lo = m + 1; else hi = m; }
+    return lo ? konce[lo - 1] + 1 : 0;
+  };
   for (const [s, , v, r, fr] of slTrafienia(folded)) {
     if (v === null || (tylkoRegiony && r !== "r")) continue;
     // reguła powiatu: pojedynczy przymiotnik po „powiat…” w tym samym zdaniu to powiat z listy
     if ((r === "r" || r === "m") && !fr.includes(" ")) {
-      const zdanie = folded.slice(0, s).split(/[.!?]/).pop();
+      const zdanie = folded.slice(poczatekZdania(s), s);
       if (zdanie.includes("powiat") || zdanie.includes("powiec")) continue;
     }
     if (!out.includes(v)) out.push(v);
   }
   return out;
 };
+const SL_MAX_ZNAKOW = 8000;      // lustro slownik_woj.MAX_ZNAKOW (bezpiecznik, audyt 26.10.2026)
 const matchVoivs = (text) => {
+  if (SLOWNIK) return slWojewodztwa(fold(String(text).slice(0, SL_MAX_ZNAKOW).replace(MONTH_NOT_PLACE, "$1 ").toLowerCase()));
   const folded = fold(String(text).replace(MONTH_NOT_PLACE, "$1 ").toLowerCase());
-  if (SLOWNIK) return slWojewodztwa(folded);
   const hits = [];
   for (const [v, keys] of Object.entries(VOIV_KEYWORDS))
     for (const k of keys) {

@@ -26,6 +26,18 @@ test('engine.js gives the same provinces as the backend dictionary', () => {
     assert.deepEqual([...E.matchVoivs(tekst)], oczekiwane, tekst);
 });
 
+test('long text: linear time, same result, 8000-character safety cap', () => {
+  const E = nowySilnik();
+  E.ustawSlownik(SLOWNIK);
+  const dlugi = 'Drony nad Lublinem, Chełmem i Zamościem, potem Rzeszów oraz Przemyśl. '.repeat(4000);
+  const t0 = Date.now();
+  assert.deepEqual([...E.matchVoivs(dlugi)], ['lubelskie', 'podkarpackie']);
+  assert.ok(Date.now() - t0 < 1500, `280 KB w ${Date.now() - t0} ms`);
+  assert.deepEqual([...E.matchVoivs('x'.repeat(8000) + ' Alarm w Rzeszowie')], [], 'po 8000. znaku nie czytamy');
+  assert.deepEqual([...E.matchVoivs('Alert. W powiatach: puławski, opolski. Syreny w Opolu.')], ['opolskie'],
+    'reguła powiatu w obrębie zdania');
+});
+
 test('without the dictionary the engine keeps the old stem matching', () => {
   const E = nowySilnik();
   assert.deepEqual([...E.matchVoivs('Alarm w Rzeszowie')], ['podkarpackie']);

@@ -32,14 +32,42 @@ async def _get_with_retry(client: httpx.AsyncClient, url: str, tries: int = 2):
     last = None
     for i in range(tries):
         try:
-            r = await client.get(url, headers={"User-Agent": UA}, follow_redirects=True)
-            r.raise_for_status()
-            return r, None
+            # łączny limit czasu — timeout httpx liczy się na pojedynczą operację, więc
+            # wolno sączona odpowiedź mogłaby trzymać połączenie w nieskończoność
+            return await asyncio.wait_for(_pobierz_z_limitem(client, url), RSS_MAX_CZAS_S), None
         except Exception as e:
             last = repr(e) or e.__class__.__name__
             if i + 1 < tries:
                 await asyncio.sleep(1.5)
     return None, last
+
+
+# Limit odpowiedzi kanału (audyt 26.10.2026): pobieranie kończy się po RSS_MAX_BAJTOW zamiast
+# wczytywać całość do pamięci writera — od września doszło 18 kanałów zagranicznych, a awaria
+# 13.09 pokazała, ile kosztuje brak pamięci. Pomiar 26.10 (35 kanałów): mediana 45 KB, max 134 KB.
+RSS_MAX_BAJTOW = 2 * 1024 * 1024
+RSS_MAX_CZAS_S = 45
+
+
+class _Odp:
+    def __init__(self, content: bytes):
+        self.content = content
+
+
+async def _pobierz_z_limitem(client: httpx.AsyncClient, url: str) -> _Odp:
+    async with client.stream("GET", url, headers={"User-Agent": UA}, follow_redirects=True) as r:
+        if r.url.scheme not in ("http", "https"):
+            raise ValueError(f"przekierowanie na nieobsługiwany schemat: {r.url.scheme}")
+        r.raise_for_status()
+        deklarowana = r.headers.get("content-length", "")
+        if deklarowana.isdigit() and int(deklarowana) > RSS_MAX_BAJTOW:
+            raise ValueError(f"kanał za duży: {deklarowana} B")
+        tresc = bytearray()
+        async for kawalek in r.aiter_bytes():
+            tresc += kawalek
+            if len(tresc) > RSS_MAX_BAJTOW:
+                raise ValueError(f"kanał przekroczył {RSS_MAX_BAJTOW} B")
+        return _Odp(bytes(tresc))
 
 log = logging.getLogger("rss")
 

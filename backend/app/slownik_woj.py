@@ -21,6 +21,7 @@ albo neutralna, gdy nazwa jest w kilku). Reguły rozstrzygania:
   * forma o dwóch znaczeniach z różnych województw → neutralna („Radomska”).
 Lustro: frontend/engine.js (dopasujWojewodztwa).
 """
+import bisect
 import json
 import re
 import unicodedata
@@ -33,6 +34,7 @@ TOK = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
 # fraza ochronna zaczynająca się od przyimka („Nad Zieloną” — nazwa wsi) nie może zjeść
 # frazy miejscowości („nad Zieloną Górą”)
 PRZYIMKI = frozenset({"nad", "pod", "przy", "w", "we", "z", "ze", "na", "do", "od", "k", "kolo"})
+MAX_ZNAKOW = 8000
 
 
 def fold(s: str) -> str:
@@ -98,13 +100,20 @@ def wojewodztwa(text: str, tylko_regiony: bool = False) -> list[str]:
     Reguła powiatu (21.10.2026, od 23.10 na całe zdanie): pojedynczy przymiotnik po
     „powiat…”/„powiatach” w tym samym zdaniu to nazwa POWIATU z listy („LUBELSKIEGO:
     puławski, opolski, …”), a nie dowód na województwo."""
-    t, hits = trafienia(text)
+    # Bezpiecznik (audyt 26.10.2026): do słownika trafiają tytuł i opis z RSS — pomiar 35 kanałów
+    # 26.10: mediana 440 znaków, najdłuższy 975. Limit ponad 8× większy niczego dziś nie obcina,
+    # a zepsuty lub przejęty kanał z opisem na setki KB nie zatrzyma writera.
+    t, hits = trafienia((text or "")[:MAX_ZNAKOW])
+    # granice zdań liczone raz (dawniej re.split na całym przedrostku przy KAŻDYM trafieniu —
+    # czas kwadratowy: 70 KB tekstu to ok. 1 s)
+    konce = [m.start() for m in re.finditer(r"[.!?]", t)]
     out: list[str] = []
     for s, _e, v, r, fr in hits:
         if v is None or (tylko_regiony and r != "r"):
             continue
         if r in ("r", "m") and " " not in fr:
-            zdanie = re.split(r"[.!?]", t[:s])[-1]
+            k = bisect.bisect_left(konce, s)
+            zdanie = t[konce[k - 1] + 1 if k else 0:s]
             if "powiat" in zdanie or "powiec" in zdanie:
                 continue
         if v not in out:
