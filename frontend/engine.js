@@ -1924,32 +1924,22 @@ function looksMilitaryAdsb(a) {
   return /air ?force|army|navy|military|nato|force aérienne|luftwaffe|türk hava|turkish af|polish af/i
     .test(String(a.ownOp||""));
 }
-/* Zapytanie geograficzne zależy od dostawcy (16.10.2026): adsb.fi odpowiada
-   400 na /point/... i ma /lat/{lat}/lon/{lon}/dist/{r}, a listę oddaje pod
-   „aircraft”. adsb.lol i airplanes.live: /point/{lat}/{lon}/{r} i „ac”. */
+/* Zapytanie geograficzne adsb.lol: /point/{lat}/{lon}/{r}, lista pod „ac”. */
 function adsbGeoUrl(base, lat, lon, r) {
-  return /opendata\.adsb\.fi/.test(base)
-    ? `${base}/lat/${lat}/lon/${lon}/dist/${r}`
-    : `${base}/point/${lat}/${lon}/${r}`;
+  return `${base}/point/${lat}/${lon}/${r}`;
 }
 function adsbGeoAircraft(data) {
-  return (data && (data.ac || data.aircraft)) || [];
+  return (data && data.ac) || [];
 }
 async function tickAdsb() {
   try {
-    /* airplanes.live wzbogaca rekordy o pełną nazwę typu (desc), operatora (ownOp)
-       i rok — adsb.lol tego nie zwraca. Wszystkie mają ten sam format /v2/mil,
-       więc kolejność można zmieniać bez ruszania reszty kodu. */
-    let txt = null;
-    /* Kolejność wg tego, co REALNIE odpowiada (sprawdzone 20.08.2026):
-       airplanes.live zaczął zwracać 403, więc pytamy najpierw adsb.lol; gdy
-       airplanes.live wróci, znów wzbogaci karty o desc/ownOp. opendata.adsb.fi
-       to trzeci zapas (stary api.adsb.fi/v2 już nie istnieje — 404). */
-    let base = null;
-    for (const u of ["https://api.adsb.lol/v2/mil", "https://api.airplanes.live/v2/mil",
-                     "https://opendata.adsb.fi/api/v2/mil"]) {
-      try { txt = await httpGet(u); if (txt) { base = u.replace(/\/mil$/, ""); break; } } catch {}
-    }
+    /* Tylko adsb.lol (dane na ODbL), bez zapasów — lustro backendu (adsb.py),
+       decyzja usera z 26.10.2026. airplanes.live: regulamin zakazuje
+       automatycznego pobierania i budowania z danych bazy bez pisemnej zgody;
+       opendata.adsb.fi: wyłącznie użytek osobisty, niekomercyjny. Gdy adsb.lol
+       nie odpowiada, warstwa jest pusta — i tak nie daje punktów. */
+    const base = "https://api.adsb.lol/v2";
+    const txt = await httpGet(`${base}/mil`);
     if (!txt) throw new Error("brak odpowiedzi ADS-B");
     const merged = new Map();
     for (const a of (JSON.parse(txt).ac||[])) {
@@ -1985,7 +1975,7 @@ async function tickAdsb() {
       // warstwy obserwacyjnej (patrz D w app.js). To tylko podgląd, nie punktacja.
       const inWatch = a.lat >= 43 && a.lat <= 61 && a.lon >= 14 && a.lon <= 42;
       if (!v && !inWatch) continue;
-      // pełniejszy zestaw pól — karta samolotu pokazuje to, co airplanes.live
+      // pełny zestaw pól z /v2/mil — karta samolotu pokazuje całą telemetrię
       const p = { hex:a.hex, callsign:(a.flight||"").trim(), type:a.t, lat:a.lat, lon:a.lon,
                   alt:a.alt_baro, alt_geom:a.alt_geom, gs:a.gs, tas:a.tas, ias:a.ias, mach:a.mach,
                   track:a.track, true_heading:a.true_heading, mag_heading:a.mag_heading,
@@ -2927,7 +2917,7 @@ async function start(stateCb) {
 // `rcbArtykul`: kolektor i parser treści z gov.pl dla scripts/test_rcb_artykul.cjs,
 // `adsbHoldJump`: strażnik niemożliwych skoków dla scripts/test_skok_pozycji.cjs,
 // który sprawdza, że tryb bez serwera trzyma pozycję tak samo jak backend,
-// oraz `adsbGeoUrl`/`adsbGeoAircraft` dla scripts/test_adsb_geo_zapas.cjs,
+// oraz `adsbGeoUrl`/`adsbGeoAircraft` dla scripts/test_adsb_bez_zapasu.cjs,
 // a `podloga` dla scripts/test_podloga_dron.cjs, `baltyk` dla scripts/test_baltyk_silnik.cjs.
 return { start, stop, history, timeline, historyFrom, timelineFrom, accumulate, matchVoivs, ustawSlownik,
          adsbHoldJump, adsbGeoUrl, adsbGeoAircraft, lostWeight, zgubioneZMigawek,
