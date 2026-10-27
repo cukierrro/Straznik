@@ -104,7 +104,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <link rel="icon" type="image/png" sizes="512x512" href="assets/icon-512.png">
 <link rel="apple-touch-icon" href="assets/icon-192.png">
 <link rel="stylesheet" href="assets/vendor/maplibre-gl.css?v=1.7.82">
-<link rel="stylesheet" href="style.css?v=1.7.99c">
+<link rel="stylesheet" href="style.css?v=1.8.02a">
 </head>
 <body>
 
@@ -154,6 +154,18 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
        href="https://apps.apple.com/pl/app/id6813563009" target="_blank" rel="noopener"
        title="Pobierz aplikację Strażnik na iPhone'a z App Store"
        aria-label="Pobierz aplikację Strażnik na iPhone'a z App Store">⬇ Pobierz na iOS</a>
+    <!-- 27.10.2026, prośba usera: plik APK z GitHuba dla telefonów bez usług Google (np. Huawei).
+         Na telefonie z Google Play lepiej instalować ze sklepu — plik spoza sklepu bywa
+         oznaczany przez Play Protect, dlatego przycisk jest skromniejszy od sklepowych. -->
+    <a id="btn-apk" class="chip download apk web-only"
+       href="https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk" rel="noopener"
+       title="Plik APK z GitHuba dla telefonów bez usług Google (np. Huawei). Na telefonie z Google Play lepiej pobrać ze sklepu."
+       aria-label="Pobierz plik APK Strażnika z GitHuba — dla telefonów bez usług Google">⬇ APK bez Google Play</a>
+    <!-- 27.10.2026, prośba usera: wsparcie autora także na pasku strony (w aplikacjach jest w Menu;
+         web-only, bo wydania sklepowe nie mogą prowadzić do zbiórki poza sklepem). -->
+    <a id="btn-kawa" class="chip coffee web-only no-ios no-sklep" href="https://buycoffee.to/cukierrro" target="_blank" rel="noopener"
+       title="Postaw kawę autorowi — dobrowolne wsparcie projektu"
+       aria-label="Postaw kawę autorowi — dobrowolne wsparcie projektu">☕ Postaw kawę</a>
     <!-- v4 (14.10.2026): na pasku zostaje marka, diody i — na stronie — pobieranie
          aplikacji. Legenda, 3D, obce maszyny, powiadomienia i ustawienia są w Menu
          (dolna zakładka) — makieta v4 przyjęta przez usera. Identyfikatory przycisków
@@ -1314,7 +1326,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
      Cloudflare, więc po każdym wydaniu wystarczy podbić ?v= i przeglądarki
      dostają nowe app.js/engine.js OD RAZU, bez ręcznego czyszczenia cache CF.
      Podbijaj ?v= razem z versionName w build.gradle. -->
-<script src="i18n.js?v=1.8.02a"></script>
+<script src="i18n.js?v=1.8.02b"></script>
 <!-- kontur Polski dla engine.js (audyt A2b, scripts/build_pl_outline.py) -->
 <script src="pl-outline.js?v=1.7.82"></script>
 <script src="voiv-outline.js?v=1.7.97"></script>
