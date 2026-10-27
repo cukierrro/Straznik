@@ -87,6 +87,9 @@ engine = (ROOT / "frontend" / "engine.js").read_text(encoding="utf-8")
 m = re.search(r"every\(tickAdsb,\s*(\d+)\)", engine)
 telefon = doba * 1000 / int(m.group(1)) if m else 1e9
 sprawdz(495 <= telefon <= config.ADSB_LIMIT_DOBA, f"telefon w trybie awaryjnym: {telefon:.1f} zapytań na dobę")
+z_kluczem = doba / config.ADSB_INTERVAL_KLUCZ
+sprawdz(z_kluczem <= config.ADSB_LIMIT_DOBA_KLUCZ and z_kluczem * 31 <= 30000,
+        f"z kluczem (27.10): {z_kluczem:.0f}/dobę, {z_kluczem * 31:.0f} w 31 dniach — w limicie ≥ 24 tys./mies. przy każdym zaokrągleniu")
 
 print("\n2. 429 to przerwa, nie awaria")
 zeruj()

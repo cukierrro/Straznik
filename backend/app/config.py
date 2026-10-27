@@ -203,6 +203,14 @@ ADSBLOL_API_KEY = os.getenv("ADSBLOL_API_KEY", "").strip()
 # ~4,3 min (najdłużej 5,8 min), koło co ~8,7 min.
 ADSB_LIMIT_DOBA = 500                                      # limit adsb.lol na adres i dobę
 ADSB_INTERVAL = int(os.getenv("ADSB_INTERVAL", "173"))     # odstęp między KAŻDYMI dwoma zapytaniami
+# Z kluczem (27.10.2026, decyzja usera): strona klucza pokazała 1% limitu godzinowego przy ~21 zap./h
+# (limit ~2000/h) i 0% miesięcznego przy ~240 zapytaniach (limit ≥ 24 tys./mies.). Co 90 s = 960 na dobę,
+# ~29,8 tys. w 31-dniowym miesiącu — mieści się przy każdym zaokrągleniu procentów. Szybciej (co minutę)
+# dopiero po potwierdzeniu limitu przez adsb.lol: wielokrotne 429 może unieważnić klucz.
+ADSB_LIMIT_DOBA_KLUCZ = int(os.getenv("ADSB_LIMIT_DOBA_KLUCZ", "960"))
+ADSB_INTERVAL_KLUCZ = int(os.getenv("ADSB_INTERVAL_KLUCZ", "90"))
+if ADSBLOL_API_KEY:
+    ADSB_LIMIT_DOBA, ADSB_INTERVAL = ADSB_LIMIT_DOBA_KLUCZ, ADSB_INTERVAL_KLUCZ
 # Doba adsb.lol to doba UTC: x-ratelimit-reset 26.10 o 17:21 UTC wskazywał dokładnie 00:00 UTC,
 # a w logu 23–26.10 pierwsze 429 każdego dnia padało o 02:49–02:59 UTC, czyli po ~500 zapytaniach
 # od północy UTC (stary kod pytał ~3 razy na minutę) — potem do północy UTC już tylko 429.
@@ -210,11 +218,13 @@ ADSB_INTERVAL = int(os.getenv("ADSB_INTERVAL", "173"))     # odstęp między KA�
 # nie przepychają nas ponad limit: odstęp = czas do północy UTC / zapytania, które zostały,
 # nie krócej niż ADSB_INTERVAL. ADSB_ZAPAS_DOBA zostaje na restarty i pomiary.
 ADSB_ZAPAS_DOBA = 5
-# TYMCZASOWO (decyzja usera 26.10.2026 wieczorem): zapas adsb.fi, gdy pula adsb.lol jest pusta
-# albo adsb.lol odmawia. Warunki adsb.fi mówią o użytku osobistym i niekomercyjnym i wymagają
-# linku — link jest w okienku źródeł. Do zdjęcia, gdy dobowy rytm adsb.lol działa (od 27.10),
-# razem z wysłaniem maili do adsb.lol i adsb.fi. Pusta wartość w .env wyłącza zapas.
-ADSB_ZAPAS = os.getenv("ADSB_ZAPAS", "adsb.fi")
+# Zapas, gdy adsb.lol odmawia albo pula jest pusta: FlyItalyADSB (Nesso Labs). 27.10.2026 pisemna zgoda
+# (Riccardo): użycie informacyjne i publikacja obok danych ODbL w porządku, podpis „FlyItalyADSB, CC BY-SA 4.0”
+# z linkiem w okienku źródeł. Zastąpił adsb.fi (warunki „personal use”, brak zgody) — decyzja usera 27.10.
+# Klucz tylko w .env (FLYITALY_API_KEY). Bez klucza zapasu nie ma. Plan Free: 30 zap./min, 300 tys./mies.,
+# promień ≤ 500 km — zapas pyta 2 razy co ADSB_ZAPAS_INTERVAL.
+FLYITALY_API_KEY = os.getenv("FLYITALY_API_KEY", "").strip()
+ADSB_ZAPAS = os.getenv("ADSB_ZAPAS", "flyitaly" if FLYITALY_API_KEY else "")
 ADSB_ZAPAS_INTERVAL = 60
 ADSB_AWARIA_S = 600          # po błędzie adsb.lol innym niż limit: tyle sekund na zapasie, potem nowa próba
 ADSB_PLAN = ("mil", "mil", "kolo0")

@@ -168,7 +168,7 @@ def obieg_run():
         adsb.asyncio.sleep, adsb.httpx.AsyncClient = prawdziwy_sen, prawdziwy_klient
 
 
-# bez zapasu (ADSB_ZAPAS pusty) — tak ma być po zdjęciu tymczasowego adsb.fi
+# bez zapasu (ADSB_ZAPAS pusty albo brak klucza FlyItalyADSB)
 zapas_przed = config.ADSB_ZAPAS
 config.ADSB_ZAPAS = ""
 obieg_run()
@@ -176,14 +176,17 @@ sprawdz(wyslane == [], f"bez zapasu: żadnego zapytania przy pustej puli ({wysla
 sprawdz(sny and abs(sny[0] - (86400 - 70000 + 5)) <= 1, f"bez zapasu: sen do północy UTC: {sny[0] if sny else None:.0f} s")
 sprawdz(adsb.status.get("budzet", {}).get("uzyte") == PULA, f"status pokazuje budżet: {adsb.status.get('budzet')}")
 
-print("\n8. Pusta pula z tymczasowym zapasem adsb.fi (decyzja usera 26.10)")
-config.ADSB_ZAPAS = "adsb.fi"
+print("\n8. Pusta pula z zapasem FlyItalyADSB (pisemna zgoda 27.10)")
+klucz_przed = config.FLYITALY_API_KEY
+config.FLYITALY_API_KEY = "fia_test"
+config.ADSB_ZAPAS = "flyitaly"
 obieg_run()
-sprawdz(wyslane and all(u.startswith("https://opendata.adsb.fi/") for u in wyslane),
+sprawdz(wyslane and all(u.startswith("https://api.flyitalyadsb.com/") for u in wyslane),
         f"pytamy tylko zapas, adsb.lol ani razu: {wyslane}")
 sprawdz(adsb._budzet["uzyte"] == PULA, "zapytania do zapasu nie liczą się do puli adsb.lol")
 sprawdz(sny and sny[0] == config.ADSB_ZAPAS_INTERVAL, f"zapas w swoim rytmie: {sny[0] if sny else None} s")
 config.ADSB_ZAPAS = zapas_przed
+config.FLYITALY_API_KEY = klucz_przed
 
 print()
 print(f"BŁĘDY: {len(bledy)}" if bledy else "Wszystko OK")

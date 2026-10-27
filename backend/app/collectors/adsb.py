@@ -8,13 +8,10 @@ Domyślnie darmowe, bezkluczowe API adsb.lol (endpoint /v2/mil — wszystkie
 maszyny wojskowe globalnie, filtrujemy bboxem). Dane adsb.lol są na licencji
 ODbL 1.0 (opis ich API) — podpis „© adsb.lol, ODbL” w okienku źródeł i w NOTICE.
 
-Zapasu NIE MA od 26.10.2026: opendata.adsb.fi pozwala tylko na „personal,
-non-commercial use” i zakazuje licencjonowania danych (README ich API), a to
-kłóci się z publicznym serwisem i z ODbL adsb.lol, bo listy były mieszane.
-Opcja ADSBexchange przez RapidAPI (domyślnie wyłączona, warunków nikt nie
-czytał) usunięta tego samego dnia — decyzja usera.
-Gdy adsb.lol nie odpowiada, warstwa ADS-B jest pusta, a status mówi o błędzie —
-warstwa i tak nie daje punktów.
+Zapas (od 27.10.2026): FlyItalyADSB, z pisemną zgodą i podpisem „CC BY-SA 4.0” (config.ADSB_ZAPAS).
+adsb.fi wypadł — jego warunki pozwalają tylko na „personal, non-commercial use”. Opcja ADSBexchange
+przez RapidAPI usunięta 26.10 — decyzja usera. Bez klucza FlyItalyADSB i przy awarii adsb.lol warstwa
+ADS-B jest pusta, a status mówi o błędzie — warstwa i tak nie daje punktów.
 """
 import asyncio
 import json
@@ -92,12 +89,13 @@ UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
 MIL_ENDPOINTS = {
     "adsb.lol": "https://api.adsb.lol/v2/mil",
 }
-# Tymczasowy zapas (config.ADSB_ZAPAS): pytany TYLKO, gdy adsb.lol nie ma dla nas puli albo
-# odmawia, i nie liczony do budżetu adsb.lol. adsb.fi ma inną ścieżkę geograficzną
-# (/lat/{lat}/lon/{lon}/dist/{r}, lista pod „aircraft”) — sprawdzone 16.10.2026.
+# Zapas (config.ADSB_ZAPAS): pytany TYLKO, gdy adsb.lol nie ma dla nas puli albo odmawia, i nie liczony
+# do budżetu adsb.lol. FlyItalyADSB: klucz w nagłówku X-Api-Key, promień w KILOMETRACH (adsb.lol: mile
+# morskie), /mil = lista całej sieci, odpowiedź pod „ac” — sprawdzone 27.10.2026.
 ZAPAS_ENDPOINTS = {
-    "adsb.fi": "https://opendata.adsb.fi/api/v2",
+    "flyitaly": "https://api.flyitalyadsb.com/v2",
 }
+NM_KM = 1.852
 
 
 async def _fetch_mil(client: httpx.AsyncClient) -> list[dict] | None:
@@ -419,10 +417,11 @@ async def _pobierz_zapas(client: httpx.AsyncClient) -> tuple[list, list] | None:
     """Lista wojskowych i koło bałtyckie z zapasu — dwa zapytania na raz, co ADSB_ZAPAS_INTERVAL."""
     name = config.ADSB_ZAPAS
     base = ZAPAS_ENDPOINTS.get(name)
-    if not base:
+    if not base or not config.FLYITALY_API_KEY:
         return None
+    naglowki = {"User-Agent": UA, "X-Api-Key": config.FLYITALY_API_KEY}
     try:
-        r = await client.get(f"{base}/mil", headers={"User-Agent": UA})
+        r = await client.get(f"{base}/mil", headers=naglowki)
         r.raise_for_status()
         ac_list = r.json().get("ac") or []
     except Exception as e:
@@ -432,7 +431,8 @@ async def _pobierz_zapas(client: httpx.AsyncClient) -> tuple[list, list] | None:
     geo_candidates = []
     try:
         for i, (lat, lon, radius) in enumerate(BALTIC_GEO_POINTS):
-            g = await client.get(f"{base}/lat/{lat}/lon/{lon}/dist/{radius}", headers={"User-Agent": UA})
+            km = min(500, round(radius * NM_KM))          # plan Free: promień ≤ 500 km
+            g = await client.get(f"{base}/lat/{lat}/lon/{lon}/dist/{km}", headers=naglowki)
             g.raise_for_status()
             dane = g.json()
             w_kole = [{**ac, "_straznik_detection": "baltic_geo"}

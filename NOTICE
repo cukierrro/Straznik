@@ -30,4 +30,8 @@ Dane
 - ADS-B: © adsb.lol, licencja ODbL 1.0 (https://opendatacommons.org/licenses/odbl/1-0/).
   Dane lotnicze w odpowiedziach API Strażnika (/api/state, historia, archiwum pozycji)
   pochodzą z adsb.lol i są udostępniane dalej na tej samej licencji ODbL 1.0.
+- ADS-B (zapas, gdy adsb.lol nie odpowiada): Flight data: FlyItalyADSB (flyitalyadsb.com),
+  CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/). Rekordy z tego źródła
+  udostępniamy dalej na tej samej licencji CC BY-SA 4.0 — zgoda FlyItalyADSB z 27.10.2026
+  na pokazywanie ich obok danych ODbL i publikowanie połączonej listy.
 - Źródła danych i wymagana atrybucja: sekcja „Dane i atrybucja” w README.md
