@@ -142,6 +142,23 @@ sprawdz(not adsb._lol_dostepny(teraz), "po 400 pętla bierze zapas zamiast adsb.
 sprawdz(adsb._lol_dostepny(teraz + config.ADSB_AWARIA_S + 1), f"po {config.ADSB_AWARIA_S} s znów próba adsb.lol")
 zeruj()
 
+print("\n6. Klucz adsb.lol w nagłówku x-api-key, gdy jest w .env")
+class KlientN(Klient):
+    async def get(self, url, headers=None):
+        self.naglowki = headers or {}
+        return await super().get(url, headers)
+k = KlientN(lambda url: Odp(200))
+przed = config.ADSBLOL_API_KEY
+config.ADSBLOL_API_KEY = "sk-lol-test"
+asyncio.run(adsb._get(k, "https://api.adsb.lol/v2/mil"))
+sprawdz(k.naglowki.get("x-api-key") == "sk-lol-test", "z kluczem: nagłówek x-api-key wysłany")
+config.ADSBLOL_API_KEY = ""
+k = KlientN(lambda url: Odp(200))
+asyncio.run(adsb._get(k, "https://api.adsb.lol/v2/mil"))
+sprawdz("x-api-key" not in k.naglowki, "bez klucza: brak nagłówka")
+config.ADSBLOL_API_KEY = przed
+zeruj()
+
 print("\n4. Własny adres, bez drugiej puli")
 sprawdz(not config.ADSB_IPV4,
         "domyślnie bez wymuszania IPv4 — wspólna brama Mikrusa dałaby drugą pulę limitu (obejście)")

@@ -273,8 +273,11 @@ def _policz_odstep(t: float) -> float:
 
 async def _get(client: httpx.AsyncClient, url: str):
     """Każde zapytanie do adsb.lol idzie tędy, żeby budżet liczył wszystkie."""
+    naglowki = {"User-Agent": UA}
+    if config.ADSBLOL_API_KEY:
+        naglowki["x-api-key"] = config.ADSBLOL_API_KEY
     try:
-        r = await client.get(url, headers={"User-Agent": UA})
+        r = await client.get(url, headers=naglowki)
     except Exception:
         _policz_zapytanie()                      # mogło dojść do serwera — liczymy ostrożnie
         raise

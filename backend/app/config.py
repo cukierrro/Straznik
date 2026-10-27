@@ -191,6 +191,9 @@ NEPTUN_NATIONAL_REGION_MARKERS = ("загальнодержавн",)   # porówn
 
 # ── ADS-B ─────────────────────────────────────────────────────────────────────
 ADSB_PROVIDER = os.getenv("ADSB_PROVIDER", "adsb.lol")   # jedyny dostawca od 26.10.2026
+# Klucz adsb.lol (przyznany 27.10.2026 na wniosek, nagłówek x-api-key). Sekret — tylko w .env.
+# Limitu klucza adsb.lol nie podaje w nagłówkach; tempo zostaje przy ADSB_INTERVAL, dopóki go nie poznamy.
+ADSBLOL_API_KEY = os.getenv("ADSBLOL_API_KEY", "").strip()
 # adsb.lol ma limit na adres: 4/s, 60/min i 500 na dobę (nagłówek x-ratelimit-limit, 26.10.2026).
 # Co minutę /v2/mil + dwa koła bałtyckie to ~4300 zapytań na dobę — od co najmniej 20.10 około 80%
 # odpowiedzi to było 429, a dziurę cicho łatał zapas adsb.fi, usunięty 26.10.
