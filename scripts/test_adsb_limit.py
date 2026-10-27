@@ -71,6 +71,7 @@ def zeruj():
     adsb._przerwa_do = 0.0
     adsb._cykl = 0
     adsb._geo_cache.clear()
+    adsb._awaria_do = 0.0
 
 
 print("1. Dobowy budżet zapytań")
@@ -130,6 +131,16 @@ adsb._cykl = 0
 asyncio.run(adsb._tick(Klient(odp_ok)))
 sprawdz(not any(a.get("hex") == "4b8452" for a in adsb.current_aircraft),
         "wynik koła starszy niż obieg planu znika z mapy")
+
+print("\n5. Awaria adsb.lol inna niż limit → zapas, potem nowa próba (27.10.2026: każde /v2 → 400)")
+zeruj()
+adsb.status.update(ok=True, last=time.time() - 30, error=None)
+wynik = asyncio.run(adsb._fetch_mil(Klient(lambda url: Odp(400))))
+teraz = time.time()
+sprawdz(wynik is None and adsb._przerwa_s() == 0, "400 nie jest limitem — bez przerwy z 429")
+sprawdz(not adsb._lol_dostepny(teraz), "po 400 pętla bierze zapas zamiast adsb.lol")
+sprawdz(adsb._lol_dostepny(teraz + config.ADSB_AWARIA_S + 1), f"po {config.ADSB_AWARIA_S} s znów próba adsb.lol")
+zeruj()
 
 print("\n4. Własny adres, bez drugiej puli")
 sprawdz(not config.ADSB_IPV4,

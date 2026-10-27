@@ -213,6 +213,7 @@ ADSB_ZAPAS_DOBA = 5
 # razem z wysłaniem maili do adsb.lol i adsb.fi. Pusta wartość w .env wyłącza zapas.
 ADSB_ZAPAS = os.getenv("ADSB_ZAPAS", "adsb.fi")
 ADSB_ZAPAS_INTERVAL = 60
+ADSB_AWARIA_S = 600          # po błędzie adsb.lol innym niż limit: tyle sekund na zapasie, potem nowa próba
 ADSB_PLAN = ("mil", "mil", "kolo0")
 # Wyjście do adsb.lol przez NASZ adres (IPv6 serwera), nie przez IPv4. IPv4 Mikrusa to brama NAT
 # wspólna z innymi klientami: druga pula 500 zapytań z innego adresu byłaby obejściem limitu

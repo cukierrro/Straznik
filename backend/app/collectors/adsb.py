@@ -134,6 +134,7 @@ async def _fetch_mil(client: httpx.AsyncClient) -> list[dict] | None:
             last_err = f"{name}: {e}"
             log.warning("ADS-B %s nie odpowiada: %s", name, e)
     status.update(ok=False, error=last_err)
+    _zapamietaj_awarie()
     return None
 
 
@@ -443,8 +444,19 @@ async def _pobierz_zapas(client: httpx.AsyncClient) -> tuple[list, list] | None:
     return ac_list, geo_candidates
 
 
+# Awaria adsb.lol inna niż limit (27.10.2026 od 05:04 UTC: każde /v2/... → 400 z pustą treścią,
+# także spoza naszego serwera). Zapas reagował tylko na pustą pulę i 429, więc mapa była pusta.
+# Po takim błędzie przez ADSB_AWARIA_S bierzemy zapas, potem znów próbujemy adsb.lol.
+_awaria_do = 0.0
+
+
+def _zapamietaj_awarie() -> None:
+    global _awaria_do
+    _awaria_do = time.time() + config.ADSB_AWARIA_S
+
+
 def _lol_dostepny(t: float) -> bool:
-    return _zostalo(t) > 0 and _przerwa_s() == 0
+    return _zostalo(t) > 0 and _przerwa_s() == 0 and t >= _awaria_do
 
 
 async def _tick(client: httpx.AsyncClient, zapas: bool = False):
