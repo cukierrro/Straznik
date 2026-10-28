@@ -269,13 +269,27 @@ _trail: dict[str, list] = {}
 TRAIL_MIN_KM, TRAIL_MAX_PTS, TRAIL_MAX_AGE_S = 0.7, 20, 45 * 60
 
 
+def _pozycja_wstawiona(t: dict) -> bool:
+    """Pozycja, której nikt nie zaobserwował: „курсом на X” (NEPTUN stawia punkt
+    kilka km przed X i kieruje go na X) albo pozycja przybliżona w źródle.
+
+    28.10.2026: przeskok z takiego punktu do potwierdzenia „w X” dawał „kurs
+    z ruchu” równy dokładnie kursowi domniemanemu (Opisznia 229° → 229°)."""
+    if t.get("destination") is True or t.get("areaOnly") is True:
+        return True
+    info = t.get("straznik_position") or _position_info(t)
+    return info.get("reason") == "source_approx"
+
+
 def _movement_heading(t: dict) -> float | None:
     """Kurs z przesunięcia względem poprzedniej obserwacji tego samego obiektu
     (kotwica po ruchu ≥ 2 km, pamięć 10 min). Liczony zawsze, także gdy NEPTUN
-    podaje własny kurs — alarm ETA potrzebuje kursu z ruchu (audyt G3)."""
+    podaje własny kurs — alarm ETA potrzebuje kursu z ruchu (audyt G3).
+    Pozycja wstawiona nie jest ruchem: ani kotwicą, ani końcem odcinka."""
     tid, lat, lon = t.get("id"), t.get("lat"), t.get("lon")
     prev = _last_pos.get(tid)
-    if prev and geo.haversine_km(prev[0], prev[1], lat, lon) >= _MIN_MOVE_KM:
+    if prev and not _pozycja_wstawiona(t) \
+            and geo.haversine_km(prev[0], prev[1], lat, lon) >= _MIN_MOVE_KM:
         est = geo.bearing_deg(prev[0], prev[1], lat, lon)
         _last_est[tid] = (est, time.time())
         t["heading_movement"] = round(est, 1)
@@ -444,7 +458,9 @@ def _evaluate(t: dict) -> dict:
     tid = t.get("id")
     if tid is not None:
         prev = _last_pos.get(tid)
-        if prev is None or geo.haversine_km(prev[0], prev[1], lat, lon) >= _MIN_MOVE_KM:
+        if _pozycja_wstawiona(t):
+            pass        # kotwica zostaje na ostatniej zaobserwowanej pozycji
+        elif prev is None or geo.haversine_km(prev[0], prev[1], lat, lon) >= _MIN_MOVE_KM:
             _last_pos[tid] = (lat, lon)
         if not _is_approx_position(t):
             now = time.time()

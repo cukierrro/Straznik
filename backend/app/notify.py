@@ -300,7 +300,10 @@ def alarm_headline(signals: list[dict]) -> str:
                 line += f", dolot do granicy ok. {d['eta_border_min']} min"
             return line
         if x.get("event_type") == "ua_alert_border" and d.get("oblast"):
-            return f"Alarm powietrzny w obwodzie {d['oblast']} (Ukraina)"
+            # 28.10.2026: tu szła nazwa źródłowa („w obwodzie Житомирська”) — tytuł
+            # sygnału był po polsku od 12.09, a pierwsza linia powiadomienia nie
+            name = config.UA_OBLAST_PL.get(d["oblast"], d["oblast"])
+            return f"Alarm powietrzny w obwodzie {name} (Ukraina)"
         if x.get("source") == "media":
             return "Doniesienia mediów o zagrożeniu z powietrza"
     return "Kilka sygnałów pomocniczych naraz"

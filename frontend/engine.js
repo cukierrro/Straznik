@@ -1473,9 +1473,14 @@ function measuredSpeedKmh(t) {
   const v = haversine(a.lat, a.lon, b.lat, b.lon) / dtH;
   return (v > 20 && v < 4000) ? v : null;
 }
+/* Lustro neptun._pozycja_wstawiona: punkt „курсом на X” albo pozycja przybliżona
+   w źródle to nie obserwacja — przeskok z niego do X dawał „kurs z ruchu” równy
+   kursowi domniemanemu (28.10.2026). */
+const pozycjaWstawiona = (t) => t?.destination === true || t?.areaOnly === true
+  || (t?.straznik_position || positionInfo(t)).reason === "source_approx";
 function movementHeading(t) {
   const prev = lastPos.get(t.id);
-  if (prev && haversine(prev[0], prev[1], t.lat, t.lon) >= 2) {
+  if (prev && !pozycjaWstawiona(t) && haversine(prev[0], prev[1], t.lat, t.lon) >= 2) {
     const est = bearing(prev[0], prev[1], t.lat, t.lon);
     t.heading_movement = Math.round(est * 10) / 10;
     return est;
@@ -1568,7 +1573,7 @@ function neptunEval(t) {
   t.heading_source = headingSourceOf(t);
   if (isJet(t)) t.straznik_jet = true;
   recordTrail(t);
-  if (t.id != null) lastPos.set(t.id, [t.lat, t.lon]);
+  if (t.id != null && !pozycjaWstawiona(t)) lastPos.set(t.id, [t.lat, t.lon]);
   const a = t.pl_assessment, ty = (t.type||"").toLowerCase();
   if (a.toward_pl) {
     let points = scoreThreat(t, a.dist_km, a.course_factor);
