@@ -39,6 +39,16 @@
   <p class="fineprint">To see which version your phone has, open the app: <kbd>Menu</kbd> → <kbd>Settings</kbd> → <kbd>Language, text and version</kbd> → “App version”. The <kbd>⬆ Check for updates</kbd> button is right there too.</p>
 </div></header>
 <main id="content" class="wrap">
+<section id="v1-8-03">
+  <h2>1.8.03 — an honest description of drones reported “heading to…” and fewer false warnings</h2>
+  <p class="fineprint">Release 1.8.03 · 28 October 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.8.03">Full release notes</a></p>
+  <ul>
+    <li><b>Drone “heading to…”:</b> such a report gives only the target, and the angle on the map was computed by NEPTUN from a nominal point in front of the target. The icon no longer shows a direction, and the card says plainly what was reported, that the position is nominal and that the flight direction is unknown. In western Ukraine this angle pointed at Poland in 99% of cases and usually differed from the flight observed later by more than 90°.</li>
+    <li><b>Points:</b> such a drone counts only when it is closer than 150 km to the border. Over 30 days of data: 20 fewer yellow warnings without a later RCB alert; the lead over an RCB alert was lost once.</li>
+    <li><b>Heading from movement:</b> the jump from the nominal point to the town is no longer counted as the drone's movement.</li>
+    <li><b>Aircraft:</b> the sources window names the fallback source — FlyItalyADSB (CC BY-SA 4.0 licence).</li>
+  </ul>
+</section>
 <section id="v1-8-02">
   <h2>1.8.02 — the correct date in the GROTA warning, aircraft within the adsb.lol limit</h2>
   <p class="fineprint">Release 1.8.02 · 26 October 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.8.02">Full release notes</a></p>

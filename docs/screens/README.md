@@ -283,3 +283,20 @@ test (▶ Test: full alert) on the live Lublin signals of that moment, during a 
 drone alert in Lublin province; the RCB alert text is quoted in Polish in every
 language because that is how the source publishes it. No notifications were sent;
 the emulator sound was muted.
+
+## 1803 — release 1.8.03 (28 October 2026)
+
+`1803/object-presumed-{pl,en,uk}.jpg` replace `1799/object-points-{pl,en,uk}.jpg` in all
+guides (also the iPhone guides): in 1.8.03 the card of a drone reported only with a target
+(“flying towards: …”) shows a “nominal position” badge and one block — what was reported,
+position, heading (unknown; the angle comes from NEPTUN), Poland and arrival time — instead
+of “heading to a target … the extended track points towards Poland”, and its map icon is no
+longer rotated. Unchanged 1080 × 2400 screenshots of a 1.8.03 GitHub debug build (code 132)
+on the Pixel 7 emulator with Android 14, taken on the evening of 28 October 2026 (PL ~21:26,
+EN ~21:29, UK ~21:31 Europe/Warsaw) on live data: a drone reported towards Barvinkove,
+Kharkiv oblast, about 960 km from the border, so the card says it is too far to count. The
+three shots show the same track; the age, report count and circle size differ because the
+data changed between the captures. The card was opened by a real tap on the icon and
+expanded with the card's own button; its body was scrolled by script so the whole block is
+visible. The old `1799/object-points-*` files stay as unused historical assets. Nothing in
+the images is retouched.
