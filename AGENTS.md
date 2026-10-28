@@ -67,6 +67,22 @@ bez potrzeby niezmienionych zrzutów. Procedura zrzutów: `docs/screens/README.m
 Ta zasada nie upoważnia do wysyłania testowych alarmów do użytkowników ani do
 zmniejszania zabezpieczeń aplikacji lub systemu.
 
+## Kolejność wydania — najpierw sklepy i test instalacji, potem GitHub
+
+Ustalenie z użytkownikiem z 27.10.2026. Plik APK 1.8.01 wydany na GitHubie przed
+sklepami dostał w Google Play Protect czerwone „Zablokowano szkodliwą aplikację”,
+choć podpis, uprawnienia i kod natywny były te same co w 1.8.00. Wydanie na GitHubie
+od razu rozsyła plik przez aktualizator do wszystkich, więc ma iść po sprawdzeniu.
+
+1. Najpierw zgłoszenie do Google Play i App Store (jak dotąd — tylko na wyraźne
+   słowo użytkownika).
+2. W tym czasie podpisane APK trafia na Dysk Google użytkownika; użytkownik instaluje
+   je testowo na telefonie z Play Protect i sprawdza, czy nie ma ostrzeżenia.
+3. Wydanie na GitHubie (APK, link „najnowsze APK”, powiadomienie w aktualizatorze)
+   dopiero po czystej instalacji testowej. Na zatwierdzenie w sklepach nie czekamy.
+
+GitHub zostaje: to jedyna droga dla telefonów bez usług Google (np. Huawei).
+
 ## Dostęp do stron internetowych — Firecrawl CLI
 
 Do wyszukiwania, otwierania i odczytywania bieżących stron internetowych używaj

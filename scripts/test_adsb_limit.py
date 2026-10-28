@@ -71,6 +71,7 @@ def zeruj():
     adsb._przerwa_do = 0.0
     adsb._cykl = 0
     adsb._geo_cache.clear()
+    adsb._awaria_do = 0.0
 
 
 print("1. Dobowy budżet zapytań")
@@ -86,6 +87,9 @@ engine = (ROOT / "frontend" / "engine.js").read_text(encoding="utf-8")
 m = re.search(r"every\(tickAdsb,\s*(\d+)\)", engine)
 telefon = doba * 1000 / int(m.group(1)) if m else 1e9
 sprawdz(495 <= telefon <= config.ADSB_LIMIT_DOBA, f"telefon w trybie awaryjnym: {telefon:.1f} zapytań na dobę")
+z_kluczem = doba / config.ADSB_INTERVAL_KLUCZ
+sprawdz(z_kluczem <= config.ADSB_LIMIT_DOBA_KLUCZ and z_kluczem * 31 <= 30000,
+        f"z kluczem (27.10): {z_kluczem:.0f}/dobę, {z_kluczem * 31:.0f} w 31 dniach — w limicie ≥ 24 tys./mies. przy każdym zaokrągleniu")
 
 print("\n2. 429 to przerwa, nie awaria")
 zeruj()
@@ -130,6 +134,33 @@ adsb._cykl = 0
 asyncio.run(adsb._tick(Klient(odp_ok)))
 sprawdz(not any(a.get("hex") == "4b8452" for a in adsb.current_aircraft),
         "wynik koła starszy niż obieg planu znika z mapy")
+
+print("\n5. Awaria adsb.lol inna niż limit → zapas, potem nowa próba (27.10.2026: każde /v2 → 400)")
+zeruj()
+adsb.status.update(ok=True, last=time.time() - 30, error=None)
+wynik = asyncio.run(adsb._fetch_mil(Klient(lambda url: Odp(400))))
+teraz = time.time()
+sprawdz(wynik is None and adsb._przerwa_s() == 0, "400 nie jest limitem — bez przerwy z 429")
+sprawdz(not adsb._lol_dostepny(teraz), "po 400 pętla bierze zapas zamiast adsb.lol")
+sprawdz(adsb._lol_dostepny(teraz + config.ADSB_AWARIA_S + 1), f"po {config.ADSB_AWARIA_S} s znów próba adsb.lol")
+zeruj()
+
+print("\n6. Klucz adsb.lol w nagłówku x-api-key, gdy jest w .env")
+class KlientN(Klient):
+    async def get(self, url, headers=None):
+        self.naglowki = headers or {}
+        return await super().get(url, headers)
+k = KlientN(lambda url: Odp(200))
+przed = config.ADSBLOL_API_KEY
+config.ADSBLOL_API_KEY = "sk-lol-test"
+asyncio.run(adsb._get(k, "https://api.adsb.lol/v2/mil"))
+sprawdz(k.naglowki.get("x-api-key") == "sk-lol-test", "z kluczem: nagłówek x-api-key wysłany")
+config.ADSBLOL_API_KEY = ""
+k = KlientN(lambda url: Odp(200))
+asyncio.run(adsb._get(k, "https://api.adsb.lol/v2/mil"))
+sprawdz("x-api-key" not in k.naglowki, "bez klucza: brak nagłówka")
+config.ADSBLOL_API_KEY = przed
+zeruj()
 
 print("\n4. Własny adres, bez drugiej puli")
 sprawdz(not config.ADSB_IPV4,

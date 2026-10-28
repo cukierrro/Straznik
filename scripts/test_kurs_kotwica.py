@@ -40,6 +40,29 @@ sprawdz(kursy[2] is not None and 260 <= kursy[2] <= 280,
 sprawdz(neptun._last_pos["r1"][1] == lon - 0.016 * 2, "kotwica przesunięta dopiero po ruchu ≥ 2 km")
 sprawdz(kursy[3] is not None and 260 <= kursy[3] <= 280, f"kolejny mały krok zachowuje kurs ({kursy[3]})")
 
+print("1b. punkt „курсом на X” to nie ruch (28.10.2026, Opisznia 229° → „zmierzone” 229°)")
+neptun._last_pos.clear()
+neptun._last_est.clear()
+# NEPTUN: „курсом на Опішня” — punkt ~9 km na NE od miasta, kurs 229° na miasto
+wst = {"id": "d1", "type": "uav", "lat": 49.99, "lon": 34.70, "heading": 229.0,
+       "presumptiveCourse": True, "destination": True, "positionQuality": "approx"}
+neptun._evaluate(wst)
+# potwierdzenie „w Opiszni” — przeskok ze wstawionego punktu do miasta
+potw = {"id": "d1", "type": "uav", "lat": 49.955, "lon": 34.61, "positionQuality": "confirmed"}
+neptun._evaluate(potw)
+sprawdz(potw.get("heading_estimated") is None and potw.get("heading_movement") is None,
+        f"przeskok ze wstawionego punktu nie daje kursu ({potw.get('heading_estimated')})")
+sprawdz(potw.get("heading_source") == "unknown", f"kurs nieznany, nie „measured” ({potw.get('heading_source')})")
+# kolejne potwierdzenie 10 km na zachód: to już prawdziwy ruch
+dalej = {"id": "d1", "type": "uav", "lat": 49.955, "lon": 34.47, "positionQuality": "confirmed"}
+neptun._evaluate(dalej)
+sprawdz(dalej.get("heading_estimated") is not None and 260 <= dalej["heading_estimated"] <= 280,
+        f"ruch między dwiema obserwacjami liczy się dalej ({dalej.get('heading_estimated')})")
+# obserwacja → punkt wstawiony: kotwica zostaje na obserwacji
+neptun._evaluate({"id": "d1", "type": "uav", "lat": 50.30, "lon": 34.20, "heading": 300.0,
+                  "presumptiveCourse": True, "destination": True, "positionQuality": "approx"})
+sprawdz(neptun._last_pos["d1"] == (49.955, 34.47), "punkt wstawiony nie przesuwa kotwicy")
+
 print("2. cień ETA dla rakiety z jednym zgłoszeniem")
 a = {"dist_km": 40, "border_voiv": "lubelskie", "heading_known": False}
 t = {"id": "k1", "type": "cruise", "lat": 51.0, "lon": 24.5}

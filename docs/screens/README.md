@@ -86,26 +86,52 @@ on it matched the shipped pack, but the look predated the 14 October contrast an
 This set is the first one built with the assets actually synchronised, and it replaces those frames.
 
 The GROTA captures `g13-mapa-filtry*` and `g29-zasady-dane*` were retaken, and
-`g31-zmiana-wykazu*` and `g32-adres-imiennicy*` are new (Polish, `-en`, `-uk`), on
+`g32-adres-imiennicy*` is new (Polish, `-en`, `-uk`), on
 26 October 2026 between 15:28 and 16:03 Europe/Warsaw. They come from a debug build of the
-`grota-zmiana-wykazu` branch — the same GROTA module as release 1.8.01 (module 66b55272b6, shelter pack from the PSP register
-of 26 October 2026, 87,835 points) on the Pixel 7 emulator with Android 14, with the screen
+`grota-zmiana-wykazu` branch (module 66b55272b6, shelter pack from the PSP register
+of 26 October 2026, 87,835 points). That module differs from the one in release 1.8.02 by one
+sentence of the register-change warning, which none of these three screens shows, and by
+nothing else; the counts, the register date and the offline search are the same code. They were
+taken on the Pixel 7 emulator with Android 14, with the screen
 set to `wm size 1080x2340` so the frames match the rest of the GROTA set, then downscaled to
 720 x 1560 JPEG. Nothing in them is retouched. The position is the same fake GPS fix in
 Lublin's Old Town as the earlier sets. `g13-*` shows the counts the pack really holds
 (87 835 points, 19 591 / 7 578 / 60 666 by access, 85 668 / 897 / 1 270 by location
 certainty), and `g29-*` the register date that goes with them.
 
-`g31-zmiana-wykazu*` shows the warning that the register changed. To produce it, a test place
-"Dom" in Kromolice was written to the app's own storage with the shelter `OZO-852EACB93576`
-saved from the register of 14 September 2026 — the point that PSP has since rewritten to a
-building in Gostyń. Everything in the warning (the old address, the new one, the 23 km and
-the "On request" access) is what the app computed from the two packs; only the saved place is
-made up, and its note "piwnica, wejscie od podworza" stays Polish in the English and Ukrainian
-frames because it is text a user types, not an interface string. `g32-adres-imiennicy*` was
-taken with the emulator's Wi-Fi switched off, so the offline town list really is what answers;
-the province names in the results stay Polish in all three languages, as they are in the
-register. Both new screens first appear in release 1.8.01.
+`g32-adres-imiennicy*` was taken with the emulator's Wi-Fi switched off, so the offline town
+list really is what answers; the province names in the results stay Polish in all three
+languages, as they are in the register. The screen first appears in release 1.8.01.
+
+`g31-zmiana-wykazu*` (Polish, `-en`, `-uk`) was taken on 26 October 2026 between 17:37 and
+18:46 Europe/Warsaw from the signed release APK `Straznik-1.8.02-131.apk` (sha256 0d9769aa…,
+module f48f4eb0c6, same shelter pack), on the Pixel 7 emulator with Android 14 at
+`wm size 1080x2340`, then downscaled to 720 x 1560 JPEG. Nothing in it is retouched.
+
+The state it shows was not written into the app's storage: it was produced by walking the
+update a real person walks. Release 1.8.00 (129) was installed clean, a place "Dom" was added
+in Kromolice through the address search, the shelter "51a, Kromolice" (221 m, open 24 hours in
+that register) was ticked, and then 1.8.02 was installed over it with `adb install -r`, which
+keeps the app's data. The warning appeared by itself. Everything in it — the old address, the
+new one, the 23 km, the "On request" lock and both dates — is what the app computed from the
+two packs.
+
+The frames show the conditional wording ("if what was saved here is …"), which is what the app
+says when it does not know which register a save came from. That is every save made before
+1.8.01, so it is what anyone updating from an older release sees. The unconditional wording
+("The shelter saved here: …") needs a save whose recorded register date is older than the
+change; 1.8.01 is the first version that records such a date and it shipped with the register
+of 26 October, so measured against this pack a 1.8.01 save produces no warning for any of its
+76 rewritten points, while a save carrying no date produces the conditional one for all 76.
+The unconditional wording becomes the ordinary case with the next PSP register, and there is
+deliberately no screenshot of it until a device can reach it honestly.
+
+An earlier version of these frames, taken on 26 October from a debug build with a test place
+written straight into the app's storage, was withdrawn: it showed the unconditional wording,
+and the sentence naming the old register carried the date of the change instead of the register
+that still held the old address, so the same date stood on both sides of it. That defect was in
+release 1.8.01 and is fixed in 1.8.02; finding it on screen is why these frames were retaken
+from the release build.
 
 There is deliberately no screenshot for "When the map gets old": the offline map packs have not
 been rebuilt since that code was written, so no device can honestly show the "There is a newer

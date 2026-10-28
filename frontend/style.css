@@ -395,6 +395,9 @@ body.panel-open #update-banner:not(.critical) { display: none; }
 .chip.download.ios { background: linear-gradient(135deg, #2f4f8f, #4a78c9);
   border-color: rgba(150,190,255,.55); box-shadow: 0 3px 14px rgba(74,120,201,.2); }
 .chip.download.ios:hover { border-color: #b8d2ff; }
+.chip.download.apk { background: rgba(40,67,112,.5); border-color: rgba(119,235,171,.45);
+  box-shadow: none; font-weight: 600; }
+.chip.download.apk:hover { border-color: #9af0bd; }
 .chip.instructions { color: #dbe8ff; border-color: rgba(127,180,255,.38);
   background: rgba(40,67,112,.5); font-weight: 600; text-decoration: none; }
 .chip.instructions:hover { border-color: #7fb4ff; background: rgba(50,82,136,.68); }
@@ -1344,7 +1347,8 @@ dialog menu > .chip.primary { font-weight: 600; }
   .chip.download { font-size: 0; padding: 5px; }
   .chip.download::before { content: "⬇ Android"; font-size: 0.7333rem; letter-spacing: -.2px; }
   .chip.download.ios::before { content: "⬇ iOS"; }
-  .ua-ios #btn-download, .ua-android #btn-ios { display: none; }
+  .chip.download.apk::before { content: "APK"; }
+  .ua-ios #btn-download, .ua-android #btn-ios, .ua-ios #btn-apk { display: none; }
   .chip.instructions { font-size: 0; padding: 5px 8px; }
   .chip.instructions::before { content: "📖"; font-size: 0.9333rem; }
   .chip.coffee { font-size: 0; padding: 5px 8px; }
@@ -1640,6 +1644,7 @@ dialog > .dlg-x:focus:not(:focus-visible) { outline: none; box-shadow: none; bor
    Tam przycisk i tak jest tylko jeden — ten dla systemu telefonu — więc wystarczy strzałka. */
 @media (max-width: 365px) {
   .ua-android .chip.download::before { content: "⬇"; font-size: 1rem; letter-spacing: 0; }
+  .ua-android .chip.download.apk::before { content: "APK"; font-size: 0.7333rem; letter-spacing: -.2px; }
 }
 
 /* ── Dostępność: klawiatura i czytniki ekranu (1.7.81) ──────────────────────

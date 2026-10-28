@@ -97,7 +97,10 @@ test('usunięte źródła nie wracają do kodu aplikacji i serwera', () => {
     const hosty = p.endsWith('.js')
       ? hostyZKodu(read(p))
       : new Set([...read(p).matchAll(/(?:https?|wss?):\/\/([a-z0-9.-]+)/gi)].map(m => m[1].toLowerCase()));
-    for (const z of zakazane)
+    for (const z of zakazane) {
+      // 26–27.10.2026 serwer miał tymczasowy zapas adsb.fi; 27.10 zastąpiony FlyItalyADSB (pisemna zgoda),
+      // więc adsb.fi znów nie ma prawa wrócić nigdzie — także na serwer.
       assert.ok(![...hosty].some(h => h === z || h.endsWith('.' + z)), `${p} łączy się z ${z}`);
+    }
   }
 });

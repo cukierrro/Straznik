@@ -79,6 +79,7 @@
     "mapa zagrożeń z powietrza · Polska": "air threat map · Poland",
     "Pobierz aplikację": "Download app", "⬇ Pobierz aplikację": "⬇ Download app",
     "⬇ Pobierz na Androida": "⬇ Get it for Android", "⬇ Pobierz na iOS": "⬇ Get it for iOS",
+    "⬇ APK bez Google Play": "⬇ APK without Google Play", "☕ Postaw kawę": "☕ Buy me a coffee",
     "Instrukcja": "User guide", "📖 Instrukcja": "📖 User guide",
     "Postaw kawę": "Buy me a coffee", "☕ Postaw kawę": "☕ Buy me a coffee", "Legenda": "Legend", "Menu": "Menu",
     "☕ Postaw kawę autorowi": "☕ Buy the author a coffee", "Bałtyk": "Baltic",
@@ -169,6 +170,7 @@
     "mapa zagrożeń z powietrza · Polska": "мапа повітряних загроз · Польща",
     "Pobierz aplikację": "Завантажити застосунок", "⬇ Pobierz aplikację": "⬇ Завантажити застосунок",
     "⬇ Pobierz na Androida": "⬇ Завантажити для Android", "⬇ Pobierz na iOS": "⬇ Завантажити для iOS",
+    "⬇ APK bez Google Play": "⬇ APK без Google Play", "☕ Postaw kawę": "☕ Пригостити кавою",
     "Instrukcja": "Інструкція", "📖 Instrukcja": "📖 Інструкція",
     "Postaw kawę": "Пригостити кавою", "☕ Postaw kawę": "☕ Пригостити кавою", "Legenda": "Легенда",
     "☕ Postaw kawę autorowi": "☕ Пригостити автора кавою", "Bałtyk": "Балтика",
@@ -946,6 +948,8 @@
     const attrs = {
       "btn-download": ["title","Get the Strażnik app for Android on Google Play"],
       "btn-ios": ["title","Get the Strażnik app for iPhone on the App Store"],
+      "btn-kawa": ["title","Buy the author a coffee — voluntary support for the project"],
+      "btn-apk": ["title","APK file from GitHub for phones without Google services (e.g. Huawei). On a phone with Google Play, install from the store."],
       "btn-instructions": ["title","Open the full Strażnik user guide"],
       "btn-about": ["title","About Strażnik — what it is and how it works"],
       "btn-legend": ["title","Symbol legend"], "btn-settings": ["title","My location and settings"],
@@ -1030,7 +1034,7 @@
     // atrybucja: nazwy własne zostają, opis źródła musi być po angielsku
     const attr = document.getElementById("attr-text");
     if (attr) attr.innerHTML = 'Data: <a href="https://neptun.in.ua" target="_blank" rel="noopener">NEPTUN</a> — OSINT aggregator, not radar.<br>'
-      + 'Aircraft: ADS-B © <a href="https://adsb.lol" target="_blank" rel="noopener">adsb.lol</a>, licence <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener">ODbL</a>.<br>'
+      + 'Aircraft: ADS-B © <a href="https://adsb.lol" target="_blank" rel="noopener">adsb.lol</a>, licence <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener">ODbL</a>; fallback <a href="https://flyitalyadsb.com" target="_blank" rel="noopener">FlyItalyADSB</a>, licence <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>.<br>'
       + 'Map: <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a>'
       + ' © <a href="https://www.openmaptiles.org/" target="_blank" rel="noopener">OpenMapTiles</a>,'
       + ' data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>';
@@ -1268,6 +1272,8 @@
   const ATTR_UK = {
     "#btn-download": ["title", "Завантажити Strażnik для Android з Google Play"],
     "#btn-ios": ["title", "Завантажити Strażnik для iPhone в App Store"],
+    "#btn-kawa": ["title", "Пригостити автора кавою — добровільна підтримка проєкту"],
+    "#btn-apk": ["title", "Файл APK з GitHub для телефонів без сервісів Google (напр. Huawei). На телефоні з Google Play краще встановити з магазину."],
     "#btn-instructions": ["title", "Відкрити повну інструкцію Strażnika"],
     "#btn-about": ["title", "Про Strażnika — що це і як працює"],
     "#btn-legend": ["title", "Легенда символів"],
@@ -1344,7 +1350,7 @@
       + '<a href="https://mikr.us" target="_blank" rel="noopener">Сайт Mikrus ↗</a></div>';
     const attr = document.getElementById("attr-text");
     if (attr) attr.innerHTML = 'Дані: <a href="https://neptun.in.ua" target="_blank" rel="noopener">NEPTUN</a> — агрегатор OSINT, не радар.<br>'
-      + 'Авіація: ADS-B © <a href="https://adsb.lol" target="_blank" rel="noopener">adsb.lol</a>, ліцензія <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener">ODbL</a>.<br>'
+      + 'Авіація: ADS-B © <a href="https://adsb.lol" target="_blank" rel="noopener">adsb.lol</a>, ліцензія <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener">ODbL</a>; резервно <a href="https://flyitalyadsb.com" target="_blank" rel="noopener">FlyItalyADSB</a>, ліцензія <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>.<br>'
       + 'Мапа: <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a>'
       + ' © <a href="https://www.openmaptiles.org/" target="_blank" rel="noopener">OpenMapTiles</a>,'
       + ' дані © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>';

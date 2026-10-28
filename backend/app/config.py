@@ -153,6 +153,12 @@ NEPTUN_KURS_WOJ_ZERO_DEG = 45.0
 # i tylko blisko granicy: nieznany kurs to niepewność, nie dowód bezpieczeństwa.
 NEPTUN_UNKNOWN_HEADING_MULT = 0.5
 NEPTUN_UNKNOWN_HEADING_MAX_KM = 150.0
+# Kurs domniemany („курсом на X” — namiar ze wstawionego punktu na cel) daje punkty
+# tylko do tej odległości od granicy; bliżej — pełne, jak dotąd. Decyzja usera
+# 28.10.2026 (wariant D): w zachodniej Ukrainie taki kurs wskazywał Polskę w 99%
+# przypadków. Powtórka minutowa 30 dni (67 alertów RCB): 20 żółtych bez alertu RCB
+# mniej, wyprzedzenie żółtym utracone raz (08.10 07:30), czerwonym — ani razu.
+NEPTUN_PRESUMPTIVE_MAX_KM = 150.0
 # Pomiar 27–30.08.2026: p90 opóźnienia źródła wyniósł ok. 125–135 s, a
 # sporadyczne próbki 5–7 min. Czas pokazywany użytkownikowi i progi alarmowe
 # pomniejszamy o 2,5 min, żeby nie obiecywać zapasu, który mógł już upłynąć.
@@ -191,6 +197,9 @@ NEPTUN_NATIONAL_REGION_MARKERS = ("загальнодержавн",)   # porówn
 
 # ── ADS-B ─────────────────────────────────────────────────────────────────────
 ADSB_PROVIDER = os.getenv("ADSB_PROVIDER", "adsb.lol")   # jedyny dostawca od 26.10.2026
+# Klucz adsb.lol (przyznany 27.10.2026 na wniosek, nagłówek x-api-key). Sekret — tylko w .env.
+# Limitu klucza adsb.lol nie podaje w nagłówkach; tempo zostaje przy ADSB_INTERVAL, dopóki go nie poznamy.
+ADSBLOL_API_KEY = os.getenv("ADSBLOL_API_KEY", "").strip()
 # adsb.lol ma limit na adres: 4/s, 60/min i 500 na dobę (nagłówek x-ratelimit-limit, 26.10.2026).
 # Co minutę /v2/mil + dwa koła bałtyckie to ~4300 zapytań na dobę — od co najmniej 20.10 około 80%
 # odpowiedzi to było 429, a dziurę cicho łatał zapas adsb.fi, usunięty 26.10.
@@ -200,6 +209,30 @@ ADSB_PROVIDER = os.getenv("ADSB_PROVIDER", "adsb.lol")   # jedyny dostawca od 26
 # ~4,3 min (najdłużej 5,8 min), koło co ~8,7 min.
 ADSB_LIMIT_DOBA = 500                                      # limit adsb.lol na adres i dobę
 ADSB_INTERVAL = int(os.getenv("ADSB_INTERVAL", "173"))     # odstęp między KAŻDYMI dwoma zapytaniami
+# Z kluczem (27.10.2026, decyzja usera): strona klucza pokazała 1% limitu godzinowego przy ~21 zap./h
+# (limit ~2000/h) i 0% miesięcznego przy ~240 zapytaniach (limit ≥ 24 tys./mies.). Co 90 s = 960 na dobę,
+# ~29,8 tys. w 31-dniowym miesiącu — mieści się przy każdym zaokrągleniu procentów. Szybciej (co minutę)
+# dopiero po potwierdzeniu limitu przez adsb.lol: wielokrotne 429 może unieważnić klucz.
+ADSB_LIMIT_DOBA_KLUCZ = int(os.getenv("ADSB_LIMIT_DOBA_KLUCZ", "960"))
+ADSB_INTERVAL_KLUCZ = int(os.getenv("ADSB_INTERVAL_KLUCZ", "90"))
+if ADSBLOL_API_KEY:
+    ADSB_LIMIT_DOBA, ADSB_INTERVAL = ADSB_LIMIT_DOBA_KLUCZ, ADSB_INTERVAL_KLUCZ
+# Doba adsb.lol to doba UTC: x-ratelimit-reset 26.10 o 17:21 UTC wskazywał dokładnie 00:00 UTC,
+# a w logu 23–26.10 pierwsze 429 każdego dnia padało o 02:49–02:59 UTC, czyli po ~500 zapytaniach
+# od północy UTC (stary kod pytał ~3 razy na minutę) — potem do północy UTC już tylko 429.
+# Budżet liczy zapytania tej doby w pliku (adsb.py), więc restart serwera ani ręczny pomiar curl-em
+# nie przepychają nas ponad limit: odstęp = czas do północy UTC / zapytania, które zostały,
+# nie krócej niż ADSB_INTERVAL. ADSB_ZAPAS_DOBA zostaje na restarty i pomiary.
+ADSB_ZAPAS_DOBA = 5
+# Zapas, gdy adsb.lol odmawia albo pula jest pusta: FlyItalyADSB (Nesso Labs). 27.10.2026 pisemna zgoda
+# (Riccardo): użycie informacyjne i publikacja obok danych ODbL w porządku, podpis „FlyItalyADSB, CC BY-SA 4.0”
+# z linkiem w okienku źródeł. Zastąpił adsb.fi (warunki „personal use”, brak zgody) — decyzja usera 27.10.
+# Klucz tylko w .env (FLYITALY_API_KEY). Bez klucza zapasu nie ma. Plan Free: 30 zap./min, 300 tys./mies.,
+# promień ≤ 500 km — zapas pyta 2 razy co ADSB_ZAPAS_INTERVAL.
+FLYITALY_API_KEY = os.getenv("FLYITALY_API_KEY", "").strip()
+ADSB_ZAPAS = os.getenv("ADSB_ZAPAS", "flyitaly" if FLYITALY_API_KEY else "")
+ADSB_ZAPAS_INTERVAL = 60
+ADSB_AWARIA_S = 600          # po błędzie adsb.lol innym niż limit: tyle sekund na zapasie, potem nowa próba
 ADSB_PLAN = ("mil", "mil", "kolo0")
 # Wyjście do adsb.lol przez NASZ adres (IPv6 serwera), nie przez IPv4. IPv4 Mikrusa to brama NAT
 # wspólna z innymi klientami: druga pula 500 zapytań z innego adresu byłaby obejściem limitu

@@ -66,6 +66,14 @@ def main() -> None:
         "Alarm powietrzny w obwodzie rówieńskim (woj. lubelskie — 70 km)"
     assert "granic" not in _alert_title("Житомирська", "lubelskie", 220)
 
+    # pierwsza linia powiadomienia (28.10.2026: szła „w obwodzie Житомирська”)
+    from app.notify import alarm_headline
+    for oblast in config.UA_ALERT_OBLASTS:
+        linia = alarm_headline([{"source": "ua_alert", "event_type": "ua_alert_border",
+                                 "counted_points": 0.5, "details": {"oblast": oblast}}])
+        assert not any("Ѐ" <= ch <= "ӿ" for ch in linia), f"cyrylica w powiadomieniu: {linia}"
+        assert config.UA_OBLAST_PL[oblast] in linia, linia
+
     print(f"OK: {len(config.UA_ALERT_OBLASTS)} obwodów UA, wagi malejące z odległością, "
           "limit klasy nadal poniżej progu żółtego")
 

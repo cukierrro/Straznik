@@ -104,7 +104,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <link rel="icon" type="image/png" sizes="512x512" href="assets/icon-512.png">
 <link rel="apple-touch-icon" href="assets/icon-192.png">
 <link rel="stylesheet" href="assets/vendor/maplibre-gl.css?v=1.7.82">
-<link rel="stylesheet" href="style.css?v=1.7.99c">
+<link rel="stylesheet" href="style.css?v=1.8.02a">
 </head>
 <body>
 
@@ -154,6 +154,18 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
        href="https://apps.apple.com/pl/app/id6813563009" target="_blank" rel="noopener"
        title="Pobierz aplikację Strażnik na iPhone'a z App Store"
        aria-label="Pobierz aplikację Strażnik na iPhone'a z App Store">⬇ Pobierz na iOS</a>
+    <!-- 27.10.2026, prośba usera: plik APK z GitHuba dla telefonów bez usług Google (np. Huawei).
+         Na telefonie z Google Play lepiej instalować ze sklepu — plik spoza sklepu bywa
+         oznaczany przez Play Protect, dlatego przycisk jest skromniejszy od sklepowych. -->
+    <a id="btn-apk" class="chip download apk web-only"
+       href="https://github.com/cukierrro/Straznik/releases/latest/download/Straznik.apk" rel="noopener"
+       title="Plik APK z GitHuba dla telefonów bez usług Google (np. Huawei). Na telefonie z Google Play lepiej pobrać ze sklepu."
+       aria-label="Pobierz plik APK Strażnika z GitHuba — dla telefonów bez usług Google">⬇ APK bez Google Play</a>
+    <!-- 27.10.2026, prośba usera: wsparcie autora także na pasku strony (w aplikacjach jest w Menu;
+         web-only, bo wydania sklepowe nie mogą prowadzić do zbiórki poza sklepem). -->
+    <a id="btn-kawa" class="chip coffee web-only no-ios no-sklep" href="https://buycoffee.to/cukierrro" target="_blank" rel="noopener"
+       title="Postaw kawę autorowi — dobrowolne wsparcie projektu"
+       aria-label="Postaw kawę autorowi — dobrowolne wsparcie projektu">☕ Postaw kawę</a>
     <!-- v4 (14.10.2026): na pasku zostaje marka, diody i — na stronie — pobieranie
          aplikacji. Legenda, 3D, obce maszyny, powiadomienia i ustawienia są w Menu
          (dolna zakładka) — makieta v4 przyjęta przez usera. Identyfikatory przycisków
@@ -192,7 +204,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
     <div class="attr-head"><b id="attr-h">Źródła mapy</b>
       <button id="attr-x" type="button"><span id="attr-x-t">Zamknij</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
     <p id="attr-text">Dane: <a href="https://neptun.in.ua" target="_blank" rel="noopener">NEPTUN</a> — agregator OSINT, nie radar.<br>
-      Lotnictwo: ADS-B © <a href="https://adsb.lol" target="_blank" rel="noopener">adsb.lol</a>, licencja <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener">ODbL</a>.<br>
+      Lotnictwo: ADS-B © <a href="https://adsb.lol" target="_blank" rel="noopener">adsb.lol</a>, licencja <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener">ODbL</a>; zapasowo <a href="https://flyitalyadsb.com" target="_blank" rel="noopener">FlyItalyADSB</a>, licencja <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>.<br>
       Mapa: <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a>
       © <a href="https://www.openmaptiles.org/" target="_blank" rel="noopener">OpenMapTiles</a>,
       dane © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a></p>
@@ -841,7 +853,8 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
   Granice obwodów Ukrainy: <a href="https://www.geoboundaries.org/" target="_blank" rel="noopener">geoBoundaries</a>,
   dane © OpenStreetMap (ODbL).
   Lotnictwo: ADS-B © <a href="https://adsb.lol" target="_blank" rel="noopener">adsb.lol</a>,
-  licencja <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener">ODbL</a>.
+  licencja <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener">ODbL</a>;
+  zapasowo <a href="https://flyitalyadsb.com" target="_blank" rel="noopener">FlyItalyADSB</a>, licencja <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>.
   Gdy kafelki OpenFreeMap nie odpowiadają, mapa pokazuje same kontury i obiekty
   z plików aplikacji, bez podkładu.</p>
 </dialog>
@@ -1314,11 +1327,11 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
      Cloudflare, więc po każdym wydaniu wystarczy podbić ?v= i przeglądarki
      dostają nowe app.js/engine.js OD RAZU, bez ręcznego czyszczenia cache CF.
      Podbijaj ?v= razem z versionName w build.gradle. -->
-<script src="i18n.js?v=1.8.00a"></script>
+<script src="i18n.js?v=1.8.02c"></script>
 <!-- kontur Polski dla engine.js (audyt A2b, scripts/build_pl_outline.py) -->
 <script src="pl-outline.js?v=1.7.82"></script>
 <script src="voiv-outline.js?v=1.7.97"></script>
-<script src="engine.js?v=1.8.01a"></script>
+<script src="engine.js?v=1.8.02b"></script>
 <script src="aircraft-photo-catalog.js?v=1.7.19"></script>
 <script src="aircraft-photos.js?v=1.7.79"></script>
 <script src="places.js?v=1.7.19-4"></script>
@@ -1331,7 +1344,7 @@ if (STRAZNIK_OLD_ENGINE) document.addEventListener("DOMContentLoaded", function 
 <div id="a11y-alert" class="sr-only" role="status" aria-live="assertive" aria-atomic="true"></div>
 <div id="a11y-info" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
 
-<script src="app.js?v=1.8.00c"></script>
+<script src="app.js?v=1.8.02d"></script>
 <script>
 /* Instrukcja pasująca do telefonu i języka (21.09.2026). iPhone ma osobną, bo alarmy,
    zgody i aktualizacje działają tam inaczej. Tu, a nie w app.js: index.html nie jest
