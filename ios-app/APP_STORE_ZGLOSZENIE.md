@@ -1105,3 +1105,35 @@ rozszerzenia zielony.
 `stopSiren()`, a natywny bezpiecznik syreny ma 1200 s (20 min). Sprawdzać to
 przy każdym wydaniu — gdyby ktoś zmienił jedną z tych liczb, objawem byłaby
 syrena milknąca w złym momencie i nic by o tym nie powiedziało.
+
+## 30. Zgłoszenie 1.8.03 (28.10.2026, 22:01)
+
+Build **2610282045**, commit `main 266e9a1`, status **Waiting for Review**,
+publikacja automatyczna, od razu do wszystkich, ocena zachowana. Zgoda usera
+własnym słowem w sesji iOS. 1.8.02 było już „Ready for Distribution", więc
+kolejka wolna. Opis z `opis-1.8.03.txt`, tylko PL, **378 znaków** — tyle samo
+co w pliku, sprawdzone odczytem pola po wklejeniu.
+
+### Przyciski zakazane na iOS — jak to sprawdzać
+
+Sesja główna poprosiła o potwierdzenie, że w aplikacji nie ma przycisku
+„APK bez Google Play" ani odnośnika do kawy (App Store 3.1.1 i 3.1.1(a)).
+**Sama obecność klasy nic nie dowodzi** — trzeba prześledzić cały łańcuch:
+
+1. `#about` → przycisk APK ma klasę `web-only`;
+2. chowa ją `.native-app .web-only { display: none !important }` w `style.css`;
+3. klasę `native-app` dodaje skrypt w `<head>` `index.html`, gdy
+   `location.protocol === "capacitor:"` albo `file:`, albo istnieje
+   `window.Capacitor` — czyli w aplikacji zawsze;
+4. kawa występuje **dwa razy**: raz z `web-only no-ios no-sklep`, raz tylko
+   z `no-ios no-sklep`. Drugie wystąpienie łapie `.ios-app .no-ios`, a klasę
+   `ios-app` dodaje ten sam nagłówek, gdy `Capacitor.getPlatform() === "ios"`.
+
+**Najważniejsze jest to, że obie klasy nadawane są PRZED pierwszym renderem.**
+Gdyby ustawiał je dopiero `app.js` na końcu strony, przycisk pobierania spoza
+sklepu mógłby mignąć przy wolniejszym starcie — a to wystarczyłoby Apple za
+powód odrzucenia. Przy sprawdzaniu patrzeć więc nie tylko na to, CZY element
+jest chowany, ale KIEDY.
+
+Gotowy skrypt tego sprawdzenia (klasy + reguły CSS + miejsce nadania) wraca
+przy każdym wydaniu — warto go trzymać pod ręką.
