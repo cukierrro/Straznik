@@ -592,6 +592,13 @@ function etaInfo(t) {
 }
 /* G3/G6 — lustro neptun.heading_source i is_jet na serwerze */
 const isPresumedCourse = (t) => t?.heading != null && t?.presumptiveCourse === true;
+/* Kurs domniemany nie obraca ikony (28.10.2026). Przy „курсом на X” NEPTUN stawia punkt
+   przed X i kieruje go na X — to namiar na cel, nie obserwacja lotu. W zachodniej
+   Ukrainie w 30 dniach wskazywał Polskę w 99% przypadków, a od zmierzonego ruchu różnił
+   się zwykle o ponad 90°. Migawki historii nie mają `heading_source` — tam rozpoznaje
+   go `destination`. Kurs zostaje w karcie jako „domniemany”. */
+const kursDomniemany = (t) => t?.heading != null && (isPresumedCourse(t)
+  || t.heading_source === "presumptive" || (t.heading_source == null && t.destination === true));
 /* JET_ALARM_KMH to PODŁOGA, na której opiera się alarm i czas pokazywany
    człowiekowi — ta sama liczba co NEPTUN_JET_SPEED_KMH w backendzie.
    JET_CRUISE_KMH (350) jest wyłącznie OPISOWA: prawdziwa prędkość przelotowa,
@@ -2380,7 +2387,8 @@ function openThreatPopup(lngLat, p) {
             ? ` <span style="color:#95a1b7">(${Number(p.uncertainty) - Number(p.unc_lot)} km ${
                 UI.t("zgłoszenia", "report", "повідомлення")} + ${Number(p.unc_lot)} km ${
                 UI.t("lotu od meldunku", "flown since", "польоту відтоді")})</span>` : ""}<br>
-      ${p.heading != null && !p.hdg_unknown ? `${p.heading_measured ? UI.t("kurs z ruchu", "heading from movement", "курс із руху") : UI.t("kurs", "heading", "курс")}: ${Math.round(p.heading)}° (${compass(p.heading)})${p.heading_measured && p.heading_source != null && Math.abs(((p.heading - p.heading_source) % 360 + 540) % 360 - 180) > 45 ? ` <span style="color:#95a1b7">(${UI.t("NEPTUN podaje", "NEPTUN reports", "NEPTUN повідомляє")} ${Math.round(p.heading_source)}°)</span>` : ""} · ` : ""}
+      ${p.heading != null && !p.hdg_unknown ? `${p.heading_measured ? UI.t("kurs z ruchu", "heading from movement", "курс із руху") : UI.t("kurs", "heading", "курс")}: ${Math.round(p.heading)}° (${compass(p.heading)})${p.heading_measured && p.heading_source != null && Math.abs(((p.heading - p.heading_source) % 360 + 540) % 360 - 180) > 45 ? ` <span style="color:#95a1b7">(${UI.t("NEPTUN podaje", "NEPTUN reports", "NEPTUN повідомляє")} ${Math.round(p.heading_source)}°)</span>` : ""} · ` : ""}${
+      p.kurs_domn != null && p.kurs_domn !== "" ? `${UI.t("kurs domniemany", "presumed heading", "передбачуваний курс")}: ${Math.round(Number(p.kurs_domn))}° (${compass(Number(p.kurs_domn))}) <span style="color:#95a1b7">${UI.t("— namiar źródła na cel, nie zmierzony lot", "— the source's bearing to a target, not a measured flight", "— напрямок джерела на ціль, а не виміряний політ")}</span> · ` : ""}
       ${UI.t("odległość od granicy PL", "distance from the Polish border", "відстань від кордону Польщі")}: <b>${p.distance_text ?? ((p.dist_km ?? "?") + " km")}</b><br>
       ${UI.t("ostatni meldunek", "last report", "останнє повідомлення")}: <b>${ageAgoText(p.age_min)}</b>${Number(p.age_min) >= 15
         ? ` <span style="color:#95a1b7">${UI.t("— rejon przestał już rosnąć, obiekt może być dalej", "— the area has stopped growing; the object may be further away", " — район уже перестав зростати, об'єкт може бути далі")}</span>` : ""}<br>
@@ -3312,7 +3320,9 @@ function animate(ts) {
     pts.push({ type: "Feature", geometry: { type: "Point", coordinates: [p.lon, p.lat] },
       properties: { tid: String(t.id ?? ""),
         type: TYPE_META[t.type] ? t.type : "unknown", heading: shownHdg ?? 0,
-        hdg_unknown: mh == null && (t.heading == null || t.pl_assessment?.heading_known === false),
+        hdg_unknown: mh == null && (t.heading == null || t.pl_assessment?.heading_known === false
+          || kursDomniemany(t)),
+        kurs_domn: mh == null && kursDomniemany(t) ? Math.round(t.heading) : null,
         heading_measured: mh != null,
         heading_source: t.heading ?? null,
         color: meta.color,
@@ -6235,7 +6245,8 @@ function showHistoryAt(idx) {
         geometry: { type: "Point", coordinates: [t.lon, t.lat] },
         properties: { tid: String(t.id ?? ""),
           type: TYPE_META[t.type] ? t.type : "unknown", heading: t.heading ?? 0,
-          hdg_unknown: t.heading == null || t.pl_assessment?.heading_known === false,
+          hdg_unknown: t.heading == null || t.pl_assessment?.heading_known === false || kursDomniemany(t),
+          kurs_domn: kursDomniemany(t) ? Math.round(t.heading) : null,
           color: (TYPE_META[t.type] || {}).color || "#8a93a6",
           confidence: t.confidenceLevel || "?", uncertainty: shownUncertaintyKm(t) ?? "?",
           unc_lot: uncertaintyParts(t)?.lot ?? 0,
