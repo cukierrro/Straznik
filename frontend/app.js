@@ -343,7 +343,7 @@ function threatDesc(t) {
     .filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).join(", ");
   const parts = [];
   if (where) parts.push(t.destination
-    ? UI.t(`kursem na ${where}`, `heading towards ${where}`, `курсом на ${where}`)
+    ? UI.t(`leci w stronę: ${where}`, `flying towards: ${where}`, `летить у бік: ${where}`)
     : UI.t(`rejon: ${where}`, `area: ${where}`, `район: ${where}`));
   if (t.sourceCount) parts.push(UI.t(`potwierdzeń: ${t.sourceCount}`, `confirmations: ${t.sourceCount}`, `підтверджень: ${t.sourceCount}`));
   return parts.join(" · ") || UI.type(t.type, meta.label);
@@ -2387,13 +2387,11 @@ function openThreatPopup(lngLat, p) {
             ? ` <span style="color:#95a1b7">(${Number(p.uncertainty) - Number(p.unc_lot)} km ${
                 UI.t("zgłoszenia", "report", "повідомлення")} + ${Number(p.unc_lot)} km ${
                 UI.t("lotu od meldunku", "flown since", "польоту відтоді")})</span>` : ""}<br>
-      ${p.heading != null && !p.hdg_unknown ? `${p.heading_measured ? UI.t("kurs z ruchu", "heading from movement", "курс із руху") : UI.t("kurs", "heading", "курс")}: ${Math.round(p.heading)}° (${compass(p.heading)})${p.heading_measured && p.heading_source != null && Math.abs(((p.heading - p.heading_source) % 360 + 540) % 360 - 180) > 45 ? ` <span style="color:#95a1b7">(${UI.t("NEPTUN podaje", "NEPTUN reports", "NEPTUN повідомляє")} ${Math.round(p.heading_source)}°)</span>` : ""} · ` : ""}${
-      p.kurs_domn != null && p.kurs_domn !== "" ? `${UI.t("kurs domniemany", "presumed heading", "передбачуваний курс")}: ${Math.round(Number(p.kurs_domn))}° (${compass(Number(p.kurs_domn))}) <span style="color:#95a1b7">${UI.t("— namiar źródła na cel, nie zmierzony lot", "— the source's bearing to a target, not a measured flight", "— напрямок джерела на ціль, а не виміряний політ")}</span> · ` : ""}
+      ${p.heading != null && !p.hdg_unknown ? `${p.heading_measured ? UI.t("kurs z ruchu", "heading from movement", "курс із руху") : UI.t("kurs", "heading", "курс")}: ${Math.round(p.heading)}° (${compass(p.heading)})${p.heading_measured && p.heading_source != null && Math.abs(((p.heading - p.heading_source) % 360 + 540) % 360 - 180) > 45 ? ` <span style="color:#95a1b7">(${UI.t("NEPTUN podaje", "NEPTUN reports", "NEPTUN повідомляє")} ${Math.round(p.heading_source)}°)</span>` : ""} · ` : ""}
       ${UI.t("odległość od granicy PL", "distance from the Polish border", "відстань від кордону Польщі")}: <b>${p.distance_text ?? ((p.dist_km ?? "?") + " km")}</b><br>
       ${UI.t("ostatni meldunek", "last report", "останнє повідомлення")}: <b>${ageAgoText(p.age_min)}</b>${Number(p.age_min) >= 15
         ? ` <span style="color:#95a1b7">${UI.t("— rejon przestał już rosnąć, obiekt może być dalej", "— the area has stopped growing; the object may be further away", " — район уже перестав зростати, об'єкт може бути далі")}</span>` : ""}<br>
-      ${courseVerdictHTML(p)}
-      ${p.eta || ""}
+      ${maKursDomniemany(p) ? kartaDomniemanyHTML(p) : courseVerdictHTML(p) + (p.eta || "")}
       ${kartaPunktyHTML(p)}
       <span style="color:#9aa6be">${UI.t("Dane: NEPTUN — agregator OSINT, nie radar wojskowy", "Data: NEPTUN — OSINT aggregator, not military radar", "Дані: NEPTUN — агрегатор OSINT, а не військовий радар")}</span>`);
 }
@@ -2434,6 +2432,66 @@ function courseVerdictHTML(p) {
   return `<span style="color:#a3aec4"><b>${UI.t("0 pkt", "0 pts", "0 бал.")}</b> — ${why}</span><br>`;
 }
 
+/* Karta obiektu z kursem domniemanym (28.10.2026, treść uzgodniona z userem).
+   „курсом на X” to prawdziwe zgłoszenie z kanałów monitoringu, ale podaje tylko CEL:
+   ani położenia, ani skąd dron nadlatuje. NEPTUN stawia ikonę w umownym punkcie
+   przed celem i liczy kąt z tego punktu na cel — ten kąt nie pochodzi ze zgłoszenia.
+   Dawna karta mówiła „przedłużenie trasy prowadzi w stronę Polski” przy ikonie bez
+   kierunku i „pozycja wyznaczona przez źródło” — dla czytelnika niejasne. */
+const PRESUMPTIVE_MAX_KM = 150;   // lustro config.NEPTUN_PRESUMPTIVE_MAX_KM (wariant D)
+const maKursDomniemany = (p) => p.kurs_domn != null && p.kurs_domn !== "";
+function kartaDomniemanyHTML(p) {
+  const naCel = p.na_cel === true || p.na_cel === "true";
+  const cel = p.cel ? esc2(String(p.cel)) : "";
+  const kat = Math.round(Number(p.kurs_domn));
+  const kier = `${kat}°, ${compass(kat)}`;
+  const n = Number(p.zgl) > 0 ? Number(p.zgl) : null;
+  const okrag = esc2(String(p.uncertainty));
+  const akapit = (tytul, tekst) => `<b>${tytul}</b> ${tekst}<br>`;
+  const out = [];
+  if (naCel) {
+    out.push(akapit(UI.t("Co zgłoszono:", "What was reported:", "Що повідомили:"), UI.t(
+      `kanały monitoringu podały, dokąd dron leci${n ? ` (zgłoszeń: ${n})` : ""}. Nie podały, gdzie był w chwili zgłoszenia ani skąd nadlatuje.`,
+      `monitoring channels reported where the drone is heading${n ? ` (${n} reports)` : ""}. They did not say where it was at the time or where it is coming from.`,
+      `канали моніторингу повідомили, куди летить дрон${n ? ` (повідомлень: ${n})` : ""}. Вони не вказали, де він був у момент повідомлення і звідки летить.`)));
+    out.push(akapit(UI.t("Położenie: niepewne.", "Position: uncertain.", "Розташування: непевне."), UI.t(
+      `Ikona stoi w punkcie, który NEPTUN umownie stawia przed celem. Dron może być w dowolnym miejscu w drodze do celu (okrąg ±${okrag} km).`,
+      `The icon sits at a point NEPTUN places in front of the target by convention. The drone may be anywhere on its way to the target (circle ±${okrag} km).`,
+      `Іконка стоїть у точці, яку NEPTUN умовно ставить перед ціллю. Дрон може бути будь-де на шляху до цілі (коло ±${okrag} км).`)));
+    out.push(akapit(UI.t("Kierunek: nieznany.", "Heading: unknown.", "Напрямок: невідомий."), UI.t(
+      `Wiadomo, dokąd leci, ale nie skąd, więc nie da się wyznaczyć kierunku lotu. Kąt ${kier}, który podaje NEPTUN, wynika tylko z położenia tego umownego punktu.`,
+      `It is known where it is heading but not where from, so its flight direction cannot be determined. The angle ${kier} given by NEPTUN only follows from where that nominal point was placed.`,
+      `Відомо, куди летить, але не звідки, тому напрямок польоту визначити неможливо. Кут ${kier}, який подає NEPTUN, випливає лише з розташування цієї умовної точки.`)));
+  } else {
+    const gdzie = p.miejsce ? ` (${esc2(String(p.miejsce))}).` : ".";
+    out.push(akapit(UI.t(`Położenie: z meldunku${gdzie}`, `Position: from the report${gdzie}`,
+      `Розташування: з повідомлення${gdzie}`), ""));
+    out.push(akapit(UI.t("Kierunek: nieznany.", "Heading: unknown.", "Напрямок: невідомий."), UI.t(
+      `Zgłoszenie mówi, dokąd dron leci, ale nie skąd. Kąt ${kier} podaje NEPTUN — nie pochodzi on ze zgłoszenia.`,
+      `The report says where the drone is heading but not where from. The angle ${kier} comes from NEPTUN, not from the report.`,
+      `Повідомлення каже, куди летить дрон, але не звідки. Кут ${kier} подає NEPTUN — він не походить із повідомлення.`)));
+  }
+  const toward = p.toward_pl === true || p.toward_pl === "true";
+  const km = p.dist_km == null || p.dist_km === "" ? null : Number(p.dist_km);
+  out.push(akapit(UI.t("Polska:", "Poland:", "Польща:"), !toward
+    ? UI.t("cel nie leży w stronę Polski — obiekt nie daje punktów.",
+        "the target is not in the direction of Poland — the object gives no points.",
+        "ціль не лежить у бік Польщі — об'єкт не дає балів.")
+    : km != null && km > PRESUMPTIVE_MAX_KM
+    ? UI.t(`za daleko, żeby samo takie zgłoszenie liczyło się do alarmu (ponad ${PRESUMPTIVE_MAX_KM} km od granicy).`,
+        `too far for such a report alone to count towards an alert (over ${PRESUMPTIVE_MAX_KM} km from the border).`,
+        `надто далеко, щоб саме таке повідомлення враховувалося до тривоги (понад ${PRESUMPTIVE_MAX_KM} км від кордону).`)
+    : UI.t(`dopóki obiekt jest bliżej niż ${PRESUMPTIVE_MAX_KM} km od granicy, liczy się do punktacji (niżej).`,
+        `while the object is closer than ${PRESUMPTIVE_MAX_KM} km to the border, it counts towards the score (below).`,
+        `поки об'єкт ближче ніж ${PRESUMPTIVE_MAX_KM} км від кордону, він враховується в балах (нижче).`)));
+  out.push(akapit(UI.t("Czas dolotu:", "Arrival time:", "Час підльоту:"), naCel
+    ? UI.t("nie liczymy, bo położenie i kierunek nie są znane.", "not estimated, because neither position nor heading is known.",
+        "не рахуємо, бо розташування і напрямок невідомі.")
+    : UI.t("nie liczymy, bo kierunek nie jest znany.", "not estimated, because the heading is unknown.",
+        "не рахуємо, бо напрямок невідомий.")));
+  return `<div class="karta-domn" style="color:#e8c37a">${out.join("")}</div>`;
+}
+
 /* Plakietka pewności pozycji w karcie (19.10.2026). Pewna = punkt ze źródła;
    niepewna = meldunek o kierunku lotu albo środek miejscowości. Opis, skąd wzięła
    się pozycja niepewna, karta ma już niżej (etaHtml → approxPositionNote) —
@@ -2442,6 +2500,10 @@ function kartaPozycjaHTML(p) {
   const apx = p.apx === true || p.apx === "true";
   // Dopisek jako zwykły tekst w wierszu, nie osobny element: na 320 px przy dużym
   // tekście osobny <span> po ukraińsku zawijał się w trzy linie (test_responsywnosc).
+  // „kursem na X”: sama plakietka — opis stoi tuż pod nią (kartaDomniemanyHTML), a krótki
+  // dopisek po ukraińsku przy ×1,3 łamał się na 320 px w cztery linie (28.10.2026)
+  if (apx && (p.na_cel === true || p.na_cel === "true"))
+    return `<div class="poz-wiersz"><span class="poz-plak poz-niepewna">${UI.t("położenie umowne", "nominal position", "умовна позиція")}</span></div>`;
   if (apx) return `<div class="poz-wiersz"><span class="poz-plak poz-niepewna">${UI.t("pozycja niepewna", "uncertain position", "непевна позиція")}</span> ${
     UI.t("nie namiar, opis niżej", "not a fix, see below", "не координати, опис нижче")}</div>`;
   return `<div class="poz-wiersz"><span class="poz-plak poz-pewna">${UI.t("pozycja potwierdzona", "confirmed position", "підтверджена позиція")}</span> ${
@@ -3323,6 +3385,7 @@ function animate(ts) {
         hdg_unknown: mh == null && (t.heading == null || t.pl_assessment?.heading_known === false
           || kursDomniemany(t)),
         kurs_domn: mh == null && kursDomniemany(t) ? Math.round(t.heading) : null,
+        zgl: t.sourceCount ?? null, miejsce: t.locality ? placeName(t.locality) : "",
         heading_measured: mh != null,
         heading_source: t.heading ?? null,
         color: meta.color,
@@ -6247,6 +6310,7 @@ function showHistoryAt(idx) {
           type: TYPE_META[t.type] ? t.type : "unknown", heading: t.heading ?? 0,
           hdg_unknown: t.heading == null || t.pl_assessment?.heading_known === false || kursDomniemany(t),
           kurs_domn: kursDomniemany(t) ? Math.round(t.heading) : null,
+          zgl: t.sourceCount ?? null, miejsce: t.locality ? placeName(t.locality) : "",
           color: (TYPE_META[t.type] || {}).color || "#8a93a6",
           confidence: t.confidenceLevel || "?", uncertainty: shownUncertaintyKm(t) ?? "?",
           unc_lot: uncertaintyParts(t)?.lot ?? 0,
