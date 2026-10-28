@@ -9,6 +9,7 @@ G6: „Реактивний БпЛА” (Geran-3) — do czasu dolotu 600 km/h z
 Uruchomienie: py scripts/test_kurs_domniemany.py
 """
 import asyncio
+import re
 import sys
 from pathlib import Path
 
@@ -91,6 +92,26 @@ run([first], [{**first, "lon": LON}])
 s = last_signal("trk_g3_away")
 sprawdz(s is None or s["details"]["eta_alarm"] is None,
         f"ruch od granicy nie potwierdza kursu ({s and s['details']['eta_alarm']})")
+
+print("4b. Wariant D (28.10.2026): kurs domniemany punktuje tylko do 150 km od granicy")
+# 51,0 N 27,6 E — ok. 200 km od granicy, kurs na zachód (na PL)
+dal = {"type": "uav", "lat": 51.0, "lon": 27.6, "heading": 270, "confidenceLevel": "high",
+       "sourceCount": 3, "positionQuality": "confirmed", "lifecycle": "confirmed", "status": "active"}
+a_dal = geo.assess_for_scoring(51.0, 27.6, 270, config.NEPTUN_HEADING_TOLERANCE, config.NEPTUN_HEADING_SOFT_DEG,
+                               config.NEPTUN_UNKNOWN_HEADING_MULT, config.NEPTUN_UNKNOWN_HEADING_MAX_KM)
+sprawdz(a_dal["toward_pl"] and a_dal["dist_km"] > config.NEPTUN_PRESUMPTIVE_MAX_KM,
+        f"punkt testowy dalej niż {config.NEPTUN_PRESUMPTIVE_MAX_KM:.0f} km, kurs na PL ({a_dal['dist_km']} km)")
+run([{**dal, "id": "trk_d_dom", "presumptiveCourse": True, "destination": True},
+     {**dal, "id": "trk_d_rep"}])
+sprawdz(not [s for s in ingested if s["details"]["track_id"] == "trk_d_dom"],
+        "domniemany > 150 km: brak sygnału, także dla sąsiednich województw")
+sprawdz(last_signal("trk_d_rep") is not None, "ten sam obiekt z kursem podanym wprost punktuje jak dotąd")
+sprawdz(last_signal("trk_g3_presumed") is not None and last_signal("trk_g3_presumed")["points"] > 0,
+        "domniemany blisko granicy (sekcja 2) — pełne punkty jak dotąd")
+eng = (Path(__file__).resolve().parents[1] / "frontend" / "engine.js").read_text(encoding="utf-8")
+m = re.search(r"const PRESUMPTIVE_MAX_KM = (\d+)", eng)
+sprawdz(m and float(m.group(1)) == config.NEPTUN_PRESUMPTIVE_MAX_KM and "a.dist_km > PRESUMPTIVE_MAX_KM" in eng,
+        "tryb bez serwera ma ten sam próg")
 
 print("5. G6: dron odrzutowy")
 drone = {"type": "uav", "lat": 51.0, "lon": 25.6, "heading": 270, "confidenceLevel": "high",

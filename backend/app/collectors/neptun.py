@@ -336,6 +336,12 @@ def heading_source(t: dict) -> str:
 # w obserwacje.db (kind `catalog_point_shadow`).
 
 
+def domniemany_za_daleko(t: dict, a: dict) -> bool:
+    """Kurs domniemany dalej niż NEPTUN_PRESUMPTIVE_MAX_KM od granicy — bez punktów."""
+    return ((t.get("heading_source") or heading_source(t)) == "presumptive"
+            and (a.get("dist_km") or 0) > config.NEPTUN_PRESUMPTIVE_MAX_KM)
+
+
 def is_jet(t: dict) -> bool:
     """Dron odrzutowy (Geran-3 / Shahed-238) rozpoznany z opisu NEPTUN-a (audyt G6)."""
     text = f"{t.get('title') or ''} {t.get('explanationShort') or ''}".lower()
@@ -897,6 +903,8 @@ async def _maybe_signal(t: dict):
     a = t.get("pl_assessment")
     if not a or not a["toward_pl"]:
         return
+    if domniemany_za_daleko(t, a):
+        return              # także bez przypisań do sąsiednich województw
     points = score_threat(t, a["dist_km"], a.get("course_factor", 1.0))
     if points <= 0:
         return

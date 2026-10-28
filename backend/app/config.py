@@ -153,6 +153,12 @@ NEPTUN_KURS_WOJ_ZERO_DEG = 45.0
 # i tylko blisko granicy: nieznany kurs to niepewność, nie dowód bezpieczeństwa.
 NEPTUN_UNKNOWN_HEADING_MULT = 0.5
 NEPTUN_UNKNOWN_HEADING_MAX_KM = 150.0
+# Kurs domniemany („курсом на X” — namiar ze wstawionego punktu na cel) daje punkty
+# tylko do tej odległości od granicy; bliżej — pełne, jak dotąd. Decyzja usera
+# 28.10.2026 (wariant D): w zachodniej Ukrainie taki kurs wskazywał Polskę w 99%
+# przypadków. Powtórka minutowa 30 dni (67 alertów RCB): 20 żółtych bez alertu RCB
+# mniej, wyprzedzenie żółtym utracone raz (08.10 07:30), czerwonym — ani razu.
+NEPTUN_PRESUMPTIVE_MAX_KM = 150.0
 # Pomiar 27–30.08.2026: p90 opóźnienia źródła wyniósł ok. 125–135 s, a
 # sporadyczne próbki 5–7 min. Czas pokazywany użytkownikowi i progi alarmowe
 # pomniejszamy o 2,5 min, żeby nie obiecywać zapasu, który mógł już upłynąć.

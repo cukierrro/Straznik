@@ -189,6 +189,8 @@ const HEADING_TOL = 50;
 /* Waga kursu (lustro geo.course_factor): twarde cięcie na 50° gubiło obiekty tuż
    za progiem, a brak pola heading wyciszał nawet rakietę tuż przy granicy. */
 const HEADING_SOFT = 70, UNKNOWN_HEADING_MULT = 0.5, UNKNOWN_HEADING_MAX_KM = 150;
+// lustro config.NEPTUN_PRESUMPTIVE_MAX_KM (wariant D, decyzja usera 28.10.2026)
+const PRESUMPTIVE_MAX_KM = 150;
 // lustro config.NEPTUN_KURS_WOJ_* (B15, decyzja usera 25.10.2026): premia za kurs na województwo
 const KURS_WOJ_K = 0.15, KURS_WOJ_PELNE_DEG = 15, KURS_WOJ_ZERO_DEG = 45;
 const BORDER_POINTS = [
@@ -1575,7 +1577,7 @@ function neptunEval(t) {
   recordTrail(t);
   if (t.id != null && !pozycjaWstawiona(t)) lastPos.set(t.id, [t.lat, t.lon]);
   const a = t.pl_assessment, ty = (t.type||"").toLowerCase();
-  if (a.toward_pl) {
+  if (a.toward_pl && !(t.heading_source === "presumptive" && a.dist_km > PRESUMPTIVE_MAX_KM)) {
     let points = scoreThreat(t, a.dist_km, a.course_factor);
     if (points > 0) {
       const wagi = wagiKursuWoj(t, a);
