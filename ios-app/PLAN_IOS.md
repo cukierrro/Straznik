@@ -45,7 +45,7 @@ ekranu i bez gwarancji, że przebije wyciszony telefon.
 | AlarmKit (iOS 26+) | alarmy na ekranie blokady; inżynier Apple (VI 2026) poleca go do alarmów awaryjnych zamiast Critical Alerts; **uruchomienie pushem — brak udokumentowanej drogi** | developer.apple.com/documentation/alarmkit; forums thread 833511 |
 | Live Activity push-to-start | iOS 17.2+; FCM obsługuje (`apns.live_activity_token`), ale **per urządzenie, nie per temat** | firebase.google.com/docs/cloud-messaging/customize-messages/live-activity |
 | Napiwki / linki zewnętrzne | 3.1.1: napiwek dla dewelopera tylko przez zakup w aplikacji; 3.1.1(a): poza USA bez przycisków do innych płatności → „Postaw kawę” do ukrycia | developer.apple.com/app-store/review/guidelines |
-| Nowość | iOS 27 / Xcode 27 wydane (9.09.2026), obraz `xcode-27` w GitHub Actions w podglądzie | j.w. |
+| Nowość | iOS 27 / Xcode 27 wydane (9.09.2026); obraz `xcode-27` w GitHub Actions to **publiczny podgląd**, ma Xcode 27.1 jako domyślne i SDK iOS 27.1 — **zmierzone 29.10.2026, projekt się nim kompiluje**, patrz §12 | j.w. |
 
 ---
 
@@ -582,3 +582,60 @@ ten od syreny. Gaszenie wibracji i migania zostaje po stronie frontendu.
 `ios-app/skrypty/test_zdania_rozszerzenia.py` i zrównać tabelę `ZDANIA`
 w rozszerzeniu. Niezgodność nie psuje alarmu — push przyjdzie po polsku, ale
 cały; nigdy ucięty. NSE i tak nieaktywne do etapu D.
+
+## 12. SDK iOS 27 — ZMIERZONE, projekt się kompiluje (29.10.2026)
+
+Pytanie przyszło od czytelnika z X: na rozłożonym **iPhone Duo** Strażnik nie
+zajmuje całego wewnętrznego ekranu. Pełny ekran na tym urządzeniu wymaga
+zbudowania aplikacji SDK iOS 27.1 lub nowszym.
+
+**Najpierw pomyłka, warto ją zapamiętać:** sprawdzałem etykietę maszyny
+`macos-27`. **Taka nie istnieje.** Bieg stał w `queued` i nie dostał maszyny,
+a ja wyciągnąłem z tego wniosek, że obrazu z Xcode 27 jeszcze nie ma — i tak
+powiedziałem użytkownikowi. Obraz nazywa się **`xcode-27`**. Nauka: bieg
+wiszący w `queued` nie dowodzi, że obrazu nie ma — dowodzi tylko, że nikt nie
+odpowiada na tę etykietę. Lista etykiet jest w `actions/runner-images`,
+a nazwa podglądowego obrazu niekoniecznie idzie wzorem `macos-NN`.
+
+### Co runner naprawdę ma (bieg 40953292369, gałąź `sprawdzenie-xcode`)
+
+```
+Xcode 27.1 (Build 27A9275)   — aktywne, /Applications/Xcode_27.1.app
+zainstalowane:               27.0, 27.1, 27.2 Release Candidate
+iOS SDKs:                    iOS 27.1          -sdk iphoneos27.1
+iOS Simulator SDKs:          Simulator - iOS 27.1
+```
+
+Aktywne Xcode widzi **tylko SDK 27.1** — pozostałe wymagałyby przestawienia
+`xcode-select`. Symulator iOS 27.1 też jest, więc układ na nowym systemie da
+się obejrzeć **bez urządzenia**.
+
+### Wynik kompilacji
+
+Tryb `sprawdzenie` (bez podpisu, atrapa `GoogleService-Info.plist`, nic nie
+idzie do Apple): **BUILD SUCCEEDED**, 59 s. Schemat `App` ma rozszerzenie
+powiadomień jako zależność i „Embed App Extensions", więc **NSE też się
+skompilowało**. Bez błędów.
+
+**Czego to nie dowodzi — nie przedstawiać tego jako zielonego światła:**
+
+1. **Nie widzieliśmy wszystkich ostrzeżeń.** Krok filtruje wyjście przez
+   `grep -E "error:|warning: .*Straznik|BUILD"`, a pełny `xcodebuild.log`
+   wrzucamy do artefaktów wyłącznie przy błędzie. Ostrzeżenia nowego SDK
+   o rzeczach wycofanych mogły przepaść. Chcąc je zobaczyć, trzeba na czas
+   próby zdjąć filtr albo wrzucać log zawsze.
+2. **Ścieżka podpisu nie była ruszana.** Prawdziwe ryzyko zmiany Xcode siedzi
+   w certyfikacie, profilach i uprawnieniach rozszerzenia, nie w kompilacji.
+   To sprawdza tryb `podpis` — i on **sięga po sekrety Apple**, więc wymaga
+   osobnego słowa użytkownika.
+3. **Obraz jest podglądem.** GitHub sam uprzedza o niestabilności i kolejkach.
+   Na gałęzi `ios`, z której idą buildy do Apple, zostaje `macos-26`.
+4. **Układ to osobna sprawa.** Nawet zbudowana nowym SDK aplikacja będzie na
+   szerokim ekranie **rozciągnięta**, a nie zaprojektowana — i dalej nie
+   obsługujemy **bocznych** marginesów bezpiecznych: `--safe-t` i `--safe-b`
+   istnieją, `--safe-l` / `--safe-r` nie ma. `safe-area-inset-left/right`
+   występuje w całym frontendzie raz, w `grota/grota.css`. Bez tego pasek
+   stanu przy prawej krawędzi przykryje treść.
+
+Etykieta `xcode-27` **zostaje na gałęzi `sprawdzenie-xcode`** z komentarzem,
+po co tam jest — żeby próbę dało się powtórzyć jednym `workflow_dispatch`.
