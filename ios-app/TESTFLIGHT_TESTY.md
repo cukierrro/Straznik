@@ -1000,7 +1000,7 @@ Powód: czytelnik z X (iPhone Duo) ma dostać build do testów. **Nie internal**
 tam tester musi dostać rolę na koncie dewelopera, a to za dużo dla kogoś z zewnątrz.
 
 Stan: grupa istnieje, build **1.8.03 (2610282045)** podpięty i w **Beta App Review**
-(„Waiting for Review"), 0 testerów. User sam wpisze adres, gdy go dostanie.
+(„Waiting for Review"), **1 tester** — adres wpisał user 29.10 bezpośrednio w panelu. Adresu nie ma ani w tym pliku, ani w commitach i tak ma zostać.
 
 **Gdzie się wpisuje testera:** TestFlight → EXTERNAL TESTING → `Testerzy zewnetrzni`
 → zakładka **Testers** → **+** obok „Testers (0)". Public Link jest na tej samej
