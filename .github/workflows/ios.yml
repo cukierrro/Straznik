@@ -69,6 +69,22 @@ jobs:
           major=$(xcodebuild -version | awk 'NR==1{split($2,v,"."); print v[1]}')
           # Apple od 28.04.2026 przyjmuje tylko buildy z Xcode 26+ (iOS 26 SDK)
           if [ "$major" -lt 26 ]; then echo "::error::Potrzebny Xcode 26 lub nowszy"; exit 1; fi
+          # Rozpoznanie na potrzeby iPhone Duo (29.10.2026): pelny wewnetrzny ekran
+          # wymaga SDK iOS 27.1+. Sprawdzamy, CO runner ma do dyspozycji, zanim
+          # ktokolwiek zacznie przestawiac obraz albo DEVELOPER_DIR. Sam wydruk,
+          # nic nie zmienia i niczego nie wymusza.
+          echo "--- Xcode zainstalowane na runnerze ---"
+          ls /Applications | grep -i "^Xcode" || echo "(brak katalogow Xcode*)"
+          echo "--- wersje po kolei ---"
+          for x in /Applications/Xcode*.app; do
+            [ -d "$x" ] || continue
+            printf "%s -> " "$x"
+            "$x/Contents/Developer/usr/bin/xcodebuild" -version 2>/dev/null | head -1 || echo "(nie odpytalem)"
+          done
+          echo "--- SDK widziane przez aktywne Xcode ---"
+          xcodebuild -showsdks || true
+          echo "--- aktywna sciezka ---"
+          xcode-select -p
 
       - uses: actions/setup-node@v5
         with:
