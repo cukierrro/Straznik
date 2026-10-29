@@ -91,6 +91,18 @@ jobs:
           echo "--- aktywna sciezka ---"
           xcode-select -p
 
+      - name: Jakie symulatory ma ten obraz (rozpoznanie 29.10.2026)
+        run: |
+          # Pytanie jest konkretne: CZY ISTNIEJE symulator iPhone Duo. Jesli nie,
+          # ukladu na rozlozonym ekranie nie obejrzymy bez urzadzenia i trzeba to
+          # powiedziec wprost, a nie obiecywac zrzuty.
+          echo "--- systemy (runtimes) ---"
+          xcrun simctl list runtimes || true
+          echo "--- urzadzenia iPhone ---"
+          xcrun simctl list devicetypes | grep -i iphone || echo "(nic nie pasuje do iPhone)"
+          echo "--- czegokolwiek o Duo/Fold ---"
+          xcrun simctl list devicetypes | grep -iE "duo|fold" || echo "(BRAK urzadzenia Duo/Fold)"
+
       - uses: actions/setup-node@v5
         with:
           node-version: 22
@@ -163,6 +175,32 @@ jobs:
             -destination 'generic/platform=iOS' -clonedSourcePackagesDirPath "$RUNNER_TEMP/spm" \
             CODE_SIGNING_ALLOWED=NO build 2>&1 | tee "$RUNNER_TEMP/xcodebuild.log" | grep -E "error:|warning: .*Straznik|BUILD (SUCCEEDED|FAILED)" || true
           grep -q "BUILD SUCCEEDED" "$RUNNER_TEMP/xcodebuild.log"
+
+      - name: Ostrzeżenia nowego SDK (rozpoznanie 29.10.2026)
+        if: steps.mode.outputs.mode == 'check'
+        run: |
+          # Krok wyzej filtruje WYDRUK, ale `tee` zapisuje do pliku CALE wyjscie,
+          # wiec ostrzezenia tam sa — nikt ich dotad nie czytal. Sesja glowna prosi
+          # o liste rzeczy wycofanych dotyczacych naszego kodu, nie o caly log.
+          log="$RUNNER_TEMP/xcodebuild.log"
+          echo "ostrzezen razem: $(grep -c 'warning:' "$log" || echo 0)"
+          echo
+          echo "=== WYCOFANE / NIEDOSTEPNE / PRZEMIANOWANE ==="
+          grep -hoE 'warning: .*(deprecated|unavailable|obsoleted|renamed|will be removed).*' "$log"             | sed 's/^warning: //' | sort -u || echo "(brak)"
+          echo
+          echo "=== NASZ KOD (ios-app, straznik, NotificationService) ==="
+          grep -E 'warning:' "$log" | grep -iE 'ios-app|straznik|NotificationService'             | sed 's|^.*/||' | sort -u || echo "(brak)"
+          echo
+          echo "=== WSZYSTKIE OSTRZEZENIA, BEZ DUPLIKATOW (do oceny) ==="
+          grep -E 'warning:' "$log" | sed 's|^.*/||' | sort -u | head -200 || echo "(brak)"
+
+      - name: Cały log kompilacji (ta gałąź zawsze, nie tylko przy błędzie)
+        if: steps.mode.outputs.mode == 'check'
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcodebuild-log-sdk27
+          path: ${{ runner.temp }}/xcodebuild.log
+          retention-days: 7
 
       - name: Sprawdzenie klucza App Store Connect
         if: steps.mode.outputs.mode != 'check'
