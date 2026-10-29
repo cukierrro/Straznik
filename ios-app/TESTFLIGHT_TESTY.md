@@ -105,14 +105,31 @@ Zgłoszenia najlepiej zrzutem ekranu, z modelem telefonu i wersją iOS. Dzięki!
 
 ---
 
-## 4. Czego jeszcze brakuje przed grupą zewnętrzną
+## 4. Grupa zewnętrzna — wymagania SPEŁNIONE (sprawdzone 29.10.2026)
 
-- [ ] **Privacy Policy URL** — Apple wymaga przy testach zewnętrznych. Na razie
-      anchor w instrukcji; lepsza osobna strona (`POTRZEBNE_ZMIANY_WSPOLNE.md`, B2b).
-- [ ] **Blok `apns` na serwerze** (zmiana A) — bez niego nie da się przetestować
-      prawdziwego alarmu; warto mieć przed rozdaniem publicznego linku.
-- [ ] Dane kontaktowe do przeglądu (imię, nazwisko, telefon, e-mail) — Apple
-      używa ich tylko do kontaktu, **nie są publiczne**.
+Ta lista była z września i wprowadzała w błąd. Wszystkie trzy pozycje są
+załatwione, więc grupę zewnętrzną da się założyć od ręki:
+
+- [x] **Privacy Policy URL** — polityka istnieje od 21.10 i jest wpisana w karcie
+      App Store (bez niej nie przeszłoby żadne zgłoszenie od 1.7.79).
+- [x] **Blok `apns` na serwerze** — dawno wdrożony; prawdziwe alarmy były
+      wielokrotnie mierzone na urządzeniu.
+- [x] **Dane kontaktowe do przeglądu** — wypełnione w App Review Information
+      (widoczne w panelu przy każdym zgłoszeniu). Nie są publiczne.
+
+**Czego to NIE zmienia:** pierwszy build w grupie zewnętrznej i tak przechodzi
+**Beta App Review** (zwykle 1–2 dni). To osobny przegląd niż ten do App Store —
+wersja może być „Waiting for Review" w sklepie i jednocześnie nieprzepuszczona
+do testów zewnętrznych, albo odwrotnie.
+
+### Internal czy external — dla kogo co
+
+- **Internal (`Testerzy`)**: tester musi zostać **użytkownikiem konta** z rolą
+  Developer. Dla kogoś z zewnątrz, kogo nie znamy, to **za dużo** — dostaje
+  dostęp do konta dewelopera, nie tylko do aplikacji.
+- **External + Public Link**: link rozdaje się bez zbierania adresów. Dla osoby
+  z internetu to jedyne sensowne wyjście — i przy okazji nie trzeba od nikogo
+  wyciągać e-maila.
 
 ---
 
