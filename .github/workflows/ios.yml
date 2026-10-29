@@ -103,6 +103,42 @@ jobs:
           echo "--- czegokolwiek o Duo/Fold ---"
           xcrun simctl list devicetypes | grep -iE "duo|fold" || echo "(BRAK urzadzenia Duo/Fold)"
 
+      - name: Czy symulator Duo umie zmieniać pozy (rozpoznanie 29.10.2026)
+        run: |
+          # Sesja glowna znalazla w README obrazu wiersz "iOS 27.1 | iPhone Duo",
+          # wiec urzadzenie jest. Zostaje pytanie, na ktore README nie odpowiada:
+          # czy poze (zlozony / rozlozony) da sie przestawic z `simctl`. Jesli nie,
+          # zrzut rozlozonego ekranu bedzie wymagal sprzetu i trzeba to powiedziec.
+          # Samo rozpoznanie: nic nie instalujemy, nic nie wysylamy.
+          typ=$(xcrun simctl list devicetypes | grep -i duo | head -1 | sed -E 's/.*\((com\.apple\.[^)]*)\).*/\1/')
+          echo "typ urzadzenia: ${typ:-(nie znalazlem)}"
+          [ -n "$typ" ] || exit 0
+          run=$(xcrun simctl list runtimes | grep "iOS 27" | sed -E 's/.*(com\.apple\.CoreSimulator[^ ]*).*/\1/' | head -1)
+          echo "system: ${run:-(nie znalazlem)}"
+          dev=$(xcrun simctl create duo-proba "$typ" $run 2>&1) || { echo "nie utworzylem: $dev"; exit 0; }
+          echo "utworzone: $dev"
+          xcrun simctl boot "$dev" 2>&1 || true
+          xcrun simctl bootstatus "$dev" -b 2>&1 | tail -3 || true
+          echo "--- wyswietlacze urzadzenia (szukamy wewnetrznego i zewnetrznego) ---"
+          xcrun simctl io "$dev" enumerate 2>&1 | head -60 || true
+          echo "--- czy simctl ma cokolwiek o pozie ---"
+          xcrun simctl help 2>&1 | grep -iE "pose|fold|unfold|display|device.?state" || echo "(nic w simctl help)"
+          xcrun simctl ui "$dev" 2>&1 | head -20 || true
+          echo "--- zrzut domyslnej pozy (do artefaktu) ---"
+          xcrun simctl io "$dev" screenshot "$RUNNER_TEMP/duo-domyslna.png" 2>&1 || true
+          ls -l "$RUNNER_TEMP/duo-domyslna.png" 2>/dev/null || echo "(zrzutu nie ma)"
+          xcrun simctl shutdown "$dev" 2>&1 || true
+          xcrun simctl delete "$dev" 2>&1 || true
+
+      - name: Zrzut pustego symulatora Duo (jeśli powstał)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: duo-symulator-domyslna-poza
+          path: ${{ runner.temp }}/duo-domyslna.png
+          if-no-files-found: ignore
+          retention-days: 7
+
       - uses: actions/setup-node@v5
         with:
           node-version: 22
