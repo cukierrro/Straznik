@@ -54,7 +54,12 @@ concurrency:
 jobs:
   ios:
     if: github.repository == 'cukierrro/Straznik'
-    runs-on: macos-26
+    # TYLKO TA GALAZ (sprawdzenie-xcode) i TYLKO do sprawdzenia, czy projekt
+    # kompiluje sie SDK iOS 27 — pytanie o pelny ekran iPhone Duo, 29.10.2026.
+    # Obraz `xcode-27` jest u GitHuba PUBLICZNYM PODGLADEM (Xcode 27.1 domyslne,
+    # SDK 27.0/27.1/27.2). Na galezi `ios`, z ktorej ida buildy do Apple, musi
+    # zostac `macos-26`. Nie przestawiac tego tam bez osobnej zgody uzytkownika.
+    runs-on: xcode-27
     timeout-minutes: 60
     defaults:
       run:
