@@ -993,3 +993,36 @@ bez tego będziemy poprawiać po omacku rzecz, której nie widać u nas.
 
 To wspólny front (`style.css`, arkusz ustawień v4) — **do sesji UI/UX albo
 głównej**, nie do mnie. Zgłoszę im przy pracach nad 1.7.97.
+
+## Grupa zewnętrzna „Testerzy zewnetrzni" — założona 29.10.2026
+
+Powód: czytelnik z X (iPhone Duo) ma dostać build do testów. **Nie internal** —
+tam tester musi dostać rolę na koncie dewelopera, a to za dużo dla kogoś z zewnątrz.
+
+Stan: grupa istnieje, build **1.8.03 (2610282045)** podpięty i w **Beta App Review**
+(„Waiting for Review"), 0 testerów. User sam wpisze adres, gdy go dostanie.
+
+**Gdzie się wpisuje testera:** TestFlight → EXTERNAL TESTING → `Testerzy zewnetrzni`
+→ zakładka **Testers** → **+** obok „Testers (0)". Public Link jest na tej samej
+stronie, ale **świadomie go nie tworzymy** — decyzja usera z 29.10: zapraszamy
+adresem, nie linkiem.
+
+**Adresów testerów nie zapisujemy w repozytorium** — ani tutaj, ani w commitach.
+Istnieją wyłącznie w panelu Apple.
+
+### Czego nauczyło to zakładanie
+
+1. **„Sign-in required" jest domyślnie ZAZNACZONE** w kroku Test Information,
+   a Strażnik nie ma żadnego logowania. Trzeba to odznaczyć, inaczej recenzent
+   czeka na dane, których nie ma. `form_input` tego **nie odznaczył** (zwrócił
+   „Checkbox checked (previous: true)") — zadziałało dopiero zwykłe kliknięcie.
+2. **Pole „What to Test" to `contenteditable`, nie `textarea`** — `form_input`
+   odmawia („Element type DIV is not a supported form input"). Zostaje pisanie
+   z klawiatury.
+3. **Panel zamiera przy dłuższym pisaniu** w tym polu — dostałem dwa razy
+   „CDP Input.dispatchKeyEvent timed out", ale **tekst za każdym razem i tak
+   wszedł**. Nie powtarzać wpisywania po takim błędzie, tylko **odczytać pole**;
+   inaczej łatwo o zdublowany fragment. Pisać kawałkami po 100–200 znaków,
+   a po zamarciu kliknąć pole i `ctrl+End`, żeby nie wpisać w środek.
+4. Wymagania Apple do testów zewnętrznych (polityka prywatności, adres zwrotny,
+   dane kontaktowe, notatki dla recenzenta) były **już wypełnione** — patrz §4.
