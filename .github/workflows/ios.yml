@@ -103,62 +103,6 @@ jobs:
           echo "--- czegokolwiek o Duo/Fold ---"
           xcrun simctl list devicetypes | grep -iE "duo|fold" || echo "(BRAK urzadzenia Duo/Fold)"
 
-      - name: Zrzuty Strażnika na symulatorze iPhone Duo (oba ekrany)
-        if: steps.mode.outputs.mode == 'check'
-        run: |
-          # Duo ma OBA ekrany naraz (zmierzone 31.10.2026): zewnetrzny ~1398x2034
-          # i wewnetrzny ~2007x2853. Nie ma wiec "zmiany pozy" — wskazuje sie ekran
-          # przez --display. Numerow NIE zaszywam: przechodze po kolei i nazywam
-          # plik tym, co faktycznie wyszlo, bo numeracja moze sie zmienic.
-          typ=com.apple.CoreSimulator.SimDeviceType.iPhone-Duo
-          dev=""
-          for run in $(xcrun simctl list runtimes | grep -oE 'com\.apple\.CoreSimulator\.SimRuntime\.iOS-[0-9-]+'); do
-            out=$(xcrun simctl create duo-zrzuty "$typ" "$run" 2>&1) && { dev="$out"; echo "urzadzenie na $run: $dev"; break; }
-          done
-          [ -n "$dev" ] || { echo "::error::nie utworzylem symulatora Duo"; exit 1; }
-          xcrun simctl boot "$dev" 2>&1 || true
-          xcrun simctl bootstatus "$dev" -b 2>&1 | tail -2
-
-          set -o pipefail
-          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release -destination "platform=iOS Simulator,id=$dev" -derivedDataPath "$RUNNER_TEMP/dd" -clonedSourcePackagesDirPath "$RUNNER_TEMP/spm" CODE_SIGNING_ALLOWED=NO build 2>&1 | tee "$RUNNER_TEMP/sim-build.log" | grep -E "error:|BUILD (SUCCEEDED|FAILED)" || true
-          grep -q "BUILD SUCCEEDED" "$RUNNER_TEMP/sim-build.log"
-          set +o pipefail
-
-          app=$(find "$RUNNER_TEMP/dd/Build/Products" -maxdepth 2 -name "App.app" -type d | head -1)
-          echo "paczka: ${app:-(nie znalazlem)}"
-          [ -n "$app" ] || { echo "::error::nie ma App.app dla symulatora"; exit 1; }
-          xcrun simctl install "$dev" "$app"
-          xcrun simctl launch "$dev" pl.straznik.app
-
-          mkdir -p "$RUNNER_TEMP/zrzuty"
-          # Mapa i dane lecą z sieci. Dwie serie: po 40 s i po kolejnych 30 s —
-          # pierwsza czesto lapie jeszcze ekran startowy, a lepiej miec oba stany
-          # niz zgadywac, ile trwa wczytanie na maszynie w chmurze.
-          for seria in 40s 70s; do
-            [ "$seria" = 40s ] && sleep 40 || sleep 30
-            for i in 0 1 2 3 4 5; do
-              plik="$RUNNER_TEMP/zrzuty/duo-$seria-ekran$i.png"
-              if xcrun simctl io "$dev" screenshot --display=$i "$plik" >/dev/null 2>&1; then
-                wym=$(sips -g pixelWidth -g pixelHeight "$plik" 2>/dev/null | awk '/pixel/{printf "%s", $2"x"} END{print ""}')
-                echo "  $seria ekran $i -> ${wym%x}"
-                mv "$plik" "$RUNNER_TEMP/zrzuty/duo-$seria-ekran$i-${wym%x}.png"
-              fi
-            done
-          done
-          echo "--- co powstalo ---"
-          ls -l "$RUNNER_TEMP/zrzuty" || true
-          [ -n "$(ls -A "$RUNNER_TEMP/zrzuty" 2>/dev/null)" ] || { echo "::error::nie powstal zaden zrzut"; exit 1; }
-          xcrun simctl shutdown "$dev" 2>&1 || true
-
-      - name: Zrzuty Duo do pobrania
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: zrzuty-duo
-          path: ${{ runner.temp }}/zrzuty
-          if-no-files-found: warn
-          retention-days: 14
-
       - uses: actions/setup-node@v5
         with:
           node-version: 22
@@ -257,6 +201,62 @@ jobs:
           name: xcodebuild-log-sdk27
           path: ${{ runner.temp }}/xcodebuild.log
           retention-days: 7
+
+      - name: Zrzuty Strażnika na symulatorze iPhone Duo (oba ekrany)
+        if: steps.mode.outputs.mode == 'check'
+        run: |
+          # Duo ma OBA ekrany naraz (zmierzone 31.10.2026): zewnetrzny ~1398x2034
+          # i wewnetrzny ~2007x2853. Nie ma wiec "zmiany pozy" — wskazuje sie ekran
+          # przez --display. Numerow NIE zaszywam: przechodze po kolei i nazywam
+          # plik tym, co faktycznie wyszlo, bo numeracja moze sie zmienic.
+          typ=com.apple.CoreSimulator.SimDeviceType.iPhone-Duo
+          dev=""
+          for run in $(xcrun simctl list runtimes | grep -oE 'com\.apple\.CoreSimulator\.SimRuntime\.iOS-[0-9-]+'); do
+            out=$(xcrun simctl create duo-zrzuty "$typ" "$run" 2>&1) && { dev="$out"; echo "urzadzenie na $run: $dev"; break; }
+          done
+          [ -n "$dev" ] || { echo "::error::nie utworzylem symulatora Duo"; exit 1; }
+          xcrun simctl boot "$dev" 2>&1 || true
+          xcrun simctl bootstatus "$dev" -b 2>&1 | tail -2
+
+          set -o pipefail
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release -destination "platform=iOS Simulator,id=$dev" -derivedDataPath "$RUNNER_TEMP/dd" -clonedSourcePackagesDirPath "$RUNNER_TEMP/spm" CODE_SIGNING_ALLOWED=NO build 2>&1 | tee "$RUNNER_TEMP/sim-build.log" | grep -E "error:|BUILD (SUCCEEDED|FAILED)" || true
+          grep -q "BUILD SUCCEEDED" "$RUNNER_TEMP/sim-build.log"
+          set +o pipefail
+
+          app=$(find "$RUNNER_TEMP/dd/Build/Products" -maxdepth 2 -name "App.app" -type d | head -1)
+          echo "paczka: ${app:-(nie znalazlem)}"
+          [ -n "$app" ] || { echo "::error::nie ma App.app dla symulatora"; exit 1; }
+          xcrun simctl install "$dev" "$app"
+          xcrun simctl launch "$dev" pl.straznik.app
+
+          mkdir -p "$RUNNER_TEMP/zrzuty"
+          # Mapa i dane lecą z sieci. Dwie serie: po 40 s i po kolejnych 30 s —
+          # pierwsza czesto lapie jeszcze ekran startowy, a lepiej miec oba stany
+          # niz zgadywac, ile trwa wczytanie na maszynie w chmurze.
+          for seria in 40s 70s; do
+            [ "$seria" = 40s ] && sleep 40 || sleep 30
+            for i in 0 1 2 3 4 5; do
+              plik="$RUNNER_TEMP/zrzuty/duo-$seria-ekran$i.png"
+              if xcrun simctl io "$dev" screenshot --display=$i "$plik" >/dev/null 2>&1; then
+                wym=$(sips -g pixelWidth -g pixelHeight "$plik" 2>/dev/null | awk '/pixel/{printf "%s", $2"x"} END{print ""}')
+                echo "  $seria ekran $i -> ${wym%x}"
+                mv "$plik" "$RUNNER_TEMP/zrzuty/duo-$seria-ekran$i-${wym%x}.png"
+              fi
+            done
+          done
+          echo "--- co powstalo ---"
+          ls -l "$RUNNER_TEMP/zrzuty" || true
+          [ -n "$(ls -A "$RUNNER_TEMP/zrzuty" 2>/dev/null)" ] || { echo "::error::nie powstal zaden zrzut"; exit 1; }
+          xcrun simctl shutdown "$dev" 2>&1 || true
+
+      - name: Zrzuty Duo do pobrania
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zrzuty-duo
+          path: ${{ runner.temp }}/zrzuty
+          if-no-files-found: warn
+          retention-days: 14
 
       - name: Sprawdzenie klucza App Store Connect
         if: steps.mode.outputs.mode != 'check'
