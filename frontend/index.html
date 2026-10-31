@@ -1216,14 +1216,15 @@
 
     <h3 style="margin-top:16px" class="app-only" id="set-h-wersja">Wersja aplikacji</h3>
     <p class="fineprint app-only" id="app-version">—</p>
-    <div class="btn-row app-only">
+    <div class="btn-row app-only no-ios no-sklep">
       <button type="button" id="btn-update" class="chip app-only">⬆ Sprawdź aktualizacje</button>
     </div>
-    <p class="fineprint app-only" id="upd-status"></p>
-    <details class="jak app-only"><summary id="jak-aktualizacje">Skąd biorą się aktualizacje</summary>
-    <p class="fineprint" id="app-upd-note">Aplikacja nie pochodzi ze sklepu, więc sama sprawdza
-    przy każdym uruchomieniu i powrocie na wierzch, czy jest nowsze wydanie.
-    Jeśli pominiesz powiadomienie, sprawdzisz ręcznie tym przyciskiem.</p>
+    <p class="fineprint app-only no-ios no-sklep" id="upd-status"></p>
+    <details class="jak app-only no-ios no-sklep"><summary id="jak-aktualizacje">Skąd biorą się aktualizacje</summary>
+    <p class="fineprint" id="app-upd-note">Aplikacja z pliku APK sama sprawdza przy każdym
+    uruchomieniu i powrocie na wierzch, czy jest nowsze wydanie. Na telefonie z Google Play,
+    gdy wydanie jest już w sklepie, prowadzi do Google Play — obie wersje mają ten sam podpis.
+    Pominiętą aktualizację sprawdzisz ręcznie tym przyciskiem.</p>
     </details>
     <!-- Na stronie nie ma czego aktualizować; przycisk „Sprawdź aktualizacje" wisiał tu
          i milczał po dotknięciu (zgłoszenie czytelnika z 23.09.2026). -->
@@ -1283,7 +1284,7 @@
      Cloudflare, więc po każdym wydaniu wystarczy podbić ?v= i przeglądarki
      dostają nowe app.js/engine.js OD RAZU, bez ręcznego czyszczenia cache CF.
      Podbijaj ?v= razem z versionName w build.gradle. -->
-<script src="i18n.js?v=1.8.02c"></script>
+<script src="i18n.js?v=1.8.04a"></script>
 <!-- kontur Polski dla engine.js (audyt A2b, scripts/build_pl_outline.py) -->
 <script src="pl-outline.js?v=1.7.82"></script>
 <script src="voiv-outline.js?v=1.7.97"></script>
@@ -1300,7 +1301,7 @@
 <div id="a11y-alert" class="sr-only" role="status" aria-live="assertive" aria-atomic="true"></div>
 <div id="a11y-info" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
 
-<script src="app.js?v=1.8.04a"></script>
+<script src="app.js?v=1.8.04b"></script>
 <script src="instrukcja.js?v=1.8.04a"></script>
 </body>
 </html>

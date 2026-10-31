@@ -202,87 +202,96 @@ jobs:
           path: ${{ runner.temp }}/xcodebuild.log
           retention-days: 7
 
-      - name: Test CSP i zrzuty na symulatorze iPhone Duo
+      - name: Zrzut Ustawien na symulatorze iPhone (sekcja Wersja aplikacji)
         if: steps.mode.outputs.mode == 'check'
         run: |
-          # TYLKO TA GALAZ. Build Release nie ma Web Inspectora ani logu konsoli,
-          # wiec diagnostyke wstrzykujemy jako PLIK obok strony (script-src 'self'
-          # go wpuszcza) i raport rysujemy na ekranie — zrzut jest dowodem.
-          # Nic z tego nie idzie do frontend/ ani do zadnego builda dla ludzi.
+          # TYLKO TA GALAZ. Sprawdzamy, czy opis "Skad biora sie aktualizacje"
+          # (details.jak.app-only) jest na iOS NIEWIDOCZNY po dodaniu no-ios.
+          # Build Release nie ma Web Inspectora, wiec pomiar rysujemy na ekranie.
+          # Nic z tego nie idzie do frontend/ ani do builda dla ludzi.
           pub=ios/App/App/public
-          [ -f "$pub/index.html" ] || { echo "::error::brak $pub/index.html — cap sync nie zrobil swojego"; exit 1; }
-          grep -q "Content-Security-Policy" "$pub/index.html" || { echo "::error::w zbudowanej stronie NIE MA meta CSP — testowalbym nie to co trzeba"; exit 1; }
-          for p in klasy.js wariant.js silnik.js start.js instrukcja.js; do
-            [ -f "$pub/$p" ] || { echo "::error::brak $pub/$p — przygotuj.mjs nie skopiowal wszystkich skryptow"; exit 1; }
-          done
-          echo "skrypty z <head> obecne w paczce: OK"
+          [ -f "$pub/index.html" ] || { echo "::error::brak $pub/index.html"; exit 1; }
+          # straznik: testujemy KOD Z POPRAWKA, nie stary
+          grep -q 'class="jak app-only no-ios no-sklep"' "$pub/index.html" \
+            || { echo "::error::w paczce NIE MA no-ios na details o aktualizacjach"; exit 1; }
+          grep -q 'class="btn-row app-only no-ios no-sklep"' "$pub/index.html" \
+            || { echo "::error::brak no-ios na .btn-row"; exit 1; }
+          grep -q 'id="upd-status"' "$pub/index.html" \
+            || { echo "::error::brak #upd-status"; exit 1; }
+          echo "paczka ma poprawke: OK"
 
-          cat > "$pub/_diag.js" <<'JS'
-          /* Diagnostyka CSP — wstrzykiwana przez workflow gałęzi sprawdzenie-xcode.
-             Nasłuch rejestrujemy JAKO PIERWSZY skrypt po meta CSP, żeby złapać też
-             naruszenia z wczytywania reszty strony. */
+          cat > "$pub/_zrzut.js" <<'JS'
+          /* Pomiar widocznosci opisu aktualizacji na iOS — wstrzykiwany przez
+             workflow galezi sprawdzenie-xcode. Klika prawdziwa sciezka UI:
+             Menu -> Ustawienia -> "Jezyk, tekst i wersja". */
           (function () {
-            var N = [], etapy = [];
-            document.addEventListener("securitypolicyviolation", function (e) {
-              var plik = (e.sourceFile || "?").split("/").pop();
-              N.push((e.effectiveDirective || e.violatedDirective) + " <- " +
-                     (e.blockedURI || "(w stronie)") + " @" + plik + ":" + (e.lineNumber || 0));
-            });
-            var plugin = "nie probowano";
-            function pytajPlugin() {
-              try {
-                var P = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.StraznikBackground;
-                if (!P) { plugin = "BRAK w Capacitor.Plugins"; return; }
-                plugin = "wywolano...";
-                P.status().then(function (r) { plugin = "ODPOWIEDZIAL " + JSON.stringify(r).slice(0, 160); })
-                          .catch(function (e) { plugin = "BLAD " + (e && e.message || e); });
-              } catch (e) { plugin = "WYJATEK " + e; }
+            var etapy = [];
+            function klik(sel) {
+              var e = document.querySelector(sel);
+              if (!e) { etapy.push("BRAK " + sel); return false; }
+              e.click(); etapy.push("klik " + sel); return true;
             }
             function zamknijOkna() {
               var n = 0;
-              document.querySelectorAll("dialog[open]").forEach(function (d) { try { d.close(); n++; } catch (e) {} });
+              document.querySelectorAll("dialog[open]").forEach(function (d) {
+                if (d.id === "settings" || d.id === "more-sheet") return;
+                try { d.close(); n++; } catch (e) {}
+              });
               etapy.push("zamknieto okien: " + n);
             }
-            function otworzGrote() {
-              var b = document.getElementById("btn-grota");
-              if (!b) { etapy.push("btn-grota NIE ISTNIEJE"); return; }
-              b.click();
-              etapy.push("klik w GROTE");
+            function doMenu() { klik("#tab-more"); }
+            function doUstawien() { klik("#btn-settings"); }
+            function doWersji() { klik('.set-tab[data-pane="aplikacja"]'); }
+            function przewin() {
+              var h = document.getElementById("set-h-wersja");
+              if (!h) { etapy.push("BRAK #set-h-wersja"); return; }
+              h.scrollIntoView({ block: "center" });
+              etapy.push("przewinieto do #set-h-wersja");
+            }
+            function widok(el) {
+              if (!el) return "BRAK W HTML";
+              var cs = getComputedStyle(el);
+              var r = el.getBoundingClientRect();
+              return cs.display + " / " + Math.round(r.width) + "x" + Math.round(r.height);
             }
             function raport() {
-              /* Modalne <dialog> leza w warstwie wierzchniej i zaden z-index ich nie
-                 przebije - zamykamy je, zeby raport i GROTA byly widoczne na zrzucie. */
-              document.querySelectorAll("dialog[open]").forEach(function (d) { try { d.close(); } catch (e) {} });
-              var d = document.getElementById("__diag") || document.createElement("div");
-              d.id = "__diag";
-              d.style.cssText = "position:fixed;left:0;right:0;top:0;z-index:2147483647;background:#000d;" +
-                "color:#6f6;font:13px/1.4 monospace;padding:8px;white-space:pre-wrap;max-height:60%;overflow:auto";
-              var h = document.documentElement, t = document.body.innerText || "";
+              var d = document.getElementById("__pomiar") || document.createElement("div");
+              d.id = "__pomiar";
+              d.style.cssText = "position:fixed;left:0;right:0;top:0;z-index:2147483647;" +
+                "background:#000e;color:#6f6;font:12px/1.45 monospace;padding:8px;" +
+                "white-space:pre-wrap;max-height:70%;overflow:auto";
+              var det = document.querySelector("details.jak.app-only");
+              var okno = document.getElementById("settings");
               d.textContent =
-                "== DIAG CSP ==\n" +
-                "klasy <html>: " + h.className + "\n" +
-                "SILNIK_NOWY: " + window.STRAZNIK_SILNIK_NOWY +
-                "   ekran 'nie moze sie uruchomic': " + (t.indexOf("nie mo") >= 0 && t.indexOf("uruchomi") >= 0) + "\n" +
-                "Capacitor: " + (window.Capacitor && window.Capacitor.getPlatform ? window.Capacitor.getPlatform() : "BRAK") + "\n" +
-                "plugin.status: " + plugin + "\n" +
-                "etapy: " + etapy.join(" | ") + "\n" +
-                "GROTA: div#grota " + !!document.getElementById("grota") +
-                "  mapa " + !!document.getElementById("g-map") +
-                "  stan " + ((document.getElementById("map-load") || {}).textContent || "-").slice(0, 50) + "\n" +
-                "NARUSZENIA CSP: " + N.length +
-                (N.length ? "\n  " + N.slice(0, 10).join("\n  ") : "  (zadnych)");
+                "== POMIAR: opis aktualizacji na iOS ==\n" +
+                "klasy <html>: " + document.documentElement.className + "\n" +
+                "platforma: " + (window.Capacitor && window.Capacitor.getPlatform ? window.Capacitor.getPlatform() : "BRAK") + "\n" +
+                "--- ma zniknac na iOS ---\n" +
+                "details o aktualizacjach: " + widok(det) + "\n" +
+                ".btn-row przycisku: " + widok(document.querySelector(".btn-row.app-only")) + "\n" +
+                "#upd-status: " + widok(document.getElementById("upd-status")) + "\n" +
+                "#btn-update: " + widok(document.getElementById("btn-update")) + "\n" +
+                "--- ma zostac na iOS ---\n" +
+                "#set-h-wersja: " + widok(document.getElementById("set-h-wersja")) + "\n" +
+                "#app-version: " + widok(document.getElementById("app-version")) + "\n" +
+                "tekst wersji: " + ((document.getElementById("app-version") || {}).textContent || "(puste)") + "\n" +
+                "--- slowo Google Play w widocznym tekscie okna Ustawien ---\n" +
+                "jest: " + (okno ? ((okno.innerText || "").indexOf("Google Play") >= 0) : "BRAK OKNA") + "\n" +
+                "okno otwarte: " + (okno ? okno.open : "BRAK") + "\n" +
+                "etapy: " + etapy.join(" | ");
               if (!d.parentNode && document.body) document.body.appendChild(d);
             }
-            setTimeout(pytajPlugin, 12000);
-            setTimeout(zamknijOkna, 22000);
-            setTimeout(otworzGrote, 30000);
-            setTimeout(raport, 48000);
-            setTimeout(raport, 68000);
+            setTimeout(zamknijOkna, 10000);
+            setTimeout(doMenu, 14000);
+            setTimeout(doUstawien, 17000);
+            setTimeout(doWersji, 20000);
+            setTimeout(przewin, 23000);
+            /* zrzut czystego ekranu leci okolo 27 s — nakladka dopiero potem */
+            setTimeout(raport, 32000);
           })();
           JS
-          node -e "new Function(require('fs').readFileSync('$pub/_diag.js','utf8'))" || { echo "::error::_diag.js ma blad skladni"; exit 1; }
+          node -e "new Function(require('fs').readFileSync('$pub/_zrzut.js','utf8'))" || { echo "::error::_zrzut.js ma blad skladni"; exit 1; }
 
-          # wpinamy ZARAZ ZA meta CSP, zeby nasluch stal przed reszta skryptow
           python3 - "$pub/index.html" <<'PY'
           import io, sys
           p = sys.argv[1]
@@ -290,18 +299,23 @@ jobs:
           znacznik = '<meta http-equiv="Content-Security-Policy"'
           i = s.index(znacznik)
           j = s.index(">", i) + 1
-          s = s[:j] + '\n<script src="_diag.js"></script>' + s[j:]
+          s = s[:j] + chr(10) + '<script src="_zrzut.js"></script>' + s[j:]
           io.open(p, "w", encoding="utf-8").write(s)
-          print("wpiety _diag.js za meta CSP")
+          print("wpiety _zrzut.js za meta CSP")
           PY
-          grep -n "_diag.js" "$pub/index.html" | head -2
+          grep -c "_zrzut.js" "$pub/index.html"
 
-          typ=com.apple.CoreSimulator.SimDeviceType.iPhone-Duo
-          dev=""
-          for run in $(xcrun simctl list runtimes | grep -oE 'com\.apple\.CoreSimulator\.SimRuntime\.iOS-[0-9-]+'); do
-            out=$(xcrun simctl create duo-csp "$typ" "$run" 2>&1) && { dev="$out"; echo "urzadzenie na $run: $dev"; break; }
+          dev=""; wybrany=""
+          for typ in iPhone-17-Pro iPhone-17 iPhone-16-Pro iPhone-16 iPhone-15-Pro iPhone-Duo; do
+            for run in $(xcrun simctl list runtimes | grep -oE 'com\.apple\.CoreSimulator\.SimRuntime\.iOS-[0-9-]+'); do
+              out=$(xcrun simctl create zrzut-ust "com.apple.CoreSimulator.SimDeviceType.$typ" "$run" 2>&1) \
+                && { dev="$out"; wybrany="$typ / $run"; break 2; }
+            done
           done
-          [ -n "$dev" ] || { echo "::error::nie utworzylem symulatora Duo"; exit 1; }
+          [ -n "$dev" ] || { echo "::error::nie utworzylem zadnego symulatora"; exit 1; }
+          echo "symulator: $wybrany ($dev)"
+          mkdir -p "$RUNNER_TEMP/zrzuty" "$RUNNER_TEMP/diag"
+          echo "$wybrany" > "$RUNNER_TEMP/diag/urzadzenie.txt"
           xcrun simctl boot "$dev" 2>&1 || true
           xcrun simctl bootstatus "$dev" -b 2>&1 | tail -2
 
@@ -312,47 +326,36 @@ jobs:
 
           app=$(find "$RUNNER_TEMP/dd/Build/Products" -maxdepth 2 -name "App.app" -type d | head -1)
           [ -n "$app" ] || { echo "::error::nie ma App.app dla symulatora"; exit 1; }
-          # paczka MUSI miec nasza diagnostyke i wszystkie skrypty z <head>
-          for p in _diag.js klasy.js silnik.js start.js; do
-            [ -f "$app/public/$p" ] || { echo "::error::$p nie wszedl do App.app"; exit 1; }
-          done
-          echo "App.app ma komplet skryptow"
+          [ -f "$app/public/_zrzut.js" ] || { echo "::error::_zrzut.js nie wszedl do App.app"; exit 1; }
+          grep -q "no-ios no-sklep" "$app/public/index.html" || { echo "::error::App.app ma index.html BEZ poprawki"; exit 1; }
           xcrun simctl install "$dev" "$app"
-          mkdir -p "$RUNNER_TEMP/zrzuty" "$RUNNER_TEMP/diag"
 
           xcrun simctl launch "$dev" pl.straznik.app 2>&1 | tee "$RUNNER_TEMP/diag/launch.txt"
-          sleep 8
-          xcrun simctl spawn "$dev" launchctl list 2>/dev/null | grep -i straznik || echo "(BRAK wpisu procesu)"
 
-          # 20 s czysty ekran, 38 s po otwarciu GROTY, 55 i 75 s z raportem
-          for t in 20 38 55 75; do
-            case $t in 20) s=12;; 38) s=18;; 55) s=17;; 75) s=20;; esac
+          # 27 s: czyste Ustawienia na sekcji wersji. 36 s: ten sam ekran z pomiarem.
+          for t in 27 36; do
+            case $t in 27) s=27;; 36) s=9;; esac
             sleep $s
             echo "--- ~${t}s ---"
             xcrun simctl spawn "$dev" launchctl list 2>/dev/null | grep -i straznik || echo "(BRAK wpisu)"
-            for i in 0 1 2 3 4 5; do
-              plik="$RUNNER_TEMP/zrzuty/t${t}s-ekran$i.png"
+            for i in 0 1 2 3; do
+              plik="$RUNNER_TEMP/zrzuty/ustawienia-${t}s-ekran$i.png"
               if xcrun simctl io "$dev" screenshot --display=$i "$plik" >/dev/null 2>&1; then
                 wym=$(sips -g pixelWidth -g pixelHeight "$plik" 2>/dev/null | awk '/pixel/{printf "%s", $2"x"} END{print ""}')
-                mv "$plik" "$RUNNER_TEMP/zrzuty/t${t}s-ekran$i-${wym%x}.png"
+                mv "$plik" "$RUNNER_TEMP/zrzuty/ustawienia-${t}s-ekran$i-${wym%x}.png"
               fi
             done
           done
 
-          xcrun simctl spawn "$dev" log show --last 4m --style compact 2>/dev/null | grep -iE "straznik|Capacitor|WebKit.*polic|Content-Security" | grep -viE "shortcuts:ToolKitIndexing" | tail -60 > "$RUNNER_TEMP/diag/dziennik.txt" || true
-          tail -30 "$RUNNER_TEMP/diag/dziennik.txt" || echo "(nic)"
-          find "$HOME/Library/Logs/DiagnosticReports" -name "App-*.ips" -newermt "-15 minutes" 2>/dev/null | head -3 | while read -r r; do echo "--- $r"; head -40 "$r"; cp "$r" "$RUNNER_TEMP/diag/"; done
-          find "$HOME/Library/Logs/DiagnosticReports" -name "App-*.ips" -newermt "-15 minutes" 2>/dev/null | grep -q . || echo "(zadnego raportu dla App — nie padla)"
           cp "$pub/index.html" "$RUNNER_TEMP/diag/index-z-paczki.html" 2>/dev/null || true
-
           ls -l "$RUNNER_TEMP/zrzuty" || true
           xcrun simctl shutdown "$dev" 2>&1 || true
 
-      - name: Zrzuty Duo do pobrania
+      - name: Zrzuty Ustawien do pobrania
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: zrzuty-duo
+          name: zrzuty-ustawienia
           path: |
             ${{ runner.temp }}/zrzuty
             ${{ runner.temp }}/diag

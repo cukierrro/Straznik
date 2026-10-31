@@ -447,8 +447,8 @@
       "Przy czerwonym poziomie syrena gra bez przerwy, aż potwierdzisz alarm przyciskiem na ekranie.",
       "The red siren continues until you acknowledge the alert.");
     button("app-upd-note",
-      "Aplikacja sprawdza przy każdym uruchomieniu i powrocie na wierzch, czy jest nowsze wydanie. Pominiętą aktualizację sprawdzisz ręcznie tym przyciskiem.",
-      "The app checks for a newer release at every launch and when it returns to the foreground. A dismissed non-critical update can be checked again here.");
+      "Aplikacja z pliku APK sama sprawdza przy każdym uruchomieniu i powrocie na wierzch, czy jest nowsze wydanie. Na telefonie z Google Play, gdy wydanie jest już w sklepie, prowadzi do Google Play — obie wersje mają ten sam podpis. Pominiętą aktualizację sprawdzisz ręcznie tym przyciskiem.",
+      "The APK version checks for a newer release at every launch and when it returns to the foreground. On a phone with Google Play, once the release is in the store, it takes you to Google Play — both versions carry the same signature. A dismissed non-critical update can be checked again here.");
     button("www-wersja",
       "Ta strona zawsze działa w najnowszej wersji — nie trzeba jej aktualizować. Wersja na telefon ma dodatkowo alarmy przy zamkniętej aplikacji i moduł GROTA (najbliższe schronienie). Pobierzesz ją przyciskami ↓ Android i ↓ iOS u góry ekranu.",
       "This page always runs the current version — there is nothing to update. The phone version adds alerts while the app is closed and the GROTA module (nearest shelter). Get it with the ↓ Android and ↓ iOS buttons at the top of the screen.");
@@ -877,8 +877,8 @@
     "Off (followed aircraft only)": "Вимкнено (лише супроводжуваний літак)",
     "App version": "Версія застосунку",
     "⬆ Check for updates": "⬆ Перевірити оновлення",
-    "The app checks for a newer release at every launch and when it returns to the foreground. A dismissed non-critical update can be checked again here.":
-      "Застосунок перевіряє наявність новішого випуску при кожному запуску й поверненні на передній план. Пропущене некритичне оновлення можна перевірити тут вручну.",
+    "The APK version checks for a newer release at every launch and when it returns to the foreground. On a phone with Google Play, once the release is in the store, it takes you to Google Play — both versions carry the same signature. A dismissed non-critical update can be checked again here.":
+      "Версія з файлу APK перевіряє наявність новішого випуску при кожному запуску й поверненні на передній план. На телефоні з Google Play, коли випуск уже є в магазині, вона відкриває Google Play — обидві версії мають однаковий підпис. Пропущене некритичне оновлення можна перевірити тут вручну.",
     "Advanced: shared backend": "Додатково: спільний сервер",
     "Server address (optional)": "Адреса сервера (необов’язково)",
     "By default the app uses the Strażnik server (straznik.eu) — data and fusion are computed once on the server. When the server is unavailable, the app switches to its built-in mode and computes on the device. Enter your own HTTPS address (e.g. https://straznik.your-domain.pl) only if you want to use your own backend. HTTP and certificates added manually to the phone are not supported in the production build.":
@@ -1181,7 +1181,7 @@
     set("#miejsca-note", "Save up to 8 places and choose which provinces you want notifications for. Exact places remain on this device.");
     set("#dzwiek-pl-note", "Yellow (≥2 pts): attention sound and heads-up notification. Red (≥4 pts): modulated siren, vibration and a full-screen alert.");
     set("#dzwiek-red-note", "The red siren continues until you acknowledge the alert.");
-    set("#app-upd-note", "The app checks for a newer release at every launch and when it returns to the foreground. A dismissed non-critical update can be checked again here.");
+    set("#app-upd-note", "The APK version checks for a newer release at every launch and when it returns to the foreground. On a phone with Google Play, once the release is in the store, it takes you to Google Play — both versions carry the same signature. A dismissed non-critical update can be checked again here.");
     set("#adv-summary", "Advanced: shared backend");
     set("#adv-note", "By default the app uses the Strażnik server (straznik.eu) — the data and the fusion are computed once, on the server. When the server is unavailable the app switches to its built-in mode and computes on the device. Enter your own HTTPS address only if you want to use your own backend. Plain HTTP and certificates added manually to the phone are not supported in the production build.");
     set("#jak-alarmy", "How it works");
