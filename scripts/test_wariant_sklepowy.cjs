@@ -49,7 +49,9 @@ test('index.html wczytuje wariant przed resztą kodu', () => {
   const a = INDEX.indexOf('app.js?v=');
   assert.notEqual(w, -1, 'brak <script src="wariant.js"> w index.html');
   assert.ok(w < a, 'wariant.js musi być wczytany przed app.js');
-  assert.ok(w < INDEX.indexOf('classList.add("ios-app")'),
+  // od 1.8.04 blok ustawiający klasy jest w start.js (CSP nie wpuszcza skryptów wpisanych w stronę)
+  assert.match(czytaj('frontend/start.js'), /classList\.add\("ios-app"\)/);
+  assert.ok(w < INDEX.indexOf('start.js?v='),
     'wariant.js ma się wykonać przed pierwszym renderem, czyli przed blokiem ustawiającym klasy');
 });
 

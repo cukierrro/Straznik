@@ -26,6 +26,17 @@ def main():
     })
     assert critical["critical"] and "critical-update" not in critical["notes"]
     assert critical["changes"] == ["Pilna poprawka"]
+    assert normal["play"] is False and critical["play"] is False
+
+    # 1.8.04: znacznik „ta wersja jest już w Google Play” — telefon z Play odsyła
+    # wtedy do sklepu. Nie może wyciec do notatek ani do listy zmian.
+    w_play = _release_data({
+        "tag_name": "v1.8.4", "body": "<!-- zmiany -->\n- Poprawka.\n<!-- /zmiany -->\n<!--  W-PLAY  -->\n",
+        "assets": [{"name": "Straznik.apk", "digest": f"sha256:{digest}",
+                    "browser_download_url": "https://github.com/x.apk"}],
+    })
+    assert w_play["play"] is True, w_play
+    assert "w-play" not in w_play["notes"].lower() and w_play["changes"] == ["Poprawka."], w_play
 
     changes = _change_items("""# Wersja 2.1\n- **Naprawiono** historię.\n- Dodano [opis](https://example.test).\n- Usprawniono alarmy.\n- Czwarty punkt.\n""")
     # Limit podniesiony z 3 do 8: okno aktualizacji ucinało opis w połowie.

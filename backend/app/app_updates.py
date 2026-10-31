@@ -130,6 +130,12 @@ def _release_data(release: dict) -> dict:
         raise ValueError("Wydanie nie ma sumy SHA-256")
     body = str(release.get("body") or "")
     changes = _change_items(body)
+    # `<!-- w-play -->` dopisujemy do notatek dopiero, gdy ta sama wersja jest już
+    # zatwierdzona w Google Play. Od 1.8.04 telefon z Google Play odsyła wtedy do
+    # sklepu zamiast instalować plik sam — samoaktualizacja poza Play dostawała
+    # czerwone „Zablokowano szkodliwą aplikację” od Play Protect (28.10.2026).
+    # Bez znacznika telefon z Play czeka, aż wersja pojawi się w sklepie.
+    play = bool(re.search(r"<!--\s*w-play\s*-->", body, re.I))
     return {
         "version": str(release.get("tag_name") or "").removeprefix("v"),
         "tag": release.get("tag_name"),
@@ -137,7 +143,9 @@ def _release_data(release: dict) -> dict:
         "sha256": digest.split(":", 1)[1].lower(),
         "size": int(asset.get("size") or 0),
         "critical": "<!-- critical-update -->" in body.lower(),
-        "notes": body.replace("<!-- critical-update -->", "").strip()[:2000],
+        "play": play,
+        "notes": re.sub(r"<!--\s*w-play\s*-->", "", body.replace("<!-- critical-update -->", ""),
+                        flags=re.I).strip()[:2000],
         "changes": changes,
         "publishedAt": release.get("published_at"),
     }

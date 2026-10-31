@@ -98,17 +98,12 @@ if errorlevel 1 (
 
 echo.
 echo =========== 3/7  Kopiowanie frontendu do www + cap sync ===========
-copy /y "%REPO%\frontend\app.js"     "%APP%\www\app.js"     >nul
-copy /y "%REPO%\frontend\engine.js"  "%APP%\www\engine.js"  >nul
+rem 31.10.2026 (1.8.04): WSZYSTKIE skrypty strony, nie lista z nazwami. Lista gubila pliki -
+rem voiv-outline.js nie byl tu wpisany, a CSP przenosi skrypty z index.html do osobnych plikow
+rem (klasy.js, silnik.js, start.js, instrukcja.js) - brak silnik.js = ekran "za stary silnik".
+copy /y "%REPO%\frontend\*.js"      "%APP%\www"            >nul
 copy /y "%REPO%\frontend\index.html" "%APP%\www\index.html" >nul
 copy /y "%REPO%\frontend\style.css"  "%APP%\www\style.css"  >nul
-copy /y "%REPO%\frontend\i18n.js" "%APP%\www\i18n.js" >nul
-copy /y "%REPO%\frontend\aircraft-photo-catalog.js" "%APP%\www\aircraft-photo-catalog.js" >nul
-copy /y "%REPO%\frontend\aircraft-photos.js" "%APP%\www\aircraft-photos.js" >nul
-copy /y "%REPO%\frontend\places.js" "%APP%\www\places.js" >nul
-rem 18.09.2026: kontur Polski i manifest byly pomijane - APK wozil stary ksztalt granicy (zgloszone przez sesje iOS)
-copy /y "%REPO%\frontend\pl-outline.js" "%APP%\www\pl-outline.js" >nul
-copy /y "%REPO%\frontend\wariant.js" "%APP%\www\wariant.js" >nul
 copy /y "%REPO%\frontend\manifest.json" "%APP%\www\manifest.json" >nul
 xcopy /e /y /q "%REPO%\frontend\assets" "%APP%\www\assets\" >nul
 pushd "%APP%"
