@@ -207,7 +207,11 @@ jobs:
         run: |
           # TYLKO TA GALAZ. Sprawdzamy, czy opis "Skad biora sie aktualizacje"
           # (details.jak.app-only) jest na iOS NIEWIDOCZNY po dodaniu no-ios.
-          # Build Release nie ma Web Inspectora, wiec pomiar rysujemy na ekranie.
+          # Build Release nie ma Web Inspectora, wiec pomiar idzie dwoma drogami:
+          # nakladka NA OKNIE Ustawien (modalny <dialog> lezy w warstwie
+          # wierzchniej i zaden z-index go nie przebije — stad nakladka musi byc
+          # JEGO dzieckiem) oraz zapis do localStorage, ktory po zamknieciu
+          # aplikacji odczytujemy z dysku jako TEKST.
           # Nic z tego nie idzie do frontend/ ani do builda dla ludzi.
           pub=ios/App/App/public
           [ -f "$pub/index.html" ] || { echo "::error::brak $pub/index.html"; exit 1; }
@@ -245,7 +249,7 @@ jobs:
             function przewin() {
               var h = document.getElementById("set-h-wersja");
               if (!h) { etapy.push("BRAK #set-h-wersja"); return; }
-              h.scrollIntoView({ block: "center" });
+              h.scrollIntoView({ block: "start" });
               etapy.push("przewinieto do #set-h-wersja");
             }
             function widok(el) {
@@ -254,40 +258,51 @@ jobs:
               var r = el.getBoundingClientRect();
               return cs.display + " / " + Math.round(r.width) + "x" + Math.round(r.height);
             }
+            function tekst() {
+              var okno = document.getElementById("settings");
+              return [
+                "klasy <html>: " + document.documentElement.className,
+                "platforma: " + (window.Capacitor && window.Capacitor.getPlatform ? window.Capacitor.getPlatform() : "BRAK"),
+                "--- MA ZNIKNAC NA iOS ---",
+                "details o aktualizacjach: " + widok(document.querySelector("details.jak.app-only")),
+                "btn-row przycisku:        " + widok(document.querySelector(".btn-row.app-only")),
+                "#upd-status:              " + widok(document.getElementById("upd-status")),
+                "#btn-update:              " + widok(document.getElementById("btn-update")),
+                "--- MA ZOSTAC NA iOS ---",
+                "#set-h-wersja:            " + widok(document.getElementById("set-h-wersja")),
+                "#app-version:             " + widok(document.getElementById("app-version")),
+                "tekst wersji: " + ((document.getElementById("app-version") || {}).textContent || "(puste)"),
+                "--- SLOWO Google Play W WIDOCZNYM TEKSCIE OKNA ---",
+                "jest: " + (okno ? ((okno.innerText || "").indexOf("Google Play") >= 0) : "BRAK OKNA"),
+                "okno Ustawien otwarte: " + (okno ? okno.open : "BRAK"),
+                "widoczna sekcja: " + (function () {
+                  var p = document.querySelector(".set-pane[data-pane='aplikacja']");
+                  return p ? (p.hidden ? "ukryta" : "widoczna") : "BRAK";
+                })(),
+                "etapy: " + etapy.join(" | ")
+              ].join("\n");
+            }
             function raport() {
+              var t = tekst();
+              try { localStorage.setItem("__pomiar_ios", t); } catch (e) {}
+              /* Modalne okno lezy w warstwie wierzchniej — nakladka musi byc
+                 jego dzieckiem, inaczej narysuje sie POD nim. */
+              var gospodarz = document.getElementById("settings") || document.body;
               var d = document.getElementById("__pomiar") || document.createElement("div");
               d.id = "__pomiar";
-              d.style.cssText = "position:fixed;left:0;right:0;top:0;z-index:2147483647;" +
-                "background:#000e;color:#6f6;font:12px/1.45 monospace;padding:8px;" +
-                "white-space:pre-wrap;max-height:70%;overflow:auto";
-              var det = document.querySelector("details.jak.app-only");
-              var okno = document.getElementById("settings");
-              d.textContent =
-                "== POMIAR: opis aktualizacji na iOS ==\n" +
-                "klasy <html>: " + document.documentElement.className + "\n" +
-                "platforma: " + (window.Capacitor && window.Capacitor.getPlatform ? window.Capacitor.getPlatform() : "BRAK") + "\n" +
-                "--- ma zniknac na iOS ---\n" +
-                "details o aktualizacjach: " + widok(det) + "\n" +
-                ".btn-row przycisku: " + widok(document.querySelector(".btn-row.app-only")) + "\n" +
-                "#upd-status: " + widok(document.getElementById("upd-status")) + "\n" +
-                "#btn-update: " + widok(document.getElementById("btn-update")) + "\n" +
-                "--- ma zostac na iOS ---\n" +
-                "#set-h-wersja: " + widok(document.getElementById("set-h-wersja")) + "\n" +
-                "#app-version: " + widok(document.getElementById("app-version")) + "\n" +
-                "tekst wersji: " + ((document.getElementById("app-version") || {}).textContent || "(puste)") + "\n" +
-                "--- slowo Google Play w widocznym tekscie okna Ustawien ---\n" +
-                "jest: " + (okno ? ((okno.innerText || "").indexOf("Google Play") >= 0) : "BRAK OKNA") + "\n" +
-                "okno otwarte: " + (okno ? okno.open : "BRAK") + "\n" +
-                "etapy: " + etapy.join(" | ");
-              if (!d.parentNode && document.body) document.body.appendChild(d);
+              d.style.cssText = "position:fixed;left:4px;right:4px;top:4px;z-index:2147483647;" +
+                "background:#000;color:#6f6;font:13px/1.5 monospace;padding:10px;" +
+                "white-space:pre-wrap;border:2px solid #0f0;border-radius:8px";
+              d.textContent = "== POMIAR: opis aktualizacji na iOS ==\n" + t;
+              if (d.parentNode !== gospodarz) gospodarz.appendChild(d);
             }
-            setTimeout(zamknijOkna, 10000);
-            setTimeout(doMenu, 14000);
-            setTimeout(doUstawien, 17000);
-            setTimeout(doWersji, 20000);
-            setTimeout(przewin, 23000);
-            /* zrzut czystego ekranu leci okolo 27 s — nakladka dopiero potem */
-            setTimeout(raport, 32000);
+            setTimeout(zamknijOkna, 8000);
+            setTimeout(doMenu, 11000);
+            setTimeout(doUstawien, 14000);
+            setTimeout(doWersji, 17000);
+            setTimeout(przewin, 19000);
+            /* 22 s: zrzut czystych Ustawien. 30 s: ten sam ekran z pomiarem. */
+            setTimeout(raport, 30000);
           })();
           JS
           node -e "new Function(require('fs').readFileSync('$pub/_zrzut.js','utf8'))" || { echo "::error::_zrzut.js ma blad skladni"; exit 1; }
@@ -306,9 +321,9 @@ jobs:
           grep -c "_zrzut.js" "$pub/index.html"
 
           dev=""; wybrany=""
-          for typ in iPhone-17-Pro iPhone-17 iPhone-16-Pro iPhone-16 iPhone-15-Pro iPhone-Duo; do
+          for typ in iPhone-17-Pro iPhone-17 iPhone-16-Pro iPhone-16; do
             for run in $(xcrun simctl list runtimes | grep -oE 'com\.apple\.CoreSimulator\.SimRuntime\.iOS-[0-9-]+'); do
-              out=$(xcrun simctl create zrzut-ust "com.apple.CoreSimulator.SimDeviceType.$typ" "$run" 2>&1) \
+              out=$(xcrun simctl create zrzut-ust2 "com.apple.CoreSimulator.SimDeviceType.$typ" "$run" 2>&1) \
                 && { dev="$out"; wybrany="$typ / $run"; break 2; }
             done
           done
@@ -332,20 +347,40 @@ jobs:
 
           xcrun simctl launch "$dev" pl.straznik.app 2>&1 | tee "$RUNNER_TEMP/diag/launch.txt"
 
-          # 27 s: czyste Ustawienia na sekcji wersji. 36 s: ten sam ekran z pomiarem.
-          for t in 27 36; do
-            case $t in 27) s=27;; 36) s=9;; esac
-            sleep $s
-            echo "--- ~${t}s ---"
-            xcrun simctl spawn "$dev" launchctl list 2>/dev/null | grep -i straznik || echo "(BRAK wpisu)"
-            for i in 0 1 2 3; do
-              plik="$RUNNER_TEMP/zrzuty/ustawienia-${t}s-ekran$i.png"
-              if xcrun simctl io "$dev" screenshot --display=$i "$plik" >/dev/null 2>&1; then
-                wym=$(sips -g pixelWidth -g pixelHeight "$plik" 2>/dev/null | awk '/pixel/{printf "%s", $2"x"} END{print ""}')
-                mv "$plik" "$RUNNER_TEMP/zrzuty/ustawienia-${t}s-ekran$i-${wym%x}.png"
-              fi
-            done
-          done
+          # ekran 1 to jedyny dzialajacy wyswietlacz — bez petli po 0..3, zeby
+          # nieudane proby nie rozciagaly czasu i zrzuty padaly kiedy trzeba
+          sleep 22
+          echo "--- ~22 s: czyste Ustawienia ---"
+          xcrun simctl io "$dev" screenshot --display=1 "$RUNNER_TEMP/zrzuty/A-ustawienia-czyste.png" 2>&1 | tail -1
+          sleep 10
+          echo "--- ~32 s: Ustawienia z pomiarem ---"
+          xcrun simctl io "$dev" screenshot --display=1 "$RUNNER_TEMP/zrzuty/B-ustawienia-pomiar.png" 2>&1 | tail -1
+
+          # TEKSTOWY odczyt pomiaru: zamykamy aplikacje (WebKit zrzuca
+          # localStorage na dysk) i czytamy baze z kontenera symulatora
+          sleep 3
+          xcrun simctl terminate "$dev" pl.straznik.app 2>&1 || true
+          sleep 5
+          kont=$(xcrun simctl get_app_container "$dev" pl.straznik.app data 2>/dev/null)
+          echo "kontener danych: $kont"
+          echo "=== POMIAR (tekst z localStorage) ==="
+          znalezione=0
+          while IFS= read -r baza; do
+            out=$(sqlite3 "$baza" "select value from ItemTable where key='__pomiar_ios';" 2>/dev/null \
+                  | tr -d '\000' | sed 's/[^[:print:]]//g')
+            if [ -n "$out" ]; then
+              echo "--- z $baza ---"
+              # wartosci WebKita sa w UTF-16, wiec sqlite3 zwraca je z zerami;
+              # po oczyszczeniu tekst jest czytelny, tylko bez podzialu na linie
+              echo "$out" | tr '|' '\n'
+              echo "$out" > "$RUNNER_TEMP/diag/pomiar.txt"
+              znalezione=1
+            fi
+          done < <(find "$kont" -name "*.sqlite3" 2>/dev/null)
+          if [ "$znalezione" = "0" ]; then
+            echo "(nie wyciagnalem tekstu z localStorage — zostaje zrzut B)"
+            find "$kont" -name "*.sqlite3" 2>/dev/null | head -10
+          fi
 
           cp "$pub/index.html" "$RUNNER_TEMP/diag/index-z-paczki.html" 2>/dev/null || true
           ls -l "$RUNNER_TEMP/zrzuty" || true
