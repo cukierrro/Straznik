@@ -363,6 +363,18 @@ body.panel-open #bg-warning { display: none; }
 .upd-changes li { margin: 1px 0; line-height: 1.3; }
 #update-banner .chip { flex: none; }
 body.panel-open #update-banner:not(.critical) { display: none; }
+/* 1.8.04: telefon z Google Play — ostrzeżenie przed instalacją z pliku i cichsza
+   droga zapasowa pod przyciskiem „Otwórz Google Play”. Cel dotyku 44 px. */
+.upd-txt span.upd-uwaga { margin-top: 5px; color: var(--amber); }
+.upd-z-pliku { justify-self: end; min-height: 44px; padding: 0 4px; border: 0; background: none;
+  color: var(--muted); font: inherit; font-size: 0.7667rem; text-decoration: underline;
+  text-underline-offset: 3px; cursor: pointer; }
+.upd-z-pliku:hover, .upd-z-pliku:focus-visible { color: var(--text); }
+.upd-z-pliku:disabled { text-decoration: none; cursor: default; }
+/* Okno aktualizacji prześwitywało pod powitaniem i ustawieniami (widziane 28.10 na
+   emulatorze) — za przyciemnieniem, nie do kliknięcia. Póki jakieś okno jest otwarte,
+   chowamy je; wraca po zamknięciu. Starszy WebView bez :has() zostaje przy starym. */
+body:has(dialog[open]) #update-banner { visibility: hidden; }
 
 /* ── tryb historii w panelu ── */
 .hist-banner { background: rgba(255,176,32,.12); border: 1px solid rgba(255,176,32,.4);
