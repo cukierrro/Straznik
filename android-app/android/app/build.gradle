@@ -32,8 +32,8 @@ android {
         applicationId "pl.straznik.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 132
-        versionName "1.8.03"
+        versionCode 134
+        versionName "1.8.04"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

@@ -6,6 +6,10 @@
 
 Serwer: **hostowane na [Mikrusie](https://mikr.us)** — dziękujemy za wsparcie projektu.
 
+Wersja 1.8.04: na telefonie z Google Play aktualizacja wersji z pliku APK prowadzi do sklepu,
+gdy nowe wydanie jest już tam zatwierdzone; aplikacja dostała politykę bezpieczeństwa treści (CSP)
+i boczne marginesy przy wycięciu aparatu. Szczegóły: `docs/RELEASE_1.8.04.md`.
+
 Wersja 1.8.03: dron zgłoszony tylko z celem („kursem na…”) ma ikonę bez kierunku i kartę,
 która mówi, co naprawdę wiadomo; daje punkty tylko bliżej niż 150 km od granicy.
 Szczegóły: `docs/RELEASE_1.8.03.md`.
