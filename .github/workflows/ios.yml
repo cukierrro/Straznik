@@ -227,18 +227,29 @@ jobs:
           echo "paczka: ${app:-(nie znalazlem)}"
           [ -n "$app" ] || { echo "::error::nie ma App.app dla symulatora"; exit 1; }
           xcrun simctl install "$dev" "$app"
-
-          # Pierwsza proba (31.10) dala pulpit z ikona zamiast aplikacji, a ekran
-          # wewnetrzny czarny. Nie zgadujemy dlaczego: lapiemy wyjscie procesu,
-          # sprawdzamy po kazdym zrzucie czy jeszcze zyje, i zbieramy raporty awarii.
           mkdir -p "$RUNNER_TEMP/zrzuty" "$RUNNER_TEMP/diag"
-          ( timeout 90 xcrun simctl launch --console-pty "$dev" pl.straznik.app > "$RUNNER_TEMP/diag/konsola.txt" 2>&1 & ) || true
-          sleep 5
 
-          for t in 15 35 60; do
-            sleep 10
-            zyje=$(xcrun simctl spawn "$dev" launchctl list 2>/dev/null | grep -c "pl.straznik.app" || true)
-            echo "po ~${t}s: wpisow procesu = $zyje"
+          # Poprzednia proba nic nie powiedziala, bo opakowalem uruchomienie w
+          # `timeout`, ktorego macOS nie ma w standardzie — aplikacja zapewne
+          # w ogole nie wystartowala. Sprawdzamy to wprost:
+          echo "timeout dostepny: $(command -v timeout || echo NIE)"
+
+          echo "=== ekrany PRZED uruchomieniem ==="
+          xcrun simctl io "$dev" enumerate 2>&1 | grep -E "Display class|Default width|Default height|Power state" | head -30
+
+          echo "=== uruchomienie ==="
+          xcrun simctl launch "$dev" pl.straznik.app 2>&1 | tee "$RUNNER_TEMP/diag/launch.txt"
+          sleep 8
+          echo "=== czy proces istnieje (wpis UIKitApplication) ==="
+          xcrun simctl spawn "$dev" launchctl list 2>/dev/null | grep -i straznik || echo "(BRAK wpisu)"
+
+          echo "=== ekrany PO uruchomieniu ==="
+          xcrun simctl io "$dev" enumerate 2>&1 | grep -E "Display class|Default width|Default height|Power state" | head -30
+
+          for t in 20 45 75; do
+            sleep 15
+            echo "--- ~${t}s ---"
+            xcrun simctl spawn "$dev" launchctl list 2>/dev/null | grep -i straznik || echo "(BRAK wpisu)"
             for i in 0 1 2 3 4 5; do
               plik="$RUNNER_TEMP/zrzuty/t${t}s-ekran$i.png"
               if xcrun simctl io "$dev" screenshot --display=$i "$plik" >/dev/null 2>&1; then
@@ -248,16 +259,13 @@ jobs:
             done
           done
 
-          echo "=== wyjscie procesu aplikacji ==="
-          tail -60 "$RUNNER_TEMP/diag/konsola.txt" 2>/dev/null || echo "(pusto)"
-          echo "=== raporty awarii ==="
-          find "$HOME/Library/Logs/DiagnosticReports" -name "*.ips" -newermt "-10 minutes" 2>/dev/null | head -5 | while read -r r; do
-            echo "--- $r"; head -40 "$r"; cp "$r" "$RUNNER_TEMP/diag/" 2>/dev/null || true
-          done
-          echo "=== dziennik systemu o naszym procesie ==="
-          xcrun simctl spawn "$dev" log show --last 3m --style compact 2>/dev/null | grep -iE "straznik|App\.app|Capacitor|WebView" | tail -40 || echo "(nic)"
+          echo "=== dziennik: nasz proces i WebView ==="
+          xcrun simctl spawn "$dev" log show --last 4m --style compact 2>/dev/null | grep -iE "straznik|SpringBoard.*App|FrontBoard|Capacitor" | grep -viE "shortcuts:ToolKitIndexing" | tail -40 > "$RUNNER_TEMP/diag/dziennik.txt" || true
+          tail -40 "$RUNNER_TEMP/diag/dziennik.txt" || echo "(nic)"
+          echo "=== raporty awarii NASZEJ aplikacji ==="
+          find "$HOME/Library/Logs/DiagnosticReports" -name "App-*.ips" -newermt "-15 minutes" 2>/dev/null | head -3 | while read -r r; do echo "--- $r"; head -50 "$r"; cp "$r" "$RUNNER_TEMP/diag/"; done
+          find "$HOME/Library/Logs/DiagnosticReports" -name "App-*.ips" -newermt "-15 minutes" 2>/dev/null | grep -q . || echo "(zadnego raportu dla App — nasza aplikacja nie padla)"
 
-          echo "--- co powstalo ---"
           ls -l "$RUNNER_TEMP/zrzuty" || true
           xcrun simctl shutdown "$dev" 2>&1 || true
 
