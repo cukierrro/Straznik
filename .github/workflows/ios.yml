@@ -103,44 +103,61 @@ jobs:
           echo "--- czegokolwiek o Duo/Fold ---"
           xcrun simctl list devicetypes | grep -iE "duo|fold" || echo "(BRAK urzadzenia Duo/Fold)"
 
-      - name: Czy symulator Duo umie zmieniać pozy (rozpoznanie 29.10.2026)
+      - name: Zrzuty Strażnika na symulatorze iPhone Duo (oba ekrany)
+        if: steps.mode.outputs.mode == 'check'
         run: |
-          # Sesja glowna znalazla w README obrazu wiersz "iOS 27.1 | iPhone Duo",
-          # wiec urzadzenie jest. Zostaje pytanie, na ktore README nie odpowiada:
-          # czy poze (zlozony / rozlozony) da sie przestawic z `simctl`. Jesli nie,
-          # zrzut rozlozonego ekranu bedzie wymagal sprzetu i trzeba to powiedziec.
-          # Samo rozpoznanie: nic nie instalujemy, nic nie wysylamy.
-          typ=$(xcrun simctl list devicetypes | grep -i duo | head -1 | sed -E 's/.*\((com\.apple\.[^)]*)\).*/\1/')
-          echo "typ urzadzenia: ${typ:-(nie znalazlem)}"
-          [ -n "$typ" ] || exit 0
+          # Duo ma OBA ekrany naraz (zmierzone 31.10.2026): zewnetrzny ~1398x2034
+          # i wewnetrzny ~2007x2853. Nie ma wiec "zmiany pozy" — wskazuje sie ekran
+          # przez --display. Numerow NIE zaszywam: przechodze po kolei i nazywam
+          # plik tym, co faktycznie wyszlo, bo numeracja moze sie zmienic.
+          typ=com.apple.CoreSimulator.SimDeviceType.iPhone-Duo
           dev=""
           for run in $(xcrun simctl list runtimes | grep -oE 'com\.apple\.CoreSimulator\.SimRuntime\.iOS-[0-9-]+'); do
-            echo "probuje system: $run"
-            out=$(xcrun simctl create duo-proba "$typ" "$run" 2>&1) && { dev="$out"; echo "  utworzone na $run: $dev"; break; }
-            echo "  nie poszlo: $(echo "$out" | tail -1)"
+            out=$(xcrun simctl create duo-zrzuty "$typ" "$run" 2>&1) && { dev="$out"; echo "urzadzenie na $run: $dev"; break; }
           done
-          [ -n "$dev" ] || { echo "::warning::Duo nie powstalo na zadnym z systemow"; exit 0; }
+          [ -n "$dev" ] || { echo "::error::nie utworzylem symulatora Duo"; exit 1; }
           xcrun simctl boot "$dev" 2>&1 || true
-          xcrun simctl bootstatus "$dev" -b 2>&1 | tail -3 || true
-          echo "--- wyswietlacze urzadzenia (szukamy wewnetrznego i zewnetrznego) ---"
-          xcrun simctl io "$dev" enumerate 2>&1 | head -60 || true
-          echo "--- czy simctl ma cokolwiek o pozie ---"
-          xcrun simctl help 2>&1 | grep -iE "pose|fold|unfold|display|device.?state" || echo "(nic w simctl help)"
-          xcrun simctl ui "$dev" 2>&1 | head -20 || true
-          echo "--- zrzut domyslnej pozy (do artefaktu) ---"
-          xcrun simctl io "$dev" screenshot "$RUNNER_TEMP/duo-domyslna.png" 2>&1 || true
-          ls -l "$RUNNER_TEMP/duo-domyslna.png" 2>/dev/null || echo "(zrzutu nie ma)"
-          xcrun simctl shutdown "$dev" 2>&1 || true
-          xcrun simctl delete "$dev" 2>&1 || true
+          xcrun simctl bootstatus "$dev" -b 2>&1 | tail -2
 
-      - name: Zrzut pustego symulatora Duo (jeśli powstał)
+          set -o pipefail
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release -destination "platform=iOS Simulator,id=$dev" -derivedDataPath "$RUNNER_TEMP/dd" -clonedSourcePackagesDirPath "$RUNNER_TEMP/spm" CODE_SIGNING_ALLOWED=NO build 2>&1 | tee "$RUNNER_TEMP/sim-build.log" | grep -E "error:|BUILD (SUCCEEDED|FAILED)" || true
+          grep -q "BUILD SUCCEEDED" "$RUNNER_TEMP/sim-build.log"
+          set +o pipefail
+
+          app=$(find "$RUNNER_TEMP/dd/Build/Products" -maxdepth 2 -name "App.app" -type d | head -1)
+          echo "paczka: ${app:-(nie znalazlem)}"
+          [ -n "$app" ] || { echo "::error::nie ma App.app dla symulatora"; exit 1; }
+          xcrun simctl install "$dev" "$app"
+          xcrun simctl launch "$dev" pl.straznik.app
+
+          mkdir -p "$RUNNER_TEMP/zrzuty"
+          # Mapa i dane lecą z sieci. Dwie serie: po 40 s i po kolejnych 30 s —
+          # pierwsza czesto lapie jeszcze ekran startowy, a lepiej miec oba stany
+          # niz zgadywac, ile trwa wczytanie na maszynie w chmurze.
+          for seria in 40s 70s; do
+            [ "$seria" = 40s ] && sleep 40 || sleep 30
+            for i in 0 1 2 3 4 5; do
+              plik="$RUNNER_TEMP/zrzuty/duo-$seria-ekran$i.png"
+              if xcrun simctl io "$dev" screenshot --display=$i "$plik" >/dev/null 2>&1; then
+                wym=$(sips -g pixelWidth -g pixelHeight "$plik" 2>/dev/null | awk '/pixel/{printf "%s", $2"x"} END{print ""}')
+                echo "  $seria ekran $i -> ${wym%x}"
+                mv "$plik" "$RUNNER_TEMP/zrzuty/duo-$seria-ekran$i-${wym%x}.png"
+              fi
+            done
+          done
+          echo "--- co powstalo ---"
+          ls -l "$RUNNER_TEMP/zrzuty" || true
+          [ -n "$(ls -A "$RUNNER_TEMP/zrzuty" 2>/dev/null)" ] || { echo "::error::nie powstal zaden zrzut"; exit 1; }
+          xcrun simctl shutdown "$dev" 2>&1 || true
+
+      - name: Zrzuty Duo do pobrania
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: duo-symulator-domyslna-poza
-          path: ${{ runner.temp }}/duo-domyslna.png
-          if-no-files-found: ignore
-          retention-days: 7
+          name: zrzuty-duo
+          path: ${{ runner.temp }}/zrzuty
+          if-no-files-found: warn
+          retention-days: 14
 
       - uses: actions/setup-node@v5
         with:
