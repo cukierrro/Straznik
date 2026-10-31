@@ -113,10 +113,13 @@ jobs:
           typ=$(xcrun simctl list devicetypes | grep -i duo | head -1 | sed -E 's/.*\((com\.apple\.[^)]*)\).*/\1/')
           echo "typ urzadzenia: ${typ:-(nie znalazlem)}"
           [ -n "$typ" ] || exit 0
-          run=$(xcrun simctl list runtimes | grep "iOS 27" | sed -E 's/.*(com\.apple\.CoreSimulator[^ ]*).*/\1/' | head -1)
-          echo "system: ${run:-(nie znalazlem)}"
-          dev=$(xcrun simctl create duo-proba "$typ" $run 2>&1) || { echo "nie utworzylem: $dev"; exit 0; }
-          echo "utworzone: $dev"
+          dev=""
+          for run in $(xcrun simctl list runtimes | grep -oE 'com\.apple\.CoreSimulator\.SimRuntime\.iOS-[0-9-]+'); do
+            echo "probuje system: $run"
+            out=$(xcrun simctl create duo-proba "$typ" "$run" 2>&1) && { dev="$out"; echo "  utworzone na $run: $dev"; break; }
+            echo "  nie poszlo: $(echo "$out" | tail -1)"
+          done
+          [ -n "$dev" ] || { echo "::warning::Duo nie powstalo na zadnym z systemow"; exit 0; }
           xcrun simctl boot "$dev" 2>&1 || true
           xcrun simctl bootstatus "$dev" -b 2>&1 | tail -3 || true
           echo "--- wyswietlacze urzadzenia (szukamy wewnetrznego i zewnetrznego) ---"
