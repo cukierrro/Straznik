@@ -227,26 +227,38 @@ jobs:
           echo "paczka: ${app:-(nie znalazlem)}"
           [ -n "$app" ] || { echo "::error::nie ma App.app dla symulatora"; exit 1; }
           xcrun simctl install "$dev" "$app"
-          xcrun simctl launch "$dev" pl.straznik.app
 
-          mkdir -p "$RUNNER_TEMP/zrzuty"
-          # Mapa i dane lecą z sieci. Dwie serie: po 40 s i po kolejnych 30 s —
-          # pierwsza czesto lapie jeszcze ekran startowy, a lepiej miec oba stany
-          # niz zgadywac, ile trwa wczytanie na maszynie w chmurze.
-          for seria in 40s 70s; do
-            [ "$seria" = 40s ] && sleep 40 || sleep 30
+          # Pierwsza proba (31.10) dala pulpit z ikona zamiast aplikacji, a ekran
+          # wewnetrzny czarny. Nie zgadujemy dlaczego: lapiemy wyjscie procesu,
+          # sprawdzamy po kazdym zrzucie czy jeszcze zyje, i zbieramy raporty awarii.
+          mkdir -p "$RUNNER_TEMP/zrzuty" "$RUNNER_TEMP/diag"
+          ( timeout 90 xcrun simctl launch --console-pty "$dev" pl.straznik.app > "$RUNNER_TEMP/diag/konsola.txt" 2>&1 & ) || true
+          sleep 5
+
+          for t in 15 35 60; do
+            sleep 10
+            zyje=$(xcrun simctl spawn "$dev" launchctl list 2>/dev/null | grep -c "pl.straznik.app" || true)
+            echo "po ~${t}s: wpisow procesu = $zyje"
             for i in 0 1 2 3 4 5; do
-              plik="$RUNNER_TEMP/zrzuty/duo-$seria-ekran$i.png"
+              plik="$RUNNER_TEMP/zrzuty/t${t}s-ekran$i.png"
               if xcrun simctl io "$dev" screenshot --display=$i "$plik" >/dev/null 2>&1; then
                 wym=$(sips -g pixelWidth -g pixelHeight "$plik" 2>/dev/null | awk '/pixel/{printf "%s", $2"x"} END{print ""}')
-                echo "  $seria ekran $i -> ${wym%x}"
-                mv "$plik" "$RUNNER_TEMP/zrzuty/duo-$seria-ekran$i-${wym%x}.png"
+                mv "$plik" "$RUNNER_TEMP/zrzuty/t${t}s-ekran$i-${wym%x}.png"
               fi
             done
           done
+
+          echo "=== wyjscie procesu aplikacji ==="
+          tail -60 "$RUNNER_TEMP/diag/konsola.txt" 2>/dev/null || echo "(pusto)"
+          echo "=== raporty awarii ==="
+          find "$HOME/Library/Logs/DiagnosticReports" -name "*.ips" -newermt "-10 minutes" 2>/dev/null | head -5 | while read -r r; do
+            echo "--- $r"; head -40 "$r"; cp "$r" "$RUNNER_TEMP/diag/" 2>/dev/null || true
+          done
+          echo "=== dziennik systemu o naszym procesie ==="
+          xcrun simctl spawn "$dev" log show --last 3m --style compact 2>/dev/null | grep -iE "straznik|App\.app|Capacitor|WebView" | tail -40 || echo "(nic)"
+
           echo "--- co powstalo ---"
           ls -l "$RUNNER_TEMP/zrzuty" || true
-          [ -n "$(ls -A "$RUNNER_TEMP/zrzuty" 2>/dev/null)" ] || { echo "::error::nie powstal zaden zrzut"; exit 1; }
           xcrun simctl shutdown "$dev" 2>&1 || true
 
       - name: Zrzuty Duo do pobrania
@@ -254,7 +266,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: zrzuty-duo
-          path: ${{ runner.temp }}/zrzuty
+          path: |
+            ${{ runner.temp }}/zrzuty
+            ${{ runner.temp }}/diag
           if-no-files-found: warn
           retention-days: 14
 
