@@ -6,6 +6,10 @@
 
 Serwer: **hostowane na [Mikrusie](https://mikr.us)** — dziękujemy za wsparcie projektu.
 
+Wersja 1.8.03: dron zgłoszony tylko z celem („kursem na…”) ma ikonę bez kierunku i kartę,
+która mówi, co naprawdę wiadomo; daje punkty tylko bliżej niż 150 km od granicy.
+Szczegóły: `docs/RELEASE_1.8.03.md`.
+
 Wersja 1.8.02: ostrzeżenie GROTY o zmienionym schronieniu podaje właściwy wykaz ze starym
 obiektem, a samoloty mieszczą się w dobowym limicie adsb.lol (500 zapytań). Szczegóły:
 `docs/RELEASE_1.8.02.md`.

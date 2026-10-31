@@ -20,6 +20,11 @@
      Na stronie WWW i na iPhonie zmiennej Capacitora nie ma, więc zostaje env. */
   --safe-b: max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px));
   --safe-t: max(env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px));
+  /* Boki (31.10.2026): w poziomie wyspa iPhone'a i wycięcie aparatu Androida stoją przy
+     LEWEJ albo PRAWEJ krawędzi, a na rozłożonym iPhone Duo pasek stanu jest z prawej.
+     Bez tych zmiennych przyciski i karty przy krawędzi wchodziły pod wcięcie. */
+  --safe-l: max(env(safe-area-inset-left, 0px), var(--safe-area-inset-left, 0px));
+  --safe-r: max(env(safe-area-inset-right, 0px), var(--safe-area-inset-right, 0px));
   /* wysokość dolnego paska zakładek — odsuwa panel, kartę obiektu i stos komunikatów */
   --tabbar-h: 72px;
   /* Okna dialogowe centrujemy nad paskiem zakładek i nigdy nie pozwalamy im go
@@ -90,7 +95,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   position: fixed; top: 0; left: 0; right: 0; z-index: 30;
   display: flex; align-items: center; gap: 14px;
   /* pasek systemowy Androida/iOS — bez tego treść chowa się pod statusbarem */
-  padding: calc(8px + var(--safe-t)) 14px 8px;
+  padding: calc(8px + var(--safe-t)) calc(14px + var(--safe-r)) 8px calc(14px + var(--safe-l));
   background: linear-gradient(180deg, rgba(8,11,20,.94), rgba(8,11,20,.75) 80%, transparent);
   pointer-events: none;
 }
@@ -110,7 +115,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 /* W aplikacji linia pod „STRAŻNIK” podnosiła cały wiersz z diodami. Tam wychodzi poza
    przepływ (absolute) pod markę, w dwóch liniach: logo, pod nim podpis ze strzałką —
    wiersz nagłówka zostaje jak przed dodaniem. Na stronie www zostaje w jednej linii. */
-.native-app .brand-host { position: absolute; top: calc(100% + 3px); left: 24px;
+.native-app .brand-host { position: absolute; top: calc(100% + 3px); left: calc(24px + var(--safe-l));
   flex-direction: column; align-items: flex-start; gap: 3px; margin-top: 0; }
 .native-app .brand-host img { height: 11px; }
 .brand-host:hover, .brand-host:focus-visible { color: var(--text); }
@@ -153,7 +158,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 /* Przewija się ciało karty, nie cała karta: przyciski „zwiń" i „zamknij" leżą
    w niej absolutnie i przy przewijaniu całości uciekały w górę (zgłoszenie
    czytelnika 23.09.2026). Teraz zostają w rogu niezależnie od treści. */
-#ac-card { position: fixed; left: 8px; right: auto; z-index: 1200;
+#ac-card { position: fixed; left: calc(8px + var(--safe-l)); right: auto; z-index: 1200;
   width: min(172px, calc(100vw - 16px));
   bottom: calc(var(--tabbar-h) + var(--safe-b) + var(--stack-h, 0px) + 6px);
   max-height: 152px; display: flex; flex-direction: column; overflow: hidden;
@@ -165,7 +170,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   box-shadow: inset 0 1px 0 rgba(255,255,255,.10), 0 14px 40px -10px rgba(0,0,0,.8); font: 0.6667rem "Segoe UI", system-ui, sans-serif;
   line-height: 1.35; }
 /* rozwinięta karta — prawie cały ekran, jak przed 1.7.23 */
-#ac-card.big { right: 8px; width: auto; max-height: 74vh; max-height: 74dvh; border-radius: 14px;
+#ac-card.big { right: calc(8px + var(--safe-r)); width: auto; max-height: 74vh; max-height: 74dvh; border-radius: 14px;
   bottom: calc(var(--tabbar-h) + var(--safe-b) + var(--stack-h, 0px) + 12px);
   padding: 14px 16px 16px; font-size: 0.8333rem; line-height: 1.45; }
 /* Karta stoi NAD panelem (historia, sygnały: --stack-h), więc jej wysokość musi
@@ -242,7 +247,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.04)); border-radius: 11px; }
 /* na szerokim ekranie karta jako narożnik, nie pełna szerokość */
 @media (min-width: 861px) {
-  #ac-card { left: 12px; right: auto; width: 340px; max-height: 46vh;
+  #ac-card { left: calc(12px + var(--safe-l)); right: auto; width: 340px; max-height: 46vh;
     max-height: min(46vh, calc(100vh - var(--safe-t) - var(--karta-dol) - 12px)); }
   #ac-card.big { right: auto; width: 420px; max-height: 82vh;
     max-height: min(82vh, calc(100vh - var(--safe-t) - var(--karta-dol) - 12px)); }
@@ -280,10 +285,10 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 
 /* ── pasek: nasłuch w tle nie działa ── */
 #bg-warning {
-  position: fixed; left: 50%; transform: translateX(-50%);
+  position: fixed; left: calc(50% + (var(--safe-l) - var(--safe-r)) / 2); transform: translateX(-50%);
   top: calc(var(--topbar-h, 52px) + 46px); z-index: 55;
   display: flex; align-items: center; gap: 10px;
-  max-width: min(560px, 94vw);
+  max-width: min(560px, calc(94vw - var(--safe-l) - var(--safe-r)));
   background: rgba(255,176,32,.14); border: 1px solid rgba(255,176,32,.5);
   border-radius: 10px; padding: 8px 12px; font-size: 0.8333rem; color: var(--amber);
   box-shadow: 0 8px 24px rgba(0,0,0,.4);
@@ -296,7 +301,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 body.panel-open #bg-warning { display: none; }
 
 .noscript-info {
-  position: fixed; top: 70px; right: 16px; left: 16px; z-index: 80; max-width: 720px;
+  position: fixed; top: 70px; right: calc(16px + var(--safe-r)); left: calc(16px + var(--safe-l)); z-index: 80; max-width: 720px;
   margin: 0 auto; padding: 20px; color: var(--text); background: var(--panel);
   border: 1px solid var(--panel-border); border-radius: 14px; line-height: 1.5;
 }
@@ -331,10 +336,10 @@ body.panel-open #bg-warning { display: none; }
 
 /* Komunikat administracyjny (np. zapowiedź testu) — u góry, kolor info, do zamknięcia. */
 #notice-banner {
-  position: fixed; left: 50%; transform: translateX(-50%);
+  position: fixed; left: calc(50% + (var(--safe-l) - var(--safe-r)) / 2); transform: translateX(-50%);
   top: calc(64px + var(--safe-t)); z-index: 70;
   display: flex; align-items: center; gap: 10px;
-  max-width: min(560px, 94vw);
+  max-width: min(560px, calc(94vw - var(--safe-l) - var(--safe-r)));
   background: var(--panel, #151d2e); border: 1px solid #4a86d8;
   border-radius: 12px; padding: 10px 14px; line-height: 1.4;
   box-shadow: 0 14px 40px rgba(0,0,0,.5);
@@ -404,7 +409,7 @@ body.panel-open #update-banner:not(.critical) { display: none; }
 
 /* ── pasek „to skrót do strony" (tylko w skrócie WebAPK na Androidzie) ── */
 #skrot-www {
-  position: fixed; left: 8px; right: 8px; top: 96px; z-index: 60;
+  position: fixed; left: calc(8px + var(--safe-l)); right: calc(8px + var(--safe-r)); top: 96px; z-index: 60;
   display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
   padding: 10px 12px; border-radius: 12px; font-size: 0.8667rem; line-height: 1.35;
   background: #17223a; color: #dce6ff; border: 1px solid #2f4470;
@@ -439,7 +444,7 @@ body.panel-open #update-banner:not(.critical) { display: none; }
    wytyczna OSMF każe jej szukać, i tam, gdzie nie walczy o miejsce z pigułką
    regionu na dole. */
 #attribution {
-  position: fixed; left: 10px; z-index: 26;
+  position: fixed; left: calc(10px + var(--safe-l)); z-index: 26;
   top: calc(var(--topbar-h, 90px) + 6px + var(--pod-plakietka, 0px));
   width: 44px; height: 44px; font-size: 0.8rem; line-height: 1.45; color: var(--muted);
 }
@@ -501,7 +506,7 @@ dialog a:hover, dialog a:focus-visible { text-decoration: underline; }
 
 /* ── panel boczny (wysuwany) ── */
 #panel {
-  position: fixed; top: calc(54px + var(--safe-t)); right: 10px;
+  position: fixed; top: calc(54px + var(--safe-t)); right: calc(10px + var(--safe-r));
   bottom: calc(var(--tabbar-h) + var(--safe-b) + var(--stack-h, 0px) + 14px); z-index: 25;
   width: 340px; overflow-y: auto; scrollbar-width: thin;
   display: flex; flex-direction: column; gap: 12px;
@@ -571,7 +576,7 @@ dialog a:hover, dialog a:focus-visible { text-decoration: underline; }
 
 /* ── przyciski nawigacji mapy (jak w Mapach Google) ── */
 #map-actions {
-  position: fixed; right: 12px; z-index: 26;
+  position: fixed; right: calc(12px + var(--safe-r)); z-index: 26;
   bottom: calc(var(--tabbar-h) + var(--safe-b) + var(--stack-h, 0px) + 16px);
   /* Górna granica = dół paska. Gdy komunikaty zabiorą miejsce, przyciski przechodzą
      do drugiej kolumny w lewo zamiast wchodzić na pasek (wrap-reverse zamienia
@@ -760,7 +765,7 @@ body.history-mode #my-banner { display: none; }
 /* ── pełnoekranowy alarm (poziom czerwony) ── */
 #alarm-overlay {
   position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 90; display: flex; align-items: center;
-  justify-content: center; padding: 18px;
+  justify-content: center; padding: 18px calc(18px + var(--safe-r)) 18px calc(18px + var(--safe-l));
   background: rgba(20, 0, 4, .72); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
   animation: alarmflash 1.1s infinite;
 }
@@ -1080,7 +1085,7 @@ html[lang="en"] .list:empty::after { content: "— none —"; }
 
 /* ── legenda ── */
 #legend {
-  position: fixed; left: 10px; top: calc(var(--topbar-h, 90px) + 6px);
+  position: fixed; left: calc(10px + var(--safe-l)); top: calc(var(--topbar-h, 90px) + 6px);
   z-index: 26; width: 250px;
   background: var(--panel); border: 1px solid var(--panel-border); border-radius: 12px;
   padding: 10px 12px; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); font-size: 0.8rem;
@@ -1181,12 +1186,12 @@ html[lang="en"] .list:empty::after { content: "— none —"; }
 .lg-row .sq { width: 12px; height: 12px; border-radius: 3px; background: var(--c); }
 .muted-row { color: var(--muted); font-size: 0.7rem; line-height: 1.35; }
 
-#conn-badge { position: fixed; top: calc(var(--topbar-h, 90px) + 6px); left: 12px; z-index: 40;
+#conn-badge { position: fixed; top: calc(var(--topbar-h, 90px) + 6px); left: calc(12px + var(--safe-l)); z-index: 40;
   background: rgba(64,44,6,.9); color: var(--amber); font-size: 0.7333rem;
   border: 1px solid var(--amber); border-radius: 8px; padding: 4px 10px; }
 /* Pasek awarii NEPTUN-a — wygląd jak plakietka połączenia, ale to przycisk
    (otwiera „Źródła”), więc pole dotyku co najmniej 44 px i zawijanie tekstu. */
-#src-badge { position: fixed; top: calc(var(--topbar-h, 90px) + 6px); left: 12px; right: 12px;
+#src-badge { position: fixed; top: calc(var(--topbar-h, 90px) + 6px); left: calc(12px + var(--safe-l)); right: calc(12px + var(--safe-r));
   z-index: 40; max-width: 520px; min-height: 44px; text-align: left; cursor: pointer;
   background: rgba(64,44,6,.92); color: var(--amber); font: inherit; font-size: 0.7333rem;
   line-height: 1.35; border: 1px solid var(--amber); border-radius: 8px; padding: 6px 10px; }
@@ -1194,9 +1199,9 @@ html[lang="en"] .list:empty::after { content: "— none —"; }
 
 /* komunikat o zmianie ustawienia (zamiast niemego przełącznika) */
 #toast {
-  position: fixed; left: 50%; transform: translateX(-50%); z-index: 95;
+  position: fixed; left: calc(50% + (var(--safe-l) - var(--safe-r)) / 2); transform: translateX(-50%); z-index: 95;
   bottom: calc(var(--tabbar-h) + var(--safe-b) + 14px);
-  max-width: min(430px, 92vw); background: #16203a; color: var(--text);
+  max-width: min(430px, calc(92vw - var(--safe-l) - var(--safe-r))); background: #16203a; color: var(--text);
   border: 1px solid var(--accent); border-radius: 12px; padding: 11px 14px;
   font-size: 0.8333rem; line-height: 1.45; box-shadow: 0 6px 26px rgba(0,0,0,.5);
   animation: toastIn .18s ease;
@@ -1215,8 +1220,13 @@ dialog { margin: auto; background: #121828; color: var(--text); border: 1px soli
      `margin:auto` centruje okno w tym, co zostaje. */
   /* Górna krawędź MUSI uwzględniać pasek stanu: bez tego wysokie okno (np. lista
      źródeł) zaczynało się pod zegarkiem Androida i wyglądało jak ucięte u góry. */
-  position: fixed; top: var(--safe-t); left: 0; right: 0;
+  /* Boki (31.10.2026): na rozłożonym iPhone Duo pasek stanu stoi przy prawej krawędzi
+     (84 px) i krzyżyk „Zamknij” w rogu szerokiego okna wchodził pod niego. Obszar
+     pozycjonowania omija wcięcia, a max-width nie pozwala oknu w nie wystawać —
+     szerokości w vw w poszczególnych oknach liczą się od całego ekranu. */
+  position: fixed; top: var(--safe-t); left: var(--safe-l); right: var(--safe-r);
   bottom: calc(var(--tabbar-h) + var(--safe-b));
+  max-width: calc(100vw - var(--safe-l) - var(--safe-r) - 12px);
   border-radius: 14px; padding: 18px; width: min(420px, 92vw);
   max-height: var(--dlg-max); overflow-y: auto; overscroll-behavior: contain;
   padding-bottom: calc(18px + var(--safe-b));
@@ -1323,7 +1333,7 @@ dialog menu > .chip.primary { font-weight: 600; }
    zmieściły się w jednym rzędzie */
 @media (max-width: 700px) {
   .brand-name { font-size: 0.8rem; letter-spacing: .12em; }
-  #topbar { gap: 6px; padding-left: 10px; padding-right: 10px; }
+  #topbar { gap: 6px; padding-left: calc(10px + var(--safe-l)); padding-right: calc(10px + var(--safe-r)); }
   .top-actions { gap: 5px; }
   .chip { padding: 6px 8px; font-size: 0.8667rem; }
   #status-leds { gap: 4px; }
@@ -1333,7 +1343,7 @@ dialog menu > .chip.primary { font-weight: 600; }
   .icon-btn { width: 34px; height: 34px; border-radius: 10px; }
   .icon-btn svg { width: 18px; height: 18px; }
   .top-actions { gap: 4px; }
-  #panel { left: 10px; width: auto; top: auto; height: 52vh;
+  #panel { left: calc(10px + var(--safe-l)); width: auto; top: auto; height: 52vh;
     /* przy wysokim stosie komunikatów panel wchodził na górny pasek (✕ pod ⚙) */
     max-height: calc(100vh - var(--topbar-bottom, 110px) - 8px - var(--tabbar-h) - var(--safe-b)
       - var(--stack-h, 0px) - 14px); }
@@ -1364,7 +1374,7 @@ dialog menu > .chip.primary { font-weight: 600; }
    kolumnie z odstępem sprawia, że nic nie może na siebie wejść, a zamknięcie
    paska zastrzeżenia automatycznie przesuwa resztę w dół. */
 #bottom-stack {
-  position: fixed; left: 10px; right: 10px; z-index: 28;
+  position: fixed; left: calc(10px + var(--safe-l)); right: calc(10px + var(--safe-r)); z-index: 28;
   bottom: calc(var(--tabbar-h) + var(--safe-b) + 8px);
   display: flex; flex-direction: column; gap: 7px;
   pointer-events: none;                 /* mapa pod spodem zostaje przesuwalna */
@@ -1522,7 +1532,7 @@ dialog > .dlg-x:focus:not(:focus-visible) { outline: none; box-shadow: none; bor
 #tabbar {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
   display: grid; grid-template-columns: repeat(4, 1fr);
-  padding: 6px 4px calc(16px + var(--safe-b));
+  padding: 6px calc(4px + var(--safe-r)) calc(16px + var(--safe-b)) calc(4px + var(--safe-l));
   background: rgba(9, 13, 22, .96); border-top: 1px solid var(--panel-border);
   -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
 }
@@ -1799,7 +1809,7 @@ dialog input, dialog select, #quiet-hours input[type="time"] {
 
 /* ── v4: pływający dolny pasek z GROTĄ w środku ── */
 #tabbar {
-  left: 10px; right: 10px; bottom: calc(8px + var(--safe-b));
+  left: calc(10px + var(--safe-l)); right: calc(10px + var(--safe-r)); bottom: calc(8px + var(--safe-b));
   display: flex; align-items: center; padding: 6px; border-radius: 22px;
   background: linear-gradient(180deg, rgba(36, 47, 76, 0.84), rgba(15, 20, 35, 0.90));
   border: 1px solid rgba(170, 195, 245, 0.20); border-top-color: rgba(255, 255, 255, 0.22);
@@ -2157,7 +2167,7 @@ dialog::-webkit-scrollbar-thumb, .upd-txt::-webkit-scrollbar-thumb,
 body.dane-stare #licznik { opacity: 0.55; }
 /* Strona na wąskim ekranie: róg zajmuje „Pobierz”, więc licznik staje obok (i). */
 @media (max-width: 480px) {
-  html:not(.native-app) #licznik { position: fixed; z-index: 26; left: 62px; margin: 0;
+  html:not(.native-app) #licznik { position: fixed; z-index: 26; left: calc(62px + var(--safe-l)); margin: 0;
     top: calc(var(--topbar-h, 90px) + 6px + var(--pod-plakietka, 0px)); }
   html:not(.native-app) body.panel-open #licznik { opacity: 0; pointer-events: none; }
   /* 1.7.98: licznik stoi tu na wysokości góry legendy i zasłaniał jej nagłówek
