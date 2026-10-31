@@ -88,6 +88,10 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
     private let defaults = UserDefaults.standard
     private var firebaseReady = false
     private var apnsRegistered = false
+    /// Czy Firebase zdążył wydać token FCM. Trzymamy to u siebie, bo odczyt
+    /// `Messaging.messaging().fcmToken` jest wycofany — i to przez Firebase,
+    /// nie przez Apple. Wyłącznie do wiersza stanu (`statusData`).
+    private var fcmTokenObecny = false
     /// Ostatni odnośnik zewnętrzny przepuszczony przez `shouldOverrideLoad` —
     /// wyłącznie do diagnostyki wersji testowej (patrz `statusData`).
     private var ostatniLink = ""
@@ -178,8 +182,12 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
     /// Nowy token FCM (np. po przywróceniu kopii telefonu) nie ma żadnych tematów —
     /// jak `onNewToken` na Androidzie zapisujemy wszystkie od nowa.
     public func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
-        guard fcmToken != nil else { return }
-        DispatchQueue.main.async { self.syncTopics() }
+        let jest = fcmToken != nil
+        DispatchQueue.main.async {
+            self.fcmTokenObecny = jest
+            guard jest else { return }
+            self.syncTopics()
+        }
     }
 
     // MARK: - województwa i tematy FCM
@@ -515,7 +523,7 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
             // brak tokenu APNs wygląda identycznie jak odrzucony temat.
             osLine += " · APNs: " + (apnsRegistered ? "tak" : "nie")
             if firebaseReady {
-                osLine += " · FCM: " + (Messaging.messaging().fcmToken == nil ? "nie" : "tak")
+                osLine += " · FCM: " + (fcmTokenObecny ? "tak" : "nie")
             } else {
                 osLine += " · Firebase: nie"
             }
@@ -861,8 +869,8 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
               let host = url.host?.lowercased(),
               host != "localhost" else { return nil }
 
-        DispatchQueue.main.async {
-            UIApplication.shared.open(url, options: [:]) { [weak self] otwarte in
+        DispatchQueue.main.async { [weak self] in
+            UIApplication.shared.open(url, options: [:]) { otwarte in
                 self?.ostatniLink = host + (otwarte ? " ok" : " nie otwarte")
             }
         }
