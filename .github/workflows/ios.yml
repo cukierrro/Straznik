@@ -129,7 +129,7 @@ jobs:
         run: npm run sync
 
       - name: Pamięć podręczna pakietów Swift (Firebase)
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ runner.temp }}/spm
           key: spm-${{ hashFiles('ios-app/straznik-background/Package.swift', 'ios-app/ios/App/CapApp-SPM/Package.swift') }}
@@ -354,7 +354,7 @@ jobs:
 
       - name: Log kompilacji (przy błędzie)
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: xcodebuild-log
           path: |
