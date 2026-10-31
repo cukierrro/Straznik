@@ -153,12 +153,22 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
         if FirebaseApp.app() == nil {
             // Plik trafia do builda z GitHub Secrets. Bez niego FirebaseApp.configure()
             // zakończyłby aplikację — lepiej pokazać stan w ustawieniach.
-            guard Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist") != nil else {
+            //
+            // Sprawdzenie samego ISTNIENIA pliku nie wystarcza: plik obecny, ale
+            // niepełny, też kończy aplikację — i to nie łagodnym błędem, tylko
+            // wyjątkiem z `+[FIRApp addAppToAppDictionary:]`, czyli natychmiastowym
+            // zamknięciem przy starcie. Zmierzone 31.10.2026 na symulatorze, gdzie
+            // build sprawdzający podkłada atrapę pliku: aplikacja padała 1,6 s po
+            // uruchomieniu. `FirebaseOptions(contentsOfFile:)` zwraca `nil`, zamiast
+            // rzucać, więc daje się to wychwycić, zanim zrobi się szkodę.
+            guard let sciezka = Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist"),
+                  let opcje = FirebaseOptions(contentsOfFile: sciezka),
+                  !opcje.googleAppID.isEmpty else {
                 defaults.set("Brak konfiguracji Firebase w tym buildzie — alarmy push nie działają.",
                              forKey: Key.topicsError)
                 return
             }
-            FirebaseApp.configure()
+            FirebaseApp.configure(options: opcje)
         }
         // FirebaseAppDelegateProxyEnabled = NO w Info.plist: token APNs przekazujemy
         // sami (poniżej), zamiast polegać na podmianie metod AppDelegate.
