@@ -38,5 +38,29 @@ sprawdz(/#topbar\s*\{[^}]*padding:\s*calc\(8px \+ var\(--safe-t\)\) calc\(14px \
 sprawdz(/#alarm-overlay\s*\{[^}]*padding:\s*18px calc\(18px \+ var\(--safe-r\)\) 18px calc\(18px \+ var\(--safe-l\)\)/.test(css),
   "pełnoekranowy alarm odsunięty od obu boków");
 
+// Okna dialog (pomiar na symulatorze iPhone Duo 31.10: wcięcie z prawej 84 px, a krzyżyk
+// „Zamknij” w rogu okna szerokiego na 94vw stał pod paskiem stanu). Szerokości w vw liczą się
+// od całego ekranu, więc obszar okna i jego max-width muszą odejmować oba wcięcia.
+const dlg = [...css.matchAll(/(?:^|\n)dialog\s*\{([^}]*)\}/g)].map(m => m[1]).find(b => /position\s*:\s*fixed/.test(b)) || "";
+sprawdz(/left:\s*var\(--safe-l\)/.test(dlg) && /right:\s*var\(--safe-r\)/.test(dlg),
+  "obszar okien dialog omija boczne wcięcia");
+sprawdz(/max-width:\s*calc\(100vw - var\(--safe-l\) - var\(--safe-r\)/.test(dlg),
+  "okno dialog nie jest szersze niż ekran bez wcięć");
+
+// Elementy fixed centrowane przez left: 50% — środek przesunięty o różnicę wcięć,
+// szerokość pomniejszona o oba.
+const srodek = [];
+for (const m of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+  const sel = m[1].trim().split("\n").pop().trim(), body = m[2];
+  if (!/position\s*:\s*fixed/.test(body) || !/(?<![-\w])left\s*:\s*(calc\(50%|50%)/.test(body)) continue;
+  if (!/max-width/.test(body)) continue;   // np. kółko „wczytywanie mapy” — małe, bez szerokości
+  const dobrze = /left:\s*calc\(50% \+ \(var\(--safe-l\) - var\(--safe-r\)\) \/ 2\)/.test(body)
+    && /max-width:[^;]*var\(--safe-l\)[^;]*var\(--safe-r\)/.test(body);
+  srodek.push([sel, dobrze]);
+}
+sprawdz(srodek.length >= 3, `znaleziono centrowane paski (${srodek.length})`);
+const zle = srodek.filter(([, d]) => !d).map(([s]) => s);
+sprawdz(zle.length === 0, "centrowane paski liczą środek i szerokość bez wcięć" + (zle.length ? ": " + zle.join(", ") : ""));
+
 if (bledy) { console.log(`\nBŁĘDY: ${bledy}`); process.exit(1); }
 console.log("\nOK — boczne marginesy bezpieczne");
