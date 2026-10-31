@@ -250,6 +250,9 @@ jobs:
               etapy.push("klik w GROTE");
             }
             function raport() {
+              /* Modalne <dialog> leza w warstwie wierzchniej i zaden z-index ich nie
+                 przebije - zamykamy je, zeby raport i GROTA byly widoczne na zrzucie. */
+              document.querySelectorAll("dialog[open]").forEach(function (d) { try { d.close(); } catch (e) {} });
               var d = document.getElementById("__diag") || document.createElement("div");
               d.id = "__diag";
               d.style.cssText = "position:fixed;left:0;right:0;top:0;z-index:2147483647;background:#000d;" +
@@ -263,6 +266,9 @@ jobs:
                 "Capacitor: " + (window.Capacitor && window.Capacitor.getPlatform ? window.Capacitor.getPlatform() : "BRAK") + "\n" +
                 "plugin.status: " + plugin + "\n" +
                 "etapy: " + etapy.join(" | ") + "\n" +
+                "GROTA: div#grota " + !!document.getElementById("grota") +
+                "  mapa " + !!document.getElementById("g-map") +
+                "  stan " + ((document.getElementById("map-load") || {}).textContent || "-").slice(0, 50) + "\n" +
                 "NARUSZENIA CSP: " + N.length +
                 (N.length ? "\n  " + N.slice(0, 10).join("\n  ") : "  (zadnych)");
               if (!d.parentNode && document.body) document.body.appendChild(d);
