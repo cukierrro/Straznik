@@ -84,6 +84,16 @@ async function scenariusz({ sklep, play, critical = false, force = false, plugin
   sprawdz(/getUsableSpace\(\)/.test(inst) && /"NO_SPACE"/.test(inst) && inst.indexOf("getUsableSpace") < inst.indexOf("FileOutputStream out"),
     "miejsce sprawdzane przed zapisem pliku");
   sprawdz(/<files-path name="aktualizacja" path="aktualizacja\/" \/>/.test(PATHS), "FileProvider udostępnia katalog aktualizacji instalatorowi");
+  // Opis mówi o pliku APK i przejściu do Google Play — nie dotyczy iPhone'a ani wersji ze sklepu
+  // (do 1.8.04 wisiał tam z tekstem „Aplikacja nie pochodzi ze sklepu”).
+  const opis = (R("frontend/index.html").match(/<details[^>]*>\s*<summary id="jak-aktualizacje"/) || [""])[0];
+  sprawdz(/\bno-ios\b/.test(opis) && /\bno-sklep\b/.test(opis), "„Skąd biorą się aktualizacje” ukryte na iOS i w wersji z Google Play");
+  // Przycisk znika tam w app.js; jego rząd i linia statusu zostawały pustym pudełkiem.
+  const html = R("frontend/index.html");
+  const rzad = (html.match(/<div class="[^"]*"[^>]*>\s*<button[^>]*id="btn-update"/) || [""])[0];
+  const status = (html.match(/<p class="[^"]*" id="upd-status">/) || [""])[0];
+  sprawdz([rzad, status].every(t => /\bno-ios\b/.test(t) && /\bno-sklep\b/.test(t)),
+    "rząd przycisku aktualizacji i status ukryte tam, gdzie przycisku nie ma");
 
   if (bledy) { console.log(`\nBŁĘDY: ${bledy}`); process.exit(1); }
   console.log("\nOK — aktualizator 1.8.04");
