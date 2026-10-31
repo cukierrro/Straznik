@@ -6,15 +6,14 @@ nie wykona skryptu, którego nie wpuszczamy — ani wstrzykniętego w stronę, a
 dociągniętego z obcej domeny.
 
 Co chroni, a czego świadomie nie:
-- `script-src` jest ciasny: tylko nasze pliki i CZTERY skrypty wpisane w index.html,
-  wpuszczone po skrócie SHA-256. Bez 'unsafe-inline'. 'unsafe-eval' dopuszczony
-  wyłącznie z powodu testu wieku przeglądarki — uzasadnienie przy polityka().
+- `script-src` jest ciasny: tylko nasze pliki. Bez 'unsafe-inline' i bez 'unsafe-eval'
+  (od 1.8.04 — skrypty z index.html są w osobnych plikach, test wieku bez eval).
 - Obrazy, połączenia i czcionki są szerokie (`https:`). Strona łączy się z kafelkami
   mapy, zdjęciami z Wikimedii, kamerami i źródłami trybu awaryjnego; zamknięta lista
   po cichu odcięłaby któreś z nich. Przed XSS chroni `script-src`, nie te dyrektywy.
 
-Dotyczy wyłącznie strony w przeglądarce. Aplikacja wczytuje pliki lokalnie i tego
-nagłówka nie dostaje — CSP dla aplikacji wymaga osobnego testu na iPhonie.
+Aplikacja wczytuje pliki lokalnie i tego nagłówka nie dostaje — od 1.8.04 ta sama
+polityka stoi w index.html jako <meta http-equiv="Content-Security-Policy">.
 
 Skróty skryptów liczymy z pliku, który serwer właśnie podaje, i przeliczamy, gdy plik
 się zmieni. Stronę wdrażamy często samym `git pull` bez restartu — skróty policzone
@@ -54,15 +53,12 @@ def skroty(html: str) -> list[str]:
 def polityka(html: str) -> str:
     return "; ".join([
         "default-src 'self'",
-        # 'unsafe-eval' TYLKO dla testu wieku przeglądarki w index.html:
-        # `new Function("… a?.b ?? 1")` sprawdza, czy silnik zna nowszą składnię,
-        # a bez tej zgody rzuca wyjątek i KAŻDA przeglądarka dostaje ekran „silnik
-        # jest za stary” (stało się na produkcji 26.09.2026 przez ~3 min w trybie
-        # enforce). To jedyny eval w naszym kodzie i ma stały tekst; wstrzyknięty
-        # skrypt i tak nie ruszy, bo 'unsafe-inline' dalej jest zabroniony.
-        # scripts/test_csp.py pilnuje, żeby nie pojawił się drugi eval.
-        # Do usunięcia, gdy test składni trafi do osobnego pliku .js.
-        "script-src " + " ".join(["'self'", "'unsafe-eval'"] + skroty(html)),
+        # Bez 'unsafe-eval' od 1.8.04 (31.10.2026): test wieku przeglądarki robił
+        # `new Function("… a?.b ?? 1")`, teraz robi to plik silnik.js samą składnią.
+        # Skrypty wpisane w stronę przeniesione do plików, więc skrótów zostaje tylko
+        # JSON-LD (dane, przeglądarka go nie wykonuje). Ta sama polityka jest w index.html
+        # jako <meta> dla aplikacji — scripts/test_csp.py pilnuje zgodności.
+        "script-src " + " ".join(["'self'"] + skroty(html)),
         "object-src 'none'",
         "base-uri 'self'",
         "frame-ancestors 'self'",

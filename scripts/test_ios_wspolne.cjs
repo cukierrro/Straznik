@@ -7,7 +7,11 @@ const path = require('node:path');
 const assert = require('node:assert/strict');
 
 const R = (p) => fs.readFileSync(path.join(__dirname, '..', p), 'utf8');
-const html = R('frontend/index.html');
+// Od 1.8.04 (CSP) skrypty z <head> są osobnymi plikami. Wstawiamy ich treść w miejsce
+// <script src>, tak jak wykonuje je przeglądarka — kolejność i „przed pierwszym renderem”
+// sprawdzamy dalej na całości.
+const html = R('frontend/index.html').replace(/<script src="([\w.-]+\.js)(?:\?[^"]*)?"><\/script>/g,
+  (m, f) => fs.existsSync(path.join(__dirname, '..', 'frontend', f)) ? `<script>\n${R('frontend/' + f)}</script>` : m);
 const css = R('frontend/style.css');
 const app = R('frontend/app.js');
 
@@ -122,8 +126,8 @@ sprawdz(/direct_boot_ok=True/.test(R('backend/app/notify.py')),
 // tego, o co tu chodzi — że blok apns idzie przez _apns_safe, a nie wprost.
 sprawdz(/apns=_apns_safe\(topic, data(, critical)?\)/.test(R('backend/app/notify.py')),
   'blok apns dołączony do wiadomości FCM przez osłonę, która nie zabierze alarmu Androidowi');
-sprawdz(R('1_buduj_i_testuj.bat').includes('pl-outline.js"'),
-  'build APK kopiuje kontur Polski');
+sprawdz(R('1_buduj_i_testuj.bat').includes('copy /y "%REPO%\\frontend\\*.js"'),
+  'build APK kopiuje wszystkie skrypty strony, w tym kontur Polski');
 
 console.log();
 if (bledy.length) {

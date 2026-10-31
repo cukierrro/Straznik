@@ -54,7 +54,9 @@
   /* Grota używa składni, której nie zna WebView starszy niż Chrome 80 (m.in. `?.`). Na takim telefonie
      lepiej jasno powiedzieć, co się dzieje, niż pokazać pusty ekran. */
   function webviewWystarczy() {
-    try { new Function("var a = {}; return a?.b ?? 1;")(); return true; } catch (e) { return false; }
+    /* Wynik testu z silnik.js Strażnika (1.8.04) — bez eval, którego CSP nie wpuszcza.
+       Poza Strażnikiem flagi nie ma; wtedy nie blokujemy. */
+    return window.STRAZNIK_SILNIK_NOWY !== false;
   }
 
   function skrypt(src) {

@@ -11,7 +11,14 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const root = path.join(__dirname, "..");
-const html = fs.readFileSync(path.join(root, "frontend/index.html"), "utf8");
+// Od 1.8.04 (CSP) skrypty z <head> są osobnymi plikami. Wstawiamy ich treść w miejsce
+// <script src>, tak jak wykonuje je przeglądarka — kolejność i „przed pierwszym renderem”
+// sprawdzamy dalej na całości.
+const html = fs.readFileSync(path.join(root, "frontend/index.html"), "utf8")
+  .replace(/<script src="([\w.-]+\.js)(?:\?[^"]*)?"><\/script>/g, (m, f) => {
+    const p = path.join(root, "frontend", f);
+    return fs.existsSync(p) ? `<script>\n${fs.readFileSync(p, "utf8")}</script>` : m;
+  });
 const js = fs.readFileSync(path.join(root, "frontend/app.js"), "utf8");
 const css = fs.readFileSync(path.join(root, "frontend/style.css"), "utf8");
 

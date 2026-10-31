@@ -78,7 +78,9 @@ sprawdz(/id="ts-1"[^>]*aria-pressed=/.test(html), "przyciski mają aria-pressed 
 sprawdz(/aria-pressed["'],\s*on \? "true" : "false"/.test(app) || /setAttribute\("aria-pressed"/.test(app),
   "app.js uaktualnia aria-pressed przy zmianie");
 sprawdz(/SKALE_TEKSTU\s*=\s*\["1",\s*"1.15",\s*"1.3"\]/.test(app), "lista dozwolonych wartości w app.js");
-sprawdz(/_ts === "1.15" \|\| _ts === "1.3"/.test(html),
+// od 1.8.04 skrypt z nagłówka jest w start.js (CSP nie wpuszcza skryptów wpisanych w stronę)
+sprawdz(/_ts === "1.15" \|\| _ts === "1.3"/.test(czytaj("frontend/start.js"))
+    && html.indexOf('src="start.js') > 0 && html.indexOf('src="start.js') < html.indexOf("</head>"),
   "skrypt w nagłówku wpuszcza do CSS tylko znane wartości, nie to, co stoi w pamięci przeglądarki");
 
 console.log("4. Tłumaczenia w obu ścieżkach (kontrakt 1.7.89)");
