@@ -285,10 +285,10 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 
 /* ── pasek: nasłuch w tle nie działa ── */
 #bg-warning {
-  position: fixed; left: 50%; transform: translateX(-50%);
+  position: fixed; left: calc(50% + (var(--safe-l) - var(--safe-r)) / 2); transform: translateX(-50%);
   top: calc(var(--topbar-h, 52px) + 46px); z-index: 55;
   display: flex; align-items: center; gap: 10px;
-  max-width: min(560px, 94vw);
+  max-width: min(560px, calc(94vw - var(--safe-l) - var(--safe-r)));
   background: rgba(255,176,32,.14); border: 1px solid rgba(255,176,32,.5);
   border-radius: 10px; padding: 8px 12px; font-size: 0.8333rem; color: var(--amber);
   box-shadow: 0 8px 24px rgba(0,0,0,.4);
@@ -336,10 +336,10 @@ body.panel-open #bg-warning { display: none; }
 
 /* Komunikat administracyjny (np. zapowiedź testu) — u góry, kolor info, do zamknięcia. */
 #notice-banner {
-  position: fixed; left: 50%; transform: translateX(-50%);
+  position: fixed; left: calc(50% + (var(--safe-l) - var(--safe-r)) / 2); transform: translateX(-50%);
   top: calc(64px + var(--safe-t)); z-index: 70;
   display: flex; align-items: center; gap: 10px;
-  max-width: min(560px, 94vw);
+  max-width: min(560px, calc(94vw - var(--safe-l) - var(--safe-r)));
   background: var(--panel, #151d2e); border: 1px solid #4a86d8;
   border-radius: 12px; padding: 10px 14px; line-height: 1.4;
   box-shadow: 0 14px 40px rgba(0,0,0,.5);
@@ -1199,9 +1199,9 @@ html[lang="en"] .list:empty::after { content: "— none —"; }
 
 /* komunikat o zmianie ustawienia (zamiast niemego przełącznika) */
 #toast {
-  position: fixed; left: 50%; transform: translateX(-50%); z-index: 95;
+  position: fixed; left: calc(50% + (var(--safe-l) - var(--safe-r)) / 2); transform: translateX(-50%); z-index: 95;
   bottom: calc(var(--tabbar-h) + var(--safe-b) + 14px);
-  max-width: min(430px, 92vw); background: #16203a; color: var(--text);
+  max-width: min(430px, calc(92vw - var(--safe-l) - var(--safe-r))); background: #16203a; color: var(--text);
   border: 1px solid var(--accent); border-radius: 12px; padding: 11px 14px;
   font-size: 0.8333rem; line-height: 1.45; box-shadow: 0 6px 26px rgba(0,0,0,.5);
   animation: toastIn .18s ease;
@@ -1220,8 +1220,13 @@ dialog { margin: auto; background: #121828; color: var(--text); border: 1px soli
      `margin:auto` centruje okno w tym, co zostaje. */
   /* Górna krawędź MUSI uwzględniać pasek stanu: bez tego wysokie okno (np. lista
      źródeł) zaczynało się pod zegarkiem Androida i wyglądało jak ucięte u góry. */
-  position: fixed; top: var(--safe-t); left: 0; right: 0;
+  /* Boki (31.10.2026): na rozłożonym iPhone Duo pasek stanu stoi przy prawej krawędzi
+     (84 px) i krzyżyk „Zamknij” w rogu szerokiego okna wchodził pod niego. Obszar
+     pozycjonowania omija wcięcia, a max-width nie pozwala oknu w nie wystawać —
+     szerokości w vw w poszczególnych oknach liczą się od całego ekranu. */
+  position: fixed; top: var(--safe-t); left: var(--safe-l); right: var(--safe-r);
   bottom: calc(var(--tabbar-h) + var(--safe-b));
+  max-width: calc(100vw - var(--safe-l) - var(--safe-r) - 12px);
   border-radius: 14px; padding: 18px; width: min(420px, 92vw);
   max-height: var(--dlg-max); overflow-y: auto; overscroll-behavior: contain;
   padding-bottom: calc(18px + var(--safe-b));
