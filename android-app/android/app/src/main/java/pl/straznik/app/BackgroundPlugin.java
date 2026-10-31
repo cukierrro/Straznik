@@ -468,6 +468,55 @@ public class BackgroundPlugin extends Plugin {
         call.resolve(ret);
     }
 
+    static final String PLAY_PACKAGE = "com.android.vending";
+
+    /** Czy na telefonie jest działający Sklep Google Play.
+     *
+     * 1.8.04: samoaktualizacja z pliku na telefonie z Google Play dostawała od Play
+     * Protect czerwone „Zablokowano szkodliwą aplikację” (28.10.2026, instalatorem był
+     * aktualizator Strażnika), a ten sam plik z Dysku czy przeglądarki przechodził czysto.
+     * Na takim telefonie aktualizator odsyła więc do sklepu; sam instaluje tylko tam,
+     * gdzie sklepu nie ma (np. Huawei). Widoczność pakietu sklepu daje <queries>
+     * w manifeście — bez niej Android 11+ udaje, że go nie ma. */
+    @PluginMethod
+    public void playStore(PluginCall call) {
+        boolean available = false;
+        try {
+            available = getContext().getPackageManager()
+                .getApplicationInfo(PLAY_PACKAGE, 0).enabled;
+        } catch (PackageManager.NameNotFoundException ignored) {
+            // brak sklepu — zostaje instalacja z pliku
+        }
+        JSObject ret = new JSObject();
+        ret.put("available", available);
+        call.resolve(ret);
+    }
+
+    /** Strona Strażnika w Sklepie Google Play; bez aplikacji sklepu — w przeglądarce. */
+    @PluginMethod
+    public void openPlayStore(PluginCall call) {
+        String pkg = getContext().getPackageName();
+        try {
+            Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=" + pkg))
+                .setPackage(PLAY_PACKAGE)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            getContext().startActivity(i);
+            call.resolve();
+            return;
+        } catch (Exception ignored) {
+            // sklep wyłączony albo nie obsługuje market:// — strona WWW
+        }
+        try {
+            Intent i = new Intent(Intent.ACTION_VIEW,
+                Uri.parse("https://play.google.com/store/apps/details?id=" + pkg))
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            getContext().startActivity(i);
+            call.resolve();
+        } catch (Exception e) {
+            call.reject("Nie udało się otworzyć Google Play", e);
+        }
+    }
+
     /** Otwiera systemowy ekran „Instaluj nieznane aplikacje” dla Strażnika. */
     @PluginMethod
     public void requestInstallPermission(PluginCall call) {
@@ -524,8 +573,18 @@ public class BackgroundPlugin extends Plugin {
         }
 
         new Thread(() -> {
-            File apk = new File(getContext().getCacheDir(), "Straznik-update.apk");
+            // Pamięć aplikacji, nie cache: przy prawie pełnym dysku Android czyścił cache
+            // W TRAKCIE pobierania i aktualizator meldował „plik nie jest poprawnym APK”
+            // (emulator z 6% wolnego miejsca, 26.10.2026). Plik nadpisuje następna
+            // aktualizacja; po instalacji nie jest już potrzebny, więc sprzątamy stare.
+            File dir = new File(getContext().getFilesDir(), "aktualizacja");
+            File apk = new File(dir, "Straznik-update.apk");
             try {
+                if (!dir.isDirectory() && !dir.mkdirs())
+                    throw new IllegalStateException("Nie udało się utworzyć katalogu aktualizacji");
+                File stary = new File(getContext().getCacheDir(), "Straznik-update.apk");
+                if (stary.exists()) stary.delete();
+                if (apk.exists()) apk.delete();
                 HttpURLConnection conn = (HttpURLConnection) new URL(rawUrl).openConnection();
                 conn.setConnectTimeout(20000);
                 conn.setReadTimeout(60000);
@@ -533,6 +592,17 @@ public class BackgroundPlugin extends Plugin {
                 conn.setRequestProperty("User-Agent", "Straznik-Android-Updater");
                 if (conn.getResponseCode() < 200 || conn.getResponseCode() >= 300)
                     throw new IllegalStateException("HTTP " + conn.getResponseCode());
+                // Plik + rozpakowanie przez instalator Androida — zapas na drugie tyle.
+                long rozmiar = conn.getContentLengthLong();
+                long potrzeba = (rozmiar > 0 ? rozmiar : 40L << 20) * 2 + (20L << 20);
+                long wolne = dir.getUsableSpace();
+                if (wolne < potrzeba) {
+                    conn.disconnect();
+                    JSObject brak = new JSObject();
+                    brak.put("needMb", (potrzeba - wolne + (1L << 20) - 1) >> 20);
+                    call.reject("Za mało miejsca na telefonie", "NO_SPACE", brak);
+                    return;
+                }
                 MessageDigest digest = MessageDigest.getInstance("SHA-256");
                 try (InputStream in = conn.getInputStream();
                      FileOutputStream out = new FileOutputStream(apk)) {

@@ -70,6 +70,13 @@
         </provider>
     </application>
 
+    <!-- 1.8.04: aktualizator sprawdza, czy jest Sklep Google Play — wtedy odsyła do
+         sklepu zamiast instalować plik (Play Protect, 28.10.2026). Android 11+ bez tej
+         deklaracji ukrywa przed aplikacją inne pakiety. -->
+    <queries>
+        <package android:name="com.android.vending" />
+    </queries>
+
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
