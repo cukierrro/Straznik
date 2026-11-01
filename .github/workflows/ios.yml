@@ -54,8 +54,20 @@ concurrency:
 jobs:
   ios:
     if: github.repository == 'cukierrro/Straznik'
-    runs-on: macos-26
+    # Obraz podglądowy GitHuba z Xcode 27 (uwaga: nazywa się `xcode-27`,
+    # etykieta `macos-27` nie istnieje). Jedyny, na którym aplikacja linkuje
+    # się z SDK iOS 27. Bez tego iPhone'y składane uruchamiają ją w trybie
+    # zgodności, jako okno w kształcie telefonu na czarnym tle — zmierzone
+    # 1.11.2026 na iPhonie Duo: ten sam kod 1.8.04 z Xcode 26.6 w okienku,
+    # z Xcode 27.1 na pełnym ekranie. Obraz jest podglądowy, więc jeśli
+    # zniknie albo podmieni Xcode, bieg padnie na strażniku niżej.
+    runs-on: xcode-27
     timeout-minutes: 60
+    env:
+      # Przypięte na sztywno. Na obrazie leżą też 27.0 i 27.2 RC, a domyślny
+      # /Applications/Xcode.app potrafi wskazywać inną wersję między biegami —
+      # do Apple ma iść wersja wydana, nie kandydat.
+      DEVELOPER_DIR: /Applications/Xcode_27.1.app/Contents/Developer
     defaults:
       run:
         working-directory: ios-app
@@ -65,10 +77,17 @@ jobs:
 
       - name: Wersja Xcode
         run: |
+          # Twardy strażnik: gdy obraz podmieni Xcode, bieg ma paść tutaj,
+          # a nie wyjechać do TestFlighta zbudowany czymś innym.
+          [ -d "$DEVELOPER_DIR" ] \
+            || { echo "::error::brak $DEVELOPER_DIR — sprawdź, jakie Xcode leżą w /Applications na tym obrazie"; exit 1; }
           xcodebuild -version
-          major=$(xcodebuild -version | awk 'NR==1{split($2,v,"."); print v[1]}')
-          # Apple od 28.04.2026 przyjmuje tylko buildy z Xcode 26+ (iOS 26 SDK)
-          if [ "$major" -lt 26 ]; then echo "::error::Potrzebny Xcode 26 lub nowszy"; exit 1; fi
+          # sed zamiast head: head zamyka potok i xcodebuild wypisuje wtedy
+          # "broken pipe" w logu.
+          v=$(xcodebuild -version | sed -n 1p)
+          [ "$v" = "Xcode 27.1" ] \
+            || { echo "::error::aktywne $v, a miało być Xcode 27.1 — nie podpisuję czymś innym"; exit 1; }
+          echo "SDK iphoneos: $(xcrun --sdk iphoneos --show-sdk-version)"
 
       - uses: actions/setup-node@v5
         with:
