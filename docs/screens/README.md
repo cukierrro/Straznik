@@ -300,3 +300,11 @@ data changed between the captures. The card was opened by a real tap on the icon
 expanded with the card's own button; its body was scrolled by script so the whole block is
 visible. The old `1799/object-points-*` files stay as unused historical assets. Nothing in
 the images is retouched.
+
+## 1805 — release 1.8.05 (1 November 2026)
+
+`1805/dziennik-{pl,en,uk}.jpg`: the new alert log in the alerts tab. Unchanged 1080 × 2400 screenshots of a 1.8.05 GitHub
+debug build (code 135) on the Pixel 7 emulator with Android 14, taken on 1 November 2026 around 10:25 Europe/Warsaw.
+The entries are real records from local test alerts injected on that emulator through the app's own FCM receiver;
+no notification was sent to any user. The tab was opened and scrolled by script, so the system status bar still
+shows the emulator's UTC clock. Nothing in the images is retouched.

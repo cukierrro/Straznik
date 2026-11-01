@@ -6,6 +6,10 @@
 
 Serwer: **hostowane na [Mikrusie](https://mikr.us)** — dziękujemy za wsparcie projektu.
 
+Wersja 1.8.05: czerwona syrena gra z ekranu alarmu, więc powiadomienia, panel i przyciski
+głośności jej nie przerywają; pełny ekran także po żółtym; dziennik alarmów w telefonie.
+Szczegóły: `docs/RELEASE_1.8.05.md`.
+
 Wersja 1.8.04: na telefonie z Google Play aktualizacja wersji z pliku APK prowadzi do sklepu,
 gdy nowe wydanie jest już tam zatwierdzone; aplikacja dostała politykę bezpieczeństwa treści (CSP)
 i boczne marginesy przy wycięciu aparatu. Szczegóły: `docs/RELEASE_1.8.04.md`.
