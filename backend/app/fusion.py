@@ -1006,6 +1006,13 @@ def red_key(signals: list[dict], ref: datetime | None = None) -> dict | None:
         if d.get("position_approximate") and "presumptive" in (d.get("course"), d.get("heading_source")):
             continue
         eta, km = d.get("eta_border_min"), d.get("dist_km")
+        # B' (decyzja usera 1.11.2026): słaby meldunek o dronie bez kursu nie budzi syreną.
+        if (d.get("course") == "unknown"
+                and (d.get("type") or "").lower() in config.RED_GATE_BEZ_KURSU_TYPES
+                and not (d.get("confidence") == "high"
+                         and (d.get("source_count") or 0) >= config.RED_GATE_BEZ_KURSU_MIN_ZGLOSZEN)
+                and not (km is not None and km <= config.RED_GATE_BEZ_KURSU_KM)):
+            continue
         if eta is not None and eta <= config.RED_GATE_ETA_MIN:
             return {"powod": "eta", "opis": f"obiekt {int(eta)} min od granicy", "eta_min": eta, "km": km}
         if km is not None and km <= config.RED_GATE_KM:

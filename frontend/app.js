@@ -496,6 +496,8 @@ const odleglosc = (km) => (UI.isEn ? String(km) : String(km).replace(".", ","));
    tytuły serwer i engine.js budują już po polsku (test_tytuly_neptun.cjs). */
 function polskiTytulNeptun(title) {
   return String(title || "")
+    // wpisy sprzed 1.8.05: „kursem na granicę PL … [kurs nieznany]” przeczyło samo sobie
+    .replace(/ kursem na granicę PL, (.*?) \[kurs nieznany\]/, " w odległości $1 od granicy PL [kurs nieznany]")
     .replace(/confidence: (high|medium|low)\b/g, (_, c) => `wiarygodność: ${CONF_PL[c]}`)
     .replace(/\b(\d+) potwierdzeń/g, (_, n) => {
       const k = Number(n);
@@ -4155,7 +4157,10 @@ function sigHTML(s) {
   // stabilnego details.type zamiast ukraińskiego/rosyjskiego tytułu źródła.
   if (src === "neptun" && d.type) {
     const marker = secondary ? " w odległości " : " kursem na granicę PL";
-    const at = String(shownTitle || "").indexOf(marker);
+    let at = String(shownTitle || "").indexOf(marker);
+    // od 1.8.05 obiekt bez kursu ma tytuł „w odległości … od granicy PL”
+    if (!secondary && at < 0) at = String(shownTitle || "").indexOf(" w odległości ");
+    const bezKursu = d.course === "unknown";
     const prefix = (Number(d.count) || 1) > 1 ? `${Number(d.count)}× ` : "";
     if (secondary) {
       // PL: dokładna pozycja — końcówka tytułu z serwera („[blisko granicy] (wiarygodność…)”);
@@ -4167,15 +4172,22 @@ function sigHTML(s) {
           ? (d.dist_km === 0 ? ` ${where}` : UI.t(` w odległości ${where}`, ` ${where}`, ` за ${where}`)) : "");
     } else {
       shownTitle = signalApprox && d.dist_km != null
-        ? prefix + threatLabelPL(d.type) + ` kursem na granicę PL, ${threatDistanceText(signalPosition, d.dist_km)}`
+        ? prefix + threatLabelPL(d.type) + (bezKursu
+          ? (d.dist_km === 0 ? " nad Polską" : ` w odległości ${threatDistanceText(signalPosition, d.dist_km)} od granicy PL`)
+          : ` kursem na granicę PL, ${threatDistanceText(signalPosition, d.dist_km)}`)
         : prefix + threatLabelPL(d.type) + (at >= 0 ? String(shownTitle).slice(at) : "");
       if (!UI.isEn && !UI.isUk) shownTitle = polskiTytulNeptun(shownTitle);
       else {
         const count = (Number(d.count) || 1) > 1 ? `${Number(d.count)}× ` : "";
         shownTitle = count + threatLabelPL(d.type)
           + (d.dist_km != null
-            ? UI.t("", ` heading towards the Polish border, ${threatDistanceText(signalPosition, d.dist_km)}`,
-                   ` курсом на кордон Польщі, ${threatDistanceText(signalPosition, d.dist_km)}`)
+            ? (bezKursu
+              ? (d.dist_km === 0
+                ? UI.t("", " over Poland", " над Польщею")
+                : UI.t("", ` ${threatDistanceText(signalPosition, d.dist_km)} from the Polish border`,
+                       ` за ${threatDistanceText(signalPosition, d.dist_km)} від кордону Польщі`))
+              : UI.t("", ` heading towards the Polish border, ${threatDistanceText(signalPosition, d.dist_km)}`,
+                     ` курсом на кордон Польщі, ${threatDistanceText(signalPosition, d.dist_km)}`))
             : "");
       }
     }
@@ -6894,11 +6906,14 @@ let bgWarnStrikes = 0;
    Samsung trafił na listę 06.10.2026 po dwóch zgłoszeniach naraz (Galaxy S24
    Ultra i S25+): „wszystkie uprawnienia włączone, alarm rusza dopiero po wejściu
    do aplikacji". Warstwa natywna zgłaszała batteryUnrestricted od zawsze —
-   to aplikacja nigdy tego pola nie czytała i milczała. */
-const NAKLADKI_USYPIAJACE =
-  /samsung|xiaomi|redmi|poco|huawei|honor|oppo|realme|vivo|oneplus|meizu|tecno|infinix/i;
+   to aplikacja nigdy tego pola nie czytała i milczała.
+
+   1.11.2026: lista producentów przepuściła OBLUE — karta mówiła „wszystko na miejscu”
+   przy włączonej optymalizacji. Marek jest więcej, niż da się wyliczyć, więc odwracamy
+   regułę: pomijamy tylko Google, reszta może mieć własną nakładkę. */
+const CZYSTY_ANDROID = /^google$/i;
 const usypiaAplikacje = (s) =>
-  s?.batteryUnrestricted === false && NAKLADKI_USYPIAJACE.test(String(s?.manufacturer || ""));
+  s?.batteryUnrestricted === false && !CZYSTY_ANDROID.test(String(s?.manufacturer || "").trim());
 
 async function refreshBgWarning() {
   const el = document.getElementById("bg-warning");
@@ -7169,6 +7184,56 @@ function showUpdateBanner(rel, local, { sklep = false, tryb = "plik" } = {}) {
 /* ── nasłuch w tle (natywna usługa Androida) ─────────────────────────────── */
 const BG = () => window.Capacitor?.Plugins?.StraznikBackground || null;
 
+/* Dziennik alarmów (1.8.05). Po nocy z 1.11.2026 nie dało się ustalić, czy czerwony
+   w ogóle dotarł, bo telefon pamiętał tylko ostatni push. Dane nie wychodzą z telefonu.
+   Najnowsze na górze; `d.nieprzeszkadzac`: 1 = wyłączone, reszta to odmiany trybu. */
+function renderDziennikAlarmow(wpisy, jezyk = UI.lang) {
+  const el = document.getElementById("dziennik-alarmow");
+  if (!el) return;
+  const T = (pl, en, uk) => jezyk === "pl" ? pl : jezyk === "uk" ? (uk !== undefined ? uk : en) : en;
+  if (!Array.isArray(wpisy) || !wpisy.length) {
+    el.textContent = T("Brak wpisów. Pojawią się przy następnym alarmie. Dziennik zostaje w telefonie.",
+      "No entries yet. They will appear with the next alert. The log stays on this phone.",
+      "Записів немає. Вони з'являться під час наступної тривоги. Журнал залишається на телефоні.");
+    return;
+  }
+  const loc = jezyk === "pl" ? "pl-PL" : jezyk === "uk" ? "uk-UA" : "en-GB";
+  const poziom = (l) => l === "high" ? T("czerwony", "red", "червоний") : l === "elevated" ? T("żółty", "yellow", "жовтий") : (l || "");
+  const opis = (w) => {
+    const d = w.d || {};
+    switch (w.e) {
+      case "odebrano": {
+        const sek = d.droga >= 0 ? Math.round(d.droga / 1000) : null;
+        return T("Odebrano", "Received", "Отримано")
+          + (sek != null ? T(`, droga ${sek} s`, `, took ${sek} s`, `, шлях ${sek} с`) : "")
+          + (d.obnizony ? T(", Google obniżył priorytet", ", Google lowered the priority", ", Google знизив пріоритет") : "");
+      }
+      case "pokazano": {
+        const czesci = [T("Pokazano", "Shown", "Показано")];
+        if (d.ekran === false) czesci.push(T("ekran był zgaszony", "screen was off", "екран був вимкнений"));
+        if (d.ekran === true) czesci.push(T("ekran był włączony", "screen was on", "екран був увімкнений"));
+        if (d.nieprzeszkadzac > 1) czesci.push(T("włączone Nie przeszkadzać", "Do Not Disturb on", "увімкнено «Не турбувати»"));
+        if (d.pelny === false) czesci.push(T("bez zgody na pełny ekran", "no full-screen permission", "без дозволу на повний екран"));
+        if (d.glosnoscMax) czesci.push(T(`głośność alarmów ${d.glosnosc}/${d.glosnoscMax}`, `alarm volume ${d.glosnosc}/${d.glosnoscMax}`, `гучність тривог ${d.glosnosc}/${d.glosnoscMax}`));
+        return czesci.join(", ");
+      }
+      case "ekran": return T("Otwarty ekran alarmu", "Alert screen opened", "Відкрито екран тривоги");
+      case "syrena_blad": return T("Ekran alarmu nie mógł zagrać syreny", "The alert screen could not play the siren", "Екран тривоги не зміг відтворити сирену");
+      case "wyciszono": return T("Wyciszony przez użytkownika", "Silenced by the user", "Вимкнено користувачем");
+      case "limit": return T("Wyciszony po 15 min", "Silenced after 15 min", "Вимкнено через 15 хв");
+      case "spozniony": return T("Spóźniony ponad 10 min: pokazany bez dźwięku", "More than 10 min late: shown without sound", "Запізнення понад 10 хв: показано без звуку");
+      case "w_aplikacji": return T("Pokazany w otwartej aplikacji", "Shown in the open app", "Показано у відкритому застосунку");
+      case "pominiety_wylaczone": return T("Pominięty: alarmy wyłączone na tym telefonie", "Skipped: alerts are off on this phone", "Пропущено: тривоги вимкнені на цьому телефоні");
+      case "pominiety_region": return T("Pominięty: województwo spoza obserwowanych", "Skipped: province not watched", "Пропущено: воєводство не відстежується");
+      default: return String(w.e || "");
+    }
+  };
+  el.innerHTML = wpisy.slice().reverse().map(w => {
+    const kto = [w.v ? UI.voiv(w.v) : "", poziom(w.l)].filter(Boolean).join(", ");
+    return `<div>${esc(new Date(w.t).toLocaleString(loc))} · ${kto ? esc(kto) + " · " : ""}${esc(opis(w))}</div>`;
+  }).join("");
+}
+
 async function refreshBgStatus(previewLang = UI.lang) {
   if (dlg.open && dlg.classList.contains("na-starcie")) renderGotowosc(previewLang);
   // Podglad w ustawieniach pokazuje wybrany jezyk jeszcze przed zapisem, dlatego
@@ -7327,6 +7392,7 @@ async function refreshBgStatus(previewLang = UI.lang) {
           "This phone has not received any signal from the server yet — that is normal until there has been an alert for your region.",
           "Цей телефон ще не отримав жодного сигналу з сервера — це нормально, доки не було тривоги для вашого регіону.")
       : "";
+    renderDziennikAlarmow(s.alarmLog, previewLang);
     if (info) info.innerHTML = (warn.join("<br>")
       || (noRegion && !subscribed.length ? (T("Powiadomienia są dozwolone.", "Notifications are allowed.", "Сповіщення дозволені.")) : "")
       || (T("Powiadomienia gotowe. Alarmy dla Twojego regionu dotrą także przy zamkniętej aplikacji.", "Notifications ready. Alerts for your region will arrive even while the app is closed.", "Сповіщення готові. Тривоги для вашого регіону дійдуть також при закритому застосунку.")))

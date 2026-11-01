@@ -457,6 +457,7 @@
       "By default the app uses the Strażnik server (straznik.eu) — the data and the fusion are computed once, on the server. When the server is unavailable the app switches to its built-in mode and computes on the device. Enter your own HTTPS address only if you want to use your own backend. Plain HTTP and certificates added manually to the phone are not supported in the production build.");
     button("jak-alarmy", "Jak to działa?", "How it works");
     button("jak-zgody", "Szczegóły zgód i alarmu", "Permissions and alert behaviour in detail");
+    button("jak-dziennik", "Dziennik alarmów na tym telefonie", "Alert log on this phone");
     button("jak-dzwiek", "Co kiedy gra", "What plays when");
     button("jak-yv", "Czego dotyczy to ustawienie", "What this setting covers");
     button("jak-natywny", "Zanim zmienisz: co to zmienia", "Before you change it: what it changes");
@@ -598,6 +599,7 @@
     "How the test works": "Як відбувається тест",
     "How to read the direction": "Як читати напрямок",
     "Where updates come from": "Звідки беруться оновлення",
+    "Alert log on this phone": "Журнал тривог на цьому телефоні",
     "air threat map · Poland": "мапа повітряних загроз · Польща",
     "hosted on Mikrus ↗": "хостинг: Mikrus ↗",
     "UA alerts": "Тривоги UA",
@@ -1186,6 +1188,7 @@
     set("#adv-note", "By default the app uses the Strażnik server (straznik.eu) — the data and the fusion are computed once, on the server. When the server is unavailable the app switches to its built-in mode and computes on the device. Enter your own HTTPS address only if you want to use your own backend. Plain HTTP and certificates added manually to the phone are not supported in the production build.");
     set("#jak-alarmy", "How it works");
     set("#jak-zgody", "Permissions and alert behaviour in detail");
+    set("#jak-dziennik", "Alert log on this phone");
     set("#jak-dzwiek", "What plays when");
     set("#jak-yv", "What this setting covers");
     set("#jak-natywny", "Before you change it: what it changes");

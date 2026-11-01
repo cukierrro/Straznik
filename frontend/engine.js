@@ -26,6 +26,8 @@ function rcbLevel(text) {
    Sama suma nie wystarcza: pośrednie sygnały dawały 5 pkt przy pustej mapie. */
 const RED_GATE_ETA_MIN = 15, RED_GATE_KM = 50, RED_GATE_MAX_AGE_MS = 25*60*1000;
 const RED_GATE_AREA_MAX_UNC_KM = 30;   // pozycja rejonowa ±70 km nie otwiera czerwonego (15.10.2026)
+// dron bez kursu (B', 1.11.2026): lustro config.RED_GATE_BEZ_KURSU_*
+const RED_GATE_BEZ_KURSU_TYPES = new Set(["uav", "shahed"]), RED_GATE_BEZ_KURSU_KM = 30, RED_GATE_BEZ_KURSU_MIN_ZGLOSZEN = 2;
 const RCB_DOWNGRADE_FADE_MIN = 10;   // lustro config.RCB_DOWNGRADE_FADE_MIN
 /* Obiekt zgubiony z feedu NEPTUN-a gaśnie szybciej — lustro config.NEPTUN_LOST_*
    i fusion.lost_weight (11.10.2026). Wyjątek: zgubiony bliżej granicy niż 50 km. */
@@ -1132,6 +1134,10 @@ function redKey(sigs, ref) {
     if (d.area_only && (d.uncertainty_km || 0) > RED_GATE_AREA_MAX_UNC_KM) continue;
     // V3 (18.10.2026, lustro fusion.red_key): punkt „na cel” to nie obserwacja
     if (d.position_approximate && (d.course === "presumptive" || d.heading_source === "presumptive")) continue;
+    // B' (1.11.2026, lustro fusion.red_key): słaby meldunek o dronie bez kursu nie budzi syreną
+    if (d.course === "unknown" && RED_GATE_BEZ_KURSU_TYPES.has(String(d.type || "").toLowerCase())
+        && !(d.confidence === "high" && (d.source_count || 0) >= RED_GATE_BEZ_KURSU_MIN_ZGLOSZEN)
+        && !(d.dist_km != null && d.dist_km <= RED_GATE_BEZ_KURSU_KM)) continue;
     if (d.eta_border_min != null && d.eta_border_min <= RED_GATE_ETA_MIN)
       return { powod: "eta", opis: `obiekt ${Math.round(d.eta_border_min)} min od granicy`, eta_min: d.eta_border_min, km: d.dist_km };
     if (d.dist_km != null && d.dist_km <= RED_GATE_KM)
@@ -1619,7 +1625,10 @@ function neptunEval(t) {
             + `${zPodlogi ? " [blisko granicy]" : ""}`
             + `${etaAlarm ? `, konserwatywny czas dolotu ~${etaSafe} min` : ""} `
             + `(wiarygodność: ${wiarygodnoscPL(conf)}, ${potwierdzeniaPL(sources)})`
-          : `${ile}${neptunTypeLabelPL(ty)} kursem na granicę PL, ${distanceInfo}`
+          : `${ile}${neptunTypeLabelPL(ty)} ${!presumed && !a.heading_known && t.heading_estimated == null
+              // lustro neptun.py: „kursem na granicę” przy nieznanym kursie przeczyło samo sobie
+              ? `${a.dist_km === 0 ? "nad Polską" : `w odległości ${distanceInfo} od granicy PL`} [kurs nieznany]`
+              : `kursem na granicę PL, ${distanceInfo}`}`
             + `${zPodlogi ? " [blisko granicy]" : ""}`
             + `${etaAlarm ? `, konserwatywny czas dolotu ~${etaSafe} min` : ""} (woj. ${a.border_voiv}, `
             + `wiarygodność: ${wiarygodnoscPL(conf)}, ${potwierdzeniaPL(sources)}, ±${kmPL(t.uncertaintyKm??"?")} km)`,
@@ -2930,7 +2939,7 @@ async function start(stateCb) {
 // a `podloga` dla scripts/test_podloga_dron.cjs, `baltyk` dla scripts/test_baltyk_silnik.cjs.
 return { start, stop, history, timeline, historyFrom, timelineFrom, accumulate, matchVoivs, ustawSlownik,
          adsbHoldJump, adsbGeoUrl, adsbGeoAircraft, lostWeight, zgubioneZMigawek,
-         stateFrom, alertLevel, rsoIsCancellation, assess,
+         stateFrom, redKey, alertLevel, rsoIsCancellation, assess,
          rso: { tickRso, sygnaly: () => signals },
          podloga: { neptunEval, borderUavFloor, sygnaly: () => signals },
          tytuly: { kmPL, wiarygodnoscPL, potwierdzeniaPL },

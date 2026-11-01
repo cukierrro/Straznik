@@ -330,6 +330,15 @@ RED_GATE_MAX_AGE_MIN = 25          # meldunek starszy niż 25 min nie otwiera cz
 # obiekt z niepewnością 4–25 km, a ten próg zmienia wyłącznie 15.10 (decyzja usera).
 RED_GATE_AREA_MAX_UNC_KM = 30.0
 RED_GATE_TYPES = ("ballistic", "mig31k", "cruise", "missile", "kab", "shahed", "uav")
+# Dron z NIEZNANYM kursem (wariant B', decyzja usera 1.11.2026). 1.11 o 9:03 czerwony dla
+# dwóch województw otworzył jeden dron 36 km od granicy: wiarygodność średnia, 1 meldunek,
+# bez kursu, bez RCB. Klucz daje dopiero wysoka wiarygodność i co najmniej 2 zgłoszenia
+# albo pozycja do 30 km. Przeliczenie 2.08-1.11: znika 12 z 57 czerwonych (zostaje żółty,
+# RCB najwyżej 1. stopnia), 2 opóźnione. Efektywnie tylko 19 dni danych i żaden alert
+# 3. stopnia w tym czasie. Rakiet to nie dotyczy: 1 meldunek bywa tam wszystkim, co jest.
+RED_GATE_BEZ_KURSU_TYPES = ("uav", "shahed")
+RED_GATE_BEZ_KURSU_KM = 30.0
+RED_GATE_BEZ_KURSU_MIN_ZGLOSZEN = 2
 
 THRESHOLD_ELEVATED = 2.0           # "PODWYŻSZONA UWAGA"
 THRESHOLD_HIGH = 4.0               # "WYSOKI PRIORYTET"

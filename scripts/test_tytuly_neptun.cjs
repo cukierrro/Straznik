@@ -140,6 +140,26 @@ test("silnik pisze ten sam tytuł co serwer (poza opisem kursu, którego silnik 
   for (const [k, ws] of s) assert.equal(norm(e.get(k).title), norm(ws.title), k);
 });
 
+test("obiekt bez kursu nie jest opisany „kursem na granicę” (1.11.2026)", () => {
+  for (const [kto, w] of [["serwer", S], ["silnik", J]]) {
+    const bezKursu = w.sygnaly.filter(s => s.track === "trk_t_rawa" && s.title.includes("[kurs nieznany]"));
+    assert.ok(bezKursu.length > 0, `${kto}: dron pod Rawą ma być opisany jako bez kursu`);
+    for (const s of bezKursu) assert.match(s.title, /w odległości .* od granicy PL \[kurs nieznany\]/, `${kto}: ${s.title}`);
+    for (const s of w.sygnaly)
+      assert.ok(!(s.title.includes("kursem na granicę") && s.title.includes("[kurs nieznany]")), `${kto}: ${s.title}`);
+  }
+  const app = czytaj("frontend/app.js");
+  const fn = app.match(/function polskiTytulNeptun\(title\) \{[\s\S]*?\r?\n\}/);
+  const conf = app.match(/const CONF_PL = \{[^}]*\};/);
+  const f = vm.runInNewContext(`${conf[0]}\n${fn[0]}\npolskiTytulNeptun`);
+  assert.equal(f("Dron / BpSP kursem na granicę PL, 42 km [kurs nieznany] (woj. lubelskie, wiarygodność: wysoka, 3 potwierdzenia, ±4 km)"),
+    "Dron / BpSP w odległości 42 km od granicy PL [kurs nieznany] (woj. lubelskie, wiarygodność: wysoka, 3 potwierdzenia, ±4 km)",
+    "stare wpisy w historii też");
+  assert.match(app, /const bezKursu = d\.course === "unknown"/);
+  assert.match(app, /from the Polish border/);
+  assert.match(app, /від кордону Польщі/);
+});
+
 test("app.js spolszcza stare tytuły z bazy, a EN/UK dalej składa tytuł z details", () => {
   const app = czytaj("frontend/app.js");
   const fn = app.match(/function polskiTytulNeptun\(title\) \{[\s\S]*?\r?\n\}/);

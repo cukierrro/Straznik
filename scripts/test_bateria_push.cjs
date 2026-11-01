@@ -34,10 +34,14 @@ sprawdz(/const usypiaAplikacje = /.test(app), "jest jedno wejscie: usypiaAplikac
 // wszystkich, a push o wysokim priorytecie i tak przechodzi przez Doze).
 sprawdz(/usypiaAplikacje = \(s\) =>\s*\n?\s*s\?\.batteryUnrestricted === false &&/.test(app),
   "warunek wymaga batteryUnrestricted === false");
-sprawdz(/NAKLADKI_USYPIAJACE\s*=\s*\n?\s*\/[^/]*samsung/i.test(app),
-  "lista nakladek zawiera samsunga — od niego wyszly oba zgloszenia");
-for (const m of ["xiaomi", "huawei", "oppo", "vivo", "realme", "honor"])
-  sprawdz(new RegExp("NAKLADKI_USYPIAJACE[\\s\\S]{0,200}" + m, "i").test(app), `lista zawiera ${m}`);
+// Regula liczona na prawdziwym kodzie: lista producentow przepuscila OBLUE (1.11.2026).
+const regula = app.match(/const CZYSTY_ANDROID = [^\n]*\nconst usypiaAplikacje = \(s\) =>[^\n]*\n[^\n]*\n/);
+sprawdz(!!regula, "regula baterii jest w jednym miejscu");
+const usypia = regula ? new Function(regula[0] + "return usypiaAplikacje;")() : () => null;
+for (const m of ["samsung", "xiaomi", "HUAWEI", "OPPO", "vivo", "realme", "HONOR", "OBLUE", "nieznana marka", ""])
+  sprawdz(usypia({ batteryUnrestricted: false, manufacturer: m }) === true, `ostrzega: ${m || "(brak producenta)"}`);
+sprawdz(usypia({ batteryUnrestricted: false, manufacturer: "Google" }) === false, "czysty Android bez ostrzezenia");
+sprawdz(usypia({ batteryUnrestricted: true, manufacturer: "OBLUE" }) === false, "zdjeta optymalizacja bez ostrzezenia");
 
 sprawdz(/fix = "battery"/.test(app), "refreshBgWarning ma galaz baterii");
 sprawdz(/fix === "battery" \? "battery"/.test(app), "baner baterii ma wlasny klucz ukrycia");
