@@ -133,6 +133,44 @@ that still held the old address, so the same date stood on both sides of it. Tha
 release 1.8.01 and is fixed in 1.8.02; finding it on screen is why these frames were retaken
 from the release build.
 
+The GROTA captures `g13-mapa-filtry*`, `g29-zasady-dane*` and `g31-zmiana-wykazu*` (Polish,
+`-en`, `-uk`) were retaken on 2 November 2026 between 08:08 and 09:33 Europe/Warsaw, after the
+PSP register of that day came in (88,138 points, up from 87,835). All nine frames come from
+`Straznik-1.8.06-136-TEST-debug.apk`, a test build from the main session carrying the module
+8f6e4c98a5 and the register of 2 November, on the Pixel 7 emulator with Android 14 at
+`wm size 1080x2340`, then downscaled to 720 x 1560 JPEG. Nothing in them is retouched. The
+counters in `g13-*` are the ones the pack really holds and were cross-checked against the pack
+before the capture: 19,631 / 7,679 / 60,828 by access and 86,011 / 898 / 1,229 by location
+certainty.
+
+Two things about this series differ from the one of 26 October and are worth stating.
+
+First, these frames come from a **debug** build, not from the signed one. The signed test build
+has no WebView DevTools, and on this emulator the release build could not be driven reliably:
+with 88 thousand points it hung ("Strażnik isn't responding") on almost every longer scroll,
+even after the emulator was restarted with 4 GB instead of 2 GB. The debug build allows exact
+scrolling through DevTools in one call instead of thirty swipes. Both builds were produced from
+the same commit and carry the same GROTA module and the same pack; nothing in these three
+screens depends on the build type. The signed build was used first and did produce usable
+Polish frames of `g13` and `g29`, but they were discarded so that each screen comes from one
+and the same build.
+
+Second, the state behind `g31-zmiana-wykazu*` was written into the app's storage instead of
+being walked through the interface. The warning in its unconditional wording needs a shelter
+saved while the app still carried an older register; the attempt to produce that by installing
+release 1.8.05, saving the shelter and updating over it failed three times, because the app
+hung while recomputing after the selection and the save was lost. What was written is one
+place, "Dom", at the coordinates of the shelter `OZO-77191AD48DDA` in Pęczniew, with that
+shelter selected and the register date 2026-10-26 recorded against it — the state every person
+has who saved this point while running 1.8.01 through 1.8.05, all of which shipped the register
+of 26 October. Everything the warning says is what the app computed from the two packs: that
+the number now points to ul. Polna 13/15 in Poddębice, 19 km away, and that a new shelter must
+be chosen. The place itself is made up; the change is real.
+
+`g32-adres-imiennicy*` was not retaken. The list of localities does not come from the PSP
+register — it is built from OpenStreetMap and TERYT — and this rebuild produced a
+byte-identical file, so the screen it shows has not changed.
+
 There is deliberately no screenshot for "When the map gets old": the offline map packs have not
 been rebuilt since that code was written, so no device can honestly show the "There is a newer
 map" line yet. The section is described in words until a newer pack exists.
