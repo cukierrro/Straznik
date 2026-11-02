@@ -6,6 +6,11 @@
 
 Serwer: **hostowane na [Mikrusie](https://mikr.us)** — dziękujemy za wsparcie projektu.
 
+Wersja 1.8.06: czerwony wraca po wyciszeniu tylko przy realnym pogorszeniu; spóźniony alarm na
+Androidzie gra normalnie i mówi, z której jest godziny; opisy kursu mówią tylko, co wiadomo; na
+iPhonie „Bez dźwięku” działa także przy zamkniętej aplikacji; GROTA ma wykaz PSP z 2.11 (88 138 punktów).
+Szczegóły: `docs/RELEASE_1.8.06.md`.
+
 Wersja 1.8.05: czerwona syrena gra z ekranu alarmu, więc powiadomienia, panel i przyciski
 głośności jej nie przerywają; pełny ekran także po żółtym; dziennik alarmów w telefonie.
 Szczegóły: `docs/RELEASE_1.8.05.md`.
@@ -262,7 +267,7 @@ i sumuje w oknie 60 minut (pełna waga przez 30 minut, potem liniowe wygaszanie)
 osobno dla każdego województwa. Przy **≥ 2 pkt**
 włącza podwyższoną uwagę (sygnał uwagi i powiadomienie). Głośny alarm z syreną wymaga
 **≥ 4 pkt ORAZ potwierdzenia**: Alertu RCB o treści „znajdź bezpieczne miejsce" albo
-obiektu uderzeniowego kursem na Polskę ≤ 15 minut od granicy (albo ≤ 50 km), z meldunkiem
+obiektu uderzeniowego ≤ 15 minut od granicy (albo ≤ 50 km), z meldunkiem
 nie starszym niż 25 minut. Czerwonego nie otwiera pozycja tylko rejonowa z niepewnością ponad
 30 km (od 15.10.2026) ani punkt „na cel” — kurs domniemany przy pozycji rejonowej, którą źródło
 wyznacza z celu i kursu, a nie z obserwacji (od 18.10.2026).
@@ -270,7 +275,7 @@ Sama suma punktów z sygnałów pośrednich nie zapala czerwonego (zmiana 23.09.
 
 | Sygnał | Warunek | Punkty |
 |---|---|---|
-| **NEPTUN** | obiekt kursem na granicę PL — punktacja zależna od typu, liczby, odległości i liczby potwierdzeń (niżej) | **0–8** |
+| **NEPTUN** | obiekt w zasięgu granicy PL — punktacja zależna od typu, liczby, odległości i liczby potwierdzeń (niżej) | **0–8** |
 | **NEPTUN** | oficjalny alarm powietrzny w obwodzie UA graniczącym z PL | **+1** |
 | **Media/RSS** | obiekt + zdarzenie: 0,5 pkt; jednoznaczna bieżąca relacja operacyjna: 1 pkt; historia, ćwiczenia i następstwa prawne: 0 pkt. Całe RSS ma limit 1 pkt i samo nie alarmuje | **0 / +0,5 / +1** |
 | **RCB / RSO** | Alert RCB o zagrożeniu z powietrza — waga zależna od treści: „sytuacja jest monitorowana” 1,5; „trwa zmasowany atak” 3; „znajdź bezpieczne miejsce” 4,5. Źródłem jest RSO, a treść komunikatu dnia na gov.pl/web/rcb dokłada województwa, których RSO nie przekazało; sama lista wpisów gov.pl to tylko punkt odniesienia w czasie (0 pkt), a artykuł gov.pl o alercie, który RSO już odwołało, nie daje punktów | **+1,5 / +3 / +4,5** |

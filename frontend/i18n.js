@@ -701,8 +701,8 @@
     "How it works": "Як це працює",
     "No single signal proves that a threat exists. The app assigns points to several independent indicators and totals them over a 60-minute window for each province. A signal has full weight for 30 minutes, then fades linearly to zero. The resulting total determines the level, and the full breakdown is always visible.":
       "Жоден окремий сигнал не доводить, що загроза існує. Застосунок нараховує бали кільком незалежним показникам і підсумовує їх у 60-хвилинному вікні для кожного воєводства. Сигнал має повну вагу 30 хвилин, потім лінійно згасає до нуля. Отримана сума визначає рівень, а повний розклад завжди видно.",
-    "Object heading towards Poland — score depends on class, count, distance and independent confirmations":
-      "Об’єкт курсом на Польщу — бал залежить від класу, кількості, відстані та незалежних підтверджень",
+    "Object within range of the Polish border — score depends on class, count, distance and independent confirmations":
+      "Об’єкт у межах досяжності кордону Польщі — бал залежить від класу, кількості, відстані та незалежних підтверджень",
     "Official alert in a Ukrainian region bordering Poland": "Офіційна тривога в прикордонній з Польщею області України",
     "Media": "ЗМІ",
     "Local reports of sirens, explosions or airspace violations; one article alone cannot trigger an alert. An article that only repeats an RCB alert (issued up to 4 hours earlier) and an article about the end of the threat score 0":
@@ -1081,7 +1081,7 @@
     const redNote = document.getElementById("ab-czerwony");
     if (redNote) redNote.innerHTML = "<b>4 pts alone are not enough.</b> Red needs a "
       + "confirmation: either an RCB alert saying “find a safe place”, or a real "
-      + "strike object heading at Poland — less than 15 minutes of flight away or closer "
+      + "strike object close to Poland — less than 15 minutes of flight away or closer "
       + "than 50 km to the border, with a report no older than 25 minutes. It is not opened by a "
       + "position given only as an area with more than 30 km of uncertainty, nor by a “towards "
       + "the target” point — an object with a presumed heading and an area position that the "
@@ -1118,7 +1118,7 @@
     ].forEach((html, i) => { const li = document.querySelectorAll("#about-blind li")[i]; if (li) li.innerHTML = html; });
     setMany("#about h3", ["How it works", "How NEPTUN object points are calculated", "Estimated arrival time", "Levels", "Where to find things", "What this app does NOT do"]);
     setMany("#ab-tab-punkty tr td:nth-child(2)", [
-      "Object heading towards Poland — score depends on class, count, distance and independent confirmations",
+      "Object within range of the Polish border — score depends on class, count, distance and independent confirmations",
       "Official alert in a Ukrainian region bordering Poland",
       "Local reports of sirens, explosions or airspace violations; one article alone cannot trigger an alert. An article that only repeats an RCB alert (issued up to 4 hours earlier) and an article about the end of the threat score 0",
       "Official RCB alert from the Regional Warning System or a new gov.pl/RCB notice. Since 17.09.2026 RCB sends three kinds of message and they weigh accordingly: “the situation is being monitored” 1.5 · “a massive attack is under way… react to alarm signals” 3 · “threat of an air attack, find a safe place” 4.5. A later alert does not add to the earlier one — the current one counts. An RCB article on gov.pl about an alert that RSO has already cancelled scores nothing",
