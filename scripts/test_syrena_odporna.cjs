@@ -102,7 +102,7 @@ test("dziennik: każda droga alarmu zostawia ślad", () => {
 test("dziennik: alarm testowy go nie zaśmieca", () => {
   const p = metoda(alarms, "static void postAlarm(Context ctx, int voiv, String level, double score, List<String> reasons,\n");
   assert.match(p, /if \(!test\) dziennik\(ctx, "pokazano"/);
-  assert.match(p, /if \(!test\) dziennik\(ctx, "spozniony"/);
+  assert.match(p, /if \(stale && !test\) \{[\s\S]*?dziennik\(ctx, "spozniony"/);
 });
 
 test("dziennik w ustawieniach: tylko Android, trzy języki, opis każdego zdarzenia", () => {
