@@ -53,6 +53,8 @@ public class AlarmActivity extends Activity {
     static final String EXTRA_SENT_AT = "sent_at";
     /** Chwila wystawienia alarmu na telefonie (ms) — od niej liczymy ALARM_MAX_MS. */
     static final String EXTRA_POSTED_AT = "posted_at";
+    /** Tekst o spóźnieniu alarmu albo null (decyzja usera 2.11.2026). */
+    static final String EXTRA_NOTKA = "notka";
 
     // barwy i tempo migania przepisane z #alarm-overlay / @keyframes alarmflash
     // w frontend/style.css, żeby alarm w tle wyglądał jak w otwartej aplikacji
@@ -236,6 +238,8 @@ public class AlarmActivity extends Activity {
         String podpis = (score > 0 ? score + " pkt" : "")
             + (czas.isEmpty() ? "" : (score > 0 ? " · " : "") + "godz. " + czas);
         box.addView(text(podpis, 16, Color.parseColor("#a9b4cc"), false), lp(dp(14)));
+        String notka = in != null ? in.getStringExtra(EXTRA_NOTKA) : null;
+        if (notka != null) box.addView(text(notka, 16, Color.parseColor("#ffd98a"), true), lp(dp(12)));
 
         // 21.10.2026 (user): przyciski zaraz pod nagłówkiem — przy długiej liście
         // powodów trzeba było przewijać do „POTWIERDZAM”. Informacje są niżej.

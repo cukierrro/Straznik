@@ -339,6 +339,16 @@ RED_GATE_TYPES = ("ballistic", "mig31k", "cruise", "missile", "kab", "shahed", "
 RED_GATE_BEZ_KURSU_TYPES = ("uav", "shahed")
 RED_GATE_BEZ_KURSU_KM = 30.0
 RED_GATE_BEZ_KURSU_MIN_ZGLOSZEN = 2
+# Ponowienie czerwonego przy realnym zbliżeniu (decyzja usera 2.11.2026): ponowienie.py.
+# Wyłącznik bez wydania: STRAZNIK_PONOWIENIE=0 i restart.
+RED_PONOWIENIE_WLACZONE = os.getenv("STRAZNIK_PONOWIENIE", "1").strip() != "0"
+RED_PONOWIENIE_KM = 30.0            # tylko dokładna pozycja przy samej granicy
+RED_PONOWIENIE_BLIZEJ_KM = 10.0     # albo tyle bliżej niż najbliższy punkt dotąd
+RED_PONOWIENIE_NOWY_PUNKT_KM = 5.0  # bliżej tego to ten sam punkt pod nowym numerem toru
+RED_PONOWIENIE_MIN_ZGLOSZEN = 2     # i wysoka wiarygodność: pojedynczy meldunek nie budzi drugi raz
+RED_PONOWIENIE_ODSTEP_MIN = 15      # syrena i tak gra tyle, co w tym czasie przyszło, ktoś usłyszał
+RED_PONOWIENIE_LIMIT = 2            # bezpiecznik: w historii nie było 3 alarmów w sesji
+RED_PONOWIENIE_RCB_STOPIEN = 2      # taki alert RCB idzie zawsze, poza odstępem i limitem
 
 THRESHOLD_ELEVATED = 2.0           # "PODWYŻSZONA UWAGA"
 THRESHOLD_HIGH = 4.0               # "WYSOKI PRIORYTET"

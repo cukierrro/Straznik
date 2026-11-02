@@ -7221,7 +7221,9 @@ function renderDziennikAlarmow(wpisy, jezyk = UI.lang) {
       case "syrena_blad": return T("Ekran alarmu nie mógł zagrać syreny", "The alert screen could not play the siren", "Екран тривоги не зміг відтворити сирену");
       case "wyciszono": return T("Wyciszony przez użytkownika", "Silenced by the user", "Вимкнено користувачем");
       case "limit": return T("Wyciszony po 15 min", "Silenced after 15 min", "Вимкнено через 15 хв");
-      case "spozniony": return T("Spóźniony ponad 10 min: pokazany bez dźwięku", "More than 10 min late: shown without sound", "Запізнення понад 10 хв: показано без звуку");
+      case "spozniony": return d.min != null
+        ? T(`Spóźniony o ${d.min} min`, `${d.min} min late`, `Запізнення ${d.min} хв`)
+        : T("Spóźniony ponad 10 min: pokazany bez dźwięku", "More than 10 min late: shown without sound", "Запізнення понад 10 хв: показано без звуку");
       case "w_aplikacji": return T("Pokazany w otwartej aplikacji", "Shown in the open app", "Показано у відкритому застосунку");
       case "pominiety_wylaczone": return T("Pominięty: alarmy wyłączone na tym telefonie", "Skipped: alerts are off on this phone", "Пропущено: тривоги вимкнені на цьому телефоні");
       case "pominiety_region": return T("Pominięty: województwo spoza obserwowanych", "Skipped: province not watched", "Пропущено: воєводство не відстежується");

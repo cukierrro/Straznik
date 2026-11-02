@@ -192,6 +192,10 @@ def _apns_config(topic: str, data: dict, critical: bool = False):
                    if (critical and high) else
                    ("alarm_syrena.wav" if high else "alert_uwaga.wav")),
             thread_id=_temat_bazowy(topic),
+            # Rozszerzenie powiadomień iOS: język aplikacji i ustawienie żółtego (w App Store
+            # od 1.7.98, starsze ignorują). Czerwonego dźwięku nie dotyka, a gdy rozszerzenie
+            # padnie lub nie zdąży, iOS pokazuje ten ładunek bez zmian. Włączone 2.11.2026.
+            mutable_content=True,
             # firebase-admin 7.5 nie ma pola interruption_level — idzie przez custom_data.
             # Czerwony jako „time-sensitive" przebija tryb Skupienia, żółty jako
             # „active" nie budzi w nocy (decyzja 18.09.2026). Przy zgodzie na alarm
@@ -278,6 +282,15 @@ def krotkie_powody(reasons_text: str, ile: int = POWODY_W_POWIADOMIENIU) -> list
         if len(out) >= ile:
             break
     return out
+
+
+def naglowek_ponowienia(powod: dict, headline: str) -> str:
+    """Pierwsza linia alarmu powtórzonego: co się zmieniło od poprzedniego."""
+    if powod.get("rodzaj") == "rcb":
+        return f"PONOWNY ALARM: Alert RCB {powod.get('stopien')}. stopnia"
+    if powod.get("km") is not None:
+        return f"PONOWNY ALARM: obiekt bliżej, ok. {round(powod['km'])} km od granicy"
+    return f"PONOWNY ALARM: {headline}"
 
 
 def alarm_headline(signals: list[dict]) -> str:
@@ -606,7 +619,7 @@ _inflight: set[tuple] = set()
 
 
 async def notify_level(voiv: str, level: str, score: float, signals: list[dict],
-                       log_id: int | None = None):
+                       log_id: int | None = None, ponowienie: dict | None = None):
     """Wysyłka po przekroczeniu progu (rising edge) z cooldownem per woj./poziom.
 
     Cooldown zapisujemy DOPIERO po udanej wysyłce. Wcześniej zapis szedł przed
@@ -615,7 +628,8 @@ async def notify_level(voiv: str, level: str, score: float, signals: list[dict],
     from datetime import datetime, timedelta, timezone
     from . import alert_log
     last = db.last_notif(voiv, level)
-    if last:
+    # ponowienie ma własny odstęp (ponowienie.py), a alert RCB ma przejść zawsze
+    if last and not ponowienie:
         last_dt = datetime.fromisoformat(last)
         if datetime.now(timezone.utc) - last_dt < timedelta(minutes=config.NOTIFY_COOLDOWN_MIN):
             alert_log.record_delivery(log_id, "cooldown", {"last_notif": last})
@@ -630,7 +644,7 @@ async def notify_level(voiv: str, level: str, score: float, signals: list[dict],
         return
     _inflight.add(key)
     try:
-        await _deliver_level(voiv, level, score, signals, log_id)
+        await _deliver_level(voiv, level, score, signals, log_id, ponowienie)
     finally:
         _inflight.discard(key)
 
@@ -653,9 +667,11 @@ async def _deliver_test(voiv: str, level: str, score: float, signals: list[dict]
 
 
 async def _deliver_level(voiv: str, level: str, score: float, signals: list[dict],
-                         log_id: int | None = None):
+                         log_id: int | None = None, ponowienie: dict | None = None):
     label = LEVEL_LABELS[level]
     headline = alarm_headline(signals)
+    if ponowienie:
+        headline = naglowek_ponowienia(ponowienie, headline)
     reasons = reasons_split(signals)
     eta_alarm = any((s.get("details") or {}).get("eta_alarm") for s in signals)
     eta_note = ("\nSzacunek czasu dolotu; dane źródłowe mogą być opóźnione o kilka minut."
@@ -686,6 +702,7 @@ async def _deliver_level(voiv: str, level: str, score: float, signals: list[dict
     )
     fcm_ok = results[2]
     delivery = {
+        **({"ponowienie": ponowienie} if ponowienie else {}),
         "at": teraz(),
         "fcm": fcm_ok if isinstance(fcm_ok, bool) else repr(fcm_ok)[:200],
         "fcm_topic": fcm_topic(voiv),

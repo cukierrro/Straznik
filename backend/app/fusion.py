@@ -12,7 +12,7 @@ import time
 import unicodedata
 from datetime import datetime, timedelta, timezone
 
-from . import config, db, stealth
+from . import config, db, ponowienie, stealth
 
 log = logging.getLogger("fusion")
 
@@ -1153,6 +1153,38 @@ async def ingest(source: str, event_type: str, voivodeship: str | None, points: 
     return is_new
 
 
+def _dane_ponowienia(st: dict) -> tuple[list[dict], tuple]:
+    """Obiekty, które same dałyby klucz czerwonego, i bieżący alert RCB."""
+    teraz = datetime.now(timezone.utc)
+    obiekty, najnowszy = [], None
+    for s in st.get("signals") or []:
+        if s.get("event_type") in ("rso_alert", "rcb_alert") and s.get("counted_points", 1) is not None:
+            if najnowszy is None or (s.get("ts") or "") > (najnowszy.get("ts") or ""):
+                najnowszy = s
+        if s.get("source") == "neptun" and s.get("event_type") != "neptun_wave" and red_key([s], teraz):
+            d = s.get("details") or {}
+            lat, lon = d.get("lat"), d.get("lon")
+            obiekty.append({"tor": d.get("track_id"), "km": d.get("dist_km"), "rejon": bool(d.get("position_approximate")),
+                            "jakosc": d.get("confidence"), "zgloszenia": d.get("source_count"),
+                            "wsp": (lat, lon) if lat is not None and lon is not None else None})
+    rcb = (rcb_level_of(najnowszy), najnowszy.get("id")) if najnowszy else (0, None)
+    return obiekty, rcb
+
+
+def _sprawdz_ponowienie(voiv: str, st: dict) -> None:
+    if not (config.RED_PONOWIENIE_WLACZONE and on_level_change):
+        return
+    obiekty, rcb = _dane_ponowienia(st)
+    powod = ponowienie.krok(voiv, obiekty, rcb, datetime.now(timezone.utc))
+    if not powod:
+        return
+    from . import alert_log
+    log.warning("woj. %s: ponowienie czerwonego: %s", voiv, powod)
+    log_id = alert_log.record_transition(voiv, "high", "high", st, "pending")
+    asyncio.create_task(on_level_change(voiv, "high", st["score"], st["signals"],
+                                        log_id=log_id, ponowienie=powod))
+
+
 async def reevaluate():
     """Sprawdź przekroczenia progów (rising edge).
 
@@ -1170,7 +1202,11 @@ async def reevaluate():
             if st["level"] != new_level and _ORDER.index(st["level"]) > _ORDER.index(new_level):
                 log.debug("woj. %s: na mapie %s (%s pkt, własne %s) — bez powiadomienia",
                           voiv, st["level"], st["score"], st["own_score"])
+            if new_level == "high":
+                _sprawdz_ponowienie(voiv, st)
             continue
+        if new_level != "high":
+            ponowienie.zakoncz(voiv)
         rising = _ORDER.index(new_level) > _ORDER.index(old_level)
         levels[voiv] = new_level
         try:
@@ -1198,6 +1234,8 @@ async def reevaluate():
                          "bez powiadomienia", voiv, new_level, age_min)
                 alert_log.record_transition(voiv, old_level, new_level, st, "quiet_repeat")
                 continue
+        if new_level == "high":
+            ponowienie.rozpocznij(voiv, *_dane_ponowienia(st), datetime.now(timezone.utc))
         log_id = alert_log.record_transition(voiv, old_level, new_level, st, "pending")
         asyncio.create_task(on_level_change(voiv, new_level, st["score"], st["signals"],
                                             log_id=log_id))

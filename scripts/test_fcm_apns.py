@@ -66,6 +66,7 @@ sprawdz(m["android"]["priority"] == "high", "wysoki priorytet Androida zachowany
 
 print("2. Czerwony alarm na iPhonie")
 aps = m["apns"]["payload"]["aps"]
+sprawdz(aps.get("mutable-content") == 1, "rozszerzenie powiadomień iOS dostaje prawdziwe alarmy")
 sprawdz(aps["alert"]["title"] == "WYSOKI PRIORYTET: świętokrzyskie",
         "tytuł krótki — iPhone ucina długi i gubi właśnie nazwę województwa")
 dlugosc = len(aps["alert"]["title"])
