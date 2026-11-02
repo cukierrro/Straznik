@@ -737,8 +737,8 @@
     "within ±50° of the direction to Poland full weight, from 50° to 70° the weight falls to zero; unknown heading ×0.5 and only up to 150 km":
       "у межах ±50° від напрямку на Польщу повна вага, від 50° до 70° вага спадає до нуля; невідомий курс ×0,5 і лише до 150 км",
     "Wave": "Хвиля",
-    "three different objects heading at Poland within 15 minutes and closer than 150 km add 0.5 pt together — several objects at once mean more than each on its own":
-      "три різні об’єкти курсом на Польщу протягом 15 хвилин і ближче ніж 150 км разом додають 0,5 бала — кілька об’єктів одночасно означають більше, ніж кожен окремо",
+    "three different objects within 15 minutes and closer than 150 km add 0.5 pt together, whether or not their heading is known — several objects at once mean more than each on its own":
+      "три різні об’єкти протягом 15 хвилин і ближче ніж 150 км разом додають 0,5 бала, незалежно від того, чи відомий їхній курс — кілька об’єктів одночасно означають більше, ніж кожен окремо",
     "Confidence": "Достовірність",
     "confidence (high ×1.0, medium ×0.6, low ×0.35), number of independent reports (one ×0.7, two ×0.9, three–four ×1.1, five or more ×1.25) and observation status (confirmed ×1.1, uncertain ×0.85, fresh ×0.7)":
       "достовірність (висока ×1,0, середня ×0,6, низька ×0,35), кількість незалежних повідомлень (одне ×0,7, два ×0,9, три–чотири ×1,1, п’ять і більше ×1,25) і статус спостереження (підтверджений ×1,1, непевний ×0,85, свіжий ×0,7)",
@@ -1134,7 +1134,7 @@
       "square root of object count — four objects weigh twice as much as one, not four times as much",
       "weight changes smoothly: 0 km ×1.7 · 15 km ×1.6 · 45 km ×1.3 · 80 km ×1.0 · 110 km ×0.7 · 150 km ×0.4 · 200 km ×0.25 · 250 km ×0.1 · farther 0. An object scores every province within 250 km, each by its distance to that province",
       "within ±50° of the direction to Poland full weight, from 50° to 70° the weight falls to zero; unknown heading ×0.5 and only up to 150 km",
-      "three different objects heading at Poland within 15 minutes and closer than 150 km add 0.5 pt together — several objects at once mean more than each on its own",
+      "three different objects within 15 minutes and closer than 150 km add 0.5 pt together, whether or not their heading is known — several objects at once mean more than each on its own",
       "confidence (high ×1.0, medium ×0.6, low ×0.35), number of independent reports (one ×0.7, two ×0.9, three–four ×1.1, five or more ×1.25) and observation status (confirmed ×1.1, uncertain ×0.85, fresh ×0.7)",
       "source point ×1.0 · source-reported area ×0.6 · recognised locality centre ×0.5; area positions cannot trigger ETA thresholds",
       "minimum points with at least two reports and a point position: a missile or MiG-31K within 60 km of the border — at least 2 pts (1 pt with unknown heading); a drone or Shahed within 30 km of a province — at least 2 pts (yellow) in that province, even without a known heading, unless it is flying away from Poland. This extra does not pass to neighbouring provinces. A single report is not enough"

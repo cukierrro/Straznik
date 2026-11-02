@@ -494,10 +494,25 @@ const odleglosc = (km) => (UI.isEn ? String(km) : String(km).replace(".", ","));
 /* Wpisy NEPTUN zapisane przed 1.7.98 mają w polskim tytule „confidence: high”,
    kropkę dziesiętną i „3 potwierdzeń” — historia pokazuje je jeszcze długo. Nowe
    tytuły serwer i engine.js budują już po polsku (test_tytuly_neptun.cjs). */
+function tytulFali(s) {
+  const d = s.details || {}, ile = Number(d.count), k = d.kursy || {};
+  const v = UI.voiv(s.voivodeship), j = ile % 10, c = ile % 100;
+  const plObiekty = j >= 2 && j <= 4 && !(c >= 12 && c <= 14) ? "obiekty" : "obiektów";
+  const ukObiekty = j === 1 && c !== 11 ? "об\u2019єкт" : j >= 2 && j <= 4 && !(c >= 12 && c <= 14) ? "об\u2019єкти" : "об\u2019єктів";
+  const kurs = (znany, domniemany, nieznany) => [[k.known, znany], [k.presumptive, domniemany], [k.unknown, nieznany]]
+    .filter(([n]) => n).map(([n, nazwa]) => `${nazwa}: ${n}`).join(", ");
+  // wpisy sprzed 1.8.06 nie mają rozbicia na kursy
+  const zKursem = (slowo, tekst) => (tekst ? ` (${slowo} ${tekst})` : "");
+  return UI.t(
+    `Fala obiektów: ${ile} ${plObiekty} w 15 min bliżej niż 150 km od woj. ${v}${zKursem("kurs", kurs("znany", "domniemany", "nieznany"))}`,
+    `Wave of objects: ${ile} objects within 150 km of ${v} province in 15 min${zKursem("heading", kurs("known", "presumed", "unknown"))}`,
+    `Хвиля об\u2019єктів: ${ile} ${ukObiekty} за 15 хв ближче ніж 150 км до воєв. ${v}${zKursem("курс", kurs("відомий", "припущений", "невідомий"))}`);
+}
+
 function polskiTytulNeptun(title) {
   return String(title || "")
-    // wpisy sprzed 1.8.05: „kursem na granicę PL … [kurs nieznany]” przeczyło samo sobie
-    .replace(/ kursem na granicę PL, (.*?) \[kurs nieznany\]/, " w odległości $1 od granicy PL [kurs nieznany]")
+    // stare wpisy: „kursem na granicę PL” przy kursie nieznanym albo domniemanym nie było prawdą
+    .replace(/ kursem na granicę PL, (.*?) \[kurs (nieznany|domniemany — na cel)\]/, " w odległości $1 od granicy PL [kurs $2]")
     .replace(/confidence: (high|medium|low)\b/g, (_, c) => `wiarygodność: ${CONF_PL[c]}`)
     .replace(/\b(\d+) potwierdzeń/g, (_, n) => {
       const k = Number(n);
@@ -4149,6 +4164,8 @@ function sigHTML(s) {
       ? UI.t("Obserwacja", "Observation", "Спостереження")
       : UI.t("Alarm powietrzny", "Air-raid alert", "Повітряна тривога")} — ${
       balticName(d.country)}: ${quote}`;
+  } else if (s.event_type === "neptun_wave" && d.count) {
+    shownTitle = tytulFali(s);
   } else if (s.event_type === "neighbour_spillover" && d.from) {
     const factor = `${d.from_score} × 0.4^${d.depth}`;
     shownTitle = UI.t(`Przeniesienie z woj. ${UI.voiv(d.from)} (${factor})`, `Carried over from ${UI.voiv(d.from)} (${factor})`, `Перенесення з воєв. ${UI.voiv(d.from)} (${factor})`);
@@ -4160,7 +4177,7 @@ function sigHTML(s) {
     let at = String(shownTitle || "").indexOf(marker);
     // od 1.8.05 obiekt bez kursu ma tytuł „w odległości … od granicy PL”
     if (!secondary && at < 0) at = String(shownTitle || "").indexOf(" w odległości ");
-    const bezKursu = d.course === "unknown";
+    const bezKursu = d.course === "unknown" || d.course === "presumptive";
     const prefix = (Number(d.count) || 1) > 1 ? `${Number(d.count)}× ` : "";
     if (secondary) {
       // PL: dokładna pozycja — końcówka tytułu z serwera („[blisko granicy] (wiarygodność…)”);
@@ -4313,17 +4330,17 @@ function openCard(name) {
 const SOURCE_INFO = {
   "NEPTUN": {
     co: "Agregator OSINT z Ukrainy — obiekty powietrzne (drony, rakiety, KAB) "
-      + "kursem na granicę PL. Główne źródło wyprzedzenia. Pole „confirmed” może "
+      + "zgłaszane w zasięgu granicy PL. Główne źródło wyprzedzenia. Pole „confirmed” może "
       + "potwierdzać meldunek, nie dokładność współrzędnych; rozpoznane punkty "
       + "miejscowości pokazujemy i punktujemy jako rejonowe.",
     coEn: "An OSINT aggregator from Ukraine — air objects (drones, missiles, glide "
-      + "bombs) heading towards the Polish border. The main source of early warning. "
+      + "bombs) reported within range of the Polish border. The main source of early warning. "
       + "A “confirmed” field may confirm the report rather than the accuracy of the "
       + "coordinates; recognised locality points are shown and scored as areas.",
     czerwona: "Zerwane połączenie z serwerem NEPTUN albo brak internetu. "
       + "Aplikacja próbuje ponownie co minutę.",
     coUk: "Агрегатор OSINT з України — повітряні об\u2019єкти (дрони, ракети, КАБ) "
-      + "курсом на кордон Польщі. Головне джерело випередження. Поле «confirmed» може "
+      + "у межах досяжності кордону Польщі. Головне джерело випередження. Поле «confirmed» може "
       + "підтверджувати повідомлення, а не точність координат; розпізнані точки населених "
       + "пунктів показуємо й оцінюємо як районні.",
     czerwonaUk: "Обірвано з\u2019єднання із сервером NEPTUN або немає інтернету. "

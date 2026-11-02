@@ -302,8 +302,8 @@ punkty = waga_typu × √liczba × k_odległości × k_wiarygodności × k_potwi
 | **kurs** | do ±50° od kierunku na Polskę ×1,0, od 50° do 70° liniowo do 0; kurs nieznany ×0,5 i tylko do 150 km |
 | **podłogi przy granicy** | (≥ 2 zgłoszenia, pozycja punktowa) rakieta / MiG-31K ≤ 60 km od granicy: min. 2 pkt × k_kursu; dron / Shahed ≤ 30 km od województwa: min. 2 pkt w tym województwie, także bez kursu (od 18.10.2026) — ten dodatek nie przechodzi do sąsiadów |
 
-Fala: co najmniej 3 różne obiekty kursem na Polskę w 15 minut, bliżej niż 150 km, dokładają
-wspólnie **+0,5 pkt**. Wkład całego NEPTUN-a ograniczony do **8 pkt** — przy kilkudziesięciu obiektach
+Fala: co najmniej 3 różne obiekty w 15 minut, bliżej niż 150 km, dokładają wspólnie **+0,5 pkt**,
+także przy kursie domniemanym albo nieznanym; tytuł fali podaje, ile jest których. Wkład całego NEPTUN-a ograniczony do **8 pkt** — przy kilkudziesięciu obiektach
 suma i tak dawno przekroczyła próg alarmu, a trzycyfrowa punktacja psułaby skalę.
 
 **Historyczna kalibracja (wcześniejsza krzywa odległości).** Poniższe wyniki

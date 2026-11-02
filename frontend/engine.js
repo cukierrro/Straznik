@@ -89,6 +89,18 @@ function zgubioneZMigawek(snaps, ref) {
 const RED_GATE_TYPES = new Set(["ballistic", "mig31k", "cruise", "missile", "kab", "shahed", "uav"]);
 /* Fala obiektów — lustro config.NEPTUN_WAVE_* */
 const WAVE_MIN = 3, WAVE_KM = 150, WAVE_WINDOW_MS = 15*60*1000, WAVE_POINTS = 0.5;
+function kursFali(d) {
+  const kurs = d?.course;
+  if (kurs === "presumptive" || kurs === "unknown") return kurs;
+  return kurs || d?.heading != null ? "known" : "unknown";
+}
+function tytulFali(ile, voiv, kursy) {
+  const j = ile % 10, s = ile % 100;
+  const slowo = ile === 1 ? "obiekt" : j >= 2 && j <= 4 && !(s >= 12 && s <= 14) ? "obiekty" : "obiektów";
+  const kurs = [["known", "znany"], ["presumptive", "domniemany"], ["unknown", "nieznany"]]
+    .filter(([k]) => kursy[k]).map(([k, n]) => `${n}: ${kursy[k]}`).join(", ");
+  return `Fala obiektów: ${ile} ${slowo} w 15 min bliżej niż ${WAVE_KM} km od woj. ${voiv} (kurs ${kurs})`;
+}
 const POINTS = { neptun_high: 3, neptun_medlow: 1.5, media_keywords: 0.5, media_critical: 1,
                  adsb_spike: 0, rcb_alert: 2, ua_alert_border: 1, baltic_context: 0.5, baltic_alert: 0.3, pansa_zone: 0.5,
                  pansa_zone_north: 1 };
@@ -1288,23 +1300,26 @@ function stateFrom(sigs, refT, lost = null, officialsExtra = null) {
                    ...(shared > 0 ? { shared_excluded: Math.round(shared * 100) / 100 } : {}) } });
     }
   }
-  // Fala obiektów: kilka RÓŻNYCH torów kursem na Polskę w 15 min (lustro fusion.accumulate)
+  // Fala obiektów: kilka RÓŻNYCH torów blisko w 15 min (lustro fusion.accumulate).
+  // Kursu nie sprawdza, więc tytuł mówi, ile kursów znamy, a nie „kursem na Polskę”.
   for (const [v, st] of Object.entries(per)) {
-    const tory = new Set();
+    const tory = new Map();
     let ostatni = 0;
     for (const s of st.signals) {
       if (s.source !== "neptun" || !(s.counted_points > 0)) continue;
       const km = s.details?.dist_km, t = s.t || Date.parse(s.ts);
       if (!(km <= WAVE_KM) || !Number.isFinite(t) || ref - t > WAVE_WINDOW_MS) continue;
-      tory.add(s.details?.physical_key || s.details?.track_id || s.id);
+      tory.set(s.details?.physical_key || s.details?.track_id || s.id, kursFali(s.details));
       ostatni = Math.max(ostatni, t);
     }
     if (tory.size >= WAVE_MIN) {
       st.score += WAVE_POINTS;
+      const kursy = {};
+      for (const k of tory.values()) kursy[k] = (kursy[k] || 0) + 1;
       st.signals.push({ t: ostatni, ts: new Date(ostatni).toISOString(), source: "neptun",
         event_type: "neptun_wave", voivodeship: v, points: WAVE_POINTS, counted_points: WAVE_POINTS,
-        weight: 1, title: `Fala obiektów: ${tory.size} obiekty kursem na Polskę w 15 min (bliżej niż ${WAVE_KM} km)`,
-        details: { count: tory.size, wave: true } });
+        weight: 1, title: tytulFali(tory.size, v, kursy),
+        details: { count: tory.size, wave: true, kursy } });
     }
   }
   for (const [v, st] of Object.entries(per)) {
@@ -1625,9 +1640,10 @@ function neptunEval(t) {
             + `${zPodlogi ? " [blisko granicy]" : ""}`
             + `${etaAlarm ? `, konserwatywny czas dolotu ~${etaSafe} min` : ""} `
             + `(wiarygodność: ${wiarygodnoscPL(conf)}, ${potwierdzeniaPL(sources)})`
-          : `${ile}${neptunTypeLabelPL(ty)} ${!presumed && !a.heading_known && t.heading_estimated == null
-              // lustro neptun.py: „kursem na granicę” przy nieznanym kursie przeczyło samo sobie
-              ? `${a.dist_km === 0 ? "nad Polską" : `w odległości ${distanceInfo} od granicy PL`} [kurs nieznany]`
+          : `${ile}${neptunTypeLabelPL(ty)} ${presumed || (!a.heading_known && t.heading_estimated == null)
+              // lustro neptun.py: przy nieznanym kursie „kursem na granicę” przeczyło samo sobie,
+              // a kurs domniemany to namiar na miejscowość, nie obserwacja lotu na Polskę
+              ? `${a.dist_km === 0 ? "nad Polską" : `w odległości ${distanceInfo} od granicy PL`} ${presumed ? "[kurs domniemany — na cel]" : "[kurs nieznany]"}`
               : `kursem na granicę PL, ${distanceInfo}`}`
             + `${zPodlogi ? " [blisko granicy]" : ""}`
             + `${etaAlarm ? `, konserwatywny czas dolotu ~${etaSafe} min` : ""} (woj. ${a.border_voiv}, `

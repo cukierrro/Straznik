@@ -311,12 +311,11 @@ RCB_DOWNGRADE_FADE_MIN = 10.0
 
 RED_GATE_ETA_MIN = 15.0
 RED_GATE_KM = 50.0
-# Fala obiektów: kilka niezależnych obiektów lecących jednocześnie w naszą stronę
-# to przesłanka sama w sobie, niezależna od tego, jak słaby jest każdy z osobna.
-# 23.09.2026 żółty zapalił się 8 min przed Alertem RCB tylko dzięki dwóm dronom
-# ROZPOZNAWCZYM (2 × 0,08 pkt) — po obniżeniu ich wagi do 0,15 to wyprzedzenie by
-# przepadło. Fala jest rzadka: w całej historii od 1.09 wystąpiła 4 razy (13, 15,
-# 17 i 23.09) i za każdym razem przy realnym zdarzeniu.
+# Fala obiektów: kilka niezależnych obiektów blisko naraz to przesłanka sama w sobie,
+# niezależna od tego, jak słaby jest każdy z osobna. 23.09.2026 żółty zapalił się 8 min
+# przed Alertem RCB tylko dzięki dwóm dronom ROZPOZNAWCZYM (2 × 0,08 pkt) — po obniżeniu
+# ich wagi do 0,15 to wyprzedzenie by przepadło. Fala nie sprawdza kursu i przestała być
+# rzadka: po przejściu na liczenie w 250 km zdarza się przy większości nalotów na Wołyń.
 NEPTUN_WAVE_MIN = 3                # ile różnych obiektów naraz
 NEPTUN_WAVE_KM = 150.0             # liczone tylko bliżej niż tyle od granicy
 NEPTUN_WAVE_WINDOW_MIN = 15

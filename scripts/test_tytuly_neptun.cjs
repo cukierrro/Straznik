@@ -32,6 +32,10 @@ const OBIEKTY = [
   { id: "trk_t_jeden", type: "shahed", lat: 51.0, lon: 25.2, heading: 270, confidenceLevel: "low",
     sourceCount: 1, lifecycle: "created", positionQuality: "confirmed", uncertaintyKm: 10,
     region: "Волинська область" },
+  // „курсом на Луцьк”: kurs to namiar na miejscowość na Ukrainie, nie obserwacja lotu
+  { id: "trk_t_luck", type: "uav", lat: 50.775, lon: 25.461, heading: 252, destination: true, presumptiveCourse: true,
+    confidenceLevel: "medium", sourceCount: 3, lifecycle: "uncertain", positionQuality: "approx", uncertaintyKm: 4,
+    locality: "Луцьк", region: "Волинська область" },
 ];
 
 const PROBKI_N = [...Array(31).keys()].slice(1).concat([101, 102, 104, 105, 111, 112, 114, 122, 124]);
@@ -160,6 +164,16 @@ test("obiekt bez kursu nie jest opisany „kursem na granicę” (1.11.2026)", (
   assert.match(app, /від кордону Польщі/);
 });
 
+test("kurs domniemany nie jest opisany jak lot na Polskę, na serwerze i w silniku (2.11.2026)", () => {
+  for (const [kto, w] of [["serwer", S], ["silnik", J]]) {
+    const luck = w.sygnaly.filter(s => s.track === "trk_t_luck");
+    assert.ok(luck.length > 0, `${kto}: brak sygnału obiektu „курсом на Луцьк”`);
+    for (const s of luck) assert.doesNotMatch(s.title, /kursem na granicę/, `${kto}: ${s.title}`);
+    assert.ok(luck.some(s => /w odległości .* od granicy PL \[kurs domniemany — na cel\]/.test(s.title)),
+      `${kto}: ${luck.map(s => s.title).join(" | ")}`);
+  }
+});
+
 test("app.js spolszcza stare tytuły z bazy, a EN/UK dalej składa tytuł z details", () => {
   const app = czytaj("frontend/app.js");
   const fn = app.match(/function polskiTytulNeptun\(title\) \{[\s\S]*?\r?\n\}/);
@@ -169,7 +183,7 @@ test("app.js spolszcza stare tytuły z bazy, a EN/UK dalej składa tytuł z deta
   const f = vm.runInNewContext(`${conf[0]}\n${fn[0]}\npolskiTytulNeptun`);
   assert.equal(
     f("Dron / BpSP kursem na granicę PL, 180.9 km [kurs domniemany — na cel] (woj. lubelskie, confidence: high, 3 potwierdzeń, ±10 km)"),
-    "Dron / BpSP kursem na granicę PL, 180,9 km [kurs domniemany — na cel] (woj. lubelskie, wiarygodność: wysoka, 3 potwierdzenia, ±10 km)");
+    "Dron / BpSP w odległości 180,9 km od granicy PL [kurs domniemany — na cel] (woj. lubelskie, wiarygodność: wysoka, 3 potwierdzenia, ±10 km)");
   assert.equal(f("Shahed w odległości 29.1 km od woj. podkarpackie (confidence: medium, 1 potwierdzeń)"),
     "Shahed w odległości 29,1 km od woj. podkarpackie (wiarygodność: średnia, 1 potwierdzenie)");
   assert.equal(f("2× Shahed kursem na granicę PL, 34.5 km (woj. lubelskie, confidence: low, 12 potwierdzeń, ±2.5 km)"),
@@ -265,9 +279,16 @@ test("panel: przypisanie wtórne mówi o odległości od TEGO województwa, w tr
 });
 
 test("panel: wpis główny bez zmian w EN/UK, w PL spolszczony stary tytuł", () => {
+  // kurs domniemany: namiar źródła na miejscowość, więc bez „kursem na granicę” (2.11.2026)
   assert.equal(panel("pl")(GLOWNY).tytul,
-    "Dron / BpSP kursem na granicę PL, 180,9 km [kurs domniemany — na cel] (woj. lubelskie, wiarygodność: wysoka, 3 potwierdzenia, ±10 km)");
-  assert.equal(panel("en")(GLOWNY).tytul, "Drone / UAV heading towards the Polish border, 180.9 km");
-  assert.equal(panel("uk")(GLOWNY).tytul, "Дрон / БпЛА курсом на кордон Польщі, 180,9 km");
+    "Dron / BpSP w odległości 180,9 km od granicy PL [kurs domniemany — na cel] (woj. lubelskie, wiarygodność: wysoka, 3 potwierdzenia, ±10 km)");
+  assert.equal(panel("en")(GLOWNY).tytul, "Drone / UAV 180.9 km from the Polish border");
+  assert.equal(panel("uk")(GLOWNY).tytul, "Дрон / БпЛА за 180,9 km від кордону Польщі");
+  // kurs znany: opis zostaje
+  const znany = { ...GLOWNY, title: "Dron / BpSP kursem na granicę PL, 180,9 km (woj. lubelskie, wiarygodność: wysoka, 3 potwierdzenia, ±10 km)",
+    details: { ...GLOWNY.details, course: "known" } };
+  assert.equal(panel("pl")(znany).tytul, znany.title);
+  assert.equal(panel("en")(znany).tytul, "Drone / UAV heading towards the Polish border, 180.9 km");
+  assert.equal(panel("uk")(znany).tytul, "Дрон / БпЛА курсом на кордон Польщі, 180,9 km");
   assert.match(panel("pl")(GLOWNY).wiersz, /180,9 km od granicy/);
 });
