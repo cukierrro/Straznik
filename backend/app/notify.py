@@ -192,6 +192,10 @@ def _apns_config(topic: str, data: dict, critical: bool = False):
                    if (critical and high) else
                    ("alarm_syrena.wav" if high else "alert_uwaga.wav")),
             thread_id=_temat_bazowy(topic),
+            # Rozszerzenie powiadomień iOS: język aplikacji i ustawienie żółtego (w App Store
+            # od 1.7.98, starsze ignorują). Czerwonego dźwięku nie dotyka, a gdy rozszerzenie
+            # padnie lub nie zdąży, iOS pokazuje ten ładunek bez zmian. Włączone 2.11.2026.
+            mutable_content=True,
             # firebase-admin 7.5 nie ma pola interruption_level — idzie przez custom_data.
             # Czerwony jako „time-sensitive" przebija tryb Skupienia, żółty jako
             # „active" nie budzi w nocy (decyzja 18.09.2026). Przy zgodzie na alarm
