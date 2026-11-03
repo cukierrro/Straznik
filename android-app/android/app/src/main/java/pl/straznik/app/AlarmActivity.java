@@ -20,6 +20,7 @@ import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.util.TypedValue;
 import android.view.Gravity;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
@@ -52,6 +53,8 @@ public class AlarmActivity extends Activity {
     static final String EXTRA_SENT_AT = "sent_at";
     /** Chwila wystawienia alarmu na telefonie (ms) — od niej liczymy ALARM_MAX_MS. */
     static final String EXTRA_POSTED_AT = "posted_at";
+    /** Tekst o spóźnieniu alarmu albo null (decyzja usera 2.11.2026). */
+    static final String EXTRA_NOTKA = "notka";
 
     // barwy i tempo migania przepisane z #alarm-overlay / @keyframes alarmflash
     // w frontend/style.css, żeby alarm w tle wyglądał jak w otwartej aplikacji
@@ -67,19 +70,69 @@ public class AlarmActivity extends Activity {
     private TextView autoNote;
     private final Handler limit = new Handler(Looper.getMainLooper());
     private final Runnable poLimicie = this::wyciszPoLimicie;
+    /** Alarm skończony świadomie albo po limicie — syrena nie wraca do powiadomienia. */
+    private boolean zakonczone;
+    private static java.lang.ref.WeakReference<AlarmActivity> biezacy;
+
+    /** Wyciszenie spoza tego ekranu: „Wycisz alarm”, zsunięcie powiadomienia, limit. */
+    static void wyciszono(int voiv, boolean auto) {
+        AlarmActivity a = biezacy != null ? biezacy.get() : null;
+        if (a == null) return;
+        a.runOnUiThread(() -> {
+            Intent in = a.getIntent();
+            if (in == null || in.getIntExtra(EXTRA_VOIV_INDEX, -1) != voiv) return;
+            if (auto) { a.wyciszPoLimicie(); return; }
+            a.zakonczone = true;
+            a.stopAlarmSignals();
+            a.finish();
+        });
+    }
 
     @Override
     protected void onCreate(Bundle saved) {
         super.onCreate(saved);
         wakeAndShowOverLockscreen();
         setContentView(buildUi());
-        // Syrenę gra powiadomienie czerwone w pętli (FLAG_INSISTENT). Własny
-        // odtwarzacz tylko wtedy, gdy użytkownik wyłączył dźwięk kanału albo
-        // powiadomienia — inaczej dwie syreny nakładały się (audyt B11).
-        if (!Alarms.highChannelPlaysSound(this)) startSiren();
+        biezacy = new java.lang.ref.WeakReference<>(this);
+        Intent in = getIntent();
+        int v = in != null ? in.getIntExtra(EXTRA_VOIV_INDEX, -1) : -1;
+        Alarms.dziennik(this, "ekran", v >= 0 && v < Alarms.VOIVS.length ? Alarms.VOIVS[v] : null, "high", null);
+        wlaczSyrene();
         startVibration();
         startBlinking();
         ustawLimit();
+    }
+
+    /**
+     * Syrena gra stąd, a nie z powiadomienia (1.8.05): tylko „POTWIERDZAM” i limit mają ją
+     * gasić. Dwie syreny się nie nakładają (audyt B11), bo powiadomienie przechodzi na kanał
+     * bez dźwięku — dopiero gdy własny odtwarzacz już gra, żeby nie było przerwy.
+     */
+    private void wlaczSyrene() {
+        if (Alarms.redSilent(this)) return;
+        if (player == null) startSiren();
+        if (player == null) return;   // nie wystartował: zostaje syrena z powiadomienia
+        Intent in = getIntent();
+        Alarms.przejmijDzwiek(this, in != null ? in.getIntExtra(EXTRA_VOIV_INDEX, -1) : -1,
+            in != null ? in.getLongExtra(EXTRA_POSTED_AT, 0L) : 0L);
+    }
+
+    /** Przyciski głośności nie wyciszają alarmu — ani przez przypadek, ani w półśnie. */
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (czyPrzyciskGlosnosci(keyCode) && player != null) return true;
+        return super.onKeyDown(keyCode, event);
+    }
+
+    @Override
+    public boolean onKeyUp(int keyCode, KeyEvent event) {
+        if (czyPrzyciskGlosnosci(keyCode) && player != null) return true;
+        return super.onKeyUp(keyCode, event);
+    }
+
+    private static boolean czyPrzyciskGlosnosci(int keyCode) {
+        return keyCode == KeyEvent.KEYCODE_VOLUME_UP || keyCode == KeyEvent.KEYCODE_VOLUME_DOWN
+            || keyCode == KeyEvent.KEYCODE_VOLUME_MUTE;
     }
 
     /**
@@ -99,6 +152,8 @@ public class AlarmActivity extends Activity {
     }
 
     private void wyciszPoLimicie() {
+        if (zakonczone) return;
+        zakonczone = true;
         stopAlarmSignals();
         if (root != null) root.setBackgroundColor(FLASH_DARK);
         if (autoNote != null) autoNote.setVisibility(View.VISIBLE);
@@ -183,6 +238,8 @@ public class AlarmActivity extends Activity {
         String podpis = (score > 0 ? score + " pkt" : "")
             + (czas.isEmpty() ? "" : (score > 0 ? " · " : "") + "godz. " + czas);
         box.addView(text(podpis, 16, Color.parseColor("#a9b4cc"), false), lp(dp(14)));
+        String notka = in != null ? in.getStringExtra(EXTRA_NOTKA) : null;
+        if (notka != null) box.addView(text(notka, 16, Color.parseColor("#ffd98a"), true), lp(dp(12)));
 
         // 21.10.2026 (user): przyciski zaraz pod nagłówkiem — przy długiej liście
         // powodów trzeba było przewijać do „POTWIERDZAM”. Informacje są niżej.
@@ -207,6 +264,7 @@ public class AlarmActivity extends Activity {
         open.setTextColor(Color.parseColor("#cfe0ff"));
         open.setBackgroundColor(Color.parseColor("#1a2338"));
         open.setOnClickListener(v -> {
+            zakonczone = true;
             stopAlarmSignals();
             silenceNotification();
             startActivity(new Intent(this, MainActivity.class)
@@ -278,6 +336,7 @@ public class AlarmActivity extends Activity {
                 .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build());
             player.setDataSource(this, uri);
             player.setLooping(true);   // gra bez przerwy, aż użytkownik potwierdzi
+            player.setWakeMode(this, PowerManager.PARTIAL_WAKE_LOCK);   // także po zgaszeniu ekranu
             player.prepare();
             player.start();
             // alarm musi być słyszalny nawet przy wyciszonym telefonie
@@ -285,7 +344,11 @@ public class AlarmActivity extends Activity {
             if (am != null && am.getStreamVolume(AudioManager.STREAM_ALARM) == 0)
                 am.setStreamVolume(AudioManager.STREAM_ALARM,
                     am.getStreamMaxVolume(AudioManager.STREAM_ALARM) / 2, 0);
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+            if (player != null) { try { player.release(); } catch (Exception ignored) {} }
+            player = null;
+            Alarms.dziennik(this, "syrena_blad", null, "high", null);
+        }
     }
 
     private void startVibration() {
@@ -316,6 +379,7 @@ public class AlarmActivity extends Activity {
     }
 
     private void finishAlarm() {
+        zakonczone = true;
         stopAlarmSignals();
         silenceNotification();
         finish();
@@ -339,8 +403,9 @@ public class AlarmActivity extends Activity {
         setIntent(intent);
         setContentView(buildUi());
         // nowy alarm: znów pełne sygnały i nowy limit liczony od jego wystawienia
+        zakonczone = false;
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-        if (player == null && !Alarms.highChannelPlaysSound(this)) startSiren();
+        wlaczSyrene();
         if (vibrator == null) startVibration();
         startBlinking();
         ustawLimit();
@@ -349,7 +414,15 @@ public class AlarmActivity extends Activity {
     @Override
     protected void onDestroy() {
         limit.removeCallbacks(poLimicie);
+        boolean gralaStad = player != null;
         stopAlarmSignals();
+        // Ekran zniknął bez potwierdzenia (system go zamknął): alarm nie może zamilknąć.
+        if (gralaStad && !zakonczone && !isChangingConfigurations()) {
+            Intent in = getIntent();
+            Alarms.oddajDzwiek(this, in != null ? in.getIntExtra(EXTRA_VOIV_INDEX, -1) : -1,
+                in != null ? in.getLongExtra(EXTRA_POSTED_AT, 0L) : 0L);
+        }
+        if (biezacy != null && biezacy.get() == this) biezacy = null;
         if (screenLock != null && screenLock.isHeld()) {
             try { screenLock.release(); } catch (Exception ignored) {}
         }

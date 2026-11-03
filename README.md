@@ -6,6 +6,19 @@
 
 Serwer: **hostowane na [Mikrusie](https://mikr.us)** — dziękujemy za wsparcie projektu.
 
+Wersja 1.8.06: czerwony wraca po wyciszeniu tylko przy realnym pogorszeniu; spóźniony alarm na
+Androidzie gra normalnie i mówi, z której jest godziny; opisy kursu mówią tylko, co wiadomo; na
+iPhonie „Bez dźwięku” działa także przy zamkniętej aplikacji; GROTA ma wykaz PSP z 2.11 (88 138 punktów).
+Szczegóły: `docs/RELEASE_1.8.06.md`.
+
+Wersja 1.8.05: czerwona syrena gra z ekranu alarmu, więc powiadomienia, panel i przyciski
+głośności jej nie przerywają; pełny ekran także po żółtym; dziennik alarmów w telefonie.
+Szczegóły: `docs/RELEASE_1.8.05.md`.
+
+Wersja 1.8.04: na telefonie z Google Play aktualizacja wersji z pliku APK prowadzi do sklepu,
+gdy nowe wydanie jest już tam zatwierdzone; aplikacja dostała politykę bezpieczeństwa treści (CSP)
+i boczne marginesy przy wycięciu aparatu. Szczegóły: `docs/RELEASE_1.8.04.md`.
+
 Wersja 1.8.03: dron zgłoszony tylko z celem („kursem na…”) ma ikonę bez kierunku i kartę,
 która mówi, co naprawdę wiadomo; daje punkty tylko bliżej niż 150 km od granicy.
 Szczegóły: `docs/RELEASE_1.8.03.md`.
@@ -254,7 +267,7 @@ i sumuje w oknie 60 minut (pełna waga przez 30 minut, potem liniowe wygaszanie)
 osobno dla każdego województwa. Przy **≥ 2 pkt**
 włącza podwyższoną uwagę (sygnał uwagi i powiadomienie). Głośny alarm z syreną wymaga
 **≥ 4 pkt ORAZ potwierdzenia**: Alertu RCB o treści „znajdź bezpieczne miejsce" albo
-obiektu uderzeniowego kursem na Polskę ≤ 15 minut od granicy (albo ≤ 50 km), z meldunkiem
+obiektu uderzeniowego ≤ 15 minut od granicy (albo ≤ 50 km), z meldunkiem
 nie starszym niż 25 minut. Czerwonego nie otwiera pozycja tylko rejonowa z niepewnością ponad
 30 km (od 15.10.2026) ani punkt „na cel” — kurs domniemany przy pozycji rejonowej, którą źródło
 wyznacza z celu i kursu, a nie z obserwacji (od 18.10.2026).
@@ -262,7 +275,7 @@ Sama suma punktów z sygnałów pośrednich nie zapala czerwonego (zmiana 23.09.
 
 | Sygnał | Warunek | Punkty |
 |---|---|---|
-| **NEPTUN** | obiekt kursem na granicę PL — punktacja zależna od typu, liczby, odległości i liczby potwierdzeń (niżej) | **0–8** |
+| **NEPTUN** | obiekt w zasięgu granicy PL — punktacja zależna od typu, liczby, odległości i liczby potwierdzeń (niżej) | **0–8** |
 | **NEPTUN** | oficjalny alarm powietrzny w obwodzie UA graniczącym z PL | **+1** |
 | **Media/RSS** | obiekt + zdarzenie: 0,5 pkt; jednoznaczna bieżąca relacja operacyjna: 1 pkt; historia, ćwiczenia i następstwa prawne: 0 pkt. Całe RSS ma limit 1 pkt i samo nie alarmuje | **0 / +0,5 / +1** |
 | **RCB / RSO** | Alert RCB o zagrożeniu z powietrza — waga zależna od treści: „sytuacja jest monitorowana” 1,5; „trwa zmasowany atak” 3; „znajdź bezpieczne miejsce” 4,5. Źródłem jest RSO, a treść komunikatu dnia na gov.pl/web/rcb dokłada województwa, których RSO nie przekazało; sama lista wpisów gov.pl to tylko punkt odniesienia w czasie (0 pkt), a artykuł gov.pl o alercie, który RSO już odwołało, nie daje punktów | **+1,5 / +3 / +4,5** |
@@ -294,8 +307,8 @@ punkty = waga_typu × √liczba × k_odległości × k_wiarygodności × k_potwi
 | **kurs** | do ±50° od kierunku na Polskę ×1,0, od 50° do 70° liniowo do 0; kurs nieznany ×0,5 i tylko do 150 km |
 | **podłogi przy granicy** | (≥ 2 zgłoszenia, pozycja punktowa) rakieta / MiG-31K ≤ 60 km od granicy: min. 2 pkt × k_kursu; dron / Shahed ≤ 30 km od województwa: min. 2 pkt w tym województwie, także bez kursu (od 18.10.2026) — ten dodatek nie przechodzi do sąsiadów |
 
-Fala: co najmniej 3 różne obiekty kursem na Polskę w 15 minut, bliżej niż 150 km, dokładają
-wspólnie **+0,5 pkt**. Wkład całego NEPTUN-a ograniczony do **8 pkt** — przy kilkudziesięciu obiektach
+Fala: co najmniej 3 różne obiekty w 15 minut, bliżej niż 150 km, dokładają wspólnie **+0,5 pkt**,
+także przy kursie domniemanym albo nieznanym; tytuł fali podaje, ile jest których. Wkład całego NEPTUN-a ograniczony do **8 pkt** — przy kilkudziesięciu obiektach
 suma i tak dawno przekroczyła próg alarmu, a trzycyfrowa punktacja psułaby skalę.
 
 **Historyczna kalibracja (wcześniejsza krzywa odległości).** Poniższe wyniki

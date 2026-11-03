@@ -12,7 +12,7 @@ import time
 import unicodedata
 from datetime import datetime, timedelta, timezone
 
-from . import config, db, stealth
+from . import config, db, ponowienie, stealth
 
 log = logging.getLogger("fusion")
 
@@ -471,6 +471,30 @@ def lost_weight(info: tuple | None, sig_ts: str, ref: datetime | None = None) ->
     return max(0.0, 1.0 - (gone_min - config.NEPTUN_LOST_FULL_MIN) / config.NEPTUN_LOST_FADE_MIN)
 
 
+def _kurs_fali(details: dict) -> str:
+    """known / presumptive / unknown; stare wpisy bez pola course — po samym kursie."""
+    kurs = details.get("course")
+    if kurs in ("presumptive", "unknown"):
+        return kurs
+    return "known" if kurs or details.get("heading") is not None else "unknown"
+
+
+def _kursy_fali(obiekty: list) -> dict:
+    """Ile obiektów fali ma jaki kurs, np. {"presumptive": 5, "unknown": 1}."""
+    kursy = list({klucz: kurs for klucz, _, kurs in obiekty}.values())
+    return {k: kursy.count(k) for k in ("known", "presumptive", "unknown") if k in kursy}
+
+
+def _tytul_fali(ile: int, voiv: str, kursy: dict) -> str:
+    """Tytuł po tym, co wiadomo: odległość i liczba. Lustro w engine.js (tytulFali)."""
+    d, s = ile % 10, ile % 100
+    slowo = ("obiekt" if ile == 1 else "obiekty" if 2 <= d <= 4 and not 12 <= s <= 14 else "obiektów")
+    nazwy = (("known", "znany"), ("presumptive", "domniemany"), ("unknown", "nieznany"))
+    kurs = ", ".join(f"{nazwa}: {kursy[k]}" for k, nazwa in nazwy if kursy.get(k))
+    return (f"Fala obiektów: {ile} {slowo} w {config.NEPTUN_WAVE_WINDOW_MIN} min bliżej niż "
+            f"{int(config.NEPTUN_WAVE_KM)} km od woj. {voiv} (kurs {kurs})")
+
+
 def _parse_ts(value) -> datetime | None:
     try:
         t = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
@@ -826,9 +850,10 @@ def accumulate(signals: list[dict], ref: datetime | None = None, lost=None,
                         else max(0.0, min(cap - already, e["weighted"])))
         per_source[key] = already + e["counted"]
 
-    # Fala obiektów (23.09.2026): kilka różnych obiektów kursem na Polskę w krótkim
-    # oknie. Liczymy TORY, nie meldunki, żeby powtórzenia tego samego obiektu nie
-    # robiły fali. Sygnał jest syntetyczny — widać go w panelu i w historii.
+    # Fala obiektów (23.09.2026): kilka różnych obiektów blisko w krótkim oknie.
+    # Liczymy TORY, nie meldunki, żeby powtórzenia tego samego obiektu nie robiły fali.
+    # Sygnał jest syntetyczny — widać go w panelu i w historii. Fala NIE sprawdza kursu,
+    # więc tytuł nie może mówić „kursem na Polskę”: mówi, ile kursów naprawdę znamy (2.11.2026).
     teraz = ref or datetime.now(timezone.utc)
     fale: dict[str, list] = {}
     for e in prepared:
@@ -842,12 +867,14 @@ def accumulate(signals: list[dict], ref: datetime | None = None, lost=None,
             continue
         if (teraz - ts).total_seconds() > config.NEPTUN_WAVE_WINDOW_MIN * 60:
             continue
-        fale.setdefault(e["voiv"], []).append((d.get("physical_key") or d.get("track_id") or s_.get("id"), ts))
+        fale.setdefault(e["voiv"], []).append(
+            (d.get("physical_key") or d.get("track_id") or s_.get("id"), ts, _kurs_fali(d)))
     for voiv, obiekty in fale.items():
-        ile = len({k for k, _ in obiekty})
+        ile = len({k for k, _, _ in obiekty})
         if ile < config.NEPTUN_WAVE_MIN:
             continue
-        ostatni = max(ts for _, ts in obiekty)
+        ostatni = max(ts for _, ts, _ in obiekty)
+        kursy = _kursy_fali(obiekty)
         per_voiv[voiv]["score"] += config.NEPTUN_WAVE_POINTS
         # fala to obiekty NEPTUN — do sąsiadów nie przechodzi (W1, 19.10.2026)
         per_voiv[voiv]["signals"].append({
@@ -855,9 +882,8 @@ def accumulate(signals: list[dict], ref: datetime | None = None, lost=None,
             "ts": ostatni.isoformat(timespec="seconds"),
             "points": config.NEPTUN_WAVE_POINTS,
             "counted_points": config.NEPTUN_WAVE_POINTS, "weight": 1.0,
-            "title": f"Fala obiektów: {ile} obiekty kursem na Polskę w {config.NEPTUN_WAVE_WINDOW_MIN} min "
-                     f"(bliżej niż {int(config.NEPTUN_WAVE_KM)} km)",
-            "details": {"count": ile, "wave": True},
+            "title": _tytul_fali(ile, voiv, kursy),
+            "details": {"count": ile, "wave": True, "kursy": kursy},
         })
 
     for e in prepared:          # do wyniku i rozbicia — w kolejności czasu
@@ -1006,6 +1032,13 @@ def red_key(signals: list[dict], ref: datetime | None = None) -> dict | None:
         if d.get("position_approximate") and "presumptive" in (d.get("course"), d.get("heading_source")):
             continue
         eta, km = d.get("eta_border_min"), d.get("dist_km")
+        # B' (decyzja usera 1.11.2026): słaby meldunek o dronie bez kursu nie budzi syreną.
+        if (d.get("course") == "unknown"
+                and (d.get("type") or "").lower() in config.RED_GATE_BEZ_KURSU_TYPES
+                and not (d.get("confidence") == "high"
+                         and (d.get("source_count") or 0) >= config.RED_GATE_BEZ_KURSU_MIN_ZGLOSZEN)
+                and not (km is not None and km <= config.RED_GATE_BEZ_KURSU_KM)):
+            continue
         if eta is not None and eta <= config.RED_GATE_ETA_MIN:
             return {"powod": "eta", "opis": f"obiekt {int(eta)} min od granicy", "eta_min": eta, "km": km}
         if km is not None and km <= config.RED_GATE_KM:
@@ -1146,6 +1179,38 @@ async def ingest(source: str, event_type: str, voivodeship: str | None, points: 
     return is_new
 
 
+def _dane_ponowienia(st: dict) -> tuple[list[dict], tuple]:
+    """Obiekty, które same dałyby klucz czerwonego, i bieżący alert RCB."""
+    teraz = datetime.now(timezone.utc)
+    obiekty, najnowszy = [], None
+    for s in st.get("signals") or []:
+        if s.get("event_type") in ("rso_alert", "rcb_alert") and s.get("counted_points", 1) is not None:
+            if najnowszy is None or (s.get("ts") or "") > (najnowszy.get("ts") or ""):
+                najnowszy = s
+        if s.get("source") == "neptun" and s.get("event_type") != "neptun_wave" and red_key([s], teraz):
+            d = s.get("details") or {}
+            lat, lon = d.get("lat"), d.get("lon")
+            obiekty.append({"tor": d.get("track_id"), "km": d.get("dist_km"), "rejon": bool(d.get("position_approximate")),
+                            "jakosc": d.get("confidence"), "zgloszenia": d.get("source_count"),
+                            "wsp": (lat, lon) if lat is not None and lon is not None else None})
+    rcb = (rcb_level_of(najnowszy), najnowszy.get("id")) if najnowszy else (0, None)
+    return obiekty, rcb
+
+
+def _sprawdz_ponowienie(voiv: str, st: dict) -> None:
+    if not (config.RED_PONOWIENIE_WLACZONE and on_level_change):
+        return
+    obiekty, rcb = _dane_ponowienia(st)
+    powod = ponowienie.krok(voiv, obiekty, rcb, datetime.now(timezone.utc))
+    if not powod:
+        return
+    from . import alert_log
+    log.warning("woj. %s: ponowienie czerwonego: %s", voiv, powod)
+    log_id = alert_log.record_transition(voiv, "high", "high", st, "pending")
+    asyncio.create_task(on_level_change(voiv, "high", st["score"], st["signals"],
+                                        log_id=log_id, ponowienie=powod))
+
+
 async def reevaluate():
     """Sprawdź przekroczenia progów (rising edge).
 
@@ -1163,7 +1228,11 @@ async def reevaluate():
             if st["level"] != new_level and _ORDER.index(st["level"]) > _ORDER.index(new_level):
                 log.debug("woj. %s: na mapie %s (%s pkt, własne %s) — bez powiadomienia",
                           voiv, st["level"], st["score"], st["own_score"])
+            if new_level == "high":
+                _sprawdz_ponowienie(voiv, st)
             continue
+        if new_level != "high":
+            ponowienie.zakoncz(voiv)
         rising = _ORDER.index(new_level) > _ORDER.index(old_level)
         levels[voiv] = new_level
         try:
@@ -1191,6 +1260,8 @@ async def reevaluate():
                          "bez powiadomienia", voiv, new_level, age_min)
                 alert_log.record_transition(voiv, old_level, new_level, st, "quiet_repeat")
                 continue
+        if new_level == "high":
+            ponowienie.rozpocznij(voiv, *_dane_ponowienia(st), datetime.now(timezone.utc))
         log_id = alert_log.record_transition(voiv, old_level, new_level, st, "pending")
         asyncio.create_task(on_level_change(voiv, new_level, st["score"], st["signals"],
                                             log_id=log_id))

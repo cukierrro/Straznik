@@ -385,7 +385,7 @@
     button("alarmy-intro-ios",
       "Alarmy dla Twojego województwa przychodzą jako powiadomienie push — także gdy aplikacja jest zamknięta, ekran zablokowany albo telefon w uśpieniu. Serwer Strażnika wysyła sygnał prosto na telefon; wystarczy zgoda na powiadomienia. Wymaga to działającego serwera: w trybie awaryjnym (serwer niedostępny) alarmy przychodzą tylko przy otwartej aplikacji.",
       "Alerts for your province arrive as a push notification — also when the app is closed, the screen is locked or the phone is asleep. The Strażnik server sends the signal straight to the phone; notification permission is all that is needed. This needs a working server: in fallback mode (server unreachable) alerts only arrive while the app is open.");
-    button("yv-ios-note", "Na iPhonie to ustawienie zmienia tylko sygnał przy otwartej aplikacji. Dźwięk powiadomienia, które przychodzi przy zamkniętej, wybiera serwer i jest taki sam dla wszystkich. Kto chce zupełnej ciszy żółtego, wyłącza Dźwięki w Ustawieniach iPhone'a → Strażnik → Powiadomienia. Czerwony alarm zagra mimo to, jeśli na tym samym ekranie włączone są Alerty krytyczne. Kto chce ciszy także przy czerwonym, wyłącza również je — powiadomienie przyjdzie wtedy bez dźwięku.", "On iPhone this setting only changes the signal while the app is open. The sound of a notification that arrives with the app closed is chosen by the server and is the same for everyone. For complete silence on yellow, turn off Sounds in iPhone Settings → Strażnik → Notifications. The red alert will still sound if Critical Alerts are turned on on the same screen. For silence on red too, turn those off as well — the notification will then arrive without sound.");
+    button("yv-ios-note", "Na iPhonie „Bez dźwięku” wycisza żółty także przy zamkniętej aplikacji: baner i wibracja zostają. Czerwonego alarmu to ustawienie nie dotyczy nigdy. Kto chce ciszy także przy czerwonym, wyłącza Alerty krytyczne w Ustawieniach iPhone'a → Strażnik → Powiadomienia.", "On iPhone “Silent” mutes yellow even with the app closed: the banner and vibration stay. This setting never affects the red alert. For silence on red as well, turn off Critical Alerts in iPhone Settings → Strażnik → Notifications.");
     button("rs-ios-note", "Na iPhonie syreną czerwonego alarmu steruje system iOS, nie Strażnik — w tej sekcji nie ma czego przestawiać. Czerwony alarm zagra mimo wyciszenia i trybu Skupienia, jeśli w Ustawieniach iPhone'a → Strażnik → Powiadomienia włączone są Alerty krytyczne. Po ich wyłączeniu czerwony przyjdzie bez dźwięku — także w nocy. Po zmianie otwórz raz Strażnika, żeby uaktualnił zapis na alarmy.", "On iPhone the red alert siren is controlled by iOS, not by Strażnik — there is nothing to change in this section. The red alert will sound despite mute and Focus mode if Critical Alerts are turned on in iPhone Settings → Strażnik → Notifications. With them turned off, red arrives without sound — also at night. After changing it, open Strażnik once so it updates the alert subscription.");
     button("krytyczny-ios-note", "Alarm krytyczny to osobna zgoda Apple: czerwony alarm zadzwoni nawet wtedy, gdy telefon jest wyciszony przełącznikiem albo w trybie Skupienia. Dotyczy wyłącznie czerwonego poziomu — żółty sygnał uwagi zostaje cichy. iPhone zapyta o tę zgodę tylko raz; jeśli ją odrzucisz, włączysz ją później w Ustawieniach telefonu. W każdej chwili możesz ją cofnąć w tym samym miejscu.", "Critical alerts are a separate permission from Apple: a red alert will sound even when the phone is muted with the switch or in Focus mode. It applies to the red level only — the yellow attention signal stays quiet. iPhone asks for this permission once; if you decline it, you can turn it on later in the phone’s Settings. You can withdraw it at any time in the same place.");
     button("alarm-ios-note",
@@ -457,6 +457,7 @@
       "By default the app uses the Strażnik server (straznik.eu) — the data and the fusion are computed once, on the server. When the server is unavailable the app switches to its built-in mode and computes on the device. Enter your own HTTPS address only if you want to use your own backend. Plain HTTP and certificates added manually to the phone are not supported in the production build.");
     button("jak-alarmy", "Jak to działa?", "How it works");
     button("jak-zgody", "Szczegóły zgód i alarmu", "Permissions and alert behaviour in detail");
+    button("jak-dziennik", "Dziennik alarmów na tym telefonie", "Alert log on this phone");
     button("jak-dzwiek", "Co kiedy gra", "What plays when");
     button("jak-yv", "Czego dotyczy to ustawienie", "What this setting covers");
     button("jak-natywny", "Zanim zmienisz: co to zmienia", "Before you change it: what it changes");
@@ -598,6 +599,7 @@
     "How the test works": "Як відбувається тест",
     "How to read the direction": "Як читати напрямок",
     "Where updates come from": "Звідки беруться оновлення",
+    "Alert log on this phone": "Журнал тривог на цьому телефоні",
     "air threat map · Poland": "мапа повітряних загроз · Польща",
     "hosted on Mikrus ↗": "хостинг: Mikrus ↗",
     "UA alerts": "Тривоги UA",
@@ -699,8 +701,8 @@
     "How it works": "Як це працює",
     "No single signal proves that a threat exists. The app assigns points to several independent indicators and totals them over a 60-minute window for each province. A signal has full weight for 30 minutes, then fades linearly to zero. The resulting total determines the level, and the full breakdown is always visible.":
       "Жоден окремий сигнал не доводить, що загроза існує. Застосунок нараховує бали кільком незалежним показникам і підсумовує їх у 60-хвилинному вікні для кожного воєводства. Сигнал має повну вагу 30 хвилин, потім лінійно згасає до нуля. Отримана сума визначає рівень, а повний розклад завжди видно.",
-    "Object heading towards Poland — score depends on class, count, distance and independent confirmations":
-      "Об’єкт курсом на Польщу — бал залежить від класу, кількості, відстані та незалежних підтверджень",
+    "Object within range of the Polish border — score depends on class, count, distance and independent confirmations":
+      "Об’єкт у межах досяжності кордону Польщі — бал залежить від класу, кількості, відстані та незалежних підтверджень",
     "Official alert in a Ukrainian region bordering Poland": "Офіційна тривога в прикордонній з Польщею області України",
     "Media": "ЗМІ",
     "Local reports of sirens, explosions or airspace violations; one article alone cannot trigger an alert. An article that only repeats an RCB alert (issued up to 4 hours earlier) and an article about the end of the threat score 0":
@@ -735,8 +737,8 @@
     "within ±50° of the direction to Poland full weight, from 50° to 70° the weight falls to zero; unknown heading ×0.5 and only up to 150 km":
       "у межах ±50° від напрямку на Польщу повна вага, від 50° до 70° вага спадає до нуля; невідомий курс ×0,5 і лише до 150 км",
     "Wave": "Хвиля",
-    "three different objects heading at Poland within 15 minutes and closer than 150 km add 0.5 pt together — several objects at once mean more than each on its own":
-      "три різні об’єкти курсом на Польщу протягом 15 хвилин і ближче ніж 150 км разом додають 0,5 бала — кілька об’єктів одночасно означають більше, ніж кожен окремо",
+    "three different objects within 15 minutes and closer than 150 km add 0.5 pt together, whether or not their heading is known — several objects at once mean more than each on its own":
+      "три різні об’єкти протягом 15 хвилин і ближче ніж 150 км разом додають 0,5 бала, незалежно від того, чи відомий їхній курс — кілька об’єктів одночасно означають більше, ніж кожен окремо",
     "Confidence": "Достовірність",
     "confidence (high ×1.0, medium ×0.6, low ×0.35), number of independent reports (one ×0.7, two ×0.9, three–four ×1.1, five or more ×1.25) and observation status (confirmed ×1.1, uncertain ×0.85, fresh ×0.7)":
       "достовірність (висока ×1,0, середня ×0,6, низька ×0,35), кількість незалежних повідомлень (одне ×0,7, два ×0,9, три–чотири ×1,1, п’ять і більше ×1,25) і статус спостереження (підтверджений ×1,1, непевний ×0,85, свіжий ×0,7)",
@@ -825,7 +827,7 @@
     "▶ Feel: yellow (U)": "▶ Відчути: жовтий (U)",
     "▶ Feel: red (A)": "▶ Відчути: червоний (A)",
     "The vibration patterns are not a choice: yellow always vibrates “U”, red always “A”. The buttons only play them so you can recognise them.": "Ритм вібрації не обирається: жовта завжди вібрує «U», червона — завжди «A». Кнопки лише відтворюють його, щоб ви його впізнали.",
-    "On iPhone this setting only changes the signal while the app is open. The sound of a notification that arrives with the app closed is chosen by the server and is the same for everyone. For complete silence on yellow, turn off Sounds in iPhone Settings → Strażnik → Notifications. The red alert will still sound if Critical Alerts are turned on on the same screen. For silence on red too, turn those off as well — the notification will then arrive without sound.": "На iPhone це налаштування змінює лише сигнал при відкритому застосунку. Звук сповіщення, яке приходить при закритому, вибирає сервер, і він однаковий для всіх. Хто хоче повної тиші для жовтого, вимикає Звуки в Налаштуваннях iPhone → Strażnik → Сповіщення. Червона тривога все одно пролунає, якщо на тому ж екрані ввімкнено Критичні оповістки. Хто хоче тиші й для червоної, вимикає також їх — сповіщення тоді прийде без звуку.",
+    "On iPhone “Silent” mutes yellow even with the app closed: the banner and vibration stay. This setting never affects the red alert. For silence on red as well, turn off Critical Alerts in iPhone Settings → Strażnik → Notifications.": "На iPhone «Без звуку» вимикає звук жовтого навіть за закритого застосунку: банер і вібрація залишаються. На червону тривогу це налаштування ніколи не впливає. Щоб вимкнути звук і для червоного, вимкніть критичні сповіщення в Параметрах iPhone → Strażnik → Сповіщення.",
     "Quiet hours": "Години тиші",
     "E.g. at night: yellow without sound, red vibration only": "Напр. уночі: жовтий без звуку, червоний лише вібрацією",
     "From": "Від",
@@ -1079,7 +1081,7 @@
     const redNote = document.getElementById("ab-czerwony");
     if (redNote) redNote.innerHTML = "<b>4 pts alone are not enough.</b> Red needs a "
       + "confirmation: either an RCB alert saying “find a safe place”, or a real "
-      + "strike object heading at Poland — less than 15 minutes of flight away or closer "
+      + "strike object close to Poland — less than 15 minutes of flight away or closer "
       + "than 50 km to the border, with a report no older than 25 minutes. It is not opened by a "
       + "position given only as an area with more than 30 km of uncertainty, nor by a “towards "
       + "the target” point — an object with a presumed heading and an area position that the "
@@ -1116,7 +1118,7 @@
     ].forEach((html, i) => { const li = document.querySelectorAll("#about-blind li")[i]; if (li) li.innerHTML = html; });
     setMany("#about h3", ["How it works", "How NEPTUN object points are calculated", "Estimated arrival time", "Levels", "Where to find things", "What this app does NOT do"]);
     setMany("#ab-tab-punkty tr td:nth-child(2)", [
-      "Object heading towards Poland — score depends on class, count, distance and independent confirmations",
+      "Object within range of the Polish border — score depends on class, count, distance and independent confirmations",
       "Official alert in a Ukrainian region bordering Poland",
       "Local reports of sirens, explosions or airspace violations; one article alone cannot trigger an alert. An article that only repeats an RCB alert (issued up to 4 hours earlier) and an article about the end of the threat score 0",
       "Official RCB alert from the Regional Warning System or a new gov.pl/RCB notice. Since 17.09.2026 RCB sends three kinds of message and they weigh accordingly: “the situation is being monitored” 1.5 · “a massive attack is under way… react to alarm signals” 3 · “threat of an air attack, find a safe place” 4.5. A later alert does not add to the earlier one — the current one counts. An RCB article on gov.pl about an alert that RSO has already cancelled scores nothing",
@@ -1132,7 +1134,7 @@
       "square root of object count — four objects weigh twice as much as one, not four times as much",
       "weight changes smoothly: 0 km ×1.7 · 15 km ×1.6 · 45 km ×1.3 · 80 km ×1.0 · 110 km ×0.7 · 150 km ×0.4 · 200 km ×0.25 · 250 km ×0.1 · farther 0. An object scores every province within 250 km, each by its distance to that province",
       "within ±50° of the direction to Poland full weight, from 50° to 70° the weight falls to zero; unknown heading ×0.5 and only up to 150 km",
-      "three different objects heading at Poland within 15 minutes and closer than 150 km add 0.5 pt together — several objects at once mean more than each on its own",
+      "three different objects within 15 minutes and closer than 150 km add 0.5 pt together, whether or not their heading is known — several objects at once mean more than each on its own",
       "confidence (high ×1.0, medium ×0.6, low ×0.35), number of independent reports (one ×0.7, two ×0.9, three–four ×1.1, five or more ×1.25) and observation status (confirmed ×1.1, uncertain ×0.85, fresh ×0.7)",
       "source point ×1.0 · source-reported area ×0.6 · recognised locality centre ×0.5; area positions cannot trigger ETA thresholds",
       "minimum points with at least two reports and a point position: a missile or MiG-31K within 60 km of the border — at least 2 pts (1 pt with unknown heading); a drone or Shahed within 30 km of a province — at least 2 pts (yellow) in that province, even without a known heading, unless it is flying away from Poland. This extra does not pass to neighbouring provinces. A single report is not enough"
@@ -1166,7 +1168,7 @@
     // Teksty pokazywane tylko w aplikacji na iPhone'a (klasa .ios-only w index.html)
     set("#onboard-bg-ios", "We only ask for notification permission. So that a red alert can reach you at night, keep “Time Sensitive Notifications” on and allow Strażnik in your Sleep focus (Settings → Focus → Sleep → Apps).");
     set("#alarmy-intro-ios", "Alerts for your province arrive as a push notification — also when the app is closed, the screen is locked or the phone is asleep. The Strażnik server sends the signal straight to the phone; notification permission is all that is needed. This needs a working server: in fallback mode (server unreachable) alerts only arrive while the app is open.");
-    set("#yv-ios-note", "On iPhone this setting only changes the signal while the app is open. The sound of a notification that arrives with the app closed is chosen by the server and is the same for everyone. For complete silence on yellow, turn off Sounds in iPhone Settings → Strażnik → Notifications. The red alert will still sound if Critical Alerts are turned on on the same screen. For silence on red too, turn those off as well — the notification will then arrive without sound.");
+    set("#yv-ios-note", "On iPhone “Silent” mutes yellow even with the app closed: the banner and vibration stay. This setting never affects the red alert. For silence on red as well, turn off Critical Alerts in iPhone Settings → Strażnik → Notifications.");
     set("#rs-ios-note", "On iPhone the red alert siren is controlled by iOS, not by Strażnik — there is nothing to change in this section. The red alert will sound despite mute and Focus mode if Critical Alerts are turned on in iPhone Settings → Strażnik → Notifications. With them turned off, red arrives without sound — also at night. After changing it, open Strażnik once so it updates the alert subscription.");
     set("#krytyczny-ios-note", "Critical alerts are a separate permission from Apple: a red alert will sound even when the phone is muted with the switch or in Focus mode. It applies to the red level only — the yellow attention signal stays quiet. iPhone asks for this permission once; if you decline it, you can turn it on later in the phone’s Settings. You can withdraw it at any time in the same place.");
     set("#alarm-ios-note", "On iPhone a red alert arrives as a notification marked “Urgent”: it appears over the lock screen and plays our siren. It does not take over the screen and does not repeat the sound — iOS does not allow regular apps to do that. With the ringer muted the alert is silent: a banner and a vibration — as long as Settings → Sounds & Haptics → Haptics is not set to “Don’t Play in Silent Mode”. For it to reach you at night, check two settings: Settings → Notifications → Strażnik → “Time Sensitive Notifications” and Settings → Focus → Sleep → Apps → allow Strażnik. Without them iOS holds the alert until you unlock the phone.");
@@ -1186,6 +1188,7 @@
     set("#adv-note", "By default the app uses the Strażnik server (straznik.eu) — the data and the fusion are computed once, on the server. When the server is unavailable the app switches to its built-in mode and computes on the device. Enter your own HTTPS address only if you want to use your own backend. Plain HTTP and certificates added manually to the phone are not supported in the production build.");
     set("#jak-alarmy", "How it works");
     set("#jak-zgody", "Permissions and alert behaviour in detail");
+    set("#jak-dziennik", "Alert log on this phone");
     set("#jak-dzwiek", "What plays when");
     set("#jak-yv", "What this setting covers");
     set("#jak-natywny", "Before you change it: what it changes");

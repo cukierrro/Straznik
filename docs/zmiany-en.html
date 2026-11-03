@@ -39,6 +39,39 @@
   <p class="fineprint">To see which version your phone has, open the app: <kbd>Menu</kbd> → <kbd>Settings</kbd> → <kbd>Language, text and version</kbd> → “App version”. The <kbd>⬆ Check for updates</kbd> button is right there too.</p>
 </div></header>
 <main id="content" class="wrap">
+<section id="v1-8-06">
+  <h2>1.8.06 — late and repeat alerts say what is happening, and descriptions say what is known</h2>
+  <p class="fineprint">Release 1.8.06 · 3 November 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.8.06">Full release notes</a></p>
+  <ul>
+    <li><b>Repeat red alert:</b> after you silence it, the alert returns only when things really get worse: a new object or one at least 10 km closer, within 30 km of the province (point position, high confidence, at least 2 reports), at most twice and at least 15 minutes after the previous one, or an Alert RCB of level 2 or 3. Running on the server since 2 November.</li>
+    <li><b>A late alert on Android</b> is no longer silent: it plays normally and says how late it is and what time the threat is from.</li>
+    <li><b>Heading descriptions:</b> a wave gives the number of objects and how many headings are known, presumed and unknown, instead of “heading at Poland”. A drone with a presumed heading is described by its distance from the Polish border. Scoring is unchanged.</li>
+    <li><b>iPhone:</b> “Silent” mutes yellow even with the app closed, and notifications arrive in the app's language. Red is not affected.</li>
+    <li><b>GROTA:</b> PSP list of 2 November, 88,138 points. If your saved shelter has changed, the app says so.</li>
+  </ul>
+</section>
+<section id="v1-8-05">
+  <h2>1.8.05 — a siren that an accident cannot silence, and an alert log</h2>
+  <p class="fineprint">Release 1.8.05 · 1 November 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.8.05">Full release notes</a></p>
+  <ul>
+    <li><b>Siren:</b> while the alert screen is open, other notifications, expanding the panel and the volume buttons do not interrupt it. On emulators each of these could previously silence it for good, depending on the Android version.</li>
+    <li><b>Full screen:</b> red now gets it after an earlier yellow too, and on Android 9 no longer ends up as just a banner.</li>
+    <li><b>Alert log</b> in <kbd>Alerts and permissions</kbd>: when an alert arrived, how long it took, the state of the phone and how the alert ended. The data stays on the phone.</li>
+    <li><b>Drone with no heading:</b> confirms red only with high confidence and at least 2 reports, or within 30 km of the border. The description no longer says “heading towards the border” when the heading is unknown. The server has worked this way since 1 November.</li>
+    <li><b>The checklist card</b> warns about battery optimisation on phones other than Google's.</li>
+  </ul>
+</section>
+<section id="v1-8-04">
+  <h2>1.8.04 — updates through Google Play and stronger app protection</h2>
+  <p class="fineprint">Release 1.8.04 · 31 October 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.8.04">Full release notes</a></p>
+  <ul>
+    <li><b>Updates through Google Play:</b> on a phone with the Google Play Store, the APK version offers <kbd>Open Google Play</kbd> once the new release is approved in the store. Both versions carry the same signature, so the store updates without uninstalling. Installing from a file remains as the second option; Play Protect could stop it with a red warning. Works from the next update after 1.8.04.</li>
+    <li><b>Phone storage:</b> before downloading an update the app checks free space and says how many megabytes to free up; the file no longer sits in the cache that Android clears.</li>
+    <li><b>The update window</b> no longer appears on top of the welcome screen and settings.</li>
+    <li><b>In landscape</b> content and dialogs no longer go under the camera cutout or the iPhone island.</li>
+    <li><b>Content Security Policy (CSP) in the app:</b> the app runs only its own scripts and does not execute code from text — just like the straznik.eu website.</li>
+  </ul>
+</section>
 <section id="v1-8-03">
   <h2>1.8.03 — an honest description of drones reported “heading to…” and fewer false warnings</h2>
   <p class="fineprint">Release 1.8.03 · 28 October 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.8.03">Full release notes</a></p>

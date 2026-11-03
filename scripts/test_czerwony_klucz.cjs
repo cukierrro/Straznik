@@ -75,8 +75,9 @@ test('pozycja rejonowa ±70 km NIE jest kluczem (czerwony 15.10.2026)', () => {
   // razem z Alertem RCB poziomu 1. Punkty zostają, klucza nie ma.
   const rejonowy = (unc, area) => sygnal({ id: 35, ts: '2026-09-23T05:20:00Z', source: 'neptun',
     event_type: 'neptun_threat', points: 0.3, title: '2× Dron / BpSP kursem na granicę PL, około 50 km [pozycja rejonowa] [kurs nieznany]',
+    // wysoka wiarygodność i 2 zgłoszenia: tu sprawdzamy regułę pozycji, nie B' z 1.11.2026
     details: { type: 'uav', dist_km: 53.6, eta_border_min: 15, track_id: 'trk_35', course: 'unknown',
-               area_only: area, uncertainty_km: unc } });
+               confidence: 'high', source_count: 2, area_only: area, uncertainty_km: unc } });
   const tlo = [alertMonitorowana, obwodyUA, dron(36, 84, 28, '05'), dron(37, 91, 30, '06'), dron(38, 104, 34, '07')];
   const st = Engine.stateFrom([...tlo, rejonowy(70, true)], REF).voivodeships.lubelskie;
   assert.equal(st.red_key, null);

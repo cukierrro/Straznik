@@ -311,12 +311,11 @@ RCB_DOWNGRADE_FADE_MIN = 10.0
 
 RED_GATE_ETA_MIN = 15.0
 RED_GATE_KM = 50.0
-# Fala obiektów: kilka niezależnych obiektów lecących jednocześnie w naszą stronę
-# to przesłanka sama w sobie, niezależna od tego, jak słaby jest każdy z osobna.
-# 23.09.2026 żółty zapalił się 8 min przed Alertem RCB tylko dzięki dwóm dronom
-# ROZPOZNAWCZYM (2 × 0,08 pkt) — po obniżeniu ich wagi do 0,15 to wyprzedzenie by
-# przepadło. Fala jest rzadka: w całej historii od 1.09 wystąpiła 4 razy (13, 15,
-# 17 i 23.09) i za każdym razem przy realnym zdarzeniu.
+# Fala obiektów: kilka niezależnych obiektów blisko naraz to przesłanka sama w sobie,
+# niezależna od tego, jak słaby jest każdy z osobna. 23.09.2026 żółty zapalił się 8 min
+# przed Alertem RCB tylko dzięki dwóm dronom ROZPOZNAWCZYM (2 × 0,08 pkt) — po obniżeniu
+# ich wagi do 0,15 to wyprzedzenie by przepadło. Fala nie sprawdza kursu i przestała być
+# rzadka: po przejściu na liczenie w 250 km zdarza się przy większości nalotów na Wołyń.
 NEPTUN_WAVE_MIN = 3                # ile różnych obiektów naraz
 NEPTUN_WAVE_KM = 150.0             # liczone tylko bliżej niż tyle od granicy
 NEPTUN_WAVE_WINDOW_MIN = 15
@@ -330,6 +329,25 @@ RED_GATE_MAX_AGE_MIN = 25          # meldunek starszy niż 25 min nie otwiera cz
 # obiekt z niepewnością 4–25 km, a ten próg zmienia wyłącznie 15.10 (decyzja usera).
 RED_GATE_AREA_MAX_UNC_KM = 30.0
 RED_GATE_TYPES = ("ballistic", "mig31k", "cruise", "missile", "kab", "shahed", "uav")
+# Dron z NIEZNANYM kursem (wariant B', decyzja usera 1.11.2026). 1.11 o 9:03 czerwony dla
+# dwóch województw otworzył jeden dron 36 km od granicy: wiarygodność średnia, 1 meldunek,
+# bez kursu, bez RCB. Klucz daje dopiero wysoka wiarygodność i co najmniej 2 zgłoszenia
+# albo pozycja do 30 km. Przeliczenie 2.08-1.11: znika 12 z 57 czerwonych (zostaje żółty,
+# RCB najwyżej 1. stopnia), 2 opóźnione. Efektywnie tylko 19 dni danych i żaden alert
+# 3. stopnia w tym czasie. Rakiet to nie dotyczy: 1 meldunek bywa tam wszystkim, co jest.
+RED_GATE_BEZ_KURSU_TYPES = ("uav", "shahed")
+RED_GATE_BEZ_KURSU_KM = 30.0
+RED_GATE_BEZ_KURSU_MIN_ZGLOSZEN = 2
+# Ponowienie czerwonego przy realnym zbliżeniu (decyzja usera 2.11.2026): ponowienie.py.
+# Wyłącznik bez wydania: STRAZNIK_PONOWIENIE=0 i restart.
+RED_PONOWIENIE_WLACZONE = os.getenv("STRAZNIK_PONOWIENIE", "1").strip() != "0"
+RED_PONOWIENIE_KM = 30.0            # tylko dokładna pozycja przy samej granicy
+RED_PONOWIENIE_BLIZEJ_KM = 10.0     # albo tyle bliżej niż najbliższy punkt dotąd
+RED_PONOWIENIE_NOWY_PUNKT_KM = 5.0  # bliżej tego to ten sam punkt pod nowym numerem toru
+RED_PONOWIENIE_MIN_ZGLOSZEN = 2     # i wysoka wiarygodność: pojedynczy meldunek nie budzi drugi raz
+RED_PONOWIENIE_ODSTEP_MIN = 15      # syrena i tak gra tyle, co w tym czasie przyszło, ktoś usłyszał
+RED_PONOWIENIE_LIMIT = 2            # bezpiecznik: w historii nie było 3 alarmów w sesji
+RED_PONOWIENIE_RCB_STOPIEN = 2      # taki alert RCB idzie zawsze, poza odstępem i limitem
 
 THRESHOLD_ELEVATED = 2.0           # "PODWYŻSZONA UWAGA"
 THRESHOLD_HIGH = 4.0               # "WYSOKI PRIORYTET"

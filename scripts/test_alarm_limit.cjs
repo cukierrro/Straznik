@@ -74,7 +74,7 @@ test("Android: limit 15 min w ekranie alarmu i w powiadomieniu", () => {
   assert.match(receiver, /if \(auto > 0\) Alarms\.autoSilence\(context, voiv, auto\);/);
   assert.match(activity, /long zostalo = posted \+ Alarms\.ALARM_MAX_MS - System\.currentTimeMillis\(\);/,
     "ekran otwarty później liczy od wystawienia alarmu");
-  assert.match(activity, /private void wyciszPoLimicie\(\) \{\s*stopAlarmSignals\(\);/);
+  assert.match(activity, /private void wyciszPoLimicie\(\) \{[^}]*?stopAlarmSignals\(\);/);
   assert.ok(activity.indexOf('ack.setText("POTWIERDZAM') < activity.indexOf("new ScrollView(this)"),
     "przyciski nad przewijaną częścią");
 });

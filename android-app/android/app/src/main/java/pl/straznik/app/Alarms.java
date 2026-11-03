@@ -80,7 +80,8 @@ class Alarms {
     /** Pełny ekran powtarza „A A A” z przerwą słowa (7 jednostek), aż ktoś potwierdzi. */
     static final long[] WZOR_A_PETLA = {0, 200, 200, 600, 600, 200, 200, 600, 600, 200, 200, 600, 1400};
 
-    /** Wiadomość starsza niż to pokazujemy cicho, z dopiskiem o opóźnieniu (audyt B2). */
+    /** Od tylu minut alarm mówi o opóźnieniu, a od STALE_AFTER_MS mówi to dobitnie; gra zawsze (2.11.2026). */
+    static final long SPOZNIONY_OD_MS = 3 * 60 * 1000L;
     static final long STALE_AFTER_MS = 10 * 60 * 1000L;
 
     static final String ACTION_SILENCE = "pl.straznik.app.SILENCE_ALARM";
@@ -493,6 +494,9 @@ class Alarms {
         if (nm == null) return;
         String title = Last.title(voiv);
         nm.cancel(notifId(voiv));
+        dziennik(ctx, auto ? "limit" : "wyciszono", VOIVS[voiv], "high", null);
+        // syrena gra teraz z ekranu alarmu — samo skasowanie powiadomienia jej nie zgasi
+        AlarmActivity.wyciszono(voiv, auto);
         if (title != null) {
             Notification.Builder b = builder(ctx, CH_QUIET)
                 .setContentTitle(title + (auto ? " — wyciszony po 15 min" : " — potwierdzony"))
@@ -572,6 +576,121 @@ class Alarms {
     }
 
     /** Treść ostatniego alarmu per województwo — do cichej kopii po wyciszeniu. */
+    /**
+     * Dziennik alarmów na tym telefonie (1.8.05). Noc z 31.10 na 1.11.2026: czerwony
+     * o 3:06, a rano nie dało się ustalić, czy w ogóle dotarł — pamiętaliśmy tylko
+     * ostatni push, a ten nadpisał poranny żółty. Dane zostają w telefonie.
+     */
+    static final String KEY_DZIENNIK = "dziennik_alarmow";
+    private static final int DZIENNIK_MAX = 40;
+
+    static synchronized void dziennik(Context ctx, String zdarzenie, String voiv, String level,
+                                      org.json.JSONObject szczegoly) {
+        try {
+            SharedPreferences p = prefs(ctx);
+            org.json.JSONArray stare = new org.json.JSONArray(p.getString(KEY_DZIENNIK, "[]"));
+            org.json.JSONArray nowe = new org.json.JSONArray();
+            for (int i = Math.max(0, stare.length() - (DZIENNIK_MAX - 1)); i < stare.length(); i++)
+                nowe.put(stare.get(i));
+            org.json.JSONObject wpis = new org.json.JSONObject()
+                .put("t", System.currentTimeMillis()).put("e", zdarzenie);
+            if (voiv != null) wpis.put("v", voiv);
+            if (level != null) wpis.put("l", level);
+            if (szczegoly != null) wpis.put("d", szczegoly);
+            nowe.put(wpis);
+            p.edit().putString(KEY_DZIENNIK, nowe.toString()).apply();
+        } catch (Exception e) {
+            Log.w(TAG, "dziennik alarmów", e);
+        }
+    }
+
+    /** Stan telefonu w chwili alarmu: to, od czego zależy, czy było słychać i widać. */
+    private static org.json.JSONObject stanPrzyAlarmie(Context ctx, NotificationManager nm, String kanal) {
+        org.json.JSONObject d = new org.json.JSONObject();
+        try {
+            d.put("kanal", kanal).put("tryb", redModeNow(ctx));
+            PowerManager pm = (PowerManager) ctx.getSystemService(Context.POWER_SERVICE);
+            if (pm != null) d.put("ekran", pm.isInteractive());
+            if (nm != null) {
+                d.put("nieprzeszkadzac", nm.getCurrentInterruptionFilter());
+                d.put("pelny", Build.VERSION.SDK_INT < 34 || nm.canUseFullScreenIntent());
+            }
+            AudioManager am = (AudioManager) ctx.getSystemService(Context.AUDIO_SERVICE);
+            if (am != null) {
+                d.put("glosnosc", am.getStreamVolume(AudioManager.STREAM_ALARM));
+                d.put("glosnoscMax", am.getStreamMaxVolume(AudioManager.STREAM_ALARM));
+            }
+        } catch (Exception ignored) {}
+        return d;
+    }
+
+    private static PendingIntent wyciszIntent(Context ctx, int voiv) {
+        return PendingIntent.getBroadcast(ctx, 4000 + voiv,
+            new Intent(ctx, AlarmActionReceiver.class).setAction(ACTION_SILENCE)
+                .putExtra(EXTRA_NOTIF_ID, voiv),
+            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+    }
+
+    /** Powiadomienie trwającego alarmu bez pełnego ekranu, z podanego kanału. */
+    private static void powiadomienieTrwajace(Context ctx, int voiv, long postedAt, String kanal, boolean bezAlertu) {
+        if (voiv < 0 || voiv >= VOIVS.length) return;
+        NotificationManager nm = (NotificationManager) ctx.getSystemService(Context.NOTIFICATION_SERVICE);
+        if (nm == null) return;
+        String title = Last.title(voiv);
+        if (title == null) title = "WYSOKI PRIORYTET: woj. " + VOIVS[voiv];
+        String text = Last.text(voiv);
+        if (text == null) text = "";
+        PendingIntent wycisz = wyciszIntent(ctx, voiv);
+        Notification.Builder b = builder(ctx, kanal)
+            .setContentTitle(title).setContentText(text)
+            .setStyle(new Notification.BigTextStyle().bigText(text))
+            .setSmallIcon(android.R.drawable.ic_dialog_alert)
+            .setContentIntent(openApp(ctx))
+            .setCategory(Notification.CATEGORY_ALARM)
+            .setDeleteIntent(wycisz)
+            .setOnlyAlertOnce(bezAlertu)
+            .addAction(new Notification.Action.Builder(null, "Wycisz alarm", wycisz).build());
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            long zostalo = (postedAt > 0 ? postedAt : System.currentTimeMillis()) + ALARM_MAX_MS
+                + 60_000L - System.currentTimeMillis();
+            if (zostalo > 0) b.setTimeoutAfter(zostalo);
+        }
+        Notification n = b.build();
+        // MainActivity po tej fladze poznaje trwający alarm i nie przywraca głośności
+        n.flags |= Notification.FLAG_INSISTENT;
+        nm.notify(notifId(voiv), n);
+    }
+
+    /**
+     * Ekran alarmu przejął syrenę: powiadomienie przechodzi na kanał bez dźwięku.
+     * Android gra dźwięki powiadomień jednym odtwarzaczem i traktuje je jak zbywalne.
+     * Zmierzone 1.11.2026: syrenę z kanału na stałe gasiły panel powiadomień, przyciski
+     * głośności (Android 14), SMS i żółty dla innego województwa (Android 9).
+     * Własny MediaPlayer ekranu alarmu nic z tego nie obchodzi.
+     */
+    static void przejmijDzwiek(Context ctx, int voiv, long postedAt) {
+        powiadomienieTrwajace(ctx, voiv, postedAt, CH_HIGH_SILENT, true);
+    }
+
+    /** Ekran alarmu zniknął bez potwierdzenia: syrena wraca do powiadomienia. */
+    static void oddajDzwiek(Context ctx, int voiv, long postedAt) {
+        powiadomienieTrwajace(ctx, voiv, postedAt, highChannel(ctx), false);
+    }
+
+    /** Tekst o opóźnieniu albo null, gdy alarm jest świeży. */
+    static String notkaOpoznienia(boolean high, long ageMs, long sentAtMs) {
+        if (sentAtMs <= 0 || ageMs < SPOZNIONY_OD_MS) return null;
+        long min = ageMs / 60000;
+        String czas = godzina(sentAtMs);
+        if (ageMs <= STALE_AFTER_MS) {
+            return "Alarm dotarł z opóźnieniem " + min + " min. "
+                + (high ? "Zagrożenie" : "Sytuacja") + " z godz. " + czas + ".";
+        }
+        return high
+            ? "SPÓŹNIONY ALARM. Zagrożenie z godz. " + czas + ", opóźnienie " + min + " min."
+            : "Spóźnione o " + min + " min. Sytuacja z godz. " + czas + ".";
+    }
+
     static final class Last {
         private static final String[] TITLES = new String[VOIVS.length];
         private static final String[] TEXTS = new String[VOIVS.length];
@@ -608,11 +727,12 @@ class Alarms {
         boolean high = "high".equals(level);
         long ageMs = sentAtMs > 0 ? System.currentTimeMillis() - sentAtMs : 0;
         boolean stale = ageMs > STALE_AFTER_MS;
+        String notka = notkaOpoznienia(high, ageMs, sentAtMs);
 
         String title = (test ? "TEST — " : "")
             + (high ? "WYSOKI PRIORYTET" : "PODWYŻSZONA UWAGA")
             + ": woj. " + voivName + " (" + score + " pkt)";
-        if (stale) title = title + " — opóźnione o " + (ageMs / 60000) + " min";
+        if (stale) title = title + " — spóźnione o " + (ageMs / 60000) + " min";
         // Godzina WYSYŁKI, nie dotarcia: przy spóźnionym pushu to dwie różne rzeczy,
         // a liczy się ta, o której serwer stwierdził zagrożenie (prośba użytkownika
         // 24.09.2026). Stoi na początku treści — i w zwiniętym, i w rozwiniętym
@@ -621,6 +741,7 @@ class Alarms {
         // 21.10.2026 (user): krócej — nagłówek, najwyżej POWODY_MAX powodów i jedna linia
         // „co zrobić · źródło”, zamiast czterech powodów i dwóch pełnych zdań.
         StringBuilder body = new StringBuilder();
+        if (notka != null) body.append(notka).append('\n');
         if (headline != null && !headline.isEmpty()) body.append(headline).append('\n');
         for (String r : powody(reasons)) body.append(r).append('\n');
         body.append(high
@@ -628,7 +749,9 @@ class Alarms {
             : "Zachowaj czujność · źródło NIEOFICJALNE");
         String firstLine = headline != null && !headline.isEmpty() ? headline
             : (reasons.isEmpty() ? "" : reasons.get(0));
-        if (!czas.isEmpty()) {
+        if (notka != null) {
+            firstLine = notka;              // zwinięte powiadomienie ma mówić to najpierw
+        } else if (!czas.isEmpty()) {
             firstLine = czas + " · " + firstLine;
             body.insert(0, czas + " · ");
         }
@@ -636,15 +759,16 @@ class Alarms {
 
         NotificationManager nm = (NotificationManager) ctx.getSystemService(Context.NOTIFICATION_SERVICE);
 
-        // Opóźniona wiadomość nie może wyć: cicho, bez pełnego ekranu (audyt B2).
-        if (stale) {
-            Notification.Builder b = builder(ctx, CH_QUIET)
-                .setContentTitle(title).setContentText(firstLine)
-                .setStyle(new Notification.BigTextStyle().bigText(body.toString()))
-                .setSmallIcon(android.R.drawable.ic_dialog_alert)
-                .setContentIntent(openApp(ctx)).setAutoCancel(true);
-            if (nm != null) nm.notify(notifId(voiv), b.build());
-            return;
+        // Spóźniony alarm NIE jest cichy (decyzja usera 2.11.2026). Do 1.8.05 był: audyt B2
+        // bał się wycia po czasie, a czerwony 10-15 min po wysłaniu był aktualny w 49 z 50
+        // przypadków. Po 15 min FCM i tak go odrzuca (FCM_TTL_S). Mówimy wprost, że jest
+        // spóźniony i z której godziny; zegar telefonu może się mylić, więc tylko tekst
+        // zależy od tego wyliczenia, a alarm gra zawsze.
+        if (stale && !test) {
+            try {
+                dziennik(ctx, "spozniony", voivName, level,
+                    new org.json.JSONObject().put("min", ageMs / 60000));
+            } catch (org.json.JSONException ignored) {}
         }
 
         // Czerwony poziom ma prowadzić do pełnoekranowego alarmu, tak jak połączenie
@@ -664,6 +788,7 @@ class Alarms {
                 .putExtra(AlarmActivity.EXTRA_TEST, test)
                 .putExtra(AlarmActivity.EXTRA_SCORE, score)
                 .putExtra(AlarmActivity.EXTRA_SENT_AT, sentAtMs)
+                .putExtra(AlarmActivity.EXTRA_NOTKA, notka)
                 .putExtra(AlarmActivity.EXTRA_POSTED_AT, postedAt),
             PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
@@ -687,10 +812,7 @@ class Alarms {
         // w pętli, podnoszenia głośności i obejścia Nie przeszkadzać.
         boolean pelnyAlarm = high && !redNormal(ctx);
         if (pelnyAlarm) {
-            PendingIntent silenceIntent = PendingIntent.getBroadcast(ctx, 4000 + voiv,
-                new Intent(ctx, AlarmActionReceiver.class).setAction(ACTION_SILENCE)
-                    .putExtra(EXTRA_NOTIF_ID, voiv),
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+            PendingIntent silenceIntent = wyciszIntent(ctx, voiv);
             b.setFullScreenIntent(fullScreen, true);
             b.setCategory(Notification.CATEGORY_ALARM);
             // NIE setOngoing (10.10.2026): Wear OS nie przekazuje powiadomień stałych
@@ -712,7 +834,13 @@ class Alarms {
         if (pelnyAlarm) n.flags |= Notification.FLAG_INSISTENT;
 
         if (pelnyAlarm) raiseAlarmVolume(ctx);
+        // Czerwony po żółtym tego samego województwa byłby tylko AKTUALIZACJĄ powiadomienia,
+        // a Android uruchamia pełny ekran wyłącznie dla nowego. Zmierzone 1.11.2026: syrena
+        // grała, ale ekran zostawał zgaszony — a tak właśnie przebiega prawie każdy alarm.
+        if (pelnyAlarm && nm != null) nm.cancel(notifId(voiv));
         if (nm != null) nm.notify(notifId(voiv), n);
+        if (!test) dziennik(ctx, "pokazano", voivName, level,
+            stanPrzyAlarmie(ctx, nm, high ? highChannel(ctx) : infoChannel(ctx)));
         if (pelnyAlarm && !test) zaplanujAutoWyciszenie(ctx, voiv, postedAt);
 
         if (pelnyAlarm) ensureAlarmIsSeen(ctx, nm);
@@ -723,8 +851,11 @@ class Alarms {
      *
      * Ze zgodą na alarm pełnoekranowy robi to system: sam uruchamia AlarmActivity
      * z przywilejem startu z tła, a ta zapala ekran i pokazuje się nad blokadą.
-     * Nie wolno wtedy niczego wybudzać samemu — przy włączonym ekranie Android
+     * Nie wolno wtedy niczego wybudzać od razu — przy włączonym ekranie Android
      * celowo pomija full-screen intent i alarm zostałby zwykłym powiadomieniem.
+     * Poniżej Androida 14 zgoda jest zawsze, a kod wybudzał mimo to: 1.11.2026 na
+     * Androidzie 9 zmierzony był sam pasek. Nakładki potrafią jednak zablokować start
+     * z tła (MIUI, EMUI), więc gdy po chwili ekran nadal śpi — zapalamy go.
      *
      * Bez zgody (Android 14 odbiera ją domyślnie aplikacjom innym niż budzik
      * i telefon) start aktywności z tła jest blokowany, więc jedyne, co możemy
@@ -732,7 +863,16 @@ class Alarms {
      * jako powiadomienie na zapalonym ekranie i usłyszy syrenę.
      */
     static void ensureAlarmIsSeen(Context ctx, NotificationManager nm) {
-        if (Build.VERSION.SDK_INT >= 34 && nm != null && nm.canUseFullScreenIntent()) return;
+        boolean maZgode = Build.VERSION.SDK_INT < 34 || (nm != null && nm.canUseFullScreenIntent());
+        if (maZgode) {
+            new android.os.Handler(android.os.Looper.getMainLooper())
+                .postDelayed(() -> zapalEkran(ctx), 3_000L);
+            return;
+        }
+        zapalEkran(ctx);
+    }
+
+    private static void zapalEkran(Context ctx) {
         try {
             PowerManager pm = (PowerManager) ctx.getSystemService(Context.POWER_SERVICE);
             if (pm == null || pm.isInteractive()) return;

@@ -65,10 +65,17 @@ public class StraznikFcmService extends FirebaseMessagingService {
         String voivName = data.get("voiv");
         String level = data.get("level");
         if (voivName == null || level == null) return;
+        try {
+            Alarms.dziennik(this, "odebrano", voivName, level, new org.json.JSONObject()
+                .put("droga", sentAtMs > 0 ? Math.max(0, odebrano - sentAtMs) : -1)
+                .put("obnizony", remoteMessage.getOriginalPriority() == RemoteMessage.PRIORITY_HIGH
+                    && remoteMessage.getPriority() != RemoteMessage.PRIORITY_HIGH));
+        } catch (Exception ignored) {}
         // Użytkownik wyłączył alarmy na tym telefonie. Wypisanie z tematów FCM dociera
         // z opóźnieniem (albo wcale bez internetu), więc sprawdzamy to także tutaj.
         if (Alarms.prefs(this).getBoolean(Alarms.KEY_ALERTS_OFF, false)) {
             Log.i(TAG, "alarmy wyłączone na tym telefonie — pomijam " + voivName + "/" + level);
+            Alarms.dziennik(this, "pominiety_wylaczone", voivName, level, null);
             return;
         }
 
@@ -80,6 +87,7 @@ public class StraznikFcmService extends FirebaseMessagingService {
         // miejsc, nie może zawyć dla województwa, którego użytkownik nie obserwuje.
         if (!BackgroundPlugin.obserwowane(this, Alarms.VOIVS[voiv])) {
             Log.i(TAG, "województwo spoza obserwowanych — pomijam " + voivName + "/" + level);
+            Alarms.dziennik(this, "pominiety_region", voivName, level, null);
             BackgroundPlugin.syncFcmSubscription(this);   // i jeszcze raz wypisz
             return;
         }
@@ -99,6 +107,7 @@ public class StraznikFcmService extends FirebaseMessagingService {
         if (!stale && MainActivity.isForeground() && BackgroundPlugin.forwardAlarm(data)) {
             Alarms.createChannels(this);
             Alarms.postShownInApp(this, voiv, level, score, data.get("headline"), sentAtMs);
+            Alarms.dziennik(this, "w_aplikacji", voivName, level, null);
             return;
         }
 

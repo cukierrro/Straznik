@@ -32,8 +32,10 @@ def meldunek(unc, area, ts="2026-10-15T16:29:41+00:00", km=53.6, eta=15):
     return {"id": 7092, "ts": ts, "source": "neptun", "event_type": "neptun_threat",
             "voivodeship": "lubelskie", "points": 0.26,
             "title": "2× Dron / BpSP kursem na granicę PL, około 50 km [pozycja rejonowa] [kurs nieznany]",
+            # wysoka wiarygodność i 2 zgłoszenia: tu sprawdzamy regułę pozycji, nie B' z 1.11.2026
             "details": {"type": "uav", "dist_km": km, "eta_border_min": eta, "track_id": "trk_00269843",
-                        "course": "unknown", "area_only": area, "uncertainty_km": unc}}
+                        "course": "unknown", "confidence": "high", "source_count": 2,
+                        "area_only": area, "uncertainty_km": unc}}
 
 
 sprawdz(config.RED_GATE_AREA_MAX_UNC_KM == 30.0, "próg niepewności pozycji rejonowej = 30 km")

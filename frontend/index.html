@@ -598,7 +598,7 @@
     suma decyduje o poziomie — i zawsze widzisz jej pełne rozbicie.</p>
 
     <table class="about-tab" id="ab-tab-punkty">
-      <tr><td><b>NEPTUN</b></td><td>obiekt kursem na granicę PL — punkty zależą od
+      <tr><td><b>NEPTUN</b></td><td>obiekt w zasięgu granicy PL — punkty zależą od
         tego <b>co</b> leci, <b>ile</b> tego jest, <b>jak blisko</b> jest
         i <b>ile źródeł</b> to potwierdza (rozpisane niżej)</td><td class="pts">0–8</td></tr>
       <tr><td></td><td>oficjalny alarm w przygranicznym obwodzie Ukrainy</td><td class="pts">+1</td></tr>
@@ -661,9 +661,9 @@
         odległości do niego</td></tr>
       <tr><td><b>Kurs</b></td><td>do ±50° od kierunku na Polskę pełna waga, od 50° do 70°
         waga maleje do zera; kurs nieznany ×0,5 i tylko do 150 km</td></tr>
-      <tr><td><b>Fala</b></td><td>trzy różne obiekty kursem na Polskę w 15 minut,
-        bliżej niż 150 km, dokładają wspólnie 0,5 pkt — kilka obiektów naraz znaczy
-        więcej niż każdy z osobna</td></tr>
+      <tr><td><b>Fala</b></td><td>trzy różne obiekty w 15 minut, bliżej niż 150 km,
+        dokładają wspólnie 0,5 pkt, także gdy ich kurs nie jest znany — kilka obiektów
+        naraz znaczy więcej niż każdy z osobna</td></tr>
       <tr><td><b>Jak pewnie</b></td><td>wiarygodność (wysoka ×1,0, średnia ×0,6,
         niska ×0,35), liczba niezależnych zgłoszeń (jedno ×0,7, dwa ×0,9, trzy–cztery ×1,1,
         pięć i więcej ×1,25) oraz status obserwacji (potwierdzony ×1,1, niepewny ×0,85,
@@ -716,7 +716,7 @@
       <span id="ab-lvl-2"><b>≥ 4 pkt i potwierdzenie — WYSOKI PRIORYTET:</b> region na czerwono, modulowana syrena alarmu powietrznego z wibracją, głośne powiadomienie.</span></div>
     <div class="fineprint about-note" id="ab-czerwony"><b>Same 4 pkt nie wystarczą.</b> Czerwony wymaga
     potwierdzenia: albo Alertu RCB o treści „znajdź bezpieczne miejsce”, albo realnego
-    obiektu uderzeniowego kursem na Polskę — bliżej niż 15 minut lotu albo 50 km od
+    obiektu uderzeniowego blisko Polski — bliżej niż 15 minut lotu albo 50 km od
     granicy, z meldunkiem nie starszym niż 25 minut. Nie otwierają go: pozycja podana
     tylko jako rejon z niepewnością ponad 30 km oraz punkt „na cel” — obiekt z kursem
     domniemanym i pozycją rejonową, którą źródło wyznacza z celu i kursu, a nie
@@ -1013,6 +1013,9 @@
     system trzyma wtedy głośność alarmów wyciszoną — a tryb <b>„Całkowita cisza”</b> blokuje
     alarm niezależnie od tej zgody. Zgoda jest dobrowolna i możesz ją w każdej chwili cofnąć.</p>
     </details>
+    <details class="jak app-only android-only"><summary id="jak-dziennik">Dziennik alarmów na tym telefonie</summary>
+    <div class="fineprint" id="dziennik-alarmow"></div>
+    </details>
     </section>
 
     <section class="set-pane" data-pane="miejsca" aria-labelledby="set-h-miejsca" hidden>
@@ -1068,7 +1071,7 @@
       <details class="jak"><summary id="jak-yv">Czego dotyczy to ustawienie</summary>
       <div class="fineprint" id="yv-note">Dotyczy wyłącznie <b>żółtego</b> sygnału uwagi.
         Czerwonego alarmu to nie wycisza — ma on własne ustawienie. „Bez dźwięku” zostawia baner i wibrację.</div>
-      <p class="fineprint ios-only" id="yv-ios-note">Na iPhonie to ustawienie zmienia tylko sygnał przy otwartej aplikacji. Dźwięk powiadomienia, które przychodzi przy zamkniętej, wybiera serwer i jest taki sam dla wszystkich. Kto chce zupełnej ciszy żółtego, wyłącza Dźwięki w Ustawieniach iPhone'a → Strażnik → Powiadomienia. Czerwony alarm zagra mimo to, jeśli na tym samym ekranie włączone są Alerty krytyczne. Kto chce ciszy także przy czerwonym, wyłącza również je — powiadomienie przyjdzie wtedy bez dźwięku.</p>
+      <p class="fineprint ios-only" id="yv-ios-note">Na iPhonie „Bez dźwięku” wycisza żółty także przy zamkniętej aplikacji: baner i wibracja zostają. Czerwonego alarmu to ustawienie nie dotyczy nigdy. Kto chce ciszy także przy czerwonym, wyłącza Alerty krytyczne w Ustawieniach iPhone'a → Strażnik → Powiadomienia.</p>
       </details>
     </div>
 
@@ -1284,11 +1287,11 @@
      Cloudflare, więc po każdym wydaniu wystarczy podbić ?v= i przeglądarki
      dostają nowe app.js/engine.js OD RAZU, bez ręcznego czyszczenia cache CF.
      Podbijaj ?v= razem z versionName w build.gradle. -->
-<script src="i18n.js?v=1.8.04a"></script>
+<script src="i18n.js?v=1.8.06c"></script>
 <!-- kontur Polski dla engine.js (audyt A2b, scripts/build_pl_outline.py) -->
 <script src="pl-outline.js?v=1.7.82"></script>
 <script src="voiv-outline.js?v=1.7.97"></script>
-<script src="engine.js?v=1.8.02b"></script>
+<script src="engine.js?v=1.8.06a"></script>
 <script src="aircraft-photo-catalog.js?v=1.7.19"></script>
 <script src="aircraft-photos.js?v=1.7.79"></script>
 <script src="places.js?v=1.7.19-4"></script>
@@ -1301,7 +1304,7 @@
 <div id="a11y-alert" class="sr-only" role="status" aria-live="assertive" aria-atomic="true"></div>
 <div id="a11y-info" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
 
-<script src="app.js?v=1.8.04b"></script>
+<script src="app.js?v=1.8.06b"></script>
 <script src="instrukcja.js?v=1.8.04a"></script>
 </body>
 </html>

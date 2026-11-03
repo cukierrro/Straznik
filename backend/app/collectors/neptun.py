@@ -970,6 +970,14 @@ async def _maybe_signal(t: dict):
         title = (f"{ile}{threat_label_pl(ttype)} w odległości {distance_info} od woj. {a['border_voiv']}"
                  f"{blisko_info}{eta_info} "
                  f"(wiarygodność: {_conf_pl(conf)}, {_potwierdzenia_pl(sources)})")
+    elif kurs_info in (" [kurs nieznany]", " [kurs domniemany — na cel]"):
+        # „Kursem na granicę PL [kurs nieznany]” przeczyło samo sobie (1.11.2026).
+        # Kurs domniemany też nie mówi o Polsce: to namiar źródła na miejscowość, zwykle
+        # na Ukrainie („курсом на Луцьк”), a nie obserwacja lotu (2.11.2026).
+        gdzie = "nad Polską" if a["dist_km"] == 0 else f"w odległości {distance_info} od granicy PL"
+        title = (f"{ile}{threat_label_pl(ttype)} {gdzie}{kurs_info}{blisko_info}{eta_info} "
+                 f"(woj. {a['border_voiv']}, wiarygodność: {_conf_pl(conf)}, {_potwierdzenia_pl(sources)}, "
+                 f"±{_km_pl(t.get('uncertaintyKm', '?'))} km)")
     else:
         title = (f"{ile}{threat_label_pl(ttype)} kursem na granicę PL, {distance_info}{kurs_info}{blisko_info}{eta_info} "
                  f"(woj. {a['border_voiv']}, wiarygodność: {_conf_pl(conf)}, {_potwierdzenia_pl(sources)}, "

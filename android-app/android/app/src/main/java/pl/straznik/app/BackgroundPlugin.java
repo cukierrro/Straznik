@@ -271,6 +271,9 @@ public class BackgroundPlugin extends Plugin {
         ret.put("lastPushDelayMs", fcm.getLong("last_push_delay_ms", -1));
         ret.put("lastPushDeprioritized", fcm.getBoolean("last_push_deprioritized", false));
         ret.put("deprioritizedCount", fcm.getInt("deprioritized_count", 0));
+        try {
+            ret.put("alarmLog", new JSArray(Alarms.prefs(c).getString(Alarms.KEY_DZIENNIK, "[]")));
+        } catch (Exception ignored) {}
         ret.put("topicsError", fcm.getString("topics_error", ""));
         // Bez odpowiedzi FCM (brak Usług Google, proces zabity w trakcie) flaga zostawała
         // na zawsze i ustawienia wisiały na „Wypisywanie…”. Po 2 min uznajemy, że się nie udało.

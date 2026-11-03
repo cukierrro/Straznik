@@ -54,7 +54,7 @@ test('dowód dostarczenia z priorytetem przed każdym wyjściem', () => {
 test('otwarta aplikacja: alarm w aplikacji i ciche powiadomienie w systemie', () => {
   const odbior = bezKomentarzy(cialo(FCM, 'public void onMessageReceived('));
   assert.match(odbior,
-    /BackgroundPlugin\.forwardAlarm\(data\)\) \{\s*Alarms\.createChannels\(this\);\s*Alarms\.postShownInApp\(this, voiv, level, score, data\.get\("headline"\), sentAtMs\);\s*return;/,
+    /BackgroundPlugin\.forwardAlarm\(data\)\) \{\s*Alarms\.createChannels\(this\);\s*Alarms\.postShownInApp\(this, voiv, level, score, data\.get\("headline"\), sentAtMs\);\s*(?:Alarms\.dziennik\([^;]*;\s*)?return;/,
     'po przekazaniu do aplikacji musi zostać powiadomienie systemowe');
   const ciche = bezKomentarzy(cialo(ALARMS, 'static void postShownInApp('));
   assert.match(ciche, /builder\(ctx, CH_QUIET\)/, 'kanał bez dźwięku i wibracji — alarm gra aplikacja');
