@@ -1,6 +1,6 @@
 # Wydanie 1.8.06 — alarm spóźniony i ponowny mówią, co się dzieje, a opisy, co wiadomo
 
-versionCode 136, versionName 1.8.06. Listopad 2026. Pierwsze wydanie od 1.8.04 ze wspólnym numerem dla Androida i iPhone'a; na iPhonie 1.8.05 pominięto.
+versionCode 136, versionName 1.8.06. 3 listopada 2026. Pierwsze wydanie od 1.8.04 ze wspólnym numerem dla Androida i iPhone'a; na iPhonie 1.8.05 pominięto.
 
 <!-- zmiany -->
 - Czerwony wraca po wyciszeniu tylko wtedy, gdy sytuacja realnie się pogarsza: nowy albo wyraźnie bliższy obiekt albo Alert RCB wyższego stopnia.

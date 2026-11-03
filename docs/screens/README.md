@@ -167,6 +167,11 @@ of 26 October. Everything the warning says is what the app computed from the two
 the number now points to ul. Polna 13/15 in Poddębice, 19 km away, and that a new shelter must
 be chosen. The place itself is made up; the change is real.
 
+On 3 November 2026 the same path was walked on the signed files, on the same emulator with 4 GB:
+release 1.8.05, a saved shelter at ul. Spacerowa 51, then an update to the signed 1.8.06. It did not
+hang, the shelter stayed, and the app showed this same warning with the same text. The frames
+above were not retaken.
+
 `g32-adres-imiennicy*` was not retaken. The list of localities does not come from the PSP
 register — it is built from OpenStreetMap and TERYT — and this rebuild produced a
 byte-identical file, so the screen it shows has not changed.
