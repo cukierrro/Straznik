@@ -74,7 +74,15 @@ rem  odczytania (R8). 1_buduj_i_testuj.bat odklada go poza repozytorium;
 rem  porownujemy bajt w bajt z buildem, z ktorego pochodzi Straznik.apk.
 set "CODE="
 for /f "tokens=2 delims= " %%V in ('findstr /c:"versionCode" "%REPO%\android-app\android\app\build.gradle"') do set "CODE=%%V"
-set "MAPDIR=%USERPROFILE%\Desktop\Straznik-play\mapping\%VER%-!CODE!"
+rem  Ten sam folder co w 1_buduj_i_testuj.bat: Pulpit\Straznik\_materialy
+rem  ("z" z kropka w nazwie), szukany wzorcem, jako nazwa 8.3.
+set "MAT="
+for /d %%D in ("%USERPROFILE%\Desktop\Stra?nik") do if exist "%%D\_materialy\" set "MAT=%%~sD\_materialy"
+if not defined MAT (
+  echo   PRZERWANE - nie ma folderu Pulpit\Stra?nik\_materialy z archiwum mapping
+  goto :koniec
+)
+set "MAPDIR=!MAT!\Straznik-play\mapping\%VER%-!CODE!"
 fc /b "%REPO%\android-app\android\app\build\outputs\mapping\githubRelease\mapping.txt" "!MAPDIR!\mapping-githubRelease.txt" > "%OUT%\64_mapping.txt" 2>&1
 if errorlevel 1 (
   echo   PRZERWANE - brak kopii mapping.txt albo rozni sie od buildu:

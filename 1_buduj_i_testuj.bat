@@ -144,7 +144,15 @@ set "VER="
 for /f "tokens=2 delims= " %%V in ('findstr /c:"versionName" "%ANDROID%\app\build.gradle"') do set "VER=%%~V"
 set "CODE="
 for /f "tokens=2 delims= " %%V in ('findstr /c:"versionCode" "%ANDROID%\app\build.gradle"') do set "CODE=%%V"
-set "MAPDIR=%USERPROFILE%\Desktop\Straznik-play\mapping\%VER%-%CODE%"
+rem  Paczki do Play leza od 18.10.2026 w Pulpit\Straznik\_materialy (nazwa folderu
+rem  ma "z" z kropka). Nie wpisujemy jej - szukamy wzorcem i bierzemy nazwe 8.3.
+set "MAT="
+for /d %%D in ("%USERPROFILE%\Desktop\Stra?nik") do if exist "%%D\_materialy\" set "MAT=%%~sD\_materialy"
+if not defined MAT (
+  echo   BLAD - nie ma folderu Pulpit\Stra?nik\_materialy na archiwum mapping
+  goto :koniec
+)
+set "MAPDIR=%MAT%\Straznik-play\mapping\%VER%-%CODE%"
 set "MAPOUT=%ANDROID%\app\build\outputs\mapping"
 if not exist "%MAPOUT%\githubRelease\mapping.txt" (
   echo   BLAD - build nie zostawil mapping.txt - czy R8 jest wlaczony?

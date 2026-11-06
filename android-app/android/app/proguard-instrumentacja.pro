@@ -12,3 +12,10 @@
 -keep class androidx.lifecycle.** { *; }
 -keep class androidx.core.** { *; }
 -keep class com.google.common.** { *; }
+
+# SecurityReleaseTest.deviceToken woła FirebaseMessaging.getInstance().getToken()
+# i Tasks.await po oryginalnych nazwach; w aplikacji R8 je przemianował
+# (NoSuchMethodError, 6.11.2026). Tylko dla testu — wydanie bez zmian.
+-keep class com.google.firebase.messaging.FirebaseMessaging { public *; }
+-keep class com.google.firebase.FirebaseApp { public *; }
+-keep class com.google.android.gms.tasks.** { *; }

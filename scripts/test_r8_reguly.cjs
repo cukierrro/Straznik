@@ -127,8 +127,16 @@ test('mapping każdego wydania jest archiwizowany i sprawdzany przed publikacją
   const wydaj = fs.readFileSync(path.join(ROOT, '4_wydaj.bat'), 'utf8');
   assert.ok(buduj.includes(String.raw`copy /y "%MAPOUT%\githubRelease\mapping.txt" "%MAPDIR%\mapping-githubRelease.txt"`),
     '1_buduj_i_testuj.bat nie kopiuje mapping.txt do archiwum');
-  assert.ok(buduj.includes(String.raw`set "MAPDIR=%USERPROFILE%\Desktop\Straznik-play\mapping\%VER%-%CODE%"`),
+  assert.ok(buduj.includes(String.raw`set "MAPDIR=%MAT%\Straznik-play\mapping\%VER%-%CODE%"`),
     'archiwum mapping musi być per wersja i versionCode, poza repozytorium');
+  // folder z „ż” w nazwie: cmd.exe go nie zniesie wpisanego wprost (patrz PRZEKAZANIE §5),
+  // więc oba skrypty szukają go wzorcem i biorą nazwę 8.3 — i przerywają, gdy go nie ma
+  for (const [nazwa, tresc] of [['1_buduj_i_testuj.bat', buduj], ['4_wydaj.bat', wydaj]]) {
+    assert.ok(tresc.includes(String.raw`for /d %%D in ("%USERPROFILE%\Desktop\Stra?nik") do if exist "%%D\_materialy\" set "MAT=%%~sD\_materialy"`),
+      `${nazwa}: archiwum mapping musi być w Pulpit\\Strażnik\\_materialy, szukanym wzorcem`);
+    assert.match(tresc, /if not defined MAT \([\s\S]*?goto :koniec/, `${nazwa}: brak folderu musi przerwać skrypt`);
+    assert.doesNotMatch(tresc, /Desktop\\Straznik-play/, `${nazwa}: stara ścieżka Pulpit\\Straznik-play nie istnieje od 18.10.2026`);
+  }
   const start = wydaj.indexOf('Plik mapping zarchiwizowany');
   assert.ok(start >= 0, '4_wydaj.bat nie ma kroku sprawdzającego mapping');
   const krok = wydaj.slice(start);

@@ -289,7 +289,9 @@ województwa i formatu klucza tego sygnału.
 2. `1_buduj_i_testuj.bat` — build i testy.
 3. Skopiuj APK do `Straznik.apk` w katalogu głównym (skrypt robi to sam) i zacommituj.
    Ten sam skrypt odkłada plik **mapping** z buildu do
-   `Pulpit\Straznik-play\mapping\<wersja>-<versionCode>\` (poza repozytorium).
+   `Pulpit\Strażnik\_materialy\Straznik-play\mapping\<wersja>-<versionCode>\`
+   (poza repozytorium; skrypty szukają folderu wzorcem `Stra?nik`, bo cmd.exe
+   nie radzi sobie z „ż”).
    Wydanie przechodzi przez R8, który skraca nazwy w kodzie — stos błędu
    z telefonu albo z konsoli Play da się odczytać wyłącznie mappingiem z tego
    samego buildu, a każdy kolejny build tworzy inny. AAB do Play niesie własną

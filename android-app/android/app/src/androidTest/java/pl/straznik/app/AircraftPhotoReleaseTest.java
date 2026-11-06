@@ -23,7 +23,8 @@ public class AircraftPhotoReleaseTest {
         MainActivity a=(MainActivity)ins.startActivitySync(new Intent(ins.getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
         try {
             for(int i=0;i<30 && !"true".equals(js(a,"typeof openPlanePopup==='function' && !!window.AircraftPhotoCatalog"));i++)Thread.sleep(1000);
-            check(a,"Object.keys(AircraftPhotoCatalog.photos).length===60");
+            // katalog rośnie (61 zdjęć od 1.7.19); pilnujemy, że jest pełny, nie że ma stałą liczbę
+            check(a,"Object.keys(AircraftPhotoCatalog.photos).length>=60");
             // All fixture changes stay in memory. History guard prevents live UI alerts during card tests.
             js(a,"histMode=true; document.querySelectorAll('dialog[open]').forEach(d=>d.close()); window.__photoCheck='pending'; Promise.all(Object.values(AircraftPhotoCatalog.photos).map(p=>new Promise(resolve=>{const i=new Image();i.onload=()=>resolve(i.naturalWidth>0);i.onerror=()=>resolve(false);i.src=p.src;}))).then(r=>window.__photoCheck=r.every(Boolean)?'ok':'failed'); void 0");
             for(int i=0;i<30 && "\"pending\"".equals(js(a,"window.__photoCheck"));i++)Thread.sleep(500);

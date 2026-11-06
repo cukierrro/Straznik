@@ -37,10 +37,21 @@ public class FcmPathReleaseTest {
         Context c = InstrumentationRegistry.getInstrumentation().getTargetContext();
         SharedPreferences fcm = c.getSharedPreferences("straznik_fcm", Context.MODE_PRIVATE);
         int before = fcm.getInt("push_count", 0);
-        // alarm z poprzedniego przebiegu jest „ongoing” i ma ten sam nagłówek —
+        // alarm z poprzedniego przebiegu może jeszcze wisieć z tym samym nagłówkiem —
         // bez sprzątania test znalazłby stary i skończył, zanim dojdzie nowy
         NotificationManager nm = c.getSystemService(NotificationManager.class);
         nm.cancelAll();
+        // Od zgłoszenia #15 usługa pomija województwo spoza obserwowanych. Na czystym
+        // emulatorze nic nie jest obserwowane, więc na czas testu wpisujemy lubelskie
+        // i przywracamy poprzedni stan. Bez syncFcmSubscription: test nie zapisuje
+        // emulatora do żadnego tematu FCM.
+        SharedPreferences bg = c.getSharedPreferences("straznik_bg", Context.MODE_PRIVATE);
+        boolean mialRegiony = bg.contains("observed_voivs");
+        java.util.Set<String> regionyPrzed = new java.util.HashSet<>(
+            bg.getStringSet("observed_voivs", java.util.Collections.<String>emptySet()));
+        bg.edit().putStringSet("observed_voivs",
+            new java.util.HashSet<>(java.util.Collections.singleton("lubelskie"))).commit();
+        try {
         String headline = HEADLINE + " #" + System.currentTimeMillis();
 
         SimpleDateFormat iso = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", Locale.ROOT);
@@ -70,7 +81,11 @@ public class FcmPathReleaseTest {
             if (found == null) Thread.sleep(250);
         }
         assertNotNull("brak powiadomienia alarmu po wiadomości FCM", found);
-        assertEquals("straznik-high-v3", found.getChannelId());
+        // Kanał z kodu aplikacji, nie wpisany na sztywno: 1.8.06 przeszło na
+        // straznik-high-v4 i test z „v3” padał na poprawnym alarmie (6.11.2026).
+        assertEquals(Alarms.highChannel(c), found.getChannelId());
+        assertTrue("czerwony musi iść kanałem straznik-high-*",
+            found.getChannelId().startsWith("straznik-high-"));
         assertEquals(Notification.CATEGORY_ALARM, found.category);
         // Bez zgody USE_FULL_SCREEN_INTENT (Android 14 cofa ją przy aktualizacji spoza
         // Play) system zdejmuje fullScreenIntent i zostawia flagę „zażądany, ale
@@ -82,5 +97,9 @@ public class FcmPathReleaseTest {
             assertNotNull("czerwony bez pełnego ekranu", found.fullScreenIntent);
         assertTrue("czerwony bez FLAG_INSISTENT", (found.flags & Notification.FLAG_INSISTENT) != 0);
         assertEquals("dowód dostarczenia nie został zapisany", before + 1, fcm.getInt("push_count", 0));
+        } finally {
+            if (mialRegiony) bg.edit().putStringSet("observed_voivs", regionyPrzed).commit();
+            else bg.edit().remove("observed_voivs").commit();
+        }
     }
 }
