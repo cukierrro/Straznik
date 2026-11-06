@@ -36,9 +36,8 @@ public class AircraftPhotoReleaseTest {
             check(a,"document.querySelector('#ac-card img').getAttribute('src').startsWith('assets/aircraft/pz3t-')");
             check(a,"document.querySelector('#ac-card .ph-cr').textContent.includes('Ronnie Macdonald')");
             check(a,"document.querySelectorAll('#ac-card .ph-cr a').length===2");
-            js(a,"openPlanePopup([0,0],{type:'H60',reg:'019',hex:'no-photo',callsign:'OFFLINE PHOTO TEST'}); void 0");
-            Thread.sleep(200);
-            check(a,"!document.querySelector('#ac-card img').getAttribute('src')");
+            // Usunięte 6.11.2026: „H60 bez zdjęcia” — od 1.7.19 karta pokazuje zdjęcie
+            // MODELU z dopiskiem, że to nie ten egzemplarz (sprawdza to caption niżej).
             check(a,"AircraftPhotos.caption(AircraftPhotoCatalog.photos.PZ3T,'en').includes('Not the tracked aircraft')");
         } finally {js(a,"hideCard(); location.reload(); void 0");}
     }

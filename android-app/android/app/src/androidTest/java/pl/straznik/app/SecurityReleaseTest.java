@@ -25,52 +25,15 @@ public class SecurityReleaseTest {
         return result.get();
     }
 
-    private void network(boolean enabled) throws Exception {
-        String action = enabled ? "enable" : "disable";
-        for (String type : new String[]{"wifi", "data"}) {
-            android.os.ParcelFileDescriptor fd = InstrumentationRegistry.getInstrumentation()
-                .getUiAutomation().executeShellCommand("svc " + type + " " + action);
-            try (java.io.InputStream in = new android.os.ParcelFileDescriptor.AutoCloseInputStream(fd)) {
-                while (in.read() != -1) { }
-            }
+    // recoveryOnDevice (WebSocket) i publishedUpdate (wersja 1.7.12, podlaskie) usunięte
+    // 6.11.2026: aplikacja od dawna odpytuje serwer zamiast WebSocketu, a wydanie
+    // i województwo były wpisane na sztywno — testy opisywały aplikację z 1.7.12.
+    private void shell(String command) throws Exception {
+        android.os.ParcelFileDescriptor fd = InstrumentationRegistry.getInstrumentation()
+            .getUiAutomation().executeShellCommand(command);
+        try (java.io.InputStream in = new android.os.ParcelFileDescriptor.AutoCloseInputStream(fd)) {
+            while (in.read() != -1) { }
         }
-    }
-
-    @Test public void recoveryOnDevice() throws Exception {
-        android.app.Instrumentation ins = InstrumentationRegistry.getInstrumentation();
-        android.content.Intent intent = new android.content.Intent(ins.getTargetContext(), MainActivity.class)
-            .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
-        MainActivity a = (MainActivity) ins.startActivitySync(intent);
-        try {
-            for (int i=0; i<30 && !"true".equals(js(a,"typeof apiBase === 'function'")); i++) Thread.sleep(1000);
-            assertEquals("\"http://localhost\"", js(a,"location.origin"));
-            String region = js(a,"localStorage.getItem('straznik_voiv')");
-            network(false);
-            js(a,"if(ws){ws.onclose=ws.onerror=null;ws.close();} connect(); void 0");
-            for (int i=0; i<45 && !"true".equals(js(a,"standalone")); i++) Thread.sleep(1000);
-            assertEquals("true", js(a,"standalone"));
-            network(true);
-            for (int i=0; i<90 && !"true".equals(js(a,"!standalone && ws && ws.readyState===1")); i++) Thread.sleep(1000);
-            assertEquals("true", js(a,"!standalone && ws && ws.readyState===1"));
-            assertEquals(region, js(a,"localStorage.getItem('straznik_voiv')"));
-        } finally { network(true); }
-    }
-
-    @Test public void publishedUpdate() throws Exception {
-        android.app.Instrumentation ins = InstrumentationRegistry.getInstrumentation();
-        MainActivity a = (MainActivity) ins.startActivitySync(new android.content.Intent(
-            ins.getTargetContext(), MainActivity.class).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
-        for (int i=0; i<30 && !"true".equals(js(a,"typeof showUpdateBanner === 'function'")); i++) Thread.sleep(1000);
-        assertEquals("\"podlaskie\"", js(a,"myVoiv()"));
-        js(a,"window.releaseProbe=null; fetch(UPDATE_API).then(r=>r.json()).then(r=>window.releaseProbe=r); void 0");
-        for (int i=0; i<30 && !"true".equals(js(a,"!!window.releaseProbe")); i++) Thread.sleep(1000);
-        assertEquals("\"1.7.12\"", js(a,"releaseProbe.version"));
-        assertEquals("false", js(a,"releaseProbe.critical"));
-        // Render the real metadata as seen by an older version; do not install.
-        js(a,"showUpdateBanner(releaseProbe,'1.7.11'); void 0");
-        assertEquals("true", js(a,"!!document.getElementById('upd-later')"));
-        js(a,"document.getElementById('upd-later').click(); void 0");
-        assertEquals("true", js(a,"document.getElementById('update-banner').classList.contains('hidden') && sessionSkippedUpdates.has('1.7.12')"));
     }
 
     @Test public void networkPolicy() throws Exception {
@@ -109,7 +72,20 @@ public class SecurityReleaseTest {
         }
     }
 
+    /**
+     * Aktualizator wariantu github (telefony bez Sklepu Google, np. Huawei): pobiera
+     * najnowszy APK z GitHuba, sprawdza SHA-256 i oddaje go instalatorowi Androida.
+     * Niczego nie instaluje — instalator czeka na potwierdzenie, którego nikt nie daje.
+     * Zgodę „instalowanie aplikacji” test daje sam (bez niej aktualizator słusznie
+     * odmawia — tak padał na czystym emulatorze 6.11.2026). COFNĄĆ JĄ musi uruchamiający,
+     * PO teście: Android zabija proces aplikacji przy cofnięciu tej zgody („Killing …
+     * REQUEST_INSTALL_PACKAGES changed”), a test działa właśnie w tym procesie:
+     *   adb shell appops set pl.straznik.app REQUEST_INSTALL_PACKAGES default
+     * Uruchamiać osobno, na końcu — kolejne testy w tym samym przebiegu by nie ruszyły.
+     */
     @Test public void prepareUpdater() throws Exception {
+        String pkg = InstrumentationRegistry.getInstrumentation().getTargetContext().getPackageName();
+        shell("appops set " + pkg + " REQUEST_INSTALL_PACKAGES allow");
         android.app.Instrumentation ins = InstrumentationRegistry.getInstrumentation();
         MainActivity a = (MainActivity) ins.startActivitySync(new android.content.Intent(
             ins.getTargetContext(), MainActivity.class).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
