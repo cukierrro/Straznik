@@ -15,6 +15,8 @@ Aplikacja zapisuje się do województw przy każdym otwarciu. Data zmienia się 
 
 Android i iPhone zapisywały tę chwilę już wcześniej. Zmiana dotyczy tylko wyświetlania, więc starsza wersja bez tego pola pokazuje wiersz jak dotąd, bez daty.
 
+Znane ograniczenie, starsze niż to wydanie: na Androidzie zaraz po zmianie miejsc wiersz potrafi pokazywać stan sprzed zmiany („nie jest zapisany” albo „Wypisywanie…”), dopóki aplikacja nie zostanie uruchomiona ponownie. Sam zapis w Firebase przebiega poprawnie. Poprawka w 1.8.08.
+
 ## Mniejszy plik na Androidzie
 
 Wydanie przechodzi teraz przez R8, narzędzie Androida, które przy budowie usuwa nieużywany kod bibliotek i skraca nazwy. APK ma 15,1 MB zamiast 17,6 MB, a AAB dla Google Play 15,5 MB.
