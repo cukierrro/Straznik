@@ -6,6 +6,10 @@
 
 Serwer: **hostowane na [Mikrusie](https://mikr.us)** — dziękujemy za wsparcie projektu.
 
+Wersja 1.8.07: ustawienia pokazują, kiedy Firebase ostatnio potwierdził zapis telefonu do alarmów
+(Android i iPhone); plik aplikacji na Androida jest o 14% mniejszy dzięki R8.
+Szczegóły: `docs/RELEASE_1.8.07.md`.
+
 Wersja 1.8.06: czerwony wraca po wyciszeniu tylko przy realnym pogorszeniu; spóźniony alarm na
 Androidzie gra normalnie i mówi, z której jest godziny; opisy kursu mówią tylko, co wiadomo; na
 iPhonie „Bez dźwięku” działa także przy zamkniętej aplikacji; GROTA ma wykaz PSP z 2.11 (88 138 punktów).
