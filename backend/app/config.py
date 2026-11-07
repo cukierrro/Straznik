@@ -233,6 +233,7 @@ FLYITALY_API_KEY = os.getenv("FLYITALY_API_KEY", "").strip()
 ADSB_ZAPAS = os.getenv("ADSB_ZAPAS", "flyitaly" if FLYITALY_API_KEY else "")
 ADSB_ZAPAS_INTERVAL = 60
 ADSB_AWARIA_S = 600          # po błędzie adsb.lol innym niż limit: tyle sekund na zapasie, potem nowa próba
+ADSB_SERIA_429 = 3           # tyle krótkich 429 z rzędu traktujemy jak awarię (07.11.2026)
 ADSB_PLAN = ("mil", "mil", "kolo0")
 # Wyjście do adsb.lol przez NASZ adres (IPv6 serwera), nie przez IPv4. IPv4 Mikrusa to brama NAT
 # wspólna z innymi klientami: druga pula 500 zapytań z innego adresu byłaby obejściem limitu

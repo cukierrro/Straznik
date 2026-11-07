@@ -72,6 +72,7 @@ def zeruj():
     adsb._cykl = 0
     adsb._geo_cache.clear()
     adsb._awaria_do = 0.0
+    adsb._seria_429 = 0
 
 
 print("1. Dobowy budżet zapytań")
@@ -143,6 +144,36 @@ teraz = time.time()
 sprawdz(wynik is None and adsb._przerwa_s() == 0, "400 nie jest limitem — bez przerwy z 429")
 sprawdz(not adsb._lol_dostepny(teraz), "po 400 pętla bierze zapas zamiast adsb.lol")
 sprawdz(adsb._lol_dostepny(teraz + config.ADSB_AWARIA_S + 1), f"po {config.ADSB_AWARIA_S} s znów próba adsb.lol")
+zeruj()
+
+print("\n5b. Seria krótkich 429 → zapas (07.11.2026: każde zapytanie 429 z przerwą 1 s)")
+zeruj()
+adsb.status.update(ok=True, last=time.time() - 30, error=None)
+krotki = Klient(lambda url: Odp(429, naglowki={"retry-after": "1"}))
+for _ in range(config.ADSB_SERIA_429 - 1):
+    asyncio.run(adsb._fetch_mil(krotki))
+adsb._przerwa_do = 0.0                       # krótka (1 s) przerwa minęła przed następnym krokiem
+teraz = time.time()
+sprawdz(adsb._lol_dostepny(teraz), f"{config.ADSB_SERIA_429 - 1} odmowy z rzędu: dalej adsb.lol")
+asyncio.run(adsb._fetch_mil(krotki))
+adsb._przerwa_do = 0.0
+sprawdz(not adsb._lol_dostepny(teraz), f"{config.ADSB_SERIA_429}. odmowa z rzędu: pętla bierze zapas")
+sprawdz(adsb._lol_dostepny(time.time() + config.ADSB_AWARIA_S + 2),
+        f"po {config.ADSB_AWARIA_S} s znów próba adsb.lol")
+zeruj()
+for _ in range(config.ADSB_SERIA_429 - 1):
+    asyncio.run(adsb._fetch_mil(krotki))
+asyncio.run(adsb._fetch_mil(Klient(lambda url: Odp(200))))
+asyncio.run(adsb._fetch_mil(krotki))
+adsb._przerwa_do = 0.0
+sprawdz(adsb._lol_dostepny(time.time()), "udane zapytanie zeruje serię — pojedyncze 429 nie przełącza")
+zeruj()
+for _ in range(config.ADSB_SERIA_429 - 1):
+    asyncio.run(adsb._fetch_mil(krotki))
+asyncio.run(adsb._fetch_baltic_geo(Klient(lambda url: Odp(200, {"ac": []})), "adsb.lol", (0,)))
+asyncio.run(adsb._fetch_mil(krotki))
+adsb._przerwa_do = 0.0
+sprawdz(adsb._lol_dostepny(time.time()), "udane koło też zeruje serię")
 zeruj()
 
 print("\n6. Klucz adsb.lol w nagłówku x-api-key, gdy jest w .env")
