@@ -351,3 +351,19 @@ debug build (code 135) on the Pixel 7 emulator with Android 14, taken on 1 Novem
 The entries are real records from local test alerts injected on that emulator through the app's own FCM receiver;
 no notification was sent to any user. The tab was opened and scrolled by script, so the system status bar still
 shows the emulator's UTC clock. Nothing in the images is retouched.
+
+## 1807 — release 1.8.07 (7 November 2026)
+
+`1807/set-alarmy-{pl,en,uk}.jpg` replace `1795/set-alarmy-*` (the old files stay as unused
+historical assets). They show the new confirmation date in the status line, e.g. “Zapisany do
+alarmów dla: lubelskie (potwierdzone przez Firebase 7.11.2026, 09:02)”. Unchanged 1080 × 2400
+screenshots of the **signed release APK 1.8.07** (code 137, R8, the same file as the release)
+on the Pixel 7 emulator with Android 14, installed as an update over 1.8.06, taken on
+7 November 2026 between 08:57 and 09:06 Europe/Warsaw on live data (EN 08:58, PL 09:03,
+UK 09:06). Every screen was opened by real taps (the release build has no DevTools); the
+language was changed with the app's own “change language and restart” button. For the shots
+the emulator had one place, “Dom” in Lubelskie, with alerts watched, so it was really
+subscribed to `voiv_lubelskie`; the place was deleted afterwards and the unsubscription was
+confirmed by Firebase. “Last signal from the server … 6.11.2026, 19:37:40” is the local test
+message of `FcmPathReleaseTest` from the day before, delivered through the app's own FCM
+receiver; no notification was sent to any user. Nothing in the images is retouched.
