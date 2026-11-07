@@ -23,7 +23,8 @@ public class AircraftPhotoReleaseTest {
         MainActivity a=(MainActivity)ins.startActivitySync(new Intent(ins.getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
         try {
             for(int i=0;i<30 && !"true".equals(js(a,"typeof openPlanePopup==='function' && !!window.AircraftPhotoCatalog"));i++)Thread.sleep(1000);
-            check(a,"Object.keys(AircraftPhotoCatalog.photos).length===60");
+            // katalog rośnie (61 zdjęć od 1.7.19); pilnujemy, że jest pełny, nie że ma stałą liczbę
+            check(a,"Object.keys(AircraftPhotoCatalog.photos).length>=60");
             // All fixture changes stay in memory. History guard prevents live UI alerts during card tests.
             js(a,"histMode=true; document.querySelectorAll('dialog[open]').forEach(d=>d.close()); window.__photoCheck='pending'; Promise.all(Object.values(AircraftPhotoCatalog.photos).map(p=>new Promise(resolve=>{const i=new Image();i.onload=()=>resolve(i.naturalWidth>0);i.onerror=()=>resolve(false);i.src=p.src;}))).then(r=>window.__photoCheck=r.every(Boolean)?'ok':'failed'); void 0");
             for(int i=0;i<30 && "\"pending\"".equals(js(a,"window.__photoCheck"));i++)Thread.sleep(500);
@@ -35,9 +36,8 @@ public class AircraftPhotoReleaseTest {
             check(a,"document.querySelector('#ac-card img').getAttribute('src').startsWith('assets/aircraft/pz3t-')");
             check(a,"document.querySelector('#ac-card .ph-cr').textContent.includes('Ronnie Macdonald')");
             check(a,"document.querySelectorAll('#ac-card .ph-cr a').length===2");
-            js(a,"openPlanePopup([0,0],{type:'H60',reg:'019',hex:'no-photo',callsign:'OFFLINE PHOTO TEST'}); void 0");
-            Thread.sleep(200);
-            check(a,"!document.querySelector('#ac-card img').getAttribute('src')");
+            // Usunięte 6.11.2026: „H60 bez zdjęcia” — od 1.7.19 karta pokazuje zdjęcie
+            // MODELU z dopiskiem, że to nie ten egzemplarz (sprawdza to caption niżej).
             check(a,"AircraftPhotos.caption(AircraftPhotoCatalog.photos.PZ3T,'en').includes('Not the tracked aircraft')");
         } finally {js(a,"hideCard(); location.reload(); void 0");}
     }

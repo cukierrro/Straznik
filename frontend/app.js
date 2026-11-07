@@ -7375,19 +7375,31 @@ async function refreshBgStatus(previewLang = UI.lang) {
     // Świeża instalacja bez żadnego obserwowanego województwa też wypisuje z tematów —
     // „Wypisywanie…” wyglądało wtedy jak błąd, a użytkownik nie wiedział, co zrobić.
     const noRegion = !alertsOff() && !(s.observedVoivodeships || []).length && !s.homeVoivodeship;
+    const loc = previewLang === "pl" ? "pl-PL" : previewLang === "uk" ? "uk-UA" : "en-GB";
+    /* Kiedy Firebase ostatnio POTWIERDZIŁ zapis (Android topics_ok_at, iPhone
+       Key.topicsOkAt — ustawiane tylko przy udanym zapisie albo wypisaniu).
+       Zgłoszenie 3.11.2026: iPhone po aktualizacji iOS milczał, a ekran mówił
+       „zapisany… (potwierdzone przez Firebase)” bez daty — nie było widać, czy
+       to potwierdzenie sprzed tygodnia, czy z dziś. Brak pola (starsza warstwa
+       natywna) albo 0 = bez daty, jak dotąd. */
+    const okAt = Number(s.topicsOkAt) > 0
+      ? new Date(Number(s.topicsOkAt)).toLocaleString(loc, { day: "numeric", month: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })
+      : "";
+    const potw = okAt
+      ? T(`potwierdzone przez Firebase ${okAt}`, `confirmed by Firebase on ${okAt}`, `підтверджено Firebase ${okAt}`)
+      : T("potwierdzone przez Firebase", "confirmed by Firebase", "підтверджено Firebase");
     const subLine = noRegion && !subscribed.length
       ? (T("Nie wybrano jeszcze województwa do alarmów — dodaj miejsce z włączonym „Obserwuj alerty” w zakładce Moje miejsca.", "No province is selected for alerts yet — add a place with “Watch alerts” on in the My places tab.", "Ще не вибрано воєводства для тривог — додайте місце з увімкненим «Стежити за тривогами» у вкладці Мої місця."))
       : s.topicsUnsubscribing
       ? (T("⏳ Wypisywanie telefonu z województw…", "⏳ Unsubscribing this phone from provinces…", "⏳ Відписування телефону від воєводств…"))
       : subscribed.length
-      ? (T(`Zapisany do alarmów dla: ${subscribed.map(v => esc(UI.voiv(v))).join(", ")} (potwierdzone przez Firebase).`, `Subscribed to alerts for: ${subscribed.map(v => esc(UI.voiv(v))).join(", ")} (confirmed by Firebase).`, `Записано на тривоги для: ${subscribed.map(v => esc(UI.voiv(v))).join(", ")} (підтверджено Firebase).`))
-      : (T("Telefon nie jest zapisany do żadnego województwa (potwierdzone przez Firebase).", "This phone is not subscribed to any province (confirmed by Firebase).", "Телефон не записаний на жодне воєводство (підтверджено Firebase)."));
+      ? (T(`Zapisany do alarmów dla: ${subscribed.map(v => esc(UI.voiv(v))).join(", ")} (${potw}).`, `Subscribed to alerts for: ${subscribed.map(v => esc(UI.voiv(v))).join(", ")} (${potw}).`, `Записано на тривоги для: ${subscribed.map(v => esc(UI.voiv(v))).join(", ")} (${potw}).`))
+      : (T(`Telefon nie jest zapisany do żadnego województwa (${potw}).`, `This phone is not subscribed to any province (${potw}).`, `Телефон не записаний на жодне воєводство (${potw}).`));
     if (alertsOff()) warn.splice(0, warn.length, T("🔕 Alarmy są wyłączone na tym telefonie — powiadomienia o alarmach nie przyjdą, nawet gdyby serwer je wysłał. Włącz suwak niżej, żeby je przywrócić.", "🔕 Alerts are turned off on this phone — no alert notifications will arrive, even if the server sends one. Turn the switch below back on to restore them.", "🔕 Тривоги вимкнено на цьому телефоні — сповіщення про тривоги не прийдуть, навіть якби сервер їх надіслав. Увімкніть перемикач нижче, щоб їх повернути."));
     /* Godzina ostatniego pusha. Bez niej przy zgłoszeniu „nic nie przychodzi"
        zostaje zgadywanie: uśpiona aplikacja i ciche powiadomienie wyglądają z
        zewnątrz tak samo, a naprawia się je zupełnie inaczej. Pusto na iPhonie
-       i na stronie — tam tego nie zapisujemy. */
-    const loc = previewLang === "pl" ? "pl-PL" : previewLang === "uk" ? "uk-UA" : "en-GB";
+       i na stronie — tam tego nie zapisujemy. (`loc` wyżej, przy dacie zapisu.) */
     /* 11.10.2026: obok godziny — ile trwała droga od serwera i czy Google obniżył
        priorytet (wtedy uśpiony telefon dostaje alarm dopiero przy przebudzeniu;
        u usera 80 s). Opóźnienie do 15 s to zwykła droga przez sieć — nie straszymy. */

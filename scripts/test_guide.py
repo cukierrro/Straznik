@@ -15,6 +15,8 @@ OTHER_IMAGES = {"mikrus-logo.svg": (86, 14)}
 # 1.7.96 (16.10.2026): nowa sekcja „Mapa” w ustawieniach — +3 zrzuty set-mapa (PL/EN/UK)
 # w docs/screens/1796; set-start i set-aplikacja zastąpione kadrami z 1796 (bez zmiany liczby)
 # 1.8.05: +3 zrzuty dziennika alarmów (docs/screens/1805, PL/EN/UK)
+# 1.8.07: set-alarmy PL/EN/UK zastąpione kadrami z docs/screens/1807 (data potwierdzenia
+#         zapisu do województw) — bez zmiany liczby; stare pliki 1795 zostają w repo
 EXPECTED_SHOTS = 97
 
 

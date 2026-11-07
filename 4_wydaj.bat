@@ -36,7 +36,7 @@ if not exist "%NOTATKI%" (
 )
 
 echo.
-echo === 1/7  Klucz podpisu i hasla poza repozytorium ===
+echo === 1/8  Klucz podpisu i hasla poza repozytorium ===
 git ls-files > "%OUT%\61_pliki.txt"
 findstr /i /c:".jks" /c:"keystore.properties" "%OUT%\61_pliki.txt" | findstr /v /i "example" > "%OUT%\61_sekrety.txt"
 for %%A in ("%OUT%\61_sekrety.txt") do if %%~zA GTR 0 (
@@ -53,7 +53,7 @@ for %%A in ("%OUT%\62_historia.txt") do if %%~zA GTR 0 (
 echo   OK - nie ma ich w repozytorium ani w historii
 
 echo.
-echo === 2/7  APK w repozytorium identyczny ze zbudowanym ===
+echo === 2/8  APK w repozytorium identyczny ze zbudowanym ===
 set "H1="
 set "H2="
 for /f "skip=1 tokens=1" %%H in ('certutil -hashfile "%REPO%\Straznik.apk" SHA256') do if not defined H1 set "H1=%%H"
@@ -68,7 +68,32 @@ echo !H1!> "%OUT%\63_sha.txt"
 echo   OK - identyczne
 
 echo.
-echo === 3/7  Podpis APK ===
+echo === 3/8  Plik mapping zarchiwizowany ===
+rem  Bez mapping.txt z tego buildu zaciemniony stos bledu z wydania jest nie do
+rem  odczytania (R8). 1_buduj_i_testuj.bat odklada go poza repozytorium;
+rem  porownujemy bajt w bajt z buildem, z ktorego pochodzi Straznik.apk.
+set "CODE="
+for /f "tokens=2 delims= " %%V in ('findstr /c:"versionCode" "%REPO%\android-app\android\app\build.gradle"') do set "CODE=%%V"
+rem  Ten sam folder co w 1_buduj_i_testuj.bat: Pulpit\Straznik\_materialy
+rem  ("z" z kropka w nazwie), szukany wzorcem, jako nazwa 8.3.
+set "MAT="
+for /d %%D in ("%USERPROFILE%\Desktop\Stra?nik") do if exist "%%D\_materialy\" set "MAT=%%~sD\_materialy"
+if not defined MAT (
+  echo   PRZERWANE - nie ma folderu Pulpit\Stra?nik\_materialy z archiwum mapping
+  goto :koniec
+)
+set "MAPDIR=!MAT!\Straznik-play\mapping\%VER%-!CODE!"
+fc /b "%REPO%\android-app\android\app\build\outputs\mapping\githubRelease\mapping.txt" "!MAPDIR!\mapping-githubRelease.txt" > "%OUT%\64_mapping.txt" 2>&1
+if errorlevel 1 (
+  echo   PRZERWANE - brak kopii mapping.txt albo rozni sie od buildu:
+  echo   !MAPDIR!
+  echo   Uruchom ponownie 1_buduj_i_testuj.bat.
+  goto :koniec
+)
+echo   OK - !MAPDIR!
+
+echo.
+echo === 4/8  Podpis APK ===
 set "SIGNER="
 for /d %%B in ("%LOCALAPPDATA%\Android\Sdk\build-tools\*") do if exist "%%B\apksigner.bat" set "SIGNER=%%B\apksigner.bat"
 if defined SIGNER (
@@ -85,13 +110,13 @@ if defined SIGNER (
 )
 
 echo.
-echo === 4/7  Czy nie ma niezacommitowanych zmian ===
+echo === 5/8  Czy nie ma niezacommitowanych zmian ===
 git status --porcelain > "%OUT%\66_status.txt"
 type "%OUT%\66_status.txt"
 echo   ^(pusto = wszystko zacommitowane^)
 
 echo.
-echo === 5/7  Wypchniecie na GitHuba ===
+echo === 6/8  Wypchniecie na GitHuba ===
 git push origin main > "%OUT%\67_push.txt" 2>&1
 type "%OUT%\67_push.txt"
 git rev-parse HEAD > "%OUT%\68_head.txt" 2>&1
@@ -99,7 +124,7 @@ git ls-remote origin refs/heads/main >> "%OUT%\68_head.txt" 2>&1
 type "%OUT%\68_head.txt"
 
 echo.
-echo === 6/7  Utworzenie wydania %TAG% ===
+echo === 7/8  Utworzenie wydania %TAG% ===
 gh release create %TAG% "%REPO%\Straznik.apk" --notes-file "%NOTATKI%" --latest > "%OUT%\69_release.txt" 2>&1
 type "%OUT%\69_release.txt"
 
@@ -113,7 +138,7 @@ if defined RELID (
 )
 
 echo.
-echo === 7/7  Weryfikacja ===
+echo === 8/8  Weryfikacja ===
 gh release view %TAG% --json tagName,name,isDraft,isPrerelease,assets > "%OUT%\71_weryfikacja.txt" 2>&1
 type "%OUT%\71_weryfikacja.txt"
 echo. >> "%OUT%\71_weryfikacja.txt"

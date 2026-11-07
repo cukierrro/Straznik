@@ -134,8 +134,37 @@ if not exist "%APK%" (
 )
 copy /y "%APK%" "%REPO%\Straznik.apk" >nul
 certutil -hashfile "%REPO%\Straznik.apk" SHA256 > "%OUT%\5_sha256.txt"
+
+rem  R8 skraca nazwy w kodzie, wiec stos bledu z telefonu albo z Google Play da
+rem  sie odczytac tylko plikiem mapping.txt z TEGO SAMEGO buildu - kazdy kolejny
+rem  build tworzy inny. Kopia idzie poza repozytorium, obok paczek do Play:
+rem  AAB niesie wlasny mapping dla konsoli, APK z GitHuba nie ma go nigdzie.
+rem  4_wydaj.bat nie opublikuje wydania bez tej kopii.
+set "VER="
+for /f "tokens=2 delims= " %%V in ('findstr /c:"versionName" "%ANDROID%\app\build.gradle"') do set "VER=%%~V"
+set "CODE="
+for /f "tokens=2 delims= " %%V in ('findstr /c:"versionCode" "%ANDROID%\app\build.gradle"') do set "CODE=%%V"
+rem  Paczki do Play leza od 18.10.2026 w Pulpit\Straznik\_materialy (nazwa folderu
+rem  ma "z" z kropka). Nie wpisujemy jej - szukamy wzorcem i bierzemy nazwe 8.3.
+set "MAT="
+for /d %%D in ("%USERPROFILE%\Desktop\Stra?nik") do if exist "%%D\_materialy\" set "MAT=%%~sD\_materialy"
+if not defined MAT (
+  echo   BLAD - nie ma folderu Pulpit\Stra?nik\_materialy na archiwum mapping
+  goto :koniec
+)
+set "MAPDIR=%MAT%\Straznik-play\mapping\%VER%-%CODE%"
+set "MAPOUT=%ANDROID%\app\build\outputs\mapping"
+if not exist "%MAPOUT%\githubRelease\mapping.txt" (
+  echo   BLAD - build nie zostawil mapping.txt - czy R8 jest wlaczony?
+  goto :koniec
+)
+if not exist "%MAPDIR%" mkdir "%MAPDIR%"
+copy /y "%MAPOUT%\githubRelease\mapping.txt" "%MAPDIR%\mapping-githubRelease.txt" >nul
+if exist "%MAPOUT%\playRelease\mapping.txt" copy /y "%MAPOUT%\playRelease\mapping.txt" "%MAPDIR%\mapping-playRelease.txt" >nul
+copy /y "%OUT%\5_sha256.txt" "%MAPDIR%\Straznik.apk.sha256.txt" >nul
 echo   OK
 type "%OUT%\5_sha256.txt"
+echo   mapping: %MAPDIR%
 
 echo.
 echo =========== 5/7  Emulator Pixel ===========
