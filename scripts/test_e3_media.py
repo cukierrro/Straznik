@@ -4,6 +4,7 @@
 Uruchomienie:  py scripts/test_e3_media.py
 """
 import asyncio
+import httpx
 import sys
 import tempfile
 import time
@@ -226,13 +227,16 @@ trening = '<a href="/web/rcb/alert-rcb---trening-systemu-alarmowania">Alert RCB 
 class _Resp:
     text = menu + alert + trening
 
+    def __init__(self, url=""):
+        self.url = httpx.URL(url)        # jak httpx: adres po przekierowaniach
+
     def raise_for_status(self):
         pass
 
 
 class _Client:
-    async def get(self, *a, **k):
-        return _Resp()
+    async def get(self, url, *a, **k):
+        return _Resp(url)
 
 
 zapisy, odniesienia = [], []
