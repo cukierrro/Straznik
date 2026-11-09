@@ -82,8 +82,21 @@ for (const [nazwa, wz] of [["wypisanie", /left\.decrementAndGet\(\) == 0\) \{\s*
   sprawdz(wz.test(java), `Java: ${nazwa} — pokolenie sprawdzane przed zapisem stanu`);
 sprawdz(/\.putBoolean\("topics_unsubscribing", target\.isEmpty\(\)\)[\s\S]{0,120}?\.putBoolean\("topics_syncing", !target\.isEmpty\(\)\)/.test(java),
   "Java: flagi „w toku” ustawiane od nowa na starcie każdej synchronizacji (nowsza zdejmuje „Wypisywanie…”)");
-sprawdz(/postDelayed\(\(\) -> \{\s*if \(done\.get\(\) \|\| SYNC_GEN\.get\(\) != gen \|\| retry >= SYNC_MAX_RETRY\) return;[\s\S]{0,300}?syncFcmSubscription\(app, forceAll, retry \+ 1\);\s*\}, SYNC_RETRY_MS\)/.test(java),
-  "Java: bez potwierdzenia po SYNC_RETRY_MS ponowienie, z limitem i tylko dla najnowszego pokolenia");
+const mStraz = java.match(/private static void straz\([\s\S]*?\n    \}\n/);
+sprawdz(!!mStraz, "Java: straż ponowienia w osobnej metodzie");
+const straz = mStraz ? mStraz[0] : "";
+sprawdz(/postDelayed\(\(\) -> \{\s*if \(done\.get\(\) \|\| SYNC_GEN\.get\(\) != gen\) return;/.test(straz),
+  "Java: straż działa tylko dla najnowszego, niepotwierdzonego pokolenia");
+sprawdz(/if \(cisza < SYNC_RETRY_MS && odlozenia < SYNC_MAX_ODLOZEN\) \{[\s\S]{0,200}?straz\(app, forceAll, retry, gen, done, odlozenia \+ 1\);\s*return;/.test(straz),
+  "Java: gdy Firebase niedawno coś potwierdził, straż czeka dalej zamiast dokładać operacji (pomiar 9.11: 85 operacji ≈ 55 s)");
+sprawdz(/if \(retry >= SYNC_MAX_RETRY\) return;[\s\S]{0,300}?syncFcmSubscription\(app, forceAll, retry \+ 1\);/.test(straz),
+  "Java: po ciszy Firebase ponowienie, z limitem prób");
+sprawdz(/OSTATNI_POSTEP\.set\(teraz\);\s*straz\(app, forceAll, retry, gen, done, 0\);/.test(java),
+  "Java: każda synchronizacja uruchamia straż");
+const sluchacze = (java.match(/addOnCompleteListener\(/g) || []).length;
+const postepy = (java.match(/addOnCompleteListener\(task -> (?:\{\s*)?OSTATNI_POSTEP\.set\(System\.currentTimeMillis\(\)\)/g) || []).length;
+sprawdz(sluchacze >= 3 && postepy === sluchacze,
+  `Java: każde potwierdzenie Firebase odnotowuje postęp (${postepy} z ${sluchacze} słuchaczy), także wypisania bez śledzenia wyniku`);
 const retry = Number((java.match(/SYNC_RETRY_MS = ([\d_]+);/) || [])[1]?.replace(/_/g, ""));
 const maks = Number((java.match(/SYNC_MAX_RETRY = (\d+);/) || [])[1]);
 sprawdz(retry >= 30_000 && retry <= 120_000 && maks >= 1 && maks <= 3,

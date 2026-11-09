@@ -200,8 +200,34 @@ public class BackgroundPlugin extends Plugin {
      */
     private static final java.util.concurrent.atomic.AtomicLong SYNC_GEN =
         new java.util.concurrent.atomic.AtomicLong();
+    /** Chwila ostatniego potwierdzenia JAKIEJKOLWIEK operacji tematu (dowolnego pokolenia).
+     * Pomiar 9.11.2026 (emulator, podpis wydania): jedna operacja trwa ok. 0,6 s, więc pięć
+     * szybkich zmian to ok. 85 operacji i prawie minuta pracy Firebase. Straż ponawiająca
+     * po 45 s bez względu na postęp dokładała wtedy kolejne operacje i wydłużała całość
+     * do 2 min. Ponawiamy więc tylko wtedy, gdy Firebase od SYNC_RETRY_MS nic nie potwierdził. */
+    private static final java.util.concurrent.atomic.AtomicLong OSTATNI_POSTEP =
+        new java.util.concurrent.atomic.AtomicLong();
     static final long SYNC_RETRY_MS = 45_000;
     static final int SYNC_MAX_RETRY = 2;
+    /** Ile razy straż może odłożyć ponowienie, bo Firebase wciąż robi postępy (ok. 15 min). */
+    static final int SYNC_MAX_ODLOZEN = 20;
+
+    private static void straz(Context app, boolean forceAll, int retry, long gen,
+                              java.util.concurrent.atomic.AtomicBoolean done, int odlozenia) {
+        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+            if (done.get() || SYNC_GEN.get() != gen) return;
+            long cisza = System.currentTimeMillis() - OSTATNI_POSTEP.get();
+            if (cisza < SYNC_RETRY_MS && odlozenia < SYNC_MAX_ODLOZEN) {
+                // Firebase pracuje (potwierdził coś niedawno) — czekamy dalej, nie dokładamy operacji
+                straz(app, forceAll, retry, gen, done, odlozenia + 1);
+                return;
+            }
+            if (retry >= SYNC_MAX_RETRY) return;
+            android.util.Log.w("Straznik", "FCM nic nie potwierdził od " + cisza
+                + " ms — ponawiam synchronizację (" + (retry + 1) + "/" + SYNC_MAX_RETRY + ")");
+            syncFcmSubscription(app, forceAll, retry + 1);
+        }, SYNC_RETRY_MS);
+    }
 
     private static void syncFcmSubscription(Context c, boolean forceAll, int retry) {
         final Context app = c.getApplicationContext() != null ? c.getApplicationContext() : c;
@@ -229,14 +255,10 @@ public class BackgroundPlugin extends Plugin {
         p.edit().putString("topics_error", "")
             .putBoolean("topics_unsubscribing", target.isEmpty()).putLong("topics_unsub_at", teraz)
             .putBoolean("topics_syncing", !target.isEmpty()).putLong("topics_sync_at", teraz).apply();
-        // Straż: brak potwierdzenia → ta sama synchronizacja jeszcze raz (najwyżej SYNC_MAX_RETRY).
-        // Nowsza synchronizacja albo potwierdzenie unieważniają straż tej.
-        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
-            if (done.get() || SYNC_GEN.get() != gen || retry >= SYNC_MAX_RETRY) return;
-            android.util.Log.w("Straznik", "FCM nie potwierdził tematów po " + SYNC_RETRY_MS
-                + " ms — ponawiam synchronizację (" + (retry + 1) + "/" + SYNC_MAX_RETRY + ")");
-            syncFcmSubscription(app, forceAll, retry + 1);
-        }, SYNC_RETRY_MS);
+        // Straż: Firebase ucichł bez potwierdzenia → ta sama synchronizacja jeszcze raz
+        // (najwyżej SYNC_MAX_RETRY). Nowsza synchronizacja albo potwierdzenie unieważniają straż tej.
+        OSTATNI_POSTEP.set(teraz);
+        straz(app, forceAll, retry, gen, done, 0);
         if (target.isEmpty()) {
             // Wypisujemy ze WSZYSTKICH województw, nie tylko z zapamiętanych: starsze
             // wersje zapisywały tematy bez utrwalenia listy. Stan „0 tematów” zapisujemy
@@ -246,6 +268,7 @@ public class BackgroundPlugin extends Plugin {
             final java.util.concurrent.atomic.AtomicInteger failed = new java.util.concurrent.atomic.AtomicInteger();
             for (String v : Alarms.VOIVS) {
                 fm.unsubscribeFromTopic(voivTopic(v)).addOnCompleteListener(task -> {
+                    OSTATNI_POSTEP.set(System.currentTimeMillis());
                     if (!task.isSuccessful()) failed.incrementAndGet();
                     if (left.decrementAndGet() == 0) {
                         if (SYNC_GEN.get() != gen) return;   // nowsza synchronizacja zapisze swój stan
@@ -271,9 +294,11 @@ public class BackgroundPlugin extends Plugin {
         // każdej synchronizacji wypisujemy ze WSZYSTKICH tematów województw spoza celu.
         java.util.Set<String> doWypisania = new java.util.HashSet<>(current);
         for (String v : Alarms.VOIVS) doWypisania.add(voivTopic(v));
-        for (String t : doWypisania) if (!target.contains(t)) fm.unsubscribeFromTopic(t);
+        for (String t : doWypisania) if (!target.contains(t))
+            fm.unsubscribeFromTopic(t).addOnCompleteListener(task -> OSTATNI_POSTEP.set(System.currentTimeMillis()));
         for (String t : target) {
             fm.subscribeToTopic(t).addOnCompleteListener(task -> {
+                OSTATNI_POSTEP.set(System.currentTimeMillis());
                 if (task.isSuccessful()) confirmed.add(t);
                 if (pending.decrementAndGet() == 0) {
                     if (SYNC_GEN.get() != gen) return;   // nowsza synchronizacja zapisze swój stan
