@@ -78,3 +78,18 @@ test("echo oznaczone jako powtórzenie oficjalnego alertu", () => {
   const m = per.lubelskie.signals.find(s => s.source === "media");
   assert.equal(m.duplicate_of_official, "23430000");
 });
+
+// 09.11.2026: Alert RCB dla lubelskiego i podlaskiego, RSO niosło tylko lubelskie.
+// Województwo NAZWANE w tytule bez własnego alertu w oknie nie jest echem.
+test("województwo nazwane w tytule bez własnego alertu RSO — liczy się", () => {
+  const TYT = "Alert RCB dla województw lubelskiego i podlaskiego";
+  assert.ok(punkty([ALERT, art(TYT, "podlaskie", 10, 700)], "podlaskie", 15) > 0, "podlaskie bez alertu RSO");
+  assert.equal(punkty([ALERT, art(TYT, "lubelskie", 10, 701)], "lubelskie", 15), 0, "lubelskie z alertem — echo");
+  assert.equal(punkty([ALERT, art(TYT, "opolskie", 10, 702)], "opolskie", 15), 0, "opolskie nienazwane — echo");
+  const podl = { ...ALERT, id: 2, voivodeship: "podlaskie", details: { rso_id: "23430001" } };
+  assert.equal(punkty([ALERT, podl, art(TYT, "podlaskie", 10, 703)], "podlaskie", 15), 0, "podlaskie z własnym alertem — echo");
+  const per = E.accumulate([ALERT, podl, art(TYT, "podlaskie", 10, 704)], ALERT_T + 15 * 60000);
+  assert.equal(per.podlaskie.signals.find(s => s.source === "media").duplicate_of_official, "23430001");
+  assert.ok(punkty([ALERT, art("Alert RCB dla części województwa lubelskiego i podlaskiego", "podlaskie", 10, 705)],
+    "podlaskie", 15) > 0, "„dla części województwa…”");
+});

@@ -115,6 +115,24 @@ m = next(s for s in st["signals"] if s["source"] == "media")
 ok(m.get("duplicate_of_official") == "23430000", f"duplicate_of_official = {m.get('duplicate_of_official')}")
 ok("powtórzenie oficjalnego alertu" in fusion.breakdown_text(st["signals"]), "opis w rozbiciu")
 
+print("\n6. Województwo nazwane w tytule bez własnego alertu RSO nie jest echem (09.11.2026)")
+# Alert RCB poszedł do lubelskiego i podlaskiego, RSO niosło tylko lubelskie.
+TYT = "Alert RCB dla województw lubelskiego i podlaskiego"
+ok(punkty([ALERT, art(TYT, "podlaskie", 10, 700)], "podlaskie", 15) > 0,
+   "podlaskie (nazwane, bez alertu RSO) — artykuł się liczy")
+ok(punkty([ALERT, art(TYT, "lubelskie", 10, 701)], "lubelskie", 15) == 0,
+   "lubelskie (nazwane, z alertem RSO) — echo, 0 pkt")
+ok(punkty([ALERT, art(TYT, "opolskie", 10, 702)], "opolskie", 15) == 0,
+   "opolskie (nienazwane) — echo, 0 pkt jak od 19.10")
+podl = dict(ALERT, id=2, voivodeship="podlaskie", details={"rso_id": "23430001"})
+ok(punkty([ALERT, podl, art(TYT, "podlaskie", 10, 703)], "podlaskie", 15) == 0,
+   "podlaskie z własnym alertem RSO — echo, 0 pkt")
+st = fusion.accumulate([ALERT, podl, art(TYT, "podlaskie", 10, 704)], ALERT_T + timedelta(minutes=15))["podlaskie"]
+m = next(s for s in st["signals"] if s["source"] == "media")
+ok(m.get("duplicate_of_official") == "23430001", f"echo wskazuje alert TEGO województwa: {m.get('duplicate_of_official')}")
+ok(punkty([ALERT, art("Alert RCB dla części województwa lubelskiego i podlaskiego", "podlaskie", 10, 705)],
+          "podlaskie", 15) > 0, "„dla części województwa lubelskiego i podlaskiego” — podlaskie się liczy")
+
 if bledy:
     print(f"\nBLEDY: {len(bledy)}")
     sys.exit(1)
