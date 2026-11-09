@@ -6631,8 +6631,17 @@ const dlg = document.getElementById("settings");
    ale telefon wypisuje się ze wszystkich województw i nie pokazuje ostrzeżeń o zgodach. */
 const ALERTS_OFF_KEY = "straznik_alerts_off", BGWARN_HIDDEN_KEY = "straznik_bgwarn_hidden";
 function alertsOff() { try { return localStorage.getItem(ALERTS_OFF_KEY) === "1"; } catch { return false; } }
-function syncObservedRegions() {
+/* 1.8.08: zamknięcie Ustawień wysyłało synchronizację zawsze, także bez żadnej zmiany.
+   Na Androidzie przy 0 miejsc było to wypisanie z 16 tematów, które nakładało się na
+   zapis miejsca chwilę później (wyścig z 7.11.2026). Przy zamknięciu okna synchronizujemy
+   więc tylko wtedy, gdy zmieniło się to, co idzie do warstwy natywnej. Start aplikacji,
+   zgoda na powiadomienia i zmiana miejsc synchronizują zawsze. */
+let ostatniaSynchronizacja = null;
+function syncObservedRegions(opcje = {}) {
   const regions=alertsOff()?[]:(Places?.observedVoivodeships(savedPlaces)||[]);
+  const klucz=JSON.stringify([regions, alertsOff(), myVoiv()||""]);
+  if(opcje.tylkoPoZmianie && klucz===ostatniaSynchronizacja) return Promise.resolve();
+  ostatniaSynchronizacja=klucz;
   if(!IS_APP) syncBrowserPushRegion().catch(()=>{});
   const plugin=BG();
   // alertsOff trafia też do usługi FCM (odrzuca alarmy, zanim wypisanie dotrze do Firebase)
@@ -6835,7 +6844,7 @@ document.getElementById("set-api-zapisz")?.addEventListener("click", () => {
 dlg.addEventListener("close", () => {
   UI.previewSettings?.(UI.lang || "pl");
   const v = myVoiv() || "";
-  syncObservedRegions();
+  syncObservedRegions({ tylkoPoZmianie: true });
   if (mapReady) {
     for (const id of ["my-voiv", "my-voiv-glow"])
       if (map.getLayer(id)) map.setFilter(id, ["==", ["get", "nazwa"], v || "—"]);
@@ -7253,6 +7262,7 @@ function renderDziennikAlarmow(wpisy, jezyk = UI.lang) {
   }).join("");
 }
 
+let odswiezStanTimer = 0, odswiezStanProby = 0;
 async function refreshBgStatus(previewLang = UI.lang) {
   if (dlg.open && dlg.classList.contains("na-starcie")) renderGotowosc(previewLang);
   // Podglad w ustawieniach pokazuje wybrany jezyk jeszcze przed zapisem, dlatego
@@ -7392,6 +7402,8 @@ async function refreshBgStatus(previewLang = UI.lang) {
       ? (T("Nie wybrano jeszcze województwa do alarmów — dodaj miejsce z włączonym „Obserwuj alerty” w zakładce Moje miejsca.", "No province is selected for alerts yet — add a place with “Watch alerts” on in the My places tab.", "Ще не вибрано воєводства для тривог — додайте місце з увімкненим «Стежити за тривогами» у вкладці Мої місця."))
       : s.topicsUnsubscribing
       ? (T("⏳ Wypisywanie telefonu z województw…", "⏳ Unsubscribing this phone from provinces…", "⏳ Відписування телефону від воєводств…"))
+      : s.topicsSyncing
+      ? (T("⏳ Zapisywanie telefonu do województw…", "⏳ Subscribing this phone to provinces…", "⏳ Записування телефону на воєводства…"))
       : subscribed.length
       ? (T(`Zapisany do alarmów dla: ${subscribed.map(v => esc(UI.voiv(v))).join(", ")} (${potw}).`, `Subscribed to alerts for: ${subscribed.map(v => esc(UI.voiv(v))).join(", ")} (${potw}).`, `Записано на тривоги для: ${subscribed.map(v => esc(UI.voiv(v))).join(", ")} (${potw}).`))
       : (T(`Telefon nie jest zapisany do żadnego województwa (${potw}).`, `This phone is not subscribed to any province (${potw}).`, `Телефон не записаний на жодне воєводство (${potw}).`));
@@ -7432,6 +7444,13 @@ async function refreshBgStatus(previewLang = UI.lang) {
       + `<br><span class="muted">${s.platform === "ios" ? `iOS ${esc(s.osVersion || "")}`
         : `Android ${s.sdk}, ${esc(s.manufacturer || "")}`}`
       + `${s.homeVoivodeship ? " · region: " + esc(UI.voiv(s.homeVoivodeship)) : ""}</span>`;
+    /* 1.8.08: w trakcie zapisu albo wypisania wiersz sam się odświeża, póki Ustawienia
+       są otwarte. Wcześniej stan „⏳” zostawał na ekranie do ponownego otwarcia okna. */
+    clearTimeout(odswiezStanTimer);
+    const wToku = s.topicsSyncing || s.topicsUnsubscribing;
+    if (!wToku) odswiezStanProby = 0;
+    else if (dlg.open && odswiezStanProby++ < 90)
+      odswiezStanTimer = setTimeout(() => refreshBgStatus(previewLang), 2000);
   } catch (e) { if (info) info.textContent = (T("Nie udało się odczytać stanu: ", "Could not read status: ", "Не вдалося прочитати стан: ")) + e; }
 }
 
