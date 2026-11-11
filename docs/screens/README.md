@@ -134,14 +134,29 @@ release 1.8.01 and is fixed in 1.8.02; finding it on screen is why these frames 
 from the release build.
 
 The GROTA captures `g13-mapa-filtry*`, `g29-zasady-dane*` and `g31-zmiana-wykazu*` (Polish,
-`-en`, `-uk`) were retaken on 2 November 2026 between 08:08 and 09:33 Europe/Warsaw, after the
-PSP register of that day came in (88,138 points, up from 87,835). All nine frames come from
-`Straznik-1.8.06-136-TEST-debug.apk`, a test build from the main session carrying the module
-8f6e4c98a5 and the register of 2 November, on the Pixel 7 emulator with Android 14 at
-`wm size 1080x2340`, then downscaled to 720 x 1560 JPEG. Nothing in them is retouched. The
-counters in `g13-*` are the ones the pack really holds and were cross-checked against the pack
-before the capture: 19,631 / 7,679 / 60,828 by access and 86,011 / 898 / 1,229 by location
-certainty.
+`-en`, `-uk`) were retaken on 11 November 2026 between 10:55 and 11:12 Europe/Warsaw, after the
+PSP register of 10 November came in (88,256 points, up from 88,138). All nine frames come from
+one debug build of branch `grota-wykaz-1011` (`app-github-debug.apk`, sha256 90eca31f74b0…),
+carrying the module 2f0f7ba4db and the register of 10 November, on the Pixel 7 emulator with
+Android 14 at `wm size 1080x2340`, then downscaled to 720 x 1560 JPEG. Nothing in them is
+retouched. The counters in `g13-*` are the ones the pack really holds and were cross-checked
+against the pack before the capture: 19,706 / 7,680 / 60,870 by access and 86,153 / 892 / 1,211
+by location certainty.
+
+The frames of 2 November were replaced rather than kept beside these: the figures and the date
+they show are no longer the ones in the app. The register of 6 November, rebuilt and then
+dropped, never reached a phone and has no frames.
+
+The emulator had been wiped before this series, so the first run went through the app's own
+first start: the notification permission was declined, the full-screen-alert prompt was left
+alone, and only location was granted (`pm grant`). No notifications and no alarms were enabled.
+
+What is written below about `g31-zmiana-wykazu*` holds for this series too: the same place
+"Dom" with the same shelter `OZO-77191AD48DDA` and the same recorded register date 2026-10-26
+was written into the app's storage, and the warning the app then computed names the register
+of 10 November. The Ukrainian `g13-*` has its building-type counts cut off by the bottom edge,
+because those labels wrap to two lines; the alt text says so instead of naming numbers that
+are not on the screen.
 
 Two things about this series differ from the one of 26 October and are worth stating.
 
