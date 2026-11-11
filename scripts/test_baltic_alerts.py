@@ -56,6 +56,7 @@ def reset():
     rm._baltic_clears_seen.clear()
     rm._baltic_alerted.clear()
     rm._baltic_cleared_at.clear()
+    rm._baltic_wersje.clear()      # świeży proces: żadnego artykułu jeszcze nie widział
 
 
 LRT = "https://www.lrt.lt/naujienos/lietuvoje/2/2936222/"
@@ -268,6 +269,74 @@ asyncio.run(rm._baltic_entries([wpis18(
 ok(not any(z["event_type"] in ("baltic_alert", "baltic_context") for z in zapis),
    "dwa inne kraje w tytule, bez Estonii — bez punktów")
 
+
+print("12. żywy artykuł LRT nr 3007328 — noc 10/11.11.2026")
+# Jeden artykuł na całą noc: tytuł i ścieżka się zmieniają, pubDate zostaje 20:56 UTC.
+reset()
+P11 = calendar.timegm((2026, 11, 10, 20, 56, 0, 0, 0, 0))
+LRT11 = "https://www.lrt.lt/naujienos/lietuvoje/2/3007328/"
+
+
+def zywy(tytul, slug):
+    return {"title": tytul, "summary": "", "link": LRT11 + slug, "published_parsed": time.gmtime(P11)}
+
+
+def obieg(tytul, slug, minut):
+    zapis.clear()
+    asyncio.run(rm._baltic_entries([zywy(tytul, slug)], "lrt", "LT", P11 + minut * 60))
+    return [z for z in zapis if z["voivodeship"] == "podlaskie"]
+
+
+z1 = obieg("Dėl dronų pavojaus Utenos ir Vilniaus apskrityse paskelbtas tikėtinas oro pavojus", "del-dronu", 2)
+ok([z["event_type"] for z in z1] == ["baltic_alert"], f"20:58 — alarm Wilno/Uciana ({[z['event_type'] for z in z1]})")
+ok(not obieg("Dėl dronų pavojaus Utenos ir Vilniaus apskrityse paskelbtas tikėtinas oro pavojus", "del-dronu", 20),
+   "ten sam tytuł w kolejnym obiegu — nic nowego")
+z2 = obieg("Tikėtinas oro pavojus Vilniaus apskrityje – atšauktas", "atsauktas", 48)
+ok([z["event_type"] for z in z2] == ["baltic_clear"], f"21:44 — odwołanie ({[z['event_type'] for z in z2]})")
+z3 = obieg("Druskininkuose ir Lazdijuose – raudonas oro pavojus", "raudonas", 109)
+ok([z["event_type"] for z in z3] == ["baltic_alert"],
+   f"22:45 — czerwony w tym samym artykule, pubDate sprzed 109 min, JEST alarmem ({[z['event_type'] for z in z3]})")
+ok(z3 and z3[0]["points"] == 0.3 and z3[0]["details"]["incident_key"] == "LT:3007328", "0,3 pkt, ten sam incydent")
+z4 = obieg("Marijampolės apskrityje – raudonas oro pavojus", "marijampoles", 143)
+ok(not z4, f"23:19 — rozszerzenie trwającego alarmu nie sumuje punktów ({len(z4)})")
+ok("Marijampolės" in (rm.baltic["LT"]["last_alert"] or {}).get("title", ""), "…ale okno źródeł pokazuje najnowszy tytuł")
+z5 = obieg("Oro pavojus atšaukiamas visoje Lietuvoje", "visoje-lietuvoje", 621)
+ok([z["event_type"] for z in z5] == ["baltic_clear"],
+   f"07:17 — końcowe odwołanie mimo pubDate sprzed 10 h ({[z['event_type'] for z in z5]})")
+ok(len({z["dedup_key"] for z in z1 + z3}) == 2, "dwa alarmy tego artykułu mają różne klucze deduplikacji")
+sygnaly = []
+for i, (z, minut) in enumerate([(z1, 2), (z2, 48), (z3, 109), (z5, 621)]):
+    for s in z:
+        sygnaly.append({"id": 900 + i, "ts": datetime.fromtimestamp(P11 + minut * 60, timezone.utc).isoformat(),
+                        "source": s["source"], "event_type": s["event_type"], "voivodeship": "podlaskie",
+                        "points": s["points"], "title": s["title"], "details": s["details"]})
+sc = lambda minut, ile: fusion.accumulate(sygnaly[:ile], datetime.fromtimestamp(P11 + minut * 60, timezone.utc))["podlaskie"]["score"]
+ok(sc(110, 3) > 0, f"fuzja: o 22:46 podlaskie ma punkty z czerwonego ({sc(110, 3)})")
+ok(sc(622, 4) == 0, f"fuzja: po końcowym odwołaniu 0 ({sc(622, 4)})")
+
+print("12b. pierwsze zobaczenie starego żywego artykułu (np. po restarcie) nie jest alarmem")
+reset()
+ok(not obieg("Druskininkuose ir Lazdijuose – raudonas oro pavojus", "raudonas", 109),
+   "nieznany wcześniej artykuł sprzed 109 min — wiek z pubDate, pominięty")
+dec = []
+_rec = rm.stealth.record
+rm.stealth.record = lambda kind, key, data, ts=None: dec.append(data)
+reset()
+obieg("Druskininkuose ir Lazdijuose – raudonas oro pavojus", "raudonas", 109)
+rm.stealth.record = _rec
+ok(any(d.get("reason", "").startswith("wiek") for d in dec), f"…ale pominięcie jest w dzienniku decyzji ({[d.get('reason') for d in dec]})")
+
+print("12c. kanał martwy od >3 h — ostrzeżenie i dead_h w statusie")
+_get = rm._get_with_retry
+rm._get_with_retry = lambda *_a, **_k: asyncio.sleep(0, result=(None, "HTTPStatusError 403"))
+rm.status["feeds"].pop("https://www.15min.lt/rss", None)
+asyncio.run(rm._check_baltic_feed(None, "https://www.15min.lt/rss", "LT"))
+st15 = rm.status["feeds"]["https://www.15min.lt/rss"]
+ok("dead_h" not in st15, "pierwszy błąd to jeszcze nie martwy kanał")
+st15["fail_since"] -= 4 * 3600
+asyncio.run(rm._check_baltic_feed(None, "https://www.15min.lt/rss", "LT"))
+ok(st15.get("dead_h", 0) >= 4, f"po 4 h dead_h={st15.get('dead_h')}")
+rm._get_with_retry = _get
 
 print("8. kanał bez artykułów to nie „ok”")
 rm._get_with_retry = lambda *_a, **_k: asyncio.sleep(0, result=(Odp(b"<rss><channel><item><title>Dienos naujienos</title></item></channel></rss>"), None))
