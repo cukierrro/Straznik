@@ -121,9 +121,20 @@ def _speaker_quote(title_l: str, country: str = "") -> bool:
     """Tytuł „Osoba: cytat” („KOP vadas: neturėjome…”, „Gaižauskas: nesutinku…”) to
     wypowiedź o alarmie, nie jego ogłoszenie. Przedrostek z hasłem alarmu („Oro pavojus
     Vilniuje: …”) zostaje ogłoszeniem."""
-    m = re.match(r"^([^:–—]{2,40}):\s", title_l)
-    return bool(m and not any(w in m.group(1) for w in
-                              _vocab(country, "alert", config.BALTIC_ALERT_KEYWORDS)))
+    m = re.match(r"^([^:–—]{2,80}):\s", title_l)
+    if not m:
+        return False
+    prefix = m.group(1)
+    alert_words = _vocab(country, "alert", config.BALTIC_ALERT_KEYWORDS)
+    # „Osoba apie temat: cytat”. 11.11.2026 LRT „Pulkininkas apie Baltarusijos skambutį
+    # dėl oro pavojaus: jie mus įspėjo vos antrą kartą” dało Litwie alarm, bo hasło
+    # alarmu stało w przedrostku — ale po „apie”, czyli jako temat wypowiedzi pułkownika.
+    # Liczy się to, co stoi PRZED „apie”: „Įspėjimas apie oro pavojų: …” zostaje ogłoszeniem.
+    kto, apie, _ = prefix.partition(" apie ")
+    if apie and kto.strip() and not any(w in kto for w in alert_words) \
+            and not any(w in kto for w in ("įspėj", "perspėj", "pranešim")):
+        return True
+    return len(prefix) <= 40 and not any(w in prefix for w in alert_words)
 
 
 _BALTIC_TZ = ZoneInfo("Europe/Vilnius")      # LT, LV i EE mają ten sam czas

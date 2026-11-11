@@ -167,6 +167,19 @@ reset()
 asyncio.run(rm._baltic_entries([wpis("Oro pavojus Vilniuje: gyventojams išsiųsti įspėjimai", LRT + "vilniuje")],
                                "lrt", "LT", T0 + 60))
 ok(any(z["event_type"] == "baltic_alert" for z in zapis), "„Oro pavojus Vilniuje: …” nadal jest ogłoszeniem")
+# 11.11.2026 15:24: nagranie LRT z wypowiedzią pułkownika dało Litwie alarm i 0,3 pkt,
+# bo hasło alarmu stało w przedrostku — ale jako temat po „apie”.
+reset()
+asyncio.run(rm._baltic_entries([wpis(
+    "Pulkininkas apie Baltarusijos skambutį dėl oro pavojaus: jie mus įspėjo vos antrą kartą",
+    "https://www.lrt.lt/mediateka/irasas/2000922111/pulkininkas-apie-baltarusijos-skambuti")],
+    "lrt", "LT", T0 + 60))
+ok(not any(z["event_type"] == "baltic_alert" for z in zapis),
+   f"„Pulkininkas apie … oro pavojaus: …” to wypowiedź, nie alarm ({[z['event_type'] for z in zapis]})")
+reset()
+asyncio.run(rm._baltic_entries([wpis("Įspėjimas apie oro pavojų Vilniaus apskrityje: gyventojams išsiųsti pranešimai",
+                                     LRT + "ispejimas")], "lrt", "LT", T0 + 60))
+ok(any(z["event_type"] == "baltic_alert" for z in zapis), "„Įspėjimas apie oro pavojų …: …” nadal jest ogłoszeniem")
 
 
 class Odp:
