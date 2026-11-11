@@ -125,6 +125,7 @@ async def _fetch_mil(client: httpx.AsyncClient) -> list[dict] | None:
                 log.warning("ADS-B %s: limit zapytań (429), przerwa %.0f s", name, _przerwa_s())
                 return None
             r.raise_for_status()
+            _udane_zapytanie()
             status.update(ok=True, error=None,
                           provider=name if name == prov else f"{name}(fallback)")
             return r.json().get("ac") or []
@@ -180,7 +181,7 @@ def _pierwsza_kwota(h) -> int | None:
 
 
 def _zapamietaj_limit(r) -> None:
-    global _przerwa_do
+    global _przerwa_do, _seria_429
     h = r.headers
     try:
         s = float(h.get("retry-after") or h.get("x-ratelimit-reset") or 0)
@@ -196,6 +197,21 @@ def _zapamietaj_limit(r) -> None:
     else:
         # limit na sekundę albo minutę (albo bez nagłówków): krótka przerwa wg adsb.lol
         _przerwa_do = teraz + min(max(s, 1.0), 3600)
+        # 07.11.2026 od ~11:00 UTC: KAŻDE zapytanie → 429 z przerwą 1 s, pula dobowa daleko od
+        # końca. Krótka przerwa mijała przed następnym krokiem, więc pętla wracała do adsb.lol,
+        # zapas się nie włączał, a mapa i dioda stały ponad godzinę. Seria 429 = awaria.
+        _seria_429 += 1
+        if _seria_429 >= config.ADSB_SERIA_429:
+            log.warning("ADS-B: %d odmów 429 z rzędu — %d s na zapasie", _seria_429, config.ADSB_AWARIA_S)
+            _zapamietaj_awarie()
+
+
+_seria_429 = 0
+
+
+def _udane_zapytanie() -> None:
+    global _seria_429
+    _seria_429 = 0
 
 
 def _przerwa_s() -> float:
@@ -331,6 +347,7 @@ async def _fetch_baltic_geo(client: httpx.AsyncClient, provider: str,
                     key = ac.get("hex") or f"{ac.get('lat')}:{ac.get('lon')}:{ac.get('flight')}"
                     merged[key] = ac
             candidates = list(merged.values())
+            _udane_zapytanie()
             status["baltic_geo"] = {"ok": True, "provider": name,
                                     "candidates": len(candidates), "error": None}
             return candidates

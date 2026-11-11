@@ -12,7 +12,7 @@ import time
 import unicodedata
 from datetime import datetime, timedelta, timezone
 
-from . import config, db, ponowienie, stealth
+from . import config, db, ponowienie, slownik_woj, stealth
 
 log = logging.getLogger("fusion")
 
@@ -146,14 +146,35 @@ def _media_echo_of_rcb(media: dict, officials: list[dict]) -> dict | None:
     mt = _parse_ts(media.get("ts"))
     if mt is None:
         return None
+    w_oknie = []
     for o in sorted(officials, key=lambda x: x.get("ts", ""), reverse=True):
         ot = _parse_ts(o.get("ts"))
         if ot is None:
             continue
         roznica = (mt - ot).total_seconds() / 60
         if -config.RCB_MEDIA_ECHO_PO_MIN <= roznica <= config.RCB_MEDIA_ECHO_MIN:
-            return o
-    return None
+            w_oknie.append(o)
+    if not w_oknie:
+        return None
+    # 09.11.2026: Alert RCB poszedł do lubelskiego I podlaskiego, a RSO niosło tylko
+    # lubelskie. Radio Lublin „Alert RCB dla województw lubelskiego i podlaskiego”
+    # dało podlaskiemu 0,5 pkt, a ta reguła wyzerowała je jako echo alertu
+    # lubelskiego — jedyny ślad alertu w podlaskim. Echo zeruje więc województwo
+    # NAZWANE w tytule tylko wtedy, gdy ma ono własny oficjalny alert w oknie.
+    # Ochrona z 19.10 zostaje: województwo, którego tytuł nie nazywa (relacja
+    # o lubelskim w opolskim), dalej dostaje 0.
+    wlasne = media.get("voivodeship")
+    if (wlasne in slownik_woj.wojewodztwa(_tytul_mediow(media))
+            and not any(o.get("voivodeship") == wlasne for o in w_oknie)):
+        return None
+    return next((o for o in w_oknie if o.get("voivodeship") == wlasne), w_oknie[0])
+
+
+def _tytul_mediow(media: dict) -> str:
+    """Tytuł artykułu bez naszej otoczki „Media: „…””."""
+    t = media.get("title", "") or ""
+    m = re.match(r"^Media:\s*[„\"](.*)[”\"]\s*$", t, re.S)
+    return m.group(1) if m else t
 
 
 def _media_relay_of_official(media: dict, officials: list[dict]) -> dict | None:

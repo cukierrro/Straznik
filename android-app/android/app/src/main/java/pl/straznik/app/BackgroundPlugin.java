@@ -177,6 +177,62 @@ public class BackgroundPlugin extends Plugin {
      * potwierdzeniu przez FCM.
      */
     static void syncFcmSubscription(Context c, boolean forceAll) {
+        syncFcmSubscription(c, forceAll, 0);
+    }
+
+    /**
+     * 1.8.08 — wyścig synchronizacji (znaleziony 7.11.2026 na emulatorze): zamknięcie
+     * ustawień przy 0 miejsc uruchamiało wypisanie z 16 tematów, a zapis miejsca chwilę
+     * później drugą synchronizację. Starsza mogła zapisać stan po nowszej albo nie zapisać
+     * go wcale, więc wiersz w ustawieniach pokazywał „Wypisywanie…” albo stan sprzed
+     * zmiany aż do ponownego uruchomienia, choć Firebase zapisał tematy poprawnie.
+     * Dlatego:
+     *  - każda synchronizacja ma numer pokolenia (jak syncGeneration na iPhonie) i stan
+     *    zapisuje tylko najnowsza;
+     *  - flagi „w toku” ustawiamy od nowa na starcie każdej synchronizacji, więc nowsza
+     *    zdejmuje „Wypisywanie…” po starszej;
+     *  - nie zakładamy, że każde zadanie Firebase się zakończy. Firebase nie scala
+     *    operacji, ale (firebase-messaging, TopicsSubscriber/TopicsSyncTask) operacja
+     *    dodana dokładnie w chwili, gdy jego kolejka się opróżnia, czeka do następnego
+     *    startu synchronizacji, a odmowy „za dużo zapytań” ponawia po 30 s, 60 s… do 8 h.
+     *    Bez potwierdzenia po SYNC_RETRY_MS powtarzamy synchronizację (operacje są
+     *    idempotentne), co przy okazji budzi utkniętą kolejkę Firebase.
+     */
+    private static final java.util.concurrent.atomic.AtomicLong SYNC_GEN =
+        new java.util.concurrent.atomic.AtomicLong();
+    /** Chwila ostatniego potwierdzenia JAKIEJKOLWIEK operacji tematu (dowolnego pokolenia).
+     * Pomiar 9.11.2026 (emulator, podpis wydania): jedna operacja trwa ok. 0,6 s, więc pięć
+     * szybkich zmian to ok. 85 operacji i prawie minuta pracy Firebase. Straż ponawiająca
+     * po 45 s bez względu na postęp dokładała wtedy kolejne operacje i wydłużała całość
+     * do 2 min. Ponawiamy więc tylko wtedy, gdy Firebase od SYNC_RETRY_MS nic nie potwierdził. */
+    private static final java.util.concurrent.atomic.AtomicLong OSTATNI_POSTEP =
+        new java.util.concurrent.atomic.AtomicLong();
+    static final long SYNC_RETRY_MS = 45_000;
+    static final int SYNC_MAX_RETRY = 2;
+    /** Ile razy straż może odłożyć ponowienie, bo Firebase wciąż robi postępy (ok. 15 min). */
+    static final int SYNC_MAX_ODLOZEN = 20;
+
+    private static void straz(Context app, boolean forceAll, int retry, long gen,
+                              java.util.concurrent.atomic.AtomicBoolean done, int odlozenia) {
+        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+            if (done.get() || SYNC_GEN.get() != gen) return;
+            long cisza = System.currentTimeMillis() - OSTATNI_POSTEP.get();
+            if (cisza < SYNC_RETRY_MS && odlozenia < SYNC_MAX_ODLOZEN) {
+                // Firebase pracuje (potwierdził coś niedawno) — czekamy dalej, nie dokładamy operacji
+                straz(app, forceAll, retry, gen, done, odlozenia + 1);
+                return;
+            }
+            if (retry >= SYNC_MAX_RETRY) return;
+            android.util.Log.w("Straznik", "FCM nic nie potwierdził od " + cisza
+                + " ms — ponawiam synchronizację (" + (retry + 1) + "/" + SYNC_MAX_RETRY + ")");
+            syncFcmSubscription(app, forceAll, retry + 1);
+        }, SYNC_RETRY_MS);
+    }
+
+    private static void syncFcmSubscription(Context c, boolean forceAll, int retry) {
+        final Context app = c.getApplicationContext() != null ? c.getApplicationContext() : c;
+        final long gen = SYNC_GEN.incrementAndGet();
+        final java.util.concurrent.atomic.AtomicBoolean done = new java.util.concurrent.atomic.AtomicBoolean(false);
         java.util.Set<String> target = new java.util.HashSet<>();
         android.content.SharedPreferences bg = c.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         if (bg.contains(KEY_REGIONS)) {
@@ -195,6 +251,14 @@ public class BackgroundPlugin extends Plugin {
         final java.util.Set<String> confirmed = java.util.Collections.synchronizedSet(new java.util.HashSet<>());
         final java.util.concurrent.atomic.AtomicInteger pending =
             new java.util.concurrent.atomic.AtomicInteger(target.size());
+        long teraz = System.currentTimeMillis();
+        p.edit().putString("topics_error", "")
+            .putBoolean("topics_unsubscribing", target.isEmpty()).putLong("topics_unsub_at", teraz)
+            .putBoolean("topics_syncing", !target.isEmpty()).putLong("topics_sync_at", teraz).apply();
+        // Straż: Firebase ucichł bez potwierdzenia → ta sama synchronizacja jeszcze raz
+        // (najwyżej SYNC_MAX_RETRY). Nowsza synchronizacja albo potwierdzenie unieważniają straż tej.
+        OSTATNI_POSTEP.set(teraz);
+        straz(app, forceAll, retry, gen, done, 0);
         if (target.isEmpty()) {
             // Wypisujemy ze WSZYSTKICH województw, nie tylko z zapamiętanych: starsze
             // wersje zapisywały tematy bez utrwalenia listy. Stan „0 tematów” zapisujemy
@@ -202,13 +266,15 @@ public class BackgroundPlugin extends Plugin {
             final java.util.concurrent.atomic.AtomicInteger left =
                 new java.util.concurrent.atomic.AtomicInteger(Alarms.VOIVS.length);
             final java.util.concurrent.atomic.AtomicInteger failed = new java.util.concurrent.atomic.AtomicInteger();
-            p.edit().putString("topics_error", "").putBoolean("topics_unsubscribing", true)
-                .putLong("topics_unsub_at", System.currentTimeMillis()).apply();
             for (String v : Alarms.VOIVS) {
                 fm.unsubscribeFromTopic(voivTopic(v)).addOnCompleteListener(task -> {
+                    OSTATNI_POSTEP.set(System.currentTimeMillis());
                     if (!task.isSuccessful()) failed.incrementAndGet();
                     if (left.decrementAndGet() == 0) {
-                        android.content.SharedPreferences.Editor ed = p.edit().putBoolean("topics_unsubscribing", false);
+                        if (SYNC_GEN.get() != gen) return;   // nowsza synchronizacja zapisze swój stan
+                        done.set(true);
+                        android.content.SharedPreferences.Editor ed = p.edit().putBoolean("topics_unsubscribing", false)
+                            .putBoolean("topics_syncing", false);
                         if (failed.get() == 0)
                             ed.putStringSet("topics", target).putLong("topics_ok_at", System.currentTimeMillis())
                               .putString("topics_error", "");
@@ -228,13 +294,18 @@ public class BackgroundPlugin extends Plugin {
         // każdej synchronizacji wypisujemy ze WSZYSTKICH tematów województw spoza celu.
         java.util.Set<String> doWypisania = new java.util.HashSet<>(current);
         for (String v : Alarms.VOIVS) doWypisania.add(voivTopic(v));
-        for (String t : doWypisania) if (!target.contains(t)) fm.unsubscribeFromTopic(t);
+        for (String t : doWypisania) if (!target.contains(t))
+            fm.unsubscribeFromTopic(t).addOnCompleteListener(task -> OSTATNI_POSTEP.set(System.currentTimeMillis()));
         for (String t : target) {
             fm.subscribeToTopic(t).addOnCompleteListener(task -> {
+                OSTATNI_POSTEP.set(System.currentTimeMillis());
                 if (task.isSuccessful()) confirmed.add(t);
                 if (pending.decrementAndGet() == 0) {
+                    if (SYNC_GEN.get() != gen) return;   // nowsza synchronizacja zapisze swój stan
+                    done.set(true);
                     boolean all = confirmed.size() == target.size();
                     android.content.SharedPreferences.Editor ed = p.edit()
+                        .putBoolean("topics_syncing", false).putBoolean("topics_unsubscribing", false)
                         .putStringSet("topics", new java.util.HashSet<>(confirmed));
                     if (all) ed.putLong("topics_ok_at", System.currentTimeMillis()).putString("topics_error", "");
                     else ed.putString("topics_error", "nie potwierdzono " + (target.size() - confirmed.size())
@@ -282,6 +353,13 @@ public class BackgroundPlugin extends Plugin {
         ret.put("topicsUnsubscribing", unsub);
         if (fcm.getBoolean("topics_unsubscribing", false) && !unsub && fcm.getString("topics_error", "").isEmpty())
             ret.put("topicsError", "Firebase nie potwierdził wypisania");
+        // 1.8.08: zapis do województw w toku — ten sam limit 2 min co przy wypisywaniu
+        // (każda ponowiona próba odnawia znacznik czasu).
+        boolean syncing = fcm.getBoolean("topics_syncing", false)
+            && System.currentTimeMillis() - fcm.getLong("topics_sync_at", 0) < 120_000;
+        ret.put("topicsSyncing", syncing);
+        if (fcm.getBoolean("topics_syncing", false) && !syncing && fcm.getString("topics_error", "").isEmpty())
+            ret.put("topicsError", "Firebase nie potwierdził zapisu");
         ret.put("alertsOff", Alarms.prefs(c).getBoolean(Alarms.KEY_ALERTS_OFF, false));
         // czy flaga była kiedykolwiek zapisana (wersje do 1.7.49 trzymały ją tylko w localStorage)
         ret.put("alertsOffSet", Alarms.prefs(c).contains(Alarms.KEY_ALERTS_OFF));

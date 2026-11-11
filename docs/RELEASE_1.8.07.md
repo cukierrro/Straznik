@@ -17,6 +17,8 @@ Android i iPhone zapisywały tę chwilę już wcześniej. Zmiana dotyczy tylko w
 
 Znane ograniczenie, starsze niż to wydanie: na Androidzie zaraz po zmianie miejsc wiersz potrafi pokazywać stan sprzed zmiany („nie jest zapisany” albo „Wypisywanie…”), dopóki aplikacja nie zostanie uruchomiona ponownie. Sam zapis w Firebase przebiega poprawnie. Poprawka w 1.8.08.
 
+Uzupełnienie z 11.11.2026: naprawione w 1.8.08. Przy poprawce okazało się, że zdanie o zapisie było zbyt mocne — Firebase potrafi odłożyć operację do następnej synchronizacji; 1.8.08 wtedy ponawia zapis. Szczegóły w `docs/RELEASE_1.8.08.md`.
+
 ## Mniejszy plik na Androidzie
 
 Wydanie przechodzi teraz przez R8, narzędzie Androida, które przy budowie usuwa nieużywany kod bibliotek i skraca nazwy. APK ma 15,1 MB zamiast 17,6 MB, a AAB dla Google Play 15,5 MB.

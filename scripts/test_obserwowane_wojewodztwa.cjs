@@ -23,8 +23,10 @@ const app = fs.readFileSync("frontend/app.js", "utf8");
 
 test("synchronizacja wypisuje ze wszystkich tematów województw spoza celu", () => {
   assert.match(plugin, /for \(String v : Alarms\.VOIVS\) doWypisania\.add\(voivTopic\(v\)\);/);
-  assert.match(plugin, /for \(String t : doWypisania\) if \(!target\.contains\(t\)\) fm\.unsubscribeFromTopic\(t\);/);
-  assert.doesNotMatch(plugin, /for \(String t : current\) if \(!target\.contains\(t\)\) fm\.unsubscribeFromTopic\(t\);/,
+  // 1.8.08: wywołanie dostało słuchacza postępu i przeszło do drugiej linii — dopuszczamy
+  // dowolny odstęp i ciąg dalszy po fm.unsubscribeFromTopic(t), sens asercji bez zmian.
+  assert.match(plugin, /for \(String t : doWypisania\) if \(!target\.contains\(t\)\)\s*fm\.unsubscribeFromTopic\(t\)/);
+  assert.doesNotMatch(plugin, /for \(String t : current\) if \(!target\.contains\(t\)\)\s*fm\.unsubscribeFromTopic\(t\)/,
     "dawne wypisywanie tylko z własnej listy");
 });
 

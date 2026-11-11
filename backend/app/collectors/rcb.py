@@ -53,6 +53,12 @@ _meldunki: set[str] = set()
 # …i te, które zastaliśmy w artykule przy pierwszym otwarciu: mogą być sprzed
 # godzin, więc punktują tylko przy żywym alercie RSO, a odwołania z nich nie biorą
 _zastane: set[str] = set()
+# artykuły z listy, których nie dało się przeczytać (09.11.2026: adres przekierowywał
+# na stronę główną gov.pl): href → chwila pierwszej nieudanej próby
+_nieczytelne: dict[str, float] = {}
+NIECZYTELNY_LOG_CO_S = 30 * 60
+NIECZYTELNY_PONAWIAJ_S = 6 * 3600   # potem odkładamy jak historię, żeby nie zajmował miejsca w obiegu
+_ostrzezone: dict[str, float] = {}  # href → chwila ostatniego ostrzeżenia w logu
 
 
 def _fold(s: str) -> str:
@@ -252,6 +258,30 @@ def _odwolane_w_rso(okno_min: int = ODWOLANIE_OKNO_MIN) -> set[str]:
             if t > ostatni_alert.get(v, "") and t > najnowszy_alert}
 
 
+def _nieczytelny(href: str, powod: str) -> None:
+    """Artykuł do ponownej próby: bez wpisu w `_artykuly` kolejny obieg otworzy go
+    znowu. Ostrzeżenie w logu najwyżej co NIECZYTELNY_LOG_CO_S; po
+    NIECZYTELNY_PONAWIAJ_S odkładamy go jak historię (data pusta)."""
+    teraz = time.time()
+    pierwsza = _nieczytelne.setdefault(href, teraz)
+    if teraz - pierwsza >= NIECZYTELNY_PONAWIAJ_S:
+        _artykuly[href] = ""
+        log.warning("RCB: artykuł %s nadal nieczytelny (%s) — przestaję ponawiać", href, powod)
+        _nieczytelne.pop(href, None)
+    else:
+        _artykuly.pop(href, None)
+        _ostrzez(href, powod)
+    status["nieczytelne"] = len(_nieczytelne)
+
+
+def _ostrzez(href: str, powod: str) -> None:
+    """Ostrzeżenie w logu o artykule, najwyżej co NIECZYTELNY_LOG_CO_S na adres."""
+    teraz = time.time()
+    if teraz - _ostrzezone.get(href, 0.0) >= NIECZYTELNY_LOG_CO_S:
+        _ostrzezone[href] = teraz
+        log.warning("RCB: artykuł %s nieczytelny (%s) — spróbuję w kolejnym obiegu", href, powod)
+
+
 async def _czytaj_artykul(client: httpx.AsyncClient, href: str, tytul: str):
     """Otwiera artykuł z bieżącego dnia i punktuje województwa spoza RSO."""
     url = f"https://www.gov.pl{href}"
@@ -263,13 +293,26 @@ async def _czytaj_artykul(client: httpx.AsyncClient, href: str, tytul: str):
     except Exception as e:                       # noqa: BLE001
         log.warning("RCB: nie udało się przeczytać %s: %s", url, e)
         return
+    # 09.11.2026: artykuł o alercie dla lubelskiego i podlaskiego był na liście, ale
+    # jego adres zwracał 301 na stronę główną gov.pl. Czytaliśmy stronę główną, brali
+    # jej datę (04.11) za datę artykułu i odkładali go na zawsze jako „historię” —
+    # bez słowa w logu. Podlaskiego nie niosło RSO, więc ten artykuł był jedyną drogą.
+    # Teraz przekierowanie poza artykuł albo brak meldunku w artykule z dziś to
+    # „nieczytelny”: ostrzeżenie w logu i ponowna próba w kolejnym obiegu.
+    if r.url.path.rstrip("/") != href.rstrip("/"):
+        _nieczytelny(href, f"przekierowanie na {r.url}")
+        return
     dzien = _data_artykulu(tekst)
     _artykuly[href] = dzien
     if dzien != _dzis():
         return                                   # historia: sama lista, bez punktów
     m = najnowszy_meldunek(meldunki(tekst))      # najnowsza wysyłka jest na górze
     if m is None:
+        # Artykuł z dziś i tak czytamy w każdym obiegu (data zostaje w `_artykuly`,
+        # więc nie staje się „zastany”) — tu wystarczy ślad w logu.
+        _ostrzez(href, "artykuł z dziś bez rozpoznanego meldunku")
         return
+    _nieczytelne.pop(href, None)
     klucz = "rcb-art:" + hashlib.sha1(
         f"{href}|{m['tresc']}|{','.join(m['wojewodztwa'])}|{m['odwolanie']}".encode()
     ).hexdigest()[:16]

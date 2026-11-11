@@ -14,7 +14,7 @@ from fastapi.staticfiles import StaticFiles
 from . import (alert_log, app_updates, blob_store, by_entry_shadow, config, db, escalation_shadow, fusion, load_guard,
                monitoring, notify, public_cache, rcb_reference, request_limits)
 from .collectors import (adsb, neighbours, neptun,
-                         official_alerts, pansa, rcb, rso, rss_media)
+                         official_alerts, pansa, rcb, rso, rss_media, telegram_lt)
 from .neptun_archive import source_metadata
 
 logging.basicConfig(level=logging.INFO,
@@ -568,6 +568,7 @@ def _health_payload() -> dict:
         "rcb": rcb.status, "rso": rso.status, "rss": rss_media.status["feeds"],
         "neighbours": neighbours.status,
         "official_alerts": official_alerts.status,
+        "lt_telegram": telegram_lt.status,
         "by_entry_shadow": by_entry_shadow.status,
         "request_limits": request_limits.status,
         "notify": {"ntfy": config.NTFY_ENABLED and bool(config.NTFY_TOPIC),
@@ -740,6 +741,7 @@ async def startup():
         "neptun": neptun.run, "rss": rss_media.run, "rcb_govpl": rcb.run, "rso": rso.run,
         "adsb": adsb.run, "pansa": pansa.run, "neighbours": neighbours.run,
         "official_alerts": official_alerts.run,
+        "lt_telegram": telegram_lt.run,
         "snapshots": snapshot_loop,
         "levels": level_loop,
         "state": state_loop, "heartbeat": monitoring.heartbeat_loop,

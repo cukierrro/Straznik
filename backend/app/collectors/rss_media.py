@@ -160,7 +160,8 @@ def _baltic_stale(text: str, age: float, now: float, country: str = "") -> str |
 
 def _baltic_decision(country: str, kind: str, stale: str | None, title: str, link: str,
                      feed: str, age: float, now: float) -> None:
-    key = hashlib.sha1(f"{kind}|{link or title}".encode()).hexdigest()[:16]
+    # z tytułem: żywy artykuł (ten sam link) ma w nocy kilka brzmień, każde to osobna decyzja
+    key = hashlib.sha1(f"{kind}|{link or title}|{title}".encode()).hexdigest()[:16]
     stealth.record("baltic_media_decision", key, {
         "country": country, "kind": kind, "decision": "skip" if stale else "signal",
         "reason": stale, "title": title[:200], "link": link, "feed": feed,
@@ -238,6 +239,35 @@ _baltic_alerted: set[str] = set()        # incident_key, za które coś przyznan
 # aktywny alarm, więc spóźniony artykuł wszedł jako NOWY alarm na godzinę.
 _baltic_cleared_at: dict[str, float] = {}
 BALTIC_ACTIVE_S = 3 * 3600
+# incident_key -> (wersja tytułu, chwila pierwszego zobaczenia tej wersji albo None).
+# 10/11.11.2026: LRT prowadzi JEDEN żywy artykuł o alarmach (nr 3007328) — zmienia
+# mu tytuł i ścieżkę, a `pubDate` zostaje z pierwszego alarmu nocy. Złapaliśmy go
+# o 20:58 UTC jako prawdopodobny alarm Wilno/Uciana, ale zmiana tytułu na czerwony
+# alarm w Druskienikach i Łoździejach (22:45, tuż przy Polsce) przepadła po cichu:
+# wiek liczony od `pubDate` miał 109 min przy limicie MAX_AGE_S, a ten sam artykuł
+# nie mógł dać drugiego alarmu. Teraz nowy tytuł znanego artykułu to nowa wersja:
+# wiek liczymy od chwili, w której ją zobaczyliśmy. Pierwsze zobaczenie artykułu
+# (także po restarcie) zostaje przy `pubDate` — stary artykuł nie udaje świeżego.
+_baltic_wersje: dict[str, tuple[str, float | None]] = {}
+BALTIC_WERSJE_MAX = 2000
+
+
+def _wersja_tytulu(title: str) -> str:
+    return hashlib.sha1(re.sub(r"\s+", " ", title.strip().lower()).encode()).hexdigest()[:10]
+
+
+def _wiek_wersji(incident_key: str, title: str, age: float, now: float) -> tuple[str, float]:
+    """(wersja tytułu, wiek do decyzji). Patrz `_baltic_wersje`."""
+    wersja = _wersja_tytulu(title)
+    poprzednia = _baltic_wersje.get(incident_key)
+    if poprzednia is None:
+        if len(_baltic_wersje) >= BALTIC_WERSJE_MAX:
+            _baltic_wersje.pop(next(iter(_baltic_wersje)))
+        _baltic_wersje[incident_key] = (wersja, None)
+    elif poprzednia[0] != wersja:
+        _baltic_wersje[incident_key] = (wersja, now)
+    od = _baltic_wersje[incident_key][1]
+    return wersja, (now - od if od is not None else age)
 
 
 def _baltic_incident_key(link: str, title: str, country: str) -> str:
@@ -608,6 +638,25 @@ async def _check_feed(client: httpx.AsyncClient, url: str, default_voiv: str | N
             )
 
 
+KANAL_MARTWY_S = 3 * 3600       # po tylu godzinach błędów kanał trafia do logu jako martwy
+KANAL_MARTWY_LOG_CO_S = 6 * 3600
+
+
+def _kanal_nie_dziala(st: dict, url: str) -> None:
+    """11.11.2026: 15min.lt odpowiadał 403 od tygodni (ostatni sygnał 18.10), a błąd
+    był widoczny tylko w /api/health, którego nikt nie czytał. Kanał niedziałający
+    dłużej niż KANAL_MARTWY_S zostawia ostrzeżenie w logu (co KANAL_MARTWY_LOG_CO_S)
+    i znacznik `dead_h` w statusie — do tygodniowego przeglądu."""
+    teraz = time.time()
+    od = st.setdefault("fail_since", teraz)
+    if teraz - od < KANAL_MARTWY_S:
+        return
+    st["dead_h"] = round((teraz - od) / 3600, 1)
+    if teraz - st.get("dead_logged", 0) >= KANAL_MARTWY_LOG_CO_S:
+        st["dead_logged"] = teraz
+        log.warning("Kanał %s nie działa od %.1f h: %s", url, st["dead_h"], st.get("error"))
+
+
 async def _check_baltic_feed(client: httpx.AsyncClient, url: str, country: str):
     """Media sąsiada: incydent albo ogłoszony alarm powietrzny u sąsiada.
 
@@ -620,7 +669,9 @@ async def _check_baltic_feed(client: httpx.AsyncClient, url: str, country: str):
     r, err = await _get_with_retry(client, url)
     if err is not None:
         st.update(ok=False, error=err)
+        _kanal_nie_dziala(st, url)
         return
+    st.pop("fail_since", None)
     parsed = feedparser.parse(r.content)
     dated = [e for e in parsed.entries
              if e.get("published_parsed") or e.get("updated_parsed")]
@@ -680,10 +731,13 @@ async def _baltic_entries(entries, url: str, country: str, now: float):
         text = f"{title} {entry.get('summary', '')}".lower()
         t = entry.get("published_parsed") or entry.get("updated_parsed")
         age = now - calendar.timegm(t) if t else 0
-        if age > config.BALTIC_CLEAR_MAX_AGE_MIN * 60:
-            continue
         link = entry.get("link", "")
         incident_key = _baltic_incident_key(link, title, country)
+        # wersję liczymy PRZED progiem wieku: końcowe odwołanie z 07:17 miało
+        # `pubDate` sprzed 10 h i bez tego odpadało, zanim ktokolwiek spojrzał na tytuł
+        wersja, age = _wiek_wersji(incident_key, title, age, now)
+        if age > config.BALTIC_CLEAR_MAX_AGE_MIN * 60:
+            continue
         # 18.10.2026: 15min zmienił tytuł z „Panevėžio ir Šiaulių apskrityse –
         # raudonas oro pavojus” na „Panevėžio apskrityje – raudonas oro pavojus”, a opis
         # mówił o odwołaniu w Szawlach. Tytuł nadal OGŁASZA alarm, więc to zawężenie,
@@ -702,8 +756,11 @@ async def _baltic_entries(entries, url: str, country: str, now: float):
             # Wpis odwołania powstaje tylko wtedy, gdy jest co odwołać: aktywny
             # alarm kraju albo wcześniejszy sygnał o tym samym artykule. Inaczej
             # każdy artykuł „oro pavojaus nebėra” dawał 4 puste wiersze w panelu.
-            first_seen = incident_key not in _baltic_clears_seen
-            _baltic_clears_seen.add(incident_key)
+            # Klucz z wersją tytułu: żywy artykuł LRT odwołuje alarm kilka razy
+            # w nocy (21:44 Wilno, 07:17 cała Litwa), a każde z tych odwołań jest inne.
+            klucz_odwolania = f"{incident_key}|{wersja}"
+            first_seen = klucz_odwolania not in _baltic_clears_seen
+            _baltic_clears_seen.add(klucz_odwolania)
             if not first_seen:
                 continue
             _baltic_cleared_at[country] = now
@@ -721,10 +778,15 @@ async def _baltic_entries(entries, url: str, country: str, now: float):
                         points=0.0, title=f"Media {country}: odwołanie — „{title[:100]}”",
                         details={"link": link, "country": country,
                                  "incident_key": key, "clear": True},
-                        dedup_key=f"baltic-clear:{key}:{voiv}",
+                        dedup_key=f"baltic-clear:{key}:{wersja}:{voiv}",
                     )
             continue
         if age > MAX_AGE_S:
+            # Dawniej po cichu. Alarm pominięty za wiek trafia do dziennika decyzji —
+            # 10/11.11 ta luka trwała osiem godzin i nie zostawiła żadnego śladu.
+            if _is_baltic_alert(title.lower(), country):
+                _baltic_decision(country, "alert", f"wiek {round(age / 60)} min",
+                                 title, link, url, age, now)
             continue
         title_l = title.lower()
         # Kraj, O KTÓRYM mówi tytuł, wyliczamy PRZED bramą „miejsce w kraju".
@@ -790,6 +852,15 @@ async def _baltic_entries(entries, url: str, country: str, now: float):
             if (active and now - active["at"] < BALTIC_ACTIVE_S
                     and active["incident_key"] != incident_key):
                 continue          # to samo ogłoszenie z drugiej redakcji
+            if (active and now - active["at"] < BALTIC_ACTIVE_S
+                    and active["incident_key"] == incident_key
+                    and incident_key in _baltic_alerted):
+                # Nowy tytuł trwającego, nieodwołanego alarmu (np. żółty → czerwony
+                # w tym samym żywym artykule). Punkty już są — nie sumujemy drugi
+                # raz; okno źródeł pokazuje najnowsze brzmienie.
+                baltic[country]["last_alert"] = {
+                    **(baltic[country]["last_alert"] or {}), "title": title[:160], "updated_at": now}
+                continue
             if not active:
                 _baltic_active[country] = {"incident_key": incident_key, "at": now}
                 baltic[country]["last_alert"] = {"title": title[:160], "at": now,
@@ -810,7 +881,7 @@ async def _baltic_entries(entries, url: str, country: str, now: float):
                              "feed": url, "shadow": cien,
                              "would_be": round(config.POINTS["baltic_alert"]
                                                * weight * waga, 2) if cien else None},
-                    dedup_key=f"baltic-alert:{incident_key}:{voiv}",
+                    dedup_key=f"baltic-alert:{incident_key}:{wersja}:{voiv}",
                 )
             _baltic_alerted.add(incident_key)
             continue

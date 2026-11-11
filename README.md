@@ -6,6 +6,11 @@
 
 Serwer: **hostowane na [Mikrusie](https://mikr.us)** — dziękujemy za wsparcie projektu.
 
+Wersja 1.8.08: na Androidzie stan zapisu do województw odświeża się sam po zmianie miejsc; Alert RCB
+dla kilku województw liczy się dla każdego z nich; alarmy na Litwie z żywego artykułu LRT są wychwytywane;
+GROTA ma wykaz PSP z 10.11 (88 256 punktów).
+Szczegóły: `docs/RELEASE_1.8.08.md`.
+
 Wersja 1.8.07: ustawienia pokazują, kiedy Firebase ostatnio potwierdził zapis telefonu do alarmów
 (Android i iPhone); plik aplikacji na Androida jest o 14% mniejszy dzięki R8.
 Szczegóły: `docs/RELEASE_1.8.07.md`.
