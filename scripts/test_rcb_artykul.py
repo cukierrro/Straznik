@@ -17,6 +17,7 @@ Pułapki, które sprawdza ten test:
 Uruchomienie:  py scripts/test_rcb_artykul.py
 """
 import asyncio
+import httpx
 import sys
 import types
 from pathlib import Path
@@ -106,8 +107,9 @@ zapisy, ingesty, punktowane = [], [], []
 
 
 class _Resp:
-    def __init__(self, text):
+    def __init__(self, text, url):
         self.text = text
+        self.url = httpx.URL(url)        # jak httpx: adres PO przekierowaniach
 
     def raise_for_status(self):
         pass
@@ -115,7 +117,12 @@ class _Resp:
 
 class _Client:
     async def get(self, url, **k):
-        return _Resp(LISTA if url.endswith("/web/rcb") else strona["artykul"])
+        if url.endswith("/web/rcb"):
+            return _Resp(LISTA, url)
+        # 09.11.2026: gov.pl odpowiadał 301 na stronę główną zamiast artykułu
+        if strona.get("przekierowanie"):
+            return _Resp(strona_artykulu("Strona główna gov.pl", data="04.11.2026"), "https://www.gov.pl/")
+        return _Resp(strona["artykul"], url)
 
 
 async def _ingest(**k):
@@ -302,6 +309,40 @@ ok(n2310 is not None and n2310["odwolanie"] and n2310["wojewodztwa"] == ["lubels
 ok(rcb.wojewodztwa_alertu("Alert RCB został wysłany do odbiorców na terenie województwa: - opolskiego "
                           "- powiaty: brzeski, nyski.") == ["opolskie"],
    "wycięcie listy powiatów nie gubi samego województwa")
+
+print("\n12. Adres artykułu przekierowuje na stronę główną gov.pl (09.11.2026)")
+# Alert dla lubelskiego i podlaskiego, RSO niosło samo lubelskie, a artykuł gov.pl
+# odpowiadał 301 na stronę główną. Dawniej data strony głównej (04.11) odkładała go
+# na zawsze jako historię — po naprawie przez gov.pl nikt by go już nie przeczytał.
+import time as _time  # noqa: E402
+rcb._rso_pokrycie = _pokrycie_oryg
+for _zb in (rcb._artykuly, rcb._meldunki, rcb._zastane, rcb._nieczytelne, rcb._ostrzezone):
+    _zb.clear()
+rso_pokrycie.clear()
+rso_pokrycie.append(alert_rso("lubelskie"))
+BLOK_0911 = (f"<p><strong>&bdquo;{MONITOR}&rdquo;</strong></p>"
+             "<p>Alert RCB został wysłany do odbiorc&oacute;w na terenie części wojew&oacute;dztwa:</p>"
+             "<p>- lubelskiego - powiaty: włodawski, łęczyński, Biała Podlaska, bialski</p>"
+             "<p>- podlaskiego - powiaty: Suwałki, suwalski, augustowski, Białystok, białostocki</p>")
+strona["przekierowanie"] = True
+obieg()
+ok(not punktowane, "przekierowany artykuł nie punktuje")
+ok(LINK not in rcb._artykuly, "…i NIE zostaje odłożony jako historia (ponowna próba w kolejnym obiegu)")
+ok(LINK in rcb._nieczytelne and rcb.status.get("nieczytelne") == 1, "liczy się jako nieczytelny w statusie")
+strona["przekierowanie"] = False
+strona["artykul"] = strona_artykulu(BLOK_0911)
+obieg()
+ok([p["voivodeship"] for p in punktowane] == ["podlaskie"],
+   f"po naprawie przez gov.pl punktuje podlaskie, którego RSO nie niosło ({[p['voivodeship'] for p in punktowane]})")
+ok(LINK not in rcb._nieczytelne, "udany odczyt zdejmuje artykuł z listy nieczytelnych")
+# limit: po 6 h nieudanych prób artykuł odkładamy, żeby nie zajmował miejsca w każdym obiegu
+for _zb in (rcb._artykuly, rcb._meldunki, rcb._zastane):
+    _zb.clear()
+rcb._nieczytelne[LINK] = _time.time() - rcb.NIECZYTELNY_PONAWIAJ_S - 1
+strona["przekierowanie"] = True
+obieg()
+ok(rcb._artykuly.get(LINK) == "" and LINK not in rcb._nieczytelne, "po 6 h przestajemy ponawiać")
+strona["przekierowanie"] = False
 
 if bledy:
     print(f"\nBLEDY: {len(bledy)}")

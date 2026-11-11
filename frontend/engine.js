@@ -840,13 +840,25 @@ function mediaEchoOfRcb(media, officials) {
   if (!mediaAboutRcb(media)) return null;
   const mt = media.t || Date.parse(media.ts);
   if (!Number.isFinite(mt)) return null;
+  const wOknie = [];
   for (const o of [...officials].sort((a, b) => (b.t || Date.parse(b.ts)) - (a.t || Date.parse(a.ts)))) {
     const ot = o.t || Date.parse(o.ts);
     if (!Number.isFinite(ot)) continue;
     const roznica = (mt - ot) / 60000;
-    if (roznica >= -RCB_MEDIA_ECHO_PO_MIN && roznica <= RCB_MEDIA_ECHO_MIN) return o;
+    if (roznica >= -RCB_MEDIA_ECHO_PO_MIN && roznica <= RCB_MEDIA_ECHO_MIN) wOknie.push(o);
   }
-  return null;
+  if (!wOknie.length) return null;
+  /* Lustro fusion._media_echo_of_rcb (09.11.2026): województwo NAZWANE w tytule
+     artykułu bez własnego oficjalnego alertu w oknie nie jest echem — RSO niosło
+     tylko lubelskie, a Radio Lublin pisało o alercie także dla podlaskiego. */
+  const wlasne = media.voivodeship;
+  if (matchVoivs(tytulMediow(media)).includes(wlasne) && !wOknie.some(o => o.voivodeship === wlasne)) return null;
+  return wOknie.find(o => o.voivodeship === wlasne) || wOknie[0];
+}
+function tytulMediow(media) {
+  const t = String(media.title || "");
+  const m = t.match(/^Media:\s*[„"]([\s\S]*)[”"]\s*$/);
+  return m ? m[1] : t;
 }
 function relayStems(value) {
   return new Set([...relayTokens(value)].map(w => w.slice(0, 5)));

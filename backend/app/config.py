@@ -247,6 +247,11 @@ ADSB_MIN_COUNT = 3                 # ...i co najmniej tyle maszyn wojskowych
 PANSA_INTERVAL = int(os.getenv("PANSA_INTERVAL", "300"))
 RSS_INTERVAL = int(os.getenv("RSS_INTERVAL", "60"))
 OFFICIAL_ALERTS_INTERVAL = int(os.getenv("OFFICIAL_ALERTS_INTERVAL", "30"))
+# Telegram LRT (rosyjskojęzyczny) — alarmy na Litwie, TRYB CIENIA od 11.11.2026 na tydzień
+# (decyzja usera po nocy 10/11.11). Tylko dziennik obserwacji `lt_telegram`, bez punktów.
+LT_TELEGRAM_ENABLED = os.getenv("LT_TELEGRAM_ENABLED", "1") == "1"
+LT_TELEGRAM_URL = os.getenv("LT_TELEGRAM_URL", "https://t.me/s/lrtlt")
+LT_TELEGRAM_INTERVAL = int(os.getenv("LT_TELEGRAM_INTERVAL", "60"))
 # Rumunia i Białoruś w mediach (tryb cienia) — WYŁĄCZONE 22.09.2026: RO 4/19 trafień, ~2 h po RO-ALERT;
 # BY 12 wpisów bez żadnej wczesnej informacji. Dane zostają w obserwacje.db.
 RCB_INTERVAL = int(os.getenv("RCB_INTERVAL", "120"))
