@@ -1188,6 +1188,11 @@ BALTIC_ALERT_KEYWORDS = [
     "air alert", "air raid", "airspace alert", "air hazard alert", "air threat alert",
     "air danger alert", "drone threat warning", "drone warning", "air threat warning",
 ]
+# Rdzenie „aplikacja / system” w złożeniach. Słowo z takim rdzeniem nie liczy się
+# jako hasło alarmu („ohuteavitusrakendus” = aplikacja ostrzegawcza, „ohuteavitussüsteem”
+# = system ostrzegania): to artykuł o narzędziu, nie ogłoszenie. Wycinane jest tylko
+# samo złożenie, więc inne hasło w tym samym tytule nadal działa.
+BALTIC_ALERT_THING_STEMS = ["rakendus", "süsteem", "lietotn", "sistēm", "programėl"]
 # Incydent powietrzny nad Bałtykiem dotyczy całego wybrzeża, nie tylko flanki
 # wschodniej. Waga maleje z odległością od miejsca zdarzenia: podlaskie,
 # warmińsko-mazurskie i pomorskie w pełni, zachodniopomorskie o połowę słabiej

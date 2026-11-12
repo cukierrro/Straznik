@@ -213,6 +213,10 @@ def _baltic_abroad(title: str, country: str) -> bool:
     return not any(m in tl for m in config.BALTIC_LOCAL_MARKERS.get(country, ()))
 
 
+_ALERT_THING_WORD_RE = re.compile(
+    r"\w*(?:" + "|".join(map(re.escape, config.BALTIC_ALERT_THING_STEMS)) + r")\w*")
+
+
 def _is_baltic_alert(text: str, country: str = "") -> list[str]:
     tl = text.lower()
     if any(word in tl for word in _vocab(country, "exclude", config.BALTIC_EXCLUDE_KEYWORDS)):
@@ -220,6 +224,12 @@ def _is_baltic_alert(text: str, country: str = "") -> list[str]:
     words = set(re.findall(r"\w+", tl))
     if words & set(_vocab(country, "past_markers", config.BALTIC_ALERT_PAST_MARKERS)):
         return []
+    # Hasło wewnątrz nazwy aplikacji lub systemu to temat, nie ogłoszenie. 12.11.2026
+    # ERR „Eesti töötab … välja uut ohuteavitusrakendust” (nowa aplikacja ostrzegawcza)
+    # dało Estonii alarm, bo „ohuteavitus” siedzi w „ohuteavitusrakendust”. Wycinamy
+    # tylko to jedno słowo: „Õhuoht …: ohuteavitusrakendus saatis hoiatuse” dalej
+    # trafia przez „õhuoht”.
+    tl = _ALERT_THING_WORD_RE.sub(" ", tl)
     hits = [word for word in _vocab(country, "alert", config.BALTIC_ALERT_KEYWORDS)
             if word in tl]
     # RO-Alert to JEDEN system na burze, powodzie, pożary i drony. Samo
