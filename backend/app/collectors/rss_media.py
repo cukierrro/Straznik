@@ -215,6 +215,17 @@ def _baltic_abroad(title: str, country: str) -> bool:
 
 _ALERT_THING_WORD_RE = re.compile(
     r"\w*(?:" + "|".join(map(re.escape, config.BALTIC_ALERT_THING_STEMS)) + r")\w*")
+# reszta słowa hasła („air alert|s”), ewentualnie „warning / notification” („air raid
+# warning system”), i zaraz po tym rzeczownik „app / system”
+_ALERT_THING_AFTER_RE = re.compile(
+    r"\w*(?:\s+(?:warning|warnings|alert|alerts|notification|notifications|siren|sirens))?"
+    r"\s+(?:" + "|".join(map(re.escape, config.BALTIC_ALERT_THING_NOUNS)) + r")\b")
+
+
+def _alert_word_counts(word: str, tl: str) -> bool:
+    """Czy hasło występuje choć raz jako ogłoszenie, a nie nazwa narzędzia."""
+    return any(not _ALERT_THING_AFTER_RE.match(tl, m.end())
+               for m in re.finditer(re.escape(word), tl))
 
 
 def _is_baltic_alert(text: str, country: str = "") -> list[str]:
@@ -230,8 +241,10 @@ def _is_baltic_alert(text: str, country: str = "") -> list[str]:
     # tylko to jedno słowo: „Õhuoht …: ohuteavitusrakendus saatis hoiatuse” dalej
     # trafia przez „õhuoht”.
     tl = _ALERT_THING_WORD_RE.sub(" ", tl)
+    # Po angielsku narzędzie to osobne słowo po haśle: 13.11.2026 ERR News „Estonia
+    # developing Ukraine-inspired air alert app” znów dało Estonii alarm.
     hits = [word for word in _vocab(country, "alert", config.BALTIC_ALERT_KEYWORDS)
-            if word in tl]
+            if word in tl and _alert_word_counts(word, tl)]
     # RO-Alert to JEDEN system na burze, powodzie, pożary i drony. Samo
     # „mesaj RO-Alert" nie mówi nic o powietrzu, więc dla krajów z
     # NEIGHBOUR_ALERT_NEEDS_AIR ogłoszenie liczy się tylko razem ze słowem

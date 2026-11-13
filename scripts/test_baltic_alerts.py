@@ -197,6 +197,19 @@ reset()
 asyncio.run(rm._baltic_entries([wpis("Õhuohu hoiatus Ida-Virumaal", "https://www.err.ee/1610194399/ohuohu")],
                                "err", "EE", T0 + 60))
 ok(any(z["event_type"] == "baltic_alert" for z in zapis), "„Õhuohu hoiatus Ida-Virumaal” nadal jest alarmem")
+# 13.11.2026 08:22: ten sam artykuł w angielskim wydaniu ERR — „air alert app” to narzędzie.
+reset()
+asyncio.run(rm._baltic_entries([wpis("Estonia developing Ukraine-inspired air alert app",
+                                     "https://news.err.ee/1609845000/estonia-air-alert-app")],
+                               "err", "EE", T0 + 60))
+ok(not any(z["event_type"] == "baltic_alert" for z in zapis),
+   f"„air alert app” to nie alarm ({[z['event_type'] for z in zapis]})")
+for t in ("new air raid warning system tested in tallinn", "latvia launches air alerts application",
+          "estonia's air threat warning apps"):
+    ok(not rm._is_baltic_alert(t, "EE"), f"narzędzie, nie alarm: {t}")
+for t in ("air alert in ida-viru county", "air alert in vilnius, app sends warnings",
+          "air alert app sent warnings as air alert declared in narva", "drone warning issued for narva"):
+    ok(rm._is_baltic_alert(t, "EE"), f"nadal alarm: {t}")
 
 
 class Odp:

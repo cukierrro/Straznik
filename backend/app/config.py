@@ -1193,6 +1193,11 @@ BALTIC_ALERT_KEYWORDS = [
 # = system ostrzegania): to artykuł o narzędziu, nie ogłoszenie. Wycinane jest tylko
 # samo złożenie, więc inne hasło w tym samym tytule nadal działa.
 BALTIC_ALERT_THING_STEMS = ["rakendus", "süsteem", "lietotn", "sistēm", "programėl"]
+# To samo po angielsku, gdzie narzędzie stoi osobnym słowem PO haśle: „air alert app”,
+# „air raid warning system”. Hasło, po którym od razu pada jedno z tych słów, się nie
+# liczy (13.11.2026 ERR News „Estonia developing Ukraine-inspired air alert app”).
+BALTIC_ALERT_THING_NOUNS = ["app", "apps", "application", "applications",
+                            "system", "systems"]
 # Incydent powietrzny nad Bałtykiem dotyczy całego wybrzeża, nie tylko flanki
 # wschodniej. Waga maleje z odległością od miejsca zdarzenia: podlaskie,
 # warmińsko-mazurskie i pomorskie w pełni, zachodniopomorskie o połowę słabiej
