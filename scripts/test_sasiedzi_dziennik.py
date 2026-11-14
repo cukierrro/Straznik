@@ -121,9 +121,18 @@ for i, (tytul, kraj) in enumerate(NIE_SYGNAL):
             str([(d["decision"], d["reason"]) for d in dz]))
 
 # ── 3. Słownictwo nowych języków nie przecieka do pozostałych krajów ─────────
+# MD i RO mają od 14.11.2026 własny słownik rumuński (config._VOCAB_RO) — wolno
+# im dostać DOKŁADNIE te słowa i nic więcej (zwłaszcza nic z BG/FI/NO).
+def _oczekiwane(kraj, k, baza):
+    if kraj in ("MD", "RO") and k in config._VOCAB_RO:
+        return list(baza) + config._VOCAB_RO[k]
+    return baza
+
+
 for kraj in ("LT", "LV", "EE", "RO", "MD", "SK", "CZ", "SE", "HU"):
     nietkniete = all(
-        r._vocab(kraj, k, baza) is baza
+        (r._vocab(kraj, k, baza) is baza) if _oczekiwane(kraj, k, baza) is baza
+        else r._vocab(kraj, k, baza) == _oczekiwane(kraj, k, baza)
         for k, baza in (("alert", config.BALTIC_ALERT_KEYWORDS),
                         ("air", config.BALTIC_AIR_KEYWORDS),
                         ("event", config.BALTIC_EVENT_KEYWORDS),
