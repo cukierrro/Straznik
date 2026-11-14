@@ -137,6 +137,19 @@ def _speaker_quote(title_l: str, country: str = "") -> bool:
     return len(prefix) <= 40 and not any(w in prefix for w in alert_words)
 
 
+def _publicystyka(title_l: str, country: str) -> bool:
+    """Statystyka, cytat na początku albo rubryka „Autor/ ” — dla kanałów MD i RO
+    (14.11.2026: takie tytuły szły na mapę jako karty „Obserwacja MD”)."""
+    if any(re.search(p, title_l)
+           for p in config.NEIGHBOUR_DISCUSSION_PATTERNS.get(country, ())):
+        return True
+    if country in config.NEIGHBOUR_TAG_COUNTRIES:
+        m = re.match(r"^([^/|:]{2,30})/\s", title_l)
+        if m and m.group(1).strip() not in config.NEIGHBOUR_NEWS_TAGS:
+            return True
+    return False
+
+
 _BALTIC_TZ = ZoneInfo("Europe/Vilnius")      # LT, LV i EE mają ten sam czas
 _BALTIC_TIME_RE = re.compile(
     r"(?:\b(\d{1,2})[:.](\d{2})\s*val\b)|(?:\b(?:plkst\.?|kell|at|apie)\s*(\d{1,2})[:.](\d{2})\b)")
@@ -832,7 +845,8 @@ async def _baltic_entries(entries, url: str, country: str, now: float):
         # tytuł-pytanie („ko trūksta…?”) to publicystyka, nie ogłoszenie alarmu (22.09.2026)
         discussion = (any(m in f" {title_l}" for m in
                           _vocab(country, "discussion", config.BALTIC_DISCUSSION_MARKERS))
-                      or title_l.rstrip().endswith("?"))
+                      or title_l.rstrip().endswith("?")
+                      or _publicystyka(title_l, country))
         alert_hits = ([] if discussion or _speaker_quote(title_l, country)
                       else _is_baltic_alert(title_l, country))
         # Słowa incydentu w języku kanału (dla Bałtyku i szóstki — wspólne listy).

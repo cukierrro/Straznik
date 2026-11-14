@@ -943,7 +943,8 @@ async def _maybe_signal(t: dict):
                  if moved is not None else {"heading_known": False})
     eta_level = _eta_alarm_level(eta_a, sources, conf, eta_conservative,
                                  approximate=approximate)
-    _eta_single_source_shadow(t, a, sources, conf, eta_conservative, approximate, eta_level)
+    if config.SHADOW_ETA_SINGLE:
+        _eta_single_source_shadow(t, a, sources, conf, eta_conservative, approximate, eta_level)
     if eta_level == "high":
         points = max(points, config.THRESHOLD_HIGH)
     elif eta_level == "elevated":

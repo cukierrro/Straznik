@@ -531,6 +531,10 @@ SHADOW_BY_ENTRY = False
 SHADOW_NEPTUN_RENEW = False
 SHADOW_NEPTUN_TURNAWAY = False
 SHADOW_ODWOLANIE_WOJ = False
+# ETA z jednego zgłoszenia rakiety (decyzja usera 14.11.2026): przez dwa miesiące jeden
+# wpis — 03.11 01:17 UTC, rakieta 57 km od lubelskiego, w tej samej sekundzie województwo
+# dostało czerwony 4,1 z innych składników, a Alert RCB przyszedł o 05:02. Nic nie wnosi.
+SHADOW_ETA_SINGLE = False
 
 # Audyt referencyjny oficjalnych alertów RCB/RSO. Zachowuje 30 minut danych
 # sprzed pierwszego wykrycia, ale nie zmienia punktacji ani powiadomień.
@@ -1360,6 +1364,12 @@ BALTIC_EVENT_TIME_MAX_MIN = 60
 # sygnał, pokazują kartę na mapie, każdą decyzję zapisują w dzienniku
 # obserwacji („baltic_media_decision”) i NIE DODAJĄ PUNKTÓW. Wagi niżej są
 # policzone i gotowe; dopóki kraj jest w NEIGHBOUR_SHADOW, punkty wychodzą 0.
+#
+# RUMUNIA — decyzja usera 14.11.2026: zostaje NA STAŁE informacją bez punktów.
+# Przez miesiąc 25 alarmów, wszystkie prawdziwe RO-Alert, ale Tulcza / Wyspa Węży
+# (drony na porty Izmaił i Odessę) albo Jassy i Neamț — 400–800 km od Polski, kurs
+# nie na nas. Waga w NEIGHBOUR_ALERT_COUNTRY_WEIGHTS zostaje tylko jako liczba
+# „would_be” w dzienniku. Nie wyjmować RO z tego zbioru bez nowej decyzji.
 NEIGHBOUR_SHADOW = {"MD", "RO", "SK", "CZ", "SE", "HU", "BG", "FI", "NO"}
 NEIGHBOUR_COUNTRY_NAMES = {
     "MD": "Mołdawia", "RO": "Rumunia", "SK": "Słowacja",
@@ -1724,6 +1734,31 @@ NEIGHBOUR_VOCAB = {
                     "i russland"],
     },
 }
+# Rumuński (MD i RO, 14.11.2026). Przegląd 90 tytułów mołdawskich z miesiąca: obok
+# prawdziwych przelotów dronów i rakiet jako karty „Obserwacja MD” szły reakcje MSZ
+# (nota protestacyjna, wezwanie ambasadora, wydalenie dyplomaty), statystyki („încălcat
+# de 67 de ori în 2026”, „al 95-lea caz”), felietony („Editorial/”, „Alina Radu/”),
+# infografiki, zakupy ciężarówek i przeloty paralotni. Na mapie to szum.
+_VOCAB_RO = {
+    "discussion": ["notă de protest", "convocat", "expulzat", "persona non grata",
+                   "condamnă", "expertiz", "infografic", "editorial", "reacți",
+                   "mesajul", " despre ", "ce indică", "negocier", "legislați"],
+    "exclude": ["motoparapant", "parapant", "camioane", "adăposturile"],
+}
+NEIGHBOUR_VOCAB["MD"] = _VOCAB_RO
+NEIGHBOUR_VOCAB["RO"] = _VOCAB_RO
+# Wzorce publicystyki w tytule (na małych literach), dla kanałów tych krajów:
+# statystyka, przedział dat i „Autor/ ” jako rubryka. Znaczniki pilnych wiadomości
+# z ukośnikiem („ULTIMA ORĂ/”, „UPDATE/”) zostają ogłoszeniami. Celowo BEZ „cytat na
+# początku” i „al N-lea caz”: pierwszy zdejmował prawdziwy „„Posibilă incursiune de
+# drone”. Nouă alertă aeriană … RO-Alert în Tulcea”, drugi „O nouă survolare … Ministrul
+# Apărării: „Este al 95-lea caz”” (nowy przelot).
+NEIGHBOUR_DISCUSSION_PATTERNS = {
+    c: [r"\b\d+ (?:de )?ori\b", r"\b(?:din|în) 20\d\d\b", r"\bîntre \d+\s*[-–]\s*\d+ "]
+    for c in ("MD", "RO")}
+NEIGHBOUR_NEWS_TAGS = {"ultima oră", "ultima ora", "update", "live text", "live",
+                       "foto", "video", "exclusiv", "breaking", "doc"}
+NEIGHBOUR_TAG_COUNTRIES = {"MD", "RO"}
 
 # Listy bałtyckie obsługują od 03.10.2026 wszystkich sąsiadów. Nazwy zostają
 # z przedrostkiem BALTIC_, bo tak nazywają się typy zdarzeń w historii
