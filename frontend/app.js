@@ -652,11 +652,14 @@ function agedEta(m, ts) {
   return Math.max(0, Math.round(m - Math.max(0, ageMin)));
 }
 
-function localPlaceHtml(t) {
+function localPlaceHtml(t, kursNieznany = false) {
   if (histMode || t.historicalOnly || isApproxPosition(t) || !Places?.exactPoint) return "";
   const exact = savedPlaces.filter(place => place.precision === "gps" && place.gps);
   if (!exact.length || t.lat == null || t.lon == null) return "";
-  const speed = alarmSpeedKmh(t);
+  /* Gdy karta mówi „kurs nieznany — czasu dolotu nie szacujemy”, czas do miejsca
+     też nie powstaje (17.11.2026: obok tego zdania stało „Dom 188 km ~144 min”).
+     Odległość zostaje. */
+  const speed = kursNieznany ? null : alarmSpeedKmh(t);
   const rows = exact.map(place => {
     const info = Places.exactPoint(place, t, speed, ETA_SOURCE_BUFFER_MIN);
     if (!info) return "";
@@ -683,7 +686,7 @@ function etaHtml(t) {
       : isPresumedCourse(t) && t.pl_assessment?.toward_pl
       ? `<span style="color:#ffb020">${UI.t("kurs domniemany (na cel), niepotwierdzony ruchem — czasu dolotu nie szacujemy", "presumed heading towards a target, not confirmed by movement — arrival time is not estimated", "курс припущений (на ціль), не підтверджений рухом — часу підльоту не оцінюємо")}</span><br>`
       : "";
-    return base + localPlaceHtml(t);
+    return base + localPlaceHtml(t, base !== "");
   }
   const mine = (e.voiv != null && e.voivName)
     ? ` · ${UI.t("do woj.", "to", "до воєв.")} ${esc2(UI.voiv(e.voivName))}: <b>${etaRangeTxt(e.voivLo, e.voiv)}</b>` : "";

@@ -40,3 +40,11 @@ test('rachunek z karty 17.11: 299 km przy 180 km/h to ~97 min, nie ~572', () => 
     { lat: 49.4, lon: 25.6, heading: 0 }, 180, 2.5);
   assert.ok(info.etaMin >= 95 && info.etaMin <= 98, String(info.etaMin));
 });
+
+test('karta bez czasu dolotu (kurs nieznany/domniemany) nie podaje czasu do miejsca', () => {
+  const f = cialo('localPlaceHtml');
+  assert.match(f, /function localPlaceHtml\(t,\s*kursNieznany/);
+  assert.match(f, /kursNieznany\s*\?\s*null\s*:\s*alarmSpeedKmh\(t\)/);
+  const e = cialo('etaHtml');
+  assert.match(e, /localPlaceHtml\(t,\s*base\s*!==\s*""\)/);
+});
