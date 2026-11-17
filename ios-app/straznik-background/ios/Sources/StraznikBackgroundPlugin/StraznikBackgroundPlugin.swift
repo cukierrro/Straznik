@@ -67,6 +67,12 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
         static let topicsError = "straznik_fcm_topics_error"
         static let unsubscribing = "straznik_fcm_unsubscribing"
         static let unsubAt = "straznik_fcm_unsub_at"
+        /// Trwa ZAPIS na tematy. Odpowiednik `unsubscribing` dla drugiej strony
+        /// synchronizacji; `app.js` czyta to jako `topicsSyncing` i pokazuje
+        /// wiersz „⏳ Zapisywanie telefonu do województw…". Do 1.8.08 wtyczka iOS
+        /// tego klucza nie zwracała i wiersz na iPhonie nigdy się nie pokazywał.
+        static let syncing = "straznik_fcm_syncing"
+        static let syncAt = "straznik_fcm_sync_at"
         /// Ostatnio widziana zgoda na alarm krytyczny. `syncTopics` musi znać ją
         /// natychmiast, a `getNotificationSettings` jest asynchroniczne.
         static let critical = "straznik_critical_allowed"
@@ -106,6 +112,14 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
     private var sesjaAlarmuWlaczona = false
     /// Wynik starszej synchronizacji nie może nadpisać nowszej (szybkie zmiany miejsc).
     private var syncGeneration = 0
+    /// Ostatnie pokolenie, które DOMKNĘŁO zapis stanu. Straż czasowa (niżej) sprawdza
+    /// to, zanim dopisze błąd — inaczej dopisałaby go po poprawnie zakończonej synchronizacji.
+    private var syncUkonczone = 0
+    /// Po tylu sekundach bez odpowiedzi Firebase uznajemy zadanie za utknięte.
+    /// Tyle samo co straż w usłudze Androida (1.8.08).
+    private static let syncStraz: TimeInterval = 45
+    /// Najwyżej dwa budzenia — potem zapisujemy to, co potwierdzone, i mówimy o błędzie.
+    private static let syncMaxProb = 2
 
     // MARK: - start
 
@@ -283,7 +297,35 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
     /// Jak Android (audyt B3): przy każdym starcie zapisujemy WSZYSTKIE docelowe
     /// tematy (operacja idempotentna), a stan utrwalamy dopiero po potwierdzeniu
     /// przez Firebase. Ustawienia pokazują więc prawdę, a nie zamiar.
-    private func syncTopics() {
+    /// Straż czasowa nad jedną synchronizacją. Firebase potrafi NIE wywołać domknięcia
+    /// operacji na temacie: w źródłach `firebase-messaging` błąd poza samą operacją
+    /// (np. `FIS_AUTH_ERROR`) kończy się „Won't retry sync" i zadania nie kończą się
+    /// wcale. `DispatchGroup` nigdy się wtedy nie bilansuje, `group.notify` nie startuje,
+    /// a stan NIE zostaje zapisany — Ustawienia pokazują „⏳ Zapisywanie…" bez końca
+    /// i telefon nie wie, na czym stoi. To ta sama wada, którą 1.8.08 naprawiło na
+    /// Androidzie; na iOS nikt jej nie zgłosił, ale mechanizm jest wspólny.
+    ///
+    /// Po `syncStraz` sekundach budzimy synchronizację jeszcze raz (najwyżej
+    /// `syncMaxProb` razy — nowe uruchomienie podbija pokolenie, więc stare domknięcia
+    /// już nic nie zapiszą), a potem domykamy ją sami: zapisujemy to, co potwierdzone,
+    /// i mówimy o błędzie. Spóźnione `group.notify` może jeszcze poprawić ten stan
+    /// na pełny i to jest w porządku — nowsza wiedza wygrywa.
+    private func pilnujSynchronizacji(_ generation: Int, proba: Int, domknij: @escaping () -> Void) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + Self.syncStraz) { [weak self] in
+            guard let self else { return }
+            // Nowsza synchronizacja już trwa albo ta zdążyła się domknąć — nic nie robimy.
+            guard generation == self.syncGeneration, generation > self.syncUkonczone else { return }
+            if proba < Self.syncMaxProb {
+                self.defaults.set("brak odpowiedzi Firebase — próba \(proba + 1)", forKey: Key.syncState)
+                self.syncTopics(proba: proba + 1)
+            } else {
+                domknij()
+            }
+        }
+    }
+
+    /// `proba` podbija wyłącznie straż czasowa; każde zwykłe wywołanie zaczyna od zera.
+    private func syncTopics(proba: Int = 0) {
         guard firebaseReady else {
             defaults.set("brak Firebase", forKey: Key.syncState)
             return
@@ -307,6 +349,7 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
             defaults.set("", forKey: Key.topicsError)
             defaults.set(true, forKey: Key.unsubscribing)
             defaults.set(Self.nowMs, forKey: Key.unsubAt)
+            defaults.set(false, forKey: Key.syncing)
             var failed = 0
             // Obie odmiany każdego województwa, bo zgoda mogła się zmienić między
             // zapisem a wypisem — inaczej telefon zostałby na temacie krytycznym.
@@ -318,8 +361,15 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
                     group.leave()
                 }
             }
+            pilnujSynchronizacji(generation, proba: proba) {
+                self.syncUkonczone = generation
+                self.defaults.set(false, forKey: Key.unsubscribing)
+                self.defaults.set("Firebase nie potwierdził wypisania", forKey: Key.topicsError)
+                self.defaults.set("brak odpowiedzi przy wypisywaniu", forKey: Key.syncState)
+            }
             group.notify(queue: .main) {
                 guard generation == self.syncGeneration else { return }
+                self.syncUkonczone = generation
                 self.defaults.set(false, forKey: Key.unsubscribing)
                 if failed == 0 {
                     self.defaults.set([String](), forKey: Key.topics)
@@ -334,6 +384,11 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
         }
 
         defaults.set(false, forKey: Key.unsubscribing)
+        // Wiersz stanu ma pokazywać „⏳ Zapisywanie…" przez cały czas trwania zapisu,
+        // a nie dopiero jego wynik. Znacznik czasu działa jak przy wypisywaniu:
+        // flaga starsza niż 120 s znaczy, że Firebase nie odpowiedział (patrz statusData).
+        defaults.set(true, forKey: Key.syncing)
+        defaults.set(Self.nowMs, forKey: Key.syncAt)
         // NAJPIERW zapis, dopiero potem wypis ze zbędnych (niżej, w `group.notify`).
         // Odwrotna kolejność przy przepisywaniu na temat krytyczny mogła zostawić
         // telefon zapisany na NIC: wypis z `voiv_X` udany, zapis na wariant krytyczny
@@ -358,8 +413,33 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
                 group.leave()
             }
         }
+        pilnujSynchronizacji(generation, proba: proba) {
+            // Zapisujemy to, co Firebase zdążył potwierdzić. Lepszy stan niepełny
+            // i opisany niż wieczne „⏳ Zapisywanie…" bez żadnej informacji.
+            //
+            // SUMA ze stanem sprzed tej synchronizacji, nie podmiana. `Key.topics`
+            // znaczy „tematy, które Firebase kiedyś potwierdził", więc suma jest
+            // prawdziwa, a podmiana kasowałaby wiedzę: przy zerwanej sieci telefon
+            // nadal jest zapisany u Google, a Ustawienia pokazałyby „nie jest
+            // zapisany do żadnego województwa". W aplikacji alarmowej fałszywy
+            // obraz subskrypcji jest groźniejszy niż niepełny.
+            lock.lock()
+            let potwierdzone = current.union(confirmed)
+            lock.unlock()
+            self.syncUkonczone = generation
+            self.defaults.set(false, forKey: Key.syncing)
+            self.defaults.set(Array(potwierdzone), forKey: Key.topics)
+            // Liczymy po CELU, nie po sumie: suma niesie też stare tematy spoza celu,
+            // więc „target.count - potwierdzone.count" potrafiłoby zejść poniżej zera.
+            let brak = target.subtracting(potwierdzone).count
+            self.defaults.set("Firebase nie odpowiedział na \(brak) z \(target.count) zapisów",
+                              forKey: Key.topicsError)
+            self.defaults.set("brak odpowiedzi: \(brak) z \(target.count)", forKey: Key.syncState)
+        }
         group.notify(queue: .main) {
             guard generation == self.syncGeneration else { return }
+            self.syncUkonczone = generation
+            self.defaults.set(false, forKey: Key.syncing)
             // Dopiero teraz wypis ze zbędnych — razem z tymi, których wypis nie udał
             // się wcześniej. Nieudany wypis zostaje na liście do następnego razu;
             // bez tego telefon zostałby na starym temacie na zawsze i dostawał
@@ -513,9 +593,14 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
         let info = Bundle.main.infoDictionary ?? [:]
         let unsubAt = defaults.integer(forKey: Key.unsubAt)
         let unsubscribing = defaults.bool(forKey: Key.unsubscribing) && Self.nowMs - unsubAt < 120_000
+        let syncAt = defaults.integer(forKey: Key.syncAt)
+        let syncing = defaults.bool(forKey: Key.syncing) && Self.nowMs - syncAt < 120_000
         var topicsError = defaults.string(forKey: Key.topicsError) ?? ""
         if defaults.bool(forKey: Key.unsubscribing) && !unsubscribing && topicsError.isEmpty {
             topicsError = "Firebase nie potwierdził wypisania"
+        }
+        if defaults.bool(forKey: Key.syncing) && !syncing && topicsError.isEmpty {
+            topicsError = "Firebase nie potwierdził zapisu"
         }
 
         // Diagnostyka wersji testowej: aplikacja pokazuje listę tematów tylko dla
@@ -596,6 +681,9 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
             "topicsOkAt": defaults.integer(forKey: Key.topicsOkAt),
             "topicsError": topicsError,
             "topicsUnsubscribing": unsubscribing,
+            // Od 1.8.09. `app.js` pokazuje dzięki temu „⏳ Zapisywanie telefonu do
+            // województw…" i sam odświeża wiersz co 2 s, póki Ustawienia są otwarte.
+            "topicsSyncing": syncing,
             "alertsOff": defaults.bool(forKey: Key.alertsOff),
             "alertsOffSet": defaults.object(forKey: Key.alertsOff) != nil,
             "firebaseConfigured": firebaseReady,
