@@ -6778,11 +6778,25 @@ function syncObservedRegions(opcje = {}) {
   if(plugin?.setObservedVoivodeships) return plugin.setObservedVoivodeships({voivodeships:regions, alertsOff:alertsOff()});
   return plugin?.setHomeVoivodeship?.({voivodeship:myVoiv()||""});
 }
+/* Zgłoszenie z Google Play (17.11.2026, Huawei P30 Pro, 1.8.08): „wyznaczyłem 7 miejsc,
+   a program pokazuje tylko mój region i 4 miejsca”. Zapisanych było 8 — linia wymieniała
+   tylko WOJEWÓDZTWA i tylko te z włączonymi alarmami, więc wyglądała jak lista miejsc,
+   w której część zginęła. Teraz mówi wprost: ile miejsc, w ilu województwach, które
+   miejsca dają alarmy i które są zapisane bez alarmów (nowe miejsce ma je wyłączone). */
 function renderPlacesSummary() {
   const el=document.getElementById("places-summary"); if(!el)return;
   if(!savedPlaces.length){el.textContent=UI.t("Nie zapisano jeszcze żadnego miejsca.", "No saved places yet.", "Ще не збережено жодного місця.");return;}
-  const watched=Places.observedVoivodeships(savedPlaces).map(v=>UI.voiv(v));
-  el.textContent=(UI.t(`${savedPlaces.length}/8 miejsc. Obserwowane województwa: `, `${savedPlaces.length}/8 places. Watched provinces: `, `${savedPlaces.length}/8 місць. Відстежувані воєводства: `))+(watched.join(", ")||(UI.t("brak", "none", "немає")));
+  el.textContent=opisMiejsc(savedPlaces);
+}
+function opisMiejsc(miejsca) {
+  const n=miejsca.length, k=new Set(miejsca.map(p=>p.region)).size;
+  const alarmy=Places.observedVoivodeships(miejsca)
+    .map(v=>`${UI.voiv(v)} (${miejsca.filter(p=>p.region===v&&p.alerts).map(p=>p.name).join(", ")})`).join("; ");
+  const bez=miejsca.filter(p=>!p.alerts).map(p=>p.name).join(", ");
+  return UI.t(
+    `Zapisane miejsca: ${n} z 8, w ${k} ${k===1?"województwie":"województwach"}. Alarmy dla: ${alarmy||"brak"}.${bez?` Bez alarmów: ${bez}.`:""}`,
+    `Saved places: ${n} of 8, in ${k} ${k===1?"province":"provinces"}. Alerts for: ${alarmy||"none"}.${bez?` No alerts: ${bez}.`:""}`,
+    `Збережені місця: ${n} з 8, у ${k} ${k===1?"воєводстві":"воєводствах"}. Сповіщення для: ${alarmy||"немає"}.${bez?` Без сповіщень: ${bez}.`:""}`);
 }
 let wojPrzedUstawieniami = null;   // region sprzed otwarcia ustawień — mapa skacze tylko po zmianie
 let ustawieniaZMenu = false;
