@@ -74,6 +74,14 @@ rows = stealth.query("eta_single_source_shadow", 60)
 sprawdz([r["track_id"] for r in rows] == ["k1"] and rows[0]["would_be"] == "high",
         f"zapis tylko dla rakiety, 1 zgłoszenie, pewność ≥ średnia ({[r['track_id'] for r in rows]})")
 
+# 14.11.2026: pomiar zakończony decyzją usera — wywołanie w _evaluate stoi za przełącznikiem.
+import re as _re  # noqa: E402
+_src = Path(neptun.__file__).read_text(encoding="utf-8")
+sprawdz(not config.SHADOW_ETA_SINGLE, "SHADOW_ETA_SINGLE domyślnie wyłączony")
+sprawdz(bool(_re.search(r"if\s+config\.SHADOW_ETA_SINGLE\s*:\s*\n\s*_eta_single_source_shadow\(", _src))
+        and len(_re.findall(r"^\s*_eta_single_source_shadow\(", _src, _re.M)) == 1,
+        "jedyne wywołanie cienia ETA jest za przełącznikiem")
+
 print("3. A4/A10 w trybie cienia: odnowienie i zawrócenie")
 neptun._signalled.clear(); neptun._away_streak.clear()
 t0 = 1_800_000_000.0

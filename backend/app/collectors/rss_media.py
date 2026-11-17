@@ -121,9 +121,33 @@ def _speaker_quote(title_l: str, country: str = "") -> bool:
     """Tytuł „Osoba: cytat” („KOP vadas: neturėjome…”, „Gaižauskas: nesutinku…”) to
     wypowiedź o alarmie, nie jego ogłoszenie. Przedrostek z hasłem alarmu („Oro pavojus
     Vilniuje: …”) zostaje ogłoszeniem."""
-    m = re.match(r"^([^:–—]{2,40}):\s", title_l)
-    return bool(m and not any(w in m.group(1) for w in
-                              _vocab(country, "alert", config.BALTIC_ALERT_KEYWORDS)))
+    m = re.match(r"^([^:–—]{2,80}):\s", title_l)
+    if not m:
+        return False
+    prefix = m.group(1)
+    alert_words = _vocab(country, "alert", config.BALTIC_ALERT_KEYWORDS)
+    # „Osoba apie temat: cytat”. 11.11.2026 LRT „Pulkininkas apie Baltarusijos skambutį
+    # dėl oro pavojaus: jie mus įspėjo vos antrą kartą” dało Litwie alarm, bo hasło
+    # alarmu stało w przedrostku — ale po „apie”, czyli jako temat wypowiedzi pułkownika.
+    # Liczy się to, co stoi PRZED „apie”: „Įspėjimas apie oro pavojų: …” zostaje ogłoszeniem.
+    kto, apie, _ = prefix.partition(" apie ")
+    if apie and kto.strip() and not any(w in kto for w in alert_words) \
+            and not any(w in kto for w in ("įspėj", "perspėj", "pranešim")):
+        return True
+    return len(prefix) <= 40 and not any(w in prefix for w in alert_words)
+
+
+def _publicystyka(title_l: str, country: str) -> bool:
+    """Statystyka, cytat na początku albo rubryka „Autor/ ” — dla kanałów MD i RO
+    (14.11.2026: takie tytuły szły na mapę jako karty „Obserwacja MD”)."""
+    if any(re.search(p, title_l)
+           for p in config.NEIGHBOUR_DISCUSSION_PATTERNS.get(country, ())):
+        return True
+    if country in config.NEIGHBOUR_TAG_COUNTRIES:
+        m = re.match(r"^([^/|:]{2,30})/\s", title_l)
+        if m and m.group(1).strip() not in config.NEIGHBOUR_NEWS_TAGS:
+            return True
+    return False
 
 
 _BALTIC_TZ = ZoneInfo("Europe/Vilnius")      # LT, LV i EE mają ten sam czas
@@ -202,6 +226,21 @@ def _baltic_abroad(title: str, country: str) -> bool:
     return not any(m in tl for m in config.BALTIC_LOCAL_MARKERS.get(country, ()))
 
 
+_ALERT_THING_WORD_RE = re.compile(
+    r"\w*(?:" + "|".join(map(re.escape, config.BALTIC_ALERT_THING_STEMS)) + r")\w*")
+# reszta słowa hasła („air alert|s”), ewentualnie „warning / notification” („air raid
+# warning system”), i zaraz po tym rzeczownik „app / system”
+_ALERT_THING_AFTER_RE = re.compile(
+    r"\w*(?:\s+(?:warning|warnings|alert|alerts|notification|notifications|siren|sirens))?"
+    r"\s+(?:" + "|".join(map(re.escape, config.BALTIC_ALERT_THING_NOUNS)) + r")\b")
+
+
+def _alert_word_counts(word: str, tl: str) -> bool:
+    """Czy hasło występuje choć raz jako ogłoszenie, a nie nazwa narzędzia."""
+    return any(not _ALERT_THING_AFTER_RE.match(tl, m.end())
+               for m in re.finditer(re.escape(word), tl))
+
+
 def _is_baltic_alert(text: str, country: str = "") -> list[str]:
     tl = text.lower()
     if any(word in tl for word in _vocab(country, "exclude", config.BALTIC_EXCLUDE_KEYWORDS)):
@@ -209,8 +248,16 @@ def _is_baltic_alert(text: str, country: str = "") -> list[str]:
     words = set(re.findall(r"\w+", tl))
     if words & set(_vocab(country, "past_markers", config.BALTIC_ALERT_PAST_MARKERS)):
         return []
+    # Hasło wewnątrz nazwy aplikacji lub systemu to temat, nie ogłoszenie. 12.11.2026
+    # ERR „Eesti töötab … välja uut ohuteavitusrakendust” (nowa aplikacja ostrzegawcza)
+    # dało Estonii alarm, bo „ohuteavitus” siedzi w „ohuteavitusrakendust”. Wycinamy
+    # tylko to jedno słowo: „Õhuoht …: ohuteavitusrakendus saatis hoiatuse” dalej
+    # trafia przez „õhuoht”.
+    tl = _ALERT_THING_WORD_RE.sub(" ", tl)
+    # Po angielsku narzędzie to osobne słowo po haśle: 13.11.2026 ERR News „Estonia
+    # developing Ukraine-inspired air alert app” znów dało Estonii alarm.
     hits = [word for word in _vocab(country, "alert", config.BALTIC_ALERT_KEYWORDS)
-            if word in tl]
+            if word in tl and _alert_word_counts(word, tl)]
     # RO-Alert to JEDEN system na burze, powodzie, pożary i drony. Samo
     # „mesaj RO-Alert" nie mówi nic o powietrzu, więc dla krajów z
     # NEIGHBOUR_ALERT_NEEDS_AIR ogłoszenie liczy się tylko razem ze słowem
@@ -798,7 +845,8 @@ async def _baltic_entries(entries, url: str, country: str, now: float):
         # tytuł-pytanie („ko trūksta…?”) to publicystyka, nie ogłoszenie alarmu (22.09.2026)
         discussion = (any(m in f" {title_l}" for m in
                           _vocab(country, "discussion", config.BALTIC_DISCUSSION_MARKERS))
-                      or title_l.rstrip().endswith("?"))
+                      or title_l.rstrip().endswith("?")
+                      or _publicystyka(title_l, country))
         alert_hits = ([] if discussion or _speaker_quote(title_l, country)
                       else _is_baltic_alert(title_l, country))
         # Słowa incydentu w języku kanału (dla Bałtyku i szóstki — wspólne listy).

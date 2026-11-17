@@ -21,7 +21,7 @@ Przy tej poprawce sprawdziliśmy kod biblioteki Firebase. Operację dodaną dok�
 
 Sprawdzone na emulatorze z Androidem 12, na APK podpisanym kluczem wydania: pięć szybkich zmian miejsc kończy się potwierdzonym zapisem do województwa z ostatniej zmiany, bez ponownego uruchamiania i bez ponowień. Na prawdziwym telefonie tej wersji nie sprawdzano.
 
-Poprawka dotyczy Androida. iPhone numeruje synchronizacje od wcześniejszych wersji.
+Poprawka dotyczy Androida, iPhone numeruje synchronizacje od wcześniejszych wersji i wiersza „⏳ Zapisywanie…” nie pokazuje. Jedna zmiana obejmuje obie platformy: zamknięcie ustawień bez zmiany miejsc nie odnawia już zapisu. Zapis odnawia się przy każdym uruchomieniu aplikacji, przy zmianie miejsc i (na iPhonie) przy nowym tokenie powiadomień.
 
 ## Alert RCB dla kilku województw
 

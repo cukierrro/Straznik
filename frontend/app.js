@@ -571,6 +571,17 @@ const etaMin = (km, kmh) => (km == null || !kmh) ? null
    w 95% wystąpień. Teraz: prędkość = większa z zmierzonej i typowej (zaszumiony
    ślad „24 km/h” dawał 247 min zamiast 30) oraz przedział, którego dolna granica
    odejmuje niepewność pozycji i drogę przebytą od potwierdzenia w źródle. */
+function alarmSpeedKmh(t) {
+  /* Jedna prędkość dla wszystkich czasów dolotu na karcie: granica, województwo
+     i zapisane miejsca. 17.11.2026 karta pokazała „do woj. lubelskie 47–51 min”
+     i „Dom 299 km ~572 min” dla tego samego drona — miejsca brały sam zaszumiony
+     ślad (~31 km/h), z pominięciem prędkości serwera i typowej jako podłogi (G11). */
+  const zSerwera = t.straznik_speed;
+  const jet = zSerwera ? !!zSerwera.jet : isJetDrone(t);
+  const typical = jet ? JET_ALARM_KMH : (typeSpeedKmh(t) || 0);
+  return zSerwera?.kmh
+    ?? (t.velocity?.speedKmh ?? (Math.max(measuredTrackSpeed(t) || 0, typical) || null));
+}
 function etaInfo(t) {
   if (isApproxPosition(t)) return null;
   const a = t.pl_assessment;
@@ -583,9 +594,7 @@ function etaInfo(t) {
      Tak znika rozjazd „powiadomienie mówi co innego niż karta". */
   const zSerwera = t.straznik_speed;
   const jet = zSerwera ? !!zSerwera.jet : isJetDrone(t);
-  const typical = jet ? JET_ALARM_KMH : (typeSpeedKmh(t) || 0);
-  const v = zSerwera?.kmh
-    ?? (t.velocity?.speedKmh ?? (Math.max(measuredTrackSpeed(t) || 0, typical) || null));
+  const v = alarmSpeedKmh(t);
   if (!v) return null;
   // Dron odrzutowy: krótszy koniec liczymy przy prędkości końcowego odcinka.
   // Dłuższy koniec NIGDY nie jest wolniejszy niż prędkość alarmu — inaczej
@@ -643,13 +652,16 @@ function agedEta(m, ts) {
   return Math.max(0, Math.round(m - Math.max(0, ageMin)));
 }
 
-function localPlaceHtml(t) {
+function localPlaceHtml(t, kursNieznany = false) {
   if (histMode || t.historicalOnly || isApproxPosition(t) || !Places?.exactPoint) return "";
   const exact = savedPlaces.filter(place => place.precision === "gps" && place.gps);
   if (!exact.length || t.lat == null || t.lon == null) return "";
-  const measuredSpeed = measuredTrackSpeed(t);
+  /* Gdy karta mówi „kurs nieznany — czasu dolotu nie szacujemy”, czas do miejsca
+     też nie powstaje (17.11.2026: obok tego zdania stało „Dom 188 km ~144 min”).
+     Odległość zostaje. */
+  const speed = kursNieznany ? null : alarmSpeedKmh(t);
   const rows = exact.map(place => {
-    const info = Places.exactPoint(place, t, measuredSpeed, ETA_SOURCE_BUFFER_MIN);
+    const info = Places.exactPoint(place, t, speed, ETA_SOURCE_BUFFER_MIN);
     if (!info) return "";
     const distance = info.distanceKm < 10 ? info.distanceKm.toFixed(1) : Math.round(info.distanceKm);
     let detail;
@@ -674,7 +686,7 @@ function etaHtml(t) {
       : isPresumedCourse(t) && t.pl_assessment?.toward_pl
       ? `<span style="color:#ffb020">${UI.t("kurs domniemany (na cel), niepotwierdzony ruchem — czasu dolotu nie szacujemy", "presumed heading towards a target, not confirmed by movement — arrival time is not estimated", "курс припущений (на ціль), не підтверджений рухом — часу підльоту не оцінюємо")}</span><br>`
       : "";
-    return base + localPlaceHtml(t);
+    return base + localPlaceHtml(t, base !== "");
   }
   const mine = (e.voiv != null && e.voivName)
     ? ` · ${UI.t("do woj.", "to", "до воєв.")} ${esc2(UI.voiv(e.voivName))}: <b>${etaRangeTxt(e.voivLo, e.voiv)}</b>` : "";

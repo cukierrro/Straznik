@@ -6,6 +6,10 @@
 
 Serwer: **hostowane na [Mikrusie](https://mikr.us)** — dziękujemy za wsparcie projektu.
 
+Wersja 1.8.09: czas dolotu do zapisanych dokładnych lokalizacji liczony tą samą prędkością co czas
+do granicy; przy awarii kanału na żywo NEPTUN-a mapa i alarmy obwodów UA odświeżają się co 10 s.
+Szczegóły: `docs/RELEASE_1.8.09.md`.
+
 Wersja 1.8.08: na Androidzie stan zapisu do województw odświeża się sam po zmianie miejsc; Alert RCB
 dla kilku województw liczy się dla każdego z nich; alarmy na Litwie z żywego artykułu LRT są wychwytywane;
 GROTA ma wykaz PSP z 10.11 (88 256 punktów).

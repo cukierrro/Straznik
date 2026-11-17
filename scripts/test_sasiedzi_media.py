@@ -131,6 +131,43 @@ if out:
     sprawdz("zapisany tez kanal zrodlowy",
             {w["details"].get("feed_country") for w in out} == {"RO"})
 
+# ── 4b. MD/RO: reakcje, statystyki i felietony to nie zdarzenie (14.11.2026) ──
+# [prawdziwe] tytuły z kanałów MD/RO z października i listopada 2026.
+SZUM = [
+    ("Spațiul aerian al R. Moldova, încălcat de 67 de ori în 2026: Aproape o treime dintre incidente au avut loc în octombrie", "MD"),
+    ("Spațiul aerian al R. Moldova a fost încălcat de 100 de ori din 2022. Peste 60% dintre incidente au avut loc în 2026", "MD"),
+    ("Alina Radu/ Dodon a fost la Moscova. Dar n-a cerut oprirea dronelor care atacă Moldova", "MD"),
+    ("Editorial/ Alertă deasupra Moldovei: războiul intră în spațiul aerian", "MD"),
+    ("Notă de protest pentru ambasadorul agreat al Federației Ruse, după ce șase aparate de zbor, inclusiv trei rachete, au survolat și explodat în R. Moldova", "MD"),
+    ("Un diplomat rus va fi expulzat din R. Moldova, după drona căzută la 23 octombrie", "MD"),
+    ("MAE condamnă survolarea neautorizată a spațiului aerian al R. Moldova, înregistrate între 10-16 octombrie", "MD"),
+    ("Un aparat de zbor de tip motoparapantă a survolat spațiul aerian al R. Moldova. Poliția de Frontieră investighează cazul", "MD"),
+    ("Camioanele sovietice din Armata Națională ar putea fi înlocuite cu unele italiene. Nosatîi anunță negocieri cu România", "MD"),
+    ("„Unele drone au fost utilizate pentru misiuni de recunoaștere”. Ce indică echipamentele descoperite la bordul aparatelor care au survolat R. Moldova", "MD"),
+    ("Prima reacție a noului ministru al Apărării după ce două drone au pătruns neautorizat în spațiul aerian al României", "RO"),
+]
+for i, (tytul, kraj) in enumerate(SZUM):
+    out = przepusc(tytul, kraj, f"https://przyklad.test/szum-{i}")
+    sprawdz(f"publicystyka/reakcja to nie sygnal [{kraj}] {tytul[:46]}…",
+            out == [], f"wpisow: {len(out)}")
+ZDARZENIA = [
+    ("O dronă a intrat neautorizat în spațiul aerian al Republicii Moldova. A fost detectată în raionul Telenești", "MD", "baltic_context"),
+    ("ULTIMA ORĂ/ Două rachete de croazieră au pătruns în spațiul aerian al R. Moldova", "MD", "baltic_context"),
+    ("O dronă a survolat spațiul aerian al R. Moldova în această dimineață", "MD", "baltic_context"),
+    ("Explozie în nordul R. Moldova: O dronă s-a prăbușit pe un câmp din raionul Dondușeni", "MD", "baltic_context"),
+    ("„Posibilă incursiune de drone”. Nouă alertă aeriană și mesaje RO-Alert în Tulcea. Anunțul MApN", "RO", "baltic_alert"),
+]
+# Te dwa przeszły na serwerze dzięki opisowi z RSS; sam tytuł w teście nie wystarcza,
+# więc sprawdzamy tylko, że nowy filtr publicystyki ich NIE zdejmuje.
+for tytul in ("O nouă survolare neautorizată a spațiului aerian al R. Moldova. Ministrul Apărării: „Este al 95-lea caz”",
+              "UPDATE/ Drona a dispărut de pe sistemele de monitorizare radar, în raionul Călărași"):
+    sprawdz(f"filtr publicystyki nie zdejmuje [MD] {tytul[:46]}…",
+            not r._publicystyka(tytul.lower(), "MD"))
+for i, (tytul, kraj, typ) in enumerate(ZDARZENIA):
+    out = przepusc(tytul, kraj, f"https://przyklad.test/zdarzenie-md-{i}")
+    sprawdz(f"prawdziwe zdarzenie zostaje [{kraj}] {tytul[:46]}…",
+            any(w["event_type"] == typ for w in out), f"typy: {sorted({w['event_type'] for w in out})}")
+
 # ── 5. Bałtyk nie zmienił zachowania ────────────────────────────────────────
 out = przepusc("Lietuvoje paskelbtas oro pavojus", "LT", "https://przyklad.test/lt-1")
 alerty = [w for w in out if w["event_type"] == "baltic_alert"]

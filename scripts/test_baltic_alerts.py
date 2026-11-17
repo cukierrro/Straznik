@@ -167,6 +167,49 @@ reset()
 asyncio.run(rm._baltic_entries([wpis("Oro pavojus Vilniuje: gyventojams išsiųsti įspėjimai", LRT + "vilniuje")],
                                "lrt", "LT", T0 + 60))
 ok(any(z["event_type"] == "baltic_alert" for z in zapis), "„Oro pavojus Vilniuje: …” nadal jest ogłoszeniem")
+# 11.11.2026 15:24: nagranie LRT z wypowiedzią pułkownika dało Litwie alarm i 0,3 pkt,
+# bo hasło alarmu stało w przedrostku — ale jako temat po „apie”.
+reset()
+asyncio.run(rm._baltic_entries([wpis(
+    "Pulkininkas apie Baltarusijos skambutį dėl oro pavojaus: jie mus įspėjo vos antrą kartą",
+    "https://www.lrt.lt/mediateka/irasas/2000922111/pulkininkas-apie-baltarusijos-skambuti")],
+    "lrt", "LT", T0 + 60))
+ok(not any(z["event_type"] == "baltic_alert" for z in zapis),
+   f"„Pulkininkas apie … oro pavojaus: …” to wypowiedź, nie alarm ({[z['event_type'] for z in zapis]})")
+reset()
+asyncio.run(rm._baltic_entries([wpis("Įspėjimas apie oro pavojų Vilniaus apskrityje: gyventojams išsiųsti pranešimai",
+                                     LRT + "ispejimas")], "lrt", "LT", T0 + 60))
+ok(any(z["event_type"] == "baltic_alert" for z in zapis), "„Įspėjimas apie oro pavojų …: …” nadal jest ogłoszeniem")
+# 12.11.2026 20:05: ERR o nowej aplikacji ostrzegawczej dał Estonii alarm, bo hasło
+# „ohuteavitus” siedziało w złożeniu „ohuteavitusrakendust”.
+reset()
+asyncio.run(rm._baltic_entries([wpis("Eesti töötab Ukraina eeskujul välja uut ohuteavitusrakendust",
+                                     "https://www.err.ee/1610194372/eesti-tootab-ukraina-eeskujul")],
+                               "err", "EE", T0 + 60))
+ok(not any(z["event_type"] == "baltic_alert" for z in zapis),
+   f"artykuł o nowej aplikacji ostrzegawczej to nie alarm ({[z['event_type'] for z in zapis]})")
+ok(not rm._is_baltic_alert("riigi ohuteavitussüsteem sai uue versiooni", "EE"),
+   "system ostrzegania w złożeniu to nie alarm")
+ok(rm._is_baltic_alert("õhuoht ida-virumaal: ohuteavitusrakendus saatis hoiatuse", "EE"),
+   "prawdziwy alarm z wzmianką o aplikacji nadal jest alarmem (przez „õhuoht”)")
+ok(rm._is_baltic_alert("ohuteavitus ida-virumaal", "EE"), "samo „ohuteavitus” nadal jest hasłem")
+reset()
+asyncio.run(rm._baltic_entries([wpis("Õhuohu hoiatus Ida-Virumaal", "https://www.err.ee/1610194399/ohuohu")],
+                               "err", "EE", T0 + 60))
+ok(any(z["event_type"] == "baltic_alert" for z in zapis), "„Õhuohu hoiatus Ida-Virumaal” nadal jest alarmem")
+# 13.11.2026 08:22: ten sam artykuł w angielskim wydaniu ERR — „air alert app” to narzędzie.
+reset()
+asyncio.run(rm._baltic_entries([wpis("Estonia developing Ukraine-inspired air alert app",
+                                     "https://news.err.ee/1609845000/estonia-air-alert-app")],
+                               "err", "EE", T0 + 60))
+ok(not any(z["event_type"] == "baltic_alert" for z in zapis),
+   f"„air alert app” to nie alarm ({[z['event_type'] for z in zapis]})")
+for t in ("new air raid warning system tested in tallinn", "latvia launches air alerts application",
+          "estonia's air threat warning apps"):
+    ok(not rm._is_baltic_alert(t, "EE"), f"narzędzie, nie alarm: {t}")
+for t in ("air alert in ida-viru county", "air alert in vilnius, app sends warnings",
+          "air alert app sent warnings as air alert declared in narva", "drone warning issued for narva"):
+    ok(rm._is_baltic_alert(t, "EE"), f"nadal alarm: {t}")
 
 
 class Odp:

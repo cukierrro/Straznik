@@ -137,11 +137,13 @@ def build_state() -> dict:
                  "counts": adsb.status["counts"], "baselines": adsb.status["baselines"],
                  "trails": adsb.trails},
         "health": {
-            "neptun": neptun.status["connected"],
+            # 17.11.2026: zielone także przy świeżym odczycie REST, gdy gniazdo leży
+            # (szczegóły — tryb i błąd gniazda — są w /api/health).
+            "neptun": neptun.threats_live(),
             # Alarmy obwodowe UA płyną tym samym WebSocketem co Neptun (nie ma
             # osobnego kolektora), więc ich zdrowie = połączenie Neptuna. Bez tego
             # pola dioda „Alarmy UA" świeciła na czerwono w trybie backendu.
-            "ua_alerts": neptun.status["connected"],
+            "ua_alerts": neptun.alerts_live(),
             # „ok" tylko przy świeżym sukcesie: sama flaga zostawała zielona,
             # gdy pętla kolektora przestała się kręcić (audyt D2/C8).
             "adsb": monitoring.fresh(adsb.status, config.ADSB_INTERVAL, 300),
