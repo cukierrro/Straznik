@@ -47,6 +47,12 @@ NEPTUN_BASE = "https://neptun.in.ua"
 NEPTUN_WS_URL = "wss://neptun.in.ua/api/v1/stream"
 NEPTUN_REST_URL = f"{NEPTUN_BASE}/api/v1/threats"
 NEPTUN_REST_INTERVAL = 10          # s; REST tylko jako fallback gdy WS padnie
+# 17.11.2026: przy zmasowanym nalocie gniazdo NEPTUN-a dawało 503 wszystkim, a REST
+# (za pamięcią Cloudflare) działał. Alarmy obwodów są też w REST — bez nich dioda
+# „Alarmy UA” gasła, a epizody zamarzały do powrotu gniazda.
+NEPTUN_ALERTS_URL = f"{NEPTUN_BASE}/api/v1/alerts"
+# REST uznajemy za żywe źródło, póki ostatni udany odczyt jest młodszy niż to
+NEPTUN_REST_FRESH_S = 45
 # Po tylu sekundach bez ramki na gnieździe pytamy REST, czy to cisza, czy zawieszenie.
 # Mniej niż monitoring.NEPTUN_SILENCE_S (180 s), żeby spokojna noc nie dawała „down”.
 NEPTUN_SILENCE_PROBE_S = 120

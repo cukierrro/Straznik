@@ -47,7 +47,24 @@ status = {"connected": False, "mode": "ws", "last_msg": None, "error": None,
           # ostatnie potwierdzenie z REST, że cisza na gnieździe to brak zdarzeń, nie awaria
           "last_alive": None, "silence_probe": None,
           # D8: rekordy pominięte, bo rzuciły wyjątkiem (np. tekst zamiast liczby)
-          "bad_records": 0, "last_bad": None}
+          "bad_records": 0, "last_bad": None,
+          # 17.11.2026: ostatnie udane odczyty REST, gdy gniazdo leży
+          "rest_threats_at": None, "rest_alerts_at": None}
+
+
+def _rest_fresh(key: str, now: float | None = None) -> bool:
+    at = status.get(key)
+    return bool(at) and (now or time.time()) - at < config.NEPTUN_REST_FRESH_S
+
+
+def threats_live(now: float | None = None) -> bool:
+    """Zagrożenia płyną: gniazdo połączone albo świeży odczyt REST w trybie zapasowym."""
+    return bool(status.get("connected")) or _rest_fresh("rest_threats_at", now)
+
+
+def alerts_live(now: float | None = None) -> bool:
+    """Lista alarmów UA jest aktualna: gniazdo albo świeży odczyt /api/v1/alerts."""
+    return bool(status.get("connected")) or _rest_fresh("rest_alerts_at", now)
 
 # aktywne oficjalne alarmy powietrzne w obwodach UA (z ramek "alerts")
 alert_oblasts: set[str] = set()
@@ -169,9 +186,10 @@ async def _alert_end(oblast: str, episode: str, ended_at: float):
 
 async def _finish_ended(now: float | None = None):
     """Zamyka epizody, których obwód zniknął z listy na dłużej niż UA_ALERT_END_GRACE_S.
-    Tylko przy działającym połączeniu: bez niego nie wiemy, czy alarm się skończył."""
+    Tylko przy aktualnej liście (gniazdo albo świeży REST): bez niej nie wiemy,
+    czy alarm się skończył."""
     now = now or time.time()
-    if not status.get("connected"):
+    if not alerts_live(now):
         return
     for oblast, gone_at in list(_absent_since.items()):
         if now - gone_at < config.UA_ALERT_END_GRACE_S:
@@ -1182,8 +1200,7 @@ async def _ws_loop():
             # wykładniczy powrót 1,2,4…60 s.
             wait, backoff = _reconnect_wait(e, backoff)
             log.warning("Neptun WS rozłączony (%s), reconnect za %.1fs", e, wait)
-            await _rest_fallback_once()
-            await asyncio.sleep(wait)
+            await _rest_poll_for(wait)
 
 
 def _epoch(value) -> float | None:
@@ -1233,10 +1250,17 @@ async def _silence_probe() -> bool:
     return stale
 
 
+def _alerts_payload_ok(data) -> bool:
+    """Odpowiedź /api/v1/alerts wygląda jak ramka `alerts` (listy rejonów/obwodów).
+    Inaczej NIE podajemy jej dalej — pusta lub obca odpowiedź zakończyłaby alarmy."""
+    return isinstance(data, dict) and any(isinstance(data.get(k), list) for k in ("raions", "oblasts"))
+
+
 async def _rest_fallback_once():
-    """Jednorazowy snapshot REST, gdy WS leży (nie częściej niż co 5 s wg API)."""
-    try:
-        async with httpx.AsyncClient(timeout=15) as c:
+    """Snapshot REST zagrożeń i alarmów, gdy WS leży (nie częściej niż co 5 s wg API).
+    Oba odczyty są niezależne: awaria jednego nie wstrzymuje drugiego."""
+    async with httpx.AsyncClient(timeout=15) as c:
+        try:
             r = await c.get(config.NEPTUN_REST_URL)
             received_at = time.time()
             r.raise_for_status()
@@ -1245,9 +1269,32 @@ async def _rest_fallback_once():
                                  received_at=received_at, transport="rest",
                                  message_type="snapshot", source_message_ts=data.get("ts"))
             status["mode"] = "rest-fallback"
-            status["last_msg"] = time.time()
-    except Exception as e:
-        log.warning("Neptun REST fallback błąd: %s", e)
+            status["last_msg"] = status["rest_threats_at"] = time.time()
+        except Exception as e:
+            log.warning("Neptun REST fallback błąd: %r", e)
+        try:
+            r = await c.get(config.NEPTUN_ALERTS_URL)
+            r.raise_for_status()
+            data = r.json()
+            if not _alerts_payload_ok(data):
+                raise ValueError(f"nieoczekiwany kształt: {str(data)[:80]}")
+            status["rest_alerts_at"] = time.time()
+            await _handle_alerts(data)
+        except Exception as e:
+            log.warning("Neptun REST alarmy błąd: %r", e)
+
+
+async def _rest_poll_for(seconds: float):
+    """Przez czas oczekiwania na ponowne połączenie gniazda odpytuje REST co
+    NEPTUN_REST_INTERVAL. Wcześniej był jeden odczyt na próbę, czyli przy przerwie
+    60 s mapa i alarmy odświeżały się raz na minutę albo rzadziej."""
+    deadline = time.monotonic() + seconds
+    while True:
+        await _rest_fallback_once()
+        left = deadline - time.monotonic()
+        if left <= 0:
+            return
+        await asyncio.sleep(min(config.NEPTUN_REST_INTERVAL, left))
 
 
 _end_task: asyncio.Task | None = None
