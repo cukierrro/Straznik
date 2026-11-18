@@ -145,8 +145,10 @@ def _apns_config(topic: str, data: dict, critical: bool = False):
     # z 19.09.2026 („TEST — WYSOKI PRIORYTET: woj. lubelski…”) ucięło się właśnie
     # województwo — czyli najważniejsze słowo. Bez „woj.” i bez punktów w tytule
     # nazwa regionu mieści się zawsze; punkty otwierają treść.
+    # Alarm powiatowy (app/powiaty.py) niesie w `miejsce` „powiat X, woj. Y”; wiadomości
+    # województw tego pola nie mają, więc ich tytuł zostaje bez zmian.
     title = (("TEST — " if topic.startswith(config.TEST_TOPIC_PREFIX) else "")
-             + f"{LEVEL_LABELS.get(level, level)}: {data.get('voiv', '')}")
+             + f"{LEVEL_LABELS.get(level, level)}: {data.get('miejsce') or data.get('voiv', '')}")
     tail = [OGON_CZERWONY if high else OGON_ZOLTY]
     # ~400 bajtów na klucze aps, dźwięk, thread-id i identyfikatory dokładane przez FCM
     used = size(data) + size(title) + size("\n".join(tail)) + 400
@@ -191,7 +193,9 @@ def _apns_config(topic: str, data: dict, critical: bool = False):
             sound=(messaging.CriticalSound(name="alarm_syrena.wav", critical=True, volume=1.0)
                    if (critical and high) else
                    ("alarm_syrena.wav" if high else "alert_uwaga.wav")),
-            thread_id=_temat_bazowy(topic),
+            # alarmy powiatowe jednego zdarzenia w jednym wątku (klucz zdarzenia);
+            # województwa — jak dotąd, po temacie
+            thread_id=data.get("klucz_zdarzenia") or _temat_bazowy(topic),
             # Rozszerzenie powiadomień iOS: język aplikacji i ustawienie żółtego (w App Store
             # od 1.7.98, starsze ignorują). Czerwonego dźwięku nie dotyka, a gdy rozszerzenie
             # padnie lub nie zdąży, iOS pokazuje ten ładunek bez zmian. Włączone 2.11.2026.
@@ -417,6 +421,50 @@ async def send_fcm(voiv: str, level: str, score: float, reasons_text: str,
         log.error("FCM: alarm NIE poszedł na %s — iPhone'y ze zgodą na alarm "
                   "krytyczny nic nie dostały", krytyczny)
     return ok
+
+
+def fcm_topic_pow(terc: str, test: bool = False) -> str:
+    """Temat powiatu. Prawdziwy (pow_*) tylko na produkcji i nigdy dla testu — jak E4."""
+    topic = config.pow_topic(terc)
+    if test or not config.PRODUCTION:
+        return config.TEST_TOPIC_PREFIX + topic
+    return topic
+
+
+# Liczniki wysyłki na tematy powiatów — osobno od fcm_status województw.
+fcm_status_pow = {"sent": 0, "failed": 0, "crit_sent": 0, "crit_failed": 0,
+                  "last_ok": None, "last_error": None}
+
+
+async def send_fcm_pow(terc: str, data: dict, test: bool = False) -> bool:
+    """Wysyłka alarmu powiatowego: pow_<TERYT> i pow_<TERYT>_krytyczne (iPhone'y ze zgodą
+    na alarm krytyczny). Wołana WYŁĄCZNIE z app/powiaty.py i tylko przy włączonym
+    config.POWIATY_WYSYLKA. Tor województw (send_fcm) nie zależy od niej w niczym."""
+    if not (config.FCM_ENABLED and _fcm_ready):
+        return False
+    topic = fcm_topic_pow(terc, test)
+
+    async def wyslij(nazwa: str, critical: bool) -> bool:
+        for attempt in range(1, FCM_RETRIES + 1):
+            try:
+                mid = await asyncio.get_running_loop().run_in_executor(
+                    _fcm_pool, _send_fcm_sync, nazwa, data, critical)
+                log.info("FCM → %s (%s pkt, próba %d): %s", nazwa, data.get("score"), attempt, mid)
+                return True
+            except Exception as e:                 # noqa: BLE001
+                fcm_status_pow["last_error"] = repr(e)[:200]
+                log.warning("FCM błąd (%s, próba %d/%d): %s", nazwa, attempt, FCM_RETRIES, e)
+                if attempt < FCM_RETRIES:
+                    await asyncio.sleep(2 * attempt)
+        return False
+
+    ok = await wyslij(topic, False)
+    fcm_status_pow["sent" if ok else "failed"] += 1
+    if ok:
+        fcm_status_pow["last_ok"] = data.get("sent_at")
+    crit = await wyslij(topic + CRITICAL_TOPIC_SUFFIX, True)
+    fcm_status_pow["crit_sent" if crit else "crit_failed"] += 1
+    return ok or crit
 
 
 def init_vapid():

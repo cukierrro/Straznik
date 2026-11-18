@@ -119,6 +119,49 @@ CREATE TABLE IF NOT EXISTS alert_log (
     version TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_alert_log_ts ON alert_log(ts);
+-- Alarmy powiatowe (etap 2, 18.11.2026; app/powiaty.py). Osobne tabele, żeby tor
+-- województw (level_state, notif_log, alert_log) został nietknięty.
+CREATE TABLE IF NOT EXISTS alert_log_pow (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts TEXT NOT NULL,
+    terc TEXT NOT NULL,            -- TERYT powiatu (4 cyfry)
+    nazwa TEXT,
+    woj TEXT,
+    old_level TEXT NOT NULL,
+    new_level TEXT NOT NULL,
+    score REAL,
+    decision TEXT NOT NULL,        -- dziennik|pending|sent|undelivered|cooldown|quiet_repeat|falling|test
+    klucz TEXT,                    -- klucz zdarzenia: poziom|początek sesji alarmowej
+    ponowienie TEXT,               -- JSON powodu ponowienia czerwonego albo NULL
+    composition TEXT NOT NULL,
+    delivery TEXT,
+    version TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_alert_log_pow_ts ON alert_log_pow(ts);
+CREATE TABLE IF NOT EXISTS level_state_pow (
+    terc TEXT PRIMARY KEY,
+    level TEXT NOT NULL,
+    ts TEXT NOT NULL
+);
+-- Chwile powiadomień (albo, przy wyłączonej wysyłce, decyzji „dziennik”) — z nich
+-- liczy się cisza powtórki i odstęp, dokładnie jak notif_log województw.
+CREATE TABLE IF NOT EXISTS notif_log_pow (
+    ts TEXT NOT NULL,
+    terc TEXT NOT NULL,
+    level TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_notif_log_pow ON notif_log_pow(terc, level, ts);
+-- Listy powiatów Alertu RCB: z treści RSO (po rso_id) i z gov.pl (po województwie).
+CREATE TABLE IF NOT EXISTS rcb_listy_pow (
+    klucz TEXT PRIMARY KEY,
+    ts TEXT NOT NULL,
+    zrodlo TEXT NOT NULL,          -- rso|govpl
+    rso_id TEXT,
+    woj TEXT,
+    powiaty TEXT,                  -- JSON lista TERYT; NULL = całe województwo (gov.pl)
+    odwolanie INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_rcb_listy_pow_ts ON rcb_listy_pow(ts);
 """
 
 
@@ -530,6 +573,96 @@ def save_level(voiv: str, level: str):
             (voiv, level, now_iso()),
         )
         _conn.commit()
+
+
+# ── powiaty (app/powiaty.py) ─────────────────────────────────────────────────────
+def load_levels_pow() -> dict[str, str]:
+    with _lock:
+        rows = _conn.execute("SELECT terc, level FROM level_state_pow").fetchall()
+    return {r[0]: r[1] for r in rows}
+
+
+def save_level_pow(terc: str, level: str):
+    with _lock:
+        _conn.execute(
+            "INSERT INTO level_state_pow (terc, level, ts) VALUES (?,?,?)"
+            " ON CONFLICT(terc) DO UPDATE SET level=excluded.level, ts=excluded.ts",
+            (terc, level, now_iso()))
+        _conn.commit()
+
+
+def last_notif_pow(terc: str, level: str):
+    with _lock:
+        row = _conn.execute("SELECT MAX(ts) FROM notif_log_pow WHERE terc=? AND level=?",
+                            (terc, level)).fetchone()
+    return row[0] if row else None
+
+
+def log_notif_pow(terc: str, level: str):
+    with _lock:
+        _conn.execute("INSERT INTO notif_log_pow (ts, terc, level) VALUES (?,?,?)",
+                      (now_iso(), terc, level))
+        _conn.commit()
+
+
+def add_alert_log_pow(*, terc: str, nazwa: str, woj: str, old_level: str, new_level: str,
+                      score, decision: str, klucz: str | None, ponowienie: dict | None,
+                      composition: list, version: str) -> int:
+    with _lock:
+        cur = _conn.execute(
+            "INSERT INTO alert_log_pow (ts, terc, nazwa, woj, old_level, new_level, score,"
+            " decision, klucz, ponowienie, composition, version) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+            (now_iso(), terc, nazwa, woj, old_level, new_level, score, decision, klucz,
+             json.dumps(ponowienie, ensure_ascii=False) if ponowienie else None,
+             json.dumps(composition, ensure_ascii=False), version))
+        _conn.commit()
+        return cur.lastrowid
+
+
+def update_alert_log_pow(log_id: int, decision: str, delivery: dict) -> None:
+    with _lock:
+        _conn.execute("UPDATE alert_log_pow SET decision=?, delivery=? WHERE id=?",
+                      (decision, json.dumps(delivery, ensure_ascii=False), log_id))
+        _conn.commit()
+
+
+def alert_log_pow_since(hours: int = 48) -> list[dict]:
+    cutoff = (datetime.now(timezone.utc) - timedelta(hours=hours)).isoformat(timespec="seconds")
+    keys = ("id", "ts", "terc", "nazwa", "woj", "old_level", "new_level", "score", "decision",
+            "klucz", "ponowienie", "composition", "delivery", "version")
+    with _lock:
+        rows = _conn.execute(f"SELECT {', '.join(keys)} FROM alert_log_pow WHERE ts >= ?"
+                             " ORDER BY ts, id", (cutoff,)).fetchall()
+    out = []
+    for r in rows:
+        d = dict(zip(keys, r))
+        for k in ("ponowienie", "composition", "delivery"):
+            d[k] = json.loads(d[k]) if d[k] else None
+        out.append(d)
+    return out
+
+
+def add_rcb_lista_pow(klucz: str, ts: str, zrodlo: str, rso_id: str | None, woj: str | None,
+                      powiaty: list[str] | None, odwolanie: bool) -> bool:
+    """Lista powiatów Alertu RCB. False, gdy taki wpis już był (ten sam klucz)."""
+    with _lock:
+        cur = _conn.execute(
+            "INSERT OR IGNORE INTO rcb_listy_pow (klucz, ts, zrodlo, rso_id, woj, powiaty, odwolanie)"
+            " VALUES (?,?,?,?,?,?,?)",
+            (klucz, ts, zrodlo, rso_id, woj,
+             json.dumps(powiaty) if powiaty is not None else None, int(bool(odwolanie))))
+        _conn.commit()
+        return cur.rowcount > 0
+
+
+def rcb_listy_pow_since(since_iso: str) -> list[dict]:
+    with _lock:
+        rows = _conn.execute(
+            "SELECT ts, zrodlo, rso_id, woj, powiaty, odwolanie FROM rcb_listy_pow"
+            " WHERE ts >= ? ORDER BY ts", (since_iso,)).fetchall()
+    return [{"ts": r[0], "zrodlo": r[1], "rso_id": r[2], "woj": r[3],
+             "powiaty": json.loads(r[4]) if r[4] else None, "odwolanie": bool(r[5])}
+            for r in rows]
 
 
 def load_escalation_shadow_state(voiv: str) -> dict | None:

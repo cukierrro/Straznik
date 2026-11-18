@@ -306,6 +306,13 @@ async def _czytaj_artykul(client: httpx.AsyncClient, href: str, tytul: str):
     _artykuly[href] = dzien
     if dzien != _dzis():
         return                                   # historia: sama lista, bez punktów
+    # Listy powiatów odbiorców (ścisły parser rcb_odbiorcy) — dla alarmów powiatowych
+    # (app/powiaty.py). Punktacji województw nie zmienia, a błąd tu jej nie zatrzyma.
+    try:
+        from .. import powiaty
+        powiaty.zapisz_govpl(href, tekst)
+    except Exception as exc:                     # noqa: BLE001
+        log.warning("RCB: listy powiatów z %s: %s", url, exc)
     m = najnowszy_meldunek(meldunki(tekst))      # najnowsza wysyłka jest na górze
     if m is None:
         # Artykuł z dziś i tak czytamy w każdym obiegu (data zostaje w `_artykuly`,

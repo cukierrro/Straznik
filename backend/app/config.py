@@ -558,6 +558,36 @@ _PL_ASCII = str.maketrans("ąćęłńóśźż", "acelnoszz")
 def voiv_topic(voiv: str) -> str:
     return "voiv_" + voiv.translate(_PL_ASCII)
 
+
+# ── Alarmy powiatowe (etap 2, decyzje usera 18.11.2026) — app/powiaty.py ─────────
+# Serwer liczy poziom każdego z 380 powiatów (PRG GUGiK) tą samą fuzją co województwa
+# i prowadzi dziennik przejść (alert_log_pow). Tor województw (voiv_*, Web Push, stare
+# wersje aplikacji) zostaje bez zmian. Wysyłka na tematy powiatów jest DOMYŚLNIE
+# WYŁĄCZONA: bez STRAZNIK_POWIATY_WYSYLKA=1 decyzja trafia tylko do dziennika
+# („dziennik”) i nic nie wychodzi do ludzi. STRAZNIK_POWIATY=0 wyłącza samo liczenie.
+POWIATY_LICZENIE = os.getenv("STRAZNIK_POWIATY", "1").strip() != "0"
+POWIATY_WYSYLKA = os.getenv("STRAZNIK_POWIATY_WYSYLKA", "0").strip() == "1"
+# Kalibracja 18.11.2026 (23.10–18.11, 380 powiatów co 5 min): próg 2,5 dał żółty przed
+# każdym z 7 realnych zbliżeń (obiekt < 30 km od powiatu), Lublin 5 żółtych zamiast 37
+# w 26 dni. Czerwony jak w województwach: 4,0 i klucz (fusion.red_key).
+POWIATY_PROG_ZOLTY = 2.5
+POWIATY_PROG_CZERWONY = 4.0
+# Sygnały bez własnej geometrii (media, ADS-B, PAŻP, sąsiedzi…) przechodzą z województwa
+# na jego powiaty z mnożnikiem głębokości: km od granicy UA/BY/RU → mnożnik.
+POWIATY_DEPTH_CURVE = ((0, 1.0), (40, 0.8), (80, 0.6), (130, 0.4), (200, 0.25), (300, 0.15))
+# Lista powiatów z gov.pl dotyczy alertu, gdy pojawiła się najwcześniej tyle minut przed nim.
+POWIATY_GOV_PRZED_MIN = 10
+# Przeliczenie po nowym sygnale nie częściej niż co tyle sekund (przy nalocie NEPTUN
+# melduje co kilka sekund), a bez sygnałów i tak co POWIATY_CO_S — wynik gaśnie z wiekiem.
+POWIATY_ODSTEP_S = 5
+POWIATY_CO_S = 30
+POWIATY_TOPIC_PREFIX = "pow_"
+
+
+def pow_topic(terc: str) -> str:
+    """Temat FCM powiatu: pow_<TERYT 4 cyfry>, np. pow_0663 (Lublin)."""
+    return POWIATY_TOPIC_PREFIX + terc
+
 # ── Województwa ───────────────────────────────────────────────────────────────
 VOIVODESHIPS = [
     "lubelskie", "podkarpackie", "podlaskie", "mazowieckie", "świętokrzyskie",

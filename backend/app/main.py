@@ -12,7 +12,7 @@ from fastapi.responses import JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from . import (alert_log, app_updates, blob_store, by_entry_shadow, config, db, escalation_shadow, fusion, load_guard,
-               monitoring, notify, public_cache, rcb_reference, request_limits)
+               monitoring, notify, powiaty, public_cache, rcb_reference, request_limits)
 from .collectors import (adsb, neighbours, neptun,
                          official_alerts, pansa, rcb, rso, rss_media, telegram_lt)
 from .neptun_archive import source_metadata
@@ -127,11 +127,22 @@ def _load_switches(plik: str = "wylaczniki.json") -> dict:
     return {k: d[k] for k in WYLACZNIKI if isinstance(d, dict) and isinstance(d.get(k), bool)}
 
 
+def _fusion_z_powiatami() -> dict:
+    """Stan fuzji województw i — tylko gdy któryś powiat ma poziom ≠ brak — rzadki
+    słownik `powiaty` (etap 2 alarmów powiatowych). Zwykle go nie ma, więc paczka
+    /api/state jest co do bajtu taka jak dotąd."""
+    fus = fusion.compute_state()
+    pw = powiaty.publiczne()
+    if pw:
+        fus["powiaty"] = pw
+    return fus
+
+
 def build_state() -> dict:
     return {
         "notice": _load_notice(),
         "wylaczniki": _load_switches(),
-        "fusion": fusion.compute_state(),
+        "fusion": _fusion_z_powiatami(),
         "neptun": neptun.public_state(),
         "adsb": {"aircraft": adsb.current_aircraft,
                  "counts": adsb.status["counts"], "baselines": adsb.status["baselines"],
@@ -578,6 +589,7 @@ def _health_payload() -> dict:
                    "webpush": config.WEBPUSH_ENABLED,
                    # cicha awaria wysyłki do aplikacji nie może być niewidoczna
                    "fcm": notify.fcm_status},
+        "powiaty": {**powiaty.status, "fcm": notify.fcm_status_pow},
         "progression_shadow": escalation_shadow.status,
         "rcb_reference": rcb_reference.status,
         "public_cache": {**public_cache.status, "ws_clients": len(_ws_clients),
@@ -737,7 +749,11 @@ async def startup():
         notify.init_vapid()
         notify.init_fcm()
         fusion.on_level_change = notify.notify_level
+        # alarmy powiatowe: wysyłka i tak tylko przy STRAZNIK_POWIATY_WYSYLKA=1
+        powiaty.on_send = notify.send_fcm_pow
     fusion.on_state_change = broadcast_state
+    if config.POWIATY_LICZENIE:
+        fusion.on_reevaluated = powiaty.zglos
     # Każde zadanie pod nadzorcą: wyjątek nie zatrzymuje go na zawsze (audyt D2).
     jobs = {
         "neptun": neptun.run, "rss": rss_media.run, "rcb_govpl": rcb.run, "rso": rso.run,
@@ -746,6 +762,7 @@ async def startup():
         "lt_telegram": telegram_lt.run,
         "snapshots": snapshot_loop,
         "levels": level_loop,
+        **({"powiaty": powiaty.petla} if config.POWIATY_LICZENIE else {}),
         "state": state_loop, "heartbeat": monitoring.heartbeat_loop,
         "load_guard": lambda: load_guard.monitor(shed_websockets),
         "cache_bundle": lambda: public_cache.refresh_loop(
@@ -763,7 +780,7 @@ async def startup():
         escalation_shadow.status.update(enabled=False, mode="disabled")
     if config.PROBA:
         # zostają tylko zadania liczące i składające bajty — nic nie wychodzi na świat
-        zostaw = {"snapshots", "levels", "state", "heartbeat", "load_guard",
+        zostaw = {"snapshots", "levels", "powiaty", "state", "heartbeat", "load_guard",
                   "cache_bundle", "cache_timeline", "cache_zones"}
         jobs = {k: v for k, v in jobs.items() if k in zostaw}
     if config.ROLE == "writer":
