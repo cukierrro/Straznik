@@ -797,4 +797,5 @@ Hosting serwera: [Mikrus](https://mikr.us) (od 17.09.2026 serwer przekazany prze
 ADS-B © [adsb.lol](https://adsb.lol) ([ODbL](https://opendatacommons.org/licenses/odbl/1-0/)) · airspace.pansa.pl · gov.pl/RCB · media regionalne, bałtyckie i sąsiadów (MD, RO, SK, CZ, SE, HU — obserwacja, bez punktów) ·
 kamery worldcam.pl ·
 mapa © [OpenFreeMap](https://openfreemap.org), © [OpenMapTiles](https://www.openmaptiles.org/), © [OpenStreetMap](https://www.openstreetmap.org/copyright) ·
-granice obwodów UA: [geoBoundaries](https://www.geoboundaries.org/) (OpenStreetMap, ODbL)
+granice obwodów UA: [geoBoundaries](https://www.geoboundaries.org/) (OpenStreetMap, ODbL) ·
+granice powiatów: Państwowy Rejestr Granic, źródło: [Główny Urząd Geodezji i Kartografii (GUGiK)](https://www.geoportal.gov.pl) (stan 10.11.2026, uproszczone)
