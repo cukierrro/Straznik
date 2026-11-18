@@ -17,6 +17,10 @@ const context = vm.createContext({
 });
 vm.runInContext(fs.readFileSync('frontend/engine.js', 'utf8') + '\nthis.TestEngine = Engine;', context);
 const Engine = context.TestEngine;
+// limit klasy alarmów obwodów UA z engine.js (od 18.11.2026 0,5) — scenariusze liczą z niego
+const UA_CAP = Number(/ua_alert:\s*([\d.]+)/.exec(
+  /const SOURCE_CAPS = \{[^}]*\}/.exec(fs.readFileSync('frontend/engine.js', 'utf8'))[0])[1]);
+const r1 = x => Math.round(x * 10) / 10;
 
 const REF = Date.parse('2026-09-13T05:20:00Z');
 const sig = (id, voiv, source, points, details = {}, ts = '2026-09-13T05:10:00Z', event_type) => ({
@@ -39,7 +43,7 @@ test('shared event does not come back through spillover', () => {
   ], REF);
   assert.equal(spill(st, 'lubelskie', 'podkarpackie'), 0);
   assert.equal(spill(st, 'świętokrzyskie', 'podkarpackie'), 1.0);
-  assert.equal(st.voivodeships.lubelskie.own_score, 2.1);
+  assert.equal(st.voivodeships.lubelskie.own_score, r1(1.0 + Math.min(0.6, UA_CAP) + 0.5));
 });
 
 test('NEPTUN object does not spill to neighbours (W1, 19.10.2026)', () => {
@@ -56,7 +60,10 @@ test('independent neighbour event still spills', () => {
     sig(13, 'podkarpackie', 'ua_alert', 1.0, { oblast: 'Львівська', distance_km: 40 }),
     sig(14, 'podkarpackie', 'adsb', 1.0, { hex: 'c' }),
     sig(15, 'lubelskie', 'neptun', 0.5, { track_id: 'd' })], REF);
-  assert.equal(spill(st, 'lubelskie', 'podkarpackie'), 1.2);
+  // podkarpackie: media 1,0 + alarm obwodu (do limitu klasy) + ADS-B 1,0
+  const podk = 2.0 + Math.min(1.0, UA_CAP);
+  assert.ok(UA_CAP > 0 && UA_CAP < 2, `limit UA z engine.js: ${UA_CAP}`);
+  assert.equal(spill(st, 'lubelskie', 'podkarpackie'), r1(podk * 0.4));
 });
 
 test('spillover-only colour is flagged and does not alert', () => {

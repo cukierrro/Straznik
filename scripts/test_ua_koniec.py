@@ -62,6 +62,11 @@ def score(sigs, minutes):
 
 
 print("1. wariant B2 w fuzji")
+# Ta sekcja sprawdza mnożnik czasu alarmu (pełna waga → połowa → 0), więc liczy
+# bez limitu klasy: od 18.11.2026 limit to 0,5 i zrównałby „pełną wagę” z „połową”.
+# Sam limit sprawdza asercja na końcu sekcji i test_ua_alerts.py.
+LIMIT_UA = config.SOURCE_CAPS["ua_alert"]
+config.SOURCE_CAPS["ua_alert"] = 99.0
 ok(score([start_sig()], 10) == 1.0, "10 min: pełna waga 1,0")
 ok(score([start_sig()], 45) == 0.5, "45 min, trwa: połowa 0,5 (dawniej 0,5 z zaniku, ale malejąca)")
 ok(score([start_sig()], 150) == 0.5, "2,5 h, trwa: nadal 0,5 (dawniej 0)")
@@ -75,6 +80,9 @@ ok(score([start_sig()], 13 * 60) == 0.0, "bezpiecznik: epizod bez końca nie lic
 st = fusion.accumulate([start_sig(), end_sig(START + timedelta(minutes=10))],
                        START + timedelta(minutes=12))["lubelskie"]["signals"][0]
 ok(st.get("alert_ended", "").startswith("2026-09-13T01:10"), f"panel dostaje godzinę końca ({st.get('alert_ended')})")
+config.SOURCE_CAPS["ua_alert"] = LIMIT_UA
+ok(score([start_sig()], 10) == min(1.0, LIMIT_UA),
+   f"z limitem klasy: 10 min = min(1,0; {LIMIT_UA})")
 
 print("2. trwający alarm spoza okna fuzji")
 ref = START + timedelta(minutes=150)

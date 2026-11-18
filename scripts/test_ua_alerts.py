@@ -56,6 +56,10 @@ def main() -> None:
         total = sum(config.POINTS["ua_alert_border"] * w(d[voiv])
                     for d in config.UA_ALERT_OBLASTS.values() if voiv in d)
         assert total > config.SOURCE_CAPS["ua_alert"], "limit klasy przestał cokolwiek robić"
+    # 18.11.2026: limit 0,5 — przy milczącym RCB nocne żółte z samego Wołynia
+    # (odtworzenie 7–18.11: 27 → 21 powiadomień, czerwone 17.11 bez zmian).
+    # Zero odebrałoby żółty przy Alercie RCB z 9.11 (RSO 1,5 < próg 2,0).
+    assert config.SOURCE_CAPS["ua_alert"] == 0.5, config.SOURCE_CAPS["ua_alert"]
     assert config.SOURCE_CAPS["ua_alert"] < config.THRESHOLD_ELEVATED, \
         "sama klasa alarmów UA nie może osiągnąć progu żółtego"
 

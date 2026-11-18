@@ -418,7 +418,12 @@ SOURCE_CAPS = {"media": 1.0, "rcb": 4.5,   # 4,5 = alert RCB poziomu 3 („znajd
                # Alarmy obwodowe UA to JEDNA informacja („na zachodniej Ukrainie
                # trwa alarm"), nie kilka niezależnych potwierdzeń — inaczej Wołyń
                # + Lwów + Równe dawały 3,0 pkt i żółty bez żadnego obiektu.
-               "ua_alert": 1.0}
+               # 18.11.2026 (decyzja usera): 1,0 → 0,5. Przy milczącym RCB (od 10.11)
+               # sam alarm na Wołyniu + dron 80–150 km + fala dawały co noc żółty dla
+               # całego lubelskiego. Odtworzenie 7–18.11 prawdziwą fuzją dało 27 → 21
+               # powiadomień, wszystkie czerwone z nalotu 17.11 i żółty przy Alercie
+               # RCB z 9.11 bez zmian. Przy 0 ten żółty by zniknął (RSO 1,5 < 2,0).
+               "ua_alert": 0.5}
 
 # ── Propagacja na resztę kraju ────────────────────────────────────────────────
 # Zdarzenie na wschodzie dotyczy też regionów dalej na zachód (obiekt leci

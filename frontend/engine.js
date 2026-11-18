@@ -109,7 +109,7 @@ const POINTS = { neptun_high: 3, neptun_medlow: 1.5, media_keywords: 0.5, media_
 // przekroczyła próg alarmu, a trzycyfrowa punktacja psułaby czytelność skali.
 // Alarmy obwodowe UA to JEDNA informacja, nie kilka niezależnych potwierdzeń:
 // bez własnego limitu trzy obwody naraz dawały 3,0 pkt i żółty bez żadnego obiektu.
-const SOURCE_CAPS = { media: 1, rcb: 4.5,   /* 4,5 = alert RCB poziomu 3 (23.09.2026) */ adsb: 1, pansa: 1, neptun: 8, ua_alert: 1 };
+const SOURCE_CAPS = { media: 1, rcb: 4.5,   /* 4,5 = alert RCB poziomu 3 (23.09.2026) */ adsb: 1, pansa: 1, neptun: 8, ua_alert: 0.5 /* 18.11.2026, jak config.py */ };
 const VOIVODESHIPS = ["lubelskie","podkarpackie","podlaskie","mazowieckie","świętokrzyskie",
   "małopolskie","warmińsko-mazurskie","łódzkie","śląskie","kujawsko-pomorskie","pomorskie",
   "zachodniopomorskie","lubuskie","wielkopolskie","dolnośląskie","opolskie"];
