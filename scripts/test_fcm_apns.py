@@ -166,6 +166,31 @@ sprawdz(bajty_apns(k) <= 4096, f"ładunek krytyczny mieści się w limicie ({baj
 sprawdz(notify._apns_config("voiv_lubelskie_krytyczne", ogromne, True) is None,
         "przepełnienie zdejmuje blok iOS także na temacie krytycznym")
 
+print("7. Alarm powiatowy (etap 2, 18.11.2026) — tytuł z powiatem, wątek po kluczu zdarzenia")
+from app import powiaty  # noqa: E402
+from datetime import datetime, timezone  # noqa: E402
+BIE = next(t for t, p in powiaty.powiaty().items() if p["name"] == "powiat bieszczadzki")
+st_pow = {"score": 4.6, "signals": [{
+    "source": "neptun", "event_type": "neptun_threat", "voivodeship": "P" + BIE, "ts": "2026-11-17T09:35:34+00:00",
+    "points": 2.0, "counted_points": 2.0, "title": "Dron ok. 12 km od powiatu, dolot ok. 1 min",
+    "details": {"type": "uav", "dist_km": 11.5, "eta_border_min": 1}}]}
+dp = powiaty.wiadomosc(BIE, "high", st_pow, sesja_od="2026-11-17T09:10:00+00:00",
+                       sent_at=datetime(2026, 11, 17, 9, 36, tzinfo=timezone.utc))
+p = zakodowana("pow_" + BIE, dp)
+paps = p["apns"]["payload"]["aps"]
+sprawdz(paps["alert"]["title"] == "WYSOKI PRIORYTET: powiat bieszczadzki, woj. podkarpackie",
+        f"tytuł iPhone'a z powiatem i województwem: {paps['alert']['title']}")
+sprawdz(paps["thread-id"] == "high|2026-11-17T09:10:00+00:00", "wątek = klucz zdarzenia")
+sprawdz(p["apns"]["headers"]["apns-collapse-id"] == "pow_" + BIE, "collapse-id = temat powiatu")
+sprawdz(p["data"]["klucz_zdarzenia"] == "high|2026-11-17T09:10:00+00:00" and p["data"]["ponowienie"] == "0",
+        "klucz zdarzenia i znacznik ponowienia w data")
+pk = zakodowana("pow_" + BIE + "_krytyczne", dp, critical=True)
+sprawdz(pk["apns"]["payload"]["aps"]["sound"]["critical"] == 1 and bajty_apns(pk) <= 4096,
+        f"temat krytyczny powiatu: dźwięk krytyczny, {bajty_apns(pk)} B")
+w = zakodowana("voiv_lubelskie", dict(DANE, voiv="lubelskie"))["apns"]["payload"]["aps"]
+sprawdz(w["thread-id"] == "voiv_lubelskie" and w["alert"]["title"].endswith(": lubelskie"),
+        "województwa bez zmian: tytuł z `voiv`, wątek po temacie")
+
 print()
 if bledy:
     print("BŁĘDY:", len(bledy))
