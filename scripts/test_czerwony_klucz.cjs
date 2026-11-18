@@ -33,13 +33,21 @@ const alertSchronienie = sygnal({ id: 2, ts: '2026-09-23T05:13:00Z', source: 'rc
   points: 4.5, title: 'Alert RCB (RSO): „UWAGA! UWAGA! UWAGA! Zagrożenie atakiem z powietrza. Znajdź bezpieczne miejsce. Stosuj się do poleceń służb.”' });
 const obwodyUA = sygnal({ id: 3, ts: '2026-09-23T04:54:00Z', source: 'ua_alert', event_type: 'ua_alert_border',
   points: 1.0, title: 'Alarm powietrzny w obwodzie wołyńskim' });
+// 18.11.2026: limit klasy alarmów obwodów UA 1,0 → 0,5. Te testy sprawdzają reguły
+// KLUCZA czerwonego przy sumie ≥ 4 pkt, nie wagę alarmów UA — dlatego tło dostaje
+// niezależne uzupełnienie (ADS-B) o tyle, ile ucięło obniżenie limitu.
+const UA_CAP = Number(/ua_alert:\s*([\d.]+)/.exec(
+  /const SOURCE_CAPS = \{[^}]*\}/.exec(fs.readFileSync('frontend/engine.js', 'utf8'))[0])[1]);
+const tloUA = [obwodyUA, ...(UA_CAP < 1 ? [sygnal({ id: 99, ts: '2026-09-23T05:20:00Z', source: 'adsb',
+  event_type: 'adsb_military', points: +(1 - UA_CAP).toFixed(2),
+  title: 'Uzupełnienie tła testu (limit alarmów UA 0,5 od 18.11.2026)', details: { hex: 'test99' } })] : [])];
 const dron = (id, km, eta, minuta) => sygnal({ id, ts: `2026-09-23T05:${minuta}:00Z`, source: 'neptun',
   event_type: 'neptun_threat', points: 0.5, title: `Dron / BpSP kursem na granicę PL, ${km} km`,
   details: { type: 'uav', dist_km: km, eta_border_min: eta, track_id: `trk_${id}` } });
 
 test('alert „sytuacja monitorowana” nie zapala czerwonego nawet przy 4+ pkt', () => {
   // dokładnie poranek 23.09: alert poziomu 1 + obwody UA + drony 84–120 km
-  const sygnaly = [alertMonitorowana, obwodyUA, dron(10, 84, 28, '05'), dron(11, 91, 30, '06'),
+  const sygnaly = [alertMonitorowana, ...tloUA, dron(10, 84, 28, '05'), dron(11, 91, 30, '06'),
                    dron(12, 118, 39, '13'), dron(13, 104, 34, '05')];
   const st = Engine.stateFrom(sygnaly, REF).voivodeships.lubelskie;
   assert.ok(st.score >= 4, `suma miała przekroczyć 4 pkt, jest ${st.score}`);
@@ -55,7 +63,7 @@ test('alert „znajdź bezpieczne miejsce” zapala czerwony sam', () => {
 });
 
 test('obiekt 15 minut od granicy otwiera czerwony', () => {
-  const st = Engine.stateFrom([alertMonitorowana, obwodyUA, dron(20, 54.7, 15, '20'),
+  const st = Engine.stateFrom([alertMonitorowana, ...tloUA, dron(20, 54.7, 15, '20'),
                                dron(21, 84, 28, '05'), dron(22, 91, 30, '06')], REF).voivodeships.lubelskie;
   assert.equal(st.alert_level, 'high');
   assert.equal(st.red_key.powod, 'eta');
@@ -65,7 +73,7 @@ test('bezpiecznik 50 km działa, gdy nie znamy czasu dolotu', () => {
   const blisko = sygnal({ id: 30, ts: '2026-09-23T05:20:00Z', source: 'neptun', event_type: 'neptun_threat',
     points: 0.9, title: 'Dron / BpSP kursem na granicę PL, około 40 km [pozycja rejonowa]',
     details: { type: 'uav', dist_km: 40, track_id: 'trk_30' } });
-  const st = Engine.stateFrom([alertMonitorowana, obwodyUA, blisko, dron(31, 84, 28, '05'),
+  const st = Engine.stateFrom([alertMonitorowana, ...tloUA, blisko, dron(31, 84, 28, '05'),
                                dron(32, 91, 30, '06')], REF).voivodeships.lubelskie;
   assert.equal(st.red_key.powod, 'blisko');
 });
@@ -78,7 +86,7 @@ test('pozycja rejonowa ±70 km NIE jest kluczem (czerwony 15.10.2026)', () => {
     // wysoka wiarygodność i 2 zgłoszenia: tu sprawdzamy regułę pozycji, nie B' z 1.11.2026
     details: { type: 'uav', dist_km: 53.6, eta_border_min: 15, track_id: 'trk_35', course: 'unknown',
                confidence: 'high', source_count: 2, area_only: area, uncertainty_km: unc } });
-  const tlo = [alertMonitorowana, obwodyUA, dron(36, 84, 28, '05'), dron(37, 91, 30, '06'), dron(38, 104, 34, '07')];
+  const tlo = [alertMonitorowana, ...tloUA, dron(36, 84, 28, '05'), dron(37, 91, 30, '06'), dron(38, 104, 34, '07')];
   const st = Engine.stateFrom([...tlo, rejonowy(70, true)], REF).voivodeships.lubelskie;
   assert.equal(st.red_key, null);
   assert.equal(st.alert_level, 'elevated');
@@ -92,7 +100,7 @@ test('dron rozpoznawczy tuż przy granicy NIE jest kluczem', () => {
   const recon = sygnal({ id: 40, ts: '2026-09-23T05:20:00Z', source: 'neptun', event_type: 'neptun_threat',
     points: 0.2, title: 'Dron rozpoznawczy kursem na granicę PL, około 20 km',
     details: { type: 'recon', dist_km: 20, eta_border_min: 6, track_id: 'trk_40' } });
-  const st = Engine.stateFrom([alertMonitorowana, obwodyUA, recon, dron(41, 84, 28, '05'),
+  const st = Engine.stateFrom([alertMonitorowana, ...tloUA, recon, dron(41, 84, 28, '05'),
                                dron(42, 91, 30, '06')], REF).voivodeships.lubelskie;
   assert.equal(st.red_key, null);
   assert.equal(st.alert_level, 'elevated');
@@ -122,7 +130,7 @@ test('ten sam obiekt zgłoszony trzy razy NIE jest falą', () => {
 test('poziom alertu RCB rozpoznawany po treści, nie po liczbie „UWAGA!”', () => {
   const potrojneUwaga = sygnal({ id: 70, ts: '2026-09-23T05:13:00Z', source: 'rcb', event_type: 'rso_alert',
     points: 1.5, title: 'Alert RCB (RSO): „UWAGA! UWAGA! UWAGA! Rosyjski atak powietrzny na terenie Ukrainy. Sytuacja jest monitorowana.”' });
-  const st = Engine.stateFrom([potrojneUwaga, obwodyUA, dron(71, 84, 28, '05'), dron(72, 91, 30, '06'),
+  const st = Engine.stateFrom([potrojneUwaga, ...tloUA, dron(71, 84, 28, '05'), dron(72, 91, 30, '06'),
                                dron(73, 104, 34, '07')], REF).voivodeships.lubelskie;
   assert.equal(st.red_key, null, 'potrójne UWAGA! to wciąż poziom 1');
 });
@@ -156,7 +164,7 @@ test('po obniżeniu stopnia punktacja schodzi płynnie do nowego poziomu', () =>
 test('pasek historii nie maluje czerwieni bez klucza (zgłoszenie 24.09.2026)', () => {
   // Ten sam poranek 23.09: ponad 4 pkt, ale bez klucza — mapa pokazywała ŻÓŁTY,
   // a pasek historii malował czerwony i sugerował alarm, którego nie było.
-  const sygnaly = [alertMonitorowana, obwodyUA, dron(10, 84, 28, '05'), dron(11, 91, 30, '06'),
+  const sygnaly = [alertMonitorowana, ...tloUA, dron(10, 84, 28, '05'), dron(11, 91, 30, '06'),
                    dron(12, 118, 39, '13'), dron(13, 104, 34, '05')];
   const snaps = [{ t: REF, ts: new Date(REF).toISOString() }];
   const [punkt] = Engine.timelineFrom(snaps, sygnaly);
@@ -173,7 +181,7 @@ test('pasek historii pokazuje czerwień, gdy klucz JEST', () => {
 test('historia oddaje poziom województwa, nie tylko punkty (zgłoszenie 24.09.2026)', () => {
   // Bez tego mapa w trybie historii malowała województwo na CZERWONO, a karta
   // pisała „WYSOKI PRIORYTET”, choć w tamtej chwili aplikacja pokazywała żółty.
-  const sygnaly = [alertMonitorowana, obwodyUA, dron(10, 84, 28, '05'), dron(11, 91, 30, '06'),
+  const sygnaly = [alertMonitorowana, ...tloUA, dron(10, 84, 28, '05'), dron(11, 91, 30, '06'),
                    dron(12, 118, 39, '13'), dron(13, 104, 34, '05')];
   const snaps = [{ t: REF, ts: new Date(REF).toISOString() }];
   const h = Engine.historyFrom(snaps, sygnaly, new Date(REF).toISOString());

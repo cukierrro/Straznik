@@ -6,8 +6,10 @@
 // Historia ma pokazywać to, co człowiek widział — ta sama reguła, z tym samym
 // wyjątkiem: odwołanie RSO zdejmuje podtrzymanie od razu.
 //
-// Odtwarzamy kształt poranka 11.10: alarm w obwodzie lwowskim (1,0) + dron (1,2) daje
-// żółty, koniec alarmu obwodu zdejmuje 1,0 i zostaje sam dron.
+// Odtwarzamy kształt poranka 11.10: alarm w obwodzie lwowskim + dron daje żółty,
+// koniec alarmu obwodu zdejmuje jego punkty i zostaje sam dron poniżej progu.
+// 11.10 dron miał 1,22 pkt, a alarm obwodu 1,0. Od 18.11.2026 limit klasy alarmów
+// UA to 0,5, więc dron ma tu 1,72 — ten sam kształt: razem ≥ 2, sam < 2.
 //
 // Uruchomienie: node scripts/test_podtrzymanie_historia.cjs
 const test = require('node:test');
@@ -32,7 +34,7 @@ const EPIZOD = '2026-10-11T07:47:59+00:00';
 const lwow = sygnal({ id: 1, ts: '2026-10-11T07:47:59Z', source: 'ua_alert', event_type: 'ua_alert_border',
   points: 1.0, title: 'Alarm powietrzny w obwodzie lwowskim', details: { oblast: 'Львівська', episode: EPIZOD } });
 const dron = sygnal({ id: 2, ts: '2026-10-11T07:50:54Z', source: 'neptun', event_type: 'neptun_threat',
-  points: 1.22, title: 'Dron / BpSP kursem na granicę PL, 88.4 km',
+  points: 1.72, title: 'Dron / BpSP kursem na granicę PL, 88.4 km',
   details: { type: 'uav', dist_km: 88.4, eta_border_min: 40, track_id: 'trk_1' } });
 const koniec = sygnal({ id: 3, ts: '2026-10-11T07:55:32Z', source: 'ua_alert', event_type: 'ua_alert_end',
   points: 0, title: 'Koniec alarmu w obwodzie lwowskim',

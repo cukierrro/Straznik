@@ -10,7 +10,7 @@ sys.modules.setdefault("truststore", types.SimpleNamespace(inject_into_ssl=lambd
 dotenv_stub = types.ModuleType("dotenv")
 dotenv_stub.load_dotenv = lambda *_args, **_kwargs: None
 sys.modules.setdefault("dotenv", dotenv_stub)
-from app import fusion
+from app import config, fusion
 
 
 REF = datetime(2026, 9, 10, 4, 30, tzinfo=timezone.utc)
@@ -95,6 +95,12 @@ def test_independent_non_rcb_risk_can_still_spill():
             "lubelskie", 1.0, "Alarm powietrzny w obwodzie wołyńskim",
             {"oblast": "Волинська", "distance_km": 60}),   # media do limitu 1,0
     ]
+    # 18.11.2026: limit klasy alarmów UA 0,5 — niezależne ADS-B uzupełnia sumę do
+    # 2,0, żeby test dalej sprawdzał przeniesienie, a nie wagę alarmów obwodów.
+    ucięte = round(1.0 - min(1.0, config.SOURCE_CAPS["ua_alert"]), 2)
+    if ucięte > 0:
+        signals.append(sig(8, "2026-09-10T04:21:00+00:00", "adsb", "adsb_military",
+                           "lubelskie", ucięte, "Uzupełnienie tła testu", {"hex": "test8"}))
     original = fusion.db.signals_since
     original_weight = fusion._age_weight
     fusion.db.signals_since = lambda _minutes: signals
