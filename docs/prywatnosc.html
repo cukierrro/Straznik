@@ -42,7 +42,7 @@
     <li><b>Brak reklam, analityki i narzędzi śledzących.</b> Nie ma tu Google Analytics, pikseli reklamowych ani żadnego zewnętrznego SDK zbierającego statystyki.</li>
     <li><b>Brak ciasteczek.</b> Strona i aplikacja nie ustawiają żadnych ciasteczek — ani własnych, ani cudzych. Dlatego nie ma tu okienka z pytaniem o zgodę.</li>
     <li><b>Twoja lokalizacja nie trafia na nasz serwer.</b> Nigdy jej nie przechowujemy. Wyjątki są w GROCIE: trasa do schronienia (pozycja i cel idą do publicznego serwera tras) oraz mapa offline „Wokół miejsca”, z której pobierania nasz serwer i Cloudflare mogą wyczytać okolicę z dokładnością do kwadratu około 12 na 20 km (punkt 2).</li>
-    <li><b>Powiadomienia idą do województw, nie do osób.</b> Nie wiemy, kto je dostaje.</li>
+    <li><b>Powiadomienia idą do województw albo powiatów, nie do osób.</b> Nie wiemy, kto je dostaje.</li>
     <li><b>Nie sprzedajemy i nie udostępniamy danych</b> nikomu w celach marketingowych. Nie ma czego sprzedawać.</li>
   </ul>
 </section>
@@ -69,7 +69,7 @@
 <section id="lokalizacja">
   <h2>2. Lokalizacja</h2>
   <p>Uprawnienie do lokalizacji jest <b>opcjonalne</b>. Służy wyłącznie do jednorazowego wstawienia punktu „tu jestem” przy dodawaniu miejsca i do wyśrodkowania mapy. Współrzędne zostają na urządzeniu — nie wysyłamy ich na serwer, nie zapisujemy u siebie i nie przekazujemy nikomu. Możesz odmówić i wskazać miejsce ręcznie na mapie; aplikacja działa wtedy tak samo.</p>
-  <p>Powiadomienia nie zależą od GPS-u. Województwa wybierasz z listy i to jedyna informacja o tym, co obserwujesz.</p>
+  <p>Powiadomienia nie zależą od GPS-u. Do alarmów wystarczy województwo wybrane z listy. Gdy alarmy działają na powiatach (punkt 3), aplikacja <b>sama, na telefonie</b> ustala powiat miejsca zapisanego z dokładną lokalizacją — z granic powiatów zapisanych w aplikacji — i dalej przekazuje wyłącznie numer powiatu. Współrzędne miejsca nie opuszczają telefonu. Miejsce bez dokładnej lokalizacji obserwuje wszystkie powiaty wybranego województwa.</p>
   <h3>GROTA — gdzie się schronić (aplikacja na Androida i iPhone'a)</h3>
   <p>GROTA używa lokalizacji, żeby wskazać najbliższe punkty schronienia. Wykaz punktów i wyszukiwanie najbliższego działają <b>na telefonie</b>, bez wysyłania pozycji. Poza telefon trafia tylko to, i tylko po Twojej czynności:</p>
   <ul>
@@ -87,7 +87,7 @@
 <section id="powiadomienia">
   <h2>3. Powiadomienia</h2>
   <h3>Aplikacja na Androida i iOS</h3>
-  <p>Aplikacja zapisuje się w usłudze Firebase Cloud Messaging (Google) na <b>„temat” odpowiadający województwu</b>, na przykład <kbd>voiv_lubelskie</kbd>. Alarm wysyłamy do tematu, a nie do konkretnych urządzeń. Na naszym serwerze <b>nie ma listy urządzeń ani ich identyfikatorów (tokenów)</b> — nie wiemy, ile telefonów obserwuje dane województwo ani które to telefony. Pośrednikiem jest Google, które przetwarza identyfikator instalacji aplikacji zgodnie z własną polityką prywatności.</p>
+  <p>Aplikacja zapisuje się w usłudze Firebase Cloud Messaging (Google) na <b>„temat” odpowiadający województwu</b>, na przykład <kbd>voiv_lubelskie</kbd>, albo — gdy serwer przełączy alarmy na powiaty — <b>powiatowi zapisanego miejsca</b>, na przykład <kbd>pow_0663</kbd> dla Lublina. Powiat liczy telefon z miejsca zapisanego na urządzeniu; do Google trafia tylko nazwa tematu z numerem powiatu, nigdy współrzędne ani adres. Miejsce leżące tuż przy granicy powiatów zapisuje się do obu sąsiednich. Najmniejszy powiat ma kilkanaście kilometrów kwadratowych, więc temat mówi o okolicy, nie o adresie. Strona internetowa zostaje przy województwach. Alarm wysyłamy do tematu, a nie do konkretnych urządzeń. Na naszym serwerze <b>nie ma listy urządzeń ani ich identyfikatorów (tokenów)</b> — nie wiemy, ile telefonów obserwuje dane województwo ani które to telefony. Pośrednikiem jest Google, które przetwarza identyfikator instalacji aplikacji zgodnie z własną polityką prywatności.</p>
   <h3>Powiadomienia w przeglądarce</h3>
   <p>Jeśli włączysz powiadomienia na stronie, przeglądarka nadaje <b>adres punktu push</b> (adres usługi Google, Mozilli lub Apple wraz z kluczami szyfrującymi). Ten adres i wybrane województwo zapisujemy w bazie na serwerze — inaczej nie da się wysłać powiadomienia. To <b>jedyne dane powiązane z konkretną przeglądarką</b>, jakie u siebie trzymamy. Adres nie zawiera imienia, adresu e-mail ani lokalizacji i nie pozwala nam ustalić, kim jesteś.</p>
   <p>Wpis znika, gdy wyłączysz powiadomienia w aplikacji albo w ustawieniach przeglądarki, a także wtedy, gdy dostawca push zgłosi, że subskrypcja wygasła.</p>
@@ -99,7 +99,7 @@
   <ul>
     <li><b>dziennik dostępu jest wyłączony</b> — adresy IP i otwierane adresy nie są zapisywane na dysku;</li>
     <li>adres IP jest używany <b>tylko chwilowo, w pamięci</b>, do limitu zapytań, żeby jeden nadawca nie zablokował usługi wszystkim. Nie trafia do bazy ani do kopii zapasowych;</li>
-    <li>w bazie są <b>dane o zagrożeniach, nie o ludziach</b>: sygnały ze źródeł publicznych, migawki stanu mapy z ostatnich <b>12 godzin</b>, archiwum pozycji lotniczych ADS-B z <b>14 dni</b> oraz dziennik wysłanych alarmów (województwo, poziom, godzina). Żaden z tych wpisów nie jest powiązany z użytkownikiem.</li>
+    <li>w bazie są <b>dane o zagrożeniach, nie o ludziach</b>: sygnały ze źródeł publicznych, migawki stanu mapy z ostatnich <b>12 godzin</b>, archiwum pozycji lotniczych ADS-B z <b>14 dni</b> oraz dziennik wysłanych alarmów (województwo albo powiat, poziom, godzina). Żaden z tych wpisów nie jest powiązany z użytkownikiem.</li>
   </ul>
   <p>Kopie zapasowe bazy powstają co sześć godzin i są zaszyfrowane. Zawierają subskrypcje powiadomień w przeglądarce z punktu 3 — innych danych o użytkownikach w bazie nie ma. Kopie przechowujemy <b>najdłużej 12 miesięcy</b>: z ostatnich dwóch dni wszystkie, starsze po jednej z dnia, tygodnia i miesiąca.</p>
 </section>
@@ -153,7 +153,7 @@
     <li>odpowiedź na wiadomość z formularza lub zgłoszenia — <b>lit. f</b>, czyli prowadzenie korespondencji, którą zaczynasz.</li>
   </ul>
   <p><b>Jak długo:</b> subskrypcja powiadomień — do wyłączenia powiadomień albo do wygaśnięcia u dostawcy push, a w kopiach zapasowych najdłużej 12 miesięcy dłużej; adres IP — tylko w pamięci serwera, najwyżej 10 minut; ustawienia na urządzeniu — dopóki ich nie usuniesz.</p>
-  <p><b>Twoje prawa:</b> dostęp do danych, ich sprostowanie, usunięcie i ograniczenie przetwarzania, sprzeciw wobec przetwarzania opartego na prawnie uzasadnionym interesie oraz przeniesienie danych. Nie znamy Twojej tożsamości, więc możemy nie umieć wskazać, która subskrypcja jest Twoja (art. 11 RODO) — najprościej usunąć ją samodzielnie, wyłączając powiadomienia. Nie podejmujemy wobec Ciebie zautomatyzowanych decyzji i nie profilujemy: alarmy dotyczą województw, nie osób.</p>
+  <p><b>Twoje prawa:</b> dostęp do danych, ich sprostowanie, usunięcie i ograniczenie przetwarzania, sprzeciw wobec przetwarzania opartego na prawnie uzasadnionym interesie oraz przeniesienie danych. Nie znamy Twojej tożsamości, więc możemy nie umieć wskazać, która subskrypcja jest Twoja (art. 11 RODO) — najprościej usunąć ją samodzielnie, wyłączając powiadomienia. Nie podejmujemy wobec Ciebie zautomatyzowanych decyzji i nie profilujemy: alarmy dotyczą województw i powiatów, nie osób.</p>
   <p>Masz prawo wnieść skargę do organu nadzorczego: <b>Prezesa Urzędu Ochrony Danych Osobowych</b>, ul. Stawki 2, 00-193 Warszawa (<a href="https://uodo.gov.pl">uodo.gov.pl</a>).</p>
   <p>Aplikacja nie jest kierowana do dzieci i nie pyta o wiek.</p>
 </section>
