@@ -22,6 +22,10 @@ const alarms = czytaj(JAVA + "Alarms.java"), activity = czytaj(JAVA + "AlarmActi
 const fcm = czytaj(JAVA + "StraznikFcmService.java"), plugin = czytaj(JAVA + "BackgroundPlugin.java");
 const app = czytaj("frontend/app.js"), html = czytaj("frontend/index.html"), i18n = czytaj("frontend/i18n.js");
 
+// 19.11.2026 (etap 3 powiatów): postAlarm dostał argument `miejsce`; wersja z `boolean test`
+// tylko go woła. Sprawdzamy pełną wersję — tę, która buduje powiadomienie.
+const POST_ALARM = "String headline, long sentAtMs, boolean test, String miejsce) {";
+
 // treść metody od nagłówka do następnej metody na tym samym wcięciu
 const metoda = (kod, naglowek) => {
   const a = kod.indexOf(naglowek);
@@ -71,7 +75,7 @@ test("przyciski głośności nie zmieniają głośności grającego alarmu", () 
 });
 
 test("czerwony po żółtym jest nowym powiadomieniem, więc dostaje pełny ekran", () => {
-  const p = metoda(alarms, "static void postAlarm(Context ctx, int voiv, String level, double score, List<String> reasons,\n");
+  const p = metoda(alarms, POST_ALARM);
   const anuluj = p.indexOf("if (pelnyAlarm && nm != null) nm.cancel(notifId(voiv));");
   assert.ok(anuluj > 0);
   assert.ok(anuluj < p.indexOf("nm.notify(notifId(voiv), n);"));
@@ -100,7 +104,7 @@ test("dziennik: każda droga alarmu zostawia ślad", () => {
 });
 
 test("dziennik: alarm testowy go nie zaśmieca", () => {
-  const p = metoda(alarms, "static void postAlarm(Context ctx, int voiv, String level, double score, List<String> reasons,\n");
+  const p = metoda(alarms, POST_ALARM);
   assert.match(p, /if \(!test\) dziennik\(ctx, "pokazano"/);
   assert.match(p, /if \(stale && !test\) \{[\s\S]*?dziennik\(ctx, "spozniony"/);
 });
