@@ -54,12 +54,20 @@ test('dowód dostarczenia z priorytetem przed każdym wyjściem', () => {
 test('otwarta aplikacja: alarm w aplikacji i ciche powiadomienie w systemie', () => {
   const odbior = bezKomentarzy(cialo(FCM, 'public void onMessageReceived('));
   assert.match(odbior,
-    /BackgroundPlugin\.forwardAlarm\(data\)\) \{\s*Alarms\.createChannels\(this\);\s*Alarms\.postShownInApp\(this, voiv, level, score, data\.get\("headline"\), sentAtMs\);\s*(?:Alarms\.dziennik\([^;]*;\s*)?return;/,
+    // etap 3 (19.11.2026): dochodzi argument `miejsce` (alarm powiatowy) — dopuszczamy go
+    /BackgroundPlugin\.forwardAlarm\(data\)\) \{\s*Alarms\.createChannels\(this\);\s*Alarms\.postShownInApp\(this, voiv, level, score, data\.get\("headline"\), sentAtMs(?:, \w+)?\);\s*(?:Alarms\.dziennik\([^;]*;\s*)?return;/,
     'po przekazaniu do aplikacji musi zostać powiadomienie systemowe');
-  const ciche = bezKomentarzy(cialo(ALARMS, 'static void postShownInApp('));
+  // etap 3: pełna wersja z `miejsce` (krótsza tylko ją woła) — sprawdzamy tę, która buduje powiadomienie
+  const ciche = bezKomentarzy(cialo(ALARMS, 'String headline, long sentAtMs, String miejsce) {'));
   assert.match(ciche, /builder\(ctx, CH_QUIET\)/, 'kanał bez dźwięku i wibracji — alarm gra aplikacja');
   assert.match(ciche, /nm\.notify\(notifId\(voiv\)/, 'ten sam identyfikator co alarm natywny');
   assert.ok(!/setOngoing|setLocalOnly/.test(ciche), 'ma być widoczne i przekazywane dalej');
+  // etap 3: wiadomość dołączona po kluczu zdarzenia też zostawia widoczne (ciche) powiadomienie
+  assert.match(odbior, /if \(!laczenie\.dzwoni\) \{[\s\S]*?Alarms\.postDolaczone\(this, laczenie[\s\S]*?return;/,
+    'dopisanie bez dźwięku kończy się widocznym powiadomieniem');
+  const dol = bezKomentarzy(cialo(ALARMS, 'static void postDolaczone('));
+  assert.match(dol, /builder\(ctx, CH_QUIET\)/);
+  assert.match(dol, /nm\.notify\(notifIdDolaczone\(/);
 });
 
 test('ustawienia pokazują drogę i obniżony priorytet', () => {

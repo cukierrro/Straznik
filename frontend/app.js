@@ -808,8 +808,13 @@ function wczytajGranicePowiatow() {
 function powiatyDoTematow() {
   return granicePowiatow && Powiaty ? Powiaty.powiatyMiejsc(granicePowiatow, savedPlaces) : [];
 }
+/* „powiat świdnicki” / „Świdnicki County” / „Свідницький повіт” — miasto na prawach
+   powiatu („Lublin”) bez dopisku. Przymiotnik zostaje polski, jak nazwy na mapie. */
 function nazwaPowiatu(terc) {
-  return granicePowiatow && Powiaty ? Powiaty.nazwa(granicePowiatow, terc) : terc;
+  if (!granicePowiatow || !Powiaty) return terc;
+  const k = Powiaty.nazwaKrotka(granicePowiatow, terc);
+  if (/^[A-ZĄĆĘŁŃÓŚŹŻ]/.test(k)) return k;
+  return UI.t(`powiat ${k}`, `${k} county`, `повіт ${k}`);
 }
 /* Pole `tematy` ze stanu serwera. Tylko wyraźne „pow” albo „woj” cokolwiek zmienia. */
 function applyTematy(t) {

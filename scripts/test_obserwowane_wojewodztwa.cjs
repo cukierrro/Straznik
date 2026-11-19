@@ -25,7 +25,10 @@ test("synchronizacja wypisuje ze wszystkich tematów województw spoza celu", ()
   assert.match(plugin, /for \(String v : Alarms\.VOIVS\) doWypisania\.add\(voivTopic\(v\)\);/);
   // 1.8.08: wywołanie dostało słuchacza postępu i przeszło do drugiej linii — dopuszczamy
   // dowolny odstęp i ciąg dalszy po fm.unsubscribeFromTopic(t), sens asercji bez zmian.
-  assert.match(plugin, /for \(String t : doWypisania\) if \(!target\.contains\(t\)\)\s*fm\.unsubscribeFromTopic\(t\)/);
+  // 19.11.2026 (etap 3): cel odejmujemy od zbioru raz (removeAll), a wypis idzie dopiero po
+  // potwierdzeniu zapisu — pętla nie ma już warunku w środku. Sens bez zmian: wypis z każdego
+  // tematu z doWypisania (wszystkie województwa) poza celem.
+  assert.match(plugin, /(?:for \(String t : doWypisania\) if \(!target\.contains\(t\)\)\s*fm\.unsubscribeFromTopic\(t\))|(?:doWypisania\.removeAll\(target\);[\s\S]*?for \(String (\w+) : doWypisania\)\s*fm\.unsubscribeFromTopic\(\1\))/);
   assert.doesNotMatch(plugin, /for \(String t : current\) if \(!target\.contains\(t\)\)\s*fm\.unsubscribeFromTopic\(t\)/,
     "dawne wypisywanie tylko z własnej listy");
 });
