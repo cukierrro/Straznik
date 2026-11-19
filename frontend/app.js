@@ -803,8 +803,10 @@ function wczytajGranicePowiatow() {
       .catch(() => { granicePowiatowObietnica = null; return null; });   // następna próba przy kolejnej synchronizacji
   return granicePowiatowObietnica;
 }
-/* Powiaty miejsc z włączonymi alarmami (TERYT). Bez wczytanych granic — pusta lista:
-   warstwa natywna zostaje wtedy na województwach, zamiast przejść na pusty zestaw. */
+/* Powiaty miejsc z włączonymi alarmami (TERYT). Pusta lista — bez wczytanych granic albo
+   gdy choć jedno miejsce z alarmami nie ma dokładnej lokalizacji (decyzja usera 19.11.2026:
+   powiatu nie zgadujemy i nie podpinamy całego województwa). Warstwa natywna zostaje
+   wtedy na województwach, więc żadne miejsce nie traci alarmów. */
 function powiatyDoTematow() {
   return granicePowiatow && Powiaty ? Powiaty.powiatyMiejsc(granicePowiatow, savedPlaces) : [];
 }
@@ -815,6 +817,18 @@ function nazwaPowiatu(terc) {
   const k = Powiaty.nazwaKrotka(granicePowiatow, terc);
   if (/^[A-ZĄĆĘŁŃÓŚŹŻ]/.test(k)) return k;
   return UI.t(`powiat ${k}`, `${k} county`, `повіт ${k}`);
+}
+/* Wiersz w Alarmach i zgodach, gdy serwer przełączył na powiaty, a telefon został przy
+   województwach, bo któreś miejsce z alarmami nie ma dokładnej lokalizacji. */
+function liniaBezPowiatu(lang = UI.lang) {
+  if (torTematow() !== "pow" || !granicePowiatow || !Powiaty || alertsOff()) return "";
+  const brak = Powiaty.planPowiatow(granicePowiatow, savedPlaces).bezPowiatu;
+  if (!brak.length) return "";
+  const T = (pl, en, uk) => lang === "pl" ? pl : lang === "uk" ? uk : en;
+  const nazwy = brak.map(m => esc(m.name)).join(", ");
+  return T(`Alarmy dla powiatów czekają na dokładną lokalizację miejsc: ${nazwy}. Do tego czasu telefon dostaje alarmy dla województw. Lokalizację dodaje się w Moich miejscach: „Województwo + jednorazowa lokalizacja”.`,
+    `County alerts are waiting for a precise location of: ${nazwy}. Until then this phone gets province alerts. Add the location in My places: “Province + one-time location”.`,
+    `Тривоги для повітів чекають на точне місцеперебування місць: ${nazwy}. Доти телефон отримує тривоги для воєводств. Місцеперебування додається в Моїх місцях: «Воєводство + одноразове місцеперебування».`);
 }
 /* Pole `tematy` ze stanu serwera. Tylko wyraźne „pow” albo „woj” cokolwiek zmienia. */
 function applyTematy(t) {
@@ -7700,6 +7714,7 @@ async function refreshBgStatus(previewLang = UI.lang) {
       || (noRegion && !subscribed.length ? (T("Powiadomienia są dozwolone.", "Notifications are allowed.", "Сповіщення дозволені.")) : "")
       || (T("Powiadomienia gotowe. Alarmy dla Twojego regionu dotrą także przy zamkniętej aplikacji.", "Notifications ready. Alerts for your region will arrive even while the app is closed.", "Сповіщення готові. Тривоги для вашого регіону дійдуть також при закритому застосунку.")))
       + `<br>${subLine}`
+      + (liniaBezPowiatu(previewLang) ? `<br>${liniaBezPowiatu(previewLang)}` : "")
       + (pushLine ? `<br>${pushLine}` : "")
       + `<br><span class="muted">${s.platform === "ios" ? `iOS ${esc(s.osVersion || "")}`
         : `Android ${s.sdk}, ${esc(s.manufacturer || "")}`}`

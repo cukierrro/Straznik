@@ -10,12 +10,19 @@
    kosztowałaby alarm za mało. Pilnuje tego scripts/test_powiaty_telefon.cjs na punktach
    z nieuproszczonych granic.
 
-   Miejsce bez dokładnej lokalizacji (wybrane samo województwo) obserwuje wszystkie
-   powiaty województwa — tak jak dotąd całe województwo. */
+   Miejsce BEZ dokładnej lokalizacji (zakres „Województwo”, miejsce przeniesione ze starszej
+   wersji, pozycja zbyt przybliżona) nie dostaje żadnego powiatu — powiatu nie zgadujemy
+   i nie podpinamy całego województwa (decyzja usera 19.11.2026). Dopóki choć jedno miejsce
+   z alarmami nie ma powiatu, telefon zostaje na tematach WOJEWÓDZTW (powiatyMiejsc zwraca
+   pustą listę, warstwa natywna przy pustej liście nie przechodzi na powiaty). */
 (function (root) {
   'use strict';
   const M_NA_STOPIEN = 111320;
   const ZASIEG_BRZEGU_M = 5000;   // miejsce tuż za obrysem (plaża, zalew) — najbliższy powiat
+  /* Pozycja przybliżona: dokładność (promień z GPS) jest marginesem — miejsce dostaje każdy
+     powiat w tym promieniu, czyli prawdziwy na pewno. Powyżej tego promienia (np. lokalizacja
+     „przybliżona” Androida/iOS, kilka km) traktujemy miejsce jak bez dokładnej lokalizacji. */
+  const DOKLADNOSC_MAX_M = 2000;
 
   /* Pierścienie z różnic na bezwzględne liczby całkowite — raz, przy pierwszym użyciu. */
   function przygotuj(dane) {
@@ -58,10 +65,10 @@
   /* Powiaty miejsca: { powiaty: [TERYT…], pewny: bool }. `pewny` = dokładnie jeden powiat
      i miejsce dalej od granicy niż margines. Poza Polską (dalej niż ZASIEG_BRZEGU_M od
      każdego powiatu) — pusta lista. */
-  function znajdz(dane, lat, lon) {
+  function znajdz(dane, lat, lon, dokladnoscM = 0) {
     dane = przygotuj(dane);
     if (!dane || !Number.isFinite(+lat) || !Number.isFinite(+lon)) return { powiaty: [], pewny: false };
-    const S = dane.skala, M = dane.margines_m;
+    const S = dane.skala, M = Math.max(dane.margines_m, +dokladnoscM || 0);
     const x = lon * S, y = lat * S;
     const ky = M_NA_STOPIEN / S, kx = M_NA_STOPIEN * Math.cos(lat * Math.PI / 180) / S;
     const mx = M / kx, my = M / ky, zx = ZASIEG_BRZEGU_M / kx, zy = ZASIEG_BRZEGU_M / ky;
@@ -81,30 +88,48 @@
     return { powiaty: wynik, pewny: wynik.length === 1 && wewnatrz === 1 };
   }
 
-  /* Powiaty wszystkich miejsc z włączonymi alarmami. Miejsce z lokalizacją — jego powiat
-     (przy granicy dwa); miejsce bez lokalizacji albo poza Polską — wszystkie powiaty
-     wybranego województwa. Zwraca posortowaną listę bez powtórzeń. */
-  function powiatyMiejsc(dane, places) {
+  /* Powiat(y) jednego miejsca albo powód, dla którego go nie ma:
+       { powiaty: [TERYT…] }                       — miejsce z dokładną lokalizacją;
+       { powiaty: [], powod: "bez_lokalizacji" }   — zakres „Województwo” (także migracja);
+       { powiaty: [], powod: "przyblizona" }       — pozycja mniej dokładna niż DOKLADNOSC_MAX_M;
+       { powiaty: [], powod: "poza_polska" }       — punkt dalej niż ZASIEG_BRZEGU_M od powiatów. */
+  function powiatMiejsca(dane, pl) {
     dane = przygotuj(dane);
-    if (!dane) return [];
-    const out = new Set();
+    if (!dane || !pl) return { powiaty: [], powod: "bez_granic" };
+    if (pl.precision !== 'gps' || !pl.gps) return { powiaty: [], powod: 'bez_lokalizacji' };
+    const dokl = +pl.gps.accuracy || 0;
+    if (dokl > DOKLADNOSC_MAX_M) return { powiaty: [], powod: 'przyblizona' };
+    const z = znajdz(dane, pl.gps.lat, pl.gps.lon, dokl).powiaty;
+    return z.length ? { powiaty: z } : { powiaty: [], powod: 'poza_polska' };
+  }
+
+  /* Plan tematów: powiaty miejsc z alarmami i miejsca, którym powiatu przypisać się nie da. */
+  function planPowiatow(dane, places) {
+    const powiaty = new Set(), bezPowiatu = [];
     for (const pl of places || []) {
       if (!pl || !pl.alerts) continue;
-      const z = pl.precision === 'gps' && pl.gps ? znajdz(dane, pl.gps.lat, pl.gps.lon).powiaty : [];
-      if (z.length) { z.forEach(t => out.add(t)); continue; }
-      for (const [terc, p] of Object.entries(dane.pow)) if (p.w === pl.region) out.add(terc);
+      const w = powiatMiejsca(dane, pl);
+      if (w.powiaty.length) w.powiaty.forEach(t => powiaty.add(t));
+      else bezPowiatu.push({ name: pl.name, region: pl.region, powod: w.powod });
     }
-    return [...out].sort();
+    return { powiaty: [...powiaty].sort(), bezPowiatu };
+  }
+
+  /* Powiaty do tematów FCM. PUSTA lista, gdy choć jedno miejsce z alarmami nie ma powiatu
+     (albo nie ma granic) — telefon zostaje wtedy przy województwach, zamiast przegapić
+     alarm dla tego miejsca albo zgadywać jego powiat. */
+  function powiatyMiejsc(dane, places) {
+    if (!przygotuj(dane)) return [];
+    const p = planPowiatow(dane, places);
+    return p.bezPowiatu.length ? [] : p.powiaty;
   }
 
   /* Powiat jednego miejsca do opisu w ustawieniach: nazwy krótkie („lubelski”, „Lublin”). */
   function opisMiejsca(dane, place) {
     dane = przygotuj(dane);
     if (!dane || !place) return null;
-    if (place.precision !== 'gps' || !place.gps) return { caleWojewodztwo: true, powiaty: [] };
-    const z = znajdz(dane, place.gps.lat, place.gps.lon);
-    if (!z.powiaty.length) return { caleWojewodztwo: true, powiaty: [] };
-    return { caleWojewodztwo: false, powiaty: z.powiaty.map(t => nazwaKrotka(dane, t)) };
+    const w = powiatMiejsca(dane, place);
+    return { powiaty: w.powiaty.map(t => nazwaKrotka(dane, t)), powod: w.powod || null };
   }
 
   /* „lubelski” albo „Lublin” (miasto na prawach powiatu). */
@@ -118,7 +143,7 @@
     return /^[A-ZĄĆĘŁŃÓŚŹŻ]/.test(k) ? k : 'powiat ' + k;
   }
 
-  const api = { przygotuj, znajdz, powiatyMiejsc, opisMiejsca, nazwa, nazwaKrotka };
+  const api = { przygotuj, znajdz, powiatMiejsca, planPowiatow, powiatyMiejsc, opisMiejsca, nazwa, nazwaKrotka, DOKLADNOSC_MAX_M };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.StraznikPowiaty = api;
 })(globalThis);
