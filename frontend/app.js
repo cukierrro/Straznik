@@ -4858,7 +4858,10 @@ let lastMood = "none";
    miejsc (`fusion.powiaty` — serwer podaje tylko powiaty z poziomem), tak jak push.
    Bez tego otwarta aplikacja grałaby dla województwa, a push milczał dla powiatu. */
 function powiatyWStanie() {
-  if (torTematow() !== "pow") return null;
+  // Tryb wbudowany (engine.js, serwer niedostępny) liczy tylko województwa — wtedy
+  // otwarta aplikacja alarmuje jak dotąd z ich poziomów. Inaczej brak słownika
+  // `powiaty` wyglądałby jak „wszystkie powiaty spokojne” i nie zadzwoniłoby nic.
+  if (torTematow() !== "pow" || standalone) return null;
   const obs = powiatyDoTematow();
   if (!obs.length) return null;
   const pw = state?.fusion?.powiaty || {};
