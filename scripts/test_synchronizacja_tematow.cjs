@@ -73,9 +73,24 @@ sprawdz(!!mLinia, "app.js: fragment z wierszem stanu");
 if (mLinia) {
   const uruchom = (lang, s, subscribed) => {
     const T = (pl, en, uk) => lang === "pl" ? pl : lang === "uk" ? (uk !== undefined ? uk : en) : en;
-    return new Function("previewLang", "T", "esc", "UI", "alertsOff", "s", "subscribed", "noRegion",
-      mLinia[1] + "\nreturn subLine;")(lang, T, (x) => String(x), { voiv: (v) => v }, () => false, s, subscribed, false);
+    // etap 3: nazwaPowiatu z app.js (tu zastępnik), reszta jak dawniej
+    return new Function("previewLang", "T", "esc", "UI", "alertsOff", "s", "subscribed", "noRegion", "nazwaPowiatu",
+      mLinia[1] + "\nreturn subLine;")(lang, T, (x) => String(x), { voiv: (v) => v }, () => false, s, subscribed, false,
+      (t) => ({ "0663": "Lublin", "0617": "powiat świdnicki" })[t] || t);
   };
+  // etap 3 (19.11.2026): tor powiatów
+  sprawdz(uruchom("pl", { torAktywny: "pow", topicsConfirmed: ["pow_0663", "pow_0617_krytyczne"] }, [])
+    === "Zapisany do alarmów dla powiatów: Lublin, powiat świdnicki (potwierdzone przez Firebase).",
+    "tor powiatów: wiersz wymienia powiaty potwierdzone przez Firebase (także _krytyczne)");
+  sprawdz(uruchom("pl", { torAktywny: "woj", tematyTryb: "pow", topicsConfirmed: ["voiv_lubelskie"] }, ["Lubelskie"])
+    .startsWith("Zapisany do alarmów dla: Lubelskie"),
+    "serwer wskazał powiaty, ale Firebase jeszcze nie potwierdził — wiersz mówi prawdę: województwa");
+  sprawdz(uruchom("en", { tematyTryb: "pow", topicsSyncing: true }, []).startsWith("⏳ Subscribing this phone to the counties"),
+    "EN: „⏳ Subscribing … counties” w trakcie przejścia");
+  sprawdz(uruchom("uk", { tematyTryb: "pow", topicsSyncing: true }, []).startsWith("⏳ Записування телефону на повіти"),
+    "UK: „⏳ Записування … повіти”");
+  sprawdz(uruchom("pl", { torAktywny: "pow", topicsConfirmed: [] }, []).startsWith("Telefon nie jest zapisany"),
+    "tor powiatów bez potwierdzonych tematów — nie udaje zapisu");
   sprawdz(uruchom("pl", { topicsSyncing: true }, ["Mazowieckie"]).startsWith("⏳ Zapisywanie telefonu do województw"),
     "PL: w trakcie zapisu „⏳ Zapisywanie…”, nie stan sprzed zmiany");
   sprawdz(uruchom("en", { topicsSyncing: true }, []).startsWith("⏳ Subscribing"), "EN: „⏳ Subscribing…”");
