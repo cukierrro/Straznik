@@ -578,6 +578,28 @@ def voiv_topic(voiv: str) -> str:
 # („dziennik”) i nic nie wychodzi do ludzi. STRAZNIK_POWIATY=0 wyłącza samo liczenie.
 POWIATY_LICZENIE = os.getenv("STRAZNIK_POWIATY", "1").strip() != "0"
 POWIATY_WYSYLKA = os.getenv("STRAZNIK_POWIATY_WYSYLKA", "0").strip() == "1"
+# Etap 3 (aplikacje, 19.11.2026). Aplikacja od tej wersji zna oba tory, a słucha tego,
+# który wskaże serwer polem `tematy` w /api/state (tematy_aplikacji()): „woj” — tematy
+# voiv_* jak dotąd, „pow” — tematy pow_<TERYT> powiatów zapisanych miejsc. Przełącza się
+# najpierw zapisem do nowych tematów, a wypisuje ze starych dopiero po potwierdzeniu.
+# „pow” idzie RAZEM z włączoną wysyłką powiatów — nie da się ustawić jednego bez drugiego.
+#
+# STRAZNIK_POWIATY_MOST=1 — wyłącznik awaryjny po przejściu: wraca na punktację
+# województw. `tematy` = „woj” (otwarte aplikacje przepisują się z powrotem), wysyłka
+# powiatowej punktacji milknie, a każdy alarm województwa idzie DODATKOWO na tematy
+# wszystkich jego powiatów (notify.send_fcm_most) — telefon, który jeszcze nie zdążył
+# wrócić na voiv_* (zamknięta aplikacja, iPhone), nie zostaje bez alarmów.
+POWIATY_MOST = os.getenv("STRAZNIK_POWIATY_MOST", "0").strip() == "1"
+
+
+def powiaty_wysylka_wlaczona() -> bool:
+    """Czy alarmy z PUNKTACJI powiatów idą do ludzi (most je zastępuje)."""
+    return POWIATY_WYSYLKA and not POWIATY_MOST
+
+
+def tematy_aplikacji() -> str:
+    """Tor tematów FCM dla aplikacji (pole `tematy` w /api/state): „pow” albo „woj”."""
+    return "pow" if powiaty_wysylka_wlaczona() else "woj"
 # Kalibracja 18.11.2026 (23.10–18.11, 380 powiatów co 5 min): próg 2,5 dał żółty przed
 # każdym z 7 realnych zbliżeń (obiekt < 30 km od powiatu), Lublin 5 żółtych zamiast 37
 # w 26 dni. Czerwony jak w województwach: 4,0 i klucz (fusion.red_key).

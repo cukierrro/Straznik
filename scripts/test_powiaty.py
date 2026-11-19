@@ -399,6 +399,82 @@ try:
 except ImportError as e:
     print(f"  (pominięte /api/state: {e})")
 
+# ── 8. etap 3: tor tematów aplikacji i most wyłącznika awaryjnego ────────────
+print("\n8. Tor tematów aplikacji (`tematy`) i most")
+ok(config.tematy_aplikacji() == "woj" and not config.powiaty_wysylka_wlaczona(),
+   "domyślnie aplikacje zostają na województwach (`tematy` = woj)")
+config.POWIATY_WYSYLKA = True
+ok(config.tematy_aplikacji() == "pow" and config.powiaty_wysylka_wlaczona(),
+   "włączona wysyłka powiatów = aplikacje na powiatach (jedno bez drugiego się nie da)")
+config.POWIATY_MOST = True
+ok(config.tematy_aplikacji() == "woj" and not config.powiaty_wysylka_wlaczona(),
+   "most (wyłącznik awaryjny): aplikacje z powrotem na województwach, punktacja powiatów milknie")
+wyslane.clear()
+
+
+async def przy_moscie():
+    await krok({RZESZOW: stan(2.9, "elevated")}, T0 + 5000)
+    for _ in range(5):
+        await asyncio.sleep(0)
+
+RZESZOW = terc("powiat Rzeszów", "podkarpackie")
+asyncio.run(przy_moscie())
+r = [x for x in db.alert_log_pow_since(1) if x["terc"] == RZESZOW][-1]
+ok(not wyslane and r["decision"] == "dziennik", f"przy moście powiaty tylko do dziennika: {r['decision']}")
+try:
+    from app import main
+    ok(main.build_state().get("tematy") == "woj", "/api/state niesie `tematy` = woj przy moście")
+    config.POWIATY_MOST = False
+    ok(main.build_state().get("tematy") == "pow", "/api/state niesie `tematy` = pow przy wysyłce")
+except ImportError as e:
+    print(f"  (pominięte /api/state: {e})")
+config.POWIATY_WYSYLKA, config.POWIATY_MOST = False, False
+
+dane_woj = {"voiv": "lubelskie", "level": "high", "score": "4.3", "reasons": "a\nb", "headline": "Dron",
+            "sent_at": "2026-11-17T09:36:00+00:00", "event_id": "lubelskie|high|1794908160",
+            "ponowienie": "0"}
+LUB_POW = sorted(t for t, p in P.items() if p["woj"] == "lubelskie")
+m1, m2 = powiaty.wiadomosc_most(LUBLIN, dane_woj), powiaty.wiadomosc_most(LUB_POW[0], dane_woj)
+ok(all(isinstance(v, str) for v in m1.values()), "most: FCM data same napisy")
+ok(m1["typ"] == "pow" and m1["pow"] == LUBLIN and m1["miejsce"] == "Lublin, woj. lubelskie"
+   and m1["level"] == "high" and m1["score"] == "4.3" and m1["most"] == "1",
+   f"most: alarm województwa w formie alarmu powiatu ({m1['miejsce']})")
+ok(m1["klucz_zdarzenia"] == m2["klucz_zdarzenia"] == "high|voiv_lubelskie|1794908160",
+   "most: jeden klucz dla wszystkich powiatów województwa — telefon dzwoni raz")
+ok(powiaty.wiadomosc_most(terc("powiat Rzeszów", "podkarpackie"),
+                          {**dane_woj, "voiv": "podkarpackie"})["klucz_zdarzenia"] != m1["klucz_zdarzenia"],
+   "most: dwa województwa — dwa klucze (jak dotąd dwa alarmy)")
+ok(len(m1["klucz_zdarzenia"].encode()) <= 64, "klucz mieści się w apns-collapse-id (64 B)")
+
+tematy = []
+notify._send_fcm_sync = lambda topic, data, critical=False: tematy.append((topic, critical, data)) or "id"
+notify._fcm_ready, config.FCM_ENABLED, config.PRODUCTION = True, True, True
+
+
+async def wysylka_woj(most):
+    config.POWIATY_MOST = most
+    tematy.clear()
+    await notify.send_fcm("lubelskie", "high", 4.3, "a", headline="Dron", most_ponowienie=False)
+    await asyncio.gather(*list(notify._most_zadania))
+    return [t for t, _, _ in tematy]
+
+bez = asyncio.run(wysylka_woj(False))
+ok(bez == ["voiv_lubelskie", "voiv_lubelskie_krytyczne"], f"bez mostu tylko województwo: {bez}")
+ok("ponowienie" not in tematy[0][2] and "klucz_zdarzenia" not in tematy[0][2],
+   "ładunek województwa bez nowych pól (stare aplikacje i iPhone'y bez zmian)")
+z = asyncio.run(wysylka_woj(True))
+ok(z[:2] == ["voiv_lubelskie", "voiv_lubelskie_krytyczne"], "most: najpierw województwo")
+ok(sorted(z[2:]) == sorted([f"pow_{t}" for t in LUB_POW] + [f"pow_{t}_krytyczne" for t in LUB_POW]),
+   f"most: wszystkie {len(LUB_POW)} powiaty lubelskiego, oba tematy ({len(z) - 2})")
+ok(all(d.get("typ") == "pow" and d.get("ponowienie") == "0" for t, _, d in tematy[2:]),
+   "most: ładunek powiatowy ze znacznikiem ponowienia")
+tematy.clear()
+asyncio.run(notify.send_fcm("lubelskie", "high", 4.3, "a", test=True, most_ponowienie=False))
+ok([t for t, _, _ in tematy] == ["test_voiv_lubelskie", "test_voiv_lubelskie_krytyczne"],
+   "most nigdy dla testu (E4)")
+config.POWIATY_MOST, config.PRODUCTION = False, False
+notify._fcm_ready = False
+
 db._conn.close()
 print()
 if bledy:
