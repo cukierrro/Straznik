@@ -24,12 +24,14 @@ const mSync = app.match(/\nlet ostatniaSynchronizacja = null;\nfunction syncObse
 sprawdz(!!mSync, "app.js: syncObservedRegions z pamięcią ostatniej synchronizacji");
 if (mSync) {
   const wywolania = [];
-  const srodowisko = { regiony: ["mazowieckie"], off: false, voiv: "mazowieckie" };
+  const srodowisko = { regiony: ["mazowieckie"], off: false, voiv: "mazowieckie", powiaty: [], tor: "woj" };
+  // etap 3 (19.11.2026): synchronizacja niesie też powiaty miejsc i tor wskazany przez serwer
   const f = new Function("alertsOff", "Places", "savedPlaces", "IS_APP", "BG", "myVoiv", "syncBrowserPushRegion",
+    "powiatyDoTematow", "torTematow",
     mSync[0] + "\nreturn syncObservedRegions;");
   const sync = f(() => srodowisko.off, { observedVoivodeships: () => srodowisko.regiony.slice() }, [], true,
     () => ({ setObservedVoivodeships: (a) => { wywolania.push(a); return Promise.resolve(); } }),
-    () => srodowisko.voiv, () => Promise.resolve());
+    () => srodowisko.voiv, () => Promise.resolve(), () => srodowisko.powiaty.slice(), () => srodowisko.tor);
   sync();
   sprawdz(wywolania.length === 1, "start aplikacji synchronizuje zawsze");
   sync({ tylkoPoZmianie: true });
@@ -43,6 +45,21 @@ if (mSync) {
     "wyłączenie alarmów — synchronizacja z pustą listą");
   sync();
   sprawdz(wywolania.length === 4, "wywołanie bez opcji (zgoda, zmiana miejsc) synchronizuje mimo braku zmian");
+  srodowisko.off = false;
+  sync();
+  srodowisko.powiaty = ["0663"];
+  sync({ tylkoPoZmianie: true });
+  sprawdz(wywolania.length === 6 && JSON.stringify(wywolania[5].powiaty) === '["0663"]' && wywolania[5].tematy === "woj",
+    "etap 3: wczytane granice (nowe powiaty) — synchronizacja z numerami powiatów");
+  srodowisko.tor = "pow";
+  sync({ tylkoPoZmianie: true });
+  sprawdz(wywolania.length === 7 && wywolania[6].tematy === "pow", "etap 3: serwer przełączył tor — synchronizacja z tematy=pow");
+  sync({ tylkoPoZmianie: true });
+  sprawdz(wywolania.length === 7, "etap 3: ten sam tor i powiaty — bez synchronizacji");
+  srodowisko.tor = "woj";
+  sync({ tylkoPoZmianie: true });
+  sprawdz(wywolania.length === 8 && wywolania[7].tematy === "woj", "etap 3: wyłącznik awaryjny (tor woj) — synchronizacja z powrotem");
+  sprawdz(wywolania.every(w => !("gps" in w) && !("lat" in w) && !("places" in w)), "do warstwy natywnej nie idą miejsca ani współrzędne");
 }
 sprawdz(/dlg\.addEventListener\("close",[\s\S]{0,300}?syncObservedRegions\(\{\s*tylkoPoZmianie:\s*true\s*\}\)/.test(app),
   "app.js: zamknięcie Ustawień woła syncObservedRegions({ tylkoPoZmianie: true })");
@@ -94,7 +111,7 @@ sprawdz(/if \(retry >= SYNC_MAX_RETRY\) return;[\s\S]{0,300}?syncFcmSubscription
 sprawdz(/OSTATNI_POSTEP\.set\(teraz\);\s*straz\(app, forceAll, retry, gen, done, 0\);/.test(java),
   "Java: każda synchronizacja uruchamia straż");
 const sluchacze = (java.match(/addOnCompleteListener\(/g) || []).length;
-const postepy = (java.match(/addOnCompleteListener\(task -> (?:\{\s*)?OSTATNI_POSTEP\.set\(System\.currentTimeMillis\(\)\)/g) || []).length;
+const postepy = (java.match(/addOnCompleteListener\(\w+ -> (?:\{\s*)?OSTATNI_POSTEP\.set\(System\.currentTimeMillis\(\)\)/g) || []).length;
 sprawdz(sluchacze >= 3 && postepy === sluchacze,
   `Java: każde potwierdzenie Firebase odnotowuje postęp (${postepy} z ${sluchacze} słuchaczy), także wypisania bez śledzenia wyniku`);
 const retry = Number((java.match(/SYNC_RETRY_MS = ([\d_]+);/) || [])[1]?.replace(/_/g, ""));
@@ -108,6 +125,30 @@ sprawdz(/topics_syncing", false\) && !syncing && fcm\.getString\("topics_error",
 // zabezpieczenie z #15 zostaje: wypisanie ze WSZYSTKICH województw spoza celu
 sprawdz(/for \(String v : Alarms\.VOIVS\) doWypisania\.add\(voivTopic\(v\)\);/.test(java),
   "Java: dalej wypisuje ze wszystkich województw spoza celu (zgłoszenie #15)");
+
+/* ── 4. Etap 3: przejście między torami bez przerwy i bez podwójnych (19.11.2026) ── */
+const mSyncJ = java.match(/private static void syncFcmSubscription\(Context c, boolean forceAll, int retry\) \{[\s\S]*?\n    \}\n/);
+const sj = mSyncJ ? mSyncJ[0] : "";
+sprawdz(!!mSyncJ, "Java: synchronizacja tematów znaleziona");
+const iZapis = sj.indexOf("fm.subscribeToTopic(t)");
+const pierwszyWypisPoZapisie = sj.indexOf("fm.unsubscribeFromTopic(", iZapis);
+const wypisPrzedZapisem = sj.slice(sj.indexOf("if (target.isEmpty()) {"), iZapis).replace(/if \(target\.isEmpty\(\)\) \{[\s\S]*?\n        \}\n/, "");
+sprawdz(iZapis > 0 && !/unsubscribeFromTopic/.test(wypisPrzedZapisem),
+  "Java: przy niepustym celu nic nie jest wypisywane przed zapisem");
+sprawdz(/if \(all\) \{[\s\S]*?putString\(KEY_TOR_AKTYWNY, torDocelowy\)[\s\S]*?for \(String s : doWypisania\)\s*fm\.unsubscribeFromTopic\(s\)/.test(sj)
+  && pierwszyWypisPoZapisie > iZapis,
+  "Java: wypis ze starych tematów i zmiana toru dopiero, gdy Firebase potwierdził CAŁY cel");
+sprawdz(/Część celu niepotwierdzona[\s\S]*?suma\.addAll\(confirmed\);[\s\S]*?putStringSet\("topics", suma\)/.test(sj)
+  && !/KEY_TOR_AKTYWNY[^\n]*\n[^\n]*suma/.test(sj),
+  "Java: niepełne potwierdzenie — SUMA tematów (jak iPhone 1.8.09), tor bez zmian, nic nie wypisane");
+sprawdz(/naPow = TOR_POW\.equals\(tryb\) && !powTarget\.isEmpty\(\)/.test(sj),
+  "Java: tor powiatów tylko z policzonymi powiatami (pusty zestaw = zostajemy na województwach)");
+sprawdz(/doWypisania\.addAll\(znane\)/.test(sj) && /for \(String v : Alarms\.VOIVS\) doWypisania\.add\(voivTopic\(v\)\);/.test(sj),
+  "Java: po przejściu wypis ze wszystkich województw i z każdego zleconego powiatu");
+sprawdz(/static String torAktywny\(Context c\)[\s\S]{0,400}?return null;/.test(java),
+  "Java: tor nieodczytany — odbiór przepuszcza oba (lepiej alarm za dużo niż cisza)");
+sprawdz(/call\.getArray\("powiaty", null\)/.test(java) && /matches\("\\\\d\{4\}"\)/.test(java),
+  "Java: z JS przychodzą same numery TERYT (4 cyfry), nic innego");
 
 console.log(bledy ? `BLEDY: ${bledy}` : "WSZYSTKO OK");
 process.exit(bledy ? 1 : 0);

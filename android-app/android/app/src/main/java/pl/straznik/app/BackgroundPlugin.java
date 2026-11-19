@@ -106,8 +106,23 @@ public class BackgroundPlugin extends Plugin {
                 regions.add(value);
             }
         }
-        getContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
-            .putString(KEY_HOME, home).putStringSet(KEY_REGIONS, regions).commit();
+        android.content.SharedPreferences.Editor ed = getContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putString(KEY_HOME, home).putStringSet(KEY_REGIONS, regions);
+        // Etap 3 (19.11.2026): powiaty zapisanych miejsc — same numery TERYT, policzone
+        // w aplikacji z miejsc (frontend/powiaty.js) — i tor wskazany przez serwer.
+        // Starsza warstwa JS ich nie podaje: wtedy zostaje to, co było.
+        JSArray pow = call.getArray("powiaty", null);
+        if (pow != null) {
+            java.util.Set<String> powiaty = new java.util.LinkedHashSet<>();
+            for (int i = 0; i < pow.length(); i++) {
+                String t = pow.optString(i, "");
+                if (t.matches("\\d{4}")) powiaty.add(t);
+            }
+            ed.putStringSet(KEY_POWIATY, powiaty);
+        }
+        String tryb = call.getString("tematy", null);
+        if (TOR_POW.equals(tryb) || TOR_WOJ.equals(tryb)) ed.putString(KEY_TRYB, tryb);
+        ed.commit();
         // „Alarmy na tym telefonie” wyłączone (zgłoszenie 14–15.09.2026): flaga w pamięci
         // dostępnej przed odblokowaniem, żeby usługa FCM odrzucała alarmy także wtedy,
         // gdy wypisanie z tematu jeszcze nie dotarło do Firebase.
@@ -140,6 +155,40 @@ public class BackgroundPlugin extends Plugin {
             return true;
         }
     }
+
+    /* ── Etap 3: tor tematów (19.11.2026) ─────────────────────────────────────────
+       KEY_TRYB — tor wskazany przez serwer (pole `tematy` w /api/state), zapisany przez JS.
+       „tor_aktywny” (prefs straznik_fcm) — tor, którego wiadomości telefon PRZYJMUJE.
+       Zmienia się dopiero, gdy Firebase potwierdzi zapis do WSZYSTKICH tematów nowego toru;
+       wypis ze starego idzie dopiero po tej chwili. Do tego czasu telefon słucha starego
+       toru, a wiadomości nowego odrzuca — więc ani przerwy, ani podwójnego alarmu. */
+    static final String KEY_POWIATY = "observed_powiaty";
+    static final String KEY_TRYB = "tematy_tryb";
+    static final String KEY_TOR_AKTYWNY = "tor_aktywny";
+    /** Tematy pow_* kiedykolwiek zlecone — z nich wypisujemy (nie z 380 naraz). */
+    static final String KEY_POW_ZNANE = "pow_znane";
+    static final String TOR_WOJ = "woj", TOR_POW = "pow";
+
+    static String torAktywny(Context c) {
+        try {
+            return TOR_POW.equals(c.getSharedPreferences("straznik_fcm", Context.MODE_PRIVATE)
+                .getString(KEY_TOR_AKTYWNY, TOR_WOJ)) ? TOR_POW : TOR_WOJ;
+        } catch (Exception e) {
+            return null;    // nie wiadomo — odbiór przepuszcza oba tory (lepiej za dużo niż cisza)
+        }
+    }
+
+    /** Czy powiat jest wśród powiatów zapisanych miejsc. Błąd odczytu — przepuszczamy. */
+    static boolean obserwowanyPowiat(Context c, String terc) {
+        try {
+            return c.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .getStringSet(KEY_POWIATY, java.util.Collections.<String>emptySet()).contains(terc);
+        } catch (Exception e) {
+            return true;
+        }
+    }
+
+    static String powTopic(String terc) { return "pow_" + terc; }
 
     private static boolean isKnownVoivodeship(String value) {
         if (value == null) return false;
@@ -233,26 +282,47 @@ public class BackgroundPlugin extends Plugin {
         final Context app = c.getApplicationContext() != null ? c.getApplicationContext() : c;
         final long gen = SYNC_GEN.incrementAndGet();
         final java.util.concurrent.atomic.AtomicBoolean done = new java.util.concurrent.atomic.AtomicBoolean(false);
-        java.util.Set<String> target = new java.util.HashSet<>();
+        java.util.Set<String> voivTarget = new java.util.HashSet<>();
         android.content.SharedPreferences bg = c.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         if (bg.contains(KEY_REGIONS)) {
             for (String region : bg.getStringSet(KEY_REGIONS, java.util.Collections.<String>emptySet()))
-                if (isKnownVoivodeship(region)) target.add(voivTopic(region));
+                if (isKnownVoivodeship(region)) voivTarget.add(voivTopic(region));
         } else {
             String home = bg.getString(KEY_HOME, "");
-            if (isKnownVoivodeship(home)) target.add(voivTopic(home));
-            else for (int i : new int[]{0, 1, 2, 6}) target.add(voivTopic(Alarms.VOIVS[i]));
+            if (isKnownVoivodeship(home)) voivTarget.add(voivTopic(home));
+            else for (int i : new int[]{0, 1, 2, 6}) voivTarget.add(voivTopic(Alarms.VOIVS[i]));
         }
+        // Etap 3: tor powiatów, gdy serwer go wskazał I aplikacja policzyła powiaty miejsc.
+        // Bez policzonych powiatów (np. nie wczytały się granice) zostajemy na
+        // województwach — przejście na pusty zestaw tematów oznaczałoby ciszę.
+        // Bez żadnego województwa (alarmy wyłączone, brak miejsc) cel jest pusty w obu torach.
+        java.util.Set<String> powTarget = new java.util.HashSet<>();
+        for (String t : bg.getStringSet(KEY_POWIATY, java.util.Collections.<String>emptySet()))
+            if (t.matches("\\d{4}")) powTarget.add(powTopic(t));
+        final String tryb = TOR_POW.equals(bg.getString(KEY_TRYB, TOR_WOJ)) ? TOR_POW : TOR_WOJ;
+        final boolean naPow = TOR_POW.equals(tryb) && !powTarget.isEmpty();
+        final java.util.Set<String> target = voivTarget.isEmpty() ? voivTarget : (naPow ? powTarget : voivTarget);
+        final String torDocelowy = target.isEmpty() ? tryb : (naPow ? TOR_POW : TOR_WOJ);
         android.content.SharedPreferences p =
             c.getSharedPreferences("straznik_fcm", Context.MODE_PRIVATE);
         java.util.Set<String> current = new java.util.HashSet<>(
             p.getStringSet("topics", java.util.Collections.<String>emptySet()));
+        java.util.Set<String> znane = new java.util.HashSet<>(
+            p.getStringSet(KEY_POW_ZNANE, java.util.Collections.<String>emptySet()));
+        for (String t : target) if (t.startsWith("pow_")) znane.add(t);
+        // Wszystko, z czego trzeba się wypisać, gdy cel zostanie potwierdzony: każde
+        // województwo i każdy powiat kiedykolwiek zlecony (zgłoszenie #15: własna lista
+        // bywa niepełna, więc województwa wszystkie; powiatów nie zgadujemy z 380).
+        final java.util.Set<String> doWypisania = new java.util.HashSet<>(current);
+        for (String v : Alarms.VOIVS) doWypisania.add(voivTopic(v));
+        doWypisania.addAll(znane);
+        doWypisania.removeAll(target);
         FirebaseMessaging fm = FirebaseMessaging.getInstance();
         final java.util.Set<String> confirmed = java.util.Collections.synchronizedSet(new java.util.HashSet<>());
         final java.util.concurrent.atomic.AtomicInteger pending =
             new java.util.concurrent.atomic.AtomicInteger(target.size());
         long teraz = System.currentTimeMillis();
-        p.edit().putString("topics_error", "")
+        p.edit().putString("topics_error", "").putStringSet(KEY_POW_ZNANE, znane)
             .putBoolean("topics_unsubscribing", target.isEmpty()).putLong("topics_unsub_at", teraz)
             .putBoolean("topics_syncing", !target.isEmpty()).putLong("topics_sync_at", teraz).apply();
         // Straż: Firebase ucichł bez potwierdzenia → ta sama synchronizacja jeszcze raz
@@ -260,16 +330,17 @@ public class BackgroundPlugin extends Plugin {
         OSTATNI_POSTEP.set(teraz);
         straz(app, forceAll, retry, gen, done, 0);
         if (target.isEmpty()) {
-            // Wypisujemy ze WSZYSTKICH województw, nie tylko z zapamiętanych: starsze
-            // wersje zapisywały tematy bez utrwalenia listy. Stan „0 tematów” zapisujemy
+            // Wypisujemy ze WSZYSTKICH województw i znanych powiatów, nie tylko z zapamiętanych:
+            // starsze wersje zapisywały tematy bez utrwalenia listy. Stan „0 tematów” zapisujemy
             // dopiero po potwierdzeniu przez FCM — ustawienia pokazują wtedy prawdę.
             final java.util.concurrent.atomic.AtomicInteger left =
-                new java.util.concurrent.atomic.AtomicInteger(Alarms.VOIVS.length);
+                new java.util.concurrent.atomic.AtomicInteger(doWypisania.size());
             final java.util.concurrent.atomic.AtomicInteger failed = new java.util.concurrent.atomic.AtomicInteger();
-            for (String v : Alarms.VOIVS) {
-                fm.unsubscribeFromTopic(voivTopic(v)).addOnCompleteListener(task -> {
+            for (String t : doWypisania) {
+                fm.unsubscribeFromTopic(t).addOnCompleteListener(task -> {
                     OSTATNI_POSTEP.set(System.currentTimeMillis());
                     if (!task.isSuccessful()) failed.incrementAndGet();
+                    else if (t.startsWith("pow_")) zapomnijPowiat(p, t);
                     if (left.decrementAndGet() == 0) {
                         if (SYNC_GEN.get() != gen) return;   // nowsza synchronizacja zapisze swój stan
                         done.set(true);
@@ -277,7 +348,7 @@ public class BackgroundPlugin extends Plugin {
                             .putBoolean("topics_syncing", false);
                         if (failed.get() == 0)
                             ed.putStringSet("topics", target).putLong("topics_ok_at", System.currentTimeMillis())
-                              .putString("topics_error", "");
+                              .putString("topics_error", "").putString(KEY_TOR_AKTYWNY, torDocelowy);
                         else ed.putString("topics_error", "nie potwierdzono wypisania z " + failed.get() + " tematów");
                         ed.apply();
                     }
@@ -285,17 +356,12 @@ public class BackgroundPlugin extends Plugin {
             }
             return;
         }
-        // Zgłoszenie #15 (20.10.2026): telefon z jednym miejscem w mazowieckim dostawał
-        // czerwone dla lubelskiego i podkarpackiego (mazowieckie nie miało wtedy ani jednego
-        // czerwonego). Wypisywaliśmy tylko z tematów z WŁASNEJ listy, a ta bywa niepełna:
-        // pierwsza synchronizacja przy starcie zapisuje ścianę wschodnią, zanim aplikacja
-        // poda miejsca, i jeśli kolejna synchronizacja ruszy przed potwierdzeniem tamtej,
-        // lista nadpisuje się samym docelowym tematem, a Google zostawia stare. Teraz przy
-        // każdej synchronizacji wypisujemy ze WSZYSTKICH tematów województw spoza celu.
-        java.util.Set<String> doWypisania = new java.util.HashSet<>(current);
-        for (String v : Alarms.VOIVS) doWypisania.add(voivTopic(v));
-        for (String t : doWypisania) if (!target.contains(t))
-            fm.unsubscribeFromTopic(t).addOnCompleteListener(task -> OSTATNI_POSTEP.set(System.currentTimeMillis()));
+        // Najpierw ZAPIS do wszystkich tematów celu, wypis dopiero po potwierdzeniu
+        // (etap 3, 19.11.2026). Wcześniej wypis szedł równolegle z zapisem — przy zmianie
+        // toru (województwa → powiaty i z powrotem) dawało to chwilę bez żadnego tematu,
+        // a przy zerwanej sieci telefon zostawał wypisany ze starych, a niezapisany do nowych.
+        // Dopóki stare tematy zostają, ich wiadomości odrzuca odbiór: województwo spoza
+        // miejsc (obserwowane) albo tor nieaktywny (torAktywny).
         for (String t : target) {
             fm.subscribeToTopic(t).addOnCompleteListener(task -> {
                 OSTATNI_POSTEP.set(System.currentTimeMillis());
@@ -305,15 +371,44 @@ public class BackgroundPlugin extends Plugin {
                     done.set(true);
                     boolean all = confirmed.size() == target.size();
                     android.content.SharedPreferences.Editor ed = p.edit()
-                        .putBoolean("topics_syncing", false).putBoolean("topics_unsubscribing", false)
-                        .putStringSet("topics", new java.util.HashSet<>(confirmed));
-                    if (all) ed.putLong("topics_ok_at", System.currentTimeMillis()).putString("topics_error", "");
-                    else ed.putString("topics_error", "nie potwierdzono " + (target.size() - confirmed.size())
+                        .putBoolean("topics_syncing", false).putBoolean("topics_unsubscribing", false);
+                    if (all) {
+                        // Cel potwierdzony w całości: od tej chwili telefon słucha nowego toru,
+                        // a stare tematy wypisujemy. `topics` = cel (wypis dochodzi w tle;
+                        // wiadomości ze starych tematów odbiór i tak odrzuca).
+                        ed.putStringSet("topics", new java.util.HashSet<>(confirmed))
+                          .putString(KEY_TOR_AKTYWNY, torDocelowy)
+                          .putLong("topics_ok_at", System.currentTimeMillis()).putString("topics_error", "");
+                        ed.apply();
+                        for (String s : doWypisania)
+                            fm.unsubscribeFromTopic(s).addOnCompleteListener(u -> {
+                                OSTATNI_POSTEP.set(System.currentTimeMillis());
+                                if (u.isSuccessful() && s.startsWith("pow_")) zapomnijPowiat(p, s);
+                            });
+                        return;
+                    }
+                    // Część celu niepotwierdzona: NIC nie wypisujemy, tor zostaje stary.
+                    // `topics` = SUMA dotychczasowych i nowo potwierdzonych — tak jak na iPhonie
+                    // (1.8.09). Do 1.8.09 Android zapisywał tu samo `confirmed`, więc po zerwanej
+                    // sieci ustawienia mówiły „nie jest zapisany do żadnego województwa”, choć
+                    // subskrypcje u Google zostały. Teraz suma jest prawdą: wypisu nie było.
+                    java.util.Set<String> suma = new java.util.HashSet<>(
+                        p.getStringSet("topics", java.util.Collections.<String>emptySet()));
+                    suma.addAll(confirmed);
+                    ed.putStringSet("topics", suma)
+                      .putString("topics_error", "nie potwierdzono " + (target.size() - confirmed.size())
                         + " z " + target.size() + " tematów");
                     ed.apply();
                 }
             });
         }
+    }
+
+    /** Wypis z powiatu potwierdzony — nie trzeba go już pamiętać. */
+    private static synchronized void zapomnijPowiat(android.content.SharedPreferences p, String topic) {
+        java.util.Set<String> z = new java.util.HashSet<>(
+            p.getStringSet(KEY_POW_ZNANE, java.util.Collections.<String>emptySet()));
+        if (z.remove(topic)) p.edit().putStringSet(KEY_POW_ZNANE, z).commit();
     }
 
     @PluginMethod
@@ -333,6 +428,12 @@ public class BackgroundPlugin extends Plugin {
             .getStringSet(KEY_REGIONS, java.util.Collections.<String>emptySet())));
         android.content.SharedPreferences fcm = c.getSharedPreferences("straznik_fcm", Context.MODE_PRIVATE);
         ret.put("topicsConfirmed", new JSArray(fcm.getStringSet("topics", java.util.Collections.<String>emptySet())));
+        // etap 3: tor wskazany przez serwer, tor, którego wiadomości telefon przyjmuje,
+        // i powiaty zapisanych miejsc (same numery TERYT)
+        ret.put("tematyTryb", c.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_TRYB, TOR_WOJ));
+        ret.put("torAktywny", fcm.getString(KEY_TOR_AKTYWNY, TOR_WOJ));
+        ret.put("observedPowiaty", new JSArray(c.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getStringSet(KEY_POWIATY, java.util.Collections.<String>emptySet())));
         ret.put("topicsOkAt", fcm.getLong("topics_ok_at", 0));
         // Kiedy ten telefon ostatni raz dostał cokolwiek z FCM — zapisuje
         // StraznikFcmService, zanim wiadomość zostanie gdziekolwiek odrzucona.
