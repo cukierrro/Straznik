@@ -153,7 +153,17 @@ if (!fs.existsSync(nse)) {
   const sw = fs.readFileSync(nse, 'utf8');
   ok(/klucz_zdarzenia/.test(sw) && /ponowienie/.test(sw), 'NSE czyta klucz zdarzenia i znacznik ponowienia');
   ok(/600|10 \* 60/.test(sw), 'NSE: okno 10 min');
-  ok(/content\.sound = nil/.test(sw), 'NSE: dopisanie bez dźwięku');
+  const wycisz = sw.match(/private static func wycisz\([\s\S]*?\n    \}/);
+  ok(!!wycisz && /\.sound = nil/.test(wycisz[0]), 'NSE: dopisanie bez dźwięku (wycisz)');
+  ok((sw.match(/Self\.wycisz\(kopia\)/g) || []).length === 2
+    && /if !wynik\.dzwoni \{\s*Self\.wycisz\(kopia\)/.test(sw),
+    'NSE: wyciszane wyłącznie powtórki (tor nieaktywny, dopisanie) — pierwszy alarm nietknięty');
+  ok(/if !wysoki, ustawienia\?\.string\(forKey: Self\.kluczZoltego\) == "silent"/.test(sw),
+    'NSE: dawna zasada bez zmian — ustawienie ciszy żółtego nie dotyka czerwonego');
+  ok(/"Oficjalny Alert RCB dla powiatu"/.test(sw), 'NSE: tłumaczy nagłówek Alertu RCB dla powiatu');
+  // ta sama tabela przypadków co Android — logika Swifta przepisana do wzorca JS 1:1
+  ok(/static let okno: TimeInterval = 10 \* 60/.test(sw) && /r < ranga\(level\) \|\| wiek < 0 \|\| wiek >= okno/.test(sw)
+    && /if !ponowienie \{/.test(sw), 'NSE: warunki jak w Laczenie.java (ranga, okno, ponowienie)');
 }
 
 console.log();
