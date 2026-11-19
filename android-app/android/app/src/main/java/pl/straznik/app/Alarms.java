@@ -769,7 +769,9 @@ class Alarms {
         if (nm == null) return;
         boolean high = "high".equals(level);
         StringBuilder gdzie = new StringBuilder();
-        for (String m : w.miejsca) gdzie.append(gdzie.length() > 0 ? "; " : "").append(m);
+        // pierwsze miejsce na liście to to, które zadzwoniło — „także” wymienia pozostałe
+        for (int i = w.miejsca.size() > 1 ? 1 : 0; i < w.miejsca.size(); i++)
+            gdzie.append(gdzie.length() > 0 ? "; " : "").append(w.miejsca.get(i));
         String title = (high ? "WYSOKI PRIORYTET" : "PODWYŻSZONA UWAGA") + " — także: " + gdzie;
         String text = "Ten sam alarm co o " + godzina(w.dzwonekAt) + " — dopisane bez dźwięku."
             + (headline != null && !headline.isEmpty() ? "\n" + headline : "");
