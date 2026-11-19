@@ -777,6 +777,46 @@ const ALL_VOIVS = ["dolnośląskie","kujawsko-pomorskie","lubelskie","lubuskie",
 const Places = window.StraznikPlaces;
 let savedPlaces = Places?.migrate(localStorage) || [];
 const myVoiv = () => Places?.primaryVoivodeship(savedPlaces) || localStorage.getItem("straznik_voiv") || null;
+
+/* ── Alarmy powiatowe, etap 3 (19.11.2026) ─────────────────────────────────────
+   Aplikacja zna dwa tory tematów FCM: województwa (voiv_*) i powiaty zapisanych miejsc
+   (pow_<TERYT>). Którego słuchać, mówi serwer polem `tematy` w /api/state — ustawia je
+   razem z włączeniem wysyłki powiatów, a wyłącznik awaryjny wraca na „woj”. Brak pola
+   (stan liczony offline, stary serwer, własny backend) niczego nie zmienia: zostaje
+   ostatnia wartość od serwera, na starcie „woj”. Strona (Web Push) zostaje przy
+   województwach. Powiat miejsca liczy telefon (powiaty.js); do warstwy natywnej
+   idą same numery powiatów. Przełączenie robi warstwa natywna: najpierw zapis do
+   nowych tematów, wypis ze starych dopiero po potwierdzeniu przez Firebase. */
+const Powiaty = window.StraznikPowiaty;
+const TEMATY_KEY = "straznik_tematy";
+function torTematow() {
+  if (!IS_APP) return "woj";
+  try { return localStorage.getItem(TEMATY_KEY) === "pow" ? "pow" : "woj"; } catch { return "woj"; }
+}
+let granicePowiatow = null, granicePowiatowObietnica = null;
+function wczytajGranicePowiatow() {
+  if (!IS_APP || !Powiaty) return Promise.resolve(null);
+  if (!granicePowiatowObietnica)
+    granicePowiatowObietnica = fetch("assets/powiaty-telefon-v1.json")
+      .then(r => r.ok ? r.json() : null)
+      .then(d => (granicePowiatow = d ? Powiaty.przygotuj(d) : null))
+      .catch(() => { granicePowiatowObietnica = null; return null; });   // następna próba przy kolejnej synchronizacji
+  return granicePowiatowObietnica;
+}
+/* Powiaty miejsc z włączonymi alarmami (TERYT). Bez wczytanych granic — pusta lista:
+   warstwa natywna zostaje wtedy na województwach, zamiast przejść na pusty zestaw. */
+function powiatyDoTematow() {
+  return granicePowiatow && Powiaty ? Powiaty.powiatyMiejsc(granicePowiatow, savedPlaces) : [];
+}
+function nazwaPowiatu(terc) {
+  return granicePowiatow && Powiaty ? Powiaty.nazwa(granicePowiatow, terc) : terc;
+}
+/* Pole `tematy` ze stanu serwera. Tylko wyraźne „pow” albo „woj” cokolwiek zmienia. */
+function applyTematy(t) {
+  if (!IS_APP || (t !== "pow" && t !== "woj") || t === torTematow()) return;
+  try { localStorage.setItem(TEMATY_KEY, t); } catch {}
+  wczytajGranicePowiatow().then(() => syncObservedRegions({ tylkoPoZmianie: true })).catch(() => {});
+}
 let voivGeo = null;   // GeoJSON województw (do GPS → województwo i do centrowania)
 
 /* widok startowy: cała Polska + zachodnia Ukraina (kierunek nadlotu) */
@@ -1202,6 +1242,7 @@ function applyState(s) {
   state = s;
   showNotice(s?.notice);
   applySwitches(s?.wylaczniki);
+  applyTematy(s?.tematy);
   threatsReceivedAt = Date.now();
   if (!standalone) srvRecord(s);   // nagrywaj żywy feed do bufora historii (RAM)
   recordTrails(s?.neptun?.threats || []);
@@ -4808,7 +4849,43 @@ document.getElementById("ac-card-zoom")?.addEventListener("click", () => {
 
 /* ── alarm dźwiękowy przy poziomie WYSOKI ────────────────────────────────── */
 let lastMood = "none";
+/* Tor powiatów (etap 3): otwarta aplikacja alarmuje z poziomów POWIATÓW zapisanych
+   miejsc (`fusion.powiaty` — serwer podaje tylko powiaty z poziomem), tak jak push.
+   Bez tego otwarta aplikacja grałaby dla województwa, a push milczał dla powiatu. */
+function powiatyWStanie() {
+  if (torTematow() !== "pow") return null;
+  const obs = powiatyDoTematow();
+  if (!obs.length) return null;
+  const pw = state?.fusion?.powiaty || {};
+  return obs.map(t => ({ terc: t, ...(pw[t] || { level: "none", score: 0, woj: granicePowiatow?.pow?.[t]?.w }) }));
+}
+function updateAlarmMoodPowiaty(lista) {
+  const order = ["none", "elevated", "high"];
+  const najw = lista.reduce((b, p) => order.indexOf(p.level) > order.indexOf(b.level) ? p : b, { level: "none" });
+  const level = najw.level || "none";
+  if (order.indexOf(level) > order.indexOf(lastMood) && !alertsOff()) {
+    const gdzie = `${nazwaPowiatu(najw.terc)}, ${UI.t("woj.", "province", "воєв.")} ${UI.voiv(najw.woj || "")}`;
+    if (level === "high") {
+      const vst = state?.fusion?.voivodeships?.[najw.woj];
+      if (czerwonyTryb() === "zwykle") czerwonyZwykly(najw.woj, najw.score, gdzie);
+      else showAlarm(najw.woj, { ...(vst || { signals: [] }), score: najw.score }, gdzie);
+      document.getElementById("disclaimer").classList.remove("hidden");
+    } else if (level === "elevated") {
+      chimeOnce();
+      powiedz(a11yAlert, UI.t(`Uwaga: podniesiony poziom zagrożenia, ${gdzie}.`,
+        `Attention: raised threat level, ${gdzie}.`, `Увага: підвищений рівень загрози, ${gdzie}.`));
+    }
+  } else if (level === "none" && lastMood !== "none" && !alertsOff()) {
+    powiedz(a11yAlert, UI.t(
+      "Poziom zagrożenia wrócił do zwykłego. To nie jest oficjalne odwołanie alarmu.",
+      "The threat level is back to normal. This is not an official all-clear.",
+      "Рівень загрози повернувся до звичайного. Це не офіційне скасування тривоги."));
+  }
+  lastMood = level;
+}
 function updateAlarmMood() {
+  const powList = powiatyWStanie();
+  if (powList) return updateAlarmMoodPowiaty(powList);
   const voivs = state?.fusion?.voivodeships || {};
   const mine = myVoiv();
   // Liczą się WSZYSTKIE obserwowane województwa (audyt B1: alarm dla rodziców
@@ -4864,27 +4941,44 @@ function chimeOnce() {
 const fcmSeen = new Set();
 function onForegroundPush(d) {
   if (!d || !d.voiv || !d.level || alertsOff()) return;
+  const powiatowy = d.typ === "pow";
   // Zgłoszenie #15 (21.10.2026): push z tematu, który został na serwerach Google po
   // zmianie miejsc, nie może zawyć dla województwa spoza obserwowanych. Natywna część
   // odrzuca go wcześniej (BackgroundPlugin.obserwowane) — to drugie zabezpieczenie.
-  const obserwowane = Places?.observedVoivodeships?.(savedPlaces) || [];
-  if (obserwowane.length && !obserwowane.includes(d.voiv)) return;
+  // Etap 3: alarm powiatowy — powiat spoza zapisanych miejsc (powiaty.js).
+  if (powiatowy) {
+    const obsPow = powiatyDoTematow();
+    if (obsPow.length && !obsPow.includes(d.pow)) return;
+  } else {
+    const obserwowane = Places?.observedVoivodeships?.(savedPlaces) || [];
+    if (obserwowane.length && !obserwowane.includes(d.voiv)) return;
+  }
   const id = d.event_id || `${d.voiv}|${d.level}|${d.sent_at || ""}`;
   if (fcmSeen.has(id)) return;
   fcmSeen.add(id);
   const score = parseFloat(d.score) || 0;
   const st = state?.fusion?.voivodeships?.[d.voiv];
+  // „Lublin, woj. lubelskie” — po polsku z serwera; tłumaczymy tylko słowo „woj.”
+  const gdzie = powiatowy && d.pow
+    ? `${nazwaPowiatu(d.pow)}, ${UI.t("woj.", "province", "воєв.")} ${UI.voiv(d.voiv)}` : "";
+  /* Kolejne miejsce tego samego zdarzenia (warstwa natywna łączy po kluczu zdarzenia):
+     bez syreny i bez dźwięku, sam pasek — alarm już dzwonił. */
+  if (d._dolacz === "1") {
+    toast(`${d.level === "high" ? "🔴" : "⚠️"} <b>${UI.t("Także", "Also", "Також")}</b>: ${esc(gdzie || UI.voiv(d.voiv))}`
+      + ` (${pktTxt(score)} ${UI.t("pkt", "pts", "бал.")})`, 9000);
+    return;
+  }
   if (d.level === "high" && czerwonyTryb() === "zwykle") {
-    czerwonyZwykly(d.voiv, score);
+    czerwonyZwykly(d.voiv, score, gdzie);
     document.getElementById("disclaimer").classList.remove("hidden");
   } else if (d.level === "high") {
-    showAlarm(d.voiv, st && alarmLevel(st) === "high" ? st
-      : { score, signals: [], reasonsText: [d.headline, d.reasons].filter(Boolean).join("\n") });
+    showAlarm(d.voiv, st && alarmLevel(st) === "high" ? { ...st, ...(powiatowy ? { score } : {}) }
+      : { score, signals: [], reasonsText: [d.headline, d.reasons].filter(Boolean).join("\n") }, gdzie);
     document.getElementById("disclaimer").classList.remove("hidden");
   } else {
     chimeOnce();
     toast(`⚠️ <b>${UI.t("Podwyższona uwaga", "Heightened attention", "Підвищена увага")}</b>: `
-      + `${UI.t("woj.", "province", "воєв.")} ${esc(UI.voiv(d.voiv))} (${pktTxt(score)} ${UI.t("pkt", "pts", "бал.")})`, 9000);
+      + `${gdzie ? esc(gdzie) : `${UI.t("woj.", "province", "воєв.")} ${esc(UI.voiv(d.voiv))}`} (${pktTxt(score)} ${UI.t("pkt", "pts", "бал.")})`, 9000);
   }
 }
 
@@ -5024,10 +5118,11 @@ HTMLDialogElement.prototype.showModal = function () {
   return pokazOknoModalnie.call(this);
 };
 
-function showAlarm(voiv, st) {
+function showAlarm(voiv, st, gdzie = "") {
   if (!voiv || !st) return;
   zdejmijZasloneAlarmu();
-  document.getElementById("alarm-voiv").textContent = (UI.t("woj. ", "province ", "воєв. ")) + UI.voiv(voiv);
+  // etap 3: alarm powiatowy — „Lublin, woj. lubelskie”
+  document.getElementById("alarm-voiv").textContent = gdzie || ((UI.t("woj. ", "province ", "воєв. ")) + UI.voiv(voiv));
   const oknoMin = state?.fusion?.window_min ?? 60;
   // po ukraińsku „хв”, nie „min” (zrzuty 1.8.00); bez spacji na końcu w PL i UK
   document.getElementById("alarm-score").textContent = `${pktTxt(st.score)} ` +
@@ -5303,10 +5398,10 @@ function czerwonyTryb() {
 /* Czerwony w trybie „zwykłe powiadomienie” przy otwartej aplikacji: tak samo
    jak powiadomienie przy zamkniętej — bez pełnego ekranu i syreny, ale z
    sygnałem, wibracją „A”, paskiem i komunikatem dla czytnika ekranu. */
-function czerwonyZwykly(voiv, score) {
+function czerwonyZwykly(voiv, score, miejsce = "") {
   chimeOnce();
   zawibruj(WIBRACJA_A);
-  const gdzie = voiv ? `${UI.t("woj.", "province", "воєв.")} ${UI.voiv(voiv)}` : "";
+  const gdzie = miejsce || (voiv ? `${UI.t("woj.", "province", "воєв.")} ${UI.voiv(voiv)}` : "");
   toast(`🔴 <b>${UI.t("Wysoki priorytet", "High priority", "Високий пріоритет")}</b>: ${esc(gdzie)}`
     + (score ? ` (${pktTxt(score)} ${UI.t("pkt", "pts", "бал.")})` : ""), 15000);
   powiedz(a11yAlert, UI.t(`Wysoki priorytet zagrożenia, ${gdzie}.`,
@@ -6769,13 +6864,15 @@ function alertsOff() { try { return localStorage.getItem(ALERTS_OFF_KEY) === "1"
 let ostatniaSynchronizacja = null;
 function syncObservedRegions(opcje = {}) {
   const regions=alertsOff()?[]:(Places?.observedVoivodeships(savedPlaces)||[]);
-  const klucz=JSON.stringify([regions, alertsOff(), myVoiv()||""]);
+  // etap 3: powiaty miejsc (same numery TERYT) i tor wskazany przez serwer
+  const powiaty=alertsOff()?[]:powiatyDoTematow(), tematy=torTematow();
+  const klucz=JSON.stringify([regions, alertsOff(), myVoiv()||"", powiaty, tematy]);
   if(opcje.tylkoPoZmianie && klucz===ostatniaSynchronizacja) return Promise.resolve();
   ostatniaSynchronizacja=klucz;
   if(!IS_APP) syncBrowserPushRegion().catch(()=>{});
   const plugin=BG();
   // alertsOff trafia też do usługi FCM (odrzuca alarmy, zanim wypisanie dotrze do Firebase)
-  if(plugin?.setObservedVoivodeships) return plugin.setObservedVoivodeships({voivodeships:regions, alertsOff:alertsOff()});
+  if(plugin?.setObservedVoivodeships) return plugin.setObservedVoivodeships({voivodeships:regions, powiaty, tematy, alertsOff:alertsOff()});
   return plugin?.setHomeVoivodeship?.({voivodeship:myVoiv()||""});
 }
 /* Zgłoszenie z Google Play (17.11.2026, Huawei P30 Pro, 1.8.08): „wyznaczyłem 7 miejsc,
@@ -7530,6 +7627,13 @@ async function refreshBgStatus(previewLang = UI.lang) {
     // „Wypisywanie…” wyglądało wtedy jak błąd, a użytkownik nie wiedział, co zrobić.
     const noRegion = !alertsOff() && !(s.observedVoivodeships || []).length && !s.homeVoivodeship;
     const loc = previewLang === "pl" ? "pl-PL" : previewLang === "uk" ? "uk-UA" : "en-GB";
+    /* Etap 3 (19.11.2026): telefon na torze powiatów — potwierdzone tematy pow_<TERYT>
+       (iPhone ze zgodą na alarm krytyczny: pow_<TERYT>_krytyczne). Starsza warstwa
+       natywna nie podaje torAktywny — wtedy wiersz jak dotąd, o województwach. */
+    const powPotw = [...new Set((s.topicsConfirmed || [])
+      .map(t => (/^pow_(\d{4})(?:_krytyczne)?$/.exec(t) || [])[1]).filter(Boolean))];
+    const naPowiatach = s.torAktywny === "pow" && powPotw.length > 0;
+    const doPowiatow = s.tematyTryb === "pow";
     /* Kiedy Firebase ostatnio POTWIERDZIŁ zapis (Android topics_ok_at, iPhone
        Key.topicsOkAt — ustawiane tylko przy udanym zapisie albo wypisaniu).
        Zgłoszenie 3.11.2026: iPhone po aktualizacji iOS milczał, a ekran mówił
@@ -7546,8 +7650,12 @@ async function refreshBgStatus(previewLang = UI.lang) {
       ? (T("Nie wybrano jeszcze województwa do alarmów — dodaj miejsce z włączonym „Obserwuj alerty” w zakładce Moje miejsca.", "No province is selected for alerts yet — add a place with “Watch alerts” on in the My places tab.", "Ще не вибрано воєводства для тривог — додайте місце з увімкненим «Стежити за тривогами» у вкладці Мої місця."))
       : s.topicsUnsubscribing
       ? (T("⏳ Wypisywanie telefonu z województw…", "⏳ Unsubscribing this phone from provinces…", "⏳ Відписування телефону від воєводств…"))
+      : s.topicsSyncing && doPowiatow
+      ? (T("⏳ Zapisywanie telefonu do powiatów zapisanych miejsc…", "⏳ Subscribing this phone to the counties of saved places…", "⏳ Записування телефону на повіти збережених місць…"))
       : s.topicsSyncing
       ? (T("⏳ Zapisywanie telefonu do województw…", "⏳ Subscribing this phone to provinces…", "⏳ Записування телефону на воєводства…"))
+      : naPowiatach
+      ? (T(`Zapisany do alarmów dla powiatów: ${powPotw.map(t => esc(nazwaPowiatu(t))).join(", ")} (${potw}).`, `Subscribed to alerts for counties: ${powPotw.map(t => esc(nazwaPowiatu(t))).join(", ")} (${potw}).`, `Записано на тривоги для повітів: ${powPotw.map(t => esc(nazwaPowiatu(t))).join(", ")} (${potw}).`))
       : subscribed.length
       ? (T(`Zapisany do alarmów dla: ${subscribed.map(v => esc(UI.voiv(v))).join(", ")} (${potw}).`, `Subscribed to alerts for: ${subscribed.map(v => esc(UI.voiv(v))).join(", ")} (${potw}).`, `Записано на тривоги для: ${subscribed.map(v => esc(UI.voiv(v))).join(", ")} (${potw}).`))
       : (T(`Telefon nie jest zapisany do żadnego województwa (${potw}).`, `This phone is not subscribed to any province (${potw}).`, `Телефон не записаний на жодне воєводство (${potw}).`));
@@ -8725,6 +8833,6 @@ async function restoreAlertsOff() {
   const box = document.getElementById("set-alerts-on");
   if (box) box.checked = !alertsOff();
 }
-setTimeout(async () => { await restoreAlertsOff(); syncObservedRegions(); }, 2500);
+setTimeout(async () => { await restoreAlertsOff(); await wczytajGranicePowiatow(); syncObservedRegions(); }, 2500);
 if ("serviceWorker" in navigator && !IS_APP)
   navigator.serviceWorker.register("sw.js").catch(() => {});
