@@ -83,15 +83,42 @@ const miejsca = [
 ];
 ok(JSON.stringify(P.powiatyMiejsc(dane, miejsca)) === JSON.stringify([swidnik[0], '0663'].sort()),
   'dwa miejsca z alarmami → dwa powiaty; miejsce bez alarmów pominięte');
-const woj = P.powiatyMiejsc(dane, [{ name: 'Rodzice', precision: 'region', region: 'podlaskie', gps: null, alerts: true }]);
-ok(woj.length === tercs.filter(t => dane.pow[t].w === 'podlaskie').length && woj.every(t => t.startsWith('20')),
-  `miejsce bez lokalizacji → wszystkie ${woj.length} powiaty województwa`);
-const zagranica = P.powiatyMiejsc(dane, [{ name: 'Lwów', precision: 'gps', region: 'podkarpackie', gps: { lat: 49.84, lon: 24.03 }, alerts: true }]);
-ok(zagranica.length && zagranica.every(t => t.startsWith('18')), 'miejsce poza Polską → województwo wybrane przy miejscu');
+/* Decyzja usera 19.11.2026: miejsca bez dokładnej lokalizacji NIE dostają powiatów całego
+   województwa i powiatu nie zgadujemy. Dopóki choć jedno miejsce z alarmami nie ma powiatu,
+   telefon zostaje przy województwach (pusta lista → warstwa natywna nie przechodzi). */
+const rodzice = { name: 'Rodzice', precision: 'region', region: 'podlaskie', gps: null, alerts: true };
+const plan1 = P.planPowiatow(dane, [rodzice]);
+ok(plan1.powiaty.length === 0 && plan1.bezPowiatu.length === 1 && plan1.bezPowiatu[0].powod === 'bez_lokalizacji',
+  'miejsce z zakresem „Województwo” — żadnego powiatu, powód „bez lokalizacji” (nie całe województwo)');
+ok(P.powiatyMiejsc(dane, [rodzice]).length === 0, 'samo takie miejsce — pusta lista (telefon na województwach)');
+ok(P.powiatyMiejsc(dane, [...miejsca, rodzice]).length === 0,
+  'dwa miejsca z lokalizacją + jedno bez — CAŁY telefon zostaje na województwach (żadne miejsce nie traci alarmów)');
+const legacy = { id: 'legacy-home', name: 'Dom', precision: 'region', region: 'lubelskie', gps: null, alerts: true };
+ok(P.planPowiatow(dane, [legacy]).bezPowiatu[0]?.powod === 'bez_lokalizacji', 'miejsce przeniesione ze starej wersji (legacy-home) — bez powiatu');
+ok(P.planPowiatow(dane, [{ ...rodzice, alerts: false }]).bezPowiatu.length === 0
+  && JSON.stringify(P.powiatyMiejsc(dane, [...miejsca, { ...rodzice, alerts: false }])) === JSON.stringify([swidnik[0], '0663'].sort()),
+  'miejsce bez lokalizacji, ale bez alarmów — nie blokuje przejścia');
+const zagranica = P.planPowiatow(dane, [{ name: 'Lwów', precision: 'gps', region: 'podkarpackie', gps: { lat: 49.84, lon: 24.03 }, alerts: true }]);
+ok(zagranica.powiaty.length === 0 && zagranica.bezPowiatu[0].powod === 'poza_polska', 'pozycja poza Polską — bez powiatu, nie województwo wybrane przy miejscu');
+// pozycja przybliżona: promień dokładności jest marginesem — prawdziwy powiat zawsze na liście
+const lubR2 = P.przygotuj(dane).pow['0663']._r[0];
+const naGr = { lat: lubR2[1] / dane.skala, lon: lubR2[0] / dane.skala };
+const przybl = P.powiatMiejsca(dane, { precision: 'gps', gps: { ...naGr, accuracy: 1500 }, alerts: true });
+ok(przybl.powiaty.includes('0663') && przybl.powiaty.length >= 2, `pozycja z dokładnością 1,5 km przy granicy Lublina — wszystkie powiaty w promieniu (${przybl.powiaty})`);
+let zle = 0;
+for (const [lat, lon, t, d] of fx.punkty.slice(0, 3000)) {
+  const z = P.powiatMiejsca(dane, { precision: 'gps', gps: { lat, lon, accuracy: 900 }, alerts: true }).powiaty;
+  if (!z.includes(t)) zle++;
+}
+ok(zle === 0, 'dokładność 900 m: prawdziwy powiat zawsze na liście (3000 punktów z prawdziwych granic)');
+ok(P.powiatMiejsca(dane, { precision: 'gps', gps: { lat: 51.24808, lon: 22.56037, accuracy: P.DOKLADNOSC_MAX_M + 1 }, alerts: true }).powod === 'przyblizona',
+  `dokładność gorsza niż ${P.DOKLADNOSC_MAX_M} m (lokalizacja „przybliżona” systemu) — bez powiatu`);
 ok(P.powiatyMiejsc(dane, []).length === 0 && P.powiatyMiejsc(null, miejsca).length === 0, 'bez miejsc / bez granic — pusta lista');
 const opis = P.opisMiejsca(dane, miejsca[0]);
-ok(opis && !opis.caleWojewodztwo && opis.powiaty[0] === 'Lublin', 'opis miejsca: „Lublin”');
-ok(P.opisMiejsca(dane, { precision: 'region', region: 'lubelskie' }).caleWojewodztwo, 'opis miejsca bez lokalizacji: całe województwo');
+ok(opis && !opis.powod && opis.powiaty[0] === 'Lublin', 'opis miejsca: „Lublin”');
+ok(P.opisMiejsca(dane, { precision: 'region', region: 'lubelskie' }).powod === 'bez_lokalizacji', 'opis miejsca bez lokalizacji: powód, bez powiatów');
+const appSrc = fs.readFileSync(path.join(ROOT, 'frontend', 'powiaty.js'), 'utf8');
+ok(!/p\.w === pl\.region/.test(appSrc), 'w powiaty.js nie ma już dopinania wszystkich powiatów województwa');
 
 console.log('\n5. Prywatność i ładowanie');
 const app = fs.readFileSync(path.join(ROOT, 'frontend', 'app.js'), 'utf8');
@@ -114,6 +141,21 @@ if (mPws) {
   const l = pws('pow', false, { '0663': { level: 'high', score: 4.5, woj: 'lubelskie' }, '1863': { level: 'high', score: 5, woj: 'podkarpackie' } });
   ok(l && l.length === 2 && l.find(p => p.terc === '0663').level === 'high' && l.find(p => p.terc === '0617').level === 'none'
     && !l.some(p => p.terc === '1863'), 'tor powiatów — tylko powiaty miejsc; brak w słowniku = spokój; obcy powiat pominięty');
+}
+
+const mLinia = app.match(/function liniaBezPowiatu\(lang = UI\.lang\) \{[\s\S]*?\n\}/);
+ok(!!mLinia, 'app.js: wiersz o miejscach bez dokładnej lokalizacji');
+if (mLinia) {
+  const linia = (tor, places, lang) => new Function('torTematow', 'granicePowiatow', 'Powiaty', 'alertsOff', 'savedPlaces', 'esc', 'UI',
+    mLinia[0] + '\nreturn liniaBezPowiatu;')(() => tor, dane, P, () => false, places, x => x, { lang: 'pl' })(lang);
+  const zRodzicami = [...miejsca, { ...rodzice, name: 'Rodzice' }];
+  ok(linia('pow', zRodzicami, 'pl').includes('Rodzice') && linia('pow', zRodzicami, 'pl').includes('alarmy dla województw'),
+    'tor powiatów + miejsce bez lokalizacji: wiersz wymienia je i mówi, że alarmy idą dla województw');
+  ok(linia('pow', zRodzicami, 'en').startsWith('County alerts') && linia('pow', zRodzicami, 'uk').startsWith('Тривоги для повітів'),
+    'wiersz po angielsku i ukraińsku');
+  ok(linia('woj', zRodzicami, 'pl') === '' && linia('pow', miejsca, 'pl') === '',
+    'bez wiersza: tor województw albo wszystkie miejsca z powiatem');
+  ok(!/(?:ałeś|ałaś|eś |aś )/.test(linia('pow', zRodzicami, 'pl')), 'tekst bezosobowy');
 }
 
 console.log();
