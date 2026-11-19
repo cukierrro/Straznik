@@ -102,6 +102,20 @@ const wywolania = app.match(/setObservedVoivodeships\(\{[^}]*\}\)/g) || [];
 ok(wywolania.length > 0 && wywolania.every(w => !/gps|lat|lon/.test(w)),
   'do warstwy natywnej idą tylko numery powiatów — bez współrzędnych');
 
+console.log('\n6. Otwarta aplikacja na torze powiatów');
+// wykonujemy powiatyWStanie z app.js z podstawionym otoczeniem
+const mPws = app.match(/function powiatyWStanie\(\) \{[\s\S]*?\n\}/);
+ok(!!mPws, 'app.js: powiatyWStanie');
+if (mPws) {
+  const pws = (tor, standalone, pw) => new Function('torTematow', 'standalone', 'powiatyDoTematow', 'state', 'granicePowiatow',
+    mPws[0] + '\nreturn powiatyWStanie();')(() => tor, standalone, () => ['0663', '0617'], { fusion: { powiaty: pw } }, dane);
+  ok(pws('woj', false, {}) === null, 'tor województw — alarm z poziomów województw jak dotąd');
+  ok(pws('pow', true, {}) === null, 'tryb wbudowany (engine.js liczy tylko województwa) — z powrotem na województwa, nie cisza');
+  const l = pws('pow', false, { '0663': { level: 'high', score: 4.5, woj: 'lubelskie' }, '1863': { level: 'high', score: 5, woj: 'podkarpackie' } });
+  ok(l && l.length === 2 && l.find(p => p.terc === '0663').level === 'high' && l.find(p => p.terc === '0617').level === 'none'
+    && !l.some(p => p.terc === '1863'), 'tor powiatów — tylko powiaty miejsc; brak w słowniku = spokój; obcy powiat pominięty');
+}
+
 console.log();
 if (bledy) { console.log(`BŁĘDY: ${bledy}`); process.exit(1); }
 console.log('Wszystko OK');
