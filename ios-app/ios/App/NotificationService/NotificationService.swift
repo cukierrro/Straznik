@@ -54,7 +54,99 @@ class NotificationService: UNNotificationServiceExtension {
             kopia.body = Self.przetlumaczTresc(kopia.body, jezyk: jezyk)
         }
 
+        // 3. Alarmy powiatowe (etap 3, 19.11.2026). Tu dźwięk zdejmujemy wyłącznie
+        //    POWTÓRCE: ta sama wiadomość przyszła drugą drogą albo to samo zdarzenie
+        //    już dzwoniło. Pierwszy alarm — także czerwony, krytyczny — zostaje nietknięty.
+        let powiatowy = (dane["typ"] as? String) == "pow"
+        if let tor = ustawienia?.string(forKey: Self.kluczToru), powiatowy != (tor == "pow") {
+            // a) Tor nieaktywny. W chwili przejścia telefon jest zapisany do obu torów,
+            //    a serwer wysyła oba — drugi baner tego samego zdarzenia ma być cichy.
+            //    Rozszerzenie nie może powiadomienia ukryć (bez osobnego uprawnienia
+            //    Apple), więc tylko je wycisza.
+            Self.wycisz(kopia)
+            kopia.userInfo["_tor_nieaktywny"] = "1"
+        } else if powiatowy, let klucz = dane["klucz_zdarzenia"] as? String, !klucz.isEmpty {
+            // b) Kilka miejsc w różnych powiatach = kilka wiadomości jednego zdarzenia.
+            //    Pierwsza dzwoni, kolejne tego samego (lub niższego) poziomu w 10 min
+            //    dopisują się bez dźwięku; wyższy poziom i ponowienie dzwonią. Ta sama
+            //    zasada co Laczenie.java na Androidzie (test_laczenie_powiadomien.cjs).
+            let miejsce = (dane["miejsce"] as? String) ?? ""
+            let wynik = Self.laczenie(ustawienia, klucz: klucz, level: dane["level"] as? String ?? "",
+                                      ponowienie: (dane["ponowienie"] as? String) == "1", miejsce: miejsce)
+            if !wynik.dzwoni {
+                Self.wycisz(kopia)
+                kopia.userInfo["_dolacz"] = "1"
+                // Serwer daje alarmom powiatu collapse-id = klucz zdarzenia, więc ten baner
+                // ZASTĘPUJE poprzedni — dopisujemy w nim wcześniejsze miejsca.
+                let inne = wynik.miejsca.filter { $0 != miejsce }
+                if !inne.isEmpty {
+                    kopia.body = Self.tekstTakze(jezyk) + inne.joined(separator: "; ") + "\n" + kopia.body
+                }
+            }
+        }
+
         contentHandler(kopia)
+    }
+
+    // MARK: - łączenie alarmów powiatowych (etap 3)
+
+    private static let kluczToru = "straznik_tor_aktywny"
+    private static let kluczLaczenia = "straznik_laczenie"
+    private static let okno: TimeInterval = 10 * 60          // 10 min, jak Laczenie.OKNO_MS
+    private static let trzymaj: TimeInterval = 3 * 60 * 60
+
+    /// Bez dźwięku i bez przebijania Skupienia — tylko dla powtórki, nigdy dla pierwszego.
+    private static func wycisz(_ kopia: UNMutableNotificationContent) {
+        kopia.sound = nil
+        if #available(iOS 15.0, *) { kopia.interruptionLevel = .active }
+    }
+
+    private static func ranga(_ level: String) -> Int {
+        level == "high" ? 2 : (level == "elevated" ? 1 : 0)
+    }
+
+    private static func zdarzenie(_ klucz: String) -> String {
+        guard let i = klucz.firstIndex(of: "|") else { return klucz }
+        return String(klucz[klucz.index(after: i)...])
+    }
+
+    /// Stan w grupie aplikacji: [klucz rangi#klucz: [dzwonek (s), miejsca…]].
+    /// Przy błędzie odczytu dzwonimy — lepiej powiadomienie za dużo niż cisza.
+    static func laczenie(_ ustawienia: UserDefaults?, klucz: String, level: String,
+                         ponowienie: Bool, miejsce: String,
+                         teraz: TimeInterval = Date().timeIntervalSince1970) -> (dzwoni: Bool, miejsca: [String]) {
+        guard let ustawienia else { return (true, [miejsce]) }
+        var stan = (ustawienia.dictionary(forKey: kluczLaczenia) as? [String: [String]]) ?? [:]
+        stan = stan.filter { _, w in
+            guard let t = w.first.flatMap(Double.init) else { return false }
+            return teraz - t <= trzymaj && t - teraz <= okno
+        }
+        let zd = zdarzenie(klucz)
+        if !ponowienie {
+            for (k, w) in stan {
+                guard let hash = k.firstIndex(of: "#"), let r = Int(k[..<hash]),
+                      let t = w.first.flatMap(Double.init) else { continue }
+                let wiek = teraz - t
+                if r < ranga(level) || wiek < 0 || wiek >= okno { continue }
+                if zdarzenie(String(k[k.index(after: hash)...])) != zd { continue }
+                var nowe = w
+                if !miejsce.isEmpty && !nowe.dropFirst().contains(miejsce) { nowe.append(miejsce) }
+                stan[k] = nowe
+                ustawienia.set(stan, forKey: kluczLaczenia)
+                return (false, Array(nowe.dropFirst()))
+            }
+        }
+        stan["\(ranga(level))#\(klucz)"] = [String(teraz)] + (miejsce.isEmpty ? [] : [miejsce])
+        ustawienia.set(stan, forKey: kluczLaczenia)
+        return (true, miejsce.isEmpty ? [] : [miejsce])
+    }
+
+    private static func tekstTakze(_ jezyk: String) -> String {
+        switch jezyk {
+        case "en": return "Same alert also for: "
+        case "uk": return "Та сама тривога також для: "
+        default: return "Ten sam alarm także dla: "
+        }
     }
 
     /// iOS daje rozszerzeniu około 30 s. Gdy czas się kończy, musimy oddać
@@ -136,6 +228,11 @@ class NotificationService: UNNotificationServiceExtension {
         "NIEOFICJALNE źródło — kieruj się syrenami, RCB i RSO.": [
             "en": "UNOFFICIAL source — follow sirens, RCB and RSO.",
             "uk": "НЕОФІЦІЙНЕ джерело — орієнтуйтеся на сирени, RCB та RSO.",
+        ],
+        // Etap 3: nagłówek alarmu powiatu (app/powiaty.py, naglowek).
+        "Oficjalny Alert RCB dla powiatu": [
+            "en": "Official RCB alert for the county",
+            "uk": "Офіційна тривога RCB для повіту",
         ],
         "Oficjalny Alert RCB dla województwa": [
             "en": "Official RCB alert for the province",

@@ -89,6 +89,17 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
         static let criticalProbe = "straznik_critical_probe"
         /// Na czym stanęła ostatnia próba zapisu na tematy — tylko do diagnostyki.
         static let syncState = "straznik_fcm_sync_state"
+        /// Etap 3 alarmów powiatowych (19.11.2026): numery TERYT powiatów zapisanych
+        /// miejsc (policzone w aplikacji, frontend/powiaty.js) i tor wskazany przez serwer
+        /// (`tematy` w /api/state: „woj” albo „pow”).
+        static let powiaty = "straznik_observed_powiaty"
+        static let tryb = "straznik_tematy_tryb"
+        /// Tor, którego wiadomości telefon PRZYJMUJE. Zmienia się dopiero, gdy Firebase
+        /// potwierdzi zapis do WSZYSTKICH tematów nowego toru; kopia trafia do grupy
+        /// aplikacji (`straznik_tor_aktywny`), bo czyta ją rozszerzenie powiadomień.
+        static let torAktywny = "straznik_tor_aktywny"
+        /// Tematy pow_* kiedykolwiek zlecone — z nich wypisujemy (nie z 380 × 4 wariantów).
+        static let powZnane = "straznik_pow_znane"
     }
 
     private let defaults = UserDefaults.standard
@@ -289,7 +300,53 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
 
     private func targetTopics() -> Set<String> {
         if defaults.bool(forKey: Key.alertsOff) { return [] }
-        return topics(for: defaults.stringArray(forKey: Key.regions) ?? [])
+        let regions = defaults.stringArray(forKey: Key.regions) ?? []
+        let woj = topics(for: regions)
+        // Tor powiatów tylko wtedy, gdy serwer go wskazał I aplikacja policzyła powiaty.
+        // Bez policzonych powiatów zostajemy na województwach — pusty zestaw byłby ciszą.
+        if woj.isEmpty || torDocelowy() != "pow" { return woj }
+        return powTopics(for: defaults.stringArray(forKey: Key.powiaty) ?? [])
+    }
+
+    /// „pow”, gdy serwer wskazał tor powiatów i są policzone powiaty miejsc; inaczej „woj”.
+    private func torDocelowy() -> String {
+        let pow = (defaults.stringArray(forKey: Key.powiaty) ?? []).filter(Self.isTeryt)
+        return defaults.string(forKey: Key.tryb) == "pow" && !pow.isEmpty ? "pow" : "woj"
+    }
+
+    static func isTeryt(_ s: String) -> Bool {
+        s.count == 4 && s.allSatisfy { $0.isASCII && $0.isNumber }
+    }
+
+    /// Tematy powiatów: pow_<TERYT>, przy zgodzie na alarm krytyczny pow_<TERYT>_krytyczne
+    /// (serwer wysyła każdy alarm powiatu na oba — notify.send_fcm_pow).
+    private func powTopics(for tercs: [String]) -> Set<String> {
+        var out = Set<String>()
+        let krytyczne = defaults.bool(forKey: Key.critical)
+        for t in tercs where Self.isTeryt(t) {
+            let topic = "pow_" + t + (krytyczne ? Self.criticalSuffix : "")
+            out.insert(topic)
+            if Self.isTestBuild { out.insert(Self.testTopicPrefix + topic) }
+        }
+        return out
+    }
+
+    /// Wszystkie warianty znanych (kiedykolwiek zleconych) powiatów — do wypisu.
+    private func znanePowiatyTematy() -> Set<String> {
+        var out = Set<String>()
+        for t in defaults.stringArray(forKey: Key.powZnane) ?? [] where Self.isTeryt(t) {
+            for v in ["pow_" + t, "pow_" + t + Self.criticalSuffix] {
+                out.insert(v)
+                out.insert(Self.testTopicPrefix + v)
+            }
+        }
+        return out
+    }
+
+    /// Tor aktywny w obu kontenerach: aplikacji i grupy (rozszerzenie powiadomień).
+    private func ustawTorAktywny(_ tor: String) {
+        defaults.set(tor, forKey: Key.torAktywny)
+        wspolne?.set(tor, forKey: "straznik_tor_aktywny")
     }
 
     private static var nowMs: Int { Int(Date().timeIntervalSince1970 * 1000) }
@@ -353,7 +410,7 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
             var failed = 0
             // Obie odmiany każdego województwa, bo zgoda mogła się zmienić między
             // zapisem a wypisem — inaczej telefon zostałby na temacie krytycznym.
-            let wszystkie = wszystkieMozliweTematy()
+            let wszystkie = wszystkieMozliweTematy().union(znanePowiatyTematy())
             for topic in wszystkie {
                 group.enter()
                 messaging.unsubscribe(fromTopic: topic) { error in
@@ -374,6 +431,8 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
                 if failed == 0 {
                     self.defaults.set([String](), forKey: Key.topics)
                     self.defaults.set(Array(wszystkie), forKey: Key.wypisane)
+                    self.defaults.set([String](), forKey: Key.powZnane)
+                    self.ustawTorAktywny(self.defaults.string(forKey: Key.tryb) == "pow" ? "pow" : "woj")
                     self.defaults.set(Self.nowMs, forKey: Key.topicsOkAt)
                     self.defaults.set("", forKey: Key.topicsError)
                 } else {
@@ -395,6 +454,12 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
         // nieudany — alarm nie dochodzi wcale i nikt tego nie widzi. Chwilowy dubel
         // jest nieprzyjemny, ale serwer skleja oba w jeden baner (wspólny collapse-id).
         let current = Set(defaults.stringArray(forKey: Key.topics) ?? [])
+        let tor = torDocelowy()
+        if tor == "pow" {
+            let znane = Set(defaults.stringArray(forKey: Key.powZnane) ?? [])
+                .union((defaults.stringArray(forKey: Key.powiaty) ?? []).filter(Self.isTeryt))
+            defaults.set(Array(znane), forKey: Key.powZnane)
+        }
         var confirmed = Set<String>()
         // Treść błędu z Firebase była do tej pory wyrzucana — zostawała sama
         // liczba. Przy temacie testowym, który milczał, to za mało.
@@ -440,6 +505,21 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
             guard generation == self.syncGeneration else { return }
             self.syncUkonczone = generation
             self.defaults.set(false, forKey: Key.syncing)
+            // Etap 3 (19.11.2026): cel niepotwierdzony w całości — NIC nie wypisujemy
+            // i tor zostaje stary. Wcześniej wypis szedł po każdym zapisie, także
+            // nieudanym; przy zmianie toru (województwa → powiaty) telefon zostałby
+            // wtedy bez żadnego tematu. `Key.topics` = suma, jak w straży wyżej.
+            guard confirmed.count == target.count else {
+                self.defaults.set(Array(current.union(confirmed)), forKey: Key.topics)
+                let brak = target.count - confirmed.count
+                let opis = firstError.isEmpty ? "" : " (\(firstError))"
+                self.defaults.set("nie potwierdzono \(brak) z \(target.count) tematów" + opis,
+                                  forKey: Key.topicsError)
+                self.defaults.set("błąd: \(brak) z \(target.count)" + opis, forKey: Key.syncState)
+                return
+            }
+            // Cały cel potwierdzony: od tej chwili telefon przyjmuje nowy tor.
+            self.ustawTorAktywny(tor)
             // Dopiero teraz wypis ze zbędnych — razem z tymi, których wypis nie udał
             // się wcześniej. Nieudany wypis zostaje na liście do następnego razu;
             // bez tego telefon zostałby na starym temacie na zawsze i dostawał
@@ -461,7 +541,7 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
             // „nigdy się nie wypiszesz".
             let zalegle = Set(self.defaults.stringArray(forKey: Key.stale) ?? [])
             let juzWypisane = Set(self.defaults.stringArray(forKey: Key.wypisane) ?? [])
-            var doWypisu = self.wszystkieMozliweTematy()
+            var doWypisu = self.wszystkieMozliweTematy().union(self.znanePowiatyTematy())
                 .subtracting(target)
                 .subtracting(juzWypisane)
             doWypisu.formUnion(zalegle.subtracting(target))
@@ -559,10 +639,20 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
             }
         }
         let alertsOff = call.getBool("alertsOff") ?? false
+        // Etap 3: same numery TERYT powiatów miejsc i tor od serwera. Starsza warstwa JS
+        // ich nie podaje — wtedy zostaje to, co było.
+        let powiaty: [String]? = call.getArray("powiaty").map { lista in
+            var out: [String] = []
+            for item in lista { if let t = item as? String, Self.isTeryt(t), !out.contains(t) { out.append(t) } }
+            return out
+        }
+        let tryb = call.getString("tematy")
         DispatchQueue.main.async {
             self.defaults.set(regions.first ?? "", forKey: Key.home)
             self.defaults.set(regions, forKey: Key.regions)
             self.defaults.set(alertsOff, forKey: Key.alertsOff)
+            if let powiaty { self.defaults.set(powiaty, forKey: Key.powiaty) }
+            if tryb == "pow" || tryb == "woj" { self.defaults.set(tryb, forKey: Key.tryb) }
             self.syncTopics()
             call.resolve()
         }
@@ -673,6 +763,10 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
             "homeVoivodeship": defaults.string(forKey: Key.home) ?? "",
             "observedVoivodeships": defaults.stringArray(forKey: Key.regions) ?? [],
             "topicsConfirmed": defaults.stringArray(forKey: Key.topics) ?? [],
+            // Etap 3: tor od serwera, tor przyjmowany i powiaty miejsc (same TERYT).
+            "tematyTryb": defaults.string(forKey: Key.tryb) ?? "woj",
+            "torAktywny": defaults.string(forKey: Key.torAktywny) ?? "woj",
+            "observedPowiaty": defaults.stringArray(forKey: Key.powiaty) ?? [],
             // Co naprawdę zobaczy rozszerzenie powiadomień w chwili alarmu.
             // Pusto = aplikacja jeszcze nic nie zapisała do wspólnego kontenera,
             // czyli alarm przyjdzie po polsku i z dźwiękiem z serwera.
@@ -1138,6 +1232,13 @@ public class StraznikBackgroundPlugin: CAPPlugin, CAPBridgedPlugin, Notification
         var data: [String: Any] = [:]
         for (key, value) in userInfo {
             if let key = key as? String, key != "aps", let text = value as? String { data[key] = text }
+        }
+        // Etap 3: wiadomość toru nieaktywnego (w chwili przejścia telefon jest na obu,
+        // serwer wysyła oba) — przy otwartej aplikacji nie pokazujemy jej wcale. Gdy toru
+        // nie ma (starsza instalacja), przepuszczamy wszystko.
+        if let tor = defaults.string(forKey: Key.torAktywny),
+           ((data["typ"] as? String) == "pow") != (tor == "pow") {
+            return []
         }
         let fresh = !Self.isStale(data["sent_at"] as? String)
         if fresh, data["voiv"] != nil, data["level"] != nil, hasListeners("fcmAlarm") {
