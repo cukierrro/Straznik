@@ -181,8 +181,12 @@ def _apns_config(topic: str, data: dict, critical: bool = False):
             # świeża. Dlatego po dziesięciu minutach APNs ma ją po prostu skasować.
             "apns-expiration": str(int(time.time()) + APNS_EXPIRATION_S),
             # bez sufiksu krytycznego: w chwili przepisywania telefonu ten sam
-            # alarm leci na oba tematy i ma się skleić w jeden baner
-            "apns-collapse-id": _temat_bazowy(topic),              # jak collapse_key
+            # alarm leci na oba tematy i ma się skleić w jeden baner.
+            # Alarm powiatowy (etap 3): po KLUCZU ZDARZENIA — ten sam alarm z kilku
+            # powiatów zapisanych miejsc zastępuje jeden baner zamiast układać stos
+            # (rozszerzenie NSE dopisuje w nim poprzednie miejsca i wycisza powtórkę).
+            # Klucz ma poziom w sobie, więc czerwony nie zasłoni żółtego.
+            "apns-collapse-id": (data.get("klucz_zdarzenia") or _temat_bazowy(topic))[:64],
         },
         payload=messaging.APNSPayload(aps=messaging.Aps(
             alert=messaging.ApsAlert(title=title, body="\n".join(lines + tail)),
@@ -369,7 +373,7 @@ def reasons_split(signals: list[dict]) -> str:
 
 
 async def send_fcm(voiv: str, level: str, score: float, reasons_text: str,
-                   test: bool = False, headline: str = "") -> bool:
+                   test: bool = False, headline: str = "", most_ponowienie: bool | None = None) -> bool:
     """Zwraca True po udanej wysyłce. Ponawia, bo jedno chwilowe 503 od Google
     gubiło alarm bezpowrotnie — cooldown blokował kolejną próbę."""
     if not (config.FCM_ENABLED and _fcm_ready):
@@ -420,7 +424,68 @@ async def send_fcm(voiv: str, level: str, score: float, reasons_text: str,
         fcm_status["crit_failed"] = fcm_status.get("crit_failed", 0) + 1
         log.error("FCM: alarm NIE poszedł na %s — iPhone'y ze zgodą na alarm "
                   "krytyczny nic nie dostały", krytyczny)
+    # Most (wyłącznik awaryjny po przejściu na powiaty): ten sam alarm na tematy powiatów.
+    # Nigdy dla testu — test zostaje na test_voiv_*. Błąd mostu nie zmienia wyniku
+    # wysyłki województwa.
+    # Osobne zadanie i osobna pula: kilkadziesiąt tematów nie opóźnia dziennika ani
+    # alarmu innego województwa w puli _fcm_pool.
+    if config.POWIATY_MOST and not test and most_ponowienie is not None:
+        t = asyncio.create_task(_most_bezpiecznie(voiv, {**data, "ponowienie": "1" if most_ponowienie else "0"}))
+        _most_zadania.add(t)
+        t.add_done_callback(_most_zadania.discard)
     return ok
+
+
+_most_zadania: set = set()
+_most_pool = ThreadPoolExecutor(max_workers=4, thread_name_prefix="fcm-most")
+
+
+async def _most_bezpiecznie(voiv: str, data: dict) -> None:
+    try:
+        await send_fcm_most(voiv, data)
+    except Exception as exc:                       # noqa: BLE001
+        log.error("FCM most: woj. %s — %r", voiv, exc)
+
+
+# Most wyłącznika awaryjnego (config.POWIATY_MOST): liczniki osobno, w /api/health.
+fcm_status_most = {"sent": 0, "failed": 0, "last_ok": None, "last_error": None}
+
+
+async def send_fcm_most(voiv: str, data: dict) -> int:
+    """Wyłącznik awaryjny po przejściu na powiaty (config.POWIATY_MOST): alarm województwa
+    idzie też na tematy pow_<TERYT> (i _krytyczne) każdego jego powiatu, w formie
+    alarmu powiatu (powiaty.wiadomosc_most). Telefony, które jeszcze nie wróciły na
+    voiv_*, nie zostają bez alarmów. Zwraca liczbę powiatów z udaną wysyłką."""
+    if not (config.FCM_ENABLED and _fcm_ready and config.POWIATY_MOST):
+        return 0
+    from . import powiaty
+    tercs = sorted(t for t, p in powiaty.powiaty().items() if p["woj"] == voiv)
+
+    async def jeden(terc: str) -> bool:
+        d = powiaty.wiadomosc_most(terc, data)
+        topic = fcm_topic_pow(terc)
+        ok = False
+        for nazwa, crit in ((topic, False), (topic + CRITICAL_TOPIC_SUFFIX, True)):
+            for attempt in range(1, FCM_RETRIES + 1):
+                try:
+                    await asyncio.get_running_loop().run_in_executor(
+                        _most_pool, _send_fcm_sync, nazwa, d, crit)
+                    ok = True
+                    break
+                except Exception as e:             # noqa: BLE001
+                    fcm_status_most["last_error"] = repr(e)[:200]
+                    if attempt < FCM_RETRIES:
+                        await asyncio.sleep(2 * attempt)
+        return ok
+
+    wyniki = await asyncio.gather(*(jeden(t) for t in tercs), return_exceptions=True)
+    udane = sum(1 for w in wyniki if w is True)
+    fcm_status_most["sent"] += udane
+    fcm_status_most["failed"] += len(tercs) - udane
+    if udane:
+        fcm_status_most["last_ok"] = data.get("sent_at")
+    log.info("FCM most: woj. %s %s → %d/%d powiatów", voiv, data.get("level"), udane, len(tercs))
+    return udane
 
 
 def fcm_topic_pow(terc: str, test: bool = False) -> str:
@@ -745,7 +810,8 @@ async def _deliver_level(voiv: str, level: str, score: float, signals: list[dict
     results = await asyncio.gather(
         send_ntfy(title, body, ntfy_prio),
         send_telegram(f"{'🚨' if level == 'high' else '⚠️'} {title}\n{body}"),
-        send_fcm(voiv, level, score, reasons_for_push, headline=headline),
+        send_fcm(voiv, level, score, reasons_for_push, headline=headline,
+                 most_ponowienie=bool(ponowienie)),
         return_exceptions=True,
     )
     fcm_ok = results[2]

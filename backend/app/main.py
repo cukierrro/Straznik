@@ -142,6 +142,10 @@ def build_state() -> dict:
     return {
         "notice": _load_notice(),
         "wylaczniki": _load_switches(),
+        # Tor tematów FCM aplikacji (etap 3 powiatów): „woj” albo „pow”. Pole jest zawsze,
+        # bo aplikacja zmienia tor tylko na wyraźne słowo serwera — stan policzony
+        # offline (engine.js) go nie ma i niczego nie przełącza.
+        "tematy": config.tematy_aplikacji(),
         "fusion": _fusion_z_powiatami(),
         "neptun": neptun.public_state(),
         "adsb": {"aircraft": adsb.current_aircraft,
@@ -589,7 +593,7 @@ def _health_payload() -> dict:
                    "webpush": config.WEBPUSH_ENABLED,
                    # cicha awaria wysyłki do aplikacji nie może być niewidoczna
                    "fcm": notify.fcm_status},
-        "powiaty": {**powiaty.status, "fcm": notify.fcm_status_pow},
+        "powiaty": {**powiaty.status, "fcm": notify.fcm_status_pow, "fcm_most": notify.fcm_status_most},
         "progression_shadow": escalation_shadow.status,
         "rcb_reference": rcb_reference.status,
         "public_cache": {**public_cache.status, "ws_clients": len(_ws_clients),

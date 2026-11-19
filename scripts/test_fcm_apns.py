@@ -181,7 +181,13 @@ paps = p["apns"]["payload"]["aps"]
 sprawdz(paps["alert"]["title"] == "WYSOKI PRIORYTET: powiat bieszczadzki, woj. podkarpackie",
         f"tytuł iPhone'a z powiatem i województwem: {paps['alert']['title']}")
 sprawdz(paps["thread-id"] == "high|2026-11-17T09:10:00+00:00", "wątek = klucz zdarzenia")
-sprawdz(p["apns"]["headers"]["apns-collapse-id"] == "pow_" + BIE, "collapse-id = temat powiatu")
+# etap 3 (19.11.2026): collapse-id po kluczu zdarzenia — ten sam alarm z kilku powiatów
+# zapisanych miejsc zastępuje jeden baner; poziom jest w kluczu, więc czerwony nie zasłoni żółtego
+sprawdz(p["apns"]["headers"]["apns-collapse-id"] == "high|2026-11-17T09:10:00+00:00",
+        "collapse-id = klucz zdarzenia (jeden baner na zdarzenie i poziom)")
+pk0 = zakodowana("pow_" + BIE + "_krytyczne", dp, critical=True)
+sprawdz(pk0["apns"]["headers"]["apns-collapse-id"] == p["apns"]["headers"]["apns-collapse-id"],
+        "collapse-id ten sam na temacie zwykłym i krytycznym")
 sprawdz(p["data"]["klucz_zdarzenia"] == "high|2026-11-17T09:10:00+00:00" and p["data"]["ponowienie"] == "0",
         "klucz zdarzenia i znacznik ponowienia w data")
 pk = zakodowana("pow_" + BIE + "_krytyczne", dp, critical=True)
@@ -190,6 +196,9 @@ sprawdz(pk["apns"]["payload"]["aps"]["sound"]["critical"] == 1 and bajty_apns(pk
 w = zakodowana("voiv_lubelskie", dict(DANE, voiv="lubelskie"))["apns"]["payload"]["aps"]
 sprawdz(w["thread-id"] == "voiv_lubelskie" and w["alert"]["title"].endswith(": lubelskie"),
         "województwa bez zmian: tytuł z `voiv`, wątek po temacie")
+sprawdz(zakodowana("voiv_lubelskie_krytyczne", dict(DANE, voiv="lubelskie"), critical=True)
+        ["apns"]["headers"]["apns-collapse-id"] == "voiv_lubelskie",
+        "województwa bez zmian: collapse-id po temacie bez sufiksu krytycznego")
 
 print()
 if bledy:

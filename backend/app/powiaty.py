@@ -58,7 +58,8 @@ WOJ_KOD = {"dolnośląskie": "02", "kujawsko-pomorskie": "04", "lubelskie": "06"
 on_send = None
 
 # stan na żywo: publiczny słownik do /api/state i licznik czasu
-status = {"enabled": config.POWIATY_LICZENIE, "wysylka": config.POWIATY_WYSYLKA,
+status = {"enabled": config.POWIATY_LICZENIE, "wysylka": config.powiaty_wysylka_wlaczona(),
+          "most": config.POWIATY_MOST, "tematy": config.tematy_aplikacji(),
           "ms": None, "ms_max": None, "przeliczen": 0, "sygnalow": 0, "kopii": 0,
           "aktywnych": 0, "at": None, "error": None}
 _publiczne: dict[str, dict] = {}
@@ -523,6 +524,30 @@ def wiadomosc(terc: str, level: str, st: dict, *, sesja_od: str | None,
     }
 
 
+def wiadomosc_most(terc: str, voiv_data: dict) -> dict:
+    """Alarm WOJEWÓDZTWA w formie alarmu powiatu — most wyłącznika awaryjnego
+    (config.POWIATY_MOST). Poziom, punkty i powody z województwa; telefon na torze
+    powiatów przyjmuje go jak każdy alarm powiatu. Klucz zdarzenia ma w sobie
+    województwo i chwilę wysyłki, więc ten sam alarm z kilku powiatów jednego
+    województwa telefon złączy (dzwoni raz), a alarmy dwóch województw — jak dotąd —
+    zadzwonią osobno."""
+    from . import config as _c
+    p = powiaty()[terc]
+    nazwa = nazwa_krotka(terc)
+    level = voiv_data.get("level", "")
+    sent = voiv_data.get("sent_at", "")
+    try:
+        ts = str(int(datetime.fromisoformat(sent).timestamp()))
+    except (TypeError, ValueError):
+        ts = sent
+    return {**{k: voiv_data.get(k, "") for k in ("level", "score", "headline", "reasons", "sent_at")},
+            "typ": "pow", "pow": terc, "pow_nazwa": nazwa, "voiv": p["woj"],
+            "miejsce": f"{nazwa}, woj. {p['woj']}",
+            "event_id": f"most|{voiv_data.get('event_id', '')}",
+            "klucz_zdarzenia": f"{level}|{_c.voiv_topic(p['woj'])}|{ts}",
+            "sesja_od": "", "ponowienie": voiv_data.get("ponowienie", "0"), "most": "1"}
+
+
 # ── przejścia poziomów i wysyłka ───────────────────────────────────────────────
 def _levels() -> dict[str, str]:
     global _poziomy
@@ -559,7 +584,7 @@ def _powiadom(terc: str, old: str, level: str, st: dict, powod: dict | None = No
             _zapisz(terc, old, level, st, "cooldown", klucz_=kl)
             return
     test = notify.is_test_alarm(st.get("signals")) or not config.PRODUCTION
-    if not (config.POWIATY_WYSYLKA and on_send):
+    if not (config.powiaty_wysylka_wlaczona() and on_send):
         _zapisz(terc, old, level, st, "dziennik", klucz_=kl, powod=powod)
         db.log_notif_pow(terc, level)
         return
