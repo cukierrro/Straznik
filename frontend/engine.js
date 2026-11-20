@@ -2229,6 +2229,13 @@ async function tickRss() {
 }
 
 /* ── kolektor: RCB ───────────────────────────────────────────────────────── */
+// 20.11.2026 (lustro rcb.tytul_alertu): wpis „Alert RCB - atak z powietrza (20.11)” —
+// wezwanie do schronienia — nie pasował do słów mediów i nie był czytany.
+function tytulAlertuRcb(title) {
+  if (/\balert\s+rcb\b[\s\S]*?(z\s+powietrza|powietrzn|lotnicz)/i.test(title || "")) return true;
+  return matchKw(title, CRITICAL, AIR, EVENT, EXCLUDE).length > 0;
+}
+
 async function tickRcb() {
   try {
     const html = await httpGet("https://www.gov.pl/web/rcb");
@@ -2244,7 +2251,7 @@ async function tickRcb() {
     for (const [href, title] of found) {
       // ta sama reguła co dla mediów: mocne słowo albo ≥2 słabe — pojedyncze
       // "alarm" łapało statyczną podstronę "Stopnie alarmowe"
-      if (!matchKw(title, CRITICAL, AIR, EVENT, EXCLUDE).length) continue;
+      if (!tytulAlertuRcb(title)) continue;
       // Artykuł dnia czytamy w KAŻDYM obiegu — także gdy link widzieliśmy już
       // wcześniej: RCB dopisuje kolejne wysyłki („Aktualizacja!”) do tego samego
       // wpisu. Starsze wpisy odpadają, gdy raz poznamy ich datę.
@@ -2972,7 +2979,7 @@ return { start, stop, history, timeline, historyFrom, timelineFrom, accumulate, 
          podloga: { neptunEval, borderUavFloor, sygnaly: () => signals },
          tytuly: { kmPL, wiarygodnoscPL, potwierdzeniaPL },
          baltyk: { tickRss, sygnaly: () => signals },
-         rcbArtykul: { tickRcb, tekstArtykuluRcb, dataArtykuluRcb, wojewodztwaAlertu,
+         rcbArtykul: { tickRcb, tytulAlertuRcb, tekstArtykuluRcb, dataArtykuluRcb, wojewodztwaAlertu,
                        czyOdwolanieRcb, meldunkiArtykulu, najnowszyMeldunek },
          // dla scripts/test_rcb_wygasl.cjs (lustro fusion.rcb_nieodwolane / rcb_wygasle)
          rcbPrzypomnienia: { rcbNieodwolane, rcbWygasle }, rsoTytul };

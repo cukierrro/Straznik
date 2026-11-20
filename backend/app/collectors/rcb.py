@@ -44,6 +44,24 @@ UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
 LINK_RE = re.compile(
     r'href="(/web/rcb/[a-z0-9-]{8,})"[^>]*>(.*?)</a>', re.IGNORECASE | re.DOTALL)
 TAG_RE = re.compile(r"<[^>]+>")
+# 20.11.2026: rano RCB wezwało do schronienia (lubelskie i podkarpackie), a wpis na
+# gov.pl nazywał się „Alert RCB - atak z powietrza (20.11)”. Reguła słów kluczowych
+# mediów zna „zagrożenie z powietrza” i „atakiem z powietrza”, ale nie „atak z
+# powietrza” — artykuł w ogóle nie był czytany. Na liście RCB wpis „Alert RCB …
+# z powietrza / powietrzny / lotniczy” to zawsze alert o zagrożeniu z powietrza;
+# słów mediów nie poszerzamy, bo „atak powietrzny” w mediach to zwykle Ukraina.
+TYTUL_RCB_POWIETRZE = re.compile(
+    r"\balert\s+rcb\b.*?(z\s+powietrza|powietrzn|lotnicz)", re.IGNORECASE)
+
+
+def tytul_alertu(title: str) -> bool:
+    """Czy wpis z listy gov.pl/web/rcb dotyczy zagrożenia z powietrza."""
+    if TYTUL_RCB_POWIETRZE.search(title or ""):
+        return True
+    return bool(match_keywords(title, config.ALERT_CRITICAL_KEYWORDS,
+                               config.ALERT_AIR_KEYWORDS, config.ALERT_EVENT_KEYWORDS,
+                               config.EXCLUDE_KEYWORDS))
+
 
 _seen_bootstrap = False
 # artykuły przeczytane w tym procesie: href → data wpisu („2026-09-24" albo "")
@@ -57,6 +75,13 @@ _zastane: set[str] = set()
 # na stronę główną gov.pl): href → chwila pierwszej nieudanej próby
 _nieczytelne: dict[str, float] = {}
 NIECZYTELNY_LOG_CO_S = 30 * 60
+# 20.11.2026: artykuł o nocnym alercie dawał serwerowi 301 na stronę główną przez
+# ponad 4 h (co 2 min ta sama odpowiedź), a curl z nowym połączeniem dostał go
+# za 3. razem w 6 min — gov.pl podaje artykuł tylko z części węzłów, a klient
+# httpx trzyma otwarte połączenie z tym samym. Przy przekierowaniu ponawiamy więc
+# od razu, każdą próbę NOWYM połączeniem.
+PRZEKIEROWANIE_PROBY = 3
+PRZEKIEROWANIE_PRZERWA_S = 4.0
 NIECZYTELNY_PONAWIAJ_S = 6 * 3600   # potem odkładamy jak historię, żeby nie zajmował miejsca w obiegu
 _ostrzezone: dict[str, float] = {}  # href → chwila ostatniego ostrzeżenia w logu
 
@@ -282,6 +307,32 @@ def _ostrzez(href: str, powod: str) -> None:
         log.warning("RCB: artykuł %s nieczytelny (%s) — spróbuję w kolejnym obiegu", href, powod)
 
 
+def _nowy_klient() -> httpx.AsyncClient:
+    return httpx.AsyncClient(timeout=20)
+
+
+def _przekierowany(r, href: str) -> bool:
+    return r.url.path.rstrip("/") != href.rstrip("/")
+
+
+async def _ponow_nowym_polaczeniem(url: str, href: str):
+    """Kilka prób, każda przez świeże połączenie; zwraca odpowiedź z artykułem albo None."""
+    for _ in range(PRZEKIEROWANIE_PROBY):
+        await asyncio.sleep(PRZEKIEROWANIE_PRZERWA_S)
+        try:
+            async with _nowy_klient() as c:
+                r = await c.get(url, headers={"User-Agent": UA, "Connection": "close",
+                                              "Cache-Control": "no-cache"},
+                                follow_redirects=True)
+                r.raise_for_status()
+        except Exception:                       # noqa: BLE001
+            continue
+        if not _przekierowany(r, href):
+            status["przekierowanie_ponowione"] = status.get("przekierowanie_ponowione", 0) + 1
+            return r
+    return None
+
+
 async def _czytaj_artykul(client: httpx.AsyncClient, href: str, tytul: str):
     """Otwiera artykuł z bieżącego dnia i punktuje województwa spoza RSO."""
     url = f"https://www.gov.pl{href}"
@@ -289,6 +340,8 @@ async def _czytaj_artykul(client: httpx.AsyncClient, href: str, tytul: str):
     try:
         r = await client.get(url, headers={"User-Agent": UA}, follow_redirects=True)
         r.raise_for_status()
+        if _przekierowany(r, href):
+            r = await _ponow_nowym_polaczeniem(url, href) or r
         tekst = tresc_artykulu(r.text, tytul)
     except Exception as e:                       # noqa: BLE001
         log.warning("RCB: nie udało się przeczytać %s: %s", url, e)
@@ -299,7 +352,7 @@ async def _czytaj_artykul(client: httpx.AsyncClient, href: str, tytul: str):
     # bez słowa w logu. Podlaskiego nie niosło RSO, więc ten artykuł był jedyną drogą.
     # Teraz przekierowanie poza artykuł albo brak meldunku w artykule z dziś to
     # „nieczytelny”: ostrzeżenie w logu i ponowna próba w kolejnym obiegu.
-    if r.url.path.rstrip("/") != href.rstrip("/"):
+    if _przekierowany(r, href):
         _nieczytelny(href, f"przekierowanie na {r.url}")
         return
     dzien = _data_artykulu(tekst)
@@ -408,10 +461,9 @@ async def _check(client: httpx.AsyncClient):
 
     do_przeczytania = []
     for href, title in found:
-        # ta sama reguła co media: słowo krytyczne albo para obiekt+zdarzenie
-        if not match_keywords(title, config.ALERT_CRITICAL_KEYWORDS,
-                              config.ALERT_AIR_KEYWORDS, config.ALERT_EVENT_KEYWORDS,
-                              config.EXCLUDE_KEYWORDS):
+        # reguła mediów (słowo krytyczne albo para obiekt+zdarzenie) albo tytuł
+        # „Alert RCB … z powietrza” (20.11.2026, tytul_alertu)
+        if not tytul_alertu(title):
             continue
         # artykuły starsze niż dziś odpadają po pierwszym otwarciu (mamy ich datę)
         if _artykuly.get(href, _dzis()) == _dzis():

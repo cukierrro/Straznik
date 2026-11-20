@@ -116,13 +116,38 @@ class _Resp:
 
 
 class _Client:
+    swiezy = False          # True: nowe połączenie z rcb._ponow_nowym_polaczeniem
+
     async def get(self, url, **k):
         if url.endswith("/web/rcb"):
             return _Resp(LISTA, url)
-        # 09.11.2026: gov.pl odpowiadał 301 na stronę główną zamiast artykułu
-        if strona.get("przekierowanie"):
+        if not self.swiezy:
+            proby["stare"] += 1
+        else:
+            proby["nowe"] += 1
+        # 09.11.2026: gov.pl odpowiadał 301 na stronę główną zamiast artykułu;
+        # 20.11.2026: tylko z węzła, z którym klient trzymał połączenie
+        if strona.get("przekierowanie") or (strona.get("wezel_301") and not self.swiezy):
             return _Resp(strona_artykulu("Strona główna gov.pl", data="04.11.2026"), "https://www.gov.pl/")
         return _Resp(strona["artykul"], url)
+
+
+proby = {"stare": 0, "nowe": 0}
+
+
+class _NowyKlient:
+    """Zamiast prawdziwego httpx.AsyncClient — test nie może iść do sieci."""
+    async def __aenter__(self):
+        c = _Client()
+        c.swiezy = True
+        return c
+
+    async def __aexit__(self, *a):
+        return False
+
+
+rcb._nowy_klient = _NowyKlient
+rcb.PRZEKIEROWANIE_PRZERWA_S = 0
 
 
 async def _ingest(**k):
@@ -343,6 +368,41 @@ strona["przekierowanie"] = True
 obieg()
 ok(rcb._artykuly.get(LINK) == "" and LINK not in rcb._nieczytelne, "po 6 h przestajemy ponawiać")
 strona["przekierowanie"] = False
+
+print("\n13. Przekierowuje tylko węzeł, z którym trzymamy połączenie (20.11.2026)")
+# Serwer przez ponad 4 h dostawał 301 (co 2 min), curl z nowym połączeniem — artykuł
+# za 3. razem. Ponowienie ma iść od razu i przez NOWE połączenie.
+for _zb in (rcb._artykuly, rcb._meldunki, rcb._zastane, rcb._nieczytelne, rcb._ostrzezone):
+    _zb.clear()
+strona["wezel_301"] = True
+strona["artykul"] = strona_artykulu(BLOK_0911)
+proby.update(stare=0, nowe=0)
+obieg()
+ok(proby["nowe"] >= 1, f"po 301 jest próba nowym połączeniem ({proby})")
+ok([p["voivodeship"] for p in punktowane] == ["podlaskie"],
+   f"artykuł przeczytany w TYM SAMYM obiegu ({[p['voivodeship'] for p in punktowane]})")
+ok(LINK not in rcb._nieczytelne, "nie trafia na listę nieczytelnych")
+strona["wezel_301"] = False
+# gdy przekierowują wszystkie węzły: najwyżej PRZEKIEROWANIE_PROBY nowych połączeń
+for _zb in (rcb._artykuly, rcb._meldunki, rcb._zastane, rcb._nieczytelne, rcb._ostrzezone):
+    _zb.clear()
+strona["przekierowanie"] = True
+proby.update(stare=0, nowe=0)
+obieg()
+ok(proby["nowe"] == rcb.PRZEKIEROWANIE_PROBY and LINK in rcb._nieczytelne,
+   f"limit prób w obiegu i dalej „nieczytelny” ({proby})")
+strona["przekierowanie"] = False
+
+print("\n14. Tytuł wpisu: „atak z powietrza” to też alert (20.11.2026)")
+for t in ("Alert RCB - atak z powietrza (20.11)", "Alert RCB - zagrożenie z powietrza (20.11)",
+          "Alert RCB - zagrożenie atakiem z powietrza (17.09)", "Alert RCB - atak powietrzny (21.11)",
+          "ALERT RCB - zagrożenie lotnicze (01.12)"):
+    ok(rcb.tytul_alertu(t), f"czytany: {t}")
+for t in ("Alert RCB - woda niezdatna do spożycia, pow. zgorzelecki (19.11)",
+          "Alert RCB - trening systemów alarmowania (19.11)",
+          "Alert RCB - zła jakość powietrza", "Stopnie alarmowe",
+          "Rusza VIII Seminarium Cyberbezpieczeństwa"):
+    ok(not rcb.tytul_alertu(t), f"pomijany: {t}")
 
 if bledy:
     print(f"\nBLEDY: {len(bledy)}")
