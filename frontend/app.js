@@ -604,16 +604,28 @@ function etaInfo(t) {
   const seen = Date.parse(t.confirmedAt || t.updatedAt || "");
   const refMs = nowRefMs();
   const ageH = Number.isFinite(seen) ? Math.max(0, (refMs - seen) / 3600000) : 0;
-  const slackKm = (Number(t.uncertaintyKm) || 0) + v * ageH;
+  const uncKm = Number(t.uncertaintyKm) || 0, lotKm = v * ageH;
+  const slackKm = uncKm + lotKm;
   const range = (km) => km == null ? null
     : { lo: etaMin(Math.max(0, km - slackKm), vLo), hi: etaMin(km, v) };
   const border = range(a.dist_km);
   const voiv = mine ? range(distToVoivKm(t.lat, t.lon, mine)) : null;
+  /* Składniki rachunku do granicy, żeby karta mogła go rozpisać (20.11.2026: samo
+     „0–1 min” przy 57,7 km wyglądało na błąd — 57,7 km ÷ 800 km/h to 4,3 min).
+     Te same liczby, z których powstały border/borderLo, bez zaokrągleń. */
+  const km = a.dist_km == null ? null : Number(a.dist_km);
+  const loKm = km == null ? null : Math.max(0, km - slackKm);
   return {
     speed: Math.round(v),
     border: border?.hi ?? null, borderLo: border?.lo ?? null,
     voiv: voiv?.hi ?? null, voivLo: voiv?.lo ?? null,
     voivName: mine,
+    rachunek: km == null ? null : {
+      km, uncKm, ageMin: ageH * 60, lotKm, v, vLo, loKm,
+      hiMin: km / v * 60, loMin: loKm / vLo * 60, bufor: ETA_SOURCE_BUFFER_MIN,
+      hiRaw: km / v * 60 - ETA_SOURCE_BUFFER_MIN, loRaw: loKm / vLo * 60 - ETA_SOURCE_BUFFER_MIN,
+      szybki: FAST_TYPES.has(t.type),
+    },
   };
 }
 /* G3/G6 — lustro neptun.heading_source i is_jet na serwerze */
@@ -665,7 +677,10 @@ function localPlaceHtml(t, kursNieznany = false) {
     if (!info) return "";
     const distance = info.distanceKm < 10 ? info.distanceKm.toFixed(1) : Math.round(info.distanceKm);
     let detail;
-    if (info.etaMin != null) detail = ` · ⏱ <b>${etaTxt(info.etaMin)}</b>`;
+    // rachunek w nawiasie, jak przy granicy (20.11.2026): „Dom 189 km ~11 min” bez
+    // niego wyglądało na pomyłkę, bo 189 km przy 800 km/h to 14,2 min
+    if (info.etaMin != null) detail = ` · ⏱ <b>${etaTxt(info.etaMin)}</b> <span style="color:#95a1b7">(${distance} ${
+      UI.t("km", "km", "км")} ÷ ${Math.round(speed)} ${UI.t("km/h", "km/h", "км/год")} − ${liczba1(ETA_SOURCE_BUFFER_MIN)} ${UI.t("min", "min", "хв")})</span>`;
     else if (info.reason === "course") detail = ` · <span style="color:#ffb020">${UI.t("kurs nie prowadzi do tego punktu", "not heading towards this point", "курс не веде до цієї точки")}</span>`;
     else detail = ` · <span style="color:#ffb020">${UI.t("brak ETA — za mało danych o kursie lub prędkości", "ETA unavailable — insufficient heading or speed data", "немає ETA — замало даних про курс або швидкість")}</span>`;
     return `<div><b>${esc2(place.name)}</b>: ${distance} km${detail}</div>`;
@@ -705,8 +720,42 @@ function etaHtml(t) {
         `źródło nie rozróżnia BSP i Shahedów — liczymy jak dla Shaheda (${typeSpeedKmh(t)} km/h). Odrzutowego Shaheda rozpoznajemy tylko, gdy źródło go oznaczy`,
         `the source does not tell UAVs and Shaheds apart — we count it as a Shahed (${typeSpeedKmh(t)} km/h). A jet Shahed is recognised only when the source marks it`,
         `джерело не розрізняє БпЛА і «шахедів» — рахуємо як для «шахеда» (${typeSpeedKmh(t)} км/год). Реактивний «шахед» розпізнаємо, лише коли джерело його позначить`)}</span><br>` : "")
-    + `<span style="color:#95a1b7">${UI.t(`szacunek przy prędkości ${e.speed} km/h i utrzymaniu kursu; krótszy czas uwzględnia niepewność pozycji i wiek danych, odjęto 2,5 min na opóźnienie — nie uwzględnia obrony powietrznej`, `estimate at ${e.speed} km/h with unchanged heading; the shorter time allows for position uncertainty and data age, 2.5 min deducted for data delay — air defence not included`, `оцінка за швидкості ${e.speed} км/год і збереження курсу; коротший час враховує невизначеність позиції та вік даних, віднято 2,5 хв на затримку — не враховує протиповітряної оборони`)}</span><br>`
+    + etaRachunekHTML(e)
+    + `<span style="color:#95a1b7">${UI.t(`szacunek przy prędkości ${e.speed} km/h i utrzymaniu kursu, minuty zaokrąglone w dół — nie uwzględnia obrony powietrznej`, `estimate at ${e.speed} km/h with unchanged heading, minutes rounded down — air defence not included`, `оцінка за швидкості ${e.speed} км/год і збереження курсу, хвилини округлено вниз — не враховує протиповітряної оборони`)}</span><br>`
     + localPlaceHtml(t);
+}
+/* Rozpisany rachunek czasu do granicy (20.11.2026). Karta pokazała „0–1 min” dla
+   rakiety 57,7 km od granicy i nie dało się sprawdzić, skąd to się wzięło:
+   57,7 km ÷ 800 km/h to 4,3 min, a różnicę robiły opóźnienie danych (2,5 min),
+   niepewność meldunku i lot od potwierdzenia. Teraz karta podaje oba końce
+   przedziału z tymi samymi liczbami, z których powstał wynik. */
+function etaRachunekHTML(e) {
+  const r = e?.rachunek;
+  if (!r || !(r.km > 0)) return "";
+  const km = UI.t("km", "km", "км"), kmh = UI.t("km/h", "km/h", "км/год"), mn = UI.t("min", "min", "хв");
+  const wynik = (raw, m) => `${liczba1(raw, true)} → <b>${m} ${mn}</b>`;
+  const gora = `${UI.t("jeśli jest w miejscu meldunku", "if it is where reported", "якщо він там, де повідомлено")}: ${
+    liczba1(r.km)} ${km} ÷ ${Math.round(r.v)} ${kmh} = ${liczba1(r.hiMin, true)} ${mn} − ${liczba1(r.bufor)} ${mn} (${
+    UI.t("opóźnienie danych", "data delay", "затримка даних")}) = ${wynik(r.hiRaw, e.border)}`;
+  const linie = [gora];
+  if (r.uncKm > 0 || r.lotKm >= 0.05 || Math.round(r.vLo) !== Math.round(r.v)) {
+    const czlony = [`${liczba1(r.km)} ${km}`];
+    if (r.uncKm > 0) czlony.push(`${liczba1(r.uncKm)} ${km} (${UI.t("niepewność meldunku", "report uncertainty", "невизначеність повідомлення")})`);
+    if (r.lotKm >= 0.05) czlony.push(`${liczba1(r.lotKm)} ${km} (${UI.t(
+      `lot przez ${liczba1(r.ageMin)} min od potwierdzenia`, `flown in ${liczba1(r.ageMin)} min since confirmation`,
+      `політ за ${liczba1(r.ageMin)} хв від підтвердження`)})`);
+    const droga = czlony.length > 1 ? `${czlony.join(" − ")} = ${liczba1(r.loKm)} ${km}` : czlony[0];
+    linie.push(`${UI.t("najgorszy przypadek", "worst case", "найгірший випадок")}: ${droga} ÷ ${Math.round(r.vLo)} ${kmh} = ${
+      liczba1(r.loMin, true)} ${mn} − ${liczba1(r.bufor)} ${mn} = ${wynik(r.loRaw, e.borderLo)}`);
+    /* Dla rakiet, KAB i balistyki okrąg na mapie NIE rośnie z wiekiem meldunku
+       (ageSlackKm, audyt G8), a czas dolotu lot od potwierdzenia dolicza. Bez tej
+       uwagi okrąg ±4 km i „najgorszy przypadek” z 13 km lotu wyglądały na sprzeczne. */
+    if (r.szybki && r.lotKm >= 0.05) linie.push(UI.t(
+      "lot od potwierdzenia jest doliczony do czasu, a nie do okręgu na mapie — przy rakietach, KAB i balistyce okrąg nie rośnie z wiekiem meldunku",
+      "the distance flown since confirmation is added to the time, not to the circle on the map — for missiles, KABs and ballistic missiles the circle does not grow with the report's age",
+      "політ від підтвердження додано до часу, а не до кола на мапі — для ракет, КАБ і балістики коло не збільшується з віком повідомлення"));
+  }
+  return linie.map(l => `<span class="eta-rachunek" style="color:#95a1b7">${l}</span><br>`).join("");
 }
 
 const COMPASS = UI.t(
@@ -728,6 +777,76 @@ const ALL_VOIVS = ["dolnośląskie","kujawsko-pomorskie","lubelskie","lubuskie",
 const Places = window.StraznikPlaces;
 let savedPlaces = Places?.migrate(localStorage) || [];
 const myVoiv = () => Places?.primaryVoivodeship(savedPlaces) || localStorage.getItem("straznik_voiv") || null;
+
+/* ── Alarmy powiatowe, etap 3 (19.11.2026) ─────────────────────────────────────
+   Aplikacja zna dwa tory tematów FCM: województwa (voiv_*) i powiaty zapisanych miejsc
+   (pow_<TERYT>). Którego słuchać, mówi serwer polem `tematy` w /api/state — ustawia je
+   razem z włączeniem wysyłki powiatów, a wyłącznik awaryjny wraca na „woj”. Brak pola
+   (stan liczony offline, stary serwer, własny backend) niczego nie zmienia: zostaje
+   ostatnia wartość od serwera, na starcie „woj”. Strona (Web Push) zostaje przy
+   województwach. Powiat miejsca liczy telefon (powiaty.js); do warstwy natywnej
+   idą same numery powiatów. Przełączenie robi warstwa natywna: najpierw zapis do
+   nowych tematów, wypis ze starych dopiero po potwierdzeniu przez Firebase. */
+const Powiaty = window.StraznikPowiaty;
+const TEMATY_KEY = "straznik_tematy";
+function torTematow() {
+  if (!IS_APP) return "woj";
+  try { return localStorage.getItem(TEMATY_KEY) === "pow" ? "pow" : "woj"; } catch { return "woj"; }
+}
+let granicePowiatow = null, granicePowiatowObietnica = null;
+function wczytajGranicePowiatow() {
+  if (!IS_APP || !Powiaty) return Promise.resolve(null);
+  if (!granicePowiatowObietnica)
+    granicePowiatowObietnica = fetch("assets/powiaty-telefon-v1.json")
+      .then(r => r.ok ? r.json() : null)
+      .then(d => (granicePowiatow = d ? Powiaty.przygotuj(d) : null))
+      .catch(() => { granicePowiatowObietnica = null; return null; });   // następna próba przy kolejnej synchronizacji
+  return granicePowiatowObietnica;
+}
+/* Powiaty miejsc z włączonymi alarmami (TERYT). Pusta lista — bez wczytanych granic albo
+   gdy choć jedno miejsce z alarmami nie ma dokładnej lokalizacji (decyzja usera 19.11.2026:
+   powiatu nie zgadujemy i nie podpinamy całego województwa). Warstwa natywna zostaje
+   wtedy na województwach, więc żadne miejsce nie traci alarmów. */
+function powiatyDoTematow() {
+  return granicePowiatow && Powiaty ? Powiaty.powiatyMiejsc(granicePowiatow, savedPlaces) : [];
+}
+/* „powiat świdnicki” / „Świdnicki County” / „Свідницький повіт” — miasto na prawach
+   powiatu („Lublin”) bez dopisku. Przymiotnik zostaje polski, jak nazwy na mapie. */
+function nazwaPowiatu(terc) {
+  if (!granicePowiatow || !Powiaty) return terc;
+  const k = Powiaty.nazwaKrotka(granicePowiatow, terc);
+  if (/^[A-ZĄĆĘŁŃÓŚŹŻ]/.test(k)) return k;
+  return UI.t(`powiat ${k}`, `${k} county`, `повіт ${k}`);
+}
+/* Wiersz w Alarmach i zgodach, gdy serwer przełączył na powiaty, a telefon został przy
+   województwach, bo któreś miejsce z alarmami nie ma dokładnej lokalizacji. */
+function liniaBezPowiatu(lang = UI.lang) {
+  if (torTematow() !== "pow" || !granicePowiatow || !Powiaty || alertsOff()) return "";
+  const brak = Powiaty.planPowiatow(granicePowiatow, savedPlaces).bezPowiatu;
+  if (!brak.length) return "";
+  const T = (pl, en, uk) => lang === "pl" ? pl : lang === "uk" ? uk : en;
+  const nazwy = brak.map(m => esc(m.name)).join(", ");
+  const przycisk = `<button type="button" class="chip" data-akcja="wybierz-powiat" data-miejsce="${esc(brak[0].id || "")}">`
+    + T("Wybierz powiat", "Choose a county", "Вибрати повіт") + "</button>";
+  return T(`Alarmy dla powiatów czekają na powiat miejsc: ${nazwy}. Do tego czasu telefon dostaje alarmy dla województw. Powiat wybiera się w Moich miejscach (albo wystarczy jednorazowa lokalizacja).`,
+    `County alerts are waiting for the county of: ${nazwy}. Until then this phone gets province alerts. The county is chosen in My places (a one-time location also works).`,
+    `Тривоги для повітів чекають на повіт місць: ${nazwy}. Доти телефон отримує тривоги для воєводств. Повіт вибирається в Моїх місцях (або достатньо одноразового місцеперебування).`) + " " + przycisk;
+}
+/* „Wybierz powiat” z wiersza w Ustawieniach: Moje miejsca na pierwszym miejscu bez powiatu. */
+document.addEventListener("click", e => {
+  const b = e.target?.closest?.('[data-akcja="wybierz-powiat"]');
+  if (!b) return;
+  dlg.close(); openPlaces();
+  const cel = savedPlaces.find(p => p.id === b.dataset.miejsce);
+  if (cel) fillPlace(cel);
+  wczytajGranicePowiatow().then(() => { renderPlacePowiat(); placeEl("place-powiat")?.focus(); }).catch(() => {});
+});
+/* Pole `tematy` ze stanu serwera. Tylko wyraźne „pow” albo „woj” cokolwiek zmienia. */
+function applyTematy(t) {
+  if (!IS_APP || (t !== "pow" && t !== "woj") || t === torTematow()) return;
+  try { localStorage.setItem(TEMATY_KEY, t); } catch {}
+  wczytajGranicePowiatow().then(() => syncObservedRegions({ tylkoPoZmianie: true })).catch(() => {});
+}
 let voivGeo = null;   // GeoJSON województw (do GPS → województwo i do centrowania)
 
 /* widok startowy: cała Polska + zachodnia Ukraina (kierunek nadlotu) */
@@ -1153,6 +1272,7 @@ function applyState(s) {
   state = s;
   showNotice(s?.notice);
   applySwitches(s?.wylaczniki);
+  applyTematy(s?.tematy);
   threatsReceivedAt = Date.now();
   if (!standalone) srvRecord(s);   // nagrywaj żywy feed do bufora historii (RAM)
   recordTrails(s?.neptun?.threats || []);
@@ -2423,7 +2543,7 @@ function openThreatPopup(lngLat, p) {
             ? ` <span style="color:#95a1b7">(${Number(p.uncertainty) - Number(p.unc_lot)} km ${
                 UI.t("zgłoszenia", "report", "повідомлення")} + ${Number(p.unc_lot)} km ${
                 UI.t("lotu od meldunku", "flown since", "польоту відтоді")})</span>` : ""}<br>
-      ${p.heading != null && !p.hdg_unknown ? `${p.heading_measured ? UI.t("kurs z ruchu", "heading from movement", "курс із руху") : UI.t("kurs", "heading", "курс")}: ${Math.round(p.heading)}° (${compass(p.heading)})${p.heading_measured && p.heading_source != null && Math.abs(((p.heading - p.heading_source) % 360 + 540) % 360 - 180) > 45 ? ` <span style="color:#95a1b7">(${UI.t("NEPTUN podaje", "NEPTUN reports", "NEPTUN повідомляє")} ${Math.round(p.heading_source)}°)</span>` : ""} · ` : ""}
+      ${p.heading != null && !p.hdg_unknown ? `${p.heading_measured ? UI.t("kurs z ruchu", "heading from movement", "курс із руху") : UI.t("kurs", "heading", "курс")}: ${Math.round(p.heading)}° (${compass(p.heading)})${p.heading_measured && p.heading_source != null && Math.abs(((p.heading - p.heading_source) % 360 + 540) % 360 - 180) > 45 ? ` <span style="color:#95a1b7">(${UI.t("NEPTUN podaje", "NEPTUN reports", "NEPTUN повідомляє")} ${Math.round(p.heading_source)}°)</span>` : ""}${kursZRuchuNotkaHTML(p)} · ` : ""}
       ${UI.t("odległość od granicy PL", "distance from the Polish border", "відстань від кордону Польщі")}: <b>${p.distance_text ?? ((p.dist_km ?? "?") + " km")}</b><br>
       ${UI.t("ostatni meldunek", "last report", "останнє повідомлення")}: <b>${ageAgoText(p.age_min)}</b>${Number(p.age_min) >= 15
         ? ` <span style="color:#95a1b7">${UI.t("— rejon przestał już rosnąć, obiekt może być dalej", "— the area has stopped growing; the object may be further away", " — район уже перестав зростати, об'єкт може бути далі")}</span>` : ""}<br>
@@ -2453,6 +2573,17 @@ function courseVerdictHTML(p) {
     return `<span style="color:#ffb020"><b>${UI.t("kurs na cel", "heading to a target", "курс на ціль")}${cel}</b> — ${
       UI.t("przedłużenie trasy prowadzi w stronę Polski", "the extended track points towards Poland", "продовження траси веде в бік Польщі")}</span><br>`;
   }
+  /* 20.11.2026: rakieta pod Lwowem miała „kurs z ruchu 335°” i czerwone „kurs na
+     Polskę”, choć przez 50 min jej odległość od granicy skakała 57,2 → 60,0 → 57,7 →
+     56,6 → 60,3 km — kurs wyliczono z szumu pozycji o ±4 km. Gdy ślad tego nie
+     potwierdza, karta mówi to wprost. Punktacja serwera się nie zmienia. */
+  const zb = kursZRuchuNiepotwierdzony(p);
+  if (toward && zb) {
+    return `<span style="color:#ffb020"><b>${UI.t("kurs niepewny", "uncertain heading", "курс непевний")}</b> — ${UI.t(
+      `obiekt nie zbliża się do granicy (≈${liczba1(zb.a)} → ${liczba1(zb.b)} km w ${zb.min} min)`,
+      `the object is not approaching the border (≈${liczba1(zb.a)} → ${liczba1(zb.b)} km in ${zb.min} min)`,
+      `об'єкт не наближається до кордону (≈${liczba1(zb.a)} → ${liczba1(zb.b)} км за ${zb.min} хв)`)}</span><br>`;
+  }
   if (toward) {
     const daleko = off != null && off > 50;
     return `<span style="color:#ff7b88"><b>${UI.t("kurs na Polskę", "heading towards Poland", "курс на Польщу")}</b>${
@@ -2466,6 +2597,34 @@ function courseVerdictHTML(p) {
       ? (UI.t(`kurs ${off}° od kierunku na Polskę`, `heading ${off}° away from the direction to Poland`, `курс ${off}° від напрямку на Польщу`))
       : (UI.t("kurs nie prowadzi na Polskę", "not heading towards Poland", "курс не веде на Польщу"));
   return `<span style="color:#a3aec4"><b>${UI.t("0 pkt", "0 pts", "0 бал.")}</b> — ${why}</span><br>`;
+}
+/* Liczba z jednym miejscem po przecinku (bez „,0” przy całych), separator według
+   języka — jak `odleglosc`. Rachunki na karcie muszą się dać sprawdzić na kartce. */
+function liczba1(x, zawszeMiejsce = false) {
+  const r = Math.round(Number(x) * 10) / 10;
+  const s = Number.isInteger(r) && !zawszeMiejsce ? String(r) : r.toFixed(1);
+  return UI.isEn ? s : s.replace(".", ",");
+}
+/* Ocena kursu z ruchu na podstawie śladu (właściwości zb_* liczy zblizanieDoGranicy
+   przy budowie znacznika i przekazuje je tylko wtedy, gdy obiekt się NIE zbliża).
+   Dotyczy wyłącznie kursu Z RUCHU przy ocenie „na Polskę” — kurs podany przez źródło
+   zostaje opisany jak dotąd. */
+function kursZRuchuNiepotwierdzony(p) {
+  const n = (k) => p?.[k] == null || p[k] === "" ? null : Number(p[k]);
+  const min = n("zb_min"), a = n("zb_a"), b = n("zb_b");
+  if (min == null || a == null || b == null || ![min, a, b].every(Number.isFinite)) return null;
+  const mierzony = p.heading_measured === true || p.heading_measured === "true";
+  const toward = p.toward_pl === true || p.toward_pl === "true";
+  if (!mierzony || !toward) return null;
+  return { min, a, b, km: n("zb_km") ?? 0, unc: n("zb_unc") ?? 0 };
+}
+function kursZRuchuNotkaHTML(p) {
+  const zb = kursZRuchuNiepotwierdzony(p);
+  if (!zb) return "";
+  return ` <span style="color:#ffb020">(${UI.t(
+    `niepewny — w ciągu ${zb.min} min przesunięcie ${liczba1(zb.km)} km (niepewność ±${liczba1(zb.unc)} km), odległość od granicy ≈${liczba1(zb.a)} → ${liczba1(zb.b)} km`,
+    `uncertain — in ${zb.min} min it moved ${liczba1(zb.km)} km (uncertainty ±${liczba1(zb.unc)} km), distance from the border ≈${liczba1(zb.a)} → ${liczba1(zb.b)} km`,
+    `непевний — за ${zb.min} хв зміщення ${liczba1(zb.km)} км (невизначеність ±${liczba1(zb.unc)} км), відстань від кордону ≈${liczba1(zb.a)} → ${liczba1(zb.b)} км`)})</span>`;
 }
 
 /* Karta obiektu z kursem domniemanym (28.10.2026, treść uzgodniona z userem).
@@ -2727,7 +2886,8 @@ function measuredHeading(t) {
   if (Date.now() - b.ms > 20 * 60000) return null;       // stary ślad to nie kurs
   for (let i = pts.length - 2; i >= 0; i--) {
     const a = pts[i];
-    if (kmBetween(a, b) >= 2) return Places.bearingDeg(a.lat, a.lon, b.lat, b.lon);
+    // 20.11.2026 (lustro neptun.prog_ruchu_km): przesunięcie < niepewność to szum
+    if (kmBetween(a, b) >= Math.max(2, Number(t.uncertaintyKm) || 0)) return Places.bearingDeg(a.lat, a.lon, b.lat, b.lon);
   }
   return null;
 }
@@ -2751,6 +2911,30 @@ function trackPoints(t) {
     out.push(q);
   }
   return out;
+}
+/* Czy ślad potwierdza zbliżanie się do granicy (20.11.2026). Kurs z ruchu bierze się
+   z dwóch pozycji oddalonych o ≥2 km — przy niepewności meldunku ±4 km sam szum daje
+   „kurs”. Tu patrzymy na cały ślad (≤45 min): przesunięcie netto od najstarszego
+   punktu do bieżącej pozycji rzutujemy na kierunek do najbliższego punktu granicy
+   (bearing_to_border z serwera). Odległość na początku śladu to więc przybliżenie
+   (≈): bieżąca odległość plus ta składowa. Werdykt dopiero od 10 min śladu. */
+const ZBLIZANIE_MIN_SLAD_MIN = 10, ZBLIZANIE_MIN_KM = 2;
+function zblizanieDoGranicy(t) {
+  const a = t?.pl_assessment;
+  if (!a || a.inside_pl || a.dist_km == null || a.bearing_to_border == null || !Places?.bearingDeg) return null;
+  if (t.lat == null || t.lon == null) return null;
+  const pts = trackPoints(t);
+  if (!pts.length || !pts[0].ms) return null;
+  const p0 = pts[0], teraz = { lat: +t.lat, lon: +t.lon };
+  const msB = Math.max(Date.parse(t.confirmedAt || t.updatedAt || "") || 0, pts[pts.length - 1].ms || 0);
+  const sladMin = (msB - p0.ms) / 60000;
+  if (!(sladMin >= ZBLIZANIE_MIN_SLAD_MIN)) return null;
+  const netKm = kmBetween(p0, teraz);
+  const kurs = netKm > 0 ? Places.bearingDeg(p0.lat, p0.lon, teraz.lat, teraz.lon) : 0;
+  const kuGranicyKm = netKm * Math.cos((kurs - Number(a.bearing_to_border)) * Math.PI / 180);
+  const distB = Number(a.dist_km);
+  return { min: Math.round(sladMin), netKm, kuGranicyKm, uncKm: Number(t.uncertaintyKm) || 0,
+    distA: distB + kuGranicyKm, distB, nieZbliza: kuGranicyKm < ZBLIZANIE_MIN_KM };
 }
 function toggleFollow(hex) {
   followHex = followHex === hex ? null : hex;
@@ -3415,6 +3599,10 @@ function animate(ts) {
     const mh = measuredHeading(t);
     const shownHdg = mh ?? t.heading;
     const ageMin = threatAgeMin(t, now);
+    // kurs z ruchu „na Polskę”, którego ślad nie potwierdza (20.11.2026) — tylko opis karty
+    const zb = mh != null && t.pl_assessment?.toward_pl === true ? zblizanieDoGranicy(t) : null;
+    const zbProps = zb?.nieZbliza ? { zb_min: zb.min, zb_km: Math.round(zb.netKm * 10) / 10,
+      zb_unc: zb.uncKm, zb_a: Math.round(zb.distA * 10) / 10, zb_b: zb.distB } : {};
     pts.push({ type: "Feature", geometry: { type: "Point", coordinates: [p.lon, p.lat] },
       properties: { tid: String(t.id ?? ""),
         type: TYPE_META[t.type] ? t.type : "unknown", heading: shownHdg ?? 0,
@@ -3438,6 +3626,7 @@ function animate(ts) {
         age_min: ageMin, age_label: ageLabel(ageMin),
         course_off: courseOffsetDeg(t),
         na_cel: naKursieDoCelu(t), cel: naKursieDoCelu(t) && t.locality ? placeName(t.locality) : "",
+        ...zbProps,
         eta: etaHtml(t) } });
     const uncKm = shownUncertaintyKm(t, now);
     if (uncKm)
@@ -4690,7 +4879,46 @@ document.getElementById("ac-card-zoom")?.addEventListener("click", () => {
 
 /* ── alarm dźwiękowy przy poziomie WYSOKI ────────────────────────────────── */
 let lastMood = "none";
+/* Tor powiatów (etap 3): otwarta aplikacja alarmuje z poziomów POWIATÓW zapisanych
+   miejsc (`fusion.powiaty` — serwer podaje tylko powiaty z poziomem), tak jak push.
+   Bez tego otwarta aplikacja grałaby dla województwa, a push milczał dla powiatu. */
+function powiatyWStanie() {
+  // Tryb wbudowany (engine.js, serwer niedostępny) liczy tylko województwa — wtedy
+  // otwarta aplikacja alarmuje jak dotąd z ich poziomów. Inaczej brak słownika
+  // `powiaty` wyglądałby jak „wszystkie powiaty spokojne” i nie zadzwoniłoby nic.
+  if (torTematow() !== "pow" || standalone) return null;
+  const obs = powiatyDoTematow();
+  if (!obs.length) return null;
+  const pw = state?.fusion?.powiaty || {};
+  return obs.map(t => ({ terc: t, ...(pw[t] || { level: "none", score: 0, woj: granicePowiatow?.pow?.[t]?.w }) }));
+}
+function updateAlarmMoodPowiaty(lista) {
+  const order = ["none", "elevated", "high"];
+  const najw = lista.reduce((b, p) => order.indexOf(p.level) > order.indexOf(b.level) ? p : b, { level: "none" });
+  const level = najw.level || "none";
+  if (order.indexOf(level) > order.indexOf(lastMood) && !alertsOff()) {
+    const gdzie = `${nazwaPowiatu(najw.terc)}, ${UI.t("woj.", "province", "воєв.")} ${UI.voiv(najw.woj || "")}`;
+    if (level === "high") {
+      const vst = state?.fusion?.voivodeships?.[najw.woj];
+      if (czerwonyTryb() === "zwykle") czerwonyZwykly(najw.woj, najw.score, gdzie);
+      else showAlarm(najw.woj, { ...(vst || { signals: [] }), score: najw.score }, gdzie);
+      document.getElementById("disclaimer").classList.remove("hidden");
+    } else if (level === "elevated") {
+      chimeOnce();
+      powiedz(a11yAlert, UI.t(`Uwaga: podniesiony poziom zagrożenia, ${gdzie}.`,
+        `Attention: raised threat level, ${gdzie}.`, `Увага: підвищений рівень загрози, ${gdzie}.`));
+    }
+  } else if (level === "none" && lastMood !== "none" && !alertsOff()) {
+    powiedz(a11yAlert, UI.t(
+      "Poziom zagrożenia wrócił do zwykłego. To nie jest oficjalne odwołanie alarmu.",
+      "The threat level is back to normal. This is not an official all-clear.",
+      "Рівень загрози повернувся до звичайного. Це не офіційне скасування тривоги."));
+  }
+  lastMood = level;
+}
 function updateAlarmMood() {
+  const powList = powiatyWStanie();
+  if (powList) return updateAlarmMoodPowiaty(powList);
   const voivs = state?.fusion?.voivodeships || {};
   const mine = myVoiv();
   // Liczą się WSZYSTKIE obserwowane województwa (audyt B1: alarm dla rodziców
@@ -4746,27 +4974,44 @@ function chimeOnce() {
 const fcmSeen = new Set();
 function onForegroundPush(d) {
   if (!d || !d.voiv || !d.level || alertsOff()) return;
+  const powiatowy = d.typ === "pow";
   // Zgłoszenie #15 (21.10.2026): push z tematu, który został na serwerach Google po
   // zmianie miejsc, nie może zawyć dla województwa spoza obserwowanych. Natywna część
   // odrzuca go wcześniej (BackgroundPlugin.obserwowane) — to drugie zabezpieczenie.
-  const obserwowane = Places?.observedVoivodeships?.(savedPlaces) || [];
-  if (obserwowane.length && !obserwowane.includes(d.voiv)) return;
+  // Etap 3: alarm powiatowy — powiat spoza zapisanych miejsc (powiaty.js).
+  if (powiatowy) {
+    const obsPow = powiatyDoTematow();
+    if (obsPow.length && !obsPow.includes(d.pow)) return;
+  } else {
+    const obserwowane = Places?.observedVoivodeships?.(savedPlaces) || [];
+    if (obserwowane.length && !obserwowane.includes(d.voiv)) return;
+  }
   const id = d.event_id || `${d.voiv}|${d.level}|${d.sent_at || ""}`;
   if (fcmSeen.has(id)) return;
   fcmSeen.add(id);
   const score = parseFloat(d.score) || 0;
   const st = state?.fusion?.voivodeships?.[d.voiv];
+  // „Lublin, woj. lubelskie” — po polsku z serwera; tłumaczymy tylko słowo „woj.”
+  const gdzie = powiatowy && d.pow
+    ? `${nazwaPowiatu(d.pow)}, ${UI.t("woj.", "province", "воєв.")} ${UI.voiv(d.voiv)}` : "";
+  /* Kolejne miejsce tego samego zdarzenia (warstwa natywna łączy po kluczu zdarzenia):
+     bez syreny i bez dźwięku, sam pasek — alarm już dzwonił. */
+  if (d._dolacz === "1") {
+    toast(`${d.level === "high" ? "🔴" : "⚠️"} <b>${UI.t("Także", "Also", "Також")}</b>: ${esc(gdzie || UI.voiv(d.voiv))}`
+      + ` (${pktTxt(score)} ${UI.t("pkt", "pts", "бал.")})`, 9000);
+    return;
+  }
   if (d.level === "high" && czerwonyTryb() === "zwykle") {
-    czerwonyZwykly(d.voiv, score);
+    czerwonyZwykly(d.voiv, score, gdzie);
     document.getElementById("disclaimer").classList.remove("hidden");
   } else if (d.level === "high") {
-    showAlarm(d.voiv, st && alarmLevel(st) === "high" ? st
-      : { score, signals: [], reasonsText: [d.headline, d.reasons].filter(Boolean).join("\n") });
+    showAlarm(d.voiv, st && alarmLevel(st) === "high" ? { ...st, ...(powiatowy ? { score } : {}) }
+      : { score, signals: [], reasonsText: [d.headline, d.reasons].filter(Boolean).join("\n") }, gdzie);
     document.getElementById("disclaimer").classList.remove("hidden");
   } else {
     chimeOnce();
     toast(`⚠️ <b>${UI.t("Podwyższona uwaga", "Heightened attention", "Підвищена увага")}</b>: `
-      + `${UI.t("woj.", "province", "воєв.")} ${esc(UI.voiv(d.voiv))} (${pktTxt(score)} ${UI.t("pkt", "pts", "бал.")})`, 9000);
+      + `${gdzie ? esc(gdzie) : `${UI.t("woj.", "province", "воєв.")} ${esc(UI.voiv(d.voiv))}`} (${pktTxt(score)} ${UI.t("pkt", "pts", "бал.")})`, 9000);
   }
 }
 
@@ -4906,10 +5151,11 @@ HTMLDialogElement.prototype.showModal = function () {
   return pokazOknoModalnie.call(this);
 };
 
-function showAlarm(voiv, st) {
+function showAlarm(voiv, st, gdzie = "") {
   if (!voiv || !st) return;
   zdejmijZasloneAlarmu();
-  document.getElementById("alarm-voiv").textContent = (UI.t("woj. ", "province ", "воєв. ")) + UI.voiv(voiv);
+  // etap 3: alarm powiatowy — „Lublin, woj. lubelskie”
+  document.getElementById("alarm-voiv").textContent = gdzie || ((UI.t("woj. ", "province ", "воєв. ")) + UI.voiv(voiv));
   const oknoMin = state?.fusion?.window_min ?? 60;
   // po ukraińsku „хв”, nie „min” (zrzuty 1.8.00); bez spacji na końcu w PL i UK
   document.getElementById("alarm-score").textContent = `${pktTxt(st.score)} ` +
@@ -5185,10 +5431,10 @@ function czerwonyTryb() {
 /* Czerwony w trybie „zwykłe powiadomienie” przy otwartej aplikacji: tak samo
    jak powiadomienie przy zamkniętej — bez pełnego ekranu i syreny, ale z
    sygnałem, wibracją „A”, paskiem i komunikatem dla czytnika ekranu. */
-function czerwonyZwykly(voiv, score) {
+function czerwonyZwykly(voiv, score, miejsce = "") {
   chimeOnce();
   zawibruj(WIBRACJA_A);
-  const gdzie = voiv ? `${UI.t("woj.", "province", "воєв.")} ${UI.voiv(voiv)}` : "";
+  const gdzie = miejsce || (voiv ? `${UI.t("woj.", "province", "воєв.")} ${UI.voiv(voiv)}` : "");
   toast(`🔴 <b>${UI.t("Wysoki priorytet", "High priority", "Високий пріоритет")}</b>: ${esc(gdzie)}`
     + (score ? ` (${pktTxt(score)} ${UI.t("pkt", "pts", "бал.")})` : ""), 15000);
   powiedz(a11yAlert, UI.t(`Wysoki priorytet zagrożenia, ${gdzie}.`,
@@ -6651,20 +6897,36 @@ function alertsOff() { try { return localStorage.getItem(ALERTS_OFF_KEY) === "1"
 let ostatniaSynchronizacja = null;
 function syncObservedRegions(opcje = {}) {
   const regions=alertsOff()?[]:(Places?.observedVoivodeships(savedPlaces)||[]);
-  const klucz=JSON.stringify([regions, alertsOff(), myVoiv()||""]);
+  // etap 3: powiaty miejsc (same numery TERYT) i tor wskazany przez serwer
+  const powiaty=alertsOff()?[]:powiatyDoTematow(), tematy=torTematow();
+  const klucz=JSON.stringify([regions, alertsOff(), myVoiv()||"", powiaty, tematy]);
   if(opcje.tylkoPoZmianie && klucz===ostatniaSynchronizacja) return Promise.resolve();
   ostatniaSynchronizacja=klucz;
   if(!IS_APP) syncBrowserPushRegion().catch(()=>{});
   const plugin=BG();
   // alertsOff trafia też do usługi FCM (odrzuca alarmy, zanim wypisanie dotrze do Firebase)
-  if(plugin?.setObservedVoivodeships) return plugin.setObservedVoivodeships({voivodeships:regions, alertsOff:alertsOff()});
+  if(plugin?.setObservedVoivodeships) return plugin.setObservedVoivodeships({voivodeships:regions, powiaty, tematy, alertsOff:alertsOff()});
   return plugin?.setHomeVoivodeship?.({voivodeship:myVoiv()||""});
 }
+/* Zgłoszenie z Google Play (17.11.2026, Huawei P30 Pro, 1.8.08): „wyznaczyłem 7 miejsc,
+   a program pokazuje tylko mój region i 4 miejsca”. Zapisanych było 8 — linia wymieniała
+   tylko WOJEWÓDZTWA i tylko te z włączonymi alarmami, więc wyglądała jak lista miejsc,
+   w której część zginęła. Teraz mówi wprost: ile miejsc, w ilu województwach, które
+   miejsca dają alarmy i które są zapisane bez alarmów (nowe miejsce ma je wyłączone). */
 function renderPlacesSummary() {
   const el=document.getElementById("places-summary"); if(!el)return;
   if(!savedPlaces.length){el.textContent=UI.t("Nie zapisano jeszcze żadnego miejsca.", "No saved places yet.", "Ще не збережено жодного місця.");return;}
-  const watched=Places.observedVoivodeships(savedPlaces).map(v=>UI.voiv(v));
-  el.textContent=(UI.t(`${savedPlaces.length}/8 miejsc. Obserwowane województwa: `, `${savedPlaces.length}/8 places. Watched provinces: `, `${savedPlaces.length}/8 місць. Відстежувані воєводства: `))+(watched.join(", ")||(UI.t("brak", "none", "немає")));
+  el.textContent=opisMiejsc(savedPlaces);
+}
+function opisMiejsc(miejsca) {
+  const n=miejsca.length, k=new Set(miejsca.map(p=>p.region)).size;
+  const alarmy=Places.observedVoivodeships(miejsca)
+    .map(v=>`${UI.voiv(v)} (${miejsca.filter(p=>p.region===v&&p.alerts).map(p=>p.name).join(", ")})`).join("; ");
+  const bez=miejsca.filter(p=>!p.alerts).map(p=>p.name).join(", ");
+  return UI.t(
+    `Zapisane miejsca: ${n} z 8, w ${k} ${k===1?"województwie":"województwach"}. Alarmy dla: ${alarmy||"brak"}.${bez?` Bez alarmów: ${bez}.`:""}`,
+    `Saved places: ${n} of 8, in ${k} ${k===1?"province":"provinces"}. Alerts for: ${alarmy||"none"}.${bez?` No alerts: ${bez}.`:""}`,
+    `Збережені місця: ${n} з 8, у ${k} ${k===1?"воєводстві":"воєводствах"}. Сповіщення для: ${alarmy||"немає"}.${bez?` Без сповіщень: ${bez}.`:""}`);
 }
 let wojPrzedUstawieniami = null;   // region sprzed otwarcia ustawień — mapa skacze tylko po zmianie
 let ustawieniaZMenu = false;
@@ -6870,24 +7132,58 @@ const placesDlg=document.getElementById("places-dialog");
 let placeDraft=null, placeSnapshot="";
 const placeEl=id=>document.getElementById(id);
 const placeText=(pl,en,uk)=>UI.t(pl,en,uk);
-function draftFromForm(){return Places.clean({id:placeEl("place-id").value,name:placeEl("place-name").value,precision:placeEl("place-precision").value,region:placeEl("place-region").value,gps:placeDraft?.gps||null,alerts:placeEl("place-alerts").checked});}
+function draftFromForm(){const pw=placeEl("place-powiat"),powiat=pw&&!pw.disabled&&!placeEl("place-powiat-row").hidden?pw.value:(placeDraft?.powiat||"");return Places.clean({id:placeEl("place-id").value,name:placeEl("place-name").value,precision:placeEl("place-precision").value,region:placeEl("place-region").value,gps:placeDraft?.gps||null,alerts:placeEl("place-alerts").checked,powiat});}
 function placeDirty(){return placeSnapshot&&JSON.stringify(draftFromForm())!==placeSnapshot;}
 function fillPlace(place){
   placeDraft=Places.clean(place); placeSnapshot=JSON.stringify(placeDraft);
   placeEl("place-id").value=placeDraft.id; placeEl("place-name").value=placeDraft.name; placeEl("place-precision").value=placeDraft.precision; placeEl("place-region").value=placeDraft.region; placeEl("place-alerts").checked=placeDraft.alerts; placeEl("place-feedback").textContent="";
   placeEl("place-delete").hidden=!savedPlaces.some(p=>p.id===placeDraft.id);
+  // inne miejsce: pole powiatu bierze wybór z miejsca, nie z poprzednio pokazanego
+  if(placeEl("place-powiat"))placeEl("place-powiat").dataset.region="";
   renderPlacePrecision(); renderPlaceTabs();
 }
 function renderPlaceTabs(){
   placeEl("places-tabs").innerHTML=savedPlaces.map(p=>`<button type="button" class="chip${p.id===placeDraft?.id?' active':''}" data-id="${esc(p.id)}">${esc(p.name)}</button>`).join("");
   placeEl("places-tabs").querySelectorAll("button").forEach(b=>b.onclick=()=>{if(placeDirty()&&!confirm(placeText("Odrzucić niezapisane zmiany?","Discard unsaved changes?","Скасувати незбережені зміни?")))return;fillPlace(savedPlaces.find(p=>p.id===b.dataset.id));});
 }
+/* Etap 3 (opcja a, decyzja usera 20.11.2026): powiat miejsca. Tylko w aplikacji (strona
+   zostaje przy województwach). Dokładna lokalizacja wypełnia powiat sama i blokuje pole —
+   przy granicy pokazuje oba powiaty. Bez współrzędnych (albo z pozycją zbyt przybliżoną)
+   powiat wybiera się z listy powiatów województwa z PRG; wybór zostaje na urządzeniu. */
+function renderPlacePowiat(){
+  const row=placeEl("place-powiat-row"), sel=placeEl("place-powiat"), info=placeEl("place-powiat-info");
+  if(!row||!sel)return;
+  if(!IS_APP||!Powiaty||!granicePowiatow){row.hidden=true;return;}
+  const region=placeEl("place-region").value, lang=UI.lang==="en"?"en":UI.lang==="uk"?"uk":"pl";
+  placeEl("place-powiat-t").textContent=placeText("Powiat","County","Повіт");
+  const lista=Powiaty.listaPowiatow(granicePowiatow,region,lang);
+  const chce=sel.dataset.region===region?sel.value:(placeDraft?.region===region?placeDraft?.powiat||"":"");
+  sel.innerHTML=`<option value="">${esc(placeText("— wybierz powiat —","— choose a county —","— виберіть повіт —"))}</option>`
+    +lista.map(p=>`<option value="${esc(p.terc)}">${esc(p.etykieta)}</option>`).join("");
+  sel.dataset.region=region;
+  const gps=placeEl("place-precision").value==="gps"?placeDraft?.gps:null;
+  const z=gps?Powiaty.powiatMiejsca(granicePowiatow,{precision:"gps",region,gps,powiat:""}):null;
+  const nazwy=t=>(lista.find(p=>p.terc===t)||{etykieta:t}).etykieta;
+  if(z&&z.zrodlo==="gps"){
+    sel.disabled=true; sel.value=z.powiaty.length===1?z.powiaty[0]:"";
+    info.textContent=z.powiaty.length===1
+      ?placeText("Powiat ustalony z zapisanej lokalizacji.","County set from the saved location.","Повіт визначено за збереженим місцеперебуванням.")
+      :placeText(`Przy granicy powiatów — alarmy dla obu: ${z.powiaty.map(nazwy).join(", ")}.`,`At a county border — alerts for both: ${z.powiaty.map(nazwy).join(", ")}.`,`Біля межі повітів — тривоги для обох: ${z.powiaty.map(nazwy).join(", ")}.`);
+  }else{
+    sel.disabled=false; sel.value=lista.some(p=>p.terc===chce)?chce:"";
+    info.textContent=sel.value?placeText("Powiat wybrany ręcznie — zostaje na tym urządzeniu.","County chosen by hand — it stays on this device.","Повіт вибрано вручну — він залишається на цьому пристрої.")
+      :placeText("Bez wybranego powiatu telefon zostaje przy alarmach dla całego województwa — także wtedy, gdy alarmy przejdą na powiaty.","Without a chosen county the phone stays with alerts for the whole province — also once alerts switch to counties.","Без вибраного повіту телефон залишається з тривогами для всього воєводства — також після переходу тривог на повіти.");
+  }
+  row.hidden=false;
+}
 function renderPlacePrecision(){
   const precision=placeEl("place-precision").value;
   placeEl("place-gps-row").hidden=precision!=='gps';
   const gps=placeDraft?.gps; placeEl("place-gps-status").textContent=gps?`${placeText("Zapisano jednorazowo","Saved once","Збережено одноразово")}: ${gps.lat.toFixed(5)}, ${gps.lon.toFixed(5)} · ±${Math.round(gps.accuracy)} m · ${new Date(gps.capturedAt).toLocaleString(UI.t("pl-PL", "en-GB", "uk-UA"))}`:placeText("Lokalizacja jest wyłączona.","Location is off.","Місцеперебування вимкнено."); placeEl("place-gps-remove").hidden=!gps;
+  renderPlacePowiat();
 }
 function openPlaces(){
+  wczytajGranicePowiatow().then(()=>{if(placesDlg.open)renderPlacePowiat();}).catch(()=>{});
   placeEl("places-wstecz-t").textContent=placeText("Ustawienia","Settings","Налаштування");
   savedPlaces=Places.migrate(localStorage); placeEl("place-region").innerHTML=ALL_VOIVS.map(v=>`<option value="${esc(v)}">${esc(UI.voiv(v))}</option>`).join("");
   fillPlace(savedPlaces[0]||{id:crypto.randomUUID?.()||String(Date.now()),name:"",precision:"region",region:myVoiv()||"lubelskie",alerts:true}); placesDlg.showModal();
@@ -6904,6 +7200,8 @@ function backToPlacesTab(){
 }
 placeEl("places-close").onclick=()=>{if(!placeDirty()||confirm(placeText("Odrzucić niezapisane zmiany?","Discard unsaved changes?","Скасувати незбережені зміни?"))){placesDlg.close();backToPlacesTab();}};
 placeEl("place-add").onclick=()=>{if(savedPlaces.length>=8)return alert(placeText("Możesz zapisać maksymalnie 8 miejsc.","You can save up to 8 places.","Можна зберегти щонайбільше 8 місць."));if(placeDirty()&&!confirm(placeText("Odrzucić niezapisane zmiany?","Discard unsaved changes?","Скасувати незбережені зміни?")))return;fillPlace({id:crypto.randomUUID?.()||String(Date.now()),name:"",precision:"region",region:myVoiv()||"lubelskie",alerts:false});};
+placeEl("place-region").addEventListener("change",()=>renderPlacePowiat());
+placeEl("place-powiat")?.addEventListener("change",()=>renderPlacePowiat());
 placeEl("place-precision").onchange=()=>{placeDraft={...placeDraft,precision:placeEl("place-precision").value,gps:placeEl("place-precision").value==='gps'?placeDraft?.gps:null};renderPlacePrecision();};
 placeEl("place-gps").onclick=()=>{
   if(!navigator.geolocation)return alert(placeText("Brak dostępu do lokalizacji w tym środowisku.","Location is unavailable in this environment.","Доступу до місцеперебування в цьому середовищі немає."));
@@ -7398,6 +7696,13 @@ async function refreshBgStatus(previewLang = UI.lang) {
     // „Wypisywanie…” wyglądało wtedy jak błąd, a użytkownik nie wiedział, co zrobić.
     const noRegion = !alertsOff() && !(s.observedVoivodeships || []).length && !s.homeVoivodeship;
     const loc = previewLang === "pl" ? "pl-PL" : previewLang === "uk" ? "uk-UA" : "en-GB";
+    /* Etap 3 (19.11.2026): telefon na torze powiatów — potwierdzone tematy pow_<TERYT>
+       (iPhone ze zgodą na alarm krytyczny: pow_<TERYT>_krytyczne). Starsza warstwa
+       natywna nie podaje torAktywny — wtedy wiersz jak dotąd, o województwach. */
+    const powPotw = [...new Set((s.topicsConfirmed || [])
+      .map(t => (/^pow_(\d{4})(?:_krytyczne)?$/.exec(t) || [])[1]).filter(Boolean))];
+    const naPowiatach = s.torAktywny === "pow" && powPotw.length > 0;
+    const doPowiatow = s.tematyTryb === "pow";
     /* Kiedy Firebase ostatnio POTWIERDZIŁ zapis (Android topics_ok_at, iPhone
        Key.topicsOkAt — ustawiane tylko przy udanym zapisie albo wypisaniu).
        Zgłoszenie 3.11.2026: iPhone po aktualizacji iOS milczał, a ekran mówił
@@ -7414,8 +7719,12 @@ async function refreshBgStatus(previewLang = UI.lang) {
       ? (T("Nie wybrano jeszcze województwa do alarmów — dodaj miejsce z włączonym „Obserwuj alerty” w zakładce Moje miejsca.", "No province is selected for alerts yet — add a place with “Watch alerts” on in the My places tab.", "Ще не вибрано воєводства для тривог — додайте місце з увімкненим «Стежити за тривогами» у вкладці Мої місця."))
       : s.topicsUnsubscribing
       ? (T("⏳ Wypisywanie telefonu z województw…", "⏳ Unsubscribing this phone from provinces…", "⏳ Відписування телефону від воєводств…"))
+      : s.topicsSyncing && doPowiatow
+      ? (T("⏳ Zapisywanie telefonu do powiatów zapisanych miejsc…", "⏳ Subscribing this phone to the counties of saved places…", "⏳ Записування телефону на повіти збережених місць…"))
       : s.topicsSyncing
       ? (T("⏳ Zapisywanie telefonu do województw…", "⏳ Subscribing this phone to provinces…", "⏳ Записування телефону на воєводства…"))
+      : naPowiatach
+      ? (T(`Zapisany do alarmów dla powiatów: ${powPotw.map(t => esc(nazwaPowiatu(t))).join(", ")} (${potw}).`, `Subscribed to alerts for counties: ${powPotw.map(t => esc(nazwaPowiatu(t))).join(", ")} (${potw}).`, `Записано на тривоги для повітів: ${powPotw.map(t => esc(nazwaPowiatu(t))).join(", ")} (${potw}).`))
       : subscribed.length
       ? (T(`Zapisany do alarmów dla: ${subscribed.map(v => esc(UI.voiv(v))).join(", ")} (${potw}).`, `Subscribed to alerts for: ${subscribed.map(v => esc(UI.voiv(v))).join(", ")} (${potw}).`, `Записано на тривоги для: ${subscribed.map(v => esc(UI.voiv(v))).join(", ")} (${potw}).`))
       : (T(`Telefon nie jest zapisany do żadnego województwa (${potw}).`, `This phone is not subscribed to any province (${potw}).`, `Телефон не записаний на жодне воєводство (${potw}).`));
@@ -7452,6 +7761,7 @@ async function refreshBgStatus(previewLang = UI.lang) {
       || (noRegion && !subscribed.length ? (T("Powiadomienia są dozwolone.", "Notifications are allowed.", "Сповіщення дозволені.")) : "")
       || (T("Powiadomienia gotowe. Alarmy dla Twojego regionu dotrą także przy zamkniętej aplikacji.", "Notifications ready. Alerts for your region will arrive even while the app is closed.", "Сповіщення готові. Тривоги для вашого регіону дійдуть також при закритому застосунку.")))
       + `<br>${subLine}`
+      + (liniaBezPowiatu(previewLang) ? `<br>${liniaBezPowiatu(previewLang)}` : "")
       + (pushLine ? `<br>${pushLine}` : "")
       + `<br><span class="muted">${s.platform === "ios" ? `iOS ${esc(s.osVersion || "")}`
         : `Android ${s.sdk}, ${esc(s.manufacturer || "")}`}`
@@ -8593,6 +8903,6 @@ async function restoreAlertsOff() {
   const box = document.getElementById("set-alerts-on");
   if (box) box.checked = !alertsOff();
 }
-setTimeout(async () => { await restoreAlertsOff(); syncObservedRegions(); }, 2500);
+setTimeout(async () => { await restoreAlertsOff(); await wczytajGranicePowiatow(); syncObservedRegions(); }, 2500);
 if ("serviceWorker" in navigator && !IS_APP)
   navigator.serviceWorker.register("sw.js").catch(() => {});

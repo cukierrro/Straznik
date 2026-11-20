@@ -28,6 +28,8 @@ const RED_GATE_ETA_MIN = 15, RED_GATE_KM = 50, RED_GATE_MAX_AGE_MS = 25*60*1000;
 const RED_GATE_AREA_MAX_UNC_KM = 30;   // pozycja rejonowa ±70 km nie otwiera czerwonego (15.10.2026)
 // dron bez kursu (B', 1.11.2026): lustro config.RED_GATE_BEZ_KURSU_*
 const RED_GATE_BEZ_KURSU_TYPES = new Set(["uav", "shahed"]), RED_GATE_BEZ_KURSU_KM = 30, RED_GATE_BEZ_KURSU_MIN_ZGLOSZEN = 2;
+// rakieta „pierwsza linia” (20.11.2026): lustro config.RED_GATE_RAKIETY_*
+const RED_GATE_RAKIETY_TYPES = new Set(["ballistic", "mig31k", "cruise", "missile", "kab"]), RED_GATE_RAKIETY_MARGINES_KM = 60;
 const RCB_DOWNGRADE_FADE_MIN = 10;   // lustro config.RCB_DOWNGRADE_FADE_MIN
 /* Obiekt zgubiony z feedu NEPTUN-a gaśnie szybciej — lustro config.NEPTUN_LOST_*
    i fusion.lost_weight (11.10.2026). Wyjątek: zgubiony bliżej granicy niż 50 km. */
@@ -109,7 +111,7 @@ const POINTS = { neptun_high: 3, neptun_medlow: 1.5, media_keywords: 0.5, media_
 // przekroczyła próg alarmu, a trzycyfrowa punktacja psułaby czytelność skali.
 // Alarmy obwodowe UA to JEDNA informacja, nie kilka niezależnych potwierdzeń:
 // bez własnego limitu trzy obwody naraz dawały 3,0 pkt i żółty bez żadnego obiektu.
-const SOURCE_CAPS = { media: 1, rcb: 4.5,   /* 4,5 = alert RCB poziomu 3 (23.09.2026) */ adsb: 1, pansa: 1, neptun: 8, ua_alert: 1 };
+const SOURCE_CAPS = { media: 1, rcb: 4.5,   /* 4,5 = alert RCB poziomu 3 (23.09.2026) */ adsb: 1, pansa: 1, neptun: 8, ua_alert: 0.5 /* 18.11.2026, jak config.py */ };
 const VOIVODESHIPS = ["lubelskie","podkarpackie","podlaskie","mazowieckie","świętokrzyskie",
   "małopolskie","warmińsko-mazurskie","łódzkie","śląskie","kujawsko-pomorskie","pomorskie",
   "zachodniopomorskie","lubuskie","wielkopolskie","dolnośląskie","opolskie"];
@@ -1139,6 +1141,22 @@ function accumulate(sigs, refT, lost = null, officialsExtra = null) {
 }
 
 /* Lustro fusion.red_key (23.09.2026). */
+/* Lustro fusion.rakieta_pierwsza_linia (decyzja usera 20.11.2026): rakieta poza Polską i bez
+   kursu na województwo otwiera czerwony tylko w pierwszej linii — odległość do województwa
+   ≤ odległość do granicy PL + 60 km. Sygnał bez pozycji (główne województwo obiektu) jak dotąd. */
+function rakietaPierwszaLinia(s) {
+  const d = s.details || {};
+  if (!RED_GATE_RAKIETY_TYPES.has(String(d.type || "").toLowerCase())) return true;
+  if (d.lat == null || d.lon == null || d.dist_km == null) return true;
+  if (PL_OUTLINE.rings.some(r => inRing(d.lat, d.lon, r))) return true;
+  const doPl = nearestOutline(d.lat, d.lon)[0];
+  if (d.heading != null && d.course === "known") {
+    const c = celowanieWoj({ lat: d.lat, lon: d.lon, heading: d.heading }, s.voivodeship);
+    if (c != null && c >= 0.5) return true;
+  }
+  return d.dist_km <= doPl + RED_GATE_RAKIETY_MARGINES_KM;
+}
+
 function redKey(sigs, ref) {
   // Liczy się BIEŻĄCA ocena państwa: po obniżeniu stopnia stary alert dopłaca jeszcze
   // zanikającą nadwyżkę punktów, ale nie trzyma już czerwonego.
@@ -1162,6 +1180,7 @@ function redKey(sigs, ref) {
     if (d.course === "unknown" && RED_GATE_BEZ_KURSU_TYPES.has(String(d.type || "").toLowerCase())
         && !(d.confidence === "high" && (d.source_count || 0) >= RED_GATE_BEZ_KURSU_MIN_ZGLOSZEN)
         && !(d.dist_km != null && d.dist_km <= RED_GATE_BEZ_KURSU_KM)) continue;
+    if (!rakietaPierwszaLinia(s)) continue;   // 20.11.2026, lustro fusion.red_key
     if (d.eta_border_min != null && d.eta_border_min <= RED_GATE_ETA_MIN)
       return { powod: "eta", opis: `obiekt ${Math.round(d.eta_border_min)} min od granicy`, eta_min: d.eta_border_min, km: d.dist_km };
     if (d.dist_km != null && d.dist_km <= RED_GATE_KM)
@@ -1478,6 +1497,7 @@ function scoreThreat(t, distKm, courseFactorVal = 1) {
 
 /* Ostatnia pozycja tracka — kurs wyliczany z ruchu, gdy NEPTUN go nie podaje. */
 const lastPos = new Map();
+const lastEst = new Map();   // ostatni kurs z ruchu: [kurs, chwila] (lustro neptun._last_est)
 /* Ślad ze znacznikami czasu — lustro TRAIL_* z backendu (collectors/neptun.py).
    Do 04.10.2026 tryb awaryjny pamiętał tylko OSTATNIĄ pozycję, bez czasu, więc
    nie potrafił policzyć prędkości z ruchu i dla drona odrzutowego brał płaskie
@@ -1513,12 +1533,22 @@ function measuredSpeedKmh(t) {
    kursowi domniemanemu (28.10.2026). */
 const pozycjaWstawiona = (t) => t?.destination === true || t?.areaOnly === true
   || (t?.straznik_position || positionInfo(t)).reason === "source_approx";
+/* Lustro neptun.prog_ruchu_km (20.11.2026): przesunięcie mniejsze niż niepewność meldunku
+   to szum pozycji, nie ruch. Kotwica (lastPos) przesuwa się dopiero po takim ruchu. */
+const progRuchuKm = (t) => Math.max(2, Number(t?.uncertaintyKm) || 0);
 function movementHeading(t) {
   const prev = lastPos.get(t.id);
-  if (prev && !pozycjaWstawiona(t) && haversine(prev[0], prev[1], t.lat, t.lon) >= 2) {
+  if (prev && !pozycjaWstawiona(t) && haversine(prev[0], prev[1], t.lat, t.lon) >= progRuchuKm(t)) {
     const est = bearing(prev[0], prev[1], t.lat, t.lon);
+    lastEst.set(t.id, [est, Date.now()]);
     t.heading_movement = Math.round(est * 10) / 10;
     return est;
+  }
+  // lustro neptun._EST_KEEP_S: drobne kroki po kotwicy nie kasują kursu od razu (10 min)
+  const kept = lastEst.get(t.id);
+  if (kept && Date.now() - kept[1] <= 600000) {
+    t.heading_movement = Math.round(kept[0] * 10) / 10;
+    return kept[0];
   }
   return null;
 }
@@ -1608,7 +1638,10 @@ function neptunEval(t) {
   t.heading_source = headingSourceOf(t);
   if (isJet(t)) t.straznik_jet = true;
   recordTrail(t);
-  if (t.id != null && !pozycjaWstawiona(t)) lastPos.set(t.id, [t.lat, t.lon]);
+  if (t.id != null && !pozycjaWstawiona(t)) {
+    const kotw = lastPos.get(t.id);
+    if (!kotw || haversine(kotw[0], kotw[1], t.lat, t.lon) >= progRuchuKm(t)) lastPos.set(t.id, [t.lat, t.lon]);
+  }
   const a = t.pl_assessment, ty = (t.type||"").toLowerCase();
   if (a.toward_pl && !(t.heading_source === "presumptive" && a.dist_km > PRESUMPTIVE_MAX_KM)) {
     let points = scoreThreat(t, a.dist_km, a.course_factor);
@@ -2229,6 +2262,13 @@ async function tickRss() {
 }
 
 /* ── kolektor: RCB ───────────────────────────────────────────────────────── */
+// 20.11.2026 (lustro rcb.tytul_alertu): wpis „Alert RCB - atak z powietrza (20.11)” —
+// wezwanie do schronienia — nie pasował do słów mediów i nie był czytany.
+function tytulAlertuRcb(title) {
+  if (/\balert\s+rcb\b[\s\S]*?(z\s+powietrza|powietrzn|lotnicz)/i.test(title || "")) return true;
+  return matchKw(title, CRITICAL, AIR, EVENT, EXCLUDE).length > 0;
+}
+
 async function tickRcb() {
   try {
     const html = await httpGet("https://www.gov.pl/web/rcb");
@@ -2244,7 +2284,7 @@ async function tickRcb() {
     for (const [href, title] of found) {
       // ta sama reguła co dla mediów: mocne słowo albo ≥2 słabe — pojedyncze
       // "alarm" łapało statyczną podstronę "Stopnie alarmowe"
-      if (!matchKw(title, CRITICAL, AIR, EVENT, EXCLUDE).length) continue;
+      if (!tytulAlertuRcb(title)) continue;
       // Artykuł dnia czytamy w KAŻDYM obiegu — także gdy link widzieliśmy już
       // wcześniej: RCB dopisuje kolejne wysyłki („Aktualizacja!”) do tego samego
       // wpisu. Starsze wpisy odpadają, gdy raz poznamy ich datę.
@@ -2972,7 +3012,7 @@ return { start, stop, history, timeline, historyFrom, timelineFrom, accumulate, 
          podloga: { neptunEval, borderUavFloor, sygnaly: () => signals },
          tytuly: { kmPL, wiarygodnoscPL, potwierdzeniaPL },
          baltyk: { tickRss, sygnaly: () => signals },
-         rcbArtykul: { tickRcb, tekstArtykuluRcb, dataArtykuluRcb, wojewodztwaAlertu,
+         rcbArtykul: { tickRcb, tytulAlertuRcb, tekstArtykuluRcb, dataArtykuluRcb, wojewodztwaAlertu,
                        czyOdwolanieRcb, meldunkiArtykulu, najnowszyMeldunek },
          // dla scripts/test_rcb_wygasl.cjs (lustro fusion.rcb_nieodwolane / rcb_wygasle)
          rcbPrzypomnienia: { rcbNieodwolane, rcbWygasle }, rsoTytul };

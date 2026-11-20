@@ -42,7 +42,7 @@
     <li><b>No ads, no analytics, no tracking tools.</b> There is no Google Analytics, no advertising pixel and no third-party statistics SDK.</li>
     <li><b>No cookies.</b> The site and the app set no cookies at all — neither our own nor anyone else’s. That is why there is no consent pop-up here.</li>
     <li><b>Your location never reaches our server.</b> We never store it. The exceptions are in GROTA: a route to shelter (the position and destination go to a public routing server) and the “Around a place” offline map, whose download lets our server and Cloudflare infer the area to within a square of about 12 by 20 km (section 2).</li>
-    <li><b>Notifications go to provinces, not to people.</b> We do not know who receives them.</li>
+    <li><b>Notifications go to provinces or counties, not to people.</b> We do not know who receives them.</li>
     <li><b>We do not sell or share data</b> with anyone for marketing. There is nothing to sell.</li>
   </ul>
 </section>
@@ -69,7 +69,7 @@
 <section id="location">
   <h2>2. Location</h2>
   <p>The location permission is <b>optional</b>. It is used only to drop a one-off “I am here” point when you add a place, and to centre the map. The coordinates stay on the device — we do not send them to the server, do not store them and do not pass them to anyone. You can decline and pick the place on the map by hand; the app works exactly the same.</p>
-  <p>Notifications do not depend on GPS. You pick provinces from a list, and that is the only information about what you watch.</p>
+  <p>Notifications do not depend on GPS. A province picked from a list is enough for alerts. When alerts work by county (section 3), the app works out the county of a place saved with a precise location <b>by itself, on the phone</b> — from county boundaries stored in the app — and passes on only the county number. The place’s coordinates never leave the phone. A place without a precise location (scope “Province”, including places carried over from an older version) or with a position less accurate than 2 km gets the county <b>chosen by hand</b> in <kbd>My places</kbd>, from the list of the province’s counties — a city with county rights is marked, e.g. “Lublin (city)” next to “Lubelski County”. The choice stays on the phone. A precise location sets the county by itself and takes priority. The county is never guessed: while any place with alerts has no county, the whole phone stays with province alerts, and <kbd>Alerts and permissions</kbd> offers a button that leads to the choice.</p>
   <h3>GROTA — where to shelter (Android and iPhone app)</h3>
   <p>GROTA uses your location to show the nearest shelter points. The list of points and the search for the nearest one run <b>on the phone</b>, without sending the position. Only this leaves the phone, and only after you do something:</p>
   <ul>
@@ -87,7 +87,7 @@
 <section id="notifications">
   <h2>3. Notifications</h2>
   <h3>Android and iOS app</h3>
-  <p>The app subscribes in Firebase Cloud Messaging (Google) to a <b>“topic” that corresponds to a province</b>, for example <kbd>voiv_lubelskie</kbd>. We send the alert to the topic, not to individual devices. Our server holds <b>no list of devices and no device identifiers (tokens)</b> — we do not know how many phones watch a given province, or which ones. Google acts as the carrier and processes the app installation identifier under its own privacy policy.</p>
+  <p>The app subscribes in Firebase Cloud Messaging (Google) to a <b>“topic” that corresponds to a province</b>, for example <kbd>voiv_lubelskie</kbd>, or — once the server switches alerts to counties — to <b>the county of a saved place</b>, for example <kbd>pow_0663</kbd> for Lublin. The phone works out the county from the place stored on the device; Google receives only the topic name with the county number, never coordinates or an address. A place right at a county border subscribes to both neighbouring counties. The smallest county covers more than ten square kilometres, so the topic describes an area, not an address. The website stays with provinces. We send the alert to the topic, not to individual devices. Our server holds <b>no list of devices and no device identifiers (tokens)</b> — we do not know how many phones watch a given province, or which ones. Google acts as the carrier and processes the app installation identifier under its own privacy policy.</p>
   <h3>Notifications in a browser</h3>
   <p>If you enable notifications on the website, the browser issues a <b>push endpoint</b> (an address at Google, Mozilla or Apple, together with encryption keys). We store that address and the chosen province in the server database — otherwise a notification cannot be delivered. This is the <b>only data tied to a particular browser</b> that we keep. The address contains no name, e-mail address or location, and does not let us work out who you are.</p>
   <p>The entry disappears when you turn notifications off in the app or in browser settings, and also when the push provider reports that the subscription has expired.</p>
@@ -99,7 +99,7 @@
   <ul>
     <li><b>the access log is switched off</b> — IP addresses and requested paths are not written to disk;</li>
     <li>the IP address is used <b>only briefly, in memory</b>, for request limits, so that a single sender cannot take the service down for everyone. It does not reach the database or the backups;</li>
-    <li>the database holds <b>data about threats, not about people</b>: signals from public sources, snapshots of the map from the last <b>12 hours</b>, an archive of ADS-B aircraft positions for <b>14 days</b>, and a log of alerts sent (province, level, time). None of these entries is linked to a user.</li>
+    <li>the database holds <b>data about threats, not about people</b>: signals from public sources, snapshots of the map from the last <b>12 hours</b>, an archive of ADS-B aircraft positions for <b>14 days</b>, and a log of alerts sent (province or county, level, time). None of these entries is linked to a user.</li>
   </ul>
   <p>Database backups are made every six hours and are encrypted. They contain the browser push subscriptions from section 3 — there is no other user data in the database. Backups are kept <b>for at most 12 months</b>: all of them from the last two days, older ones one per day, week and month.</p>
 </section>
@@ -153,7 +153,7 @@
     <li>replying to a message from the form or an issue — <b>point (f)</b>: handling correspondence you start.</li>
   </ul>
   <p><b>How long:</b> a push subscription — until you turn notifications off or the push provider reports it expired, and in backups for at most 12 months after that; the IP address — only in the server's memory, for at most 10 minutes; settings on your device — until you delete them.</p>
-  <p><b>Your rights:</b> access to your data, rectification, erasure, restriction of processing, objection to processing based on legitimate interest, and data portability. We do not know who you are, so we may be unable to tell which subscription is yours (Art. 11 GDPR) — the simplest way is to delete it yourself by turning notifications off. We make no automated decisions about you and do no profiling: alerts concern provinces, not people.</p>
+  <p><b>Your rights:</b> access to your data, rectification, erasure, restriction of processing, objection to processing based on legitimate interest, and data portability. We do not know who you are, so we may be unable to tell which subscription is yours (Art. 11 GDPR) — the simplest way is to delete it yourself by turning notifications off. We make no automated decisions about you and do no profiling: alerts concern provinces and counties, not people.</p>
   <p>You have the right to lodge a complaint with a supervisory authority — in Poland the <b>President of the Personal Data Protection Office</b> (UODO), ul. Stawki 2, 00-193 Warszawa (<a href="https://uodo.gov.pl/en">uodo.gov.pl</a>), or the authority in your own EU country.</p>
   <p>The app is not directed at children and does not ask for age.</p>
 </section>

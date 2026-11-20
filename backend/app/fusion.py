@@ -27,6 +27,9 @@ def round1(x: float) -> float:
 # callbacki: notyfikacje i broadcast do frontendów (ustawiane w main)
 on_level_change = None   # async def (voiv, level, score, breakdown, *, log_id)
 on_state_change = None   # async def ()
+# def () — po każdej reewaluacji województw; alarmy powiatowe (powiaty.zglos) liczą
+# się wtedy osobno, we własnym rytmie, i nie opóźniają toru województw
+on_reevaluated = None
 # def (track_id) -> (chwila zniknięcia, km od granicy | None) | None — ustawia
 # collectors.neptun; tylko stan na żywo (patrz lost_weight)
 lost_provider = None
@@ -82,6 +85,13 @@ _MEDIA_RETROSPECTIVE_TITLE_MARKERS += tuple(
 def _relay_tokens(value: str) -> set[str]:
     return {w for w in re.findall(r"[a-z0-9]+", _fold_text(value))
             if len(w) >= 4 and w not in _RELAY_STOP_WORDS}
+
+
+def _woj(s: dict) -> str | None:
+    """Województwo sygnału. Kopia sygnału na powiat (app/powiaty.py) ma w `voivodeship`
+    klucz powiatu, a województwo pierwotne w `_woj` — rozpoznanie artykułu o alercie RCB
+    ma działać tak samo jak w województwie. Sygnały województw pola `_woj` nie mają."""
+    return s.get("_woj") or s.get("voivodeship")
 
 
 def _minutes_apart(a: dict, b: dict) -> float:
@@ -163,11 +173,11 @@ def _media_echo_of_rcb(media: dict, officials: list[dict]) -> dict | None:
     # NAZWANE w tytule tylko wtedy, gdy ma ono własny oficjalny alert w oknie.
     # Ochrona z 19.10 zostaje: województwo, którego tytuł nie nazywa (relacja
     # o lubelskim w opolskim), dalej dostaje 0.
-    wlasne = media.get("voivodeship")
+    wlasne = _woj(media)
     if (wlasne in slownik_woj.wojewodztwa(_tytul_mediow(media))
-            and not any(o.get("voivodeship") == wlasne for o in w_oknie)):
+            and not any(_woj(o) == wlasne for o in w_oknie)):
         return None
-    return next((o for o in w_oknie if o.get("voivodeship") == wlasne), w_oknie[0])
+    return next((o for o in w_oknie if _woj(o) == wlasne), w_oknie[0])
 
 
 def _tytul_mediow(media: dict) -> str:
@@ -202,7 +212,7 @@ def _media_relay_of_official(media: dict, officials: list[dict]) -> dict | None:
         return echo
     folded = _fold_text(media.get("title", ""))
     close = [o for o in officials
-             if o.get("voivodeship") == media.get("voivodeship")
+             if _woj(o) == _woj(media)
              and _minutes_apart(media, o) <= _RCB_RELAY_WINDOW_MIN]
     if kind == "media_qra_wave":
         return next((o for o in close if "lotnict" in _fold_text(o.get("title", ""))), None)
@@ -663,9 +673,13 @@ def _media_after_official_clear(media: dict, clears: list[dict],
 
 
 def accumulate(signals: list[dict], ref: datetime | None = None, lost=None,
-               officials_extra: list[dict] | None = None) -> dict:
+               officials_extra: list[dict] | None = None,
+               regions: list[str] | None = None) -> dict:
     """Per województwo {score, signals[]} z limitem klasy źródła (config.SOURCE_CAPS)
     i wygaszaniem wiekiem względem `ref`.
+
+    `regions` — inne regiony niż województwa (alarmy powiatowe, app/powiaty.py: klucze
+    powiatów w `voivodeship` kopii sygnałów). Bez niego, jak dotąd, config.VOIVODESHIPS.
 
     `lost(track_id)` (opcjonalnie) mówi, kiedy obiekt NEPTUN zniknął z feedu —
     wtedy jego sygnały gasną szybciej (lost_weight). Bez niego jak dotąd.
@@ -675,9 +689,11 @@ def accumulate(signals: list[dict], ref: datetime | None = None, lost=None,
     (każda 1 pkt, cap klasy = 1) dawały fałszywe 4.0 „WYSOKI PRIORYTET”, choć na
     żywo dawały 1.0. NIE stosuje kaskady sąsiedzkiej — tę dokłada compute_state.
     """
+    wojewodztwa = regions is None
+    regiony = config.VOIVODESHIPS if wojewodztwa else regions
     per_voiv: dict[str, dict] = {
         v: {"score": 0.0, "signals": [], "_spillover_score": 0.0, "_spill_parts": {}}
-        for v in config.VOIVODESHIPS
+        for v in regiony
     }
     per_source: dict[tuple, float] = {}
     officials = [s for s in signals if _is_official(s)]
@@ -761,10 +777,10 @@ def accumulate(signals: list[dict], ref: datetime | None = None, lost=None,
         wpis = {"at": d.get("cleared_at") or s.get("ts", ""), "rso_id": str(d.get("rso_id") or "")}
         # Odwołanie ogólnokrajowe gasi alert wszędzie, nie tylko tam, gdzie RSO je wpisało.
         krajowe = _clear_krajowe(s)
-        gdzie = config.VOIVODESHIPS if krajowe else (s["voivodeship"],)
+        gdzie = regiony if krajowe else (s["voivodeship"],)
         for voiv in gdzie:
             rso_clears.setdefault(voiv, []).append(dict(wpis))
-        if not krajowe:
+        if not krajowe and wojewodztwa:
             # Odwołanie bez słów o całej Polsce zostawiamy przy jego województwie —
             # 13.09.2026 podkarpackie miało wtedy własny alert i zaraz dostało
             # kolejny, więc rozsyłanie mogłoby wyciszyć trwający alarm. Ale czy RCB
@@ -1014,6 +1030,49 @@ def rcb_level_of(s: dict) -> int:
     return 1
 
 
+_dist_pl_cache: dict[tuple, float] = {}
+
+
+def rakieta_pierwsza_linia(s: dict) -> bool:
+    """Czy rakieta może otworzyć klucz czerwonego w regionie sygnału (config.RED_GATE_RAKIETY_*).
+
+    Inne typy i sygnały bez pozycji — tak jak dotąd. Region to województwo albo
+    powiat (app/powiaty.py, „P<TERYT>”): `dist_km` jest zawsze do regionu sygnału.
+    """
+    d = s.get("details") or {}
+    if (d.get("type") or "").lower() not in config.RED_GATE_RAKIETY_TYPES:
+        return True
+    lat, lon, km = d.get("lat"), d.get("lon"), d.get("dist_km")
+    if lat is None or lon is None or km is None:
+        return True
+    from . import geo
+    klucz = (round(lat, 3), round(lon, 3))
+    do_pl = _dist_pl_cache.get(klucz)
+    if do_pl is None:
+        if len(_dist_pl_cache) > 5000:
+            _dist_pl_cache.clear()
+        do_pl = _dist_pl_cache[klucz] = geo.nearest_outline_point(lat, lon)[0]
+    if do_pl <= 0.0:                           # już nad Polską
+        return True
+    h = d.get("heading")
+    if h is not None and d.get("course") == "known":
+        c = geo.celowanie_woj(lat, lon, h, s.get("voivodeship") or "",
+                              config.NEPTUN_KURS_WOJ_PELNE_DEG, config.NEPTUN_KURS_WOJ_ZERO_DEG)
+        if c is not None and c >= 0.5:
+            return True
+    # Powiat („P<TERYT>”): pierwsza linia jak dla JEGO województwa. Licząc od samego
+    # powiatu, 20.11 Lublin (≈147 km od rakiet spod Lwowa, 57 km od granicy) tracił
+    # czerwony, choć RCB wezwało tam do schronienia, a lubelskie było pierwszą linią.
+    reg = s.get("voivodeship") or ""
+    if reg[:1] == "P" and reg[1:].isdigit():
+        from . import powiaty
+        woj = (powiaty.powiaty().get(reg[1:]) or {}).get("woj")
+        km_woj = geo.dist_to_voiv_km(lat, lon, woj) if woj else None
+        if km_woj is not None:
+            return km_woj <= do_pl + config.RED_GATE_RAKIETY_MARGINES_KM
+    return km <= do_pl + config.RED_GATE_RAKIETY_MARGINES_KM
+
+
 def red_key(signals: list[dict], ref: datetime | None = None) -> dict | None:
     """Czy wolno zapalić czerwony — i dlaczego (decyzja usera 23.09.2026).
 
@@ -1059,6 +1118,9 @@ def red_key(signals: list[dict], ref: datetime | None = None) -> dict | None:
                 and not (d.get("confidence") == "high"
                          and (d.get("source_count") or 0) >= config.RED_GATE_BEZ_KURSU_MIN_ZGLOSZEN)
                 and not (km is not None and km <= config.RED_GATE_BEZ_KURSU_KM)):
+            continue
+        # „Pierwsza linia” dla rakiet (decyzja usera 20.11.2026, config.RED_GATE_RAKIETY_*)
+        if not rakieta_pierwsza_linia(s):
             continue
         if eta is not None and eta <= config.RED_GATE_ETA_MIN:
             return {"powod": "eta", "opis": f"obiekt {int(eta)} min od granicy", "eta_min": eta, "km": km}
@@ -1288,6 +1350,11 @@ async def reevaluate():
                                             log_id=log_id))
     if on_state_change:
         asyncio.create_task(on_state_change())
+    if on_reevaluated:
+        try:
+            on_reevaluated()
+        except Exception as e:                     # noqa: BLE001
+            log.warning("po reewaluacji (powiaty): %s", e)
 
 
 def breakdown_text(signals: list[dict]) -> str:

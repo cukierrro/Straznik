@@ -256,6 +256,19 @@ test('11. spóźniony artykuł o alercie już odwołanym w RSO nie punktuje', as
     'nowy alert RSO gdziekolwiek po odwołaniu znosi blokadę');
 });
 
+test('13. tytuł wpisu: „atak z powietrza” to też alert (20.11.2026)', () => {
+  const e = swiezySilnik({ artykul: stronaArtykulu(BLOK_ALERT) });
+  const t = e.Engine.rcbArtykul.tytulAlertuRcb;
+  for (const s of ['Alert RCB - atak z powietrza (20.11)', 'Alert RCB - zagrożenie z powietrza (20.11)',
+                   'Alert RCB - zagrożenie atakiem z powietrza (17.09)', 'Alert RCB - atak powietrzny (21.11)',
+                   'ALERT RCB - zagrożenie lotnicze (01.12)'])
+    assert.ok(t(s), `czytany: ${s}`);
+  for (const s of ['Alert RCB - woda niezdatna do spożycia, pow. zgorzelecki (19.11)',
+                   'Alert RCB - trening systemów alarmowania (19.11)',
+                   'Alert RCB - zła jakość powietrza', 'Stopnie alarmowe'])
+    assert.ok(!t(s), `pomijany: ${s}`);
+});
+
 test('12. 23.10.2026: aktualizacje rozdzielone <hr />, listy powiatów bez nawiasów', () => {
   // Lustro scripts/test_rcb_artykul.py: na górze cytat PIERWSZEGO alertu, niżej aktualizacje
   // od najnowszej. Parser brał alert z 17:57 zamiast odwołania z 18:23, a „Biała Podlaska”

@@ -22,7 +22,9 @@ sys.modules.setdefault("truststore", types.SimpleNamespace(inject_into_ssl=lambd
 dotenv_stub = types.ModuleType("dotenv")
 dotenv_stub.load_dotenv = lambda *_a, **_k: None
 sys.modules.setdefault("dotenv", dotenv_stub)
-from app import fusion  # noqa: E402
+from app import config, fusion  # noqa: E402
+# limit klasy alarmów obwodów UA (od 18.11.2026 0,5) — scenariusze liczą z niego
+UA_CAP = config.SOURCE_CAPS["ua_alert"]
 sys.stdout.reconfigure(encoding="utf-8")
 
 REF = datetime(2026, 9, 13, 5, 20, tzinfo=timezone.utc)
@@ -68,7 +70,7 @@ ok(spill(st, "lubelskie", "podkarpackie") == 0,
 # świętokrzyskie nie ma tych zdarzeń, więc dostaje przeniesienie w całości
 ok(spill(st, "świętokrzyskie", "podkarpackie") == 1.0,
    "województwo bez wspólnych zdarzeń dostaje pełne przeniesienie (2,6 × 0,4)")
-ok(st["lubelskie"]["own_score"] == 2.1, "punkty własne bez zmian")
+ok(st["lubelskie"]["own_score"] == round(1.0 + min(0.6, UA_CAP) + 0.5, 1), "punkty własne bez zmian")
 
 # W1 (19.10.2026): obiekt NEPTUN u sąsiada NIE przechodzi — nawet 3,0 pkt
 drony = [sig(10, "podkarpackie", "neptun", 3.0, {"track_id": "c"}),
@@ -84,10 +86,12 @@ niezalezne = [sig(12, "podkarpackie", "media", 1.0, {"link": "https://example.te
               sig(14, "podkarpackie", "adsb", 1.0, {"hex": "c"}),
               sig(15, "lubelskie", "neptun", 0.5, {"track_id": "d"})]
 st = fusion.compute_state(niezalezne, REF)["voivodeships"]
-ok(spill(st, "lubelskie", "podkarpackie") == 1.2,
+# podkarpackie: media 1,0 + alarm obwodu (do limitu klasy) + ADS-B 1,0
+PODK = 2.0 + min(1.0, UA_CAP)
+ok(spill(st, "lubelskie", "podkarpackie") == round(PODK * 0.4, 1) > 0,
    "niezależne zdarzenie u sąsiada (media, alarm obwodu, ADS-B) nadal się przenosi")
 tytul = next(s["title"] for s in st["lubelskie"]["signals"] if s["source"] == "spillover")
-ok("3.0 pkt" in tytul, f"tytuł przeniesienia z zaokrągleniem: {tytul}")
+ok(f"{PODK:.1f} pkt" in tytul, f"tytuł przeniesienia z zaokrągleniem: {tytul}")
 
 # ── 2. kiedy przeniesienie może budzić telefon ─────────────────────────────
 A = fusion.alert_level

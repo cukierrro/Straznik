@@ -83,19 +83,56 @@ public class StraznikFcmService extends FirebaseMessagingService {
         for (int i = 0; i < Alarms.VOIVS.length; i++)
             if (Alarms.VOIVS[i].equalsIgnoreCase(voivName)) { voiv = i; break; }
         if (voiv < 0) { Log.w(TAG, "nieznane województwo: " + voivName); return; }
+
+        /* Etap 3 (19.11.2026): dwa tory. Alarm powiatowy (typ=pow, temat pow_<TERYT>)
+           albo województwa (temat voiv_*). Telefon przyjmuje wyłącznie tor AKTYWNY —
+           ten, którego tematy Firebase potwierdził w całości (BackgroundPlugin.torAktywny).
+           W chwili przechodzenia telefon jest zapisany do obu, a serwer wysyła oba, więc
+           bez tego każde zdarzenie zadzwoniłoby dwa razy. Gdy toru nie da się odczytać —
+           przepuszczamy (lepiej alarm za dużo niż cisza). */
+        boolean powiatowy = "pow".equals(data.get("typ"));
+        String terc = powiatowy ? data.get("pow") : null;
+        String tor = BackgroundPlugin.torAktywny(this);
+        if (tor != null && powiatowy != BackgroundPlugin.TOR_POW.equals(tor)) {
+            Log.i(TAG, "tor nieaktywny (" + tor + ") — pomijam " + (powiatowy ? "pow_" + terc : voivName) + "/" + level);
+            Alarms.dziennik(this, "pominiety_tor", powiatowy ? "pow_" + terc : voivName, level, null);
+            return;
+        }
         // Zgłoszenie #15: alarm z tematu, który został na serwerach Google po zmianie
-        // miejsc, nie może zawyć dla województwa, którego użytkownik nie obserwuje.
-        if (!BackgroundPlugin.obserwowane(this, Alarms.VOIVS[voiv])) {
-            Log.i(TAG, "województwo spoza obserwowanych — pomijam " + voivName + "/" + level);
-            Alarms.dziennik(this, "pominiety_region", voivName, level, null);
+        // miejsc, nie może zawyć dla województwa (powiatu), którego użytkownik nie obserwuje.
+        if (powiatowy ? (terc == null || !BackgroundPlugin.obserwowanyPowiat(this, terc))
+                      : !BackgroundPlugin.obserwowane(this, Alarms.VOIVS[voiv])) {
+            Log.i(TAG, "region spoza obserwowanych — pomijam " + (powiatowy ? "pow_" + terc : voivName) + "/" + level);
+            Alarms.dziennik(this, "pominiety_region", powiatowy ? "pow_" + terc : voivName, level, null);
             BackgroundPlugin.syncFcmSubscription(this);   // i jeszcze raz wypisz
             return;
         }
+        String miejsce = powiatowy ? data.get("miejsce") : null;
 
         boolean stale = sentAtMs > 0 && System.currentTimeMillis() - sentAtMs > Alarms.STALE_AFTER_MS;
 
         double score = 0;
         try { score = Double.parseDouble(data.get("score")); } catch (Exception ignored) {}
+
+        /* Kilka miejsc w różnych powiatach = kilka wiadomości jednego zdarzenia. Pierwsza
+           dzwoni, kolejne tego samego poziomu w 10 min dopisują się bez dźwięku, wyższy
+           poziom i ponowienie dzwonią (Laczenie, po kluczu zdarzenia z serwera).
+           Wiadomości województw klucza nie mają — dzwonią jak dotąd. Dopisanie kończy się
+           WIDOCZNYM cichym powiadomieniem: pilny push bez powiadomienia obniża priorytet
+           następnych (11.10.2026, fcm-obnizony-priorytet). */
+        Laczenie.Wynik laczenie = Alarms.laczenie(this, data.get("klucz_zdarzenia"), level,
+            "1".equals(data.get("ponowienie")), miejsce != null ? miejsce : voivName);
+        if (!laczenie.dzwoni) {
+            Alarms.createChannels(this);
+            if (!stale && MainActivity.isForeground()) {
+                java.util.Map<String, String> cichy = new java.util.HashMap<>(data);
+                cichy.put("_dolacz", "1");
+                BackgroundPlugin.forwardAlarm(cichy);
+            }
+            Alarms.postDolaczone(this, laczenie, level, data.get("headline"), sentAtMs);
+            Alarms.dziennik(this, "dolaczono", powiatowy ? "pow_" + terc : voivName, level, null);
+            return;
+        }
 
         // Audyt B1: przy aplikacji na wierzchu wiadomość była po cichu porzucana, a
         // WebView alarmował tylko o głównym miejscu — alarm dla drugiego miejsca
@@ -106,7 +143,7 @@ public class StraznikFcmService extends FirebaseMessagingService {
         // otwartą aplikację, dostawał potem alarmy z obniżonym priorytetem (80 s).
         if (!stale && MainActivity.isForeground() && BackgroundPlugin.forwardAlarm(data)) {
             Alarms.createChannels(this);
-            Alarms.postShownInApp(this, voiv, level, score, data.get("headline"), sentAtMs);
+            Alarms.postShownInApp(this, voiv, level, score, data.get("headline"), sentAtMs, miejsce);
             Alarms.dziennik(this, "w_aplikacji", voivName, level, null);
             return;
         }
@@ -118,7 +155,7 @@ public class StraznikFcmService extends FirebaseMessagingService {
                 if (!line.trim().isEmpty()) reasons.add(line.trim());
 
         Alarms.createChannels(this);
-        Alarms.postAlarm(this, voiv, level, score, reasons, data.get("headline"), sentAtMs, false);
+        Alarms.postAlarm(this, voiv, level, score, reasons, data.get("headline"), sentAtMs, false, miejsce);
     }
 
     @Override

@@ -399,6 +399,13 @@ def _record_text(it: dict, kind: str) -> None:
         "provinces": [p.get("name") for p in (it.get("provinces") or {}).values()
                       if isinstance(p, dict)],
     })
+    # Lista powiatów z treści — dla alarmów powiatowych (app/powiaty.py). Błąd tutaj
+    # nie może zabrać alertu województwom.
+    try:
+        from .. import powiaty
+        powiaty.zapisz_rso(it)
+    except Exception as exc:                       # noqa: BLE001
+        log.warning("RSO: lista powiatów (id %s): %s", it.get("id"), exc)
 
 
 async def _process_item(it: dict) -> bool:

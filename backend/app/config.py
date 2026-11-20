@@ -350,6 +350,17 @@ RED_GATE_TYPES = ("ballistic", "mig31k", "cruise", "missile", "kab", "shahed", "
 RED_GATE_BEZ_KURSU_TYPES = ("uav", "shahed")
 RED_GATE_BEZ_KURSU_KM = 30.0
 RED_GATE_BEZ_KURSU_MIN_ZGLOSZEN = 2
+# Rakieta (decyzja usera 20.11.2026, „pierwsza linia”). 15 min dolotu przy 800 km/h to
+# ~230 km, więc rakieta bez kursu nad zachodnią Ukrainą otwierała czerwony także w głębi
+# kraju: 20.11 05:54 małopolskie i świętokrzyskie od rakiet ~190 km, bez alertu RCB.
+# Poza Polską i bez kursu na województwo klucz dostają tylko województwa pierwszej linii:
+# odległość do województwa ≤ odległość do granicy PL + margines. Nad Polską albo z kursem
+# na województwo — pełne 15 min jak dotąd. Przeliczenie 2.08–20.11 (56 czerwonych):
+# znikają tylko te 2 (zostaje żółty), żaden inny nie znika ani się nie spóźnia;
+# margines 40 / 60 / 80 km daje to samo, 40 skraca jeden epizod. 50 km odrzucone
+# przez usera (przy 800 km/h to 4 min).
+RED_GATE_RAKIETY_TYPES = ("ballistic", "mig31k", "cruise", "missile", "kab")
+RED_GATE_RAKIETY_MARGINES_KM = 60.0
 # Ponowienie czerwonego przy realnym zbliżeniu (decyzja usera 2.11.2026): ponowienie.py.
 # Wyłącznik bez wydania: STRAZNIK_PONOWIENIE=0 i restart.
 RED_PONOWIENIE_WLACZONE = os.getenv("STRAZNIK_PONOWIENIE", "1").strip() != "0"
@@ -418,7 +429,12 @@ SOURCE_CAPS = {"media": 1.0, "rcb": 4.5,   # 4,5 = alert RCB poziomu 3 („znajd
                # Alarmy obwodowe UA to JEDNA informacja („na zachodniej Ukrainie
                # trwa alarm"), nie kilka niezależnych potwierdzeń — inaczej Wołyń
                # + Lwów + Równe dawały 3,0 pkt i żółty bez żadnego obiektu.
-               "ua_alert": 1.0}
+               # 18.11.2026 (decyzja usera): 1,0 → 0,5. Przy milczącym RCB (od 10.11)
+               # sam alarm na Wołyniu + dron 80–150 km + fala dawały co noc żółty dla
+               # całego lubelskiego. Odtworzenie 7–18.11 prawdziwą fuzją dało 27 → 21
+               # powiadomień, wszystkie czerwone z nalotu 17.11 i żółty przy Alercie
+               # RCB z 9.11 bez zmian. Przy 0 ten żółty by zniknął (RSO 1,5 < 2,0).
+               "ua_alert": 0.5}
 
 # ── Propagacja na resztę kraju ────────────────────────────────────────────────
 # Zdarzenie na wschodzie dotyczy też regionów dalej na zachód (obiekt leci
@@ -552,6 +568,58 @@ RCB_REFERENCE_AUDIT_ENABLED = os.getenv("RCB_REFERENCE_AUDIT_ENABLED", "true").l
 _PL_ASCII = str.maketrans("ąćęłńóśźż", "acelnoszz")
 def voiv_topic(voiv: str) -> str:
     return "voiv_" + voiv.translate(_PL_ASCII)
+
+
+# ── Alarmy powiatowe (etap 2, decyzje usera 18.11.2026) — app/powiaty.py ─────────
+# Serwer liczy poziom każdego z 380 powiatów (PRG GUGiK) tą samą fuzją co województwa
+# i prowadzi dziennik przejść (alert_log_pow). Tor województw (voiv_*, Web Push, stare
+# wersje aplikacji) zostaje bez zmian. Wysyłka na tematy powiatów jest DOMYŚLNIE
+# WYŁĄCZONA: bez STRAZNIK_POWIATY_WYSYLKA=1 decyzja trafia tylko do dziennika
+# („dziennik”) i nic nie wychodzi do ludzi. STRAZNIK_POWIATY=0 wyłącza samo liczenie.
+POWIATY_LICZENIE = os.getenv("STRAZNIK_POWIATY", "1").strip() != "0"
+POWIATY_WYSYLKA = os.getenv("STRAZNIK_POWIATY_WYSYLKA", "0").strip() == "1"
+# Etap 3 (aplikacje, 19.11.2026). Aplikacja od tej wersji zna oba tory, a słucha tego,
+# który wskaże serwer polem `tematy` w /api/state (tematy_aplikacji()): „woj” — tematy
+# voiv_* jak dotąd, „pow” — tematy pow_<TERYT> powiatów zapisanych miejsc. Przełącza się
+# najpierw zapisem do nowych tematów, a wypisuje ze starych dopiero po potwierdzeniu.
+# „pow” idzie RAZEM z włączoną wysyłką powiatów — nie da się ustawić jednego bez drugiego.
+#
+# STRAZNIK_POWIATY_MOST=1 — wyłącznik awaryjny po przejściu: wraca na punktację
+# województw. `tematy` = „woj” (otwarte aplikacje przepisują się z powrotem), wysyłka
+# powiatowej punktacji milknie, a każdy alarm województwa idzie DODATKOWO na tematy
+# wszystkich jego powiatów (notify.send_fcm_most) — telefon, który jeszcze nie zdążył
+# wrócić na voiv_* (zamknięta aplikacja, iPhone), nie zostaje bez alarmów.
+POWIATY_MOST = os.getenv("STRAZNIK_POWIATY_MOST", "0").strip() == "1"
+
+
+def powiaty_wysylka_wlaczona() -> bool:
+    """Czy alarmy z PUNKTACJI powiatów idą do ludzi (most je zastępuje)."""
+    return POWIATY_WYSYLKA and not POWIATY_MOST
+
+
+def tematy_aplikacji() -> str:
+    """Tor tematów FCM dla aplikacji (pole `tematy` w /api/state): „pow” albo „woj”."""
+    return "pow" if powiaty_wysylka_wlaczona() else "woj"
+# Kalibracja 18.11.2026 (23.10–18.11, 380 powiatów co 5 min): próg 2,5 dał żółty przed
+# każdym z 7 realnych zbliżeń (obiekt < 30 km od powiatu), Lublin 5 żółtych zamiast 37
+# w 26 dni. Czerwony jak w województwach: 4,0 i klucz (fusion.red_key).
+POWIATY_PROG_ZOLTY = 2.5
+POWIATY_PROG_CZERWONY = 4.0
+# Sygnały bez własnej geometrii (media, ADS-B, PAŻP, sąsiedzi…) przechodzą z województwa
+# na jego powiaty z mnożnikiem głębokości: km od granicy UA/BY/RU → mnożnik.
+POWIATY_DEPTH_CURVE = ((0, 1.0), (40, 0.8), (80, 0.6), (130, 0.4), (200, 0.25), (300, 0.15))
+# Lista powiatów z gov.pl dotyczy alertu, gdy pojawiła się najwcześniej tyle minut przed nim.
+POWIATY_GOV_PRZED_MIN = 10
+# Przeliczenie po nowym sygnale nie częściej niż co tyle sekund (przy nalocie NEPTUN
+# melduje co kilka sekund), a bez sygnałów i tak co POWIATY_CO_S — wynik gaśnie z wiekiem.
+POWIATY_ODSTEP_S = 5
+POWIATY_CO_S = 30
+POWIATY_TOPIC_PREFIX = "pow_"
+
+
+def pow_topic(terc: str) -> str:
+    """Temat FCM powiatu: pow_<TERYT 4 cyfry>, np. pow_0663 (Lublin)."""
+    return POWIATY_TOPIC_PREFIX + terc
 
 # ── Województwa ───────────────────────────────────────────────────────────────
 VOIVODESHIPS = [

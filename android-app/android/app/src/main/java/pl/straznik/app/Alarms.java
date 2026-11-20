@@ -556,11 +556,17 @@ class Alarms {
      */
     static void postShownInApp(Context ctx, int voiv, String level, double score,
                                String headline, long sentAtMs) {
+        postShownInApp(ctx, voiv, level, score, headline, sentAtMs, null);
+    }
+
+    /** @param miejsce „Lublin, woj. lubelskie” dla alarmu powiatowego; null — województwo */
+    static void postShownInApp(Context ctx, int voiv, String level, double score,
+                               String headline, long sentAtMs, String miejsce) {
         if (voiv < 0 || voiv >= VOIVS.length) return;
         NotificationManager nm = (NotificationManager) ctx.getSystemService(Context.NOTIFICATION_SERVICE);
         if (nm == null) return;
         String title = ("high".equals(level) ? "WYSOKI PRIORYTET" : "PODWYŻSZONA UWAGA")
-            + ": woj. " + VOIVS[voiv] + " (" + score + " pkt)";
+            + ": " + gdzie(voiv, miejsce) + " (" + score + " pkt)";
         String text = (headline != null && !headline.isEmpty() ? headline + "\n" : "")
             + "Pokazane w otwartej aplikacji.";
         Notification.Builder b = builder(ctx, CH_QUIET)
@@ -716,13 +722,80 @@ class Alarms {
         postAlarm(ctx, voiv, level, score, reasons, null, 0L, false);
     }
 
+    static void postAlarm(Context ctx, int voiv, String level, double score, List<String> reasons,
+                          String headline, long sentAtMs, boolean test) {
+        postAlarm(ctx, voiv, level, score, reasons, headline, sentAtMs, test, null);
+    }
+
+    /** „woj. lubelskie” albo, dla alarmu powiatowego, „Lublin, woj. lubelskie” z serwera. */
+    static String gdzie(int voiv, String miejsce) {
+        if (miejsce != null && !miejsce.trim().isEmpty()) return miejsce.trim();
+        return "woj. " + (voiv >= 0 && voiv < VOIVS.length ? VOIVS[voiv] : "");
+    }
+
+    /* ── Łączenie alarmów z kilku powiatów (etap 3, 19.11.2026) — patrz Laczenie ── */
+    static final String KEY_LACZENIE = "laczenie_alarmow";
+
+    /** Decyzja i zapis stanu łączenia (commit: kolejna wiadomość może przyjść za chwilę
+     * w nowym procesie). Błąd odczytu/zapisu — dzwonimy (lepiej za dużo niż cisza). */
+    static synchronized Laczenie.Wynik laczenie(Context ctx, String klucz, String level,
+                                                boolean ponowienie, String miejsce) {
+        long teraz = System.currentTimeMillis();
+        try {
+            SharedPreferences p = prefs(ctx);
+            java.util.Map<String, Laczenie.Wpis> stan = Laczenie.wczytaj(p.getString(KEY_LACZENIE, ""));
+            Laczenie.Wynik w = Laczenie.decyzja(stan, klucz, level, ponowienie, false, miejsce, teraz);
+            p.edit().putString(KEY_LACZENIE, Laczenie.zapisz(stan)).commit();
+            return w;
+        } catch (Exception e) {
+            Log.w(TAG, "łączenie alarmów", e);
+            return new Laczenie.Wynik(true, null, teraz, new java.util.ArrayList<String>());
+        }
+    }
+
+    /** Identyfikator cichego powiadomienia „dopisane” — jeden na zdarzenie i poziom,
+     * poza zakresem alarmów województw (2000+) i kodów żądań (3000–5015). */
+    static int notifIdDolaczone(String kluczGlowny) {
+        return 7000 + ((kluczGlowny == null ? 0 : kluczGlowny.hashCode()) & 0x3ff);
+    }
+
+    /**
+     * Dopisanie bez dźwięku: kanał CH_QUIET (bez dźwięku i wibracji), osobny identyfikator —
+     * NIE zastępuje dzwoniącego alarmu (czerwony z pełnym ekranem i syreną zostaje
+     * nietknięty). Jedno powiadomienie na zdarzenie, z listą miejsc od dzwonka.
+     */
+    static void postDolaczone(Context ctx, Laczenie.Wynik w, String level, String headline, long sentAtMs) {
+        NotificationManager nm = (NotificationManager) ctx.getSystemService(Context.NOTIFICATION_SERVICE);
+        if (nm == null) return;
+        boolean high = "high".equals(level);
+        StringBuilder gdzie = new StringBuilder();
+        // pierwsze miejsce na liście to to, które zadzwoniło — „także” wymienia pozostałe
+        for (int i = w.miejsca.size() > 1 ? 1 : 0; i < w.miejsca.size(); i++)
+            gdzie.append(gdzie.length() > 0 ? "; " : "").append(w.miejsca.get(i));
+        String title = (high ? "WYSOKI PRIORYTET" : "PODWYŻSZONA UWAGA") + " — także: " + gdzie;
+        String text = "Ten sam alarm co o " + godzina(w.dzwonekAt) + " — dopisane bez dźwięku."
+            + (headline != null && !headline.isEmpty() ? "\n" + headline : "");
+        Notification.Builder b = builder(ctx, CH_QUIET)
+            .setContentTitle(title)
+            .setContentText(text)
+            .setStyle(new Notification.BigTextStyle().bigText(text))
+            .setSmallIcon(android.R.drawable.ic_dialog_alert)
+            .setContentIntent(openApp(ctx))
+            .setOnlyAlertOnce(true)
+            .setAutoCancel(true);
+        if (sentAtMs > 0) b.setWhen(sentAtMs).setShowWhen(true);
+        try { nm.notify(notifIdDolaczone(w.kluczGlowny), b.build()); }
+        catch (Exception e) { Log.w(TAG, "dopisane powiadomienie", e); }
+    }
+
     /**
      * @param headline  pierwsza linia „co i gdzie" z serwera (może być null)
      * @param sentAtMs  czas wysyłki z serwera; 0 = nieznany
      * @param test      alarm testowy z ustawień (bez utrwalania, z dopiskiem TEST)
      */
+    /** @param miejsce „Lublin, woj. lubelskie” dla alarmu powiatowego (etap 3); null — województwo */
     static void postAlarm(Context ctx, int voiv, String level, double score, List<String> reasons,
-                          String headline, long sentAtMs, boolean test) {
+                          String headline, long sentAtMs, boolean test, String miejsce) {
         String voivName = VOIVS[voiv];
         boolean high = "high".equals(level);
         long ageMs = sentAtMs > 0 ? System.currentTimeMillis() - sentAtMs : 0;
@@ -731,7 +804,7 @@ class Alarms {
 
         String title = (test ? "TEST — " : "")
             + (high ? "WYSOKI PRIORYTET" : "PODWYŻSZONA UWAGA")
-            + ": woj. " + voivName + " (" + score + " pkt)";
+            + ": " + gdzie(voiv, miejsce) + " (" + score + " pkt)";
         if (stale) title = title + " — spóźnione o " + (ageMs / 60000) + " min";
         // Godzina WYSYŁKI, nie dotarcia: przy spóźnionym pushu to dwie różne rzeczy,
         // a liczy się ta, o której serwer stwierdził zagrożenie (prośba użytkownika
@@ -784,6 +857,7 @@ class Alarms {
                 .putExtra(AlarmActivity.EXTRA_BODY, reasonsOnly(reasons))
                 .putExtra(AlarmActivity.EXTRA_TITLE, headline)
                 .putExtra(AlarmActivity.EXTRA_VOIV, voivName)
+                .putExtra(AlarmActivity.EXTRA_MIEJSCE, miejsce)
                 .putExtra(AlarmActivity.EXTRA_VOIV_INDEX, voiv)
                 .putExtra(AlarmActivity.EXTRA_TEST, test)
                 .putExtra(AlarmActivity.EXTRA_SCORE, score)

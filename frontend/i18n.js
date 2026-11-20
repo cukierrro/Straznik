@@ -902,8 +902,8 @@
     "Watch alerts for this province": "Стежити за тривогами для цього воєводства",
     "How it works: when the app is closed, in the background or the screen is locked, you receive a province-level alert. After it arrives, open Strażnik and keep it in the foreground — for a saved exact location the app locally shows distance and, when heading and speed allow it, an estimated arrival time.":
       "Як це працює: коли застосунок закритий, у фоні або екран заблокований, ви отримуєте тривогу рівня воєводства. Після цього відкрийте Strażnika й тримайте його на передньому плані — для збереженого точного місця застосунок локально покаже відстань, а коли курс і швидкість це дозволяють, і орієнтовний час підльоту.",
-    "Several places in the same province create one notification subscription. Province names are shared with the notification provider; place names and coordinates are not sent to the VPS or notifications.":
-      "Кілька місць в одному воєводстві створюють одну підписку на сповіщення. Назви воєводств передаються постачальникові сповіщень; назви місць і координати не надсилаються ні на сервер, ні у сповіщення.",
+    "Several places in the same province or county create one notification subscription. The notification provider only learns provinces or county numbers; place names and coordinates are not sent to the VPS or notifications. A county chosen by hand stays on this device.":
+      "Кілька місць в одному воєводстві або повіті створюють одну підписку на сповіщення. Постачальник сповіщень знає лише воєводства або номери повітів; назви місць і координати не надсилаються ні на сервер, ні у сповіщення. Повіт, вибраний вручну, залишається на цьому пристрої.",
     "Delete place": "Видалити місце",
     "Cancel changes": "Скасувати зміни",
     "Save on device": "Зберегти на пристрої",
@@ -1258,7 +1258,7 @@
     set("#place-gps", "◎ Read location once"); set("#place-gps-remove", "Remove saved position");
     const alerts=document.querySelector(".place-alerts"); if(alerts?.firstChild)alerts.firstChild.nodeValue="Watch alerts for this province ";
     set("#places-alert-model", "How it works: when the app is closed, in the background or the screen is locked, you receive a province-level alert. After it arrives, open Strażnik and keep it in the foreground — for a saved exact location the app locally shows distance and, when heading and speed allow it, an estimated arrival time.");
-    set("#places-privacy", "Several places in the same province create one notification subscription. Province names are shared with the notification provider; place names and coordinates are not sent to the VPS or notifications.");
+    set("#places-privacy", "Several places in the same province or county create one notification subscription. The notification provider only learns provinces or county numbers; place names and coordinates are not sent to the VPS or notifications. A county chosen by hand stays on this device.");
     set("#place-delete", "Delete place"); set("#place-cancel", "Cancel changes");
     const submit=document.querySelector('#places-form button[type="submit"]'); if(submit)submit.textContent="Save on device";
     document.querySelectorAll("dialog menu button, #src-close, #watch-close, #cam-close").forEach(el => {

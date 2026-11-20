@@ -46,6 +46,8 @@ public class AlarmActivity extends Activity {
     static final String EXTRA_TITLE = "title";
     static final String EXTRA_BODY = "body";
     static final String EXTRA_VOIV = "voiv";
+    /** Etap 3: „Lublin, woj. lubelskie” — alarm powiatowy; bez niego „woj. X” jak dotąd. */
+    static final String EXTRA_MIEJSCE = "miejsce";
     static final String EXTRA_SCORE = "score";
     static final String EXTRA_VOIV_INDEX = "voiv_index";
     static final String EXTRA_TEST = "test";
@@ -233,7 +235,9 @@ public class AlarmActivity extends Activity {
         boolean test = in != null && in.getBooleanExtra(EXTRA_TEST, false);
         box.addView(text(test ? "TEST — WYSOKI PRIORYTET" : "WYSOKI PRIORYTET", 26,
             Color.parseColor("#ff4d5e"), true), lp(dp(4)));
-        box.addView(text(voiv != null ? "woj. " + voiv : "", 22, Color.WHITE, true), lp(dp(2)));
+        String miejsce = in != null ? in.getStringExtra(EXTRA_MIEJSCE) : null;
+        box.addView(text(miejsce != null && !miejsce.isEmpty() ? miejsce : (voiv != null ? "woj. " + voiv : ""),
+            22, Color.WHITE, true), lp(dp(2)));
         String czas = Alarms.godzina(in != null ? in.getLongExtra(EXTRA_SENT_AT, 0L) : 0L);
         String podpis = (score > 0 ? score + " pkt" : "")
             + (czas.isEmpty() ? "" : (score > 0 ? " · " : "") + "godz. " + czas);

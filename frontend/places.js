@@ -4,6 +4,10 @@
   const KEY = 'straznik_places_v1';
   const REGIONS = ['dolnośląskie','kujawsko-pomorskie','lubelskie','lubuskie','łódzkie','małopolskie','mazowieckie','opolskie','podkarpackie','podlaskie','pomorskie','śląskie','świętokrzyskie','warmińsko-mazurskie','wielkopolskie','zachodniopomorskie'];
   const PRECISIONS = new Set(['region','gps']);
+  /* Etap 3 alarmów powiatowych (19/20.11.2026): powiat wybrany RĘCZNIE dla miejsca bez
+     współrzędnych — sam numer TERYT, zostaje na urządzeniu. Musi należeć do województwa
+     miejsca (dwie pierwsze cyfry), inaczej przepada. Brak pola = dawny kształt miejsca. */
+  const REGION_KOD = {'dolnośląskie':'02','kujawsko-pomorskie':'04','lubelskie':'06','lubuskie':'08','łódzkie':'10','małopolskie':'12','mazowieckie':'14','opolskie':'16','podkarpackie':'18','podlaskie':'20','pomorskie':'22','śląskie':'24','świętokrzyskie':'26','warmińsko-mazurskie':'28','wielkopolskie':'30','zachodniopomorskie':'32'};
   const trim = (value, max) => String(value || '').trim().slice(0, max);
   const validCoord = (lat,lon) => lat !== null && lat !== undefined && lon !== null && lon !== undefined
     && Number.isFinite(+lat) && Number.isFinite(+lon) && +lat >= -90 && +lat <= 90 && +lon >= -180 && +lon <= 180;
@@ -12,8 +16,10 @@
     const region = REGIONS.includes(place?.region) ? place.region : '';
     const gps = place?.gps && validCoord(place.gps.lat,place.gps.lon)
       ? {lat:+place.gps.lat, lon:+place.gps.lon, accuracy:Math.max(0,+place.gps.accuracy||0), capturedAt:trim(place.gps.capturedAt,40)} : null;
+    const powiat = typeof place?.powiat === 'string' && /^\d{4}$/.test(place.powiat)
+      && REGION_KOD[region] === place.powiat.slice(0,2) ? place.powiat : '';
     return {id:trim(place?.id,64) || String(Date.now()), name:trim(place?.name,40), precision, region,
-      gps:precision==='gps'?gps:null, alerts:Boolean(place?.alerts)};
+      gps:precision==='gps'?gps:null, alerts:Boolean(place?.alerts), ...(powiat ? {powiat} : {})};
   }
   function load(storage) {
     try {
@@ -59,7 +65,7 @@
     if(!Number.isFinite(+speedKmh)||+speedKmh<=0)return {distanceKm:distance,etaMin:null,reason:'speed',courseDelta:delta};
     return {distanceKm:distance,etaMin:Math.max(0,Math.floor(distance/(+speedKmh)*60-bufferMin)),reason:null,courseDelta:delta};
   }
-  const api={KEY,REGIONS,clean,load,migrate,save,observedVoivodeships,primaryVoivodeship,distanceKm,bearingDeg,courseDelta,exactPoint};
+  const api={KEY,REGIONS,REGION_KOD,clean,load,migrate,save,observedVoivodeships,primaryVoivodeship,distanceKm,bearingDeg,courseDelta,exactPoint};
   if(typeof module!=='undefined'&&module.exports) module.exports=api;
   root.StraznikPlaces=api;
 })(globalThis);
