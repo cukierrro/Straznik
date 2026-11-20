@@ -1030,6 +1030,39 @@ def rcb_level_of(s: dict) -> int:
     return 1
 
 
+_dist_pl_cache: dict[tuple, float] = {}
+
+
+def rakieta_pierwsza_linia(s: dict) -> bool:
+    """Czy rakieta może otworzyć klucz czerwonego w regionie sygnału (config.RED_GATE_RAKIETY_*).
+
+    Inne typy i sygnały bez pozycji — tak jak dotąd. Region to województwo albo
+    powiat (app/powiaty.py, „P<TERYT>”): `dist_km` jest zawsze do regionu sygnału.
+    """
+    d = s.get("details") or {}
+    if (d.get("type") or "").lower() not in config.RED_GATE_RAKIETY_TYPES:
+        return True
+    lat, lon, km = d.get("lat"), d.get("lon"), d.get("dist_km")
+    if lat is None or lon is None or km is None:
+        return True
+    from . import geo
+    klucz = (round(lat, 3), round(lon, 3))
+    do_pl = _dist_pl_cache.get(klucz)
+    if do_pl is None:
+        if len(_dist_pl_cache) > 5000:
+            _dist_pl_cache.clear()
+        do_pl = _dist_pl_cache[klucz] = geo.nearest_outline_point(lat, lon)[0]
+    if do_pl <= 0.0:                           # już nad Polską
+        return True
+    h = d.get("heading")
+    if h is not None and d.get("course") == "known":
+        c = geo.celowanie_woj(lat, lon, h, s.get("voivodeship") or "",
+                              config.NEPTUN_KURS_WOJ_PELNE_DEG, config.NEPTUN_KURS_WOJ_ZERO_DEG)
+        if c is not None and c >= 0.5:
+            return True
+    return km <= do_pl + config.RED_GATE_RAKIETY_MARGINES_KM
+
+
 def red_key(signals: list[dict], ref: datetime | None = None) -> dict | None:
     """Czy wolno zapalić czerwony — i dlaczego (decyzja usera 23.09.2026).
 
@@ -1075,6 +1108,9 @@ def red_key(signals: list[dict], ref: datetime | None = None) -> dict | None:
                 and not (d.get("confidence") == "high"
                          and (d.get("source_count") or 0) >= config.RED_GATE_BEZ_KURSU_MIN_ZGLOSZEN)
                 and not (km is not None and km <= config.RED_GATE_BEZ_KURSU_KM)):
+            continue
+        # „Pierwsza linia” dla rakiet (decyzja usera 20.11.2026, config.RED_GATE_RAKIETY_*)
+        if not rakieta_pierwsza_linia(s):
             continue
         if eta is not None and eta <= config.RED_GATE_ETA_MIN:
             return {"powod": "eta", "opis": f"obiekt {int(eta)} min od granicy", "eta_min": eta, "km": km}

@@ -28,6 +28,8 @@ const RED_GATE_ETA_MIN = 15, RED_GATE_KM = 50, RED_GATE_MAX_AGE_MS = 25*60*1000;
 const RED_GATE_AREA_MAX_UNC_KM = 30;   // pozycja rejonowa ±70 km nie otwiera czerwonego (15.10.2026)
 // dron bez kursu (B', 1.11.2026): lustro config.RED_GATE_BEZ_KURSU_*
 const RED_GATE_BEZ_KURSU_TYPES = new Set(["uav", "shahed"]), RED_GATE_BEZ_KURSU_KM = 30, RED_GATE_BEZ_KURSU_MIN_ZGLOSZEN = 2;
+// rakieta „pierwsza linia” (20.11.2026): lustro config.RED_GATE_RAKIETY_*
+const RED_GATE_RAKIETY_TYPES = new Set(["ballistic", "mig31k", "cruise", "missile", "kab"]), RED_GATE_RAKIETY_MARGINES_KM = 60;
 const RCB_DOWNGRADE_FADE_MIN = 10;   // lustro config.RCB_DOWNGRADE_FADE_MIN
 /* Obiekt zgubiony z feedu NEPTUN-a gaśnie szybciej — lustro config.NEPTUN_LOST_*
    i fusion.lost_weight (11.10.2026). Wyjątek: zgubiony bliżej granicy niż 50 km. */
@@ -1139,6 +1141,22 @@ function accumulate(sigs, refT, lost = null, officialsExtra = null) {
 }
 
 /* Lustro fusion.red_key (23.09.2026). */
+/* Lustro fusion.rakieta_pierwsza_linia (decyzja usera 20.11.2026): rakieta poza Polską i bez
+   kursu na województwo otwiera czerwony tylko w pierwszej linii — odległość do województwa
+   ≤ odległość do granicy PL + 60 km. Sygnał bez pozycji (główne województwo obiektu) jak dotąd. */
+function rakietaPierwszaLinia(s) {
+  const d = s.details || {};
+  if (!RED_GATE_RAKIETY_TYPES.has(String(d.type || "").toLowerCase())) return true;
+  if (d.lat == null || d.lon == null || d.dist_km == null) return true;
+  if (PL_OUTLINE.rings.some(r => inRing(d.lat, d.lon, r))) return true;
+  const doPl = nearestOutline(d.lat, d.lon)[0];
+  if (d.heading != null && d.course === "known") {
+    const c = celowanieWoj({ lat: d.lat, lon: d.lon, heading: d.heading }, s.voivodeship);
+    if (c != null && c >= 0.5) return true;
+  }
+  return d.dist_km <= doPl + RED_GATE_RAKIETY_MARGINES_KM;
+}
+
 function redKey(sigs, ref) {
   // Liczy się BIEŻĄCA ocena państwa: po obniżeniu stopnia stary alert dopłaca jeszcze
   // zanikającą nadwyżkę punktów, ale nie trzyma już czerwonego.
@@ -1162,6 +1180,7 @@ function redKey(sigs, ref) {
     if (d.course === "unknown" && RED_GATE_BEZ_KURSU_TYPES.has(String(d.type || "").toLowerCase())
         && !(d.confidence === "high" && (d.source_count || 0) >= RED_GATE_BEZ_KURSU_MIN_ZGLOSZEN)
         && !(d.dist_km != null && d.dist_km <= RED_GATE_BEZ_KURSU_KM)) continue;
+    if (!rakietaPierwszaLinia(s)) continue;   // 20.11.2026, lustro fusion.red_key
     if (d.eta_border_min != null && d.eta_border_min <= RED_GATE_ETA_MIN)
       return { powod: "eta", opis: `obiekt ${Math.round(d.eta_border_min)} min od granicy`, eta_min: d.eta_border_min, km: d.dist_km };
     if (d.dist_km != null && d.dist_km <= RED_GATE_KM)

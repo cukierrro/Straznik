@@ -350,6 +350,17 @@ RED_GATE_TYPES = ("ballistic", "mig31k", "cruise", "missile", "kab", "shahed", "
 RED_GATE_BEZ_KURSU_TYPES = ("uav", "shahed")
 RED_GATE_BEZ_KURSU_KM = 30.0
 RED_GATE_BEZ_KURSU_MIN_ZGLOSZEN = 2
+# Rakieta (decyzja usera 20.11.2026, „pierwsza linia”). 15 min dolotu przy 800 km/h to
+# ~230 km, więc rakieta bez kursu nad zachodnią Ukrainą otwierała czerwony także w głębi
+# kraju: 20.11 05:54 małopolskie i świętokrzyskie od rakiet ~190 km, bez alertu RCB.
+# Poza Polską i bez kursu na województwo klucz dostają tylko województwa pierwszej linii:
+# odległość do województwa ≤ odległość do granicy PL + margines. Nad Polską albo z kursem
+# na województwo — pełne 15 min jak dotąd. Przeliczenie 2.08–20.11 (56 czerwonych):
+# znikają tylko te 2 (zostaje żółty), żaden inny nie znika ani się nie spóźnia;
+# margines 40 / 60 / 80 km daje to samo, 40 skraca jeden epizod. 50 km odrzucone
+# przez usera (przy 800 km/h to 4 min).
+RED_GATE_RAKIETY_TYPES = ("ballistic", "mig31k", "cruise", "missile", "kab")
+RED_GATE_RAKIETY_MARGINES_KM = 60.0
 # Ponowienie czerwonego przy realnym zbliżeniu (decyzja usera 2.11.2026): ponowienie.py.
 # Wyłącznik bez wydania: STRAZNIK_PONOWIENIE=0 i restart.
 RED_PONOWIENIE_WLACZONE = os.getenv("STRAZNIK_PONOWIENIE", "1").strip() != "0"
