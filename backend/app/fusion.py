@@ -1060,6 +1060,16 @@ def rakieta_pierwsza_linia(s: dict) -> bool:
                               config.NEPTUN_KURS_WOJ_PELNE_DEG, config.NEPTUN_KURS_WOJ_ZERO_DEG)
         if c is not None and c >= 0.5:
             return True
+    # Powiat („P<TERYT>”): pierwsza linia jak dla JEGO województwa. Licząc od samego
+    # powiatu, 20.11 Lublin (≈147 km od rakiet spod Lwowa, 57 km od granicy) tracił
+    # czerwony, choć RCB wezwało tam do schronienia, a lubelskie było pierwszą linią.
+    reg = s.get("voivodeship") or ""
+    if reg[:1] == "P" and reg[1:].isdigit():
+        from . import powiaty
+        woj = (powiaty.powiaty().get(reg[1:]) or {}).get("woj")
+        km_woj = geo.dist_to_voiv_km(lat, lon, woj) if woj else None
+        if km_woj is not None:
+            return km_woj <= do_pl + config.RED_GATE_RAKIETY_MARGINES_KM
     return km <= do_pl + config.RED_GATE_RAKIETY_MARGINES_KM
 
 

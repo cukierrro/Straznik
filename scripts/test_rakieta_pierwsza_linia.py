@@ -80,6 +80,10 @@ ok(fusion.red_key([rakieta("małopolskie", 192.5, 11, typ="ballistic")], REF) is
 print("\n4. Powiat (region „P<TERYT>”): dist_km do powiatu, ta sama reguła")
 ok(fusion.red_key([rakieta("P1863", 60.0, 1)], REF) is not None, "powiat przy granicy (Przemyśl ~60 km) — klucz")
 ok(fusion.red_key([rakieta("P1261", 240.0, 14)], REF) is None, "Kraków 240 km — bez klucza")
+ok(fusion.red_key([rakieta("P0663", 147.0, 8)], REF) is not None,
+   "Lublin 147 km (lubelskie = pierwsza linia) — klucz jak województwo (20.11: RCB „znajdź bezpieczne miejsce”)")
+ok(fusion.red_key([rakieta("P1863", 140.0, 8)], REF) is not None, "Rzeszów — klucz (podkarpackie = pierwsza linia)")
+ok(fusion.red_key([rakieta("P1263", 200.0, 12)], REF) is None, "Tarnów (małopolskie, nie pierwsza linia) — bez klucza")
 
 if bledy:
     print(f"\nBLEDY: {len(bledy)}")
