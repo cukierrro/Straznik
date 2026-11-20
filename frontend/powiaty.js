@@ -11,8 +11,9 @@
    z nieuproszczonych granic.
 
    Miejsce BEZ dokładnej lokalizacji (zakres „Województwo”, miejsce przeniesione ze starszej
-   wersji, pozycja zbyt przybliżona) nie dostaje żadnego powiatu — powiatu nie zgadujemy
-   i nie podpinamy całego województwa (decyzja usera 19.11.2026). Dopóki choć jedno miejsce
+   wersji, pozycja zbyt przybliżona) dostaje powiat WYBRANY RĘCZNIE w „Moich miejscach”
+   (20.11.2026); bez wyboru — żadnego. Powiatu nie zgadujemy i nie podpinamy całego
+   województwa (decyzja usera 19.11.2026). Dopóki choć jedno miejsce
    z alarmami nie ma powiatu, telefon zostaje na tematach WOJEWÓDZTW (powiatyMiejsc zwraca
    pustą listę, warstwa natywna przy pustej liście nie przechodzi na powiaty). */
 (function (root) {
@@ -96,11 +97,36 @@
   function powiatMiejsca(dane, pl) {
     dane = przygotuj(dane);
     if (!dane || !pl) return { powiaty: [], powod: "bez_granic" };
-    if (pl.precision !== 'gps' || !pl.gps) return { powiaty: [], powod: 'bez_lokalizacji' };
+    // Powiat wybrany ręcznie (decyzja usera 20.11.2026, opcja a): liczy się tylko wtedy,
+    // gdy miejsce nie ma użytecznych współrzędnych, i tylko w województwie miejsca.
+    const reczny = typeof pl.powiat === 'string' && dane.pow[pl.powiat] && dane.pow[pl.powiat].w === pl.region
+      ? { powiaty: [pl.powiat], zrodlo: 'reczny' } : null;
+    if (pl.precision !== 'gps' || !pl.gps) return reczny || { powiaty: [], powod: 'bez_lokalizacji' };
     const dokl = +pl.gps.accuracy || 0;
-    if (dokl > DOKLADNOSC_MAX_M) return { powiaty: [], powod: 'przyblizona' };
+    if (dokl > DOKLADNOSC_MAX_M) return reczny || { powiaty: [], powod: 'przyblizona' };
+    // Dokładna lokalizacja wypełnia powiat sama — przy granicy dwa, jak dotąd.
     const z = znajdz(dane, pl.gps.lat, pl.gps.lon, dokl).powiaty;
-    return z.length ? { powiaty: z } : { powiaty: [], powod: 'poza_polska' };
+    return z.length ? { powiaty: z, zrodlo: 'gps' } : (reczny || { powiaty: [], powod: 'poza_polska' });
+  }
+
+  /* Lista do wyboru w „Moich miejscach”: powiaty województwa z PRG, miasto na prawach
+     powiatu wyraźnie oznaczone („Lublin (miasto)” obok „powiat lubelski”). Nazwy własne
+     zostają polskie (jak na mapie); tłumaczymy „powiat” i „miasto”. Kolejność po nazwie
+     własnej, więc miasto stoi przy powiecie ziemskim o podobnej nazwie. */
+  function listaPowiatow(dane, region, jezyk = 'pl') {
+    dane = przygotuj(dane);
+    if (!dane) return [];
+    const out = [];
+    for (const [terc, p] of Object.entries(dane.pow)) {
+      if (p.w !== region) continue;
+      const k = nazwaKrotka(dane, terc);
+      const miasto = /^[A-ZĄĆĘŁŃÓŚŹŻ]/.test(k);
+      const etykieta = miasto
+        ? `${k} (${jezyk === 'en' ? 'city' : jezyk === 'uk' ? 'місто' : 'miasto'})`
+        : (jezyk === 'en' ? `${k.charAt(0).toUpperCase()}${k.slice(1)} County` : jezyk === 'uk' ? `повіт ${k}` : `powiat ${k}`);
+      out.push({ terc, etykieta, miasto, klucz: k.toLocaleLowerCase('pl') });
+    }
+    return out.sort((a, b) => a.klucz.localeCompare(b.klucz, 'pl') || (a.miasto ? 1 : -1));
   }
 
   /* Plan tematów: powiaty miejsc z alarmami i miejsca, którym powiatu przypisać się nie da. */
@@ -110,7 +136,7 @@
       if (!pl || !pl.alerts) continue;
       const w = powiatMiejsca(dane, pl);
       if (w.powiaty.length) w.powiaty.forEach(t => powiaty.add(t));
-      else bezPowiatu.push({ name: pl.name, region: pl.region, powod: w.powod });
+      else bezPowiatu.push({ id: pl.id, name: pl.name, region: pl.region, powod: w.powod });
     }
     return { powiaty: [...powiaty].sort(), bezPowiatu };
   }
@@ -143,7 +169,7 @@
     return /^[A-ZĄĆĘŁŃÓŚŹŻ]/.test(k) ? k : 'powiat ' + k;
   }
 
-  const api = { przygotuj, znajdz, powiatMiejsca, planPowiatow, powiatyMiejsc, opisMiejsca, nazwa, nazwaKrotka, DOKLADNOSC_MAX_M };
+  const api = { przygotuj, znajdz, powiatMiejsca, listaPowiatow, planPowiatow, powiatyMiejsc, opisMiejsca, nazwa, nazwaKrotka, DOKLADNOSC_MAX_M };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.StraznikPowiaty = api;
 })(globalThis);
