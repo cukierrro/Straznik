@@ -1497,6 +1497,7 @@ function scoreThreat(t, distKm, courseFactorVal = 1) {
 
 /* Ostatnia pozycja tracka — kurs wyliczany z ruchu, gdy NEPTUN go nie podaje. */
 const lastPos = new Map();
+const lastEst = new Map();   // ostatni kurs z ruchu: [kurs, chwila] (lustro neptun._last_est)
 /* Ślad ze znacznikami czasu — lustro TRAIL_* z backendu (collectors/neptun.py).
    Do 04.10.2026 tryb awaryjny pamiętał tylko OSTATNIĄ pozycję, bez czasu, więc
    nie potrafił policzyć prędkości z ruchu i dla drona odrzutowego brał płaskie
@@ -1532,12 +1533,22 @@ function measuredSpeedKmh(t) {
    kursowi domniemanemu (28.10.2026). */
 const pozycjaWstawiona = (t) => t?.destination === true || t?.areaOnly === true
   || (t?.straznik_position || positionInfo(t)).reason === "source_approx";
+/* Lustro neptun.prog_ruchu_km (20.11.2026): przesunięcie mniejsze niż niepewność meldunku
+   to szum pozycji, nie ruch. Kotwica (lastPos) przesuwa się dopiero po takim ruchu. */
+const progRuchuKm = (t) => Math.max(2, Number(t?.uncertaintyKm) || 0);
 function movementHeading(t) {
   const prev = lastPos.get(t.id);
-  if (prev && !pozycjaWstawiona(t) && haversine(prev[0], prev[1], t.lat, t.lon) >= 2) {
+  if (prev && !pozycjaWstawiona(t) && haversine(prev[0], prev[1], t.lat, t.lon) >= progRuchuKm(t)) {
     const est = bearing(prev[0], prev[1], t.lat, t.lon);
+    lastEst.set(t.id, [est, Date.now()]);
     t.heading_movement = Math.round(est * 10) / 10;
     return est;
+  }
+  // lustro neptun._EST_KEEP_S: drobne kroki po kotwicy nie kasują kursu od razu (10 min)
+  const kept = lastEst.get(t.id);
+  if (kept && Date.now() - kept[1] <= 600000) {
+    t.heading_movement = Math.round(kept[0] * 10) / 10;
+    return kept[0];
   }
   return null;
 }
@@ -1627,7 +1638,10 @@ function neptunEval(t) {
   t.heading_source = headingSourceOf(t);
   if (isJet(t)) t.straznik_jet = true;
   recordTrail(t);
-  if (t.id != null && !pozycjaWstawiona(t)) lastPos.set(t.id, [t.lat, t.lon]);
+  if (t.id != null && !pozycjaWstawiona(t)) {
+    const kotw = lastPos.get(t.id);
+    if (!kotw || haversine(kotw[0], kotw[1], t.lat, t.lon) >= progRuchuKm(t)) lastPos.set(t.id, [t.lat, t.lon]);
+  }
   const a = t.pl_assessment, ty = (t.type||"").toLowerCase();
   if (a.toward_pl && !(t.heading_source === "presumptive" && a.dist_km > PRESUMPTIVE_MAX_KM)) {
     let points = scoreThreat(t, a.dist_km, a.course_factor);

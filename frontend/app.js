@@ -2815,7 +2815,8 @@ function measuredHeading(t) {
   if (Date.now() - b.ms > 20 * 60000) return null;       // stary ślad to nie kurs
   for (let i = pts.length - 2; i >= 0; i--) {
     const a = pts[i];
-    if (kmBetween(a, b) >= 2) return Places.bearingDeg(a.lat, a.lon, b.lat, b.lon);
+    // 20.11.2026 (lustro neptun.prog_ruchu_km): przesunięcie < niepewność to szum
+    if (kmBetween(a, b) >= Math.max(2, Number(t.uncertaintyKm) || 0)) return Places.bearingDeg(a.lat, a.lon, b.lat, b.lon);
   }
   return null;
 }

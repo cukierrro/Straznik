@@ -277,6 +277,22 @@ async def _end_loop():
 # Ostatnia znana pozycja tracka — do wyliczenia kursu, gdy NEPTUN go nie podaje.
 _last_pos: dict[str, tuple[float, float]] = {}
 _MIN_MOVE_KM = 2.0   # mniejsze przesunięcia to szum pozycji (±km niepewności)
+
+
+def prog_ruchu_km(t: dict) -> float:
+    """Od jakiego przesunięcia kotwicy liczymy kurs z ruchu (decyzja usera 20.11.2026).
+
+    Przesunięcie mniejsze niż niepewność meldunku to szum pozycji. 20.11 rakieta
+    pod Lwowem przez godzinę skakała o 2,6–3,4 km przy ±4 km i co kilka minut
+    dostawała „kurs z ruchu na Polskę” (pełne punkty, czas dolotu 0–1 min).
+    Przeliczenie 21.10–20.11 (migawki): 0 zmian powiadomień. Kotwica przesuwa się
+    dopiero po takim ruchu, więc lecący obiekt i tak dostaje kurs po kilku minutach.
+    """
+    try:
+        niep = float(t.get("uncertaintyKm") or 0)
+    except (TypeError, ValueError):
+        niep = 0.0
+    return max(_MIN_MOVE_KM, niep)
 # ostatni kurs z ruchu: kolejne małe kroki (< 2 km) nie kasują go od razu
 _last_est: dict[str, tuple[float, float]] = {}
 _EST_KEEP_S = 600
@@ -307,7 +323,7 @@ def _movement_heading(t: dict) -> float | None:
     tid, lat, lon = t.get("id"), t.get("lat"), t.get("lon")
     prev = _last_pos.get(tid)
     if prev and not _pozycja_wstawiona(t) \
-            and geo.haversine_km(prev[0], prev[1], lat, lon) >= _MIN_MOVE_KM:
+            and geo.haversine_km(prev[0], prev[1], lat, lon) >= prog_ruchu_km(t):
         est = geo.bearing_deg(prev[0], prev[1], lat, lon)
         _last_est[tid] = (est, time.time())
         t["heading_movement"] = round(est, 1)
@@ -484,7 +500,7 @@ def _evaluate(t: dict) -> dict:
         prev = _last_pos.get(tid)
         if _pozycja_wstawiona(t):
             pass        # kotwica zostaje na ostatniej zaobserwowanej pozycji
-        elif prev is None or geo.haversine_km(prev[0], prev[1], lat, lon) >= _MIN_MOVE_KM:
+        elif prev is None or geo.haversine_km(prev[0], prev[1], lat, lon) >= prog_ruchu_km(t):
             _last_pos[tid] = (lat, lon)
         if not _is_approx_position(t):
             now = time.time()
