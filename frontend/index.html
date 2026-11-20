@@ -1273,10 +1273,14 @@
     <label>Nazwa miejsca<input id="place-name" maxlength="40" autocomplete="off" placeholder="np. Dom"></label>
     <label>Zakres miejsca<select id="place-precision"><option value="region">Województwo</option><option value="gps">Województwo + jednorazowa lokalizacja</option></select></label>
     <label>Województwo<select id="place-region"></select></label>
+    <!-- Etap 3: powiat miejsca bez współrzędnych. W <div>, NIE jako etykieta prosto w formularzu:
+         i18n.js tłumaczy „form > label” po kolejności i nowa etykieta przesunęłaby napisy.
+         Napisy ustawia app.js (renderPlacePowiat) w trzech językach. -->
+    <div id="place-powiat-row" hidden><label id="place-powiat-l"><span id="place-powiat-t">Powiat</span><select id="place-powiat"></select></label><div id="place-powiat-info" class="fineprint"></div></div>
     <div id="place-gps-row"><button type="button" id="place-gps" class="chip">◎ Pobierz pozycję jeden raz</button><div id="place-gps-status" class="fineprint">Lokalizacja jest wyłączona.</div><button type="button" id="place-gps-remove" class="text-button">Usuń zapisaną pozycję</button></div>
     <label class="place-alerts">Obserwuj alerty dla tego województwa <input id="place-alerts" type="checkbox"></label>
     <p class="places-notice" id="places-alert-model"><b>Jak to działa:</b> przy zamkniętej aplikacji, w tle lub zablokowanym ekranie otrzymasz alert dla województwa. Po jego otrzymaniu otwórz Strażnika i pozostaw na pierwszym planie — dla zapisanej dokładnej lokalizacji aplikacja lokalnie pokaże odległość i, jeśli kurs oraz prędkość na to pozwalają, orientacyjny czas dolotu.</p>
-    <p class="fineprint" id="places-privacy">Kilka miejsc w tym samym województwie oznacza jedną subskrypcję powiadomień. Województwa są przekazywane dostawcy powiadomień; nazwy miejsc i współrzędne nie są wysyłane na VPS ani do powiadomień.</p>
+    <p class="fineprint" id="places-privacy">Kilka miejsc w tym samym województwie albo powiecie oznacza jedną subskrypcję powiadomień. Dostawca powiadomień zna tylko województwa albo numery powiatów; nazwy miejsc i współrzędne nie są wysyłane na VPS ani do powiadomień. Powiat wybrany ręcznie zostaje na tym urządzeniu.</p>
     <div id="place-feedback" class="fineprint" role="status"></div>
     <div class="places-actions"><button type="button" id="place-delete" class="chip danger">Usuń miejsce</button><span></span><button type="button" id="place-cancel" class="chip">Anuluj zmiany</button><button type="submit" class="chip primary">Zapisz na urządzeniu</button></div>
   </form>
@@ -1287,16 +1291,16 @@
      Cloudflare, więc po każdym wydaniu wystarczy podbić ?v= i przeglądarki
      dostają nowe app.js/engine.js OD RAZU, bez ręcznego czyszczenia cache CF.
      Podbijaj ?v= razem z versionName w build.gradle. -->
-<script src="i18n.js?v=1.8.06c"></script>
+<script src="i18n.js?v=1.8.11pe"></script>
 <!-- kontur Polski dla engine.js (audyt A2b, scripts/build_pl_outline.py) -->
 <script src="pl-outline.js?v=1.7.82"></script>
 <script src="voiv-outline.js?v=1.7.97"></script>
 <script src="engine.js?v=1.8.09c"></script>
 <script src="aircraft-photo-catalog.js?v=1.7.19"></script>
 <script src="aircraft-photos.js?v=1.7.79"></script>
-<script src="places.js?v=1.7.19-4"></script>
+<script src="places.js?v=1.8.11pe"></script>
 <!-- powiat zapisanego miejsca liczony na telefonie (etap 3 alarmów powiatowych) -->
-<script src="powiaty.js?v=1.8.11pd"></script>
+<script src="powiaty.js?v=1.8.11pe"></script>
 
 <!-- Miejsce na komunikaty czytane na głos. Czytnik ekranu ogłasza każdą zmianę
      treści tych dwóch elementów, choć na ekranie nie widać ich wcale.
@@ -1306,7 +1310,7 @@
 <div id="a11y-alert" class="sr-only" role="status" aria-live="assertive" aria-atomic="true"></div>
 <div id="a11y-info" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
 
-<script src="app.js?v=1.8.11pd"></script>
+<script src="app.js?v=1.8.11pe"></script>
 <script src="instrukcja.js?v=1.8.04a"></script>
 </body>
 </html>

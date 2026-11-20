@@ -826,10 +826,21 @@ function liniaBezPowiatu(lang = UI.lang) {
   if (!brak.length) return "";
   const T = (pl, en, uk) => lang === "pl" ? pl : lang === "uk" ? uk : en;
   const nazwy = brak.map(m => esc(m.name)).join(", ");
-  return T(`Alarmy dla powiatów czekają na dokładną lokalizację miejsc: ${nazwy}. Do tego czasu telefon dostaje alarmy dla województw. Lokalizację dodaje się w Moich miejscach: „Województwo + jednorazowa lokalizacja”.`,
-    `County alerts are waiting for a precise location of: ${nazwy}. Until then this phone gets province alerts. Add the location in My places: “Province + one-time location”.`,
-    `Тривоги для повітів чекають на точне місцеперебування місць: ${nazwy}. Доти телефон отримує тривоги для воєводств. Місцеперебування додається в Моїх місцях: «Воєводство + одноразове місцеперебування».`);
+  const przycisk = `<button type="button" class="chip" data-akcja="wybierz-powiat" data-miejsce="${esc(brak[0].id || "")}">`
+    + T("Wybierz powiat", "Choose a county", "Вибрати повіт") + "</button>";
+  return T(`Alarmy dla powiatów czekają na powiat miejsc: ${nazwy}. Do tego czasu telefon dostaje alarmy dla województw. Powiat wybiera się w Moich miejscach (albo wystarczy jednorazowa lokalizacja).`,
+    `County alerts are waiting for the county of: ${nazwy}. Until then this phone gets province alerts. The county is chosen in My places (a one-time location also works).`,
+    `Тривоги для повітів чекають на повіт місць: ${nazwy}. Доти телефон отримує тривоги для воєводств. Повіт вибирається в Моїх місцях (або достатньо одноразового місцеперебування).`) + " " + przycisk;
 }
+/* „Wybierz powiat” z wiersza w Ustawieniach: Moje miejsca na pierwszym miejscu bez powiatu. */
+document.addEventListener("click", e => {
+  const b = e.target?.closest?.('[data-akcja="wybierz-powiat"]');
+  if (!b) return;
+  dlg.close(); openPlaces();
+  const cel = savedPlaces.find(p => p.id === b.dataset.miejsce);
+  if (cel) fillPlace(cel);
+  wczytajGranicePowiatow().then(() => { renderPlacePowiat(); placeEl("place-powiat")?.focus(); }).catch(() => {});
+});
 /* Pole `tematy` ze stanu serwera. Tylko wyraźne „pow” albo „woj” cokolwiek zmienia. */
 function applyTematy(t) {
   if (!IS_APP || (t !== "pow" && t !== "woj") || t === torTematow()) return;
@@ -7121,24 +7132,58 @@ const placesDlg=document.getElementById("places-dialog");
 let placeDraft=null, placeSnapshot="";
 const placeEl=id=>document.getElementById(id);
 const placeText=(pl,en,uk)=>UI.t(pl,en,uk);
-function draftFromForm(){return Places.clean({id:placeEl("place-id").value,name:placeEl("place-name").value,precision:placeEl("place-precision").value,region:placeEl("place-region").value,gps:placeDraft?.gps||null,alerts:placeEl("place-alerts").checked});}
+function draftFromForm(){const pw=placeEl("place-powiat"),powiat=pw&&!pw.disabled&&!placeEl("place-powiat-row").hidden?pw.value:(placeDraft?.powiat||"");return Places.clean({id:placeEl("place-id").value,name:placeEl("place-name").value,precision:placeEl("place-precision").value,region:placeEl("place-region").value,gps:placeDraft?.gps||null,alerts:placeEl("place-alerts").checked,powiat});}
 function placeDirty(){return placeSnapshot&&JSON.stringify(draftFromForm())!==placeSnapshot;}
 function fillPlace(place){
   placeDraft=Places.clean(place); placeSnapshot=JSON.stringify(placeDraft);
   placeEl("place-id").value=placeDraft.id; placeEl("place-name").value=placeDraft.name; placeEl("place-precision").value=placeDraft.precision; placeEl("place-region").value=placeDraft.region; placeEl("place-alerts").checked=placeDraft.alerts; placeEl("place-feedback").textContent="";
   placeEl("place-delete").hidden=!savedPlaces.some(p=>p.id===placeDraft.id);
+  // inne miejsce: pole powiatu bierze wybór z miejsca, nie z poprzednio pokazanego
+  if(placeEl("place-powiat"))placeEl("place-powiat").dataset.region="";
   renderPlacePrecision(); renderPlaceTabs();
 }
 function renderPlaceTabs(){
   placeEl("places-tabs").innerHTML=savedPlaces.map(p=>`<button type="button" class="chip${p.id===placeDraft?.id?' active':''}" data-id="${esc(p.id)}">${esc(p.name)}</button>`).join("");
   placeEl("places-tabs").querySelectorAll("button").forEach(b=>b.onclick=()=>{if(placeDirty()&&!confirm(placeText("Odrzucić niezapisane zmiany?","Discard unsaved changes?","Скасувати незбережені зміни?")))return;fillPlace(savedPlaces.find(p=>p.id===b.dataset.id));});
 }
+/* Etap 3 (opcja a, decyzja usera 20.11.2026): powiat miejsca. Tylko w aplikacji (strona
+   zostaje przy województwach). Dokładna lokalizacja wypełnia powiat sama i blokuje pole —
+   przy granicy pokazuje oba powiaty. Bez współrzędnych (albo z pozycją zbyt przybliżoną)
+   powiat wybiera się z listy powiatów województwa z PRG; wybór zostaje na urządzeniu. */
+function renderPlacePowiat(){
+  const row=placeEl("place-powiat-row"), sel=placeEl("place-powiat"), info=placeEl("place-powiat-info");
+  if(!row||!sel)return;
+  if(!IS_APP||!Powiaty||!granicePowiatow){row.hidden=true;return;}
+  const region=placeEl("place-region").value, lang=UI.lang==="en"?"en":UI.lang==="uk"?"uk":"pl";
+  placeEl("place-powiat-t").textContent=placeText("Powiat","County","Повіт");
+  const lista=Powiaty.listaPowiatow(granicePowiatow,region,lang);
+  const chce=sel.dataset.region===region?sel.value:(placeDraft?.region===region?placeDraft?.powiat||"":"");
+  sel.innerHTML=`<option value="">${esc(placeText("— wybierz powiat —","— choose a county —","— виберіть повіт —"))}</option>`
+    +lista.map(p=>`<option value="${esc(p.terc)}">${esc(p.etykieta)}</option>`).join("");
+  sel.dataset.region=region;
+  const gps=placeEl("place-precision").value==="gps"?placeDraft?.gps:null;
+  const z=gps?Powiaty.powiatMiejsca(granicePowiatow,{precision:"gps",region,gps,powiat:""}):null;
+  const nazwy=t=>(lista.find(p=>p.terc===t)||{etykieta:t}).etykieta;
+  if(z&&z.zrodlo==="gps"){
+    sel.disabled=true; sel.value=z.powiaty.length===1?z.powiaty[0]:"";
+    info.textContent=z.powiaty.length===1
+      ?placeText("Powiat ustalony z zapisanej lokalizacji.","County set from the saved location.","Повіт визначено за збереженим місцеперебуванням.")
+      :placeText(`Przy granicy powiatów — alarmy dla obu: ${z.powiaty.map(nazwy).join(", ")}.`,`At a county border — alerts for both: ${z.powiaty.map(nazwy).join(", ")}.`,`Біля межі повітів — тривоги для обох: ${z.powiaty.map(nazwy).join(", ")}.`);
+  }else{
+    sel.disabled=false; sel.value=lista.some(p=>p.terc===chce)?chce:"";
+    info.textContent=sel.value?placeText("Powiat wybrany ręcznie — zostaje na tym urządzeniu.","County chosen by hand — it stays on this device.","Повіт вибрано вручну — він залишається на цьому пристрої.")
+      :placeText("Bez wybranego powiatu telefon zostaje przy alarmach dla całego województwa — także wtedy, gdy alarmy przejdą na powiaty.","Without a chosen county the phone stays with alerts for the whole province — also once alerts switch to counties.","Без вибраного повіту телефон залишається з тривогами для всього воєводства — також після переходу тривог на повіти.");
+  }
+  row.hidden=false;
+}
 function renderPlacePrecision(){
   const precision=placeEl("place-precision").value;
   placeEl("place-gps-row").hidden=precision!=='gps';
   const gps=placeDraft?.gps; placeEl("place-gps-status").textContent=gps?`${placeText("Zapisano jednorazowo","Saved once","Збережено одноразово")}: ${gps.lat.toFixed(5)}, ${gps.lon.toFixed(5)} · ±${Math.round(gps.accuracy)} m · ${new Date(gps.capturedAt).toLocaleString(UI.t("pl-PL", "en-GB", "uk-UA"))}`:placeText("Lokalizacja jest wyłączona.","Location is off.","Місцеперебування вимкнено."); placeEl("place-gps-remove").hidden=!gps;
+  renderPlacePowiat();
 }
 function openPlaces(){
+  wczytajGranicePowiatow().then(()=>{if(placesDlg.open)renderPlacePowiat();}).catch(()=>{});
   placeEl("places-wstecz-t").textContent=placeText("Ustawienia","Settings","Налаштування");
   savedPlaces=Places.migrate(localStorage); placeEl("place-region").innerHTML=ALL_VOIVS.map(v=>`<option value="${esc(v)}">${esc(UI.voiv(v))}</option>`).join("");
   fillPlace(savedPlaces[0]||{id:crypto.randomUUID?.()||String(Date.now()),name:"",precision:"region",region:myVoiv()||"lubelskie",alerts:true}); placesDlg.showModal();
@@ -7155,6 +7200,8 @@ function backToPlacesTab(){
 }
 placeEl("places-close").onclick=()=>{if(!placeDirty()||confirm(placeText("Odrzucić niezapisane zmiany?","Discard unsaved changes?","Скасувати незбережені зміни?"))){placesDlg.close();backToPlacesTab();}};
 placeEl("place-add").onclick=()=>{if(savedPlaces.length>=8)return alert(placeText("Możesz zapisać maksymalnie 8 miejsc.","You can save up to 8 places.","Можна зберегти щонайбільше 8 місць."));if(placeDirty()&&!confirm(placeText("Odrzucić niezapisane zmiany?","Discard unsaved changes?","Скасувати незбережені зміни?")))return;fillPlace({id:crypto.randomUUID?.()||String(Date.now()),name:"",precision:"region",region:myVoiv()||"lubelskie",alerts:false});};
+placeEl("place-region").addEventListener("change",()=>renderPlacePowiat());
+placeEl("place-powiat")?.addEventListener("change",()=>renderPlacePowiat());
 placeEl("place-precision").onchange=()=>{placeDraft={...placeDraft,precision:placeEl("place-precision").value,gps:placeEl("place-precision").value==='gps'?placeDraft?.gps:null};renderPlacePrecision();};
 placeEl("place-gps").onclick=()=>{
   if(!navigator.geolocation)return alert(placeText("Brak dostępu do lokalizacji w tym środowisku.","Location is unavailable in this environment.","Доступу до місцеперебування в цьому середовищі немає."));

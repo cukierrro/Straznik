@@ -158,6 +158,68 @@ if (mLinia) {
   ok(!/(?:ałeś|ałaś|eś |aś )/.test(linia('pow', zRodzicami, 'pl')), 'tekst bezosobowy');
 }
 
+console.log('\n7. Powiat wybrany ręcznie (opcja a, decyzja usera 20.11.2026)');
+const Places = require(path.join(ROOT, 'frontend', 'places.js'));
+const pam = () => { const m = new Map(); return { getItem: k => m.has(k) ? m.get(k) : null, setItem: (k, v) => m.set(k, String(v)), removeItem: k => m.delete(k) }; };
+// zapis i odczyt
+const zWyborem = Places.clean({ id: 'r1', name: 'Rodzice', precision: 'region', region: 'lubelskie', alerts: true, powiat: '0609' });
+ok(zWyborem.powiat === '0609', 'clean: powiat z województwa miejsca zostaje');
+ok(!('powiat' in Places.clean({ ...zWyborem, powiat: '1863' })), 'clean: powiat z innego województwa przepada (Rzeszów przy lubelskim)');
+ok(!('powiat' in Places.clean({ ...zWyborem, powiat: '06x9' })) && !('powiat' in Places.clean({ ...zWyborem, powiat: 609 })), 'clean: tylko 4 cyfry TERYT');
+ok(!('powiat' in Places.clean({ ...zWyborem, powiat: '' })), 'clean: bez wyboru — dawny kształt miejsca, bez pola');
+const s1 = pam();
+Places.save(s1, [zWyborem]);
+ok(Places.load(s1)[0].powiat === '0609', 'zapis na urządzeniu i odczyt zachowują wybór');
+ok(!JSON.parse(s1.getItem(Places.KEY))[0].gps, 'zapisany wybór nie dokłada współrzędnych');
+const s2 = pam(); s2.setItem('straznik_voiv', 'lubelskie');
+const mig = Places.migrate(s2);
+ok(mig.length === 1 && !('powiat' in mig[0]) && P.planPowiatow(dane, mig).bezPowiatu.length === 1,
+  'migracja starego „Dom” (samo województwo) — bez powiatu, telefon zostaje na województwach');
+ok(Places.migrate(s1)[0].powiat === '0609', 'już zapisane miejsca z wyborem — migracja ich nie rusza');
+// pierwszeństwo: dokładna lokalizacja wypełnia powiat sama
+const reczny = P.powiatMiejsca(dane, zWyborem);
+ok(reczny.zrodlo === 'reczny' && JSON.stringify(reczny.powiaty) === '["0609"]', 'miejsce bez współrzędnych — powiat z wyboru');
+const gpsIWybor = { ...miejsca[0], powiat: '0609' };   // GPS Plac Litewski (Lublin) + ręcznie lubelski
+ok(JSON.stringify(P.powiatMiejsca(dane, gpsIWybor).powiaty) === '["0663"]' && P.powiatMiejsca(dane, gpsIWybor).zrodlo === 'gps',
+  'dokładna lokalizacja ma pierwszeństwo przed wyborem ręcznym');
+const przyGranicy = P.powiatMiejsca(dane, { precision: 'gps', region: 'lubelskie', gps: { ...naGr, accuracy: 10 }, powiat: '0609' });
+ok(przyGranicy.zrodlo === 'gps' && przyGranicy.powiaty.length >= 2, `GPS przy granicy — oba powiaty jak dotąd, wybór nie zawęża (${przyGranicy.powiaty})`);
+ok(P.powiatMiejsca(dane, { ...gpsIWybor, gps: { ...gpsIWybor.gps, accuracy: 5000 } }).zrodlo === 'reczny',
+  'pozycja zbyt przybliżona — liczy się wybór ręczny');
+ok(P.powiatMiejsca(dane, { ...zWyborem, region: 'podkarpackie' }).powod === 'bez_lokalizacji',
+  'wybór z innego województwa niż miejsce — ignorowany (nie zgadujemy)');
+// tor tematów
+ok(JSON.stringify(P.powiatyMiejsc(dane, [...miejsca, zWyborem])) === JSON.stringify(['0609', '0617', '0663']),
+  'wszystkie miejsca z powiatem (GPS + wybór) — telefon może przejść na powiaty');
+ok(P.powiatyMiejsc(dane, [...miejsca, zWyborem, { ...rodzice, name: 'Działka' }]).length === 0,
+  'jedno miejsce bez wyboru — dalej województwa');
+// lista do wyboru
+const lub = P.listaPowiatow(dane, 'lubelskie', 'pl');
+ok(lub.length === tercs.filter(t => dane.pow[t].w === 'lubelskie').length, `lista lubelskiego: wszystkie ${lub.length} powiaty z PRG`);
+const iLublin = lub.findIndex(p => p.terc === '0663'), iLubelski = lub.findIndex(p => p.terc === '0609');
+ok(lub[iLublin].etykieta === 'Lublin (miasto)' && lub[iLubelski].etykieta === 'powiat lubelski' && Math.abs(iLublin - iLubelski) === 1,
+  '„Lublin (miasto)” tuż obok „powiat lubelski”');
+const en = P.listaPowiatow(dane, 'lubelskie', 'en'), uk = P.listaPowiatow(dane, 'lubelskie', 'uk');
+ok(en.find(p => p.terc === '0663').etykieta === 'Lublin (city)' && en.find(p => p.terc === '0609').etykieta === 'Lubelski County',
+  'EN: „Lublin (city)”, „Lubelski County”');
+ok(uk.find(p => p.terc === '0663').etykieta === 'Lublin (місто)' && uk.find(p => p.terc === '0609').etykieta === 'повіт lubelski',
+  'UK: „Lublin (місто)”, „повіт lubelski”');
+const wszystkie = Places.REGIONS.flatMap(r => P.listaPowiatow(dane, r, 'pl'));
+ok(wszystkie.length === 380 && new Set(wszystkie.map(p => p.terc)).size === 380, 'listy 16 województw obejmują wszystkie 380 powiatów, każdy raz');
+ok(wszystkie.filter(p => p.miasto).length === 66, `66 miast na prawach powiatu oznaczonych „(miasto)” (${wszystkie.filter(p => p.miasto).length})`);
+ok(Places.REGIONS.every(r => P.listaPowiatow(dane, r).every(p => p.terc.slice(0, 2) === Places.REGION_KOD[r])),
+  'kody województw w places.js zgodne z TERYT w PRG');
+// formularz
+ok(/<div id="place-powiat-row" hidden><label id="place-powiat-l">/.test(idx)
+  && (idx.match(/<form[^>]*>[\s\S]*?<\/form>/g) || []).some(f => f.includes('place-powiat')),
+  'index.html: pole powiatu w <div> — nie przesuwa tłumaczeń etykiet formularza po kolejności');
+ok(/function draftFromForm\(\)\{[^\n]*powiat\}\);\}/.test(app), 'app.js: zapis miejsca niesie wybrany powiat');
+ok(/sel\.disabled=true; sel\.value=z\.powiaty\.length===1/.test(app), 'app.js: dokładna lokalizacja wypełnia i blokuje pole');
+ok(/data-akcja="wybierz-powiat"/.test(app) && /closest\?\.\('\[data-akcja="wybierz-powiat"\]'\)[\s\S]{0,200}openPlaces\(\)/.test(app),
+  'app.js: wiersz w Ustawieniach prowadzi do wyboru powiatu');
+for (const [jez, wz] of [['pl', /wybierz powiat/i], ['en', /choose a county/i], ['uk', /виберіть повіт/i]])
+  ok(wz.test(app), `app.js: podpowiedź wyboru po ${jez}`);
+
 console.log();
 if (bledy) { console.log(`BŁĘDY: ${bledy}`); process.exit(1); }
 console.log('Wszystko OK');
