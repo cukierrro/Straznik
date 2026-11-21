@@ -120,6 +120,31 @@ ok(/powHistoria = snap && Object\.prototype\.hasOwnProperty\.call\(snap, "powiat
 ok(/powiaty: s\?\.fusion\?\.powiaty \|\| \{\}/.test(app), 'migawki nagrywane w aplikacji też niosą powiaty (pole zawsze)');
 ok(/histMode \? powHistoria : \(state\?\.fusion\?\.powiaty \|\| \{\}\)/.test(app), 'karta powiatu w historii czyta migawkę, nie stan na żywo');
 
+console.log('\n5a. Wiersz „mój region”: który powiat (zgłoszenie usera 21.11.2026)');
+{
+  const od2 = app.indexOf('function wybierzPowiatBanera(');
+  const do2 = app.indexOf('/* Powiaty miejsc z alarmami w kolejności miejsc');
+  ok(od2 > 0 && do2 > od2, 'funkcja wyboru stoi w app.js');
+  const wybierz = new Function(app.slice(od2, do2) + '\nreturn wybierzPowiatBanera;')();
+  // kolejność miejsc usera: Dom (Lublin), …, piąte — biłgorajski; lista z TERYT posortowana
+  const kolejnosc = ['0663', '1465', '1862', '1809', '0602', '0619', '2661', '1863'];
+  const spokoj = ['0602', '0619', '0663', '1465', '1809', '1862', '1863', '2661'].map(t => ({ terc: t, level: 'none', score: 0 }));
+  ok(wybierz(spokoj, kolejnosc).terc === '0663', 'spokój — powiat pierwszego miejsca (Lublin), nie pierwszy po TERYT (biłgorajski)');
+  const ponizej = spokoj.map(p => p.terc === '0602' ? { ...p, score: 1.4 } : p);
+  ok(wybierz(ponizej, kolejnosc).terc === '0663', 'punkty poniżej progu gdzie indziej nie zabierają wiersza pierwszemu miejscu');
+  const zolty = spokoj.map(p => p.terc === '0602' ? { ...p, level: 'elevated', score: 2.4 } : p);
+  ok(wybierz(zolty, kolejnosc).terc === '0602', 'żółty w biłgorajskim — wiersz pokazuje biłgorajski');
+  const dwa = spokoj.map(p => p.terc === '1862' ? { ...p, level: 'high', score: 4.5 } : p.terc === '1809' ? { ...p, level: 'high', score: 6 } : p);
+  ok(wybierz(dwa, kolejnosc).terc === '1809', 'dwa czerwone — ten z większą liczbą punktów');
+  const remis = spokoj.map(p => ['1862', '1809'].includes(p.terc) ? { ...p, level: 'high', score: 5 } : p);
+  ok(wybierz(remis, kolejnosc).terc === '1862', 'remis — wcześniejsze miejsce (Przemyśl przed lubaczowskim)');
+  ok(wybierz(spokoj, []).terc === '0602', 'bez kolejności miejsc (granice niewczytane) — pierwszy z listy, bez błędu');
+  ok(/b class="pow-nazwa">\$\{esc\(wielkaPierwsza\(nazwaPowiatuMapy/.test(app), 'nazwa: „Powiat biłgorajski” (wielka tylko pierwsza litera)');
+  ok(/#my-banner b\.pow-nazwa \{ text-transform: none; \}/.test(fs.readFileSync(path.join(ROOT, 'frontend', 'style.css'), 'utf8')),
+    'styl wiersza nie robi „Powiat Biłgorajski”');
+  ok(/\$\{pkt > 0 \? " · " : "· "\}/.test(app), 'kropka między poziomem a liczbą powiatów także przy 0 pkt');
+}
+
 console.log('\n6. Ustawienie i tłumaczenia');
 ok(/<select id="set-podzial">\s*<option value="pow">Powiaty<\/option>\s*<option value="woj">Województwa<\/option>/.test(html),
   'Ustawienia → Mapa: „Powiaty” pierwsze (domyślne), „Województwa”');
