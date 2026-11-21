@@ -834,6 +834,16 @@ def _track_age_min(t: dict, now: float | None = None) -> int | None:
     return max(0, round(((now or time.time()) - ts) / 60))
 
 
+def dopisz_powiaty(migawka: dict) -> dict:
+    """Powiaty z poziomem ≠ brak w migawce (mapa powiatów w historii, 1.8.10).
+
+    Pole jest ZAWSZE, także puste: klient odróżnia wtedy „żaden powiat nie miał
+    alarmu” od migawki sprzed tej zmiany (bez pola — karta mówi, że zapisu nie ma).
+    Słownik zwykle pusty, przy nalocie kilkadziesiąt wpisów po ~70 bajtów."""
+    migawka["powiaty"] = dict(powiaty.publiczne()) if config.POWIATY_LICZENIE else {}
+    return migawka
+
+
 async def snapshot_loop():
     """Migawka pozycji co SNAPSHOT_INTERVAL_S (60 s) — materiał do przeglądania 12 h wstecz.
 
@@ -883,11 +893,12 @@ async def snapshot_loop():
                        "aircraft": aircraft}
             if strefy is not None:
                 migawka["zones"] = strefy
+            dopisz_powiaty(migawka)
             db.add_snapshot(migawka)
             # G1: pełna migawka na 30 dni w osobnym, skompresowanym archiwum
             await asyncio.to_thread(alert_log.archive_snapshot,
-                                    {"threats": threats, "aircraft": aircraft,
-                                     **({"zones": strefy} if strefy is not None else {})})
+                                    dopisz_powiaty({"threats": threats, "aircraft": aircraft,
+                                                    **({"zones": strefy} if strefy is not None else {})}))
         except Exception as e:
             log.warning("snapshot błąd: %s", e)
         await asyncio.sleep(max(1.0, config.SNAPSHOT_INTERVAL_S - (time.monotonic() - started)))

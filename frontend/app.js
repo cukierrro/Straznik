@@ -793,6 +793,114 @@ function torTematow() {
   if (!IS_APP) return "woj";
   try { return localStorage.getItem(TEMATY_KEY) === "pow" ? "pow" : "woj"; } catch { return "woj"; }
 }
+/* ── Mapa powiatów (1.8.10, decyzja usera 21.11.2026) ─────────────────────────
+   Alarmy przychodzą dla powiatu, więc mapa umie pokazać powiaty zamiast województw
+   (Ustawienia → Mapa → „Podział mapy”, domyślnie powiaty; także na stronie). Kolor
+   i wysokość bryły = poziom i punkty powiatu z `fusion.powiaty` (serwer podaje tylko
+   powiaty z poziomem ≠ brak). Punktacja województw zostaje — w panelu Sygnały,
+   w karcie powiatu i po przełączeniu na „Województwa”. Granice do RYSOWANIA:
+   assets/powiaty-mapa-v1.geojson (scripts/build_powiaty_mapa.py); plik telefonu
+   (powiaty-telefon-v1.json) służy tylko do ustalania powiatu miejsca.
+   Tryb wbudowany (engine.js, bez serwera) liczy tylko województwa — wtedy mapa
+   pokazuje województwa niezależnie od ustawienia. */
+const PODZIAL_KEY = "straznik_mapa_podzial";
+function podzialMapy() {
+  try { return localStorage.getItem(PODZIAL_KEY) === "woj" ? "woj" : "pow"; } catch { return "pow"; }
+}
+let powGeo = null;              // GeoJSON powiatów do rysowania (wczytany przy starcie mapy)
+let powStanyMapy = new Set();   // TERYT z ustawionym feature-state — do wyczyszczenia przy zmianie
+let powHistoria = null;         // `powiaty` migawki wybranej suwakiem (null = migawka bez zapisu)
+function mapaPowiatow() { return podzialMapy() === "pow" && !!powGeo && !standalone; }
+function powCecha(terc) { return powGeo?.features?.find(f => f.properties.t === terc) || null; }
+/* „Lublin” (miasto na prawach powiatu) albo „powiat lubelski” — z samego pliku mapy,
+   więc działa też na stronie, gdzie nie ma pliku granic telefonu. */
+function nazwaPowiatuMapy(terc) {
+  const k = powCecha(terc)?.properties?.k;
+  if (!k) return typeof nazwaPowiatu === "function" ? nazwaPowiatu(terc) : terc;
+  return /^[A-ZĄĆĘŁŃÓŚŹŻ]/.test(k) ? k
+    : UI.t(`powiat ${k}`, `${k.charAt(0).toUpperCase()}${k.slice(1)} County`, `повіт ${k}`);   // jak listaPowiatow
+}
+/* Warstwa powiatów dokładana PO starcie mapy (mapReady), bez czekania na nią.
+   Wczytanie i przetworzenie pliku granic (700 KB) trwało na emulatorze ~4 s; w środku
+   obsługi „load” wydłużało start mapy i zbliżało ją do 20-sekundowego limitu, po którym
+   pokazujemy „Mapa się nie wczytała”. Do czasu wczytania mapa pokazuje województwa. */
+let powWarstwaObietnica = null;
+function dodajWarstwePowiatow() {
+  if (powWarstwaObietnica) return powWarstwaObietnica;
+  powWarstwaObietnica = (async () => {
+    try {
+      const gj = await (await fetch("assets/powiaty-mapa-v1.geojson?v=1.8.10a")).json();
+      if (!map || map.getSource("pow")) return;
+      map.addSource("pow", { type: "geojson", data: gj, promoteId: "t" });
+      // bryły i linie powiatów POD liniami województw, w tych samych kolorach co województwa
+      map.addLayer({
+        id: "pow-extrude", type: "fill-extrusion", source: "pow", layout: { visibility: "none" },
+        paint: {
+          "fill-extrusion-color": ["match", ["coalesce", ["feature-state", "level"], "none"],
+            "high", "#ff4d5e", "elevated", "#ffb020", "#233252"],
+          // niżej niż województwa (16 km na punkt): powiat jest kilkanaście razy mniejszy
+          // i przy tej samej skali stawał się wieżą, która zasłaniała sąsiadów
+          "fill-extrusion-height": ["*", ["coalesce", ["feature-state", "score"], 0], 3500],
+          "fill-extrusion-base": 0,
+          "fill-extrusion-opacity": 0.6,
+        },
+      }, "voiv-line");
+      map.addLayer({
+        id: "pow-line", type: "line", source: "pow", layout: { visibility: "none" },
+        // cieńsze niż granice województw — te zostają nad nimi jako główny podział
+        paint: { "line-color": "rgba(125,150,205,.30)",
+          "line-width": ["interpolate", ["linear"], ["zoom"], 5, 0.25, 8, 0.6, 10, 1] },
+      }, "voiv-line");
+      // obrys powiatów moich miejsc — filtr i widoczność w applyPodzialMapy()
+      map.addLayer({ id: "my-pow-glow", type: "line", source: "pow", layout: { visibility: "none" },
+        filter: ["in", ["get", "t"], ["literal", ["—"]]],
+        paint: { "line-color": "#7fb0ff", "line-opacity": 0.22, "line-width": 6, "line-blur": 3 } });
+      map.addLayer({ id: "my-pow", type: "line", source: "pow", layout: { visibility: "none" },
+        filter: ["in", ["get", "t"], ["literal", ["—"]]],
+        paint: { "line-color": "#8ec0ff", "line-width": 2, "line-opacity": 0.9, "line-blur": 0.4 } });
+      map.on("click", "pow-extrude", (e) => {
+        const hit = map.queryRenderedFeatures(e.point,
+          { layers: ["threats", "threats-glow", "adsb", "strefy-hit"] });
+        if (hit.length) return;
+        const t = e.features?.[0]?.properties?.t;
+        if (t) openPowCard(t);
+      });
+      powGeo = gj;
+      powStanyMapy = new Set();
+      updatePowStates(histMode ? (powHistoria || {}) : state?.fusion?.powiaty);
+      applyPodzialMapy();
+    } catch (e) {
+      console.warn("mapa powiatów niedostępna", e);   // zostają województwa
+    }
+  })();
+  return powWarstwaObietnica;
+}
+/* Stan brył powiatów: rzadki słownik {TERYT: {level, score}} — z żywego stanu albo z migawki
+   historii. Powiaty, które zniknęły ze słownika, wracają do „brak” (inaczej zostawałyby
+   czerwone po końcu alarmu). */
+function updatePowStates(pw) {
+  if (!mapReady || !map.getSource("pow")) return;
+  const nowe = new Set(Object.keys(pw || {}));
+  for (const t of powStanyMapy) if (!nowe.has(t)) map.setFeatureState({ source: "pow", id: t }, { score: 0, level: "none" });
+  for (const [t, p] of Object.entries(pw || {}))
+    map.setFeatureState({ source: "pow", id: t }, { score: Math.min(Number(p?.score) || 0, 8), level: p?.level || "none" });
+  powStanyMapy = nowe;
+}
+/* Widoczność warstw wg ustawienia i obrys MOICH powiatów (powiaty miejsc z alarmami). */
+function applyPodzialMapy() {
+  if (!mapReady || !map.getLayer("voiv-extrude")) return;
+  const pow = mapaPowiatow() && !!map.getLayer("pow-extrude");
+  const vis = (id, on) => { if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", on ? "visible" : "none"); };
+  vis("pow-extrude", pow); vis("pow-line", pow); vis("voiv-extrude", !pow);
+  const moje = pow && IS_APP && typeof powiatyDoTematow === "function" ? powiatyDoTematow() : [];
+  for (const id of ["my-pow", "my-pow-glow"]) {
+    if (!map.getLayer(id)) continue;
+    map.setFilter(id, ["in", ["get", "t"], ["literal", moje.length ? moje : ["—"]]]);
+    vis(id, moje.length > 0);
+  }
+  // obrys całego województwa zostaje, gdy nie ma moich powiatów (strona, tor województw)
+  vis("my-voiv", !moje.length); vis("my-voiv-glow", !moje.length);
+}
 let granicePowiatow = null, granicePowiatowObietnica = null;
 function wczytajGranicePowiatow() {
   if (!IS_APP || !Powiaty) return Promise.resolve(null);
@@ -1690,6 +1798,7 @@ async function initMap() {
         "line-width": ["case", ["in", ["get", "nazwa"], ["literal", PRIORITY]], 1.3, 0.7] },
     });
 
+
     /* ── strefy PAŻP: WYŁĄCZNIE informacyjnie ────────────────────────────────
        Nie dokładają punktów i nie wywołują alarmu. Pokazujemy je, bo bez tego
        zamknięcie kawałka nieba przez wojsko było w aplikacji niewidoczne — a to
@@ -1988,6 +2097,8 @@ async function initMap() {
         "line-blur": 0.4 } });
 
     mapReady = true;
+    // powiaty dopiero PO starcie mapy — nie wydłużają go (patrz dodajWarstwePowiatow)
+    dodajWarstwePowiatow();
     dopasujMapeDoPanelu();
     // komunikat „mapa się nie wczytała” mógł wyskoczyć, gdy start trwał dłużej (np. aplikacja w tle)
     document.getElementById("map-niedostepna")?.remove();
@@ -3207,6 +3318,51 @@ function updateVoivStates() {
     map.setFeatureState({ source: "voiv", id: name },
       { score: Math.min(st.score, 8), level: st.level, spill: spillRaised(st) });
   }
+  updatePowStates(state?.fusion?.powiaty);
+  applyPodzialMapy();     // tryb wbudowany (bez serwera) przełącza mapę na województwa i z powrotem
+}
+
+/* Karta powiatu (1.8.10): poziom i punkty powiatu, Twoje miejsca w nim i punktacja
+   województwa z odnośnikiem do jego sygnałów. Powodów per powiat serwer nie publikuje —
+   sygnały są te same co województwa, liczone z odległości do powiatu. */
+function openPowCard(terc) {
+  const f = powCecha(terc);
+  if (!f) return;
+  const woj = f.properties.w;
+  const zrodlo = histMode ? powHistoria : (state?.fusion?.powiaty || {});
+  const p = zrodlo?.[terc];
+  const lvl = p?.level || "none";
+  const pkt = Number(p?.score) || 0;
+  const kolor = lvl === "high" ? "#ff8aa3" : lvl === "elevated" ? "#ffcf70" : "#cfe0ff";
+  const etykieta = lvl === "none"
+    ? (pkt > 0 ? UI.t("poniżej progu", "below threshold", "нижче порога") : UI.t("brak alarmu", "no alert", "немає тривоги"))
+    : LEVEL_LABEL[lvl];
+  const moje = IS_APP && granicePowiatow && Powiaty
+    ? savedPlaces.filter(m => m.alerts && Powiaty.powiatMiejsca(granicePowiatow, m)?.powiaty?.includes(terc)).map(m => m.name)
+    : [];
+  const vst = histMode ? null : state?.fusion?.voivodeships?.[woj];
+  const wojLinia = vst
+    ? `${UI.t("Województwo", "Province", "Воєводство")} ${esc(UI.voiv(woj))}: ${
+        vst.level === "none" ? UI.t("brak alarmu", "no alert", "немає тривоги") : LEVEL_LABEL[vst.level]}, ${pktTxt(vst.score)} ${UI.t("pkt", "pts", "бал.")}`
+    : `${UI.t("Województwo", "Province", "Воєводство")} ${esc(UI.voiv(woj))}`;
+  const brakZapisu = histMode && powHistoria === null
+    ? `<br><span style="color:#ffcf70">${UI.t(
+        "Z tej chwili nie ma zapisu powiatów — historia zapisuje je od 21 listopada 2026.",
+        "There is no county record for this moment — history stores counties from 21 November 2026.",
+        "Для цього моменту немає запису повітів — історія зберігає їх від 21 листопада 2026 року.")}</span>`
+    : "";
+  showCard(`
+    <div class="zone-head"><b style="color:${kolor}">${esc(nazwaPowiatuMapy(terc))}</b>
+      <span style="color:#8fa3c4">· ${UI.t("woj.", "province", "воєв.")} ${esc(UI.voiv(woj))}</span></div>
+    <b style="color:${kolor}">${etykieta}</b>${pkt > 0 ? ` · ${pktTxt(pkt)} ${UI.t("pkt", "pts", "бал.")}` : ""}${brakZapisu}<br>
+    ${moje.length ? `${UI.t("Twoje miejsca w tym powiecie", "Your places in this county", "Ваші місця в цьому повіті")}: ${moje.map(esc).join(", ")}<br>` : ""}
+    ${wojLinia}<br>
+    <button type="button" class="chip" id="pow-karta-woj">${UI.t("Sygnały województwa", "Province signals", "Сигнали воєводства")}</button><br>
+    <span style="color:#9aa6be">${UI.t(
+      "Poziom powiatu serwer liczy z tych samych sygnałów co województwa, mierząc odległość obiektów do tego powiatu. Z tego poziomu aplikacja wysyła alarmy dla powiatów zapisanych miejsc.",
+      "The server calculates the county level from the same signals as the provinces, measuring how far objects are from this county. The app sends county alerts for saved places from this level.",
+      "Рівень повіту сервер рахує з тих самих сигналів, що й воєводства, вимірюючи відстань об'єктів до цього повіту. З цього рівня застосунок надсилає тривоги для повітів збережених місць.")}</span>`);
+  document.getElementById("pow-karta-woj")?.addEventListener("click", () => openCard(woj));
 }
 
 /* Audyt G10: NEPTUN przypisywał punktom katalogowym (centrum Kijowa, Łucka)
@@ -4034,7 +4190,28 @@ function renderPanel() {
 
   // baner mojego regionu — zawsze widoczny, niezależnie od panelu
   const banner = document.getElementById("my-banner");
-  if (mine && f.voivodeships[mine]) {
+  /* 1.8.10: telefon na alarmach dla powiatów — wiersz pokazuje powiat moich miejsc
+     z najwyższym poziomem (tak jak dzwoni alarm), a nie całe województwo. */
+  const powBaner = histMode ? null : powiatyWStanie();
+  if (powBaner?.length) {
+    const kol = ["none", "elevated", "high"];
+    const najw = powBaner.reduce((b, p) =>
+      kol.indexOf(p.level || "none") > kol.indexOf(b.level || "none")
+      || (p.level === b.level && (+p.score || 0) > (+b.score || 0)) ? p : b);
+    const lvl = najw.level || "none";
+    const pkt = +najw.score || 0;
+    banner.className = "level-" + lvl;
+    banner.innerHTML = `<span class="znak" aria-hidden="true">${lvl === "high" ? "!" : ""}</span>`
+      + `<span><b>${esc(nazwaPowiatuMapy(najw.terc))}</b> — <span class="lvl">${
+        lvl === "none" ? (pkt > 0 ? UI.t("poniżej progu", "below threshold", "нижче порога") : UI.t("brak alarmu", "no alert", "немає тривоги"))
+        : LEVEL_LABEL[lvl]}</span>
+      <span class="muted">${pkt > 0 ? `${pktTxt(pkt)} ${UI.t("pkt", "pts", "бал.")}` : ""}${powBaner.length > 1
+        ? `${pkt > 0 ? " · " : ""}${lvl === "none"
+          ? UI.t(`powiaty Twoich miejsc: ${powBaner.length}`, `counties of your places: ${powBaner.length}`, `повіти ваших місць: ${powBaner.length}`)
+          : UI.t(`najwyższy z ${powBaner.length} powiatów Twoich miejsc`, `highest of ${powBaner.length} counties of your places`, `найвищий із ${powBaner.length} повітів ваших місць`)}`
+        : ""}</span></span>`;
+    banner.onclick = () => { if (powCecha(najw.terc)) openPowCard(najw.terc); else { setPanel(true); openCard(najw.woj || mine); } };
+  } else if (mine && f.voivodeships[mine]) {
     const st = f.voivodeships[mine];
     const poziom = spillRaised(st) ? "spill" : st.level;
     banner.className = "level-" + poziom;
@@ -6087,7 +6264,9 @@ function srvRecord(s) {
     reg: a.reg, op: a.op, vr: a.vr, year: a.year }));
   const snap = { ts: new Date(now).toISOString(), t: now, threats, aircraft,
     // obiekty bez współrzędnych — historia nie może uznać ich za zgubione z feedu
-    bezPozycji: (s?.neptun?.threats || []).filter(t => t.lat == null).map(t => t.id) };
+    bezPozycji: (s?.neptun?.threats || []).filter(t => t.lat == null).map(t => t.id),
+    // powiaty z poziomem (jak migawka serwera od 1.8.10); stan liczony offline ich nie zna
+    ...(standalone ? {} : { powiaty: s?.fusion?.powiaty || {} }) };
   // strefy z tej chwili, jak w migawce serwera — tylko gdy znamy bieżące
   if (zonesData) snap.zones = zonesData.features
     .filter(f => f.properties?.key)
@@ -6649,6 +6828,10 @@ function showHistoryAt(idx) {
       map.setFeatureState({ source: "voiv", id: v },
         { score: Math.min(sc, 8), level: poziomHist(v, sc), spill: !!h?.spill?.[v] });
     }
+    // powiaty z tamtej chwili — migawki zapisują je od 1.8.10 (21.11.2026); starsze ich
+    // nie mają (powHistoria = null) i karta powiatu mówi wtedy, że zapisu nie ma
+    powHistoria = snap && Object.prototype.hasOwnProperty.call(snap, "powiaty") ? (snap.powiaty || {}) : null;
+    updatePowStates(powHistoria || {});
   }
 
   renderHistoryPanel(sigs, perVoiv, when, ageMin, poziomHist, h?.podtrzymanie || {});
@@ -8350,6 +8533,17 @@ for (const kind of ["neptun", "adsb"]) {
     if (kind === "adsb" && mapReady) drawFollowTrail();
     odswiezWartosciUstawien();
   });
+}
+{
+  const sel = document.getElementById("set-podzial");
+  if (sel) {
+    sel.value = podzialMapy();
+    sel.addEventListener("change", () => {
+      try { localStorage.setItem(PODZIAL_KEY, sel.value); } catch {}
+      applyPodzialMapy();
+      odswiezWartosciUstawien();
+    });
+  }
 }
 {
   const sel = document.getElementById("set-okregi");

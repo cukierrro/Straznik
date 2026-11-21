@@ -389,5 +389,15 @@ My places section of Settings. Unchanged 1080 × 2400 screenshots of a 1.8.10 de
 (same web code as the release), Pixel 7 emulator, Android 14. The three places (Dom, Praca,
 Działka) and the manually chosen county were written to the emulator's local storage through
 DevTools to reach this state; the app itself rendered every element. Notifications were denied on
-the emulator and no test alerts were sent. The server was on the province track, so the window
-shows the province wording of How it works — what users see on release day.
+the emulator and no test alerts were sent. The server was already on the county track (STRAZNIK_POWIATY_WYSYLKA=1 since
+21 November 2026, 15:35 UTC), so the window shows the county wording of How it works. The Alerts and
+permissions capture stays from 1.8.07: in this debug build the emulator never received a Firebase
+topic confirmation, so a county subscription row could not be captured honestly; the caption
+describes it in words.
+
+County map (1.8.10, 21 November 2026, evening): `1810/mapa-powiaty-{pl,en,uk}.jpg`,
+`1810/karta-powiatu-{pl,en,uk}.jpg` and `1810/set-mapa-{pl,en,uk}.jpg` (the last replaces the
+1.7.99 Map-settings capture, which had no Map division setting). Same debug build and emulator, live
+server data (no county had an alert at that time, so the map shows borders and the outline of the
+county of saved places only). The notifications-blocked warning was dismissed through the app's own
+close setting, as a user would; nothing on screen was edited.

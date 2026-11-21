@@ -311,6 +311,17 @@
   function trailSection(en) {
     const head = document.getElementById("trail-head");
     if (head) head.textContent = en ? "Object tracks" : "Trasy obiektów";
+    // Podział mapy (1.8.10) — na górze tej samej sekcji
+    const podzialHead = document.getElementById("podzial-head");
+    if (podzialHead) podzialHead.textContent = en ? "Map division" : "Podział mapy";
+    const podzialLabel = document.getElementById("podzial-label");
+    if (podzialLabel?.firstChild) podzialLabel.firstChild.nodeValue = (en ? "Colour and height of the blocks" : "Kolor i wysokość brył") + " ";
+    const podzialOpts = document.getElementById("set-podzial")?.options;
+    if (podzialOpts) (en ? ["Counties", "Provinces"] : ["Powiaty", "Województwa"]).forEach((v, i) => { if (podzialOpts[i]) podzialOpts[i].textContent = v; });
+    const podzialNote = document.getElementById("podzial-note");
+    if (podzialNote) podzialNote.innerHTML = en
+      ? "Alerts arrive for the <b>county</b> of a saved place, so by default the map shows the county levels. “Provinces” is the province score view as it was up to version 1.8.09. Province points are always in the Signals panel and on the county card."
+      : "Alarmy przychodzą dla <b>powiatu</b> zapisanego miejsca, więc domyślnie mapa pokazuje poziom powiatów. „Województwa” to widok punktacji województw jak do wersji 1.8.09. Punkty województw są zawsze w panelu Sygnały i w karcie powiatu.";
     // Etykieta listy to pierwszy węzeł tekstowy <label>, przed samym <select>.
     const lead = (id, pl, eng) => {
       const el = document.getElementById(id);
@@ -1424,6 +1435,17 @@
       + "Польщі — там воно показує, чи може об’єкт уже бути над Польщею. Радіус кожного об’єкта є також у його картці.";
     const okregiL = document.getElementById("okregi-label");
     if (okregiL?.firstChild) okregiL.firstChild.nodeValue = "Кола невизначеності (NEPTUN) ";
+    // Podział mapy (1.8.10)
+    const podzialHeadUk = document.getElementById("podzial-head");
+    if (podzialHeadUk) podzialHeadUk.textContent = "Поділ мапи";
+    const podzialLUk = document.getElementById("podzial-label");
+    if (podzialLUk?.firstChild) podzialLUk.firstChild.nodeValue = "Колір і висота блоків ";
+    const podzialOUk = document.getElementById("set-podzial")?.options;
+    if (podzialOUk) ["Повіти", "Воєводства"].forEach((v, i) => { if (podzialOUk[i]) podzialOUk[i].textContent = v; });
+    const podzialNUk = document.getElementById("podzial-note");
+    if (podzialNUk) podzialNUk.innerHTML = "Тривоги приходять для <b>повіту</b> збереженого місця, тому типово мапа "
+      + "показує рівень повітів. «Воєводства» — це вигляд балів воєводств, як до версії 1.8.09. Бали воєводств "
+      + "завжди є в панелі «Сигнали» і в картці повіту.";
     const trailN = document.getElementById("trail-neptun-label");
     if (trailN?.firstChild) trailN.firstChild.nodeValue = "Дрони й ракети (NEPTUN) ";
     const trailA = document.getElementById("trail-adsb-label");
