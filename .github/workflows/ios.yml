@@ -1,0 +1,394 @@
+# Strażnik na iPhone — build w chmurze (macOS) i wysyłka do TestFlight.
+#
+# Uruchamia się TYLKO po wypchnięciu gałęzi `ios` (zmiany w ios-app/ lub frontend/).
+# Nie dotyczy Androida, backendu ani strony — ma własny katalog ios-app/.
+#
+# Dwa tryby, wybierane automatycznie:
+#   • SPRAWDZENIE — brak sekretów Apple: kompiluje aplikację bez podpisu, żeby
+#     wiedzieć, że kod się buduje. Nic nie trafia do Apple. Działa od razu.
+#   • TESTFLIGHT — są wszystkie sekrety: podpis w chmurze Apple i wysyłka do
+#     App Store Connect (build pojawia się w TestFlight po kilkunastu minutach).
+#
+# Sekrety (Settings → Secrets and variables → Actions), instrukcja w
+# ios-app/INSTRUKCJA_KONTA_APPLE.md:
+#   APPLE_TEAM_ID                          identyfikator zespołu (10 znaków)
+#   ASC_KEY_ID, ASC_ISSUER_ID              klucz App Store Connect API (rola Admin)
+#   ASC_KEY_P8_BASE64                      plik AuthKey_XXXX.p8 zakodowany base64
+#   IOS_GOOGLE_SERVICE_INFO_PLIST_BASE64   GoogleService-Info.plist zakodowany base64
+#
+# Bezpieczeństwo (repo jest publiczne): sekrety nie są dostępne dla pull requestów
+# z forków, a ten workflow w ogóle nie reaguje na pull requesty. Nic nie jest
+# wypisywane do logu; pliki z kluczami są usuwane na końcu.
+
+name: iOS — build i TestFlight
+
+on:
+  push:
+    branches: [ios]
+    paths:
+      - "ios-app/**"
+      # Zmiana w samych dokumentach nie jest nową wersją aplikacji — 18.09.2026
+      # trzy commity z plikami .md wysłały trzy buildy do TestFlight.
+      - "!ios-app/**/*.md"
+      - "!ios-app/zrzuty/**"
+      - "frontend/**"
+      - ".github/workflows/ios.yml"
+  workflow_dispatch:
+    inputs:
+      tryb:
+        description: "Co zrobić z tym buildem"
+        type: choice
+        default: testflight
+        options:
+          - testflight
+          - sprawdzenie
+          - podpis
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-build
+  cancel-in-progress: false
+
+jobs:
+  ios:
+    if: github.repository == 'cukierrro/Straznik'
+    # Obraz podglądowy GitHuba z Xcode 27 (uwaga: nazywa się `xcode-27`,
+    # etykieta `macos-27` nie istnieje). Jedyny, na którym aplikacja linkuje
+    # się z SDK iOS 27. Bez tego iPhone'y składane uruchamiają ją w trybie
+    # zgodności, jako okno w kształcie telefonu na czarnym tle — zmierzone
+    # 1.11.2026 na iPhonie Duo: ten sam kod 1.8.04 z Xcode 26.6 w okienku,
+    # z Xcode 27.1 na pełnym ekranie. Obraz jest podglądowy, więc jeśli
+    # zniknie albo podmieni Xcode, bieg padnie na strażniku niżej.
+    runs-on: xcode-27
+    timeout-minutes: 60
+    env:
+      # Przypięte na sztywno. Na obrazie leżą też 27.0 i 27.2 RC, a domyślny
+      # /Applications/Xcode.app potrafi wskazywać inną wersję między biegami —
+      # do Apple ma iść wersja wydana, nie kandydat.
+      DEVELOPER_DIR: /Applications/Xcode_27.1.app/Contents/Developer
+    defaults:
+      run:
+        working-directory: ios-app
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Wersja Xcode
+        run: |
+          # Twardy strażnik: gdy obraz podmieni Xcode, bieg ma paść tutaj,
+          # a nie wyjechać do TestFlighta zbudowany czymś innym.
+          [ -d "$DEVELOPER_DIR" ] \
+            || { echo "::error::brak $DEVELOPER_DIR — sprawdź, jakie Xcode leżą w /Applications na tym obrazie"; exit 1; }
+          xcodebuild -version
+          # sed zamiast head: head zamyka potok i xcodebuild wypisuje wtedy
+          # "broken pipe" w logu.
+          v=$(xcodebuild -version | sed -n 1p)
+          [ "$v" = "Xcode 27.1" ] \
+            || { echo "::error::aktywne $v, a miało być Xcode 27.1 — nie podpisuję czymś innym"; exit 1; }
+          echo "SDK iphoneos: $(xcrun --sdk iphoneos --show-sdk-version)"
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ios-app/package-lock.json
+
+      - name: Tryb (sprawdzenie czy TestFlight)
+        id: mode
+        env:
+          TEAM: ${{ secrets.APPLE_TEAM_ID }}
+          KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ISSUER: ${{ secrets.ASC_ISSUER_ID }}
+          KEY_P8: ${{ secrets.ASC_KEY_P8_BASE64 }}
+          GSI: ${{ secrets.IOS_GOOGLE_SERVICE_INFO_PLIST_BASE64 }}
+        run: |
+          if [ "${{ inputs.tryb }}" = "sprawdzenie" ]; then
+            echo "mode=check" >> "$GITHUB_OUTPUT"
+            echo "Tryb: SPRAWDZENIE na żądanie — sama kompilacja, nic nie idzie do Apple"
+          elif [ "${{ inputs.tryb }}" = "podpis" ]; then
+            # Próba generalna podpisywania: certyfikat, profile, archiwum, eksport
+            # i bramki uprawnień — wszystko poza wysyłką. Dodane 17.10.2026 przy
+            # rozszerzeniu powiadomień, bo drugi profil dało się wcześniej sprawdzić
+            # wyłącznie przez wgranie builda do Apple. Zły podpis lepiej zobaczyć tu.
+            echo "mode=sign" >> "$GITHUB_OUTPUT"
+            echo "Tryb: PODPIS — pełne podpisywanie i eksport, BEZ wysyłki do Apple"
+          elif [ -n "$TEAM" ] && [ -n "$KEY_ID" ] && [ -n "$ISSUER" ] && [ -n "$KEY_P8" ] && [ -n "$GSI" ]; then
+            echo "mode=testflight" >> "$GITHUB_OUTPUT"
+            echo "Tryb: TESTFLIGHT (podpis i wysyłka do App Store Connect)"
+          else
+            echo "mode=check" >> "$GITHUB_OUTPUT"
+            echo "Tryb: SPRAWDZENIE (brak sekretów Apple — tylko kompilacja bez podpisu)"
+          fi
+
+      - name: Zależności npm
+        run: npm ci --no-audit --no-fund
+
+      - name: Konfiguracja Firebase
+        env:
+          GSI: ${{ secrets.IOS_GOOGLE_SERVICE_INFO_PLIST_BASE64 }}
+        run: |
+          target=ios/App/App/GoogleService-Info.plist
+          if [ "${{ steps.mode.outputs.mode }}" = "testflight" ]; then
+            printf '%s' "$GSI" | base64 --decode > "$target"
+            plutil -lint "$target" >/dev/null || { echo "::error::Sekret IOS_GOOGLE_SERVICE_INFO_PLIST_BASE64 nie jest poprawnym plikiem plist"; exit 1; }
+            bundle=$(/usr/libexec/PlistBuddy -c 'Print :BUNDLE_ID' "$target")
+            if [ "$bundle" != "pl.straznik.app" ]; then echo "::error::GoogleService-Info.plist jest dla innej aplikacji (BUNDLE_ID)"; exit 1; fi
+          else
+            # Atrapa TYLKO do kompilacji — taki build nie jest nigdzie wysyłany.
+            cat > "$target" <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict><key>BUNDLE_ID</key><string>pl.straznik.app</string></dict></plist>
+          PLIST
+          fi
+
+      - name: Kopia frontendu i cap sync
+        run: npm run sync
+
+      - name: Pamięć podręczna pakietów Swift (Firebase)
+        uses: actions/cache@v6
+        with:
+          path: ${{ runner.temp }}/spm
+          key: spm-${{ hashFiles('ios-app/straznik-background/Package.swift', 'ios-app/ios/App/CapApp-SPM/Package.swift') }}
+
+      - name: Kompilacja bez podpisu (sprawdzenie)
+        if: steps.mode.outputs.mode == 'check'
+        run: |
+          set -o pipefail
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release \
+            -destination 'generic/platform=iOS' -clonedSourcePackagesDirPath "$RUNNER_TEMP/spm" \
+            CODE_SIGNING_ALLOWED=NO build 2>&1 | tee "$RUNNER_TEMP/xcodebuild.log" | grep -E "error:|warning: .*Straznik|BUILD (SUCCEEDED|FAILED)" || true
+          grep -q "BUILD SUCCEEDED" "$RUNNER_TEMP/xcodebuild.log"
+
+      - name: Sprawdzenie klucza App Store Connect
+        if: steps.mode.outputs.mode != 'check'
+        env:
+          KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ISSUER: ${{ secrets.ASC_ISSUER_ID }}
+          KEY_P8: ${{ secrets.ASC_KEY_P8_BASE64 }}
+          TEAM: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          # Diagnostyka 18.09: archiwum padało na „401 for appstoreconnect.apple.com”.
+          # Ten krok sprawdza same poświadczenia i mówi wprost, które pole jest złe.
+          # Nie wypisuje żadnych sekretów — tylko długości i wynik zapytania.
+          key="$RUNNER_TEMP/asc.p8"
+          printf '%s' "$KEY_P8" | base64 --decode > "$key" 2>/dev/null || { echo "::error::ASC_KEY_P8_BASE64 nie jest poprawnym base64"; exit 1; }
+          head -1 "$key" | grep -q "BEGIN PRIVATE KEY" || { echo "::error::ASC_KEY_P8_BASE64 nie zawiera klucza .p8 (brak nagłówka BEGIN PRIVATE KEY)"; exit 1; }
+          echo "Klucz .p8: $(wc -c < "$key") bajtów, nagłówek OK"
+          kid=$(printf '%s' "$KEY_ID" | tr -d '[:space:]'); iss=$(printf '%s' "$ISSUER" | tr -d '[:space:]'); team=$(printf '%s' "$TEAM" | tr -d '[:space:]')
+          echo "Długości: Key ID ${#kid} (ma być 10), Issuer ID ${#iss} (ma być 36), Team ID ${#team} (ma być 10)"
+          [ ${#kid} -eq 10 ] || echo "::warning::ASC_KEY_ID ma ${#kid} znaków, a powinien 10 — to identyfikator z nazwy pliku AuthKey_XXXXXXXXXX.p8"
+          [ ${#iss} -eq 36 ] || echo "::warning::ASC_ISSUER_ID ma ${#iss} znaków, a powinien 36 (format z kreskami, jak 1a2b3c4d-...)"
+          [ ${#team} -eq 10 ] || echo "::warning::APPLE_TEAM_ID ma ${#team} znaków, a powinien 10"
+          # macOS 26 blokuje instalację do Pythona systemowego (PEP 668) — własne środowisko
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install --quiet --disable-pip-version-check pyjwt cryptography
+          KEYPATH="$key" KID="$kid" ISS="$iss" "$RUNNER_TEMP/venv/bin/python" - <<'PY'
+          import json, os, time, urllib.error, urllib.request
+          import jwt
+          token = jwt.encode(
+              {"iss": os.environ["ISS"], "aud": "appstoreconnect-v1", "exp": int(time.time()) + 300},
+              open(os.environ["KEYPATH"]).read(), algorithm="ES256",
+              headers={"kid": os.environ["KID"], "typ": "JWT"})
+          req = urllib.request.Request("https://api.appstoreconnect.apple.com/v1/apps?limit=200",
+                                       headers={"Authorization": "Bearer " + token})
+          try:
+              with urllib.request.urlopen(req, timeout=30) as r:
+                  apps = json.load(r).get("data", [])
+              print("Poświadczenia działają (HTTP 200). Aplikacje na koncie:")
+              for a in apps:
+                  print("  -", a["attributes"]["bundleId"], "|", a["attributes"]["name"])
+              if not any(a["attributes"]["bundleId"] == "pl.straznik.app" for a in apps):
+                  print("::error::Klucz działa, ale konto nie ma aplikacji pl.straznik.app — sprawdź Bundle ID w App Store Connect")
+                  raise SystemExit(1)
+          except urllib.error.HTTPError as e:
+              body = e.read().decode()[:400]
+              print("::error::App Store Connect odrzucił poświadczenia: HTTP", e.code, body)
+              if e.code == 401:
+                  print("::error::401 = klucz, Key ID i Issuer ID nie pasują do siebie. Najczęściej: w ASC_KEY_P8_BASE64 jest klucz APNs zamiast klucza App Store Connect API, albo Key ID pochodzi z innego klucza.")
+              raise SystemExit(1)
+          PY
+
+      # Uprawnienia (`aps-environment`) wchodzą do aplikacji przy podpisywaniu.
+      # Podpis w chmurze Apple robi się dopiero przy eksporcie i ustala je sam —
+      # powiadomienia pomijał, więc buildy nie odbierały alarmów (19.09.2026).
+      # Bierzemy więc od Apple własny certyfikat i profil na czas budowania;
+      # ostatni krok oddaje je z powrotem.
+      - name: Certyfikat i profil do podpisu
+        id: podpis
+        if: steps.mode.outputs.mode != 'check'
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_PATH: ${{ runner.temp }}/asc.p8
+          # Trwały certyfikat dystrybucyjny (od 21.09.2026) — patrz podpis_apple.py.
+          STALY_KLUCZ_BASE64: ${{ secrets.IOS_DIST_KEY_PEM_BASE64 }}
+          STALY_CERT_ID: ${{ secrets.IOS_DIST_CERT_ID }}
+        run: |
+          set -o pipefail
+          "$RUNNER_TEMP/venv/bin/python" skrypty/podpis_apple.py --przygotuj
+          kc="$RUNNER_TEMP/straznik.keychain-db"
+          haslo=$(cat "$RUNNER_TEMP/podpis.haslo")
+          security create-keychain -p "$haslo" "$kc"
+          security set-keychain-settings -lut 21600 "$kc"
+          security unlock-keychain -p "$haslo" "$kc"
+          security import "$RUNNER_TEMP/podpis.p12" -k "$kc" -P "$haslo" -T /usr/bin/codesign -T /usr/bin/security
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$haslo" "$kc" >/dev/null
+          # Bez dopisania do listy keychainów xcodebuild nie zobaczy certyfikatu.
+          security list-keychains -d user -s "$kc" $(security list-keychains -d user | tr -d '"')
+          echo "=== tożsamości do podpisu ==="
+          security find-identity -v -p codesigning "$kc"
+
+      - name: Archiwum podpisane certyfikatem
+        if: steps.mode.outputs.mode != 'check'
+        env:
+          TEAM: ${{ secrets.APPLE_TEAM_ID }}
+          KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ISSUER: ${{ secrets.ASC_ISSUER_ID }}
+          KEY_P8: ${{ secrets.ASC_KEY_P8_BASE64 }}
+        run: |
+          set -o pipefail
+          key="$RUNNER_TEMP/AuthKey_$KEY_ID.p8"
+          printf '%s' "$KEY_P8" | base64 --decode > "$key"
+          chmod 600 "$key"
+          # Archiwum Z podpisem w chmurze. Uprawnienia (`aps-environment`,
+          # powiadomienia czasowo zależne) wchodzą do aplikacji wyłącznie przy
+          # podpisywaniu — archiwum bez podpisu dawało build, który wygląda na sprawny,
+          # a nie odbiera żadnego alarmu (zmierzone 19.09.2026 na dwóch iPhone'ach).
+          # Archiwum podpisane certyfikatem z poprzedniego kroku. Tryb ręczny,
+          # certyfikat i nazwa profilu siedzą w pbxproj (ustawienia z wiersza poleceń
+          # rozlewają się na pakiety Firebase i kończą się „conflicting provisioning
+          # settings”).
+          # Numer builda rośnie z czasem (rrMMddGGmm) — Apple wymaga unikalnego numeru
+          build=$(date -u +%y%m%d%H%M)
+          version=$(node -p "require('./package.json').version")
+          echo "Wersja $version, build $build"
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release \
+            -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/Straznik.xcarchive" \
+            -clonedSourcePackagesDirPath "$RUNNER_TEMP/spm" \
+            OTHER_CODE_SIGN_FLAGS="--keychain=$RUNNER_TEMP/straznik.keychain-db" \
+            DEVELOPMENT_TEAM="$TEAM" MARKETING_VERSION="$version" CURRENT_PROJECT_VERSION="$build" \
+            archive 2>&1 | tee "$RUNNER_TEMP/xcodebuild.log" | grep -E "error:|ARCHIVE (SUCCEEDED|FAILED)" || true
+          grep -q "ARCHIVE SUCCEEDED" "$RUNNER_TEMP/xcodebuild.log"
+          echo "=== uprawnienia w podpisanym archiwum ==="
+          codesign -d --entitlements :- "$RUNNER_TEMP/Straznik.xcarchive/Products/Applications/App.app" 2>/dev/null || true
+      # Bramka: aplikacja bez `aps-environment` wygląda na sprawną (mapa, historia,
+      # lokalny test alarmu działają), a po cichu nie odbiera żadnego alarmu z serwera.
+      # Taki build trafił do testerów 18.09 i kosztował nas dobę szukania nie tam,
+      # gdzie trzeba — dlatego sprawdzamy PODPISANY plik, a nie nasze intencje.
+      - name: Sprawdzenie uprawnień push w podpisanym pliku
+        if: steps.mode.outputs.mode != 'check'
+        env:
+          TEAM: ${{ secrets.APPLE_TEAM_ID }}
+          KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ISSUER: ${{ secrets.ASC_ISSUER_ID }}
+          PROFIL: ${{ steps.podpis.outputs.profil_nazwa }}
+          PROFIL_NSE: ${{ steps.podpis.outputs.profil_nse_nazwa }}
+        run: |
+          set -o pipefail
+          cat > "$RUNNER_TEMP/ExportGood.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>export</string>
+            <key>teamID</key><string>$TEAM</string>
+            <key>signingStyle</key><string>manual</string>
+            <key>signingCertificate</key><string>Apple Distribution</string>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>pl.straznik.app</key><string>$PROFIL</string>
+              <key>pl.straznik.app.NotificationService</key><string>$PROFIL_NSE</string>
+            </dict>
+            <key>manageAppVersionAndBuildNumber</key><false/>
+          </dict>
+          </plist>
+          PLIST
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/Straznik.xcarchive" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportGood.plist" -exportPath "$RUNNER_TEMP/check" \
+            -authenticationKeyPath "$RUNNER_TEMP/asc.p8" -authenticationKeyID "$KEY_ID" -authenticationKeyIssuerID "$ISSUER" \
+            OTHER_CODE_SIGN_FLAGS="--keychain=$RUNNER_TEMP/straznik.keychain-db" \
+            2>&1 | tee "$RUNNER_TEMP/check.log" | grep -E "error:|EXPORT (SUCCEEDED|FAILED)" || true
+          grep -q "EXPORT SUCCEEDED" "$RUNNER_TEMP/check.log"
+          unzip -q "$(ls "$RUNNER_TEMP/check"/*.ipa | head -1)" -d "$RUNNER_TEMP/ipa"
+          app=$(ls -d "$RUNNER_TEMP/ipa/Payload"/*.app | head -1)
+          echo "=== uprawnienia PODPISANEJ aplikacji ==="
+          codesign -d --entitlements :- "$app" 2>/dev/null | tee "$RUNNER_TEMP/ent.txt"
+          # Rozszerzenie powiadomień musi BYĆ w paczce. Gdy wypadnie — zły warunek
+          # w fazie kopiowania, literówka w profilu — nic nie krzyczy: aplikacja
+          # działa, tylko alarmy znów przychodzą po polsku, a żółtego nie da się
+          # wyciszyć. Objawem byłby BRAK FUNKCJI, a nie błąd, więc pilnujemy tego
+          # tutaj — ta sama lekcja co z GROTĄ, gdzie jedynym sygnałem był rozmiar APK.
+          if [ -d "$app/PlugIns/NotificationService.appex" ]; then
+            echo "Rozszerzenie powiadomień jest w paczce."
+            codesign -d --entitlements :- "$app/PlugIns/NotificationService.appex" 2>/dev/null \
+              | tee "$RUNNER_TEMP/ent-nse.txt" || true
+            grep -q "application-groups" "$RUNNER_TEMP/ent-nse.txt" \
+              || { echo "::error::Rozszerzenie NIE ma wspólnego kontenera — nie odczyta ani języka, ani ustawienia żółtego"; exit 1; }
+          else
+            echo "::error::Brak NotificationService.appex w paczce — rozszerzenie powiadomień nie trafiło do builda"
+            exit 1
+          fi
+          grep -q "aps-environment" "$RUNNER_TEMP/ent.txt" \
+            || { echo "::error::Podpisany build NIE ma uprawnienia aps-environment — telefon nie dostanie tokenu APNs i żaden alarm nie dojdzie"; exit 1; }
+          # Uprawnienie w BINARCE to nie to samo co uprawnienie przyznane przez PROFIL —
+          # system patrzy na profil. 28.09.2026 podpisany build miał `critical-alerts`
+          # w podpisie, a telefon raportował „brak uprawnienia”, więc od teraz sprawdzamy
+          # oba miejsca i wypisujemy profil do logu.
+          echo "=== profil wbudowany w aplikację ==="
+          security cms -D -i "$app/embedded.mobileprovision" > "$RUNNER_TEMP/profil.plist" 2>/dev/null || true
+          plutil -extract Entitlements xml1 -o - "$RUNNER_TEMP/profil.plist" 2>/dev/null | tee "$RUNNER_TEMP/profil-ent.txt" || echo "nie udało się odczytać profilu"
+          plutil -extract Name raw -o - "$RUNNER_TEMP/profil.plist" 2>/dev/null || true
+          plutil -extract CreationDate raw -o - "$RUNNER_TEMP/profil.plist" 2>/dev/null || true
+          grep -q "critical-alerts" "$RUNNER_TEMP/profil-ent.txt" \
+            || { echo "::error::PROFIL podpisu nie ma critical-alerts — telefon zgłosi „brak uprawnienia”, choć binarka będzie je miała. Profil powstał przed włączeniem możliwości przy identyfikatorze?"; exit 1; }
+          grep -q "critical-alerts" "$RUNNER_TEMP/ent.txt" \
+            || { echo "::error::Podpisany build NIE ma uprawnienia critical-alerts — alarm nie przebije wyciszonego telefonu"; exit 1; }
+          grep -q "time-sensitive" "$RUNNER_TEMP/ent.txt" \
+            || echo "::warning::Brak uprawnienia time-sensitive — czerwony alarm nie przebije trybu Skupienia"
+          echo "Uprawnienia push obecne w podpisanym pliku."
+      - name: Wysyłka do TestFlight
+        if: steps.mode.outputs.mode == 'testflight'
+        env:
+          TEAM: ${{ secrets.APPLE_TEAM_ID }}
+          KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ISSUER: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          set -o pipefail
+          # Wysyłamy z ustawieniami, które przed chwilą dały plik z uprawnieniem push.
+          # Osobny zestaw ustawień mógłby podpisać inaczej i znów zgubić `aps-environment`.
+          sed 's|<string>export</string>|<string>upload</string>|' "$RUNNER_TEMP/ExportGood.plist" > "$RUNNER_TEMP/ExportOptions.plist"
+          plutil -insert uploadSymbols -bool true "$RUNNER_TEMP/ExportOptions.plist" 2>/dev/null || true
+          export OTHER_CODE_SIGN_FLAGS="--keychain=$RUNNER_TEMP/straznik.keychain-db"
+          plutil -p "$RUNNER_TEMP/ExportOptions.plist"
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/Straznik.xcarchive" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" -exportPath "$RUNNER_TEMP/export" \
+            -authenticationKeyPath "$RUNNER_TEMP/asc.p8" -authenticationKeyID "$KEY_ID" -authenticationKeyIssuerID "$ISSUER" \
+            2>&1 | tee "$RUNNER_TEMP/export.log" | grep -E "error:|EXPORT (SUCCEEDED|FAILED)|Upload" || true
+          grep -q "EXPORT SUCCEEDED" "$RUNNER_TEMP/export.log"
+          echo "Wysłano. Build pojawi się w App Store Connect → TestFlight po przetworzeniu (zwykle 5–30 min)."
+
+      - name: Log kompilacji (przy błędzie)
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: xcodebuild-log
+          path: |
+            ${{ runner.temp }}/xcodebuild.log
+            ${{ runner.temp }}/export.log
+          if-no-files-found: ignore
+          retention-days: 7
+
+      # 21.09.2026: tu był krok „Oddanie certyfikatu i profilu”, który po każdym budowaniu
+      # wycofywał certyfikat użyty do podpisu. Wycofany certyfikat unieważnia podpis —
+      # build 1.7.63 dostał przez to ITMS-90035 przy zgłoszeniu do App Store. Certyfikat
+      # jest teraz trwały i zostaje; z maszyny znika tylko pęk kluczy.
+      - name: Usunięcie pęku kluczy
+        if: always()
+        run: security delete-keychain "$RUNNER_TEMP/straznik.keychain-db" 2>/dev/null || true
+      - name: Sprzątanie kluczy
+        if: always()
+        run: rm -f "$RUNNER_TEMP"/AuthKey_*.p8 "$RUNNER_TEMP"/asc.p8 "$RUNNER_TEMP"/podpis.* ios/App/App/GoogleService-Info.plist
