@@ -17,6 +17,8 @@ OTHER_IMAGES = {"mikrus-logo.svg": (86, 14)}
 # 1.8.05: +3 zrzuty dziennika alarmów (docs/screens/1805, PL/EN/UK)
 # 1.8.07: set-alarmy PL/EN/UK zastąpione kadrami z docs/screens/1807 (data potwierdzenia
 #         zapisu do województw) — bez zmiany liczby; stare pliki 1795 zostają w repo
+# 1.8.10: places i set-miejsca PL/EN/UK zastąpione kadrami z docs/screens/1810 (pole „Powiat”,
+#         pełna lista zapisanych miejsc) — bez zmiany liczby; stare pliki 1795 zostają w repo
 EXPECTED_SHOTS = 97
 
 
