@@ -382,3 +382,12 @@ subscribed to `voiv_lubelskie`; the place was deleted afterwards and the unsubsc
 confirmed by Firebase. “Last signal from the server … 6.11.2026, 19:37:40” is the local test
 message of `FcmPathReleaseTest` from the day before, delivered through the app's own FCM
 receiver; no notification was sent to any user. Nothing in the images is retouched.
+
+Release 1.8.10 (21 November 2026): `1810/places-{pl,en,uk}.jpg` and
+`1810/set-miejsca-{pl,en,uk}.jpg` replace the 1.7.95 captures of the My places window and the
+My places section of Settings. Unchanged 1080 × 2400 screenshots of a 1.8.10 debug build
+(same web code as the release), Pixel 7 emulator, Android 14. The three places (Dom, Praca,
+Działka) and the manually chosen county were written to the emulator's local storage through
+DevTools to reach this state; the app itself rendered every element. Notifications were denied on
+the emulator and no test alerts were sent. The server was on the province track, so the window
+shows the province wording of How it works — what users see on release day.

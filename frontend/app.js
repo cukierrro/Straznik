@@ -7150,7 +7150,30 @@ function renderPlaceTabs(){
    zostaje przy województwach). Dokładna lokalizacja wypełnia powiat sama i blokuje pole —
    przy granicy pokazuje oba powiaty. Bez współrzędnych (albo z pozycją zbyt przybliżoną)
    powiat wybiera się z listy powiatów województwa z PRG; wybór zostaje na urządzeniu. */
+/* „Jak to działa” w Moich miejscach mówiło na sztywno „otrzymasz alert dla województwa”.
+   Po przełączeniu serwera na powiaty (tor „pow”) i z powiatem dla każdego miejsca
+   z alarmami telefon dostaje alert dla powiatu — wtedy tekst mówi o powiecie. W każdym
+   innym przypadku (tor „woj”, brak powiatu choć jednego miejsca, strona) zostaje
+   tekst z index.html / i18n.js, bo telefon naprawdę słucha województw. */
+function powiatyAktywne() {
+  if (torTematow() !== "pow" || !granicePowiatow || !Powiaty || alertsOff()) return false;
+  return !Powiaty.planPowiatow(granicePowiatow, savedPlaces).bezPowiatu.length;
+}
+function renderPlacesAlertModel() {
+  const el = placeEl("places-alert-model"); if (!el) return;
+  if (el.dataset.woj === undefined) el.dataset.woj = el.innerHTML;
+  if (!powiatyAktywne()) { el.innerHTML = el.dataset.woj; return; }
+  const ogon = placeText(
+    "Po jego otrzymaniu otwórz Strażnika i pozostaw na pierwszym planie — dla zapisanej dokładnej lokalizacji aplikacja lokalnie pokaże odległość i, jeśli kurs oraz prędkość na to pozwalają, orientacyjny czas dolotu.",
+    "After it arrives, open Strażnik and keep it in the foreground — for a saved exact location the app locally shows distance and, when heading and speed allow it, an estimated arrival time.",
+    "Після цього відкрийте Strażnika й тримайте його на передньому плані — для збереженого точного місця застосунок локально покаже відстань, а коли курс і швидкість це дозволяють, і орієнтовний час підльоту.");
+  el.innerHTML = `<b>${esc(placeText("Jak to działa:", "How it works:", "Як це працює:"))}</b> ` + esc(placeText(
+    "przy zamkniętej aplikacji, w tle lub zablokowanym ekranie otrzymasz alert dla powiatu tego miejsca (przy granicy powiatów — dla obu).",
+    "when the app is closed, in the background or the screen is locked, you receive an alert for this place's county (at a county border — for both).",
+    "коли застосунок закритий, у фоні або екран заблокований, ви отримуєте тривогу для повіту цього місця (біля межі повітів — для обох).")) + " " + esc(ogon);
+}
 function renderPlacePowiat(){
+  renderPlacesAlertModel();
   const row=placeEl("place-powiat-row"), sel=placeEl("place-powiat"), info=placeEl("place-powiat-info");
   if(!row||!sel)return;
   if(!IS_APP||!Powiaty||!granicePowiatow){row.hidden=true;return;}

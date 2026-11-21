@@ -22,6 +22,7 @@ Po przełączeniu:
 - Powiatu nie zgadujemy. Dopóki choć jedno miejsce z alarmami nie ma powiatu, cały telefon zostaje przy alarmach dla województw, a <kbd>Alarmy i zgody</kbd> mają przycisk <kbd>Wybierz powiat</kbd>.
 - Telefon najpierw zapisuje się do powiatów, a z województw wypisuje dopiero po potwierdzeniu przez Firebase. W chwili przejścia nie ma przerwy ani podwójnych alarmów.
 - Kilka miejsc w różnych powiatach to kilka wiadomości o tym samym zdarzeniu. Pierwsza dzwoni, kolejne tego samego poziomu w ciągu 10 minut dopisują się bez dźwięku. Wyższy poziom i ponowiony czerwony alarm dzwonią zawsze.
+- Opis „Jak to działa” w <kbd>Moich miejscach</kbd> mówi wtedy o alercie dla powiatu tego miejsca. Dopóki telefon słucha województw, zostaje dotychczasowy tekst.
 - Gdyby z alarmami dla powiatów coś poszło nie tak, serwer może jednym przełącznikiem wrócić do województw. Otwarta aplikacja sama przepisze się z powrotem, a telefon, który jeszcze tego nie zrobił (np. aplikacja zamknięta), dostaje w tym czasie alarm województwa na tematach swoich powiatów.
 
 Lokalizacja nie wychodzi z telefonu. Do Firebase trafiają tylko numery powiatów (TERYT), tak jak dotąd nazwy województw. Powiat wybrany ręcznie zostaje na urządzeniu. Polityka prywatności opisuje to od tego wydania.
