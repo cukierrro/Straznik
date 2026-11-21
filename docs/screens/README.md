@@ -394,3 +394,10 @@ the emulator and no test alerts were sent. The server was already on the county 
 permissions capture stays from 1.8.07: in this debug build the emulator never received a Firebase
 topic confirmation, so a county subscription row could not be captured honestly; the caption
 describes it in words.
+
+County map (1.8.10, 21 November 2026, evening): `1810/mapa-powiaty-{pl,en,uk}.jpg`,
+`1810/karta-powiatu-{pl,en,uk}.jpg` and `1810/set-mapa-{pl,en,uk}.jpg` (the last replaces the
+1.7.99 Map-settings capture, which had no Map division setting). Same debug build and emulator, live
+server data (no county had an alert at that time, so the map shows borders and the outline of the
+county of saved places only). The notifications-blocked warning was dismissed through the app's own
+close setting, as a user would; nothing on screen was edited.
