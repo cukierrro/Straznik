@@ -39,6 +39,17 @@
   <p class="fineprint">To see which version your phone has, open the app: <kbd>Menu</kbd> → <kbd>Settings</kbd> → <kbd>Language, text and version</kbd> → “App version”. The <kbd>⬆ Check for updates</kbd> button is right there too.</p>
 </div></header>
 <main id="content" class="wrap">
+<section id="v1-8-10">
+  <h2>1.8.10 — ready for county alerts, arrival time worked out, full list of places</h2>
+  <p class="fineprint">Release 1.8.10 · 21 November 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.8.10">Full release notes</a> (in Polish)</p>
+  <ul>
+    <li><b>County alerts:</b> the app is ready for alerts calculated for a county (powiat) instead of the whole province. We will switch them on from the server after the release; until then alerts work as before. A place without an exact location has a <kbd>County</kbd> field in <kbd>My places</kbd> (<a href="en.html#powiaty">how it works</a>).</li>
+    <li><b>My places in Settings:</b> the line lists every saved place by name, including places without alerts.</li>
+    <li><b>Arrival time:</b> the drone or missile card shows the calculation — distance, speed, report uncertainty and data delay.</li>
+    <li><b>Heading from movement:</b> calculated only after a move larger than the report's uncertainty. An object that has not approached the border for over ten minutes is marked “heading uncertain”.</li>
+    <li><b>On the server since 20 November:</b> the RCB Alert “find a safe place” on gov.pl is recognised under its new title as well; a missile far outside Poland with no heading towards a province opens red only in front-line provinces.</li>
+  </ul>
+</section>
 <section id="v1-8-09">
   <h2>1.8.09 — arrival time to saved places, fallback when NEPTUN fails</h2>
   <p class="fineprint">Release 1.8.09 · 17 November 2026 · <a href="https://github.com/cukierrro/Straznik/releases/tag/v1.8.09">Full release notes</a> (in Polish)</p>
