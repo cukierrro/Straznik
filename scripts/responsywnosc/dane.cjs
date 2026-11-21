@@ -84,7 +84,12 @@ function stan(teraz) {
   }
   return {
     notice: null, wylaczniki: {},
-    fusion: { ts: iso(teraz), window_min: 60, thresholds: { elevated: 2, high: 4 }, voivodeships },
+    // powiaty z poziomem (mapa powiatów, 1.8.10) — rzadki słownik jak z serwera
+    fusion: { ts: iso(teraz), window_min: 60, thresholds: { elevated: 2, high: 4 }, voivodeships,
+      powiaty: { "0663": { level: "high", score: 5.2, name: "powiat Lublin", woj: "lubelskie" },
+                 "0604": { level: "high", score: 6.1, name: "powiat hrubieszowski", woj: "lubelskie" },
+                 "0610": { level: "elevated", score: 2.4, name: "powiat łęczyński", woj: "lubelskie" } } },
+    tematy: "woj",
     neptun: { status: { connected: true, mode: "ws", last_msg: teraz / 1000 }, threats: obiekty(teraz),
       alert_oblasts: [], alert_areas: [{ w: "raion", k: "kovel", n: "Ковельський район", o: "Волинська область",
         l: "red", s: iso(teraz - 20 * 60000), r: "Загроза застосування БпЛА" }] },
