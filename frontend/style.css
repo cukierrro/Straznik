@@ -736,6 +736,8 @@ body.history-mode #my-banner { display: none; }
   padding: 7px 12px 7px 9px; font-size: 0.8rem; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
 }
 #my-banner b { text-transform: capitalize; }
+/* nazwa powiatu: „Powiat biłgorajski”, nie „Powiat Biłgorajski” (wielką literę daje wielkaPierwsza) */
+#my-banner b.pow-nazwa { text-transform: none; }
 #my-banner .lvl { font-size: 0.7rem; letter-spacing: .08em; }
 #my-banner .znak {
   width: 14px; height: 14px; flex: none; display: grid; place-items: center;

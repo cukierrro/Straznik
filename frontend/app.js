@@ -3322,6 +3322,29 @@ function updateVoivStates() {
   applyPodzialMapy();     // tryb wbudowany (bez serwera) przełącza mapę na województwa i z powrotem
 }
 
+/* Który powiat pokazać w wierszu „mój region” (zgłoszenie usera 21.11.2026: przy spokoju
+   pokazywał „powiat biłgorajski” — piąte miejsce — bo lista powiatów jest posortowana po
+   TERYT). Przy spokoju: powiat PIERWSZEGO miejsca (jak dotąd województwo pierwszego
+   miejsca). Przy alarmie: najwyższy poziom, potem punkty, potem kolejność miejsc. */
+function wybierzPowiatBanera(lista, kolejnosc = []) {
+  const kol = ["none", "elevated", "high"];
+  const poz = t => { const i = kolejnosc.indexOf(t); return i < 0 ? 1e6 : i; };
+  const lv = p => Math.max(0, kol.indexOf(p.level || "none"));
+  const maks = Math.max(...lista.map(lv));
+  const pula = lista.filter(p => lv(p) === maks);
+  return pula.sort((a, b) => (maks > 0 ? (+b.score || 0) - (+a.score || 0) : 0) || poz(a.terc) - poz(b.terc))[0];
+}
+/* Powiaty miejsc z alarmami w kolejności miejsc (pierwsze miejsce = „mój region”). */
+function kolejnoscPowiatowMiejsc() {
+  const out = [];
+  if (!granicePowiatow || !Powiaty) return out;
+  for (const m of savedPlaces) {
+    if (!m.alerts) continue;
+    for (const t of (Powiaty.powiatMiejsca(granicePowiatow, m)?.powiaty || [])) if (!out.includes(t)) out.push(t);
+  }
+  return out;
+}
+const wielkaPierwsza = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
 /* Karta powiatu (1.8.10): poziom i punkty powiatu, Twoje miejsca w nim i punktacja
    województwa z odnośnikiem do jego sygnałów. Powodów per powiat serwer nie publikuje —
    sygnały są te same co województwa, liczone z odległości do powiatu. */
@@ -4194,19 +4217,16 @@ function renderPanel() {
      z najwyższym poziomem (tak jak dzwoni alarm), a nie całe województwo. */
   const powBaner = histMode ? null : powiatyWStanie();
   if (powBaner?.length) {
-    const kol = ["none", "elevated", "high"];
-    const najw = powBaner.reduce((b, p) =>
-      kol.indexOf(p.level || "none") > kol.indexOf(b.level || "none")
-      || (p.level === b.level && (+p.score || 0) > (+b.score || 0)) ? p : b);
+    const najw = wybierzPowiatBanera(powBaner, kolejnoscPowiatowMiejsc());
     const lvl = najw.level || "none";
     const pkt = +najw.score || 0;
     banner.className = "level-" + lvl;
     banner.innerHTML = `<span class="znak" aria-hidden="true">${lvl === "high" ? "!" : ""}</span>`
-      + `<span><b>${esc(nazwaPowiatuMapy(najw.terc))}</b> — <span class="lvl">${
+      + `<span><b class="pow-nazwa">${esc(wielkaPierwsza(nazwaPowiatuMapy(najw.terc)))}</b> — <span class="lvl">${
         lvl === "none" ? (pkt > 0 ? UI.t("poniżej progu", "below threshold", "нижче порога") : UI.t("brak alarmu", "no alert", "немає тривоги"))
         : LEVEL_LABEL[lvl]}</span>
       <span class="muted">${pkt > 0 ? `${pktTxt(pkt)} ${UI.t("pkt", "pts", "бал.")}` : ""}${powBaner.length > 1
-        ? `${pkt > 0 ? " · " : ""}${lvl === "none"
+        ? `${pkt > 0 ? " · " : "· "}${lvl === "none"
           ? UI.t(`powiaty Twoich miejsc: ${powBaner.length}`, `counties of your places: ${powBaner.length}`, `повіти ваших місць: ${powBaner.length}`)
           : UI.t(`najwyższy z ${powBaner.length} powiatów Twoich miejsc`, `highest of ${powBaner.length} counties of your places`, `найвищий із ${powBaner.length} повітів ваших місць`)}`
         : ""}</span></span>`;
