@@ -1,9 +1,9 @@
-# Wydanie 1.8.10 — gotowość na alarmy dla powiatów, rozpisany czas dolotu, pełna lista zapisanych miejsc
+# Wydanie 1.8.10 — alarmy dla powiatów, rozpisany czas dolotu, pełna lista zapisanych miejsc
 
 versionCode 140, versionName 1.8.10. Listopad 2026. Wspólny numer dla Androida i iPhone'a.
 
 <!-- zmiany -->
-- Aplikacja jest gotowa na alarmy dla powiatów zamiast całego województwa. Włączymy je z serwera po wydaniu; do tego czasu alarmy działają jak dotąd. Miejsce bez dokładnej lokalizacji ma w „Moich miejscach” nowe pole „Powiat”.
+- Alarmy przychodzą dla powiatu zapisanego miejsca zamiast dla całego województwa. Powiat miejsca z dokładną lokalizacją telefon ustala sam; dla pozostałych miejsc wybierz go w „Moich miejscach” w nowym polu „Powiat”. Bez tego telefon zostaje przy alarmach dla województw.
 - Ustawienia → Moje miejsca wymieniają wszystkie zapisane miejsca z nazwami, także te bez alarmów.
 - Karta drona lub rakiety rozpisuje, skąd wziął się czas dolotu: odległość, prędkość, niepewność meldunku i opóźnienie danych.
 - Kurs z ruchu liczy się dopiero wtedy, gdy obiekt przesunie się dalej niż wynosi niepewność meldunku. Obiekt, który od kilkunastu minut nie zbliża się do granicy, ma dopisek „kurs niepewny”.
@@ -11,23 +11,23 @@ versionCode 140, versionName 1.8.10. Listopad 2026. Wspólny numer dla Androida 
 
 ## Alarmy dla powiatów
 
-Do tej pory telefon zapisywał się do alarmów dla całych województw. Alert z powiatu przy granicy budził więc także mieszkańców drugiego końca województwa. Wydanie 1.8.10 przygotowuje aplikację na alarmy liczone dla powiatu.
+Do tej pory telefon zapisywał się do alarmów dla całych województw. Alert z powiatu przy granicy budził więc także mieszkańców drugiego końca województwa. Od wydania 1.8.10 alarmy przychodzą dla powiatu zapisanego miejsca.
 
-**Nic nie zmienia się w dniu instalacji.** Przejście włącza serwer, osobno, po wydaniu aplikacji na Androidzie i iPhonie. Do tego czasu telefon zostaje przy województwach, a wiersz stanu w <kbd>Alarmy i zgody</kbd> wygląda jak dotąd. Starsze wersje aplikacji i strona internetowa zostają przy województwach także później.
+Serwer wysyła alarmy dla powiatów od 21 listopada 2026. Alarmy dla województw wysyła jak dotąd — dostają je starsze wersje aplikacji, strona internetowa i telefon z 1.8.10, któremu brakuje powiatu. Po aktualizacji telefon sam przepisuje się na powiaty, a wiersz stanu w <kbd>Alarmy i zgody</kbd> mówi wtedy „Zapisany do alarmów dla powiatów: …”.
 
-Po przełączeniu:
+Jak to działa:
 
 - Powiat miejsca z dokładną lokalizacją liczy sam telefon, z granic powiatów zapisanych w aplikacji. Miejsce przy granicy powiatów obserwuje oba sąsiednie.
 - Miejsce bez dokładnej lokalizacji (zakres „Województwo”, także przeniesione ze starszej wersji) albo z pozycją przybliżoną gorzej niż do 2 km dostaje powiat **wybrany ręcznie** w nowym polu <kbd>Powiat</kbd> w <kbd>Moich miejscach</kbd>. Lista obejmuje powiaty województwa miejsca; miasto na prawach powiatu jest oznaczone, np. „Lublin (miasto)” obok „powiat lubelski”. Dokładna lokalizacja ustala powiat sama i ma pierwszeństwo.
 - Powiatu nie zgadujemy. Dopóki choć jedno miejsce z alarmami nie ma powiatu, cały telefon zostaje przy alarmach dla województw, a <kbd>Alarmy i zgody</kbd> mają przycisk <kbd>Wybierz powiat</kbd>.
 - Telefon najpierw zapisuje się do powiatów, a z województw wypisuje dopiero po potwierdzeniu przez Firebase. W chwili przejścia nie ma przerwy ani podwójnych alarmów.
 - Kilka miejsc w różnych powiatach to kilka wiadomości o tym samym zdarzeniu. Pierwsza dzwoni, kolejne tego samego poziomu w ciągu 10 minut dopisują się bez dźwięku. Wyższy poziom i ponowiony czerwony alarm dzwonią zawsze.
-- Opis „Jak to działa” w <kbd>Moich miejscach</kbd> mówi wtedy o alercie dla powiatu tego miejsca. Dopóki telefon słucha województw, zostaje dotychczasowy tekst.
+- Opis „Jak to działa” w <kbd>Moich miejscach</kbd> mówi o alercie dla powiatu tego miejsca. Gdy telefon słucha województw (brak powiatu, alarmy wyłączone), zostaje dotychczasowy tekst.
 - Gdyby z alarmami dla powiatów coś poszło nie tak, serwer może jednym przełącznikiem wrócić do województw. Otwarta aplikacja sama przepisze się z powrotem, a telefon, który jeszcze tego nie zrobił (np. aplikacja zamknięta), dostaje w tym czasie alarm województwa na tematach swoich powiatów.
 
 Lokalizacja nie wychodzi z telefonu. Do Firebase trafiają tylko numery powiatów (TERYT), tak jak dotąd nazwy województw. Powiat wybrany ręcznie zostaje na urządzeniu. Polityka prywatności opisuje to od tego wydania.
 
-Na serwerze model powiatów liczy się w tle od 18 listopada 2026, bez wysyłania powiadomień. Odtworzenie nalotu z rana 20 listopada 2026 dało czerwony we wszystkich 42 powiatach, do których RCB wysłało tego ranka „znajdź bezpieczne miejsce”, bez opóźnienia względem województw.
+Zanim alarmy dla powiatów poszły do ludzi, model liczył się w tle od 18 listopada 2026, bez wysyłania powiadomień, a od 21 listopada przed wydaniem sprawdzaliśmy go na telefonie autora na prawdziwych alarmach. Odtworzenie nalotu z rana 20 listopada 2026 dało czerwony we wszystkich 42 powiatach, do których RCB wysłało tego ranka „znajdź bezpieczne miejsce”, bez opóźnienia względem województw.
 
 ## Ustawienia → Moje miejsca: pełna lista
 
