@@ -1,9 +1,10 @@
-# Wydanie 1.8.10 — alarmy dla powiatów, rozpisany czas dolotu, pełna lista zapisanych miejsc
+# Wydanie 1.8.10 — alarmy i mapa powiatów, rozpisany czas dolotu, pełna lista zapisanych miejsc
 
 versionCode 140, versionName 1.8.10. Listopad 2026. Wspólny numer dla Androida i iPhone'a.
 
 <!-- zmiany -->
 - Alarmy przychodzą dla powiatu zapisanego miejsca zamiast dla całego województwa. Powiat miejsca z dokładną lokalizacją telefon ustala sam; dla pozostałych miejsc wybierz go w „Moich miejscach” w nowym polu „Powiat”. Bez tego telefon zostaje przy alarmach dla województw.
+- Mapa pokazuje powiaty: kolor i wysokość to poziom powiatu, dotknięcie otwiera kartę powiatu. Ustawienia → Mapa → „Podział mapy” przełącza na województwa.
 - Ustawienia → Moje miejsca wymieniają wszystkie zapisane miejsca z nazwami, także te bez alarmów.
 - Karta drona lub rakiety rozpisuje, skąd wziął się czas dolotu: odległość, prędkość, niepewność meldunku i opóźnienie danych.
 - Kurs z ruchu liczy się dopiero wtedy, gdy obiekt przesunie się dalej niż wynosi niepewność meldunku. Obiekt, który od kilkunastu minut nie zbliża się do granicy, ma dopisek „kurs niepewny”.
@@ -28,6 +29,19 @@ Jak to działa:
 Lokalizacja nie wychodzi z telefonu. Do Firebase trafiają tylko numery powiatów (TERYT), tak jak dotąd nazwy województw. Powiat wybrany ręcznie zostaje na urządzeniu. Polityka prywatności opisuje to od tego wydania.
 
 Zanim alarmy dla powiatów poszły do ludzi, model liczył się w tle od 18 listopada 2026, bez wysyłania powiadomień, a od 21 listopada przed wydaniem sprawdzaliśmy go na telefonie autora na prawdziwych alarmach. Odtworzenie nalotu z rana 20 listopada 2026 dało czerwony we wszystkich 42 powiatach, do których RCB wysłało tego ranka „znajdź bezpieczne miejsce”, bez opóźnienia względem województw.
+
+## Mapa powiatów
+
+Skoro alarm przychodzi dla powiatu, mapa województw przestała mówić to samo co telefon: całe województwo potrafiło świecić na czerwono, a alarm dotyczył jednego powiatu albo żadnego z Twoich. Od 1.8.10 mapa domyślnie pokazuje **powiaty**, w aplikacji i na stronie:
+
+- Kolor i wysokość bryły to poziom i punkty powiatu — ten sam, z którego aplikacja wysyła alarmy. Cienkie linie to granice powiatów, grubsze — województw.
+- Dotknięcie powiatu otwiera jego kartę: poziom i punkty, Twoje miejsca w tym powiecie, punktacja województwa i przycisk <kbd>Sygnały województwa</kbd>.
+- W aplikacji z alarmami dla powiatów wiersz nad dolnym paskiem pokazuje powiat Twoich miejsc z najwyższym poziomem, a mapa obrysowuje Twoje powiaty.
+- <kbd>Menu</kbd> → <kbd>Ustawienia</kbd> → <kbd>Mapa</kbd> → <kbd>Podział mapy</kbd> przełącza na <b>Województwa</b> — widok punktacji województw jak do wersji 1.8.09. Punkty województw są zawsze w panelu Sygnały.
+- Historia koloruje powiaty z wybranej chwili: serwer zapisuje je w każdej migawce od 21 listopada 2026. Dla wcześniejszych chwil karta powiatu mówi, że zapisu nie ma.
+- Bez połączenia z serwerem (tryb wbudowany) mapa pokazuje województwa — poziomy powiatów liczy tylko serwer.
+
+Granice: Państwowy Rejestr Granic (GUGiK), stan z 10 listopada 2026, uproszczone do rysowania tak, żeby sąsiednie powiaty nie rozchodziły się na mapie (średnio ok. 0,8 km od prawdziwej granicy). Do ustalania powiatu miejsca telefon używa osobnych, dokładniejszych granic.
 
 ## Ustawienia → Moje miejsca: pełna lista
 

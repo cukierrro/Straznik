@@ -7,7 +7,7 @@
 Serwer: **hostowane na [Mikrusie](https://mikr.us)** — dziękujemy za wsparcie projektu.
 
 Wersja 1.8.10: alarmy dla powiatów zapisanych miejsc zamiast całych województw (miejsce bez
-dokładnej lokalizacji dostaje ręcznie wybrany powiat); ustawienia wymieniają wszystkie zapisane miejsca;
+dokładnej lokalizacji dostaje ręcznie wybrany powiat) i mapa powiatów z kartą powiatu; ustawienia wymieniają wszystkie zapisane miejsca;
 karta obiektu rozpisuje rachunek czasu dolotu, a kurs z ruchu liczy się dopiero ponad niepewnością meldunku.
 Szczegóły: `docs/RELEASE_1.8.10.md`.
 

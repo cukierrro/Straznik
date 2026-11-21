@@ -192,6 +192,8 @@ const buf = {
   // od 10.10.2026 srvRecord zapisuje też strefy z tej chwili, a seedBundle
   // definicje stref z paczki — tu bez stref (null = nie znamy bieżących)
   zonesData: null, srvZoneDefs: {},
+  // od 1.8.10 srvRecord dopisuje powiaty z poziomem, ale nie w trybie wbudowanym
+  standalone: false,
 };
 let ZEGAR = Date.UTC(2026, 8, 19, 17, 0, 0);
 function FakeDate(x) { return new Date(x); }
@@ -208,6 +210,11 @@ ZEGAR += 60000;
 buf.srvRecord(stan);                        // druga, minutę później
 const ile = () => vm.runInContext('srvSnaps.length', buf);
 assert.equal(ile(), 2, 'nagrywa migawkę co minutę');
+// 1.8.10: migawka niesie powiaty z poziomem — pole zawsze, także puste (mapa powiatów w historii)
+assert.deepEqual(JSON.parse(vm.runInContext('JSON.stringify(srvSnaps[1].powiaty)', buf)), {},
+  'migawka bez alarmu w powiatach ma pusty słownik, nie brak pola');
+buf.srvRecord({ ...stan, fusion: { voivodeships: {}, powiaty: { '0663': { level: 'high', score: 5 } } } });
+assert.equal(ile(), 2, 'w tej samej minucie nie dokłada migawki');
 assert.equal(buf.needSeed(), false, 'ciągły zapis nie wymaga dociągania');
 
 ZEGAR += 60 * 60000;                        // godzina w tle — nic się nie nagrało

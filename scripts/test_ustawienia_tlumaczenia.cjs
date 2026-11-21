@@ -143,6 +143,16 @@ test('nagłówki h3 nie rozjechały się po indeksie', () => {
   }
   // 16.10.2026 (1.7.96): nowa sekcja „Mapa” z nagłówkiem #trail-head (przeniesionym
   // z „Język, tekst i wersja”); nagłówek tłumaczy trailSection po id, nie po kolejności.
-  assert.deepEqual(h3.slice(0, 5), ['alarmy', 'miejsca', 'dzwiek', 'mapa', 'aplikacja'],
+  // 21.11.2026 (1.8.10): „Podział mapy” (#podzial-head) na górze sekcji Mapa — drugi
+  // nagłówek tej sekcji; tłumaczony po id (trailSection i blok ukraiński).
+  assert.deepEqual(h3.slice(0, 5), ['alarmy', 'miejsca', 'dzwiek', 'mapa', 'mapa'],
     'zmieniła się liczba lub kolejność nagłówków h3 w panelach ustawień:\n  ' + h3.join(', '));
+  // Mocniej niż kolejność: KAŻDY nagłówek w sekcjach ustawień ma id i to id występuje
+  // w i18n.js — tłumaczenie po identyfikatorze nie rozjedzie się przy nowym nagłówku.
+  for (const sek of sekcje())
+    for (const h of sek[0].matchAll(/<h3([^>]*)>/g)) {
+      const id = (/id="([^"]+)"/.exec(h[1]) || [])[1];
+      assert.ok(id, `nagłówek h3 bez id w sekcji ${sek[1]}`);
+      assert.ok(I18N.includes(`"${id}"`), `nagłówek #${id} (sekcja ${sek[1]}) nie ma tłumaczenia po id w i18n.js`);
+    }
 });
