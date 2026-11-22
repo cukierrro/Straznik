@@ -179,7 +179,14 @@ console.log('\n5d. Pigułka przewijana między powiatami miejsc (user 22.11.2026
     'powiaty bez poziomu biorą punkty z `powiaty_pkt` (serwer od 1.8.11)');
   ok(/const pktPonizej = histMode \? null : state\?\.fusion\?\.powiaty_pkt\?\.\[terc\];/.test(app), 'karta powiatu na żywo też pokazuje punkty poniżej progu');
   const css = fs.readFileSync(path.join(ROOT, 'frontend', 'style.css'), 'utf8');
-  ok(/#my-banner \.ban-strz \{[^}]*width: 24px; height: 28px;/.test(css), 'pole dotyku strzałki co najmniej 24 px');
+  {
+    // pole dotyku = przycisk + ::after z ujemnym inset (Apple HIG 44 pt; uwaga sesji iOS 22.11.2026)
+    const w = +(css.match(/#my-banner \.ban-strz \{[^}]*width: (\d+)px;/) || [])[1];
+    const h = +(css.match(/#my-banner \.ban-strz \{[^}]*height: (\d+)px;/) || [])[1];
+    const ins = css.match(/#my-banner \.ban-strz::after \{[^}]*position: absolute; inset: -(\d+)px -(\d+)px;/);
+    ok(/#my-banner \.ban-strz \{[^}]*position: relative;/.test(css) && ins && w + 2 * +ins[2] >= 44 && h + 2 * +ins[1] >= 44,
+      `pole dotyku strzałki co najmniej 44×44 px (${w}+2·${ins?.[2]} × ${h}+2·${ins?.[1]})`);
+  }
   ok(/prefers-reduced-motion: reduce\) \{ #my-banner \.ban-tresc \{ animation: none !important; \} \}/.test(css), 'bez animacji wjazdu przy ograniczonym ruchu');
 }
 
