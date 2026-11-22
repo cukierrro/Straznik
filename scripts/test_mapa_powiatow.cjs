@@ -22,9 +22,11 @@
 const fs = require('fs');
 const path = require('path');
 const ROOT = path.resolve(__dirname, '..');
-const app = fs.readFileSync(path.join(ROOT, 'frontend', 'app.js'), 'utf8');
-const html = fs.readFileSync(path.join(ROOT, 'frontend', 'index.html'), 'utf8');
-const i18n = fs.readFileSync(path.join(ROOT, 'frontend', 'i18n.js'), 'utf8');
+// Końce linii: checkout na Windows (core.autocrlf) zapisuje pliki z CRLF, a testy szukają
+// fragmentów z \n — 22.11.2026 test padł tylko przez to, po `git checkout` app.js
+const app = fs.readFileSync(path.join(ROOT, 'frontend', 'app.js'), 'utf8').replace(/\r\n/g, '\n');
+const html = fs.readFileSync(path.join(ROOT, 'frontend', 'index.html'), 'utf8').replace(/\r\n/g, '\n');
+const i18n = fs.readFileSync(path.join(ROOT, 'frontend', 'i18n.js'), 'utf8').replace(/\r\n/g, '\n');
 const plikMapy = path.join(ROOT, 'frontend', 'assets', 'powiaty-mapa-v1.geojson');
 const mapa = JSON.parse(fs.readFileSync(plikMapy, 'utf8'));
 const telefon = JSON.parse(fs.readFileSync(path.join(ROOT, 'frontend', 'assets', 'powiaty-telefon-v1.json'), 'utf8'));
