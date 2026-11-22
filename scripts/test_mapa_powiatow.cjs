@@ -160,6 +160,25 @@ console.log('\n5b. Start bez „mignięcia” województw (zgłoszenie usera 22.
   ok(gr > 0 && odlozone > gr, 'granice telefonu wczytywane od razu (nie po 2,5 s) i potem przerysowanie wiersza „mój region”');
 }
 
+console.log('\n5c. Historia w widoku powiatów (user 22.11.2026, do 1.8.11)');
+{
+  const od3 = app.indexOf('function najwyzszyPowiatHistorii(');
+  const do3 = app.indexOf('/* Powiaty miejsc z alarmami w kolejności miejsc');
+  ok(od3 > 0 && do3 > od3, 'funkcja wyboru powiatu do wiersza pod suwakiem stoi w app.js');
+  const naj = new Function(app.slice(od3, do3) + '\nreturn najwyzszyPowiatHistorii;')();
+  ok(naj({}) === null && naj(undefined) === null, 'brak powiatów z alarmem (albo migawka bez zapisu) — null, wiersz jak dotąd');
+  ok(naj({ '0663': { level: 'none', score: 1.2 } }) === null, 'punkty poniżej progu to nie alarm');
+  const r = naj({ '0610': { level: 'elevated', score: 3 }, '0604': { level: 'high', score: 5 }, '0663': { level: 'high', score: 6.5 } });
+  ok(r.terc === '0663' && r.level === 'high' && r.wiecej === 2, 'najwyższy poziom, potem punkty; liczba pozostałych z alarmem');
+  ok(/const powNaj = mapaPowiatow\(\) \? najwyzszyPowiatHistorii\(snap\?\.powiaty\) : null;/.test(app),
+    'wiersz pod suwakiem bierze powiat tylko w widoku powiatów');
+  ok(/\(powNaj\s*\n\s*\? `<b style/.test(app), 'gdy powiat miał alarm, wiersz zaczyna się od niego, inaczej województwo jak dotąd');
+  ok(/histWoj = Object\.fromEntries\(ALL_VOIVS\.map\(v => \[v, \{ score: perVoiv\[v\] \|\| 0, level: poziomHist\(v, perVoiv\[v\] \|\| 0\) \}\]\)\);/.test(app),
+    'historia zapamiętuje punkty i poziom województw z wybranej chwili');
+  ok(/const vst = histMode \? \(histWoj\?\.\[woj\] \|\| null\) : state\?\.fusion\?\.voivodeships\?\.\[woj\];/.test(app),
+    'karta powiatu w historii podaje województwo z tamtej chwili (punkty i poziom)');
+}
+
 console.log('\n6. Ustawienie i tłumaczenia');
 ok(/<select id="set-podzial">\s*<option value="pow">Powiaty<\/option>\s*<option value="woj">Województwa<\/option>/.test(html),
   'Ustawienia → Mapa: „Powiaty” pierwsze (domyślne), „Województwa”');

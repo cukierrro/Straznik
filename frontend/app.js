@@ -810,6 +810,7 @@ function podzialMapy() {
 let powGeo = null;              // GeoJSON powiatów do rysowania (wczytany przy starcie mapy)
 let powStanyMapy = new Set();   // TERYT z ustawionym feature-state — do wyczyszczenia przy zmianie
 let powHistoria = null;         // `powiaty` migawki wybranej suwakiem (null = migawka bez zapisu)
+let histWoj = null;             // {woj: {score, level}} z wybranej chwili — karta powiatu w historii
 function mapaPowiatow() { return podzialMapy() === "pow" && !!powGeo && !standalone; }
 function powCecha(terc) { return powGeo?.features?.find(f => f.properties.t === terc) || null; }
 /* „Lublin” (miasto na prawach powiatu) albo „powiat lubelski” — z samego pliku mapy,
@@ -3343,6 +3344,15 @@ function wybierzPowiatBanera(lista, kolejnosc = []) {
   const pula = lista.filter(p => lv(p) === maks);
   return pula.sort((a, b) => (maks > 0 ? (+b.score || 0) - (+a.score || 0) : 0) || poz(a.terc) - poz(b.terc))[0];
 }
+/* Powiat z najwyższym poziomem w migawce historii (rzadki słownik `powiaty`): poziom, potem
+   punkty. null, gdy żaden nie miał żółtego ani czerwonego. `wiecej` — ile jeszcze z alarmem. */
+function najwyzszyPowiatHistorii(pw) {
+  const kol = ["none", "elevated", "high"];
+  const lista = Object.entries(pw || {}).map(([terc, p]) => ({ terc, level: p?.level || "none", score: +p?.score || 0 }))
+    .filter(p => p.level === "elevated" || p.level === "high")
+    .sort((a, b) => kol.indexOf(b.level) - kol.indexOf(a.level) || b.score - a.score || a.terc.localeCompare(b.terc));
+  return lista.length ? { ...lista[0], wiecej: lista.length - 1 } : null;
+}
 /* Powiaty miejsc z alarmami w kolejności miejsc (pierwsze miejsce = „mój region”). */
 function kolejnoscPowiatowMiejsc() {
   const out = [];
@@ -3372,7 +3382,9 @@ function openPowCard(terc) {
   const moje = IS_APP && granicePowiatow && Powiaty
     ? savedPlaces.filter(m => m.alerts && Powiaty.powiatMiejsca(granicePowiatow, m)?.powiaty?.includes(terc)).map(m => m.name)
     : [];
-  const vst = histMode ? null : state?.fusion?.voivodeships?.[woj];
+  // 22.11.2026 (user): w historii karta podawała samą nazwę województwa — punkty i poziom
+  // bierzemy z wybranej chwili (histWoj), na żywo z bieżącego stanu
+  const vst = histMode ? (histWoj?.[woj] || null) : state?.fusion?.voivodeships?.[woj];
   const wojLinia = vst
     ? `${UI.t("Województwo", "Province", "Воєводство")} ${esc(UI.voiv(woj))}: ${
         vst.level === "none" ? UI.t("brak alarmu", "no alert", "немає тривоги") : LEVEL_LABEL[vst.level]}, ${pktTxt(vst.score)} ${UI.t("pkt", "pts", "бал.")}`
@@ -6781,6 +6793,12 @@ function showHistoryAt(idx) {
      (zgłoszenie czytelnika 24.09.2026). Zapas na starsze dane bez `levels`. */
   const poziomHist = (v, sc) => h?.levels?.[v]
     || (sc >= 4 ? "high" : sc >= 2 ? "elevated" : "none");
+  histWoj = Object.fromEntries(ALL_VOIVS.map(v => [v, { score: perVoiv[v] || 0, level: poziomHist(v, perVoiv[v] || 0) }]));
+  /* Widok powiatów (22.11.2026, user): gdy w tej chwili jakiś powiat miał żółty albo czerwony,
+     wiersz pod suwakiem zaczyna się od powiatu z najwyższym poziomem — tak, jak liczy się alarm.
+     Bez alarmu w powiatach (albo w widoku województw, albo migawka sprzed zapisu powiatów)
+     zostaje dotychczasowe: województwo z najwyższą punktacją. */
+  const powNaj = mapaPowiatow() ? najwyzszyPowiatHistorii(snap?.powiaty) : null;
   // poziom w wybranym momencie — kolor kciuka suwaka i podsumowanie
   const tp = timelinePoints[idx];
   const slider = document.getElementById("tb-slider");
@@ -6788,7 +6806,11 @@ function showHistoryAt(idx) {
   // liczba sygnałów jest klikalna: bez tego widać „12 sygnałów w oknie”, ale nie
   // sposób sprawdzić, jakie to były — a to najciekawsza część historii
   document.getElementById("tb-info").innerHTML =
-    (tp && tp.score > 0
+    (powNaj
+      ? `<b style="color:${powNaj.level === "high" ? "var(--red)" : "var(--amber)"}">`
+        + `${LEVEL_LABEL[powNaj.level]} · ${esc(nazwaPowiatuMapy(powNaj.terc))}${powNaj.wiecej
+          ? ` ${UI.t(`(+${powNaj.wiecej} pow.)`, `(+${powNaj.wiecej} counties)`, `(+${powNaj.wiecej} пов.)`)}` : ""}</b> · `
+      : tp && tp.score > 0
       ? `<b style="color:${tp.level === "high" ? "var(--red)"
           : tp.level === "elevated" ? "var(--amber)" : "var(--muted)"}">`
         + `${pktTxt(tp.score)} ${UI.t("pkt", "pts", "бал.")}${tp.voiv ? ` · ${UI.t("woj.", "province", "воєв.")} ` + esc(UI.voiv(tp.voiv)) : ""}</b> · `
