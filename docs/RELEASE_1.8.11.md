@@ -1,11 +1,12 @@
 # Wydanie 1.8.11 — pigułka „mój region” z punktami i przewijaniem, mapa od razu z powiatami, historia w widoku powiatów
 
-versionCode 141, versionName 1.8.11. 22 listopada 2026. Wspólny numer dla Androida i iPhone'a.
+versionCode 142, versionName 1.8.11. 22 listopada 2026. Wspólny numer dla Androida i iPhone'a. (Kod 141 był wgrany do Google Play bez poprawki komunikatu zapisu miejsca i nie został wydany.)
 
 <!-- zmiany -->
 - Pigułka nad dolnym paskiem zawsze pokazuje punkty powiatu, także poniżej progu, jak wcześniej punkty województwa. Przy kilku powiatach Twoich miejsc strzałki po bokach albo przesunięcie palcem pokazują kolejny powiat.
 - Po uruchomieniu mapa od razu pokazuje powiaty, bez chwilowego widoku województw.
 - Historia w widoku powiatów: wiersz pod suwakiem zaczyna się od powiatu z najwyższym poziomem, a karta powiatu podaje punkty województwa z tamtej chwili.
+- Zapis miejsca mówi, czego brakuje: nazwy, województwa albo jednorazowej pozycji, i jak to naprawić.
 <!-- /zmiany -->
 
 ## Pigułka „mój region”: punkty powiatu i wszystkie Twoje powiaty
@@ -32,3 +33,9 @@ Po uruchomieniu aplikacji mapa przez chwilę pokazywała województwa, z obrysem
 - Dotknięcie powiatu otwiera jego kartę i nie zmienia wiersza pod suwakiem. Wiersz opisuje całą chwilę.
 
 Powiaty są w historii od 21 listopada 2026. Dla wcześniejszych chwil karta powiatu mówi, że zapisu nie ma.
+
+## Zapis miejsca: komunikat mówi, czego brakuje
+
+Zgłoszenie z 22 listopada 2026 (telefon Vivo Y33s): nie dało się zapisać żadnego nowego miejsca, a aplikacja odpowiadała „Uzupełnij nazwę i wybraną lokalizację”, choć nazwa była wpisana, a powiat wybrany. Ten jeden komunikat pokrywał trzy różne braki: nazwy, województwa albo jednorazowej pozycji przy zakresie „Województwo + jednorazowa lokalizacja”. Przy wpisanej nazwie zostaje ten ostatni: zakres z lokalizacją wymaga pobrania pozycji, a gdy telefon jej nie poda (lokalizacja wyłączona, brak zgody dla Strażnika), zapis się nie uda.
+
+Teraz każdy brak ma własny komunikat, a kursor przechodzi do właściwego pola. Przy braku pozycji komunikat wskazuje przycisk <kbd>◎ Pobierz pozycję jeden raz</kbd> i napis „Zapisano jednorazowo”, którego trzeba się spodziewać, a jeśli pozycji nie da się pobrać — radzi zmienić zakres na „Województwo” i wybrać powiat z listy. Na stronie internetowej, gdzie pola „Powiat” nie ma, końcówka o powiecie się nie pokazuje.
