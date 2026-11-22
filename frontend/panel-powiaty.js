@@ -120,7 +120,10 @@
   }, { passive: true });
   strony.addEventListener("touchend", e => {
     if (x0 == null) return;
-    const dx = e.changedTouches[0].clientX - x0;
+    const dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0;
+    // szybki ruch na wolnym urządzeniu potrafi przyjść bez ani jednego touchmove (emulator,
+    // 22.11.2026: touchstart → touchend) — wtedy kierunek rozstrzygamy na końcu gestu
+    if (poziomy === null) poziomy = Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy);
     const szybki = Math.abs(dx) > 30 && Date.now() - t0 < 300;
     tor.style.transition = "";
     if (poziomy && (Math.abs(dx) > strony.clientWidth * 0.15 || szybki)) ustawStrone(strona + (dx < 0 ? 1 : -1), { zapisz: true });
@@ -138,11 +141,13 @@
     const pkt = histMode ? {} : (state?.fusion?.powiaty_pkt || {});
     const p = zrodlo[t];
     return p ? { terc: t, level: p.level || "none", score: +p.score || 0, woj: p.woj || powCecha(t)?.properties?.w }
-      : { terc: t, level: "none", score: +pkt[t] || 0, woj: powCecha(t)?.properties?.w };
+      // historia zapisuje tylko powiaty z poziomem — punktów poniżej progu z tamtej chwili
+      // nie znamy, więc bez liczby (nie „0,0 pkt”, które mogłoby być nieprawdą)
+      : { terc: t, level: "none", score: histMode ? null : (+pkt[t] || 0), woj: powCecha(t)?.properties?.w };
   }
   const nazwa = t => { const n = nazwaPowiatuMapy(t); return n ? n.charAt(0).toUpperCase() + n.slice(1) : t; };
   const poziomTxt = p => p.level === "none"
-    ? (p.score > 0 ? t3("poniżej progu", "below threshold", "нижче порога") : t3("brak alarmu", "no alert", "немає тривоги"))
+    ? ((p.score || 0) > 0 ? t3("poniżej progu", "below threshold", "нижче порога") : t3("brak alarmu", "no alert", "немає тривоги"))
     : LEVEL_LABEL[p.level];
   const kolejnosc = (a, b) => KOL.indexOf(b.level) - KOL.indexOf(a.level) || b.score - a.score;
 
@@ -169,7 +174,7 @@
   function sygnalyHTML(p) {
     if (histMode) return `<p class="fineprint">${t3("Sygnały powiatu są tylko na żywo. W historii zobaczysz sygnały województwa.", "County signals are only live. In history you can see the province signals.", "Сигнали повіту лише наживо. В історії видно сигнали воєводства.")}</p>`
       + przyciskWoj(p);
-    if (p.score <= 0) return `<p class="fineprint">${t3("Żaden sygnał nie daje teraz temu powiatowi punktów.", "No signal gives this county points right now.", "Зараз жоден сигнал не дає цьому повіту балів.")}</p>`;
+    if (!(p.score > 0)) return `<p class="fineprint">${t3("Żaden sygnał nie daje teraz temu powiatowi punktów.", "No signal gives this county points right now.", "Зараз жоден сигнал не дає цьому повіту балів.")}</p>`;
     if (!state?.pow_v) return `<p class="fineprint">${t3("Serwer nie podaje jeszcze sygnałów powiatu.", "The server does not provide county signals yet.", "Сервер ще не надає сигнали повіту.")}</p>` + przyciskWoj(p);
     if (!rozbicie || rozbicieV !== state.pow_v) {
       pobierzRozbicie();
@@ -197,7 +202,7 @@
         <span class="pp-znak" aria-hidden="true">${p.level === "high" ? "!" : ""}</span>
         <span class="pp-pow-nazwa">${esc(nazwa(p.terc))}
           <span class="pp-pow-poziom"><span class="pp-woj">${esc(UI.voiv(p.woj || ""))}</span> · ${poziomTxt(p)}</span></span>
-        <span class="pp-pow-pkt">${pktTxt(p.score)} ${t3("pkt", "pts", "бал.")}</span>
+        <span class="pp-pow-pkt">${p.score == null ? "" : `${pktTxt(p.score)} ${t3("pkt", "pts", "бал.")}`}</span>
       </button>
       ${otw ? `<div class="pp-pow-syg">${sygnalyHTML(p)}</div>` : ""}
     </div>`;

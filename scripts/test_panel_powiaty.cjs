@@ -37,6 +37,8 @@ ok(/if \(histMode\) return `<p class="fineprint">/.test(syg), 'w historii bez ro
 ok(/const dostepne = \(\) => !\(typeof standalone !== "undefined" && standalone\);/.test(mod)
   && /if \(!dost\) \{ strona = 1; ustawStrone\(1\); return; \}/.test(mod), 'bez serwera (tryb wbudowany) panel zostaje przy województwach');
 ok(/histMode \? \(powHistoria \|\| \{\}\) : \(state\?\.fusion\?\.powiaty \|\| \{\}\)/.test(mod), 'historia bierze powiaty z migawki, na żywo ze stanu');
+ok(/score: histMode \? null : \(\+pkt\[t\] \|\| 0\)/.test(mod) && /p\.score == null \? "" :/.test(mod),
+  'w historii powiat bez poziomu bez liczby punktów (migawka ich nie zapisuje — nie „0,0 pkt”)');
 
 console.log('\n3. Strony, gest, dostępność');
 ok(/podzialMapy\(\) === "woj" \? 1 : 0/.test(mod), 'strona startowa idzie za podziałem mapy');
@@ -44,6 +46,8 @@ ok(/\.pp-strony \{[^}]*touch-action: pan-y;/.test(css), 'pion przewija się naty
 ok(/Math\.abs\(dx\) > strony\.clientWidth \* 0\.15 \|\| szybki/.test(mod) && /Math\.abs\(dx\) > 30 && Date\.now\(\) - t0 < 300/.test(mod),
   'przeskok po 15% szerokości albo po szybkim ruchu (na emulatorze natywne przewijanie łapało tylko wolny)');
 ok(/poziomy = Math\.abs\(dx\) > Math\.abs\(dy\)/.test(mod), 'kierunek gestu rozstrzygany na początku — ruch w pionie nie przełącza strony');
+ok(/if \(poziomy === null\) poziomy = Math\.abs\(dx\) > 8 && Math\.abs\(dx\) > Math\.abs\(dy\);/.test(mod),
+  'gest bez touchmove (szybki ruch na wolnym urządzeniu) też przełącza — kierunek z końca gestu');
 ok(/sPow\.toggleAttribute\("inert"/.test(mod) && /sWoj\.toggleAttribute\("inert"/.test(mod), 'niewidoczna strona poza klawiaturą i czytnikiem ekranu');
 ok(/role="tablist"/.test(mod) && /role="tab"/.test(mod) && /role="tabpanel"/.test(mod) && /ArrowLeft/.test(mod), 'wzorzec zakładek: role i strzałki klawiatury');
 for (const [sel, opis] of [['.pp-zakl', 'zakładka'], ['.pp-strz', 'strzałka'], ['.pp-grupa-head', 'grupa województwa']]) {

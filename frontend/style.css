@@ -2351,6 +2351,10 @@ html.tekst-duzy #licznik-okno .lk-opis { grid-column: 1 / -1; }
 .pp-strona { flex: 0 0 50%; width: 50%; min-width: 0; }
 .pp-strona > .pp-sekcja { margin-bottom: 8px; }
 .pp-strona > .hist-banner { margin-bottom: 8px; }
+/* pasek historii w panelu leży wprost na mapie (panel jest przezroczysty, tło mają sekcje) —
+   przy samym 12% bursztynu prześwitywały przez niego napisy mapy (zrzut 1.8.12) */
+#panel .hist-banner { background: linear-gradient(rgba(255,176,32,.12), rgba(255,176,32,.12)), var(--panel);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
 /* szeroki ekran: panel rośnie, obie strony obok siebie, bez zakładek */
 #panel.pp-szeroki { width: 720px; }
 #panel.pp-szeroki .pp-gora { display: none; }
