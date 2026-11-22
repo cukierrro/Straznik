@@ -4345,6 +4345,8 @@ function renderPanel() {
   document.getElementById("signal-list").innerHTML = sigList(sigs);
   document.getElementById("signal-unscored").innerHTML = unscoredHTML(state);
   renderObservationLists(state);
+  // strona „Powiaty” panelu (panel-powiaty.js, 1.8.12)
+  if (typeof window.rysujPanelPowiatow === "function") window.rysujPanelPowiatow();
 }
 
 /* Zasięg obu list obiektów w panelu — ta sama liczba w nagłówku sekcji. */
@@ -7000,6 +7002,8 @@ function renderHistoryPanel(sigs, perVoiv, when, ageMin,
       if (open) histZwiniete.delete(el.dataset.voiv); else histZwiniete.add(el.dataset.voiv);
       el.querySelector(".voiv-head")?.setAttribute("aria-expanded", String(open));
     }));
+  // strona „Powiaty” w historii — powiaty z wybranej chwili (panel-powiaty.js, 1.8.12)
+  if (typeof window.rysujPanelPowiatow === "function") window.rysujPanelPowiatow();
 }
 
 document.getElementById("btn-history").onclick = () => toggleHistory();

@@ -2318,3 +2318,89 @@ html.tekst-duzy #licznik-okno .lk-opis { grid-column: 1 / -1; }
   font: 700 0.7667rem/1 "Segoe UI", system-ui, sans-serif; font-variant-numeric: tabular-nums; white-space: nowrap;
   color: #2a1a00; background: #ffb020; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5); pointer-events: none; }
 .w12-wartosc.w-prawo { transform: translate(8px, -50%); }
+
+/* ── panel Sygnały: strony „Powiaty” i „Województwa” (1.8.12, panel-powiaty.js) ──
+   Wygląd z pierwszego prototypu (decyzja usera 22.11.2026: „zostaniemy przy tym”).
+   Strony leżą obok siebie na torze przesuwanym transformacją — gest obsługuje skrypt,
+   bo natywne przewijanie w poziomie łapało na emulatorze tylko wolny ruch. */
+#pp { display: flex; flex-direction: column; gap: 6px; }
+.pp-gora { background: var(--panel); border: 1px solid var(--panel-border); border-radius: 12px; padding: 4px 4px 6px;
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+.pp-nav { display: flex; align-items: center; gap: 4px; }
+.pp-zakl { flex: 1 1 0; min-height: 44px; border: 0; border-radius: 9px; cursor: pointer;
+  background: transparent; color: var(--muted); font: inherit; font-size: 0.8667rem; font-weight: 600;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.pp-zakl.on { background: rgba(91,140,255,.18); color: var(--text); box-shadow: inset 0 0 0 1px rgba(91,140,255,.45); }
+.pp-zakl:focus-visible, .pp-strz:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.pp-licz { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; font-size: 0.7333rem;
+  display: inline-grid; place-items: center; background: rgba(255,176,32,.9); color: #1a1200; }
+.pp-licz.cz { background: rgba(255,77,94,.9); color: #fff; }
+.pp-licz:empty { display: none; }
+.pp-strz { flex: none; width: 32px; height: 44px; border: 0; background: none; cursor: pointer;
+  color: var(--muted); opacity: .7; display: grid; place-items: center; border-radius: 8px; }
+.pp-strz svg { width: 8px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2;
+  stroke-linecap: round; stroke-linejoin: round; }
+.pp-strz:hover { opacity: 1; }
+#pp[data-strona="0"] .pp-strz[data-kier="-1"], #pp[data-strona="1"] .pp-strz[data-kier="1"] { opacity: .2; pointer-events: none; }
+.pp-kropki { display: flex; justify-content: center; gap: 6px; margin-top: 4px; }
+.pp-kropki i { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); opacity: .4; transition: opacity .15s, width .15s; }
+.pp-kropki i.on { opacity: 1; width: 16px; border-radius: 3px; background: var(--accent); }
+
+.pp-strony { overflow: hidden; touch-action: pan-y; transition: height .18s ease; }
+.pp-tor { display: flex; align-items: flex-start; width: 200%; transition: transform .22s ease; }
+.pp-strona { flex: 0 0 50%; width: 50%; min-width: 0; }
+.pp-strona > .pp-sekcja { margin-bottom: 8px; }
+.pp-strona > .hist-banner { margin-bottom: 8px; }
+/* szeroki ekran: panel rośnie, obie strony obok siebie, bez zakładek */
+#panel.pp-szeroki { width: 720px; }
+#panel.pp-szeroki .pp-gora { display: none; }
+#panel.pp-szeroki .pp-tor { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; transform: none !important; }
+#panel.pp-szeroki .pp-strona { width: auto; }
+body.panel-open:has(#panel.pp-szeroki) #map-actions { right: calc(720px + 22px); }
+/* bez serwera (tryb wbudowany) — same województwa, jak do 1.8.11 */
+#pp.pp-bez-powiatow .pp-gora, #pp.pp-bez-powiatow #pp-s-pow { display: none; }
+#pp.pp-bez-powiatow .pp-tor { width: 100%; transform: none !important; }
+#pp.pp-bez-powiatow #pp-s-woj { flex-basis: 100%; width: 100%; }
+
+/* wiersz powiatu — ta sama mowa kształtów co pigułka (kropka / trójkąt / kwadrat z „!”) */
+.pp-pow { border-radius: 10px; padding: 7px 9px; margin-bottom: 6px; background: rgba(12,18,32,.55);
+  border: 1px solid var(--panel-border); }
+.pp-pow.level-elevated { border-color: rgba(255,176,32,.55); }
+.pp-pow.level-high { border-color: rgba(255,77,94,.75); box-shadow: inset 0 0 18px rgba(255,77,94,.1); }
+.pp-pow-head { all: unset; box-sizing: border-box; width: 100%; cursor: pointer; display: flex; align-items: center; gap: 8px; min-height: 40px; }
+.pp-pow-head:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+.pp-znak { width: 12px; height: 12px; flex: none; border-radius: 50%; background: var(--green);
+  display: grid; place-items: center; font-size: 0.6rem; font-weight: 700; color: #fff; }
+.pp-pow.level-elevated .pp-znak { border-radius: 0; background: var(--amber); clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+.pp-pow.level-high .pp-znak { width: 16px; height: 16px; border-radius: 3px; background: var(--red); }
+.pp-pow-nazwa { font-weight: 600; font-size: 0.8667rem; min-width: 0; overflow-wrap: anywhere; }
+.pp-woj { font-weight: 400; color: var(--muted); text-transform: capitalize; }
+.pp-pow-pkt { margin-left: auto; flex: none; font-variant-numeric: tabular-nums; font-weight: 600; font-size: 0.8rem; color: var(--muted); }
+.pp-pow.level-elevated .pp-pow-pkt { color: var(--amber); }
+.pp-pow.level-high .pp-pow-pkt { color: var(--red); }
+.pp-pow-poziom { display: block; font-size: 0.7333rem; font-weight: 600; color: var(--muted); }
+.pp-pow-poziom .pp-woj { display: inline; }
+.pp-pow.level-elevated .pp-pow-poziom { color: var(--amber); }
+.pp-pow.level-high .pp-pow-poziom { color: var(--red); }
+.pp-pow-syg { margin: 6px 0 2px 20px; display: flex; flex-direction: column; gap: 5px; }
+.pp-syg-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+.pp-syg { display: flex; gap: 8px; align-items: baseline; font-size: 0.7667rem; line-height: 1.3; }
+.pp-syg-t { min-width: 0; overflow-wrap: anywhere; }
+.pp-syg-p { margin-left: auto; flex: none; font-variant-numeric: tabular-nums; color: var(--text); font-weight: 600; }
+.pp-do-woj { align-self: flex-start; margin-top: 4px; }
+
+/* inne powiaty z alarmem — zwinięte grupy per województwo */
+.pp-grupa { border-top: 1px solid var(--panel-border); }
+.pp-grupa:first-of-type { border-top: 0; }
+.pp-grupa-head { all: unset; box-sizing: border-box; width: 100%; cursor: pointer; display: flex; align-items: center; gap: 8px; min-height: 44px; }
+.pp-grupa-head:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+.pp-grupa-nazwa { font-weight: 600; font-size: 0.8667rem; text-transform: capitalize; }
+.pp-grupa-licz { margin-left: auto; display: flex; gap: 6px; font-size: 0.7333rem; }
+.pp-grupa-licz b { padding: 2px 7px; border-radius: 8px; font-weight: 600; }
+.pp-grupa-licz b.cz { background: rgba(255,77,94,.18); color: #ff8aa3; }
+.pp-grupa-licz b.zo { background: rgba(255,176,32,.16); color: var(--amber); }
+.pp-chev { width: 7px; height: 12px; fill: none; stroke: var(--muted); stroke-width: 2; stroke-linecap: round; transition: transform .15s; }
+.pp-grupa.open .pp-chev { transform: rotate(90deg); }
+.pp-grupa-lista { padding: 2px 0 6px; }
+
+@media (prefers-reduced-motion: reduce) { .pp-strony, .pp-tor, .pp-kropki i, .pp-chev { transition: none; } }
