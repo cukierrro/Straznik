@@ -139,10 +139,48 @@ console.log('\n5a. Wiersz „mój region”: który powiat (zgłoszenie usera 21
   const remis = spokoj.map(p => ['1862', '1809'].includes(p.terc) ? { ...p, level: 'high', score: 5 } : p);
   ok(wybierz(remis, kolejnosc).terc === '1862', 'remis — wcześniejsze miejsce (Przemyśl przed lubaczowskim)');
   ok(wybierz(spokoj, []).terc === '0602', 'bez kolejności miejsc (granice niewczytane) — pierwszy z listy, bez błędu');
-  ok(/b class="pow-nazwa">\$\{esc\(wielkaPierwsza\(nazwaPowiatuMapy/.test(app), 'nazwa: „Powiat biłgorajski” (wielka tylko pierwsza litera)');
+  ok(/b class="pow-nazwa">\$\{\s*esc\(wielkaPierwsza\(nazwaPowiatuMapy/.test(app), 'nazwa: „Powiat biłgorajski” (wielka tylko pierwsza litera)');
   ok(/#my-banner b\.pow-nazwa \{ text-transform: none; \}/.test(fs.readFileSync(path.join(ROOT, 'frontend', 'style.css'), 'utf8')),
     'styl wiersza nie robi „Powiat Biłgorajski”');
-  ok(/\$\{pkt > 0 \? " · " : "· "\}/.test(app), 'kropka między poziomem a liczbą powiatów także przy 0 pkt');
+  ok(/<span class="muted">\$\{pktTxt\(pkt\)\} \$\{UI\.t\("pkt", "pts", "бал\."\)\}\$\{n > 1 \? ` · \$\{i \+ 1\}\/\$\{n\}` : ""\}/.test(app),
+    'punkty zawsze (także 0 i poniżej progu, jak przy województwie), potem pozycja „2/8” (od 1.8.11)');
+}
+
+console.log('\n5d. Pigułka przewijana między powiatami miejsc (user 22.11.2026, do 1.8.11)');
+{
+  const od = app.indexOf('function wybierzPowiatBanera(');
+  const doW = app.indexOf('function najwyzszyPowiatHistorii(');
+  const od4 = app.indexOf('const POZIOMY_BANERA =');
+  const do4 = app.indexOf('function rysujBanerPowiatu(');
+  ok(od > 0 && doW > od && od4 > 0 && do4 > od4, 'funkcje pigułki stoją w app.js');
+  const pb = new Function(app.slice(od, doW) + app.slice(od4, do4) + '\nreturn powiatyBanera;')();
+  const kolejnosc = ['0663', '1465', '1862', '1809', '0602'];
+  const spokoj = ['0602', '0663', '1465', '1809', '1862'].map(t => ({ terc: t, level: 'none', score: 0 }));
+  let r = pb(spokoj, kolejnosc, null);
+  ok(r.uloz.map(p => p.terc).join() === kolejnosc.join(), 'kolejność przewijania jak kolejność miejsc, nie po TERYT');
+  ok(r.biez.terc === '0663' && !r.reczny, 'na start — powiat pierwszego miejsca');
+  r = pb(spokoj, kolejnosc, { terc: '1809', maks: 0 });
+  ok(r.biez.terc === '1809' && r.reczny, 'ręczny wybór trzyma się przy spokoju');
+  const zolty = spokoj.map(p => p.terc === '0602' ? { ...p, level: 'elevated', score: 2.6 } : p);
+  r = pb(zolty, kolejnosc, { terc: '1809', maks: 0 });
+  ok(r.biez.terc === '0602' && !r.reczny, 'wzrost poziomu w moich powiatach — pigułka wraca do powiatu z alarmem');
+  r = pb(zolty, kolejnosc, { terc: '1465', maks: 1 });
+  ok(r.biez.terc === '1465' && r.reczny, 'przy trwającym żółtym można przejrzeć inne powiaty');
+  r = pb(spokoj, kolejnosc, { terc: 'XXXX', maks: 0 });
+  ok(r.biez.terc === '0663' && !r.reczny, 'wybrany powiat zniknął z listy (usunięte miejsce) — wybór domyślny');
+  ok(/if \(!reczny\) banerPowWybor = null;\s*\n\s*else if \(maks < banerPowWybor\.maks\) banerPowWybor\.maks = maks;/.test(app),
+    'po spadku poziomu następny wzrost znów przełącza na alarm');
+  ok(/const j = \(uloz\.indexOf\(biez\) \+ d \+ uloz\.length\) % uloz\.length;/.test(app), 'przewijanie w pętli w obie strony');
+  ok(/aria-label="\$\{et\}"/.test(app) && /"Poprzedni powiat", "Previous county", "Попередній повіт"/.test(app)
+    && /"Następny powiat", "Next county", "Наступний повіт"/.test(app), 'strzałki to przyciski z opisem w trzech językach');
+  ok(/b\.addEventListener\("touchend"[\s\S]{0,400}przesunBanerPowiatu\(dx < 0 \? 1 : -1\)/.test(app), 'przesunięcie palcem: w lewo następny, w prawo poprzedni');
+  ok(/if \(Date\.now\(\) - banerPrzesuniety < 500\) return;/.test(app), 'gest nie otwiera przy okazji karty powiatu');
+  ok(/const pkt = state\?\.fusion\?\.powiaty_pkt \|\| \{\};/.test(app) && /score: \+pkt\[t\] \|\| 0/.test(app),
+    'powiaty bez poziomu biorą punkty z `powiaty_pkt` (serwer od 1.8.11)');
+  ok(/const pktPonizej = histMode \? null : state\?\.fusion\?\.powiaty_pkt\?\.\[terc\];/.test(app), 'karta powiatu na żywo też pokazuje punkty poniżej progu');
+  const css = fs.readFileSync(path.join(ROOT, 'frontend', 'style.css'), 'utf8');
+  ok(/#my-banner \.ban-strz \{[^}]*width: 24px; height: 28px;/.test(css), 'pole dotyku strzałki co najmniej 24 px');
+  ok(/prefers-reduced-motion: reduce\) \{ #my-banner \.ban-tresc \{ animation: none !important; \} \}/.test(css), 'bez animacji wjazdu przy ograniczonym ruchu');
 }
 
 console.log('\n5b. Start bez „mignięcia” województw (zgłoszenie usera 22.11.2026)');

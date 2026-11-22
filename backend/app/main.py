@@ -135,6 +135,11 @@ def _fusion_z_powiatami() -> dict:
     pw = powiaty.publiczne()
     if pw:
         fus["powiaty"] = pw
+    # punkty powiatów poniżej progu (pigułka „mój region”, 1.8.11) — osobne pole, które
+    # starsze wersje pomijają; w ciszy go nie ma, więc paczka zostaje bez zmian
+    pkt = powiaty.punkty_ponizej()
+    if pkt:
+        fus["powiaty_pkt"] = pkt
     return fus
 
 
