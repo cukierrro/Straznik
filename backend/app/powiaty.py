@@ -448,6 +448,13 @@ def oblicz(signals: list[dict], ref: datetime, listy: Listy | None = None, *,
         st = per.get(klucz(t))
         if not st or not st["signals"]:
             continue
+        # 22.11.2026 (prototyp panelu na odtworzeniu 20.11): fuzja składa tytuł fali
+        # z klucza regionu, więc w powiecie wychodziło „od woj. P1809” — a tytuły idą
+        # do powodów w powiadomieniu (notify.reasons_split). Odległość fali to tu
+        # odległość od powiatu, którego nazwa i tak stoi w powiadomieniu jako miejsce.
+        for x in st["signals"]:
+            if x.get("event_type") == "neptun_wave" and x.get("title"):
+                x["title"] = x["title"].replace(f" od woj. {klucz(t)} ", " od powiatu ")
         score = fusion.round1(st["score"])
         lvl = poziom(score)
         rk = fusion.red_key(st["signals"], ref) if lvl == "high" else None

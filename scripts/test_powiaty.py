@@ -23,6 +23,7 @@ Uruchomienie:  py scripts/test_powiaty.py
 import asyncio
 import copy
 import json
+import re
 import sys
 import tempfile
 import types
@@ -128,6 +129,12 @@ duzo = [DRON] + [dict(DRON, id=100 + i, details=dict(DRON["details"], track_id=f
                                                       lat=49.15355 + i * 0.05))
                  for i in range(6)]
 wyn, licz = powiaty.oblicz(duzo + inne, REF)
+fale = [x for st in wyn.values() for x in st["signals"] if x.get("event_type") == "neptun_wave"]
+ok(fale and all(" od powiatu (" in x["title"] for x in fale)
+   and not any(re.search(r"\bP\d{4}\b", x["title"]) for x in fale),
+   f"fala w powiecie: „od powiatu”, bez klucza regionu „P1809” w tytule ({len(fale)} fal; {fale[0]['title'] if fale else '—'})")
+powody = notify.reasons_split(next(st["signals"] for st in wyn.values() if any(x.get("event_type") == "neptun_wave" for x in st["signals"])))
+ok(not re.search(r"\bP\d{4}\b", powody), "powody w powiadomieniu powiatu bez klucza „Pxxxx”")
 d = wyn[DEBICKI]
 ok(d["score"] >= 4.0 and d["level"] == "elevated" and d["red_key"] is None,
    f"17.11 09:36: Dębica {d['score']} pkt — bez klucza czerwonego zostaje żółta")
