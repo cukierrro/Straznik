@@ -824,12 +824,19 @@ function nazwaPowiatuMapy(terc) {
    Wczytanie i przetworzenie pliku granic (700 KB) trwało na emulatorze ~4 s; w środku
    obsługi „load” wydłużało start mapy i zbliżało ją do 20-sekundowego limitu, po którym
    pokazujemy „Mapa się nie wczytała”. Do czasu wczytania mapa pokazuje województwa. */
+/* Zgłoszenie usera 22.11.2026: po starcie mapa przez chwilę pokazywała województwa
+   i obrys województwa, a wiersz „mój region” województwo — dopiero potem powiaty. Plik
+   granic zaczyna się więc pobierać od razu przy starcie skryptu, równolegle ze stylem mapy,
+   a warstwa powiatów jest dokładana zaraz po warstwie województw. */
+const powGeoPobranie = fetch("assets/powiaty-mapa-v1.geojson?v=1.8.10a")
+  .then(r => (r.ok ? r.json() : null)).catch(() => null);
 let powWarstwaObietnica = null;
 function dodajWarstwePowiatow() {
   if (powWarstwaObietnica) return powWarstwaObietnica;
   powWarstwaObietnica = (async () => {
     try {
-      const gj = await (await fetch("assets/powiaty-mapa-v1.geojson?v=1.8.10a")).json();
+      const gj = await powGeoPobranie;
+      if (!gj) throw new Error("brak pliku granic powiatów");
       if (!map || map.getSource("pow")) return;
       map.addSource("pow", { type: "geojson", data: gj, promoteId: "t" });
       // bryły i linie powiatów POD liniami województw, w tych samych kolorach co województwa
@@ -1797,6 +1804,8 @@ async function initMap() {
           "rgba(125,150,205,.26)"],
         "line-width": ["case", ["in", ["get", "nazwa"], ["literal", PRIORITY]], 1.3, 0.7] },
     });
+    // powiaty zaraz po województwach, bez czekania (plik pobiera się od startu skryptu)
+    dodajWarstwePowiatow();
 
 
     /* ── strefy PAŻP: WYŁĄCZNIE informacyjnie ────────────────────────────────
@@ -2097,8 +2106,8 @@ async function initMap() {
         "line-blur": 0.4 } });
 
     mapReady = true;
-    // powiaty dopiero PO starcie mapy — nie wydłużają go (patrz dodajWarstwePowiatow)
-    dodajWarstwePowiatow();
+    // warstwa powiatów dokładana wyżej (zaraz po województwach); tu tylko widoczność po mapReady
+    applyPodzialMapy();
     dopasujMapeDoPanelu();
     // komunikat „mapa się nie wczytała” mógł wyskoczyć, gdy start trwał dłużej (np. aplikacja w tle)
     document.getElementById("map-niedostepna")?.remove();
@@ -9140,6 +9149,13 @@ async function restoreAlertsOff() {
   const box = document.getElementById("set-alerts-on");
   if (box) box.checked = !alertsOff();
 }
+/* Granice powiatów telefonu od razu przy starcie (wcześniej po 2,5 s): od nich zależą wiersz
+   „mój region” i obrys moich powiatów — bez nich pierwsze rysowanie pokazywało województwo.
+   Po wczytaniu przerysowujemy wiersz i obrys. Synchronizacja tematów zostaje po 2,5 s. */
+wczytajGranicePowiatow().then(() => {
+  try { if (state && !histMode) renderPanel(); } catch (e) { console.warn("wiersz powiatów", e); }
+  applyPodzialMapy();
+}).catch(() => {});
 setTimeout(async () => { await restoreAlertsOff(); await wczytajGranicePowiatow(); syncObservedRegions(); }, 2500);
 if ("serviceWorker" in navigator && !IS_APP)
   navigator.serviceWorker.register("sw.js").catch(() => {});

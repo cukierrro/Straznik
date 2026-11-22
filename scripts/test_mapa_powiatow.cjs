@@ -145,6 +145,21 @@ console.log('\n5a. Wiersz „mój region”: który powiat (zgłoszenie usera 21
   ok(/\$\{pkt > 0 \? " · " : "· "\}/.test(app), 'kropka między poziomem a liczbą powiatów także przy 0 pkt');
 }
 
+console.log('\n5b. Start bez „mignięcia” województw (zgłoszenie usera 22.11.2026)');
+{
+  const pobranie = app.indexOf('const powGeoPobranie = fetch("assets/powiaty-mapa-v1.geojson');
+  const mapaStart = app.indexOf('async function initMap(');
+  ok(pobranie > 0 && pobranie < mapaStart, 'plik granic mapy pobierany przy starcie skryptu, przed tworzeniem mapy');
+  ok(/const gj = await powGeoPobranie;/.test(app), 'warstwa korzysta z pobranego zawczasu pliku');
+  const liniaWoj = app.indexOf('id: "voiv-line", type: "line", source: "voiv"');
+  const wolanie = app.indexOf('dodajWarstwePowiatow();', liniaWoj);
+  const gotowa = app.indexOf('mapReady = true;', liniaWoj);
+  ok(liniaWoj > 0 && wolanie > liniaWoj && wolanie < gotowa, 'warstwa powiatów dokładana zaraz po liniach województw, przed mapReady');
+  const gr = app.indexOf('wczytajGranicePowiatow().then(() => {\n  try { if (state && !histMode) renderPanel();');
+  const odlozone = app.indexOf('setTimeout(async () => { await restoreAlertsOff(); await wczytajGranicePowiatow();');
+  ok(gr > 0 && odlozone > gr, 'granice telefonu wczytywane od razu (nie po 2,5 s) i potem przerysowanie wiersza „mój region”');
+}
+
 console.log('\n6. Ustawienie i tłumaczenia');
 ok(/<select id="set-podzial">\s*<option value="pow">Powiaty<\/option>\s*<option value="woj">Województwa<\/option>/.test(html),
   'Ustawienia → Mapa: „Powiaty” pierwsze (domyślne), „Województwa”');
