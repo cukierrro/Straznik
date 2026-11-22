@@ -739,14 +739,17 @@ body.history-mode #my-banner { display: none; }
 /* nazwa powiatu: „Powiat biłgorajski”, nie „Powiat Biłgorajski” (wielką literę daje wielkaPierwsza) */
 #my-banner b.pow-nazwa { text-transform: none; }
 /* Pigułka przewijana między powiatami miejsc (1.8.11): delikatne strzałki po bokach —
-   podpowiedź, że można przesunąć albo dotknąć. Pole dotyku 24×28 px, rysunek mniejszy. */
+   podpowiedź, że można przesunąć albo dotknąć. Przycisk 24×28 px, pole dotyku 44×44 przez ::after. */
 #my-banner.z-strzalkami { padding-left: 2px; padding-right: 2px; gap: 6px; touch-action: pan-y; }
 #my-banner .ban-strz {
   flex: none; width: 24px; height: 28px; padding: 0; margin: -4px 0;
-  display: grid; place-items: center;
+  display: grid; place-items: center; position: relative;
   background: none; border: 0; border-radius: 8px; cursor: pointer;
   color: var(--muted); opacity: .65;
 }
+/* Pole dotyku 44×44 px (Apple HIG 44 pt, Android 48 dp — uwaga sesji iOS 22.11.2026):
+   niewidoczny obszar wokół przycisku, rysunek bez zmian */
+#my-banner .ban-strz::after { content: ""; position: absolute; inset: -8px -10px; }
 #my-banner .ban-strz:hover, #my-banner .ban-strz:focus-visible { opacity: 1; }
 #my-banner .ban-strz:focus-visible { outline: 2px solid var(--accent, #5b8cff); outline-offset: -2px; }
 #my-banner .ban-strz svg { width: 7px; height: 12px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
