@@ -395,6 +395,13 @@ permissions capture stays from 1.8.07: in this debug build the emulator never re
 topic confirmation, so a county subscription row could not be captured honestly; the caption
 describes it in words.
 
+County map and county card (1.8.11, 22 November 2026, afternoon): `1811/mapa-powiaty-{pl,en,uk}.jpg`
+and `1811/karta-powiatu-{pl,en,uk}.jpg` replace the 1.8.10 frames — debug build 1.8.11 on the Pixel 7
+emulator, live server data, places Dom (powiat 0663 Lublin) and Praca (0617 świdnicki) with alerts,
+so the banner shows its arrows and „1/2”; the PAŻP zones layer is off (`straznik_zones=0`) as on the
+1.8.10 frames. The 1.8.10 map frame was taken before the county layer had loaded (the start-up
+flicker fixed in 1.8.11), so it showed province blocks.
+
 County map (1.8.10, 21 November 2026, evening): `1810/mapa-powiaty-{pl,en,uk}.jpg`,
 `1810/karta-powiatu-{pl,en,uk}.jpg` and `1810/set-mapa-{pl,en,uk}.jpg` (the last replaces the
 1.7.99 Map-settings capture, which had no Map division setting). Same debug build and emulator, live

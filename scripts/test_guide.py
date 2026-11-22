@@ -20,6 +20,8 @@ OTHER_IMAGES = {"mikrus-logo.svg": (86, 14)}
 # 1.8.10: places i set-miejsca PL/EN/UK zastąpione kadrami z docs/screens/1810 (pole „Powiat”,
 #         pełna lista zapisanych miejsc) — bez zmiany liczby; stare pliki 1795 zostają w repo
 # 1.8.10 (mapa powiatów): +6 — mapa-powiaty i karta-powiatu PL/EN/UK; set-mapa zastąpione kadrami z 1810
+# 1.8.11: mapa-powiaty i karta-powiatu PL/EN/UK zastąpione kadrami z docs/screens/1811 (pigułka ze
+#         strzałkami i punktami powiatu) — bez zmiany liczby; pliki 1810 zostają w repo
 EXPECTED_SHOTS = 103
 
 
