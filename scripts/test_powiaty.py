@@ -130,6 +130,15 @@ duzo = [DRON] + [dict(DRON, id=100 + i, details=dict(DRON["details"], track_id=f
                  for i in range(6)]
 wyn, licz = powiaty.oblicz(duzo + inne, REF)
 fale = [x for st in wyn.values() for x in st["signals"] if x.get("event_type") == "neptun_wave"]
+# rozbicie punktów powiatu na sygnały (panel Sygnały, 1.8.12)
+naj = max(wyn.values(), key=lambda s: len([x for x in s["signals"] if (x.get("counted_points") or 0) > 0]))
+rb = powiaty.rozbicie(naj)
+z_pkt = [x for x in naj["signals"] if (x.get("counted_points") or 0) > 0]
+ok(len(rb["s"]) == min(len(z_pkt), powiaty.SYGNALY_MAX) and rb["wiecej"] == max(0, len(z_pkt) - powiaty.SYGNALY_MAX),
+   f"rozbicie: najwyżej {powiaty.SYGNALY_MAX} sygnałów, reszta policzona ({len(rb['s'])} + {rb['wiecej']} z {len(z_pkt)})")
+ok([x["p"] for x in rb["s"]] == sorted((x["p"] for x in rb["s"]), reverse=True) and all(x["p"] > 0 for x in rb["s"]),
+   "rozbicie: od najmocniejszego, tylko z punktami")
+ok(all(set(x) == {"t", "p"} and x["t"] for x in rb["s"]), "rozbicie: sam tytuł i wkład (paczka na żądanie ma być mała)")
 ok(fale and all(" od powiatu (" in x["title"] for x in fale)
    and not any(re.search(r"\bP\d{4}\b", x["title"]) for x in fale),
    f"fala w powiecie: „od powiatu”, bez klucza regionu „P1809” w tytule ({len(fale)} fal; {fale[0]['title'] if fale else '—'})")
@@ -426,6 +435,19 @@ try:
     ok(main._fusion_z_powiatami().get("powiaty_pkt") == {LUBLIN: 1.3} and "powiaty" not in main._fusion_z_powiatami(),
        "/api/state: punkty poniżej progu w osobnym polu, `powiaty` bez nich")
     powiaty._ponizej = {}
+    # część stanu `state_pow` (1.8.12): rozbicie na żądanie, w części głównej tylko odcisk
+    powiaty._sygnaly = {LUBLIN: {"s": [{"t": "Dron ok. 12 km od powiatu", "p": 2.0}], "wiecej": 0}}
+    stan_testowy = {"fusion": {"ts": "x"}, "adsb": {}, "health": {}}
+    main._publikuj_czesci(stan_testowy)
+    from app import public_cache
+    bp = public_cache.get("state_pow")
+    gl = json.loads(public_cache.get("state_main").raw)
+    ok(bp is not None and json.loads(bp.raw) == powiaty._sygnaly and gl.get("pow_v") == bp.etag.strip('"'),
+       "/api/state?part=pow: rozbicie w osobnej paczce, w części głównej jej odcisk `pow_v`")
+    ok("powiaty_sygnaly" not in json.dumps(gl) and "Dron ok. 12 km" not in gl.__repr__(),
+       "część główna bez samego rozbicia (stała paczka się nie zmienia)")
+    ok(public_cache.CACHE_POLICY.get("state_pow") == (2, 2), "state_pow: ta sama polityka cache co inne części stanu")
+    powiaty._sygnaly = {}
     powiaty._publiczne = {LUBLIN: {"level": "elevated", "score": 2.7, "name": "powiat Lublin", "woj": "lubelskie"}}
     ok(main._fusion_z_powiatami().get("powiaty", {}).get(LUBLIN, {}).get("level") == "elevated",
        "/api/state: rzadki słownik, gdy powiat ma poziom")

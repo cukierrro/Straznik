@@ -64,6 +64,8 @@ status = {"enabled": config.POWIATY_LICZENIE, "wysylka": config.powiaty_wysylka_
           "aktywnych": 0, "at": None, "error": None}
 _publiczne: dict[str, dict] = {}
 _ponizej: dict[str, float] = {}     # punkty powiatów bez poziomu (0 < pkt < próg) — pigułka w aplikacji
+_sygnaly: dict[str, dict] = {}      # rozbicie punktów powiatów na sygnały — panel Sygnały (1.8.12)
+SYGNALY_MAX = 8                     # tyle sygnałów na powiat; resztę zliczamy
 _poziomy: dict[str, str] | None = None
 _sesja_od: str | None = None
 _inflight: set[tuple] = set()
@@ -646,7 +648,7 @@ async def _dostarcz(terc: str, level: str, data: dict, log_id: int | None, test:
 
 def _przejscia(wynik: dict, teraz: float | None = None) -> None:
     """Podtrzymanie, przejścia poziomów, dziennik i decyzje — jak fusion.reevaluate."""
-    global _sesja_od, _publiczne, _ponizej
+    global _sesja_od, _publiczne, _ponizej, _sygnaly
     teraz = time.time() if teraz is None else teraz
     poziomy = _levels()
     nowe: dict[str, str] = {}
@@ -697,6 +699,19 @@ def _przejscia(wynik: dict, teraz: float | None = None) -> None:
     # w `powiaty` jak powiat z poziomem (mapa, alarm otwartej aplikacji).
     _ponizej = {t: st["score"] for t, st in sorted(wynik.items())
                 if nowe.get(t) == "none" and (st.get("score") or 0) > 0}
+    _sygnaly = {t: rozbicie(st) for t, st in sorted(wynik.items()) if (st.get("score") or 0) > 0}
+
+
+def rozbicie(st: dict) -> dict:
+    """Co daje powiatowi punkty: sygnały z wkładem, od najmocniejszego (1.8.12, panel
+    Sygnały). Tylko tytuł i wkład — paczkę pobiera telefon dopiero po rozwinięciu
+    powiatu, więc stała paczka /api/state się nie zmienia (pomiar na nalocie 20.11
+    05:35: rozbicie w stałej paczce podwoiłoby ją z 9,8 do 19,5 KB gzip)."""
+    lista = sorted((x for x in st.get("signals") or [] if (x.get("counted_points") or 0) > 0),
+                   key=lambda x: -(x.get("counted_points") or 0))
+    return {"s": [{"t": x.get("title") or "", "p": round(x.get("counted_points") or 0, 1)}
+                  for x in lista[:SYGNALY_MAX]],
+            "wiecej": max(0, len(lista) - SYGNALY_MAX)}
 
 
 def publiczne() -> dict:
@@ -707,6 +722,11 @@ def publiczne() -> dict:
 def punkty_ponizej() -> dict:
     """{TERYT: punkty} powiatów z punktami poniżej progu (bez poziomu) — do /api/state."""
     return _ponizej
+
+
+def sygnaly_publiczne() -> dict:
+    """{TERYT: {s: [{t, p}], wiecej}} — część stanu `state_pow` (na żądanie)."""
+    return _sygnaly
 
 
 async def przelicz() -> None:

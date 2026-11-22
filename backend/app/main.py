@@ -222,6 +222,12 @@ def _publikuj_czesci(payload: dict) -> None:
     glowna = {k: w for k, w in payload.items() if k not in AUX_SEKCJE}
     glowna["aux_v"] = blob_aux.etag.strip('"')
     public_cache.put("state_aux", blob_aux)
+    # 1.8.12: rozbicie punktów powiatów na sygnały — telefon dobiera je dopiero po
+    # rozwinięciu powiatu w panelu Sygnały, a `pow_v` mówi mu, czy się zmieniło
+    if config.POWIATY_LICZENIE:
+        blob_pow = public_cache.make_blob(powiaty.sygnaly_publiczne())
+        glowna["pow_v"] = blob_pow.etag.strip('"')
+        public_cache.put("state_pow", blob_pow)
     public_cache.put("state_main", public_cache.make_blob(glowna))
 
 
@@ -467,6 +473,9 @@ async def api_state(request: Request, v: str | None = None, part: str | None = N
         # mu powie, że się zmieniła — więc to zawsze jest zapytanie o bieżącą wersję
         # i na brzegu leży pod jednym kluczem
         return public_cache.respond(request, "state_aux")
+    if part == "pow":
+        # rozbicie punktów powiatów (1.8.12) — tylko na żądanie z panelu Sygnały
+        return public_cache.respond(request, "state_pow")
     nazwa = "state"
     if part == "main" and public_cache.get("state_main") is not None:
         # brak paczki = starszy writer w trakcie wdrożenia; wtedy pełny stan, który
