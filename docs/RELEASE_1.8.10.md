@@ -1,6 +1,6 @@
 # Wydanie 1.8.10 — alarmy i mapa powiatów, rozpisany czas dolotu, pełna lista zapisanych miejsc
 
-versionCode 140, versionName 1.8.10. Listopad 2026. Wspólny numer dla Androida i iPhone'a.
+versionCode 140, versionName 1.8.10. 21 listopada 2026. Wspólny numer dla Androida i iPhone'a.
 
 <!-- zmiany -->
 - Alarmy przychodzą dla powiatu zapisanego miejsca zamiast dla całego województwa. Powiat miejsca z dokładną lokalizacją telefon ustala sam; dla pozostałych miejsc wybierz go w „Moich miejscach” w nowym polu „Powiat”. Bez tego telefon zostaje przy alarmach dla województw.

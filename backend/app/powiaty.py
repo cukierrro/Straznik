@@ -63,6 +63,7 @@ status = {"enabled": config.POWIATY_LICZENIE, "wysylka": config.powiaty_wysylka_
           "ms": None, "ms_max": None, "przeliczen": 0, "sygnalow": 0, "kopii": 0,
           "aktywnych": 0, "at": None, "error": None}
 _publiczne: dict[str, dict] = {}
+_ponizej: dict[str, float] = {}     # punkty powiatów bez poziomu (0 < pkt < próg) — pigułka w aplikacji
 _poziomy: dict[str, str] | None = None
 _sesja_od: str | None = None
 _inflight: set[tuple] = set()
@@ -621,7 +622,7 @@ async def _dostarcz(terc: str, level: str, data: dict, log_id: int | None, test:
 
 def _przejscia(wynik: dict, teraz: float | None = None) -> None:
     """Podtrzymanie, przejścia poziomów, dziennik i decyzje — jak fusion.reevaluate."""
-    global _sesja_od, _publiczne
+    global _sesja_od, _publiczne, _ponizej
     teraz = time.time() if teraz is None else teraz
     poziomy = _levels()
     nowe: dict[str, str] = {}
@@ -667,11 +668,21 @@ def _przejscia(wynik: dict, teraz: float | None = None) -> None:
     _publiczne = {t: {"level": l, "score": (wynik.get(t) or {}).get("score", 0.0),
                       "name": p[t]["name"], "woj": p[t]["woj"]}
                   for t, l in sorted(aktywne.items())}
+    # 22.11.2026 (user): pigułka „mój region” pokazuje punkty powiatu także poniżej progu,
+    # jak dotąd punkty województwa. Osobne pole, bo stare wersje aplikacji traktują wpis
+    # w `powiaty` jak powiat z poziomem (mapa, alarm otwartej aplikacji).
+    _ponizej = {t: st["score"] for t, st in sorted(wynik.items())
+                if nowe.get(t) == "none" and (st.get("score") or 0) > 0}
 
 
 def publiczne() -> dict:
     """Rzadki słownik do /api/state: tylko powiaty z poziomem ≠ brak (zwykle pusty)."""
     return _publiczne
+
+
+def punkty_ponizej() -> dict:
+    """{TERYT: punkty} powiatów z punktami poniżej progu (bez poziomu) — do /api/state."""
+    return _ponizej
 
 
 async def przelicz() -> None:

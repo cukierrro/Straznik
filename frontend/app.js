@@ -810,6 +810,7 @@ function podzialMapy() {
 let powGeo = null;              // GeoJSON powiatów do rysowania (wczytany przy starcie mapy)
 let powStanyMapy = new Set();   // TERYT z ustawionym feature-state — do wyczyszczenia przy zmianie
 let powHistoria = null;         // `powiaty` migawki wybranej suwakiem (null = migawka bez zapisu)
+let histWoj = null;             // {woj: {score, level}} z wybranej chwili — karta powiatu w historii
 function mapaPowiatow() { return podzialMapy() === "pow" && !!powGeo && !standalone; }
 function powCecha(terc) { return powGeo?.features?.find(f => f.properties.t === terc) || null; }
 /* „Lublin” (miasto na prawach powiatu) albo „powiat lubelski” — z samego pliku mapy,
@@ -824,12 +825,19 @@ function nazwaPowiatuMapy(terc) {
    Wczytanie i przetworzenie pliku granic (700 KB) trwało na emulatorze ~4 s; w środku
    obsługi „load” wydłużało start mapy i zbliżało ją do 20-sekundowego limitu, po którym
    pokazujemy „Mapa się nie wczytała”. Do czasu wczytania mapa pokazuje województwa. */
+/* Zgłoszenie usera 22.11.2026: po starcie mapa przez chwilę pokazywała województwa
+   i obrys województwa, a wiersz „mój region” województwo — dopiero potem powiaty. Plik
+   granic zaczyna się więc pobierać od razu przy starcie skryptu, równolegle ze stylem mapy,
+   a warstwa powiatów jest dokładana zaraz po warstwie województw. */
+const powGeoPobranie = fetch("assets/powiaty-mapa-v1.geojson?v=1.8.10a")
+  .then(r => (r.ok ? r.json() : null)).catch(() => null);
 let powWarstwaObietnica = null;
 function dodajWarstwePowiatow() {
   if (powWarstwaObietnica) return powWarstwaObietnica;
   powWarstwaObietnica = (async () => {
     try {
-      const gj = await (await fetch("assets/powiaty-mapa-v1.geojson?v=1.8.10a")).json();
+      const gj = await powGeoPobranie;
+      if (!gj) throw new Error("brak pliku granic powiatów");
       if (!map || map.getSource("pow")) return;
       map.addSource("pow", { type: "geojson", data: gj, promoteId: "t" });
       // bryły i linie powiatów POD liniami województw, w tych samych kolorach co województwa
@@ -1797,6 +1805,8 @@ async function initMap() {
           "rgba(125,150,205,.26)"],
         "line-width": ["case", ["in", ["get", "nazwa"], ["literal", PRIORITY]], 1.3, 0.7] },
     });
+    // powiaty zaraz po województwach, bez czekania (plik pobiera się od startu skryptu)
+    dodajWarstwePowiatow();
 
 
     /* ── strefy PAŻP: WYŁĄCZNIE informacyjnie ────────────────────────────────
@@ -2097,8 +2107,8 @@ async function initMap() {
         "line-blur": 0.4 } });
 
     mapReady = true;
-    // powiaty dopiero PO starcie mapy — nie wydłużają go (patrz dodajWarstwePowiatow)
-    dodajWarstwePowiatow();
+    // warstwa powiatów dokładana wyżej (zaraz po województwach); tu tylko widoczność po mapReady
+    applyPodzialMapy();
     dopasujMapeDoPanelu();
     // komunikat „mapa się nie wczytała” mógł wyskoczyć, gdy start trwał dłużej (np. aplikacja w tle)
     document.getElementById("map-niedostepna")?.remove();
@@ -3334,6 +3344,15 @@ function wybierzPowiatBanera(lista, kolejnosc = []) {
   const pula = lista.filter(p => lv(p) === maks);
   return pula.sort((a, b) => (maks > 0 ? (+b.score || 0) - (+a.score || 0) : 0) || poz(a.terc) - poz(b.terc))[0];
 }
+/* Powiat z najwyższym poziomem w migawce historii (rzadki słownik `powiaty`): poziom, potem
+   punkty. null, gdy żaden nie miał żółtego ani czerwonego. `wiecej` — ile jeszcze z alarmem. */
+function najwyzszyPowiatHistorii(pw) {
+  const kol = ["none", "elevated", "high"];
+  const lista = Object.entries(pw || {}).map(([terc, p]) => ({ terc, level: p?.level || "none", score: +p?.score || 0 }))
+    .filter(p => p.level === "elevated" || p.level === "high")
+    .sort((a, b) => kol.indexOf(b.level) - kol.indexOf(a.level) || b.score - a.score || a.terc.localeCompare(b.terc));
+  return lista.length ? { ...lista[0], wiecej: lista.length - 1 } : null;
+}
 /* Powiaty miejsc z alarmami w kolejności miejsc (pierwsze miejsce = „mój region”). */
 function kolejnoscPowiatowMiejsc() {
   const out = [];
@@ -3345,6 +3364,79 @@ function kolejnoscPowiatowMiejsc() {
   return out;
 }
 const wielkaPierwsza = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+/* Pigułka „mój region” w torze powiatów — przewijana w pętli między powiatami miejsc
+   (22.11.2026, user): strzałki po obu stronach i przesunięcie palcem, punkty zawsze widoczne
+   jak dotąd przy województwie. Kolejność jak miejsca. Na start (i po każdym WZROŚCIE
+   najwyższego poziomu wśród moich powiatów) pokazuje powiat wybrany przez
+   wybierzPowiatBanera — alarm nie schowa się za ręcznie wybranym spokojnym powiatem. */
+let banerPowWybor = null;      // { terc, maks } — ręczny wybór i najwyższy poziom w tamtej chwili
+let banerPrzesuniety = 0;      // znacznik czasu przesunięcia palcem (tłumi klik po geście)
+const POZIOMY_BANERA = ["none", "elevated", "high"];
+function powiatyBanera(lista, kolejnosc = [], wybor = null) {
+  const poz = t => { const i = kolejnosc.indexOf(t); return i < 0 ? 1e6 : i; };
+  const uloz = [...lista].sort((a, b) => poz(a.terc) - poz(b.terc) || a.terc.localeCompare(b.terc));
+  const maks = Math.max(...lista.map(p => Math.max(0, POZIOMY_BANERA.indexOf(p.level || "none"))));
+  const reczny = wybor && maks <= wybor.maks ? uloz.find(p => p.terc === wybor.terc) : null;
+  return { uloz, maks, biez: reczny || wybierzPowiatBanera(lista, kolejnosc), reczny: !!reczny };
+}
+function rysujBanerPowiatu(banner, powBaner, kierunek = 0) {
+  const { uloz, maks, biez, reczny } = powiatyBanera(powBaner, kolejnoscPowiatowMiejsc(), banerPowWybor);
+  if (!reczny) banerPowWybor = null;
+  else if (maks < banerPowWybor.maks) banerPowWybor.maks = maks;   // spadek: następny wzrost znów pokaże alarm
+  const n = uloz.length, i = uloz.indexOf(biez);
+  const lvl = biez.level || "none";
+  const pkt = +biez.score || 0;
+  const strz = (kier, d, et) => `<button type="button" class="ban-strz" data-kier="${kier}" aria-label="${et}">`
+    + `<svg viewBox="0 0 10 16" aria-hidden="true"><path d="${d}"/></svg></button>`;
+  banner.className = "level-" + lvl + (n > 1 ? " z-strzalkami" : "");
+  banner.innerHTML = (n > 1 ? strz(-1, "M7 2 2 8l5 6", UI.t("Poprzedni powiat", "Previous county", "Попередній повіт")) : "")
+    + `<span class="znak" aria-hidden="true">${lvl === "high" ? "!" : ""}</span>`
+    + `<span class="ban-tresc${kierunek ? (kierunek > 0 ? " wjazd-p" : " wjazd-l") : ""}"><b class="pow-nazwa">${
+      esc(wielkaPierwsza(nazwaPowiatuMapy(biez.terc)))}</b> — <span class="lvl">${
+      lvl === "none" ? (pkt > 0 ? UI.t("poniżej progu", "below threshold", "нижче порога") : UI.t("brak alarmu", "no alert", "немає тривоги"))
+      : LEVEL_LABEL[lvl]}</span>
+      <span class="muted">${pktTxt(pkt)} ${UI.t("pkt", "pts", "бал.")}${n > 1 ? ` · ${i + 1}/${n}` : ""}</span></span>`
+    + (n > 1 ? strz(1, "M3 2l5 6-5 6", UI.t("Następny powiat", "Next county", "Наступний повіт")) : "");
+  banner.querySelectorAll(".ban-strz").forEach(b => b.addEventListener("click", e => {
+    e.stopPropagation();
+    przesunBanerPowiatu(+b.dataset.kier);
+  }));
+  banner.onclick = () => {
+    if (Date.now() - banerPrzesuniety < 500) return;
+    if (powCecha(biez.terc)) openPowCard(biez.terc);
+    else { setPanel(true); openCard(biez.woj || granicePowiatow?.pow?.[biez.terc]?.w); }
+  };
+}
+function przesunBanerPowiatu(d) {
+  const banner = document.getElementById("my-banner");
+  const lista = histMode ? null : powiatyWStanie();
+  if (!banner || !lista || lista.length < 2) return;
+  const { uloz, maks, biez } = powiatyBanera(lista, kolejnoscPowiatowMiejsc(), banerPowWybor);
+  const j = (uloz.indexOf(biez) + d + uloz.length) % uloz.length;
+  banerPowWybor = { terc: uloz[j].terc, maks };
+  const fokus = document.activeElement?.classList?.contains("ban-strz");
+  rysujBanerPowiatu(banner, lista, d);
+  // przerysowanie podmienia strzałki — fokus klawiatury i czytnika ekranu wraca na tę samą
+  if (fokus) banner.querySelector(`.ban-strz[data-kier="${d}"]`)?.focus({ preventScroll: true });
+}
+/* Przesunięcie palcem po pigułce: w lewo — następny powiat, w prawo — poprzedni. */
+(() => {
+  const b = document.getElementById("my-banner");
+  if (!b) return;
+  let x0 = null, y0 = 0;
+  b.addEventListener("touchstart", e => {
+    x0 = e.touches.length === 1 ? e.touches[0].clientX : null;
+    y0 = e.touches.length === 1 ? e.touches[0].clientY : 0;
+  }, { passive: true });
+  b.addEventListener("touchend", e => {
+    if (x0 == null || !b.querySelector(".ban-strz")) { x0 = null; return; }
+    const dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0;
+    x0 = null;
+    if (Math.abs(dx) < 36 || Math.abs(dx) < 1.5 * Math.abs(dy)) return;
+    banerPrzesuniety = Date.now();
+    przesunBanerPowiatu(dx < 0 ? 1 : -1);
+  }, { passive: true });
+})();
 /* Karta powiatu (1.8.10): poziom i punkty powiatu, Twoje miejsca w nim i punktacja
    województwa z odnośnikiem do jego sygnałów. Powodów per powiat serwer nie publikuje —
    sygnały są te same co województwa, liczone z odległości do powiatu. */
@@ -3353,7 +3445,8 @@ function openPowCard(terc) {
   if (!f) return;
   const woj = f.properties.w;
   const zrodlo = histMode ? powHistoria : (state?.fusion?.powiaty || {});
-  const p = zrodlo?.[terc];
+  const pktPonizej = histMode ? null : state?.fusion?.powiaty_pkt?.[terc];
+  const p = zrodlo?.[terc] || (pktPonizej != null ? { level: "none", score: pktPonizej } : null);
   const lvl = p?.level || "none";
   const pkt = Number(p?.score) || 0;
   const kolor = lvl === "high" ? "#ff8aa3" : lvl === "elevated" ? "#ffcf70" : "#cfe0ff";
@@ -3363,7 +3456,9 @@ function openPowCard(terc) {
   const moje = IS_APP && granicePowiatow && Powiaty
     ? savedPlaces.filter(m => m.alerts && Powiaty.powiatMiejsca(granicePowiatow, m)?.powiaty?.includes(terc)).map(m => m.name)
     : [];
-  const vst = histMode ? null : state?.fusion?.voivodeships?.[woj];
+  // 22.11.2026 (user): w historii karta podawała samą nazwę województwa — punkty i poziom
+  // bierzemy z wybranej chwili (histWoj), na żywo z bieżącego stanu
+  const vst = histMode ? (histWoj?.[woj] || null) : state?.fusion?.voivodeships?.[woj];
   const wojLinia = vst
     ? `${UI.t("Województwo", "Province", "Воєводство")} ${esc(UI.voiv(woj))}: ${
         vst.level === "none" ? UI.t("brak alarmu", "no alert", "немає тривоги") : LEVEL_LABEL[vst.level]}, ${pktTxt(vst.score)} ${UI.t("pkt", "pts", "бал.")}`
@@ -4217,20 +4312,7 @@ function renderPanel() {
      z najwyższym poziomem (tak jak dzwoni alarm), a nie całe województwo. */
   const powBaner = histMode ? null : powiatyWStanie();
   if (powBaner?.length) {
-    const najw = wybierzPowiatBanera(powBaner, kolejnoscPowiatowMiejsc());
-    const lvl = najw.level || "none";
-    const pkt = +najw.score || 0;
-    banner.className = "level-" + lvl;
-    banner.innerHTML = `<span class="znak" aria-hidden="true">${lvl === "high" ? "!" : ""}</span>`
-      + `<span><b class="pow-nazwa">${esc(wielkaPierwsza(nazwaPowiatuMapy(najw.terc)))}</b> — <span class="lvl">${
-        lvl === "none" ? (pkt > 0 ? UI.t("poniżej progu", "below threshold", "нижче порога") : UI.t("brak alarmu", "no alert", "немає тривоги"))
-        : LEVEL_LABEL[lvl]}</span>
-      <span class="muted">${pkt > 0 ? `${pktTxt(pkt)} ${UI.t("pkt", "pts", "бал.")}` : ""}${powBaner.length > 1
-        ? `${pkt > 0 ? " · " : "· "}${lvl === "none"
-          ? UI.t(`powiaty Twoich miejsc: ${powBaner.length}`, `counties of your places: ${powBaner.length}`, `повіти ваших місць: ${powBaner.length}`)
-          : UI.t(`najwyższy z ${powBaner.length} powiatów Twoich miejsc`, `highest of ${powBaner.length} counties of your places`, `найвищий із ${powBaner.length} повітів ваших місць`)}`
-        : ""}</span></span>`;
-    banner.onclick = () => { if (powCecha(najw.terc)) openPowCard(najw.terc); else { setPanel(true); openCard(najw.woj || mine); } };
+    rysujBanerPowiatu(banner, powBaner);
   } else if (mine && f.voivodeships[mine]) {
     const st = f.voivodeships[mine];
     const poziom = spillRaised(st) ? "spill" : st.level;
@@ -5087,7 +5169,8 @@ function powiatyWStanie() {
   const obs = powiatyDoTematow();
   if (!obs.length) return null;
   const pw = state?.fusion?.powiaty || {};
-  return obs.map(t => ({ terc: t, ...(pw[t] || { level: "none", score: 0, woj: granicePowiatow?.pow?.[t]?.w }) }));
+  const pkt = state?.fusion?.powiaty_pkt || {};   // punkty poniżej progu (serwer od 1.8.11)
+  return obs.map(t => ({ terc: t, ...(pw[t] || { level: "none", score: +pkt[t] || 0, woj: granicePowiatow?.pow?.[t]?.w }) }));
 }
 function updateAlarmMoodPowiaty(lista) {
   const order = ["none", "elevated", "high"];
@@ -6772,6 +6855,12 @@ function showHistoryAt(idx) {
      (zgłoszenie czytelnika 24.09.2026). Zapas na starsze dane bez `levels`. */
   const poziomHist = (v, sc) => h?.levels?.[v]
     || (sc >= 4 ? "high" : sc >= 2 ? "elevated" : "none");
+  histWoj = Object.fromEntries(ALL_VOIVS.map(v => [v, { score: perVoiv[v] || 0, level: poziomHist(v, perVoiv[v] || 0) }]));
+  /* Widok powiatów (22.11.2026, user): gdy w tej chwili jakiś powiat miał żółty albo czerwony,
+     wiersz pod suwakiem zaczyna się od powiatu z najwyższym poziomem — tak, jak liczy się alarm.
+     Bez alarmu w powiatach (albo w widoku województw, albo migawka sprzed zapisu powiatów)
+     zostaje dotychczasowe: województwo z najwyższą punktacją. */
+  const powNaj = mapaPowiatow() ? najwyzszyPowiatHistorii(snap?.powiaty) : null;
   // poziom w wybranym momencie — kolor kciuka suwaka i podsumowanie
   const tp = timelinePoints[idx];
   const slider = document.getElementById("tb-slider");
@@ -6779,7 +6868,11 @@ function showHistoryAt(idx) {
   // liczba sygnałów jest klikalna: bez tego widać „12 sygnałów w oknie”, ale nie
   // sposób sprawdzić, jakie to były — a to najciekawsza część historii
   document.getElementById("tb-info").innerHTML =
-    (tp && tp.score > 0
+    (powNaj
+      ? `<b style="color:${powNaj.level === "high" ? "var(--red)" : "var(--amber)"}">`
+        + `${LEVEL_LABEL[powNaj.level]} · ${esc(nazwaPowiatuMapy(powNaj.terc))}${powNaj.wiecej
+          ? ` ${UI.t(`(+${powNaj.wiecej} pow.)`, `(+${powNaj.wiecej} counties)`, `(+${powNaj.wiecej} пов.)`)}` : ""}</b> · `
+      : tp && tp.score > 0
       ? `<b style="color:${tp.level === "high" ? "var(--red)"
           : tp.level === "elevated" ? "var(--amber)" : "var(--muted)"}">`
         + `${pktTxt(tp.score)} ${UI.t("pkt", "pts", "бал.")}${tp.voiv ? ` · ${UI.t("woj.", "province", "воєв.")} ` + esc(UI.voiv(tp.voiv)) : ""}</b> · `
@@ -9140,6 +9233,13 @@ async function restoreAlertsOff() {
   const box = document.getElementById("set-alerts-on");
   if (box) box.checked = !alertsOff();
 }
+/* Granice powiatów telefonu od razu przy starcie (wcześniej po 2,5 s): od nich zależą wiersz
+   „mój region” i obrys moich powiatów — bez nich pierwsze rysowanie pokazywało województwo.
+   Po wczytaniu przerysowujemy wiersz i obrys. Synchronizacja tematów zostaje po 2,5 s. */
+wczytajGranicePowiatow().then(() => {
+  try { if (state && !histMode) renderPanel(); } catch (e) { console.warn("wiersz powiatów", e); }
+  applyPodzialMapy();
+}).catch(() => {});
 setTimeout(async () => { await restoreAlertsOff(); await wczytajGranicePowiatow(); syncObservedRegions(); }, 2500);
 if ("serviceWorker" in navigator && !IS_APP)
   navigator.serviceWorker.register("sw.js").catch(() => {});

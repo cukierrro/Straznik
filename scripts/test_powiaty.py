@@ -282,7 +282,8 @@ async def scenariusz():
     await krok({A: stan(2.7, "elevated"), B: stan(3.0, "elevated")}, T0 + 60)
     await krok({A: stan(4.6, "high", red={"powod": "blisko"}), B: stan(3.0, "elevated")}, T0 + 120)
     await krok({}, T0 + 2000)                    # po podtrzymaniu (10 min) — spadek
-    await krok({C: stan(2.6, "elevated")}, T0 + 2100)
+    # A z punktami poniżej progu, B z zerem — do pola `powiaty_pkt` (1.8.11)
+    await krok({C: stan(2.6, "elevated"), A: stan(1.4, "none"), B: stan(0.0, "none")}, T0 + 2100)
 
 asyncio.run(scenariusz())
 log_pow = db.alert_log_pow_since(1)
@@ -300,6 +301,8 @@ ok(dec[-1][0] == C and dec[-1][3] == f"elevated|{nowa}", "po ciszy w całym kraj
 ok(db.last_notif_pow(A, "elevated") is not None, "„dziennik” liczy się do ciszy powtórki jak wysyłka")
 ok(powiaty.publiczne() == {C: {"level": "elevated", "score": 2.6, "name": "powiat Poznań",
                                "woj": "wielkopolskie"}}, "słownik publiczny: tylko powiaty z poziomem")
+ok(powiaty.punkty_ponizej() == {A: 1.4},
+   f"punkty poniżej progu: tylko powiat bez poziomu z punktami > 0 ({powiaty.punkty_ponizej()})")
 
 
 async def powrot():
@@ -391,7 +394,13 @@ fusion.on_reevaluated = None
 try:
     from app import main
     powiaty._publiczne = {}
+    powiaty._ponizej = {}
     ok("powiaty" not in main._fusion_z_powiatami(), "/api/state: bez poziomów w powiatach — bez klucza `powiaty`")
+    ok("powiaty_pkt" not in main._fusion_z_powiatami(), "/api/state: bez punktów w żadnym powiecie — bez klucza `powiaty_pkt`")
+    powiaty._ponizej = {LUBLIN: 1.3}
+    ok(main._fusion_z_powiatami().get("powiaty_pkt") == {LUBLIN: 1.3} and "powiaty" not in main._fusion_z_powiatami(),
+       "/api/state: punkty poniżej progu w osobnym polu, `powiaty` bez nich")
+    powiaty._ponizej = {}
     powiaty._publiczne = {LUBLIN: {"level": "elevated", "score": 2.7, "name": "powiat Lublin", "woj": "lubelskie"}}
     ok(main._fusion_z_powiatami().get("powiaty", {}).get(LUBLIN, {}).get("level") == "elevated",
        "/api/state: rzadki słownik, gdy powiat ma poziom")
