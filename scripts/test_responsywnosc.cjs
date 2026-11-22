@@ -241,6 +241,19 @@ const POWROTY = `(async () => {
       if (!["1", "1.15", "1.3"].includes(k.skala))
         await ocen(cdp, `document.documentElement.style.setProperty("--skala-tekstu", ${JSON.stringify(k.skala)});
           try { zmierzPowiekszenieSystemu(); } catch {} ; "ok"`);
+      // Kontrola ujemna (1.8.12): detektor musi nadal łapać element wystający za ekran.
+      // Pomijanie elementów obciętych przez rodzica (tor panelu Sygnały) nie może go
+      // rozbroić — html i body też mają overflow: hidden.
+      if (k === KONFIGURACJE[0] || (SZYBKO && k.nazwa === "320 pl")) {
+        await ocen(cdp, `(() => { const d = document.createElement("div"); d.id = "kontrola-wystaje";
+          d.style.cssText = "position:fixed;top:120px;left:" + (innerWidth - 40) + "px;width:200px;height:24px;background:#f0f;z-index:9";
+          document.body.append(d); return "ok"; })()`);
+        const kontrola = JSON.parse(await ocen(cdp, "window.__przegladTempo = 0.4; " + PRZEGLAD));
+        await ocen(cdp, `document.getElementById("kontrola-wystaje")?.remove(), "ok"`);
+        const zlapany = kontrola.wyniki.some(w => (w.problemy || []).some(p => /kontrola-wystaje/.test(p.el) && /^A /.test(p.t)));
+        if (!zlapany) bledy.push(`${k.nazwa}: KONTROLA — detektor nie zgłosił elementu celowo wystającego za ekran`);
+        else console.log(`OK   ${k.nazwa}: kontrola — detektor łapie element wystający za ekran`);
+      }
       const wynik = JSON.parse(await ocen(cdp, "window.__przegladTempo = 0.4; " + PRZEGLAD));
       let ile = 0;
       for (const w of wynik.wyniki) {

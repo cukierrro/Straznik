@@ -43,6 +43,17 @@
     return null;
   };
 
+  const obcietyNaEkranie = (el) => {
+    // html i body też mają overflow: hidden (cała strona) — one nie liczą się jako „obcięcie”,
+    // inaczej żaden element nie byłby już poza ekranem i detektor przestałby działać
+    for (let a = el.parentElement; a && a !== document.body && a !== document.documentElement; a = a.parentElement) {
+      if (!/hidden|clip/.test(getComputedStyle(a).overflowX)) continue;
+      const ra = a.getBoundingClientRect();
+      if (ra.left >= -1 && ra.right <= W + 1) return true;   // obcina go rodzic leżący na ekranie
+    }
+    return false;
+  };
+
   function detektor(korzen) {
     const out = [];
     for (const el of korzen.querySelectorAll("*")) {
@@ -56,8 +67,10 @@
       // element w trakcie animacji (np. wysuwany panel) mierzymy dopiero, gdy stanie
       if (el.getAnimations && el.getAnimations().some(an => an.playState === "running")) continue;
       const { r, cs } = v;
-      // A. poza ekranem w poziomie
-      if (r.right > W + 1 || r.left < -1)
+      // A. poza ekranem w poziomie — chyba że wystającą część obcina rodzic (overflow
+      // hidden/clip), który sam mieści się na ekranie: tak leży niewidoczna strona panelu
+      // Sygnały na torze przesuwanym w bok (1.8.12) — użytkownik jej nie widzi
+      if ((r.right > W + 1 || r.left < -1) && !obcietyNaEkranie(el))
         out.push({ t: "A poza ekranem (poziomo)", el: opis(el), x: `${Math.round(r.left)}–${Math.round(r.right)}/${W}` });
       // B. pojemnik stały / okno poza ekranem w pionie (ucięty, nie da się zamknąć)
       const pos = cs.position;
