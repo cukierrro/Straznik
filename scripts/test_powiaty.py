@@ -161,6 +161,13 @@ ok(abs(hrub["points"] - config.POINTS["ua_alert_border"]
    "alarm obwodu: punkty × ua_alert_weight(odległość obwodu od powiatu)")
 ok(all(P[c["voivodeship"][1:]]["obw"]["Волинська"] <= config.UA_ALERT_CURVE[-1][0] for c in k_ua),
    "alarm obwodu nie sięga dalej niż krzywa wagi")
+tyt_ua = [sig(31, "lubelskie", "ua_alert", 1.0, "ua_alert_border", oblast="Волинська",
+              episode="2026-11-17T09:20:00+00:00")]
+tyt_ua[0]["title"] = "Alarm powietrzny w obwodzie wołyńskim (woj. lubelskie — przy granicy)"
+k_t = powiaty.na_powiaty(tyt_ua[0], powiaty.Listy([]), REF.isoformat())
+ok(k_t and all("woj." not in c["title"] and c["title"].startswith("Alarm powietrzny w obwodzie wołyńskim (Ukraina, ")
+               and ("od powiatu)" in c["title"] or "przy granicy powiatu)" in c["title"]) for c in k_t),
+   f"alarm obwodu w powiecie: odległość od powiatu, bez cudzego województwa ({k_t[0]['title'] if k_t else '—'})")
 jeden, _ = powiaty.oblicz(ua[:1], REF)
 trzy, _ = powiaty.oblicz(ua, REF)
 ok({t: s["score"] for t, s in jeden.items()} == {t: s["score"] for t, s in trzy.items()},
@@ -366,6 +373,17 @@ ok(w["klucz_zdarzenia"] == "high|2026-11-17T09:10:00+00:00" and w["sesja_od"] ==
 ok(w["ponowienie"] == "0" and w["typ"] == "pow", "zwykły alarm — bez znacznika ponowienia")
 ok(w["event_id"].startswith(f"pow_{BIESZCZADZKI}|high|"), "event_id z tematem powiatu")
 ok("km od powiatu" in w["headline"], f"nagłówek o odległości od POWIATU: {w['headline']}")
+st_p = {"score": 4.6, "signals": [
+    dict(st["signals"][0], id="u0", event_type="ua_alert_border", source="ua_alert", counted_points=0.0,
+         title="Alarm powietrzny w obwodzie czerniowieckim (Ukraina, ok. 225 km od powiatu)"),
+    dict(st["signals"][0], id="d1", counted_points=0.4, title="Dron daleko (+0,4)"),
+    dict(st["signals"][0], id="d2", counted_points=2.0, title="Rakieta blisko (+2,0)"),
+    dict(st["signals"][0], id="d3", counted_points=1.1, title="Dron średnio (+1,1)")]}
+wpo = powiaty.wiadomosc(BIESZCZADZKI, "high", st_p, sesja_od="2026-11-17T09:10:00+00:00")
+linie = [x for x in wpo["reasons"].splitlines() if x.startswith("•")]
+ok(wpo["headline"].startswith("Rakieta blisko"), f"nagłówek: najmocniejszy obiekt ({wpo['headline']})")
+ok([x.split(" (+")[0] for x in linie] == ["• Dron średnio", "• Dron daleko"],
+   f"powody alarmu powiatu: od najmocniejszego, bez sygnałów za 0 pkt i bez powtórki nagłówka ({linie})")
 wp = powiaty.wiadomosc(BIESZCZADZKI, "high", st, sesja_od="2026-11-17T09:10:00+00:00",
                        ponowienie_powod={"rodzaj": "obiekt", "km": 8.0})
 ok(wp["ponowienie"] == "1" and wp["headline"].startswith("PONOWNY ALARM")

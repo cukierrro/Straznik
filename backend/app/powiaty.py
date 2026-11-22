@@ -315,6 +315,17 @@ def _tytul_neptun(d: dict, km: float, eta) -> str:
     return f"{ile}{threat_label_pl(d.get('type'))} {gdzie}" + (f", dolot ok. {eta} min" if eta is not None else "")
 
 
+def _tytul_ua(tytul: str | None, km: float) -> str | None:
+    """Tytuł alarmu obwodu UA względem POWIATU (22.11.2026). Kopia brała tytuł sygnału
+    województwa, więc Przemyśl (podkarpackie) dostawał w powodach alarmu „(woj. lubelskie
+    — 225 km)”. Nazwę obwodu zostawiamy z tytułu (jest już odmieniona)."""
+    if not tytul:
+        return None
+    gdzie = "przy granicy powiatu" if km <= 0 else f"ok. {round(km)} km od powiatu"
+    nowy = re.sub(r" \(woj\. [^)]*\)$", f" (Ukraina, {gdzie})", tytul)
+    return nowy if nowy != tytul else None
+
+
 def na_powiaty(s: dict, listy: Listy, ref_iso: str) -> list[dict]:
     """Kopie sygnału województwa na powiaty, z punktami przeliczonymi dla powiatu."""
     from . import geo
@@ -361,7 +372,7 @@ def na_powiaty(s: dict, listy: Listy, ref_iso: str) -> list[dict]:
             w = config.ua_alert_weight(km_)
             if w > 0 or typ == "ua_alert_end":
                 kopia(t, config.POINTS["ua_alert_border"] * w if typ != "ua_alert_end" else 0,
-                      distance_km=round(km_))
+                      _tytul_ua(s.get("title"), km_), distance_km=round(km_))
         return out
     woj_pow = geometria()["woj_pow"].get(voiv, [])
     if src == "rcb":
@@ -513,9 +524,15 @@ def wiadomosc(terc: str, level: str, st: dict, *, sesja_od: str | None,
     sent_at = sent_at or datetime.now(timezone.utc)
     signals = st.get("signals") or []
     head = naglowek(signals)
+    tytul_glowny = head            # sygnał z nagłówka nie powtarza się w pierwszym powodzie
     if ponowienie_powod:
         head = notify.naglowek_ponowienia(ponowienie_powod, head)
-    reasons = notify.reasons_split(signals)
+    # 22.11.2026: powody od najmocniejszego i tylko te, które dały punkty. Kolejność
+    # przyjścia sygnałów wypychała z trzech pokazywanych na telefonie linii rakiety
+    # (+2,0), a zostawały alarmy obwodów za +0,0 (odtworzenie 20.11 05:35, Przemyśl).
+    powody = sorted((s for s in signals if (s.get("counted_points") or 0) > 0),
+                    key=lambda s: -(s.get("counted_points") or 0))
+    reasons = notify.reasons_split([s for s in powody if s.get("title") != tytul_glowny] or powody)
     if any((s.get("details") or {}).get("eta_alarm") for s in signals):
         reasons += "\nSzacunek czasu dolotu; dane źródłowe mogą być opóźnione o kilka minut."
     nazwa = nazwa_krotka(terc)
