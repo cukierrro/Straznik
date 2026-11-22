@@ -74,6 +74,7 @@ sprawdz(all(k not in glowna for k in main.AUX_SEKCJE),
         "część główna nie powtarza sekcji pomocniczych")
 zlozony = {**glowna, **pomoc}
 zlozony.pop("aux_v", None)
+zlozony.pop("pow_v", None)      # odcisk części `state_pow` (rozbicie powiatów, 1.8.12) — nie dane stanu
 sprawdz(zlozony == pelny,
         "główna + pomocnicza daje dokładnie pełny stan (bez gubienia sekcji)")
 

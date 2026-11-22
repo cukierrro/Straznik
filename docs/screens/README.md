@@ -395,6 +395,15 @@ permissions capture stays from 1.8.07: in this debug build the emulator never re
 topic confirmation, so a county subscription row could not be captured honestly; the caption
 describes it in words.
 
+Signals panel (1.8.12, 22 November 2026, evening): `1812/panel-powiaty-{pl,en,uk}.jpg` (Counties
+page; replaces `1799/panel`), `1812/panel-powiat-{pl,en,uk}.jpg` (expanded county) and
+`1812/panel-woj-{pl,en,uk}.jpg` (Provinces page after a real sideways swipe) — 1.8.12 debug build on the
+Pixel 7 emulator with a temporary, uncommitted change that let it use a local server; that server gave
+the state replayed from the attack of 20 November 2026, 05:35 (backend code of 1.8.12 on a copy of the
+database). The open-app alarm overlay was dismissed with the app's own buttons (POTWIERDZAM, Obserwuj
+mapę); the emulator has no audio. Places: Dom (0663), Praca (0617), Działka (1862). `1812/history-panel-*`
+(replaces `1799/history-panel`) — the same build on the production server, live data.
+
 County map and county card (1.8.11, 22 November 2026, afternoon): `1811/mapa-powiaty-{pl,en,uk}.jpg`
 and `1811/karta-powiatu-{pl,en,uk}.jpg` replace the 1.8.10 frames — debug build 1.8.11 on the Pixel 7
 emulator, live server data, places Dom (powiat 0663 Lublin) and Praca (0617 świdnicki) with alerts,

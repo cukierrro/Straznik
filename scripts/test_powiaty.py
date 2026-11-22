@@ -23,6 +23,7 @@ Uruchomienie:  py scripts/test_powiaty.py
 import asyncio
 import copy
 import json
+import re
 import sys
 import tempfile
 import types
@@ -128,6 +129,21 @@ duzo = [DRON] + [dict(DRON, id=100 + i, details=dict(DRON["details"], track_id=f
                                                       lat=49.15355 + i * 0.05))
                  for i in range(6)]
 wyn, licz = powiaty.oblicz(duzo + inne, REF)
+fale = [x for st in wyn.values() for x in st["signals"] if x.get("event_type") == "neptun_wave"]
+# rozbicie punktów powiatu na sygnały (panel Sygnały, 1.8.12)
+naj = max(wyn.values(), key=lambda s: len([x for x in s["signals"] if (x.get("counted_points") or 0) > 0]))
+rb = powiaty.rozbicie(naj)
+z_pkt = [x for x in naj["signals"] if (x.get("counted_points") or 0) > 0]
+ok(len(rb["s"]) == min(len(z_pkt), powiaty.SYGNALY_MAX) and rb["wiecej"] == max(0, len(z_pkt) - powiaty.SYGNALY_MAX),
+   f"rozbicie: najwyżej {powiaty.SYGNALY_MAX} sygnałów, reszta policzona ({len(rb['s'])} + {rb['wiecej']} z {len(z_pkt)})")
+ok([x["p"] for x in rb["s"]] == sorted((x["p"] for x in rb["s"]), reverse=True) and all(x["p"] > 0 for x in rb["s"]),
+   "rozbicie: od najmocniejszego, tylko z punktami")
+ok(all(set(x) == {"t", "p"} and x["t"] for x in rb["s"]), "rozbicie: sam tytuł i wkład (paczka na żądanie ma być mała)")
+ok(fale and all(" od powiatu (" in x["title"] for x in fale)
+   and not any(re.search(r"\bP\d{4}\b", x["title"]) for x in fale),
+   f"fala w powiecie: „od powiatu”, bez klucza regionu „P1809” w tytule ({len(fale)} fal; {fale[0]['title'] if fale else '—'})")
+powody = notify.reasons_split(next(st["signals"] for st in wyn.values() if any(x.get("event_type") == "neptun_wave" for x in st["signals"])))
+ok(not re.search(r"\bP\d{4}\b", powody), "powody w powiadomieniu powiatu bez klucza „Pxxxx”")
 d = wyn[DEBICKI]
 ok(d["score"] >= 4.0 and d["level"] == "elevated" and d["red_key"] is None,
    f"17.11 09:36: Dębica {d['score']} pkt — bez klucza czerwonego zostaje żółta")
@@ -154,6 +170,13 @@ ok(abs(hrub["points"] - config.POINTS["ua_alert_border"]
    "alarm obwodu: punkty × ua_alert_weight(odległość obwodu od powiatu)")
 ok(all(P[c["voivodeship"][1:]]["obw"]["Волинська"] <= config.UA_ALERT_CURVE[-1][0] for c in k_ua),
    "alarm obwodu nie sięga dalej niż krzywa wagi")
+tyt_ua = [sig(31, "lubelskie", "ua_alert", 1.0, "ua_alert_border", oblast="Волинська",
+              episode="2026-11-17T09:20:00+00:00")]
+tyt_ua[0]["title"] = "Alarm powietrzny w obwodzie wołyńskim (woj. lubelskie — przy granicy)"
+k_t = powiaty.na_powiaty(tyt_ua[0], powiaty.Listy([]), REF.isoformat())
+ok(k_t and all("woj." not in c["title"] and c["title"].startswith("Alarm powietrzny w obwodzie wołyńskim (Ukraina, ")
+               and ("od powiatu)" in c["title"] or "przy granicy powiatu)" in c["title"]) for c in k_t),
+   f"alarm obwodu w powiecie: odległość od powiatu, bez cudzego województwa ({k_t[0]['title'] if k_t else '—'})")
 jeden, _ = powiaty.oblicz(ua[:1], REF)
 trzy, _ = powiaty.oblicz(ua, REF)
 ok({t: s["score"] for t, s in jeden.items()} == {t: s["score"] for t, s in trzy.items()},
@@ -359,6 +382,17 @@ ok(w["klucz_zdarzenia"] == "high|2026-11-17T09:10:00+00:00" and w["sesja_od"] ==
 ok(w["ponowienie"] == "0" and w["typ"] == "pow", "zwykły alarm — bez znacznika ponowienia")
 ok(w["event_id"].startswith(f"pow_{BIESZCZADZKI}|high|"), "event_id z tematem powiatu")
 ok("km od powiatu" in w["headline"], f"nagłówek o odległości od POWIATU: {w['headline']}")
+st_p = {"score": 4.6, "signals": [
+    dict(st["signals"][0], id="u0", event_type="ua_alert_border", source="ua_alert", counted_points=0.0,
+         title="Alarm powietrzny w obwodzie czerniowieckim (Ukraina, ok. 225 km od powiatu)"),
+    dict(st["signals"][0], id="d1", counted_points=0.4, title="Dron daleko (+0,4)"),
+    dict(st["signals"][0], id="d2", counted_points=2.0, title="Rakieta blisko (+2,0)"),
+    dict(st["signals"][0], id="d3", counted_points=1.1, title="Dron średnio (+1,1)")]}
+wpo = powiaty.wiadomosc(BIESZCZADZKI, "high", st_p, sesja_od="2026-11-17T09:10:00+00:00")
+linie = [x for x in wpo["reasons"].splitlines() if x.startswith("•")]
+ok(wpo["headline"].startswith("Rakieta blisko"), f"nagłówek: najmocniejszy obiekt ({wpo['headline']})")
+ok([x.split(" (+")[0] for x in linie] == ["• Dron średnio", "• Dron daleko"],
+   f"powody alarmu powiatu: od najmocniejszego, bez sygnałów za 0 pkt i bez powtórki nagłówka ({linie})")
 wp = powiaty.wiadomosc(BIESZCZADZKI, "high", st, sesja_od="2026-11-17T09:10:00+00:00",
                        ponowienie_powod={"rodzaj": "obiekt", "km": 8.0})
 ok(wp["ponowienie"] == "1" and wp["headline"].startswith("PONOWNY ALARM")
@@ -401,6 +435,19 @@ try:
     ok(main._fusion_z_powiatami().get("powiaty_pkt") == {LUBLIN: 1.3} and "powiaty" not in main._fusion_z_powiatami(),
        "/api/state: punkty poniżej progu w osobnym polu, `powiaty` bez nich")
     powiaty._ponizej = {}
+    # część stanu `state_pow` (1.8.12): rozbicie na żądanie, w części głównej tylko odcisk
+    powiaty._sygnaly = {LUBLIN: {"s": [{"t": "Dron ok. 12 km od powiatu", "p": 2.0}], "wiecej": 0}}
+    stan_testowy = {"fusion": {"ts": "x"}, "adsb": {}, "health": {}}
+    main._publikuj_czesci(stan_testowy)
+    from app import public_cache
+    bp = public_cache.get("state_pow")
+    gl = json.loads(public_cache.get("state_main").raw)
+    ok(bp is not None and json.loads(bp.raw) == powiaty._sygnaly and gl.get("pow_v") == bp.etag.strip('"'),
+       "/api/state?part=pow: rozbicie w osobnej paczce, w części głównej jej odcisk `pow_v`")
+    ok("powiaty_sygnaly" not in json.dumps(gl) and "Dron ok. 12 km" not in gl.__repr__(),
+       "część główna bez samego rozbicia (stała paczka się nie zmienia)")
+    ok(public_cache.CACHE_POLICY.get("state_pow") == (2, 2), "state_pow: ta sama polityka cache co inne części stanu")
+    powiaty._sygnaly = {}
     powiaty._publiczne = {LUBLIN: {"level": "elevated", "score": 2.7, "name": "powiat Lublin", "woj": "lubelskie"}}
     ok(main._fusion_z_powiatami().get("powiaty", {}).get(LUBLIN, {}).get("level") == "elevated",
        "/api/state: rzadki słownik, gdy powiat ma poziom")

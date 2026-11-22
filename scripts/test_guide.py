@@ -22,7 +22,9 @@ OTHER_IMAGES = {"mikrus-logo.svg": (86, 14)}
 # 1.8.10 (mapa powiatów): +6 — mapa-powiaty i karta-powiatu PL/EN/UK; set-mapa zastąpione kadrami z 1810
 # 1.8.11: mapa-powiaty i karta-powiatu PL/EN/UK zastąpione kadrami z docs/screens/1811 (pigułka ze
 #         strzałkami i punktami powiatu) — bez zmiany liczby; pliki 1810 zostają w repo
-EXPECTED_SHOTS = 103
+# 1.8.12: panel Sygnały — panel i history-panel PL/EN/UK zastąpione kadrami z 1812, +6: panel-powiat
+#         i panel-woj PL/EN/UK; pliki 1799 zostają w repo
+EXPECTED_SHOTS = 109
 
 
 class Page(HTMLParser):

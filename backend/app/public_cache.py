@@ -45,6 +45,7 @@ CACHE_POLICY = {
     "state": (2, 2),
     "state_main": (2, 2),
     "state_aux": (2, 2),
+    "state_pow": (2, 2),
     "bundle": (30, 60),
     "timeline": (30, 60),
     "zones": (30, 60),

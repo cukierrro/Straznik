@@ -64,6 +64,8 @@ status = {"enabled": config.POWIATY_LICZENIE, "wysylka": config.powiaty_wysylka_
           "aktywnych": 0, "at": None, "error": None}
 _publiczne: dict[str, dict] = {}
 _ponizej: dict[str, float] = {}     # punkty powiatów bez poziomu (0 < pkt < próg) — pigułka w aplikacji
+_sygnaly: dict[str, dict] = {}      # rozbicie punktów powiatów na sygnały — panel Sygnały (1.8.12)
+SYGNALY_MAX = 8                     # tyle sygnałów na powiat; resztę zliczamy
 _poziomy: dict[str, str] | None = None
 _sesja_od: str | None = None
 _inflight: set[tuple] = set()
@@ -315,6 +317,17 @@ def _tytul_neptun(d: dict, km: float, eta) -> str:
     return f"{ile}{threat_label_pl(d.get('type'))} {gdzie}" + (f", dolot ok. {eta} min" if eta is not None else "")
 
 
+def _tytul_ua(tytul: str | None, km: float) -> str | None:
+    """Tytuł alarmu obwodu UA względem POWIATU (22.11.2026). Kopia brała tytuł sygnału
+    województwa, więc Przemyśl (podkarpackie) dostawał w powodach alarmu „(woj. lubelskie
+    — 225 km)”. Nazwę obwodu zostawiamy z tytułu (jest już odmieniona)."""
+    if not tytul:
+        return None
+    gdzie = "przy granicy powiatu" if km <= 0 else f"ok. {round(km)} km od powiatu"
+    nowy = re.sub(r" \(woj\. [^)]*\)$", f" (Ukraina, {gdzie})", tytul)
+    return nowy if nowy != tytul else None
+
+
 def na_powiaty(s: dict, listy: Listy, ref_iso: str) -> list[dict]:
     """Kopie sygnału województwa na powiaty, z punktami przeliczonymi dla powiatu."""
     from . import geo
@@ -361,7 +374,7 @@ def na_powiaty(s: dict, listy: Listy, ref_iso: str) -> list[dict]:
             w = config.ua_alert_weight(km_)
             if w > 0 or typ == "ua_alert_end":
                 kopia(t, config.POINTS["ua_alert_border"] * w if typ != "ua_alert_end" else 0,
-                      distance_km=round(km_))
+                      _tytul_ua(s.get("title"), km_), distance_km=round(km_))
         return out
     woj_pow = geometria()["woj_pow"].get(voiv, [])
     if src == "rcb":
@@ -448,6 +461,13 @@ def oblicz(signals: list[dict], ref: datetime, listy: Listy | None = None, *,
         st = per.get(klucz(t))
         if not st or not st["signals"]:
             continue
+        # 22.11.2026 (prototyp panelu na odtworzeniu 20.11): fuzja składa tytuł fali
+        # z klucza regionu, więc w powiecie wychodziło „od woj. P1809” — a tytuły idą
+        # do powodów w powiadomieniu (notify.reasons_split). Odległość fali to tu
+        # odległość od powiatu, którego nazwa i tak stoi w powiadomieniu jako miejsce.
+        for x in st["signals"]:
+            if x.get("event_type") == "neptun_wave" and x.get("title"):
+                x["title"] = x["title"].replace(f" od woj. {klucz(t)} ", " od powiatu ")
         score = fusion.round1(st["score"])
         lvl = poziom(score)
         rk = fusion.red_key(st["signals"], ref) if lvl == "high" else None
@@ -506,9 +526,15 @@ def wiadomosc(terc: str, level: str, st: dict, *, sesja_od: str | None,
     sent_at = sent_at or datetime.now(timezone.utc)
     signals = st.get("signals") or []
     head = naglowek(signals)
+    tytul_glowny = head            # sygnał z nagłówka nie powtarza się w pierwszym powodzie
     if ponowienie_powod:
         head = notify.naglowek_ponowienia(ponowienie_powod, head)
-    reasons = notify.reasons_split(signals)
+    # 22.11.2026: powody od najmocniejszego i tylko te, które dały punkty. Kolejność
+    # przyjścia sygnałów wypychała z trzech pokazywanych na telefonie linii rakiety
+    # (+2,0), a zostawały alarmy obwodów za +0,0 (odtworzenie 20.11 05:35, Przemyśl).
+    powody = sorted((s for s in signals if (s.get("counted_points") or 0) > 0),
+                    key=lambda s: -(s.get("counted_points") or 0))
+    reasons = notify.reasons_split([s for s in powody if s.get("title") != tytul_glowny] or powody)
     if any((s.get("details") or {}).get("eta_alarm") for s in signals):
         reasons += "\nSzacunek czasu dolotu; dane źródłowe mogą być opóźnione o kilka minut."
     nazwa = nazwa_krotka(terc)
@@ -622,7 +648,7 @@ async def _dostarcz(terc: str, level: str, data: dict, log_id: int | None, test:
 
 def _przejscia(wynik: dict, teraz: float | None = None) -> None:
     """Podtrzymanie, przejścia poziomów, dziennik i decyzje — jak fusion.reevaluate."""
-    global _sesja_od, _publiczne, _ponizej
+    global _sesja_od, _publiczne, _ponizej, _sygnaly
     teraz = time.time() if teraz is None else teraz
     poziomy = _levels()
     nowe: dict[str, str] = {}
@@ -673,6 +699,19 @@ def _przejscia(wynik: dict, teraz: float | None = None) -> None:
     # w `powiaty` jak powiat z poziomem (mapa, alarm otwartej aplikacji).
     _ponizej = {t: st["score"] for t, st in sorted(wynik.items())
                 if nowe.get(t) == "none" and (st.get("score") or 0) > 0}
+    _sygnaly = {t: rozbicie(st) for t, st in sorted(wynik.items()) if (st.get("score") or 0) > 0}
+
+
+def rozbicie(st: dict) -> dict:
+    """Co daje powiatowi punkty: sygnały z wkładem, od najmocniejszego (1.8.12, panel
+    Sygnały). Tylko tytuł i wkład — paczkę pobiera telefon dopiero po rozwinięciu
+    powiatu, więc stała paczka /api/state się nie zmienia (pomiar na nalocie 20.11
+    05:35: rozbicie w stałej paczce podwoiłoby ją z 9,8 do 19,5 KB gzip)."""
+    lista = sorted((x for x in st.get("signals") or [] if (x.get("counted_points") or 0) > 0),
+                   key=lambda x: -(x.get("counted_points") or 0))
+    return {"s": [{"t": x.get("title") or "", "p": round(x.get("counted_points") or 0, 1)}
+                  for x in lista[:SYGNALY_MAX]],
+            "wiecej": max(0, len(lista) - SYGNALY_MAX)}
 
 
 def publiczne() -> dict:
@@ -683,6 +722,11 @@ def publiczne() -> dict:
 def punkty_ponizej() -> dict:
     """{TERYT: punkty} powiatów z punktami poniżej progu (bez poziomu) — do /api/state."""
     return _ponizej
+
+
+def sygnaly_publiczne() -> dict:
+    """{TERYT: {s: [{t, p}], wiecej}} — część stanu `state_pow` (na żądanie)."""
+    return _sygnaly
 
 
 async def przelicz() -> None:

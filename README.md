@@ -6,6 +6,11 @@
 
 Serwer: **hostowane na [Mikrusie](https://mikr.us)** — dziękujemy za wsparcie projektu.
 
+Wersja 1.8.12: panel Sygnały ma dwie strony — Powiaty (Twoje powiaty i pozostałe powiaty z alarmem,
+po dotknięciu sygnały, które dają powiatowi punkty) i Województwa; przełącza się je zakładką, strzałką
+albo przesunięciem palca, a na szerokim ekranie obie stoją obok siebie.
+Szczegóły: `docs/RELEASE_1.8.12.md`.
+
 Wersja 1.8.11: pigułka „mój region” zawsze podaje punkty powiatu i przewija się strzałkami albo gestem
 między powiatami zapisanych miejsc; mapa od pierwszej chwili pokazuje powiaty; historia w widoku powiatów
 pokazuje powiat z najwyższym poziomem i punkty województwa z wybranej chwili.
