@@ -130,6 +130,15 @@
     else ustawStrone(strona);
     x0 = null; poziomy = null;
   }, { passive: true });
+  // Przerwany gest nie kończy się touchend: WebKit przerywa serię dotknięć np. przy geście
+  // systemowym, Android, gdy dotyk przejmie system. Bez tego tor zostawał przesunięty w pół
+  // drogi aż do następnego stanu (zgłoszenie sesji iOS, 22.11.2026) — wraca od razu.
+  strony.addEventListener("touchcancel", () => {
+    if (x0 == null) return;
+    tor.style.transition = "";
+    ustawStrone(strona);
+    x0 = null; poziomy = null;
+  }, { passive: true });
 
   window.addEventListener("resize", () => { panel.classList.toggle("pp-szeroki", szeroki()); ustawStrone(strona); });
   new ResizeObserver(dopasujWysokosc).observe(sPow);
