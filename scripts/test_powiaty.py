@@ -396,7 +396,7 @@ try:
     powiaty._publiczne = {}
     powiaty._ponizej = {}
     ok("powiaty" not in main._fusion_z_powiatami(), "/api/state: bez poziomów w powiatach — bez klucza `powiaty`")
-    ok("powiaty_pkt" not in main._fusion_z_powiatami(), "/api/state: w ciszy bez klucza `powiaty_pkt`")
+    ok("powiaty_pkt" not in main._fusion_z_powiatami(), "/api/state: bez punktów w żadnym powiecie — bez klucza `powiaty_pkt`")
     powiaty._ponizej = {LUBLIN: 1.3}
     ok(main._fusion_z_powiatami().get("powiaty_pkt") == {LUBLIN: 1.3} and "powiaty" not in main._fusion_z_powiatami(),
        "/api/state: punkty poniżej progu w osobnym polu, `powiaty` bez nich")
