@@ -24,6 +24,8 @@ OTHER_IMAGES = {"mikrus-logo.svg": (86, 14)}
 #         strzałkami i punktami powiatu) — bez zmiany liczby; pliki 1810 zostają w repo
 # 1.8.12: panel Sygnały — panel i history-panel PL/EN/UK zastąpione kadrami z 1812, +6: panel-powiat
 #         i panel-woj PL/EN/UK; pliki 1799 zostają w repo
+# 1.8.13: mapa-powiaty PL/EN/UK zastąpione kadrami z docs/screens/1813 (bryły powiatów poniżej
+#         progu) — bez zmiany liczby; pliki 1811 zostają w repo
 EXPECTED_SHOTS = 109
 
 

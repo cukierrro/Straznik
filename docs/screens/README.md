@@ -420,6 +420,14 @@ so the banner shows its arrows and „1/2”; the PAŻP zones layer is off (`str
 1.8.10 frames. The 1.8.10 map frame was taken before the county layer had loaded (the start-up
 flicker fixed in 1.8.11), so it showed province blocks.
 
+County map (1.8.13, 23 November 2026, evening): `1813/mapa-powiaty-{pl,en,uk}.jpg` replace
+`1811/mapa-powiaty` — debug build 1.8.13 (versionCode 144) on the Pixel 7 emulator at its physical
+1080x2400 (an override to 1080x2340 left on the emulator was reset for the series and restored
+afterwards), live server data at a quiet time (counties 0.1–0.5 pts below the threshold), the same
+places as the 1.8.11 frames, zones layer off. The view is tilted (pitch 58°) over the Lublin region
+so the county heights from 1.8.13 (8 km per point, below the threshold too) are visible; the
+1.8.11 county card frames stay.
+
 County map (1.8.10, 21 November 2026, evening): `1810/mapa-powiaty-{pl,en,uk}.jpg`,
 `1810/karta-powiatu-{pl,en,uk}.jpg` and `1810/set-mapa-{pl,en,uk}.jpg` (the last replaces the
 1.7.99 Map-settings capture, which had no Map division setting). Same debug build and emulator, live
