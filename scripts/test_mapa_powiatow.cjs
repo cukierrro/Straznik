@@ -76,8 +76,8 @@ function srodowisko({ podzial = 'pow', standalone = false, geo = true, isApp = f
 console.log('\n2. Stan brył powiatów');
 let s = srodowisko();
 s.api.updatePowStates({ '0663': { level: 'high', score: 5.2 }, '0604': { level: 'elevated', score: 11 } });
-ok(s.stany.get('0663').level === 'high' && s.stany.get('0663').score === 5.2, 'Lublin czerwony, 5,2 pkt');
-ok(s.stany.get('0604').score === 8, 'wysokość przycięta do 8 pkt jak u województw');
+ok(s.stany.get('0663').level === 'high' && s.stany.get('0663').score === 5, 'Lublin czerwony, 5,2 pkt → wysokość jak przy 5 pkt');
+ok(s.stany.get('0604').score === 5, 'wysokość przycięta do 5 pkt (40 km; user 23.11.2026 — przy 8 pkt powiat był wieżą)');
 s.api.updatePowStates({ '0604': { level: 'elevated', score: 2.4 } });
 ok(s.stany.get('0663').level === 'none' && s.stany.get('0663').score === 0, 'Lublin, który zniknął ze stanu, wraca do „brak”');
 s.api.updatePowStates(undefined);
@@ -90,7 +90,7 @@ s.api.updatePowStates({ '0663': { level: 'elevated', score: 2.6 } }, { '0619': 1
 ok(s.stany.get('0619').score === 1.2 && s.stany.get('0619').level === 'none', 'poniżej progu: bryła 1,2 pkt, kolor „brak” (powiat włodawski)');
 ok(s.stany.get('0663').level === 'elevated' && s.stany.get('0663').score === 2.6, 'powiat z poziomem bierze punkty i poziom z alarmu, nie z listy poniżej progu');
 ok(!s.stany.has('0607'), '0 pkt — bez wpisu (płasko jak dotąd)');
-ok(s.stany.get('0604').score === 8, 'poniżej progu też przycięte do 8');
+ok(s.stany.get('0604').score === 5, 'poniżej progu też przycięte do 5');
 let zapisy = 0; const set0 = s.stany.set.bind(s.stany); s.stany.set = (k, v) => { zapisy++; return set0(k, v); };
 s.api.updatePowStates({ '0663': { level: 'elevated', score: 2.6 } }, { '0619': 1.2, '0663': 0.4, '0604': 20 });
 ok(zapisy === 0, `ten sam stan — bez ponownego ustawiania 380 powiatów (${zapisy} zapisów)`);
@@ -106,6 +106,8 @@ ok(/if \(histMode\) updatePowStates\(powHistoria \|\| \{\}\);\s*\n\s*else update
 // 8 km na punkt i odcień jaśniejący z punktami. Korony na szczycie nie ma (rozjaśniała dachy).
 ok(/const POW_M_NA_PKT = 8000;/.test(app) && /const powWys = \["\*", \["coalesce", \["feature-state", "score"\], 0\], POW_M_NA_PKT\];/.test(app),
   'wysokość powiatu 8 km na punkt (połowa skali województw)');
+ok(/const POW_MAX_PKT = 5;/.test(app) && (app.match(/Math\.min\(Number\(p(?:\?\.score)?\) \|\| 0, POW_MAX_PKT\)/g) || []).length === 2,
+  'maksimum bryły powiatu 5 pkt (40 km) — przy poziomie i poniżej progu');
 ok(/"fill-extrusion-height": powWys,/.test(app) && !/pow-korona/.test(app),
   'bryła powiatu od ziemi do pełnej wysokości, bez dodatkowej warstwy na szczycie');
 ok(/\["interpolate", \["linear"\], \["coalesce", \["feature-state", "score"\], 0\],\s*\n\s*0, "#233252", 2\.5, "#3a5288"\]/.test(app),

@@ -809,6 +809,9 @@ function podzialMapy() {
 }
 let powGeo = null;              // GeoJSON powiatów do rysowania (wczytany przy starcie mapy)
 const POW_M_NA_PKT = 8000;      // wysokość bryły powiatu na punkt (województwa: 16 000)
+// Wyżej bryła nie rośnie (40 km). User 23.11.2026 po porównaniu: przy 8 pkt (64 km) powiat
+// stawał się smukłą wieżą; województwa przycinają do 8 pkt (128 km), ale są kilkanaście razy większe.
+const POW_MAX_PKT = 5;
 let powStanyMapy = new Map();   // TERYT → ustawiony feature-state („pkt|poziom”) — do czyszczenia i pomijania bez zmian
 let powHistoria = null;         // `powiaty` migawki wybranej suwakiem (null = migawka bez zapisu)
 let histWoj = null;             // {woj: {score, level}} z wybranej chwili — karta powiatu w historii
@@ -906,11 +909,11 @@ function updatePowStates(pw, pkt) {
   if (!mapReady || !map.getSource("pow")) return;
   const cel = new Map();
   for (const [t, p] of Object.entries(pkt || {})) {
-    const sc = Math.min(Number(p) || 0, 8);
+    const sc = Math.min(Number(p) || 0, POW_MAX_PKT);
     if (sc > 0) cel.set(t, { score: sc, level: "none" });
   }
   for (const [t, p] of Object.entries(pw || {}))
-    cel.set(t, { score: Math.min(Number(p?.score) || 0, 8), level: p?.level || "none" });
+    cel.set(t, { score: Math.min(Number(p?.score) || 0, POW_MAX_PKT), level: p?.level || "none" });
   for (const t of powStanyMapy.keys())
     if (!cel.has(t)) map.setFeatureState({ source: "pow", id: t }, { score: 0, level: "none" });
   const nowe = new Map();
