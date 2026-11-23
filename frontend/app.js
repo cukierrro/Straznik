@@ -808,7 +808,11 @@ function podzialMapy() {
   try { return localStorage.getItem(PODZIAL_KEY) === "woj" ? "woj" : "pow"; } catch { return "pow"; }
 }
 let powGeo = null;              // GeoJSON powiatów do rysowania (wczytany przy starcie mapy)
-let powStanyMapy = new Set();   // TERYT z ustawionym feature-state — do wyczyszczenia przy zmianie
+const POW_M_NA_PKT = 8000;      // wysokość bryły powiatu na punkt (województwa: 16 000)
+// Wyżej bryła nie rośnie (40 km). User 23.11.2026 po porównaniu: przy 8 pkt (64 km) powiat
+// stawał się smukłą wieżą; województwa przycinają do 8 pkt (128 km), ale są kilkanaście razy większe.
+const POW_MAX_PKT = 5;
+let powStanyMapy = new Map();   // TERYT → ustawiony feature-state („pkt|poziom”) — do czyszczenia i pomijania bez zmian
 let powHistoria = null;         // `powiaty` migawki wybranej suwakiem (null = migawka bez zapisu)
 let histWoj = null;             // {woj: {score, level}} z wybranej chwili — karta powiatu w historii
 function mapaPowiatow() { return podzialMapy() === "pow" && !!powGeo && !standalone; }
@@ -840,15 +844,23 @@ function dodajWarstwePowiatow() {
       if (!gj) throw new Error("brak pliku granic powiatów");
       if (!map || map.getSource("pow")) return;
       map.addSource("pow", { type: "geojson", data: gj, promoteId: "t" });
-      // bryły i linie powiatów POD liniami województw, w tych samych kolorach co województwa
+      // bryły i linie powiatów POD liniami województw, w tych samych kolorach co województwa.
+      // Wysokość: 8 km na punkt (było 3,5 km — user 23.11.2026: 1,2 pkt dawało ~4 km i różnicę
+      // widać było dopiero po mocnym przybliżeniu). Nadal połowa skali województw (16 km),
+      // bo powiat jest kilkanaście razy mniejszy i przy tej samej skali stawał się wieżą.
+      // Obwódki górnej krawędzi nie ma: MapLibre 4 nie rysuje linii na wysokości bryły, a jaśniejsza
+      // „korona” na szczycie (próba 23.11.2026) rozjaśniała całe dachy i zasłaniała nazwy miejscowości.
+      // Powiaty odróżnia wysokość (stopnie na granicach) i odcień jaśniejący z punktami.
+      const powWys = ["*", ["coalesce", ["feature-state", "score"], 0], POW_M_NA_PKT];
+      const powPoziom = ["coalesce", ["feature-state", "level"], "none"];
       map.addLayer({
         id: "pow-extrude", type: "fill-extrusion", source: "pow", layout: { visibility: "none" },
         paint: {
-          "fill-extrusion-color": ["match", ["coalesce", ["feature-state", "level"], "none"],
-            "high", "#ff4d5e", "elevated", "#ffb020", "#233252"],
-          // niżej niż województwa (16 km na punkt): powiat jest kilkanaście razy mniejszy
-          // i przy tej samej skali stawał się wieżą, która zasłaniała sąsiadów
-          "fill-extrusion-height": ["*", ["coalesce", ["feature-state", "score"], 0], 3500],
+          // poniżej progu odcień jaśnieje z punktami — sąsiednie powiaty różnią się też kolorem
+          "fill-extrusion-color": ["match", powPoziom, "high", "#ff4d5e", "elevated", "#ffb020",
+            ["interpolate", ["linear"], ["coalesce", ["feature-state", "score"], 0],
+              0, "#233252", 2.5, "#3a5288"]],
+          "fill-extrusion-height": powWys,
           "fill-extrusion-base": 0,
           "fill-extrusion-opacity": 0.6,
         },
@@ -874,8 +886,9 @@ function dodajWarstwePowiatow() {
         if (t) openPowCard(t);
       });
       powGeo = gj;
-      powStanyMapy = new Set();
-      updatePowStates(histMode ? (powHistoria || {}) : state?.fusion?.powiaty);
+      powStanyMapy = new Map();
+      if (histMode) updatePowStates(powHistoria || {});
+      else updatePowStates(state?.fusion?.powiaty, state?.fusion?.powiaty_pkt);
       applyPodzialMapy();
     } catch (e) {
       console.warn("mapa powiatów niedostępna", e);   // zostają województwa
@@ -885,13 +898,30 @@ function dodajWarstwePowiatow() {
 }
 /* Stan brył powiatów: rzadki słownik {TERYT: {level, score}} — z żywego stanu albo z migawki
    historii. Powiaty, które zniknęły ze słownika, wracają do „brak” (inaczej zostawałyby
-   czerwone po końcu alarmu). */
-function updatePowStates(pw) {
+   czerwone po końcu alarmu).
+   `pkt` — punkty poniżej progu {TERYT: pkt} (fusion.powiaty_pkt, serwer od 1.8.11): bryła
+   rośnie jak u województw także bez poziomu. Zgłoszenie usera 23.11.2026: powiat włodawski
+   z 1,2 pkt leżał płasko, bo mapa brała tylko powiaty z poziomem. Migawki historii punktów
+   poniżej progu nie zapisują, więc tam zostaje sam słownik poziomów.
+   Ustawiamy tylko zmienione wartości: słownik punktów ma do 380 powiatów i przychodzi
+   z każdym stanem. */
+function updatePowStates(pw, pkt) {
   if (!mapReady || !map.getSource("pow")) return;
-  const nowe = new Set(Object.keys(pw || {}));
-  for (const t of powStanyMapy) if (!nowe.has(t)) map.setFeatureState({ source: "pow", id: t }, { score: 0, level: "none" });
+  const cel = new Map();
+  for (const [t, p] of Object.entries(pkt || {})) {
+    const sc = Math.min(Number(p) || 0, POW_MAX_PKT);
+    if (sc > 0) cel.set(t, { score: sc, level: "none" });
+  }
   for (const [t, p] of Object.entries(pw || {}))
-    map.setFeatureState({ source: "pow", id: t }, { score: Math.min(Number(p?.score) || 0, 8), level: p?.level || "none" });
+    cel.set(t, { score: Math.min(Number(p?.score) || 0, POW_MAX_PKT), level: p?.level || "none" });
+  for (const t of powStanyMapy.keys())
+    if (!cel.has(t)) map.setFeatureState({ source: "pow", id: t }, { score: 0, level: "none" });
+  const nowe = new Map();
+  for (const [t, v] of cel) {
+    const k = v.score + "|" + v.level;
+    if (powStanyMapy.get(t) !== k) map.setFeatureState({ source: "pow", id: t }, v);
+    nowe.set(t, k);
+  }
   powStanyMapy = nowe;
 }
 /* Widoczność warstw wg ustawienia i obrys MOICH powiatów (powiaty miejsc z alarmami). */
@@ -3328,7 +3358,7 @@ function updateVoivStates() {
     map.setFeatureState({ source: "voiv", id: name },
       { score: Math.min(st.score, 8), level: st.level, spill: spillRaised(st) });
   }
-  updatePowStates(state?.fusion?.powiaty);
+  updatePowStates(state?.fusion?.powiaty, state?.fusion?.powiaty_pkt);
   applyPodzialMapy();     // tryb wbudowany (bez serwera) przełącza mapę na województwa i z powrotem
 }
 

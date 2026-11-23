@@ -76,12 +76,42 @@ function srodowisko({ podzial = 'pow', standalone = false, geo = true, isApp = f
 console.log('\n2. Stan brył powiatów');
 let s = srodowisko();
 s.api.updatePowStates({ '0663': { level: 'high', score: 5.2 }, '0604': { level: 'elevated', score: 11 } });
-ok(s.stany.get('0663').level === 'high' && s.stany.get('0663').score === 5.2, 'Lublin czerwony, 5,2 pkt');
-ok(s.stany.get('0604').score === 8, 'wysokość przycięta do 8 pkt jak u województw');
+ok(s.stany.get('0663').level === 'high' && s.stany.get('0663').score === 5, 'Lublin czerwony, 5,2 pkt → wysokość jak przy 5 pkt');
+ok(s.stany.get('0604').score === 5, 'wysokość przycięta do 5 pkt (40 km; user 23.11.2026 — przy 8 pkt powiat był wieżą)');
 s.api.updatePowStates({ '0604': { level: 'elevated', score: 2.4 } });
 ok(s.stany.get('0663').level === 'none' && s.stany.get('0663').score === 0, 'Lublin, który zniknął ze stanu, wraca do „brak”');
 s.api.updatePowStates(undefined);
 ok(s.stany.get('0604').level === 'none' && s.api.powStanyMapy.size === 0, 'brak słownika (cisza) — wszystko gaśnie');
+
+// Zgłoszenie usera 23.11.2026: włodawski z 1,2 pkt poniżej progu leżał płasko — mapa brała
+// tylko powiaty z poziomem. Bryła rośnie jak u województw, kolor zostaje „brak”.
+s = srodowisko();
+s.api.updatePowStates({ '0663': { level: 'elevated', score: 2.6 } }, { '0619': 1.2, '0663': 0.4, '0607': 0, '0604': 20 });
+ok(s.stany.get('0619').score === 1.2 && s.stany.get('0619').level === 'none', 'poniżej progu: bryła 1,2 pkt, kolor „brak” (powiat włodawski)');
+ok(s.stany.get('0663').level === 'elevated' && s.stany.get('0663').score === 2.6, 'powiat z poziomem bierze punkty i poziom z alarmu, nie z listy poniżej progu');
+ok(!s.stany.has('0607'), '0 pkt — bez wpisu (płasko jak dotąd)');
+ok(s.stany.get('0604').score === 5, 'poniżej progu też przycięte do 5');
+let zapisy = 0; const set0 = s.stany.set.bind(s.stany); s.stany.set = (k, v) => { zapisy++; return set0(k, v); };
+s.api.updatePowStates({ '0663': { level: 'elevated', score: 2.6 } }, { '0619': 1.2, '0663': 0.4, '0604': 20 });
+ok(zapisy === 0, `ten sam stan — bez ponownego ustawiania 380 powiatów (${zapisy} zapisów)`);
+s.api.updatePowStates({}, { '0663': 0.4 });
+ok(s.stany.get('0619').score === 0 && s.stany.get('0663').level === 'none' && s.stany.get('0663').score === 0.4,
+  'włodawski zgasł — wraca na 0; Lublin po końcu alarmu zostaje z punktami poniżej progu');
+ok(/updatePowStates\(state\?\.fusion\?\.powiaty, state\?\.fusion\?\.powiaty_pkt\);\s*\n\s*applyPodzialMapy\(\);/.test(app),
+  'stan na żywo podaje mapie punkty poniżej progu');
+ok(/if \(histMode\) updatePowStates\(powHistoria \|\| \{\}\);\s*\n\s*else updatePowStates\(state\?\.fusion\?\.powiaty, state\?\.fusion\?\.powiaty_pkt\);/.test(app),
+  'po wczytaniu warstwy: historia z migawki, na żywo z punktami poniżej progu');
+
+// Wygląd brył (user 23.11.2026: „dopiero mocne przybliżenie pozwala zauważyć różnicę”):
+// 8 km na punkt i odcień jaśniejący z punktami. Korony na szczycie nie ma (rozjaśniała dachy).
+ok(/const POW_M_NA_PKT = 8000;/.test(app) && /const powWys = \["\*", \["coalesce", \["feature-state", "score"\], 0\], POW_M_NA_PKT\];/.test(app),
+  'wysokość powiatu 8 km na punkt (połowa skali województw)');
+ok(/const POW_MAX_PKT = 5;/.test(app) && (app.match(/Math\.min\(Number\(p(?:\?\.score)?\) \|\| 0, POW_MAX_PKT\)/g) || []).length === 2,
+  'maksimum bryły powiatu 5 pkt (40 km) — przy poziomie i poniżej progu');
+ok(/"fill-extrusion-height": powWys,/.test(app) && !/pow-korona/.test(app),
+  'bryła powiatu od ziemi do pełnej wysokości, bez dodatkowej warstwy na szczycie');
+ok(/\["interpolate", \["linear"\], \["coalesce", \["feature-state", "score"\], 0\],\s*\n\s*0, "#233252", 2\.5, "#3a5288"\]/.test(app),
+  'poniżej progu odcień jaśnieje z punktami (0 → jak dotąd #233252)');
 
 console.log('\n3. Przełącznik podziału');
 s = srodowisko({ podzial: null });

@@ -6,6 +6,11 @@
 
 Serwer: **hostowane na [Mikrusie](https://mikr.us)** — dziękujemy za wsparcie projektu.
 
+Wersja 1.8.13: bryła powiatu rośnie z punktami także poniżej progu (8 km na punkt, najwyżej 5 pkt),
+a poniżej progu lekko jaśnieje; zapowiedzi audycji i artykuły o zdarzeniach z innego dnia nie dają punktów;
+GROTA z wykazem PSP z 23 listopada 2026 (88 913 punktów).
+Szczegóły: `docs/RELEASE_1.8.13.md`.
+
 Wersja 1.8.12: panel Sygnały ma dwie strony — Powiaty (Twoje powiaty i pozostałe powiaty z alarmem,
 po dotknięciu sygnały, które dają powiatowi punkty) i Województwa; przełącza się je zakładką, strzałką
 albo przesunięciem palca, a na szerokim ekranie obie stoją obok siebie.

@@ -134,41 +134,50 @@ release 1.8.01 and is fixed in 1.8.02; finding it on screen is why these frames 
 from the release build.
 
 The GROTA captures `g13-mapa-filtry*`, `g29-zasady-dane*` and `g31-zmiana-wykazu*` (Polish,
-`-en`, `-uk`) were retaken on 11 November 2026 between 10:55 and 11:12 Europe/Warsaw, after the
-PSP register of 10 November came in (88,256 points, up from 88,138). All nine frames come from
-one debug build of branch `grota-wykaz-1011` (`app-github-debug.apk`, sha256 90eca31f74b0…),
-carrying the module 2f0f7ba4db and the register of 10 November, on the Pixel 7 emulator with
+`-en`, `-uk`) were retaken on 23 November 2026 between 18:52 and 19:09 Europe/Warsaw, after the
+PSP register of 23 November came in (88,913 points, up from 88,256). All nine frames come from
+one debug build of branch `grota-wykaz-2311` (`app-github-debug.apk`, sha256 c87e1ea93c66…),
+carrying the module ca40f7ac6e and the register of 23 November, on the Pixel 7 emulator with
 Android 14 at `wm size 1080x2340`, then downscaled to 720 x 1560 JPEG. Nothing in them is
 retouched. The counters in `g13-*` are the ones the pack really holds and were cross-checked
-against the pack before the capture: 19,706 / 7,680 / 60,870 by access and 86,153 / 892 / 1,211
-by location certainty.
+against the pack before the capture: 19,601 / 7,723 / 61,589 by access and 86,790 / 912 / 1,211
+by location certainty, with 277 / 185 / 138 for the three building types the frame reaches.
+The emulator's own clock reads 5:52-6:09 in these frames; it is wrong and was left alone, as
+setting it would have been a change to what the screen shows.
 
-The frames of 2 November were replaced rather than kept beside these: the figures and the date
-they show are no longer the ones in the app. The register of 6 November, rebuilt and then
-dropped, never reached a phone and has no frames.
+The frames of 10 November were replaced rather than kept beside these: the figures and the date
+they show are no longer the ones in the app.
 
-The emulator had been wiped before this series, so the first run went through the app's own
-first start: the notification permission was declined, the full-screen-alert prompt was left
-alone, and only location was granted (`pm grant`). No notifications and no alarms were enabled.
+This series ran on the emulator left over from the one of 11 November, so no first start was
+walked again and nothing was wiped. No notifications and no alarms were enabled, and only
+location was granted, as before.
+
+The views were driven through DevTools (element clicks and an exact `scrollTop`) rather than
+by `adb shell input tap`. On this emulator the system's "Strażnik isn't responding" dialog
+took focus every few minutes and swallowed the taps, while JavaScript kept running; after each
+such dialog the app was in the same state, and it never reached a frame. Before every capture
+`document.activeElement.blur()` was called, so no button carries a focus ring that a finger
+would not have left. The Polish `g13` was taken twice: the first frame caught the map before
+the point layer had drawn and showed the base map alone, with the counters already correct.
 
 What is written below about `g31-zmiana-wykazu*` holds for this series too: the same place
 "Dom" with the same shelter `OZO-77191AD48DDA` and the same recorded register date 2026-10-26
 was written into the app's storage, and the warning the app then computed names the register
-of 10 November. The Ukrainian `g13-*` has its building-type counts cut off by the bottom edge,
-because those labels wrap to two lines; the alt text says so instead of naming numbers that
-are not on the screen.
+of 23 November. Its map shows the whole-country view rather than the close-up of the earlier
+series, because no position was set before the capture; the alt text describes the card, which
+is what the screen is there to show. The Ukrainian `g13-*` now holds its building-type counts
+inside the frame, so the earlier note about them being cut off no longer applies.
 
 Two things about this series differ from the one of 26 October and are worth stating.
 
 First, these frames come from a **debug** build, not from the signed one. The signed test build
 has no WebView DevTools, and on this emulator the release build could not be driven reliably:
 with 88 thousand points it hung ("Strażnik isn't responding") on almost every longer scroll,
-even after the emulator was restarted with 4 GB instead of 2 GB. The debug build allows exact
-scrolling through DevTools in one call instead of thirty swipes. Both builds were produced from
-the same commit and carry the same GROTA module and the same pack; nothing in these three
-screens depends on the build type. The signed build was used first and did produce usable
-Polish frames of `g13` and `g29`, but they were discarded so that each screen comes from one
-and the same build.
+even after the emulator was restarted with 3 GB instead of 2 GB. The debug build allows exact
+scrolling through DevTools in one call instead of thirty swipes, and on 23 November it was the
+only way to reach the three screens at all, because the hang took every tap. A debug and a
+signed build made from the same commit carry the same GROTA module and the same pack; nothing
+in these three screens depends on the build type. No signed build was made for this series.
 
 Second, the state behind `g31-zmiana-wykazu*` was written into the app's storage instead of
 being walked through the interface. The warning in its unconditional wording needs a shelter
@@ -410,6 +419,14 @@ emulator, live server data, places Dom (powiat 0663 Lublin) and Praca (0617 świ
 so the banner shows its arrows and „1/2”; the PAŻP zones layer is off (`straznik_zones=0`) as on the
 1.8.10 frames. The 1.8.10 map frame was taken before the county layer had loaded (the start-up
 flicker fixed in 1.8.11), so it showed province blocks.
+
+County map (1.8.13, 23 November 2026, evening): `1813/mapa-powiaty-{pl,en,uk}.jpg` replace
+`1811/mapa-powiaty` — debug build 1.8.13 (versionCode 144) on the Pixel 7 emulator at its physical
+1080x2400 (an override to 1080x2340 left on the emulator was reset for the series and restored
+afterwards), live server data at a quiet time (counties 0.1–0.5 pts below the threshold), the same
+places as the 1.8.11 frames, zones layer off. The view is tilted (pitch 58°) over the Lublin region
+so the county heights from 1.8.13 (8 km per point, below the threshold too) are visible; the
+1.8.11 county card frames stay.
 
 County map (1.8.10, 21 November 2026, evening): `1810/mapa-powiaty-{pl,en,uk}.jpg`,
 `1810/karta-powiatu-{pl,en,uk}.jpg` and `1810/set-mapa-{pl,en,uk}.jpg` (the last replaces the

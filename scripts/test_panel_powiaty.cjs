@@ -59,6 +59,42 @@ ok(/@media \(prefers-reduced-motion: reduce\) \{ \.pp-strony, \.pp-tor/.test(css
 ok(/#panel\.pp-szeroki \{ width: 720px; \}/.test(css) && /const SZEROKI_PX = 1100;/.test(mod), 'szeroki ekran (≥ 1100 px): dwie kolumny');
 ok(/body\.panel-open:has\(#panel\.pp-szeroki\) #map-actions \{ right: calc\(720px \+ 22px\); \}/.test(css), 'przyciski mapy nie wchodzą pod szeroki panel');
 
+// Gest wykonany naprawdę: blok obsługi dotyku z modułu uruchomiony na atrapie strony
+// (od „let x0” do obsługi resize). Zgłoszenie sesji iOS 22.11.2026: przerwany gest
+// (touchcancel zamiast touchend) zostawiał tor przesunięty w pół drogi.
+{
+  const pocz = mod.indexOf('let x0 = null'), kon = mod.indexOf('window.addEventListener("resize"');
+  ok(pocz > 0 && kon > pocz, 'blok gestu odnaleziony w module');
+  const blok = mod.slice(pocz, kon);
+  const gest = () => {
+    const h = {}, wywolane = [];
+    const strony = { clientWidth: 400, addEventListener: (n, f) => { h[n] = f; } };
+    const tor = { style: {} };
+    const ustawStrone = (s, o) => wywolane.push([s, !!(o && o.zapisz)]);
+    new Function('strony', 'tor', 'strona', 'ustawStrone', 'szeroki', blok)(strony, tor, 0, ustawStrone, () => false);
+    const dotyk = (x, y) => ({ touches: [{ clientX: x, clientY: y }], changedTouches: [{ clientX: x, clientY: y }] });
+    return { h, tor, wywolane, dotyk };
+  };
+  // przerwany w pół drogi: wraca na tę samą stronę, bez zapamiętania wyboru
+  let g = gest();
+  g.h.touchstart(g.dotyk(300, 100)); g.h.touchmove(g.dotyk(180, 102));
+  ok(/translateX/.test(g.tor.style.transform || '') && g.tor.style.transition === 'none', 'w trakcie gestu tor jedzie za palcem');
+  ok(typeof g.h.touchcancel === 'function', 'obsługa touchcancel jest');
+  if (g.h.touchcancel) g.h.touchcancel({ touches: [], changedTouches: [] });
+  ok(g.wywolane.length === 1 && g.wywolane[0][0] === 0 && !g.wywolane[0][1] && g.tor.style.transition === '',
+    `przerwany gest: tor wraca od razu na stronę 0, bez zapisu (${JSON.stringify(g.wywolane)})`);
+  g.h.touchend(g.dotyk(100, 102));
+  ok(g.wywolane.length === 1, 'spóźniony touchend po przerwaniu nie przełącza strony');
+  // kontrola: zwykły gest dalej przełącza i zapamiętuje
+  g = gest();
+  g.h.touchstart(g.dotyk(300, 100)); g.h.touchmove(g.dotyk(180, 102)); g.h.touchend(g.dotyk(180, 102));
+  ok(g.wywolane.length === 1 && g.wywolane[0][0] === 1 && g.wywolane[0][1], 'kontrola: dokończony gest w lewo przechodzi na stronę 1 i ją zapamiętuje');
+  // ruch w pionie nie przełącza
+  g = gest();
+  g.h.touchstart(g.dotyk(300, 100)); g.h.touchmove(g.dotyk(296, 200)); g.h.touchend(g.dotyk(290, 260));
+  ok(g.wywolane.length === 1 && g.wywolane[0][0] === 0, 'kontrola: przewijanie w pionie zostawia stronę');
+}
+
 console.log('\n4. Teksty');
 const t3 = [...mod.matchAll(/t3\(((?:"(?:[^"\\]|\\.)*"|`(?:[^`\\]|\\.)*`)\s*,\s*(?:"(?:[^"\\]|\\.)*"|`(?:[^`\\]|\\.)*`)\s*,\s*(?:"(?:[^"\\]|\\.)*"|`(?:[^`\\]|\\.)*`))\)/g)].length;
 const wszystkie = [...mod.matchAll(/\bt3\(/g)].length;   // definicja „const t3 = (” do wzorca nie pasuje

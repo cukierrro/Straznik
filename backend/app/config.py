@@ -884,6 +884,12 @@ MEDIA_NONCURRENT_KEYWORDS = [
     # „dla mieszkańców” (stoi w prawdziwych relacjach: „Alert RCB dla mieszkańców…”).
     "bezpłatne spotkanie", "spotkanie dla osób", "spotkanie informacyjne", "warsztaty dla",
     "bezpłatne warsztaty", "zaprasza na", "zapisy na", "wykład", "prelekcj", "webinar",
+    # 23.11.2026: „Gość Radia Lublin: pułkownik dr Dariusz Dachowicz” — zapowiedź rozmowy
+    # „na temat wojny, wybuchów rosyjskich dronów i rakiet” dała lubelskiemu 0,5 pkt.
+    # Rozmowa w studiu to komentarz, nie meldunek. Treść artykułu sprawdza też
+    # article_reader (_ZAPOWIEDZ), bo w kanale RSS bywa sam tytuł.
+    "porozmawia", "porozmawiamy", "gościem radia", "gość radia", "gościem programu",
+    "gościem audycji",
 ]
 # „Niespokojna noc/poranek" nie jest już wetem (E3): podsumowanie nocy bywa
 # relacją na żywo, a o świeżości decyduje article_reader po treści artykułu.
