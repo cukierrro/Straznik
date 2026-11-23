@@ -102,6 +102,15 @@ ok(/updatePowStates\(state\?\.fusion\?\.powiaty, state\?\.fusion\?\.powiaty_pkt\
 ok(/if \(histMode\) updatePowStates\(powHistoria \|\| \{\}\);\s*\n\s*else updatePowStates\(state\?\.fusion\?\.powiaty, state\?\.fusion\?\.powiaty_pkt\);/.test(app),
   'po wczytaniu warstwy: historia z migawki, na żywo z punktami poniżej progu');
 
+// Wygląd brył (user 23.11.2026: „dopiero mocne przybliżenie pozwala zauważyć różnicę”):
+// 8 km na punkt i odcień jaśniejący z punktami. Korony na szczycie nie ma (rozjaśniała dachy).
+ok(/const POW_M_NA_PKT = 8000;/.test(app) && /const powWys = \["\*", \["coalesce", \["feature-state", "score"\], 0\], POW_M_NA_PKT\];/.test(app),
+  'wysokość powiatu 8 km na punkt (połowa skali województw)');
+ok(/"fill-extrusion-height": powWys,/.test(app) && !/pow-korona/.test(app),
+  'bryła powiatu od ziemi do pełnej wysokości, bez dodatkowej warstwy na szczycie');
+ok(/\["interpolate", \["linear"\], \["coalesce", \["feature-state", "score"\], 0\],\s*\n\s*0, "#233252", 2\.5, "#3a5288"\]/.test(app),
+  'poniżej progu odcień jaśnieje z punktami (0 → jak dotąd #233252)');
+
 console.log('\n3. Przełącznik podziału');
 s = srodowisko({ podzial: null });
 s.api.applyPodzialMapy();

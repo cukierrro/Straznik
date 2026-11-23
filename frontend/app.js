@@ -808,6 +808,7 @@ function podzialMapy() {
   try { return localStorage.getItem(PODZIAL_KEY) === "woj" ? "woj" : "pow"; } catch { return "pow"; }
 }
 let powGeo = null;              // GeoJSON powiatów do rysowania (wczytany przy starcie mapy)
+const POW_M_NA_PKT = 8000;      // wysokość bryły powiatu na punkt (województwa: 16 000)
 let powStanyMapy = new Map();   // TERYT → ustawiony feature-state („pkt|poziom”) — do czyszczenia i pomijania bez zmian
 let powHistoria = null;         // `powiaty` migawki wybranej suwakiem (null = migawka bez zapisu)
 let histWoj = null;             // {woj: {score, level}} z wybranej chwili — karta powiatu w historii
@@ -840,15 +841,23 @@ function dodajWarstwePowiatow() {
       if (!gj) throw new Error("brak pliku granic powiatów");
       if (!map || map.getSource("pow")) return;
       map.addSource("pow", { type: "geojson", data: gj, promoteId: "t" });
-      // bryły i linie powiatów POD liniami województw, w tych samych kolorach co województwa
+      // bryły i linie powiatów POD liniami województw, w tych samych kolorach co województwa.
+      // Wysokość: 8 km na punkt (było 3,5 km — user 23.11.2026: 1,2 pkt dawało ~4 km i różnicę
+      // widać było dopiero po mocnym przybliżeniu). Nadal połowa skali województw (16 km),
+      // bo powiat jest kilkanaście razy mniejszy i przy tej samej skali stawał się wieżą.
+      // Obwódki górnej krawędzi nie ma: MapLibre 4 nie rysuje linii na wysokości bryły, a jaśniejsza
+      // „korona” na szczycie (próba 23.11.2026) rozjaśniała całe dachy i zasłaniała nazwy miejscowości.
+      // Powiaty odróżnia wysokość (stopnie na granicach) i odcień jaśniejący z punktami.
+      const powWys = ["*", ["coalesce", ["feature-state", "score"], 0], POW_M_NA_PKT];
+      const powPoziom = ["coalesce", ["feature-state", "level"], "none"];
       map.addLayer({
         id: "pow-extrude", type: "fill-extrusion", source: "pow", layout: { visibility: "none" },
         paint: {
-          "fill-extrusion-color": ["match", ["coalesce", ["feature-state", "level"], "none"],
-            "high", "#ff4d5e", "elevated", "#ffb020", "#233252"],
-          // niżej niż województwa (16 km na punkt): powiat jest kilkanaście razy mniejszy
-          // i przy tej samej skali stawał się wieżą, która zasłaniała sąsiadów
-          "fill-extrusion-height": ["*", ["coalesce", ["feature-state", "score"], 0], 3500],
+          // poniżej progu odcień jaśnieje z punktami — sąsiednie powiaty różnią się też kolorem
+          "fill-extrusion-color": ["match", powPoziom, "high", "#ff4d5e", "elevated", "#ffb020",
+            ["interpolate", ["linear"], ["coalesce", ["feature-state", "score"], 0],
+              0, "#233252", 2.5, "#3a5288"]],
+          "fill-extrusion-height": powWys,
           "fill-extrusion-base": 0,
           "fill-extrusion-opacity": 0.6,
         },
