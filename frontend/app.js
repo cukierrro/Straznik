@@ -808,7 +808,7 @@ function podzialMapy() {
   try { return localStorage.getItem(PODZIAL_KEY) === "woj" ? "woj" : "pow"; } catch { return "pow"; }
 }
 let powGeo = null;              // GeoJSON powiatów do rysowania (wczytany przy starcie mapy)
-let powStanyMapy = new Set();   // TERYT z ustawionym feature-state — do wyczyszczenia przy zmianie
+let powStanyMapy = new Map();   // TERYT → ustawiony feature-state („pkt|poziom”) — do czyszczenia i pomijania bez zmian
 let powHistoria = null;         // `powiaty` migawki wybranej suwakiem (null = migawka bez zapisu)
 let histWoj = null;             // {woj: {score, level}} z wybranej chwili — karta powiatu w historii
 function mapaPowiatow() { return podzialMapy() === "pow" && !!powGeo && !standalone; }
@@ -874,8 +874,9 @@ function dodajWarstwePowiatow() {
         if (t) openPowCard(t);
       });
       powGeo = gj;
-      powStanyMapy = new Set();
-      updatePowStates(histMode ? (powHistoria || {}) : state?.fusion?.powiaty);
+      powStanyMapy = new Map();
+      if (histMode) updatePowStates(powHistoria || {});
+      else updatePowStates(state?.fusion?.powiaty, state?.fusion?.powiaty_pkt);
       applyPodzialMapy();
     } catch (e) {
       console.warn("mapa powiatów niedostępna", e);   // zostają województwa
@@ -885,13 +886,30 @@ function dodajWarstwePowiatow() {
 }
 /* Stan brył powiatów: rzadki słownik {TERYT: {level, score}} — z żywego stanu albo z migawki
    historii. Powiaty, które zniknęły ze słownika, wracają do „brak” (inaczej zostawałyby
-   czerwone po końcu alarmu). */
-function updatePowStates(pw) {
+   czerwone po końcu alarmu).
+   `pkt` — punkty poniżej progu {TERYT: pkt} (fusion.powiaty_pkt, serwer od 1.8.11): bryła
+   rośnie jak u województw także bez poziomu. Zgłoszenie usera 23.11.2026: powiat włodawski
+   z 1,2 pkt leżał płasko, bo mapa brała tylko powiaty z poziomem. Migawki historii punktów
+   poniżej progu nie zapisują, więc tam zostaje sam słownik poziomów.
+   Ustawiamy tylko zmienione wartości: słownik punktów ma do 380 powiatów i przychodzi
+   z każdym stanem. */
+function updatePowStates(pw, pkt) {
   if (!mapReady || !map.getSource("pow")) return;
-  const nowe = new Set(Object.keys(pw || {}));
-  for (const t of powStanyMapy) if (!nowe.has(t)) map.setFeatureState({ source: "pow", id: t }, { score: 0, level: "none" });
+  const cel = new Map();
+  for (const [t, p] of Object.entries(pkt || {})) {
+    const sc = Math.min(Number(p) || 0, 8);
+    if (sc > 0) cel.set(t, { score: sc, level: "none" });
+  }
   for (const [t, p] of Object.entries(pw || {}))
-    map.setFeatureState({ source: "pow", id: t }, { score: Math.min(Number(p?.score) || 0, 8), level: p?.level || "none" });
+    cel.set(t, { score: Math.min(Number(p?.score) || 0, 8), level: p?.level || "none" });
+  for (const t of powStanyMapy.keys())
+    if (!cel.has(t)) map.setFeatureState({ source: "pow", id: t }, { score: 0, level: "none" });
+  const nowe = new Map();
+  for (const [t, v] of cel) {
+    const k = v.score + "|" + v.level;
+    if (powStanyMapy.get(t) !== k) map.setFeatureState({ source: "pow", id: t }, v);
+    nowe.set(t, k);
+  }
   powStanyMapy = nowe;
 }
 /* Widoczność warstw wg ustawienia i obrys MOICH powiatów (powiaty miejsc z alarmami). */
@@ -3328,7 +3346,7 @@ function updateVoivStates() {
     map.setFeatureState({ source: "voiv", id: name },
       { score: Math.min(st.score, 8), level: st.level, spill: spillRaised(st) });
   }
-  updatePowStates(state?.fusion?.powiaty);
+  updatePowStates(state?.fusion?.powiaty, state?.fusion?.powiaty_pkt);
   applyPodzialMapy();     // tryb wbudowany (bez serwera) przełącza mapę na województwa i z powrotem
 }
 
