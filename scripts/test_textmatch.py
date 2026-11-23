@@ -58,6 +58,9 @@ CASES = [
     ("Gmina zamontuje nowoczesne syreny alarmowe za 200 tys. zł", False),
     ("Pokaz dronów nad zalewem — atrakcja na weekend", False),
     ("Wypadek drogowy na S17, jedna osoba ranna", False),
+    # 23.11.2026: zapowiedź rozmowy w studiu (Radio Lublin) dała lubelskiemu 0,5 pkt
+    ("Gość Radia Lublin: pułkownik porozmawia na temat wybuchów rosyjskich dronów i rakiet", False),
+    ("Gościem programu będzie ekspert: rosyjskie drony nad Polską", False),
     ("Rusza modernizacja systemu ostrzegania w powiecie", False),
 
     # ── nowe zaliczenia (nowoczesny słownik zagrożeń) ────────────────────

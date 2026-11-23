@@ -66,6 +66,50 @@ for tekst, kiedy, oczek in PRZYPADKI:
     got, why = ar.assess(tekst, kiedy)
     ok(got == oczek, f"{tekst[0][:58]:58} → {got} ({why})")
 
+print("2a. daty, „ubiegły / zeszły / ostatni” i zapowiedzi (zgłoszenie usera 23.11.2026)")
+pn = datetime(2026, 11, 23, 7, 45, tzinfo=W)          # poniedziałek, godzina artykułu Radia Lublin
+pn9 = datetime(2026, 11, 23, 9, 0, tzinfo=W)
+sob = datetime(2026, 11, 21, 10, 0, tzinfo=W)
+DACHOWICZ = ["Gościem Radia Lublin będzie polski wojskowy, były żołnierz wojsk specjalnych oraz autor "
+             "analiz i komentarzy dotyczących bezpieczeństwa i wojskowości pułkownik dr Dariusz "
+             "Dachowicz, z którym Wojciech Brakowiecki porozmawia na temat wojny, wybuchów rosyjskich "
+             "dronów i rakiet na terenie Polski.", "Zapraszamy po godz. 8:15."]
+PRZYPADKI_2A = [
+    # zapowiedź audycji — artykuł z 23.11.2026, bez daty i bez godziny w przeszłości
+    (DACHOWICZ, pn, "past"),
+    (["Zapraszamy po godz. 9:10 na rozmowę o bezpieczeństwie i dronach."], pn, "past"),
+    # data w treści inna niż dzień publikacji
+    (["21 listopada nad powiatem hrubieszowskim przeleciał rosyjski dron."], pn, "past"),
+    (["Szczątki drona znaleziono 21.11.2026 pod Chełmem."], pn, "past"),
+    (["Dron spadł 23 listopada pod Hrubieszowem, trwa sprawdzanie."], pn, "fresh"),
+    (["Od 24 lutego 2022 roku Rosja atakuje Ukrainę. Rosyjski dron spadł pod Hrubieszowem."], pn, "fresh"),
+    (["Szkolenie zaplanowano na 30 listopada. Rosyjski dron spadł pod Hrubieszowem."], pn, "fresh"),
+    # przymiotniki dni tygodnia
+    (["Po piątkowym ataku dronów służby przeszukują pola."], pn, "past"),
+    (["Sobotni alarm: wojsko podsumowuje działania."], pn, "past"),
+    (["Niedzielnym wieczorem nad Lubelszczyzną krążył dron."], pn, "past"),
+    (["Sobotni alarm w Chełmie: dron nad miastem."], sob, "fresh"),          # ten sam dzień
+    (["Dron spadł przy obszarze cennym dla środowiska, służby na miejscu."], pn, "fresh"),
+    # „ubiegły / zeszły / miniony / ostatni / poprzedni” przy dniu, tygodniu, dobie
+    (["W ubiegły piątek nad powiatem przeleciał dron."], pn, "past"),
+    (["W zeszłą sobotę zawyły syreny w Zamościu."], pn, "past"),
+    (["W ostatni weekend nad Lubelszczyzną krążyły drony."], pn, "past"),
+    (["W minionym tygodniu odnotowano trzy naruszenia przestrzeni."], pn, "past"),
+    (["W ciągu ostatniej doby Straż Graniczna odnotowała drony przy granicy."], pn, "past"),
+    (["Poprzedniego dnia nad powiatem krążył dron."], pn, "past"),
+    (["Przedwczoraj nad Chełmem przeleciał dron."], pn, "past"),
+    (["Trzy dni temu dron spadł w polu pod Hrubieszowem."], pn, "past"),
+    (["Ubiegłej nocy nad Lubelszczyzną operowało lotnictwo."], pn9, "past"),
+    (["Ubiegłej nocy nad Lubelszczyzną operowało lotnictwo."], pn, "fresh"),   # 7:45 — noc przed chwilą
+    (["Poprzedniej nocy nad Lubelszczyzną operowało lotnictwo."], pn, "past"),
+    # kontrola: bieżące meldunki dalej świeże
+    (["Lotnisko w Rzeszowie zamknięte do godz. 10:00, poderwano myśliwce."], pn, "fresh"),
+    (["Rosyjski dron spadł pod Hrubieszowem. Ostatnie informacje: służby na miejscu."], pn, "fresh"),
+]
+for tekst, kiedy, oczek in PRZYPADKI_2A:
+    got, why = ar.assess(tekst, kiedy)
+    ok(got == oczek, f"{tekst[0][:58]:58} → {got} ({why})")
+
 print("3. dopasowanie tytułu Google News do kanału redakcji")
 ok(ar._similar(ar._title_key("Niespokojny poranek na Lubelszczyźnie. Syreny, alerty - Dziennik Wschodni",
                              "Dziennik Wschodni"),

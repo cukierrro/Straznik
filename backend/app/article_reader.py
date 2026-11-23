@@ -126,17 +126,93 @@ _HOUR = re.compile(
     r"(\d{1,2})(?:[:.](\d{2}))?\b")
 
 
+_MIESIACE = {"stycznia": 1, "lutego": 2, "marca": 3, "kwietnia": 4, "maja": 5, "czerwca": 6,
+             "lipca": 7, "sierpnia": 8, "wrzesnia": 9, "pazdziernika": 10, "listopada": 11,
+             "grudnia": 12}
+# Data w treści: „21 listopada”, „21 listopada 2026”, „21.11.2026”. Samo „21.11” pomijamy —
+# to równie dobrze godzina („po 8.15”). Liczy się tylko data z ostatnich DATA_WSTECZ_DNI:
+# starsza to tło („od 24 lutego 2022”), nie zdarzenie, o którym jest artykuł.
+_DATA_SLOWNA = re.compile(r"\b(\d{1,2})\s+(" + "|".join(_MIESIACE) + r")(?:\s+(\d{4}))?\b")
+_DATA_LICZBOWA = re.compile(r"\b(\d{1,2})\.(\d{1,2})\.(\d{4})\b")
+DATA_WSTECZ_DNI = 14
+# Przymiotniki dni tygodnia: „piątkowy atak”, „po sobotnim alarmie”. Pełne formy — sam
+# rdzeń „srodow” łapałby „środowisko”, a „niedziel” — „niedzielę” z _WEEKDAYS.
+_KONC = r"(?:y|a|e|ego|ej|ym|ych|ymi)"
+_DNI_PRZYM = {
+    "poniedzialkow": 0, "wtorkow": 1, "srodow": 2, "czwartkow": 3, "piatkow": 4,
+    "niedzieln": 6,
+}
+_DNI_PRZYM_I = {"sobotni": 5}       # sobotni/sobotnia/sobotniego… (rdzeń kończy się na -i)
+_DZIEN = r"(?:poniedzial\w*|wtor\w*|srod[aeyo]\w*|czwart\w*|piat\w*|sobot\w*|niedziel\w*)"
+# „ubiegły / zeszły / miniony / ostatni / poprzedni” przy dniu, tygodniu, weekendzie albo
+# dobie — zawsze o czasie, który już minął („w ubiegły piątek” w piątek to tydzień temu).
+_MINIONY = re.compile(r"\b(?:ubiegl|zeszl|minion|ostatni|poprzedni)\w*\s+"
+                      r"(" + _DZIEN + r"|tydz\w*|tygodni\w*|weekend\w*|dob[aeyi]\w*|dni[au]?\b)")
+_PRZESZLE = ("przedwczoraj", "dzien wczesniej", "dni temu", "dzien temu",
+             "dobe temu", "tydzien temu")
+# Noc opisana słowem „ubiegła / zeszła / ostatnia” — jak _NIGHT: przeszła, gdy artykuł
+# wyszedł już po nocy (od 8:00); „poprzedniej nocy” — zawsze.
+_NOC_MINIONA = ("ubieglej nocy", "zeszlej nocy", "ostatniej nocy", "minionej nocy")
+# Zapowiedź audycji albo rozmowy — nie meldunek. 23.11.2026 „Gość Radia Lublin: pułkownik
+# dr Dariusz Dachowicz” („porozmawia na temat (…) wybuchów rosyjskich dronów i rakiet”,
+# „Zapraszamy po godz. 8:15”) dostał 0,5 pkt: bez daty i godziny w przeszłości był „świeży”.
+_ZAPOWIEDZ = ("porozmawia", "porozmawiamy", "gosciem radia", "gosciem programu",
+              "gosciem audycji", "gosciem studia", "bedzie gosciem", "gosciem bedzie",
+              "zapraszamy po godz", "zapraszamy o godz", "zapraszamy do sluchania",
+              "zapraszamy na rozmowe", "zapraszamy na audycje")
+
+
+def _data_z_tresci(lead: str, pub: datetime) -> tuple[datetime, str] | None:
+    """Najnowsza data z treści sprzed dnia publikacji (do DATA_WSTECZ_DNI wstecz)."""
+    dzien = pub.date()
+    najnowsza = None
+    trafienia = [(int(m.group(1)), _MIESIACE[m.group(2)], m.group(3), m.group(0))
+                 for m in _DATA_SLOWNA.finditer(lead)]
+    trafienia += [(int(m.group(1)), int(m.group(2)), m.group(3), m.group(0))
+                  for m in _DATA_LICZBOWA.finditer(lead)]
+    for d, mies, rok, tekst in trafienia:
+        try:
+            data = datetime(int(rok) if rok else dzien.year, mies, d).date()
+        except ValueError:
+            continue
+        if not rok and data > dzien + timedelta(days=180):
+            data = data.replace(year=data.year - 1)      # „30 grudnia” w artykule z 2 stycznia
+        if dzien - timedelta(days=DATA_WSTECZ_DNI) <= data < dzien:
+            if najnowsza is None or data > najnowsza[0]:
+                najnowsza = (data, tekst)
+    return najnowsza
+
+
 def assess(paras: list[str], published: datetime, now: datetime | None = None) -> tuple[str, str]:
     """("fresh" | "past", powód). `published` i `now` są strefowe."""
     lead = _fold(" ".join(paras))[:1500]
     pub = published.astimezone(WARSAW)
     if any(k in lead for k in _ONGOING):
         return "fresh", "treść mówi o trwającym zdarzeniu"
-    if "wczoraj" in lead:
+    for k in _ZAPOWIEDZ:
+        if k in lead:
+            return "past", f"zapowiedź audycji lub rozmowy („{k}”), nie meldunek"
+    if "wczoraj" in lead and "przedwczoraj" not in lead:   # „przedwczoraj” niżej, z własnym powodem
         return "past", "treść opisuje wczorajsze zdarzenie"
+    for k in _PRZESZLE:
+        if k in lead:
+            return "past", f"treść opisuje zdarzenie z innego dnia („{k}”)"
+    m = _MINIONY.search(lead)
+    if m:
+        return "past", f"treść opisuje miniony czas („{m.group(0)}”)"
+    if "poprzedniej nocy" in lead:
+        return "past", "treść opisuje poprzednią noc"
+    data = _data_z_tresci(lead, pub)
+    if data:
+        return "past", f"treść podaje datę {data[1]}, artykuł z {pub:%d.%m}"
     for phrase, wd in _WEEKDAYS.items():
         if re.search(rf"\b{phrase}\b", lead) and wd != pub.weekday():
             return "past", f"treść opisuje zdarzenie z innego dnia („{phrase}”)"
+    for rdzen, wd in [*_DNI_PRZYM.items(), *_DNI_PRZYM_I.items()]:
+        konc = _KONC if rdzen in _DNI_PRZYM else r"(?:a|e|ego|ej|m|ch|mi)?"
+        m = re.search(rf"\b{rdzen}{konc}\b", lead)
+        if m and wd != pub.weekday():
+            return "past", f"treść opisuje zdarzenie z innego dnia („{m.group(0)}”)"
     for m in _HOUR.finditer(lead):
         h, mi = int(m.group(1)), int(m.group(2) or 0)
         if h > 23 or mi > 59:
@@ -148,7 +224,7 @@ def assess(paras: list[str], published: datetime, now: datetime | None = None) -
         if age > PAST_AFTER_MIN:
             return "past", f"zdarzenie ok. godz. {h}:{mi:02d}, artykuł z {pub:%H:%M}"
         return "fresh", f"zdarzenie ok. godz. {h}:{mi:02d}"
-    if any(k in lead for k in _NIGHT) and pub.hour >= 8:
+    if any(k in lead for k in (*_NIGHT, *_NOC_MINIONA)) and pub.hour >= 8:
         return "past", f"treść opisuje noc lub świt, artykuł z {pub:%H:%M}"
     if re.search(r"\b(dzis|dzisiaj)?\s*rano\b", lead) and pub.hour >= 11:
         return "past", f"treść opisuje poranek, artykuł z {pub:%H:%M}"
