@@ -1073,6 +1073,30 @@ def rakieta_pierwsza_linia(s: dict) -> bool:
     return km <= do_pl + config.RED_GATE_RAKIETY_MARGINES_KM
 
 
+def punkt_katalogowy(d: dict) -> str | None:
+    """Nazwa punktu katalogowego miejscowości, w którym stoi obiekt (config.RED_GATE_PUNKTY_KATALOGOWE)."""
+    lat, lon = d.get("lat"), d.get("lon")
+    if lat is None or lon is None:
+        return None
+    from . import geo
+    for p in config.RED_GATE_PUNKTY_KATALOGOWE:
+        if geo.haversine_km(lat, lon, p["lat"], p["lon"]) <= config.RED_GATE_KATALOG_TOL_KM:
+            return p["name"]
+    return None
+
+
+def katalog_blokuje(s: dict) -> bool:
+    """Dron w punkcie katalogowym dalej niż RED_GATE_KATALOG_KM od regionu nie otwiera czerwonego
+    (decyzja usera 24.11.2026). `dist_km` jest zawsze do regionu sygnału (województwo albo powiat)."""
+    d = s.get("details") or {}
+    if (d.get("type") or "").lower() not in config.RED_GATE_KATALOG_TYPES:
+        return False
+    km = d.get("dist_km")
+    if km is None or km <= config.RED_GATE_KATALOG_KM:
+        return False
+    return punkt_katalogowy(d) is not None
+
+
 def red_key(signals: list[dict], ref: datetime | None = None) -> dict | None:
     """Czy wolno zapalić czerwony — i dlaczego (decyzja usera 23.09.2026).
 
@@ -1121,6 +1145,9 @@ def red_key(signals: list[dict], ref: datetime | None = None) -> dict | None:
             continue
         # „Pierwsza linia” dla rakiet (decyzja usera 20.11.2026, config.RED_GATE_RAKIETY_*)
         if not rakieta_pierwsza_linia(s):
+            continue
+        # Punkt katalogowy miejscowości > 50 km (decyzja usera 24.11.2026, „Kowel”)
+        if katalog_blokuje(s):
             continue
         if eta is not None and eta <= config.RED_GATE_ETA_MIN:
             return {"powod": "eta", "opis": f"obiekt {int(eta)} min od granicy", "eta_min": eta, "km": km}

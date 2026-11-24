@@ -361,6 +361,28 @@ RED_GATE_BEZ_KURSU_MIN_ZGLOSZEN = 2
 # przez usera (przy 800 km/h to 4 min).
 RED_GATE_RAKIETY_TYPES = ("ballistic", "mig31k", "cruise", "missile", "kab")
 RED_GATE_RAKIETY_MARGINES_KM = 60.0
+# Punkty katalogowe miejscowości (decyzja usera 24.11.2026). NEPTUN podaje czasem jako
+# pozycję „potwierdzoną” środek miejscowości ze swojego katalogu: te same współrzędne
+# co do metra u wielu różnych dronów. To nie pomiar, tylko „gdzieś w okolicy X”.
+# Kowel (51.21548, 24.70077) leży 54,7 km od granicy, czyli równo na 15 min dolotu:
+# od 2.08 do 20.11 otworzył 25 z 56 czerwonych, a 24.11 jeszcze dwa w pow. hrubieszowskim.
+# RCB wysyłało w tym czasie najwyżej 1. stopień. Dron w takim punkcie DALEJ niż 50 km
+# od regionu (województwa albo powiatu) nie otwiera czerwonego; punkty liczy jak dotąd.
+# Bliżej (Rawa Ruska 4,7 km, Luboml 14,3 km) wszystko po staremu. Tylko drony:
+# rakieta „we Lwowie” 57 km 20.11 to było prawdziwe zagrożenie. Lista ręczna — nowe
+# punkty dopisujemy po sprawdzeniu w danych (scripts/punkty_katalogowe.py, przegląd
+# tygodniowy). Lwów dla zwykłego drona daje 16 min, ale dron odrzutowy otwiera klucz
+# do ~100 km, więc to samo złudzenie działałoby i tam.
+RED_GATE_KATALOG_TYPES = ("uav", "shahed")
+RED_GATE_KATALOG_KM = 50.0
+RED_GATE_KATALOG_TOL_KM = 0.3
+RED_GATE_PUNKTY_KATALOGOWE = (
+    {"name": "Kowel", "lat": 51.21548, "lon": 24.70077},
+    {"name": "Lwów", "lat": 49.8397, "lon": 24.0297},
+    {"name": "Dublany", "lat": 49.90411, "lon": 24.08637},
+    {"name": "Gródek", "lat": 49.78476, "lon": 23.6481},
+    {"name": "Drohobycz", "lat": 49.35196, "lon": 23.51121},
+)
 # Ponowienie czerwonego przy realnym zbliżeniu (decyzja usera 2.11.2026): ponowienie.py.
 # Wyłącznik bez wydania: STRAZNIK_PONOWIENIE=0 i restart.
 RED_PONOWIENIE_WLACZONE = os.getenv("STRAZNIK_PONOWIENIE", "1").strip() != "0"
