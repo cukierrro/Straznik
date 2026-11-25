@@ -383,6 +383,8 @@
     <li><b>After changing phones</b> — install Strażnik from the App Store and save your places again; My places do not move between phones.</li>
     <li><b>Green indicators, working buttons, but an empty map</b> (in Safari too) — the iPhone blocks map drawing (WebGL). Most often it is <b>Lockdown Mode</b>: Settings → Privacy &amp; Security → Lockdown Mode → Configure Web Browsing → exclude Strażnik, and straznik.eu in Safari. If Lockdown Mode is off, check Settings → Apps → Safari → Advanced → Feature Flags → WebGL. Alerts and notifications work without the map.</li>
     <li><b>An object is in the list but not on the map</b> — a signal lives in the 60-minute window, while positions come from the current snapshot. An object disappearing does not prove it was shot down.</li>
+    <li><b>Drones and missiles over Poland are not visible</b> — the source tracks the sky over Ukraine, and nobody publishes such data over Poland (military radar data is not public). An object that crosses the border disappears from the map — that does not mean it flew away. Sirens, the RCB Alert and RSO are what count then.</li>
+    <li><b>The map stutters</b> (a weaker phone) — since 1.8.13 the map draws about 380 county blocks. <kbd>Menu</kbd> → <kbd>Settings</kbd> → <kbd>Map</kbd> → <kbd>Map division</kbd> → <b>Provinces</b> helps, and so does turning off <kbd>Menu</kbd> → <kbd>3D view</kbd>: the map then looks from above, without block walls.</li>
     <li><b>An incomplete picture</b> — NEPTUN is an OSINT aggregator, not a radar; ADS-B sees only public transponders; messages and articles can be late. No points does not prove there is no threat.</li>
   </ul>
 </section>

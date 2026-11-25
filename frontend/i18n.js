@@ -320,8 +320,8 @@
     if (podzialOpts) (en ? ["Counties", "Provinces"] : ["Powiaty", "Województwa"]).forEach((v, i) => { if (podzialOpts[i]) podzialOpts[i].textContent = v; });
     const podzialNote = document.getElementById("podzial-note");
     if (podzialNote) podzialNote.innerHTML = en
-      ? "Alerts arrive for the <b>county</b> of a saved place, so by default the map shows the county levels. “Provinces” is the province score view as it was up to version 1.8.09. Province points are always in the Signals panel and on the county card."
-      : "Alarmy przychodzą dla <b>powiatu</b> zapisanego miejsca, więc domyślnie mapa pokazuje poziom powiatów. „Województwa” to widok punktacji województw jak do wersji 1.8.09. Punkty województw są zawsze w panelu Sygnały i w karcie powiatu.";
+      ? "Alerts arrive for the <b>county</b> of a saved place, so by default the map shows the county levels. “Provinces” is the province score view as it was up to version 1.8.09. Province points are always in the Signals panel and on the county card. If the map stutters (a weaker phone), choose “Provinces” and turn off Menu → 3D view."
+      : "Alarmy przychodzą dla <b>powiatu</b> zapisanego miejsca, więc domyślnie mapa pokazuje poziom powiatów. „Województwa” to widok punktacji województw jak do wersji 1.8.09. Punkty województw są zawsze w panelu Sygnały i w karcie powiatu. Gdy mapa się zacina (słabszy telefon), pomaga „Województwa” i wyłączenie Menu → Widok 3D.";
     // Etykieta listy to pierwszy węzeł tekstowy <label>, przed samym <select>.
     const lead = (id, pl, eng) => {
       const el = document.getElementById(id);
@@ -1121,6 +1121,7 @@
     set("#about .warn-box", "This is NOT an official warning system. It does not replace sirens, RCB or RSO alerts. In a real emergency, follow official channels. Strażnik provides an additional, potentially earlier signal — nothing more.");
     // stałe teksty z <b>, dlatego innerHTML (setMany ustawia textContent)
     [
+      "<b>Drones and missiles over Poland</b> are not visible. The source tracks the sky over Ukraine, and nobody publishes such data over Poland (military radar data is not public). An object that crosses the border disappears from the map — that does not mean it flew away. Sirens, the RCB Alert and RSO are what count then.",
       "<b>Ballistic missiles</b> (e.g. Iskander) fly for a few minutes — Strażnik cannot warn about them in advance. Sirens and the RCB Alert are what count.",
       "<b>The Belarusian direction:</b> NEPTUN describes objects over Ukraine; over Belarus we see nothing. From that side only the RCB Alert and media remain.",
       "<b>Kaliningrad and the Baltic:</b> no source on objects in the air — only Baltic media, neighbouring airspace zones and the RCB Alert.",
@@ -1387,6 +1388,7 @@
       + "RCB про моніторинг ситуації разом із тривогами в областях України та ЗМІ могла зробити регіон "
       + "червоним із порожньою мапою.";
     [
+      "<b>Дрони й ракети над Польщею</b> не видно. Джерело стежить за небом над Україною, а над Польщею такі дані ніхто не публікує (дані військових радарів не є відкритими). Об’єкт, що перетнув кордон, зникає з мапи — це не означає, що він відлетів. Тоді вирішальні сирени, Alert RCB і RSO.",
       "<b>Балістичні ракети</b> (напр. «Іскандер») летять кілька хвилин — Strażnik не попередить про них заздалегідь. Вирішальні сирени й Alert RCB.",
       "<b>Білоруський напрямок:</b> NEPTUN описує об’єкти над Україною; над Білоруссю ми не бачимо нічого. З того боку залишаються лише Alert RCB і ЗМІ.",
       "<b>Калінінград і Балтика:</b> немає джерела про об’єкти в повітрі — лише балтійські ЗМІ, зони повітряного простору сусідів і Alert RCB.",
@@ -1445,7 +1447,8 @@
     const podzialNUk = document.getElementById("podzial-note");
     if (podzialNUk) podzialNUk.innerHTML = "Тривоги приходять для <b>повіту</b> збереженого місця, тому типово мапа "
       + "показує рівень повітів. «Воєводства» — це вигляд балів воєводств, як до версії 1.8.09. Бали воєводств "
-      + "завжди є в панелі «Сигнали» і в картці повіту.";
+      + "завжди є в панелі «Сигнали» і в картці повіту. Якщо мапа підвисає (слабший телефон), допоможуть "
+      + "«Воєводства» і вимкнення Меню → Вигляд 3D.";
     const trailN = document.getElementById("trail-neptun-label");
     if (trailN?.firstChild) trailN.firstChild.nodeValue = "Дрони й ракети (NEPTUN) ";
     const trailA = document.getElementById("trail-adsb-label");
