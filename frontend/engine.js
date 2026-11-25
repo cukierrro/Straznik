@@ -30,6 +30,15 @@ const RED_GATE_AREA_MAX_UNC_KM = 30;   // pozycja rejonowa ±70 km nie otwiera c
 const RED_GATE_BEZ_KURSU_TYPES = new Set(["uav", "shahed"]), RED_GATE_BEZ_KURSU_KM = 30, RED_GATE_BEZ_KURSU_MIN_ZGLOSZEN = 2;
 // rakieta „pierwsza linia” (20.11.2026): lustro config.RED_GATE_RAKIETY_*
 const RED_GATE_RAKIETY_TYPES = new Set(["ballistic", "mig31k", "cruise", "missile", "kab"]), RED_GATE_RAKIETY_MARGINES_KM = 60;
+// punkty katalogowe miejscowości (24.11.2026, „Kowel”): lustro config.RED_GATE_KATALOG_* i RED_GATE_PUNKTY_KATALOGOWE
+const RED_GATE_KATALOG_TYPES = new Set(["uav", "shahed"]), RED_GATE_KATALOG_KM = 50, RED_GATE_KATALOG_TOL_KM = 0.3;
+const RED_GATE_PUNKTY_KATALOGOWE = [
+  { name: "Kowel", lat: 51.21548, lon: 24.70077 },
+  { name: "Lwów", lat: 49.8397, lon: 24.0297 },
+  { name: "Dublany", lat: 49.90411, lon: 24.08637 },
+  { name: "Gródek", lat: 49.78476, lon: 23.6481 },
+  { name: "Drohobycz", lat: 49.35196, lon: 23.51121 },
+];
 const RCB_DOWNGRADE_FADE_MIN = 10;   // lustro config.RCB_DOWNGRADE_FADE_MIN
 /* Obiekt zgubiony z feedu NEPTUN-a gaśnie szybciej — lustro config.NEPTUN_LOST_*
    i fusion.lost_weight (11.10.2026). Wyjątek: zgubiony bliżej granicy niż 50 km. */
@@ -1157,6 +1166,16 @@ function rakietaPierwszaLinia(s) {
   return d.dist_km <= doPl + RED_GATE_RAKIETY_MARGINES_KM;
 }
 
+/* Lustro fusion.katalog_blokuje (decyzja usera 24.11.2026): dron w punkcie katalogowym
+   miejscowości dalej niż 50 km od regionu nie otwiera czerwonego. */
+function katalogBlokuje(s) {
+  const d = s.details || {};
+  if (!RED_GATE_KATALOG_TYPES.has(String(d.type || "").toLowerCase())) return false;
+  if (d.dist_km == null || d.dist_km <= RED_GATE_KATALOG_KM) return false;
+  if (d.lat == null || d.lon == null) return false;
+  return RED_GATE_PUNKTY_KATALOGOWE.some(p => haversine(d.lat, d.lon, p.lat, p.lon) <= RED_GATE_KATALOG_TOL_KM);
+}
+
 function redKey(sigs, ref) {
   // Liczy się BIEŻĄCA ocena państwa: po obniżeniu stopnia stary alert dopłaca jeszcze
   // zanikającą nadwyżkę punktów, ale nie trzyma już czerwonego.
@@ -1181,6 +1200,7 @@ function redKey(sigs, ref) {
         && !(d.confidence === "high" && (d.source_count || 0) >= RED_GATE_BEZ_KURSU_MIN_ZGLOSZEN)
         && !(d.dist_km != null && d.dist_km <= RED_GATE_BEZ_KURSU_KM)) continue;
     if (!rakietaPierwszaLinia(s)) continue;   // 20.11.2026, lustro fusion.red_key
+    if (katalogBlokuje(s)) continue;          // 24.11.2026, lustro fusion.red_key
     if (d.eta_border_min != null && d.eta_border_min <= RED_GATE_ETA_MIN)
       return { powod: "eta", opis: `obiekt ${Math.round(d.eta_border_min)} min od granicy`, eta_min: d.eta_border_min, km: d.dist_km };
     if (d.dist_km != null && d.dist_km <= RED_GATE_KM)

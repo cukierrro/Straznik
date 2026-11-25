@@ -118,6 +118,8 @@ class Alarms {
     /** Użytkownik wyłączył „Alarmy na tym telefonie” — usługa FCM odrzuca alarmy. */
     static final String KEY_ALERTS_OFF = "alerts_off";
     private static final String KEY_SAVED_VOLUME = "saved_alarm_volume";
+    /** Głośność ustawiona przez aplikację przy podniesieniu (1.8.14, patrz GlosnoscAlarmu). */
+    private static final String KEY_SET_VOLUME = "set_alarm_volume";
 
     /**
      * Wszystkie 16 województw — ta sama lista i kolejność co config.VOIVODESHIPS
@@ -459,8 +461,15 @@ class Alarms {
             int target = targetAlarmVolume(cur, max, forceVolumeEnabled(ctx));
             if (target <= cur) return;
             SharedPreferences p = prefs(ctx);
-            if (!p.contains(KEY_SAVED_VOLUME)) p.edit().putInt(KEY_SAVED_VOLUME, cur).apply();
+            int zapisana = p.getInt(KEY_SAVED_VOLUME, GlosnoscAlarmu.BRAK);
+            int ustawiona = p.getInt(KEY_SET_VOLUME, GlosnoscAlarmu.BRAK);
             am.setStreamVolume(AudioManager.STREAM_ALARM, target, 0);
+            // odczyt zwrotny: część telefonów zaokrągla krok głośności, a przywrócenie
+            // porównuje z tym, co faktycznie jest ustawione
+            int poUstawieniu = am.getStreamVolume(AudioManager.STREAM_ALARM);
+            SharedPreferences.Editor e = p.edit().putInt(KEY_SET_VOLUME, poUstawieniu);
+            if (GlosnoscAlarmu.zapisac(zapisana, ustawiona, cur)) e.putInt(KEY_SAVED_VOLUME, cur);
+            e.apply();
         } catch (Exception e) {
             Log.w(TAG, "podniesienie głośności alarmu", e);
         }
@@ -469,11 +478,17 @@ class Alarms {
     static void restoreAlarmVolume(Context ctx) {
         try {
             SharedPreferences p = prefs(ctx);
-            if (!p.contains(KEY_SAVED_VOLUME)) return;
-            int saved = p.getInt(KEY_SAVED_VOLUME, -1);
-            p.edit().remove(KEY_SAVED_VOLUME).apply();
+            if (!p.contains(KEY_SAVED_VOLUME) && !p.contains(KEY_SET_VOLUME)) return;
+            int saved = p.getInt(KEY_SAVED_VOLUME, GlosnoscAlarmu.BRAK);
+            int ustawiona = p.getInt(KEY_SET_VOLUME, GlosnoscAlarmu.BRAK);
+            p.edit().remove(KEY_SAVED_VOLUME).remove(KEY_SET_VOLUME).apply();
             AudioManager am = (AudioManager) ctx.getSystemService(Context.AUDIO_SERVICE);
-            if (am != null && saved >= 0) am.setStreamVolume(AudioManager.STREAM_ALARM, saved, 0);
+            if (am == null) return;
+            int obecna = am.getStreamVolume(AudioManager.STREAM_ALARM);
+            if (GlosnoscAlarmu.przywrocic(saved, ustawiona, obecna))
+                am.setStreamVolume(AudioManager.STREAM_ALARM, saved, 0);
+            else
+                Log.i(TAG, "głośność alarmu zmieniona ręcznie albo zapis nieaktualny — zostaje " + obecna);
         } catch (Exception e) {
             Log.w(TAG, "przywrócenie głośności alarmu", e);
         }

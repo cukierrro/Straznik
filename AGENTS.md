@@ -123,6 +123,10 @@ istniały od tygodni i nikt ich nie zauważył, bo nikt nie patrzył.
    użytkownik `straznik`, nie jako root).
 5. Strona: nagłówki bezpieczeństwa i CSP obecne, `/api/health/critical`
    zwraca 200.
+   Punkty katalogowe miejscowości: `python3 scripts/punkty_katalogowe.py
+   <archiwum.db>` na VPS (tylko odczyt). Kod 1 = nowy punkt o stałych
+   współrzędnych 50–60 km od granicy (jak Kowel 24.11.2026) albo błąd odczytu;
+   dopisanie do listy klucza czerwonego tylko za zgodą użytkownika.
 6. Ruch przez Cloudflare: suma GB na dobę oraz udział `bin` (paczki GROTY)
    i `json` (odpytywanie `/api/state`). Panel nie pokazuje rozbicia na typy —
    metoda, identyfikatory i punkt odniesienia z 29.09.2026 są w pamięci
