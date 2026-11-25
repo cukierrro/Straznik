@@ -6,6 +6,10 @@
 
 Serwer: **hostowane na [Mikrusie](https://mikr.us)** — dziękujemy za wsparcie projektu.
 
+Wersja 1.8.14: po wyciszeniu czerwonego alarmu głośność „Alarmy” wraca do tej sprzed alarmu (Android);
+dron w środku miejscowości z katalogu źródła (np. Kowel) dalej niż 50 km nie zapala czerwonego;
+„O aplikacji” wyjaśnia, dlaczego nie widać dronów nad Polską. Szczegóły: `docs/RELEASE_1.8.14.md`.
+
 Wersja 1.8.13: bryła powiatu rośnie z punktami także poniżej progu (8 km na punkt, najwyżej 5 pkt),
 a poniżej progu lekko jaśnieje; zapowiedzi audycji i artykuły o zdarzeniach z innego dnia nie dają punktów;
 GROTA z wykazem PSP z 23 listopada 2026 (88 913 punktów).

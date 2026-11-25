@@ -420,6 +420,12 @@ so the banner shows its arrows and „1/2”; the PAŻP zones layer is off (`str
 1.8.10 frames. The 1.8.10 map frame was taken before the county layer had loaded (the start-up
 flicker fixed in 1.8.11), so it showed province blocks.
 
+Map settings (1.8.14, 25 November 2026, morning): `1814/set-mapa-{pl,en,uk}.jpg` replace
+`1810/set-mapa` — debug build 1.8.14 (versionCode 145) on the Pixel 7 emulator at its physical
+1080x2400 (the 1080x2340 override was reset for the series and restored afterwards), the same places
+as the 1.8.11 frames. New: the tip for weaker phones under Map division (Provinces and turning off
+the 3D view). Captured with the same WebView devtools automation as in 1.8.10.
+
 County map (1.8.13, 23 November 2026, evening): `1813/mapa-powiaty-{pl,en,uk}.jpg` replace
 `1811/mapa-powiaty` — debug build 1.8.13 (versionCode 144) on the Pixel 7 emulator at its physical
 1080x2400 (an override to 1080x2340 left on the emulator was reset for the series and restored
