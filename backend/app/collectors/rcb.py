@@ -84,6 +84,12 @@ PRZEKIEROWANIE_PROBY = 3
 PRZEKIEROWANIE_PRZERWA_S = 4.0
 NIECZYTELNY_PONAWIAJ_S = 6 * 3600   # potem odkładamy jak historię, żeby nie zajmował miejsca w obiegu
 _ostrzezone: dict[str, float] = {}  # href → chwila ostatniego ostrzeżenia w logu
+OSTRZEZONE_MAX = 500                # audyt 26.11.2026: słownik nie rośnie bez końca
+# Audyt 26.11.2026: po przekierowaniu sprawdzamy także HOST, nie tylko ścieżkę — treść
+# z innej domeny z tą samą ścieżką `/web/rcb/...` nie może udawać artykułu RCB. Strona
+# gov.pl ma kilkaset KB; większa odpowiedź to nie komunikat RCB.
+GOVPL_HOST = "www.gov.pl"
+GOVPL_MAX_ZNAKOW = 3_000_000
 
 
 def _fold(s: str) -> str:
@@ -304,6 +310,9 @@ def _ostrzez(href: str, powod: str) -> None:
     teraz = time.time()
     if teraz - _ostrzezone.get(href, 0.0) >= NIECZYTELNY_LOG_CO_S:
         _ostrzezone[href] = teraz
+        if len(_ostrzezone) > OSTRZEZONE_MAX:     # najstarsze ostrzeżenia odpadają pierwsze
+            for stary in sorted(_ostrzezone, key=_ostrzezone.get)[:len(_ostrzezone) - OSTRZEZONE_MAX]:
+                _ostrzezone.pop(stary, None)
         log.warning("RCB: artykuł %s nieczytelny (%s) — spróbuję w kolejnym obiegu", href, powod)
 
 
@@ -312,7 +321,11 @@ def _nowy_klient() -> httpx.AsyncClient:
 
 
 def _przekierowany(r, href: str) -> bool:
-    return r.url.path.rstrip("/") != href.rstrip("/")
+    return r.url.host != GOVPL_HOST or r.url.path.rstrip("/") != href.rstrip("/")
+
+
+def _za_duza(r) -> bool:
+    return len(r.text or "") > GOVPL_MAX_ZNAKOW
 
 
 async def _ponow_nowym_polaczeniem(url: str, href: str):
@@ -342,6 +355,9 @@ async def _czytaj_artykul(client: httpx.AsyncClient, href: str, tytul: str):
         r.raise_for_status()
         if _przekierowany(r, href):
             r = await _ponow_nowym_polaczeniem(url, href) or r
+        if _za_duza(r):
+            _nieczytelny(href, f"odpowiedź większa niż {GOVPL_MAX_ZNAKOW} znaków")
+            return
         tekst = tresc_artykulu(r.text, tytul)
     except Exception as e:                       # noqa: BLE001
         log.warning("RCB: nie udało się przeczytać %s: %s", url, e)
@@ -444,6 +460,8 @@ async def _check(client: httpx.AsyncClient):
         r = await client.get(config.RCB_URL, headers={"User-Agent": UA},
                              follow_redirects=True)
         r.raise_for_status()
+        if r.url.host != GOVPL_HOST or _za_duza(r):
+            raise ValueError(f"lista RCB: nieoczekiwana odpowiedź z {r.url.host}")
         status.update(ok=True, last=time.time(), error=None)
     except Exception as e:
         status.update(ok=False, error=str(e))

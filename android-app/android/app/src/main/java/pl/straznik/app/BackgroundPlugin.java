@@ -731,6 +731,10 @@ public class BackgroundPlugin extends Plugin {
     public void installUpdate(PluginCall call) {
         String rawUrl = call.getString("url");
         String expected = call.getString("sha256");
+        // górna granica pobierania (audyt 26.11.2026, LimitAktualizacji)
+        Double rozmiarZSerwera = call.getDouble("size");
+        final long limitBajtow = LimitAktualizacji.limit(
+            rozmiarZSerwera == null ? 0L : rozmiarZSerwera.longValue());
         if (rawUrl == null || expected == null || !expected.matches("(?i)[0-9a-f]{64}")) {
             call.reject("Nieprawidłowe dane aktualizacji");
             return;
@@ -776,6 +780,8 @@ public class BackgroundPlugin extends Plugin {
                     throw new IllegalStateException("HTTP " + conn.getResponseCode());
                 // Plik + rozpakowanie przez instalator Androida — zapas na drugie tyle.
                 long rozmiar = conn.getContentLengthLong();
+                if (LimitAktualizacji.zaDuzyZNaglowka(rozmiar, limitBajtow))
+                    throw new SecurityException("Plik aktualizacji większy niż zapowiedziany");
                 long potrzeba = (rozmiar > 0 ? rozmiar : 40L << 20) * 2 + (20L << 20);
                 long wolne = dir.getUsableSpace();
                 if (wolne < potrzeba) {
@@ -790,7 +796,11 @@ public class BackgroundPlugin extends Plugin {
                      FileOutputStream out = new FileOutputStream(apk)) {
                     byte[] buf = new byte[32768];
                     int n;
+                    long pobrano = 0;
                     while ((n = in.read(buf)) != -1) {
+                        pobrano += n;
+                        if (pobrano > limitBajtow)
+                            throw new SecurityException("Plik aktualizacji większy niż zapowiedziany");
                         out.write(buf, 0, n);
                         digest.update(buf, 0, n);
                     }

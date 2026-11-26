@@ -7840,7 +7840,8 @@ function showUpdateBanner(rel, local, { sklep = false, tryb = "plik" } = {}) {
       btn.textContent = UI.t("Pobieram…", "Downloading…", "Завантажую…");
       // aplikacja sprawdza sumę SHA-256 z wydania, pakiet i certyfikat podpisu (audyt 16.09.2026)
       progress.textContent = UI.t("Sprawdzam sumę kontrolną SHA-256 i podpis…", "Checking the SHA-256 checksum and signature…", "Перевіряю контрольну суму SHA-256 і підпис…");
-      await plugin.installUpdate({url: rel.url, sha256: rel.sha256});
+      // size: górna granica pobierania (audyt 26.11.2026) — więcej aplikacja nie przyjmie
+      await plugin.installUpdate({url: rel.url, sha256: rel.sha256, size: Number(rel.size) || 0});
       progress.textContent = UI.t("Potwierdź instalację w oknie Androida.", "Confirm the install in the Android dialog.", "Підтвердіть установлення у вікні Android.");
       btn.textContent = UI.t("Instalator otwarty", "Installer opened", "Інсталятор відкрито");
     } catch (error) {

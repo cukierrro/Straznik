@@ -102,6 +102,9 @@ def _sekundy(iso: str | None) -> float | None:
         return None
 
 
+WIDZIANE_MAX = 1000
+
+
 def przetworz(strona: str, widziane: set[int], start: bool, teraz: float) -> int:
     """Zapisuje nowe wpisy alarmowe do dziennika. Zwraca liczbę nowych zapisów."""
     nowe = 0
@@ -128,6 +131,11 @@ def przetworz(strona: str, widziane: set[int], start: bool, teraz: float) -> int
                          k["rodzaj"], k["poziom"] or "", ",".join(k["okregi"]) or "-",
                          k["przy_polsce"], dane["post"])
         status["last_post"] = dane["post"]
+    # Audyt 26.11.2026: zbiór nie rośnie przez cały czas życia procesu. Strona kanału
+    # pokazuje ~20 najnowszych wpisów, a numery wpisów rosną, więc najmniejsze można zapomnieć.
+    if len(widziane) > WIDZIANE_MAX:
+        for stary in sorted(widziane)[:len(widziane) - WIDZIANE_MAX]:
+            widziane.discard(stary)
     return nowe
 
 

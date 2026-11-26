@@ -206,7 +206,7 @@
 
   function wierszPowiatu(p) {
     const otw = otwarte.has(p.terc);
-    return `<div class="pp-pow level-${p.level}${otw ? " open" : ""}" data-t="${p.terc}">
+    return `<div class="pp-pow level-${esc(p.level)}${otw ? " open" : ""}" data-t="${esc(p.terc)}">
       <button type="button" class="pp-pow-head" aria-expanded="${otw}">
         <span class="pp-znak" aria-hidden="true">${p.level === "high" ? "!" : ""}</span>
         <span class="pp-pow-nazwa">${esc(nazwa(p.terc))}
