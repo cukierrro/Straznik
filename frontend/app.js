@@ -803,9 +803,31 @@ function torTematow() {
    (powiaty-telefon-v1.json) służy tylko do ustalania powiatu miejsca.
    Tryb wbudowany (engine.js, bez serwera) liczy tylko województwa — wtedy mapa
    pokazuje województwa niezależnie od ustawienia. */
+/* Lekki tryb (28.11.2026) — słabsze przeglądarki, zwłaszcza w telewizorach (user 25.11:
+   „na TV strasznie zamula”). TYLKO strona w przeglądarce, nigdy aplikacja. Pomiar na
+   odtworzeniu nalotu 20.11 (rysowanie bez GPU, procesor 4× wolniej): zwykły widok 1,6
+   klatki/s i strona zajęta 55 s na 60; lekki 17 klatek/s i 44 s — mapa rysuje się tylko
+   przy zmianie, a między zmianami strona reaguje. Lekki tryb: płaska mapa i województwa
+   (chyba że użytkownik sam wybrał inaczej), ikony przeskakują od meldunku do meldunku,
+   stały pierścień zamiast pulsu, rysowanie w rozdzielczości 1× bez wygładzania krawędzi.
+   Włącza się sam po identyfikatorze przeglądarki telewizora; ręcznie: Ustawienia → Mapa
+   albo adres z ?lekki=1 / ?lekki=0. Wybór użytkownika ma pierwszeństwo. */
+const LEKKI_KEY = "straznik_lekki";
+const TV_UA = /SMART-?TV|SmartTV|Tizen|Web0S|webOS|NetCast|BRAVIA|HbbTV|\bAFT[A-Z]|CrKey|GoogleTV|Android ?TV|Opera TV|VIDAA|Roku|PhilipsTV|Viera|DTV_/i;
+function lekkiAuto() { return !IS_APP && TV_UA.test(navigator.userAgent || ""); }
+function lekkiWybor() { try { return localStorage.getItem(LEKKI_KEY); } catch { return null; } }   // "1", "0" albo null (auto)
+try {
+  const q = new URLSearchParams(location.search).get("lekki");
+  if (!IS_APP && (q === "1" || q === "0")) localStorage.setItem(LEKKI_KEY, q);
+} catch {}
+const LEKKI = !IS_APP && (lekkiWybor() === "1" || (lekkiWybor() !== "0" && lekkiAuto()));
 const PODZIAL_KEY = "straznik_mapa_podzial";
 function podzialMapy() {
-  try { return localStorage.getItem(PODZIAL_KEY) === "woj" ? "woj" : "pow"; } catch { return "pow"; }
+  try {
+    const v = localStorage.getItem(PODZIAL_KEY);
+    if (v === "woj" || v === "pow") return v;
+  } catch {}
+  return LEKKI ? "woj" : "pow";
 }
 let powGeo = null;              // GeoJSON powiatów do rysowania (wczytany przy starcie mapy)
 const POW_M_NA_PKT = 8000;      // wysokość bryły powiatu na punkt (województwa: 16 000)
@@ -924,16 +946,34 @@ function updatePowStates(pw, pkt) {
   }
   powStanyMapy = nowe;
 }
+/* Wgranie danych do warstwy tylko wtedy, gdy treść się zmieniła (pomiar 28.11.2026: nowy
+   stan z serwera przebudowywał 7 warstw obiektów i samolotów także bez zmian — każde
+   setData to przetworzenie danych i przerysowanie mapy, na słabym sprzęcie bez przerwy).
+   Te same dane dają ten sam obraz, więc pomijamy tylko powtórki. Pamiętamy też obiekt
+   źródła — po jego odtworzeniu dane wgrywamy od nowa. */
+const daneZrodel = new Map();
+function ustawDane(id, fc) {
+  const src = map.getSource(id);
+  if (!src) return;
+  const k = JSON.stringify(fc), byl = daneZrodel.get(id);
+  if (byl && byl.src === src && byl.k === k) return;
+  src.setData(fc);
+  daneZrodel.set(id, { src, k });
+}
 /* Widoczność warstw wg ustawienia i obrys MOICH powiatów (powiaty miejsc z alarmami). */
 function applyPodzialMapy() {
   if (!mapReady || !map.getLayer("voiv-extrude")) return;
   const pow = mapaPowiatow() && !!map.getLayer("pow-extrude");
-  const vis = (id, on) => { if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", on ? "visible" : "none"); };
+  // Pomiar 28.11.2026: wołane przy każdym nowym stanie; setLayoutProperty i setFilter
+  // wymuszają przerysowanie mapy także przy tej samej wartości — ustawiamy tylko zmiany.
+  const vis = (id, on) => { const v = on ? "visible" : "none";
+    if (map.getLayer(id) && (map.getLayoutProperty(id, "visibility") ?? "visible") !== v) map.setLayoutProperty(id, "visibility", v); };
   vis("pow-extrude", pow); vis("pow-line", pow); vis("voiv-extrude", !pow);
   const moje = pow && IS_APP && typeof powiatyDoTematow === "function" ? powiatyDoTematow() : [];
   for (const id of ["my-pow", "my-pow-glow"]) {
     if (!map.getLayer(id)) continue;
-    map.setFilter(id, ["in", ["get", "t"], ["literal", moje.length ? moje : ["—"]]]);
+    const filtr = ["in", ["get", "t"], ["literal", moje.length ? moje : ["—"]]];
+    if (JSON.stringify(map.getFilter(id)) !== JSON.stringify(filtr)) map.setFilter(id, filtr);
     vis(id, moje.length > 0);
   }
   // obrys całego województwa zostaje, gdy nie ma moich powiatów (strona, tor województw)
@@ -1009,7 +1049,10 @@ let threatsReceivedAt = 0; // do dead-reckoningu
 let map, mapReady = false;
 /* Widok 2D/3D zapamiętany na urządzeniu (22.09.2026): część osób woli 2D i musiała
    przełączać go przy każdym uruchomieniu. Domyślnie 3D, jak dotąd. */
-let is3d = (() => { try { return localStorage.getItem("straznik_widok") !== "2d"; } catch { return true; } })();
+let is3d = (() => {
+  try { const v = localStorage.getItem("straznik_widok"); if (v === "2d" || v === "3d") return v === "3d"; } catch {}
+  return !LEKKI;   // bez własnego wyboru: lekki tryb płaski, zwykły 3D
+})();
 
 /* ── połączenie z backendem ──────────────────────────────────────────────── */
 const connBadge = document.getElementById("conn-badge");
@@ -1702,7 +1745,8 @@ async function initMap() {
     map = new maplibregl.Map({
       container: "map", style,
       bounds: FIT_BOUNDS, fitBoundsOptions: { padding: FIT_PAD }, pitch: is3d ? 45 : 0, bearing: is3d ? -8 : 0,
-      antialias: true, attributionControl: false, maxPitch: 70,
+      antialias: !LEKKI, attributionControl: false, maxPitch: 70,
+      ...(LEKKI ? { pixelRatio: Math.min(window.devicePixelRatio || 1, 1) } : {}),
     });
   } catch (e) {
     // WebGL bywa zgłaszany jako dostępny, a kontekst i tak się nie tworzy (np. zablokowany GPU)
@@ -2986,7 +3030,7 @@ function drawFollowTrail() {
     if (arr && arr.length >= 2) features.push({ type: "Feature", properties: {},
       geometry: { type: "LineString", coordinates: arr.map(q => [q.lon, q.lat]) } });
   }
-  src.setData({ type: "FeatureCollection", features });
+  ustawDane("adsb-trail", { type: "FeatureCollection", features });
   // kierunek: kurs i prędkość z transpondera są zmierzone, więc linia na 15 min
   const course = [];
   if (mode === "course" && !histMode) {
@@ -2996,7 +3040,7 @@ function drawFollowTrail() {
       course.push(...courseFeatures(p.lat, p.lon, p.track, kmh, 15, "#39c5ec"));
     }
   }
-  map.getSource("adsb-course")?.setData({ type: "FeatureCollection", features: course });
+  ustawDane("adsb-course", { type: "FeatureCollection", features: course });
 }
 
 /* ── trasy i kierunek lotu (opcja, 3 stany; osobno NEPTUN i ADS-B) ─────────── */
@@ -3105,6 +3149,19 @@ function toggleFollow(hex) {
    do 60 min od ogłoszenia (serwer nie dostaje dziś jego zakończenia). */
 const OBLAST_COLOR = "#ff6f91";
 let oblastInfo = new Map();
+/* Stan obszarów, który mapa już ma (źródło → id → wartość jako tekst). Pomiar 26.11.2026:
+   co aktualizację stanu (kilka razy na minutę) ustawialiśmy od nowa wszystkie rejony UA
+   z alarmem, obwody, kraje i województwa, także bez zmian — każde ustawienie to
+   przerysowanie mapy, ~4–5 na sekundę w spoczynku, ciężkie dla telewizorów. Teraz
+   ustawiamy tylko to, co się zmieniło; wygląd ten sam. Gdy źródło dostaje nowe dane
+   (setData), jego wpis czyścimy, żeby stan nałożyć jeszcze raz. */
+const stanyMapy = { obwody: new Map(), rejony: new Map(), kraje: new Map(), voiv: new Map() };
+function ustawStan(zrodlo, id, v) {
+  const k = JSON.stringify(v), m = stanyMapy[zrodlo];
+  if (m.get(id) === k) return;
+  map.setFeatureState({ source: zrodlo, id }, v);
+  m.set(id, k);
+}
 function oblastsFrom(sigs) {
   const m = new Map();
   for (const s of sigs || []) {
@@ -3128,8 +3185,7 @@ function paintOblasts(sigs) {
   const next = oblastsFrom(sigs);
   if (next.size) wczytajGeoUA("obwody");        // jest co rysować — dociągnij granice
   for (const k of new Set([...oblastInfo.keys(), ...next.keys()]))
-    map.setFeatureState({ source: "obwody", id: k },
-      { active: next.has(k), w: next.get(k)?.w || 0 });
+    ustawStan("obwody", k, { active: next.has(k), w: next.get(k)?.w || 0 });
   oblastInfo = next;
 }
 
@@ -3166,6 +3222,7 @@ async function wczytajGeoUA(ktore) {
         (raionsByOblast[f.properties.o] = raionsByOblast[f.properties.o] || []).push(f.properties.k);
     }
     zrodlo.setData(gj);
+    stanyMapy[ktore].clear();
     uaGeo[ktore] = "gotowe";
     // alarm był wcześniej niż geometria — malujemy jeszcze raz, już po danych
     if (ktore === "rejony") paintRaionAlerts(ostatnieRejonyUA);
@@ -3218,7 +3275,7 @@ function paintRaionAlerts(areas) {
     }
   }
   for (const k of new Set([...raionAlertInfo.keys(), ...next.keys()]))
-    map.setFeatureState({ source: "rejony", id: k }, { alert: next.get(k)?.l === "red" ? "red"
+    ustawStan("rejony", k, { alert: next.get(k)?.l === "red" ? "red"
       : next.has(k) ? "yellow" : "" });
   raionAlertInfo = next;
 }
@@ -3280,7 +3337,7 @@ function paintCountryAlerts(sigs) {
     next.set(iso, e);
   }
   for (const iso of new Set([...countryAlerts.keys(), ...next.keys()]))
-    map.setFeatureState({ source: "kraje", id: iso }, { alert: next.has(iso) });
+    ustawStan("kraje", iso, { alert: next.has(iso) });
   countryAlerts = next;
 }
 /* Karta podświetlonej Litwy, Łotwy albo Estonii — jak karta obwodu UA (22.09.2026). */
@@ -3355,8 +3412,7 @@ function updateVoivStates() {
   paintCountryAlerts(allSigs);
   paintRaionAlerts(state?.neptun?.alert_areas);
   for (const [name, st] of Object.entries(voivs)) {
-    map.setFeatureState({ source: "voiv", id: name },
-      { score: Math.min(st.score, 8), level: st.level, spill: spillRaised(st) });
+    ustawStan("voiv", name, { score: Math.min(st.score, 8), level: st.level, spill: spillRaised(st) });
   }
   updatePowStates(state?.fusion?.powiaty, state?.fusion?.powiaty_pkt);
   applyPodzialMapy();     // tryb wbudowany (bez serwera) przełącza mapę na województwa i z powrotem
@@ -3807,7 +3863,7 @@ function pozycjaIPunkty(t, sygnaly) {
   };
 }
 const PULSE_MS = 1600;
-let lastPulse = 0, pulseOff = false;
+let lastPulse = 0, pulseOff = false, lekkiPierscien = false;
 function pulseLoop(ts) {
   requestAnimationFrame(pulseLoop);
   // ~20 kl./s wystarcza; w tle, w historii i bez liczonych obiektów nic nie robimy
@@ -3817,6 +3873,17 @@ function pulseLoop(ts) {
     // wygaszamy raz, a nie co 50 ms — każde ustawienie to przerysowanie mapy
     if (!pulseOff && map.getLayer("threats-pulse")) map.setPaintProperty("threats-pulse", "circle-stroke-opacity", 0);
     pulseOff = true;
+    lekkiPierscien = false;
+    return;
+  }
+  // lekki tryb: stały pierścień ustawiony raz — puls przerysowuje całą mapę 20×/s
+  if (LEKKI) {
+    if (!lekkiPierscien && map.getLayer("threats-pulse")) {
+      map.setPaintProperty("threats-pulse", "circle-radius", ["interpolate", ["linear"], ["zoom"], 4, 17, 8, 30]);
+      map.setPaintProperty("threats-pulse", "circle-stroke-opacity", 0.6);
+      lekkiPierscien = true;
+    }
+    pulseOff = false;
     return;
   }
   // Zgłoszenie 15.10.2026: przy wielu obiektach przesuwanie mapy w przeglądarce
@@ -3843,6 +3910,7 @@ requestAnimationFrame(pulseLoop);
 const GLIDE_MS = 45000, GLIDE_MAX_KM = 80;
 const glides = new Map();   // id → { lat, lon (ostatni meldunek), dLat, dLon, start, shownLat, shownLon }
 function glidePosition(t, target, now) {
+  if (LEKKI) return { ...target, gliding: false };   // lekki tryb: bez przejazdu (przerysowanie co 200 ms)
   const id = String(t.id ?? "");
   const g = glides.get(id);
   if (!g) {
@@ -3957,10 +4025,10 @@ function animate(ts) {
         geometry: { type: "LineString", coordinates: coords } });
   }
   for (const id of glides.keys()) if (!present.has(id)) glides.delete(id);
-  map.getSource("threats")?.setData({ type: "FeatureCollection", features: pts });
-  map.getSource("trails")?.setData({ type: "FeatureCollection", features: trails });
-  map.getSource("course")?.setData({ type: "FeatureCollection", features: course });
-  map.getSource("uncertainty")?.setData({ type: "FeatureCollection", features: unc });
+  ustawDane("threats", { type: "FeatureCollection", features: pts });
+  ustawDane("trails", { type: "FeatureCollection", features: trails });
+  ustawDane("course", { type: "FeatureCollection", features: course });
+  ustawDane("uncertainty", { type: "FeatureCollection", features: unc });
 }
 
 function updateAdsb() {
@@ -4009,7 +4077,7 @@ function updateAdsb() {
   updateWatchBadge(nowForeign.size);
   if (document.getElementById("watch")?.open) { fillWatch(); refreshWatchEvents(); }
   // warstwa GL trzyma tylko to, co potrzebne do rysowania — resztę czyta dymek z lookupu
-  map.getSource("adsb")?.setData({ type: "FeatureCollection",
+  ustawDane("adsb", { type: "FeatureCollection",
     features: planes.filter(p => p.lat != null).map(p => ({ type: "Feature",
       geometry: { type: "Point", coordinates: [p.lon, p.lat] },
       properties: { track: p.track ?? 0, hex: p.hex, heli: p.heli, foreign: !!p.foreign } })) });
@@ -6919,9 +6987,9 @@ function showHistoryAt(idx) {
   if (mapReady) {   // dane lokalne (bufor w RAM) → mapę odświeżamy też podczas
                     // przewijania; scrubTo dławi do jednej klatki (rAF), więc płynnie
     // Never leave a live followed-aircraft track over historical positions.
-    map.getSource("adsb-trail")?.setData(emptyFC());
+    ustawDane("adsb-trail", emptyFC());
     // migawka nie zawiera śladów — rysujemy pozycje historyczne bez animacji
-    map.getSource("threats")?.setData({ type: "FeatureCollection",
+    ustawDane("threats", { type: "FeatureCollection",
       features: historyThreats.filter(t => t.lat != null).map(t => ({ type: "Feature",
         geometry: { type: "Point", coordinates: [t.lon, t.lat] },
         properties: { tid: String(t.id ?? ""),
@@ -6947,12 +7015,12 @@ function showHistoryAt(idx) {
           course_off: courseOffsetDeg(t),
         na_cel: naKursieDoCelu(t), cel: naKursieDoCelu(t) && t.locality ? placeName(t.locality) : "",
           eta: etaHtml(t) } })) });
-    map.getSource("trails")?.setData(emptyFC());
-    map.getSource("course")?.setData(emptyFC());
-    map.getSource("adsb-course")?.setData(emptyFC());
+    ustawDane("trails", emptyFC());
+    ustawDane("course", emptyFC());
+    ustawDane("adsb-course", emptyFC());
     // Okrąg niepewności także w historii, z wiekiem meldunku z migawki — wcześniej
     // warstwa była tu czyszczona, więc w podglądzie historii okręgu nie było wcale.
-    map.getSource("uncertainty")?.setData({ type: "FeatureCollection",
+    ustawDane("uncertainty", { type: "FeatureCollection",
       features: historyThreats.filter(t => t.lat != null).flatMap(t => {
         const km = shownUncertaintyKm(t);
         return km ? [{ type: "Feature", properties: { color: (TYPE_META[t.type] || {}).color || "#8a93a6",
@@ -6960,7 +7028,7 @@ function showHistoryAt(idx) {
                                                       dist_km: t.pl_assessment?.dist_km ?? null },
           geometry: { type: "Polygon", coordinates: circleCoords(t.lat, t.lon, km) } }] : [];
       }) });
-    map.getSource("adsb")?.setData({ type: "FeatureCollection",
+    ustawDane("adsb", { type: "FeatureCollection",
       features: planes.map(p => ({ type: "Feature",
         geometry: { type: "Point", coordinates: [p.lon, p.lat] },
         properties: { track: p.track ?? 0, callsign: p.callsign, hex: p.hex,
@@ -6970,8 +7038,7 @@ function showHistoryAt(idx) {
     // kolorowanie województw wg sygnałów z tamtego momentu
     for (const v of ALL_VOIVS) {
       const sc = perVoiv[v] || 0;
-      map.setFeatureState({ source: "voiv", id: v },
-        { score: Math.min(sc, 8), level: poziomHist(v, sc), spill: !!h?.spill?.[v] });
+      ustawStan("voiv", v, { score: Math.min(sc, 8), level: poziomHist(v, sc), spill: !!h?.spill?.[v] });
     }
     // powiaty z tamtej chwili — migawki zapisują je od 1.8.10 (21.11.2026); starsze ich
     // nie mają (powHistoria = null) i karta powiatu mówi wtedy, że zapisu nie ma
@@ -8691,6 +8758,17 @@ for (const kind of ["neptun", "adsb"]) {
     if (kind === "adsb" && mapReady) drawFollowTrail();
     odswiezWartosciUstawien();
   });
+}
+{
+  const sel = document.getElementById("set-lekki");
+  if (sel) {
+    sel.value = lekkiWybor() === "1" ? "1" : lekkiWybor() === "0" ? "0" : "auto";
+    sel.addEventListener("change", () => {
+      try { if (sel.value === "auto") localStorage.removeItem(LEKKI_KEY); else localStorage.setItem(LEKKI_KEY, sel.value); } catch {}
+      // rozdzielczość i wygładzanie ustawia się przy tworzeniu mapy — trzeba przeładować
+      location.reload();
+    });
+  }
 }
 {
   const sel = document.getElementById("set-podzial");

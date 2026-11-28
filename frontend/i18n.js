@@ -311,6 +311,17 @@
   function trailSection(en) {
     const head = document.getElementById("trail-head");
     if (head) head.textContent = en ? "Object tracks" : "Trasy obiektów";
+    // Lekki tryb (28.11.2026) — tylko strona w przeglądarce
+    const lekkiHead = document.getElementById("lekki-head");
+    if (lekkiHead) lekkiHead.textContent = en ? "Light mode" : "Lekki tryb";
+    const lekkiLabel = document.getElementById("lekki-label");
+    if (lekkiLabel?.firstChild) lekkiLabel.firstChild.nodeValue = (en ? "For weaker devices, e.g. a TV" : "Dla słabszych urządzeń, np. telewizora") + " ";
+    const lekkiOpts = document.getElementById("set-lekki")?.options;
+    if (lekkiOpts) (en ? ["Automatic", "On", "Off"] : ["Automatycznie", "Włączony", "Wyłączony"]).forEach((v, i) => { if (lekkiOpts[i]) lekkiOpts[i].textContent = v; });
+    const lekkiNote = document.getElementById("lekki-note");
+    if (lekkiNote) lekkiNote.textContent = en
+      ? "Flat map, province colours, icons jump from report to report instead of gliding, no pulsing — the map redraws less often and the page responds faster. “Automatic” turns it on only in TV browsers. Changing it reloads the page."
+      : "Płaska mapa, kolory województw, ikony przeskakują od meldunku do meldunku zamiast płynnie jechać, bez pulsowania — mapa rysuje się rzadziej i strona szybciej reaguje. „Automatycznie” włącza go tylko w przeglądarkach telewizorów. Zmiana przeładowuje stronę.";
     // Podział mapy (1.8.10) — na górze tej samej sekcji
     const podzialHead = document.getElementById("podzial-head");
     if (podzialHead) podzialHead.textContent = en ? "Map division" : "Podział mapy";
@@ -1437,6 +1448,17 @@
       + "Польщі — там воно показує, чи може об’єкт уже бути над Польщею. Радіус кожного об’єкта є також у його картці.";
     const okregiL = document.getElementById("okregi-label");
     if (okregiL?.firstChild) okregiL.firstChild.nodeValue = "Кола невизначеності (NEPTUN) ";
+    // Lekki tryb (28.11.2026)
+    const lekkiHeadUk = document.getElementById("lekki-head");
+    if (lekkiHeadUk) lekkiHeadUk.textContent = "Легкий режим";
+    const lekkiLUk = document.getElementById("lekki-label");
+    if (lekkiLUk?.firstChild) lekkiLUk.firstChild.nodeValue = "Для слабших пристроїв, напр. телевізора ";
+    const lekkiOUk = document.getElementById("set-lekki")?.options;
+    if (lekkiOUk) ["Автоматично", "Увімкнено", "Вимкнено"].forEach((v, i) => { if (lekkiOUk[i]) lekkiOUk[i].textContent = v; });
+    const lekkiNUk = document.getElementById("lekki-note");
+    if (lekkiNUk) lekkiNUk.textContent = "Пласка мапа, кольори воєводств, значки перескакують від повідомлення до "
+      + "повідомлення замість плавного руху, без пульсування — мапа перемальовується рідше, і сторінка швидше "
+      + "реагує. «Автоматично» вмикає його лише в браузерах телевізорів. Зміна перезавантажує сторінку.";
     // Podział mapy (1.8.10)
     const podzialHeadUk = document.getElementById("podzial-head");
     if (podzialHeadUk) podzialHeadUk.textContent = "Поділ мапи";

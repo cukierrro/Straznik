@@ -1158,6 +1158,19 @@
     <!-- Podział mapy (1.8.10, decyzja usera 21.11.2026): alarmy przychodzą dla powiatu,
          więc domyślnie mapa pokazuje powiaty. Napisy w trzech językach: i18n.js (trailSection
          i ukraiński blok), po id — nie po kolejności. -->
+    <!-- Lekki tryb (28.11.2026): tylko strona w przeglądarce (web-only). Tłumaczenia: i18n.js. -->
+    <h3 id="lekki-head" class="web-only">Lekki tryb</h3>
+    <label id="lekki-label" class="web-only">Dla słabszych urządzeń, np. telewizora
+      <select id="set-lekki">
+        <option value="auto">Automatycznie</option>
+        <option value="1">Włączony</option>
+        <option value="0">Wyłączony</option>
+      </select>
+    </label>
+    <div class="fineprint web-only" id="lekki-note">Płaska mapa, kolory województw, ikony przeskakują
+      od meldunku do meldunku zamiast płynnie jechać, bez pulsowania — mapa rysuje się rzadziej
+      i strona szybciej reaguje. „Automatycznie” włącza go tylko w przeglądarkach telewizorów.
+      Zmiana przeładowuje stronę.</div>
     <h3 id="podzial-head">Podział mapy</h3>
     <label id="podzial-label">Kolor i wysokość brył
       <select id="set-podzial">
