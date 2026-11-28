@@ -49,6 +49,7 @@ const ctx = {};
 vm.createContext(ctx);
 /* jeden skrypt, bo `const` z vm.runInContext nie przechodzi do następnego */
 vm.runInContext([
+  'var LEKKI = false;   // lekki tryb strony (28.11.2026) — tu zwykła przeglądarka',
   wytnij('const kmBetween =', '\nconst '),
   wytnij('const GLIDE_MS =', '\nlet lastAnim'),
   'globalThis.glidePosition = glidePosition;',

@@ -212,7 +212,8 @@ test('obiekt z migawki (tylko age_min) też dostaje dorzut drogi', () => {
 
 test('podgląd historii rysuje okrąg niepewności, a nie czyści jego warstwy', () => {
   const ciało = funkcja('showHistoryAt');
-  const m = /getSource\("uncertainty"\)\?\.setData\(([\s\S]{0,40})/.exec(ciało);
+  // od 28.11.2026 przez ustawDane("uncertainty", …) — pomija wgranie tej samej treści
+  const m = /(?:getSource\("uncertainty"\)\?\.setData\(|ustawDane\("uncertainty",\s*)([\s\S]{0,40})/.exec(ciało);
   assert.ok(m, 'showHistoryAt ustawia warstwę uncertainty');
   assert.ok(!/^\s*emptyFC\(\)/.test(m[1]), 'warstwa okręgu w historii nie może być pusta');
   assert.match(ciało, /shownUncertaintyKm\(/, 'promień z tej samej funkcji co na żywo');

@@ -16,7 +16,13 @@ const ANIM = wytnij('function animate(ts)');
 
 test('puls: stoi w trakcie przesuwania mapy i nie składa wyrażenia 20×/s', () => {
   assert.match(PULS, /if \(map\.isMoving\(\)\) return;/);
-  assert.doesNotMatch(PULS, /"interpolate"/, 'promień jako liczba, nie nowe wyrażenie co klatkę');
+  // część animowana (po sprawdzeniu ruchu mapy) — bez nowego wyrażenia co klatkę
+  const zywy = PULS.slice(PULS.indexOf('if (map.isMoving()) return;'));
+  assert.doesNotMatch(zywy, /"interpolate"/, 'promień jako liczba, nie nowe wyrażenie co klatkę');
+  // lekki tryb (28.11.2026): stały pierścień — wyrażenie ustawiane RAZ, pod strażnikiem
+  const wszystkie = PULS.match(/"interpolate"/g) || [];
+  const strzezone = PULS.match(/if \(!lekkiPierscien[^\n]*\n[^\n]*"interpolate"/g) || [];
+  assert.equal(wszystkie.length, strzezone.length, 'interpolate tylko w jednorazowym ustawieniu lekkiego trybu');
   assert.match(PULS, /pulseOff/, 'wygaszenie raz, nie co 50 ms');
 });
 
@@ -30,7 +36,9 @@ test('puls: promień taki sam jak dawne interpolate po zoomie 4→8', () => {
 
 test('animacja: nic nie przebudowuje w trakcie przesuwania mapy', () => {
   assert.match(ANIM, /if \(map\.isMoving\(\)\) return;/);
-  assert.ok(ANIM.indexOf('map.isMoving()') < ANIM.indexOf('setData'), 'sprawdzenie przed setData');
+  // od 28.11.2026 warstwy przez ustawDane (pomija tę samą treść) — dalej po sprawdzeniu ruchu
+  const zapis = ANIM.search(/setData\(|ustawDane\(/);
+  assert.ok(zapis > 0 && ANIM.indexOf('map.isMoving()') < zapis, 'sprawdzenie przed setData');
 });
 
 // Symulacja: ile razy animate wywoła setData w różnych sytuacjach
@@ -38,6 +46,8 @@ function swiat() {
   const zapisy = [];
   const zrodlo = { setData: () => zapisy.push(1) };
   const ctx = { requestAnimationFrame: () => {}, histMode: false, mapReady: true, moving: false,
+    // próba przebudowy warstwy (logika animate); pomijanie tej samej treści — osobny test niżej
+    ustawDane: (id, fc) => zapisy.push(1),
     Date: { now: () => ctx.teraz }, teraz: 1_000_000, Math, String, Set, Map, Number,
     glides: new Map(), GLIDE_MS: 45000,
     trailMode: () => 'off', state: { neptun: { threats: [] } } };
@@ -63,4 +73,22 @@ test('animacja: bez zmian nie rysuje ponownie; nowy stan, 15 s, przejście ikony
   const po5 = zapisy.length; ctx.state = { neptun: { threats: [] } }; ctx.moving = true; krok();
   assert.equal(zapisy.length, po5, 'w trakcie przesuwania nie rysuje');
   ctx.moving = false; krok(); assert.ok(zapisy.length > po5, 'po zatrzymaniu dorysowuje');
+});
+
+// 28.11.2026: setData tylko przy innej treści (nowy stan z serwera z tymi samymi obiektami
+// przebudowywał 7 warstw i przerysowywał mapę bez przerwy — na słabym sprzęcie stale).
+test('ustawDane: ta sama treść nie trafia do mapy, inna treść i nowe źródło tak', () => {
+  const kod = APP.slice(APP.indexOf('const daneZrodel = new Map();'));
+  const fn = kod.match(/^[\s\S]*?function ustawDane\(id, fc\) \{[\s\S]*?\r?\n\}/)[0];
+  const wgrane = [];
+  let zrodlo = { setData: d => wgrane.push(d) };
+  const ctx = { Map, JSON, map: { getSource: () => zrodlo } };
+  vm.createContext(ctx);
+  vm.runInContext(fn + '\nthis.ustawDane = ustawDane;', ctx);
+  const fc = n => ({ type: 'FeatureCollection', features: [{ type: 'Feature', properties: { n }, geometry: { type: 'Point', coordinates: [24, 51] } }] });
+  ctx.ustawDane('threats', fc(1)); assert.equal(wgrane.length, 1, 'pierwsze wgranie');
+  ctx.ustawDane('threats', fc(1)); assert.equal(wgrane.length, 1, 'ta sama treść — bez setData');
+  ctx.ustawDane('threats', fc(2)); assert.equal(wgrane.length, 2, 'inna treść — setData');
+  zrodlo = { setData: d => wgrane.push(d) };
+  ctx.ustawDane('threats', fc(2)); assert.equal(wgrane.length, 3, 'nowe źródło (np. po przeładowaniu stylu) — wgranie od nowa');
 });

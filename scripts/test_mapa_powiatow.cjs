@@ -50,27 +50,35 @@ const doK = app.indexOf('let granicePowiatow = null');
 ok(od > 0 && doK > od, 'blok mapy powiatów stoi przed granicePowiatow');
 const blok = app.slice(od, doK);
 
-function srodowisko({ podzial = 'pow', standalone = false, geo = true, isApp = false, moje = [] } = {}) {
-  const stany = new Map(), widocznosc = {}, filtry = {};
+function srodowisko({ podzial = 'pow', standalone = false, geo = true, isApp = false, moje = [], lekki = false } = {}) {
+  // Początkowa widoczność jak w app.js: warstwy powiatów dodawane z visibility "none",
+  // województw bez ustawienia (= widoczne). Od 28.11.2026 applyPodzialMapy ustawia tylko
+  // zmiany, więc atrapa musi umieć oddać bieżącą wartość (getLayoutProperty, getFilter).
+  const stany = new Map(), filtry = {};
+  const surowa = { 'pow-extrude': 'none', 'pow-line': 'none', 'my-pow': 'none', 'my-pow-glow': 'none' };
+  const widocznosc = new Proxy(surowa, { get: (o, k) => o[k] ?? 'visible' });
+  const wywolania = { layout: 0, filtr: 0 };
   const warstwy = new Set(['voiv-extrude', 'pow-extrude', 'pow-line', 'my-pow', 'my-pow-glow', 'my-voiv', 'my-voiv-glow']);
   const map = {
     getSource: id => (id === 'pow' ? {} : null),
     getLayer: id => (warstwy.has(id) ? {} : null),
     setFeatureState: (k, v) => stany.set(k.id, v),
-    setLayoutProperty: (id, p, v) => { widocznosc[id] = v; },
-    setFilter: (id, f) => { filtry[id] = f; },
+    setLayoutProperty: (id, p, v) => { surowa[id] = v; wywolania.layout++; },
+    getLayoutProperty: (id, p) => surowa[id],
+    setFilter: (id, f) => { filtry[id] = f; wywolania.filtr++; },
+    getFilter: id => filtry[id],
   };
   const ls = new Map(podzial ? [['straznik_mapa_podzial', podzial]] : []);
   const localStorage = { getItem: k => ls.get(k) ?? null, setItem: (k, v) => ls.set(k, v) };
   const UI = { lang: 'pl', t(pl, en, uk) { return this.lang === 'en' ? en : this.lang === 'uk' ? uk : pl; } };
   const powGeoDane = geo ? mapa : null;
-  const fn = new Function('map', 'mapReady', 'localStorage', 'UI', 'standalone', 'IS_APP', 'powiatyDoTematow', 'powGeoStart',
+  const fn = new Function('map', 'mapReady', 'localStorage', 'UI', 'standalone', 'IS_APP', 'powiatyDoTematow', 'powGeoStart', 'LEKKI',
     `${blok}
      powGeo = powGeoStart;
      return { updatePowStates, applyPodzialMapy, podzialMapy, mapaPowiatow, nazwaPowiatuMapy,
               get powStanyMapy() { return powStanyMapy; } };`);
-  const api = fn(map, true, localStorage, UI, standalone, isApp, () => moje, powGeoDane);
-  return { api, stany, widocznosc, filtry, UI };
+  const api = fn(map, true, localStorage, UI, standalone, isApp, () => moje, powGeoDane, lekki);
+  return { api, stany, widocznosc, filtry, UI, wywolania };
 }
 
 console.log('\n2. Stan brył powiatów');
@@ -116,6 +124,19 @@ ok(/\["interpolate", \["linear"\], \["coalesce", \["feature-state", "score"\], 0
 console.log('\n3. Przełącznik podziału');
 s = srodowisko({ podzial: null });
 s.api.applyPodzialMapy();
+{ // 28.11.2026: drugie wywołanie bez zmian niczego nie ustawia (każde ustawienie przerysowywało mapę)
+  const s2 = srodowisko();
+  s2.api.applyPodzialMapy();
+  const po1 = { ...s2.wywolania };
+  s2.api.applyPodzialMapy(); s2.api.applyPodzialMapy();
+  ok(s2.wywolania.layout === po1.layout && s2.wywolania.filtr === po1.filtr && po1.layout > 0,
+     `bez zmian: 0 ponownych ustawień widoczności i filtra (pierwsze: ${po1.layout} + ${po1.filtr})`);
+}
+{ // lekki tryb bez własnego wyboru: województwa; zapisany wybór „pow” wygrywa
+  ok(srodowisko({ podzial: null, lekki: true }).api.podzialMapy() === 'woj', 'lekki tryb bez wyboru — województwa');
+  ok(srodowisko({ podzial: 'pow', lekki: true }).api.podzialMapy() === 'pow', 'lekki tryb, wybór „Powiaty” — zostaje');
+  ok(srodowisko({ podzial: null }).api.podzialMapy() === 'pow', 'zwykła przeglądarka bez wyboru — powiaty jak dotąd');
+}
 ok(s.api.podzialMapy() === 'pow' && s.widocznosc['pow-extrude'] === 'visible' && s.widocznosc['voiv-extrude'] === 'none',
   'domyślnie powiaty: bryły powiatów widoczne, województw ukryte');
 s = srodowisko({ podzial: 'woj' });

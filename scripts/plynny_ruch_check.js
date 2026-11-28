@@ -6,10 +6,15 @@ const src = fs.readFileSync(path.join(__dirname, "..", "frontend", "app.js"), "u
 const pick = (start, end) => { const a = src.indexOf(start), b = src.indexOf(end, a); if (a < 0 || b < 0) throw new Error("brak " + start); return src.slice(a, b); };
 const km = src.slice(src.indexOf("const kmBetween"), src.indexOf(";", src.indexOf("const kmBetween")) + 1);
 const glide = pick("const GLIDE_MS", "let lastAnim");
-const ctx = {};
-new Function("ctx", km.replace("const kmBetween", "var kmBetween") + "\n" +
-  glide.replace(/^const /gm, "var ").replace("function glidePosition", "var glidePosition = function glidePosition") +
-  "\nctx.glidePosition = glidePosition; ctx.GLIDE_MS = GLIDE_MS;")(ctx);
+// LEKKI (lekki tryb strony, 28.11.2026) leży w app.js wyżej — tu jak w zwykłej przeglądarce
+const zbuduj = (lekki) => {
+  const c = {};
+  new Function("ctx", "var LEKKI = " + lekki + ";\n" + km.replace("const kmBetween", "var kmBetween") + "\n" +
+    glide.replace(/^const /gm, "var ").replace("function glidePosition", "var glidePosition = function glidePosition") +
+    "\nctx.glidePosition = glidePosition; ctx.GLIDE_MS = GLIDE_MS;")(c);
+  return c;
+};
+const ctx = zbuduj(false);
 
 let bad = 0;
 const ok = (c, m) => { console.log((c ? "  OK   " : "  BŁĄD ") + m); if (!c) bad++; };
@@ -31,4 +36,15 @@ ok(Math.abs(p.lat - 50.0) < 1e-9, "skok ponad 80 km bez przejazdu przez pół ma
 t.lat = 50.1; t.lon = 30.1;                                   // aplikacja w tle 10 min, potem nowy meldunek
 p = ctx.glidePosition(t, { lat: 50.1, lon: 30.1 }, T1 + 200 + 600000);
 ok(Math.abs(p.lat - 50.1) < 1e-9 && !p.gliding, "po powrocie z tła od razu w miejscu meldunku, bez dojazdu");
+
+// lekki tryb: bez przejazdu — ikona od razu w miejscu meldunku, nic nie zapamiętuje
+{
+  const L = zbuduj(true);
+  const t = { id: "L1", lat: 51.0, lon: 24.0 };
+  L.glidePosition(t, { lat: 51.0, lon: 24.0 }, T0);
+  const t2 = { id: "L1", lat: 51.1, lon: 23.8 };
+  const q = L.glidePosition(t2, { lat: 51.1, lon: 23.8 }, T0 + 200);
+  ok(q.lat === 51.1 && q.lon === 23.8 && q.gliding === false, "lekki tryb: ikona od razu w miejscu meldunku");
+}
+
 process.exit(bad ? 1 : 0);
